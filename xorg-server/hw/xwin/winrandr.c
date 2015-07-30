@@ -104,7 +104,7 @@ winDoRandRScreenSetSize(ScreenPtr pScreen,
     SetRootClip(pScreen, TRUE);
 
     // and arrange for it to be repainted
-    miPaintWindow(pRoot, &pRoot->borderClip, PW_BACKGROUND);
+    pScreen->PaintWindow(pRoot, &pRoot->borderClip, PW_BACKGROUND);
 
     /* Indicate that a screen size change took place */
     RRScreenSizeNotify(pScreen);
@@ -178,8 +178,9 @@ winRandRScreenSetSize(ScreenPtr pScreen,
          */
         AdjustWindowRectEx(&rcClient, dwStyle, FALSE, dwExStyle);
 
-        ErrorF("winRandRScreenSetSize new window area w: %ld h: %ld\n",
-               rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
+        ErrorF("winRandRScreenSetSize new window area w: %d h: %d\n",
+               (int)(rcClient.right - rcClient.left),
+               (int)(rcClient.bottom - rcClient.top));
 
         SetWindowPos(pScreenPriv->hwndScreen, NULL,
                      0, 0, rcClient.right - rcClient.left,

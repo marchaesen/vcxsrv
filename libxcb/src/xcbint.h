@@ -142,6 +142,7 @@ typedef struct _xcb_in {
     struct event_list *events;
     struct event_list **events_tail;
     struct reader_list *readers;
+    struct special_list *special_waiters;
 
     struct pending_reply *pending_replies;
     struct pending_reply **pending_replies_tail;

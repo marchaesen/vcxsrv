@@ -28,6 +28,9 @@ DEPS = $(srcdir)/CaseFolding.txt
 ARGS = $(srcdir)/CaseFolding.txt
 DIST = $(srcdir)/CaseFolding.txt
 
+update:
+	curl -s -o $(srcdir)/CaseFolding.txt http://www.unicode.org/Public/UNIDATA/CaseFolding.txt
+
 include $(top_srcdir)/Tools.mk
 
 -include $(top_srcdir)/git.mk

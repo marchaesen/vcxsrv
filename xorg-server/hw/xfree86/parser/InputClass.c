@@ -58,6 +58,82 @@ xf86ConfigSymTabRec InputClassTab[] = {
     {-1, ""},
 };
 
+static void
+xf86freeInputClassList(XF86ConfInputClassPtr ptr)
+{
+    XF86ConfInputClassPtr prev;
+
+    while (ptr) {
+        xf86MatchGroup *group, *next;
+        char **list;
+
+        TestFree(ptr->identifier);
+        TestFree(ptr->driver);
+
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_product, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_vendor, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_device, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_os, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_pnpid, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_usbid, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_driver, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_tag, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_layout, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+
+        TestFree(ptr->comment);
+        xf86optionListFree(ptr->option_lst);
+
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
+}
+
 #define CLEANUP xf86freeInputClassList
 
 #define TOKEN_SEP "|"
@@ -352,81 +428,5 @@ xf86printInputClassSection(FILE * cf, XF86ConfInputClassPtr ptr)
         xf86printOptionList(cf, ptr->option_lst, 1);
         fprintf(cf, "EndSection\n\n");
         ptr = ptr->list.next;
-    }
-}
-
-void
-xf86freeInputClassList(XF86ConfInputClassPtr ptr)
-{
-    XF86ConfInputClassPtr prev;
-
-    while (ptr) {
-        xf86MatchGroup *group, *next;
-        char **list;
-
-        TestFree(ptr->identifier);
-        TestFree(ptr->driver);
-
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_product, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_vendor, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_device, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_os, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_pnpid, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_usbid, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_driver, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_tag, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_layout, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-
-        TestFree(ptr->comment);
-        xf86optionListFree(ptr->option_lst);
-
-        prev = ptr;
-        ptr = ptr->list.next;
-        free(prev);
     }
 }

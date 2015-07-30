@@ -1314,7 +1314,7 @@ flush_delayed_errors( struct gl_context *ctx )
    if (ctx->ErrorDebugCount) {
       _mesa_snprintf(s, MAX_DEBUG_MESSAGE_LENGTH, "%d similar %s errors", 
                      ctx->ErrorDebugCount,
-                     _mesa_lookup_enum_by_nr(ctx->ErrorValue));
+                     _mesa_enum_to_string(ctx->ErrorValue));
 
       output_if_debug("Mesa", s, GL_TRUE);
 
@@ -1413,6 +1413,26 @@ should_output(struct gl_context *ctx, GLenum error, const char *fmtString)
 
 
 void
+_mesa_gl_vdebug(struct gl_context *ctx,
+                GLuint *id,
+                enum mesa_debug_source source,
+                enum mesa_debug_type type,
+                enum mesa_debug_severity severity,
+                const char *fmtString,
+                va_list args)
+{
+   char s[MAX_DEBUG_MESSAGE_LENGTH];
+   int len;
+
+   debug_get_id(id);
+
+   len = _mesa_vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
+
+   log_msg(ctx, source, type, *id, severity, len, s);
+}
+
+
+void
 _mesa_gl_debug(struct gl_context *ctx,
                GLuint *id,
                enum mesa_debug_source source,
@@ -1420,17 +1440,10 @@ _mesa_gl_debug(struct gl_context *ctx,
                enum mesa_debug_severity severity,
                const char *fmtString, ...)
 {
-   char s[MAX_DEBUG_MESSAGE_LENGTH];
-   int len;
    va_list args;
-
-   debug_get_id(id);
-
    va_start(args, fmtString);
-   len = _mesa_vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
+   _mesa_gl_vdebug(ctx, id, source, type, severity, fmtString, args);
    va_end(args);
-
-   log_msg(ctx, source, type, *id, severity, len, s);
 }
 
 
@@ -1490,7 +1503,7 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
       }
 
       len = _mesa_snprintf(s2, MAX_DEBUG_MESSAGE_LENGTH, "%s in %s",
-                           _mesa_lookup_enum_by_nr(error), s);
+                           _mesa_enum_to_string(error), s);
       if (len >= MAX_DEBUG_MESSAGE_LENGTH) {
          /* Same as above. */
          assert(0);

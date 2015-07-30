@@ -156,7 +156,7 @@ SetDefaultFont(const char *defaultfontname)
  * init_fpe() and free_fpe(), there shouldn't be any problem in using
  * freed data.
  */
-void
+static void
 QueueFontWakeup(FontPathElementPtr fpe)
 {
     int i;
@@ -179,7 +179,7 @@ QueueFontWakeup(FontPathElementPtr fpe)
     num_slept_fpes++;
 }
 
-void
+static void
 RemoveFontWakeup(FontPathElementPtr fpe)
 {
     int i, j;
@@ -195,7 +195,7 @@ RemoveFontWakeup(FontPathElementPtr fpe)
     }
 }
 
-void
+static void
 FontWakeup(void *data, int count, void *LastSelectMask)
 {
     int i;
@@ -849,7 +849,7 @@ ListFonts(ClientPtr client, unsigned char *pattern, unsigned length,
     return Success;
 }
 
-int
+static int
 doListFontsWithInfo(ClientPtr client, LFWIclosurePtr c)
 {
     FontPathElementPtr fpe;
@@ -1105,7 +1105,7 @@ static ChangeGCVal clearGC[] = { {.ptr = NullPixmap} };
 
 #define clearGCmask (GCClipMask)
 
-int
+static int
 doPolyText(ClientPtr client, PTclosurePtr c)
 {
     FontPtr pFont = c->pGC->font, oldpFont;
@@ -1389,7 +1389,7 @@ PolyText(ClientPtr client, DrawablePtr pDraw, GC * pGC, unsigned char *pElt,
 #undef TextEltHeader
 #undef FontShiftSize
 
-int
+static int
 doImageText(ClientPtr client, ITclosurePtr c)
 {
     int err = Success, lgerr;   /* err is in X error, not font error, space */

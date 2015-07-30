@@ -306,11 +306,9 @@ CopyCursorToImage(CursorPtr pCursor, CARD32 *image)
     int height = pCursor->bits->height;
     int npixels = width * height;
 
-#ifdef ARGB_CURSOR
     if (pCursor->bits->argb)
         memcpy(image, pCursor->bits->argb, npixels * sizeof(CARD32));
     else
-#endif
     {
         unsigned char *srcLine = pCursor->bits->source;
         unsigned char *mskLine = pCursor->bits->mask;

@@ -137,23 +137,23 @@ validate_shine_table( struct gl_context *ctx, GLuint side, GLfloat shininess )
 	    break;
 
       m = s->tab;
-      m[0] = 0.0;
-      if (shininess == 0.0) {
+      m[0] = 0.0F;
+      if (shininess == 0.0F) {
 	 for (j = 1 ; j <= SHINE_TABLE_SIZE ; j++)
-	    m[j] = 1.0;
+	    m[j] = 1.0F;
       }
       else {
 	 for (j = 1 ; j < SHINE_TABLE_SIZE ; j++) {
-            GLdouble t, x = j / (GLfloat) (SHINE_TABLE_SIZE - 1);
-            if (x < 0.005) /* underflow check */
-               x = 0.005;
-            t = pow(x, shininess);
-	    if (t > 1e-20)
-	       m[j] = (GLfloat) t;
+            GLfloat t, x = j / (GLfloat) (SHINE_TABLE_SIZE - 1);
+            if (x < 0.005F) /* underflow check */
+               x = 0.005F;
+            t = powf(x, shininess);
+	    if (t > 1e-20F)
+	       m[j] = t;
 	    else
-	       m[j] = 0.0;
+	       m[j] = 0.0F;
 	 }
-	 m[SHINE_TABLE_SIZE] = 1.0;
+	 m[SHINE_TABLE_SIZE] = 1.0F;
       }
 
       s->shininess = shininess;

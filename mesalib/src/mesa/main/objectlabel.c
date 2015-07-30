@@ -30,6 +30,7 @@
 #include "enums.h"
 #include "fbobject.h"
 #include "objectlabel.h"
+#include "pipelineobj.h"
 #include "queryobj.h"
 #include "samplerobj.h"
 #include "shaderobj.h"
@@ -214,8 +215,13 @@ get_label_pointer(struct gl_context *ctx, GLenum identifier, GLuint name,
       }
       break;
    case GL_PROGRAM_PIPELINE:
-      /* requires GL 4.2 */
-      goto invalid_enum;
+      {
+         struct gl_pipeline_object *pipe =
+            _mesa_lookup_pipeline_object(ctx, name);
+         if (pipe)
+            labelPtr = &pipe->Label;
+      }
+      break;
    default:
       goto invalid_enum;
    }
@@ -228,7 +234,7 @@ get_label_pointer(struct gl_context *ctx, GLenum identifier, GLuint name,
 
 invalid_enum:
    _mesa_error(ctx, GL_INVALID_ENUM, "%s(identifier = %s)",
-               caller, _mesa_lookup_enum_by_nr(identifier));
+               caller, _mesa_enum_to_string(identifier));
    return NULL;
 }
 

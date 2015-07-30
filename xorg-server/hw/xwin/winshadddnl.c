@@ -200,8 +200,10 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
     DDPIXELFORMAT ddpfPrimary;
 
 #if CYGDEBUG
-    winDebug("winAllocateFBShadowDDNL - w %d h %d d %d\n",
-             pScreenInfo->dwWidth, pScreenInfo->dwHeight, pScreenInfo->dwDepth);
+    winDebug("winAllocateFBShadowDDNL - w %u h %u d %u\n",
+             (unsigned int)pScreenInfo->dwWidth,
+             (unsigned int)pScreenInfo->dwHeight,
+             (unsigned int)pScreenInfo->dwDepth);
 #endif
 
     /* Set the padded screen width */
@@ -400,10 +402,11 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
 
 #if CYGDEBUG
     winDebug("winAllocateFBShadowDDNL - Primary masks: %08x %08x %08x "
-             "dwRGBBitCount: %d\n",
-             ddpfPrimary.u2.dwRBitMask,
-             ddpfPrimary.u3.dwGBitMask,
-             ddpfPrimary.u4.dwBBitMask, ddpfPrimary.u1.dwRGBBitCount);
+             "dwRGBBitCount: %u\n",
+             (unsigned int)ddpfPrimary.u2.dwRBitMask,
+             (unsigned int)ddpfPrimary.u3.dwGBitMask,
+             (unsigned int)ddpfPrimary.u4.dwBBitMask,
+             (unsigned int)ddpfPrimary.u1.dwRGBBitCount);
 #endif
 
     /* Describe the shadow surface to be created */

@@ -728,7 +728,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
       save->DepthNear = ctx->ViewportArray[0].Near;
       save->DepthFar = ctx->ViewportArray[0].Far;
       /* set depth range to default */
-      _mesa_DepthRange(0.0, 1.0);
+      _mesa_set_depth_range(ctx, 0, 0.0, 1.0);
    }
 
    if (state & MESA_META_CLAMP_FRAGMENT_COLOR) {
@@ -945,6 +945,8 @@ _mesa_meta_end(struct gl_context *ctx)
    if (state & MESA_META_SHADER) {
       static const GLenum targets[] = {
          GL_VERTEX_SHADER,
+         GL_TESS_CONTROL_SHADER,
+         GL_TESS_EVALUATION_SHADER,
          GL_GEOMETRY_SHADER,
          GL_FRAGMENT_SHADER,
       };
@@ -1129,7 +1131,7 @@ _mesa_meta_end(struct gl_context *ctx)
          _mesa_set_viewport(ctx, 0, save->ViewportX, save->ViewportY,
                             save->ViewportW, save->ViewportH);
       }
-      _mesa_DepthRange(save->DepthNear, save->DepthFar);
+      _mesa_set_depth_range(ctx, 0, save->DepthNear, save->DepthFar);
    }
 
    if (state & MESA_META_CLAMP_FRAGMENT_COLOR &&
@@ -2449,29 +2451,52 @@ _mesa_meta_Bitmap(struct gl_context *ctx,
 
 /**
  * Compute the texture coordinates for the four vertices of a quad for
- * drawing a 2D texture image or slice of a cube/3D texture.
+ * drawing a 2D texture image or slice of a cube/3D texture.  The offset
+ * and width, height specify a sub-region of the 2D image.
+ *
  * \param faceTarget  GL_TEXTURE_1D/2D/3D or cube face name
  * \param slice  slice of a 1D/2D array texture or 3D texture
- * \param width  width of the texture image
- * \param height  height of the texture image
+ * \param xoffset  X position of sub texture
+ * \param yoffset  Y position of sub texture
+ * \param width  width of the sub texture image
+ * \param height  height of the sub texture image
+ * \param total_width  total width of the texture image
+ * \param total_height  total height of the texture image
+ * \param total_depth  total depth of the texture image
  * \param coords0/1/2/3  returns the computed texcoords
  */
 void
 _mesa_meta_setup_texture_coords(GLenum faceTarget,
                                 GLint slice,
+                                GLint xoffset,
+                                GLint yoffset,
                                 GLint width,
                                 GLint height,
-                                GLint depth,
+                                GLint total_width,
+                                GLint total_height,
+                                GLint total_depth,
                                 GLfloat coords0[4],
                                 GLfloat coords1[4],
                                 GLfloat coords2[4],
                                 GLfloat coords3[4])
 {
-   static const GLfloat st[4][2] = {
-      {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}
-   };
+   float st[4][2];
    GLuint i;
+   const float s0 = (float) xoffset / (float) total_width;
+   const float s1 = (float) (xoffset + width) / (float) total_width;
+   const float t0 = (float) yoffset / (float) total_height;
+   const float t1 = (float) (yoffset + height) / (float) total_height;
    GLfloat r;
+
+   /* setup the reference texcoords */
+   st[0][0] = s0;
+   st[0][1] = t0;
+   st[1][0] = s1;
+   st[1][1] = t0;
+   st[2][0] = s1;
+   st[2][1] = t1;
+   st[3][0] = s0;
+   st[3][1] = t1;
 
    if (faceTarget == GL_TEXTURE_CUBE_MAP_ARRAY)
       faceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + slice % 6;
@@ -2489,52 +2514,52 @@ _mesa_meta_setup_texture_coords(GLenum faceTarget,
    case GL_TEXTURE_3D:
    case GL_TEXTURE_2D_ARRAY:
       if (faceTarget == GL_TEXTURE_3D) {
-         assert(slice < depth);
-         assert(depth >= 1);
-         r = (slice + 0.5f) / depth;
+         assert(slice < total_depth);
+         assert(total_depth >= 1);
+         r = (slice + 0.5f) / total_depth;
       }
       else if (faceTarget == GL_TEXTURE_2D_ARRAY)
          r = (float) slice;
       else
          r = 0.0F;
-      coords0[0] = 0.0F; /* s */
-      coords0[1] = 0.0F; /* t */
+      coords0[0] = st[0][0]; /* s */
+      coords0[1] = st[0][1]; /* t */
       coords0[2] = r; /* r */
-      coords1[0] = 1.0F;
-      coords1[1] = 0.0F;
+      coords1[0] = st[1][0];
+      coords1[1] = st[1][1];
       coords1[2] = r;
-      coords2[0] = 1.0F;
-      coords2[1] = 1.0F;
+      coords2[0] = st[2][0];
+      coords2[1] = st[2][1];
       coords2[2] = r;
-      coords3[0] = 0.0F;
-      coords3[1] = 1.0F;
+      coords3[0] = st[3][0];
+      coords3[1] = st[3][1];
       coords3[2] = r;
       break;
    case GL_TEXTURE_RECTANGLE_ARB:
-      coords0[0] = 0.0F; /* s */
-      coords0[1] = 0.0F; /* t */
+      coords0[0] = (float) xoffset; /* s */
+      coords0[1] = (float) yoffset; /* t */
       coords0[2] = 0.0F; /* r */
-      coords1[0] = (float) width;
-      coords1[1] = 0.0F;
+      coords1[0] = (float) (xoffset + width);
+      coords1[1] = (float) yoffset;
       coords1[2] = 0.0F;
-      coords2[0] = (float) width;
-      coords2[1] = (float) height;
+      coords2[0] = (float) (xoffset + width);
+      coords2[1] = (float) (yoffset + height);
       coords2[2] = 0.0F;
-      coords3[0] = 0.0F;
-      coords3[1] = (float) height;
+      coords3[0] = (float) xoffset;
+      coords3[1] = (float) (yoffset + height);
       coords3[2] = 0.0F;
       break;
    case GL_TEXTURE_1D_ARRAY:
-      coords0[0] = 0.0F; /* s */
+      coords0[0] = st[0][0]; /* s */
       coords0[1] = (float) slice; /* t */
       coords0[2] = 0.0F; /* r */
-      coords1[0] = 1.0f;
+      coords1[0] = st[1][0];
       coords1[1] = (float) slice;
       coords1[2] = 0.0F;
-      coords2[0] = 1.0F;
+      coords2[0] = st[2][0];
       coords2[1] = (float) slice;
       coords2[2] = 0.0F;
-      coords3[0] = 0.0F;
+      coords3[0] = st[3][0];
       coords3[1] = (float) slice;
       coords3[2] = 0.0F;
       break;
@@ -2943,15 +2968,14 @@ static bool
 decompress_texture_image(struct gl_context *ctx,
                          struct gl_texture_image *texImage,
                          GLuint slice,
+                         GLint xoffset, GLint yoffset,
+                         GLsizei width, GLsizei height,
                          GLenum destFormat, GLenum destType,
                          GLvoid *dest)
 {
    struct decompress_state *decompress = &ctx->Meta->Decompress;
    struct decompress_fbo_state *decompress_fbo;
    struct gl_texture_object *texObj = texImage->TexObject;
-   const GLint width = texImage->Width;
-   const GLint height = texImage->Height;
-   const GLint depth = texImage->Height;
    const GLenum target = texObj->Target;
    GLenum rbFormat;
    GLenum faceTarget;
@@ -3069,7 +3093,10 @@ decompress_texture_image(struct gl_context *ctx,
    /* Silence valgrind warnings about reading uninitialized stack. */
    memset(verts, 0, sizeof(verts));
 
-   _mesa_meta_setup_texture_coords(faceTarget, slice, width, height, depth,
+   _mesa_meta_setup_texture_coords(faceTarget, slice,
+                                   xoffset, yoffset, width, height,
+                                   texImage->Width, texImage->Height,
+                                   texImage->Depth,
                                    verts[0].tex,
                                    verts[1].tex,
                                    verts[2].tex,
@@ -3123,7 +3150,7 @@ decompress_texture_image(struct gl_context *ctx,
    /* read pixels from renderbuffer */
    {
       GLenum baseTexFormat = texImage->_BaseFormat;
-      GLenum destBaseFormat = _mesa_base_tex_format(ctx, destFormat);
+      GLenum destBaseFormat = _mesa_unpack_format_to_base_format(destFormat);
 
       /* The pixel transfer state will be set to default values at this point
        * (see MESA_META_PIXEL_TRANSFER) so pixel transfer ops are effectively
@@ -3132,19 +3159,13 @@ decompress_texture_image(struct gl_context *ctx,
        * returned as red and two-channel texture values are returned as
        * red/alpha.
        */
-      if ((baseTexFormat == GL_LUMINANCE ||
-           baseTexFormat == GL_LUMINANCE_ALPHA ||
-           baseTexFormat == GL_INTENSITY) ||
+      if (_mesa_need_luminance_to_rgb_conversion(baseTexFormat,
+                                                 destBaseFormat) ||
           /* If we're reading back an RGB(A) texture (using glGetTexImage) as
 	   * luminance then we need to return L=tex(R).
 	   */
-          ((baseTexFormat == GL_RGBA ||
-            baseTexFormat == GL_RGB  ||
-            baseTexFormat == GL_RG) &&
-          (destBaseFormat == GL_LUMINANCE ||
-           destBaseFormat == GL_LUMINANCE_ALPHA ||
-           destBaseFormat == GL_LUMINANCE_INTEGER_EXT ||
-           destBaseFormat == GL_LUMINANCE_ALPHA_INTEGER_EXT))) {
+          _mesa_need_rgb_to_luminance_conversion(baseTexFormat,
+                                                 destBaseFormat)) {
          /* Green and blue must be zero */
          _mesa_PixelTransferf(GL_GREEN_SCALE, 0.0f);
          _mesa_PixelTransferf(GL_BLUE_SCALE, 0.0f);
@@ -3171,15 +3192,17 @@ decompress_texture_image(struct gl_context *ctx,
  * from core Mesa.
  */
 void
-_mesa_meta_GetTexImage(struct gl_context *ctx,
-                       GLenum format, GLenum type, GLvoid *pixels,
-                       struct gl_texture_image *texImage)
+_mesa_meta_GetTexSubImage(struct gl_context *ctx,
+                          GLint xoffset, GLint yoffset, GLint zoffset,
+                          GLsizei width, GLsizei height, GLsizei depth,
+                          GLenum format, GLenum type, GLvoid *pixels,
+                          struct gl_texture_image *texImage)
 {
    if (_mesa_is_format_compressed(texImage->TexFormat)) {
       GLuint slice;
       bool result = true;
 
-      for (slice = 0; slice < texImage->Depth; slice++) {
+      for (slice = 0; slice < depth; slice++) {
          void *dst;
          if (texImage->TexObject->Target == GL_TEXTURE_2D_ARRAY
              || texImage->TexObject->Target == GL_TEXTURE_CUBE_MAP_ARRAY) {
@@ -3191,14 +3214,14 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
             struct gl_pixelstore_attrib packing = ctx->Pack;
             packing.SkipPixels = 0;
             packing.SkipRows = 0;
-            dst = _mesa_image_address3d(&packing, pixels, texImage->Width,
-                                        texImage->Height, format, type,
-                                        slice, 0, 0);
+            dst = _mesa_image_address3d(&packing, pixels, width, height,
+                                        format, type, slice, 0, 0);
          }
          else {
             dst = pixels;
          }
          result = decompress_texture_image(ctx, texImage, slice,
+                                           xoffset, yoffset, width, height,
                                            format, type, dst);
          if (!result)
             break;
@@ -3208,7 +3231,8 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
          return;
    }
 
-   _mesa_GetTexImage_sw(ctx, format, type, pixels, texImage);
+   _mesa_GetTexSubImage_sw(ctx, xoffset, yoffset, zoffset,
+                           width, height, depth, format, type, pixels, texImage);
 }
 
 

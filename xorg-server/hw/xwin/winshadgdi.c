@@ -121,7 +121,7 @@ winQueryScreenDIBFormat(ScreenPtr pScreen, BITMAPINFOHEADER * pbmih)
     pdw = (DWORD *) ((CARD8 *) pbmih + sizeof(BITMAPINFOHEADER));
 
     winDebug("winQueryScreenDIBFormat - First call masks: %08x %08x %08x\n",
-             pdw[0], pdw[1], pdw[2]);
+             (unsigned int)pdw[0], (unsigned int)pdw[1], (unsigned int)pdw[2]);
 #endif
 
     /* Get optimal color table, or the optimal bitfields */
@@ -197,12 +197,12 @@ winQueryRGBBitsAndMasks(ScreenPtr pScreen)
 
 #if CYGDEBUG
         winDebug("%s - Masks: %08x %08x %08x\n", __FUNCTION__,
-                 pdw[0], pdw[1], pdw[2]);
+                 (unsigned int)pdw[0], (unsigned int)pdw[1], (unsigned int)pdw[2]);
         winDebug("%s - Bitmap: %dx%d %d bpp %d planes\n", __FUNCTION__,
-                 pbmih->biWidth, pbmih->biHeight, pbmih->biBitCount,
+                 (int)pbmih->biWidth, (int)pbmih->biHeight, pbmih->biBitCount,
                  pbmih->biPlanes);
-        winDebug("%s - Compression: %d %s\n", __FUNCTION__,
-                 pbmih->biCompression,
+        winDebug("%s - Compression: %u %s\n", __FUNCTION__,
+                 (unsigned int)pbmih->biCompression,
                  (pbmih->biCompression ==
                   BI_RGB ? "(BI_RGB)" : (pbmih->biCompression ==
                                          BI_RLE8 ? "(BI_RLE8)" : (pbmih->

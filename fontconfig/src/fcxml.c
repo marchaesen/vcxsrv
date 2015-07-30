@@ -1260,8 +1260,11 @@ static void
 FcParseBlank (FcConfigParse *parse)
 {
     int		n = FcVStackElements (parse);
+#if 0
     FcChar32	i, begin, end;
+#endif
 
+    FcConfigMessage (parse, FcSevereWarning, "blank doesn't take any effect anymore. please remove it from your fonts.conf");
     while (n-- > 0)
     {
 	FcVStack    *v = FcVStackFetch (parse, n);
@@ -1273,10 +1276,13 @@ FcParseBlank (FcConfigParse *parse)
 	}
 	switch ((int) v->tag) {
 	case FcVStackInteger:
+#if 0
 	    if (!FcBlanksAdd (parse->config->blanks, v->u.integer))
 		goto bail;
 	    break;
+#endif
 	case FcVStackRange:
+#if 0
 	    begin = (FcChar32) v->u.range->begin;
 	    end = (FcChar32) v->u.range->end;
 	    if (begin <= end)
@@ -1287,6 +1293,7 @@ FcParseBlank (FcConfigParse *parse)
 		      goto bail;
 	      }
 	    }
+#endif
 	    break;
 	default:
 	    FcConfigMessage (parse, FcSevereError, "invalid element in blank");

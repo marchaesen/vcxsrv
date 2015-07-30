@@ -37,6 +37,9 @@ extern "C" {
 #define _LOADER_GALLIUM      (1 << 1)
 
 int
+loader_open_device(const char *);
+
+int
 loader_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id);
 
 char *

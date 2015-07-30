@@ -35,28 +35,28 @@
  * z32_unorm conversion functions
  */
 
-static INLINE uint16_t
+static inline uint16_t
 z32_unorm_to_z16_unorm(uint32_t z)
 {
    /* z * 0xffff / 0xffffffff */
    return z >> 16;
 }
 
-static INLINE uint32_t
+static inline uint32_t
 z16_unorm_to_z32_unorm(uint16_t z)
 {
    /* z * 0xffffffff / 0xffff */
    return (z << 16) | z;
 }
 
-static INLINE uint32_t
+static inline uint32_t
 z32_unorm_to_z24_unorm(uint32_t z)
 {
    /* z * 0xffffff / 0xffffffff */
    return z >> 8;
 }
 
-static INLINE uint32_t
+static inline uint32_t
 z24_unorm_to_z32_unorm(uint32_t z)
 {
    /* z * 0xffffffff / 0xffffff */
@@ -68,42 +68,42 @@ z24_unorm_to_z32_unorm(uint32_t z)
  * z32_float conversion functions
  */
 
-static INLINE uint16_t
+static inline uint16_t
 z32_float_to_z16_unorm(float z)
 {
    const float scale = 0xffff;
    return (uint16_t)(z * scale + 0.5f);
 }
 
-static INLINE float
+static inline float
 z16_unorm_to_z32_float(uint16_t z)
 {
    const float scale = 1.0 / 0xffff;
    return (float)(z * scale);
 }
 
-static INLINE uint32_t
+static inline uint32_t
 z32_float_to_z24_unorm(float z)
 {
    const double scale = 0xffffff;
    return (uint32_t)(z * scale) & 0xffffff;
 }
 
-static INLINE float
+static inline float
 z24_unorm_to_z32_float(uint32_t z)
 {
    const double scale = 1.0 / 0xffffff;
    return (float)(z * scale);
 }
 
-static INLINE uint32_t
+static inline uint32_t
 z32_float_to_z32_unorm(float z)
 {
    const double scale = 0xffffffff;
    return (uint32_t)(z * scale);
 }
 
-static INLINE float
+static inline float
 z32_unorm_to_z32_float(uint32_t z)
 {
    const double scale = 1.0 / 0xffffffff;

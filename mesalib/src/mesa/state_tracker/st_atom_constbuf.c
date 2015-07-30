@@ -59,7 +59,9 @@ void st_upload_constants( struct st_context *st,
 {
    assert(shader_type == PIPE_SHADER_VERTEX ||
           shader_type == PIPE_SHADER_FRAGMENT ||
-          shader_type == PIPE_SHADER_GEOMETRY);
+          shader_type == PIPE_SHADER_GEOMETRY ||
+          shader_type == PIPE_SHADER_TESS_CTRL ||
+          shader_type == PIPE_SHADER_TESS_EVAL);
 
    /* update constants */
    if (params && params->NumParameters) {
@@ -178,6 +180,50 @@ const struct st_tracked_state st_update_gs_constants = {
    update_gs_constants					/* update */
 };
 
+/* Tessellation control shader:
+ */
+static void update_tcs_constants(struct st_context *st )
+{
+   struct st_tessctrl_program *tcp = st->tcp;
+   struct gl_program_parameter_list *params;
+
+   if (tcp) {
+      params = tcp->Base.Base.Parameters;
+      st_upload_constants( st, params, PIPE_SHADER_TESS_CTRL );
+   }
+}
+
+const struct st_tracked_state st_update_tcs_constants = {
+   "st_update_tcs_constants",				/* name */
+   {							/* dirty */
+      _NEW_PROGRAM_CONSTANTS,                           /* mesa */
+      ST_NEW_TESSCTRL_PROGRAM,				/* st */
+   },
+   update_tcs_constants					/* update */
+};
+
+/* Tessellation evaluation shader:
+ */
+static void update_tes_constants(struct st_context *st )
+{
+   struct st_tesseval_program *tep = st->tep;
+   struct gl_program_parameter_list *params;
+
+   if (tep) {
+      params = tep->Base.Base.Parameters;
+      st_upload_constants( st, params, PIPE_SHADER_TESS_EVAL );
+   }
+}
+
+const struct st_tracked_state st_update_tes_constants = {
+   "st_update_tes_constants",				/* name */
+   {							/* dirty */
+      _NEW_PROGRAM_CONSTANTS,                           /* mesa */
+      ST_NEW_TESSEVAL_PROGRAM,				/* st */
+   },
+   update_tes_constants					/* update */
+};
+
 static void st_bind_ubos(struct st_context *st,
                            struct gl_shader *shader,
                            unsigned shader_type)
@@ -274,4 +320,44 @@ const struct st_tracked_state st_bind_gs_ubos = {
       ST_NEW_GEOMETRY_PROGRAM | ST_NEW_UNIFORM_BUFFER,
    },
    bind_gs_ubos
+};
+
+static void bind_tcs_ubos(struct st_context *st)
+{
+   struct gl_shader_program *prog =
+      st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
+
+   if (!prog)
+      return;
+
+   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_TESS_CTRL], PIPE_SHADER_TESS_CTRL);
+}
+
+const struct st_tracked_state st_bind_tcs_ubos = {
+   "st_bind_tcs_ubos",
+   {
+      0,
+      ST_NEW_TESSCTRL_PROGRAM | ST_NEW_UNIFORM_BUFFER,
+   },
+   bind_tcs_ubos
+};
+
+static void bind_tes_ubos(struct st_context *st)
+{
+   struct gl_shader_program *prog =
+      st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
+
+   if (!prog)
+      return;
+
+   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_TESS_EVAL], PIPE_SHADER_TESS_EVAL);
+}
+
+const struct st_tracked_state st_bind_tes_ubos = {
+   "st_bind_tes_ubos",
+   {
+      0,
+      ST_NEW_TESSEVAL_PROGRAM | ST_NEW_UNIFORM_BUFFER,
+   },
+   bind_tes_ubos
 };

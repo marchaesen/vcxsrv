@@ -47,9 +47,10 @@
 static unsigned
 values_for_type(const glsl_type *type)
 {
-   if (type->is_sampler()) {
+   if (type->is_sampler() || type->is_subroutine()) {
       return 1;
-   } else if (type->is_array() && type->fields.array->is_sampler()) {
+   } else if (type->is_array() && (type->fields.array->is_sampler() ||
+                                   type->fields.array->is_subroutine())) {
       return type->array_size();
    } else {
       return type->component_slots();
@@ -284,6 +285,7 @@ public:
    count_uniform_size(struct string_to_uint_map *map)
       : num_active_uniforms(0), num_values(0), num_shader_samplers(0),
         num_shader_images(0), num_shader_uniform_components(0),
+        num_shader_subroutines(0),
         is_ubo_var(false), map(map)
    {
       /* empty */
@@ -294,11 +296,12 @@ public:
       this->num_shader_samplers = 0;
       this->num_shader_images = 0;
       this->num_shader_uniform_components = 0;
+      this->num_shader_subroutines = 0;
    }
 
    void process(ir_variable *var)
    {
-      this->is_ubo_var = var->is_in_uniform_block();
+      this->is_ubo_var = var->is_in_buffer_block();
       if (var->is_interface_instance())
          program_resource_visitor::process(var->get_interface_type(),
                                            var->get_interface_type()->name);
@@ -331,6 +334,11 @@ public:
     */
    unsigned num_shader_uniform_components;
 
+   /**
+    * Number of subroutine uniforms used
+    */
+   unsigned num_shader_subroutines;
+
    bool is_ubo_var;
 
 private:
@@ -348,7 +356,9 @@ private:
        * count it for each shader target.
        */
       const unsigned values = values_for_type(type);
-      if (type->contains_sampler()) {
+      if (type->contains_subroutine()) {
+         this->num_shader_subroutines += values;
+      } else if (type->contains_sampler()) {
          this->num_shader_samplers += values;
       } else if (type->contains_image()) {
          this->num_shader_images += values;
@@ -421,6 +431,7 @@ public:
       this->shader_shadow_samplers = 0;
       this->next_sampler = 0;
       this->next_image = 0;
+      this->next_subroutine = 0;
       memset(this->targets, 0, sizeof(this->targets));
    }
 
@@ -431,7 +442,7 @@ public:
       field_counter = 0;
 
       ubo_block_index = -1;
-      if (var->is_in_uniform_block()) {
+      if (var->is_in_buffer_block()) {
          if (var->is_interface_instance() && var->type->is_array()) {
             unsigned l = strlen(var->get_interface_type()->name);
 
@@ -535,6 +546,24 @@ private:
       }
    }
 
+   void handle_subroutines(const glsl_type *base_type,
+                           struct gl_uniform_storage *uniform)
+   {
+      if (base_type->is_subroutine()) {
+         uniform->subroutine[shader_type].index = this->next_subroutine;
+         uniform->subroutine[shader_type].active = true;
+
+         /* Increment the subroutine index by 1 for non-arrays and by the
+          * number of array elements for arrays.
+          */
+         this->next_subroutine += MAX2(1, uniform->array_elements);
+
+      } else {
+         uniform->subroutine[shader_type].index = ~0;
+         uniform->subroutine[shader_type].active = false;
+      }
+   }
+
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major)
    {
@@ -588,6 +617,7 @@ private:
       /* This assigns uniform indices to sampler and image uniforms. */
       handle_samplers(base_type, &this->uniforms[id]);
       handle_images(base_type, &this->uniforms[id]);
+      handle_subroutines(base_type, &this->uniforms[id]);
 
       /* If there is already storage associated with this uniform or if the
        * uniform is set as builtin, it means that it was set while processing
@@ -672,6 +702,7 @@ private:
    struct gl_uniform_storage *uniforms;
    unsigned next_sampler;
    unsigned next_image;
+   unsigned next_subroutine;
 
 public:
    union gl_constant_value *values;
@@ -763,10 +794,11 @@ link_update_uniform_buffer_variables(struct gl_shader *shader)
    foreach_in_list(ir_instruction, node, shader->ir) {
       ir_variable *const var = node->as_variable();
 
-      if ((var == NULL) || !var->is_in_uniform_block())
+      if ((var == NULL) || !var->is_in_buffer_block())
 	 continue;
 
-      assert(var->data.mode == ir_var_uniform);
+      assert(var->data.mode == ir_var_uniform ||
+             var->data.mode == ir_var_shader_storage);
 
       if (var->is_interface_instance()) {
          var->data.location = 0;
@@ -943,7 +975,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       foreach_in_list(ir_instruction, node, sh->ir) {
 	 ir_variable *const var = node->as_variable();
 
-	 if ((var == NULL) || (var->data.mode != ir_var_uniform))
+	 if ((var == NULL) || (var->data.mode != ir_var_uniform &&
+	                       var->data.mode != ir_var_shader_storage))
 	    continue;
 
 	 uniform_size.process(var);
@@ -952,8 +985,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       sh->num_samplers = uniform_size.num_shader_samplers;
       sh->NumImages = uniform_size.num_shader_images;
       sh->num_uniform_components = uniform_size.num_shader_uniform_components;
-
       sh->num_combined_uniform_components = sh->num_uniform_components;
+
       for (unsigned i = 0; i < sh->NumUniformBlocks; i++) {
 	 sh->num_combined_uniform_components +=
 	    sh->UniformBlocks[i].UniformBufferSize / 4;
@@ -987,7 +1020,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       foreach_in_list(ir_instruction, node, prog->_LinkedShaders[i]->ir) {
 	 ir_variable *const var = node->as_variable();
 
-	 if ((var == NULL) || (var->data.mode != ir_var_uniform))
+	 if ((var == NULL) || (var->data.mode != ir_var_uniform && var->data.mode != ir_var_shader_storage))
 	    continue;
 
 	 parcel.set_and_process(prog, var);
@@ -1006,6 +1039,9 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
 
    /* Reserve all the explicit locations of the active uniforms. */
    for (unsigned i = 0; i < num_uniforms; i++) {
+      if (uniforms[i].type->is_subroutine())
+         continue;
+
       if (uniforms[i].remap_location != UNMAPPED_UNIFORM_LOC) {
          /* How many new entries for this uniform? */
          const unsigned entries = MAX2(1, uniforms[i].array_elements);
@@ -1023,6 +1059,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
    /* Reserve locations for rest of the uniforms. */
    for (unsigned i = 0; i < num_uniforms; i++) {
 
+      if (uniforms[i].type->is_subroutine())
+         continue;
       /* Built-in uniforms should not get any location. */
       if (uniforms[i].builtin)
          continue;
@@ -1049,6 +1087,65 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       uniforms[i].remap_location = prog->NumUniformRemapTable;
 
       prog->NumUniformRemapTable += entries;
+   }
+
+   /* Reserve all the explicit locations of the active subroutine uniforms. */
+   for (unsigned i = 0; i < num_uniforms; i++) {
+      if (!uniforms[i].type->is_subroutine())
+         continue;
+
+      if (uniforms[i].remap_location == UNMAPPED_UNIFORM_LOC)
+         continue;
+
+      for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
+         struct gl_shader *sh = prog->_LinkedShaders[j];
+         if (!sh)
+            continue;
+
+         if (!uniforms[i].subroutine[j].active)
+            continue;
+
+         /* How many new entries for this uniform? */
+         const unsigned entries = MAX2(1, uniforms[i].array_elements);
+
+         /* Set remap table entries point to correct gl_uniform_storage. */
+         for (unsigned k = 0; k < entries; k++) {
+            unsigned element_loc = uniforms[i].remap_location + k;
+            assert(sh->SubroutineUniformRemapTable[element_loc] ==
+                   INACTIVE_UNIFORM_EXPLICIT_LOCATION);
+            sh->SubroutineUniformRemapTable[element_loc] = &uniforms[i];
+         }
+      }
+   }
+
+   /* reserve subroutine locations */
+   for (unsigned i = 0; i < num_uniforms; i++) {
+
+      if (!uniforms[i].type->is_subroutine())
+         continue;
+      const unsigned entries = MAX2(1, uniforms[i].array_elements);
+
+      if (uniforms[i].remap_location != UNMAPPED_UNIFORM_LOC)
+         continue;
+      for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
+         struct gl_shader *sh = prog->_LinkedShaders[j];
+         if (!sh)
+            continue;
+
+         if (!uniforms[i].subroutine[j].active)
+            continue;
+
+         sh->SubroutineUniformRemapTable =
+            reralloc(sh,
+                     sh->SubroutineUniformRemapTable,
+                     gl_uniform_storage *,
+                     sh->NumSubroutineUniformRemapTable + entries);
+
+         for (unsigned k = 0; k < entries; k++)
+            sh->SubroutineUniformRemapTable[sh->NumSubroutineUniformRemapTable + k] = &uniforms[i];
+         uniforms[i].remap_location = sh->NumSubroutineUniformRemapTable;
+         sh->NumSubroutineUniformRemapTable += entries;
+      }
    }
 
 #ifndef NDEBUG

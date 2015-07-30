@@ -36,7 +36,7 @@ util_resource_size(const struct pipe_resource *res);
  *
  * Note that this function returns true for single-layered array textures.
  */
-static INLINE boolean
+static inline boolean
 util_resource_is_array_texture(const struct pipe_resource *res)
 {
    switch (res->target) {

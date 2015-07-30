@@ -43,7 +43,7 @@ extern "C" {
  *  https://gist.github.com/2144712
  */
 
-static INLINE uint16_t
+static inline uint16_t
 util_float_to_half(float f)
 {
    uint32_t sign_mask  = 0x80000000;
@@ -96,7 +96,7 @@ util_float_to_half(float f)
    return f16;
 }
 
-static INLINE float
+static inline float
 util_half_to_float(uint16_t f16)
 {
    union fi infnan;

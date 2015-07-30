@@ -37,6 +37,7 @@
 #endif
 
 #include "glamor_priv.h"
+#include "glamor_transfer.h"
 
 #include <X11/extensions/Xv.h>
 #include "../hw/xfree86/common/fourcc.h"
@@ -410,6 +411,7 @@ glamor_xv_put_image(glamor_port_private *port_priv,
     int srcPitch, srcPitch2;
     int top, nlines;
     int s2offset, s3offset, tmp;
+    BoxRec full_box, half_box;
 
     s2offset = s3offset = srcPitch2 = 0;
 
@@ -452,20 +454,28 @@ glamor_xv_put_image(glamor_port_private *port_priv,
             s2offset = s3offset;
             s3offset = tmp;
         }
-        glamor_upload_sub_pixmap_to_texture(port_priv->src_pix[0],
-                                            0, 0, width, nlines,
-                                            srcPitch,
-                                            buf + (top * srcPitch), 0);
 
-        glamor_upload_sub_pixmap_to_texture(port_priv->src_pix[1],
-                                            0, 0, width >> 1, (nlines + 1) >> 1,
-                                            srcPitch2,
-                                            buf + s2offset, 0);
+        full_box.x1 = 0;
+        full_box.y1 = 0;
+        full_box.x2 = width;
+        full_box.y2 = nlines;
 
-        glamor_upload_sub_pixmap_to_texture(port_priv->src_pix[2],
-                                            0, 0, width >> 1, (nlines + 1) >> 1,
-                                            srcPitch2,
-                                            buf + s3offset, 0);
+        half_box.x1 = 0;
+        half_box.y1 = 0;
+        half_box.x2 = width >> 1;
+        half_box.y2 = (nlines + 1) >> 1;
+
+        glamor_upload_boxes(port_priv->src_pix[0], &full_box, 1,
+                            0, 0, 0, 0,
+                            buf + (top * srcPitch), srcPitch);
+
+        glamor_upload_boxes(port_priv->src_pix[1], &half_box, 1,
+                            0, 0, 0, 0,
+                            buf + s2offset, srcPitch2);
+
+        glamor_upload_boxes(port_priv->src_pix[2], &half_box, 1,
+                            0, 0, 0, 0,
+                            buf + s3offset, srcPitch2);
         break;
     default:
         return BadMatch;

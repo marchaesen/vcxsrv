@@ -30,17 +30,33 @@
 #endif
 #include "pixman-private.h"
 #include "pixman-combine32.h"
+#include "pixman-inlines.h"
 #include <altivec.h>
 
 #define AVV(x...) {x}
 
+static vector unsigned int mask_00ff;
+static vector unsigned int mask_ff000000;
+static vector unsigned int mask_red;
+static vector unsigned int mask_green;
+static vector unsigned int mask_blue;
+static vector unsigned int mask_565_fix_rb;
+static vector unsigned int mask_565_fix_g;
+
 static force_inline vector unsigned int
 splat_alpha (vector unsigned int pix)
 {
+#ifdef WORDS_BIGENDIAN
     return vec_perm (pix, pix,
 		     (vector unsigned char)AVV (
 			 0x00, 0x00, 0x00, 0x00, 0x04, 0x04, 0x04, 0x04,
 			 0x08, 0x08, 0x08, 0x08, 0x0C, 0x0C, 0x0C, 0x0C));
+#else
+    return vec_perm (pix, pix,
+		     (vector unsigned char)AVV (
+			 0x03, 0x03, 0x03, 0x03, 0x07, 0x07, 0x07, 0x07,
+			 0x0B, 0x0B, 0x0B, 0x0B, 0x0F, 0x0F, 0x0F, 0x0F));
+#endif
 }
 
 static force_inline vector unsigned int
@@ -50,12 +66,22 @@ pix_multiply (vector unsigned int p, vector unsigned int a)
 
     /* unpack to short */
     hi = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
 	vec_mergeh ((vector unsigned char)AVV (0),
 		    (vector unsigned char)p);
+#else
+	vec_mergeh ((vector unsigned char) p,
+		    (vector unsigned char) AVV (0));
+#endif
 
     mod = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
 	vec_mergeh ((vector unsigned char)AVV (0),
 		    (vector unsigned char)a);
+#else
+	vec_mergeh ((vector unsigned char) a,
+		    (vector unsigned char) AVV (0));
+#endif
 
     hi = vec_mladd (hi, mod, (vector unsigned short)
                     AVV (0x0080, 0x0080, 0x0080, 0x0080,
@@ -67,11 +93,22 @@ pix_multiply (vector unsigned int p, vector unsigned int a)
 
     /* unpack to short */
     lo = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
 	vec_mergel ((vector unsigned char)AVV (0),
 		    (vector unsigned char)p);
+#else
+	vec_mergel ((vector unsigned char) p,
+		    (vector unsigned char) AVV (0));
+#endif
+
     mod = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
 	vec_mergel ((vector unsigned char)AVV (0),
 		    (vector unsigned char)a);
+#else
+	vec_mergel ((vector unsigned char) a,
+		    (vector unsigned char) AVV (0));
+#endif
 
     lo = vec_mladd (lo, mod, (vector unsigned short)
                     AVV (0x0080, 0x0080, 0x0080, 0x0080,
@@ -129,6 +166,7 @@ over (vector unsigned int src,
     over (pix_multiply (src, mask),					\
           pix_multiply (srca, mask), dest)
 
+#ifdef WORDS_BIGENDIAN
 
 #define COMPUTE_SHIFT_MASK(source)					\
     source ## _mask = vec_lvsl (0, source);
@@ -140,35 +178,527 @@ over (vector unsigned int src,
     mask ## _mask = vec_lvsl (0, mask);					\
     source ## _mask = vec_lvsl (0, source);
 
-/* notice you have to declare temp vars...
- * Note: tmp3 and tmp4 must remain untouched!
- */
+#define LOAD_VECTOR(source)				  \
+do							  \
+{							  \
+    vector unsigned char tmp1, tmp2;			  \
+    tmp1 = (typeof(tmp1))vec_ld (0, source);		  \
+    tmp2 = (typeof(tmp2))vec_ld (15, source);		  \
+    v ## source = (typeof(v ## source)) 		  \
+	vec_perm (tmp1, tmp2, source ## _mask);		  \
+} while (0)
 
 #define LOAD_VECTORS(dest, source)			  \
-    tmp1 = (typeof(tmp1))vec_ld (0, source);		  \
-    tmp2 = (typeof(tmp2))vec_ld (15, source);		  \
-    v ## source = (typeof(v ## source))			  \
-	vec_perm (tmp1, tmp2, source ## _mask);		  \
-    v ## dest = (typeof(v ## dest))vec_ld (0, dest);
+do							  \
+{							  \
+    LOAD_VECTOR(source);				  \
+    v ## dest = (typeof(v ## dest))vec_ld (0, dest);	  \
+} while (0)
 
 #define LOAD_VECTORSC(dest, source, mask)		  \
-    tmp1 = (typeof(tmp1))vec_ld (0, source);		  \
-    tmp2 = (typeof(tmp2))vec_ld (15, source);		  \
-    v ## source = (typeof(v ## source))			  \
-	vec_perm (tmp1, tmp2, source ## _mask);		  \
-    tmp1 = (typeof(tmp1))vec_ld (0, mask);		  \
-    v ## dest = (typeof(v ## dest))vec_ld (0, dest);	  \
-    tmp2 = (typeof(tmp2))vec_ld (15, mask);		  \
-    v ## mask = (typeof(v ## mask))			  \
-	vec_perm (tmp1, tmp2, mask ## _mask);
+do							  \
+{							  \
+    LOAD_VECTORS(dest, source); 			  \
+    LOAD_VECTOR(mask);					  \
+} while (0)
+
+#define DECLARE_SRC_MASK_VAR vector unsigned char src_mask
+#define DECLARE_MASK_MASK_VAR vector unsigned char mask_mask
+
+#else
+
+/* Now the COMPUTE_SHIFT_{MASK, MASKS, MASKC} below are just no-op.
+ * They are defined that way because little endian altivec can do unaligned
+ * reads natively and have no need for constructing the permutation pattern
+ * variables.
+ */
+#define COMPUTE_SHIFT_MASK(source)
+
+#define COMPUTE_SHIFT_MASKS(dest, source)
+
+#define COMPUTE_SHIFT_MASKC(dest, source, mask)
+
+# define LOAD_VECTOR(source)				\
+    v ## source = *((typeof(v ## source)*)source);
+
+# define LOAD_VECTORS(dest, source)			\
+    LOAD_VECTOR(source);				\
+    LOAD_VECTOR(dest);					\
+
+# define LOAD_VECTORSC(dest, source, mask)		\
+    LOAD_VECTORS(dest, source); 			\
+    LOAD_VECTOR(mask);					\
+
+#define DECLARE_SRC_MASK_VAR
+#define DECLARE_MASK_MASK_VAR
+
+#endif /* WORDS_BIGENDIAN */
 
 #define LOAD_VECTORSM(dest, source, mask)				\
-    LOAD_VECTORSC (dest, source, mask)					\
+    LOAD_VECTORSC (dest, source, mask); 				\
     v ## source = pix_multiply (v ## source,				\
                                 splat_alpha (v ## mask));
 
 #define STORE_VECTOR(dest)						\
     vec_st ((vector unsigned int) v ## dest, 0, dest);
+
+/* load 4 pixels from a 16-byte boundary aligned address */
+static force_inline vector unsigned int
+load_128_aligned (const uint32_t* src)
+{
+    return *((vector unsigned int *) src);
+}
+
+/* load 4 pixels from a unaligned address */
+static force_inline vector unsigned int
+load_128_unaligned (const uint32_t* src)
+{
+    vector unsigned int vsrc;
+    DECLARE_SRC_MASK_VAR;
+
+    COMPUTE_SHIFT_MASK (src);
+    LOAD_VECTOR (src);
+
+    return vsrc;
+}
+
+/* save 4 pixels on a 16-byte boundary aligned address */
+static force_inline void
+save_128_aligned (uint32_t* data,
+		  vector unsigned int vdata)
+{
+    STORE_VECTOR(data)
+}
+
+static force_inline vector unsigned int
+create_mask_16_128 (uint16_t mask)
+{
+    uint16_t* src;
+    vector unsigned short vsrc;
+    DECLARE_SRC_MASK_VAR;
+
+    src = &mask;
+
+    COMPUTE_SHIFT_MASK (src);
+    LOAD_VECTOR (src);
+    return (vector unsigned int) vec_splat(vsrc, 0);
+}
+
+static force_inline vector unsigned int
+create_mask_1x32_128 (const uint32_t *src)
+{
+    vector unsigned int vsrc;
+    DECLARE_SRC_MASK_VAR;
+
+    COMPUTE_SHIFT_MASK (src);
+    LOAD_VECTOR (src);
+    return vec_splat(vsrc, 0);
+}
+
+static force_inline vector unsigned int
+create_mask_32_128 (uint32_t mask)
+{
+    return create_mask_1x32_128(&mask);
+}
+
+static force_inline vector unsigned int
+unpack_32_1x128 (uint32_t data)
+{
+    vector unsigned int vdata = {0, 0, 0, data};
+    vector unsigned short lo;
+
+    lo = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
+	vec_mergel ((vector unsigned char) AVV(0),
+		    (vector unsigned char) vdata);
+#else
+	vec_mergel ((vector unsigned char) vdata,
+		    (vector unsigned char) AVV(0));
+#endif
+
+    return (vector unsigned int) lo;
+}
+
+static force_inline vector unsigned int
+unpacklo_128_16x8 (vector unsigned int data1, vector unsigned int data2)
+{
+    vector unsigned char lo;
+
+    /* unpack to short */
+    lo = (vector unsigned char)
+#ifdef WORDS_BIGENDIAN
+	vec_mergel ((vector unsigned char) data2,
+		    (vector unsigned char) data1);
+#else
+	vec_mergel ((vector unsigned char) data1,
+		    (vector unsigned char) data2);
+#endif
+
+    return (vector unsigned int) lo;
+}
+
+static force_inline vector unsigned int
+unpackhi_128_16x8 (vector unsigned int data1, vector unsigned int data2)
+{
+    vector unsigned char hi;
+
+    /* unpack to short */
+    hi = (vector unsigned char)
+#ifdef WORDS_BIGENDIAN
+	vec_mergeh ((vector unsigned char) data2,
+		    (vector unsigned char) data1);
+#else
+	vec_mergeh ((vector unsigned char) data1,
+		    (vector unsigned char) data2);
+#endif
+
+    return (vector unsigned int) hi;
+}
+
+static force_inline vector unsigned int
+unpacklo_128_8x16 (vector unsigned int data1, vector unsigned int data2)
+{
+    vector unsigned short lo;
+
+    /* unpack to char */
+    lo = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
+	vec_mergel ((vector unsigned short) data2,
+		    (vector unsigned short) data1);
+#else
+	vec_mergel ((vector unsigned short) data1,
+		    (vector unsigned short) data2);
+#endif
+
+    return (vector unsigned int) lo;
+}
+
+static force_inline vector unsigned int
+unpackhi_128_8x16 (vector unsigned int data1, vector unsigned int data2)
+{
+    vector unsigned short hi;
+
+    /* unpack to char */
+    hi = (vector unsigned short)
+#ifdef WORDS_BIGENDIAN
+	vec_mergeh ((vector unsigned short) data2,
+		    (vector unsigned short) data1);
+#else
+	vec_mergeh ((vector unsigned short) data1,
+		    (vector unsigned short) data2);
+#endif
+
+    return (vector unsigned int) hi;
+}
+
+static force_inline void
+unpack_128_2x128 (vector unsigned int data1, vector unsigned int data2,
+		    vector unsigned int* data_lo, vector unsigned int* data_hi)
+{
+    *data_lo = unpacklo_128_16x8(data1, data2);
+    *data_hi = unpackhi_128_16x8(data1, data2);
+}
+
+static force_inline void
+unpack_128_2x128_16 (vector unsigned int data1, vector unsigned int data2,
+		    vector unsigned int* data_lo, vector unsigned int* data_hi)
+{
+    *data_lo = unpacklo_128_8x16(data1, data2);
+    *data_hi = unpackhi_128_8x16(data1, data2);
+}
+
+static force_inline vector unsigned int
+unpack_565_to_8888 (vector unsigned int lo)
+{
+    vector unsigned int r, g, b, rb, t;
+
+    r = vec_and (vec_sl(lo, create_mask_32_128(8)), mask_red);
+    g = vec_and (vec_sl(lo, create_mask_32_128(5)), mask_green);
+    b = vec_and (vec_sl(lo, create_mask_32_128(3)), mask_blue);
+
+    rb = vec_or (r, b);
+    t  = vec_and (rb, mask_565_fix_rb);
+    t  = vec_sr (t, create_mask_32_128(5));
+    rb = vec_or (rb, t);
+
+    t  = vec_and (g, mask_565_fix_g);
+    t  = vec_sr (t, create_mask_32_128(6));
+    g  = vec_or (g, t);
+
+    return vec_or (rb, g);
+}
+
+static force_inline uint32_t
+pack_1x128_32 (vector unsigned int data)
+{
+    vector unsigned char vpack;
+
+    vpack = vec_packsu((vector unsigned short) data,
+			(vector unsigned short) AVV(0));
+
+    return vec_extract((vector unsigned int) vpack, 1);
+}
+
+static force_inline vector unsigned int
+pack_2x128_128 (vector unsigned int lo, vector unsigned int hi)
+{
+    vector unsigned char vpack;
+
+    vpack = vec_packsu((vector unsigned short) hi,
+			(vector unsigned short) lo);
+
+    return (vector unsigned int) vpack;
+}
+
+static force_inline void
+negate_2x128 (vector unsigned int  data_lo,
+	      vector unsigned int  data_hi,
+	      vector unsigned int* neg_lo,
+	      vector unsigned int* neg_hi)
+{
+    *neg_lo = vec_xor (data_lo, mask_00ff);
+    *neg_hi = vec_xor (data_hi, mask_00ff);
+}
+
+static force_inline int
+is_opaque (vector unsigned int x)
+{
+    uint32_t cmp_result;
+    vector bool int ffs = vec_cmpeq(x, x);
+
+    cmp_result = vec_all_eq(x, ffs);
+
+    return (cmp_result & 0x8888) == 0x8888;
+}
+
+static force_inline int
+is_zero (vector unsigned int x)
+{
+    uint32_t cmp_result;
+
+    cmp_result = vec_all_eq(x, (vector unsigned int) AVV(0));
+
+    return cmp_result == 0xffff;
+}
+
+static force_inline int
+is_transparent (vector unsigned int x)
+{
+    uint32_t cmp_result;
+
+    cmp_result = vec_all_eq(x, (vector unsigned int) AVV(0));
+    return (cmp_result & 0x8888) == 0x8888;
+}
+
+static force_inline vector unsigned int
+expand_pixel_8_1x128 (uint8_t data)
+{
+    vector unsigned int vdata;
+
+    vdata = unpack_32_1x128 ((uint32_t) data);
+
+#ifdef WORDS_BIGENDIAN
+    return vec_perm (vdata, vdata,
+		     (vector unsigned char)AVV (
+			 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F));
+#else
+    return vec_perm (vdata, vdata,
+		     (vector unsigned char)AVV (
+			 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			 0x08, 0x09, 0x08, 0x09, 0x08, 0x09, 0x08, 0x09));
+#endif
+}
+
+static force_inline vector unsigned int
+expand_alpha_1x128 (vector unsigned int data)
+{
+#ifdef WORDS_BIGENDIAN
+    return vec_perm (data, data,
+		     (vector unsigned char)AVV (
+			 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+			 0x08, 0x09, 0x08, 0x09, 0x08, 0x09, 0x08, 0x09));
+#else
+    return vec_perm (data, data,
+		     (vector unsigned char)AVV (
+			 0x06, 0x07, 0x06, 0x07, 0x06, 0x07, 0x06, 0x07,
+			 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F));
+#endif
+}
+
+static force_inline void
+expand_alpha_2x128 (vector unsigned int  data_lo,
+		    vector unsigned int  data_hi,
+		    vector unsigned int* alpha_lo,
+		    vector unsigned int* alpha_hi)
+{
+
+    *alpha_lo = expand_alpha_1x128(data_lo);
+    *alpha_hi = expand_alpha_1x128(data_hi);
+}
+
+static force_inline void
+expand_alpha_rev_2x128 (vector unsigned int  data_lo,
+			vector unsigned int  data_hi,
+			vector unsigned int* alpha_lo,
+			vector unsigned int* alpha_hi)
+{
+#ifdef WORDS_BIGENDIAN
+    *alpha_lo = vec_perm (data_lo, data_lo,
+		     (vector unsigned char)AVV (
+			 0x06, 0x07, 0x06, 0x07, 0x06, 0x07, 0x06, 0x07,
+			 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F));
+
+    *alpha_hi = vec_perm (data_hi, data_hi,
+		     (vector unsigned char)AVV (
+			 0x06, 0x07, 0x06, 0x07, 0x06, 0x07, 0x06, 0x07,
+			 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F, 0x0E, 0x0F));
+#else
+    *alpha_lo = vec_perm (data_lo, data_lo,
+		     (vector unsigned char)AVV (
+			 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+			 0x08, 0x09, 0x08, 0x09, 0x08, 0x09, 0x08, 0x09));
+
+    *alpha_hi = vec_perm (data_hi, data_hi,
+		     (vector unsigned char)AVV (
+			 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+			 0x08, 0x09, 0x08, 0x09, 0x08, 0x09, 0x08, 0x09));
+#endif
+}
+
+static force_inline void
+pix_multiply_2x128 (vector unsigned int* data_lo,
+		    vector unsigned int* data_hi,
+		    vector unsigned int* alpha_lo,
+		    vector unsigned int* alpha_hi,
+		    vector unsigned int* ret_lo,
+		    vector unsigned int* ret_hi)
+{
+    *ret_lo = pix_multiply(*data_lo, *alpha_lo);
+    *ret_hi = pix_multiply(*data_hi, *alpha_hi);
+}
+
+static force_inline void
+over_2x128 (vector unsigned int* src_lo,
+	    vector unsigned int* src_hi,
+	    vector unsigned int* alpha_lo,
+	    vector unsigned int* alpha_hi,
+	    vector unsigned int* dst_lo,
+	    vector unsigned int* dst_hi)
+{
+    vector unsigned int t1, t2;
+
+    negate_2x128 (*alpha_lo, *alpha_hi, &t1, &t2);
+
+    pix_multiply_2x128 (dst_lo, dst_hi, &t1, &t2, dst_lo, dst_hi);
+
+    *dst_lo = (vector unsigned int)
+		    vec_adds ((vector unsigned char) *src_lo,
+			      (vector unsigned char) *dst_lo);
+
+    *dst_hi = (vector unsigned int)
+		    vec_adds ((vector unsigned char) *src_hi,
+			      (vector unsigned char) *dst_hi);
+}
+
+static force_inline void
+in_over_2x128 (vector unsigned int* src_lo,
+	       vector unsigned int* src_hi,
+	       vector unsigned int* alpha_lo,
+	       vector unsigned int* alpha_hi,
+	       vector unsigned int* mask_lo,
+	       vector unsigned int* mask_hi,
+	       vector unsigned int* dst_lo,
+	       vector unsigned int* dst_hi)
+{
+    vector unsigned int s_lo, s_hi;
+    vector unsigned int a_lo, a_hi;
+
+    pix_multiply_2x128 (src_lo,   src_hi, mask_lo, mask_hi, &s_lo, &s_hi);
+    pix_multiply_2x128 (alpha_lo, alpha_hi, mask_lo, mask_hi, &a_lo, &a_hi);
+
+    over_2x128 (&s_lo, &s_hi, &a_lo, &a_hi, dst_lo, dst_hi);
+}
+
+static force_inline uint32_t
+core_combine_over_u_pixel_vmx (uint32_t src, uint32_t dst)
+{
+    uint8_t a;
+    vector unsigned int vmxs;
+
+    a = src >> 24;
+
+    if (a == 0xff)
+    {
+	return src;
+    }
+    else if (src)
+    {
+	vmxs = unpack_32_1x128 (src);
+	return pack_1x128_32(
+		over(vmxs, expand_alpha_1x128 (vmxs), unpack_32_1x128 (dst)));
+    }
+
+    return dst;
+}
+
+static force_inline uint32_t
+combine1 (const uint32_t *ps, const uint32_t *pm)
+{
+    uint32_t s = *ps;
+
+    if (pm)
+    {
+	vector unsigned int ms, mm;
+
+	mm = unpack_32_1x128 (*pm);
+	mm = expand_alpha_1x128 (mm);
+
+	ms = unpack_32_1x128 (s);
+	ms = pix_multiply (ms, mm);
+
+	s = pack_1x128_32 (ms);
+    }
+
+    return s;
+}
+
+static force_inline vector unsigned int
+combine4 (const uint32_t* ps, const uint32_t* pm)
+{
+    vector unsigned int vmx_src_lo, vmx_src_hi;
+    vector unsigned int vmx_msk_lo, vmx_msk_hi;
+    vector unsigned int s;
+
+    if (pm)
+    {
+	vmx_msk_lo = load_128_unaligned(pm);
+
+	if (is_transparent(vmx_msk_lo))
+	    return (vector unsigned int) AVV(0);
+    }
+
+    s = load_128_unaligned(ps);
+
+    if (pm)
+    {
+	unpack_128_2x128(s, (vector unsigned int) AVV(0),
+			    &vmx_src_lo, &vmx_src_hi);
+
+	unpack_128_2x128(vmx_msk_lo, (vector unsigned int) AVV(0),
+			    &vmx_msk_lo, &vmx_msk_hi);
+
+	expand_alpha_2x128(vmx_msk_lo, vmx_msk_hi, &vmx_msk_lo, &vmx_msk_hi);
+
+	pix_multiply_2x128(&vmx_src_lo, &vmx_src_hi,
+			   &vmx_msk_lo, &vmx_msk_hi,
+			   &vmx_src_lo, &vmx_src_hi);
+
+	s = pack_2x128_128(vmx_src_lo, vmx_src_hi);
+    }
+
+    return s;
+}
 
 static void
 vmx_combine_over_u_no_mask (uint32_t *      dest,
@@ -177,7 +707,7 @@ vmx_combine_over_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -227,7 +757,8 @@ vmx_combine_over_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -298,7 +829,7 @@ vmx_combine_over_reverse_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -346,7 +877,8 @@ vmx_combine_over_reverse_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -414,7 +946,7 @@ vmx_combine_in_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -459,7 +991,8 @@ vmx_combine_in_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -524,7 +1057,7 @@ vmx_combine_in_reverse_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -571,7 +1104,8 @@ vmx_combine_in_reverse_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -638,7 +1172,7 @@ vmx_combine_out_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -685,7 +1219,8 @@ vmx_combine_out_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -750,7 +1285,7 @@ vmx_combine_out_reverse_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -798,7 +1333,8 @@ vmx_combine_out_reverse_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -865,7 +1401,7 @@ vmx_combine_atop_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -917,7 +1453,8 @@ vmx_combine_atop_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -993,7 +1530,7 @@ vmx_combine_atop_reverse_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1045,7 +1582,8 @@ vmx_combine_atop_reverse_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1121,7 +1659,7 @@ vmx_combine_xor_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1173,7 +1711,8 @@ vmx_combine_xor_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1249,7 +1788,7 @@ vmx_combine_add_u_no_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc;
-    vector unsigned char tmp1, tmp2, src_mask;
+    DECLARE_SRC_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1295,7 +1834,8 @@ vmx_combine_add_u_mask (uint32_t *      dest,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, src_mask, mask_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1363,7 +1903,8 @@ vmx_combine_src_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1413,7 +1954,8 @@ vmx_combine_over_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1471,7 +2013,8 @@ vmx_combine_over_reverse_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1527,7 +2070,8 @@ vmx_combine_in_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1581,7 +2125,8 @@ vmx_combine_in_reverse_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1636,7 +2181,8 @@ vmx_combine_out_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1693,7 +2239,8 @@ vmx_combine_out_reverse_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1750,7 +2297,8 @@ vmx_combine_atop_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask, vsrca;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1816,7 +2364,8 @@ vmx_combine_atop_reverse_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1879,7 +2428,8 @@ vmx_combine_xor_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1942,7 +2492,8 @@ vmx_combine_add_ca (pixman_implementation_t *imp,
 {
     int i;
     vector unsigned int vdest, vsrc, vmask;
-    vector unsigned char tmp1, tmp2, mask_mask, src_mask;
+    DECLARE_SRC_MASK_VAR;
+    DECLARE_MASK_MASK_VAR;
 
     while (width && ((uintptr_t)dest & 15))
     {
@@ -1986,15 +2537,679 @@ vmx_combine_add_ca (pixman_implementation_t *imp,
     }
 }
 
+static pixman_bool_t
+vmx_fill (pixman_implementation_t *imp,
+           uint32_t *               bits,
+           int                      stride,
+           int                      bpp,
+           int                      x,
+           int                      y,
+           int                      width,
+           int                      height,
+           uint32_t		    filler)
+{
+    uint32_t byte_width;
+    uint8_t *byte_line;
+
+    vector unsigned int vfiller;
+
+    if (bpp == 8)
+    {
+	uint8_t b;
+	uint16_t w;
+
+	stride = stride * (int) sizeof (uint32_t) / 1;
+	byte_line = (uint8_t *)(((uint8_t *)bits) + stride * y + x);
+	byte_width = width;
+	stride *= 1;
+
+	b = filler & 0xff;
+	w = (b << 8) | b;
+	filler = (w << 16) | w;
+    }
+    else if (bpp == 16)
+    {
+	stride = stride * (int) sizeof (uint32_t) / 2;
+	byte_line = (uint8_t *)(((uint16_t *)bits) + stride * y + x);
+	byte_width = 2 * width;
+	stride *= 2;
+
+        filler = (filler & 0xffff) * 0x00010001;
+    }
+    else if (bpp == 32)
+    {
+	stride = stride * (int) sizeof (uint32_t) / 4;
+	byte_line = (uint8_t *)(((uint32_t *)bits) + stride * y + x);
+	byte_width = 4 * width;
+	stride *= 4;
+    }
+    else
+    {
+	return FALSE;
+    }
+
+    vfiller = create_mask_1x32_128(&filler);
+
+    while (height--)
+    {
+	int w;
+	uint8_t *d = byte_line;
+	byte_line += stride;
+	w = byte_width;
+
+	if (w >= 1 && ((uintptr_t)d & 1))
+	{
+	    *(uint8_t *)d = filler;
+	    w -= 1;
+	    d += 1;
+	}
+
+	while (w >= 2 && ((uintptr_t)d & 3))
+	{
+	    *(uint16_t *)d = filler;
+	    w -= 2;
+	    d += 2;
+	}
+
+	while (w >= 4 && ((uintptr_t)d & 15))
+	{
+	    *(uint32_t *)d = filler;
+
+	    w -= 4;
+	    d += 4;
+	}
+
+	while (w >= 128)
+	{
+	    vec_st(vfiller, 0, (uint32_t *) d);
+	    vec_st(vfiller, 0, (uint32_t *) d + 4);
+	    vec_st(vfiller, 0, (uint32_t *) d + 8);
+	    vec_st(vfiller, 0, (uint32_t *) d + 12);
+	    vec_st(vfiller, 0, (uint32_t *) d + 16);
+	    vec_st(vfiller, 0, (uint32_t *) d + 20);
+	    vec_st(vfiller, 0, (uint32_t *) d + 24);
+	    vec_st(vfiller, 0, (uint32_t *) d + 28);
+
+	    d += 128;
+	    w -= 128;
+	}
+
+	if (w >= 64)
+	{
+	    vec_st(vfiller, 0, (uint32_t *) d);
+	    vec_st(vfiller, 0, (uint32_t *) d + 4);
+	    vec_st(vfiller, 0, (uint32_t *) d + 8);
+	    vec_st(vfiller, 0, (uint32_t *) d + 12);
+
+	    d += 64;
+	    w -= 64;
+	}
+
+	if (w >= 32)
+	{
+	    vec_st(vfiller, 0, (uint32_t *) d);
+	    vec_st(vfiller, 0, (uint32_t *) d + 4);
+
+	    d += 32;
+	    w -= 32;
+	}
+
+	if (w >= 16)
+	{
+	    vec_st(vfiller, 0, (uint32_t *) d);
+
+	    d += 16;
+	    w -= 16;
+	}
+
+	while (w >= 4)
+	{
+	    *(uint32_t *)d = filler;
+
+	    w -= 4;
+	    d += 4;
+	}
+
+	if (w >= 2)
+	{
+	    *(uint16_t *)d = filler;
+	    w -= 2;
+	    d += 2;
+	}
+
+	if (w >= 1)
+	{
+	    *(uint8_t *)d = filler;
+	    w -= 1;
+	    d += 1;
+	}
+    }
+
+    return TRUE;
+}
+
+static void
+vmx_composite_src_x888_8888 (pixman_implementation_t *imp,
+			      pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    uint32_t    *dst_line, *dst;
+    uint32_t    *src_line, *src;
+    int32_t w;
+    int dst_stride, src_stride;
+
+    PIXMAN_IMAGE_GET_LINE (
+	dest_image, dest_x, dest_y, uint32_t, dst_stride, dst_line, 1);
+    PIXMAN_IMAGE_GET_LINE (
+	src_image, src_x, src_y, uint32_t, src_stride, src_line, 1);
+
+    while (height--)
+    {
+	dst = dst_line;
+	dst_line += dst_stride;
+	src = src_line;
+	src_line += src_stride;
+	w = width;
+
+	while (w && (uintptr_t)dst & 15)
+	{
+	    *dst++ = *src++ | 0xff000000;
+	    w--;
+	}
+
+	while (w >= 16)
+	{
+	    vector unsigned int vmx_src1, vmx_src2, vmx_src3, vmx_src4;
+
+	    vmx_src1 = load_128_unaligned (src);
+	    vmx_src2 = load_128_unaligned (src + 4);
+	    vmx_src3 = load_128_unaligned (src + 8);
+	    vmx_src4 = load_128_unaligned (src + 12);
+
+	    save_128_aligned (dst, vec_or (vmx_src1, mask_ff000000));
+	    save_128_aligned (dst + 4, vec_or (vmx_src2, mask_ff000000));
+	    save_128_aligned (dst + 8, vec_or (vmx_src3, mask_ff000000));
+	    save_128_aligned (dst + 12, vec_or (vmx_src4, mask_ff000000));
+
+	    dst += 16;
+	    src += 16;
+	    w -= 16;
+	}
+
+	while (w)
+	{
+	    *dst++ = *src++ | 0xff000000;
+	    w--;
+	}
+    }
+}
+
+static void
+vmx_composite_over_8888_8888 (pixman_implementation_t *imp,
+                               pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    int dst_stride, src_stride;
+    uint32_t    *dst_line, *dst;
+    uint32_t    *src_line, *src;
+
+    PIXMAN_IMAGE_GET_LINE (
+    dest_image, dest_x, dest_y, uint32_t, dst_stride, dst_line, 1);
+    PIXMAN_IMAGE_GET_LINE (
+    src_image, src_x, src_y, uint32_t, src_stride, src_line, 1);
+
+    dst = dst_line;
+    src = src_line;
+
+    while (height--)
+    {
+        vmx_combine_over_u (imp, op, dst, src, NULL, width);
+
+        dst += dst_stride;
+        src += src_stride;
+    }
+}
+
+static void
+vmx_composite_over_n_8888_8888_ca (pixman_implementation_t *imp,
+                                    pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    uint32_t src;
+    uint32_t    *dst_line, d;
+    uint32_t    *mask_line, m;
+    uint32_t pack_cmp;
+    int dst_stride, mask_stride;
+
+    vector unsigned int vsrc, valpha, vmask, vdest;
+
+    vector unsigned int vmx_dst, vmx_dst_lo, vmx_dst_hi;
+    vector unsigned int vmx_mask, vmx_mask_lo, vmx_mask_hi;
+
+    src = _pixman_image_get_solid (imp, src_image, dest_image->bits.format);
+
+    if (src == 0)
+	return;
+
+    PIXMAN_IMAGE_GET_LINE (
+	dest_image, dest_x, dest_y, uint32_t, dst_stride, dst_line, 1);
+    PIXMAN_IMAGE_GET_LINE (
+	mask_image, mask_x, mask_y, uint32_t, mask_stride, mask_line, 1);
+
+    vsrc = unpacklo_128_16x8(create_mask_1x32_128 (&src),
+			    (vector unsigned int) AVV(0));
+
+    valpha = expand_alpha_1x128(vsrc);
+
+    while (height--)
+    {
+	int w = width;
+	const uint32_t *pm = (uint32_t *)mask_line;
+	uint32_t *pd = (uint32_t *)dst_line;
+
+	dst_line += dst_stride;
+	mask_line += mask_stride;
+
+	while (w && (uintptr_t)pd & 15)
+	{
+	    m = *pm++;
+
+	    if (m)
+	    {
+		d = *pd;
+		vmask = unpack_32_1x128(m);
+		vdest = unpack_32_1x128(d);
+
+		*pd = pack_1x128_32(in_over (vsrc, valpha, vmask, vdest));
+	    }
+
+	    pd++;
+	    w--;
+	}
+
+	while (w >= 4)
+	{
+	    /* pm is NOT necessarily 16-byte aligned */
+	    vmx_mask = load_128_unaligned (pm);
+
+	    pack_cmp = vec_all_eq(vmx_mask, (vector unsigned int) AVV(0));
+
+	    /* if all bits in mask are zero, pack_cmp is not 0 */
+	    if (pack_cmp == 0)
+	    {
+		/* pd is 16-byte aligned */
+		vmx_dst = load_128_aligned (pd);
+
+		unpack_128_2x128 (vmx_mask, (vector unsigned int) AVV(0),
+				    &vmx_mask_lo, &vmx_mask_hi);
+
+		unpack_128_2x128 (vmx_dst, (vector unsigned int) AVV(0),
+				    &vmx_dst_lo, &vmx_dst_hi);
+
+		in_over_2x128 (&vsrc, &vsrc,
+			       &valpha, &valpha,
+			       &vmx_mask_lo, &vmx_mask_hi,
+			       &vmx_dst_lo, &vmx_dst_hi);
+
+		save_128_aligned(pd, pack_2x128_128(vmx_dst_lo, vmx_dst_hi));
+	    }
+
+	    pd += 4;
+	    pm += 4;
+	    w -= 4;
+	}
+
+	while (w)
+	{
+	    m = *pm++;
+
+	    if (m)
+	    {
+		d = *pd;
+		vmask = unpack_32_1x128(m);
+		vdest = unpack_32_1x128(d);
+
+		*pd = pack_1x128_32(in_over (vsrc, valpha, vmask, vdest));
+	    }
+
+	    pd++;
+	    w--;
+	}
+    }
+}
+
+static void
+vmx_composite_add_8_8 (pixman_implementation_t *imp,
+            pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    uint8_t     *dst_line, *dst;
+    uint8_t     *src_line, *src;
+    int dst_stride, src_stride;
+    int32_t w;
+    uint16_t t;
+
+    PIXMAN_IMAGE_GET_LINE (
+    src_image, src_x, src_y, uint8_t, src_stride, src_line, 1);
+    PIXMAN_IMAGE_GET_LINE (
+    dest_image, dest_x, dest_y, uint8_t, dst_stride, dst_line, 1);
+
+    while (height--)
+    {
+	dst = dst_line;
+	src = src_line;
+
+	dst_line += dst_stride;
+	src_line += src_stride;
+	w = width;
+
+	/* Small head */
+	while (w && (uintptr_t)dst & 3)
+	{
+	    t = (*dst) + (*src++);
+	    *dst++ = t | (0 - (t >> 8));
+	    w--;
+	}
+
+	vmx_combine_add_u (imp, op,
+		    (uint32_t*)dst, (uint32_t*)src, NULL, w >> 2);
+
+	/* Small tail */
+	dst += w & 0xfffc;
+	src += w & 0xfffc;
+
+	w &= 3;
+
+	while (w)
+	{
+	    t = (*dst) + (*src++);
+	    *dst++ = t | (0 - (t >> 8));
+	    w--;
+	}
+    }
+}
+
+static void
+vmx_composite_add_8888_8888 (pixman_implementation_t *imp,
+                              pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    uint32_t    *dst_line, *dst;
+    uint32_t    *src_line, *src;
+    int dst_stride, src_stride;
+
+    PIXMAN_IMAGE_GET_LINE (
+	src_image, src_x, src_y, uint32_t, src_stride, src_line, 1);
+    PIXMAN_IMAGE_GET_LINE (
+	dest_image, dest_x, dest_y, uint32_t, dst_stride, dst_line, 1);
+
+    while (height--)
+    {
+	dst = dst_line;
+	dst_line += dst_stride;
+	src = src_line;
+	src_line += src_stride;
+
+	vmx_combine_add_u (imp, op, dst, src, NULL, width);
+    }
+}
+
+static force_inline void
+scaled_nearest_scanline_vmx_8888_8888_OVER (uint32_t*       pd,
+                                            const uint32_t* ps,
+                                            int32_t         w,
+                                            pixman_fixed_t  vx,
+                                            pixman_fixed_t  unit_x,
+                                            pixman_fixed_t  src_width_fixed,
+                                            pixman_bool_t   fully_transparent_src)
+{
+    uint32_t s, d;
+    const uint32_t* pm = NULL;
+
+    vector unsigned int vmx_dst_lo, vmx_dst_hi;
+    vector unsigned int vmx_src_lo, vmx_src_hi;
+    vector unsigned int vmx_alpha_lo, vmx_alpha_hi;
+
+    if (fully_transparent_src)
+	return;
+
+    /* Align dst on a 16-byte boundary */
+    while (w && ((uintptr_t)pd & 15))
+    {
+	d = *pd;
+	s = combine1 (ps + pixman_fixed_to_int (vx), pm);
+	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+
+	*pd++ = core_combine_over_u_pixel_vmx (s, d);
+	if (pm)
+	    pm++;
+	w--;
+    }
+
+    while (w >= 4)
+    {
+	vector unsigned int tmp;
+	uint32_t tmp1, tmp2, tmp3, tmp4;
+
+	tmp1 = *(ps + pixman_fixed_to_int (vx));
+	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp2 = *(ps + pixman_fixed_to_int (vx));
+	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp3 = *(ps + pixman_fixed_to_int (vx));
+	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp4 = *(ps + pixman_fixed_to_int (vx));
+	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+
+	tmp[0] = tmp1;
+	tmp[1] = tmp2;
+	tmp[2] = tmp3;
+	tmp[3] = tmp4;
+
+	vmx_src_hi = combine4 ((const uint32_t *) &tmp, pm);
+
+	if (is_opaque (vmx_src_hi))
+	{
+	    save_128_aligned (pd, vmx_src_hi);
+	}
+	else if (!is_zero (vmx_src_hi))
+	{
+	    vmx_dst_hi = load_128_aligned (pd);
+
+	    unpack_128_2x128 (vmx_src_hi, (vector unsigned int) AVV(0),
+				&vmx_src_lo, &vmx_src_hi);
+
+	    unpack_128_2x128 (vmx_dst_hi, (vector unsigned int) AVV(0),
+				&vmx_dst_lo, &vmx_dst_hi);
+
+	    expand_alpha_2x128 (
+		vmx_src_lo, vmx_src_hi, &vmx_alpha_lo, &vmx_alpha_hi);
+
+	    over_2x128 (&vmx_src_lo, &vmx_src_hi,
+			&vmx_alpha_lo, &vmx_alpha_hi,
+			&vmx_dst_lo, &vmx_dst_hi);
+
+	    /* rebuid the 4 pixel data and save*/
+	    save_128_aligned (pd, pack_2x128_128 (vmx_dst_lo, vmx_dst_hi));
+	}
+
+	w -= 4;
+	pd += 4;
+	if (pm)
+	    pm += 4;
+    }
+
+    while (w)
+    {
+	d = *pd;
+	s = combine1 (ps + pixman_fixed_to_int (vx), pm);
+	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+
+	*pd++ = core_combine_over_u_pixel_vmx (s, d);
+	if (pm)
+	    pm++;
+
+	w--;
+    }
+}
+
+FAST_NEAREST_MAINLOOP (vmx_8888_8888_cover_OVER,
+		       scaled_nearest_scanline_vmx_8888_8888_OVER,
+		       uint32_t, uint32_t, COVER)
+FAST_NEAREST_MAINLOOP (vmx_8888_8888_none_OVER,
+		       scaled_nearest_scanline_vmx_8888_8888_OVER,
+		       uint32_t, uint32_t, NONE)
+FAST_NEAREST_MAINLOOP (vmx_8888_8888_pad_OVER,
+		       scaled_nearest_scanline_vmx_8888_8888_OVER,
+		       uint32_t, uint32_t, PAD)
+FAST_NEAREST_MAINLOOP (vmx_8888_8888_normal_OVER,
+		       scaled_nearest_scanline_vmx_8888_8888_OVER,
+		       uint32_t, uint32_t, NORMAL)
+
 static const pixman_fast_path_t vmx_fast_paths[] =
 {
+    PIXMAN_STD_FAST_PATH (OVER, a8r8g8b8, null, a8r8g8b8, vmx_composite_over_8888_8888),
+    PIXMAN_STD_FAST_PATH (OVER, a8r8g8b8, null, x8r8g8b8, vmx_composite_over_8888_8888),
+    PIXMAN_STD_FAST_PATH (OVER, a8b8g8r8, null, a8b8g8r8, vmx_composite_over_8888_8888),
+    PIXMAN_STD_FAST_PATH (OVER, a8b8g8r8, null, x8b8g8r8, vmx_composite_over_8888_8888),
+    PIXMAN_STD_FAST_PATH_CA (OVER, solid, a8r8g8b8, a8r8g8b8, vmx_composite_over_n_8888_8888_ca),
+    PIXMAN_STD_FAST_PATH_CA (OVER, solid, a8r8g8b8, x8r8g8b8, vmx_composite_over_n_8888_8888_ca),
+    PIXMAN_STD_FAST_PATH_CA (OVER, solid, a8b8g8r8, a8b8g8r8, vmx_composite_over_n_8888_8888_ca),
+    PIXMAN_STD_FAST_PATH_CA (OVER, solid, a8b8g8r8, x8b8g8r8, vmx_composite_over_n_8888_8888_ca),
+
+    /* PIXMAN_OP_ADD */
+    PIXMAN_STD_FAST_PATH (ADD, a8, null, a8, vmx_composite_add_8_8),
+    PIXMAN_STD_FAST_PATH (ADD, a8r8g8b8, null, a8r8g8b8, vmx_composite_add_8888_8888),
+    PIXMAN_STD_FAST_PATH (ADD, a8b8g8r8, null, a8b8g8r8, vmx_composite_add_8888_8888),
+
+    /* PIXMAN_OP_SRC */
+    PIXMAN_STD_FAST_PATH (SRC, x8r8g8b8, null, a8r8g8b8, vmx_composite_src_x888_8888),
+    PIXMAN_STD_FAST_PATH (SRC, x8b8g8r8, null, a8b8g8r8, vmx_composite_src_x888_8888),
+
+    SIMPLE_NEAREST_FAST_PATH (OVER, a8r8g8b8, x8r8g8b8, vmx_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH (OVER, a8b8g8r8, x8b8g8r8, vmx_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH (OVER, a8r8g8b8, a8r8g8b8, vmx_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH (OVER, a8b8g8r8, a8b8g8r8, vmx_8888_8888),
+
     {   PIXMAN_OP_NONE	},
+};
+
+static uint32_t *
+vmx_fetch_x8r8g8b8 (pixman_iter_t *iter, const uint32_t *mask)
+{
+    int w = iter->width;
+    vector unsigned int ff000000 = mask_ff000000;
+    uint32_t *dst = iter->buffer;
+    uint32_t *src = (uint32_t *)iter->bits;
+
+    iter->bits += iter->stride;
+
+    while (w && ((uintptr_t)dst) & 0x0f)
+    {
+	*dst++ = (*src++) | 0xff000000;
+	w--;
+    }
+
+    while (w >= 4)
+    {
+	save_128_aligned(dst, vec_or(load_128_unaligned(src), ff000000));
+
+	dst += 4;
+	src += 4;
+	w -= 4;
+    }
+
+    while (w)
+    {
+	*dst++ = (*src++) | 0xff000000;
+	w--;
+    }
+
+    return iter->buffer;
+}
+
+static uint32_t *
+vmx_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
+{
+    int w = iter->width;
+    uint32_t *dst = iter->buffer;
+    uint8_t *src = iter->bits;
+    vector unsigned int vmx0, vmx1, vmx2, vmx3, vmx4, vmx5, vmx6;
+
+    iter->bits += iter->stride;
+
+    while (w && (((uintptr_t)dst) & 15))
+    {
+        *dst++ = *(src++) << 24;
+        w--;
+    }
+
+    while (w >= 16)
+    {
+	vmx0 = load_128_unaligned((uint32_t *) src);
+
+	unpack_128_2x128((vector unsigned int) AVV(0), vmx0, &vmx1, &vmx2);
+	unpack_128_2x128_16((vector unsigned int) AVV(0), vmx1, &vmx3, &vmx4);
+	unpack_128_2x128_16((vector unsigned int) AVV(0), vmx2, &vmx5, &vmx6);
+
+	save_128_aligned(dst, vmx6);
+	save_128_aligned((dst +  4), vmx5);
+	save_128_aligned((dst +  8), vmx4);
+	save_128_aligned((dst + 12), vmx3);
+
+	dst += 16;
+	src += 16;
+	w -= 16;
+    }
+
+    while (w)
+    {
+	*dst++ = *(src++) << 24;
+	w--;
+    }
+
+    return iter->buffer;
+}
+
+#define IMAGE_FLAGS							\
+    (FAST_PATH_STANDARD_FLAGS | FAST_PATH_ID_TRANSFORM |		\
+     FAST_PATH_BITS_IMAGE | FAST_PATH_SAMPLES_COVER_CLIP_NEAREST)
+
+static const pixman_iter_info_t vmx_iters[] =
+{
+    { PIXMAN_x8r8g8b8, IMAGE_FLAGS, ITER_NARROW,
+      _pixman_iter_init_bits_stride, vmx_fetch_x8r8g8b8, NULL
+    },
+    { PIXMAN_a8, IMAGE_FLAGS, ITER_NARROW,
+      _pixman_iter_init_bits_stride, vmx_fetch_a8, NULL
+    },
+    { PIXMAN_null },
 };
 
 pixman_implementation_t *
 _pixman_implementation_create_vmx (pixman_implementation_t *fallback)
 {
     pixman_implementation_t *imp = _pixman_implementation_create (fallback, vmx_fast_paths);
+
+    /* VMX constants */
+    mask_00ff = create_mask_16_128 (0x00ff);
+    mask_ff000000 = create_mask_32_128 (0xff000000);
+    mask_red   = create_mask_32_128 (0x00f80000);
+    mask_green = create_mask_32_128 (0x0000fc00);
+    mask_blue  = create_mask_32_128 (0x000000f8);
+    mask_565_fix_rb = create_mask_32_128 (0x00e000e0);
+    mask_565_fix_g = create_mask_32_128  (0x0000c000);
 
     /* Set up function pointers */
 
@@ -2021,6 +3236,10 @@ _pixman_implementation_create_vmx (pixman_implementation_t *fallback)
     imp->combine_32_ca[PIXMAN_OP_ATOP_REVERSE] = vmx_combine_atop_reverse_ca;
     imp->combine_32_ca[PIXMAN_OP_XOR] = vmx_combine_xor_ca;
     imp->combine_32_ca[PIXMAN_OP_ADD] = vmx_combine_add_ca;
+
+    imp->fill = vmx_fill;
+
+    imp->iter_info = vmx_iters;
 
     return imp;
 }

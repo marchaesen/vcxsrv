@@ -242,7 +242,7 @@ static void NAME(struct gl_context *ctx, const SWvertex *v0,
       if (IS_INF_OR_NAN(area) || area == 0.0F)
          return;
 
-      if (area * bf * swrast->_BackfaceCullSign < 0.0)
+      if (area * bf * swrast->_BackfaceCullSign < 0.0F)
          return;
 
       oneOverArea = 1.0F / area;

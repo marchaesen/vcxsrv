@@ -82,7 +82,7 @@ create_tmpfile_cloexec(char *tmpname)
     }
 #endif
 
-    return fd;
+    return os_move_fd(fd);
 }
 
 /*

@@ -50,24 +50,6 @@
 
 
 /**
- * Return pointer to a pass-through fragment shader.
- * This shader is used when a texture is missing/incomplete.
- */
-static void *
-get_passthrough_fs(struct st_context *st)
-{
-   if (!st->passthrough_fs) {
-      st->passthrough_fs =
-         util_make_fragment_passthrough_shader(st->pipe, TGSI_SEMANTIC_COLOR,
-                                               TGSI_INTERPOLATE_PERSPECTIVE,
-                                               TRUE);
-   }
-
-   return st->passthrough_fs;
-}
-
-
-/**
  * Update fragment program state/atom.  This involves translating the
  * Mesa fragment program into a gallium fragment program and binding it.
  */
@@ -96,15 +78,8 @@ update_fp( struct st_context *st )
 
    st_reference_fragprog(st, &st->fp, stfp);
 
-   if (st->missing_textures) {
-      /* use a pass-through frag shader that uses no textures */
-      void *fs = get_passthrough_fs(st);
-      cso_set_fragment_shader_handle(st->cso_context, fs);
-   }
-   else {
-      cso_set_fragment_shader_handle(st->cso_context,
-                                     st->fp_variant->driver_shader);
-   }
+   cso_set_fragment_shader_handle(st->cso_context,
+                                  st->fp_variant->driver_shader);
 }
 
 
@@ -209,4 +184,76 @@ const struct st_tracked_state st_update_gp = {
       ST_NEW_GEOMETRY_PROGRAM           /* st */
    },
    update_gp  				/* update */
+};
+
+
+
+static void
+update_tcp( struct st_context *st )
+{
+   struct st_tessctrl_program *sttcp;
+   struct st_tcp_variant_key key;
+
+   if (!st->ctx->TessCtrlProgram._Current) {
+      cso_set_tessctrl_shader_handle(st->cso_context, NULL);
+      return;
+   }
+
+   sttcp = st_tessctrl_program(st->ctx->TessCtrlProgram._Current);
+   assert(sttcp->Base.Base.Target == GL_TESS_CONTROL_PROGRAM_NV);
+
+   memset(&key, 0, sizeof(key));
+   key.st = st;
+
+   st->tcp_variant = st_get_tcp_variant(st, sttcp, &key);
+
+   st_reference_tesscprog(st, &st->tcp, sttcp);
+
+   cso_set_tessctrl_shader_handle(st->cso_context,
+                                  st->tcp_variant->driver_shader);
+}
+
+const struct st_tracked_state st_update_tcp = {
+   "st_update_tcp",			/* name */
+   {					/* dirty */
+      0,				/* mesa */
+      ST_NEW_TESSCTRL_PROGRAM           /* st */
+   },
+   update_tcp  				/* update */
+};
+
+
+
+static void
+update_tep( struct st_context *st )
+{
+   struct st_tesseval_program *sttep;
+   struct st_tep_variant_key key;
+
+   if (!st->ctx->TessEvalProgram._Current) {
+      cso_set_tesseval_shader_handle(st->cso_context, NULL);
+      return;
+   }
+
+   sttep = st_tesseval_program(st->ctx->TessEvalProgram._Current);
+   assert(sttep->Base.Base.Target == GL_TESS_EVALUATION_PROGRAM_NV);
+
+   memset(&key, 0, sizeof(key));
+   key.st = st;
+
+   st->tep_variant = st_get_tep_variant(st, sttep, &key);
+
+   st_reference_tesseprog(st, &st->tep, sttep);
+
+   cso_set_tesseval_shader_handle(st->cso_context,
+                                  st->tep_variant->driver_shader);
+}
+
+const struct st_tracked_state st_update_tep = {
+   "st_update_tep",			/* name */
+   {					/* dirty */
+      0,				/* mesa */
+      ST_NEW_TESSEVAL_PROGRAM           /* st */
+   },
+   update_tep  				/* update */
 };

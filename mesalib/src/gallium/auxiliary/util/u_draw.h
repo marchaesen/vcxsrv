@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 
-static INLINE void
+static inline void
 util_draw_init_info(struct pipe_draw_info *info)
 {
    memset(info, 0, sizeof(*info));
@@ -48,7 +48,7 @@ util_draw_init_info(struct pipe_draw_info *info)
 }
 
 
-static INLINE void
+static inline void
 util_draw_arrays(struct pipe_context *pipe, uint mode, uint start, uint count)
 {
    struct pipe_draw_info info;
@@ -63,7 +63,7 @@ util_draw_arrays(struct pipe_context *pipe, uint mode, uint start, uint count)
    pipe->draw_vbo(pipe, &info);
 }
 
-static INLINE void
+static inline void
 util_draw_elements(struct pipe_context *pipe, int index_bias,
                    uint mode, uint start, uint count)
 {
@@ -79,7 +79,7 @@ util_draw_elements(struct pipe_context *pipe, int index_bias,
    pipe->draw_vbo(pipe, &info);
 }
 
-static INLINE void
+static inline void
 util_draw_arrays_instanced(struct pipe_context *pipe,
                            uint mode, uint start, uint count,
                            uint start_instance,
@@ -99,7 +99,7 @@ util_draw_arrays_instanced(struct pipe_context *pipe,
    pipe->draw_vbo(pipe, &info);
 }
 
-static INLINE void
+static inline void
 util_draw_elements_instanced(struct pipe_context *pipe,
                              int index_bias,
                              uint mode, uint start, uint count,
@@ -120,7 +120,7 @@ util_draw_elements_instanced(struct pipe_context *pipe,
    pipe->draw_vbo(pipe, &info);
 }
 
-static INLINE void
+static inline void
 util_draw_range_elements(struct pipe_context *pipe,
                          int index_bias,
                          uint min_index,

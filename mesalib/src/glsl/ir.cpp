@@ -63,8 +63,6 @@ update_rhs_swizzle(ir_swizzle_mask &m, unsigned from, unsigned to)
    case 3: m.w = from; break;
    default: assert(!"Should not get here.");
    }
-
-   m.num_components = MAX2(m.num_components, (to + 1));
 }
 
 void
@@ -95,6 +93,7 @@ ir_assignment::set_lhs(ir_rvalue *lhs)
 
 	 write_mask |= (((this->write_mask >> i) & 1) << c);
 	 update_rhs_swizzle(rhs_swiz, i, c);
+         rhs_swiz.num_components = swiz->val->type->vector_elements;
       }
 
       this->write_mask = write_mask;
@@ -114,6 +113,7 @@ ir_assignment::set_lhs(ir_rvalue *lhs)
 	 if (write_mask & (1 << i))
 	    update_rhs_swizzle(rhs_swiz, i, rhs_chan++);
       }
+      rhs_swiz.num_components = rhs_chan;
       this->rhs = new(mem_ctx) ir_swizzle(this->rhs, rhs_swiz);
    }
 
@@ -260,6 +260,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_bit_count:
    case ir_unop_find_msb:
    case ir_unop_find_lsb:
+   case ir_unop_subroutine_to_int:
       this->type = glsl_type::get_instance(GLSL_TYPE_INT,
 					   op0->type->vector_elements, 1);
       break;
@@ -568,6 +569,7 @@ static const char *const operator_strs[] = {
    "frexp_sig",
    "frexp_exp",
    "noise",
+   "subroutine_to_int",
    "interpolate_at_centroid",
    "+",
    "-",
@@ -1643,6 +1645,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.read_only = false;
    this->data.centroid = false;
    this->data.sample = false;
+   this->data.patch = false;
    this->data.invariant = false;
    this->data.how_declared = ir_var_declared_normally;
    this->data.mode = mode;
@@ -1785,6 +1788,7 @@ ir_function_signature::qualifiers_match(exec_list *params)
 	  a->data.interpolation != b->data.interpolation ||
 	  a->data.centroid != b->data.centroid ||
           a->data.sample != b->data.sample ||
+          a->data.patch != b->data.patch ||
           a->data.image_read_only != b->data.image_read_only ||
           a->data.image_write_only != b->data.image_write_only ||
           a->data.image_coherent != b->data.image_coherent ||
@@ -1851,12 +1855,16 @@ static void
 steal_memory(ir_instruction *ir, void *new_ctx)
 {
    ir_variable *var = ir->as_variable();
+   ir_function *fn = ir->as_function();
    ir_constant *constant = ir->as_constant();
    if (var != NULL && var->constant_value != NULL)
       steal_memory(var->constant_value, ir);
 
    if (var != NULL && var->constant_initializer != NULL)
       steal_memory(var->constant_initializer, ir);
+
+   if (fn != NULL && fn->subroutine_types)
+      ralloc_steal(new_ctx, fn->subroutine_types);
 
    /* The components of aggregate constants are not visited by the normal
     * visitor, so steal their values by hand.
@@ -1974,6 +1982,9 @@ mode_string(const ir_variable *var)
 
    case ir_var_uniform:
       return "uniform";
+
+   case ir_var_shader_storage:
+      return "buffer";
 
    case ir_var_shader_in:
       return "shader input";

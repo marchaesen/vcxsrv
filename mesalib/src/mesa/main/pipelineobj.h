@@ -45,6 +45,9 @@ _mesa_init_pipeline(struct gl_context *ctx);
 extern void
 _mesa_free_pipeline_data(struct gl_context *ctx);
 
+extern struct gl_pipeline_object *
+_mesa_lookup_pipeline_object(struct gl_context *ctx, GLuint id);
+
 extern void
 _mesa_reference_pipeline_object_(struct gl_context *ctx,
                                  struct gl_pipeline_object **ptr,

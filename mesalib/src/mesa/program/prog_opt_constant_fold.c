@@ -38,6 +38,8 @@ src_regs_are_constant(const struct prog_instruction *inst, unsigned num_srcs)
    for (i = 0; i < num_srcs; i++) {
       if (inst->SrcReg[i].File != PROGRAM_CONSTANT)
 	 return false;
+      if (inst->SrcReg[i].RelAddr)
+         return false;
    }
 
    return true;

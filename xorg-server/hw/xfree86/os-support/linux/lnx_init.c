@@ -31,6 +31,7 @@
 #include <X11/Xmd.h>
 
 #include "compiler.h"
+#include "linux.h"
 
 #include "xf86.h"
 #include "xf86Priv.h"
@@ -79,72 +80,108 @@ switch_to(int vt, const char *from)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 
-void
-xf86OpenConsole(void)
+int
+linux_parse_vt_settings(int may_fail)
 {
     int i, fd = -1, ret, current_vt = -1;
-    struct vt_mode VT;
     struct vt_stat vts;
     struct stat st;
     MessageType from = X_PROBED;
     const char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
+
+    /* Only do this once */
+    static int vt_settings_parsed = 0;
+
+    if (vt_settings_parsed)
+        return 1;
+
+    /*
+     * setup the virtual terminal manager
+     */
+    if (xf86Info.vtno != -1) {
+        from = X_CMDLINE;
+    }
+    else {
+
+        i = 0;
+        while (tty0[i] != NULL) {
+            if ((fd = open(tty0[i], O_WRONLY, 0)) >= 0)
+                break;
+            i++;
+        }
+
+        if (fd < 0) {
+            if (may_fail)
+                return 0;
+            FatalError("parse_vt_settings: Cannot open /dev/tty0 (%s)\n",
+                       strerror(errno));
+        }
+
+        if (xf86Info.ShareVTs) {
+            SYSCALL(ret = ioctl(fd, VT_GETSTATE, &vts));
+            if (ret < 0) {
+                if (may_fail)
+                    return 0;
+                FatalError("parse_vt_settings: Cannot find the current"
+                           " VT (%s)\n", strerror(errno));
+            }
+            xf86Info.vtno = vts.v_active;
+        }
+        else {
+            SYSCALL(ret = ioctl(fd, VT_OPENQRY, &xf86Info.vtno));
+            if (ret < 0) {
+                if (may_fail)
+                    return 0;
+                FatalError("parse_vt_settings: Cannot find a free VT: "
+                           "%s\n", strerror(errno));
+            }
+            if (xf86Info.vtno == -1) {
+                if (may_fail)
+                    return 0;
+                FatalError("parse_vt_settings: Cannot find a free VT\n");
+            }
+        }
+        close(fd);
+    }
+
+    xf86Msg(from, "using VT number %d\n\n", xf86Info.vtno);
+
+    /* Some of stdin / stdout / stderr maybe redirected to a file */
+    for (i = STDIN_FILENO; i <= STDERR_FILENO; i++) {
+        ret = fstat(i, &st);
+        if (ret == 0 && S_ISCHR(st.st_mode) && major(st.st_rdev) == 4) {
+            current_vt = minor(st.st_rdev);
+            break;
+        }
+    }
+
+    if (!KeepTty && current_vt == xf86Info.vtno) {
+        xf86Msg(X_PROBED,
+                "controlling tty is VT number %d, auto-enabling KeepTty\n",
+                current_vt);
+        KeepTty = TRUE;
+    }
+
+    vt_settings_parsed = 1;
+    return 1;
+}
+
+int
+linux_get_keeptty(void)
+{
+    return KeepTty;
+}
+
+void
+xf86OpenConsole(void)
+{
+    int i, ret;
+    struct vt_stat vts;
+    struct vt_mode VT;
     const char *vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
 
     if (serverGeneration == 1) {
-        /*
-         * setup the virtual terminal manager
-         */
-        if (xf86Info.vtno != -1) {
-            from = X_CMDLINE;
-        }
-        else {
-
-            i = 0;
-            while (tty0[i] != NULL) {
-                if ((fd = open(tty0[i], O_WRONLY, 0)) >= 0)
-                    break;
-                i++;
-            }
-
-            if (fd < 0)
-                FatalError("xf86OpenConsole: Cannot open /dev/tty0 (%s)\n",
-                           strerror(errno));
-
-            if (xf86Info.ShareVTs) {
-                SYSCALL(ret = ioctl(fd, VT_GETSTATE, &vts));
-                if (ret < 0)
-                    FatalError("xf86OpenConsole: Cannot find the current"
-                               " VT (%s)\n", strerror(errno));
-                xf86Info.vtno = vts.v_active;
-            }
-            else {
-                SYSCALL(ret = ioctl(fd, VT_OPENQRY, &xf86Info.vtno));
-                if (ret < 0)
-                    FatalError("xf86OpenConsole: Cannot find a free VT: "
-                               "%s\n", strerror(errno));
-                if (xf86Info.vtno == -1)
-                    FatalError("xf86OpenConsole: Cannot find a free VT\n");
-            }
-            close(fd);
-        }
-
-        xf86Msg(from, "using VT number %d\n\n", xf86Info.vtno);
-
-        /* Some of stdin / stdout / stderr maybe redirected to a file */
-        for (i = STDIN_FILENO; i <= STDERR_FILENO; i++) {
-            ret = fstat(i, &st);
-            if (ret == 0 && S_ISCHR(st.st_mode) && major(st.st_rdev) == 4) {
-                current_vt = minor(st.st_rdev);
-                break;
-            }
-        }
-
-        if (!KeepTty && current_vt == xf86Info.vtno) {
-            xf86Msg(X_PROBED,
-                    "controlling tty is VT number %d, auto-enabling KeepTty\n",
-                    current_vt);
-            KeepTty = TRUE;
-        }
+        linux_parse_vt_settings(FALSE);
 
         if (!KeepTty) {
             pid_t ppid = getppid();

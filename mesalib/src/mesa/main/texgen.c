@@ -76,10 +76,10 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glTexGen %s %s %.1f(%s)...\n",
-                  _mesa_lookup_enum_by_nr(coord),
-                  _mesa_lookup_enum_by_nr(pname),
+                  _mesa_enum_to_string(coord),
+                  _mesa_enum_to_string(pname),
                   *params,
-		  _mesa_lookup_enum_by_nr((GLenum) (GLint) *params));
+		  _mesa_enum_to_string((GLenum) (GLint) *params));
 
    if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glTexGen(current unit)");

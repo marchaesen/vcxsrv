@@ -146,7 +146,7 @@ DBGHELP_DISPATCH(SymGetLineFromAddr64,
 #undef DBGHELP_DISPATCH
 
 
-static INLINE boolean
+static inline boolean
 debug_symbol_name_dbghelp(const void *addr, char* buf, unsigned size)
 {
    DWORD64 dwAddr = (DWORD64)(uintptr_t)addr;
@@ -227,7 +227,7 @@ debug_symbol_name_dbghelp(const void *addr, char* buf, unsigned size)
  *
  * To fix this, post-process the output with tools/addr2line.sh
  */
-static INLINE boolean
+static inline boolean
 debug_symbol_name_glibc(const void *addr, char* buf, unsigned size)
 {
    char** syms = backtrace_symbols((void**)&addr, 1);

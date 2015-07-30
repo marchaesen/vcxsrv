@@ -51,7 +51,7 @@
 
 /**
  * Wrap all the information about vectors up in a struct.  Has
- * additional fields compared to the other vectors to help us track of
+ * additional fields compared to the other vectors to help us track
  * different vertex sizes, and whether we need to clean columns out
  * because they contain non-(0,0,0,1) values.
  *
@@ -61,7 +61,7 @@
  */
 typedef struct {
    GLfloat (*data)[4];	/**< may be malloc'd or point to client data */
-   GLfloat *start;	/**< points somewhere inside of <data> */
+   GLfloat *start;	/**< points somewhere inside of GLvector4f::data */
    GLuint count;	/**< size of the vector (in elements) */
    GLuint stride;	/**< stride from one element to the next (in bytes) */
    GLuint size;		/**< 2-4 for vertices and 1-4 for texcoords */

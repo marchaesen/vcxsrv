@@ -407,6 +407,7 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_shader.c \
 	state_tracker/st_atom_shader.h \
 	state_tracker/st_atom_stipple.c \
+	state_tracker/st_atom_tess.c \
 	state_tracker/st_atom_texture.c \
 	state_tracker/st_atom_viewport.c \
 	state_tracker/st_cache.h \

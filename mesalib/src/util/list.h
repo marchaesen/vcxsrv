@@ -140,6 +140,13 @@ static inline void list_validate(struct list_head *list)
 	     - ((char *)&(sample)->member - (char *)(sample)))
 #endif
 
+#define list_first_entry(ptr, type, member) \
+        LIST_ENTRY(type, (ptr)->next, member)
+
+#define list_last_entry(ptr, type, member) \
+        LIST_ENTRY(type, (ptr)->prev, member)
+
+
 #define LIST_FOR_EACH_ENTRY(pos, head, member)				\
    for (pos = NULL, pos = container_of((head)->next, pos, member);	\
 	&pos->member != (head);						\

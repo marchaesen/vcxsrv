@@ -108,7 +108,8 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
        * but, this will require changes to the other uniform block
        * support code.
        */
-      if (var->data.mode == ir_var_uniform)
+      if (var->data.mode == ir_var_uniform ||
+          var->data.mode == ir_var_shader_storage)
          continue;
 
       const glsl_type * iface_t = var->type;
@@ -125,7 +126,8 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
       for (unsigned i = 0; i < iface_t->length; i++) {
          const char * field_name = iface_t->fields.structure[i].name;
          char *iface_field_name =
-            ralloc_asprintf(mem_ctx, "%s.%s.%s",
+            ralloc_asprintf(mem_ctx, "%s %s.%s.%s",
+                            var->data.mode == ir_var_shader_in ? "in" : "out",
                             iface_t->name, var->name, field_name);
 
          ir_variable *found_var =
@@ -158,6 +160,7 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
                iface_t->fields.structure[i].interpolation;
             new_var->data.centroid = iface_t->fields.structure[i].centroid;
             new_var->data.sample = iface_t->fields.structure[i].sample;
+            new_var->data.patch = iface_t->fields.structure[i].patch;
 
             new_var->init_interface_type(iface_t);
             hash_table_insert(interface_namespace, new_var,
@@ -212,12 +215,14 @@ flatten_named_interface_blocks_declarations::handle_rvalue(ir_rvalue **rvalue)
     * but, this will require changes to the other uniform block
     * support code.
     */
-   if (var->data.mode == ir_var_uniform)
+   if (var->data.mode == ir_var_uniform || var->data.mode == ir_var_shader_storage)
       return;
 
    if (var->get_interface_type() != NULL) {
       char *iface_field_name =
-         ralloc_asprintf(mem_ctx, "%s.%s.%s", var->get_interface_type()->name,
+         ralloc_asprintf(mem_ctx, "%s %s.%s.%s",
+                         var->data.mode == ir_var_shader_in ? "in" : "out",
+                         var->get_interface_type()->name,
                          var->name, ir->field);
       /* Find the variable in the set of flattened interface blocks */
       ir_variable *found_var =

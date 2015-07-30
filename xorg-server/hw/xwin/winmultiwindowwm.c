@@ -772,8 +772,8 @@ winMultiWindowWMProc(void *pArg)
         }
 
 #if CYGMULTIWINDOW_DEBUG
-        ErrorF("winMultiWindowWMProc - %d ms MSG: %d ID: %d\n",
-               GetTickCount(), (int) pNode->msg.msg, (int) pNode->msg.dwID);
+        ErrorF("winMultiWindowWMProc - MSG: %d ID: %d\n",
+               (int) pNode->msg.msg, (int) pNode->msg.dwID);
 #endif
 
         /* Branch on the message type */

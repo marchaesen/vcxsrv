@@ -1902,7 +1902,7 @@ sample_lambda_2d_aniso(struct gl_context *ctx,
    const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[u];
    const GLboolean adjustLOD =
       (texUnit->LodBias + samp->LodBias != 0.0F)
-      || (samp->MinLod != -1000.0 || samp->MaxLod != 1000.0);
+      || (samp->MinLod != -1000.0F || samp->MaxLod != 1000.0F);
 
    GLuint i;
    
@@ -1973,8 +1973,8 @@ sample_lambda_2d_aniso(struct gl_context *ctx,
                      ctx->Const.MaxTextureLodBias);
             lod += bias;
 
-            if (samp->MinLod != -1000.0 ||
-                samp->MaxLod != 1000.0) {
+            if (samp->MinLod != -1000.0F ||
+                samp->MaxLod != 1000.0F) {
                /* apply LOD clamping to lambda */
                lod = CLAMP(lod, samp->MinLod, samp->MaxLod);
             }
@@ -3713,7 +3713,7 @@ _swrast_choose_texture_sample_func( struct gl_context *ctx,
                                     const struct gl_sampler_object *sampler)
 {
    if (!t || !_mesa_is_texture_complete(t, sampler)) {
-      return &null_sample_func;
+      return null_sample_func;
    }
    else {
       const GLboolean needLambda =
@@ -3722,32 +3722,32 @@ _swrast_choose_texture_sample_func( struct gl_context *ctx,
       switch (t->Target) {
       case GL_TEXTURE_1D:
          if (is_depth_texture(t)) {
-            return &sample_depth_texture;
+            return sample_depth_texture;
          }
          else if (needLambda) {
-            return &sample_lambda_1d;
+            return sample_lambda_1d;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_1d;
+            return sample_linear_1d;
          }
          else {
             assert(sampler->MinFilter == GL_NEAREST);
-            return &sample_nearest_1d;
+            return sample_nearest_1d;
          }
       case GL_TEXTURE_2D:
          if (is_depth_texture(t)) {
-            return &sample_depth_texture;
+            return sample_depth_texture;
          }
          else if (needLambda) {
             /* Anisotropic filtering extension. Activated only if mipmaps are used */
-            if (sampler->MaxAnisotropy > 1.0 &&
+            if (sampler->MaxAnisotropy > 1.0F &&
                 sampler->MinFilter == GL_LINEAR_MIPMAP_LINEAR) {
-               return &sample_lambda_2d_aniso;
+               return sample_lambda_2d_aniso;
             }
-            return &sample_lambda_2d;
+            return sample_lambda_2d;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_2d;
+            return sample_linear_2d;
          }
          else {
             /* check for a few optimized cases */
@@ -3772,72 +3772,72 @@ _swrast_choose_texture_sample_func( struct gl_context *ctx,
          }
       case GL_TEXTURE_3D:
          if (needLambda) {
-            return &sample_lambda_3d;
+            return sample_lambda_3d;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_3d;
+            return sample_linear_3d;
          }
          else {
             assert(sampler->MinFilter == GL_NEAREST);
-            return &sample_nearest_3d;
+            return sample_nearest_3d;
          }
       case GL_TEXTURE_CUBE_MAP:
          if (needLambda) {
-            return &sample_lambda_cube;
+            return sample_lambda_cube;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_cube;
+            return sample_linear_cube;
          }
          else {
             assert(sampler->MinFilter == GL_NEAREST);
-            return &sample_nearest_cube;
+            return sample_nearest_cube;
          }
       case GL_TEXTURE_RECTANGLE_NV:
          if (is_depth_texture(t)) {
-            return &sample_depth_texture;
+            return sample_depth_texture;
          }
          else if (needLambda) {
-            return &sample_lambda_rect;
+            return sample_lambda_rect;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_rect;
+            return sample_linear_rect;
          }
          else {
             assert(sampler->MinFilter == GL_NEAREST);
-            return &sample_nearest_rect;
+            return sample_nearest_rect;
          }
       case GL_TEXTURE_1D_ARRAY_EXT:
          if (is_depth_texture(t)) {
-            return &sample_depth_texture;
+            return sample_depth_texture;
          }
 	 else if (needLambda) {
-            return &sample_lambda_1d_array;
+            return sample_lambda_1d_array;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_1d_array;
+            return sample_linear_1d_array;
          }
          else {
             assert(sampler->MinFilter == GL_NEAREST);
-            return &sample_nearest_1d_array;
+            return sample_nearest_1d_array;
          }
       case GL_TEXTURE_2D_ARRAY_EXT:
          if (is_depth_texture(t)) {
-            return &sample_depth_texture;
+            return sample_depth_texture;
          }
 	 else if (needLambda) {
-            return &sample_lambda_2d_array;
+            return sample_lambda_2d_array;
          }
          else if (sampler->MinFilter == GL_LINEAR) {
-            return &sample_linear_2d_array;
+            return sample_linear_2d_array;
          }
          else {
             assert(sampler->MinFilter == GL_NEAREST);
-            return &sample_nearest_2d_array;
+            return sample_nearest_2d_array;
          }
       default:
          _mesa_problem(ctx,
                        "invalid target in _swrast_choose_texture_sample_func");
-         return &null_sample_func;
+         return null_sample_func;
       }
    }
 }

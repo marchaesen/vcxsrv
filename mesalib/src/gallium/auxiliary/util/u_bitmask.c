@@ -85,7 +85,7 @@ util_bitmask_create(void)
 /**
  * Resize the bitmask if necessary 
  */
-static INLINE boolean
+static inline boolean
 util_bitmask_resize(struct util_bitmask *bm,
                     unsigned minimum_index)
 {
@@ -131,7 +131,7 @@ util_bitmask_resize(struct util_bitmask *bm,
 /**
  * Lazily update the filled.
  */
-static INLINE void
+static inline void
 util_bitmask_filled_set(struct util_bitmask *bm,
                         unsigned index)
 {
@@ -144,7 +144,7 @@ util_bitmask_filled_set(struct util_bitmask *bm,
    }
 }
 
-static INLINE void
+static inline void
 util_bitmask_filled_unset(struct util_bitmask *bm,
                           unsigned index)
 {

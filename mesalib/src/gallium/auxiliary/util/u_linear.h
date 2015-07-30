@@ -89,7 +89,7 @@ void pipe_linear_fill_info(struct pipe_tile_info *t,
 			   unsigned tile_width, unsigned tile_height,
 			   unsigned tiles_x, unsigned tiles_y);
 
-static INLINE boolean pipe_linear_check_tile(const struct pipe_tile_info *t)
+static inline boolean pipe_linear_check_tile(const struct pipe_tile_info *t)
 {
    if (t->tile.size != t->block.size * t->cols * t->rows)
       return FALSE;

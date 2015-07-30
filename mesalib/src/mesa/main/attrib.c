@@ -937,7 +937,7 @@ _mesa_PopAttrib(void)
 
       if (MESA_VERBOSE & VERBOSE_API) {
          _mesa_debug(ctx, "glPopAttrib %s\n",
-                     _mesa_lookup_enum_by_nr(attr->kind));
+                     _mesa_enum_to_string(attr->kind));
       }
 
       switch (attr->kind) {

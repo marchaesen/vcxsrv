@@ -187,7 +187,7 @@ glamor_egl_get_gbm_device(ScreenPtr screen)
 }
 
 unsigned int
-glamor_egl_create_argb8888_based_texture(ScreenPtr screen, int w, int h)
+glamor_egl_create_argb8888_based_texture(ScreenPtr screen, int w, int h, Bool linear)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     struct glamor_egl_screen_private *glamor_egl;
@@ -200,6 +200,9 @@ glamor_egl_create_argb8888_based_texture(ScreenPtr screen, int w, int h)
 
     glamor_egl = glamor_egl_get_screen_private(scrn);
     bo = gbm_bo_create(glamor_egl->gbm, w, h, GBM_FORMAT_ARGB8888,
+#ifdef GLAMOR_HAS_GBM_LINEAR
+                       (linear ? GBM_BO_USE_LINEAR : 0) |
+#endif
                        GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT);
     if (!bo)
         return 0;
@@ -392,13 +395,10 @@ glamor_get_name_from_bo(int gbm_fd, struct gbm_bo *bo, int *name)
 }
 #endif
 
-int
-glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
-                                 PixmapPtr pixmap,
-                                 unsigned int tex,
-                                 Bool want_name, CARD16 *stride, CARD32 *size)
-{
 #ifdef GLAMOR_HAS_GBM
+static void *
+_get_gbm_bo_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, unsigned int tex)
+{
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     struct glamor_pixmap_private *pixmap_priv =
         glamor_get_pixmap_private(pixmap);
@@ -407,7 +407,6 @@ glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
     struct glamor_egl_screen_private *glamor_egl;
     EGLImageKHR image;
     struct gbm_bo *bo;
-    int fd = -1;
 
     EGLint attribs[] = {
         EGL_IMAGE_PRESERVED_KHR, EGL_TRUE,
@@ -427,13 +426,64 @@ glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
                                   (EGLClientBuffer) (uintptr_t)
                                   tex, attribs);
         if (image == EGL_NO_IMAGE_KHR)
-            goto failure;
+            return NULL;
 
         glamor_set_pixmap_type(pixmap, GLAMOR_TEXTURE_DRM);
         glamor_egl_set_pixmap_image(pixmap, image);
     }
 
     bo = gbm_bo_import(glamor_egl->gbm, GBM_BO_IMPORT_EGL_IMAGE, image, 0);
+    if (!bo)
+        return NULL;
+
+    pixmap->devKind = gbm_bo_get_stride(bo);
+
+    return bo;
+}
+#endif
+
+void *
+glamor_gbm_bo_from_pixmap(ScreenPtr screen, PixmapPtr pixmap)
+{
+#ifdef GLAMOR_HAS_GBM
+    glamor_screen_private *glamor_priv =
+        glamor_get_screen_private(pixmap->drawable.pScreen);
+    glamor_pixmap_private *pixmap_priv =
+        glamor_get_pixmap_private(pixmap);
+
+    pixmap_priv = glamor_get_pixmap_private(pixmap);
+    if (!glamor_priv->dri3_enabled)
+        return NULL;
+    switch (pixmap_priv->type) {
+    case GLAMOR_TEXTURE_DRM:
+    case GLAMOR_TEXTURE_ONLY:
+        if (!glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0))
+            return NULL;
+        return _get_gbm_bo_from_pixmap(screen, pixmap,
+                                       pixmap_priv->fbo->tex);
+    default:
+        break;
+    }
+    return NULL;
+#else
+    return NULL;
+#endif
+}
+
+int
+glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
+                                 PixmapPtr pixmap,
+                                 unsigned int tex,
+                                 Bool want_name, CARD16 *stride, CARD32 *size)
+{
+#ifdef GLAMOR_HAS_GBM
+    struct glamor_egl_screen_private *glamor_egl;
+    struct gbm_bo *bo;
+    int fd = -1;
+
+    glamor_egl = glamor_egl_get_screen_private(xf86ScreenToScrn(screen));
+
+    bo = _get_gbm_bo_from_pixmap(screen, pixmap, tex);
     if (!bo)
         goto failure;
 
@@ -458,19 +508,19 @@ glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
 #endif
 }
 
-_X_EXPORT PixmapPtr
-glamor_pixmap_from_fd(ScreenPtr screen,
-                      int fd,
-                      CARD16 width,
-                      CARD16 height,
-                      CARD16 stride, CARD8 depth, CARD8 bpp)
+_X_EXPORT Bool
+glamor_back_pixmap_from_fd(PixmapPtr pixmap,
+                           int fd,
+                           CARD16 width,
+                           CARD16 height,
+                           CARD16 stride, CARD8 depth, CARD8 bpp)
 {
 #ifdef GLAMOR_HAS_GBM
+    ScreenPtr screen = pixmap->drawable.pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     struct glamor_egl_screen_private *glamor_egl;
     struct gbm_bo *bo;
     EGLImageKHR image;
-    PixmapPtr pixmap;
     Bool ret = FALSE;
 
     EGLint attribs[] = {
@@ -486,10 +536,10 @@ glamor_pixmap_from_fd(ScreenPtr screen,
     glamor_egl = glamor_egl_get_screen_private(scrn);
 
     if (!glamor_egl->dri3_capable)
-        return NULL;
+        return FALSE;
 
     if (bpp != 32 || !(depth == 24 || depth == 32) || width == 0 || height == 0)
-        return NULL;
+        return FALSE;
 
     attribs[1] = width;
     attribs[3] = height;
@@ -501,29 +551,48 @@ glamor_pixmap_from_fd(ScreenPtr screen,
                               NULL, attribs);
 
     if (image == EGL_NO_IMAGE_KHR)
-        return NULL;
+        return FALSE;
 
     /* EGL_EXT_image_dma_buf_import can impose restrictions on the
      * usage of the image. Use gbm_bo to bypass the limitations. */
-
     bo = gbm_bo_import(glamor_egl->gbm, GBM_BO_IMPORT_EGL_IMAGE, image, 0);
     eglDestroyImageKHR(glamor_egl->display, image);
 
     if (!bo)
-        return NULL;
+        return FALSE;
 
-    pixmap = screen->CreatePixmap(screen, 0, 0, depth, 0);
     screen->ModifyPixmapHeader(pixmap, width, height, 0, 0, stride, NULL);
 
     ret = glamor_egl_create_textured_pixmap_from_gbm_bo(pixmap, bo);
     gbm_bo_destroy(bo);
 
     if (ret)
-        return pixmap;
-    else {
+        return TRUE;
+    return FALSE;
+#else
+    return FALSE;
+#endif
+}
+
+_X_EXPORT PixmapPtr
+glamor_pixmap_from_fd(ScreenPtr screen,
+                      int fd,
+                      CARD16 width,
+                      CARD16 height,
+                      CARD16 stride, CARD8 depth, CARD8 bpp)
+{
+#ifdef GLAMOR_HAS_GBM
+    PixmapPtr pixmap;
+    Bool ret;
+
+    pixmap = screen->CreatePixmap(screen, 0, 0, depth, 0);
+    ret = glamor_back_pixmap_from_fd(pixmap, fd, width, height,
+                                     stride, depth, bpp);
+    if (ret == FALSE) {
         screen->DestroyPixmap(pixmap);
         return NULL;
     }
+    return pixmap;
 #else
     return NULL;
 #endif
@@ -535,7 +604,7 @@ glamor_egl_destroy_pixmap_image(PixmapPtr pixmap)
     struct glamor_pixmap_private *pixmap_priv =
         glamor_get_pixmap_private(pixmap);
 
-    if (pixmap_priv && pixmap_priv->image) {
+    if (pixmap_priv->image) {
         ScrnInfoPtr scrn = xf86ScreenToScrn(pixmap->drawable.pScreen);
         struct glamor_egl_screen_private *glamor_egl =
             glamor_egl_get_screen_private(scrn);
@@ -697,6 +766,21 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 #endif
 }
 
+static void glamor_egl_cleanup(struct glamor_egl_screen_private *glamor_egl)
+{
+    if (glamor_egl->display != EGL_NO_DISPLAY) {
+        eglMakeCurrent(glamor_egl->display,
+                       EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglTerminate(glamor_egl->display);
+    }
+#ifdef GLAMOR_HAS_GBM
+    if (glamor_egl->gbm)
+        gbm_device_destroy(glamor_egl->gbm);
+#endif
+    free(glamor_egl->device_path);
+    free(glamor_egl);
+}
+
 static void
 glamor_egl_free_screen(ScrnInfoPtr scrn)
 {
@@ -704,17 +788,8 @@ glamor_egl_free_screen(ScrnInfoPtr scrn)
 
     glamor_egl = glamor_egl_get_screen_private(scrn);
     if (glamor_egl != NULL) {
-
-        eglMakeCurrent(glamor_egl->display,
-                       EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-#ifdef GLAMOR_HAS_GBM
-        if (glamor_egl->gbm)
-            gbm_device_destroy(glamor_egl->gbm);
-#endif
-        free(glamor_egl->device_path);
-
         scrn->FreeScreen = glamor_egl->saved_free_screen;
-        free(glamor_egl);
+        glamor_egl_cleanup(glamor_egl);
         scrn->FreeScreen(scrn);
     }
 }
@@ -745,7 +820,7 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
     glamor_egl->gbm = gbm_create_device(glamor_egl->fd);
     if (glamor_egl->gbm == NULL) {
         ErrorF("couldn't get display device\n");
-        return FALSE;
+        goto error;
     }
     glamor_egl->display = eglGetDisplay(glamor_egl->gbm);
 #else
@@ -762,7 +837,8 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
     if (!eglInitialize
         (glamor_egl->display, &glamor_egl->major, &glamor_egl->minor)) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR, "eglInitialize() failed\n");
-        return FALSE;
+        glamor_egl->display = EGL_NO_DISPLAY;
+        goto error;
     }
 
     version = eglQueryString(glamor_egl->display, EGL_VERSION);
@@ -771,14 +847,14 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
 #define GLAMOR_CHECK_EGL_EXTENSION(EXT)  \
 	if (!epoxy_has_egl_extension(glamor_egl->display, "EGL_" #EXT)) {  \
 		ErrorF("EGL_" #EXT " required.\n");  \
-		return FALSE;  \
+		goto error;  \
 	}
 
 #define GLAMOR_CHECK_EGL_EXTENSIONS(EXT1, EXT2)	 \
 	if (!epoxy_has_egl_extension(glamor_egl->display, "EGL_" #EXT1) &&  \
 	    !epoxy_has_egl_extension(glamor_egl->display, "EGL_" #EXT2)) {  \
 		ErrorF("EGL_" #EXT1 " or EGL_" #EXT2 " required.\n");  \
-		return FALSE;  \
+		goto error;  \
 	}
 
     GLAMOR_CHECK_EGL_EXTENSION(MESA_drm_image);
@@ -803,14 +879,14 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                                            config_attribs);
     if (glamor_egl->context == EGL_NO_CONTEXT) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed to create EGL context\n");
-        return FALSE;
+        goto error;
     }
 
     if (!eglMakeCurrent(glamor_egl->display,
                         EGL_NO_SURFACE, EGL_NO_SURFACE, glamor_egl->context)) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
                    "Failed to make EGL context current\n");
-        return FALSE;
+        goto error;
     }
     glamor_egl->saved_free_screen = scrn->FreeScreen;
     scrn->FreeScreen = glamor_egl_free_screen;
@@ -821,6 +897,10 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                "Indirect GLX may not work correctly.\n");
 #endif
     return TRUE;
+
+error:
+    glamor_egl_cleanup(glamor_egl);
+    return FALSE;
 }
 
 /** Stub to retain compatibility with pre-server-1.16 ABI. */

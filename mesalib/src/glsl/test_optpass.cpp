@@ -124,7 +124,8 @@ do_optimization(struct exec_list *ir, const char *optimization,
    } else if (sscanf(optimization, "lower_variable_index_to_cond_assign "
                      "( %d , %d , %d , %d ) ", &int_0, &int_1, &int_2,
                      &int_3) == 4) {
-      return lower_variable_index_to_cond_assign(ir, int_0 != 0, int_1 != 0,
+      return lower_variable_index_to_cond_assign(MESA_SHADER_VERTEX, ir,
+                                                 int_0 != 0, int_1 != 0,
                                                  int_2 != 0, int_3 != 0);
    } else if (sscanf(optimization, "lower_quadop_vector ( %d ) ",
                      &int_0) == 1) {

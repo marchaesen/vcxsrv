@@ -66,7 +66,7 @@ fallback_required(struct gl_context *ctx, GLenum target,
    if (target == GL_TEXTURE_3D) {
       _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
                        "glGenerateMipmap() to %s target\n",
-                       _mesa_lookup_enum_by_nr(target));
+                       _mesa_enum_to_string(target));
       return true;
    }
 
@@ -317,7 +317,9 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
          /* Setup texture coordinates */
          _mesa_meta_setup_texture_coords(faceTarget,
                                          layer,
-                                         0, 0, 1, /* width, height never used here */
+                                         0, 0, /* xoffset, yoffset */
+                                         srcWidth, srcHeight, /* img size */
+                                         srcWidth, srcHeight, srcDepth,
                                          verts[0].tex,
                                          verts[1].tex,
                                          verts[2].tex,

@@ -68,7 +68,7 @@ struct util_hash_table_item
 };
 
 
-static INLINE struct util_hash_table_item *
+static inline struct util_hash_table_item *
 util_hash_table_item(struct cso_hash_iter iter)
 {
    return (struct util_hash_table_item *)cso_hash_iter_data(iter);
@@ -98,7 +98,7 @@ util_hash_table_create(unsigned (*hash)(void *key),
 }
 
 
-static INLINE struct cso_hash_iter
+static inline struct cso_hash_iter
 util_hash_table_find_iter(struct util_hash_table *ht,
                           void *key,
                           unsigned key_hash)
@@ -118,7 +118,7 @@ util_hash_table_find_iter(struct util_hash_table *ht,
 }
 
 
-static INLINE struct util_hash_table_item *
+static inline struct util_hash_table_item *
 util_hash_table_find_item(struct util_hash_table *ht,
                           void *key,
                           unsigned key_hash)

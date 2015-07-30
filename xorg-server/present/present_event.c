@@ -26,7 +26,7 @@
 
 #include "present_priv.h"
 
-RESTYPE present_event_type;
+static RESTYPE present_event_type;
 
 static int
 present_free_event(void *data, XID id)

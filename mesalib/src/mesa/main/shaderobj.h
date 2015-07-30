@@ -111,6 +111,10 @@ _mesa_shader_enum_to_shader_stage(GLenum v)
       return MESA_SHADER_FRAGMENT;
    case GL_GEOMETRY_SHADER:
       return MESA_SHADER_GEOMETRY;
+   case GL_TESS_CONTROL_SHADER:
+      return MESA_SHADER_TESS_CTRL;
+   case GL_TESS_EVALUATION_SHADER:
+      return MESA_SHADER_TESS_EVAL;
    case GL_COMPUTE_SHADER:
       return MESA_SHADER_COMPUTE;
    default:
@@ -119,6 +123,107 @@ _mesa_shader_enum_to_shader_stage(GLenum v)
    }
 }
 
+/* 8 bytes + another underscore */
+#define MESA_SUBROUTINE_PREFIX_LEN 9
+static inline const char *
+_mesa_shader_stage_to_subroutine_prefix(gl_shader_stage stage)
+{
+  switch (stage) {
+  case MESA_SHADER_VERTEX:
+    return "__subu_v";
+  case MESA_SHADER_GEOMETRY:
+    return "__subu_g";
+  case MESA_SHADER_FRAGMENT:
+    return "__subu_f";
+  case MESA_SHADER_COMPUTE:
+    return "__subu_c";
+  case MESA_SHADER_TESS_CTRL:
+    return "__subu_t";
+  case MESA_SHADER_TESS_EVAL:
+    return "__subu_e";
+  default:
+    return NULL;
+  }
+}
+
+static inline gl_shader_stage
+_mesa_shader_stage_from_subroutine_uniform(GLenum subuniform)
+{
+   switch (subuniform) {
+   default:
+   case GL_VERTEX_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_VERTEX;
+   case GL_GEOMETRY_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_GEOMETRY;
+   case GL_FRAGMENT_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_FRAGMENT;
+   case GL_COMPUTE_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_COMPUTE;
+   case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_TESS_CTRL;
+   case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_TESS_EVAL;
+   }
+}
+
+static inline gl_shader_stage
+_mesa_shader_stage_from_subroutine(GLenum subroutine)
+{
+   switch (subroutine) {
+   case GL_VERTEX_SUBROUTINE:
+      return MESA_SHADER_VERTEX;
+   case GL_GEOMETRY_SUBROUTINE:
+      return MESA_SHADER_GEOMETRY;
+   case GL_FRAGMENT_SUBROUTINE:
+      return MESA_SHADER_FRAGMENT;
+   case GL_COMPUTE_SUBROUTINE:
+      return MESA_SHADER_COMPUTE;
+   case GL_TESS_CONTROL_SUBROUTINE:
+      return MESA_SHADER_TESS_CTRL;
+   case GL_TESS_EVALUATION_SUBROUTINE:
+      return MESA_SHADER_TESS_EVAL;
+   }
+}
+
+static inline GLenum
+_mesa_shader_stage_to_subroutine(gl_shader_stage stage)
+{
+   switch (stage) {
+   default:
+   case MESA_SHADER_VERTEX:
+      return GL_VERTEX_SUBROUTINE;
+   case MESA_SHADER_GEOMETRY:
+      return GL_GEOMETRY_SUBROUTINE;
+   case MESA_SHADER_FRAGMENT:
+      return GL_FRAGMENT_SUBROUTINE;
+   case MESA_SHADER_COMPUTE:
+      return GL_COMPUTE_SUBROUTINE;
+   case MESA_SHADER_TESS_CTRL:
+      return GL_TESS_CONTROL_SUBROUTINE;
+   case MESA_SHADER_TESS_EVAL:
+      return GL_TESS_EVALUATION_SUBROUTINE;
+   }
+}
+
+static inline GLenum
+_mesa_shader_stage_to_subroutine_uniform(gl_shader_stage stage)
+{
+   switch (stage) {
+   default:
+   case MESA_SHADER_VERTEX:
+      return GL_VERTEX_SUBROUTINE_UNIFORM;
+   case MESA_SHADER_GEOMETRY:
+      return GL_GEOMETRY_SUBROUTINE_UNIFORM;
+   case MESA_SHADER_FRAGMENT:
+      return GL_FRAGMENT_SUBROUTINE_UNIFORM;
+   case MESA_SHADER_COMPUTE:
+      return GL_COMPUTE_SUBROUTINE_UNIFORM;
+   case MESA_SHADER_TESS_CTRL:
+      return GL_TESS_CONTROL_SUBROUTINE_UNIFORM;
+   case MESA_SHADER_TESS_EVAL:
+      return GL_TESS_EVALUATION_SUBROUTINE_UNIFORM;
+   }
+}
 
 #ifdef __cplusplus
 }

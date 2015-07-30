@@ -67,7 +67,7 @@ extern "C" {
 /**
  * Duplicate a block of memory.
  */
-static INLINE void *
+static inline void *
 mem_dup(const void *src, uint size)
 {
    void *dup = MALLOC(size);

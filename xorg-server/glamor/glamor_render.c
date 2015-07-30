@@ -379,62 +379,6 @@ glamor_lookup_composite_shader(ScreenPtr screen, struct
     return shader;
 }
 
-static void
-glamor_init_eb(unsigned short *eb, int vert_cnt)
-{
-    int i, j;
-
-    for (i = 0, j = 0; j < vert_cnt; i += 6, j += 4) {
-        eb[i] = j;
-        eb[i + 1] = j + 1;
-        eb[i + 2] = j + 2;
-        eb[i + 3] = j;
-        eb[i + 4] = j + 2;
-        eb[i + 5] = j + 3;
-    }
-}
-
-void
-glamor_init_composite_shaders(ScreenPtr screen)
-{
-    glamor_screen_private *glamor_priv;
-    unsigned short *eb;
-    int eb_size;
-
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_make_current(glamor_priv);
-    glGenBuffers(1, &glamor_priv->ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
-
-    eb_size = GLAMOR_COMPOSITE_VBO_VERT_CNT * sizeof(short) * 2;
-
-    eb = XNFalloc(eb_size);
-    glamor_init_eb(eb, GLAMOR_COMPOSITE_VBO_VERT_CNT);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, eb_size, eb, GL_STATIC_DRAW);
-    free(eb);
-}
-
-void
-glamor_fini_composite_shaders(ScreenPtr screen)
-{
-    glamor_screen_private *glamor_priv;
-    glamor_composite_shader *shader;
-    int i, j, k;
-
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_make_current(glamor_priv);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &glamor_priv->ebo);
-
-    for (i = 0; i < SHADER_SOURCE_COUNT; i++)
-        for (j = 0; j < SHADER_MASK_COUNT; j++)
-            for (k = 0; k < SHADER_IN_COUNT; k++) {
-                shader = &glamor_priv->composite_shader[i][j][k];
-                if (shader->prog)
-                    glDeleteProgram(shader->prog);
-            }
-}
-
 static Bool
 glamor_set_composite_op(ScreenPtr screen,
                         CARD8 op, struct blendinfo *op_info_result,
@@ -660,7 +604,7 @@ glamor_composite_with_copy(CARD8 op,
     return ret;
 }
 
-void *
+static void *
 glamor_setup_composite_vbo(ScreenPtr screen, int n_verts)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
@@ -668,7 +612,7 @@ glamor_setup_composite_vbo(ScreenPtr screen, int n_verts)
     char *vbo_offset;
     float *vb;
 
-    glamor_priv->render_nr_verts = 0;
+    glamor_priv->render_nr_quads = 0;
     glamor_priv->vb_stride = 2 * sizeof(float);
     if (glamor_priv->has_source_coords)
         glamor_priv->vb_stride += 2 * sizeof(float);
@@ -710,20 +654,13 @@ glamor_flush_composite_rects(ScreenPtr screen)
 
     glamor_make_current(glamor_priv);
 
-    if (!glamor_priv->render_nr_verts)
+    if (!glamor_priv->render_nr_quads)
         return;
 
-    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-        glDrawRangeElements(GL_TRIANGLES, 0, glamor_priv->render_nr_verts,
-                            (glamor_priv->render_nr_verts * 3) / 2,
-                            GL_UNSIGNED_SHORT, NULL);
-    } else {
-        glDrawElements(GL_TRIANGLES, (glamor_priv->render_nr_verts * 3) / 2,
-                       GL_UNSIGNED_SHORT, NULL);
-    }
+    glamor_glDrawArrays_GL_QUADS(glamor_priv, glamor_priv->render_nr_quads);
 }
 
-int pict_format_combine_tab[][3] = {
+static const int pict_format_combine_tab[][3] = {
     {PICT_TYPE_ARGB, PICT_TYPE_A, PICT_TYPE_ARGB},
     {PICT_TYPE_ABGR, PICT_TYPE_A, PICT_TYPE_ABGR},
 };
@@ -770,10 +707,7 @@ combine_pict_format(PictFormatShort * des, const PictFormatShort src,
         return TRUE;
     }
 
-    for (i = 0;
-         i <
-         sizeof(pict_format_combine_tab) /
-         sizeof(pict_format_combine_tab[0]); i++) {
+    for (i = 0; i < ARRAY_SIZE(pict_format_combine_tab); i++) {
         if ((src_type == pict_format_combine_tab[i][0]
              && mask_type == pict_format_combine_tab[i][1])
             || (src_type == pict_format_combine_tab[i][1]
@@ -819,6 +753,29 @@ glamor_set_normalize_tcoords_generic(PixmapPtr pixmap,
                                                             texcoords, stride);
 }
 
+/**
+ * Returns whether the general composite path supports this picture
+ * format for a pixmap that is permanently stored in an FBO (as
+ * opposed to the GLAMOR_PIXMAP_DYNAMIC_UPLOAD path).
+ *
+ * We could support many more formats by using GL_ARB_texture_view to
+ * parse the same bits as different formats.  For now, we only support
+ * tweaking whether we sample the alpha bits of an a8r8g8b8, or just
+ * force them to 1.
+ */
+static Bool
+glamor_render_format_is_supported(PictFormatShort format)
+{
+    switch (format) {
+    case PICT_a8r8g8b8:
+    case PICT_x8r8g8b8:
+    case PICT_a8:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 static Bool
 glamor_composite_choose_shader(CARD8 op,
                                PicturePtr source,
@@ -846,6 +803,11 @@ glamor_composite_choose_shader(CARD8 op,
 
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(dest_pixmap_priv)) {
         glamor_fallback("dest has no fbo.\n");
+        goto fail;
+    }
+
+    if (!glamor_render_format_is_supported(dest->format)) {
+        glamor_fallback("Unsupported dest picture format.\n");
         goto fail;
     }
 
@@ -974,9 +936,6 @@ glamor_composite_choose_shader(CARD8 op,
                 goto fail;
             }
 
-            if (source->format != saved_source_format) {
-                glamor_picture_format_fixup(source, source_pixmap_priv);
-            }
             /* XXX
              * By default, glamor_upload_picture_to_texture will wire alpha to 1
              * if one picture doesn't have alpha. So we don't do that again in
@@ -1017,12 +976,22 @@ glamor_composite_choose_shader(CARD8 op,
                 glamor_fallback("Failed to upload source texture.\n");
                 goto fail;
             }
+        } else {
+            if (!glamor_render_format_is_supported(source->format)) {
+                glamor_fallback("Unsupported source picture format.\n");
+                goto fail;
+            }
         }
 
         if (mask_status == GLAMOR_UPLOAD_PENDING) {
             mask_status = glamor_upload_picture_to_texture(mask);
             if (mask_status != GLAMOR_UPLOAD_DONE) {
                 glamor_fallback("Failed to upload mask texture.\n");
+                goto fail;
+            }
+        } else if (mask) {
+            if (!glamor_render_format_is_supported(mask->format)) {
+                glamor_fallback("Unsupported mask picture format.\n");
                 goto fail;
             }
         }
@@ -1270,7 +1239,7 @@ glamor_composite_with_shader(CARD8 op,
                                                      vertices, vb_stride);
                 vertices += 2;
             }
-            glamor_priv->render_nr_verts += 4;
+            glamor_priv->render_nr_quads++;
             rects++;
 
             /* We've incremented by one of our 4 verts, now do the other 3. */
@@ -1301,7 +1270,7 @@ glamor_composite_with_shader(CARD8 op,
     return ret;
 }
 
-PicturePtr
+static PicturePtr
 glamor_convert_gradient_picture(ScreenPtr screen,
                                 PicturePtr source,
                                 int x_source,

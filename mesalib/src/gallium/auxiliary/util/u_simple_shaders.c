@@ -216,7 +216,8 @@ void *
 util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
                                         unsigned tex_target,
                                         unsigned interp_mode,
-                                        unsigned writemask )
+                                        unsigned writemask,
+                                        enum tgsi_return_type stype)
 {
    struct ureg_program *ureg;
    struct ureg_src sampler;
@@ -231,6 +232,8 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
       return NULL;
    
    sampler = ureg_DECL_sampler( ureg, 0 );
+
+   ureg_DECL_sampler_view(ureg, 0, tex_target, stype, stype, stype, stype);
 
    tex = ureg_DECL_fs_input( ureg, 
                              TGSI_SEMANTIC_GENERIC, 0, 
@@ -268,12 +271,14 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
  */
 void *
 util_make_fragment_tex_shader(struct pipe_context *pipe, unsigned tex_target,
-                              unsigned interp_mode)
+                              unsigned interp_mode,
+                              enum tgsi_return_type stype)
 {
    return util_make_fragment_tex_shader_writemask( pipe,
                                                    tex_target,
                                                    interp_mode,
-                                                   TGSI_WRITEMASK_XYZW );
+                                                   TGSI_WRITEMASK_XYZW,
+                                                   stype );
 }
 
 
@@ -297,6 +302,12 @@ util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
       return NULL;
 
    sampler = ureg_DECL_sampler( ureg, 0 );
+
+   ureg_DECL_sampler_view(ureg, 0, tex_target,
+                          TGSI_RETURN_TYPE_FLOAT,
+                          TGSI_RETURN_TYPE_FLOAT,
+                          TGSI_RETURN_TYPE_FLOAT,
+                          TGSI_RETURN_TYPE_FLOAT);
 
    tex = ureg_DECL_fs_input( ureg,
                              TGSI_SEMANTIC_GENERIC, 0,
@@ -343,7 +354,17 @@ util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
       return NULL;
 
    depth_sampler = ureg_DECL_sampler( ureg, 0 );
+   ureg_DECL_sampler_view(ureg, 0, tex_target,
+                          TGSI_RETURN_TYPE_FLOAT,
+                          TGSI_RETURN_TYPE_FLOAT,
+                          TGSI_RETURN_TYPE_FLOAT,
+                          TGSI_RETURN_TYPE_FLOAT);
    stencil_sampler = ureg_DECL_sampler( ureg, 1 );
+   ureg_DECL_sampler_view(ureg, 0, tex_target,
+                          TGSI_RETURN_TYPE_UINT,
+                          TGSI_RETURN_TYPE_UINT,
+                          TGSI_RETURN_TYPE_UINT,
+                          TGSI_RETURN_TYPE_UINT);
 
    tex = ureg_DECL_fs_input( ureg,
                              TGSI_SEMANTIC_GENERIC, 0,
@@ -397,6 +418,12 @@ util_make_fragment_tex_shader_writestencil(struct pipe_context *pipe,
       return NULL;
 
    stencil_sampler = ureg_DECL_sampler( ureg, 0 );
+
+   ureg_DECL_sampler_view(ureg, 0, tex_target,
+                          TGSI_RETURN_TYPE_UINT,
+                          TGSI_RETURN_TYPE_UINT,
+                          TGSI_RETURN_TYPE_UINT,
+                          TGSI_RETURN_TYPE_UINT);
 
    tex = ureg_DECL_fs_input( ureg,
                              TGSI_SEMANTIC_GENERIC, 0,
@@ -512,6 +539,7 @@ util_make_fragment_cloneinput_shader(struct pipe_context *pipe, int num_cbufs,
 static void *
 util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
                            unsigned tgsi_tex,
+                           const char *samp_type,
                            const char *output_semantic,
                            const char *output_mask)
 {
@@ -519,6 +547,7 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
          "FRAG\n"
          "DCL IN[0], GENERIC[0], LINEAR\n"
          "DCL SAMP[0]\n"
+         "DCL SVIEW[0], %s, %s\n"
          "DCL OUT[0], %s\n"
          "DCL TEMP[0]\n"
 
@@ -534,7 +563,8 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
 
-   sprintf(text, shader_templ, output_semantic, output_mask, type);
+   sprintf(text, shader_templ, type, samp_type,
+           output_semantic, output_mask, type);
 
    if (!tgsi_text_translate(text, tokens, Elements(tokens))) {
       puts(text);
@@ -556,9 +586,19 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
-                             unsigned tgsi_tex)
+                             unsigned tgsi_tex,
+                             enum tgsi_return_type stype)
 {
-   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex,
+   const char *samp_type;
+
+   if (stype == TGSI_RETURN_TYPE_UINT)
+      samp_type = "UINT";
+   else if (stype == TGSI_RETURN_TYPE_SINT)
+      samp_type = "SINT";
+   else
+      samp_type = "FLOAT";
+
+   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, samp_type,
                                      "COLOR[0]", "");
 }
 
@@ -572,7 +612,7 @@ void *
 util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
                              unsigned tgsi_tex)
 {
-   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex,
+   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "FLOAT",
                                      "POSITION", ".z");
 }
 
@@ -586,7 +626,7 @@ void *
 util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
                                unsigned tgsi_tex)
 {
-   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex,
+   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "UINT",
                                      "STENCIL", ".y");
 }
 
@@ -640,7 +680,7 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
 void *
 util_make_fs_msaa_resolve(struct pipe_context *pipe,
                           unsigned tgsi_tex, unsigned nr_samples,
-                          boolean is_uint, boolean is_sint)
+                          enum tgsi_return_type stype)
 {
    struct ureg_program *ureg;
    struct ureg_src sampler, coord;
@@ -653,6 +693,7 @@ util_make_fs_msaa_resolve(struct pipe_context *pipe,
 
    /* Declarations. */
    sampler = ureg_DECL_sampler(ureg, 0);
+   ureg_DECL_sampler_view(ureg, 0, tgsi_tex, stype, stype, stype, stype);
    coord = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_GENERIC, 0,
                               TGSI_INTERPOLATE_LINEAR);
    out = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
@@ -670,9 +711,9 @@ util_make_fs_msaa_resolve(struct pipe_context *pipe,
                ureg_imm1u(ureg, i));
       ureg_TXF(ureg, tmp, tgsi_tex, ureg_src(tmp_coord), sampler);
 
-      if (is_uint)
+      if (stype == TGSI_RETURN_TYPE_UINT)
          ureg_U2F(ureg, tmp, ureg_src(tmp));
-      else if (is_sint)
+      else if (stype == TGSI_RETURN_TYPE_SINT)
          ureg_I2F(ureg, tmp, ureg_src(tmp));
 
       /* Add it to the sum.*/
@@ -683,9 +724,9 @@ util_make_fs_msaa_resolve(struct pipe_context *pipe,
    ureg_MUL(ureg, tmp_sum, ureg_src(tmp_sum),
             ureg_imm1f(ureg, 1.0 / nr_samples));
 
-   if (is_uint)
+   if (stype == TGSI_RETURN_TYPE_UINT)
       ureg_F2U(ureg, out, ureg_src(tmp_sum));
-   else if (is_sint)
+   else if (stype == TGSI_RETURN_TYPE_SINT)
       ureg_F2I(ureg, out, ureg_src(tmp_sum));
    else
       ureg_MOV(ureg, out, ureg_src(tmp_sum));
@@ -699,7 +740,7 @@ util_make_fs_msaa_resolve(struct pipe_context *pipe,
 void *
 util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
                                    unsigned tgsi_tex, unsigned nr_samples,
-                                   boolean is_uint, boolean is_sint)
+                                   enum tgsi_return_type stype)
 {
    struct ureg_program *ureg;
    struct ureg_src sampler, coord;
@@ -713,6 +754,7 @@ util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
 
    /* Declarations. */
    sampler = ureg_DECL_sampler(ureg, 0);
+   ureg_DECL_sampler_view(ureg, 0, tgsi_tex, stype, stype, stype, stype);
    coord = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_GENERIC, 0,
                               TGSI_INTERPOLATE_LINEAR);
    out = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
@@ -744,9 +786,9 @@ util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
                   ureg_imm1u(ureg, i));
          ureg_TXF(ureg, tmp, tgsi_tex, ureg_src(tmp_coord[c]), sampler);
 
-         if (is_uint)
+         if (stype == TGSI_RETURN_TYPE_UINT)
             ureg_U2F(ureg, tmp, ureg_src(tmp));
-         else if (is_sint)
+         else if (stype == TGSI_RETURN_TYPE_SINT)
             ureg_I2F(ureg, tmp, ureg_src(tmp));
 
          /* Add it to the sum.*/
@@ -778,9 +820,9 @@ util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
             ureg_src(top));
 
    /* Convert to the texture format and return. */
-   if (is_uint)
+   if (stype == TGSI_RETURN_TYPE_UINT)
       ureg_F2U(ureg, out, ureg_src(tmp));
-   else if (is_sint)
+   else if (stype == TGSI_RETURN_TYPE_SINT)
       ureg_F2I(ureg, out, ureg_src(tmp));
    else
       ureg_MOV(ureg, out, ureg_src(tmp));

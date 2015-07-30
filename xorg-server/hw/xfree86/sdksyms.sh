@@ -54,7 +54,6 @@ cat > sdksyms.c << EOF
 #include "xvmcext.h"
 #endif
 #include "geext.h"
-#include "geint.h"
 #ifdef MITSHM
 #include "shmint.h"
 #endif
@@ -137,9 +136,6 @@ cat > sdksyms.c << EOF
 # include "xf86xvmc.h"
 # include "xf86xvpriv.h"
 #endif
-#if XF86VIDMODE
-# include "vidmodeproc.h"
-#endif
 #include "xorgVersion.h"
 #if defined(__sparc__) || defined(__sparc)
 # include "xf86sbusBus.h"
@@ -177,12 +173,6 @@ cat > sdksyms.c << EOF
 #endif
 #if defined(__sparc__) || defined(__sparc)
 # include "xf86Sbus.h"
-#endif
-
-
-/* hw/xfree86/dixmods/extmod/Makefile.am -- module */
-#ifdef XFreeXDGA
-#include "dgaproc.h"
 #endif
 
 
@@ -295,8 +285,6 @@ cat > sdksyms.c << EOF
 #include "selection.h"
 #include "servermd.h"
 #include "site.h"
-#include "swaprep.h"
-#include "swapreq.h"
 #include "validate.h"
 #include "window.h"
 #include "windowstr.h"

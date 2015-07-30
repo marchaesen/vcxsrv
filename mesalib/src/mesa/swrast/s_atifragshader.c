@@ -436,13 +436,13 @@ execute_shader(struct gl_context *ctx, const struct ati_fragment_shader *shader,
 		     for (i = 0; i < 3; i++) {
 			dst[optype][i] =
 			   (src[optype][2][i] >
-			    0.5) ? src[optype][0][i] : src[optype][1][i];
+			    0.5F) ? src[optype][0][i] : src[optype][1][i];
 		     }
 		  }
 		  else {
 		     dst[optype][3] =
 			(src[optype][2][3] >
-			 0.5) ? src[optype][0][3] : src[optype][1][3];
+			 0.5F) ? src[optype][0][3] : src[optype][1][3];
 		  }
 		  break;
 

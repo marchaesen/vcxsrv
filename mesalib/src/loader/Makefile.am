@@ -48,10 +48,7 @@ libloader_la_CPPFLAGS += \
 
 endif
 
-if !HAVE_LIBDRM
-libloader_la_CPPFLAGS += \
-	-D__NOT_HAVE_DRM_H
-else
+if HAVE_LIBDRM
 libloader_la_CPPFLAGS += \
 	$(LIBDRM_CFLAGS)
 

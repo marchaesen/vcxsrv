@@ -179,7 +179,7 @@ static int has_cpuid(void)
  * @sa cpuid.h included in gcc-4.3 onwards.
  * @sa http://msdn.microsoft.com/en-us/library/hskdteyh.aspx
  */
-static INLINE void
+static inline void
 cpuid(uint32_t ax, uint32_t *p)
 {
 #if (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86)
@@ -216,7 +216,7 @@ cpuid(uint32_t ax, uint32_t *p)
  * @sa cpuid.h included in gcc-4.4 onwards.
  * @sa http://msdn.microsoft.com/en-us/library/hskdteyh%28v=vs.90%29.aspx
  */
-static INLINE void
+static inline void
 cpuid_count(uint32_t ax, uint32_t cx, uint32_t *p)
 {
 #if (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86)
@@ -250,7 +250,7 @@ cpuid_count(uint32_t ax, uint32_t cx, uint32_t *p)
 }
 
 
-static INLINE uint64_t xgetbv(void)
+static inline uint64_t xgetbv(void)
 {
 #if defined(PIPE_CC_GCC)
    uint32_t eax, edx;
@@ -272,7 +272,7 @@ static INLINE uint64_t xgetbv(void)
 
 
 #if defined(PIPE_ARCH_X86)
-PIPE_ALIGN_STACK static INLINE boolean sse2_has_daz(void)
+PIPE_ALIGN_STACK static inline boolean sse2_has_daz(void)
 {
    struct {
       uint32_t pad1[7];

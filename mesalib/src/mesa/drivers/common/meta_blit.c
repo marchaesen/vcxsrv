@@ -82,7 +82,7 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
    y_scale = samples * 0.5;
 
    /* We expect only power of 2 samples in source multisample buffer. */
-   assert(samples > 0 && is_power_of_two(samples));
+   assert(samples > 0 && _mesa_is_pow_two(samples));
    while (samples >> (shader_offset + 1)) {
       shader_offset++;
    }
@@ -263,7 +263,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
    }
 
    /* We expect only power of 2 samples in source multisample buffer. */
-   assert(samples > 0 && is_power_of_two(samples));
+   assert(samples > 0 && _mesa_is_pow_two(samples));
    while (samples >> (shader_offset + 1)) {
       shader_offset++;
    }
@@ -312,7 +312,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
       break;
    default:
       _mesa_problem(ctx, "Unkown texture target %s\n",
-                    _mesa_lookup_enum_by_nr(target));
+                    _mesa_enum_to_string(target));
       shader_index = BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE;
    }
 
@@ -434,7 +434,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
           * (so the floating point exponent just gets increased), rather than
           * doing a naive sum and dividing.
           */
-         assert(is_power_of_two(samples));
+         assert(_mesa_is_pow_two(samples));
          /* Fetch each individual sample. */
          sample_resolve = rzalloc_size(mem_ctx, 1);
          for (i = 0; i < samples; i++) {

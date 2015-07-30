@@ -29,6 +29,7 @@
 #include "glcpp.h"
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
+#include "util/strtod.h"
 
 extern int glcpp_parser_debug;
 
@@ -167,6 +168,8 @@ main (int argc, char *argv[])
 	shader = load_text_file (ctx, filename);
 	if (shader == NULL)
 	   return 1;
+
+	_mesa_locale_init();
 
 	ret = glcpp_preprocess(ctx, &shader, &info_log, NULL, &gl_ctx);
 

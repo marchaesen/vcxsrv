@@ -45,6 +45,8 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(priv))
         return TRUE;
 
+    glamor_make_current(glamor_priv);
+
     RegionInit(&region, box, 1);
 
     /* See if it's already mapped */
@@ -220,8 +222,22 @@ glamor_prepare_access_picture_box(PicturePtr picture, glamor_access_t access,
 {
     if (!picture || !picture->pDrawable)
         return TRUE;
-    return glamor_prepare_access_box(picture->pDrawable, access,
-                                    x, y, w, h);
+
+    /* If a transform is set, we don't know what the bounds is on the
+     * source, so just prepare the whole pixmap.  XXX: We could
+     * potentially work out where in the source would be sampled based
+     * on the transform, and we don't need do do this for destination
+     * pixmaps at all.
+     */
+    if (picture->transform) {
+        return glamor_prepare_access_box(picture->pDrawable, access,
+                                         0, 0,
+                                         picture->pDrawable->width,
+                                         picture->pDrawable->height);
+    } else {
+        return glamor_prepare_access_box(picture->pDrawable, access,
+                                         x, y, w, h);
+    }
 }
 
 void

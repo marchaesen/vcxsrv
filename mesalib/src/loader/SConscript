@@ -8,8 +8,6 @@ env.Prepend(CPPPATH = [
     '#include'
 ])
 
-env.Append(CPPDEFINES = ['__NOT_HAVE_DRM_H'])
-
 if env['udev']:
     env.PkgUseModules('UDEV')
     env.Append(CPPDEFINES = ['HAVE_LIBUDEV'])

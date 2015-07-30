@@ -599,7 +599,7 @@ mieqProcessInputEvents(void)
         ErrorF("[mi] EQ processing has resumed after %lu dropped events.\n",
                (unsigned long) miEventQueue.dropped);
         ErrorF
-            ("[mi] This may be caused my a misbehaving driver monopolizing the server's resources.\n");
+            ("[mi] This may be caused by a misbehaving driver monopolizing the server's resources.\n");
         miEventQueue.dropped = 0;
     }
 

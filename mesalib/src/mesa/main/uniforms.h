@@ -343,10 +343,6 @@ void GLAPIENTRY
 _mesa_ProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count,
                                 GLboolean transpose, const GLdouble *value);
 
-unsigned
-_mesa_get_uniform_location(struct gl_shader_program *shProg,
-			   const GLchar *name, unsigned *offset);
-
 void
 _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shader_program,
 	      GLint location, GLsizei count,

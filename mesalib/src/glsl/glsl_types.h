@@ -59,6 +59,7 @@ enum glsl_base_type {
    GLSL_TYPE_INTERFACE,
    GLSL_TYPE_ARRAY,
    GLSL_TYPE_VOID,
+   GLSL_TYPE_SUBROUTINE,
    GLSL_TYPE_ERROR
 };
 
@@ -262,6 +263,11 @@ struct glsl_type {
 						  unsigned num_fields,
 						  enum glsl_interface_packing packing,
 						  const char *block_name);
+
+   /**
+    * Get the instance of an subroutine type
+    */
+   static const glsl_type *get_subroutine_instance(const char *subroutine_name);
 
    /**
     * Get the type resulting from a multiplication of \p type_a * \p type_b
@@ -514,6 +520,13 @@ struct glsl_type {
    /**
     * Query if a type is unnamed/anonymous (named by the parser)
     */
+
+   bool is_subroutine() const
+   {
+      return base_type == GLSL_TYPE_SUBROUTINE;
+   }
+   bool contains_subroutine() const;
+
    bool is_anonymous() const
    {
       return !strncmp(name, "#anon", 5);
@@ -679,6 +692,9 @@ private:
    /** Constructor for array types */
    glsl_type(const glsl_type *array, unsigned length);
 
+   /** Constructor for subroutine types */
+   glsl_type(const char *name);
+
    /** Hash table containing the known array types. */
    static struct hash_table *array_types;
 
@@ -688,7 +704,10 @@ private:
    /** Hash table containing the known interface types. */
    static struct hash_table *interface_types;
 
-   static int record_key_compare(const void *a, const void *b);
+   /** Hash table containing the known subroutine types. */
+   static struct hash_table *subroutine_types;
+
+   static bool record_key_compare(const void *a, const void *b);
    static unsigned record_key_hash(const void *key);
 
    /**
@@ -750,6 +769,12 @@ struct glsl_struct_field {
     * Layout of the matrix.  Uses glsl_matrix_layout values.
     */
    unsigned matrix_layout:2;
+
+   /**
+    * For interface blocks, 1 if this variable is a per-patch input or output
+    * (as in ir_variable::patch). 0 otherwise.
+    */
+   unsigned patch:1;
 
    /**
     * For interface blocks, it has a value if this variable uses multiple vertex

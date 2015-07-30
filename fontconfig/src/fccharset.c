@@ -164,6 +164,14 @@ FcCharSetPutLeaf (FcCharSet	*fcs,
         unsigned int alloced = 8;
 	leaves = malloc (alloced * sizeof (*leaves));
 	numbers = malloc (alloced * sizeof (*numbers));
+	if (!leaves || !numbers)
+	{
+	    if (leaves)
+		free (leaves);
+	    if (numbers)
+		free (numbers);
+	    return FcFalse;
+	}
       }
       else
       {
@@ -172,8 +180,19 @@ FcCharSetPutLeaf (FcCharSet	*fcs,
 
 	alloced *= 2;
 	new_leaves = realloc (leaves, alloced * sizeof (*leaves));
+	if (!new_leaves)
+	    return FcFalse;
 	numbers = realloc (numbers, alloced * sizeof (*numbers));
-
+	if (!numbers)
+	{
+	    /* Revert the reallocation of leaves */
+	    leaves = realloc (new_leaves, (alloced / 2) * sizeof (*new_leaves));
+	    /* unlikely to fail though */
+	    if (!leaves)
+		return FcFalse;
+	    fcs->leaves_offset = FcPtrToOffset (fcs, leaves);
+	    return FcFalse;
+	}
 	distance = (intptr_t) new_leaves - (intptr_t) leaves;
 	if (new_leaves && distance)
 	{
@@ -183,9 +202,6 @@ FcCharSetPutLeaf (FcCharSet	*fcs,
 	}
 	leaves = new_leaves;
       }
-
-      if (!leaves || !numbers)
-	  return FcFalse;
 
       fcs->leaves_offset = FcPtrToOffset (fcs, leaves);
       fcs->numbers_offset = FcPtrToOffset (fcs, numbers);

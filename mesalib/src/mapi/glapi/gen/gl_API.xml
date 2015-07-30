@@ -8072,7 +8072,13 @@
 
 <xi:include href="ARB_vertex_type_2_10_10_10_rev.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions #86...#93 -->
+<!-- ARB extensions #86...#89 -->
+
+<xi:include href="ARB_shader_subroutine.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_tessellation_shader.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions #92...#93 -->
 
 <xi:include href="ARB_draw_indirect.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8188,7 +8194,9 @@
     <!-- No new functions, types, enums. -->
 </category>
 
-<!-- ARB extensions #130..#131 -->
+<xi:include href="ARB_framebuffer_no_attachments.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions #131 -->
 
 <category name="GL_ARB_explicit_uniform_location" number="128">
     <enum name="MAX_UNIFORM_LOCATIONS" count="1" value="0x826E" >
@@ -8251,7 +8259,9 @@
 
 <xi:include href="ARB_direct_state_access.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions 165 - 166 -->
+<xi:include href="ARB_get_texture_sub_image.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extension 166 -->
 
 <xi:include href="ARB_texture_barrier.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

@@ -413,8 +413,8 @@ fp64(const _mesa_glsl_parse_state *state)
 static bool
 barrier_supported(const _mesa_glsl_parse_state *state)
 {
-   return state->stage == MESA_SHADER_COMPUTE;
-   /* TODO: || stage->state == MESA_SHADER_TESS_CTRL; */
+   return state->stage == MESA_SHADER_COMPUTE ||
+          state->stage == MESA_SHADER_TESS_CTRL;
 }
 
 /** @} */

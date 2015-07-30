@@ -37,9 +37,9 @@
 
 static GLuint check_size( const GLfloat *attr )
 {
-   if (attr[3] != 1.0) return 4;
-   if (attr[2] != 0.0) return 3;
-   if (attr[1] != 0.0) return 2;
+   if (attr[3] != 1.0F) return 4;
+   if (attr[2] != 0.0F) return 3;
+   if (attr[1] != 0.0F) return 2;
    return 1;		
 }
 

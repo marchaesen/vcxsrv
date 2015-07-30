@@ -268,10 +268,11 @@ miHandleExposures(DrawablePtr pSrcDrawable, DrawablePtr pDstDrawable,
         RegionTranslate(&rgnExposed, pDstDrawable->x, pDstDrawable->y);
 
         if (extents) {
-            /* miPaintWindow doesn't clip, so we have to */
+            /* PaintWindow doesn't clip, so we have to */
             RegionIntersect(&rgnExposed, &rgnExposed, &pWin->clipList);
         }
-        miPaintWindow((WindowPtr) pDstDrawable, &rgnExposed, PW_BACKGROUND);
+        pDstDrawable->pScreen->PaintWindow((WindowPtr) pDstDrawable,
+                                           &rgnExposed, PW_BACKGROUND);
 
         if (extents) {
             RegionReset(&rgnExposed, &expBox);
@@ -383,16 +384,14 @@ miWindowExposures(WindowPtr pWin, RegionPtr prgn)
              * work overall, on both client and server.  This is cheating, but
              * isn't prohibited by the protocol ("spontaneous combustion" :-).
              */
-            BoxRec box;
-
-            box = *RegionExtents(prgn);
+            BoxRec box = *RegionExtents(prgn);
             exposures = &expRec;
             RegionInit(exposures, &box, 1);
             RegionReset(prgn, &box);
             /* miPaintWindow doesn't clip, so we have to */
             RegionIntersect(prgn, prgn, &pWin->clipList);
         }
-        miPaintWindow(pWin, prgn, PW_BACKGROUND);
+        pWin->drawable.pScreen->PaintWindow(pWin, prgn, PW_BACKGROUND);
         if (clientInterested)
             miSendExposures(pWin, exposures,
                             pWin->drawable.x, pWin->drawable.y);
@@ -401,14 +400,6 @@ miWindowExposures(WindowPtr pWin, RegionPtr prgn)
         RegionEmpty(prgn);
     }
 }
-
-#ifdef ROOTLESS
-/* Ugly, ugly, but we lost our hooks into miPaintWindow... =/ */
-void RootlessSetPixmapOfAncestors(WindowPtr pWin);
-void RootlessStartDrawing(WindowPtr pWin);
-void RootlessDamageRegion(WindowPtr pWin, RegionPtr prgn);
-Bool IsFramedWindow(WindowPtr pWin);
-#endif
 
 void
 miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
@@ -437,22 +428,6 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
     Bool solid = TRUE;
     DrawablePtr drawable = &pWin->drawable;
 
-#ifdef ROOTLESS
-    if (!drawable || drawable->type == UNDRAWABLE_WINDOW)
-        return;
-
-    if (IsFramedWindow(pWin)) {
-        RootlessStartDrawing(pWin);
-        RootlessDamageRegion(pWin, prgn);
-
-        if (pWin->backgroundState == ParentRelative) {
-            if ((what == PW_BACKGROUND) ||
-                (what == PW_BORDER && !pWin->borderIsPixel))
-                RootlessSetPixmapOfAncestors(pWin);
-        }
-    }
-#endif
-
     if (what == PW_BACKGROUND) {
         while (pWin->backgroundState == ParentRelative)
             pWin = pWin->parent;
@@ -478,14 +453,21 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
     else {
         PixmapPtr pixmap;
 
-        tile_x_off = drawable->x;
-        tile_y_off = drawable->y;
+        fill = pWin->border;
+        solid = pWin->borderIsPixel;
 
         /* servers without pixmaps draw their own borders */
         if (!pScreen->GetWindowPixmap)
             return;
         pixmap = (*pScreen->GetWindowPixmap) ((WindowPtr) drawable);
         drawable = &pixmap->drawable;
+
+        while (pWin->backgroundState == ParentRelative)
+            pWin = pWin->parent;
+
+        tile_x_off = pWin->drawable.x;
+        tile_y_off = pWin->drawable.y;
+
 #ifdef COMPOSITE
         draw_x_off = pixmap->screen_x;
         draw_y_off = pixmap->screen_y;
@@ -495,8 +477,6 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
         draw_x_off = 0;
         draw_y_off = 0;
 #endif
-        fill = pWin->border;
-        solid = pWin->borderIsPixel;
     }
 
     gcval[0].val = GXcopy;

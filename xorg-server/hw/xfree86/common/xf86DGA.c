@@ -471,7 +471,7 @@ xf86SetDGAMode(ScrnInfoPtr pScrn, int num, DGADevicePtr devRet)
 
 /*********** exported ones ***************/
 
-void
+static void
 DGASetInputMode(int index, Bool keyboard, Bool mouse)
 {
     ScreenPtr pScreen = screenInfo.screens[index];
@@ -488,7 +488,7 @@ DGASetInputMode(int index, Bool keyboard, Bool mouse)
     }
 }
 
-Bool
+static Bool
 DGAChangePixmapMode(int index, int *x, int *y, int mode)
 {
     DGAScreenPtr pScreenPriv;
@@ -560,7 +560,7 @@ DGAScreenAvailable(ScreenPtr pScreen)
     return FALSE;
 }
 
-Bool
+static Bool
 DGAAvailable(int index)
 {
     ScreenPtr pScreen;
@@ -606,7 +606,7 @@ DGAShutdown(void)
 
 /* Called by the extension to initialize a mode */
 
-int
+static int
 DGASetMode(int index, int num, XDGAModePtr mode, PixmapPtr *pPix)
 {
     ScrnInfoPtr pScrn = xf86Screens[index];
@@ -626,7 +626,7 @@ DGASetMode(int index, int num, XDGAModePtr mode, PixmapPtr *pPix)
 
 /* Called from the extension to let the DDX know which events are requested */
 
-void
+static void
 DGASelectInput(int index, ClientPtr client, long mask)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -636,7 +636,7 @@ DGASelectInput(int index, ClientPtr client, long mask)
     pScreenPriv->input = mask;
 }
 
-int
+static int
 DGAGetViewportStatus(int index)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -649,7 +649,7 @@ DGAGetViewportStatus(int index)
     return (*pScreenPriv->funcs->GetViewport) (pScreenPriv->pScrn);
 }
 
-int
+static int
 DGASetViewport(int index, int x, int y, int mode)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -675,7 +675,7 @@ BitsClear(CARD32 data)
     return bits;
 }
 
-int
+static int
 DGACreateColormap(int index, ClientPtr client, int id, int mode, int alloc)
 {
     ScreenPtr pScreen = screenInfo.screens[index];
@@ -744,7 +744,7 @@ DGACreateColormap(int index, ClientPtr client, int id, int mode, int alloc)
 
 /*  Called by the extension to install a colormap on DGA active screens */
 
-void
+static void
 DGAInstallCmap(ColormapPtr cmap)
 {
     ScreenPtr pScreen = cmap->pScreen;
@@ -760,7 +760,7 @@ DGAInstallCmap(ColormapPtr cmap)
     (*pScreen->InstallColormap) (cmap);
 }
 
-int
+static int
 DGASync(int index)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -773,7 +773,7 @@ DGASync(int index)
     return Success;
 }
 
-int
+static int
 DGAFillRect(int index, int x, int y, int w, int h, unsigned long color)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -789,7 +789,7 @@ DGAFillRect(int index, int x, int y, int w, int h, unsigned long color)
     return BadMatch;
 }
 
-int
+static int
 DGABlitRect(int index, int srcx, int srcy, int w, int h, int dstx, int dsty)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -806,7 +806,7 @@ DGABlitRect(int index, int srcx, int srcy, int w, int h, int dstx, int dsty)
     return BadMatch;
 }
 
-int
+static int
 DGABlitTransRect(int index,
                  int srcx, int srcy,
                  int w, int h, int dstx, int dsty, unsigned long color)
@@ -826,7 +826,7 @@ DGABlitTransRect(int index,
     return BadMatch;
 }
 
-int
+static int
 DGAGetModes(int index)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -836,7 +836,7 @@ DGAGetModes(int index)
     return pScreenPriv->numModes;
 }
 
-int
+static int
 DGAGetModeInfo(int index, XDGAModePtr mode, int num)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -1126,7 +1126,7 @@ DGAProcessPointerEvent(ScreenPtr pScreen, DGAEvent * event, DeviceIntPtr mouse)
     }
 }
 
-Bool
+static Bool
 DGAOpenFramebuffer(int index,
                    char **name,
                    unsigned char **mem, int *size, int *offset, int *flags)
@@ -1140,7 +1140,7 @@ DGAOpenFramebuffer(int index,
                                                    flags);
 }
 
-void
+static void
 DGACloseFramebuffer(int index)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);
@@ -1152,7 +1152,7 @@ DGACloseFramebuffer(int index)
 
 /*  For DGA 1.0 backwards compatibility only */
 
-int
+static int
 DGAGetOldDGAMode(int index)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(screenInfo.screens[index]);

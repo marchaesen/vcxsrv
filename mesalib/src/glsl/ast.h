@@ -304,6 +304,16 @@ private:
     * Is this function call actually a constructor?
     */
    bool cons;
+   ir_rvalue *
+   handle_method(exec_list *instructions,
+                 struct _mesa_glsl_parse_state *state);
+};
+
+class ast_subroutine_list : public ast_node
+{
+public:
+   virtual void print(void) const;
+   exec_list declarations;
 };
 
 class ast_array_specifier : public ast_node {
@@ -434,7 +444,9 @@ struct ast_type_qualifier {
 	 unsigned out:1;
 	 unsigned centroid:1;
          unsigned sample:1;
+	 unsigned patch:1;
 	 unsigned uniform:1;
+	 unsigned buffer:1;
 	 unsigned smooth:1;
 	 unsigned flat:1;
 	 unsigned noperspective:1;
@@ -514,6 +526,23 @@ struct ast_type_qualifier {
          unsigned stream:1; /**< Has stream value assigned  */
          unsigned explicit_stream:1; /**< stream value assigned explicitly by shader code */
          /** \} */
+
+	 /** \name Layout qualifiers for GL_ARB_tessellation_shader */
+	 /** \{ */
+	 /* tess eval input layout */
+	 /* gs prim_type reused for primitive mode */
+	 unsigned vertex_spacing:1;
+	 unsigned ordering:1;
+	 unsigned point_mode:1;
+	 /* tess control output layout */
+	 unsigned vertices:1;
+	 /** \} */
+
+         /** \name Qualifiers for GL_ARB_shader_subroutine */
+	 /** \{ */
+         unsigned subroutine:1;  /**< Is this marked 'subroutine' */
+         unsigned subroutine_def:1; /**< Is this marked 'subroutine' with a list of types */
+	 /** \} */
       }
       /** \brief Set of flags, accessed by name. */
       q;
@@ -549,7 +578,10 @@ struct ast_type_qualifier {
    /** Stream in GLSL 1.50 geometry shaders. */
    unsigned stream;
 
-   /** Input or output primitive type in GLSL 1.50 geometry shaders */
+   /**
+    * Input or output primitive type in GLSL 1.50 geometry shaders
+    * and tessellation shaders.
+    */
    GLenum prim_type;
 
    /**
@@ -575,6 +607,18 @@ struct ast_type_qualifier {
     * flags.q.local_size & (1 << i) is set.
     */
    int local_size[3];
+
+   /** Tessellation evaluation shader: vertex spacing (equal, fractional even/odd) */
+   GLenum vertex_spacing;
+
+   /** Tessellation evaluation shader: vertex ordering (CW or CCW) */
+   GLenum ordering;
+
+   /** Tessellation evaluation shader: point mode */
+   bool point_mode;
+
+   /** Tessellation control shader: number of output vertices */
+   int vertices;
 
    /**
     * Image format specified with an ARB_shader_image_load_store
@@ -631,11 +675,17 @@ struct ast_type_qualifier {
 			_mesa_glsl_parse_state *state,
 			ast_type_qualifier q);
 
+   bool merge_out_qualifier(YYLTYPE *loc,
+                           _mesa_glsl_parse_state *state,
+                           ast_type_qualifier q,
+                           ast_node* &node);
+
    bool merge_in_qualifier(YYLTYPE *loc,
                            _mesa_glsl_parse_state *state,
                            ast_type_qualifier q,
                            ast_node* &node);
 
+   ast_subroutine_list *subroutine_list;
 };
 
 class ast_declarator_list;
@@ -1027,6 +1077,27 @@ public:
     * is unsized, this field will be \c NULL.
     */
    ast_array_specifier *array_specifier;
+};
+
+
+/**
+ * AST node representing a declaration of the output layout for tessellation
+ * control shaders.
+ */
+class ast_tcs_output_layout : public ast_node
+{
+public:
+   ast_tcs_output_layout(const struct YYLTYPE &locp, int vertices)
+      : vertices(vertices)
+   {
+      set_location(locp);
+   }
+
+   virtual ir_rvalue *hir(exec_list *instructions,
+                          struct _mesa_glsl_parse_state *state);
+
+private:
+   const int vertices;
 };
 
 

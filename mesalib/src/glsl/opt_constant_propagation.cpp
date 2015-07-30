@@ -444,6 +444,14 @@ ir_constant_propagation_visitor::add_constant(ir_assignment *ir)
    if (!deref->var->type->is_vector() && !deref->var->type->is_scalar())
       return;
 
+   /* We can't do copy propagation on buffer variables, since the underlying
+    * memory storage is shared across multiple threads we can't be sure that
+    * the variable value isn't modified between this assignment and the next
+    * instruction where its value is read.
+    */
+   if (deref->var->data.mode == ir_var_shader_storage)
+      return;
+
    entry = new(this->mem_ctx) acp_entry(deref->var, ir->write_mask, constant);
    this->acp->push_tail(entry);
 }

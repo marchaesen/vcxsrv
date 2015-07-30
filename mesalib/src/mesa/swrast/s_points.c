@@ -208,9 +208,9 @@ sprite_point(struct gl_context *ctx, const SWvertex *vert)
       else {
          /* even size */
          /* 0.501 factor allows conformance to pass */
-         xmin = (GLint) (x + 0.501) - iRadius;
+         xmin = (GLint) (x + 0.501F) - iRadius;
          xmax = xmin + iSize - 1;
-         ymin = (GLint) (y + 0.501) - iRadius;
+         ymin = (GLint) (y + 0.501F) - iRadius;
          ymax = ymin + iSize - 1;
       }
 
@@ -423,9 +423,9 @@ large_point(struct gl_context *ctx, const SWvertex *vert)
       else {
          /* even size */
          /* 0.501 factor allows conformance to pass */
-         xmin = (GLint) (x + 0.501) - iRadius;
+         xmin = (GLint) (x + 0.501F) - iRadius;
          xmax = xmin + iSize - 1;
-         ymin = (GLint) (y + 0.501) - iRadius;
+         ymin = (GLint) (y + 0.501F) - iRadius;
          ymax = ymin + iSize - 1;
       }
 
@@ -552,7 +552,7 @@ _swrast_choose_point(struct gl_context *ctx)
       else if (ctx->Point.SmoothFlag) {
          swrast->Point = smooth_point;
       }
-      else if (size > 1.0 ||
+      else if (size > 1.0F ||
                ctx->Point._Attenuated ||
                ctx->VertexProgram.PointSizeEnabled) {
          swrast->Point = large_point;

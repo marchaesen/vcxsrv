@@ -208,7 +208,7 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
       return;
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glGetPointerv %s\n", _mesa_lookup_enum_by_nr(pname));
+      _mesa_debug(ctx, "glGetPointerv %s\n", _mesa_enum_to_string(pname));
 
    switch (pname) {
       case GL_VERTEX_ARRAY_POINTER:
@@ -299,7 +299,7 @@ _mesa_GetError( void )
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glGetError <-- %s\n", _mesa_lookup_enum_by_nr(e));
+      _mesa_debug(ctx, "glGetError <-- %s\n", _mesa_enum_to_string(e));
 
    ctx->ErrorValue = (GLenum) GL_NO_ERROR;
    ctx->ErrorDebugCount = 0;

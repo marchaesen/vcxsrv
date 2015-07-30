@@ -896,7 +896,7 @@ st_CompressedTexImage(struct gl_context *ctx, GLuint dims,
 
 
 /**
- * Called via ctx->Driver.GetTexImage()
+ * Called via ctx->Driver.GetTexSubImage()
  *
  * This uses a blit to copy the texture to a texture format which matches
  * the format and type combo and then a fast read-back is done using memcpy.
@@ -910,16 +910,15 @@ st_CompressedTexImage(struct gl_context *ctx, GLuint dims,
  *       we do here should be free in such cases.
  */
 static void
-st_GetTexImage(struct gl_context * ctx,
-               GLenum format, GLenum type, GLvoid * pixels,
-               struct gl_texture_image *texImage)
+st_GetTexSubImage(struct gl_context * ctx,
+                  GLint xoffset, GLint yoffset, GLint zoffset,
+                  GLsizei width, GLsizei height, GLint depth,
+                  GLenum format, GLenum type, GLvoid * pixels,
+                  struct gl_texture_image *texImage)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
-   GLuint width = texImage->Width;
-   GLuint height = texImage->Height;
-   GLuint depth = texImage->Depth;
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    struct pipe_resource *src = stObj->pt;
@@ -1054,7 +1053,7 @@ st_GetTexImage(struct gl_context * ctx,
       }
    }
 
-   /* create the destination texture */
+   /* create the destination texture of size (width X height X depth) */
    memset(&dst_templ, 0, sizeof(dst_templ));
    dst_templ.target = pipe_target;
    dst_templ.format = dst_format;
@@ -1076,6 +1075,10 @@ st_GetTexImage(struct gl_context * ctx,
       height = 1;
    }
 
+   assert(texImage->Face == 0 ||
+          texImage->TexObject->MinLayer == 0 ||
+          zoffset == 0);
+
    memset(&blit, 0, sizeof(blit));
    blit.src.resource = src;
    blit.src.level = texImage->Level + texImage->TexObject->MinLevel;
@@ -1083,9 +1086,11 @@ st_GetTexImage(struct gl_context * ctx,
    blit.dst.resource = dst;
    blit.dst.level = 0;
    blit.dst.format = dst->format;
-   blit.src.box.x = blit.dst.box.x = 0;
-   blit.src.box.y = blit.dst.box.y = 0;
-   blit.src.box.z = texImage->Face + texImage->TexObject->MinLayer;
+   blit.src.box.x = xoffset;
+   blit.dst.box.x = 0;
+   blit.src.box.y = yoffset;
+   blit.dst.box.y = 0;
+   blit.src.box.z = texImage->Face + texImage->TexObject->MinLayer + zoffset;
    blit.dst.box.z = 0;
    blit.src.box.width = blit.dst.box.width = width;
    blit.src.box.height = blit.dst.box.height = height;
@@ -1206,7 +1211,9 @@ end:
 
 fallback:
    if (!done) {
-      _mesa_GetTexImage_sw(ctx, format, type, pixels, texImage);
+      _mesa_GetTexSubImage_sw(ctx, xoffset, yoffset, zoffset,
+                              width, height, depth,
+                              format, type, pixels, texImage);
    }
 }
 
@@ -1876,11 +1883,11 @@ st_init_texture_functions(struct dd_function_table *functions)
    functions->CopyTexSubImage = st_CopyTexSubImage;
    functions->GenerateMipmap = st_generate_mipmap;
 
-   functions->GetTexImage = st_GetTexImage;
+   functions->GetTexSubImage = st_GetTexSubImage;
 
    /* compressed texture functions */
    functions->CompressedTexImage = st_CompressedTexImage;
-   functions->GetCompressedTexImage = _mesa_GetCompressedTexImage_sw;
+   functions->GetCompressedTexSubImage = _mesa_GetCompressedTexSubImage_sw;
 
    functions->NewTextureObject = st_NewTextureObject;
    functions->NewTextureImage = st_NewTextureImage;

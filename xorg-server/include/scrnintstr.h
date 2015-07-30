@@ -55,6 +55,7 @@ SOFTWARE.
 #include <X11/Xproto.h>
 #include "dix.h"
 #include "privates.h"
+#include <X11/extensions/randr.h>
 
 typedef struct _PixmapFormat {
     unsigned char depth;
@@ -156,6 +157,10 @@ typedef void (*PostValidateTreeProcPtr) (WindowPtr /*pParent */ ,
 
 typedef void (*WindowExposuresProcPtr) (WindowPtr /*pWindow */ ,
                                         RegionPtr /*prgn */);
+
+typedef void (*PaintWindowProcPtr) (WindowPtr /*pWindow*/,
+                                    RegionPtr /*pRegion*/,
+                                    int /*what*/);
 
 typedef void (*CopyWindowProcPtr) (WindowPtr /*pWindow */ ,
                                    DDXPointRec /*ptOldOrg */ ,
@@ -340,7 +345,9 @@ typedef Bool (*SharePixmapBackingProcPtr)(PixmapPtr, ScreenPtr, void **);
 typedef Bool (*SetSharedPixmapBackingProcPtr)(PixmapPtr, void *);
 
 typedef Bool (*StartPixmapTrackingProcPtr)(PixmapPtr, PixmapPtr,
-                                           int x, int y);
+                                           int x, int y,
+                                           int dst_x, int dst_y,
+                                           Rotation rotation);
 
 typedef Bool (*StopPixmapTrackingProcPtr)(PixmapPtr, PixmapPtr);
 
@@ -495,6 +502,7 @@ typedef struct _Screen {
     ClearToBackgroundProcPtr ClearToBackground;
     ClipNotifyProcPtr ClipNotify;
     RestackWindowProcPtr RestackWindow;
+    PaintWindowProcPtr PaintWindow;
 
     /* Pixmap procedures */
 

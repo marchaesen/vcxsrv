@@ -729,8 +729,8 @@ ExprResolveString(ExprDef * expr,
         val_rtrn->str = XkbAtomGetString(NULL, expr->value.str);
         if (val_rtrn->str == NULL)
         {
-            static const char *empty = "";
-            val_rtrn->str = empty;
+            static char empty_char = '\0';
+            val_rtrn->str = &empty_char;
         }
         return True;
     case ExprIdent:

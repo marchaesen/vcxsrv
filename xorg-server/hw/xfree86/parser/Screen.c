@@ -76,6 +76,33 @@ static xf86ConfigSymTabRec DisplayTab[] = {
     {-1, ""},
 };
 
+static void
+xf86freeModeList(XF86ModePtr ptr)
+{
+    XF86ModePtr prev;
+
+    while (ptr) {
+        TestFree(ptr->mode_name);
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
+}
+
+static void
+xf86freeDisplayList(XF86ConfDisplayPtr ptr)
+{
+    XF86ConfDisplayPtr prev;
+
+    while (ptr) {
+        xf86freeModeList(ptr->disp_mode_lst);
+        xf86optionListFree(ptr->disp_option_lst);
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
+}
+
 #define CLEANUP xf86freeDisplayList
 
 static XF86ConfDisplayPtr
@@ -433,6 +460,19 @@ xf86printScreenSection(FILE * cf, XF86ConfScreenPtr ptr)
 
 }
 
+static void
+xf86freeAdaptorLinkList(XF86ConfAdaptorLinkPtr ptr)
+{
+    XF86ConfAdaptorLinkPtr prev;
+
+    while (ptr) {
+        TestFree(ptr->al_adaptor_str);
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
+}
+
 void
 xf86freeScreenList(XF86ConfScreenPtr ptr)
 {
@@ -448,46 +488,6 @@ xf86freeScreenList(XF86ConfScreenPtr ptr)
         xf86optionListFree(ptr->scrn_option_lst);
         xf86freeAdaptorLinkList(ptr->scrn_adaptor_lst);
         xf86freeDisplayList(ptr->scrn_display_lst);
-        prev = ptr;
-        ptr = ptr->list.next;
-        free(prev);
-    }
-}
-
-void
-xf86freeAdaptorLinkList(XF86ConfAdaptorLinkPtr ptr)
-{
-    XF86ConfAdaptorLinkPtr prev;
-
-    while (ptr) {
-        TestFree(ptr->al_adaptor_str);
-        prev = ptr;
-        ptr = ptr->list.next;
-        free(prev);
-    }
-}
-
-void
-xf86freeDisplayList(XF86ConfDisplayPtr ptr)
-{
-    XF86ConfDisplayPtr prev;
-
-    while (ptr) {
-        xf86freeModeList(ptr->disp_mode_lst);
-        xf86optionListFree(ptr->disp_option_lst);
-        prev = ptr;
-        ptr = ptr->list.next;
-        free(prev);
-    }
-}
-
-void
-xf86freeModeList(XF86ModePtr ptr)
-{
-    XF86ModePtr prev;
-
-    while (ptr) {
-        TestFree(ptr->mode_name);
         prev = ptr;
         ptr = ptr->list.next;
         free(prev);

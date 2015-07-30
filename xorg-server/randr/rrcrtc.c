@@ -387,7 +387,7 @@ RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
 
 static Bool
 rrCreateSharedPixmap(RRCrtcPtr crtc, int width, int height,
-                     int x, int y)
+                     int x, int y, Rotation rotation)
 {
     PixmapPtr mpix, spix;
     ScreenPtr master = crtc->pScreen->current_master;
@@ -434,13 +434,33 @@ rrCreateSharedPixmap(RRCrtcPtr crtc, int width, int height,
 
     crtc->scanout_pixmap = spix;
 
-    master->StartPixmapTracking(mscreenpix, spix, x, y);
+    master->StartPixmapTracking(mscreenpix, spix, x, y, 0, 0, rotation);
     return TRUE;
+}
+
+static void crtc_to_box(BoxPtr box, RRCrtcPtr crtc)
+{
+    box->x1 = crtc->x;
+    box->y1 = crtc->y;
+    switch (crtc->rotation) {
+    case RR_Rotate_0:
+    case RR_Rotate_180:
+    default:
+        box->x2 = crtc->x + crtc->mode->mode.width;
+        box->y2 = crtc->y + crtc->mode->mode.height;
+        break;
+    case RR_Rotate_90:
+    case RR_Rotate_270:
+        box->x2 = crtc->x + crtc->mode->mode.height;
+        box->y2 = crtc->y + crtc->mode->mode.width;
+        break;
+    }
 }
 
 static Bool
 rrCheckPixmapBounding(ScreenPtr pScreen,
-                      RRCrtcPtr rr_crtc, int x, int y, int w, int h)
+                      RRCrtcPtr rr_crtc, Rotation rotation,
+                      int x, int y, int w, int h)
 {
     RegionRec root_pixmap_region, total_region, new_crtc_region;
     int c;
@@ -461,16 +481,19 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
 
         if (crtc == rr_crtc) {
             newbox.x1 = x;
-            newbox.x2 = x + w;
             newbox.y1 = y;
-            newbox.y2 = y + h;
+            if (rotation == RR_Rotate_90 ||
+                rotation == RR_Rotate_270) {
+                newbox.x2 = x + h;
+                newbox.y2 = y + w;
+            } else {
+                newbox.x2 = x + w;
+                newbox.y2 = y + h;
+            }
         } else {
             if (!crtc->mode)
                 continue;
-            newbox.x1 = crtc->x;
-            newbox.x2 = crtc->x + crtc->mode->mode.width;
-            newbox.y1 = crtc->y;
-            newbox.y2 = crtc->y + crtc->mode->mode.height;
+            crtc_to_box(&newbox, crtc);
         }
         RegionInit(&new_crtc_region, &newbox, 1);
         RegionUnion(&total_region, &total_region, &new_crtc_region);
@@ -483,17 +506,20 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
 
             if (slave_crtc == rr_crtc) {
                 newbox.x1 = x;
-                newbox.x2 = x + w;
                 newbox.y1 = y;
-                newbox.y2 = y + h;
+                if (rotation == RR_Rotate_90 ||
+                    rotation == RR_Rotate_270) {
+                    newbox.x2 = x + h;
+                    newbox.y2 = y + w;
+                } else {
+                    newbox.x2 = x + w;
+                    newbox.y2 = y + h;
+                }
             }
             else {
                 if (!slave_crtc->mode)
                     continue;
-                newbox.x1 = slave_crtc->x;
-                newbox.x2 = slave_crtc->x + slave_crtc->mode->mode.width;
-                newbox.y1 = slave_crtc->y;
-                newbox.y2 = slave_crtc->y + slave_crtc->mode->mode.height;
+                crtc_to_box(&newbox, slave_crtc);
             }
             RegionInit(&new_crtc_region, &newbox, 1);
             RegionUnion(&total_region, &total_region, &new_crtc_region);
@@ -561,12 +587,12 @@ RRCrtcSet(RRCrtcPtr crtc,
                 height = mode->mode.height;
             }
             ret = rrCheckPixmapBounding(master, crtc,
-                                        x, y, width, height);
+                                        rotation, x, y, width, height);
             if (!ret)
                 return FALSE;
 
             if (pScreen->current_master) {
-                ret = rrCreateSharedPixmap(crtc, width, height, x, y);
+                ret = rrCreateSharedPixmap(crtc, width, height, x, y, rotation);
             }
         }
 #if RANDR_12_INTERFACE

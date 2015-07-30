@@ -737,6 +737,7 @@ LegalModifier(unsigned int key, DeviceIntPtr pDev)
     return 1;
 }
 
+#if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
 static inline UniChar
 macroman2ucs(unsigned char c)
 {
@@ -782,6 +783,7 @@ macroman2ucs(unsigned char c)
     if (c < 128) return c;
     else return table[c - 128];
 }
+#endif
 
 static KeySym
 make_dead_key(KeySym in)

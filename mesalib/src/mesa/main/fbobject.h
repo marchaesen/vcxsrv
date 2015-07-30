@@ -288,4 +288,10 @@ extern void GLAPIENTRY
 _mesa_DiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
                             const GLenum *attachments);
 
+extern void GLAPIENTRY
+_mesa_FramebufferParameteri(GLenum target, GLenum pname, GLint param);
+
+extern void GLAPIENTRY
+_mesa_GetFramebufferParameteriv(GLenum target, GLenum pname, GLint *params);
+
 #endif /* FBOBJECT_H */

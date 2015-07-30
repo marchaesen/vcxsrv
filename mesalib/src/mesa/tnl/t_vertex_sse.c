@@ -592,7 +592,7 @@ static GLboolean build_vertex_emit( struct x86_program *p )
 	    break;
 	 case GL_UNSIGNED_SHORT:
 	 default:
-	    printf("unknown CHAN_TYPE %s\n", _mesa_lookup_enum_by_nr(CHAN_TYPE));
+	    printf("unknown CHAN_TYPE %s\n", _mesa_enum_to_string(CHAN_TYPE));
 	    return GL_FALSE;
 	 }
 	 break;

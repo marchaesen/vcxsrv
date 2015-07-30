@@ -43,13 +43,13 @@ struct util_dynarray
    unsigned capacity;
 };
 
-static INLINE void
+static inline void
 util_dynarray_init(struct util_dynarray *buf)
 {
    memset(buf, 0, sizeof(*buf));
 }
 
-static INLINE void
+static inline void
 util_dynarray_fini(struct util_dynarray *buf)
 {
    if(buf->data)
@@ -60,7 +60,7 @@ util_dynarray_fini(struct util_dynarray *buf)
 }
 
 /* use util_dynarray_trim to reduce the allocated storage */
-static INLINE void *
+static inline void *
 util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
 {
    char *p;
@@ -78,13 +78,13 @@ util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
    return p;
 }
 
-static INLINE void *
+static inline void *
 util_dynarray_grow(struct util_dynarray *buf, int diff)
 {
    return util_dynarray_resize(buf, buf->size + diff);
 }
 
-static INLINE void
+static inline void
 util_dynarray_trim(struct util_dynarray *buf)
 {
    if (buf->size != buf->capacity) {

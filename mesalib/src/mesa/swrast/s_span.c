@@ -506,7 +506,7 @@ interpolate_texcoords(struct gl_context *ctx, SWspan *span)
             /* LOD is calculated directly in the ansiotropic filter, we can
              * skip the normal lambda function as the result is ignored.
              */
-            if (samp->MaxAnisotropy > 1.0 &&
+            if (samp->MaxAnisotropy > 1.0F &&
                 samp->MinFilter == GL_LINEAR_MIPMAP_LINEAR) {
                needLambda = GL_FALSE;
             }
@@ -886,16 +886,16 @@ apply_aa_coverage(SWspan *span)
       GLubyte (*rgba)[4] = span->array->rgba8;
       for (i = 0; i < span->end; i++) {
          const GLfloat a = rgba[i][ACOMP] * coverage[i];
-         rgba[i][ACOMP] = (GLubyte) CLAMP(a, 0.0, 255.0);
-         assert(coverage[i] >= 0.0);
-         assert(coverage[i] <= 1.0);
+         rgba[i][ACOMP] = (GLubyte) CLAMP(a, 0.0F, 255.0F);
+         assert(coverage[i] >= 0.0F);
+         assert(coverage[i] <= 1.0F);
       }
    }
    else if (span->array->ChanType == GL_UNSIGNED_SHORT) {
       GLushort (*rgba)[4] = span->array->rgba16;
       for (i = 0; i < span->end; i++) {
          const GLfloat a = rgba[i][ACOMP] * coverage[i];
-         rgba[i][ACOMP] = (GLushort) CLAMP(a, 0.0, 65535.0);
+         rgba[i][ACOMP] = (GLushort) CLAMP(a, 0.0F, 65535.0F);
       }
    }
    else {

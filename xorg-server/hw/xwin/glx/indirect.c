@@ -253,7 +253,7 @@ pfdOut(const PIXELFORMATDESCRIPTOR * pfd)
     ErrorF("PIXELFORMATDESCRIPTOR:\n");
     ErrorF("nSize = %u\n", pfd->nSize);
     ErrorF("nVersion = %u\n", pfd->nVersion);
-    ErrorF("dwFlags = %lu = {", pfd->dwFlags);
+    ErrorF("dwFlags = %u = {", (unsigned int)pfd->dwFlags);
     DUMP_PFD_FLAG(PFD_DOUBLEBUFFER);
     DUMP_PFD_FLAG(PFD_STEREO);
     DUMP_PFD_FLAG(PFD_DRAW_TO_WINDOW);
@@ -297,9 +297,9 @@ pfdOut(const PIXELFORMATDESCRIPTOR * pfd)
     ErrorF("cAuxBuffers = %hhu\n", pfd->cAuxBuffers);
     ErrorF("iLayerType = %hhu\n", pfd->iLayerType);
     ErrorF("bReserved = %hhu\n", pfd->bReserved);
-    ErrorF("dwLayerMask = %lu\n", pfd->dwLayerMask);
-    ErrorF("dwVisibleMask = %lu\n", pfd->dwVisibleMask);
-    ErrorF("dwDamageMask = %lu\n", pfd->dwDamageMask);
+    ErrorF("dwLayerMask = %u\n", (unsigned int)pfd->dwLayerMask);
+    ErrorF("dwVisibleMask = %u\n", (unsigned int)pfd->dwVisibleMask);
+    ErrorF("dwDamageMask = %u\n", (unsigned int)pfd->dwDamageMask);
     ErrorF("\n");
 }
 
@@ -1862,8 +1862,8 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         if (!(pfd.dwFlags & (PFD_DRAW_TO_WINDOW | PFD_DRAW_TO_BITMAP)) ||
             !(pfd.dwFlags & PFD_SUPPORT_OPENGL)) {
             GLWIN_DEBUG_MSG
-                ("pixelFormat %d has unsuitable flags 0x%08lx, skipping", i + 1,
-                 pfd.dwFlags);
+                ("pixelFormat %d has unsuitable flags 0x%08x, skipping", i + 1,
+                 (unsigned int)pfd.dwFlags);
             continue;
         }
 

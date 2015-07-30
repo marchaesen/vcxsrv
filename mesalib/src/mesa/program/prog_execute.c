@@ -623,7 +623,7 @@ _mesa_execute_program(struct gl_context * ctx,
             GLfloat a[4], result[4];
             fetch_vector1(&inst->SrcReg[0], machine, a);
             result[0] = result[1] = result[2] = result[3]
-               = (GLfloat) cos(a[0]);
+               = cosf(a[0]);
             store_vector4(inst, machine, result);
          }
          break;
@@ -723,7 +723,7 @@ _mesa_execute_program(struct gl_context * ctx,
                 * result.z = result.x * APPX(result.y)
                 * We do what the ARB extension says.
                 */
-               q[2] = (GLfloat) pow(2.0, t[0]);
+               q[2] = exp2f(t[0]);
             }
             q[1] = t[0] - floor_t0;
             q[3] = 1.0F;
@@ -734,7 +734,7 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat a[4], result[4], val;
             fetch_vector1(&inst->SrcReg[0], machine, a);
-            val = (GLfloat) pow(2.0, a[0]);
+            val = exp2f(a[0]);
             /*
             if (IS_INF_OR_NAN(val))
                val = 1.0e10;
@@ -776,7 +776,7 @@ _mesa_execute_program(struct gl_context * ctx,
             if (inst->SrcReg[0].File != PROGRAM_UNDEFINED) {
                GLfloat a[4];
                fetch_vector1(&inst->SrcReg[0], machine, a);
-               cond = (a[0] != 0.0);
+               cond = (a[0] != 0.0F);
             }
             else {
                cond = eval_condition(machine, inst);
@@ -834,7 +834,7 @@ _mesa_execute_program(struct gl_context * ctx,
                val = -FLT_MAX;
             }
             else {
-               val = (float)(log(a[0]) * 1.442695F);
+               val = logf(a[0]) * 1.442695F;
             }
             result[0] = result[1] = result[2] = result[3] = val;
             store_vector4(inst, machine, result);
@@ -853,10 +853,10 @@ _mesa_execute_program(struct gl_context * ctx,
             result[1] = a[0];
             /* XXX we could probably just use pow() here */
             if (a[0] > 0.0F) {
-               if (a[1] == 0.0 && a[3] == 0.0)
+               if (a[1] == 0.0F && a[3] == 0.0F)
                   result[2] = 1.0F;
                else
-                  result[2] = (GLfloat) pow(a[1], a[3]);
+                  result[2] = powf(a[1], a[3]);
             }
             else {
                result[2] = 0.0F;
@@ -886,12 +886,12 @@ _mesa_execute_program(struct gl_context * ctx,
                   int exponent;
                   GLfloat mantissa = frexpf(t[0], &exponent);
                   q[0] = (GLfloat) (exponent - 1);
-                  q[1] = (GLfloat) (2.0 * mantissa); /* map [.5, 1) -> [1, 2) */
+                  q[1] = 2.0F * mantissa; /* map [.5, 1) -> [1, 2) */
 
 		  /* The fast LOG2 macro doesn't meet the precision
 		   * requirements.
 		   */
-                  q[2] = (float)(log(t[0]) * 1.442695F);
+                  q[2] = logf(t[0]) * 1.442695F;
                }
             }
             else {
@@ -1051,7 +1051,7 @@ _mesa_execute_program(struct gl_context * ctx,
             fetch_vector1(&inst->SrcReg[0], machine, a);
             fetch_vector1(&inst->SrcReg[1], machine, b);
             result[0] = result[1] = result[2] = result[3]
-               = (GLfloat) pow(a[0], b[0]);
+               = powf(a[0], b[0]);
             store_vector4(inst, machine, result);
          }
          break;
@@ -1095,10 +1095,10 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat a[4], result[4];
             fetch_vector1(&inst->SrcReg[0], machine, a);
-            result[0] = (GLfloat) cos(a[0]);
-            result[1] = (GLfloat) sin(a[0]);
-            result[2] = 0.0;    /* undefined! */
-            result[3] = 0.0;    /* undefined! */
+            result[0] = cosf(a[0]);
+            result[1] = sinf(a[0]);
+            result[2] = 0.0F;    /* undefined! */
+            result[3] = 0.0F;    /* undefined! */
             store_vector4(inst, machine, result);
          }
          break;
@@ -1161,7 +1161,7 @@ _mesa_execute_program(struct gl_context * ctx,
             GLfloat a[4], result[4];
             fetch_vector1(&inst->SrcReg[0], machine, a);
             result[0] = result[1] = result[2] = result[3]
-               = (GLfloat) sin(a[0]);
+               = sinf(a[0]);
             store_vector4(inst, machine, result);
          }
          break;
@@ -1360,7 +1360,7 @@ _mesa_execute_program(struct gl_context * ctx,
              * zero, we'd probably be fine except for an assert in
              * IROUND_POS() which gets triggered by the inf values created.
              */
-            if (texcoord[3] != 0.0) {
+            if (texcoord[3] != 0.0F) {
                texcoord[0] /= texcoord[3];
                texcoord[1] /= texcoord[3];
                texcoord[2] /= texcoord[3];
@@ -1380,7 +1380,7 @@ _mesa_execute_program(struct gl_context * ctx,
 
             fetch_vector4(&inst->SrcReg[0], machine, texcoord);
             if (inst->TexSrcTarget != TEXTURE_CUBE_INDEX &&
-                texcoord[3] != 0.0) {
+                texcoord[3] != 0.0F) {
                texcoord[0] /= texcoord[3];
                texcoord[1] /= texcoord[3];
                texcoord[2] /= texcoord[3];

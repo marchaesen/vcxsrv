@@ -184,16 +184,14 @@ _XDefaultOpenIM(
 	return((XIM)NULL);
     }
 
-    if ((im = Xmalloc(sizeof(StaticXIMRec))) == (StaticXIM)NULL) {
+    if ((im = Xcalloc(1, sizeof(StaticXIMRec))) == (StaticXIM)NULL) {
 	return((XIM)NULL);
     }
-    if ((local_impart = Xmalloc(sizeof(XIMStaticXIMRec)))
+    if ((local_impart = Xcalloc(1, sizeof(XIMStaticXIMRec)))
 	== (XIMStaticXIMRec *)NULL) {
 	Xfree(im);
 	return((XIM)NULL);
     }
-    memset(im, 0, sizeof(StaticXIMRec));
-    memset(local_impart, 0, sizeof(XIMStaticXIMRec));
 
     buf[0] = '\0';
     i = 0;
@@ -344,10 +342,9 @@ _CreateIC(XIM im, XIMArg *arg)
 {
     XIC ic;
 
-    if ((ic = Xmalloc(sizeof(XICRec))) == (XIC)NULL) {
+    if ((ic = Xcalloc(1, sizeof(XICRec))) == (XIC)NULL) {
 	return ((XIC)NULL);
     }
-    memset(ic, 0, sizeof(XICRec));
 
     ic->methods = (XICMethods)&local_ic_methods;
     ic->core.im = im;

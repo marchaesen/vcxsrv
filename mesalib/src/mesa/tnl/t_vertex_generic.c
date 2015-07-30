@@ -1026,7 +1026,7 @@ void _tnl_generic_interp( struct gl_context *ctx,
 
    if (tnl->NeedNdcCoords) {
       const GLfloat *dstclip = VB->ClipPtr->data[edst];
-      if (dstclip[3] != 0.0) {
+      if (dstclip[3] != 0.0f) {
 	 const GLfloat w = 1.0f / dstclip[3];
 	 GLfloat pos[4];
 

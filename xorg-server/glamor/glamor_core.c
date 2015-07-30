@@ -42,8 +42,7 @@ glamor_get_drawable_location(const DrawablePtr drawable)
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(drawable->pScreen);
-    if (pixmap_priv == NULL ||
-        pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED)
+    if (pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED)
         return 'm';
     if (pixmap_priv->fbo->fb == glamor_priv->screen_fbo)
         return 's';
@@ -283,18 +282,7 @@ glamor_init_finish_access_shaders(ScreenPtr screen)
     glUniform1i(glamor_priv->finish_access_swap_rb[1], 0);
 }
 
-void
-glamor_fini_finish_access_shaders(ScreenPtr screen)
-{
-    glamor_screen_private *glamor_priv;
-
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_make_current(glamor_priv);
-    glDeleteProgram(glamor_priv->finish_access_prog[0]);
-    glDeleteProgram(glamor_priv->finish_access_prog[1]);
-}
-
-GCOps glamor_gc_ops = {
+static GCOps glamor_gc_ops = {
     .FillSpans = glamor_fill_spans,
     .SetSpans = glamor_set_spans,
     .PutImage = glamor_put_image,

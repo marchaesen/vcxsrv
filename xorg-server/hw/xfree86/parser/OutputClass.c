@@ -41,6 +41,32 @@ xf86ConfigSymTabRec OutputClassTab[] = {
     {-1, ""},
 };
 
+static void
+xf86freeOutputClassList(XF86ConfOutputClassPtr ptr)
+{
+    XF86ConfOutputClassPtr prev;
+
+    while (ptr) {
+        xf86MatchGroup *group, *next;
+        char **list;
+
+        TestFree(ptr->identifier);
+        TestFree(ptr->comment);
+        TestFree(ptr->driver);
+
+        xorg_list_for_each_entry_safe(group, next, &ptr->match_driver, entry) {
+            xorg_list_del(&group->entry);
+            for (list = group->values; *list; list++)
+                free(*list);
+            free(group);
+        }
+
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
+}
+
 #define CLEANUP xf86freeOutputClassList
 
 #define TOKEN_SEP "|"
@@ -137,31 +163,5 @@ xf86printOutputClassSection(FILE * cf, XF86ConfOutputClassPtr ptr)
 
         fprintf(cf, "EndSection\n\n");
         ptr = ptr->list.next;
-    }
-}
-
-void
-xf86freeOutputClassList(XF86ConfOutputClassPtr ptr)
-{
-    XF86ConfOutputClassPtr prev;
-
-    while (ptr) {
-        xf86MatchGroup *group, *next;
-        char **list;
-
-        TestFree(ptr->identifier);
-        TestFree(ptr->comment);
-        TestFree(ptr->driver);
-
-        xorg_list_for_each_entry_safe(group, next, &ptr->match_driver, entry) {
-            xorg_list_del(&group->entry);
-            for (list = group->values; *list; list++)
-                free(*list);
-            free(group);
-        }
-
-        prev = ptr;
-        ptr = ptr->list.next;
-        free(prev);
     }
 }

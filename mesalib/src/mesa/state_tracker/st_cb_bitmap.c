@@ -446,8 +446,8 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    assert(height <= (GLsizei)maxSize);
 
    cso_save_rasterizer(cso);
-   cso_save_samplers(cso, PIPE_SHADER_FRAGMENT);
-   cso_save_sampler_views(cso, PIPE_SHADER_FRAGMENT);
+   cso_save_fragment_samplers(cso);
+   cso_save_fragment_sampler_views(cso);
    cso_save_viewport(cso);
    cso_save_fragment_shader(cso);
    cso_save_stream_outputs(cso);
@@ -535,8 +535,8 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
 
    /* restore state */
    cso_restore_rasterizer(cso);
-   cso_restore_samplers(cso, PIPE_SHADER_FRAGMENT);
-   cso_restore_sampler_views(cso, PIPE_SHADER_FRAGMENT);
+   cso_restore_fragment_samplers(cso);
+   cso_restore_fragment_sampler_views(cso);
    cso_restore_viewport(cso);
    cso_restore_fragment_shader(cso);
    cso_restore_vertex_shader(cso);

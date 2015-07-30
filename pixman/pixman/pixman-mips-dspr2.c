@@ -26,7 +26,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Author:  Nemanja Lukic (nlukic@mips.com)
+ * Author:  Nemanja Lukic (nemanja.lukic@rt-rk.com)
  */
 
 #ifdef HAVE_CONFIG_H

@@ -582,27 +582,6 @@ glamor_init_gradient_shader(ScreenPtr screen)
     _glamor_create_radial_gradient_program(screen, RADIAL_LARGE_STOPS, 0);
 }
 
-void
-glamor_fini_gradient_shader(ScreenPtr screen)
-{
-    glamor_screen_private *glamor_priv;
-    int i = 0;
-
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_make_current(glamor_priv);
-
-    for (i = 0; i < 3; i++) {
-        /* Linear Gradient */
-        if (glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][i])
-            glDeleteProgram(glamor_priv->gradient_prog
-                            [SHADER_GRADIENT_LINEAR][i]);
-
-        if (glamor_priv->gradient_prog[SHADER_GRADIENT_RADIAL][i])
-            glDeleteProgram(glamor_priv->gradient_prog
-                            [SHADER_GRADIENT_RADIAL][i]);
-    }
-}
-
 static void
 _glamor_gradient_convert_trans_matrix(PictTransform *from, float to[3][3],
                                       int width, int height, int normalize)

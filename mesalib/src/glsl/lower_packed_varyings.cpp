@@ -610,6 +610,7 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
       }
       packed_var->data.centroid = unpacked_var->data.centroid;
       packed_var->data.sample = unpacked_var->data.sample;
+      packed_var->data.patch = unpacked_var->data.patch;
       packed_var->data.interpolation = unpacked_var->data.interpolation;
       packed_var->data.location = location;
       unpacked_var->insert_before(packed_var);

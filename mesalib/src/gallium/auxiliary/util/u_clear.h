@@ -37,7 +37,7 @@
  * Clear the given buffers to the specified values.
  * No masking, no scissor (clear entire buffer).
  */
-static INLINE void
+static inline void
 util_clear(struct pipe_context *pipe,
            struct pipe_framebuffer_state *framebuffer, unsigned buffers,
            const union pipe_color_union *color, double depth, unsigned stencil)

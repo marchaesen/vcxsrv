@@ -101,6 +101,12 @@ typedef struct _modesettingRec {
 
     drmEventContext event_context;
 
+    /**
+     * Page flipping stuff.
+     *  @{
+     */
+    /** @} */
+
     DamagePtr damage;
     Bool dirty_enabled;
 
@@ -117,6 +123,9 @@ uint32_t ms_drm_queue_alloc(xf86CrtcPtr crtc,
 void ms_drm_abort(ScrnInfoPtr scrn,
                   Bool (*match)(void *data, void *match_data),
                   void *match_data);
+void ms_drm_abort_seq(ScrnInfoPtr scrn, uint32_t seq);
+
+Bool ms_crtc_on(xf86CrtcPtr crtc);
 
 xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
 xf86CrtcPtr ms_covering_crtc(ScrnInfoPtr scrn, BoxPtr box,

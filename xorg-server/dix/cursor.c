@@ -80,9 +80,7 @@ FreeCursorBits(CursorBitsPtr bits)
         return;
     free(bits->source);
     free(bits->mask);
-#ifdef ARGB_CURSOR
     free(bits->argb);
-#endif
     dixFiniPrivates(bits, PRIVATE_CURSOR_BITS);
     if (bits->refcnt == 0) {
         GlyphSharePtr *prev, this;
@@ -165,7 +163,6 @@ CheckForEmptyMask(CursorBitsPtr bits)
     while (n--)
         if (*(msk++) != 0)
             return;
-#ifdef ARGB_CURSOR
     if (bits->argb) {
         CARD32 *argb = bits->argb;
 
@@ -174,7 +171,6 @@ CheckForEmptyMask(CursorBitsPtr bits)
             if (*argb++ & 0xff000000)
                 return;
     }
-#endif
     bits->emptyMask = TRUE;
 }
 
@@ -259,9 +255,7 @@ AllocARGBCursor(unsigned char *psrcbits, unsigned char *pmaskbits,
     dixInitPrivates(bits, bits + 1, PRIVATE_CURSOR_BITS)
         bits->source = psrcbits;
     bits->mask = pmaskbits;
-#ifdef ARGB_CURSOR
     bits->argb = argb;
-#endif
     bits->width = cm->width;
     bits->height = cm->height;
     bits->xhot = cm->xhot;
@@ -400,9 +394,7 @@ AllocGlyphCursor(Font source, unsigned sourceChar, Font mask, unsigned maskChar,
         dixInitPrivates(bits, bits + 1, PRIVATE_CURSOR_BITS);
         bits->source = srcbits;
         bits->mask = mskbits;
-#ifdef ARGB_CURSOR
         bits->argb = 0;
-#endif
         bits->width = cm.width;
         bits->height = cm.height;
         bits->xhot = cm.xhot;
