@@ -89,9 +89,6 @@
     <ClCompile Include="src\base\fttype1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\base\ftxf86.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\pcf\pcfdrivr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
