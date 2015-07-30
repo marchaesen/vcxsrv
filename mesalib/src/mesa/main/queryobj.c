@@ -217,7 +217,7 @@ get_query_binding_point(struct gl_context *ctx, GLenum target, GLuint index)
 
    case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
    case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
-      if (ctx->Extensions.ARB_tessellation_shader)
+      if (_mesa_has_tessellation(ctx))
          return get_pipe_stats_binding_point(ctx, target);
       else
          return NULL;
@@ -295,7 +295,7 @@ _mesa_CreateQueries(GLenum target, GLsizei n, GLuint *ids)
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glCreateQueries(invalid target = %s)",
-                  _mesa_lookup_enum_by_nr(target));
+                  _mesa_enum_to_string(target));
       return;
    }
 
@@ -390,7 +390,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glBeginQueryIndexed(%s, %u, %u)\n",
-                  _mesa_lookup_enum_by_nr(target), index, id);
+                  _mesa_enum_to_string(target), index, id);
 
    if (!query_error_check_index(ctx, target, index))
       return;
@@ -412,7 +412,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
    if (*bindpt) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glBeginQuery{Indexed}(target=%s is active)",
-                  _mesa_lookup_enum_by_nr(target));
+                  _mesa_enum_to_string(target));
       return;
    }
 
@@ -496,7 +496,7 @@ _mesa_EndQueryIndexed(GLenum target, GLuint index)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glEndQueryIndexed(%s, %u)\n",
-                  _mesa_lookup_enum_by_nr(target), index);
+                  _mesa_enum_to_string(target), index);
 
    if (!query_error_check_index(ctx, target, index))
       return;
@@ -516,8 +516,8 @@ _mesa_EndQueryIndexed(GLenum target, GLuint index)
    if (q && q->Target != target) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glEndQuery(target=%s with active query of target %s)",
-                  _mesa_lookup_enum_by_nr(target),
-                  _mesa_lookup_enum_by_nr(q->Target));
+                  _mesa_enum_to_string(target),
+                  _mesa_enum_to_string(q->Target));
       return;
    }
 
@@ -553,7 +553,7 @@ _mesa_QueryCounter(GLuint id, GLenum target)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glQueryCounter(%u, %s)\n", id,
-                  _mesa_lookup_enum_by_nr(target));
+                  _mesa_enum_to_string(target));
 
    /* error checking */
    if (target != GL_TIMESTAMP) {
@@ -628,9 +628,9 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glGetQueryIndexediv(%s, %u, %s)\n",
-                  _mesa_lookup_enum_by_nr(target),
+                  _mesa_enum_to_string(target),
                   index,
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
 
    if (!query_error_check_index(ctx, target, index))
       return;
@@ -712,7 +712,7 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
          default:
             _mesa_problem(ctx,
                           "Unknown target in glGetQueryIndexediv(target = %s)",
-                          _mesa_lookup_enum_by_nr(target));
+                          _mesa_enum_to_string(target));
             *params = 0;
             break;
          }
@@ -740,7 +740,7 @@ _mesa_GetQueryObjectiv(GLuint id, GLenum pname, GLint *params)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glGetQueryObjectiv(%u, %s)\n", id,
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
 
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
@@ -794,7 +794,7 @@ _mesa_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glGetQueryObjectuiv(%u, %s)\n", id,
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
 
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
@@ -851,7 +851,7 @@ _mesa_GetQueryObjecti64v(GLuint id, GLenum pname, GLint64EXT *params)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glGetQueryObjecti64v(%u, %s)\n", id,
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
 
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
@@ -894,7 +894,7 @@ _mesa_GetQueryObjectui64v(GLuint id, GLenum pname, GLuint64EXT *params)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glGetQueryObjectui64v(%u, %s)\n", id,
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
 
    if (id)
       q = _mesa_lookup_query_object(ctx, id);

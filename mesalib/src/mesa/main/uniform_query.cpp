@@ -978,81 +978,6 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 }
 
 
-/**
- * Called via glGetUniformLocation().
- *
- * Returns the uniform index into UniformStorage (also the
- * glGetActiveUniformsiv uniform index), and stores the referenced
- * array offset in *offset, or GL_INVALID_INDEX (-1).
- */
-extern "C" unsigned
-_mesa_get_uniform_location(struct gl_shader_program *shProg,
-                           const GLchar *name,
-                           unsigned *out_offset)
-{
-   /* Page 80 (page 94 of the PDF) of the OpenGL 2.1 spec says:
-    *
-    *     "The first element of a uniform array is identified using the
-    *     name of the uniform array appended with "[0]". Except if the last
-    *     part of the string name indicates a uniform array, then the
-    *     location of the first element of that array can be retrieved by
-    *     either using the name of the uniform array, or the name of the
-    *     uniform array appended with "[0]"."
-    *
-    * Note: since uniform names are not allowed to use whitespace, and array
-    * indices within uniform names are not allowed to use "+", "-", or leading
-    * zeros, it follows that each uniform has a unique name up to the possible
-    * ambiguity with "[0]" noted above.  Therefore we don't need to worry
-    * about mal-formed inputs--they will properly fail when we try to look up
-    * the uniform name in shProg->UniformHash.
-    */
-
-   const GLchar *base_name_end;
-   long offset = parse_program_resource_name(name, &base_name_end);
-   bool array_lookup = offset >= 0;
-   char *name_copy;
-
-   if (array_lookup) {
-      name_copy = (char *) malloc(base_name_end - name + 1);
-      memcpy(name_copy, name, base_name_end - name);
-      name_copy[base_name_end - name] = '\0';
-   } else {
-      name_copy = (char *) name;
-      offset = 0;
-   }
-
-   unsigned location = 0;
-   const bool found = shProg->UniformHash->get(location, name_copy);
-
-   assert(!found
-	  || strcmp(name_copy, shProg->UniformStorage[location].name) == 0);
-
-   /* Free the temporary buffer *before* possibly returning an error.
-    */
-   if (name_copy != name)
-      free(name_copy);
-
-   if (!found)
-      return GL_INVALID_INDEX;
-
-   /* If the uniform is built-in, fail. */
-   if (shProg->UniformStorage[location].builtin)
-      return GL_INVALID_INDEX;
-
-   /* If the uniform is an array, fail if the index is out of bounds.
-    * (A negative index is caught above.)  This also fails if the uniform
-    * is not an array, but the user is trying to index it, because
-    * array_elements is zero and offset >= 0.
-    */
-   if (array_lookup
-       && offset >= (long) shProg->UniformStorage[location].array_elements) {
-      return GL_INVALID_INDEX;
-   }
-
-   *out_offset = offset;
-   return location;
-}
-
 extern "C" bool
 _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
 				 char *errMsg, size_t errMsgLength)
@@ -1101,17 +1026,22 @@ _mesa_sampler_uniforms_pipeline_are_valid(struct gl_pipeline_object *pipeline)
       for (unsigned i = 0; i < shProg[idx]->NumUniformStorage; i++) {
          const struct gl_uniform_storage *const storage =
             &shProg[idx]->UniformStorage[i];
-         const glsl_type *const t = (storage->type->is_array())
-            ? storage->type->fields.array : storage->type;
 
-         if (!t->is_sampler())
+         if (!storage->type->is_sampler())
             continue;
 
          active_samplers++;
 
-         const unsigned count = MAX2(1, storage->type->array_size());
+         const unsigned count = MAX2(1, storage->array_elements);
          for (unsigned j = 0; j < count; j++) {
             const unsigned unit = storage->storage[j].i;
+
+            /* FIXME: Samplers are initialized to 0 and Mesa doesn't do a
+             * great job of eliminating unused uniforms currently so for now
+             * don't throw an error if two sampler types both point to 0.
+             */
+            if (unit == 0)
+               continue;
 
             /* The types of the samplers associated with a particular texture
              * unit must be an exact match.  Page 74 (page 89 of the PDF) of
@@ -1122,13 +1052,14 @@ _mesa_sampler_uniforms_pipeline_are_valid(struct gl_pipeline_object *pipeline)
              *     program object."
              */
             if (unit_types[unit] == NULL) {
-               unit_types[unit] = t;
-            } else if (unit_types[unit] != t) {
+               unit_types[unit] = storage->type;
+            } else if (unit_types[unit] != storage->type) {
                pipeline->InfoLog =
                   ralloc_asprintf(pipeline,
                                   "Texture unit %d is accessed both as %s "
                                   "and %s",
-                                  unit, unit_types[unit]->name, t->name);
+                                  unit, unit_types[unit]->name,
+                                  storage->type->name);
                return false;
             }
          }

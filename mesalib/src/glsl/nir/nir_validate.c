@@ -400,11 +400,13 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       break;
    case nir_intrinsic_store_var:
       assert(instr->variables[0]->var->data.mode != nir_var_shader_in &&
-             instr->variables[0]->var->data.mode != nir_var_uniform);
+             instr->variables[0]->var->data.mode != nir_var_uniform &&
+             instr->variables[0]->var->data.mode != nir_var_shader_storage);
       break;
    case nir_intrinsic_copy_var:
       assert(instr->variables[0]->var->data.mode != nir_var_shader_in &&
-             instr->variables[0]->var->data.mode != nir_var_uniform);
+             instr->variables[0]->var->data.mode != nir_var_uniform &&
+             instr->variables[0]->var->data.mode != nir_var_shader_storage);
       assert(instr->variables[1]->var->data.mode != nir_var_shader_out);
       break;
    default:

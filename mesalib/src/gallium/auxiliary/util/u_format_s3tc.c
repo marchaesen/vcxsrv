@@ -235,7 +235,7 @@ util_format_dxt5_rgba_fetch_rgba_float(float *dst, const uint8_t *src, unsigned 
  * Block decompression.
  */
 
-static INLINE void
+static inline void
 util_format_dxtn_rgb_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
                                         const uint8_t *src_row, unsigned src_stride,
                                         unsigned width, unsigned height,
@@ -312,7 +312,7 @@ util_format_dxt5_rgba_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
                                            16, FALSE);
 }
 
-static INLINE void
+static inline void
 util_format_dxtn_rgb_unpack_rgba_float(float *dst_row, unsigned dst_stride,
                                        const uint8_t *src_row, unsigned src_stride,
                                        unsigned width, unsigned height,
@@ -400,7 +400,7 @@ util_format_dxt5_rgba_unpack_rgba_float(float *dst_row, unsigned dst_stride,
  * Block compression.
  */
 
-static INLINE void
+static inline void
 util_format_dxtn_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
                                   const uint8_t *src, unsigned src_stride,
                                   unsigned width, unsigned height,
@@ -478,7 +478,7 @@ util_format_dxt5_rgba_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
                                      16, FALSE);
 }
 
-static INLINE void
+static inline void
 util_format_dxtn_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride,
                                  const float *src, unsigned src_stride,
                                  unsigned width, unsigned height,

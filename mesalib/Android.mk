@@ -45,8 +45,6 @@ endif
 MESA_COMMON_MK := $(MESA_TOP)/Android.common.mk
 MESA_PYTHON2 := python
 
-DRM_GRALLOC_TOP := hardware/drm_gralloc
-
 classic_drivers := i915 i965
 gallium_drivers := swrast freedreno i915g ilo nouveau r300g r600g radeonsi vmwgfx vc4
 
@@ -91,8 +89,7 @@ SUBDIRS := \
 	src/glsl \
 	src/mesa \
 	src/util \
-	src/egl/main \
-	src/egl/drivers/dri2 \
+	src/egl \
 	src/mesa/drivers/dri
 
 ifeq ($(strip $(MESA_BUILD_GALLIUM)),true)

@@ -51,7 +51,7 @@ union m128i {
    uint ui[4];
 };
 
-static INLINE void u_print_epi8(const char *name, __m128i r)
+static inline void u_print_epi8(const char *name, __m128i r)
 {
    union { __m128i m; ubyte ub[16]; } u;
    u.m = r;
@@ -80,7 +80,7 @@ static INLINE void u_print_epi8(const char *name, __m128i r)
                 u.ub[12], u.ub[13], u.ub[14], u.ub[15]);
 }
 
-static INLINE void u_print_epi16(const char *name, __m128i r)
+static inline void u_print_epi16(const char *name, __m128i r)
 {
    union { __m128i m; ushort us[8]; } u;
    u.m = r;
@@ -99,7 +99,7 @@ static INLINE void u_print_epi16(const char *name, __m128i r)
                 u.us[4],  u.us[5],  u.us[6],  u.us[7]);
 }
 
-static INLINE void u_print_epi32(const char *name, __m128i r)
+static inline void u_print_epi32(const char *name, __m128i r)
 {
    union { __m128i m; uint ui[4]; } u;
    u.m = r;
@@ -113,7 +113,7 @@ static INLINE void u_print_epi32(const char *name, __m128i r)
                 u.ui[0],  u.ui[1],  u.ui[2],  u.ui[3]);
 }
 
-static INLINE void u_print_ps(const char *name, __m128 r)
+static inline void u_print_ps(const char *name, __m128 r)
 {
    union { __m128 m; float f[4]; } u;
    u.m = r;
@@ -179,7 +179,7 @@ _mm_shuffle_epi8(__m128i a, __m128i mask)
  * _mm_mullo_epi32() intrinsic as to not justify adding an sse4
  * dependency at this point.
  */
-static INLINE __m128i mm_mullo_epi32(const __m128i a, const __m128i b)
+static inline __m128i mm_mullo_epi32(const __m128i a, const __m128i b)
 {
    __m128i a4   = _mm_srli_epi64(a, 32);  /* shift by one dword */
    __m128i b4   = _mm_srli_epi64(b, 32);  /* shift by one dword */
@@ -204,7 +204,7 @@ static INLINE __m128i mm_mullo_epi32(const __m128i a, const __m128i b)
 }
 
 
-static INLINE void
+static inline void
 transpose4_epi32(const __m128i * restrict a,
                  const __m128i * restrict b,
                  const __m128i * restrict c,

@@ -55,7 +55,7 @@ The default is \fIconsole\fP.
 \fBneeds_root_rights\fP = \fIyes\fP|\fIno\fP|\fIauto\fP
 Configure if the wrapper should drop its elevated (root) rights before starting
 the X server. Use \fIyes\fP to force execution as root, \fIno\fP to force
-execution with all suid rights dropped, and \fIauto\fP to letter the wrapper
+execution with all suid rights dropped, and \fIauto\fP to let the wrapper
 auto-detect. The default is \fIauto\fP.
 .PP
 When auto-detecting the wrapper will drop rights if kms graphics are available

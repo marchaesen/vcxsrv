@@ -340,8 +340,8 @@ winGetPaletteDIB(ScreenPtr pScreen, ColormapPtr pcmap)
         nGreen = rgbColors[i].rgbGreen << 8;
         nBlue = rgbColors[i].rgbBlue << 8;
 
-        winDebug("winGetPaletteDIB - Allocating a color: %d; "
-                 "%d %d %d\n", pixel, nRed, nGreen, nBlue);
+        winDebug("winGetPaletteDIB - Allocating a color: %u; "
+                 "%d %d %d\n", (unsigned int)pixel, nRed, nGreen, nBlue);
 
         /* Allocate a entry in the X colormap */
         if (AllocColor(pcmap, &nRed, &nGreen, &nBlue, &pixel, 0) != Success) {
@@ -421,8 +421,8 @@ winGetPaletteDD(ScreenPtr pScreen, ColormapPtr pcmap)
         nRed = ppeColors[i].peRed << 8;
         nGreen = ppeColors[i].peGreen << 8;
         nBlue = ppeColors[i].peBlue << 8;
-        winDebug("winGetPaletteDD - Allocating a color: %d; "
-                 "%d %d %d\n", pixel, nRed, nGreen, nBlue);
+        winDebug("winGetPaletteDD - Allocating a color: %u; "
+                 "%d %d %d\n", (unsigned int)pixel, nRed, nGreen, nBlue);
         if (AllocColor(pcmap, &nRed, &nGreen, &nBlue, &pixel, 0) != Success) {
             ErrorF("winGetPaletteDD - AllocColor () failed, pixel %d\n", i);
             free(ppeColors);
@@ -487,7 +487,7 @@ winCreateDefColormap(ScreenPtr pScreen)
      * to be changed by clients.
      */
 
-    winDebug("winCreateDefColormap - defColormap: %d\n", pScreen->defColormap);
+    winDebug("winCreateDefColormap - defColormap: %lu\n", pScreen->defColormap);
 
     /* Allocate an X colormap, owned by client 0 */
     if (CreateColormap(pScreen->defColormap,

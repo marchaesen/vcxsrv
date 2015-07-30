@@ -28,6 +28,12 @@
 
 #include "glheader.h"
 
+extern bool
+_mesa_regions_overlap(int srcX0, int srcY0,
+                      int srcX1, int srcY1,
+                      int dstX0, int dstY0,
+                      int dstX1, int dstY1);
+
 extern void
 _mesa_blit_framebuffer(struct gl_context *ctx,
                        struct gl_framebuffer *readFb,

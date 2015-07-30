@@ -264,7 +264,7 @@ draw_stencil_pixels( struct gl_context *ctx, GLint x, GLint y,
                      const struct gl_pixelstore_attrib *unpack,
                      const GLvoid *pixels )
 {
-   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0 || ctx->Pixel.ZoomY != 1.0;
+   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0F || ctx->Pixel.ZoomY != 1.0F;
    const GLenum destType = GL_UNSIGNED_BYTE;
    GLint row;
    GLubyte *values;
@@ -309,8 +309,8 @@ draw_depth_pixels( struct gl_context *ctx, GLint x, GLint y,
                    const GLvoid *pixels )
 {
    const GLboolean scaleOrBias
-      = ctx->Pixel.DepthScale != 1.0 || ctx->Pixel.DepthBias != 0.0;
-   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0 || ctx->Pixel.ZoomY != 1.0;
+      = ctx->Pixel.DepthScale != 1.0f || ctx->Pixel.DepthBias != 0.0f;
+   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0f || ctx->Pixel.ZoomY != 1.0f;
    SWspan span;
 
    INIT_SPAN(span, GL_BITMAP);
@@ -415,7 +415,7 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
                   const GLvoid *pixels )
 {
    const GLint imgX = x, imgY = y;
-   const GLboolean zoom = ctx->Pixel.ZoomX!=1.0 || ctx->Pixel.ZoomY!=1.0;
+   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0F || ctx->Pixel.ZoomY != 1.0F;
    GLbitfield transferOps = ctx->_ImageTransferState;
    SWspan span;
 
@@ -601,10 +601,10 @@ draw_depth_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
 {
    const GLint imgX = x, imgY = y;
    const GLboolean scaleOrBias
-      = ctx->Pixel.DepthScale != 1.0 || ctx->Pixel.DepthBias != 0.0;
+      = ctx->Pixel.DepthScale != 1.0F || ctx->Pixel.DepthBias != 0.0F;
    const GLuint stencilMask = ctx->Stencil.WriteMask[0];
    const GLenum stencilType = GL_UNSIGNED_BYTE;
-   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0 || ctx->Pixel.ZoomY != 1.0;
+   const GLboolean zoom = ctx->Pixel.ZoomX != 1.0F || ctx->Pixel.ZoomY != 1.0F;
    struct gl_renderbuffer *depthRb, *stencilRb;
    struct gl_pixelstore_attrib clippedUnpack = *unpack;
 

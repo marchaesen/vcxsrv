@@ -45,6 +45,7 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     unsigned char       c[2];
     CharInfoPtr         glyph;
     unsigned long       count;
+    char                *bits;
 
     if (glamor_priv->glsl_version < 130)
         return NULL;
@@ -62,8 +63,6 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     if (glamor_font->realized)
         return glamor_font;
 
-    glamor_font->realized = TRUE;
-
     /* Figure out how many glyphs are in the font */
     num_cols = font->info.lastCol - font->info.firstCol + 1;
     num_rows = font->info.lastRow - font->info.firstRow + 1;
@@ -80,6 +79,10 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
 
     overall_width = glyph_width_bytes * num_cols;
     overall_height = glyph_height * num_rows;
+
+    bits = malloc(overall_width * overall_height);
+    if (!bits)
+        return NULL;
 
     /* Check whether the font has a default character */
     c[0] = font->info.lastRow + 1;
@@ -100,12 +103,6 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    /* Allocate storage */
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, overall_width, overall_height,
-                 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, NULL);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
     /* Paint all of the glyphs */
     for (row = 0; row < num_rows; row++) {
         for (col = 0; col < num_cols; col++) {
@@ -114,12 +111,28 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
 
             (*font->get_glyphs)(font, 1, c, TwoD16Bit, &count, &glyph);
 
-            if (count)
-                glTexSubImage2D(GL_TEXTURE_2D, 0, col * glyph_width_bytes, row * glyph_height,
-                                GLYPHWIDTHBYTES(glyph), GLYPHHEIGHTPIXELS(glyph),
-                                GL_RED_INTEGER, GL_UNSIGNED_BYTE, glyph->bits);
+            if (count) {
+                char *dst = bits + row * glyph_height * overall_width +
+                    col * glyph_width_bytes;
+                char *src = glyph->bits;
+                unsigned y;
+
+                for (y = 0; y < GLYPHHEIGHTPIXELS(glyph); y++) {
+                    memcpy(dst, src, GLYPHWIDTHBYTES(glyph));
+                    dst += overall_width;
+                    src += GLYPHWIDTHBYTESPADDED(glyph);
+                }
+            }
         }
     }
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, overall_width, overall_height,
+                 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, bits);
+
+    free(bits);
+
+    glamor_font->realized = TRUE;
 
     return glamor_font;
 }

@@ -368,6 +368,7 @@ st_visual_to_context_mode(const struct st_visual *visual,
 
       mode->rgbBits = mode->redBits +
          mode->greenBits + mode->blueBits + mode->alphaBits;
+      mode->sRGBCapable = util_format_is_srgb(visual->color_format);
    }
 
    if (visual->depth_stencil_format != PIPE_FORMAT_NONE) {

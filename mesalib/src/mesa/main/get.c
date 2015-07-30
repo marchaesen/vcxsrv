@@ -149,6 +149,8 @@ enum value_extra {
    EXTRA_EXT_UBO_GS4,
    EXTRA_EXT_ATOMICS_GS4,
    EXTRA_EXT_SHADER_IMAGE_GS4,
+   EXTRA_EXT_ATOMICS_TESS,
+   EXTRA_EXT_SHADER_IMAGE_TESS,
 };
 
 #define NO_EXTRA NULL
@@ -349,8 +351,54 @@ static const int extra_ARB_shader_image_load_store_and_geometry_shader[] = {
    EXTRA_END
 };
 
+static const int extra_ARB_shader_atomic_counters_and_tessellation[] = {
+   EXTRA_EXT_ATOMICS_TESS,
+   EXTRA_END
+};
+
+static const int extra_ARB_shader_image_load_store_and_tessellation[] = {
+   EXTRA_EXT_SHADER_IMAGE_TESS,
+   EXTRA_END
+};
+
 static const int extra_ARB_draw_indirect_es31[] = {
    EXT(ARB_draw_indirect),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
+static const int extra_ARB_shader_image_load_store_es31[] = {
+   EXT(ARB_shader_image_load_store),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
+static const int extra_ARB_shader_atomic_counters_es31[] = {
+   EXT(ARB_shader_atomic_counters),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
+static const int extra_ARB_texture_multisample_es31[] = {
+   EXT(ARB_texture_multisample),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
+static const int extra_ARB_texture_gather_es31[] = {
+   EXT(ARB_texture_gather),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
+static const int extra_ARB_compute_shader_es31[] = {
+   EXT(ARB_compute_shader),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
+static const int extra_ARB_explicit_uniform_location_es31[] = {
+   EXT(ARB_explicit_uniform_location),
    EXTRA_API_ES31,
    EXTRA_END
 };
@@ -400,6 +448,9 @@ EXTRA_EXT(INTEL_performance_query);
 EXTRA_EXT(ARB_explicit_uniform_location);
 EXTRA_EXT(ARB_clip_control);
 EXTRA_EXT(EXT_polygon_offset_clamp);
+EXTRA_EXT(ARB_framebuffer_no_attachments);
+EXTRA_EXT(ARB_tessellation_shader);
+EXTRA_EXT(ARB_shader_subroutine);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -625,7 +676,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    case GL_EDGE_FLAG:
-      v->value_bool = ctx->Current.Attrib[VERT_ATTRIB_EDGEFLAG][0] == 1.0;
+      v->value_bool = ctx->Current.Attrib[VERT_ATTRIB_EDGEFLAG][0] == 1.0F;
       break;
 
    case GL_READ_BUFFER:
@@ -1148,6 +1199,16 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
          api_found = (ctx->Extensions.ARB_shader_image_load_store &&
                       _mesa_has_geometry_shaders(ctx));
          break;
+      case EXTRA_EXT_ATOMICS_TESS:
+         api_check = GL_TRUE;
+         api_found = ctx->Extensions.ARB_shader_atomic_counters &&
+                     _mesa_has_tessellation(ctx);
+         break;
+      case EXTRA_EXT_SHADER_IMAGE_TESS:
+         api_check = GL_TRUE;
+         api_found = ctx->Extensions.ARB_shader_image_load_store &&
+                     _mesa_has_tessellation(ctx);
+         break;
       case EXTRA_END:
 	 break;
       default: /* *e is a offset into the extension struct */
@@ -1160,7 +1221,7 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
 
    if (api_check && !api_found) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=%s)", func,
-                  _mesa_lookup_enum_by_nr(d->pname));
+                  _mesa_enum_to_string(d->pname));
       return GL_FALSE;
    }
 
@@ -1207,9 +1268,12 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
     * value since it's compatible with GLES2 its entry in table_set[] is at the
     * end.
     */
-   STATIC_ASSERT(ARRAY_SIZE(table_set) == API_OPENGL_LAST + 2);
+   STATIC_ASSERT(ARRAY_SIZE(table_set) == API_OPENGL_LAST + 3);
    if (_mesa_is_gles3(ctx)) {
       api = API_OPENGL_LAST + 1;
+   }
+   if (_mesa_is_gles31(ctx)) {
+      api = API_OPENGL_LAST + 2;
    }
    mask = ARRAY_SIZE(table(api)) - 1;
    hash = (pname * prime_factor);
@@ -1221,7 +1285,7 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
        * any valid enum. */
       if (unlikely(idx == 0)) {
          _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=%s)", func,
-               _mesa_lookup_enum_by_nr(pname));
+               _mesa_enum_to_string(pname));
          return &error_value;
       }
 
@@ -2003,11 +2067,11 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
 
  invalid_enum:
    _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=%s)", func,
-               _mesa_lookup_enum_by_nr(pname));
+               _mesa_enum_to_string(pname));
    return TYPE_INVALID;
  invalid_value:
    _mesa_error(ctx, GL_INVALID_VALUE, "%s(pname=%s)", func,
-               _mesa_lookup_enum_by_nr(pname));
+               _mesa_enum_to_string(pname));
    return TYPE_INVALID;
 }
 

@@ -73,6 +73,6 @@ _mesa_ClipControl(GLenum origin, GLenum depth);
 
 extern void
 _mesa_get_viewport_xform(struct gl_context *ctx, unsigned i,
-                         double scale[3], double translate[3]);
+                         float scale[3], float translate[3]);
 
 #endif

@@ -106,7 +106,7 @@ GlyphUninit(ScreenPtr pScreen)
     }
 }
 
-GlyphHashSetPtr
+static GlyphHashSetPtr
 FindGlyphHashSet(CARD32 filled)
 {
     int i;
@@ -117,7 +117,7 @@ FindGlyphHashSet(CARD32 filled)
     return 0;
 }
 
-GlyphRefPtr
+static GlyphRefPtr
 FindGlyphRef(GlyphHashPtr hash,
              CARD32 signature, Bool match, unsigned char sha1[20])
 {
@@ -245,7 +245,7 @@ FreeGlyphPicture(GlyphPtr glyph)
     }
 }
 
-void
+static void
 FreeGlyph(GlyphPtr glyph, int format)
 {
     CheckDuplicates(&globalGlyphs[format], "FreeGlyph");
@@ -383,7 +383,7 @@ AllocateGlyph(xGlyphInfo * gi, int fdepth)
     return 0;
 }
 
-Bool
+static Bool
 AllocateGlyphHash(GlyphHashPtr hash, GlyphHashSetPtr hashSet)
 {
     hash->table = calloc(hashSet->size, sizeof(GlyphRefRec));
@@ -394,7 +394,7 @@ AllocateGlyphHash(GlyphHashPtr hash, GlyphHashSetPtr hashSet)
     return TRUE;
 }
 
-Bool
+static Bool
 ResizeGlyphHash(GlyphHashPtr hash, CARD32 change, Bool global)
 {
     CARD32 tableEntries;

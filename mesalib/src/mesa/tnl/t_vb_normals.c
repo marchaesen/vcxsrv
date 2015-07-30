@@ -114,7 +114,7 @@ validate_normal_stage(struct gl_context *ctx, struct tnl_pipeline_stage *stage)
 	 store->NormalTransform = _mesa_normal_tab[transform | NORM_NORMALIZE];
       }
       else if (ctx->Transform.RescaleNormals &&
-               ctx->_ModelViewInvScale != 1.0) {
+               ctx->_ModelViewInvScale != 1.0F) {
 	 store->NormalTransform = _mesa_normal_tab[transform | NORM_RESCALE];
       }
       else {
@@ -131,7 +131,7 @@ validate_normal_stage(struct gl_context *ctx, struct tnl_pipeline_stage *stage)
 	 store->NormalTransform = _mesa_normal_tab[NORM_NORMALIZE];
       }
       else if (!ctx->Transform.RescaleNormals &&
-	       ctx->_ModelViewInvScale != 1.0) {
+	       ctx->_ModelViewInvScale != 1.0F) {
 	 store->NormalTransform = _mesa_normal_tab[NORM_RESCALE];
       }
       else {

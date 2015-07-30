@@ -72,6 +72,7 @@ struct extension_info {
 static const struct extension_info known_glx_extensions[] = {
 /*   GLX_ARB_get_proc_address is implemented on the client. */
     /* *INDENT-OFF* */
+    { GLX(ARB_context_flush_control),   VER(0,0), N, },
     { GLX(ARB_create_context),          VER(0,0), N, },
     { GLX(ARB_create_context_profile),  VER(0,0), N, },
     { GLX(ARB_create_context_robustness), VER(0,0), N, },

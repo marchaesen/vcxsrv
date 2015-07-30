@@ -27,7 +27,7 @@ XCB_EXTERN xcb_extension_t xcb_big_requests_id;
  * @brief xcb_big_requests_enable_cookie_t
  **/
 typedef struct xcb_big_requests_enable_cookie_t {
-    unsigned int sequence; /**<  */
+    unsigned int sequence;
 } xcb_big_requests_enable_cookie_t;
 
 /** Opcode for xcb_big_requests_enable. */
@@ -37,20 +37,20 @@ typedef struct xcb_big_requests_enable_cookie_t {
  * @brief xcb_big_requests_enable_request_t
  **/
 typedef struct xcb_big_requests_enable_request_t {
-    uint8_t  major_opcode; /**<  */
-    uint8_t  minor_opcode; /**<  */
-    uint16_t length; /**<  */
+    uint8_t  major_opcode;
+    uint8_t  minor_opcode;
+    uint16_t length;
 } xcb_big_requests_enable_request_t;
 
 /**
  * @brief xcb_big_requests_enable_reply_t
  **/
 typedef struct xcb_big_requests_enable_reply_t {
-    uint8_t  response_type; /**<  */
-    uint8_t  pad0; /**<  */
-    uint16_t sequence; /**<  */
-    uint32_t length; /**<  */
-    uint32_t maximum_request_length; /**<  */
+    uint8_t  response_type;
+    uint8_t  pad0;
+    uint16_t sequence;
+    uint32_t length;
+    uint32_t maximum_request_length;
 } xcb_big_requests_enable_reply_t;
 
 /**
@@ -62,7 +62,7 @@ typedef struct xcb_big_requests_enable_reply_t {
  *
  */
 xcb_big_requests_enable_cookie_t
-xcb_big_requests_enable (xcb_connection_t *c  /**< */);
+xcb_big_requests_enable (xcb_connection_t *c);
 
 /**
  *
@@ -76,7 +76,7 @@ xcb_big_requests_enable (xcb_connection_t *c  /**< */);
  * placed in the event queue.
  */
 xcb_big_requests_enable_cookie_t
-xcb_big_requests_enable_unchecked (xcb_connection_t *c  /**< */);
+xcb_big_requests_enable_unchecked (xcb_connection_t *c);
 
 /**
  * Return the reply
@@ -93,9 +93,9 @@ xcb_big_requests_enable_unchecked (xcb_connection_t *c  /**< */);
  * The returned value must be freed by the caller using free().
  */
 xcb_big_requests_enable_reply_t *
-xcb_big_requests_enable_reply (xcb_connection_t                  *c  /**< */,
+xcb_big_requests_enable_reply (xcb_connection_t                  *c,
                                xcb_big_requests_enable_cookie_t   cookie  /**< */,
-                               xcb_generic_error_t              **e  /**< */);
+                               xcb_generic_error_t              **e);
 
 
 #ifdef __cplusplus

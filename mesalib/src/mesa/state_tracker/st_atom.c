@@ -46,9 +46,10 @@ static const struct st_tracked_state *atoms[] =
    &st_update_depth_stencil_alpha,
    &st_update_clip,
 
-   &st_finalize_textures,
    &st_update_fp,
    &st_update_gp,
+   &st_update_tep,
+   &st_update_tcp,
    &st_update_vp,
 
    &st_update_rasterizer,
@@ -59,17 +60,24 @@ static const struct st_tracked_state *atoms[] =
    &st_update_vertex_texture,
    &st_update_fragment_texture,
    &st_update_geometry_texture,
+   &st_update_tessctrl_texture,
+   &st_update_tesseval_texture,
    &st_update_sampler, /* depends on update_*_texture for swizzle */
    &st_update_framebuffer,
    &st_update_msaa,
    &st_update_sample_shading,
    &st_update_vs_constants,
+   &st_update_tcs_constants,
+   &st_update_tes_constants,
    &st_update_gs_constants,
    &st_update_fs_constants,
    &st_bind_vs_ubos,
+   &st_bind_tcs_ubos,
+   &st_bind_tes_ubos,
    &st_bind_fs_ubos,
    &st_bind_gs_ubos,
    &st_update_pixel_transfer,
+   &st_update_tess,
 
    /* this must be done after the vertex program update */
    &st_update_array

@@ -19,7 +19,7 @@ MESA_UTIL_FILES :=	\
 	set.c \
 	set.h \
 	simple_list.h \
-	strtod.cpp \
+	strtod.c \
 	strtod.h \
 	texcompress_rgtc_tmp.h \
 	u_atomic.h

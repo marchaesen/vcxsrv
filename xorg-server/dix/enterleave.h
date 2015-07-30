@@ -41,8 +41,6 @@ extern void EnterLeaveEvent(DeviceIntPtr mouse,
                             int type,
                             int mode, int detail, WindowPtr pWin, Window child);
 
-extern WindowPtr CommonAncestor(WindowPtr a, WindowPtr b);
-
 extern void CoreEnterLeaveEvent(DeviceIntPtr mouse,
                                 int type,
                                 int mode,

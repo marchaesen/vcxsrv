@@ -46,7 +46,6 @@ if env['platform'] == 'haiku':
 if env['dri']:
     SConscript([
         'winsys/sw/dri/SConscript',
-        'winsys/sw/kms-dri/SConscript',
         'winsys/svga/drm/SConscript',
     ])
 

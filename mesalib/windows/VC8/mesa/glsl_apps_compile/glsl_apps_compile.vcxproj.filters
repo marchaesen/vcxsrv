@@ -312,9 +312,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_minmax.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\util\strtod.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -322,6 +319,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\strtod.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_subroutine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\set.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

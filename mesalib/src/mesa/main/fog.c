@@ -115,7 +115,7 @@ _mesa_Fogfv( GLenum pname, const GLfloat *params )
 	 ctx->Fog.Mode = m;
 	 break;
       case GL_FOG_DENSITY:
-	 if (*params<0.0) {
+	 if (*params<0.0F) {
 	    _mesa_error( ctx, GL_INVALID_VALUE, "glFog" );
             return;
 	 }

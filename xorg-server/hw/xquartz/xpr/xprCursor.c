@@ -85,7 +85,6 @@ load_cursor(CursorPtr src, int screen)
     hot_x = src->bits->xhot;
     hot_y = src->bits->yhot;
 
-#ifdef ARGB_CURSOR
     if (src->bits->argb != NULL) {
 #if BITMAP_BIT_ORDER == MSBFirst
         rowbytes = src->bits->width * sizeof(CARD32);
@@ -104,7 +103,6 @@ load_cursor(CursorPtr src, int screen)
 #endif
     }
     else
-#endif
     {
         fg_color = 0xFF00 | (src->foreRed >> 8);
         fg_color <<= 16;

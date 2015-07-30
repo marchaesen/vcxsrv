@@ -54,10 +54,16 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
    /* Check that the types match between stages.
     */
    const glsl_type *type_to_match = input->type;
-   if (consumer_stage == MESA_SHADER_GEOMETRY) {
-      assert(type_to_match->is_array()); /* Enforced by ast_to_hir */
+
+   /* VS -> GS, VS -> TCS, VS -> TES, TES -> GS */
+   const bool extra_array_level = (producer_stage == MESA_SHADER_VERTEX &&
+                                   consumer_stage != MESA_SHADER_FRAGMENT) ||
+                                  consumer_stage == MESA_SHADER_GEOMETRY;
+   if (extra_array_level) {
+      assert(type_to_match->is_array());
       type_to_match = type_to_match->fields.array;
    }
+
    if (type_to_match != output->type) {
       /* There is a bit of a special case for gl_TexCoord.  This
        * built-in is unsized by default.  Applications that variable
@@ -116,6 +122,18 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
       return;
    }
 
+   if (input->data.patch != output->data.patch) {
+      linker_error(prog,
+                   "%s shader output `%s' %s patch qualifier, "
+                   "but %s shader input %s patch qualifier\n",
+                   _mesa_shader_stage_to_string(producer_stage),
+                   output->name,
+                   (output->data.patch) ? "has" : "lacks",
+                   _mesa_shader_stage_to_string(consumer_stage),
+                   (input->data.patch) ? "has" : "lacks");
+      return;
+   }
+
    if (!prog->IsES && input->data.invariant != output->data.invariant) {
       linker_error(prog,
                    "%s shader output `%s' %s invariant qualifier, "
@@ -128,7 +146,17 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
       return;
    }
 
-   if (input->data.interpolation != output->data.interpolation) {
+   /* GLSL >= 4.40 removes text requiring interpolation qualifiers
+    * to match cross stage, they must only match within the same stage.
+    *
+    * From page 84 (page 90 of the PDF) of the GLSL 4.40 spec:
+    *
+    *     "It is a link-time error if, within the same stage, the interpolation
+    *     qualifiers of variables of the same name do not match.
+    *
+    */
+   if (input->data.interpolation != output->data.interpolation &&
+       prog->Version < 440) {
       linker_error(prog,
                    "%s shader output `%s' specifies %s "
                    "interpolation qualifier, "
@@ -300,7 +328,7 @@ tfeedback_decl::init(struct gl_context *ctx, const void *mem_ctx,
 
    this->location = -1;
    this->orig_name = input;
-   this->is_clip_distance_mesa = false;
+   this->lowered_builtin_array_variable = none;
    this->skip_components = 0;
    this->next_buffer_separator = false;
    this->matched_candidate = NULL;
@@ -349,8 +377,15 @@ tfeedback_decl::init(struct gl_context *ctx, const void *mem_ctx,
     */
    if (ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].LowerClipDistance &&
        strcmp(this->var_name, "gl_ClipDistance") == 0) {
-      this->is_clip_distance_mesa = true;
+      this->lowered_builtin_array_variable = clip_distance;
    }
+
+   if (ctx->Const.LowerTessLevel &&
+       (strcmp(this->var_name, "gl_TessLevelOuter") == 0))
+      this->lowered_builtin_array_variable = tess_level_outer;
+   if (ctx->Const.LowerTessLevel &&
+       (strcmp(this->var_name, "gl_TessLevelInner") == 0))
+      this->lowered_builtin_array_variable = tess_level_inner;
 }
 
 
@@ -397,9 +432,22 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
          this->matched_candidate->type->fields.array->matrix_columns;
       const unsigned vector_elements =
          this->matched_candidate->type->fields.array->vector_elements;
-      unsigned actual_array_size = this->is_clip_distance_mesa ?
-         prog->LastClipDistanceArraySize :
-         this->matched_candidate->type->array_size();
+      unsigned actual_array_size;
+      switch (this->lowered_builtin_array_variable) {
+      case clip_distance:
+         actual_array_size = prog->LastClipDistanceArraySize;
+         break;
+      case tess_level_outer:
+         actual_array_size = 4;
+         break;
+      case tess_level_inner:
+         actual_array_size = 2;
+         break;
+      case none:
+      default:
+         actual_array_size = this->matched_candidate->type->array_size();
+         break;
+      }
 
       if (this->is_subscripted) {
          /* Check array bounds. */
@@ -410,7 +458,7 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
                          actual_array_size);
             return false;
          }
-         unsigned array_elem_size = this->is_clip_distance_mesa ?
+         unsigned array_elem_size = this->lowered_builtin_array_variable ?
             1 : vector_elements * matrix_cols;
          fine_location += array_elem_size * this->array_subscript;
          this->size = 1;
@@ -419,7 +467,7 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
       }
       this->vector_elements = vector_elements;
       this->matrix_columns = matrix_cols;
-      if (this->is_clip_distance_mesa)
+      if (this->lowered_builtin_array_variable)
          this->type = GL_FLOAT;
       else
          this->type = this->matched_candidate->type->fields.array->gl_type;
@@ -542,8 +590,21 @@ const tfeedback_candidate *
 tfeedback_decl::find_candidate(gl_shader_program *prog,
                                hash_table *tfeedback_candidates)
 {
-   const char *name = this->is_clip_distance_mesa
-      ? "gl_ClipDistanceMESA" : this->var_name;
+   const char *name = this->var_name;
+   switch (this->lowered_builtin_array_variable) {
+   case none:
+      name = this->var_name;
+      break;
+   case clip_distance:
+      name = "gl_ClipDistanceMESA";
+      break;
+   case tess_level_outer:
+      name = "gl_TessLevelOuterMESA";
+      break;
+   case tess_level_inner:
+      name = "gl_TessLevelInnerMESA";
+      break;
+   }
    this->matched_candidate = (const tfeedback_candidate *)
       hash_table_find(tfeedback_candidates, name);
    if (!this->matched_candidate) {
@@ -699,7 +760,9 @@ namespace {
 class varying_matches
 {
 public:
-   varying_matches(bool disable_varying_packing, bool consumer_is_fs);
+   varying_matches(bool disable_varying_packing,
+                   gl_shader_stage producer_stage,
+                   gl_shader_stage consumer_stage);
    ~varying_matches();
    void record(ir_variable *producer_var, ir_variable *consumer_var);
    unsigned assign_locations();
@@ -780,15 +843,18 @@ private:
     */
    unsigned matches_capacity;
 
-   const bool consumer_is_fs;
+   gl_shader_stage producer_stage;
+   gl_shader_stage consumer_stage;
 };
 
 } /* anonymous namespace */
 
 varying_matches::varying_matches(bool disable_varying_packing,
-                                 bool consumer_is_fs)
+                                 gl_shader_stage producer_stage,
+                                 gl_shader_stage consumer_stage)
    : disable_varying_packing(disable_varying_packing),
-     consumer_is_fs(consumer_is_fs)
+     producer_stage(producer_stage),
+     consumer_stage(consumer_stage)
 {
    /* Note: this initial capacity is rather arbitrarily chosen to be large
     * enough for many cases without wasting an unreasonable amount of space.
@@ -839,7 +905,7 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
    }
 
    if ((consumer_var == NULL && producer_var->type->contains_integer()) ||
-       !consumer_is_fs) {
+       consumer_stage != MESA_SHADER_FRAGMENT) {
       /* Since this varying is not being consumed by the fragment shader, its
        * interpolation type varying cannot possibly affect rendering.  Also,
        * this variable is non-flat and is (or contains) an integer.
@@ -876,9 +942,22 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
    this->matches[this->num_matches].packing_order
       = this->compute_packing_order(var);
    if (this->disable_varying_packing) {
-      unsigned slots = var->type->is_array()
-         ? (var->type->length * var->type->fields.array->matrix_columns)
-         : var->type->matrix_columns;
+      const struct glsl_type *type = var->type;
+      unsigned slots;
+
+      /* Some shader stages have 2-dimensional varyings. Use the inner type. */
+      if (!var->data.patch &&
+          ((var == producer_var && producer_stage == MESA_SHADER_TESS_CTRL) ||
+           (var == consumer_var && (consumer_stage == MESA_SHADER_TESS_CTRL ||
+                                    consumer_stage == MESA_SHADER_TESS_EVAL ||
+                                    consumer_stage == MESA_SHADER_GEOMETRY)))) {
+         assert(type->is_array());
+         type = type->fields.array;
+      }
+
+      slots = (type->is_array()
+            ? (type->length * type->fields.array->matrix_columns)
+            : type->matrix_columns);
       this->matches[this->num_matches].num_components = 4 * slots;
    } else {
       this->matches[this->num_matches].num_components
@@ -906,8 +985,17 @@ varying_matches::assign_locations()
          &varying_matches::match_comparator);
 
    unsigned generic_location = 0;
+   unsigned generic_patch_location = MAX_VARYING*4;
 
    for (unsigned i = 0; i < this->num_matches; i++) {
+      unsigned *location = &generic_location;
+
+      if ((this->matches[i].consumer_var &&
+           this->matches[i].consumer_var->data.patch) ||
+          (this->matches[i].producer_var &&
+           this->matches[i].producer_var->data.patch))
+         location = &generic_patch_location;
+
       /* Advance to the next slot if this varying has a different packing
        * class than the previous one, and we're not already on a slot
        * boundary.
@@ -915,12 +1003,12 @@ varying_matches::assign_locations()
       if (i > 0 &&
           this->matches[i - 1].packing_class
           != this->matches[i].packing_class) {
-         generic_location = ALIGN(generic_location, 4);
+         *location = ALIGN(*location, 4);
       }
 
-      this->matches[i].generic_location = generic_location;
+      this->matches[i].generic_location = *location;
 
-      generic_location += this->matches[i].num_components;
+      *location += this->matches[i].num_components;
    }
 
    return (generic_location + 3) / 4;
@@ -979,7 +1067,8 @@ varying_matches::compute_packing_class(const ir_variable *var)
     *
     * Therefore, the packing class depends only on the interpolation type.
     */
-   unsigned packing_class = var->data.centroid | (var->data.sample << 1);
+   unsigned packing_class = var->data.centroid | (var->data.sample << 1) |
+                            (var->data.patch << 2);
    packing_class *= 4;
    packing_class += var->data.interpolation;
    return packing_class;
@@ -1133,11 +1222,11 @@ bool
 populate_consumer_input_sets(void *mem_ctx, exec_list *ir,
                              hash_table *consumer_inputs,
                              hash_table *consumer_interface_inputs,
-                             ir_variable *consumer_inputs_with_locations[VARYING_SLOT_MAX])
+                             ir_variable *consumer_inputs_with_locations[VARYING_SLOT_TESS_MAX])
 {
    memset(consumer_inputs_with_locations,
           0,
-          sizeof(consumer_inputs_with_locations[0]) * VARYING_SLOT_MAX);
+          sizeof(consumer_inputs_with_locations[0]) * VARYING_SLOT_TESS_MAX);
 
    foreach_in_list(ir_instruction, node, ir) {
       ir_variable *const input_var = node->as_variable();
@@ -1193,7 +1282,7 @@ get_matching_input(void *mem_ctx,
                    const ir_variable *output_var,
                    hash_table *consumer_inputs,
                    hash_table *consumer_interface_inputs,
-                   ir_variable *consumer_inputs_with_locations[VARYING_SLOT_MAX])
+                   ir_variable *consumer_inputs_with_locations[VARYING_SLOT_TESS_MAX])
 {
    ir_variable *input_var;
 
@@ -1294,9 +1383,6 @@ canonicalize_shader_io(exec_list *ir, enum ir_variable_mode io_mode)
  *        each of these objects that matches one of the outputs of the
  *        producer.
  *
- * \param gs_input_vertices: if \c consumer is a geometry shader, this is the
- *        number of input vertices it accepts.  Otherwise zero.
- *
  * When num_tfeedback_decls is nonzero, it is permissible for the consumer to
  * be NULL.  In this case, varying locations are assigned solely based on the
  * requirements of transform feedback.
@@ -1307,20 +1393,43 @@ assign_varying_locations(struct gl_context *ctx,
 			 struct gl_shader_program *prog,
 			 gl_shader *producer, gl_shader *consumer,
                          unsigned num_tfeedback_decls,
-                         tfeedback_decl *tfeedback_decls,
-                         unsigned gs_input_vertices)
+                         tfeedback_decl *tfeedback_decls)
 {
-   varying_matches matches(ctx->Const.DisableVaryingPacking,
-                           consumer && consumer->Stage == MESA_SHADER_FRAGMENT);
+   if (ctx->Const.DisableVaryingPacking) {
+      /* Transform feedback code assumes varyings are packed, so if the driver
+       * has disabled varying packing, make sure it does not support transform
+       * feedback.
+       */
+      assert(!ctx->Extensions.EXT_transform_feedback);
+   }
+
+   /* Tessellation shaders treat inputs and outputs as shared memory and can
+    * access inputs and outputs of other invocations.
+    * Therefore, they can't be lowered to temps easily (and definitely not
+    * efficiently).
+    */
+   bool disable_varying_packing =
+      ctx->Const.DisableVaryingPacking ||
+      (consumer && consumer->Stage == MESA_SHADER_TESS_EVAL) ||
+      (consumer && consumer->Stage == MESA_SHADER_TESS_CTRL) ||
+      (producer && producer->Stage == MESA_SHADER_TESS_CTRL);
+
+   varying_matches matches(disable_varying_packing,
+                           producer ? producer->Stage : (gl_shader_stage)-1,
+                           consumer ? consumer->Stage : (gl_shader_stage)-1);
    hash_table *tfeedback_candidates
       = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
    hash_table *consumer_inputs
       = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
    hash_table *consumer_interface_inputs
       = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
-   ir_variable *consumer_inputs_with_locations[VARYING_SLOT_MAX] = {
+   ir_variable *consumer_inputs_with_locations[VARYING_SLOT_TESS_MAX] = {
       NULL,
    };
+
+   unsigned consumer_vertices = 0;
+   if (consumer && consumer->Stage == MESA_SHADER_GEOMETRY)
+      consumer_vertices = prog->Geom.VerticesIn;
 
    /* Operate in a total of four passes.
     *
@@ -1380,8 +1489,12 @@ assign_varying_locations(struct gl_context *ctx,
          /* If a matching input variable was found, add this ouptut (and the
           * input) to the set.  If this is a separable program and there is no
           * consumer stage, add the output.
+          *
+          * Always add TCS outputs. They are shared by all invocations
+          * within a patch and can be used as shared memory.
           */
-         if (input_var || (prog->SeparateShader && consumer == NULL)) {
+         if (input_var || (prog->SeparateShader && consumer == NULL) ||
+             producer->Type == GL_TESS_CONTROL_SHADER) {
             matches.record(output_var, input_var);
          }
 
@@ -1448,20 +1561,14 @@ assign_varying_locations(struct gl_context *ctx,
    hash_table_dtor(consumer_inputs);
    hash_table_dtor(consumer_interface_inputs);
 
-   if (ctx->Const.DisableVaryingPacking) {
-      /* Transform feedback code assumes varyings are packed, so if the driver
-       * has disabled varying packing, make sure it does not support transform
-       * feedback.
-       */
-      assert(!ctx->Extensions.EXT_transform_feedback);
-   } else {
+   if (!disable_varying_packing) {
       if (producer) {
          lower_packed_varyings(mem_ctx, slots_used, ir_var_shader_out,
                                0, producer);
       }
       if (consumer) {
          lower_packed_varyings(mem_ctx, slots_used, ir_var_shader_in,
-                               gs_input_vertices, consumer);
+                               consumer_vertices, consumer);
       }
    }
 
@@ -1540,13 +1647,15 @@ check_against_output_limit(struct gl_context *ctx,
    const unsigned output_components = output_vectors * 4;
    if (output_components > max_output_components) {
       if (ctx->API == API_OPENGLES2 || prog->IsES)
-         linker_error(prog, "shader uses too many output vectors "
+         linker_error(prog, "%s shader uses too many output vectors "
                       "(%u > %u)\n",
+                      _mesa_shader_stage_to_string(producer->Stage),
                       output_vectors,
                       max_output_components / 4);
       else
-         linker_error(prog, "shader uses too many output components "
+         linker_error(prog, "%s shader uses too many output components "
                       "(%u > %u)\n",
+                      _mesa_shader_stage_to_string(producer->Stage),
                       output_components,
                       max_output_components);
 
@@ -1579,13 +1688,15 @@ check_against_input_limit(struct gl_context *ctx,
    const unsigned input_components = input_vectors * 4;
    if (input_components > max_input_components) {
       if (ctx->API == API_OPENGLES2 || prog->IsES)
-         linker_error(prog, "shader uses too many input vectors "
+         linker_error(prog, "%s shader uses too many input vectors "
                       "(%u > %u)\n",
+                      _mesa_shader_stage_to_string(consumer->Stage),
                       input_vectors,
                       max_input_components / 4);
       else
-         linker_error(prog, "shader uses too many input components "
+         linker_error(prog, "%s shader uses too many input components "
                       "(%u > %u)\n",
+                      _mesa_shader_stage_to_string(consumer->Stage),
                       input_components,
                       max_input_components);
 

@@ -123,6 +123,7 @@ typedef enum {
     OPTION_DEVICE_PATH,
     OPTION_SHADOW_FB,
     OPTION_ACCEL_METHOD,
+    OPTION_PAGEFLIP,
 } modesettingOpts;
 
 static const OptionInfoRec Options[] = {
@@ -130,6 +131,7 @@ static const OptionInfoRec Options[] = {
     {OPTION_DEVICE_PATH, "kmsdev", OPTV_STRING, {0}, FALSE},
     {OPTION_SHADOW_FB, "ShadowFB", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_ACCEL_METHOD, "AccelMethod", OPTV_STRING, {0}, FALSE},
+    {OPTION_PAGEFLIP, "PageFlip", OPTV_BOOLEAN, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE}
 };
 
@@ -532,6 +534,38 @@ dispatch_slave_dirty(ScreenPtr pScreen)
 }
 
 static void
+redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty)
+{
+
+        RegionRec pixregion;
+
+        PixmapRegionInit(&pixregion, dirty->slave_dst);
+        DamageRegionAppend(&dirty->slave_dst->drawable, &pixregion);
+        PixmapSyncDirtyHelper(dirty);
+
+        DamageRegionProcessPending(&dirty->slave_dst->drawable);
+        RegionUninit(&pixregion);
+}
+
+static void
+ms_dirty_update(ScreenPtr screen)
+{
+        RegionPtr region;
+        PixmapDirtyUpdatePtr ent;
+
+        if (xorg_list_is_empty(&screen->pixmap_dirty_list))
+                return;
+
+        xorg_list_for_each_entry(ent, &screen->pixmap_dirty_list, ent) {
+                region = DamageRegion(ent->damage);
+                if (RegionNotEmpty(region)) {
+                        redisplay_dirty(screen, ent);
+                        DamageEmpty(ent->damage);
+                }
+        }
+}
+
+static void
 msBlockHandler(ScreenPtr pScreen, void *pTimeout, void *pReadmask)
 {
     modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(pScreen));
@@ -540,10 +574,12 @@ msBlockHandler(ScreenPtr pScreen, void *pTimeout, void *pReadmask)
     pScreen->BlockHandler(pScreen, pTimeout, pReadmask);
     ms->BlockHandler = pScreen->BlockHandler;
     pScreen->BlockHandler = msBlockHandler;
-    if (pScreen->isGPU)
+    if (pScreen->isGPU && !ms->drmmode.reverse_prime_offload_mode)
         dispatch_slave_dirty(pScreen);
     else if (ms->dirty_enabled)
         dispatch_dirty(pScreen);
+
+    ms_dirty_update(pScreen);
 }
 
 static void
@@ -727,6 +763,10 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     if (ret == 0) {
         if (value & DRM_PRIME_CAP_IMPORT)
             pScrn->capabilities |= RR_Capability_SinkOutput;
+#if GLAMOR_HAS_GBM_LINEAR
+        if (value & DRM_PRIME_CAP_EXPORT)
+            pScrn->capabilities |= RR_Capability_SourceOutput;
+#endif
     }
 #endif
     drmmode_get_default_bpp(pScrn, &ms->drmmode, &defaultdepth, &defaultbpp);
@@ -782,7 +822,8 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     try_enable_glamor(pScrn);
 
     if (ms->drmmode.glamor) {
-        xf86LoadSubModule(pScrn, "dri2");
+        ms->drmmode.pageflip =
+            xf86ReturnOptValBool(ms->Options, OPTION_PAGEFLIP, TRUE);
     } else {
         Bool prefer_shadow = TRUE;
 
@@ -799,6 +840,8 @@ PreInit(ScrnInfoPtr pScrn, int flags)
                    "ShadowFB: preferred %s, enabled %s\n",
                    prefer_shadow ? "YES" : "NO",
                    ms->drmmode.shadow_enable ? "YES" : "NO");
+
+        ms->drmmode.pageflip = FALSE;
     }
 
     if (drmmode_pre_init(pScrn, &ms->drmmode, pScrn->bitsPerPixel / 8) == FALSE) {
@@ -938,20 +981,49 @@ msShadowInit(ScreenPtr pScreen)
 }
 
 static Bool
+msSharePixmapBacking(PixmapPtr ppix, ScreenPtr screen, void **handle)
+{
+#ifdef GLAMOR_HAS_GBM
+    int ret;
+    CARD16 stride;
+    CARD32 size;
+    ret = glamor_fd_from_pixmap(ppix->drawable.pScreen, ppix, &stride, &size);
+    if (ret == -1)
+        return FALSE;
+
+    *handle = (void *)(long)(ret);
+    return TRUE;
+#endif
+    return FALSE;
+}
+
+static Bool
 msSetSharedPixmapBacking(PixmapPtr ppix, void *fd_handle)
 {
+#ifdef GLAMOR
     ScreenPtr screen = ppix->drawable.pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
     Bool ret;
-    int size = ppix->devKind * ppix->drawable.height;
     int ihandle = (int) (long) fd_handle;
 
-    ret = drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, ppix->devKind, size);
+    if (ms->drmmode.reverse_prime_offload_mode) {
+        ret = glamor_back_pixmap_from_fd(ppix, ihandle,
+                                         ppix->drawable.width,
+                                         ppix->drawable.height,
+                                         ppix->devKind, ppix->drawable.depth,
+                                         ppix->drawable.bitsPerPixel);
+    } else {
+        int size = ppix->devKind * ppix->drawable.height;
+        ret = drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, ppix->devKind, size);
+    }
     if (ret == FALSE)
         return ret;
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 static Bool
@@ -1089,7 +1161,10 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     ms->BlockHandler = pScreen->BlockHandler;
     pScreen->BlockHandler = msBlockHandler;
 
+    pScreen->SharePixmapBacking = msSharePixmapBacking;
     pScreen->SetSharedPixmapBacking = msSetSharedPixmapBacking;
+    pScreen->StartPixmapTracking = PixmapStartDirtyTracking;
+    pScreen->StopPixmapTracking = PixmapStopDirtyTracking;
 
     if (!xf86CrtcScreenInit(pScreen))
         return FALSE;
@@ -1132,6 +1207,9 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "Failed to initialize the Present extension.\n");
         }
+        /* enable reverse prime if we are a GPU screen, and accelerated */
+        if (pScreen->isGPU)
+            ms->drmmode.reverse_prime_offload_mode = TRUE;
     }
 #endif
 

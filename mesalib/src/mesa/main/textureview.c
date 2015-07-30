@@ -313,7 +313,7 @@ target_valid(struct gl_context *ctx, GLenum origTarget, GLenum newTarget)
    }
    _mesa_error(ctx, GL_INVALID_OPERATION,
                "glTextureView(illegal target=%s)",
-               _mesa_lookup_enum_by_nr(newTarget));
+               _mesa_enum_to_string(newTarget));
    return false;
 }
 #undef RETURN_IF_SUPPORTED
@@ -435,8 +435,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
 
    if (MESA_VERBOSE & (VERBOSE_API | VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glTextureView %d %s %d %s %d %d %d %d\n",
-                  texture, _mesa_lookup_enum_by_nr(target), origtexture,
-                  _mesa_lookup_enum_by_nr(internalformat),
+                  texture, _mesa_enum_to_string(target), origtexture,
+                  _mesa_enum_to_string(internalformat),
                   minlevel, numlevels, minlayer, numlayers);
 
    if (origtexture == 0) {
@@ -523,8 +523,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
                                    internalformat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
           "glTextureView(internalformat %s not compatible with origtexture %s)",
-          _mesa_lookup_enum_by_nr(internalformat),
-          _mesa_lookup_enum_by_nr(origTexObj->Image[0][0]->InternalFormat));
+          _mesa_enum_to_string(internalformat),
+          _mesa_enum_to_string(origTexObj->Image[0][0]->InternalFormat));
       return;
    }
 

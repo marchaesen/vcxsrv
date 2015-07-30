@@ -92,7 +92,7 @@ pipe_static_mutex(list_mutex);
 static unsigned long last_no = 0;
 
 
-static INLINE struct debug_memory_header *
+static inline struct debug_memory_header *
 header_from_data(void *data)
 {
    if(data)
@@ -101,7 +101,7 @@ header_from_data(void *data)
       return NULL;
 }
 
-static INLINE void *
+static inline void *
 data_from_header(struct debug_memory_header *hdr)
 {
    if(hdr)
@@ -110,7 +110,7 @@ data_from_header(struct debug_memory_header *hdr)
       return NULL;
 }
 
-static INLINE struct debug_memory_footer *
+static inline struct debug_memory_footer *
 footer_from_header(struct debug_memory_header *hdr)
 {
    if(hdr)

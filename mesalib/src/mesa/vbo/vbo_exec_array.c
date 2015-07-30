@@ -255,7 +255,7 @@ check_array_data(struct gl_context *ctx, struct gl_client_array *array,
             GLint k;
             for (k = 0; k < array->Size; k++) {
                if (IS_INF_OR_NAN(f[k]) ||
-                   f[k] >= 1.0e20 || f[k] <= -1.0e10) {
+                   f[k] >= 1.0e20F || f[k] <= -1.0e10F) {
                   printf("Bad array data:\n");
                   printf("  Element[%u].%u = %f\n", j, k, f[k]);
                   printf("  Array %u at %p\n", attrib, (void* ) array);
@@ -263,7 +263,7 @@ check_array_data(struct gl_context *ctx, struct gl_client_array *array,
 			 array->Type, array->Size, array->Stride);
                   printf("  Address/offset %p in Buffer Object %u\n",
 			 array->Ptr, array->BufferObj->Name);
-                  f[k] = 1.0; /* XXX replace the bad value! */
+                  f[k] = 1.0F; /* XXX replace the bad value! */
                }
                /*assert(!IS_INF_OR_NAN(f[k]));*/
             }
@@ -786,7 +786,7 @@ vbo_exec_DrawArrays(GLenum mode, GLint start, GLsizei count)
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawArrays(%s, %d, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), start, count);
+                  _mesa_enum_to_string(mode), start, count);
 
    if (!_mesa_validate_DrawArrays(ctx, mode, count))
       return;
@@ -813,7 +813,7 @@ vbo_exec_DrawArraysInstanced(GLenum mode, GLint start, GLsizei count,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawArraysInstanced(%s, %d, %d, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), start, count, numInstances);
+                  _mesa_enum_to_string(mode), start, count, numInstances);
 
    if (!_mesa_validate_DrawArraysInstanced(ctx, mode, start, count, numInstances))
       return;
@@ -839,7 +839,7 @@ vbo_exec_DrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawArraysInstancedBaseInstance(%s, %d, %d, %d, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), first, count,
+                  _mesa_enum_to_string(mode), first, count,
                   numInstances, baseInstance);
 
    if (!_mesa_validate_DrawArraysInstanced(ctx, mode, first, count,
@@ -1021,8 +1021,8 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx,
                 "glDrawRangeElementsBaseVertex(%s, %u, %u, %d, %s, %p, %d)\n",
-                _mesa_lookup_enum_by_nr(mode), start, end, count,
-                _mesa_lookup_enum_by_nr(type), indices, basevertex);
+                _mesa_enum_to_string(mode), start, end, count,
+                _mesa_enum_to_string(type), indices, basevertex);
 
    if (!_mesa_validate_DrawRangeElements(ctx, mode, start, end, count,
                                          type, indices))
@@ -1099,8 +1099,8 @@ vbo_exec_DrawRangeElements(GLenum mode, GLuint start, GLuint end,
       GET_CURRENT_CONTEXT(ctx);
       _mesa_debug(ctx,
                   "glDrawRangeElements(%s, %u, %u, %d, %s, %p)\n",
-                  _mesa_lookup_enum_by_nr(mode), start, end, count,
-                  _mesa_lookup_enum_by_nr(type), indices);
+                  _mesa_enum_to_string(mode), start, end, count,
+                  _mesa_enum_to_string(type), indices);
    }
 
    vbo_exec_DrawRangeElementsBaseVertex(mode, start, end, count, type,
@@ -1119,8 +1119,8 @@ vbo_exec_DrawElements(GLenum mode, GLsizei count, GLenum type,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElements(%s, %u, %s, %p)\n",
-                  _mesa_lookup_enum_by_nr(mode), count,
-                  _mesa_lookup_enum_by_nr(type), indices);
+                  _mesa_enum_to_string(mode), count,
+                  _mesa_enum_to_string(type), indices);
 
    if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices))
       return;
@@ -1141,8 +1141,8 @@ vbo_exec_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElementsBaseVertex(%s, %d, %s, %p, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), count,
-                  _mesa_lookup_enum_by_nr(type), indices, basevertex);
+                  _mesa_enum_to_string(mode), count,
+                  _mesa_enum_to_string(type), indices, basevertex);
 
    if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices))
       return;
@@ -1163,8 +1163,8 @@ vbo_exec_DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElementsInstanced(%s, %d, %s, %p, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), count,
-                  _mesa_lookup_enum_by_nr(type), indices, numInstances);
+                  _mesa_enum_to_string(mode), count,
+                  _mesa_enum_to_string(type), indices, numInstances);
 
    if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
                                              numInstances))
@@ -1187,8 +1187,8 @@ vbo_exec_DrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, GLenum type
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElementsInstancedBaseVertex(%s, %d, %s, %p, %d; %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), count,
-                  _mesa_lookup_enum_by_nr(type), indices,
+                  _mesa_enum_to_string(mode), count,
+                  _mesa_enum_to_string(type), indices,
                   numInstances, basevertex);
 
    if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
@@ -1212,8 +1212,8 @@ vbo_exec_DrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum ty
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElementsInstancedBaseInstance(%s, %d, %s, %p, %d, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), count,
-                  _mesa_lookup_enum_by_nr(type), indices,
+                  _mesa_enum_to_string(mode), count,
+                  _mesa_enum_to_string(type), indices,
                   numInstances, baseInstance);
 
    if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
@@ -1238,8 +1238,8 @@ vbo_exec_DrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElementsInstancedBaseVertexBaseInstance(%s, %d, %s, %p, %d, %d, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), count,
-                  _mesa_lookup_enum_by_nr(type), indices,
+                  _mesa_enum_to_string(mode), count,
+                  _mesa_enum_to_string(type), indices,
                   numInstances, basevertex, baseInstance);
 
    if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
@@ -1488,7 +1488,7 @@ vbo_exec_DrawTransformFeedback(GLenum mode, GLuint name)
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawTransformFeedback(%s, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), name);
+                  _mesa_enum_to_string(mode), name);
 
    vbo_draw_transform_feedback(ctx, mode, obj, 0, 1);
 }
@@ -1502,7 +1502,7 @@ vbo_exec_DrawTransformFeedbackStream(GLenum mode, GLuint name, GLuint stream)
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawTransformFeedbackStream(%s, %u, %u)\n",
-                  _mesa_lookup_enum_by_nr(mode), name, stream);
+                  _mesa_enum_to_string(mode), name, stream);
 
    vbo_draw_transform_feedback(ctx, mode, obj, stream, 1);
 }
@@ -1517,7 +1517,7 @@ vbo_exec_DrawTransformFeedbackInstanced(GLenum mode, GLuint name,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawTransformFeedbackInstanced(%s, %d)\n",
-                  _mesa_lookup_enum_by_nr(mode), name);
+                  _mesa_enum_to_string(mode), name);
 
    vbo_draw_transform_feedback(ctx, mode, obj, 0, primcount);
 }
@@ -1533,7 +1533,7 @@ vbo_exec_DrawTransformFeedbackStreamInstanced(GLenum mode, GLuint name,
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawTransformFeedbackStreamInstanced"
                   "(%s, %u, %u, %i)\n",
-                  _mesa_lookup_enum_by_nr(mode), name, stream, primcount);
+                  _mesa_enum_to_string(mode), name, stream, primcount);
 
    vbo_draw_transform_feedback(ctx, mode, obj, stream, primcount);
 }
@@ -1709,7 +1709,7 @@ vbo_exec_DrawArraysIndirect(GLenum mode, const GLvoid *indirect)
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawArraysIndirect(%s, %p)\n",
-                  _mesa_lookup_enum_by_nr(mode), indirect);
+                  _mesa_enum_to_string(mode), indirect);
 
    if (!_mesa_validate_DrawArraysIndirect(ctx, mode, indirect))
       return;
@@ -1725,8 +1725,8 @@ vbo_exec_DrawElementsIndirect(GLenum mode, GLenum type,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glDrawElementsIndirect(%s, %s, %p)\n",
-                  _mesa_lookup_enum_by_nr(mode),
-                  _mesa_lookup_enum_by_nr(type), indirect);
+                  _mesa_enum_to_string(mode),
+                  _mesa_enum_to_string(type), indirect);
 
    if (!_mesa_validate_DrawElementsIndirect(ctx, mode, type, indirect))
       return;
@@ -1743,7 +1743,7 @@ vbo_exec_MultiDrawArraysIndirect(GLenum mode,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glMultiDrawArraysIndirect(%s, %p, %i, %i)\n",
-                  _mesa_lookup_enum_by_nr(mode), indirect, primcount, stride);
+                  _mesa_enum_to_string(mode), indirect, primcount, stride);
 
    /* If <stride> is zero, the array elements are treated as tightly packed. */
    if (stride == 0)
@@ -1768,8 +1768,8 @@ vbo_exec_MultiDrawElementsIndirect(GLenum mode, GLenum type,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glMultiDrawElementsIndirect(%s, %s, %p, %i, %i)\n",
-                  _mesa_lookup_enum_by_nr(mode),
-                  _mesa_lookup_enum_by_nr(type), indirect, primcount, stride);
+                  _mesa_enum_to_string(mode),
+                  _mesa_enum_to_string(type), indirect, primcount, stride);
 
    /* If <stride> is zero, the array elements are treated as tightly packed. */
    if (stride == 0)

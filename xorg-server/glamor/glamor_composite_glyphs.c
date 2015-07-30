@@ -64,45 +64,58 @@ glamor_copy_glyph(PixmapPtr     glyph_pixmap,
         .x2 = glyph_draw->width,
         .y2 = glyph_draw->height,
     };
+    PixmapPtr upload_pixmap = glyph_pixmap;
 
-    if (glyph_pixmap->drawable.bitsPerPixel == atlas_draw->bitsPerPixel) {
-        glamor_upload_boxes((PixmapPtr) atlas_draw,
-                            &box, 1,
-                            0, 0,
-                            x, y,
-                            glyph_pixmap->devPrivate.ptr,
-                            glyph_pixmap->devKind);
-    } else {
-        GCPtr scratch_gc = GetScratchGC(atlas_draw->depth, atlas_draw->pScreen);
-        ChangeGCVal changes[2];
-        if (!scratch_gc)
+    if (glyph_pixmap->drawable.bitsPerPixel != atlas_draw->bitsPerPixel) {
+
+        /* If we're dealing with 1-bit glyphs, we copy them to a
+         * temporary 8-bit pixmap and upload them from there, since
+         * that's what GL can handle.
+         */
+        ScreenPtr       screen = atlas_draw->pScreen;
+        GCPtr           scratch_gc;
+        ChangeGCVal     changes[2];
+
+        upload_pixmap = glamor_create_pixmap(screen,
+                                             glyph_draw->width,
+                                             glyph_draw->height,
+                                             atlas_draw->depth,
+                                             GLAMOR_CREATE_PIXMAP_CPU);
+        if (!upload_pixmap)
             return;
 
-        /* If we're dealing with 1-bit glyphs, we upload them to
-         * the cache as normal 8-bit alpha, since that's what GL
-         * can handle.
-         */
-        assert(glyph_draw->depth == 1);
-        assert(atlas_draw->depth == 8);
-
+        scratch_gc = GetScratchGC(upload_pixmap->drawable.depth, screen);
+        if (!scratch_gc) {
+            glamor_destroy_pixmap(upload_pixmap);
+            return;
+        }
         changes[0].val = 0xff;
         changes[1].val = 0x00;
         if (ChangeGC(NullClient, scratch_gc,
-                     GCForeground|GCBackground, changes) != Success)
-            goto bail_gc;
-        ValidateGC(atlas_draw, scratch_gc);
+                     GCForeground|GCBackground, changes) != Success) {
+            glamor_destroy_pixmap(upload_pixmap);
+            FreeScratchGC(scratch_gc);
+            return;
+        }
+        ValidateGC(&upload_pixmap->drawable, scratch_gc);
 
         (*scratch_gc->ops->CopyPlane)(glyph_draw,
-                                      atlas_draw,
+                                      &upload_pixmap->drawable,
                                       scratch_gc,
                                       0, 0,
                                       glyph_draw->width,
                                       glyph_draw->height,
-                                      x, y, 0x1);
-
-    bail_gc:
-        FreeScratchGC(scratch_gc);
+                                      0, 0, 0x1);
     }
+    glamor_upload_boxes((PixmapPtr) atlas_draw,
+                        &box, 1,
+                        0, 0,
+                        x, y,
+                        upload_pixmap->devPrivate.ptr,
+                        upload_pixmap->devKind);
+
+    if (upload_pixmap != glyph_pixmap)
+        glamor_destroy_pixmap(upload_pixmap);
 }
 
 static Bool
@@ -112,7 +125,8 @@ glamor_glyph_atlas_init(ScreenPtr screen, struct glamor_glyph_atlas *atlas)
     PictFormatPtr               format = atlas->format;
 
     atlas->atlas = glamor_create_pixmap(screen, glamor_priv->glyph_atlas_dim,
-                                        glamor_priv->glyph_atlas_dim, format->depth, 0);
+                                        glamor_priv->glyph_atlas_dim, format->depth,
+                                        GLAMOR_CREATE_FBO_NO_FBO);
     atlas->x = 0;
     atlas->y = 0;
     atlas->row_height = 0;
@@ -255,7 +269,7 @@ glamor_glyphs_flush(CARD8 op, PicturePtr src, PicturePtr dst,
                 if (glamor_glyph_use_130(glamor_priv))
                     glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, nglyph);
                 else
-                    glamor_glDrawArrays_GL_QUADS(glamor_priv, nglyph * 4);
+                    glamor_glDrawArrays_GL_QUADS(glamor_priv, nglyph);
             }
         }
         if (prog->alpha != glamor_program_alpha_ca_first)
@@ -265,9 +279,11 @@ glamor_glyphs_flush(CARD8 op, PicturePtr src, PicturePtr dst,
 
     glDisable(GL_SCISSOR_TEST);
 
-    glVertexAttribDivisor(GLAMOR_VERTEX_SOURCE, 0);
+    if (glamor_glyph_use_130(glamor_priv)) {
+        glVertexAttribDivisor(GLAMOR_VERTEX_SOURCE, 0);
+        glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
+    }
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisable(GL_BLEND);
 }
@@ -331,8 +347,6 @@ glamor_composite_glyphs(CARD8 op,
     ScreenPtr screen = drawable->pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     glamor_program *prog = NULL;
-    PicturePtr glyph_pict = NULL;
-    DrawablePtr glyph_draw;
     glamor_program_render       *glyphs_program = &glamor_priv->glyphs_program;
     struct glamor_glyph_atlas    *glyph_atlas = NULL;
     int x = 0, y = 0;
@@ -360,17 +374,14 @@ glamor_composite_glyphs(CARD8 op,
             /* Glyph not empty?
              */
             if (glyph->info.width && glyph->info.height) {
-                glamor_pixmap_private *glyph_pix_priv;
-
-                glyph_pict = GlyphPicture(glyph)[screen_num];
-                glyph_draw = glyph_pict->pDrawable;
-                glyph_pix_priv = glamor_get_pixmap_private((PixmapPtr) glyph_draw);
+                PicturePtr glyph_pict = GlyphPicture(glyph)[screen_num];
+                DrawablePtr glyph_draw = glyph_pict->pDrawable;
 
                 /* Need to draw with slow path?
                  */
                 if (_X_UNLIKELY(glyph_draw->width > glyph_max_dim ||
                                 glyph_draw->height > glyph_max_dim ||
-                                (glyph_pix_priv != 0 && glyph_pix_priv->type != GLAMOR_MEMORY)))
+                                !glamor_pixmap_is_memory((PixmapPtr)glyph_draw)))
                 {
                     if (glyphs_queued) {
                         glamor_glyphs_flush(op, src, dst, prog, glyph_atlas, glyphs_queued);

@@ -103,10 +103,26 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
    for (int i = 0; i < len; i++) {
       bool dual_slot = is_dual_slot(var);
       int idx = var->data.location + var->data.index + offset + i;
-      GLbitfield64 bitfield = BITFIELD64_BIT(idx);
+      bool is_patch_generic = var->data.patch &&
+                              idx != VARYING_SLOT_TESS_LEVEL_INNER &&
+                              idx != VARYING_SLOT_TESS_LEVEL_OUTER;
+      GLbitfield64 bitfield;
+
+      if (is_patch_generic) {
+         assert(idx >= VARYING_SLOT_PATCH0 && idx < VARYING_SLOT_TESS_MAX);
+         bitfield = BITFIELD64_BIT(idx - VARYING_SLOT_PATCH0);
+      }
+      else {
+         assert(idx < VARYING_SLOT_MAX);
+         bitfield = BITFIELD64_BIT(idx);
+      }
 
       if (var->data.mode == ir_var_shader_in) {
-         prog->InputsRead |= bitfield;
+         if (is_patch_generic)
+            prog->PatchInputsRead |= bitfield;
+         else
+            prog->InputsRead |= bitfield;
+
          if (dual_slot)
             prog->DoubleInputsRead |= bitfield;
          if (is_fragment_shader) {
@@ -122,7 +138,10 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
          prog->SystemValuesRead |= bitfield;
       } else {
          assert(var->data.mode == ir_var_shader_out);
-	 prog->OutputsWritten |= bitfield;
+         if (is_patch_generic)
+            prog->PatchOutputsWritten |= bitfield;
+         else
+            prog->OutputsWritten |= bitfield;
       }
    }
 }
@@ -137,6 +156,24 @@ ir_set_program_inouts_visitor::mark_whole_variable(ir_variable *var)
    const glsl_type *type = var->type;
    if (this->shader_stage == MESA_SHADER_GEOMETRY &&
        var->data.mode == ir_var_shader_in && type->is_array()) {
+      type = type->fields.array;
+   }
+
+   if (this->shader_stage == MESA_SHADER_TESS_CTRL &&
+       var->data.mode == ir_var_shader_in) {
+      assert(type->is_array());
+      type = type->fields.array;
+   }
+
+   if (this->shader_stage == MESA_SHADER_TESS_CTRL &&
+       var->data.mode == ir_var_shader_out && !var->data.patch) {
+      assert(type->is_array());
+      type = type->fields.array;
+   }
+
+   if (this->shader_stage == MESA_SHADER_TESS_EVAL &&
+       var->data.mode == ir_var_shader_in && !var->data.patch) {
+      assert(type->is_array());
       type = type->fields.array;
    }
 
@@ -165,6 +202,9 @@ ir_set_program_inouts_visitor::visit(ir_dereference_variable *ir)
  *
  * *Except gl_PrimitiveIDIn, as noted below.
  *
+ * For tessellation control shaders all inputs and non-patch outputs are
+ * arrays. For tessellation evaluation shaders non-patch inputs are arrays.
+ *
  * If the index can't be interpreted as a constant, or some other problem
  * occurs, then nothing will be marked and false will be returned.
  */
@@ -180,6 +220,24 @@ ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
        * gl_PrimitiveIDIn, and in that case, this code will never be reached,
        * because gl_PrimitiveIDIn can't be indexed into in array fashion.
        */
+      assert(type->is_array());
+      type = type->fields.array;
+   }
+
+   if (this->shader_stage == MESA_SHADER_TESS_CTRL &&
+       var->data.mode == ir_var_shader_in) {
+      assert(type->is_array());
+      type = type->fields.array;
+   }
+
+   if (this->shader_stage == MESA_SHADER_TESS_CTRL &&
+       var->data.mode == ir_var_shader_out && !var->data.patch) {
+      assert(type->is_array());
+      type = type->fields.array;
+   }
+
+   if (this->shader_stage == MESA_SHADER_TESS_EVAL &&
+       var->data.mode == ir_var_shader_in && !var->data.patch) {
       assert(type->is_array());
       type = type->fields.array;
    }
@@ -242,6 +300,22 @@ ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
    return true;
 }
 
+static bool
+is_multiple_vertices(gl_shader_stage stage, ir_variable *var)
+{
+   if (var->data.patch)
+      return false;
+
+   if (var->data.mode == ir_var_shader_in)
+      return stage == MESA_SHADER_GEOMETRY ||
+             stage == MESA_SHADER_TESS_CTRL ||
+             stage == MESA_SHADER_TESS_EVAL;
+   if (var->data.mode == ir_var_shader_out)
+      return stage == MESA_SHADER_TESS_CTRL;
+
+   return false;
+}
+
 ir_visitor_status
 ir_set_program_inouts_visitor::visit_enter(ir_dereference_array *ir)
 {
@@ -256,10 +330,9 @@ ir_set_program_inouts_visitor::visit_enter(ir_dereference_array *ir)
        */
       if (ir_dereference_variable * const deref_var =
           inner_array->array->as_dereference_variable()) {
-         if (this->shader_stage == MESA_SHADER_GEOMETRY &&
-             deref_var->var->data.mode == ir_var_shader_in) {
-            /* foo is a geometry shader input, so i is the vertex, and j the
-             * part of the input we're accessing.
+         if (is_multiple_vertices(this->shader_stage, deref_var->var)) {
+            /* foo is a geometry or tessellation shader input, so i is
+             * the vertex, and j the part of the input we're accessing.
              */
             if (try_mark_partial_variable(deref_var->var, ir->array_index))
             {
@@ -275,10 +348,9 @@ ir_set_program_inouts_visitor::visit_enter(ir_dereference_array *ir)
    } else if (ir_dereference_variable * const deref_var =
               ir->array->as_dereference_variable()) {
       /* ir => foo[i], where foo is a variable. */
-      if (this->shader_stage == MESA_SHADER_GEOMETRY &&
-          deref_var->var->data.mode == ir_var_shader_in) {
-         /* foo is a geometry shader input, so i is the vertex, and we're
-          * accessing the entire input.
+      if (is_multiple_vertices(this->shader_stage, deref_var->var)) {
+         /* foo is a geometry or tessellation shader input, so i is
+          * the vertex, and we're accessing the entire input.
           */
          mark_whole_variable(deref_var->var);
          /* We've now taken care of foo, but i might contain a subexpression
@@ -353,6 +425,8 @@ do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
 
    prog->InputsRead = 0;
    prog->OutputsWritten = 0;
+   prog->PatchInputsRead = 0;
+   prog->PatchOutputsWritten = 0;
    prog->SystemValuesRead = 0;
    if (shader_stage == MESA_SHADER_FRAGMENT) {
       gl_fragment_program *fprog = (gl_fragment_program *) prog;

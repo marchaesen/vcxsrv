@@ -47,25 +47,25 @@ _mesa_scale_and_bias_rgba(GLuint n, GLfloat rgba[][4],
                           GLfloat rBias, GLfloat gBias,
                           GLfloat bBias, GLfloat aBias)
 {
-   if (rScale != 1.0 || rBias != 0.0) {
+   if (rScale != 1.0F || rBias != 0.0F) {
       GLuint i;
       for (i = 0; i < n; i++) {
          rgba[i][RCOMP] = rgba[i][RCOMP] * rScale + rBias;
       }
    }
-   if (gScale != 1.0 || gBias != 0.0) {
+   if (gScale != 1.0F || gBias != 0.0F) {
       GLuint i;
       for (i = 0; i < n; i++) {
          rgba[i][GCOMP] = rgba[i][GCOMP] * gScale + gBias;
       }
    }
-   if (bScale != 1.0 || bBias != 0.0) {
+   if (bScale != 1.0F || bBias != 0.0F) {
       GLuint i;
       for (i = 0; i < n; i++) {
          rgba[i][BCOMP] = rgba[i][BCOMP] * bScale + bBias;
       }
    }
-   if (aScale != 1.0 || aBias != 0.0) {
+   if (aScale != 1.0F || aBias != 0.0F) {
       GLuint i;
       for (i = 0; i < n; i++) {
          rgba[i][ACOMP] = rgba[i][ACOMP] * aScale + aBias;

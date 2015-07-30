@@ -96,7 +96,7 @@ handle_table_set_destroy(struct handle_table *ht,
 /**
  * Resize the table if necessary 
  */
-static INLINE int
+static inline int
 handle_table_resize(struct handle_table *ht,
                     unsigned minimum_size)
 {
@@ -126,7 +126,7 @@ handle_table_resize(struct handle_table *ht,
 }
 
 
-static INLINE void
+static inline void
 handle_table_clear(struct handle_table *ht, 
                    unsigned index)
 {

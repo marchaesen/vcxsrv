@@ -2105,6 +2105,10 @@ if test "x$GLAMOR" = xyes; then
 	if test "x$GBM" = xyes; then
 		AC_DEFINE(GLAMOR_HAS_GBM, 1,
 			  [Build glamor with GBM-based EGL support])
+		AC_CHECK_DECL(GBM_BO_USE_LINEAR,
+			[AC_DEFINE(GLAMOR_HAS_GBM_LINEAR, 1, [Have GBM_BO_USE_LINEAR])], [],
+			[#include <stdlib.h>
+			 #include <gbm.h>])
 	fi
 
 fi
@@ -2264,7 +2268,7 @@ if test "x$DMX" = xyes; then
 	fi
 	DMX_INCLUDES="$XEXT_INC $RENDER_INC $RECORD_INC"
 	XDMX_CFLAGS="$DMXMODULES_CFLAGS"
-	XDMX_LIBS="$FB_LIB $MI_LIB $XEXT_LIB $RENDER_LIB $RECORD_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB  $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_SHADOW_LIB $MIEXT_DAMAGE_LIB $COMPOSITE_LIB $DAMAGE_LIB $MAIN_LIB $DIX_LIB $CONFIG_LIB $OS_LIB $FIXES_LIB"
+	XDMX_LIBS="$FB_LIB $MI_LIB $XEXT_LIB $RANDR_LIB $RENDER_LIB $RECORD_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB  $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_SHADOW_LIB $MIEXT_DAMAGE_LIB $COMPOSITE_LIB $DAMAGE_LIB $MAIN_LIB $DIX_LIB $CONFIG_LIB $OS_LIB $FIXES_LIB"
 	XDMX_SYS_LIBS="$DMXMODULES_LIBS"
 	AC_SUBST([XDMX_CFLAGS])
 	AC_SUBST([XDMX_LIBS])
@@ -2337,6 +2341,33 @@ if test "$KDRIVE" = yes; then
         fi
     fi
 
+    case $host_os in
+	*linux*)
+	    KDRIVE_OS_LIB='$(top_builddir)/hw/kdrive/linux/liblinux.la'
+            KDRIVELINUX=yes
+	    if test "x$KDRIVE_EVDEV" = xauto; then
+		KDRIVE_EVDEV=yes
+	    fi
+	    if test "x$KDRIVE_KBD" = xauto; then
+		KDRIVE_KBD=yes
+	    fi
+	    if test "x$KDRIVE_MOUSE" = xauto; then
+		KDRIVE_MOUSE=yes
+	    fi
+	    ;;
+	*)
+	    if test "x$KDRIVE_EVDEV" = xauto; then
+		KDRIVE_EVDEV=no
+	    fi
+	    if test "x$KDRIVE_KBD" = xauto; then
+		KDRIVE_KBD=no
+	    fi
+	    if test "x$KDRIVE_MOUSE" = xauto; then
+		KDRIVE_MOUSE=no
+	    fi
+	    ;;
+    esac
+
     if test "x$KDRIVE_KBD" = xyes; then
        AC_DEFINE(KDRIVE_KBD, 1, [Enable KDrive kbd driver])
     fi
@@ -2378,32 +2409,6 @@ if test "$KDRIVE" = yes; then
 
     KDRIVE_PURE_LIBS="$FB_LIB $MI_LIB $FIXES_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $COMPOSITE_LIB $OS_LIB"
     KDRIVE_LIB='$(top_builddir)/hw/kdrive/src/libkdrive.la'
-    case $host_os in
-	*linux*)
-	    KDRIVE_OS_LIB='$(top_builddir)/hw/kdrive/linux/liblinux.la'
-            KDRIVELINUX=yes
-	    if test "x$KDRIVE_EVDEV" = xauto; then
-		KDRIVE_EVDEV=yes
-	    fi
-	    if test "x$KDRIVE_KBD" = xauto; then
-		KDRIVE_KBD=yes
-	    fi
-	    if test "x$KDRIVE_MOUSE" = xauto; then
-		KDRIVE_MOUSE=yes
-	    fi
-	    ;;
-	*)
-	    if test "x$KDRIVE_EVDEV" = xauto; then
-		KDRIVE_EVDEV=no
-	    fi
-	    if test "x$KDRIVE_KBD" = xauto; then
-		KDRIVE_KBD=no
-	    fi
-	    if test "x$KDRIVE_MOUSE" = xauto; then
-		KDRIVE_MOUSE=no
-	    fi
-	    ;;
-    esac
     KDRIVE_MAIN_LIB="$MAIN_LIB"
     KDRIVE_LOCAL_LIBS="$DIX_LIB $KDRIVE_LIB"
     KDRIVE_LOCAL_LIBS="$KDRIVE_LOCAL_LIBS $FB_LIB $MI_LIB $KDRIVE_PURE_LIBS"

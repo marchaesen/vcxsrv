@@ -108,18 +108,6 @@ extern _X_EXPORT void FakeAllocColor(ColormapPtr /*pmap */ ,
 extern _X_EXPORT void FakeFreeColor(ColormapPtr /*pmap */ ,
                                     Pixel /*pixel */ );
 
-typedef int (*ColorCompareProcPtr) (EntryPtr /*pent */ ,
-                                    xrgb * /*prgb */ );
-
-extern _X_EXPORT int FindColor(ColormapPtr /*pmap */ ,
-                               EntryPtr /*pentFirst */ ,
-                               int /*size */ ,
-                               xrgb * /*prgb */ ,
-                               Pixel * /*pPixel */ ,
-                               int /*channel */ ,
-                               int /*client */ ,
-                               ColorCompareProcPtr /*comp */ );
-
 extern _X_EXPORT int QueryColors(ColormapPtr /*pmap */ ,
                                  int /*count */ ,
                                  Pixel * /*ppixIn */ ,

@@ -148,7 +148,7 @@ shade_rastpos(struct gl_context *ctx,
 	 SUB_3V(VP, light->_Position, vertex);
          /* d = length(VP) */
 	 d = (GLfloat) LEN_3FV( VP );
-	 if (d > 1.0e-6) {
+	 if (d > 1.0e-6F) {
             /* normalize VP */
 	    GLfloat invd = 1.0F / d;
 	    SELF_SCALE_SCALAR_3V(VP, invd);
@@ -172,7 +172,7 @@ shade_rastpos(struct gl_context *ctx,
 	 }
       }
 
-      if (attenuation < 1e-3)
+      if (attenuation < 1e-3F)
 	 continue;
 
       n_dot_VP = DOT3( normal, VP );
@@ -219,7 +219,7 @@ shade_rastpos(struct gl_context *ctx,
 	    shine = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SHININESS][0];
 	    spec_coef = powf(n_dot_h, shine);
 
-	    if (spec_coef > 1.0e-10) {
+	    if (spec_coef > 1.0e-10F) {
                if (ctx->Light.Model.ColorControl==GL_SEPARATE_SPECULAR_COLOR) {
                   ACC_SCALE_SCALAR_3V( specularContrib, spec_coef,
                                        light->_MatSpecular[0]);
@@ -378,7 +378,7 @@ _tnl_RasterPos(struct gl_context *ctx, const GLfloat vObj[4])
       GLfloat eye[4], clip[4], ndc[3], d;
       GLfloat *norm, eyenorm[3];
       GLfloat *objnorm = ctx->Current.Attrib[VERT_ATTRIB_NORMAL];
-      double scale[3], translate[3];
+      float scale[3], translate[3];
 
       /* apply modelview matrix:  eye = MV * obj */
       TRANSFORM_POINT( eye, ctx->ModelviewMatrixStack.Top->m, vObj );

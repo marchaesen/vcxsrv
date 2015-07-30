@@ -42,7 +42,7 @@ struct pipe_transfer;
  *
  * \return TRUE if tile is totally clipped, FALSE otherwise
  */
-static INLINE boolean
+static inline boolean
 u_clip_tile(uint x, uint y, uint *w, uint *h, const struct pipe_box *box)
 {
    if ((int) x >= box->width)

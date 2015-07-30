@@ -232,7 +232,8 @@ _mesa_program_resource_index(struct gl_shader_program *shProg,
 
 extern struct gl_program_resource *
 _mesa_program_resource_find_name(struct gl_shader_program *shProg,
-                                 GLenum programInterface, const char *name);
+                                 GLenum programInterface, const char *name,
+                                 unsigned *array_index);
 
 extern struct gl_program_resource *
 _mesa_program_resource_find_index(struct gl_shader_program *shProg,
@@ -263,6 +264,51 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
                              GLsizei propCount, const GLenum *props,
                              GLsizei bufSize, GLsizei *length,
                              GLint *params);
+
+/* GL_ARB_tessellation_shader */
+extern void GLAPIENTRY
+_mesa_PatchParameteri(GLenum pname, GLint value);
+
+extern void GLAPIENTRY
+_mesa_PatchParameterfv(GLenum pname, const GLfloat *values);
+
+/* GL_ARB_shader_subroutine */
+void
+_mesa_shader_program_init_subroutine_defaults(struct gl_shader_program *shProg);
+
+extern GLint GLAPIENTRY
+_mesa_GetSubroutineUniformLocation(GLuint program, GLenum shadertype,
+                                   const GLchar *name);
+
+extern GLuint GLAPIENTRY
+_mesa_GetSubroutineIndex(GLuint program, GLenum shadertype,
+                         const GLchar *name);
+
+extern GLvoid GLAPIENTRY
+_mesa_GetActiveSubroutineUniformiv(GLuint program, GLenum shadertype,
+                                   GLuint index, GLenum pname, GLint *values);
+
+extern GLvoid GLAPIENTRY
+_mesa_GetActiveSubroutineUniformName(GLuint program, GLenum shadertype,
+                                     GLuint index, GLsizei bufsize,
+                                     GLsizei *length, GLchar *name);
+
+extern GLvoid GLAPIENTRY
+_mesa_GetActiveSubroutineName(GLuint program, GLenum shadertype,
+                              GLuint index, GLsizei bufsize,
+                              GLsizei *length, GLchar *name);
+
+extern GLvoid GLAPIENTRY
+_mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
+                            const GLuint *indices);
+
+extern GLvoid GLAPIENTRY
+_mesa_GetUniformSubroutineuiv(GLenum shadertype, GLint location,
+                              GLuint *params);
+
+extern GLvoid GLAPIENTRY
+_mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
+                        GLenum pname, GLint *values);
 
 #ifdef __cplusplus
 }

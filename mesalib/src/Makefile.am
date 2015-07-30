@@ -19,8 +19,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-AUTOMAKE_OPTIONS = subdir-objects
-
 SUBDIRS = . gtest util mapi/glapi/gen mapi
 
 if NEED_OPENGL_COMMON
@@ -37,16 +35,12 @@ if HAVE_EGL_PLATFORM_WAYLAND
 SUBDIRS += egl/wayland/wayland-egl egl/wayland/wayland-drm
 endif
 
-if HAVE_EGL_DRIVER_DRI2
-SUBDIRS += egl/drivers/dri2
-endif
-
 if HAVE_GBM
 SUBDIRS += gbm
 endif
 
 if HAVE_EGL
-SUBDIRS += egl/main
+SUBDIRS += egl
 endif
 
 if HAVE_GALLIUM
@@ -54,8 +48,6 @@ SUBDIRS += gallium
 endif
 
 EXTRA_DIST = \
-	egl/drivers/haiku \
-	egl/docs \
 	getopt hgl SConscript
 
 AM_CFLAGS = $(VISIBILITY_CFLAGS)

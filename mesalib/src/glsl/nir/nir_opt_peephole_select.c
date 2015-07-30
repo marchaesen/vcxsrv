@@ -82,12 +82,22 @@ block_check_for_allowed_instrs(nir_block *block)
          break;
 
       case nir_instr_type_alu: {
-         /* It must be a move operation */
          nir_alu_instr *mov = nir_instr_as_alu(instr);
-         if (mov->op != nir_op_fmov && mov->op != nir_op_imov &&
-             mov->op != nir_op_fneg && mov->op != nir_op_ineg &&
-             mov->op != nir_op_fabs && mov->op != nir_op_iabs)
+         switch (mov->op) {
+         case nir_op_fmov:
+         case nir_op_imov:
+         case nir_op_fneg:
+         case nir_op_ineg:
+         case nir_op_fabs:
+         case nir_op_iabs:
+         case nir_op_vec2:
+         case nir_op_vec3:
+         case nir_op_vec4:
+            /* It must be a move-like operation. */
+            break;
+         default:
             return false;
+         }
 
          /* Can't handle saturate */
          if (mov->dest.saturate)

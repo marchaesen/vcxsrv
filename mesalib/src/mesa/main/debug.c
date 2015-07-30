@@ -272,7 +272,9 @@ write_texture_image(struct gl_texture_object *texObj,
       store = ctx->Pack; /* save */
       ctx->Pack = ctx->DefaultPacking;
 
-      ctx->Driver.GetTexImage(ctx, GL_RGBA, GL_UNSIGNED_BYTE, buffer, img);
+      ctx->Driver.GetTexSubImage(ctx,
+                                 0, 0, 0, img->Width, img->Height, img->Depth,
+                                 GL_RGBA, GL_UNSIGNED_BYTE, buffer, img);
 
       /* make filename */
       _mesa_snprintf(s, sizeof(s), "/tmp/tex%u.l%u.f%u.ppm", texObj->Name, level, face);
@@ -411,7 +413,7 @@ dump_renderbuffer(const struct gl_renderbuffer *rb, GLboolean writeImage)
 {
    printf("Renderbuffer %u: %u x %u  IntFormat = %s\n",
 	  rb->Name, rb->Width, rb->Height,
-	  _mesa_lookup_enum_by_nr(rb->InternalFormat));
+	  _mesa_enum_to_string(rb->InternalFormat));
    if (writeImage) {
       _mesa_write_renderbuffer_image(rb);
    }

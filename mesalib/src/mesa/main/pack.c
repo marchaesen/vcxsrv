@@ -796,7 +796,7 @@ _mesa_unpack_depth_span( struct gl_context *ctx, GLuint n,
     * back to an int type can introduce errors that will show up as
     * artifacts in things like depth peeling which uses glCopyTexImage.
     */
-   if (ctx->Pixel.DepthScale == 1.0 && ctx->Pixel.DepthBias == 0.0) {
+   if (ctx->Pixel.DepthScale == 1.0F && ctx->Pixel.DepthBias == 0.0F) {
       if (srcType == GL_UNSIGNED_INT && dstType == GL_UNSIGNED_SHORT) {
          const GLuint *src = (const GLuint *) source;
          GLushort *dst = (GLushort *) dest;
@@ -874,8 +874,8 @@ _mesa_unpack_depth_span( struct gl_context *ctx, GLuint n,
       case GL_UNSIGNED_INT_24_8_EXT: /* GL_EXT_packed_depth_stencil */
          if (dstType == GL_UNSIGNED_INT_24_8_EXT &&
              depthMax == 0xffffff &&
-             ctx->Pixel.DepthScale == 1.0 &&
-             ctx->Pixel.DepthBias == 0.0) {
+             ctx->Pixel.DepthScale == 1.0F &&
+             ctx->Pixel.DepthBias == 0.0F) {
             const GLuint *src = (const GLuint *) source;
             GLuint *zValues = (GLuint *) dest;
             GLuint i;
@@ -945,7 +945,7 @@ _mesa_unpack_depth_span( struct gl_context *ctx, GLuint n,
    {
       const GLfloat scale = ctx->Pixel.DepthScale;
       const GLfloat bias = ctx->Pixel.DepthBias;
-      if (scale != 1.0 || bias != 0.0) {
+      if (scale != 1.0F || bias != 0.0F) {
          GLuint i;
          for (i = 0; i < n; i++) {
             depthValues[i] = depthValues[i] * scale + bias;
@@ -958,7 +958,7 @@ _mesa_unpack_depth_span( struct gl_context *ctx, GLuint n,
    if (needClamp) {
       GLuint i;
       for (i = 0; i < n; i++) {
-         depthValues[i] = (GLfloat)CLAMP(depthValues[i], 0.0, 1.0);
+         depthValues[i] = CLAMP(depthValues[i], 0.0F, 1.0F);
       }
    }
 
@@ -1025,7 +1025,7 @@ _mesa_pack_depth_span( struct gl_context *ctx, GLuint n, GLvoid *dest,
       return;
    }
 
-   if (ctx->Pixel.DepthScale != 1.0 || ctx->Pixel.DepthBias != 0.0) {
+   if (ctx->Pixel.DepthScale != 1.0F || ctx->Pixel.DepthBias != 0.0F) {
       memcpy(depthCopy, depthSpan, n * sizeof(GLfloat));
       _mesa_scale_and_bias_depth(ctx, n, depthCopy);
       depthSpan = depthCopy;
@@ -1153,7 +1153,7 @@ _mesa_pack_depth_stencil_span(struct gl_context *ctx,GLuint n,
       return;
    }
 
-   if (ctx->Pixel.DepthScale != 1.0 || ctx->Pixel.DepthBias != 0.0) {
+   if (ctx->Pixel.DepthScale != 1.0F || ctx->Pixel.DepthBias != 0.0F) {
       memcpy(depthCopy, depthVals, n * sizeof(GLfloat));
       _mesa_scale_and_bias_depth(ctx, n, depthCopy);
       depthVals = depthCopy;

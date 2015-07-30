@@ -241,7 +241,7 @@ _swrast_choose_line( struct gl_context *ctx )
          USE(general_line);
       }
       else if (ctx->Depth.Test
-               || ctx->Line.Width != 1.0
+               || ctx->Line.Width != 1.0F
                || ctx->Line.StippleFlag) {
          /* no texture, but Z, fog, width>1, stipple, etc. */
 #if CHAN_BITS == 32
@@ -252,7 +252,7 @@ _swrast_choose_line( struct gl_context *ctx )
       }
       else {
          assert(!ctx->Depth.Test);
-         assert(ctx->Line.Width == 1.0);
+         assert(ctx->Line.Width == 1.0F);
          /* simple lines */
          USE(simple_no_z_rgba_line);
       }

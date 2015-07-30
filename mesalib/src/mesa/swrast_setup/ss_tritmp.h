@@ -58,7 +58,7 @@ static void TAG(triangle)(struct gl_context *ctx, GLuint e0, GLuint e1, GLuint e
 
       if (IND & (SS_TWOSIDE_BIT | SS_UNFILLED_BIT))
       {
-	 facing = (cc < 0.0) ^ ctx->Polygon._FrontBit;
+	 facing = (cc < 0.0F) ^ ctx->Polygon._FrontBit;
 
 	 if (IND & SS_UNFILLED_BIT)
 	    mode = facing ? ctx->Polygon.BackMode : ctx->Polygon.FrontMode;
@@ -138,7 +138,7 @@ static void TAG(triangle)(struct gl_context *ctx, GLuint e0, GLuint e1, GLuint e
           * so no MRD value is used here.
           */
 	 offset = ctx->Polygon.OffsetUnits;
-	 if (cc * cc > 1e-16) {
+	 if (cc * cc > 1e-16F) {
 	    const GLfloat ez = z[0] - z[2];
 	    const GLfloat fz = z[1] - z[2];
 	    const GLfloat oneOverArea = 1.0F / cc;

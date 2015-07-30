@@ -238,7 +238,7 @@ turns off auto-repeat.
 turns on auto-repeat.
 .TP 8
 .B -retro
-starts the stipple with the classic stipple and cursor visible.  The default
+starts the server with the classic stipple and cursor visible.  The default
 is to start with a black root window, and to suppress display of the cursor
 until the first time an application calls XDefineCursor(). For kdrive
 servers, this implies -zap.

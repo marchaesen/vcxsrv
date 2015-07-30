@@ -44,7 +44,7 @@ NAME(plot)(struct gl_context *ctx, struct LineInfo *line, int ix, int iy)
 
    (void) swrast;
 
-   if (coverage == 0.0)
+   if (coverage == 0.0F)
       return;
 
    line->span.end++;
@@ -123,7 +123,7 @@ NAME(line)(struct gl_context *ctx, const SWvertex *v0, const SWvertex *v1)
                                  ctx->Const.MinLineWidthAA,
                                  ctx->Const.MaxLineWidthAA);
 
-   if (line.len == 0.0 || IS_INF_OR_NAN(line.len))
+   if (line.len == 0.0F || IS_INF_OR_NAN(line.len))
       return;
 
    INIT_SPAN(line.span, GL_LINE);

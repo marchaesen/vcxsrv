@@ -190,7 +190,7 @@ _tnl_InvalidateState( struct gl_context *ctx, GLuint new_state )
    }
 
    if (new_state & (_NEW_VIEWPORT | _NEW_BUFFERS)) {
-      double scale[3], translate[3];
+      float scale[3], translate[3];
       _mesa_get_viewport_xform(ctx, 0, scale, translate);
       _math_matrix_viewport(&tnl->_WindowMap, scale, translate,
                             ctx->DrawBuffer->_DepthMaxF);

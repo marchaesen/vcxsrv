@@ -462,6 +462,11 @@ st_texture_get_sampler_view(struct st_context *st,
    return free;
 }
 
+
+/**
+ * For the given texture object, release any sampler views which belong
+ * to the calling context.
+ */
 void
 st_texture_release_sampler_view(struct st_context *st,
                                 struct st_texture_object *stObj)
@@ -478,6 +483,11 @@ st_texture_release_sampler_view(struct st_context *st,
    }
 }
 
+
+/**
+ * Release all sampler views attached to the given texture object, regardless
+ * of the context.
+ */
 void
 st_texture_release_all_sampler_views(struct st_context *st,
                                      struct st_texture_object *stObj)

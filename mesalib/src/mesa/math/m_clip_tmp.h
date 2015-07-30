@@ -194,13 +194,13 @@ static GLvector4f * TAG(cliptest_points3)( GLvector4f *clip_vec,
    STRIDE_LOOP {
       const GLfloat cx = from[0], cy = from[1], cz = from[2];
       GLubyte mask = 0;
-      if (cx >  1.0)       mask |= CLIP_RIGHT_BIT;
-      else if (cx < -1.0)  mask |= CLIP_LEFT_BIT;
-      if (cy >  1.0)       mask |= CLIP_TOP_BIT;
-      else if (cy < -1.0)  mask |= CLIP_BOTTOM_BIT;
+      if (cx >  1.0F)       mask |= CLIP_RIGHT_BIT;
+      else if (cx < -1.0F)  mask |= CLIP_LEFT_BIT;
+      if (cy >  1.0F)       mask |= CLIP_TOP_BIT;
+      else if (cy < -1.0F)  mask |= CLIP_BOTTOM_BIT;
       if (viewport_z_clip) {
-	 if (cz >  1.0)       mask |= CLIP_FAR_BIT;
-	 else if (cz < -1.0)  mask |= CLIP_NEAR_BIT;
+	 if (cz >  1.0F)       mask |= CLIP_FAR_BIT;
+	 else if (cz < -1.0F)  mask |= CLIP_NEAR_BIT;
       }
       clipMask[i] = mask;
       tmpOrMask |= mask;
@@ -230,10 +230,10 @@ static GLvector4f * TAG(cliptest_points2)( GLvector4f *clip_vec,
    STRIDE_LOOP {
       const GLfloat cx = from[0], cy = from[1];
       GLubyte mask = 0;
-      if (cx >  1.0)       mask |= CLIP_RIGHT_BIT;
-      else if (cx < -1.0)  mask |= CLIP_LEFT_BIT;
-      if (cy >  1.0)       mask |= CLIP_TOP_BIT;
-      else if (cy < -1.0)  mask |= CLIP_BOTTOM_BIT;
+      if (cx >  1.0F)       mask |= CLIP_RIGHT_BIT;
+      else if (cx < -1.0F)  mask |= CLIP_LEFT_BIT;
+      if (cy >  1.0F)       mask |= CLIP_TOP_BIT;
+      else if (cy < -1.0F)  mask |= CLIP_BOTTOM_BIT;
       clipMask[i] = mask;
       tmpOrMask |= mask;
       tmpAndMask &= mask;

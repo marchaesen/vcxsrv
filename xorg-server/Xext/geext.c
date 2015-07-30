@@ -88,9 +88,10 @@ ProcGEQueryVersion(ClientPtr client)
     return Success;
 }
 
-int (*ProcGEVector[GENumberRequests]) (ClientPtr) = {
+static int (*ProcGEVector[GENumberRequests]) (ClientPtr) = {
     /* Version 1.0 */
-ProcGEQueryVersion};
+    ProcGEQueryVersion,
+};
 
 /************************************************************/
 /*                swapped request handlers                  */
@@ -107,9 +108,10 @@ SProcGEQueryVersion(ClientPtr client)
     return (*ProcGEVector[stuff->ReqType]) (client);
 }
 
-int (*SProcGEVector[GENumberRequests]) (ClientPtr) = {
+static int (*SProcGEVector[GENumberRequests]) (ClientPtr) = {
     /* Version 1.0 */
-SProcGEQueryVersion};
+    SProcGEQueryVersion
+};
 
 /************************************************************/
 /*                callbacks                                 */

@@ -212,7 +212,7 @@ SetFocusOut(DeviceIntPtr dev)
  * @return The window that is the first ancestor of both 'a' and 'b', or the
  *         NullWindow if they do not have a common ancestor.
  */
-WindowPtr
+static WindowPtr
 CommonAncestor(WindowPtr a, WindowPtr b)
 {
     for (b = b->parent; b; b = b->parent)

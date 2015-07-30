@@ -81,6 +81,15 @@ debug_describe_sampler_view(char* buf, const struct pipe_sampler_view *ptr)
 }
 
 void
+debug_describe_image_view(char* buf, const struct pipe_image_view *ptr)
+{
+   char res[128];
+   debug_describe_resource(res, ptr->resource);
+   util_sprintf(buf, "pipe_image_view<%s,%s>", res,
+                util_format_short_name(ptr->format));
+}
+
+void
 debug_describe_so_target(char* buf,
                          const struct pipe_stream_output_target *ptr)
 {

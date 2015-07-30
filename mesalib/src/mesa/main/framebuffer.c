@@ -157,6 +157,7 @@ _mesa_initialize_window_framebuffer(struct gl_framebuffer *fb,
    fb->_Status = GL_FRAMEBUFFER_COMPLETE_EXT;
    fb->_AllColorBuffersFixedPoint = !visual->floatMode;
    fb->_HasSNormOrFloatColorBuffer = visual->floatMode;
+   fb->_HasAttachments = true;
 
    compute_depth_max(fb);
 }
@@ -356,6 +357,43 @@ update_framebuffer_size(struct gl_context *ctx, struct gl_framebuffer *fb)
 }
 
 
+
+/**
+ * Given a bounding box, intersect the bounding box with the scissor of
+ * a specified vieport.
+ *
+ * \param ctx     GL context.
+ * \param idx     Index of the desired viewport
+ * \param bbox    Bounding box for the scissored viewport.  Stored as xmin,
+ *                xmax, ymin, ymax.
+ */
+void
+_mesa_intersect_scissor_bounding_box(const struct gl_context *ctx,
+                                     unsigned idx, int *bbox)
+{
+   if (ctx->Scissor.EnableFlags & (1u << idx)) {
+      if (ctx->Scissor.ScissorArray[idx].X > bbox[0]) {
+         bbox[0] = ctx->Scissor.ScissorArray[idx].X;
+      }
+      if (ctx->Scissor.ScissorArray[idx].Y > bbox[2]) {
+         bbox[2] = ctx->Scissor.ScissorArray[idx].Y;
+      }
+      if (ctx->Scissor.ScissorArray[idx].X + ctx->Scissor.ScissorArray[idx].Width < bbox[1]) {
+         bbox[1] = ctx->Scissor.ScissorArray[idx].X + ctx->Scissor.ScissorArray[idx].Width;
+      }
+      if (ctx->Scissor.ScissorArray[idx].Y + ctx->Scissor.ScissorArray[idx].Height < bbox[3]) {
+         bbox[3] = ctx->Scissor.ScissorArray[idx].Y + ctx->Scissor.ScissorArray[idx].Height;
+      }
+      /* finally, check for empty region */
+      if (bbox[0] > bbox[1]) {
+         bbox[0] = bbox[1];
+      }
+      if (bbox[2] > bbox[3]) {
+         bbox[2] = bbox[3];
+      }
+   }
+}
+
 /**
  * Calculate the inclusive bounding box for the scissor of a specific viewport
  *
@@ -380,27 +418,7 @@ _mesa_scissor_bounding_box(const struct gl_context *ctx,
    bbox[1] = buffer->Width;
    bbox[3] = buffer->Height;
 
-   if (ctx->Scissor.EnableFlags & (1u << idx)) {
-      if (ctx->Scissor.ScissorArray[idx].X > bbox[0]) {
-         bbox[0] = ctx->Scissor.ScissorArray[idx].X;
-      }
-      if (ctx->Scissor.ScissorArray[idx].Y > bbox[2]) {
-         bbox[2] = ctx->Scissor.ScissorArray[idx].Y;
-      }
-      if (ctx->Scissor.ScissorArray[idx].X + ctx->Scissor.ScissorArray[idx].Width < bbox[1]) {
-         bbox[1] = ctx->Scissor.ScissorArray[idx].X + ctx->Scissor.ScissorArray[idx].Width;
-      }
-      if (ctx->Scissor.ScissorArray[idx].Y + ctx->Scissor.ScissorArray[idx].Height < bbox[3]) {
-         bbox[3] = ctx->Scissor.ScissorArray[idx].Y + ctx->Scissor.ScissorArray[idx].Height;
-      }
-      /* finally, check for empty region */
-      if (bbox[0] > bbox[1]) {
-         bbox[0] = bbox[1];
-      }
-      if (bbox[2] > bbox[3]) {
-         bbox[2] = bbox[3];
-      }
-   }
+   _mesa_intersect_scissor_bounding_box(ctx, idx, bbox);
 
    assert(bbox[0] <= bbox[1]);
    assert(bbox[2] <= bbox[3]);
@@ -920,7 +938,7 @@ _mesa_print_framebuffer(const struct gl_framebuffer *fb)
 
    fprintf(stderr, "Mesa Framebuffer %u at %p\n", fb->Name, (void *) fb);
    fprintf(stderr, "  Size: %u x %u  Status: %s\n", fb->Width, fb->Height,
-           _mesa_lookup_enum_by_nr(fb->_Status));
+           _mesa_enum_to_string(fb->_Status));
    fprintf(stderr, "  Attachments:\n");
 
    for (i = 0; i < BUFFER_COUNT; i++) {

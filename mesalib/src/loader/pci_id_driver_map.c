@@ -23,7 +23,7 @@
 
 int is_nouveau_vieux(int fd);
 
-#ifndef __NOT_HAVE_DRM_H
+#ifdef HAVE_LIBDRM
 
 #include <xf86drm.h>
 #include <nouveau_drm.h>

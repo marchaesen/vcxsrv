@@ -87,7 +87,7 @@ _mesa_BeginConditionalRender(GLuint queryId, GLenum mode)
       /* fallthrough - invalid */
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glBeginConditionalRender(mode=%s)",
-                  _mesa_lookup_enum_by_nr(mode));
+                  _mesa_enum_to_string(mode));
       return;
    }
 
@@ -184,7 +184,7 @@ _mesa_check_conditional_render(struct gl_context *ctx)
    default:
       _mesa_problem(ctx, "Bad cond render mode %s in "
                     " _mesa_check_conditional_render()",
-                    _mesa_lookup_enum_by_nr(ctx->Query.CondRenderMode));
+                    _mesa_enum_to_string(ctx->Query.CondRenderMode));
       return GL_TRUE;
    }
 }

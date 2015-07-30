@@ -56,7 +56,7 @@ SOFTWARE.
 #include "resource.h"
 #include "dix.h"
 
-#define InitialTableSize 100
+#define InitialTableSize 256
 
 typedef struct _Node {
     struct _Node *left, *right;
@@ -69,8 +69,6 @@ static Atom lastAtom = None;
 static NodePtr atomRoot = NULL;
 static unsigned long tableLength;
 static NodePtr *nodeTable;
-
-void FreeAtom(NodePtr patom);
 
 Atom
 MakeAtom(const char *string, unsigned len, Bool makeit)
@@ -166,7 +164,7 @@ AtomError(void)
     FatalError("initializing atoms");
 }
 
-void
+static void
 FreeAtom(NodePtr patom)
 {
     if (patom->left)

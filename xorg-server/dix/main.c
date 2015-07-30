@@ -95,6 +95,8 @@ Equipment Corporation.
 #include "cursorstr.h"
 #include "selection.h"
 #include <X11/fonts/font.h>
+#include <X11/fonts/fontstruct.h>
+#include <X11/fonts/fontutil.h>
 #include "opaque.h"
 #include "servermd.h"
 #include "hotplug.h"

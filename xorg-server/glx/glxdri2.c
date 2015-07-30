@@ -921,6 +921,13 @@ initializeExtensions(__GLXDRIscreen * screen)
                        "AIGLX: enabled GLX_ARB_create_context_robustness\n");
         }
 
+#ifdef __DRI2_FLUSH_CONTROL
+        if (strcmp(extensions[i]->name, __DRI2_FLUSH_CONTROL) == 0) {
+            __glXEnableExtension(screen->glx_enable_bits,
+                                 "GLX_ARB_context_flush_control\n");
+        }
+#endif
+
         /* Ignore unknown extensions */
     }
 }

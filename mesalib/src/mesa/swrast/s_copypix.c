@@ -27,6 +27,7 @@
 #include "main/context.h"
 #include "main/condrender.h"
 #include "main/macros.h"
+#include "main/blit.h"
 #include "main/pixeltransfer.h"
 #include "main/imports.h"
 
@@ -51,20 +52,9 @@ regions_overlap(GLint srcx, GLint srcy,
                 GLint width, GLint height,
                 GLfloat zoomX, GLfloat zoomY)
 {
-   if (zoomX == 1.0 && zoomY == 1.0) {
-      /* no zoom */
-      if (srcx >= dstx + width || (srcx + width <= dstx)) {
-         return GL_FALSE;
-      }
-      else if (srcy < dsty) { /* this is OK */
-         return GL_FALSE;
-      }
-      else if (srcy > dsty + height) {
-         return GL_FALSE;
-      }
-      else {
-         return GL_TRUE;
-      }
+   if (zoomX == 1.0F && zoomY == 1.0F) {
+      return _mesa_regions_overlap(srcx, srcy, srcx + width, srcy + height,
+                                   dstx, dsty, dstx + width, dsty + height);
    }
    else {
       /* add one pixel of slop when zooming, just to be safe */
@@ -211,8 +201,8 @@ scale_and_bias_z(struct gl_context *ctx, GLuint width,
    GLuint i;
 
    if (depthMax <= 0xffffff &&
-       ctx->Pixel.DepthScale == 1.0 &&
-       ctx->Pixel.DepthBias == 0.0) {
+       ctx->Pixel.DepthScale == 1.0F &&
+       ctx->Pixel.DepthBias == 0.0F) {
       /* no scale or bias and no clamping and no worry of overflow */
       const GLfloat depthMaxF = ctx->DrawBuffer->_DepthMaxF;
       for (i = 0; i < width; i++) {

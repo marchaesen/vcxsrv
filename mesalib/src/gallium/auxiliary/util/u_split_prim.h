@@ -23,7 +23,7 @@ struct util_split_prim {
    uint edgeflag_off:1;
 };
 
-static INLINE void
+static inline void
 util_split_prim_init(struct util_split_prim *s,
                   unsigned mode, unsigned start, unsigned count)
 {
@@ -41,7 +41,7 @@ util_split_prim_init(struct util_split_prim *s,
    s->repeat_first = 0;
 }
 
-static INLINE boolean
+static inline boolean
 util_split_prim_next(struct util_split_prim *s, unsigned max_verts)
 {
    int repeat = 0;

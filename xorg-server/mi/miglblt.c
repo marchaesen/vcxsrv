@@ -53,6 +53,7 @@ SOFTWARE.
 #include	<X11/Xproto.h>
 #include	"misc.h"
 #include	<X11/fonts/fontstruct.h>
+#include	<X11/fonts/fontutil.h>
 #include	"dixfontstr.h"
 #include	"gcstruct.h"
 #include	"windowstr.h"

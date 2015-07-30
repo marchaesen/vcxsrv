@@ -391,8 +391,8 @@ _mesa_ClipControl(GLenum origin, GLenum depth)
 
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glClipControl(%s, %s)\n",
-	          _mesa_lookup_enum_by_nr(origin),
-                  _mesa_lookup_enum_by_nr(depth));
+	          _mesa_enum_to_string(origin),
+                  _mesa_enum_to_string(depth));
 
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -443,12 +443,12 @@ _mesa_ClipControl(GLenum origin, GLenum depth)
  */
 void
 _mesa_get_viewport_xform(struct gl_context *ctx, unsigned i,
-                         double scale[3], double translate[3])
+                         float scale[3], float translate[3])
 {
-   double x = ctx->ViewportArray[i].X;
-   double y = ctx->ViewportArray[i].Y;
-   double half_width = 0.5*ctx->ViewportArray[i].Width;
-   double half_height = 0.5*ctx->ViewportArray[i].Height;
+   float x = ctx->ViewportArray[i].X;
+   float y = ctx->ViewportArray[i].Y;
+   float half_width = 0.5f * ctx->ViewportArray[i].Width;
+   float half_height = 0.5f * ctx->ViewportArray[i].Height;
    double n = ctx->ViewportArray[i].Near;
    double f = ctx->ViewportArray[i].Far;
 
@@ -462,8 +462,8 @@ _mesa_get_viewport_xform(struct gl_context *ctx, unsigned i,
       translate[1] = half_height + y;
    }
    if (ctx->Transform.ClipDepthMode == GL_NEGATIVE_ONE_TO_ONE) {
-      scale[2] = 0.5*(f - n);
-      translate[2] = 0.5*(n + f);
+      scale[2] = 0.5 * (f - n);
+      translate[2] = 0.5 * (n + f);
    } else {
       scale[2] = f - n;
       translate[2] = n;

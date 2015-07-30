@@ -232,11 +232,13 @@ struct dd_function_table {
 
 
    /**
-    * Called by glGetTexImage().
+    * Called by glGetTexImage(), glGetTextureSubImage().
     */
-   void (*GetTexImage)( struct gl_context *ctx,
-                        GLenum format, GLenum type, GLvoid *pixels,
-                        struct gl_texture_image *texImage );
+   void (*GetTexSubImage)(struct gl_context *ctx,
+                          GLint xoffset, GLint yoffset, GLint zoffset,
+                          GLsizei width, GLsizei height, GLsizei depth,
+                          GLenum format, GLenum type, GLvoid *pixels,
+                          struct gl_texture_image *texImage);
 
    /**
     * Called by glClearTex[Sub]Image
@@ -326,16 +328,19 @@ struct dd_function_table {
    void (*CompressedTexSubImage)(struct gl_context *ctx, GLuint dims,
                                  struct gl_texture_image *texImage,
                                  GLint xoffset, GLint yoffset, GLint zoffset,
-                                 GLsizei width, GLint height, GLint depth,
+                                 GLsizei width, GLsizei height, GLsizei depth,
                                  GLenum format,
                                  GLsizei imageSize, const GLvoid *data);
 
    /**
     * Called by glGetCompressedTexImage.
     */
-   void (*GetCompressedTexImage)(struct gl_context *ctx,
-                                 struct gl_texture_image *texImage,
-                                 GLvoid *data);
+   void (*GetCompressedTexSubImage)(struct gl_context *ctx,
+                                    struct gl_texture_image *texImage,
+                                    GLint xoffset, GLint yoffset,
+                                    GLint zoffset, GLsizei width,
+                                    GLsizei height, GLsizei depth,
+                                    GLvoid *data);
    /*@}*/
 
    /**

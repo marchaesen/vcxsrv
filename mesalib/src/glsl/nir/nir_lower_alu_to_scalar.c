@@ -164,7 +164,7 @@ lower_alu_to_scalar_block(nir_block *block, void *data)
 {
    nir_foreach_instr_safe(block, instr) {
       if (instr->type == nir_instr_type_alu)
-         lower_alu_instr_scalar((nir_alu_instr *)instr, data);
+         lower_alu_instr_scalar(nir_instr_as_alu(instr), data);
    }
 
    return true;

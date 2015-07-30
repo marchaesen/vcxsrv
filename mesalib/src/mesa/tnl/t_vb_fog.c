@@ -45,8 +45,8 @@ struct fog_stage_data {
 #define FOG_STAGE_DATA(stage) ((struct fog_stage_data *)stage->privatePtr)
 
 #define FOG_EXP_TABLE_SIZE 256
-#define FOG_MAX (10.0)
-#define EXP_FOG_MAX .0006595
+#define FOG_MAX (10.0F)
+#define EXP_FOG_MAX .0006595F
 #define FOG_INCR (FOG_MAX/FOG_EXP_TABLE_SIZE)
 static GLfloat exp_table[FOG_EXP_TABLE_SIZE];
 static GLfloat inited = 0;
@@ -54,7 +54,7 @@ static GLfloat inited = 0;
 #if 1
 #define NEG_EXP( result, narg )						\
 do {									\
-   GLfloat f = (GLfloat) (narg * (1.0/FOG_INCR));			\
+   GLfloat f = (GLfloat) (narg * (1.0F / FOG_INCR));			\
    GLint k = (GLint) f;							\
    if (k > FOG_EXP_TABLE_SIZE-2) 					\
       result = (GLfloat) EXP_FOG_MAX;					\

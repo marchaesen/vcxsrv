@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-static INLINE intptr_t
+static inline intptr_t
 pointer_to_intptr( const void *p )
 {
    union {
@@ -45,7 +45,7 @@ pointer_to_intptr( const void *p )
    return pi.i;
 }
 
-static INLINE void *
+static inline void *
 intptr_to_pointer( intptr_t i )
 {
    union {
@@ -56,7 +56,7 @@ intptr_to_pointer( intptr_t i )
    return pi.p;
 }
 
-static INLINE uintptr_t
+static inline uintptr_t
 pointer_to_uintptr( const void *ptr )
 {
    union {
@@ -67,7 +67,7 @@ pointer_to_uintptr( const void *ptr )
    return pu.u;
 }
 
-static INLINE void *
+static inline void *
 uintptr_to_pointer( uintptr_t u )
 {
    union {
@@ -81,7 +81,7 @@ uintptr_to_pointer( uintptr_t u )
 /**
  * Return a pointer aligned to next multiple of N bytes.
  */
-static INLINE void *
+static inline void *
 align_pointer( const void *unaligned, uintptr_t alignment )
 {
    uintptr_t aligned = (pointer_to_uintptr( unaligned ) + alignment - 1) & ~(alignment - 1);
@@ -92,7 +92,7 @@ align_pointer( const void *unaligned, uintptr_t alignment )
 /**
  * Return a pointer aligned to next multiple of 16 bytes.
  */
-static INLINE void *
+static inline void *
 align16( void *unaligned )
 {
    return align_pointer( unaligned, 16 );
@@ -100,7 +100,7 @@ align16( void *unaligned )
 
 typedef void (*func_pointer)(void);
 
-static INLINE func_pointer
+static inline func_pointer
 pointer_to_func( void *p )
 {
    union {
@@ -111,7 +111,7 @@ pointer_to_func( void *p )
    return pf.f;
 }
 
-static INLINE void *
+static inline void *
 func_to_pointer( func_pointer f )
 {
    union {

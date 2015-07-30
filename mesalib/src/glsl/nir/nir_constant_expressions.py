@@ -31,23 +31,11 @@ template = """\
 #include "util/rounding.h" /* for _mesa_roundeven */
 #include "nir_constant_expressions.h"
 
-#if defined(_MSC_VER) && (_MSC_VER < 1800)
-static int isnormal(double x)
-{
-   return _fpclass(x) == _FPCLASS_NN || _fpclass(x) == _FPCLASS_PN;
-}
-#elif defined(__SUNPRO_CC)
+#if defined(__SUNPRO_CC)
 #include <ieeefp.h>
 static int isnormal(double x)
 {
    return fpclass(x) == FP_NORMAL;
-}
-#endif
-
-#if defined(_MSC_VER)
-static double copysign(double x, double y)
-{
-   return _copysign(x, y);
 }
 #endif
 

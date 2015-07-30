@@ -29,8 +29,8 @@
 
 #include "resource.h"
 
-extern _X_EXPORT RESTYPE RegionResType;
-extern _X_EXPORT int XFixesErrorBase;
+extern RESTYPE RegionResType;
+extern int XFixesErrorBase;
 
 #define VERIFY_REGION(pRegion, rid, client, mode)			\
     do {								\
@@ -48,7 +48,7 @@ extern _X_EXPORT int XFixesErrorBase;
     if (rid) VERIFY_REGION(pRegion, rid, client, mode); \
 }
 
-extern _X_EXPORT RegionPtr
+extern RegionPtr
  XFixesRegionCopy(RegionPtr pRegion);
 
 #include "xibarriers.h"

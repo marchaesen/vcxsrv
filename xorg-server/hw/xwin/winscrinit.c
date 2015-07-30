@@ -88,8 +88,8 @@ winScreenInit(ScreenPtr pScreen, int argc, char **argv)
     HDC hdc;
     DWORD dwInitialBPP;
 
-    winDebug("winScreenInit - dwWidth: %ld dwHeight: %ld\n",
-             pScreenInfo->dwWidth, pScreenInfo->dwHeight);
+    winDebug("winScreenInit - dwWidth: %u dwHeight: %u\n",
+             (unsigned int)pScreenInfo->dwWidth, (unsigned int)pScreenInfo->dwHeight);
 
     /* Allocate privates for this screen */
     if (!winAllocatePrivates(pScreen)) {

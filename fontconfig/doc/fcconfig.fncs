@@ -232,7 +232,7 @@ the current configuration is used.
 @DESC@
 Scans the specified directory for fonts, adding each one found to the
 application-specific set of fonts. Returns FcFalse
-if the fonts cannot be added (due to allocation failure or no fonts found).
+if the fonts cannot be added (due to allocation failure).
 Otherwise returns FcTrue. If <parameter>config</parameter> is NULL,
 the current configuration is used.
 @@

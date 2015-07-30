@@ -120,6 +120,7 @@
 #include "shaderobj.h"
 #include "shaderimage.h"
 #include "util/simple_list.h"
+#include "util/strtod.h"
 #include "state.h"
 #include "stencil.h"
 #include "texcompress_s3tc.h"
@@ -338,31 +339,6 @@ _mesa_destroy_visual( struct gl_config *vis )
 
 
 /**
- * This is lame.  gdb only seems to recognize enum types that are
- * actually used somewhere.  We want to be able to print/use enum
- * values such as TEXTURE_2D_INDEX in gdb.  But we don't actually use
- * the gl_texture_index type anywhere.  Thus, this lame function.
- */
-static void
-dummy_enum_func(void)
-{
-   gl_buffer_index bi = BUFFER_FRONT_LEFT;
-   gl_face_index fi = FACE_POS_X;
-   gl_frag_result fr = FRAG_RESULT_DEPTH;
-   gl_texture_index ti = TEXTURE_2D_ARRAY_INDEX;
-   gl_vert_attrib va = VERT_ATTRIB_POS;
-   gl_varying_slot vs = VARYING_SLOT_POS;
-
-   (void) bi;
-   (void) fi;
-   (void) fr;
-   (void) ti;
-   (void) va;
-   (void) vs;
-}
-
-
-/**
  * One-time initialization mutex lock.
  *
  * \sa Used by one_time_init().
@@ -370,6 +346,16 @@ dummy_enum_func(void)
 mtx_t OneTimeLock = _MTX_INITIALIZER_NP;
 
 
+/**
+ * Calls all the various one-time-fini functions in Mesa
+ */
+
+static void
+one_time_fini(void)
+{
+   _mesa_destroy_shader_compiler();
+   _mesa_locale_fini();
+}
 
 /**
  * Calls all the various one-time-init functions in Mesa.
@@ -391,13 +377,14 @@ one_time_init( struct gl_context *ctx )
    if (!api_init_mask) {
       GLuint i;
 
-      /* do some implementation tests */
-      assert( sizeof(GLbyte) == 1 );
-      assert( sizeof(GLubyte) == 1 );
-      assert( sizeof(GLshort) == 2 );
-      assert( sizeof(GLushort) == 2 );
-      assert( sizeof(GLint) == 4 );
-      assert( sizeof(GLuint) == 4 );
+      STATIC_ASSERT(sizeof(GLbyte) == 1);
+      STATIC_ASSERT(sizeof(GLubyte) == 1);
+      STATIC_ASSERT(sizeof(GLshort) == 2);
+      STATIC_ASSERT(sizeof(GLushort) == 2);
+      STATIC_ASSERT(sizeof(GLint) == 4);
+      STATIC_ASSERT(sizeof(GLuint) == 4);
+
+      _mesa_locale_init();
 
       _mesa_one_time_init_extension_overrides();
 
@@ -406,6 +393,8 @@ one_time_init( struct gl_context *ctx )
       for (i = 0; i < 256; i++) {
          _mesa_ubyte_to_float_color_tab[i] = (float) i / 255.0F;
       }
+
+      atexit(one_time_fini);
 
 #if defined(DEBUG) && defined(__DATE__) && defined(__TIME__)
       if (MESA_VERBOSE != 0) {
@@ -429,13 +418,6 @@ one_time_init( struct gl_context *ctx )
    api_init_mask |= 1 << ctx->API;
 
    mtx_unlock(&OneTimeLock);
-
-   /* Hopefully atexit() is widely available.  If not, we may need some
-    * #ifdef tests here.
-    */
-   atexit(_mesa_destroy_shader_compiler);
-
-   dummy_enum_func();
 }
 
 
@@ -496,6 +478,8 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
       prog->MaxInputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       prog->MaxOutputComponents = 0; /* value not used */
       break;
+   case MESA_SHADER_TESS_CTRL:
+   case MESA_SHADER_TESS_EVAL:
    case MESA_SHADER_GEOMETRY:
       prog->MaxParameters = MAX_VERTEX_PROGRAM_PARAMS;
       prog->MaxAttribs = MAX_VERTEX_GENERIC_ATTRIBS;
@@ -554,6 +538,8 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
 
    prog->MaxAtomicBuffers = 0;
    prog->MaxAtomicCounters = 0;
+
+   prog->MaxShaderStorageBlocks = 8;
 }
 
 
@@ -614,6 +600,12 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxUniformBufferBindings = 36;
    consts->MaxUniformBlockSize = 16384;
    consts->UniformBufferOffsetAlignment = 1;
+
+   /** GL_ARB_shader_storage_buffer_object */
+   consts->MaxCombinedShaderStorageBlocks = 8;
+   consts->MaxShaderStorageBufferBindings = 8;
+   consts->MaxShaderStorageBlockSize = 16 * 1024 * 1024;
+   consts->ShaderStorageBufferOffsetAlignment = 256;
 
    /* GL_ARB_explicit_uniform_location, GL_MAX_UNIFORM_LOCATIONS */
    consts->MaxUserAssignableUniformLocations =
@@ -724,6 +716,14 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
 
    /** GL_KHR_context_flush_control */
    consts->ContextReleaseBehavior = GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH;
+
+   /** GL_ARB_tessellation_shader */
+   consts->MaxTessGenLevel = MAX_TESS_GEN_LEVEL;
+   consts->MaxPatchVertices = MAX_PATCH_VERTICES;
+   consts->Program[MESA_SHADER_TESS_CTRL].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
+   consts->Program[MESA_SHADER_TESS_EVAL].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
+   consts->MaxTessPatchComponents = MAX_TESS_PATCH_COMPONENTS;
+   consts->MaxTessControlTotalOutputComponents = MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS;
 }
 
 
@@ -1331,6 +1331,8 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram._Current, NULL);
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram._TnlProgram, NULL);
 
+   _mesa_reference_tesscprog(ctx, &ctx->TessCtrlProgram._Current, NULL);
+   _mesa_reference_tesseprog(ctx, &ctx->TessEvalProgram._Current, NULL);
    _mesa_reference_geomprog(ctx, &ctx->GeometryProgram._Current, NULL);
 
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current, NULL);

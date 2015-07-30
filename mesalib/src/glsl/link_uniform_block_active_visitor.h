@@ -38,6 +38,7 @@ struct link_uniform_block_active {
 
    bool has_instance_name;
    bool has_binding;
+   bool is_shader_storage;
 };
 
 class link_uniform_block_active_visitor : public ir_hierarchical_visitor {

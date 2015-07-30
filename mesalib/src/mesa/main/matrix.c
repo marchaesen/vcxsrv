@@ -229,7 +229,7 @@ _mesa_PushMatrix( void )
 
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glPushMatrix %s\n",
-                  _mesa_lookup_enum_by_nr(ctx->Transform.MatrixMode));
+                  _mesa_enum_to_string(ctx->Transform.MatrixMode));
 
    if (stack->Depth + 1 >= stack->MaxDepth) {
       if (ctx->Transform.MatrixMode == GL_TEXTURE) {
@@ -239,7 +239,7 @@ _mesa_PushMatrix( void )
       }
       else {
          _mesa_error(ctx,  GL_STACK_OVERFLOW, "glPushMatrix(mode=%s)",
-                     _mesa_lookup_enum_by_nr(ctx->Transform.MatrixMode));
+                     _mesa_enum_to_string(ctx->Transform.MatrixMode));
       }
       return;
    }
@@ -270,7 +270,7 @@ _mesa_PopMatrix( void )
 
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glPopMatrix %s\n",
-                  _mesa_lookup_enum_by_nr(ctx->Transform.MatrixMode));
+                  _mesa_enum_to_string(ctx->Transform.MatrixMode));
 
    if (stack->Depth == 0) {
       if (ctx->Transform.MatrixMode == GL_TEXTURE) {
@@ -280,7 +280,7 @@ _mesa_PopMatrix( void )
       }
       else {
          _mesa_error(ctx,  GL_STACK_UNDERFLOW, "glPopMatrix(mode=%s)",
-                     _mesa_lookup_enum_by_nr(ctx->Transform.MatrixMode));
+                     _mesa_enum_to_string(ctx->Transform.MatrixMode));
       }
       return;
    }

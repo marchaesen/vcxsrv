@@ -79,8 +79,8 @@ update_program_enables(struct gl_context *ctx)
 
 
 /**
- * Update the ctx->Vertex/Geometry/FragmentProgram._Current pointers to point
- * to the current/active programs.  Then call ctx->Driver.BindProgram() to
+ * Update the ctx->*Program._Current pointers to point to the
+ * current/active programs.  Then call ctx->Driver.BindProgram() to
  * tell the driver which programs to use.
  *
  * Programs may come from 3 sources: GLSL shaders, ARB/NV_vertex/fragment
@@ -97,6 +97,10 @@ update_program(struct gl_context *ctx)
 {
    const struct gl_shader_program *vsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
+   const struct gl_shader_program *tcsProg =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
+   const struct gl_shader_program *tesProg =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
    const struct gl_shader_program *gsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
    struct gl_shader_program *fsProg =
@@ -106,6 +110,8 @@ update_program(struct gl_context *ctx)
    const struct gl_vertex_program *prevVP = ctx->VertexProgram._Current;
    const struct gl_fragment_program *prevFP = ctx->FragmentProgram._Current;
    const struct gl_geometry_program *prevGP = ctx->GeometryProgram._Current;
+   const struct gl_tess_ctrl_program *prevTCP = ctx->TessCtrlProgram._Current;
+   const struct gl_tess_eval_program *prevTEP = ctx->TessEvalProgram._Current;
    const struct gl_compute_program *prevCP = ctx->ComputeProgram._Current;
    GLbitfield new_state = 0x0;
 
@@ -175,6 +181,30 @@ update_program(struct gl_context *ctx)
       _mesa_reference_geomprog(ctx, &ctx->GeometryProgram._Current, NULL);
    }
 
+   if (tesProg && tesProg->LinkStatus
+       && tesProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]) {
+      /* Use GLSL tessellation evaluation shader */
+      _mesa_reference_tesseprog(ctx, &ctx->TessEvalProgram._Current,
+         gl_tess_eval_program(
+            tesProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->Program));
+   }
+   else {
+      /* No tessellation evaluation program */
+      _mesa_reference_tesseprog(ctx, &ctx->TessEvalProgram._Current, NULL);
+   }
+
+   if (tcsProg && tcsProg->LinkStatus
+       && tcsProg->_LinkedShaders[MESA_SHADER_TESS_CTRL]) {
+      /* Use GLSL tessellation control shader */
+      _mesa_reference_tesscprog(ctx, &ctx->TessCtrlProgram._Current,
+         gl_tess_ctrl_program(
+            tcsProg->_LinkedShaders[MESA_SHADER_TESS_CTRL]->Program));
+   }
+   else {
+      /* No tessellation control program */
+      _mesa_reference_tesscprog(ctx, &ctx->TessCtrlProgram._Current, NULL);
+   }
+
    /* Examine vertex program after fragment program as
     * _mesa_get_fixed_func_vertex_program() needs to know active
     * fragprog inputs.
@@ -230,6 +260,22 @@ update_program(struct gl_context *ctx)
       }
    }
 
+   if (ctx->TessEvalProgram._Current != prevTEP) {
+      new_state |= _NEW_PROGRAM;
+      if (ctx->Driver.BindProgram) {
+         ctx->Driver.BindProgram(ctx, GL_TESS_EVALUATION_PROGRAM_NV,
+                            (struct gl_program *) ctx->TessEvalProgram._Current);
+      }
+   }
+
+   if (ctx->TessCtrlProgram._Current != prevTCP) {
+      new_state |= _NEW_PROGRAM;
+      if (ctx->Driver.BindProgram) {
+         ctx->Driver.BindProgram(ctx, GL_TESS_CONTROL_PROGRAM_NV,
+                            (struct gl_program *) ctx->TessCtrlProgram._Current);
+      }
+   }
+
    if (ctx->VertexProgram._Current != prevVP) {
       new_state |= _NEW_PROGRAM;
       if (ctx->Driver.BindProgram) {
@@ -266,15 +312,9 @@ update_program_constants(struct gl_context *ctx)
       }
    }
 
-   if (ctx->GeometryProgram._Current) {
-      const struct gl_program_parameter_list *params =
-         ctx->GeometryProgram._Current->Base.Parameters;
-      /*FIXME: StateFlags is always 0 because we have unnamed constant
-       *       not state changes */
-      if (params /*&& params->StateFlags & ctx->NewState*/) {
-         new_state |= _NEW_PROGRAM_CONSTANTS;
-      }
-   }
+   /* Don't handle tessellation and geometry shaders here. They don't use
+    * any state constants.
+    */
 
    if (ctx->VertexProgram._Current) {
       const struct gl_program_parameter_list *params =
