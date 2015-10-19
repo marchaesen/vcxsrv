@@ -48,7 +48,7 @@ FC_ASSERT_STATIC (0x08 + 1*FC_MAX(SIZEOF_VOID_P,ALIGNOF_DOUBLE) == sizeof (FcVal
 FC_ASSERT_STATIC (0x00 + 2*SIZEOF_VOID_P == sizeof (FcPatternElt));
 FC_ASSERT_STATIC (0x08 + 2*SIZEOF_VOID_P == sizeof (FcPattern));
 FC_ASSERT_STATIC (0x08 + 2*SIZEOF_VOID_P == sizeof (FcCharSet));
-FC_ASSERT_STATIC (0x08 + 6*SIZEOF_VOID_P == sizeof (FcCache));
+FC_ASSERT_STATIC (0x10 + 6*SIZEOF_VOID_P == sizeof (FcCache));
 
 
 int

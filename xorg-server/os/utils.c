@@ -583,6 +583,7 @@ UseMsg(void)
 #ifdef LOCK_SERVER
     ErrorF("-nolock                disable the locking mechanism\n");
 #endif
+    ErrorF("-maxclients n          set maximum number of clients (power of two)\n");
     ErrorF("-nolisten string       don't listen on protocol\n");
     ErrorF("-listen string         listen on protocol\n");
     ErrorF("-noreset               don't reset after last client exists\n");
@@ -888,6 +889,19 @@ ProcessCommandLine(int argc, char *argv[])
                 nolock = TRUE;
         }
 #endif
+	else if ( strcmp( argv[i], "-maxclients") == 0)
+	{
+	    if (++i < argc) {
+		LimitClients = atoi(argv[i]);
+		if (LimitClients != 64 &&
+		    LimitClients != 128 &&
+		    LimitClients != 256 &&
+		    LimitClients != 512) {
+		    FatalError("maxclients must be one of 64, 128, 256 or 512\n");
+		}
+	    } else
+		UseMsg();
+	}
         else if (strcmp(argv[i], "-nolisten") == 0) {
             if (++i < argc) {
                 if (_XSERVTransNoListen(argv[i]))
@@ -1275,9 +1289,10 @@ SmartScheduleStartTimer(void)
 #endif
 }
 
-void
-SmartScheduleInit(void)
+static int
+SmartScheduleEnable(void)
 {
+    int ret = 0;
 #ifdef SMART_SCHEDULE_POSSIBLE
 #ifdef _MSC_VER
     if (SmartScheduleDisable)
@@ -1293,19 +1308,49 @@ SmartScheduleInit(void)
     struct sigaction act;
 
     if (SmartScheduleDisable)
-        return;
+        return 0;
 
     memset((char *) &act, 0, sizeof(struct sigaction));
 
     /* Set up the timer signal function */
+    act.sa_flags = SA_RESTART;
     act.sa_handler = SmartScheduleTimer;
     sigemptyset(&act.sa_mask);
     sigaddset(&act.sa_mask, SIGALRM);
-    if (sigaction(SIGALRM, &act, 0) < 0) {
+    ret = sigaction(SIGALRM, &act, 0);
+#endif
+    return ret;
+}
+
+static int
+SmartSchedulePause(void)
+{
+    int ret = 0;
+#ifdef SMART_SCHEDULE_POSSIBLE
+    struct sigaction act;
+
+    if (SmartScheduleDisable)
+        return 0;
+
+    memset((char *) &act, 0, sizeof(struct sigaction));
+
+    act.sa_handler = SIG_IGN;
+    sigemptyset(&act.sa_mask);
+    ret = sigaction(SIGALRM, &act, 0);
+#endif
+    return ret;
+}
+
+void
+SmartScheduleInit(void)
+{
+    if (SmartScheduleDisable)
+        return;
+
+    if (SmartScheduleEnable() < 0) {
         perror("sigaction for smart scheduler");
         SmartScheduleDisable = TRUE;
     }
-#endif
 #endif
 }
 
@@ -1481,8 +1526,6 @@ static struct pid {
     int pid;
 } *pidlist;
 
-OsSigHandlerPtr old_alarm = NULL;       /* XXX horrible awful hack */
-
 void *
 Popen(const char *command, const char *type)
 {
@@ -1505,8 +1548,7 @@ Popen(const char *command, const char *type)
     }
 
     /* Ignore the smart scheduler while this is going on */
-    old_alarm = OsSignal(SIGALRM, SIG_IGN);
-    if (old_alarm == SIG_ERR) {
+    if (SmartSchedulePause() < 0) {
         close(pdes[0]);
         close(pdes[1]);
         free(cur);
@@ -1519,7 +1561,7 @@ Popen(const char *command, const char *type)
         close(pdes[0]);
         close(pdes[1]);
         free(cur);
-        if (OsSignal(SIGALRM, old_alarm) == SIG_ERR)
+        if (SmartScheduleEnable() < 0)
             perror("signal");
         return NULL;
     case 0:                    /* child */
@@ -1694,7 +1736,7 @@ Pclose(void *iop)
     /* allow EINTR again */
     OsReleaseSignals();
 
-    if (old_alarm && OsSignal(SIGALRM, old_alarm) == SIG_ERR) {
+    if (SmartScheduleEnable() < 0) {
         perror("signal");
         return -1;
     }

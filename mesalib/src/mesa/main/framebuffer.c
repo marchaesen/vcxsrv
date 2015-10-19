@@ -271,8 +271,7 @@ _mesa_reference_framebuffer_(struct gl_framebuffer **ptr,
  * Resize the given framebuffer's renderbuffers to the new width and height.
  * This should only be used for window-system framebuffers, not
  * user-created renderbuffers (i.e. made with GL_EXT_framebuffer_object).
- * This will typically be called via ctx->Driver.ResizeBuffers() or directly
- * from a device driver.
+ * This will typically be called directly from a device driver.
  *
  * \note it's possible for ctx to be null since a window can be resized
  * without a currently bound rendering context.
@@ -964,4 +963,23 @@ _mesa_print_framebuffer(const struct gl_framebuffer *fb)
          fprintf(stderr, "  %2d: none\n", i);
       }
    }
+}
+
+bool
+_mesa_is_front_buffer_reading(const struct gl_framebuffer *fb)
+{
+   if (!fb || _mesa_is_user_fbo(fb))
+      return false;
+
+   return fb->_ColorReadBufferIndex == BUFFER_FRONT_LEFT;
+}
+
+bool
+_mesa_is_front_buffer_drawing(const struct gl_framebuffer *fb)
+{
+   if (!fb || _mesa_is_user_fbo(fb))
+      return false;
+
+   return (fb->_NumColorDrawBuffers >= 1 &&
+           fb->_ColorDrawBufferIndexes[0] == BUFFER_FRONT_LEFT);
 }

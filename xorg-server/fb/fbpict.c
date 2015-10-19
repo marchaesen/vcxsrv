@@ -345,6 +345,11 @@ static pixman_image_t *image_from_pict_internal(PicturePtr pict, Bool has_clip,
                                                 int *xoff, int *yoff,
                                                 Bool is_alpha_map);
 
+static void image_destroy(pixman_image_t *image, void *data)
+{
+    fbFinishAccess((DrawablePtr)data);
+}
+
 static void
 set_image_properties(pixman_image_t * image, PicturePtr pict, Bool has_clip,
                      int *xoff, int *yoff, Bool is_alpha_map)
@@ -429,6 +434,10 @@ set_image_properties(pixman_image_t * image, PicturePtr pict, Bool has_clip,
         break;
     }
 
+    if (pict->pDrawable)
+        pixman_image_set_destroy_function(image, &image_destroy,
+                                          pict->pDrawable);
+
     pixman_image_set_filter(image, filter,
                             (pixman_fixed_t *) pict->filter_params,
                             pict->filter_nparams);
@@ -481,8 +490,8 @@ image_from_pict(PicturePtr pict, Bool has_clip, int *xoff, int *yoff)
 void
 free_pixman_pict(PicturePtr pict, pixman_image_t * image)
 {
-    if (image && pixman_image_unref(image) && pict->pDrawable)
-        fbFinishAccess(pict->pDrawable);
+    if (image)
+        pixman_image_unref(image);
 }
 
 Bool

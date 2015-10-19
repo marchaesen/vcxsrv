@@ -42,6 +42,8 @@
 #include "main/macros.h"
 #include "main/varray.h"
 
+#include "glsl/ir_uniform.h"
+
 #include "vbo/vbo.h"
 
 #include "st_context.h"
@@ -61,8 +63,6 @@
 #include "util/u_upload_mgr.h"
 #include "draw/draw_context.h"
 #include "cso_cache/cso_context.h"
-
-#include "../glsl/ir_uniform.h"
 
 
 /**
@@ -106,9 +106,10 @@ setup_index_buffer(struct st_context *st,
    }
    else if (st->indexbuf_uploader) {
       /* upload indexes from user memory into a real buffer */
-      if (u_upload_data(st->indexbuf_uploader, 0,
-                        ib->count * ibuffer->index_size, ib->ptr,
-                        &ibuffer->offset, &ibuffer->buffer) != PIPE_OK) {
+      u_upload_data(st->indexbuf_uploader, 0,
+                    ib->count * ibuffer->index_size, ib->ptr,
+                    &ibuffer->offset, &ibuffer->buffer);
+      if (!ibuffer->buffer) {
          /* out of memory */
          return FALSE;
       }
@@ -184,6 +185,7 @@ st_draw_vbo(struct gl_context *ctx,
             GLuint min_index,
             GLuint max_index,
             struct gl_transform_feedback_object *tfb_vertcount,
+            unsigned stream,
             struct gl_buffer_object *indirect)
 {
    struct st_context *st = st_context(ctx);
@@ -242,7 +244,8 @@ st_draw_vbo(struct gl_context *ctx,
       /* Transform feedback drawing is always non-indexed. */
       /* Set info.count_from_stream_output. */
       if (tfb_vertcount) {
-         st_transform_feedback_draw_init(tfb_vertcount, &info);
+         if (!st_transform_feedback_draw_init(tfb_vertcount, stream, &info))
+            return;
       }
    }
 

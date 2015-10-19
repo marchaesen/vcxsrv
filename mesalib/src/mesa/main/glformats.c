@@ -28,6 +28,7 @@
 #include "context.h"
 #include "glformats.h"
 #include "formats.h"
+#include "texcompress.h"
 #include "enums.h"
 
 enum {
@@ -494,7 +495,8 @@ _mesa_bytes_per_pixel(GLenum format, GLenum type)
       else
          return -1;
    case GL_UNSIGNED_INT_24_8_EXT:
-      if (format == GL_DEPTH_STENCIL_EXT)
+      if (format == GL_DEPTH_COMPONENT ||
+          format == GL_DEPTH_STENCIL_EXT)
          return sizeof(GLuint);
       else
          return -1;
@@ -820,6 +822,47 @@ _mesa_is_enum_format_signed_int(GLenum format)
    }
 }
 
+/**
+ * Test if the given format is an ASTC format.
+ */
+GLboolean
+_mesa_is_astc_format(GLenum internalFormat)
+{
+   switch (internalFormat) {
+   case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+   case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+      return true;
+   default:
+      return false;
+   }
+}
+
 
 /**
  * Test if the given format is an integer (non-normalized) format.
@@ -1003,6 +1046,34 @@ _mesa_is_color_format(GLenum format)
       case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
       case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
       case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+      case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+      case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
       /* generic integer formats */
       case GL_RED_INTEGER_EXT:
       case GL_GREEN_INTEGER_EXT:
@@ -1202,66 +1273,22 @@ _mesa_is_depth_or_stencil_format(GLenum format)
 GLboolean
 _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
 {
+   mesa_format m_format = _mesa_glenum_to_compressed_format(format);
+
+   /* Some formats in this switch have an equivalent mesa_format_layout
+    * to the compressed formats in the layout switch below and thus
+    * must be handled first.
+    */
    switch (format) {
-   case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-   case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-   case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-   case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-      /* Assume that the ANGLE flag will always be set if the EXT flag is set.
-       */
-      return ctx->Extensions.ANGLE_texture_compression_dxt;
    case GL_RGB_S3TC:
    case GL_RGB4_S3TC:
    case GL_RGBA_S3TC:
    case GL_RGBA4_S3TC:
       return _mesa_is_desktop_gl(ctx) &&
          ctx->Extensions.ANGLE_texture_compression_dxt;
-   case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
-   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-      return _mesa_is_desktop_gl(ctx)
-         && ctx->Extensions.EXT_texture_sRGB
-         && ctx->Extensions.EXT_texture_compression_s3tc;
-   case GL_COMPRESSED_RGB_FXT1_3DFX:
-   case GL_COMPRESSED_RGBA_FXT1_3DFX:
-      return _mesa_is_desktop_gl(ctx)
-         && ctx->Extensions.TDFX_texture_compression_FXT1;
-   case GL_COMPRESSED_RED_RGTC1:
-   case GL_COMPRESSED_SIGNED_RED_RGTC1:
-   case GL_COMPRESSED_RG_RGTC2:
-   case GL_COMPRESSED_SIGNED_RG_RGTC2:
-      return _mesa_is_desktop_gl(ctx)
-         && ctx->Extensions.ARB_texture_compression_rgtc;
-   case GL_COMPRESSED_LUMINANCE_LATC1_EXT:
-   case GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT:
-   case GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT:
-   case GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT:
-      return ctx->API == API_OPENGL_COMPAT
-         && ctx->Extensions.EXT_texture_compression_latc;
    case GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI:
       return ctx->API == API_OPENGL_COMPAT
          && ctx->Extensions.ATI_texture_compression_3dc;
-   case GL_ETC1_RGB8_OES:
-      return _mesa_is_gles(ctx)
-         && ctx->Extensions.OES_compressed_ETC1_RGB8_texture;
-   case GL_COMPRESSED_RGB8_ETC2:
-   case GL_COMPRESSED_SRGB8_ETC2:
-   case GL_COMPRESSED_RGBA8_ETC2_EAC:
-   case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-   case GL_COMPRESSED_R11_EAC:
-   case GL_COMPRESSED_RG11_EAC:
-   case GL_COMPRESSED_SIGNED_R11_EAC:
-   case GL_COMPRESSED_SIGNED_RG11_EAC:
-   case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-   case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-      return _mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility;
-   case GL_COMPRESSED_RGBA_BPTC_UNORM:
-   case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
-   case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
-   case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-      return _mesa_is_desktop_gl(ctx) &&
-         ctx->Extensions.ARB_texture_compression_bptc;
    case GL_PALETTE4_RGB8_OES:
    case GL_PALETTE4_RGBA8_OES:
    case GL_PALETTE4_R5_G6_B5_OES:
@@ -1273,6 +1300,39 @@ _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
    case GL_PALETTE8_RGBA4_OES:
    case GL_PALETTE8_RGB5_A1_OES:
       return ctx->API == API_OPENGLES;
+   }
+
+   switch (_mesa_get_format_layout(m_format)) {
+   case MESA_FORMAT_LAYOUT_S3TC:
+      if (_mesa_get_format_color_encoding(m_format) == GL_LINEAR) {
+         /* Assume that the ANGLE flag will always be set if the
+          * EXT flag is set.
+          */
+         return ctx->Extensions.ANGLE_texture_compression_dxt;
+      } else {
+         return _mesa_is_desktop_gl(ctx)
+            && ctx->Extensions.EXT_texture_sRGB
+            && ctx->Extensions.EXT_texture_compression_s3tc;
+      }
+   case MESA_FORMAT_LAYOUT_FXT1:
+      return _mesa_is_desktop_gl(ctx)
+         && ctx->Extensions.TDFX_texture_compression_FXT1;
+   case MESA_FORMAT_LAYOUT_RGTC:
+      return _mesa_is_desktop_gl(ctx)
+         && ctx->Extensions.ARB_texture_compression_rgtc;
+   case MESA_FORMAT_LAYOUT_LATC:
+      return ctx->API == API_OPENGL_COMPAT
+         && ctx->Extensions.EXT_texture_compression_latc;
+   case MESA_FORMAT_LAYOUT_ETC1:
+      return _mesa_is_gles(ctx)
+         && ctx->Extensions.OES_compressed_ETC1_RGB8_texture;
+   case MESA_FORMAT_LAYOUT_ETC2:
+      return _mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility;
+   case MESA_FORMAT_LAYOUT_BPTC:
+      return _mesa_is_desktop_gl(ctx) &&
+         ctx->Extensions.ARB_texture_compression_bptc;
+   case MESA_FORMAT_LAYOUT_ASTC:
+      return ctx->Extensions.KHR_texture_compression_astc_ldr;
    default:
       return GL_FALSE;
    }
@@ -1691,6 +1751,10 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
       return GL_INVALID_OPERATION;
 
    case GL_UNSIGNED_INT_24_8:
+      /* Depth buffer OK to read in OpenGL ES (NV_read_depth). */
+      if (ctx->API == API_OPENGLES2 && format == GL_DEPTH_COMPONENT)
+         return GL_NO_ERROR;
+
       if (format != GL_DEPTH_STENCIL) {
          return GL_INVALID_OPERATION;
       }
@@ -2075,6 +2139,633 @@ _mesa_es_error_check_format_and_type(GLenum format, GLenum type,
    return type_valid ? GL_NO_ERROR : GL_INVALID_OPERATION;
 }
 
+/**
+ * Return the simple base format for a given internal texture format.
+ * For example, given GL_LUMINANCE12_ALPHA4, return GL_LUMINANCE_ALPHA.
+ *
+ * \param ctx GL context.
+ * \param internalFormat the internal texture format token or 1, 2, 3, or 4.
+ *
+ * \return the corresponding \u base internal format (GL_ALPHA, GL_LUMINANCE,
+ * GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, or GL_RGBA), or -1 if invalid enum.
+ *
+ * This is the format which is used during texture application (i.e. the
+ * texture format and env mode determine the arithmetic used.
+ */
+GLint
+_mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
+{
+   switch (internalFormat) {
+   case GL_ALPHA:
+   case GL_ALPHA4:
+   case GL_ALPHA8:
+   case GL_ALPHA12:
+   case GL_ALPHA16:
+      return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
+   case 1:
+   case GL_LUMINANCE:
+   case GL_LUMINANCE4:
+   case GL_LUMINANCE8:
+   case GL_LUMINANCE12:
+   case GL_LUMINANCE16:
+      return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
+   case 2:
+   case GL_LUMINANCE_ALPHA:
+   case GL_LUMINANCE4_ALPHA4:
+   case GL_LUMINANCE6_ALPHA2:
+   case GL_LUMINANCE8_ALPHA8:
+   case GL_LUMINANCE12_ALPHA4:
+   case GL_LUMINANCE12_ALPHA12:
+   case GL_LUMINANCE16_ALPHA16:
+      return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
+   case GL_INTENSITY:
+   case GL_INTENSITY4:
+   case GL_INTENSITY8:
+   case GL_INTENSITY12:
+   case GL_INTENSITY16:
+      return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
+   case 3:
+      return (ctx->API != API_OPENGL_CORE) ? GL_RGB : -1;
+   case GL_RGB:
+   case GL_R3_G3_B2:
+   case GL_RGB4:
+   case GL_RGB5:
+   case GL_RGB8:
+   case GL_RGB10:
+   case GL_RGB12:
+   case GL_RGB16:
+      return GL_RGB;
+   case 4:
+      return (ctx->API != API_OPENGL_CORE) ? GL_RGBA : -1;
+   case GL_RGBA:
+   case GL_RGBA2:
+   case GL_RGBA4:
+   case GL_RGB5_A1:
+   case GL_RGBA8:
+   case GL_RGB10_A2:
+   case GL_RGBA12:
+   case GL_RGBA16:
+      return GL_RGBA;
+   default:
+      ; /* fallthrough */
+   }
+
+   /* GL_BGRA can be an internal format *only* in OpenGL ES (1.x or 2.0).
+    */
+   if (_mesa_is_gles(ctx)) {
+      switch (internalFormat) {
+      case GL_BGRA:
+         return GL_RGBA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ARB_ES2_compatibility) {
+      switch (internalFormat) {
+      case GL_RGB565:
+         return GL_RGB;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ARB_depth_texture) {
+      switch (internalFormat) {
+      case GL_DEPTH_COMPONENT:
+      case GL_DEPTH_COMPONENT16:
+      case GL_DEPTH_COMPONENT24:
+      case GL_DEPTH_COMPONENT32:
+         return GL_DEPTH_COMPONENT;
+      case GL_DEPTH_STENCIL:
+      case GL_DEPTH24_STENCIL8:
+         return GL_DEPTH_STENCIL;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ARB_texture_stencil8) {
+      switch (internalFormat) {
+      case GL_STENCIL_INDEX:
+      case GL_STENCIL_INDEX1:
+      case GL_STENCIL_INDEX4:
+      case GL_STENCIL_INDEX8:
+      case GL_STENCIL_INDEX16:
+         return GL_STENCIL_INDEX;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   switch (internalFormat) {
+   case GL_COMPRESSED_ALPHA:
+      return GL_ALPHA;
+   case GL_COMPRESSED_LUMINANCE:
+      return GL_LUMINANCE;
+   case GL_COMPRESSED_LUMINANCE_ALPHA:
+      return GL_LUMINANCE_ALPHA;
+   case GL_COMPRESSED_INTENSITY:
+      return GL_INTENSITY;
+   case GL_COMPRESSED_RGB:
+      return GL_RGB;
+   case GL_COMPRESSED_RGBA:
+      return GL_RGBA;
+   default:
+      ; /* fallthrough */
+   }
+
+   if (ctx->Extensions.TDFX_texture_compression_FXT1) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_RGB_FXT1_3DFX:
+         return GL_RGB;
+      case GL_COMPRESSED_RGBA_FXT1_3DFX:
+         return GL_RGBA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   /* Assume that the ANGLE flag will always be set if the EXT flag is set.
+    */
+   if (ctx->Extensions.ANGLE_texture_compression_dxt) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+         return GL_RGB;
+      case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+         return GL_RGBA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (_mesa_is_desktop_gl(ctx)
+       && ctx->Extensions.ANGLE_texture_compression_dxt) {
+      switch (internalFormat) {
+      case GL_RGB_S3TC:
+      case GL_RGB4_S3TC:
+         return GL_RGB;
+      case GL_RGBA_S3TC:
+      case GL_RGBA4_S3TC:
+         return GL_RGBA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.MESA_ycbcr_texture) {
+      if (internalFormat == GL_YCBCR_MESA)
+         return GL_YCBCR_MESA;
+   }
+
+   if (ctx->Extensions.ARB_texture_float) {
+      switch (internalFormat) {
+      case GL_ALPHA16F_ARB:
+      case GL_ALPHA32F_ARB:
+         return GL_ALPHA;
+      case GL_RGBA16F_ARB:
+      case GL_RGBA32F_ARB:
+         return GL_RGBA;
+      case GL_RGB16F_ARB:
+      case GL_RGB32F_ARB:
+         return GL_RGB;
+      case GL_INTENSITY16F_ARB:
+      case GL_INTENSITY32F_ARB:
+         return GL_INTENSITY;
+      case GL_LUMINANCE16F_ARB:
+      case GL_LUMINANCE32F_ARB:
+         return GL_LUMINANCE;
+      case GL_LUMINANCE_ALPHA16F_ARB:
+      case GL_LUMINANCE_ALPHA32F_ARB:
+         return GL_LUMINANCE_ALPHA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.EXT_texture_snorm) {
+      switch (internalFormat) {
+      case GL_RED_SNORM:
+      case GL_R8_SNORM:
+      case GL_R16_SNORM:
+         return GL_RED;
+      case GL_RG_SNORM:
+      case GL_RG8_SNORM:
+      case GL_RG16_SNORM:
+         return GL_RG;
+      case GL_RGB_SNORM:
+      case GL_RGB8_SNORM:
+      case GL_RGB16_SNORM:
+         return GL_RGB;
+      case GL_RGBA_SNORM:
+      case GL_RGBA8_SNORM:
+      case GL_RGBA16_SNORM:
+         return GL_RGBA;
+      case GL_ALPHA_SNORM:
+      case GL_ALPHA8_SNORM:
+      case GL_ALPHA16_SNORM:
+         return GL_ALPHA;
+      case GL_LUMINANCE_SNORM:
+      case GL_LUMINANCE8_SNORM:
+      case GL_LUMINANCE16_SNORM:
+         return GL_LUMINANCE;
+      case GL_LUMINANCE_ALPHA_SNORM:
+      case GL_LUMINANCE8_ALPHA8_SNORM:
+      case GL_LUMINANCE16_ALPHA16_SNORM:
+         return GL_LUMINANCE_ALPHA;
+      case GL_INTENSITY_SNORM:
+      case GL_INTENSITY8_SNORM:
+      case GL_INTENSITY16_SNORM:
+         return GL_INTENSITY;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.EXT_texture_sRGB) {
+      switch (internalFormat) {
+      case GL_SRGB_EXT:
+      case GL_SRGB8_EXT:
+      case GL_COMPRESSED_SRGB_EXT:
+         return GL_RGB;
+      case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+         return ctx->Extensions.EXT_texture_compression_s3tc ? GL_RGB : -1;
+      case GL_SRGB_ALPHA_EXT:
+      case GL_SRGB8_ALPHA8_EXT:
+      case GL_COMPRESSED_SRGB_ALPHA_EXT:
+         return GL_RGBA;
+      case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+         return ctx->Extensions.EXT_texture_compression_s3tc ? GL_RGBA : -1;
+      case GL_SLUMINANCE_ALPHA_EXT:
+      case GL_SLUMINANCE8_ALPHA8_EXT:
+      case GL_COMPRESSED_SLUMINANCE_ALPHA_EXT:
+         return GL_LUMINANCE_ALPHA;
+      case GL_SLUMINANCE_EXT:
+      case GL_SLUMINANCE8_EXT:
+      case GL_COMPRESSED_SLUMINANCE_EXT:
+         return GL_LUMINANCE;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Version >= 30 ||
+       ctx->Extensions.EXT_texture_integer) {
+      switch (internalFormat) {
+      case GL_RGBA8UI_EXT:
+      case GL_RGBA16UI_EXT:
+      case GL_RGBA32UI_EXT:
+      case GL_RGBA8I_EXT:
+      case GL_RGBA16I_EXT:
+      case GL_RGBA32I_EXT:
+      case GL_RGB10_A2UI:
+         return GL_RGBA;
+      case GL_RGB8UI_EXT:
+      case GL_RGB16UI_EXT:
+      case GL_RGB32UI_EXT:
+      case GL_RGB8I_EXT:
+      case GL_RGB16I_EXT:
+      case GL_RGB32I_EXT:
+         return GL_RGB;
+      }
+   }
+
+   if (ctx->Extensions.EXT_texture_integer) {
+      switch (internalFormat) {
+      case GL_ALPHA8UI_EXT:
+      case GL_ALPHA16UI_EXT:
+      case GL_ALPHA32UI_EXT:
+      case GL_ALPHA8I_EXT:
+      case GL_ALPHA16I_EXT:
+      case GL_ALPHA32I_EXT:
+         return GL_ALPHA;
+      case GL_INTENSITY8UI_EXT:
+      case GL_INTENSITY16UI_EXT:
+      case GL_INTENSITY32UI_EXT:
+      case GL_INTENSITY8I_EXT:
+      case GL_INTENSITY16I_EXT:
+      case GL_INTENSITY32I_EXT:
+         return GL_INTENSITY;
+      case GL_LUMINANCE8UI_EXT:
+      case GL_LUMINANCE16UI_EXT:
+      case GL_LUMINANCE32UI_EXT:
+      case GL_LUMINANCE8I_EXT:
+      case GL_LUMINANCE16I_EXT:
+      case GL_LUMINANCE32I_EXT:
+         return GL_LUMINANCE;
+      case GL_LUMINANCE_ALPHA8UI_EXT:
+      case GL_LUMINANCE_ALPHA16UI_EXT:
+      case GL_LUMINANCE_ALPHA32UI_EXT:
+      case GL_LUMINANCE_ALPHA8I_EXT:
+      case GL_LUMINANCE_ALPHA16I_EXT:
+      case GL_LUMINANCE_ALPHA32I_EXT:
+         return GL_LUMINANCE_ALPHA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ARB_texture_rg) {
+      switch (internalFormat) {
+      case GL_R16F:
+      case GL_R32F:
+	 if (!ctx->Extensions.ARB_texture_float)
+	    break;
+         return GL_RED;
+      case GL_R8I:
+      case GL_R8UI:
+      case GL_R16I:
+      case GL_R16UI:
+      case GL_R32I:
+      case GL_R32UI:
+	 if (ctx->Version < 30 && !ctx->Extensions.EXT_texture_integer)
+	    break;
+	 /* FALLTHROUGH */
+      case GL_R8:
+      case GL_R16:
+      case GL_RED:
+      case GL_COMPRESSED_RED:
+         return GL_RED;
+
+      case GL_RG16F:
+      case GL_RG32F:
+	 if (!ctx->Extensions.ARB_texture_float)
+	    break;
+         return GL_RG;
+      case GL_RG8I:
+      case GL_RG8UI:
+      case GL_RG16I:
+      case GL_RG16UI:
+      case GL_RG32I:
+      case GL_RG32UI:
+	 if (ctx->Version < 30 && !ctx->Extensions.EXT_texture_integer)
+	    break;
+	 /* FALLTHROUGH */
+      case GL_RG:
+      case GL_RG8:
+      case GL_RG16:
+      case GL_COMPRESSED_RG:
+         return GL_RG;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.EXT_texture_shared_exponent) {
+      switch (internalFormat) {
+      case GL_RGB9_E5_EXT:
+         return GL_RGB;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.EXT_packed_float) {
+      switch (internalFormat) {
+      case GL_R11F_G11F_B10F_EXT:
+         return GL_RGB;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ARB_depth_buffer_float) {
+      switch (internalFormat) {
+      case GL_DEPTH_COMPONENT32F:
+         return GL_DEPTH_COMPONENT;
+      case GL_DEPTH32F_STENCIL8:
+         return GL_DEPTH_STENCIL;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ARB_texture_compression_rgtc) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_RED_RGTC1:
+      case GL_COMPRESSED_SIGNED_RED_RGTC1:
+         return GL_RED;
+      case GL_COMPRESSED_RG_RGTC2:
+      case GL_COMPRESSED_SIGNED_RG_RGTC2:
+         return GL_RG;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.EXT_texture_compression_latc) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_LUMINANCE_LATC1_EXT:
+      case GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT:
+         return GL_LUMINANCE;
+      case GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT:
+      case GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT:
+         return GL_LUMINANCE_ALPHA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.ATI_texture_compression_3dc) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI:
+         return GL_LUMINANCE_ALPHA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->Extensions.OES_compressed_ETC1_RGB8_texture) {
+      switch (internalFormat) {
+      case GL_ETC1_RGB8_OES:
+         return GL_RGB;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_RGB8_ETC2:
+      case GL_COMPRESSED_SRGB8_ETC2:
+         return GL_RGB;
+      case GL_COMPRESSED_RGBA8_ETC2_EAC:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+      case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+      case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+         return GL_RGBA;
+      case GL_COMPRESSED_R11_EAC:
+      case GL_COMPRESSED_SIGNED_R11_EAC:
+         return GL_RED;
+      case GL_COMPRESSED_RG11_EAC:
+      case GL_COMPRESSED_SIGNED_RG11_EAC:
+         return GL_RG;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (_mesa_is_desktop_gl(ctx) &&
+       ctx->Extensions.ARB_texture_compression_bptc) {
+      switch (internalFormat) {
+      case GL_COMPRESSED_RGBA_BPTC_UNORM:
+      case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+         return GL_RGBA;
+      case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
+      case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+         return GL_RGB;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   if (ctx->API == API_OPENGLES) {
+      switch (internalFormat) {
+      case GL_PALETTE4_RGB8_OES:
+      case GL_PALETTE4_R5_G6_B5_OES:
+      case GL_PALETTE8_RGB8_OES:
+      case GL_PALETTE8_R5_G6_B5_OES:
+	 return GL_RGB;
+      case GL_PALETTE4_RGBA8_OES:
+      case GL_PALETTE8_RGB5_A1_OES:
+      case GL_PALETTE4_RGBA4_OES:
+      case GL_PALETTE4_RGB5_A1_OES:
+      case GL_PALETTE8_RGBA8_OES:
+      case GL_PALETTE8_RGBA4_OES:
+	 return GL_RGBA;
+      default:
+         ; /* fallthrough */
+      }
+   }
+
+   return -1; /* error */
+}
+
+/**
+ * Returns the effective internal format from a texture format and type.
+ * This is used by texture image operations internally for validation, when
+ * the specified internal format is a base (unsized) format.
+ *
+ * This method will only return a valid effective internal format if the
+ * combination of format, type and internal format in base form, is acceptable.
+ *
+ * If a single sized internal format is defined in the spec (OpenGL-ES 3.0.4) or
+ * in extensions, to unambiguously correspond to the given base format, then
+ * that internal format is returned as the effective. Otherwise, if the
+ * combination is accepted but a single effective format is not defined, the
+ * passed base format will be returned instead.
+ *
+ * \param format the texture format
+ * \param type the texture type
+ */
+static GLenum
+_mesa_es3_effective_internal_format_for_format_and_type(GLenum format,
+                                                        GLenum type)
+{
+   switch (type) {
+   case GL_UNSIGNED_BYTE:
+      switch (format) {
+      case GL_RGBA:
+         return GL_RGBA8;
+      case GL_RGB:
+         return GL_RGB8;
+      /* Although LUMINANCE_ALPHA, LUMINANCE and ALPHA appear in table 3.12,
+       * (section 3.8 Texturing, page 128 of the OpenGL-ES 3.0.4) as effective
+       * internal formats, they do not correspond to GL constants, so the base
+       * format is returned instead.
+       */
+      case GL_BGRA_EXT:
+      case GL_LUMINANCE_ALPHA:
+      case GL_LUMINANCE:
+      case GL_ALPHA:
+         return format;
+      }
+      break;
+
+   case GL_UNSIGNED_SHORT_4_4_4_4:
+      if (format == GL_RGBA)
+         return GL_RGBA4;
+      break;
+
+   case GL_UNSIGNED_SHORT_5_5_5_1:
+      if (format == GL_RGBA)
+         return GL_RGB5_A1;
+      break;
+
+   case GL_UNSIGNED_SHORT_5_6_5:
+      if (format == GL_RGB)
+         return GL_RGB565;
+      break;
+
+   /* OES_packed_depth_stencil */
+   case GL_UNSIGNED_INT_24_8:
+      if (format == GL_DEPTH_STENCIL)
+         return GL_DEPTH24_STENCIL8;
+      break;
+
+   case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
+      if (format == GL_DEPTH_STENCIL)
+         return GL_DEPTH32F_STENCIL8;
+      break;
+
+   case GL_UNSIGNED_SHORT:
+      if (format == GL_DEPTH_COMPONENT)
+         return GL_DEPTH_COMPONENT16;
+      break;
+
+   case GL_UNSIGNED_INT:
+      /* It can be DEPTH_COMPONENT16 or DEPTH_COMPONENT24, so just return
+       * the format.
+       */
+      if (format == GL_DEPTH_COMPONENT)
+         return format;
+      break;
+
+   /* OES_texture_float and OES_texture_half_float */
+   case GL_FLOAT:
+      if (format == GL_DEPTH_COMPONENT)
+         return GL_DEPTH_COMPONENT32F;
+      /* fall through */
+   case GL_HALF_FLOAT_OES:
+      switch (format) {
+      case GL_RGBA:
+      case GL_RGB:
+      case GL_LUMINANCE_ALPHA:
+      case GL_LUMINANCE:
+      case GL_ALPHA:
+      case GL_RED:
+      case GL_RG:
+         return format;
+      }
+      break;
+   case GL_HALF_FLOAT:
+      switch (format) {
+      case GL_RG:
+      case GL_RED:
+         return format;
+      }
+      break;
+
+   /* GL_EXT_texture_type_2_10_10_10_REV */
+   case GL_UNSIGNED_INT_2_10_10_10_REV:
+      switch (format) {
+      case GL_RGBA:
+      case GL_RGB:
+         return format;
+      }
+      break;
+
+   default:
+      /* fall through and return NONE */
+      break;
+   }
+
+   return GL_NONE;
+}
 
 /**
  * Do error checking of format/type combinations for OpenGL ES 3
@@ -2086,7 +2777,53 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
                                       GLenum format, GLenum type,
                                       GLenum internalFormat)
 {
+   /* If internalFormat is an unsized format, then the effective internal
+    * format derived from format and type should be used instead. Page 127,
+    * section "3.8 Texturing" of the GLES 3.0.4 spec states:
+    *
+    *    "if internalformat is a base internal format, the effective
+    *     internal format is a sized internal format that is derived
+    *     from the format and type for internal use by the GL.
+    *     Table 3.12 specifies the mapping of format and type to effective
+    *     internal formats. The effective internal format is used by the GL
+    *     for purposes such as texture completeness or type checks for
+    *     CopyTex* commands. In these cases, the GL is required to operate
+    *     as if the effective internal format was used as the internalformat
+    *     when specifying the texture data."
+    */
+   if (_mesa_is_enum_format_unsized(internalFormat)) {
+      GLenum effectiveInternalFormat =
+         _mesa_es3_effective_internal_format_for_format_and_type(format, type);
+
+      if (effectiveInternalFormat == GL_NONE)
+         return GL_INVALID_OPERATION;
+
+      GLenum baseInternalFormat;
+      if (internalFormat == GL_BGRA_EXT) {
+         /* Unfortunately, _mesa_base_tex_format returns a base format of
+          * GL_RGBA for GL_BGRA_EXT.  This makes perfect sense if you're
+          * asking the question, "what channels does this format have?"
+          * However, if we're trying to determine if two internal formats
+          * match in the ES3 sense, we actually want GL_BGRA.
+          */
+         baseInternalFormat = GL_BGRA_EXT;
+      } else {
+         baseInternalFormat =
+            _mesa_base_tex_format(ctx, effectiveInternalFormat);
+      }
+
+      if (internalFormat != baseInternalFormat)
+         return GL_INVALID_OPERATION;
+
+      internalFormat = effectiveInternalFormat;
+   }
+
    switch (format) {
+   case GL_BGRA_EXT:
+      if (type != GL_UNSIGNED_BYTE || internalFormat != GL_BGRA)
+         return GL_INVALID_OPERATION;
+      break;
+
    case GL_RGBA:
       switch (type) {
       case GL_UNSIGNED_BYTE:
@@ -2649,8 +3386,6 @@ get_swizzle_from_gl_format(GLenum format, uint8_t *swizzle)
 uint32_t
 _mesa_format_from_format_and_type(GLenum format, GLenum type)
 {
-   mesa_array_format array_format;
-
    bool is_array_format = true;
    uint8_t swizzle[4];
    bool normalized = false, is_float = false, is_signed = false;
@@ -2706,15 +3441,9 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
       normalized = !_mesa_is_enum_format_integer(format);
       num_channels = _mesa_components_in_format(format);
 
-      array_format =
-         MESA_ARRAY_FORMAT(type_size, is_signed, is_float,
-                           normalized, num_channels,
-                           swizzle[0], swizzle[1], swizzle[2], swizzle[3]);
-
-      if (!_mesa_little_endian())
-         array_format = _mesa_array_format_flip_channels(array_format);
-
-      return array_format;
+      return MESA_ARRAY_FORMAT(type_size, is_signed, is_float,
+                               normalized, num_channels,
+                               swizzle[0], swizzle[1], swizzle[2], swizzle[3]);
    }
 
    /* Otherwise this is not an array format, so return the mesa_format
@@ -2726,12 +3455,16 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
          return MESA_FORMAT_B5G6R5_UNORM;
       else if (format == GL_BGR)
          return MESA_FORMAT_R5G6B5_UNORM;
+      else if (format == GL_RGB_INTEGER)
+         return MESA_FORMAT_B5G6R5_UINT;
       break;
    case GL_UNSIGNED_SHORT_5_6_5_REV:
       if (format == GL_RGB)
          return MESA_FORMAT_R5G6B5_UNORM;
       else if (format == GL_BGR)
          return MESA_FORMAT_B5G6R5_UNORM;
+      else if (format == GL_RGB_INTEGER)
+         return MESA_FORMAT_R5G6B5_UINT;
       break;
    case GL_UNSIGNED_SHORT_4_4_4_4:
       if (format == GL_RGBA)
@@ -2740,6 +3473,10 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
          return MESA_FORMAT_A4R4G4B4_UNORM;
       else if (format == GL_ABGR_EXT)
          return MESA_FORMAT_R4G4B4A4_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_A4B4G4R4_UINT;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_A4R4G4B4_UINT;
       break;
    case GL_UNSIGNED_SHORT_4_4_4_4_REV:
       if (format == GL_RGBA)
@@ -2748,26 +3485,42 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
          return MESA_FORMAT_B4G4R4A4_UNORM;
       else if (format == GL_ABGR_EXT)
          return MESA_FORMAT_A4B4G4R4_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_R4G4B4A4_UINT;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_B4G4R4A4_UINT;
       break;
    case GL_UNSIGNED_SHORT_5_5_5_1:
       if (format == GL_RGBA)
          return MESA_FORMAT_A1B5G5R5_UNORM;
       else if (format == GL_BGRA)
          return MESA_FORMAT_A1R5G5B5_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_A1B5G5R5_UINT;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_A1R5G5B5_UINT;
       break;
    case GL_UNSIGNED_SHORT_1_5_5_5_REV:
       if (format == GL_RGBA)
          return MESA_FORMAT_R5G5B5A1_UNORM;
       else if (format == GL_BGRA)
          return MESA_FORMAT_B5G5R5A1_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_R5G5B5A1_UINT;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_B5G5R5A1_UINT;
       break;
    case GL_UNSIGNED_BYTE_3_3_2:
       if (format == GL_RGB)
          return MESA_FORMAT_B2G3R3_UNORM;
+      else if (format == GL_RGB_INTEGER)
+         return MESA_FORMAT_B2G3R3_UINT;
       break;
    case GL_UNSIGNED_BYTE_2_3_3_REV:
       if (format == GL_RGB)
          return MESA_FORMAT_R3G3B2_UNORM;
+      else if (format == GL_RGB_INTEGER)
+         return MESA_FORMAT_R3G3B2_UINT;
       break;
    case GL_UNSIGNED_INT_5_9_9_9_REV:
       if (format == GL_RGB)
@@ -2802,6 +3555,10 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
          return MESA_FORMAT_A8R8G8B8_UNORM;
       else if (format == GL_ABGR_EXT)
          return MESA_FORMAT_R8G8B8A8_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_A8B8G8R8_UINT;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_A8R8G8B8_UINT;
       break;
    case GL_UNSIGNED_INT_8_8_8_8_REV:
       if (format == GL_RGBA)
@@ -2810,6 +3567,10 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
          return MESA_FORMAT_B8G8R8A8_UNORM;
       else if (format == GL_ABGR_EXT)
          return MESA_FORMAT_A8B8G8R8_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_R8G8B8A8_UINT;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_B8G8R8A8_UINT;
       break;
    case GL_UNSIGNED_SHORT_8_8_MESA:
       if (format == GL_YCBCR_MESA)

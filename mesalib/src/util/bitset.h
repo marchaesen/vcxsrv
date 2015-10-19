@@ -96,4 +96,40 @@ __bitset_ffs(const BITSET_WORD *x, int n)
 
 #define BITSET_FFS(x) __bitset_ffs(x, ARRAY_SIZE(x))
 
+static inline unsigned
+__bitset_next_set(unsigned i, BITSET_WORD *tmp,
+                  BITSET_WORD *set, unsigned size)
+{
+   unsigned bit, word;
+
+   /* NOTE: The initial conditions for this function are very specific.  At
+    * the start of the loop, the tmp variable must be set to *set and the
+    * initial i value set to 0.  This way, if there is a bit set in the first
+    * word, we ignore the i-value and just grab that bit (so 0 is ok, even
+    * though 0 may be returned).  If the first word is 0, then the value of
+    * `word` will be 0 and we will go on to look at the second word.
+    */
+   word = BITSET_BITWORD(i);
+   while (*tmp == 0) {
+      word++;
+
+      if (word >= BITSET_WORDS(size))
+         return size;
+
+      *tmp = set[word];
+   }
+
+   /* Find the next set bit in the non-zero word */
+   bit = ffs(*tmp) - 1;
+
+   /* Unset the bit */
+   *tmp &= ~(1ull << bit);
+
+   return word * BITSET_WORDBITS + bit;
+}
+
+#define BITSET_FOREACH_SET(__i, __tmp, __set, __size) \
+   for (__tmp = *(__set), __i = 0; \
+        (__i = __bitset_next_set(__i, &__tmp, __set, __size)) < __size;)
+
 #endif

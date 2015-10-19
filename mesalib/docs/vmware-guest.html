@@ -27,6 +27,31 @@ MacOS are all supported.
 </p>
 
 <p>
+With the August 2015 Workstation 12 / Fusion 8 releases, OpenGL 3.3
+is supported in the guest.
+This requires:
+<ul>
+<li>The VM is configured for virtual hardware version 12.
+<li>The host OS, GPU and graphics driver supports DX11 (Windows) or
+    OpenGL 4.0 (Linux, Mac)
+<li>On Linux, the vmwgfx kernel module must be version 2.9.0 or later.
+<li>A recent version of Mesa with the updated svga gallium driver.
+</ul>
+</p>
+
+<p>
+Otherwise, OpenGL 2.1 is supported.
+</p>
+
+<p>
+OpenGL 3.3 support can be disabled by setting the environment variable
+SVGA_VGPU10=0.
+You will then have OpenGL 2.1 support.
+This may be useful to work around application bugs (such as incorrect use
+of the OpenGL 3.x core profile).
+</p>
+
+<p>
 Most modern Linux distros include the SVGA3D driver so end users shouldn't
 be concerned with this information.
 But if your distro lacks the driver or you want to update to the latest code
@@ -226,6 +251,16 @@ If you don't see this, try setting this environment variable:
 <p>
 then rerun glxinfo and examine the output for error messages.
 </p>
+
+<p>
+If OpenGL 3.3 is not working (you only get OpenGL 2.1):
+</p>
+<ul>
+<li>Make sure the VM uses hardware version 12.
+<li>Make sure the vmwgfx kernel module is version 2.9.0 or later.
+<li>Check the vmware.log file for errors.
+<li>Run 'dmesg | grep vmwgfx' and look for "DX: yes".
+
 
 </div>
 </body>

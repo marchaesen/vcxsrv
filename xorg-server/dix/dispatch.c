@@ -3527,7 +3527,7 @@ NextAvailableClient(void *ospriv)
     xReq data;
 
     i = nextFreeClientID;
-    if (i == MAXCLIENTS)
+    if (i == LimitClients)
         return (ClientPtr) NULL;
     clients[i] = client =
         dixAllocateObjectWithPrivates(ClientRec, PRIVATE_CLIENT);
@@ -3547,7 +3547,7 @@ NextAvailableClient(void *ospriv)
     }
     if (i == currentMaxClients)
         currentMaxClients++;
-    while ((nextFreeClientID < MAXCLIENTS) && clients[nextFreeClientID])
+    while ((nextFreeClientID < LimitClients) && clients[nextFreeClientID])
         nextFreeClientID++;
 
     /* Enable client ID tracking. This must be done before

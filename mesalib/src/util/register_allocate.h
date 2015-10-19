@@ -44,13 +44,15 @@ struct ra_regs;
  * registers, such as aligned register pairs that conflict with the
  * two real registers from which they are composed.
  */
-struct ra_regs *ra_alloc_reg_set(void *mem_ctx, unsigned int count);
+struct ra_regs *ra_alloc_reg_set(void *mem_ctx, unsigned int count,
+                                 bool need_conflict_lists);
 void ra_set_allocate_round_robin(struct ra_regs *regs);
 unsigned int ra_alloc_reg_class(struct ra_regs *regs);
 void ra_add_reg_conflict(struct ra_regs *regs,
 			 unsigned int r1, unsigned int r2);
 void ra_add_transitive_reg_conflict(struct ra_regs *regs,
 				    unsigned int base_reg, unsigned int reg);
+void ra_make_reg_conflicts_transitive(struct ra_regs *regs, unsigned int reg);
 void ra_class_add_reg(struct ra_regs *regs, unsigned int c, unsigned int reg);
 void ra_set_num_conflicts(struct ra_regs *regs, unsigned int class_a,
                           unsigned int class_b, unsigned int num_conflicts);

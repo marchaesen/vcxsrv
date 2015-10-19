@@ -65,6 +65,39 @@
 #include "ir_rvalue_visitor.h"
 #include "program/hash_table.h"
 
+static const glsl_type *
+process_array_type(const glsl_type *type, unsigned idx)
+{
+   const glsl_type *element_type = type->fields.array;
+   if (element_type->is_array()) {
+      const glsl_type *new_array_type = process_array_type(element_type, idx);
+      return glsl_type::get_array_instance(new_array_type, type->length);
+   } else {
+      return glsl_type::get_array_instance(
+         element_type->fields.structure[idx].type, type->length);
+   }
+}
+
+static ir_rvalue *
+process_array_ir(void * const mem_ctx,
+                 ir_dereference_array *deref_array_prev,
+                 ir_rvalue *deref_var)
+{
+   ir_dereference_array *deref_array =
+      deref_array_prev->array->as_dereference_array();
+
+   if (deref_array == NULL) {
+      return new(mem_ctx) ir_dereference_array(deref_var,
+                                               deref_array_prev->array_index);
+   } else {
+      deref_array = (ir_dereference_array *) process_array_ir(mem_ctx,
+                                                              deref_array,
+                                                              deref_var);
+      return new(mem_ctx) ir_dereference_array(deref_array,
+                                               deref_array_prev->array_index);
+   }
+}
+
 namespace {
 
 class flatten_named_interface_blocks_declarations : public ir_rvalue_visitor
@@ -112,14 +145,8 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
           var->data.mode == ir_var_shader_storage)
          continue;
 
-      const glsl_type * iface_t = var->type;
-      const glsl_type * array_t = NULL;
+      const glsl_type * iface_t = var->type->without_array();
       exec_node *insert_pos = var;
-
-      if (iface_t->is_array()) {
-         array_t = iface_t;
-         iface_t = array_t->fields.array;
-      }
 
       assert (iface_t->is_interface());
 
@@ -137,7 +164,7 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
             ir_variable *new_var;
             char *var_name =
                ralloc_strdup(mem_ctx, iface_t->fields.structure[i].name);
-            if (array_t == NULL) {
+            if (!var->type->is_array()) {
                new_var =
                   new(mem_ctx) ir_variable(iface_t->fields.structure[i].type,
                                            var_name,
@@ -145,9 +172,7 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
                new_var->data.from_named_ifc_block_nonarray = 1;
             } else {
                const glsl_type *new_array_type =
-                  glsl_type::get_array_instance(
-                     iface_t->fields.structure[i].type,
-                     array_t->length);
+                  process_array_type(var->type, i);
                new_var =
                   new(mem_ctx) ir_variable(new_array_type,
                                            var_name,
@@ -236,9 +261,8 @@ flatten_named_interface_blocks_declarations::handle_rvalue(ir_rvalue **rvalue)
       ir_dereference_array *deref_array =
          ir->record->as_dereference_array();
       if (deref_array != NULL) {
-         *rvalue =
-            new(mem_ctx) ir_dereference_array(deref_var,
-                                              deref_array->array_index);
+         *rvalue = process_array_ir(mem_ctx, deref_array,
+                                    (ir_rvalue *)deref_var);
       } else {
          *rvalue = deref_var;
       }

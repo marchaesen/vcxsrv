@@ -67,7 +67,7 @@ CLEANFILES = \
 	$(MOS)
 
 # Default target options.h
-options.h: LOCALEDIR := .
+LOCALEDIR := .
 options.h: t_options.h $(MOS)
 	$(AM_V_GEN) $(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen_xmlpool.py $(srcdir)/t_options.h $(LOCALEDIR) $(LANGS) > options.h
 

@@ -122,7 +122,7 @@ usage (char *program, int error)
 static FcStrSet *processed_dirs;
 
 static int
-scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, FcBool verbose, FcBool recursive, FcBool error_on_no_fonts, int *changed, FcStrSet *updateDirs)
+scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, FcBool verbose, FcBool error_on_no_fonts, int *changed)
 {
     int		    ret = 0;
     const FcChar8   *dir;
@@ -142,15 +142,13 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
     {
 	if (verbose)
 	{
-	    if (!recursive)
-		printf ("Re-scanning ");
 	    if (sysroot)
 		printf ("[%s]", sysroot);
 	    printf ("%s: ", dir);
 	    fflush (stdout);
 	}
 	
-	if (recursive && FcStrSetMember (processed_dirs, dir))
+	if (FcStrSetMember (processed_dirs, dir))
 	{
 	    if (verbose)
 		printf ("skipping, looped directory detected\n");
@@ -194,13 +192,8 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	
 	if (!cache)
 	{
-	    if (!recursive)
-		cache = FcDirCacheRescan (dir, config);
-	    else
-	    {
-		(*changed)++;
-		cache = FcDirCacheRead (dir, FcTrue, config);
-	    }
+	    (*changed)++;
+	    cache = FcDirCacheRead (dir, FcTrue, config);
 	    if (!cache)
 	    {
 		fprintf (stderr, "%s: error scanning\n", dir);
@@ -229,37 +222,30 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	    }
 	}
 
-	if (recursive)
+	subdirs = FcStrSetCreate ();
+	if (!subdirs)
 	{
-	    subdirs = FcStrSetCreate ();
-	    if (!subdirs)
-	    {
-		fprintf (stderr, "%s: Can't create subdir set\n", dir);
-		ret++;
-		FcDirCacheUnload (cache);
-		continue;
-	    }
-	    for (i = 0; i < FcCacheNumSubdir (cache); i++)
-		FcStrSetAdd (subdirs, FcCacheSubdir (cache, i));
-	    if (updateDirs && FcCacheNumSubdir (cache) > 0)
-		FcStrSetAdd (updateDirs, dir);
-	
+	    fprintf (stderr, "%s: Can't create subdir set\n", dir);
+	    ret++;
 	    FcDirCacheUnload (cache);
-	
-	    sublist = FcStrListCreate (subdirs);
-	    FcStrSetDestroy (subdirs);
-	    if (!sublist)
-	    {
-		fprintf (stderr, "%s: Can't create subdir list\n", dir);
-		ret++;
-		continue;
-	    }
-	    FcStrSetAdd (processed_dirs, dir);
-	    ret += scanDirs (sublist, config, force, really_force, verbose, recursive, error_on_no_fonts, changed, updateDirs);
-	    FcStrListDone (sublist);
+	    continue;
 	}
-	else
-	    FcDirCacheUnload (cache);
+	for (i = 0; i < FcCacheNumSubdir (cache); i++)
+	    FcStrSetAdd (subdirs, FcCacheSubdir (cache, i));
+	
+	FcDirCacheUnload (cache);
+
+	sublist = FcStrListCreate (subdirs);
+	FcStrSetDestroy (subdirs);
+	if (!sublist)
+	{
+	    fprintf (stderr, "%s: Can't create subdir list\n", dir);
+	    ret++;
+	    continue;
+	}
+	FcStrSetAdd (processed_dirs, dir);
+	ret += scanDirs (sublist, config, force, really_force, verbose, error_on_no_fonts, changed);
+	FcStrListDone (sublist);
     }
     if (error_on_no_fonts && !was_processed)
 	ret++;
@@ -290,7 +276,7 @@ cleanCacheDirectories (FcConfig *config, FcBool verbose)
 int
 main (int argc, char **argv)
 {
-    FcStrSet	*dirs, *updateDirs;
+    FcStrSet	*dirs;
     FcStrList	*list;
     FcBool    	verbose = FcFalse;
     FcBool	force = FcFalse;
@@ -393,18 +379,9 @@ main (int argc, char **argv)
 	return 1;
     }
 
-    updateDirs = FcStrSetCreate ();
     changed = 0;
-    ret = scanDirs (list, config, force, really_force, verbose, FcTrue, error_on_no_fonts, &changed, updateDirs);
-    /* Update the directory cache again to avoid the race condition as much as possible */
+    ret = scanDirs (list, config, force, really_force, verbose, error_on_no_fonts, &changed);
     FcStrListDone (list);
-    list = FcStrListCreate (updateDirs);
-    if (list)
-    {
-	ret += scanDirs (list, config, FcTrue, FcFalse, verbose, FcFalse, error_on_no_fonts, &changed, NULL);
-	FcStrListDone (list);
-    }
-    FcStrSetDestroy (updateDirs);
 
     /*
      * Try to create CACHEDIR.TAG anyway.

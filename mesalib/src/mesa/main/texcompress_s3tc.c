@@ -130,7 +130,7 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGB ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       srcPacking->RowLength != srcWidth ||
+       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
        srcPacking->SwapBytes) {
       /* convert image to RGB/GLubyte */
       GLubyte *tempImageSlices[1];
@@ -187,7 +187,7 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       srcPacking->RowLength != srcWidth ||
+       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
        srcPacking->SwapBytes) {
       /* convert image to RGBA/GLubyte */
       GLubyte *tempImageSlices[1];
@@ -198,7 +198,8 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
       tempImageSlices[0] = (GLubyte *) tempImage;
       _mesa_texstore(ctx, dims,
                      baseInternalFormat,
-                     MESA_FORMAT_R8G8B8A8_UNORM,
+                     _mesa_little_endian() ? MESA_FORMAT_R8G8B8A8_UNORM
+                                           : MESA_FORMAT_A8B8G8R8_UNORM,
                      rgbaRowStride, tempImageSlices,
                      srcWidth, srcHeight, srcDepth,
                      srcFormat, srcType, srcAddr,
@@ -244,7 +245,7 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       srcPacking->RowLength != srcWidth ||
+       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
        srcPacking->SwapBytes) {
       /* convert image to RGBA/GLubyte */
       GLubyte *tempImageSlices[1];
@@ -255,7 +256,8 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
       tempImageSlices[0] = (GLubyte *) tempImage;
       _mesa_texstore(ctx, dims,
                      baseInternalFormat,
-                     MESA_FORMAT_R8G8B8A8_UNORM,
+                     _mesa_little_endian() ? MESA_FORMAT_R8G8B8A8_UNORM
+                                           : MESA_FORMAT_A8B8G8R8_UNORM,
                      rgbaRowStride, tempImageSlices,
                      srcWidth, srcHeight, srcDepth,
                      srcFormat, srcType, srcAddr,
@@ -300,7 +302,7 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       srcPacking->RowLength != srcWidth ||
+       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
        srcPacking->SwapBytes) {
       /* convert image to RGBA/GLubyte */
       GLubyte *tempImageSlices[1];
@@ -311,7 +313,8 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
       tempImageSlices[0] = (GLubyte *) tempImage;
       _mesa_texstore(ctx, dims,
                      baseInternalFormat,
-                     MESA_FORMAT_R8G8B8A8_UNORM,
+                     _mesa_little_endian() ? MESA_FORMAT_R8G8B8A8_UNORM
+                                           : MESA_FORMAT_A8B8G8R8_UNORM,
                      rgbaRowStride, tempImageSlices,
                      srcWidth, srcHeight, srcDepth,
                      srcFormat, srcType, srcAddr,

@@ -602,7 +602,7 @@ _mesa_format_to_array(mesa_format format, GLenum *type, int *num_components,
 
    *normalized = !_mesa_is_format_integer(format);
 
-   _mesa_format_to_type_and_comps(format, type, &format_components);
+   _mesa_uncompressed_format_to_type_and_comps(format, type, &format_components);
 
    switch (_mesa_get_format_layout(format)) {
    case MESA_FORMAT_LAYOUT_ARRAY:

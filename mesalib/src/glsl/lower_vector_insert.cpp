@@ -108,9 +108,13 @@ vector_insert_visitor::handle_rvalue(ir_rvalue **rv)
       factory.emit(assign(temp, expr->operands[0]));
       factory.emit(assign(src_temp, expr->operands[1]));
 
+      assert(expr->operands[2]->type == glsl_type::int_type ||
+             expr->operands[2]->type == glsl_type::uint_type);
+
       for (unsigned i = 0; i < expr->type->vector_elements; i++) {
          ir_constant *const cmp_index =
-            new(factory.mem_ctx) ir_constant(int(i));
+            ir_constant::zero(factory.mem_ctx, expr->operands[2]->type);
+         cmp_index->value.u[0] = i;
 
          ir_variable *const cmp_result =
             factory.make_temp(glsl_type::bool_type, "index_condition");

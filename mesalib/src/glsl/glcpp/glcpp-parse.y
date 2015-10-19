@@ -2382,6 +2382,8 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	         add_builtin_define(parser, "GL_OES_EGL_image_external", 1);
               if (extensions->OES_standard_derivatives)
                  add_builtin_define(parser, "GL_OES_standard_derivatives", 1);
+              if (extensions->ARB_texture_multisample)
+                 add_builtin_define(parser, "GL_OES_texture_storage_multisample_2d_array", 1);
 	   }
 	} else {
 	   add_builtin_define(parser, "GL_ARB_draw_buffers", 1);
@@ -2477,6 +2479,12 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 
 	      if (extensions->ARB_shader_image_load_store)
 	         add_builtin_define(parser, "GL_ARB_shader_image_load_store", 1);
+
+              if (extensions->ARB_shader_image_size)
+                 add_builtin_define(parser, "GL_ARB_shader_image_size", 1);
+
+              if (extensions->ARB_shader_texture_image_samples)
+                 add_builtin_define(parser, "GL_ARB_shader_texture_image_samples", 1);
 
               if (extensions->ARB_derivative_control)
                  add_builtin_define(parser, "GL_ARB_derivative_control", 1);

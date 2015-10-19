@@ -68,6 +68,13 @@ u_reduce_video_profile(enum pipe_video_profile profile)
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH444:
          return PIPE_VIDEO_FORMAT_MPEG4_AVC;
 
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_10:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_STILL:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_12:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
+         return PIPE_VIDEO_FORMAT_HEVC;
+
       default:
          return PIPE_VIDEO_FORMAT_UNKNOWN;
    }

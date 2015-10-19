@@ -438,7 +438,7 @@ __glXSwapUseXFont(__GLXclientState * cl, GLbyte * pc)
 int
 __glXSwapQueryExtensionsString(__GLXclientState * cl, GLbyte * pc)
 {
-    xGLXQueryExtensionsStringReq *req = NULL;
+    xGLXQueryExtensionsStringReq *req = (xGLXQueryExtensionsStringReq *) pc;
 
     __GLX_DECLARE_SWAP_VARIABLES;
 

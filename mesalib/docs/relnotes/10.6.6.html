@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.6.6 Release Notes / September 04, 2015</h1>
+
+<p>
+Mesa 10.6.6 is a bug fix release which fixes bugs found since the 10.6.5 release.
+</p>
+<p>
+Mesa 10.6.6 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+416517aa9df4791f97d34451a9e4da33c966afcd18c115c5769b92b15b018ef5  mesa-10.6.6.tar.gz
+570f2154b7340ff5db61ff103bc6e85165b8958798b78a50fa2df488e98e5778  mesa-10.6.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84677">Bug 84677</a> - Triangle disappears with glPolygonMode GL_LINE</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90734">Bug 90734</a> - glBufferSubData is corrupting data when buffer is &gt; 32k</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90748">Bug 90748</a> - [BDW Bisected]dEQP-GLES3.functional.fbo.completeness.renderable.texture.depth.rg_half_float_oes fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90902">Bug 90902</a> - [bsw][regression] dEQP: &quot;Found invalid pixel values&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90925">Bug 90925</a> - &quot;high fidelity&quot;: Segfault in _mesa_program_resource_find_name</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91254">Bug 91254</a> - (regresion) video using VA-API on Intel slow and freeze system with mesa 10.6 or 10.6.1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91292">Bug 91292</a> - [BDW+] glVertexAttribDivisor not working in combination with glPolygonMode</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91673">Bug 91673</a> - Segfault when calling glTexSubImage2D on storage texture to bound FBO</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91726">Bug 91726</a> - R600 asserts in tgsi_cmp/make_src_for_op3</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Chris Wilson (2):</p>
+<ul>
+  <li>i965: Prevent coordinate overflow in intel_emit_linear_blit</li>
+  <li>i965: Always re-emit the pipeline select during invariant state emission</li>
+</ul>
+
+<p>Daniel Scharrer (1):</p>
+<ul>
+  <li>mesa: add missing queries for ARB_direct_state_access</li>
+</ul>
+
+<p>Dave Airlie (8):</p>
+<ul>
+  <li>mesa/arb_gpu_shader_fp64: add support for glGetUniformdv</li>
+  <li>mesa/texgetimage: fix missing stencil check</li>
+  <li>st/readpixels: fix accel path for skipimages.</li>
+  <li>texcompress_s3tc/fxt1: fix stride checks (v1.1)</li>
+  <li>mesa/readpixels: check strides are equal before skipping conversion</li>
+  <li>mesa: enable texture stencil8 for multisample</li>
+  <li>r600/sb: update last_cf for finalize if.</li>
+  <li>r600g: fix calculation for gpr allocation</li>
+</ul>
+
+<p>David Heidelberg (1):</p>
+<ul>
+  <li>st/nine: Require gcc &gt;= 4.6</li>
+</ul>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 10.6.5</li>
+  <li>get-pick-list.sh: Require explicit "10.6" for nominating stable patches</li>
+</ul>
+
+<p>Glenn Kennard (4):</p>
+<ul>
+  <li>r600g: Fix assert in tgsi_cmp</li>
+  <li>r600g/sb: Handle undef in read port tracker</li>
+  <li>r600g/sb: Don't read junk after EOP</li>
+  <li>r600g/sb: Don't crash on empty if jump target</li>
+</ul>
+
+<p>Ilia Mirkin (5):</p>
+<ul>
+  <li>st/mesa: fix assignments with 4-operand arguments (i.e. BFI)</li>
+  <li>st/mesa: pass through 4th opcode argument in bitmap/pixel visitors</li>
+  <li>nv50,nvc0: disable depth bounds test on blit</li>
+  <li>nv50: fix 2d engine blits for 64- and 128-bit formats</li>
+  <li>mesa: only copy the requested teximage faces</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>i965/fs: Split VGRFs after lowering pull constants</li>
+</ul>
+
+<p>Kenneth Graunke (3):</p>
+<ul>
+  <li>i965: Fix copy propagation type changes.</li>
+  <li>Revert "i965: Advertise a line width of 40.0 on Cherryview and Skylake."</li>
+  <li>i965: Momentarily pretend to support ARB_texture_stencil8 for blits.</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>gallium/radeon: fix the ADDRESS_HI mask for EVENT_WRITE CIK packets</li>
+  <li>mesa: create multisample fallback textures like normal textures</li>
+  <li>radeonsi: fix a Unigine Heaven hang when drirc is missing</li>
+</ul>
+
+<p>Matt Turner (1):</p>
+<ul>
+  <li>i965/fs: Handle MRF destinations in lower_integer_multiplication().</li>
+</ul>
+
+<p>Neil Roberts (2):</p>
+<ul>
+  <li>i965: Swap the order of the vertex ID and edge flag attributes</li>
+  <li>i965/bdw: Fix 3DSTATE_VF_INSTANCING when the edge flag is used</li>
+</ul>
+
+<p>Tapani Pälli (5):</p>
+<ul>
+  <li>mesa: update fbo state in glTexStorage</li>
+  <li>glsl: build stageref mask using IR, not symbol table</li>
+  <li>glsl: expose build_program_resource_list function</li>
+  <li>glsl: create program resource list after LinkShader</li>
+  <li>mesa: add GL_RED, GL_RG support for floating point textures</li>
+</ul>
+
+
+</div>
+</body>
+</html>

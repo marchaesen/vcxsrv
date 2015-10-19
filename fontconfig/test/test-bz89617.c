@@ -30,8 +30,8 @@ main (void)
 {
     FcConfig *config = FcConfigGetCurrent ();
 
-    if (!FcConfigAppFontAddFile (config, SRCDIR "/4x6.pcf") ||
-	FcConfigAppFontAddFile (config, "/dev/null"))
+    if (!FcConfigAppFontAddFile (config, (const FcChar8 *)SRCDIR "/4x6.pcf") ||
+	FcConfigAppFontAddFile (config, (const FcChar8 *)"/dev/null"))
 	return 1;
 
     return 0;

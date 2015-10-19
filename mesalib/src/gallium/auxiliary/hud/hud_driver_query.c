@@ -43,6 +43,7 @@ struct query_info {
    struct pipe_context *pipe;
    unsigned query_type;
    unsigned result_index; /* unit depends on query_type */
+   enum pipe_driver_query_result_type result_type;
 
    /* Ring of queries. If a query is busy, we use another slot. */
    struct pipe_query *query[NUM_QUERIES];
@@ -108,8 +109,19 @@ query_new_value(struct hud_graph *gr)
       }
 
       if (info->num_results && info->last_time + gr->pane->period <= now) {
-         /* compute the average value across all frames */
-         hud_graph_add_value(gr, info->results_cumulative / info->num_results);
+         uint64_t value;
+
+         switch (info->result_type) {
+         default:
+         case PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE:
+            value = info->results_cumulative / info->num_results;
+            break;
+         case PIPE_DRIVER_QUERY_RESULT_TYPE_CUMULATIVE:
+            value = info->results_cumulative;
+            break;
+         }
+
+         hud_graph_add_value(gr, value);
 
          info->last_time = now;
          info->results_cumulative = 0;
@@ -150,7 +162,8 @@ void
 hud_pipe_query_install(struct hud_pane *pane, struct pipe_context *pipe,
                        const char *name, unsigned query_type,
                        unsigned result_index,
-                       uint64_t max_value, enum pipe_driver_query_type type)
+                       uint64_t max_value, enum pipe_driver_query_type type,
+                       enum pipe_driver_query_result_type result_type)
 {
    struct hud_graph *gr;
    struct query_info *info;
@@ -174,6 +187,7 @@ hud_pipe_query_install(struct hud_pane *pane, struct pipe_context *pipe,
    info->pipe = pipe;
    info->query_type = query_type;
    info->result_index = result_index;
+   info->result_type = result_type;
 
    hud_pane_add_graph(pane, gr);
    if (pane->max_value < max_value)
@@ -207,7 +221,7 @@ hud_driver_query_install(struct hud_pane *pane, struct pipe_context *pipe,
       return FALSE;
 
    hud_pipe_query_install(pane, pipe, query.name, query.query_type, 0,
-                          query.max_value.u64, query.type);
+                          query.max_value.u64, query.type, query.result_type);
 
    return TRUE;
 }

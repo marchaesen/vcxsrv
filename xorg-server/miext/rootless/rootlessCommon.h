@@ -70,8 +70,8 @@ extern DevPrivateKeyRec rootlessWindowOldPixmapPrivateKeyRec;
 
 // RootlessGCRec: private per-gc data
 typedef struct {
-    GCFuncs *originalFuncs;
-    GCOps *originalOps;
+    const GCFuncs *originalFuncs;
+    const GCOps *originalOps;
 } RootlessGCRec;
 
 // RootlessScreenRec: per-screen private data
@@ -195,19 +195,19 @@ extern RegionRec rootlessHugeRoot;
 
 #define HUGE_ROOT(pWin)                         \
     do {                                        \
-        WindowPtr w = pWin;                     \
-        while (w->parent)                       \
-            w = w->parent;                      \
-        saveRoot = w->winSize;                  \
-        w->winSize = rootlessHugeRoot;          \
+        WindowPtr _w = pWin;                     \
+        while (_w->parent)                       \
+            _w = _w->parent;                      \
+        saveRoot = _w->winSize;                  \
+        _w->winSize = rootlessHugeRoot;          \
     } while (0)
 
 #define NORMAL_ROOT(pWin)                       \
     do {                                        \
-        WindowPtr w = pWin;                     \
-        while (w->parent)                       \
-            w = w->parent;                      \
-        w->winSize = saveRoot;                  \
+        WindowPtr _w = pWin;                     \
+        while (_w->parent)                       \
+            _w = _w->parent;                      \
+        _w->winSize = saveRoot;                  \
     } while (0)
 
 // Returns TRUE if this window is a top-level window (i.e. child of the root)

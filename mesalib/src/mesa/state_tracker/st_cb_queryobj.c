@@ -289,9 +289,18 @@ st_CheckQuery(struct gl_context *ctx, struct gl_query_object *q)
 static uint64_t
 st_GetTimestamp(struct gl_context *ctx)
 {
-   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+   struct pipe_context *pipe = st_context(ctx)->pipe;
+   struct pipe_screen *screen = pipe->screen;
 
-   return screen->get_timestamp(screen);
+   /* Prefer the per-screen function */
+   if (screen->get_timestamp) {
+      return screen->get_timestamp(screen);
+   }
+   else {
+      /* Fall back to the per-context function */
+      assert(pipe->get_timestamp);
+      return pipe->get_timestamp(pipe);
+   }
 }
 
 

@@ -59,8 +59,6 @@ struct st_fp_variant_key
    GLuint drawpixels:1;           /**< glDrawPixels variant */
    GLuint scaleAndBias:1;         /**< glDrawPixels w/ scale and/or bias? */
    GLuint pixelMaps:1;            /**< glDrawPixels w/ pixel lookup map? */
-   GLuint drawpixels_z:1;         /**< glDrawPixels(GL_DEPTH) */
-   GLuint drawpixels_stencil:1;   /**< glDrawPixels(GL_STENCIL) */
 
    /** for ARB_color_buffer_float */
    GLuint clamp_color:1;
@@ -78,14 +76,16 @@ struct st_fp_variant
    /** Parameters which generated this version of fragment program */
    struct st_fp_variant_key key;
 
-   struct pipe_shader_state tgsi;
-
    /** Driver's compiled shader */
    void *driver_shader;
 
    /** For glBitmap variants */
    struct gl_program_parameter_list *parameters;
    uint bitmap_sampler;
+
+   /** For glDrawPixels variants */
+   unsigned drawpix_sampler;
+   unsigned pixelmap_sampler;
 
    /** next in linked list */
    struct st_fp_variant *next;
@@ -98,6 +98,7 @@ struct st_fp_variant
 struct st_fragment_program
 {
    struct gl_fragment_program Base;
+   struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
    struct st_fp_variant *variants;
@@ -153,20 +154,16 @@ struct st_vp_variant
 struct st_vertex_program
 {
    struct gl_vertex_program Base;  /**< The Mesa vertex program */
+   struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
    /** maps a Mesa VERT_ATTRIB_x to a packed TGSI input index */
-   GLuint input_to_index[VERT_ATTRIB_MAX];
    /** maps a TGSI input index back to a Mesa VERT_ATTRIB_x */
    GLuint index_to_input[PIPE_MAX_SHADER_INPUTS];
    GLuint num_inputs;
 
    /** Maps VARYING_SLOT_x to slot */
    GLuint result_to_output[VARYING_SLOT_MAX];
-   GLuint output_slot_to_attr[VARYING_SLOT_MAX];
-   ubyte output_semantic_name[VARYING_SLOT_MAX];
-   ubyte output_semantic_index[VARYING_SLOT_MAX];
-   GLuint num_outputs;
 
    /** List of translated variants of this vertex program.
     */
@@ -203,6 +200,7 @@ struct st_gp_variant
 struct st_geometry_program
 {
    struct gl_geometry_program Base;  /**< The Mesa geometry program */
+   struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
    struct st_gp_variant *variants;
@@ -238,6 +236,7 @@ struct st_tcp_variant
 struct st_tessctrl_program
 {
    struct gl_tess_ctrl_program Base;  /**< The Mesa tess ctrl program */
+   struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
    struct st_tcp_variant *variants;
@@ -273,6 +272,7 @@ struct st_tep_variant
 struct st_tesseval_program
 {
    struct gl_tess_eval_program Base;  /**< The Mesa tess eval program */
+   struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
    struct st_tep_variant *variants;
@@ -414,16 +414,6 @@ st_get_tep_variant(struct st_context *st,
                    struct st_tesseval_program *stgp,
                    const struct st_tep_variant_key *key);
 
-
-extern void
-st_prepare_vertex_program(struct gl_context *ctx,
-                          struct st_vertex_program *stvp);
-
-extern GLboolean
-st_prepare_fragment_program(struct gl_context *ctx,
-                            struct st_fragment_program *stfp);
-
-
 extern void
 st_release_vp_variants( struct st_context *st,
                         struct st_vertex_program *stvp );
@@ -447,6 +437,25 @@ st_release_tep_variants(struct st_context *st,
 extern void
 st_destroy_program_variants(struct st_context *st);
 
+extern bool
+st_translate_vertex_program(struct st_context *st,
+                            struct st_vertex_program *stvp);
+
+extern bool
+st_translate_fragment_program(struct st_context *st,
+                              struct st_fragment_program *stfp);
+
+extern bool
+st_translate_geometry_program(struct st_context *st,
+                              struct st_geometry_program *stgp);
+
+extern bool
+st_translate_tessctrl_program(struct st_context *st,
+                              struct st_tessctrl_program *sttcp);
+
+extern bool
+st_translate_tesseval_program(struct st_context *st,
+                              struct st_tesseval_program *sttep);
 
 extern void
 st_print_current_vertex_program(void);

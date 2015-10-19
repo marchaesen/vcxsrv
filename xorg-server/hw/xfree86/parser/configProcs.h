@@ -27,8 +27,7 @@
 
 /* Private procs.  Public procs are in xf86Parser.h and xf86Optrec.h */
 
-/* exported functions are/were used by the X Server, and need to be
- * made public when installing libxf86config */
+/* exported functions are/were used by the X Server */
 
 /* Device.c */
 XF86ConfDevicePtr xf86parseDeviceSection(void);

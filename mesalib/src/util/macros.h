@@ -145,9 +145,9 @@ do {                       \
  * return value.  As a result, calls to it can be dead code eliminated.
  */
 #ifdef HAVE_FUNC_ATTRIBUTE_PURE
-#define PURE __attribute__((__pure__))
+#define ATTRIBUTE_PURE __attribute__((__pure__))
 #else
-#define PURE
+#define ATTRIBUTE_PURE
 #endif
 
 #ifdef __cplusplus

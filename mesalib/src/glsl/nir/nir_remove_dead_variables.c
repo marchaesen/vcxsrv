@@ -97,32 +97,39 @@ add_var_use_shader(nir_shader *shader, struct set *live)
    }
 }
 
-static void
+static bool
 remove_dead_vars(struct exec_list *var_list, struct set *live)
 {
+   bool progress = false;
+
    foreach_list_typed_safe(nir_variable, var, node, var_list) {
       struct set_entry *entry = _mesa_set_search(live, var);
       if (entry == NULL) {
          exec_node_remove(&var->node);
          ralloc_free(var);
+         progress = true;
       }
    }
+
+   return progress;
 }
 
-void
+bool
 nir_remove_dead_variables(nir_shader *shader)
 {
+   bool progress = false;
    struct set *live =
       _mesa_set_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
 
    add_var_use_shader(shader, live);
 
-   remove_dead_vars(&shader->globals, live);
+   progress = remove_dead_vars(&shader->globals, live) || progress;
 
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
-         remove_dead_vars(&overload->impl->locals, live);
+         progress = remove_dead_vars(&overload->impl->locals, live) || progress;
    }
 
    _mesa_set_destroy(live, NULL);
+   return progress;
 }

@@ -109,7 +109,7 @@ char *FontEncName(unsigned, FontMapPtr);
 
 /* Return a pointer to the name of the system encodings directory. */
 /* This string is static and should not be modified. */
-char *FontEncDirectory(void);
+const char *FontEncDirectory(void);
 
 /* Identify an encoding file.  If fileName doesn't exist, or is not an
    encoding file, return NULL, otherwise returns a NULL-terminated

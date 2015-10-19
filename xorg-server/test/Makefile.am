@@ -49,7 +49,7 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/loader/libloader.la \
             $(top_builddir)/hw/xfree86/os-support/libxorgos.la \
             $(top_builddir)/hw/xfree86/common/libcommon.la \
-            $(top_builddir)/hw/xfree86/parser/libxf86config_internal.la \
+            $(top_builddir)/hw/xfree86/parser/libxf86config.la \
             $(top_builddir)/hw/xfree86/dixmods/libdixmods.la \
             $(top_builddir)/hw/xfree86/modes/libxf86modes.la \
             $(top_builddir)/hw/xfree86/ramdac/libramdac.la \

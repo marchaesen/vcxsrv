@@ -129,12 +129,16 @@ C_SOURCES := \
 	rtasm/rtasm_execmem.h \
 	rtasm/rtasm_x86sse.c \
 	rtasm/rtasm_x86sse.h \
+	tgsi/tgsi_aa_point.c \
+	tgsi/tgsi_aa_point.h \
 	tgsi/tgsi_build.c \
 	tgsi/tgsi_build.h \
 	tgsi/tgsi_dump.c \
 	tgsi/tgsi_dump.h \
 	tgsi/tgsi_exec.c \
 	tgsi/tgsi_exec.h \
+	tgsi/tgsi_emulate.c \
+	tgsi/tgsi_emulate.h \
 	tgsi/tgsi_info.c \
 	tgsi/tgsi_info.h \
 	tgsi/tgsi_iterate.c \
@@ -144,6 +148,8 @@ C_SOURCES := \
 	tgsi/tgsi_opcode_tmp.h \
 	tgsi/tgsi_parse.c \
 	tgsi/tgsi_parse.h \
+	tgsi/tgsi_point_sprite.c \
+	tgsi/tgsi_point_sprite.h \
 	tgsi/tgsi_sanity.c \
 	tgsi/tgsi_sanity.h \
 	tgsi/tgsi_scan.c \
@@ -154,6 +160,8 @@ C_SOURCES := \
 	tgsi/tgsi_text.h \
 	tgsi/tgsi_transform.c \
 	tgsi/tgsi_transform.h \
+	tgsi/tgsi_two_side.c \
+	tgsi/tgsi_two_side.h \
 	tgsi/tgsi_ureg.c \
 	tgsi/tgsi_ureg.h \
 	tgsi/tgsi_util.c \
@@ -260,6 +268,8 @@ C_SOURCES := \
 	util/u_pack_color.h \
 	util/u_pointer.h \
 	util/u_prim.h \
+	util/u_prim_restart.c \
+	util/u_prim_restart.h \
 	util/u_pstipple.c \
 	util/u_pstipple.h \
 	util/u_range.h \

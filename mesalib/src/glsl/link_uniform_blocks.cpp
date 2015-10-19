@@ -68,14 +68,18 @@ private:
    }
 
    virtual void enter_record(const glsl_type *type, const char *,
-                             bool row_major) {
+                             bool row_major, const unsigned packing) {
       assert(type->is_record());
-      this->offset = glsl_align(
+      if (packing == GLSL_INTERFACE_PACKING_STD430)
+         this->offset = glsl_align(
+            this->offset, type->std430_base_alignment(row_major));
+      else
+         this->offset = glsl_align(
             this->offset, type->std140_base_alignment(row_major));
    }
 
    virtual void leave_record(const glsl_type *type, const char *,
-                             bool row_major) {
+                             bool row_major, const unsigned packing) {
       assert(type->is_record());
 
       /* If this is the last field of a structure, apply rule #9.  The
@@ -85,12 +89,17 @@ private:
        *     the member following the sub-structure is rounded up to the next
        *     multiple of the base alignment of the structure."
        */
-      this->offset = glsl_align(
+      if (packing == GLSL_INTERFACE_PACKING_STD430)
+         this->offset = glsl_align(
+            this->offset, type->std430_base_alignment(row_major));
+      else
+         this->offset = glsl_align(
             this->offset, type->std140_base_alignment(row_major));
    }
 
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *,
+                            const unsigned packing,
                             bool /* last_field */)
    {
       assert(this->index < this->num_variables);
@@ -107,7 +116,7 @@ private:
          char *open_bracket = strchr(v->IndexName, '[');
          assert(open_bracket != NULL);
 
-         char *close_bracket = strchr(open_bracket, ']');
+         char *close_bracket = strchr(open_bracket, '.') - 1;
          assert(close_bracket != NULL);
 
          /* Length of the tail without the ']' but with the NUL.
@@ -119,8 +128,16 @@ private:
          v->IndexName = v->Name;
       }
 
-      const unsigned alignment = type->std140_base_alignment(v->RowMajor);
-      unsigned size = type->std140_size(v->RowMajor);
+      unsigned alignment = 0;
+      unsigned size = 0;
+
+      if (packing == GLSL_INTERFACE_PACKING_STD430) {
+         alignment = type->std430_base_alignment(v->RowMajor);
+         size = type->std430_size(v->RowMajor);
+      } else {
+         alignment = type->std140_base_alignment(v->RowMajor);
+         size = type->std140_size(v->RowMajor);
+      }
 
       this->offset = glsl_align(this->offset, alignment);
       v->Offset = this->offset;
@@ -168,8 +185,94 @@ struct block {
    bool has_instance_name;
 };
 
+static void
+process_block_array(struct uniform_block_array_elements *ub_array, char **name,
+                    size_t name_length, gl_uniform_block *blocks,
+                    ubo_visitor *parcel, gl_uniform_buffer_variable *variables,
+                    const struct link_uniform_block_active *const b,
+                    unsigned *block_index, unsigned *binding_offset,
+                    struct gl_context *ctx, struct gl_shader_program *prog)
+{
+   if (ub_array) {
+      for (unsigned j = 0; j < ub_array->num_array_elements; j++) {
+	 size_t new_length = name_length;
+
+         /* Append the subscript to the current variable name */
+         ralloc_asprintf_rewrite_tail(name, &new_length, "[%u]",
+                                      ub_array->array_elements[j]);
+
+         process_block_array(ub_array->array, name, new_length, blocks,
+                             parcel, variables, b, block_index,
+                             binding_offset, ctx, prog);
+      }
+   } else {
+      unsigned i = *block_index;
+      const glsl_type *type =  b->type->without_array();
+
+      blocks[i].Name = ralloc_strdup(blocks, *name);
+      blocks[i].Uniforms = &variables[(*parcel).index];
+
+      /* The GL_ARB_shading_language_420pack spec says:
+       *
+       *     "If the binding identifier is used with a uniform block
+       *     instanced as an array then the first element of the array
+       *     takes the specified block binding and each subsequent
+       *     element takes the next consecutive uniform block binding
+       *     point."
+       */
+      blocks[i].Binding = (b->has_binding) ? b->binding + *binding_offset : 0;
+
+      blocks[i].UniformBufferSize = 0;
+      blocks[i]._Packing = gl_uniform_block_packing(type->interface_packing);
+
+      parcel->process(type, blocks[i].Name);
+
+      blocks[i].UniformBufferSize = parcel->buffer_size;
+
+      /* Check SSBO size is lower than maximum supported size for SSBO */
+      if (b->is_shader_storage &&
+          parcel->buffer_size > ctx->Const.MaxShaderStorageBlockSize) {
+         linker_error(prog, "shader storage block `%s' has size %d, "
+                      "which is larger than than the maximum allowed (%d)",
+                      b->type->name,
+                      parcel->buffer_size,
+                      ctx->Const.MaxShaderStorageBlockSize);
+      }
+      blocks[i].NumUniforms =
+         (unsigned)(ptrdiff_t)(&variables[parcel->index] - blocks[i].Uniforms);
+      blocks[i].IsShaderStorage = b->is_shader_storage;
+
+      *block_index = *block_index + 1;
+      *binding_offset = *binding_offset + 1;
+   }
+}
+
+/* This function resizes the array types of the block so that later we can use
+ * this new size to correctly calculate the offest for indirect indexing.
+ */
+const glsl_type *
+resize_block_array(const glsl_type *type,
+                   struct uniform_block_array_elements *ub_array)
+{
+   if (type->is_array()) {
+      struct uniform_block_array_elements *child_array =
+         type->fields.array->is_array() ? ub_array->array : NULL;
+      const glsl_type *new_child_type =
+         resize_block_array(type->fields.array, child_array);
+
+      const glsl_type *new_type =
+         glsl_type::get_array_instance(new_child_type,
+                                       ub_array->num_array_elements);
+      ub_array->ir->array->type = new_type;
+      return new_type;
+   } else {
+      return type;
+   }
+}
+
 unsigned
 link_uniform_blocks(void *mem_ctx,
+                    struct gl_context *ctx,
                     struct gl_shader_program *prog,
                     struct gl_shader **shader_list,
                     unsigned num_shaders,
@@ -205,21 +308,25 @@ link_uniform_blocks(void *mem_ctx,
    struct hash_entry *entry;
 
    hash_table_foreach (block_hash, entry) {
-      const struct link_uniform_block_active *const b =
-         (const struct link_uniform_block_active *) entry->data;
+      struct link_uniform_block_active *const b =
+         (struct link_uniform_block_active *) entry->data;
 
-      const glsl_type *const block_type =
-         b->type->is_array() ? b->type->fields.array : b->type;
+      assert((b->array != NULL) == b->type->is_array());
 
-      assert((b->num_array_elements > 0) == b->type->is_array());
+      if (b->array != NULL &&
+          (b->type->without_array()->interface_packing ==
+           GLSL_INTERFACE_PACKING_PACKED)) {
+         b->type = resize_block_array(b->type, b->array);
+         b->var->type = b->type;
+      }
 
       block_size.num_active_uniforms = 0;
-      block_size.process(block_type, "");
+      block_size.process(b->type->without_array(), "");
 
-      if (b->num_array_elements > 0) {
-         num_blocks += b->num_array_elements;
-         num_variables += b->num_array_elements
-            * block_size.num_active_uniforms;
+      if (b->array != NULL) {
+         unsigned aoa_size = b->type->arrays_of_arrays_size();
+         num_blocks += aoa_size;
+         num_variables += aoa_size * block_size.num_active_uniforms;
       } else {
          num_blocks++;
          num_variables += block_size.num_active_uniforms;
@@ -255,48 +362,23 @@ link_uniform_blocks(void *mem_ctx,
                  == unsigned(ubo_packing_shared));
    STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_PACKED)
                  == unsigned(ubo_packing_packed));
-
+   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD430)
+                 == unsigned(ubo_packing_std430));
 
    hash_table_foreach (block_hash, entry) {
       const struct link_uniform_block_active *const b =
          (const struct link_uniform_block_active *) entry->data;
       const glsl_type *block_type = b->type;
 
-      if (b->num_array_elements > 0) {
-         const char *const name = block_type->fields.array->name;
+      if (b->array != NULL) {
+         unsigned binding_offset = 0;
+         char *name = ralloc_strdup(NULL, block_type->without_array()->name);
+         size_t name_length = strlen(name);
 
          assert(b->has_instance_name);
-         for (unsigned j = 0; j < b->num_array_elements; j++) {
-            blocks[i].Name = ralloc_asprintf(blocks, "%s[%u]", name,
-                                             b->array_elements[j]);
-            blocks[i].Uniforms = &variables[parcel.index];
-
-            /* The GL_ARB_shading_language_420pack spec says:
-             *
-             *     "If the binding identifier is used with a uniform block
-             *     instanced as an array then the first element of the array
-             *     takes the specified block binding and each subsequent
-             *     element takes the next consecutive uniform block binding
-             *     point."
-             */
-            blocks[i].Binding = (b->has_binding) ? b->binding + j : 0;
-
-            blocks[i].UniformBufferSize = 0;
-            blocks[i]._Packing =
-               gl_uniform_block_packing(block_type->interface_packing);
-
-            parcel.process(block_type->fields.array,
-                           blocks[i].Name);
-
-            blocks[i].UniformBufferSize = parcel.buffer_size;
-
-            blocks[i].NumUniforms =
-               (unsigned)(ptrdiff_t)(&variables[parcel.index] - blocks[i].Uniforms);
-
-            blocks[i].IsShaderStorage = b->is_shader_storage;
-
-            i++;
-         }
+         process_block_array(b->array, &name, name_length, blocks, &parcel,
+                             variables, b, &i, &binding_offset, ctx, prog);
+         ralloc_free(name);
       } else {
          blocks[i].Name = ralloc_strdup(blocks, block_type->name);
          blocks[i].Uniforms = &variables[parcel.index];
@@ -310,6 +392,15 @@ link_uniform_blocks(void *mem_ctx,
 
          blocks[i].UniformBufferSize = parcel.buffer_size;
 
+         /* Check SSBO size is lower than maximum supported size for SSBO */
+         if (b->is_shader_storage &&
+             parcel.buffer_size > ctx->Const.MaxShaderStorageBlockSize) {
+            linker_error(prog, "shader storage block `%s' has size %d, "
+                         "which is larger than than the maximum allowed (%d)",
+                         block_type->name,
+                         parcel.buffer_size,
+                         ctx->Const.MaxShaderStorageBlockSize);
+         }
          blocks[i].NumUniforms =
             (unsigned)(ptrdiff_t)(&variables[parcel.index] - blocks[i].Uniforms);
 

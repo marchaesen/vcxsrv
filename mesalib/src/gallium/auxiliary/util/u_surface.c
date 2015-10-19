@@ -676,6 +676,9 @@ util_try_blit_via_copy_region(struct pipe_context *ctx,
       return FALSE;
    }
 
+   if (blit->alpha_blend)
+      return FALSE;
+
    ctx->resource_copy_region(ctx, blit->dst.resource, blit->dst.level,
                              blit->dst.box.x, blit->dst.box.y, blit->dst.box.z,
                              blit->src.resource, blit->src.level,

@@ -41,6 +41,8 @@ supported_interface_enum(struct gl_context *ctx, GLenum iface)
    case GL_PROGRAM_OUTPUT:
    case GL_TRANSFORM_FEEDBACK_VARYING:
    case GL_ATOMIC_COUNTER_BUFFER:
+   case GL_BUFFER_VARIABLE:
+   case GL_SHADER_STORAGE_BLOCK:
       return true;
    case GL_VERTEX_SUBROUTINE:
    case GL_FRAGMENT_SUBROUTINE:
@@ -58,8 +60,6 @@ supported_interface_enum(struct gl_context *ctx, GLenum iface)
    case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
    case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
       return _mesa_has_tessellation(ctx) && _mesa_has_shader_subroutine(ctx);
-   case GL_BUFFER_VARIABLE:
-   case GL_SHADER_STORAGE_BLOCK:
    default:
       return false;
    }
@@ -111,16 +111,15 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
       for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
          if (shProg->ProgramResourceList[i].Type != programInterface)
             continue;
-         const char *name =
-            _mesa_program_resource_name(&shProg->ProgramResourceList[i]);
-         unsigned array_size =
-            _mesa_program_resource_array_size(&shProg->ProgramResourceList[i]);
-         *params = MAX2(*params, strlen(name) + (array_size ? 3 : 0) + 1);
+         unsigned len =
+            _mesa_program_resource_name_len(&shProg->ProgramResourceList[i]);
+         *params = MAX2(*params, len + 1);
       }
       break;
    case GL_MAX_NUM_ACTIVE_VARIABLES:
       switch (programInterface) {
       case GL_UNIFORM_BLOCK:
+      case GL_SHADER_STORAGE_BLOCK:
          for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
             if (shProg->ProgramResourceList[i].Type == programInterface) {
                struct gl_uniform_block *block =
@@ -247,8 +246,10 @@ _mesa_GetProgramResourceIndex(GLuint program, GLenum programInterface,
    case GL_PROGRAM_INPUT:
    case GL_PROGRAM_OUTPUT:
    case GL_UNIFORM:
+   case GL_BUFFER_VARIABLE:
    case GL_TRANSFORM_FEEDBACK_VARYING:
    case GL_UNIFORM_BLOCK:
+   case GL_SHADER_STORAGE_BLOCK:
       res = _mesa_program_resource_find_name(shProg, programInterface, name,
                                              &array_index);
       if (!res || array_index > 0)
@@ -273,12 +274,6 @@ _mesa_GetProgramResourceName(GLuint program, GLenum programInterface,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
                                       "glGetProgramResourceName");
-
-   /* Set user friendly return values in case of errors. */
-   if (name)
-      *name = '\0';
-   if (length)
-      *length = 0;
 
    if (!shProg || !name)
       return;

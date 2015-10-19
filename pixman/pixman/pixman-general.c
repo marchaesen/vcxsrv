@@ -155,22 +155,20 @@ general_composite_rect  (pixman_implementation_t *imp,
 #define ALIGN(addr)							\
     ((uint8_t *)((((uintptr_t)(addr)) + 15) & (~15)))
 
-    src_buffer = ALIGN (scanline_buffer);
-    mask_buffer = ALIGN (src_buffer + width * Bpp);
-    dest_buffer = ALIGN (mask_buffer + width * Bpp);
+    if (width <= 0 || _pixman_multiply_overflows_int (width, Bpp * 3))
+	return;
 
-    if (ALIGN (dest_buffer + width * Bpp) >
-	    scanline_buffer + sizeof (stack_scanline_buffer))
+    if (width * Bpp * 3 > sizeof (stack_scanline_buffer) - 15 * 3)
     {
-	scanline_buffer = pixman_malloc_ab_plus_c (width, Bpp * 3, 32 * 3);
+	scanline_buffer = pixman_malloc_ab_plus_c (width, Bpp * 3, 15 * 3);
 
 	if (!scanline_buffer)
 	    return;
-
-	src_buffer = ALIGN (scanline_buffer);
-	mask_buffer = ALIGN (src_buffer + width * Bpp);
-	dest_buffer = ALIGN (mask_buffer + width * Bpp);
     }
+
+    src_buffer = ALIGN (scanline_buffer);
+    mask_buffer = ALIGN (src_buffer + width * Bpp);
+    dest_buffer = ALIGN (mask_buffer + width * Bpp);
 
     if (width_flag == ITER_WIDE)
     {

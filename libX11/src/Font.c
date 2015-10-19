@@ -105,7 +105,7 @@ XFontStruct *XLoadQueryFont(
       return font_result;
     LockDisplay(dpy);
     GetReq(OpenFont, req);
-    seq = dpy->request;
+    seq = dpy->request; /* Can't use extended sequence number here */
     nbytes = req->nbytes  = name ? strlen(name) : 0;
     req->fid = fid = XAllocID(dpy);
     req->length += (nbytes+3)>>2;

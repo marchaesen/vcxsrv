@@ -500,7 +500,9 @@ set_tex_parameteri(struct gl_context *ctx,
       goto invalid_pname;
 
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
-      if (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_stencil_texturing) {
+      if ((_mesa_is_desktop_gl(ctx) &&
+           ctx->Extensions.ARB_stencil_texturing) ||
+          _mesa_is_gles31(ctx)) {
          bool stencil = params[0] == GL_STENCIL_INDEX;
          if (!stencil && params[0] != GL_DEPTH_COMPONENT)
             goto invalid_param;
@@ -1206,20 +1208,35 @@ static GLboolean
 legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target,
                                      bool dsa)
 {
+   /* Common targets for desktop GL and GLES 3.1. */
    switch (target) {
-   case GL_TEXTURE_1D:
-   case GL_PROXY_TEXTURE_1D:
    case GL_TEXTURE_2D:
-   case GL_PROXY_TEXTURE_2D:
    case GL_TEXTURE_3D:
-   case GL_PROXY_TEXTURE_3D:
       return GL_TRUE;
+   case GL_TEXTURE_2D_ARRAY_EXT:
+      return ctx->Extensions.EXT_texture_array;
    case GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB:
    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB:
    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB:
    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB:
    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB:
    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB:
+      return ctx->Extensions.ARB_texture_cube_map;
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return ctx->Extensions.ARB_texture_multisample;
+   }
+
+   if (!_mesa_is_desktop_gl(ctx))
+      return GL_FALSE;
+
+   /* Rest of the desktop GL targets. */
+   switch (target) {
+   case GL_TEXTURE_1D:
+   case GL_PROXY_TEXTURE_1D:
+   case GL_PROXY_TEXTURE_2D:
+   case GL_PROXY_TEXTURE_3D:
+      return GL_TRUE;
    case GL_PROXY_TEXTURE_CUBE_MAP_ARB:
       return ctx->Extensions.ARB_texture_cube_map;
    case GL_TEXTURE_CUBE_MAP_ARRAY_ARB:
@@ -1230,7 +1247,6 @@ legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target,
       return ctx->Extensions.NV_texture_rectangle;
    case GL_TEXTURE_1D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_1D_ARRAY_EXT:
-   case GL_TEXTURE_2D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
       return ctx->Extensions.EXT_texture_array;
    case GL_TEXTURE_BUFFER:
@@ -1252,8 +1268,6 @@ legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target,
        * "target may also be TEXTURE_BUFFER, indicating the texture buffer."
        */
       return ctx->API == API_OPENGL_CORE && ctx->Version >= 31;
-   case GL_TEXTURE_2D_MULTISAMPLE:
-   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return ctx->Extensions.ARB_texture_multisample;
@@ -1560,6 +1574,19 @@ invalid_pname:
                _mesa_enum_to_string(pname));
 }
 
+static bool
+valid_tex_level_parameteriv_target(struct gl_context *ctx, GLenum target,
+                                   bool dsa)
+{
+   const char *suffix = dsa ? "ture" : "";
+   if (!legal_get_tex_level_parameter_target(ctx, target, dsa)) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glGetTex%sLevelParameter[if]v(target=%s)", suffix,
+                  _mesa_enum_to_string(target));
+      return false;
+   }
+   return true;
+}
 
 /**
  * This isn't exposed to the rest of the driver because it is a part of the
@@ -1580,13 +1607,6 @@ get_tex_level_parameteriv(struct gl_context *ctx,
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetTex%sLevelParameter[if]v("
                   "current unit >= max combined texture units)", suffix);
-      return;
-   }
-
-   if (!legal_get_tex_level_parameter_target(ctx, target, dsa)) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glGetTex%sLevelParameter[if]v(target=%s)", suffix,
-                  _mesa_enum_to_string(target));
       return;
    }
 
@@ -1617,6 +1637,9 @@ _mesa_GetTexLevelParameterfv( GLenum target, GLint level,
    GLint iparam;
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!valid_tex_level_parameteriv_target(ctx, target, false))
+      return;
+
    texObj = _mesa_get_current_tex_object(ctx, target);
    if (!texObj)
       return;
@@ -1633,6 +1656,9 @@ _mesa_GetTexLevelParameteriv( GLenum target, GLint level,
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!valid_tex_level_parameteriv_target(ctx, target, false))
+      return;
 
    texObj = _mesa_get_current_tex_object(ctx, target);
    if (!texObj)
@@ -1655,6 +1681,9 @@ _mesa_GetTextureLevelParameterfv(GLuint texture, GLint level,
    if (!texObj)
       return;
 
+   if (!valid_tex_level_parameteriv_target(ctx, texObj->Target, true))
+      return;
+
    get_tex_level_parameteriv(ctx, texObj, texObj->Target, level,
                              pname, &iparam, true);
 
@@ -1671,6 +1700,9 @@ _mesa_GetTextureLevelParameteriv(GLuint texture, GLint level,
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glGetTextureLevelParameteriv");
    if (!texObj)
+      return;
+
+   if (!valid_tex_level_parameteriv_target(ctx, texObj->Target, true))
       return;
 
    get_tex_level_parameteriv(ctx, texObj, texObj->Target, level,
@@ -1886,6 +1918,18 @@ get_tex_parameterfv(struct gl_context *ctx,
          if (!ctx->Extensions.EXT_texture_sRGB_decode)
             goto invalid_pname;
          *params = (GLfloat) obj->Sampler.sRGBDecode;
+         break;
+
+      case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
+         if (!ctx->Extensions.ARB_shader_image_load_store)
+            goto invalid_pname;
+         *params = (GLfloat) obj->ImageFormatCompatibilityType;
+         break;
+
+      case GL_TEXTURE_TARGET:
+         if (ctx->API != API_OPENGL_CORE)
+            goto invalid_pname;
+         *params = ENUM_TO_FLOAT(obj->Target);
          break;
 
       default:
@@ -2111,6 +2155,12 @@ get_tex_parameteriv(struct gl_context *ctx,
          if (!ctx->Extensions.ARB_shader_image_load_store)
             goto invalid_pname;
          *params = obj->ImageFormatCompatibilityType;
+         break;
+
+      case GL_TEXTURE_TARGET:
+         if (ctx->API != API_OPENGL_CORE)
+            goto invalid_pname;
+         *params = (GLint) obj->Target;
          break;
 
       default:

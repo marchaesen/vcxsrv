@@ -15,13 +15,13 @@
    <enum name="MAX_FRAMEBUFFER_LAYERS"                     value="0x9317" />
    <enum name="MAX_FRAMEBUFFER_SAMPLES"                    value="0x9318" />
 
-    <function name="FramebufferParameteri">
+    <function name="FramebufferParameteri" es2="3.1">
        <param name="target" type="GLenum"/>
        <param name="pname"  type="GLenum"/>
        <param name="param"  type="GLint" />
     </function>
 
-    <function name="GetFramebufferParameteriv">
+    <function name="GetFramebufferParameteriv" es2="3.1">
        <param name="target" type="GLenum" />
        <param name="pname"  type="GLenum" />
        <param name="params" type="GLint *" output="true" />

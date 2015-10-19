@@ -170,6 +170,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token <identifier> IDENTIFIER TYPE_IDENTIFIER NEW_IDENTIFIER
 %type <identifier> any_identifier
 %type <interface_block> instance_name_opt
+%type <interface_block> buffer_instance_name_opt
 %token <real> FLOATCONSTANT
 %token <dreal> DOUBLECONSTANT
 %token <n> INTCONSTANT UINTCONSTANT BOOLCONSTANT
@@ -219,6 +220,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <type_qualifier> subroutine_qualifier
 %type <subroutine_list> subroutine_type_list
 %type <type_qualifier> interface_qualifier
+%type <type_qualifier> buffer_interface_qualifier
 %type <type_specifier> type_specifier
 %type <type_specifier> type_specifier_nonarray
 %type <array_specifier> array_specifier
@@ -1198,6 +1200,8 @@ layout_qualifier_id:
             $$.flags.q.std140 = 1;
          } else if (match_layout_qualifier($1, "shared", state) == 0) {
             $$.flags.q.shared = 1;
+         } else if (match_layout_qualifier($1, "std430", state) == 0) {
+            $$.flags.q.std430 = 1;
          } else if (match_layout_qualifier($1, "column_major", state) == 0) {
             $$.flags.q.column_major = 1;
          /* "row_major" is a reserved word in GLSL 1.30+. Its token is parsed
@@ -1259,56 +1263,65 @@ layout_qualifier_id:
 
       /* Layout qualifiers for ARB_shader_image_load_store. */
       if (state->ARB_shader_image_load_store_enable ||
-          state->is_version(420, 0)) {
+          state->is_version(420, 310)) {
          if (!$$.flags.i) {
             static const struct {
                const char *name;
                GLenum format;
                glsl_base_type base_type;
+               /** Minimum desktop GLSL version required for the image
+                * format.  Use 130 if already present in the original
+                * ARB extension.
+                */
+               unsigned required_glsl;
+               /** Minimum GLSL ES version required for the image format. */
+               unsigned required_essl;
             } map[] = {
-               { "rgba32f", GL_RGBA32F, GLSL_TYPE_FLOAT },
-               { "rgba16f", GL_RGBA16F, GLSL_TYPE_FLOAT },
-               { "rg32f", GL_RG32F, GLSL_TYPE_FLOAT },
-               { "rg16f", GL_RG16F, GLSL_TYPE_FLOAT },
-               { "r11f_g11f_b10f", GL_R11F_G11F_B10F, GLSL_TYPE_FLOAT },
-               { "r32f", GL_R32F, GLSL_TYPE_FLOAT },
-               { "r16f", GL_R16F, GLSL_TYPE_FLOAT },
-               { "rgba32ui", GL_RGBA32UI, GLSL_TYPE_UINT },
-               { "rgba16ui", GL_RGBA16UI, GLSL_TYPE_UINT },
-               { "rgb10_a2ui", GL_RGB10_A2UI, GLSL_TYPE_UINT },
-               { "rgba8ui", GL_RGBA8UI, GLSL_TYPE_UINT },
-               { "rg32ui", GL_RG32UI, GLSL_TYPE_UINT },
-               { "rg16ui", GL_RG16UI, GLSL_TYPE_UINT },
-               { "rg8ui", GL_RG8UI, GLSL_TYPE_UINT },
-               { "r32ui", GL_R32UI, GLSL_TYPE_UINT },
-               { "r16ui", GL_R16UI, GLSL_TYPE_UINT },
-               { "r8ui", GL_R8UI, GLSL_TYPE_UINT },
-               { "rgba32i", GL_RGBA32I, GLSL_TYPE_INT },
-               { "rgba16i", GL_RGBA16I, GLSL_TYPE_INT },
-               { "rgba8i", GL_RGBA8I, GLSL_TYPE_INT },
-               { "rg32i", GL_RG32I, GLSL_TYPE_INT },
-               { "rg16i", GL_RG16I, GLSL_TYPE_INT },
-               { "rg8i", GL_RG8I, GLSL_TYPE_INT },
-               { "r32i", GL_R32I, GLSL_TYPE_INT },
-               { "r16i", GL_R16I, GLSL_TYPE_INT },
-               { "r8i", GL_R8I, GLSL_TYPE_INT },
-               { "rgba16", GL_RGBA16, GLSL_TYPE_FLOAT },
-               { "rgb10_a2", GL_RGB10_A2, GLSL_TYPE_FLOAT },
-               { "rgba8", GL_RGBA8, GLSL_TYPE_FLOAT },
-               { "rg16", GL_RG16, GLSL_TYPE_FLOAT },
-               { "rg8", GL_RG8, GLSL_TYPE_FLOAT },
-               { "r16", GL_R16, GLSL_TYPE_FLOAT },
-               { "r8", GL_R8, GLSL_TYPE_FLOAT },
-               { "rgba16_snorm", GL_RGBA16_SNORM, GLSL_TYPE_FLOAT },
-               { "rgba8_snorm", GL_RGBA8_SNORM, GLSL_TYPE_FLOAT },
-               { "rg16_snorm", GL_RG16_SNORM, GLSL_TYPE_FLOAT },
-               { "rg8_snorm", GL_RG8_SNORM, GLSL_TYPE_FLOAT },
-               { "r16_snorm", GL_R16_SNORM, GLSL_TYPE_FLOAT },
-               { "r8_snorm", GL_R8_SNORM, GLSL_TYPE_FLOAT }
+               { "rgba32f", GL_RGBA32F, GLSL_TYPE_FLOAT, 130, 310 },
+               { "rgba16f", GL_RGBA16F, GLSL_TYPE_FLOAT, 130, 310 },
+               { "rg32f", GL_RG32F, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rg16f", GL_RG16F, GLSL_TYPE_FLOAT, 130, 0 },
+               { "r11f_g11f_b10f", GL_R11F_G11F_B10F, GLSL_TYPE_FLOAT, 130, 0 },
+               { "r32f", GL_R32F, GLSL_TYPE_FLOAT, 130, 310 },
+               { "r16f", GL_R16F, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rgba32ui", GL_RGBA32UI, GLSL_TYPE_UINT, 130, 310 },
+               { "rgba16ui", GL_RGBA16UI, GLSL_TYPE_UINT, 130, 310 },
+               { "rgb10_a2ui", GL_RGB10_A2UI, GLSL_TYPE_UINT, 130, 0 },
+               { "rgba8ui", GL_RGBA8UI, GLSL_TYPE_UINT, 130, 310 },
+               { "rg32ui", GL_RG32UI, GLSL_TYPE_UINT, 130, 0 },
+               { "rg16ui", GL_RG16UI, GLSL_TYPE_UINT, 130, 0 },
+               { "rg8ui", GL_RG8UI, GLSL_TYPE_UINT, 130, 0 },
+               { "r32ui", GL_R32UI, GLSL_TYPE_UINT, 130, 310 },
+               { "r16ui", GL_R16UI, GLSL_TYPE_UINT, 130, 0 },
+               { "r8ui", GL_R8UI, GLSL_TYPE_UINT, 130, 0 },
+               { "rgba32i", GL_RGBA32I, GLSL_TYPE_INT, 130, 310 },
+               { "rgba16i", GL_RGBA16I, GLSL_TYPE_INT, 130, 310 },
+               { "rgba8i", GL_RGBA8I, GLSL_TYPE_INT, 130, 310 },
+               { "rg32i", GL_RG32I, GLSL_TYPE_INT, 130, 0 },
+               { "rg16i", GL_RG16I, GLSL_TYPE_INT, 130, 0 },
+               { "rg8i", GL_RG8I, GLSL_TYPE_INT, 130, 0 },
+               { "r32i", GL_R32I, GLSL_TYPE_INT, 130, 310 },
+               { "r16i", GL_R16I, GLSL_TYPE_INT, 130, 0 },
+               { "r8i", GL_R8I, GLSL_TYPE_INT, 130, 0 },
+               { "rgba16", GL_RGBA16, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rgb10_a2", GL_RGB10_A2, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rgba8", GL_RGBA8, GLSL_TYPE_FLOAT, 130, 310 },
+               { "rg16", GL_RG16, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rg8", GL_RG8, GLSL_TYPE_FLOAT, 130, 0 },
+               { "r16", GL_R16, GLSL_TYPE_FLOAT, 130, 0 },
+               { "r8", GL_R8, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rgba16_snorm", GL_RGBA16_SNORM, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rgba8_snorm", GL_RGBA8_SNORM, GLSL_TYPE_FLOAT, 130, 310 },
+               { "rg16_snorm", GL_RG16_SNORM, GLSL_TYPE_FLOAT, 130, 0 },
+               { "rg8_snorm", GL_RG8_SNORM, GLSL_TYPE_FLOAT, 130, 0 },
+               { "r16_snorm", GL_R16_SNORM, GLSL_TYPE_FLOAT, 130, 0 },
+               { "r8_snorm", GL_R8_SNORM, GLSL_TYPE_FLOAT, 130, 0 }
             };
 
             for (unsigned i = 0; i < ARRAY_SIZE(map); i++) {
-               if (match_layout_qualifier($1, map[i].name, state) == 0) {
+               if (state->is_version(map[i].required_glsl,
+                                     map[i].required_essl) &&
+                   match_layout_qualifier($1, map[i].name, state) == 0) {
                   $$.flags.q.explicit_image_format = 1;
                   $$.image_format = map[i].format;
                   $$.image_base_type = map[i].base_type;
@@ -1520,11 +1533,10 @@ layout_qualifier_id:
                                 "invalid %s of %d specified",
                                 local_size_qualifiers[i], $3);
                YYERROR;
-            } else if (!state->is_version(430, 0) &&
-                       !state->ARB_compute_shader_enable) {
+            } else if (!state->has_compute_shader()) {
                _mesa_glsl_error(& @3, state,
                                 "%s qualifier requires GLSL 4.30 or "
-                                "ARB_compute_shader",
+                                "GLSL ES 3.10 or ARB_compute_shader",
                                 local_size_qualifiers[i]);
                YYERROR;
             } else {
@@ -1951,7 +1963,9 @@ array_specifier:
    '[' ']'
    {
       void *ctx = state;
-      $$ = new(ctx) ast_array_specifier(@1);
+      $$ = new(ctx) ast_array_specifier(@1, new(ctx) ast_expression(
+                                                  ast_unsized_array_dim, NULL,
+                                                  NULL, NULL));
       $$->set_location_range(@1, @2);
    }
    | '[' constant_expression ']'
@@ -1962,29 +1976,21 @@ array_specifier:
    }
    | array_specifier '[' ']'
    {
+      void *ctx = state;
       $$ = $1;
 
-      if (!state->ARB_arrays_of_arrays_enable) {
-         _mesa_glsl_error(& @1, state,
-                          "GL_ARB_arrays_of_arrays "
-                          "required for defining arrays of arrays");
-      } else {
-         _mesa_glsl_error(& @1, state,
-                          "only the outermost array dimension can "
-                          "be unsized");
+      if (state->check_arrays_of_arrays_allowed(& @1)) {
+         $$->add_dimension(new(ctx) ast_expression(ast_unsized_array_dim, NULL,
+                                                   NULL, NULL));
       }
    }
    | array_specifier '[' constant_expression ']'
    {
       $$ = $1;
 
-      if (!state->ARB_arrays_of_arrays_enable) {
-         _mesa_glsl_error(& @1, state,
-                          "GL_ARB_arrays_of_arrays "
-                          "required for defining arrays of arrays");
+      if (state->check_arrays_of_arrays_allowed(& @1)) {
+         $$->add_dimension($3);
       }
-
-      $$->add_dimension($3);
    }
    ;
 
@@ -2588,12 +2594,21 @@ interface_block:
    {
       $$ = $1;
    }
-   | layout_qualifier basic_interface_block
+   | layout_qualifier interface_block
    {
-      ast_interface_block *block = $2;
+      ast_interface_block *block = (ast_interface_block *) $2;
+
+      if (!state->has_420pack() && block->layout.has_layout() &&
+          !block->layout.is_default_qualifier) {
+         _mesa_glsl_error(&@1, state, "duplicate layout(...) qualifiers");
+         YYERROR;
+      }
+
       if (!block->layout.merge_qualifier(& @1, state, $1)) {
          YYERROR;
       }
+
+      block->layout.is_default_qualifier = false;
 
       foreach_list_typed (ast_declarator_list, member, link, &block->declarations) {
          ast_type_qualifier& qualifier = member->type->qualifier;
@@ -2608,6 +2623,20 @@ interface_block:
       }
       $$ = block;
    }
+   | memory_qualifier interface_block
+   {
+      ast_interface_block *block = (ast_interface_block *)$2;
+
+      if (!block->layout.flags.q.buffer) {
+            _mesa_glsl_error(& @1, state,
+                             "memory qualifiers can only be used in the "
+                             "declaration of shader storage blocks");
+      }
+      if (!block->layout.merge_qualifier(& @1, state, $1)) {
+         YYERROR;
+      }
+      $$ = block;
+   }
    ;
 
 basic_interface_block:
@@ -2618,132 +2647,18 @@ basic_interface_block:
       block->block_name = $2;
       block->declarations.push_degenerate_list_at_head(& $4->link);
 
-      if ($1.flags.q.buffer) {
-         if (!state->has_shader_storage_buffer_objects()) {
-            _mesa_glsl_error(& @1, state,
-                             "#version 430 / GL_ARB_shader_storage_buffer_object "
-                             "required for defining shader storage blocks");
-         } else if (state->ARB_shader_storage_buffer_object_warn) {
-            _mesa_glsl_warning(& @1, state,
-                               "#version 430 / GL_ARB_shader_storage_buffer_object "
-                               "required for defining shader storage blocks");
-         }
-      } else if ($1.flags.q.uniform) {
-         if (!state->has_uniform_buffer_objects()) {
-            _mesa_glsl_error(& @1, state,
-                             "#version 140 / GL_ARB_uniform_buffer_object "
-                             "required for defining uniform blocks");
-         } else if (state->ARB_uniform_buffer_object_warn) {
-            _mesa_glsl_warning(& @1, state,
-                               "#version 140 / GL_ARB_uniform_buffer_object "
-                               "required for defining uniform blocks");
-         }
-      } else {
-         if (state->es_shader || state->language_version < 150) {
-            _mesa_glsl_error(& @1, state,
-                             "#version 150 required for using "
-                             "interface blocks");
-         }
-      }
+      _mesa_ast_process_interface_block(& @1, state, block, $1);
 
-      /* From the GLSL 1.50.11 spec, section 4.3.7 ("Interface Blocks"):
-       * "It is illegal to have an input block in a vertex shader
-       *  or an output block in a fragment shader"
-       */
-      if ((state->stage == MESA_SHADER_VERTEX) && $1.flags.q.in) {
-         _mesa_glsl_error(& @1, state,
-                          "`in' interface block is not allowed for "
-                          "a vertex shader");
-      } else if ((state->stage == MESA_SHADER_FRAGMENT) && $1.flags.q.out) {
-         _mesa_glsl_error(& @1, state,
-                          "`out' interface block is not allowed for "
-                          "a fragment shader");
-      }
+      $$ = block;
+   }
+   | buffer_interface_qualifier NEW_IDENTIFIER '{' member_list '}' buffer_instance_name_opt ';'
+   {
+      ast_interface_block *const block = $6;
 
-      /* Since block arrays require names, and both features are added in
-       * the same language versions, we don't have to explicitly
-       * version-check both things.
-       */
-      if (block->instance_name != NULL) {
-         state->check_version(150, 300, & @1, "interface blocks with "
-                               "an instance name are not allowed");
-      }
+      block->block_name = $2;
+      block->declarations.push_degenerate_list_at_head(& $4->link);
 
-      uint64_t interface_type_mask;
-      struct ast_type_qualifier temp_type_qualifier;
-
-      /* Get a bitmask containing only the in/out/uniform/buffer
-       * flags, allowing us to ignore other irrelevant flags like
-       * interpolation qualifiers.
-       */
-      temp_type_qualifier.flags.i = 0;
-      temp_type_qualifier.flags.q.uniform = true;
-      temp_type_qualifier.flags.q.buffer = true;
-      temp_type_qualifier.flags.q.in = true;
-      temp_type_qualifier.flags.q.out = true;
-      interface_type_mask = temp_type_qualifier.flags.i;
-
-      /* Get the block's interface qualifier.  The interface_qualifier
-       * production rule guarantees that only one bit will be set (and
-       * it will be in/out/uniform).
-       */
-      uint64_t block_interface_qualifier = $1.flags.i;
-
-      block->layout.flags.i |= block_interface_qualifier;
-
-      if (state->stage == MESA_SHADER_GEOMETRY &&
-          state->has_explicit_attrib_stream()) {
-         /* Assign global layout's stream value. */
-         block->layout.flags.q.stream = 1;
-         block->layout.flags.q.explicit_stream = 0;
-         block->layout.stream = state->out_qualifier->stream;
-      }
-
-      foreach_list_typed (ast_declarator_list, member, link, &block->declarations) {
-         ast_type_qualifier& qualifier = member->type->qualifier;
-         if ((qualifier.flags.i & interface_type_mask) == 0) {
-            /* GLSLangSpec.1.50.11, 4.3.7 (Interface Blocks):
-             * "If no optional qualifier is used in a member declaration, the
-             *  qualifier of the variable is just in, out, or uniform as declared
-             *  by interface-qualifier."
-             */
-            qualifier.flags.i |= block_interface_qualifier;
-         } else if ((qualifier.flags.i & interface_type_mask) !=
-                    block_interface_qualifier) {
-            /* GLSLangSpec.1.50.11, 4.3.7 (Interface Blocks):
-             * "If optional qualifiers are used, they can include interpolation
-             *  and storage qualifiers and they must declare an input, output,
-             *  or uniform variable consistent with the interface qualifier of
-             *  the block."
-             */
-            _mesa_glsl_error(& @1, state,
-                             "uniform/in/out qualifier on "
-                             "interface block member does not match "
-                             "the interface block");
-         }
-
-         /* From GLSL ES 3.0, chapter 4.3.7 "Interface Blocks":
-          *
-          * "GLSL ES 3.0 does not support interface blocks for shader inputs or
-          * outputs."
-          *
-          * And from GLSL ES 3.0, chapter 4.6.1 "The invariant qualifier":.
-          *
-          * "Only variables output from a shader can be candidates for
-          * invariance."
-          *
-          * From GLSL 4.40 and GLSL 1.50, section "Interface Blocks":
-          *
-          * "If optional qualifiers are used, they can include interpolation
-          * qualifiers, auxiliary storage qualifiers, and storage qualifiers
-          * and they must declare an input, output, or uniform member
-          * consistent with the interface qualifier of the block"
-          */
-         if (qualifier.flags.q.invariant)
-            _mesa_glsl_error(&@1, state,
-                             "invariant qualifiers cannot be used "
-                             "with interface blocks members");
-      }
+      _mesa_ast_process_interface_block(& @1, state, block, $1);
 
       $$ = block;
    }
@@ -2765,7 +2680,10 @@ interface_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.uniform = 1;
    }
-   | BUFFER
+   ;
+
+buffer_interface_qualifier:
+   BUFFER
    {
       memset(& $$, 0, sizeof($$));
       $$.flags.q.buffer = 1;
@@ -2787,6 +2705,26 @@ instance_name_opt:
    | NEW_IDENTIFIER array_specifier
    {
       $$ = new(state) ast_interface_block(*state->default_uniform_qualifier,
+                                          $1, $2);
+      $$->set_location_range(@1, @2);
+   }
+   ;
+
+buffer_instance_name_opt:
+   /* empty */
+   {
+      $$ = new(state) ast_interface_block(*state->default_shader_storage_qualifier,
+                                          NULL, NULL);
+   }
+   | NEW_IDENTIFIER
+   {
+      $$ = new(state) ast_interface_block(*state->default_shader_storage_qualifier,
+                                          $1, NULL);
+      $$->set_location(@1);
+   }
+   | NEW_IDENTIFIER array_specifier
+   {
+      $$ = new(state) ast_interface_block(*state->default_shader_storage_qualifier,
                                           $1, $2);
       $$->set_location_range(@1, @2);
    }
@@ -2835,6 +2773,25 @@ layout_defaults:
       if (!state->default_uniform_qualifier->merge_qualifier(& @1, state, $1)) {
          YYERROR;
       }
+      $$ = NULL;
+   }
+
+   | layout_qualifier BUFFER ';'
+   {
+      if (!state->default_shader_storage_qualifier->merge_qualifier(& @1, state, $1)) {
+         YYERROR;
+      }
+
+      /* From the GLSL 4.50 spec, section 4.4.5:
+       *
+       *     "It is a compile-time error to specify the binding identifier for
+       *     the global scope or for block member declarations."
+       */
+      if (state->default_shader_storage_qualifier->flags.q.explicit_binding) {
+         _mesa_glsl_error(& @1, state,
+                          "binding qualifier cannot be set for default layout");
+      }
+
       $$ = NULL;
    }
 

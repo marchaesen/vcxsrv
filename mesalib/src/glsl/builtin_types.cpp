@@ -43,9 +43,7 @@
  * convenience pointers (glsl_type::foo_type).
  * @{
  */
-#define DECL_TYPE(NAME, ...)                                    \
-   const glsl_type glsl_type::_##NAME##_type = glsl_type(__VA_ARGS__, #NAME); \
-   const glsl_type *const glsl_type::NAME##_type = &glsl_type::_##NAME##_type;
+#define DECL_TYPE(NAME, ...)
 
 #define STRUCT_TYPE(NAME)                                       \
    const glsl_type glsl_type::_struct_##NAME##_type =           \
@@ -54,64 +52,64 @@
       &glsl_type::_struct_##NAME##_type;
 
 static const struct glsl_struct_field gl_DepthRangeParameters_fields[] = {
-   { glsl_type::float_type, "near", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "far",  -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "diff", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::float_type, "near"),
+   glsl_struct_field(glsl_type::float_type, "far"),
+   glsl_struct_field(glsl_type::float_type, "diff"),
 };
 
 static const struct glsl_struct_field gl_PointParameters_fields[] = {
-   { glsl_type::float_type, "size", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "sizeMin", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "sizeMax", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "fadeThresholdSize", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "distanceConstantAttenuation", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "distanceLinearAttenuation", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "distanceQuadraticAttenuation", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::float_type, "size"),
+   glsl_struct_field(glsl_type::float_type, "sizeMin"),
+   glsl_struct_field(glsl_type::float_type, "sizeMax"),
+   glsl_struct_field(glsl_type::float_type, "fadeThresholdSize"),
+   glsl_struct_field(glsl_type::float_type, "distanceConstantAttenuation"),
+   glsl_struct_field(glsl_type::float_type, "distanceLinearAttenuation"),
+   glsl_struct_field(glsl_type::float_type, "distanceQuadraticAttenuation"),
 };
 
 static const struct glsl_struct_field gl_MaterialParameters_fields[] = {
-   { glsl_type::vec4_type, "emission", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "ambient", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "diffuse", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "specular", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "shininess", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::vec4_type, "emission"),
+   glsl_struct_field(glsl_type::vec4_type, "ambient"),
+   glsl_struct_field(glsl_type::vec4_type, "diffuse"),
+   glsl_struct_field(glsl_type::vec4_type, "specular"),
+   glsl_struct_field(glsl_type::float_type, "shininess"),
 };
 
 static const struct glsl_struct_field gl_LightSourceParameters_fields[] = {
-   { glsl_type::vec4_type, "ambient", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "diffuse", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "specular", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "position", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "halfVector", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec3_type, "spotDirection", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "spotExponent", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "spotCutoff", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "spotCosCutoff", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "constantAttenuation", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "linearAttenuation", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "quadraticAttenuation", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::vec4_type, "ambient"),
+   glsl_struct_field(glsl_type::vec4_type, "diffuse"),
+   glsl_struct_field(glsl_type::vec4_type, "specular"),
+   glsl_struct_field(glsl_type::vec4_type, "position"),
+   glsl_struct_field(glsl_type::vec4_type, "halfVector"),
+   glsl_struct_field(glsl_type::vec3_type, "spotDirection"),
+   glsl_struct_field(glsl_type::float_type, "spotExponent"),
+   glsl_struct_field(glsl_type::float_type, "spotCutoff"),
+   glsl_struct_field(glsl_type::float_type, "spotCosCutoff"),
+   glsl_struct_field(glsl_type::float_type, "constantAttenuation"),
+   glsl_struct_field(glsl_type::float_type, "linearAttenuation"),
+   glsl_struct_field(glsl_type::float_type, "quadraticAttenuation"),
 };
 
 static const struct glsl_struct_field gl_LightModelParameters_fields[] = {
-   { glsl_type::vec4_type, "ambient", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::vec4_type, "ambient"),
 };
 
 static const struct glsl_struct_field gl_LightModelProducts_fields[] = {
-   { glsl_type::vec4_type, "sceneColor", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::vec4_type, "sceneColor"),
 };
 
 static const struct glsl_struct_field gl_LightProducts_fields[] = {
-   { glsl_type::vec4_type, "ambient", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "diffuse", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::vec4_type, "specular", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::vec4_type, "ambient"),
+   glsl_struct_field(glsl_type::vec4_type, "diffuse"),
+   glsl_struct_field(glsl_type::vec4_type, "specular"),
 };
 
 static const struct glsl_struct_field gl_FogParameters_fields[] = {
-   { glsl_type::vec4_type, "color", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "density", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "start", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "end", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
-   { glsl_type::float_type, "scale", -1, 0, 0, 0, GLSL_MATRIX_LAYOUT_INHERITED, 0 },
+   glsl_struct_field(glsl_type::vec4_type, "color"),
+   glsl_struct_field(glsl_type::float_type, "density"),
+   glsl_struct_field(glsl_type::float_type, "start"),
+   glsl_struct_field(glsl_type::float_type, "end"),
+   glsl_struct_field(glsl_type::float_type, "scale"),
 };
 
 #include "builtin_type_macros.h"
@@ -127,7 +125,7 @@ static const struct glsl_struct_field gl_FogParameters_fields[] = {
 #define T(TYPE, MIN_GL, MIN_ES) \
    { glsl_type::TYPE##_type, MIN_GL, MIN_ES },
 
-const static struct builtin_type_versions {
+static const struct builtin_type_versions {
    const glsl_type *const type;
    int min_gl;
    int min_es;
@@ -182,7 +180,7 @@ const static struct builtin_type_versions {
    T(samplerCubeArray,                400, 999)
    T(sampler2DRect,                   140, 999)
    T(samplerBuffer,                   140, 999)
-   T(sampler2DMS,                     150, 999)
+   T(sampler2DMS,                     150, 310)
    T(sampler2DMSArray,                150, 999)
 
    T(isampler1D,                      130, 999)
@@ -194,7 +192,7 @@ const static struct builtin_type_versions {
    T(isamplerCubeArray,               400, 999)
    T(isampler2DRect,                  140, 999)
    T(isamplerBuffer,                  140, 999)
-   T(isampler2DMS,                    150, 999)
+   T(isampler2DMS,                    150, 310)
    T(isampler2DMSArray,               150, 999)
 
    T(usampler1D,                      130, 999)
@@ -206,7 +204,7 @@ const static struct builtin_type_versions {
    T(usamplerCubeArray,               400, 999)
    T(usampler2DRect,                  140, 999)
    T(usamplerBuffer,                  140, 999)
-   T(usampler2DMS,                    150, 999)
+   T(usampler2DMS,                    150, 310)
    T(usampler2DMSArray,               150, 999)
 
    T(sampler1DShadow,                 110, 999)
@@ -220,40 +218,40 @@ const static struct builtin_type_versions {
    T(struct_gl_DepthRangeParameters,  110, 100)
 
    T(image1D,                         420, 999)
-   T(image2D,                         420, 999)
-   T(image3D,                         420, 999)
+   T(image2D,                         420, 310)
+   T(image3D,                         420, 310)
    T(image2DRect,                     420, 999)
-   T(imageCube,                       420, 999)
+   T(imageCube,                       420, 310)
    T(imageBuffer,                     420, 999)
    T(image1DArray,                    420, 999)
-   T(image2DArray,                    420, 999)
+   T(image2DArray,                    420, 310)
    T(imageCubeArray,                  420, 999)
    T(image2DMS,                       420, 999)
    T(image2DMSArray,                  420, 999)
    T(iimage1D,                        420, 999)
-   T(iimage2D,                        420, 999)
-   T(iimage3D,                        420, 999)
+   T(iimage2D,                        420, 310)
+   T(iimage3D,                        420, 310)
    T(iimage2DRect,                    420, 999)
-   T(iimageCube,                      420, 999)
+   T(iimageCube,                      420, 310)
    T(iimageBuffer,                    420, 999)
    T(iimage1DArray,                   420, 999)
-   T(iimage2DArray,                   420, 999)
+   T(iimage2DArray,                   420, 310)
    T(iimageCubeArray,                 420, 999)
    T(iimage2DMS,                      420, 999)
    T(iimage2DMSArray,                 420, 999)
    T(uimage1D,                        420, 999)
-   T(uimage2D,                        420, 999)
-   T(uimage3D,                        420, 999)
+   T(uimage2D,                        420, 310)
+   T(uimage3D,                        420, 310)
    T(uimage2DRect,                    420, 999)
-   T(uimageCube,                      420, 999)
+   T(uimageCube,                      420, 310)
    T(uimageBuffer,                    420, 999)
    T(uimage1DArray,                   420, 999)
-   T(uimage2DArray,                   420, 999)
+   T(uimage2DArray,                   420, 310)
    T(uimageCubeArray,                 420, 999)
    T(uimage2DMS,                      420, 999)
    T(uimage2DMSArray,                 420, 999)
 
-   T(atomic_uint,                     420, 999)
+   T(atomic_uint,                     420, 310)
 };
 
 static const glsl_type *const deprecated_types[] = {
@@ -307,7 +305,8 @@ _mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state)
       add_type(symbols, glsl_type::usamplerCubeArray_type);
    }
 
-   if (state->ARB_texture_multisample_enable) {
+   if (state->ARB_texture_multisample_enable ||
+       state->OES_texture_storage_multisample_2d_array_enable) {
       add_type(symbols, glsl_type::sampler2DMS_type);
       add_type(symbols, glsl_type::isampler2DMS_type);
       add_type(symbols, glsl_type::usampler2DMS_type);

@@ -46,7 +46,7 @@ On most platforms, the "Local" connection type is a UNIX-domain socket.
 On some System V platforms, the "local" connection types also include
 STREAMS pipes, named pipes, and some other mechanisms.
 .TP 4
-.I TCP\/IP
+.I TCP/IP
 .B Xorg
 listens on port
 .RI 6000+ n ,

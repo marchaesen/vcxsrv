@@ -31,22 +31,20 @@
 
 #include <stdio.h>
 #include "main/compiler.h"
-#include "ir.h"
-#include "ir_visitor.h"
-#include "ir_expression_flattening.h"
-#include "ir_uniform.h"
-#include "glsl_types.h"
-#include "glsl_parser_extras.h"
-#include "../glsl/program.h"
-#include "ir_optimization.h"
-#include "ast.h"
-#include "linker.h"
-
 #include "main/mtypes.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-
+#include "glsl/ast.h"
+#include "glsl/ir.h"
+#include "glsl/ir_expression_flattening.h"
+#include "glsl/ir_visitor.h"
+#include "glsl/ir_optimization.h"
+#include "glsl/ir_uniform.h"
+#include "glsl/glsl_parser_extras.h"
+#include "glsl/nir/glsl_types.h"
+#include "glsl/linker.h"
+#include "glsl/program.h"
 #include "program/hash_table.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
@@ -1344,9 +1342,11 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_dFdy_coarse:
    case ir_unop_dFdy_fine:
    case ir_unop_subroutine_to_int:
+   case ir_unop_get_buffer_size:
       assert(!"not supported");
       break;
 
+   case ir_unop_ssbo_unsized_array_length:
    case ir_quadop_vector:
       /* This operation should have already been handled.
        */
@@ -1919,6 +1919,8 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
    case ir_query_levels:
       assert(!"Unexpected ir_query_levels opcode");
       break;
+   case ir_texture_samples:
+      unreachable("Unexpected ir_texture_samples opcode");
    }
 
    const glsl_type *sampler_type = ir->sampler->type;
@@ -2350,11 +2352,12 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 	 struct gl_uniform_storage *storage =
 	    &this->shader_program->UniformStorage[location];
 
-         assert(storage->sampler[shader_type].active);
+         assert(storage->type->is_sampler() &&
+                storage->opaque[shader_type].active);
 
 	 for (unsigned int j = 0; j < size / 4; j++)
             params->ParameterValues[index + j][0].f =
-               storage->sampler[shader_type].index + j;
+               storage->opaque[shader_type].index + j;
       }
    }
 
@@ -2979,7 +2982,7 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       if (!ctx->Driver.LinkShader(ctx, prog)) {
 	 prog->LinkStatus = GL_FALSE;
       } else {
-         build_program_resource_list(ctx, prog);
+         build_program_resource_list(prog);
       }
    }
 

@@ -1,3 +1,4 @@
+
 #include <stdbool.h>
 
 #include "api_loopback.h"
@@ -326,7 +327,24 @@ _mesa_GetTexEnvxv(GLenum target, GLenum pname, GLfixed *params)
       }
       break;
    case GL_TEXTURE_ENV:
-      if (pname != GL_TEXTURE_ENV_COLOR && pname != GL_RGB_SCALE && pname != GL_ALPHA_SCALE && pname != GL_TEXTURE_ENV_MODE && pname != GL_COMBINE_RGB && pname != GL_COMBINE_ALPHA && pname != GL_SRC0_RGB && pname != GL_SRC1_RGB && pname != GL_SRC2_RGB && pname != GL_SRC0_ALPHA && pname != GL_SRC1_ALPHA && pname != GL_SRC2_ALPHA && pname != GL_OPERAND0_RGB && pname != GL_OPERAND1_RGB && pname != GL_OPERAND2_RGB && pname != GL_OPERAND0_ALPHA && pname != GL_OPERAND1_ALPHA && pname != GL_OPERAND2_ALPHA) {
+      if (pname != GL_TEXTURE_ENV_COLOR &&
+          pname != GL_RGB_SCALE &&
+          pname != GL_ALPHA_SCALE &&
+          pname != GL_TEXTURE_ENV_MODE &&
+          pname != GL_COMBINE_RGB &&
+          pname != GL_COMBINE_ALPHA &&
+          pname != GL_SRC0_RGB &&
+          pname != GL_SRC1_RGB &&
+          pname != GL_SRC2_RGB &&
+          pname != GL_SRC0_ALPHA &&
+          pname != GL_SRC1_ALPHA &&
+          pname != GL_SRC2_ALPHA &&
+          pname != GL_OPERAND0_RGB &&
+          pname != GL_OPERAND1_RGB &&
+          pname != GL_OPERAND2_RGB &&
+          pname != GL_OPERAND0_ALPHA &&
+          pname != GL_OPERAND1_ALPHA &&
+          pname != GL_OPERAND2_ALPHA) {
          _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                      "glGetTexEnvxv(target=0x%x)", target);
          return;

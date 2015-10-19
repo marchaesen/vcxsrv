@@ -31,6 +31,7 @@
 
 
 #include "main/compiler.h"
+#include <stdbool.h>
 
 struct dd_function_table;
 struct st_context;
@@ -40,15 +41,11 @@ extern void st_init_drawpixels_functions(struct dd_function_table *functions);
 extern void
 st_destroy_drawpix(struct st_context *st);
 
-extern void
-st_make_drawpix_fragment_program(struct st_context *st,
-                                 struct gl_fragment_program *fpIn,
-                                 struct gl_fragment_program **fpOut);
-
-extern struct gl_fragment_program *
-st_make_drawpix_z_stencil_program(struct st_context *st,
-                                  GLboolean write_depth,
-                                  GLboolean write_stencil);
-
+extern const struct tgsi_token *
+st_get_drawpix_shader(const struct tgsi_token *tokens, bool use_texcoord,
+                      bool scale_and_bias, unsigned scale_const,
+                      unsigned bias_const, bool pixel_maps,
+                      unsigned drawpix_sampler, unsigned pixelmap_sampler,
+                      unsigned texcoord_const);
 
 #endif /* ST_CB_DRAWPIXELS_H */

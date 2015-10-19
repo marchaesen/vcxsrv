@@ -118,6 +118,8 @@ public:
          *rvalue = split_unpack_half_2x16(op0);
          break;
       case LOWER_PACK_UNPACK_NONE:
+      case LOWER_PACK_USE_BFI:
+      case LOWER_PACK_USE_BFE:
          assert(!"not reached");
          break;
       }
@@ -222,8 +224,15 @@ private:
 
       /* uvec2 u = UVEC2_RVAL; */
       ir_variable *u = factory.make_temp(glsl_type::uvec2_type,
-                                          "tmp_pack_uvec2_to_uint");
+                                         "tmp_pack_uvec2_to_uint");
       factory.emit(assign(u, uvec2_rval));
+
+      if (op_mask & LOWER_PACK_USE_BFI) {
+         return bitfield_insert(bit_and(swizzle_x(u), constant(0xffffu)),
+                                swizzle_y(u),
+                                constant(16),
+                                constant(16));
+      }
 
       /* return (u.y << 16) | (u.x & 0xffff); */
       return bit_or(lshift(swizzle_y(u), constant(16u)),
@@ -242,9 +251,22 @@ private:
    {
       assert(uvec4_rval->type == glsl_type::uvec4_type);
 
-      /* uvec4 u = UVEC4_RVAL; */
       ir_variable *u = factory.make_temp(glsl_type::uvec4_type,
-                                          "tmp_pack_uvec4_to_uint");
+                                         "tmp_pack_uvec4_to_uint");
+
+      if (op_mask & LOWER_PACK_USE_BFI) {
+         /* uvec4 u = UVEC4_RVAL; */
+         factory.emit(assign(u, uvec4_rval));
+
+         return bitfield_insert(bitfield_insert(
+                                   bitfield_insert(
+                                      bit_and(swizzle_x(u), constant(0xffu)),
+                                      swizzle_y(u), constant(8), constant(8)),
+                                   swizzle_z(u), constant(16), constant(8)),
+                                swizzle_w(u), constant(24), constant(8));
+      }
+
+      /* uvec4 u = UVEC4_RVAL & 0xff */
       factory.emit(assign(u, bit_and(uvec4_rval, constant(0xffu))));
 
       /* return (u.w << 24) | (u.z << 16) | (u.y << 8) | u.x; */
@@ -285,6 +307,39 @@ private:
    }
 
    /**
+    * \brief Unpack a uint32 into two int16's.
+    *
+    * Specifically each 16-bit value is sign-extended to the full width of an
+    * int32 on return.
+    */
+   ir_rvalue *
+   unpack_uint_to_ivec2(ir_rvalue *uint_rval)
+   {
+      assert(uint_rval->type == glsl_type::uint_type);
+
+      if (!(op_mask & LOWER_PACK_USE_BFE)) {
+         return rshift(lshift(u2i(unpack_uint_to_uvec2(uint_rval)),
+                              constant(16u)),
+                       constant(16u));
+      }
+
+      ir_variable *i = factory.make_temp(glsl_type::int_type,
+                                         "tmp_unpack_uint_to_ivec2_i");
+      factory.emit(assign(i, u2i(uint_rval)));
+
+      /* ivec2 i2; */
+      ir_variable *i2 = factory.make_temp(glsl_type::ivec2_type,
+                                          "tmp_unpack_uint_to_ivec2_i2");
+
+      factory.emit(assign(i2, bitfield_extract(i, constant(0), constant(16)),
+                          WRITEMASK_X));
+      factory.emit(assign(i2, bitfield_extract(i, constant(16), constant(16)),
+                          WRITEMASK_Y));
+
+      return deref(i2).val;
+   }
+
+   /**
     * \brief Unpack a uint32 into four uint8's.
     *
     * Interpret the given uint32 as a uint8 4-tuple where the uint32's least
@@ -308,18 +363,65 @@ private:
       /* u4.x = u & 0xffu; */
       factory.emit(assign(u4, bit_and(u, constant(0xffu)), WRITEMASK_X));
 
-      /* u4.y = (u >> 8u) & 0xffu; */
-      factory.emit(assign(u4, bit_and(rshift(u, constant(8u)),
-                                      constant(0xffu)), WRITEMASK_Y));
+      if (op_mask & LOWER_PACK_USE_BFE) {
+         /* u4.y = bitfield_extract(u, 8, 8); */
+         factory.emit(assign(u4, bitfield_extract(u, constant(8), constant(8)),
+                             WRITEMASK_Y));
 
-      /* u4.z = (u >> 16u) & 0xffu; */
-      factory.emit(assign(u4, bit_and(rshift(u, constant(16u)),
-                                      constant(0xffu)), WRITEMASK_Z));
+         /* u4.z = bitfield_extract(u, 16, 8); */
+         factory.emit(assign(u4, bitfield_extract(u, constant(16), constant(8)),
+                             WRITEMASK_Z));
+      } else {
+         /* u4.y = (u >> 8u) & 0xffu; */
+         factory.emit(assign(u4, bit_and(rshift(u, constant(8u)),
+                                         constant(0xffu)), WRITEMASK_Y));
+
+         /* u4.z = (u >> 16u) & 0xffu; */
+         factory.emit(assign(u4, bit_and(rshift(u, constant(16u)),
+                                         constant(0xffu)), WRITEMASK_Z));
+      }
 
       /* u4.w = (u >> 24u) */
       factory.emit(assign(u4, rshift(u, constant(24u)), WRITEMASK_W));
 
       return deref(u4).val;
+   }
+
+   /**
+    * \brief Unpack a uint32 into four int8's.
+    *
+    * Specifically each 8-bit value is sign-extended to the full width of an
+    * int32 on return.
+    */
+   ir_rvalue *
+   unpack_uint_to_ivec4(ir_rvalue *uint_rval)
+   {
+      assert(uint_rval->type == glsl_type::uint_type);
+
+      if (!(op_mask & LOWER_PACK_USE_BFE)) {
+         return rshift(lshift(u2i(unpack_uint_to_uvec4(uint_rval)),
+                              constant(24u)),
+                       constant(24u));
+      }
+
+      ir_variable *i = factory.make_temp(glsl_type::int_type,
+                                         "tmp_unpack_uint_to_ivec4_i");
+      factory.emit(assign(i, u2i(uint_rval)));
+
+      /* ivec4 i4; */
+      ir_variable *i4 = factory.make_temp(glsl_type::ivec4_type,
+                                          "tmp_unpack_uint_to_ivec4_i4");
+
+      factory.emit(assign(i4, bitfield_extract(i, constant(0), constant(8)),
+                          WRITEMASK_X));
+      factory.emit(assign(i4, bitfield_extract(i, constant(8), constant(8)),
+                          WRITEMASK_Y));
+      factory.emit(assign(i4, bitfield_extract(i, constant(16), constant(8)),
+                          WRITEMASK_Z));
+      factory.emit(assign(i4, bitfield_extract(i, constant(24), constant(8)),
+                          WRITEMASK_W));
+
+      return deref(i4).val;
    }
 
    /**
@@ -468,9 +570,7 @@ private:
       assert(uint_rval->type == glsl_type::uint_type);
 
       ir_rvalue *result =
-        clamp(div(i2f(rshift(lshift(u2i(unpack_uint_to_uvec2(uint_rval)),
-                                    constant(16)),
-                             constant(16u))),
+        clamp(div(i2f(unpack_uint_to_ivec2(uint_rval)),
                   constant(32767.0f)),
               constant(-1.0f),
               constant(1.0f));
@@ -527,9 +627,7 @@ private:
       assert(uint_rval->type == glsl_type::uint_type);
 
       ir_rvalue *result =
-        clamp(div(i2f(rshift(lshift(u2i(unpack_uint_to_uvec4(uint_rval)),
-                                    constant(24u)),
-                             constant(24u))),
+        clamp(div(i2f(unpack_uint_to_ivec4(uint_rval)),
                   constant(127.0f)),
               constant(-1.0f),
               constant(1.0f));

@@ -38,6 +38,27 @@ _mesa_texture_storage(struct gl_context *ctx, GLuint dims,
                       GLenum internalformat, GLsizei width,
                       GLsizei height, GLsizei depth, bool dsa);
 
+/**
+ * Texture width, height and depth check shared with the
+ * multisample variants of TexStorage functions.
+ *
+ * From OpenGL 4.5 Core spec, page 260 (section 8.19)
+ *
+ *     "An INVALID_VALUE error is generated if width, height, depth
+ *     or levels are less than 1, for commands with the corresponding
+ *     parameters."
+ *
+ * (referring to TextureStorage* commands, these also match values
+ * specified for OpenGL ES 3.1.)
+ */
+static inline bool
+_mesa_valid_tex_storage_dim(GLsizei width, GLsizei height, GLsizei depth)
+{
+   if (width < 1 || height < 1 || depth < 1)
+      return false;
+   return true;
+}
+
 /*@}*/
 
 /**
@@ -90,7 +111,8 @@ _mesa_TextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLsizei width, GLsizei height, GLsizei depth);
 
 extern GLboolean
-_mesa_is_legal_tex_storage_format(struct gl_context *ctx, GLenum internalformat);
+_mesa_is_legal_tex_storage_format(const struct gl_context *ctx,
+                                  GLenum internalformat);
 
 extern GLboolean
 _mesa_AllocTextureStorage_sw(struct gl_context *ctx,

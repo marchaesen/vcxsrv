@@ -54,7 +54,7 @@ AC_PREREQ([2.57])
 
 m4_define([pixman_major], 0)
 m4_define([pixman_minor], 33)
-m4_define([pixman_micro], 1)
+m4_define([pixman_micro], 3)
 
 m4_define([pixman_version],[pixman_major.pixman_minor.pixman_micro])
 
@@ -347,21 +347,14 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #error "Need GCC >= 3.4 for MMX intrinsics"
 #endif
 #include <mmintrin.h>
+#include <xmmintrin.h>
 int main () {
     __m64 v = _mm_cvtsi32_si64 (1);
     __m64 w;
 
-    /* Some versions of clang will choke on K */
-    asm ("pshufw %2, %1, %0\n\t"
-        : "=y" (w)
-        : "y" (v), "K" (5)
-    );
-
-    /* Some versions of clang will choke on this */
-    asm ("pmulhuw %1, %0\n\t"
-	: "+y" (w)
-	: "y" (v)
-    );
+    /* Test some intrinsics from xmmintrin.h */
+    w = _mm_shuffle_pi16(v, 5);
+    w = _mm_mulhi_pu16(w, w);
 
     return _mm_cvtsi64_si32 (v);
 }]])], have_mmx_intrinsics=yes)
@@ -890,6 +883,11 @@ AC_CHECK_LIB(m, feenableexcept, have_feenableexcept=yes, have_feenableexcept=no)
 if test x$have_feenableexcept = xyes; then
    AC_DEFINE(HAVE_FEENABLEEXCEPT, 1, [Whether we have feenableexcept()])
 fi
+
+AC_CHECK_DECL([FE_DIVBYZERO],
+	[AC_DEFINE(HAVE_FEDIVBYZERO, 1, [Whether we have FE_DIVBYZERO])],
+	[],
+	[[#include <fenv.h>]])
 
 AC_CHECK_FUNC(gettimeofday, have_gettimeofday=yes, have_gettimeofday=no)
 AC_CHECK_HEADER(sys/time.h, have_sys_time_h=yes, have_sys_time_h=no)

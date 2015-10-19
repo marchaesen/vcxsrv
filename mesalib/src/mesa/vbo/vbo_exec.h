@@ -79,7 +79,7 @@ struct vbo_exec_copied_vtx {
 
 struct vbo_exec_context
 {
-   struct gl_context *ctx;   
+   struct gl_context *ctx;
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;
    GLboolean validating; /**< if we're in the middle of state validation */
@@ -97,15 +97,17 @@ struct vbo_exec_context
       GLuint   buffer_used;             /* in bytes */
       fi_type vertex[VBO_ATTRIB_MAX*4]; /* current vertex */
 
-      GLuint vert_count;
-      GLuint max_vert;
+      GLuint vert_count;   /**< Number of vertices currently in buffer */
+      GLuint max_vert;     /**< Max number of vertices allowed in buffer */
       struct vbo_exec_copied_vtx copied;
 
-      GLubyte attrsz[VBO_ATTRIB_MAX];
-      GLenum attrtype[VBO_ATTRIB_MAX];
-      GLubyte active_sz[VBO_ATTRIB_MAX];
+      GLubyte attrsz[VBO_ATTRIB_MAX];   /**< nr. of attrib components (1..4) */
+      GLenum attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_DOUBLE, GL_INT, etc */
+      GLubyte active_sz[VBO_ATTRIB_MAX];  /**< attrib size (nr. 32-bit words) */
 
+      /** pointers into the current 'vertex' array, declared above */
       fi_type *attrptr[VBO_ATTRIB_MAX];
+
       struct gl_client_array arrays[VERT_ATTRIB_MAX];
 
       /* According to program mode, the values above plus current
@@ -115,7 +117,6 @@ struct vbo_exec_context
       const struct gl_client_array *inputs[VERT_ATTRIB_MAX];
    } vtx;
 
-   
    struct {
       GLboolean recalculate_maps;
       struct vbo_exec_eval1_map map1[VERT_ATTRIB_MAX];
@@ -131,7 +132,7 @@ struct vbo_exec_context
       GLboolean recalculate_inputs;
    } array;
 
-   /* Which flags to set in vbo_exec_BeginVertices() */
+   /* Which flags to set in vbo_exec_begin_vertices() */
    GLbitfield begin_vertices_flags;
 
 #ifdef DEBUG
@@ -146,9 +147,6 @@ struct vbo_exec_context
 void vbo_exec_init( struct gl_context *ctx );
 void vbo_exec_destroy( struct gl_context *ctx );
 void vbo_exec_invalidate_state( struct gl_context *ctx, GLuint new_state );
-
-void vbo_exec_BeginVertices( struct gl_context *ctx );
-void vbo_exec_FlushVertices( struct gl_context *ctx, GLuint flags );
 
 
 /* Internal functions:

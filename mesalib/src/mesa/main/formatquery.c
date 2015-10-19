@@ -74,7 +74,9 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
       /* These enums are only valid if ARB_texture_multisample is supported */
-      if (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_multisample)
+      if ((_mesa_is_desktop_gl(ctx) &&
+           ctx->Extensions.ARB_texture_multisample) ||
+          _mesa_is_gles31(ctx))
          break;
 
    default:

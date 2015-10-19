@@ -86,8 +86,6 @@ static int req_socklen;
 static CARD32 SessionID;
 static CARD32 timeOutTime;
 static int timeOutRtx;
-static CARD32 defaultKeepaliveDormancy = XDM_DEF_DORMANCY;
-static CARD32 keepaliveDormancy = XDM_DEF_DORMANCY;
 static CARD16 DisplayNumber;
 static xdmcp_states XDM_INIT_STATE = XDM_OFF;
 
@@ -200,8 +198,6 @@ static void receive_packet(int socketfd);
 static void send_packet(void);
 
 static void timeout(void);
-
-static void restart(void);
 
 static void XdmcpBlockHandler(void              *data ,
                               struct timeval    **wt,
@@ -667,6 +663,7 @@ XdmcpOpenDisplay(int sock)
     if (state != XDM_AWAIT_MANAGE_RESPONSE)
         return;
     state = XDM_RUN_SESSION;
+    timeOutTime = GetTimeInMillis() + XDM_DEF_DORMANCY * 1000;
     sessionSocket = sock;
 }
 
@@ -724,7 +721,6 @@ XdmcpWakeupHandler(void *data,        /* unused */
                    int i, void *pReadmask)
 {
     fd_set *last_select_mask = (fd_set *) pReadmask;
-    fd_set devicesReadable;
 
     if (state == XDM_OFF)
         return;
@@ -739,13 +735,6 @@ XdmcpWakeupHandler(void *data,        /* unused */
             FD_CLR(xdmcpSocket6, last_select_mask);
         }
 #endif
-        XFD_ANDSET(&devicesReadable, last_select_mask, &EnabledDevices);
-        if (XFD_ANYSET(&devicesReadable)) {
-            if (state == XDM_AWAIT_USER_INPUT)
-                restart();
-            else if (state == XDM_RUN_SESSION)
-                keepaliveDormancy = defaultKeepaliveDormancy;
-        }
     }
 }
 
@@ -1015,14 +1004,6 @@ timeout(void)
     default:
         break;
     }
-    send_packet();
-}
-
-static void
-restart(void)
-{
-    state = XDM_INIT_STATE;
-    timeOutRtx = 0;
     send_packet();
 }
 
@@ -1501,15 +1482,8 @@ recv_alive_msg(unsigned length)
     if (XdmcpReadCARD8(&buffer, &SessionRunning) &&
         XdmcpReadCARD32(&buffer, &AliveSessionID)) {
         if (SessionRunning && AliveSessionID == SessionID) {
-            /* backoff dormancy period */
             state = XDM_RUN_SESSION;
-            if ((GetTimeInMillis() - LastEventTime(XIAllDevices).milliseconds) >
-                keepaliveDormancy * 1000) {
-                keepaliveDormancy <<= 1;
-                if (keepaliveDormancy > XDM_MAX_DORMANCY)
-                    keepaliveDormancy = XDM_MAX_DORMANCY;
-            }
-            timeOutTime = GetTimeInMillis() + keepaliveDormancy * 1000;
+            timeOutTime = GetTimeInMillis() + XDM_DEF_DORMANCY * 1000;
         }
         else {
             XdmcpDeadSession("Alive response indicates session dead");

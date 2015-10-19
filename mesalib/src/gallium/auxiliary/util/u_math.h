@@ -389,6 +389,26 @@ unsigned ffs( unsigned u )
 #define ffs __builtin_ffs
 #endif
 
+#ifdef HAVE___BUILTIN_FFSLL
+#define ffsll __builtin_ffsll
+#else
+static inline int
+ffsll(long long int val)
+{
+   int bit;
+
+   bit = ffs((unsigned) (val & 0xffffffff));
+   if (bit != 0)
+      return bit;
+
+   bit = ffs((unsigned) (val >> 32));
+   if (bit != 0)
+      return 32 + bit;
+
+   return 0;
+}
+#endif
+
 #endif /* FFS_DEFINED */
 
 /**
@@ -482,6 +502,26 @@ u_bit_scan64(uint64_t *mask)
    return i;
 }
 #endif
+
+/* For looping over a bitmask when you want to loop over consecutive bits
+ * manually, for example:
+ *
+ * while (mask) {
+ *    int start, count, i;
+ *
+ *    u_bit_scan_consecutive_range(&mask, &start, &count);
+ *
+ *    for (i = 0; i < count; i++)
+ *       ... process element (start+i)
+ * }
+ */
+static inline void
+u_bit_scan_consecutive_range(unsigned *mask, int *start, int *count)
+{
+   *start = ffs(*mask) - 1;
+   *count = ffs(~(*mask >> *start)) - 1;
+   *mask &= ~(((1 << *count) - 1) << *start);
+}
 
 /**
  * Return float bits.

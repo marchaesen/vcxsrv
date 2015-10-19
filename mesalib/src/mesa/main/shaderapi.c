@@ -37,6 +37,7 @@
  */
 
 
+#include <stdbool.h>
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/dispatch.h"
@@ -48,19 +49,16 @@
 #include "main/shaderobj.h"
 #include "main/transformfeedback.h"
 #include "main/uniforms.h"
+#include "glsl/glsl_parser_extras.h"
+#include "glsl/ir.h"
+#include "glsl/ir_uniform.h"
+#include "glsl/program.h"
 #include "program/program.h"
 #include "program/prog_print.h"
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
 #include "util/hash_table.h"
-#include <stdbool.h>
-#include "../glsl/glsl_parser_extras.h"
-#include "../glsl/ir.h"
-#include "../glsl/ir_uniform.h"
-#include "../glsl/program.h"
-
-/** Define this to enable shader substitution (see below) */
-#define SHADER_SUBST 0
+#include "util/mesa-sha1.h"
 
 
 /**
@@ -322,7 +320,7 @@ create_shader_program(struct gl_context *ctx)
 
    name = _mesa_HashFindFreeKeyBlock(ctx->Shared->ShaderObjects, 1);
 
-   shProg = ctx->Driver.NewShaderProgram(name);
+   shProg = _mesa_new_shader_program(name);
 
    _mesa_HashInsert(ctx->Shared->ShaderObjects, name, shProg);
 
@@ -718,7 +716,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       for (i = 0; i < shProg->NumUniformBlocks; i++) {
 	 /* Add one for the terminating NUL character.
 	  */
-	 const GLint len = strlen(shProg->UniformBlocks[i].Name) + 1;
+	 const GLint len = strlen(shProg->UniformBlocks[i]->Name) + 1;
 
 	 if (len > max_len)
 	    max_len = len;
@@ -756,7 +754,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       return;
    case GL_COMPUTE_WORK_GROUP_SIZE: {
       int i;
-      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_compute_shader)
+      if (!_mesa_has_compute_shaders(ctx))
          break;
       if (!shProg->LinkStatus) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "glGetProgramiv(program not "
@@ -773,7 +771,8 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       return;
    }
    case GL_PROGRAM_SEPARABLE:
-      *params = shProg->SeparateShader;
+      /* If the program has not been linked, return initial value 0. */
+      *params = (shProg->LinkStatus == GL_FALSE) ? 0 : shProg->SeparateShader;
       return;
 
    /* ARB_tessellation_shader */
@@ -932,13 +931,9 @@ get_shader_source(struct gl_context *ctx, GLuint shader, GLsizei maxLength,
  * glShaderSource[ARB].
  */
 static void
-shader_source(struct gl_context *ctx, GLuint shader, const GLchar *source)
+shader_source(struct gl_shader *sh, const GLchar *source)
 {
-   struct gl_shader *sh;
-
-   sh = _mesa_lookup_shader_err(ctx, shader, "glShaderSource");
-   if (!sh)
-      return;
+   assert(sh);
 
    /* free old shader source string and install new one */
    free((void *)sh->Source);
@@ -1512,23 +1507,99 @@ _mesa_LinkProgram(GLhandleARB programObj)
    link_program(ctx, programObj);
 }
 
+#if defined(HAVE_SHA1)
+/**
+ * Generate a SHA-1 hash value string for given source string.
+ */
+static void
+generate_sha1(const char *source, char sha_str[64])
+{
+   unsigned char sha[20];
+   _mesa_sha1_compute(source, strlen(source), sha);
+   _mesa_sha1_format(sha_str, sha);
+}
 
+/**
+ * Construct a full path for shader replacement functionality using
+ * following format:
+ *
+ * <path>/<stage prefix>_<CHECKSUM>.glsl
+ */
+static void
+construct_name(const gl_shader_stage stage, const char *source,
+               const char *path, char *name, unsigned length)
+{
+   char sha[64];
+   static const char *types[] = {
+      "VS", "TC", "TE", "GS", "FS", "CS",
+   };
+
+   generate_sha1(source, sha);
+   _mesa_snprintf(name, length, "%s/%s_%s.glsl", path, types[stage],
+                  sha);
+}
+
+/**
+ * Write given shader source to a file in MESA_SHADER_DUMP_PATH.
+ */
+static void
+dump_shader(const gl_shader_stage stage, const char *source)
+{
+   char name[PATH_MAX];
+   static bool path_exists = true;
+   char *dump_path;
+   FILE *f;
+
+   if (!path_exists)
+      return;
+
+   dump_path = getenv("MESA_SHADER_DUMP_PATH");
+   if (!dump_path) {
+      path_exists = false;
+      return;
+   }
+
+   construct_name(stage, source, dump_path, name, PATH_MAX);
+
+   f = fopen(name, "w");
+   if (f) {
+      fputs(source, f);
+      fclose(f);
+   } else {
+      GET_CURRENT_CONTEXT(ctx);
+      _mesa_warning(ctx, "could not open %s for dumping shader (%s)", name,
+                    strerror(errno));
+   }
+}
 
 /**
  * Read shader source code from a file.
  * Useful for debugging to override an app's shader.
  */
 static GLcharARB *
-read_shader(const char *fname)
+read_shader(const gl_shader_stage stage, const char *source)
 {
-   int shader_size = 0;
-   FILE *f = fopen(fname, "r");
-   GLcharARB *buffer, *shader;
-   int len;
+   char name[PATH_MAX];
+   char *read_path;
+   static bool path_exists = true;
+   int len, shader_size = 0;
+   GLcharARB *buffer;
+   FILE *f;
 
-   if (!f) {
+   if (!path_exists)
+      return NULL;
+
+   read_path = getenv("MESA_SHADER_READ_PATH");
+   if (!read_path) {
+      path_exists = false;
       return NULL;
    }
+
+   construct_name(stage, source, read_path, name, PATH_MAX);
+
+   f = fopen(name, "r");
+   if (!f)
+      return NULL;
 
    /* allocate enough room for the entire shader */
    fseek(f, 0, SEEK_END);
@@ -1547,12 +1618,9 @@ read_shader(const char *fname)
 
    fclose(f);
 
-   shader = strdup(buffer);
-   free(buffer);
-
-   return shader;
+   return buffer;
 }
-
+#endif /* HAVE_SHA1 */
 
 /**
  * Called via glShaderSource() and glShaderSourceARB() API functions.
@@ -1567,9 +1635,17 @@ _mesa_ShaderSource(GLhandleARB shaderObj, GLsizei count,
    GLint *offsets;
    GLsizei i, totalLength;
    GLcharARB *source;
-   GLuint checksum;
+   struct gl_shader *sh;
 
-   if (!shaderObj || string == NULL) {
+#if defined(HAVE_SHA1)
+   GLcharARB *replacement;
+#endif /* HAVE_SHA1 */
+
+   sh = _mesa_lookup_shader_err(ctx, shaderObj, "glShaderSourceARB");
+   if (!sh)
+      return;
+
+   if (string == NULL) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glShaderSourceARB");
       return;
    }
@@ -1620,34 +1696,20 @@ _mesa_ShaderSource(GLhandleARB shaderObj, GLsizei count,
    source[totalLength - 1] = '\0';
    source[totalLength - 2] = '\0';
 
-   if (SHADER_SUBST) {
-      /* Compute the shader's source code checksum then try to open a file
-       * named newshader_<CHECKSUM>.  If it exists, use it in place of the
-       * original shader source code.  For debugging.
-       */
-      char filename[100];
-      GLcharARB *newSource;
+#if defined(HAVE_SHA1)
+   /* Dump original shader source to MESA_SHADER_DUMP_PATH and replace
+    * if corresponding entry found from MESA_SHADER_READ_PATH.
+    */
+   dump_shader(sh->Stage, source);
 
-      checksum = _mesa_str_checksum(source);
-
-      _mesa_snprintf(filename, sizeof(filename), "newshader_%d", checksum);
-
-      newSource = read_shader(filename);
-      if (newSource) {
-         fprintf(stderr, "Mesa: Replacing shader %u chksum=%d with %s\n",
-                       shaderObj, checksum, filename);
-         free(source);
-         source = newSource;
-      }
+   replacement = read_shader(sh->Stage, source);
+   if (replacement) {
+      free(source);
+      source = replacement;
    }
+#endif /* HAVE_SHA1 */
 
-   shader_source(ctx, shaderObj, source);
-
-   if (SHADER_SUBST) {
-      struct gl_shader *sh = _mesa_lookup_shader(ctx, shaderObj);
-      if (sh)
-         sh->SourceChecksum = checksum; /* save original checksum */
-   }
+   shader_source(sh, source);
 
    free(offsets);
 }
@@ -1793,12 +1855,23 @@ _mesa_ShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat,
                    const void* binary, GLint length)
 {
    GET_CURRENT_CONTEXT(ctx);
-   (void) n;
    (void) shaders;
    (void) binaryformat;
    (void) binary;
-   (void) length;
-   _mesa_error(ctx, GL_INVALID_OPERATION, "glShaderBinary");
+
+   /* Page 68, section 7.2 'Shader Binaries" of the of the OpenGL ES 3.1, and
+    * page 88 of the OpenGL 4.5 specs state:
+    *
+    *     "An INVALID_VALUE error is generated if count or length is negative.
+    *      An INVALID_ENUM error is generated if binaryformat is not a supported
+    *      format returned in SHADER_BINARY_FORMATS."
+    */
+   if (n < 0 || length < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glShaderBinary(count or length < 0)");
+      return;
+   }
+
+   _mesa_error(ctx, GL_INVALID_ENUM, "glShaderBinary(format)");
 }
 
 
@@ -1984,55 +2057,6 @@ _mesa_use_shader_program(struct gl_context *ctx, GLenum type,
 }
 
 
-static GLuint
-_mesa_create_shader_program(struct gl_context* ctx, GLboolean separate,
-                            GLenum type, GLsizei count,
-                            const GLchar* const *strings)
-{
-   const GLuint shader = create_shader(ctx, type);
-   GLuint program = 0;
-
-   if (shader) {
-      _mesa_ShaderSource(shader, count, strings, NULL);
-
-      compile_shader(ctx, shader);
-
-      program = create_shader_program(ctx);
-      if (program) {
-	 struct gl_shader_program *shProg;
-	 struct gl_shader *sh;
-	 GLint compiled = GL_FALSE;
-
-	 shProg = _mesa_lookup_shader_program(ctx, program);
-	 sh = _mesa_lookup_shader(ctx, shader);
-
-	 shProg->SeparateShader = separate;
-
-	 get_shaderiv(ctx, shader, GL_COMPILE_STATUS, &compiled);
-	 if (compiled) {
-	    attach_shader(ctx, program, shader);
-	    link_program(ctx, program);
-	    detach_shader(ctx, program, shader);
-
-#if 0
-	    /* Possibly... */
-	    if (active-user-defined-varyings-in-linked-program) {
-	       append-error-to-info-log;
-	       shProg->LinkStatus = GL_FALSE;
-	    }
-#endif
-	 }
-
-	 ralloc_strcat(&shProg->InfoLog, sh->InfoLog);
-      }
-
-      delete_shader(ctx, shader);
-   }
-
-   return program;
-}
-
-
 /**
  * Copy program-specific data generated by linking from the gl_shader_program
  * object to a specific gl_program object.
@@ -2100,7 +2124,56 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   return _mesa_create_shader_program(ctx, GL_TRUE, type, count, strings);
+   const GLuint shader = create_shader(ctx, type);
+   GLuint program = 0;
+
+   /*
+    * According to OpenGL 4.5 and OpenGL ES 3.1 standards, section 7.3:
+    * GL_INVALID_VALUE should be generated if count < 0
+    */
+   if (count < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glCreateShaderProgram (count < 0)");
+      return program;
+   }
+
+   if (shader) {
+      _mesa_ShaderSource(shader, count, strings, NULL);
+
+      compile_shader(ctx, shader);
+
+      program = create_shader_program(ctx);
+      if (program) {
+	 struct gl_shader_program *shProg;
+	 struct gl_shader *sh;
+	 GLint compiled = GL_FALSE;
+
+	 shProg = _mesa_lookup_shader_program(ctx, program);
+	 sh = _mesa_lookup_shader(ctx, shader);
+
+	 shProg->SeparateShader = GL_TRUE;
+
+	 get_shaderiv(ctx, shader, GL_COMPILE_STATUS, &compiled);
+	 if (compiled) {
+	    attach_shader(ctx, program, shader);
+	    link_program(ctx, program);
+	    detach_shader(ctx, program, shader);
+
+#if 0
+	    /* Possibly... */
+	    if (active-user-defined-varyings-in-linked-program) {
+	       append-error-to-info-log;
+	       shProg->LinkStatus = GL_FALSE;
+	    }
+#endif
+	 }
+         if (sh->InfoLog)
+            ralloc_strcat(&shProg->InfoLog, sh->InfoLog);
+      }
+
+      delete_shader(ctx, shader);
+   }
+
+   return program;
 }
 
 
@@ -2520,7 +2593,7 @@ _mesa_GetUniformSubroutineuiv(GLenum shadertype, GLint location,
 
    {
       struct gl_uniform_storage *uni = sh->SubroutineUniformRemapTable[location];
-      int offset = location - uni->subroutine[stage].index;
+      int offset = location - uni->opaque[stage].index;
       memcpy(params, &uni->storage[offset],
 	     sizeof(GLuint));
    }

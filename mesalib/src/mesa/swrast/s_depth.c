@@ -419,8 +419,8 @@ _swrast_depth_bounds_test( struct gl_context *ctx, SWspan *span )
    struct gl_framebuffer *fb = ctx->DrawBuffer;
    struct gl_renderbuffer *rb = fb->Attachment[BUFFER_DEPTH].Renderbuffer;
    GLubyte *zStart;
-   GLuint zMin = (GLuint) (ctx->Depth.BoundsMin * fb->_DepthMaxF + 0.5F);
-   GLuint zMax = (GLuint) (ctx->Depth.BoundsMax * fb->_DepthMaxF + 0.5F);
+   GLuint zMin = (GLuint)((double)ctx->Depth.BoundsMin * 0xffffffff);
+   GLuint zMax = (GLuint)((double)ctx->Depth.BoundsMax * 0xffffffff);
    GLubyte *mask = span->array->mask;
    const GLuint count = span->end;
    GLuint i;
@@ -444,6 +444,16 @@ _swrast_depth_bounds_test( struct gl_context *ctx, SWspan *span )
       zBufferVals = (const GLuint *) zStart;
    }
    else {
+      /* Round the bounds to the precision of the zbuffer. */
+      if (rb->Format == MESA_FORMAT_Z_UNORM16) {
+         zMin = (zMin & 0xffff0000) | (zMin >> 16);
+         zMax = (zMax & 0xffff0000) | (zMax >> 16);
+      } else {
+         /* 24 bits */
+         zMin = (zMin & 0xffffff00) | (zMin >> 24);
+         zMax = (zMax & 0xffffff00) | (zMax >> 24);
+      }
+
       /* unpack Z values into a temporary array */
       if (span->arrayMask & SPAN_XY) {
          get_z32_values(ctx, rb, count, span->array->x, span->array->y,

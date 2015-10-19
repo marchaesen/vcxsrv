@@ -105,13 +105,12 @@ struct gl_list_extensions
  * \param ctx GL context.
  *
  * Checks if dd_function_table::SaveNeedFlush is marked to flush
- * stored (save) vertices, and calls
- * dd_function_table::SaveFlushVertices if so.
+ * stored (save) vertices, and calls vbo_save_SaveFlushVertices if so.
  */
 #define SAVE_FLUSH_VERTICES(ctx)		\
 do {						\
    if (ctx->Driver.SaveNeedFlush)		\
-      ctx->Driver.SaveFlushVertices(ctx);	\
+      vbo_save_SaveFlushVertices(ctx);               \
 } while (0)
 
 
@@ -5466,7 +5465,7 @@ save_Begin(GLenum mode)
       /* Give the driver an opportunity to hook in an optimized
        * display list compiler.
        */
-      if (ctx->Driver.NotifySaveBegin(ctx, mode))
+      if (vbo_save_NotifyBegin(ctx, mode))
          return;
 
       SAVE_FLUSH_VERTICES(ctx);
@@ -7743,8 +7742,7 @@ execute_list(struct gl_context *ctx, GLuint list)
 
    ctx->ListState.CallDepth++;
 
-   if (ctx->Driver.BeginCallList)
-      ctx->Driver.BeginCallList(ctx, dlist);
+   vbo_save_BeginCallList(ctx, dlist);
 
    n = dlist->Head;
 
@@ -8900,8 +8898,7 @@ execute_list(struct gl_context *ctx, GLuint list)
       }
    }
 
-   if (ctx->Driver.EndCallList)
-      ctx->Driver.EndCallList(ctx);
+   vbo_save_EndCallList(ctx);
 
    ctx->ListState.CallDepth--;
 }
@@ -9029,7 +9026,7 @@ _mesa_NewList(GLuint name, GLenum mode)
    ctx->ListState.CurrentBlock = ctx->ListState.CurrentList->Head;
    ctx->ListState.CurrentPos = 0;
 
-   ctx->Driver.NewList(ctx, name, mode);
+   vbo_save_NewList(ctx, name, mode);
 
    ctx->CurrentDispatch = ctx->Save;
    _glapi_set_dispatch(ctx->CurrentDispatch);
@@ -9063,7 +9060,7 @@ _mesa_EndList(void)
    /* Call before emitting END_OF_LIST, in case the driver wants to
     * emit opcodes itself.
     */
-   ctx->Driver.EndList(ctx);
+   vbo_save_EndList(ctx);
 
    (void) alloc_instruction(ctx, OPCODE_END_OF_LIST, 0);
 

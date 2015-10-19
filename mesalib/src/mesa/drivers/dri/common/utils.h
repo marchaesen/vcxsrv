@@ -32,14 +32,6 @@
 #include <GL/internal/dri_interface.h>
 #include "main/context.h"
 
-struct dri_debug_control {
-    const char * string;
-    uint64_t     flag;
-};
-
-extern uint64_t driParseDebugString( const char * debug,
-    const struct dri_debug_control * control );
-
 extern unsigned driGetRendererString( char * buffer,
     const char * hardware_name, GLuint agp_mode );
 

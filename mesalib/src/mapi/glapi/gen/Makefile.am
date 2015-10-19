@@ -20,7 +20,7 @@ XORG_INDENT_FLAGS = -linux -bad -bap -blf -bli0 -cbi0 -cdw -nce -cs -i4 -lc80 -p
 
 MESA_DIR = $(top_builddir)/src/mesa
 MESA_GLAPI_DIR = $(top_builddir)/src/mapi/glapi
-MESA_MAPI_DIR = $(top_builddir)/src/mapi
+MESA_MAPI_DIR = $(top_srcdir)/src/mapi
 MESA_GLX_DIR = $(top_builddir)/src/glx
 
 MESA_GLAPI_OUTPUTS = \
@@ -153,7 +153,9 @@ API_XML = \
 	ARB_shader_atomic_counters.xml \
 	ARB_shader_image_load_store.xml \
 	ARB_shader_subroutine.xml \
+	ARB_shader_storage_buffer_object.xml \
 	ARB_sync.xml \
+	ARB_tessellation_shader.xml \
 	ARB_texture_barrier.xml \
 	ARB_texture_buffer_object.xml \
 	ARB_texture_buffer_range.xml \
@@ -189,6 +191,7 @@ API_XML = \
 	INTEL_performance_query.xml \
 	KHR_debug.xml \
 	KHR_context_flush_control.xml \
+	KHR_texture_compression_astc.xml \
 	NV_conditional_render.xml \
 	NV_primitive_restart.xml \
 	NV_texture_barrier.xml \
@@ -208,7 +211,7 @@ COMMON = $(API_XML) \
 
 COMMON_GLX = $(COMMON) glX_API.xml glX_XML.py glX_proto_common.py
 
-PYTHON_GEN = $(AM_V_GEN) $(PYTHON2) $(PYTHON_FLAGS)
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 ######################################################################
 
@@ -240,65 +243,65 @@ $(XORG_GLAPI_DIR)/%.h: $(MESA_GLAPI_DIR)/%.h
 ######################################################################
 
 $(MESA_GLAPI_DIR)/glapi_mapi_tmp.h: $(MESA_MAPI_DIR)/mapi_abi.py $(COMMON)
-	$(PYTHON_GEN) $< \
+	$(PYTHON_GEN) $(MESA_MAPI_DIR)/mapi_abi.py \
 		--printer glapi --mode lib $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_GLAPI_DIR)/glprocs.h: gl_procs.py $(COMMON)
-	$(PYTHON_GEN) $< -c -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_procs.py -c -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_GLAPI_DIR)/glapitemp.h: gl_apitemp.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_apitemp.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_GLAPI_DIR)/glapitable.h: gl_table.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_GLAPI_DIR)/glapi_gentable.c: gl_gentable.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_gentable.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 ######################################################################
 
 $(MESA_GLAPI_DIR)/glapi_x86.S: gl_x86_asm.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_x86_asm.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_GLAPI_DIR)/glapi_x86-64.S: gl_x86-64_asm.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_x86-64_asm.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_GLAPI_DIR)/glapi_sparc.S: gl_SPARC_asm.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_SPARC_asm.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 ######################################################################
 
 $(MESA_DIR)/main/enums.c: gl_enums.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_enums.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_DIR)/main/api_exec.c: gl_genexec.py apiexec.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_genexec.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_DIR)/main/dispatch.h: gl_table.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml -m remap_table > $@
+	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml -m remap_table > $@
 
 $(MESA_DIR)/main/remap_helper.h: remap_helper.py $(COMMON)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/remap_helper.py -f $(srcdir)/gl_and_es_API.xml > $@
 
 ######################################################################
 
 $(MESA_GLX_DIR)/indirect.c: glX_proto_send.py $(COMMON_GLX)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m proto \
+	$(PYTHON_GEN) $(srcdir)/glX_proto_send.py -f $(srcdir)/gl_API.xml -m proto \
 	  | $(INDENT) $(INDENT_FLAGS) > $@
 
 $(MESA_GLX_DIR)/indirect.h: glX_proto_send.py $(COMMON_GLX)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m init_h > $@
+	$(PYTHON_GEN) $(srcdir)/glX_proto_send.py -f $(srcdir)/gl_API.xml -m init_h > $@
 
 $(MESA_GLX_DIR)/indirect_init.c: glX_proto_send.py $(COMMON_GLX)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m init_c > $@
+	$(PYTHON_GEN) $(srcdir)/glX_proto_send.py -f $(srcdir)/gl_API.xml -m init_c > $@
 
 $(MESA_GLX_DIR)/indirect_size.h $(XORG_GLX_DIR)/indirect_size.h: glX_proto_size.py $(COMMON_GLX)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m size_h --only-set \
+	$(PYTHON_GEN) $(srcdir)/glX_proto_size.py -f $(srcdir)/gl_API.xml -m size_h --only-set \
 	    --header-tag _INDIRECT_SIZE_H_ \
 	  | $(INDENT) $(INDENT_FLAGS) > $@
 
 $(MESA_GLX_DIR)/indirect_size.c: glX_proto_size.py $(COMMON_GLX)
-	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m size_c --only-set \
+	$(PYTHON_GEN) $(srcdir)/glX_proto_size.py -f $(srcdir)/gl_API.xml -m size_c --only-set \
 	  | $(INDENT) $(INDENT_FLAGS) > $@
 
 ######################################################################

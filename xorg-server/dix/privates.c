@@ -664,6 +664,15 @@ dixRegisterScreenSpecificPrivateKey(ScreenPtr pScreen, DevPrivateKey key,
 void
 dixFreeScreenSpecificPrivates(ScreenPtr pScreen)
 {
+    DevPrivateType t;
+
+    for (t = PRIVATE_XSELINUX; t < PRIVATE_LAST; t++) {
+        DevPrivateKey key;
+
+        for (key = pScreen->screenSpecificPrivates[t].key; key; key = key->next) {
+            key->initialized = FALSE;
+        }
+    }
 }
 
 /* Initialize screen-specific privates in AddScreen */

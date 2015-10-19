@@ -42,7 +42,7 @@ static bool
 init_block_cb(nir_block *block, void *_state)
 {
    dom_state *state = (dom_state *) _state;
-   if (block == state->impl->start_block)
+   if (block == nir_start_block(state->impl))
       block->imm_dom = block;
    else
       block->imm_dom = NULL;
@@ -78,7 +78,7 @@ static bool
 calc_dominance_cb(nir_block *block, void *_state)
 {
    dom_state *state = (dom_state *) _state;
-   if (block == state->impl->start_block)
+   if (block == nir_start_block(state->impl))
       return true;
 
    nir_block *new_idom = NULL;
@@ -209,12 +209,13 @@ nir_calc_dominance_impl(nir_function_impl *impl)
 
    nir_foreach_block(impl, calc_dom_frontier_cb, &state);
 
-   impl->start_block->imm_dom = NULL;
+   nir_block *start_block = nir_start_block(impl);
+   start_block->imm_dom = NULL;
 
    calc_dom_children(impl);
 
    unsigned dfs_index = 0;
-   calc_dfs_indicies(impl->start_block, &dfs_index);
+   calc_dfs_indicies(start_block, &dfs_index);
 }
 
 void

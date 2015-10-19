@@ -28,96 +28,71 @@
 #include "nir.h"
 #include "main/mtypes.h"
 
-static void
+static bool
 convert_instr(nir_intrinsic_instr *instr)
 {
    if (instr->intrinsic != nir_intrinsic_load_var)
-      return;
+      return false;
 
    nir_variable *var = instr->variables[0]->var;
    if (var->data.mode != nir_var_system_value)
-      return;
+      return false;
 
    void *mem_ctx = ralloc_parent(instr);
 
-   nir_intrinsic_op op;
-
-   switch (var->data.location) {
-   case SYSTEM_VALUE_FRONT_FACE:
-      op = nir_intrinsic_load_front_face;
-      break;
-   case SYSTEM_VALUE_VERTEX_ID:
-      op = nir_intrinsic_load_vertex_id;
-      break;
-   case SYSTEM_VALUE_VERTEX_ID_ZERO_BASE:
-      op = nir_intrinsic_load_vertex_id_zero_base;
-      break;
-   case SYSTEM_VALUE_BASE_VERTEX:
-      op = nir_intrinsic_load_base_vertex;
-      break;
-   case SYSTEM_VALUE_INSTANCE_ID:
-      op = nir_intrinsic_load_instance_id;
-      break;
-   case SYSTEM_VALUE_SAMPLE_ID:
-      op = nir_intrinsic_load_sample_id;
-      break;
-   case SYSTEM_VALUE_SAMPLE_POS:
-      op = nir_intrinsic_load_sample_pos;
-      break;
-   case SYSTEM_VALUE_SAMPLE_MASK_IN:
-      op = nir_intrinsic_load_sample_mask_in;
-      break;
-   case SYSTEM_VALUE_INVOCATION_ID:
-      op = nir_intrinsic_load_invocation_id;
-      break;
-   default:
-      unreachable("not reached");
-   }
-
+   nir_intrinsic_op op = nir_intrinsic_from_system_value(var->data.location);
    nir_intrinsic_instr *new_instr = nir_intrinsic_instr_create(mem_ctx, op);
 
    if (instr->dest.is_ssa) {
       nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,
                         instr->dest.ssa.num_components, NULL);
       nir_ssa_def_rewrite_uses(&instr->dest.ssa,
-                               nir_src_for_ssa(&new_instr->dest.ssa),
-                               mem_ctx);
+                               nir_src_for_ssa(&new_instr->dest.ssa));
    } else {
       nir_dest_copy(&new_instr->dest, &instr->dest, mem_ctx);
    }
 
    nir_instr_insert_before(&instr->instr, &new_instr->instr);
    nir_instr_remove(&instr->instr);
+
+   return true;
 }
 
 static bool
 convert_block(nir_block *block, void *state)
 {
-   (void) state;
+   bool *progress = state;
 
    nir_foreach_instr_safe(block, instr) {
       if (instr->type == nir_instr_type_intrinsic)
-         convert_instr(nir_instr_as_intrinsic(instr));
+         *progress = convert_instr(nir_instr_as_intrinsic(instr)) || *progress;
    }
 
    return true;
 }
 
-static void
+static bool
 convert_impl(nir_function_impl *impl)
 {
-   nir_foreach_block(impl, convert_block, NULL);
+   bool progress = false;
+
+   nir_foreach_block(impl, convert_block, &progress);
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
+   return progress;
 }
 
-void
+bool
 nir_lower_system_values(nir_shader *shader)
 {
+   bool progress = false;
+
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
-         convert_impl(overload->impl);
+         progress = convert_impl(overload->impl) || progress;
    }
 
    exec_list_make_empty(&shader->system_values);
+
+   return progress;
 }

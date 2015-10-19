@@ -28,11 +28,20 @@
 #include "ir.h"
 #include "util/hash_table.h"
 
-struct link_uniform_block_active {
-   const glsl_type *type;
-
+struct uniform_block_array_elements {
    unsigned *array_elements;
    unsigned num_array_elements;
+
+   ir_dereference_array *ir;
+
+   struct uniform_block_array_elements *array;
+};
+
+struct link_uniform_block_active {
+   const glsl_type *type;
+   ir_variable *var;
+
+   struct uniform_block_array_elements *array;
 
    unsigned binding;
 

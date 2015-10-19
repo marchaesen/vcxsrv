@@ -1458,7 +1458,7 @@ miLineArc(DrawablePtr pDraw,
     int xorgi = 0, yorgi = 0;
     Spans spanRec;
     int n;
-    PolyEdgeRec edge1, edge2;
+    PolyEdgeRec edge1 = { 0 }, edge2 = { 0 };
     int edgey1, edgey2;
     Bool edgeleft1, edgeleft2;
 

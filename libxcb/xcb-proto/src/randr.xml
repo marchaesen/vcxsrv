@@ -27,7 +27,7 @@ authorization from the authors.
 -->
 
 <xcb header="randr" extension-xname="RANDR" extension-name="RandR"
-    major-version="1" minor-version="4">
+    major-version="1" minor-version="5">
 
 	<import>xproto</import>
 	<import>render</import>
@@ -868,4 +868,47 @@ authorization from the authors.
 		<field type="CARD8" name="subCode" enum="Notify" />
 		<field type="NotifyData" name="u" />
 	</event>
+
+	<!-- New in version 1.5 -->
+
+	<struct name="MonitorInfo">
+		<field type="ATOM" name="name" />
+		<field type="BOOL" name="primary" />
+		<field type="BOOL" name="automatic" />
+		<field type="CARD16" name="nOutput" />
+		<field type="INT16" name="x" />
+		<field type="INT16" name="y" />
+		<field type="CARD16" name="width" /> <!-- pixels -->
+		<field type="CARD16" name="height" /> <!-- pixels -->
+		<field type="CARD32" name="width_in_millimeters" />
+		<field type="CARD32" name="height_in_millimeters" />
+		<list type="OUTPUT" name="outputs">
+		    <fieldref>nOutput</fieldref>
+		</list>
+	</struct>
+
+	<request name="GetMonitors" opcode="42">
+		<field type="WINDOW" name="window" />
+		<field type="BOOL" name="get_active" />
+		<reply>
+			<pad bytes="1" />
+			<field type="TIMESTAMP" name="timestamp" />
+			<field type="CARD32" name="nMonitors" />
+			<field type="CARD32" name="nOutputs" />
+			<pad bytes="12" />
+			<list type="MonitorInfo" name="monitors">
+			    <fieldref>nMonitors</fieldref>
+			</list>
+		</reply>
+	</request>
+
+	<request name="SetMonitor" opcode="43">
+		<field type="WINDOW" name="window" />
+		<field type="MonitorInfo" name="monitorinfo" />
+	</request>
+
+	<request name="DeleteMonitor" opcode="44">
+		<field type="WINDOW" name="window" />
+		<field type="ATOM" name="name" />
+	</request>
 </xcb>

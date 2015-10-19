@@ -35,6 +35,7 @@
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
+#include "util/half_float.h"
 
 #include "t_context.h"
 #include "tnl.h"
@@ -425,6 +426,7 @@ void _tnl_draw_prims(struct gl_context *ctx,
 			 GLuint min_index,
 			 GLuint max_index,
 			 struct gl_transform_feedback_object *tfb_vertcount,
+                         unsigned stream,
 			 struct gl_buffer_object *indirect)
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);

@@ -26,10 +26,10 @@
 #ifndef UNIFORMS_H
 #define UNIFORMS_H
 
-#include "glheader.h"
+#include "main/glheader.h"
+#include "glsl/nir/glsl_types.h"
+#include "glsl/ir_uniform.h"
 #include "program/prog_parameter.h"
-#include "../glsl/glsl_types.h"
-#include "../glsl/ir_uniform.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -225,6 +225,10 @@ _mesa_UniformBlockBinding(GLuint program,
 			  GLuint uniformBlockIndex,
 			  GLuint uniformBlockBinding);
 void GLAPIENTRY
+_mesa_ShaderStorageBlockBinding(GLuint program,
+                                GLuint shaderStorageBlockIndex,
+                                GLuint shaderStorageBlockBinding);
+void GLAPIENTRY
 _mesa_GetActiveAtomicCounterBufferiv(GLuint program, GLuint bufferIndex,
                                      GLenum pname, GLint *params);
 void GLAPIENTRY
@@ -355,7 +359,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 		     GLuint cols, GLuint rows,
                      GLint location, GLsizei count,
                      GLboolean transpose,
-                     const GLvoid *values, GLenum type);
+                     const GLvoid *values, enum glsl_base_type basicType);
 
 void
 _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,

@@ -32,6 +32,18 @@ from The Open Group.
 #include <X11/Xlibint.h>
 #include <X11/Xos.h>
 
+/*
+ * Xlib's _XAsyncErrorState sequence number may wrap in 32bit
+ * and we cannot use 64bit as it's public API.
+ */
+#ifdef LONG64
+#define _XLIB_ASYNC_SEQUENCE_CMP(a,op,b)     ((a == 0) || (a op b))
+#else /* !LONG64 */
+#define _XLIB_ASYNC_SEQUENCE_CMP(a,op,b)     ((a == 0) || \
+                                              (((a op b) && (b - a op (UINT32_MAX >> 1))) || \
+                                               ((b op a) && ((UINT32_MAX >> 1) op a - b))))
+#endif /* !LONG64 */
+
 /*ARGSUSED*/
 Bool
 _XAsyncErrorHandler(
@@ -51,10 +63,8 @@ _XAsyncErrorHandler(
 	 rep->error.majorCode == state->major_opcode) &&
 	(!state->minor_opcode ||
 	 rep->error.minorCode == state->minor_opcode) &&
-	(!state->min_sequence_number ||
-	 (state->min_sequence_number <= dpy->last_request_read)) &&
-	(!state->max_sequence_number ||
-	 (state->max_sequence_number >= dpy->last_request_read))) {
+	(_XLIB_ASYNC_SEQUENCE_CMP(state->min_sequence_number,<=,dpy->last_request_read)) &&
+	(_XLIB_ASYNC_SEQUENCE_CMP(state->max_sequence_number,>=,dpy->last_request_read))) {
 	state->last_error_received = rep->error.errorCode;
 	state->error_count++;
 	return True;

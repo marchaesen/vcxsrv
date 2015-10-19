@@ -683,11 +683,9 @@ xf86RandR12ScreenSetSize(ScreenPtr pScreen,
     Bool ret = FALSE;
     int c;
 
-    if (xf86RandR12Key) {
-        if (randrp->virtualX == -1 || randrp->virtualY == -1) {
-            randrp->virtualX = pScrn->virtualX;
-            randrp->virtualY = pScrn->virtualY;
-        }
+    if (randrp->virtualX == -1 || randrp->virtualY == -1) {
+        randrp->virtualX = pScrn->virtualX;
+        randrp->virtualY = pScrn->virtualY;
     }
     if (pRoot && pScrn->vtSema)
         (*pScrn->EnableDisableFBAccess) (pScrn, FALSE);
@@ -730,7 +728,7 @@ xf86RandR12ScreenSetSize(ScreenPtr pScreen,
     if (pRoot && pScrn->vtSema)
         (*pScrn->EnableDisableFBAccess) (pScrn, TRUE);
 #if RANDR_12_INTERFACE
-    if (xf86RandR12Key && pScreen->root && ret)
+    if (pScreen->root && ret)
         RRScreenSizeNotify(pScreen);
 #endif
     return ret;
@@ -825,9 +823,6 @@ xf86RandR12CreateScreenResources(ScreenPtr pScreen)
         pScreen->height = height;
         xf86RandR12ScreenSetSize(pScreen, width, height, mmWidth, mmHeight);
     }
-
-    if (xf86RandR12Key == NULL)
-        return TRUE;
 
     if (randrp->virtualX == -1 || randrp->virtualY == -1) {
         randrp->virtualX = pScrn->virtualX;

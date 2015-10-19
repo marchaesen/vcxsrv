@@ -231,7 +231,7 @@ glamor_get_tex_format_type_from_pictformat_gles2(PictFormatShort format,
     case PICT_b5g6r5:
         *tex_format = GL_RGB;
         *tex_type = GL_UNSIGNED_SHORT_5_6_5;
-        need_swap_rb = IS_LITTLE_ENDIAN ? 1 : 0;;
+        need_swap_rb = IS_LITTLE_ENDIAN ? 1 : 0;
         break;
 
     case PICT_x1b5g5r5:

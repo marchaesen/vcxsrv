@@ -30,8 +30,8 @@ in this Software without prior written authorization from The Open Group.
 #include "Xlibint.h"
 
 typedef struct _WAttrsState {
-    unsigned long attr_seq;
-    unsigned long geom_seq;
+    uint64_t attr_seq;
+    uint64_t geom_seq;
     XWindowAttributes *attr;
 } _XWAttrsState;
 
@@ -47,10 +47,11 @@ _XWAttrsHandler(
     xGetWindowAttributesReply replbuf;
     register xGetWindowAttributesReply *repl;
     register XWindowAttributes *attr;
+    uint64_t last_request_read = X_DPY_GET_LAST_REQUEST_READ(dpy);
 
     state = (_XWAttrsState *)data;
-    if (dpy->last_request_read != state->attr_seq) {
-	if (dpy->last_request_read == state->geom_seq &&
+    if (last_request_read != state->attr_seq) {
+	if (last_request_read == state->geom_seq &&
 	    !state->attr &&
 	    rep->generic.type == X_Error &&
 	    rep->error.errorCode == BadDrawable)
@@ -99,7 +100,7 @@ _XGetWindowAttributes(
 
     GetResReq(GetWindowAttributes, w, req);
 
-    async_state.attr_seq = dpy->request;
+    async_state.attr_seq = X_DPY_GET_REQUEST(dpy);
     async_state.geom_seq = 0;
     async_state.attr = attr;
     async.next = dpy->async_handlers;
@@ -109,7 +110,7 @@ _XGetWindowAttributes(
 
     GetResReq(GetGeometry, w, req);
 
-    async_state.geom_seq = dpy->request;
+    async_state.geom_seq = X_DPY_GET_REQUEST(dpy);
 
     if (!_XReply (dpy, (xReply *)&rep, 0, xTrue)) {
 	DeqAsyncHandler(dpy, &async);

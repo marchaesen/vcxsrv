@@ -183,11 +183,7 @@ extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
 #include <sys/types.h>
 #include <assert.h>
 
-#ifdef __linux__
-#include <termio.h>
-#else                           /* __GLIBC__ */
 #include <termios.h>
-#endif
 #ifdef __sparc__
 #include <sys/param.h>
 #endif
@@ -212,12 +208,8 @@ extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
 #endif                          /* __linux__ || __GLIBC__ */
 
 /**************************************************************************/
-/* 386BSD and derivatives,  BSD/386                                       */
+/* System is BSD-like                                                     */
 /**************************************************************************/
-
-#if defined(__386BSD__) && (defined(__FreeBSD__) || defined(__NetBSD__))
-#undef __386BSD__
-#endif
 
 #ifdef CSRG_BASED
 #include <sys/ioctl.h>
@@ -246,8 +238,6 @@ extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
 #define __FreeBSD_kernel_version __FreeBSD_version
 #endif
 
-#if !defined(LINKKIT)
-  /* Don't need this stuff for the Link Kit */
 #ifdef SYSCONS_SUPPORT
 #define COMPAT_SYSCONS
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
@@ -313,7 +303,6 @@ struct pcvtid {
 #ifndef CONSOLE_GET_MEM_INFO
 #define CONSOLE_GET_MEM_INFO            _IOR('t',159,struct map_info)
 #endif
-#endif                          /* !LINKKIT */
 
 #if defined(USE_I386_IOPL) || defined(USE_AMD64_IOPL)
 #include <machine/sysarch.h>

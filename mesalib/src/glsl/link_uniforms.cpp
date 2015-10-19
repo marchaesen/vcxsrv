@@ -28,6 +28,7 @@
 #include "glsl_symbol_table.h"
 #include "program/hash_table.h"
 #include "program.h"
+#include "util/hash_table.h"
 
 /**
  * \file link_uniforms.cpp
@@ -47,10 +48,9 @@
 static unsigned
 values_for_type(const glsl_type *type)
 {
-   if (type->is_sampler() || type->is_subroutine()) {
+   if (type->is_sampler()) {
       return 1;
-   } else if (type->is_array() && (type->fields.array->is_sampler() ||
-                                   type->fields.array->is_subroutine())) {
+   } else if (type->is_array() && type->fields.array->is_sampler()) {
       return type->array_size();
    } else {
       return type->component_slots();
@@ -63,17 +63,27 @@ program_resource_visitor::process(const glsl_type *type, const char *name)
    assert(type->without_array()->is_record()
           || type->without_array()->is_interface());
 
+   unsigned record_array_count = 1;
    char *name_copy = ralloc_strdup(NULL, name);
-   recursion(type, &name_copy, strlen(name), false, NULL, false);
+   unsigned packing = type->interface_packing;
+
+   recursion(type, &name_copy, strlen(name), false, NULL, packing, false,
+             record_array_count);
    ralloc_free(name_copy);
 }
 
 void
 program_resource_visitor::process(ir_variable *var)
 {
+   unsigned record_array_count = 1;
    const glsl_type *t = var->type;
+   const glsl_type *t_without_array = var->type->without_array();
    const bool row_major =
       var->data.matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR;
+
+   const unsigned packing = var->get_interface_type() ?
+      var->get_interface_type()->interface_packing :
+      var->type->interface_packing;
 
    /* false is always passed for the row_major parameter to the other
     * processing functions because no information is available to do
@@ -111,7 +121,8 @@ program_resource_visitor::process(ir_variable *var)
           * lowering is only applied to non-uniform interface blocks, so we
           * can safely pass false for row_major.
           */
-         recursion(var->type, &name, new_length, row_major, NULL, false);
+         recursion(var->type, &name, new_length, row_major, NULL, packing,
+                   false, record_array_count);
       }
       ralloc_free(name);
    } else if (var->data.from_named_ifc_block_nonarray) {
@@ -135,22 +146,23 @@ program_resource_visitor::process(ir_variable *var)
        * is only applied to non-uniform interface blocks, so we can safely
        * pass false for row_major.
        */
-      recursion(var->type, &name, strlen(name), row_major, NULL, false);
+      recursion(var->type, &name, strlen(name), row_major, NULL, packing,
+                false, record_array_count);
       ralloc_free(name);
-   } else if (t->without_array()->is_record()) {
+   } else if (t_without_array->is_record() ||
+              (t->is_array() && t->fields.array->is_array())) {
       char *name = ralloc_strdup(NULL, var->name);
-      recursion(var->type, &name, strlen(name), row_major, NULL, false);
+      recursion(var->type, &name, strlen(name), row_major, NULL, packing,
+                false, record_array_count);
       ralloc_free(name);
-   } else if (t->is_interface()) {
-      char *name = ralloc_strdup(NULL, var->type->name);
-      recursion(var->type, &name, strlen(name), row_major, NULL, false);
-      ralloc_free(name);
-   } else if (t->is_array() && t->fields.array->is_interface()) {
-      char *name = ralloc_strdup(NULL, var->type->fields.array->name);
-      recursion(var->type, &name, strlen(name), row_major, NULL, false);
+   } else if (t_without_array->is_interface()) {
+      char *name = ralloc_strdup(NULL, t_without_array->name);
+      recursion(var->type, &name, strlen(name), row_major, NULL, packing,
+                false, record_array_count);
       ralloc_free(name);
    } else {
-      this->visit_field(t, var->name, row_major, NULL, false);
+      this->set_record_array_count(record_array_count);
+      this->visit_field(t, var->name, row_major, NULL, packing, false);
    }
 }
 
@@ -158,7 +170,9 @@ void
 program_resource_visitor::recursion(const glsl_type *t, char **name,
                                     size_t name_length, bool row_major,
                                     const glsl_type *record_type,
-                                    bool last_field)
+                                    const unsigned packing,
+                                    bool last_field,
+                                    unsigned record_array_count)
 {
    /* Records need to have each field processed individually.
     *
@@ -171,7 +185,7 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
          record_type = t;
 
       if (t->is_record())
-         this->enter_record(t, *name, row_major);
+         this->enter_record(t, *name, row_major, packing);
 
       for (unsigned i = 0; i < t->length; i++) {
 	 const char *field = t->fields.structure[i].name;
@@ -205,7 +219,8 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
          recursion(t->fields.structure[i].type, name, new_length,
                    field_row_major,
                    record_type,
-                   (i + 1) == t->length);
+                   packing,
+                   (i + 1) == t->length, record_array_count);
 
          /* Only the first leaf-field of the record gets called with the
           * record type pointer.
@@ -215,14 +230,23 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
 
       if (t->is_record()) {
          (*name)[name_length] = '\0';
-         this->leave_record(t, *name, row_major);
+         this->leave_record(t, *name, row_major, packing);
       }
-   } else if (t->is_array() && (t->fields.array->is_record()
-                                || t->fields.array->is_interface())) {
+   } else if (t->without_array()->is_record() ||
+              t->without_array()->is_interface() ||
+              (t->is_array() && t->fields.array->is_array())) {
       if (record_type == NULL && t->fields.array->is_record())
          record_type = t->fields.array;
 
-      for (unsigned i = 0; i < t->length; i++) {
+      unsigned length = t->length;
+      /* Shader storage block unsized arrays: add subscript [0] to variable
+       * names */
+      if (t->is_unsized_array())
+         length = 1;
+
+      record_array_count *= length;
+
+      for (unsigned i = 0; i < length; i++) {
 	 size_t new_length = name_length;
 
 	 /* Append the subscript to the current variable name */
@@ -230,7 +254,8 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
 
          recursion(t->fields.array, name, new_length, row_major,
                    record_type,
-                   (i + 1) == t->length);
+                   packing,
+                   (i + 1) == t->length, record_array_count);
 
          /* Only the first leaf-field of the record gets called with the
           * record type pointer.
@@ -238,7 +263,8 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
          record_type = NULL;
       }
    } else {
-      this->visit_field(t, *name, row_major, record_type, last_field);
+      this->set_record_array_count(record_array_count);
+      this->visit_field(t, *name, row_major, record_type, packing, last_field);
    }
 }
 
@@ -246,6 +272,7 @@ void
 program_resource_visitor::visit_field(const glsl_type *type, const char *name,
                                       bool row_major,
                                       const glsl_type *,
+                                      const unsigned,
                                       bool /* last_field */)
 {
    visit_field(type, name, row_major);
@@ -259,12 +286,19 @@ program_resource_visitor::visit_field(const glsl_struct_field *field)
 }
 
 void
-program_resource_visitor::enter_record(const glsl_type *, const char *, bool)
+program_resource_visitor::enter_record(const glsl_type *, const char *, bool,
+                                       const unsigned)
 {
 }
 
 void
-program_resource_visitor::leave_record(const glsl_type *, const char *, bool)
+program_resource_visitor::leave_record(const glsl_type *, const char *, bool,
+                                       const unsigned)
+{
+}
+
+void
+program_resource_visitor::set_record_array_count(unsigned)
 {
 }
 
@@ -282,11 +316,13 @@ namespace {
  */
 class count_uniform_size : public program_resource_visitor {
 public:
-   count_uniform_size(struct string_to_uint_map *map)
-      : num_active_uniforms(0), num_values(0), num_shader_samplers(0),
-        num_shader_images(0), num_shader_uniform_components(0),
-        num_shader_subroutines(0),
-        is_ubo_var(false), map(map)
+   count_uniform_size(struct string_to_uint_map *map,
+                      struct string_to_uint_map *hidden_map)
+      : num_active_uniforms(0), num_hidden_uniforms(0), num_values(0),
+        num_shader_samplers(0), num_shader_images(0),
+        num_shader_uniform_components(0), num_shader_subroutines(0),
+        is_ubo_var(false), is_shader_storage(false), map(map),
+        hidden_map(hidden_map)
    {
       /* empty */
    }
@@ -301,7 +337,9 @@ public:
 
    void process(ir_variable *var)
    {
+      this->current_var = var;
       this->is_ubo_var = var->is_in_buffer_block();
+      this->is_shader_storage = var->is_in_shader_storage_block();
       if (var->is_interface_instance())
          program_resource_visitor::process(var->get_interface_type(),
                                            var->get_interface_type()->name);
@@ -313,6 +351,8 @@ public:
     * Total number of active uniforms counted
     */
    unsigned num_active_uniforms;
+
+   unsigned num_hidden_uniforms;
 
    /**
     * Number of data values required to back the storage for the active uniforms
@@ -340,6 +380,9 @@ public:
    unsigned num_shader_subroutines;
 
    bool is_ubo_var;
+   bool is_shader_storage;
+
+   struct string_to_uint_map *map;
 
 private:
    virtual void visit_field(const glsl_type *type, const char *name,
@@ -347,6 +390,7 @@ private:
    {
       assert(!type->without_array()->is_record());
       assert(!type->without_array()->is_interface());
+      assert(!(type->is_array() && type->fields.array->is_array()));
 
       (void) row_major;
 
@@ -368,13 +412,14 @@ private:
           * components in the default block.  The spec allows image
           * uniforms to use up no more than one scalar slot.
           */
-         this->num_shader_uniform_components += values;
+         if(!is_shader_storage)
+            this->num_shader_uniform_components += values;
       } else {
 	 /* Accumulate the total number of uniform slots used by this shader.
 	  * Note that samplers do not count against this limit because they
 	  * don't use any storage on current hardware.
 	  */
-	 if (!is_ubo_var)
+	 if (!is_ubo_var && !is_shader_storage)
 	    this->num_shader_uniform_components += values;
       }
 
@@ -384,7 +429,13 @@ private:
       if (this->map->get(id, name))
 	 return;
 
-      this->map->put(this->num_active_uniforms, name);
+      if (this->current_var->data.how_declared == ir_var_hidden) {
+         this->hidden_map->put(this->num_hidden_uniforms, name);
+         this->num_hidden_uniforms++;
+      } else {
+         this->map->put(this->num_active_uniforms-this->num_hidden_uniforms,
+                        name);
+      }
 
       /* Each leaf uniform occupies one entry in the list of active
        * uniforms.
@@ -393,7 +444,12 @@ private:
       this->num_values += values;
    }
 
-   struct string_to_uint_map *map;
+   struct string_to_uint_map *hidden_map;
+
+   /**
+    * Current variable being processed.
+    */
+   ir_variable *current_var;
 };
 
 } /* anonymous namespace */
@@ -432,6 +488,7 @@ public:
       this->next_sampler = 0;
       this->next_image = 0;
       this->next_subroutine = 0;
+      this->record_array_count = 1;
       memset(this->targets, 0, sizeof(this->targets));
    }
 
@@ -440,25 +497,26 @@ public:
    {
       current_var = var;
       field_counter = 0;
+      this->record_next_sampler = new string_to_uint_map;
 
       ubo_block_index = -1;
       if (var->is_in_buffer_block()) {
          if (var->is_interface_instance() && var->type->is_array()) {
             unsigned l = strlen(var->get_interface_type()->name);
 
-            for (unsigned i = 0; i < prog->NumUniformBlocks; i++) {
+            for (unsigned i = 0; i < prog->NumBufferInterfaceBlocks; i++) {
                if (strncmp(var->get_interface_type()->name,
-                           prog->UniformBlocks[i].Name,
+                           prog->BufferInterfaceBlocks[i].Name,
                            l) == 0
-                   && prog->UniformBlocks[i].Name[l] == '[') {
+                   && prog->BufferInterfaceBlocks[i].Name[l] == '[') {
                   ubo_block_index = i;
                   break;
                }
             }
          } else {
-            for (unsigned i = 0; i < prog->NumUniformBlocks; i++) {
+            for (unsigned i = 0; i < prog->NumBufferInterfaceBlocks; i++) {
                if (strcmp(var->get_interface_type()->name,
-                          prog->UniformBlocks[i].Name) == 0) {
+                          prog->BufferInterfaceBlocks[i].Name) == 0) {
                   ubo_block_index = i;
                   break;
                }
@@ -476,7 +534,7 @@ public:
             ubo_byte_offset = 0;
          } else {
             const struct gl_uniform_block *const block =
-               &prog->UniformBlocks[ubo_block_index];
+               &prog->BufferInterfaceBlocks[ubo_block_index];
 
             assert(var->data.location != -1);
 
@@ -491,8 +549,16 @@ public:
                     var->get_interface_type()->name);
          else
             process(var);
-      } else
+      } else {
+         /* Store any explicit location and reset data location so we can
+          * reuse this variable for storing the uniform slot number.
+          */
+         this->explicit_location = current_var->data.location;
+         current_var->data.location = -1;
+
          process(var);
+      }
+      delete this->record_next_sampler;
    }
 
    int ubo_block_index;
@@ -501,30 +567,75 @@ public:
 
 private:
    void handle_samplers(const glsl_type *base_type,
-                        struct gl_uniform_storage *uniform)
+                        struct gl_uniform_storage *uniform, const char *name)
    {
       if (base_type->is_sampler()) {
-         uniform->sampler[shader_type].index = this->next_sampler;
-         uniform->sampler[shader_type].active = true;
+         uniform->opaque[shader_type].active = true;
 
-         /* Increment the sampler by 1 for non-arrays and by the number of
-          * array elements for arrays.
-          */
-         this->next_sampler +=
-               MAX2(1, uniform->array_elements);
+         /* Handle multiple samplers inside struct arrays */
+         if (this->record_array_count > 1) {
+            unsigned inner_array_size = MAX2(1, uniform->array_elements);
+            char *name_copy = ralloc_strdup(NULL, name);
+
+            /* Remove all array subscripts from the sampler name */
+            char *str_start;
+            const char *str_end;
+            while((str_start = strchr(name_copy, '[')) &&
+                  (str_end = strchr(name_copy, ']'))) {
+               memmove(str_start, str_end + 1, 1 + strlen(str_end));
+            }
+
+            unsigned index = 0;
+            if (this->record_next_sampler->get(index, name_copy)) {
+               /* In this case, we've already seen this uniform so we just use
+                * the next sampler index recorded the last time we visited.
+                */
+               uniform->opaque[shader_type].index = index;
+               index = inner_array_size + uniform->opaque[shader_type].index;
+               this->record_next_sampler->put(index, name_copy);
+
+               ralloc_free(name_copy);
+               /* Return as everything else has already been initialised in a
+                * previous pass.
+                */
+               return;
+            } else {
+               /* We've never seen this uniform before so we need to allocate
+                * enough indices to store it.
+                *
+                * Nested struct arrays behave like arrays of arrays so we need
+                * to increase the index by the total number of elements of the
+                * sampler in case there is more than one sampler inside the
+                * structs. This allows the offset to be easily calculated for
+                * indirect indexing.
+                */
+               uniform->opaque[shader_type].index = this->next_sampler;
+               this->next_sampler +=
+                  inner_array_size * this->record_array_count;
+
+               /* Store the next index for future passes over the struct array
+                */
+               index = uniform->opaque[shader_type].index + inner_array_size;
+               this->record_next_sampler->put(index, name_copy);
+               ralloc_free(name_copy);
+            }
+         } else {
+            /* Increment the sampler by 1 for non-arrays and by the number of
+             * array elements for arrays.
+             */
+            uniform->opaque[shader_type].index = this->next_sampler;
+            this->next_sampler += MAX2(1, uniform->array_elements);
+         }
 
          const gl_texture_index target = base_type->sampler_index();
          const unsigned shadow = base_type->sampler_shadow;
-         for (unsigned i = uniform->sampler[shader_type].index;
+         for (unsigned i = uniform->opaque[shader_type].index;
               i < MIN2(this->next_sampler, MAX_SAMPLERS);
               i++) {
             this->targets[i] = target;
             this->shader_samplers_used |= 1U << i;
             this->shader_shadow_samplers |= shadow << i;
          }
-      } else {
-         uniform->sampler[shader_type].index = ~0;
-         uniform->sampler[shader_type].active = false;
       }
    }
 
@@ -532,17 +643,14 @@ private:
                       struct gl_uniform_storage *uniform)
    {
       if (base_type->is_image()) {
-         uniform->image[shader_type].index = this->next_image;
-         uniform->image[shader_type].active = true;
+         uniform->opaque[shader_type].index = this->next_image;
+         uniform->opaque[shader_type].active = true;
 
          /* Increment the image index by 1 for non-arrays and by the
           * number of array elements for arrays.
           */
          this->next_image += MAX2(1, uniform->array_elements);
 
-      } else {
-         uniform->image[shader_type].index = ~0;
-         uniform->image[shader_type].active = false;
       }
    }
 
@@ -550,18 +658,20 @@ private:
                            struct gl_uniform_storage *uniform)
    {
       if (base_type->is_subroutine()) {
-         uniform->subroutine[shader_type].index = this->next_subroutine;
-         uniform->subroutine[shader_type].active = true;
+         uniform->opaque[shader_type].index = this->next_subroutine;
+         uniform->opaque[shader_type].active = true;
 
          /* Increment the subroutine index by 1 for non-arrays and by the
           * number of array elements for arrays.
           */
          this->next_subroutine += MAX2(1, uniform->array_elements);
 
-      } else {
-         uniform->subroutine[shader_type].index = ~0;
-         uniform->subroutine[shader_type].active = false;
       }
+   }
+
+   virtual void set_record_array_count(unsigned record_array_count)
+   {
+      this->record_array_count = record_array_count;
    }
 
    virtual void visit_field(const glsl_type *type, const char *name,
@@ -574,29 +684,39 @@ private:
    }
 
    virtual void enter_record(const glsl_type *type, const char *,
-                             bool row_major) {
+                             bool row_major, const unsigned packing) {
       assert(type->is_record());
       if (this->ubo_block_index == -1)
          return;
-      this->ubo_byte_offset = glsl_align(
+      if (packing == GLSL_INTERFACE_PACKING_STD430)
+         this->ubo_byte_offset = glsl_align(
+            this->ubo_byte_offset, type->std430_base_alignment(row_major));
+      else
+         this->ubo_byte_offset = glsl_align(
             this->ubo_byte_offset, type->std140_base_alignment(row_major));
    }
 
    virtual void leave_record(const glsl_type *type, const char *,
-                             bool row_major) {
+                             bool row_major, const unsigned packing) {
       assert(type->is_record());
       if (this->ubo_block_index == -1)
          return;
-      this->ubo_byte_offset = glsl_align(
+      if (packing == GLSL_INTERFACE_PACKING_STD430)
+         this->ubo_byte_offset = glsl_align(
+            this->ubo_byte_offset, type->std430_base_alignment(row_major));
+      else
+         this->ubo_byte_offset = glsl_align(
             this->ubo_byte_offset, type->std140_base_alignment(row_major));
    }
 
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *record_type,
+                            const unsigned packing,
                             bool /* last_field */)
    {
       assert(!type->without_array()->is_record());
       assert(!type->without_array()->is_interface());
+      assert(!(type->is_array() && type->fields.array->is_array()));
 
       unsigned id;
       bool found = this->map->get(id, name);
@@ -614,10 +734,21 @@ private:
 	 base_type = type;
       }
 
+      /* Initialise opaque data */
+      this->uniforms[id].opaque[shader_type].index = ~0;
+      this->uniforms[id].opaque[shader_type].active = false;
+
       /* This assigns uniform indices to sampler and image uniforms. */
-      handle_samplers(base_type, &this->uniforms[id]);
+      handle_samplers(base_type, &this->uniforms[id], name);
       handle_images(base_type, &this->uniforms[id]);
       handle_subroutines(base_type, &this->uniforms[id]);
+
+      /* For array of arrays or struct arrays the base location may have
+       * already been set so don't set it again.
+       */
+      if (ubo_block_index == -1 && current_var->data.location == -1) {
+         current_var->data.location = id;
+      }
 
       /* If there is already storage associated with this uniform or if the
        * uniform is set as builtin, it means that it was set while processing
@@ -635,10 +766,10 @@ private:
          if (record_type != NULL) {
             const unsigned entries = MAX2(1, this->uniforms[id].array_elements);
             this->uniforms[id].remap_location =
-               current_var->data.location + field_counter;
+               this->explicit_location + field_counter;
             field_counter += entries;
          } else {
-            this->uniforms[id].remap_location = current_var->data.location;
+            this->uniforms[id].remap_location = this->explicit_location;
          }
       } else {
          /* Initialize to to indicate that no location is set */
@@ -659,17 +790,30 @@ private:
       if (!this->uniforms[id].builtin)
          this->uniforms[id].storage = this->values;
 
+      this->uniforms[id].is_shader_storage =
+         current_var->is_in_shader_storage_block();
+
       if (this->ubo_block_index != -1) {
-	 this->uniforms[id].block_index = this->ubo_block_index;
+         this->uniforms[id].block_index = this->ubo_block_index;
 
-	 const unsigned alignment = type->std140_base_alignment(row_major);
-	 this->ubo_byte_offset = glsl_align(this->ubo_byte_offset, alignment);
-	 this->uniforms[id].offset = this->ubo_byte_offset;
-	 this->ubo_byte_offset += type->std140_size(row_major);
+         unsigned alignment = type->std140_base_alignment(row_major);
+         if (packing == GLSL_INTERFACE_PACKING_STD430)
+            alignment = type->std430_base_alignment(row_major);
+         this->ubo_byte_offset = glsl_align(this->ubo_byte_offset, alignment);
+         this->uniforms[id].offset = this->ubo_byte_offset;
+         if (packing == GLSL_INTERFACE_PACKING_STD430)
+            this->ubo_byte_offset += type->std430_size(row_major);
+         else
+            this->ubo_byte_offset += type->std140_size(row_major);
 
-	 if (type->is_array()) {
-	    this->uniforms[id].array_stride =
-	       glsl_align(type->fields.array->std140_size(row_major), 16);
+         if (type->is_array()) {
+            if (packing == GLSL_INTERFACE_PACKING_STD430)
+               this->uniforms[id].array_stride =
+                  type->without_array()->std430_array_stride(row_major);
+            else
+               this->uniforms[id].array_stride =
+                  glsl_align(type->without_array()->std140_size(row_major),
+                             16);
 	 } else {
 	    this->uniforms[id].array_stride = 0;
 	 }
@@ -677,10 +821,15 @@ private:
 	 if (type->without_array()->is_matrix()) {
             const glsl_type *matrix = type->without_array();
             const unsigned N = matrix->base_type == GLSL_TYPE_DOUBLE ? 8 : 4;
-            const unsigned items = row_major ? matrix->matrix_columns : matrix->vector_elements;
+            const unsigned items =
+               row_major ? matrix->matrix_columns : matrix->vector_elements;
 
             assert(items <= 4);
-            this->uniforms[id].matrix_stride = glsl_align(items * N, 16);
+            if (packing == GLSL_INTERFACE_PACKING_STD430)
+               this->uniforms[id].matrix_stride = items < 3 ? items * N :
+                                                    glsl_align(items * N, 16);
+            else
+               this->uniforms[id].matrix_stride = glsl_align(items * N, 16);
 	    this->uniforms[id].row_major = row_major;
 	 } else {
 	    this->uniforms[id].matrix_stride = 0;
@@ -704,21 +853,34 @@ private:
    unsigned next_image;
    unsigned next_subroutine;
 
-public:
-   union gl_constant_value *values;
-
-   gl_texture_index targets[MAX_SAMPLERS];
+   /**
+    * Field counter is used to take care that uniform structures
+    * with explicit locations get sequential locations.
+    */
+   unsigned field_counter;
 
    /**
     * Current variable being processed.
     */
    ir_variable *current_var;
 
-   /**
-    * Field counter is used to take care that uniform structures
-    * with explicit locations get sequential locations.
+   /* Used to store the explicit location from current_var so that we can
+    * reuse the location field for storing the uniform slot id.
     */
-   unsigned field_counter;
+   int explicit_location;
+
+   /* Stores total struct array elements including nested structs */
+   unsigned record_array_count;
+
+   /* Map for temporarily storing next sampler index when handling samplers in
+    * struct arrays.
+    */
+   struct string_to_uint_map *record_next_sampler;
+
+public:
+   union gl_constant_value *values;
+
+   gl_texture_index targets[MAX_SAMPLERS];
 
    /**
     * Mask of samplers used by the current shader stage.
@@ -810,16 +972,16 @@ link_update_uniform_buffer_variables(struct gl_shader *shader)
 
       if (var->type->is_record()) {
          sentinel = '.';
-      } else if (var->type->is_array()
-                 && var->type->fields.array->is_record()) {
+      } else if (var->type->is_array() && (var->type->fields.array->is_array()
+                 || var->type->without_array()->is_record())) {
          sentinel = '[';
       }
 
       const unsigned l = strlen(var->name);
-      for (unsigned i = 0; i < shader->NumUniformBlocks; i++) {
-	 for (unsigned j = 0; j < shader->UniformBlocks[i].NumUniforms; j++) {
+      for (unsigned i = 0; i < shader->NumBufferInterfaceBlocks; i++) {
+	 for (unsigned j = 0; j < shader->BufferInterfaceBlocks[i].NumUniforms; j++) {
             if (sentinel) {
-               const char *begin = shader->UniformBlocks[i].Uniforms[j].Name;
+               const char *begin = shader->BufferInterfaceBlocks[i].Uniforms[j].Name;
                const char *end = strchr(begin, sentinel);
 
                if (end == NULL)
@@ -834,7 +996,7 @@ link_update_uniform_buffer_variables(struct gl_shader *shader)
                   break;
                }
             } else if (!strcmp(var->name,
-                               shader->UniformBlocks[i].Uniforms[j].Name)) {
+                               shader->BufferInterfaceBlocks[i].Uniforms[j].Name)) {
 	       found = true;
 	       var->data.location = j;
 	       break;
@@ -870,7 +1032,7 @@ link_set_image_access_qualifiers(struct gl_shader_program *prog)
             assert(found);
             (void) found;
             const gl_uniform_storage *storage = &prog->UniformStorage[id];
-            const unsigned index = storage->image[i].index;
+            const unsigned index = storage->opaque[i].index;
             const GLenum access = (var->data.image_read_only ? GL_READ_ONLY :
                                    var->data.image_write_only ? GL_WRITE_ONLY :
                                    GL_READ_WRITE);
@@ -883,47 +1045,19 @@ link_set_image_access_qualifiers(struct gl_shader_program *prog)
 }
 
 /**
- * Sort the array of uniform storage so that the non-hidden uniforms are first
- *
- * This function sorts the list "in place."  This is important because some of
- * the storage accessible from \c uniforms has \c uniforms as its \c ralloc
- * context.  If \c uniforms is freed, some other storage will also be freed.
+ * Combine the hidden uniform hash map with the uniform hash map so that the
+ * hidden uniforms will be given indicies at the end of the uniform storage
+ * array.
  */
-static unsigned
-move_hidden_uniforms_to_end(struct gl_shader_program *prog,
-                            struct gl_uniform_storage *uniforms,
-                            unsigned num_elements)
+static void
+assign_hidden_uniform_slot_id(const char *name, unsigned hidden_id,
+                              void *closure)
 {
-   struct gl_uniform_storage *sorted_uniforms =
-      ralloc_array(prog, struct gl_uniform_storage, num_elements);
-   unsigned hidden_uniforms = 0;
-   unsigned j = 0;
+   count_uniform_size *uniform_size = (count_uniform_size *) closure;
+   unsigned hidden_uniform_start = uniform_size->num_active_uniforms -
+      uniform_size->num_hidden_uniforms;
 
-   /* Add the non-hidden uniforms. */
-   for (unsigned i = 0; i < num_elements; i++) {
-      if (!uniforms[i].hidden)
-         sorted_uniforms[j++] = uniforms[i];
-   }
-
-   /* Add and count the hidden uniforms. */
-   for (unsigned i = 0; i < num_elements; i++) {
-      if (uniforms[i].hidden) {
-         sorted_uniforms[j++] = uniforms[i];
-         hidden_uniforms++;
-      }
-   }
-
-   assert(prog->UniformHash != NULL);
-   prog->UniformHash->clear();
-   for (unsigned i = 0; i < num_elements; i++) {
-      if (sorted_uniforms[i].name != NULL)
-         prog->UniformHash->put(i, sorted_uniforms[i].name);
-   }
-
-   memcpy(uniforms, sorted_uniforms, sizeof(uniforms[0]) * num_elements);
-   ralloc_free(sorted_uniforms);
-
-   return hidden_uniforms;
+   uniform_size->map->put(hidden_uniform_start + hidden_id, name);
 }
 
 void
@@ -947,7 +1081,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
     * Note: this is *NOT* the index that is returned to the application by
     * glGetUniformLocation.
     */
-   count_uniform_size uniform_size(prog->UniformHash);
+   struct string_to_uint_map *hiddenUniforms = new string_to_uint_map;
+   count_uniform_size uniform_size(prog->UniformHash, hiddenUniforms);
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_shader *sh = prog->_LinkedShaders[i];
 
@@ -987,14 +1122,21 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       sh->num_uniform_components = uniform_size.num_shader_uniform_components;
       sh->num_combined_uniform_components = sh->num_uniform_components;
 
-      for (unsigned i = 0; i < sh->NumUniformBlocks; i++) {
-	 sh->num_combined_uniform_components +=
-	    sh->UniformBlocks[i].UniformBufferSize / 4;
+      for (unsigned i = 0; i < sh->NumBufferInterfaceBlocks; i++) {
+         if (!sh->BufferInterfaceBlocks[i].IsShaderStorage) {
+	    sh->num_combined_uniform_components +=
+	       sh->BufferInterfaceBlocks[i].UniformBufferSize / 4;
+         }
       }
    }
 
    const unsigned num_uniforms = uniform_size.num_active_uniforms;
    const unsigned num_data_slots = uniform_size.num_values;
+   const unsigned hidden_uniforms = uniform_size.num_hidden_uniforms;
+
+   /* assign hidden uniforms a slot id */
+   hiddenUniforms->iterate(assign_hidden_uniform_slot_id, &uniform_size);
+   delete hiddenUniforms;
 
    /* On the outside chance that there were no uniforms, bail out.
     */
@@ -1020,7 +1162,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       foreach_in_list(ir_instruction, node, prog->_LinkedShaders[i]->ir) {
 	 ir_variable *const var = node->as_variable();
 
-	 if ((var == NULL) || (var->data.mode != ir_var_uniform && var->data.mode != ir_var_shader_storage))
+         if ((var == NULL) || (var->data.mode != ir_var_uniform &&
+                               var->data.mode != ir_var_shader_storage))
 	    continue;
 
 	 parcel.set_and_process(prog, var);
@@ -1029,13 +1172,11 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       prog->_LinkedShaders[i]->active_samplers = parcel.shader_samplers_used;
       prog->_LinkedShaders[i]->shadow_samplers = parcel.shader_shadow_samplers;
 
-      STATIC_ASSERT(sizeof(prog->_LinkedShaders[i]->SamplerTargets) == sizeof(parcel.targets));
+      STATIC_ASSERT(sizeof(prog->_LinkedShaders[i]->SamplerTargets) ==
+                    sizeof(parcel.targets));
       memcpy(prog->_LinkedShaders[i]->SamplerTargets, parcel.targets,
              sizeof(prog->_LinkedShaders[i]->SamplerTargets));
    }
-
-   const unsigned hidden_uniforms =
-      move_hidden_uniforms_to_end(prog, uniforms, num_uniforms);
 
    /* Reserve all the explicit locations of the active uniforms. */
    for (unsigned i = 0; i < num_uniforms; i++) {
@@ -1102,7 +1243,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
          if (!sh)
             continue;
 
-         if (!uniforms[i].subroutine[j].active)
+         if (!uniforms[i].opaque[j].active)
             continue;
 
          /* How many new entries for this uniform? */
@@ -1132,7 +1273,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
          if (!sh)
             continue;
 
-         if (!uniforms[i].subroutine[j].active)
+         if (!uniforms[i].opaque[j].active)
             continue;
 
          sh->SubroutineUniformRemapTable =

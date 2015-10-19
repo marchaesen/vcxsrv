@@ -33,16 +33,16 @@
  * or 1.0.  This is based on the old GLSL IR based pass by Eric.
  */
 
-static nir_ssa_def *
-channel(nir_builder *b, nir_ssa_def *def, int c)
-{
-   return nir_swizzle(b, def, (unsigned[4]){c, c, c, c}, 1, false);
-}
+struct normalize_cubemap_state {
+   nir_builder b;
+   bool progress;
+};
 
 static bool
 normalize_cubemap_coords_block(nir_block *block, void *void_state)
 {
-   nir_builder *b = void_state;
+   struct normalize_cubemap_state *state = void_state;
+   nir_builder *b = &state->b;
 
    nir_foreach_instr(block, instr) {
       if (instr->type != nir_instr_type_tex)
@@ -52,7 +52,7 @@ normalize_cubemap_coords_block(nir_block *block, void *void_state)
       if (tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE)
          continue;
 
-      nir_builder_insert_before_instr(b, &tex->instr);
+      b->cursor = nir_before_instr(&tex->instr);
 
       for (unsigned i = 0; i < tex->num_srcs; i++) {
          if (tex->src[i].src_type != nir_tex_src_coord)
@@ -63,9 +63,9 @@ normalize_cubemap_coords_block(nir_block *block, void *void_state)
          assert(orig_coord->num_components >= 3);
 
          nir_ssa_def *abs = nir_fabs(b, orig_coord);
-         nir_ssa_def *norm = nir_fmax(b, channel(b, abs, 0),
-                                         nir_fmax(b, channel(b, abs, 1),
-                                                     channel(b, abs, 2)));
+         nir_ssa_def *norm = nir_fmax(b, nir_channel(b, abs, 0),
+                                         nir_fmax(b, nir_channel(b, abs, 1),
+                                                     nir_channel(b, abs, 2)));
 
          nir_ssa_def *normalized = nir_fmul(b, orig_coord, nir_frcp(b, norm));
 
@@ -74,37 +74,47 @@ normalize_cubemap_coords_block(nir_block *block, void *void_state)
           */
          if (tex->coord_components == 4) {
             normalized = nir_vec4(b,
-                                  channel(b, normalized, 0),
-                                  channel(b, normalized, 1),
-                                  channel(b, normalized, 2),
-                                  channel(b, orig_coord, 3));
+                                  nir_channel(b, normalized, 0),
+                                  nir_channel(b, normalized, 1),
+                                  nir_channel(b, normalized, 2),
+                                  nir_channel(b, orig_coord, 3));
          }
 
          nir_instr_rewrite_src(&tex->instr,
                                &tex->src[i].src,
                                nir_src_for_ssa(normalized));
+
+         state->progress = true;
       }
    }
 
    return true;
 }
 
-static void
+static bool
 normalize_cubemap_coords_impl(nir_function_impl *impl)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   struct normalize_cubemap_state state;
+   nir_builder_init(&state.b, impl);
+   state.progress = false;
 
-   nir_foreach_block(impl, normalize_cubemap_coords_block, &b);
+   nir_foreach_block(impl, normalize_cubemap_coords_block, &state);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
+
+   return state.progress;
 }
 
-void
+bool
 nir_normalize_cubemap_coords(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload)
+   bool progress = false;
+
+   nir_foreach_overload(shader, overload) {
       if (overload->impl)
-         normalize_cubemap_coords_impl(overload->impl);
+         progress = normalize_cubemap_coords_impl(overload->impl) || progress;
+   }
+
+   return progress;
 }

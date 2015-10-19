@@ -88,6 +88,14 @@ void
 vbo_initialize_save_dispatch(const struct gl_context *ctx,
                              struct _glapi_table *exec);
 
+void vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags);
+void vbo_save_SaveFlushVertices(struct gl_context *ctx);
+GLboolean vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode);
+void vbo_save_NewList(struct gl_context *ctx, GLuint list, GLenum mode);
+void vbo_save_EndList(struct gl_context *ctx);
+void vbo_save_BeginCallList(struct gl_context *ctx, struct gl_display_list *list);
+void vbo_save_EndCallList(struct gl_context *ctx);
+
 
 typedef void (*vbo_draw_func)( struct gl_context *ctx,
 			       const struct _mesa_prim *prims,
@@ -97,7 +105,8 @@ typedef void (*vbo_draw_func)( struct gl_context *ctx,
 			       GLuint min_index,
 			       GLuint max_index,
 			       struct gl_transform_feedback_object *tfb_vertcount,
-			       struct gl_buffer_object *indirect );
+                               unsigned stream,
+			       struct gl_buffer_object *indirect);
 
 
 

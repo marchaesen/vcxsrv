@@ -1831,7 +1831,7 @@ xf86RegisterRootWindowProperty(int ScrnIndex, Atom property, Atom type,
     Bool existing = FALSE;
 
     DebugF("xf86RegisterRootWindowProperty(%d, %ld, %ld, %d, %ld, %p)\n",
-           ScrnIndex, property, type, format, len, value);
+           ScrnIndex, (long)property, (long)type, format, len, value);
 
     if (ScrnIndex < 0 || ScrnIndex >= xf86NumScreens) {
         return BadMatch;

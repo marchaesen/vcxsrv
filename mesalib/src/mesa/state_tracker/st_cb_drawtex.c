@@ -149,9 +149,10 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       GLfloat *vbuf = NULL;
       GLuint attr;
 
-      if (u_upload_alloc(st->uploader, 0,
-                         numAttribs * 4 * 4 * sizeof(GLfloat),
-                         &offset, &vbuffer, (void **) &vbuf) != PIPE_OK) {
+      u_upload_alloc(st->uploader, 0,
+                     numAttribs * 4 * 4 * sizeof(GLfloat),
+                     &offset, &vbuffer, (void **) &vbuf);
+      if (!vbuffer) {
          return;
       }
       

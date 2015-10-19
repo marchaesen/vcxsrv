@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.17.99.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2015-02-02"
-RELEASE_NAME="Côte de veau"
+AC_INIT([xorg-server], 1.17.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2015-09-01"
+RELEASE_NAME="Nectarine"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -223,6 +223,24 @@ AC_REPLACE_FUNCS([reallocarray strcasecmp strcasestr strlcat strlcpy strndup])
 
 AC_CHECK_DECLS([program_invocation_short_name], [], [], [[#include <errno.h>]])
 
+dnl Check for SO_PEERCRED #define
+AC_CACHE_CHECK([for SO_PEERCRED in sys/socket.h],
+	       [xorg_cv_sys_have_so_peercred],
+	       [AC_EGREP_CPP(yes_have_so_peercred,[
+#include <sys/types.h>
+#include <sys/socket.h>
+#ifdef SO_PEERCRED
+yes_have_so_peercred
+#endif
+],
+	       [xorg_cv_sys_have_so_peercred=yes],
+	       [xorg_cv_sys_have_so_peercred=no])])
+
+dnl define NO_LOCAL_CLIENT_CRED if no getpeereid, getpeerucred or SO_PEERCRED
+if test "x$ac_cv_func_getpeereid" = xno && test "x$ac_cv_func_getpeerucred" = xno && test "x$xorg_cv_sys_have_so_peercred" = xno ; then
+	AC_DEFINE([NO_LOCAL_CLIENT_CRED], 1, [Define to 1 if no local socket credentials interface exists])
+fi
+
 dnl Find the math libary, then check for cbrt function in it.
 AC_CHECK_LIB(m, sqrt)
 AC_CHECK_FUNCS([cbrt])
@@ -400,7 +418,7 @@ case $host_os in
 	AC_DEFINE(CSRG_BASED, 1, [System is BSD-like])
 	;;
   cygwin*|mingw*)
-	CFLAGS="$CFLAGS -DFD_SETSIZE=256"
+	CFLAGS="$CFLAGS -DFD_SETSIZE=512"
 	;;
 esac
 
@@ -547,11 +565,6 @@ AC_ARG_ENABLE(sparkle,AS_HELP_STRING([--enable-sparkle], [Enable updating of X11
 				[ XQUARTZ_SPARKLE="${enableval}" ],
 				[ XQUARTZ_SPARKLE="no" ])
 AC_SUBST([XQUARTZ_SPARKLE])
-AC_ARG_ENABLE(install-libxf86config,
-				AS_HELP_STRING([--enable-install-libxf86config],
-				[Install libxf86config (default: disabled)]),
-				[INSTALL_LIBXF86CONFIG=$enableval],
-				[INSTALL_LIBXF86CONFIG=no])
 AC_ARG_ENABLE(visibility,     AS_HELP_STRING([--enable-visibility], [Enable symbol visibility (default: auto)]),
 				[SYMBOL_VISIBILITY=$enableval],
 				[SYMBOL_VISIBILITY=auto])
@@ -677,9 +690,6 @@ AM_CONDITIONAL(INT10_VM86, [test "x$INT10" = xvm86])
 AM_CONDITIONAL(INT10_X86EMU, [test "x$INT10" = xx86emu])
 AM_CONDITIONAL(INT10_STUB, [test "x$INT10" = xstub])
 
-dnl Handle installing libxf86config
-AM_CONDITIONAL(INSTALL_LIBXF86CONFIG, [test "x$INSTALL_LIBXF86CONFIG" = xyes])
-
 dnl DDX Detection... Yes, it's ugly to have it here... but we need to
 dnl handle this early on so that we don't require unsupported extensions
 case $host_os in
@@ -771,7 +781,7 @@ APPLEWMPROTO="applewmproto >= 1.4"
 LIBXSHMFENCE="xshmfence >= 1.1"
 
 dnl Required modules
-XPROTO="xproto >= 7.0.26"
+XPROTO="xproto >= 7.0.28"
 RANDRPROTO="randrproto >= 1.5.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.2.99.901"
@@ -822,7 +832,9 @@ AC_ARG_WITH([systemd-daemon],
 		[support systemd socket activation (default: auto)]),
 	[WITH_SYSTEMD_DAEMON=$withval], [WITH_SYSTEMD_DAEMON=auto])
 PKG_CHECK_MODULES([SYSTEMD_DAEMON], [libsystemd-daemon],
-                  [HAVE_SYSTEMD_DAEMON=yes], [HAVE_SYSTEMD_DAEMON=no])
+                  [HAVE_SYSTEMD_DAEMON=yes],
+                  [PKG_CHECK_MODULES([SYSTEMD_DAEMON], [libsystemd],
+                                     [HAVE_SYSTEMD_DAEMON=yes], [HAVE_SYSTEMD_DAEMON=no])])
 if test "x$WITH_SYSTEMD_DAEMON" = xauto; then
 	WITH_SYSTEMD_DAEMON="$HAVE_SYSTEMD_DAEMON"
 fi
@@ -1516,8 +1528,6 @@ AC_DEFINE_UNQUOTED(VENDOR_NAME_SHORT, ["$VENDOR_NAME_SHORT"], [Vendor name])
 AC_DEFINE_UNQUOTED(VENDOR_RELEASE, [$VENDOR_RELEASE], [Vendor release])
 AC_DEFINE_UNQUOTED(VENDOR_MAN_VERSION, ["$VENDOR_MAN_VERSION"], [Vendor man version])
 
-AC_DEFINE(NO_LIBCWRAPPER, 1, [Define to 1 if modules should avoid the libcwrapper])
-
 if test "x$DEBUGGING" = xyes; then
        AC_DEFINE(DEBUG, 1, [Enable debugging code])
 fi
@@ -1740,7 +1750,7 @@ case "$host_os" in
 #		 XORG_DRIVER_LIBS="-Wl,-z,defs -Wl,-z,parent=${bindir}/Xorg"
          ],[],
 		[AC_LANG_SOURCE([extern int main(int argc, char **argv);
-			int call_main(void) { return main(0, NULL); }])])
+			int call_main(void) { return main(0, (void *)0); }])])
 	     rm -f conftest.parent
 	    ])
 	;;
@@ -2268,7 +2278,7 @@ if test "x$DMX" = xyes; then
 	fi
 	DMX_INCLUDES="$XEXT_INC $RENDER_INC $RECORD_INC"
 	XDMX_CFLAGS="$DMXMODULES_CFLAGS"
-	XDMX_LIBS="$FB_LIB $MI_LIB $XEXT_LIB $RANDR_LIB $RENDER_LIB $RECORD_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB  $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_SHADOW_LIB $MIEXT_DAMAGE_LIB $COMPOSITE_LIB $DAMAGE_LIB $MAIN_LIB $DIX_LIB $CONFIG_LIB $OS_LIB $FIXES_LIB"
+	XDMX_LIBS="$FB_LIB $MI_LIB $XEXT_LIB $RENDER_LIB $RECORD_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_SHADOW_LIB $MIEXT_DAMAGE_LIB $COMPOSITE_LIB $DAMAGE_LIB $MAIN_LIB $DIX_LIB $RANDR_LIB $CONFIG_LIB $OS_LIB $FIXES_LIB"
 	XDMX_SYS_LIBS="$DMXMODULES_LIBS"
 	AC_SUBST([XDMX_CFLAGS])
 	AC_SUBST([XDMX_LIBS])

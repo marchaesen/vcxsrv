@@ -34,6 +34,7 @@ AM_CFLAGS = \
 	-I$(top_srcdir)/src/gallium/auxiliary \
 	$(LIBDRM_CFLAGS) \
 	$(DEFINES) \
+	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	$(VISIBILITY_CFLAGS)
 
 noinst_LTLIBRARIES = \

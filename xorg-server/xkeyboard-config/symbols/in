@@ -4,6 +4,7 @@
 //     - Gujarati
 //     - Kannada
 //     - Malayalam
+//     - Ol Chiki
 //     - Oriya
 //     - Tamil
 //     - Telugu
@@ -21,6 +22,8 @@
 //     http://ekushey.org/projects/shadhinota/index.html
 // - Microsoft Windows XP SP2: Indic Language Standards - an Introduction:
 //     http://www.bhashaindia.com/MSProducts/XpSp2/Articles/IndicLanguageStandards.aspx
+// - Ol Chiki:
+//    http://www.unicode.org/L2/L2005/05243r-n2984-ol-chiki.pdf (fig. 9)
 
 // based on a keyboard map from an 'xkb/symbols/dev' file
 
@@ -910,6 +913,75 @@ xkb_symbols "mal_lalitha" {
 //    modifier_map Mod3   { Mode_switch };
     include "level3(ralt_switch)"
     include "rupeesign(4)"
+};
+
+
+partial alphanumeric_keys
+xkb_symbols "olck" {
+
+    // Layout for the Ol Chiki script.
+    // http://www.unicode.org/L2/L2005/05243r-n2984-ol-chiki.pdf (figure 9)
+
+    name[Group1]= "Ol Chiki";
+
+    key <TLDE> { [  grave, U1C7B		] };
+
+    key <AE01> { [  U1C51, exclam		] };
+    key <AE02> { [  U1C52, at			] };
+    key <AE03> { [  U1C53, numbersign		] };
+    key <AE04> { [  U1C54, dollar, U20B9	] };
+    key <AE05> { [  U1C55, percent		] };
+    key <AE06> { [  U1C56, asciicircum		] };
+    key <AE07> { [  U1C57, ampersand		] };
+    key <AE08> { [  U1C58, asterisk		] };
+    key <AE09> { [  U1C59, parenleft		] };
+    key <AE10> { [  U1C50, parenright		] };
+    key <AE11> { [  minus, U1C7C		] };
+    key <AE12> { [  equal, plus			] };
+
+    key <AD01> { [  U1C67			] };
+    key <AD02> { [  U1C63			] };
+    key <AD03> { [  U1C6E			] };
+    key <AD04> { [  U1C68			] };
+    key <AD05> { [  U1C74, U1C5B		] };
+    key <AD06> { [  U1C6D  			] };
+    key <AD07> { [  U1C69			] };
+    key <AD08> { [  U1C64			] };
+    key <AD09> { [  U1C5A, U1C73		] };
+    key <AD10> { [  U1C6F  			] };
+    key <AD11> { [  bracketleft, braceleft	] };
+    key <AD12> { [  bracketright, braceright 	] };
+    key <BKSL> { [  U1C7F, U1C7E		] };
+
+    key <AC01> { [  U1C5F  			] };
+    key <AC02> { [  U1C65			] };
+    key <AC03> { [  U1C70, U1C6B		] };
+    key <AC04> { [  U1C5D  			] };
+    key <AC05> { [  U1C5C			] };
+    key <AC06> { [  U1C66, U1C77		] };
+    key <AC07> { [  U1C61  			] };
+    key <AC08> { [  U1C60			] };
+    key <AC09> { [  U1C5E			] };
+    key <AC10> { [  semicolon, U1C7A		] };
+    key <AC11> { [  apostrophe, quotedbl	] };
+
+    key <AB01> { [  U1C72			] };
+    key <AB02> { [  U1C7D			] };
+    key <AB03> { [  U1C6A			] };
+    key <AB04> { [  U1C76			] };
+    key <AB05> { [  U1C75			] };
+    key <AB06> { [  U1C71, U1C78		] };
+    key <AB07> { [  U1C62, U1C6C		] };
+    key <AB08> { [  comma, less			] };
+    key <AB09> { [  U1C79, greater		] };
+    key <AB10> { [  slash, question		] };
+
+    key <RALT> {
+	symbols[Group1] = [ Mode_switch, Multi_key ],
+	virtualMods = AltGr
+    };
+
+    include "level3(ralt_switch)"
 };
 
 

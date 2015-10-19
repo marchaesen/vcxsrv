@@ -28,15 +28,14 @@
 
 #include "main/core.h"
 #include "main/context.h"
-#include "ir.h"
-#include "ir_uniform.h"
-#include "program/hash_table.h"
-#include "../glsl/program.h"
-#include "../glsl/ir_uniform.h"
-#include "../glsl/glsl_parser_extras.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
-#include "uniforms.h"
+#include "main/uniforms.h"
+#include "glsl/ir.h"
+#include "glsl/ir_uniform.h"
+#include "glsl/glsl_parser_extras.h"
+#include "glsl/program.h"
+#include "program/hash_table.h"
 
 
 extern "C" void GLAPIENTRY
@@ -323,20 +322,20 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
    {
       unsigned elements = (uni->type->is_sampler())
 	 ? 1 : uni->type->components();
+      const int dmul = uni->type->base_type == GLSL_TYPE_DOUBLE ? 2 : 1;
+      const int rmul = returnType == GLSL_TYPE_DOUBLE ? 2 : 1;
 
       /* Calculate the source base address *BEFORE* modifying elements to
        * account for the size of the user's buffer.
        */
       const union gl_constant_value *const src =
-	 &uni->storage[offset * elements];
+	 &uni->storage[offset * elements * dmul];
 
       assert(returnType == GLSL_TYPE_FLOAT || returnType == GLSL_TYPE_INT ||
-             returnType == GLSL_TYPE_UINT);
-      /* The three (currently) supported types all have the same size,
-       * which is of course the same as their union. That'll change
-       * with glGetUniformdv()...
-       */
-      unsigned bytes = sizeof(src[0]) * elements;
+             returnType == GLSL_TYPE_UINT || returnType == GLSL_TYPE_DOUBLE);
+
+      /* doubles have a different size than the other 3 types */
+      unsigned bytes = sizeof(src[0]) * elements * rmul;
       if (bufSize < 0 || bytes > (unsigned) bufSize) {
 	 _mesa_error( ctx, GL_INVALID_OPERATION,
 	             "glGetnUniform*vARB(out of bounds: bufSize is %d,"
@@ -360,32 +359,57 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
       } else {
 	 union gl_constant_value *const dst =
 	    (union gl_constant_value *) paramsOut;
-
 	 /* This code could be optimized by putting the loop inside the switch
 	  * statements.  However, this is not expected to be
 	  * performance-critical code.
 	  */
 	 for (unsigned i = 0; i < elements; i++) {
+	   int sidx = i * dmul;
+	   int didx = i * rmul;
+
 	    switch (returnType) {
 	    case GLSL_TYPE_FLOAT:
 	       switch (uni->type->base_type) {
 	       case GLSL_TYPE_UINT:
-		  dst[i].f = (float) src[i].u;
+		  dst[didx].f = (float) src[sidx].u;
 		  break;
 	       case GLSL_TYPE_INT:
 	       case GLSL_TYPE_SAMPLER:
                case GLSL_TYPE_IMAGE:
-		  dst[i].f = (float) src[i].i;
+		  dst[didx].f = (float) src[sidx].i;
 		  break;
 	       case GLSL_TYPE_BOOL:
-		  dst[i].f = src[i].i ? 1.0f : 0.0f;
+		  dst[didx].f = src[sidx].i ? 1.0f : 0.0f;
+		  break;
+	       case GLSL_TYPE_DOUBLE:
+		  dst[didx].f = *(double *)&src[sidx].f;
 		  break;
 	       default:
 		  assert(!"Should not get here.");
 		  break;
 	       }
 	       break;
-
+	    case GLSL_TYPE_DOUBLE:
+	       switch (uni->type->base_type) {
+	       case GLSL_TYPE_UINT:
+		  *(double *)&dst[didx].f = (double) src[sidx].u;
+		  break;
+	       case GLSL_TYPE_INT:
+	       case GLSL_TYPE_SAMPLER:
+	       case GLSL_TYPE_IMAGE:
+		  *(double *)&dst[didx].f = (double) src[sidx].i;
+		  break;
+	       case GLSL_TYPE_BOOL:
+		  *(double *)&dst[didx].f = src[sidx].i ? 1.0f : 0.0f;
+		  break;
+	       case GLSL_TYPE_FLOAT:
+		  *(double *)&dst[didx].f = (double) src[sidx].f;
+		  break;
+	       default:
+		  assert(!"Should not get here.");
+		  break;
+	       }
+	       break;
 	    case GLSL_TYPE_INT:
 	    case GLSL_TYPE_UINT:
 	       switch (uni->type->base_type) {
@@ -407,10 +431,13 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 		   *      a floating-point value is rounded to the
 		   *      nearest integer..."
 		   */
-		  dst[i].i = IROUND(src[i].f);
+		  dst[didx].i = IROUND(src[sidx].f);
 		  break;
 	       case GLSL_TYPE_BOOL:
-		  dst[i].i = src[i].i ? 1 : 0;
+		  dst[didx].i = src[sidx].i ? 1 : 0;
+		  break;
+	       case GLSL_TYPE_DOUBLE:
+		  dst[didx].i = *(double *)&src[sidx].f;
 		  break;
 	       default:
 		  assert(!"Should not get here.");
@@ -677,8 +704,10 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
       match = (basicType != GLSL_TYPE_DOUBLE);
       break;
    case GLSL_TYPE_SAMPLER:
-   case GLSL_TYPE_IMAGE:
       match = (basicType == GLSL_TYPE_INT);
+      break;
+   case GLSL_TYPE_IMAGE:
+      match = (basicType == GLSL_TYPE_INT && _mesa_is_desktop_gl(ctx));
       break;
    default:
       match = (basicType == uni->type->base_type);
@@ -796,11 +825,11 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 
 	 /* If the shader stage doesn't use the sampler uniform, skip this.
 	  */
-	 if (sh == NULL || !uni->sampler[i].active)
+	 if (sh == NULL || !uni->opaque[i].active)
 	    continue;
 
          for (int j = 0; j < count; j++) {
-            sh->SamplerUnits[uni->sampler[i].index + offset + j] =
+            sh->SamplerUnits[uni->opaque[i].index + offset + j] =
                ((unsigned *) values)[j];
          }
 
@@ -842,11 +871,11 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
     */
    if (uni->type->is_image()) {
       for (int i = 0; i < MESA_SHADER_STAGES; i++) {
-	 if (uni->image[i].active) {
+	 if (uni->opaque[i].active) {
             struct gl_shader *sh = shProg->_LinkedShaders[i];
 
             for (int j = 0; j < count; j++)
-               sh->ImageUnits[uni->image[i].index + offset + j] =
+               sh->ImageUnits[uni->opaque[i].index + offset + j] =
                   ((GLint *) values)[j];
          }
       }
@@ -864,7 +893,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 		     GLuint cols, GLuint rows,
                      GLint location, GLsizei count,
                      GLboolean transpose,
-                     const GLvoid *values, GLenum type)
+                     const GLvoid *values, enum glsl_base_type basicType)
 {
    unsigned offset;
    unsigned vectors;
@@ -883,8 +912,8 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
       return;
    }
 
-   assert(type == GL_FLOAT || type == GL_DOUBLE);
-   size_mul = type == GL_DOUBLE ? 2 : 1;
+   assert(basicType == GLSL_TYPE_FLOAT || basicType == GLSL_TYPE_DOUBLE);
+   size_mul = basicType == GLSL_TYPE_DOUBLE ? 2 : 1;
 
    assert(!uni->type->is_sampler());
    vectors = uni->type->matrix_columns;
@@ -908,6 +937,31 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 		     "glUniformMatrix(matrix transpose is not GL_FALSE)");
 	 return;
       }
+   }
+
+   /* Section 2.11.7 (Uniform Variables) of the OpenGL 4.2 Core Profile spec
+    * says:
+    *
+    *     "If any of the following conditions occur, an INVALID_OPERATION
+    *     error is generated by the Uniform* commands, and no uniform values
+    *     are changed:
+    *
+    *     ...
+    *
+    *     - if the uniform declared in the shader is not of type boolean and
+    *       the type indicated in the name of the Uniform* command used does
+    *       not match the type of the uniform"
+    *
+    * There are no Boolean matrix types, so we do not need to allow
+    * GLSL_TYPE_BOOL here (as _mesa_uniform does).
+    */
+   if (uni->type->base_type != basicType) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glUniformMatrix%ux%u(\"%s\"@%d is %s, not %s)",
+                  cols, rows, uni->name, location,
+                  glsl_type_name(uni->type->base_type),
+                  glsl_type_name(basicType));
+      return;
    }
 
    if (unlikely(ctx->_Shader->Flags & GLSL_UNIFORMS)) {
@@ -939,7 +993,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
    if (!transpose) {
       memcpy(&uni->storage[elements * offset], values,
 	     sizeof(uni->storage[0]) * elements * count * size_mul);
-   } else if (type == GL_FLOAT) {
+   } else if (basicType == GLSL_TYPE_FLOAT) {
       /* Copy and transpose the matrix.
        */
       const float *src = (const float *)values;
@@ -956,7 +1010,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 	 src += elements;
       }
    } else {
-      assert(type == GL_DOUBLE);
+      assert(basicType == GLSL_TYPE_DOUBLE);
       const double *src = (const double *)values;
       double *dst = (double *)&uni->storage[elements * offset].f;
 

@@ -68,8 +68,8 @@ AC_SUBST(LDFLAGS_FOR_BUILD)
 # Checks for pkg-config packages
 
 # Always required
-X11_REQUIRES='xproto >= 7.0.17 xextproto xtrans xcb >= 1.1.92'
-X11_EXTRA_DEPS="xcb >= 1.1.92"
+X11_REQUIRES='xproto >= 7.0.17 xextproto xtrans xcb >= 1.11.1'
+X11_EXTRA_DEPS="xcb >= 1.11.1"
 
 PKG_PROG_PKG_CONFIG()
 
@@ -438,11 +438,11 @@ locales="\
  iso8859-7    iso8859-8   iso8859-9   iso8859-9e   ja           ja.JIS \
  ja_JP.UTF-8  ja.SJIS     km_KH.UTF-8 ko           koi8-c       koi8-r \
  koi8-u       ko_KR.UTF-8 microsoft-cp1251         microsoft-cp1255 \
- microsoft-cp1256         mulelao-1   nokhchi-1    pt_BR.UTF-8  ru_RU.UTF-8 \
- sr_CS.UTF-8  tatar-cyr   th_TH       th_TH.UTF-8  tscii-0      vi_VN.tcvn \
- vi_VN.viscii zh_CN       zh_CN.gb18030            zh_CN.gbk    zh_CN.UTF-8 \
- zh_HK.big5   zh_HK.big5hkscs         zh_HK.UTF-8  zh_TW        zh_TW.big5 \
- zh_TW.UTF-8"
+ microsoft-cp1256         mulelao-1   nokhchi-1    pt_BR.UTF-8  pt_PT.UTF-8 \
+ ru_RU.UTF-8  sr_CS.UTF-8 tatar-cyr   th_TH        th_TH.UTF-8  tscii-0 \
+ vi_VN.tcvn   vi_VN.viscii            zh_CN        zh_CN.gb18030 \
+ zh_CN.gbk    zh_CN.UTF-8 zh_HK.big5  zh_HK.big5hkscs           zh_HK.UTF-8 \
+ zh_TW        zh_TW.big5  zh_TW.UTF-8"
 AC_SUBST(locales)
 
 XKEYSYMDB="${X11_DATADIR}/XKeysymDB"

@@ -497,21 +497,12 @@ analyze_extent (pixman_image_t       *image,
     if (!compute_transformed_extents (transform, extents, &transformed))
 	return FALSE;
 
-    /* Expand the source area by a tiny bit so account of different rounding that
-     * may happen during sampling. Note that (8 * pixman_fixed_e) is very far from
-     * 0.5 so this won't cause the area computed to be overly pessimistic.
-     */
-    transformed.x1 -= 8 * pixman_fixed_e;
-    transformed.y1 -= 8 * pixman_fixed_e;
-    transformed.x2 += 8 * pixman_fixed_e;
-    transformed.y2 += 8 * pixman_fixed_e;
-
     if (image->common.type == BITS)
     {
-	if (pixman_fixed_to_int (transformed.x1) >= 0			&&
-	    pixman_fixed_to_int (transformed.y1) >= 0			&&
-	    pixman_fixed_to_int (transformed.x2) < image->bits.width	&&
-	    pixman_fixed_to_int (transformed.y2) < image->bits.height)
+	if (pixman_fixed_to_int (transformed.x1 - pixman_fixed_e) >= 0                &&
+	    pixman_fixed_to_int (transformed.y1 - pixman_fixed_e) >= 0                &&
+	    pixman_fixed_to_int (transformed.x2 - pixman_fixed_e) < image->bits.width &&
+	    pixman_fixed_to_int (transformed.y2 - pixman_fixed_e) < image->bits.height)
 	{
 	    *flags |= FAST_PATH_SAMPLES_COVER_CLIP_NEAREST;
 	}

@@ -41,6 +41,7 @@
 #include "util/u_tile.h" 
 #include "util/u_prim.h"
 #include "util/u_surface.h"
+#include <inttypes.h>
 
 #include <stdio.h>
 #include <limits.h> /* CHAR_BIT */
@@ -256,12 +257,12 @@ static boolean str_has_option(const char *str, const char *name)
    return FALSE;
 }
 
-unsigned long
+uint64_t
 debug_get_flags_option(const char *name, 
                        const struct debug_named_value *flags,
-                       unsigned long dfault)
+                       uint64_t dfault)
 {
-   unsigned long result;
+   uint64_t result;
    const char *str;
    const struct debug_named_value *orig = flags;
    unsigned namealign = 0;
@@ -275,8 +276,8 @@ debug_get_flags_option(const char *name,
       for (; flags->name; ++flags)
          namealign = MAX2(namealign, strlen(flags->name));
       for (flags = orig; flags->name; ++flags)
-         _debug_printf("| %*s [0x%0*lx]%s%s\n", namealign, flags->name,
-                      (int)sizeof(unsigned long)*CHAR_BIT/4, flags->value,
+         _debug_printf("| %*s [0x%0*"PRIx64"]%s%s\n", namealign, flags->name,
+                      (int)sizeof(uint64_t)*CHAR_BIT/4, flags->value,
                       flags->desc ? " " : "", flags->desc ? flags->desc : "");
    }
    else {
@@ -290,9 +291,9 @@ debug_get_flags_option(const char *name,
 
    if (debug_get_option_should_print()) {
       if (str) {
-         debug_printf("%s: %s = 0x%lx (%s)\n", __FUNCTION__, name, result, str);
+         debug_printf("%s: %s = 0x%"PRIx64" (%s)\n", __FUNCTION__, name, result, str);
       } else {
-         debug_printf("%s: %s = 0x%lx\n", __FUNCTION__, name, result);
+         debug_printf("%s: %s = 0x%"PRIx64"\n", __FUNCTION__, name, result);
       }
    }
 

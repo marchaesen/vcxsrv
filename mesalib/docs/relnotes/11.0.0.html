@@ -1,0 +1,259 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.0.0 Release Notes / September 12, 2015</h1>
+
+<p>
+Mesa 11.0.0 is a new development release.
+People who are concerned with stability and reliability should stick
+with a previous release or wait for Mesa 11.0.1.
+</p>
+<p>
+Mesa 11.0.0 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+7d7e4ddffa3b162506efa01e2cc41e329caa4995336b92e5cc21f2e1fb36c1b3  mesa-11.0.0.tar.gz
+e095a3eb2eca9dfde7efca8946527c8ae20a0cc938a8c78debc7f158ad44af32  mesa-11.0.0.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>
+Note: some of the new features are only available with certain drivers.
+</p>
+
+<ul>
+<li>New hardware support for AMD GCN 1.2 GPUs: Tonga, Iceland, Carrizo, Fiji</li>
+<li>OpenGL 4.1 on radeonsi, nvc0</li>
+<li>OpenGL ES 3.0 on freedreno (a3xx, a4xx)
+<li>GL_AMD_vertex_shader_viewport_index on radeonsi</li>
+<li>GL_ARB_conditional_render_inverted on r600, radeonsi</li>
+<li>GL_ARB_depth_buffer_float on a4xx</li>
+<li>GL_ARB_derivative_control on radeonsi</li>
+<li>GL_ARB_draw_buffers, GL_ARB_draw_buffers_blend on a4xx</li>
+<li>GL_ARB_fragment_layer_viewport on radeonsi</li>
+<li>GL_ARB_framebuffer_no_attachments on i965</li>
+<li>GL_ARB_get_texture_sub_image for all drivers</li>
+<li>GL_ARB_gpu_shader5 on radeonsi</li>
+<li>GL_ARB_gpu_shader_fp64 on llvmpipe, radeonsi</li>
+<li>GL_ARB_shader_image_load_store on i965</li>
+<li>GL_ARB_shader_precision on radeonsi, nvc0</li>
+<li>GL_ARB_shader_image_size on i965</li>
+<li>GL_ARB_shader_stencil_export on llvmpipe</li>
+<li>GL_ARB_shader_subroutine on core profile all drivers</li>
+<li>GL_ARB_tessellation_shader on nvc0, radeonsi</li>
+<li>GL_ARB_transform_feedback2, GL_ARB_transform_feedback_instanced, GL_EXT_transform_feedback on a3xx, a4xx</li>
+<li>GL_ARB_vertex_attrib_64bit on llvmpipe, radeonsi</li>
+<li>GL_ARB_viewport_array on radeonsi</li>
+<li>GL_EXT_depth_bounds_test on radeonsi, nv30, nv50, nvc0</li>
+<li>GL_EXT_texture_compression_s3tc on freedreno (a3xx)</li>
+<li>GL_NV_read_depth (GLES) on all drivers</li>
+<li>GL_NV_read_depth_stencil (GLES) on all drivers</li>
+<li>GL_NV_read_stencil (GLES) on all drivers</li>
+<li>GL_OES_texture_float on all r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe</li>
+<li>GL_OES_texture_half_float on all r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe</li>
+<li>GL_OES_texture_float_linear on all r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe</li>
+<li>GL_OES_texture_half_float_linear on all r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe</li>
+<li>GL_EXT_draw_buffers2 on a4xx</li>
+<li>GLX_ARB_create_context_robustness on r600, radeonsi</li>
+<li>EGL_EXT_create_context_robustness on r600, radeonsi</li>
+<li>EGL_KHR_gl_colorspace on r600, radeonsi, nv50, nvc0</li>
+<li>EGL_KHR_gl_texture_3D_image on r600, radeonsi, nv50, nvc0</li>
+<li>EGL 1.5 on r600, radeonsi, nv50, nvc0</li>
+</ul>
+
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=51658">Bug 51658</a> - r200 (&amp; possibly radeon) DRI fixes for gnome shell on Mesa 8.0.3</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=65525">Bug 65525</a> - [llvmpipe] lp_scene.h:210:lp_scene_alloc: Assertion `size &lt;= (64 * 1024)' failed.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=66346">Bug 66346</a> - shader_query.cpp:49: error: invalid conversion from 'void*' to 'GLuint'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=73512">Bug 73512</a> - [clover] mesa.icd. should contain full path</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=73528">Bug 73528</a> - Deferred lighting in Second Life causes system hiccups and screen flickering</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=74329">Bug 74329</a> - Please expose OES_texture_float and OES_texture_half_float on the ES3 context</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=80500">Bug 80500</a> - Flickering shadows in unreleased title trace</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=82186">Bug 82186</a> - [r600g] BARTS GPU lockup with minecraft shaders</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84225">Bug 84225</a> - Allow constant-index-expression sampler array indexing with GLSL-ES &lt; 300</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84677">Bug 84677</a> - Triangle disappears with glPolygonMode GL_LINE</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=85252">Bug 85252</a> - Segfault in compiler while processing ternary operator with void arguments</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89131">Bug 89131</a> - [Bisected] Graphical corruption in Weston,  shows old framebuffer pieces</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90000">Bug 90000</a> - [i965 Bisected NIR] Piglit/gglean_fragprog1-z-write_test fail</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90073">Bug 90073</a> - Leaks in xcb_dri3_open_reply_fds() and get_render_node_from_id_path_tag</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90249">Bug 90249</a> - Fails to build egl_dri2 on osx</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90310">Bug 90310</a> - Fails to build gallium_dri.so at linking stage with clang because of multiple redefinitions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90347">Bug 90347</a> - [NVE0+] Failure to insert texbar under some circumstances (causing bad colors in Terasology)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90466">Bug 90466</a> - arm: linker error ndefined reference to `nir_metadata_preserve'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90520">Bug 90520</a> - Register spilling clobbers registers used elsewhere in the shader</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90537">Bug 90537</a> - radeonsi bo/va conflict on RADEON_GEM_VA (rscreen-&gt;ws-&gt;buffer_from_handle returns NULL)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90547">Bug 90547</a> - [BDW/BSW/SKL Bisected]Piglit/glean&#64;vertprog1-rsq_test_2_(reciprocal_square_root_of_negative_value) fais</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90580">Bug 90580</a> - [HSW bisected] integer multiplication bug</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90600">Bug 90600</a> - IOError: [Errno 2] No such file or directory: 'gl_API.xml'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90621">Bug 90621</a> - Mesa fail to build from git</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90629">Bug 90629</a> - [i965] SIMD16 dual_source_blend assertion `src[i].file != GRF || src[i].width == dst.width' failed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90691">Bug 90691</a> - [BSW]Piglit/spec/nv_conditional_render/dlist fails intermittently</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90728">Bug 90728</a> - dvd playback with vlc and vdpau causes segmentation fault</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90734">Bug 90734</a> - glBufferSubData is corrupting data when buffer is &gt; 32k</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90748">Bug 90748</a> - [BDW Bisected]dEQP-GLES3.functional.fbo.completeness.renderable.texture.depth.rg_half_float_oes fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90749">Bug 90749</a> - [BDW Bisected]dEQP-GLES3.functional.rasterization.fbo.rbo_multisample_max.primitives.lines_wide fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90751">Bug 90751</a> - [BDW Bisected]dEQP-GLES3.functional.fbo.completeness.renderable.texture.stencil.stencil_index8 fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90797">Bug 90797</a> - [ALL bisected] Mesa change cause performance case manhattan fail.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90817">Bug 90817</a> - swrast fails to load with certain remote X servers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90830">Bug 90830</a> - [bsw bisected regression] GPU hang for spec.arb_gpu_shader5.execution.sampler_array_indexing.vs-nonzero-base</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90839">Bug 90839</a> - [10.5.5/10.6 regression, bisected] PBO glDrawPixels no longer using blit fastpath</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90873">Bug 90873</a> - Kernel hang, TearFree On, Mate desktop environment</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90887">Bug 90887</a> - PhiMovesPass in register allocator broken</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90895">Bug 90895</a> - [IVB/HSW/BDW/BSW Bisected] GLB2.7 Egypt, GfxBench3.0 T-Rex &amp; ALU and many SynMark cases performance reduced by 10-23%</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90902">Bug 90902</a> - [bsw][regression] dEQP: &quot;Found invalid pixel values&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90903">Bug 90903</a> - egl_dri2.c:dri2_load fails to load libglapi on osx</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90904">Bug 90904</a> - OSX: EXC_BAD_ACCESS when using translate_sse + gallium + softpipe/llvmpipe</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90905">Bug 90905</a> - mesa: Finish subdir-objects transition</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90925">Bug 90925</a> - &quot;high fidelity&quot;: Segfault in _mesa_program_resource_find_name</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91022">Bug 91022</a> - [g45 g965 bisected] assertions generated from textureGrad cube samplers fix</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91047">Bug 91047</a> - [SNB Bisected] Messed up Fog in Super Smash Bros. Melee in Dolphin</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91056">Bug 91056</a> - The Bard's Tale (2005, native)  has rendering issues</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91077">Bug 91077</a> - dri2_glx.c:1186: undefined reference to `loader_open_device'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91099">Bug 91099</a> - [llvmpipe] piglit glsl-max-varyings &gt;max_varying_components regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91101">Bug 91101</a> - [softpipe] piglit glsl-1.50&#64;execution&#64;geometry&#64;max-input-components regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91117">Bug 91117</a> - Nimbus (running in wine) has rendering issues, objects are semi-transparent</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91124">Bug 91124</a> - Civilization V (in Wine) has rendering issues: text missing, menu bar corrupted</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91173">Bug 91173</a> - Oddworld: Stranger's Wrath HD: disfigured models in wrong colors</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91193">Bug 91193</a> - [290x] Dota2 reborn ingame rendering breaks with git-af4b9c7</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91222">Bug 91222</a> - lp_test_format regression on CentOS 7</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91226">Bug 91226</a> - Crash in glLinkProgram (NEW)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91231">Bug 91231</a> - [NV92] Psychonauts (native) segfaults on start when DRI3 enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91254">Bug 91254</a> - (regresion) video using VA-API on Intel slow and freeze system with mesa 10.6 or 10.6.1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91290">Bug 91290</a> - SIGSEGV glcpp/glcpp-parse.y:1077</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91292">Bug 91292</a> - [BDW+] glVertexAttribDivisor not working in combination with glPolygonMode</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91337">Bug 91337</a> - OSMesaGetProcAdress(&quot;OSMesaPixelStore&quot;) returns nil</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91418">Bug 91418</a> - Visual Studio 2015 vsnprintf build error</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91425">Bug 91425</a> - [regression, bisected] Piglit spec/ext_packed_float/ getteximage-invalid-format-for-packed-type fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91441">Bug 91441</a> - make check DispatchSanity_test.GL30 regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91444">Bug 91444</a> - regression bisected radeonsi: don't change pipe_resource in resource_copy_region</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91461">Bug 91461</a> - gl_TessLevel* writes have no effect for all but the last TCS invocation</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91513">Bug 91513</a> - [IVB/HSW/BDW/SKL Bisected] Lightsmark performance reduced by 7%-10%</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91526">Bug 91526</a> - World of Warcraft (on Wine) has UI corruption with nouveau</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91544">Bug 91544</a> - [i965, regression, bisected] regression of several tests in 93977d3a151675946c03e</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91551">Bug 91551</a> - DXTn compressed normal maps produce severe artifacts on all NV5x and NVDx chipsets</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91570">Bug 91570</a> - Upgrading mesa to 10.6 causes segfault in OpenGL applications with GeForce4 MX 440 / AGP 8X</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91591">Bug 91591</a> - rounding.h:102:2: error: #error &quot;Unsupported or undefined LONG_BIT&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91610">Bug 91610</a> - [BSW] GPU hang for spec.shaders.point-vertex-id gl_instanceid divisor</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91673">Bug 91673</a> - Segfault when calling glTexSubImage2D on storage texture to bound FBO</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91726">Bug 91726</a> - R600 asserts in tgsi_cmp/make_src_for_op3</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91847">Bug 91847</a> - glGenerateTextureMipmap not working (no errors) unless glActiveTexture(GL_TEXTURE1) is called before</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91857">Bug 91857</a> - Mesa 10.6.3 linker is slow</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91881">Bug 91881</a> - regression: GPU lockups since mesa-11.0.0_rc1 on RV620 (r600) driver</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91890">Bug 91890</a> - [nve7] witcher2: blurry image &amp; DATA_ERRORs (class 0xa097 mthd 0x2380/0x238c)</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<li>Removed the EGL loader from the Linux SCons build.</li>
+
+</div>
+</body>
+</html>

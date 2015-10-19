@@ -79,7 +79,7 @@ authorization from the authors.
     <field type="INT16" name="dst_y" />
     <field type="CARD8" name="depth" />
     <field type="CARD8" name="format" />
-    <field type="CARD8" name="send_event" />
+    <field type="BOOL" name="send_event" />
     <pad bytes="1" />
     <field type="SEG" name="shmseg" />
     <field type="CARD32" name="offset" />

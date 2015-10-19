@@ -828,13 +828,13 @@ parseEncodingFile(FontFilePtr f, int headerOnly)
     return NULL;
 }
 
-char *
+const char *
 FontEncDirectory(void)
 {
-    static char *dir = NULL;
+    static const char *dir = NULL;
 
     if (dir == NULL) {
-        char *c = getenv("FONT_ENCODINGS_DIRECTORY");
+        const char *c = getenv("FONT_ENCODINGS_DIRECTORY");
 
         if (c) {
             dir = strdup(c);
@@ -942,7 +942,7 @@ FontEncReallyLoad(const char *charset, const char *fontFileName)
 {
     FontEncPtr encoding;
     char dir[MAXFONTFILENAMELEN], dirname[MAXFONTFILENAMELEN];
-    char *d;
+    const char *d;
 
     if (fontFileName) {
         parseFontFileName(fontFileName, dirname, dir);

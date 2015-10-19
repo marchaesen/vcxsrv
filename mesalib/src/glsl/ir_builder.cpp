@@ -567,6 +567,12 @@ csel(operand a, operand b, operand c)
 }
 
 ir_expression *
+bitfield_extract(operand a, operand b, operand c)
+{
+   return expr(ir_triop_bitfield_extract, a, b, c);
+}
+
+ir_expression *
 bitfield_insert(operand a, operand b, operand c, operand d)
 {
    void *mem_ctx = ralloc_parent(a.val);
