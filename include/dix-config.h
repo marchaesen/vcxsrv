@@ -557,4 +557,6 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt);
 #define MINSHORT -32768
 #define MAXSHORT 32767
 
+#define HAVE_STRUCT_TIMESPEC
+
 #endif /* _DIX_CONFIG_H_ */

@@ -889,19 +889,20 @@ ProcessCommandLine(int argc, char *argv[])
                 nolock = TRUE;
         }
 #endif
-	else if ( strcmp( argv[i], "-maxclients") == 0)
-	{
-	    if (++i < argc) {
-		LimitClients = atoi(argv[i]);
-		if (LimitClients != 64 &&
-		    LimitClients != 128 &&
-		    LimitClients != 256 &&
-		    LimitClients != 512) {
-		    FatalError("maxclients must be one of 64, 128, 256 or 512\n");
-		}
-	    } else
-		UseMsg();
-	}
+        else if ( strcmp( argv[i], "-maxclients") == 0)
+        {
+            if (++i < argc) {
+                LimitClients = atoi(argv[i]);
+                if (LimitClients != 64 &&
+                    LimitClients != 128 &&
+                    LimitClients != 256 &&
+                    LimitClients != 512 &&
+                    LimitClients != 1024) {
+                       FatalError("maxclients must be one of 64, 128, 256, 512 or 1024\n");
+                }
+            } else
+                UseMsg();
+        }
         else if (strcmp(argv[i], "-nolisten") == 0) {
             if (++i < argc) {
                 if (_XSERVTransNoListen(argv[i]))
@@ -1296,7 +1297,7 @@ SmartScheduleEnable(void)
 #ifdef SMART_SCHEDULE_POSSIBLE
 #ifdef _MSC_VER
     if (SmartScheduleDisable)
-        return;
+        return ret;
     s_hSmartScheduleTimerQueue = CreateTimerQueue();
     if (!s_hSmartScheduleTimerQueue)
     {
@@ -1319,6 +1320,7 @@ SmartScheduleEnable(void)
     sigaddset(&act.sa_mask, SIGALRM);
     ret = sigaction(SIGALRM, &act, 0);
 #endif
+#endif
     return ret;
 }
 
@@ -1327,6 +1329,10 @@ SmartSchedulePause(void)
 {
     int ret = 0;
 #ifdef SMART_SCHEDULE_POSSIBLE
+#ifdef _MSC_VER
+    if (SmartScheduleDisable)
+        return ret;
+#else
     struct sigaction act;
 
     if (SmartScheduleDisable)
@@ -1337,6 +1343,7 @@ SmartSchedulePause(void)
     act.sa_handler = SIG_IGN;
     sigemptyset(&act.sa_mask);
     ret = sigaction(SIGALRM, &act, 0);
+#endif
 #endif
     return ret;
 }
@@ -1351,7 +1358,6 @@ SmartScheduleInit(void)
         perror("sigaction for smart scheduler");
         SmartScheduleDisable = TRUE;
     }
-#endif
 }
 
 #ifdef SIG_BLOCK

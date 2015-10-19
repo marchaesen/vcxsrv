@@ -78,3 +78,6 @@
 
 /* XCB buffer queue size */
 #define XCB_QUEUE_BUFFER_SIZE 4096
+
+#define HAVE_STRUCT_TIMESPEC
+
