@@ -98,8 +98,8 @@ Section "VcXsrv debug exe and dlls"
   File "..\..\libX11\obj64\debug\libX11.dll"
   File "..\..\libXext\src\obj64\debug\libXext.dll"
   File "..\..\libXmu\src\obj64\debug\libXmu.dll"
-  File "msvcr120d.dll"
-  File "msvcp120d.dll"
+//  File "msvcr140d.dll"
+//  File "msvcp140d.dll"
 
   WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir_64" $INSTDIR
 SectionEnd
