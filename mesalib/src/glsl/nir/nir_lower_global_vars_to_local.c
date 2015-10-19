@@ -73,10 +73,11 @@ mark_global_var_uses_block(nir_block *block, void *void_state)
    return true;
 }
 
-void
+bool
 nir_lower_global_vars_to_local(nir_shader *shader)
 {
    struct global_to_local_state state;
+   bool progress = false;
 
    state.var_func_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                                   _mesa_key_pointer_equal);
@@ -99,8 +100,11 @@ nir_lower_global_vars_to_local(nir_shader *shader)
          exec_node_remove(&var->node);
          var->data.mode = nir_var_local;
          exec_list_push_tail(&impl->locals, &var->node);
+         progress = true;
       }
    }
 
    _mesa_hash_table_destroy(state.var_func_table, NULL);
+
+   return progress;
 }

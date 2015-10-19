@@ -105,29 +105,24 @@ st_new_program(struct gl_context *ctx, GLenum target, GLuint id)
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: {
       struct st_vertex_program *prog = ST_CALLOC_STRUCT(st_vertex_program);
-      return _mesa_init_vertex_program(ctx, &prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id);
    }
-
    case GL_FRAGMENT_PROGRAM_ARB: {
       struct st_fragment_program *prog = ST_CALLOC_STRUCT(st_fragment_program);
-      return _mesa_init_fragment_program(ctx, &prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id);
    }
-
    case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *prog = ST_CALLOC_STRUCT(st_geometry_program);
-      return _mesa_init_geometry_program(ctx, &prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id);
    }
-
    case GL_TESS_CONTROL_PROGRAM_NV: {
       struct st_tessctrl_program *prog = ST_CALLOC_STRUCT(st_tessctrl_program);
-      return _mesa_init_tess_ctrl_program(ctx, &prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id);
    }
-
    case GL_TESS_EVALUATION_PROGRAM_NV: {
       struct st_tesseval_program *prog = ST_CALLOC_STRUCT(st_tesseval_program);
-      return _mesa_init_tess_eval_program(ctx, &prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id);
    }
-
    default:
       assert(0);
       return NULL;
@@ -234,6 +229,8 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_fragment_program *stfp = (struct st_fragment_program *) prog;
 
       st_release_fp_variants(st, stfp);
+      if (!st_translate_fragment_program(st, stfp))
+         return false;
 
       if (st->fp == stfp)
 	 st->dirty.st |= ST_NEW_FRAGMENT_PROGRAM;
@@ -242,6 +239,8 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_geometry_program *stgp = (struct st_geometry_program *) prog;
 
       st_release_gp_variants(st, stgp);
+      if (!st_translate_geometry_program(st, stgp))
+         return false;
 
       if (st->gp == stgp)
 	 st->dirty.st |= ST_NEW_GEOMETRY_PROGRAM;
@@ -249,7 +248,9 @@ st_program_string_notify( struct gl_context *ctx,
    else if (target == GL_VERTEX_PROGRAM_ARB) {
       struct st_vertex_program *stvp = (struct st_vertex_program *) prog;
 
-      st_release_vp_variants( st, stvp );
+      st_release_vp_variants(st, stvp);
+      if (!st_translate_vertex_program(st, stvp))
+         return false;
 
       if (st->vp == stvp)
 	 st->dirty.st |= ST_NEW_VERTEX_PROGRAM;
@@ -259,6 +260,8 @@ st_program_string_notify( struct gl_context *ctx,
          (struct st_tessctrl_program *) prog;
 
       st_release_tcp_variants(st, sttcp);
+      if (!st_translate_tessctrl_program(st, sttcp))
+         return false;
 
       if (st->tcp == sttcp)
          st->dirty.st |= ST_NEW_TESSCTRL_PROGRAM;
@@ -268,6 +271,8 @@ st_program_string_notify( struct gl_context *ctx,
          (struct st_tesseval_program *) prog;
 
       st_release_tep_variants(st, sttep);
+      if (!st_translate_tesseval_program(st, sttep))
+         return false;
 
       if (st->tep == sttep)
          st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;

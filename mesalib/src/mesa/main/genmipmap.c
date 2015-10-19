@@ -111,6 +111,7 @@ _mesa_generate_texture_mipmap(struct gl_context *ctx,
 
    if (_mesa_is_enum_format_integer(srcImage->InternalFormat) ||
        _mesa_is_depthstencil_format(srcImage->InternalFormat) ||
+       _mesa_is_astc_format(srcImage->InternalFormat) ||
        _mesa_is_stencil_format(srcImage->InternalFormat)) {
       _mesa_unlock_texture(ctx, texObj);
       _mesa_error(ctx, GL_INVALID_OPERATION,

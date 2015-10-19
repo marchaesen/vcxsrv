@@ -145,6 +145,79 @@
     <param name="label" type="GLchar *"/>
   </function>
 
+  <!-- ES extension has different suffixes -->
+  <function name="DebugMessageControlKHR" alias="DebugMessageControl" es1="1.0" es2="2.0">
+    <param name="source" type="GLenum"/>
+    <param name="type" type="GLenum"/>
+    <param name="severity" type="GLenum"/>
+    <param name="count" type="GLsizei" counter="true"/>
+    <param name="ids" type="const GLuint *" count="count"/>
+    <param name="enabled" type="GLboolean"/>
+  </function>
+
+  <function name="DebugMessageInsertKHR" alias="DebugMessageInsert" es1="1.0" es2="2.0">
+    <param name="source" type="GLenum"/>
+    <param name="type" type="GLenum"/>
+    <param name="id" type="GLuint"/>
+    <param name="severity" type="GLenum"/>
+    <param name="length" type="GLsizei"/>
+    <param name="buf" type="const GLchar *"/>
+  </function>
+
+  <function name="DebugMessageCallbackKHR" alias="DebugMessageCallback" es1="1.0" es2="2.0">
+    <param name="callback" type="GLDEBUGPROC"/>
+    <param name="userParam" type="const GLvoid *"/>
+  </function>
+
+  <function name="GetDebugMessageLogKHR" alias="GetDebugMessageLog" es1="1.0" es2="2.0">
+    <return type="GLuint"/>
+    <param name="count" type="GLuint"/>
+    <param name="bufsize" type="GLsizei"/>
+    <param name="sources" type="GLenum *" output="true"/>
+    <param name="types" type="GLenum *" output="true"/>
+    <param name="ids" type="GLuint *" output="true"/>
+    <param name="severities" type="GLenum *" output="true"/>
+    <param name="lengths" type="GLsizei *" output="true"/>
+    <param name="messageLog" type="GLchar *" output="true"/>
+  </function>
+
+  <function name="PushDebugGroupKHR" alias="PushDebugGroup" es1="1.0" es2="2.0">
+    <param name="source" type="GLenum"/>
+    <param name="id" type="GLuint"/>
+    <param name="length" type="GLsizei"/>
+    <param name="message" type="const GLchar *"/>
+  </function>
+
+  <function name="PopDebugGroupKHR" alias="PopDebugGroup" es1="1.0" es2="2.0"/>
+
+  <function name="ObjectLabelKHR" alias="ObjectLabel" es1="1.0" es2="2.0">
+    <param name="identifier" type="GLenum"/>
+    <param name="name" type="GLuint"/>
+    <param name="length" type="GLsizei"/>
+    <param name="label" type="const GLchar *"/>
+  </function>
+
+  <function name="GetObjectLabelKHR" alias="GetObjectLabel" es1="1.0" es2="2.0">
+    <param name="identifier" type="GLenum"/>
+    <param name="name" type="GLuint"/>
+    <param name="bufSize" type="GLsizei"/>
+    <param name="length" type="GLsizei *"/>
+    <param name="label" type="GLchar *"/>
+  </function>
+
+  <function name="ObjectPtrLabelKHR" alias="ObjectPtrLabel" es1="1.0" es2="2.0">
+    <param name="ptr" type="const GLvoid *"/>
+    <param name="length" type="GLsizei"/>
+    <param name="label" type="const GLchar *"/>
+  </function>
+
+  <function name="GetObjectPtrLabelKHR" alias="GetObjectPtrLabel" es1="1.0" es2="2.0">
+    <param name="ptr" type="const GLvoid *"/>
+    <param name="bufSize" type="GLsizei"/>
+    <param name="length" type="GLsizei *"/>
+    <param name="label" type="GLchar *"/>
+  </function>
+
 </category>
 
 </OpenGLAPI>

@@ -200,6 +200,7 @@ ir_expression *interpolate_at_sample(operand a, operand b);
 ir_expression *fma(operand a, operand b, operand c);
 ir_expression *lrp(operand x, operand y, operand a);
 ir_expression *csel(operand a, operand b, operand c);
+ir_expression *bitfield_extract(operand a, operand b, operand c);
 ir_expression *bitfield_insert(operand a, operand b, operand c, operand d);
 
 ir_swizzle *swizzle(operand a, int swizzle, int components);

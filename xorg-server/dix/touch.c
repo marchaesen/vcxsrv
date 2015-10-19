@@ -464,7 +464,7 @@ TouchEventHistoryPush(TouchPointInfoPtr ti, const DeviceEvent *ev)
     /* FIXME: proper overflow fixes */
     if (ti->history_elements > ti->history_size - 1) {
         ti->history_elements = ti->history_size - 1;
-        DebugF("source device %d: history size %d overflowing for touch %u\n",
+        DebugF("source device %d: history size %zu overflowing for touch %u\n",
                ti->sourceid, ti->history_size, ti->client_id);
     }
 }

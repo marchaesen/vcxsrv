@@ -242,7 +242,7 @@ fast_draw_rgba_pixels(struct gl_context *ctx, GLint x, GLint y,
    }
 
    if (_mesa_format_matches_format_and_type(rb->Format, format, type,
-                                            ctx->Unpack.SwapBytes)) {
+                                            ctx->Unpack.SwapBytes, NULL)) {
       fast_draw_generic_pixels(ctx, rb, x, y, width, height,
                                format, type, &unpack, pixels);
       return GL_TRUE;
@@ -481,17 +481,17 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
           */
          GLint swapSize = _mesa_sizeof_packed_type(type);
          if (swapSize == 2 || swapSize == 4) {
-            int components = _mesa_components_in_format(format);
-            int elementCount = width * height * components;
-            tempImage = malloc(elementCount * swapSize);
+            int imageStride = _mesa_image_image_stride(unpack, width, height, format, type);
+
+            tempImage = malloc(imageStride);
             if (!tempImage) {
                _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
                return;
             }
-            if (swapSize == 2)
-               _mesa_swap2_copy(tempImage, (GLushort *) pixels, elementCount);
-            else
-               _mesa_swap4_copy(tempImage, (GLuint *) pixels, elementCount);
+
+            _mesa_swap_bytes_2d_image(format, type, unpack,
+                                      width, height, tempImage, pixels);
+
             pixels = tempImage;
          }
       }

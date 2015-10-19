@@ -88,3 +88,18 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
 
    *dst_count = util_last_bit(enabled_buffers);
 }
+
+
+void
+util_set_index_buffer(struct pipe_index_buffer *dst,
+                      const struct pipe_index_buffer *src)
+{
+   if (src) {
+      pipe_resource_reference(&dst->buffer, src->buffer);
+      memcpy(dst, src, sizeof(*dst));
+   }
+   else {
+      pipe_resource_reference(&dst->buffer, NULL);
+      memset(dst, 0, sizeof(*dst));
+   }
+}

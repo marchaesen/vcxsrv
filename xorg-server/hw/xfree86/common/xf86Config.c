@@ -703,6 +703,7 @@ typedef enum {
     FLAG_DRI2,
     FLAG_USE_SIGIO,
     FLAG_AUTO_ADD_GPU,
+    FLAG_MAX_CLIENTS,
 } FlagValues;
 
 /**
@@ -762,6 +763,8 @@ static OptionInfoRec FlagOptions[] = {
      {0}, FALSE},
     {FLAG_AUTO_ADD_GPU, "AutoAddGPU", OPTV_BOOLEAN,
      {0}, FALSE},
+    {FLAG_MAX_CLIENTS, "MaxClients", OPTV_INTEGER,
+     {0}, FALSE },
     {-1, NULL, OPTV_NONE,
      {0}, FALSE},
 };
@@ -1052,6 +1055,19 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
         xf86Info.dri2From = X_CONFIG;
     }
 #endif
+
+    from = X_DEFAULT;
+    if (LimitClients != LIMITCLIENTS)
+	from = X_CMDLINE;
+    i = -1;
+    if (xf86GetOptValInteger(FlagOptions, FLAG_MAX_CLIENTS, &i)) {
+	if (i != 64 && i != 128 && i != 256 && i != 512)
+		ErrorF("MaxClients must be one of 64, 128, 256 or 512\n");
+	from = X_CONFIG;
+	LimitClients = i;
+    }
+    xf86Msg(from, "Max clients allowed: %i, resource mask: 0x%x\n",
+	    LimitClients, RESOURCE_ID_MASK);
 }
 
 Bool

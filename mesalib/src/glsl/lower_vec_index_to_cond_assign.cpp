@@ -88,7 +88,9 @@ ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(void *mem_
    exec_list list;
 
    /* Store the index to a temporary to avoid reusing its tree. */
-   index = new(base_ir) ir_variable(glsl_type::int_type,
+   assert(orig_index->type == glsl_type::int_type ||
+          orig_index->type == glsl_type::uint_type);
+   index = new(base_ir) ir_variable(orig_index->type,
 				    "vec_index_tmp_i",
 				    ir_var_temporary);
    list.push_tail(index);

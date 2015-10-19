@@ -567,8 +567,12 @@ setup_non_interleaved_attribs(struct st_context *st,
       unsigned src_format;
 
       array = get_client_array(vp, arrays, attr);
-      if (!array)
+      if (!array) {
+         vbuffer[attr].buffer = NULL;
+         vbuffer[attr].user_buffer = NULL;
+         vbuffer[attr].buffer_offset = 0;
          continue;
+      }
 
       stride = array->StrideB;
       bufobj = array->BufferObj;

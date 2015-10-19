@@ -44,6 +44,9 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
                                    const struct pipe_vertex_buffer *src,
                                    unsigned start_slot, unsigned count);
 
+void util_set_index_buffer(struct pipe_index_buffer *dst,
+                           const struct pipe_index_buffer *src);
+
 #ifdef __cplusplus
 }
 #endif

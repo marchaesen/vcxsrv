@@ -36,11 +36,11 @@
 #include "ir_visitor.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
+#include "util/hash_table.h"
 
 namespace {
 
 struct assignment_entry {
-   exec_node link;
    int assignment_count;
    ir_variable *var;
    ir_constant *constval;
@@ -54,31 +54,32 @@ public:
    virtual ir_visitor_status visit_enter(ir_assignment *);
    virtual ir_visitor_status visit_enter(ir_call *);
 
-   exec_list list;
+   struct hash_table *ht;
 };
 
 } /* unnamed namespace */
 
 static struct assignment_entry *
-get_assignment_entry(ir_variable *var, exec_list *list)
+get_assignment_entry(ir_variable *var, struct hash_table *ht)
 {
+   struct hash_entry *hte = _mesa_hash_table_search(ht, var);
    struct assignment_entry *entry;
 
-   foreach_list_typed(struct assignment_entry, entry, link, list) {
-      if (entry->var == var)
-	 return entry;
+   if (hte) {
+      entry = (struct assignment_entry *) hte->data;
+   } else {
+      entry = (struct assignment_entry *) calloc(1, sizeof(*entry));
+      entry->var = var;
+      _mesa_hash_table_insert(ht, var, entry);
    }
 
-   entry = (struct assignment_entry *)calloc(1, sizeof(*entry));
-   entry->var = var;
-   list->push_head(&entry->link);
    return entry;
 }
 
 ir_visitor_status
 ir_constant_variable_visitor::visit(ir_variable *ir)
 {
-   struct assignment_entry *entry = get_assignment_entry(ir, &this->list);
+   struct assignment_entry *entry = get_assignment_entry(ir, this->ht);
    entry->our_scope = true;
    return visit_continue;
 }
@@ -97,7 +98,7 @@ ir_constant_variable_visitor::visit_enter(ir_assignment *ir)
    ir_constant *constval;
    struct assignment_entry *entry;
 
-   entry = get_assignment_entry(ir->lhs->variable_referenced(), &this->list);
+   entry = get_assignment_entry(ir->lhs->variable_referenced(), this->ht);
    assert(entry);
    entry->assignment_count++;
 
@@ -150,7 +151,7 @@ ir_constant_variable_visitor::visit_enter(ir_call *ir)
 	 struct assignment_entry *entry;
 
 	 assert(var);
-	 entry = get_assignment_entry(var, &this->list);
+	 entry = get_assignment_entry(var, this->ht);
 	 entry->assignment_count++;
       }
    }
@@ -161,7 +162,7 @@ ir_constant_variable_visitor::visit_enter(ir_call *ir)
       struct assignment_entry *entry;
 
       assert(var);
-      entry = get_assignment_entry(var, &this->list);
+      entry = get_assignment_entry(var, this->ht);
       entry->assignment_count++;
    }
 
@@ -177,20 +178,22 @@ do_constant_variable(exec_list *instructions)
    bool progress = false;
    ir_constant_variable_visitor v;
 
+   v.ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                  _mesa_key_pointer_equal);
    v.run(instructions);
 
-   while (!v.list.is_empty()) {
-
-      struct assignment_entry *entry;
-      entry = exec_node_data(struct assignment_entry, v.list.head, link);
+   struct hash_entry *hte;
+   hash_table_foreach(v.ht, hte) {
+      struct assignment_entry *entry = (struct assignment_entry *) hte->data;
 
       if (entry->assignment_count == 1 && entry->constval && entry->our_scope) {
 	 entry->var->constant_value = entry->constval;
 	 progress = true;
       }
-      entry->link.remove();
+      hte->data = NULL;
       free(entry);
    }
+   _mesa_hash_table_destroy(v.ht, NULL);
 
    return progress;
 }

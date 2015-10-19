@@ -44,11 +44,7 @@ libmesautil_la_SOURCES = \
 	$(MESA_UTIL_FILES) \
 	$(MESA_UTIL_GENERATED_FILES)
 
-if ENABLE_SHADER_CACHE
-libmesautil_la_SOURCES += $(MESA_UTIL_SHADER_CACHE_FILES)
-
 libmesautil_la_LIBADD = $(SHA1_LIBS)
-endif
 
 roundeven_test_LDADD = -lm
 
@@ -59,5 +55,7 @@ BUILT_SOURCES = $(MESA_UTIL_GENERATED_FILES)
 CLEANFILES = $(BUILT_SOURCES)
 EXTRA_DIST = format_srgb.py SConscript
 
-format_srgb.c: $(srcdir)/format_srgb.py
-	$(AM_V_GEN) $(PYTHON2) $< > $@
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
+
+format_srgb.c: format_srgb.py
+	$(PYTHON_GEN) $(srcdir)/format_srgb.py > $@

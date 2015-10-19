@@ -192,6 +192,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
 
    blit.filter = pFilter;
    blit.render_condition_enable = TRUE;
+   blit.alpha_blend = FALSE;
 
    if (mask & GL_COLOR_BUFFER_BIT) {
       struct gl_renderbuffer_attachment *srcAtt =
@@ -228,6 +229,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
                   st_adjust_blit_for_msaa_resolve(&blit);
 
                   st->pipe->blit(st->pipe, &blit);
+                  dstRb->defined = true; /* front buffer tracking */
                }
             }
          }
@@ -265,6 +267,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
                   st_adjust_blit_for_msaa_resolve(&blit);
 
                   st->pipe->blit(st->pipe, &blit);
+                  dstRb->defined = true; /* front buffer tracking */
                }
             }
          }

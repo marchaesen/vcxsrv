@@ -409,6 +409,17 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type->is_float());
       break;
 
+   case ir_unop_get_buffer_size:
+      assert(ir->type == glsl_type::int_type);
+      assert(ir->operands[0]->type == glsl_type::uint_type);
+      break;
+
+   case ir_unop_ssbo_unsized_array_length:
+      assert(ir->type == glsl_type::int_type);
+      assert(ir->operands[0]->type->is_array());
+      assert(ir->operands[0]->type->is_unsized_array());
+      break;
+
    case ir_unop_d2f:
       assert(ir->operands[0]->type->base_type == GLSL_TYPE_DOUBLE);
       assert(ir->type->base_type == GLSL_TYPE_FLOAT);

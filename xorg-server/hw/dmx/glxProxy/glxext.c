@@ -347,7 +347,7 @@ GlxExtensionInit(void)
     /*
      ** Initialize table of client state.  There is never a client 0.
      */
-    for (i = 1; i <= MAXCLIENTS; i++) {
+    for (i = 1; i <= LimitClients; i++) {
         __glXClients[i] = 0;
     }
 

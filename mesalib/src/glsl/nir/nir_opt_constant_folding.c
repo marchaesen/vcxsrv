@@ -80,8 +80,8 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
 
    nir_instr_insert_before(&instr->instr, &new_instr->instr);
 
-   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, nir_src_for_ssa(&new_instr->def),
-                            mem_ctx);
+   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa,
+                            nir_src_for_ssa(&new_instr->def));
 
    nir_instr_remove(&instr->instr);
    ralloc_free(instr);

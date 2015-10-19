@@ -224,8 +224,6 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
 
    st->ctx->VertexProgram._MaintainTnlProgram = GL_TRUE;
 
-   st->pixel_xfer.cache = _mesa_new_program_cache();
-
    st->has_stencil_export =
       screen->get_param(screen, PIPE_CAP_SHADER_STENCIL_EXPORT);
    st->has_shader_model3 = screen->get_param(screen, PIPE_CAP_SM3);
@@ -237,6 +235,8 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
                                               PIPE_BIND_SAMPLER_VIEW);
    st->prefer_blit_based_texture_transfer = screen->get_param(screen,
                               PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER);
+   st->can_force_persample_interp = screen->get_param(screen,
+                                          PIPE_CAP_FORCE_PERSAMPLE_INTERP);
 
    st->needs_texcoord_semantic =
       screen->get_param(screen, PIPE_CAP_TGSI_TEXCOORD);
@@ -384,8 +384,8 @@ void st_destroy_context( struct st_context *st )
       pipe_surface_reference(&st->state.framebuffer.cbufs[i], NULL);
    }
    pipe_surface_reference(&st->state.framebuffer.zsbuf, NULL);
-
-   _mesa_delete_program_cache(st->ctx, st->pixel_xfer.cache);
+   pipe_sampler_view_reference(&st->pixel_xfer.pixelmap_sampler_view, NULL);
+   pipe_resource_reference(&st->pixel_xfer.pixelmap_texture, NULL);
 
    _vbo_DestroyContext(st->ctx);
 
@@ -409,8 +409,6 @@ void st_init_driver_functions(struct pipe_screen *screen,
 {
    _mesa_init_shader_object_functions(functions);
    _mesa_init_sampler_object_functions(functions);
-
-   functions->Accum = _mesa_accum;
 
    st_init_blit_functions(functions);
    st_init_bufferobject_functions(functions);

@@ -34,6 +34,8 @@
 
 #include "main/imports.h"
 #include "main/context.h"
+#include "main/enums.h"
+#include "main/formats.h"
 #include "main/glformats.h"
 #include "main/texgetimage.h"
 #include "main/teximage.h"
@@ -1270,46 +1272,40 @@ static const struct format_mapping format_map[] = {
    /* 32-bit float formats */
    {
       { GL_RGBA32F_ARB, 0 },
-      { PIPE_FORMAT_R32G32B32A32_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+      { PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_RGB32F_ARB, 0 },
       { PIPE_FORMAT_R32G32B32_FLOAT, PIPE_FORMAT_R32G32B32X32_FLOAT,
-        PIPE_FORMAT_R32G32B32A32_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+        PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_LUMINANCE_ALPHA32F_ARB, 0 },
-      { PIPE_FORMAT_L32A32_FLOAT, PIPE_FORMAT_R32G32B32A32_FLOAT,
-        PIPE_FORMAT_L16A16_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+      { PIPE_FORMAT_L32A32_FLOAT, PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_ALPHA32F_ARB, 0 },
       { PIPE_FORMAT_A32_FLOAT, PIPE_FORMAT_L32A32_FLOAT,
-        PIPE_FORMAT_R32G32B32A32_FLOAT, PIPE_FORMAT_A16_FLOAT,
-        PIPE_FORMAT_L16A16_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+        PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_INTENSITY32F_ARB, 0 },
       { PIPE_FORMAT_I32_FLOAT, PIPE_FORMAT_L32A32_FLOAT,
-        PIPE_FORMAT_R32G32B32A32_FLOAT, PIPE_FORMAT_I16_FLOAT,
-        PIPE_FORMAT_L16A16_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+        PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_LUMINANCE32F_ARB, 0 },
       { PIPE_FORMAT_L32_FLOAT, PIPE_FORMAT_L32A32_FLOAT,
-        PIPE_FORMAT_R32G32B32A32_FLOAT, PIPE_FORMAT_L16_FLOAT,
-        PIPE_FORMAT_L16A16_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+        PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_R32F, 0 },
       { PIPE_FORMAT_R32_FLOAT, PIPE_FORMAT_R32G32_FLOAT,
-        PIPE_FORMAT_R32G32B32A32_FLOAT, PIPE_FORMAT_R16_FLOAT,
-        PIPE_FORMAT_R16G16_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+        PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
    {
       { GL_RG32F, 0 },
-      { PIPE_FORMAT_R32G32_FLOAT, PIPE_FORMAT_R32G32B32A32_FLOAT,
-        PIPE_FORMAT_R16G16_FLOAT, PIPE_FORMAT_R16G16B16A16_FLOAT, 0 }
+      { PIPE_FORMAT_R32G32_FLOAT, PIPE_FORMAT_R32G32B32A32_FLOAT, 0 }
    },
 
    /* R, RG formats */
@@ -1917,7 +1913,7 @@ st_choose_matching_format(struct st_context *st, unsigned bind,
       }
 
       if (_mesa_format_matches_format_and_type(mesa_format, format, type,
-                                               swapBytes)) {
+                                               swapBytes, NULL)) {
          enum pipe_format format =
             st_mesa_format_to_pipe_format(st, mesa_format);
 
@@ -1944,6 +1940,7 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
 {
    struct st_context *st = st_context(ctx);
    enum pipe_format pFormat;
+   mesa_format mFormat;
    unsigned bindings;
    enum pipe_texture_target pTarget = gl_target_to_pipe(target);
 
@@ -1966,7 +1963,11 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
    else if (internalFormat == 3 || internalFormat == 4 ||
             internalFormat == GL_RGB || internalFormat == GL_RGBA ||
             internalFormat == GL_RGB8 || internalFormat == GL_RGBA8 ||
-            internalFormat == GL_BGRA)
+            internalFormat == GL_BGRA ||
+            internalFormat == GL_RGB16F ||
+            internalFormat == GL_RGBA16F ||
+            internalFormat == GL_RGB32F ||
+            internalFormat == GL_RGBA32F)
 	 bindings |= PIPE_BIND_RENDER_TARGET;
 
    /* GLES allows the driver to choose any format which matches
@@ -2016,7 +2017,20 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
       return MESA_FORMAT_NONE;
    }
 
-   return st_pipe_format_to_mesa_format(pFormat);
+   mFormat = st_pipe_format_to_mesa_format(pFormat);
+
+   /* Debugging aid */
+   if (0) {
+      debug_printf("%s(intFormat=%s, format=%s, type=%s) -> %s, %s\n",
+                   __func__,
+                   _mesa_enum_to_string(internalFormat),
+                   _mesa_enum_to_string(format),
+                   _mesa_enum_to_string(type),
+                   util_format_name(pFormat),
+                   _mesa_get_format_name(mFormat));
+   }
+
+   return mFormat;
 }
 
 

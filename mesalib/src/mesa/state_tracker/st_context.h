@@ -98,6 +98,7 @@ struct st_context
    boolean has_etc1;
    boolean has_etc2;
    boolean prefer_blit_based_texture_transfer;
+   boolean can_force_persample_interp;
 
    boolean needs_texcoord_semantic;
    boolean apply_texture_swizzle_to_border_color;
@@ -161,15 +162,8 @@ struct st_context
    struct gl_texture_object *default_texture;
 
    struct {
-      struct gl_program_cache *cache;
-      struct st_fragment_program *program;  /**< cur pixel transfer prog */
-      GLuint xfer_prog_sn;  /**< pixel xfer program serial no. */
-      GLuint user_prog_sn;  /**< user fragment program serial no. */
-      struct st_fragment_program *combined_prog;
-      GLuint combined_prog_sn;
       struct pipe_resource *pixelmap_texture;
       struct pipe_sampler_view *pixelmap_sampler_view;
-      boolean pixelmap_enabled;  /**< use the pixelmap texture? */
    } pixel_xfer;
 
    /** for glBitmap */
@@ -183,7 +177,7 @@ struct st_context
 
    /** for glDraw/CopyPixels */
    struct {
-      struct gl_fragment_program *shaders[4];
+      void *zs_shaders[4];
       void *vert_shaders[2];   /**< ureg shaders */
    } drawpix;
 

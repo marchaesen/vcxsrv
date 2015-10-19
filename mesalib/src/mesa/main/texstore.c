@@ -727,19 +727,25 @@ texstore_rgba(TEXSTORE_PARAMS)
        */
       GLint swapSize = _mesa_sizeof_packed_type(srcType);
       if (swapSize == 2 || swapSize == 4) {
-         int bytesPerPixel = _mesa_bytes_per_pixel(srcFormat, srcType);
-         int swapsPerPixel = bytesPerPixel / swapSize;
-         int elementCount = srcWidth * srcHeight * srcDepth;
-         assert(bytesPerPixel % swapSize == 0);
-         tempImage = malloc(elementCount * bytesPerPixel);
+         int imageStride = _mesa_image_image_stride(srcPacking, srcWidth, srcHeight, srcFormat, srcType);
+         int bufferSize = imageStride * srcDepth;
+         int layer;
+         const uint8_t *src;
+         uint8_t *dst;
+
+         tempImage = malloc(bufferSize);
          if (!tempImage)
             return GL_FALSE;
-         if (swapSize == 2)
-            _mesa_swap2_copy(tempImage, (GLushort *) srcAddr,
-                             elementCount * swapsPerPixel);
-         else
-            _mesa_swap4_copy(tempImage, (GLuint *) srcAddr,
-                             elementCount * swapsPerPixel);
+         src = srcAddr;
+         dst = tempImage;
+         for (layer = 0; layer < srcDepth; layer++) {
+            _mesa_swap_bytes_2d_image(srcFormat, srcType,
+                                      srcPacking,
+                                      srcWidth, srcHeight,
+                                      dst, src);
+            src += imageStride;
+            dst += imageStride;
+         }
          srcAddr = tempImage;
       }
    }
@@ -863,7 +869,7 @@ _mesa_texstore_can_use_memcpy(struct gl_context *ctx,
 
    /* The Mesa format must match the input format and type. */
    if (!_mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
-                                             srcPacking->SwapBytes)) {
+                                             srcPacking->SwapBytes, NULL)) {
       return GL_FALSE;
    }
 
@@ -1004,6 +1010,7 @@ store_texsubimage(struct gl_context *ctx,
    /* compute slice info (and do some sanity checks) */
    switch (target) {
    case GL_TEXTURE_2D:
+   case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_RECTANGLE:
    case GL_TEXTURE_CUBE_MAP:
    case GL_TEXTURE_EXTERNAL_OES:
@@ -1025,6 +1032,7 @@ store_texsubimage(struct gl_context *ctx,
       srcImageStride = _mesa_image_row_stride(packing, width, format, type);
       break;
    case GL_TEXTURE_2D_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
       numSlices = depth;
       sliceOffset = zoffset;
       depth = 1;

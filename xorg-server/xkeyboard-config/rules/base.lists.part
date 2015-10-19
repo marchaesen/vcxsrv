@@ -2,8 +2,8 @@
 // If you want non-latin layouts implicitly include the en_US layout
 // uncomment lines below
 //! $nonlatin = am ara ben bd bg bt by cs deva ge gh gr guj guru il \
-//              in ir iku jp kan kh kr la lao lk mk mm mn mv mal ori pk \
-//              ru scc sy syr tel th tj tam ua uz
+//              in ir iku jp kan kh kr la lao lk mk mm mn mv mal olck \
+//              ori pk ru scc sy syr tel th tj tam ua uz
 
 // PC models
 ! $pcmodels = pc101 pc102 pc104 pc105

@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.6.4 Release Notes / August 11, 2015</h1>
+
+<p>
+Mesa 10.6.4 is a bug fix release which fixes bugs found since the 10.6.3 release.
+</p>
+<p>
+Mesa 10.6.4 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+4960bf17d8b5d6a6503c6954ec6cf480b5cd930797bac901c60bea192675f85e  mesa-10.6.4.tar.gz
+8f5ac103f0f503de2f7a985b0df349bd4ecdfe7f51c714be146fa5a9a3c07b77  mesa-10.6.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=73512">Bug 73512</a> - [clover] mesa.icd. should contain full path</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91290">Bug 91290</a> - SIGSEGV glcpp/glcpp-parse.y:1077</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Anuj Phogat (6):</p>
+<ul>
+  <li>mesa: Turn get_readpixels_transfer_ops() in to a global function</li>
+  <li>meta: Fix transfer operations check in meta pbo path for readpixels</li>
+  <li>meta: Abort meta pbo path if readpixels need signed-unsigned conversion</li>
+  <li>meta: Don't do fragment color clamping in _mesa_meta_pbo_GetTexSubImage</li>
+  <li>mesa: Add a helper function _mesa_need_luminance_to_rgb_conversion()</li>
+  <li>meta: Fix reading luminance texture as rgba in _mesa_meta_pbo_GetTexSubImage()</li>
+</ul>
+
+<p>Ben Widawsky (1):</p>
+<ul>
+  <li>i965/skl: Add production thread counts and URB size</li>
+</ul>
+
+<p>Eduardo Lima Mitev (3):</p>
+<ul>
+  <li>mesa: Fix errors values returned by glShaderBinary()</li>
+  <li>mesa: Validate target before resolving tex obj in glTex(ture)SubImageXD</li>
+  <li>mesa: Fix error returned by glCopyTexImage2D() upon an invalid internal format</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>docs: Add checksums for mesa 10.6.3 tarballs</li>
+  <li>configure.ac: do not set HAVE_DRI(23) when libdrm is missing</li>
+  <li>egl/wayland: libdrm is a hard requirement, treat it as such</li>
+  <li>winsys/radeon: don't leak the fd when it is 0</li>
+  <li>bugzilla_mesa.sh: sort the bugs list by number</li>
+  <li>Update version to 10.6.4</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>i965/fs: Fix fs_inst::regs_read() for sources in the ATTR file.</li>
+</ul>
+
+<p>Frank Binns (2):</p>
+<ul>
+  <li>egl/dri: Add error info needed for EGL_EXT_image_dma_buf_import extension</li>
+  <li>egl: Add eglQuerySurface surface type check for EGL_LARGEST_PBUFFER attrib</li>
+</ul>
+
+<p>Igor Gnatenko (1):</p>
+<ul>
+  <li>opencl: use versioned .so in mesa.icd</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>nvc0: fix geometry program revalidation of clipping params</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>glsl: Fix a bug where LHS swizzles of swizzles were too small.</li>
+</ul>
+
+<p>Marek Olšák (6):</p>
+<ul>
+  <li>st/mesa: don't call st_validate_state in BlitFramebuffer</li>
+  <li>radeonsi: upload shader rodata after updating scratch relocations</li>
+  <li>st/mesa: don't ignore texture buffer state changes</li>
+  <li>radeonsi: rework how shader pointers to descriptors are set</li>
+  <li>radeonsi: completely rework updating descriptors without CP DMA</li>
+  <li>r600g: fix the CB_SHADER_MASK setup</li>
+</ul>
+
+<p>Samuel Iglesias Gonsalvez (1):</p>
+<ul>
+  <li>glsl/glcpp: fix SIGSEGV when checking error condition for macro redefinition</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>nv50: avoid segfault with enabled but unbound vertex attrib</li>
+</ul>
+
+
+</div>
+</body>
+</html>

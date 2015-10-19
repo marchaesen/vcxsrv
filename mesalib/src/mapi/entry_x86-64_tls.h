@@ -46,13 +46,6 @@ __asm__(".text\n"
 
 #ifndef MAPI_MODE_BRIDGE
 
-__asm__("x86_64_current_tls:\n\t"
-	"movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"
-	"ret");
-
-extern unsigned long
-x86_64_current_tls();
-
 #include <string.h>
 #include "u_execmem.h"
 
@@ -90,7 +83,8 @@ entry_generate(int slot)
    char *code;
    mapi_func entry;
 
-   addr = x86_64_current_tls();
+   __asm__("movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%%rip), %0"
+           : "=r" (addr));
    if ((addr >> 32) != 0xffffffff)
       return NULL;
    addr &= 0xffffffff;

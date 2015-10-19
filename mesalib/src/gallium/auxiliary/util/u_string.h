@@ -199,6 +199,8 @@ util_memmove(void *dest, const void *src, size_t n)
 }
 
 
+#define util_strcasecmp stricmp
+
 #else
 
 #define util_vsnprintf vsnprintf
@@ -211,6 +213,7 @@ util_memmove(void *dest, const void *src, size_t n)
 #define util_strncat strncat
 #define util_strstr strstr
 #define util_memmove memmove
+#define util_strcasecmp strcasecmp
 
 #endif
 

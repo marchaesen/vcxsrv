@@ -38,6 +38,7 @@ from The Open Group.
  *	Warning, there be dragons here....
  */
 
+#include <stdint.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>		/* to declare xEvent */
 #include <X11/XlibConf.h>	/* for configured options like XTHREADS */
@@ -205,9 +206,121 @@ struct _XDisplay
 		XGenericEventCookie *	/* in */,
 		XGenericEventCookie *   /* out*/);
 	void *cookiejar;  /* cookie events returned but not claimed */
+#ifndef LONG64
+	unsigned long last_request_read_upper32bit;
+	unsigned long request_upper32bit;
+#endif
 };
 
 #define XAllocIDs(dpy,ids,n) (*(dpy)->idlist_alloc)(dpy,ids,n)
+
+/*
+ * access "last_request_read" and "request" with 64bit
+ * warning: the value argument of the SET-macros must not
+ * have any side-effects because it may get called twice.
+ */
+#ifndef LONG64
+/* accessors for 32-bit unsigned long */
+
+#define X_DPY_GET_REQUEST(dpy) \
+    ( \
+        ((uint64_t)(((struct _XDisplay*)dpy)->request)) \
+	+ (((uint64_t)(((struct _XDisplay*)dpy)->request_upper32bit)) << 32) \
+    )
+
+#define X_DPY_SET_REQUEST(dpy, value) \
+    ( \
+        (((struct _XDisplay*)dpy)->request = \
+            (value) & 0xFFFFFFFFUL), \
+        (((struct _XDisplay*)dpy)->request_upper32bit = \
+            ((uint64_t)(value)) >> 32), \
+	(void)0 /* don't use the result */ \
+    )
+
+#define X_DPY_GET_LAST_REQUEST_READ(dpy) \
+    ( \
+        ((uint64_t)(((struct _XDisplay*)dpy)->last_request_read)) \
+        + ( \
+            ((uint64_t)( \
+                ((struct _XDisplay*)dpy)->last_request_read_upper32bit \
+            )) << 32 \
+        ) \
+    )
+
+#define X_DPY_SET_LAST_REQUEST_READ(dpy, value) \
+    ( \
+        (((struct _XDisplay*)dpy)->last_request_read = \
+            (value) & 0xFFFFFFFFUL), \
+        (((struct _XDisplay*)dpy)->last_request_read_upper32bit = \
+            ((uint64_t)(value)) >> 32), \
+	(void)0 /* don't use the result */ \
+    )
+
+/*
+ * widen a 32-bit sequence number to a 64 sequence number.
+ * This macro makes the following assumptions:
+ * - ulseq refers to a sequence that has already been sent
+ * - ulseq means the most recent possible sequence number
+ *   with these lower 32 bits.
+ *
+ * The following optimization is used:
+ * The comparison result is taken a 0 or 1 to avoid a branch.
+ */
+#define X_DPY_WIDEN_UNSIGNED_LONG_SEQ(dpy, ulseq) \
+    ( \
+        ((uint64_t)ulseq) \
+        + \
+        (( \
+            ((uint64_t)(((struct _XDisplay*)dpy)->request_upper32bit)) \
+            - (uint64_t)( \
+                (ulseq) > (((struct _XDisplay*)dpy)->request) \
+	    ) \
+        ) << 32) \
+    )
+
+#define X_DPY_REQUEST_INCREMENT(dpy) \
+    ( \
+        ((struct _XDisplay*)dpy)->request++, \
+        ( \
+            (((struct _XDisplay*)dpy)->request == 0) ? ( \
+                ((struct _XDisplay*)dpy)->request_upper32bit++ \
+	    ) : 0 \
+        ), \
+	(void)0 /* don't use the result */ \
+    )
+
+
+#define X_DPY_REQUEST_DECREMENT(dpy) \
+    ( \
+	( \
+            (((struct _XDisplay*)dpy)->request == 0) ? (\
+                ((struct _XDisplay*)dpy)->request--, /* wrap */ \
+                ((struct _XDisplay*)dpy)->request_upper32bit-- \
+            ) : ( \
+                ((struct _XDisplay*)dpy)->request-- \
+            ) \
+	), \
+	(void)0 /* don't use the result */ \
+    )
+
+#else
+/* accessors for 64-bit unsigned long */
+#define X_DPY_GET_REQUEST(dpy) \
+    (((struct _XDisplay*)dpy)->request)
+#define X_DPY_SET_REQUEST(dpy, value) \
+    ((struct _XDisplay*)dpy)->request = (value)
+
+#define X_DPY_GET_LAST_REQUEST_READ(dpy) \
+    (((struct _XDisplay*)dpy)->last_request_read)
+#define X_DPY_SET_LAST_REQUEST_READ(dpy, value) \
+    ((struct _XDisplay*)dpy)->last_request_read = (value)
+
+#define X_DPY_WIDEN_UNSIGNED_LONG_SEQ(dpy, ulseq) ulseq
+
+#define X_DPY_REQUEST_INCREMENT(dpy) ((struct _XDisplay*)dpy)->request++
+#define X_DPY_REQUEST_DECREMENT(dpy) ((struct _XDisplay*)dpy)->request--
+#endif
+
 
 #ifndef _XEVENT_
 /*
@@ -676,6 +789,11 @@ typedef struct _XInternalAsync {
     XPointer data;
 } _XAsyncHandler;
 
+/*
+ * This struct is part of the ABI and is defined by value
+ * in user-code. This means that we cannot make
+ * the sequence-numbers 64bit.
+ */
 typedef struct _XAsyncEState {
     unsigned long min_sequence_number;
     unsigned long max_sequence_number;

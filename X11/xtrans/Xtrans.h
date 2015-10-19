@@ -52,6 +52,7 @@ from The Open Group.
 
 #include <X11/Xfuncproto.h>
 #include <X11/Xos.h>
+#include <X11/Xmd.h>
 
 #ifndef WIN32
 #include <sys/socket.h>

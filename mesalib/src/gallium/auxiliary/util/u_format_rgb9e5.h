@@ -21,7 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/* Copied from EXT_texture_shared_exponent and edited. */
+/* Copied from EXT_texture_shared_exponent and edited, getting rid of
+ * expensive float math bits too. */
 
 #ifndef RGB9E5_H
 #define RGB9E5_H
@@ -39,7 +40,6 @@
 #define RGB9E5_MANTISSA_VALUES       (1<<RGB9E5_MANTISSA_BITS)
 #define MAX_RGB9E5_MANTISSA          (RGB9E5_MANTISSA_VALUES-1)
 #define MAX_RGB9E5                   (((float)MAX_RGB9E5_MANTISSA)/RGB9E5_MANTISSA_VALUES * (1<<MAX_RGB9E5_EXP))
-#define EPSILON_RGB9E5               ((1.0/RGB9E5_MANTISSA_VALUES) / (1<<RGB9E5_EXP_BIAS))
 
 typedef union {
    unsigned int raw;
@@ -74,63 +74,59 @@ typedef union {
    } field;
 } rgb9e5;
 
-static inline float rgb9e5_ClampRange(float x)
-{
-   if (x > 0.0f) {
-      if (x >= MAX_RGB9E5) {
-         return MAX_RGB9E5;
-      } else {
-         return x;
-      }
-   } else {
-      /* NaN gets here too since comparisons with NaN always fail! */
-      return 0.0;
-   }
-}
 
-/* Ok, FloorLog2 is not correct for the denorm and zero values, but we
-   are going to do a max of this value with the minimum rgb9e5 exponent
-   that will hide these problem cases. */
-static inline int rgb9e5_FloorLog2(float x)
+static inline int rgb9e5_ClampRange(float x)
 {
    float754 f;
-
+   float754 max;
    f.value = x;
-   return (f.field.biasedexponent - 127);
+   max.value = MAX_RGB9E5;
+
+   if (f.raw > 0x7f800000)
+  /* catches neg, NaNs */
+      return 0;
+   else if (f.raw >= max.raw)
+      return max.raw;
+   else
+      return f.raw;
 }
 
 static inline unsigned float3_to_rgb9e5(const float rgb[3])
 {
    rgb9e5 retval;
-   float maxrgb;
-   int rm, gm, bm;
-   float rc, gc, bc;
-   int exp_shared, maxm;
-   double denom;
+   int rm, gm, bm, exp_shared;
+   float754 revdenom = {0};
+   float754 rc, bc, gc, maxrgb;
 
-   rc = rgb9e5_ClampRange(rgb[0]);
-   gc = rgb9e5_ClampRange(rgb[1]);
-   bc = rgb9e5_ClampRange(rgb[2]);
+   rc.raw = rgb9e5_ClampRange(rgb[0]);
+   gc.raw = rgb9e5_ClampRange(rgb[1]);
+   bc.raw = rgb9e5_ClampRange(rgb[2]);
+   maxrgb.raw = MAX3(rc.raw, gc.raw, bc.raw);
 
-   maxrgb = MAX3(rc, gc, bc);
-   exp_shared = MAX2(-RGB9E5_EXP_BIAS-1, rgb9e5_FloorLog2(maxrgb)) + 1 + RGB9E5_EXP_BIAS;
+   /*
+    * Compared to what the spec suggests, instead of conditionally adjusting
+    * the exponent after the fact do it here by doing the equivalent of +0.5 -
+    * the int add will spill over into the exponent in this case.
+    */
+   maxrgb.raw += maxrgb.raw & (1 << (23-9));
+   exp_shared = MAX2((maxrgb.raw >> 23), -RGB9E5_EXP_BIAS - 1 + 127) +
+                1 + RGB9E5_EXP_BIAS - 127;
+   revdenom.field.biasedexponent = 127 - (exp_shared - RGB9E5_EXP_BIAS -
+                                          RGB9E5_MANTISSA_BITS) + 1;
    assert(exp_shared <= RGB9E5_MAX_VALID_BIASED_EXP);
-   assert(exp_shared >= 0);
-   /* This exp2 function could be replaced by a table. */
-   denom = exp2(exp_shared - RGB9E5_EXP_BIAS - RGB9E5_MANTISSA_BITS);
 
-   maxm = (int) floor(maxrgb / denom + 0.5);
-   if (maxm == MAX_RGB9E5_MANTISSA+1) {
-      denom *= 2;
-      exp_shared += 1;
-      assert(exp_shared <= RGB9E5_MAX_VALID_BIASED_EXP);
-   } else {
-      assert(maxm <= MAX_RGB9E5_MANTISSA);
-   }
-
-   rm = (int) floor(rc / denom + 0.5);
-   gm = (int) floor(gc / denom + 0.5);
-   bm = (int) floor(bc / denom + 0.5);
+   /*
+    * The spec uses strict round-up behavior (d3d10 disagrees, but in any case
+    * must match what is done above for figuring out exponent).
+    * We avoid the doubles ((int) rc * revdenom + 0.5) by doing the rounding
+    * ourselves (revdenom was adjusted by +1, above).
+    */
+   rm = (int) (rc.value * revdenom.value);
+   gm = (int) (gc.value * revdenom.value);
+   bm = (int) (bc.value * revdenom.value);
+   rm = (rm & 1) + (rm >> 1);
+   gm = (gm & 1) + (gm >> 1);
+   bm = (bm & 1) + (bm >> 1);
 
    assert(rm <= MAX_RGB9E5_MANTISSA);
    assert(gm <= MAX_RGB9E5_MANTISSA);
@@ -151,15 +147,15 @@ static inline void rgb9e5_to_float3(unsigned rgb, float retval[3])
 {
    rgb9e5 v;
    int exponent;
-   float scale;
+   float754 scale = {0};
 
    v.raw = rgb;
    exponent = v.field.biasedexponent - RGB9E5_EXP_BIAS - RGB9E5_MANTISSA_BITS;
-   scale = exp2f(exponent);
+   scale.field.biasedexponent = exponent + 127;
 
-   retval[0] = v.field.r * scale;
-   retval[1] = v.field.g * scale;
-   retval[2] = v.field.b * scale;
+   retval[0] = v.field.r * scale.value;
+   retval[1] = v.field.g * scale.value;
+   retval[2] = v.field.b * scale.value;
 }
 
 #endif

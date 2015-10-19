@@ -86,6 +86,9 @@ int limitStackSpace = -1;
 int limitNoFile = -1;
 #endif
 
+/* The actual user defined max number of clients */
+int LimitClients = LIMITCLIENTS;
+
 static OsSigWrapperPtr OsSigWrapper = NULL;
 
 OsSigWrapperPtr

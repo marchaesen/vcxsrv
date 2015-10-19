@@ -123,11 +123,6 @@ _mesa_Hint( GLenum target, GLenum mode )
       default:
          goto invalid_target;
    }
-
-   if (ctx->Driver.Hint) {
-      (*ctx->Driver.Hint)( ctx, target, mode );
-   }
-
    return;
 
 invalid_target:

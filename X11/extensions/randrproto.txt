@@ -991,7 +991,7 @@ dynamic changes in the display environment.
 
 	Errors: Window
 
-	RRGetCrtcModes returns information about the current and available
+	RRGetCrtcInfo returns information about the current and available
 	configurations for the specified crtc connected to the screen
 	associated with 'window'.
 
@@ -1798,7 +1798,7 @@ factors, such as re-cabling a monitor, etc.
 	This event is sent whenever the monitor's configuration changes
 	or if a new monitor configuration becomes available that was
 	not available in the past. In this case, the client MUST call
-	RRGetCrtcModes to update its view of possible monitor
+	RRGetCrtcInfo to update its view of possible monitor
 	configurations to have a correct view of possible monitor
 	organizations.
 

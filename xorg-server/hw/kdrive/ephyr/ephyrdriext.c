@@ -1321,12 +1321,12 @@ ephyrDRIExtensionInit(ScreenPtr a_screen)
     EphyrDRIScreenPrivPtr screen_priv = NULL;
 
     EPHYR_LOG("enter\n");
-    if (!host_has_extension(&xcb_xf86dri_id)) {
+    if (!hostx_has_extension(&xcb_xf86dri_id)) {
         EPHYR_LOG("host does not have DRI extension\n");
         goto out;
     }
     EPHYR_LOG("host X does have DRI extension\n");
-    if (!host_has_extension(&xcb_shape_id)) {
+    if (!hostx_has_extension(&xcb_shape_id)) {
         EPHYR_LOG("host does not have XShape extension\n");
         goto out;
     }

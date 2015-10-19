@@ -97,6 +97,7 @@ static double __inline trunc(double d)
 #define MAXGPUSCREENS	16
 #endif
 #define MAXCLIENTS	1024
+#define LIMITCLIENTS	1024     /* Must be a power of 2 and <= MAXCLIENTS */
 #define MAXEXTENSIONS   128
 #define MAXFORMATS	8
 #define MAXDEVICES	40      /* input devices */

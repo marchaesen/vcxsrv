@@ -25,8 +25,6 @@
 #endif
 #include "fake.h"
 
-extern int KdTsPhyScreen;
-
 Bool
 fakeInitialize(KdCardInfo * card, FakePriv * priv)
 {
@@ -364,10 +362,6 @@ fakeCreateColormap(ColormapPtr pmap)
 Bool
 fakeInitScreen(ScreenPtr pScreen)
 {
-#ifdef TOUCHSCREEN
-    KdTsPhyScreen = pScreen->myNum;
-#endif
-
     pScreen->CreateColormap = fakeCreateColormap;
     return TRUE;
 }

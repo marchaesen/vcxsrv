@@ -339,7 +339,7 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
    /* KILL_IF -texTemp;   # if -texTemp < 0, kill fragment */
    tgsi_transform_kill_inst(ctx,
                             TGSI_FILE_TEMPORARY, texTemp,
-                            TGSI_SWIZZLE_W);
+                            TGSI_SWIZZLE_W, TRUE);
 }
 
 

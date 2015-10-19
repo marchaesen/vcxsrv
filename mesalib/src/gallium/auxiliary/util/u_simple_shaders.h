@@ -146,6 +146,12 @@ util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
                                    unsigned tgsi_tex, unsigned nr_samples,
                                    enum tgsi_return_type stype);
 
+extern void *
+util_make_geometry_passthrough_shader(struct pipe_context *pipe,
+                                      uint num_attribs,
+                                      const ubyte *semantic_names,
+                                      const ubyte *semantic_indexes);
+
 #ifdef __cplusplus
 }
 #endif

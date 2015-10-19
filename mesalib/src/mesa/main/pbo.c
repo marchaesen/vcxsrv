@@ -103,6 +103,12 @@ _mesa_validate_pbo_access(GLuint dimensions,
       /* no buffer! */
       return GL_FALSE;
 
+   /* If the size of the image is zero then no pixels are accessed so we
+    * don't need to check anything else.
+    */
+   if (width == 0 || height == 0 || depth == 0)
+      return GL_TRUE;
+
    /* get the offset to the first pixel we'll read/write */
    start = _mesa_image_offset(dimensions, pack, width, height,
                               format, type, 0, 0, 0);

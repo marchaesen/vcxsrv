@@ -381,7 +381,7 @@ ms_vblank_screen_init(ScreenPtr screen)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
-
+    modesettingEntPtr ms_ent = ms_ent_priv(scrn);
     xorg_list_init(&ms_drm_queue);
 
     ms->event_context.version = DRM_EVENT_CONTEXT_VERSION;
@@ -392,9 +392,14 @@ ms_vblank_screen_init(ScreenPtr screen)
      * feedback on every server generation, so perform the
      * registration within ScreenInit and not PreInit.
      */
-    AddGeneralSocket(ms->fd);
-    RegisterBlockAndWakeupHandlers((BlockHandlerProcPtr)NoopDDA,
-                                   ms_drm_wakeup_handler, screen);
+    if (ms_ent->fd_wakeup_registered != serverGeneration) {
+        AddGeneralSocket(ms->fd);
+        RegisterBlockAndWakeupHandlers((BlockHandlerProcPtr)NoopDDA,
+                                       ms_drm_wakeup_handler, screen);
+        ms_ent->fd_wakeup_registered = serverGeneration;
+        ms_ent->fd_wakeup_ref = 1;
+    } else
+        ms_ent->fd_wakeup_ref++;
 
     return TRUE;
 }
@@ -404,10 +409,14 @@ ms_vblank_close_screen(ScreenPtr screen)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
+    modesettingEntPtr ms_ent = ms_ent_priv(scrn);
 
     ms_drm_abort_scrn(scrn);
 
-    RemoveBlockAndWakeupHandlers((BlockHandlerProcPtr)NoopDDA,
-                                 ms_drm_wakeup_handler, screen);
-    RemoveGeneralSocket(ms->fd);
+    if (ms_ent->fd_wakeup_registered == serverGeneration &&
+        !--ms_ent->fd_wakeup_ref) {
+        RemoveBlockAndWakeupHandlers((BlockHandlerProcPtr)NoopDDA,
+                                     ms_drm_wakeup_handler, screen);
+        RemoveGeneralSocket(ms->fd);
+    }
 }

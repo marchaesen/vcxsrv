@@ -90,37 +90,24 @@ CLEANFILES = \
 	program/program_parse.tab.h \
 	main/git_sha1.h.tmp
 
-GET_HASH_GEN = main/get_hash_generator.py
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
-main/get_hash.h: ../mapi/glapi/gen/gl_and_es_API.xml main/get_hash_params.py 	\
-		 $(GET_HASH_GEN)
-	$(AM_V_GEN)set -e;						\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/$(GET_HASH_GEN)		\
-		-f $< > $@.tmp;						\
-	mv $@.tmp $@;
+main/get_hash.h: ../mapi/glapi/gen/gl_and_es_API.xml main/get_hash_params.py \
+                 main/get_hash_generator.py
+	$(PYTHON_GEN) $(srcdir)/main/get_hash_generator.py \
+		-f $(srcdir)/../mapi/glapi/gen/gl_and_es_API.xml > $@
 
-main/format_info.h: main/formats.csv                                    \
+main/format_info.h: main/formats.csv \
                     main/format_parser.py main/format_info.py
-	$(AM_V_GEN)set -e;						\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/main/format_info.py        \
-                   $< > $@.tmp;                                         \
-	mv $@.tmp $@;
+	$(PYTHON_GEN) $(srcdir)/main/format_info.py $(srcdir)/main/formats.csv > $@
 
-main/format_pack.c: main/format_pack.py main/formats.csv		\
+main/format_pack.c: main/format_pack.py main/formats.csv \
                     main/format_parser.py
-	$(AM_V_GEN)set -e;						\
-	$(PYTHON2) $(PYTHON_FLAGS)					\
-			$(srcdir)/main/format_pack.py			\
-			$(srcdir)/main/formats.csv			\
-		| $(INDENT) $(INDENT_FLAGS) > $@;
+	$(PYTHON_GEN) $(srcdir)/main/format_pack.py $(srcdir)/main/formats.csv > $@
 
 main/format_unpack.c: main/format_unpack.py main/formats.csv	\
                       main/format_parser.py
-	$(AM_V_GEN)set -e;						\
-	$(PYTHON2) $(PYTHON_FLAGS)					\
-			$(srcdir)/main/format_unpack.py			\
-			$(srcdir)/main/formats.csv			\
-		| $(INDENT) $(INDENT_FLAGS) > $@;
+	$(PYTHON_GEN) $(srcdir)/main/format_unpack.py $(srcdir)/main/formats.csv > $@
 
 main/formats.c: main/format_info.h
 
@@ -201,13 +188,17 @@ libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) $(SSE41_CFLAGS)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gl.pc
 
+MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
+YACC_GEN = $(AM_V_GEN)$(YACC) $(YFLAGS)
+LEX_GEN = $(AM_V_GEN)$(LEX) $(LFLAGS)
+
 program/lex.yy.c: program/program_lexer.l
-	$(AM_V_at)$(MKDIR_P) program
-	$(AM_V_GEN) $(LEX) --never-interactive --outfile=$@ $<
+	$(MKDIR_GEN)
+	$(LEX_GEN) -o $@ $(srcdir)/program/program_lexer.l
 
 program/program_parse.tab.c program/program_parse.tab.h: program/program_parse.y
-	$(AM_V_at)$(MKDIR_P) program
-	$(AM_V_GEN) $(YACC) -p "_mesa_program_" -v -d --output=program/program_parse.tab.c $<
+	$(MKDIR_GEN)
+	$(YACC_GEN) -o $@ -p "_mesa_program_" --defines=$(builddir)/program/program_parse.tab.h $(srcdir)/program/program_parse.y
 
 if GEN_ASM_OFFSETS
 matypes.h: $(gen_matypes_SOURCES)

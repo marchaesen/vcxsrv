@@ -76,7 +76,7 @@ struct _mesa_prim;
 struct _mesa_index_buffer;
 
 void
-_tnl_draw_prims( struct gl_context *ctx,
+_tnl_draw_prims(struct gl_context *ctx,
 		     const struct _mesa_prim *prim,
 		     GLuint nr_prims,
 		     const struct _mesa_index_buffer *ib,
@@ -84,6 +84,7 @@ _tnl_draw_prims( struct gl_context *ctx,
 		     GLuint min_index,
 		     GLuint max_index,
 		     struct gl_transform_feedback_object *tfb_vertcount,
+                     unsigned stream,
 		     struct gl_buffer_object *indirect );
 
 extern void

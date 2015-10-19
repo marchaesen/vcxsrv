@@ -45,6 +45,9 @@ extern "C" struct gl_shader *
 _mesa_new_shader(struct gl_context *ctx, GLuint name, GLenum type);
 
 extern "C" void
+_mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh);
+
+extern "C" void
 _mesa_clear_shader_program_data(struct gl_shader_program *);
 
 extern "C" void

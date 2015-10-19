@@ -453,6 +453,15 @@ public:
    }
 
    /**
+    * Determine whether or not a variable is part of a shader storage block.
+    */
+   inline bool is_in_shader_storage_block() const
+   {
+      return this->data.mode == ir_var_shader_storage &&
+             this->interface_type != NULL;
+   }
+
+   /**
     * Determine whether or not a variable is the declaration of an interface
     * block
     *
@@ -778,6 +787,11 @@ public:
       unsigned image_restrict:1;
 
       /**
+       * ARB_shader_storage_buffer_object
+       */
+      unsigned from_ssbo_unsized_array:1; /**< unsized array buffer variable. */
+
+      /**
        * Emit a warning if this variable is accessed.
        */
    private:
@@ -819,6 +833,8 @@ public:
        *   - Fragment shader output: one of the values from \c gl_frag_result.
        *   - Uniforms: Per-stage uniform slot number for default uniform block.
        *   - Uniforms: Index within the uniform block definition for UBO members.
+       *   - Non-UBO Uniforms: explicit location until linking then reused to
+       *     store uniform slot number.
        *   - Other: This field is not currently used.
        *
        * If the variable is a uniform, shader input, or shader output, and the
@@ -1409,9 +1425,26 @@ enum ir_expression_operation {
    ir_unop_interpolate_at_centroid,
 
    /**
+    * Ask the driver for the total size of a buffer block.
+    *
+    * operand0 is the ir_constant buffer block index in the linked shader.
+    */
+   ir_unop_get_buffer_size,
+
+   /**
+    * Calculate length of an unsized array inside a buffer block.
+    * This opcode is going to be replaced in a lowering pass inside
+    * the linker.
+    *
+    * operand0 is the unsized array's ir_value for the calculation
+    * of its length.
+    */
+   ir_unop_ssbo_unsized_array_length,
+
+   /**
     * A sentinel marking the last of the unary operations.
     */
-   ir_last_unop = ir_unop_interpolate_at_centroid,
+   ir_last_unop = ir_unop_ssbo_unsized_array_length,
 
    ir_binop_add,
    ir_binop_sub,
@@ -1698,6 +1731,8 @@ public:
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
+   virtual ir_variable *variable_referenced() const;
+
    ir_expression_operation operation;
    ir_rvalue *operands[4];
 };
@@ -1914,7 +1949,8 @@ enum ir_texture_opcode {
    ir_txs,		/**< Texture size */
    ir_lod,		/**< Texture lod query */
    ir_tg4,		/**< Texture gather */
-   ir_query_levels      /**< Texture levels query */
+   ir_query_levels,     /**< Texture levels query */
+   ir_texture_samples,  /**< Texture samples query */
 };
 
 
@@ -2513,6 +2549,9 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
 				struct _mesa_glsl_parse_state *state);
 
 extern void
+_mesa_glsl_initialize_derived_variables(gl_shader *shader);
+
+extern void
 _mesa_glsl_initialize_functions(_mesa_glsl_parse_state *state);
 
 extern void
@@ -2523,11 +2562,13 @@ _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
                                  const char *name, exec_list *actual_parameters);
 
 extern ir_function *
-_mesa_glsl_find_builtin_function_by_name(_mesa_glsl_parse_state *state,
-                                         const char *name);
+_mesa_glsl_find_builtin_function_by_name(const char *name);
 
 extern gl_shader *
 _mesa_glsl_get_builtin_function_shader(void);
+
+extern ir_function_signature *
+_mesa_get_main_function_signature(gl_shader *sh);
 
 extern void
 _mesa_glsl_release_functions(void);

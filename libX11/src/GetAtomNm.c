@@ -87,8 +87,8 @@ char *XGetAtomName(
 }
 
 typedef struct {
-    unsigned long start_seq;
-    unsigned long stop_seq;
+    uint64_t start_seq;
+    uint64_t stop_seq;
     Atom *atoms;
     char **names;
     int idx;
@@ -107,10 +107,11 @@ Bool _XGetAtomNameHandler(
     register _XGetAtomNameState *state;
     xGetAtomNameReply replbuf;
     register xGetAtomNameReply *repl;
+    uint64_t last_request_read = X_DPY_GET_LAST_REQUEST_READ(dpy);
 
     state = (_XGetAtomNameState *)data;
-    if (dpy->last_request_read < state->start_seq ||
-	dpy->last_request_read > state->stop_seq)
+    if (last_request_read < state->start_seq ||
+	last_request_read > state->stop_seq)
 	return False;
     while (state->idx < state->count && state->names[state->idx])
 	state->idx++;
@@ -152,7 +153,7 @@ XGetAtomNames (
     int missed = -1;
 
     LockDisplay(dpy);
-    async_state.start_seq = dpy->request + 1;
+    async_state.start_seq = X_DPY_GET_REQUEST(dpy) + 1;
     async_state.atoms = atoms;
     async_state.names = names_return;
     async_state.idx = 0;
@@ -165,7 +166,7 @@ XGetAtomNames (
     for (i = 0; i < count; i++) {
 	if (!(names_return[i] = _XGetAtomName(dpy, atoms[i]))) {
 	    missed = i;
-	    async_state.stop_seq = dpy->request;
+	    async_state.stop_seq = X_DPY_GET_REQUEST(dpy);
 	}
     }
     if (missed >= 0) {

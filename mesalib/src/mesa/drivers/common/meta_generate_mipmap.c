@@ -150,8 +150,7 @@ prepare_mipmap_level(struct gl_context *ctx,
 
 /**
  * Called via ctx->Driver.GenerateMipmap()
- * Note: We don't yet support 3D textures, 1D/2D array textures or texture
- * borders.
+ * Note: We don't yet support 3D textures, or texture borders.
  */
 void
 _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
@@ -163,7 +162,6 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    const GLuint maxLevel = texObj->MaxLevel;
    const GLint maxLevelSave = texObj->MaxLevel;
    const GLboolean genMipmapSave = texObj->GenerateMipmap;
-   const GLuint currentTexUnitSave = ctx->Texture.CurrentUnit;
    const GLboolean use_glsl_version = ctx->Extensions.ARB_vertex_shader &&
                                       ctx->Extensions.ARB_fragment_shader;
    GLenum faceTarget;
@@ -202,8 +200,12 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    samplerSave = ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler ?
       ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler->Name : 0;
 
-   if (currentTexUnitSave != 0)
-      _mesa_BindTexture(target, texObj->Name);
+   /* We may have been called from glGenerateTextureMipmap with CurrentUnit
+    * still set to 0, so we don't know when we can skip binding the texture.
+    * Assume that _mesa_BindTexture will be fast if we're rebinding the same
+    * texture.
+    */
+   _mesa_BindTexture(target, texObj->Name);
 
    if (!mipmap->Sampler) {
       _mesa_GenSamplers(1, &mipmap->Sampler);

@@ -359,10 +359,7 @@ ralloc_strndup(const void *ctx, const char *str, size_t max)
    if (unlikely(str == NULL))
       return NULL;
 
-   n = strlen(str);
-   if (n > max)
-      n = max;
-
+   n = strnlen(str, max);
    ptr = ralloc_array(ctx, char, n + 1);
    memcpy(ptr, str, n);
    ptr[n] = '\0';

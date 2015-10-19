@@ -866,14 +866,6 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                                 KHR_surfaceless_opengl);
 #endif
 
-#ifdef GLAMOR_HAS_GBM
-    if (epoxy_has_egl_extension(glamor_egl->display,
-                                "EGL_KHR_gl_texture_2D_image") &&
-        epoxy_has_egl_extension(glamor_egl->display,
-                                "EGL_EXT_image_dma_buf_import"))
-        glamor_egl->dri3_capable = TRUE;
-#endif
-
     glamor_egl->context = eglCreateContext(glamor_egl->display,
                                            NULL, EGL_NO_CONTEXT,
                                            config_attribs);
@@ -888,6 +880,15 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                    "Failed to make EGL context current\n");
         goto error;
     }
+#ifdef GLAMOR_HAS_GBM
+    if (epoxy_has_egl_extension(glamor_egl->display,
+                                "EGL_KHR_gl_texture_2D_image") &&
+        epoxy_has_egl_extension(glamor_egl->display,
+                                "EGL_EXT_image_dma_buf_import") &&
+        epoxy_has_gl_extension("GL_OES_EGL_image"))
+        glamor_egl->dri3_capable = TRUE;
+#endif
+
     glamor_egl->saved_free_screen = scrn->FreeScreen;
     scrn->FreeScreen = glamor_egl_free_screen;
 #ifdef GLAMOR_GLES2

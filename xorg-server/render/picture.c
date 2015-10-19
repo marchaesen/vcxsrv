@@ -862,7 +862,11 @@ createSourcePicture(void)
 {
     PicturePtr pPicture;
 
-    pPicture = dixAllocateScreenObjectWithPrivates(NULL, PictureRec, PRIVATE_PICTURE);
+    pPicture = dixAllocateScreenObjectWithPrivates(NULL, PictureRec,
+                                                   PRIVATE_PICTURE);
+    if (!pPicture)
+	return 0;
+
     pPicture->pDrawable = 0;
     pPicture->pFormat = 0;
     pPicture->pNext = 0;
@@ -902,7 +906,7 @@ CreateLinearGradientPicture(Picture pid, xPointFixed * p1, xPointFixed * p2,
 {
     PicturePtr pPicture;
 
-    if (nStops < 2) {
+    if (nStops < 1) {
         *error = BadValue;
         return 0;
     }
@@ -942,7 +946,7 @@ CreateRadialGradientPicture(Picture pid, xPointFixed * inner,
     PicturePtr pPicture;
     PictRadialGradient *radial;
 
-    if (nStops < 2) {
+    if (nStops < 1) {
         *error = BadValue;
         return 0;
     }
@@ -985,7 +989,7 @@ CreateConicalGradientPicture(Picture pid, xPointFixed * center, xFixed angle,
 {
     PicturePtr pPicture;
 
-    if (nStops < 2) {
+    if (nStops < 1) {
         *error = BadValue;
         return 0;
     }
@@ -1398,6 +1402,7 @@ FreePicture(void *value, XID pid)
 
     if (--pPicture->refcnt == 0) {
         free(pPicture->transform);
+        free(pPicture->filter_params);
 
         if (pPicture->pSourcePict) {
             if (pPicture->pSourcePict->type != SourcePictTypeSolidFill)

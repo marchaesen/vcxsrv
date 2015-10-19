@@ -395,14 +395,26 @@ main (int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    compute_transformed_extents (&binfo.transform, &dest_box, &transformed);
-    /* The source area is expanded by a tiny bit (8/65536th pixel)
-     * to match the calculation of the COVER_CLIP flags in analyze_extent()
+    /* Compute required extents for source and mask image so they qualify
+     * for COVER fast paths and get the flags in pixman.c:analyze_extent().
+     * These computations are for FAST_PATH_SAMPLES_COVER_CLIP_BILINEAR,
+     * but at the same time they also allow COVER_CLIP_NEAREST.
      */
-    xmin = pixman_fixed_to_int (transformed.x1 - 8 * pixman_fixed_e - pixman_fixed_1 / 2);
-    ymin = pixman_fixed_to_int (transformed.y1 - 8 * pixman_fixed_e - pixman_fixed_1 / 2);
-    xmax = pixman_fixed_to_int (transformed.x2 + 8 * pixman_fixed_e + pixman_fixed_1 / 2);
-    ymax = pixman_fixed_to_int (transformed.y2 + 8 * pixman_fixed_e + pixman_fixed_1 / 2);
+    compute_transformed_extents (&binfo.transform, &dest_box, &transformed);
+    xmin = pixman_fixed_to_int (transformed.x1 - pixman_fixed_1 / 2);
+    ymin = pixman_fixed_to_int (transformed.y1 - pixman_fixed_1 / 2);
+    xmax = pixman_fixed_to_int (transformed.x2 + pixman_fixed_1 / 2);
+    ymax = pixman_fixed_to_int (transformed.y2 + pixman_fixed_1 / 2);
+    /* Note:
+     * The upper limits can be reduced to the following when fetchers
+     * are guaranteed to not access pixels with zero weight. This concerns
+     * particularly all bilinear samplers.
+     *
+     * xmax = pixman_fixed_to_int (transformed.x2 + pixman_fixed_1 / 2 - pixman_fixed_e);
+     * ymax = pixman_fixed_to_int (transformed.y2 + pixman_fixed_1 / 2 - pixman_fixed_e);
+     * This is equivalent to subtracting 0.5 and rounding up, rather than
+     * subtracting 0.5, rounding down and adding 1.
+     */
     binfo.src_x = -xmin;
     binfo.src_y = -ymin;
 

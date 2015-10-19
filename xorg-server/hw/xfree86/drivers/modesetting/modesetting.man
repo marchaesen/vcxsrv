@@ -41,6 +41,10 @@ The following driver
 .B Options
 are supported:
 .TP
+.BI "Option \*qSWcursor\*q \*q" boolean \*q
+Selects software cursor.  The default is
+.B off.
+.TP
 .BI "Option \*qkmsdev\*q \*q" string \*q
 The framebuffer device to use. Default: /dev/dri/card0.
 .TP
@@ -49,6 +53,20 @@ Enable or disable use of the shadow framebuffer layer.  Default: on.
 .TP
 .BI "Option \*qAccelMethod\*q \*q" string \*q
 One of \*qglamor\*q or \*qnone\*q.  Default: glamor
+.TP
+.BI "Option \*qPageFlip\*q \*q" boolean \*q
+Enable DRI3 page flipping.  The default is
+.B on.
+.TP
+.BI "Option \*qZaphodHeads\*q \*q" string \*q
+Specify the RandR output(s) to use with zaphod mode for a particular driver
+instance.  If you use this option you must use this option for all instances
+of the driver.
+.br
+For example:
+.B
+Option \*qZaphodHeads\*q \*qLVDS,VGA-0\*q
+will assign xrandr outputs LVDS and VGA-0 to this instance of the driver.
 .TP
 .SH "SEE ALSO"
 __xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), Xserver(__appmansuffix__),

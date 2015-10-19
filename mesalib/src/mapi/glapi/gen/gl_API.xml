@@ -8168,7 +8168,7 @@
 
 <xi:include href="ARB_texture_storage.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extension #118 -->
+<xi:include href="KHR_texture_compression_astc.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="KHR_debug.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8211,7 +8211,11 @@
 
 <xi:include href="ARB_program_interface_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions #135...#138 -->
+<!-- ARB extensions #135...#136 -->
+
+<xi:include href="ARB_shader_storage_buffer_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions #138 -->
 
 <xi:include href="ARB_texture_buffer_range.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

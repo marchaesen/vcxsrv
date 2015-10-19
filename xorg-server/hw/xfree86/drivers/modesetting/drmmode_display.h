@@ -60,6 +60,9 @@ typedef struct {
     drmmode_bo front_bo;
     Bool sw_cursor;
 
+    /* Broken-out options. */
+    OptionInfoPtr Options;
+
     Bool glamor;
     Bool shadow_enable;
     /** Is Option "PageFlip" enabled? */
@@ -82,6 +85,8 @@ typedef struct {
     DevPrivateKeyRec pixmapPrivateKeyRec;
 
     Bool reverse_prime_offload_mode;
+
+    Bool is_secondary;
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {

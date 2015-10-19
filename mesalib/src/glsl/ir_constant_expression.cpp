@@ -36,6 +36,7 @@
 #include <math.h>
 #include "main/core.h" /* for MAX2, MIN2, CLAMP */
 #include "util/rounding.h" /* for _mesa_roundeven */
+#include "util/half_float.h"
 #include "ir.h"
 #include "glsl_types.h"
 #include "program/hash_table.h"
@@ -230,12 +231,9 @@ pack_snorm_1x8(float x)
      *    follows:
      *
      *      packSnorm4x8: round(clamp(c, -1, +1) * 127.0)
-     *
-     * We must first cast the float to an int, because casting a negative
-     * float to a uint is undefined.
      */
-   return (uint8_t) (int)
-          _mesa_roundevenf(CLAMP(x, -1.0f, +1.0f) * 127.0f);
+   return (uint8_t)
+          _mesa_lroundevenf(CLAMP(x, -1.0f, +1.0f) * 127.0f);
 }
 
 /**
@@ -252,12 +250,9 @@ pack_snorm_1x16(float x)
      *    follows:
      *
      *      packSnorm2x16: round(clamp(c, -1, +1) * 32767.0)
-     *
-     * We must first cast the float to an int, because casting a negative
-     * float to a uint is undefined.
      */
-   return (uint16_t) (int)
-          _mesa_roundevenf(CLAMP(x, -1.0f, +1.0f) * 32767.0f);
+   return (uint16_t)
+          _mesa_lroundevenf(CLAMP(x, -1.0f, +1.0f) * 32767.0f);
 }
 
 /**

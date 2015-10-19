@@ -75,24 +75,35 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 	  || !entry->declaration)
 	 continue;
 
-      if (entry->assign) {
-	 /* Remove a single dead assignment to the variable we found.
-	  * Don't do so if it's a shader or function output or a shader
-	  * storage variable though.
+      if (!entry->assign_list.is_empty()) {
+	 /* Remove all the dead assignments to the variable we found.
+	  * Don't do so if it's a shader or function output, though.
 	  */
 	 if (entry->var->data.mode != ir_var_function_out &&
 	     entry->var->data.mode != ir_var_function_inout &&
              entry->var->data.mode != ir_var_shader_out &&
              entry->var->data.mode != ir_var_shader_storage) {
-	    entry->assign->remove();
-	    progress = true;
 
-	    if (debug) {
-	       printf("Removed assignment to %s@%p\n",
-		      entry->var->name, (void *) entry->var);
-	    }
+            while (!entry->assign_list.is_empty()) {
+               struct assignment_entry *assignment_entry =
+                  exec_node_data(struct assignment_entry,
+                                 entry->assign_list.head, link);
+
+	       assignment_entry->assign->remove();
+
+	       if (debug) {
+	          printf("Removed assignment to %s@%p\n",
+		         entry->var->name, (void *) entry->var);
+               }
+
+               assignment_entry->link.remove();
+               free(assignment_entry);
+            }
+            progress = true;
 	 }
-      } else {
+      }
+
+      if (entry->assign_list.is_empty()) {
 	 /* If there are no assignments or references to the variable left,
 	  * then we can remove its declaration.
 	  */
@@ -103,7 +114,7 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 	  */
          if (entry->var->data.mode == ir_var_uniform ||
              entry->var->data.mode == ir_var_shader_storage) {
-            if (uniform_locations_assigned || entry->var->constant_value)
+            if (uniform_locations_assigned || entry->var->constant_initializer)
                continue;
 
             /* Section 2.11.6 (Uniform Variables) of the OpenGL ES 3.0.3 spec
@@ -119,11 +130,8 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
              * layouts, do not eliminate it.
              */
             if (entry->var->is_in_buffer_block()) {
-               const glsl_type *const block_type =
-                  entry->var->is_interface_instance()
-                  ? entry->var->type : entry->var->get_interface_type();
-
-               if (block_type->interface_packing != GLSL_INTERFACE_PACKING_PACKED)
+               if (entry->var->get_interface_type()->interface_packing !=
+                   GLSL_INTERFACE_PACKING_PACKED)
                   continue;
             }
 

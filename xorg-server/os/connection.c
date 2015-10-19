@@ -326,7 +326,7 @@ InitConnectionLimits(void)
     if (lastfdesc > MAXCLIENTS) {
         lastfdesc = MAXCLIENTS;
         if (debug_conns)
-            ErrorF("REACHED MAXIMUM CLIENTS LIMIT %d\n", MAXCLIENTS);
+            ErrorF("REACHED MAXIMUM CLIENTS LIMIT %d\n", LimitClients);
     }
     MaxClients = lastfdesc;
 

@@ -59,6 +59,9 @@ _mesa_streaming_load_memcpy(void *restrict dst, void *restrict src, size_t len)
       len -= MIN2(bytes_before_alignment_boundary, len);
    }
 
+   if (len >= 64)
+      _mm_mfence();
+
    while (len >= 64) {
       __m128i *dst_cacheline = (__m128i *)d;
       __m128i *src_cacheline = (__m128i *)s;

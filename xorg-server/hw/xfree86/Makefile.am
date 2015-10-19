@@ -59,7 +59,7 @@ LOCAL_LIBS = \
             loader/libloader.la \
             common/libcommon.la \
             os-support/libxorgos.la \
-            parser/libxf86config_internal.la \
+            parser/libxf86config.la \
             dixmods/libdixmods.la \
             modes/libxf86modes.la \
             ramdac/libramdac.la \

@@ -245,6 +245,9 @@ _mesa_get_program_resource_name(struct gl_shader_program *shProg,
                                 GLsizei bufSize, GLsizei *length,
                                 GLchar *name, const char *caller);
 
+extern unsigned
+_mesa_program_resource_name_len(struct gl_program_resource *res);
+
 extern GLint
 _mesa_program_resource_location(struct gl_shader_program *shProg,
                                 GLenum programInterface, const char *name);

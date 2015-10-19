@@ -33,6 +33,8 @@
 
 #include "imports.h"
 #include "macros.h"
+#include "util/rounding.h"
+#include "util/half_float.h"
 
 extern const mesa_array_format RGBA32_FLOAT;
 extern const mesa_array_format RGBA8_UBYTE;
@@ -84,7 +86,7 @@ _mesa_float_to_unorm(float x, unsigned dst_bits)
    else if (x > 1.0f)
       return MAX_UINT(dst_bits);
    else
-      return F_TO_I(x * MAX_UINT(dst_bits));
+      return _mesa_lroundevenf(x * MAX_UINT(dst_bits));
 }
 
 static inline unsigned
@@ -98,7 +100,7 @@ _mesa_unorm_to_unorm(unsigned x, unsigned src_bits, unsigned dst_bits)
 {
    if (src_bits < dst_bits) {
       return EXTEND_NORMALIZED_INT(x, src_bits, dst_bits);
-   } else {
+   } else if (src_bits > dst_bits) {
       unsigned src_half = (1 << (src_bits - 1)) - 1;
 
       if (src_bits + dst_bits > sizeof(x) * 8) {
@@ -108,6 +110,8 @@ _mesa_unorm_to_unorm(unsigned x, unsigned src_bits, unsigned dst_bits)
       } else {
          return (x * MAX_UINT(dst_bits) + src_half) / MAX_UINT(src_bits);
       }
+   } else {
+      return x;
    }
 }
 
@@ -128,7 +132,7 @@ _mesa_float_to_snorm(float x, unsigned dst_bits)
    else if (x > 1.0f)
       return MAX_INT(dst_bits);
    else
-      return F_TO_I(x * MAX_INT(dst_bits));
+      return _mesa_lroundevenf(x * MAX_INT(dst_bits));
 }
 
 static inline int

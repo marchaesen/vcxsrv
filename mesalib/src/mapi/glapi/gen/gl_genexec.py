@@ -88,6 +88,7 @@ header = """/**
 #include "main/matrix.h"
 #include "main/multisample.h"
 #include "main/objectlabel.h"
+#include "main/objectpurge.h"
 #include "main/performance_monitor.h"
 #include "main/pipelineobj.h"
 #include "main/pixel.h"

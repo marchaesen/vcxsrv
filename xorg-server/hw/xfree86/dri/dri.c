@@ -1691,7 +1691,7 @@ DRISwapContext(int drmFD, void *oldctx, void *newctx)
 
     if (!newContext) {
         DRIDrvMsg(pScreen->myNum, X_ERROR,
-                  "[DRI] Context Switch Error: oldContext=%x, newContext=%x\n",
+                  "[DRI] Context Switch Error: oldContext=%p, newContext=%p\n",
                   oldContext, newContext);
         return;
     }

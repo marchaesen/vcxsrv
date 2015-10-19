@@ -65,6 +65,7 @@ ast_type_qualifier::has_layout() const
           || this->flags.q.depth_less
           || this->flags.q.depth_unchanged
           || this->flags.q.std140
+          || this->flags.q.std430
           || this->flags.q.shared
           || this->flags.q.column_major
           || this->flags.q.row_major
@@ -123,6 +124,7 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    ubo_layout_mask.flags.q.std140 = 1;
    ubo_layout_mask.flags.q.packed = 1;
    ubo_layout_mask.flags.q.shared = 1;
+   ubo_layout_mask.flags.q.std430 = 1;
 
    ast_type_qualifier ubo_binding_mask;
    ubo_binding_mask.flags.i = 0;

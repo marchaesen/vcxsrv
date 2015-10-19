@@ -710,9 +710,9 @@ present_pixmap(WindowPtr window,
                present_notify_ptr notifies,
                int num_notifies)
 {
-    uint64_t                    ust;
+    uint64_t                    ust = 0;
     uint64_t                    target_msc;
-    uint64_t                    crtc_msc;
+    uint64_t                    crtc_msc = 0;
     int                         ret;
     present_vblank_ptr          vblank, tmp;
     ScreenPtr                   screen = window->drawable.pScreen;
@@ -734,13 +734,15 @@ present_pixmap(WindowPtr window,
             target_crtc = present_get_crtc(window);
     }
 
-    present_get_ust_msc(screen, target_crtc, &ust, &crtc_msc);
+    ret = present_get_ust_msc(screen, target_crtc, &ust, &crtc_msc);
 
     target_msc = present_window_to_crtc_msc(window, target_crtc, window_msc, crtc_msc);
 
-    /* Stash the current MSC away in case we need it later
-     */
-    window_priv->msc = crtc_msc;
+    if (ret == Success) {
+        /* Stash the current MSC away in case we need it later
+         */
+        window_priv->msc = crtc_msc;
+    }
 
     /* Adjust target_msc to match modulus
      */

@@ -375,13 +375,16 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
  * This is when a vertex attribute transitions to a different size.
  * For example, we saw a bunch of glTexCoord2f() calls and now we got a
  * glTexCoord4f() call.  We promote the array from size=2 to size=4.
+ * \param newSize  size of new vertex (number of 32-bit words).
  */
 static void
-vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize, GLenum newType)
+vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr,
+                      GLuint newSize, GLenum newType)
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
-   if (newSize > exec->vtx.attrsz[attr] || newType != exec->vtx.attrtype[attr]) {
+   if (newSize > exec->vtx.attrsz[attr] ||
+       newType != exec->vtx.attrtype[attr]) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
        */
@@ -411,20 +414,49 @@ vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize, GLenu
 
 
 /**
+ * Called upon first glVertex, glColor, glTexCoord, etc.
+ */
+static void
+vbo_exec_begin_vertices(struct gl_context *ctx)
+{
+   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
+
+   vbo_exec_vtx_map( exec );
+
+   assert((ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT) == 0);
+   assert(exec->begin_vertices_flags);
+
+   ctx->Driver.NeedFlush |= exec->begin_vertices_flags;
+}
+
+
+/**
  * This macro is used to implement all the glVertex, glColor, glTexCoord,
  * glVertexAttrib, etc functions.
+ * \param A  attribute index
+ * \param N  attribute size (1..4)
+ * \param T  type (GL_FLOAT, GL_DOUBLE, GL_INT, GL_UNSIGNED_INT)
+ * \param C  cast type (fi_type or double)
+ * \param V0, V1, v2, V3  attribute value
  */
 #define ATTR_UNION( A, N, T, C, V0, V1, V2, V3 )                        \
 do {									\
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;		\
    int sz = (sizeof(C) / sizeof(GLfloat));                              \
-   if (unlikely(!(ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT)))	\
-      ctx->Driver.BeginVertices( ctx );					\
                                                                         \
+   assert(sz == 1 || sz == 2);                                          \
+                                                                        \
+   if (unlikely(!(ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT))) {     \
+      vbo_exec_begin_vertices(ctx);					\
+   }									\
+                                                                        \
+   /* check if attribute size or type is changing */                    \
    if (unlikely(exec->vtx.active_sz[A] != N * sz) ||                    \
-       unlikely(exec->vtx.attrtype[A] != T))                            \
+       unlikely(exec->vtx.attrtype[A] != T)) {                          \
       vbo_exec_fixup_vertex(ctx, A, N * sz, T);                         \
+   }									\
                                                                         \
+   /* store vertex attribute in vertex buffer */                        \
    {									\
       C *dest = (C *)exec->vtx.attrptr[A];                              \
       if (N>0) dest[0] = V0;						\
@@ -438,6 +470,7 @@ do {									\
       /* This is a glVertex call */					\
       GLuint i;								\
 									\
+      /* copy 32-bit words */                                           \
       for (i = 0; i < exec->vtx.vertex_size; i++)			\
 	 exec->vtx.buffer_ptr[i] = exec->vtx.vertex[i];			\
 									\
@@ -1149,23 +1182,14 @@ void vbo_exec_vtx_destroy( struct vbo_exec_context *exec )
 
 
 /**
- * Called upon first glVertex, glColor, glTexCoord, etc.
- */
-void vbo_exec_BeginVertices( struct gl_context *ctx )
-{
-   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-
-   vbo_exec_vtx_map( exec );
-
-   assert((ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT) == 0);
-   assert(exec->begin_vertices_flags);
-
-   ctx->Driver.NeedFlush |= exec->begin_vertices_flags;
-}
-
-
-/**
- * Called via ctx->Driver.FlushVertices()
+ * If inside glBegin()/glEnd(), it should assert(0).  Otherwise, if
+ * FLUSH_STORED_VERTICES bit in \p flags is set flushes any buffered
+ * vertices, if FLUSH_UPDATE_CURRENT bit is set updates
+ * __struct gl_contextRec::Current and gl_light_attrib::Material
+ *
+ * Note that the default T&L engine never clears the
+ * FLUSH_UPDATE_CURRENT bit, even after performing the update.
+ *
  * \param flags  bitmask of FLUSH_STORED_VERTICES, FLUSH_UPDATE_CURRENT
  */
 void vbo_exec_FlushVertices( struct gl_context *ctx, GLuint flags )
@@ -1190,7 +1214,7 @@ void vbo_exec_FlushVertices( struct gl_context *ctx, GLuint flags )
    /* Flush (draw), and make sure VBO is left unmapped when done */
    vbo_exec_FlushVertices_internal(exec, GL_TRUE);
 
-   /* Need to do this to ensure BeginVertices gets called again:
+   /* Need to do this to ensure vbo_exec_begin_vertices gets called again:
     */
    ctx->Driver.NeedFlush &= ~(FLUSH_UPDATE_CURRENT | flags);
 

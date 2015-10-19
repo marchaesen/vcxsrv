@@ -94,13 +94,6 @@ struct dd_function_table {
    void (*UpdateState)( struct gl_context *ctx, GLbitfield new_state );
 
    /**
-    * Resize the given framebuffer to the given size.
-    * XXX OBSOLETE: this function will be removed in the future.
-    */
-   void (*ResizeBuffers)( struct gl_context *ctx, struct gl_framebuffer *fb,
-                          GLuint width, GLuint height);
-
-   /**
     * This is called whenever glFinish() is called.
     */
    void (*Finish)( struct gl_context *ctx );
@@ -116,12 +109,6 @@ struct dd_function_table {
     *                 renderbuffers need to be cleared.
     */
    void (*Clear)( struct gl_context *ctx, GLbitfield buffers );
-
-   /**
-    * Execute glAccum command.
-    */
-   void (*Accum)( struct gl_context *ctx, GLenum op, GLfloat value );
-
 
    /**
     * Execute glRasterPos, updating the ctx->Current.Raster fields
@@ -269,20 +256,25 @@ struct dd_function_table {
                            struct gl_renderbuffer *rb,
                            GLint x, GLint y,
                            GLsizei width, GLsizei height);
-
    /**
     * Called by glCopyImageSubData().
     *
-    * This function should copy one 2-D slice from srcTexImage to
-    * dstTexImage.  If one of the textures is 3-D or is a 1-D or 2-D array
+    * This function should copy one 2-D slice from src_teximage or
+    * src_renderbuffer to dst_teximage or dst_renderbuffer.  Either the
+    * teximage or renderbuffer pointer will be non-null to indicate which
+    * is the real src/dst.
+    *
+    * If one of the textures is 3-D or is a 1-D or 2-D array
     * texture, this function will be called multiple times: once for each
     * slice.  If one of the textures is a cube map, this function will be
     * called once for each face to be copied.
     */
    void (*CopyImageSubData)(struct gl_context *ctx,
-                            struct gl_texture_image *src_image,
+                            struct gl_texture_image *src_teximage,
+                            struct gl_renderbuffer *src_renderbuffer,
                             int src_x, int src_y, int src_z,
-                            struct gl_texture_image *dstTexImage,
+                            struct gl_texture_image *dst_teximage,
+                            struct gl_renderbuffer *dst_renderbuffer,
                             int dst_x, int dst_y, int dst_z,
                             int src_width, int src_height);
 
@@ -524,22 +516,15 @@ struct dd_function_table {
    /** Set the blend equation */
    void (*BlendEquationSeparate)(struct gl_context *ctx,
                                  GLenum modeRGB, GLenum modeA);
-   void (*BlendEquationSeparatei)(struct gl_context *ctx, GLuint buffer,
-                                  GLenum modeRGB, GLenum modeA);
    /** Specify pixel arithmetic */
    void (*BlendFuncSeparate)(struct gl_context *ctx,
                              GLenum sfactorRGB, GLenum dfactorRGB,
                              GLenum sfactorA, GLenum dfactorA);
-   void (*BlendFuncSeparatei)(struct gl_context *ctx, GLuint buffer,
-                              GLenum sfactorRGB, GLenum dfactorRGB,
-                              GLenum sfactorA, GLenum dfactorA);
    /** Specify a plane against which all geometry is clipped */
    void (*ClipPlane)(struct gl_context *ctx, GLenum plane, const GLfloat *eq);
    /** Enable and disable writing of frame buffer color components */
    void (*ColorMask)(struct gl_context *ctx, GLboolean rmask, GLboolean gmask,
                      GLboolean bmask, GLboolean amask );
-   void (*ColorMaskIndexed)(struct gl_context *ctx, GLuint buf, GLboolean rmask,
-                            GLboolean gmask, GLboolean bmask, GLboolean amask);
    /** Cause a material color to track the current color */
    void (*ColorMaterial)(struct gl_context *ctx, GLenum face, GLenum mode);
    /** Specify whether front- or back-facing facets can be culled */
@@ -560,8 +545,6 @@ struct dd_function_table {
    void (*Enable)(struct gl_context *ctx, GLenum cap, GLboolean state);
    /** Specify fog parameters */
    void (*Fogfv)(struct gl_context *ctx, GLenum pname, const GLfloat *params);
-   /** Specify implementation-specific hints */
-   void (*Hint)(struct gl_context *ctx, GLenum target, GLenum mode);
    /** Set light source parameters.
     * Note: for GL_POSITION and GL_SPOT_DIRECTION, params will have already
     * been transformed to eye-space.
@@ -764,26 +747,12 @@ struct dd_function_table {
                                 GLint *bytesWritten);
    /*@}*/
 
-
-   /**
-    * \name Vertex Array objects
-    */
-   /*@{*/
-   struct gl_vertex_array_object * (*NewArrayObject)(struct gl_context *ctx, GLuint id);
-   void (*DeleteArrayObject)(struct gl_context *ctx, struct gl_vertex_array_object *);
-   void (*BindArrayObject)(struct gl_context *ctx, struct gl_vertex_array_object *);
-   /*@}*/
-
    /**
     * \name GLSL-related functions (ARB extensions and OpenGL 2.x)
     */
    /*@{*/
    struct gl_shader *(*NewShader)(struct gl_context *ctx,
                                   GLuint name, GLenum type);
-   void (*DeleteShader)(struct gl_context *ctx, struct gl_shader *shader);
-   struct gl_shader_program *(*NewShaderProgram)(GLuint name);
-   void (*DeleteShaderProgram)(struct gl_context *ctx,
-                               struct gl_shader_program *shProg);
    void (*UseProgram)(struct gl_context *ctx, struct gl_shader_program *shProg);
    /*@}*/
 
@@ -820,66 +789,14 @@ struct dd_function_table {
     */
    GLbitfield NeedFlush;
 
-   /** Need to call SaveFlushVertices() upon state change? */
+   /** Need to call vbo_save_SaveFlushVertices() upon state change? */
    GLboolean SaveNeedFlush;
-
-   /* Called prior to any of the GLvertexformat functions being
-    * called.  Paired with Driver.FlushVertices().
-    */
-   void (*BeginVertices)( struct gl_context *ctx );
-
-   /**
-    * If inside glBegin()/glEnd(), it should assert(0).  Otherwise, if
-    * FLUSH_STORED_VERTICES bit in \p flags is set flushes any buffered
-    * vertices, if FLUSH_UPDATE_CURRENT bit is set updates
-    * __struct gl_contextRec::Current and gl_light_attrib::Material
-    *
-    * Note that the default T&L engine never clears the
-    * FLUSH_UPDATE_CURRENT bit, even after performing the update.
-    */
-   void (*FlushVertices)( struct gl_context *ctx, GLuint flags );
-   void (*SaveFlushVertices)( struct gl_context *ctx );
-
-   /**
-    * Give the driver the opportunity to hook in its own vtxfmt for
-    * compiling optimized display lists.  This is called on each valid
-    * glBegin() during list compilation.
-    */
-   GLboolean (*NotifySaveBegin)( struct gl_context *ctx, GLenum mode );
 
    /**
     * Notify driver that the special derived value _NeedEyeCoords has
     * changed.
     */
    void (*LightingSpaceChange)( struct gl_context *ctx );
-
-   /**
-    * Called by glNewList().
-    *
-    * Let the T&L component know what is going on with display lists
-    * in time to make changes to dispatch tables, etc.
-    */
-   void (*NewList)( struct gl_context *ctx, GLuint list, GLenum mode );
-   /**
-    * Called by glEndList().
-    *
-    * \sa dd_function_table::NewList.
-    */
-   void (*EndList)( struct gl_context *ctx );
-
-   /**
-    * Called by glCallList(s).
-    *
-    * Notify the T&L component before and after calling a display list.
-    */
-   void (*BeginCallList)( struct gl_context *ctx, 
-			  struct gl_display_list *dlist );
-   /**
-    * Called by glEndCallList().
-    *
-    * \sa dd_function_table::BeginCallList.
-    */
-   void (*EndCallList)( struct gl_context *ctx );
 
    /**@}*/
 
@@ -958,8 +875,6 @@ struct dd_function_table {
     */
    struct gl_sampler_object * (*NewSamplerObject)(struct gl_context *ctx,
                                                   GLuint name);
-   void (*DeleteSamplerObject)(struct gl_context *ctx,
-                               struct gl_sampler_object *samp);
 
    /**
     * \name Return a timestamp in nanoseconds as defined by GL_ARB_timer_query.
@@ -1002,12 +917,6 @@ struct dd_function_table {
     * \name GL_ARB_shader_image_load_store interface.
     */
    /** @{ */
-   void (*BindImageTexture)(struct gl_context *ctx,
-                            struct gl_image_unit *unit,
-                            struct gl_texture_object *texObj,
-                            GLint level, GLboolean layered, GLint layer,
-                            GLenum access, GLenum format);
-
    void (*MemoryBarrier)(struct gl_context *ctx, GLbitfield barriers);
    /** @} */
 
@@ -1016,6 +925,7 @@ struct dd_function_table {
     */
    /*@{*/
    void (*DispatchCompute)(struct gl_context *ctx, const GLuint *num_groups);
+   void (*DispatchComputeIndirect)(struct gl_context *ctx, GLintptr indirect);
    /*@}*/
 };
 

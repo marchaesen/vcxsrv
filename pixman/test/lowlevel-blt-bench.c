@@ -1122,6 +1122,12 @@ main (int argc, char *argv[])
 	}
 	else
 	{
+	    if (pattern)
+	    {
+		pattern = NULL;
+		printf ("Error: extra arguments given.\n");
+		break;
+	    }
 	    pattern = argv[i];
 	}
     }

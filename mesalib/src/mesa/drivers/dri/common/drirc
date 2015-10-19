@@ -53,10 +53,12 @@ TODO: document the other workarounds.
 
         <application name="Unigine OilRush (32-bit)" executable="OilRush_x86">
             <option name="disable_blend_func_extended" value="true" />
+            <option name="allow_glsl_extension_directive_midshader" value="true" />
 	</application>
 
         <application name="Unigine OilRush (64-bit)" executable="OilRush_x64">
             <option name="disable_blend_func_extended" value="true" />
+            <option name="allow_glsl_extension_directive_midshader" value="true" />
 	</application>
 
         <application name="Savage 2" executable="savage2.bin">

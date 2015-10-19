@@ -25,7 +25,7 @@
 #include "glsl_types.h"
 #include "glsl_parser_extras.h"
 #include "main/macros.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 static void print_type(FILE *f, const glsl_type *t);
 
@@ -89,14 +89,14 @@ ir_print_visitor::ir_print_visitor(FILE *f)
 {
    indentation = 0;
    printable_names =
-      hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
+      _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
    symbols = _mesa_symbol_table_ctor();
    mem_ctx = ralloc_context(NULL);
 }
 
 ir_print_visitor::~ir_print_visitor()
 {
-   hash_table_dtor(printable_names);
+   _mesa_hash_table_destroy(printable_names, NULL);
    _mesa_symbol_table_dtor(symbols);
    ralloc_free(mem_ctx);
 }
@@ -121,18 +121,22 @@ ir_print_visitor::unique_name(ir_variable *var)
    }
 
    /* Do we already have a name for this variable? */
-   const char *name = (const char *) hash_table_find(this->printable_names, var);
-   if (name != NULL)
-      return name;
+   struct hash_entry * entry =
+      _mesa_hash_table_search(this->printable_names, var);
+
+   if (entry != NULL) {
+      return (const char *) entry->data;
+   }
 
    /* If there's no conflict, just use the original name */
+   const char* name = NULL;
    if (_mesa_symbol_table_find_symbol(this->symbols, -1, var->name) == NULL) {
       name = var->name;
    } else {
       static unsigned i = 1;
       name = ralloc_asprintf(this->mem_ctx, "%s@%u", var->name, ++i);
    }
-   hash_table_insert(this->printable_names, (void *) name, var);
+   _mesa_hash_table_insert(this->printable_names, var, (void *) name);
    _mesa_symbol_table_add_symbol(this->symbols, -1, name, var);
    return name;
 }
@@ -270,7 +274,8 @@ void ir_print_visitor::visit(ir_texture *ir)
    ir->sampler->accept(this);
    fprintf(f, " ");
 
-   if (ir->op != ir_txs && ir->op != ir_query_levels) {
+   if (ir->op != ir_txs && ir->op != ir_query_levels &&
+       ir->op != ir_texture_samples) {
       ir->coordinate->accept(this);
 
       fprintf(f, " ");
@@ -286,7 +291,7 @@ void ir_print_visitor::visit(ir_texture *ir)
 
    if (ir->op != ir_txf && ir->op != ir_txf_ms &&
        ir->op != ir_txs && ir->op != ir_tg4 &&
-       ir->op != ir_query_levels) {
+       ir->op != ir_query_levels && ir->op != ir_texture_samples) {
       if (ir->projector)
 	 ir->projector->accept(this);
       else
@@ -306,6 +311,7 @@ void ir_print_visitor::visit(ir_texture *ir)
    case ir_tex:
    case ir_lod:
    case ir_query_levels:
+   case ir_texture_samples:
       break;
    case ir_txb:
       ir->lod_info.bias->accept(this);
@@ -582,7 +588,7 @@ ir_print_visitor::visit(ir_end_primitive *ir)
 }
 
 void
-ir_print_visitor::visit(ir_barrier *ir)
+ir_print_visitor::visit(ir_barrier *)
 {
    fprintf(f, "(barrier)\n");
 }

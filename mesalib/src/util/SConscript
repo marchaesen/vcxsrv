@@ -54,3 +54,10 @@ u_atomic_test = env.Program(
 )
 alias = env.Alias("u_atomic_test", u_atomic_test, u_atomic_test[0].abspath)
 AlwaysBuild(alias)
+
+roundeven_test = env.Program(
+    target = 'roundeven_test',
+    source = ['roundeven_test.c'],
+)
+alias = env.Alias("roundeven_test", roundeven_test, roundeven_test[0].abspath)
+AlwaysBuild(alias)

@@ -242,6 +242,12 @@ ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
       type = type->fields.array;
    }
 
+   /* TODO: implement proper arrays of arrays support
+    * for now let the caller mark whole variable as used.
+    */
+   if (type->is_array() && type->fields.array->is_array())
+      return false;
+
    /* The code below only handles:
     *
     * - Indexing into matrices

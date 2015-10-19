@@ -38,18 +38,23 @@ libgallium_la_SOURCES += \
 
 endif
 
-indices/u_indices_gen.c: $(srcdir)/indices/u_indices_gen.py
-	$(AM_V_at)$(MKDIR_P) indices
-	$(AM_V_GEN) $(PYTHON2) $< > $@
+MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
+PYTHON_GEN =  $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
-indices/u_unfilled_gen.c: $(srcdir)/indices/u_unfilled_gen.py
-	$(AM_V_at)$(MKDIR_P) indices
-	$(AM_V_GEN) $(PYTHON2) $< > $@
+indices/u_indices_gen.c: indices/u_indices_gen.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/indices/u_indices_gen.py > $@
 
-util/u_format_table.c: $(srcdir)/util/u_format_table.py $(srcdir)/util/u_format_pack.py $(srcdir)/util/u_format_parse.py $(srcdir)/util/u_format.csv
-	$(AM_V_at)$(MKDIR_P) util
-	$(AM_V_GEN) $(PYTHON2) $(srcdir)/util/u_format_table.py $(srcdir)/util/u_format.csv > $@
+indices/u_unfilled_gen.c: indices/u_unfilled_gen.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/indices/u_unfilled_gen.py > $@
 
+util/u_format_table.c: util/u_format_table.py \
+                       util/u_format_pack.py \
+                       util/u_format_parse.py \
+                       util/u_format.csv
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/util/u_format_table.py $(srcdir)/util/u_format.csv > $@
 
 noinst_LTLIBRARIES += libgalliumvl_stub.la
 libgalliumvl_stub_la_SOURCES = \

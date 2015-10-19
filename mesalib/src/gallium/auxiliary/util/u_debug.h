@@ -269,7 +269,7 @@ void _debug_assert_fail(const char *expr,
 struct debug_named_value
 {
    const char *name;
-   unsigned long value;
+   uint64_t value;
    const char *desc;
 };
 
@@ -377,10 +377,10 @@ debug_get_bool_option(const char *name, boolean dfault);
 long
 debug_get_num_option(const char *name, long dfault);
 
-unsigned long
+uint64_t
 debug_get_flags_option(const char *name, 
                        const struct debug_named_value *flags,
-                       unsigned long dfault);
+                       uint64_t dfault);
 
 #define DEBUG_GET_ONCE_BOOL_OPTION(sufix, name, dfault) \
 static boolean \

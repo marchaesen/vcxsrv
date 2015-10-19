@@ -1182,7 +1182,8 @@ enum __DRIChromaSiting {
 };
 
 /**
- * \name Reasons that __DRIimageExtensionRec::createImageFromTexture might fail
+ * \name Reasons that __DRIimageExtensionRec::createImageFromTexture or
+ * __DRIimageExtensionRec::createImageFromDmaBufs might fail
  */
 /*@{*/
 /** Success! */
@@ -1191,11 +1192,14 @@ enum __DRIChromaSiting {
 /** Memory allocation failure */
 #define __DRI_IMAGE_ERROR_BAD_ALLOC     1
 
-/** Client requested an invalid attribute for a texture object  */
+/** Client requested an invalid attribute */
 #define __DRI_IMAGE_ERROR_BAD_MATCH     2
 
 /** Client requested an invalid texture object */
 #define __DRI_IMAGE_ERROR_BAD_PARAMETER 3
+
+/** Client requested an invalid pitch and/or offset */
+#define __DRI_IMAGE_ERROR_BAD_ACCESS    4
 /*@}*/
 
 /**

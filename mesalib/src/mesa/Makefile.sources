@@ -134,6 +134,8 @@ MAIN_FILES = \
 	main/multisample.h \
 	main/objectlabel.c \
 	main/objectlabel.h \
+	main/objectpurge.c \
+	main/objectpurge.h \
 	main/pack.c \
 	main/pack.h \
 	main/pbo.c \
@@ -413,6 +415,7 @@ STATETRACKER_FILES = \
 	state_tracker/st_cache.h \
 	state_tracker/st_cb_bitmap.c \
 	state_tracker/st_cb_bitmap.h \
+	state_tracker/st_cb_bitmap_shader.c \
 	state_tracker/st_cb_blit.c \
 	state_tracker/st_cb_blit.h \
 	state_tracker/st_cb_bufferobjects.c \
@@ -423,6 +426,7 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_condrender.h \
 	state_tracker/st_cb_drawpixels.c \
 	state_tracker/st_cb_drawpixels.h \
+	state_tracker/st_cb_drawpixels_shader.c \
 	state_tracker/st_cb_drawtex.c \
 	state_tracker/st_cb_drawtex.h \
 	state_tracker/st_cb_eglimage.c \
@@ -616,6 +620,7 @@ INCLUDE_DIRS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/glsl \
+	-I$(top_srcdir)/src/glsl/nir \
 	-I$(top_builddir)/src/glsl \
 	-I$(top_builddir)/src/glsl/nir \
 	-I$(top_srcdir)/src/glsl/glcpp \

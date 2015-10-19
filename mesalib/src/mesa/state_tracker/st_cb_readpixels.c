@@ -139,7 +139,7 @@ st_readpixels(struct gl_context *ctx, GLint x, GLint y,
     * in which case the memcpy-based fast path will likely be used and
     * we don't have to blit. */
    if (_mesa_format_matches_format_and_type(rb->Format, format,
-                                            type, pack->SwapBytes)) {
+                                            type, pack->SwapBytes, NULL)) {
       goto fallback;
    }
 
@@ -238,9 +238,9 @@ st_readpixels(struct gl_context *ctx, GLint x, GLint y,
       GLuint row;
 
       for (row = 0; row < (unsigned) height; row++) {
-         GLvoid *dest = _mesa_image_address3d(pack, pixels,
+         GLvoid *dest = _mesa_image_address2d(pack, pixels,
                                               width, height, format,
-                                              type, 0, row, 0);
+                                              type, row, 0);
          memcpy(dest, map, bytesPerRow);
          map += tex_xfer->stride;
       }

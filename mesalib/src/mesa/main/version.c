@@ -24,6 +24,7 @@
 
 
 #include <stdio.h>
+#include "context.h"
 #include "imports.h"
 #include "mtypes.h"
 #include "version.h"
@@ -181,7 +182,23 @@ _mesa_override_gl_version(struct gl_context *ctx)
 {
    if (_mesa_override_gl_version_contextless(&ctx->Const, &ctx->API,
                                              &ctx->Version)) {
-      create_version_string(ctx, "");
+      /* We need to include API in version string for OpenGL ES, otherwise
+       * application can not detect GLES via glGetString(GL_VERSION) query.
+       *
+       * From OpenGL ES 3.2 spec, Page 436:
+       *
+       *     "The VERSION string is laid out as follows:
+       *
+       *     OpenGL ES N.M vendor-specific information"
+       *
+       * From OpenGL 4.5 spec, Page 538:
+       *
+       *     "The VERSION and SHADING_LANGUAGE_VERSION strings are laid out as
+       *     follows:
+       *
+       *     <version number><space><vendor-specific information>"
+       */
+      create_version_string(ctx, _mesa_is_gles(ctx) ? "OpenGL ES " : "");
    }
 }
 
@@ -450,13 +467,15 @@ compute_version_es2(const struct gl_extensions *extensions)
                          extensions->ARB_arrays_of_arrays &&
                          extensions->ARB_compute_shader &&
                          extensions->ARB_draw_indirect &&
-                         false /*extensions->ARB_framebuffer_no_attachments*/ &&
+                         extensions->ARB_explicit_uniform_location &&
+                         extensions->ARB_framebuffer_no_attachments &&
                          extensions->ARB_shader_atomic_counters &&
                          extensions->ARB_shader_image_load_store &&
-                         false /*extensions->ARB_shader_image_size*/ &&
-                         false /*extensions->ARB_shader_storage_buffer_object*/ &&
+                         extensions->ARB_shader_image_size &&
+                         extensions->ARB_shader_storage_buffer_object &&
                          extensions->ARB_shading_language_packing &&
                          extensions->ARB_stencil_texturing &&
+                         extensions->ARB_texture_multisample &&
                          extensions->ARB_gpu_shader5 &&
                          extensions->EXT_shader_integer_mix);
 

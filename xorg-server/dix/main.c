@@ -209,7 +209,7 @@ dix_main(int argc, char *argv[], char *envp[])
         /* Perform any operating system dependent initializations you'd like */
         if (serverGeneration == 1) {
             CreateWellKnownSockets();
-            for (i = 1; i < MAXCLIENTS; i++)
+            for (i = 1; i < LimitClients; i++)
                 clients[i] = NullClient;
             serverClient = calloc(sizeof(ClientRec), 1);
             if (!serverClient)
@@ -389,6 +389,7 @@ dix_main(int argc, char *argv[], char *envp[])
         for (i = screenInfo.numGPUScreens - 1; i >= 0; i--) {
             ScreenPtr pScreen = screenInfo.gpuscreens[i];
             FreeScratchPixmapsForScreen(pScreen);
+            dixFreeScreenSpecificPrivates(pScreen);
             (*pScreen->CloseScreen) (pScreen);
             dixFreePrivates(pScreen->devPrivates, PRIVATE_SCREEN);
             free(pScreen);

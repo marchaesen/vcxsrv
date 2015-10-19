@@ -58,9 +58,7 @@ st_translate_mesa_program(
    GLuint numOutputs,
    const GLuint outputMapping[],
    const ubyte outputSemanticName[],
-   const ubyte outputSemanticIndex[],
-   boolean passthrough_edgeflags,
-   boolean clamp_color);
+   const ubyte outputSemanticIndex[]);
 
 unsigned
 st_translate_texture_target(GLuint textarget, GLboolean shadow);

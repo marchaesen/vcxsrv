@@ -681,6 +681,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
    texObj->Immutable = GL_TRUE;
    texObj->ImmutableLevels = origTexObj->ImmutableLevels;
    texObj->Target = target;
+   texObj->TargetIndex = _mesa_tex_target_to_index(ctx, target);
+   assert(texObj->TargetIndex < NUM_TEXTURE_TARGETS);
 
    if (ctx->Driver.TextureView != NULL &&
        !ctx->Driver.TextureView(ctx, texObj, origTexObj)) {

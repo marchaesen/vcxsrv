@@ -798,4 +798,23 @@
     </function>
 </category>
 
+<!-- 174. GL_OES_texture_storage_multisample_2d_array -->
+<category name="GL_OES_texture_storage_multisample_2d_array" number="174">
+    <enum name="TEXTURE_2D_MULTISAMPLE_ARRAY_OES"              value="0x9102"/>
+    <enum name="TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY_OES"      value="0x9105"/>
+    <enum name="SAMPLER_2D_MULTISAMPLE_ARRAY_OES"              value="0x910B"/>
+    <enum name="INT_SAMPLER_2D_MULTISAMPLE_ARRAY_OES"          value="0x910C"/>
+    <enum name="UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY_OES" value="0x910D"/>
+
+    <function name="TexStorage3DMultisampleOES" alias="TexStorage3DMultisample" es2="3.1">
+        <param name="target" type="GLenum"/>
+        <param name="samples" type="GLsizei"/>
+        <param name="internalformat" type="GLenum"/>
+        <param name="width" type="GLsizei"/>
+        <param name="height" type="GLsizei"/>
+        <param name="depth" type="GLsizei"/>
+        <param name="fixedsamplelocations" type="GLboolean"/>
+    </function>
+</category>
+
 </OpenGLAPI>

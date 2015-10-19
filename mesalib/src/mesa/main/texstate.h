@@ -63,24 +63,6 @@ _mesa_max_tex_unit(struct gl_context *ctx)
                ctx->Const.MaxTextureCoordUnits);
 }
 
-static inline struct gl_texture_unit *
-_mesa_get_tex_unit_err(struct gl_context *ctx, GLuint unit, const char *func)
-{
-   if (unit < _mesa_max_tex_unit(ctx))
-      return _mesa_get_tex_unit(ctx, unit);
-
-   /* Note: This error is a precedent set by glBindTextures. From the GL 4.5
-    * specification (30.10.2014) Section 8.1 ("Texture Objects"):
-    *
-    *    "An INVALID_OPERATION error is generated if first + count is greater
-    *     than the number of texture image units supported by the
-    *     implementation."
-    */
-   _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unit=%s)", func,
-               _mesa_enum_to_string(GL_TEXTURE0+unit));
-   return NULL;
-}
-
 
 extern void
 _mesa_copy_texture_state( const struct gl_context *src, struct gl_context *dst );

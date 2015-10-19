@@ -90,7 +90,8 @@ void hud_pipe_query_install(struct hud_pane *pane, struct pipe_context *pipe,
                             const char *name, unsigned query_type,
                             unsigned result_index,
                             uint64_t max_value,
-                            enum pipe_driver_query_type type);
+                            enum pipe_driver_query_type type,
+                            enum pipe_driver_query_result_type result_type);
 boolean hud_driver_query_install(struct hud_pane *pane,
                                  struct pipe_context *pipe, const char *name);
 
