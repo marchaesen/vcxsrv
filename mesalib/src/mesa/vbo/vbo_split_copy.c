@@ -203,7 +203,7 @@ flush( struct copy_context *copy )
 	       GL_TRUE,
 	       0,
 	       copy->dstbuf_nr - 1,
-	       NULL, NULL );
+	       NULL, 0, NULL );
 
    ctx->Array._DrawArrays = saved_arrays;
    ctx->NewDriverState |= ctx->DriverFlags.NewArray;

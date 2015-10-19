@@ -92,7 +92,9 @@ ProcRRSelectInput(ClientPtr client)
                          RRCrtcChangeNotifyMask |
                          RROutputChangeNotifyMask |
                          RROutputPropertyNotifyMask |
-                         RRProviderPropertyNotifyMask)) {
+                         RRProviderChangeNotifyMask |
+                         RRProviderPropertyNotifyMask |
+                         RRResourceChangeNotifyMask)) {
         ScreenPtr pScreen = pWin->drawable.pScreen;
 
         rrScrPriv(pScreen);

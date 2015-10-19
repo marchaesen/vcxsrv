@@ -175,7 +175,7 @@ _glapi_get_stub(const char *name, int generate)
    const struct mapi_stub *stub;
 
 #ifdef USE_MGL_NAMESPACE
-   if (name)
+   if (name && name[0] == 'm')
       name++;
 #endif
 

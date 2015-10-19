@@ -8,6 +8,7 @@
   btc5126t      =       +inet(nav_acpi_common)
   btc9116u      =       +inet(btc9019u)
   btc6301urf    =       +inet(media_nav_acpi_common)
+  chromebook    =       +inet(chromebook)
   dellsk8125    =       +inet(dell)
   dellsk8135    =       +inet(dell)
   cherrybunlim  =       +inet(nav_common)

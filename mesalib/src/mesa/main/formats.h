@@ -64,6 +64,14 @@ extern "C" {
 enum mesa_format_layout {
    MESA_FORMAT_LAYOUT_ARRAY,
    MESA_FORMAT_LAYOUT_PACKED,
+   MESA_FORMAT_LAYOUT_S3TC,
+   MESA_FORMAT_LAYOUT_RGTC,
+   MESA_FORMAT_LAYOUT_LATC,
+   MESA_FORMAT_LAYOUT_FXT1,
+   MESA_FORMAT_LAYOUT_ETC1,
+   MESA_FORMAT_LAYOUT_ETC2,
+   MESA_FORMAT_LAYOUT_BPTC,
+   MESA_FORMAT_LAYOUT_ASTC,
    MESA_FORMAT_LAYOUT_OTHER,
 };
 
@@ -191,6 +199,11 @@ static inline void
 _mesa_array_format_set_swizzle(mesa_array_format *f,
                                int32_t x, int32_t y, int32_t z, int32_t w)
 {
+   *f &= ~(MESA_ARRAY_FORMAT_SWIZZLE_X_MASK |
+           MESA_ARRAY_FORMAT_SWIZZLE_Y_MASK |
+           MESA_ARRAY_FORMAT_SWIZZLE_Z_MASK |
+           MESA_ARRAY_FORMAT_SWIZZLE_W_MASK);
+
    *f |= ((x << 8 ) & MESA_ARRAY_FORMAT_SWIZZLE_X_MASK) |
          ((y << 11) & MESA_ARRAY_FORMAT_SWIZZLE_Y_MASK) |
          ((z << 14) & MESA_ARRAY_FORMAT_SWIZZLE_Z_MASK) |
@@ -459,10 +472,27 @@ typedef enum
    MESA_FORMAT_Z_FLOAT32,
 
    /* Packed signed/unsigned non-normalized integer formats */
+
+   MESA_FORMAT_A8B8G8R8_UINT,    /* RRRR RRRR GGGG GGGG BBBB BBBB AAAA AAAA */
+   MESA_FORMAT_A8R8G8B8_UINT,    /* BBBB BBBB GGGG GGGG RRRR RRRR AAAA AAAA */
+   MESA_FORMAT_R8G8B8A8_UINT,    /* AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR */
+   MESA_FORMAT_B8G8R8A8_UINT,    /* AAAA AAAA RRRR RRRR GGGG GGGG BBBB BBBB */
    MESA_FORMAT_B10G10R10A2_UINT, /* AARR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
    MESA_FORMAT_R10G10B10A2_UINT, /* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
    MESA_FORMAT_A2B10G10R10_UINT, /* RRRR RRRR RRGG GGGG GGGG BBBB BBBB BBAA */
    MESA_FORMAT_A2R10G10B10_UINT, /* BBBB BBBB BBGG GGGG GGGG RRRR RRRR RRAA */
+   MESA_FORMAT_B5G6R5_UINT,                          /* RRRR RGGG GGGB BBBB */
+   MESA_FORMAT_R5G6B5_UINT,                          /* BBBB BGGG GGGR RRRR */
+   MESA_FORMAT_B2G3R3_UINT,                                    /* RRRG GGBB */
+   MESA_FORMAT_R3G3B2_UINT,                                    /* BBGG GRRR */
+   MESA_FORMAT_A4B4G4R4_UINT,                        /* RRRR GGGG BBBB AAAA */
+   MESA_FORMAT_R4G4B4A4_UINT,                        /* AAAA BBBB GGGG RRRR */
+   MESA_FORMAT_B4G4R4A4_UINT,                        /* AAAA RRRR GGGG BBBB */
+   MESA_FORMAT_A4R4G4B4_UINT,                        /* BBBB GGGG RRRR AAAA */
+   MESA_FORMAT_A1B5G5R5_UINT,                        /* RRRR RGGG GGBB BBBA */
+   MESA_FORMAT_B5G5R5A1_UINT,                        /* ARRR RRGG GGGB BBBB */
+   MESA_FORMAT_A1R5G5B5_UINT,                        /* BBBB BGGG GGRR RRRA */
+   MESA_FORMAT_R5G5B5A1_UINT,                        /* ABBB BBGG GGGR RRRR */
 
    /* Array signed/unsigned non-normalized integer formats */
    MESA_FORMAT_A_UINT8,
@@ -575,6 +605,36 @@ typedef enum
    MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT,
    MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT,
 
+   /* ASTC compressed formats */
+   MESA_FORMAT_RGBA_ASTC_4x4,
+   MESA_FORMAT_RGBA_ASTC_5x4,
+   MESA_FORMAT_RGBA_ASTC_5x5,
+   MESA_FORMAT_RGBA_ASTC_6x5,
+   MESA_FORMAT_RGBA_ASTC_6x6,
+   MESA_FORMAT_RGBA_ASTC_8x5,
+   MESA_FORMAT_RGBA_ASTC_8x6,
+   MESA_FORMAT_RGBA_ASTC_8x8,
+   MESA_FORMAT_RGBA_ASTC_10x5,
+   MESA_FORMAT_RGBA_ASTC_10x6,
+   MESA_FORMAT_RGBA_ASTC_10x8,
+   MESA_FORMAT_RGBA_ASTC_10x10,
+   MESA_FORMAT_RGBA_ASTC_12x10,
+   MESA_FORMAT_RGBA_ASTC_12x12,
+
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x4,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_8x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_8x6,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_8x8,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x6,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x8,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x10,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x10,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x12,
    MESA_FORMAT_COUNT
 } mesa_format;
 
@@ -654,7 +714,7 @@ extern GLint
 _mesa_format_row_stride(mesa_format format, GLsizei width);
 
 extern void
-_mesa_format_to_type_and_comps(mesa_format format,
+_mesa_uncompressed_format_to_type_and_comps(mesa_format format,
                                GLenum *datatype, GLuint *comps);
 
 extern void
@@ -675,7 +735,7 @@ _mesa_format_has_color_component(mesa_format format, int component);
 GLboolean
 _mesa_format_matches_format_and_type(mesa_format mesa_format,
 				     GLenum format, GLenum type,
-                                     GLboolean swapBytes);
+				     GLboolean swapBytes, GLenum *error);
 
 #ifdef __cplusplus
 }

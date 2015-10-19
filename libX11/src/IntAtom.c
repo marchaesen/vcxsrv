@@ -188,8 +188,8 @@ XInternAtom (
 }
 
 typedef struct {
-    unsigned long start_seq;
-    unsigned long stop_seq;
+    uint64_t start_seq;
+    uint64_t stop_seq;
     char **names;
     Atom *atoms;
     int count;
@@ -208,10 +208,12 @@ Bool _XIntAtomHandler(
     register int i, idx = 0;
     xInternAtomReply replbuf;
     register xInternAtomReply *repl;
+    uint64_t last_request_read = X_DPY_GET_LAST_REQUEST_READ(dpy);
 
     state = (_XIntAtomState *)data;
-    if (dpy->last_request_read < state->start_seq ||
-	dpy->last_request_read > state->stop_seq)
+
+    if (last_request_read < state->start_seq ||
+	last_request_read > state->stop_seq)
 	return False;
     for (i = 0; i < state->count; i++) {
 	if (state->atoms[i] & 0x80000000) {
@@ -252,7 +254,7 @@ XInternAtoms (
     xInternAtomReply rep;
 
     LockDisplay(dpy);
-    async_state.start_seq = dpy->request + 1;
+    async_state.start_seq = X_DPY_GET_REQUEST(dpy) + 1;
     async_state.atoms = atoms_return;
     async_state.names = names;
     async_state.count = count - 1;
@@ -266,7 +268,7 @@ XInternAtoms (
 					     &sig, &idx, &n))) {
 	    missed = i;
 	    atoms_return[i] = ~((Atom)idx);
-	    async_state.stop_seq = dpy->request;
+	    async_state.stop_seq = X_DPY_GET_REQUEST(dpy);
 	}
     }
     if (missed >= 0) {

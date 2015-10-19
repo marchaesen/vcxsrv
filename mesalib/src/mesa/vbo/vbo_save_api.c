@@ -648,7 +648,8 @@ _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
 
    /* Recalculate all the attrptr[] values:
     */
-   for (i = 0, tmp = save->vertex; i < VBO_ATTRIB_MAX; i++) {
+   tmp = save->vertex;
+   for (i = 0; i < VBO_ATTRIB_MAX; i++) {
       if (save->attrsz[i]) {
          save->attrptr[i] = tmp;
          tmp += save->attrsz[i];
@@ -970,8 +971,7 @@ _save_CallLists(GLsizei n, GLenum type, const GLvoid * v)
 
 
 /**
- * Called via ctx->Driver.NotifySaveBegin() when a glBegin is getting
- * compiled into a display list.
+ * Called when a glBegin is getting compiled into a display list.
  * Updating of ctx->Driver.CurrentSavePrimitive is already taken care of.
  */
 GLboolean
@@ -1001,7 +1001,7 @@ vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
       _mesa_install_save_vtxfmt(ctx, &save->vtxfmt);
    }
 
-   /* We need to call SaveFlushVertices() if there's state change */
+   /* We need to call vbo_save_SaveFlushVertices() if there's state change */
    ctx->Driver.SaveNeedFlush = GL_TRUE;
 
    /* GL_TRUE means we've handled this glBegin here; don't compile a BEGIN
@@ -1544,7 +1544,7 @@ vbo_print_vertex_list(struct gl_context *ctx, void *data, FILE *f)
       node->vertex_store->bufferobj : NULL;
    (void) ctx;
 
-   fprintf(f, "VBO-VERTEX-LIST, %u vertices %d primitives, %d vertsize "
+   fprintf(f, "VBO-VERTEX-LIST, %u vertices, %d primitives, %d vertsize, "
            "buffer %p\n",
            node->count, node->prim_count, node->vertex_size,
            buffer);
@@ -1603,8 +1603,6 @@ vbo_save_api_init(struct vbo_save_context *save)
                                vbo_save_playback_vertex_list,
                                vbo_destroy_vertex_list,
                                vbo_print_vertex_list);
-
-   ctx->Driver.NotifySaveBegin = vbo_save_NotifyBegin;
 
    _save_vtxfmt_init(ctx);
    _save_current_init(ctx);

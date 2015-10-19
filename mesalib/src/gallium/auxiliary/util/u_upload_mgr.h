@@ -78,12 +78,12 @@ void u_upload_unmap( struct u_upload_mgr *upload );
  * \param outbuf           Pointer to where the upload buffer will be returned.
  * \param ptr              Pointer to the allocated memory that is returned.
  */
-enum pipe_error u_upload_alloc( struct u_upload_mgr *upload,
-                                unsigned min_out_offset,
-                                unsigned size,
-                                unsigned *out_offset,
-                                struct pipe_resource **outbuf,
-                                void **ptr );
+void u_upload_alloc(struct u_upload_mgr *upload,
+                    unsigned min_out_offset,
+                    unsigned size,
+                    unsigned *out_offset,
+                    struct pipe_resource **outbuf,
+                    void **ptr);
 
 
 /**
@@ -92,12 +92,12 @@ enum pipe_error u_upload_alloc( struct u_upload_mgr *upload,
  * Same as u_upload_alloc, but in addition to that, it copies "data"
  * to the pointer returned from u_upload_alloc.
  */
-enum pipe_error u_upload_data( struct u_upload_mgr *upload,
-                               unsigned min_out_offset,
-                               unsigned size,
-                               const void *data,
-                               unsigned *out_offset,
-                               struct pipe_resource **outbuf);
+void u_upload_data(struct u_upload_mgr *upload,
+                   unsigned min_out_offset,
+                   unsigned size,
+                   const void *data,
+                   unsigned *out_offset,
+                   struct pipe_resource **outbuf);
 
 
 /**
@@ -106,13 +106,13 @@ enum pipe_error u_upload_data( struct u_upload_mgr *upload,
  * Same as u_upload_data, except that the input data comes from a buffer
  * instead of a user pointer.
  */
-enum pipe_error u_upload_buffer( struct u_upload_mgr *upload,
-                                 unsigned min_out_offset,
-                                 unsigned offset,
-                                 unsigned size,
-                                 struct pipe_resource *inbuf,
-                                 unsigned *out_offset,
-                                 struct pipe_resource **outbuf);
+void u_upload_buffer(struct u_upload_mgr *upload,
+                     unsigned min_out_offset,
+                     unsigned offset,
+                     unsigned size,
+                     struct pipe_resource *inbuf,
+                     unsigned *out_offset,
+                     struct pipe_resource **outbuf);
 
 
 

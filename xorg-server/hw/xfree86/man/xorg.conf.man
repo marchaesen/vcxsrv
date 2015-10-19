@@ -621,6 +621,10 @@ It is only enabled for screens that have the
 .B \*qDPMS\*q
 option set (see the MONITOR section below).
 .TP 7
+.BI "Option \*qMaxClients\*q  \*q" integer \*q
+Set the maximum number of clients allowed to connect to the X server.
+Acceptable values are 64, 128, 256 or 512.
+.TP 7
 .BI "Option \*qPixmap\*q  \*q" bpp \*q
 This sets the pixmap format to use for depth 24.
 Allowed values for

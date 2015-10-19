@@ -13,9 +13,6 @@
 /* Include framebuffer support in X servers */
 #undef KDRIVEFBDEV
 
-/* Enable touchscreen support */
-#undef TOUCHSCREEN
-
 /* Support tslib touchscreen abstraction library */
 #undef TSLIB
 

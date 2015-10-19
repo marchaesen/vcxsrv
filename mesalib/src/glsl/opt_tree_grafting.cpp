@@ -274,6 +274,7 @@ ir_tree_grafting_visitor::visit_enter(ir_texture *ir)
    case ir_tex:
    case ir_lod:
    case ir_query_levels:
+   case ir_texture_samples:
       break;
    case ir_txb:
       if (do_graft(&ir->lod_info.bias))
@@ -371,8 +372,6 @@ tree_grafting_basic_block(ir_instruction *bb_first,
 	  entry->assigned_count != 1 ||
 	  entry->referenced_count != 2)
 	 continue;
-
-      assert(assign == entry->assign);
 
       /* Found a possibly graftable assignment.  Now, walk through the
        * rest of the BB seeing if the deref is here, and if nothing interfered with

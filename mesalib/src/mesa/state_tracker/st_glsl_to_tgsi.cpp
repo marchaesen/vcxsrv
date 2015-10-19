@@ -262,6 +262,7 @@ public:
    int dead_mask; /**< Used in dead code elimination */
 
    class function_entry *function; /* Set on TGSI_OPCODE_CAL or TGSI_OPCODE_BGNSUB */
+   const struct tgsi_opcode_info *info;
 };
 
 class variable_storage : public exec_node {
@@ -333,6 +334,11 @@ struct array_decl {
    unsigned mesa_index;
    unsigned array_id;
    unsigned array_size;
+};
+
+struct rename_reg_pair {
+   int old_reg;
+   int new_reg;
 };
 
 struct glsl_to_tgsi_visitor : public ir_visitor {
@@ -478,11 +484,10 @@ public:
 
    void simplify_cmp(void);
 
-   void rename_temp_register(int index, int new_index);
-   int get_first_temp_read(int index);
-   int get_first_temp_write(int index);
-   int get_last_temp_read(int index);
-   int get_last_temp_write(int index);
+   void rename_temp_registers(int num_renames, struct rename_reg_pair *renames);
+   void get_first_temp_read(int *first_reads);
+   void get_last_temp_read_first_temp_write(int *last_reads, int *first_writes);
+   void get_last_temp_write(int *last_writes);
 
    void copy_propagate(void);
    int eliminate_dead_code(void);
@@ -530,25 +535,16 @@ swizzle_for_size(int size)
    return size_swizzles[size - 1];
 }
 
-static bool
-is_tex_instruction(unsigned opcode)
+static unsigned
+num_inst_dst_regs(const glsl_to_tgsi_instruction *op)
 {
-   const tgsi_opcode_info* info = tgsi_get_opcode_info(opcode);
-   return info->is_tex;
+   return op->info->num_dst;
 }
 
 static unsigned
-num_inst_dst_regs(unsigned opcode)
+num_inst_src_regs(const glsl_to_tgsi_instruction *op)
 {
-   const tgsi_opcode_info* info = tgsi_get_opcode_info(opcode);
-   return info->num_dst;
-}
-
-static unsigned
-num_inst_src_regs(unsigned opcode)
-{
-   const tgsi_opcode_info* info = tgsi_get_opcode_info(opcode);
-   return info->is_tex ? info->num_src - 1 : info->num_src;
+   return op->info->is_tex ? op->info->num_src - 1 : op->info->num_src;
 }
 
 glsl_to_tgsi_instruction *
@@ -592,6 +588,7 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
    assert(num_reladdr == 0);
 
    inst->op = op;
+   inst->info = tgsi_get_opcode_info(op);
    inst->dst[0] = dst;
    inst->dst[1] = dst1;
    inst->src[0] = src0;
@@ -1123,6 +1120,34 @@ type_size(const struct glsl_type *type)
    return 0;
 }
 
+
+/**
+ * If the given GLSL type is an array or matrix or a structure containing
+ * an array/matrix member, return true.  Else return false.
+ *
+ * This is used to determine which kind of temp storage (PROGRAM_TEMPORARY
+ * or PROGRAM_ARRAY) should be used for variables of this type.  Anytime
+ * we have an array that might be indexed with a variable, we need to use
+ * the later storage type.
+ */
+static bool
+type_has_array_or_matrix(const glsl_type *type)
+{
+   if (type->is_array() || type->is_matrix())
+      return true;
+
+   if (type->is_record()) {
+      for (unsigned i = 0; i < type->length; i++) {
+         if (type_has_array_or_matrix(type->fields.structure[i].type)) {
+            return true;
+         }
+      }
+   }
+
+   return false;
+}
+
+
 /**
  * In the initial pass of codegen, we assign temporary numbers to
  * intermediate results.  (not SSA -- variable assignments will reuse
@@ -1137,9 +1162,7 @@ glsl_to_tgsi_visitor::get_temp(const glsl_type *type)
    src.reladdr = NULL;
    src.negate = 0;
 
-   if (!options->EmitNoIndirectTemp &&
-       (type->is_array() || type->is_matrix())) {
-
+   if (!options->EmitNoIndirectTemp && type_has_array_or_matrix(type)) {
       if (next_array >= max_num_arrays) {
          max_num_arrays += 32;
          array_sizes = (unsigned*)
@@ -2194,9 +2217,14 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_triop_vector_insert:
    case ir_binop_carry:
    case ir_binop_borrow:
+   case ir_unop_ssbo_unsized_array_length:
       /* This operation is not supported, or should have already been handled.
        */
       assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");
+      break;
+
+   case ir_unop_get_buffer_size:
+      assert(!"Not implemented yet");
       break;
    }
 
@@ -2816,7 +2844,7 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
        */
       glsl_to_tgsi_instruction *inst, *new_inst;
       inst = (glsl_to_tgsi_instruction *)this->instructions.get_tail();
-      new_inst = emit_asm(ir, inst->op, l, inst->src[0], inst->src[1], inst->src[2]);
+      new_inst = emit_asm(ir, inst->op, l, inst->src[0], inst->src[1], inst->src[2], inst->src[3]);
       new_inst->saturate = inst->saturate;
       inst->dead_mask = inst->dst[0].writemask;
    } else {
@@ -3205,6 +3233,9 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    case ir_lod:
       opcode = TGSI_OPCODE_LODQ;
       break;
+   case ir_texture_samples:
+      opcode = TGSI_OPCODE_TXQS;
+      break;
    }
 
    if (ir->projector) {
@@ -3314,6 +3345,8 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
          emit_asm(ir, TGSI_OPCODE_MOV, result_dst, levels_src);
       } else
          inst = emit_asm(ir, opcode, result_dst, lod_info);
+   } else if (opcode == TGSI_OPCODE_TXQS) {
+      inst = emit_asm(ir, opcode, result_dst);
    } else if (opcode == TGSI_OPCODE_TXF) {
       inst = emit_asm(ir, opcode, result_dst, coord);
    } else if (opcode == TGSI_OPCODE_TXL2 || opcode == TGSI_OPCODE_TXB2) {
@@ -3538,7 +3571,7 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
    v->samplers_used = 0;
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &v->instructions) {
-      if (is_tex_instruction(inst->op)) {
+      if (inst->info->is_tex) {
          for (int i = 0; i < inst->sampler_array_size; i++) {
             unsigned idx = inst->sampler.index + i;
             v->samplers_used |= 1 << idx;
@@ -3668,51 +3701,52 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
 
 /* Replaces all references to a temporary register index with another index. */
 void
-glsl_to_tgsi_visitor::rename_temp_register(int index, int new_index)
+glsl_to_tgsi_visitor::rename_temp_registers(int num_renames, struct rename_reg_pair *renames)
 {
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
       unsigned j;
-
-      for (j = 0; j < num_inst_src_regs(inst->op); j++) {
-         if (inst->src[j].file == PROGRAM_TEMPORARY &&
-             inst->src[j].index == index) {
-            inst->src[j].index = new_index;
-         }
+      int k;
+      for (j = 0; j < num_inst_src_regs(inst); j++) {
+         if (inst->src[j].file == PROGRAM_TEMPORARY)
+            for (k = 0; k < num_renames; k++)
+               if (inst->src[j].index == renames[k].old_reg)
+                  inst->src[j].index = renames[k].new_reg;
       }
 
       for (j = 0; j < inst->tex_offset_num_offset; j++) {
-         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY &&
-             inst->tex_offsets[j].index == index) {
-            inst->tex_offsets[j].index = new_index;
-         }
+         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY)
+            for (k = 0; k < num_renames; k++)
+               if (inst->tex_offsets[j].index == renames[k].old_reg)
+                  inst->tex_offsets[j].index = renames[k].new_reg;
       }
 
-      for (j = 0; j < num_inst_dst_regs(inst->op); j++) {
-         if (inst->dst[j].file == PROGRAM_TEMPORARY && inst->dst[j].index == index) {
-            inst->dst[j].index = new_index;
-         }
+      for (j = 0; j < num_inst_dst_regs(inst); j++) {
+         if (inst->dst[j].file == PROGRAM_TEMPORARY)
+             for (k = 0; k < num_renames; k++)
+                if (inst->dst[j].index == renames[k].old_reg)
+                   inst->dst[j].index = renames[k].new_reg;
       }
    }
 }
 
-int
-glsl_to_tgsi_visitor::get_first_temp_read(int index)
+void
+glsl_to_tgsi_visitor::get_first_temp_read(int *first_reads)
 {
    int depth = 0; /* loop depth */
    int loop_start = -1; /* index of the first active BGNLOOP (if any) */
    unsigned i = 0, j;
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
-      for (j = 0; j < num_inst_src_regs(inst->op); j++) {
-         if (inst->src[j].file == PROGRAM_TEMPORARY &&
-             inst->src[j].index == index) {
-            return (depth == 0) ? i : loop_start;
+      for (j = 0; j < num_inst_src_regs(inst); j++) {
+         if (inst->src[j].file == PROGRAM_TEMPORARY) {
+            if (first_reads[inst->src[j].index] == -1)
+                first_reads[inst->src[j].index] = (depth == 0) ? i : loop_start;
          }
       }
       for (j = 0; j < inst->tex_offset_num_offset; j++) {
-         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY &&
-             inst->tex_offsets[j].index == index) {
-            return (depth == 0) ? i : loop_start;
+         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY) {
+            if (first_reads[inst->tex_offsets[j].index] == -1)
+               first_reads[inst->tex_offsets[j].index] = (depth == 0) ? i : loop_start;
          }
       }
       if (inst->op == TGSI_OPCODE_BGNLOOP) {
@@ -3725,91 +3759,73 @@ glsl_to_tgsi_visitor::get_first_temp_read(int index)
       assert(depth >= 0);
       i++;
    }
-   return -1;
 }
 
-int
-glsl_to_tgsi_visitor::get_first_temp_write(int index)
+void
+glsl_to_tgsi_visitor::get_last_temp_read_first_temp_write(int *last_reads, int *first_writes)
 {
    int depth = 0; /* loop depth */
    int loop_start = -1; /* index of the first active BGNLOOP (if any) */
-   int i = 0;
-   unsigned j;
-
+   unsigned i = 0, j;
+   int k;
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
-      for (j = 0; j < num_inst_dst_regs(inst->op); j++) {
-         if (inst->dst[j].file == PROGRAM_TEMPORARY && inst->dst[j].index == index) {
-            return (depth == 0) ? i : loop_start;
-         }
+      for (j = 0; j < num_inst_src_regs(inst); j++) {
+         if (inst->src[j].file == PROGRAM_TEMPORARY)
+            last_reads[inst->src[j].index] = (depth == 0) ? i : -2;
+      }
+      for (j = 0; j < num_inst_dst_regs(inst); j++) {
+         if (inst->dst[j].file == PROGRAM_TEMPORARY)
+            if (first_writes[inst->dst[j].index] == -1)
+               first_writes[inst->dst[j].index] = (depth == 0) ? i : loop_start;
+      }
+      for (j = 0; j < inst->tex_offset_num_offset; j++) {
+         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY)
+            last_reads[inst->tex_offsets[j].index] = (depth == 0) ? i : -2;
       }
       if (inst->op == TGSI_OPCODE_BGNLOOP) {
          if(depth++ == 0)
             loop_start = i;
       } else if (inst->op == TGSI_OPCODE_ENDLOOP) {
-         if (--depth == 0)
+         if (--depth == 0) {
             loop_start = -1;
-      }
-      assert(depth >= 0);
-      i++;
-   }
-   return -1;
-}
-
-int
-glsl_to_tgsi_visitor::get_last_temp_read(int index)
-{
-   int depth = 0; /* loop depth */
-   int last = -1; /* index of last instruction that reads the temporary */
-   unsigned i = 0, j;
-
-   foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
-      for (j = 0; j < num_inst_src_regs(inst->op); j++) {
-         if (inst->src[j].file == PROGRAM_TEMPORARY &&
-             inst->src[j].index == index) {
-            last = (depth == 0) ? i : -2;
+            for (k = 0; k < this->next_temp; k++) {
+               if (last_reads[k] == -2) {
+                  last_reads[k] = i;
+               }
+            }
          }
       }
-      for (j = 0; j < inst->tex_offset_num_offset; j++) {
-          if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY &&
-              inst->tex_offsets[j].index == index)
-              last = (depth == 0) ? i : -2;
-      }
-      if (inst->op == TGSI_OPCODE_BGNLOOP)
-         depth++;
-      else if (inst->op == TGSI_OPCODE_ENDLOOP)
-         if (--depth == 0 && last == -2)
-            last = i;
       assert(depth >= 0);
       i++;
    }
-   assert(last >= -1);
-   return last;
 }
 
-int
-glsl_to_tgsi_visitor::get_last_temp_write(int index)
+void
+glsl_to_tgsi_visitor::get_last_temp_write(int *last_writes)
 {
    int depth = 0; /* loop depth */
-   int last = -1; /* index of last instruction that writes to the temporary */
-   int i = 0;
+   int i = 0, k;
    unsigned j;
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
-      for (j = 0; j < num_inst_dst_regs(inst->op); j++) {
-         if (inst->dst[j].file == PROGRAM_TEMPORARY && inst->dst[j].index == index)
-            last = (depth == 0) ? i : -2;
+      for (j = 0; j < num_inst_dst_regs(inst); j++) {
+         if (inst->dst[j].file == PROGRAM_TEMPORARY)
+            last_writes[inst->dst[j].index] = (depth == 0) ? i : -2;
       }
 
       if (inst->op == TGSI_OPCODE_BGNLOOP)
          depth++;
       else if (inst->op == TGSI_OPCODE_ENDLOOP)
-         if (--depth == 0 && last == -2)
-            last = i;
+         if (--depth == 0) {
+            for (k = 0; k < this->next_temp; k++) {
+               if (last_writes[k] == -2) {
+                  last_writes[k] = i;
+               }
+            }
+         }
       assert(depth >= 0);
       i++;
    }
-   assert(last >= -1);
-   return last;
 }
 
 /*
@@ -4133,8 +4149,7 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
        */
       for (unsigned i = 0; i < ARRAY_SIZE(inst->dst); i++) {
          if (inst->dst[i].file == PROGRAM_TEMPORARY &&
-             !inst->dst[i].reladdr &&
-             !inst->saturate) {
+             !inst->dst[i].reladdr) {
             for (int c = 0; c < 4; c++) {
                if (inst->dst[i].writemask & (1 << c)) {
                   if (writes[4 * inst->dst[i].index + c]) {
@@ -4193,7 +4208,7 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
    foreach_in_list_safe(glsl_to_tgsi_instruction, inst, &this->instructions) {
       glsl_to_tgsi_instruction *inst2;
       bool merged;
-      if (num_inst_dst_regs(inst->op) != 2)
+      if (num_inst_dst_regs(inst) != 2)
          continue;
 
       if (inst->dst[0].file != PROGRAM_UNDEFINED &&
@@ -4239,15 +4254,18 @@ glsl_to_tgsi_visitor::merge_registers(void)
 {
    int *last_reads = rzalloc_array(mem_ctx, int, this->next_temp);
    int *first_writes = rzalloc_array(mem_ctx, int, this->next_temp);
+   struct rename_reg_pair *renames = rzalloc_array(mem_ctx, struct rename_reg_pair, this->next_temp);
    int i, j;
+   int num_renames = 0;
 
    /* Read the indices of the last read and first write to each temp register
     * into an array so that we don't have to traverse the instruction list as
     * much. */
    for (i = 0; i < this->next_temp; i++) {
-      last_reads[i] = get_last_temp_read(i);
-      first_writes[i] = get_first_temp_write(i);
+      last_reads[i] = -1;
+      first_writes[i] = -1;
    }
+   get_last_temp_read_first_temp_write(last_reads, first_writes);
 
    /* Start looking for registers with non-overlapping usages that can be
     * merged together. */
@@ -4265,7 +4283,9 @@ glsl_to_tgsi_visitor::merge_registers(void)
           * as the register at index j. */
          if (first_writes[i] <= first_writes[j] &&
              last_reads[i] <= first_writes[j]) {
-            rename_temp_register(j, i); /* Replace all references to j with i.*/
+            renames[num_renames].old_reg = j;
+            renames[num_renames].new_reg = i;
+            num_renames++;
 
             /* Update the first_writes and last_reads arrays with the new
              * values for the merged register index, and mark the newly unused
@@ -4277,6 +4297,8 @@ glsl_to_tgsi_visitor::merge_registers(void)
       }
    }
 
+   rename_temp_registers(num_renames, renames);
+   ralloc_free(renames);
    ralloc_free(last_reads);
    ralloc_free(first_writes);
 }
@@ -4288,225 +4310,28 @@ glsl_to_tgsi_visitor::renumber_registers(void)
 {
    int i = 0;
    int new_index = 0;
+   int *first_reads = rzalloc_array(mem_ctx, int, this->next_temp);
+   struct rename_reg_pair *renames = rzalloc_array(mem_ctx, struct rename_reg_pair, this->next_temp);
+   int num_renames = 0;
+   for (i = 0; i < this->next_temp; i++) {
+      first_reads[i] = -1;
+   }
+   get_first_temp_read(first_reads);
 
    for (i = 0; i < this->next_temp; i++) {
-      if (get_first_temp_read(i) < 0) continue;
-      if (i != new_index)
-         rename_temp_register(i, new_index);
+      if (first_reads[i] < 0) continue;
+      if (i != new_index) {
+         renames[num_renames].old_reg = i;
+         renames[num_renames].new_reg = new_index;
+         num_renames++;
+      }
       new_index++;
    }
 
+   rename_temp_registers(num_renames, renames);
    this->next_temp = new_index;
-}
-
-/**
- * Returns a fragment program which implements the current pixel transfer ops.
- * Based on get_pixel_transfer_program in st_atom_pixeltransfer.c.
- */
-extern "C" void
-get_pixel_transfer_visitor(struct st_fragment_program *fp,
-                           glsl_to_tgsi_visitor *original,
-                           int scale_and_bias, int pixel_maps)
-{
-   glsl_to_tgsi_visitor *v = new glsl_to_tgsi_visitor();
-   struct st_context *st = st_context(original->ctx);
-   struct gl_program *prog = &fp->Base.Base;
-   struct gl_program_parameter_list *params = _mesa_new_parameter_list();
-   st_src_reg coord, src0;
-   st_dst_reg dst0;
-   glsl_to_tgsi_instruction *inst;
-
-   /* Copy attributes of the glsl_to_tgsi_visitor in the original shader. */
-   v->ctx = original->ctx;
-   v->prog = prog;
-   v->shader_program = NULL;
-   v->shader = NULL;
-   v->glsl_version = original->glsl_version;
-   v->native_integers = original->native_integers;
-   v->options = original->options;
-   v->next_temp = original->next_temp;
-   v->num_address_regs = original->num_address_regs;
-   v->samplers_used = prog->SamplersUsed = original->samplers_used;
-   v->indirect_addr_consts = original->indirect_addr_consts;
-   memcpy(&v->immediates, &original->immediates, sizeof(v->immediates));
-   v->num_immediates = original->num_immediates;
-
-   /*
-    * Get initial pixel color from the texture.
-    * TEX colorTemp, fragment.texcoord[0], texture[0], 2D;
-    */
-   coord = st_src_reg(PROGRAM_INPUT, VARYING_SLOT_TEX0, glsl_type::vec2_type);
-   src0 = v->get_temp(glsl_type::vec4_type);
-   dst0 = st_dst_reg(src0);
-   inst = v->emit_asm(NULL, TGSI_OPCODE_TEX, dst0, coord);
-   inst->sampler_array_size = 1;
-   inst->tex_target = TEXTURE_2D_INDEX;
-
-   prog->InputsRead |= VARYING_BIT_TEX0;
-   prog->SamplersUsed |= (1 << 0); /* mark sampler 0 as used */
-   v->samplers_used |= (1 << 0);
-
-   if (scale_and_bias) {
-      static const gl_state_index scale_state[STATE_LENGTH] =
-         { STATE_INTERNAL, STATE_PT_SCALE,
-           (gl_state_index) 0, (gl_state_index) 0, (gl_state_index) 0 };
-      static const gl_state_index bias_state[STATE_LENGTH] =
-         { STATE_INTERNAL, STATE_PT_BIAS,
-           (gl_state_index) 0, (gl_state_index) 0, (gl_state_index) 0 };
-      GLint scale_p, bias_p;
-      st_src_reg scale, bias;
-
-      scale_p = _mesa_add_state_reference(params, scale_state);
-      bias_p = _mesa_add_state_reference(params, bias_state);
-
-      /* MAD colorTemp, colorTemp, scale, bias; */
-      scale = st_src_reg(PROGRAM_STATE_VAR, scale_p, GLSL_TYPE_FLOAT);
-      bias = st_src_reg(PROGRAM_STATE_VAR, bias_p, GLSL_TYPE_FLOAT);
-      inst = v->emit_asm(NULL, TGSI_OPCODE_MAD, dst0, src0, scale, bias);
-   }
-
-   if (pixel_maps) {
-      st_src_reg temp = v->get_temp(glsl_type::vec4_type);
-      st_dst_reg temp_dst = st_dst_reg(temp);
-
-      assert(st->pixel_xfer.pixelmap_texture);
-      (void) st;
-
-      /* With a little effort, we can do four pixel map look-ups with
-       * two TEX instructions:
-       */
-
-      /* TEX temp.rg, colorTemp.rgba, texture[1], 2D; */
-      temp_dst.writemask = WRITEMASK_XY; /* write R,G */
-      inst = v->emit_asm(NULL, TGSI_OPCODE_TEX, temp_dst, src0);
-      inst->sampler.index = 1;
-      inst->sampler_array_size = 1;
-      inst->tex_target = TEXTURE_2D_INDEX;
-
-      /* TEX temp.ba, colorTemp.baba, texture[1], 2D; */
-      src0.swizzle = MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_W, SWIZZLE_Z, SWIZZLE_W);
-      temp_dst.writemask = WRITEMASK_ZW; /* write B,A */
-      inst = v->emit_asm(NULL, TGSI_OPCODE_TEX, temp_dst, src0);
-      inst->sampler.index = 1;
-      inst->sampler_array_size = 1;
-      inst->tex_target = TEXTURE_2D_INDEX;
-
-      prog->SamplersUsed |= (1 << 1); /* mark sampler 1 as used */
-      v->samplers_used |= (1 << 1);
-
-      /* MOV colorTemp, temp; */
-      inst = v->emit_asm(NULL, TGSI_OPCODE_MOV, dst0, temp);
-   }
-
-   /* Now copy the instructions from the original glsl_to_tgsi_visitor into the
-    * new visitor. */
-   foreach_in_list(glsl_to_tgsi_instruction, inst, &original->instructions) {
-      glsl_to_tgsi_instruction *newinst;
-      st_src_reg src_regs[3];
-
-      if (inst->dst[0].file == PROGRAM_OUTPUT)
-         prog->OutputsWritten |= BITFIELD64_BIT(inst->dst[0].index);
-
-      for (int i = 0; i < 3; i++) {
-         src_regs[i] = inst->src[i];
-         if (src_regs[i].file == PROGRAM_INPUT &&
-             src_regs[i].index == VARYING_SLOT_COL0) {
-            src_regs[i].file = PROGRAM_TEMPORARY;
-            src_regs[i].index = src0.index;
-         }
-         else if (src_regs[i].file == PROGRAM_INPUT)
-            prog->InputsRead |= BITFIELD64_BIT(src_regs[i].index);
-      }
-
-      newinst = v->emit_asm(NULL, inst->op, inst->dst[0], src_regs[0], src_regs[1], src_regs[2]);
-      newinst->tex_target = inst->tex_target;
-      newinst->sampler_array_size = inst->sampler_array_size;
-   }
-
-   /* Make modifications to fragment program info. */
-   prog->Parameters = _mesa_combine_parameter_lists(params,
-                                                    original->prog->Parameters);
-   _mesa_free_parameter_list(params);
-   count_resources(v, prog);
-   fp->glsl_to_tgsi = v;
-}
-
-/**
- * Make fragment program for glBitmap:
- *   Sample the texture and kill the fragment if the bit is 0.
- * This program will be combined with the user's fragment program.
- *
- * Based on make_bitmap_fragment_program in st_cb_bitmap.c.
- */
-extern "C" void
-get_bitmap_visitor(struct st_fragment_program *fp,
-                   glsl_to_tgsi_visitor *original, int samplerIndex)
-{
-   glsl_to_tgsi_visitor *v = new glsl_to_tgsi_visitor();
-   struct st_context *st = st_context(original->ctx);
-   struct gl_program *prog = &fp->Base.Base;
-   st_src_reg coord, src0;
-   st_dst_reg dst0;
-   glsl_to_tgsi_instruction *inst;
-
-   /* Copy attributes of the glsl_to_tgsi_visitor in the original shader. */
-   v->ctx = original->ctx;
-   v->prog = prog;
-   v->shader_program = NULL;
-   v->shader = NULL;
-   v->glsl_version = original->glsl_version;
-   v->native_integers = original->native_integers;
-   v->options = original->options;
-   v->next_temp = original->next_temp;
-   v->num_address_regs = original->num_address_regs;
-   v->samplers_used = prog->SamplersUsed = original->samplers_used;
-   v->indirect_addr_consts = original->indirect_addr_consts;
-   memcpy(&v->immediates, &original->immediates, sizeof(v->immediates));
-   v->num_immediates = original->num_immediates;
-
-   /* TEX tmp0, fragment.texcoord[0], texture[0], 2D; */
-   coord = st_src_reg(PROGRAM_INPUT, VARYING_SLOT_TEX0, glsl_type::vec2_type);
-   src0 = v->get_temp(glsl_type::vec4_type);
-   dst0 = st_dst_reg(src0);
-   inst = v->emit_asm(NULL, TGSI_OPCODE_TEX, dst0, coord);
-   inst->sampler.index = samplerIndex;
-   inst->sampler_array_size = 1;
-   inst->tex_target = TEXTURE_2D_INDEX;
-
-   prog->InputsRead |= VARYING_BIT_TEX0;
-   prog->SamplersUsed |= (1 << samplerIndex); /* mark sampler as used */
-   v->samplers_used |= (1 << samplerIndex);
-
-   /* KIL if -tmp0 < 0 # texel=0 -> keep / texel=0 -> discard */
-   src0.negate = NEGATE_XYZW;
-   if (st->bitmap.tex_format == PIPE_FORMAT_L8_UNORM)
-      src0.swizzle = SWIZZLE_XXXX;
-   inst = v->emit_asm(NULL, TGSI_OPCODE_KILL_IF, undef_dst, src0);
-
-   /* Now copy the instructions from the original glsl_to_tgsi_visitor into the
-    * new visitor. */
-   foreach_in_list(glsl_to_tgsi_instruction, inst, &original->instructions) {
-      glsl_to_tgsi_instruction *newinst;
-      st_src_reg src_regs[3];
-
-      if (inst->dst[0].file == PROGRAM_OUTPUT)
-         prog->OutputsWritten |= BITFIELD64_BIT(inst->dst[0].index);
-
-      for (int i = 0; i < 3; i++) {
-         src_regs[i] = inst->src[i];
-         if (src_regs[i].file == PROGRAM_INPUT)
-            prog->InputsRead |= BITFIELD64_BIT(src_regs[i].index);
-      }
-
-      newinst = v->emit_asm(NULL, inst->op, inst->dst[0], src_regs[0], src_regs[1], src_regs[2]);
-      newinst->tex_target = inst->tex_target;
-      newinst->sampler_array_size = inst->sampler_array_size;
-   }
-
-   /* Make modifications to fragment program info. */
-   prog->Parameters = _mesa_clone_parameter_list(original->prog->Parameters);
-   count_resources(v, prog);
-   fp->glsl_to_tgsi = v;
+   ralloc_free(renames);
+   ralloc_free(first_reads);
 }
 
 /* ------------------------- TGSI conversion stuff -------------------------- */
@@ -4817,7 +4642,7 @@ src_register(struct st_translate *t, const st_src_reg *reg)
 static struct ureg_dst
 translate_dst(struct st_translate *t,
               const st_dst_reg *dst_reg,
-              bool saturate, bool clamp_color)
+              bool saturate)
 {
    struct ureg_dst dst = dst_register(t, dst_reg->file, dst_reg->index,
                                       dst_reg->array_id);
@@ -4829,28 +4654,6 @@ translate_dst(struct st_translate *t,
 
    if (saturate)
       dst = ureg_saturate(dst);
-   else if (clamp_color && dst_reg->file == PROGRAM_OUTPUT) {
-      /* Clamp colors for ARB_color_buffer_float. */
-      switch (t->procType) {
-      case TGSI_PROCESSOR_VERTEX:
-         /* This can only occur with a compatibility profile, which doesn't
-          * support geometry shaders. */
-         if (dst_reg->index == VARYING_SLOT_COL0 ||
-             dst_reg->index == VARYING_SLOT_COL1 ||
-             dst_reg->index == VARYING_SLOT_BFC0 ||
-             dst_reg->index == VARYING_SLOT_BFC1) {
-            dst = ureg_saturate(dst);
-         }
-         break;
-
-      case TGSI_PROCESSOR_FRAGMENT:
-         if (dst_reg->index == FRAG_RESULT_COLOR ||
-             dst_reg->index >= FRAG_RESULT_DATA0) {
-            dst = ureg_saturate(dst);
-         }
-         break;
-      }
-   }
 
    if (dst_reg->reladdr != NULL) {
       assert(dst_reg->file != PROGRAM_TEMPORARY);
@@ -4956,8 +4759,7 @@ translate_tex_offset(struct st_translate *t,
 
 static void
 compile_tgsi_instruction(struct st_translate *t,
-                         const glsl_to_tgsi_instruction *inst,
-                         bool clamp_dst_color_output)
+                         const glsl_to_tgsi_instruction *inst)
 {
    struct ureg_program *ureg = t->ureg;
    GLuint i;
@@ -4969,14 +4771,13 @@ compile_tgsi_instruction(struct st_translate *t,
    unsigned num_src;
    unsigned tex_target;
 
-   num_dst = num_inst_dst_regs(inst->op);
-   num_src = num_inst_src_regs(inst->op);
+   num_dst = num_inst_dst_regs(inst);
+   num_src = num_inst_src_regs(inst);
 
    for (i = 0; i < num_dst; i++)
       dst[i] = translate_dst(t,
                              &inst->dst[i],
-                             inst->saturate,
-                             clamp_dst_color_output);
+                             inst->saturate);
 
    for (i = 0; i < num_src; i++)
       src[i] = translate_src(t, &inst->src[i]);
@@ -5002,6 +4803,7 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_TXL:
    case TGSI_OPCODE_TXP:
    case TGSI_OPCODE_TXQ:
+   case TGSI_OPCODE_TXQS:
    case TGSI_OPCODE_TXF:
    case TGSI_OPCODE_TEX2:
    case TGSI_OPCODE_TXB2:
@@ -5250,16 +5052,6 @@ emit_face_var(struct gl_context *ctx, struct st_translate *t)
    t->inputs[t->inputMapping[VARYING_SLOT_FACE]] = ureg_src(face_temp);
 }
 
-static void
-emit_edgeflags(struct st_translate *t)
-{
-   struct ureg_program *ureg = t->ureg;
-   struct ureg_dst edge_dst = t->outputs[t->outputMapping[VARYING_SLOT_EDGE]];
-   struct ureg_src edge_src = t->inputs[t->inputMapping[VERT_ATTRIB_EDGEFLAG]];
-
-   ureg_MOV(ureg, edge_dst, edge_src);
-}
-
 static bool
 find_array(unsigned attr, struct array_decl *arrays, unsigned count,
            unsigned *array_id, unsigned *array_size)
@@ -5317,9 +5109,7 @@ st_translate_program(
    const GLuint outputMapping[],
    const GLuint outputSlotToAttr[],
    const ubyte outputSemanticName[],
-   const ubyte outputSemanticIndex[],
-   boolean passthrough_edgeflags,
-   boolean clamp_color)
+   const ubyte outputSemanticIndex[])
 {
    struct st_translate *t;
    unsigned i;
@@ -5508,8 +5298,6 @@ st_translate_program(
             t->outputs[i] = ureg_writemask(t->outputs[i], TGSI_WRITEMASK_X);
          }
       }
-      if (passthrough_edgeflags)
-         emit_edgeflags(t);
    }
 
    /* Declare address register.
@@ -5603,7 +5391,7 @@ st_translate_program(
       unsigned num_ubos = program->shader->NumUniformBlocks;
 
       for (i = 0; i < num_ubos; i++) {
-         unsigned size = program->shader->UniformBlocks[i].UniformBufferSize;
+         unsigned size = program->shader->UniformBlocks[i]->UniformBufferSize;
          unsigned num_const_vecs = (size + 15) / 16;
          unsigned first, last;
          assert(num_const_vecs > 0);
@@ -5660,7 +5448,7 @@ st_translate_program(
     */
    foreach_in_list(glsl_to_tgsi_instruction, inst, &program->instructions) {
       set_insn_start(t, ureg_get_instruction_number(ureg));
-      compile_tgsi_instruction(t, inst, clamp_color);
+      compile_tgsi_instruction(t, inst);
    }
 
    /* Fix up all emitted labels:
@@ -5771,14 +5559,31 @@ get_mesa_program(struct gl_context *ctx,
 #if 0
    /* Print out some information (for debugging purposes) used by the
     * optimization passes. */
-   for (i = 0; i < v->next_temp; i++) {
-      int fr = v->get_first_temp_read(i);
-      int fw = v->get_first_temp_write(i);
-      int lr = v->get_last_temp_read(i);
-      int lw = v->get_last_temp_write(i);
+   {
+      int i;
+      int *first_writes = rzalloc_array(v->mem_ctx, int, v->next_temp);
+      int *first_reads = rzalloc_array(v->mem_ctx, int, v->next_temp);
+      int *last_writes = rzalloc_array(v->mem_ctx, int, v->next_temp);
+      int *last_reads = rzalloc_array(v->mem_ctx, int, v->next_temp);
 
-      printf("Temp %d: FR=%3d FW=%3d LR=%3d LW=%3d\n", i, fr, fw, lr, lw);
-      assert(fw <= fr);
+      for (i = 0; i < v->next_temp; i++) {
+         first_writes[i] = -1;
+         first_reads[i] = -1;
+         last_writes[i] = -1;
+         last_reads[i] = -1;
+      }
+      v->get_first_temp_read(first_reads);
+      v->get_last_temp_read_first_temp_write(last_reads, first_writes);
+      v->get_last_temp_write(last_writes);
+      for (i = 0; i < v->next_temp; i++)
+         printf("Temp %d: FR=%3d FW=%3d LR=%3d LW=%3d\n", i, first_reads[i],
+                first_writes[i],
+                last_reads[i],
+                last_writes[i]);
+      ralloc_free(first_writes);
+      ralloc_free(first_reads);
+      ralloc_free(last_writes);
+      ralloc_free(last_reads);
    }
 #endif
 
@@ -5992,6 +5797,10 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                                LOWER_PACK_UNORM_4x8 |
                                LOWER_PACK_HALF_2x16 |
                                LOWER_UNPACK_HALF_2x16;
+
+         if (ctx->Extensions.ARB_gpu_shader5)
+            lower_inst |= LOWER_PACK_USE_BFI |
+                          LOWER_PACK_USE_BFE;
 
          lower_packing_builtins(ir, lower_inst);
       }

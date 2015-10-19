@@ -274,8 +274,8 @@ st_create_texture_sampler_view_from_stobj(struct pipe_context *pipe,
          return NULL;
       size = MIN2(stObj->pt->width0 - base, (unsigned)stObj->base.BufferSize);
 
-      f = ((base * 8) / desc->block.bits) * desc->block.width;
-      n = ((size * 8) / desc->block.bits) * desc->block.width;
+      f = (base / (desc->block.bits / 8)) * desc->block.width;
+      n = (size / (desc->block.bits / 8)) * desc->block.width;
       if (!n)
          return NULL;
       templ.u.buf.first_element = f;

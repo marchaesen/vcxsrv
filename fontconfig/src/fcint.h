@@ -369,6 +369,7 @@ struct _FcCache {
     int		dirs_count;	    /* number of subdir strings */
     intptr_t	set;		    /* offset to font set */
     int		checksum;	    /* checksum of directory state */
+    int64_t	checksum_nano;	    /* checksum of directory state */
 };
 
 #undef FcCacheDir
@@ -589,6 +590,13 @@ FcCacheFini (void);
 
 FcPrivate void
 FcDirCacheReference (FcCache *cache, int nref);
+
+FcPrivate int
+FcDirCacheLock (const FcChar8 *dir,
+		FcConfig      *config);
+
+FcPrivate void
+FcDirCacheUnlock (int fd);
 
 /* fccfg.c */
 

@@ -1,8 +1,7 @@
                         X server test suite
 
 This suite contains a set of tests to verify the behaviour of functions used
-internally to the server. This test suite is based on glib's testing
-framework [1].
+internally to the server.
 
 = How it works =
 Through some automake abuse, we link the test programs with the same static
@@ -15,7 +14,7 @@ of the X server. Unless the test suite replicates the expected state, which
 may be difficult.
 
 = How to run the tests =
-Run "make check" the test directory. This will compile the tests and execute
+Run "make check" in the test directory. This will compile the tests and execute
 them in the order specified in the TESTS variable in test/Makefile.am.
 
 Each set of tests related to a subsystem are available as a binary that can be
@@ -23,14 +22,4 @@ executed directly. For example, run "xkb" to perform some xkb-related tests.
 
 == Adding a new test ==
 When adding a new test, ensure that you add a short description of what the
-test does and what the expected outcome is. If the test reproduces a
-particular bug, using g_test_bug().
-
-== Misc ==
-
-The programs "gtester" and "gtester-report" may be used to generate XML/HTML
-log files of tests succeeded and failed.
-
----------
-
-[1] http://library.gnome.org/devel/glib/stable/glib-Testing.html
+test does and what the expected outcome is.

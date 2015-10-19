@@ -487,7 +487,7 @@ RootlessMiValidateTree(WindowPtr pRoot, /* Parent to validate */
     if (RegionBroken(&pRoot->clipList) && !RegionBroken(&pRoot->borderClip)) {
         // fixme this might not work, but hopefully doesn't happen anyway.
         kind = VTBroken;
-        RegionEmpty(&pRoot->clipList);
+        RegionNull(&pRoot->clipList);
         ErrorF("ValidateTree: BUSTED!\n");
     }
 

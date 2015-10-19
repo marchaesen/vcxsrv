@@ -142,6 +142,31 @@ verify_image_parameter(YYLTYPE *loc, _mesa_glsl_parse_state *state,
    return true;
 }
 
+static bool
+verify_first_atomic_ssbo_parameter(YYLTYPE *loc, _mesa_glsl_parse_state *state,
+                                   ir_variable *var)
+{
+   if (!var || !var->is_in_shader_storage_block()) {
+      _mesa_glsl_error(loc, state, "First argument to atomic function "
+                       "must be a buffer variable");
+      return false;
+   }
+   return true;
+}
+
+static bool
+is_atomic_ssbo_function(const char *func_name)
+{
+   return !strcmp(func_name, "atomicAdd") ||
+          !strcmp(func_name, "atomicMin") ||
+          !strcmp(func_name, "atomicMax") ||
+          !strcmp(func_name, "atomicAnd") ||
+          !strcmp(func_name, "atomicOr") ||
+          !strcmp(func_name, "atomicXor") ||
+          !strcmp(func_name, "atomicExchange") ||
+          !strcmp(func_name, "atomicCompSwap");
+}
+
 /**
  * Verify that 'out' and 'inout' actual parameters are lvalues.  Also, verify
  * that 'const_in' formal parameters (an extension in our IR) correspond to
@@ -256,6 +281,23 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
       actual_ir_node  = actual_ir_node->next;
       actual_ast_node = actual_ast_node->next;
    }
+
+   /* The first parameter of atomic functions must be a buffer variable */
+   const char *func_name = sig->function_name();
+   bool is_atomic_ssbo = is_atomic_ssbo_function(func_name);
+   if (is_atomic_ssbo) {
+      const ir_rvalue *const actual = (ir_rvalue *) actual_ir_parameters.head;
+
+      const ast_expression *const actual_ast =
+         exec_node_data(ast_expression, actual_ast_parameters.head, link);
+      YYLTYPE loc = actual_ast->get_location();
+
+      if (!verify_first_atomic_ssbo_parameter(&loc, state,
+                                              actual->variable_referenced())) {
+         return false;
+      }
+   }
+
    return true;
 }
 
@@ -395,13 +437,54 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
       }
    }
 
-   /* If the function call is a constant expression, don't generate any
-    * instructions; just generate an ir_constant.
+   /* Section 4.3.2 (Const) of the GLSL 1.10.59 spec says:
     *
-    * Function calls were first allowed to be constant expressions in GLSL
-    * 1.20 and GLSL ES 3.00.
+    *     "Initializers for const declarations must be formed from literal
+    *     values, other const variables (not including function call
+    *     paramaters), or expressions of these.
+    *
+    *     Constructors may be used in such expressions, but function calls may
+    *     not."
+    *
+    * Section 4.3.3 (Constant Expressions) of the GLSL 1.20.8 spec says:
+    *
+    *     "A constant expression is one of
+    *
+    *         ...
+    *
+    *         - a built-in function call whose arguments are all constant
+    *           expressions, with the exception of the texture lookup
+    *           functions, the noise functions, and ftransform. The built-in
+    *           functions dFdx, dFdy, and fwidth must return 0 when evaluated
+    *           inside an initializer with an argument that is a constant
+    *           expression."
+    *
+    * Section 5.10 (Constant Expressions) of the GLSL ES 1.00.17 spec says:
+    *
+    *     "A constant expression is one of
+    *
+    *         ...
+    *
+    *         - a built-in function call whose arguments are all constant
+    *           expressions, with the exception of the texture lookup
+    *           functions."
+    *
+    * Section 4.3.3 (Constant Expressions) of the GLSL ES 3.00.4 spec says:
+    *
+    *     "A constant expression is one of
+    *
+    *         ...
+    *
+    *         - a built-in function call whose arguments are all constant
+    *           expressions, with the exception of the texture lookup
+    *           functions.  The built-in functions dFdx, dFdy, and fwidth must
+    *           return 0 when evaluated inside an initializer with an argument
+    *           that is a constant expression."
+    *
+    * If the function call is a constant expression, don't generate any
+    * instructions; just generate an ir_constant.
     */
-   if (state->is_version(120, 300)) {
+   if (state->is_version(120, 100)) {
       ir_constant *value = sig->constant_expression_value(actual_parameters, NULL);
       if (value != NULL) {
 	 return value;
@@ -908,6 +991,7 @@ process_array_constructor(exec_list *instructions,
    }
 
    bool all_parameters_are_constant = true;
+   const glsl_type *element_type = constructor_type->fields.array;
 
    /* Type cast each parameter and, if possible, fold constants. */
    foreach_in_list_safe(ir_rvalue, ir, &actual_parameters) {
@@ -934,12 +1018,34 @@ process_array_constructor(exec_list *instructions,
 	 }
       }
 
-      if (result->type != constructor_type->fields.array) {
+      if (constructor_type->fields.array->is_unsized_array()) {
+         /* As the inner parameters of the constructor are created without
+          * knowledge of each other we need to check to make sure unsized
+          * parameters of unsized constructors all end up with the same size.
+          *
+          * e.g we make sure to fail for a constructor like this:
+          * vec4[][] a = vec4[][](vec4[](vec4(0.0), vec4(1.0)),
+          *                       vec4[](vec4(0.0), vec4(1.0), vec4(1.0)),
+          *                       vec4[](vec4(0.0), vec4(1.0)));
+          */
+         if (element_type->is_unsized_array()) {
+             /* This is the first parameter so just get the type */
+            element_type = result->type;
+         } else if (element_type != result->type) {
+            _mesa_glsl_error(loc, state, "type error in array constructor: "
+                             "expected: %s, found %s",
+                             element_type->name,
+                             result->type->name);
+            return ir_rvalue::error_value(ctx);
+         }
+      } else if (result->type != constructor_type->fields.array) {
 	 _mesa_glsl_error(loc, state, "type error in array constructor: "
 			  "expected: %s, found %s",
 			  constructor_type->fields.array->name,
 			  result->type->name);
          return ir_rvalue::error_value(ctx);
+      } else {
+         element_type = result->type;
       }
 
       /* Attempt to convert the parameter to a constant valued expression.
@@ -954,6 +1060,14 @@ process_array_constructor(exec_list *instructions,
          all_parameters_are_constant = false;
 
       ir->replace_with(result);
+   }
+
+   if (constructor_type->fields.array->is_unsized_array()) {
+      constructor_type =
+	 glsl_type::get_array_instance(element_type,
+				       parameter_count);
+      assert(constructor_type != NULL);
+      assert(constructor_type->length == parameter_count);
    }
 
    if (all_parameters_are_constant)
@@ -1593,11 +1707,16 @@ ast_function_expression::handle_method(exec_list *instructions,
 
       if (op->type->is_array()) {
          if (op->type->is_unsized_array()) {
-            _mesa_glsl_error(&loc, state, "length called on unsized array");
-            goto fail;
+            if (!state->has_shader_storage_buffer_objects()) {
+               _mesa_glsl_error(&loc, state, "length called on unsized array"
+                                             " only available with "
+                                             "ARB_shader_storage_buffer_object");
+            }
+            /* Calculate length of an unsized array in run-time */
+            result = new(ctx) ir_expression(ir_unop_ssbo_unsized_array_length, op);
+         } else {
+            result = new(ctx) ir_constant(op->type->array_size());
          }
-
-         result = new(ctx) ir_constant(op->type->array_size());
       } else if (op->type->is_vector()) {
          if (state->ARB_shading_language_420pack_enable) {
             /* .length() returns int. */
@@ -1909,6 +2028,17 @@ ast_function_expression::hir(exec_list *instructions,
    }
 
    unreachable("not reached");
+}
+
+bool
+ast_function_expression::has_sequence_subexpression() const
+{
+   foreach_list_typed(const ast_node, ast, link, &this->expressions) {
+      if (ast->has_sequence_subexpression())
+         return true;
+   }
+
+   return false;
 }
 
 ir_rvalue *

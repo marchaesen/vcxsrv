@@ -170,7 +170,7 @@ public:
                                  exec_list *out_instructions,
                                  exec_list *out_variables);
 
-   void run(exec_list *instructions);
+   void run(struct gl_shader *shader);
 
 private:
    void bitwise_assign_pack(ir_rvalue *lhs, ir_rvalue *rhs);
@@ -252,9 +252,9 @@ lower_packed_varyings_visitor::lower_packed_varyings_visitor(
 }
 
 void
-lower_packed_varyings_visitor::run(exec_list *instructions)
+lower_packed_varyings_visitor::run(struct gl_shader *shader)
 {
-   foreach_in_list(ir_instruction, node, instructions) {
+   foreach_in_list(ir_instruction, node, shader->ir) {
       ir_variable *var = node->as_variable();
       if (var == NULL)
          continue;
@@ -271,6 +271,14 @@ lower_packed_varyings_visitor::run(exec_list *instructions)
        */
       assert(var->data.interpolation == INTERP_QUALIFIER_FLAT ||
              !var->type->contains_integer());
+
+      /* Clone the variable for program resource list before
+       * it gets modified and lost.
+       */
+      if (!shader->packed_varyings)
+         shader->packed_varyings = new (shader) exec_list;
+
+      shader->packed_varyings->push_tail(var->clone(shader, NULL));
 
       /* Change the old varying into an ordinary global. */
       assert(var->data.mode != ir_var_temporary);
@@ -711,7 +719,7 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
                                          gs_input_vertices,
                                          &new_instructions,
                                          &new_variables);
-   visitor.run(instructions);
+   visitor.run(shader);
    if (mode == ir_var_shader_out) {
       if (shader->Stage == MESA_SHADER_GEOMETRY) {
          /* For geometry shaders, outputs need to be lowered before each call

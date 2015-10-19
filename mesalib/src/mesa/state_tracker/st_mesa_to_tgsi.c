@@ -283,8 +283,7 @@ st_translate_texture_target( GLuint textarget,
 static struct ureg_dst
 translate_dst( struct st_translate *t,
                const struct prog_dst_register *DstReg,
-               boolean saturate,
-               boolean clamp_color)
+               boolean saturate)
 {
    struct ureg_dst dst = dst_register( t, 
                                        DstReg->File,
@@ -295,27 +294,6 @@ translate_dst( struct st_translate *t,
    
    if (saturate)
       dst = ureg_saturate( dst );
-   else if (clamp_color && DstReg->File == PROGRAM_OUTPUT) {
-      /* Clamp colors for ARB_color_buffer_float. */
-      switch (t->procType) {
-      case TGSI_PROCESSOR_VERTEX:
-         /* This can only occur with a compatibility profile, which doesn't
-          * support geometry shaders. */
-         if (DstReg->Index == VARYING_SLOT_COL0 ||
-             DstReg->Index == VARYING_SLOT_COL1 ||
-             DstReg->Index == VARYING_SLOT_BFC0 ||
-             DstReg->Index == VARYING_SLOT_BFC1) {
-            dst = ureg_saturate(dst);
-         }
-         break;
-
-      case TGSI_PROCESSOR_FRAGMENT:
-         if (DstReg->Index >= FRAG_RESULT_COLOR) {
-            dst = ureg_saturate(dst);
-         }
-         break;
-      }
-   }
 
    if (DstReg->RelAddr)
       dst = ureg_dst_indirect( dst, ureg_src(t->address[0]) );
@@ -649,8 +627,7 @@ static void
 compile_instruction(
    struct gl_context *ctx,
    struct st_translate *t,
-   const struct prog_instruction *inst,
-   boolean clamp_dst_color_output)
+   const struct prog_instruction *inst)
 {
    struct ureg_program *ureg = t->ureg;
    GLuint i;
@@ -665,8 +642,7 @@ compile_instruction(
    if (num_dst) 
       dst[0] = translate_dst( t, 
                               &inst->DstReg,
-                              inst->Saturate,
-                              clamp_dst_color_output);
+                              inst->Saturate);
 
    for (i = 0; i < num_src; i++) 
       src[i] = translate_src( t, &inst->SrcReg[i] );
@@ -974,18 +950,6 @@ emit_face_var( struct st_translate *t,
 }
 
 
-static void
-emit_edgeflags( struct st_translate *t,
-                 const struct gl_program *program )
-{
-   struct ureg_program *ureg = t->ureg;
-   struct ureg_dst edge_dst = t->outputs[t->outputMapping[VARYING_SLOT_EDGE]];
-   struct ureg_src edge_src = t->inputs[t->inputMapping[VERT_ATTRIB_EDGEFLAG]];
-
-   ureg_MOV( ureg, edge_dst, edge_src );
-}
-
-
 /**
  * Translate Mesa program to TGSI format.
  * \param program  the program to translate
@@ -1019,9 +983,7 @@ st_translate_mesa_program(
    GLuint numOutputs,
    const GLuint outputMapping[],
    const ubyte outputSemanticName[],
-   const ubyte outputSemanticIndex[],
-   boolean passthrough_edgeflags,
-   boolean clamp_color)
+   const ubyte outputSemanticIndex[])
 {
    struct st_translate translate, *t;
    unsigned i;
@@ -1125,8 +1087,6 @@ st_translate_mesa_program(
             t->outputs[i] = ureg_writemask(t->outputs[i], TGSI_WRITEMASK_X);
 	 }
       }
-      if (passthrough_edgeflags)
-         emit_edgeflags( t, program );
    }
 
    /* Declare address register.
@@ -1231,7 +1191,7 @@ st_translate_mesa_program(
     */
    for (i = 0; i < program->NumInstructions; i++) {
       set_insn_start( t, ureg_get_instruction_number( ureg ));
-      compile_instruction( ctx, t, &program->Instructions[i], clamp_color );
+      compile_instruction(ctx, t, &program->Instructions[i]);
    }
 
    /* Fix up all emitted labels:

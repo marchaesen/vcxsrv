@@ -201,7 +201,7 @@ readpixels_can_use_memcpy(const struct gl_context *ctx, GLenum format, GLenum ty
 
    /* The Mesa format must match the input format and type. */
    if (!_mesa_format_matches_format_and_type(rb->Format, format, type,
-                                             packing->SwapBytes)) {
+                                             packing->SwapBytes, NULL)) {
       return GL_FALSE;
    }
 
@@ -523,7 +523,8 @@ read_rgba_pixels( struct gl_context *ctx,
        * convert to, then we can convert directly into the dst buffer and avoid
        * the final conversion/copy from the rgba buffer to the dst buffer.
        */
-      if (dst_format == rgba_format) {
+      if (dst_format == rgba_format &&
+          dst_stride == rgba_stride) {
          need_convert = false;
          rgba = dst;
       } else {
@@ -613,15 +614,8 @@ read_rgba_pixels( struct gl_context *ctx,
 done_swap:
    /* Handle byte swapping if required */
    if (packing->SwapBytes) {
-      GLint swapSize = _mesa_sizeof_packed_type(type);
-      if (swapSize == 2 || swapSize == 4) {
-         int swapsPerPixel = _mesa_bytes_per_pixel(format, type) / swapSize;
-         assert(_mesa_bytes_per_pixel(format, type) % swapSize == 0);
-         if (swapSize == 2)
-            _mesa_swap2((GLushort *) dst, width * height * swapsPerPixel);
-         else if (swapSize == 4)
-            _mesa_swap4((GLuint *) dst, width * height * swapsPerPixel);
-      }
+      _mesa_swap_bytes_2d_image(format, type, packing,
+                                width, height, dst, dst);
    }
 
 done_unmap:
@@ -916,10 +910,8 @@ read_pixels_es3_error_check(GLenum format, GLenum type,
    const GLenum data_type = _mesa_get_format_datatype(rb->Format);
    GLboolean is_unsigned_int = GL_FALSE;
    GLboolean is_signed_int = GL_FALSE;
-
-   if (!_mesa_is_color_format(internalFormat)) {
-      return GL_INVALID_OPERATION;
-   }
+   GLboolean is_float_depth = (internalFormat == GL_DEPTH_COMPONENT32F) ||
+         (internalFormat == GL_DEPTH32F_STENCIL8);
 
    is_unsigned_int = _mesa_is_enum_format_unsigned_int(internalFormat);
    if (!is_unsigned_int) {
@@ -949,6 +941,44 @@ read_pixels_es3_error_check(GLenum format, GLenum type,
       if ((is_signed_int && type == GL_INT) ||
           (is_unsigned_int && type == GL_UNSIGNED_INT))
          return GL_NO_ERROR;
+      break;
+   case GL_DEPTH_STENCIL:
+      switch (type) {
+      case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
+         if (is_float_depth)
+            return GL_NO_ERROR;
+         break;
+      case GL_UNSIGNED_INT_24_8:
+         if (!is_float_depth)
+            return GL_NO_ERROR;
+         break;
+      default:
+         return GL_INVALID_ENUM;
+      }
+      break;
+   case GL_DEPTH_COMPONENT:
+      switch (type) {
+      case GL_FLOAT:
+         if (is_float_depth)
+            return GL_NO_ERROR;
+         break;
+      case GL_UNSIGNED_SHORT:
+      case GL_UNSIGNED_INT:
+      case GL_UNSIGNED_INT_24_8:
+         if (!is_float_depth)
+            return GL_NO_ERROR;
+         break;
+      default:
+         return GL_INVALID_ENUM;
+      }
+      break;
+   case GL_STENCIL_INDEX:
+      switch (type) {
+      case GL_UNSIGNED_BYTE:
+         return GL_NO_ERROR;
+      default:
+         return GL_INVALID_ENUM;
+      }
       break;
    }
 
@@ -1021,11 +1051,6 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
          }
       } else {
          err = read_pixels_es3_error_check(format, type, rb);
-      }
-
-      if (err == GL_NO_ERROR && (format == GL_DEPTH_COMPONENT
-          || format == GL_DEPTH_STENCIL)) {
-         err = GL_INVALID_ENUM;
       }
 
       if (err != GL_NO_ERROR) {

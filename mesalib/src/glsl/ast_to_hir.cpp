@@ -67,6 +67,48 @@ static void
 remove_per_vertex_blocks(exec_list *instructions,
                          _mesa_glsl_parse_state *state, ir_variable_mode mode);
 
+/**
+ * Visitor class that finds the first instance of any write-only variable that
+ * is ever read, if any
+ */
+class read_from_write_only_variable_visitor : public ir_hierarchical_visitor
+{
+public:
+   read_from_write_only_variable_visitor() : found(NULL)
+   {
+   }
+
+   virtual ir_visitor_status visit(ir_dereference_variable *ir)
+   {
+      if (this->in_assignee)
+         return visit_continue;
+
+      ir_variable *var = ir->variable_referenced();
+      /* We can have image_write_only set on both images and buffer variables,
+       * but in the former there is a distinction between reads from
+       * the variable itself (write_only) and from the memory they point to
+       * (image_write_only), while in the case of buffer variables there is
+       * no such distinction, that is why this check here is limited to
+       * buffer variables alone.
+       */
+      if (!var || var->data.mode != ir_var_shader_storage)
+         return visit_continue;
+
+      if (var->data.image_write_only) {
+         found = var;
+         return visit_stop;
+      }
+
+      return visit_continue;
+   }
+
+   ir_variable *get_variable() {
+      return found;
+   }
+
+private:
+   ir_variable *found;
+};
 
 void
 _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
@@ -162,6 +204,20 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
     */
    remove_per_vertex_blocks(instructions, state, ir_var_shader_in);
    remove_per_vertex_blocks(instructions, state, ir_var_shader_out);
+
+   /* Check that we don't have reads from write-only variables */
+   read_from_write_only_variable_visitor v;
+   v.run(instructions);
+   ir_variable *error_var = v.get_variable();
+   if (error_var) {
+      /* It would be nice to have proper location information, but for that
+       * we would need to check this as we process each kind of AST node
+       */
+      YYLTYPE loc;
+      memset(&loc, 0, sizeof(loc));
+      _mesa_glsl_error(&loc, state, "Read from write-only variable `%s'",
+                       error_var->name);
+   }
 }
 
 
@@ -726,8 +782,30 @@ validate_assignment(struct _mesa_glsl_parse_state *state,
     * Note: Whole-array assignments are not permitted in GLSL 1.10, but this
     * is handled by ir_dereference::is_lvalue.
     */
-   if (lhs->type->is_unsized_array() && rhs->type->is_array()
-       && (lhs->type->fields.array == rhs->type->fields.array)) {
+   const glsl_type *lhs_t = lhs->type;
+   const glsl_type *rhs_t = rhs->type;
+   bool unsized_array = false;
+   while(lhs_t->is_array()) {
+      if (rhs_t == lhs_t)
+         break; /* the rest of the inner arrays match so break out early */
+      if (!rhs_t->is_array()) {
+         unsized_array = false;
+         break; /* number of dimensions mismatch */
+      }
+      if (lhs_t->length == rhs_t->length) {
+         lhs_t = lhs_t->fields.array;
+         rhs_t = rhs_t->fields.array;
+         continue;
+      } else if (lhs_t->is_unsized_array()) {
+         unsized_array = true;
+      } else {
+         unsized_array = false;
+         break; /* sized array mismatch */
+      }
+      lhs_t = lhs_t->fields.array;
+      rhs_t = rhs_t->fields.array;
+   }
+   if (unsized_array) {
       if (is_initializer) {
          return rhs;
       } else {
@@ -820,7 +898,16 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
                           "assignment to %s",
                           non_lvalue_description);
          error_emitted = true;
-      } else if (lhs_var != NULL && lhs_var->data.read_only) {
+      } else if (lhs_var != NULL && (lhs_var->data.read_only ||
+                 (lhs_var->data.mode == ir_var_shader_storage &&
+                  lhs_var->data.image_read_only))) {
+         /* We can have image_read_only set on both images and buffer variables,
+          * but in the former there is a distinction between assignments to
+          * the variable itself (read_only) and to the memory they point to
+          * (image_read_only), while in the case of buffer variables there is
+          * no such distinction, that is why this check here is limited to
+          * buffer variables alone.
+          */
          _mesa_glsl_error(&lhs_loc, state,
                           "assignment to read-only variable '%s'",
                           lhs_var->name);
@@ -937,6 +1024,12 @@ ast_node::hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
    (void) state;
 
    return NULL;
+}
+
+bool
+ast_node::has_sequence_subexpression() const
+{
+   return false;
 }
 
 void
@@ -1739,6 +1832,10 @@ ast_expression::do_hir(exec_list *instructions,
       break;
    }
 
+   case ast_unsized_array_dim:
+      assert(!"ast_unsized_array_dim: Should never get here.");
+      break;
+
    case ast_function_call:
       /* Should *NEVER* get here.  ast_function_call should always be handled
        * by ast_function_expression::hir.
@@ -1850,6 +1947,83 @@ ast_expression::do_hir(exec_list *instructions,
    return result;
 }
 
+bool
+ast_expression::has_sequence_subexpression() const
+{
+   switch (this->oper) {
+   case ast_plus:
+   case ast_neg:
+   case ast_bit_not:
+   case ast_logic_not:
+   case ast_pre_inc:
+   case ast_pre_dec:
+   case ast_post_inc:
+   case ast_post_dec:
+      return this->subexpressions[0]->has_sequence_subexpression();
+
+   case ast_assign:
+   case ast_add:
+   case ast_sub:
+   case ast_mul:
+   case ast_div:
+   case ast_mod:
+   case ast_lshift:
+   case ast_rshift:
+   case ast_less:
+   case ast_greater:
+   case ast_lequal:
+   case ast_gequal:
+   case ast_nequal:
+   case ast_equal:
+   case ast_bit_and:
+   case ast_bit_xor:
+   case ast_bit_or:
+   case ast_logic_and:
+   case ast_logic_or:
+   case ast_logic_xor:
+   case ast_array_index:
+   case ast_mul_assign:
+   case ast_div_assign:
+   case ast_add_assign:
+   case ast_sub_assign:
+   case ast_mod_assign:
+   case ast_ls_assign:
+   case ast_rs_assign:
+   case ast_and_assign:
+   case ast_xor_assign:
+   case ast_or_assign:
+      return this->subexpressions[0]->has_sequence_subexpression() ||
+             this->subexpressions[1]->has_sequence_subexpression();
+
+   case ast_conditional:
+      return this->subexpressions[0]->has_sequence_subexpression() ||
+             this->subexpressions[1]->has_sequence_subexpression() ||
+             this->subexpressions[2]->has_sequence_subexpression();
+
+   case ast_sequence:
+      return true;
+
+   case ast_field_selection:
+   case ast_identifier:
+   case ast_int_constant:
+   case ast_uint_constant:
+   case ast_float_constant:
+   case ast_bool_constant:
+   case ast_double_constant:
+      return false;
+
+   case ast_aggregate:
+      unreachable("ast_aggregate: Should never get here.");
+
+   case ast_function_call:
+      unreachable("should be handled by ast_function_expression::hir");
+
+   case ast_unsized_array_dim:
+      unreachable("ast_unsized_array_dim: Should never get here.");
+   }
+
+   return false;
+}
 
 ir_rvalue *
 ast_expression_statement::hir(exec_list *instructions,
@@ -1902,6 +2076,14 @@ process_array_size(exec_node *node,
    exec_list dummy_instructions;
 
    ast_node *array_size = exec_node_data(ast_node, node, link);
+
+   /**
+    * Dimensions other than the outermost dimension can by unsized if they
+    * are immediately sized by a constructor or initializer.
+    */
+   if (((ast_expression*)array_size)->oper == ast_unsized_array_dim)
+      return 0;
+
    ir_rvalue *const ir = array_size->hir(& dummy_instructions, state);
    YYLTYPE loc = array_size->get_location();
 
@@ -1924,7 +2106,7 @@ process_array_size(exec_node *node,
    }
 
    ir_constant *const size = ir->constant_expression_value();
-   if (size == NULL) {
+   if (size == NULL || array_size->has_sequence_subexpression()) {
       _mesa_glsl_error(& loc, state, "array size must be a "
                        "constant valued expression");
       return 0;
@@ -1962,20 +2144,7 @@ process_array_type(YYLTYPE *loc, const glsl_type *base,
           *
           * "Only one-dimensional arrays may be declared."
           */
-         if (!state->ARB_arrays_of_arrays_enable) {
-            _mesa_glsl_error(loc, state,
-                             "invalid array of `%s'"
-                             "GL_ARB_arrays_of_arrays "
-                             "required for defining arrays of arrays",
-                             base->name);
-            return glsl_type::error_type;
-         }
-
-         if (base->length == 0) {
-            _mesa_glsl_error(loc, state,
-                             "only the outermost array dimension can "
-                             "be unsized",
-                             base->name);
+         if (!state->check_arrays_of_arrays_allowed(loc)) {
             return glsl_type::error_type;
          }
       }
@@ -1985,9 +2154,6 @@ process_array_type(YYLTYPE *loc, const glsl_type *base,
          unsigned array_size = process_array_size(node, state);
          array_type = glsl_type::get_array_instance(array_type, array_size);
       }
-
-      if (array_specifier->is_unsized_array)
-         array_type = glsl_type::get_array_instance(array_type, 0);
    }
 
    return array_type;
@@ -2098,10 +2264,10 @@ validate_matrix_layout_for_type(struct _mesa_glsl_parse_state *state,
 static bool
 validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
                            YYLTYPE *loc,
-                           ir_variable *var,
+                           const glsl_type *type,
                            const ast_type_qualifier *qual)
 {
-   if (var->data.mode != ir_var_uniform && var->data.mode != ir_var_shader_storage) {
+   if (!qual->flags.q.uniform && !qual->flags.q.buffer) {
       _mesa_glsl_error(loc, state,
                        "the \"binding\" qualifier only applies to uniforms and "
                        "shader storage buffer objects");
@@ -2114,10 +2280,11 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
    }
 
    const struct gl_context *const ctx = state->ctx;
-   unsigned elements = var->type->is_array() ? var->type->length : 1;
+   unsigned elements = type->is_array() ? type->arrays_of_arrays_size() : 1;
    unsigned max_index = qual->binding + elements - 1;
+   const glsl_type *base_type = type->without_array();
 
-   if (var->type->is_interface()) {
+   if (base_type->is_interface()) {
       /* UBOs.  From page 60 of the GLSL 4.20 specification:
        * "If the binding point for any uniform block instance is less than zero,
        *  or greater than or equal to the implementation-dependent maximum
@@ -2128,7 +2295,7 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
        *
        * The implementation-dependent maximum is GL_MAX_UNIFORM_BUFFER_BINDINGS.
        */
-      if (var->data.mode == ir_var_uniform &&
+      if (qual->flags.q.uniform &&
          max_index >= ctx->Const.MaxUniformBufferBindings) {
          _mesa_glsl_error(loc, state, "layout(binding = %d) for %d UBOs exceeds "
                           "the maximum number of UBO binding points (%d)",
@@ -2136,6 +2303,7 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
                           ctx->Const.MaxUniformBufferBindings);
          return false;
       }
+
       /* SSBOs. From page 67 of the GLSL 4.30 specification:
        * "If the binding point for any uniform or shader storage block instance
        *  is less than zero, or greater than or equal to the
@@ -2145,7 +2313,7 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
        *  N, all elements of the array from binding through binding + N – 1 must
        *  be within this range."
        */
-      if (var->data.mode == ir_var_shader_storage &&
+      if (qual->flags.q.buffer &&
          max_index >= ctx->Const.MaxShaderStorageBufferBindings) {
          _mesa_glsl_error(loc, state, "layout(binding = %d) for %d SSBOs exceeds "
                           "the maximum number of SSBO binding points (%d)",
@@ -2153,8 +2321,7 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
                           ctx->Const.MaxShaderStorageBufferBindings);
          return false;
       }
-   } else if (var->type->is_sampler() ||
-              (var->type->is_array() && var->type->fields.array->is_sampler())) {
+   } else if (base_type->is_sampler()) {
       /* Samplers.  From page 63 of the GLSL 4.20 specification:
        * "If the binding is less than zero, or greater than or equal to the
        *  implementation-dependent maximum supported number of units, a
@@ -2171,7 +2338,7 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
 
          return false;
       }
-   } else if (var->type->contains_atomic()) {
+   } else if (base_type->contains_atomic()) {
       assert(ctx->Const.MaxAtomicBufferBindings <= MAX_COMBINED_ATOMIC_BUFFERS);
       if (unsigned(qual->binding) >= ctx->Const.MaxAtomicBufferBindings) {
          _mesa_glsl_error(loc, state, "layout(binding = %d) exceeds the "
@@ -2181,10 +2348,19 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
 
          return false;
       }
+   } else if (state->is_version(420, 310) && base_type->is_image()) {
+      assert(ctx->Const.MaxImageUnits <= MAX_IMAGE_UNITS);
+      if (max_index >= ctx->Const.MaxImageUnits) {
+         _mesa_glsl_error(loc, state, "Image binding %d exceeds the "
+                          " maximum number of image units (%d)", max_index,
+                          ctx->Const.MaxImageUnits);
+         return false;
+      }
+
    } else {
       _mesa_glsl_error(loc, state,
                        "the \"binding\" qualifier only applies to uniform "
-                       "blocks, samplers, atomic counters, or arrays thereof");
+                       "blocks, opaque variables, or arrays thereof");
       return false;
    }
 
@@ -2445,14 +2621,38 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
 
          var->data.image_format = qual->image_format;
       } else {
-         if (var->data.mode == ir_var_uniform && !qual->flags.q.write_only) {
-            _mesa_glsl_error(loc, state, "uniforms not qualified with "
-                             "`writeonly' must have a format layout "
-                             "qualifier");
+         if (var->data.mode == ir_var_uniform) {
+            if (state->es_shader) {
+               _mesa_glsl_error(loc, state, "all image uniforms "
+                                "must have a format layout qualifier");
+
+            } else if (!qual->flags.q.write_only) {
+               _mesa_glsl_error(loc, state, "image uniforms not qualified with "
+                                "`writeonly' must have a format layout "
+                                "qualifier");
+            }
          }
 
          var->data.image_format = GL_NONE;
       }
+
+      /* From page 70 of the GLSL ES 3.1 specification:
+       *
+       * "Except for image variables qualified with the format qualifiers
+       *  r32f, r32i, and r32ui, image variables must specify either memory
+       *  qualifier readonly or the memory qualifier writeonly."
+       */
+      if (state->es_shader &&
+          var->data.image_format != GL_R32F &&
+          var->data.image_format != GL_R32I &&
+          var->data.image_format != GL_R32UI &&
+          !var->data.image_read_only &&
+          !var->data.image_write_only) {
+         _mesa_glsl_error(loc, state, "image variables of format other than "
+                          "r32f, r32i or r32ui must be qualified `readonly' or "
+                          "`writeonly'");
+      }
+
    } else if (qual->flags.q.read_only ||
               qual->flags.q.write_only ||
               qual->flags.q.coherent ||
@@ -2490,6 +2690,25 @@ is_conflicting_fragcoord_redeclaration(struct _mesa_glsl_parse_state *state,
    }
 
    return false;
+}
+
+static inline void
+validate_array_dimensions(const glsl_type *t,
+                          struct _mesa_glsl_parse_state *state,
+                          YYLTYPE *loc) {
+   if (t->is_array()) {
+      t = t->fields.array;
+      while (t->is_array()) {
+         if (t->is_unsized_array()) {
+            _mesa_glsl_error(loc, state,
+                             "only the outermost array dimension can "
+                             "be unsized",
+                             t->name);
+            break;
+         }
+         t = t->fields.array;
+      }
+   }
 }
 
 static void
@@ -2749,7 +2968,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    }
 
    if (qual->flags.q.explicit_binding &&
-       validate_binding_qualifier(state, loc, var, qual)) {
+       validate_binding_qualifier(state, loc, var->type, qual)) {
       var->data.explicit_binding = true;
       var->data.binding = qual->binding;
    }
@@ -2886,11 +3105,13 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
        var->data.depth_layout = ir_depth_layout_none;
 
    if (qual->flags.q.std140 ||
+       qual->flags.q.std430 ||
        qual->flags.q.packed ||
        qual->flags.q.shared) {
       _mesa_glsl_error(loc, state,
-                       "uniform block layout qualifiers std140, packed, and "
-                       "shared can only be applied to uniform blocks, not "
+                       "uniform and shader storage block layout qualifiers "
+                       "std140, std430, packed, and shared can only be "
+                       "applied to uniform or shader storage blocks, not "
                        "members");
    }
 
@@ -3069,7 +3290,8 @@ process_initializer(ir_variable *var, ast_declaration *decl,
     */
    if (var->data.mode == ir_var_uniform) {
       state->check_version(120, 0, &initializer_loc,
-                           "cannot initialize uniforms");
+                           "cannot initialize uniform %s",
+                           var->name);
    }
 
    /* Section 4.3.7 "Buffer Variables" of the GLSL 4.30 spec:
@@ -3077,8 +3299,9 @@ process_initializer(ir_variable *var, ast_declaration *decl,
     *    "Buffer variables cannot have initializers."
     */
    if (var->data.mode == ir_var_shader_storage) {
-      _mesa_glsl_error(& initializer_loc, state,
-                       "SSBO variables cannot have initializers");
+      _mesa_glsl_error(&initializer_loc, state,
+                       "cannot initialize buffer variable %s",
+                       var->name);
    }
 
    /* From section 4.1.7 of the GLSL 4.40 spec:
@@ -3088,16 +3311,25 @@ process_initializer(ir_variable *var, ast_declaration *decl,
     *     shader."
     */
    if (var->type->contains_opaque()) {
-      _mesa_glsl_error(& initializer_loc, state,
-                       "cannot initialize opaque variable");
+      _mesa_glsl_error(&initializer_loc, state,
+                       "cannot initialize opaque variable %s",
+                       var->name);
    }
 
    if ((var->data.mode == ir_var_shader_in) && (state->current_function == NULL)) {
-      _mesa_glsl_error(& initializer_loc, state,
-		       "cannot initialize %s shader input / %s",
-		       _mesa_shader_stage_to_string(state->stage),
-		       (state->stage == MESA_SHADER_VERTEX)
-		       ? "attribute" : "varying");
+      _mesa_glsl_error(&initializer_loc, state,
+                       "cannot initialize %s shader input / %s %s",
+                       _mesa_shader_stage_to_string(state->stage),
+                       (state->stage == MESA_SHADER_VERTEX)
+                       ? "attribute" : "varying",
+                       var->name);
+   }
+
+   if (var->data.mode == ir_var_shader_out && state->current_function == NULL) {
+      _mesa_glsl_error(&initializer_loc, state,
+                       "cannot initialize %s shader output %s",
+                       _mesa_shader_stage_to_string(state->stage),
+                       var->name);
    }
 
    /* If the initializer is an ast_aggregate_initializer, recursively store
@@ -3112,16 +3344,72 @@ process_initializer(ir_variable *var, ast_declaration *decl,
 
    /* Calculate the constant value if this is a const or uniform
     * declaration.
+    *
+    * Section 4.3 (Storage Qualifiers) of the GLSL ES 1.00.17 spec says:
+    *
+    *     "Declarations of globals without a storage qualifier, or with
+    *     just the const qualifier, may include initializers, in which case
+    *     they will be initialized before the first line of main() is
+    *     executed.  Such initializers must be a constant expression."
+    *
+    * The same section of the GLSL ES 3.00.4 spec has similar language.
     */
    if (type->qualifier.flags.q.constant
-       || type->qualifier.flags.q.uniform) {
+       || type->qualifier.flags.q.uniform
+       || (state->es_shader && state->current_function == NULL)) {
       ir_rvalue *new_rhs = validate_assignment(state, initializer_loc,
                                                lhs, rhs, true);
       if (new_rhs != NULL) {
          rhs = new_rhs;
 
+         /* Section 4.3.3 (Constant Expressions) of the GLSL ES 3.00.4 spec
+          * says:
+          *
+          *     "A constant expression is one of
+          *
+          *        ...
+          *
+          *        - an expression formed by an operator on operands that are
+          *          all constant expressions, including getting an element of
+          *          a constant array, or a field of a constant structure, or
+          *          components of a constant vector.  However, the sequence
+          *          operator ( , ) and the assignment operators ( =, +=, ...)
+          *          are not included in the operators that can create a
+          *          constant expression."
+          *
+          * Section 12.43 (Sequence operator and constant expressions) says:
+          *
+          *     "Should the following construct be allowed?
+          *
+          *         float a[2,3];
+          *
+          *     The expression within the brackets uses the sequence operator
+          *     (',') and returns the integer 3 so the construct is declaring
+          *     a single-dimensional array of size 3.  In some languages, the
+          *     construct declares a two-dimensional array.  It would be
+          *     preferable to make this construct illegal to avoid confusion.
+          *
+          *     One possibility is to change the definition of the sequence
+          *     operator so that it does not return a constant-expression and
+          *     hence cannot be used to declare an array size.
+          *
+          *     RESOLUTION: The result of a sequence operator is not a
+          *     constant-expression."
+          *
+          * Section 4.3.3 (Constant Expressions) of the GLSL 4.30.9 spec
+          * contains language almost identical to the section 4.3.3 in the
+          * GLSL ES 3.00.4 spec.  This is a new limitation for these GLSL
+          * versions.
+          */
          ir_constant *constant_value = rhs->constant_expression_value();
-         if (!constant_value) {
+         if (!constant_value ||
+             (state->is_version(430, 300) &&
+              decl->initializer->has_sequence_subexpression())) {
+            const char *const variable_mode =
+               (type->qualifier.flags.q.constant)
+               ? "const"
+               : ((type->qualifier.flags.q.uniform) ? "uniform" : "global");
+
             /* If ARB_shading_language_420pack is enabled, initializers of
              * const-qualified local variables do not have to be constant
              * expressions. Const-qualified global variables must still be
@@ -3132,22 +3420,24 @@ process_initializer(ir_variable *var, ast_declaration *decl,
                _mesa_glsl_error(& initializer_loc, state,
                                 "initializer of %s variable `%s' must be a "
                                 "constant expression",
-                                (type->qualifier.flags.q.constant)
-                                ? "const" : "uniform",
+                                variable_mode,
                                 decl->identifier);
                if (var->type->is_numeric()) {
                   /* Reduce cascading errors. */
-                  var->constant_value = ir_constant::zero(state, var->type);
+                  var->constant_value = type->qualifier.flags.q.constant
+                     ? ir_constant::zero(state, var->type) : NULL;
                }
             }
          } else {
             rhs = constant_value;
-            var->constant_value = constant_value;
+            var->constant_value = type->qualifier.flags.q.constant
+               ? constant_value : NULL;
          }
       } else {
          if (var->type->is_numeric()) {
             /* Reduce cascading errors. */
-            var->constant_value = ir_constant::zero(state, var->type);
+            var->constant_value = type->qualifier.flags.q.constant
+               ? ir_constant::zero(state, var->type) : NULL;
          }
       }
    }
@@ -3283,7 +3573,7 @@ handle_tess_ctrl_shader_output_decl(struct _mesa_glsl_parse_state *state,
 
    validate_layout_qualifier_vertex_count(state, loc, var, num_vertices,
                                           &state->tcs_output_size,
-                                          "geometry shader input");
+                                          "tessellation control shader output");
 }
 
 /**
@@ -3380,7 +3670,7 @@ validate_identifier(const char *identifier, YYLTYPE loc,
 static bool
 precision_qualifier_allowed(const glsl_type *type)
 {
-   /* Precision qualifiers apply to floating point, integer and sampler
+   /* Precision qualifiers apply to floating point, integer and opaque
     * types.
     *
     * Section 4.5.2 (Precision Qualifiers) of the GLSL 1.30 spec says:
@@ -3410,7 +3700,7 @@ precision_qualifier_allowed(const glsl_type *type)
    return type->is_float()
        || type->is_integer()
        || type->is_record()
-       || type->is_sampler();
+       || type->contains_opaque();
 }
 
 ir_rvalue *
@@ -4121,7 +4411,7 @@ ast_declarator_list::hir(exec_list *instructions,
 
          _mesa_glsl_error(&loc, state,
                           "precision qualifiers apply only to floating point"
-                          ", integer and sampler types");
+                          ", integer and opaque types");
       }
 
       /* From section 4.1.7 of the GLSL 4.40 spec:
@@ -4163,6 +4453,8 @@ ast_declarator_list::hir(exec_list *instructions,
          result = process_initializer((earlier == NULL) ? var : earlier,
                                       decl, this->type,
                                       &initializer_instructions, state);
+      } else {
+         validate_array_dimensions(var_type, state, &loc);
       }
 
       /* From page 23 (page 29 of the PDF) of the GLSL 1.10 spec:
@@ -4544,7 +4836,7 @@ ast_function::hir(exec_list *instructions,
    if (state->es_shader && state->language_version >= 300) {
       /* Local shader has no exact candidates; check the built-ins. */
       _mesa_glsl_initialize_builtin_functions();
-      if (_mesa_glsl_find_builtin_function_by_name(state, name)) {
+      if (_mesa_glsl_find_builtin_function_by_name(name)) {
          YYLTYPE loc = this->get_location();
          _mesa_glsl_error(& loc, state,
                           "A shader cannot redefine or overload built-in "
@@ -5429,6 +5721,8 @@ is_valid_default_precision_type(const struct glsl_type *const type)
       /* "int" and "float" are valid, but vectors and matrices are not. */
       return type->vector_elements == 1 && type->matrix_columns == 1;
    case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_ATOMIC_UINT:
       return true;
    default:
       return false;
@@ -5477,7 +5771,7 @@ ast_type_specifier::hir(exec_list *instructions,
       if (!is_valid_default_precision_type(type)) {
          _mesa_glsl_error(&loc, state,
                           "default precision statements apply only to "
-                          "float, int, and sampler types");
+                          "float, int, and opaque types");
          return NULL;
       }
 
@@ -5568,9 +5862,18 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                                          bool is_interface,
                                          enum glsl_matrix_layout matrix_layout,
                                          bool allow_reserved_names,
-                                         ir_variable_mode var_mode)
+                                         ir_variable_mode var_mode,
+                                         ast_type_qualifier *layout)
 {
    unsigned decl_count = 0;
+
+   /* For blocks that accept memory qualifiers (i.e. shader storage), verify
+    * that we don't have incompatible qualifiers
+    */
+   if (layout && layout->flags.q.read_only && layout->flags.q.write_only) {
+      _mesa_glsl_error(&loc, state,
+                       "Interface block sets both readonly and writeonly");
+   }
 
    /* Make an initial pass over the list of fields to determine how
     * many there are.  Each element in this list is an ast_declarator_list.
@@ -5620,28 +5923,27 @@ ast_process_structure_or_interface_block(exec_list *instructions,
           * is_interface case, will have resulted in compilation having
           * already halted due to a syntax error.
           */
-         const struct glsl_type *field_type =
-            decl_type != NULL ? decl_type : glsl_type::error_type;
+         assert(decl_type);
 
-         if (is_interface && field_type->contains_opaque()) {
+         if (is_interface && decl_type->contains_opaque()) {
             YYLTYPE loc = decl_list->get_location();
             _mesa_glsl_error(&loc, state,
                              "uniform/buffer in non-default interface block contains "
                              "opaque variable");
          }
 
-         if (field_type->contains_atomic()) {
-            /* FINISHME: Add a spec quotation here once updated spec
-             * FINISHME: language is available.  See Khronos bug #10903
-             * FINISHME: on whether atomic counters are allowed in
-             * FINISHME: structures.
+         if (decl_type->contains_atomic()) {
+            /* From section 4.1.7.3 of the GLSL 4.40 spec:
+             *
+             *    "Members of structures cannot be declared as atomic counter
+             *     types."
              */
             YYLTYPE loc = decl_list->get_location();
             _mesa_glsl_error(&loc, state, "atomic counter in structure, "
                              "shader storage block or uniform block");
          }
 
-         if (field_type->contains_image()) {
+         if (decl_type->contains_image()) {
             /* FINISHME: Same problem as with atomic counters.
              * FINISHME: Request clarification from Khronos and add
              * FINISHME: spec quotation here.
@@ -5654,13 +5956,19 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 
          const struct ast_type_qualifier *const qual =
             & decl_list->type->qualifier;
+
+         if (qual->flags.q.explicit_binding)
+            validate_binding_qualifier(state, &loc, decl_type, qual);
+
          if (qual->flags.q.std140 ||
+             qual->flags.q.std430 ||
              qual->flags.q.packed ||
              qual->flags.q.shared) {
             _mesa_glsl_error(&loc, state,
                              "uniform/shader storage block layout qualifiers "
-                             "std140, packed, and shared can only be applied "
-                             "to uniform/shader storage blocks, not members");
+                             "std140, std430, packed, and shared can only be "
+                             "applied to uniform/shader storage blocks, not "
+                             "members");
          }
 
          if (qual->flags.q.constant) {
@@ -5670,8 +5978,9 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                              "to struct or interface block members");
          }
 
-         field_type = process_array_type(&loc, decl_type,
-                                         decl->array_specifier, state);
+         const struct glsl_type *field_type =
+            process_array_type(&loc, decl_type, decl->array_specifier, state);
+         validate_array_dimensions(field_type, state, &loc);
          fields[i].type = field_type;
          fields[i].name = decl->identifier;
          fields[i].location = -1;
@@ -5731,6 +6040,44 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                    || fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_COLUMN_MAJOR);
          }
 
+         /* Image qualifiers are allowed on buffer variables, which can only
+          * be defined inside shader storage buffer objects
+          */
+         if (layout && var_mode == ir_var_shader_storage) {
+            if (qual->flags.q.read_only && qual->flags.q.write_only) {
+               _mesa_glsl_error(&loc, state,
+                                "buffer variable `%s' can't be "
+                                "readonly and writeonly.", fields[i].name);
+            }
+
+            /* For readonly and writeonly qualifiers the field definition,
+             * if set, overwrites the layout qualifier.
+             */
+            bool read_only = layout->flags.q.read_only;
+            bool write_only = layout->flags.q.write_only;
+
+            if (qual->flags.q.read_only) {
+               read_only = true;
+               write_only = false;
+            } else if (qual->flags.q.write_only) {
+               read_only = false;
+               write_only = true;
+            }
+
+            fields[i].image_read_only = read_only;
+            fields[i].image_write_only = write_only;
+
+            /* For other qualifiers, we set the flag if either the layout
+             * qualifier or the field qualifier are set
+             */
+            fields[i].image_coherent = qual->flags.q.coherent ||
+                                        layout->flags.q.coherent;
+            fields[i].image_volatile = qual->flags.q._volatile ||
+                                        layout->flags.q._volatile;
+            fields[i].image_restrict = qual->flags.q.restrict_flag ||
+                                        layout->flags.q.restrict_flag;
+         }
+
          i++;
       }
    }
@@ -5785,7 +6132,8 @@ ast_struct_specifier::hir(exec_list *instructions,
                                                false,
                                                GLSL_MATRIX_LAYOUT_INHERITED,
                                                false /* allow_reserved_names */,
-                                               ir_var_auto);
+                                               ir_var_auto,
+                                               NULL);
 
    validate_identifier(this->name, loc, state);
 
@@ -5844,6 +6192,19 @@ private:
    bool found;
 };
 
+static bool
+is_unsized_array_last_element(ir_variable *v)
+{
+   const glsl_type *interface_type = v->get_interface_type();
+   int length = interface_type->length;
+
+   assert(v->type->is_unsized_array());
+
+   /* Check if it is the last element of the interface */
+   if (strcmp(interface_type->fields.structure[length-1].name, v->name) == 0)
+      return true;
+   return false;
+}
 
 ir_rvalue *
 ast_interface_block::hir(exec_list *instructions,
@@ -5859,6 +6220,13 @@ ast_interface_block::hir(exec_list *instructions,
                        this->block_name);
    }
 
+   if (!this->layout.flags.q.buffer &&
+       this->layout.flags.q.std430) {
+      _mesa_glsl_error(&loc, state,
+                       "std430 storage block layout qualifier is supported "
+                       "only for shader storage blocks");
+   }
+
    /* The ast_interface_block has a list of ast_declarator_lists.  We
     * need to turn those into ir_variables with an association
     * with this uniform block.
@@ -5868,6 +6236,8 @@ ast_interface_block::hir(exec_list *instructions,
       packing = GLSL_INTERFACE_PACKING_SHARED;
    } else if (this->layout.flags.q.packed) {
       packing = GLSL_INTERFACE_PACKING_PACKED;
+   } else if (this->layout.flags.q.std430) {
+      packing = GLSL_INTERFACE_PACKING_STD430;
    } else {
       /* The default layout is std140.
        */
@@ -5918,7 +6288,8 @@ ast_interface_block::hir(exec_list *instructions,
                                                true,
                                                matrix_layout,
                                                redeclaring_per_vertex,
-                                               var_mode);
+                                               var_mode,
+                                               &this->layout);
 
    state->struct_specifier_depth--;
 
@@ -5962,7 +6333,8 @@ ast_interface_block::hir(exec_list *instructions,
                              _mesa_shader_stage_to_string(state->stage));
          }
          if (this->instance_name == NULL ||
-             strcmp(this->instance_name, "gl_in") != 0 || this->array_specifier == NULL) {
+             strcmp(this->instance_name, "gl_in") != 0 || this->array_specifier == NULL ||
+             !this->array_specifier->is_single_dimension()) {
             _mesa_glsl_error(&loc, state,
                              "gl_PerVertex input must be redeclared as "
                              "gl_in[]");
@@ -6057,6 +6429,8 @@ ast_interface_block::hir(exec_list *instructions,
                                         num_variables,
                                         packing,
                                         this->block_name);
+   if (this->layout.flags.q.explicit_binding)
+      validate_binding_qualifier(state, &loc, block_type, &this->layout);
 
    if (!state->symbols->add_interface(block_type->name, block_type, var_mode)) {
       YYLTYPE loc = this->get_location();
@@ -6123,6 +6497,9 @@ ast_interface_block::hir(exec_list *instructions,
       ir_variable *var;
 
       if (this->array_specifier != NULL) {
+         const glsl_type *block_array_type =
+            process_array_type(&loc, block_type, this->array_specifier, state);
+
          /* Section 4.3.7 (Interface Blocks) of the GLSL 1.50 spec says:
           *
           *     For uniform blocks declared an array, each individual array
@@ -6146,7 +6523,7 @@ ast_interface_block::hir(exec_list *instructions,
           * tessellation control shader output, and tessellation evaluation
           * shader input.
           */
-         if (this->array_specifier->is_unsized_array) {
+         if (block_array_type->is_unsized_array()) {
             bool allow_inputs = state->stage == MESA_SHADER_GEOMETRY ||
                                 state->stage == MESA_SHADER_TESS_CTRL ||
                                 state->stage == MESA_SHADER_TESS_EVAL;
@@ -6173,10 +6550,7 @@ ast_interface_block::hir(exec_list *instructions,
             }
          }
 
-         const glsl_type *block_array_type =
-            process_array_type(&loc, block_type, this->array_specifier, state);
-
-          /* From section 4.3.9 (Interface Blocks) of the GLSL ES 3.10 spec:
+         /* From section 4.3.9 (Interface Blocks) of the GLSL ES 3.10 spec:
           *
           *     * Arrays of arrays of blocks are not allowed
           */
@@ -6186,6 +6560,10 @@ ast_interface_block::hir(exec_list *instructions,
                              "arrays of arrays interface blocks are "
                              "not allowed");
          }
+
+         if (this->layout.flags.q.explicit_binding)
+            validate_binding_qualifier(state, &loc, block_array_type,
+                                       &this->layout);
 
          var = new(state) ir_variable(block_array_type,
                                       this->instance_name,
@@ -6209,6 +6587,33 @@ ast_interface_block::hir(exec_list *instructions,
          handle_tess_shader_input_decl(state, loc, var);
       else if (state->stage == MESA_SHADER_TESS_CTRL && var_mode == ir_var_shader_out)
          handle_tess_ctrl_shader_output_decl(state, loc, var);
+
+      for (unsigned i = 0; i < num_variables; i++) {
+         if (fields[i].type->is_unsized_array()) {
+            if (var_mode == ir_var_shader_storage) {
+               if (i != (num_variables - 1)) {
+                  _mesa_glsl_error(&loc, state, "unsized array `%s' definition: "
+                                   "only last member of a shader storage block "
+                                   "can be defined as unsized array",
+                                   fields[i].name);
+               }
+            } else {
+               /* From GLSL ES 3.10 spec, section 4.1.9 "Arrays":
+               *
+               * "If an array is declared as the last member of a shader storage
+               * block and the size is not specified at compile-time, it is
+               * sized at run-time. In all other cases, arrays are sized only
+               * at compile-time."
+               */
+               if (state->es_shader) {
+                  _mesa_glsl_error(&loc, state, "unsized array `%s' definition: "
+                                 "only last member of a shader storage block "
+                                 "can be defined as unsized array",
+                                 fields[i].name);
+               }
+            }
+         }
+      }
 
       if (ir_variable *earlier =
           state->symbols->get_variable(this->instance_name)) {
@@ -6269,6 +6674,14 @@ ast_interface_block::hir(exec_list *instructions,
 
          var->data.stream = this->layout.stream;
 
+         if (var->data.mode == ir_var_shader_storage) {
+            var->data.image_read_only = fields[i].image_read_only;
+            var->data.image_write_only = fields[i].image_write_only;
+            var->data.image_coherent = fields[i].image_coherent;
+            var->data.image_volatile = fields[i].image_volatile;
+            var->data.image_restrict = fields[i].image_restrict;
+         }
+
          /* Examine var name here since var may get deleted in the next call */
          bool var_is_gl_id = is_gl_identifier(var->name);
 
@@ -6300,6 +6713,32 @@ ast_interface_block::hir(exec_list *instructions,
           */
          var->data.explicit_binding = this->layout.flags.q.explicit_binding;
          var->data.binding = this->layout.binding;
+
+         if (var->type->is_unsized_array()) {
+            if (var->is_in_shader_storage_block()) {
+               if (!is_unsized_array_last_element(var)) {
+                  _mesa_glsl_error(&loc, state, "unsized array `%s' definition: "
+                                   "only last member of a shader storage block "
+                                   "can be defined as unsized array",
+                                   var->name);
+               }
+               var->data.from_ssbo_unsized_array = true;
+            } else {
+               /* From GLSL ES 3.10 spec, section 4.1.9 "Arrays":
+               *
+               * "If an array is declared as the last member of a shader storage
+               * block and the size is not specified at compile-time, it is
+               * sized at run-time. In all other cases, arrays are sized only
+               * at compile-time."
+               */
+               if (state->es_shader) {
+                  _mesa_glsl_error(&loc, state, "unsized array `%s' definition: "
+                                 "only last member of a shader storage block "
+                                 "can be defined as unsized array",
+                                 var->name);
+               }
+            }
+         }
 
          state->symbols->add_variable(var);
          instructions->push_tail(var);

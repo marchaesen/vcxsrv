@@ -332,6 +332,7 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     struct stat		dir_stat;
     const FcChar8	*sysroot = FcConfigGetSysRoot (config);
     FcChar8		*d;
+    int			fd = -1;
 
     if (sysroot)
 	d = FcStrBuildFilename (sysroot, dir, NULL);
@@ -352,6 +353,7 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     if (!dirs)
 	goto bail1;
 
+    fd = FcDirCacheLock (dir, config);
     /*
      * Scan the dir
      */
@@ -371,6 +373,7 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     FcDirCacheWrite (cache, config);
 
  bail2:
+    FcDirCacheUnlock (fd);
     FcStrSetDestroy (dirs);
  bail1:
     FcFontSetDestroy (set);
@@ -389,6 +392,7 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
     FcStrSet *dirs;
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
     FcChar8 *d = NULL;
+    int fd = -1;
 
     cache = FcDirCacheLoad (dir, config, NULL);
     if (!cache)
@@ -404,6 +408,7 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
     if (!dirs)
 	goto bail;
 
+    fd = FcDirCacheLock (dir, config);
     /*
      * Scan the dir
      */
@@ -422,6 +427,7 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
     FcDirCacheWrite (new, config);
 
 bail1:
+    FcDirCacheUnlock (fd);
     FcStrSetDestroy (dirs);
 bail:
     if (d)

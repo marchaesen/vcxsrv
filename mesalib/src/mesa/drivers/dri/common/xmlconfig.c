@@ -935,9 +935,13 @@ static void parseOneConfigFile (XML_Parser p) {
 #undef BUF_SIZE
 }
 
+#ifndef SYSCONFDIR
+#define SYSCONFDIR "/etc"
+#endif
+
 void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
 			  int screenNum, const char *driverName) {
-    char *filenames[2] = {"/etc/drirc", NULL};
+    char *filenames[2] = { SYSCONFDIR "/drirc", NULL};
     char *home;
     uint32_t i;
     struct OptConfData userData;

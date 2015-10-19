@@ -576,13 +576,22 @@ mieqProcessInputEvents(void)
 {
     EventRec *e = NULL;
     ScreenPtr screen;
-    static InternalEvent event;
+    InternalEvent event;
     DeviceIntPtr dev = NULL, master = NULL;
     size_t n_enqueued;
+    static Bool inProcessInputEvents = FALSE;
 
 #ifdef XQUARTZ
     pthread_mutex_lock(&miEventQueueMutex);
 #endif
+
+    /*
+     * report an error if mieqProcessInputEvents() is called recursively;
+     * this can happen, e.g., if something in the mieqProcessDeviceEvent()
+     * call chain calls UpdateCurrentTime() instead of UpdateCurrentTimeIf()
+     */
+    BUG_WARN_MSG(inProcessInputEvents, "[mi] mieqProcessInputEvents() called recursively.\n");
+    inProcessInputEvents = TRUE;
 
     /* Grow our queue if we are reaching capacity: < 2 * QUEUE_RESERVED_SIZE remaining */
     n_enqueued = mieqNumEnqueued(&miEventQueue);
@@ -642,6 +651,9 @@ mieqProcessInputEvents(void)
         pthread_mutex_lock(&miEventQueueMutex);
 #endif
     }
+
+    inProcessInputEvents = FALSE;
+
 #ifdef XQUARTZ
     pthread_mutex_unlock(&miEventQueueMutex);
 #endif

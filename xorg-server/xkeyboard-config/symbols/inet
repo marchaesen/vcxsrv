@@ -1875,3 +1875,35 @@ xkb_symbols "htcdream" {
 
 	modifier_map Shift { <LFSH>, <RTSH> };
 };
+
+partial alphanumeric_keys
+xkb_symbols "chromebook" {
+	include "level3(ralt_switch)"
+        key <FK01> {    [ XF86Back ] };
+        key <FK02> {    [ XF86Forward ] };
+        key <FK03> {    [ XF86Reload ] };
+        key <FK04> {    [ F11 ] };
+//        key <FK05> {    [ F5, F5, F5, F5 ] }; // Overview key
+        key <FK06> {    [ XF86MonBrightnessDown ] };
+        key <FK07> {    [ XF86MonBrightnessUp ] };
+        key <FK08> {    [ XF86AudioMute ] };
+        key <FK09> {    [ XF86AudioLowerVolume ] };
+        key <FK10> {    [ XF86AudioRaiseVolume ] };
+        key <BKSP> {    [ BackSpace, BackSpace, Delete ] };
+        key <UP>   {    [ Up, Up, Prior, Up ] };
+        key <DOWN> {    [ Down, Down, Next, Down ] };
+        key <LEFT> {    [ Left, Left, Home, Left ] };
+        key <RGHT> {    [ Right, Right, End, Right ] };
+        key <LWIN> {    [ Super_L, Super_L, Caps_Lock, Super_L ] };
+};
+
+partial alphanumeric_keys
+xkb_symbols "teck227" {
+    include "inet(media_nav_common)"
+    key <HIRA> { [ Hiragana ] };
+};
+
+partial alphanumeric_keys
+xkb_symbols "teck229" {
+    include "inet(teck227)"
+};

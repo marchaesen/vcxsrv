@@ -602,7 +602,7 @@ static int const HalfOrderWord[12] = {
 
 #define UnGetReq(name)\
     dpy->bufptr -= SIZEOF(x##name##Req);\
-    dpy->request--
+    X_DPY_REQUEST_DECREMENT(dpy)
 
 static void
 SendXYImage(

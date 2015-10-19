@@ -139,4 +139,10 @@ _mesa_get_read_renderbuffer_for_format(const struct gl_context *ctx,
 extern void
 _mesa_print_framebuffer(const struct gl_framebuffer *fb);
 
+extern bool
+_mesa_is_front_buffer_reading(const struct gl_framebuffer *fb);
+
+extern bool
+_mesa_is_front_buffer_drawing(const struct gl_framebuffer *fb);
+
 #endif /* FRAMEBUFFER_H */

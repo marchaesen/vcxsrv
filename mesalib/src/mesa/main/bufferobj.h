@@ -74,7 +74,6 @@ _mesa_free_buffer_objects(struct gl_context *ctx);
 
 extern bool
 _mesa_handle_bind_buffer_gen(struct gl_context *ctx,
-                             GLenum target,
                              GLuint buffer,
                              struct gl_buffer_object **buf_handle,
                              const char *caller);
@@ -317,16 +316,6 @@ _mesa_FlushMappedBufferRange(GLenum target,
 void GLAPIENTRY
 _mesa_FlushMappedNamedBufferRange(GLuint buffer, GLintptr offset,
                                   GLsizeiptr length);
-
-GLenum GLAPIENTRY
-_mesa_ObjectPurgeableAPPLE(GLenum objectType, GLuint name, GLenum option);
-
-GLenum GLAPIENTRY
-_mesa_ObjectUnpurgeableAPPLE(GLenum objectType, GLuint name, GLenum option);
-
-void GLAPIENTRY
-_mesa_GetObjectParameterivAPPLE(GLenum objectType, GLuint name,
-                                GLenum pname, GLint* params);
 
 void GLAPIENTRY
 _mesa_BindBufferRange(GLenum target, GLuint index,

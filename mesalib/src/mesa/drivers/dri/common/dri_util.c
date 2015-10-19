@@ -44,6 +44,7 @@
 #include "utils.h"
 #include "xmlpool.h"
 #include "main/mtypes.h"
+#include "main/framebuffer.h"
 #include "main/version.h"
 #include "main/errors.h"
 #include "main/macros.h"
@@ -163,7 +164,9 @@ driCreateNewScreen2(int scrn, int fd,
        }
     }
 
-    psp->api_mask = (1 << __DRI_API_OPENGL);
+    psp->api_mask = 0;
+    if (psp->max_gl_compat_version > 0)
+       psp->api_mask |= (1 << __DRI_API_OPENGL);
     if (psp->max_gl_core_version > 0)
        psp->api_mask |= (1 << __DRI_API_OPENGL_CORE);
     if (psp->max_gl_es1_version > 0)
@@ -791,7 +794,7 @@ driUpdateFramebufferSize(struct gl_context *ctx, const __DRIdrawable *dPriv)
 {
    struct gl_framebuffer *fb = (struct gl_framebuffer *) dPriv->driverPrivate;
    if (fb && (dPriv->w != fb->Width || dPriv->h != fb->Height)) {
-      ctx->Driver.ResizeBuffers(ctx, fb, dPriv->w, dPriv->h);
+      _mesa_resize_framebuffer(ctx, fb, dPriv->w, dPriv->h);
       /* if the driver needs the hw lock for ResizeBuffers, the drawable
          might have changed again by now */
       assert(fb->Width == dPriv->w);

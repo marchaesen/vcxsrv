@@ -572,6 +572,7 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
       info->Outputs[info->NumOutputs].DstOffset = info->BufferStride[buffer];
       ++info->NumOutputs;
       info->BufferStride[buffer] += output_size;
+      info->BufferStream[buffer] = this->stream_id;
       num_components -= output_size;
       location++;
       location_frac = 0;
@@ -955,9 +956,16 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
          type = type->fields.array;
       }
 
-      slots = (type->is_array()
-            ? (type->length * type->fields.array->matrix_columns)
-            : type->matrix_columns);
+      if (type->is_array()) {
+         slots = 1;
+         while (type->is_array()) {
+            slots *= type->length;
+            type = type->fields.array;
+         }
+         slots *= type->matrix_columns;
+      } else {
+         slots = type->matrix_columns;
+      }
       this->matches[this->num_matches].num_components = 4 * slots;
    } else {
       this->matches[this->num_matches].num_components

@@ -130,7 +130,7 @@ lower_vertex_id(gl_shader *shader)
       return false;
 
    ir_function_signature *const main_sig =
-      link_get_main_function_signature(shader);
+      _mesa_get_main_function_signature(shader);
    if (main_sig == NULL) {
       assert(main_sig != NULL);
       return false;

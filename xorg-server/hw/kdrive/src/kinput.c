@@ -1641,41 +1641,6 @@ KdClassifyInput(KdPointerInfo * pi, int type, int x, int y, int z, int b)
     return keyboard;
 }
 
-#ifdef DEBUG
-char *kdStateNames[] = {
-    "start",
-    "button_1_pend",
-    "button_1_down",
-    "button_2_down",
-    "button_3_pend",
-    "button_3_down",
-    "synth_2_down_13",
-    "synth_2_down_3",
-    "synthetic_2_down_1",
-    "num_input_states"
-};
-
-char *kdClassNames[] = {
-    "down_1", "up_1",
-    "down_2", "up_2",
-    "down_3", "up_3",
-    "motion", "ouside_box",
-    "keyboard", "timeout",
-    "num_input_class"
-};
-
-char *kdActionNames[] = {
-    "noop",
-    "hold",
-    "setto",
-    "deliver",
-    "release",
-    "clearto",
-    "gen_down_2",
-    "gen_up_2",
-};
-#endif                          /* DEBUG */
-
 /* We return true if we're stealing the event. */
 static Bool
 KdRunMouseMachine(KdPointerInfo * pi, KdInputClass c, int type, int x, int y,

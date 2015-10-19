@@ -105,10 +105,17 @@ update_depth_stencil_alpha(struct st_context *st)
    memset(dsa, 0, sizeof(*dsa));
    memset(&sr, 0, sizeof(sr));
 
-   if (ctx->Depth.Test && ctx->DrawBuffer->Visual.depthBits > 0) {
-      dsa->depth.enabled = 1;
-      dsa->depth.writemask = ctx->Depth.Mask;
-      dsa->depth.func = st_compare_func_to_pipe(ctx->Depth.Func);
+   if (ctx->DrawBuffer->Visual.depthBits > 0) {
+      if (ctx->Depth.Test) {
+         dsa->depth.enabled = 1;
+         dsa->depth.writemask = ctx->Depth.Mask;
+         dsa->depth.func = st_compare_func_to_pipe(ctx->Depth.Func);
+      }
+      if (ctx->Depth.BoundsTest) {
+         dsa->depth.bounds_test = 1;
+         dsa->depth.bounds_min = ctx->Depth.BoundsMin;
+         dsa->depth.bounds_max = ctx->Depth.BoundsMax;
+      }
    }
 
    if (ctx->Stencil.Enabled && ctx->DrawBuffer->Visual.stencilBits > 0) {

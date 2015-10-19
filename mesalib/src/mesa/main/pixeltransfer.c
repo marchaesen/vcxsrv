@@ -35,6 +35,7 @@
 #include "pixeltransfer.h"
 #include "imports.h"
 #include "mtypes.h"
+#include "util/rounding.h"
 
 
 /*
@@ -94,10 +95,10 @@ _mesa_map_rgba( const struct gl_context *ctx, GLuint n, GLfloat rgba[][4] )
       GLfloat g = CLAMP(rgba[i][GCOMP], 0.0F, 1.0F);
       GLfloat b = CLAMP(rgba[i][BCOMP], 0.0F, 1.0F);
       GLfloat a = CLAMP(rgba[i][ACOMP], 0.0F, 1.0F);
-      rgba[i][RCOMP] = rMap[F_TO_I(r * rscale)];
-      rgba[i][GCOMP] = gMap[F_TO_I(g * gscale)];
-      rgba[i][BCOMP] = bMap[F_TO_I(b * bscale)];
-      rgba[i][ACOMP] = aMap[F_TO_I(a * ascale)];
+      rgba[i][RCOMP] = rMap[(int)_mesa_lroundevenf(r * rscale)];
+      rgba[i][GCOMP] = gMap[(int)_mesa_lroundevenf(g * gscale)];
+      rgba[i][BCOMP] = bMap[(int)_mesa_lroundevenf(b * bscale)];
+      rgba[i][ACOMP] = aMap[(int)_mesa_lroundevenf(a * ascale)];
    }
 }
 
@@ -236,7 +237,7 @@ _mesa_apply_ci_transfer_ops(const struct gl_context *ctx,
       GLuint i;
       for (i = 0; i < n; i++) {
          const GLuint j = indexes[i] & mask;
-         indexes[i] = F_TO_I(ctx->PixelMaps.ItoI.Map[j]);
+         indexes[i] = _mesa_lroundevenf(ctx->PixelMaps.ItoI.Map[j]);
       }
    }
 }

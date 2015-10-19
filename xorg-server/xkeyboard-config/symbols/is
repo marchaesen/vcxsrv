@@ -272,6 +272,7 @@ xkb_symbols "dvorak" {
     name[Group1]= "Icelandic (Dvorak)";
 
     key <AD11> { [      slash,  question,    U201e,   U201c   ] };
+    key <AC02> { [       o,     O,           odiaeresis, Odiaeresis ] };
     key <AC06> { [       d,     D,           eth,     ETH     ] };
     key <AC10> { [       s,     S,           ae,      AE      ] };
     key <AC11> { [   minus,     underscore,  endash,  emdash  ] };

@@ -30,6 +30,7 @@
 #include "texcompress.h"
 #include "texcompress_bptc.h"
 #include "util/format_srgb.h"
+#include "util/half_float.h"
 #include "texstore.h"
 #include "macros.h"
 #include "image.h"
@@ -1291,7 +1292,8 @@ _mesa_texstore_bptc_rgba_unorm(TEXSTORE_PARAMS)
       tempImageSlices[0] = (GLubyte *) tempImage;
       _mesa_texstore(ctx, dims,
                      baseInternalFormat,
-                     MESA_FORMAT_R8G8B8A8_UNORM,
+                     _mesa_little_endian() ? MESA_FORMAT_R8G8B8A8_UNORM
+                                           : MESA_FORMAT_A8B8G8R8_UNORM,
                      rgbaRowStride, tempImageSlices,
                      srcWidth, srcHeight, srcDepth,
                      srcFormat, srcType, srcAddr,

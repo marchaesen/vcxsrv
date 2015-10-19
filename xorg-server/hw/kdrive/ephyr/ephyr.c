@@ -50,7 +50,6 @@
 
 #include "xkbsrv.h"
 
-extern int KdTsPhyScreen;
 extern Bool ephyr_glamor;
 
 KdKeyboardInfo *ephyrKbd;
@@ -69,16 +68,6 @@ typedef struct _EphyrInputPrivate {
 Bool EphyrWantGrayScale = 0;
 Bool EphyrWantResize = 0;
 Bool EphyrWantNoHostGrab = 0;
-
-Bool
-host_has_extension(xcb_extension_t *extension)
-{
-    const xcb_query_extension_reply_t *rep;
-
-    rep = xcb_get_extension_data(hostx_get_xcbconn(), extension);
-
-    return rep && rep->present;
-}
 
 Bool
 ephyrInitialize(KdCardInfo * card, EphyrPriv * priv)
@@ -670,7 +659,7 @@ ephyrInitScreen(ScreenPtr pScreen)
     }
 #endif /*XV*/
 #ifdef XF86DRI
-    if (!ephyrNoDRI && !host_has_extension(&xcb_xf86dri_id)) {
+    if (!ephyrNoDRI && !hostx_has_extension(&xcb_xf86dri_id)) {
         EPHYR_LOG("host x does not support DRI. Disabling DRI forwarding\n");
         ephyrNoDRI = TRUE;
     }
@@ -977,8 +966,8 @@ ephyrProcessMouseMotion(xcb_generic_event_t *xev)
 
     if (ephyrCursorScreen != screen->pScreen) {
         EPHYR_LOG("warping mouse cursor. "
-                  "cur_screen%d, motion_screen:%d\n",
-                  ephyrCursorScreen, screen->pScreen->myNum);
+                  "cur_screen:%d, motion_screen:%d\n",
+                  ephyrCursorScreen->myNum, screen->pScreen->myNum);
         ephyrWarpCursor(inputInfo.pointer, screen->pScreen,
                         motion->event_x, motion->event_y);
     }

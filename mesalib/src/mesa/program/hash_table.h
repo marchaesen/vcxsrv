@@ -249,6 +249,7 @@ public:
       wrapper->closure = closure;
 
       hash_table_call_foreach(this->ht, subtract_one_wrapper, wrapper);
+      free(wrapper);
    }
 
    /**

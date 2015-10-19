@@ -56,6 +56,9 @@ static void update_clip( struct st_context *st )
          use_eye = TRUE;
    }
 
+   /* _ClipUserPlane = _NEW_TRANSFORM | _NEW_PROJECTION
+    * EyeUserPlane = _NEW_TRANSFORM
+    */
    memcpy(clip.ucp,
           use_eye ? ctx->Transform.EyeUserPlane
                   : ctx->Transform._ClipUserPlane, sizeof(clip.ucp));
@@ -70,7 +73,7 @@ static void update_clip( struct st_context *st )
 const struct st_tracked_state st_update_clip = {
    "st_update_clip",					/* name */
    {							/* dirty */
-      _NEW_TRANSFORM,                                   /* mesa */
+      _NEW_TRANSFORM | _NEW_PROJECTION,                 /* mesa */
       ST_NEW_VERTEX_PROGRAM,				/* st */
    },
    update_clip						/* update */

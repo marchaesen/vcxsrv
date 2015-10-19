@@ -173,59 +173,18 @@ _mesa_set_program_error(struct gl_context *ctx, GLint pos, const char *string)
 
 
 /**
- * Find the line number and column for 'pos' within 'string'.
- * Return a copy of the line which contains 'pos'.  Free the line with
- * free().
- * \param string  the program string
- * \param pos     the position within the string
- * \param line    returns the line number corresponding to 'pos'.
- * \param col     returns the column number corresponding to 'pos'.
- * \return copy of the line containing 'pos'.
- */
-const GLubyte *
-_mesa_find_line_column(const GLubyte *string, const GLubyte *pos,
-                       GLint *line, GLint *col)
-{
-   const GLubyte *lineStart = string;
-   const GLubyte *p = string;
-   GLubyte *s;
-   int len;
-
-   *line = 1;
-
-   while (p != pos) {
-      if (*p == (GLubyte) '\n') {
-         (*line)++;
-         lineStart = p + 1;
-      }
-      p++;
-   }
-
-   *col = (pos - lineStart) + 1;
-
-   /* return copy of this line */
-   while (*p != 0 && *p != '\n')
-      p++;
-   len = p - lineStart;
-   s = malloc(len + 1);
-   memcpy(s, lineStart, len);
-   s[len] = 0;
-
-   return s;
-}
-
-
-/**
  * Initialize a new gl_program object.
  */
-static void
-init_program_struct(struct gl_program *prog, GLenum target, GLuint id)
+struct gl_program *
+_mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id)
 {
    GLuint i;
 
-   assert(prog);
+   if (!prog)
+      return NULL;
 
    memset(prog, 0, sizeof(*prog));
+   mtx_init(&prog->Mutex, mtx_plain);
    prog->Id = id;
    prog->Target = target;
    prog->RefCount = 1;
@@ -234,102 +193,8 @@ init_program_struct(struct gl_program *prog, GLenum target, GLuint id)
    /* default mapping from samplers to texture units */
    for (i = 0; i < MAX_SAMPLERS; i++)
       prog->SamplerUnits[i] = i;
-}
 
-
-/**
- * Initialize a new fragment program object.
- */
-struct gl_program *
-_mesa_init_fragment_program(struct gl_context *ctx,
-                            struct gl_fragment_program *prog,
-                            GLenum target, GLuint id)
-{
-   if (prog) {
-      init_program_struct(&prog->Base, target, id);
-      return &prog->Base;
-   }
-   return NULL;
-}
-
-
-/**
- * Initialize a new vertex program object.
- */
-struct gl_program *
-_mesa_init_vertex_program(struct gl_context *ctx,
-                          struct gl_vertex_program *prog,
-                          GLenum target, GLuint id)
-{
-   if (prog) {
-      init_program_struct(&prog->Base, target, id);
-      return &prog->Base;
-   }
-   return NULL;
-}
-
-
-/**
- * Initialize a new compute program object.
- */
-struct gl_program *
-_mesa_init_compute_program(struct gl_context *ctx,
-                           struct gl_compute_program *prog,
-                           GLenum target, GLuint id)
-{
-   if (prog) {
-      init_program_struct(&prog->Base, target, id);
-      return &prog->Base;
-   }
-   return NULL;
-}
-
-
-/**
- * Initialize a new tessellation control program object.
- */
-struct gl_program *
-_mesa_init_tess_ctrl_program(struct gl_context *ctx,
-                             struct gl_tess_ctrl_program *prog,
-                             GLenum target, GLuint id)
-{
-   if (prog) {
-      init_program_struct(&prog->Base, target, id);
-      return &prog->Base;
-   }
-   return NULL;
-}
-
-
-/**
- * Initialize a new tessellation evaluation program object.
- */
-struct gl_program *
-_mesa_init_tess_eval_program(struct gl_context *ctx,
-                             struct gl_tess_eval_program *prog,
-                             GLenum target, GLuint id)
-{
-   if (prog) {
-      init_program_struct(&prog->Base, target, id);
-      return &prog->Base;
-   }
-   return NULL;
-}
-
-
-/**
- * Initialize a new geometry program object.
- */
-struct gl_program *
-_mesa_init_geometry_program(struct gl_context *ctx,
-                            struct gl_geometry_program *prog,
-                            GLenum target, GLuint id)
-{
-   if (prog) {
-      init_program_struct(&prog->Base, target, id);
-      return &prog->Base;
-   }
-   return NULL;
+   return prog;
 }
 
 
@@ -348,43 +213,36 @@ _mesa_init_geometry_program(struct gl_context *ctx,
 struct gl_program *
 _mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id)
 {
-   struct gl_program *prog;
    switch (target) {
-   case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
-      prog = _mesa_init_vertex_program(ctx, CALLOC_STRUCT(gl_vertex_program),
-                                       target, id );
-      break;
+   case GL_VERTEX_PROGRAM_ARB: { /* == GL_VERTEX_PROGRAM_NV */
+      struct gl_vertex_program *prog = CALLOC_STRUCT(gl_vertex_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
+   }
    case GL_FRAGMENT_PROGRAM_NV:
-   case GL_FRAGMENT_PROGRAM_ARB:
-      prog =_mesa_init_fragment_program(ctx,
-                                         CALLOC_STRUCT(gl_fragment_program),
-                                         target, id );
-      break;
-   case GL_GEOMETRY_PROGRAM_NV:
-      prog = _mesa_init_geometry_program(ctx,
-                                         CALLOC_STRUCT(gl_geometry_program),
-                                         target, id);
-      break;
-   case GL_TESS_CONTROL_PROGRAM_NV:
-      prog = _mesa_init_tess_ctrl_program(ctx,
-                                          CALLOC_STRUCT(gl_tess_ctrl_program),
-                                          target, id);
-      break;
-   case GL_TESS_EVALUATION_PROGRAM_NV:
-      prog = _mesa_init_tess_eval_program(ctx,
-                                         CALLOC_STRUCT(gl_tess_eval_program),
-                                         target, id);
-      break;
-   case GL_COMPUTE_PROGRAM_NV:
-      prog = _mesa_init_compute_program(ctx,
-                                        CALLOC_STRUCT(gl_compute_program),
-                                        target, id);
-      break;
+   case GL_FRAGMENT_PROGRAM_ARB: {
+      struct gl_fragment_program *prog = CALLOC_STRUCT(gl_fragment_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
+   }
+   case GL_GEOMETRY_PROGRAM_NV: {
+      struct gl_geometry_program *prog = CALLOC_STRUCT(gl_geometry_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
+   }
+   case GL_TESS_CONTROL_PROGRAM_NV: {
+      struct gl_tess_ctrl_program *prog = CALLOC_STRUCT(gl_tess_ctrl_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
+   }
+   case GL_TESS_EVALUATION_PROGRAM_NV: {
+      struct gl_tess_eval_program *prog = CALLOC_STRUCT(gl_tess_eval_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
+   }
+   case GL_COMPUTE_PROGRAM_NV: {
+      struct gl_compute_program *prog = CALLOC_STRUCT(gl_compute_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
+   }
    default:
       _mesa_problem(ctx, "bad target in _mesa_new_program");
-      prog = NULL;
+      return NULL;
    }
-   return prog;
 }
 
 
@@ -418,6 +276,7 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
       ralloc_free(prog->nir);
    }
 
+   mtx_destroy(&prog->Mutex);
    free(prog);
 }
 
@@ -463,24 +322,18 @@ _mesa_reference_program_(struct gl_context *ctx,
 
    if (*ptr) {
       GLboolean deleteFlag;
+      struct gl_program *oldProg = *ptr;
 
-      /*mtx_lock(&(*ptr)->Mutex);*/
-#if 0
-      printf("Program %p ID=%u Target=%s  Refcount-- to %d\n",
-             *ptr, (*ptr)->Id,
-             ((*ptr)->Target == GL_VERTEX_PROGRAM_ARB ? "VP" :
-              ((*ptr)->Target == GL_GEOMETRY_PROGRAM_NV ? "GP" : "FP")),
-             (*ptr)->RefCount - 1);
-#endif
-      assert((*ptr)->RefCount > 0);
-      (*ptr)->RefCount--;
+      mtx_lock(&oldProg->Mutex);
+      assert(oldProg->RefCount > 0);
+      oldProg->RefCount--;
 
-      deleteFlag = ((*ptr)->RefCount == 0);
-      /*mtx_lock(&(*ptr)->Mutex);*/
+      deleteFlag = (oldProg->RefCount == 0);
+      mtx_unlock(&oldProg->Mutex);
 
       if (deleteFlag) {
          assert(ctx);
-         ctx->Driver.DeleteProgram(ctx, *ptr);
+         ctx->Driver.DeleteProgram(ctx, oldProg);
       }
 
       *ptr = NULL;
@@ -488,136 +341,12 @@ _mesa_reference_program_(struct gl_context *ctx,
 
    assert(!*ptr);
    if (prog) {
-      /*mtx_lock(&prog->Mutex);*/
+      mtx_lock(&prog->Mutex);
       prog->RefCount++;
-#if 0
-      printf("Program %p ID=%u Target=%s  Refcount++ to %d\n",
-             prog, prog->Id,
-             (prog->Target == GL_VERTEX_PROGRAM_ARB ? "VP" :
-              (prog->Target == GL_GEOMETRY_PROGRAM_NV ? "GP" : "FP")),
-             prog->RefCount);
-#endif
-      /*mtx_unlock(&prog->Mutex);*/
+      mtx_unlock(&prog->Mutex);
    }
 
    *ptr = prog;
-}
-
-
-/**
- * Return a copy of a program.
- * XXX Problem here if the program object is actually OO-derivation
- * made by a device driver.
- */
-struct gl_program *
-_mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog)
-{
-   struct gl_program *clone;
-
-   clone = ctx->Driver.NewProgram(ctx, prog->Target, prog->Id);
-   if (!clone)
-      return NULL;
-
-   assert(clone->Target == prog->Target);
-   assert(clone->RefCount == 1);
-
-   clone->String = (GLubyte *) strdup((char *) prog->String);
-   clone->Format = prog->Format;
-   clone->Instructions = _mesa_alloc_instructions(prog->NumInstructions);
-   if (!clone->Instructions) {
-      _mesa_reference_program(ctx, &clone, NULL);
-      return NULL;
-   }
-   _mesa_copy_instructions(clone->Instructions, prog->Instructions,
-                           prog->NumInstructions);
-   clone->InputsRead = prog->InputsRead;
-   clone->OutputsWritten = prog->OutputsWritten;
-   clone->SamplersUsed = prog->SamplersUsed;
-   clone->ShadowSamplers = prog->ShadowSamplers;
-   memcpy(clone->TexturesUsed, prog->TexturesUsed, sizeof(prog->TexturesUsed));
-
-   if (prog->Parameters)
-      clone->Parameters = _mesa_clone_parameter_list(prog->Parameters);
-   if (prog->LocalParams) {
-      clone->LocalParams = malloc(MAX_PROGRAM_LOCAL_PARAMS *
-                                  sizeof(float[4]));
-      if (!clone->LocalParams) {
-         _mesa_reference_program(ctx, &clone, NULL);
-         return NULL;
-      }
-      memcpy(clone->LocalParams, prog->LocalParams,
-             MAX_PROGRAM_LOCAL_PARAMS * sizeof(float[4]));
-   }
-   clone->IndirectRegisterFiles = prog->IndirectRegisterFiles;
-   clone->NumInstructions = prog->NumInstructions;
-   clone->NumTemporaries = prog->NumTemporaries;
-   clone->NumParameters = prog->NumParameters;
-   clone->NumAttributes = prog->NumAttributes;
-   clone->NumAddressRegs = prog->NumAddressRegs;
-   clone->NumNativeInstructions = prog->NumNativeInstructions;
-   clone->NumNativeTemporaries = prog->NumNativeTemporaries;
-   clone->NumNativeParameters = prog->NumNativeParameters;
-   clone->NumNativeAttributes = prog->NumNativeAttributes;
-   clone->NumNativeAddressRegs = prog->NumNativeAddressRegs;
-   clone->NumAluInstructions = prog->NumAluInstructions;
-   clone->NumTexInstructions = prog->NumTexInstructions;
-   clone->NumTexIndirections = prog->NumTexIndirections;
-   clone->NumNativeAluInstructions = prog->NumNativeAluInstructions;
-   clone->NumNativeTexInstructions = prog->NumNativeTexInstructions;
-   clone->NumNativeTexIndirections = prog->NumNativeTexIndirections;
-
-   switch (prog->Target) {
-   case GL_VERTEX_PROGRAM_ARB:
-      {
-         const struct gl_vertex_program *vp = gl_vertex_program_const(prog);
-         struct gl_vertex_program *vpc = gl_vertex_program(clone);
-         vpc->IsPositionInvariant = vp->IsPositionInvariant;
-      }
-      break;
-   case GL_FRAGMENT_PROGRAM_ARB:
-      {
-         const struct gl_fragment_program *fp = gl_fragment_program_const(prog);
-         struct gl_fragment_program *fpc = gl_fragment_program(clone);
-         fpc->UsesKill = fp->UsesKill;
-         fpc->UsesDFdy = fp->UsesDFdy;
-         fpc->OriginUpperLeft = fp->OriginUpperLeft;
-         fpc->PixelCenterInteger = fp->PixelCenterInteger;
-      }
-      break;
-   case GL_GEOMETRY_PROGRAM_NV:
-      {
-         const struct gl_geometry_program *gp = gl_geometry_program_const(prog);
-         struct gl_geometry_program *gpc = gl_geometry_program(clone);
-         gpc->VerticesOut = gp->VerticesOut;
-         gpc->InputType = gp->InputType;
-         gpc->Invocations = gp->Invocations;
-         gpc->OutputType = gp->OutputType;
-         gpc->UsesEndPrimitive = gp->UsesEndPrimitive;
-         gpc->UsesStreams = gp->UsesStreams;
-      }
-      break;
-   case GL_TESS_CONTROL_PROGRAM_NV:
-      {
-         const struct gl_tess_ctrl_program *tcp = gl_tess_ctrl_program_const(prog);
-         struct gl_tess_ctrl_program *tcpc = gl_tess_ctrl_program(clone);
-         tcpc->VerticesOut = tcp->VerticesOut;
-      }
-      break;
-   case GL_TESS_EVALUATION_PROGRAM_NV:
-      {
-         const struct gl_tess_eval_program *tep = gl_tess_eval_program_const(prog);
-         struct gl_tess_eval_program *tepc = gl_tess_eval_program(clone);
-         tepc->PrimitiveMode = tep->PrimitiveMode;
-         tepc->Spacing = tep->Spacing;
-         tepc->VertexOrder = tep->VertexOrder;
-         tepc->PointMode = tep->PointMode;
-      }
-      break;
-   default:
-      _mesa_problem(NULL, "Unexpected target in _mesa_clone_program");
-   }
-
-   return clone;
 }
 
 
@@ -718,190 +447,6 @@ _mesa_delete_instructions(struct gl_program *prog, GLuint start, GLuint count)
 
 
 /**
- * Search instructions for registers that match (oldFile, oldIndex),
- * replacing them with (newFile, newIndex).
- */
-static void
-replace_registers(struct prog_instruction *inst, GLuint numInst,
-                  GLuint oldFile, GLuint oldIndex,
-                  GLuint newFile, GLuint newIndex)
-{
-   GLuint i, j;
-   for (i = 0; i < numInst; i++) {
-      /* src regs */
-      for (j = 0; j < _mesa_num_inst_src_regs(inst[i].Opcode); j++) {
-         if (inst[i].SrcReg[j].File == oldFile &&
-             inst[i].SrcReg[j].Index == oldIndex) {
-            inst[i].SrcReg[j].File = newFile;
-            inst[i].SrcReg[j].Index = newIndex;
-         }
-      }
-      /* dst reg */
-      if (inst[i].DstReg.File == oldFile && inst[i].DstReg.Index == oldIndex) {
-         inst[i].DstReg.File = newFile;
-         inst[i].DstReg.Index = newIndex;
-      }
-   }
-}
-
-
-/**
- * Search instructions for references to program parameters.  When found,
- * increment the parameter index by 'offset'.
- * Used when combining programs.
- */
-static void
-adjust_param_indexes(struct prog_instruction *inst, GLuint numInst,
-                     GLuint offset)
-{
-   GLuint i, j;
-   for (i = 0; i < numInst; i++) {
-      for (j = 0; j < _mesa_num_inst_src_regs(inst[i].Opcode); j++) {
-         GLuint f = inst[i].SrcReg[j].File;
-         if (f == PROGRAM_CONSTANT ||
-             f == PROGRAM_UNIFORM ||
-             f == PROGRAM_STATE_VAR) {
-            inst[i].SrcReg[j].Index += offset;
-         }
-      }
-   }
-}
-
-
-/**
- * Combine two programs into one.  Fix instructions so the outputs of
- * the first program go to the inputs of the second program.
- */
-struct gl_program *
-_mesa_combine_programs(struct gl_context *ctx,
-                       const struct gl_program *progA,
-                       const struct gl_program *progB)
-{
-   struct prog_instruction *newInst;
-   struct gl_program *newProg;
-   const GLuint lenA = progA->NumInstructions - 1; /* omit END instr */
-   const GLuint lenB = progB->NumInstructions;
-   const GLuint numParamsA = _mesa_num_parameters(progA->Parameters);
-   const GLuint newLength = lenA + lenB;
-   GLboolean usedTemps[MAX_PROGRAM_TEMPS];
-   GLuint firstTemp = 0;
-   GLbitfield64 inputsB;
-   GLuint i;
-
-   assert(progA->Target == progB->Target);
-
-   newInst = _mesa_alloc_instructions(newLength);
-   if (!newInst)
-      return GL_FALSE;
-
-   _mesa_copy_instructions(newInst, progA->Instructions, lenA);
-   _mesa_copy_instructions(newInst + lenA, progB->Instructions, lenB);
-
-   /* adjust branch / instruction addresses for B's instructions */
-   for (i = 0; i < lenB; i++) {
-      newInst[lenA + i].BranchTarget += lenA;
-   }
-
-   newProg = ctx->Driver.NewProgram(ctx, progA->Target, 0);
-   newProg->Instructions = newInst;
-   newProg->NumInstructions = newLength;
-
-   /* find used temp regs (we may need new temps below) */
-   _mesa_find_used_registers(newProg, PROGRAM_TEMPORARY,
-                             usedTemps, MAX_PROGRAM_TEMPS);
-
-   if (newProg->Target == GL_FRAGMENT_PROGRAM_ARB) {
-      const struct gl_fragment_program *fprogA, *fprogB;
-      struct gl_fragment_program *newFprog;
-      GLbitfield64 progB_inputsRead = progB->InputsRead;
-      GLint progB_colorFile, progB_colorIndex;
-
-      fprogA = gl_fragment_program_const(progA);
-      fprogB = gl_fragment_program_const(progB);
-      newFprog = gl_fragment_program(newProg);
-
-      newFprog->UsesKill = fprogA->UsesKill || fprogB->UsesKill;
-      newFprog->UsesDFdy = fprogA->UsesDFdy || fprogB->UsesDFdy;
-
-      /* We'll do a search and replace for instances
-       * of progB_colorFile/progB_colorIndex below...
-       */
-      progB_colorFile = PROGRAM_INPUT;
-      progB_colorIndex = VARYING_SLOT_COL0;
-
-      /*
-       * The fragment program may get color from a state var rather than
-       * a fragment input (vertex output) if it's constant.
-       * See the texenvprogram.c code.
-       * So, search the program's parameter list now to see if the program
-       * gets color from a state var instead of a conventional fragment
-       * input register.
-       */
-      for (i = 0; i < progB->Parameters->NumParameters; i++) {
-         struct gl_program_parameter *p = &progB->Parameters->Parameters[i];
-         if (p->Type == PROGRAM_STATE_VAR &&
-             p->StateIndexes[0] == STATE_INTERNAL &&
-             p->StateIndexes[1] == STATE_CURRENT_ATTRIB &&
-             (int) p->StateIndexes[2] == (int) VERT_ATTRIB_COLOR0) {
-            progB_inputsRead |= VARYING_BIT_COL0;
-            progB_colorFile = PROGRAM_STATE_VAR;
-            progB_colorIndex = i;
-            break;
-         }
-      }
-
-      /* Connect color outputs of fprogA to color inputs of fprogB, via a
-       * new temporary register.
-       */
-      if ((progA->OutputsWritten & BITFIELD64_BIT(FRAG_RESULT_COLOR)) &&
-          (progB_inputsRead & VARYING_BIT_COL0)) {
-         GLint tempReg = _mesa_find_free_register(usedTemps, MAX_PROGRAM_TEMPS,
-                                                  firstTemp);
-         if (tempReg < 0) {
-            _mesa_problem(ctx, "No free temp regs found in "
-                          "_mesa_combine_programs(), using 31");
-            tempReg = 31;
-         }
-         firstTemp = tempReg + 1;
-
-         /* replace writes to result.color[0] with tempReg */
-         replace_registers(newInst, lenA,
-                           PROGRAM_OUTPUT, FRAG_RESULT_COLOR,
-                           PROGRAM_TEMPORARY, tempReg);
-         /* replace reads from the input color with tempReg */
-         replace_registers(newInst + lenA, lenB,
-                           progB_colorFile, progB_colorIndex, /* search for */
-                           PROGRAM_TEMPORARY, tempReg  /* replace with */ );
-      }
-
-      /* compute combined program's InputsRead */
-      inputsB = progB_inputsRead;
-      if (progA->OutputsWritten & BITFIELD64_BIT(FRAG_RESULT_COLOR)) {
-         inputsB &= ~(1 << VARYING_SLOT_COL0);
-      }
-      newProg->InputsRead = progA->InputsRead | inputsB;
-      newProg->OutputsWritten = progB->OutputsWritten;
-      newProg->SamplersUsed = progA->SamplersUsed | progB->SamplersUsed;
-   }
-   else {
-      /* vertex program */
-      assert(0);      /* XXX todo */
-   }
-
-   /*
-    * Merge parameters (uniforms, constants, etc)
-    */
-   newProg->Parameters = _mesa_combine_parameter_lists(progA->Parameters,
-                                                       progB->Parameters);
-
-   adjust_param_indexes(newInst + lenA, lenB, numParamsA);
-
-
-   return newProg;
-}
-
-
-/**
  * Populate the 'used' array with flags indicating which registers (TEMPs,
  * INPUTs, OUTPUTs, etc, are used by the given program.
  * \param file  type of register to scan for
@@ -962,140 +507,6 @@ _mesa_find_free_register(const GLboolean used[],
    return -1;
 }
 
-
-
-/**
- * Check if the given register index is valid (doesn't exceed implementation-
- * dependent limits).
- * \return GL_TRUE if OK, GL_FALSE if bad index
- */
-GLboolean
-_mesa_valid_register_index(const struct gl_context *ctx,
-                           gl_shader_stage shaderType,
-                           gl_register_file file, GLint index)
-{
-   const struct gl_program_constants *c;
-
-   assert(0 <= shaderType && shaderType < MESA_SHADER_STAGES);
-   c = &ctx->Const.Program[shaderType];
-
-   switch (file) {
-   case PROGRAM_UNDEFINED:
-      return GL_TRUE;  /* XXX or maybe false? */
-
-   case PROGRAM_TEMPORARY:
-      return index >= 0 && index < (GLint) c->MaxTemps;
-
-   case PROGRAM_UNIFORM:
-   case PROGRAM_STATE_VAR:
-      /* aka constant buffer */
-      return index >= 0 && index < (GLint) c->MaxUniformComponents / 4;
-
-   case PROGRAM_CONSTANT:
-      /* constant buffer w/ possible relative negative addressing */
-      return (index > (int) c->MaxUniformComponents / -4 &&
-              index < (int) c->MaxUniformComponents / 4);
-
-   case PROGRAM_INPUT:
-      if (index < 0)
-         return GL_FALSE;
-
-      switch (shaderType) {
-      case MESA_SHADER_VERTEX:
-         return index < VERT_ATTRIB_GENERIC0 + (GLint) c->MaxAttribs;
-      case MESA_SHADER_FRAGMENT:
-         return index < VARYING_SLOT_VAR0 + (GLint) ctx->Const.MaxVarying;
-      case MESA_SHADER_GEOMETRY:
-         return index < VARYING_SLOT_VAR0 + (GLint) ctx->Const.MaxVarying;
-      default:
-         return GL_FALSE;
-      }
-
-   case PROGRAM_OUTPUT:
-      if (index < 0)
-         return GL_FALSE;
-
-      switch (shaderType) {
-      case MESA_SHADER_VERTEX:
-         return index < VARYING_SLOT_VAR0 + (GLint) ctx->Const.MaxVarying;
-      case MESA_SHADER_FRAGMENT:
-         return index < FRAG_RESULT_DATA0 + (GLint) ctx->Const.MaxDrawBuffers;
-      case MESA_SHADER_GEOMETRY:
-         return index < VARYING_SLOT_VAR0 + (GLint) ctx->Const.MaxVarying;
-      default:
-         return GL_FALSE;
-      }
-
-   case PROGRAM_ADDRESS:
-      return index >= 0 && index < (GLint) c->MaxAddressRegs;
-
-   default:
-      _mesa_problem(ctx,
-                    "unexpected register file in _mesa_valid_register_index()");
-      return GL_FALSE;
-   }
-}
-
-
-
-/**
- * "Post-process" a GPU program.  This is intended to be used for debugging.
- * Example actions include no-op'ing instructions or changing instruction
- * behaviour.
- */
-void
-_mesa_postprocess_program(struct gl_context *ctx, struct gl_program *prog)
-{
-   static const GLfloat white[4] = { 0.5, 0.5, 0.5, 0.5 };
-   GLuint i;
-   GLuint whiteSwizzle;
-   GLint whiteIndex = _mesa_add_unnamed_constant(prog->Parameters,
-                                                 (gl_constant_value *) white,
-                                                 4, &whiteSwizzle);
-
-   (void) whiteIndex;
-
-   for (i = 0; i < prog->NumInstructions; i++) {
-      struct prog_instruction *inst = prog->Instructions + i;
-      const GLuint n = _mesa_num_inst_src_regs(inst->Opcode);
-
-      (void) n;
-
-      if (_mesa_is_tex_instruction(inst->Opcode)) {
-#if 0
-         /* replace TEX/TXP/TXB with MOV */
-         inst->Opcode = OPCODE_MOV;
-         inst->DstReg.WriteMask = WRITEMASK_XYZW;
-         inst->SrcReg[0].Swizzle = SWIZZLE_XYZW;
-         inst->SrcReg[0].Negate = NEGATE_NONE;
-#endif
-
-#if 0
-         /* disable shadow texture mode */
-         inst->TexShadow = 0;
-#endif
-      }
-
-      if (inst->Opcode == OPCODE_TXP) {
-#if 0
-         inst->Opcode = OPCODE_MOV;
-         inst->DstReg.WriteMask = WRITEMASK_XYZW;
-         inst->SrcReg[0].File = PROGRAM_CONSTANT;
-         inst->SrcReg[0].Index = whiteIndex;
-         inst->SrcReg[0].Swizzle = SWIZZLE_XYZW;
-         inst->SrcReg[0].Negate = NEGATE_NONE;
-#endif
-#if 0
-         inst->TexShadow = 0;
-#endif
-#if 0
-         inst->Opcode = OPCODE_TEX;
-         inst->TexShadow = 0;
-#endif
-      }
-
-   }
-}
 
 /* Gets the minimum number of shader invocations per fragment.
  * This function is useful to determine if we need to do per

@@ -118,24 +118,17 @@ static SymTabRec Chipsets[] = {
     {-1, NULL}
 };
 
-typedef enum {
-    OPTION_SW_CURSOR,
-    OPTION_DEVICE_PATH,
-    OPTION_SHADOW_FB,
-    OPTION_ACCEL_METHOD,
-    OPTION_PAGEFLIP,
-} modesettingOpts;
-
 static const OptionInfoRec Options[] = {
     {OPTION_SW_CURSOR, "SWcursor", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_DEVICE_PATH, "kmsdev", OPTV_STRING, {0}, FALSE},
     {OPTION_SHADOW_FB, "ShadowFB", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_ACCEL_METHOD, "AccelMethod", OPTV_STRING, {0}, FALSE},
     {OPTION_PAGEFLIP, "PageFlip", OPTV_BOOLEAN, {0}, FALSE},
+    {OPTION_ZAPHOD_HEADS, "ZaphodHeads", OPTV_STRING, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE}
 };
 
-int modesettingEntityIndex = -1;
+int ms_entity_index = -1;
 
 static MODULESETUPPROTO(Setup);
 
@@ -185,6 +178,15 @@ Identify(int flags)
 {
     xf86PrintChipsets("modesetting", "Driver for Modesetting Kernel Drivers",
                       Chipsets);
+}
+
+modesettingEntPtr ms_ent_priv(ScrnInfoPtr scrn)
+{
+    DevUnion     *pPriv;
+    modesettingPtr ms = modesettingPTR(scrn);
+    pPriv = xf86GetEntityPrivate(ms->pEnt->index,
+                                 ms_entity_index);
+    return pPriv->ptr;
 }
 
 static int
@@ -374,12 +376,40 @@ ms_platform_probe(DriverPtr driver,
 
     if (probe_hw(path, dev)) {
         scrn = xf86AllocateScreen(driver, scr_flags);
+        if (xf86IsEntitySharable(entity_num))
+            xf86SetEntityShared(entity_num);
         xf86AddEntityToScreen(scrn, entity_num);
 
         ms_setup_scrn_hooks(scrn);
 
         xf86DrvMsg(scrn->scrnIndex, X_INFO,
                    "using drv %s\n", path ? path : "default device");
+
+        {
+            DevUnion *pPriv;
+            EntityInfoPtr pEnt;
+            modesettingEntPtr pMSEnt;
+
+            xf86SetEntitySharable(entity_num);
+
+            if (ms_entity_index == -1)
+                ms_entity_index = xf86AllocateEntityPrivateIndex();
+
+            pEnt = xf86GetEntityInfo(entity_num);
+            pPriv = xf86GetEntityPrivate(pEnt->index,
+                                         ms_entity_index);
+
+            xf86SetEntityInstanceForScreen(scrn, pEnt->index, xf86GetNumEntityInstances(pEnt->index) - 1);
+
+            if (!pPriv->ptr) {
+                pPriv->ptr = xnfcalloc(sizeof(modesettingEntRec), 1);
+                pMSEnt = pPriv->ptr;
+            } else {
+                pMSEnt = pPriv->ptr;
+            }
+            pMSEnt->platform_dev = dev;
+        }
+
     }
 
     return scrn != NULL;
@@ -596,19 +626,25 @@ FreeRec(ScrnInfoPtr pScrn)
     pScrn->driverPrivate = NULL;
 
     if (ms->fd > 0) {
+        modesettingEntPtr ms_ent;
         int ret;
 
-        if (ms->pEnt->location.type == BUS_PCI)
-            ret = drmClose(ms->fd);
-        else
+        ms_ent = ms_ent_priv(pScrn);
+        ms_ent->fd_ref--;
+        if (!ms_ent->fd_ref) {
+            if (ms->pEnt->location.type == BUS_PCI)
+                ret = drmClose(ms->fd);
+            else
 #ifdef XF86_PDEV_SERVER_FD
-        if (!(ms->pEnt->location.type == BUS_PLATFORM &&
-                  (ms->pEnt->location.id.plat->flags & XF86_PDEV_SERVER_FD)))
+                if (!(ms->pEnt->location.type == BUS_PLATFORM &&
+                      (ms->pEnt->location.id.plat->flags & XF86_PDEV_SERVER_FD)))
 #endif
-            ret = close(ms->fd);
-        (void) ret;
+                    ret = close(ms->fd);
+            (void) ret;
+            ms_ent->fd = 0;
+        }
     }
-    free(ms->Options);
+    free(ms->drmmode.Options);
     free(ms);
 
 }
@@ -617,7 +653,7 @@ static void
 try_enable_glamor(ScrnInfoPtr pScrn)
 {
     modesettingPtr ms = modesettingPTR(pScrn);
-    const char *accel_method_str = xf86GetOptValString(ms->Options,
+    const char *accel_method_str = xf86GetOptValString(ms->drmmode.Options,
                                                        OPTION_ACCEL_METHOD);
     Bool do_glamor = (!accel_method_str ||
                       strcmp(accel_method_str, "glamor") == 0);
@@ -659,59 +695,25 @@ try_enable_glamor(ScrnInfoPtr pScrn)
 #endif
 
 static Bool
-PreInit(ScrnInfoPtr pScrn, int flags)
+ms_get_drm_master_fd(ScrnInfoPtr pScrn)
 {
-    modesettingPtr ms;
-    rgb defaultWeight = { 0, 0, 0 };
     EntityInfoPtr pEnt;
-    EntPtr msEnt = NULL;
+    modesettingPtr ms;
+    modesettingEntPtr ms_ent;
     char *BusID = NULL;
-    const char *devicename;
-    uint64_t value = 0;
-    int ret;
-    int bppflags;
-    int defaultdepth, defaultbpp;
-
-    if (pScrn->numEntities != 1)
-        return FALSE;
-
-    pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
-
-    if (flags & PROBE_DETECT) {
-        return FALSE;
-    }
-
-    /* Allocate driverPrivate */
-    if (!GetRec(pScrn))
-        return FALSE;
 
     ms = modesettingPTR(pScrn);
-    ms->SaveGeneration = -1;
-    ms->pEnt = pEnt;
+    ms_ent = ms_ent_priv(pScrn);
 
-    pScrn->displayWidth = 640;  /* default it */
+    pEnt = ms->pEnt;
 
-    /* Allocate an entity private if necessary */
-    if (xf86IsEntityShared(pScrn->entityList[0])) {
-        msEnt = xf86GetEntityPrivate(pScrn->entityList[0],
-                                     modesettingEntityIndex)->ptr;
-        ms->entityPrivate = msEnt;
+    if (ms_ent->fd) {
+        xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+                   " reusing fd for second head\n");
+        ms->fd = ms_ent->fd;
+        ms_ent->fd_ref++;
+        return TRUE;
     }
-    else
-        ms->entityPrivate = NULL;
-
-    if (xf86IsEntityShared(pScrn->entityList[0])) {
-        if (xf86IsPrimInitDone(pScrn->entityList[0])) {
-            /* do something */
-        }
-        else {
-            xf86SetPrimInitDone(pScrn->entityList[0]);
-        }
-    }
-
-    pScrn->monitor = pScrn->confScreen->monitor;
-    pScrn->progClock = TRUE;
-    pScrn->rgbBits = 8;
 
 #if XSERVER_PLATFORM_BUS
     if (pEnt->location.type == BUS_PLATFORM) {
@@ -749,12 +751,61 @@ PreInit(ScrnInfoPtr pScrn, int flags)
         ms->fd = drmOpen(NULL, BusID);
     }
     else {
+        const char *devicename;
         devicename = xf86FindOptionValue(ms->pEnt->device->options, "kmsdev");
         ms->fd = open_hw(devicename);
     }
     if (ms->fd < 0)
         return FALSE;
 
+    ms_ent->fd = ms->fd;
+    ms_ent->fd_ref = 1;
+    return TRUE;
+}
+
+static Bool
+PreInit(ScrnInfoPtr pScrn, int flags)
+{
+    modesettingPtr ms;
+    rgb defaultWeight = { 0, 0, 0 };
+    EntityInfoPtr pEnt;
+    uint64_t value = 0;
+    int ret;
+    int bppflags;
+    int defaultdepth, defaultbpp;
+
+    if (pScrn->numEntities != 1)
+        return FALSE;
+
+    pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
+
+    if (flags & PROBE_DETECT) {
+        return FALSE;
+    }
+
+    /* Allocate driverPrivate */
+    if (!GetRec(pScrn))
+        return FALSE;
+
+    ms = modesettingPTR(pScrn);
+    ms->SaveGeneration = -1;
+    ms->pEnt = pEnt;
+    ms->drmmode.is_secondary = FALSE;
+    pScrn->displayWidth = 640;  /* default it */
+
+    if (xf86IsEntityShared(pScrn->entityList[0])) {
+        if (xf86IsPrimInitDone(pScrn->entityList[0]))
+            ms->drmmode.is_secondary = TRUE;
+        else
+            xf86SetPrimInitDone(pScrn->entityList[0]);
+    }
+
+    pScrn->monitor = pScrn->confScreen->monitor;
+    pScrn->progClock = TRUE;
+    pScrn->rgbBits = 8;
+
+    if (!ms_get_drm_master_fd(pScrn))
+        return FALSE;
     ms->drmmode.fd = ms->fd;
 
     pScrn->capabilities = 0;
@@ -794,17 +845,17 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 
     /* Process the options */
     xf86CollectOptions(pScrn, NULL);
-    if (!(ms->Options = malloc(sizeof(Options))))
+    if (!(ms->drmmode.Options = malloc(sizeof(Options))))
         return FALSE;
-    memcpy(ms->Options, Options, sizeof(Options));
-    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, ms->Options);
+    memcpy(ms->drmmode.Options, Options, sizeof(Options));
+    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, ms->drmmode.Options);
 
     if (!xf86SetWeight(pScrn, defaultWeight, defaultWeight))
         return FALSE;
     if (!xf86SetDefaultVisual(pScrn, -1))
         return FALSE;
 
-    if (xf86ReturnOptValBool(ms->Options, OPTION_SW_CURSOR, FALSE)) {
+    if (xf86ReturnOptValBool(ms->drmmode.Options, OPTION_SW_CURSOR, FALSE)) {
         ms->drmmode.sw_cursor = TRUE;
     }
 
@@ -823,7 +874,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 
     if (ms->drmmode.glamor) {
         ms->drmmode.pageflip =
-            xf86ReturnOptValBool(ms->Options, OPTION_PAGEFLIP, TRUE);
+            xf86ReturnOptValBool(ms->drmmode.Options, OPTION_PAGEFLIP, TRUE);
     } else {
         Bool prefer_shadow = TRUE;
 
@@ -832,7 +883,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
             prefer_shadow = !!value;
         }
 
-        ms->drmmode.shadow_enable = xf86ReturnOptValBool(ms->Options,
+        ms->drmmode.shadow_enable = xf86ReturnOptValBool(ms->drmmode.Options,
                                                          OPTION_SHADOW_FB,
                                                          prefer_shadow);
 
@@ -1277,6 +1328,10 @@ CloseScreen(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     modesettingPtr ms = modesettingPTR(pScrn);
+    modesettingEntPtr ms_ent = ms_ent_priv(pScrn);
+
+    /* Clear mask of assigned crtc's in this generation */
+    ms_ent->assigned_crtcs = 0;
 
 #ifdef GLAMOR
     if (ms->drmmode.glamor) {

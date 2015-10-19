@@ -457,7 +457,7 @@ null_constant_buffer(struct pipe_context *ctx)
 void
 util_run_tests(struct pipe_screen *screen)
 {
-   struct pipe_context *ctx = screen->context_create(screen, NULL);
+   struct pipe_context *ctx = screen->context_create(screen, NULL, 0);
 
    tgsi_vs_window_space_position(ctx);
    null_sampler_view(ctx, TGSI_TEXTURE_2D);

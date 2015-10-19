@@ -93,7 +93,7 @@ xkb_symbols "swap_alt_win" {
 };
 
 // Swap the left Alt and Win keys.
-hidden partial modifier_keys
+partial modifier_keys
 xkb_symbols "swap_lalt_lwin" {
     key <LALT> { type[Group1] = "ONE_LEVEL",
                  symbols[Group1] = [ Super_L ] };

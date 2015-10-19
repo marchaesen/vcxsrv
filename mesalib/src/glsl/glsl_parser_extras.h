@@ -115,6 +115,20 @@ struct _mesa_glsl_parse_state {
                       unsigned required_glsl_es_version,
                       YYLTYPE *locp, const char *fmt, ...) PRINTFLIKE(5, 6);
 
+   bool check_arrays_of_arrays_allowed(YYLTYPE *locp)
+   {
+      if (!(ARB_arrays_of_arrays_enable || is_version(430, 310))) {
+         const char *const requirement = this->es_shader
+            ? "GLSL ES 3.10"
+            : "GL_ARB_arrays_of_arrays or GLSL 4.30";
+         _mesa_glsl_error(locp, this,
+                          "%s required for defining arrays of arrays.",
+                          requirement);
+         return false;
+      }
+      return true;
+   }
+
    bool check_precision_qualifiers_allowed(YYLTYPE *locp)
    {
       return check_version(130, 100, locp,
@@ -217,7 +231,7 @@ struct _mesa_glsl_parse_state {
 
    bool has_shader_storage_buffer_objects() const
    {
-      return ARB_shader_storage_buffer_object_enable || is_version(430, 0);
+      return ARB_shader_storage_buffer_object_enable || is_version(430, 310);
    }
 
    bool has_separate_shader_objects() const
@@ -234,6 +248,11 @@ struct _mesa_glsl_parse_state {
    bool has_420pack() const
    {
       return ARB_shading_language_420pack_enable || is_version(420, 0);
+   }
+
+   bool has_compute_shader() const
+   {
+      return ARB_compute_shader_enable || is_version(430, 310);
    }
 
    void process_version_directive(YYLTYPE *locp, int version,
@@ -268,6 +287,13 @@ struct _mesa_glsl_parse_state {
     * those blocks.
     */
    struct ast_type_qualifier *default_uniform_qualifier;
+
+   /**
+    * Default shader storage layout qualifiers tracked during parsing.
+    * Currently affects shader storage blocks and shader storage buffer
+    * variables in those blocks.
+    */
+   struct ast_type_qualifier *default_shader_storage_qualifier;
 
    /**
     * Variables to track different cases if a fragment shader redeclares
@@ -390,7 +416,7 @@ struct _mesa_glsl_parse_state {
 
       /* ARB_shader_image_load_store */
       unsigned MaxImageUnits;
-      unsigned MaxCombinedImageUnitsAndFragmentOutputs;
+      unsigned MaxCombinedShaderOutputResources;
       unsigned MaxImageSamples;
       unsigned MaxVertexImageUniforms;
       unsigned MaxTessControlImageUniforms;
@@ -495,6 +521,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_bit_encoding_warn;
    bool ARB_shader_image_load_store_enable;
    bool ARB_shader_image_load_store_warn;
+   bool ARB_shader_image_size_enable;
+   bool ARB_shader_image_size_warn;
    bool ARB_shader_precision_enable;
    bool ARB_shader_precision_warn;
    bool ARB_shader_stencil_export_enable;
@@ -503,6 +531,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_storage_buffer_object_warn;
    bool ARB_shader_subroutine_enable;
    bool ARB_shader_subroutine_warn;
+   bool ARB_shader_texture_image_samples_enable;
+   bool ARB_shader_texture_image_samples_warn;
    bool ARB_shader_texture_lod_enable;
    bool ARB_shader_texture_lod_warn;
    bool ARB_shading_language_420pack_enable;
@@ -541,6 +571,8 @@ struct _mesa_glsl_parse_state {
    bool OES_standard_derivatives_warn;
    bool OES_texture_3D_enable;
    bool OES_texture_3D_warn;
+   bool OES_texture_storage_multisample_2d_array_enable;
+   bool OES_texture_storage_multisample_2d_array_warn;
 
    /* All other extensions go here, sorted alphabetically.
     */

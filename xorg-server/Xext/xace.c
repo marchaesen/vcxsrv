@@ -29,11 +29,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "gcstruct.h"
 #include "xacestr.h"
 
-#define XSERV_t
-#define TRANS_SERVER
-#include <X11/Xtrans/Xtrans.h>
-#include "../os/osdep.h"
-
 _X_EXPORT CallbackListPtr XaceHooks[XACE_NUM_HOOKS] = { 0 };
 
 /* Special-cased hook functions.  Called by Xserver.
@@ -342,15 +337,11 @@ XaceCensorImage(ClientPtr client,
 int
 XaceGetConnectionNumber(ClientPtr client)
 {
-    XtransConnInfo ci = ((OsCommPtr) client->osPrivate)->trans_conn;
-
-    return _XSERVTransGetConnectionNumber(ci);
+    return GetClientFd(client);
 }
 
 int
 XaceIsLocal(ClientPtr client)
 {
-    XtransConnInfo ci = ((OsCommPtr) client->osPrivate)->trans_conn;
-
-    return _XSERVTransIsLocal(ci);
+    return ClientIsLocal(client);
 }

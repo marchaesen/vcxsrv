@@ -553,7 +553,7 @@ _mesa_UniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			2, 2, location, count, transpose, value, GL_FLOAT);
+			2, 2, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -562,7 +562,7 @@ _mesa_UniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			3, 3, location, count, transpose, value, GL_FLOAT);
+			3, 3, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -571,7 +571,7 @@ _mesa_UniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			4, 4, location, count, transpose, value, GL_FLOAT);
+			4, 4, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 /** Same as above with direct state access **/
@@ -683,7 +683,7 @@ _mesa_ProgramUniformMatrix2fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix2fv");
-   _mesa_uniform_matrix(ctx, shProg, 2, 2, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 2, 2, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -694,7 +694,7 @@ _mesa_ProgramUniformMatrix3fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix3fv");
-   _mesa_uniform_matrix(ctx, shProg, 3, 3, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 3, 3, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -705,7 +705,7 @@ _mesa_ProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix4fv");
-   _mesa_uniform_matrix(ctx, shProg, 4, 4, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 4, 4, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 
@@ -718,7 +718,7 @@ _mesa_UniformMatrix2x3fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			2, 3, location, count, transpose, value, GL_FLOAT);
+			2, 3, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -727,7 +727,7 @@ _mesa_UniformMatrix3x2fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			3, 2, location, count, transpose, value, GL_FLOAT);
+			3, 2, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -736,7 +736,7 @@ _mesa_UniformMatrix2x4fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			2, 4, location, count, transpose, value, GL_FLOAT);
+			2, 4, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -745,7 +745,7 @@ _mesa_UniformMatrix4x2fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			4, 2, location, count, transpose, value, GL_FLOAT);
+			4, 2, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -754,7 +754,7 @@ _mesa_UniformMatrix3x4fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			3, 4, location, count, transpose, value, GL_FLOAT);
+			3, 4, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -763,7 +763,7 @@ _mesa_UniformMatrix4x3fv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			4, 3, location, count, transpose, value, GL_FLOAT);
+			4, 3, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 /** Same as above with direct state access **/
@@ -776,7 +776,7 @@ _mesa_ProgramUniformMatrix2x3fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix2x3fv");
-   _mesa_uniform_matrix(ctx, shProg, 2, 3, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 2, 3, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -787,7 +787,7 @@ _mesa_ProgramUniformMatrix3x2fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix3x2fv");
-   _mesa_uniform_matrix(ctx, shProg, 3, 2, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 3, 2, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -798,7 +798,7 @@ _mesa_ProgramUniformMatrix2x4fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix2x4fv");
-   _mesa_uniform_matrix(ctx, shProg, 2, 4, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 2, 4, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -809,7 +809,7 @@ _mesa_ProgramUniformMatrix4x2fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix4x2fv");
-   _mesa_uniform_matrix(ctx, shProg, 4, 2, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 4, 2, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -820,7 +820,7 @@ _mesa_ProgramUniformMatrix3x4fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix3x4fv");
-   _mesa_uniform_matrix(ctx, shProg, 3, 4, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 3, 4, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 void GLAPIENTRY
@@ -831,7 +831,7 @@ _mesa_ProgramUniformMatrix4x3fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix4x3fv");
-   _mesa_uniform_matrix(ctx, shProg, 4, 3, location, count, transpose, value, GL_FLOAT);
+   _mesa_uniform_matrix(ctx, shProg, 4, 3, location, count, transpose, value, GLSL_TYPE_FLOAT);
 }
 
 
@@ -888,16 +888,7 @@ _mesa_GetnUniformdvARB(GLuint program, GLint location,
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   (void) program;
-   (void) location;
-   (void) bufSize;
-   (void) params;
-
-   /*
    _mesa_get_uniform(ctx, program, location, bufSize, GLSL_TYPE_DOUBLE, params);
-   */
-   _mesa_error(ctx, GL_INVALID_OPERATION, "glGetUniformdvARB"
-               "(GL_ARB_gpu_shader_fp64 not implemented)");
 }
 
 void GLAPIENTRY
@@ -1011,10 +1002,10 @@ _mesa_UniformBlockBinding(GLuint program,
    if (!shProg)
       return;
 
-   if (uniformBlockIndex >= shProg->NumUniformBlocks) {
+   if (uniformBlockIndex >= shProg->NumBufferInterfaceBlocks) {
       _mesa_error(ctx, GL_INVALID_VALUE,
 		  "glUniformBlockBinding(block index %u >= %u)",
-		  uniformBlockIndex, shProg->NumUniformBlocks);
+		  uniformBlockIndex, shProg->NumBufferInterfaceBlocks);
       return;
    }
 
@@ -1025,26 +1016,78 @@ _mesa_UniformBlockBinding(GLuint program,
       return;
    }
 
-   if (shProg->UniformBlocks[uniformBlockIndex].Binding !=
+   if (shProg->BufferInterfaceBlocks[uniformBlockIndex].Binding !=
        uniformBlockBinding) {
       int i;
 
       FLUSH_VERTICES(ctx, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
 
-      shProg->UniformBlocks[uniformBlockIndex].Binding = uniformBlockBinding;
+      shProg->BufferInterfaceBlocks[uniformBlockIndex].Binding = uniformBlockBinding;
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
 	 int stage_index = shProg->UniformBlockStageIndex[i][uniformBlockIndex];
 
 	 if (stage_index != -1) {
 	    struct gl_shader *sh = shProg->_LinkedShaders[i];
-	    sh->UniformBlocks[stage_index].Binding = uniformBlockBinding;
+	    sh->BufferInterfaceBlocks[stage_index].Binding = uniformBlockBinding;
 	 }
       }
    }
 }
 
+void GLAPIENTRY
+_mesa_ShaderStorageBlockBinding(GLuint program,
+			        GLuint shaderStorageBlockIndex,
+			        GLuint shaderStorageBlockBinding)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg;
+
+   if (!ctx->Extensions.ARB_shader_storage_buffer_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glShaderStorageBlockBinding");
+      return;
+   }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+					    "glShaderStorageBlockBinding");
+   if (!shProg)
+      return;
+
+   if (shaderStorageBlockIndex >= shProg->NumBufferInterfaceBlocks) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glShaderStorageBlockBinding(block index %u >= %u)",
+		  shaderStorageBlockIndex, shProg->NumBufferInterfaceBlocks);
+      return;
+   }
+
+   if (shaderStorageBlockBinding >= ctx->Const.MaxShaderStorageBufferBindings) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glShaderStorageBlockBinding(block binding %u >= %u)",
+		  shaderStorageBlockBinding,
+                  ctx->Const.MaxShaderStorageBufferBindings);
+      return;
+   }
+
+   if (shProg->BufferInterfaceBlocks[shaderStorageBlockIndex].Binding !=
+       shaderStorageBlockBinding) {
+      int i;
+
+      FLUSH_VERTICES(ctx, 0);
+      ctx->NewDriverState |= ctx->DriverFlags.NewShaderStorageBuffer;
+
+      shProg->BufferInterfaceBlocks[shaderStorageBlockIndex].Binding = shaderStorageBlockBinding;
+
+      for (i = 0; i < MESA_SHADER_STAGES; i++) {
+	 int stage_index = shProg->UniformBlockStageIndex[i][shaderStorageBlockIndex];
+
+	 if (stage_index != -1) {
+	    struct gl_shader *sh = shProg->_LinkedShaders[i];
+	    sh->BufferInterfaceBlocks[stage_index].Binding = shaderStorageBlockBinding;
+	 }
+      }
+   }
+}
 
 /**
  * Generic program resource property query.
@@ -1312,7 +1355,7 @@ _mesa_UniformMatrix2dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			2, 2, location, count, transpose, value, GL_DOUBLE);
+			2, 2, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1321,7 +1364,7 @@ _mesa_UniformMatrix3dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			3, 3, location, count, transpose, value, GL_DOUBLE);
+			3, 3, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1330,7 +1373,7 @@ _mesa_UniformMatrix4dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			4, 4, location, count, transpose, value, GL_DOUBLE);
+			4, 4, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1339,7 +1382,7 @@ _mesa_UniformMatrix2x3dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			2, 3, location, count, transpose, value, GL_DOUBLE);
+			2, 3, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1348,7 +1391,7 @@ _mesa_UniformMatrix3x2dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			3, 2, location, count, transpose, value, GL_DOUBLE);
+			3, 2, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1357,7 +1400,7 @@ _mesa_UniformMatrix2x4dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			2, 4, location, count, transpose, value, GL_DOUBLE);
+			2, 4, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1366,7 +1409,7 @@ _mesa_UniformMatrix4x2dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			4, 2, location, count, transpose, value, GL_DOUBLE);
+			4, 2, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1375,7 +1418,7 @@ _mesa_UniformMatrix3x4dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			3, 4, location, count, transpose, value, GL_DOUBLE);
+			3, 4, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1384,7 +1427,7 @@ _mesa_UniformMatrix4x3dv(GLint location, GLsizei count, GLboolean transpose,
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform_matrix(ctx, ctx->_Shader->ActiveProgram,
-			4, 3, location, count, transpose, value, GL_DOUBLE);
+			4, 3, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1490,7 +1533,7 @@ _mesa_ProgramUniformMatrix2dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix2dv");
-   _mesa_uniform_matrix(ctx, shProg, 2, 2, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 2, 2, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1501,7 +1544,7 @@ _mesa_ProgramUniformMatrix3dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix3dv");
-   _mesa_uniform_matrix(ctx, shProg, 3, 3, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 3, 3, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1512,7 +1555,7 @@ _mesa_ProgramUniformMatrix4dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix4dv");
-   _mesa_uniform_matrix(ctx, shProg, 4, 4, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 4, 4, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1523,7 +1566,7 @@ _mesa_ProgramUniformMatrix2x3dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix2x3dv");
-   _mesa_uniform_matrix(ctx, shProg, 2, 3, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 2, 3, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1534,7 +1577,7 @@ _mesa_ProgramUniformMatrix3x2dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix3x2dv");
-   _mesa_uniform_matrix(ctx, shProg, 3, 2, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 3, 2, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1545,7 +1588,7 @@ _mesa_ProgramUniformMatrix2x4dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix2x4dv");
-   _mesa_uniform_matrix(ctx, shProg, 2, 4, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 2, 4, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1556,7 +1599,7 @@ _mesa_ProgramUniformMatrix4x2dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix4x2dv");
-   _mesa_uniform_matrix(ctx, shProg, 4, 2, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 4, 2, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1567,7 +1610,7 @@ _mesa_ProgramUniformMatrix3x4dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix3x4dv");
-   _mesa_uniform_matrix(ctx, shProg, 3, 4, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 3, 4, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }
 
 void GLAPIENTRY
@@ -1578,5 +1621,5 @@ _mesa_ProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniformMatrix4x3dv");
-   _mesa_uniform_matrix(ctx, shProg, 4, 3, location, count, transpose, value, GL_DOUBLE);
+   _mesa_uniform_matrix(ctx, shProg, 4, 3, location, count, transpose, value, GLSL_TYPE_DOUBLE);
 }

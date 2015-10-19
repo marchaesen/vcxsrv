@@ -21,7 +21,7 @@ extensions, although the results may not be optimal.
                  table.
     * _X_INTERNAL: like _X_HIDDEN, but attempt to ensure that this function
                    is never called from another module.
-    * _X_INLINE: inline this functon if possible (generally obeyed unless
+    * _X_INLINE: inline this function if possible (generally obeyed unless
                  disabling optimisations).
     * _X_DEPRECATED: warn on use of this function.
 

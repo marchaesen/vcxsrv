@@ -990,7 +990,6 @@ miOverlayWindowExposures(WindowPtr pWin, RegionPtr prgn)
         int clientInterested =
             (pWin->eventMask | wOtherEventMasks(pWin)) & ExposureMask;
         if (clientInterested && (RegionNumRects(prgn) > RECTLIMIT)) {
-            ScreenPtr pScreen = pWin->drawable.pScreen;
             miOverlayScreenPtr pPriv = MIOVERLAY_GET_SCREEN_PRIVATE(pScreen);
             BoxRec box;
 

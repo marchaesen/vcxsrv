@@ -76,6 +76,7 @@ optimizations = [
    (('flrp', a, a, b), a),
    (('flrp', 0.0, a, b), ('fmul', a, b)),
    (('flrp', a, b, c), ('fadd', ('fmul', c, ('fsub', b, a)), a), 'options->lower_flrp'),
+   (('ffract', a), ('fsub', a, ('ffloor', a)), 'options->lower_ffract'),
    (('fadd', ('fmul', a, ('fadd', 1.0, ('fneg', c))), ('fmul', b, c)), ('flrp', a, b, c), '!options->lower_flrp'),
    (('fadd', a, ('fmul', c, ('fadd', b, ('fneg', a)))), ('flrp', a, b, c), '!options->lower_flrp'),
    (('ffma', a, b, c), ('fadd', ('fmul', a, b), c), 'options->lower_ffma'),
@@ -113,6 +114,8 @@ optimizations = [
    (('sge', a, b), ('b2f', ('fge', a, b)), 'options->lower_scmp'),
    (('seq', a, b), ('b2f', ('feq', a, b)), 'options->lower_scmp'),
    (('sne', a, b), ('b2f', ('fne', a, b)), 'options->lower_scmp'),
+   (('fne', ('fneg', a), a), ('fne', a, 0.0)),
+   (('feq', ('fneg', a), a), ('feq', a, 0.0)),
    # Emulating booleans
    (('imul', ('b2i', a), ('b2i', b)), ('b2i', ('iand', a, b))),
    (('fmul', ('b2f', a), ('b2f', b)), ('b2f', ('iand', a, b))),
@@ -132,6 +135,7 @@ optimizations = [
    # Logical and bit operations
    (('fand', a, 0.0), 0.0),
    (('iand', a, a), a),
+   (('iand', a, ~0), a),
    (('iand', a, 0), 0),
    (('ior', a, a), a),
    (('ior', a, 0), a),
@@ -237,6 +241,10 @@ late_optimizations = [
    (('fge', ('fadd', a, b), 0.0), ('fge', a, ('fneg', b))),
    (('feq', ('fadd', a, b), 0.0), ('feq', a, ('fneg', b))),
    (('fne', ('fadd', a, b), 0.0), ('fne', a, ('fneg', b))),
+   (('fdot2', a, b), ('fdot_replicated2', a, b), 'options->fdot_replicates'),
+   (('fdot3', a, b), ('fdot_replicated3', a, b), 'options->fdot_replicates'),
+   (('fdot4', a, b), ('fdot_replicated4', a, b), 'options->fdot_replicates'),
+   (('fdph', a, b), ('fdph_replicated', a, b), 'options->fdot_replicates'),
 ]
 
 print nir_algebraic.AlgebraicPass("nir_opt_algebraic", optimizations).render()

@@ -108,151 +108,6 @@ struct bitmap_cache
 
 
 /**
- * Make fragment program for glBitmap:
- *   Sample the texture and kill the fragment if the bit is 0.
- * This program will be combined with the user's fragment program.
- */
-static struct st_fragment_program *
-make_bitmap_fragment_program(struct gl_context *ctx, GLuint samplerIndex)
-{
-   struct st_context *st = st_context(ctx);
-   struct st_fragment_program *stfp;
-   struct gl_program *p;
-   GLuint ic = 0;
-
-   p = ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB, 0);
-   if (!p)
-      return NULL;
-
-   p->NumInstructions = 3;
-
-   p->Instructions = _mesa_alloc_instructions(p->NumInstructions);
-   if (!p->Instructions) {
-      ctx->Driver.DeleteProgram(ctx, p);
-      return NULL;
-   }
-   _mesa_init_instructions(p->Instructions, p->NumInstructions);
-
-   /* TEX tmp0, fragment.texcoord[0], texture[0], 2D; */
-   p->Instructions[ic].Opcode = OPCODE_TEX;
-   p->Instructions[ic].DstReg.File = PROGRAM_TEMPORARY;
-   p->Instructions[ic].DstReg.Index = 0;
-   p->Instructions[ic].SrcReg[0].File = PROGRAM_INPUT;
-   p->Instructions[ic].SrcReg[0].Index = VARYING_SLOT_TEX0;
-   p->Instructions[ic].TexSrcUnit = samplerIndex;
-   p->Instructions[ic].TexSrcTarget = TEXTURE_2D_INDEX;
-   ic++;
-
-   /* KIL if -tmp0 < 0 # texel=0 -> keep / texel=0 -> discard */
-   p->Instructions[ic].Opcode = OPCODE_KIL;
-   p->Instructions[ic].SrcReg[0].File = PROGRAM_TEMPORARY;
-
-   if (st->bitmap.tex_format == PIPE_FORMAT_L8_UNORM)
-      p->Instructions[ic].SrcReg[0].Swizzle = SWIZZLE_XXXX;
-
-   p->Instructions[ic].SrcReg[0].Index = 0;
-   p->Instructions[ic].SrcReg[0].Negate = NEGATE_XYZW;
-   ic++;
-
-   /* END; */
-   p->Instructions[ic++].Opcode = OPCODE_END;
-
-   assert(ic == p->NumInstructions);
-
-   p->InputsRead = VARYING_BIT_TEX0;
-   p->OutputsWritten = 0x0;
-   p->SamplersUsed = (1 << samplerIndex);
-
-   stfp = (struct st_fragment_program *) p;
-   stfp->Base.UsesKill = GL_TRUE;
-
-   return stfp;
-}
-
-
-static struct gl_program *
-make_bitmap_fragment_program_glsl(struct st_context *st,
-                                  struct st_fragment_program *orig,
-                                  GLuint samplerIndex)
-{
-   struct gl_context *ctx = st->ctx;
-   struct st_fragment_program *fp = (struct st_fragment_program *)
-      ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB, 0);
-
-   if (!fp)
-      return NULL;
-   
-   get_bitmap_visitor(fp, orig->glsl_to_tgsi, samplerIndex);
-   return &fp->Base.Base;
-}
-
-
-static int
-find_free_bit(uint bitfield)
-{
-   int i;
-   for (i = 0; i < 32; i++) {
-      if ((bitfield & (1 << i)) == 0) {
-         return i;
-      }
-   }
-   return -1;
-}
-
-
-/**
- * Combine basic bitmap fragment program with the user-defined program.
- * \param st  current context
- * \param fpIn  the incoming fragment program
- * \param fpOut  the new fragment program which does fragment culling
- * \param bitmap_sampler  sampler number for the bitmap texture
- */
-void
-st_make_bitmap_fragment_program(struct st_context *st,
-                                struct gl_fragment_program *fpIn,
-                                struct gl_fragment_program **fpOut,
-                                GLuint *bitmap_sampler)
-{
-   struct st_fragment_program *bitmap_prog;
-   struct st_fragment_program *stfpIn = (struct st_fragment_program *) fpIn;
-   struct gl_program *newProg;
-   uint sampler;
-
-   /*
-    * Generate new program which is the user-defined program prefixed
-    * with the bitmap sampler/kill instructions.
-    */
-   sampler = find_free_bit(fpIn->Base.SamplersUsed);
-   
-   if (stfpIn->glsl_to_tgsi)
-      newProg = make_bitmap_fragment_program_glsl(st, stfpIn, sampler);
-   else {
-      bitmap_prog = make_bitmap_fragment_program(st->ctx, sampler);
-
-      newProg = _mesa_combine_programs(st->ctx,
-                                       &bitmap_prog->Base.Base,
-                                       &fpIn->Base);
-      /* done with this after combining */
-      st_reference_fragprog(st, &bitmap_prog, NULL);
-   }
-
-#if 0
-   {
-      printf("Combined bitmap program:\n");
-      _mesa_print_program(newProg);
-      printf("InputsRead: 0x%x\n", newProg->InputsRead);
-      printf("OutputsWritten: 0x%x\n", newProg->OutputsWritten);
-      _mesa_print_parameter_list(newProg->Parameters);
-   }
-#endif
-
-   /* return results */
-   *fpOut = (struct gl_fragment_program *) newProg;
-   *bitmap_sampler = sampler;
-}
-
-
-/**
  * Copy user-provide bitmap bits into texture buffer, expanding
  * bits into texels.
  * "On" bits will set texels to 0x0.
@@ -349,8 +204,9 @@ setup_bitmap_vertex_data(struct st_context *st, bool normalized,
       tBot = (GLfloat) height;
    }
 
-   if (u_upload_alloc(st->uploader, 0, 4 * sizeof(vertices[0]),
-                      vbuf_offset, vbuf, (void **) &vertices) != PIPE_OK) {
+   u_upload_alloc(st->uploader, 0, 4 * sizeof(vertices[0]),
+                  vbuf_offset, vbuf, (void **) &vertices);
+   if (!*vbuf) {
       return;
    }
 

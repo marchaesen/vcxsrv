@@ -178,7 +178,7 @@ xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
             }
             sigemptyset(&sa.sa_mask);
             sigaddset(&sa.sa_mask, SIGIO);
-            sa.sa_flags = 0;
+            sa.sa_flags = SA_RESTART;
             sa.sa_handler = xf86SIGIO;
             sigaction(SIGIO, &sa, &osa);
             xf86SigIOFuncs[i].fd = fd;

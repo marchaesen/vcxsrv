@@ -40,6 +40,7 @@
 #include "ir_basic_block.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
+#include "util/hash_table.h"
 
 namespace {
 
@@ -95,7 +96,8 @@ public:
       killed_all = false;
       mem_ctx = ralloc_context(0);
       this->acp = new(mem_ctx) exec_list;
-      this->kills = new(mem_ctx) exec_list;
+      this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                            _mesa_key_pointer_equal);
    }
    ~ir_constant_propagation_visitor()
    {
@@ -110,6 +112,8 @@ public:
    virtual ir_visitor_status visit_enter(class ir_if *);
 
    void add_constant(ir_assignment *ir);
+   void constant_folding(ir_rvalue **rvalue);
+   void constant_propagation(ir_rvalue **rvalue);
    void kill(ir_variable *ir, unsigned write_mask);
    void handle_if_block(exec_list *instructions);
    void handle_rvalue(ir_rvalue **rvalue);
@@ -121,7 +125,7 @@ public:
     * List of kill_entry: The masks of variables whose values were
     * killed in this block.
     */
-   exec_list *kills;
+   hash_table *kills;
 
    bool progress;
 
@@ -132,8 +136,38 @@ public:
 
 
 void
-ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
-{
+ir_constant_propagation_visitor::constant_folding(ir_rvalue **rvalue) {
+
+   if (*rvalue == NULL || (*rvalue)->ir_type == ir_type_constant)
+      return;
+
+   /* Note that we visit rvalues one leaving.  So if an expression has a
+    * non-constant operand, no need to go looking down it to find if it's
+    * constant.  This cuts the time of this pass down drastically.
+    */
+   ir_expression *expr = (*rvalue)->as_expression();
+   if (expr) {
+      for (unsigned int i = 0; i < expr->get_num_operands(); i++) {
+	 if (!expr->operands[i]->as_constant())
+	    return;
+      }
+   }
+
+   /* Ditto for swizzles. */
+   ir_swizzle *swiz = (*rvalue)->as_swizzle();
+   if (swiz && !swiz->val->as_constant())
+      return;
+
+   ir_constant *constant = (*rvalue)->constant_expression_value();
+   if (constant) {
+      *rvalue = constant;
+      this->progress = true;
+   }
+}
+
+void
+ir_constant_propagation_visitor::constant_propagation(ir_rvalue **rvalue) {
+
    if (this->in_assignee || !*rvalue)
       return;
 
@@ -216,6 +250,13 @@ ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
    this->progress = true;
 }
 
+void
+ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
+{
+   constant_propagation(rvalue);
+   constant_folding(rvalue);
+}
+
 ir_visitor_status
 ir_constant_propagation_visitor::visit_enter(ir_function_signature *ir)
 {
@@ -224,11 +265,12 @@ ir_constant_propagation_visitor::visit_enter(ir_function_signature *ir)
     * main() at link time, so they're irrelevant to us.
     */
    exec_list *orig_acp = this->acp;
-   exec_list *orig_kills = this->kills;
+   hash_table *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
 
    this->acp = new(mem_ctx) exec_list;
-   this->kills = new(mem_ctx) exec_list;
+   this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                         _mesa_key_pointer_equal);
    this->killed_all = false;
 
    visit_list_elements(this, &ir->body);
@@ -243,6 +285,8 @@ ir_constant_propagation_visitor::visit_enter(ir_function_signature *ir)
 ir_visitor_status
 ir_constant_propagation_visitor::visit_leave(ir_assignment *ir)
 {
+  constant_folding(&ir->rhs);
+
    if (this->in_assignee)
       return visit_continue;
 
@@ -311,11 +355,12 @@ void
 ir_constant_propagation_visitor::handle_if_block(exec_list *instructions)
 {
    exec_list *orig_acp = this->acp;
-   exec_list *orig_kills = this->kills;
+   hash_table *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
 
    this->acp = new(mem_ctx) exec_list;
-   this->kills = new(mem_ctx) exec_list;
+   this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                         _mesa_key_pointer_equal);
    this->killed_all = false;
 
    /* Populate the initial acp with a constant of the original */
@@ -329,12 +374,14 @@ ir_constant_propagation_visitor::handle_if_block(exec_list *instructions)
       orig_acp->make_empty();
    }
 
-   exec_list *new_kills = this->kills;
+   hash_table *new_kills = this->kills;
    this->kills = orig_kills;
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
-   foreach_in_list(kill_entry, k, new_kills) {
+   hash_entry *htk;
+   hash_table_foreach(new_kills, htk) {
+      kill_entry *k = (kill_entry *) htk->data;
       kill(k->var, k->write_mask);
    }
 }
@@ -356,7 +403,7 @@ ir_visitor_status
 ir_constant_propagation_visitor::visit_enter(ir_loop *ir)
 {
    exec_list *orig_acp = this->acp;
-   exec_list *orig_kills = this->kills;
+   hash_table *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
 
    /* FINISHME: For now, the initial acp for loops is totally empty.
@@ -364,7 +411,8 @@ ir_constant_propagation_visitor::visit_enter(ir_loop *ir)
     * cloned minus the killed entries after the first run through.
     */
    this->acp = new(mem_ctx) exec_list;
-   this->kills = new(mem_ctx) exec_list;
+   this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                         _mesa_key_pointer_equal);
    this->killed_all = false;
 
    visit_list_elements(this, &ir->body_instructions);
@@ -373,12 +421,14 @@ ir_constant_propagation_visitor::visit_enter(ir_loop *ir)
       orig_acp->make_empty();
    }
 
-   exec_list *new_kills = this->kills;
+   hash_table *new_kills = this->kills;
    this->kills = orig_kills;
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
-   foreach_in_list(kill_entry, k, new_kills) {
+   hash_entry *htk;
+   hash_table_foreach(new_kills, htk) {
+      kill_entry *k = (kill_entry *) htk->data;
       kill(k->var, k->write_mask);
    }
 
@@ -407,14 +457,15 @@ ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
    /* Add this writemask of the variable to the list of killed
     * variables in this block.
     */
-   foreach_in_list(kill_entry, entry, this->kills) {
-      if (entry->var == var) {
-	 entry->write_mask |= write_mask;
-	 return;
-      }
+   hash_entry *kill_hash_entry = _mesa_hash_table_search(this->kills, var);
+   if (kill_hash_entry) {
+      kill_entry *entry = (kill_entry *) kill_hash_entry->data;
+      entry->write_mask |= write_mask;
+      return;
    }
    /* Not already in the list.  Make new entry. */
-   this->kills->push_tail(new(this->mem_ctx) kill_entry(var, write_mask));
+   _mesa_hash_table_insert(this->kills, var,
+                           new(this->mem_ctx) kill_entry(var, write_mask));
 }
 
 /**

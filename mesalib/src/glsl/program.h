@@ -40,8 +40,7 @@ extern void
 link_shaders(struct gl_context *ctx, struct gl_shader_program *prog);
 
 extern void
-build_program_resource_list(struct gl_context *ctx,
-                            struct gl_shader_program *shProg);
+build_program_resource_list(struct gl_shader_program *shProg);
 
 extern void
 linker_error(struct gl_shader_program *prog, const char *fmt, ...)

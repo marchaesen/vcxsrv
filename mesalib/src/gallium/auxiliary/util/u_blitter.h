@@ -246,7 +246,8 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
                                const struct pipe_box *srcbox,
                                unsigned src_width0, unsigned src_height0,
                                unsigned mask, unsigned filter,
-                               const struct pipe_scissor_state *scissor);
+                               const struct pipe_scissor_state *scissor,
+                               boolean alpha_blend);
 
 void util_blitter_blit(struct blitter_context *blitter,
 		       const struct pipe_blit_info *info);
@@ -371,30 +372,28 @@ void util_blitter_custom_resolve_color(struct blitter_context *blitter,
  *
  * States not listed here are not affected by util_blitter. */
 
-static inline
-void util_blitter_save_blend(struct blitter_context *blitter,
-                             void *state)
+static inline void
+util_blitter_save_blend(struct blitter_context *blitter, void *state)
 {
    blitter->saved_blend_state = state;
 }
 
-static inline
-void util_blitter_save_depth_stencil_alpha(struct blitter_context *blitter,
-                                           void *state)
+static inline void
+util_blitter_save_depth_stencil_alpha(struct blitter_context *blitter,
+                                      void *state)
 {
    blitter->saved_dsa_state = state;
 }
 
-static inline
-void util_blitter_save_vertex_elements(struct blitter_context *blitter,
-                                       void *state)
+static inline void
+util_blitter_save_vertex_elements(struct blitter_context *blitter, void *state)
 {
    blitter->saved_velem_state = state;
 }
 
-static inline
-void util_blitter_save_stencil_ref(struct blitter_context *blitter,
-                                   const struct pipe_stencil_ref *state)
+static inline void
+util_blitter_save_stencil_ref(struct blitter_context *blitter,
+                              const struct pipe_stencil_ref *state)
 {
    blitter->saved_stencil_ref = *state;
 }
@@ -406,23 +405,20 @@ void util_blitter_save_rasterizer(struct blitter_context *blitter,
    blitter->saved_rs_state = state;
 }
 
-static inline
-void util_blitter_save_fragment_shader(struct blitter_context *blitter,
-                                       void *fs)
+static inline void
+util_blitter_save_fragment_shader(struct blitter_context *blitter, void *fs)
 {
    blitter->saved_fs = fs;
 }
 
-static inline
-void util_blitter_save_vertex_shader(struct blitter_context *blitter,
-                                     void *vs)
+static inline void
+util_blitter_save_vertex_shader(struct blitter_context *blitter, void *vs)
 {
    blitter->saved_vs = vs;
 }
 
-static inline
-void util_blitter_save_geometry_shader(struct blitter_context *blitter,
-                                       void *gs)
+static inline void
+util_blitter_save_geometry_shader(struct blitter_context *blitter, void *gs)
 {
    blitter->saved_gs = gs;
 }
@@ -441,24 +437,24 @@ util_blitter_save_tesseval_shader(struct blitter_context *blitter,
    blitter->saved_tes = sh;
 }
 
-static inline
-void util_blitter_save_framebuffer(struct blitter_context *blitter,
-                                   const struct pipe_framebuffer_state *state)
+static inline void
+util_blitter_save_framebuffer(struct blitter_context *blitter,
+                              const struct pipe_framebuffer_state *state)
 {
    blitter->saved_fb_state.nr_cbufs = 0; /* It's ~0 now, meaning it's unsaved. */
    util_copy_framebuffer_state(&blitter->saved_fb_state, state);
 }
 
-static inline
-void util_blitter_save_viewport(struct blitter_context *blitter,
-                                struct pipe_viewport_state *state)
+static inline void
+util_blitter_save_viewport(struct blitter_context *blitter,
+                           struct pipe_viewport_state *state)
 {
    blitter->saved_viewport = *state;
 }
 
-static inline
-void util_blitter_save_scissor(struct blitter_context *blitter,
-                               struct pipe_scissor_state *state)
+static inline void
+util_blitter_save_scissor(struct blitter_context *blitter,
+                          struct pipe_scissor_state *state)
 {
    blitter->saved_scissor = *state;
 }

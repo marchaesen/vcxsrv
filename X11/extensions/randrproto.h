@@ -50,7 +50,6 @@
 #define RRCrtc CARD32
 #define RRProvider CARD32
 #define RRModeFlags CARD32
-#define Atom CARD32
 
 #define Rotation CARD16
 #define SizeID CARD16
@@ -1091,6 +1090,5 @@ typedef struct {
 #undef Rotation
 #undef SizeID
 #undef SubpixelOrder
-#undef Atom
 
 #endif /* _XRANDRP_H_ */

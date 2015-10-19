@@ -1086,6 +1086,15 @@ The patch that fixed this server bug in X.org CVS is here:
 		</reply>
 	</request>
 
+	<request name="IsEnabled" opcode="140" >
+		<field type="CONTEXT_TAG" name="context_tag" />
+		<field type="CARD32" name="capability" />
+		<reply>
+			<pad bytes="1" />
+			<field type="BOOL32" name="ret_val" />
+		</reply>
+	</request>
+
 	<request name="IsList" opcode="141" >
 		<field type="CONTEXT_TAG" name="context_tag" />
 		<field type="CARD32" name="list" />

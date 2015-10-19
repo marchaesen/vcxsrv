@@ -380,6 +380,11 @@ _pixman_disabled (const char *name)
     return FALSE;
 }
 
+static const pixman_fast_path_t empty_fast_path[] =
+{
+    { PIXMAN_OP_NONE }
+};
+
 pixman_implementation_t *
 _pixman_choose_implementation (void)
 {
@@ -396,6 +401,17 @@ _pixman_choose_implementation (void)
     imp = _pixman_mips_get_implementations (imp);
 
     imp = _pixman_implementation_create_noop (imp);
+
+    if (_pixman_disabled ("wholeops"))
+    {
+        pixman_implementation_t *cur;
+
+        /* Disable all whole-operation paths except the general one,
+         * so that optimized iterators are used as much as possible.
+         */
+        for (cur = imp; cur->fallback; cur = cur->fallback)
+            cur->fast_paths = empty_fast_path;
+    }
 
     return imp;
 }

@@ -1295,6 +1295,20 @@
        <vendor>htc</vendor>
      </configItem>
     </model>
+    <model>
+      <configItem>
+       <name>teck227</name>
+       <_description>Truly Ergonomic Computer Keyboard Model 227 (Wide Alt keys)</_description>
+       <vendor>Megawin Technology</vendor>
+     </configItem>
+    </model>
+    <model>
+      <configItem>
+       <name>teck229</name>
+       <_description>Truly Ergonomic Computer Keyboard Model 229 (Standard sized Alt keys, additional Super and Menu key)</_description>
+       <vendor>Megawin Technology</vendor>
+     </configItem>
+    </model>
   </modelList>
   <layoutList>
     <layout>
@@ -1382,7 +1396,7 @@
         <variant>
           <configItem>
             <name>dvp</name>
-            <_description>English (programmer Dvorak)</_description>
+            <_description>English (Programmer Dvorak)</_description>
           </configItem>
         </variant>
         <variant>
@@ -1786,6 +1800,8 @@
         <_description>Bangla</_description>
         <languageList>
           <iso639Id>ben</iso639Id>
+          <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+          <iso639Id>sat</iso639Id>
         </languageList>
       </configItem>
       <variantList>
@@ -1813,6 +1829,8 @@
             <_description>Bangla (India)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
+              <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -1824,6 +1842,8 @@
             <_description>Bangla (India, Probhat)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
+              <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -1833,6 +1853,8 @@
             <_description>Bangla (India, Baishakhi)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
+              <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -1842,6 +1864,8 @@
             <_description>Bangla (India, Bornona)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
+              <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -1851,6 +1875,8 @@
             <_description>Bangla (India, Uni Gitanjali)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
+              <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -1860,6 +1886,8 @@
             <_description>Bangla (India, Baishakhi Inscript)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
+              <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -1968,6 +1996,20 @@
             <_description>Oriya</_description>
             <languageList>
               <iso639Id>ori</iso639Id>
+              <!-- sat-Orya: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+           <configItem>
+            <name>olck</name>
+            <!-- Keyboard indicator for Ol Chiki layouts -->
+            <_shortDescription>sat</_shortDescription>
+            <_description>Ol Chiki</_description>
+            <languageList>
+              <!-- sat-Olck: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -2658,6 +2700,17 @@
             <_description>Czech (US Dvorak with CZ UCW support)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>rus</name>
+            <!-- Keyboard indicator for Russian layouts -->
+            <_shortDescription>ru</_shortDescription>
+            <_description>Russian (Czech, phonetic)</_description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -2958,6 +3011,12 @@
           <configItem>
             <name>mac</name>
             <_description>Finnish (Macintosh)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>das</name>
+            <_description>Finnish (DAS)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -5440,6 +5499,8 @@
         <_description>Nepali</_description>
         <languageList>
           <iso639Id>nep</iso639Id>
+          <!-- sat-Deva used in Nepal: http://www.ethnologue.com/language/sat -->
+          <iso639Id>sat</iso639Id>
         </languageList>
       </configItem>
     </layout>
@@ -6503,6 +6564,12 @@
         <configItem>
           <name>altwin:alt_super_win</name>
           <_description>Alt is mapped to Right Win, Super to Menu</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>altwin:swap_lalt_lwin</name>
+          <_description>Left Alt is swapped with Left Win</_description>
         </configItem>
       </option>
       <option>

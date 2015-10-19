@@ -31,6 +31,7 @@
 
 
 #include "main/compiler.h"
+#include <stdbool.h>
 
 struct dd_function_table;
 struct st_context;
@@ -47,13 +48,11 @@ extern void
 st_destroy_bitmap(struct st_context *st);
 
 extern void
-st_make_bitmap_fragment_program(struct st_context *st,
-                                struct gl_fragment_program *fpIn,
-                                struct gl_fragment_program **fpOut,
-                                GLuint *bitmap_sampler);
-
-extern void
 st_flush_bitmap_cache(struct st_context *st);
 
+extern const struct tgsi_token *
+st_get_bitmap_shader(const struct tgsi_token *tokens,
+                     unsigned sampler_index,
+                     bool use_texcoord, bool swizzle_xxxx);
 
 #endif /* ST_CB_BITMAP_H */

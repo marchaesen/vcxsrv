@@ -1136,3 +1136,44 @@ generate_composite_function \
     in_reverse_8888_8888_process_tail
 
 /******************************************************************************/
+
+.macro over_n_8888_init
+        ldr     SRC, [sp, #ARGS_STACK_OFFSET]
+        /* Hold loop invariant in MASK */
+        ldr     MASK, =0x00800080
+        /* Hold multiplier for destination in STRIDE_M */
+        mov     STRIDE_M, #255
+        sub     STRIDE_M, STRIDE_M, SRC, lsr #24
+        /* Set GE[3:0] to 0101 so SEL instructions do what we want */
+        uadd8   SCRATCH, MASK, MASK
+.endm
+
+.macro over_n_8888_process_head  cond, numbytes, firstreg, unaligned_src, unaligned_mask, preload
+        pixld   , numbytes, firstreg, DST, 0
+.endm
+
+.macro over_n_8888_1pixel dst
+        mul_8888_8  WK&dst, STRIDE_M, SCRATCH, MASK
+        uqadd8  WK&dst, WK&dst, SRC
+.endm
+
+.macro over_n_8888_process_tail  cond, numbytes, firstreg
+ .set PROCESS_REG, firstreg
+ .rept numbytes / 4
+        over_n_8888_1pixel %(PROCESS_REG)
+  .set PROCESS_REG, PROCESS_REG+1
+ .endr
+        pixst   , numbytes, firstreg, DST
+.endm
+
+generate_composite_function \
+    pixman_composite_over_n_8888_asm_armv6, 0, 0, 32 \
+    FLAG_DST_READWRITE | FLAG_BRANCH_OVER | FLAG_PROCESS_DOES_STORE \
+    2, /* prefetch distance */ \
+    over_n_8888_init, \
+    nop_macro, /* newline */ \
+    nop_macro, /* cleanup */ \
+    over_n_8888_process_head, \
+    over_n_8888_process_tail
+
+/******************************************************************************/

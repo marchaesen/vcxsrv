@@ -403,7 +403,7 @@ RootlessCopyClip(GCPtr pgcDst, GCPtr pgcSrc)
 #define GCOP_UNWRAP(pGC) \
     RootlessGCRec *gcrec = (RootlessGCRec *) \
         dixLookupPrivate(&(pGC)->devPrivates, rootlessGCPrivateKey); \
-    GCFuncs *saveFuncs = pGC->funcs; \
+    const GCFuncs *saveFuncs = pGC->funcs; \
     (pGC)->funcs = gcrec->originalFuncs; \
     (pGC)->ops = gcrec->originalOps;
 

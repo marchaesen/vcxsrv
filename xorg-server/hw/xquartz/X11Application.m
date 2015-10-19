@@ -1238,8 +1238,16 @@ X11ApplicationMain(int argc, char **argv, char **envp)
     QuartzModeBundleInit();
 
     /* Calculate the height of the menubar so we can avoid it. */
-    aquaMenuBarHeight = NSHeight([[NSScreen mainScreen] frame]) -
-                        NSMaxY([[NSScreen mainScreen] visibleFrame]);
+    aquaMenuBarHeight = [[NSApp mainMenu] menuBarHeight];
+#if ! __LP64__
+    if (!aquaMenuBarHeight) {
+        aquaMenuBarHeight = [NSMenuView menuBarHeight];
+    }
+#endif
+    if (!aquaMenuBarHeight) {
+        NSScreen* primaryScreen = [[NSScreen screens] objectAtIndex:0];
+        aquaMenuBarHeight = NSHeight([primaryScreen frame]) - NSMaxY([primaryScreen visibleFrame]);
+    }
 
 #ifdef HAVE_LIBDISPATCH
     eventTranslationQueue = dispatch_queue_create(

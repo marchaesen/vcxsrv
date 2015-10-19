@@ -26,9 +26,6 @@
 #ifndef GLSL_LINKER_H
 #define GLSL_LINKER_H
 
-ir_function_signature *
-link_get_main_function_signature(gl_shader *sh);
-
 extern bool
 link_function_calls(gl_shader_program *prog, gl_shader *main,
 		    gl_shader **shader_list, unsigned num_shaders);
@@ -56,6 +53,7 @@ link_uniform_blocks_are_compatible(const gl_uniform_block *a,
 
 extern unsigned
 link_uniform_blocks(void *mem_ctx,
+                    struct gl_context *ctx,
                     struct gl_shader_program *prog,
                     struct gl_shader **shader_list,
                     unsigned num_shaders,
@@ -153,6 +151,7 @@ protected:
     */
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *record_type,
+                            const unsigned packing,
                             bool last_field);
 
    /**
@@ -176,10 +175,12 @@ protected:
    virtual void visit_field(const glsl_struct_field *field);
 
    virtual void enter_record(const glsl_type *type, const char *name,
-                             bool row_major);
+                             bool row_major, const unsigned packing);
 
    virtual void leave_record(const glsl_type *type, const char *name,
-                             bool row_major);
+                             bool row_major, const unsigned packing);
+
+   virtual void set_record_array_count(unsigned record_array_count);
 
 private:
    /**
@@ -191,7 +192,8 @@ private:
     */
    void recursion(const glsl_type *t, char **name, size_t name_length,
                   bool row_major, const glsl_type *record_type,
-                  bool last_field);
+                  const unsigned packing,
+                  bool last_field, unsigned record_array_count);
 };
 
 void

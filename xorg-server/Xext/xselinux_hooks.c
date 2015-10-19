@@ -41,7 +41,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "extnsionst.h"
 #include "xacestr.h"
 #include "client.h"
-#include "../os/osdep.h"
 #define _XSELINUX_NEED_FLASK_MAP
 #include "xselinuxint.h"
 
@@ -147,7 +146,7 @@ SELinuxLabelClient(ClientPtr client)
         strncpy(subj->command, cmdname, COMMAND_LEN - 1);
 
         if (!cached)
-            free(cmdname);     /* const char * */
+            free((void *) cmdname);     /* const char * */
     }
 
  finish:
@@ -295,6 +294,9 @@ SELinuxAudit(void *auditdata,
 }
 
 static int
+SELinuxLog(int type, const char *fmt, ...) _X_ATTRIBUTE_PRINTF(2, 3);
+
+static int
 SELinuxLog(int type, const char *fmt, ...)
 {
     va_list ap;
@@ -316,6 +318,7 @@ SELinuxLog(int type, const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, MAX_AUDIT_MESSAGE_LENGTH, fmt, ap);
     rc = audit_log_user_avc_message(audit_fd, aut, buf, NULL, NULL, NULL, 0);
+    (void) rc;
     va_end(ap);
     LogMessageVerb(X_WARNING, 0, "%s", buf);
     return 0;
@@ -476,7 +479,7 @@ SELinuxExtension(CallbackListPtr *pcbl, void *unused, void *calldata)
     }
 
     /* Perform the security check */
-    auditdata.extension = rec->ext->name;
+    auditdata.extension = (char *) rec->ext->name;
     rc = SELinuxDoCheck(subj, obj, SECCLASS_X_EXTENSION, rec->access_mode,
                         &auditdata);
     if (rc != Success)

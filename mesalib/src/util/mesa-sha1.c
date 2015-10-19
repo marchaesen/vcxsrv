@@ -26,6 +26,8 @@
 
 #include "mesa-sha1.h"
 
+#ifdef HAVE_SHA1
+
 #if defined(HAVE_SHA1_IN_LIBMD)  /* Use libmd for SHA1 */ \
 	|| defined(HAVE_SHA1_IN_LIBC)   /* Use libc for SHA1 */
 
@@ -314,3 +316,5 @@ _mesa_sha1_format(char *buf, const unsigned char *sha1)
 
    return buf;
 }
+
+#endif

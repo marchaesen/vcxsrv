@@ -56,6 +56,7 @@ st_draw_vbo(struct gl_context *ctx,
             GLuint min_index,
             GLuint max_index,
             struct gl_transform_feedback_object *tfb_vertcount,
+            unsigned stream,
             struct gl_buffer_object *indirect);
 
 extern void
@@ -67,6 +68,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
                      GLuint min_index,
                      GLuint max_index,
                      struct gl_transform_feedback_object *tfb_vertcount,
+                     unsigned stream,
                      struct gl_buffer_object *indirect);
 
 /**
