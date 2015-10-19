@@ -197,8 +197,8 @@ XOpenDisplay (
 	dpy->idlist_alloc = _XAllocIDs;
 	dpy->synchandler = NULL;
 	dpy->savedsynchandler = NULL;
-	dpy->request = 0;
-	dpy->last_request_read = 0;
+	X_DPY_SET_REQUEST(dpy, 0);
+	X_DPY_SET_LAST_REQUEST_READ(dpy, 0);
 	dpy->default_screen = iscreen;  /* Value returned by ConnectDisplay */
 	dpy->last_req = (char *)&_dummy_request;
 

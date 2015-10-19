@@ -599,7 +599,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
       /* Save the shader state from ctx->Shader (instead of ctx->_Shader) so
        * that we don't have to worry about the current pipeline state.
        */
-      for (i = 0; i <= MESA_SHADER_FRAGMENT; i++) {
+      for (i = 0; i < MESA_SHADER_STAGES; i++) {
          _mesa_reference_shader_program(ctx, &save->Shader[i],
                                         ctx->Shader.CurrentProgram[i]);
       }
@@ -949,7 +949,9 @@ _mesa_meta_end(struct gl_context *ctx)
          GL_TESS_EVALUATION_SHADER,
          GL_GEOMETRY_SHADER,
          GL_FRAGMENT_SHADER,
+         GL_COMPUTE_SHADER,
       };
+      STATIC_ASSERT(MESA_SHADER_STAGES == ARRAY_SIZE(targets));
 
       bool any_shader;
 
@@ -975,7 +977,7 @@ _mesa_meta_end(struct gl_context *ctx)
       }
 
       any_shader = false;
-      for (i = 0; i <= MESA_SHADER_FRAGMENT; i++) {
+      for (i = 0; i < MESA_SHADER_STAGES; i++) {
          /* It is safe to call _mesa_use_shader_program even if the extension
           * necessary for that program state is not supported.  In that case,
           * the saved program object must be NULL and the currently bound

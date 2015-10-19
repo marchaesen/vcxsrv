@@ -59,10 +59,6 @@ _mesa_is_zero_size_texture(const struct gl_texture_image *texImage)
 /** \name Internal functions */
 /*@{*/
 
-extern GLint
-_mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat );
-
-
 extern GLboolean
 _mesa_is_proxy_texture(GLenum target);
 
@@ -133,7 +129,7 @@ _mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target, GLint level,
 
 extern GLboolean
 _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
-                               GLenum intFormat);
+                               GLenum intFormat, GLenum *error);
 
 extern GLuint
 _mesa_tex_target_to_face(GLenum target);
@@ -198,15 +194,6 @@ _mesa_copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
                              GLint x, GLint y,
                              GLsizei width, GLsizei height,
                              const char *caller);
-
-extern void
-_mesa_texture_image_multisample(struct gl_context *ctx, GLuint dims,
-                                struct gl_texture_object *texObj,
-                                GLenum target, GLsizei samples,
-                                GLint internalformat, GLsizei width,
-                                GLsizei height, GLsizei depth,
-                                GLboolean fixedsamplelocations,
-                                GLboolean immutable, const char *func);
 
 extern void
 _mesa_texture_buffer_range(struct gl_context *ctx,

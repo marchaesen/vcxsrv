@@ -87,6 +87,13 @@ created in a <code>lib64</code> directory at the top of the Mesa source
 tree.</p>
 </dd>
 
+<dt><code>--sysconfdir=DIR</code></dt>
+<dd><p>This option specifies the directory where the configuration
+files will be installed. The default is <code>${prefix}/etc</code>.
+Currently there's only one config file provided when dri drivers are
+enabled - it's <code>drirc</code>.</p>
+</dd>
+
 <dt><code>--enable-static, --disable-shared</code></dt>
 <dd><p>By default, Mesa
 will build shared libraries. Either of these options will force static
@@ -217,7 +224,7 @@ GLX.
 <dt><code>--with-expat=DIR</code>
 <dd><p><strong>DEPRECATED</strong>, use <code>PKG_CONFIG_PATH</code> instead.</p>
 <p>The DRI-enabled libGL uses expat to
-parse the DRI configuration files in <code>/etc/drirc</code> and
+parse the DRI configuration files in <code>${sysconfdir}/drirc</code> and
 <code>~/.drirc</code>. This option allows a specific expat installation
 to be used. For example, <code>--with-expat=/usr/local</code> will
 search for expat headers and libraries in <code>/usr/local/include</code>

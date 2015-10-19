@@ -52,17 +52,9 @@ enum pipe_error st_translate_program(
    const GLuint outputMapping[],
    const GLuint outputSlotToAttr[],
    const ubyte outputSemanticName[],
-   const ubyte outputSemanticIndex[],
-   boolean passthrough_edgeflags,
-   boolean clamp_color);
+   const ubyte outputSemanticIndex[]);
 
 void free_glsl_to_tgsi_visitor(struct glsl_to_tgsi_visitor *v);
-void get_pixel_transfer_visitor(struct st_fragment_program *fp,
-                                struct glsl_to_tgsi_visitor *original,
-                                int scale_and_bias, int pixel_maps);
-void get_bitmap_visitor(struct st_fragment_program *fp,
-                        struct glsl_to_tgsi_visitor *original,
-                        int samplerIndex);
 
 GLboolean st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog);
 

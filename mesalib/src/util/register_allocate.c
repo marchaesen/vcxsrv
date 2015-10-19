@@ -183,7 +183,7 @@ struct ra_graph {
  * using ralloc_free().
  */
 struct ra_regs *
-ra_alloc_reg_set(void *mem_ctx, unsigned int count)
+ra_alloc_reg_set(void *mem_ctx, unsigned int count, bool need_conflict_lists)
 {
    unsigned int i;
    struct ra_regs *regs;
@@ -197,9 +197,15 @@ ra_alloc_reg_set(void *mem_ctx, unsigned int count)
                                               BITSET_WORDS(count));
       BITSET_SET(regs->regs[i].conflicts, i);
 
-      regs->regs[i].conflict_list = ralloc_array(regs->regs, unsigned int, 4);
-      regs->regs[i].conflict_list_size = 4;
-      regs->regs[i].conflict_list[0] = i;
+      if (need_conflict_lists) {
+         regs->regs[i].conflict_list = ralloc_array(regs->regs,
+                                                    unsigned int, 4);
+         regs->regs[i].conflict_list_size = 4;
+         regs->regs[i].conflict_list[0] = i;
+      } else {
+         regs->regs[i].conflict_list = NULL;
+         regs->regs[i].conflict_list_size = 0;
+      }
       regs->regs[i].num_conflicts = 1;
    }
 
@@ -227,12 +233,14 @@ ra_add_conflict_list(struct ra_regs *regs, unsigned int r1, unsigned int r2)
 {
    struct ra_reg *reg1 = &regs->regs[r1];
 
-   if (reg1->conflict_list_size == reg1->num_conflicts) {
-      reg1->conflict_list_size *= 2;
-      reg1->conflict_list = reralloc(regs->regs, reg1->conflict_list,
-				     unsigned int, reg1->conflict_list_size);
+   if (reg1->conflict_list) {
+      if (reg1->conflict_list_size == reg1->num_conflicts) {
+         reg1->conflict_list_size *= 2;
+         reg1->conflict_list = reralloc(regs->regs, reg1->conflict_list,
+                                        unsigned int, reg1->conflict_list_size);
+      }
+      reg1->conflict_list[reg1->num_conflicts++] = r2;
    }
-   reg1->conflict_list[reg1->num_conflicts++] = r2;
    BITSET_SET(reg1->conflicts, r2);
 }
 
@@ -255,7 +263,7 @@ ra_add_reg_conflict(struct ra_regs *regs, unsigned int r1, unsigned int r2)
  */
 void
 ra_add_transitive_reg_conflict(struct ra_regs *regs,
-			       unsigned int base_reg, unsigned int reg)
+                               unsigned int base_reg, unsigned int reg)
 {
    unsigned int i;
 
@@ -266,13 +274,37 @@ ra_add_transitive_reg_conflict(struct ra_regs *regs,
    }
 }
 
+/**
+ * Makes every conflict on the given register transitive.  In other words,
+ * every register that conflicts with r will now conflict with every other
+ * register conflicting with r.
+ *
+ * This can simplify code for setting up multiple register classes
+ * which are aggregates of some base hardware registers, compared to
+ * explicitly using ra_add_reg_conflict.
+ */
+void
+ra_make_reg_conflicts_transitive(struct ra_regs *regs, unsigned int r)
+{
+   struct ra_reg *reg = &regs->regs[r];
+   BITSET_WORD tmp;
+   int c;
+
+   BITSET_FOREACH_SET(c, tmp, reg->conflicts, regs->count) {
+      struct ra_reg *other = &regs->regs[c];
+      unsigned i;
+      for (i = 0; i < BITSET_WORDS(regs->count); i++)
+         other->conflicts[i] |= reg->conflicts[i];
+   }
+}
+
 unsigned int
 ra_alloc_reg_class(struct ra_regs *regs)
 {
    struct ra_class *class;
 
    regs->classes = reralloc(regs->regs, regs->classes, struct ra_class *,
-			    regs->class_count + 1);
+                            regs->class_count + 1);
 
    class = rzalloc(regs, struct ra_class);
    regs->classes[regs->class_count] = class;
@@ -319,35 +351,39 @@ ra_set_finalize(struct ra_regs *regs, unsigned int **q_values)
       for (b = 0; b < regs->class_count; b++) {
          for (c = 0; c < regs->class_count; c++) {
             regs->classes[b]->q[c] = q_values[b][c];
-	 }
+         }
       }
-      return;
+   } else {
+      /* Compute, for each class B and C, how many regs of B an
+       * allocation to C could conflict with.
+       */
+      for (b = 0; b < regs->class_count; b++) {
+         for (c = 0; c < regs->class_count; c++) {
+            unsigned int rc;
+            int max_conflicts = 0;
+
+            for (rc = 0; rc < regs->count; rc++) {
+               int conflicts = 0;
+               unsigned int i;
+
+               if (!reg_belongs_to_class(rc, regs->classes[c]))
+                  continue;
+
+               for (i = 0; i < regs->regs[rc].num_conflicts; i++) {
+                  unsigned int rb = regs->regs[rc].conflict_list[i];
+                  if (reg_belongs_to_class(rb, regs->classes[b]))
+                     conflicts++;
+               }
+               max_conflicts = MAX2(max_conflicts, conflicts);
+            }
+            regs->classes[b]->q[c] = max_conflicts;
+         }
+      }
    }
 
-   /* Compute, for each class B and C, how many regs of B an
-    * allocation to C could conflict with.
-    */
-   for (b = 0; b < regs->class_count; b++) {
-      for (c = 0; c < regs->class_count; c++) {
-	 unsigned int rc;
-	 int max_conflicts = 0;
-
-	 for (rc = 0; rc < regs->count; rc++) {
-	    int conflicts = 0;
-	    unsigned int i;
-
-            if (!reg_belongs_to_class(rc, regs->classes[c]))
-	       continue;
-
-	    for (i = 0; i < regs->regs[rc].num_conflicts; i++) {
-	       unsigned int rb = regs->regs[rc].conflict_list[i];
-	       if (reg_belongs_to_class(rb, regs->classes[b]))
-		  conflicts++;
-	    }
-	    max_conflicts = MAX2(max_conflicts, conflicts);
-	 }
-	 regs->classes[b]->q[c] = max_conflicts;
-      }
+   for (b = 0; b < regs->count; b++) {
+      ralloc_free(regs->regs[b].conflict_list);
+      regs->regs[b].conflict_list = NULL;
    }
 }
 
@@ -406,14 +442,14 @@ ra_alloc_interference_graph(struct ra_regs *regs, unsigned int count)
 
 void
 ra_set_node_class(struct ra_graph *g,
-		  unsigned int n, unsigned int class)
+                  unsigned int n, unsigned int class)
 {
    g->nodes[n].class = class;
 }
 
 void
 ra_add_node_interference(struct ra_graph *g,
-			 unsigned int n1, unsigned int n2)
+                         unsigned int n1, unsigned int n2)
 {
    if (!BITSET_TEST(g->nodes[n1].adjacency, n2)) {
       ra_add_node_adjacency(g, n1, n2);
@@ -441,7 +477,7 @@ decrement_q(struct ra_graph *g, unsigned int n)
 
       if (n != n2 && !g->nodes[n2].in_stack) {
          assert(g->nodes[n2].q_total >= g->regs->classes[n2_class]->q[n_class]);
-	 g->nodes[n2].q_total -= g->regs->classes[n2_class]->q[n_class];
+         g->nodes[n2].q_total -= g->regs->classes[n2_class]->q[n_class];
       }
    }
 }

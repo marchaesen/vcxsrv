@@ -50,7 +50,7 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
 
    is_signed = (op == nir_op_idiv);
 
-   nir_builder_insert_before_instr(bld, &alu->instr);
+   bld->cursor = nir_before_instr(&alu->instr);
 
    numer = nir_ssa_for_src(bld, alu->src[0].src,
                            nir_ssa_alu_instr_src_components(alu, 0));
@@ -116,9 +116,7 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    }
 
    assert(alu->dest.dest.is_ssa);
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                            nir_src_for_ssa(q),
-                            ralloc_parent(alu));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(q));
 }
 
 static bool

@@ -175,13 +175,6 @@ void vbo_loopback_vertex_list( struct gl_context *ctx,
 
 /* Callbacks:
  */
-void vbo_save_EndList( struct gl_context *ctx );
-void vbo_save_NewList( struct gl_context *ctx, GLuint list, GLenum mode );
-void vbo_save_EndCallList( struct gl_context *ctx );
-void vbo_save_BeginCallList( struct gl_context *ctx, struct gl_display_list *list );
-void vbo_save_SaveFlushVertices( struct gl_context *ctx );
-GLboolean vbo_save_NotifyBegin( struct gl_context *ctx, GLenum mode );
-
 void vbo_save_playback_vertex_list( struct gl_context *ctx, void *data );
 
 void vbo_save_api_init( struct vbo_save_context *save );

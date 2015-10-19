@@ -50,8 +50,6 @@ void vbo_exec_init( struct gl_context *ctx )
 
    ctx->Driver.NeedFlush = 0;
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
-   ctx->Driver.BeginVertices = vbo_exec_BeginVertices;
-   ctx->Driver.FlushVertices = vbo_exec_FlushVertices;
 
    vbo_exec_invalidate_state( ctx, ~0 );
 }

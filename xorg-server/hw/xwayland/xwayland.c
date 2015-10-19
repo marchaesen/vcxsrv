@@ -287,10 +287,10 @@ xwl_unrealize_window(WindowPtr window)
     xwl_screen = xwl_screen_get(screen);
 
     xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
-        if (!xwl_seat->focus_window)
-            continue;
-        if (xwl_seat->focus_window->window == window)
+        if (xwl_seat->focus_window && xwl_seat->focus_window->window == window)
             xwl_seat->focus_window = NULL;
+
+        xwl_seat_clear_touch(xwl_seat, window);
     }
 
     screen->UnrealizeWindow = xwl_screen->UnrealizeWindow;
@@ -410,7 +410,16 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
 static void
 global_remove(void *data, struct wl_registry *registry, uint32_t name)
 {
-    /* Nothing to do here, wl_compositor and wl_shm should not be removed */
+    struct xwl_screen *xwl_screen = data;
+    struct xwl_output *xwl_output, *tmp_xwl_output;
+
+    xorg_list_for_each_entry_safe(xwl_output, tmp_xwl_output,
+                                  &xwl_screen->output_list, link) {
+        if (xwl_output->server_output_id == name) {
+            xwl_output_destroy(xwl_output);
+            break;
+        }
+    }
 }
 
 static const struct wl_registry_listener registry_listener = {

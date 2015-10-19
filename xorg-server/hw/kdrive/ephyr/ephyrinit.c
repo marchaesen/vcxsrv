@@ -367,7 +367,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     /* end Xnest compat */
     else if (!strcmp(argv[i], "-no-host-grab")) {
         EphyrWantNoHostGrab = 1;
-        return 2;
+        return 1;
     }
 
     return KdProcessArgument(argc, argv, i);

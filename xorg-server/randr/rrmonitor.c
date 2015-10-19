@@ -32,7 +32,7 @@ RRMonitorCrtcName(RRCrtcPtr crtc)
         RROutputPtr     output = crtc->outputs[0];
         return MakeAtom(output->name, output->nameLength, TRUE);
     }
-    sprintf(name, "Monitor-%08x", crtc->id);
+    sprintf(name, "Monitor-%08lx", (unsigned long int)crtc->id);
     return MakeAtom(name, strlen(name), TRUE);
 }
 

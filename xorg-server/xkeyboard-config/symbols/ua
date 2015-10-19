@@ -12,9 +12,9 @@ xkb_symbols "unicode" {
     include "ua(winkeys)"
     name[Group1]= "Ukrainian";
 
-    key <TLDE> { [           U2019,      apostrophe,          U0301,          asciitilde  ] };  // Apostrophe and Stress symbol
+    key <TLDE> { [      apostrophe,           U02BC,          U0301,          asciitilde  ] };  // Apostrophe and Stress symbol
     key <AE01> { [               1,          exclam,    onesuperior                       ] };
-    key <AE02> { [               2,        quotedbl,    twosuperior                       ] };
+    key <AE02> { [               2,        quotedbl,    twosuperior,               U2019  ] };  // single quote used often as an apostrophe (deprecated)
     key <AE03> { [               3,      numerosign,          U00A7,               U20B4  ] };  // Paragraph and Hryvnia sign
     key <AE04> { [               4,       semicolon,         dollar,            EuroSign  ] };
     key <AE05> { [               5,         percent,         degree                       ] };

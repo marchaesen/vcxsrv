@@ -252,7 +252,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
 
     size = pVisual->ColormapEntries;
     sizebytes = (size * sizeof(Entry)) +
-        (MAXCLIENTS * sizeof(Pixel *)) + (MAXCLIENTS * sizeof(int));
+        (LimitClients * sizeof(Pixel *)) + (LimitClients * sizeof(int));
     if ((class | DynamicClass) == DirectColor)
         sizebytes *= 3;
     sizebytes += sizeof(ColormapRec);
@@ -277,7 +277,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
     sizebytes = size * sizeof(Entry);
     pmap->clientPixelsRed = (Pixel **) ((char *) pmap->red + sizebytes);
     pmap->numPixelsRed = (int *) ((char *) pmap->clientPixelsRed +
-                                  (MAXCLIENTS * sizeof(Pixel *)));
+                                  (LimitClients * sizeof(Pixel *)));
     pmap->mid = mid;
     pmap->flags = 0;            /* start out with all flags clear */
     if (mid == pScreen->defColormap)
@@ -289,8 +289,8 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
         size = NUMRED(pVisual);
     pmap->freeRed = size;
     memset((char *) pmap->red, 0, (int) sizebytes);
-    memset((char *) pmap->numPixelsRed, 0, MAXCLIENTS * sizeof(int));
-    for (pptr = &pmap->clientPixelsRed[MAXCLIENTS];
+    memset((char *) pmap->numPixelsRed, 0, LimitClients * sizeof(int));
+    for (pptr = &pmap->clientPixelsRed[LimitClients];
          --pptr >= pmap->clientPixelsRed;)
         *pptr = (Pixel *) NULL;
     if (alloc == AllocAll) {
@@ -313,26 +313,26 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
     if ((class | DynamicClass) == DirectColor) {
         pmap->freeGreen = NUMGREEN(pVisual);
         pmap->green = (EntryPtr) ((char *) pmap->numPixelsRed +
-                                  (MAXCLIENTS * sizeof(int)));
+                                  (LimitClients * sizeof(int)));
         pmap->clientPixelsGreen = (Pixel **) ((char *) pmap->green + sizebytes);
         pmap->numPixelsGreen = (int *) ((char *) pmap->clientPixelsGreen +
-                                        (MAXCLIENTS * sizeof(Pixel *)));
+                                        (LimitClients * sizeof(Pixel *)));
         pmap->freeBlue = NUMBLUE(pVisual);
         pmap->blue = (EntryPtr) ((char *) pmap->numPixelsGreen +
-                                 (MAXCLIENTS * sizeof(int)));
+                                 (LimitClients * sizeof(int)));
         pmap->clientPixelsBlue = (Pixel **) ((char *) pmap->blue + sizebytes);
         pmap->numPixelsBlue = (int *) ((char *) pmap->clientPixelsBlue +
-                                       (MAXCLIENTS * sizeof(Pixel *)));
+                                       (LimitClients * sizeof(Pixel *)));
 
         memset((char *) pmap->green, 0, (int) sizebytes);
         memset((char *) pmap->blue, 0, (int) sizebytes);
 
         memmove((char *) pmap->clientPixelsGreen,
-                (char *) pmap->clientPixelsRed, MAXCLIENTS * sizeof(Pixel *));
+                (char *) pmap->clientPixelsRed, LimitClients * sizeof(Pixel *));
         memmove((char *) pmap->clientPixelsBlue,
-                (char *) pmap->clientPixelsRed, MAXCLIENTS * sizeof(Pixel *));
-        memset((char *) pmap->numPixelsGreen, 0, MAXCLIENTS * sizeof(int));
-        memset((char *) pmap->numPixelsBlue, 0, MAXCLIENTS * sizeof(int));
+                (char *) pmap->clientPixelsRed, LimitClients * sizeof(Pixel *));
+        memset((char *) pmap->numPixelsGreen, 0, LimitClients * sizeof(int));
+        memset((char *) pmap->numPixelsBlue, 0, LimitClients * sizeof(int));
 
         /* If every cell is allocated, mark its refcnt */
         if (alloc == AllocAll) {
@@ -416,7 +416,7 @@ FreeColormap(void *value, XID mid)
     (*pmap->pScreen->DestroyColormap) (pmap);
 
     if (pmap->clientPixelsRed) {
-        for (i = 0; i < MAXCLIENTS; i++)
+        for (i = 0; i < LimitClients; i++)
             free(pmap->clientPixelsRed[i]);
     }
 
@@ -434,7 +434,7 @@ FreeColormap(void *value, XID mid)
         }
     }
     if ((pmap->class | DynamicClass) == DirectColor) {
-        for (i = 0; i < MAXCLIENTS; i++) {
+        for (i = 0; i < LimitClients; i++) {
             free(pmap->clientPixelsGreen[i]);
             free(pmap->clientPixelsBlue[i]);
         }

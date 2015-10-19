@@ -34,6 +34,9 @@
 #  include <unistd.h>
 #  include <sys/mman.h>
 #endif
+#if defined(_WIN32)
+#include <sys/locking.h>
+#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -253,6 +256,7 @@ struct _FcCacheSkip {
     dev_t	    cache_dev;
     ino_t	    cache_ino;
     time_t	    cache_mtime;
+    long	    cache_mtime_nano;
     FcCacheSkip	    *next[1];
 };
 
@@ -380,12 +384,18 @@ FcCacheInsert (FcCache *cache, struct stat *cache_stat)
 	s->cache_dev = cache_stat->st_dev;
 	s->cache_ino = cache_stat->st_ino;
 	s->cache_mtime = cache_stat->st_mtime;
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+	s->cache_mtime_nano = cache_stat->st_mtim.tv_nsec;
+#else
+	s->cache_mtime_nano = 0;
+#endif
     }
     else
     {
 	s->cache_dev = 0;
 	s->cache_ino = 0;
 	s->cache_mtime = 0;
+	s->cache_mtime_nano = 0;
     }
 
     /*
@@ -473,6 +483,10 @@ FcCacheFindByStat (struct stat *cache_stat)
 	    s->cache_ino == cache_stat->st_ino &&
 	    s->cache_mtime == cache_stat->st_mtime)
 	{
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+	    if (s->cache_mtime != cache_stat->st_mtim.tv_nsec)
+		continue;
+#endif
 	    FcRefInc (&s->ref);
 	    unlock_cache ();
 	    return s->cache;
@@ -540,6 +554,7 @@ static FcBool
 FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
 {
     struct stat	dir_static;
+    FcBool fnano = FcTrue;
 
     if (!dir_stat)
     {
@@ -558,10 +573,18 @@ FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
 	FcStrFree (d);
 	dir_stat = &dir_static;
     }
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+    fnano = (cache->checksum_nano == dir_stat->st_mtim.tv_nsec);
+    if (FcDebug () & FC_DBG_CACHE)
+	printf ("FcCacheTimeValid dir \"%s\" cache checksum %d.%ld dir checksum %d.%ld\n",
+		FcCacheDir (cache), cache->checksum, (long)cache->checksum_nano, (int) dir_stat->st_mtime, dir_stat->st_mtim.tv_nsec);
+#else
     if (FcDebug () & FC_DBG_CACHE)
 	printf ("FcCacheTimeValid dir \"%s\" cache checksum %d dir checksum %d\n",
 		FcCacheDir (cache), cache->checksum, (int) dir_stat->st_mtime);
-    return cache->checksum == (int) dir_stat->st_mtime;
+#endif
+
+    return cache->checksum == (int) dir_stat->st_mtime && fnano;
 }
 
 static FcBool
@@ -757,6 +780,10 @@ FcDirCacheValidateHelper (FcConfig *config, int fd, struct stat *fd_stat, struct
 	ret = FcFalse;
     else if (c.checksum != (int) dir_stat->st_mtime)
 	ret = FcFalse;
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+    else if (c.checksum_nano != dir_stat->st_mtim.tv_nsec)
+	ret = FcFalse;
+#endif
     return ret;
 }
 
@@ -831,6 +858,9 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
     cache->version = FC_CACHE_VERSION_NUMBER;
     cache->size = serialize->size;
     cache->checksum = (int) dir_stat->st_mtime;
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+    cache->checksum_nano = dir_stat->st_mtim.tv_nsec;
+#endif
 
     /*
      * Serialize directory name
@@ -1018,6 +1048,11 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
 	    skip->cache_dev = cache_stat.st_dev;
 	    skip->cache_ino = cache_stat.st_ino;
 	    skip->cache_mtime = cache_stat.st_mtime;
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+	    skip->cache_mtime_nano = cache_stat.st_mtim.tv_nsec;
+#else
+	    skip->cache_mtime_nano = 0;
+#endif
 	}
 	unlock_cache ();
     }
@@ -1140,6 +1175,79 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
     FcStrFree (dir);
 
     return ret;
+}
+
+int
+FcDirCacheLock (const FcChar8 *dir,
+		FcConfig      *config)
+{
+    FcChar8 *cache_hashed = NULL;
+    FcChar8 cache_base[CACHEBASE_LEN];
+    FcStrList *list;
+    FcChar8 *cache_dir;
+    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+    int fd = -1;
+
+    FcDirCacheBasename (dir, cache_base);
+    list = FcStrListCreate (config->cacheDirs);
+    if (!list)
+	return -1;
+
+    while ((cache_dir = FcStrListNext (list)))
+    {
+	if (sysroot)
+	    cache_hashed = FcStrBuildFilename (sysroot, cache_dir, cache_base, NULL);
+	else
+	    cache_hashed = FcStrBuildFilename (cache_dir, cache_base, NULL);
+	if (!cache_hashed)
+	    break;
+	fd = FcOpen ((const char *)cache_hashed, O_RDWR);
+	/* No caches in that directory. simply retry with another one */
+	if (fd != -1)
+	{
+#if defined(_WIN32)
+	    if (_locking (fd, _LK_LOCK, 1) == -1)
+		goto bail;
+#else
+	    struct flock fl;
+
+	    fl.l_type = F_WRLCK;
+	    fl.l_whence = SEEK_SET;
+	    fl.l_start = 0;
+	    fl.l_len = 0;
+	    fl.l_pid = getpid ();
+	    if (fcntl (fd, F_SETLKW, &fl) == -1)
+		goto bail;
+#endif
+	    break;
+	}
+    }
+    return fd;
+bail:
+    if (fd != -1)
+	close (fd);
+    return -1;
+}
+
+void
+FcDirCacheUnlock (int fd)
+{
+    if (fd != -1)
+    {
+#if defined(_WIN32)
+	_locking (fd, _LK_UNLCK, 1);
+#else
+	struct flock fl;
+
+	fl.l_type = F_UNLCK;
+	fl.l_whence = SEEK_SET;
+	fl.l_start = 0;
+	fl.l_len = 0;
+	fl.l_pid = getpid ();
+	fcntl (fd, F_SETLK, &fl);
+#endif
+	close (fd);
+    }
 }
 
 /*

@@ -199,6 +199,7 @@ xwl_cross_screen(ScreenPtr pScreen, Bool entering)
 static void
 xwl_pointer_warp_cursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
+    miPointerWarpCursor(pDev, pScreen, x, y);
 }
 
 static miPointerScreenFuncRec xwl_pointer_screen_funcs = {

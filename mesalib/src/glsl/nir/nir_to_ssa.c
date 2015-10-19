@@ -516,7 +516,7 @@ nir_convert_to_ssa_impl(nir_function_impl *impl)
    rewrite_state state;
    init_rewrite_state(impl, &state);
 
-   rewrite_block(impl->start_block, &state);
+   rewrite_block(nir_start_block(impl), &state);
 
    remove_unused_regs(impl, &state);
 

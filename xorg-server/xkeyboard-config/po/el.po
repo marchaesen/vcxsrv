@@ -4189,7 +4189,6 @@ msgstr "Αγγλικό (Ενωμένου Βασιλείου, τύπος Sun 6/7)
 msgid "Korean (Sun Type 6/7)"
 msgstr "Κορεατικό (τύπος Sun 6/7)"
 
-#~| msgid "Swedish (Dvorak)"
 #~ msgid "Swedish (Dvorak A5)"
 #~ msgstr "Σουηδικό (Ντβόρακ A5)"
 

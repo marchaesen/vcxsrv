@@ -99,6 +99,16 @@ int ephyrResNameFromCmd = 0;
 char *ephyrTitle = NULL;
 Bool ephyr_glamor = FALSE;
 
+Bool
+hostx_has_extension(xcb_extension_t *extension)
+{
+    const xcb_query_extension_reply_t *rep;
+
+    rep = xcb_get_extension_data(HostX.conn, extension);
+
+    return rep && rep->present;
+}
+
 static void
  hostx_set_fullscreen_hint(void);
 
@@ -240,7 +250,7 @@ hostx_get_output_geometry(const char *output,
     xcb_randr_get_crtc_info_reply_t *crtc_info_r;
 
     /* First of all, check for extension */
-    if (!xcb_get_extension_data(HostX.conn, &xcb_randr_id)->present)
+    if (!hostx_has_extension(&xcb_randr_id))
     {
         fprintf(stderr, "\nHost X server does not support RANDR extension (or it's disabled).\n");
         exit(1);
@@ -422,7 +432,6 @@ hostx_init(void)
     char *tmpstr;
     char *class_hint;
     size_t class_len;
-    const xcb_query_extension_reply_t *shm_rep;
     xcb_screen_t *xscreen;
     xcb_rectangle_t rect = { 0, 0, 1, 1 };
 
@@ -632,8 +641,7 @@ hostx_init(void)
     }
 
     /* Try to get share memory ximages for a little bit more speed */
-    shm_rep = xcb_get_extension_data(HostX.conn, &xcb_shm_id);
-    if (!shm_rep || !shm_rep->present || getenv("XEPHYR_NO_SHM")) {
+    if (!hostx_has_extension(&xcb_shm_id) || getenv("XEPHYR_NO_SHM")) {
         fprintf(stderr, "\nXephyr unable to use SHM XImages\n");
         HostX.have_shm = FALSE;
     }
@@ -1039,11 +1047,13 @@ hostx_paint_rect(KdScreenInfo *screen,
                           sx, sy, dx, dy, width, height, FALSE);
     }
     else {
-        /* This is slow and could be done better */
-        xcb_image_t *img = xcb_image_native (HostX.conn, scrpriv->ximg, 1);
-        xcb_image_put(HostX.conn, scrpriv->win, HostX.gc, img, 0, 0, 0);
-        if (scrpriv->ximg != img)
+        xcb_image_t *subimg = xcb_image_subimage(scrpriv->ximg, sx, sy,
+                                                 width, height, 0, 0, 0);
+        xcb_image_t *img = xcb_image_native(HostX.conn, subimg, 1);
+        xcb_image_put(HostX.conn, scrpriv->win, HostX.gc, img, dx, dy, 0);
+        if (subimg != img)
             xcb_image_destroy(img);
+        xcb_image_destroy(subimg);
     }
 
     xcb_aux_sync(HostX.conn);

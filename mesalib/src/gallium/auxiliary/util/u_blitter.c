@@ -104,7 +104,7 @@ struct blitter_context_priv
    void *fs_resolve_uint[PIPE_MAX_TEXTURE_TYPES][NUM_RESOLVE_FRAG_SHADERS][2];
 
    /* Blend state. */
-   void *blend[PIPE_MASK_RGBA+1]; /**< blend state with writemask */
+   void *blend[PIPE_MASK_RGBA+1][2]; /**< blend state with writemask */
    void *blend_clear[GET_CLEAR_BLEND_STATE_IDX(PIPE_CLEAR_COLOR)+1];
 
    /* Depth stencil alpha state. */
@@ -159,7 +159,7 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    struct pipe_rasterizer_state rs_state;
    struct pipe_sampler_state sampler_state;
    struct pipe_vertex_element velem[2];
-   unsigned i;
+   unsigned i, j;
 
    ctx = CALLOC_STRUCT(blitter_context_priv);
    if (!ctx)
@@ -208,8 +208,20 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    memset(&blend, 0, sizeof(blend));
 
    for (i = 0; i <= PIPE_MASK_RGBA; i++) {
-      blend.rt[0].colormask = i;
-      ctx->blend[i] = pipe->create_blend_state(pipe, &blend);
+      for (j = 0; j < 2; j++) {
+         memset(&blend.rt[0], 0, sizeof(blend.rt[0]));
+         blend.rt[0].colormask = i;
+         if (j) {
+            blend.rt[0].blend_enable = 1;
+            blend.rt[0].rgb_func = PIPE_BLEND_ADD;
+            blend.rt[0].rgb_src_factor = PIPE_BLENDFACTOR_SRC_ALPHA;
+            blend.rt[0].rgb_dst_factor = PIPE_BLENDFACTOR_INV_SRC_ALPHA;
+            blend.rt[0].alpha_func = PIPE_BLEND_ADD;
+            blend.rt[0].alpha_src_factor = PIPE_BLENDFACTOR_SRC_ALPHA;
+            blend.rt[0].alpha_dst_factor = PIPE_BLENDFACTOR_INV_SRC_ALPHA;
+         }
+         ctx->blend[i][j] = pipe->create_blend_state(pipe, &blend);
+      }
    }
 
    /* depth stencil alpha state objects */
@@ -409,9 +421,10 @@ void util_blitter_destroy(struct blitter_context *blitter)
    struct pipe_context *pipe = blitter->pipe;
    int i, j, f;
 
-   for (i = 0; i <= PIPE_MASK_RGBA; i++) {
-      pipe->delete_blend_state(pipe, ctx->blend[i]);
-   }
+   for (i = 0; i <= PIPE_MASK_RGBA; i++)
+      for (j = 0; j < 2; j++)
+         pipe->delete_blend_state(pipe, ctx->blend[i][j]);
+
    for (i = 0; i < Elements(ctx->blend_clear); i++) {
       if (ctx->blend_clear[i])
          pipe->delete_blend_state(pipe, ctx->blend_clear[i]);
@@ -1177,6 +1190,8 @@ static void blitter_draw(struct blitter_context_priv *ctx,
 
    u_upload_data(ctx->upload, 0, sizeof(ctx->vertices), ctx->vertices,
                  &vb.buffer_offset, &vb.buffer);
+   if (!vb.buffer)
+      return;
    u_upload_unmap(ctx->upload);
 
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
@@ -1217,7 +1232,7 @@ static void *get_clear_blend_state(struct blitter_context_priv *ctx,
 
    /* Return an existing blend state. */
    if (!clear_buffers)
-      return ctx->blend[0];
+      return ctx->blend[0][0];
 
    index = GET_CLEAR_BLEND_STATE_IDX(clear_buffers);
 
@@ -1483,7 +1498,8 @@ void util_blitter_copy_texture(struct blitter_context *blitter,
    /* Copy. */
    util_blitter_blit_generic(blitter, dst_view, &dstbox,
                              src_view, srcbox, src->width0, src->height0,
-                             PIPE_MASK_RGBAZS, PIPE_TEX_FILTER_NEAREST, NULL);
+                             PIPE_MASK_RGBAZS, PIPE_TEX_FILTER_NEAREST, NULL,
+                             FALSE);
 
    pipe_surface_reference(&dst_view, NULL);
    pipe_sampler_view_reference(&src_view, NULL);
@@ -1496,7 +1512,8 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
                                const struct pipe_box *srcbox,
                                unsigned src_width0, unsigned src_height0,
                                unsigned mask, unsigned filter,
-                               const struct pipe_scissor_state *scissor)
+                               const struct pipe_scissor_state *scissor,
+                               boolean alpha_blend)
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
@@ -1550,7 +1567,7 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
    fb_state.zsbuf = NULL;
 
    if (blit_depth || blit_stencil) {
-      pipe->bind_blend_state(pipe, ctx->blend[0]);
+      pipe->bind_blend_state(pipe, ctx->blend[0][0]);
 
       if (blit_depth && blit_stencil) {
          pipe->bind_depth_stencil_alpha_state(pipe,
@@ -1573,7 +1590,9 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
       }
 
    } else {
-      pipe->bind_blend_state(pipe, ctx->blend[mask & PIPE_MASK_RGBA]);
+      unsigned colormask = mask & PIPE_MASK_RGBA;
+
+      pipe->bind_blend_state(pipe, ctx->blend[colormask][alpha_blend]);
       pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_keep_depth_stencil);
       ctx->bind_fs_state(pipe,
             blitter_get_fs_texfetch_col(ctx, src->format, src_target,
@@ -1786,7 +1805,8 @@ util_blitter_blit(struct blitter_context *blitter,
    util_blitter_blit_generic(blitter, dst_view, &info->dst.box,
                              src_view, &info->src.box, src->width0, src->height0,
                              info->mask, info->filter,
-                             info->scissor_enable ? &info->scissor : NULL);
+                             info->scissor_enable ? &info->scissor : NULL,
+                             info->alpha_blend);
 
    pipe_surface_reference(&dst_view, NULL);
    pipe_sampler_view_reference(&src_view, NULL);
@@ -1815,7 +1835,7 @@ void util_blitter_clear_render_target(struct blitter_context *blitter,
    blitter_disable_render_cond(ctx);
 
    /* bind states */
-   pipe->bind_blend_state(pipe, ctx->blend[PIPE_MASK_RGBA]);
+   pipe->bind_blend_state(pipe, ctx->blend[PIPE_MASK_RGBA][0]);
    pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_keep_depth_stencil);
    bind_fs_write_one_cbuf(ctx);
    pipe->bind_vertex_elements_state(pipe, ctx->velem_state);
@@ -1867,7 +1887,7 @@ void util_blitter_clear_depth_stencil(struct blitter_context *blitter,
    blitter_disable_render_cond(ctx);
 
    /* bind states */
-   pipe->bind_blend_state(pipe, ctx->blend[0]);
+   pipe->bind_blend_state(pipe, ctx->blend[0][0]);
    if ((clear_flags & PIPE_CLEAR_DEPTHSTENCIL) == PIPE_CLEAR_DEPTHSTENCIL) {
       sr.ref_value[0] = stencil & 0xff;
       pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_write_depth_stencil);
@@ -1933,8 +1953,8 @@ void util_blitter_custom_depth_stencil(struct blitter_context *blitter,
    blitter_disable_render_cond(ctx);
 
    /* bind states */
-   pipe->bind_blend_state(pipe, cbsurf ? ctx->blend[PIPE_MASK_RGBA] :
-                                         ctx->blend[0]);
+   pipe->bind_blend_state(pipe, cbsurf ? ctx->blend[PIPE_MASK_RGBA][0] :
+                                         ctx->blend[0][0]);
    pipe->bind_depth_stencil_alpha_state(pipe, dsa_stage);
    if (cbsurf)
       bind_fs_write_one_cbuf(ctx);
@@ -2045,7 +2065,7 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
    struct pipe_vertex_buffer vb = {0};
-   struct pipe_stream_output_target *so_target;
+   struct pipe_stream_output_target *so_target = NULL;
    unsigned offsets[PIPE_MAX_SO_BUFFERS] = {0};
 
    assert(num_channels >= 1);
@@ -2071,6 +2091,9 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
 
    u_upload_data(ctx->upload, 0, num_channels*4, clear_value,
                  &vb.buffer_offset, &vb.buffer);
+   if (!vb.buffer)
+      goto out;
+
    vb.stride = 0;
 
    blitter_set_running_flag(ctx);
@@ -2094,6 +2117,7 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
 
    util_draw_arrays(pipe, PIPE_PRIM_POINTS, 0, size / 4);
 
+out:
    blitter_restore_vertex_states(ctx);
    blitter_restore_render_cond(ctx);
    blitter_unset_running_flag(ctx);
@@ -2187,7 +2211,7 @@ void util_blitter_custom_color(struct blitter_context *blitter,
 
    /* bind states */
    pipe->bind_blend_state(pipe, custom_blend ? custom_blend
-                                             : ctx->blend[PIPE_MASK_RGBA]);
+                                             : ctx->blend[PIPE_MASK_RGBA][0]);
    pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_keep_depth_stencil);
    bind_fs_write_one_cbuf(ctx);
    pipe->bind_vertex_elements_state(pipe, ctx->velem_state);

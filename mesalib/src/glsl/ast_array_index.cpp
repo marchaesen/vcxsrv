@@ -28,13 +28,10 @@
 void
 ast_array_specifier::print(void) const
 {
-   if (this->is_unsized_array) {
-      printf("[ ] ");
-   }
-
    foreach_list_typed (ast_node, array_dimension, link, &this->array_dimensions) {
       printf("[ ");
-      array_dimension->print();
+      if (((ast_expression*)array_dimension)->oper != ast_unsized_array_dim)
+         array_dimension->print();
       printf("] ");
    }
 }
@@ -64,21 +61,29 @@ update_max_array_access(ir_rvalue *ir, int idx, YYLTYPE *loc,
       }
    } else if (ir_dereference_record *deref_record =
               ir->as_dereference_record()) {
-      /* There are two possibilities we need to consider:
+      /* There are three possibilities we need to consider:
        *
        * - Accessing an element of an array that is a member of a named
        *   interface block (e.g. ifc.foo[i])
        *
        * - Accessing an element of an array that is a member of a named
        *   interface block array (e.g. ifc[j].foo[i]).
+       *
+       * - Accessing an element of an array that is a member of a named
+       *   interface block array of arrays (e.g. ifc[j][k].foo[i]).
        */
       ir_dereference_variable *deref_var =
          deref_record->record->as_dereference_variable();
       if (deref_var == NULL) {
-         if (ir_dereference_array *deref_array =
-             deref_record->record->as_dereference_array()) {
-            deref_var = deref_array->array->as_dereference_variable();
+         ir_dereference_array *deref_array =
+            deref_record->record->as_dereference_array();
+         ir_dereference_array *deref_array_prev = NULL;
+         while (deref_array != NULL) {
+            deref_array_prev = deref_array;
+            deref_array = deref_array->array->as_dereference_array();
          }
+         if (deref_array_prev != NULL)
+            deref_var = deref_array_prev->array->as_dereference_variable();
       }
 
       if (deref_var != NULL) {
@@ -226,19 +231,22 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
              * by the linker.
              */
          }
-         else {
+         else if (array->variable_referenced()->data.mode !=
+                  ir_var_shader_storage) {
             _mesa_glsl_error(&loc, state, "unsized array index must be constant");
          }
-      } else if (array->type->fields.array->is_interface()
-                 && array->variable_referenced()->data.mode == ir_var_uniform
+      } else if (array->type->without_array()->is_interface()
+                 && (array->variable_referenced()->data.mode == ir_var_uniform ||
+                     array->variable_referenced()->data.mode == ir_var_shader_storage)
                  && !state->is_version(400, 0) && !state->ARB_gpu_shader5_enable) {
-	 /* Page 46 in section 4.3.7 of the OpenGL ES 3.00 spec says:
+	 /* Page 50 in section 4.3.9 of the OpenGL ES 3.10 spec says:
 	  *
-	  *     "All indexes used to index a uniform block array must be
-	  *     constant integral expressions."
+	  *     "All indices used to index a uniform or shader storage block
+	  *     array must be constant integral expressions."
 	  */
-	 _mesa_glsl_error(&loc, state,
-			  "uniform block array index must be constant");
+	 _mesa_glsl_error(&loc, state, "%s block array index must be constant",
+                          array->variable_referenced()->data.mode
+                          == ir_var_uniform ? "uniform" : "shader storage");
       } else {
 	 /* whole_variable_referenced can return NULL if the array is a
 	  * member of a structure.  In this case it is safe to not update
@@ -289,6 +297,21 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
                                   "expressions will be forbidden in GLSL "
                                   "1.30 and later");
          }
+      }
+
+      /* From page 27 of the GLSL ES 3.1 specification:
+       *
+       * "When aggregated into arrays within a shader, images can only be
+       *  indexed with a constant integral expression."
+       *
+       * On the other hand the desktop GL specification extension allows
+       * non-constant indexing of image arrays, but behavior is left undefined
+       * in cases where the indexing expression is not dynamically uniform.
+       */
+      if (state->es_shader && array->type->without_array()->is_image()) {
+         _mesa_glsl_error(&loc, state,
+                          "image arrays indexed with non-constant "
+                          "expressions are forbidden in GLSL ES.");
       }
    }
 

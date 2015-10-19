@@ -320,6 +320,11 @@ sets the stack space limit of the server to the specified number of kilobytes.
 A value of zero makes the stack size as large as possible.  The default value
 of \-1 leaves the stack space limit unchanged.
 .TP 8
+.B \-maxclients
+.BR 64 | 128 | 256 | 512
+Set the maximum number of clients allowed to connect to the X server.
+Acceptable values are 64, 128, 256 or 512.
+.TP 8
 .B \-render
 .BR default | mono | gray | color
 sets the color allocation policy that will be used by the render extension.
@@ -391,7 +396,7 @@ ends.
 .B \-class \fIdisplay-class\fP
 XDMCP has an additional display qualifier used in resource lookup for
 display-specific options.  This option sets that value, by default it
-is "MIT-Unspecified" (not a very useful value).
+is "MIT-unspecified" (not a very useful value).
 .TP 8
 .B \-cookie \fIxdm-auth-bits\fP
 When testing XDM-AUTHENTICATION-1, a private key is shared between the
@@ -428,7 +433,7 @@ elapse between autorepeat-generated keystrokes).
 loads keyboard description in \fIfilename\fP on server startup.
 .SH "NETWORK CONNECTIONS"
 The X server supports client connections via a platform-dependent subset of
-the following transport types: TCP\/IP, Unix Domain sockets, DECnet,
+the following transport types: TCP/IP, Unix Domain sockets,
 and several varieties of SVR4 local connections.  See the DISPLAY
 NAMES section of the \fIX\fP(__miscmansuffix__) manual page to learn how to
 specify which transport type clients should try to use.
@@ -457,8 +462,8 @@ If no other authorization mechanism is being used,
 this list initially consists of the host on which the server is running as
 well as any machines listed in the file \fI/etc/X\fBn\fI.hosts\fR, where
 \fBn\fP is the display number of the server.  Each line of the file should
-contain either an Internet hostname (e.g. expo.lcs.mit.edu) or a DECnet
-hostname in double colon format (e.g. hydra::) or a complete name in the format
+contain either an Internet hostname (e.g. expo.lcs.mit.edu)
+or a complete name in the format
 \fIfamily\fP:\fIname\fP as described in the \fIxhost\fP(1) manual page.
 There should be no leading or trailing spaces on any lines.  For example:
 .sp
@@ -466,7 +471,6 @@ There should be no leading or trailing spaces on any lines.  For example:
 .nf
 joesworkstation
 corporate.company.com
-star::
 inet:bigcpu
 local:
 .fi

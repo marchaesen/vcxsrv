@@ -1938,10 +1938,16 @@ def _c_accessors_list(self, field):
             _c('    i.data = ((%s *) (R + 1)) + (%s);', field.type.c_wiretype,
                _c_accessor_get_expr(field.type.expr, fields))
         else:
-            _c('    xcb_generic_iterator_t child = %s;',
-               _c_iterator_get_end(field.prev_varsized_field, 'R'))
-            _c('    i.data = ((%s *) child.data) + (%s);', field.type.c_wiretype,
-               _c_accessor_get_expr(field.type.expr, fields))
+            (prev_varsized_field, align_pad) = get_align_pad(field)
+
+            if align_pad is None:
+                align_pad = ('XCB_TYPE_PAD(%s, prev.index)' %
+                    type_pad_type(field.first_field_after_varsized.type.c_type))
+
+            _c('    xcb_generic_iterator_t prev = %s;',
+                _c_iterator_get_end(prev_varsized_field, 'R'))
+            _c('    i.data = ((%s *) prev.data) + %s + (%s);', field.type.c_wiretype,
+                align_pad, _c_accessor_get_expr(field.type.expr, fields))
 
         _c('    i.rem = 0;')
         _c('    i.index = (char *) i.data - (char *) %s;', param)

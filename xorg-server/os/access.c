@@ -1221,7 +1221,6 @@ GetLocalClientCreds(ClientPtr client, LocalClientCredRec ** lccp)
 #endif
 #else
     /* No system call available to get the credentials of the peer */
-#define NO_LOCAL_CLIENT_CRED
     return -1;
 #endif
 }
@@ -1573,6 +1572,20 @@ int
 GetAccessControl(void)
 {
     return AccessEnabled;
+}
+
+int
+GetClientFd(ClientPtr client)
+{
+    return ((OsCommPtr) client->osPrivate)->fd;
+}
+
+Bool
+ClientIsLocal(ClientPtr client)
+{
+    XtransConnInfo ci = ((OsCommPtr) client->osPrivate)->trans_conn;
+
+    return _XSERVTransIsLocal(ci);
 }
 
 /*****************************************************************************

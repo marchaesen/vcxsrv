@@ -49,8 +49,8 @@
  * \param src the array with the source data we want to byte-swap.
  * \param n number of words.
  */
-void
-_mesa_swap2_copy( GLushort *dst, GLushort *src, GLuint n )
+static void
+swap2_copy( GLushort *dst, GLushort *src, GLuint n )
 {
    GLuint i;
    for (i = 0; i < n; i++) {
@@ -58,7 +58,11 @@ _mesa_swap2_copy( GLushort *dst, GLushort *src, GLuint n )
    }
 }
 
-
+void
+_mesa_swap2(GLushort *p, GLuint n)
+{
+   swap2_copy(p, p, n);
+}
 
 /*
  * Flip the order of the 4 bytes in each word in the given array (src) and
@@ -69,8 +73,8 @@ _mesa_swap2_copy( GLushort *dst, GLushort *src, GLuint n )
  * \param src the array with the source data we want to byte-swap.
  * \param n number of words.
  */
-void
-_mesa_swap4_copy( GLuint *dst, GLuint *src, GLuint n )
+static void
+swap4_copy( GLuint *dst, GLuint *src, GLuint n )
 {
    GLuint i, a, b;
    for (i = 0; i < n; i++) {
@@ -83,6 +87,11 @@ _mesa_swap4_copy( GLuint *dst, GLuint *src, GLuint n )
    }
 }
 
+void
+_mesa_swap4(GLuint *p, GLuint n)
+{
+   swap4_copy(p, p, n);
+}
 
 /**
  * Return the byte offset of a specific pixel in an image (1D, 2D or 3D).
@@ -957,4 +966,43 @@ _mesa_clip_blit(struct gl_context *ctx,
    assert(*srcY1 <= srcYmax);
 
    return GL_TRUE;
+}
+
+/**
+ * Swap the bytes in a 2D image.
+ *
+ * using the packing information this swaps the bytes
+ * according to the format and type of data being input.
+ * It takes into a/c various packing parameters like
+ * Alignment and RowLength.
+ */
+void
+_mesa_swap_bytes_2d_image(GLenum format, GLenum type,
+                          const struct gl_pixelstore_attrib *packing,
+                          GLsizei width, GLsizei height,
+                          GLvoid *dst, const GLvoid *src)
+{
+   GLint swapSize = _mesa_sizeof_packed_type(type);
+
+   assert(packing->SwapBytes);
+
+   if (swapSize == 2 || swapSize == 4) {
+      int swapsPerPixel = _mesa_bytes_per_pixel(format, type) / swapSize;
+      int stride = _mesa_image_row_stride(packing, width, format, type);
+      int row;
+      uint8_t *dstrow;
+      const uint8_t *srcrow;
+      assert(swapsPerPixel > 0);
+      assert(_mesa_bytes_per_pixel(format, type) % swapSize == 0);
+      dstrow = dst;
+      srcrow = src;
+      for (row = 0; row < height; row++) {
+         if (swapSize == 2)
+            swap2_copy((GLushort *)dstrow, (GLushort *)srcrow, width * swapsPerPixel);
+         else if (swapSize == 4)
+            swap4_copy((GLuint *)dstrow, (GLuint *)srcrow, width * swapsPerPixel);
+         dstrow += stride;
+         srcrow += stride;
+      }
+   }
 }

@@ -415,11 +415,18 @@ typedef struct {
 
 extern _X_EXPORT int
 GetLocalClientCreds(ClientPtr, LocalClientCredRec **);
+
 extern _X_EXPORT void
 FreeLocalClientCreds(LocalClientCredRec *);
 
 extern _X_EXPORT int
 ChangeAccessControl(ClientPtr /*client */ , int /*fEnabled */ );
+
+extern _X_EXPORT int
+GetClientFd(ClientPtr);
+
+extern _X_EXPORT Bool
+ClientIsLocal(ClientPtr client);
 
 extern _X_EXPORT int
 GetAccessControl(void);

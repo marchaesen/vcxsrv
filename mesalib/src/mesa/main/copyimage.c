@@ -41,22 +41,27 @@ enum mesa_block_class {
 };
 
 /**
- * Prepare the source or destination resource, including:
- * - Error checking
- * - Creating texture wrappers for renderbuffers
+ * Prepare the source or destination resource.  This involves error
+ * checking and returning the relevant gl_texture_image or gl_renderbuffer.
+ * Note that one of the resulting tex_image or renderbuffer pointers will be
+ * NULL and the other will be non-null.
+ *
  * \param name  the texture or renderbuffer name
- * \param target  GL_TEXTURE target or GL_RENDERBUFFER.  For the later, will
- *                be changed to a compatible GL_TEXTURE target.
+ * \param target  One of GL_TEXTURE_x target or GL_RENDERBUFFER
  * \param level  mipmap level
- * \param tex_obj  returns a pointer to a texture object
+ * \param z  src or dest Z
+ * \param depth  number of slices/faces/layers to copy
  * \param tex_image  returns a pointer to a texture image
- * \param tmp_tex  returns temporary texture object name
+ * \param renderbuffer  returns a pointer to a renderbuffer
  * \return true if success, false if error
  */
 static bool
-prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
-               struct gl_texture_object **tex_obj,
-               struct gl_texture_image **tex_image, GLuint *tmp_tex,
+prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
+               int level, int z, int depth,
+               struct gl_texture_image **tex_image,
+               struct gl_renderbuffer **renderbuffer,
+               mesa_format *format,
+               GLenum *internalFormat,
                const char *dbg_prefix)
 {
    if (name == 0) {
@@ -72,7 +77,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
     *   - is TEXTURE_BUFFER, or
     *   - is one of the cubemap face selectors described in table 3.17,
     */
-   switch (*target) {
+   switch (target) {
    case GL_RENDERBUFFER:
       /* Not a texture target, but valid */
    case GL_TEXTURE_1D:
@@ -93,12 +98,13 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glCopyImageSubData(%sTarget = %s)", dbg_prefix,
-                  _mesa_enum_to_string(*target));
+                  _mesa_enum_to_string(target));
       return false;
    }
 
-   if (*target == GL_RENDERBUFFER) {
+   if (target == GL_RENDERBUFFER) {
       struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, name);
+
       if (!rb) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyImageSubData(%sName = %u)", dbg_prefix, name);
@@ -117,49 +123,38 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
          return false;
       }
 
-      if (rb->NumSamples > 1)
-         *target = GL_TEXTURE_2D_MULTISAMPLE;
-      else
-         *target = GL_TEXTURE_2D;
-
-      *tmp_tex = 0;
-      _mesa_GenTextures(1, tmp_tex);
-      if (*tmp_tex == 0)
-         return false; /* Error already set by GenTextures */
-
-      _mesa_BindTexture(*target, *tmp_tex);
-      *tex_obj = _mesa_lookup_texture(ctx, *tmp_tex);
-      *tex_image = _mesa_get_tex_image(ctx, *tex_obj, *target, 0);
-
-      if (!ctx->Driver.BindRenderbufferTexImage(ctx, rb, *tex_image)) {
-         _mesa_problem(ctx, "Failed to create texture from renderbuffer");
-         return false;
-      }
-
-      if (ctx->Driver.FinishRenderTexture && !rb->NeedsFinishRenderTexture) {
-         rb->NeedsFinishRenderTexture = true;
-         ctx->Driver.FinishRenderTexture(ctx, rb);
-      }
+      *renderbuffer = rb;
+      *format = rb->Format;
+      *internalFormat = rb->InternalFormat;
+      *tex_image = NULL;
    } else {
-      *tex_obj = _mesa_lookup_texture(ctx, name);
-      if (!*tex_obj) {
+      struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, name);
+
+      if (!texObj) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyImageSubData(%sName = %u)", dbg_prefix, name);
          return false;
       }
 
-      _mesa_test_texobj_completeness(ctx, *tex_obj);
-      if (!(*tex_obj)->_BaseComplete ||
-          (level != 0 && !(*tex_obj)->_MipmapComplete)) {
+      _mesa_test_texobj_completeness(ctx, texObj);
+      if (!texObj->_BaseComplete ||
+          (level != 0 && !texObj->_MipmapComplete)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glCopyImageSubData(%sName incomplete)", dbg_prefix);
          return false;
       }
 
-      if ((*tex_obj)->Target != *target) {
-         _mesa_error(ctx, GL_INVALID_ENUM,
+      /* Note that target will not be a cube face name */
+      if (texObj->Target != target) {
+         /*
+          * From GL_ARB_copy_image specification:
+          * "INVALID_VALUE is generated if either <srcName> or <dstName> does
+          * not correspond to a valid renderbuffer or texture object according
+          * to the corresponding target parameter."
+          */
+         _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyImageSubData(%sTarget = %s)", dbg_prefix,
-                     _mesa_enum_to_string(*target));
+                     _mesa_enum_to_string(target));
          return false;
       }
 
@@ -169,12 +164,36 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
          return false;
       }
 
-      *tex_image = _mesa_select_tex_image(*tex_obj, *target, level);
+      if (target == GL_TEXTURE_CUBE_MAP) {
+         int i;
+
+         assert(z < MAX_FACES);  /* should have been caught earlier */
+
+         /* make sure all the cube faces are present */
+         for (i = 0; i < depth; i++) {
+            if (!texObj->Image[z+i][level]) {
+               /* missing cube face */
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "glCopyImageSubData(missing cube face)");
+               return false;
+            }
+         }
+
+         *tex_image = texObj->Image[z][level];
+      }
+      else {
+         *tex_image = _mesa_select_tex_image(texObj, target, level);
+      }
+
       if (!*tex_image) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyImageSubData(%sLevel = %u)", dbg_prefix, level);
          return false;
       }
+
+      *renderbuffer = NULL;
+      *format = (*tex_image)->TexFormat;
+      *internalFormat = (*tex_image)->InternalFormat;
    }
 
    return true;
@@ -188,10 +207,14 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
  */
 static bool
 check_region_bounds(struct gl_context *ctx,
+                    GLenum target,
                     const struct gl_texture_image *tex_image,
+                    const struct gl_renderbuffer *renderbuffer,
                     int x, int y, int z, int width, int height, int depth,
                     const char *dbg_prefix)
 {
+   int surfWidth, surfHeight, surfDepth;
+
    if (width < 0 || height < 0 || depth < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyImageSubData(%sWidth, %sHeight, or %sDepth is negative)",
@@ -207,7 +230,14 @@ check_region_bounds(struct gl_context *ctx,
    }
 
    /* Check X direction */
-   if (x + width > tex_image->Width) {
+   if (target == GL_RENDERBUFFER) {
+      surfWidth = renderbuffer->Width;
+   }
+   else {
+      surfWidth = tex_image->Width;
+   }
+
+   if (x + width > surfWidth) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyImageSubData(%sX or %sWidth exceeds image bounds)",
                   dbg_prefix, dbg_prefix);
@@ -215,66 +245,49 @@ check_region_bounds(struct gl_context *ctx,
    }
 
    /* Check Y direction */
-   switch (tex_image->TexObject->Target) {
+   switch (target) {
+   case GL_RENDERBUFFER:
+      surfHeight = renderbuffer->Height;
+      break;
    case GL_TEXTURE_1D:
    case GL_TEXTURE_1D_ARRAY:
-      if (y != 0 || height != 1) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyImageSubData(%sY or %sHeight exceeds image bounds)",
-                     dbg_prefix, dbg_prefix);
-         return false;
-      }
+      surfHeight = 1;
       break;
    default:
-      if (y + height > tex_image->Height) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyImageSubData(%sY or %sHeight exceeds image bounds)",
-                     dbg_prefix, dbg_prefix);
-         return false;
-      }
-      break;
+      surfHeight = tex_image->Height;
+   }
+
+   if (y + height > surfHeight) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glCopyImageSubData(%sY or %sHeight exceeds image bounds)",
+                  dbg_prefix, dbg_prefix);
+      return false;
    }
 
    /* Check Z direction */
-   switch (tex_image->TexObject->Target) {
+   switch (target) {
+   case GL_RENDERBUFFER:
    case GL_TEXTURE_1D:
    case GL_TEXTURE_2D:
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_RECTANGLE:
-      if (z != 0 || depth != 1) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyImageSubData(%sZ or %sDepth exceeds image bounds)",
-                     dbg_prefix, dbg_prefix);
-         return false;
-      }
+      surfDepth = 1;
       break;
    case GL_TEXTURE_CUBE_MAP:
-      if (z < 0 || z + depth > 6) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyImageSubData(%sZ or %sDepth exceeds image bounds)",
-                     dbg_prefix, dbg_prefix);
-         return false;
-      }
+      surfDepth = 6;
       break;
    case GL_TEXTURE_1D_ARRAY:
-      if (z < 0 || z + depth > tex_image->Height) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyImageSubData(%sZ or %sDepth exceeds image bounds)",
-                     dbg_prefix, dbg_prefix);
-         return false;
-      }
+      surfDepth = tex_image->Height;
       break;
-   case GL_TEXTURE_CUBE_MAP_ARRAY:
-   case GL_TEXTURE_2D_ARRAY:
-   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-   case GL_TEXTURE_3D:
-      if (z < 0 || z + depth > tex_image->Depth) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyImageSubData(%sZ or %sDepth exceeds image bounds)",
-                     dbg_prefix, dbg_prefix);
-         return false;
-      }
-      break;
+   default:
+      surfDepth = tex_image->Depth;
+   }
+
+   if (z < 0 || z + depth > surfDepth) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glCopyImageSubData(%sZ or %sDepth exceeds image bounds)",
+                  dbg_prefix, dbg_prefix);
+      return false;
    }
 
    return true;
@@ -406,10 +419,12 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                        GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLuint tmpTexNames[2] = { 0, 0 };
-   struct gl_texture_object *srcTexObj, *dstTexObj;
    struct gl_texture_image *srcTexImage, *dstTexImage;
+   struct gl_renderbuffer *srcRenderbuffer, *dstRenderbuffer;
+   mesa_format srcFormat, dstFormat;
+   GLenum srcIntFormat, dstIntFormat;
    GLuint src_bw, src_bh, dst_bw, dst_bh;
+   int dstWidth, dstHeight, dstDepth;
    int i;
 
    if (MESA_VERBOSE & VERBOSE_API)
@@ -420,7 +435,7 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                   srcX, srcY, srcZ,
                   dstName, _mesa_enum_to_string(dstTarget), dstLevel,
                   dstX, dstY, dstZ,
-                  srcWidth, srcHeight, srcWidth);
+                  srcWidth, srcHeight, srcDepth);
 
    if (!ctx->Extensions.ARB_copy_image) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -428,67 +443,93 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
       return;
    }
 
-   if (!prepare_target(ctx, srcName, &srcTarget, srcLevel,
-                       &srcTexObj, &srcTexImage, &tmpTexNames[0], "src"))
-      goto cleanup;
+   if (!prepare_target(ctx, srcName, srcTarget, srcLevel, srcZ, srcDepth,
+                       &srcTexImage, &srcRenderbuffer, &srcFormat,
+                       &srcIntFormat, "src"))
+      return;
 
-   if (!prepare_target(ctx, dstName, &dstTarget, dstLevel,
-                       &dstTexObj, &dstTexImage, &tmpTexNames[1], "dst"))
-      goto cleanup;
+   if (!prepare_target(ctx, dstName, dstTarget, dstLevel, dstZ, srcDepth,
+                       &dstTexImage, &dstRenderbuffer, &dstFormat,
+                       &dstIntFormat, "dst"))
+      return;
 
-   _mesa_get_format_block_size(srcTexImage->TexFormat, &src_bw, &src_bh);
+   _mesa_get_format_block_size(srcFormat, &src_bw, &src_bh);
    if ((srcX % src_bw != 0) || (srcY % src_bh != 0) ||
        (srcWidth % src_bw != 0) || (srcHeight % src_bh != 0)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyImageSubData(unaligned src rectangle)");
-      goto cleanup;
+      return;
    }
 
-   _mesa_get_format_block_size(dstTexImage->TexFormat, &dst_bw, &dst_bh);
+   _mesa_get_format_block_size(dstFormat, &dst_bw, &dst_bh);
    if ((dstX % dst_bw != 0) || (dstY % dst_bh != 0)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyImageSubData(unaligned dst rectangle)");
-      goto cleanup;
+      return;
    }
 
-   if (!check_region_bounds(ctx, srcTexImage, srcX, srcY, srcZ,
-                            srcWidth, srcHeight, srcDepth, "src"))
-      goto cleanup;
+   /* From the GL_ARB_copy_image spec:
+    *
+    * "The dimensions are always specified in texels, even for compressed
+    * texture formats. But it should be noted that if only one of the
+    * source and destination textures is compressed then the number of
+    * texels touched in the compressed image will be a factor of the
+    * block size larger than in the uncompressed image."
+    *
+    * So, if copying from compressed to uncompressed, the dest region is
+    * shrunk by the src block size factor.  If copying from uncompressed
+    * to compressed, the dest region is grown by the dest block size factor.
+    * Note that we're passed the _source_ width, height, depth and those
+    * dimensions are never changed.
+    */
+   dstWidth = srcWidth * dst_bw / src_bw;
+   dstHeight = srcHeight * dst_bh / src_bh;
+   dstDepth = srcDepth;
 
-   if (!check_region_bounds(ctx, dstTexImage, dstX, dstY, dstZ,
-                            (srcWidth / src_bw) * dst_bw,
-                            (srcHeight / src_bh) * dst_bh, srcDepth, "dst"))
-      goto cleanup;
+   if (!check_region_bounds(ctx, srcTarget, srcTexImage, srcRenderbuffer,
+                            srcX, srcY, srcZ, srcWidth, srcHeight, srcDepth,
+                            "src"))
+      return;
 
-   if (!copy_format_compatible(ctx, srcTexImage->InternalFormat,
-                               dstTexImage->InternalFormat)) {
+   if (!check_region_bounds(ctx, dstTarget, dstTexImage, dstRenderbuffer,
+                            dstX, dstY, dstZ, dstWidth, dstHeight, dstDepth,
+                            "dst"))
+      return;
+
+   if (!copy_format_compatible(ctx, srcIntFormat, dstIntFormat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glCopyImageSubData(internalFormat mismatch)");
-      goto cleanup;
+      return;
    }
 
+   /* loop over 2D slices/faces/layers */
    for (i = 0; i < srcDepth; ++i) {
-      int srcNewZ, dstNewZ;
+      int newSrcZ = srcZ + i;
+      int newDstZ = dstZ + i;
 
-      if (srcTexObj->Target == GL_TEXTURE_CUBE_MAP) {
-         srcTexImage = srcTexObj->Image[i + srcZ][srcLevel];
-         srcNewZ = 0;
-      } else {
-         srcNewZ = srcZ + i;
+      if (srcTexImage &&
+          srcTexImage->TexObject->Target == GL_TEXTURE_CUBE_MAP) {
+         /* need to update srcTexImage pointer for the cube face */
+         assert(srcZ + i < MAX_FACES);
+         srcTexImage = srcTexImage->TexObject->Image[srcZ + i][srcLevel];
+         assert(srcTexImage);
+         newSrcZ = 0;
       }
 
-      if (dstTexObj->Target == GL_TEXTURE_CUBE_MAP) {
-         dstTexImage = dstTexObj->Image[i + dstZ][dstLevel];
-         dstNewZ = 0;
-      } else {
-         dstNewZ = dstZ + i;
+      if (dstTexImage &&
+          dstTexImage->TexObject->Target == GL_TEXTURE_CUBE_MAP) {
+         /* need to update dstTexImage pointer for the cube face */
+         assert(dstZ + i < MAX_FACES);
+         dstTexImage = dstTexImage->TexObject->Image[dstZ + i][dstLevel];
+         assert(dstTexImage);
+         newDstZ = 0;
       }
 
-      ctx->Driver.CopyImageSubData(ctx, srcTexImage, srcX, srcY, srcNewZ,
-                                   dstTexImage, dstX, dstY, dstNewZ,
+      ctx->Driver.CopyImageSubData(ctx,
+                                   srcTexImage, srcRenderbuffer,
+                                   srcX, srcY, newSrcZ,
+                                   dstTexImage, dstRenderbuffer,
+                                   dstX, dstY, newDstZ,
                                    srcWidth, srcHeight);
    }
-
-cleanup:
-   _mesa_DeleteTextures(2, tmpTexNames);
 }

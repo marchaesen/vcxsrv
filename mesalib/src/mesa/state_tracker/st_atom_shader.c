@@ -70,8 +70,15 @@ update_fp( struct st_context *st )
    key.clamp_color = st->clamp_frag_color_in_shader &&
                      st->ctx->Color._ClampFragmentColor;
 
-   /* Ignore sample qualifier while computing this flag. */
+   /* Don't set it if the driver can force the interpolation by itself.
+    * If SAMPLE_ID or SAMPLE_POS are used, the interpolation is set
+    * automatically.
+    * Ignore sample qualifier while computing this flag.
+    */
    key.persample_shading =
+      !st->can_force_persample_interp &&
+      !(stfp->Base.Base.SystemValuesRead & (SYSTEM_BIT_SAMPLE_ID |
+                                            SYSTEM_BIT_SAMPLE_POS)) &&
       _mesa_get_min_invocations_per_fragment(st->ctx, &stfp->Base, true) > 1;
 
    st->fp_variant = st_get_fp_variant(st, stfp, &key);

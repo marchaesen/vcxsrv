@@ -2099,20 +2099,7 @@ SProcRenderComposite(ClientPtr client)
 static int
 SProcRenderScale(ClientPtr client)
 {
-    REQUEST(xRenderScaleReq);
-    REQUEST_SIZE_MATCH(xRenderScaleReq);
-    swaps(&stuff->length);
-    swapl(&stuff->src);
-    swapl(&stuff->dst);
-    swapl(&stuff->colorScale);
-    swapl(&stuff->alphaScale);
-    swaps(&stuff->xSrc);
-    swaps(&stuff->ySrc);
-    swaps(&stuff->xDst);
-    swaps(&stuff->yDst);
-    swaps(&stuff->width);
-    swaps(&stuff->height);
-    return (*ProcRenderVector[stuff->renderReqType]) (client);
+    return BadImplementation;
 }
 
 static int

@@ -1540,6 +1540,10 @@ emulate_scroll_button_events(InternalEvent *events,
     ax = &dev->valuator->axes[axis];
     incr = ax->scroll.increment;
 
+    BUG_WARN_MSG(incr == 0, "for device %s\n", dev->name);
+    if (incr == 0)
+        return 0;
+
     if (type != ButtonPress && type != ButtonRelease)
         flags |= POINTER_EMULATED;
 

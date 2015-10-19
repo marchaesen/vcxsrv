@@ -233,9 +233,7 @@ X86EMU_dump_memory(u16 seg, u16 off, u32 amt)
     u32 start = off & 0xfffffff0;
     u32 end = (off + 16) & 0xfffffff0;
     u32 i;
-    u32 current;
 
-    current = start;
     while (end <= off + amt) {
         printk("%04x:%04x ", seg, start);
         for (i = start; i < off; i++)
@@ -261,8 +259,6 @@ x86emu_single_step(void)
     static int breakpoint;
     static int noDecode = 1;
 
-    char *p;
-
     if (DEBUG_BREAK()) {
         if (M.x86.saved_ip != breakpoint) {
             return;
@@ -279,7 +275,7 @@ x86emu_single_step(void)
     offset = M.x86.saved_ip;
     while (!done) {
         printk("-");
-        p = fgets(s, 1023, stdin);
+        (void)fgets(s, 1023, stdin);
         cmd = parse_line(s, ps, &ntok);
         switch (cmd) {
         case 'u':

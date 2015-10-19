@@ -154,6 +154,8 @@ nir_sweep(nir_shader *nir)
    /* First, move ownership of all the memory to a temporary context; assume dead. */
    ralloc_adopt(rubbish, nir);
 
+   ralloc_steal(nir, (char *)nir->info.name);
+
    /* Variables and registers are not dead.  Steal them back. */
    steal_list(nir, nir_variable, &nir->uniforms);
    steal_list(nir, nir_variable, &nir->inputs);

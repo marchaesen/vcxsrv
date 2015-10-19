@@ -256,7 +256,7 @@ gcm_schedule_early_instr(nir_instr *instr, struct gcm_state *state)
    /* Start with the instruction at the top.  As we iterate over the
     * sources, it will get moved down as needed.
     */
-   instr->block = state->impl->start_block;
+   instr->block = nir_start_block(state->impl);
    state->instr = instr;
 
    nir_foreach_src(instr, gcm_schedule_early_src, state);

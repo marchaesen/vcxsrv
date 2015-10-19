@@ -23,13 +23,12 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "ir.h"
-#include "glsl_types.h"
-#include "ir_visitor.h"
-#include "../glsl/program.h"
-#include "ir_uniform.h"
-
 #include "main/mtypes.h"
+#include "glsl/nir/glsl_types.h"
+#include "glsl/ir.h"
+#include "glsl/ir_uniform.h"
+#include "glsl/ir_visitor.h"
+#include "glsl/program.h"
 #include "program/hash_table.h"
 #include "program/prog_parameter.h"
 #include "program/program.h"
@@ -120,7 +119,7 @@ _mesa_get_sampler_uniform_value(class ir_dereference *sampler,
       return 0;
    }
 
-   if (!shader_program->UniformStorage[location].sampler[shader].active) {
+   if (!shader_program->UniformStorage[location].opaque[shader].active) {
       assert(0 && "cannot return a sampler");
       linker_error(shader_program,
 		   "cannot return a sampler named %s, because it is not "
@@ -129,7 +128,7 @@ _mesa_get_sampler_uniform_value(class ir_dereference *sampler,
       return 0;
    }
 
-   return shader_program->UniformStorage[location].sampler[shader].index +
+   return shader_program->UniformStorage[location].opaque[shader].index +
           getname.offset;
 }
 

@@ -71,14 +71,93 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
    return NULL;
 }
 
+/* For arrays of arrays this function will give us a middle ground between
+ * detecting inactive uniform blocks and structuring them in a way that makes
+ * it easy to calculate the offset for indirect indexing.
+ *
+ * For example given the shader:
+ *
+ *   uniform ArraysOfArraysBlock
+ *   {
+ *      vec4 a;
+ *   } i[3][4][5];
+ *
+ *   void main()
+ *   {
+ *      vec4 b = i[0][1][1].a;
+ *      gl_Position = i[2][2][3].a + b;
+ *   }
+ *
+ * There are only 2 active blocks above but for the sake of indirect indexing
+ * and not over complicating the code we will end up with a count of 8.
+ * Here each dimension has 2 different indices counted so we end up with 2*2*2
+ */
+struct uniform_block_array_elements **
+process_arrays(void *mem_ctx, ir_dereference_array *ir,
+               struct link_uniform_block_active *block)
+{
+   if (ir) {
+      struct uniform_block_array_elements **ub_array_ptr =
+         process_arrays(mem_ctx, ir->array->as_dereference_array(), block);
+      if (*ub_array_ptr == NULL) {
+         *ub_array_ptr = rzalloc(mem_ctx, struct uniform_block_array_elements);
+         (*ub_array_ptr)->ir = ir;
+      }
+
+      struct uniform_block_array_elements *ub_array = *ub_array_ptr;
+      ir_constant *c = ir->array_index->as_constant();
+      if (c) {
+         /* Index is a constant, so mark just that element used,
+          * if not already.
+          */
+         const unsigned idx = c->get_uint_component(0);
+
+         unsigned i;
+         for (i = 0; i < ub_array->num_array_elements; i++) {
+            if (ub_array->array_elements[i] == idx)
+               break;
+         }
+
+         assert(i <= ub_array->num_array_elements);
+
+         if (i == ub_array->num_array_elements) {
+            ub_array->array_elements = reralloc(mem_ctx,
+                                                ub_array->array_elements,
+                                                unsigned,
+                                                ub_array->num_array_elements + 1);
+
+            ub_array->array_elements[ub_array->num_array_elements] = idx;
+
+            ub_array->num_array_elements++;
+         }
+      } else {
+         /* The array index is not a constant,
+          * so mark the entire array used.
+          */
+         assert(ir->array->type->is_array());
+         if (ub_array->num_array_elements < ir->array->type->length) {
+            ub_array->num_array_elements = ir->array->type->length;
+            ub_array->array_elements = reralloc(mem_ctx,
+                                                ub_array->array_elements,
+                                                unsigned,
+                                                ub_array->num_array_elements);
+
+            for (unsigned i = 0; i < ub_array->num_array_elements; i++) {
+               ub_array->array_elements[i] = i;
+            }
+         }
+      }
+      return &ub_array->array;
+   } else {
+      return &block->array;
+   }
+}
+
 ir_visitor_status
 link_uniform_block_active_visitor::visit(ir_variable *var)
 {
    if (!var->is_in_buffer_block())
       return visit_continue;
-
-   const glsl_type *const block_type = var->is_interface_instance()
-      ? var->type : var->get_interface_type();
 
    /* Section 2.11.6 (Uniform Variables) of the OpenGL ES 3.0.3 spec says:
     *
@@ -88,7 +167,8 @@ link_uniform_block_active_visitor::visit(ir_variable *var)
     *     also considered active, even if no member of the block is
     *     referenced."
     */
-   if (block_type->interface_packing == GLSL_INTERFACE_PACKING_PACKED)
+   if (var->get_interface_type()->interface_packing ==
+       GLSL_INTERFACE_PACKING_PACKED)
       return visit_continue;
 
    /* Process the block.  Bail if there was an error.
@@ -103,9 +183,31 @@ link_uniform_block_active_visitor::visit(ir_variable *var)
       return visit_stop;
    }
 
-   assert(b->num_array_elements == 0);
-   assert(b->array_elements == NULL);
+   assert(b->array == NULL);
    assert(b->type != NULL);
+   assert(!b->type->is_array() || b->has_instance_name);
+
+   /* For uniform block arrays declared with a shared or std140 layout
+    * qualifier, mark all its instances as used.
+    */
+   const glsl_type *type = b->type;
+   struct uniform_block_array_elements **ub_array = &b->array;
+   while (type->is_array()) {
+      assert(b->type->length > 0);
+
+      *ub_array = rzalloc(this->mem_ctx, struct uniform_block_array_elements);
+      (*ub_array)->num_array_elements = type->length;
+      (*ub_array)->array_elements = reralloc(this->mem_ctx,
+                                             (*ub_array)->array_elements,
+                                             unsigned,
+                                             (*ub_array)->num_array_elements);
+
+      for (unsigned i = 0; i < (*ub_array)->num_array_elements; i++) {
+         (*ub_array)->array_elements[i] = i;
+      }
+      ub_array = &(*ub_array)->array;
+      type = type->fields.array;
+   }
 
    return visit_continue;
 }
@@ -113,7 +215,13 @@ link_uniform_block_active_visitor::visit(ir_variable *var)
 ir_visitor_status
 link_uniform_block_active_visitor::visit_enter(ir_dereference_array *ir)
 {
-   ir_dereference_variable *const d = ir->array->as_dereference_variable();
+   /* cycle through arrays of arrays */
+   ir_dereference_array *base_ir = ir;
+   while (base_ir->array->ir_type == ir_type_dereference_array)
+      base_ir = base_ir->array->as_dereference_array();
+
+   ir_dereference_variable *const d =
+      base_ir->array->as_dereference_variable();
    ir_variable *const var = (d == NULL) ? NULL : d->var;
 
    /* If the r-value being dereferenced is not a variable (e.g., a field of a
@@ -144,47 +252,16 @@ link_uniform_block_active_visitor::visit_enter(ir_dereference_array *ir)
    /* Block arrays must be declared with an instance name.
     */
    assert(b->has_instance_name);
-   assert((b->num_array_elements == 0) == (b->array_elements == NULL));
    assert(b->type != NULL);
 
-   ir_constant *c = ir->array_index->as_constant();
-
-   if (c) {
-      /* Index is a constant, so mark just that element used, if not already */
-      const unsigned idx = c->get_uint_component(0);
-
-      unsigned i;
-      for (i = 0; i < b->num_array_elements; i++) {
-         if (b->array_elements[i] == idx)
-            break;
-      }
-
-      assert(i <= b->num_array_elements);
-
-      if (i == b->num_array_elements) {
-         b->array_elements = reralloc(this->mem_ctx,
-                                      b->array_elements,
-                                      unsigned,
-                                      b->num_array_elements + 1);
-
-         b->array_elements[b->num_array_elements] = idx;
-
-         b->num_array_elements++;
-      }
-   } else {
-      /* The array index is not a constant, so mark the entire array used. */
-      assert(b->type->is_array());
-      if (b->num_array_elements < b->type->length) {
-         b->num_array_elements = b->type->length;
-         b->array_elements = reralloc(this->mem_ctx,
-                                      b->array_elements,
-                                      unsigned,
-                                      b->num_array_elements);
-
-         for (unsigned i = 0; i < b->num_array_elements; i++) {
-            b->array_elements[i] = i;
-         }
-      }
+   /* If the block array was declared with a shared or
+    * std140 layout qualifier, all its instances have been already marked
+    * as used in link_uniform_block_active_visitor::visit(ir_variable *).
+    */
+   if (var->get_interface_type()->interface_packing ==
+       GLSL_INTERFACE_PACKING_PACKED) {
+      b->var = var;
+      process_arrays(this->mem_ctx, ir, b);
    }
 
    return visit_continue_with_parent;
@@ -212,8 +289,7 @@ link_uniform_block_active_visitor::visit(ir_dereference_variable *ir)
       return visit_stop;
    }
 
-   assert(b->num_array_elements == 0);
-   assert(b->array_elements == NULL);
+   assert(b->array == NULL);
    assert(b->type != NULL);
 
    return visit_continue;

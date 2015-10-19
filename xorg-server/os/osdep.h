@@ -65,7 +65,7 @@ SOFTWARE.
 
 #ifndef OPEN_MAX
 #ifdef SVR4
-#define OPEN_MAX 256
+#define OPEN_MAX 512
 #else
 #include <sys/param.h>
 #ifndef OPEN_MAX
@@ -75,7 +75,7 @@ SOFTWARE.
 #if !defined(WIN32)
 #define OPEN_MAX NOFILES_MAX
 #else
-#define OPEN_MAX 256
+#define OPEN_MAX 512
 #endif
 #endif
 #endif
@@ -89,10 +89,10 @@ SOFTWARE.
  * like sysconf(_SC_OPEN_MAX) is not supported.
  */
 
-#if OPEN_MAX <= 256
+#if OPEN_MAX <= 512
 #define MAXSOCKS (OPEN_MAX - 1)
 #else
-#define MAXSOCKS 256
+#define MAXSOCKS 512
 #endif
 
 /* MAXSELECT is the number of fds that select() can handle */

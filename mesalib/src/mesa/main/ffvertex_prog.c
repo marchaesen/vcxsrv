@@ -293,9 +293,10 @@ struct ureg {
    GLuint file:4;
    GLint idx:9;      /* relative addressing may be negative */
                      /* sizeof(idx) should == sizeof(prog_src_reg::Index) */
+   GLuint abs:1;
    GLuint negate:1;
    GLuint swz:12;
-   GLuint pad:6;
+   GLuint pad:5;
 };
 
 
@@ -324,6 +325,7 @@ static const struct ureg undef = {
    0,
    0,
    0,
+   0,
    0
 };
 
@@ -342,12 +344,21 @@ static struct ureg make_ureg(GLuint file, GLint idx)
    struct ureg reg;
    reg.file = file;
    reg.idx = idx;
+   reg.abs = 0;
    reg.negate = 0;
    reg.swz = SWIZZLE_NOOP;
    reg.pad = 0;
    return reg;
 }
 
+
+
+static struct ureg absolute( struct ureg reg )
+{
+   reg.abs = 1;
+   reg.negate = 0;
+   return reg;
+}
 
 
 static struct ureg negate( struct ureg reg )
@@ -526,8 +537,8 @@ static void emit_arg( struct prog_src_register *src,
    src->File = reg.file;
    src->Index = reg.idx;
    src->Swizzle = reg.swz;
+   src->Abs = reg.abs;
    src->Negate = reg.negate ? NEGATE_XYZW : NEGATE_NONE;
-   src->Abs = 0;
    src->RelAddr = 0;
    /* Check that bitfield sizes aren't exceeded */
    assert(src->Index == reg.idx);
@@ -953,7 +964,7 @@ static struct ureg calculate_light_attenuation( struct tnl_program *p,
 
       emit_op2(p, OPCODE_DP3, spot, 0, negate(VPpli), spot_dir_norm);
       emit_op2(p, OPCODE_SLT, slt, 0, swizzle1(spot_dir_norm,W), spot);
-      emit_op2(p, OPCODE_POW, spot, 0, spot, swizzle1(attenuation, W));
+      emit_op2(p, OPCODE_POW, spot, 0, absolute(spot), swizzle1(attenuation, W));
       emit_op2(p, OPCODE_MUL, att, 0, slt, spot);
 
       release_temp(p, spot);
@@ -1679,11 +1690,10 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
                           ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS,
                           ctx->Const.Program[MESA_SHADER_VERTEX].MaxTemps );
 
-#if 0
       if (ctx->Driver.ProgramStringNotify)
          ctx->Driver.ProgramStringNotify( ctx, GL_VERTEX_PROGRAM_ARB,
                                           &prog->Base );
-#endif
+
       _mesa_program_cache_insert(ctx, ctx->VertexProgram.Cache,
                                  &key, sizeof(key), &prog->Base);
    }

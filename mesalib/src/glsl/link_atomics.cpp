@@ -33,7 +33,7 @@ namespace {
     * Atomic counter as seen by the program.
     */
    struct active_atomic_counter {
-      unsigned id;
+      unsigned uniform_loc;
       ir_variable *var;
    };
 
@@ -52,7 +52,7 @@ namespace {
          free(counters);
       }
 
-      void push_back(unsigned id, ir_variable *var)
+      void push_back(unsigned uniform_loc, ir_variable *var)
       {
          active_atomic_counter *new_counters;
 
@@ -66,7 +66,7 @@ namespace {
          }
 
          counters = new_counters;
-         counters[num_counters].id = id;
+         counters[num_counters].uniform_loc = uniform_loc;
          counters[num_counters].var = var;
          num_counters++;
       }
@@ -95,6 +95,50 @@ namespace {
                y->data.atomic.offset < x->data.atomic.offset + x->type->atomic_size()));
    }
 
+   void
+   process_atomic_variable(const glsl_type *t, struct gl_shader_program *prog,
+                           unsigned *uniform_loc, ir_variable *var,
+                           active_atomic_buffer *const buffers,
+                           unsigned *num_buffers, int *offset,
+                           const unsigned shader_stage)
+   {
+      /* FIXME: Arrays of arrays get counted separately. For example:
+       * x1[3][3][2] = 9 counters
+       * x2[3][2]    = 3 counters
+       * x3[2]       = 1 counter
+       *
+       * However this code marks all the counters as active even when they
+       * might not be used.
+       */
+      if (t->is_array() && t->fields.array->is_array()) {
+         for (unsigned i = 0; i < t->length; i++) {
+            process_atomic_variable(t->fields.array, prog, uniform_loc,
+                                    var, buffers, num_buffers, offset,
+                                    shader_stage);
+         }
+      } else {
+         active_atomic_buffer *buf = &buffers[var->data.binding];
+         gl_uniform_storage *const storage =
+            &prog->UniformStorage[*uniform_loc];
+
+         /* If this is the first time the buffer is used, increment
+          * the counter of buffers used.
+          */
+         if (buf->size == 0)
+            (*num_buffers)++;
+
+         buf->push_back(*uniform_loc, var);
+
+         buf->stage_references[shader_stage]++;
+         buf->size = MAX2(buf->size, *offset + t->atomic_size());
+
+         storage->offset = *offset;
+         *offset += t->atomic_size();
+
+         (*uniform_loc)++;
+      }
+   }
+
    active_atomic_buffer *
    find_active_atomic_counters(struct gl_context *ctx,
                                struct gl_shader_program *prog,
@@ -114,23 +158,10 @@ namespace {
             ir_variable *var = node->as_variable();
 
             if (var && var->type->contains_atomic()) {
-               unsigned id = 0;
-               bool found = prog->UniformHash->get(id, var->name);
-               assert(found);
-               (void) found;
-               active_atomic_buffer *buf = &buffers[var->data.binding];
-
-               /* If this is the first time the buffer is used, increment
-                * the counter of buffers used.
-                */
-               if (buf->size == 0)
-                  (*num_buffers)++;
-
-               buf->push_back(id, var);
-
-               buf->stage_references[i]++;
-               buf->size = MAX2(buf->size, var->data.atomic.offset +
-                                var->type->atomic_size());
+               int offset = var->data.atomic.offset;
+               unsigned uniform_loc = var->data.location;
+               process_atomic_variable(var->type, prog, &uniform_loc,
+                                       var, buffers, num_buffers, &offset, i);
             }
          }
       }
@@ -197,10 +228,10 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
       /* Assign counter-specific fields. */
       for (unsigned j = 0; j < ab.num_counters; j++) {
          ir_variable *const var = ab.counters[j].var;
-         const unsigned id = ab.counters[j].id;
-         gl_uniform_storage *const storage = &prog->UniformStorage[id];
+         gl_uniform_storage *const storage =
+            &prog->UniformStorage[ab.counters[j].uniform_loc];
 
-         mab.Uniforms[j] = id;
+         mab.Uniforms[j] = ab.counters[j].uniform_loc;
          if (!var->data.explicit_binding)
             var->data.binding = i;
 

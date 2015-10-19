@@ -110,11 +110,7 @@ struct gl_uniform_storage {
     */
    bool initialized;
 
-   struct gl_opaque_uniform_index sampler[MESA_SHADER_STAGES];
-
-   struct gl_opaque_uniform_index image[MESA_SHADER_STAGES];
-
-   struct gl_opaque_uniform_index subroutine[MESA_SHADER_STAGES];
+   struct gl_opaque_uniform_index opaque[MESA_SHADER_STAGES];
 
    /**
     * Storage used by the driver for the uniform
@@ -166,6 +162,22 @@ struct gl_uniform_storage {
    /** @} */
 
    /**
+    * This is a compiler-generated uniform that should not be advertised
+    * via the API.
+    */
+   bool hidden;
+
+   /**
+    * This is a built-in uniform that should not be modified through any gl API.
+    */
+   bool builtin;
+
+   /**
+    * This is a shader storage buffer variable, not an uniform.
+    */
+   bool is_shader_storage;
+
+   /**
     * Index within gl_shader_program::AtomicBuffers[] of the atomic
     * counter buffer this uniform is stored in, or -1 if this is not
     * an atomic counter.
@@ -185,15 +197,16 @@ struct gl_uniform_storage {
    unsigned num_compatible_subroutines;
 
    /**
-    * This is a compiler-generated uniform that should not be advertised
-    * via the API.
+    * A single integer identifying the number of active array elements of
+    * the top-level shader storage block member (GL_TOP_LEVEL_ARRAY_SIZE).
     */
-   bool hidden;
+   unsigned top_level_array_size;
 
    /**
-    * This is a built-in uniform that should not be modified through any gl API.
+    * A single integer identifying the stride between array elements of the
+    * top-level shader storage block member. (GL_TOP_LEVEL_ARRAY_STRIDE).
     */
-   bool builtin;
+   unsigned top_level_array_stride;
 };
 
 #ifdef __cplusplus

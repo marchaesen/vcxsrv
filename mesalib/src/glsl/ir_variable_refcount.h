@@ -33,13 +33,24 @@
 #include "ir_visitor.h"
 #include "glsl_types.h"
 
+struct assignment_entry {
+   exec_node link;
+   ir_assignment *assign;
+};
+
 class ir_variable_refcount_entry
 {
 public:
    ir_variable_refcount_entry(ir_variable *var);
 
    ir_variable *var; /* The key: the variable's pointer. */
-   ir_assignment *assign; /* An assignment to the variable, if any */
+
+   /**
+    * List of assignments to the variable, if any.
+    * This is intended to be used for dead code optimisation and may
+    * not be a complete list.
+    */
+   exec_list assign_list;
 
    /** Number of times the variable is referenced, including assignments. */
    unsigned referenced_count;

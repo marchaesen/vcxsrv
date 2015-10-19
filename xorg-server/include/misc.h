@@ -86,7 +86,8 @@ OF THIS SOFTWARE.
 #ifndef MAXGPUSCREENS
 #define MAXGPUSCREENS	16
 #endif
-#define MAXCLIENTS	256
+#define MAXCLIENTS	512
+#define LIMITCLIENTS	256     /* Must be a power of 2 and <= MAXCLIENTS */
 #define MAXEXTENSIONS   128
 #define MAXFORMATS	8
 #define MAXDEVICES	40      /* input devices */

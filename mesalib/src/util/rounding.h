@@ -21,7 +21,18 @@
  * IN THE SOFTWARE.
  */
 
-#include <math.h>
+#ifndef _ROUNDING_H
+#define _ROUNDING_H
+
+#include "c99_math.h"
+
+#include <limits.h>
+#include <stdint.h>
+
+#ifdef __x86_64__
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#endif
 
 #ifdef __SSE4_1__
 #include <smmintrin.h>
@@ -76,3 +87,45 @@ _mesa_roundeven(double x)
    return rint(x);
 #endif
 }
+
+/**
+ * \brief Rounds \c x to the nearest integer, with ties to the even integer,
+ * and returns the value as a long int.
+ */
+static inline long
+_mesa_lroundevenf(float x)
+{
+#ifdef __x86_64__
+#if LONG_MAX == INT64_MAX
+   return _mm_cvtss_si64(_mm_load_ss(&x));
+#elif LONG_MAX == INT32_MAX
+   return _mm_cvtss_si32(_mm_load_ss(&x));
+#else
+#error "Unsupported long size"
+#endif
+#else
+   return lrintf(x);
+#endif
+}
+
+/**
+ * \brief Rounds \c x to the nearest integer, with ties to the even integer,
+ * and returns the value as a long int.
+ */
+static inline long
+_mesa_lroundeven(double x)
+{
+#ifdef __x86_64__
+#if LONG_MAX == INT64_MAX
+   return _mm_cvtsd_si64(_mm_load_sd(&x));
+#elif LONG_MAX == INT32_MAX
+   return _mm_cvtsd_si32(_mm_load_sd(&x));
+#else
+#error "Unsupported long size"
+#endif
+#else
+   return lrint(x);
+#endif
+}
+
+#endif

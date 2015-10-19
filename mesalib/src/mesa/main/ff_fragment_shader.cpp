@@ -27,29 +27,28 @@
  * 
  **************************************************************************/
 
-#include "glheader.h"
-#include "imports.h"
-#include "mtypes.h"
+#include "main/glheader.h"
 #include "main/context.h"
+#include "main/imports.h"
 #include "main/macros.h"
 #include "main/samplerobj.h"
+#include "main/shaderobj.h"
 #include "main/texenvprogram.h"
 #include "main/texobj.h"
 #include "main/uniforms.h"
+#include "glsl/ir_builder.h"
+#include "glsl/ir_optimization.h"
+#include "glsl/glsl_parser_extras.h"
+#include "glsl/glsl_symbol_table.h"
+#include "glsl/nir/glsl_types.h"
+#include "program/ir_to_mesa.h"
 #include "program/program.h"
-#include "program/prog_parameter.h"
+#include "program/programopt.h"
 #include "program/prog_cache.h"
 #include "program/prog_instruction.h"
+#include "program/prog_parameter.h"
 #include "program/prog_print.h"
 #include "program/prog_statevars.h"
-#include "program/programopt.h"
-#include "../glsl/glsl_types.h"
-#include "../glsl/ir.h"
-#include "../glsl/ir_builder.h"
-#include "../glsl/glsl_symbol_table.h"
-#include "../glsl/glsl_parser_extras.h"
-#include "../glsl/ir_optimization.h"
-#include "../program/ir_to_mesa.h"
 
 using namespace ir_builder;
 
@@ -976,13 +975,11 @@ static void load_texture( texenv_fragment_program *p, GLuint unit )
 						      ir_var_uniform);
    p->top_instructions->push_head(sampler);
 
-   /* Set the texture unit for this sampler.  The linker will pick this value
-    * up and do-the-right-thing.
-    *
-    * NOTE: The cast to int is important.  Without it, the constant will have
-    * type uint, and things later on may get confused.
+   /* Set the texture unit for this sampler in the same way that
+    * layout(binding=X) would.
     */
-   sampler->constant_value = new(p->mem_ctx) ir_constant(int(unit));
+   sampler->data.explicit_binding = true;
+   sampler->data.binding = unit;
 
    deref = new(p->mem_ctx) ir_dereference_variable(sampler);
    tex->set_sampler(deref, glsl_type::vec4_type);
@@ -1210,7 +1207,7 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
    p.top_instructions = p.shader->ir;
    p.instructions = p.shader->ir;
    p.state = key;
-   p.shader_program = ctx->Driver.NewShaderProgram(0);
+   p.shader_program = _mesa_new_shader_program(0);
 
    /* Tell the linker to ignore the fact that we're building a
     * separate shader, in case we're in a GLES2 context that would

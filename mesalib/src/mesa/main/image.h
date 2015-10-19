@@ -35,22 +35,11 @@ struct gl_pixelstore_attrib;
 struct gl_framebuffer;
 
 extern void
-_mesa_swap2_copy(GLushort *dst, GLushort *src, GLuint n);
+_mesa_swap2(GLushort *p, GLuint n);
 
 extern void
-_mesa_swap4_copy(GLuint *dst, GLuint *src, GLuint n);
+_mesa_swap4(GLuint *p, GLuint n);
 
-static inline void
-_mesa_swap2(GLushort *p, GLuint n)
-{
-   _mesa_swap2_copy(p, p, n);
-}
-
-static inline void
-_mesa_swap4(GLuint *p, GLuint n)
-{
-   _mesa_swap4_copy(p, p, n);
-}
 
 extern GLintptr
 _mesa_image_offset( GLuint dimensions,
@@ -146,5 +135,10 @@ _mesa_clip_blit(struct gl_context *ctx,
                 GLint *srcX0, GLint *srcY0, GLint *srcX1, GLint *srcY1,
                 GLint *dstX0, GLint *dstY0, GLint *dstX1, GLint *dstY1);
 
+void
+_mesa_swap_bytes_2d_image(GLenum format, GLenum type,
+                          const struct gl_pixelstore_attrib *packing,
+                          GLsizei width, GLsizei height,
+                          GLvoid *dst, const GLvoid *src);
 
 #endif

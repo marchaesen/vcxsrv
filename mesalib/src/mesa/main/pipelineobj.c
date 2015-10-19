@@ -31,6 +31,7 @@
  * GL_ARB_separate_shader_objects extension.
  */
 
+#include <stdbool.h>
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/dispatch.h"
@@ -42,12 +43,11 @@
 #include "main/shaderobj.h"
 #include "main/transformfeedback.h"
 #include "main/uniforms.h"
+#include "glsl/glsl_parser_extras.h"
+#include "glsl/ir_uniform.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
-#include <stdbool.h>
-#include "../glsl/glsl_parser_extras.h"
-#include "../glsl/ir_uniform.h"
 
 /**
  * Delete a pipeline object.
@@ -614,7 +614,8 @@ _mesa_GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
       *params = pipe->InfoLog ? strlen(pipe->InfoLog) + 1 : 0;
       return;
    case GL_VALIDATE_STATUS:
-      *params = pipe->Validated;
+      /* If pipeline is not bound, return initial value 0. */
+      *params = (ctx->_Shader->Name != pipe->Name) ? 0 : pipe->Validated;
       return;
    case GL_VERTEX_SHADER:
       *params = pipe->CurrentProgram[MESA_SHADER_VERTEX]

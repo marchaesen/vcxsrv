@@ -34,7 +34,6 @@
 #include "context.h"
 #include "enums.h"
 #include "macros.h"
-#include "shaderimage.h"
 #include "texobj.h"
 #include "teximage.h"
 #include "texstate.h"
@@ -289,22 +288,22 @@ _mesa_ActiveTexture(GLenum texture)
    GLuint k;
    GET_CURRENT_CONTEXT(ctx);
 
-   k = _mesa_max_tex_unit(ctx);
-
-   assert(k <= ARRAY_SIZE(ctx->Texture.Unit));
-
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glActiveTexture %s\n",
                   _mesa_enum_to_string(texture));
+
+   if (ctx->Texture.CurrentUnit == texUnit)
+      return;
+
+   k = _mesa_max_tex_unit(ctx);
+
+   assert(k <= ARRAY_SIZE(ctx->Texture.Unit));
 
    if (texUnit >= k) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glActiveTexture(texture=%s)",
                   _mesa_enum_to_string(texture));
       return;
    }
-
-   if (ctx->Texture.CurrentUnit == texUnit)
-      return;
 
    FLUSH_VERTICES(ctx, _NEW_TEXTURE);
 
@@ -327,13 +326,13 @@ _mesa_ClientActiveTexture(GLenum texture)
       _mesa_debug(ctx, "glClientActiveTexture %s\n",
                   _mesa_enum_to_string(texture));
 
+   if (ctx->Array.ActiveTexture == texUnit)
+      return;
+
    if (texUnit >= ctx->Const.MaxTextureCoordUnits) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glClientActiveTexture(texture)");
       return;
    }
-
-   if (ctx->Array.ActiveTexture == texUnit)
-      return;
 
    FLUSH_VERTICES(ctx, _NEW_ARRAY);
    ctx->Array.ActiveTexture = texUnit;
@@ -741,8 +740,6 @@ update_texture_state( struct gl_context *ctx )
 
    if (!prog[MESA_SHADER_FRAGMENT] || !prog[MESA_SHADER_VERTEX])
       update_texgen(ctx);
-
-   _mesa_validate_image_units(ctx);
 }
 
 

@@ -1695,23 +1695,30 @@ Bool
 RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable)
 {
     rrScrPriv(pDrawable->pScreen);
-    int i;
-    Bool size_fits = FALSE;
-    Bool changed = FALSE;
     Bool ret = TRUE;
+    PixmapPtr *saved_scanout_pixmap;
+    int i;
+
+    saved_scanout_pixmap = malloc(sizeof(PixmapPtr)*pScrPriv->numCrtcs);
+    if (saved_scanout_pixmap == NULL)
+        return FALSE;
 
     for (i = 0; i < pScrPriv->numCrtcs; i++) {
         RRCrtcPtr crtc = pScrPriv->crtcs[i];
+        Bool size_fits;
+
+        saved_scanout_pixmap[i] = crtc->scanout_pixmap;
 
         if (!crtc->mode && enable)
             continue;
+        if (!crtc->scanout_pixmap && !enable)
+            continue;
 
-        changed = FALSE;
-        if (crtc->mode && crtc->x == pDrawable->x &&
-            crtc->y == pDrawable->y &&
-            crtc->mode->mode.width == pDrawable->width &&
-            crtc->mode->mode.height == pDrawable->height)
-            size_fits = TRUE;
+        size_fits = (crtc->mode &&
+                     crtc->x == pDrawable->x &&
+                     crtc->y == pDrawable->y &&
+                     crtc->mode->mode.width == pDrawable->width &&
+                     crtc->mode->mode.height == pDrawable->height);
 
         /* is the pixmap already set? */
         if (crtc->scanout_pixmap == pPixmap) {
@@ -1719,32 +1726,48 @@ RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable)
             if (enable == FALSE) {
                 /* set scanout to NULL */
                 crtc->scanout_pixmap = NULL;
-                changed = TRUE;
-            } else {
-                /* if the size fits then we are already setup */
-                if (size_fits)
-                    return TRUE;
+            }
+            else if (!size_fits) {
                 /* if the size no longer fits then drop off */
                 crtc->scanout_pixmap = NULL;
-                changed = TRUE;
+                pScrPriv->rrCrtcSetScanoutPixmap(crtc, crtc->scanout_pixmap);
+
+                (*pScrPriv->rrCrtcSet) (pDrawable->pScreen, crtc, crtc->mode, crtc->x, crtc->y,
+                                        crtc->rotation, crtc->numOutputs, crtc->outputs);
+                saved_scanout_pixmap[i] = crtc->scanout_pixmap;
                 ret = FALSE;
             }
-        } else {
-            if (!size_fits)
-                return FALSE;
-            if (enable) {
-                crtc->scanout_pixmap = pPixmap;
-                pScrPriv->rrCrtcSetScanoutPixmap(crtc, pPixmap);
-                changed = TRUE;
+            else {
+                /* if the size fits then we are already setup */
             }
         }
+        else {
+            if (!size_fits)
+                ret = FALSE;
+            else if (enable)
+                crtc->scanout_pixmap = pPixmap;
+            else
+                /* reject an attempt to disable someone else's scanout_pixmap */
+                ret = FALSE;
+        }
+    }
 
-        if (changed && pScrPriv->rrCrtcSet) {
+    for (i = 0; i < pScrPriv->numCrtcs; i++) {
+        RRCrtcPtr crtc = pScrPriv->crtcs[i];
+
+        if (crtc->scanout_pixmap == saved_scanout_pixmap[i])
+            continue;
+
+        if (ret) {
             pScrPriv->rrCrtcSetScanoutPixmap(crtc, crtc->scanout_pixmap);
 
             (*pScrPriv->rrCrtcSet) (pDrawable->pScreen, crtc, crtc->mode, crtc->x, crtc->y,
                                     crtc->rotation, crtc->numOutputs, crtc->outputs);
         }
+        else
+            crtc->scanout_pixmap = saved_scanout_pixmap[i];
     }
+    free(saved_scanout_pixmap);
+
     return ret;
 }

@@ -65,7 +65,7 @@ XCloseDisplay (
 		    (*ext->close_display)(dpy, &ext->codes);
 	    }
 	    /* if the closes generated more protocol, sync them up */
-	    if (dpy->request != dpy->last_request_read)
+	    if (X_DPY_GET_REQUEST(dpy) != X_DPY_GET_LAST_REQUEST_READ(dpy))
 		XSync(dpy, 1);
 	}
 	xcb_disconnect(dpy->xcb->connection);

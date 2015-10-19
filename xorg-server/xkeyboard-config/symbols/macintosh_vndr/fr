@@ -8,8 +8,8 @@
 // 2) La ligne 89 : remplacer "VoidSymbol" par "EuroSign"
 // ( 1) et 2) fonctionnent sous UTF-8, mais pas sous iso-8859-1. )
 // 3) Remplacer la ligne 148 par la ligne 149 pour que la touche Alt_L
-// (la touche Apple-Pomme) fonctionne correctement sous Xorg, une idée
-// motivée par http://www.linux-france.org/macintosh/clavier_gentoo.html
+// (la touche Apple-Pomme) fonctionne correctement sous Xorg, une idÃ©e
+// motivÃ©e par http://www.linux-france.org/macintosh/clavier_gentoo.html
 //////////////////////////////////////////////////////////////////
 // This map is an almost-complete mapping of the standard French
 // MacIntosh keyboard under Xwindows.  I tried to remain as faithful

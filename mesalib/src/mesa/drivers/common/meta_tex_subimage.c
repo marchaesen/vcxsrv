@@ -45,9 +45,28 @@
 #include "uniforms.h"
 #include "varray.h"
 
+static bool
+need_signed_unsigned_int_conversion(mesa_format mesaFormat,
+                                    GLenum format, GLenum type)
+{
+   const GLenum mesaFormatType = _mesa_get_format_datatype(mesaFormat);
+   const bool is_format_integer = _mesa_is_enum_format_integer(format);
+   return (mesaFormatType == GL_INT &&
+           is_format_integer &&
+           (type == GL_UNSIGNED_INT ||
+            type == GL_UNSIGNED_SHORT ||
+            type == GL_UNSIGNED_BYTE)) ||
+          (mesaFormatType == GL_UNSIGNED_INT &&
+           is_format_integer &&
+           (type == GL_INT ||
+            type == GL_SHORT ||
+            type == GL_BYTE));
+}
+
 static struct gl_texture_image *
-create_texture_for_pbo(struct gl_context *ctx, bool create_pbo,
-                       GLenum pbo_target, int width, int height,
+create_texture_for_pbo(struct gl_context *ctx,
+                       bool create_pbo, GLenum pbo_target,
+                       int dims, int width, int height, int depth,
                        GLenum format, GLenum type, const void *pixels,
                        const struct gl_pixelstore_attrib *packing,
                        GLuint *tmp_pbo, GLuint *tmp_tex)
@@ -73,13 +92,18 @@ create_texture_for_pbo(struct gl_context *ctx, bool create_pbo,
       return NULL;
 
    /* Account for SKIP_PIXELS, SKIP_ROWS, ALIGNMENT, and SKIP_IMAGES */
-   pixels = _mesa_image_address3d(packing, pixels,
-                                  width, height, format, type, 0, 0, 0);
+   uint32_t first_pixel = _mesa_image_offset(dims, packing, width, height,
+                                             format, type,
+                                             0, 0, 0);
+   uint32_t last_pixel =  _mesa_image_offset(dims, packing, width, height,
+                                             format, type,
+                                             depth-1, height-1, width);
    row_stride = _mesa_image_row_stride(packing, width, format, type);
 
    if (_mesa_is_bufferobj(packing->BufferObj)) {
       *tmp_pbo = 0;
       buffer_obj = packing->BufferObj;
+      first_pixel += (intptr_t)pixels;
    } else {
       bool is_pixel_pack = pbo_target == GL_PIXEL_PACK_BUFFER;
 
@@ -97,14 +121,18 @@ create_texture_for_pbo(struct gl_context *ctx, bool create_pbo,
        * data to avoid unnecessary data copying in _mesa_BufferData().
        */
       if (is_pixel_pack)
-         _mesa_BufferData(pbo_target, row_stride * height, NULL,
+         _mesa_BufferData(pbo_target,
+                          last_pixel - first_pixel,
+                          NULL,
                           GL_STREAM_READ);
       else
-         _mesa_BufferData(pbo_target, row_stride * height, pixels,
+         _mesa_BufferData(pbo_target,
+                          last_pixel - first_pixel,
+                          (char *)pixels + first_pixel,
                           GL_STREAM_DRAW);
 
       buffer_obj = packing->BufferObj;
-      pixels = NULL;
+      first_pixel = 0;
 
       _mesa_BindBuffer(pbo_target, 0);
    }
@@ -119,14 +147,21 @@ create_texture_for_pbo(struct gl_context *ctx, bool create_pbo,
 
    internal_format = _mesa_get_format_base_format(pbo_format);
 
+   /* The texture is addressed as a single very-tall image, so we
+    * need to pack the multiple image depths together taking the
+    * inter-image padding into account.
+    */
+   int image_height = packing->ImageHeight == 0 ? height : packing->ImageHeight;
+   int full_height = image_height * (depth - 1) + height;
+
    tex_image = _mesa_get_tex_image(ctx, tex_obj, tex_obj->Target, 0);
-   _mesa_init_teximage_fields(ctx, tex_image, width, height, 1,
+   _mesa_init_teximage_fields(ctx, tex_image, width, full_height, 1,
                               0, internal_format, pbo_format);
 
    read_only = pbo_target == GL_PIXEL_UNPACK_BUFFER;
    if (!ctx->Driver.SetTextureStorageForBufferObject(ctx, tex_obj,
                                                      buffer_obj,
-                                                     (intptr_t)pixels,
+                                                     first_pixel,
                                                      row_stride,
                                                      read_only)) {
       _mesa_DeleteTextures(1, tmp_tex);
@@ -147,7 +182,7 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
                            const struct gl_pixelstore_attrib *packing)
 {
    GLuint pbo = 0, pbo_tex = 0, fbos[2] = { 0, 0 };
-   int full_height, image_height;
+   int image_height;
    struct gl_texture_image *pbo_tex_image;
    GLenum status;
    bool success = false;
@@ -166,16 +201,22 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
    if (ctx->_ImageTransferState)
       return false;
 
+   /* This function rely on BlitFramebuffer to fill in the pixel data for
+    * glTex[Sub]Image*D. But, BlitFrameBuffer doesn't support signed to
+    * unsigned or unsigned to signed integer conversions.
+    */
+   if (need_signed_unsigned_int_conversion(tex_image->TexFormat, format, type))
+      return false;
+
    /* For arrays, use a tall (height * depth) 2D texture but taking into
     * account the inter-image padding specified with the image height packing
     * property.
     */
    image_height = packing->ImageHeight == 0 ? height : packing->ImageHeight;
-   full_height = image_height * (depth - 1) + height;
 
    pbo_tex_image = create_texture_for_pbo(ctx, create_pbo,
                                           GL_PIXEL_UNPACK_BUFFER,
-                                          width, full_height,
+                                          dims, width, height, depth,
                                           format, type, pixels, packing,
                                           &pbo, &pbo_tex);
    if (!pbo_tex_image)
@@ -250,24 +291,6 @@ fail:
    return success;
 }
 
-static bool
-need_signed_unsigned_int_conversion(mesa_format rbFormat,
-                                    GLenum format, GLenum type)
-{
-   const GLenum srcType = _mesa_get_format_datatype(rbFormat);
-   const bool is_dst_format_integer = _mesa_is_enum_format_integer(format);
-   return (srcType == GL_INT &&
-           is_dst_format_integer &&
-           (type == GL_UNSIGNED_INT ||
-            type == GL_UNSIGNED_SHORT ||
-            type == GL_UNSIGNED_BYTE)) ||
-          (srcType == GL_UNSIGNED_INT &&
-           is_dst_format_integer &&
-           (type == GL_INT ||
-            type == GL_SHORT ||
-            type == GL_BYTE));
-}
-
 bool
 _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
                               struct gl_texture_image *tex_image,
@@ -277,7 +300,7 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
                               const struct gl_pixelstore_attrib *packing)
 {
    GLuint pbo = 0, pbo_tex = 0, fbos[2] = { 0, 0 };
-   int full_height, image_height;
+   int image_height;
    struct gl_texture_image *pbo_tex_image;
    struct gl_renderbuffer *rb = NULL;
    GLenum dstBaseFormat = _mesa_unpack_format_to_base_format(format);
@@ -324,10 +347,9 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
     * property.
     */
    image_height = packing->ImageHeight == 0 ? height : packing->ImageHeight;
-   full_height = image_height * (depth - 1) + height;
 
    pbo_tex_image = create_texture_for_pbo(ctx, false, GL_PIXEL_PACK_BUFFER,
-                                          width, full_height * depth,
+                                          dims, width, height, depth,
                                           format, type, pixels, packing,
                                           &pbo, &pbo_tex);
    if (!pbo_tex_image)

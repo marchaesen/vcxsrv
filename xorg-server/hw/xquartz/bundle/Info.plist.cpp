@@ -35,6 +35,19 @@
 		<string>sparkle.pem</string>
         <key>SUFeedURL</key>
                 <string>http://xquartz.macosforge.org/downloads/sparkle/release.xml</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>macosforge.org</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 #endif
 	<key>LSApplicationCategoryType</key>
 		<string>public.app-category.utilities</string>

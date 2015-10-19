@@ -30,153 +30,123 @@ EXTRA_DIST = \
 	Info.plist.cpp \
 	PkgInfo \
 	$(resource_DATA) \
-	Resources/ar.lproj/InfoPlist.strings \
 	Resources/ar.lproj/Localizable.strings \
 	Resources/ar.lproj/locversion.plist \
 	Resources/ar.lproj/main.nib/designable.nib \
 	Resources/ar.lproj/main.nib/keyedobjects.nib \
-	Resources/ca.lproj/InfoPlist.strings \
 	Resources/ca.lproj/Localizable.strings \
 	Resources/ca.lproj/locversion.plist \
 	Resources/ca.lproj/main.nib/designable.nib \
 	Resources/ca.lproj/main.nib/keyedobjects.nib \
-	Resources/cs.lproj/InfoPlist.strings \
 	Resources/cs.lproj/Localizable.strings \
 	Resources/cs.lproj/locversion.plist \
 	Resources/cs.lproj/main.nib/designable.nib \
 	Resources/cs.lproj/main.nib/keyedobjects.nib \
-	Resources/da.lproj/InfoPlist.strings \
 	Resources/da.lproj/Localizable.strings \
 	Resources/da.lproj/locversion.plist \
 	Resources/da.lproj/main.nib/designable.nib \
 	Resources/da.lproj/main.nib/keyedobjects.nib \
-	Resources/Dutch.lproj/InfoPlist.strings \
 	Resources/Dutch.lproj/Localizable.strings \
 	Resources/Dutch.lproj/locversion.plist \
 	Resources/Dutch.lproj/main.nib/designable.nib \
 	Resources/Dutch.lproj/main.nib/keyedobjects.nib \
-	Resources/el.lproj/InfoPlist.strings \
 	Resources/el.lproj/Localizable.strings \
 	Resources/el.lproj/locversion.plist \
 	Resources/el.lproj/main.nib/designable.nib \
 	Resources/el.lproj/main.nib/keyedobjects.nib \
-	Resources/English.lproj/InfoPlist.strings \
 	Resources/English.lproj/Localizable.strings \
 	Resources/English.lproj/locversion.plist \
 	Resources/English.lproj/main.nib/designable.nib \
 	Resources/English.lproj/main.nib/keyedobjects.nib \
-	Resources/fi.lproj/InfoPlist.strings \
 	Resources/fi.lproj/Localizable.strings \
 	Resources/fi.lproj/locversion.plist \
 	Resources/fi.lproj/main.nib/designable.nib \
 	Resources/fi.lproj/main.nib/keyedobjects.nib \
-	Resources/French.lproj/InfoPlist.strings \
 	Resources/French.lproj/Localizable.strings \
 	Resources/French.lproj/locversion.plist \
 	Resources/French.lproj/main.nib/designable.nib \
 	Resources/French.lproj/main.nib/keyedobjects.nib \
-	Resources/German.lproj/InfoPlist.strings \
 	Resources/German.lproj/Localizable.strings \
 	Resources/German.lproj/locversion.plist \
 	Resources/German.lproj/main.nib/designable.nib \
 	Resources/German.lproj/main.nib/keyedobjects.nib \
-	Resources/he.lproj/InfoPlist.strings \
 	Resources/he.lproj/Localizable.strings \
 	Resources/he.lproj/locversion.plist \
 	Resources/he.lproj/main.nib/designable.nib \
 	Resources/he.lproj/main.nib/keyedobjects.nib \
-	Resources/hr.lproj/InfoPlist.strings \
 	Resources/hr.lproj/Localizable.strings \
 	Resources/hr.lproj/locversion.plist \
 	Resources/hr.lproj/main.nib/designable.nib \
 	Resources/hr.lproj/main.nib/keyedobjects.nib \
-	Resources/hu.lproj/InfoPlist.strings \
 	Resources/hu.lproj/Localizable.strings \
 	Resources/hu.lproj/locversion.plist \
 	Resources/hu.lproj/main.nib/designable.nib \
 	Resources/hu.lproj/main.nib/keyedobjects.nib \
-	Resources/Italian.lproj/InfoPlist.strings \
 	Resources/Italian.lproj/Localizable.strings \
 	Resources/Italian.lproj/locversion.plist \
 	Resources/Italian.lproj/main.nib/designable.nib \
 	Resources/Italian.lproj/main.nib/keyedobjects.nib \
-	Resources/Japanese.lproj/InfoPlist.strings \
 	Resources/Japanese.lproj/Localizable.strings \
 	Resources/Japanese.lproj/locversion.plist \
 	Resources/Japanese.lproj/main.nib/designable.nib \
 	Resources/Japanese.lproj/main.nib/keyedobjects.nib \
-	Resources/ko.lproj/InfoPlist.strings \
 	Resources/ko.lproj/Localizable.strings \
 	Resources/ko.lproj/locversion.plist \
 	Resources/ko.lproj/main.nib/designable.nib \
 	Resources/ko.lproj/main.nib/keyedobjects.nib \
-	Resources/no.lproj/InfoPlist.strings \
 	Resources/no.lproj/Localizable.strings \
 	Resources/no.lproj/locversion.plist \
 	Resources/no.lproj/main.nib/designable.nib \
 	Resources/no.lproj/main.nib/keyedobjects.nib \
-	Resources/pl.lproj/InfoPlist.strings \
 	Resources/pl.lproj/Localizable.strings \
 	Resources/pl.lproj/locversion.plist \
 	Resources/pl.lproj/main.nib/designable.nib \
 	Resources/pl.lproj/main.nib/keyedobjects.nib \
-	Resources/pt.lproj/InfoPlist.strings \
 	Resources/pt.lproj/Localizable.strings \
 	Resources/pt.lproj/locversion.plist \
 	Resources/pt.lproj/main.nib/designable.nib \
 	Resources/pt.lproj/main.nib/keyedobjects.nib \
-	Resources/pt_PT.lproj/InfoPlist.strings \
 	Resources/pt_PT.lproj/Localizable.strings \
 	Resources/pt_PT.lproj/locversion.plist \
 	Resources/pt_PT.lproj/main.nib/designable.nib \
 	Resources/pt_PT.lproj/main.nib/keyedobjects.nib \
-	Resources/ro.lproj/InfoPlist.strings \
 	Resources/ro.lproj/Localizable.strings \
 	Resources/ro.lproj/locversion.plist \
 	Resources/ro.lproj/main.nib/designable.nib \
 	Resources/ro.lproj/main.nib/keyedobjects.nib \
-	Resources/ru.lproj/InfoPlist.strings \
 	Resources/ru.lproj/Localizable.strings \
 	Resources/ru.lproj/locversion.plist \
 	Resources/ru.lproj/main.nib/designable.nib \
 	Resources/ru.lproj/main.nib/keyedobjects.nib \
-	Resources/sk.lproj/InfoPlist.strings \
 	Resources/sk.lproj/Localizable.strings \
 	Resources/sk.lproj/locversion.plist \
 	Resources/sk.lproj/main.nib/designable.nib \
 	Resources/sk.lproj/main.nib/keyedobjects.nib \
-	Resources/Spanish.lproj/InfoPlist.strings \
 	Resources/Spanish.lproj/Localizable.strings \
 	Resources/Spanish.lproj/locversion.plist \
 	Resources/Spanish.lproj/main.nib/designable.nib \
 	Resources/Spanish.lproj/main.nib/keyedobjects.nib \
-	Resources/sv.lproj/InfoPlist.strings \
 	Resources/sv.lproj/Localizable.strings \
 	Resources/sv.lproj/locversion.plist \
 	Resources/sv.lproj/main.nib/designable.nib \
 	Resources/sv.lproj/main.nib/keyedobjects.nib \
-	Resources/th.lproj/InfoPlist.strings \
 	Resources/th.lproj/Localizable.strings \
 	Resources/th.lproj/locversion.plist \
 	Resources/th.lproj/main.nib/designable.nib \
 	Resources/th.lproj/main.nib/keyedobjects.nib \
-	Resources/tr.lproj/InfoPlist.strings \
 	Resources/tr.lproj/Localizable.strings \
 	Resources/tr.lproj/locversion.plist \
 	Resources/tr.lproj/main.nib/designable.nib \
 	Resources/tr.lproj/main.nib/keyedobjects.nib \
-	Resources/uk.lproj/InfoPlist.strings \
 	Resources/uk.lproj/Localizable.strings \
 	Resources/uk.lproj/locversion.plist \
 	Resources/uk.lproj/main.nib/designable.nib \
 	Resources/uk.lproj/main.nib/keyedobjects.nib \
 	Resources/X11.icns \
-	Resources/zh_CN.lproj/InfoPlist.strings \
 	Resources/zh_CN.lproj/Localizable.strings \
 	Resources/zh_CN.lproj/locversion.plist \
 	Resources/zh_CN.lproj/main.nib/designable.nib \
 	Resources/zh_CN.lproj/main.nib/keyedobjects.nib \
-	Resources/zh_TW.lproj/InfoPlist.strings \
 	Resources/zh_TW.lproj/Localizable.strings \
 	Resources/zh_TW.lproj/locversion.plist \
 	Resources/zh_TW.lproj/main.nib/designable.nib \

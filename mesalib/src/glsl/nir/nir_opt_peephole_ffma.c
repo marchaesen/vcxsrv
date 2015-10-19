@@ -76,6 +76,7 @@ static nir_alu_instr *
 get_mul_for_src(nir_alu_src *src, int num_components,
                 uint8_t swizzle[4], bool *negate, bool *abs)
 {
+   uint8_t swizzle_tmp[4];
    assert(src->src.is_ssa && !src->abs && !src->negate);
 
    nir_instr *instr = src->src.ssa->parent_instr;
@@ -116,8 +117,18 @@ get_mul_for_src(nir_alu_src *src, int num_components,
    if (!alu)
       return NULL;
 
-   for (unsigned i = 0; i < num_components; i++)
-      swizzle[i] = swizzle[src->swizzle[i]];
+   /* Copy swizzle data before overwriting it to avoid setting a wrong swizzle.
+    *
+    * Example:
+    *   Former swizzle[] = xyzw
+    *   src->swizzle[] = zyxx
+    *
+    *   Expected output swizzle = zyxx
+    *   If we reuse swizzle in the loop, then output swizzle would be zyzz.
+    */
+   memcpy(swizzle_tmp, swizzle, 4*sizeof(uint8_t));
+   for (int i = 0; i < num_components; i++)
+      swizzle[i] = swizzle_tmp[src->swizzle[i]];
 
    return alu;
 }
@@ -205,8 +216,7 @@ nir_opt_peephole_ffma_block(nir_block *block, void *void_state)
          for (unsigned j = 0; j < add->dest.dest.ssa.num_components; j++)
             ffma->src[i].swizzle[j] = mul->src[i].swizzle[swizzle[j]];
       }
-      nir_alu_src_copy(&ffma->src[2], &add->src[1 - add_mul_src],
-                       state->mem_ctx);
+      nir_alu_src_copy(&ffma->src[2], &add->src[1 - add_mul_src], ffma);
 
       assert(add->dest.dest.is_ssa);
 
@@ -214,8 +224,7 @@ nir_opt_peephole_ffma_block(nir_block *block, void *void_state)
                         add->dest.dest.ssa.num_components,
                         add->dest.dest.ssa.name);
       nir_ssa_def_rewrite_uses(&add->dest.dest.ssa,
-                               nir_src_for_ssa(&ffma->dest.dest.ssa),
-                               state->mem_ctx);
+                               nir_src_for_ssa(&ffma->dest.dest.ssa));
 
       nir_instr_insert_before(&add->instr, &ffma->instr);
       assert(list_empty(&add->dest.dest.ssa.uses));

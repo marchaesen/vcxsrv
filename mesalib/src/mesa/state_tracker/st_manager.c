@@ -657,7 +657,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       break;
    }
 
-   pipe = smapi->screen->context_create(smapi->screen, NULL);
+   pipe = smapi->screen->context_create(smapi->screen, NULL, 0);
    if (!pipe) {
       *error = ST_CONTEXT_ERROR_NO_MEMORY;
       return NULL;

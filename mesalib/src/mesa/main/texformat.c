@@ -38,6 +38,7 @@
 #include "mtypes.h"
 #include "texcompress.h"
 #include "texformat.h"
+#include "glformats.h"
 
 #define RETURN_IF_SUPPORTED(f) do {		\
    if (ctx->TextureFormatSupported[f])		\
@@ -275,87 +276,6 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
       else
          RETURN_IF_SUPPORTED(MESA_FORMAT_YCBCR_REV);
       break;
-
-   /* For non-generic compressed format we assert two things:
-    *
-    * 1. The format has already been validated against the set of available
-    *    extensions.
-    *
-    * 2. The driver only enables the extension if it supports all of the
-    *    formats that are part of that extension.
-    */
-   case GL_COMPRESSED_RGB_FXT1_3DFX:
-      return MESA_FORMAT_RGB_FXT1;
-   case GL_COMPRESSED_RGBA_FXT1_3DFX:
-      return MESA_FORMAT_RGBA_FXT1;
-   case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-   case GL_RGB_S3TC:
-   case GL_RGB4_S3TC:
-      return MESA_FORMAT_RGB_DXT1;
-   case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-      return MESA_FORMAT_RGBA_DXT1;
-   case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-   case GL_RGBA_S3TC:
-   case GL_RGBA4_S3TC:
-      return MESA_FORMAT_RGBA_DXT3;
-   case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-      return MESA_FORMAT_RGBA_DXT5;
-   case GL_COMPRESSED_RED_RGTC1:
-      return MESA_FORMAT_R_RGTC1_UNORM;
-   case GL_COMPRESSED_SIGNED_RED_RGTC1:
-      return MESA_FORMAT_R_RGTC1_SNORM;
-   case GL_COMPRESSED_RG_RGTC2:
-      return MESA_FORMAT_RG_RGTC2_UNORM;
-   case GL_COMPRESSED_SIGNED_RG_RGTC2:
-      return MESA_FORMAT_RG_RGTC2_SNORM;
-   case GL_COMPRESSED_LUMINANCE_LATC1_EXT:
-      return MESA_FORMAT_L_LATC1_UNORM;
-   case GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT:
-      return MESA_FORMAT_L_LATC1_SNORM;
-   case GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT:
-      return MESA_FORMAT_LA_LATC2_UNORM;
-   case GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT:
-      return MESA_FORMAT_LA_LATC2_SNORM;
-   case GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI:
-      return MESA_FORMAT_LA_LATC2_UNORM;
-   case GL_ETC1_RGB8_OES:
-      return MESA_FORMAT_ETC1_RGB8;
-   case GL_COMPRESSED_RGB8_ETC2:
-      return MESA_FORMAT_ETC2_RGB8;
-   case GL_COMPRESSED_SRGB8_ETC2:
-      return MESA_FORMAT_ETC2_SRGB8;
-   case GL_COMPRESSED_RGBA8_ETC2_EAC:
-      return MESA_FORMAT_ETC2_RGBA8_EAC;
-   case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-      return MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC;
-   case GL_COMPRESSED_R11_EAC:
-      return MESA_FORMAT_ETC2_R11_EAC;
-   case GL_COMPRESSED_RG11_EAC:
-      return MESA_FORMAT_ETC2_RG11_EAC;
-   case GL_COMPRESSED_SIGNED_R11_EAC:
-      return MESA_FORMAT_ETC2_SIGNED_R11_EAC;
-   case GL_COMPRESSED_SIGNED_RG11_EAC:
-      return MESA_FORMAT_ETC2_SIGNED_RG11_EAC;
-   case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-      return MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1;
-   case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-      return MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1;
-   case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
-      return MESA_FORMAT_SRGB_DXT1;
-   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-      return MESA_FORMAT_SRGBA_DXT1;
-   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-      return MESA_FORMAT_SRGBA_DXT3;
-   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-      return MESA_FORMAT_SRGBA_DXT5;
-   case GL_COMPRESSED_RGBA_BPTC_UNORM:
-      return MESA_FORMAT_BPTC_RGBA_UNORM;
-   case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
-      return MESA_FORMAT_BPTC_SRGB_ALPHA_UNORM;
-   case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
-      return MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT;
-   case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-      return MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT;
 
    case GL_ALPHA16F_ARB:
       RETURN_IF_SUPPORTED(MESA_FORMAT_A_FLOAT16);
@@ -844,6 +764,18 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
    case GL_BGRA:
       RETURN_IF_SUPPORTED(MESA_FORMAT_B8G8R8A8_UNORM);
       break;
+
+   default:
+      /* For non-generic compressed format we assert two things:
+       *
+       * 1. The format has already been validated against the set of available
+       *    extensions.
+       *
+       * 2. The driver only enables the extension if it supports all of the
+       *    formats that are part of that extension.
+       */
+      if (_mesa_is_compressed_format(ctx, internalFormat))
+         return _mesa_glenum_to_compressed_format(internalFormat);
    }
 
    _mesa_problem(ctx, "unexpected format %s in _mesa_choose_tex_format()",

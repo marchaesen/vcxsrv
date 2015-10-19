@@ -12,7 +12,7 @@ for lang in ${localities} ; do
     mkdir -p ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/main.nib
     [ -d ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/main.nib ] || exit 1
 
-    for f in InfoPlist.strings Localizable.strings main.nib/keyedobjects.nib ; do
+    for f in Localizable.strings main.nib/keyedobjects.nib ; do
         install -m 644 ${SRCDIR}/Resources/${lang}.lproj/$f ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/${f}
     done
 done

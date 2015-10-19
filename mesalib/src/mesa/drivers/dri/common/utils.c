@@ -41,29 +41,6 @@
 #include "utils.h"
 #include "dri_util.h"
 
-
-uint64_t
-driParseDebugString( const char * debug, 
-		     const struct dri_debug_control * control  )
-{
-   uint64_t flag = 0;
-
-   if ( debug != NULL ) {
-      while( control->string != NULL ) {
-	 if ( !strcmp( debug, "all" ) ||
-	      strstr( debug, control->string ) != NULL ) {
-	    flag |= control->flag;
-	 }
-
-	 control++;
-      }
-   }
-
-   return flag;
-}
-
-
-
 /**
  * Create the \c GL_RENDERER string for DRI drivers.
  * 
@@ -452,7 +429,7 @@ int
 driGetConfigAttrib(const __DRIconfig *config,
 		   unsigned int attrib, unsigned int *value)
 {
-    int i;
+    unsigned i;
 
     for (i = 0; i < ARRAY_SIZE(attribMap); i++)
 	if (attribMap[i].attrib == attrib)

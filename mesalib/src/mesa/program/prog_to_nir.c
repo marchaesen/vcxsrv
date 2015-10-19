@@ -33,6 +33,7 @@
 #include "prog_instruction.h"
 #include "prog_parameter.h"
 #include "prog_print.h"
+#include "program.h"
 
 /**
  * \file prog_to_nir.c
@@ -142,7 +143,7 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
       load->variables[0] = nir_deref_var_create(load, c->input_vars[prog_src->Index]);
 
       nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
-      nir_instr_insert_after_cf_list(b->cf_node_list, &load->instr);
+      nir_builder_instr_insert(b, &load->instr);
 
       src.src = nir_src_for_ssa(&load->dest.ssa);
       break;
@@ -166,6 +167,8 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
          }
          /* FALLTHROUGH */
       case PROGRAM_STATE_VAR: {
+         assert(c->parameters != NULL);
+
          nir_intrinsic_instr *load =
             nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_var);
          nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
@@ -200,7 +203,7 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
             deref_arr->base_offset = prog_src->Index;
          }
 
-         nir_instr_insert_after_cf_list(b->cf_node_list, &load->instr);
+         nir_builder_instr_insert(b, &load->instr);
 
          src.src = nir_src_for_ssa(&load->dest.ssa);
          break;
@@ -250,7 +253,7 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
             mov->dest.write_mask = 0x1;
             mov->src[0] = src;
             mov->src[0].swizzle[0] = swizzle;
-            nir_instr_insert_after_cf_list(b->cf_node_list, &mov->instr);
+            nir_builder_instr_insert(b, &mov->instr);
 
             chans[i] = &mov->dest.dest.ssa;
          }
@@ -278,7 +281,7 @@ ptn_alu(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
       instr->src[i].src = nir_src_for_ssa(src[i]);
 
    instr->dest = dest;
-   nir_instr_insert_after_cf_list(b->cf_node_list, &instr->instr);
+   nir_builder_instr_insert(b, &instr->instr);
 }
 
 static void
@@ -297,7 +300,7 @@ ptn_move_dest_masked(nir_builder *b, nir_alu_dest dest,
    mov->src[0].src = nir_src_for_ssa(def);
    for (unsigned i = def->num_components; i < 4; i++)
       mov->src[0].swizzle[i] = def->num_components - 1;
-   nir_instr_insert_after_cf_list(b->cf_node_list, &mov->instr);
+   nir_builder_instr_insert(b, &mov->instr);
 }
 
 static void
@@ -524,8 +527,7 @@ ptn_dp4(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src)
 static void
 ptn_dph(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src)
 {
-   nir_ssa_def *dp3 = nir_fdot3(b, src[0], src[1]);
-   ptn_move_dest(b, dest, nir_fadd(b, dp3, ptn_channel(b, src[1], W)));
+   ptn_move_dest(b, dest, nir_fdph(b, src[0], src[1]));
 }
 
 static void
@@ -558,7 +560,7 @@ ptn_kil(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src)
    nir_intrinsic_instr *discard =
       nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
    discard->src[0] = nir_src_for_ssa(cmp);
-   nir_instr_insert_after_cf_list(b->cf_node_list, &discard->instr);
+   nir_builder_instr_insert(b, &discard->instr);
 }
 
 static void
@@ -685,7 +687,7 @@ ptn_tex(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src,
    assert(src_number == num_srcs);
 
    nir_ssa_dest_init(&instr->instr, &instr->dest, 4, NULL);
-   nir_instr_insert_after_cf_list(b->cf_node_list, &instr->instr);
+   nir_builder_instr_insert(b, &instr->instr);
 
    /* Resolve the writemask on the texture op. */
    ptn_move_dest(b, dest, &instr->dest.ssa);
@@ -921,7 +923,7 @@ ptn_add_output_stores(struct ptn_compile *c)
 {
    nir_builder *b = &c->build;
 
-   foreach_list_typed(nir_variable, var, node, &b->shader->outputs) {
+   nir_foreach_variable(var, &b->shader->outputs) {
       nir_intrinsic_instr *store =
          nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_var);
       store->num_components = glsl_get_vector_elements(var->type);
@@ -941,7 +943,7 @@ ptn_add_output_stores(struct ptn_compile *c)
       } else {
          store->src[0].reg.reg = c->output_regs[var->data.location];
       }
-      nir_instr_insert_after_cf_list(c->build.cf_node_list, &store->instr);
+      nir_builder_instr_insert(b, &store->instr);
    }
 }
 
@@ -956,11 +958,10 @@ setup_registers_and_variables(struct ptn_compile *c)
    for (int i = 0; i < num_inputs; i++) {
       if (!(c->prog->InputsRead & BITFIELD64_BIT(i)))
          continue;
-      nir_variable *var = rzalloc(shader, nir_variable);
-      var->type = glsl_vec4_type();
-      var->data.read_only = true;
-      var->data.mode = nir_var_shader_in;
-      var->name = ralloc_asprintf(var, "in_%d", i);
+
+      nir_variable *var =
+         nir_variable_create(shader, nir_var_shader_in, glsl_vec4_type(),
+                             ralloc_asprintf(shader, "in_%d", i));
       var->data.location = i;
       var->data.index = 0;
 
@@ -985,35 +986,30 @@ setup_registers_and_variables(struct ptn_compile *c)
             load_x->num_components = 1;
             load_x->variables[0] = nir_deref_var_create(load_x, var);
             nir_ssa_dest_init(&load_x->instr, &load_x->dest, 1, NULL);
-            nir_instr_insert_after_cf_list(b->cf_node_list, &load_x->instr);
+            nir_builder_instr_insert(b, &load_x->instr);
 
             nir_ssa_def *f001 = nir_vec4(b, &load_x->dest.ssa, nir_imm_float(b, 0.0),
                                          nir_imm_float(b, 0.0), nir_imm_float(b, 1.0));
 
-            nir_variable *fullvar = rzalloc(shader, nir_variable);
-            fullvar->type = glsl_vec4_type();
-            fullvar->data.mode = nir_var_local;
-            fullvar->name = "fogcoord_tmp";
-            exec_list_push_tail(&b->impl->locals, &fullvar->node);
-
+            nir_variable *fullvar =
+               nir_local_variable_create(b->impl, glsl_vec4_type(),
+                                         "fogcoord_tmp");
             nir_intrinsic_instr *store =
                nir_intrinsic_instr_create(shader, nir_intrinsic_store_var);
             store->num_components = 4;
             store->variables[0] = nir_deref_var_create(store, fullvar);
             store->src[0] = nir_src_for_ssa(f001);
-            nir_instr_insert_after_cf_list(b->cf_node_list, &store->instr);
+            nir_builder_instr_insert(b, &store->instr);
 
-            /* Insert the real input into the list so the driver has real
-             * inputs, but set c->input_vars[i] to the temporary so we use
+            /* We inserted the real input into the list so the driver has real
+             * inputs, but we set c->input_vars[i] to the temporary so we use
              * the splatted value.
              */
-            exec_list_push_tail(&shader->inputs, &var->node);
             c->input_vars[i] = fullvar;
             continue;
          }
       }
 
-      exec_list_push_tail(&shader->inputs, &var->node);
       c->input_vars[i] = var;
    }
 
@@ -1053,7 +1049,7 @@ setup_registers_and_variables(struct ptn_compile *c)
    c->temp_regs = rzalloc_array(c, nir_register *, c->prog->NumTemporaries);
 
    nir_register *reg;
-   for (int i = 0; i < c->prog->NumTemporaries; i++) {
+   for (unsigned i = 0; i < c->prog->NumTemporaries; i++) {
       reg = nir_local_reg_create(b->impl);
       if (!reg) {
          c->error = true;
@@ -1079,22 +1075,25 @@ prog_to_nir(const struct gl_program *prog,
 {
    struct ptn_compile *c;
    struct nir_shader *s;
+   gl_shader_stage stage = _mesa_program_enum_to_shader_stage(prog->Target);
 
    c = rzalloc(NULL, struct ptn_compile);
    if (!c)
       return NULL;
-   s = nir_shader_create(NULL, options);
+   s = nir_shader_create(NULL, stage, options);
    if (!s)
       goto fail;
    c->prog = prog;
 
-   c->parameters = rzalloc(s, nir_variable);
-   c->parameters->type = glsl_array_type(glsl_vec4_type(),
-                                            prog->Parameters->NumParameters);
-   c->parameters->name = "parameters";
-   c->parameters->data.read_only = true;
-   c->parameters->data.mode = nir_var_uniform;
-   exec_list_push_tail(&s->uniforms, &c->parameters->node);
+   if (prog->Parameters->NumParameters > 0) {
+      c->parameters = rzalloc(s, nir_variable);
+      c->parameters->type =
+         glsl_array_type(glsl_vec4_type(), prog->Parameters->NumParameters);
+      c->parameters->name = "parameters";
+      c->parameters->data.read_only = true;
+      c->parameters->data.mode = nir_var_uniform;
+      exec_list_push_tail(&s->uniforms, &c->parameters->node);
+   }
 
    nir_function *func = nir_function_create(s, "main");
    nir_function_overload *overload = nir_function_overload_create(func);
@@ -1102,7 +1101,7 @@ prog_to_nir(const struct gl_program *prog,
 
    c->build.shader = s;
    c->build.impl = impl;
-   c->build.cf_node_list = &impl->body;
+   c->build.cursor = nir_after_cf_list(&impl->body);
 
    setup_registers_and_variables(c);
    if (unlikely(c->error))
@@ -1116,6 +1115,19 @@ prog_to_nir(const struct gl_program *prog,
    }
 
    ptn_add_output_stores(c);
+
+   s->info.name = ralloc_asprintf(s, "ARB%d", prog->Id);
+   s->info.num_textures = _mesa_fls(prog->SamplersUsed);
+   s->info.num_ubos = 0;
+   s->info.num_abos = 0;
+   s->info.num_ssbos = 0;
+   s->info.num_images = 0;
+   s->info.inputs_read = prog->InputsRead;
+   s->info.outputs_written = prog->OutputsWritten;
+   s->info.system_values_read = prog->SystemValuesRead;
+   s->info.uses_texture_gather = false;
+   s->info.uses_clip_distance_out = false;
+   s->info.separate_shader = false;
 
 fail:
    if (c->error) {

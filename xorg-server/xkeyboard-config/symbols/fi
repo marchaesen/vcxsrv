@@ -210,3 +210,73 @@ xkb_symbols "sun_type6" {
 
     include "sun_vndr/fi(sun_type6)"
 };
+
+partial
+xkb_symbols "das" {
+
+    // This is DAS layout for typing Finnish. It is originally designed by
+    // Cristian Seres (cseres at iki.fi).
+    // More information about DAS: http://c.seres.fi/DAS_en.html
+    // This xkeyboard layout is originally made by Joel Lehtonen,
+    // (joel.lehtonen at iki.fi) on 2008-01-14. He released it under Public
+    // domain.
+
+    name[Group1]="Finnish (DAS)";
+
+    key <AE01> { [  1,               exclam,           section                                      ] };
+    key <AE02> { [  2,               quotedbl,         twosuperior                                  ] };
+    key <AE03> { [  3,               at,               sterling                                     ] };
+    key <AE04> { [  4,               EuroSign,         dollar                                       ] };
+    key <AE05> { [  5,               percent,          onehalf                                      ] };
+    key <AE06> { [  6,               ampersand                                                      ] };
+    key <AE07> { [  7,               braceleft                                                      ] };
+    key <AE08> { [  8,               parenleft,        bracketleft                                  ] };
+    key <AE09> { [  9,               parenright,       bracketright                                 ] };
+    key <AE10> { [  0,               braceright,       degree                                       ] };
+    key <AE11> { [  plus,            question,         currency                                     ] };
+    key <AE12> { [  equal,           numbersign                                                     ] };
+
+    key <AD01> { [  p,               P,                Greek_pi                                     ] };
+    key <AD02> { [  h,               H                                                              ] };
+    key <AD03> { [  r,               R,                dead_circumflex                              ] };
+    key <AD04> { [  k,               K,                dead_caron                                   ] };
+    key <AD05> { [  less,            greater                                                        ] };
+    key <AD06> { [  apostrophe,      bar                                                            ] };
+    key <AD07> { [  w,               W                                                              ] };
+    key <AD08> { [  u,               U                                                              ] };
+    key <AD09> { [  y,               Y                                                              ] };
+    key <AD10> { [  b,               B                                                              ] };
+    key <AD11> { [  q,               Q                                                              ] };
+    key <AD12> { [  z,               Z,                zcaron,                Zcaron                ] };
+
+    key <AC01> { [  s,               S,                scaron,                Scaron                ] };
+    key <AC02> { [  l,               L,                dead_acute                                   ] };
+    key <AC03> { [  n,               N,                dead_grave                                   ] };
+    key <AC04> { [  t,               T,                dead_diaeresis                               ] };
+    key <AC05> { [  v,               V                                                              ] };
+    key <AC06> { [  g,               G                                                              ] };
+    key <AC07> { [  a,               A                                                              ] };
+    key <AC08> { [  i,               I                                                              ] };
+    key <AC09> { [  o,               O                                                              ] };
+    key <AC10> { [  e,               E                                                              ] };
+    key <AC11> { [  c,               C                                                              ] };
+    key <TLDE> { [  backslash,       dead_tilde                                                     ] };
+
+    key <BKSL> { [  asterisk,        slash                                                          ] };
+    key <LSGT> { [  f,               F                                                              ] };
+    key <AB01> { [  x,               X                                                              ] };
+    key <AB02> { [  d,               D                                                              ] };
+    key <AB03> { [  m,               M,                mu                                           ] };
+    key <AB04> { [  j,               J                                                              ] };
+    key <AB05> { [  aring,           Aring                                                          ] };
+    key <AB06> { [  odiaeresis,      Odiaeresis,       oe,                    OE                    ] };
+    key <AB07> { [  adiaeresis,      Adiaeresis,       ae,                    AE                    ] };
+    key <AB08> { [  comma,           semicolon                                                      ] };
+    key <AB09> { [  period,          colon                                                          ] };
+    key <AB10> { [  minus,           underscore,       U2013,                 dead_macron           ] };
+    key <SPCE> { [  space,           space,            space,                 nobreakspace          ] };
+
+    include "kpdl(comma)"
+    include "level3(ralt_switch)"
+    include "compose(rwin)"
+};

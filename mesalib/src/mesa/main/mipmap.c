@@ -37,6 +37,7 @@
 #include "texstore.h"
 #include "image.h"
 #include "macros.h"
+#include "util/half_float.h"
 #include "../../gallium/auxiliary/util/u_format_rgb9e5.h"
 #include "../../gallium/auxiliary/util/u_format_r11g11b10f.h"
 
@@ -1886,7 +1887,7 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
    GLenum datatype;
    GLuint comps;
 
-   _mesa_format_to_type_and_comps(srcImage->TexFormat, &datatype, &comps);
+   _mesa_uncompressed_format_to_type_and_comps(srcImage->TexFormat, &datatype, &comps);
 
    for (level = texObj->BaseLevel; level < maxLevel; level++) {
       /* generate image[level+1] from image[level] */
@@ -1922,11 +1923,8 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
       }
 
       /* get dest gl_texture_image */
-      dstImage = _mesa_get_tex_image(ctx, texObj, target, level + 1);
-      if (!dstImage) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "generating mipmaps");
-         return;
-      }
+      dstImage = _mesa_select_tex_image(texObj, target, level + 1);
+      assert(dstImage);
 
       if (target == GL_TEXTURE_1D_ARRAY) {
 	 srcDepth = srcHeight;
@@ -2110,7 +2108,19 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
                                          srcWidth, srcHeight, srcDepth,
                                          &dstWidth, &dstHeight, &dstDepth);
       if (!nextLevel)
-	 break;
+	 goto end;
+
+      if (!_mesa_prepare_mipmap_level(ctx, texObj, level + 1,
+                                      dstWidth, dstHeight, dstDepth,
+                                      border, srcImage->InternalFormat,
+                                      srcImage->TexFormat)) {
+         /* all done */
+         goto end;
+      }
+
+      /* get dest gl_texture_image */
+      dstImage = _mesa_select_tex_image(texObj, target, level + 1);
+      assert(dstImage);
 
       /* Compute dst image strides and alloc memory on first iteration */
       temp_dst_row_stride = _mesa_format_row_stride(temp_format, dstWidth);
@@ -2122,13 +2132,6 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
 	    _mesa_error(ctx, GL_OUT_OF_MEMORY, "generate mipmaps");
             goto end;
 	 }
-      }
-
-      /* get dest gl_texture_image */
-      dstImage = _mesa_get_tex_image(ctx, texObj, target, level + 1);
-      if (!dstImage) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "generating mipmaps");
-         goto end;
       }
 
       /* for 2D arrays, setup array[depth] of slice pointers */
@@ -2148,14 +2151,6 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
                                   temp_src_row_stride,
                                   dstWidth, dstHeight, dstDepth,
                                   temp_dst_slices, temp_dst_row_stride);
-
-      if (!_mesa_prepare_mipmap_level(ctx, texObj, level + 1,
-                                      dstWidth, dstHeight, dstDepth,
-                                      border, srcImage->InternalFormat,
-                                      srcImage->TexFormat)) {
-         /* all done */
-         goto end;
-      }
 
       /* The image space was allocated above so use glTexSubImage now */
       ctx->Driver.TexSubImage(ctx, 2, dstImage,

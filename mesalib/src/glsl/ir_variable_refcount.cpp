@@ -46,6 +46,15 @@ static void
 free_entry(struct hash_entry *entry)
 {
    ir_variable_refcount_entry *ivre = (ir_variable_refcount_entry *) entry->data;
+
+   /* Free assignment list */
+   exec_node *n;
+   while ((n = ivre->assign_list.pop_head()) != NULL) {
+      struct assignment_entry *assignment_entry =
+         exec_node_data(struct assignment_entry, n, link);
+      free(assignment_entry);
+   }
+
    delete ivre;
 }
 
@@ -59,7 +68,6 @@ ir_variable_refcount_visitor::~ir_variable_refcount_visitor()
 ir_variable_refcount_entry::ir_variable_refcount_entry(ir_variable *var)
 {
    this->var = var;
-   assign = NULL;
    assigned_count = 0;
    declaration = false;
    referenced_count = 0;
@@ -125,8 +133,20 @@ ir_variable_refcount_visitor::visit_leave(ir_assignment *ir)
    entry = this->get_variable_entry(ir->lhs->variable_referenced());
    if (entry) {
       entry->assigned_count++;
-      if (entry->assign == NULL)
-	 entry->assign = ir;
+
+      /* Build a list for dead code optimisation. Don't add assignment if it
+       * was declared out of scope (outside the instruction stream). Also don't
+       * bother adding any more to the list if there are more references than
+       * assignments as this means the variable is used and won't be optimised
+       * out.
+       */
+      assert(entry->referenced_count >= entry->assigned_count);
+      if (entry->referenced_count == entry->assigned_count) {
+         struct assignment_entry *assignment_entry =
+            (struct assignment_entry *)calloc(1, sizeof(*assignment_entry));
+         assignment_entry->assign = ir;
+         entry->assign_list.push_head(&assignment_entry->link);
+      }
    }
 
    return visit_continue;

@@ -52,6 +52,39 @@
 
 static Bool drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height);
 
+static Bool
+drmmode_zaphod_string_matches(ScrnInfoPtr scrn, const char *s, char *output_name)
+{
+    int i = 0;
+    char s1[20];
+
+    do {
+        switch(*s) {
+        case ',':
+            s1[i] = '\0';
+            i = 0;
+            if (strcmp(s1, output_name) == 0)
+                return TRUE;
+            break;
+        case ' ':
+        case '\t':
+        case '\n':
+        case '\r':
+            break;
+        default:
+            s1[i] = *s;
+            i++;
+            break;
+        }
+    } while(*s++);
+
+    s1[i] = '\0';
+    if (strcmp(s1, output_name) == 0)
+        return TRUE;
+
+    return FALSE;
+}
+
 int
 drmmode_bo_destroy(drmmode_ptr drmmode, drmmode_bo *bo)
 {
@@ -788,15 +821,16 @@ drmmode_crtc_vblank_pipe(int crtc_id)
         return 0;
 }
 
-static void
+static unsigned int
 drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res, int num)
 {
     xf86CrtcPtr crtc;
     drmmode_crtc_private_ptr drmmode_crtc;
+    modesettingEntPtr ms_ent = ms_ent_priv(pScrn);
 
     crtc = xf86CrtcCreate(pScrn, &drmmode_crtc_funcs);
     if (crtc == NULL)
-        return;
+        return 0;
 
     drmmode_crtc = xnfcalloc(sizeof(drmmode_crtc_private_rec), 1);
     drmmode_crtc->mode_crtc =
@@ -804,6 +838,13 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
     drmmode_crtc->drmmode = drmmode;
     drmmode_crtc->vblank_pipe = drmmode_crtc_vblank_pipe(num);
     crtc->driver_private = drmmode_crtc;
+
+    /* Mark num'th crtc as in use on this device. */
+    ms_ent->assigned_crtcs |= (1 << num);
+    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, MS_LOGLEVEL_DEBUG,
+                   "Allocated crtc nr. %d to this screen.\n", num);
+
+    return 1;
 }
 
 static xf86OutputStatus
@@ -1251,17 +1292,17 @@ static int subpixel_conv_table[7] = {
 static const char *const output_names[] = {
     "None",
     "VGA",
-    "DVI",
-    "DVI",
-    "DVI",
+    "DVI-I",
+    "DVI-D",
+    "DVI-A",
     "Composite",
-    "S-video",
+    "SVIDEO",
     "LVDS",
-    "CTV",
+    "Component",
     "DIN",
-    "DisplayPort",
+    "DP",
     "HDMI",
-    "HDMI",
+    "HDMI-B",
     "TV",
     "eDP",
     "Virtual",
@@ -1336,17 +1377,17 @@ drmmode_create_name(ScrnInfoPtr pScrn, drmModeConnectorPtr koutput, char *name,
 
  fallback:
     if (koutput->connector_type >= MS_ARRAY_SIZE(output_names))
-        snprintf(name, 32, "Unknown-%d", koutput->connector_type_id - 1);
+        snprintf(name, 32, "Unknown%d-%d", koutput->connector_type, koutput->connector_type_id);
 #ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
     else if (pScrn->is_gpu)
-        snprintf(name, 32, "%s-%d-%d", output_names[koutput->connector_type], pScrn->scrnIndex - GPU_SCREEN_OFFSET + 1, koutput->connector_type_id - 1);
+        snprintf(name, 32, "%s-%d-%d", output_names[koutput->connector_type], pScrn->scrnIndex - GPU_SCREEN_OFFSET + 1, koutput->connector_type_id);
 #endif
     else
-        snprintf(name, 32, "%s-%d", output_names[koutput->connector_type], koutput->connector_type_id - 1);
+        snprintf(name, 32, "%s-%d", output_names[koutput->connector_type], koutput->connector_type_id);
 }
 
-static void
-drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res, int num, Bool dynamic)
+static unsigned int
+drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res, int num, Bool dynamic, int crtcshift)
 {
     xf86OutputPtr output;
     xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
@@ -1357,11 +1398,11 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
     char name[32];
     int i;
     drmModePropertyBlobPtr path_blob = NULL;
-
+    const char *s;
     koutput =
         drmModeGetConnector(drmmode->fd, mode_res->connectors[num]);
     if (!koutput)
-        return;
+        return 0;
 
     for (i = 0; i < koutput->count_props; i++) {
         props = drmModeGetProperty(drmmode->fd, koutput->props[i]);
@@ -1392,7 +1433,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
             drmmode_output = output->driver_private;
             drmmode_output->output_id = mode_res->connectors[num];
             drmmode_output->mode_output = koutput;
-            return;
+            return 1;
         }
     }
 
@@ -1405,6 +1446,18 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
         kencoders[i] = drmModeGetEncoder(drmmode->fd, koutput->encoders[i]);
         if (!kencoders[i]) {
             goto out_free_encoders;
+        }
+    }
+
+    if (xf86IsEntityShared(pScrn->entityList[0])) {
+        if ((s = xf86GetOptValString(drmmode->Options, OPTION_ZAPHOD_HEADS))) {
+            if (!drmmode_zaphod_string_matches(pScrn, s, name))
+                goto out_free_encoders;
+        } else {
+            if (!drmmode->is_secondary && (num != 0))
+                goto out_free_encoders;
+            else if (drmmode->is_secondary && (num != 1))
+                goto out_free_encoders;
         }
     }
 
@@ -1433,7 +1486,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
 
     output->possible_crtcs = 0x7f;
     for (i = 0; i < koutput->count_encoders; i++) {
-        output->possible_crtcs &= kencoders[i]->possible_crtcs;
+        output->possible_crtcs &= kencoders[i]->possible_crtcs >> crtcshift;
     }
     /* work out the possible clones later */
     output->possible_clones = 0;
@@ -1452,7 +1505,8 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
 
     if (dynamic)
         output->randr_output = RROutputCreate(xf86ScrnToScreen(pScrn), output->name, strlen(output->name), output);
-    return;
+    return 1;
+
  out_free_encoders:
     if (kencoders) {
         for (i = 0; i < koutput->count_encoders; i++)
@@ -1461,6 +1515,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
     }
     drmModeFreeConnector(koutput);
 
+    return 0;
 }
 
 static uint32_t
@@ -1682,10 +1737,13 @@ static const xf86CrtcConfigFuncsRec drmmode_xf86crtc_config_funcs = {
 Bool
 drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp)
 {
+    modesettingEntPtr ms_ent = ms_ent_priv(pScrn);
     int i;
     int ret;
     uint64_t value = 0;
+    unsigned int crtcs_needed = 0;
     drmModeResPtr mode_res;
+    int crtcshift;
 
     /* check for dumb capability */
     ret = drmGetCap(drmmode->fd, DRM_CAP_DUMB_BUFFER, &value);
@@ -1703,15 +1761,26 @@ drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp)
     if (!mode_res)
         return FALSE;
 
+    crtcshift = ffs(ms_ent->assigned_crtcs ^ 0xffffffff) - 1;
+    for (i = 0; i < mode_res->count_connectors; i++)
+        crtcs_needed += drmmode_output_init(pScrn, drmmode, mode_res, i, FALSE,
+                                            crtcshift);
+
+    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, MS_LOGLEVEL_DEBUG,
+                   "Up to %d crtcs needed for screen.\n", crtcs_needed);
+
     xf86CrtcSetSizeRange(pScrn, 320, 200, mode_res->max_width,
                          mode_res->max_height);
     for (i = 0; i < mode_res->count_crtcs; i++)
         if (!xf86IsEntityShared(pScrn->entityList[0]) ||
-            pScrn->confScreen->device->screen == i)
-            drmmode_crtc_init(pScrn, drmmode, mode_res, i);
+            (crtcs_needed && !(ms_ent->assigned_crtcs & (1 << i))))
+            crtcs_needed -= drmmode_crtc_init(pScrn, drmmode, mode_res, i);
 
-    for (i = 0; i < mode_res->count_connectors; i++)
-        drmmode_output_init(pScrn, drmmode, mode_res, i, FALSE);
+    /* All ZaphodHeads outputs provided with matching crtcs? */
+    if (xf86IsEntityShared(pScrn->entityList[0]) && (crtcs_needed > 0))
+        xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+                   "%d ZaphodHeads crtcs unavailable. Some outputs will stay off.\n",
+                   crtcs_needed);
 
     /* workout clones */
     drmmode_clones_init(pScrn, drmmode, mode_res);
@@ -1941,7 +2010,7 @@ drmmode_handle_uevents(int fd, void *closure)
             continue;
 
         changed = TRUE;
-        drmmode_output_init(scrn, drmmode, mode_res, i, 1);
+        drmmode_output_init(scrn, drmmode, mode_res, i, TRUE, 0);
     }
 
     if (changed) {

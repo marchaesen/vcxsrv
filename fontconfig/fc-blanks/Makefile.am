@@ -28,8 +28,13 @@ noinst_SCRIPTS = $(BLANKSPY)
 noinst_HEADERS = $(BLANKS_H)
 
 $(BLANKS_H): $(TMPL) $(BLANKSPY)
+if HAVE_PYTHON
 	$(AM_V_GEN) $(PYTHON) $(srcdir)/$(BLANKSPY) < $< > $(BLANKS_H).tmp && \
 	mv $(BLANKS_H).tmp $(BLANKS_H) || ($(RM) $(BLANKS_H).tmp && false)
+else
+	@echo "No python installed. please install python to build $(BLANKS_H)."
+	@false
+endif
 
 EXTRA_DIST = 		\
 	$(BLANKSPY)	\

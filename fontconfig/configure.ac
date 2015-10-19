@@ -53,7 +53,8 @@ m4_ifdef([PKG_INSTALLDIR], [PKG_INSTALLDIR], AC_SUBST([pkgconfigdir], ${libdir}/
 
 AM_MISSING_PROG([GIT], [git])
 AM_MISSING_PROG([GPERF], [gperf])
-AM_PATH_PYTHON
+AM_PATH_PYTHON(,, [:])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 AC_MSG_CHECKING([for RM macro])
 _predefined_rm=`make -p -f /dev/null 2>/dev/null|grep '^RM ='|sed -e 's/^RM = //'`
@@ -165,6 +166,9 @@ dnl AC_CHECK_FUNCS doesn't check for header files.
 dnl posix_fadvise() may be not available in older libc.
 AC_CHECK_SYMBOL([posix_fadvise], [fcntl.h], [fc_func_posix_fadvise=1], [fc_func_posix_fadvise=0])
 AC_DEFINE_UNQUOTED([HAVE_POSIX_FADVISE], [$fc_func_posix_fadvise], [Define to 1 if you have the 'posix_fadvise' function.])
+
+#
+AC_CHECK_MEMBERS([struct stat.st_mtim],,, [#include <sys/stat.h>])
 
 #
 if test "x$ac_cv_func_fstatvfs" = "xyes"; then

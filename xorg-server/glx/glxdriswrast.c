@@ -396,6 +396,9 @@ initializeExtensions(__GLXDRIscreen * screen)
     const __DRIextension **extensions;
     int i;
 
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
+    LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
+
     if (screen->swrast->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context");
@@ -416,8 +419,6 @@ initializeExtensions(__GLXDRIscreen * screen)
         if (strcmp(extensions[i]->name, __DRI_COPY_SUB_BUFFER) == 0) {
             screen->copySubBuffer =
                 (const __DRIcopySubBufferExtension *) extensions[i];
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_MESA_copy_sub_buffer");
         }
 
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {

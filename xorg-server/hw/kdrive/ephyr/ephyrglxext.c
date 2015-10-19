@@ -84,7 +84,7 @@ ephyrHijackGLXExtension(void)
 {
     const void *(*dispatch_functions)[2];
 
-    if (!host_has_extension(&xcb_glx_id)) {
+    if (!hostx_has_extension(&xcb_glx_id)) {
         EPHYR_LOG("host X does not have GLX\n");
         return FALSE;
     }

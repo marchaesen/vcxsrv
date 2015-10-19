@@ -161,9 +161,9 @@ int *ConnectionTranslation = NULL;
  */
 
 #undef MAXSOCKS
-#define MAXSOCKS 500
+#define MAXSOCKS 512
 #undef MAXSELECT
-#define MAXSELECT 500
+#define MAXSELECT 512
 
 struct _ct_node {
     struct _ct_node *next;
@@ -299,7 +299,7 @@ InitConnectionLimits(void)
     if (lastfdesc > MAXCLIENTS) {
         lastfdesc = MAXCLIENTS;
         if (debug_conns)
-            ErrorF("REACHED MAXIMUM CLIENTS LIMIT %d\n", MAXCLIENTS);
+            ErrorF("REACHED MAXIMUM CLIENTS LIMIT %d\n", LimitClients);
     }
     MaxClients = lastfdesc;
 

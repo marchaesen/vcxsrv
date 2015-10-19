@@ -42,6 +42,7 @@ struct u_rect {
 };
 
 /* Do two rectangles intersect?
+ * Note: empty rectangles are valid as inputs (and never intersect).
  */
 static inline boolean
 u_rect_test_intersection(const struct u_rect *a,
@@ -50,7 +51,11 @@ u_rect_test_intersection(const struct u_rect *a,
    return (!(a->x1 < b->x0 ||
              b->x1 < a->x0 ||
              a->y1 < b->y0 ||
-             b->y1 < a->y0));
+             b->y1 < a->y0 ||
+             a->x1 < a->x0 ||
+             a->y1 < a->y0 ||
+             b->x1 < b->x0 ||
+             b->y1 < b->y0));
 }
 
 /* Find the intersection of two rectangles known to intersect.
@@ -82,7 +87,12 @@ u_rect_possible_intersection(const struct u_rect *a,
       u_rect_find_intersection(a,b);
    }
    else {
-      b->x0 = b->x1 = b->y0 = b->y1 = 0;
+      /*
+       * Note the u_rect_xx tests deal with inclusive coordinates
+       * hence all-zero would not be an empty box.
+       */
+      b->x0 = b->y0 = 0;
+      b->x1 = b->y1 = -1;
    }
 }
 

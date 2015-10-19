@@ -633,7 +633,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
          /* draw one or two prims */
          check_buffers_are_unmapped(exec->array.inputs);
          vbo->draw_prims(ctx, prim, primCount, NULL,
-                         GL_TRUE, start, start + count - 1, NULL, NULL);
+                         GL_TRUE, start, start + count - 1, NULL, 0, NULL);
       }
    }
    else {
@@ -644,7 +644,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
       check_buffers_are_unmapped(exec->array.inputs);
       vbo->draw_prims(ctx, prim, 1, NULL,
                       GL_TRUE, start, start + count - 1,
-                      NULL, NULL);
+                      NULL, 0, NULL);
    }
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
@@ -990,7 +990,7 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
 
    check_buffers_are_unmapped(exec->array.inputs);
    vbo->draw_prims(ctx, prim, 1, &ib,
-                   index_bounds_valid, start, end, NULL, NULL);
+                   index_bounds_valid, start, end, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -1350,7 +1350,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
 
       check_buffers_are_unmapped(exec->array.inputs);
       vbo->draw_prims(ctx, prim, primcount, &ib,
-                      false, ~0, ~0, NULL, NULL);
+                      false, ~0, ~0, NULL, 0, NULL);
    } else {
       /* render one prim at a time */
       for (i = 0; i < primcount; i++) {
@@ -1379,7 +1379,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
 
          check_buffers_are_unmapped(exec->array.inputs);
          vbo->draw_prims(ctx, prim, 1, &ib,
-                         false, ~0, ~0, NULL, NULL);
+                         false, ~0, ~0, NULL, 0, NULL);
       }
    }
 
@@ -1464,7 +1464,7 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
 
    check_buffers_are_unmapped(exec->array.inputs);
    vbo->draw_prims(ctx, prim, 1, NULL,
-                   GL_TRUE, 0, 0, obj, NULL);
+                   GL_TRUE, 0, 0, obj, stream, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -1563,7 +1563,7 @@ vbo_validated_drawarraysindirect(struct gl_context *ctx,
    check_buffers_are_unmapped(exec->array.inputs);
    vbo->draw_prims(ctx, prim, 1,
                    NULL, GL_TRUE, 0, ~0,
-                   NULL,
+                   NULL, 0,
                    ctx->DrawIndirectBuffer);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
@@ -1603,7 +1603,7 @@ vbo_validated_multidrawarraysindirect(struct gl_context *ctx,
    check_buffers_are_unmapped(exec->array.inputs);
    vbo->draw_prims(ctx, prim, primcount,
                    NULL, GL_TRUE, 0, ~0,
-                   NULL,
+                   NULL, 0,
                    ctx->DrawIndirectBuffer);
 
    free(prim);
@@ -1640,7 +1640,7 @@ vbo_validated_drawelementsindirect(struct gl_context *ctx,
    check_buffers_are_unmapped(exec->array.inputs);
    vbo->draw_prims(ctx, prim, 1,
                    &ib, GL_TRUE, 0, ~0,
-                   NULL,
+                   NULL, 0,
                    ctx->DrawIndirectBuffer);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
@@ -1689,7 +1689,7 @@ vbo_validated_multidrawelementsindirect(struct gl_context *ctx,
    check_buffers_are_unmapped(exec->array.inputs);
    vbo->draw_prims(ctx, prim, primcount,
                    &ib, GL_TRUE, 0, ~0,
-                   NULL,
+                   NULL, 0,
                    ctx->DrawIndirectBuffer);
 
    free(prim);

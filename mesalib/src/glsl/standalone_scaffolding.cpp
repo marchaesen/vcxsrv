@@ -62,7 +62,7 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
 }
 
 void
-_mesa_shader_debug(struct gl_context *, GLenum, GLuint *id,
+_mesa_shader_debug(struct gl_context *, GLenum, GLuint *,
                    const char *, int)
 {
 }
@@ -86,6 +86,14 @@ _mesa_new_shader(struct gl_context *ctx, GLuint name, GLenum type)
 }
 
 void
+_mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
+{
+   free((void *)sh->Source);
+   free(sh->Label);
+   ralloc_free(sh);
+}
+
+void
 _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
 {
    unsigned i;
@@ -99,9 +107,18 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
    ralloc_free(shProg->InfoLog);
    shProg->InfoLog = ralloc_strdup(shProg, "");
 
+   ralloc_free(shProg->BufferInterfaceBlocks);
+   shProg->BufferInterfaceBlocks = NULL;
+   shProg->NumBufferInterfaceBlocks = 0;
+
    ralloc_free(shProg->UniformBlocks);
    shProg->UniformBlocks = NULL;
    shProg->NumUniformBlocks = 0;
+
+   ralloc_free(shProg->ShaderStorageBlocks);
+   shProg->ShaderStorageBlocks = NULL;
+   shProg->NumShaderStorageBlocks = 0;
+
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
       ralloc_free(shProg->UniformBlockStageIndex[i]);
       shProg->UniformBlockStageIndex[i] = NULL;

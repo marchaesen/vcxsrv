@@ -105,6 +105,20 @@ compInstallColormap(ColormapPtr pColormap)
     pScreen->InstallColormap = compInstallColormap;
 }
 
+static void
+compCheckBackingStore(WindowPtr pWin)
+{
+    if (pWin->backingStore != NotUseful && !pWin->backStorage) {
+        compRedirectWindow(serverClient, pWin, CompositeRedirectAutomatic);
+        pWin->backStorage = TRUE;
+    }
+    else if (pWin->backingStore == NotUseful && pWin->backStorage) {
+        compUnredirectWindow(serverClient, pWin,
+                             CompositeRedirectAutomatic);
+        pWin->backStorage = FALSE;
+    }
+}
+
 /* Fake backing store via automatic redirection */
 static Bool
 compChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
@@ -117,17 +131,8 @@ compChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
     ret = pScreen->ChangeWindowAttributes(pWin, mask);
 
     if (ret && (mask & CWBackingStore) &&
-        pScreen->backingStoreSupport != NotUseful) {
-        if (pWin->backingStore != NotUseful && !pWin->backStorage) {
-            compRedirectWindow(serverClient, pWin, CompositeRedirectAutomatic);
-            pWin->backStorage = TRUE;
-        }
-        else if (pWin->backingStore == NotUseful && pWin->backStorage) {
-            compUnredirectWindow(serverClient, pWin,
-                                 CompositeRedirectAutomatic);
-            pWin->backStorage = FALSE;
-        }
-    }
+        pScreen->backingStoreSupport != NotUseful)
+        compCheckBackingStore(pWin);
 
     pScreen->ChangeWindowAttributes = compChangeWindowAttributes;
 

@@ -28,8 +28,6 @@
 
 #include <errno.h>
 
-extern int KdTsPhyScreen;
-
 const char *fbdevDevicePath = NULL;
 
 static Bool
@@ -698,10 +696,6 @@ fbdevCreateColormap(ColormapPtr pmap)
 Bool
 fbdevInitScreen(ScreenPtr pScreen)
 {
-#ifdef TOUCHSCREEN
-    KdTsPhyScreen = pScreen->myNum;
-#endif
-
     pScreen->CreateColormap = fbdevCreateColormap;
     return TRUE;
 }

@@ -30,6 +30,8 @@
 #include "xwayland.h"
 #include <randrstr.h>
 
+#define DEFAULT_DPI 96
+
 static Rotation
 wl_transform_to_xrandr(enum wl_output_transform transform)
 {
@@ -101,8 +103,13 @@ output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
     if (!(flags & WL_OUTPUT_MODE_CURRENT))
         return;
 
-    xwl_output->width = width;
-    xwl_output->height = height;
+    if (xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180)) {
+        xwl_output->width = width;
+        xwl_output->height = height;
+    } else {
+        xwl_output->width = height;
+        xwl_output->height = width;
+    }
 
     randr_mode = xwayland_cvt(width, height, refresh / 1000.0, 0, 0);
 
@@ -113,29 +120,97 @@ output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
                  xwl_output->rotation, NULL, 1, &xwl_output->randr_output);
 }
 
+static inline void
+output_get_new_size(struct xwl_output *xwl_output,
+		    int *height, int *width)
+{
+    if (*width < xwl_output->x + xwl_output->width)
+        *width = xwl_output->x + xwl_output->width;
+
+    if (*height < xwl_output->y + xwl_output->height)
+        *height = xwl_output->y + xwl_output->height;
+}
+
+/* Approximate some kind of mmpd (m.m. per dot) of the screen given the outputs
+ * associated with it.
+ *
+ * It will either calculate the mean mmpd of all the outputs, or default to
+ * 96 DPI if no reasonable value could be calculated.
+ */
+static double
+approximate_mmpd(struct xwl_screen *xwl_screen)
+{
+    struct xwl_output *it;
+    int total_width_mm = 0;
+    int total_width = 0;
+
+    xorg_list_for_each_entry(it, &xwl_screen->output_list, link) {
+        if (it->randr_output->mmWidth == 0)
+            continue;
+
+        total_width_mm += it->randr_output->mmWidth;
+        total_width += it->width;
+    }
+
+    if (total_width_mm != 0)
+        return (double)total_width_mm / total_width;
+    else
+        return 25.4 / DEFAULT_DPI;
+}
+
 static void
 output_handle_done(void *data, struct wl_output *wl_output)
 {
-    struct xwl_output *xwl_output = data;
+    struct xwl_output *it, *xwl_output = data;
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
-    int width, height;
+    int width = 0, height = 0, has_this_output = 0;
+    double mmpd;
 
-    xorg_list_append(&xwl_output->link, &xwl_screen->output_list);
+    xorg_list_for_each_entry(it, &xwl_screen->output_list, link) {
+        /* output done event is sent even when some property
+         * of output is changed. That means that we may already
+         * have this output. If it is true, we must not add it
+         * into the output_list otherwise we'll corrupt it */
+        if (it == xwl_output)
+            has_this_output = 1;
 
-    width = 0;
-    height = 0;
-    xorg_list_for_each_entry(xwl_output, &xwl_screen->output_list, link) {
-        if (width < xwl_output->x + xwl_output->width)
-            width = xwl_output->x + xwl_output->width;
-        if (height < xwl_output->y + xwl_output->height)
-            height = xwl_output->y + xwl_output->height;
+        output_get_new_size(it, &height, &width);
     }
+
+    if (!has_this_output) {
+        xorg_list_append(&xwl_output->link, &xwl_screen->output_list);
+
+        /* we did not check this output for new screen size, do it now */
+        output_get_new_size(xwl_output, &height, &width);
+
+	--xwl_screen->expecting_event;
+    }
+
+    if (xwl_screen->screen->root)
+        SetRootClip(xwl_screen->screen, FALSE);
 
     xwl_screen->width = width;
     xwl_screen->height = height;
-    RRScreenSizeNotify(xwl_screen->screen);
+    xwl_screen->screen->width = width;
+    xwl_screen->screen->height = height;
 
-    xwl_screen->expecting_event--;
+    if (xwl_output->width == width && xwl_output->height == height) {
+        xwl_screen->screen->mmWidth = xwl_output->randr_output->mmWidth;
+        xwl_screen->screen->mmHeight = xwl_output->randr_output->mmHeight;
+    } else {
+        mmpd = approximate_mmpd(xwl_screen);
+        xwl_screen->screen->mmWidth = width * mmpd;
+        xwl_screen->screen->mmHeight = height * mmpd;
+    }
+
+    if (xwl_screen->screen->root) {
+        xwl_screen->screen->root->drawable.width = width;
+        xwl_screen->screen->root->drawable.height = height;
+        SetRootClip(xwl_screen->screen, TRUE);
+        RRScreenSizeNotify(xwl_screen->screen);
+    }
+
+    update_desktop_dimensions();
 }
 
 static void
@@ -165,13 +240,10 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
 
     xwl_output->output = wl_registry_bind(xwl_screen->registry, id,
                                           &wl_output_interface, 2);
+    xwl_output->server_output_id = id;
     wl_output_add_listener(xwl_output->output, &output_listener, xwl_output);
 
-    if (snprintf(name, sizeof name, "XWAYLAND%d", serial++) < 0) {
-        ErrorF("create_output ENOMEM\n");
-        free(xwl_output);
-        return NULL;
-    }
+    snprintf(name, sizeof name, "XWAYLAND%d", serial++);
 
     xwl_output->xwl_screen = xwl_screen;
     xwl_output->randr_crtc = RRCrtcCreate(xwl_screen->screen, xwl_output);
@@ -188,8 +260,7 @@ void
 xwl_output_destroy(struct xwl_output *xwl_output)
 {
     wl_output_destroy(xwl_output->output);
-    RRCrtcDestroy(xwl_output->randr_crtc);
-    RROutputDestroy(xwl_output->randr_output);
+    xorg_list_del(&xwl_output->link);
     free(xwl_output);
 }
 

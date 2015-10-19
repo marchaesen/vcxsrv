@@ -300,6 +300,7 @@ def generate(env):
 
     # C preprocessor options
     cppdefines = []
+    cppdefines += ['__STDC_LIMIT_MACROS']
     if env['build'] in ('debug', 'checked'):
         cppdefines += ['DEBUG']
     else:
