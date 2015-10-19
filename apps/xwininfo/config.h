@@ -109,3 +109,6 @@
 #undef _POSIX_SOURCE
 
 #define _X_COLD
+
+#define HAVE_STRUCT_TIMESPEC
+

@@ -446,9 +446,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\ir_hierarchical_visitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_types.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\builtin_variables.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -740,9 +737,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\vdpau.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_cse.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\link_atomics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -837,6 +831,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\nir\glsl_types.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\half_float.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\strndup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\objectpurge.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

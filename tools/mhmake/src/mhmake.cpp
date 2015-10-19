@@ -77,7 +77,7 @@ int __CDECL main(int argc, char* argv[])
 
     if (!getenv("Platform"))
     {
-      char PlatformEnv[]="PLATFORM="PLATFORM;
+      char PlatformEnv[]="PLATFORM=" PLATFORM;
       putenv(PlatformEnv);
     }
 

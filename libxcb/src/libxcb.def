@@ -56,3 +56,5 @@ EXPORTS
   xcb_wait_for_event
   xcb_wait_for_reply
   xcb_writev
+  xcb_wait_for_reply64
+  xcb_poll_for_reply64

@@ -89,9 +89,6 @@ extern _X_EXPORT unsigned int ResourceClientBits(void);
 /* bits and fields within a resource id */
 #define RESOURCE_AND_CLIENT_COUNT   29  /* 29 bits for XIDs */
 #define RESOURCE_CLIENT_BITS        ResourceClientBits() /* client field offset */
-#endif
-#if MAXCLIENTS == 1024
-#define RESOURCE_CLIENT_BITS	10
 #define CLIENTOFFSET	    (RESOURCE_AND_CLIENT_COUNT - RESOURCE_CLIENT_BITS)
 /* resource field */
 #define RESOURCE_ID_MASK	((1 << CLIENTOFFSET) - 1)
