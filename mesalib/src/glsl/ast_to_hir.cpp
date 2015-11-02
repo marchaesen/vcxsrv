@@ -487,54 +487,54 @@ bit_logic_result_type(const struct glsl_type *type_a,
                       ast_operators op,
                       struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
 {
-    if (!state->check_bitwise_operations_allowed(loc)) {
-       return glsl_type::error_type;
-    }
+   if (!state->check_bitwise_operations_allowed(loc)) {
+      return glsl_type::error_type;
+   }
 
-    /* From page 50 (page 56 of PDF) of GLSL 1.30 spec:
-     *
-     *     "The bitwise operators and (&), exclusive-or (^), and inclusive-or
-     *     (|). The operands must be of type signed or unsigned integers or
-     *     integer vectors."
-     */
-    if (!type_a->is_integer()) {
-       _mesa_glsl_error(loc, state, "LHS of `%s' must be an integer",
-                         ast_expression::operator_string(op));
-       return glsl_type::error_type;
-    }
-    if (!type_b->is_integer()) {
-       _mesa_glsl_error(loc, state, "RHS of `%s' must be an integer",
+   /* From page 50 (page 56 of PDF) of GLSL 1.30 spec:
+    *
+    *     "The bitwise operators and (&), exclusive-or (^), and inclusive-or
+    *     (|). The operands must be of type signed or unsigned integers or
+    *     integer vectors."
+    */
+   if (!type_a->is_integer()) {
+      _mesa_glsl_error(loc, state, "LHS of `%s' must be an integer",
                         ast_expression::operator_string(op));
-       return glsl_type::error_type;
-    }
+      return glsl_type::error_type;
+   }
+   if (!type_b->is_integer()) {
+      _mesa_glsl_error(loc, state, "RHS of `%s' must be an integer",
+                       ast_expression::operator_string(op));
+      return glsl_type::error_type;
+   }
 
-    /*     "The fundamental types of the operands (signed or unsigned) must
-     *     match,"
-     */
-    if (type_a->base_type != type_b->base_type) {
-       _mesa_glsl_error(loc, state, "operands of `%s' must have the same "
-                        "base type", ast_expression::operator_string(op));
-       return glsl_type::error_type;
-    }
+   /*     "The fundamental types of the operands (signed or unsigned) must
+    *     match,"
+    */
+   if (type_a->base_type != type_b->base_type) {
+      _mesa_glsl_error(loc, state, "operands of `%s' must have the same "
+                       "base type", ast_expression::operator_string(op));
+      return glsl_type::error_type;
+   }
 
-    /*     "The operands cannot be vectors of differing size." */
-    if (type_a->is_vector() &&
-        type_b->is_vector() &&
-        type_a->vector_elements != type_b->vector_elements) {
-       _mesa_glsl_error(loc, state, "operands of `%s' cannot be vectors of "
-                        "different sizes", ast_expression::operator_string(op));
-       return glsl_type::error_type;
-    }
+   /*     "The operands cannot be vectors of differing size." */
+   if (type_a->is_vector() &&
+       type_b->is_vector() &&
+       type_a->vector_elements != type_b->vector_elements) {
+      _mesa_glsl_error(loc, state, "operands of `%s' cannot be vectors of "
+                       "different sizes", ast_expression::operator_string(op));
+      return glsl_type::error_type;
+   }
 
-    /*     "If one operand is a scalar and the other a vector, the scalar is
-     *     applied component-wise to the vector, resulting in the same type as
-     *     the vector. The fundamental types of the operands [...] will be the
-     *     resulting fundamental type."
-     */
-    if (type_a->is_scalar())
-        return type_b;
-    else
-        return type_a;
+   /*     "If one operand is a scalar and the other a vector, the scalar is
+    *     applied component-wise to the vector, resulting in the same type as
+    *     the vector. The fundamental types of the operands [...] will be the
+    *     resulting fundamental type."
+    */
+   if (type_a->is_scalar())
+       return type_b;
+   else
+       return type_a;
 }
 
 static const struct glsl_type *
@@ -2422,21 +2422,6 @@ validate_explicit_location(const struct ast_type_qualifier *qual,
       const struct gl_context *const ctx = state->ctx;
       unsigned max_loc = qual->location + var->type->uniform_locations() - 1;
 
-      /* ARB_explicit_uniform_location specification states:
-       *
-       *     "The explicitly defined locations and the generated locations
-       *     must be in the range of 0 to MAX_UNIFORM_LOCATIONS minus one."
-       *
-       *     "Valid locations for default-block uniform variable locations
-       *     are in the range of 0 to the implementation-defined maximum
-       *     number of uniform locations."
-       */
-      if (qual->location < 0) {
-         _mesa_glsl_error(loc, state,
-                          "explicit location < 0 for uniform %s", var->name);
-         return;
-      }
-
       if (max_loc >= ctx->Const.MaxUserAssignableUniformLocations) {
          _mesa_glsl_error(loc, state, "location(s) consumed by uniform %s "
                           ">= MAX_UNIFORM_LOCATIONS (%u)", var->name,
@@ -2527,41 +2512,30 @@ validate_explicit_location(const struct ast_type_qualifier *qual,
    } else {
       var->data.explicit_location = true;
 
-      /* This bit of silliness is needed because invalid explicit locations
-       * are supposed to be flagged during linking.  Small negative values
-       * biased by VERT_ATTRIB_GENERIC0 or FRAG_RESULT_DATA0 could alias
-       * built-in values (e.g., -16+VERT_ATTRIB_GENERIC0 = VERT_ATTRIB_POS).
-       * The linker needs to be able to differentiate these cases.  This
-       * ensures that negative values stay negative.
-       */
-      if (qual->location >= 0) {
-         switch (state->stage) {
-         case MESA_SHADER_VERTEX:
-            var->data.location = (var->data.mode == ir_var_shader_in)
-               ? (qual->location + VERT_ATTRIB_GENERIC0)
-               : (qual->location + VARYING_SLOT_VAR0);
-            break;
+      switch (state->stage) {
+      case MESA_SHADER_VERTEX:
+         var->data.location = (var->data.mode == ir_var_shader_in)
+            ? (qual->location + VERT_ATTRIB_GENERIC0)
+            : (qual->location + VARYING_SLOT_VAR0);
+         break;
 
-         case MESA_SHADER_TESS_CTRL:
-         case MESA_SHADER_TESS_EVAL:
-         case MESA_SHADER_GEOMETRY:
-            if (var->data.patch)
-               var->data.location = qual->location + VARYING_SLOT_PATCH0;
-            else
-               var->data.location = qual->location + VARYING_SLOT_VAR0;
-            break;
+      case MESA_SHADER_TESS_CTRL:
+      case MESA_SHADER_TESS_EVAL:
+      case MESA_SHADER_GEOMETRY:
+         if (var->data.patch)
+            var->data.location = qual->location + VARYING_SLOT_PATCH0;
+         else
+            var->data.location = qual->location + VARYING_SLOT_VAR0;
+         break;
 
-         case MESA_SHADER_FRAGMENT:
-            var->data.location = (var->data.mode == ir_var_shader_out)
-               ? (qual->location + FRAG_RESULT_DATA0)
-               : (qual->location + VARYING_SLOT_VAR0);
-            break;
-         case MESA_SHADER_COMPUTE:
-            assert(!"Unexpected shader type");
-            break;
-         }
-      } else {
-         var->data.location = qual->location;
+      case MESA_SHADER_FRAGMENT:
+         var->data.location = (var->data.mode == ir_var_shader_out)
+            ? (qual->location + FRAG_RESULT_DATA0)
+            : (qual->location + VARYING_SLOT_VAR0);
+         break;
+      case MESA_SHADER_COMPUTE:
+         assert(!"Unexpected shader type");
+         break;
       }
 
       if (qual->flags.q.explicit_index) {
@@ -6293,6 +6267,18 @@ ast_interface_block::hir(exec_list *instructions,
 
    state->struct_specifier_depth--;
 
+   for (unsigned i = 0; i < num_variables; i++) {
+      if (fields[i].stream != -1 &&
+          (unsigned) fields[i].stream != this->layout.stream) {
+         _mesa_glsl_error(&loc, state,
+                          "stream layout qualifier on "
+                          "interface block member `%s' does not match "
+                          "the interface block (%d vs %d)",
+                          fields[i].name, fields[i].stream,
+                          this->layout.stream);
+      }
+   }
+
    if (!redeclaring_per_vertex) {
       validate_identifier(this->block_name, loc, state);
 
@@ -6633,6 +6619,8 @@ ast_interface_block::hir(exec_list *instructions,
          var->data.explicit_binding = this->layout.flags.q.explicit_binding;
          var->data.binding = this->layout.binding;
 
+         var->data.stream = this->layout.stream;
+
          state->symbols->add_variable(var);
          instructions->push_tail(var);
       }
@@ -6651,6 +6639,7 @@ ast_interface_block::hir(exec_list *instructions,
          var->data.centroid = fields[i].centroid;
          var->data.sample = fields[i].sample;
          var->data.patch = fields[i].patch;
+         var->data.stream = this->layout.stream;
          var->init_interface_type(block_type);
 
          if (var_mode == ir_var_shader_in || var_mode == ir_var_uniform)
@@ -6662,17 +6651,6 @@ ast_interface_block::hir(exec_list *instructions,
          } else {
             var->data.matrix_layout = fields[i].matrix_layout;
          }
-
-         if (fields[i].stream != -1 &&
-             ((unsigned)fields[i].stream) != this->layout.stream) {
-            _mesa_glsl_error(&loc, state,
-                             "stream layout qualifier on "
-                             "interface block member `%s' does not match "
-                             "the interface block (%d vs %d)",
-                             var->name, fields[i].stream, this->layout.stream);
-         }
-
-         var->data.stream = this->layout.stream;
 
          if (var->data.mode == ir_var_shader_storage) {
             var->data.image_read_only = fields[i].image_read_only;

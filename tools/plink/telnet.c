@@ -113,7 +113,7 @@ enum { TELOPTS(telnet_enum) dummy=0 };
 	( (x) != IAC && \
 	      (telnet->opt_states[o_we_bin.index] == ACTIVE || (x) != CR))
 
-static char *telopt(int opt)
+static const char *telopt(int opt)
 {
 #define telnet_str(x,y) case TELOPT_##x: return #x;
     switch (opt) {
@@ -212,14 +212,14 @@ typedef struct telnet_tag {
 
 #define SB_DELTA 1024
 
-static void c_write(Telnet telnet, char *buf, int len)
+static void c_write(Telnet telnet, const char *buf, int len)
 {
     int backlog;
     backlog = from_backend(telnet->frontend, 0, buf, len);
     sk_set_frozen(telnet->s, backlog > TELNET_MAX_BACKLOG);
 }
 
-static void log_option(Telnet telnet, char *sender, int cmd, int option)
+static void log_option(Telnet telnet, const char *sender, int cmd, int option)
 {
     char *buf;
     /*
@@ -264,7 +264,7 @@ static void option_side_effects(Telnet telnet, const struct Opt *o, int enabled)
     else if (o->option == TELOPT_SGA && o->send == DO)
 	telnet->editing = !enabled;
     if (telnet->ldisc)		       /* cause ldisc to notice the change */
-	ldisc_send(telnet->ldisc, NULL, 0, 0);
+	ldisc_echoedit_update(telnet->ldisc);
 
     /* Ensure we get the minimum options */
     if (!telnet->activated) {
@@ -715,7 +715,7 @@ static void telnet_sent(Plug plug, int bufsize)
  * freed by the caller.
  */
 static const char *telnet_init(void *frontend_handle, void **backend_handle,
-			       Conf *conf, char *host, int port,
+			       Conf *conf, const char *host, int port,
 			       char **realhost, int nodelay, int keepalive)
 {
     static const struct plug_function_table fn_table = {
@@ -855,7 +855,7 @@ static void telnet_reconfig(void *handle, Conf *conf)
 /*
  * Called to send data down the Telnet connection.
  */
-static int telnet_send(void *handle, char *buf, int len)
+static int telnet_send(void *handle, const char *buf, int len)
 {
     Telnet telnet = (Telnet) handle;
     unsigned char *p, *end;
@@ -1129,6 +1129,7 @@ Backend telnet_backend = {
     telnet_provide_logctx,
     telnet_unthrottle,
     telnet_cfg_info,
+    NULL /* test_for_upstream */,
     "telnet",
     PROT_TELNET,
     23

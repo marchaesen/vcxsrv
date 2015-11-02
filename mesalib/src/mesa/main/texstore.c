@@ -97,16 +97,16 @@ static const GLubyte map_1032[6] = { 1, 0, 3, 2, ZERO, ONE };
  * No pixel transfer operations or special texel encodings allowed.
  * 1D, 2D and 3D images supported.
  */
-static void
-memcpy_texture(struct gl_context *ctx,
-	       GLuint dimensions,
-               mesa_format dstFormat,
-               GLint dstRowStride,
-               GLubyte **dstSlices,
-               GLint srcWidth, GLint srcHeight, GLint srcDepth,
-               GLenum srcFormat, GLenum srcType,
-               const GLvoid *srcAddr,
-               const struct gl_pixelstore_attrib *srcPacking)
+void
+_mesa_memcpy_texture(struct gl_context *ctx,
+                     GLuint dimensions,
+                     mesa_format dstFormat,
+                     GLint dstRowStride,
+                     GLubyte **dstSlices,
+                     GLint srcWidth, GLint srcHeight, GLint srcDepth,
+                     GLenum srcFormat, GLenum srcType,
+                     const GLvoid *srcAddr,
+                     const struct gl_pixelstore_attrib *srcPacking)
 {
    const GLint srcRowStride = _mesa_image_row_stride(srcPacking, srcWidth,
                                                      srcFormat, srcType);
@@ -296,11 +296,11 @@ _mesa_texstore_ycbcr(TEXSTORE_PARAMS)
    assert(baseInternalFormat == GL_YCBCR_MESA);
 
    /* always just memcpy since no pixel transfer ops apply */
-   memcpy_texture(ctx, dims,
-                  dstFormat,
-                  dstRowStride, dstSlices,
-                  srcWidth, srcHeight, srcDepth, srcFormat, srcType,
-                  srcAddr, srcPacking);
+   _mesa_memcpy_texture(ctx, dims,
+                        dstFormat,
+                        dstRowStride, dstSlices,
+                        srcWidth, srcHeight, srcDepth, srcFormat, srcType,
+                        srcAddr, srcPacking);
 
    /* Check if we need byte swapping */
    /* XXX the logic here _might_ be wrong */
@@ -899,13 +899,15 @@ _mesa_texstore_memcpy(TEXSTORE_PARAMS)
       return GL_FALSE;
    }
 
-   memcpy_texture(ctx, dims,
-                  dstFormat,
-                  dstRowStride, dstSlices,
-                  srcWidth, srcHeight, srcDepth, srcFormat, srcType,
-                  srcAddr, srcPacking);
+   _mesa_memcpy_texture(ctx, dims,
+                        dstFormat,
+                        dstRowStride, dstSlices,
+                        srcWidth, srcHeight, srcDepth, srcFormat, srcType,
+                        srcAddr, srcPacking);
    return GL_TRUE;
 }
+
+
 /**
  * Store user data into texture memory.
  * Called via glTex[Sub]Image1/2/3D()

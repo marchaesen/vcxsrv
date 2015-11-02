@@ -8,7 +8,7 @@
 
 <category name="GL_ARB_draw_elements_base_vertex" number="62">
 
-    <function name="DrawElementsBaseVertex" exec="dynamic">
+    <function name="DrawElementsBaseVertex" es2="3.2" exec="dynamic">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -16,7 +16,7 @@
         <param name="basevertex" type="GLint"/>
     </function>
 
-    <function name="DrawRangeElementsBaseVertex" exec="dynamic">
+    <function name="DrawRangeElementsBaseVertex" es2="3.2" exec="dynamic">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -35,7 +35,7 @@
         <param name="basevertex" type="const GLint *"/>
     </function>
 
-    <function name="DrawElementsInstancedBaseVertex" exec="dynamic">
+    <function name="DrawElementsInstancedBaseVertex" es2="3.2" exec="dynamic">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>

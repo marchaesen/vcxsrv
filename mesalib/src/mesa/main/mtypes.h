@@ -1859,24 +1859,6 @@ typedef enum
 
 
 /**
- * \brief Layout qualifiers for gl_FragDepth.
- *
- * Extension AMD_conservative_depth allows gl_FragDepth to be redeclared with
- * a layout qualifier.
- *
- * \see enum ir_depth_layout
- */
-enum gl_frag_depth_layout
-{
-   FRAG_DEPTH_LAYOUT_NONE, /**< No layout is specified. */
-   FRAG_DEPTH_LAYOUT_ANY,
-   FRAG_DEPTH_LAYOUT_GREATER,
-   FRAG_DEPTH_LAYOUT_LESS,
-   FRAG_DEPTH_LAYOUT_UNCHANGED
-};
-
-
-/**
  * Base class for any kind of program object
  */
 struct gl_program
@@ -1909,7 +1891,7 @@ struct gl_program
     * For vertex and geometry shaders, true if the program uses the
     * gl_ClipDistance output.  Ignored for fragment shaders.
     */
-   GLboolean UsesClipDistanceOut;
+   unsigned ClipDistanceArraySize;
 
 
    /** Named parameters, constants, etc. from program text */
@@ -2310,6 +2292,7 @@ struct gl_shader
 
    struct exec_list *ir;
    struct exec_list *packed_varyings;
+   struct exec_list *fragdata_arrays;
    struct glsl_symbol_table *symbols;
 
    bool uses_builtin_functions;
@@ -2406,6 +2389,9 @@ struct gl_shader
     * ImageAccess arrays above.
     */
    GLuint NumImages;
+
+   struct gl_active_atomic_buffer **AtomicBuffers;
+   unsigned NumAtomicBuffers;
 
    /**
     * Whether early fragment tests are enabled as defined by
@@ -2632,7 +2618,6 @@ struct gl_shader_program
        * True if gl_ClipDistance is written to.  Copied into
        * gl_tess_eval_program by _mesa_copy_linked_program_data().
        */
-      GLboolean UsesClipDistance;
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
    } TessEval;
@@ -2655,7 +2640,6 @@ struct gl_shader_program
        * True if gl_ClipDistance is written to.  Copied into
        * gl_geometry_program by _mesa_copy_linked_program_data().
        */
-      GLboolean UsesClipDistance;
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
       bool UsesEndPrimitive;
@@ -2668,7 +2652,6 @@ struct gl_shader_program
        * True if gl_ClipDistance is written to.  Copied into gl_vertex_program
        * by _mesa_copy_linked_program_data().
        */
-      GLboolean UsesClipDistance;
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
    } Vert;
@@ -3696,6 +3679,7 @@ struct gl_extensions
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;
+   GLboolean ARB_shader_clock;
    GLboolean ARB_shader_image_load_store;
    GLboolean ARB_shader_image_size;
    GLboolean ARB_shader_precision;
@@ -4517,7 +4501,7 @@ static inline bool
 _mesa_active_fragment_shader_has_atomic_ops(const struct gl_context *ctx)
 {
    return ctx->Shader._CurrentFragmentProgram != NULL &&
-      ctx->Shader._CurrentFragmentProgram->NumAtomicBuffers > 0;
+      ctx->Shader._CurrentFragmentProgram->_LinkedShaders[MESA_SHADER_FRAGMENT]->NumAtomicBuffers > 0;
 }
 
 #ifdef __cplusplus

@@ -610,6 +610,37 @@ match_subroutine_by_name(const char *name,
    return sig;
 }
 
+static ir_rvalue *
+generate_array_index(void *mem_ctx, exec_list *instructions,
+                     struct _mesa_glsl_parse_state *state, YYLTYPE loc,
+                     const ast_expression *array, ast_expression *idx,
+                     const char **function_name, exec_list *actual_parameters)
+{
+   if (array->oper == ast_array_index) {
+      /* This handles arrays of arrays */
+      ir_rvalue *outer_array = generate_array_index(mem_ctx, instructions,
+                                                    state, loc,
+                                                    array->subexpressions[0],
+                                                    array->subexpressions[1],
+                                                    function_name, actual_parameters);
+      ir_rvalue *outer_array_idx = idx->hir(instructions, state);
+
+      YYLTYPE index_loc = idx->get_location();
+      return _mesa_ast_array_index_to_hir(mem_ctx, state, outer_array,
+                                          outer_array_idx, loc,
+                                          index_loc);
+   } else {
+      ir_variable *sub_var = NULL;
+      *function_name = array->primary_expression.identifier;
+
+      match_subroutine_by_name(*function_name, actual_parameters,
+                               state, &sub_var);
+
+      ir_rvalue *outer_array_idx = idx->hir(instructions, state);
+      return new(mem_ctx) ir_dereference_array(sub_var, outer_array_idx);
+   }
+}
+
 static void
 print_function_prototypes(_mesa_glsl_parse_state *state, YYLTYPE *loc,
                           ir_function *f)
@@ -1989,15 +2020,17 @@ ast_function_expression::hir(exec_list *instructions,
       ir_variable *sub_var = NULL;
       ir_rvalue *array_idx = NULL;
 
+      process_parameters(instructions, &actual_parameters, &this->expressions,
+			 state);
+
       if (id->oper == ast_array_index) {
-         func_name = id->subexpressions[0]->primary_expression.identifier;
-	 array_idx = id->subexpressions[1]->hir(instructions, state);
+         array_idx = generate_array_index(ctx, instructions, state, loc,
+                                          id->subexpressions[0],
+                                          id->subexpressions[1], &func_name,
+                                          &actual_parameters);
       } else {
          func_name = id->primary_expression.identifier;
       }
-
-      process_parameters(instructions, &actual_parameters, &this->expressions,
-			 state);
 
       ir_function_signature *sig =
 	 match_function_by_name(func_name, &actual_parameters, state);

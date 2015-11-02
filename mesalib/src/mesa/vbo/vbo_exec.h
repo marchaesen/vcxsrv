@@ -160,8 +160,6 @@ void vbo_exec_vtx_flush( struct vbo_exec_context *exec, GLboolean unmap );
 void vbo_exec_vtx_map( struct vbo_exec_context *exec );
 
 
-void vbo_exec_vtx_wrap( struct vbo_exec_context *exec );
-
 void vbo_exec_eval_update( struct vbo_exec_context *exec );
 
 void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec, 

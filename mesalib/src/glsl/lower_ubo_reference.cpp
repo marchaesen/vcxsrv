@@ -238,6 +238,8 @@ interface_field_name(void *mem_ctx, char *base_name, ir_rvalue *d,
       case ir_type_swizzle: {
          ir_swizzle *s = (ir_swizzle *) ir;
          ir = s->val->as_dereference();
+         /* Skip swizzle in the next pass */
+         d = ir;
          break;
       }
 
@@ -284,7 +286,8 @@ interface_field_name(void *mem_ctx, char *base_name, ir_rvalue *d,
             if (array_index->type != glsl_type::uint_type)
                array_index = i2u(array_index);
 
-            if (a->array->type->fields.array->is_array()) {
+            if (a->array->type->is_array() &&
+                a->array->type->fields.array->is_array()) {
                ir_constant *base_size = new(mem_ctx)
                   ir_constant(a->array->type->fields.array->arrays_of_arrays_size());
                array_index = mul(array_index, base_size);

@@ -54,7 +54,7 @@ AC_PREREQ([2.57])
 
 m4_define([pixman_major], 0)
 m4_define([pixman_minor], 33)
-m4_define([pixman_micro], 3)
+m4_define([pixman_micro], 5)
 
 m4_define([pixman_version],[pixman_major.pixman_minor.pixman_micro])
 

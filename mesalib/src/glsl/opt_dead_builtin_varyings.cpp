@@ -269,14 +269,14 @@ public:
  */
 class replace_varyings_visitor : public ir_rvalue_visitor {
 public:
-   replace_varyings_visitor(exec_list *ir,
+   replace_varyings_visitor(struct gl_shader *sha,
                             const varying_info_visitor *info,
                             unsigned external_texcoord_usage,
                             unsigned external_color_usage,
                             bool external_has_fog)
-      : info(info), new_fog(NULL)
+      : shader(sha), info(info), new_fog(NULL)
    {
-      void *const ctx = ir;
+      void *const ctx = shader->ir;
 
       memset(this->new_fragdata, 0, sizeof(this->new_fragdata));
       memset(this->new_texcoord, 0, sizeof(this->new_texcoord));
@@ -293,14 +293,16 @@ public:
        * occurrences of gl_TexCoord will be replaced with.
        */
       if (info->lower_texcoord_array) {
-         prepare_array(ir, this->new_texcoord, ARRAY_SIZE(this->new_texcoord),
+         prepare_array(shader->ir, this->new_texcoord,
+                       ARRAY_SIZE(this->new_texcoord),
                        VARYING_SLOT_TEX0, "TexCoord", mode_str,
                        info->texcoord_usage, external_texcoord_usage);
       }
 
       /* Handle gl_FragData in the same way like gl_TexCoord. */
       if (info->lower_fragdata_array) {
-         prepare_array(ir, this->new_fragdata, ARRAY_SIZE(this->new_fragdata),
+         prepare_array(shader->ir, this->new_fragdata,
+                       ARRAY_SIZE(this->new_fragdata),
                        FRAG_RESULT_DATA0, "FragData", mode_str,
                        info->fragdata_usage, (1 << MAX_DRAW_BUFFERS) - 1);
       }
@@ -340,7 +342,7 @@ public:
       }
 
       /* Now do the replacing. */
-      visit_list_elements(this, ir);
+      visit_list_elements(this, shader->ir);
    }
 
    void prepare_array(exec_list *ir,
@@ -389,6 +391,13 @@ public:
       /* Remove the gl_FragData array. */
       if (this->info->lower_fragdata_array &&
           var == this->info->fragdata_array) {
+
+         /* Clone variable for program resource list before it is removed. */
+         if (!shader->fragdata_arrays)
+            shader->fragdata_arrays = new (shader) exec_list;
+
+         shader->fragdata_arrays->push_tail(var->clone(shader, NULL));
+
          var->remove();
       }
 
@@ -487,6 +496,7 @@ public:
    }
 
 private:
+   struct gl_shader *shader;
    const varying_info_visitor *info;
    ir_variable *new_fragdata[MAX_DRAW_BUFFERS];
    ir_variable *new_texcoord[MAX_TEXTURE_COORD_UNITS];
@@ -498,20 +508,20 @@ private:
 } /* anonymous namespace */
 
 static void
-lower_texcoord_array(exec_list *ir, const varying_info_visitor *info)
+lower_texcoord_array(struct gl_shader *shader, const varying_info_visitor *info)
 {
-   replace_varyings_visitor(ir, info,
+   replace_varyings_visitor(shader, info,
                             (1 << MAX_TEXTURE_COORD_UNITS) - 1,
                             1 | 2, true);
 }
 
 static void
-lower_fragdata_array(exec_list *ir)
+lower_fragdata_array(struct gl_shader *shader)
 {
    varying_info_visitor info(ir_var_shader_out, true);
-   info.get(ir, 0, NULL);
+   info.get(shader->ir, 0, NULL);
 
-   replace_varyings_visitor(ir, &info, 0, 0, 0);
+   replace_varyings_visitor(shader, &info, 0, 0, 0);
 }
 
 
@@ -523,7 +533,7 @@ do_dead_builtin_varyings(struct gl_context *ctx,
 {
    /* Lower the gl_FragData array to separate variables. */
    if (consumer && consumer->Stage == MESA_SHADER_FRAGMENT) {
-      lower_fragdata_array(consumer->ir);
+      lower_fragdata_array(consumer);
    }
 
    /* Lowering of built-in varyings has no effect with the core context and
@@ -544,7 +554,7 @@ do_dead_builtin_varyings(struct gl_context *ctx,
       if (!consumer) {
          /* At least eliminate unused gl_TexCoord elements. */
          if (producer_info.lower_texcoord_array) {
-            lower_texcoord_array(producer->ir, &producer_info);
+            lower_texcoord_array(producer, &producer_info);
          }
          return;
       }
@@ -556,7 +566,7 @@ do_dead_builtin_varyings(struct gl_context *ctx,
       if (!producer) {
          /* At least eliminate unused gl_TexCoord elements. */
          if (consumer_info.lower_texcoord_array) {
-            lower_texcoord_array(consumer->ir, &consumer_info);
+            lower_texcoord_array(consumer, &consumer_info);
          }
          return;
       }
@@ -566,7 +576,7 @@ do_dead_builtin_varyings(struct gl_context *ctx,
    if (producer_info.lower_texcoord_array ||
        producer_info.color_usage ||
        producer_info.has_fog) {
-      replace_varyings_visitor(producer->ir,
+      replace_varyings_visitor(producer,
                                &producer_info,
                                consumer_info.texcoord_usage,
                                consumer_info.color_usage,
@@ -587,7 +597,7 @@ do_dead_builtin_varyings(struct gl_context *ctx,
    if (consumer_info.lower_texcoord_array ||
        consumer_info.color_usage ||
        consumer_info.has_fog) {
-      replace_varyings_visitor(consumer->ir,
+      replace_varyings_visitor(consumer,
                                &consumer_info,
                                producer_info.texcoord_usage,
                                producer_info.color_usage,

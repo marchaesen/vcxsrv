@@ -45,8 +45,8 @@ void timer_change_notify(unsigned long next)
 {
 }
 
-int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
-                        char *keystr, char *fingerprint,
+int verify_ssh_host_key(void *frontend, char *host, int port,
+                        const char *keytype, char *keystr, char *fingerprint,
                         void (*callback)(void *ctx, int result), void *ctx)
 {
     int ret;
@@ -281,9 +281,11 @@ void pgp_fingerprints(void)
 	  "one. See the manual for more information.\n"
 	  "(Note: these fingerprints have nothing to do with SSH!)\n"
 	  "\n"
-	  "PuTTY Master Key (RSA), 1024-bit:\n"
+	  "PuTTY Master Key as of 2015 (RSA, 4096-bit):\n"
+	  "  " PGP_MASTER_KEY_FP "\n\n"
+	  "Original PuTTY Master Key (RSA, 1024-bit):\n"
 	  "  " PGP_RSA_MASTER_KEY_FP "\n"
-	  "PuTTY Master Key (DSA), 1024-bit:\n"
+	  "Original PuTTY Master Key (DSA, 1024-bit):\n"
 	  "  " PGP_DSA_MASTER_KEY_FP "\n", stdout);
 }
 
@@ -304,7 +306,8 @@ static void console_data_untrusted(HANDLE hout, const char *data, int len)
     WriteFile(hout, data, len, &dummy, NULL);
 }
 
-int console_get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
+int console_get_userpass_input(prompts_t *p,
+                               const unsigned char *in, int inlen)
 {
     HANDLE hin, hout;
     size_t curr_prompt;

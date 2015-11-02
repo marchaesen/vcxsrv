@@ -1807,13 +1807,20 @@ vbo_initialize_exec_dispatch(const struct gl_context *ctx,
       SET_EvalMesh2(exec, vbo_exec_EvalMesh2);
    }
 
-   if (_mesa_is_desktop_gl(ctx)) {
+   if (ctx->API != API_OPENGLES &&
+       ctx->Extensions.ARB_draw_elements_base_vertex) {
       SET_DrawElementsBaseVertex(exec, vbo_exec_DrawElementsBaseVertex);
-      SET_DrawRangeElementsBaseVertex(exec, vbo_exec_DrawRangeElementsBaseVertex);
       SET_MultiDrawElementsBaseVertex(exec, vbo_exec_MultiDrawElementsBaseVertex);
+
+      if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
+         SET_DrawRangeElementsBaseVertex(exec, vbo_exec_DrawRangeElementsBaseVertex);
+         SET_DrawElementsInstancedBaseVertex(exec, vbo_exec_DrawElementsInstancedBaseVertex);
+      }
+   }
+
+   if (_mesa_is_desktop_gl(ctx)) {
       SET_DrawArraysInstancedBaseInstance(exec, vbo_exec_DrawArraysInstancedBaseInstance);
       SET_DrawElementsInstancedBaseInstance(exec, vbo_exec_DrawElementsInstancedBaseInstance);
-      SET_DrawElementsInstancedBaseVertex(exec, vbo_exec_DrawElementsInstancedBaseVertex);
       SET_DrawElementsInstancedBaseVertexBaseInstance(exec, vbo_exec_DrawElementsInstancedBaseVertexBaseInstance);
    }
 

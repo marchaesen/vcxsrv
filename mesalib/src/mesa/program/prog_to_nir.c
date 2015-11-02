@@ -1129,6 +1129,12 @@ prog_to_nir(const struct gl_program *prog,
    s->info.uses_clip_distance_out = false;
    s->info.separate_shader = false;
 
+   if (stage == MESA_SHADER_FRAGMENT) {
+      struct gl_fragment_program *fp = (struct gl_fragment_program *)prog;
+
+      s->info.fs.uses_discard = fp->UsesKill;
+   }
+
 fail:
    if (c->error) {
       ralloc_free(s);

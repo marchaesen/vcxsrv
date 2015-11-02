@@ -39,6 +39,7 @@
 #include "main/imports.h"
 #include "main/macros.h"
 #include "main/feedback.h"
+#include "main/rastpos.h"
 
 #include "st_context.h"
 #include "st_atom.h"
@@ -223,6 +224,15 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    struct draw_context *draw = st->draw;
    struct rastpos_stage *rs;
    const struct gl_client_array **saved_arrays = ctx->Array._DrawArrays;
+
+   if (ctx->VertexProgram._Current == NULL ||
+       ctx->VertexProgram._Current == ctx->VertexProgram._TnlProgram) {
+      /* No vertex shader/program is enabled, used the simple/fast fixed-
+       * function implementation of RasterPos.
+       */
+      _mesa_RasterPos(ctx, v);
+      return;
+   }
 
    if (st->rastpos_stage) {
       /* get rastpos stage info */

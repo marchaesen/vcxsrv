@@ -450,6 +450,43 @@ null_constant_buffer(struct pipe_context *ctx)
    util_report_result(pass);
 }
 
+static void
+null_fragment_shader(struct pipe_context *ctx)
+{
+   struct cso_context *cso;
+   struct pipe_resource *cb;
+   void *vs;
+   struct pipe_rasterizer_state rs = {0};
+   struct pipe_query *query;
+   union pipe_query_result qresult;
+
+   cso = cso_create_context(ctx);
+   cb = util_create_texture2d(ctx->screen, 256, 256,
+                              PIPE_FORMAT_R8G8B8A8_UNORM);
+   util_set_common_states_and_clear(cso, ctx, cb);
+
+   /* No rasterization. */
+   rs.rasterizer_discard = 1;
+   cso_set_rasterizer(cso, &rs);
+
+   vs = util_set_passthrough_vertex_shader(cso, ctx, false);
+
+   query = ctx->create_query(ctx, PIPE_QUERY_PRIMITIVES_GENERATED, 0);
+   ctx->begin_query(ctx, query);
+   util_draw_fullscreen_quad(cso);
+   ctx->end_query(ctx, query);
+   ctx->get_query_result(ctx, query, true, &qresult);
+
+   /* Cleanup. */
+   cso_destroy_context(cso);
+   ctx->delete_vs_state(ctx, vs);
+   ctx->destroy_query(ctx, query);
+   pipe_resource_reference(&cb, NULL);
+
+   /* Check PRIMITIVES_GENERATED. */
+   util_report_result(qresult.u64 == 2);
+}
+
 /**
  * Run all tests. This should be run with a clean context after
  * context_create.
@@ -459,6 +496,7 @@ util_run_tests(struct pipe_screen *screen)
 {
    struct pipe_context *ctx = screen->context_create(screen, NULL, 0);
 
+   null_fragment_shader(ctx);
    tgsi_vs_window_space_position(ctx);
    null_sampler_view(ctx, TGSI_TEXTURE_2D);
    null_sampler_view(ctx, TGSI_TEXTURE_BUFFER);

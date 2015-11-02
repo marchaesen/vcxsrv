@@ -64,7 +64,7 @@ update_fp( struct st_context *st )
    assert(stfp->Base.Base.Target == GL_FRAGMENT_PROGRAM_ARB);
 
    memset(&key, 0, sizeof(key));
-   key.st = st;
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    /* _NEW_FRAG_CLAMP */
    key.clamp_color = st->clamp_frag_color_in_shader &&
@@ -76,7 +76,7 @@ update_fp( struct st_context *st )
     * Ignore sample qualifier while computing this flag.
     */
    key.persample_shading =
-      !st->can_force_persample_interp &&
+      st->force_persample_in_shader &&
       !(stfp->Base.Base.SystemValuesRead & (SYSTEM_BIT_SAMPLE_ID |
                                             SYSTEM_BIT_SAMPLE_POS)) &&
       _mesa_get_min_invocations_per_fragment(st->ctx, &stfp->Base, true) > 1;
@@ -119,7 +119,7 @@ update_vp( struct st_context *st )
    assert(stvp->Base.Base.Target == GL_VERTEX_PROGRAM_ARB);
 
    memset(&key, 0, sizeof key);
-   key.st = st;  /* variants are per-context */
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    /* When this is true, we will add an extra input to the vertex
     * shader translation (for edgeflags), an extra output with
@@ -174,7 +174,7 @@ update_gp( struct st_context *st )
    assert(stgp->Base.Base.Target == GL_GEOMETRY_PROGRAM_NV);
 
    memset(&key, 0, sizeof(key));
-   key.st = st;
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    st->gp_variant = st_get_gp_variant(st, stgp, &key);
 
@@ -210,7 +210,7 @@ update_tcp( struct st_context *st )
    assert(sttcp->Base.Base.Target == GL_TESS_CONTROL_PROGRAM_NV);
 
    memset(&key, 0, sizeof(key));
-   key.st = st;
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    st->tcp_variant = st_get_tcp_variant(st, sttcp, &key);
 
@@ -246,7 +246,7 @@ update_tep( struct st_context *st )
    assert(sttep->Base.Base.Target == GL_TESS_EVALUATION_PROGRAM_NV);
 
    memset(&key, 0, sizeof(key));
-   key.st = st;
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    st->tep_variant = st_get_tep_variant(st, sttep, &key);
 

@@ -543,13 +543,55 @@ _mesa_program_resource_find_name(struct gl_shader_program *shProg,
       /* Resource basename. */
       const char *rname = _mesa_program_resource_name(res);
       unsigned baselen = strlen(rname);
+      unsigned baselen_without_array_index = baselen;
+      const char *rname_last_square_bracket = strrchr(rname, '[');
+      bool found = false;
+      bool rname_has_array_index_zero = false;
+      /* From ARB_program_interface_query spec:
+       *
+       * "uint GetProgramResourceIndex(uint program, enum programInterface,
+       *                               const char *name);
+       *  [...]
+       *  If <name> exactly matches the name string of one of the active
+       *  resources for <programInterface>, the index of the matched resource is
+       *  returned. Additionally, if <name> would exactly match the name string
+       *  of an active resource if "[0]" were appended to <name>, the index of
+       *  the matched resource is returned. [...]"
+       *
+       * "A string provided to GetProgramResourceLocation or
+       * GetProgramResourceLocationIndex is considered to match an active variable
+       * if:
+       *
+       *  * the string exactly matches the name of the active variable;
+       *
+       *  * if the string identifies the base name of an active array, where the
+       *    string would exactly match the name of the variable if the suffix
+       *    "[0]" were appended to the string; [...]"
+       */
+      /* Remove array's index from interface block name comparison only if
+       * array's index is zero and the resulting string length is the same
+       * than the provided name's length.
+       */
+      if (rname_last_square_bracket) {
+         baselen_without_array_index -= strlen(rname_last_square_bracket);
+         rname_has_array_index_zero =
+            (strncmp(rname_last_square_bracket, "[0]\0", 4) == 0) &&
+            (baselen_without_array_index == strlen(name));
+      }
 
-      if (strncmp(rname, name, baselen) == 0) {
+      if (strncmp(rname, name, baselen) == 0)
+         found = true;
+      else if (rname_has_array_index_zero &&
+               strncmp(rname, name, baselen_without_array_index) == 0)
+         found = true;
+
+      if (found) {
          switch (programInterface) {
          case GL_UNIFORM_BLOCK:
          case GL_SHADER_STORAGE_BLOCK:
             /* Basename match, check if array or struct. */
-            if (name[baselen] == '\0' ||
+            if (rname_has_array_index_zero ||
+                name[baselen] == '\0' ||
                 name[baselen] == '[' ||
                 name[baselen] == '.') {
                return res;
@@ -806,6 +848,14 @@ program_resource_location(struct gl_shader_program *shProg,
    case GL_UNIFORM:
       /* If the uniform is built-in, fail. */
       if (RESOURCE_UNI(res)->builtin)
+         return -1;
+
+     /* From page 79 of the OpenGL 4.2 spec:
+      *
+      *     "A valid name cannot be a structure, an array of structures, or any
+      *     portion of a single vector or a matrix."
+      */
+      if (RESOURCE_UNI(res)->type->without_array()->is_record())
          return -1;
 
       /* From the GL_ARB_uniform_buffer_object spec:

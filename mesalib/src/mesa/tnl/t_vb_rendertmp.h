@@ -124,19 +124,19 @@ static void TAG(render_line_loop)( struct gl_context *ctx,
    GLuint i;
    LOCAL_VARS;
 
-   (void) flags;
-
    INIT(GL_LINE_LOOP);
 
    if (start+1 < count) {
       if (TEST_PRIM_BEGIN(flags)) {
 	 RESET_STIPPLE;
+         /* draw the first line from v[0] to v[1] */
          if (ctx->Light.ProvokingVertex == GL_LAST_VERTEX_CONVENTION_EXT)
             RENDER_LINE( ELT(start), ELT(start+1) );
          else
             RENDER_LINE( ELT(start+1), ELT(start) );
       }
 
+      /* draw lines from v[1] to v[n-1] */
       for ( i = start+2 ; i < count ; i++) {
          if (ctx->Light.ProvokingVertex == GL_LAST_VERTEX_CONVENTION_EXT)
             RENDER_LINE( ELT(i-1), ELT(i) );
@@ -145,6 +145,7 @@ static void TAG(render_line_loop)( struct gl_context *ctx,
       }
 
       if ( TEST_PRIM_END(flags)) {
+         /* draw final line from v[n-1] to v[0] (the very first vertex) */
          if (ctx->Light.ProvokingVertex == GL_LAST_VERTEX_CONVENTION_EXT)
             RENDER_LINE( ELT(count-1), ELT(start) );
          else

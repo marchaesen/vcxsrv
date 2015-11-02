@@ -112,6 +112,7 @@ extern _X_EXPORT void XaceCensorImage(ClientPtr client,
 
 #ifdef __GNUC__
 #define XaceHook(args...) Success
+#define XaceHookIsSet(args...) 0
 #define XaceHookDispatch(args...) Success
 #define XaceHookPropertyAccess(args...) Success
 #define XaceHookSelectionAccess(args...) Success
@@ -119,6 +120,7 @@ extern _X_EXPORT void XaceCensorImage(ClientPtr client,
 #define XaceCensorImage(args...) { ; }
 #else
 #define XaceHook(...) Success
+#define XaceHookIsSet(...) 0
 #define XaceHookDispatch(...) Success
 #define XaceHookPropertyAccess(...) Success
 #define XaceHookSelectionAccess(...) Success

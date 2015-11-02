@@ -330,8 +330,7 @@ _save_reset_counters(struct gl_context *ctx)
  * previous prim.
  */
 static void
-merge_prims(struct gl_context *ctx,
-            struct _mesa_prim *prim_list,
+merge_prims(struct _mesa_prim *prim_list,
             GLuint *prim_count)
 {
    GLuint i;
@@ -360,6 +359,51 @@ merge_prims(struct gl_context *ctx,
 
    *prim_count = prev_prim - prim_list + 1;
 }
+
+
+/**
+ * Convert GL_LINE_LOOP primitive into GL_LINE_STRIP so that drivers
+ * don't have to worry about handling the _mesa_prim::begin/end flags.
+ * See https://bugs.freedesktop.org/show_bug.cgi?id=81174
+ */
+static void
+convert_line_loop_to_strip(struct vbo_save_context *save,
+                           struct vbo_save_vertex_list *node)
+{
+   struct _mesa_prim *prim = &node->prim[node->prim_count - 1];
+
+   assert(prim->mode == GL_LINE_LOOP);
+
+   if (prim->end) {
+      /* Copy the 0th vertex to end of the buffer and extend the
+       * vertex count by one to finish the line loop.
+       */
+      const GLuint sz = save->vertex_size;
+      /* 0th vertex: */
+      const fi_type *src = save->buffer + prim->start * sz;
+      /* end of buffer: */
+      fi_type *dst = save->buffer + (prim->start + prim->count) * sz;
+
+      memcpy(dst, src, sz * sizeof(float));
+
+      prim->count++;
+      node->count++;
+      save->vert_count++;
+      save->buffer_ptr += sz;
+      save->vertex_store->used += sz;
+   }
+
+   if (!prim->begin) {
+      /* Drawing the second or later section of a long line loop.
+       * Skip the 0th vertex.
+       */
+      prim->start++;
+      prim->count--;
+   }
+
+   prim->mode = GL_LINE_STRIP;
+}
+
 
 /**
  * Insert the active immediate struct onto the display list currently
@@ -442,7 +486,11 @@ _save_compile_vertex_list(struct gl_context *ctx)
     */
    save->copied.nr = _save_copy_vertices(ctx, node, save->buffer);
 
-   merge_prims(ctx, node->prim, &node->prim_count);
+   if (node->prim[node->prim_count - 1].mode == GL_LINE_LOOP) {
+      convert_line_loop_to_strip(save, node);
+   }
+
+   merge_prims(node->prim, &node->prim_count);
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
     */
@@ -482,6 +530,10 @@ _save_compile_vertex_list(struct gl_context *ctx)
       save->vertex_store = alloc_vertex_store(ctx);
       save->buffer_ptr = vbo_save_map_vertex_store(ctx, save->vertex_store);
       save->out_of_memory = save->buffer_ptr == NULL;
+   }
+   else {
+      /* update buffer_ptr for next vertex */
+      save->buffer_ptr = save->vertex_store->buffer + save->vertex_store->used;
    }
 
    if (save->prim_store->used > VBO_SAVE_PRIM_SIZE - 6) {
@@ -549,8 +601,7 @@ static void
 _save_wrap_filled_vertex(struct gl_context *ctx)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
-   fi_type *data = save->copied.buffer;
-   GLuint i;
+   unsigned numComponents;
 
    /* Emit a glEnd to close off the last vertex list.
     */
@@ -560,12 +611,12 @@ _save_wrap_filled_vertex(struct gl_context *ctx)
     */
    assert(save->max_vert - save->vert_count > save->copied.nr);
 
-   for (i = 0; i < save->copied.nr; i++) {
-      memcpy(save->buffer_ptr, data, save->vertex_size * sizeof(GLfloat));
-      data += save->vertex_size;
-      save->buffer_ptr += save->vertex_size;
-      save->vert_count++;
-   }
+   numComponents = save->copied.nr * save->vertex_size;
+   memcpy(save->buffer_ptr,
+          save->copied.buffer,
+          numComponents * sizeof(fi_type));
+   save->buffer_ptr += numComponents;
+   save->vert_count += save->copied.nr;
 }
 
 

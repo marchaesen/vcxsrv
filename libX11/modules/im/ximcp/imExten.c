@@ -367,7 +367,7 @@ _XimParseExtensionList(
     if (!(n = _XimCountNumberOfExtension(data[0], (CARD8 *)&data[1])))
 	return True;
 
-    buf = (CARD8 *)&data[1];;
+    buf = (CARD8 *)&data[1];
     for (i = 0; i < n; i++) {
 	len = *((INT16 *)(&buf[2]));
 	for (j = 0; j < num; j++) {

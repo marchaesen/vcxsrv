@@ -1557,12 +1557,14 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_num_work_groups;
    case SYSTEM_VALUE_PRIMITIVE_ID:
       return nir_intrinsic_load_primitive_id;
-   /* FINISHME: Add tessellation intrinsics.
    case SYSTEM_VALUE_TESS_COORD:
-   case SYSTEM_VALUE_VERTICES_IN:
+      return nir_intrinsic_load_tess_coord;
    case SYSTEM_VALUE_TESS_LEVEL_OUTER:
+      return nir_intrinsic_load_tess_level_outer;
    case SYSTEM_VALUE_TESS_LEVEL_INNER:
-    */
+      return nir_intrinsic_load_tess_level_inner;
+   case SYSTEM_VALUE_VERTICES_IN:
+      return nir_intrinsic_load_patch_vertices_in;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -1598,13 +1600,14 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_WORK_GROUP_ID;
    case nir_intrinsic_load_primitive_id:
       return SYSTEM_VALUE_PRIMITIVE_ID;
-   /* FINISHME: Add tessellation intrinsics.
+   case nir_intrinsic_load_tess_coord:
       return SYSTEM_VALUE_TESS_COORD;
-      return SYSTEM_VALUE_VERTICES_IN;
-      return SYSTEM_VALUE_PRIMITIVE_ID;
+   case nir_intrinsic_load_tess_level_outer:
       return SYSTEM_VALUE_TESS_LEVEL_OUTER;
+   case nir_intrinsic_load_tess_level_inner:
       return SYSTEM_VALUE_TESS_LEVEL_INNER;
-    */
+   case nir_intrinsic_load_patch_vertices_in:
+      return SYSTEM_VALUE_VERTICES_IN;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }

@@ -410,21 +410,21 @@ ResFindGCPixmaps(void *value, XID id, void *cdata)
         *bytes += ResGetApproxPixmapBytes(pGC->tile.pixmap);
 }
 
+#ifdef RENDER
 static void
 ResFindPicturePixmaps(void *value, XID id, void *cdata)
 {
-#ifdef RENDER
     ResFindResourcePixmaps(value, id, PictureType, cdata);
-#endif
 }
+#endif
 
+#ifdef COMPOSITE
 static void
 ResFindCompositeClientWindowPixmaps (void *value, XID id, void *cdata)
 {
-#ifdef COMPOSITE
     ResFindResourcePixmaps(value, id, CompositeClientWindowType, cdata);
-#endif
 }
+#endif
 
 static int
 ProcXResQueryClientPixmapBytes(ClientPtr client)

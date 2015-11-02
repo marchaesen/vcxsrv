@@ -152,6 +152,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_separate_shader_objects",             o(dummy_true),                              GL,             2010 },
    { "GL_ARB_shader_atomic_counters",              o(ARB_shader_atomic_counters),              GL,             2011 },
    { "GL_ARB_shader_bit_encoding",                 o(ARB_shader_bit_encoding),                 GL,             2010 },
+   { "GL_ARB_shader_clock",                        o(ARB_shader_clock),                        GL,             2015 },
    { "GL_ARB_shader_image_load_store",             o(ARB_shader_image_load_store),             GL,             2011 },
    { "GL_ARB_shader_image_size",                   o(ARB_shader_image_size),                   GL,             2012 },
    { "GL_ARB_shader_objects",                      o(dummy_true),                              GL,             2002 },
@@ -229,6 +230,7 @@ static const struct extension extension_table[] = {
    { "GL_EXT_depth_bounds_test",                   o(EXT_depth_bounds_test),                   GL,             2002 },
    { "GL_EXT_draw_buffers",                        o(dummy_true),                                         ES2, 2012 },
    { "GL_EXT_draw_buffers2",                       o(EXT_draw_buffers2),                       GL,             2006 },
+   { "GL_EXT_draw_elements_base_vertex",           o(ARB_draw_elements_base_vertex),                      ES2, 2014 },
    { "GL_EXT_draw_instanced",                      o(ARB_draw_instanced),                      GL,             2006 },
    { "GL_EXT_draw_range_elements",                 o(dummy_true),                              GLL,            1997 },
    { "GL_EXT_fog_coord",                           o(dummy_true),                              GLL,            1999 },
@@ -305,6 +307,7 @@ static const struct extension extension_table[] = {
    { "GL_OES_depth32",                             o(dummy_false),                     DISABLE,                2005 },
    { "GL_OES_depth_texture",                       o(ARB_depth_texture),                                  ES2, 2006 },
    { "GL_OES_depth_texture_cube_map",              o(OES_depth_texture_cube_map),                         ES2, 2012 },
+   { "GL_OES_draw_elements_base_vertex",           o(ARB_draw_elements_base_vertex),                      ES2, 2014 },
    { "GL_OES_draw_texture",                        o(OES_draw_texture),                             ES1,       2004 },
    { "GL_OES_EGL_sync",                            o(dummy_true),                                   ES1 | ES2, 2010 },
    /*  FIXME: Mesa expects GL_OES_EGL_image to be available in OpenGL contexts. */

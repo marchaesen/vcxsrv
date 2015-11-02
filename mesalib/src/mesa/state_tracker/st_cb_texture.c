@@ -1873,55 +1873,6 @@ st_TextureView(struct gl_context *ctx,
    return GL_TRUE;
 }
 
-/* HACK: this is only enough for the most basic uses of CopyImage. Must fix
- * before actually exposing the extension.
- */
-static void
-st_CopyImageSubData(struct gl_context *ctx,
-                    struct gl_texture_image *src_image,
-                    struct gl_renderbuffer *src_renderbuffer,
-                    int src_x, int src_y, int src_z,
-                    struct gl_texture_image *dst_image,
-                    struct gl_renderbuffer *dst_renderbuffer,
-                    int dst_x, int dst_y, int dst_z,
-                    int src_width, int src_height)
-{
-   struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_resource *src_res, *dst_res;
-   struct pipe_box box;
-   int src_level, dst_level;
-
-   if (src_image) {
-      struct st_texture_image *src = st_texture_image(src_image);
-      src_res = src->pt;
-      src_level = src_image->Level;
-   }
-   else {
-      struct st_renderbuffer *src = st_renderbuffer(src_renderbuffer);
-      src_res = src->texture;
-      src_level = 0;
-   }
-
-   if (dst_image) {
-      struct st_texture_image *dst = st_texture_image(dst_image);
-      dst_res = dst->pt;
-      dst_level = dst_image->Level;
-   }
-   else {
-      struct st_renderbuffer *dst = st_renderbuffer(dst_renderbuffer);
-      dst_res = dst->texture;
-      dst_level = 0;
-   }
-
-   u_box_2d_zslice(src_x, src_y, src_z, src_width, src_height, &box);
-   pipe->resource_copy_region(pipe, dst_res, dst_level,
-                              dst_x, dst_y, dst_z,
-                              src_res, src_level,
-                              &box);
-}
-
-
 void
 st_init_texture_functions(struct dd_function_table *functions)
 {
@@ -1953,6 +1904,4 @@ st_init_texture_functions(struct dd_function_table *functions)
 
    functions->AllocTextureStorage = st_AllocTextureStorage;
    functions->TextureView = st_TextureView;
-
-   functions->CopyImageSubData = st_CopyImageSubData;
 }

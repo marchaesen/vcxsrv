@@ -607,6 +607,7 @@ for licensing information.
     <list type="char" name="filter">
       <fieldref>filter_len</fieldref>
     </list>
+    <pad align="4" />
     <list type="FIXED" name="values" />
   </request>
 

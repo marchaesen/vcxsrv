@@ -63,18 +63,24 @@ drain_console(int fd, void *closure)
     }
 }
 
-static void
+static int
 switch_to(int vt, const char *from)
 {
     int ret;
 
     SYSCALL(ret = ioctl(xf86Info.consoleFd, VT_ACTIVATE, vt));
-    if (ret < 0)
-        FatalError("%s: VT_ACTIVATE failed: %s\n", from, strerror(errno));
+    if (ret < 0) {
+        xf86Msg(X_WARNING, "%s: VT_ACTIVATE failed: %s\n", from, strerror(errno));
+        return 0;
+    }
 
     SYSCALL(ret = ioctl(xf86Info.consoleFd, VT_WAITACTIVE, vt));
-    if (ret < 0)
-        FatalError("%s: VT_WAITACTIVE failed: %s\n", from, strerror(errno));
+    if (ret < 0) {
+        xf86Msg(X_WARNING, "%s: VT_WAITACTIVE failed: %s\n", from, strerror(errno));
+        return 0;
+    }
+
+    return 1;
 }
 
 #pragma GCC diagnostic push
@@ -233,7 +239,8 @@ xf86OpenConsole(void)
             /*
              * now get the VT.  This _must_ succeed, or else fail completely.
              */
-            switch_to(xf86Info.vtno, "xf86OpenConsole");
+            if (!switch_to(xf86Info.vtno, "xf86OpenConsole"))
+                FatalError("xf86OpenConsole: Switching VT failed\n");
 
             SYSCALL(ret = ioctl(xf86Info.consoleFd, VT_GETMODE, &VT));
             if (ret < 0)
@@ -294,7 +301,8 @@ xf86OpenConsole(void)
     else {                      /* serverGeneration != 1 */
         if (!xf86Info.ShareVTs && xf86Info.autoVTSwitch) {
             /* now get the VT */
-            switch_to(xf86Info.vtno, "xf86OpenConsole");
+            if (!switch_to(xf86Info.vtno, "xf86OpenConsole"))
+                FatalError("xf86OpenConsole: Switching VT failed\n");
         }
     }
 }

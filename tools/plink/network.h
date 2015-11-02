@@ -38,6 +38,7 @@ struct socket_function_table {
     void (*set_frozen) (Socket s, int is_frozen);
     /* ignored by tcp, but vital for ssl */
     const char *(*socket_error) (Socket s);
+    char *(*peer_info) (Socket s);
 };
 
 typedef union { void *p; int i; } accept_ctx_t;
@@ -92,20 +93,20 @@ struct plug_function_table {
 /* proxy indirection layer */
 /* NB, control of 'addr' is passed via new_connection, which takes
  * responsibility for freeing it */
-Socket new_connection(SockAddr addr, char *hostname,
+Socket new_connection(SockAddr addr, const char *hostname,
 		      int port, int privport,
 		      int oobinline, int nodelay, int keepalive,
 		      Plug plug, Conf *conf);
-Socket new_listener(char *srcaddr, int port, Plug plug, int local_host_only,
-		    Conf *conf, int addressfamily);
-SockAddr name_lookup(char *host, int port, char **canonicalname,
+Socket new_listener(const char *srcaddr, int port, Plug plug,
+                    int local_host_only, Conf *conf, int addressfamily);
+SockAddr name_lookup(const char *host, int port, char **canonicalname,
 		     Conf *conf, int addressfamily);
 int proxy_for_destination (SockAddr addr, const char *hostname, int port,
                            Conf *conf);
 
 /* platform-dependent callback from new_connection() */
 /* (same caveat about addr as new_connection()) */
-Socket platform_new_connection(SockAddr addr, char *hostname,
+Socket platform_new_connection(SockAddr addr, const char *hostname,
 			       int port, int privport,
 			       int oobinline, int nodelay, int keepalive,
 			       Plug plug, Conf *conf);
@@ -137,7 +138,8 @@ SockAddr sk_addr_dup(SockAddr addr);
 Socket sk_new(SockAddr addr, int port, int privport, int oobinline,
 	      int nodelay, int keepalive, Plug p);
 
-Socket sk_newlistener(char *srcaddr, int port, Plug plug, int local_host_only, int address_family);
+Socket sk_newlistener(const char *srcaddr, int port, Plug plug,
+                      int local_host_only, int address_family);
 
 #define sk_plug(s,p) (((*s)->plug) (s, p))
 #define sk_close(s) (((*s)->close) (s))
@@ -180,6 +182,13 @@ const char *sk_addr_error(SockAddr addr);
  *    growth.
  */
 #define sk_set_frozen(s, is_frozen) (((*s)->set_frozen) (s, is_frozen))
+
+/*
+ * Return a (dynamically allocated) string giving some information
+ * about the other end of the socket, suitable for putting in log
+ * files. May be NULL if nothing is available at all.
+ */
+#define sk_peer_info(s) (((*s)->peer_info) (s))
 
 /*
  * Simple wrapper on getservbyname(), needed by ssh.c. Returns the

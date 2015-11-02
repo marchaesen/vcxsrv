@@ -171,6 +171,7 @@ typedef struct {
       unsigned read_only:1;
       unsigned centroid:1;
       unsigned sample:1;
+      unsigned patch:1;
       unsigned invariant:1;
 
       /**
@@ -308,7 +309,6 @@ typedef struct {
        * Location an atomic counter is stored at.
        */
       struct {
-         unsigned buffer_index;
          unsigned offset;
       } atomic;
 
@@ -1460,6 +1460,9 @@ typedef struct nir_shader_compiler_options {
 typedef struct nir_shader_info {
    const char *name;
 
+   /* Descriptive name provided by the client; may be NULL */
+   const char *label;
+
    /* Number of textures used by this shader */
    unsigned num_textures;
    /* Number of uniform buffers used by this shader */
@@ -1490,13 +1493,44 @@ typedef struct nir_shader_info {
    /** Was this shader linked with any transform feedback varyings? */
    bool has_transform_feedback_varyings;
 
-   struct {
-      /** The maximum number of vertices the geometry shader might write. */
-      unsigned vertices_out;
+   union {
+      struct {
+         /** The number of vertices recieves per input primitive */
+         unsigned vertices_in;
 
-      /** 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS */
-      unsigned invocations;
-   } gs;
+         /** The output primitive type (GL enum value) */
+         unsigned output_primitive;
+
+         /** The maximum number of vertices the geometry shader might write. */
+         unsigned vertices_out;
+
+         /** 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS */
+         unsigned invocations;
+
+         /** Whether or not this shader uses EndPrimitive */
+         bool uses_end_primitive;
+
+         /** Whether or not this shader uses non-zero streams */
+         bool uses_streams;
+      } gs;
+
+      struct {
+         bool uses_discard;
+
+         /**
+          * Whether early fragment tests are enabled as defined by
+          * ARB_shader_image_load_store.
+          */
+         bool early_fragment_tests;
+
+         /** gl_FragDepth layout for ARB_conservative_depth. */
+         enum gl_frag_depth_layout depth_layout;
+      } fs;
+
+      struct {
+         unsigned local_size[3];
+      } cs;
+   };
 } nir_shader_info;
 
 typedef struct nir_shader {
@@ -1865,7 +1899,7 @@ void nir_dump_dom_frontier(nir_shader *shader, FILE *fp);
 void nir_dump_cfg_impl(nir_function_impl *impl, FILE *fp);
 void nir_dump_cfg(nir_shader *shader, FILE *fp);
 
-int nir_gs_count_vertices(nir_shader *shader);
+int nir_gs_count_vertices(const nir_shader *shader);
 
 bool nir_split_var_copies(nir_shader *shader);
 
@@ -1944,7 +1978,8 @@ void nir_lower_clip_fs(nir_shader *shader, unsigned ucp_enables);
 
 void nir_lower_two_sided_color(nir_shader *shader);
 
-void nir_lower_atomics(nir_shader *shader);
+void nir_lower_atomics(nir_shader *shader,
+                       const struct gl_shader_program *shader_program);
 void nir_lower_to_source_mods(nir_shader *shader);
 
 bool nir_lower_gs_intrinsics(nir_shader *shader);

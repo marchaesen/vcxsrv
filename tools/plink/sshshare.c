@@ -133,6 +133,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <limits.h>
+#include <errno.h>
 
 #include "putty.h"
 #include "tree234.h"
@@ -502,6 +503,9 @@ static void share_connstate_free(struct ssh_sharing_connstate *cs)
         sfree(globreq);
     }
 
+    if (cs->sock)
+        sk_close(cs->sock);
+
     sfree(cs);
 }
 
@@ -857,6 +861,7 @@ static void share_try_cleanup(struct ssh_sharing_connstate *cs)
                                             SSH2_MSG_GLOBAL_REQUEST,
                                             packet, pos, "cleanup after"
                                             " downstream went away");
+            sfree(packet);
 
             share_remove_forwarding(cs, fwd);
             i--;    /* don't accidentally skip one as a result */
@@ -910,8 +915,25 @@ static int share_closing(Plug plug, const char *error_msg, int error_code,
                          int calling_back)
 {
     struct ssh_sharing_connstate *cs = (struct ssh_sharing_connstate *)plug;
-    if (error_msg)
-        ssh_sharing_logf(cs->parent->ssh, cs->id, "%s", error_msg);
+
+    if (error_msg) {
+#ifdef BROKEN_PIPE_ERROR_CODE
+        /*
+         * Most of the time, we log what went wrong when a downstream
+         * disappears with a socket error. One exception, though, is
+         * receiving EPIPE when we haven't received a protocol version
+         * string from the downstream, because that can happen as a result
+         * of plink -shareexists (opening the connection and instantly
+         * closing it again without bothering to read our version string).
+         * So that one case is not treated as a log-worthy error.
+         */
+        if (error_code == BROKEN_PIPE_ERROR_CODE && !cs->got_verstring)
+            /* do nothing */;
+        else
+#endif
+            ssh_sharing_logf(cs->parent->ssh, cs->id,
+                             "Socket error: %s", error_msg);
+    }
     share_begin_cleanup(cs);
     return 1;
 }
@@ -1594,6 +1616,9 @@ static void share_got_pkt_from_downstream(struct ssh_sharing_connstate *cs,
                 !ssh_agent_forwarding_permitted(cs->parent->ssh)) {
                 unsigned server_id = GET_32BIT(pkt);
                 unsigned char recipient_id[4];
+
+                sfree(request_name);
+
                 chan = share_find_channel_by_server(cs, server_id);
                 if (chan) {
                     PUT_32BIT(recipient_id, chan->downstream_id);
@@ -1625,6 +1650,8 @@ static void share_got_pkt_from_downstream(struct ssh_sharing_connstate *cs,
                 int auth_proto, protolen, datalen;
                 int pos;
 
+                sfree(request_name);
+
                 chan = share_find_channel_by_server(cs, server_id);
                 if (!chan) {
                     char *buf = dupprintf("X11 forwarding request for "
@@ -1646,16 +1673,19 @@ static void share_got_pkt_from_downstream(struct ssh_sharing_connstate *cs,
                 want_reply = pkt[15] != 0;
                 single_connection = pkt[16] != 0;
                 auth_proto_str = getstring(pkt+17, pktlen-17);
+                auth_proto = x11_identify_auth_proto(auth_proto_str);
+                sfree(auth_proto_str);
                 pos = 17 + getstring_size(pkt+17, pktlen-17);
                 auth_data = getstring(pkt+pos, pktlen-pos);
                 pos += getstring_size(pkt+pos, pktlen-pos);
+
                 if (pktlen < pos+4) {
                     err = dupprintf("Truncated CHANNEL_REQUEST(\"x11\") packet");
+                    sfree(auth_data);
                     goto confused;
                 }
                 screen = GET_32BIT(pkt+pos);
 
-                auth_proto = x11_identify_auth_proto(auth_proto_str);
                 if (auth_proto < 0) {
                     /* Reject due to not understanding downstream's
                      * requested authorisation method. */
@@ -1663,11 +1693,14 @@ static void share_got_pkt_from_downstream(struct ssh_sharing_connstate *cs,
                     PUT_32BIT(recipient_id, chan->downstream_id);
                     send_packet_to_downstream(cs, SSH2_MSG_CHANNEL_FAILURE,
                                               recipient_id, 4, NULL);
+                    sfree(auth_data);
+                    break;
                 }
 
                 chan->x11_auth_proto = auth_proto;
                 chan->x11_auth_data = x11_dehexify(auth_data,
                                                    &chan->x11_auth_datalen);
+                sfree(auth_data);
                 chan->x11_auth_upstream =
                     ssh_sharing_add_x11_display(cs->parent->ssh, auth_proto,
                                                 cs, chan);
@@ -1700,6 +1733,8 @@ static void share_got_pkt_from_downstream(struct ssh_sharing_connstate *cs,
 
                 break;
             }
+
+            sfree(request_name);
         }
 
         ssh_send_packet_from_downstream(cs->parent->ssh, cs->id,
@@ -1793,6 +1828,7 @@ static int share_receive(Plug plug, int urgent, char *data, int len)
     ssh_sharing_logf(cs->parent->ssh, cs->id,
                      "Downstream version string: %.*s",
                      cs->recvlen, cs->recvbuf);
+    cs->got_verstring = TRUE;
 
     /*
      * Loop round reading packets.
@@ -1910,6 +1946,7 @@ static int share_listen_accepting(Plug plug,
     struct ssh_sharing_state *sharestate = (struct ssh_sharing_state *)plug;
     struct ssh_sharing_connstate *cs;
     const char *err;
+    char *peerinfo;
 
     /*
      * A new downstream has connected to us.
@@ -1952,7 +1989,9 @@ static int share_listen_accepting(Plug plug,
     cs->forwardings = newtree234(share_forwarding_cmp);
     cs->globreq_head = cs->globreq_tail = NULL;
 
-    ssh_sharing_downstream_connected(sharestate->ssh, cs->id);
+    peerinfo = sk_peer_info(cs->sock);
+    ssh_sharing_downstream_connected(sharestate->ssh, cs->id, peerinfo);
+    sfree(peerinfo);
 
     return 0;
 }
@@ -1961,6 +2000,99 @@ static int share_listen_accepting(Plug plug,
  * will never be an upstream) */
 extern const int share_can_be_downstream;
 extern const int share_can_be_upstream;
+
+/*
+ * Decide on the string used to identify the connection point between
+ * upstream and downstream (be it a Windows named pipe or a
+ * Unix-domain socket or whatever else).
+ *
+ * I wondered about making this a SHA hash of all sorts of pieces of
+ * the PuTTY configuration - essentially everything PuTTY uses to know
+ * where and how to make a connection, including all the proxy details
+ * (or rather, all the _relevant_ ones - only including settings that
+ * other settings didn't prevent from having any effect), plus the
+ * username. However, I think it's better to keep it really simple:
+ * the connection point identifier is derived from the hostname and
+ * port used to index the host-key cache (not necessarily where we
+ * _physically_ connected to, in cases involving proxies or
+ * CONF_loghost), plus the username if one is specified.
+ *
+ * The per-platform code will quite likely hash or obfuscate this name
+ * in turn, for privacy from other users; failing that, it might
+ * transform it to avoid dangerous filename characters and so on. But
+ * that doesn't matter to us: for us, the point is that two session
+ * configurations which return the same string from this function will
+ * be treated as potentially shareable with each other.
+ */
+char *ssh_share_sockname(const char *host, int port, Conf *conf)
+{
+    char *username = get_remote_username(conf);
+    char *sockname;
+
+    if (port == 22) {
+        if (username)
+            sockname = dupprintf("%s@%s", username, host);
+        else
+            sockname = dupprintf("%s", host);
+    } else {
+        if (username)
+            sockname = dupprintf("%s@%s:%d", username, host, port);
+        else
+            sockname = dupprintf("%s:%d", host, port);
+    }
+
+    sfree(username);
+    return sockname;
+}
+
+static void nullplug_socket_log(Plug plug, int type, SockAddr addr, int port,
+                                const char *error_msg, int error_code) {}
+static int nullplug_closing(Plug plug, const char *error_msg, int error_code,
+                            int calling_back) { return 0; }
+static int nullplug_receive(Plug plug, int urgent, char *data,
+                            int len) { return 0; }
+static void nullplug_sent(Plug plug, int bufsize) {}
+
+int ssh_share_test_for_upstream(const char *host, int port, Conf *conf)
+{
+    static const struct plug_function_table fn_table = {
+	nullplug_socket_log,
+	nullplug_closing,
+	nullplug_receive,
+	nullplug_sent,
+	NULL
+    };
+    struct nullplug {
+        const struct plug_function_table *fn;
+    } np;
+
+    char *sockname, *logtext, *ds_err, *us_err;
+    int result;
+    Socket sock;
+
+    np.fn = &fn_table;
+
+    sockname = ssh_share_sockname(host, port, conf);
+
+    sock = NULL;
+    logtext = ds_err = us_err = NULL;
+    result = platform_ssh_share(sockname, conf, (Plug)&np, (Plug)NULL, &sock,
+                                &logtext, &ds_err, &us_err, FALSE, TRUE);
+
+    sfree(logtext);
+    sfree(ds_err);
+    sfree(us_err);
+    sfree(sockname);
+
+    if (result == SHARE_NONE) {
+        assert(sock == NULL);
+        return FALSE;
+    } else {
+        assert(result == SHARE_DOWNSTREAM);
+        sk_close(sock);
+        return TRUE;
+    }
+}
 
 /*
  * Init function for connection sharing. We either open a listening
@@ -1998,47 +2130,7 @@ Socket ssh_connection_sharing_init(const char *host, int port,
     if (!can_upstream && !can_downstream)
         return NULL;
 
-    /*
-     * Decide on the string used to identify the connection point
-     * between upstream and downstream (be it a Windows named pipe or
-     * a Unix-domain socket or whatever else).
-     *
-     * I wondered about making this a SHA hash of all sorts of pieces
-     * of the PuTTY configuration - essentially everything PuTTY uses
-     * to know where and how to make a connection, including all the
-     * proxy details (or rather, all the _relevant_ ones - only
-     * including settings that other settings didn't prevent from
-     * having any effect), plus the username. However, I think it's
-     * better to keep it really simple: the connection point
-     * identifier is derived from the hostname and port used to index
-     * the host-key cache (not necessarily where we _physically_
-     * connected to, in cases involving proxies or CONF_loghost), plus
-     * the username if one is specified.
-     */
-    {
-        char *username = get_remote_username(conf);
-
-        if (port == 22) {
-            if (username)
-                sockname = dupprintf("%s@%s", username, host);
-            else
-                sockname = dupprintf("%s", host);
-        } else {
-            if (username)
-                sockname = dupprintf("%s@%s:%d", username, host, port);
-            else
-                sockname = dupprintf("%s:%d", host, port);
-        }
-
-        sfree(username);
-
-        /*
-         * The platform-specific code may transform this further in
-         * order to conform to local namespace conventions (e.g. not
-         * using slashes in filenames), but that's its job and not
-         * ours.
-         */
-    }
+    sockname = ssh_share_sockname(host, port, conf);
 
     /*
      * Create a data structure for the listening plug if we turn out
@@ -2099,7 +2191,7 @@ Socket ssh_connection_sharing_init(const char *host, int port,
         sharestate->connections = newtree234(share_connstate_cmp);
         sharestate->ssh = ssh;
         sharestate->server_verstring = NULL;
-        sharestate->sockname = dupstr(sockname);
+        sharestate->sockname = sockname;
         sharestate->nextid = 1;
         return NULL;
     }

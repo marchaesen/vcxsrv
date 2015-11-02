@@ -933,7 +933,7 @@ present_notify_msc(WindowPtr window,
                           0, 0,
                           NULL,
                           NULL, NULL,
-                          PresentOptionAsync,
+                          divisor == 0 ? PresentOptionAsync : 0,
                           target_msc, divisor, remainder, NULL, 0);
 }
 
