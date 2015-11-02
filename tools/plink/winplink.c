@@ -22,7 +22,7 @@ struct agent_callback {
     int len;
 };
 
-void fatalbox(char *p, ...)
+void fatalbox(const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "FATAL ERROR: ");
@@ -36,7 +36,7 @@ void fatalbox(char *p, ...)
     }
     cleanup_exit(1);
 }
-void modalfatalbox(char *p, ...)
+void modalfatalbox(const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "FATAL ERROR: ");
@@ -50,7 +50,7 @@ void modalfatalbox(char *p, ...)
     }
     cleanup_exit(1);
 }
-void nonfatal(char *p, ...)
+void nonfatal(const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "ERROR: ");
@@ -59,7 +59,7 @@ void nonfatal(char *p, ...)
     va_end(ap);
     fputc('\n', stderr);
 }
-void connection_fatal(void *frontend, char *p, ...)
+void connection_fatal(void *frontend, const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "FATAL ERROR: ");
@@ -73,7 +73,7 @@ void connection_fatal(void *frontend, char *p, ...)
     }
     cleanup_exit(1);
 }
-void cmdline_error(char *p, ...)
+void cmdline_error(const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "plink: ");
@@ -99,7 +99,7 @@ int term_ldisc(Terminal *term, int mode)
 {
     return FALSE;
 }
-void ldisc_update(void *frontend, int echo, int edit)
+void frontend_echoedit_update(void *frontend, int echo, int edit)
 {
     /* Update stdin read mode to reflect changes in line discipline. */
     DWORD mode;
@@ -146,7 +146,7 @@ int from_backend_eof(void *frontend_handle)
     return FALSE;   /* do not respond to incoming EOF with outgoing */
 }
 
-int get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
+int get_userpass_input(prompts_t *p, const unsigned char *in, int inlen)
 {
     int ret;
     ret = cmdline_get_passwd_input(p, in, inlen);
@@ -173,7 +173,7 @@ void agent_schedule_callback(void (*callback)(void *, void *, int),
  */
 static void usage(void)
 {
-    printf("PuTTY Link: command-line connection utility\n");
+    printf("Plink: command-line connection utility\n");
     printf("%s\n", ver);
     printf("Usage: plink [options] [user@]host [command]\n");
     printf("       (\"host\" can also be a PuTTY saved session name)\n");
@@ -213,6 +213,8 @@ static void usage(void)
     printf("  -N        don't start a shell/command (SSH-2 only)\n");
     printf("  -nc host:port\n");
     printf("            open tunnel in place of session (SSH-2 only)\n");
+    printf("  -shareexists\n");
+    printf("            test whether a connection-sharing upstream exists\n");
     exit(1);
 }
 
@@ -304,6 +306,7 @@ int main(int argc, char **argv)
     int errors;
     int got_host = FALSE;
     int use_subsystem = 0;
+    int just_test_share_exists = FALSE;
     unsigned long now, next, then;
 
     sklist = NULL;
@@ -365,6 +368,8 @@ int main(int argc, char **argv)
             } else if (!strcmp(p, "-pgpfp")) {
                 pgp_fingerprints();
                 exit(1);
+	    } else if (!strcmp(p, "-shareexists")) {
+                just_test_share_exists = TRUE;
 	    } else {
 		fprintf(stderr, "plink: unknown option \"%s\"\n", p);
 		errors = 1;
@@ -597,6 +602,19 @@ int main(int argc, char **argv)
     logctx = log_init(NULL, conf);
     console_provide_logctx(logctx);
 
+    if (just_test_share_exists) {
+        if (!back->test_for_upstream) {
+            fprintf(stderr, "Connection sharing not supported for connection "
+                    "type '%s'\n", back->name);
+            return 1;
+        }
+        if (back->test_for_upstream(conf_get_str(conf, CONF_host),
+                                    conf_get_int(conf, CONF_port), conf))
+            return 0;
+        else
+            return 1;
+    }
+
     /*
      * Start up the connection.
      */
@@ -662,6 +680,7 @@ int main(int argc, char **argv)
 
         if (toplevel_callback_pending()) {
             ticks = 0;
+            next = now;
         } else if (run_timers(now, &next)) {
 	    then = now;
 	    now = GETTICKCOUNT();
@@ -671,6 +690,8 @@ int main(int argc, char **argv)
 		ticks = next - now;
 	} else {
 	    ticks = INFINITE;
+            /* no need to initialise next here because we can never
+             * get WAIT_TIMEOUT */
 	}
 
 	handles = handle_get_events(&nhandles);

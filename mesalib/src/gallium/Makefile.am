@@ -82,6 +82,11 @@ if HAVE_GALLIUM_VC4
 SUBDIRS += drivers/vc4 winsys/vc4/drm
 endif
 
+## virgl
+if HAVE_GALLIUM_VIRGL
+SUBDIRS += drivers/virgl winsys/virgl/drm winsys/virgl/vtest
+endif
+
 ## the sw winsys'
 SUBDIRS += winsys/sw/null
 

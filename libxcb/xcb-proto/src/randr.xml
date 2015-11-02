@@ -528,6 +528,7 @@ authorization from the authors.
 		<list type="char" name="filter_name">
 			<fieldref>filter_len</fieldref>
 		</list>
+		<pad align="4" />
 		<list type="FIXED" name="filter_params" />
 	</request>
 
@@ -547,12 +548,14 @@ authorization from the authors.
 			<list type="char" name="pending_filter_name" >
 				<fieldref>pending_len</fieldref>
 			</list>
+			<pad align="4" />
 			<list type="FIXED" name="pending_params" >
 				<fieldref>pending_nparams</fieldref>
 			</list>
 			<list type="char" name="current_filter_name" >
 				<fieldref>current_len</fieldref>
 			</list>
+			<pad align="4" />
 			<list type="FIXED" name="current_params" >
 				<fieldref>current_nparams</fieldref>
 			</list>

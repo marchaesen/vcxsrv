@@ -73,7 +73,8 @@ void st_upload_constants( struct st_context *st,
        * the parameters list are explicitly set by the user with glUniform,
        * glProgramParameter(), etc.
        */
-      _mesa_load_state_parameters(st->ctx, params);
+      if (params->StateFlags)
+         _mesa_load_state_parameters(st->ctx, params);
 
       /* We always need to get a new buffer, to keep the drivers simple and
        * avoid gratuitous rendering synchronization.

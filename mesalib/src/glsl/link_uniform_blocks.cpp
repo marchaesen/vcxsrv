@@ -100,7 +100,7 @@ private:
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *,
                             const unsigned packing,
-                            bool /* last_field */)
+                            bool last_field)
    {
       assert(this->index < this->num_variables);
 
@@ -131,12 +131,28 @@ private:
       unsigned alignment = 0;
       unsigned size = 0;
 
+      /* From ARB_program_interface_query:
+       *
+       *     "If the final member of an active shader storage block is array
+       *      with no declared size, the minimum buffer size is computed
+       *      assuming the array was declared as an array with one element."
+       *
+       * For that reason, we use the base type of the unsized array to calculate
+       * its size. We don't need to check if the unsized array is the last member
+       * of a shader storage block (that check was already done by the parser).
+       */
+      const glsl_type *type_for_size = type;
+      if (type->is_unsized_array()) {
+         assert(last_field);
+         type_for_size = type->without_array();
+      }
+
       if (packing == GLSL_INTERFACE_PACKING_STD430) {
          alignment = type->std430_base_alignment(v->RowMajor);
-         size = type->std430_size(v->RowMajor);
+         size = type_for_size->std430_size(v->RowMajor);
       } else {
          alignment = type->std140_base_alignment(v->RowMajor);
-         size = type->std140_size(v->RowMajor);
+         size = type_for_size->std140_size(v->RowMajor);
       }
 
       this->offset = glsl_align(this->offset, alignment);

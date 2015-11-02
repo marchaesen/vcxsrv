@@ -395,15 +395,35 @@ make_texture(struct st_context *st,
        * Note that the image is actually going to be upside down in
        * the texture.  We deal with that with texcoords.
        */
-      success = _mesa_texstore(ctx, 2,           /* dims */
-                               baseInternalFormat, /* baseInternalFormat */
-                               mformat,          /* mesa_format */
-                               transfer->stride, /* dstRowStride, bytes */
-                               &dest,            /* destSlices */
-                               width, height, 1, /* size */
-                               format, type,     /* src format/type */
-                               pixels,           /* data source */
-                               unpack);
+      if ((format == GL_RGBA || format == GL_BGRA)
+          && type == GL_UNSIGNED_BYTE) {
+         /* Use a memcpy-based texstore to avoid software pixel swizzling.
+          * We'll do the necessary swizzling with the pipe_sampler_view to
+          * give much better performance.
+          * XXX in the future, expand this to accomodate more format and
+          * type combinations.
+          */
+         _mesa_memcpy_texture(ctx, 2,
+                              mformat,          /* mesa_format */
+                              transfer->stride, /* dstRowStride, bytes */
+                              &dest,            /* destSlices */
+                              width, height, 1, /* size */
+                              format, type,     /* src format/type */
+                              pixels,           /* data source */
+                              unpack);
+         success = GL_TRUE;
+      }
+      else {
+         success = _mesa_texstore(ctx, 2,           /* dims */
+                                  baseInternalFormat, /* baseInternalFormat */
+                                  mformat,          /* mesa_format */
+                                  transfer->stride, /* dstRowStride, bytes */
+                                  &dest,            /* destSlices */
+                                  width, height, 1, /* size */
+                                  format, type,     /* src format/type */
+                                  pixels,           /* data source */
+                                  unpack);
+      }
 
       /* unmap */
       pipe_transfer_unmap(pipe, transfer);
@@ -667,7 +687,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    /* user textures, plus the drawpix textures */
    if (fpv) {
       struct pipe_sampler_view *sampler_views[PIPE_MAX_SAMPLERS];
-      uint num = MAX2(MAX2(fpv->drawpix_sampler, fpv->pixelmap_sampler) + 1,
+      uint num = MAX3(fpv->drawpix_sampler + 1,
+                      fpv->pixelmap_sampler + 1,
                       st->state.num_sampler_views[PIPE_SHADER_FRAGMENT]);
 
       memcpy(sampler_views, st->state.sampler_views[PIPE_SHADER_FRAGMENT],
@@ -914,7 +935,7 @@ get_color_fp_variant(struct st_context *st)
 
    memset(&key, 0, sizeof(key));
 
-   key.st = st;
+   key.st = st->has_shareable_shaders ? NULL : st;
    key.drawpixels = 1;
    key.scaleAndBias = (ctx->Pixel.RedBias != 0.0 ||
                        ctx->Pixel.RedScale != 1.0 ||
@@ -957,6 +978,69 @@ clamp_size(struct pipe_context *pipe, GLsizei *width, GLsizei *height,
 
 
 /**
+ * Search the array of 4 swizzle components for the named component and return
+ * its position.
+ */
+static unsigned
+search_swizzle(const unsigned char swizzle[4], unsigned component)
+{
+   unsigned i;
+   for (i = 0; i < 4; i++) {
+      if (swizzle[i] == component)
+         return i;
+   }
+   assert(!"search_swizzle() failed");
+   return 0;
+}
+
+
+/**
+ * Set the sampler view's swizzle terms.  This is used to handle RGBA
+ * swizzling when the incoming image format isn't an exact match for
+ * the actual texture format.  For example, if we have glDrawPixels(
+ * GL_RGBA, GL_UNSIGNED_BYTE) and we chose the texture format
+ * PIPE_FORMAT_B8G8R8A8 then we can do use the sampler view swizzle to
+ * avoid swizzling all the pixels in software in the texstore code.
+ */
+static void
+setup_sampler_swizzle(struct pipe_sampler_view *sv, GLenum format, GLenum type)
+{
+   if ((format == GL_RGBA || format == GL_BGRA) && type == GL_UNSIGNED_BYTE) {
+      const struct util_format_description *desc =
+         util_format_description(sv->texture->format);
+      unsigned c0, c1, c2, c3;
+
+      /* Every gallium driver supports at least one 32-bit packed RGBA format.
+       * We must have chosen one for (GL_RGBA, GL_UNSIGNED_BYTE).
+       */
+      assert(desc->block.bits == 32);
+
+      /* invert the format's swizzle to setup the sampler's swizzle */
+      if (format == GL_RGBA) {
+         c0 = UTIL_FORMAT_SWIZZLE_X;
+         c1 = UTIL_FORMAT_SWIZZLE_Y;
+         c2 = UTIL_FORMAT_SWIZZLE_Z;
+         c3 = UTIL_FORMAT_SWIZZLE_W;
+      }
+      else {
+         assert(format == GL_BGRA);
+         c0 = UTIL_FORMAT_SWIZZLE_Z;
+         c1 = UTIL_FORMAT_SWIZZLE_Y;
+         c2 = UTIL_FORMAT_SWIZZLE_X;
+         c3 = UTIL_FORMAT_SWIZZLE_W;
+      }
+      sv->swizzle_r = search_swizzle(desc->swizzle, c0);
+      sv->swizzle_g = search_swizzle(desc->swizzle, c1);
+      sv->swizzle_b = search_swizzle(desc->swizzle, c2);
+      sv->swizzle_a = search_swizzle(desc->swizzle, c3);
+   }
+   else {
+      /* use the default sampler swizzle */
+   }
+}
+
+
+/**
  * Called via ctx->Driver.DrawPixels()
  */
 static void
@@ -974,6 +1058,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
    int num_sampler_view = 1;
    struct gl_pixelstore_attrib clippedUnpack;
    struct st_fp_variant *fpv = NULL;
+   struct pipe_resource *pt;
 
    /* Mesa state should be up to date by now */
    assert(ctx->NewState == 0x0);
@@ -1029,42 +1114,56 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       st_upload_constants(st, fpv->parameters, PIPE_SHADER_FRAGMENT);
    }
 
-   /* draw with textured quad */
-   {
-      struct pipe_resource *pt
-         = make_texture(st, width, height, format, type, unpack, pixels);
-      if (pt) {
-         sv[0] = st_create_texture_sampler_view(st->pipe, pt);
-
-         if (sv[0]) {
-            /* Create a second sampler view to read stencil.
-             * The stencil is written using the shader stencil export
-             * functionality. */
-            if (write_stencil) {
-               enum pipe_format stencil_format =
-                     util_format_stencil_only(pt->format);
-               /* we should not be doing pixel map/transfer (see above) */
-               assert(num_sampler_view == 1);
-               sv[1] = st_create_texture_sampler_view_format(st->pipe, pt,
-                                                             stencil_format);
-               num_sampler_view++;
-            }
-
-            draw_textured_quad(ctx, x, y, ctx->Current.RasterPos[2],
-                               width, height,
-                               ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
-                               sv,
-                               num_sampler_view,
-                               driver_vp,
-                               driver_fp, fpv,
-                               color, GL_FALSE, write_depth, write_stencil);
-            pipe_sampler_view_reference(&sv[0], NULL);
-            if (num_sampler_view > 1)
-               pipe_sampler_view_reference(&sv[1], NULL);
-         }
-         pipe_resource_reference(&pt, NULL);
-      }
+   /* Put glDrawPixels image into a texture */
+   pt = make_texture(st, width, height, format, type, unpack, pixels);
+   if (!pt) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
+      return;
    }
+
+   /* create sampler view for the image */
+   sv[0] = st_create_texture_sampler_view(st->pipe, pt);
+   if (!sv[0]) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
+      pipe_resource_reference(&pt, NULL);
+      return;
+   }
+
+   /* Set up the sampler view's swizzle */
+   setup_sampler_swizzle(sv[0], format, type);
+
+   /* Create a second sampler view to read stencil.  The stencil is
+    * written using the shader stencil export functionality.
+    */
+   if (write_stencil) {
+      enum pipe_format stencil_format =
+         util_format_stencil_only(pt->format);
+      /* we should not be doing pixel map/transfer (see above) */
+      assert(num_sampler_view == 1);
+      sv[1] = st_create_texture_sampler_view_format(st->pipe, pt,
+                                                    stencil_format);
+      if (!sv[1]) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
+         pipe_resource_reference(&pt, NULL);
+         pipe_sampler_view_reference(&sv[0], NULL);
+         return;
+      }
+      num_sampler_view++;
+   }
+
+   draw_textured_quad(ctx, x, y, ctx->Current.RasterPos[2],
+                      width, height,
+                      ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
+                      sv,
+                      num_sampler_view,
+                      driver_vp,
+                      driver_fp, fpv,
+                      color, GL_FALSE, write_depth, write_stencil);
+   pipe_sampler_view_reference(&sv[0], NULL);
+   if (num_sampler_view > 1)
+      pipe_sampler_view_reference(&sv[1], NULL);
+
+   pipe_resource_reference(&pt, NULL);
 }
 
 

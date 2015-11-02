@@ -949,7 +949,8 @@ parameter_qualifier:
       if ($2.precision != ast_precision_none)
          _mesa_glsl_error(&@1, state, "duplicate precision qualifier");
 
-      if (!state->has_420pack() && $2.flags.i != 0)
+      if (!(state->has_420pack() || state->is_version(420, 310)) &&
+          $2.flags.i != 0)
          _mesa_glsl_error(&@1, state, "precision qualifiers must come last");
 
       $$ = $2;
@@ -1848,7 +1849,8 @@ type_qualifier:
       if ($2.precision != ast_precision_none)
          _mesa_glsl_error(&@1, state, "duplicate precision qualifier");
 
-      if (!state->has_420pack() && $2.flags.i != 0)
+      if (!(state->has_420pack() || state->is_version(420, 310)) &&
+          $2.flags.i != 0)
          _mesa_glsl_error(&@1, state, "precision qualifiers must come last");
 
       $$ = $2;
@@ -2610,17 +2612,6 @@ interface_block:
 
       block->layout.is_default_qualifier = false;
 
-      foreach_list_typed (ast_declarator_list, member, link, &block->declarations) {
-         ast_type_qualifier& qualifier = member->type->qualifier;
-         if (qualifier.flags.q.stream && qualifier.stream != block->layout.stream) {
-               _mesa_glsl_error(& @1, state,
-                             "stream layout qualifier on "
-                             "interface block member does not match "
-                             "the interface block (%d vs %d)",
-                             qualifier.stream, block->layout.stream);
-               YYERROR;
-         }
-      }
       $$ = block;
    }
    | memory_qualifier interface_block

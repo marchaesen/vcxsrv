@@ -710,7 +710,7 @@ builtin_variable_generator::generate_constants()
       }
    }
 
-   if (state->is_version(430, 0) || state->ARB_compute_shader_enable) {
+   if (state->is_version(430, 310) || state->ARB_compute_shader_enable) {
       add_const("gl_MaxComputeAtomicCounterBuffers", MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS);
       add_const("gl_MaxComputeAtomicCounters", MAX_COMPUTE_ATOMIC_COUNTERS);
       add_const("gl_MaxComputeImageUniforms", MAX_COMPUTE_IMAGE_UNIFORMS);
@@ -887,16 +887,22 @@ builtin_variable_generator::generate_uniforms()
 void
 builtin_variable_generator::generate_vs_special_vars()
 {
+   ir_variable *var;
+
    if (state->is_version(130, 300))
       add_system_value(SYSTEM_VALUE_VERTEX_ID, int_t, "gl_VertexID");
    if (state->ARB_draw_instanced_enable)
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceIDARB");
    if (state->ARB_draw_instanced_enable || state->is_version(140, 300))
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceID");
-   if (state->AMD_vertex_shader_layer_enable)
-      add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-   if (state->AMD_vertex_shader_viewport_index_enable)
-      add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+   if (state->AMD_vertex_shader_layer_enable) {
+      var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
+      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   }
+   if (state->AMD_vertex_shader_viewport_index_enable) {
+      var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   }
    if (compatibility) {
       add_input(VERT_ATTRIB_POS, vec4_t, "gl_Vertex");
       add_input(VERT_ATTRIB_NORMAL, vec3_t, "gl_Normal");
@@ -954,9 +960,14 @@ builtin_variable_generator::generate_tes_special_vars()
 void
 builtin_variable_generator::generate_gs_special_vars()
 {
-   add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-   if (state->is_version(410, 0) || state->ARB_viewport_array_enable)
-      add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+   ir_variable *var;
+
+   var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
+   var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   if (state->is_version(410, 0) || state->ARB_viewport_array_enable) {
+      var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   }
    if (state->is_version(400, 0) || state->ARB_gpu_shader5_enable)
       add_system_value(SYSTEM_VALUE_INVOCATION_ID, int_t, "gl_InvocationID");
 
@@ -970,7 +981,6 @@ builtin_variable_generator::generate_gs_special_vars()
     * the specific case of gl_PrimitiveIDIn.  So we don't need to treat
     * gl_PrimitiveIDIn as an {ARB,EXT}_geometry_shader4-only variable.
     */
-   ir_variable *var;
    var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveIDIn");
    var->data.interpolation = INTERP_QUALIFIER_FLAT;
    var = add_output(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
@@ -984,14 +994,15 @@ builtin_variable_generator::generate_gs_special_vars()
 void
 builtin_variable_generator::generate_fs_special_vars()
 {
+   ir_variable *var;
+
    add_input(VARYING_SLOT_POS, vec4_t, "gl_FragCoord");
    add_input(VARYING_SLOT_FACE, bool_t, "gl_FrontFacing");
    if (state->is_version(120, 100))
       add_input(VARYING_SLOT_PNTC, vec2_t, "gl_PointCoord");
 
    if (state->is_version(150, 0)) {
-      ir_variable *var =
-         add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
+      var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
       var->data.interpolation = INTERP_QUALIFIER_FLAT;
    }
 
@@ -1043,8 +1054,10 @@ builtin_variable_generator::generate_fs_special_vars()
    }
 
    if (state->is_version(430, 0) || state->ARB_fragment_layer_viewport_enable) {
-      add_input(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-      add_input(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+      var = add_input(VARYING_SLOT_LAYER, int_t, "gl_Layer");
+      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var = add_input(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+      var->data.interpolation = INTERP_QUALIFIER_FLAT;
    }
 }
 

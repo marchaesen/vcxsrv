@@ -31,15 +31,27 @@ RESTYPE RROutputType;
 void
 RROutputChanged(RROutputPtr output, Bool configChanged)
 {
+    /* set changed bits on the master screen only */
     ScreenPtr pScreen = output->pScreen;
+    rrScrPrivPtr mastersp;
 
     output->changed = TRUE;
-    if (pScreen) {
-        rrScrPriv(pScreen);
-        RRSetChanged(pScreen);
-        if (configChanged)
-            pScrPriv->configChanged = TRUE;
+    if (!pScreen)
+        return;
+
+    if (pScreen->isGPU) {
+        ScreenPtr master = pScreen->current_master;
+        if (!master)
+            return;
+        mastersp = rrGetScrPriv(master);
     }
+    else {
+        mastersp = rrGetScrPriv(pScreen);
+    }
+
+    RRSetChanged(pScreen);
+    if (configChanged)
+        mastersp->configChanged = TRUE;
 }
 
 /*

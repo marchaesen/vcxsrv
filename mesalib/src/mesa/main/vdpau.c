@@ -163,9 +163,10 @@ register_surface(struct gl_context *ctx, GLboolean isOutput,
          return (GLintptr)NULL;
       }
 
-      if (tex->Target == 0)
+      if (tex->Target == 0) {
          tex->Target = target;
-      else if (tex->Target != target) {
+         tex->TargetIndex = _mesa_tex_target_to_index(ctx, target);
+      } else if (tex->Target != target) {
          _mesa_unlock_texture(ctx, tex);
          free(surf);
          _mesa_error(ctx, GL_INVALID_OPERATION,

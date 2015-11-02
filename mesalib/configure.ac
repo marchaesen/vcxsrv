@@ -81,7 +81,7 @@ PRESENTPROTO_REQUIRED=1.0
 LIBUDEV_REQUIRED=151
 GLPROTO_REQUIRED=1.4.14
 LIBOMXIL_BELLAGIO_REQUIRED=0.0
-LIBVA_REQUIRED=0.35.0
+LIBVA_REQUIRED=0.38.0
 VDPAU_REQUIRED=1.1
 WAYLAND_REQUIRED=1.2.0
 XCB_REQUIRED=1.9.3
@@ -106,6 +106,8 @@ AC_SYS_LARGEFILE
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
+
+AC_CHECK_PROG(RM, rm, [rm -f])
 
 AX_PROG_BISON([],
               AS_IF([test ! -f "$srcdir/src/glsl/glcpp/glcpp-parse.c"],
@@ -864,7 +866,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,ilo,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4"
+        "i915,ilo,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl"
         @<:@default=r300,r600,svga,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])
@@ -2183,6 +2185,12 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([SIMPENROSE], [simpenrose],
                               [USE_VC4_SIMULATOR=yes], [USE_VC4_SIMULATOR=no])
             ;;
+        xvirgl)
+            HAVE_GALLIUM_VIRGL=yes
+            gallium_require_drm "virgl"
+            gallium_require_drm_loader
+            require_egl_drm "virgl"
+            ;;
         *)
             AC_MSG_ERROR([Unknown Gallium driver: $driver])
             ;;
@@ -2254,6 +2262,7 @@ AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_VC4, test "x$HAVE_GALLIUM_VC4" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_VIRGL, test "x$HAVE_GALLIUM_VIRGL" = xyes)
 
 AM_CONDITIONAL(HAVE_GALLIUM_STATIC_TARGETS, test "x$enable_shared_pipe_drivers" = xno)
 
@@ -2374,6 +2383,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/svga/Makefile
 		src/gallium/drivers/trace/Makefile
 		src/gallium/drivers/vc4/Makefile
+		src/gallium/drivers/virgl/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/state_trackers/dri/Makefile
 		src/gallium/state_trackers/glx/xlib/Makefile
@@ -2414,6 +2424,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/winsys/sw/wrapper/Makefile
 		src/gallium/winsys/sw/xlib/Makefile
 		src/gallium/winsys/vc4/drm/Makefile
+		src/gallium/winsys/virgl/drm/Makefile
+		src/gallium/winsys/virgl/vtest/Makefile
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
 		src/glsl/Makefile

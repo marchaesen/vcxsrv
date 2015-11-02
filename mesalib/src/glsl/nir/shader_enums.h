@@ -480,4 +480,21 @@ const char * gl_frag_result_name(gl_frag_result result);
 
 #define FRAG_RESULT_MAX		(FRAG_RESULT_DATA0 + MAX_DRAW_BUFFERS)
 
+/**
+ * \brief Layout qualifiers for gl_FragDepth.
+ *
+ * Extension AMD_conservative_depth allows gl_FragDepth to be redeclared with
+ * a layout qualifier.
+ *
+ * \see enum ir_depth_layout
+ */
+enum gl_frag_depth_layout
+{
+   FRAG_DEPTH_LAYOUT_NONE, /**< No layout is specified. */
+   FRAG_DEPTH_LAYOUT_ANY,
+   FRAG_DEPTH_LAYOUT_GREATER,
+   FRAG_DEPTH_LAYOUT_LESS,
+   FRAG_DEPTH_LAYOUT_UNCHANGED
+};
+
 #endif /* SHADER_ENUMS_H */

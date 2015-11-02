@@ -1491,6 +1491,7 @@ recv_alive_msg(unsigned length)
     }
 }
 
+_X_NORETURN
 static void
 XdmcpFatal(const char *type, ARRAY8Ptr status)
 {

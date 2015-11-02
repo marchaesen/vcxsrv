@@ -477,6 +477,9 @@ xf86platformAddDevice(int index)
     screenLayoutPtr layout;
     static const char *hotplug_driver_name = "modesetting";
 
+    if (!xf86Info.autoAddGPU)
+        return -1;
+
     /* force load the driver for now */
     xf86LoadOneModule(hotplug_driver_name, NULL);
 

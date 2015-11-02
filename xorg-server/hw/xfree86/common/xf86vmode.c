@@ -71,46 +71,6 @@ typedef struct {
 static unsigned char XF86VidModeReqCode = 0;
 #endif
 
-/* The XF86VIDMODE_EVENTS code is far from complete */
-
-#ifdef XF86VIDMODE_EVENTS
-static int XF86VidModeEventBase = 0;
-
-static void SXF86VidModeNotifyEvent(xXF86VidModeNotifyEvent * /* from */ , xXF86VidModeNotifyEvent *    /* to */
-    );
-
-static RESTYPE EventType;       /* resource type for event masks */
-
-typedef struct _XF86VidModeEvent *XF86VidModeEventPtr;
-
-typedef struct _XF86VidModeEvent {
-    XF86VidModeEventPtr next;
-    ClientPtr client;
-    ScreenPtr screen;
-    XID resource;
-    CARD32 mask;
-} XF86VidModeEventRec;
-
-static int XF86VidModeFreeEvents();
-
-typedef struct _XF86VidModeScreenPrivate {
-    XF86VidModeEventPtr events;
-    Bool hasWindow;
-} XF86VidModeScreenPrivateRec, *XF86VidModeScreenPrivatePtr;
-
-static DevPrivateKeyRec ScreenPrivateKeyRec;
-
-#define ScreenPrivateKey (&ScreenPrivateKeyRec)
-
-#define GetScreenPrivate(s) ((ScreenSaverScreenPrivatePtr) \
-    dixLookupPrivate(&(s)->devPrivates, ScreenPrivateKey))
-#define SetScreenPrivate(s,v) \
-    dixSetPrivate(&(s)->devPrivates, ScreenPrivateKey, v)
-#define SetupScreen(s)  ScreenSaverScreenPrivatePtr pPriv = GetScreenPrivate(s)
-
-#define New(t)  (malloc(sizeof (t)))
-#endif
-
 #ifdef DEBUG
 #define DEBUG_P(x) ErrorF(x"\n");
 #else
@@ -127,159 +87,6 @@ ClientMajorVersion(ClientPtr client)
     else
         return pPriv->major;
 }
-
-#ifdef XF86VIDMODE_EVENTS
-static void
-CheckScreenPrivate(pScreen)
-ScreenPtr
- pScreen;
-{
-    SetupScreen(pScreen);
-
-    if (!pPriv)
-        return;
-    if (!pPriv->events && !pPriv->hasWindow) {
-        free(pPriv);
-        SetScreenPrivate(pScreen, NULL);
-    }
-}
-
-static XF86VidModeScreenPrivatePtr
-MakeScreenPrivate(pScreen)
-ScreenPtr
- pScreen;
-{
-    SetupScreen(pScreen);
-
-    if (pPriv)
-        return pPriv;
-    pPriv = New(XF86VidModeScreenPrivateRec);
-    if (!pPriv)
-        return 0;
-    pPriv->events = 0;
-    pPriv->hasWindow = FALSE;
-    SetScreenPrivate(pScreen, pPriv);
-    return pPriv;
-}
-
-static unsigned long
-getEventMask(ScreenPtr pScreen, ClientPtr client)
-{
-    SetupScreen(pScreen);
-    XF86VidModeEventPtr pEv;
-
-    if (!pPriv)
-        return 0;
-    for (pEv = pPriv->events; pEv; pEv = pEv->next)
-        if (pEv->client == client)
-            return pEv->mask;
-    return 0;
-}
-
-static Bool
-setEventMask(ScreenPtr pScreen, ClientPtr client, unsigned long mask)
-{
-    SetupScreen(pScreen);
-    XF86VidModeEventPtr pEv, *pPrev;
-
-    if (getEventMask(pScreen, client) == mask)
-        return TRUE;
-    if (!pPriv) {
-        pPriv = MakeScreenPrivate(pScreen);
-        if (!pPriv)
-            return FALSE;
-    }
-    for (pPrev = &pPriv->events; pEv = *pPrev; pPrev = &pEv->next)
-        if (pEv->client == client)
-            break;
-    if (mask == 0) {
-        *pPrev = pEv->next;
-        free(pEv);
-        CheckScreenPrivate(pScreen);
-    }
-    else {
-        if (!pEv) {
-            pEv = New(ScreenSaverEventRec);
-            if (!pEv) {
-                CheckScreenPrivate(pScreen);
-                return FALSE;
-            }
-            *pPrev = pEv;
-            pEv->next = NULL;
-            pEv->client = client;
-            pEv->screen = pScreen;
-            pEv->resource = FakeClientID(client->index);
-        }
-        pEv->mask = mask;
-    }
-    return TRUE;
-}
-
-static int
-XF86VidModeFreeEvents(void *value, XID id)
-{
-    XF86VidModeEventPtr pOld = (XF86VidModeEventPtr) value;
-    ScreenPtr pScreen = pOld->screen;
-
-    SetupScreen(pScreen);
-    XF86VidModeEventPtr pEv, *pPrev;
-
-    if (!pPriv)
-        return TRUE;
-    for (pPrev = &pPriv->events; pEv = *pPrev; pPrev = &pEv->next)
-        if (pEv == pOld)
-            break;
-    if (!pEv)
-        return TRUE;
-    *pPrev = pEv->next;
-    free(pEv);
-    CheckScreenPrivate(pScreen);
-    return TRUE;
-}
-
-static void
-SendXF86VidModeNotify(ScreenPtr pScreen, int state, Bool forced)
-{
-    XF86VidModeScreenPrivatePtr pPriv;
-    unsigned long mask;
-    xXF86VidModeNotifyEvent ev;
-    int kind;
-
-    UpdateCurrentTimeIf();
-    mask = XF86VidModeNotifyMask;
-    pScreen = screenInfo.screens[pScreen->myNum];
-    pPriv = GetScreenPrivate(pScreen);
-    if (!pPriv)
-        return;
-    kind = XF86VidModeModeChange;
-    for (pEv = pPriv->events; pEv; pEv = pEv->next) {
-        if (pEv->mask & mask) {
-            XF86VidModeEventPtr pEv = {
-                .type = XF86VidModeNotify + XF86VidModeEventBase,
-                .state = state,
-                .timestamp = currentTime.milliseconds,
-                .root = pScreen->root->drawable.id,
-                .kind = kind,
-                .forced = forced
-            };
-            WriteEventsToClient(pEv->client, 1, (xEvent *) &ev);
-        }
-    }
-}
-
-static void
-SXF86VidModeNotifyEvent(xXF86VidModeNotifyEvent * from,
-                        xXF86VidModeNotifyEvent * to)
-{
-    to->type = from->type;
-    to->state = from->state;
-    cpswaps(from->sequenceNumber, to->sequenceNumber);
-    cpswapl(from->timestamp, to->timestamp);
-    cpswapl(from->root, to->root);
-    to->kind = from->kind;
-    to->forced = from->forced;
-}
-#endif
 
 static int
 ProcXF86VidModeQueryVersion(ClientPtr client)
@@ -2124,14 +1931,6 @@ XFree86VidModeExtensionInit(void)
 
     if (!dixRegisterPrivateKey(&VidModeClientPrivateKeyRec, PRIVATE_CLIENT, 0))
         return;
-#ifdef XF86VIDMODE_EVENTS
-    if (!dixRegisterPrivateKey(&ScreenPrivateKeyRec, PRIVATE_SCREEN, 0))
-        return;
-#endif
-
-#ifdef XF86VIDMODE_EVENTS
-    EventType = CreateNewResourceType(XF86VidModeFreeEvents, "VidModeEvent");
-#endif
 
     for (i = 0; i < screenInfo.numScreens; i++) {
         pScreen = screenInfo.screens[i];
@@ -2142,24 +1941,15 @@ XFree86VidModeExtensionInit(void)
     if (!enabled)
         return;
 
-    if (
-#ifdef XF86VIDMODE_EVENTS
-           EventType &&
-#endif
-           (extEntry = AddExtension(XF86VIDMODENAME,
-                                    XF86VidModeNumberEvents,
-                                    XF86VidModeNumberErrors,
-                                    ProcXF86VidModeDispatch,
-                                    SProcXF86VidModeDispatch,
-                                    NULL, StandardMinorOpcode))) {
+    if ((extEntry = AddExtension(XF86VIDMODENAME,
+                                 XF86VidModeNumberEvents,
+                                 XF86VidModeNumberErrors,
+                                 ProcXF86VidModeDispatch,
+                                 SProcXF86VidModeDispatch,
+                                 NULL, StandardMinorOpcode))) {
 #if 0
         XF86VidModeReqCode = (unsigned char) extEntry->base;
 #endif
         VidModeErrorBase = extEntry->errorBase;
-#ifdef XF86VIDMODE_EVENTS
-        XF86VidModeEventBase = extEntry->eventBase;
-        EventSwapVector[XF86VidModeEventBase] =
-            (EventSwapPtr) SXF86VidModeNotifyEvent;
-#endif
     }
 }

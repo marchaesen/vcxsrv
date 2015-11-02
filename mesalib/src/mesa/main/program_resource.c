@@ -119,13 +119,32 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
    case GL_MAX_NUM_ACTIVE_VARIABLES:
       switch (programInterface) {
       case GL_UNIFORM_BLOCK:
-      case GL_SHADER_STORAGE_BLOCK:
          for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
             if (shProg->ProgramResourceList[i].Type == programInterface) {
                struct gl_uniform_block *block =
                   (struct gl_uniform_block *)
                   shProg->ProgramResourceList[i].Data;
                *params = MAX2(*params, block->NumUniforms);
+            }
+         }
+         break;
+      case GL_SHADER_STORAGE_BLOCK:
+         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
+            if (shProg->ProgramResourceList[i].Type == programInterface) {
+               struct gl_uniform_block *block =
+                  (struct gl_uniform_block *)
+                  shProg->ProgramResourceList[i].Data;
+               GLint block_params = 0;
+               for (unsigned j = 0; j < block->NumUniforms; j++) {
+                  const char *iname = block->Uniforms[j].IndexName;
+                  struct gl_program_resource *uni =
+                     _mesa_program_resource_find_name(shProg, GL_BUFFER_VARIABLE,
+                                                      iname, NULL);
+                  if (!uni)
+                     continue;
+                  block_params++;
+               }
+               *params = MAX2(*params, block_params);
             }
          }
          break;

@@ -468,6 +468,51 @@ binop("fmax", tfloat, "", "fmaxf(src0, src1)")
 binop("imax", tint, commutative + associative, "src1 > src0 ? src1 : src0")
 binop("umax", tunsigned, commutative + associative, "src1 > src0 ? src1 : src0")
 
+# Saturated vector add for 4 8bit ints.
+binop("usadd_4x8", tint, commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   dst |= MIN2(((src0 >> i) & 0xff) + ((src1 >> i) & 0xff), 0xff) << i;
+}
+""")
+
+# Saturated vector subtract for 4 8bit ints.
+binop("ussub_4x8", tint, "", """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   int src0_chan = (src0 >> i) & 0xff;
+   int src1_chan = (src1 >> i) & 0xff;
+   if (src0_chan > src1_chan)
+      dst |= (src0_chan - src1_chan) << i;
+}
+""")
+
+# vector min for 4 8bit ints.
+binop("umin_4x8", tint, commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   dst |= MIN2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
+}
+""")
+
+# vector max for 4 8bit ints.
+binop("umax_4x8", tint, commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   dst |= MAX2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
+}
+""")
+
+# unorm multiply: (a * b) / 255.
+binop("umul_unorm_4x8", tint, commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   int src0_chan = (src0 >> i) & 0xff;
+   int src1_chan = (src1 >> i) & 0xff;
+   dst |= ((src0_chan * src1_chan) / 255) << i;
+}
+""")
+
 binop("fpow", tfloat, "", "powf(src0, src1)")
 
 binop_horiz("pack_half_2x16_split", 1, tunsigned, 1, tfloat, 1, tfloat,

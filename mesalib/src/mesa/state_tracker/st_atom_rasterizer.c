@@ -239,7 +239,7 @@ static void update_raster_state( struct st_context *st )
 
    /* _NEW_MULTISAMPLE | _NEW_BUFFERS */
    raster->force_persample_interp =
-         st->can_force_persample_interp &&
+         !st->force_persample_in_shader &&
          ctx->Multisample._Enabled &&
          ctx->Multisample.SampleShading &&
          ctx->Multisample.MinSampleShadingValue *

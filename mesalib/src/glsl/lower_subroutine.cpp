@@ -84,7 +84,7 @@ lower_subroutine_visitor::visit_leave(ir_call *ir)
          continue;
 
       if (ir->array_idx != NULL)
-         var = new(mem_ctx) ir_dereference_array(ir->sub_var, ir->array_idx->clone(mem_ctx, NULL));
+         var = ir->array_idx->clone(mem_ctx, NULL);
       else
          var = new(mem_ctx) ir_dereference_variable(ir->sub_var);
 

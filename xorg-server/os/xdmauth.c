@@ -227,7 +227,7 @@ XdmClientAuthTimeout(long now)
     prev = 0;
     for (client = xdmClients; client; client = next) {
         next = client->next;
-        if (abs(now - client->time) > TwentyFiveMinutes) {
+        if (labs(now - client->time) > TwentyFiveMinutes) {
             if (prev)
                 prev->next = next;
             else
@@ -299,7 +299,7 @@ XdmAuthorizationValidate(unsigned char *plain, int length,
     }
     now += clockOffset;
     XdmClientAuthTimeout(now);
-    if (abs(client->time - now) > TwentyMinutes) {
+    if (labs(client->time - now) > TwentyMinutes) {
         free(client);
         if (reason)
             *reason = "Excessive XDM-AUTHORIZATION-1 time offset";

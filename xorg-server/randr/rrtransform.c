@@ -121,7 +121,7 @@ RRTransformRescale(struct pixman_f_transform *f_transform, double limit)
 
     for (j = 0; j < 3; j++)
         for (i = 0; i < 3; i++)
-            if ((v = abs(f_transform->m[j][i])) > max)
+            if ((v = fabs(f_transform->m[j][i])) > max)
                 max = v;
     scale = limit / max;
     for (j = 0; j < 3; j++)
@@ -196,7 +196,7 @@ RRTransformCompute(int x,
             f_rot_sin = 0;
             f_rot_dx = width;
             f_rot_dy = height;
-            rot_cos = F(-1);
+            rot_cos = F(~0u);
             rot_sin = F(0);
             rot_dx = F(width);
             rot_dy = F(height);
@@ -207,7 +207,7 @@ RRTransformCompute(int x,
             f_rot_dx = 0;
             f_rot_dy = width;
             rot_cos = F(0);
-            rot_sin = F(-1);
+            rot_sin = F(~0u);
             rot_dx = F(0);
             rot_dy = F(width);
             break;
@@ -230,7 +230,7 @@ RRTransformCompute(int x,
         scale_dy = 0;
         if (rotation & RR_Reflect_X) {
             f_scale_x = -1;
-            scale_x = F(-1);
+            scale_x = F(~0u);
             if (rotation & (RR_Rotate_0 | RR_Rotate_180)) {
                 f_scale_dx = width;
                 scale_dx = F(width);
@@ -242,7 +242,7 @@ RRTransformCompute(int x,
         }
         if (rotation & RR_Reflect_Y) {
             f_scale_y = -1;
-            scale_y = F(-1);
+            scale_y = F(~0u);
             if (rotation & (RR_Rotate_0 | RR_Rotate_180)) {
                 f_scale_dy = height;
                 scale_dy = F(height);

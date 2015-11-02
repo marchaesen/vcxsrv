@@ -2426,6 +2426,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	      if (extensions->ARB_shader_bit_encoding)
 	         add_builtin_define(parser, "GL_ARB_shader_bit_encoding", 1);
 
+	      if (extensions->ARB_shader_clock)
+	         add_builtin_define(parser, "GL_ARB_shader_clock", 1);
+
 	      if (extensions->ARB_uniform_buffer_object)
 	         add_builtin_define(parser, "GL_ARB_uniform_buffer_object", 1);
 
