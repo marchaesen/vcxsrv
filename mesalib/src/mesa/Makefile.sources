@@ -345,7 +345,6 @@ TNL_FILES = \
 	tnl/tnl.h \
 	tnl/t_pipeline.c \
 	tnl/t_pipeline.h \
-	tnl/t_rasterpos.c \
 	tnl/t_vb_cliptmp.h \
 	tnl/t_vb_fog.c \
 	tnl/t_vb_light.c \
@@ -424,6 +423,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_clear.h \
 	state_tracker/st_cb_condrender.c \
 	state_tracker/st_cb_condrender.h \
+	state_tracker/st_cb_copyimage.c \
+	state_tracker/st_cb_copyimage.h \
 	state_tracker/st_cb_drawpixels.c \
 	state_tracker/st_cb_drawpixels.h \
 	state_tracker/st_cb_drawpixels_shader.c \

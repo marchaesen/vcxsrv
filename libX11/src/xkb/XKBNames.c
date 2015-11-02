@@ -549,7 +549,7 @@ XkbChangeNames(Display *dpy, XkbDescPtr xkb, XkbNameChangesPtr changes)
     which = changes->changed;
     firstType = changes->first_type;
     nTypes = changes->num_types;
-    firstLvlType = changes->first_lvl;;
+    firstLvlType = changes->first_lvl;
     nLvlTypes = changes->num_lvls;
     if (which & XkbKeyTypeNamesMask) {
         if (nTypes < 1)

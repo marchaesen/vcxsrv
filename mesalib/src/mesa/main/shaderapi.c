@@ -2068,7 +2068,7 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
 {
    switch (type) {
    case MESA_SHADER_VERTEX:
-      dst->UsesClipDistanceOut = src->Vert.UsesClipDistance;
+      dst->ClipDistanceArraySize = src->Vert.ClipDistanceArraySize;
       break;
    case MESA_SHADER_TESS_CTRL: {
       struct gl_tess_ctrl_program *dst_tcp =
@@ -2083,7 +2083,7 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
       dst_tep->Spacing = src->TessEval.Spacing;
       dst_tep->VertexOrder = src->TessEval.VertexOrder;
       dst_tep->PointMode = src->TessEval.PointMode;
-      dst->UsesClipDistanceOut = src->TessEval.UsesClipDistance;
+      dst->ClipDistanceArraySize = src->TessEval.ClipDistanceArraySize;
       break;
    }
    case MESA_SHADER_GEOMETRY: {
@@ -2093,7 +2093,7 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
       dst_gp->Invocations = src->Geom.Invocations;
       dst_gp->InputType = src->Geom.InputType;
       dst_gp->OutputType = src->Geom.OutputType;
-      dst->UsesClipDistanceOut = src->Geom.UsesClipDistance;
+      dst->ClipDistanceArraySize = src->Geom.ClipDistanceArraySize;
       dst_gp->UsesEndPrimitive = src->Geom.UsesEndPrimitive;
       dst_gp->UsesStreams = src->Geom.UsesStreams;
       break;

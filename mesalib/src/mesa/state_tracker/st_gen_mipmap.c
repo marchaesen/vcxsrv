@@ -61,6 +61,8 @@ compute_num_levels(struct gl_context *ctx,
 
    numLevels = texObj->BaseLevel + baseImage->MaxNumLevels;
    numLevels = MIN2(numLevels, (GLuint) texObj->MaxLevel + 1);
+   if (texObj->Immutable)
+      numLevels = MIN2(numLevels, texObj->NumLevels);
    assert(numLevels >= 1);
 
    return numLevels;
@@ -99,38 +101,40 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
     */
    stObj->lastLevel = lastLevel;
 
-   if (pt->last_level < lastLevel) {
-      /* The current gallium texture doesn't have space for all the
-       * mipmap levels we need to generate.  So allocate a new texture.
-       */
-      struct pipe_resource *oldTex = stObj->pt;
+   if (!texObj->Immutable) {
+      if (pt->last_level < lastLevel) {
+         /* The current gallium texture doesn't have space for all the
+         * mipmap levels we need to generate.  So allocate a new texture.
+         */
+         struct pipe_resource *oldTex = stObj->pt;
 
-      /* create new texture with space for more levels */
-      stObj->pt = st_texture_create(st,
-                                    oldTex->target,
-                                    oldTex->format,
-                                    lastLevel,
-                                    oldTex->width0,
-                                    oldTex->height0,
-                                    oldTex->depth0,
-                                    oldTex->array_size,
-                                    0,
-                                    oldTex->bind);
+         /* create new texture with space for more levels */
+         stObj->pt = st_texture_create(st,
+                                       oldTex->target,
+                                       oldTex->format,
+                                       lastLevel,
+                                       oldTex->width0,
+                                       oldTex->height0,
+                                       oldTex->depth0,
+                                       oldTex->array_size,
+                                       0,
+                                       oldTex->bind);
 
-      /* This will copy the old texture's base image into the new texture
-       * which we just allocated.
-       */
-      st_finalize_texture(ctx, st->pipe, texObj);
+         /* This will copy the old texture's base image into the new texture
+         * which we just allocated.
+         */
+         st_finalize_texture(ctx, st->pipe, texObj);
 
-      /* release the old tex (will likely be freed too) */
-      pipe_resource_reference(&oldTex, NULL);
-      st_texture_release_all_sampler_views(st, stObj);
-   }
-   else {
-      /* Make sure that the base texture image data is present in the
-       * texture buffer.
-       */
-      st_finalize_texture(ctx, st->pipe, texObj);
+         /* release the old tex (will likely be freed too) */
+         pipe_resource_reference(&oldTex, NULL);
+         st_texture_release_all_sampler_views(st, stObj);
+      }
+      else {
+         /* Make sure that the base texture image data is present in the
+         * texture buffer.
+         */
+         st_finalize_texture(ctx, st->pipe, texObj);
+      }
    }
 
    pt = stObj->pt;

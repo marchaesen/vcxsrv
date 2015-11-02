@@ -1,5 +1,5 @@
-.\" $Xorg: Xserver.man,v 1.4 2001/02/09 02:04:07 xorgcvs Exp $
-.\" $XdotOrg: xserver/xorg/doc/Xserver.man.pre,v 1.4 2005/12/23 20:11:12 alanc Exp $
+'\" t
+.\"
 .\" Copyright 1984 - 1991, 1993, 1994, 1998  The Open Group
 .\"
 .\" Permission to use, copy, modify, distribute, and sell this software and its
@@ -205,6 +205,15 @@ with
 .BR "\-nolisten tcp" .
 This option may be issued multiple times to disable listening to different
 transport types.
+Supported transport types are platform dependent, but commonly include:
+.TS
+l l.
+tcp     TCP over IPv4 or IPv6
+inet    TCP over IPv4 only
+inet6   TCP over IPv6 only
+unix    UNIX Domain Sockets
+local   Platform preferred local connection method
+.TE
 .TP 8
 .B \-listen \fItrans-type\fP
 enables a transport type.  For example, TCP/IP connections can be enabled

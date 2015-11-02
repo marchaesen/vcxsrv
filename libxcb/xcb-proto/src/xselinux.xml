@@ -111,9 +111,11 @@ authorization from the authors.
     <list type="char" name="object_context">
       <fieldref>object_context_len</fieldref>
     </list>
+    <pad align="4" />
     <list type="char" name="data_context">
       <fieldref>data_context_len</fieldref>
     </list>
+    <pad align="4" />
   </struct>
 
   <request name="SetPropertyCreateContext" opcode="8">

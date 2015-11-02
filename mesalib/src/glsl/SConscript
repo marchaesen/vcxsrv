@@ -61,6 +61,12 @@ source_lists = env.ParseSourceList('Makefile.sources')
 for l in ('LIBGLCPP_FILES', 'LIBGLSL_FILES'):
     glsl_sources += source_lists[l]
 
+# add nir/glsl_types.cpp manually, because SCons still doesn't know about NIR.
+# XXX: Remove this once we build NIR and NIR_FILES.
+glsl_sources += [
+    'nir/glsl_types.cpp',
+]
+
 if env['msvc']:
     env.Prepend(CPPPATH = ['#/src/getopt'])
     env.PrependUnique(LIBS = [getopt])
@@ -81,7 +87,6 @@ mesa_objs = env.StaticObject([
     'prog_hash_table.c',
     'symbol_table.c',
     'dummy_errors.c',
-    'nir/glsl_types.cpp',
 ])
 
 compiler_objs += mesa_objs

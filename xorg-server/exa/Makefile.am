@@ -4,9 +4,7 @@ if XORG
 sdk_HEADERS = exa.h
 endif
 
-AM_CPPFLAGS = \
-	$(XORG_INCS) \
-	-I$(srcdir)/../miext/cw
+AM_CPPFLAGS = $(XORG_INCS)
 
 AM_CFLAGS = $(XORG_CFLAGS) $(DIX_CFLAGS)
 

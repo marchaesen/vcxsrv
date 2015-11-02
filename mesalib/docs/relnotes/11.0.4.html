@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.0.4 Release Notes / October 24, 2015</h1>
+
+<p>
+Mesa 11.0.4 is a bug fix release which fixes bugs found since the 11.0.3 release.
+</p>
+<p>
+Mesa 11.0.4 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+ed412ca6a46d1bd055120e5c12806c15419ae8c4dd6d3f6ea20a83091d5c78bf  mesa-11.0.4.tar.gz
+40201bf7fc6fa12a6d9edfe870b41eb4dd6669154e3c42c48a96f70805f5483d  mesa-11.0.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=86281">Bug 86281</a> - brw_meta_fast_clear (brw=brw&#64;entry=0x7fffd4097a08, fb=fb&#64;entry=0x7fffd40fa900, buffers=buffers&#64;entry=2, partial_clear=partial_clear&#64;entry=false)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=86720">Bug 86720</a> - [radeon] Europa Universalis 4 freezing during game start (10.3.3+, still broken on 11.0.2)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91788">Bug 91788</a> - [HSW Regression] Synmark2_v6 Multithread performance case FPS reduced by 36%</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92304">Bug 92304</a> - [cts] cts.shaders.negative conformance tests fail</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alejandro Piñeiro (2):</p>
+<ul>
+  <li>i965/vec4: check writemask when bailing out at register coalesce</li>
+  <li>i965/vec4: fill src_reg type using the constructor type parameter</li>
+</ul>
+
+<p>Brian Paul (2):</p>
+<ul>
+  <li>vbo: fix incorrect switch statement in init_mat_currval()</li>
+  <li>mesa: fix incorrect opcode in save_BlendFunci()</li>
+</ul>
+
+<p>Chih-Wei Huang (3):</p>
+<ul>
+  <li>mesa: android: Fix the incorrect path of sse_minmax.c</li>
+  <li>nv50/ir: use C++11 standard std::unordered_map if possible</li>
+  <li>nv30: include the header of ffs prototype</li>
+</ul>
+
+<p>Chris Wilson (1):</p>
+<ul>
+  <li>i965: Remove early release of DRI2 miptree</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>mesa/uniforms: fix get_uniform for doubles (v2)</li>
+</ul>
+
+<p>Emil Velikov (1):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.0.3</li>
+</ul>
+
+<p>Francisco Jerez (5):</p>
+<ul>
+  <li>i965: Don't tell the hardware about our UAV access.</li>
+  <li>mesa: Expose function to calculate whether a shader image unit is valid.</li>
+  <li>mesa: Skip redundant texture completeness checking during image validation.</li>
+  <li>i965: Use _mesa_is_image_unit_valid() instead of gl_image_unit::_Valid.</li>
+  <li>mesa: Get rid of texture-dependent image unit derived state.</li>
+</ul>
+
+<p>Ian Romanick (8):</p>
+<ul>
+  <li>glsl: Allow built-in functions as constant expressions in OpenGL ES 1.00</li>
+  <li>ff_fragment_shader: Use binding to set the sampler unit</li>
+  <li>glsl/linker: Use constant_initializer instead of constant_value to initialize uniforms</li>
+  <li>glsl: Use constant_initializer instead of constant_value to determine whether to keep an unused uniform</li>
+  <li>glsl: Only set ir_variable::constant_value for const-decorated variables</li>
+  <li>glsl: Restrict initializers for global variables to constant expression in ES</li>
+  <li>glsl: Add method to determine whether an expression contains the sequence operator</li>
+  <li>glsl: In later GLSL versions, sequence operator is cannot be a constant expression</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>nouveau: make sure there's always room to emit a fence</li>
+</ul>
+
+<p>Indrajit Das (1):</p>
+<ul>
+  <li>st/va: Used correct parameter to derive the value of the "h" variable in vlVaCreateImage</li>
+</ul>
+
+<p>Jonathan Gray (1):</p>
+<ul>
+  <li>configure.ac: ensure RM is set</li>
+</ul>
+
+<p>Krzysztof Sobiecki (1):</p>
+<ul>
+  <li>st/fbo: use pipe_surface_release instead of pipe_surface_reference</li>
+</ul>
+
+<p>Leo Liu (1):</p>
+<ul>
+  <li>st/omx/dec/h264: fix field picture type 0 poc disorder</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>st/mesa: fix clip state dependencies</li>
+  <li>radeonsi: fix a GS copy shader leak</li>
+  <li>gallium: add PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>u_vbuf: fix vb slot assignment for translated buffers</li>
+</ul>
+
+<p>Rob Clark (1):</p>
+<ul>
+  <li>freedreno/a3xx: cache-flush is needed after MEM_WRITE</li>
+</ul>
+
+<p>Tapani Pälli (3):</p>
+<ul>
+  <li>mesa: add GL_UNSIGNED_INT_24_8 to _mesa_pack_depth_span</li>
+  <li>mesa: Set api prefix to version string when overriding version</li>
+  <li>mesa: fix ARRAY_SIZE query for GetProgramResourceiv</li>
+</ul>
+
+
+</div>
+</body>
+</html>

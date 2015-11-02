@@ -74,6 +74,17 @@ _mesa_texstore_needs_transfer_ops(struct gl_context *ctx,
                                   GLenum baseInternalFormat,
                                   mesa_format dstFormat);
 
+extern void
+_mesa_memcpy_texture(struct gl_context *ctx,
+                     GLuint dimensions,
+                     mesa_format dstFormat,
+                     GLint dstRowStride,
+                     GLubyte **dstSlices,
+                     GLint srcWidth, GLint srcHeight, GLint srcDepth,
+                     GLenum srcFormat, GLenum srcType,
+                     const GLvoid *srcAddr,
+                     const struct gl_pixelstore_attrib *srcPacking);
+
 extern GLboolean
 _mesa_texstore_can_use_memcpy(struct gl_context *ctx,
                               GLenum baseInternalFormat, mesa_format dstFormat,

@@ -44,7 +44,8 @@ byte-streams:
 .I "Local"
 On most platforms, the "Local" connection type is a UNIX-domain socket.
 On some System V platforms, the "local" connection types also include
-STREAMS pipes, named pipes, and some other mechanisms.
+STREAMS pipes, named pipes, and some other mechanisms.  See the
+"LOCAL CONNECTIONS" section of X(__miscmansuffix__) for details.
 .TP 4
 .I TCP/IP
 .B Xorg
@@ -52,61 +53,10 @@ listens on port
 .RI 6000+ n ,
 where
 .I n
-is the display number.  This connection type can be disabled with the
-.B \-nolisten
+is the display number.  This connection type is usually disabled by default,
+but may be enabled with the
+.B \-listen
 option (see the Xserver(1) man page for details).
-.SH "ENVIRONMENT VARIABLES"
-For operating systems that support local connections other than Unix
-Domain sockets (SVR3 and SVR4), there is a compiled-in list specifying
-the order in which local connections should be attempted.  This list
-can be overridden by the
-.I XLOCAL
-environment variable described below.  If the display name indicates a
-best-choice connection should be made (e.g.
-.BR :0.0 ),
-each connection mechanism is tried until a connection succeeds or no
-more mechanisms are available.  Note: for these OSs, the Unix Domain
-socket connection is treated differently from the other local connection
-types.  To use it the connection must be made to
-.BR unix:0.0 .
-.PP
-The
-.I XLOCAL
-environment variable should contain a list of one more
-more of the following:
-.PP
-.RS 8
-.nf
-NAMED
-PTS
-SCO
-ISC
-.fi
-.RE
-.PP
-which represent SVR4 Named Streams pipe, Old-style USL Streams pipe,
-SCO XSight Streams pipe, and ISC Streams pipe, respectively.  You can
-select a single mechanism (e.g.
-.IR XLOCAL=NAMED ),
-or an ordered list (e.g. \fIXLOCAL="NAMED:PTS:SCO"\fP).
-his variable overrides the compiled-in defaults.  For SVR4 it is
-recommended that
-.I NAMED
-be the first preference connection.  The default setting is
-.IR PTS:NAMED:ISC:SCO .
-.PP
-To globally override the compiled-in defaults, you should define (and
-export if using
-.B sh
-or
-.BR ksh )
-.I XLOCAL
-globally.  If you use startx(1) or xinit(1), the definition should be
-at the top of your
-.I .xinitrc
-file.  If you use xdm(1), the definitions should be early on in the
-.I __projectroot__/lib/X11/xdm/Xsession
-script.
 .SH OPTIONS
 .B Xorg
 supports several mechanisms for supplying/obtaining configuration and

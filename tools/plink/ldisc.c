@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "putty.h"
 #include "terminal.h"
@@ -21,7 +22,7 @@
                       (ldisc->back->ldisc(ldisc->backhandle, LD_EDIT) || \
 			   term_ldisc(ldisc->term, LD_EDIT))))
 
-static void c_write(Ldisc ldisc, char *buf, int len)
+static void c_write(Ldisc ldisc, const char *buf, int len)
 {
     from_backend(ldisc->frontend, 0, buf, len);
 }
@@ -127,18 +128,20 @@ void ldisc_free(void *handle)
     sfree(ldisc);
 }
 
-void ldisc_send(void *handle, char *buf, int len, int interactive)
+void ldisc_echoedit_update(void *handle)
+{
+    Ldisc ldisc = (Ldisc) handle;
+    frontend_echoedit_update(ldisc->frontend, ECHOING, EDITING);
+}
+
+void ldisc_send(void *handle, const char *buf, int len, int interactive)
 {
     Ldisc ldisc = (Ldisc) handle;
     int keyflag = 0;
-    /*
-     * Called with len=0 when the options change. We must inform
-     * the front end in case it needs to know.
-     */
-    if (len == 0) {
-	ldisc_update(ldisc->frontend, ECHOING, EDITING);
-	return;
-    }
+
+    assert(ldisc->term);
+    assert(len);
+
     /*
      * Notify the front end that something was pressed, in case
      * it's depending on finding out (e.g. keypress termination for
@@ -146,7 +149,7 @@ void ldisc_send(void *handle, char *buf, int len, int interactive)
      */
     frontend_keypress(ldisc->frontend);
 
-    if (interactive && ldisc->term) {
+    if (interactive) {
         /*
          * Interrupt a paste from the clipboard, if one was in
          * progress when the user pressed a key. This is easier than

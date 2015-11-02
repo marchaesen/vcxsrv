@@ -198,6 +198,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
                                      struct gl_shader_program *prog)
 {
    unsigned num_buffers;
+   unsigned num_atomic_buffers[MESA_SHADER_STAGES] = {};
    active_atomic_buffer *abs =
       find_active_atomic_counters(ctx, prog, &num_buffers);
 
@@ -242,11 +243,47 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
       }
 
       /* Assign stage-specific fields. */
-      for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j)
-         mab.StageReferences[j] =
-            (ab.stage_references[j] ? GL_TRUE : GL_FALSE);
+      for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
+         if (ab.stage_references[j]) {
+            mab.StageReferences[j] = GL_TRUE;
+            num_atomic_buffers[j]++;
+         } else {
+            mab.StageReferences[j] = GL_FALSE;
+         }
+      }
 
       i++;
+   }
+
+   /* Store a list pointers to atomic buffers per stage and store the index
+    * to the intra-stage buffer list in uniform storage.
+    */
+   for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
+      if (prog->_LinkedShaders[j] && num_atomic_buffers[j] > 0) {
+         prog->_LinkedShaders[j]->NumAtomicBuffers = num_atomic_buffers[j];
+         prog->_LinkedShaders[j]->AtomicBuffers =
+            rzalloc_array(prog, gl_active_atomic_buffer *,
+                          num_atomic_buffers[j]);
+
+         unsigned intra_stage_idx = 0;
+         for (unsigned i = 0; i < num_buffers; i++) {
+            struct gl_active_atomic_buffer *atomic_buffer =
+               &prog->AtomicBuffers[i];
+            if (atomic_buffer->StageReferences[j]) {
+               prog->_LinkedShaders[j]->AtomicBuffers[intra_stage_idx] =
+                  atomic_buffer;
+
+               for (unsigned u = 0; u < atomic_buffer->NumUniforms; u++) {
+                  prog->UniformStorage[atomic_buffer->Uniforms[u]].opaque[j].index =
+                     intra_stage_idx;
+                  prog->UniformStorage[atomic_buffer->Uniforms[u]].opaque[j].active =
+                     true;
+               }
+
+               intra_stage_idx++;
+            }
+         }
+      }
    }
 
    delete [] abs;
