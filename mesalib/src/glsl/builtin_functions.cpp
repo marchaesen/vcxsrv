@@ -401,6 +401,12 @@ shader_atomic_counters(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+shader_clock(const _mesa_glsl_parse_state *state)
+{
+   return state->ARB_shader_clock_enable;
+}
+
+static bool
 shader_storage_buffer_object(const _mesa_glsl_parse_state *state)
 {
    return state->has_shader_storage_buffer_objects();
@@ -782,6 +788,11 @@ private:
    ir_function_signature *_memory_barrier(
       builtin_available_predicate avail);
 
+   ir_function_signature *_shader_clock_intrinsic(builtin_available_predicate avail,
+                                                  const glsl_type *type);
+   ir_function_signature *_shader_clock(builtin_available_predicate avail,
+                                        const glsl_type *type);
+
 #undef B0
 #undef B1
 #undef B2
@@ -951,6 +962,11 @@ builtin_builder::create_intrinsics()
 
    add_function("__intrinsic_memory_barrier",
                 _memory_barrier_intrinsic(shader_image_load_store),
+                NULL);
+
+   add_function("__intrinsic_shader_clock",
+                _shader_clock_intrinsic(shader_clock,
+                                        glsl_type::uvec2_type),
                 NULL);
 }
 
@@ -2739,6 +2755,11 @@ builtin_builder::create_builtins()
 
    add_function("memoryBarrier",
                 _memory_barrier(shader_image_load_store),
+                NULL);
+
+   add_function("clock2x32ARB",
+                _shader_clock(shader_clock,
+                              glsl_type::uvec2_type),
                 NULL);
 
 #undef F
@@ -5248,6 +5269,28 @@ builtin_builder::_memory_barrier(builtin_available_predicate avail)
    MAKE_SIG(glsl_type::void_type, avail, 0);
    body.emit(call(shader->symbols->get_function("__intrinsic_memory_barrier"),
                   NULL, sig->parameters));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_shader_clock_intrinsic(builtin_available_predicate avail,
+                                         const glsl_type *type)
+{
+   MAKE_INTRINSIC(type, avail, 0);
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_shader_clock(builtin_available_predicate avail,
+                               const glsl_type *type)
+{
+   MAKE_SIG(type, avail, 0);
+
+   ir_variable *retval = body.make_temp(type, "clock_retval");
+
+   body.emit(call(shader->symbols->get_function("__intrinsic_shader_clock"),
+                  retval, sig->parameters));
+   body.emit(ret(retval));
    return sig;
 }
 

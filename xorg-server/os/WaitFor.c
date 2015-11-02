@@ -158,6 +158,7 @@ WaitForSomething(int *pClientsReady)
     Bool someReady = FALSE;
 
     FD_ZERO(&clientsReadable);
+    FD_ZERO(&clientsWritable);
 
     if (nready)
         SmartScheduleStopTimer();

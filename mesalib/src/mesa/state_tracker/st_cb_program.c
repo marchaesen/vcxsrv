@@ -224,6 +224,7 @@ st_program_string_notify( struct gl_context *ctx,
                                            struct gl_program *prog )
 {
    struct st_context *st = st_context(ctx);
+   gl_shader_stage stage = _mesa_program_enum_to_shader_stage(target);
 
    if (target == GL_FRAGMENT_PROGRAM_ARB) {
       struct st_fragment_program *stfp = (struct st_fragment_program *) prog;
@@ -278,10 +279,10 @@ st_program_string_notify( struct gl_context *ctx,
          st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
    }
 
-   if (ST_DEBUG & DEBUG_PRECOMPILE)
+   if (ST_DEBUG & DEBUG_PRECOMPILE ||
+       st->shader_has_one_variant[stage])
       st_precompile_shader_variant(st, prog);
 
-   /* XXX check if program is legal, within limits */
    return GL_TRUE;
 }
 

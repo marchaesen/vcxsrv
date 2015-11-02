@@ -313,8 +313,6 @@ doOpenFont(ClientPtr client, OFclosurePtr c)
         if (err == Suspended) {
             if (!ClientIsAsleep(client))
                 ClientSleep(client, (ClientSleepProcPtr) doOpenFont, c);
-            else
-                goto xinerama_sleep;
             return TRUE;
         }
         break;
@@ -362,7 +360,6 @@ doOpenFont(ClientPtr client, OFclosurePtr c)
                           c->fontid, FontToXError(err));
     }
     ClientWakeup(c->client);
- xinerama_sleep:
     for (i = 0; i < c->num_fpes; i++) {
         FreeFPE(c->fpe_list[i]);
     }
@@ -595,8 +592,6 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
                 if (!ClientIsAsleep(client))
                     ClientSleep(client,
                                 (ClientSleepProcPtr) doListFontsAndAliases, c);
-                else
-                    goto xinerama_sleep;
                 return TRUE;
             }
 
@@ -622,8 +617,6 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
                         ClientSleep(client,
                                     (ClientSleepProcPtr) doListFontsAndAliases,
                                     c);
-                    else
-                        goto xinerama_sleep;
                     return TRUE;
                 }
                 if (err == Successful)
@@ -641,8 +634,6 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
                         ClientSleep(client,
                                     (ClientSleepProcPtr) doListFontsAndAliases,
                                     c);
-                    else
-                        goto xinerama_sleep;
                     return TRUE;
                 }
                 if (err == FontNameAlias) {
@@ -787,7 +778,6 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
 
  bail:
     ClientWakeup(client);
- xinerama_sleep:
     for (i = 0; i < c->num_fpes; i++)
         FreeFPE(c->fpe_list[i]);
     free(c->fpe_list);
@@ -887,8 +877,6 @@ doListFontsWithInfo(ClientPtr client, LFWIclosurePtr c)
                 if (!ClientIsAsleep(client))
                     ClientSleep(client,
                                 (ClientSleepProcPtr) doListFontsWithInfo, c);
-                else
-                    goto xinerama_sleep;
                 return TRUE;
             }
             if (err == Successful)
@@ -904,8 +892,6 @@ doListFontsWithInfo(ClientPtr client, LFWIclosurePtr c)
                 if (!ClientIsAsleep(client))
                     ClientSleep(client,
                                 (ClientSleepProcPtr) doListFontsWithInfo, c);
-                else
-                    goto xinerama_sleep;
                 return TRUE;
             }
         }
@@ -1039,7 +1025,6 @@ doListFontsWithInfo(ClientPtr client, LFWIclosurePtr c)
     WriteSwappedDataToClient(client, length, &finalReply);
  bail:
     ClientWakeup(client);
- xinerama_sleep:
     for (i = 0; i < c->num_fpes; i++)
         FreeFPE(c->fpe_list[i]);
     free(c->reply);
@@ -1296,8 +1281,6 @@ doPolyText(ClientPtr client, PTclosurePtr c)
                     client_state = START_SLEEP;
                     continue;   /* on to steps 3 and 4 */
                 }
-                else
-                    goto xinerama_sleep;
                 return TRUE;
             }
             else if (lgerr != Successful) {
@@ -1351,7 +1334,6 @@ doPolyText(ClientPtr client, PTclosurePtr c)
     }
     if (ClientIsAsleep(client)) {
         ClientWakeup(c->client);
- xinerama_sleep:
         ChangeGC(NullClient, c->pGC, clearGCmask, clearGC);
 
         /* Unreference the font from the scratch GC */
@@ -1476,8 +1458,6 @@ doImageText(ClientPtr client, ITclosurePtr c)
 
             ClientSleep(client, (ClientSleepProcPtr) doImageText, c);
         }
-        else
-            goto xinerama_sleep;
         return TRUE;
     }
     else if (lgerr != Successful) {
@@ -1500,7 +1480,6 @@ doImageText(ClientPtr client, ITclosurePtr c)
     }
     if (ClientIsAsleep(client)) {
         ClientWakeup(c->client);
- xinerama_sleep:
         ChangeGC(NullClient, c->pGC, clearGCmask, clearGC);
 
         /* Unreference the font from the scratch GC */

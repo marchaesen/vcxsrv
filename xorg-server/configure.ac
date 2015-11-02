@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.17.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2015-09-01"
-RELEASE_NAME="Nectarine"
+AC_INIT([xorg-server], 1.17.99.902, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2015-10-26"
+RELEASE_NAME="Amontillado"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -752,6 +752,11 @@ case $host_os in
 			XF86VIDMODE=no
 		fi
 		;;
+	gnu*)
+		DRM=no
+		DRI2=no
+		DRI3=no
+		;;
 	*) XQUARTZ=no ;;
 esac
 
@@ -921,8 +926,6 @@ fi
 AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$SYSTEMD_LOGIND" = xyes])
 
 if test "x$SUID_WRAPPER" = xyes; then
-        dnl The wrapper uses libdrm headers, so ensure they are available
-        PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
         dnl This is a define so that if some platforms want to put the wrapper
         dnl somewhere else this can be easily changed
         AC_DEFINE_DIR(SUID_WRAPPER_DIR, libexecdir, [Where to install the Xorg binary and Xorg.wrap])

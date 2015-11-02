@@ -2182,7 +2182,7 @@ __glXDisp_RenderLarge(__GLXclientState * cl, GLbyte * pc)
         __GLXrenderSizeData entry;
         int extra = 0;
         int left = (req->length << 2) - sz_xGLXRenderLargeReq;
-        size_t cmdlen;
+        int cmdlen;
         int err;
 
         /*

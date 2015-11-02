@@ -1400,7 +1400,7 @@ save_BlendFunci(GLuint buf, GLenum sfactor, GLenum dfactor)
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_BLEND_FUNC_SEPARATE_I, 3);
+   n = alloc_instruction(ctx, OPCODE_BLEND_FUNC_I, 3);
    if (n) {
       n[1].ui = buf;
       n[2].e = sfactor;
@@ -9741,6 +9741,46 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
                    n[3].f, n[4].f, n[5].f, n[6].f,
                    get_pointer(&n[7]));
             break;
+         case OPCODE_BLEND_COLOR:
+            fprintf(f, "BlendColor %f, %f, %f, %f\n",
+                    n[1].f, n[2].f, n[3].f, n[4].f);
+            break;
+         case OPCODE_BLEND_EQUATION:
+            fprintf(f, "BlendEquation %s\n",
+                    enum_string(n[1].e));
+            break;
+         case OPCODE_BLEND_EQUATION_SEPARATE:
+            fprintf(f, "BlendEquationSeparate %s, %s\n",
+                    enum_string(n[1].e),
+                    enum_string(n[2].e));
+            break;
+         case OPCODE_BLEND_FUNC_SEPARATE:
+            fprintf(f, "BlendFuncSeparate %s, %s, %s, %s\n",
+                    enum_string(n[1].e),
+                    enum_string(n[2].e),
+                    enum_string(n[3].e),
+                    enum_string(n[4].e));
+            break;
+         case OPCODE_BLEND_EQUATION_I:
+            fprintf(f, "BlendEquationi %u, %s\n",
+                    n[1].ui, enum_string(n[2].e));
+            break;
+         case OPCODE_BLEND_EQUATION_SEPARATE_I:
+            fprintf(f, "BlendEquationSeparatei %u, %s, %s\n",
+                    n[1].ui, enum_string(n[2].e), enum_string(n[3].e));
+            break;
+         case OPCODE_BLEND_FUNC_I:
+            fprintf(f, "BlendFunci %u, %s, %s\n",
+                    n[1].ui, enum_string(n[2].e), enum_string(n[3].e));
+            break;
+         case OPCODE_BLEND_FUNC_SEPARATE_I:
+            fprintf(f, "BlendFuncSeparatei %u, %s, %s, %s, %s\n",
+                    n[1].ui,
+                    enum_string(n[2].e),
+                    enum_string(n[3].e),
+                    enum_string(n[4].e),
+                    enum_string(n[5].e));
+            break;
          case OPCODE_CALL_LIST:
             fprintf(f, "CallList %d\n", (int) n[1].ui);
             break;
@@ -9760,6 +9800,9 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
             break;
          case OPCODE_LINE_STIPPLE:
             fprintf(f, "LineStipple %d %x\n", n[1].i, (int) n[2].us);
+            break;
+         case OPCODE_LINE_WIDTH:
+            fprintf(f, "LineWidth %f\n", n[1].f);
             break;
          case OPCODE_LOAD_IDENTITY:
             fprintf(f, "LoadIdentity\n");
@@ -9789,6 +9832,9 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
          case OPCODE_ORTHO:
             fprintf(f, "Ortho %g %g %g %g %g %g\n",
                          n[1].f, n[2].f, n[3].f, n[4].f, n[5].f, n[6].f);
+            break;
+         case OPCODE_POINT_SIZE:
+            fprintf(f, "PointSize %f\n", n[1].f);
             break;
          case OPCODE_POP_ATTRIB:
             fprintf(f, "PopAttrib\n");

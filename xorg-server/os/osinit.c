@@ -158,8 +158,10 @@ void
 OsInit(void)
 {
     static Bool been_here = FALSE;
+#ifndef XQUARTZ
     static const char *devnull = "/dev/null";
     char fname[PATH_MAX];
+#endif
 
     if (!been_here) {
 #if !defined(WIN32) || defined(__CYGWIN__)

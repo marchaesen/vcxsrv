@@ -651,7 +651,7 @@ link_invalidate_variable_locations(exec_list *ir)
 
 
 /**
- * Set UsesClipDistance and ClipDistanceArraySize based on the given shader.
+ * Set clip_distance_array_size based on the given shader.
  *
  * Also check for errors based on incorrect usage of gl_ClipVertex and
  * gl_ClipDistance.
@@ -660,10 +660,10 @@ link_invalidate_variable_locations(exec_list *ir)
  */
 static void
 analyze_clip_usage(struct gl_shader_program *prog,
-                   struct gl_shader *shader, GLboolean *UsesClipDistance,
-                   GLuint *ClipDistanceArraySize)
+                   struct gl_shader *shader,
+                   GLuint *clip_distance_array_size)
 {
-   *ClipDistanceArraySize = 0;
+   *clip_distance_array_size = 0;
 
    if (!prog->IsES && prog->Version >= 130) {
       /* From section 7.1 (Vertex Shader Special Variables) of the
@@ -686,13 +686,14 @@ analyze_clip_usage(struct gl_shader_program *prog,
                       _mesa_shader_stage_to_string(shader->Stage));
          return;
       }
-      *UsesClipDistance = clip_distance.variable_found();
-      ir_variable *clip_distance_var =
-         shader->symbols->get_variable("gl_ClipDistance");
-      if (clip_distance_var)
-         *ClipDistanceArraySize = clip_distance_var->type->length;
-   } else {
-      *UsesClipDistance = false;
+
+      if (clip_distance.variable_found()) {
+         ir_variable *clip_distance_var =
+               shader->symbols->get_variable("gl_ClipDistance");
+
+         assert(clip_distance_var);
+         *clip_distance_array_size = clip_distance_var->type->length;
+      }
    }
 }
 
@@ -700,8 +701,7 @@ analyze_clip_usage(struct gl_shader_program *prog,
 /**
  * Verify that a vertex shader executable meets all semantic requirements.
  *
- * Also sets prog->Vert.UsesClipDistance and prog->Vert.ClipDistanceArraySize
- * as a side effect.
+ * Also sets prog->Vert.ClipDistanceArraySize as a side effect.
  *
  * \param shader  Vertex shader executable to be verified
  */
@@ -754,8 +754,7 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
       }
    }
 
-   analyze_clip_usage(prog, shader, &prog->Vert.UsesClipDistance,
-                      &prog->Vert.ClipDistanceArraySize);
+   analyze_clip_usage(prog, shader, &prog->Vert.ClipDistanceArraySize);
 }
 
 void
@@ -765,8 +764,7 @@ validate_tess_eval_shader_executable(struct gl_shader_program *prog,
    if (shader == NULL)
       return;
 
-   analyze_clip_usage(prog, shader, &prog->TessEval.UsesClipDistance,
-                      &prog->TessEval.ClipDistanceArraySize);
+   analyze_clip_usage(prog, shader, &prog->TessEval.ClipDistanceArraySize);
 }
 
 
@@ -797,8 +795,8 @@ validate_fragment_shader_executable(struct gl_shader_program *prog,
 /**
  * Verify that a geometry shader executable meets all semantic requirements
  *
- * Also sets prog->Geom.VerticesIn, prog->Geom.UsesClipDistance, and
- * prog->Geom.ClipDistanceArraySize as a side effect.
+ * Also sets prog->Geom.VerticesIn, and prog->Geom.ClipDistanceArraySize as
+ * a side effect.
  *
  * \param shader Geometry shader executable to be verified
  */
@@ -812,8 +810,7 @@ validate_geometry_shader_executable(struct gl_shader_program *prog,
    unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
    prog->Geom.VerticesIn = num_vertices;
 
-   analyze_clip_usage(prog, shader, &prog->Geom.UsesClipDistance,
-                      &prog->Geom.ClipDistanceArraySize);
+   analyze_clip_usage(prog, shader, &prog->Geom.ClipDistanceArraySize);
 }
 
 /**
@@ -2285,6 +2282,22 @@ resize_tes_inputs(struct gl_context *ctx,
    foreach_in_list(ir_instruction, ir, tes->ir) {
       ir->accept(&input_resize_visitor);
    }
+
+   if (tcs) {
+      /* Convert the gl_PatchVerticesIn system value into a constant, since
+       * the value is known at this point.
+       */
+      foreach_in_list(ir_instruction, ir, tes->ir) {
+         ir_variable *var = ir->as_variable();
+         if (var && var->data.mode == ir_var_system_value &&
+             var->data.location == SYSTEM_VALUE_VERTICES_IN) {
+            void *mem_ctx = ralloc_parent(var);
+            var->data.mode = ir_var_auto;
+            var->data.location = 0;
+            var->constant_value = new(mem_ctx) ir_constant(num_vertices);
+         }
+      }
+   }
 }
 
 /**
@@ -3117,8 +3130,8 @@ check_explicit_uniform_locations(struct gl_context *ctx,
 
       foreach_in_list(ir_instruction, node, sh->ir) {
          ir_variable *var = node->as_variable();
-         if (var && (var->data.mode == ir_var_uniform || var->data.mode == ir_var_shader_storage) &&
-             var->data.explicit_location) {
+         if (var && (var->data.mode == ir_var_uniform &&
+                     var->data.explicit_location)) {
             bool ret;
             if (var->type->is_subroutine())
                ret = reserve_subroutine_explicit_locations(prog, sh, var);
@@ -3140,7 +3153,8 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
                            GLenum type, const char *name)
 {
    bool found_interface = false;
-   const char *block_name = NULL;
+   unsigned block_name_len = 0;
+   const char *block_name_dot = strchr(name, '.');
 
    /* These rules only apply to buffer variables. So we return
     * true for the rest of types.
@@ -3149,8 +3163,28 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
       return true;
 
    for (unsigned i = 0; i < shProg->NumBufferInterfaceBlocks; i++) {
-      block_name = shProg->BufferInterfaceBlocks[i].Name;
-      if (strncmp(block_name, name, strlen(block_name)) == 0) {
+      const char *block_name = shProg->BufferInterfaceBlocks[i].Name;
+      block_name_len = strlen(block_name);
+
+      const char *block_square_bracket = strchr(block_name, '[');
+      if (block_square_bracket) {
+         /* The block is part of an array of named interfaces,
+          * for the name comparison we ignore the "[x]" part.
+          */
+         block_name_len -= strlen(block_square_bracket);
+      }
+
+      if (block_name_dot) {
+         /* Check if the variable name starts with the interface
+          * name. The interface name (if present) should have the
+          * length than the interface block name we are comparing to.
+          */
+         unsigned len = strlen(name) - strlen(block_name_dot);
+         if (len != block_name_len)
+            continue;
+      }
+
+      if (strncmp(block_name, name, block_name_len) == 0) {
          found_interface = true;
          break;
       }
@@ -3160,7 +3194,7 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
     * including the dot that follows it.
     */
    if (found_interface)
-      name = name + strlen(block_name) + 1;
+      name = name + block_name_len + 1;
 
    /* From: ARB_program_interface_query extension:
     *
@@ -3169,14 +3203,14 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
     *   of its type.  For arrays of aggregate types, the enumeration rules are
     *   applied recursively for the single enumerated array element.
     */
-   const char *first_dot = strchr(name, '.');
+   const char *struct_first_dot = strchr(name, '.');
    const char *first_square_bracket = strchr(name, '[');
 
    /* The buffer variable is on top level and it is not an array */
    if (!first_square_bracket) {
       return true;
    /* The shader storage block member is a struct, then generate the entry */
-   } else if (first_dot && first_dot < first_square_bracket) {
+   } else if (struct_first_dot && struct_first_dot < first_square_bracket) {
       return true;
    } else {
       /* Shader storage block member is an array, only generate an entry for the
@@ -3352,6 +3386,12 @@ add_interface_variables(struct gl_shader_program *shProg,
       if (strncmp(var->name, "packed:", 7) == 0)
          continue;
 
+      /* Skip fragdata arrays, these are handled separately
+       * by add_fragdata_arrays.
+       */
+      if (strncmp(var->name, "gl_out_FragData", 15) == 0)
+         continue;
+
       if (!add_program_resource(shProg, programInterface, var,
                                 build_stageref(shProg, var->name,
                                                var->data.mode) | mask))
@@ -3385,6 +3425,26 @@ add_packed_varyings(struct gl_shader_program *shProg, int stage)
          if (!add_program_resource(shProg, iface, var,
                                    build_stageref(shProg, var->name,
                                                   var->data.mode)))
+            return false;
+      }
+   }
+   return true;
+}
+
+static bool
+add_fragdata_arrays(struct gl_shader_program *shProg)
+{
+   struct gl_shader *sh = shProg->_LinkedShaders[MESA_SHADER_FRAGMENT];
+
+   if (!sh || !sh->fragdata_arrays)
+      return true;
+
+   foreach_in_list(ir_instruction, node, sh->fragdata_arrays) {
+      ir_variable *var = node->as_variable();
+      if (var) {
+         assert(var->data.mode == ir_var_shader_out);
+         if (!add_program_resource(shProg, GL_PROGRAM_OUTPUT, var,
+                                   1 << MESA_SHADER_FRAGMENT))
             return false;
       }
    }
@@ -3666,6 +3726,9 @@ build_program_resource_list(struct gl_shader_program *shProg)
       if (!add_packed_varyings(shProg, output_stage))
          return;
    }
+
+   if (!add_fragdata_arrays(shProg))
+      return;
 
    /* Add inputs and outputs to the resource list. */
    if (!add_interface_variables(shProg, shProg->_LinkedShaders[input_stage]->ir,

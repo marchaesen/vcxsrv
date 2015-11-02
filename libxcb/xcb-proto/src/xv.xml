@@ -118,6 +118,7 @@ authorization from the authors.
         <list type="char" name="name">
             <fieldref>name_size</fieldref>
         </list>
+        <pad align="4" />
     </struct>
 
     <struct name="Image">
@@ -146,6 +147,7 @@ authorization from the authors.
         <list type="char" name="name">
             <fieldref>size</fieldref>
         </list>
+        <pad align="4" />
     </struct>
 
     <struct name="ImageFormatInfo">

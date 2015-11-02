@@ -249,6 +249,9 @@ void st_init_limits(struct pipe_screen *screen,
 
       if (options->EmitNoLoops)
          options->MaxUnrollIterations = MIN2(screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INSTRUCTIONS), 65536);
+      else
+         options->MaxUnrollIterations = screen->get_shader_param(screen, sh,
+                                      PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT);
 
       options->LowerClipDistance = true;
    }
@@ -436,6 +439,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_base_instance),                PIPE_CAP_START_INSTANCE                   },
       { o(ARB_buffer_storage),               PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT   },
       { o(ARB_color_buffer_float),           PIPE_CAP_VERTEX_COLOR_UNCLAMPED           },
+      { o(ARB_copy_image),                   PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS },
       { o(ARB_depth_clamp),                  PIPE_CAP_DEPTH_CLIP_DISABLE               },
       { o(ARB_depth_texture),                PIPE_CAP_TEXTURE_SHADOW_MAP               },
       { o(ARB_draw_buffers_blend),           PIPE_CAP_INDEP_BLEND_FUNC                 },

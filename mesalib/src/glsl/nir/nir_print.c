@@ -228,12 +228,13 @@ print_var_decl(nir_variable *var, print_state *state)
 
    const char *const cent = (var->data.centroid) ? "centroid " : "";
    const char *const samp = (var->data.sample) ? "sample " : "";
+   const char *const patch = (var->data.patch) ? "patch " : "";
    const char *const inv = (var->data.invariant) ? "invariant " : "";
    const char *const mode[] = { "shader_in ", "shader_out ", "", "",
                                 "uniform ", "shader_storage", "system " };
 
-   fprintf(fp, "%s%s%s%s%s ",
-      cent, samp, inv, mode[var->data.mode],
+   fprintf(fp, "%s%s%s%s%s%s ",
+      cent, samp, patch, inv, mode[var->data.mode],
 	  glsl_interp_qualifier_name(var->data.interpolation));
 
    glsl_print_type(var->type, fp);

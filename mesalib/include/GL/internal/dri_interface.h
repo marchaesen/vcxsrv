@@ -495,7 +495,7 @@ struct __DRIdamageExtensionRec {
  * SWRast Loader extension.
  */
 #define __DRI_SWRAST_LOADER "DRI_SWRastLoader"
-#define __DRI_SWRAST_LOADER_VERSION 2
+#define __DRI_SWRAST_LOADER_VERSION 3
 struct __DRIswrastLoaderExtensionRec {
     __DRIextension base;
 
@@ -528,6 +528,15 @@ struct __DRIswrastLoaderExtensionRec {
     void (*putImage2)(__DRIdrawable *drawable, int op,
                       int x, int y, int width, int height, int stride,
                       char *data, void *loaderPrivate);
+
+   /**
+     * Put image to drawable
+     *
+     * \since 3
+     */
+   void (*getImage2)(__DRIdrawable *readable,
+		     int x, int y, int width, int height, int stride,
+		     char *data, void *loaderPrivate);
 };
 
 /**

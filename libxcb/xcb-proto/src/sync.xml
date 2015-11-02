@@ -53,6 +53,7 @@ for licensing information.
     <list type="char" name="name">
       <fieldref>name_len</fieldref>
     </list>
+    <pad align="4" />
   </struct>
 
   <struct name="TRIGGER">

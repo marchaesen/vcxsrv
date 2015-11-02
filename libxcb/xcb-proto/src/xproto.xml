@@ -255,6 +255,7 @@ authorization from the authors.
     <list type="char" name="vendor">
       <fieldref>vendor_len</fieldref>
     </list>
+    <pad align="4" />
     <list type="FORMAT" name="pixmap_formats">
       <fieldref>pixmap_formats_len</fieldref>
     </list>
@@ -1861,7 +1862,7 @@ Configures a window's size, position, border width and stacking order.
  * with a size of 1024x768 pixels.
  *
  */
-void my_example(xcb_connection *c, xcb_window_t window) {
+void my_example(xcb_connection_t *c, xcb_window_t window) {
     uint16_t mask = 0;
 
     mask |= XCB_CONFIG_WINDOW_X;
@@ -1982,7 +1983,7 @@ Gets the current geometry of the specified drawable (either `Window` or `Pixmap`
  * Displays the x and y position of the given window.
  *
  */
-void my_example(xcb_connection *c, xcb_window_t window) {
+void my_example(xcb_connection_t *c, xcb_window_t window) {
     xcb_get_geometry_cookie_t cookie;
     xcb_get_geometry_reply_t *reply;
 
@@ -2042,7 +2043,7 @@ specified `window`. The children are listed in bottom-to-top stacking order.
  * Displays the root, parent and children of the specified window.
  *
  */
-void my_example(xcb_connection *conn, xcb_window_t window) {
+void my_example(xcb_connection_t *conn, xcb_window_t window) {
     xcb_query_tree_cookie_t cookie;
     xcb_query_tree_reply_t *reply;
 
@@ -2093,7 +2094,7 @@ not yet exist.
  * Resolves the _NET_WM_NAME atom.
  *
  */
-void my_example(xcb_connection *c) {
+void my_example(xcb_connection_t *c) {
     xcb_intern_atom_cookie_t cookie;
     xcb_intern_atom_reply_t *reply;
 
@@ -2190,7 +2191,7 @@ window title, encoded as UTF-8 string, in the `_NET_WM_NAME` property.
  * Sets the WM_NAME property of the window to "XCB Example".
  *
  */
-void my_example(xcb_connection *conn, xcb_window_t window) {
+void my_example(xcb_connection_t *conn, xcb_window_t window) {
     xcb_change_property(conn,
         XCB_PROP_MODE_REPLACE,
         window,
@@ -2314,7 +2315,7 @@ TODO: talk about the offset/length thing. what's a valid use case?
  * Prints the WM_NAME property of the window.
  *
  */
-void my_example(xcb_connection *c, xcb_window_t window) {
+void my_example(xcb_connection_t *c, xcb_window_t window) {
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
 
@@ -2602,7 +2603,7 @@ Actively grabs control of the pointer. Further pointer events are reported only 
  * Grabs the pointer actively
  *
  */
-void my_example(xcb_connection *conn, xcb_screen_t *screen, xcb_cursor_t cursor) {
+void my_example(xcb_connection_t *conn, xcb_screen_t *screen, xcb_cursor_t cursor) {
     xcb_grab_pointer_cookie_t cookie;
     xcb_grab_pointer_reply_t *reply;
 
@@ -2877,7 +2878,7 @@ last-keyboard-grab time is set to the specified time.
  * Grabs the keyboard actively
  *
  */
-void my_example(xcb_connection *conn, xcb_screen_t *screen) {
+void my_example(xcb_connection_t *conn, xcb_screen_t *screen) {
     xcb_grab_keyboard_cookie_t cookie;
     xcb_grab_keyboard_reply_t *reply;
 
@@ -4279,7 +4280,7 @@ Changes the components specified by `value_mask` for the specified graphics cont
  * Changes the foreground color component of the specified graphics context.
  *
  */
-void my_example(xcb_connection *conn, xcb_gcontext_t gc, uint32_t fg, uint32_t bg) {
+void my_example(xcb_connection_t *conn, xcb_gcontext_t gc, uint32_t fg, uint32_t bg) {
     /* C99 allows us to use a compact way of changing a single component: */
     xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, (uint32_t[]){ fg });
 
@@ -4495,7 +4496,7 @@ request were a single, filled shape.
  * Draw a straight line.
  *
  */
-void my_example(xcb_connection *conn, xcb_drawable_t drawable, xcb_gcontext_t gc) {
+void my_example(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_gcontext_t gc) {
     xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, drawable, gc, 2,
                   (xcb_point_t[]) { {10, 10}, {100, 10} });
     xcb_flush(conn);
@@ -5464,6 +5465,7 @@ sensitive!
     <list type="BYTE" name="address">
       <fieldref>address_len</fieldref>
     </list>
+    <pad align="4" />
   </struct>
 
   <request name="ListHosts" opcode="110">

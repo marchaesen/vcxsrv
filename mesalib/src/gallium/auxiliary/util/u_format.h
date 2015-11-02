@@ -686,6 +686,9 @@ util_format_is_pure_uint(enum pipe_format format);
 boolean
 util_format_is_snorm(enum pipe_format format);
 
+boolean
+util_format_is_snorm8(enum pipe_format format);
+
 /**
  * Check if the src format can be blitted to the destination format with
  * a simple memcpy.  For example, blitting from RGBA to RGBx is OK, but not

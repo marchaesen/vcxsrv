@@ -513,6 +513,11 @@ struct glsl_type {
       return base_type == GLSL_TYPE_ARRAY;
    }
 
+   bool is_array_of_arrays() const
+   {
+      return is_array() && fields.array->is_array();
+   }
+
    /**
     * Query whether or not a type is a record
     */

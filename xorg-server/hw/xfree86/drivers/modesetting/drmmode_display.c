@@ -340,7 +340,7 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
     int saved_x, saved_y;
     Rotation saved_rotation;
     DisplayModeRec saved_mode;
-    uint32_t *output_ids;
+    uint32_t *output_ids = NULL;
     int output_count = 0;
     Bool ret = TRUE;
     int i;
@@ -421,12 +421,13 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
             fb_id = drmmode_crtc->rotate_fb_id;
             x = y = 0;
         }
-        ret = drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
-                             fb_id, x, y, output_ids, output_count, &kmode);
-        if (ret)
+        if (drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
+                           fb_id, x, y, output_ids, output_count, &kmode)) {
             xf86DrvMsg(crtc->scrn->scrnIndex, X_ERROR,
-                       "failed to set mode: %s", strerror(-ret));
-        else
+                       "failed to set mode: %s\n", strerror(errno));
+            ret = FALSE;
+            goto done;
+        } else
             ret = TRUE;
 
         if (crtc->scrn->pScreen)
@@ -461,11 +462,10 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
         crtc->y = saved_y;
         crtc->rotation = saved_rotation;
         crtc->mode = saved_mode;
-    }
-#if defined(XF86_CRTC_VERSION) && XF86_CRTC_VERSION >= 3
-    else
+    } else
         crtc->active = TRUE;
-#endif
+
+    free(output_ids);
 
     return ret;
 }
@@ -1786,9 +1786,7 @@ drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp)
     drmmode_clones_init(pScrn, drmmode, mode_res);
 
     drmModeFreeResources(mode_res);
-#if XF86_CRTC_VERSION >= 5
     xf86ProviderSetup(pScrn, NULL, "modesetting");
-#endif
 
     xf86InitialConfiguration(pScrn, TRUE);
 

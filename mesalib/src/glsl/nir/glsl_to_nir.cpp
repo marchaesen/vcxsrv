@@ -151,6 +151,8 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
          num_textures = i;
 
    shader->info.name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
+   if (shader_prog->Label)
+      shader->info.label = ralloc_strdup(shader, shader_prog->Label);
    shader->info.num_textures = num_textures;
    shader->info.num_ubos = sh->NumUniformBlocks;
    shader->info.num_abos = shader_prog->NumAtomicBuffers;
@@ -160,12 +162,43 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
    shader->info.outputs_written = sh->Program->OutputsWritten;
    shader->info.system_values_read = sh->Program->SystemValuesRead;
    shader->info.uses_texture_gather = sh->Program->UsesGather;
-   shader->info.uses_clip_distance_out = sh->Program->UsesClipDistanceOut;
+   shader->info.uses_clip_distance_out =
+      sh->Program->ClipDistanceArraySize != 0;
    shader->info.separate_shader = shader_prog->SeparateShader;
-   shader->info.gs.vertices_out = sh->Geom.VerticesOut;
-   shader->info.gs.invocations = sh->Geom.Invocations;
    shader->info.has_transform_feedback_varyings =
       shader_prog->TransformFeedback.NumVarying > 0;
+
+   switch (stage) {
+   case MESA_SHADER_GEOMETRY:
+      shader->info.gs.vertices_in = shader_prog->Geom.VerticesIn;
+      shader->info.gs.output_primitive = sh->Geom.OutputType;
+      shader->info.gs.vertices_out = sh->Geom.VerticesOut;
+      shader->info.gs.invocations = sh->Geom.Invocations;
+      shader->info.gs.uses_end_primitive = shader_prog->Geom.UsesEndPrimitive;
+      shader->info.gs.uses_streams = shader_prog->Geom.UsesStreams;
+      break;
+
+   case MESA_SHADER_FRAGMENT: {
+      struct gl_fragment_program *fp =
+         (struct gl_fragment_program *)sh->Program;
+
+      shader->info.fs.uses_discard = fp->UsesKill;
+      shader->info.fs.early_fragment_tests = sh->EarlyFragmentTests;
+      shader->info.fs.depth_layout = fp->FragDepthLayout;
+      break;
+   }
+
+   case MESA_SHADER_COMPUTE: {
+      struct gl_compute_program *cp = (struct gl_compute_program *)sh->Program;
+      shader->info.cs.local_size[0] = cp->LocalSize[0];
+      shader->info.cs.local_size[1] = cp->LocalSize[1];
+      shader->info.cs.local_size[2] = cp->LocalSize[2];
+      break;
+   }
+
+   default:
+      break; /* No stage-specific info */
+   }
 
    return shader;
 }
@@ -270,6 +303,7 @@ nir_visitor::visit(ir_variable *ir)
    var->data.read_only = ir->data.read_only;
    var->data.centroid = ir->data.centroid;
    var->data.sample = ir->data.sample;
+   var->data.patch = ir->data.patch;
    var->data.invariant = ir->data.invariant;
    var->data.location = ir->data.location;
 
@@ -359,8 +393,6 @@ nir_visitor::visit(ir_variable *ir)
 
    var->data.index = ir->data.index;
    var->data.binding = ir->data.binding;
-   /* XXX Get rid of buffer_index */
-   var->data.atomic.buffer_index = ir->data.binding;
    var->data.atomic.offset = ir->data.atomic.offset;
    var->data.image.read_only = ir->data.image_read_only;
    var->data.image.write_only = ir->data.image_write_only;
@@ -685,6 +717,8 @@ nir_visitor::visit(ir_call *ir)
          op = nir_intrinsic_ssbo_atomic_exchange;
       } else if (strcmp(ir->callee_name(), "__intrinsic_ssbo_atomic_comp_swap_internal") == 0) {
          op = nir_intrinsic_ssbo_atomic_comp_swap;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_shader_clock") == 0) {
+         op = nir_intrinsic_shader_clock;
       } else {
          unreachable("not reached");
       }
@@ -787,6 +821,10 @@ nir_visitor::visit(ir_call *ir)
          break;
       }
       case nir_intrinsic_memory_barrier:
+         nir_instr_insert_after_cf_list(this->cf_node_list, &instr->instr);
+         break;
+      case nir_intrinsic_shader_clock:
+         nir_ssa_dest_init(&instr->instr, &instr->dest, 1, NULL);
          nir_instr_insert_after_cf_list(this->cf_node_list, &instr->instr);
          break;
       case nir_intrinsic_store_ssbo: {

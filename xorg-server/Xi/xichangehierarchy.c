@@ -421,9 +421,7 @@ ProcXIChangeHierarchy(ClientPtr client)
     if (!stuff->num_changes)
         return rc;
 
-    if (stuff->length > (INT_MAX >> 2))
-        return BadAlloc;
-    len = (stuff->length << 2) - sizeof(xXIAnyHierarchyChangeInfo);
+    len = ((size_t)stuff->length << 2) - sizeof(xXIAnyHierarchyChangeInfo);
 
     any = (xXIAnyHierarchyChangeInfo *) &stuff[1];
     while (stuff->num_changes--) {
@@ -435,7 +433,7 @@ ProcXIChangeHierarchy(ClientPtr client)
         SWAPIF(swaps(&any->type));
         SWAPIF(swaps(&any->length));
 
-        if ((any->length > (INT_MAX >> 2)) || (len < (any->length << 2)))
+        if (len < ((size_t)any->length << 2))
             return BadLength;
 
 #define CHANGE_SIZE_MATCH(type) \

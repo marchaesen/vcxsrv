@@ -41,12 +41,12 @@ authorization from the authors.
         <list type="STRING8" name="name">
             <fieldref>nameLen</fieldref>
         </list>
-        <!-- Padding -->
+        <pad align="4" />
         <field type="CARD32" name="descLen" />
         <list type="STRING8" name="description">
             <fieldref>descLen</fieldref>
         </list>
-        <!-- More padding -->
+        <pad align="4" />
     </struct>
 
     <!--<typedef oldname="CARD32" newname="PCONTEXT" />-->
@@ -219,6 +219,7 @@ authorization from the authors.
     <request name="PrintInputSelected" opcode="16">
         <field type="PCONTEXT" name="context" />
         <reply>
+           <pad bytes="1" />
            <field type="CARD32" name="event_mask" />
            <field type="CARD32" name="all_events_mask" />
         </reply>

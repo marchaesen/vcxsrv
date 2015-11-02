@@ -61,7 +61,8 @@ static void reset_attrfv( struct vbo_exec_context *exec );
 
 /**
  * Close off the last primitive, execute the buffer, restart the
- * primitive.  
+ * primitive.  This is called when we fill a vertex buffer before
+ * hitting glEnd.
  */
 static void vbo_exec_wrap_buffers( struct vbo_exec_context *exec )
 {
@@ -71,17 +72,31 @@ static void vbo_exec_wrap_buffers( struct vbo_exec_context *exec )
       exec->vtx.buffer_ptr = exec->vtx.buffer_map;
    }
    else {
-      GLuint last_begin = exec->vtx.prim[exec->vtx.prim_count-1].begin;
+      struct _mesa_prim *last_prim = &exec->vtx.prim[exec->vtx.prim_count - 1];
+      const GLuint last_begin = last_prim->begin;
       GLuint last_count;
 
       if (_mesa_inside_begin_end(exec->ctx)) {
-	 GLint i = exec->vtx.prim_count - 1;
-	 assert(i >= 0);
-	 exec->vtx.prim[i].count = (exec->vtx.vert_count - 
-				    exec->vtx.prim[i].start);
+	 last_prim->count = exec->vtx.vert_count - last_prim->start;
       }
 
-      last_count = exec->vtx.prim[exec->vtx.prim_count-1].count;
+      last_count = last_prim->count;
+
+      /* Special handling for wrapping GL_LINE_LOOP */
+      if (last_prim->mode == GL_LINE_LOOP &&
+          last_count > 0 &&
+          !last_prim->end) {
+         /* draw this section of the incomplete line loop as a line strip */
+         last_prim->mode = GL_LINE_STRIP;
+         if (!last_prim->begin) {
+            /* This is not the first section of the line loop, so don't
+             * draw the 0th vertex.  We're saving it until we draw the
+             * very last section of the loop.
+             */
+            last_prim->start++;
+            last_prim->count--;
+         }
+      }
 
       /* Execute the buffer and save copied vertices.
        */
@@ -98,6 +113,7 @@ static void vbo_exec_wrap_buffers( struct vbo_exec_context *exec )
 
       if (_mesa_inside_begin_end(exec->ctx)) {
 	 exec->vtx.prim[0].mode = exec->ctx->Driver.CurrentExecPrimitive;
+	 exec->vtx.prim[0].begin = 0;
 	 exec->vtx.prim[0].start = 0;
 	 exec->vtx.prim[0].count = 0;
 	 exec->vtx.prim_count++;
@@ -113,10 +129,10 @@ static void vbo_exec_wrap_buffers( struct vbo_exec_context *exec )
  * Deal with buffer wrapping where provoked by the vertex buffer
  * filling up, as opposed to upgrade_vertex().
  */
-void vbo_exec_vtx_wrap( struct vbo_exec_context *exec )
+static void
+vbo_exec_vtx_wrap(struct vbo_exec_context *exec)
 {
-   fi_type *data = exec->vtx.copied.buffer;
-   GLuint i;
+   unsigned numComponents;
 
    /* Run pipeline on current vertices, copy wrapped vertices
     * to exec->vtx.copied.
@@ -132,13 +148,12 @@ void vbo_exec_vtx_wrap( struct vbo_exec_context *exec )
     */
    assert(exec->vtx.max_vert - exec->vtx.vert_count > exec->vtx.copied.nr);
 
-   for (i = 0 ; i < exec->vtx.copied.nr ; i++) {
-      memcpy( exec->vtx.buffer_ptr, data, 
-	      exec->vtx.vertex_size * sizeof(GLfloat));
-      exec->vtx.buffer_ptr += exec->vtx.vertex_size;
-      data += exec->vtx.vertex_size;
-      exec->vtx.vert_count++;
-   }
+   numComponents = exec->vtx.copied.nr * exec->vtx.vertex_size;
+   memcpy(exec->vtx.buffer_ptr,
+          exec->vtx.copied.buffer,
+          numComponents * sizeof(fi_type));
+   exec->vtx.buffer_ptr += numComponents;
+   exec->vtx.vert_count += exec->vtx.copied.nr;
 
    exec->vtx.copied.nr = 0;
 }
@@ -292,8 +307,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
     */
    exec->vtx.attrsz[attr] = newSize;
    exec->vtx.vertex_size += newSize - oldSize;
-   exec->vtx.max_vert = ((VBO_VERT_BUFFER_SIZE - exec->vtx.buffer_used) / 
-                         (exec->vtx.vertex_size * sizeof(GLfloat)));
+   exec->vtx.max_vert = vbo_compute_max_verts(exec);
    exec->vtx.vert_count = 0;
    exec->vtx.buffer_ptr = exec->vtx.buffer_map;
 
@@ -446,10 +460,6 @@ do {									\
                                                                         \
    assert(sz == 1 || sz == 2);                                          \
                                                                         \
-   if (unlikely(!(ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT))) {     \
-      vbo_exec_begin_vertices(ctx);					\
-   }									\
-                                                                        \
    /* check if attribute size or type is changing */                    \
    if (unlikely(exec->vtx.active_sz[A] != N * sz) ||                    \
        unlikely(exec->vtx.attrtype[A] != T)) {                          \
@@ -470,6 +480,15 @@ do {									\
       /* This is a glVertex call */					\
       GLuint i;								\
 									\
+      if (unlikely((ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT) == 0)) { \
+         vbo_exec_begin_vertices(ctx);                                  \
+      }                                                                 \
+                                                                        \
+      if (unlikely(!exec->vtx.buffer_ptr)) {                            \
+         vbo_exec_vtx_map(exec);                                        \
+      }                                                                 \
+      assert(exec->vtx.buffer_ptr);                                     \
+                                                                        \
       /* copy 32-bit words */                                           \
       for (i = 0; i < exec->vtx.vertex_size; i++)			\
 	 exec->vtx.buffer_ptr[i] = exec->vtx.vertex[i];			\
@@ -482,7 +501,10 @@ do {									\
 									\
       if (++exec->vtx.vert_count >= exec->vtx.max_vert)			\
 	 vbo_exec_vtx_wrap( exec );					\
-   }									\
+   } else {                                                             \
+      /* we now have accumulated per-vertex attributes */               \
+      ctx->Driver.NeedFlush |= FLUSH_UPDATE_CURRENT;                    \
+   }                                                                    \
 } while (0)
 
 #define ERROR(err) _mesa_error( ctx, err, __func__ )
@@ -814,11 +836,28 @@ static void GLAPIENTRY vbo_exec_End( void )
 
    if (exec->vtx.prim_count > 0) {
       /* close off current primitive */
-      int idx = exec->vtx.vert_count;
-      int i = exec->vtx.prim_count - 1;
+      struct _mesa_prim *last_prim = &exec->vtx.prim[exec->vtx.prim_count - 1];
 
-      exec->vtx.prim[i].end = 1;
-      exec->vtx.prim[i].count = idx - exec->vtx.prim[i].start;
+      last_prim->end = 1;
+      last_prim->count = exec->vtx.vert_count - last_prim->start;
+
+      /* Special handling for GL_LINE_LOOP */
+      if (last_prim->mode == GL_LINE_LOOP && last_prim->begin == 0) {
+         /* We're finishing drawing a line loop.  Append 0th vertex onto
+          * end of vertex buffer so we can draw it as a line strip.
+          */
+         const fi_type *src = exec->vtx.buffer_map;
+         fi_type *dst = exec->vtx.buffer_map +
+            exec->vtx.vert_count * exec->vtx.vertex_size;
+
+         /* copy 0th vertex to end of buffer */
+         memcpy(dst, src, exec->vtx.vertex_size * sizeof(fi_type));
+
+         assert(last_prim->start == 0);
+         last_prim->start++;  /* skip vertex0 */
+         /* note that last_prim->count stays unchanged */
+         last_prim->mode = GL_LINE_STRIP;
+      }
 
       try_vbo_merge(exec);
    }

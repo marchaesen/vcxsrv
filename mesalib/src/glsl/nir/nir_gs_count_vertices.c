@@ -51,7 +51,7 @@ as_set_vertex_count(nir_instr *instr)
  * counting at the NIR level.
  */
 int
-nir_gs_count_vertices(nir_shader *shader)
+nir_gs_count_vertices(const nir_shader *shader)
 {
    int count = -1;
 
