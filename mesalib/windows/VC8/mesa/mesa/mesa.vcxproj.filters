@@ -212,9 +212,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_pipeline.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\tnl\t_rasterpos.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_vb_fog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
