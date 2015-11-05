@@ -1838,9 +1838,6 @@ xcb_render_create_picture_aux (xcb_connection_t                             *c,
                                uint32_t                                      value_mask,
                                const xcb_render_create_picture_value_list_t *value_list);
 
-void *
-xcb_render_create_picture_value_list (const xcb_render_create_picture_request_t *R);
-
 int
 xcb_render_change_picture_value_list_serialize (void                                         **_buffer,
                                                 uint32_t                                       value_mask,
@@ -1920,9 +1917,6 @@ xcb_render_change_picture_aux (xcb_connection_t                             *c,
                                uint32_t                                      value_mask,
                                const xcb_render_change_picture_value_list_t *value_list);
 
-void *
-xcb_render_change_picture_value_list (const xcb_render_change_picture_request_t *R);
-
 int
 xcb_render_set_picture_clip_rectangles_sizeof (const void  *_buffer,
                                                uint32_t     rectangles_len);
@@ -1961,17 +1955,6 @@ xcb_render_set_picture_clip_rectangles (xcb_connection_t      *c,
                                         int16_t                clip_y_origin,
                                         uint32_t               rectangles_len,
                                         const xcb_rectangle_t *rectangles);
-
-xcb_rectangle_t *
-xcb_render_set_picture_clip_rectangles_rectangles (const xcb_render_set_picture_clip_rectangles_request_t *R);
-
-int
-xcb_render_set_picture_clip_rectangles_rectangles_length (const xcb_render_set_picture_clip_rectangles_request_t *R,
-                                                          uint32_t rectangles_len);
-
-xcb_rectangle_iterator_t
-xcb_render_set_picture_clip_rectangles_rectangles_iterator (const xcb_render_set_picture_clip_rectangles_request_t *R,
-                                                            uint32_t rectangles_len);
 
 /**
  *
@@ -2094,17 +2077,6 @@ xcb_render_trapezoids (xcb_connection_t             *c,
                        uint32_t                      traps_len,
                        const xcb_render_trapezoid_t *traps);
 
-xcb_render_trapezoid_t *
-xcb_render_trapezoids_traps (const xcb_render_trapezoids_request_t *R);
-
-int
-xcb_render_trapezoids_traps_length (const xcb_render_trapezoids_request_t *R,
-                                    uint32_t traps_len);
-
-xcb_render_trapezoid_iterator_t
-xcb_render_trapezoids_traps_iterator (const xcb_render_trapezoids_request_t *R,
-                                      uint32_t traps_len);
-
 int
 xcb_render_triangles_sizeof (const void  *_buffer,
                              uint32_t     triangles_len);
@@ -2149,17 +2121,6 @@ xcb_render_triangles (xcb_connection_t            *c,
                       int16_t                      src_y,
                       uint32_t                     triangles_len,
                       const xcb_render_triangle_t *triangles);
-
-xcb_render_triangle_t *
-xcb_render_triangles_triangles (const xcb_render_triangles_request_t *R);
-
-int
-xcb_render_triangles_triangles_length (const xcb_render_triangles_request_t *R,
-                                       uint32_t triangles_len);
-
-xcb_render_triangle_iterator_t
-xcb_render_triangles_triangles_iterator (const xcb_render_triangles_request_t *R,
-                                         uint32_t triangles_len);
 
 int
 xcb_render_tri_strip_sizeof (const void  *_buffer,
@@ -2206,17 +2167,6 @@ xcb_render_tri_strip (xcb_connection_t            *c,
                       uint32_t                     points_len,
                       const xcb_render_pointfix_t *points);
 
-xcb_render_pointfix_t *
-xcb_render_tri_strip_points (const xcb_render_tri_strip_request_t *R);
-
-int
-xcb_render_tri_strip_points_length (const xcb_render_tri_strip_request_t *R,
-                                    uint32_t points_len);
-
-xcb_render_pointfix_iterator_t
-xcb_render_tri_strip_points_iterator (const xcb_render_tri_strip_request_t *R,
-                                      uint32_t points_len);
-
 int
 xcb_render_tri_fan_sizeof (const void  *_buffer,
                            uint32_t     points_len);
@@ -2261,17 +2211,6 @@ xcb_render_tri_fan (xcb_connection_t            *c,
                     int16_t                      src_y,
                     uint32_t                     points_len,
                     const xcb_render_pointfix_t *points);
-
-xcb_render_pointfix_t *
-xcb_render_tri_fan_points (const xcb_render_tri_fan_request_t *R);
-
-int
-xcb_render_tri_fan_points_length (const xcb_render_tri_fan_request_t *R,
-                                  uint32_t points_len);
-
-xcb_render_pointfix_iterator_t
-xcb_render_tri_fan_points_iterator (const xcb_render_tri_fan_request_t *R,
-                                    uint32_t points_len);
 
 /**
  *
@@ -2399,38 +2338,6 @@ xcb_render_add_glyphs (xcb_connection_t             *c,
                        uint32_t                      data_len,
                        const uint8_t                *data);
 
-uint32_t *
-xcb_render_add_glyphs_glyphids (const xcb_render_add_glyphs_request_t *R);
-
-int
-xcb_render_add_glyphs_glyphids_length (const xcb_render_add_glyphs_request_t *R);
-
-xcb_generic_iterator_t
-xcb_render_add_glyphs_glyphids_end (const xcb_render_add_glyphs_request_t *R);
-
-xcb_render_glyphinfo_t *
-xcb_render_add_glyphs_glyphs (const xcb_render_add_glyphs_request_t *R);
-
-int
-xcb_render_add_glyphs_glyphs_length (const xcb_render_add_glyphs_request_t *R);
-
-xcb_render_glyphinfo_iterator_t
-xcb_render_add_glyphs_glyphs_iterator (const xcb_render_add_glyphs_request_t *R);
-
-uint32_t
-xcb_render_add_glyphs_data_len (const xcb_render_add_glyphs_request_t *R);
-
-uint8_t *
-xcb_render_add_glyphs_data (const xcb_render_add_glyphs_request_t *R);
-
-int
-xcb_render_add_glyphs_data_length (const xcb_render_add_glyphs_request_t *R,
-                                   uint32_t data_len);
-
-xcb_generic_iterator_t
-xcb_render_add_glyphs_data_end (const xcb_render_add_glyphs_request_t *R,
-                                uint32_t data_len);
-
 int
 xcb_render_free_glyphs_sizeof (const void  *_buffer,
                                uint32_t     glyphs_len);
@@ -2465,17 +2372,6 @@ xcb_render_free_glyphs (xcb_connection_t         *c,
                         xcb_render_glyphset_t     glyphset,
                         uint32_t                  glyphs_len,
                         const xcb_render_glyph_t *glyphs);
-
-xcb_render_glyph_t *
-xcb_render_free_glyphs_glyphs (const xcb_render_free_glyphs_request_t *R);
-
-int
-xcb_render_free_glyphs_glyphs_length (const xcb_render_free_glyphs_request_t *R,
-                                      uint32_t glyphs_len);
-
-xcb_generic_iterator_t
-xcb_render_free_glyphs_glyphs_end (const xcb_render_free_glyphs_request_t *R,
-                                   uint32_t glyphs_len);
 
 int
 xcb_render_composite_glyphs_8_sizeof (const void  *_buffer,
@@ -2524,17 +2420,6 @@ xcb_render_composite_glyphs_8 (xcb_connection_t        *c,
                                uint32_t                 glyphcmds_len,
                                const uint8_t           *glyphcmds);
 
-uint8_t *
-xcb_render_composite_glyphs_8_glyphcmds (const xcb_render_composite_glyphs_8_request_t *R);
-
-int
-xcb_render_composite_glyphs_8_glyphcmds_length (const xcb_render_composite_glyphs_8_request_t *R,
-                                                uint32_t glyphcmds_len);
-
-xcb_generic_iterator_t
-xcb_render_composite_glyphs_8_glyphcmds_end (const xcb_render_composite_glyphs_8_request_t *R,
-                                             uint32_t glyphcmds_len);
-
 int
 xcb_render_composite_glyphs_16_sizeof (const void  *_buffer,
                                        uint32_t     glyphcmds_len);
@@ -2581,17 +2466,6 @@ xcb_render_composite_glyphs_16 (xcb_connection_t        *c,
                                 int16_t                  src_y,
                                 uint32_t                 glyphcmds_len,
                                 const uint8_t           *glyphcmds);
-
-uint8_t *
-xcb_render_composite_glyphs_16_glyphcmds (const xcb_render_composite_glyphs_16_request_t *R);
-
-int
-xcb_render_composite_glyphs_16_glyphcmds_length (const xcb_render_composite_glyphs_16_request_t *R,
-                                                 uint32_t glyphcmds_len);
-
-xcb_generic_iterator_t
-xcb_render_composite_glyphs_16_glyphcmds_end (const xcb_render_composite_glyphs_16_request_t *R,
-                                              uint32_t glyphcmds_len);
 
 int
 xcb_render_composite_glyphs_32_sizeof (const void  *_buffer,
@@ -2640,17 +2514,6 @@ xcb_render_composite_glyphs_32 (xcb_connection_t        *c,
                                 uint32_t                 glyphcmds_len,
                                 const uint8_t           *glyphcmds);
 
-uint8_t *
-xcb_render_composite_glyphs_32_glyphcmds (const xcb_render_composite_glyphs_32_request_t *R);
-
-int
-xcb_render_composite_glyphs_32_glyphcmds_length (const xcb_render_composite_glyphs_32_request_t *R,
-                                                 uint32_t glyphcmds_len);
-
-xcb_generic_iterator_t
-xcb_render_composite_glyphs_32_glyphcmds_end (const xcb_render_composite_glyphs_32_request_t *R,
-                                              uint32_t glyphcmds_len);
-
 int
 xcb_render_fill_rectangles_sizeof (const void  *_buffer,
                                    uint32_t     rects_len);
@@ -2689,17 +2552,6 @@ xcb_render_fill_rectangles (xcb_connection_t      *c,
                             xcb_render_color_t     color,
                             uint32_t               rects_len,
                             const xcb_rectangle_t *rects);
-
-xcb_rectangle_t *
-xcb_render_fill_rectangles_rects (const xcb_render_fill_rectangles_request_t *R);
-
-int
-xcb_render_fill_rectangles_rects_length (const xcb_render_fill_rectangles_request_t *R,
-                                         uint32_t rects_len);
-
-xcb_rectangle_iterator_t
-xcb_render_fill_rectangles_rects_iterator (const xcb_render_fill_rectangles_request_t *R,
-                                           uint32_t rects_len);
 
 /**
  *
@@ -2889,29 +2741,6 @@ xcb_render_set_picture_filter (xcb_connection_t         *c,
                                uint32_t                  values_len,
                                const xcb_render_fixed_t *values);
 
-char *
-xcb_render_set_picture_filter_filter (const xcb_render_set_picture_filter_request_t *R);
-
-int
-xcb_render_set_picture_filter_filter_length (const xcb_render_set_picture_filter_request_t *R);
-
-xcb_generic_iterator_t
-xcb_render_set_picture_filter_filter_end (const xcb_render_set_picture_filter_request_t *R);
-
-uint32_t
-xcb_render_set_picture_filter_values_len (const xcb_render_set_picture_filter_request_t *R);
-
-xcb_render_fixed_t *
-xcb_render_set_picture_filter_values (const xcb_render_set_picture_filter_request_t *R);
-
-int
-xcb_render_set_picture_filter_values_length (const xcb_render_set_picture_filter_request_t *R,
-                                             uint32_t values_len);
-
-xcb_generic_iterator_t
-xcb_render_set_picture_filter_values_end (const xcb_render_set_picture_filter_request_t *R,
-                                          uint32_t values_len);
-
 /**
  * Get the next element of the iterator
  * @param i Pointer to a xcb_render_animcursorelt_iterator_t
@@ -2969,17 +2798,6 @@ xcb_render_create_anim_cursor (xcb_connection_t                 *c,
                                xcb_cursor_t                      cid,
                                uint32_t                          cursors_len,
                                const xcb_render_animcursorelt_t *cursors);
-
-xcb_render_animcursorelt_t *
-xcb_render_create_anim_cursor_cursors (const xcb_render_create_anim_cursor_request_t *R);
-
-int
-xcb_render_create_anim_cursor_cursors_length (const xcb_render_create_anim_cursor_request_t *R,
-                                              uint32_t cursors_len);
-
-xcb_render_animcursorelt_iterator_t
-xcb_render_create_anim_cursor_cursors_iterator (const xcb_render_create_anim_cursor_request_t *R,
-                                                uint32_t cursors_len);
 
 /**
  * Get the next element of the iterator
@@ -3066,17 +2884,6 @@ xcb_render_add_traps (xcb_connection_t        *c,
                       uint32_t                 traps_len,
                       const xcb_render_trap_t *traps);
 
-xcb_render_trap_t *
-xcb_render_add_traps_traps (const xcb_render_add_traps_request_t *R);
-
-int
-xcb_render_add_traps_traps_length (const xcb_render_add_traps_request_t *R,
-                                   uint32_t traps_len);
-
-xcb_render_trap_iterator_t
-xcb_render_add_traps_traps_iterator (const xcb_render_add_traps_request_t *R,
-                                     uint32_t traps_len);
-
 /**
  *
  * @param c The connection
@@ -3146,24 +2953,6 @@ xcb_render_create_linear_gradient (xcb_connection_t         *c,
                                    const xcb_render_fixed_t *stops,
                                    const xcb_render_color_t *colors);
 
-xcb_render_fixed_t *
-xcb_render_create_linear_gradient_stops (const xcb_render_create_linear_gradient_request_t *R);
-
-int
-xcb_render_create_linear_gradient_stops_length (const xcb_render_create_linear_gradient_request_t *R);
-
-xcb_generic_iterator_t
-xcb_render_create_linear_gradient_stops_end (const xcb_render_create_linear_gradient_request_t *R);
-
-xcb_render_color_t *
-xcb_render_create_linear_gradient_colors (const xcb_render_create_linear_gradient_request_t *R);
-
-int
-xcb_render_create_linear_gradient_colors_length (const xcb_render_create_linear_gradient_request_t *R);
-
-xcb_render_color_iterator_t
-xcb_render_create_linear_gradient_colors_iterator (const xcb_render_create_linear_gradient_request_t *R);
-
 int
 xcb_render_create_radial_gradient_sizeof (const void  *_buffer);
 
@@ -3208,24 +2997,6 @@ xcb_render_create_radial_gradient (xcb_connection_t         *c,
                                    const xcb_render_fixed_t *stops,
                                    const xcb_render_color_t *colors);
 
-xcb_render_fixed_t *
-xcb_render_create_radial_gradient_stops (const xcb_render_create_radial_gradient_request_t *R);
-
-int
-xcb_render_create_radial_gradient_stops_length (const xcb_render_create_radial_gradient_request_t *R);
-
-xcb_generic_iterator_t
-xcb_render_create_radial_gradient_stops_end (const xcb_render_create_radial_gradient_request_t *R);
-
-xcb_render_color_t *
-xcb_render_create_radial_gradient_colors (const xcb_render_create_radial_gradient_request_t *R);
-
-int
-xcb_render_create_radial_gradient_colors_length (const xcb_render_create_radial_gradient_request_t *R);
-
-xcb_render_color_iterator_t
-xcb_render_create_radial_gradient_colors_iterator (const xcb_render_create_radial_gradient_request_t *R);
-
 int
 xcb_render_create_conical_gradient_sizeof (const void  *_buffer);
 
@@ -3265,24 +3036,6 @@ xcb_render_create_conical_gradient (xcb_connection_t         *c,
                                     uint32_t                  num_stops,
                                     const xcb_render_fixed_t *stops,
                                     const xcb_render_color_t *colors);
-
-xcb_render_fixed_t *
-xcb_render_create_conical_gradient_stops (const xcb_render_create_conical_gradient_request_t *R);
-
-int
-xcb_render_create_conical_gradient_stops_length (const xcb_render_create_conical_gradient_request_t *R);
-
-xcb_generic_iterator_t
-xcb_render_create_conical_gradient_stops_end (const xcb_render_create_conical_gradient_request_t *R);
-
-xcb_render_color_t *
-xcb_render_create_conical_gradient_colors (const xcb_render_create_conical_gradient_request_t *R);
-
-int
-xcb_render_create_conical_gradient_colors_length (const xcb_render_create_conical_gradient_request_t *R);
-
-xcb_render_color_iterator_t
-xcb_render_create_conical_gradient_colors_iterator (const xcb_render_create_conical_gradient_request_t *R);
 
 
 #ifdef __cplusplus

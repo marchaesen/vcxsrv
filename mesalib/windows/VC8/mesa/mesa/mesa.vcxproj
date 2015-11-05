@@ -428,7 +428,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_context.c" />
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_draw.c" />
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_pipeline.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\tnl\t_rasterpos.c" />
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_vb_fog.c" />
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_vb_light.c" />
     <ClCompile Include="..\..\..\..\src\mesa\tnl\t_vb_normals.c" />
