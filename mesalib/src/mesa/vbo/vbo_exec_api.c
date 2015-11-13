@@ -114,6 +114,7 @@ static void vbo_exec_wrap_buffers( struct vbo_exec_context *exec )
       if (_mesa_inside_begin_end(exec->ctx)) {
 	 exec->vtx.prim[0].mode = exec->ctx->Driver.CurrentExecPrimitive;
 	 exec->vtx.prim[0].begin = 0;
+         exec->vtx.prim[0].end = 0;
 	 exec->vtx.prim[0].start = 0;
 	 exec->vtx.prim[0].count = 0;
 	 exec->vtx.prim_count++;
@@ -846,17 +847,23 @@ static void GLAPIENTRY vbo_exec_End( void )
          /* We're finishing drawing a line loop.  Append 0th vertex onto
           * end of vertex buffer so we can draw it as a line strip.
           */
-         const fi_type *src = exec->vtx.buffer_map;
+         const fi_type *src = exec->vtx.buffer_map +
+            last_prim->start * exec->vtx.vertex_size;
          fi_type *dst = exec->vtx.buffer_map +
             exec->vtx.vert_count * exec->vtx.vertex_size;
 
          /* copy 0th vertex to end of buffer */
          memcpy(dst, src, exec->vtx.vertex_size * sizeof(fi_type));
 
-         assert(last_prim->start == 0);
          last_prim->start++;  /* skip vertex0 */
          /* note that last_prim->count stays unchanged */
          last_prim->mode = GL_LINE_STRIP;
+
+         /* Increment the vertex count so the next primitive doesn't
+          * overwrite the last vertex which we just added.
+          */
+         exec->vtx.vert_count++;
+         exec->vtx.buffer_ptr += exec->vtx.vertex_size;
       }
 
       try_vbo_merge(exec);

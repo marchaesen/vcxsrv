@@ -117,6 +117,7 @@ vbo_copy_vertices( struct vbo_exec_context *exec )
           * subtract one from last_prim->start) so that we copy the 0th vertex
           * to the next vertex buffer.
           */
+         assert(last_prim->start > 0);
          src -= sz;
       }
       /* fall-through */

@@ -449,6 +449,16 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
    save->API = ctx->API;
    ctx->API = API_OPENGL_COMPAT;
 
+   /* Mesa's extension helper functions use the current context's API to look up
+    * the version required by an extension as a step in determining whether or
+    * not it has been advertised. Since meta aims to only be restricted by the
+    * driver capability (and not by whether or not an extension has been
+    * advertised), set the helper functions' Version variable to a value that
+    * will make the checks on the context API and version unconditionally pass.
+    */
+   save->ExtensionsVersion = ctx->Extensions.Version;
+   ctx->Extensions.Version = ~0;
+
    /* Pausing transform feedback needs to be done early, or else we won't be
     * able to change other state.
     */
@@ -1222,6 +1232,7 @@ _mesa_meta_end(struct gl_context *ctx)
    ctx->Meta->SaveStackDepth--;
 
    ctx->API = save->API;
+   ctx->Extensions.Version = save->ExtensionsVersion;
 }
 
 

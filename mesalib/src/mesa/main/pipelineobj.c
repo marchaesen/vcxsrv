@@ -907,6 +907,21 @@ _mesa_ValidateProgramPipeline(GLuint pipeline)
 
    _mesa_validate_program_pipeline(ctx, pipe,
                                    (ctx->_Shader->Name == pipe->Name));
+
+   /* Validate inputs against outputs, this cannot be done during linking
+    * since programs have been linked separately from each other.
+    *
+    * From OpenGL 4.5 Core spec:
+    *     "Separable program objects may have validation failures that cannot be
+    *     detected without the complete program pipeline. Mismatched interfaces,
+    *     improper usage of program objects together, and the same
+    *     state-dependent failures can result in validation errors for such
+    *     program objects."
+    *
+    * OpenGL ES 3.1 specification has the same text.
+    */
+   if (!_mesa_validate_pipeline_io(pipe))
+      pipe->Validated = GL_FALSE;
 }
 
 void GLAPIENTRY

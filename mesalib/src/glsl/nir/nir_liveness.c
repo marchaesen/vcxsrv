@@ -42,7 +42,7 @@
  * block but not in the live-in of the block containing the phi node.
  */
 
-struct live_variables_state {
+struct live_ssa_defs_state {
    unsigned num_ssa_defs;
    unsigned bitset_words;
 
@@ -52,7 +52,7 @@ struct live_variables_state {
 static bool
 index_ssa_def(nir_ssa_def *def, void *void_state)
 {
-   struct live_variables_state *state = void_state;
+   struct live_ssa_defs_state *state = void_state;
 
    if (def->parent_instr->type == nir_instr_type_ssa_undef)
       def->live_index = 0;
@@ -77,7 +77,7 @@ index_ssa_definitions_block(nir_block *block, void *state)
 static bool
 init_liveness_block(nir_block *block, void *void_state)
 {
-   struct live_variables_state *state = void_state;
+   struct live_ssa_defs_state *state = void_state;
 
    block->live_in = reralloc(block, block->live_in, BITSET_WORD,
                              state->bitset_words);
@@ -129,7 +129,7 @@ set_ssa_def_dead(nir_ssa_def *def, void *void_live)
  */
 static bool
 propagate_across_edge(nir_block *pred, nir_block *succ,
-                      struct live_variables_state *state)
+                      struct live_ssa_defs_state *state)
 {
    NIR_VLA(BITSET_WORD, live, state->bitset_words);
    memcpy(live, succ->live_in, state->bitset_words * sizeof *live);
@@ -165,9 +165,9 @@ propagate_across_edge(nir_block *pred, nir_block *succ,
 }
 
 void
-nir_live_variables_impl(nir_function_impl *impl)
+nir_live_ssa_defs_impl(nir_function_impl *impl)
 {
-   struct live_variables_state state;
+   struct live_ssa_defs_state state;
 
    /* We start at 1 because we reserve the index value of 0 for ssa_undef
     * instructions.  Those are never live, so their liveness information

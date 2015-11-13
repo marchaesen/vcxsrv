@@ -85,7 +85,8 @@ ast_type_qualifier::has_storage() const
           || this->flags.q.in
           || this->flags.q.out
           || this->flags.q.uniform
-          || this->flags.q.buffer;
+          || this->flags.q.buffer
+          || this->flags.q.shared_storage;
 }
 
 bool

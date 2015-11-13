@@ -459,9 +459,15 @@ fp64(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+compute_shader(const _mesa_glsl_parse_state *state)
+{
+   return state->stage == MESA_SHADER_COMPUTE;
+}
+
+static bool
 barrier_supported(const _mesa_glsl_parse_state *state)
 {
-   return state->stage == MESA_SHADER_COMPUTE ||
+   return compute_shader(state) ||
           state->stage == MESA_SHADER_TESS_CTRL;
 }
 
@@ -785,8 +791,8 @@ private:
 
    ir_function_signature *_memory_barrier_intrinsic(
       builtin_available_predicate avail);
-   ir_function_signature *_memory_barrier(
-      builtin_available_predicate avail);
+   ir_function_signature *_memory_barrier(const char *intrinsic_name,
+                                          builtin_available_predicate avail);
 
    ir_function_signature *_shader_clock_intrinsic(builtin_available_predicate avail,
                                                   const glsl_type *type);
@@ -962,6 +968,21 @@ builtin_builder::create_intrinsics()
 
    add_function("__intrinsic_memory_barrier",
                 _memory_barrier_intrinsic(shader_image_load_store),
+                NULL);
+   add_function("__intrinsic_group_memory_barrier",
+                _memory_barrier_intrinsic(compute_shader),
+                NULL);
+   add_function("__intrinsic_memory_barrier_atomic_counter",
+                _memory_barrier_intrinsic(compute_shader),
+                NULL);
+   add_function("__intrinsic_memory_barrier_buffer",
+                _memory_barrier_intrinsic(compute_shader),
+                NULL);
+   add_function("__intrinsic_memory_barrier_image",
+                _memory_barrier_intrinsic(compute_shader),
+                NULL);
+   add_function("__intrinsic_memory_barrier_shared",
+                _memory_barrier_intrinsic(compute_shader),
                 NULL);
 
    add_function("__intrinsic_shader_clock",
@@ -2754,7 +2775,28 @@ builtin_builder::create_builtins()
    add_image_functions(true);
 
    add_function("memoryBarrier",
-                _memory_barrier(shader_image_load_store),
+                _memory_barrier("__intrinsic_memory_barrier",
+                                shader_image_load_store),
+                NULL);
+   add_function("groupMemoryBarrier",
+                _memory_barrier("__intrinsic_group_memory_barrier",
+                                compute_shader),
+                NULL);
+   add_function("memoryBarrierAtomicCounter",
+                _memory_barrier("__intrinsic_memory_barrier_atomic_counter",
+                                compute_shader),
+                NULL);
+   add_function("memoryBarrierBuffer",
+                _memory_barrier("__intrinsic_memory_barrier_buffer",
+                                compute_shader),
+                NULL);
+   add_function("memoryBarrierImage",
+                _memory_barrier("__intrinsic_memory_barrier_image",
+                                compute_shader),
+                NULL);
+   add_function("memoryBarrierShared",
+                _memory_barrier("__intrinsic_memory_barrier_shared",
+                                compute_shader),
                 NULL);
 
    add_function("clock2x32ARB",
@@ -5264,10 +5306,11 @@ builtin_builder::_memory_barrier_intrinsic(builtin_available_predicate avail)
 }
 
 ir_function_signature *
-builtin_builder::_memory_barrier(builtin_available_predicate avail)
+builtin_builder::_memory_barrier(const char *intrinsic_name,
+                                 builtin_available_predicate avail)
 {
    MAKE_SIG(glsl_type::void_type, avail, 0);
-   body.emit(call(shader->symbols->get_function("__intrinsic_memory_barrier"),
+   body.emit(call(shader->symbols->get_function(intrinsic_name),
                   NULL, sig->parameters));
    return sig;
 }

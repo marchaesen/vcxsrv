@@ -905,4 +905,13 @@
 
 </category>
 
+<category name="GL_EXT_buffer_storage" number="239">
+    <function name="BufferStorageEXT" alias="BufferStorage" es2="3.1">
+        <param name="target" type="GLenum"/>
+        <param name="size" type="GLsizeiptr"/>
+        <param name="data" type="const GLvoid *"/>
+        <param name="flags" type="GLbitfield"/>
+    </function>
+</category>
+
 </OpenGLAPI>

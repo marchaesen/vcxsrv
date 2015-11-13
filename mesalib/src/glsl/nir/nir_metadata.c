@@ -39,8 +39,8 @@ nir_metadata_require(nir_function_impl *impl, nir_metadata required)
       nir_index_blocks(impl);
    if (NEEDS_UPDATE(nir_metadata_dominance))
       nir_calc_dominance_impl(impl);
-   if (NEEDS_UPDATE(nir_metadata_live_variables))
-      nir_live_variables_impl(impl);
+   if (NEEDS_UPDATE(nir_metadata_live_ssa_defs))
+      nir_live_ssa_defs_impl(impl);
 
 #undef NEEDS_UPDATE
 

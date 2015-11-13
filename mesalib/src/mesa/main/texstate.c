@@ -330,7 +330,8 @@ _mesa_ClientActiveTexture(GLenum texture)
       return;
 
    if (texUnit >= ctx->Const.MaxTextureCoordUnits) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glClientActiveTexture(texture)");
+      _mesa_error(ctx, GL_INVALID_ENUM, "glClientActiveTexture(texture=%s)",
+                  _mesa_enum_to_string(texture));
       return;
    }
 

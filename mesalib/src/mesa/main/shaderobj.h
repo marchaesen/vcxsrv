@@ -234,6 +234,9 @@ _mesa_shader_stage_to_subroutine_uniform(gl_shader_stage stage)
    }
 }
 
+extern bool
+_mesa_validate_pipeline_io(struct gl_pipeline_object *);
+
 #ifdef __cplusplus
 }
 #endif

@@ -394,10 +394,10 @@ typedef struct {
     */
    bool is_packed;
 
-   /** set of nir_instr's where this register is used (read from) */
+   /** set of nir_src's where this register is used (read from) */
    struct list_head uses;
 
-   /** set of nir_instr's where this register is defined (written to) */
+   /** set of nir_dest's where this register is defined (written to) */
    struct list_head defs;
 
    /** set of nir_if's where this register is used as a condition */
@@ -784,6 +784,15 @@ typedef struct {
 NIR_DEFINE_CAST(nir_deref_as_var, nir_deref, nir_deref_var, deref)
 NIR_DEFINE_CAST(nir_deref_as_array, nir_deref, nir_deref_array, deref)
 NIR_DEFINE_CAST(nir_deref_as_struct, nir_deref, nir_deref_struct, deref)
+
+/* Returns the last deref in the chain. */
+static inline nir_deref *
+nir_deref_tail(nir_deref *deref)
+{
+   while (deref->child)
+      deref = deref->child;
+   return deref;
+}
 
 typedef struct {
    nir_instr instr;
@@ -1310,7 +1319,7 @@ typedef enum {
    nir_metadata_none = 0x0,
    nir_metadata_block_index = 0x1,
    nir_metadata_dominance = 0x2,
-   nir_metadata_live_variables = 0x4,
+   nir_metadata_live_ssa_defs = 0x4,
 } nir_metadata;
 
 typedef struct {
@@ -1481,6 +1490,11 @@ typedef struct nir_shader_info {
    /* Which system values are actually read */
    uint64_t system_values_read;
 
+   /* Which patch inputs are actually read */
+   uint32_t patch_inputs_read;
+   /* Which patch outputs are actually written */
+   uint32_t patch_outputs_written;
+
    /* Whether or not this shader ever uses textureGather() */
    bool uses_texture_gather;
 
@@ -1621,9 +1635,9 @@ nir_function_overload *nir_function_overload_create(nir_function *func);
 
 nir_function_impl *nir_function_impl_create(nir_function_overload *func);
 
-nir_block *nir_block_create(void *mem_ctx);
-nir_if *nir_if_create(void *mem_ctx);
-nir_loop *nir_loop_create(void *mem_ctx);
+nir_block *nir_block_create(nir_shader *shader);
+nir_if *nir_if_create(nir_shader *shader);
+nir_loop *nir_loop_create(nir_shader *shader);
 
 nir_function_impl *nir_cf_node_get_function(nir_cf_node *node);
 
@@ -1986,7 +2000,7 @@ bool nir_lower_gs_intrinsics(nir_shader *shader);
 
 bool nir_normalize_cubemap_coords(nir_shader *shader);
 
-void nir_live_variables_impl(nir_function_impl *impl);
+void nir_live_ssa_defs_impl(nir_function_impl *impl);
 bool nir_ssa_defs_interfere(nir_ssa_def *a, nir_ssa_def *b);
 
 void nir_convert_to_ssa_impl(nir_function_impl *impl);
@@ -2004,12 +2018,10 @@ bool nir_opt_constant_folding(nir_shader *shader);
 
 bool nir_opt_global_to_local(nir_shader *shader);
 
-bool nir_copy_prop_impl(nir_function_impl *impl);
 bool nir_copy_prop(nir_shader *shader);
 
 bool nir_opt_cse(nir_shader *shader);
 
-bool nir_opt_dce_impl(nir_function_impl *impl);
 bool nir_opt_dce(nir_shader *shader);
 
 bool nir_opt_dead_cf(nir_shader *shader);
@@ -2017,7 +2029,6 @@ bool nir_opt_dead_cf(nir_shader *shader);
 void nir_opt_gcm(nir_shader *shader);
 
 bool nir_opt_peephole_select(nir_shader *shader);
-bool nir_opt_peephole_ffma(nir_shader *shader);
 
 bool nir_opt_remove_phis(nir_shader *shader);
 
