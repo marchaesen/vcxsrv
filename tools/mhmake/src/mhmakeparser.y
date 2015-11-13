@@ -20,12 +20,12 @@
 
 /* -------------- declaration section -------------- */
 
-%require "2.4.1"
+%require "3.0.2"
 %defines
-%define parser_class_name "mhmakeparser"
-%define parser_base_class_name "mhmakeparserbase"
-%define parser_class_constructor_init ": mhmakeparserbase(pMakefile,pLexer)"
-%define parser_class_constructor_param "mhmakefileparser *pMakefile, mhmakeFlexLexer *pLexer"
+%define parser_class_name { mhmakeparser }
+%define parser_base_class_name { mhmakeparserbase }
+%define parser_class_constructor_init { : mhmakeparserbase(pMakefile,pLexer) }
+%define parser_class_constructor_param { mhmakefileparser *pMakefile, mhmakeFlexLexer *pLexer }
 %error-verbose
 
 %code requires {
@@ -45,6 +45,12 @@ const char Test[]="dit is een test";
 %locations
 %initial-action
 {
+  string listVar;
+  m_pMakefile->GetVariable("MAKEFILE_LIST", listVar);
+  if (listVar.length()!=0)
+    listVar+=" ";
+  m_pMakefile->SetVariable("MAKEFILE_LIST", listVar+m_ptheLexer->GetInputFilename());
+
   // Initialize the initial location.
   @$.initialize(&m_ptheLexer->GetInputFilename());
 };
@@ -101,12 +107,19 @@ statement: NEWLINE |
            vpathrule |
            COMMAND
            {
-             if (!m_pMakefile->m_pCurrentRule)
+             if (m_pMakefile->m_pCurrentItems)
              {
-               m_pMakefile->m_pCurrentRule=refptr<rule>(new rule(m_pMakefile));
+               if (!m_pMakefile->m_pCurrentRule)
+               {
+                 m_pMakefile->m_pCurrentRule=refptr<rule>(new rule(m_pMakefile));
+               }
+               m_pMakefile->m_pCurrentRule->AddCommand($1);
+               PRINTF(("Adding command : %s\n",$1.c_str()));
              }
-             m_pMakefile->m_pCurrentRule->AddCommand($1);
-             PRINTF(("Adding command : %s\n",$1.c_str()));
+             else
+             {
+               PRINTF(("Throwing away command : %s\n",$1.c_str()));
+             }
            }
 ;
 
@@ -122,25 +135,33 @@ includemak:
 
 ruledef: expression_nocolorequal rulecolon maybeemptyexpression
          {
-           if (m_pMakefile->m_pCurrentItems)
+           if (m_pMakefile->m_pCurrentItems && m_pMakefile->m_pCurrentItems->size()>0)
            {
              PRINTF(("Adding rule : %s\n",(*m_pMakefile->m_pCurrentItems)[0]->GetQuotedFullFileName().c_str()));
              m_pMakefile->AddRule();
            }
 
-           m_pMakefile->m_pCurrentItems=new fileinfoarray;
-           m_pMakefile->m_pCurrentDeps=new fileinfoarray;
-           #ifdef _DEBUG
            if (!m_pMakefile->ExpandExpression($1).size())
            {
-             throw string("Empty left hand side in rule: ") + $1 + " : " + $3;
+             //throw string("Empty left hand side in rule: ") + $1 + " : " + $3;
+             #ifdef _DEBUG
+             cout << "Empty left hand side in rule: " << $1 << " : " << $3 << endl;
+             #endif
+             // We have to skip the commands that follow (rules with empty left hand size are thrown away)
+             m_pMakefile->m_pCurrentItems=NULL;
+             m_pMakefile->m_pCurrentDeps=NULL;
            }
-           #endif
-           m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($1), *m_pMakefile->m_pCurrentItems);
-           m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($3), *m_pMakefile->m_pCurrentDeps);
-           m_pMakefile->m_DoubleColonRule= ($2==1) ;
-           PRINTF(("Defining rule %s : %s\n",$1.c_str(),$3.c_str()));
-           PRINTF(("  Expanded to %s : %s\n",m_pMakefile->ExpandExpression($1).c_str(),m_pMakefile->ExpandExpression($3).c_str()));
+           else
+           {
+             m_pMakefile->m_pCurrentItems=new fileinfoarray;
+             m_pMakefile->m_pCurrentDeps=new fileinfoarray;
+
+             m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($1), *m_pMakefile->m_pCurrentItems);
+             m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($3), *m_pMakefile->m_pCurrentDeps);
+             m_pMakefile->m_DoubleColonRule= ($2==1) ;
+             PRINTF(("Defining rule %s : %s\n",$1.c_str(),$3.c_str()));
+             PRINTF(("  Expanded to %s : %s\n",m_pMakefile->ExpandExpression($1).c_str(),m_pMakefile->ExpandExpression($3).c_str()));
+           }
          }
 ;
 

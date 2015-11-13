@@ -809,11 +809,6 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
 {
   string FullCommandLine;
   string ComSpec=GetComspec();
-#ifdef WIN32
-  STARTUPINFO StartupInfo;
-  memset(&StartupInfo,0,sizeof(StartupInfo));
-  StartupInfo.cb=sizeof(STARTUPINFO);
-  PROCESS_INFORMATION ProcessInfo;
 
   if (Command.substr(0,ComSpec.size())==ComSpec)
   {
@@ -822,12 +817,16 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
 
     if (pFilenameOffset==NULL)
     {
+      #ifdef WIN32
       const char *pDir=getenv("TEMP");
       if (!pDir)
         pDir=getenv("TMP");
       if (!pDir)
         pDir=m_MakeDir->GetFullFileName().c_str();
       sprintf(Filename, "%s\\tmp%d_", pDir, GetCurrentProcessId());
+      #else
+      sprintf(Filename, "/tmp/tmp%d_", getpid());
+      #endif
       pFilenameOffset=Filename+strlen(Filename);
     }
 
@@ -837,20 +836,27 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
     string ComspecCommandLine=tmpCommand+Params;
     unsigned NextBegin=0;
     unsigned EndPos=0;
+
     CommandSep(ComspecCommandLine,EndPos,NextBegin);
 
       // We have multiple commands so create an temporary batch file
     FILE *pFile;
     while (1)
     {
+      #ifdef WIN32
       sprintf(pFilenameOffset,"%d.bat",rand());
+      #else
+      sprintf(pFilenameOffset,"%d.sh",rand());
+      #endif
       pFile=fopen(Filename,"r");
       if (!pFile)
         break;
       fclose(pFile);
     }
     pFile=fopen(Filename,"w");
+    #ifdef WIN32
     fprintf(pFile,"@echo off\n");
+    #endif
     unsigned PrevPos=0;
     while (EndPos!=(unsigned)string::npos)
     {
@@ -862,6 +868,10 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
     string SubCommand=ComspecCommandLine.substr(PrevPos);
     fprintf(pFile,"%s\n",SubCommand.c_str());
     fclose(pFile);
+    #ifndef WIN32
+    // make the file executable
+    chmod(Filename, S_IRWXU);
+    #endif
     FullCommandLine+=QuoteFileName(Filename);
     ((mhmakefileparser*)this)->m_FilesToRemoveAtEnd.push_back(string(Filename));
   }
@@ -869,6 +879,12 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
   {
     FullCommandLine=Command+Params;
   }
+#ifdef WIN32
+  STARTUPINFO StartupInfo;
+  memset(&StartupInfo,0,sizeof(StartupInfo));
+  StartupInfo.cb=sizeof(STARTUPINFO);
+  PROCESS_INFORMATION ProcessInfo;
+
   char *pFullCommand=new char[FullCommandLine.length()+1];
   strcpy(pFullCommand,FullCommandLine.c_str());
 
@@ -978,17 +994,6 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
     return ProcessInfo.hProcess;
   }
 #else
-  if (Command.substr(0,ComSpec.size())==ComSpec)
-  {
-    string tmpCommand=Command.substr(ComSpec.size(),Command.size());
-    FullCommandLine=ComSpec;
-    FullCommandLine+=QuoteFileName(tmpCommand)+Params;
-  }
-  else
-  {
-    FullCommandLine=Command+Params;
-  }
-
   if (pOutput || g_Quiet)
   {
     int pipeto[2];      /* pipe to feed the exec'ed program input */
@@ -1140,49 +1145,6 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#ifndef WIN32
-string EscapeQuotes(const string &Params)
-{
-  int OldPos=0;
-  int Pos;
-  string Quote("\\\"");
-  string SemiColon(" ; ");
-  string Ret;
-
-  while (1)
-  {
-    int Pos=Params.find_first_of('"',OldPos);
-    int Pos2=Params.find(" & ",OldPos);
-    string ToReplace(Quote);
-    int Inc=1;
-
-    if (Pos==(int)string::npos)
-    {
-      if (Pos2==(int)string::npos)
-        break;
-      Pos=Pos2;
-      ToReplace=SemiColon;
-      Inc=3;
-    }
-    else
-    {
-      if (Pos2!=(int)string::npos && Pos2<Pos)
-      {
-        Pos=Pos2;
-        ToReplace=SemiColon;
-        Inc=3;
-      }
-    }
-    Ret+=Params.substr(OldPos,Pos-OldPos);
-    Ret+=ToReplace;
-    OldPos=Pos+Inc;
-  }
-  Ret+=Params.substr(OldPos);
-  return Ret;
-}
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
 static bool NeedsShell(const string &Params)
 {
   unsigned i;
@@ -1196,7 +1158,7 @@ static bool NeedsShell(const string &Params)
     }
     else if (Detect)
     {
-      if (strchr("<>|&",Char))
+      if (strchr("<>|&\n[*",Char))
       {
         break;
       }
@@ -1257,27 +1219,13 @@ mh_pid_t mhmakefileparser::ExecuteCommand(string Command, bool &IgnoreError, str
   {
     if (Command!="del" && Command!="touch" && Command!="copy" && Command!="echo" && Command!="mkdir")
       Command=GetFullCommand(Command);
-#ifndef WIN32
-    if (Command.substr(0,GetComspec().size())==GetComspec())
-    {
-      Params=EscapeQuotes(Params);
-      Params+="\"";
-    }
-#endif
   }
   else
   {
     if (Command!="echo" || strchr(Params.c_str(),'|'))  // the EchoCommand(Params) does not implement piping, only redirecting (>)
     {
-      string FullCommand=GetFullCommand(Command);
       string ComSpec=GetComspec();
-      if (FullCommand.substr(0,ComSpec.size())!=ComSpec)
-        Command=FullCommand; // Only use FullCommand when it was found and not prepending by the comspec.
       Command=ComSpec+Command;
-#ifndef WIN32
-      Params=EscapeQuotes(Params);
-      Params+="\"";
-#endif
     }
   }
   if (Echo

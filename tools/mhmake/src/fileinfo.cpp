@@ -213,10 +213,10 @@ bool fileinfo::IsAutoDepExtention(void) const
   if (m_pRule)
   {
     string ObjExt=m_pRule->GetMakefile()->ExpandVar(OBJEXTVAR);
-    return ((0==strcmp(pExt,ObjExt.c_str()+1)) || (0==strcmp(pExt,"h")));
+    return ((0==strcmp(pExt,ObjExt.c_str()+1)) || (0==strcmp(pExt,"d")) || (0==strcmp(pExt,"h")) || (0==strcmp(pExt,"i")));
   }
   else
-    return ((0==strcmp(pExt,"obj")) || (0==strcmp(pExt,"doj")) || (0==strcmp(pExt,"o")) || (0==strcmp(pExt,"h")));
+    return ((0==strcmp(pExt,"obj")) || (0==strcmp(pExt,"doj")) || (0==strcmp(pExt,"o")) || (0==strcmp(pExt,"d")) || (0==strcmp(pExt,"h")) || (0==strcmp(pExt,"i")));
 }
 
 #ifdef _DEBUG

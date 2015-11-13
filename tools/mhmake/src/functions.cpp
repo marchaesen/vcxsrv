@@ -42,6 +42,7 @@ funcdef mhmakefileparser::m_FunctionsDef[]= {
  ,{"shell",      &mhmakefileparser::f_shell}
  ,{"relpath",    &mhmakefileparser::f_relpath}
  ,{"realpath",   &mhmakefileparser::f_realpath}
+ ,{"abspath",    &mhmakefileparser::f_abspath}
  ,{"toupper",    &mhmakefileparser::f_toupper}
  ,{"tolower",    &mhmakefileparser::f_tolower}
  ,{"exist",      &mhmakefileparser::f_exist}
@@ -51,6 +52,7 @@ funcdef mhmakefileparser::m_FunctionsDef[]= {
  ,{"addsuffix"  ,&mhmakefileparser::f_addsuffix}
  ,{"filter-out" ,&mhmakefileparser::f_filterout}
  ,{"word"       ,&mhmakefileparser::f_word}
+ ,{"lastword"   ,&mhmakefileparser::f_lastword}
  ,{"words"      ,&mhmakefileparser::f_words}
  ,{"strip"      ,&mhmakefileparser::f_strip}
  ,{"which"      ,&mhmakefileparser::f_which}
@@ -685,6 +687,21 @@ string mhmakefileparser::f_word(const string & ArgIn) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Returns the last word
+string mhmakefileparser::f_lastword(const string & ArgIn) const
+{
+  string Arg=ExpandExpression(ArgIn);
+  const char *pTmp=Arg.c_str();
+
+  string Word;
+  while (*pTmp)
+  {
+    pTmp=NextItem(pTmp,Word);
+  }
+  return Word;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Returns the number of words
 string mhmakefileparser::f_words(const string & ArgIn) const
 {
@@ -841,8 +858,15 @@ static string realpath(const string &FileName,void *pvDir)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Make a path name relative to the current directory
+// Make a path name absolute (currently it has the same functionality as abspath, normally it should resolved symlinks, but currently it doesn't)
 string mhmakefileparser::f_realpath(const string & FileNames) const
+{
+  return IterList(ExpandExpression(FileNames),realpath,(void*)&m_MakeDir);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Make a path name absolute (without resolving simlinks)
+string mhmakefileparser::f_abspath(const string & FileNames) const
 {
   return IterList(ExpandExpression(FileNames),realpath,(void*)&m_MakeDir);
 }

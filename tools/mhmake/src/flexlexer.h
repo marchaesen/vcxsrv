@@ -51,12 +51,14 @@ class mhmakefileparser;
 
 #include "refptr.h"
 
-struct YYSTYPE
+struct yystype
 {
   string theString;
   int ival;
 };
-typedef struct YYSTYPE YYSTYPE;
+typedef struct yystype yystype;
+
+#define YYSTYPE yystype
 
 #include "location.hh"
 
