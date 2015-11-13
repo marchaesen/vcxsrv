@@ -2716,13 +2716,14 @@ struct gl_shader_program
    struct gl_uniform_block **ShaderStorageBlocks;
 
    /**
-    * Indices into the _LinkedShaders's UniformBlocks[] array for each stage
-    * they're used in, or -1.
+    * Indices into the BufferInterfaceBlocks[] array for each stage they're
+    * used in, or -1.
     *
-    * This is used to maintain the Binding values of the stage's UniformBlocks[]
-    * and to answer the GL_UNIFORM_BLOCK_REFERENCED_BY_*_SHADER queries.
+    * This is used to maintain the Binding values of the stage's
+    * BufferInterfaceBlocks[] and to answer the
+    * GL_UNIFORM_BLOCK_REFERENCED_BY_*_SHADER queries.
     */
-   int *UniformBlockStageIndex[MESA_SHADER_STAGES];
+   int *InterfaceBlockStageIndex[MESA_SHADER_STAGES];
 
    /**
     * Map of active uniform names to locations
@@ -2873,6 +2874,8 @@ struct gl_shader_compiler_options
     *     matrix * vector operations, such as position transformation.
     */
    GLboolean OptimizeForAOS;
+
+   GLboolean LowerBufferInterfaceBlocks; /**< Lower UBO and SSBO access to intrinsics. */
 
    const struct nir_shader_compiler_options *NirOptions;
 };
@@ -3577,11 +3580,24 @@ struct gl_constants
     * below:
     *    SampleMap8x = {a, b, c, d, e, f, g, h};
     *
-    * Follow the logic for other sample counts.
+    * Follow the logic for sample counts 2-8.
+    *
+    * For 16x the sample indices layout as a 4x4 grid as follows:
+    *
+    *            -----------------
+    *            | 0 | 1 | 2 | 3 |
+    *            -----------------
+    *            | 4 | 5 | 6 | 7 |
+    *            -----------------
+    *            | 8 | 9 |10 |11 |
+    *            -----------------
+    *            |12 |13 |14 |15 |
+    *            -----------------
     */
    uint8_t SampleMap2x[2];
    uint8_t SampleMap4x[4];
    uint8_t SampleMap8x[8];
+   uint8_t SampleMap16x[16];
 
    /** GL_ARB_shader_atomic_counters */
    GLuint MaxAtomicBufferBindings;
@@ -3662,6 +3678,7 @@ struct gl_extensions
    GLboolean ARB_fragment_shader;
    GLboolean ARB_framebuffer_no_attachments;
    GLboolean ARB_framebuffer_object;
+   GLboolean ARB_enhanced_layouts;
    GLboolean ARB_explicit_attrib_location;
    GLboolean ARB_explicit_uniform_location;
    GLboolean ARB_geometry_shader4;
@@ -3745,7 +3762,6 @@ struct gl_extensions
    GLboolean EXT_provoking_vertex;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_stencil_two_side;
-   GLboolean EXT_texture3D;
    GLboolean EXT_texture_array;
    GLboolean EXT_texture_compression_latc;
    GLboolean EXT_texture_compression_s3tc;
@@ -3803,6 +3819,12 @@ struct gl_extensions
    const GLubyte *String;
    /** Number of supported extensions */
    GLuint Count;
+   /**
+    * The context version which extension helper functions compare against.
+    * By default, the value is equal to ctx->Version. This changes to ~0
+    * while meta is in progress.
+    */
+   GLubyte Version;
 };
 
 

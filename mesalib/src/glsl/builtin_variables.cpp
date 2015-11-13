@@ -1059,6 +1059,9 @@ builtin_variable_generator::generate_fs_special_vars()
       var = add_input(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
       var->data.interpolation = INTERP_QUALIFIER_FLAT;
    }
+
+   if (state->is_version(450, 310)/* || state->ARB_ES3_1_compatibility_enable*/)
+      add_system_value(SYSTEM_VALUE_HELPER_INVOCATION, bool_t, "gl_HelperInvocation");
 }
 
 

@@ -149,8 +149,6 @@ unbind_array_object_vbos(struct gl_context *ctx, struct gl_vertex_array_object *
 
 /**
  * Allocate and initialize a new vertex array object.
- *
- * This function is intended to be called via
  */
 struct gl_vertex_array_object *
 _mesa_new_vao(struct gl_context *ctx, GLuint name)
@@ -164,9 +162,6 @@ _mesa_new_vao(struct gl_context *ctx, GLuint name)
 
 /**
  * Delete an array object.
- *
- * This function is intended to be called via
- * \c dd_function_table::DeleteArrayObject.
  */
 void
 _mesa_delete_vao(struct gl_context *ctx, struct gl_vertex_array_object *obj)

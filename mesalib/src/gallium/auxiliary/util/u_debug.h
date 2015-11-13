@@ -42,6 +42,7 @@
 #include "os/os_misc.h"
 
 #include "pipe/p_format.h"
+#include "pipe/p_defines.h"
 
 
 #ifdef	__cplusplus
@@ -261,6 +262,25 @@ void _debug_assert_fail(const char *expr,
 #define debug_error(__msg) \
    _debug_printf("error: %s\n", __msg)
 #endif
+
+/**
+ * Output a debug log message to the debug info callback.
+ */
+#define pipe_debug_message(cb, type, fmt, ...) do { \
+   static unsigned id = 0; \
+   _pipe_debug_message(cb, &id, \
+                       PIPE_DEBUG_TYPE_ ## type, \
+                       fmt, __VA_ARGS__); \
+} while (0)
+
+struct pipe_debug_callback;
+
+void
+_pipe_debug_message(
+   struct pipe_debug_callback *cb,
+   unsigned *id,
+   enum pipe_debug_type type,
+   const char *fmt, ...) _util_printf_format(4, 5);
 
 
 /**

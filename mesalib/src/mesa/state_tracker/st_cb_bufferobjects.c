@@ -83,6 +83,7 @@ st_bufferobj_free(struct gl_context *ctx, struct gl_buffer_object *obj)
    if (st_obj->buffer)
       pipe_resource_reference(&st_obj->buffer, NULL);
 
+   mtx_destroy(&st_obj->Base.Mutex);
    free(st_obj->Base.Label);
    free(st_obj);
 }

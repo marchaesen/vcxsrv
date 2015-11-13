@@ -166,6 +166,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token IMAGE1DSHADOW IMAGE2DSHADOW IMAGE1DARRAYSHADOW IMAGE2DARRAYSHADOW
 %token COHERENT VOLATILE RESTRICT READONLY WRITEONLY
 %token ATOMIC_UINT
+%token SHARED
 %token STRUCT VOID_TOK WHILE
 %token <identifier> IDENTIFIER TYPE_IDENTIFIER NEW_IDENTIFIER
 %type <identifier> any_identifier
@@ -313,6 +314,18 @@ translation_unit:
    {
       delete state->symbols;
       state->symbols = new(ralloc_parent(state)) glsl_symbol_table;
+      if (state->es_shader) {
+         if (state->stage == MESA_SHADER_FRAGMENT) {
+            state->symbols->add_default_precision_qualifier("int", ast_precision_medium);
+         } else {
+            state->symbols->add_default_precision_qualifier("float", ast_precision_high);
+            state->symbols->add_default_precision_qualifier("int", ast_precision_high);
+         }
+         state->symbols->add_default_precision_qualifier("sampler2D", ast_precision_low);
+         state->symbols->add_default_precision_qualifier("samplerExternalOES", ast_precision_low);
+         state->symbols->add_default_precision_qualifier("samplerCube", ast_precision_low);
+         state->symbols->add_default_precision_qualifier("atomic_uint", ast_precision_high);
+      }
       _mesa_glsl_initialize_types(state);
    }
    ;
@@ -1640,6 +1653,11 @@ interface_block_layout_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.packed = 1;
    }
+   | SHARED
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.flags.q.shared = 1;
+   }
    ;
 
 subroutine_qualifier:
@@ -1929,6 +1947,11 @@ storage_qualifier:
    {
       memset(& $$, 0, sizeof($$));
       $$.flags.q.buffer = 1;
+   }
+   | SHARED
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.flags.q.shared_storage = 1;
    }
    ;
 

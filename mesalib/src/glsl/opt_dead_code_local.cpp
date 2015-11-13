@@ -197,6 +197,11 @@ process_assignment(void *ctx, ir_assignment *ir, exec_list *assignments)
 	    if (entry->lhs != var)
 	       continue;
 
+            /* Skip if the assignment we're trying to eliminate isn't a plain
+             * variable deref. */
+            if (entry->ir->lhs->ir_type != ir_type_dereference_variable)
+               continue;
+
 	    int remove = entry->unused & ir->write_mask;
 	    if (debug) {
 	       printf("%s 0x%01x - 0x%01x = 0x%01x\n",

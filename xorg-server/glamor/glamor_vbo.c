@@ -96,6 +96,15 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
         data = glamor_priv->vb + glamor_priv->vbo_offset;
         glamor_priv->vbo_offset += size;
     } else if (glamor_priv->has_map_buffer_range) {
+        /* Avoid GL errors on GL 4.5 / ES 3.0 with mapping size == 0,
+         * which callers may sometimes pass us (for example, if
+         * clipping leads to zero rectangles left).  Prior to that
+         * version, Mesa would sometimes throw errors on unmapping a
+         * zero-size mapping.
+         */
+        if (size == 0)
+            return NULL;
+
         if (glamor_priv->vbo_size < glamor_priv->vbo_offset + size) {
             glamor_priv->vbo_size = MAX(GLAMOR_VBO_SIZE, size);
             glamor_priv->vbo_offset = 0;
@@ -109,9 +118,9 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
                                 GL_MAP_WRITE_BIT |
                                 GL_MAP_UNSYNCHRONIZED_BIT |
                                 GL_MAP_INVALIDATE_RANGE_BIT);
-        assert(data != NULL);
         *vbo_offset = (char *)(uintptr_t)glamor_priv->vbo_offset;
         glamor_priv->vbo_offset += size;
+        glamor_priv->vbo_mapped = TRUE;
     } else {
         /* Return a pointer to the statically allocated non-VBO
          * memory. We'll upload it through glBufferData() later.
@@ -145,7 +154,10 @@ glamor_put_vbo_space(ScreenPtr screen)
          * reach the end of the buffer.
          */
     } else if (glamor_priv->has_map_buffer_range) {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
+        if (glamor_priv->vbo_mapped) {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glamor_priv->vbo_mapped = FALSE;
+        }
     } else {
         glBufferData(GL_ARRAY_BUFFER, glamor_priv->vbo_offset,
                      glamor_priv->vb, GL_DYNAMIC_DRAW);

@@ -99,6 +99,14 @@ static inline bool list_empty(struct list_head *list)
    return list->next == list;
 }
 
+/**
+ * Returns whether the list has exactly one element.
+ */
+static inline bool list_is_singular(const struct list_head *list)
+{
+   return list->next != NULL && list->next->next == list;
+}
+
 static inline unsigned list_length(struct list_head *list)
 {
    struct list_head *node;

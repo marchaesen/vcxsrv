@@ -630,9 +630,16 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
       *params = _mesa_longest_attribute_name_length(shProg);
       return;
-   case GL_ACTIVE_UNIFORMS:
-      *params = shProg->NumUniformStorage - shProg->NumHiddenUniforms;
+   case GL_ACTIVE_UNIFORMS: {
+      unsigned i;
+      const unsigned num_uniforms =
+         shProg->NumUniformStorage - shProg->NumHiddenUniforms;
+      for (*params = 0, i = 0; i < num_uniforms; i++) {
+         if (!shProg->UniformStorage[i].is_shader_storage)
+            (*params)++;
+      }
       return;
+   }
    case GL_ACTIVE_UNIFORM_MAX_LENGTH: {
       unsigned i;
       GLint max_len = 0;
@@ -640,6 +647,9 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
          shProg->NumUniformStorage - shProg->NumHiddenUniforms;
 
       for (i = 0; i < num_uniforms; i++) {
+         if (shProg->UniformStorage[i].is_shader_storage)
+            continue;
+
 	 /* Add one for the terminating NUL character for a non-array, and
 	  * 4 for the "[0]" and the NUL for an array.
 	  */

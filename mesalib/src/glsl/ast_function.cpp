@@ -256,18 +256,10 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
 			     actual->variable_referenced()->name);
 	    return false;
 	 } else if (!actual->is_lvalue()) {
-            /* Even though ir_binop_vector_extract is not an l-value, let it
-             * slop through.  generate_call will handle it correctly.
-             */
-            ir_expression *const expr = ((ir_rvalue *) actual)->as_expression();
-            if (expr == NULL
-                || expr->operation != ir_binop_vector_extract
-                || !expr->operands[0]->is_lvalue()) {
-               _mesa_glsl_error(&loc, state,
-                                "function parameter '%s %s' is not an lvalue",
-                                mode, formal->name);
-               return false;
-            }
+            _mesa_glsl_error(&loc, state,
+                             "function parameter '%s %s' is not an lvalue",
+                             mode, formal->name);
+            return false;
 	 }
       }
 
@@ -376,12 +368,8 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
 
    ir_rvalue *lhs = actual;
    if (expr != NULL && expr->operation == ir_binop_vector_extract) {
-      rhs = new(mem_ctx) ir_expression(ir_triop_vector_insert,
-                                       expr->operands[0]->type,
-                                       expr->operands[0]->clone(mem_ctx, NULL),
-                                       rhs,
-                                       expr->operands[1]->clone(mem_ctx, NULL));
-      lhs = expr->operands[0]->clone(mem_ctx, NULL);
+      lhs = new(mem_ctx) ir_dereference_array(expr->operands[0]->clone(mem_ctx, NULL),
+                                              expr->operands[1]->clone(mem_ctx, NULL));
    }
 
    ir_assignment *const assignment_2 = new(mem_ctx) ir_assignment(lhs, rhs);

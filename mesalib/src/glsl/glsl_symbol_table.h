@@ -77,6 +77,7 @@ struct glsl_symbol_table {
    bool add_function(ir_function *f);
    bool add_interface(const char *name, const glsl_type *i,
                       enum ir_variable_mode mode);
+   bool add_default_precision_qualifier(const char *type_name, int precision);
    /*@}*/
 
    /**
@@ -93,6 +94,7 @@ struct glsl_symbol_table {
    ir_function *get_function(const char *name);
    const glsl_type *get_interface(const char *name,
                                   enum ir_variable_mode mode);
+   int get_default_precision_qualifier(const char *type_name);
    /*@}*/
 
    /**

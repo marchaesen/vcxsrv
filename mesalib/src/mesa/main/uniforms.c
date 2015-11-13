@@ -1026,7 +1026,7 @@ _mesa_UniformBlockBinding(GLuint program,
       shProg->BufferInterfaceBlocks[uniformBlockIndex].Binding = uniformBlockBinding;
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 int stage_index = shProg->UniformBlockStageIndex[i][uniformBlockIndex];
+	 int stage_index = shProg->InterfaceBlockStageIndex[i][uniformBlockIndex];
 
 	 if (stage_index != -1) {
 	    struct gl_shader *sh = shProg->_LinkedShaders[i];
@@ -1079,7 +1079,7 @@ _mesa_ShaderStorageBlockBinding(GLuint program,
       shProg->BufferInterfaceBlocks[shaderStorageBlockIndex].Binding = shaderStorageBlockBinding;
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 int stage_index = shProg->UniformBlockStageIndex[i][shaderStorageBlockIndex];
+	 int stage_index = shProg->InterfaceBlockStageIndex[i][shaderStorageBlockIndex];
 
 	 if (stage_index != -1) {
 	    struct gl_shader *sh = shProg->_LinkedShaders[i];

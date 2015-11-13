@@ -1873,6 +1873,34 @@ st_TextureView(struct gl_context *ctx,
    return GL_TRUE;
 }
 
+static void
+st_ClearTexSubImage(struct gl_context *ctx,
+                    struct gl_texture_image *texImage,
+                    GLint xoffset, GLint yoffset, GLint zoffset,
+                    GLsizei width, GLsizei height, GLsizei depth,
+                    const GLvoid *clearValue)
+{
+   static const char zeros[16] = {0};
+   struct st_texture_image *stImage = st_texture_image(texImage);
+   struct pipe_resource *pt = stImage->pt;
+   struct st_context *st = st_context(ctx);
+   struct pipe_context *pipe = st->pipe;
+   unsigned level = texImage->Level;
+   struct pipe_box box;
+
+   if (!pt)
+      return;
+
+   u_box_3d(xoffset, yoffset, zoffset + texImage->Face,
+            width, height, depth, &box);
+   if (texImage->TexObject->Immutable) {
+      level += texImage->TexObject->MinLevel;
+      box.z += texImage->TexObject->MinLayer;
+   }
+
+   pipe->clear_texture(pipe, pt, level, &box, clearValue ? clearValue : zeros);
+}
+
 void
 st_init_texture_functions(struct dd_function_table *functions)
 {
@@ -1904,4 +1932,5 @@ st_init_texture_functions(struct dd_function_table *functions)
 
    functions->AllocTextureStorage = st_AllocTextureStorage;
    functions->TextureView = st_TextureView;
+   functions->ClearTexSubImage = st_ClearTexSubImage;
 }

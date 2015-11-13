@@ -77,6 +77,7 @@ MAIN_FILES = \
 	main/execmem.c \
 	main/extensions.c \
 	main/extensions.h \
+	main/extensions_table.h \
 	main/fbobject.c \
 	main/fbobject.h \
 	main/feedback.c \

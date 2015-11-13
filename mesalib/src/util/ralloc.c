@@ -499,6 +499,7 @@ ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
    if (unlikely(*str == NULL)) {
       // Assuming a NULL context is probably bad, but it's expected behavior.
       *str = ralloc_vasprintf(NULL, fmt, args);
+      *start = strlen(*str);
       return true;
    }
 

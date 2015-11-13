@@ -319,10 +319,9 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
     * expression.
     */
    if (array->type->is_array()
-       || array->type->is_matrix()) {
+       || array->type->is_matrix()
+       || array->type->is_vector()) {
       return new(mem_ctx) ir_dereference_array(array, idx);
-   } else if (array->type->is_vector()) {
-      return new(mem_ctx) ir_expression(ir_binop_vector_extract, array, idx);
    } else if (array->type->is_error()) {
       return array;
    } else {

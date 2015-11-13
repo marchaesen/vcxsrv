@@ -62,6 +62,8 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
                struct gl_renderbuffer **renderbuffer,
                mesa_format *format,
                GLenum *internalFormat,
+               GLuint *width,
+               GLuint *height,
                const char *dbg_prefix)
 {
    if (name == 0) {
@@ -126,6 +128,8 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
       *renderbuffer = rb;
       *format = rb->Format;
       *internalFormat = rb->InternalFormat;
+      *width = rb->Width;
+      *height = rb->Height;
       *tex_image = NULL;
    } else {
       struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, name);
@@ -194,6 +198,8 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
       *renderbuffer = NULL;
       *format = (*tex_image)->TexFormat;
       *internalFormat = (*tex_image)->InternalFormat;
+      *width = (*tex_image)->Width;
+      *height = (*tex_image)->Height;
    }
 
    return true;
@@ -423,6 +429,7 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
    struct gl_renderbuffer *srcRenderbuffer, *dstRenderbuffer;
    mesa_format srcFormat, dstFormat;
    GLenum srcIntFormat, dstIntFormat;
+   GLuint src_w, src_h, dst_w, dst_h;
    GLuint src_bw, src_bh, dst_bw, dst_bh;
    int dstWidth, dstHeight, dstDepth;
    int i;
@@ -445,17 +452,41 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
 
    if (!prepare_target(ctx, srcName, srcTarget, srcLevel, srcZ, srcDepth,
                        &srcTexImage, &srcRenderbuffer, &srcFormat,
-                       &srcIntFormat, "src"))
+                       &srcIntFormat, &src_w, &src_h, "src"))
       return;
 
    if (!prepare_target(ctx, dstName, dstTarget, dstLevel, dstZ, srcDepth,
                        &dstTexImage, &dstRenderbuffer, &dstFormat,
-                       &dstIntFormat, "dst"))
+                       &dstIntFormat, &dst_w, &dst_h, "dst"))
       return;
 
    _mesa_get_format_block_size(srcFormat, &src_bw, &src_bh);
+
+   /* Section 18.3.2 (Copying Between Images) of the OpenGL 4.5 Core Profile
+    * spec says:
+    *
+    *    An INVALID_VALUE error is generated if the dimensions of either
+    *    subregion exceeds the boundaries of the corresponding image object,
+    *    or if the image format is compressed and the dimensions of the
+    *    subregion fail to meet the alignment constraints of the format.
+    *
+    * and Section 8.7 (Compressed Texture Images) says:
+    *
+    *    An INVALID_OPERATION error is generated if any of the following
+    *    conditions occurs:
+    *
+    *      * width is not a multiple of four, and width + xoffset is not
+    *        equal to the value of TEXTURE_WIDTH.
+    *      * height is not a multiple of four, and height + yoffset is not
+    *        equal to the value of TEXTURE_HEIGHT.
+    *
+    * so we take that to mean that you can copy the "last" block of a
+    * compressed texture image even if it's smaller than the minimum block
+    * dimensions.
+    */
    if ((srcX % src_bw != 0) || (srcY % src_bh != 0) ||
-       (srcWidth % src_bw != 0) || (srcHeight % src_bh != 0)) {
+       (srcWidth % src_bw != 0 && (srcX + srcWidth) != src_w) ||
+       (srcHeight % src_bh != 0 && (srcY + srcHeight) != src_h)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyImageSubData(unaligned src rectangle)");
       return;
