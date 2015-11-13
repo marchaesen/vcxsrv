@@ -120,8 +120,8 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
    shProg->NumShaderStorageBlocks = 0;
 
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
-      ralloc_free(shProg->UniformBlockStageIndex[i]);
-      shProg->UniformBlockStageIndex[i] = NULL;
+      ralloc_free(shProg->InterfaceBlockStageIndex[i]);
+      shProg->InterfaceBlockStageIndex[i] = NULL;
    }
 
    ralloc_free(shProg->AtomicBuffers);
@@ -167,7 +167,6 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
    ctx->Extensions.OES_standard_derivatives = true;
 
    ctx->Extensions.EXT_shader_integer_mix = true;
-   ctx->Extensions.EXT_texture3D = true;
    ctx->Extensions.EXT_texture_array = true;
 
    ctx->Extensions.NV_texture_rectangle = true;

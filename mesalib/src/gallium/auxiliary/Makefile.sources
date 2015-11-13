@@ -349,7 +349,8 @@ VL_SOURCES := \
 
 # XXX: Nuke this as our dri targets no longer depend on VL.
 VL_WINSYS_SOURCES := \
-	vl/vl_winsys_dri.c
+	vl/vl_winsys_dri.c \
+	vl/vl_winsys_drm.c
 
 VL_STUB_SOURCES := \
 	vl/vl_stubs.c
@@ -378,7 +379,9 @@ GALLIVM_SOURCES := \
 	gallivm/lp_bld_flow.h \
 	gallivm/lp_bld_format_aos_array.c \
 	gallivm/lp_bld_format_aos.c \
+	gallivm/lp_bld_format_cached.c \
 	gallivm/lp_bld_format_float.c \
+	gallivm/lp_bld_format.c \
 	gallivm/lp_bld_format.h \
 	gallivm/lp_bld_format_soa.c \
 	gallivm/lp_bld_format_srgb.c \

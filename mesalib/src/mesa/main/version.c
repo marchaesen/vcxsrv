@@ -524,6 +524,7 @@ _mesa_compute_version(struct gl_context *ctx)
       return;
 
    ctx->Version = _mesa_get_version(&ctx->Extensions, &ctx->Const, ctx->API);
+   ctx->Extensions.Version = ctx->Version;
 
    /* Make sure that the GLSL version lines up with the GL version. In some
     * cases it can be too high, e.g. if an extension is missing.

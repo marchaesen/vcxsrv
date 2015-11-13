@@ -110,9 +110,10 @@ ir_validate::visit(ir_dereference_variable *ir)
 ir_visitor_status
 ir_validate::visit_enter(class ir_dereference_array *ir)
 {
-   if (!ir->array->type->is_array() && !ir->array->type->is_matrix()) {
-      printf("ir_dereference_array @ %p does not specify an array or a "
-             "matrix\n",
+   if (!ir->array->type->is_array() && !ir->array->type->is_matrix() &&
+      !ir->array->type->is_vector()) {
+      printf("ir_dereference_array @ %p does not specify an array, a vector "
+             "or a matrix\n",
              (void *) ir);
       ir->print();
       printf("\n");

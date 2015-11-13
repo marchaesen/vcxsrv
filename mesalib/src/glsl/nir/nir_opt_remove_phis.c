@@ -108,6 +108,11 @@ remove_phis_impl(nir_function_impl *impl)
 
    nir_foreach_block(impl, remove_phis_block, &progress);
 
+   if (progress) {
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+   }
+
    return progress;
 }
 

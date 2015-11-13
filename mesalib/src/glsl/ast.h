@@ -448,6 +448,7 @@ struct ast_type_qualifier {
 	 unsigned patch:1;
 	 unsigned uniform:1;
 	 unsigned buffer:1;
+	 unsigned shared_storage:1;
 	 unsigned smooth:1;
 	 unsigned flat:1;
 	 unsigned noperspective:1;

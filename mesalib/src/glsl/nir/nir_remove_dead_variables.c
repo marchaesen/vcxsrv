@@ -126,8 +126,14 @@ nir_remove_dead_variables(nir_shader *shader)
    progress = remove_dead_vars(&shader->globals, live) || progress;
 
    nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress = remove_dead_vars(&overload->impl->locals, live) || progress;
+      if (overload->impl) {
+         if (remove_dead_vars(&overload->impl->locals, live)) {
+            nir_metadata_preserve(overload->impl, nir_metadata_block_index |
+                                                  nir_metadata_dominance |
+                                                  nir_metadata_live_ssa_defs);
+            progress = true;
+         }
+      }
    }
 
    _mesa_set_destroy(live, NULL);

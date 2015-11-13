@@ -91,6 +91,17 @@ BARRIER(memory_barrier)
  */
 INTRINSIC(shader_clock, 0, ARR(), true, 1, 0, 0, NIR_INTRINSIC_CAN_ELIMINATE)
 
+/*
+ * Memory barrier with semantics analogous to the compute shader
+ * groupMemoryBarrier(), memoryBarrierAtomicCounter(), memoryBarrierBuffer(),
+ * memoryBarrierImage() and memoryBarrierShared() GLSL intrinsics.
+ */
+BARRIER(group_memory_barrier)
+BARRIER(memory_barrier_atomic_counter)
+BARRIER(memory_barrier_buffer)
+BARRIER(memory_barrier_image)
+BARRIER(memory_barrier_shared)
+
 /** A conditional discard, with a single boolean source. */
 INTRINSIC(discard_if, 1, ARR(1), false, 0, 0, 0, 0)
 

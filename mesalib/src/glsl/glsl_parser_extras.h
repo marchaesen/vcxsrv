@@ -209,6 +209,11 @@ struct _mesa_glsl_parse_state {
       return ARB_shader_atomic_counters_enable || is_version(420, 310);
    }
 
+   bool has_enhanced_layouts() const
+   {
+      return ARB_enhanced_layouts_enable || is_version(440, 0);
+   }
+
    bool has_explicit_attrib_stream() const
    {
       return ARB_gpu_shader5_enable || is_version(400, 0);
@@ -499,6 +504,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_draw_buffers_warn;
    bool ARB_draw_instanced_enable;
    bool ARB_draw_instanced_warn;
+   bool ARB_enhanced_layouts_enable;
+   bool ARB_enhanced_layouts_warn;
    bool ARB_explicit_attrib_location_enable;
    bool ARB_explicit_attrib_location_warn;
    bool ARB_explicit_uniform_location_enable;

@@ -53,17 +53,6 @@ deref_next_wildcard_parent(nir_deref *deref)
    return NULL;
 }
 
-/* Returns the last deref in the chain.
- */
-static nir_deref *
-get_deref_tail(nir_deref *deref)
-{
-   while (deref->child)
-      deref = deref->child;
-
-   return deref;
-}
-
 /* This function recursively walks the given deref chain and replaces the
  * given copy instruction with an equivalent sequence load/store
  * operations.
@@ -121,8 +110,8 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
    } else {
       /* In this case, we have no wildcards anymore, so all we have to do
        * is just emit the load and store operations. */
-      src_tail = get_deref_tail(src_tail);
-      dest_tail = get_deref_tail(dest_tail);
+      src_tail = nir_deref_tail(src_tail);
+      dest_tail = nir_deref_tail(dest_tail);
 
       assert(src_tail->type == dest_tail->type);
 

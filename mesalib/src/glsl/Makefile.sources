@@ -37,7 +37,7 @@ NIR_FILES = \
 	nir/nir_intrinsics.h \
 	nir/nir_instr_set.c \
 	nir/nir_instr_set.h \
-	nir/nir_live_variables.c \
+	nir/nir_liveness.c \
 	nir/nir_lower_alu_to_scalar.c \
 	nir/nir_lower_atomics.c \
 	nir/nir_lower_clip.c \
@@ -67,7 +67,6 @@ NIR_FILES = \
 	nir/nir_opt_dead_cf.c \
 	nir/nir_opt_gcm.c \
 	nir/nir_opt_global_to_local.c \
-	nir/nir_opt_peephole_ffma.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_undef.c \
@@ -176,6 +175,7 @@ LIBGLSL_FILES = \
 	lower_vec_index_to_cond_assign.cpp \
 	lower_vec_index_to_swizzle.cpp \
 	lower_vector.cpp \
+	lower_vector_derefs.cpp \
 	lower_vector_insert.cpp \
 	lower_vertex_id.cpp \
 	lower_output_reads.cpp \

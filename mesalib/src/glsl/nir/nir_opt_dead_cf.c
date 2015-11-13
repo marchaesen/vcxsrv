@@ -204,7 +204,7 @@ loop_is_dead(nir_loop *loop)
       return false;
 
    nir_function_impl *impl = nir_cf_node_get_function(&loop->cf_node);
-   nir_metadata_require(impl, nir_metadata_live_variables |
+   nir_metadata_require(impl, nir_metadata_live_ssa_defs |
                               nir_metadata_dominance);
 
    for (nir_block *cur = after->imm_dom; cur != before; cur = cur->imm_dom) {

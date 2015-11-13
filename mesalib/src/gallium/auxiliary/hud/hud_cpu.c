@@ -33,6 +33,58 @@
 #include "util/u_memory.h"
 #include <stdio.h>
 #include <inttypes.h>
+#ifdef PIPE_OS_WINDOWS
+#include <windows.h>
+#endif
+
+
+#ifdef PIPE_OS_WINDOWS
+
+static inline uint64_t
+filetime_to_scalar(FILETIME ft)
+{
+   ULARGE_INTEGER uli;
+   uli.LowPart = ft.dwLowDateTime;
+   uli.HighPart = ft.dwHighDateTime;
+   return uli.QuadPart;
+}
+
+static boolean
+get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
+{
+   SYSTEM_INFO sysInfo;
+   FILETIME ftNow, ftCreation, ftExit, ftKernel, ftUser;
+
+   GetSystemInfo(&sysInfo);
+   assert(sysInfo.dwNumberOfProcessors >= 1);
+   if (cpu_index != ALL_CPUS && cpu_index >= sysInfo.dwNumberOfProcessors) {
+      /* Tell hud_get_num_cpus there are only this many CPUs. */
+      return FALSE;
+   }
+
+   /* Get accumulated user and sys time for all threads */
+   if (!GetProcessTimes(GetCurrentProcess(), &ftCreation, &ftExit,
+                        &ftKernel, &ftUser))
+      return FALSE;
+
+   GetSystemTimeAsFileTime(&ftNow);
+
+   *busy_time = filetime_to_scalar(ftUser) + filetime_to_scalar(ftKernel);
+   *total_time = filetime_to_scalar(ftNow) - filetime_to_scalar(ftCreation);
+
+   /* busy_time already has the time accross all cpus.
+    * XXX: if we want 100% to mean one CPU, 200% two cpus, eliminate the
+    * following line.
+    */
+   *total_time *= sysInfo.dwNumberOfProcessors;
+
+   /* XXX: we ignore cpu_index, i.e, we assume that the individual CPU usage
+    * and the system usage are one and the same.
+    */
+   return TRUE;
+}
+
+#else
 
 static boolean
 get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
@@ -81,6 +133,8 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
    fclose(f);
    return FALSE;
 }
+#endif
+
 
 struct cpu_info {
    unsigned cpu_index;

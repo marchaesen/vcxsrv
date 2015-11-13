@@ -144,6 +144,12 @@ glsl_type_is_scalar(const struct glsl_type *type)
 }
 
 bool
+glsl_type_is_vector_or_scalar(const struct glsl_type *type)
+{
+   return type->is_vector() || type->is_scalar();
+}
+
+bool
 glsl_type_is_matrix(const struct glsl_type *type)
 {
    return type->is_matrix();

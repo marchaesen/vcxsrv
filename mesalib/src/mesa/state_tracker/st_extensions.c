@@ -254,6 +254,7 @@ void st_init_limits(struct pipe_screen *screen,
                                       PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT);
 
       options->LowerClipDistance = true;
+      options->LowerBufferInterfaceBlocks = true;
    }
 
    c->LowerTessLevel = true;
@@ -438,6 +439,7 @@ void st_init_extensions(struct pipe_screen *screen,
    static const struct st_extension_cap_mapping cap_mapping[] = {
       { o(ARB_base_instance),                PIPE_CAP_START_INSTANCE                   },
       { o(ARB_buffer_storage),               PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT   },
+      { o(ARB_clear_texture),                PIPE_CAP_CLEAR_TEXTURE                    },
       { o(ARB_color_buffer_float),           PIPE_CAP_VERTEX_COLOR_UNCLAMPED           },
       { o(ARB_copy_image),                   PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS },
       { o(ARB_depth_clamp),                  PIPE_CAP_DEPTH_CLIP_DISABLE               },

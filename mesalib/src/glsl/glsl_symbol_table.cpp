@@ -23,6 +23,7 @@
  */
 
 #include "glsl_symbol_table.h"
+#include "ast.h"
 
 class symbol_table_entry {
 public:
@@ -201,6 +202,20 @@ bool glsl_symbol_table::add_function(ir_function *f)
    return _mesa_symbol_table_add_symbol(table, -1, f->name, entry) == 0;
 }
 
+bool glsl_symbol_table::add_default_precision_qualifier(const char *type_name,
+                                                        int precision)
+{
+   char *name = ralloc_asprintf(mem_ctx, "#default_precision_%s", type_name);
+
+   ast_type_specifier *default_specifier = new(mem_ctx) ast_type_specifier(name);
+   default_specifier->default_precision = precision;
+
+   symbol_table_entry *entry =
+      new(mem_ctx) symbol_table_entry(default_specifier);
+
+   return _mesa_symbol_table_add_symbol(table, -1, name, entry) == 0;
+}
+
 void glsl_symbol_table::add_global_function(ir_function *f)
 {
    symbol_table_entry *entry = new(mem_ctx) symbol_table_entry(f);
@@ -232,6 +247,15 @@ ir_function *glsl_symbol_table::get_function(const char *name)
 {
    symbol_table_entry *entry = get_entry(name);
    return entry != NULL ? entry->f : NULL;
+}
+
+int glsl_symbol_table::get_default_precision_qualifier(const char *type_name)
+{
+   char *name = ralloc_asprintf(mem_ctx, "#default_precision_%s", type_name);
+   symbol_table_entry *entry = get_entry(name);
+   if (!entry)
+      return ast_precision_none;
+   return entry->a->default_precision;
 }
 
 symbol_table_entry *glsl_symbol_table::get_entry(const char *name)

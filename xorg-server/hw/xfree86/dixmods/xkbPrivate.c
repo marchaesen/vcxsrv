@@ -38,6 +38,8 @@ XkbDDXPrivate(DeviceIntPtr dev, KeyCode key, XkbAction *act)
                 if (tmp->deviceGrab.grab)
                     PrintDeviceGrabInfo(tmp);
             xf86Msg(X_INFO, "End list of active device grabs\n");
+
+            PrintPassiveGrabs();
         }
         else if (strcasecmp(msgbuf, "ungrab") == 0)
             UngrabAllDevices(FALSE);

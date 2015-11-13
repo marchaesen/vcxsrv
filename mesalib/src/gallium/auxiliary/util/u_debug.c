@@ -70,6 +70,20 @@ void _debug_vprintf(const char *format, va_list ap)
 #endif
 }
 
+void
+_pipe_debug_message(
+   struct pipe_debug_callback *cb,
+   unsigned *id,
+   enum pipe_debug_type type,
+   const char *fmt, ...)
+{
+   va_list args;
+   va_start(args, fmt);
+   if (cb && cb->debug_message)
+      cb->debug_message(cb->data, id, type, fmt, args);
+   va_end(args);
+}
+
 
 void
 debug_disable_error_message_boxes(void)

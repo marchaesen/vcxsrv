@@ -44,8 +44,10 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
+<li>GL_ARB_arrays_of_arrays on i965</li>
 <li>GL_ARB_blend_func_extended on freedreno (a3xx)</li>
-<li>GL_ARB_copy_image on radeonsi</li>
+<li>GL_ARB_clear_texture on nv50, nvc0</li>
+<li>GL_ARB_copy_image on nv50, nvc0, radeonsi</li>
 <li>GL_ARB_gpu_shader_fp64 on r600 for Cypress/Cayman/Aruba chips</li>
 <li>GL_ARB_gpu_shader5 on r600 for Evergreen and later chips</li>
 <li>GL_ARB_shader_clock on i965 (gen7+)</li>
@@ -54,7 +56,8 @@ Note: some of the new features are only available with certain drivers.
 <li>GL_ARB_shader_texture_image_samples on i965, nv50, nvc0, r600, radeonsi</li>
 <li>GL_ARB_texture_barrier / GL_NV_texture_barrier on i965</li>
 <li>GL_ARB_texture_query_lod on softpipe</li>
-<li>GL_ARB_texture_view on radeonsi</li>
+<li>GL_ARB_texture_view on radeonsi and r600 (for evergeen and newer)</li>
+<li>GL_EXT_buffer_storage implemented for when ES 3.1 support is gained</li>
 <li>GL_EXT_draw_elements_base_vertex on all drivers</li>
 <li>GL_OES_draw_elements_base_vertex on all drivers</li>
 <li>EGL_KHR_create_context on softpipe, llvmpipe</li>

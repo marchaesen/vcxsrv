@@ -145,7 +145,7 @@ delete_block_cb(nir_block *block, void *_state)
    return true;
 }
 
-bool
+static bool
 nir_opt_dce_impl(nir_function_impl *impl)
 {
    struct exec_list *worklist = ralloc(NULL, struct exec_list);

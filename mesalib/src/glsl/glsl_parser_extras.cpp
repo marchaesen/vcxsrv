@@ -594,6 +594,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_derivative_control,           true,  false,     ARB_derivative_control),
    EXT(ARB_draw_buffers,                 true,  false,     dummy_true),
    EXT(ARB_draw_instanced,               true,  false,     ARB_draw_instanced),
+   EXT(ARB_enhanced_layouts,             true,  false,     ARB_enhanced_layouts),
    EXT(ARB_explicit_attrib_location,     true,  false,     ARB_explicit_attrib_location),
    EXT(ARB_explicit_uniform_location,    true,  false,     ARB_explicit_uniform_location),
    EXT(ARB_fragment_coord_conventions,   true,  false,     ARB_fragment_coord_conventions),
@@ -633,7 +634,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
     */
    EXT(OES_EGL_image_external,         false, true,      OES_EGL_image_external),
    EXT(OES_standard_derivatives,       false, true,      OES_standard_derivatives),
-   EXT(OES_texture_3D,                 false, true,      EXT_texture3D),
+   EXT(OES_texture_3D,                 false, true,      dummy_true),
    EXT(OES_texture_storage_multisample_2d_array, false, true, ARB_texture_multisample),
 
    /* All other extensions go here, sorted alphabetically.
