@@ -336,6 +336,12 @@
     <ClCompile Include="..\..\..\..\src\util\strndup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_ubo_reference.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_derefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\glsl\glsl_lexer.ll">

@@ -101,6 +101,7 @@
       <ForcedIncludeFiles>../../../../src/mesa/main/compiler.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -128,6 +129,7 @@
       <ForcedIncludeFiles>../../../../src/mesa/main/compiler.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -150,6 +152,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ForcedIncludeFiles>../../../../src/mesa/main/compiler.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -171,6 +174,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ForcedIncludeFiles>../../../../src/mesa/main/compiler.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -267,8 +271,10 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_subroutine.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_texture_projection.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_ubo_reference.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_variable_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_derefs.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector_insert.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp" />

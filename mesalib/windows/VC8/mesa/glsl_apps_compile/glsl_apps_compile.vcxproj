@@ -93,6 +93,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -114,6 +115,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -132,6 +134,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -153,6 +156,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -227,8 +231,10 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_subroutine.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_texture_projection.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_ubo_reference.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_variable_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_derefs.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector_insert.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp" />
