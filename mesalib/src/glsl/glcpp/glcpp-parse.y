@@ -2387,6 +2387,7 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	   }
 	} else {
 	   add_builtin_define(parser, "GL_ARB_draw_buffers", 1);
+           add_builtin_define(parser, "GL_ARB_enhanced_layouts", 1);
            add_builtin_define(parser, "GL_ARB_separate_shader_objects", 1);
 	   add_builtin_define(parser, "GL_ARB_texture_rectangle", 1);
            add_builtin_define(parser, "GL_AMD_shader_trinary_minmax", 1);

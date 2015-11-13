@@ -390,7 +390,19 @@ lower_ubo_reference_visitor::setup_for_load_or_store(ir_variable *var,
       case ir_type_dereference_array: {
          ir_dereference_array *deref_array = (ir_dereference_array *) deref;
          unsigned array_stride;
-         if (deref_array->array->type->is_matrix() && *row_major) {
+         if (deref_array->array->type->is_vector()) {
+            /* We get this when storing or loading a component out of a vector
+             * with a non-constant index. This happens for v[i] = f where v is
+             * a vector (or m[i][j] = f where m is a matrix). If we don't
+             * lower that here, it gets turned into v = vector_insert(v, i,
+             * f), which loads the entire vector, modifies one component and
+             * then write the entire thing back.  That breaks if another
+             * thread or SIMD channel is modifying the same vector.
+             */
+            array_stride = 4;
+            if (deref_array->array->type->is_double())
+               array_stride *= 2;
+         } else if (deref_array->array->type->is_matrix() && *row_major) {
             /* When loading a vector out of a row major matrix, the
              * step between the columns (vectors) is the size of a
              * float, while the step between the rows (elements of a
@@ -1270,7 +1282,7 @@ lower_ubo_reference_visitor::visit_enter(ir_call *ir)
 } /* unnamed namespace */
 
 void
-lower_ubo_reference(struct gl_shader *shader, exec_list *instructions)
+lower_ubo_reference(struct gl_shader *shader)
 {
    lower_ubo_reference_visitor v(shader);
 
@@ -1281,6 +1293,6 @@ lower_ubo_reference(struct gl_shader *shader, exec_list *instructions)
     */
    do {
       v.progress = false;
-      visit_list_elements(&v, instructions);
+      visit_list_elements(&v, shader->ir);
    } while (v.progress);
 }

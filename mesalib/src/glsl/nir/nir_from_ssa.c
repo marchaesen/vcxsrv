@@ -777,7 +777,7 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
 
-   nir_metadata_require(impl, nir_metadata_live_variables |
+   nir_metadata_require(impl, nir_metadata_live_ssa_defs |
                               nir_metadata_dominance);
 
    nir_foreach_block(impl, coalesce_phi_nodes_block, &state);

@@ -918,6 +918,11 @@ check_valid_to_compute(struct gl_context *ctx, const char *function)
       return false;
    }
 
+   /* From the OpenGL 4.3 Core Specification, Chapter 19, Compute Shaders:
+    *
+    * "An INVALID_OPERATION error is generated if there is no active program
+    *  for the compute shader stage."
+    */
    prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
    if (prog == NULL || prog->_LinkedShaders[MESA_SHADER_COMPUTE] == NULL) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -940,6 +945,24 @@ _mesa_validate_DispatchCompute(struct gl_context *ctx,
       return GL_FALSE;
 
    for (i = 0; i < 3; i++) {
+      /* From the OpenGL 4.3 Core Specification, Chapter 19, Compute Shaders:
+       *
+       * "An INVALID_VALUE error is generated if any of num_groups_x,
+       *  num_groups_y and num_groups_z are greater than or equal to the
+       *  maximum work group count for the corresponding dimension."
+       *
+       * However, the "or equal to" portions appears to be a specification
+       * bug. In all other areas, the specification appears to indicate that
+       * the number of workgroups can match the MAX_COMPUTE_WORK_GROUP_COUNT
+       * value. For example, under DispatchComputeIndirect:
+       *
+       * "If any of num_groups_x, num_groups_y or num_groups_z is greater than
+       *  the value of MAX_COMPUTE_WORK_GROUP_COUNT for the corresponding
+       *  dimension then the results are undefined."
+       *
+       * Additionally, the OpenGLES 3.1 specification does not contain "or
+       * equal to" as an error condition.
+       */
       if (num_groups[i] > ctx->Const.MaxComputeWorkGroupCount[i]) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glDispatchCompute(num_groups_%c)", 'x' + i);
@@ -960,24 +983,29 @@ valid_dispatch_indirect(struct gl_context *ctx,
    if (!check_valid_to_compute(ctx, name))
       return GL_FALSE;
 
-   /* From the ARB_compute_shader specification:
+   /* From the OpenGL 4.3 Core Specification, Chapter 19, Compute Shaders:
     *
-    * "An INVALID_OPERATION error is generated [...] if <indirect> is less
-    *  than zero or not a multiple of the size, in basic machine units, of
-    *  uint."
+    * "An INVALID_VALUE error is generated if indirect is negative or is not a
+    *  multiple of four."
     */
    if ((GLintptr)indirect & (sizeof(GLuint) - 1)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
+      _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(indirect is not aligned)", name);
       return GL_FALSE;
    }
 
    if ((GLintptr)indirect < 0) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
+      _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(indirect is less than zero)", name);
       return GL_FALSE;
    }
 
+   /* From the OpenGL 4.3 Core Specification, Chapter 19, Compute Shaders:
+    *
+    * "An INVALID_OPERATION error is generated if no buffer is bound to the
+    *  DRAW_INDIRECT_BUFFER binding, or if the command would source data
+    *  beyond the end of the buffer object."
+    */
    if (!_mesa_is_bufferobj(ctx->DispatchIndirectBuffer)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s: no buffer bound to DISPATCH_INDIRECT_BUFFER", name);
@@ -990,11 +1018,6 @@ valid_dispatch_indirect(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   /* From the ARB_compute_shader specification:
-    *
-    * "An INVALID_OPERATION error is generated if this command sources data
-    *  beyond the end of the buffer object [...]"
-    */
    if (ctx->DispatchIndirectBuffer->Size < end) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(DISPATCH_INDIRECT_BUFFER too small)", name);

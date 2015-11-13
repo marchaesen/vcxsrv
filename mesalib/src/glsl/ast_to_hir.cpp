@@ -850,43 +850,6 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
 {
    void *ctx = state;
    bool error_emitted = (lhs->type->is_error() || rhs->type->is_error());
-   ir_rvalue *extract_channel = NULL;
-
-   /* If the assignment LHS comes back as an ir_binop_vector_extract
-    * expression, move it to the RHS as an ir_triop_vector_insert.
-    */
-   if (lhs->ir_type == ir_type_expression) {
-      ir_expression *const lhs_expr = lhs->as_expression();
-
-      if (unlikely(lhs_expr->operation == ir_binop_vector_extract)) {
-         ir_rvalue *new_rhs =
-            validate_assignment(state, lhs_loc, lhs,
-                                rhs, is_initializer);
-
-         if (new_rhs == NULL) {
-            return lhs;
-         } else {
-            /* This converts:
-             * - LHS: (expression float vector_extract <vec> <channel>)
-             * - RHS: <scalar>
-             * into:
-             * - LHS: <vec>
-             * - RHS: (expression vec2 vector_insert <vec> <channel> <scalar>)
-             *
-             * The LHS type is now a vector instead of a scalar.  Since GLSL
-             * allows assignments to be used as rvalues, we need to re-extract
-             * the channel from assignment_temp when returning the rvalue.
-             */
-            extract_channel = lhs_expr->operands[1];
-            rhs = new(ctx) ir_expression(ir_triop_vector_insert,
-                                         lhs_expr->operands[0]->type,
-                                         lhs_expr->operands[0],
-                                         new_rhs,
-                                         extract_channel);
-            lhs = lhs_expr->operands[0]->clone(ctx, NULL);
-         }
-      }
-   }
 
    ir_variable *lhs_var = lhs->variable_referenced();
    if (lhs_var)
@@ -983,12 +946,6 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
          instructions->push_tail(new(ctx) ir_assignment(lhs, deref_var));
       }
       ir_rvalue *rvalue = new(ctx) ir_dereference_variable(var);
-
-      if (extract_channel) {
-         rvalue = new(ctx) ir_expression(ir_binop_vector_extract,
-                                         rvalue,
-                                         extract_channel->clone(ctx, NULL));
-      }
 
       *out_rvalue = rvalue;
    } else {
@@ -2159,6 +2116,41 @@ process_array_type(YYLTYPE *loc, const glsl_type *base,
    return array_type;
 }
 
+static bool
+precision_qualifier_allowed(const glsl_type *type)
+{
+   /* Precision qualifiers apply to floating point, integer and opaque
+    * types.
+    *
+    * Section 4.5.2 (Precision Qualifiers) of the GLSL 1.30 spec says:
+    *    "Any floating point or any integer declaration can have the type
+    *    preceded by one of these precision qualifiers [...] Literal
+    *    constants do not have precision qualifiers. Neither do Boolean
+    *    variables.
+    *
+    * Section 4.5 (Precision and Precision Qualifiers) of the GLSL 1.30
+    * spec also says:
+    *
+    *     "Precision qualifiers are added for code portability with OpenGL
+    *     ES, not for functionality. They have the same syntax as in OpenGL
+    *     ES."
+    *
+    * Section 8 (Built-In Functions) of the GLSL ES 1.00 spec says:
+    *
+    *     "uniform lowp sampler2D sampler;
+    *     highp vec2 coord;
+    *     ...
+    *     lowp vec4 col = texture2D (sampler, coord);
+    *                                            // texture2D returns lowp"
+    *
+    * From this, we infer that GLSL 1.30 (and later) should allow precision
+    * qualifiers on sampler types just like float and integer types.
+    */
+   return (type->is_float()
+       || type->is_integer()
+       || type->contains_opaque())
+       && !type->without_array()->is_record();
+}
 
 const glsl_type *
 ast_type_specifier::glsl_type(const char **name,
@@ -2175,27 +2167,268 @@ ast_type_specifier::glsl_type(const char **name,
    return type;
 }
 
+/**
+ * From the OpenGL ES 3.0 spec, 4.5.4 Default Precision Qualifiers:
+ *
+ * "The precision statement
+ *
+ *    precision precision-qualifier type;
+ *
+ *  can be used to establish a default precision qualifier. The type field can
+ *  be either int or float or any of the sampler types, (...) If type is float,
+ *  the directive applies to non-precision-qualified floating point type
+ *  (scalar, vector, and matrix) declarations. If type is int, the directive
+ *  applies to all non-precision-qualified integer type (scalar, vector, signed,
+ *  and unsigned) declarations."
+ *
+ * We use the symbol table to keep the values of the default precisions for
+ * each 'type' in each scope and we use the 'type' string from the precision
+ * statement as key in the symbol table. When we want to retrieve the default
+ * precision associated with a given glsl_type we need to know the type string
+ * associated with it. This is what this function returns.
+ */
+static const char *
+get_type_name_for_precision_qualifier(const glsl_type *type)
+{
+   switch (type->base_type) {
+   case GLSL_TYPE_FLOAT:
+      return "float";
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+      return "int";
+   case GLSL_TYPE_ATOMIC_UINT:
+      return "atomic_uint";
+   case GLSL_TYPE_IMAGE:
+   /* fallthrough */
+   case GLSL_TYPE_SAMPLER: {
+      const unsigned type_idx =
+         type->sampler_array + 2 * type->sampler_shadow;
+      const unsigned offset = type->base_type == GLSL_TYPE_SAMPLER ? 0 : 4;
+      assert(type_idx < 4);
+      switch (type->sampler_type) {
+      case GLSL_TYPE_FLOAT:
+         switch (type->sampler_dimensionality) {
+         case GLSL_SAMPLER_DIM_1D: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "sampler1D", "sampler1DArray",
+              "sampler1DShadow", "sampler1DArrayShadow"
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_2D: {
+            static const char *const names[8] = {
+              "sampler2D", "sampler2DArray",
+              "sampler2DShadow", "sampler2DArrayShadow",
+              "image2D", "image2DArray", NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_3D: {
+            static const char *const names[8] = {
+              "sampler3D", NULL, NULL, NULL,
+              "image3D", NULL, NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_CUBE: {
+            static const char *const names[8] = {
+              "samplerCube", "samplerCubeArray",
+              "samplerCubeShadow", "samplerCubeArrayShadow",
+              "imageCube", NULL, NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_MS: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "sampler2DMS", "sampler2DMSArray", NULL, NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_RECT: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "samplerRect", NULL, "samplerRectShadow", NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_BUF: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "samplerBuffer", NULL, NULL, NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_EXTERNAL: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "samplerExternalOES", NULL, NULL, NULL
+            };
+            return names[type_idx];
+         }
+         default:
+            unreachable("Unsupported sampler/image dimensionality");
+         } /* sampler/image float dimensionality */
+         break;
+      case GLSL_TYPE_INT:
+         switch (type->sampler_dimensionality) {
+         case GLSL_SAMPLER_DIM_1D: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "isampler1D", "isampler1DArray", NULL, NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_2D: {
+            static const char *const names[8] = {
+              "isampler2D", "isampler2DArray", NULL, NULL,
+              "iimage2D", "iimage2DArray", NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_3D: {
+            static const char *const names[8] = {
+              "isampler3D", NULL, NULL, NULL,
+              "iimage3D", NULL, NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_CUBE: {
+            static const char *const names[8] = {
+              "isamplerCube", "isamplerCubeArray", NULL, NULL,
+              "iimageCube", NULL, NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_MS: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "isampler2DMS", "isampler2DMSArray", NULL, NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_RECT: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "isamplerRect", NULL, "isamplerRectShadow", NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_BUF: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "isamplerBuffer", NULL, NULL, NULL
+            };
+            return names[type_idx];
+         }
+         default:
+            unreachable("Unsupported isampler/iimage dimensionality");
+         } /* sampler/image int dimensionality */
+         break;
+      case GLSL_TYPE_UINT:
+         switch (type->sampler_dimensionality) {
+         case GLSL_SAMPLER_DIM_1D: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "usampler1D", "usampler1DArray", NULL, NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_2D: {
+            static const char *const names[8] = {
+              "usampler2D", "usampler2DArray", NULL, NULL,
+              "uimage2D", "uimage2DArray", NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_3D: {
+            static const char *const names[8] = {
+              "usampler3D", NULL, NULL, NULL,
+              "uimage3D", NULL, NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_CUBE: {
+            static const char *const names[8] = {
+              "usamplerCube", "usamplerCubeArray", NULL, NULL,
+              "uimageCube", NULL, NULL, NULL
+            };
+            return names[offset + type_idx];
+         }
+         case GLSL_SAMPLER_DIM_MS: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "usampler2DMS", "usampler2DMSArray", NULL, NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_RECT: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "usamplerRect", NULL, "usamplerRectShadow", NULL
+            };
+            return names[type_idx];
+         }
+         case GLSL_SAMPLER_DIM_BUF: {
+            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            static const char *const names[4] = {
+              "usamplerBuffer", NULL, NULL, NULL
+            };
+            return names[type_idx];
+         }
+         default:
+            unreachable("Unsupported usampler/uimage dimensionality");
+         } /* sampler/image uint dimensionality */
+         break;
+      default:
+         unreachable("Unsupported sampler/image type");
+      } /* sampler/image type */
+      break;
+   } /* GLSL_TYPE_SAMPLER/GLSL_TYPE_IMAGE */
+   break;
+   default:
+      unreachable("Unsupported type");
+   } /* base type */
+}
+
+static unsigned
+select_gles_precision(unsigned qual_precision,
+                      const glsl_type *type,
+                      struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
+{
+   /* Precision qualifiers do not have any meaning in Desktop GLSL.
+    * In GLES we take the precision from the type qualifier if present,
+    * otherwise, if the type of the variable allows precision qualifiers at
+    * all, we look for the default precision qualifier for that type in the
+    * current scope.
+    */
+   assert(state->es_shader);
+
+   unsigned precision = GLSL_PRECISION_NONE;
+   if (qual_precision) {
+      precision = qual_precision;
+   } else if (precision_qualifier_allowed(type)) {
+      const char *type_name =
+         get_type_name_for_precision_qualifier(type->without_array());
+      assert(type_name != NULL);
+
+      precision =
+         state->symbols->get_default_precision_qualifier(type_name);
+      if (precision == ast_precision_none) {
+         _mesa_glsl_error(loc, state,
+                          "No precision specified in this scope for type `%s'",
+                          type->name);
+      }
+   }
+   return precision;
+}
+
 const glsl_type *
 ast_fully_specified_type::glsl_type(const char **name,
                                     struct _mesa_glsl_parse_state *state) const
 {
-   const struct glsl_type *type = this->specifier->glsl_type(name, state);
-
-   if (type == NULL)
-      return NULL;
-
-   if (type->base_type == GLSL_TYPE_FLOAT
-       && state->es_shader
-       && state->stage == MESA_SHADER_FRAGMENT
-       && this->qualifier.precision == ast_precision_none
-       && state->symbols->get_variable("#default precision") == NULL) {
-      YYLTYPE loc = this->get_location();
-      _mesa_glsl_error(&loc, state,
-                       "no precision specified this scope for type `%s'",
-                       type->name);
-   }
-
-   return type;
+   return this->specifier->glsl_type(name, state);
 }
 
 /**
@@ -2733,6 +2966,12 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    if (qual->flags.q.sample)
       var->data.sample = 1;
 
+   /* Precision qualifiers do not hold any meaning in Desktop GLSL */
+   if (state->es_shader) {
+      var->data.precision =
+         select_gles_precision(qual->precision, var->type, state, loc);
+   }
+
    if (state->stage == MESA_SHADER_GEOMETRY &&
        qual->flags.q.out && qual->flags.q.stream) {
       var->data.stream = qual->stream;
@@ -2790,6 +3029,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       var->data.mode = ir_var_uniform;
    else if (qual->flags.q.buffer)
       var->data.mode = ir_var_shader_storage;
+   else if (qual->flags.q.shared_storage)
+      var->data.mode = ir_var_shader_shared;
 
    if (!is_parameter && is_varying_var(var, state->stage)) {
       /* User-defined ins/outs are not permitted in compute shaders. */
@@ -3087,6 +3328,12 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
                        "std140, std430, packed, and shared can only be "
                        "applied to uniform or shader storage blocks, not "
                        "members");
+   }
+
+   if (qual->flags.q.shared_storage && state->stage != MESA_SHADER_COMPUTE) {
+      _mesa_glsl_error(loc, state,
+                       "the shared storage qualifiers can only be used with "
+                       "compute shaders");
    }
 
    if (qual->flags.q.row_major || qual->flags.q.column_major) {
@@ -3639,42 +3886,6 @@ validate_identifier(const char *identifier, YYLTYPE loc,
                          "identifier `%s' uses reserved `__' string",
                          identifier);
    }
-}
-
-static bool
-precision_qualifier_allowed(const glsl_type *type)
-{
-   /* Precision qualifiers apply to floating point, integer and opaque
-    * types.
-    *
-    * Section 4.5.2 (Precision Qualifiers) of the GLSL 1.30 spec says:
-    *    "Any floating point or any integer declaration can have the type
-    *    preceded by one of these precision qualifiers [...] Literal
-    *    constants do not have precision qualifiers. Neither do Boolean
-    *    variables.
-    *
-    * Section 4.5 (Precision and Precision Qualifiers) of the GLSL 1.30
-    * spec also says:
-    *
-    *     "Precision qualifiers are added for code portability with OpenGL
-    *     ES, not for functionality. They have the same syntax as in OpenGL
-    *     ES."
-    *
-    * Section 8 (Built-In Functions) of the GLSL ES 1.00 spec says:
-    *
-    *     "uniform lowp sampler2D sampler;
-    *     highp vec2 coord;
-    *     ...
-    *     lowp vec4 col = texture2D (sampler, coord);
-    *                                            // texture2D returns lowp"
-    *
-    * From this, we infer that GLSL 1.30 (and later) should allow precision
-    * qualifiers on sampler types just like float and integer types.
-    */
-   return type->is_float()
-       || type->is_integer()
-       || type->is_record()
-       || type->contains_opaque();
 }
 
 ir_rvalue *
@@ -5749,19 +5960,9 @@ ast_type_specifier::hir(exec_list *instructions,
          return NULL;
       }
 
-      if (type->base_type == GLSL_TYPE_FLOAT
-          && state->es_shader
-          && state->stage == MESA_SHADER_FRAGMENT) {
+      if (state->es_shader) {
          /* Section 4.5.3 (Default Precision Qualifiers) of the GLSL ES 1.00
           * spec says:
-          *
-          *     "The fragment language has no default precision qualifier for
-          *     floating point types."
-          *
-          * As a result, we have to track whether or not default precision has
-          * been specified for float in GLSL ES fragment shaders.
-          *
-          * Earlier in that same section, the spec says:
           *
           *     "Non-precision qualified declarations will use the precision
           *     qualifier specified in the most recent precision statement
@@ -5775,16 +5976,13 @@ ast_type_specifier::hir(exec_list *instructions,
           *     overriding earlier statements within that scope."
           *
           * Default precision specifications follow the same scope rules as
-          * variables.  So, we can track the state of the default float
-          * precision in the symbol table, and the rules will just work.  This
+          * variables.  So, we can track the state of the default precision
+          * qualifiers in the symbol table, and the rules will just work.  This
           * is a slight abuse of the symbol table, but it has the semantics
           * that we want.
           */
-         ir_variable *const junk =
-            new(state) ir_variable(type, "#default precision",
-                                   ir_var_auto);
-
-         state->symbols->add_variable(junk);
+         state->symbols->add_default_precision_qualifier(this->type_name,
+                                                         this->default_precision);
       }
 
       /* FINISHME: Translate precision statements into IR. */
@@ -5963,9 +6161,21 @@ ast_process_structure_or_interface_block(exec_list *instructions,
          fields[i].centroid = qual->flags.q.centroid ? 1 : 0;
          fields[i].sample = qual->flags.q.sample ? 1 : 0;
          fields[i].patch = qual->flags.q.patch ? 1 : 0;
+         fields[i].precision = qual->precision;
 
-         /* Only save explicitly defined streams in block's field */
-         fields[i].stream = qual->flags.q.explicit_stream ? qual->stream : -1;
+         /* From Section 4.4.2.3 (Geometry Outputs) of the GLSL 4.50 spec:
+          *
+          *   "A block member may be declared with a stream identifier, but
+          *   the specified stream must match the stream associated with the
+          *   containing block."
+          */
+         if (qual->flags.q.explicit_stream &&
+             qual->stream != layout->stream) {
+            _mesa_glsl_error(&loc, state, "stream layout qualifier on "
+                             "interface block member `%s' does not match "
+                             "the interface block (%d vs %d)",
+                             fields[i].name, qual->stream, layout->stream);
+         }
 
          if (qual->flags.q.row_major || qual->flags.q.column_major) {
             if (!qual->flags.q.uniform && !qual->flags.q.buffer) {
@@ -6266,18 +6476,6 @@ ast_interface_block::hir(exec_list *instructions,
                                                &this->layout);
 
    state->struct_specifier_depth--;
-
-   for (unsigned i = 0; i < num_variables; i++) {
-      if (fields[i].stream != -1 &&
-          (unsigned) fields[i].stream != this->layout.stream) {
-         _mesa_glsl_error(&loc, state,
-                          "stream layout qualifier on "
-                          "interface block member `%s' does not match "
-                          "the interface block (%d vs %d)",
-                          fields[i].name, fields[i].stream,
-                          this->layout.stream);
-      }
-   }
 
    if (!redeclaring_per_vertex) {
       validate_identifier(this->block_name, loc, state);
@@ -6644,6 +6842,13 @@ ast_interface_block::hir(exec_list *instructions,
 
          if (var_mode == ir_var_shader_in || var_mode == ir_var_uniform)
             var->data.read_only = true;
+
+         /* Precision qualifiers do not have any meaning in Desktop GLSL */
+         if (state->es_shader) {
+            var->data.precision =
+               select_gles_precision(fields[i].precision, fields[i].type,
+                                     state, &loc);
+         }
 
          if (fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED) {
             var->data.matrix_layout = matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED

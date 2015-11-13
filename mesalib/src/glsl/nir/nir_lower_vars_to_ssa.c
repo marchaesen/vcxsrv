@@ -455,7 +455,8 @@ lower_copies_to_load_store(struct deref_node *node,
          struct deref_node *arg_node =
             get_deref_node(copy->variables[i], state);
 
-         if (arg_node == NULL)
+         /* Only bother removing copy entries for other nodes */
+         if (arg_node == NULL || arg_node == node)
             continue;
 
          struct set_entry *arg_entry = _mesa_set_search(arg_node->copies, copy);
@@ -465,6 +466,8 @@ lower_copies_to_load_store(struct deref_node *node,
 
       nir_instr_remove(&copy->instr);
    }
+
+   node->copies = NULL;
 
    return true;
 }
@@ -876,10 +879,6 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    state.add_to_direct_deref_nodes = true;
    nir_foreach_block(impl, register_variable_uses_block, &state);
 
-   struct set *outputs = _mesa_set_create(state.dead_ctx,
-                                          _mesa_hash_pointer,
-                                          _mesa_key_pointer_equal);
-
    bool progress = false;
 
    nir_metadata_require(impl, nir_metadata_block_index);
@@ -912,9 +911,6 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
          nir_instr_insert_before_cf_list(&impl->body, &load->instr);
          def_stack_push(node, &load->def, &state);
       }
-
-      if (deref->var->data.mode == nir_var_shader_out)
-         _mesa_set_add(outputs, node);
 
       foreach_deref_node_match(deref, lower_copies_to_load_store, &state);
    }

@@ -998,26 +998,30 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
    return PIPE_OK;
 }
 
-static boolean u_vbuf_need_minmax_index(struct u_vbuf *mgr)
+static boolean u_vbuf_need_minmax_index(const struct u_vbuf *mgr)
 {
    /* See if there are any per-vertex attribs which will be uploaded or
     * translated. Use bitmasks to get the info instead of looping over vertex
     * elements. */
    return (mgr->ve->used_vb_mask &
-           ((mgr->user_vb_mask | mgr->incompatible_vb_mask |
+           ((mgr->user_vb_mask |
+             mgr->incompatible_vb_mask |
              mgr->ve->incompatible_vb_mask_any) &
-            mgr->ve->noninstance_vb_mask_any & mgr->nonzero_stride_vb_mask)) != 0;
+            mgr->ve->noninstance_vb_mask_any &
+            mgr->nonzero_stride_vb_mask)) != 0;
 }
 
-static boolean u_vbuf_mapping_vertex_buffer_blocks(struct u_vbuf *mgr)
+static boolean u_vbuf_mapping_vertex_buffer_blocks(const struct u_vbuf *mgr)
 {
    /* Return true if there are hw buffers which don't need to be translated.
     *
     * We could query whether each buffer is busy, but that would
     * be way more costly than this. */
    return (mgr->ve->used_vb_mask &
-           (~mgr->user_vb_mask & ~mgr->incompatible_vb_mask &
-            mgr->ve->compatible_vb_mask_all & mgr->ve->noninstance_vb_mask_any &
+           (~mgr->user_vb_mask &
+            ~mgr->incompatible_vb_mask &
+            mgr->ve->compatible_vb_mask_all &
+            mgr->ve->noninstance_vb_mask_any &
             mgr->nonzero_stride_vb_mask)) != 0;
 }
 

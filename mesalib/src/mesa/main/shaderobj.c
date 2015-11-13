@@ -294,8 +294,8 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
    shProg->BufferInterfaceBlocks = NULL;
    shProg->NumBufferInterfaceBlocks = 0;
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
-      ralloc_free(shProg->UniformBlockStageIndex[i]);
-      shProg->UniformBlockStageIndex[i] = NULL;
+      ralloc_free(shProg->InterfaceBlockStageIndex[i]);
+      shProg->InterfaceBlockStageIndex[i] = NULL;
    }
 
    ralloc_free(shProg->AtomicBuffers);

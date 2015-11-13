@@ -70,6 +70,7 @@ unsigned glsl_get_record_location_offset(const struct glsl_type *type,
 bool glsl_type_is_void(const struct glsl_type *type);
 bool glsl_type_is_vector(const struct glsl_type *type);
 bool glsl_type_is_scalar(const struct glsl_type *type);
+bool glsl_type_is_vector_or_scalar(const struct glsl_type *type);
 bool glsl_type_is_matrix(const struct glsl_type *type);
 
 const struct glsl_type *glsl_void_type(void);

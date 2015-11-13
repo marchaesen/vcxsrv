@@ -552,6 +552,10 @@ st_CopyImageSubData(struct gl_context *ctx,
       src_res = src->pt;
       src_level = src_image->Level;
       src_z += src_image->Face;
+      if (src_image->TexObject->Immutable) {
+         src_level += src_image->TexObject->MinLevel;
+         src_z += src_image->TexObject->MinLayer;
+      }
    } else {
       struct st_renderbuffer *src = st_renderbuffer(src_renderbuffer);
       src_res = src->texture;
@@ -563,6 +567,10 @@ st_CopyImageSubData(struct gl_context *ctx,
       dst_res = dst->pt;
       dst_level = dst_image->Level;
       dst_z += dst_image->Face;
+      if (dst_image->TexObject->Immutable) {
+         dst_level += dst_image->TexObject->MinLevel;
+         dst_z += dst_image->TexObject->MinLayer;
+      }
    } else {
       struct st_renderbuffer *dst = st_renderbuffer(dst_renderbuffer);
       dst_res = dst->texture;

@@ -67,14 +67,6 @@ struct split_var_copies_state {
    bool progress;
 };
 
-static nir_deref *
-get_deref_tail(nir_deref *deref)
-{
-   while (deref->child != NULL)
-      deref = deref->child;
-   return deref;
-}
-
 /* Recursively constructs deref chains to split a copy instruction into
  * multiple (if needed) copy instructions with full-length deref chains.
  * External callers of this function should pass the tail and head of the
@@ -227,8 +219,8 @@ split_var_copies_block(nir_block *block, void *void_state)
 
       nir_deref *dest_head = &intrinsic->variables[0]->deref;
       nir_deref *src_head = &intrinsic->variables[1]->deref;
-      nir_deref *dest_tail = get_deref_tail(dest_head);
-      nir_deref *src_tail = get_deref_tail(src_head);
+      nir_deref *dest_tail = nir_deref_tail(dest_head);
+      nir_deref *src_tail = nir_deref_tail(src_head);
 
       switch (glsl_get_base_type(src_tail->type)) {
       case GLSL_TYPE_ARRAY:
@@ -270,6 +262,11 @@ split_var_copies_impl(nir_function_impl *impl)
    nir_foreach_block(impl, split_var_copies_block, &state);
 
    ralloc_free(state.dead_ctx);
+
+   if (state.progress) {
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+   }
 
    return state.progress;
 }
