@@ -30,13 +30,19 @@
 commandqueue             mhmakefileparser::sm_CommandQueue;
 stack<yy::mhmakeparser*> mhmakefileparser::sm_ParserStack; // Keeps track of the currently active parser
 
-string mhmakefileparser::GetFileNameLineNo(void)
+string mhmakefileparser::GetFileNameLineNo(void) const
 {
   if (!sm_ParserStack.empty())
   {
     yy::mhmakeparser* pParser=sm_ParserStack.top();
-    yy::position *pPos=pParser->GetCurPos();
-    return pParser->GetInputFilename()+":"+stringify(pPos->line)+" ";
+
+    if (this == pParser->getMakefile())
+    {
+      yy::position *pPos=pParser->GetCurPos();
+      return pParser->GetInputFilename()+":"+stringify(pPos->line)+" ";
+    }
+    else
+      return g_EmptyString; // The top of the parser stack is not valid anymore (probably in some exception handler)
   }
   else
     return g_EmptyString; // Currently not parsing, this is a run-time error after parsing
@@ -543,18 +549,29 @@ void mhmakefileparser::GetAutoDeps(const fileinfo *pFirstDep, deps_t &Autodeps)
           } while ((PrevRet!='*' || Ret!='/') && Ret!=EOF);
         }
       }
-      else if (Ret=='#' || Ret=='.')
+      else if (Ret=='#')
       {
-        if (Ret=='#')
-        {
-          Ret=fscanf(pIn,"%*[ \t]");
-          Ret=fscanf(pIn,"include%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
-        }
-        else
-          Ret=fscanf(pIn,"import%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
+        Ret=fscanf(pIn,"%*[ \t]");
+        Ret=fscanf(pIn,"include%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
         if (Ret==2)
         {
           bFound=true;
+        }
+      }
+      else if (Ret=='.')
+      {
+        Ret=fgetc(pIn);
+        if (Ret=='i')
+        {
+          Ret=fgetc(pIn);
+          if (Ret=='m')
+            Ret=fscanf(pIn,"port%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
+          else if (Ret=='n')
+            Ret=fscanf(pIn,"clude%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
+          if (Ret==2)
+          {
+            bFound=true;
+          }
         }
       }
     }

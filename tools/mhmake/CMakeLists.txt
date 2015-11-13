@@ -22,7 +22,7 @@ ADD_CUSTOM_COMMAND(
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/mhmakelexer.l ${CMAKE_CURRENT_SOURCE_DIR}/src/flex.skl ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/flexlexer.h
 )
 ADD_CUSTOM_COMMAND(
-   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.cpp ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.hpp ${CMAKE_CURRENT_BINARY_DIR}/location.hh  ${CMAKE_CURRENT_BINARY_DIR}/position.hh  ${CMAKE_CURRENT_BINARY_DIR}/stack.hh
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.cpp ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.hpp ${CMAKE_CURRENT_BINARY_DIR}/location.hh  ${CMAKE_CURRENT_BINARY_DIR}/position.hh
    COMMAND BISON_PKGDATADIR=${CMAKE_CURRENT_SOURCE_DIR}/src/bisondata bison -d -ra -S${CMAKE_CURRENT_SOURCE_DIR}/src/bisondata/lalr1.cc -o${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/mhmakeparser.y
    COMMAND mv ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.cpp temp1234.456
    COMMAND echo '\#include \"stdafx.h\"' > ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.cpp
@@ -32,7 +32,7 @@ ADD_CUSTOM_COMMAND(
    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/mhmakeparser.y ${CMAKE_CURRENT_SOURCE_DIR}/src/bisondata/lalr1.cc
 )
 INCLUDE_DIRECTORIES(src ${CMAKE_CURRENT_BINARY_DIR})
-LINK_LIBRARIES(/usr/lib/libpopt.a)
+LINK_LIBRARIES(libpopt.a)
 
 ADD_EXECUTABLE(${PROGRAM_NAME}
                ${CMAKE_CURRENT_BINARY_DIR}/mhmakeparser.cpp

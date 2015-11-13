@@ -76,7 +76,7 @@ static void ReplaceCurlyBraces(string &String)
 
 #include "mhmakeparser.hpp"
 
-#define YY_DECL int mhmakeFlexLexer::yylex(yy::mhmakeparser::semantic_type* yylval, yy::mhmakeparser::location_type* yylloc)
+#define YY_DECL int mhmakeFlexLexer::yylex(YYSTYPE * yylval, yy::location* yylloc)
 
 /* By default yylex returns int, we use token_type.
    Unfortunately yyterminate by default returns 0, which is
@@ -195,6 +195,13 @@ static void ReplaceCurlyBraces(string &String)
         m_IncludeStack.push(pStackElem);
 
         m_InputFileName=strToInclude;
+
+        string listVar;
+        GetParser()->GetVariable("MAKEFILE_LIST", listVar);
+        if (listVar.length()!=0)
+          listVar+=" ";
+        GetParser()->SetVariable("MAKEFILE_LIST", listVar+strToInclude);
+
         yylloc->initialize(&m_InputFileName);
 
         yypush_buffer_state(yy_create_buffer( pStackElem->GetStream(), YY_BUF_SIZE ));

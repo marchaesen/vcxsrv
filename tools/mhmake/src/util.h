@@ -50,7 +50,7 @@
 #define PLATFORM     "linux"
 #endif
 
-#define MHMAKEVER    "3.0.27"
+#define MHMAKEVER    "3.0.28"
 
 class makecommand
 {
@@ -69,8 +69,8 @@ extern makecommand g_MakeCommand;
 inline string unescapeString(const string &InStr)
 {
   string OutStr;
-  string::const_iterator It=InStr.cbegin();
-  string::const_iterator ItEnd=InStr.cend();
+  string::const_iterator It=InStr.begin();
+  string::const_iterator ItEnd=InStr.end();
   while (It!=ItEnd)
   {
     char Ch=*It++;
@@ -84,7 +84,7 @@ inline string unescapeString(const string &InStr)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-inline const char *NextItem(const char *pTmp,string &Output, const char *pToks=" \t")
+inline const char *NextItem(const char *pTmp,string &Output, const char *pToks=" \t\r\n")
 {
   const char *pStart;
   const char *pStop;

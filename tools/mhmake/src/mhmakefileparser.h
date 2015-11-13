@@ -295,6 +295,7 @@ public:
   string f_shell(const string & Arg) const;
   string f_relpath(const string & Arg) const;
   string f_realpath(const string & Arg) const;
+  string f_abspath(const string & Arg) const;
   string f_toupper(const string & Arg) const;
   string f_tolower(const string & Arg) const;
   string f_exist(const string & Arg) const;
@@ -304,6 +305,7 @@ public:
   string f_addsuffix(const string & Arg) const;
   string f_filterout(const string & Arg) const;
   string f_word(const string & Arg) const;
+  string f_lastword(const string & Arg) const;
   string f_words(const string & Arg) const;
   string f_strip(const string & Arg) const;
   string f_which(const string & Arg) const;
@@ -408,7 +410,7 @@ public:
   int SearchPath(const char *szCommand, const char *pExt, size_t Len, char *szFullCommand,char **pFilePart) const;
   mh_pid_t OsExeCommand(const string &Command, const string &Params, bool IgnoreError, string *pOutput) const;
 
-  static string GetFileNameLineNo(void);
+  string GetFileNameLineNo(void) const;
 };
 
 class mhmakeparserbase
@@ -428,6 +430,10 @@ public:
   string &GetInputFilename(void) const
   {
     return m_ptheLexer->GetInputFilename();
+  }
+  mhmakefileparser *getMakefile()
+  {
+    return m_pMakefile;
   }
 
 };

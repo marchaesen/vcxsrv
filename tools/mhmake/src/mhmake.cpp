@@ -77,8 +77,8 @@ int __CDECL main(int argc, char* argv[])
 
     if (!getenv("Platform"))
     {
-      char PlatformEnv[]="PLATFORM=" PLATFORM;
-      putenv(PlatformEnv);
+      static const char PlatformEnv[]="PLATFORM=" PLATFORM;
+      putenv((char*)PlatformEnv);
     }
 
     vector<string> CmdLineArgs;

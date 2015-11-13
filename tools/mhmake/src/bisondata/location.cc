@@ -1,7 +1,6 @@
 # C++ skeleton for Bison
 
-# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation,
-# Inc.
+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,109 +15,112 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# We do want M4 expansion after # for CPP macros.
-m4_changecom()
-m4_divert_push(0)dnl
-@output(b4_dir_prefix[]position.hh@)
-b4_copyright([Positions for Bison parsers in C++],
-  [2002, 2003, 2004, 2005, 2006])[
+m4_pushdef([b4_copyright_years],
+           [2002-2013])
 
-/**
- ** \file position.hh
- ** Define the ]b4_namespace_ref[::position class.
- */
-
-#ifndef BISON_POSITION_HH
-# define BISON_POSITION_HH
-
-# include <iostream>
-# include <string>
-# include <algorithm>
-
-]b4_namespace_open[
-  /// Abstract a position.
+# b4_position_define
+# ------------------
+# Define class position.
+m4_define([b4_position_define],
+[[  /// Abstract a position.
   class position
   {
-  public:
-]m4_ifdef([b4_location_constructors], [
+  public:]m4_ifdef([b4_location_constructors], [[
     /// Construct a position.
-    position ()
-      : filename (0), line (]b4_location_initial_line[), column (]b4_location_initial_column[)
+    explicit position (]b4_percent_define_get([[filename_type]])[* f = YY_NULLPTR,
+                       unsigned int l = ]b4_location_initial_line[u,
+                       unsigned int c = ]b4_location_initial_column[u)
+      : filename (f)
+      , line (l)
+      , column (c)
     {
     }
 
-])[
+]])[
     /// Initialization.
-    inline void initialize (]b4_percent_define_get([[filename_type]])[* fn)
+    void initialize (]b4_percent_define_get([[filename_type]])[* fn = YY_NULLPTR,
+                     unsigned int l = ]b4_location_initial_line[u,
+                     unsigned int c = ]b4_location_initial_column[u)
     {
       filename = fn;
-      line = ]b4_location_initial_line[;
-      column = ]b4_location_initial_column[;
+      line = l;
+      column = c;
     }
 
     /** \name Line and Column related manipulators
      ** \{ */
-  public:
     /// (line related) Advance to the COUNT next lines.
-    inline void lines (int count = 1)
+    void lines (int count = 1)
     {
-      column = ]b4_location_initial_column[;
-      line += count;
+      if (count)
+        {
+          column = ]b4_location_initial_column[u;
+          line = add_ (line, count, ]b4_location_initial_line[);
+        }
     }
+
     /// (column related) Advance to the COUNT next columns.
-    inline void columns (int count = 1)
+    void columns (int count = 1)
     {
-      column = std::max (]b4_location_initial_column[u, column + count);
+      column = add_ (column, count, ]b4_location_initial_column[);
     }
     /** \} */
 
-  public:
     /// File name to which this position refers.
     ]b4_percent_define_get([[filename_type]])[* filename;
     /// Current line number.
     unsigned int line;
     /// Current column number.
     unsigned int column;
+
+  private:
+    /// Compute max(min, lhs+rhs) (provided min <= lhs).
+    static unsigned int add_ (unsigned int lhs, int rhs, unsigned int min)
+    {
+      return (0 < rhs || -static_cast<unsigned int>(rhs) < lhs
+              ? rhs + lhs
+              : min);
+    }
   };
 
   /// Add and assign a position.
-  inline const position&
-  operator+= (position& res, const int width)
+  inline position&
+  operator+= (position& res, int width)
   {
     res.columns (width);
     return res;
   }
 
   /// Add two position objects.
-  inline const position
-  operator+ (const position& begin, const int width)
+  inline position
+  operator+ (position res, int width)
   {
-    position res = begin;
     return res += width;
   }
 
   /// Add and assign a position.
-  inline const position&
-  operator-= (position& res, const int width)
+  inline position&
+  operator-= (position& res, int width)
   {
     return res += -width;
   }
 
   /// Add two position objects.
-  inline const position
-  operator- (const position& begin, const int width)
+  inline position
+  operator- (position res, int width)
   {
-    return begin + -width;
+    return res -= width;
   }
 ]b4_percent_define_flag_if([[define_location_comparison]], [[
   /// Compare two position objects.
   inline bool
   operator== (const position& pos1, const position& pos2)
   {
-    return
-      (pos1.filename == pos2.filename
-       || pos1.filename && pos2.filename && *pos1.filename == *pos2.filename)
-      && pos1.line == pos2.line && pos1.column == pos2.column;
+    return (pos1.line == pos2.line
+            && pos1.column == pos2.column
+            && (pos1.filename == pos2.filename
+                || (pos1.filename && pos2.filename
+                    && *pos1.filename == *pos2.filename)));
   }
 
   /// Compare two position objects.
@@ -132,50 +134,55 @@ b4_copyright([Positions for Bison parsers in C++],
    ** \param ostr the destination output stream
    ** \param pos a reference to the position to redirect
    */
-  inline std::ostream&
-  operator<< (std::ostream& ostr, const position& pos)
+  template <typename YYChar>
+  inline std::basic_ostream<YYChar>&
+  operator<< (std::basic_ostream<YYChar>& ostr, const position& pos)
   {
     if (pos.filename)
       ostr << *pos.filename << ':';
     return ostr << pos.line << '.' << pos.column;
   }
+]])
 
-]b4_namespace_close[
-#endif // not BISON_POSITION_HH]
-@output(b4_dir_prefix[]location.hh@)
-b4_copyright([Locations for Bison parsers in C++],
-  [2002, 2003, 2004, 2005, 2006])[
 
-/**
- ** \file location.hh
- ** Define the ]b4_namespace_ref[::location class.
- */
-
-#ifndef BISON_LOCATION_HH
-# define BISON_LOCATION_HH
-
-# include <iostream>
-# include <string>
-# include "position.hh"
-
-]b4_namespace_open[
-
-  /// Abstract a location.
+# b4_location_define
+# ------------------
+m4_define([b4_location_define],
+[[  /// Abstract a location.
   class location
   {
   public:
 ]m4_ifdef([b4_location_constructors], [
-    /// Construct a location.
-    location ()
-      : begin (), end ()
+    /// Construct a location from \a b to \a e.
+    location (const position& b, const position& e)
+      : begin (b)
+      , end (e)
+    {
+    }
+
+    /// Construct a 0-width location in \a p.
+    explicit location (const position& p = position ())
+      : begin (p)
+      , end (p)
+    {
+    }
+
+    /// Construct a 0-width location in \a f, \a l, \a c.
+    explicit location (]b4_percent_define_get([[filename_type]])[* f,
+                       unsigned int l = ]b4_location_initial_line[u,
+                       unsigned int c = ]b4_location_initial_column[u)
+      : begin (f, l, c)
+      , end (f, l, c)
     {
     }
 
 ])[
     /// Initialization.
-    inline void initialize (]b4_percent_define_get([[filename_type]])[* fn)
+    void initialize (]b4_percent_define_get([[filename_type]])[* f = YY_NULLPTR,
+                     unsigned int l = ]b4_location_initial_line[u,
+                     unsigned int c = ]b4_location_initial_column[u)
     {
-      begin.initialize (fn);
+      begin.initialize (f, l, c);
       end = begin;
     }
 
@@ -183,23 +190,23 @@ b4_copyright([Locations for Bison parsers in C++],
      ** \{ */
   public:
     /// Reset initial location to final location.
-    inline void step ()
+    void step ()
     {
       begin = end;
     }
 
     /// Extend the current location to the COUNT next columns.
-    inline void columns (unsigned int count = 1)
+    void columns (int count = 1)
     {
       end += count;
     }
 
     /// Extend the current location to the COUNT next lines.
-    inline void lines (unsigned int count = 1)
+    void lines (int count = 1)
     {
       end.lines (count);
     }
-    inline void incline ()
+    void incline ()
     {
       lines(1);
       step();
@@ -215,26 +222,35 @@ b4_copyright([Locations for Bison parsers in C++],
   };
 
   /// Join two location objects to create a location.
-  inline const location operator+ (const location& begin, const location& end)
+  inline location operator+ (location res, const location& end)
   {
-    location res = begin;
     res.end = end.end;
     return res;
   }
 
-  /// Add two location objects.
-  inline const location operator+ (const location& begin, unsigned int width)
+  /// Change end position in place.
+  inline location& operator+= (location& res, int width)
   {
-    location res = begin;
     res.columns (width);
     return res;
   }
 
-  /// Add and assign a location.
-  inline location& operator+= (location& res, unsigned int width)
+  /// Change end position.
+  inline location operator+ (location res, int width)
   {
-    res.columns (width);
-    return res;
+    return res += width;
+  }
+
+  /// Change end position in place.
+  inline location& operator-= (location& res, int width)
+  {
+    return res += -width;
+  }
+
+  /// Change end position.
+  inline location operator- (const location& begin, int width)
+  {
+    return begin + -width;
   }
 ]b4_percent_define_flag_if([[define_location_comparison]], [[
   /// Compare two location objects.
@@ -257,23 +273,68 @@ b4_copyright([Locations for Bison parsers in C++],
    **
    ** Avoid duplicate information.
    */
-  inline std::ostream& operator<< (std::ostream& ostr, const location& loc)
+  template <typename YYChar>
+  inline std::basic_ostream<YYChar>&
+  operator<< (std::basic_ostream<YYChar>& ostr, const location& loc)
   {
-    position last = loc.end - 1;
-    ostr << loc.begin;
-    if (last.filename
+    unsigned int end_col = 0 < loc.end.column ? loc.end.column - 1 : 0;
+    ostr << loc.begin// << "(" << loc.end << ") "
+;
+    if (loc.end.filename
         && (!loc.begin.filename
-            || *loc.begin.filename != *last.filename))
-      ostr << '-' << last;
-    else if (loc.begin.line != last.line)
-      ostr << '-' << last.line  << '.' << last.column;
-    else if (loc.begin.column != last.column)
-      ostr << '-' << last.column;
+            || *loc.begin.filename != *loc.end.filename))
+      ostr << '-' << loc.end.filename << ':' << loc.end.line << '.' << end_col;
+    else if (loc.begin.line < loc.end.line)
+      ostr << '-' << loc.end.line << '.' << end_col;
+    else if (loc.begin.column < end_col)
+      ostr << '-' << end_col;
     return ostr;
   }
+]])
 
+
+b4_defines_if([
+b4_output_begin([b4_dir_prefix[]position.hh])
+b4_copyright([Positions for Bison parsers in C++])[
+
+/**
+ ** \file ]b4_dir_prefix[position.hh
+ ** Define the ]b4_namespace_ref[::position class.
+ */
+
+]b4_cpp_guard_open([b4_dir_prefix[]position.hh])[
+
+# include <algorithm> // std::max
+# include <iostream>
+# include <string>
+
+]b4_null_define[
+
+]b4_namespace_open[
+]b4_position_define[
 ]b4_namespace_close[
+]b4_cpp_guard_close([b4_dir_prefix[]position.hh])
+b4_output_end()
 
-#endif // not BISON_LOCATION_HH]
-m4_divert_pop(0)
-m4_changecom([#])
+
+b4_output_begin([b4_dir_prefix[]location.hh])
+b4_copyright([Locations for Bison parsers in C++])[
+
+/**
+ ** \file ]b4_dir_prefix[location.hh
+ ** Define the ]b4_namespace_ref[::location class.
+ */
+
+]b4_cpp_guard_open([b4_dir_prefix[]location.hh])[
+
+# include "position.hh"
+
+]b4_namespace_open[
+]b4_location_define[
+]b4_namespace_close[
+]b4_cpp_guard_close([b4_dir_prefix[]location.hh])
+b4_output_end()
+])
+
+
+m4_popdef([b4_copyright_years])
