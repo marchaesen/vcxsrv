@@ -639,7 +639,7 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref )
  * \param opcode operation.
  *
  * Verifies that \p opcode is a valid enum and updates
-gl_colorbuffer_attrib::LogicOp.
+ * gl_colorbuffer_attrib::LogicOp.
  * On a change, flushes the vertices and notifies the driver via the
  * dd_function_table::LogicOpcode callback.
  */
