@@ -21,7 +21,7 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv-64-debug.1.17.2.0.installer.exe"
+OutFile "vcxsrv-64-debug.1.17.4.0.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES64\VcXsrv
@@ -35,8 +35,8 @@ LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 VIProductVersion "1.17.2.0"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.17.2.0"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.17.2.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.17.4.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.17.4.0"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
