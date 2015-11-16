@@ -148,10 +148,33 @@ To get the latest code from git:
 <h2>Building the Code</h2>
 
 <ul>
-<li>Build libdrm: If you're on a 32-bit system, you should skip the --libdir configure option. Note also the comment about toolchain libdrm above. 
+<li>
+Determine where the GL-related libraries reside on your system and set
+the LIBDIR environment variable accordingly.
+<br><br>
+For 32-bit Ubuntu systems:
+<pre>
+  export LIBDIR=/usr/lib/i386-linux-gnu
+</pre>
+For 64-bit Ubuntu systems:
+<pre>
+  export LIBDIR=/usr/lib/x86_64-linux-gnu
+</pre>
+For 32-bit Fedora systems:
+<pre>
+  export LIBDIR=/usr/lib
+</pre>
+For 64-bit Fedora systems:
+<pre>
+  export LIBDIR=/usr/lib64
+</pre>
+
+</li>
+
+<li>Build libdrm:
   <pre>
   cd $TOP/drm
-  ./autogen.sh --prefix=/usr --libdir=/usr/lib64
+  ./autogen.sh --prefix=/usr --libdir=${LIBDIR}
   make
   sudo make install
   </pre>
@@ -162,12 +185,9 @@ The libxatracker library is used exclusively by the X server to do render,
 copy and video acceleration:
 <br>
 The following configure options doesn't build the EGL system.
-<br>
-As before, if you're on a 32-bit system, you should skip the --libdir
-configure option.
   <pre>
   cd $TOP/mesa
-  ./autogen.sh --prefix=/usr --libdir=/usr/lib64 --with-gallium-drivers=svga --with-dri-drivers= --enable-xa --disable-dri3
+  ./autogen.sh --prefix=/usr --libdir=${LIBDIR} --with-gallium-drivers=svga --with-dri-drivers=swrast --enable-xa --disable-dri3 --enable-glx-tls
   make
   sudo make install
   </pre>
@@ -177,25 +197,39 @@ if they're not installed in your system.  You should be told what's missing.
 <br>
 <br>
 
-<li>xf86-video-vmware: Now, once libxatracker is installed, we proceed with building and replacing the current Xorg driver. First check if your system is 32- or 64-bit. If you're building for a 32-bit system, you will not be needing the --libdir=/usr/lib64 option to autogen. 
+<li>xf86-video-vmware: Now, once libxatracker is installed, we proceed with
+building and replacing the current Xorg driver.
+First check if your system is 32- or 64-bit.
   <pre>
   cd $TOP/xf86-video-vmware
-  ./autogen.sh --prefix=/usr --libdir=/usr/lib64
+  ./autogen.sh --prefix=/usr --libdir=${LIBDIR}
   make
   sudo make install
   </pre>
+
 <li>vmwgfx kernel module. First make sure that any old version of this kernel module is removed from the system by issuing
-  <pre>
+<pre>
   sudo rm /lib/modules/`uname -r`/kernel/drivers/gpu/drm/vmwgfx.ko*
-  </pre>
-Then 
-  <pre>
+</pre>
+Build and install:
+<pre>
   cd $TOP/vmwgfx
   make
   sudo make install
-  sudo cp 00-vmwgfx.rules /etc/udev/rules.d
-  sudo depmod -ae
-  </pre>
+  sudo depmod -a
+</pre>
+If you're using a Ubuntu OS:
+<pre>
+  sudo update-initramfs -u
+</pre>
+If you're using a Fedora OS:
+<pre>
+  sudo dracut --force
+</pre>
+Add 'vmwgfx' to the /etc/modules file:
+<pre>
+  echo vmwgfx | sudo tee -a /etc/modules
+</pre>
 
 Note: some distros put DRM kernel drivers in different directories.
 For example, sometimes vmwgfx.ko might be found in

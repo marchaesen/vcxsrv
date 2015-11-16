@@ -68,10 +68,22 @@ nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
  * by a vertex number (such as geometry shader inputs).
  */
 static bool
-stage_uses_per_vertex_inputs(struct lower_io_state *state)
+is_per_vertex_input(struct lower_io_state *state, nir_variable *var)
 {
    gl_shader_stage stage = state->builder.shader->stage;
-   return stage == MESA_SHADER_GEOMETRY;
+
+   return var->data.mode == nir_var_shader_in && !var->data.patch &&
+          (stage == MESA_SHADER_TESS_CTRL ||
+           stage == MESA_SHADER_TESS_EVAL ||
+           stage == MESA_SHADER_GEOMETRY);
+}
+
+static bool
+is_per_vertex_output(struct lower_io_state *state, nir_variable *var)
+{
+   gl_shader_stage stage = state->builder.shader->stage;
+   return var->data.mode == nir_var_shader_out && !var->data.patch &&
+          stage == MESA_SHADER_TESS_CTRL;
 }
 
 static unsigned
@@ -149,6 +161,15 @@ load_op(struct lower_io_state *state,
                              nir_intrinsic_load_input;
       }
       break;
+   case nir_var_shader_out:
+      if (per_vertex) {
+         op = has_indirect ? nir_intrinsic_load_per_vertex_output_indirect :
+                             nir_intrinsic_load_per_vertex_output;
+      } else {
+         op = has_indirect ? nir_intrinsic_load_output_indirect :
+                             nir_intrinsic_load_output;
+      }
+      break;
    case nir_var_uniform:
       op = has_indirect ? nir_intrinsic_load_uniform_indirect :
                           nir_intrinsic_load_uniform;
@@ -179,13 +200,16 @@ nir_lower_io_block(nir_block *block, void *void_state)
       if (state->mode != -1 && state->mode != mode)
          continue;
 
+      if (mode != nir_var_shader_in &&
+          mode != nir_var_shader_out &&
+          mode != nir_var_uniform)
+         continue;
+
       switch (intrin->intrinsic) {
       case nir_intrinsic_load_var: {
-         if (mode != nir_var_shader_in && mode != nir_var_uniform)
-            continue;
-
-         bool per_vertex = stage_uses_per_vertex_inputs(state) &&
-                           mode == nir_var_shader_in;
+         bool per_vertex =
+            is_per_vertex_input(state, intrin->variables[0]->var) ||
+            is_per_vertex_output(state, intrin->variables[0]->var);
 
          nir_ssa_def *indirect;
          nir_ssa_def *vertex_index;
@@ -229,20 +253,26 @@ nir_lower_io_block(nir_block *block, void *void_state)
       }
 
       case nir_intrinsic_store_var: {
-         if (intrin->variables[0]->var->data.mode != nir_var_shader_out)
-            continue;
+         assert(mode == nir_var_shader_out);
 
          nir_ssa_def *indirect;
+         nir_ssa_def *vertex_index;
+
+         bool per_vertex =
+            is_per_vertex_output(state, intrin->variables[0]->var);
 
          unsigned offset = get_io_offset(intrin->variables[0], &intrin->instr,
-                                         NULL, &indirect, state);
+                                         per_vertex ? &vertex_index : NULL,
+                                         &indirect, state);
          offset += intrin->variables[0]->var->data.driver_location;
 
          nir_intrinsic_op store_op;
-         if (indirect) {
-            store_op = nir_intrinsic_store_output_indirect;
+         if (per_vertex) {
+            store_op = indirect ? nir_intrinsic_store_per_vertex_output_indirect
+                                : nir_intrinsic_store_per_vertex_output;
          } else {
-            store_op = nir_intrinsic_store_output;
+            store_op = indirect ? nir_intrinsic_store_output_indirect
+                                : nir_intrinsic_store_output;
          }
 
          nir_intrinsic_instr *store = nir_intrinsic_instr_create(state->mem_ctx,
@@ -252,8 +282,11 @@ nir_lower_io_block(nir_block *block, void *void_state)
 
          nir_src_copy(&store->src[0], &intrin->src[0], store);
 
+         if (per_vertex)
+            store->src[1] = nir_src_for_ssa(vertex_index);
+
          if (indirect)
-            store->src[1] = nir_src_for_ssa(indirect);
+            store->src[per_vertex ? 2 : 1] = nir_src_for_ssa(indirect);
 
          nir_instr_insert_before(&intrin->instr, &store->instr);
          nir_instr_remove(&intrin->instr);
@@ -293,5 +326,47 @@ nir_lower_io(nir_shader *shader, nir_variable_mode mode,
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
          nir_lower_io_impl(overload->impl, mode, type_size);
+   }
+}
+
+/**
+ * Return the indirect source for a load/store indirect intrinsic.
+ */
+nir_src *
+nir_get_io_indirect_src(nir_intrinsic_instr *instr)
+{
+   switch (instr->intrinsic) {
+   case nir_intrinsic_load_input_indirect:
+   case nir_intrinsic_load_output_indirect:
+   case nir_intrinsic_load_uniform_indirect:
+      return &instr->src[0];
+   case nir_intrinsic_load_per_vertex_input_indirect:
+   case nir_intrinsic_load_per_vertex_output_indirect:
+   case nir_intrinsic_store_output_indirect:
+      return &instr->src[1];
+   case nir_intrinsic_store_per_vertex_output_indirect:
+      return &instr->src[2];
+   default:
+      return NULL;
+   }
+}
+
+/**
+ * Return the vertex index source for a load/store per_vertex intrinsic.
+ */
+nir_src *
+nir_get_io_vertex_index_src(nir_intrinsic_instr *instr)
+{
+   switch (instr->intrinsic) {
+   case nir_intrinsic_load_per_vertex_input:
+   case nir_intrinsic_load_per_vertex_output:
+   case nir_intrinsic_load_per_vertex_input_indirect:
+   case nir_intrinsic_load_per_vertex_output_indirect:
+      return &instr->src[0];
+   case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_per_vertex_output_indirect:
+      return &instr->src[1];
+   default:
+      return NULL;
    }
 }

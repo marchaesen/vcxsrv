@@ -102,13 +102,13 @@ fallback_required(struct gl_context *ctx, GLenum target,
     */
    if (!mipmap->FBO)
       _mesa_GenFramebuffers(1, &mipmap->FBO);
-   _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, mipmap->FBO);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, mipmap->FBO);
 
-   _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, baseImage, 0);
+   _mesa_meta_bind_fbo_image(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, baseImage, 0);
 
-   status = _mesa_CheckFramebufferStatus(GL_FRAMEBUFFER_EXT);
+   status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 
-   _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, fboSave);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSave);
 
    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
@@ -128,6 +128,8 @@ _mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap)
    mipmap->VAO = 0;
    _mesa_DeleteBuffers(1, &mipmap->VBO);
    mipmap->VBO = 0;
+   _mesa_DeleteSamplers(1, &mipmap->Sampler);
+   mipmap->Sampler = 0;
 
    _mesa_meta_blit_shader_table_cleanup(&mipmap->shaders);
 }
