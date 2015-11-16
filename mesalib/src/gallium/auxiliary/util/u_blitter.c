@@ -70,7 +70,7 @@ struct blitter_context_priv
    /* Constant state objects. */
    /* Vertex shaders. */
    void *vs; /**< Vertex shader which passes {pos, generic} to the output.*/
-   void *vs_pos_only; /**< Vertex shader which passes pos to the output.*/
+   void *vs_pos_only[4]; /**< Vertex shader which passes pos to the output.*/
    void *vs_layered; /**< Vertex shader which sets LAYER = INSTANCEID. */
 
    /* Fragment shaders. */
@@ -325,27 +325,29 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    return &ctx->base;
 }
 
-static void bind_vs_pos_only(struct blitter_context_priv *ctx)
+static void bind_vs_pos_only(struct blitter_context_priv *ctx,
+                             unsigned num_so_channels)
 {
    struct pipe_context *pipe = ctx->base.pipe;
+   int index = num_so_channels ? num_so_channels - 1 : 0;
 
-   if (!ctx->vs_pos_only) {
+   if (!ctx->vs_pos_only[index]) {
       struct pipe_stream_output_info so;
       const uint semantic_names[] = { TGSI_SEMANTIC_POSITION };
       const uint semantic_indices[] = { 0 };
 
       memset(&so, 0, sizeof(so));
       so.num_outputs = 1;
-      so.output[0].num_components = 1;
-      so.stride[0] = 1;
+      so.output[0].num_components = num_so_channels;
+      so.stride[0] = num_so_channels;
 
-      ctx->vs_pos_only =
+      ctx->vs_pos_only[index] =
          util_make_vertex_passthrough_shader_with_so(pipe, 1, semantic_names,
                                                      semantic_indices, FALSE,
                                                      &so);
    }
 
-   pipe->bind_vs_state(pipe, ctx->vs_pos_only);
+   pipe->bind_vs_state(pipe, ctx->vs_pos_only[index]);
 }
 
 static void bind_vs_passthrough(struct blitter_context_priv *ctx)
@@ -441,8 +443,9 @@ void util_blitter_destroy(struct blitter_context *blitter)
       pipe->delete_rasterizer_state(pipe, ctx->rs_discard_state);
    if (ctx->vs)
       pipe->delete_vs_state(pipe, ctx->vs);
-   if (ctx->vs_pos_only)
-      pipe->delete_vs_state(pipe, ctx->vs_pos_only);
+   for (i = 0; i < 4; i++)
+      if (ctx->vs_pos_only[i])
+         pipe->delete_vs_state(pipe, ctx->vs_pos_only[i]);
    if (ctx->vs_layered)
       pipe->delete_vs_state(pipe, ctx->vs_layered);
    pipe->delete_vertex_elements_state(pipe, ctx->velem_state);
@@ -2036,7 +2039,7 @@ void util_blitter_copy_buffer(struct blitter_context *blitter,
 
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
    pipe->bind_vertex_elements_state(pipe, ctx->velem_state_readbuf[0]);
-   bind_vs_pos_only(ctx);
+   bind_vs_pos_only(ctx, 1);
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
    if (ctx->has_tessellation) {
@@ -2103,7 +2106,7 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
    pipe->bind_vertex_elements_state(pipe,
                                     ctx->velem_state_readbuf[num_channels-1]);
-   bind_vs_pos_only(ctx);
+   bind_vs_pos_only(ctx, num_channels);
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
    if (ctx->has_tessellation) {

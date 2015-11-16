@@ -452,6 +452,9 @@ split_block_cursor(nir_cursor cursor,
          before = split_block_before_instr(nir_instr_next(cursor.instr));
       }
       break;
+
+   default:
+      unreachable("not reached");
    }
 
    if (_before)
