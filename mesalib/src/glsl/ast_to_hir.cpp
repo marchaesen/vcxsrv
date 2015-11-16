@@ -538,18 +538,20 @@ bit_logic_result_type(const struct glsl_type *type_a,
 }
 
 static const struct glsl_type *
-modulus_result_type(const struct glsl_type *type_a,
-                    const struct glsl_type *type_b,
+modulus_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
                     struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
 {
+   const glsl_type *type_a = value_a->type;
+   const glsl_type *type_b = value_b->type;
+
    if (!state->check_version(130, 300, loc, "operator '%%' is reserved")) {
       return glsl_type::error_type;
    }
 
-   /* From GLSL 1.50 spec, page 56:
+   /* Section 5.9 (Expressions) of the GLSL 4.00 specification says:
+    *
     *    "The operator modulus (%) operates on signed or unsigned integers or
-    *    integer vectors. The operand types must both be signed or both be
-    *    unsigned."
+    *    integer vectors."
     */
    if (!type_a->is_integer()) {
       _mesa_glsl_error(loc, state, "LHS of operator %% must be an integer");
@@ -559,11 +561,28 @@ modulus_result_type(const struct glsl_type *type_a,
       _mesa_glsl_error(loc, state, "RHS of operator %% must be an integer");
       return glsl_type::error_type;
    }
-   if (type_a->base_type != type_b->base_type) {
+
+   /*    "If the fundamental types in the operands do not match, then the
+    *    conversions from section 4.1.10 "Implicit Conversions" are applied
+    *    to create matching types."
+    *
+    * Note that GLSL 4.00 (and GL_ARB_gpu_shader5) introduced implicit
+    * int -> uint conversion rules.  Prior to that, there were no implicit
+    * conversions.  So it's harmless to apply them universally - no implicit
+    * conversions will exist.  If the types don't match, we'll receive false,
+    * and raise an error, satisfying the GLSL 1.50 spec, page 56:
+    *
+    *    "The operand types must both be signed or unsigned."
+    */
+   if (!apply_implicit_conversion(type_a, value_b, state) &&
+       !apply_implicit_conversion(type_b, value_a, state)) {
       _mesa_glsl_error(loc, state,
-                       "operands of %% must have the same base type");
+                       "could not implicitly convert operands to "
+                       "modulus (%%) operator");
       return glsl_type::error_type;
    }
+   type_a = value_a->type;
+   type_b = value_b->type;
 
    /*    "The operands cannot be vectors of differing size. If one operand is
     *    a scalar and the other vector, then the scalar is applied component-
@@ -1311,7 +1330,7 @@ ast_expression::do_hir(exec_list *instructions,
       op[0] = this->subexpressions[0]->hir(instructions, state);
       op[1] = this->subexpressions[1]->hir(instructions, state);
 
-      type = modulus_result_type(op[0]->type, op[1]->type, state, & loc);
+      type = modulus_result_type(op[0], op[1], state, &loc);
 
       assert(operations[this->oper] == ir_binop_mod);
 
@@ -1558,7 +1577,7 @@ ast_expression::do_hir(exec_list *instructions,
       op[0] = this->subexpressions[0]->hir(instructions, state);
       op[1] = this->subexpressions[1]->hir(instructions, state);
 
-      type = modulus_result_type(op[0]->type, op[1]->type, state, & loc);
+      type = modulus_result_type(op[0], op[1], state, &loc);
 
       assert(operations[this->oper] == ir_binop_mod);
 

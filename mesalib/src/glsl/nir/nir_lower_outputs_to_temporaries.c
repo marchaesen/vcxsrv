@@ -78,6 +78,9 @@ nir_lower_outputs_to_temporaries(nir_shader *shader)
 {
    struct lower_outputs_state state;
 
+   if (shader->stage == MESA_SHADER_TESS_CTRL)
+      return;
+
    state.shader = shader;
    exec_list_move_nodes_to(&shader->outputs, &state.old_outputs);
 
