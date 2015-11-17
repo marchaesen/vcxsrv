@@ -8,7 +8,7 @@ extern "C"
 #endif
 __declspec(dllimport) void __stdcall DebugBreak(void);
 
-static __inline void __assert(int Cond)
+static __inline void __assert(intptr_t Cond)
 {
 #ifdef _DEBUG
   if (!Cond)
@@ -20,7 +20,7 @@ static __inline void __assert(int Cond)
 #endif
 }
 
-#define assert(Cond) __assert((int)(Cond))
+#define assert(Cond) __assert((intptr_t)(Cond))
 
 #endif
  
