@@ -202,21 +202,13 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
     return pixmap;
 }
 
-void
-glamor_destroy_textured_pixmap(PixmapPtr pixmap)
-{
-    if (pixmap->refcnt == 1) {
-#if GLAMOR_HAS_GBM
-        glamor_egl_destroy_pixmap_image(pixmap);
-#endif
-        glamor_pixmap_destroy_fbo(pixmap);
-    }
-}
-
 Bool
 glamor_destroy_pixmap(PixmapPtr pixmap)
 {
-    glamor_destroy_textured_pixmap(pixmap);
+    if (pixmap->refcnt == 1) {
+        glamor_pixmap_destroy_fbo(pixmap);
+    }
+
     return fbDestroyPixmap(pixmap);
 }
 
@@ -379,6 +371,13 @@ glamor_debug_output_callback(GLenum source,
                              const void *userParam)
 {
     ScreenPtr screen = (void *)userParam;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+
+    if (glamor_priv->suppress_gl_out_of_memory_logging &&
+        source == GL_DEBUG_SOURCE_API && type == GL_DEBUG_TYPE_ERROR) {
+        return;
+    }
+
     LogMessageVerb(X_ERROR, 0, "glamor%d: GL error: %*s\n",
                screen->myNum, length, message);
 }
@@ -458,6 +457,9 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     glamor_priv->saved_procs.close_screen = screen->CloseScreen;
     screen->CloseScreen = glamor_close_screen;
+
+    glamor_priv->saved_procs.destroy_pixmap = screen->DestroyPixmap;
+    screen->DestroyPixmap = glamor_destroy_pixmap;
 
     /* If we are using egl screen, call egl screen init to
      * register correct close screen function. */
@@ -612,9 +614,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     glamor_priv->saved_procs.create_pixmap = screen->CreatePixmap;
     screen->CreatePixmap = glamor_create_pixmap;
-
-    glamor_priv->saved_procs.destroy_pixmap = screen->DestroyPixmap;
-    screen->DestroyPixmap = glamor_destroy_pixmap;
 
     glamor_priv->saved_procs.get_spans = screen->GetSpans;
     screen->GetSpans = glamor_get_spans;

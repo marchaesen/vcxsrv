@@ -67,7 +67,7 @@ legal_src_factor(const struct gl_context *ctx, GLenum factor)
    case GL_SRC1_ALPHA:
    case GL_ONE_MINUS_SRC1_COLOR:
    case GL_ONE_MINUS_SRC1_ALPHA:
-      return _mesa_is_desktop_gl(ctx)
+      return ctx->API != API_OPENGLES
          && ctx->Extensions.ARB_blend_func_extended;
    default:
       return GL_FALSE;
@@ -100,14 +100,14 @@ legal_dst_factor(const struct gl_context *ctx, GLenum factor)
    case GL_ONE_MINUS_CONSTANT_ALPHA:
       return _mesa_is_desktop_gl(ctx) || ctx->API == API_OPENGLES2;
    case GL_SRC_ALPHA_SATURATE:
-      return (_mesa_is_desktop_gl(ctx)
+      return (ctx->API != API_OPENGLES
               && ctx->Extensions.ARB_blend_func_extended)
          || _mesa_is_gles3(ctx);
    case GL_SRC1_COLOR:
    case GL_SRC1_ALPHA:
    case GL_ONE_MINUS_SRC1_COLOR:
    case GL_ONE_MINUS_SRC1_ALPHA:
-      return _mesa_is_desktop_gl(ctx)
+      return ctx->API != API_OPENGLES
          && ctx->Extensions.ARB_blend_func_extended;
    default:
       return GL_FALSE;

@@ -534,7 +534,7 @@ glamor_color_convert_to_bits(void *src_bits, void *dst_bits, int w, int h,
  * Upload pixmap to a specified texture.
  * This texture may not be the one attached to it.
  **/
-static void
+static Bool
 __glamor_upload_pixmap_to_texture(PixmapPtr pixmap, unsigned int *tex,
                                   GLenum format,
                                   GLenum type,
@@ -567,13 +567,24 @@ __glamor_upload_pixmap_to_texture(PixmapPtr pixmap, unsigned int *tex,
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
         glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
     }
+    glamor_priv->suppress_gl_out_of_memory_logging = true;
     if (non_sub)
         glTexImage2D(GL_TEXTURE_2D, 0, iformat, w, h, 0, format, type, bits);
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, format, type, bits);
+    glamor_priv->suppress_gl_out_of_memory_logging = false;
+    if (glGetError() == GL_OUT_OF_MEMORY) {
+        if (non_sub) {
+            glDeleteTextures(1, tex);
+            *tex = 0;
+        }
+        return FALSE;
+    }
 
     if (bits == NULL)
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+    return TRUE;
 }
 
 static Bool
@@ -645,10 +656,15 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
         assert(x + fbo_x_off >= 0 && y + fbo_y_off >= 0);
         assert(x + fbo_x_off + w <= pixmap_priv->fbo->width);
         assert(y + fbo_y_off + h <= pixmap_priv->fbo->height);
-        __glamor_upload_pixmap_to_texture(pixmap, &pixmap_priv->fbo->tex,
-                                          format, type,
-                                          x + fbo_x_off, y + fbo_y_off, w, h,
-                                          bits, pbo);
+        if (!__glamor_upload_pixmap_to_texture(pixmap, &pixmap_priv->fbo->tex,
+                                               format, type,
+                                               x + fbo_x_off, y + fbo_y_off,
+                                               w, h,
+                                               bits, pbo)) {
+            if (need_free_bits)
+                free(bits);
+            return FALSE;
+        }
     } else {
         ptexcoords = texcoords_inv;
 
@@ -660,6 +676,15 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
                                      vertices);
         /* Slow path, we need to flip y or wire alpha to 1. */
         glamor_make_current(glamor_priv);
+
+        if (!__glamor_upload_pixmap_to_texture(pixmap, &tex,
+                                               format, type, 0, 0, w, h, bits,
+                                               pbo)) {
+            if (need_free_bits)
+                free(bits);
+            return FALSE;
+        }
+
         glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
                               GL_FALSE, 2 * sizeof(float), vertices);
         glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
@@ -669,8 +694,6 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
 
         glamor_set_destination_pixmap_priv_nc(glamor_priv, pixmap, pixmap_priv);
         glamor_set_alu(screen, GXcopy);
-        __glamor_upload_pixmap_to_texture(pixmap, &tex,
-                                          format, type, 0, 0, w, h, bits, pbo);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex);
 

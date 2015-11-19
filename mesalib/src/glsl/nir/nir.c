@@ -312,6 +312,14 @@ nir_block_create(nir_shader *shader)
    block->predecessors = _mesa_set_create(block, _mesa_hash_pointer,
                                           _mesa_key_pointer_equal);
    block->imm_dom = NULL;
+   /* XXX maybe it would be worth it to defer allocation?  This
+    * way it doesn't get allocated for shader ref's that never run
+    * nir_calc_dominance?  For example, state-tracker creates an
+    * initial IR, clones that, runs appropriate lowering pass, passes
+    * to driver which does common lowering/opt, and then stores ref
+    * which is later used to do state specific lowering and futher
+    * opt.  Do any of the references not need dominance metadata?
+    */
    block->dom_frontier = _mesa_set_create(block, _mesa_hash_pointer,
                                           _mesa_key_pointer_equal);
 

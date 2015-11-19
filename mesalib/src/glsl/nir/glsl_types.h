@@ -837,7 +837,7 @@ struct glsl_struct_field {
    /**
     * Precision qualifier
     */
-   unsigned precision;
+   unsigned precision:2;
 
    /**
     * Image qualifiers, applicable to buffer variables defined in shader
@@ -851,7 +851,8 @@ struct glsl_struct_field {
 
    glsl_struct_field(const struct glsl_type *_type, const char *_name)
       : type(_type), name(_name), location(-1), interpolation(0), centroid(0),
-        sample(0), matrix_layout(GLSL_MATRIX_LAYOUT_INHERITED), patch(0)
+        sample(0), matrix_layout(GLSL_MATRIX_LAYOUT_INHERITED), patch(0),
+        precision(GLSL_PRECISION_NONE)
    {
       /* empty */
    }

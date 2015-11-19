@@ -131,6 +131,11 @@ _mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap)
    _mesa_DeleteSamplers(1, &mipmap->Sampler);
    mipmap->Sampler = 0;
 
+   if (mipmap->FBO != 0) {
+      _mesa_DeleteFramebuffers(1, &mipmap->FBO);
+      mipmap->FBO = 0;
+   }
+
    _mesa_meta_blit_shader_table_cleanup(&mipmap->shaders);
 }
 

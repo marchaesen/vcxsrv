@@ -127,8 +127,13 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     }
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    glamor_priv->suppress_gl_out_of_memory_logging = true;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, overall_width, overall_height,
                  0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, bits);
+    glamor_priv->suppress_gl_out_of_memory_logging = false;
+    if (glGetError() == GL_OUT_OF_MEMORY)
+        return NULL;
 
     free(bits);
 

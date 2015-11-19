@@ -167,6 +167,10 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
       shader_prog->TransformFeedback.NumVarying > 0;
 
    switch (stage) {
+   case MESA_SHADER_TESS_CTRL:
+      shader->info.tcs.vertices_out = shader_prog->TessCtrl.VerticesOut;
+      break;
+
    case MESA_SHADER_GEOMETRY:
       shader->info.gs.vertices_in = shader_prog->Geom.VerticesIn;
       shader->info.gs.output_primitive = sh->Geom.OutputType;
@@ -236,6 +240,8 @@ constant_copy(ir_constant *ir, void *mem_ctx)
 
    unsigned total_elems = ir->type->components();
    unsigned i;
+
+   ret->num_elements = 0;
    switch (ir->type->base_type) {
    case GLSL_TYPE_UINT:
       for (i = 0; i < total_elems; i++)
@@ -260,6 +266,8 @@ constant_copy(ir_constant *ir, void *mem_ctx)
    case GLSL_TYPE_STRUCT:
       ret->elements = ralloc_array(mem_ctx, nir_constant *,
                                    ir->type->length);
+      ret->num_elements = ir->type->length;
+
       i = 0;
       foreach_in_list(ir_constant, field, &ir->components) {
          ret->elements[i] = constant_copy(field, mem_ctx);
@@ -270,6 +278,7 @@ constant_copy(ir_constant *ir, void *mem_ctx)
    case GLSL_TYPE_ARRAY:
       ret->elements = ralloc_array(mem_ctx, nir_constant *,
                                    ir->type->length);
+      ret->num_elements = ir->type->length;
 
       for (i = 0; i < ir->type->length; i++)
          ret->elements[i] = constant_copy(ir->array_elements[i], mem_ctx);
@@ -288,15 +297,6 @@ nir_visitor::visit(ir_variable *ir)
    nir_variable *var = ralloc(shader, nir_variable);
    var->type = ir->type;
    var->name = ralloc_strdup(var, ir->name);
-
-   if (ir->is_interface_instance() && ir->get_max_ifc_array_access() != NULL) {
-      unsigned size = ir->get_interface_type()->length;
-      var->max_ifc_array_access = ralloc_array(var, unsigned, size);
-      memcpy(var->max_ifc_array_access, ir->get_max_ifc_array_access(),
-             size * sizeof(unsigned));
-   } else {
-      var->max_ifc_array_access = NULL;
-   }
 
    var->data.read_only = ir->data.read_only;
    var->data.centroid = ir->data.centroid;
