@@ -1279,12 +1279,17 @@ glamor_convert_gradient_picture(ScreenPtr screen,
     PixmapPtr pixmap;
     PicturePtr dst = NULL;
     int error;
+    PictFormatPtr pFormat;
     PictFormatShort format;
 
-    if (!source->pDrawable)
+    if (source->pDrawable) {
+        pFormat = source->pFormat;
+        format = pFormat->format;
+    } else {
         format = PICT_a8r8g8b8;
-    else
-        format = source->format;
+        pFormat = PictureMatchFormat(screen, 32, format);
+    }
+
 #ifdef GLAMOR_GRADIENT_SHADER
     if (!source->pDrawable) {
         if (source->pSourcePict->type == SourcePictTypeLinear) {
@@ -1320,10 +1325,7 @@ glamor_convert_gradient_picture(ScreenPtr screen,
         return NULL;
 
     dst = CreatePicture(0,
-                        &pixmap->drawable,
-                        PictureMatchFormat(screen,
-                                           PIXMAN_FORMAT_DEPTH(format),
-                                           format), 0, 0, serverClient, &error);
+                        &pixmap->drawable, pFormat, 0, 0, serverClient, &error);
     glamor_destroy_pixmap(pixmap);
     if (!dst)
         return NULL;

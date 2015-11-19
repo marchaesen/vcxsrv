@@ -1425,8 +1425,7 @@ static const char * const tex_opcode_strs[] = { "tex", "txb", "txl", "txd", "txf
 
 const char *ir_texture::opcode_string()
 {
-   assert((unsigned int) op <=
-	  sizeof(tex_opcode_strs) / sizeof(tex_opcode_strs[0]));
+   assert((unsigned int) op < ARRAY_SIZE(tex_opcode_strs));
    return tex_opcode_strs[op];
 }
 
@@ -1676,6 +1675,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.interpolation = INTERP_QUALIFIER_NONE;
    this->data.max_array_access = 0;
    this->data.atomic.offset = 0;
+   this->data.precision = GLSL_PRECISION_NONE;
    this->data.image_read_only = false;
    this->data.image_write_only = false;
    this->data.image_coherent = false;

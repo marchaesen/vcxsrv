@@ -380,6 +380,9 @@ struct _mesa_glsl_parse_state {
       /* ARB_draw_buffers */
       unsigned MaxDrawBuffers;
 
+      /* ARB_blend_func_extended */
+      unsigned MaxDualSourceDrawBuffers;
+
       /* 3.00 ES */
       int MinProgramTexelOffset;
       int MaxProgramTexelOffset;
@@ -595,6 +598,8 @@ struct _mesa_glsl_parse_state {
    bool AMD_vertex_shader_layer_warn;
    bool AMD_vertex_shader_viewport_index_enable;
    bool AMD_vertex_shader_viewport_index_warn;
+   bool EXT_blend_func_extended_enable;
+   bool EXT_blend_func_extended_warn;
    bool EXT_draw_buffers_enable;
    bool EXT_draw_buffers_warn;
    bool EXT_separate_shader_objects_enable;

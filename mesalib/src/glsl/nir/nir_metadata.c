@@ -52,3 +52,39 @@ nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved)
 {
    impl->valid_metadata &= preserved;
 }
+
+#ifdef DEBUG
+/**
+ * Make sure passes properly invalidate metadata (part 1).
+ *
+ * Call this before running a pass to set a bogus metadata flag, which will
+ * only be preserved if the pass forgets to call nir_metadata_preserve().
+ */
+void
+nir_metadata_set_validation_flag(nir_shader *shader)
+{
+   nir_foreach_overload(shader, overload) {
+      if (overload->impl) {
+         overload->impl->valid_metadata |= nir_metadata_not_properly_reset;
+      }
+   }
+}
+
+/**
+ * Make sure passes properly invalidate metadata (part 2).
+ *
+ * Call this after a pass makes progress to verify that the bogus metadata set by
+ * the earlier function was properly thrown away.  Note that passes may not call
+ * nir_metadata_preserve() if they don't actually make any changes at all.
+ */
+void
+nir_metadata_check_validation_flag(nir_shader *shader)
+{
+   nir_foreach_overload(shader, overload) {
+      if (overload->impl) {
+         assert(!(overload->impl->valid_metadata &
+                  nir_metadata_not_properly_reset));
+      }
+   }
+}
+#endif

@@ -127,6 +127,10 @@ glamor_glyph_atlas_init(ScreenPtr screen, struct glamor_glyph_atlas *atlas)
     atlas->atlas = glamor_create_pixmap(screen, glamor_priv->glyph_atlas_dim,
                                         glamor_priv->glyph_atlas_dim, format->depth,
                                         GLAMOR_CREATE_FBO_NO_FBO);
+    if (!glamor_pixmap_has_fbo(atlas->atlas)) {
+        glamor_destroy_pixmap(atlas->atlas);
+        atlas->atlas = NULL;
+    }
     atlas->x = 0;
     atlas->y = 0;
     atlas->row_height = 0;
@@ -420,8 +424,11 @@ glamor_composite_glyphs(CARD8 op,
                                 glyph_atlas->atlas = NULL;
                             }
                         }
-                        if (!glyph_atlas->atlas)
+                        if (!glyph_atlas->atlas) {
                             glamor_glyph_atlas_init(screen, glyph_atlas);
+                            if (!glyph_atlas->atlas)
+                                goto bail_one;
+                        }
                         glamor_glyph_add(glyph_atlas, glyph_draw);
                     }
 

@@ -1226,7 +1226,8 @@ xyesno)
 
             if test x"$enable_dri3" = xyes; then
                PKG_CHECK_EXISTS([xcb >= $XCB_REQUIRED], [], AC_MSG_ERROR([DRI3 requires xcb >= $XCB_REQUIRED]))
-               dri_modules="$dri_modules xcb-dri3 xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
+               dri3_modules="xcb-dri3 xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
+               PKG_CHECK_MODULES([XCB_DRI3], [$dri3_modules])
             fi
         fi
         if test x"$dri_platform" = xapple ; then
@@ -1566,6 +1567,12 @@ if test "x$enable_egl" = xyes; then
             HAVE_EGL_DRIVER_DRI2=1
             if test "x$enable_shared_glapi" = xno; then
                 AC_MSG_ERROR([egl_dri2 requires --enable-shared-glapi])
+            fi
+            if test "x$enable_dri3" = xyes; then
+                HAVE_EGL_DRIVER_DRI3=1
+                if test "x$enable_shared_glapi" = xno; then
+                    AC_MSG_ERROR([egl_dri3 requires --enable-shared-glapi])
+                fi
             fi
         else
             # Avoid building an "empty" libEGL. Drop/update this
@@ -2518,6 +2525,9 @@ if test "$enable_egl" = yes; then
     egl_drivers=""
     if test "x$HAVE_EGL_DRIVER_DRI2" != "x"; then
         egl_drivers="$egl_drivers builtin:egl_dri2"
+    fi
+    if test "x$HAVE_EGL_DRIVER_DRI3" != "x"; then
+        egl_drivers="$egl_drivers builtin:egl_dri3"
     fi
 
     echo "        EGL drivers:    $egl_drivers"

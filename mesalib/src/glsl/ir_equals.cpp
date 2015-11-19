@@ -58,8 +58,13 @@ ir_constant::equals(const ir_instruction *ir, enum ir_node_type) const
       return false;
 
    for (unsigned i = 0; i < type->components(); i++) {
-      if (value.u[i] != other->value.u[i])
-         return false;
+      if (type->base_type == GLSL_TYPE_DOUBLE) {
+         if (value.d[i] != other->value.d[i])
+            return false;
+      } else {
+         if (value.u[i] != other->value.u[i])
+            return false;
+      }
    }
 
    return true;
