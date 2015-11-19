@@ -129,6 +129,7 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].image_coherent = fields[i].image_coherent;
       this->fields.structure[i].image_volatile = fields[i].image_volatile;
       this->fields.structure[i].image_restrict = fields[i].image_restrict;
+      this->fields.structure[i].precision = fields[i].precision;
    }
 
    mtx_unlock(&glsl_type::mutex);

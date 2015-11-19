@@ -329,27 +329,32 @@ glamor_destroy_fbo(glamor_screen_private *glamor_priv,
 
 static int
 _glamor_create_tex(glamor_screen_private *glamor_priv,
-                   int w, int h, GLenum format, Bool linear)
+                   int w, int h, GLenum format)
 {
-    unsigned int tex = 0;
+    unsigned int tex;
 
-    /* With dri3, we want to allocate ARGB8888 pixmaps only.
-     * Depending on the implementation, GL_RGBA might not
-     * give us ARGB8888. We ask glamor_egl to use get
-     * an ARGB8888 based texture for us. */
-    if (glamor_priv->dri3_enabled && format == GL_RGBA) {
-        tex = glamor_egl_create_argb8888_based_texture(glamor_priv->screen,
-                                                       w, h, linear);
+    glamor_make_current(glamor_priv);
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glamor_priv->suppress_gl_out_of_memory_logging = true;
+    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
+                 format, GL_UNSIGNED_BYTE, NULL);
+    glamor_priv->suppress_gl_out_of_memory_logging = false;
+
+    if (glGetError() == GL_OUT_OF_MEMORY) {
+        if (!glamor_priv->logged_any_fbo_allocation_failure) {
+            LogMessageVerb(X_WARNING, 0, "glamor: Failed to allocate %dx%d "
+                           "FBO due to GL_OUT_OF_MEMORY.\n", w, h);
+            LogMessageVerb(X_WARNING, 0,
+                           "glamor: Expect reduced performance.\n");
+            glamor_priv->logged_any_fbo_allocation_failure = true;
+        }
+        glDeleteTextures(1, &tex);
+        return 0;
     }
-    if (!tex) {
-        glamor_make_current(glamor_priv);
-        glGenTextures(1, &tex);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
-                     format, GL_UNSIGNED_BYTE, NULL);
-    }
+
     return tex;
 }
 
@@ -367,7 +372,9 @@ glamor_create_fbo(glamor_screen_private *glamor_priv,
     if (fbo)
         return fbo;
  new_fbo:
-    tex = _glamor_create_tex(glamor_priv, w, h, format, flag == CREATE_PIXMAP_USAGE_SHARED);
+    tex = _glamor_create_tex(glamor_priv, w, h, format);
+    if (!tex)
+        return NULL;
     fbo = glamor_create_fbo_from_tex(glamor_priv, w, h, format, tex, flag);
 
     return fbo;
@@ -530,7 +537,7 @@ glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag)
         if (!pixmap_priv->fbo->tex)
             pixmap_priv->fbo->tex =
                 _glamor_create_tex(glamor_priv, pixmap->drawable.width,
-                                   pixmap->drawable.height, format, FALSE);
+                                   pixmap->drawable.height, format);
 
         if (flag != GLAMOR_CREATE_FBO_NO_FBO && pixmap_priv->fbo->fb == 0)
             if (glamor_pixmap_ensure_fb(glamor_priv, pixmap_priv->fbo) != 0)

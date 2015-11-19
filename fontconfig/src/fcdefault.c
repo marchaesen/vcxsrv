@@ -95,7 +95,6 @@ retry:
     {
 	FcStrSet *langs = FcGetDefaultLangs ();
 	lang = FcStrdup (langs->strs[0]);
-	FcStrSetDestroy (langs);
 
 	if (!fc_atomic_ptr_cmpexch (&default_lang, NULL, lang)) {
 	    free (lang);

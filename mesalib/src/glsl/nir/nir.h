@@ -111,6 +111,11 @@ typedef struct nir_constant {
     */
    union nir_constant_data value;
 
+   /* we could get this from the var->type but makes clone *much* easier to
+    * not have to care about the type.
+    */
+   unsigned num_elements;
+
    /* Array elements / Structure Fields */
    struct nir_constant **elements;
 } nir_constant;
@@ -146,19 +151,6 @@ typedef struct {
     * Declared name of the variable
     */
    char *name;
-
-   /**
-    * For variables which satisfy the is_interface_instance() predicate, this
-    * points to an array of integers such that if the ith member of the
-    * interface block is an array, max_ifc_array_access[i] is the maximum
-    * array element of that member that has been accessed.  If the ith member
-    * of the interface block is not an array, max_ifc_array_access[i] is
-    * unused.
-    *
-    * For variables whose type is not an interface block, this pointer is
-    * NULL.
-    */
-   unsigned *max_ifc_array_access;
 
    struct nir_variable_data {
 
@@ -1320,6 +1312,7 @@ typedef enum {
    nir_metadata_block_index = 0x1,
    nir_metadata_dominance = 0x2,
    nir_metadata_live_ssa_defs = 0x4,
+   nir_metadata_not_properly_reset = 0x8,
 } nir_metadata;
 
 typedef struct {
@@ -1544,6 +1537,11 @@ typedef struct nir_shader_info {
       struct {
          unsigned local_size[3];
       } cs;
+
+      struct {
+         /** The number of vertices in the TCS output patch. */
+         unsigned vertices_out;
+      } tcs;
    };
 } nir_shader_info;
 
@@ -1892,10 +1890,16 @@ void nir_index_blocks(nir_function_impl *impl);
 void nir_print_shader(nir_shader *shader, FILE *fp);
 void nir_print_instr(const nir_instr *instr, FILE *fp);
 
+nir_shader * nir_shader_clone(void *mem_ctx, const nir_shader *s);
+
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);
+void nir_metadata_set_validation_flag(nir_shader *shader);
+void nir_metadata_check_validation_flag(nir_shader *shader);
 #else
 static inline void nir_validate_shader(nir_shader *shader) { (void) shader; }
+static inline void nir_metadata_set_validation_flag(nir_shader *shader) { (void) shader; }
+static inline void nir_metadata_check_validation_flag(nir_shader *shader) { (void) shader; }
 #endif /* DEBUG */
 
 void nir_calc_dominance_impl(nir_function_impl *impl);

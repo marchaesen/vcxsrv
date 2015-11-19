@@ -563,7 +563,7 @@ opcode("bcsel", 0, tunsigned, [0, 0, 0],
       [tbool, tunsigned, tunsigned], "", "src0 ? src1 : src2")
 
 triop("bfi", tunsigned, """
-unsigned mask = src0, insert = src1 & mask, base = src2;
+unsigned mask = src0, insert = src1, base = src2;
 if (mask == 0) {
    dst = base;
 } else {
@@ -572,7 +572,7 @@ if (mask == 0) {
       tmp >>= 1;
       insert <<= 1;
    }
-   dst = (base & ~mask) | insert;
+   dst = (base & ~mask) | (insert & mask);
 }
 """)
 

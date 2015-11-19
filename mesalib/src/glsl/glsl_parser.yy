@@ -1476,6 +1476,11 @@ layout_qualifier_id:
       }
 
       if (match_layout_qualifier("index", $1, state) == 0) {
+         if (state->es_shader && !state->EXT_blend_func_extended_enable) {
+            _mesa_glsl_error(& @3, state, "index layout qualifier requires EXT_blend_func_extended");
+            YYERROR;
+         }
+
          $$.flags.q.explicit_index = 1;
 
          if ($3 >= 0) {

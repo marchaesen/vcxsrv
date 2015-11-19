@@ -336,7 +336,7 @@ public:
       array_dimensions.push_tail(&dim->link);
    }
 
-   const bool is_single_dimension()
+   bool is_single_dimension() const
    {
       return this->array_dimensions.tail_pred->prev != NULL &&
              this->array_dimensions.tail_pred->prev->is_head_sentinel();

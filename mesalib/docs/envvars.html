@@ -179,6 +179,14 @@ Mesa EGL supports different sets of environment variables.  See the
 <li>GALLIUM_HUD - draws various information on the screen, like framerate,
     cpu load, driver statistics, performance counters, etc.
     Set GALLIUM_HUD=help and run e.g. glxgears for more info.
+<li>GALLIUM_HUD_PERIOD - sets the hud update rate in seconds (float). Use zero
+    to update every frame. The default period is 1/2 second.
+<li>GALLIUM_HUD_VISIBLE - control default visibility, defaults to true.
+<li>GALLIUM_HUD_TOGGLE_SIGNAL - toggle visibility via user specified signal.
+    Especially useful to toggle hud at specific points of application and
+    disable for unencumbered viewing the rest of the time. For example, set
+    GALLIUM_HUD_VISIBLE to false and GALLIUM_HUD_SIGNAL_TOGGLE to 10 (SIGUSR1).
+    Use kill -10 <pid> to toggle the hud as desired.
 <li>GALLIUM_LOG_FILE - specifies a file for logging all errors, warnings, etc.
     rather than stderr.
 <li>GALLIUM_PRINT_OPTIONS - if non-zero, print all the Gallium environment

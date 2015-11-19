@@ -914,4 +914,30 @@
     </function>
 </category>
 
+<category name="GL_EXT_blend_func_extended" number="247">
+
+    <function name="BindFragDataLocationIndexedEXT" alias="BindFragDataLocationIndexed"
+            es2="3.0">
+        <param name="program" type="GLuint"/>
+        <param name="colorNumber" type="GLuint"/>
+        <param name="index" type="GLuint"/>
+        <param name="name" type="const GLchar *"/>
+    </function>
+
+    <function name="GetFragDataIndexEXT" alias="GetFragDataIndex"
+            es2="3.0">
+        <param name="program" type="GLuint"/>
+        <param name="name" type="const GLchar *"/>
+        <return type="GLint"/>
+    </function>
+
+    <function name="GetProgramResourceLocationIndexEXT" alias="GetProgramResourceLocationIndex"
+           es2="3.1">
+        <param name="program" type="GLuint"/>
+        <param name="programInterface" type="GLenum"/>
+        <param name="name" type="const GLchar *"/>
+        <return type="GLint"/>
+    </function>
+
+</category>
 </OpenGLAPI>

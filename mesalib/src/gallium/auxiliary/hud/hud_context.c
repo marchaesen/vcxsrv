@@ -33,6 +33,7 @@
  * Set GALLIUM_HUD=help for more info.
  */
 
+#include <signal.h>
 #include <stdio.h>
 
 #include "hud/hud_context.h"
@@ -51,6 +52,8 @@
 #include "tgsi/tgsi_text.h"
 #include "tgsi/tgsi_dump.h"
 
+/* Control the visibility of all HUD contexts */
+static boolean huds_visible = TRUE;
 
 struct hud_context {
    struct pipe_context *pipe;
@@ -95,6 +98,13 @@ struct hud_context {
    } text, bg, whitelines;
 };
 
+#ifdef PIPE_OS_UNIX
+static void
+signal_visible_handler(int sig, siginfo_t *siginfo, void *context)
+{
+   huds_visible = !huds_visible;
+}
+#endif
 
 static void
 hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
@@ -440,6 +450,9 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
          { &hud->font_sampler_state };
    struct hud_pane *pane;
    struct hud_graph *gr;
+
+   if (!huds_visible)
+      return;
 
    hud->fb_width = tex->width0;
    hud->fb_height = tex->height0;
@@ -1125,6 +1138,12 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
    struct pipe_sampler_view view_templ;
    unsigned i;
    const char *env = debug_get_option("GALLIUM_HUD", NULL);
+   unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
+#ifdef PIPE_OS_UNIX
+   static boolean sig_handled = FALSE;
+   struct sigaction action = {};
+#endif
+   huds_visible = debug_get_bool_option("GALLIUM_HUD_VISIBLE", TRUE);
 
    if (!env || !*env)
       return NULL;
@@ -1266,6 +1285,22 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
    hud->constbuf.user_buffer = &hud->constants;
 
    LIST_INITHEAD(&hud->pane_list);
+
+   /* setup sig handler once for all hud contexts */
+#ifdef PIPE_OS_UNIX
+   if (!sig_handled && signo != 0) {
+      action.sa_sigaction = &signal_visible_handler;
+      action.sa_flags = SA_SIGINFO;
+
+      if (signo >= NSIG)
+         fprintf(stderr, "gallium_hud: invalid signal %u\n", signo);
+      else if (sigaction(signo, &action, NULL) < 0)
+         fprintf(stderr, "gallium_hud: unable to set handler for signal %u\n", signo);
+      fflush(stderr);
+
+      sig_handled = TRUE;
+   }
+#endif
 
    hud_parse_env_var(hud, env);
    return hud;
