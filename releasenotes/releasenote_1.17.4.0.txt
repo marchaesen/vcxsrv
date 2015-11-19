@@ -1,7 +1,7 @@
 Changes in 1.17.4.0
 -------------------
 - Update the following packages:
-     git updates until 16/11/2015 of the following packages
+     git updates until 19/11/2015 of the following packages
      mesa
      xserver
      plink
