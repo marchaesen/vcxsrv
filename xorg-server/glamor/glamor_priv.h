@@ -293,6 +293,9 @@ typedef struct glamor_screen_private {
     ScreenPtr screen;
     int dri3_enabled;
 
+    Bool suppress_gl_out_of_memory_logging;
+    Bool logged_any_fbo_allocation_failure;
+
     /* xv */
     GLint xv_prog;
 

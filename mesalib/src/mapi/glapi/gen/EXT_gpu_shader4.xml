@@ -232,7 +232,8 @@
         <param name="params" type="GLuint *"/>
     </function>
 
-    <function name="BindFragDataLocationEXT" alias="BindFragDataLocation">
+    <function name="BindFragDataLocationEXT" alias="BindFragDataLocation"
+	    es2="3.0">
         <param name="program" type="GLuint"/>
         <param name="colorNumber" type="GLuint"/>
         <param name="name" type="const GLchar *"/>

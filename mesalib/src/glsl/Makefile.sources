@@ -26,6 +26,7 @@ NIR_FILES = \
 	nir/nir.h \
 	nir/nir_array.h \
 	nir/nir_builder.h \
+	nir/nir_clone.c \
 	nir/nir_constant_expressions.h \
 	nir/nir_control_flow.c \
 	nir/nir_control_flow.h \

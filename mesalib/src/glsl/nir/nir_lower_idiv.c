@@ -96,7 +96,7 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    r = nir_imul(bld, q, b);
    r = nir_isub(bld, a, r);
 
-   r = nir_ige(bld, r, b);
+   r = nir_uge(bld, r, b);
    r = nir_b2i(bld, r);
 
    q = nir_iadd(bld, q, r);

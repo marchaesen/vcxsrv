@@ -780,7 +780,6 @@ drmmode_shadow_destroy(xf86CrtcPtr crtc, PixmapPtr rotate_pixmap, void *data)
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
 
     if (rotate_pixmap) {
-        drmmode_set_pixmap_bo(drmmode, rotate_pixmap, NULL);
         rotate_pixmap->drawable.pScreen->DestroyPixmap(rotate_pixmap);
     }
 
@@ -1587,11 +1586,6 @@ drmmode_set_pixmap_bo(drmmode_ptr drmmode, PixmapPtr pixmap, drmmode_bo *bo)
 
     if (!drmmode->glamor)
         return TRUE;
-
-    if (bo == NULL) {
-        glamor_egl_destroy_textured_pixmap(pixmap);
-        return TRUE;
-    }
 
 #ifdef GLAMOR_HAS_GBM
     if (!glamor_egl_create_textured_pixmap_from_gbm_bo(pixmap, bo->gbm)) {
