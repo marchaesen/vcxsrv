@@ -98,7 +98,7 @@ xf86InfoRec xf86Info = {
     .vtno = -1,
     .lastEventTime = -1,
     .vtRequestsPending = FALSE,
-#ifdef sun
+#ifdef __sun
     .vtPendingNum = -1,
 #endif
     .dontVTSwitch = FALSE,

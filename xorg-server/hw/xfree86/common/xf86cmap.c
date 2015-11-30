@@ -29,7 +29,7 @@
 #include <xorg-config.h>
 #endif
 
-#if defined(_XOPEN_SOURCE) || defined(sun) && defined(__SVR4)
+#if defined(_XOPEN_SOURCE) || defined(__sun) && defined(__SVR4)
 #include <math.h>
 #else
 #define _XOPEN_SOURCE           /* to get prototype for pow on some systems */

@@ -91,7 +91,7 @@ class Opcode(object):
 tfloat = "float"
 tint = "int"
 tbool = "bool"
-tunsigned = "unsigned"
+tuint = "uint"
 
 commutative = "commutative "
 associative = "associative "
@@ -156,7 +156,7 @@ unop("fsqrt", tfloat, "sqrtf(src0)")
 unop("fexp2", tfloat, "exp2f(src0)")
 unop("flog2", tfloat, "log2f(src0)")
 unop_convert("f2i", tfloat, tint, "src0") # Float-to-integer conversion.
-unop_convert("f2u", tfloat, tunsigned, "src0") # Float-to-unsigned conversion
+unop_convert("f2u", tfloat, tuint, "src0") # Float-to-unsigned conversion
 unop_convert("i2f", tint, tfloat, "src0") # Integer-to-float conversion.
 # Float-to-boolean conversion
 unop_convert("f2b", tfloat, tbool, "src0 != 0.0f")
@@ -165,7 +165,7 @@ unop_convert("b2f", tbool, tfloat, "src0 ? 1.0f : 0.0f")
 # Int-to-boolean conversion
 unop_convert("i2b", tint, tbool, "src0 != 0")
 unop_convert("b2i", tbool, tint, "src0 ? 1 : 0") # Boolean-to-int conversion
-unop_convert("u2f", tunsigned, tfloat, "src0") #Unsigned-to-float conversion.
+unop_convert("u2f", tuint, tfloat, "src0") # Unsigned-to-float conversion.
 
 unop_reduce("bany", 1, tbool, tbool, "{src}", "{src0} || {src1}", "{src}")
 unop_reduce("ball", 1, tbool, tbool, "{src}", "{src0} && {src1}", "{src}")
@@ -205,13 +205,13 @@ unop("fddy_coarse", tfloat, "0.0f")
 # Floating point pack and unpack operations.
 
 def pack_2x16(fmt):
-   unop_horiz("pack_" + fmt + "_2x16", 1, tunsigned, 2, tfloat, """
+   unop_horiz("pack_" + fmt + "_2x16", 1, tuint, 2, tfloat, """
 dst.x = (uint32_t) pack_fmt_1x16(src0.x);
 dst.x |= ((uint32_t) pack_fmt_1x16(src0.y)) << 16;
 """.replace("fmt", fmt))
 
 def pack_4x8(fmt):
-   unop_horiz("pack_" + fmt + "_4x8", 1, tunsigned, 4, tfloat, """
+   unop_horiz("pack_" + fmt + "_4x8", 1, tuint, 4, tfloat, """
 dst.x = (uint32_t) pack_fmt_1x8(src0.x);
 dst.x |= ((uint32_t) pack_fmt_1x8(src0.y)) << 8;
 dst.x |= ((uint32_t) pack_fmt_1x8(src0.z)) << 16;
@@ -219,13 +219,13 @@ dst.x |= ((uint32_t) pack_fmt_1x8(src0.w)) << 24;
 """.replace("fmt", fmt))
 
 def unpack_2x16(fmt):
-   unop_horiz("unpack_" + fmt + "_2x16", 2, tfloat, 1, tunsigned, """
+   unop_horiz("unpack_" + fmt + "_2x16", 2, tfloat, 1, tuint, """
 dst.x = unpack_fmt_1x16((uint16_t)(src0.x & 0xffff));
 dst.y = unpack_fmt_1x16((uint16_t)(src0.x << 16));
 """.replace("fmt", fmt))
 
 def unpack_4x8(fmt):
-   unop_horiz("unpack_" + fmt + "_4x8", 4, tfloat, 1, tunsigned, """
+   unop_horiz("unpack_" + fmt + "_4x8", 4, tfloat, 1, tuint, """
 dst.x = unpack_fmt_1x8((uint8_t)(src0.x & 0xff));
 dst.y = unpack_fmt_1x8((uint8_t)((src0.x >> 8) & 0xff));
 dst.z = unpack_fmt_1x8((uint8_t)((src0.x >> 16) & 0xff));
@@ -248,22 +248,22 @@ unpack_2x16("half")
 # Lowered floating point unpacking operations.
 
 
-unop_horiz("unpack_half_2x16_split_x", 1, tfloat, 1, tunsigned,
+unop_horiz("unpack_half_2x16_split_x", 1, tfloat, 1, tuint,
            "unpack_half_1x16((uint16_t)(src0.x & 0xffff))")
-unop_horiz("unpack_half_2x16_split_y", 1, tfloat, 1, tunsigned,
+unop_horiz("unpack_half_2x16_split_y", 1, tfloat, 1, tuint,
            "unpack_half_1x16((uint16_t)(src0.x >> 16))")
 
 
 # Bit operations, part of ARB_gpu_shader5.
 
 
-unop("bitfield_reverse", tunsigned, """
+unop("bitfield_reverse", tuint, """
 /* we're not winning any awards for speed here, but that's ok */
 dst = 0;
 for (unsigned bit = 0; bit < 32; bit++)
    dst |= ((src0 >> bit) & 1) << (31 - bit);
 """)
-unop("bit_count", tunsigned, """
+unop("bit_count", tuint, """
 dst = 0;
 for (unsigned bit = 0; bit < 32; bit++) {
    if ((src0 >> bit) & 1)
@@ -271,7 +271,7 @@ for (unsigned bit = 0; bit < 32; bit++) {
 }
 """)
 
-unop_convert("ufind_msb", tunsigned, tint, """
+unop_convert("ufind_msb", tuint, tint, """
 dst = -1;
 for (int bit = 31; bit > 0; bit--) {
    if ((src0 >> bit) & 1) {
@@ -358,25 +358,25 @@ binop("imul", tint, commutative + associative, "src0 * src1")
 binop("imul_high", tint, commutative,
       "(int32_t)(((int64_t) src0 * (int64_t) src1) >> 32)")
 # high 32-bits of unsigned integer multiply
-binop("umul_high", tunsigned, commutative,
+binop("umul_high", tuint, commutative,
       "(uint32_t)(((uint64_t) src0 * (uint64_t) src1) >> 32)")
 
 binop("fdiv", tfloat, "", "src0 / src1")
 binop("idiv", tint, "", "src0 / src1")
-binop("udiv", tunsigned, "", "src0 / src1")
+binop("udiv", tuint, "", "src0 / src1")
 
 # returns a boolean representing the carry resulting from the addition of
 # the two unsigned arguments.
 
-binop_convert("uadd_carry", tbool, tunsigned, commutative, "src0 + src1 < src0")
+binop_convert("uadd_carry", tbool, tuint, commutative, "src0 + src1 < src0")
 
 # returns a boolean representing the borrow resulting from the subtraction
 # of the two unsigned arguments.
 
-binop_convert("usub_borrow", tbool, tunsigned, "", "src1 < src0")
+binop_convert("usub_borrow", tbool, tuint, "", "src1 < src0")
 
 binop("fmod", tfloat, "", "src0 - src1 * floorf(src0 / src1)")
-binop("umod", tunsigned, "", "src1 == 0 ? 0 : src0 % src1")
+binop("umod", tuint, "", "src1 == 0 ? 0 : src0 % src1")
 
 #
 # Comparisons
@@ -393,8 +393,8 @@ binop_compare("ilt", tint, "", "src0 < src1")
 binop_compare("ige", tint, "", "src0 >= src1")
 binop_compare("ieq", tint, commutative, "src0 == src1")
 binop_compare("ine", tint, commutative, "src0 != src1")
-binop_compare("ult", tunsigned, "", "src0 < src1")
-binop_compare("uge", tunsigned, "", "src0 >= src1")
+binop_compare("ult", tuint, "", "src0 < src1")
+binop_compare("uge", tuint, "", "src0 >= src1")
 
 # integer-aware GLSL-style comparisons that compare floats and ints
 
@@ -425,7 +425,7 @@ binop("sne", tfloat, commutative, "(src0 != src1) ? 1.0f : 0.0f") # Set on Not E
 
 binop("ishl", tint, "", "src0 << src1")
 binop("ishr", tint, "", "src0 >> src1")
-binop("ushr", tunsigned, "", "src0 >> src1")
+binop("ushr", tuint, "", "src0 >> src1")
 
 # bitwise logic operators
 #
@@ -433,9 +433,9 @@ binop("ushr", tunsigned, "", "src0 >> src1")
 # integers.
 
 
-binop("iand", tunsigned, commutative + associative, "src0 & src1")
-binop("ior", tunsigned, commutative + associative, "src0 | src1")
-binop("ixor", tunsigned, commutative + associative, "src0 ^ src1")
+binop("iand", tuint, commutative + associative, "src0 & src1")
+binop("ior", tuint, commutative + associative, "src0 | src1")
+binop("ixor", tuint, commutative + associative, "src0 ^ src1")
 
 
 # floating point logic operators
@@ -463,10 +463,10 @@ opcode("fdph_replicated", 4, tfloat, [3, 4], [tfloat, tfloat], "",
 
 binop("fmin", tfloat, "", "fminf(src0, src1)")
 binop("imin", tint, commutative + associative, "src1 > src0 ? src0 : src1")
-binop("umin", tunsigned, commutative + associative, "src1 > src0 ? src0 : src1")
+binop("umin", tuint, commutative + associative, "src1 > src0 ? src0 : src1")
 binop("fmax", tfloat, "", "fmaxf(src0, src1)")
 binop("imax", tint, commutative + associative, "src1 > src0 ? src1 : src0")
-binop("umax", tunsigned, commutative + associative, "src1 > src0 ? src1 : src0")
+binop("umax", tuint, commutative + associative, "src1 > src0 ? src1 : src0")
 
 # Saturated vector add for 4 8bit ints.
 binop("usadd_4x8", tint, commutative + associative, """
@@ -515,10 +515,10 @@ for (int i = 0; i < 32; i += 8) {
 
 binop("fpow", tfloat, "", "powf(src0, src1)")
 
-binop_horiz("pack_half_2x16_split", 1, tunsigned, 1, tfloat, 1, tfloat,
+binop_horiz("pack_half_2x16_split", 1, tuint, 1, tfloat, 1, tfloat,
             "pack_half_1x16(src0.x) | (pack_half_1x16(src1.x) << 16)")
 
-binop_convert("bfm", tunsigned, tint, "", """
+binop_convert("bfm", tuint, tint, "", """
 int offset = src0, bits = src1;
 if (offset < 0 || bits < 0 || offset + bits > 32)
    dst = 0; /* undefined per the spec */
@@ -535,7 +535,7 @@ if (!isnormal(dst))
 
 # Combines the first component of each input to make a 2-component vector.
 
-binop_horiz("vec2", 2, tunsigned, 1, tunsigned, 1, tunsigned, """
+binop_horiz("vec2", 2, tuint, 1, tuint, 1, tuint, """
 dst.x = src0.x;
 dst.y = src1.x;
 """)
@@ -543,9 +543,9 @@ dst.y = src1.x;
 def triop(name, ty, const_expr):
    opcode(name, 0, ty, [0, 0, 0], [ty, ty, ty], "", const_expr)
 def triop_horiz(name, output_size, src1_size, src2_size, src3_size, const_expr):
-   opcode(name, output_size, tunsigned,
+   opcode(name, output_size, tuint,
    [src1_size, src2_size, src3_size],
-   [tunsigned, tunsigned, tunsigned], "", const_expr)
+   [tuint, tuint, tuint], "", const_expr)
 
 triop("ffma", tfloat, "src0 * src1 + src2")
 
@@ -559,10 +559,10 @@ triop("flrp", tfloat, "src0 * (1 - src2) + src1 * src2")
 
 
 triop("fcsel", tfloat, "(src0 != 0.0f) ? src1 : src2")
-opcode("bcsel", 0, tunsigned, [0, 0, 0],
-      [tbool, tunsigned, tunsigned], "", "src0 ? src1 : src2")
+opcode("bcsel", 0, tuint, [0, 0, 0],
+      [tbool, tuint, tuint], "", "src0 ? src1 : src2")
 
-triop("bfi", tunsigned, """
+triop("bfi", tuint, """
 unsigned mask = src0, insert = src1, base = src2;
 if (mask == 0) {
    dst = base;
@@ -576,8 +576,8 @@ if (mask == 0) {
 }
 """)
 
-opcode("ubitfield_extract", 0, tunsigned,
-       [0, 1, 1], [tunsigned, tint, tint], "", """
+opcode("ubitfield_extract", 0, tuint,
+       [0, 1, 1], [tuint, tint, tint], "", """
 unsigned base = src0;
 int offset = src1.x, bits = src2.x;
 if (bits == 0) {
@@ -611,13 +611,13 @@ dst.z = src2.x;
 
 def quadop_horiz(name, output_size, src1_size, src2_size, src3_size,
                  src4_size, const_expr):
-   opcode(name, output_size, tunsigned,
+   opcode(name, output_size, tuint,
           [src1_size, src2_size, src3_size, src4_size],
-          [tunsigned, tunsigned, tunsigned, tunsigned],
+          [tuint, tuint, tuint, tuint],
           "", const_expr)
 
-opcode("bitfield_insert", 0, tunsigned, [0, 0, 1, 1],
-       [tunsigned, tunsigned, tint, tint], "", """
+opcode("bitfield_insert", 0, tuint, [0, 0, 1, 1],
+       [tuint, tuint, tint, tint], "", """
 unsigned base = src0, insert = src1;
 int offset = src2.x, bits = src3.x;
 if (bits == 0) {

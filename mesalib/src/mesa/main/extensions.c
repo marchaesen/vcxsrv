@@ -40,7 +40,6 @@
 struct gl_extensions _mesa_extension_override_enables;
 struct gl_extensions _mesa_extension_override_disables;
 static char *extra_extensions = NULL;
-static char *cant_disable_extensions = NULL;
 
 
 /**
@@ -68,29 +67,30 @@ const struct mesa_extension _mesa_extension_table[] = {
 #undef EXT
 };
 
+static bool disabled_extensions[ARRAY_SIZE(_mesa_extension_table)];
 
 /**
  * Given an extension name, lookup up the corresponding member of struct
- * gl_extensions and return that member's offset (in bytes).  If the name is
- * not found in the \c _mesa_extension_table, return 0.
+ * gl_extensions and return that member's index.  If the name is
+ * not found in the \c _mesa_extension_table, return -1.
  *
  * \param name Name of extension.
- * \return Offset of member in struct gl_extensions.
+ * \return Index of member in struct gl_extensions.
  */
-static size_t
-name_to_offset(const char* name)
+static int
+name_to_index(const char* name)
 {
    unsigned i;
 
    if (name == 0)
-      return 0;
+      return -1;
 
    for (i = 0; i < ARRAY_SIZE(_mesa_extension_table); ++i) {
       if (strcmp(name, _mesa_extension_table[i].name) == 0)
-	 return _mesa_extension_table[i].offset;
+	 return i;
    }
 
-   return 0;
+   return -1;
 }
 
 /**
@@ -206,11 +206,11 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
  * \return offset of extensions withint `ext' or 0 if extension is not known
  */
 static size_t
-set_extension(struct gl_extensions *ext, const char *name, GLboolean state)
+set_extension(struct gl_extensions *ext, int i, GLboolean state)
 {
    size_t offset;
 
-   offset = name_to_offset(name);
+   offset = i < 0 ? 0 : _mesa_extension_table[i].offset;
    if (offset != 0 && (offset != o(dummy_true) || state != GL_FALSE)) {
       ((GLboolean *) ext)[offset] = state;
    }
@@ -240,12 +240,6 @@ get_extension_override( struct gl_context *ctx )
 {
    override_extensions_in_context(ctx);
 
-   if (cant_disable_extensions != NULL) {
-      _mesa_problem(ctx,
-                    "Trying to disable permanently enabled extensions: %s",
-	            cant_disable_extensions);
-   }
-
    if (extra_extensions == NULL) {
       return calloc(1, sizeof(char));
    } else {
@@ -257,7 +251,7 @@ get_extension_override( struct gl_context *ctx )
 
 
 /**
- * \brief Free extra_extensions and cant_disable_extensions strings
+ * \brief Free extra_extensions string
  *
  * These strings are allocated early during the first context creation by
  * _mesa_one_time_init_extension_overrides.
@@ -266,7 +260,6 @@ static void
 free_unknown_extensions_strings(void)
 {
    free(extra_extensions);
-   free(cant_disable_extensions);
 }
 
 
@@ -295,21 +288,20 @@ _mesa_one_time_init_extension_overrides(void)
 
    /* extra_exts: List of unrecognized extensions. */
    extra_extensions = calloc(ALIGN(strlen(env_const) + 2, 4), sizeof(char));
-   cant_disable_extensions = calloc(ALIGN(strlen(env_const) + 2, 4), sizeof(char));
 
    /* Copy env_const because strtok() is destructive. */
    env = strdup(env_const);
 
-   if (env == NULL || extra_extensions == NULL ||
-           cant_disable_extensions == NULL) {
-       free(env);
-       free(extra_extensions);
-       free(cant_disable_extensions);
-       return;
+   if (env == NULL ||
+       extra_extensions == NULL) {
+      free(env);
+      free(extra_extensions);
+      return;
    }
 
    for (ext = strtok(env, " "); ext != NULL; ext = strtok(NULL, " ")) {
       int enable;
+      int i;
       bool recognized;
       switch (ext[0]) {
       case '+':
@@ -325,7 +317,8 @@ _mesa_one_time_init_extension_overrides(void)
          break;
       }
 
-      offset = set_extension(&_mesa_extension_override_enables, ext, enable);
+      i = name_to_index(ext);
+      offset = set_extension(&_mesa_extension_override_enables, i, enable);
       if (offset != 0 && (offset != o(dummy_true) || enable != GL_FALSE)) {
          ((GLboolean *) &_mesa_extension_override_disables)[offset] = !enable;
          recognized = true;
@@ -333,14 +326,12 @@ _mesa_one_time_init_extension_overrides(void)
          recognized = false;
       }
 
-      if (!recognized) {
-         if (enable) {
-            strcat(extra_extensions, ext);
-            strcat(extra_extensions, " ");
-         } else if (offset == o(dummy_true)) {
-            strcat(cant_disable_extensions, ext);
-            strcat(cant_disable_extensions, " ");
-         }
+      if (i >= 0)
+         disabled_extensions[i] = !enable;
+
+      if (!recognized && enable) {
+         strcat(extra_extensions, ext);
+         strcat(extra_extensions, " ");
       }
    }
 
@@ -353,13 +344,6 @@ _mesa_one_time_init_extension_overrides(void)
       extra_extensions = NULL;
    } else if (extra_extensions[len - 1] == ' ') {
       extra_extensions[len - 1] = '\0';
-   }
-   len = strlen(cant_disable_extensions);
-   if (len == 0) {
-      free(cant_disable_extensions);
-      cant_disable_extensions = NULL;
-   } else if (cant_disable_extensions[len - 1] == ' ') {
-      cant_disable_extensions[len - 1] = '\0';
    }
 }
 
@@ -401,7 +385,8 @@ _mesa_extension_supported(const struct gl_context *ctx, extension_index i)
    const bool *base = (bool *) &ctx->Extensions;
    const struct mesa_extension *ext = _mesa_extension_table + i;
 
-   return (ctx->Version >= ext->version[ctx->API]) && base[ext->offset];
+   return !disabled_extensions[i] &&
+          (ctx->Version >= ext->version[ctx->API]) && base[ext->offset];
 }
 
 /**

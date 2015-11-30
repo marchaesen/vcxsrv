@@ -843,7 +843,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
     DeviceIntPtr dev = NULL;
     Bool paused;
     int rval;
-    const char *path;
+    char *path = NULL;
 
     /* Memory leak for every attached device if we don't
      * test if the module is already loaded first */
@@ -873,6 +873,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
                 new_input_devices[new_input_devices_count] = pInfo;
                 new_input_devices_count++;
                 systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);
+                free(path);
                 return BadMatch;
             }
             pInfo->fd = fd;
@@ -880,6 +881,8 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
             pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
         }
     }
+
+    free(path);
 
     xf86Msg(X_INFO, "Using input driver '%s' for '%s'\n", drv->driverName,
             pInfo->name);

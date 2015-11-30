@@ -295,7 +295,7 @@ ttn_emit_declaration(struct ttn_compile *c)
          type = nir_type_int;
          break;
       case TGSI_RETURN_TYPE_UINT:
-         type = nir_type_unsigned;
+         type = nir_type_uint;
          break;
       case TGSI_RETURN_TYPE_FLOAT:
       default:
@@ -1239,6 +1239,11 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
       op = nir_texop_tex;
       num_srcs = 1;
       break;
+   case TGSI_OPCODE_TEX2:
+      op = nir_texop_tex;
+      num_srcs = 1;
+      samp = 2;
+      break;
    case TGSI_OPCODE_TXP:
       op = nir_texop_tex;
       num_srcs = 2;
@@ -1274,6 +1279,10 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
       op = nir_texop_txd;
       num_srcs = 3;
       samp = 3;
+      break;
+   case TGSI_OPCODE_LODQ:
+      op = nir_texop_lod;
+      num_srcs = 1;
       break;
 
    default:
@@ -1327,7 +1336,9 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
     */
    sview = instr->sampler_index;
 
-   if (sview < c->num_samp_types) {
+   if (op == nir_texop_lod) {
+      instr->dest_type = nir_type_float;
+   } else if (sview < c->num_samp_types) {
       instr->dest_type = c->samp_types[sview];
    } else {
       instr->dest_type = nir_type_float;
@@ -1394,10 +1405,12 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
    }
 
    if (instr->is_shadow) {
-      if (instr->coord_components < 3)
-         instr->src[src_number].src = nir_src_for_ssa(ttn_channel(b, src[0], Z));
-      else
+      if (instr->coord_components == 4)
+         instr->src[src_number].src = nir_src_for_ssa(ttn_channel(b, src[1], X));
+      else if (instr->coord_components == 3)
          instr->src[src_number].src = nir_src_for_ssa(ttn_channel(b, src[0], W));
+      else
+         instr->src[src_number].src = nir_src_for_ssa(ttn_channel(b, src[0], Z));
 
       instr->src[src_number].src_type = nir_tex_src_comparitor;
       src_number++;
@@ -1641,7 +1654,7 @@ static const nir_op op_trans[TGSI_OPCODE_LAST] = {
    [TGSI_OPCODE_UMUL_HI] = nir_op_umul_high,
 
    [TGSI_OPCODE_TG4] = 0,
-   [TGSI_OPCODE_LODQ] = 0, /* XXX */
+   [TGSI_OPCODE_LODQ] = 0,
 
    [TGSI_OPCODE_IBFE] = nir_op_ibitfield_extract,
    [TGSI_OPCODE_UBFE] = nir_op_ubitfield_extract,
@@ -1650,7 +1663,7 @@ static const nir_op op_trans[TGSI_OPCODE_LAST] = {
    [TGSI_OPCODE_POPC] = nir_op_bit_count,
    [TGSI_OPCODE_LSB] = nir_op_find_lsb,
    [TGSI_OPCODE_IMSB] = nir_op_ifind_msb,
-   [TGSI_OPCODE_UMSB] = nir_op_ifind_msb, /* XXX: signed vs unsigned */
+   [TGSI_OPCODE_UMSB] = nir_op_ufind_msb,
 
    [TGSI_OPCODE_INTERP_CENTROID] = 0, /* XXX */
    [TGSI_OPCODE_INTERP_SAMPLE] = 0, /* XXX */
@@ -1803,11 +1816,13 @@ ttn_emit_instruction(struct ttn_compile *c)
    case TGSI_OPCODE_TXL:
    case TGSI_OPCODE_TXB:
    case TGSI_OPCODE_TXD:
+   case TGSI_OPCODE_TEX2:
    case TGSI_OPCODE_TXL2:
    case TGSI_OPCODE_TXB2:
    case TGSI_OPCODE_TXQ_LZ:
    case TGSI_OPCODE_TXF:
    case TGSI_OPCODE_TG4:
+   case TGSI_OPCODE_LODQ:
       ttn_tex(c, dest, src);
       break;
 

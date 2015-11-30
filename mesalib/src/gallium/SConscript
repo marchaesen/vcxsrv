@@ -5,6 +5,7 @@ Import('env')
 #
 
 SConscript('auxiliary/SConscript')
+SConscript('auxiliary/pipe-loader/SConscript')
 
 #
 # Drivers

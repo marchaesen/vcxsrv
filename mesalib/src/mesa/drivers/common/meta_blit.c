@@ -565,7 +565,7 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
 
    texcoord_size = 2 + (src_rb->Depth > 1 ? 1 : 0);
 
-   _mesa_meta_setup_vertex_objects(&blit->VAO, &blit->VBO, true,
+   _mesa_meta_setup_vertex_objects(ctx, &blit->VAO, &blit->buf_obj, true,
                                    2, texcoord_size, 0);
 
    if (is_target_multisample && is_filter_scaled_resolve && is_scaled_blit) {
@@ -691,8 +691,9 @@ blitframebuffer_texture(struct gl_context *ctx,
                                   do_depth);
    }
    else {
-      _mesa_meta_setup_ff_tnl_for_blit(&ctx->Meta->Blit.VAO,
-                                       &ctx->Meta->Blit.VBO,
+      _mesa_meta_setup_ff_tnl_for_blit(ctx,
+                                       &ctx->Meta->Blit.VAO,
+                                       &ctx->Meta->Blit.buf_obj,
                                        2);
    }
 
@@ -789,7 +790,8 @@ blitframebuffer_texture(struct gl_context *ctx,
       verts[3].tex[1] = t1;
       verts[3].tex[2] = readAtt->Zoffset;
 
-      _mesa_BufferSubData(GL_ARRAY_BUFFER_ARB, 0, sizeof(verts), verts);
+      _mesa_buffer_sub_data(ctx, blit->buf_obj, 0, sizeof(verts), verts,
+                            __func__);
    }
 
    /* setup viewport */
@@ -1004,13 +1006,12 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
 }
 
 void
-_mesa_meta_glsl_blit_cleanup(struct blit_state *blit)
+_mesa_meta_glsl_blit_cleanup(struct gl_context *ctx, struct blit_state *blit)
 {
    if (blit->VAO) {
       _mesa_DeleteVertexArrays(1, &blit->VAO);
       blit->VAO = 0;
-      _mesa_DeleteBuffers(1, &blit->VBO);
-      blit->VBO = 0;
+      _mesa_reference_buffer_object(ctx, &blit->buf_obj, NULL);
    }
 
    _mesa_meta_blit_shader_table_cleanup(&blit->shaders_with_depth);

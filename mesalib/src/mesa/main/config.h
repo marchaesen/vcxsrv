@@ -246,7 +246,7 @@
 #define MAX_FEEDBACK_BUFFERS 4
 #define MAX_FEEDBACK_ATTRIBS 32
 
-/** For GL_ARB_geometry_shader4 */
+/** For geometry shader */
 /*@{*/
 #define MAX_GEOMETRY_UNIFORM_COMPONENTS              512
 #define MAX_GEOMETRY_OUTPUT_VERTICES                 256

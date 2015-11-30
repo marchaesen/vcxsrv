@@ -90,6 +90,26 @@ _mesa_attr_zero_aliases_vertex(struct gl_context *ctx)
                && !is_forward_compatible_context));
 }
 
+extern void
+_mesa_update_array_format(struct gl_context *ctx,
+                          struct gl_vertex_array_object *vao,
+                          GLuint attrib, GLint size, GLenum type,
+                          GLenum format, GLboolean normalized,
+                          GLboolean integer, GLboolean doubles,
+                          GLuint relativeOffset, bool flush_vertices);
+
+extern void
+_mesa_enable_vertex_array_attrib(struct gl_context *ctx,
+                                 struct gl_vertex_array_object *vao,
+                                 unsigned attrib);
+
+extern void
+_mesa_bind_vertex_buffer(struct gl_context *ctx,
+                         struct gl_vertex_array_object *vao,
+                         GLuint index,
+                         struct gl_buffer_object *vbo,
+                         GLintptr offset, GLsizei stride);
+
 extern void GLAPIENTRY
 _mesa_VertexPointer(GLint size, GLenum type, GLsizei stride,
                     const GLvoid *ptr);

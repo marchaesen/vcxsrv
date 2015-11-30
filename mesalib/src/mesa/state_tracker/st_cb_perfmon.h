@@ -26,21 +26,41 @@
 
 #include "util/list.h"
 
+struct st_perf_counter_object
+{
+   struct pipe_query *query;
+   int id;
+   int group_id;
+   unsigned batch_index;
+};
+
 /**
  * Subclass of gl_perf_monitor_object
  */
 struct st_perf_monitor_object
 {
    struct gl_perf_monitor_object base;
-   struct list_head active_counters;
+   unsigned num_active_counters;
+   struct st_perf_counter_object *active_counters;
+
+   struct pipe_query *batch_query;
+   union pipe_query_result *batch_result;
 };
 
-struct st_perf_counter_object
+/**
+ * Extra data per counter, supplementing gl_perf_monitor_counter with
+ * driver-specific information.
+ */
+struct st_perf_monitor_counter
 {
-   struct list_head list;
-   struct pipe_query *query;
-   int id;
-   int group_id;
+   unsigned query_type;
+   unsigned flags;
+};
+
+struct st_perf_monitor_group
+{
+   struct st_perf_monitor_counter *counters;
+   bool has_batch;
 };
 
 /**
@@ -53,7 +73,7 @@ st_perf_monitor_object(struct gl_perf_monitor_object *q)
 }
 
 bool
-st_init_perfmon(struct st_context *st);
+st_have_perfmon(struct st_context *st);
 
 void
 st_destroy_perfmon(struct st_context *st);

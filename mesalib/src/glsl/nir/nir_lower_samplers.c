@@ -25,7 +25,6 @@
 
 #include "nir.h"
 #include "nir_builder.h"
-#include "../program.h"
 #include "program/hash_table.h"
 #include "ir_uniform.h"
 

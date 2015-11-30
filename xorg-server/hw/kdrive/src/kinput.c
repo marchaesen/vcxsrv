@@ -34,7 +34,7 @@
 #endif
 #include <signal.h>
 #include <stdio.h>
-#ifdef sun
+#ifdef __sun
 #include <sys/file.h>           /* needed for FNONBLOCK & FASYNC */
 #endif
 
@@ -220,9 +220,9 @@ KdUnregisterFd(void *closure, int fd, Bool do_close)
                 KdRemoveFd(kdInputFds[i].fd);
             if (do_close)
                 close(kdInputFds[i].fd);
-            kdNumInputFds--;
             for (j = i; j < (kdNumInputFds - 1); j++)
                 kdInputFds[j] = kdInputFds[j + 1];
+            kdNumInputFds--;
             break;
         }
     }

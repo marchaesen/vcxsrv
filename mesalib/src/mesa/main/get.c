@@ -398,7 +398,6 @@ EXTRA_EXT(EXT_pixel_buffer_object);
 EXTRA_EXT(ARB_vertex_program);
 EXTRA_EXT2(NV_point_sprite, ARB_point_sprite);
 EXTRA_EXT2(ARB_vertex_program, ARB_fragment_program);
-EXTRA_EXT(ARB_geometry_shader4);
 EXTRA_EXT(ARB_color_buffer_float);
 EXTRA_EXT(EXT_framebuffer_sRGB);
 EXTRA_EXT(OES_EGL_image_external);
@@ -453,12 +452,6 @@ static const int extra_gl32_es3[] = {
     EXTRA_VERSION_32,
     EXTRA_API_ES3,
     EXTRA_END,
-};
-
-static const int extra_gl32_ARB_geometry_shader4[] = {
-    EXTRA_VERSION_32,
-    EXT(ARB_geometry_shader4),
-    EXTRA_END
 };
 
 static const int extra_gl40_ARB_sample_shading[] = {

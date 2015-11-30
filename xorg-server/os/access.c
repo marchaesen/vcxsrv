@@ -112,7 +112,7 @@ SOFTWARE.
 
 #ifdef HAVE_GETPEERUCRED
 #include <ucred.h>
-#ifdef sun
+#ifdef __sun
 #include <zone.h>
 #endif
 #endif
@@ -162,7 +162,7 @@ SOFTWARE.
  * Test for Solaris commented out  --  TSI @ UQV  2003.06.13
  */
 #ifdef SIOCGLIFCONF
-/* #if defined(sun) */
+/* #if defined(__sun) */
 #define USE_SIOCGLIFCONF
 /* #endif */
 #endif
@@ -383,7 +383,7 @@ AccessUsingXdmcp(void)
     LocalHostEnabled = FALSE;
 }
 
-#if  defined(SVR4) && !defined(sun)  && defined(SIOCGIFCONF) && !defined(USE_SIOCGLIFCONF)
+#if  defined(SVR4) && !defined(__sun)  && defined(SIOCGIFCONF) && !defined(USE_SIOCGLIFCONF)
 
 /* Deal with different SIOCGIFCONF ioctl semantics on these OSs */
 
@@ -1145,7 +1145,7 @@ GetLocalClientCreds(ClientPtr client, LocalClientCredRec ** lccp)
     if (client == NULL)
         return -1;
     ci = ((OsCommPtr) client->osPrivate)->trans_conn;
-#if !(defined(sun) && defined(HAVE_GETPEERUCRED))
+#if !(defined(__sun) && defined(HAVE_GETPEERUCRED))
     /* Most implementations can only determine peer credentials for Unix
      * domain sockets - Solaris getpeerucred can work with a bit more, so
      * we just let it tell us if the connection type is supported or not

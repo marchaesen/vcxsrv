@@ -121,7 +121,7 @@ _mesa_GetString( GLenum name )
    assert(ctx->Driver.GetString);
    {
       /* Give the driver the chance to handle this query */
-      const GLubyte *str = (*ctx->Driver.GetString)(ctx, name);
+      const GLubyte *str = ctx->Driver.GetString(ctx, name);
       if (str)
          return str;
    }
@@ -203,12 +203,18 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
 {
    GET_CURRENT_CONTEXT(ctx);
    const GLuint clientUnit = ctx->Array.ActiveTexture;
+   const char *callerstr;
+
+   if (_mesa_is_desktop_gl(ctx))
+      callerstr = "glGetPointerv";
+   else
+      callerstr = "glGetPointervKHR";
 
    if (!params)
       return;
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glGetPointerv %s\n", _mesa_enum_to_string(pname));
+      _mesa_debug(ctx, "%s %s\n", callerstr, _mesa_enum_to_string(pname));
 
    switch (pname) {
       case GL_VERTEX_ARRAY_POINTER:
@@ -268,10 +274,7 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
          break;
       case GL_DEBUG_CALLBACK_FUNCTION_ARB:
       case GL_DEBUG_CALLBACK_USER_PARAM_ARB:
-         if (!_mesa_is_desktop_gl(ctx))
-            goto invalid_pname;
-         else
-            *params = _mesa_get_debug_state_ptr(ctx, pname);
+         *params = _mesa_get_debug_state_ptr(ctx, pname);
          break;
       default:
          goto invalid_pname;
@@ -280,7 +283,7 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
    return;
 
 invalid_pname:
-   _mesa_error( ctx, GL_INVALID_ENUM, "glGetPointerv" );
+   _mesa_error( ctx, GL_INVALID_ENUM, "%s", callerstr);
    return;
 }
 

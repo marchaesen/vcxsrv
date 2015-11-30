@@ -225,6 +225,7 @@ SYSTEM_VALUE(local_invocation_id, 3, 0)
 SYSTEM_VALUE(work_group_id, 3, 0)
 SYSTEM_VALUE(user_clip_plane, 4, 1) /* const_index[0] is user_clip_plane[idx] */
 SYSTEM_VALUE(num_work_groups, 3, 0)
+SYSTEM_VALUE(helper_invocation, 1, 0)
 
 /*
  * The format of the indices depends on the type of the load.  For uniforms,

@@ -126,7 +126,7 @@ AccessXKeyboardEvent(DeviceIntPtr keybd, int type, BYTE keyCode, Bool isRepeat)
 {
     DeviceEvent event;
 
-    init_device_event(&event, keybd, GetTimeInMillis());
+    init_device_event(&event, keybd, GetTimeInMillis(), EVENT_SOURCE_NORMAL);
     event.type = type;
     event.detail.key = keyCode;
     event.key_repeat = isRepeat;

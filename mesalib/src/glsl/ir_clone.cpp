@@ -223,6 +223,7 @@ ir_texture::clone(void *mem_ctx, struct hash_table *ht) const
    case ir_lod:
    case ir_query_levels:
    case ir_texture_samples:
+   case ir_samples_identical:
       break;
    case ir_txb:
       new_tex->lod_info.bias = this->lod_info.bias->clone(mem_ctx, ht);
@@ -269,6 +270,7 @@ ir_function::clone(void *mem_ctx, struct hash_table *ht) const
    ir_function *copy = new(mem_ctx) ir_function(this->name);
 
    copy->is_subroutine = this->is_subroutine;
+   copy->subroutine_index = this->subroutine_index;
    copy->num_subroutine_types = this->num_subroutine_types;
    copy->subroutine_types = ralloc_array(mem_ctx, const struct glsl_type *, copy->num_subroutine_types);
    for (int i = 0; i < copy->num_subroutine_types; i++)

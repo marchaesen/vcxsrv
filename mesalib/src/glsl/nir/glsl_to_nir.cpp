@@ -1798,6 +1798,11 @@ nir_visitor::visit(ir_texture *ir)
       num_srcs = 0;
       break;
 
+   case ir_samples_identical:
+      op = nir_texop_samples_identical;
+      num_srcs = 1; /* coordinate */
+      break;
+
    default:
       unreachable("not reached");
    }
@@ -1825,8 +1830,9 @@ nir_visitor::visit(ir_texture *ir)
    case GLSL_TYPE_INT:
       instr->dest_type = nir_type_int;
       break;
+   case GLSL_TYPE_BOOL:
    case GLSL_TYPE_UINT:
-      instr->dest_type = nir_type_unsigned;
+      instr->dest_type = nir_type_uint;
       break;
    default:
       unreachable("not reached");

@@ -290,6 +290,20 @@ texture_multisample_array(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+texture_samples_identical(const _mesa_glsl_parse_state *state)
+{
+   return texture_multisample(state) &&
+          state->EXT_shader_samples_identical_enable;
+}
+
+static bool
+texture_samples_identical_array(const _mesa_glsl_parse_state *state)
+{
+   return texture_multisample_array(state) &&
+          state->EXT_shader_samples_identical_enable;
+}
+
+static bool
 fs_texture_cube_map_array(const _mesa_glsl_parse_state *state)
 {
    return state->stage == MESA_SHADER_FRAGMENT &&
@@ -724,6 +738,7 @@ private:
 
    BA2(textureQueryLod);
    B1(textureQueryLevels);
+   BA2(textureSamplesIdentical);
    B1(dFdx);
    B1(dFdy);
    B1(fwidth);
@@ -1321,7 +1336,7 @@ builtin_builder::create_builtins()
                 _smoothstep(fp64, glsl_type::dvec3_type,  glsl_type::dvec3_type),
                 _smoothstep(fp64, glsl_type::dvec4_type,  glsl_type::dvec4_type),
                 NULL);
- 
+
    FD130(isnan)
    FD130(isinf)
 
@@ -1358,7 +1373,7 @@ builtin_builder::create_builtins()
    FD(distance)
    FD(dot)
 
-   add_function("cross", _cross(always_available, glsl_type::vec3_type), 
+   add_function("cross", _cross(always_available, glsl_type::vec3_type),
                 _cross(fp64, glsl_type::dvec3_type), NULL);
 
    FD(normalize)
@@ -2208,6 +2223,16 @@ builtin_builder::create_builtins()
                 _textureQueryLevels(glsl_type::usampler2DArray_type),
                 _textureQueryLevels(glsl_type::usamplerCubeArray_type),
 
+                NULL);
+
+   add_function("textureSamplesIdenticalEXT",
+                _textureSamplesIdentical(texture_samples_identical, glsl_type::sampler2DMS_type,  glsl_type::ivec2_type),
+                _textureSamplesIdentical(texture_samples_identical, glsl_type::isampler2DMS_type, glsl_type::ivec2_type),
+                _textureSamplesIdentical(texture_samples_identical, glsl_type::usampler2DMS_type, glsl_type::ivec2_type),
+
+                _textureSamplesIdentical(texture_samples_identical_array, glsl_type::sampler2DMSArray_type,  glsl_type::ivec3_type),
+                _textureSamplesIdentical(texture_samples_identical_array, glsl_type::isampler2DMSArray_type, glsl_type::ivec3_type),
+                _textureSamplesIdentical(texture_samples_identical_array, glsl_type::usampler2DMSArray_type, glsl_type::ivec3_type),
                 NULL);
 
    add_function("texture1D",
@@ -4677,6 +4702,25 @@ builtin_builder::_textureQueryLevels(const glsl_type *sampler_type)
    MAKE_SIG(return_type, texture_query_levels, 1, s);
 
    ir_texture *tex = new(mem_ctx) ir_texture(ir_query_levels);
+   tex->set_sampler(var_ref(s), return_type);
+
+   body.emit(ret(tex));
+
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_textureSamplesIdentical(builtin_available_predicate avail,
+                                          const glsl_type *sampler_type,
+                                          const glsl_type *coord_type)
+{
+   ir_variable *s = in_var(sampler_type, "sampler");
+   ir_variable *P = in_var(coord_type, "P");
+   const glsl_type *return_type = glsl_type::bool_type;
+   MAKE_SIG(return_type, avail, 2, s, P);
+
+   ir_texture *tex = new(mem_ctx) ir_texture(ir_samples_identical);
+   tex->coordinate = var_ref(P);
    tex->set_sampler(var_ref(s), return_type);
 
    body.emit(ret(tex));

@@ -1760,6 +1760,10 @@ ProcessDeviceEvent(InternalEvent *ev, DeviceIntPtr device)
 
     switch (event->type) {
     case ET_KeyPress:
+        /* Don't deliver focus events (e.g. from KeymapNotify when running
+         * nested) to clients. */
+        if (event->source_type == EVENT_SOURCE_FOCUS)
+            return;
         if (!grab && CheckDeviceGrabs(device, event, 0))
             return;
         break;

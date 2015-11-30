@@ -28,7 +28,7 @@
 int
 main (void)
 {
-    FcConfig *config = FcConfigGetCurrent ();
+    FcConfig *config = FcConfigCreate ();
 
     if (!FcConfigAppFontAddFile (config, (const FcChar8 *)SRCDIR "/4x6.pcf") ||
 	FcConfigAppFontAddFile (config, (const FcChar8 *)"/dev/null"))

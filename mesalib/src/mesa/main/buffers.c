@@ -731,7 +731,7 @@ _mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    /* Call the device driver function only if fb is the bound read buffer */
    if (fb == ctx->ReadBuffer) {
       if (ctx->Driver.ReadBuffer)
-         (*ctx->Driver.ReadBuffer)(ctx, buffer);
+         ctx->Driver.ReadBuffer(ctx, buffer);
    }
 }
 

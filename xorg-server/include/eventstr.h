@@ -25,6 +25,7 @@
 #ifndef EVENTSTR_H
 #define EVENTSTR_H
 
+#include "inputstr.h"
 #include <events.h>
 /**
  * @file events.h
@@ -78,6 +79,14 @@ enum EventType {
 };
 
 /**
+ * How a DeviceEvent was provoked
+ */
+enum DeviceEventSource {
+  EVENT_SOURCE_NORMAL = 0, /**< Default: from a user action (e.g. key press) */
+  EVENT_SOURCE_FOCUS, /**< Keys or buttons previously down on focus-in */
+};
+
+/**
  * Used for ALL input device events internal in the server until
  * copied into the matching protocol event.
  *
@@ -124,6 +133,7 @@ struct _DeviceEvent {
     int key_repeat;   /**< Internally-generated key repeat event */
     uint32_t flags;   /**< Flags to be copied into the generated event */
     uint32_t resource; /**< Touch event resource, only for TOUCH_REPLAYING */
+    enum DeviceEventSource source_type; /**< How this event was provoked */
 };
 
 /**

@@ -606,6 +606,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_separate_shader_objects_warn;
    bool EXT_shader_integer_mix_enable;
    bool EXT_shader_integer_mix_warn;
+   bool EXT_shader_samples_identical_enable;
+   bool EXT_shader_samples_identical_warn;
    bool EXT_texture_array_enable;
    bool EXT_texture_array_warn;
    /*@}*/

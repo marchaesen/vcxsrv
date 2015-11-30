@@ -28,8 +28,6 @@
  * language version or extension might provide them.
  */
 
-#include "glsl_types.h"
-
 DECL_TYPE(error,  GL_INVALID_ENUM, GLSL_TYPE_ERROR, 0, 0)
 DECL_TYPE(void,   GL_INVALID_ENUM, GLSL_TYPE_VOID,  0, 0)
 

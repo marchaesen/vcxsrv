@@ -1419,6 +1419,9 @@ struct gl_vertex_array_object
    /** Vertex buffer bindings */
    struct gl_vertex_buffer_binding VertexBinding[VERT_ATTRIB_MAX];
 
+   /** Mask indicating which vertex arrays have vertex buffer associated. */
+   GLbitfield64 VertexAttribBufferMask;
+
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield64 _Enabled;
 
@@ -2193,6 +2196,7 @@ struct gl_ati_fragment_shader_state
 struct gl_subroutine_function
 {
    char *name;
+   int index;
    int num_compat_types;
    const struct glsl_type **types;
 };
@@ -3396,7 +3400,7 @@ struct gl_constants
     */
    GLuint MaxUserAssignableUniformLocations;
 
-   /** GL_ARB_geometry_shader4 */
+   /** geometry shader */
    GLuint MaxGeometryOutputVertices;
    GLuint MaxGeometryTotalOutputComponents;
 
@@ -3681,7 +3685,6 @@ struct gl_extensions
    GLboolean ARB_enhanced_layouts;
    GLboolean ARB_explicit_attrib_location;
    GLboolean ARB_explicit_uniform_location;
-   GLboolean ARB_geometry_shader4;
    GLboolean ARB_gpu_shader5;
    GLboolean ARB_gpu_shader_fp64;
    GLboolean ARB_half_float_vertex;
@@ -3761,6 +3764,7 @@ struct gl_extensions
    GLboolean EXT_polygon_offset_clamp;
    GLboolean EXT_provoking_vertex;
    GLboolean EXT_shader_integer_mix;
+   GLboolean EXT_shader_samples_identical;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture_array;
    GLboolean EXT_texture_compression_latc;

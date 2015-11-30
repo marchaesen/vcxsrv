@@ -155,7 +155,7 @@ xorg_backtrace(void)
 
 #else                           /* not glibc or glibc < 2.1 */
 
-#if defined(sun) && defined(__SVR4)
+#if defined(__sun) && defined(__SVR4)
 #define HAVE_PSTACK
 #endif
 

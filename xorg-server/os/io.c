@@ -368,7 +368,7 @@ ReadRequestFromClient(ClientPtr client)
                                  oci->size - oci->bufcnt);
         if (result <= 0) {
             if ((result < 0) && ETEST(errno)) {
-#if defined(SVR4) && defined(__i386__) && !defined(sun)
+#if defined(SVR4) && defined(__i386__) && !defined(__sun)
                 if (0)
 #endif
                 {

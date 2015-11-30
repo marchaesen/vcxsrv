@@ -727,7 +727,8 @@ verify_internal_event(const InternalEvent *ev)
  * device.
  */
 void
-init_device_event(DeviceEvent *event, DeviceIntPtr dev, Time ms)
+init_device_event(DeviceEvent *event, DeviceIntPtr dev, Time ms,
+                  enum DeviceEventSource source_type)
 {
     memset(event, 0, sizeof(DeviceEvent));
     event->header = ET_Internal;
@@ -735,6 +736,7 @@ init_device_event(DeviceEvent *event, DeviceIntPtr dev, Time ms)
     event->time = ms;
     event->deviceid = dev->id;
     event->sourceid = dev->id;
+    event->source_type = source_type;
 }
 
 int

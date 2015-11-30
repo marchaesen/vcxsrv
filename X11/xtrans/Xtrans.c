@@ -100,15 +100,15 @@ Xtransport_table Xtransports[] = {
 #endif /* UNIXCONN */
 #if defined(LOCALCONN)
     { &TRANS(LocalFuncs),	TRANS_LOCAL_LOCAL_INDEX },
-#ifndef sun
+#ifndef __sun
     { &TRANS(PTSFuncs),		TRANS_LOCAL_PTS_INDEX },
-#endif /* sun */
+#endif /* __sun */
 #if defined(SVR4) || defined(__SVR4)
     { &TRANS(NAMEDFuncs),	TRANS_LOCAL_NAMED_INDEX },
 #endif
-#ifdef sun
+#ifdef __sun
     { &TRANS(PIPEFuncs),	TRANS_LOCAL_PIPE_INDEX },
-#endif /* sun */
+#endif /* __sun */
 #if defined(__SCO__) || defined(__UNIXWARE__)
     { &TRANS(SCOFuncs),		TRANS_LOCAL_SCO_INDEX },
 #endif /* __SCO__ || __UNIXWARE__ */
@@ -1415,7 +1415,7 @@ TRANS(MakeAllCLTSServerListeners) (const char *port, int *partial,
  */
 
 
-#if defined(SYSV) && defined(__i386__) && !defined(__SCO__) && !defined(sun) || defined(WIN32)
+#if defined(SYSV) && defined(__i386__) && !defined(__SCO__) && !defined(__sun) || defined(WIN32)
 
 /*
  * emulate readv
@@ -1447,7 +1447,7 @@ static int TRANS(ReadV) (XtransConnInfo ciptr, struct iovec *iov, int iovcnt)
 
 #endif /* SYSV && __i386__ || WIN32 || __sxg__ */
 
-#if defined(SYSV) && defined(__i386__) && !defined(__SCO__) && !defined(sun) || defined(WIN32)
+#if defined(SYSV) && defined(__i386__) && !defined(__SCO__) && !defined(__sun) || defined(WIN32)
 
 /*
  * emulate writev
