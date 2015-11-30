@@ -71,9 +71,9 @@ $(BUILT_HEADER): $(BUILT_SOURCE)
 load_makefile ../util/makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 $(BUILT_SOURCE) $(BUILT_HEADER) : ../util/$(OBJDIR)/makestrs.exe $(STRING_LIST) ../util/StrDefs.ht ../util/StrDefs.ct ../util/Shell.ht
-	../util/$(OBJDIR)/makestrs -i .. $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
-	move StringDefs.h ..\include\X11
-	touch ..\include\X11\StringDefs.h
-	move Shell.h ..\include\X11
-	touch ..\include\X11\Shell.h
+	..$/util$/$(OBJDIR)$/makestrs -i .. $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
+	move StringDefs.h ..$/include$/X11
+	touch ..$/include$/X11$/StringDefs.h
+	move Shell.h ..$/include$/X11
+	touch ..$/include$/X11$/Shell.h
 
