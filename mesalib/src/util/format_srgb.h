@@ -57,7 +57,7 @@ util_format_linear_to_srgb_helper_table[104];
 static inline float
 util_format_linear_to_srgb_float(float cl)
 {
-   if (cl < 0.0f)
+   if (cl <= 0.0f)
       return 0.0f;
    else if (cl < 0.0031308f)
       return 12.92f * cl;

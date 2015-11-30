@@ -93,7 +93,7 @@ ir_reader::read(exec_list *instructions, const char *src, bool scan_for_protos)
       ir_read_error(NULL, "couldn't parse S-Expression.");
       return;
    }
-   
+
    if (scan_for_protos) {
       scan_for_prototypes(instructions, expr);
       if (state->error)
@@ -147,7 +147,7 @@ ir_reader::read_type(s_expression *expr)
 
       return glsl_type::get_array_instance(base_type, s_size->value());
    }
-   
+
    s_symbol *type_sym = SX_AS_SYMBOL(expr);
    if (type_sym == NULL) {
       ir_read_error(expr, "expected <type>");

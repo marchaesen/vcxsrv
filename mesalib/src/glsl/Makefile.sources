@@ -22,6 +22,7 @@ NIR_FILES = \
 	nir/glsl_to_nir.h \
 	nir/glsl_types.cpp \
 	nir/glsl_types.h \
+	nir/builtin_type_macros.h \
 	nir/nir.c \
 	nir/nir.h \
 	nir/nir_array.h \
@@ -99,7 +100,6 @@ LIBGLSL_FILES = \
 	blob.c \
 	blob.h \
 	builtin_functions.cpp \
-	builtin_type_macros.h \
 	builtin_types.cpp \
 	builtin_variables.cpp \
 	glsl_parser_extras.cpp \

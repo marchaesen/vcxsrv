@@ -157,6 +157,7 @@ ir_texture::equals(const ir_instruction *ir, enum ir_node_type ignore) const
    case ir_lod:
    case ir_query_levels:
    case ir_texture_samples:
+   case ir_samples_identical:
       break;
    case ir_txb:
       if (!lod_info.bias->equals(other->lod_info.bias, ignore))

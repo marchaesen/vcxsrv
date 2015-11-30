@@ -432,7 +432,7 @@ keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
 
     wl_array_copy(&xwl_seat->keys, keys);
     wl_array_for_each(k, &xwl_seat->keys)
-        QueueKeyboardEvents(xwl_seat->keyboard, KeyPress, *k + 8);
+        QueueKeyboardEvents(xwl_seat->keyboard, KeymapNotify, *k + 8);
 }
 
 static void
@@ -444,6 +444,10 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 
     xwl_seat->xwl_screen->serial = serial;
 
+    /* Unlike keymap_handle_enter above, this time we _do_ want to trigger
+     * full release, as we don't know how long we'll be out of focus for.
+     * Notify clients that the keys have been released, disable autorepeat,
+     * etc. */
     wl_array_for_each(k, &xwl_seat->keys)
         QueueKeyboardEvents(xwl_seat->keyboard, KeyRelease, *k + 8);
 

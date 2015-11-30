@@ -792,6 +792,7 @@ struct ssh_tag {
     int send_ok;
     int echoing, editing;
 
+    int session_started;
     void *frontend;
 
     int ospeed, ispeed;		       /* temporaries */
@@ -3071,6 +3072,8 @@ static int do_ssh_init(Ssh ssh, unsigned char c)
 	crReturn(1);
     }
 
+    ssh->session_started = TRUE;
+
     s->vstrsize = sizeof(protoname) + 16;
     s->vstring = snewn(s->vstrsize, char);
     strcpy(s->vstring, protoname);
@@ -3453,34 +3456,20 @@ static void ssh_socket_log(Plug plug, int type, SockAddr addr, int port,
                            const char *error_msg, int error_code)
 {
     Ssh ssh = (Ssh) plug;
-    char addrbuf[256], *msg;
 
-    if (ssh->attempting_connshare) {
-        /*
-         * While we're attempting connection sharing, don't loudly log
-         * everything that happens. Real TCP connections need to be
-         * logged when we _start_ trying to connect, because it might
-         * be ages before they respond if something goes wrong; but
-         * connection sharing is local and quick to respond, and it's
-         * sufficient to simply wait and see whether it worked
-         * afterwards.
-         */
-    } else {
-        sk_getaddr(addr, addrbuf, lenof(addrbuf));
+    /*
+     * While we're attempting connection sharing, don't loudly log
+     * everything that happens. Real TCP connections need to be logged
+     * when we _start_ trying to connect, because it might be ages
+     * before they respond if something goes wrong; but connection
+     * sharing is local and quick to respond, and it's sufficient to
+     * simply wait and see whether it worked afterwards.
+     */
 
-        if (type == 0) {
-            if (sk_addr_needs_port(addr)) {
-                msg = dupprintf("Connecting to %s port %d", addrbuf, port);
-            } else {
-                msg = dupprintf("Connecting to %s", addrbuf);
-            }
-        } else {
-            msg = dupprintf("Failed to connect to %s: %s", addrbuf, error_msg);
-        }
-
-        logevent(msg);
-        sfree(msg);
-    }
+    if (!ssh->attempting_connshare)
+        backend_socket_log(ssh->frontend, type, addr, port,
+                           error_msg, error_code, ssh->conf,
+                           ssh->session_started);
 }
 
 void ssh_connshare_log(Ssh ssh, int event, const char *logtext,
@@ -3675,10 +3664,8 @@ static const char *connect_to_host(Ssh ssh, const char *host, int port,
          * Try to find host.
          */
         addressfamily = conf_get_int(ssh->conf, CONF_addressfamily);
-        logeventf(ssh, "Looking up host \"%s\"%s", host,
-                  (addressfamily == ADDRTYPE_IPV4 ? " (IPv4)" :
-                   (addressfamily == ADDRTYPE_IPV6 ? " (IPv6)" : "")));
-        addr = name_lookup(host, port, realhost, ssh->conf, addressfamily);
+        addr = name_lookup(host, port, realhost, ssh->conf, addressfamily,
+                           ssh->frontend, "SSH connection");
         if ((err = sk_addr_error(addr)) != NULL) {
             sk_addr_free(addr);
             return err;
@@ -11016,6 +11003,7 @@ static const char *ssh_init(void *frontend_handle, void **backend_handle,
     ssh->X11_fwd_enabled = FALSE;
     ssh->connshare = NULL;
     ssh->attempting_connshare = FALSE;
+    ssh->session_started = FALSE;
 
     *backend_handle = ssh;
 

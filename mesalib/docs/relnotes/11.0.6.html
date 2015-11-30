@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.0.6 Release Notes / November 21, 2015</h1>
+
+<p>
+Mesa 11.0.6 is a bug fix release which fixes bugs found since the 11.0.5 release.
+</p>
+<p>
+Mesa 11.0.6 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+4bdf054af66ebabf3eca0616f9f5e44c2f234695661b570261c391bc2f4f7482  mesa-11.0.6.tar.gz
+8340e64cdc91999840404c211496f3de38e7b4cb38db34e2f72f1642c5134760  mesa-11.0.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91780">Bug 91780</a> - Rendering issues with geometry shader</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92588">Bug 92588</a> - [HSW,BDW,BSW,SKL-Y][GLES 3.1 CTS] ES31-CTS.arrays_of_arrays.InteractionFunctionCalls2 - assert</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92738">Bug 92738</a> - Randon R7 240 doesn't work on 16KiB page size platform</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92860">Bug 92860</a> - [radeonsi][bisected] st/mesa: implement ARB_copy_image - Corruption in ARK Survival Evolved</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92900">Bug 92900</a> - [regression bisected] About 700 piglit regressions is what could go wrong</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Deucher (1):</p>
+<ul>
+  <li>radeonsi: enable optimal raster config setting for fiji (v2)</li>
+</ul>
+
+<p>Ben Widawsky (1):</p>
+<ul>
+  <li>i965/skl/gt4: Fix URB programming restriction.</li>
+</ul>
+
+<p>Boyuan Zhang (2):</p>
+<ul>
+  <li>st/vaapi: fix vaapi VC-1 simple/main corruption v2</li>
+  <li>radeon/uvd: fix VC-1 simple/main profile decode v2</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>r600: initialised PGM_RESOURCES_2 for ES/GS</li>
+</ul>
+
+<p>Emil Velikov (4):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.0.5</li>
+  <li>cherry-ignore: add the swrast front buffer support</li>
+  <li>automake: use static llvm for make distcheck</li>
+  <li>Update version to 11.0.6</li>
+</ul>
+
+<p>Eric Anholt (3):</p>
+<ul>
+  <li>vc4: Return GL_OUT_OF_MEMORY when buffer allocation fails.</li>
+  <li>vc4: Return NULL when we can't make our shadow for a sampler view.</li>
+  <li>vc4: Add support for nir_op_uge, using the carry bit on QPU_A_SUB.</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>meta/generate_mipmap: Don't leak the sampler object</li>
+  <li>meta/generate_mipmap: Only modify the draw framebuffer binding in fallback_required</li>
+</ul>
+
+<p>Ilia Mirkin (2):</p>
+<ul>
+  <li>mesa/copyimage: allow width/height to not be multiples of block</li>
+  <li>nouveau: don't expose HEVC decoding support</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>nir/vars_to_ssa: Rework copy set handling in lower_copies_to_load_store</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>glsl: Allow implicit int -&gt; uint conversions for the % operator.</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>radeonsi: initialize SX_PS_DOWNCONVERT to 0 on Stoney</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>winsys/radeon: Use CPU page size instead of hardcoding 4096 bytes v3</li>
+</ul>
+
+<p>Oded Gabbay (1):</p>
+<ul>
+  <li>llvmpipe: use simple coeffs calc for 128bit vectors</li>
+</ul>
+
+<p>Roland Scheidegger (2):</p>
+<ul>
+  <li>radeon: fix bgrx8/xrgb8 blits</li>
+  <li>r200: fix bgrx8/xrgb8 blits</li>
+</ul>
+
+
+</div>
+</body>
+</html>

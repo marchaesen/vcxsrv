@@ -60,7 +60,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	LED_NUM		5
 #define	PHYS_LEDS	0x1f
 #else
-#ifdef sun
+#ifdef __sun
 #define LED_NUM		1
 #define	LED_SCROLL	2
 #define	LED_COMPOSE	3

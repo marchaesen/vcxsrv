@@ -404,7 +404,7 @@ _mesa_BlendEquation( GLenum mode )
    ctx->Color._BlendEquationPerBuffer = GL_FALSE;
 
    if (ctx->Driver.BlendEquationSeparate)
-      (*ctx->Driver.BlendEquationSeparate)( ctx, mode, mode );
+      ctx->Driver.BlendEquationSeparate(ctx, mode, mode);
 }
 
 
@@ -582,7 +582,7 @@ _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
    ctx->Color.BlendColor[3] = CLAMP(tmp[3], 0.0F, 1.0F);
 
    if (ctx->Driver.BlendColor)
-      (*ctx->Driver.BlendColor)(ctx, ctx->Color.BlendColor);
+      ctx->Driver.BlendColor(ctx, ctx->Color.BlendColor);
 }
 
 

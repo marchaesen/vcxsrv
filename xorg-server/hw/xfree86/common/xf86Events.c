@@ -448,9 +448,10 @@ xf86UpdateHasVTProperty(Bool hasVT)
     if (property_name == BAD_RESOURCE)
         FatalError("Failed to retrieve \"HAS_VT\" atom\n");
     for (i = 0; i < xf86NumScreens; i++) {
-        ChangeWindowProperty(xf86ScrnToScreen(xf86Screens[i])->root,
-                             property_name, XA_INTEGER, 32,
-                             PropModeReplace, 1, &value, TRUE);
+        dixChangeWindowProperty(serverClient,
+                                xf86ScrnToScreen(xf86Screens[i])->root,
+                                property_name, XA_INTEGER, 32,
+                                PropModeReplace, 1, &value, TRUE);
     }
 }
 

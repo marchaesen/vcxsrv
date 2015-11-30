@@ -1333,21 +1333,6 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
       break;
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
    case GL_TEXTURE_CUBE_MAP_ARRAY:
-      /* From section 3.8.6, page 146 of OpenGL ES 3.0 spec:
-       *
-       *    "The ETC2/EAC texture compression algorithm supports only
-       *     two-dimensional images. If internalformat is an ETC2/EAC format,
-       *     glCompressedTexImage3D will generate an INVALID_OPERATION error if
-       *     target is not TEXTURE_2D_ARRAY."
-       *
-       * This should also be applicable for glTexStorage3D(). Other available
-       * targets for these functions are: TEXTURE_3D and TEXTURE_CUBE_MAP_ARRAY.
-       */
-      if (layout == MESA_FORMAT_LAYOUT_ETC2 && _mesa_is_gles3(ctx))
-            return write_error(error, GL_INVALID_OPERATION);
-
-      target_can_be_compresed = ctx->Extensions.ARB_texture_cube_map_array;
-
       /* From the KHR_texture_compression_astc_hdr spec:
        *
        *     Add a second new column "3D Tex." which is empty for all non-ASTC
@@ -1368,16 +1353,24 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
        *      8.19 is *not* checked'
        *
        * The instances of <internalformat> above should say <target>.
+       *
+       * ETC2/EAC formats are the only alternative in GLES and thus such errors
+       * have already been handled by normal ETC2/EAC behavior.
        */
 
-      /* Throw an INVALID_OPERATION error if the target is
-       * TEXTURE_CUBE_MAP_ARRAY and the format is not ASTC.
+      /* From section 3.8.6, page 146 of OpenGL ES 3.0 spec:
+       *
+       *    "The ETC2/EAC texture compression algorithm supports only
+       *     two-dimensional images. If internalformat is an ETC2/EAC format,
+       *     glCompressedTexImage3D will generate an INVALID_OPERATION error if
+       *     target is not TEXTURE_2D_ARRAY."
+       *
+       * This should also be applicable for glTexStorage3D(). Other available
+       * targets for these functions are: TEXTURE_3D and TEXTURE_CUBE_MAP_ARRAY.
        */
-      if (target_can_be_compresed &&
-          ctx->Extensions.KHR_texture_compression_astc_ldr &&
-          layout != MESA_FORMAT_LAYOUT_ASTC)
-         return write_error(error, GL_INVALID_OPERATION);
-
+      if (layout == MESA_FORMAT_LAYOUT_ETC2 && _mesa_is_gles3(ctx))
+            return write_error(error, GL_INVALID_OPERATION);
+      target_can_be_compresed = ctx->Extensions.ARB_texture_cube_map_array;
       break;
    case GL_TEXTURE_3D:
       switch (layout) {
@@ -1401,12 +1394,6 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
             return write_error(error, GL_INVALID_OPERATION);
          break;
       default:
-         /* Throw an INVALID_OPERATION error if the target is TEXTURE_3D and
-          * the format is not ASTC.
-          * See comment in switch case GL_TEXTURE_CUBE_MAP_ARRAY for more info.
-          */
-         if (ctx->Extensions.KHR_texture_compression_astc_ldr)
-            return write_error(error, GL_INVALID_OPERATION);
          break;
       }
    default:
@@ -1712,7 +1699,7 @@ texture_format_error_check_gles(struct gl_context *ctx, GLenum format,
       }
    }
    else {
-      err = _mesa_es_error_check_format_and_type(format, type, dimensions);
+      err = _mesa_es_error_check_format_and_type(ctx, format, type, dimensions);
       if (err != GL_NO_ERROR) {
          _mesa_error(ctx, err, "%s(format = %s, type = %s)",
                      callerName, _mesa_enum_to_string(format),

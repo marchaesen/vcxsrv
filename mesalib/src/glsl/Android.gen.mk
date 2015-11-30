@@ -38,7 +38,8 @@ LOCAL_C_INCLUDES += \
 	$(MESA_TOP)/src/glsl/nir
 
 LOCAL_EXPORT_C_INCLUDE_DIRS += \
-	$(intermediates)/nir
+	$(intermediates)/nir \
+	$(MESA_TOP)/src/glsl/nir
 
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
 	$(LIBGLCPP_GENERATED_FILES) \

@@ -2077,12 +2077,18 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
  * \return error code, or GL_NO_ERROR.
  */
 GLenum
-_mesa_es_error_check_format_and_type(GLenum format, GLenum type,
+_mesa_es_error_check_format_and_type(const struct gl_context *ctx,
+                                     GLenum format, GLenum type,
                                      unsigned dimensions)
 {
    GLboolean type_valid = GL_TRUE;
 
    switch (format) {
+   case GL_RED:
+   case GL_RG:
+      if (ctx->API == API_OPENGLES || !ctx->Extensions.ARB_texture_rg)
+         return GL_INVALID_VALUE;
+      /* fallthrough */
    case GL_ALPHA:
    case GL_LUMINANCE:
    case GL_LUMINANCE_ALPHA:

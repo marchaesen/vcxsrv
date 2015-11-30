@@ -38,13 +38,16 @@ ast_type_specifier::print(void) const
 }
 
 bool
-ast_fully_specified_type::has_qualifiers() const
+ast_fully_specified_type::has_qualifiers(_mesa_glsl_parse_state *state) const
 {
    /* 'subroutine' isnt a real qualifier. */
    ast_type_qualifier subroutine_only;
    subroutine_only.flags.i = 0;
    subroutine_only.flags.q.subroutine = 1;
    subroutine_only.flags.q.subroutine_def = 1;
+   if (state->has_explicit_uniform_location()) {
+      subroutine_only.flags.q.explicit_index = 1;
+   }
    return (this->qualifier.flags.i & ~subroutine_only.flags.i) != 0;
 }
 
@@ -113,7 +116,7 @@ ast_type_qualifier::interpolation_string() const
 bool
 ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 				    _mesa_glsl_parse_state *state,
-				    ast_type_qualifier q)
+				    const ast_type_qualifier &q)
 {
    ast_type_qualifier ubo_mat_mask;
    ubo_mat_mask.flags.i = 0;
@@ -169,41 +172,32 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    }
 
    if (q.flags.q.max_vertices) {
-      if (this->flags.q.max_vertices && this->max_vertices != q.max_vertices) {
-	 _mesa_glsl_error(loc, state,
-			  "geometry shader set conflicting max_vertices "
-			  "(%d and %d)", this->max_vertices, q.max_vertices);
-	 return false;
+      if (this->max_vertices) {
+         this->max_vertices->merge_qualifier(q.max_vertices);
+      } else {
+         this->max_vertices = q.max_vertices;
       }
-      this->max_vertices = q.max_vertices;
+   }
+
+   if (q.flags.q.subroutine_def) {
+      if (this->flags.q.subroutine_def) {
+	 _mesa_glsl_error(loc, state,
+			  "conflicting subroutine qualifiers used");
+      } else {
+         this->subroutine_list = q.subroutine_list;
+      }
    }
 
    if (q.flags.q.invocations) {
-      if (this->flags.q.invocations && this->invocations != q.invocations) {
-         _mesa_glsl_error(loc, state,
-                          "geometry shader set conflicting invocations "
-                          "(%d and %d)", this->invocations, q.invocations);
-         return false;
+      if (this->invocations) {
+         this->invocations->merge_qualifier(q.invocations);
+      } else {
+         this->invocations = q.invocations;
       }
-      this->invocations = q.invocations;
    }
 
    if (state->stage == MESA_SHADER_GEOMETRY &&
        state->has_explicit_attrib_stream()) {
-      if (q.flags.q.stream && q.stream >= state->ctx->Const.MaxVertexStreams) {
-         _mesa_glsl_error(loc, state,
-                          "`stream' value is larger than MAX_VERTEX_STREAMS - 1 "
-                          "(%d > %d)",
-                          q.stream, state->ctx->Const.MaxVertexStreams - 1);
-      }
-      if (this->flags.q.explicit_stream &&
-          this->stream >= state->ctx->Const.MaxVertexStreams) {
-         _mesa_glsl_error(loc, state,
-                          "`stream' value is larger than MAX_VERTEX_STREAMS - 1 "
-                          "(%d > %d)",
-                          this->stream, state->ctx->Const.MaxVertexStreams - 1);
-      }
-
       if (!this->flags.q.explicit_stream) {
          if (q.flags.q.stream) {
             this->flags.q.stream = 1;
@@ -222,14 +216,11 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    }
 
    if (q.flags.q.vertices) {
-      if (this->flags.q.vertices && this->vertices != q.vertices) {
-	 _mesa_glsl_error(loc, state,
-			  "tessellation control shader set conflicting "
-			  "vertices (%d and %d)",
-			  this->vertices, q.vertices);
-	 return false;
+      if (this->vertices) {
+         this->vertices->merge_qualifier(q.vertices);
+      } else {
+         this->vertices = q.vertices;
       }
-      this->vertices = q.vertices;
    }
 
    if (q.flags.q.vertex_spacing) {
@@ -266,15 +257,11 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 
    for (int i = 0; i < 3; i++) {
       if (q.flags.q.local_size & (1 << i)) {
-         if ((this->flags.q.local_size & (1 << i)) &&
-             this->local_size[i] != q.local_size[i]) {
-            _mesa_glsl_error(loc, state,
-                             "compute shader set conflicting values for "
-                             "local_size_%c (%d and %d)", 'x' + i,
-                             this->local_size[i], q.local_size[i]);
-            return false;
+         if (this->local_size[i]) {
+            this->local_size[i]->merge_qualifier(q.local_size[i]);
+         } else {
+            this->local_size[i] = q.local_size[i];
          }
-         this->local_size[i] = q.local_size[i];
       }
    }
 
@@ -306,14 +293,14 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 bool
 ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
                                         _mesa_glsl_parse_state *state,
-                                        ast_type_qualifier q,
+                                        const ast_type_qualifier &q,
                                         ast_node* &node)
 {
    void *mem_ctx = state;
    const bool r = this->merge_qualifier(loc, state, q);
 
    if (state->stage == MESA_SHADER_TESS_CTRL) {
-      node = new(mem_ctx) ast_tcs_output_layout(*loc, q.vertices);
+      node = new(mem_ctx) ast_tcs_output_layout(*loc);
    }
 
    return r;
@@ -322,7 +309,7 @@ ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
 bool
 ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
                                        _mesa_glsl_parse_state *state,
-                                       ast_type_qualifier q,
+                                       const ast_type_qualifier &q,
                                        ast_node* &node)
 {
    void *mem_ctx = state;
@@ -417,15 +404,13 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
       state->in_qualifier->prim_type = q.prim_type;
    }
 
-   if (this->flags.q.invocations &&
-       q.flags.q.invocations &&
-       this->invocations != q.invocations) {
-      _mesa_glsl_error(loc, state,
-                       "conflicting invocations counts specified");
-      return false;
-   } else if (q.flags.q.invocations) {
+   if (q.flags.q.invocations) {
       this->flags.q.invocations = 1;
-      this->invocations = q.invocations;
+      if (this->invocations) {
+         this->invocations->merge_qualifier(q.invocations);
+      } else {
+         this->invocations = q.invocations;
+      }
    }
 
    if (q.flags.q.early_fragment_tests) {
@@ -468,15 +453,67 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
    if (create_gs_ast) {
       node = new(mem_ctx) ast_gs_input_layout(*loc, q.prim_type);
    } else if (create_cs_ast) {
-      /* Infer a local_size of 1 for every unspecified dimension */
-      unsigned local_size[3];
-      for (int i = 0; i < 3; i++) {
-         if (q.flags.q.local_size & (1 << i))
-            local_size[i] = q.local_size[i];
-         else
-            local_size[i] = 1;
+      node = new(mem_ctx) ast_cs_input_layout(*loc, q.local_size);
+   }
+
+   return true;
+}
+
+bool
+ast_layout_expression::process_qualifier_constant(struct _mesa_glsl_parse_state *state,
+                                                  const char *qual_indentifier,
+                                                  unsigned *value,
+                                                  bool can_be_zero)
+{
+   int min_value = 0;
+   bool first_pass = true;
+   *value = 0;
+
+   if (!can_be_zero)
+      min_value = 1;
+
+   for (exec_node *node = layout_const_expressions.head;
+           !node->is_tail_sentinel(); node = node->next) {
+
+      exec_list dummy_instructions;
+      ast_node *const_expression = exec_node_data(ast_node, node, link);
+
+      ir_rvalue *const ir = const_expression->hir(&dummy_instructions, state);
+
+      ir_constant *const const_int = ir->constant_expression_value();
+      if (const_int == NULL || !const_int->type->is_integer()) {
+         YYLTYPE loc = const_expression->get_location();
+         _mesa_glsl_error(&loc, state, "%s must be an integral constant "
+                          "expression", qual_indentifier);
+         return false;
       }
-      node = new(mem_ctx) ast_cs_input_layout(*loc, local_size);
+
+      if (const_int->value.i[0] < min_value) {
+         YYLTYPE loc = const_expression->get_location();
+         _mesa_glsl_error(&loc, state, "%s layout qualifier is invalid "
+                          "(%d < %d)", qual_indentifier,
+                          const_int->value.i[0], min_value);
+         return false;
+      }
+
+      if (!first_pass && *value != const_int->value.u[0]) {
+         YYLTYPE loc = const_expression->get_location();
+         _mesa_glsl_error(&loc, state, "%s layout qualifier does not "
+		          "match previous declaration (%d vs %d)",
+                          qual_indentifier, *value, const_int->value.i[0]);
+         return false;
+      } else {
+         first_pass = false;
+         *value = const_int->value.u[0];
+      }
+
+      /* If the location is const (and we've verified that
+       * it is) then no instructions should have been emitted
+       * when we converted it to HIR. If they were emitted,
+       * then either the location isn't const after all, or
+       * we are emitting unnecessary instructions.
+       */
+      assert(dummy_instructions.is_empty());
    }
 
    return true;

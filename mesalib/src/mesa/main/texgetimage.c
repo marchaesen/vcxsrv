@@ -88,12 +88,6 @@ get_tex_depth(struct gl_context *ctx, GLuint dimensions,
       return;
    }
 
-   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
-      depth = height;
-      height = 1;
-   }
-
-   assert(zoffset + depth <= texImage->Depth);
    for (img = 0; img < depth; img++) {
       GLubyte *srcMap;
       GLint srcRowStride;
@@ -141,7 +135,6 @@ get_tex_depth_stencil(struct gl_context *ctx, GLuint dimensions,
    assert(type == GL_UNSIGNED_INT_24_8 ||
           type == GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 
-   assert(zoffset + depth <= texImage->Depth);
    for (img = 0; img < depth; img++) {
       GLubyte *srcMap;
       GLint rowstride;
@@ -233,7 +226,6 @@ get_tex_ycbcr(struct gl_context *ctx, GLuint dimensions,
 {
    GLint img, row;
 
-   assert(zoffset + depth <= texImage->Depth);
    for (img = 0; img < depth; img++) {
       GLubyte *srcMap;
       GLint rowstride;
@@ -430,13 +422,6 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
    uint8_t rebaseSwizzle[4];
    bool needsRebase;
    void *rgba = NULL;
-
-   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
-      depth = height;
-      height = 1;
-      zoffset = yoffset;
-      yoffset = 0;
-   }
 
    /* Depending on the base format involved we may need to apply a rebase
     * transform (for example: if we download to a Luminance format we want
@@ -735,6 +720,17 @@ _mesa_GetTexSubImage_sw(struct gl_context *ctx,
        * Now make it a real, client-side pointer inside the mapped region.
        */
       pixels = ADD_POINTERS(buf, pixels);
+   }
+
+   /* for all array textures, the Z axis selects the layer */
+   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
+      depth = height;
+      height = 1;
+      zoffset = yoffset;
+      yoffset = 0;
+      assert(zoffset + depth <= texImage->Height);
+   } else {
+      assert(zoffset + depth <= texImage->Depth);
    }
 
    if (get_tex_memcpy(ctx, xoffset, yoffset, zoffset, width, height, depth,

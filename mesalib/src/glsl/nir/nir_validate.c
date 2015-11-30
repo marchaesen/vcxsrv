@@ -290,11 +290,11 @@ validate_alu_instr(nir_alu_instr *instr, validate_state *state)
 {
    assert(instr->op < nir_num_opcodes);
 
-   validate_alu_dest(&instr->dest, state);
-
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
       validate_alu_src(instr, i, state);
    }
+
+   validate_alu_dest(&instr->dest, state);
 }
 
 static void
@@ -375,6 +375,11 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       validate_src(&instr->src[i], state);
    }
 
+   unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
+   for (unsigned i = 0; i < num_vars; i++) {
+      validate_deref_var(instr, instr->variables[i], state);
+   }
+
    if (nir_intrinsic_infos[instr->intrinsic].has_dest) {
       unsigned components_written =
          nir_intrinsic_infos[instr->intrinsic].dest_components;
@@ -390,11 +395,6 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       }
 
       validate_dest(&instr->dest, state);
-   }
-
-   unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
-   for (unsigned i = 0; i < num_vars; i++) {
-      validate_deref_var(instr, instr->variables[i], state);
    }
 
    switch (instr->intrinsic) {
@@ -434,8 +434,6 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 static void
 validate_tex_instr(nir_tex_instr *instr, validate_state *state)
 {
-   validate_dest(&instr->dest, state);
-
    bool src_type_seen[nir_num_tex_src_types];
    for (unsigned i = 0; i < nir_num_tex_src_types; i++)
       src_type_seen[i] = false;
@@ -448,6 +446,8 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
 
    if (instr->sampler != NULL)
       validate_deref_var(instr, instr->sampler, state);
+
+   validate_dest(&instr->dest, state);
 }
 
 static void

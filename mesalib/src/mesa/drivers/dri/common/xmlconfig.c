@@ -59,6 +59,9 @@ extern char *program_invocation_name, *program_invocation_short_name;
 #elif defined(__NetBSD__) && defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 106000100)
 #    include <stdlib.h>
 #    define GET_PROGRAM_NAME() getprogname()
+#elif defined(__DragonFly__)
+#    include <stdlib.h>
+#    define GET_PROGRAM_NAME() getprogname()
 #elif defined(__APPLE__)
 #    include <stdlib.h>
 #    define GET_PROGRAM_NAME() getprogname()

@@ -166,7 +166,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
          }
          return true;
       case nir_type_int:
-      case nir_type_unsigned:
+      case nir_type_uint:
       case nir_type_bool:
          for (unsigned i = 0; i < num_components; ++i) {
             if (load->value.i[new_swizzle[i]] != const_val->data.i)
@@ -310,7 +310,7 @@ construct_value(const nir_search_value *value, nir_alu_type type,
          load->def.name = ralloc_asprintf(mem_ctx, "%d", c->data.i);
          load->value.i[0] = c->data.i;
          break;
-      case nir_type_unsigned:
+      case nir_type_uint:
       case nir_type_bool:
          load->value.u[0] = c->data.u;
          break;

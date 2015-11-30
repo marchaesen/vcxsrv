@@ -212,6 +212,7 @@ EXT(EXT_secondary_color                     , dummy_true                        
 EXT(EXT_separate_shader_objects             , dummy_true                             ,  x ,  x ,  x , ES2, 2013)
 EXT(EXT_separate_specular_color             , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_shader_integer_mix                  , EXT_shader_integer_mix                 , GLL, GLC,  x ,  30, 2013)
+EXT(EXT_shader_samples_identical            , EXT_shader_samples_identical           , GLL, GLC,  x ,  31, 2015)
 EXT(EXT_shadow_funcs                        , ARB_shadow                             , GLL,  x ,  x ,  x , 2002)
 EXT(EXT_stencil_two_side                    , EXT_stencil_two_side                   , GLL,  x ,  x ,  x , 2001)
 EXT(EXT_stencil_wrap                        , dummy_true                             , GLL,  x ,  x ,  x , 2002)
@@ -257,7 +258,7 @@ EXT(INGR_blend_func_separate                , EXT_blend_func_separate           
 EXT(INTEL_performance_query                 , INTEL_performance_query                , GLL, GLC,  x , ES2, 2013)
 
 EXT(KHR_context_flush_control               , dummy_true                             , GLL, GLC,  x , ES2, 2014)
-EXT(KHR_debug                               , dummy_true                             , GLL, GLC,  x ,  x , 2012)
+EXT(KHR_debug                               , dummy_true                             , GLL, GLC, ES1, ES2, 2012)
 EXT(KHR_texture_compression_astc_hdr        , KHR_texture_compression_astc_hdr       , GLL, GLC,  x , ES2, 2012)
 EXT(KHR_texture_compression_astc_ldr        , KHR_texture_compression_astc_ldr       , GLL, GLC,  x , ES2, 2012)
 
