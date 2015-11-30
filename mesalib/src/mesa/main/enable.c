@@ -369,10 +369,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
       case GL_DEBUG_OUTPUT:
       case GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB:
-         if (!_mesa_is_desktop_gl(ctx))
-            goto invalid_enum_error;
-         else
-            _mesa_set_debug_state_int(ctx, cap, state);
+         _mesa_set_debug_state_int(ctx, cap, state);
          break;
       case GL_DITHER:
          if (ctx->Color.DitherFlag == state)
@@ -1225,10 +1222,7 @@ _mesa_IsEnabled( GLenum cap )
          return ctx->Polygon.CullFlag;
       case GL_DEBUG_OUTPUT:
       case GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB:
-         if (!_mesa_is_desktop_gl(ctx))
-            goto invalid_enum_error;
-         else
-            return (GLboolean) _mesa_get_debug_state_int(ctx, cap);
+         return (GLboolean) _mesa_get_debug_state_int(ctx, cap);
       case GL_DEPTH_TEST:
          return ctx->Depth.Test;
       case GL_DITHER:

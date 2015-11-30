@@ -661,6 +661,13 @@ _mesa_program_resource_index(struct gl_shader_program *shProg,
    switch (res->Type) {
    case GL_ATOMIC_COUNTER_BUFFER:
       return RESOURCE_ATC(res) - shProg->AtomicBuffers;
+   case GL_VERTEX_SUBROUTINE:
+   case GL_GEOMETRY_SUBROUTINE:
+   case GL_FRAGMENT_SUBROUTINE:
+   case GL_COMPUTE_SUBROUTINE:
+   case GL_TESS_CONTROL_SUBROUTINE:
+   case GL_TESS_EVALUATION_SUBROUTINE:
+      return RESOURCE_SUB(res)->index;
    case GL_UNIFORM_BLOCK:
    case GL_SHADER_STORAGE_BLOCK:
    case GL_TRANSFORM_FEEDBACK_VARYING:

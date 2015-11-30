@@ -41,6 +41,7 @@
 typedef struct {
    nir_builder b;
    const nir_lower_tex_options *options;
+   bool progress;
 } lower_tex_state;
 
 static void
@@ -133,6 +134,7 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
    txs->op = nir_texop_txs;
    txs->sampler_dim = GLSL_SAMPLER_DIM_RECT;
    txs->sampler_index = tex->sampler_index;
+   txs->dest_type = nir_type_int;
 
    /* only single src, the lod: */
    txs->src[0].src = nir_src_for_ssa(nir_imm_int(b, 0));
@@ -213,6 +215,66 @@ saturate_src(nir_builder *b, nir_tex_instr *tex, unsigned sat_mask)
    }
 }
 
+static nir_ssa_def *
+get_zero_or_one(nir_builder *b, nir_alu_type type, uint8_t swizzle_val)
+{
+   nir_const_value v;
+
+   memset(&v, 0, sizeof(v));
+
+   if (swizzle_val == 4) {
+      v.u[0] = v.u[1] = v.u[2] = v.u[3] = 0;
+   } else {
+      assert(swizzle_val == 5);
+      if (type == nir_type_float)
+         v.f[0] = v.f[1] = v.f[2] = v.f[3] = 1.0;
+      else
+         v.u[0] = v.u[1] = v.u[2] = v.u[3] = 1;
+   }
+
+   return nir_build_imm(b, 4, v);
+}
+
+static void
+swizzle_result(nir_builder *b, nir_tex_instr *tex, const uint8_t swizzle[4])
+{
+   assert(tex->dest.is_ssa);
+
+   b->cursor = nir_after_instr(&tex->instr);
+
+   nir_ssa_def *swizzled;
+   if (tex->op == nir_texop_tg4) {
+      if (swizzle[tex->component] < 4) {
+         /* This one's easy */
+         tex->component = swizzle[tex->component];
+         return;
+      } else {
+         swizzled = get_zero_or_one(b, tex->dest_type, swizzle[tex->component]);
+      }
+   } else {
+      assert(nir_tex_instr_dest_size(tex) == 4);
+      if (swizzle[0] < 4 && swizzle[1] < 4 &&
+          swizzle[2] < 4 && swizzle[3] < 4) {
+         unsigned swiz[4] = { swizzle[0], swizzle[1], swizzle[2], swizzle[3] };
+         /* We have no 0's or 1's, just emit a swizzling MOV */
+         swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4, false);
+      } else {
+         nir_ssa_def *srcs[4];
+         for (unsigned i = 0; i < 4; i++) {
+            if (swizzle[i] < 4) {
+               srcs[i] = nir_channel(b, &tex->dest.ssa, swizzle[i]);
+            } else {
+               srcs[i] = get_zero_or_one(b, tex->dest_type, swizzle[i]);
+            }
+         }
+         swizzled = nir_vec(b, srcs, 4);
+      }
+   }
+
+   nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, nir_src_for_ssa(swizzled),
+                                  swizzled->parent_instr);
+}
+
 static bool
 nir_lower_tex_block(nir_block *block, void *void_state)
 {
@@ -239,15 +301,28 @@ nir_lower_tex_block(nir_block *block, void *void_state)
       /* If we are clamping any coords, we must lower projector first
        * as clamping happens *after* projection:
        */
-      if (lower_txp || sat_mask)
+      if (lower_txp || sat_mask) {
          project_src(b, tex);
+         state->progress = true;
+      }
 
       if ((tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) &&
-          state->options->lower_rect)
+          state->options->lower_rect) {
          lower_rect(b, tex);
+         state->progress = true;
+      }
 
-      if (sat_mask)
+      if (sat_mask) {
          saturate_src(b, tex, sat_mask);
+         state->progress = true;
+      }
+
+      if (((1 << tex->sampler_index) & state->options->swizzle_result) &&
+          !nir_tex_instr_is_query(tex) &&
+          !(tex->is_shadow && tex->is_new_style_shadow)) {
+         swizzle_result(b, tex, state->options->swizzles[tex->sampler_index]);
+         state->progress = true;
+      }
    }
 
    return true;
@@ -264,13 +339,17 @@ nir_lower_tex_impl(nir_function_impl *impl, lower_tex_state *state)
                                nir_metadata_dominance);
 }
 
-void
+bool
 nir_lower_tex(nir_shader *shader, const nir_lower_tex_options *options)
 {
    lower_tex_state state;
    state.options = options;
+   state.progress = false;
+
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
          nir_lower_tex_impl(overload->impl, &state);
    }
+
+   return state.progress;
 }

@@ -46,6 +46,7 @@ struct draw_stage;
 struct gen_mipmap_state;
 struct st_context;
 struct st_fragment_program;
+struct st_perf_monitor_group;
 struct u_upload_mgr;
 
 
@@ -217,6 +218,8 @@ struct st_context
    int32_t read_stamp;
 
    struct st_config_options options;
+
+   struct st_perf_monitor_group *perfmon;
 };
 
 

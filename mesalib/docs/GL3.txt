@@ -158,7 +158,7 @@ GL 4.3, GLSL 4.30:
   GL_ARB_explicit_uniform_location                     DONE (all drivers that support GLSL)
   GL_ARB_fragment_layer_viewport                       DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe)
   GL_ARB_framebuffer_no_attachments                    DONE (i965)
-  GL_ARB_internalformat_query2                         not started
+  GL_ARB_internalformat_query2                         in progress (elima)
   GL_ARB_invalidate_subdata                            DONE (all drivers)
   GL_ARB_multi_draw_indirect                           DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe)
   GL_ARB_program_interface_query                       DONE (all drivers)
@@ -179,7 +179,7 @@ GL 4.4, GLSL 4.40:
   GL_ARB_buffer_storage                                DONE (i965, nv50, nvc0, r600, radeonsi)
   GL_ARB_clear_texture                                 DONE (i965, nv50, nvc0)
   GL_ARB_enhanced_layouts                              in progress (Timothy)
-  - compile-time constant expressions                  in progress
+  - compile-time constant expressions                  DONE
   - explicit byte offsets for blocks                   in progress
   - forced alignment within blocks                     in progress
   - specified vec4-slot component numbers              in progress
@@ -244,7 +244,7 @@ GLES3.2, GLSL ES 3.2
   GL_OES_copy_image                                    not started (based on GL_ARB_copy_image, which is done for some drivers)
   GL_OES_draw_buffers_indexed                          not started
   GL_OES_draw_elements_base_vertex                     DONE (all drivers)
-  GL_OES_geometry_shader                               not started (based on GL_ARB_geometry_shader4, which is done for all drivers)
+  GL_OES_geometry_shader                               started (Marta)
   GL_OES_gpu_shader5                                   not started (based on parts of GL_ARB_gpu_shader5, which is done for some drivers)
   GL_OES_primitive_bounding box                        not started
   GL_OES_sample_shading                                not started (based on parts of GL_ARB_sample_shading, which is done for some drivers)

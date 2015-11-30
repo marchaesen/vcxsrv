@@ -495,7 +495,7 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
 
    /* Tell device driver about the new texture environment */
    if (ctx->Driver.TexEnv) {
-      (*ctx->Driver.TexEnv)( ctx, target, pname, param );
+      ctx->Driver.TexEnv(ctx, target, pname, param);
    }
 }
 

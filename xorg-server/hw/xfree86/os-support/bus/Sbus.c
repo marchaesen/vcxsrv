@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#ifdef sun
+#ifdef __sun
 #include <sys/utsname.h>
 #endif
 #include "xf86.h"
@@ -173,7 +173,7 @@ promIsP1275(void)
             break;
         }
     fclose(f);
-#elif defined(sun)
+#elif defined(__sun)
     struct utsname buffer;
 
     if ((uname(&buffer) >= 0) && !strcmp(buffer.machine, "sun4u"))

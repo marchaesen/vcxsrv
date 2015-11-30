@@ -46,7 +46,7 @@ from The Open Group.
 
 #include <rpc/rpc.h>
 
-#ifdef sun
+#ifdef __sun
 /* <rpc/auth.h> only includes this if _KERNEL is #defined... */
 extern bool_t xdr_opaque_auth(XDR *, struct opaque_auth *);
 #endif

@@ -127,8 +127,7 @@ _mesa_shader_enum_to_shader_stage(GLenum v)
    case GL_COMPUTE_SHADER:
       return MESA_SHADER_COMPUTE;
    default:
-      assert(0 && "bad value in _mesa_shader_enum_to_shader_stage()");
-      return MESA_SHADER_VERTEX;
+      unreachable("bad value in _mesa_shader_enum_to_shader_stage()");
    }
 }
 
@@ -159,7 +158,6 @@ static inline gl_shader_stage
 _mesa_shader_stage_from_subroutine_uniform(GLenum subuniform)
 {
    switch (subuniform) {
-   default:
    case GL_VERTEX_SUBROUTINE_UNIFORM:
       return MESA_SHADER_VERTEX;
    case GL_GEOMETRY_SUBROUTINE_UNIFORM:
@@ -173,6 +171,7 @@ _mesa_shader_stage_from_subroutine_uniform(GLenum subuniform)
    case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
       return MESA_SHADER_TESS_EVAL;
    }
+   unreachable("not reached");
 }
 
 static inline gl_shader_stage
@@ -192,13 +191,13 @@ _mesa_shader_stage_from_subroutine(GLenum subroutine)
    case GL_TESS_EVALUATION_SUBROUTINE:
       return MESA_SHADER_TESS_EVAL;
    }
+   unreachable("not reached");
 }
 
 static inline GLenum
 _mesa_shader_stage_to_subroutine(gl_shader_stage stage)
 {
    switch (stage) {
-   default:
    case MESA_SHADER_VERTEX:
       return GL_VERTEX_SUBROUTINE;
    case MESA_SHADER_GEOMETRY:
@@ -212,13 +211,13 @@ _mesa_shader_stage_to_subroutine(gl_shader_stage stage)
    case MESA_SHADER_TESS_EVAL:
       return GL_TESS_EVALUATION_SUBROUTINE;
    }
+   unreachable("not reached");
 }
 
 static inline GLenum
 _mesa_shader_stage_to_subroutine_uniform(gl_shader_stage stage)
 {
    switch (stage) {
-   default:
    case MESA_SHADER_VERTEX:
       return GL_VERTEX_SUBROUTINE_UNIFORM;
    case MESA_SHADER_GEOMETRY:
@@ -232,6 +231,7 @@ _mesa_shader_stage_to_subroutine_uniform(gl_shader_stage stage)
    case MESA_SHADER_TESS_EVAL:
       return GL_TESS_EVALUATION_SUBROUTINE_UNIFORM;
    }
+   unreachable("not reached");
 }
 
 extern bool

@@ -69,7 +69,7 @@ create_texture_for_pbo(struct gl_context *ctx,
                        int dims, int width, int height, int depth,
                        GLenum format, GLenum type, const void *pixels,
                        const struct gl_pixelstore_attrib *packing,
-                       GLuint *tmp_pbo, GLuint *tmp_tex)
+                       struct gl_buffer_object **tmp_pbo, GLuint *tmp_tex)
 {
    uint32_t pbo_format;
    GLenum internal_format;
@@ -101,7 +101,7 @@ create_texture_for_pbo(struct gl_context *ctx,
    row_stride = _mesa_image_row_stride(packing, width, format, type);
 
    if (_mesa_is_bufferobj(packing->BufferObj)) {
-      *tmp_pbo = 0;
+      *tmp_pbo = NULL;
       buffer_obj = packing->BufferObj;
       first_pixel += (intptr_t)pixels;
    } else {
@@ -109,32 +109,28 @@ create_texture_for_pbo(struct gl_context *ctx,
 
       assert(create_pbo);
 
-      _mesa_GenBuffers(1, tmp_pbo);
-
-      /* We are not doing this inside meta_begin/end.  However, we know the
-       * client doesn't have the given target bound, so we can go ahead and
-       * squash it.  We'll set it back when we're done.
-       */
-      _mesa_BindBuffer(pbo_target, *tmp_pbo);
+      *tmp_pbo = ctx->Driver.NewBufferObject(ctx, 0xDEADBEEF);
+      if (*tmp_pbo == NULL)
+         return NULL;
 
       /* In case of GL_PIXEL_PACK_BUFFER, pass null pointer for the pixel
-       * data to avoid unnecessary data copying in _mesa_BufferData().
+       * data to avoid unnecessary data copying in _mesa_buffer_data.
        */
       if (is_pixel_pack)
-         _mesa_BufferData(pbo_target,
-                          last_pixel - first_pixel,
-                          NULL,
-                          GL_STREAM_READ);
+         _mesa_buffer_data(ctx, *tmp_pbo, GL_NONE,
+                           last_pixel - first_pixel,
+                           NULL,
+                           GL_STREAM_READ,
+                           __func__);
       else
-         _mesa_BufferData(pbo_target,
-                          last_pixel - first_pixel,
-                          (char *)pixels + first_pixel,
-                          GL_STREAM_DRAW);
+         _mesa_buffer_data(ctx, *tmp_pbo, GL_NONE,
+                           last_pixel - first_pixel,
+                           (char *)pixels + first_pixel,
+                           GL_STREAM_DRAW,
+                           __func__);
 
-      buffer_obj = packing->BufferObj;
+      buffer_obj = *tmp_pbo;
       first_pixel = 0;
-
-      _mesa_BindBuffer(pbo_target, 0);
    }
 
    _mesa_GenTextures(1, tmp_tex);
@@ -165,7 +161,7 @@ create_texture_for_pbo(struct gl_context *ctx,
                                                      row_stride,
                                                      read_only)) {
       _mesa_DeleteTextures(1, tmp_tex);
-      _mesa_DeleteBuffers(1, tmp_pbo);
+      _mesa_reference_buffer_object(ctx, tmp_pbo, NULL);
       return NULL;
    }
 
@@ -181,7 +177,8 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
                            bool allocate_storage, bool create_pbo,
                            const struct gl_pixelstore_attrib *packing)
 {
-   GLuint pbo = 0, pbo_tex = 0, fbos[2] = { 0, 0 };
+   struct gl_buffer_object *pbo = NULL;
+   GLuint pbo_tex = 0, fbos[2] = { 0, 0 };
    int image_height;
    struct gl_texture_image *pbo_tex_image;
    GLenum status;
@@ -284,7 +281,7 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
 fail:
    _mesa_DeleteFramebuffers(2, fbos);
    _mesa_DeleteTextures(1, &pbo_tex);
-   _mesa_DeleteBuffers(1, &pbo);
+   _mesa_reference_buffer_object(ctx, &pbo, NULL);
 
    _mesa_meta_end(ctx);
 
@@ -299,7 +296,8 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
                               GLenum format, GLenum type, const void *pixels,
                               const struct gl_pixelstore_attrib *packing)
 {
-   GLuint pbo = 0, pbo_tex = 0, fbos[2] = { 0, 0 };
+   struct gl_buffer_object *pbo = NULL;
+   GLuint pbo_tex = 0, fbos[2] = { 0, 0 };
    int image_height;
    struct gl_texture_image *pbo_tex_image;
    struct gl_renderbuffer *rb = NULL;
@@ -456,7 +454,7 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
 fail:
    _mesa_DeleteFramebuffers(2, fbos);
    _mesa_DeleteTextures(1, &pbo_tex);
-   _mesa_DeleteBuffers(1, &pbo);
+   _mesa_reference_buffer_object(ctx, &pbo, NULL);
 
    _mesa_meta_end(ctx);
 

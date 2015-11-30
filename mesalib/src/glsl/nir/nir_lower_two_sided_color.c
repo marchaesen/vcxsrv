@@ -60,6 +60,8 @@ create_input(nir_shader *shader, unsigned drvloc, gl_varying_slot slot)
 
    exec_list_push_tail(&shader->inputs, &var->node);
 
+   shader->num_inputs++;     /* TODO use type_size() */
+
    return var;
 }
 

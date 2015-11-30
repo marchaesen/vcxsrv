@@ -146,7 +146,6 @@ struct save_state
 
    /** MESA_META_TEXTURE */
    GLuint ActiveUnit;
-   GLuint ClientActiveUnit;
    /** for unit[0] only */
    struct gl_texture_object *CurrentTexture[NUM_TEXTURE_TARGETS];
    /** mask of TEXTURE_2D_BIT, etc */
@@ -156,7 +155,6 @@ struct save_state
 
    /** MESA_META_VERTEX */
    struct gl_vertex_array_object *VAO;
-   struct gl_buffer_object *ArrayBufferObj;
 
    /** MESA_META_VIEWPORT */
    GLfloat ViewportX, ViewportY, ViewportW, ViewportH;
@@ -300,7 +298,7 @@ enum blit_msaa_shader {
 struct blit_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
    struct blit_shader_table shaders_with_depth;
    struct blit_shader_table shaders_without_depth;
    GLuint msaa_shaders[BLIT_MSAA_SHADER_COUNT];
@@ -322,7 +320,7 @@ struct fb_tex_blit_state
 struct clear_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
    GLuint ShaderProg;
    GLint ColorLocation;
    GLint LayerLocation;
@@ -339,7 +337,7 @@ struct clear_state
 struct copypix_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
 };
 
 
@@ -349,7 +347,7 @@ struct copypix_state
 struct drawpix_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
 
    GLuint StencilFP;  /**< Fragment program for drawing stencil images */
    GLuint DepthFP;  /**< Fragment program for drawing depth images */
@@ -362,7 +360,7 @@ struct drawpix_state
 struct bitmap_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
    struct temp_texture Tex;  /**< separate texture from other meta ops */
 };
 
@@ -372,7 +370,7 @@ struct bitmap_state
 struct gen_mipmap_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
    GLuint FBO;
    GLuint Sampler;
 
@@ -396,7 +394,8 @@ struct decompress_state
 {
    GLuint VAO;
    struct decompress_fbo_state byteFBO, floatFBO;
-   GLuint VBO, Sampler;
+   struct gl_buffer_object *buf_obj;
+   GLuint Sampler;
 
    struct blit_shader_table shaders;
 };
@@ -407,7 +406,7 @@ struct decompress_state
 struct drawtex_state
 {
    GLuint VAO;
-   GLuint VBO;
+   struct gl_buffer_object *buf_obj;
 };
 
 #define MAX_META_OPS_DEPTH      8
@@ -620,13 +619,15 @@ struct temp_texture *
 _mesa_meta_get_temp_depth_texture(struct gl_context *ctx);
 
 void
-_mesa_meta_setup_vertex_objects(GLuint *VAO, GLuint *VBO,
+_mesa_meta_setup_vertex_objects(struct gl_context *ctx,
+                                GLuint *VAO, struct gl_buffer_object **buf_obj,
                                 bool use_generic_attributes,
                                 unsigned vertex_size, unsigned texcoord_size,
                                 unsigned color_size);
 
 void
-_mesa_meta_setup_ff_tnl_for_blit(GLuint *VAO, GLuint *VBO,
+_mesa_meta_setup_ff_tnl_for_blit(struct gl_context *ctx,
+                                 GLuint *VAO, struct gl_buffer_object **buf_obj,
                                  unsigned texcoord_size);
 
 void
@@ -652,13 +653,14 @@ _mesa_meta_setup_blit_shader(struct gl_context *ctx,
                              struct blit_shader_table *table);
 
 void
-_mesa_meta_glsl_blit_cleanup(struct blit_state *blit);
+_mesa_meta_glsl_blit_cleanup(struct gl_context *ctx, struct blit_state *blit);
 
 void
 _mesa_meta_blit_shader_table_cleanup(struct blit_shader_table *table);
 
 void
-_mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap);
+_mesa_meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
+                                        struct gen_mipmap_state *mipmap);
 
 void
 _mesa_meta_bind_fbo_image(GLenum target, GLenum attachment,

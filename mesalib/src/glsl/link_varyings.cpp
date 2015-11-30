@@ -766,7 +766,7 @@ public:
                    gl_shader_stage consumer_stage);
    ~varying_matches();
    void record(ir_variable *producer_var, ir_variable *consumer_var);
-   unsigned assign_locations();
+   unsigned assign_locations(uint64_t reserved_slots);
    void store_locations() const;
 
 private:
@@ -986,7 +986,7 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
  * passed to varying_matches::record().
  */
 unsigned
-varying_matches::assign_locations()
+varying_matches::assign_locations(uint64_t reserved_slots)
 {
    /* Sort varying matches into an order that makes them easy to pack. */
    qsort(this->matches, this->num_matches, sizeof(*this->matches),
@@ -1012,6 +1012,10 @@ varying_matches::assign_locations()
           this->matches[i - 1].packing_class
           != this->matches[i].packing_class) {
          *location = ALIGN(*location, 4);
+      }
+      while ((*location < MAX_VARYING * 4u) &&
+            (reserved_slots & (1u << *location / 4u))) {
+         *location = ALIGN(*location + 1, 4);
       }
 
       this->matches[i].generic_location = *location;
@@ -1376,6 +1380,38 @@ canonicalize_shader_io(exec_list *ir, enum ir_variable_mode io_mode)
 }
 
 /**
+ * Generate a bitfield map of the explicit locations for shader varyings.
+ *
+ * In theory a 32 bits value will be enough but a 64 bits value is future proof.
+ */
+uint64_t
+reserved_varying_slot(struct gl_shader *stage, ir_variable_mode io_mode)
+{
+   assert(io_mode == ir_var_shader_in || io_mode == ir_var_shader_out);
+   assert(MAX_VARYING <= 64); /* avoid an overflow of the returned value */
+
+   uint64_t slots = 0;
+   int var_slot;
+
+   if (!stage)
+      return slots;
+
+   foreach_in_list(ir_instruction, node, stage->ir) {
+      ir_variable *const var = node->as_variable();
+
+      if (var == NULL || var->data.mode != io_mode || !var->data.explicit_location)
+         continue;
+
+      var_slot = var->data.location - VARYING_SLOT_VAR0;
+      if (var_slot >= 0 && var_slot < MAX_VARYING)
+         slots |= 1u << var_slot;
+   }
+
+   return slots;
+}
+
+
+/**
  * Assign locations for all variables that are produced in one pipeline stage
  * (the "producer") and consumed in the next stage (the "consumer").
  *
@@ -1550,7 +1586,11 @@ assign_varying_locations(struct gl_context *ctx,
          matches.record(matched_candidate->toplevel_var, NULL);
    }
 
-   const unsigned slots_used = matches.assign_locations();
+   const uint64_t reserved_slots =
+      reserved_varying_slot(producer, ir_var_shader_out) |
+      reserved_varying_slot(consumer, ir_var_shader_in);
+
+   const unsigned slots_used = matches.assign_locations(reserved_slots);
    matches.store_locations();
 
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {

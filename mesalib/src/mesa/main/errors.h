@@ -115,7 +115,7 @@ _mesa_get_debug_state_ptr(struct gl_context *ctx, GLenum pname);
 
 extern void
 _mesa_shader_debug(struct gl_context *ctx, GLenum type, GLuint *id,
-                   const char *msg, int len);
+                   const char *msg);
 
 void GLAPIENTRY
 _mesa_DebugMessageInsert(GLenum source, GLenum type, GLuint id,

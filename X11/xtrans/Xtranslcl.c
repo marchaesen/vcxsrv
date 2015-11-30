@@ -83,7 +83,7 @@ from The Open Group.
 #include <sys/filio.h>
 #endif
 #ifndef _MSC_VER
-#ifdef sun
+#ifdef __sun
 # include <stropts.h>
 #else
 # include <sys/stropts.h>
@@ -110,7 +110,7 @@ from The Open Group.
  *  - named pipes
  *  - SCO
  */
-#if !defined(sun)
+#if !defined(__sun)
 # define LOCAL_TRANS_PTS
 #endif
 #if defined(SVR4) || defined(__SVR4)
@@ -249,7 +249,7 @@ static void _dummy(int sig _X_UNUSED)
 }
 #endif /* LOCAL_TRANS_PTS */
 
-#ifndef sun
+#ifndef __sun
 #define X_STREAMS_DIR	"/dev/X"
 #define DEV_SPX		"/dev/spx"
 #else
@@ -265,17 +265,17 @@ static void _dummy(int sig _X_UNUSED)
 #if defined(X11_t)
 
 #define PTSNODENAME "/dev/X/server."
-#ifdef sun
+#ifdef __sun
 #define NAMEDNODENAME "/tmp/.X11-pipe/X"
 #else
 #define NAMEDNODENAME "/dev/X/Nserver."
 
 #define SCORNODENAME	"/dev/X%1sR"
 #define SCOSNODENAME	"/dev/X%1sS"
-#endif /* !sun */
+#endif /* !__sun */
 #endif
 #if defined(XIM_t)
-#ifdef sun
+#ifdef __sun
 #define NAMEDNODENAME "/tmp/.XIM-pipe/XIM"
 #else
 #define PTSNODENAME	"/dev/X/XIM."
@@ -285,7 +285,7 @@ static void _dummy(int sig _X_UNUSED)
 #endif
 #endif
 #if defined(FS_t) || defined (FONT_t)
-#ifdef sun
+#ifdef __sun
 #define NAMEDNODENAME	"/tmp/.font-pipe/fs"
 #else
 /*
@@ -299,7 +299,7 @@ static void _dummy(int sig _X_UNUSED)
 #endif
 #endif
 #if defined(ICE_t)
-#ifdef sun
+#ifdef __sun
 #define NAMEDNODENAME	"/tmp/.ICE-pipe/"
 #else
 #define PTSNODENAME	"/dev/X/ICE."
@@ -309,7 +309,7 @@ static void _dummy(int sig _X_UNUSED)
 #endif
 #endif
 #if defined(TEST_t)
-#ifdef sun
+#ifdef __sun
 #define NAMEDNODENAME	"/tmp/.Test-unix/test"
 #endif
 #define PTSNODENAME	"/dev/X/transtest."
@@ -684,7 +684,7 @@ TRANS(NAMEDOpenClient)(XtransConnInfo ciptr, const char *port)
     int			fd;
     char		server_path[64];
     struct stat		filestat;
-# ifndef sun
+# ifndef __sun
     extern int		isastream(int);
 # endif
 #endif
@@ -1616,7 +1616,7 @@ static LOCALtrans2dev LOCALtrans2devtab[] = {
 #endif /* TRANS_SERVER */
 },
 
-#ifdef sun /* Alias "pipe" to named, since that's what Solaris called it */
+#ifdef __sun /* Alias "pipe" to named, since that's what Solaris called it */
 {"pipe",
 #ifdef TRANS_CLIENT
      TRANS(NAMEDOpenClient),
@@ -1639,7 +1639,7 @@ static LOCALtrans2dev LOCALtrans2devtab[] = {
      TRANS(NAMEDAccept)
 #endif /* TRANS_SERVER */
 },
-#endif /* sun */
+#endif /* __sun */
 #endif /* LOCAL_TRANS_NAMED */
 
 
@@ -1679,7 +1679,7 @@ static	char	*freeXLOCAL=NULL;
 #define DEF_XLOCAL "SCO:UNIX:PTS"
 #elif defined(__UNIXWARE__)
 #define DEF_XLOCAL "UNIX:PTS:NAMED:SCO"
-#elif defined(sun)
+#elif defined(__sun)
 #define DEF_XLOCAL "UNIX:NAMED"
 #else
 #define DEF_XLOCAL "UNIX:PTS:NAMED:SCO"
@@ -2351,7 +2351,7 @@ static const char * local_aliases[] = {
                                   "pts",
 # endif
 				  "named",
-# ifdef sun
+# ifdef __sun
 				  "pipe", /* compatibility with Solaris Xlib */
 # endif
 # ifdef LOCAL_TRANS_SCO
@@ -2498,7 +2498,7 @@ Xtransport	TRANS(NAMEDFuncs) = {
 	TRANS(LocalCloseForCloning),
 };
 
-#ifdef sun
+#ifdef __sun
 Xtransport	TRANS(PIPEFuncs) = {
 	/* Local Interface */
 	"pipe",
@@ -2542,7 +2542,7 @@ Xtransport	TRANS(PIPEFuncs) = {
 	TRANS(LocalClose),
 	TRANS(LocalCloseForCloning),
 };
-#endif /* sun */
+#endif /* __sun */
 #endif /* LOCAL_TRANS_NAMED */
 
 

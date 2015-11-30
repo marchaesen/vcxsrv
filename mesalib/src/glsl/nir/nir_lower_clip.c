@@ -55,9 +55,11 @@ create_clipdist_var(nir_shader *shader, unsigned drvloc,
 
    if (output) {
       exec_list_push_tail(&shader->outputs, &var->node);
+      shader->num_outputs++; /* TODO use type_size() */
    }
    else {
       exec_list_push_tail(&shader->inputs, &var->node);
+      shader->num_inputs++;  /* TODO use type_size() */
    }
    return var;
 }

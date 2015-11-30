@@ -457,11 +457,6 @@ typedef enum
    OPCODE_SAMPLER_PARAMETERIIV,
    OPCODE_SAMPLER_PARAMETERUIV,
 
-   /* GL_ARB_geometry_shader4 */
-   OPCODE_PROGRAM_PARAMETERI,
-   OPCODE_FRAMEBUFFER_TEXTURE,
-   OPCODE_FRAMEBUFFER_TEXTURE_FACE,
-
    /* GL_ARB_sync */
    OPCODE_WAIT_SYNC,
 
@@ -7554,44 +7549,6 @@ save_SamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
    }
 }
 
-/* GL_ARB_geometry_shader4 */
-static void GLAPIENTRY
-save_ProgramParameteri(GLuint program, GLenum pname, GLint value)
-{
-   Node *n;
-   GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_PROGRAM_PARAMETERI, 3);
-   if (n) {
-      n[1].ui = program;
-      n[2].e = pname;
-      n[3].i = value;
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_ProgramParameteri(ctx->Exec, (program, pname, value));
-   }
-}
-
-static void GLAPIENTRY
-save_FramebufferTexture(GLenum target, GLenum attachment,
-                        GLuint texture, GLint level)
-{
-   Node *n;
-   GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_FRAMEBUFFER_TEXTURE, 4);
-   if (n) {
-      n[1].e = target;
-      n[2].e = attachment;
-      n[3].ui = texture;
-      n[4].i = level;
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_FramebufferTexture(ctx->Exec, (target, attachment, texture, level));
-   }
-}
-
-
 static void GLAPIENTRY
 save_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
@@ -8841,14 +8798,6 @@ execute_list(struct gl_context *ctx, GLuint list)
             }
             break;
 
-         /* GL_ARB_geometry_shader4 */
-         case OPCODE_PROGRAM_PARAMETERI:
-            CALL_ProgramParameteri(ctx->Exec, (n[1].ui, n[2].e, n[3].i));
-            break;
-         case OPCODE_FRAMEBUFFER_TEXTURE:
-            CALL_FramebufferTexture(ctx->Exec, (n[1].e, n[2].e,
-                                                   n[3].ui, n[4].i));
-            break;
          /* GL_ARB_sync */
          case OPCODE_WAIT_SYNC:
             {
@@ -9613,10 +9562,6 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_BlendFuncSeparateiARB(table, save_BlendFuncSeparatei);
    SET_BlendEquationiARB(table, save_BlendEquationi);
    SET_BlendEquationSeparateiARB(table, save_BlendEquationSeparatei);
-
-   /* OpenGL 3.2 */
-   SET_ProgramParameteri(table, save_ProgramParameteri);
-   SET_FramebufferTexture(table, save_FramebufferTexture);
 
    /* GL_NV_conditional_render */
    SET_BeginConditionalRender(table, save_BeginConditionalRender);

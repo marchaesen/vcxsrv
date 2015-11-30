@@ -354,6 +354,26 @@ public:
    exec_list array_dimensions;
 };
 
+class ast_layout_expression : public ast_node {
+public:
+   ast_layout_expression(const struct YYLTYPE &locp, ast_expression *expr)
+   {
+      set_location(locp);
+      layout_const_expressions.push_tail(&expr->link);
+   }
+
+   bool process_qualifier_constant(struct _mesa_glsl_parse_state *state,
+                                   const char *qual_indentifier,
+                                   unsigned *value, bool can_be_zero);
+
+   void merge_qualifier(ast_layout_expression *l_expr)
+   {
+      layout_const_expressions.append_list(&l_expr->layout_const_expressions);
+   }
+
+   exec_list layout_const_expressions;
+};
+
 /**
  * C-style aggregate initialization class
  *
@@ -562,7 +582,7 @@ struct ast_type_qualifier {
    unsigned precision:2;
 
    /** Geometry shader invocations for GL_ARB_gpu_shader5. */
-   int invocations;
+   ast_layout_expression *invocations;
 
    /**
     * Location specified via GL_ARB_explicit_attrib_location layout
@@ -570,20 +590,20 @@ struct ast_type_qualifier {
     * \note
     * This field is only valid if \c explicit_location is set.
     */
-   int location;
+   ast_expression *location;
    /**
     * Index specified via GL_ARB_explicit_attrib_location layout
     *
     * \note
     * This field is only valid if \c explicit_index is set.
     */
-   int index;
+   ast_expression *index;
 
    /** Maximum output vertices in GLSL 1.50 geometry shaders. */
-   int max_vertices;
+   ast_layout_expression *max_vertices;
 
    /** Stream in GLSL 1.50 geometry shaders. */
-   unsigned stream;
+   ast_expression *stream;
 
    /**
     * Input or output primitive type in GLSL 1.50 geometry shaders
@@ -597,7 +617,7 @@ struct ast_type_qualifier {
     * \note
     * This field is only valid if \c explicit_binding is set.
     */
-   int binding;
+   ast_expression *binding;
 
    /**
     * Offset specified via GL_ARB_shader_atomic_counter's "offset"
@@ -606,14 +626,14 @@ struct ast_type_qualifier {
     * \note
     * This field is only valid if \c explicit_offset is set.
     */
-   int offset;
+   ast_expression *offset;
 
    /**
     * Local size specified via GL_ARB_compute_shader's "local_size_{x,y,z}"
     * layout qualifier.  Element i of this array is only valid if
     * flags.q.local_size & (1 << i) is set.
     */
-   int local_size[3];
+   ast_layout_expression *local_size[3];
 
    /** Tessellation evaluation shader: vertex spacing (equal, fractional even/odd) */
    GLenum vertex_spacing;
@@ -625,7 +645,7 @@ struct ast_type_qualifier {
    bool point_mode;
 
    /** Tessellation control shader: number of output vertices */
-   int vertices;
+   ast_layout_expression *vertices;
 
    /**
     * Image format specified with an ARB_shader_image_load_store
@@ -683,16 +703,16 @@ struct ast_type_qualifier {
 
    bool merge_qualifier(YYLTYPE *loc,
 			_mesa_glsl_parse_state *state,
-			ast_type_qualifier q);
+			const ast_type_qualifier &q);
 
    bool merge_out_qualifier(YYLTYPE *loc,
                            _mesa_glsl_parse_state *state,
-                           ast_type_qualifier q,
+                           const ast_type_qualifier &q,
                            ast_node* &node);
 
    bool merge_in_qualifier(YYLTYPE *loc,
                            _mesa_glsl_parse_state *state,
-                           ast_type_qualifier q,
+                           const ast_type_qualifier &q,
                            ast_node* &node);
 
    ast_subroutine_list *subroutine_list;
@@ -756,7 +776,7 @@ public:
 class ast_fully_specified_type : public ast_node {
 public:
    virtual void print(void) const;
-   bool has_qualifiers() const;
+   bool has_qualifiers(_mesa_glsl_parse_state *state) const;
 
    ast_fully_specified_type() : qualifier(), specifier(NULL)
    {
@@ -1097,17 +1117,13 @@ public:
 class ast_tcs_output_layout : public ast_node
 {
 public:
-   ast_tcs_output_layout(const struct YYLTYPE &locp, int vertices)
-      : vertices(vertices)
+   ast_tcs_output_layout(const struct YYLTYPE &locp)
    {
       set_location(locp);
    }
 
    virtual ir_rvalue *hir(exec_list *instructions,
                           struct _mesa_glsl_parse_state *state);
-
-private:
-   const int vertices;
 };
 
 
@@ -1139,9 +1155,12 @@ private:
 class ast_cs_input_layout : public ast_node
 {
 public:
-   ast_cs_input_layout(const struct YYLTYPE &locp, const unsigned *local_size)
+   ast_cs_input_layout(const struct YYLTYPE &locp,
+                       ast_layout_expression *const *local_size)
    {
-      memcpy(this->local_size, local_size, sizeof(this->local_size));
+      for (int i = 0; i < 3; i++) {
+         this->local_size[i] = local_size[i];
+      }
       set_location(locp);
    }
 
@@ -1149,7 +1168,7 @@ public:
                           struct _mesa_glsl_parse_state *state);
 
 private:
-   unsigned local_size[3];
+   ast_layout_expression *local_size[3];
 };
 
 /*@}*/
@@ -1182,6 +1201,6 @@ check_builtin_array_max_size(const char *name, unsigned size,
 extern void _mesa_ast_process_interface_block(YYLTYPE *locp,
                                               _mesa_glsl_parse_state *state,
                                               ast_interface_block *const block,
-                                              const struct ast_type_qualifier q);
+                                              const struct ast_type_qualifier &q);
 
 #endif /* AST_H */

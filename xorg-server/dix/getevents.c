@@ -1103,6 +1103,7 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
     CARD32 ms = 0;
     DeviceEvent *event;
     RawDeviceEvent *raw;
+    enum DeviceEventSource source_type = EVENT_SOURCE_NORMAL;
 
 #if XSERVER_DTRACE
     if (XSERVER_INPUT_EVENT_ENABLED()) {
@@ -1110,6 +1111,11 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
                             NULL, NULL);
     }
 #endif
+
+    if (type == KeymapNotify) {
+        source_type = EVENT_SOURCE_FOCUS;
+        type = KeyPress;
+    }
 
     /* refuse events from disabled devices */
     if (!pDev || !pDev->enabled)
@@ -1137,14 +1143,15 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
 
     ms = GetTimeInMillis();
 
-    raw = &events->raw_event;
-    events++;
-    num_events++;
-
-    init_raw(pDev, raw, ms, type, key_code);
+    if (source_type == EVENT_SOURCE_NORMAL) {
+        raw = &events->raw_event;
+        init_raw(pDev, raw, ms, type, key_code);
+        events++;
+        num_events++;
+    }
 
     event = &events->device_event;
-    init_device_event(event, pDev, ms);
+    init_device_event(event, pDev, ms, source_type);
     event->detail.key = key_code;
 
     if (type == KeyPress) {
@@ -1484,7 +1491,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     }
 
     event = &events->device_event;
-    init_device_event(event, pDev, ms);
+    init_device_event(event, pDev, ms, EVENT_SOURCE_NORMAL);
 
     if (type == MotionNotify) {
         event->type = ET_Motion;
@@ -1820,7 +1827,7 @@ GetProximityEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
         UpdateFromMaster(events, pDev, DEVCHANGE_POINTER_EVENT, &num_events);
 
     event = &events->device_event;
-    init_device_event(event, pDev, GetTimeInMillis());
+    init_device_event(event, pDev, GetTimeInMillis(), EVENT_SOURCE_NORMAL);
     event->type = (type == ProximityIn) ? ET_ProximityIn : ET_ProximityOut;
 
     clipValuators(pDev, &mask);
@@ -1955,7 +1962,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
     event = &events->device_event;
     num_events++;
 
-    init_device_event(event, dev, ms);
+    init_device_event(event, dev, ms, EVENT_SOURCE_NORMAL);
 
     switch (type) {
     case XI_TouchBegin:
@@ -2070,7 +2077,7 @@ GetDixTouchEnd(InternalEvent *ievent, DeviceIntPtr dev, TouchPointInfoPtr ti,
 
     BUG_WARN(!dev->enabled);
 
-    init_device_event(event, dev, ms);
+    init_device_event(event, dev, ms, EVENT_SOURCE_NORMAL);
 
     event->sourceid = ti->sourceid;
     event->type = ET_TouchEnd;
@@ -2114,7 +2121,7 @@ PostSyntheticMotion(DeviceIntPtr pDev,
 #endif
 
     memset(&ev, 0, sizeof(DeviceEvent));
-    init_device_event(&ev, pDev, time);
+    init_device_event(&ev, pDev, time, EVENT_SOURCE_NORMAL);
     ev.root_x = x;
     ev.root_y = y;
     ev.type = ET_Motion;

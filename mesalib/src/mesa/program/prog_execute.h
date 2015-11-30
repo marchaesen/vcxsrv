@@ -78,10 +78,6 @@ struct gl_program_machine
 };
 
 
-extern void
-_mesa_get_program_register(struct gl_context *ctx, gl_register_file file,
-                           GLuint index, GLfloat val[4]);
-
 extern GLboolean
 _mesa_execute_program(struct gl_context *ctx,
                       const struct gl_program *program,

@@ -355,14 +355,6 @@ dixChangeWindowProperty(ClientPtr pClient, WindowPtr pWin, Atom property,
 }
 
 int
-ChangeWindowProperty(WindowPtr pWin, Atom property, Atom type, int format,
-                     int mode, unsigned long len, void *value, Bool sendevent)
-{
-    return dixChangeWindowProperty(serverClient, pWin, property, type, format,
-                                   mode, len, value, sendevent);
-}
-
-int
 DeleteProperty(ClientPtr client, WindowPtr pWin, Atom propName)
 {
     PropertyPtr pProp, prevProp;
