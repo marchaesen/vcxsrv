@@ -2512,6 +2512,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	if (extensions != NULL) {
 	   if (extensions->EXT_shader_integer_mix)
 	      add_builtin_define(parser, "GL_EXT_shader_integer_mix", 1);
+
+	   if (extensions->EXT_shader_samples_identical)
+	      add_builtin_define(parser, "GL_EXT_shader_samples_identical", 1);
 	}
 
 	if (version >= 150)

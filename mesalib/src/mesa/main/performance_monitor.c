@@ -53,6 +53,13 @@ _mesa_init_performance_monitors(struct gl_context *ctx)
    ctx->PerfMonitor.Groups = NULL;
 }
 
+static inline void
+init_groups(struct gl_context *ctx)
+{
+   if (unlikely(!ctx->PerfMonitor.Groups))
+      ctx->Driver.InitPerfMonitorGroups(ctx);
+}
+
 static struct gl_perf_monitor_object *
 new_performance_monitor(struct gl_context *ctx, GLuint index)
 {
@@ -171,6 +178,7 @@ _mesa_GetPerfMonitorGroupsAMD(GLint *numGroups, GLsizei groupsSize,
                               GLuint *groups)
 {
    GET_CURRENT_CONTEXT(ctx);
+   init_groups(ctx);
 
    if (numGroups != NULL)
       *numGroups = ctx->PerfMonitor.NumGroups;
@@ -191,7 +199,11 @@ _mesa_GetPerfMonitorCountersAMD(GLuint group, GLint *numCounters,
                                 GLsizei countersSize, GLuint *counters)
 {
    GET_CURRENT_CONTEXT(ctx);
-   const struct gl_perf_monitor_group *group_obj = get_group(ctx, group);
+   const struct gl_perf_monitor_group *group_obj;
+
+   init_groups(ctx);
+
+   group_obj = get_group(ctx, group);
    if (group_obj == NULL) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glGetPerfMonitorCountersAMD(invalid group)");
@@ -219,9 +231,11 @@ _mesa_GetPerfMonitorGroupStringAMD(GLuint group, GLsizei bufSize,
                                    GLsizei *length, GLchar *groupString)
 {
    GET_CURRENT_CONTEXT(ctx);
+   const struct gl_perf_monitor_group *group_obj;
 
-   const struct gl_perf_monitor_group *group_obj = get_group(ctx, group);
+   init_groups(ctx);
 
+   group_obj = get_group(ctx, group);
    if (group_obj == NULL) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glGetPerfMonitorGroupStringAMD");
       return;
@@ -250,6 +264,8 @@ _mesa_GetPerfMonitorCounterStringAMD(GLuint group, GLuint counter,
 
    const struct gl_perf_monitor_group *group_obj;
    const struct gl_perf_monitor_counter *counter_obj;
+
+   init_groups(ctx);
 
    group_obj = get_group(ctx, group);
 
@@ -289,6 +305,8 @@ _mesa_GetPerfMonitorCounterInfoAMD(GLuint group, GLuint counter, GLenum pname,
 
    const struct gl_perf_monitor_group *group_obj;
    const struct gl_perf_monitor_counter *counter_obj;
+
+   init_groups(ctx);
 
    group_obj = get_group(ctx, group);
 
@@ -352,6 +370,8 @@ _mesa_GenPerfMonitorsAMD(GLsizei n, GLuint *monitors)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glGenPerfMonitorsAMD(%d)\n", n);
+
+   init_groups(ctx);
 
    if (n < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glGenPerfMonitorsAMD(n < 0)");
@@ -673,6 +693,8 @@ _mesa_GetFirstPerfQueryIdINTEL(GLuint *queryId)
    GET_CURRENT_CONTEXT(ctx);
    unsigned numGroups;
 
+   init_groups(ctx);
+
    /* The GL_INTEL_performance_query spec says:
     *
     *    "If queryId pointer is equal to 0, INVALID_VALUE error is generated."
@@ -705,6 +727,7 @@ extern void GLAPIENTRY
 _mesa_GetNextPerfQueryIdINTEL(GLuint queryId, GLuint *nextQueryId)
 {
    GET_CURRENT_CONTEXT(ctx);
+   init_groups(ctx);
 
    /* The GL_INTEL_performance_query spec says:
     *
@@ -743,6 +766,8 @@ _mesa_GetPerfQueryIdByNameINTEL(char *queryName, GLuint *queryId)
 {
    GET_CURRENT_CONTEXT(ctx);
    unsigned i;
+
+   init_groups(ctx);
 
    /* The GL_INTEL_performance_query spec says:
     *
@@ -783,9 +808,11 @@ _mesa_GetPerfQueryInfoINTEL(GLuint queryId,
    GET_CURRENT_CONTEXT(ctx);
    unsigned i;
 
-   const struct gl_perf_monitor_group *group_obj =
-      get_group(ctx, queryid_to_index(queryId));
+   const struct gl_perf_monitor_group *group_obj;
 
+   init_groups(ctx);
+
+   group_obj = get_group(ctx, queryid_to_index(queryId));
    if (group_obj == NULL) {
       /* The GL_INTEL_performance_query spec says:
        *
@@ -859,6 +886,8 @@ _mesa_GetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
    const struct gl_perf_monitor_counter *counter_obj;
    unsigned counterIndex;
    unsigned i;
+
+   init_groups(ctx);
 
    group_obj = get_group(ctx, queryid_to_index(queryId));
 
@@ -978,6 +1007,8 @@ _mesa_CreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
    const struct gl_perf_monitor_group *group_obj;
    struct gl_perf_monitor_object *m;
    unsigned i;
+
+   init_groups(ctx);
 
    /* This is not specified in the extension, but is the only sane thing to
     * do.

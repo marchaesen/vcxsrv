@@ -22,7 +22,6 @@ is" without express or implied warranty.
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
-#include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
 #include "screenint.h"
 #include "inputstr.h"
@@ -252,7 +251,7 @@ xnestUpdateModifierState(unsigned int state)
 
             for (key = 0; key < MAP_LENGTH; key++)
                 if (keyc->xkbInfo->desc->map->modmap[key] & mask) {
-                    if (mask == XCB_MOD_MASK_LOCK) {
+                    if (mask == LockMask) {
                         xnestQueueKeyEvent(KeyPress, key);
                         xnestQueueKeyEvent(KeyRelease, key);
                     }
@@ -270,7 +269,7 @@ xnestUpdateModifierState(unsigned int state)
             for (key = 0; key < MAP_LENGTH; key++)
                 if (keyc->xkbInfo->desc->map->modmap[key] & mask) {
                     xnestQueueKeyEvent(KeyPress, key);
-                    if (mask == XCB_MOD_MASK_LOCK)
+                    if (mask == LockMask)
                         xnestQueueKeyEvent(KeyRelease, key);
                     break;
                 }

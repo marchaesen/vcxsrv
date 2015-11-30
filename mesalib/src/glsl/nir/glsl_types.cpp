@@ -22,7 +22,7 @@
  */
 
 #include <stdio.h>
-#include "main/core.h" /* for Elements, MAX2 */
+#include "main/macros.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
 #include "util/hash_table.h"

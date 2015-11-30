@@ -3236,6 +3236,8 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    case ir_texture_samples:
       opcode = TGSI_OPCODE_TXQS;
       break;
+   case ir_samples_identical:
+      unreachable("Unexpected ir_samples_identical opcode");
    }
 
    if (ir->projector) {

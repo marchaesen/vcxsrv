@@ -67,15 +67,6 @@ extern _X_EXPORT int dixChangeWindowProperty(ClientPtr pClient,
                                              void *value,
                                              Bool sendevent);
 
-extern _X_EXPORT int ChangeWindowProperty(WindowPtr pWin,
-                                          Atom property,
-                                          Atom type,
-                                          int format,
-                                          int mode,
-                                          unsigned long len,
-                                          void *value,
-                                          Bool sendevent);
-
 extern _X_EXPORT int DeleteProperty(ClientPtr /*client */ ,
                                     WindowPtr /*pWin */ ,
                                     Atom /*propName */ );

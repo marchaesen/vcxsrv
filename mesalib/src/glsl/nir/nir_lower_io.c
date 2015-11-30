@@ -197,7 +197,7 @@ nir_lower_io_block(nir_block *block, void *void_state)
 
       nir_variable_mode mode = intrin->variables[0]->var->data.mode;
 
-      if (state->mode != -1 && state->mode != mode)
+      if (state->mode != nir_var_all && state->mode != mode)
          continue;
 
       if (mode != nir_var_shader_in &&

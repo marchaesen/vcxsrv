@@ -765,14 +765,6 @@ descriptor=[
   [ "MAX_TRANSFORM_FEEDBACK_BUFFERS", "CONTEXT_INT(Const.MaxTransformFeedbackBuffers), extra_ARB_transform_feedback3" ],
   [ "MAX_VERTEX_STREAMS", "CONTEXT_INT(Const.MaxVertexStreams), extra_ARB_transform_feedback3_ARB_gpu_shader5" ],
 
-# GL_ARB_geometry_shader4
-  [ "MAX_GEOMETRY_TEXTURE_IMAGE_UNITS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits), extra_gl32_ARB_geometry_shader4" ],
-  [ "MAX_GEOMETRY_OUTPUT_VERTICES_ARB", "CONTEXT_INT(Const.MaxGeometryOutputVertices), extra_gl32_ARB_geometry_shader4" ],
-  [ "MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS_ARB", "CONTEXT_INT(Const.MaxGeometryTotalOutputComponents), extra_gl32_ARB_geometry_shader4" ],
-  [ "MAX_GEOMETRY_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxUniformComponents), extra_gl32_ARB_geometry_shader4" ],
-  [ "MAX_GEOMETRY_VARYING_COMPONENTS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxOutputComponents), extra_ARB_geometry_shader4" ],
-  [ "MAX_VERTEX_VARYING_COMPONENTS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_VERTEX].MaxOutputComponents), extra_ARB_geometry_shader4" ],
-
 # GL_ARB_color_buffer_float
   [ "RGBA_FLOAT_MODE_ARB", "BUFFER_FIELD(Visual.floatMode, TYPE_BOOLEAN), extra_core_ARB_color_buffer_float_and_new_buffers" ],
 
@@ -800,6 +792,10 @@ descriptor=[
   [ "CONTEXT_PROFILE_MASK", "CONTEXT_INT(Const.ProfileMask), extra_version_32" ],
   [ "MAX_GEOMETRY_INPUT_COMPONENTS", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxInputComponents), extra_version_32" ],
   [ "MAX_GEOMETRY_OUTPUT_COMPONENTS", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxOutputComponents), extra_version_32" ],
+  [ "MAX_GEOMETRY_TEXTURE_IMAGE_UNITS", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits), extra_version_32" ],
+  [ "MAX_GEOMETRY_OUTPUT_VERTICES", "CONTEXT_INT(Const.MaxGeometryOutputVertices), extra_version_32" ],
+  [ "MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS", "CONTEXT_INT(Const.MaxGeometryTotalOutputComponents), extra_version_32" ],
+  [ "MAX_GEOMETRY_UNIFORM_COMPONENTS", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxUniformComponents), extra_version_32" ],
 
 # GL_ARB_robustness
   [ "RESET_NOTIFICATION_STRATEGY_ARB", "CONTEXT_ENUM(Const.ResetStrategy), NO_EXTRA" ],

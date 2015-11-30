@@ -477,7 +477,7 @@ _mesa_glsl_msg(const YYLTYPE *locp, _mesa_glsl_parse_state *state,
    struct gl_context *ctx = state->ctx;
 
    /* Report the error via GL_ARB_debug_output. */
-   _mesa_shader_debug(ctx, type, &msg_id, msg, strlen(msg));
+   _mesa_shader_debug(ctx, type, &msg_id, msg);
 
    ralloc_strcat(&state->info_log, "\n");
 }
@@ -650,6 +650,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(EXT_draw_buffers,               false,  true,     dummy_true),
    EXT(EXT_separate_shader_objects,    false, true,      dummy_true),
    EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
+   EXT(EXT_shader_samples_identical,   true,  true,      EXT_shader_samples_identical),
    EXT(EXT_texture_array,              true,  false,     EXT_texture_array),
 };
 
@@ -873,7 +874,7 @@ void
 _mesa_ast_process_interface_block(YYLTYPE *locp,
                                   _mesa_glsl_parse_state *state,
                                   ast_interface_block *const block,
-                                  const struct ast_type_qualifier q)
+                                  const struct ast_type_qualifier &q)
 {
    if (q.flags.q.buffer) {
       if (!state->has_shader_storage_buffer_objects()) {
@@ -1085,7 +1086,7 @@ void
 ast_compound_statement::print(void) const
 {
    printf("{\n");
-   
+
    foreach_list_typed(ast_node, ast, link, &this->statements) {
       ast->print();
    }
@@ -1411,7 +1412,6 @@ ast_selection_statement::print(void) const
       printf("else ");
       else_statement->print();
    }
-   
 }
 
 
@@ -1647,8 +1647,20 @@ set_shader_inout_layout(struct gl_shader *shader,
    switch (shader->Stage) {
    case MESA_SHADER_TESS_CTRL:
       shader->TessCtrl.VerticesOut = 0;
-      if (state->tcs_output_vertices_specified)
-         shader->TessCtrl.VerticesOut = state->out_qualifier->vertices;
+      if (state->tcs_output_vertices_specified) {
+         unsigned vertices;
+         if (state->out_qualifier->vertices->
+               process_qualifier_constant(state, "vertices", &vertices,
+                                          false)) {
+
+            YYLTYPE loc = state->out_qualifier->vertices->get_location();
+            if (vertices > state->Const.MaxPatchVertices) {
+               _mesa_glsl_error(&loc, state, "vertices (%d) exceeds "
+                                "GL_MAX_PATCH_VERTICES", vertices);
+            }
+            shader->TessCtrl.VerticesOut = vertices;
+         }
+      }
       break;
    case MESA_SHADER_TESS_EVAL:
       shader->TessEval.PrimitiveMode = PRIM_UNKNOWN;
@@ -1669,8 +1681,14 @@ set_shader_inout_layout(struct gl_shader *shader,
       break;
    case MESA_SHADER_GEOMETRY:
       shader->Geom.VerticesOut = 0;
-      if (state->out_qualifier->flags.q.max_vertices)
-         shader->Geom.VerticesOut = state->out_qualifier->max_vertices;
+      if (state->out_qualifier->flags.q.max_vertices) {
+         unsigned qual_max_vertices;
+         if (state->out_qualifier->max_vertices->
+               process_qualifier_constant(state, "max_vertices",
+                                          &qual_max_vertices, true)) {
+            shader->Geom.VerticesOut = qual_max_vertices;
+         }
+      }
 
       if (state->gs_input_prim_type_specified) {
          shader->Geom.InputType = state->in_qualifier->prim_type;
@@ -1685,8 +1703,22 @@ set_shader_inout_layout(struct gl_shader *shader,
       }
 
       shader->Geom.Invocations = 0;
-      if (state->in_qualifier->flags.q.invocations)
-         shader->Geom.Invocations = state->in_qualifier->invocations;
+      if (state->in_qualifier->flags.q.invocations) {
+         unsigned invocations;
+         if (state->in_qualifier->invocations->
+               process_qualifier_constant(state, "invocations",
+                                          &invocations, false)) {
+
+            YYLTYPE loc = state->in_qualifier->invocations->get_location();
+            if (invocations > MAX_GEOMETRY_SHADER_INVOCATIONS) {
+               _mesa_glsl_error(&loc, state,
+                                "invocations (%d) exceeds "
+                                "GL_MAX_GEOMETRY_SHADER_INVOCATIONS",
+                                invocations);
+            }
+            shader->Geom.Invocations = invocations;
+         }
+      }
       break;
 
    case MESA_SHADER_COMPUTE:
@@ -1798,15 +1830,15 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    if (shader->InfoLog)
       ralloc_free(shader->InfoLog);
 
+   if (!state->error)
+      set_shader_inout_layout(shader, state);
+
    shader->symbols = new(shader->ir) glsl_symbol_table;
    shader->CompileStatus = !state->error;
    shader->InfoLog = state->info_log;
    shader->Version = state->language_version;
    shader->IsES = state->es_shader;
    shader->uses_builtin_functions = state->uses_builtin_functions;
-
-   if (!state->error)
-      set_shader_inout_layout(shader, state);
 
    /* Retain any live IR, but trash the rest. */
    reparent_ir(shader->ir, shader->ir);

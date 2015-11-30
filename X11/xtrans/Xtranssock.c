@@ -112,7 +112,7 @@ from the copyright holders.
 #include <sys/filio.h>
 #endif
 
-#if (defined(__i386__) && defined(SYSV)) && !defined(SCO325) && !defined(sun)
+#if (defined(__i386__) && defined(SYSV)) && !defined(SCO325) && !defined(__sun)
 #include <net/errno.h>
 #endif
 

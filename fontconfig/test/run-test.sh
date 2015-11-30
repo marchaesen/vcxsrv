@@ -20,10 +20,15 @@
 # DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
-TESTDIR=${srcdir-`pwd`}
+case "$OSTYPE" in
+    msys ) MyPWD=`pwd -W` ;;  # On Msys/MinGW, returns a MS Windows style path.
+    *    ) MyPWD=`pwd`    ;;  # On any other platforms, returns a Unix style path.
+esac
 
-FONTDIR=`pwd`/fonts
-CACHEDIR=`pwd`/cache.dir
+TESTDIR=${srcdir-"$MyPWD"}
+
+FONTDIR="$MyPWD"/fonts
+CACHEDIR="$MyPWD"/cache.dir
 
 ECHO=true
 
@@ -62,7 +67,7 @@ dotest () {
 sed "s!@FONTDIR@!$FONTDIR!
 s!@CACHEDIR@!$CACHEDIR!" < $TESTDIR/fonts.conf.in > fonts.conf
 
-FONTCONFIG_FILE=`pwd`/fonts.conf
+FONTCONFIG_FILE="$MyPWD"/fonts.conf
 export FONTCONFIG_FILE
 
 dotest "Basic check"

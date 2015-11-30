@@ -80,19 +80,26 @@ void hud_pane_set_max_value(struct hud_pane *pane, uint64_t value);
 void hud_graph_add_value(struct hud_graph *gr, uint64_t value);
 
 /* graphs/queries */
+struct hud_batch_query_context;
+
 #define ALL_CPUS ~0 /* optionally set as cpu_index */
 
 int hud_get_num_cpus(void);
 
 void hud_fps_graph_install(struct hud_pane *pane);
 void hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index);
-void hud_pipe_query_install(struct hud_pane *pane, struct pipe_context *pipe,
+void hud_pipe_query_install(struct hud_batch_query_context **pbq,
+                            struct hud_pane *pane, struct pipe_context *pipe,
                             const char *name, unsigned query_type,
                             unsigned result_index,
                             uint64_t max_value,
                             enum pipe_driver_query_type type,
-                            enum pipe_driver_query_result_type result_type);
-boolean hud_driver_query_install(struct hud_pane *pane,
+                            enum pipe_driver_query_result_type result_type,
+                            unsigned flags);
+boolean hud_driver_query_install(struct hud_batch_query_context **pbq,
+                                 struct hud_pane *pane,
                                  struct pipe_context *pipe, const char *name);
+void hud_batch_query_update(struct hud_batch_query_context *bq);
+void hud_batch_query_cleanup(struct hud_batch_query_context **pbq);
 
 #endif

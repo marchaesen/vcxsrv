@@ -107,6 +107,10 @@ void
 nir_shader_add_variable(nir_shader *shader, nir_variable *var)
 {
    switch (var->data.mode) {
+   case nir_var_all:
+      assert(!"invalid mode");
+      break;
+
    case nir_var_local:
       assert(!"nir_shader_add_variable cannot be used for local variables");
       break;
@@ -1308,21 +1312,62 @@ nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src)
 {
    assert(!new_src.is_ssa || def != new_src.ssa);
 
-   nir_foreach_use_safe(def, use_src) {
-      nir_instr *src_parent_instr = use_src->parent_instr;
-      list_del(&use_src->use_link);
-      nir_src_copy(use_src, &new_src, src_parent_instr);
-      src_add_all_uses(use_src, src_parent_instr, NULL);
-   }
+   nir_foreach_use_safe(def, use_src)
+      nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
 
-   nir_foreach_if_use_safe(def, use_src) {
-      nir_if *src_parent_if = use_src->parent_if;
-      list_del(&use_src->use_link);
-      nir_src_copy(use_src, &new_src, src_parent_if);
-      src_add_all_uses(use_src, NULL, src_parent_if);
-   }
+   nir_foreach_if_use_safe(def, use_src)
+      nir_if_rewrite_condition(use_src->parent_if, new_src);
 }
 
+static bool
+is_instr_between(nir_instr *start, nir_instr *end, nir_instr *between)
+{
+   assert(start->block == end->block);
+
+   if (between->block != start->block)
+      return false;
+
+   /* Search backwards looking for "between" */
+   while (start != end) {
+      if (between == end)
+         return true;
+
+      end = nir_instr_prev(end);
+      assert(end);
+   }
+
+   return false;
+}
+
+/* Replaces all uses of the given SSA def with the given source but only if
+ * the use comes after the after_me instruction.  This can be useful if you
+ * are emitting code to fix up the result of some instruction: you can freely
+ * use the result in that code and then call rewrite_uses_after and pass the
+ * last fixup instruction as after_me and it will replace all of the uses you
+ * want without touching the fixup code.
+ *
+ * This function assumes that after_me is in the same block as
+ * def->parent_instr and that after_me comes after def->parent_instr.
+ */
+void
+nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
+                               nir_instr *after_me)
+{
+   assert(!new_src.is_ssa || def != new_src.ssa);
+
+   nir_foreach_use_safe(def, use_src) {
+      assert(use_src->parent_instr != def->parent_instr);
+      /* Since def already dominates all of its uses, the only way a use can
+       * not be dominated by after_me is if it is between def and after_me in
+       * the instruction list.
+       */
+      if (!is_instr_between(def->parent_instr, after_me, use_src->parent_instr))
+         nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
+   }
+
+   nir_foreach_if_use_safe(def, use_src)
+      nir_if_rewrite_condition(use_src->parent_if, new_src);
+}
 
 static bool foreach_cf_node(nir_cf_node *node, nir_foreach_block_cb cb,
                             bool reverse, void *state);
@@ -1573,6 +1618,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_tess_level_inner;
    case SYSTEM_VALUE_VERTICES_IN:
       return nir_intrinsic_load_patch_vertices_in;
+   case SYSTEM_VALUE_HELPER_INVOCATION:
+      return nir_intrinsic_load_helper_invocation;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -1616,6 +1663,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_TESS_LEVEL_INNER;
    case nir_intrinsic_load_patch_vertices_in:
       return SYSTEM_VALUE_VERTICES_IN;
+   case nir_intrinsic_load_helper_invocation:
+      return SYSTEM_VALUE_HELPER_INVOCATION;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }

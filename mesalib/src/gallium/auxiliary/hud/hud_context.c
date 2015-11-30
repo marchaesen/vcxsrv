@@ -60,6 +60,7 @@ struct hud_context {
    struct cso_context *cso;
    struct u_upload_mgr *uploader;
 
+   struct hud_batch_query_context *batch_query;
    struct list_head pane_list;
 
    /* states */
@@ -523,6 +524,8 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    hud_alloc_vertices(hud, &hud->text, 4 * 512, 4 * sizeof(float));
 
    /* prepare all graphs */
+   hud_batch_query_update(hud->batch_query);
+
    LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
       LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
          gr->query_new_value(gr);
@@ -916,17 +919,21 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       }
       else if (strcmp(name, "samples-passed") == 0 &&
                has_occlusion_query(hud->pipe->screen)) {
-         hud_pipe_query_install(pane, hud->pipe, "samples-passed",
+         hud_pipe_query_install(&hud->batch_query, pane, hud->pipe,
+                                "samples-passed",
                                 PIPE_QUERY_OCCLUSION_COUNTER, 0, 0,
                                 PIPE_DRIVER_QUERY_TYPE_UINT64,
-                                PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE);
+                                PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE,
+                                0);
       }
       else if (strcmp(name, "primitives-generated") == 0 &&
                has_streamout(hud->pipe->screen)) {
-         hud_pipe_query_install(pane, hud->pipe, "primitives-generated",
+         hud_pipe_query_install(&hud->batch_query, pane, hud->pipe,
+                                "primitives-generated",
                                 PIPE_QUERY_PRIMITIVES_GENERATED, 0, 0,
                                 PIPE_DRIVER_QUERY_TYPE_UINT64,
-                                PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE);
+                                PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE,
+                                0);
       }
       else {
          boolean processed = FALSE;
@@ -951,17 +958,19 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
                if (strcmp(name, pipeline_statistics_names[i]) == 0)
                   break;
             if (i < Elements(pipeline_statistics_names)) {
-               hud_pipe_query_install(pane, hud->pipe, name,
+               hud_pipe_query_install(&hud->batch_query, pane, hud->pipe, name,
                                       PIPE_QUERY_PIPELINE_STATISTICS, i,
                                       0, PIPE_DRIVER_QUERY_TYPE_UINT64,
-                                      PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE);
+                                      PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE,
+                                      0);
                processed = TRUE;
             }
          }
 
          /* driver queries */
          if (!processed) {
-            if (!hud_driver_query_install(pane, hud->pipe, name)){
+            if (!hud_driver_query_install(&hud->batch_query, pane, hud->pipe,
+                                          name)) {
                fprintf(stderr, "gallium_hud: unknown driver query '%s'\n", name);
             }
          }
@@ -1118,12 +1127,20 @@ print_help(struct pipe_screen *screen)
    }
 
    if (screen->get_driver_query_info){
+      boolean skipping = false;
       struct pipe_driver_query_info info;
       num_queries = screen->get_driver_query_info(screen, 0, NULL);
 
       for (i = 0; i < num_queries; i++){
          screen->get_driver_query_info(screen, i, &info);
-         printf("    %s\n", info.name);
+         if (info.flags & PIPE_DRIVER_QUERY_FLAG_DONT_LIST) {
+            if (!skipping)
+               puts("    ...");
+            skipping = true;
+         } else {
+            printf("    %s\n", info.name);
+            skipping = false;
+         }
       }
    }
 
@@ -1322,6 +1339,7 @@ hud_destroy(struct hud_context *hud)
       FREE(pane);
    }
 
+   hud_batch_query_cleanup(&hud->batch_query);
    pipe->delete_fs_state(pipe, hud->fs_color);
    pipe->delete_fs_state(pipe, hud->fs_text);
    pipe->delete_vs_state(pipe, hud->vs);

@@ -84,7 +84,7 @@
 /* SYSV386 (SVR3, SVR4), including Solaris                                */
 /**************************************************************************/
 #if (defined(SYSV) || defined(SVR4)) && \
-    (defined(sun) || defined(__i386__))
+    (defined(__sun) || defined(__i386__))
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <termio.h>
@@ -94,21 +94,21 @@
 #include <errno.h>
 
 #if defined(_NEED_SYSI86)
-#if !(defined (sun) && defined (SVR4))
+#if !(defined (__sun) && defined (SVR4))
 #include <sys/immu.h>
 #include <sys/region.h>
 #include <sys/proc.h>
 #endif
 #include <sys/tss.h>
 #include <sys/sysi86.h>
-#if defined(SVR4) && !defined(sun)
+#if defined(SVR4) && !defined(__sun)
 #include <sys/seg.h>
-#endif                          /* SVR4 && !sun */
+#endif                          /* SVR4 && !__sun */
 /* V86SC_IOPL was moved to <sys/sysi86.h> on Solaris 7 and later */
 #if !defined(V86SC_IOPL)        /* Solaris 7 or later? */
 #include <sys/v86.h>            /* Nope */
 #endif
-#if defined(sun) && (defined (__i386__) || defined(__i386) || defined(__x86))  && defined (SVR4)
+#if defined(__sun) && (defined (__i386__) || defined(__i386) || defined(__x86))  && defined (SVR4)
 #include <sys/psw.h>
 #endif
 #endif                          /* _NEED_SYSI86 */
@@ -122,14 +122,14 @@
 #include <sys/mmap.h>           /* MMAP driver header */
 #endif
 
-#if !defined(sun) || defined(HAVE_SYS_VT_H)
+#if !defined(__sun) || defined(HAVE_SYS_VT_H)
 #define HAS_USL_VTS
 #endif
-#if !defined(sun)
+#if !defined(__sun)
 #include <sys/emap.h>
 #endif
 #if   defined(HAS_USL_VTS)
-#if !defined(sun)
+#if !defined(__sun)
 #include <sys/at_ansi.h>
 #endif
 #include <sys/kd.h>
@@ -139,7 +139,7 @@ extern _X_HIDDEN void xf86VTAcquire(int);
 extern _X_HIDDEN void xf86VTRelease(int);
 #endif
 
-#if defined(sun)
+#if defined(__sun)
 #include <sys/fbio.h>
 extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
 
@@ -156,7 +156,7 @@ extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
 #define LED_NUM LED_NUM_LOCK
 #define LED_SCR LED_SCROLL_LOCK
 #define LED_COMP LED_COMPOSE
-#endif                          /* sun */
+#endif                          /* __sun */
 
 #if !defined(VT_ACKACQ)
 #define VT_ACKACQ 2
@@ -164,7 +164,7 @@ extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
 
 #if defined(SVR4)
 #include <sys/mman.h>
-#if !(defined(sun) && defined (SVR4))
+#if !(defined(__sun) && defined (SVR4))
 #define DEV_MEM "/dev/pmem"
 #endif
 #define CLEARDTR_SUPPORT

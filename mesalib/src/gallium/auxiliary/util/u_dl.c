@@ -45,7 +45,7 @@ struct util_dl_library *
 util_dl_open(const char *filename)
 {
 #if defined(PIPE_OS_UNIX)
-   return (struct util_dl_library *)dlopen(filename, RTLD_LAZY | RTLD_GLOBAL);
+   return (struct util_dl_library *)dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
 #elif defined(PIPE_OS_WINDOWS)
    return (struct util_dl_library *)LoadLibraryA(filename);
 #else

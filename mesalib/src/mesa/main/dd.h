@@ -727,6 +727,7 @@ struct dd_function_table {
     * \name Performance monitors
     */
    /*@{*/
+   void (*InitPerfMonitorGroups)(struct gl_context *ctx);
    struct gl_perf_monitor_object * (*NewPerfMonitor)(struct gl_context *ctx);
    void (*DeletePerfMonitor)(struct gl_context *ctx,
                              struct gl_perf_monitor_object *m);

@@ -120,14 +120,14 @@ fallback_required(struct gl_context *ctx, GLenum target,
 }
 
 void
-_mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap)
+_mesa_meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
+                                        struct gen_mipmap_state *mipmap)
 {
    if (mipmap->VAO == 0)
       return;
    _mesa_DeleteVertexArrays(1, &mipmap->VAO);
    mipmap->VAO = 0;
-   _mesa_DeleteBuffers(1, &mipmap->VBO);
-   mipmap->VBO = 0;
+   _mesa_reference_buffer_object(ctx, &mipmap->buf_obj, NULL);
    _mesa_DeleteSamplers(1, &mipmap->Sampler);
    mipmap->Sampler = 0;
 
@@ -196,11 +196,11 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
     * GenerateMipmap function.
     */
    if (use_glsl_version) {
-      _mesa_meta_setup_vertex_objects(&mipmap->VAO, &mipmap->VBO, true,
+      _mesa_meta_setup_vertex_objects(ctx, &mipmap->VAO, &mipmap->buf_obj, true,
                                       2, 4, 0);
       _mesa_meta_setup_blit_shader(ctx, target, false, &mipmap->shaders);
    } else {
-      _mesa_meta_setup_ff_tnl_for_blit(&mipmap->VAO, &mipmap->VBO, 3);
+      _mesa_meta_setup_ff_tnl_for_blit(ctx, &mipmap->VAO, &mipmap->buf_obj, 3);
       _mesa_set_enable(ctx, target, GL_TRUE);
    }
 
@@ -335,8 +335,8 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
                                          verts[3].tex);
 
          /* upload vertex data */
-         _mesa_BufferData(GL_ARRAY_BUFFER_ARB, sizeof(verts),
-                          verts, GL_DYNAMIC_DRAW_ARB);
+         _mesa_buffer_data(ctx, mipmap->buf_obj, GL_NONE, sizeof(verts), verts,
+                           GL_DYNAMIC_DRAW, __func__);
 
          _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dstImage, layer);
 

@@ -55,7 +55,7 @@ typedef struct {
     /* event handler part */
     int lastEventTime;
     Bool vtRequestsPending;
-#ifdef sun
+#ifdef __sun
     int vtPendingNum;
 #endif
     Bool dontVTSwitch;

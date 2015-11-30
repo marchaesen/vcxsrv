@@ -63,7 +63,7 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
 
 void
 _mesa_shader_debug(struct gl_context *, GLenum, GLuint *,
-                   const char *, int)
+                   const char *)
 {
 }
 

@@ -219,8 +219,6 @@ C_SOURCES := \
 	util/u_format.h \
 	util/u_format_etc.c \
 	util/u_format_etc.h \
-	util/u_format_fake.c \
-	util/u_format_fake.h \
 	util/u_format_latc.c \
 	util/u_format_latc.h \
 	util/u_format_other.c \

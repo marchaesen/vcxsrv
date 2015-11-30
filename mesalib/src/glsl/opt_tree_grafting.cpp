@@ -275,6 +275,7 @@ ir_tree_grafting_visitor::visit_enter(ir_texture *ir)
    case ir_lod:
    case ir_query_levels:
    case ir_texture_samples:
+   case ir_samples_identical:
       break;
    case ir_txb:
       if (do_graft(&ir->lod_info.bias))

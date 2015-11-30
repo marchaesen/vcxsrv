@@ -512,7 +512,9 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
    case nir_texop_texture_samples:
       fprintf(fp, "texture_samples ");
       break;
-
+   case nir_texop_samples_identical:
+      fprintf(fp, "samples_identical ");
+      break;
    default:
       unreachable("Invalid texture operation");
       break;
@@ -976,6 +978,16 @@ nir_print_shader(nir_shader *shader, FILE *fp)
    init_print_state(&state, shader, fp);
 
    fprintf(fp, "shader: %s\n", gl_shader_stage_name(shader->stage));
+
+   if (shader->info.name)
+      fprintf(fp, "name: %s\n", shader->info.name);
+
+   if (shader->info.label)
+      fprintf(fp, "label: %s\n", shader->info.label);
+
+   fprintf(fp, "inputs: %u\n", shader->num_inputs);
+   fprintf(fp, "outputs: %u\n", shader->num_outputs);
+   fprintf(fp, "uniforms: %u\n", shader->num_uniforms);
 
    nir_foreach_variable(var, &shader->uniforms) {
       print_var_decl(var, &state);

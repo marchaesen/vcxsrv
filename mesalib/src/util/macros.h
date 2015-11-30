@@ -24,6 +24,8 @@
 #ifndef UTIL_MACROS_H
 #define UTIL_MACROS_H
 
+#include <assert.h>
+
 /* Compute the size of an array */
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))

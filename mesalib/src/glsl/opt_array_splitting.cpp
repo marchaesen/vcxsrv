@@ -188,6 +188,10 @@ ir_array_reference_visitor::visit_enter(ir_dereference_array *ir)
    if (entry && !ir->array_index->as_constant())
       entry->split = false;
 
+   /* If the index is also array dereference, visit index. */
+   if (ir->array_index->as_dereference_array())
+      visit_enter(ir->array_index->as_dereference_array());
+
    return visit_continue_with_parent;
 }
 

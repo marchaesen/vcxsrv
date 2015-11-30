@@ -268,6 +268,14 @@ void ir_print_visitor::visit(ir_texture *ir)
 {
    fprintf(f, "(%s ", ir->opcode_string());
 
+   if (ir->op == ir_samples_identical) {
+      ir->sampler->accept(this);
+      fprintf(f, " ");
+      ir->coordinate->accept(this);
+      fprintf(f, ")");
+      return;
+   }
+
    print_type(f, ir->type);
    fprintf(f, " ");
 
@@ -334,6 +342,8 @@ void ir_print_visitor::visit(ir_texture *ir)
    case ir_tg4:
       ir->lod_info.component->accept(this);
       break;
+   case ir_samples_identical:
+      unreachable(!"ir_samples_identical was already handled");
    };
    fprintf(f, ")");
 }

@@ -197,6 +197,7 @@ typedef struct telnet_tag {
     int sb_opt, sb_len;
     unsigned char *sb_buf;
     int sb_size;
+    int session_started;
 
     enum {
 	TOP_LEVEL, SEENIAC, SEENWILL, SEENWONT, SEENDO, SEENDONT,
@@ -652,17 +653,9 @@ static void telnet_log(Plug plug, int type, SockAddr addr, int port,
 		       const char *error_msg, int error_code)
 {
     Telnet telnet = (Telnet) plug;
-    char addrbuf[256], *msg;
-
-    sk_getaddr(addr, addrbuf, lenof(addrbuf));
-
-    if (type == 0)
-	msg = dupprintf("Connecting to %s port %d", addrbuf, port);
-    else
-	msg = dupprintf("Failed to connect to %s: %s", addrbuf, error_msg);
-
-    logevent(telnet->frontend, msg);
-    sfree(msg);
+    backend_socket_log(telnet->frontend, type, addr, port,
+                       error_msg, error_code, telnet->conf,
+                       telnet->session_started);
 }
 
 static int telnet_closing(Plug plug, const char *error_msg, int error_code,
@@ -696,6 +689,7 @@ static int telnet_receive(Plug plug, int urgent, char *data, int len)
     Telnet telnet = (Telnet) plug;
     if (urgent)
 	telnet->in_synch = TRUE;
+    telnet->session_started = TRUE;
     do_telnet_read(telnet, data, len);
     return 1;
 }
@@ -746,22 +740,15 @@ static const char *telnet_init(void *frontend_handle, void **backend_handle,
     telnet->state = TOP_LEVEL;
     telnet->ldisc = NULL;
     telnet->pinger = NULL;
+    telnet->session_started = TRUE;
     *backend_handle = telnet;
 
     /*
      * Try to find host.
      */
-    {
-	char *buf;
-	addressfamily = conf_get_int(telnet->conf, CONF_addressfamily);
-	buf = dupprintf("Looking up host \"%s\"%s", host,
-			(addressfamily == ADDRTYPE_IPV4 ? " (IPv4)" :
-			 (addressfamily == ADDRTYPE_IPV6 ? " (IPv6)" :
-			  "")));
-	logevent(telnet->frontend, buf);
-	sfree(buf);
-    }
-    addr = name_lookup(host, port, realhost, telnet->conf, addressfamily);
+    addressfamily = conf_get_int(telnet->conf, CONF_addressfamily);
+    addr = name_lookup(host, port, realhost, telnet->conf, addressfamily,
+                       telnet->frontend, "Telnet connection");
     if ((err = sk_addr_error(addr)) != NULL) {
 	sk_addr_free(addr);
 	return err;

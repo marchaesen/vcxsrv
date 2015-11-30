@@ -90,7 +90,6 @@ def write_format_table(formats):
     print '#include "u_format_rgtc.h"'
     print '#include "u_format_latc.h"'
     print '#include "u_format_etc.h"'
-    print '#include "u_format_fake.h"'
     print
     
     u_format_pack.generate(formats)
@@ -139,10 +138,15 @@ def write_format_table(formats):
         u_format_pack.print_channels(format, do_channel_array)
         u_format_pack.print_channels(format, do_swizzle_array)
         print "   %s," % (colorspace_map(format.colorspace),)
-        if format.colorspace != ZS and not format.is_pure_color():
+        access = True
+        if format.layout in ('bptc', 'astc'):
+            access = False
+        if format.layout == 'etc' and format.short_name() != 'etc1_rgb8':
+            access = False
+        if format.colorspace != ZS and not format.is_pure_color() and access:
             print "   &util_format_%s_unpack_rgba_8unorm," % format.short_name() 
             print "   &util_format_%s_pack_rgba_8unorm," % format.short_name() 
-            if format.layout == 's3tc' or format.layout == 'rgtc' or format.layout == 'bptc':
+            if format.layout == 's3tc' or format.layout == 'rgtc':
                 print "   &util_format_%s_fetch_rgba_8unorm," % format.short_name()
             else:
                 print "   NULL, /* fetch_rgba_8unorm */" 

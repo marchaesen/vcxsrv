@@ -202,6 +202,36 @@ PIPE_FORMAT_BPTC_SRGBA            , bptc, 4, 4, x128,     ,     ,     , xyzw, sr
 PIPE_FORMAT_BPTC_RGB_FLOAT        , bptc, 4, 4, x128,     ,     ,     , xyz1, rgb
 PIPE_FORMAT_BPTC_RGB_UFLOAT       , bptc, 4, 4, x128,     ,     ,     , xyz1, rgb
 
+PIPE_FORMAT_ASTC_4x4              , astc, 4, 4, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_5x4              , astc, 5, 4, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_5x5              , astc, 5, 5, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_6x5              , astc, 6, 5, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_6x6              , astc, 6, 6, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_8x5              , astc, 8, 5, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_8x6              , astc, 8, 6, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_8x8              , astc, 8, 8, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_10x5             , astc,10, 5, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_10x6             , astc,10, 6, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_10x8             , astc,10, 8, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_10x10            , astc,10,10, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_12x10            , astc,12,10, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ASTC_12x12            , astc,12,12, x128,     ,     ,     , xyzw, rgb
+
+PIPE_FORMAT_ASTC_4x4_SRGB         , astc, 4, 4, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_5x4_SRGB         , astc, 5, 4, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_5x5_SRGB         , astc, 5, 5, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_6x5_SRGB         , astc, 6, 5, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_6x6_SRGB         , astc, 6, 6, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_8x5_SRGB         , astc, 8, 5, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_8x6_SRGB         , astc, 8, 6, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_8x8_SRGB         , astc, 8, 8, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_10x5_SRGB        , astc,10, 5, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_10x6_SRGB        , astc,10, 6, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_10x8_SRGB        , astc,10, 8, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_10x10_SRGB       , astc,10,10, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_12x10_SRGB       , astc,12,10, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ASTC_12x12_SRGB       , astc,12,12, x128,     ,     ,     , xyzw, srgb
+
 # Straightforward D3D10-like formats (also used for 
 # vertex buffer element description)
 # 
