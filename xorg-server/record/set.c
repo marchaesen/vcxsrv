@@ -152,7 +152,7 @@ static RecordSetIteratePtr
 BitVectorIterateSet(RecordSetPtr pSet, RecordSetIteratePtr pIter,
                     RecordSetInterval * pInterval)
 {
-    int iterbit = (int) (long) pIter;
+    int iterbit = (int) (intptr_t) pIter;
     int b;
 
     b = BitVectorFindBit(pSet, iterbit, TRUE);
@@ -162,7 +162,7 @@ BitVectorIterateSet(RecordSetPtr pSet, RecordSetIteratePtr pIter,
 
     b = BitVectorFindBit(pSet, b, FALSE);
     pInterval->last = (b < 0) ? ((BitVectorSetPtr) pSet)->maxMember : b - 1;
-    return (RecordSetIteratePtr) (long) (pInterval->last + 1);
+    return (RecordSetIteratePtr) (uintptr_t) (pInterval->last + 1);
 }
 
 static RecordSetOperations BitVectorSetOperations = {
@@ -416,7 +416,7 @@ RecordCreateSet(RecordSetInterval * pIntervals, int nIntervals, void *pMem,
     size = _RecordSetMemoryRequirements(pIntervals, nIntervals, &alignment,
                                         &pCreateSet);
     if (pMem) {
-        if (((long) pMem & (alignment - 1)) || memsize < size)
+        if (((long)(uintptr_t) pMem & (alignment - 1)) || memsize < size)
             return NULL;
     }
     return (*pCreateSet) (pIntervals, nIntervals, pMem, size);

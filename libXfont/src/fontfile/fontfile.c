@@ -75,18 +75,21 @@ static int FontFileOpenBitmapNCF (FontPathElementPtr fpe, FontPtr *pFont,
 				  FontPtr non_cachable_font);
 
 int
-FontFileNameCheck (char *name)
+FontFileNameCheck (const char *name)
 {
 #ifdef _MSC_VER
   WIN32_FIND_DATA FindData;
   HANDLE hFind;
   char Tmp;
   int LenName=strlen(name)-1;
+  char inname[MAX_PATH];
+  memcpy(inname, name, LenName);
   Tmp=name[LenName];
   if (Tmp=='/')
-     name[LenName]=0;
-  hFind=FindFirstFile(name,&FindData);
-  name[LenName]=Tmp;
+     inname[LenName]=0;
+  else
+     inname[LenName+1]=0;
+  hFind=FindFirstFile(inname,&FindData);
 
   if (hFind==INVALID_HANDLE_VALUE)
   {

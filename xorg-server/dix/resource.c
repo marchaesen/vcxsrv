@@ -822,7 +822,7 @@ AddResource(XID id, RESTYPE type, void *value)
     rrec = &clientTable[client];
     if (!rrec->buckets) {
         ErrorF("[dix] AddResource(%lx, %x, %lx), client=%d \n",
-               (unsigned long) id, type, (unsigned long) value, client);
+               (unsigned long) id, type, (unsigned long)(uintptr_t) value, client);
         FatalError("client not in use\n");
     }
     if ((rrec->elements >= 4 * rrec->buckets) && (rrec->hashsize < MAXHASHSIZE))

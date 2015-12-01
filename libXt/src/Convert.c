@@ -571,7 +571,7 @@ static void ComputeArgs(
 
 	case XtBaseOffset:
 	    args[i].addr =
-		(XPointer)((char *)widget + (long)convert_args[i].address_id);
+		(XPointer)((char *)widget + (uintptr_t)convert_args[i].address_id);
 	    break;
 
 	case XtWidgetBaseOffset:
@@ -583,7 +583,7 @@ static void ComputeArgs(
 	    }
 
 	    args[i].addr =
-		(XPointer)((char *)ancestor + (long)convert_args[i].address_id);
+		(XPointer)((char *)ancestor + (uintptr_t)convert_args[i].address_id);
 	    break;
 
 	case XtImmediate:
@@ -599,14 +599,14 @@ static void ComputeArgs(
 	    /* Convert in place for next usage */
 	    convert_args[i].address_mode = XtResourceQuark;
 	    convert_args[i].address_id =
-	       (XtPointer)(long)XrmStringToQuark((String)convert_args[i].address_id);
+	       (XtPointer)(uintptr_t)XrmStringToQuark((String)convert_args[i].address_id);
 	    /* Fall through */
 
 	case XtResourceQuark:
 	    if (! ResourceQuarkToOffset(widget->core.widget_class,
-		    (XrmQuark)(long) convert_args[i].address_id, &offset)) {
+		    (XrmQuark)(uintptr_t) convert_args[i].address_id, &offset)) {
 		params[0]=
-                  XrmQuarkToString((XrmQuark)(long) convert_args[i].address_id);
+                  XrmQuarkToString((XrmQuark)(uintptr_t) convert_args[i].address_id);
                XtAppWarningMsg(XtWidgetToApplicationContext(widget),
 		    "invalidResourceName","computeArgs",XtCXtToolkitError,
 		    "Cannot find resource name %s as argument to conversion",

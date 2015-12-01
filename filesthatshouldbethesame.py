@@ -210,6 +210,9 @@ libxkbfile/include/X11/extensions/XKBrules.h      X11/extensions/XKBrules.h
 libxkbfile/include/X11/extensions/XKMformat.h     X11/extensions/XKMformat.h
 
 libXfixes/include/X11/extensions/Xfixes.h         X11/extensions/Xfixes.h
+
+libXfont/include/X11/fonts/fntfil.h               X11/fonts/fntfil.h
+libXfont/include/X11/fonts/fontmisc.h             X11/fonts/fontmisc.h
 """
 
 Files=FilesStr.split()

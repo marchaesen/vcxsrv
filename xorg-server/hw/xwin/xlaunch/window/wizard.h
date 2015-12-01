@@ -42,7 +42,7 @@ class CWizard : public CBaseDialog
         virtual INT_PTR DlgDispatch(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
         virtual INT_PTR PageDispatch(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam, PROPSHEETPAGE *psp);
         virtual unsigned PageIndex(PROPSHEETPAGE *psp);
-	virtual DWORD PageID(unsigned index);
+	virtual uintptr_t PageID(unsigned index);
         virtual BOOL WizardNext(HWND hwndDlg, unsigned index) { return FALSE; }
         virtual BOOL WizardBack(HWND hwndDlg, unsigned index) { return FALSE; } 
         virtual BOOL WizardFinish(HWND hwndDlg, unsigned index) { return FALSE; }

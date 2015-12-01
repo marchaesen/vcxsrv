@@ -568,10 +568,10 @@ XawCommandGetValuesHook(Widget w, ArgList args, Cardinal *num_args)
     for (i = 0; i < *num_args; i++) {
 	if (STR_EQUAL(args[i].name, XtNforeground))
 	    *((String*)args[i].value) = cbw->command.set ?
-		(String)cbw->core.background_pixel : (String)cbw->label.foreground;
+		(String)(uintptr_t)cbw->core.background_pixel : (String)(uintptr_t)cbw->label.foreground;
 	else if (STR_EQUAL(args[i].name, XtNbackground))
 	    *((String*)args[i].value) = cbw->command.set ?
-		(String)cbw->label.foreground : (String)cbw->core.background_pixel;
+		(String)(uintptr_t)cbw->label.foreground : (String)(uintptr_t)cbw->core.background_pixel;
     }
 }
 

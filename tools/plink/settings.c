@@ -1101,10 +1101,10 @@ void get_sesslist(struct sesslist *list, int allocate)
 	    p++;
 	}
 
-	qsort(list->sessions, i, sizeof(const char *), sessioncmp);
+	qsort((void*)list->sessions, i, sizeof(const char *), sessioncmp);
     } else {
 	sfree(list->buffer);
-	sfree(list->sessions);
+	sfree((void*)list->sessions);
 	list->buffer = NULL;
 	list->sessions = NULL;
     }

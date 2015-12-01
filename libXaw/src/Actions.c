@@ -463,7 +463,7 @@ XawSetValuesAction(Widget w, XEvent *event,
 #ifdef LONG64
 	c_8 = (long)from.addr;
 #else
-	c_4 = (int)from.addr;
+	c_4 = (int)(uintptr_t)from.addr;
 #endif
       else if (!XtConvertAndStore(w, XtRString, &from,
 				  XrmQuarkToString(resource->qtype), &to))

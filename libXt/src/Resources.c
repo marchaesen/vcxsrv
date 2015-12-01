@@ -330,7 +330,7 @@ static void BadSize(
     String params[2];
     Cardinal num_params = 2;
 
-    params[0] = (String)(long) size;
+    params[0] = (String)(uintptr_t) size;
     params[1] = XrmQuarkToString(name);
     XtWarningMsg("invalidSizeOverride", "xtDependencies", XtCXtToolkitError,
 	"Representation size %d must match superclass's to override %s",
@@ -796,16 +796,16 @@ static XtCacheRef *GetResources(
 			if (xrm_type == QString) {
 			    value.addr = rx->xrm_default_addr;
 			} else if (rx->xrm_size == sizeof(int)) {
-			    int_val = (int)(long)rx->xrm_default_addr;
+			    int_val = (int)(uintptr_t)rx->xrm_default_addr;
 			    value.addr = (XPointer) &int_val;
 			} else if (rx->xrm_size == sizeof(short)) {
-			    short_val = (short)(long)rx->xrm_default_addr;
+			    short_val = (short)(uintptr_t)rx->xrm_default_addr;
 			    value.addr = (XPointer) &short_val;
 			} else if (rx->xrm_size == sizeof(char)) {
-			    char_val = (char)(long)rx->xrm_default_addr;
+			    char_val = (char)(uintptr_t)rx->xrm_default_addr;
 			    value.addr = (XPointer) &char_val;
 			} else if (rx->xrm_size == sizeof(long)) {
-			    long_val = (long)rx->xrm_default_addr;
+			    long_val = (long)(uintptr_t)rx->xrm_default_addr;
 			    value.addr = (XPointer) &long_val;
 			} else if (rx->xrm_size == sizeof(char*)) {
 			    char_ptr = (char*)rx->xrm_default_addr;

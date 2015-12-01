@@ -152,7 +152,7 @@ AddExtensionAlias(const char *alias, ExtensionEntry * ext)
 
     if (!ext)
         return FALSE;
-    aliases = reallocarray(ext->aliases, ext->num_aliases + 1, sizeof(char *));
+    aliases = (const char **)reallocarray((void*)ext->aliases, ext->num_aliases + 1, sizeof(char *));
     if (!aliases)
         return FALSE;
     ext->aliases = aliases;
@@ -232,7 +232,7 @@ CloseDownExtensions(void)
         free((void *) extensions[i]->name);
         for (j = extensions[i]->num_aliases; --j >= 0;)
             free((void *) extensions[i]->aliases[j]);
-        free(extensions[i]->aliases);
+        free((void*)extensions[i]->aliases);
         dixFreePrivates(extensions[i]->devPrivates, PRIVATE_EXTENSION);
         free(extensions[i]);
     }

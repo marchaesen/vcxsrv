@@ -502,15 +502,15 @@ _XlcCopyFromArg(
     int size)
 {
     if (size == sizeof(long))
-	*((long *) dst) = (long) src;
+	*((long *) dst) = (long)(intptr_t) src;
 #ifdef LONG64
     else if (size == sizeof(int))
 	*((int *) dst) = (int)(long) src;
 #endif
     else if (size == sizeof(short))
-	*((short *) dst) = (short)(long) src;
+	*((short *) dst) = (short)(intptr_t) src;
     else if (size == sizeof(char))
-	*((char *) dst) = (char)(long) src;
+	*((char *) dst) = (char)(intptr_t) src;
     else if (size == sizeof(XPointer))
 	*((XPointer *) dst) = (XPointer) src;
     else if (size > sizeof(XPointer))

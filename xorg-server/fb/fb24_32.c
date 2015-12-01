@@ -88,7 +88,7 @@ fb24_32BltDown(CARD8 *srcLine,
         dstLine += dstStride;
         w = width;
         if (destInvarient) {
-            while (((long) dst & 3) && w) {
+            while (((long)(uintptr_t) dst & 3) && w) {
                 w--;
                 pixel = READ(src++);
                 pixel = FbDoDestInvarientMergeRop(pixel);
@@ -176,7 +176,7 @@ fb24_32BltUp(CARD8 *srcLine,
         srcLine += srcStride;
         dstLine += dstStride;
         if (destInvarient) {
-            while (((long) src & 3) && w) {
+            while (((long)(uintptr_t) src & 3) && w) {
                 w--;
                 pixel = Get24(src);
                 src += 3;

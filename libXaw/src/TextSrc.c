@@ -1191,7 +1191,7 @@ exit_anchor_loop:
 	TellSourceChanged(src, left, right, block, lines);
 	/* Call callbacks, we have changed the buffer */
 	XtCallCallbacks(w, XtNcallback,
-			(XtPointer)((long)src->textSrc.changed));
+			(XtPointer)((uintptr_t)src->textSrc.changed));
     }
 
 #endif /* OLDXAW */

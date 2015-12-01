@@ -284,7 +284,7 @@ static void
 Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     ToggleWidget tw = (ToggleWidget)w;
-    long antilint = tw->command.set;
+    uintptr_t antilint = tw->command.set;
 
     XtCallCallbacks(w, XtNcallback, (XtPointer)antilint);
 }

@@ -927,7 +927,7 @@ _XftFontManageMemory (Display *dpy, XftFont *pub)
 	{
 	    if (font->glyph_memory > font->max_glyph_memory)
 		printf ("Reduce memory for font 0x%lx from %ld to %ld\n",
-			font->glyphset ? font->glyphset : (unsigned long) font,
+			font->glyphset ? font->glyphset : (GlyphSet)(uintptr_t) font,
 			font->glyph_memory, font->max_glyph_memory);
 	}
 	while (font->glyph_memory > font->max_glyph_memory)

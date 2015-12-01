@@ -790,7 +790,7 @@ NotifyScroll(Widget gw, XEvent *event, String *params, Cardinal *num_params)
 	    /*FALLTHROUGH*/
 	case 'F':
 	case 'f':
-	    XtCallCallbacks(gw, XtNscrollProc, (XtPointer)call_data);
+	    XtCallCallbacks(gw, XtNscrollProc, (XtPointer)(uintptr_t)call_data);
 	    break;
 	case 'C':
 	case 'c':    /* NotifyThumb has already called the thumbProc(s) */

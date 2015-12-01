@@ -52,7 +52,7 @@ fbGetSpans(DrawablePtr pDrawable,
     fbGetDrawable(pDrawable, src, srcStride, srcBpp, srcXoff, srcYoff);
 
     while (nspans--) {
-        xoff = (int) (((long) pchardstStart) & (FB_MASK >> 3));
+        xoff = (int) (((long)(uintptr_t) pchardstStart) & (FB_MASK >> 3));
         dst = (FbBits *) (pchardstStart - xoff);
         xoff <<= 3;
         fbBlt(src + (ppt->y + srcYoff) * srcStride, srcStride,

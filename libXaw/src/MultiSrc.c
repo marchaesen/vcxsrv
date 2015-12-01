@@ -1613,7 +1613,7 @@ GetDefaultPieceSize(Widget w, int offset, XrmValue *value)
     static XPointer pagesize;
 
     if (pagesize == 0) {
-	pagesize = (XPointer)((long)_XawGetPageSize());
+	pagesize = (XPointer)((uintptr_t)_XawGetPageSize());
 	if (pagesize < (XPointer)BUFSIZ)
 	    pagesize = (XPointer)BUFSIZ;
     }

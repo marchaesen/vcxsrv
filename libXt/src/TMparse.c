@@ -589,7 +589,7 @@ static void _XtParseKeysymMod(
     keySym = StringToKeySym(name, error);
     *valueP = 0;
     if (keySym != NoSymbol) {
-        StoreLateBindings(keySym,notFlag,(KeySym) NULL,FALSE,lateBindings);
+        StoreLateBindings(keySym,notFlag,(KeySym)(uintptr_t) NULL,FALSE,lateBindings);
     }
 }
 
@@ -914,7 +914,7 @@ static String ParseImmed(
     register EventPtr event,
     Boolean* error)
 {
-    event->event.eventCode = (unsigned long)closure;
+    event->event.eventCode = (unsigned long)(uintptr_t)closure;
     event->event.eventCodeMask = ~0UL;
 
     return BROKEN_OPTIMIZER_HACK(str);
@@ -927,7 +927,7 @@ static String ParseAddModifier(
     register EventPtr event,
     Boolean* error)
 {
-    register unsigned long modval = (unsigned long)closure;
+    register unsigned long modval = (unsigned long)(uintptr_t)closure;
     event->event.modifiers |= modval;
     if (modval != AnyButtonMask) /* AnyButtonMask is don't-care mask */
 	event->event.modifierMask |= modval;
@@ -943,13 +943,13 @@ static String ParseKeyAndModifiers(
     Boolean* error)
 {
     str = ParseKeySym(str, closure, event,error);
-    if ((unsigned long) closure == 0) {
+    if ((uintptr_t) closure == 0) {
 	Value metaMask; /* unused */
 	(void) _XtLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
 				 &metaMask, FALSE);
     } else {
-	event->event.modifiers |= (unsigned long) closure;
-	event->event.modifierMask |= (unsigned long) closure;
+	event->event.modifiers |= (unsigned long)(uintptr_t) closure;
+	event->event.modifierMask |= (unsigned long)(uintptr_t) closure;
     }
     return str;
 }

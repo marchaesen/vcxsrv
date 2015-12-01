@@ -114,9 +114,9 @@ typedef struct _XtEventRec *XtEventTable;
 typedef struct _XtAppStruct *XtAppContext;
 typedef unsigned long	XtValueMask;
 typedef uintptr_t	XtIntervalId;
-typedef unsigned long	XtInputId;
-typedef unsigned long	XtWorkProcId;
-typedef unsigned long	XtSignalId;
+typedef uintptr_t XtInputId;
+typedef	uintptr_t XtWorkProcId;
+typedef uintptr_t XtSignalId;
 typedef unsigned int	XtGeometryMask;
 typedef unsigned long	XtGCMask;   /* Mask of values that are used by widget*/
 typedef unsigned long	Pixel;	    /* Index into colormap		*/
@@ -266,7 +266,7 @@ typedef void (*XtActionHookProc)(
     Cardinal*		/* num_params */
 );
 
-typedef unsigned long XtBlockHookId;
+typedef uintptr_t XtBlockHookId;
 
 typedef void (*XtBlockHookProc)(
     XtPointer		/* client_data */
@@ -994,7 +994,7 @@ extern void XtRemoveTimeOut(
 
 extern XtInputId XtAddInput( /* obsolete */
     int 		/* source */,
-    XtPointer 		/* condition */,
+    XtInputMask 		/* condition */,
     XtInputCallbackProc /* proc */,
     XtPointer 		/* closure */
 );
@@ -1002,7 +1002,7 @@ extern XtInputId XtAddInput( /* obsolete */
 extern XtInputId XtAppAddInput(
     XtAppContext       	/* app_context */,
     int 		/* source */,
-    XtPointer 		/* condition */,
+    XtInputMask 		/* condition */,
     XtInputCallbackProc /* proc */,
     XtPointer 		/* closure */
 );

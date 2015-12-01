@@ -872,7 +872,7 @@ int x11_send(struct X11Connection *xconn, char *data, int len)
         void *greeting;
         int greeting_len;
         unsigned char *socketdata;
-        int socketdatalen;
+        int socketdatalen=0;
         char new_peer_addr[32];
         int new_peer_port;
 

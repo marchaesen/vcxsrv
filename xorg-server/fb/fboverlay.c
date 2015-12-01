@@ -224,7 +224,7 @@ fbOverlayCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
             miCopyRegion(&pPixmap->drawable, &pPixmap->drawable,
                          0,
                          &layerRgn[i], dx, dy, pScrPriv->CopyWindow, 0,
-                         (void *) (long) i);
+                         (void *) (uintptr_t) i);
         }
     }
     /*

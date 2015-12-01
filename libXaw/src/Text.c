@@ -1736,7 +1736,7 @@ static void
 HScroll(Widget w, XtPointer closure, XtPointer callData)
 {
     TextWidget ctx = (TextWidget)closure;
-    long pixels = (long)callData;
+    long pixels = (long)(uintptr_t)callData;
 
     if (pixels > 0) {
 	long max;
@@ -1765,7 +1765,7 @@ HJump(Widget w, XtPointer closure, XtPointer callData)
     pixels = ctx->text.left_margin -
 	     (ctx->text.r_margin.left - (int)(percent * GetWidestLine(ctx)));
 
-    HScroll(w, (XtPointer)ctx, (XtPointer)pixels);
+    HScroll(w, (XtPointer)ctx, (XtPointer)(uintptr_t)pixels);
 }
 
 /*
@@ -1828,7 +1828,7 @@ static void
 VScroll(Widget w, XtPointer closure, XtPointer callData)
 {
     TextWidget ctx = (TextWidget)closure;
-    long height, lines = (long)callData;
+    long height, lines = (long)(uintptr_t)callData;
 
     height = XtHeight(ctx) - VMargins(ctx);
     if (height < 1)

@@ -49,7 +49,7 @@ fbSetSpans(DrawablePtr pDrawable,
     fbGetDrawable(pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
     while (nspans--) {
         d = dst + (ppt->y + dstYoff) * dstStride;
-        xoff = (int) (((long) src) & (FB_MASK >> 3));
+        xoff = (int) (((long)(uintptr_t) src) & (FB_MASK >> 3));
         s = (FbBits *) (src - xoff);
         xoff <<= 3;
         n = RegionNumRects(pClip);

@@ -151,7 +151,7 @@ XtInitializeWidgetClass(WidgetClass wc)
 	Cardinal num_params;
 
 	param[0] = wc->core_class.class_name;
-	param[1] = (String) wc->core_class.version;
+	param[1] = (String)(uintptr_t) wc->core_class.version;
 	param[2] = (String) XtVersion;
 
 	if (wc->core_class.version == (11 * 1000 + 5) || /* MIT X11R5 */
@@ -326,7 +326,7 @@ CompileCallbacks(
     offsets = (CallbackTable)
 	widget->core.widget_class->core_class.callback_private;
 
-    for (i = (int)(long) *(offsets++); --i >= 0; offsets++) {
+    for (i = (int)(uintptr_t) *(offsets++); --i >= 0; offsets++) {
 	cl = (InternalCallbackList *)
 	    ((char *) widget - (*offsets)->xrm_offset - 1);
 	if (*cl)

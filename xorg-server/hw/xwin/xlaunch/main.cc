@@ -759,7 +759,7 @@ class CMyWizard : public CWizard
               *pDisplayfd=-1;  // Not yet initialised
               buffer+="-displayfd ";
               std::stringstream ss;
-              ss<<(int)hDisplayFdMem;
+              ss<<(uintptr_t)hDisplayFdMem;
               buffer+=ss.str();
             }
             // Construct client commandline
@@ -897,8 +897,8 @@ class CMyWizard : public CWizard
                 CloseHandle(hChildStdoutWr);
                 CloseHandle(pic.hThread);
 
-                int hStdIn = _open_osfhandle((long)hChildStdinWr, _O_WRONLY|_O_BINARY);
-                int hStdOut = _open_osfhandle((long)hChildStdoutRd, _O_RDONLY|_O_BINARY);
+                int hStdIn = _open_osfhandle((intptr_t)hChildStdinWr, _O_WRONLY|_O_BINARY);
+                int hStdOut = _open_osfhandle((intptr_t)hChildStdoutRd, _O_RDONLY|_O_BINARY);
                 HANDLE hConsoleInput=GetStdHandle(STD_INPUT_HANDLE);
                 HANDLE hConsoleOutput=GetStdHandle(STD_OUTPUT_HANDLE);
                 SetConsoleMode(hConsoleInput, 0);  // Needed to disable local echo, and return only upon carriage return of read function

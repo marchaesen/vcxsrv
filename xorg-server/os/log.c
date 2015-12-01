@@ -195,8 +195,10 @@ strlen_sigsafe(const char *s)
  * string.
  */
 
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 
 const char *
 LogInit(const char *fname, const char *backup)

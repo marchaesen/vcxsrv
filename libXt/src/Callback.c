@@ -96,7 +96,7 @@ static InternalCallbackList* FetchInternalList(
     offsets = (CallbackTable)
 	widget->core.widget_class->core_class.callback_private;
 
-    for (n = (int)(long) *(offsets++); --n >= 0; offsets++)
+    for (n = (int)(uintptr_t) *(offsets++); --n >= 0; offsets++)
 	if (quark == (*offsets)->xrm_name) {
 	    retval = (InternalCallbackList *)
 		((char *) widget - (*offsets)->xrm_offset - 1);

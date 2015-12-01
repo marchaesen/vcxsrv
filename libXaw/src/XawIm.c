@@ -307,7 +307,7 @@ static Widget SetErrCnxt(Widget w, XIM xim)
     contextErrData = XtNew(contextErrDataRec);
     contextErrData->widget = w;
     contextErrData->xim = xim;
-    if (XSaveContext(XtDisplay(w), (Window)xim, errContext,
+    if (XSaveContext(XtDisplay(w), (Window)(uintptr_t)xim, errContext,
 	(char *)contextErrData)) {
 	return(NULL);
     }
@@ -377,11 +377,11 @@ DestroyAllIM(XawVendorShellExtPart *ve)
     /*
      * Close Input Method
      */
-    if (!XFindContext(XDisplayOfIM(ve->im.xim), (Window)ve->im.xim, errContext,
+    if (!XFindContext(XDisplayOfIM(ve->im.xim), (Window)(uintptr_t)ve->im.xim, errContext,
 		      (XPointer*)&contextErrData)) {
 	if (contextErrData) XtFree((char *)contextErrData);
     }
-    XDeleteContext(XDisplayOfIM(ve->im.xim), (Window)ve->im.xim, errContext);
+    XDeleteContext(XDisplayOfIM(ve->im.xim), (Window)(uintptr_t)ve->im.xim, errContext);
     CloseIM(ve);
     ve->im.xim = NULL;
 
@@ -401,11 +401,11 @@ FreeAllDataOfVendorShell(XawVendorShellExtPart *ve, VendorShellWidget vw)
     XawIcTableList       p, next;
     contextErrDataRec *contextErrData;
 
-    if (!XFindContext(XtDisplay(vw), (Window)vw, extContext,
+    if (!XFindContext(XtDisplay(vw), (Window)(uintptr_t)vw, extContext,
 		      (XPointer*)&contextErrData)) {
 	if (contextErrData) XtFree((char *)contextErrData);
     }
-    XDeleteContext(XtDisplay(vw), (Window)vw, extContext);
+    XDeleteContext(XtDisplay(vw), (Window)(uintptr_t)vw, extContext);
     if (ve->ic.shared_ic_table)
         XtFree((char *)ve->ic.shared_ic_table);
     if (ve->im.resources) XtFree((char *)ve->im.resources);
@@ -815,27 +815,27 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
 	}
 	if (p->flg & CIFg) {
 	    pe_a[pe_cnt] = (XPointer) XNForeground; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->foreground; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->foreground; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNForeground; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->foreground; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->foreground; st_cnt++;
 	}
 	if (p->flg & CIBg) {
 	    pe_a[pe_cnt] = (XPointer) XNBackground; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->background; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->background; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNBackground; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->background; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->background; st_cnt++;
 	}
 	if (p->flg & CIBgPixmap) {
 	    pe_a[pe_cnt] = (XPointer) XNBackgroundPixmap; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->bg_pixmap; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->bg_pixmap; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNBackgroundPixmap; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->bg_pixmap; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->bg_pixmap; st_cnt++;
 	}
 	if (p->flg & CILineS) {
 	    pe_a[pe_cnt] = (XPointer) XNLineSpace; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->line_spacing; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->line_spacing; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNLineSpace; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->line_spacing; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->line_spacing; st_cnt++;
 	}
     }
     if (p->input_style & XIMPreeditArea) {
@@ -876,11 +876,11 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
     }
 
     ic_a[ic_cnt] = (XPointer) XNInputStyle; ic_cnt++;
-    ic_a[ic_cnt] = (XPointer) p->input_style; ic_cnt++;
+    ic_a[ic_cnt] = (XPointer) (uintptr_t)p->input_style; ic_cnt++;
     ic_a[ic_cnt] = (XPointer) XNClientWindow; ic_cnt++;
-    ic_a[ic_cnt] = (XPointer) XtWindow(ve->parent); ic_cnt++;
+    ic_a[ic_cnt] = (XPointer) (uintptr_t)XtWindow(ve->parent); ic_cnt++;
     ic_a[ic_cnt] = (XPointer) XNFocusWindow; ic_cnt++;
-    ic_a[ic_cnt] = (XPointer) XtWindow(w); ic_cnt++;
+    ic_a[ic_cnt] = (XPointer) (uintptr_t)XtWindow(w); ic_cnt++;
 
     if (pe_cnt > 0) {
 	pe_a[pe_cnt] = (XPointer) NULL;
@@ -974,27 +974,27 @@ SetICValues(Widget w, XawVendorShellExtPart *ve, Bool focus)
 	}
 	if (p->flg & CIFg) {
 	    pe_a[pe_cnt] = (XPointer) XNForeground; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->foreground; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->foreground; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNForeground; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->foreground; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->foreground; st_cnt++;
 	}
 	if (p->flg & CIBg) {
 	    pe_a[pe_cnt] = (XPointer) XNBackground; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->background; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->background; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNBackground; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->background; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->background; st_cnt++;
 	}
 	if (p->flg & CIBgPixmap) {
 	    pe_a[pe_cnt] = (XPointer) XNBackgroundPixmap; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->bg_pixmap; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->bg_pixmap; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNBackgroundPixmap; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->bg_pixmap; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->bg_pixmap; st_cnt++;
 	}
 	if (p->flg & CILineS) {
 	    pe_a[pe_cnt] = (XPointer) XNLineSpace; pe_cnt++;
-	    pe_a[pe_cnt] = (XPointer) p->line_spacing; pe_cnt++;
+	    pe_a[pe_cnt] = (XPointer) (uintptr_t)p->line_spacing; pe_cnt++;
 	    st_a[st_cnt] = (XPointer) XNLineSpace; st_cnt++;
-	    st_a[st_cnt] = (XPointer) p->line_spacing; st_cnt++;
+	    st_a[st_cnt] = (XPointer) (uintptr_t)p->line_spacing; st_cnt++;
 	}
     }
     if (p->input_style & XIMPreeditPosition) {
@@ -1042,7 +1042,7 @@ SetICValues(Widget w, XawVendorShellExtPart *ve, Bool focus)
     }
     if (focus == TRUE) {
 	ic_a[ic_cnt] = (XPointer) XNFocusWindow; ic_cnt++;
-	ic_a[ic_cnt] = (XPointer) XtWindow(w); ic_cnt++;
+	ic_a[ic_cnt] = (XPointer) (uintptr_t)XtWindow(w); ic_cnt++;
     }
     if (ic_cnt > 0) {
 	ic_a[ic_cnt] = (XPointer) NULL;
@@ -1408,12 +1408,12 @@ Destroy(Widget w, XawVendorShellExtPart *ve)
     XtFree( (char*) ve->im.resources );
 
     if (extContext != (XContext)0 &&
-	!XFindContext (XtDisplay (w), (Window)w,
+	!XFindContext (XtDisplay (w), (Window)(uintptr_t)w,
 		       extContext, (XPointer*)&contextData))
         XtFree( (char*) contextData );
 
     if (errContext != (XContext)0 &&
-	!XFindContext (XDisplayOfIM( ve->im.xim ), (Window) ve->im.xim,
+	!XFindContext (XDisplayOfIM( ve->im.xim ), (Window)(uintptr_t) ve->im.xim,
 		       errContext, (XPointer*) &contextErrData))
         XtFree( (char*) contextErrData );
 }

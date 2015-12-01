@@ -113,7 +113,7 @@ static XtResource resources[] = {
   },
 #ifndef OLDXAW
   {
-    XtNcursorColor,
+    (String)(uintptr_t)XtNcursorColor,
     XtCColor,
     XtRPixel,
     sizeof(Pixel),
@@ -1015,7 +1015,7 @@ static Cardinal num_prop_lists;
 static int
 bcmp_qident(_Xconst void *left, _Xconst void *right)
 {
-    return ((long)left - (*(XawTextProperty**)right)->identifier);
+    return ((long)(uintptr_t)left - (*(XawTextProperty**)right)->identifier);
 }
 
 static int
@@ -1163,7 +1163,7 @@ _XawTextSinkGetProperty(XawTextPropertyList *list, XrmQuark property)
 {
     if (property != NULLQUARK && list && list->properties) {
 	XawTextProperty **ptr = (XawTextProperty**)
-	    bsearch((void*)(long)property,
+	    bsearch((void*)(uintptr_t)property,
 		    list->properties, list->num_properties,
 		    sizeof(XawTextProperty*), bcmp_qident);
 
@@ -1502,7 +1502,7 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
     char buffer[BUFSIZ];
 
     if (prop_lists) ptr = (XawTextPropertyList**)
-	bsearch((void*)(long)qname, prop_lists, num_prop_lists,
+	bsearch((void*)(uintptr_t)qname, prop_lists, num_prop_lists,
 		sizeof(XawTextPropertyList*), bcmp_qident);
     if (ptr) {
 	propl = *ptr;
@@ -1751,7 +1751,7 @@ CvtStringToPropertyList(Display *dpy, XrmValue *args, Cardinal *num_args,
     if (w) {
 	XawTextPropertyList **ptr = NULL;
 	if (prop_lists) ptr = (XawTextPropertyList**)
-	    bsearch((void*)(long)XrmStringToQuark(name),
+	    bsearch((void*)(uintptr_t)XrmStringToQuark(name),
 		    prop_lists, num_prop_lists,
 		    sizeof(XawTextPropertyList*), bcmp_qident);
 

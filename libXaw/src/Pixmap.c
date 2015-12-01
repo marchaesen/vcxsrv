@@ -395,7 +395,7 @@ qcmp_x_cache(register _Xconst void *left, register _Xconst void *right)
 static int
 bcmp_x_cache(register _Xconst void *pixmap, register _Xconst void *xaw)
 {
-  return (int)((long)pixmap - (long)((*(XawPixmap **)xaw)->pixmap));
+  return (int)((long)(uintptr_t)pixmap - (long)((*(XawPixmap **)xaw)->pixmap));
 }
 
 static int
@@ -448,7 +448,7 @@ _XawFindCache(XawCache *xaw,
     return (*cache);
 
   /* Colormap */
-  cache = (XawCache **)bsearch((void *)colormap, (*cache)->elems,
+  cache = (XawCache **)bsearch((void *)(uintptr_t)colormap, (*cache)->elems,
 			       (*cache)->num_elems, sizeof(XtPointer),
 			       bcmp_long);
   if (!cache || !(*cache)->num_elems)
@@ -457,7 +457,7 @@ _XawFindCache(XawCache *xaw,
     return (*cache);
 
   /* Depth */
-  cache = (XawCache **)bsearch((void *)(long)depth, (*cache)->elems,
+  cache = (XawCache **)bsearch((void *)(uintptr_t)depth, (*cache)->elems,
 			       (*cache)->num_elems, sizeof(XtPointer),
 			       bcmp_long);
 
@@ -595,7 +595,7 @@ XawPixmapFromXPixmap(Pixmap pixmap,
     return (NULL);
 
   /* Pixmap */
-  x_pixmap = (XawPixmap **)bsearch((void *)pixmap, cache->elems,
+  x_pixmap = (XawPixmap **)bsearch((void *)(uintptr_t)pixmap, cache->elems,
 				   cache->num_elems, sizeof(XtPointer),
 				   bcmp_x_cache);
   if (!x_pixmap)

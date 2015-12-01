@@ -95,7 +95,7 @@ extern xGLXSingleReply __glXReply;
 	    (cl)->returnBufSize = (size)+(align);			 \
 	}								 \
 	res = (char*)cl->returnBuf;					 \
-	bump = (long)(res) % (align);					 \
+	bump = (long)(uintptr_t)(res) % (align);					 \
 	if (bump) res += (align) - (bump);				 \
     } else {								 \
 	res = (char *)answerBuffer;					 \

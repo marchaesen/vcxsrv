@@ -37,7 +37,9 @@ in this Software without prior written authorization from The Open Group.
 
 #ifdef WIN32
 #include <X11/Xwinsock.h>
+#ifndef EPROTOTYPE
 #define EPROTOTYPE WSAEPROTOTYPE
+#endif
 #endif
 #include <X11/X.h>
 #include <signal.h>

@@ -589,7 +589,7 @@ _XimValueToAttribute(
 	    return False;
 	}
 
-	*((CARD8 *)buf) = (CARD8)(long)value;
+	*((CARD8 *)buf) = (CARD8)(intptr_t)value;
 	*len = ret_len;
 	break;
 
@@ -600,7 +600,7 @@ _XimValueToAttribute(
 	    return False;
 	}
 
-	*((CARD16 *)buf) = (CARD16)(long)value;
+	*((CARD16 *)buf) = (CARD16)(intptr_t)value;
 	*len = ret_len;
 	break;
 
@@ -613,7 +613,7 @@ _XimValueToAttribute(
 	    return False;
 	}
 
-	*((CARD32 *)buf) = (CARD32)(long)value;
+	*((CARD32 *)buf) = (CARD32)(intptr_t)value;
 	*len = ret_len;
 	break;
 
@@ -929,7 +929,7 @@ _XimEncodeTopValue(
     XIMArg		*p)
 {
     if (res->xrm_name == XrmStringToQuark(XNClientWindow)) {
-	ic->core.client_window = (Window)p->value;
+	ic->core.client_window = (Window)(intptr_t)p->value;
 	if (ic->core.focus_window == (Window)0)
 	    ic->core.focus_window = ic->core.client_window;
 	_XimRegisterFilter(ic);
@@ -937,10 +937,10 @@ _XimEncodeTopValue(
     } else if (res->xrm_name == XrmStringToQuark(XNFocusWindow)) {
 	if (ic->core.client_window) {
 	    _XimUnregisterFilter(ic);
-	    ic->core.focus_window = (Window)p->value;
+	    ic->core.focus_window = (Window)(intptr_t)p->value;
 	    _XimRegisterFilter(ic);
 	} else /* client_window not yet */
-	    ic->core.focus_window = (Window)p->value;
+	    ic->core.focus_window = (Window)(intptr_t)p->value;
     }
     return True;
 }
@@ -957,7 +957,7 @@ _XimEncodePreeditValue(
 
 	if (!(XGetRGBColormaps(ic->core.im->core.display,
 				ic->core.focus_window, &colormap_ret,
-				&count, (Atom)p->value)))
+				&count, (Atom)(intptr_t)p->value)))
 	    return False;
 
 	XFree(colormap_ret);
@@ -1008,7 +1008,7 @@ _XimEncodeStatusValue(
 
 	if (!(XGetRGBColormaps(ic->core.im->core.display,
 				ic->core.focus_window, &colormap_ret,
-				&count, (Atom)p->value)))
+				&count, (Atom)(intptr_t)p->value)))
 	    return False;
 
 	XFree(colormap_ret);

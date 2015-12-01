@@ -294,11 +294,11 @@ _SetICValueData(XIC ic, XIMArg *values, XICOp_t mode)
     for (p = values; p != NULL && p->name != NULL; p++) {
 	if(strcmp(p->name, XNInputStyle) == 0) {
 	    if (mode == CREATE_IC)
-		ic->core.input_style = (XIMStyle)p->value;
+		ic->core.input_style = (XIMStyle)(intptr_t)p->value;
 	} else if (strcmp(p->name, XNClientWindow) == 0) {
-	    ic->core.client_window = (Window)p->value ;
+	    ic->core.client_window = (Window)(intptr_t)p->value ;
 	} else if (strcmp(p->name, XNFocusWindow) == 0) {
-	    ic->core.focus_window = (Window)p->value ;
+	    ic->core.focus_window = (Window)(intptr_t)p->value ;
 	} else if (strcmp(p->name, XNPreeditAttributes) == 0
 		   || strcmp(p->name, XNStatusAttributes) == 0) {
             return_name = _SetICValueData(ic, (XIMArg*)p->value, mode);

@@ -215,20 +215,4 @@ extern void *_glthread_GetTSD(_glthread_TSD *);
 extern void
  _glthread_SetTSD(_glthread_TSD *, void *);
 
-#if defined(GLX_USE_TLS)
-
-extern TLS struct _glapi_table *_glapi_tls_Dispatch;
-
-#define GET_DISPATCH() _glapi_tls_Dispatch
-
-#elif !defined(GL_CALL)
-#if defined(THREADS)
-#define GET_DISPATCH() \
-   ((__builtin_expect( _glapi_Dispatch != NULL, 1 )) \
-       ? _glapi_Dispatch : _glapi_get_dispatch())
-#else
-#define GET_DISPATCH() _glapi_Dispatch
-#endif                          /* defined(THREADS) */
-#endif                          /* ndef GL_CALL */
-
 #endif                          /* THREADS_H */

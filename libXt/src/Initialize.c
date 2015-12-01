@@ -871,7 +871,7 @@ static void ConnectionWatch (
 
     if (opening) {
 	iptr = (XtInputId *) __XtMalloc(sizeof(XtInputId));
-	*iptr = XtAppAddInput(app, fd, (XtPointer) XtInputReadMask,
+	*iptr = XtAppAddInput(app, fd, XtInputReadMask,
 			      ProcessInternalConnection, client_data);
 	*watch_data = (XPointer) iptr;
     } else {

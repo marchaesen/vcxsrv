@@ -524,7 +524,9 @@ static const struct { unsigned int attrib, offset; } attribMap[] = {
     __ATTRIB(__DRI_ATTRIB_SWAP_METHOD,                  level)
 };
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))
+#endif
 
 /**
  * Mesa texture/renderbuffer image formats.

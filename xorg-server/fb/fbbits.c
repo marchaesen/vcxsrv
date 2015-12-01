@@ -103,23 +103,23 @@
 								    (x) >> (s), \
 								    (m) >> (s)))
 #if BITMAP_BIT_ORDER == LSBFirst
-#define BITSSTORE(b,x)	((unsigned long) (b) & 1 ? \
+#define BITSSTORE(b,x)	((unsigned long)(uintptr_t) (b) & 1 ? \
 			 (FbDoTypeStore (b, CARD8, x, 0), \
 			  FbDoTypeStore ((b) + 1, CARD16, x, 8)) : \
 			 (FbDoTypeStore (b, CARD16, x, 0), \
 			  FbDoTypeStore ((b) + 2, CARD8, x, 16)))
-#define BITSRROP(b,a,x)	((unsigned long) (b) & 1 ? \
+#define BITSRROP(b,a,x)	((unsigned long)(uintptr_t) (b) & 1 ? \
 			 (FbDoTypeRRop(b,CARD8,a,x,0), \
 			  FbDoTypeRRop((b)+1,CARD16,a,x,8)) : \
 			 (FbDoTypeRRop(b,CARD16,a,x,0), \
 			  FbDoTypeRRop((b)+2,CARD8,a,x,16)))
 #else
-#define BITSSTORE(b,x)  ((unsigned long) (b) & 1 ? \
+#define BITSSTORE(b,x)  ((unsigned long)(uintptr_t) (b) & 1 ? \
 			 (FbDoTypeStore (b, CARD8, x, 16), \
 			  FbDoTypeStore ((b) + 1, CARD16, x, 0)) : \
 			 (FbDoTypeStore (b, CARD16, x, 8), \
 			  FbDoTypeStore ((b) + 2, CARD8, x, 0)))
-#define BITSRROP(b,a,x)	((unsigned long) (b) & 1 ? \
+#define BITSRROP(b,a,x)	((unsigned long)(uintptr_t) (b) & 1 ? \
 			 (FbDoTypeRRop (b, CARD8, a, x, 16), \
 			  FbDoTypeRRop ((b) + 1, CARD16, a, x, 0)) : \
 			 (FbDoTypeRRop (b, CARD16, a, x, 8), \

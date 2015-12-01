@@ -1340,7 +1340,7 @@ _XimGetInputStyle(
 
     for (p = arg; p && p->name; p++) {
 	if (!(strcmp(p->name, XNInputStyle))) {
-	    *input_style = (XIMStyle)p->value;
+	    *input_style = (XIMStyle)(intptr_t)p->value;
 	    return True;
 	}
     }

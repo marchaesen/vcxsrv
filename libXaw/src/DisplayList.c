@@ -791,7 +791,7 @@ DlForeground(Widget w, XtPointer args, XtPointer data,
 	     XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  Pixel foreground = (Pixel)args;
+  Pixel foreground = (Pixel)(uintptr_t)args;
 
   if (xdata->values.foreground != foreground)
     {
@@ -807,7 +807,7 @@ DlBackground(Widget w, XtPointer args, XtPointer data,
 	     XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  Pixel background = (Pixel)args;
+  Pixel background = (Pixel)(uintptr_t)args;
 
   if (xdata->values.background != background)
     {
@@ -912,7 +912,7 @@ DlLineWidth(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  unsigned line_width = (unsigned long)args;
+  unsigned line_width = (unsigned long)(uintptr_t)args;
 
   if (xdata->values.line_width != line_width)
     {
@@ -988,7 +988,7 @@ DlArcMode(Widget w, XtPointer args, XtPointer data,
 	  XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int arc_mode  = (long)args;
+  int arc_mode  = (int)(uintptr_t)args;
 
   if (xdata->values.arc_mode != arc_mode)
     {
@@ -1004,7 +1004,7 @@ DlCoordMode(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int mode  = (long)args;
+  int mode  = (int)(uintptr_t)args;
 
   xdata->mode = mode;
 }
@@ -1015,7 +1015,7 @@ DlShapeMode(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int shape  = (long)args;
+  int shape  = (int)(uintptr_t)args;
 
   xdata->shape = shape;
 }
@@ -1026,7 +1026,7 @@ DlLineStyle(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int line_style = (long)args;
+  int line_style = (int)(uintptr_t)args;
 
   if (xdata->values.line_style != line_style)
     {
@@ -1042,7 +1042,7 @@ DlCapStyle(Widget w, XtPointer args, XtPointer data,
 	   XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int cap_style = (long)args;
+  int cap_style = (int)(uintptr_t)args;
 
   if (xdata->values.cap_style != cap_style)
     {
@@ -1058,7 +1058,7 @@ DlJoinStyle(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int join_style = (long)args;
+  int join_style = (int)(uintptr_t)args;
 
   if (xdata->values.join_style != join_style)
     {
@@ -1074,7 +1074,7 @@ DlFillStyle(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int fill_style = (long)args;
+  int fill_style = (int)(uintptr_t)args;
 
   if (xdata->values.fill_style != fill_style)
     {
@@ -1090,7 +1090,7 @@ DlFillRule(Widget w, XtPointer args, XtPointer data,
 	   XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int fill_rule = (long)args;
+  int fill_rule = (int)(uintptr_t)args;
 
   if (xdata->values.fill_rule != fill_rule)
     {
@@ -1145,7 +1145,7 @@ DlFunction(Widget w, XtPointer args, XtPointer data,
 	   XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int function = (long)args;
+  int function = (int)(uintptr_t)args;
 
   if (function != xdata->values.function)
     {
@@ -1161,7 +1161,7 @@ DlPlaneMask(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  unsigned long plane_mask = (unsigned long)args;
+  unsigned long plane_mask = (unsigned long)(uintptr_t)args;
 
   if (xdata->values.plane_mask != plane_mask)
     {
@@ -1228,7 +1228,7 @@ DlFont(Widget w, XtPointer args, XtPointer data,
        XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  Font font = (Font)args;
+  Font font = (Font)(uintptr_t)args;
 
   if (xdata->values.font != font)
     {
@@ -1260,7 +1260,7 @@ DlSubwindowMode(Widget w, XtPointer args, XtPointer data,
 		XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  int subwindow_mode = (long)args;
+  int subwindow_mode = (int)(uintptr_t)args;
 
   if (xdata->values.subwindow_mode != subwindow_mode)
     {
@@ -1276,7 +1276,7 @@ DlExposures(Widget w, XtPointer args, XtPointer data,
 	    XEvent *event, Region region)
 {
   XawXlibData *xdata = (XawXlibData *)data;
-  Bool graphics_exposures = (Bool)(long)args;
+  Bool graphics_exposures = (Bool)(uintptr_t)args;
 
   if (xdata->values.graphics_exposures != graphics_exposures)
     {
@@ -1740,7 +1740,7 @@ _Xaw_Xlib_ArgsInitProc(String proc_name, String *params, Cardinal *num_params,
 	if (*num_params == 1 &&
 	    XAllocNamedColor(DisplayOfScreen(screen), colormap,
 			     params[0], &xcolor, &xcolor))
-	  retval = (void *)xcolor.pixel;
+	  retval = (void *)(uintptr_t)xcolor.pixel;
       } break;
     case MASK:
     case UMASK:
@@ -1749,7 +1749,7 @@ _Xaw_Xlib_ArgsInitProc(String proc_name, String *params, Cardinal *num_params,
       break;
     case LWIDTH:
       if (*num_params == 1)
-	retval = (void *)read_int(params[0], NULL);
+	retval = (void *)(uintptr_t)read_int(params[0], NULL);
       break;
     case ARCMODE:
       if (*num_params == 1)
@@ -1894,7 +1894,7 @@ _Xaw_Xlib_ArgsInitProc(String proc_name, String *params, Cardinal *num_params,
       break;
     case PLANEMASK:
       if (*num_params == 1)
-	retval = (void *)read_int(params[0], NULL);
+	retval = (void *)(uintptr_t)read_int(params[0], NULL);
       break;
     case DSTRING:
     case PSTRING:
@@ -1912,7 +1912,7 @@ _Xaw_Xlib_ArgsInitProc(String proc_name, String *params, Cardinal *num_params,
       break;
     case FONT:
       if (*num_params == 1)
-	retval = (void *)XLoadFont(DisplayOfScreen(screen), params[0]);
+	retval = (void *)(uintptr_t)XLoadFont(DisplayOfScreen(screen), params[0]);
       break;
     case DASHES:
       if (*num_params && *num_params < 127)
@@ -1940,7 +1940,7 @@ _Xaw_Xlib_ArgsInitProc(String proc_name, String *params, Cardinal *num_params,
       if (*num_params == 1)
 	{
 	  if (isdigit(params[0][0]) || params[0][0] == '+' || params[0][0] == '-')
-	    retval = (void *)read_int(params[0], NULL);
+	    retval = (void *)(uintptr_t)read_int(params[0], NULL);
 	  else if (XmuCompareISOLatin1(params[0], "true") == 0 ||
 	    XmuCompareISOLatin1(params[0], "on") == 0)
 	    retval = (void *)True;

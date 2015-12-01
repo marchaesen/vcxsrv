@@ -78,7 +78,7 @@ in this Software without prior written authorization from The Open Group.
  * XtGetResourceList(), XtGetConstraintResourceList()
  */
 
-#define	TOXRMQUARK(p) ((XrmQuark)(long)(p))	/* avoid LP64 warnings */
+#define	TOXRMQUARK(p) ((XrmQuark)(uintptr_t)(p))	/* avoid LP64 warnings */
 
 void XtGetResourceList(
 	WidgetClass widget_class,

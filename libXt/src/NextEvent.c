@@ -976,7 +976,7 @@ void XtNoticeSignal(
 
 XtInputId XtAddInput(
 	int source,
-	XtPointer Condition,
+	XtInputMask Condition,
 	XtInputCallbackProc proc,
 	XtPointer closure)
 {
@@ -987,7 +987,7 @@ XtInputId XtAddInput(
 XtInputId XtAppAddInput(
 	XtAppContext app,
 	int source,
-	XtPointer Condition,
+	XtInputMask Condition,
 	XtInputCallbackProc proc,
 	XtPointer closure)
 {

@@ -334,7 +334,7 @@ class MyOutputGenerator(OutputGenerator):
   glWinDirectProcCalls++;
 #endif
 """%(prefix.upper(), name))
-            if rettype.lower()=="void ":
+            if rettype.lower()=="void":
                 self.outFile.write("  %s( "%(name))
             else:
                 self.outFile.write("  return %s( "%(name))
@@ -343,7 +343,7 @@ class MyOutputGenerator(OutputGenerator):
                 self.outFile.write("%s%s"%(Comma, pname))
                 Comma=", "
         else:
-            if rettype.lower()=="void ":
+            if rettype.lower()=="void":
                 self.outFile.write(""")
 {
   RESOLVE(PFN%sPROC, "%s");"""%(name.upper(), name))
@@ -398,8 +398,8 @@ def genHeaders():
         for d in sorted(dispatch.keys()) :
                 if d in gen.wrappers :
                         outFile.write('  SET_'+ d[len(prefix):] + '(disp, (void *)' + d + 'Wrapper);\n')
-                else :
-                        outFile.write('#pragma message("No wrapper for ' + d + ' !")\n')
+#enable this if you want to see this warning messages                else :
+#                        outFile.write('#pragma message("No wrapper for ' + d + ' !")\n')
 
         outFile.write('}\n')
 

@@ -4747,7 +4747,7 @@ SetInputFocus(ClientPtr client,
     keybd = GetMaster(dev, KEYBOARD_OR_FLOAT);
 
     if ((focusID == None) || (focusID == PointerRoot))
-        focusWin = (WindowPtr) (long) focusID;
+        focusWin = (WindowPtr) (uintptr_t) focusID;
     else if ((focusID == FollowKeyboard) && followOK) {
         focusWin = keybd->focus->win;
     }

@@ -144,11 +144,11 @@ void CWizard::PrepareSheetHeader(PROPSHEETHEADER &psh, BOOL modal)
     psh.pfnCallback = NULL;
 }
 
-DWORD CWizard::PageID(unsigned index)
+uintptr_t CWizard::PageID(unsigned index)
 {
     if (index < pages.size() && IS_INTRESOURCE(pages[index].pszTemplate))
-	return (DWORD)pages[index].pszTemplate;
-    return (DWORD)-1;
+	return (uintptr_t)pages[index].pszTemplate;
+    return (uintptr_t)-1;
 }
 
 unsigned CWizard::PageIndex(PROPSHEETPAGE *psp)

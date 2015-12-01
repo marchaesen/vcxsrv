@@ -62,7 +62,7 @@ BufFileCreate (char *private,
     return f;
 }
 
-#define FileDes(f)  ((int)(long) (f)->private)
+#define FileDes(f)  ((int)(uintptr_t) (f)->private)
 
 static int
 BufFileRawFill (BufFilePtr f)
@@ -126,7 +126,7 @@ BufFileOpenRead (int fd)
     /* hv: I'd bet WIN32 has the same effect here */
     setmode(fd,O_BINARY);
 #endif
-    return BufFileCreate ((char *)(long) fd, BufFileRawFill, 0, BufFileRawSkip, BufFileRawClose);
+    return BufFileCreate ((char *)(uintptr_t) fd, BufFileRawFill, 0, BufFileRawSkip, BufFileRawClose);
 }
 
 static int
@@ -161,7 +161,7 @@ BufFileOpenWrite (int fd)
     /* hv: I'd bet WIN32 has the same effect here */
     setmode(fd,O_BINARY);
 #endif
-    f = BufFileCreate ((char *)(long) fd, 0, BufFileRawFlush, 0, BufFileFlush);
+    f = BufFileCreate ((char *)(uintptr_t) fd, 0, BufFileRawFlush, 0, BufFileFlush);
     if (f != NULL) {
 	f->bufp = f->buffer;
 	f->left = BUFFILESIZE;

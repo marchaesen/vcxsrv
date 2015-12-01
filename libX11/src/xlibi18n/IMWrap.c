@@ -89,12 +89,12 @@ _XCopyToArg(XPointer src, XPointer *dst, unsigned int size)
 	} u;
 	if (size <= sizeof(XPointer)) {
 	    memcpy((char *)&u, (char *)src, (int)size);
-	    if (size == sizeof(long))	       *dst = (XPointer)u.longval;
+	    if (size == sizeof(long))	       *dst = (XPointer)(intptr_t)u.longval;
 #ifdef LONG64
-	    else if (size == sizeof(int))      *dst = (XPointer)(long)u.intval;
+	    else if (size == sizeof(int))      *dst = (XPointer)(intptr_t)u.intval;
 #endif
-	    else if (size == sizeof(short))    *dst = (XPointer)(long)u.shortval;
-	    else if (size == sizeof(char))     *dst = (XPointer)(long)u.charval;
+	    else if (size == sizeof(short))    *dst = (XPointer)(intptr_t)u.shortval;
+	    else if (size == sizeof(char))     *dst = (XPointer)(intptr_t)u.charval;
 	    else if (size == sizeof(char*))    *dst = (XPointer)u.charptr;
 	    else if (size == sizeof(XPointer)) *dst = (XPointer)u.ptr;
 	    else memcpy( (char*)dst, (char*)src, (int)size );

@@ -809,7 +809,7 @@ ScrollUpDownProc(Widget widget, XtPointer closure, XtPointer call_data)
 {
     ViewportWidget w = (ViewportWidget)closure;
     Widget child = w->viewport.child;
-    int pix = (long)call_data;
+    int pix = (uintptr_t)call_data;
     int x, y;
 
     if (child == NULL)

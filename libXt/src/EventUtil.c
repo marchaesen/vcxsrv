@@ -88,7 +88,7 @@ void _XtFreePerWidgetInput(
 {
     LOCK_PROCESS;
     XDeleteContext(XtDisplay(w),
-		   (Window)w,
+		   (Window)(uintptr_t)w,
 		   perWidgetInputContext);
 
     XtFree((char *)pwi);

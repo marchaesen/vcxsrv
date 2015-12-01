@@ -653,7 +653,7 @@ FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *di
 	    HANDLE hFileMap;
 
 	    cache = NULL;
-	    hFileMap = CreateFileMapping((HANDLE) _get_osfhandle(fd), NULL,
+	    hFileMap = CreateFileMapping((HANDLE)(uintptr_t) _get_osfhandle(fd), NULL,
 					 PAGE_READONLY, 0, 0, NULL);
 	    if (hFileMap != NULL)
 	    {

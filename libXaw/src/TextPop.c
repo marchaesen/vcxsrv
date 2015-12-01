@@ -864,7 +864,7 @@ DoSearch(struct SearchAndReplace *search)
 #endif /* OLDXAW */
     }
 
-    dir = (XawTextScanDirection)(unsigned long)
+    dir = (XawTextScanDirection)(uintptr_t)
       ((XPointer)XawToggleGetCurrent(search->left_toggle) - R_OFFSET);
 
     pos = XawTextSearch(tw, dir, &text);
@@ -1019,7 +1019,7 @@ Replace(struct SearchAndReplace *search, Bool once_only, Bool show_current)
     else
 	replace.length = strlen(replace.ptr);
 
-    dir = (XawTextScanDirection)(unsigned long)
+    dir = (XawTextScanDirection)(uintptr_t)
       ((XPointer)XawToggleGetCurrent(search->left_toggle) - R_OFFSET);
 
     redisplay = !once_only || (once_only && !show_current);

@@ -875,7 +875,7 @@ static void HandleSelectionEvents(
 	       }
 	   }
       }
-      (void) XSendEvent(ctx->dpy, ev.requestor, False, (unsigned long)NULL,
+      (void) XSendEvent(ctx->dpy, ev.requestor, False, (unsigned long)(uintptr_t)NULL,
 		   (XEvent *) &ev);
 
       EndProtectedSection(ctx->dpy);

@@ -1,5 +1,3 @@
-/* $Xorg: fontmisc.h,v 1.4 2001/02/09 02:04:04 xorgcvs Exp $ */
-
 /*
 
 Copyright 1991, 1998  The Open Group
@@ -25,7 +23,6 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
 */
-/* $XFree86: xc/lib/font/include/fontmisc.h,v 3.16 2001/12/14 19:56:54 dawes Exp $ */
 
 /*
  * Author:  Keith Packard, MIT X Consortium
@@ -34,19 +31,10 @@ in this Software without prior written authorization from The Open Group.
 #ifndef _FONTMISC_H_
 #define _FONTMISC_H_
 
-#ifndef FONTMODULE
 #include <X11/Xfuncs.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#ifndef X_NOT_POSIX
 #include <unistd.h>
-#else
-extern int close();
-#endif
-
-#endif /* FONTMODULE */
-
 #include <X11/Xdefs.h>
 
 
@@ -68,40 +56,10 @@ extern Atom MakeAtom ( const char *string, unsigned len, int makeit );
 extern int ValidAtom ( Atom atom );
 extern char *NameForAtom (Atom atom);
 
-#ifndef _MSC_VER
-#ifndef _HAVE_XALLOC_DECLS
-#define _HAVE_XALLOC_DECLS
-extern pointer Xalloc(unsigned long);
-extern pointer Xrealloc(pointer, unsigned long);
-extern void Xfree(pointer);
-extern pointer Xcalloc(unsigned long);
-#endif
-#endif
-extern int f_strcasecmp(const char *s1, const char *s2);
-
-#ifndef xalloc
-#ifdef _MSC_VER
-#define xalloc(n)       malloc ((unsigned) n)
-#define xfree(p)        free ((pointer) p)
-#define xrealloc(p,n)   realloc (p,n)
-#define xcalloc(n,s)    calloc(n, s)
-#else
-#define xalloc(n)   Xalloc ((unsigned) n)
-#define xfree(p)    Xfree ((pointer) p)
-#define xrealloc(p,n)	Xrealloc ((pointer)p,n)
-#define xcalloc(n,s)    Xcalloc((unsigned) n * (unsigned) s)
-#endif
-#endif
 #define lowbit(x) ((x) & (~(x) + 1))
 
 #undef assert
 #define assert(x)	((void)0)
-
-#ifndef strcasecmp
-#if defined(NEED_STRCASECMP) && !defined(FONTMODULE)
-#define strcasecmp(s1,s2) f_strcasecmp(s1,s2)
-#endif
-#endif
 
 extern void
 BitOrderInvert(
@@ -123,17 +81,17 @@ FourByteSwap(
 
 extern int
 RepadBitmap (
-    char*, 
     char*,
-    unsigned, 
+    char*,
     unsigned,
-    int, 
+    unsigned,
+    int,
     int
 );
 
 extern void CopyISOLatin1Lowered(
     char * /*dest*/,
-    char * /*source*/,
+    const char * /*source*/,
     int /*length*/
 );
 

@@ -288,5 +288,5 @@ miSetZeroLineBias(ScreenPtr pScreen, unsigned int bias)
         return;
 
     dixSetPrivate(&pScreen->devPrivates, miZeroLineScreenKey,
-                  (unsigned long *) (unsigned long) bias);
+                  (unsigned long *) (uintptr_t) bias);
 }

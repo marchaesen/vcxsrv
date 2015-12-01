@@ -381,7 +381,7 @@ void XtSetMappedWhenManaged(
 
 	call_data.type = XtHsetMappedWhenManaged;
 	call_data.widget = widget;
-	call_data.event_data = (XtPointer) (unsigned long) mapped_when_managed;
+	call_data.event_data = (XtPointer) (uintptr_t) mapped_when_managed;
 	XtCallCallbackList(hookobj,
 		((HookObject)hookobj)->hooks.changehook_callbacks,
 		(XtPointer)&call_data);

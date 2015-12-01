@@ -659,7 +659,7 @@ GetGC(MultiSinkObject sink)
     XGCValues values;
 
     /* XXX We dont want do share a gc that will change the clip-mask */
-    values.clip_x_origin = (long)sink;
+    values.clip_x_origin = (long)(uintptr_t)sink;
     values.clip_mask = None;
     values.graphics_exposures = False;
 

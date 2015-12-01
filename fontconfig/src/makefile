@@ -8,6 +8,7 @@ $(OBJDIR)\fcobjshash.gperf: fcobjshash.gperf.h fcobjs.h
 
 $(OBJDIR)\fcobjshash.h: $(OBJDIR)\fcobjshash.gperf
 	gperf -m 100 $< > $@
+	python converttype.py $@
 
 
 load_makefile NORELDBG=1 ..\fc-case\makefile

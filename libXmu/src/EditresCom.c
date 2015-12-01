@@ -247,7 +247,7 @@ _XEditResCheckMessages(Widget w, XtPointer data, XEvent *event, Boolean *cont)
 	}
 
 	XtGetSelectionValue(w, res_comm, res_editor_command,
-			    GetCommand, (XtPointer)(long)ident, time);
+			    GetCommand, (XtPointer)(uintptr_t)ident, time);
     }
 }
 
@@ -450,7 +450,7 @@ static void
 GetCommand(Widget w, XtPointer data, Atom *selection, Atom *type,
 	   XtPointer value, unsigned long *length, int *format)
 {
-    ResIdent ident = (ResIdent)(long)data;
+    ResIdent ident = (ResIdent)(uintptr_t)data;
     EditresEvent *event;
 
     if (*type != res_editor_protocol || *format != EDITRES_FORMAT)
@@ -906,16 +906,16 @@ VerifyWidget(Widget w, WidgetInfo *info)
 
     while (True)
     {
-	if (!IsChild(top, parent, (Widget) *child))
+	if (!IsChild(top, parent, (Widget)(uintptr_t) *child))
 	    return ("This widget no longer exists in the client.");
 
 	if (++count == info->num_widgets)
 	    break;
 
-	parent = (Widget)*child++;
+	parent = (Widget)(uintptr_t)*child++;
     }
 
-    info->real_widget = (Widget)*child;
+    info->real_widget = (Widget)(uintptr_t)*child;
 
     return (NULL);
 }
@@ -1621,7 +1621,7 @@ InsertWidget(ProtocolStream *stream, Widget w)
      * make sure that they are inserted in the list from parent -> child
      */
     for (i--, temp = w; temp != NULL; temp = XtParent(temp), i--)
-    widget_list[i] = (unsigned long)temp;
+    widget_list[i] = (unsigned long)(uintptr_t)temp;
 
     _XEditResPut16(stream, num_widgets);	/* insert number of widgets */
     for (i = 0; i < num_widgets; i++)		/* insert Widgets themselves */
@@ -2081,7 +2081,7 @@ _XEditresGetStringValues(Widget w, Arg *warg, int numargs)
     XtResourceList res_list;
     Cardinal num_res;
     XtResource *res = NULL;
-    long value;
+    uintptr_t value;
     Cardinal i;
     char *string = "";
     Arg args[1];
@@ -2132,23 +2132,23 @@ _XEditresGetStringValues(Widget w, Arg *warg, int numargs)
     case 1:
 	XtSetArg(args[0], res->resource_name, &v1);
 	XtGetValues(w, args, 1);
-	value = (int)v1;
+	value = (uintptr_t)v1;
 	break;
     case 2:
 	XtSetArg(args[0], res->resource_name, &v2);
 	XtGetValues(w, args, 1);
-	value = (int)v2;
+	value = (uintptr_t)v2;
 	break;
     case 4:
 	XtSetArg(args[0], res->resource_name, &v4);
 	XtGetValues(w, args, 1);
-	value = (int)v4;
+	value = (uintptr_t)v4;
 	break;
 #ifdef LONG64
     case 8:
 	XtSetArg(args[0], res->resource_name, &v8);
 	XtGetValues(w, args, 1);
-	value = (long)v8;
+	value = (uintptr_t)v8;
 	break;
 #endif
     default:
