@@ -128,7 +128,7 @@ debug_malloc(const char *file, unsigned line, const char *function,
    struct debug_memory_footer *ftr;
    
    hdr = os_malloc(sizeof(*hdr) + size + sizeof(*ftr));
-   if(!hdr) {
+   if (!hdr) {
       debug_printf("%s:%u:%s: out of memory when trying to allocate %lu bytes\n",
                    file, line, function,
                    (long unsigned)size);
@@ -167,7 +167,7 @@ debug_free(const char *file, unsigned line, const char *function,
    struct debug_memory_header *hdr;
    struct debug_memory_footer *ftr;
    
-   if(!ptr)
+   if (!ptr)
       return;
    
    hdr = header_from_data(ptr);
@@ -213,7 +213,7 @@ debug_calloc(const char *file, unsigned line, const char *function,
              size_t count, size_t size )
 {
    void *ptr = debug_malloc( file, line, function, count * size );
-   if( ptr )
+   if (ptr)
       memset( ptr, 0, count * size );
    return ptr;
 }
@@ -226,7 +226,7 @@ debug_realloc(const char *file, unsigned line, const char *function,
    struct debug_memory_footer *old_ftr, *new_ftr;
    void *new_ptr;
    
-   if(!old_ptr)
+   if (!old_ptr)
       return debug_malloc( file, line, function, new_size );
    
    if(!new_size) {
@@ -253,7 +253,7 @@ debug_realloc(const char *file, unsigned line, const char *function,
 
    /* alloc new */
    new_hdr = os_malloc(sizeof(*new_hdr) + new_size + sizeof(*new_ftr));
-   if(!new_hdr) {
+   if (!new_hdr) {
       debug_printf("%s:%u:%s: out of memory when trying to allocate %lu bytes\n",
                    file, line, function,
                    (long unsigned)new_size);

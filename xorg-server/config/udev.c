@@ -332,41 +332,30 @@ device_removed(struct udev_device *device)
 }
 
 static void
-wakeup_handler(void *data, int err, void *read_mask)
+socket_handler(int fd, int ready, void *data)
 {
-    int udev_fd = udev_monitor_get_fd(udev_monitor);
     struct udev_device *udev_device;
     const char *action;
 
-    if (err < 0)
+    udev_device = udev_monitor_receive_device(udev_monitor);
+    if (!udev_device)
         return;
-
-    if (FD_ISSET(udev_fd, (fd_set *) read_mask)) {
-        udev_device = udev_monitor_receive_device(udev_monitor);
-        if (!udev_device)
-            return;
-        action = udev_device_get_action(udev_device);
-        if (action) {
-            if (!strcmp(action, "add")) {
+    action = udev_device_get_action(udev_device);
+    if (action) {
+        if (!strcmp(action, "add")) {
+            device_removed(udev_device);
+            device_added(udev_device);
+        } else if (!strcmp(action, "change")) {
+            /* ignore change for the drm devices */
+            if (strcmp(udev_device_get_subsystem(udev_device), "drm")) {
                 device_removed(udev_device);
                 device_added(udev_device);
-            } else if (!strcmp(action, "change")) {
-                /* ignore change for the drm devices */
-                if (strcmp(udev_device_get_subsystem(udev_device), "drm")) {
-                    device_removed(udev_device);
-                    device_added(udev_device);
-                }
             }
-            else if (!strcmp(action, "remove"))
-                device_removed(udev_device);
         }
-        udev_device_unref(udev_device);
+        else if (!strcmp(action, "remove"))
+            device_removed(udev_device);
     }
-}
-
-static void
-block_handler(void *data, struct timeval **tv, void *read_mask)
-{
+    udev_device_unref(udev_device);
 }
 
 int
@@ -441,8 +430,7 @@ config_udev_init(void)
     }
     udev_enumerate_unref(enumerate);
 
-    RegisterBlockAndWakeupHandlers(block_handler, wakeup_handler, NULL);
-    AddGeneralSocket(udev_monitor_get_fd(udev_monitor));
+    SetNotifyFd(udev_monitor_get_fd(udev_monitor), socket_handler, X_NOTIFY_READ, NULL);
 
     return 1;
 }
@@ -457,8 +445,7 @@ config_udev_fini(void)
 
     udev = udev_monitor_get_udev(udev_monitor);
 
-    RemoveGeneralSocket(udev_monitor_get_fd(udev_monitor));
-    RemoveBlockAndWakeupHandlers(block_handler, wakeup_handler, NULL);
+    RemoveNotifyFd(udev_monitor_get_fd(udev_monitor));
     udev_monitor_unref(udev_monitor);
     udev_monitor = NULL;
     udev_unref(udev);

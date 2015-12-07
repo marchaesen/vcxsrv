@@ -26,6 +26,7 @@ DOC_SOURCES = README.in
 DOC_FILES = $(DOC_SOURCES:.in=)
 
 CONF_LINKS = \
+	10-hinting-slight.conf	\
 	10-scale-bitmap-fonts.conf \
 	20-unhint-small-vera.conf \
 	30-urw-aliases.conf \
@@ -51,6 +52,10 @@ config_DATA = $(DOC_FILES)
 templatedir = $(TEMPLATEDIR)
 template_DATA =				\
 	10-autohint.conf		\
+	10-hinting-full.conf		\
+	10-hinting-medium.conf		\
+	10-hinting-none.conf		\
+	10-hinting-slight.conf		\
 	10-no-sub-pixel.conf		\
 	10-scale-bitmap-fonts.conf	\
 	10-sub-pixel-bgr.conf		\

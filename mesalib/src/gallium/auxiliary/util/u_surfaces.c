@@ -59,7 +59,7 @@ util_surfaces_do_get(struct util_surfaces *us, unsigned surface_struct_size,
    }
 
    ps = (struct pipe_surface *)CALLOC(1, surface_struct_size);
-   if(!ps)
+   if (!ps)
    {
       *res = NULL;
       return FALSE;
@@ -114,7 +114,7 @@ util_surfaces_destroy(struct util_surfaces *us, struct pipe_resource *pt, void (
          for(i = 0; i <= pt->last_level; ++i)
          {
             struct pipe_surface *ps = us->u.array[i];
-            if(ps)
+            if (ps)
                destroy_surface(ps);
          }
          FREE(us->u.array);

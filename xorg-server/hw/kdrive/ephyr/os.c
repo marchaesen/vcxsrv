@@ -45,5 +45,4 @@ EphyrInit(void)
 
 KdOsFuncs EphyrOsFuncs = {
     .Init = EphyrInit,
-    .pollEvents = ephyrPoll,
 };

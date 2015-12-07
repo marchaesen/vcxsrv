@@ -1113,6 +1113,12 @@ hostx_get_screen(void)
 }
 
 int
+hostx_get_fd(void)
+{
+    return xcb_get_file_descriptor(HostX.conn);
+}
+
+int
 hostx_get_window(int a_screen_number)
 {
     EphyrScrPriv *scrpriv;

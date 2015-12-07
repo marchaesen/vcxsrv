@@ -107,7 +107,7 @@ util_draw_texquad(struct pipe_context *pipe, struct cso_context *cso,
    float *v = NULL;
 
    v = MALLOC(vertexBytes);
-   if (v == NULL)
+   if (!v)
       goto out;
 
    /*

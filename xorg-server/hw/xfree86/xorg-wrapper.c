@@ -24,6 +24,7 @@
  */
 
 #include "dix-config.h"
+#include "xorg-config.h"
 
 #include <errno.h>
 #include <fcntl.h>

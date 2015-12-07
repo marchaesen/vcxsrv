@@ -631,20 +631,12 @@ link_invalidate_variable_locations(exec_list *ir)
 
       /* ir_variable::is_unmatched_generic_inout is used by the linker while
        * connecting outputs from one stage to inputs of the next stage.
-       *
-       * There are two implicit assumptions here.  First, we assume that any
-       * built-in variable (i.e., non-generic in or out) will have
-       * explicit_location set.  Second, we assume that any generic in or out
-       * will not have explicit_location set.
-       *
-       * This second assumption will only be valid until
-       * GL_ARB_separate_shader_objects is supported.  When that extension is
-       * implemented, this function will need some modifications.
        */
-      if (!var->data.explicit_location) {
-         var->data.is_unmatched_generic_inout = 1;
-      } else {
+      if (var->data.explicit_location &&
+          var->data.location < VARYING_SLOT_VAR0) {
          var->data.is_unmatched_generic_inout = 0;
+      } else {
+         var->data.is_unmatched_generic_inout = 1;
       }
    }
 }
@@ -2421,6 +2413,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
 	 continue;
 
       if (var->data.explicit_location) {
+         var->data.is_unmatched_generic_inout = 0;
 	 if ((var->data.location >= (int)(max_index + generic_base))
 	     || (var->data.location < 0)) {
 	    linker_error(prog,
@@ -2690,6 +2683,53 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
    return true;
 }
 
+/**
+ * Match explicit locations of outputs to inputs and deactivate the
+ * unmatch flag if found so we don't optimise them away.
+ */
+static void
+match_explicit_outputs_to_inputs(struct gl_shader_program *prog,
+                                 gl_shader *producer,
+                                 gl_shader *consumer)
+{
+   glsl_symbol_table parameters;
+   ir_variable *explicit_locations[MAX_VARYING] = { NULL };
+
+   /* Find all shader outputs in the "producer" stage.
+    */
+   foreach_in_list(ir_instruction, node, producer->ir) {
+      ir_variable *const var = node->as_variable();
+
+      if ((var == NULL) || (var->data.mode != ir_var_shader_out))
+         continue;
+
+      if (var->data.explicit_location &&
+          var->data.location >= VARYING_SLOT_VAR0) {
+         const unsigned idx = var->data.location - VARYING_SLOT_VAR0;
+         if (explicit_locations[idx] == NULL)
+            explicit_locations[idx] = var;
+      }
+   }
+
+   /* Match inputs to outputs */
+   foreach_in_list(ir_instruction, node, consumer->ir) {
+      ir_variable *const input = node->as_variable();
+
+      if ((input == NULL) || (input->data.mode != ir_var_shader_in))
+         continue;
+
+      ir_variable *output = NULL;
+      if (input->data.explicit_location
+          && input->data.location >= VARYING_SLOT_VAR0) {
+         output = explicit_locations[input->data.location - VARYING_SLOT_VAR0];
+
+         if (output != NULL){
+            input->data.is_unmatched_generic_inout = 0;
+            output->data.is_unmatched_generic_inout = 0;
+         }
+      }
+   }
+}
 
 /**
  * Demote shader inputs and outputs that are not used in other stages
@@ -3940,6 +3980,77 @@ split_ubos_and_ssbos(void *mem_ctx,
    assert(*num_ubos + *num_ssbos == num_blocks);
 }
 
+static void
+set_always_active_io(exec_list *ir, ir_variable_mode io_mode)
+{
+   assert(io_mode == ir_var_shader_in || io_mode == ir_var_shader_out);
+
+   foreach_in_list(ir_instruction, node, ir) {
+      ir_variable *const var = node->as_variable();
+
+      if (var == NULL || var->data.mode != io_mode)
+         continue;
+
+      /* Don't set always active on builtins that haven't been redeclared */
+      if (var->data.how_declared == ir_var_declared_implicitly)
+         continue;
+
+      var->data.always_active_io = true;
+   }
+}
+
+/**
+ * When separate shader programs are enabled, only input/outputs between
+ * the stages of a multi-stage separate program can be safely removed
+ * from the shader interface. Other inputs/outputs must remain active.
+ */
+static void
+disable_varying_optimizations_for_sso(struct gl_shader_program *prog)
+{
+   unsigned first, last;
+   assert(prog->SeparateShader);
+
+   first = MESA_SHADER_STAGES;
+   last = 0;
+
+   /* Determine first and last stage. Excluding the compute stage */
+   for (unsigned i = 0; i < MESA_SHADER_COMPUTE; i++) {
+      if (!prog->_LinkedShaders[i])
+         continue;
+      if (first == MESA_SHADER_STAGES)
+         first = i;
+      last = i;
+   }
+
+   if (first == MESA_SHADER_STAGES)
+      return;
+
+   for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+      gl_shader *sh = prog->_LinkedShaders[stage];
+      if (!sh)
+         continue;
+
+      if (first == last) {
+         /* For a single shader program only allow inputs to the vertex shader
+          * and outputs from the fragment shader to be removed.
+          */
+         if (stage != MESA_SHADER_VERTEX)
+            set_always_active_io(sh->ir, ir_var_shader_in);
+         if (stage != MESA_SHADER_FRAGMENT)
+            set_always_active_io(sh->ir, ir_var_shader_out);
+      } else {
+         /* For multi-stage separate shader programs only allow inputs and
+          * outputs between the shader stages to be removed as well as inputs
+          * to the vertex shader and outputs from the fragment shader.
+          */
+         if (stage == first && stage != MESA_SHADER_VERTEX)
+            set_always_active_io(sh->ir, ir_var_shader_in);
+         else if (stage == last && stage != MESA_SHADER_FRAGMENT)
+            set_always_active_io(sh->ir, ir_var_shader_out);
+      }
+   }
+}
+
 void
 link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 {
@@ -4207,6 +4318,9 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
+   if (prog->SeparateShader)
+      disable_varying_optimizations_for_sso(prog);
+
    if (!interstage_cross_validate_uniform_blocks(prog))
       goto done;
 
@@ -4256,6 +4370,16 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       if (prog->_LinkedShaders[i] != NULL) {
          link_invalidate_variable_locations(prog->_LinkedShaders[i]->ir);
       }
+   }
+
+   prev = first;
+   for (unsigned i = prev + 1; i <= MESA_SHADER_FRAGMENT; i++) {
+      if (prog->_LinkedShaders[i] == NULL)
+         continue;
+
+      match_explicit_outputs_to_inputs(prog, prog->_LinkedShaders[prev],
+                                       prog->_LinkedShaders[i]);
+      prev = i;
    }
 
    if (!assign_attribute_or_color_locations(prog, &ctx->Const,

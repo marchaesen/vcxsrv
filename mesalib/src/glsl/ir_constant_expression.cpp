@@ -41,14 +41,6 @@
 #include "glsl_types.h"
 #include "program/hash_table.h"
 
-#if defined(__SUNPRO_CC) && !defined(isnormal)
-#include <ieeefp.h>
-static int isnormal(double x)
-{
-   return fpclass(x) == FP_NORMAL;
-}
-#endif
-
 static float
 dot_f(ir_constant *op0, ir_constant *op1)
 {

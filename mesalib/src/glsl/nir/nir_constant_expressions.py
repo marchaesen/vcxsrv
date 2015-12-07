@@ -32,14 +32,6 @@ template = """\
 #include "util/half_float.h"
 #include "nir_constant_expressions.h"
 
-#if defined(__SUNPRO_CC)
-#include <ieeefp.h>
-static int isnormal(double x)
-{
-   return fpclass(x) == FP_NORMAL;
-}
-#endif
-
 /**
  * Evaluate one component of packSnorm4x8.
  */

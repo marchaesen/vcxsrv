@@ -95,7 +95,7 @@ util_cache_create(uint32_t (*hash)(const void *key),
    struct util_cache *cache;
    
    cache = CALLOC_STRUCT(util_cache);
-   if(!cache)
+   if (!cache)
       return NULL;
    
    cache->hash = hash;

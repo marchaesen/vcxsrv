@@ -64,7 +64,7 @@ handle_table_create(void)
    struct handle_table *ht;
    
    ht = MALLOC_STRUCT(handle_table);
-   if(!ht)
+   if (!ht)
       return NULL;
    
    ht->objects = (void **)CALLOC(HANDLE_TABLE_INITIAL_SIZE, sizeof(void *));
@@ -114,7 +114,7 @@ handle_table_resize(struct handle_table *ht,
    new_objects = (void **)REALLOC((void *)ht->objects,
 				  ht->size*sizeof(void *),
 				  new_size*sizeof(void *));
-   if(!new_objects)
+   if (!new_objects)
       return 0;
    
    memset(new_objects + ht->size, 0, (new_size - ht->size)*sizeof(void *));
@@ -139,7 +139,7 @@ handle_table_clear(struct handle_table *ht,
     */
 
    object = ht->objects[index];
-   if(object) {
+   if (object) {
       ht->objects[index] = NULL;
       
       if(ht->destroy)
@@ -199,7 +199,7 @@ handle_table_set(struct handle_table *ht,
       return 0;
 
    assert(object);
-   if(!object)
+   if (!object)
       return 0;
    
    index = handle - 1;
@@ -247,7 +247,7 @@ handle_table_remove(struct handle_table *ht,
 
    index = handle - 1;
    object = ht->objects[index];
-   if(!object)
+   if (!object)
       return;
    
    handle_table_clear(ht, index);

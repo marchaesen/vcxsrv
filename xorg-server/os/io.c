@@ -462,23 +462,14 @@ ReadRequestFromClient(ClientPtr client)
             )
             FD_SET(fd, &ClientsWithInput);
         else {
-            if (!SmartScheduleDisable)
-                FD_CLR(fd, &ClientsWithInput);
-            else
-                YieldControlNoInput(fd);
+            FD_CLR(fd, &ClientsWithInput);
         }
     }
     else {
         if (!gotnow)
             AvailableInput = oc;
-        if (!SmartScheduleDisable)
-            FD_CLR(fd, &ClientsWithInput);
-        else
-            YieldControlNoInput(fd);
+        FD_CLR(fd, &ClientsWithInput);
     }
-    if (SmartScheduleDisable)
-        if (++timesThisConnection >= MAX_TIMES_PER)
-            YieldControl();
     if (move_header) {
         request = (xReq *) oci->bufptr;
         oci->bufptr += (sizeof(xBigReq) - sizeof(xReq));
@@ -955,7 +946,7 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
                and not ready to accept more.  Make a note of it and buffer
                the rest. */
             FD_SET(connection, &ClientsWriteBlocked);
-            AnyClientsWriteBlocked = TRUE;
+            AnyWritesPending = TRUE;
 
             if (written < oco->count) {
                 if (written > 0) {
@@ -1018,10 +1009,10 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
     /* everything was flushed out */
     oco->count = 0;
     /* check to see if this client was write blocked */
-    if (AnyClientsWriteBlocked) {
+    if (AnyWritesPending) {
         FD_CLR(oc->fd, &ClientsWriteBlocked);
-        if (!XFD_ANYSET(&ClientsWriteBlocked))
-            AnyClientsWriteBlocked = FALSE;
+        if (!XFD_ANYSET(&ClientsWriteBlocked) && NumNotifyWriteFd == 0)
+            AnyWritesPending = FALSE;
     }
     if (oco->size > BUFWATERMARK) {
         free(oco->buf);

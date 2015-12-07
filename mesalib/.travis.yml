@@ -1,0 +1,101 @@
+language: c
+
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.ccache
+
+addons:
+  apt:
+    packages:
+      - libdrm-dev
+      - libudev-dev
+      - x11proto-xf86vidmode-dev
+      - libexpat1-dev
+      - libxcb-dri2-0-dev
+      - libx11-xcb-dev
+      - llvm-3.4-dev
+      - scons
+
+env:
+  global:
+    - XORG_RELEASES=http://xorg.freedesktop.org/releases/individual
+    - XCB_RELEASES=http://xcb.freedesktop.org/dist
+    - XORGMACROS_VERSION=util-macros-1.19.0
+    - GLPROTO_VERSION=glproto-1.4.17
+    - DRI2PROTO_VERSION=dri2proto-2.8
+    - DRI3PROTO_VERSION=dri3proto-1.0
+    - PRESENTPROTO_VERSION=presentproto-1.0
+    - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
+    - LIBDRM_VERSION=libdrm-2.4.65
+    - XCBPROTO_VERSION=xcb-proto-1.11
+    - LIBXCB_VERSION=libxcb-1.11
+    - LIBXSHMFENCE_VERSION=libxshmfence-1.2
+    - PKG_CONFIG_PATH=$HOME/prefix/lib/pkgconfig
+  matrix:
+    - BUILD=make
+    - BUILD=scons
+
+install:
+  - export PATH="/usr/lib/ccache:$PATH"
+  - pip install --user mako
+
+  # Install dependencies where we require specific versions (or where
+  # disallowed by Travis CI's package whitelisting).
+
+  - wget $XORG_RELEASES/util/$XORGMACROS_VERSION.tar.bz2
+  - tar -jxvf $XORGMACROS_VERSION.tar.bz2
+  - (cd $XORGMACROS_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XORG_RELEASES/proto/$GLPROTO_VERSION.tar.bz2
+  - tar -jxvf $GLPROTO_VERSION.tar.bz2
+  - (cd $GLPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XORG_RELEASES/proto/$DRI2PROTO_VERSION.tar.bz2
+  - tar -jxvf $DRI2PROTO_VERSION.tar.bz2
+  - (cd $DRI2PROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XORG_RELEASES/proto/$DRI3PROTO_VERSION.tar.bz2
+  - tar -jxvf $DRI3PROTO_VERSION.tar.bz2
+  - (cd $DRI3PROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XORG_RELEASES/proto/$PRESENTPROTO_VERSION.tar.bz2
+  - tar -jxvf $PRESENTPROTO_VERSION.tar.bz2
+  - (cd $PRESENTPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XCB_RELEASES/$XCBPROTO_VERSION.tar.bz2
+  - tar -jxvf $XCBPROTO_VERSION.tar.bz2
+  - (cd $XCBPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XCB_RELEASES/$LIBXCB_VERSION.tar.bz2
+  - tar -jxvf $LIBXCB_VERSION.tar.bz2
+  - (cd $LIBXCB_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XORG_RELEASES/lib/$LIBPCIACCESS_VERSION.tar.bz2
+  - tar -jxvf $LIBPCIACCESS_VERSION.tar.bz2
+  - (cd $LIBPCIACCESS_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
+  - tar -jxvf $LIBDRM_VERSION.tar.bz2
+  - (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  - wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
+  - tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
+  - (cd $LIBXSHMFENCE_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+# Disabled LLVM (and therefore r300 and r600) because the build fails
+# with "undefined reference to `clock_gettime'" and "undefined
+# reference to `setupterm'" in llvmpipe.
+script:
+  - if test "x$BUILD" = xmake; then
+      ./autogen.sh --enable-debug
+        --disable-gallium-llvm
+        --with-egl-platforms=x11,drm
+        --with-dri-drivers=i915,i965,radeon,r200,swrast,nouveau
+        --with-gallium-drivers=svga,swrast,vc4,virgl
+        ;
+      make && make check;
+    elif test x$BUILD = xscons; then
+      scons;
+    fi

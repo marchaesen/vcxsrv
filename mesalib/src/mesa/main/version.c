@@ -199,6 +199,7 @@ _mesa_override_gl_version(struct gl_context *ctx)
        *     <version number><space><vendor-specific information>"
        */
       create_version_string(ctx, _mesa_is_gles(ctx) ? "OpenGL ES " : "");
+      ctx->Extensions.Version = ctx->Version;
    }
 }
 

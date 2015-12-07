@@ -1276,8 +1276,8 @@ nir_block_last_instr(nir_block *block)
    foreach_list_typed_reverse(nir_instr, instr, node, &(block)->instr_list)
 #define nir_foreach_instr_safe(block, instr) \
    foreach_list_typed_safe(nir_instr, instr, node, &(block)->instr_list)
-#define nir_foreach_instr_safe_reverse(block, instr) \
-   foreach_list_typed_safe_reverse(nir_instr, instr, node, &(block)->instr_list)
+#define nir_foreach_instr_reverse_safe(block, instr) \
+   foreach_list_typed_reverse_safe(nir_instr, instr, node, &(block)->instr_list)
 
 typedef struct nir_if {
    nir_cf_node cf_node;

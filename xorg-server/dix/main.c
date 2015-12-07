@@ -199,7 +199,7 @@ dix_main(int argc, char *argv[], char *envp[])
         InitEvents();
         InitGlyphCaching();
         dixResetRegistry();
-        ResetFontPrivateIndex();
+        InitFonts();
         InitCallbackManager();
         InitOutput(&screenInfo, argc, argv);
 
@@ -232,7 +232,6 @@ dix_main(int argc, char *argv[], char *envp[])
                 FatalError("failed to create root window");
         }
 
-        InitFonts();
         if (SetDefaultFontPath(defaultFontPath) != Success) {
             ErrorF("[dix] failed to set default font path '%s'",
                    defaultFontPath);

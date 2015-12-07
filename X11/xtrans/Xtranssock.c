@@ -112,14 +112,6 @@ from the copyright holders.
 #include <sys/filio.h>
 #endif
 
-#if (defined(__i386__) && defined(SYSV)) && !defined(SCO325) && !defined(__sun)
-#include <net/errno.h>
-#endif
-
-#if defined(__i386__) && defined(SYSV)
-#include <sys/stropts.h>
-#endif
-
 #include <unistd.h>
 
 #else /* !WIN32 */
@@ -2113,11 +2105,7 @@ TRANS(SocketBytesReadable) (XtransConnInfo ciptr, BytesReadable_t *pend)
 	return ret;
     }
 #else
-#if defined(__i386__) && defined(SYSV) && !defined(SCO325)
-    return ioctl (ciptr->fd, I_NREAD, (char *) pend);
-#else
     return ioctl (ciptr->fd, FIONREAD, (char *) pend);
-#endif /* __i386__ && SYSV || _SEQUENT_ && _SOCKET_VERSION == 1 */
 #endif /* WIN32 */
 }
 

@@ -37,7 +37,7 @@ void u_default_transfer_inline_write( struct pipe_context *pipe,
                             level,
                             usage,
                             box, &transfer);
-   if (map == NULL)
+   if (!map)
       return;
 
    if (resource->target == PIPE_BUFFER) {

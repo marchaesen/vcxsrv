@@ -48,11 +48,11 @@ static struct dbus_core_info bus_info;
 static CARD32 reconnect_timer(OsTimerPtr timer, CARD32 time, void *arg);
 
 static void
-wakeup_handler(void *data, int num_fds, void *read_mask)
+socket_handler(int fd, int ready, void *data)
 {
     struct dbus_core_info *info = data;
 
-    if (info->connection && num_fds > 0 && FD_ISSET(info->fd, (fd_set *) read_mask)) {
+    if (info->connection) {
         do {
             dbus_connection_read_write_dispatch(info->connection, 0);
         } while (info->connection &&
@@ -60,11 +60,6 @@ wakeup_handler(void *data, int num_fds, void *read_mask)
                  dbus_connection_get_dispatch_status(info->connection) ==
                  DBUS_DISPATCH_DATA_REMAINS);
     }
-}
-
-static void
-block_handler(void *data, struct timeval **tv, void *read_mask)
-{
 }
 
 /**
@@ -87,9 +82,8 @@ teardown(void)
     if (bus_info.connection)
         dbus_connection_unref(bus_info.connection);
 
-    RemoveBlockAndWakeupHandlers(block_handler, wakeup_handler, &bus_info);
     if (bus_info.fd != -1)
-        RemoveGeneralSocket(bus_info.fd);
+        RemoveNotifyFd(bus_info.fd);
     bus_info.fd = -1;
     bus_info.connection = NULL;
 
@@ -162,9 +156,7 @@ connect_to_bus(void)
     }
 
     dbus_error_free(&error);
-    AddGeneralSocket(bus_info.fd);
-
-    RegisterBlockAndWakeupHandlers(block_handler, wakeup_handler, &bus_info);
+    SetNotifyFd(bus_info.fd, socket_handler, X_NOTIFY_READ, &bus_info);
 
     for (hook = bus_info.hooks; hook; hook = hook->next) {
         if (hook->connect)

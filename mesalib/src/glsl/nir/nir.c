@@ -1376,13 +1376,13 @@ static inline bool
 foreach_if(nir_if *if_stmt, nir_foreach_block_cb cb, bool reverse, void *state)
 {
    if (reverse) {
-      foreach_list_typed_safe_reverse(nir_cf_node, node, node,
+      foreach_list_typed_reverse_safe(nir_cf_node, node, node,
                                       &if_stmt->else_list) {
          if (!foreach_cf_node(node, cb, reverse, state))
             return false;
       }
 
-      foreach_list_typed_safe_reverse(nir_cf_node, node, node,
+      foreach_list_typed_reverse_safe(nir_cf_node, node, node,
                                       &if_stmt->then_list) {
          if (!foreach_cf_node(node, cb, reverse, state))
             return false;
@@ -1406,7 +1406,7 @@ static inline bool
 foreach_loop(nir_loop *loop, nir_foreach_block_cb cb, bool reverse, void *state)
 {
    if (reverse) {
-      foreach_list_typed_safe_reverse(nir_cf_node, node, node, &loop->body) {
+      foreach_list_typed_reverse_safe(nir_cf_node, node, node, &loop->body) {
          if (!foreach_cf_node(node, cb, reverse, state))
             return false;
       }
@@ -1466,7 +1466,7 @@ nir_foreach_block_reverse(nir_function_impl *impl, nir_foreach_block_cb cb,
    if (!cb(impl->end_block, state))
       return false;
 
-   foreach_list_typed_safe_reverse(nir_cf_node, node, node, &impl->body) {
+   foreach_list_typed_reverse_safe(nir_cf_node, node, node, &impl->body) {
       if (!foreach_cf_node(node, cb, true, state))
          return false;
    }

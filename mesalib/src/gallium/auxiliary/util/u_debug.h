@@ -270,7 +270,7 @@ void _debug_assert_fail(const char *expr,
    static unsigned id = 0; \
    _pipe_debug_message(cb, &id, \
                        PIPE_DEBUG_TYPE_ ## type, \
-                       fmt, __VA_ARGS__); \
+                       fmt, ##__VA_ARGS__); \
 } while (0)
 
 struct pipe_debug_callback;

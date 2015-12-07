@@ -153,7 +153,7 @@ debug_get_option(const char *name, const char *dfault)
    const char *result;
 
    result = os_get_option(name);
-   if(!result)
+   if (!result)
       result = dfault;
 
    if (debug_get_option_should_print())
@@ -557,7 +557,7 @@ void debug_dump_surface(struct pipe_context *pipe,
                             surface->u.tex.first_layer,
                             PIPE_TRANSFER_READ,
                             0, 0, surface->width, surface->height, &transfer);
-   if(!data)
+   if (!data)
       return;
 
    debug_dump_image(prefix,
@@ -654,7 +654,7 @@ debug_dump_transfer_bmp(struct pipe_context *pipe,
 		 transfer->box.height *
 		 transfer->box.depth *
 		 4*sizeof(float));
-   if(!rgba)
+   if (!rgba)
       goto error1;
 
    pipe_get_tile_rgba(transfer, ptr, 0, 0,
@@ -680,7 +680,7 @@ debug_dump_float_rgba_bmp(const char *filename,
    struct bmp_info_header bmih;
    unsigned x, y;
 
-   if(!rgba)
+   if (!rgba)
       goto error1;
 
    bmfh.bfType = 0x4d42;
@@ -702,7 +702,7 @@ debug_dump_float_rgba_bmp(const char *filename,
    bmih.biClrImportant = 0;
 
    stream = fopen(filename, "wb");
-   if(!stream)
+   if (!stream)
       goto error1;
 
    fwrite(&bmfh, 14, 1, stream);

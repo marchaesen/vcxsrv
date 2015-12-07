@@ -198,4 +198,6 @@ int hostx_has_dri(void);
 int hostx_has_glx(void);
 #endif                          /* XF86DRI */
 
+int hostx_get_fd(void);
+
 #endif /*_XLIBS_STUFF_H_*/

@@ -169,19 +169,12 @@ LinuxSetSwitchMode(int mode)
     }
 }
 
-static void
-LinuxApmBlock(void *blockData, OSTimePtr pTimeout, void *pReadmask)
-{
-}
-
 static Bool LinuxApmRunning;
 
 static void
-LinuxApmWakeup(void *blockData, int result, void *pReadmask)
+LinuxApmNotify(int fd, int mask, void *blockData)
 {
-    fd_set *readmask = (fd_set *) pReadmask;
-
-    if (result > 0 && LinuxApmFd >= 0 && FD_ISSET(LinuxApmFd, readmask)) {
+    if (LinuxApmFd >= 0) {
         apm_event_t event;
         Bool running = LinuxApmRunning;
         int cmd = APM_IOC_SUSPEND;
@@ -242,8 +235,7 @@ LinuxEnable(void)
     if (LinuxApmFd >= 0) {
         LinuxApmRunning = TRUE;
         fcntl(LinuxApmFd, F_SETFL, fcntl(LinuxApmFd, F_GETFL) | NOBLOCK);
-        RegisterBlockAndWakeupHandlers(LinuxApmBlock, LinuxApmWakeup, 0);
-        AddEnabledDevice(LinuxApmFd);
+        SetNotifyFd(LinuxApmFd, LinuxApmNotify, X_NOTIFY_READ, NULL);
     }
 
     /*
@@ -273,8 +265,7 @@ LinuxDisable(void)
     }
     enabled = FALSE;
     if (LinuxApmFd >= 0) {
-        RemoveBlockAndWakeupHandlers(LinuxApmBlock, LinuxApmWakeup, 0);
-        RemoveEnabledDevice(LinuxApmFd);
+        RemoveNotifyFd(LinuxApmFd);
         close(LinuxApmFd);
         LinuxApmFd = -1;
     }

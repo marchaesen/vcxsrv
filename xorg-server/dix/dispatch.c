@@ -222,11 +222,11 @@ UpdateCurrentTimeIf(void)
 #define SMART_SCHEDULE_DEFAULT_INTERVAL	5
 #define SMART_SCHEDULE_MAX_SLICE	15
 
-#if defined(WIN32) && !defined(__CYGWIN__)
-Bool SmartScheduleDisable = TRUE;
-#else
-Bool SmartScheduleDisable = FALSE;
+#ifdef HAVE_SETITIMER
+#define SMART_SCHEDULE_DEFAULT_SIGNAL_ENABLE HAVE_SETITIMER
+Bool SmartScheduleSignalEnable = SMART_SCHEDULE_DEFAULT_SIGNAL_ENABLE;
 #endif
+
 long SmartScheduleSlice = SMART_SCHEDULE_DEFAULT_INTERVAL;
 long SmartScheduleInterval = SMART_SCHEDULE_DEFAULT_INTERVAL;
 long SmartScheduleMaxSlice = SMART_SCHEDULE_MAX_SLICE;
@@ -358,7 +358,7 @@ Dispatch(void)
 
         nready = WaitForSomething(clientReady);
 
-        if (nready && !SmartScheduleDisable) {
+        if (nready) {
             clientReady[0] = SmartScheduleClient(clientReady, nready);
             nready = 1;
         }
@@ -386,8 +386,8 @@ Dispatch(void)
                     ProcessInputEvents();
 
                 FlushIfCriticalOutputPending();
-                if (!SmartScheduleDisable &&
-                    (SmartScheduleTime - start_tick) >= SmartScheduleSlice) {
+                if ((SmartScheduleTime - start_tick) >= SmartScheduleSlice)
+                {
                     /* Penalize clients which consume ticks */
                     if (client->smart_priority > SMART_MIN_PRIORITY)
                         client->smart_priority--;
@@ -431,6 +431,9 @@ Dispatch(void)
                             (*client->requestVector[client->majorOp]) (client);
                     XaceHookAuditEnd(client, result);
                 }
+                if (!SmartScheduleSignalEnable)
+                    SmartScheduleTime = GetTimeInMillis();
+
 #ifdef XSERVER_DTRACE
                 if (XSERVER_REQUEST_DONE_ENABLED())
                     XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp),

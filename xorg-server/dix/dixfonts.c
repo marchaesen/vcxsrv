@@ -1809,6 +1809,8 @@ InitFonts(void)
 {
     patternCache = MakeFontPatternCache();
 
+    ResetFontPrivateIndex();
+
     register_fpe_functions();
 }
 

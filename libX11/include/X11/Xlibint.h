@@ -55,14 +55,6 @@ from The Open Group.
 #define _XFlush _XFlushIt
 #endif
 
-/*
- * If your BytesReadable correctly detects broken connections, then
- * you should NOT define XCONN_CHECK_FREQ.
- */
-#ifndef XCONN_CHECK_FREQ
-#define XCONN_CHECK_FREQ 256
-#endif
-
 struct _XGC
 {
     XExtData *ext_data;	/* hook for extension to hang data */

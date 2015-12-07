@@ -59,15 +59,14 @@ typedef struct _AnimCur {
 
 typedef struct _AnimScrPriv {
     CloseScreenProcPtr CloseScreen;
-
-    ScreenBlockHandlerProcPtr BlockHandler;
-
     CursorLimitsProcPtr CursorLimits;
     DisplayCursorProcPtr DisplayCursor;
     SetCursorPositionProcPtr SetCursorPosition;
     RealizeCursorProcPtr RealizeCursor;
     UnrealizeCursorProcPtr UnrealizeCursor;
     RecolorCursorProcPtr RecolorCursor;
+    OsTimerPtr timer;
+    Bool timer_set;
 } AnimCurScreenRec, *AnimCurScreenPtr;
 
 static unsigned char empty[4];
@@ -129,28 +128,23 @@ AnimCurCursorLimits(DeviceIntPtr pDev,
 }
 
 /*
- * This has to be a screen block handler instead of a generic
- * block handler so that it is well ordered with respect to the DRI
- * block handler responsible for releasing the hardware to DRI clients
+ * The cursor animation timer has expired, go display any relevant cursor changes
+ * and compute a new timeout value
  */
 
-static void
-AnimCurScreenBlockHandler(ScreenPtr pScreen,
-                          void *pTimeout, void *pReadmask)
+static CARD32
+AnimCurTimerNotify(OsTimerPtr timer, CARD32 now, void *arg)
 {
+    ScreenPtr pScreen = arg;
     AnimCurScreenPtr as = GetAnimCurScreen(pScreen);
     DeviceIntPtr dev;
     Bool activeDevice = FALSE;
-    CARD32 now = 0, soonest = ~0;       /* earliest time to wakeup again */
-
-    Unwrap(as, pScreen, BlockHandler);
+    CARD32 soonest = ~0;       /* earliest time to wakeup again */
 
     for (dev = inputInfo.devices; dev; dev = dev->next) {
         if (IsPointerDevice(dev) && pScreen == dev->spriteInfo->anim.pScreen) {
-            if (!activeDevice) {
-                now = GetTimeInMillis();
+            if (!activeDevice)
                 activeDevice = TRUE;
-            }
 
             if ((INT32) (now - dev->spriteInfo->anim.time) >= 0) {
                 AnimCurPtr ac = GetAnimCur(dev->spriteInfo->anim.pCursor);
@@ -180,13 +174,11 @@ AnimCurScreenBlockHandler(ScreenPtr pScreen,
     }
 
     if (activeDevice)
-        AdjustWaitForDelay(pTimeout, soonest - now);
-
-    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
-    if (activeDevice)
-        Wrap(as, pScreen, BlockHandler, AnimCurScreenBlockHandler);
+        TimerSet(as->timer, TimerAbsolute, soonest, AnimCurTimerNotify, pScreen);
     else
-        as->BlockHandler = NULL;
+        as->timer_set = FALSE;
+
+    return 0;
 }
 
 static Bool
@@ -212,8 +204,11 @@ AnimCurDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
                 pDev->spriteInfo->anim.pCursor = pCursor;
                 pDev->spriteInfo->anim.pScreen = pScreen;
 
-                if (!as->BlockHandler)
-                    Wrap(as, pScreen, BlockHandler, AnimCurScreenBlockHandler);
+                if (!as->timer_set) {
+                    TimerSet(as->timer, TimerAbsolute, pDev->spriteInfo->anim.time,
+                             AnimCurTimerNotify, pScreen);
+                    as->timer_set = TRUE;
+                }
             }
         }
         else
@@ -239,8 +234,11 @@ AnimCurSetCursorPosition(DeviceIntPtr pDev,
     if (pDev->spriteInfo->anim.pCursor) {
         pDev->spriteInfo->anim.pScreen = pScreen;
 
-        if (!as->BlockHandler)
-            Wrap(as, pScreen, BlockHandler, AnimCurScreenBlockHandler);
+        if (!as->timer_set) {
+            TimerSet(as->timer, TimerAbsolute, pDev->spriteInfo->anim.time,
+                     AnimCurTimerNotify, pScreen);
+            as->timer_set = TRUE;
+        }
     }
     ret = (*pScreen->SetCursorPosition) (pDev, pScreen, x, y, generateEvent);
     Wrap(as, pScreen, SetCursorPosition, AnimCurSetCursorPosition);
@@ -316,9 +314,14 @@ AnimCurInit(ScreenPtr pScreen)
     as = (AnimCurScreenPtr) malloc(sizeof(AnimCurScreenRec));
     if (!as)
         return FALSE;
-    Wrap(as, pScreen, CloseScreen, AnimCurCloseScreen);
+    as->timer = TimerSet(NULL, TimerAbsolute, 0, AnimCurTimerNotify, pScreen);
+    if (!as->timer) {
+        free(as);
+        return FALSE;
+    }
+    as->timer_set = FALSE;
 
-    as->BlockHandler = NULL;
+    Wrap(as, pScreen, CloseScreen, AnimCurCloseScreen);
 
     Wrap(as, pScreen, CursorLimits, AnimCurCursorLimits);
     Wrap(as, pScreen, DisplayCursor, AnimCurDisplayCursor);

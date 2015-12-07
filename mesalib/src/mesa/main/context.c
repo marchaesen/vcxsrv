@@ -654,6 +654,9 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    /* GL_EXT_provoking_vertex */
    consts->QuadsFollowProvokingVertexConvention = GL_TRUE;
 
+   /** GL_ARB_viewport_array */
+   consts->LayerAndVPIndexProvokingVertex = GL_UNDEFINED_VERTEX;
+
    /* GL_EXT_transform_feedback */
    consts->MaxTransformFeedbackBuffers = MAX_FEEDBACK_BUFFERS;
    consts->MaxTransformFeedbackSeparateComponents = 4 * MAX_FEEDBACK_ATTRIBS;

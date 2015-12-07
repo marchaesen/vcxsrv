@@ -71,7 +71,6 @@ __stdcall unsigned long GetTickCount(void);
 #if !defined(WIN32) || !defined(__MINGW32__)
 #include <sys/time.h>
 #include <sys/resource.h>
-# define SMART_SCHEDULE_POSSIBLE
 #endif
 #include "misc.h"
 #include <X11/X.h>
@@ -1005,10 +1004,11 @@ ProcessCommandLine(int argc, char *argv[])
             i = skip - 1;
         }
 #endif
-#ifdef SMART_SCHEDULE_POSSIBLE
+#if HAVE_SETITIMER
         else if (strcmp(argv[i], "-dumbSched") == 0) {
-            SmartScheduleDisable = TRUE;
+            SmartScheduleSignalEnable = FALSE;
         }
+#endif
         else if (strcmp(argv[i], "-schedInterval") == 0) {
             if (++i < argc) {
                 SmartScheduleInterval = atoi(argv[i]);
@@ -1024,7 +1024,6 @@ ProcessCommandLine(int argc, char *argv[])
             else
                 UseMsg();
         }
-#endif
         else if (strcmp(argv[i], "-render") == 0) {
             if (++i < argc) {
                 int policy = PictureParseCmapPolicy(argv[i]);
@@ -1208,10 +1207,10 @@ XNFstrdup(const char *s)
 void
 SmartScheduleStopTimer(void)
 {
-#ifdef SMART_SCHEDULE_POSSIBLE
+#if HAVE_SETITIMER
     struct itimerval timer;
 
-    if (SmartScheduleDisable)
+    if (!SmartScheduleSignalEnable)
         return;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
@@ -1224,10 +1223,10 @@ SmartScheduleStopTimer(void)
 void
 SmartScheduleStartTimer(void)
 {
-#ifdef SMART_SCHEDULE_POSSIBLE
+#if HAVE_SETITIMER
     struct itimerval timer;
 
-    if (SmartScheduleDisable)
+    if (!SmartScheduleSignalEnable)
         return;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = SmartScheduleInterval * 1000;
@@ -1237,6 +1236,7 @@ SmartScheduleStartTimer(void)
 #endif
 }
 
+#if HAVE_SETITIMER
 static void
 SmartScheduleTimer(int sig)
 {
@@ -1247,10 +1247,9 @@ static int
 SmartScheduleEnable(void)
 {
     int ret = 0;
-#ifdef SMART_SCHEDULE_POSSIBLE
     struct sigaction act;
 
-    if (SmartScheduleDisable)
+    if (!SmartScheduleSignalEnable)
         return 0;
 
     memset((char *) &act, 0, sizeof(struct sigaction));
@@ -1261,7 +1260,6 @@ SmartScheduleEnable(void)
     sigemptyset(&act.sa_mask);
     sigaddset(&act.sa_mask, SIGALRM);
     ret = sigaction(SIGALRM, &act, 0);
-#endif
     return ret;
 }
 
@@ -1269,10 +1267,9 @@ static int
 SmartSchedulePause(void)
 {
     int ret = 0;
-#ifdef SMART_SCHEDULE_POSSIBLE
     struct sigaction act;
 
-    if (SmartScheduleDisable)
+    if (!SmartScheduleSignalEnable)
         return 0;
 
     memset((char *) &act, 0, sizeof(struct sigaction));
@@ -1280,20 +1277,19 @@ SmartSchedulePause(void)
     act.sa_handler = SIG_IGN;
     sigemptyset(&act.sa_mask);
     ret = sigaction(SIGALRM, &act, 0);
-#endif
     return ret;
 }
+#endif
 
 void
 SmartScheduleInit(void)
 {
-    if (SmartScheduleDisable)
-        return;
-
+#if HAVE_SETITIMER
     if (SmartScheduleEnable() < 0) {
         perror("sigaction for smart scheduler");
-        SmartScheduleDisable = TRUE;
+        SmartScheduleSignalEnable = FALSE;
     }
+#endif
 }
 
 #ifdef SIG_BLOCK
@@ -1490,6 +1486,7 @@ Popen(const char *command, const char *type)
     }
 
     /* Ignore the smart scheduler while this is going on */
+#if HAVE_SETITIMER
     if (SmartSchedulePause() < 0) {
         close(pdes[0]);
         close(pdes[1]);
@@ -1497,14 +1494,17 @@ Popen(const char *command, const char *type)
         perror("signal");
         return NULL;
     }
+#endif
 
     switch (pid = fork()) {
     case -1:                   /* error */
         close(pdes[0]);
         close(pdes[1]);
         free(cur);
+#if HAVE_SETITIMER
         if (SmartScheduleEnable() < 0)
             perror("signal");
+#endif
         return NULL;
     case 0:                    /* child */
         if (setgid(getgid()) == -1)
@@ -1678,10 +1678,12 @@ Pclose(void *iop)
     /* allow EINTR again */
     OsReleaseSignals();
 
+#if HAVE_SETITIMER
     if (SmartScheduleEnable() < 0) {
         perror("signal");
         return -1;
     }
+#endif
 
     return pid == -1 ? -1 : pstat;
 }

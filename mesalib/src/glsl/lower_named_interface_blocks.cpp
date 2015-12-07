@@ -187,6 +187,7 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
             new_var->data.sample = iface_t->fields.structure[i].sample;
             new_var->data.patch = iface_t->fields.structure[i].patch;
             new_var->data.stream = var->data.stream;
+            new_var->data.how_declared = var->data.how_declared;
 
             new_var->init_interface_type(iface_t);
             hash_table_insert(interface_namespace, new_var,
