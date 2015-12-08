@@ -758,6 +758,10 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
             return;
          }
       }
+      /* We need to reset the validate flag on changes to samplers in case
+       * two different sampler types are set to the same texture unit.
+       */
+      ctx->_Shader->Validated = GL_FALSE;
    }
 
    if (uni->type->is_image()) {

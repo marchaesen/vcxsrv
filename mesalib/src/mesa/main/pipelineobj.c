@@ -757,8 +757,7 @@ program_stages_interleaved_illegally(const struct gl_pipeline_object *pipe)
 
 extern GLboolean
 _mesa_validate_program_pipeline(struct gl_context* ctx,
-                                struct gl_pipeline_object *pipe,
-                                GLboolean IsBound)
+                                struct gl_pipeline_object *pipe)
 {
    unsigned i;
    bool program_empty = true;
@@ -789,7 +788,7 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
     */
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
       if (!program_stages_all_active(pipe, pipe->CurrentProgram[i])) {
-         goto err;
+         return GL_FALSE;
       }
    }
 
@@ -810,7 +809,7 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
          ralloc_strdup(pipe,
                        "Program is active for multiple shader stages with an "
                        "intervening stage provided by another program");
-      goto err;
+      return GL_FALSE;
    }
 
    /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
@@ -831,7 +830,7 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
            pipe->CurrentProgram[MESA_SHADER_TESS_CTRL] ||
            pipe->CurrentProgram[MESA_SHADER_TESS_EVAL])) {
       pipe->InfoLog = ralloc_strdup(pipe, "Program lacks a vertex shader");
-      goto err;
+      return GL_FALSE;
    }
 
    /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
@@ -854,7 +853,7 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
                                          "Program %d was relinked without "
                                          "PROGRAM_SEPARABLE state",
                                          pipe->CurrentProgram[i]->Name);
-         goto err;
+         return GL_FALSE;
       }
    }
 
@@ -878,7 +877,7 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
    }
 
    if (program_empty) {
-      goto err;
+      return GL_FALSE;
    }
 
    /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
@@ -896,17 +895,25 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
     *           maximum number of texture image units allowed."
     */
    if (!_mesa_sampler_uniforms_pipeline_are_valid(pipe))
-      goto err;
+      return GL_FALSE;
+
+   /* Validate inputs against outputs, this cannot be done during linking
+    * since programs have been linked separately from each other.
+    *
+    * From OpenGL 4.5 Core spec:
+    *     "Separable program objects may have validation failures that cannot be
+    *     detected without the complete program pipeline. Mismatched interfaces,
+    *     improper usage of program objects together, and the same
+    *     state-dependent failures can result in validation errors for such
+    *     program objects."
+    *
+    * OpenGL ES 3.1 specification has the same text.
+    */
+   if (!_mesa_validate_pipeline_io(pipe))
+      return GL_FALSE;
 
    pipe->Validated = GL_TRUE;
    return GL_TRUE;
-
-err:
-   if (IsBound)
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glValidateProgramPipeline failed to validate the pipeline");
-
-   return GL_FALSE;
 }
 
 /**
@@ -928,26 +935,7 @@ _mesa_ValidateProgramPipeline(GLuint pipeline)
       return;
    }
 
-   /* ValidateProgramPipeline should not throw errors when pipeline validation
-    * fails and should instead only update the validation status. We pass
-    * false for IsBound to avoid an error being thrown.
-    */
-   _mesa_validate_program_pipeline(ctx, pipe, false);
-
-   /* Validate inputs against outputs, this cannot be done during linking
-    * since programs have been linked separately from each other.
-    *
-    * From OpenGL 4.5 Core spec:
-    *     "Separable program objects may have validation failures that cannot be
-    *     detected without the complete program pipeline. Mismatched interfaces,
-    *     improper usage of program objects together, and the same
-    *     state-dependent failures can result in validation errors for such
-    *     program objects."
-    *
-    * OpenGL ES 3.1 specification has the same text.
-    */
-   if (!_mesa_validate_pipeline_io(pipe))
-      pipe->Validated = GL_FALSE;
+   _mesa_validate_program_pipeline(ctx, pipe);
 }
 
 void GLAPIENTRY

@@ -374,12 +374,17 @@ present_set_tree_pixmap_visit(WindowPtr window, void *data)
 }
 
 static void
-present_set_tree_pixmap(WindowPtr window, PixmapPtr pixmap)
+present_set_tree_pixmap(WindowPtr window,
+                        PixmapPtr expected,
+                        PixmapPtr pixmap)
 {
     struct pixmap_visit visit;
     ScreenPtr           screen = window->drawable.pScreen;
 
     visit.old = (*screen->GetWindowPixmap)(window);
+    if (expected && visit.old != expected)
+        return;
+
     visit.new = pixmap;
     if (visit.old == visit.new)
         return;
@@ -390,6 +395,7 @@ static void
 present_set_abort_flip(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
+    PixmapPtr pixmap = (*screen->GetScreenPixmap)(screen);
 
     /* Switch back to using the screen pixmap now to avoid
      * 2D applications drawing to the wrong pixmap.
@@ -397,10 +403,11 @@ present_set_abort_flip(ScreenPtr screen)
 
     if (screen_priv->flip_window)
         present_set_tree_pixmap(screen_priv->flip_window,
-                                  (*screen->GetScreenPixmap)(screen));
+                                screen_priv->flip_pixmap,
+                                pixmap);
 
     if (screen->root)
-        present_set_tree_pixmap(screen->root, (*screen->GetScreenPixmap)(screen));
+        present_set_tree_pixmap(screen->root, NULL, pixmap);
 
     screen_priv->flip_pending->abort_flip = TRUE;
 }
@@ -414,10 +421,12 @@ present_unflip(ScreenPtr screen)
     assert (!screen_priv->unflip_event_id);
     assert (!screen_priv->flip_pending);
 
-    if (screen_priv->flip_window)
-        present_set_tree_pixmap(screen_priv->flip_window, pixmap);
+    if (screen_priv->flip_pixmap && screen_priv->flip_window)
+        present_set_tree_pixmap(screen_priv->flip_window,
+                                screen_priv->flip_pixmap,
+                                pixmap);
 
-    present_set_tree_pixmap(screen->root, pixmap);
+    present_set_tree_pixmap(screen->root, NULL, pixmap);
 
     /* Update the screen pixmap with the current flip pixmap contents
      */
@@ -453,6 +462,7 @@ present_flip_notify(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     screen_priv->flip_window = vblank->window;
     screen_priv->flip_serial = vblank->serial;
     screen_priv->flip_pixmap = vblank->pixmap;
+    screen_priv->flip_sync = vblank->sync_flip;
     screen_priv->flip_idle_fence = vblank->idle_fence;
 
     vblank->pixmap = NULL;
@@ -541,15 +551,20 @@ present_check_flip_window (WindowPtr window)
          * Check current flip
          */
         if (window == screen_priv->flip_window) {
-            if (!present_check_flip(screen_priv->flip_crtc, window, screen_priv->flip_pixmap, FALSE, NULL, 0, 0))
+            if (!present_check_flip(screen_priv->flip_crtc, window, screen_priv->flip_pixmap, screen_priv->flip_sync, NULL, 0, 0))
                 present_unflip(screen);
         }
     }
 
     /* Now check any queued vblanks */
     xorg_list_for_each_entry(vblank, &window_priv->vblank, window_list) {
-        if (vblank->queued && vblank->flip && !present_check_flip(vblank->crtc, window, vblank->pixmap, FALSE, NULL, 0, 0))
+        if (vblank->queued && vblank->flip && !present_check_flip(vblank->crtc, window, vblank->pixmap, vblank->sync_flip, NULL, 0, 0)) {
             vblank->flip = FALSE;
+            if (vblank->sync_flip) {
+                vblank->requeue = TRUE;
+                vblank->target_msc++;
+            }
+        }
     }
 }
 
@@ -582,6 +597,15 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     ScreenPtr                   screen = window->drawable.pScreen;
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
     uint8_t                     mode;
+
+    if (vblank->requeue) {
+        vblank->requeue = FALSE;
+        if (Success == present_queue_vblank(screen,
+                                            vblank->crtc,
+                                            vblank->event_id,
+                                            vblank->target_msc))
+            return;
+    }
 
     if (vblank->wait_fence) {
         if (!present_fence_check_triggered(vblank->wait_fence)) {
@@ -629,9 +653,10 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
                  */
                 if (screen_priv->flip_window && screen_priv->flip_window != window)
                     present_set_tree_pixmap(screen_priv->flip_window,
-                                              (*screen->GetScreenPixmap)(screen));
-                present_set_tree_pixmap(vblank->window, vblank->pixmap);
-                present_set_tree_pixmap(screen->root, vblank->pixmap);
+                                            screen_priv->flip_pixmap,
+                                            (*screen->GetScreenPixmap)(screen));
+                present_set_tree_pixmap(vblank->window, NULL, vblank->pixmap);
+                present_set_tree_pixmap(screen->root, NULL, vblank->pixmap);
 
                 /* Report update region as damaged
                  */

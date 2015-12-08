@@ -2034,9 +2034,10 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 
    /* A pipeline object is bound */
    if (ctx->_Shader->Name && !ctx->_Shader->Validated) {
-      /* Error message will be printed inside _mesa_validate_program_pipeline.
-       */
-      if (!_mesa_validate_program_pipeline(ctx, ctx->_Shader, GL_TRUE)) {
+      if (!_mesa_validate_program_pipeline(ctx, ctx->_Shader)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glValidateProgramPipeline failed to validate the "
+                     "pipeline");
          return GL_FALSE;
       }
    }
