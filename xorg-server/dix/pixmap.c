@@ -173,6 +173,9 @@ PixmapStartDirtyTracking(PixmapPtr src,
 {
     ScreenPtr screen = src->drawable.pScreen;
     PixmapDirtyUpdatePtr dirty_update;
+    RegionPtr damageregion;
+    RegionRec dstregion;
+    BoxRec box;
 
     dirty_update = calloc(1, sizeof(PixmapDirtyUpdateRec));
     if (!dirty_update)
@@ -204,6 +207,24 @@ PixmapStartDirtyTracking(PixmapPtr src,
         free(dirty_update);
         return FALSE;
     }
+
+    /* Damage destination rectangle so that the destination pixmap contents
+     * will get fully initialized
+     */
+    box.x1 = dirty_update->x;
+    box.y1 = dirty_update->y;
+    if (dirty_update->rotation == RR_Rotate_90 ||
+        dirty_update->rotation == RR_Rotate_270) {
+        box.x2 = dirty_update->x + slave_dst->drawable.height;
+        box.y2 = dirty_update->y + slave_dst->drawable.width;
+    } else {
+        box.x2 = dirty_update->x + slave_dst->drawable.width;
+        box.y2 = dirty_update->y + slave_dst->drawable.height;
+    }
+    RegionInit(&dstregion, &box, 1);
+    damageregion = DamageRegion(dirty_update->damage);
+    RegionUnion(damageregion, damageregion, &dstregion);
+    RegionUninit(&dstregion);
 
     DamageRegister(&src->drawable, dirty_update->damage);
     xorg_list_add(&dirty_update->ent, &screen->pixmap_dirty_list);

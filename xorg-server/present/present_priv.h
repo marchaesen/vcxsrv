@@ -70,6 +70,7 @@ struct present_vblank {
     present_notify_ptr  notifies;
     int                 num_notifies;
     Bool                queued;         /* on present_exec_queue */
+    Bool                requeue;        /* on queue, but target_msc has changed */
     Bool                flip;           /* planning on using flip */
     Bool                flip_ready;     /* wants to flip, but waiting for previous flip or unflip */
     Bool                sync_flip;      /* do flip synchronous to vblank */
@@ -93,6 +94,7 @@ typedef struct present_screen_priv {
     uint32_t                    flip_serial;
     PixmapPtr                   flip_pixmap;
     present_fence_ptr           flip_idle_fence;
+    Bool                        flip_sync;
 
     present_screen_info_ptr     info;
 } present_screen_priv_rec, *present_screen_priv_ptr;

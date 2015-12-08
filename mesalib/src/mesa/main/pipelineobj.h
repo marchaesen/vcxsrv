@@ -67,7 +67,8 @@ _mesa_bind_pipeline(struct gl_context *ctx,
                     struct gl_pipeline_object *pipe);
 
 extern GLboolean
-_mesa_validate_program_pipeline(struct gl_context * ctx, struct gl_pipeline_object *pipe, GLboolean IsBound);
+_mesa_validate_program_pipeline(struct gl_context * ctx,
+                                struct gl_pipeline_object *pipe);
 
 
 extern void GLAPIENTRY

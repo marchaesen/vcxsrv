@@ -1369,7 +1369,7 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
 
 static bool
 validate_io(const struct gl_shader *input_stage,
-            const struct gl_shader *output_stage)
+            const struct gl_shader *output_stage, bool isES)
 {
    assert(input_stage && output_stage);
 
@@ -1385,15 +1385,25 @@ validate_io(const struct gl_shader *input_stage,
             continue;
 
          if (strcmp(in_var->name, out_var->name) == 0) {
-            /* From OpenGL ES 3.1 spec:
-             *     "When both shaders are in separate programs, mismatched
-             *     precision qualifiers will result in a program interface
-             *     mismatch that will result in program pipeline validation
-             *     failures, as described in section 7.4.1 (“Shader Interface
-             *     Matching”) of the OpenGL ES 3.1 Specification."
+            /* Since we now only validate precision, we can skip this step for
+             * desktop GLSL shaders, there precision qualifier is ignored.
+             *
+             * From OpenGL 4.50 Shading Language spec, section 4.7:
+             *     "For the purposes of determining if an output from one
+             *     shader stage matches an input of the next stage, the
+             *     precision qualifier need not match."
              */
-            if (in_var->data.precision != out_var->data.precision)
-               return false;
+            if (isES) {
+               /* From OpenGL ES 3.1 spec:
+                *     "When both shaders are in separate programs, mismatched
+                *     precision qualifiers will result in a program interface
+                *     mismatch that will result in program pipeline validation
+                *     failures, as described in section 7.4.1 (“Shader Interface
+                *     Matching”) of the OpenGL ES 3.1 Specification."
+                */
+               if (in_var->data.precision != out_var->data.precision)
+                  return false;
+            }
          }
       }
    }
@@ -1420,19 +1430,10 @@ _mesa_validate_pipeline_io(struct gl_pipeline_object *pipeline)
 
    for (idx = prev + 1; idx < ARRAY_SIZE(pipeline->CurrentProgram); idx++) {
       if (shProg[idx]) {
-         /* Since we now only validate precision, we can skip this step for
-          * desktop GLSL shaders, there precision qualifier is ignored.
-          *
-          * From OpenGL 4.50 Shading Language spec, section 4.7:
-          *     "For the purposes of determining if an output from one shader
-          *     stage matches an input of the next stage, the precision
-          *     qualifier need not match."
-          */
-         if (shProg[prev]->IsES || shProg[idx]->IsES) {
-            if (!validate_io(shProg[prev]->_LinkedShaders[prev],
-                             shProg[idx]->_LinkedShaders[idx]))
-               return false;
-         }
+         if (!validate_io(shProg[prev]->_LinkedShaders[prev],
+                          shProg[idx]->_LinkedShaders[idx],
+                          shProg[prev]->IsES || shProg[idx]->IsES))
+            return false;
          prev = idx;
       }
    }
