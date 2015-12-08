@@ -397,7 +397,7 @@ util_clear_render_target(struct pipe_context *pipe,
          }
       }
       else {
-         util_pack_color(color->f, dst->format, &uc);
+         util_pack_color(color->f, format, &uc);
       }
 
       util_fill_box(dst_map, dst->format,

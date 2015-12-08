@@ -330,6 +330,25 @@ ms_setup_scrn_hooks(ScrnInfoPtr scrn)
     scrn->ValidMode = ValidMode;
 }
 
+static void
+ms_setup_entity(ScrnInfoPtr scrn, int entity_num)
+{
+    DevUnion *pPriv;
+
+    xf86SetEntitySharable(entity_num);
+
+    if (ms_entity_index == -1)
+        ms_entity_index = xf86AllocateEntityPrivateIndex();
+
+    pPriv = xf86GetEntityPrivate(entity_num,
+                                 ms_entity_index);
+
+    xf86SetEntityInstanceForScreen(scrn, entity_num, xf86GetNumEntityInstances(entity_num) - 1);
+
+    if (!pPriv->ptr)
+        pPriv->ptr = xnfcalloc(sizeof(modesettingEntRec), 1);
+}
+
 #if XSERVER_LIBPCIACCESS
 static Bool
 ms_pci_probe(DriverPtr driver,
@@ -353,6 +372,8 @@ ms_pci_probe(DriverPtr driver,
                        dev->bus, dev->domain, dev->dev, dev->func);
             xf86DrvMsg(scrn->scrnIndex, X_INFO,
                        "using %s\n", devpath ? devpath : "default device");
+
+            ms_setup_entity(scrn, entity_num);
         }
         else
             scrn = NULL;
@@ -385,31 +406,7 @@ ms_platform_probe(DriverPtr driver,
         xf86DrvMsg(scrn->scrnIndex, X_INFO,
                    "using drv %s\n", path ? path : "default device");
 
-        {
-            DevUnion *pPriv;
-            EntityInfoPtr pEnt;
-            modesettingEntPtr pMSEnt;
-
-            xf86SetEntitySharable(entity_num);
-
-            if (ms_entity_index == -1)
-                ms_entity_index = xf86AllocateEntityPrivateIndex();
-
-            pEnt = xf86GetEntityInfo(entity_num);
-            pPriv = xf86GetEntityPrivate(pEnt->index,
-                                         ms_entity_index);
-
-            xf86SetEntityInstanceForScreen(scrn, pEnt->index, xf86GetNumEntityInstances(pEnt->index) - 1);
-
-            if (!pPriv->ptr) {
-                pPriv->ptr = xnfcalloc(sizeof(modesettingEntRec), 1);
-                pMSEnt = pPriv->ptr;
-            } else {
-                pMSEnt = pPriv->ptr;
-            }
-            pMSEnt->platform_dev = dev;
-        }
-
+        ms_setup_entity(scrn, entity_num);
     }
 
     return scrn != NULL;
@@ -438,13 +435,12 @@ Probe(DriverPtr drv, int flags)
     }
 
     for (i = 0; i < numDevSections; i++) {
-
+        int entity_num;
         dev = xf86FindOptionValue(devSections[i]->options, "kmsdev");
         if (probe_hw(dev, NULL)) {
-            int entity;
 
-            entity = xf86ClaimFbSlot(drv, 0, devSections[i], TRUE);
-            scrn = xf86ConfigFbEntity(scrn, 0, entity, NULL, NULL, NULL, NULL);
+            entity_num = xf86ClaimFbSlot(drv, 0, devSections[i], TRUE);
+            scrn = xf86ConfigFbEntity(scrn, 0, entity_num, NULL, NULL, NULL, NULL);
         }
 
         if (scrn) {
@@ -454,6 +450,7 @@ Probe(DriverPtr drv, int flags)
 
             xf86DrvMsg(scrn->scrnIndex, X_INFO,
                        "using %s\n", dev ? dev : "default device");
+            ms_setup_entity(scrn, entity_num);
         }
     }
 

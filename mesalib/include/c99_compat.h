@@ -81,8 +81,6 @@
      /* Intel compiler supports inline keyword */
 #  elif defined(__WATCOMC__) && (__WATCOMC__ >= 1100)
 #    define inline __inline
-#  elif defined(__SUNPRO_C) && defined(__C99FEATURES__)
-     /* C99 supports inline keyword */
 #  elif (__STDC_VERSION__ >= 199901L)
      /* C99 supports inline keyword */
 #  else
@@ -100,8 +98,6 @@
 #ifndef restrict
 #  if (__STDC_VERSION__ >= 199901L)
      /* C99 */
-#  elif defined(__SUNPRO_C) && defined(__C99FEATURES__)
-     /* C99 */
 #  elif defined(__GNUC__)
 #    define restrict __restrict__
 #  elif defined(_MSC_VER)
@@ -117,8 +113,6 @@
  */
 #ifndef __func__
 #  if (__STDC_VERSION__ >= 199901L)
-     /* C99 */
-#  elif defined(__SUNPRO_C) && defined(__C99FEATURES__)
      /* C99 */
 #  elif defined(__GNUC__)
 #    define __func__ __FUNCTION__

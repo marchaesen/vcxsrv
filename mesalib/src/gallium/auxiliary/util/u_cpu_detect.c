@@ -182,7 +182,7 @@ static int has_cpuid(void)
 static inline void
 cpuid(uint32_t ax, uint32_t *p)
 {
-#if (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86)
+#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86)
    __asm __volatile (
      "xchgl %%ebx, %1\n\t"
      "cpuid\n\t"
@@ -193,7 +193,7 @@ cpuid(uint32_t ax, uint32_t *p)
        "=d" (p[3])
      : "0" (ax)
    );
-#elif (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86_64)
+#elif defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86_64)
    __asm __volatile (
      "cpuid\n\t"
      : "=a" (p[0]),
@@ -219,7 +219,7 @@ cpuid(uint32_t ax, uint32_t *p)
 static inline void
 cpuid_count(uint32_t ax, uint32_t cx, uint32_t *p)
 {
-#if (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86)
+#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86)
    __asm __volatile (
      "xchgl %%ebx, %1\n\t"
      "cpuid\n\t"
@@ -230,7 +230,7 @@ cpuid_count(uint32_t ax, uint32_t cx, uint32_t *p)
        "=d" (p[3])
      : "0" (ax), "2" (cx)
    );
-#elif (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86_64)
+#elif defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86_64)
    __asm __volatile (
      "cpuid\n\t"
      : "=a" (p[0]),
@@ -281,7 +281,7 @@ PIPE_ALIGN_STACK static inline boolean sse2_has_daz(void)
    } PIPE_ALIGN_VAR(16) fxarea;
 
    fxarea.mxcsr_mask = 0;
-#if (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO))
+#if defined(PIPE_CC_GCC)
    __asm __volatile ("fxsave %0" : "+m" (fxarea));
 #elif (defined(PIPE_CC_MSVC) && _MSC_VER >= 1700) || defined(PIPE_CC_ICL)
    /* 1700 = Visual Studio 2012 */

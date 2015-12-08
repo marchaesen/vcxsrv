@@ -78,7 +78,7 @@
     <enum name="COUNTER_TYPE_AMD" value="0x8BC0"/>
     <enum name="COUNTER_RANGE_AMD" value="0x8BC1"/>
     <enum name="UNSIGNED_INT64_AMD" value="0x8BC2"/>
-    <enum name="PECENTAGE_AMD" value="0x8BC3"/>
+    <enum name="PERCENTAGE_AMD" value="0x8BC3"/>
     <enum name="PERFMON_RESULT_AVAILABLE_AMD" value="0x8BC4"/>
     <enum name="PERFMON_RESULT_SIZE_AMD" value="0x8BC5"/>
     <enum name="PERFMON_RESULT_AMD" value="0x8BC6"/>

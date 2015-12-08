@@ -130,7 +130,11 @@ extern long SmartScheduleTime;
 extern long SmartScheduleInterval;
 extern long SmartScheduleSlice;
 extern long SmartScheduleMaxSlice;
-extern Bool SmartScheduleDisable;
+#if HAVE_SETITIMER
+extern Bool SmartScheduleSignalEnable;
+#else
+#define SmartScheduleSignalEnable FALSE
+#endif
 extern void SmartScheduleStartTimer(void);
 extern void SmartScheduleStopTimer(void);
 

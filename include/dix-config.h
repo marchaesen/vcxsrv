@@ -83,6 +83,10 @@
 /* Define to 1 if you have the <dbm.h> header file. */
 #undef HAVE_DBM_H
 
+/* Define to 1 if you have the declaration of `program_invocation_short_name', and
+   to 0 if you don't. */
+#undef HAVE_DECL_PROGRAM_INVOCATION_SHORT_NAME
+
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #define HAVE_DIRENT_H 1
@@ -110,6 +114,9 @@
 
 /* Define to 1 if you have the `getpeerucred' function. */
 #undef HAVE_GETPEERUCRED
+
+/* Define to 1 if you have the `getprogname' function. */
+#undef HAVE_GETPROGNAME
 
 /* Define to 1 if you have the `getzoneid' function. */
 #undef HAVE_GETZONEID
@@ -152,6 +159,9 @@
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
+
+/* Define to 1 if you have the `reallocarray' function. */
+#undef HAVE_REALLOCARRAY
 
 /* Define to 1 if you have the <rpcsvc/dbm.h> header file. */
 #undef HAVE_RPCSVC_DBM_H
@@ -407,21 +417,14 @@
 /* Endian order */
 #ifndef X_BYTE_ORDER
 
-#define _X_BYTE_ORDER X_LITTLE_ENDIAN
-/* Deal with multiple architecture compiles on Mac OS X */
-#ifndef __APPLE_CC__
-#define X_BYTE_ORDER _X_BYTE_ORDER
-#else
-#ifdef __BIG_ENDIAN__
-#define X_BYTE_ORDER X_BIG_ENDIAN
-#else
-#define X_BYTE_ORDER X_LITTLE_ENDIAN
-#endif
-#endif
-#endif
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
 
 /* Enable GNU and other extensions to the C environment for GLIBC */
 #undef _GNU_SOURCE
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
@@ -529,8 +532,22 @@
 /* Build glamor's GBM-based EGL support */
 #undef GLAMOR_HAS_GBM
 
+/* Build glamor/gbm has linear support */
+#undef GLAMOR_HAS_GBM_LINEAR
+
 /* byte order */
-/*#undef X_BYTE_ORDER*/
+#define _X_BYTE_ORDER X_LITTLE_ENDIAN
+/* Deal with multiple architecture compiles on Mac OS X */
+#ifndef __APPLE_CC__
+#define X_BYTE_ORDER _X_BYTE_ORDER
+#else
+#ifdef __BIG_ENDIAN__
+#define X_BYTE_ORDER X_BIG_ENDIAN
+#else
+#define X_BYTE_ORDER X_LITTLE_ENDIAN
+#endif
+#endif
+#endif
 
 /* Listen on TCP socket */
 #define LISTEN_TCP 1
@@ -540,6 +557,12 @@
 
 /* Listen on local socket */
 #undef LISTEN_LOCAL
+
+/* Define if no local socket credentials interface exists */
+#define NO_LOCAL_CLIENT_CRED 1
+
+/* Have setitimer support */
+#define HAVE_SETITIMER 1
 
 #include <X11/Xwinsock.h>
 #include <X11/Xwindows.h>

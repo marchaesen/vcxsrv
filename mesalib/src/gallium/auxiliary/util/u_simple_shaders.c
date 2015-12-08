@@ -80,7 +80,7 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
    uint i;
 
    ureg = ureg_create( TGSI_PROCESSOR_VERTEX );
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    if (window_space)
@@ -228,7 +228,7 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
           interp_mode == TGSI_INTERPOLATE_PERSPECTIVE);
 
    ureg = ureg_create( TGSI_PROCESSOR_FRAGMENT );
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
    
    sampler = ureg_DECL_sampler( ureg, 0 );
@@ -298,7 +298,7 @@ util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
    struct ureg_src imm;
 
    ureg = ureg_create( TGSI_PROCESSOR_FRAGMENT );
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    sampler = ureg_DECL_sampler( ureg, 0 );
@@ -350,7 +350,7 @@ util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
    struct ureg_src imm;
 
    ureg = ureg_create( TGSI_PROCESSOR_FRAGMENT );
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    depth_sampler = ureg_DECL_sampler( ureg, 0 );
@@ -414,7 +414,7 @@ util_make_fragment_tex_shader_writestencil(struct pipe_context *pipe,
    struct ureg_src imm;
 
    ureg = ureg_create( TGSI_PROCESSOR_FRAGMENT );
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    stencil_sampler = ureg_DECL_sampler( ureg, 0 );
@@ -494,7 +494,7 @@ void *
 util_make_empty_fragment_shader(struct pipe_context *pipe)
 {
    struct ureg_program *ureg = ureg_create(TGSI_PROCESSOR_FRAGMENT);
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    ureg_END(ureg);
@@ -518,7 +518,7 @@ util_make_fragment_cloneinput_shader(struct pipe_context *pipe, int num_cbufs,
    assert(num_cbufs <= PIPE_MAX_COLOR_BUFS);
 
    ureg = ureg_create( TGSI_PROCESSOR_FRAGMENT );
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    src = ureg_DECL_fs_input( ureg, input_semantic, 0,
@@ -848,7 +848,7 @@ util_make_geometry_passthrough_shader(struct pipe_context *pipe,
    unsigned i;
 
    ureg = ureg_create(TGSI_PROCESSOR_GEOMETRY);
-   if (ureg == NULL)
+   if (!ureg)
       return NULL;
 
    ureg_property(ureg, TGSI_PROPERTY_GS_INPUT_PRIM, PIPE_PRIM_POINTS);

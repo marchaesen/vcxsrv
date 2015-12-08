@@ -259,7 +259,9 @@ LogInit(const char *fname, const char *backup)
 
     return logFileName;
 }
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 
 void
 LogClose(enum ExitCode error)

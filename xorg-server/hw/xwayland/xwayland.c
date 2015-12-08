@@ -115,6 +115,8 @@ xwl_close_screen(ScreenPtr screen)
                                   &xwl_screen->seat_list, link)
         xwl_seat_destroy(xwl_seat);
 
+    RemoveNotifyFd(xwl_screen->wayland_fd);
+
     wl_display_disconnect(xwl_screen->display);
 
     screen->CloseScreen = xwl_screen->CloseScreen;
@@ -453,16 +455,10 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 static void
-wakeup_handler(void *data, int err, void *read_mask)
+socket_handler(int fd, int ready, void *data)
 {
     struct xwl_screen *xwl_screen = data;
     int ret;
-
-    if (err < 0)
-        return;
-
-    if (!FD_ISSET(xwl_screen->wayland_fd, (fd_set *) read_mask))
-        return;
 
     ret = wl_display_read_events(xwl_screen->display);
     if (ret == -1)
@@ -476,7 +472,12 @@ wakeup_handler(void *data, int err, void *read_mask)
 }
 
 static void
-block_handler(void *data, struct timeval **tv, void *read_mask)
+wakeup_handler(void *data, int err, void *pRead)
+{
+}
+
+static void
+block_handler(void *data, OSTimePtr pTimeout, void *pRead)
 {
     struct xwl_screen *xwl_screen = data;
     int ret;
@@ -651,7 +652,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 #endif
 
     xwl_screen->wayland_fd = wl_display_get_fd(xwl_screen->display);
-    AddGeneralSocket(xwl_screen->wayland_fd);
+    SetNotifyFd(xwl_screen->wayland_fd, socket_handler, X_NOTIFY_READ, xwl_screen);
     RegisterBlockAndWakeupHandlers(block_handler, wakeup_handler, xwl_screen);
 
     pScreen->SaveScreen = xwl_save_screen;

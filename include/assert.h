@@ -13,7 +13,7 @@ static __inline void __assert(intptr_t Cond)
 #ifdef _DEBUG
   if (!Cond)
   {
-    printf("assertion occured.\n");
+    fprintf(stderr, "assertion occured.\n");
     DebugBreak();
     while (1);
   }

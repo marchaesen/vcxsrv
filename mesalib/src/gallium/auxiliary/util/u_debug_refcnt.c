@@ -79,7 +79,7 @@ static boolean debug_serial(void* p, unsigned* pserial)
 #endif
 
    pipe_mutex_lock(serials_mutex);
-   if(!serials_hash)
+   if (!serials_hash)
       serials_hash = util_hash_table_create(hash_ptr, compare_ptr);
    serial = (unsigned)(uintptr_t)util_hash_table_get(serials_hash, p);
    if(!serial)

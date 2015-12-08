@@ -465,6 +465,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_xformfb.h \
 	state_tracker/st_context.c \
 	state_tracker/st_context.h \
+	state_tracker/st_copytex.c \
+	state_tracker/st_copytex.h \
 	state_tracker/st_debug.c \
 	state_tracker/st_debug.h \
 	state_tracker/st_draw.c \

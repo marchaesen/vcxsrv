@@ -82,7 +82,7 @@ util_hash_table_create(unsigned (*hash)(void *key),
    struct util_hash_table *ht;
    
    ht = MALLOC_STRUCT(util_hash_table);
-   if(!ht)
+   if (!ht)
       return NULL;
    
    ht->cso = cso_hash_create();
@@ -154,14 +154,14 @@ util_hash_table_set(struct util_hash_table *ht,
    key_hash = ht->hash(key);
 
    item = util_hash_table_find_item(ht, key, key_hash);
-   if(item) {
+   if (item) {
       /* TODO: key/value destruction? */
       item->value = value;
       return PIPE_OK;
    }
    
    item = MALLOC_STRUCT(util_hash_table_item);
-   if(!item)
+   if (!item)
       return PIPE_ERROR_OUT_OF_MEMORY;
    
    item->key = key;
@@ -191,7 +191,7 @@ util_hash_table_get(struct util_hash_table *ht,
    key_hash = ht->hash(key);
 
    item = util_hash_table_find_item(ht, key, key_hash);
-   if(!item)
+   if (!item)
       return NULL;
    
    return item->value;

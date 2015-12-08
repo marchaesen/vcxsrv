@@ -66,7 +66,7 @@ util_bitmask_create(void)
    struct util_bitmask *bm;
    
    bm = MALLOC_STRUCT(util_bitmask);
-   if(!bm)
+   if (!bm)
       return NULL;
    
    bm->words = (util_bitmask_word *)CALLOC(UTIL_BITMASK_INITIAL_WORDS, sizeof(util_bitmask_word));
@@ -114,7 +114,7 @@ util_bitmask_resize(struct util_bitmask *bm,
    new_words = (util_bitmask_word *)REALLOC((void *)bm->words,
                                             bm->size / UTIL_BITMASK_BITS_PER_BYTE,
                                             new_size / UTIL_BITMASK_BITS_PER_BYTE);
-   if(!new_words)
+   if (!new_words)
       return FALSE;
    
    memset(new_words + bm->size/UTIL_BITMASK_BITS_PER_WORD, 

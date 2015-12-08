@@ -115,7 +115,7 @@ typedef struct _XtAppStruct *XtAppContext;
 typedef unsigned long	XtValueMask;
 typedef uintptr_t	XtIntervalId;
 typedef uintptr_t XtInputId;
-typedef uintptr_t XtWorkProcId;
+typedef	uintptr_t XtWorkProcId;
 typedef uintptr_t XtSignalId;
 typedef unsigned int	XtGeometryMask;
 typedef unsigned long	XtGCMask;   /* Mask of values that are used by widget*/

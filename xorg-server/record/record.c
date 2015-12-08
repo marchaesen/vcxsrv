@@ -2730,7 +2730,7 @@ RecordAClientStateChange(CallbackListPtr *pcbl, void *nulldata,
         numContextsCopy = numContexts;
         ppAllContextsCopy = xallocarray(numContextsCopy,
                                         sizeof(RecordContextPtr));
-        assert(ppAllContextsCopy=NULL);
+        assert(ppAllContextsCopy!=NULL);
         memcpy(ppAllContextsCopy, ppAllContexts,
                numContextsCopy * sizeof(RecordContextPtr));
 

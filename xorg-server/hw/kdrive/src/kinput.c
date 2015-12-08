@@ -165,7 +165,16 @@ KdNonBlockFd(int fd)
 }
 
 static void
-KdAddFd(int fd)
+KdNotifyFd(int fd, int ready, void *data)
+{
+    int i = (int) (intptr_t) data;
+    OsBlockSIGIO();
+    (*kdInputFds[i].read)(fd, kdInputFds[i].closure);
+    OsReleaseSIGIO();
+}
+
+static void
+KdAddFd(int fd, int i)
 {
 #ifdef _MSC_VER
     __asm int 3;
@@ -177,6 +186,7 @@ KdAddFd(int fd)
     fcntl(fd, F_SETOWN, getpid());
     KdNonBlockFd(fd);
     AddEnabledDevice(fd);
+    SetNotifyFd(fd, KdNotifyFd, X_NOTIFY_READ, (void *) (intptr_t) i);
     memset(&act, '\0', sizeof act);
     act.sa_handler = KdSigio;
     sigemptyset(&act.sa_mask);
@@ -200,6 +210,7 @@ KdRemoveFd(int fd)
 
     kdnFds--;
     RemoveEnabledDevice(fd);
+    RemoveNotifyFd(fd);
     flags = fcntl(fd, F_GETFL);
     flags &= ~(FASYNC | NOBLOCK);
     fcntl(fd, F_SETFL, flags);
@@ -222,9 +233,9 @@ KdRegisterFd(int fd, void (*read) (int fd, void *closure), void *closure)
     kdInputFds[kdNumInputFds].enable = 0;
     kdInputFds[kdNumInputFds].disable = 0;
     kdInputFds[kdNumInputFds].closure = closure;
-    kdNumInputFds++;
     if (kdInputEnabled)
-        KdAddFd(fd);
+        KdAddFd(fd, kdNumInputFds);
+    kdNumInputFds++;
     return TRUE;
 }
 
@@ -1956,19 +1967,8 @@ KdBlockHandler(ScreenPtr pScreen, void *timeo, void *readmask)
 void
 KdWakeupHandler(ScreenPtr pScreen, unsigned long lresult, void *readmask)
 {
-    int result = (int) lresult;
-    fd_set *pReadmask = (fd_set *) readmask;
-    int i;
     KdPointerInfo *pi;
 
-    if (kdInputEnabled && result > 0) {
-        for (i = 0; i < kdNumInputFds; i++)
-            if (FD_ISSET(kdInputFds[i].fd, pReadmask)) {
-                OsBlockSIGIO();
-                (*kdInputFds[i].read) (kdInputFds[i].fd, kdInputFds[i].closure);
-                OsReleaseSIGIO();
-            }
-    }
     for (pi = kdPointers; pi; pi = pi->next) {
         if (pi->timeoutPending) {
             if ((long) (GetTimeInMillis() - pi->emulationTimeout) >= 0) {

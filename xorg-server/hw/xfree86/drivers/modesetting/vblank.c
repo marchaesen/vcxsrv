@@ -244,18 +244,16 @@ ms_crtc_msc_to_kernel_msc(xf86CrtcPtr crtc, uint64_t expect)
  * Check for pending DRM events and process them.
  */
 static void
-ms_drm_wakeup_handler(void *data, int err, void *mask)
+ms_drm_socket_handler(int fd, int ready, void *data)
 {
     ScreenPtr screen = data;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
-    fd_set *read_mask = mask;
 
-    if (data == NULL || err < 0)
+    if (data == NULL)
         return;
 
-    if (FD_ISSET(ms->fd, read_mask))
-        drmHandleEvent(ms->fd, &ms->event_context);
+    drmHandleEvent(ms->fd, &ms->event_context);
 }
 
 /*
@@ -393,9 +391,7 @@ ms_vblank_screen_init(ScreenPtr screen)
      * registration within ScreenInit and not PreInit.
      */
     if (ms_ent->fd_wakeup_registered != serverGeneration) {
-        AddGeneralSocket(ms->fd);
-        RegisterBlockAndWakeupHandlers((BlockHandlerProcPtr)NoopDDA,
-                                       ms_drm_wakeup_handler, screen);
+        SetNotifyFd(ms->fd, ms_drm_socket_handler, X_NOTIFY_READ, screen);
         ms_ent->fd_wakeup_registered = serverGeneration;
         ms_ent->fd_wakeup_ref = 1;
     } else
@@ -415,8 +411,6 @@ ms_vblank_close_screen(ScreenPtr screen)
 
     if (ms_ent->fd_wakeup_registered == serverGeneration &&
         !--ms_ent->fd_wakeup_ref) {
-        RemoveBlockAndWakeupHandlers((BlockHandlerProcPtr)NoopDDA,
-                                     ms_drm_wakeup_handler, screen);
-        RemoveGeneralSocket(ms->fd);
+        RemoveNotifyFd(ms->fd);
     }
 }

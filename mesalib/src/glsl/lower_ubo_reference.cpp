@@ -154,6 +154,8 @@ public:
    ir_call *ssbo_load(const struct glsl_type *type,
                       ir_rvalue *offset);
 
+   bool check_for_buffer_array_copy(ir_assignment *ir);
+   bool check_for_buffer_struct_copy(ir_assignment *ir);
    void check_for_ssbo_store(ir_assignment *ir);
    void write_to_memory(ir_dereference *deref,
                         ir_variable *var,
@@ -1132,10 +1134,127 @@ lower_ubo_reference_visitor::check_for_ssbo_store(ir_assignment *ir)
    progress = true;
 }
 
+static bool
+is_buffer_backed_variable(ir_variable *var)
+{
+   return var->is_in_buffer_block() ||
+          var->data.mode == ir_var_shader_shared;
+}
+
+bool
+lower_ubo_reference_visitor::check_for_buffer_array_copy(ir_assignment *ir)
+{
+   if (!ir || !ir->lhs || !ir->rhs)
+      return false;
+
+   /* LHS and RHS must be arrays
+    * FIXME: arrays of arrays?
+    */
+   if (!ir->lhs->type->is_array() || !ir->rhs->type->is_array())
+      return false;
+
+   /* RHS must be a buffer-backed variable. This is what can cause the problem
+    * since it would lead to a series of loads that need to live until we
+    * see the writes to the LHS.
+    */
+   ir_variable *rhs_var = ir->rhs->variable_referenced();
+   if (!rhs_var || !is_buffer_backed_variable(rhs_var))
+      return false;
+
+   /* Split the array copy into individual element copies to reduce
+    * register pressure
+    */
+   ir_dereference *rhs_deref = ir->rhs->as_dereference();
+   if (!rhs_deref)
+      return false;
+
+   ir_dereference *lhs_deref = ir->lhs->as_dereference();
+   if (!lhs_deref)
+      return false;
+
+   assert(lhs_deref->type->length == rhs_deref->type->length);
+   mem_ctx = ralloc_parent(shader->ir);
+
+   for (unsigned i = 0; i < lhs_deref->type->length; i++) {
+      ir_dereference *lhs_i =
+         new(mem_ctx) ir_dereference_array(lhs_deref->clone(mem_ctx, NULL),
+                                           new(mem_ctx) ir_constant(i));
+
+      ir_dereference *rhs_i =
+         new(mem_ctx) ir_dereference_array(rhs_deref->clone(mem_ctx, NULL),
+                                           new(mem_ctx) ir_constant(i));
+      ir->insert_after(assign(lhs_i, rhs_i));
+   }
+
+   ir->remove();
+   progress = true;
+   return true;
+}
+
+bool
+lower_ubo_reference_visitor::check_for_buffer_struct_copy(ir_assignment *ir)
+{
+   if (!ir || !ir->lhs || !ir->rhs)
+      return false;
+
+   /* LHS and RHS must be records */
+   if (!ir->lhs->type->is_record() || !ir->rhs->type->is_record())
+      return false;
+
+   /* RHS must be a buffer-backed variable. This is what can cause the problem
+    * since it would lead to a series of loads that need to live until we
+    * see the writes to the LHS.
+    */
+   ir_variable *rhs_var = ir->rhs->variable_referenced();
+   if (!rhs_var || !is_buffer_backed_variable(rhs_var))
+      return false;
+
+   /* Split the struct copy into individual element copies to reduce
+    * register pressure
+    */
+   ir_dereference *rhs_deref = ir->rhs->as_dereference();
+   if (!rhs_deref)
+      return false;
+
+   ir_dereference *lhs_deref = ir->lhs->as_dereference();
+   if (!lhs_deref)
+      return false;
+
+   assert(lhs_deref->type->record_compare(rhs_deref->type));
+   mem_ctx = ralloc_parent(shader->ir);
+
+   for (unsigned i = 0; i < lhs_deref->type->length; i++) {
+      const char *field_name = lhs_deref->type->fields.structure[i].name;
+      ir_dereference *lhs_field =
+         new(mem_ctx) ir_dereference_record(lhs_deref->clone(mem_ctx, NULL),
+                                            field_name);
+      ir_dereference *rhs_field =
+         new(mem_ctx) ir_dereference_record(rhs_deref->clone(mem_ctx, NULL),
+                                            field_name);
+      ir->insert_after(assign(lhs_field, rhs_field));
+   }
+
+   ir->remove();
+   progress = true;
+   return true;
+}
 
 ir_visitor_status
 lower_ubo_reference_visitor::visit_enter(ir_assignment *ir)
 {
+   /* Array and struct copies could involve large amounts of load/store
+    * operations. To improve register pressure we want to special-case
+    * these and split them into individual element copies.
+    * This way we avoid emitting all the loads for the RHS first and
+    * all the writes for the LHS second and register usage is more
+    * efficient.
+    */
+   if (check_for_buffer_array_copy(ir))
+      return visit_continue_with_parent;
+
+   if (check_for_buffer_struct_copy(ir))
+      return visit_continue_with_parent;
+
    check_ssbo_unsized_array_length_assignment(ir);
    check_for_ssbo_store(ir);
    return rvalue_visit(ir);

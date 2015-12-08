@@ -5,7 +5,6 @@
 <category name="GL_ARB_direct_state_access" number="164">
    <enum name="TEXTURE_TARGET"  value="0x1006"/>
    <enum name="QUERY_TARGET"    value="0x82EA"/>
-   <enum name="TEXTURE_BINDING" value="0x82EB"/>
 
    <!-- Transform Feedback object functions -->
 

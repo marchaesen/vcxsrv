@@ -1193,8 +1193,8 @@ ephyrProcessConfigureNotify(xcb_generic_event_t *xev)
 #endif /* RANDR */
 }
 
-void
-ephyrPoll(void)
+static void
+ephyrXcbNotify(int fd, int ready, void *data)
 {
     xcb_connection_t *conn = hostx_get_xcbconn();
 
@@ -1345,6 +1345,7 @@ static Status
 MouseEnable(KdPointerInfo * pi)
 {
     ((EphyrPointerPrivate *) pi->driverPrivate)->enabled = TRUE;
+    SetNotifyFd(hostx_get_fd(), ephyrXcbNotify, X_NOTIFY_READ, NULL);
     return Success;
 }
 
@@ -1352,6 +1353,7 @@ static void
 MouseDisable(KdPointerInfo * pi)
 {
     ((EphyrPointerPrivate *) pi->driverPrivate)->enabled = FALSE;
+    RemoveNotifyFd(hostx_get_fd());
     return;
 }
 

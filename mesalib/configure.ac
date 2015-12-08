@@ -197,6 +197,13 @@ if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
     fi
 fi
 
+dnl We don't support building Mesa with Sun C compiler
+dnl https://bugs.freedesktop.org/show_bug.cgi?id=93189
+AC_CHECK_DECL([__SUNPRO_C], [SUNCC=yes], [SUNCC=no])
+if test "x$SUNCC" = xyes; then
+    AC_MSG_ERROR([Building with Sun C compiler is not supported, use GCC instead.])
+fi
+
 dnl Check for compiler builtins
 AX_GCC_BUILTIN([__builtin_bswap32])
 AX_GCC_BUILTIN([__builtin_bswap64])

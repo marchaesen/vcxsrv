@@ -3139,7 +3139,6 @@
     <enum name="EDGE_FLAG_ARRAY_POINTER"                  value="0x8093"/>
     <enum name="CLIENT_PIXEL_STORE_BIT"                   value="0x00000001"/>
     <enum name="CLIENT_VERTEX_ARRAY_BIT"                  value="0x00000002"/>
-    <enum name="ALL_CLIENT_ATTRIB_BITS"                   value="0xFFFFFFFF"/>
     <enum name="CLIENT_ALL_ATTRIB_BITS"                   value="0xFFFFFFFF"/>
 
     <function name="ArrayElement" deprecated="3.1" exec="dynamic">
@@ -9687,11 +9686,11 @@
 
 <category name="GL_EXT_cull_vertex" number="98">
     <enum name="CULL_VERTEX_EXT"                          value="0x81AA"/>
-    <enum name="CULL_VERTEX_OBJECT_POSITION_EXT" count="4" value="0x81AB">
+    <enum name="CULL_VERTEX_EYE_POSITION_EXT"  count="4"  value="0x81AB">
         <size name="CullParameterfv"/>
         <size name="CullParameterdv"/>
     </enum>
-    <enum name="CULL_VERTEX_EYE_POSITION_EXT"  count="4"  value="0x81AC">
+    <enum name="CULL_VERTEX_OBJECT_POSITION_EXT" count="4" value="0x81AC">
         <size name="CullParameterfv"/>
         <size name="CullParameterdv"/>
     </enum>

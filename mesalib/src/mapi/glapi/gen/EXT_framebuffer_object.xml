@@ -8,7 +8,6 @@
     <enum name="RENDERBUFFER_WIDTH_EXT"                   value="0x8D42"/>
     <enum name="RENDERBUFFER_HEIGHT_EXT"                  value="0x8D43"/>
     <enum name="RENDERBUFFER_INTERNAL_FORMAT_EXT"         value="0x8D44"/>
-    <enum name="STENCIL_INDEX_EXT"                        value="0x8D45"/>
     <enum name="STENCIL_INDEX1_EXT"                       value="0x8D46"/>
     <enum name="STENCIL_INDEX4_EXT"                       value="0x8D47"/>
     <enum name="STENCIL_INDEX8_EXT"                       value="0x8D48"/>
@@ -52,13 +51,11 @@
     <enum name="FRAMEBUFFER_COMPLETE_EXT"                 value="0x8CD5"/>
     <enum name="FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT"    value="0x8CD6"/>
     <enum name="FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT"   value="0x8CD7"/>
-    <enum name="FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT_EXT" value="0x8CD8"/>
     <enum name="FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT"    value="0x8CD9"/>
     <enum name="FRAMEBUFFER_INCOMPLETE_FORMATS_EXT"       value="0x8CDA"/>
     <enum name="FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT"   value="0x8CDB"/>
     <enum name="FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT"   value="0x8CDC"/>
     <enum name="FRAMEBUFFER_UNSUPPORTED_EXT"              value="0x8CDD"/>
-    <enum name="FRAMEBUFFER_STATUS_ERROR_EXT"             value="0x8CDE"/>
     <enum name="FRAMEBUFFER_BINDING_EXT"        count="1" value="0x8CA6">
         <size name="Get" mode="get"/>
     </enum>

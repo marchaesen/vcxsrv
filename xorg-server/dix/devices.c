@@ -984,7 +984,7 @@ CloseDevice(DeviceIntPtr dev)
     if (dev->deviceGrab.grab)
         FreeGrab(dev->deviceGrab.grab);
     free(dev->deviceGrab.sync.event);
-    free(dev->config_info);     /* Allocated in xf86ActivateDevice. */
+    if (dev->config_info) free(dev->config_info);     /* Allocated in xf86ActivateDevice. */
     free(dev->last.scroll);
     for (j = 0; j < dev->last.num_touches; j++)
         free(dev->last.touches[j].valuators);

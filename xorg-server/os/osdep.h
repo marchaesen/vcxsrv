@@ -159,13 +159,20 @@ extern int FlushClient(ClientPtr /*who */ ,
 extern void FreeOsBuffers(OsCommPtr     /*oc */
     );
 
+extern void InitNotifyFds(void);
+
+extern void HandleNotifyFds(void);
+
 #include "dix.h"
 
 extern fd_set AllSockets;
 extern fd_set AllClients;
 extern fd_set LastSelectMask;
+extern fd_set LastSelectWriteMask;
 extern fd_set WellKnownConnections;
 extern fd_set EnabledDevices;
+extern fd_set NotifyReadFds;
+extern fd_set NotifyWriteFds;
 extern fd_set ClientsWithInput;
 extern fd_set ClientsWriteBlocked;
 extern fd_set OutputPending;
@@ -180,7 +187,8 @@ extern void ClearConnectionTranslation(void);
 #endif
 
 extern Bool NewOutputPending;
-extern Bool AnyClientsWriteBlocked;
+extern Bool AnyWritesPending;
+extern Bool NumNotifyWriteFd;
 
 extern WorkQueuePtr workQueue;
 

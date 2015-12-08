@@ -76,6 +76,8 @@ struct gl_debug_message
    enum mesa_debug_type type;
    GLuint id;
    enum mesa_debug_severity severity;
+   /* length as given by the user - if message was explicitly null terminated,
+    * length can be negative */
    GLsizei length;
    GLcharARB *message;
 };
@@ -98,7 +100,7 @@ struct gl_debug_state
 
    struct gl_debug_group *Groups[MAX_DEBUG_GROUP_STACK_DEPTH];
    struct gl_debug_message GroupMessages[MAX_DEBUG_GROUP_STACK_DEPTH];
-   GLint GroupStackDepth;
+   GLint CurrentGroup; // GroupStackDepth - 1
 
    struct gl_debug_log Log;
 };
@@ -211,14 +213,19 @@ debug_message_store(struct gl_debug_message *msg,
                     enum mesa_debug_severity severity,
                     GLsizei len, const char *buf)
 {
+   GLsizei length = len;
+
    assert(!msg->message && !msg->length);
 
-   msg->message = malloc(len+1);
-   if (msg->message) {
-      (void) strncpy(msg->message, buf, (size_t)len);
-      msg->message[len] = '\0';
+   if (length < 0)
+      length = strlen(buf);
 
-      msg->length = len+1;
+   msg->message = malloc(length+1);
+   if (msg->message) {
+      (void) strncpy(msg->message, buf, (size_t)length);
+      msg->message[length] = '\0';
+
+      msg->length = len;
       msg->source = source;
       msg->type = type;
       msg->id = id;
@@ -229,7 +236,7 @@ debug_message_store(struct gl_debug_message *msg,
 
       /* malloc failed! */
       msg->message = out_of_memory;
-      msg->length = strlen(out_of_memory)+1;
+      msg->length = -1;
       msg->source = MESA_DEBUG_SOURCE_OTHER;
       msg->type = MESA_DEBUG_TYPE_ERROR;
       msg->id = oom_msg_id;
@@ -243,8 +250,9 @@ debug_namespace_init(struct gl_debug_namespace *ns)
    make_empty_list(&ns->Elements);
 
    /* Enable all the messages with severity HIGH or MEDIUM by default */
-   ns->DefaultState = (1 << MESA_DEBUG_SEVERITY_HIGH) |
-                      (1 << MESA_DEBUG_SEVERITY_MEDIUM);
+   ns->DefaultState = (1 << MESA_DEBUG_SEVERITY_MEDIUM ) |
+                      (1 << MESA_DEBUG_SEVERITY_HIGH) |
+                      (1 << MESA_DEBUG_SEVERITY_NOTIFICATION);
 }
 
 static void
@@ -422,7 +430,7 @@ debug_create(void)
 static bool
 debug_is_group_read_only(const struct gl_debug_state *debug)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
    return (gstack > 0 && debug->Groups[gstack] == debug->Groups[gstack - 1]);
 }
 
@@ -432,7 +440,7 @@ debug_is_group_read_only(const struct gl_debug_state *debug)
 static bool
 debug_make_group_writable(struct gl_debug_state *debug)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
    const struct gl_debug_group *src = debug->Groups[gstack];
    struct gl_debug_group *dst;
    int s, t;
@@ -472,7 +480,7 @@ debug_make_group_writable(struct gl_debug_state *debug)
 static void
 debug_clear_group(struct gl_debug_state *debug)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
 
    if (!debug_is_group_read_only(debug)) {
       struct gl_debug_group *grp = debug->Groups[gstack];
@@ -496,9 +504,9 @@ debug_clear_group(struct gl_debug_state *debug)
 static void
 debug_destroy(struct gl_debug_state *debug)
 {
-   while (debug->GroupStackDepth > 0) {
+   while (debug->CurrentGroup > 0) {
       debug_clear_group(debug);
-      debug->GroupStackDepth--;
+      debug->CurrentGroup--;
    }
 
    debug_clear_group(debug);
@@ -514,7 +522,7 @@ debug_set_message_enable(struct gl_debug_state *debug,
                          enum mesa_debug_type type,
                          GLuint id, GLboolean enabled)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
    struct gl_debug_namespace *ns;
 
    debug_make_group_writable(debug);
@@ -541,7 +549,7 @@ debug_set_message_enable_all(struct gl_debug_state *debug,
                              enum mesa_debug_severity severity,
                              GLboolean enabled)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
    int s, t, smax, tmax;
 
    if (source == MESA_DEBUG_SOURCE_COUNT) {
@@ -579,7 +587,7 @@ debug_is_message_enabled(const struct gl_debug_state *debug,
                          GLuint id,
                          enum mesa_debug_severity severity)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
    struct gl_debug_group *grp = debug->Groups[gstack];
    struct gl_debug_namespace *nspace = &grp->Namespaces[source][type];
 
@@ -606,7 +614,7 @@ debug_log_message(struct gl_debug_state *debug,
    GLint nextEmpty;
    struct gl_debug_message *emptySlot;
 
-   assert(len >= 0 && len < MAX_DEBUG_MESSAGE_LENGTH);
+   assert(len < MAX_DEBUG_MESSAGE_LENGTH);
 
    if (log->NumMessages == MAX_DEBUG_LOGGED_MESSAGES)
       return;
@@ -657,24 +665,24 @@ debug_delete_messages(struct gl_debug_state *debug, int count)
 static struct gl_debug_message *
 debug_get_group_message(struct gl_debug_state *debug)
 {
-   return &debug->GroupMessages[debug->GroupStackDepth];
+   return &debug->GroupMessages[debug->CurrentGroup];
 }
 
 static void
 debug_push_group(struct gl_debug_state *debug)
 {
-   const GLint gstack = debug->GroupStackDepth;
+   const GLint gstack = debug->CurrentGroup;
 
    /* just point to the previous stack */
    debug->Groups[gstack + 1] = debug->Groups[gstack];
-   debug->GroupStackDepth++;
+   debug->CurrentGroup++;
 }
 
 static void
 debug_pop_group(struct gl_debug_state *debug)
 {
    debug_clear_group(debug);
-   debug->GroupStackDepth--;
+   debug->CurrentGroup--;
 }
 
 
@@ -775,7 +783,7 @@ _mesa_get_debug_state_int(struct gl_context *ctx, GLenum pname)
          debug->Log.Messages[debug->Log.NextMessage].length : 0;
       break;
    case GL_DEBUG_GROUP_STACK_DEPTH:
-      val = debug->GroupStackDepth;
+      val = debug->CurrentGroup + 1;
       break;
    default:
       assert(!"unknown debug output param");
@@ -921,9 +929,9 @@ validate_params(struct gl_context *ctx, unsigned caller,
    case GL_DEBUG_TYPE_PORTABILITY_ARB:
    case GL_DEBUG_TYPE_OTHER_ARB:
    case GL_DEBUG_TYPE_MARKER:
-      break;
    case GL_DEBUG_TYPE_PUSH_GROUP:
    case GL_DEBUG_TYPE_POP_GROUP:
+      break;
    case GL_DONT_CARE:
       if (caller == CONTROL)
          break;
@@ -959,8 +967,22 @@ error:
 
 
 static GLboolean
-validate_length(struct gl_context *ctx, const char *callerstr, GLsizei length)
+validate_length(struct gl_context *ctx, const char *callerstr, GLsizei length,
+                const GLchar *buf)
 {
+
+   if (length < 0) {
+      GLsizei len = strlen(buf);
+
+      if (len >= MAX_DEBUG_MESSAGE_LENGTH) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                    "%s(null terminated string length=%d, is not less than "
+                    "GL_MAX_DEBUG_MESSAGE_LENGTH=%d)", callerstr, len,
+                    MAX_DEBUG_MESSAGE_LENGTH);
+         return GL_FALSE;
+      }
+   }
+
    if (length >= MAX_DEBUG_MESSAGE_LENGTH) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                  "%s(length=%d, which is not less than "
@@ -989,9 +1011,7 @@ _mesa_DebugMessageInsert(GLenum source, GLenum type, GLuint id,
    if (!validate_params(ctx, INSERT, callerstr, source, type, severity))
       return; /* GL_INVALID_ENUM */
 
-   if (length < 0)
-      length = strlen(buf);
-   if (!validate_length(ctx, callerstr, length))
+   if (!validate_length(ctx, callerstr, length, buf))
       return; /* GL_INVALID_VALUE */
 
    log_msg(ctx, gl_enum_to_debug_source(source),
@@ -1032,23 +1052,28 @@ _mesa_GetDebugMessageLog(GLuint count, GLsizei logSize, GLenum *sources,
 
    for (ret = 0; ret < count; ret++) {
       const struct gl_debug_message *msg = debug_fetch_message(debug);
+      GLsizei len;
 
       if (!msg)
          break;
 
-      if (logSize < msg->length && messageLog != NULL)
+      len = msg->length;
+      if (len < 0)
+         len = strlen(msg->message);
+
+      if (logSize < len+1 && messageLog != NULL)
          break;
 
       if (messageLog) {
-         assert(msg->message[msg->length-1] == '\0');
-         (void) strncpy(messageLog, msg->message, (size_t)msg->length);
+         assert(msg->message[len] == '\0');
+         (void) strncpy(messageLog, msg->message, (size_t)len+1);
 
-         messageLog += msg->length;
-         logSize -= msg->length;
+         messageLog += len+1;
+         logSize -= len+1;
       }
 
       if (lengths)
-         *lengths++ = msg->length;
+         *lengths++ = len+1;
       if (severities)
          *severities++ = debug_severity_enums[msg->severity];
       if (sources)
@@ -1158,16 +1183,14 @@ _mesa_PushDebugGroup(GLenum source, GLuint id, GLsizei length,
       return;
    }
 
-   if (length < 0)
-      length = strlen(message);
-   if (!validate_length(ctx, callerstr, length))
+   if (!validate_length(ctx, callerstr, length, message))
       return; /* GL_INVALID_VALUE */
 
    debug = _mesa_lock_debug_state(ctx);
    if (!debug)
       return;
 
-   if (debug->GroupStackDepth >= MAX_DEBUG_GROUP_STACK_DEPTH-1) {
+   if (debug->CurrentGroup >= MAX_DEBUG_GROUP_STACK_DEPTH-1) {
       _mesa_unlock_debug_state(ctx);
       _mesa_error(ctx, GL_STACK_OVERFLOW, "%s", callerstr);
       return;
@@ -1209,7 +1232,7 @@ _mesa_PopDebugGroup(void)
    if (!debug)
       return;
 
-   if (debug->GroupStackDepth <= 0) {
+   if (debug->CurrentGroup <= 0) {
       _mesa_unlock_debug_state(ctx);
       _mesa_error(ctx, GL_STACK_UNDERFLOW, "%s", callerstr);
       return;

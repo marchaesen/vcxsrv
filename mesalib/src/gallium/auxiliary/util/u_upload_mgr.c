@@ -270,7 +270,7 @@ void u_upload_buffer(struct u_upload_mgr *upload,
                                              PIPE_TRANSFER_READ,
                                              &transfer);
 
-   if (map == NULL) {
+   if (!map) {
       pipe_resource_reference(outbuf, NULL);
       return;
    }

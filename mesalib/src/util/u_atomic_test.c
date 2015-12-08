@@ -26,7 +26,7 @@
  **************************************************************************/
 
 
-/* Force assertions, even on debug builds. */
+/* Force assertions, even on release builds. */
 #undef NDEBUG
 
 

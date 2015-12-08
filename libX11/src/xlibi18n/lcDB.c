@@ -1004,18 +1004,18 @@ PrintDatabase(
     Database p = db;
     int i = 0, j;
 
-    printf("***\n*** BEGIN Database\n***\n");
+    fprintf(stderr, "***\n*** BEGIN Database\n***\n");
     while (p) {
-	printf("%3d: ", i++);
-	printf("%s, %s, ", p->category, p->name);
-	printf("\t[%d: ", p->value_num);
+		fprintf(stderr, "%3d: ", i++);
+		fprintf(stderr, "%s, %s, ", p->category, p->name);
+		fprintf(stderr, "\t[%d: ", p->value_num);
 	for (j = 0; j < p->value_num; ++j) {
-	    printf("%s, ", p->value[j]);
+		fprintf(stderr, "%s, ", p->value[j]);
 	}
-	printf("]\n");
+	fprintf(stderr, "]\n");
 	p = p->next;
     }
-    printf("***\n*** END   Database\n***\n");
+	fprintf(stderr, "***\n*** END   Database\n***\n");
 }
 #endif
 

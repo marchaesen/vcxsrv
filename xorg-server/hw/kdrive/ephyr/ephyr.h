@@ -170,9 +170,6 @@ Bool
 Bool
  ephyrCreateColormap(ColormapPtr pmap);
 
-void
- ephyrPoll(void);
-
 #ifdef RANDR
 Bool
  ephyrRandRGetInfo(ScreenPtr pScreen, Rotation * rotations);

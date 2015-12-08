@@ -85,7 +85,7 @@ public:
    {
       ir_variable *var = ir->variable_referenced();
 
-      if (!var || var->data.mode != this->mode)
+      if (!var || var->data.mode != this->mode || !var->type->is_array())
          return visit_continue;
 
       if (this->find_frag_outputs && var->data.location == FRAG_RESULT_DATA0) {

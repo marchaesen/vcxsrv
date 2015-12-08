@@ -81,7 +81,7 @@ extern char *Xpermalloc(
  *
  ****************************************************************/
 
-typedef int       XrmQuark, *XrmQuarkList;
+typedef uintptr_t       XrmQuark, *XrmQuarkList;
 #define NULLQUARK ((XrmQuark) 0)
 
 typedef char *XrmString;

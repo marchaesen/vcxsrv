@@ -21,8 +21,6 @@
   <enum name="MINOR_VERSION"                    value="0x821C"/>
   <enum name="NUM_EXTENSIONS"                   value="0x821D"/>
   <enum name="CONTEXT_FLAGS"                    value="0x821E"/>
-  <enum name="DEPTH_BUFFER"                     value="0x8223"/>
-  <enum name="STENCIL_BUFFER"                   value="0x8224"/>
   <enum name="CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT"  value="0x0001"/>
   <enum name="RGBA32F"                          value="0x8814"/>
   <enum name="RGB32F"                           value="0x8815"/>

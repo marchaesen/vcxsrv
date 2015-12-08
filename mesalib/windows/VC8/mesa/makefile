@@ -71,8 +71,8 @@ all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
 ..\..\..\src\mesa\main\glapitable.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_table.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml > ..\..\..\mesa\main\glapitable.h
 
-..\..\..\src\mesa\main\enums.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_enums.py
-	cd ..\..\..\src\mapi\glapi\gen & python gl_enums.py -f gl_and_es_API.xml > ..\..\..\mesa\main\enums.c
+..\..\..\src\mesa\main\enums.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\glapi\registry\gl.xml ..\..\..\src\mapi\glapi\gen\gl_enums.py
+	cd ..\..\..\src\mapi\glapi\gen & python gl_enums.py -f ..\registry\gl.xml > ..\..\..\mesa\main\enums.c
 
 ..\..\..\src\mesa\main\api_exec.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_genexec.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_genexec.py -f gl_and_es_API.xml > ..\..\..\mesa\main\api_exec.c

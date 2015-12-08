@@ -659,6 +659,13 @@ public:
       unsigned assigned:1;
 
       /**
+       * When separate shader programs are enabled, only input/outputs between
+       * the stages of a multi-stage separate program can be safely removed
+       * from the shader interface. Other input/outputs must remains active.
+       */
+      unsigned always_active_io:1;
+
+      /**
        * Enum indicating how the variable was declared.  See
        * ir_var_declaration_type.
        *

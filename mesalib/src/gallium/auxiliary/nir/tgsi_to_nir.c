@@ -22,6 +22,10 @@
  * IN THE SOFTWARE.
  */
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+#endif
+
 #include "util/ralloc.h"
 #include "glsl/nir/nir.h"
 #include "glsl/nir/nir_control_flow.h"

@@ -24,7 +24,7 @@ struct util_ringbuffer
 struct util_ringbuffer *util_ringbuffer_create( unsigned dwords )
 {
    struct util_ringbuffer *ring = CALLOC_STRUCT(util_ringbuffer);
-   if (ring == NULL)
+   if (!ring)
       return NULL;
 
    assert(util_is_power_of_two(dwords));

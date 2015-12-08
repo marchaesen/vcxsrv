@@ -810,15 +810,9 @@ SELinuxResourceState(CallbackListPtr *pcbl, void *unused, void *calldata)
 static int netlink_fd;
 
 static void
-SELinuxBlockHandler(void *data, struct timeval **tv, void *read_mask)
+SELinuxNetlinkNotify(int fd, int ready, void *data)
 {
-}
-
-static void
-SELinuxWakeupHandler(void *data, int num_fds, void *read_mask)
-{
-    if (num_fds > 0 && FD_ISSET(netlink_fd, (fd_set *) read_mask))
-        avc_netlink_check_nb();
+    avc_netlink_check_nb();
 }
 
 void
@@ -844,9 +838,7 @@ SELinuxFlaskReset(void)
     /* Tear down SELinux stuff */
     audit_close(audit_fd);
     avc_netlink_release_fd();
-    RemoveBlockAndWakeupHandlers(SELinuxBlockHandler, SELinuxWakeupHandler,
-                                 NULL);
-    RemoveGeneralSocket(netlink_fd);
+    RemoveNotifyFd(netlink_fd);
 
     avc_destroy();
 }
@@ -918,9 +910,7 @@ SELinuxFlaskInit(void)
         FatalError("SELinux: Failed to create atom\n");
 
     netlink_fd = avc_netlink_acquire_fd();
-    AddGeneralSocket(netlink_fd);
-    RegisterBlockAndWakeupHandlers(SELinuxBlockHandler, SELinuxWakeupHandler,
-                                   NULL);
+    SetNotifyFd(netlink_fd, SELinuxNetlinkNotify, X_NOTIFY_READ, NULL);
 
     /* Register callbacks */
     ret &= AddCallback(&ClientStateCallback, SELinuxClientState, NULL);

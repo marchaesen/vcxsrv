@@ -159,32 +159,10 @@ approximate_mmpd(struct xwl_screen *xwl_screen)
 }
 
 static void
-output_handle_done(void *data, struct wl_output *wl_output)
+update_screen_size(struct xwl_output *xwl_output, int width, int height)
 {
-    struct xwl_output *it, *xwl_output = data;
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
-    int width = 0, height = 0, has_this_output = 0;
     double mmpd;
-
-    xorg_list_for_each_entry(it, &xwl_screen->output_list, link) {
-        /* output done event is sent even when some property
-         * of output is changed. That means that we may already
-         * have this output. If it is true, we must not add it
-         * into the output_list otherwise we'll corrupt it */
-        if (it == xwl_output)
-            has_this_output = 1;
-
-        output_get_new_size(it, &height, &width);
-    }
-
-    if (!has_this_output) {
-        xorg_list_append(&xwl_output->link, &xwl_screen->output_list);
-
-        /* we did not check this output for new screen size, do it now */
-        output_get_new_size(xwl_output, &height, &width);
-
-	--xwl_screen->expecting_event;
-    }
 
     if (!xwl_screen->rootless)
         SetRootClip(xwl_screen->screen, FALSE);
@@ -213,6 +191,36 @@ output_handle_done(void *data, struct wl_output *wl_output)
 
     if (!xwl_screen->rootless)
         SetRootClip(xwl_screen->screen, TRUE);
+}
+
+static void
+output_handle_done(void *data, struct wl_output *wl_output)
+{
+    struct xwl_output *it, *xwl_output = data;
+    struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+    int width = 0, height = 0, has_this_output = 0;
+
+    xorg_list_for_each_entry(it, &xwl_screen->output_list, link) {
+        /* output done event is sent even when some property
+         * of output is changed. That means that we may already
+         * have this output. If it is true, we must not add it
+         * into the output_list otherwise we'll corrupt it */
+        if (it == xwl_output)
+            has_this_output = 1;
+
+        output_get_new_size(it, &height, &width);
+    }
+
+    if (!has_this_output) {
+        xorg_list_append(&xwl_output->link, &xwl_screen->output_list);
+
+        /* we did not check this output for new screen size, do it now */
+        output_get_new_size(xwl_output, &height, &width);
+
+	--xwl_screen->expecting_event;
+    }
+
+    update_screen_size(xwl_output, width, height);
 }
 
 static void
@@ -284,8 +292,18 @@ err:
 void
 xwl_output_destroy(struct xwl_output *xwl_output)
 {
+    struct xwl_output *it;
+    struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+    int width = 0, height = 0;
+
     wl_output_destroy(xwl_output->output);
     xorg_list_del(&xwl_output->link);
+    RROutputDestroy(xwl_output->randr_output);
+
+    xorg_list_for_each_entry(it, &xwl_screen->output_list, link)
+        output_get_new_size(it, &height, &width);
+    update_screen_size(xwl_output, width, height);
+
     free(xwl_output);
 }
 

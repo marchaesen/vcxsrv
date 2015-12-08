@@ -32,6 +32,14 @@
 #include <xkbsrv.h>
 #include <xserver-properties.h>
 #include <inpututils.h>
+#include <mipointer.h>
+#include <mipointrst.h>
+
+/* Copied from mipointer.c */
+#define MIPOINTER(dev) \
+    (IsFloating(dev) ? \
+        (miPointerPtr)dixLookupPrivate(&(dev)->devPrivates, miPointerPrivKey): \
+        (miPointerPtr)dixLookupPrivate(&(GetMaster(dev, MASTER_POINTER))->devPrivates, miPointerPrivKey))
 
 static void
 xwl_pointer_control(DeviceIntPtr device, PtrCtrl *ctrl)
@@ -210,6 +218,8 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
 {
     struct xwl_seat *xwl_seat = data;
     DeviceIntPtr dev = xwl_seat->pointer;
+    DeviceIntPtr master;
+    miPointerPtr mipointer;
     int i;
     int sx = wl_fixed_to_int(sx_w);
     int sy = wl_fixed_to_int(sy_w);
@@ -230,8 +240,18 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
 
     xwl_seat->focus_window = wl_surface_get_user_data(surface);
 
+    master = GetMaster(dev, POINTER_OR_FLOAT);
     (*pScreen->SetCursorPosition) (dev, pScreen, sx, sy, TRUE);
-    CheckMotion(NULL, GetMaster(dev, POINTER_OR_FLOAT));
+
+    /* X is very likely to have the wrong idea of what the actual cursor
+     * sprite is, so in order to force updating the cursor lets set the
+     * current sprite to some invalid cursor behind its back so that it
+     * always will think it changed to the not invalid cursor.
+     */
+    mipointer = MIPOINTER(master);
+    mipointer->pSpriteCursor = (CursorPtr) 1;
+
+    CheckMotion(NULL, master);
 
     /* Ideally, X clients shouldn't see these button releases.  When
      * the pointer leaves a window with buttons down, it means that

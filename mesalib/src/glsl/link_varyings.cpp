@@ -766,7 +766,7 @@ public:
                    gl_shader_stage consumer_stage);
    ~varying_matches();
    void record(ir_variable *producer_var, ir_variable *consumer_var);
-   unsigned assign_locations(uint64_t reserved_slots);
+   unsigned assign_locations(uint64_t reserved_slots, bool separate_shader);
    void store_locations() const;
 
 private:
@@ -896,8 +896,10 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
 {
    assert(producer_var != NULL || consumer_var != NULL);
 
-   if ((producer_var && !producer_var->data.is_unmatched_generic_inout)
-       || (consumer_var && !consumer_var->data.is_unmatched_generic_inout)) {
+   if ((producer_var && (!producer_var->data.is_unmatched_generic_inout ||
+       producer_var->data.explicit_location)) ||
+       (consumer_var && (!consumer_var->data.is_unmatched_generic_inout ||
+       consumer_var->data.explicit_location))) {
       /* Either a location already exists for this variable (since it is part
        * of fixed functionality), or it has already been recorded as part of a
        * previous match.
@@ -986,11 +988,36 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
  * passed to varying_matches::record().
  */
 unsigned
-varying_matches::assign_locations(uint64_t reserved_slots)
+varying_matches::assign_locations(uint64_t reserved_slots, bool separate_shader)
 {
-   /* Sort varying matches into an order that makes them easy to pack. */
-   qsort(this->matches, this->num_matches, sizeof(*this->matches),
-         &varying_matches::match_comparator);
+   /* We disable varying sorting for separate shader programs for the
+    * following reasons:
+    *
+    * 1/ All programs must sort the code in the same order to guarantee the
+    *    interface matching. However varying_matches::record() will change the
+    *    interpolation qualifier of some stages.
+    *
+    * 2/ GLSL version 4.50 removes the matching constrain on the interpolation
+    *    qualifier.
+    *
+    * From Section 4.5 (Interpolation Qualifiers) of the GLSL 4.40 spec:
+    *
+    *    "The type and presence of interpolation qualifiers of variables with
+    *    the same name declared in all linked shaders for the same cross-stage
+    *    interface must match, otherwise the link command will fail.
+    *
+    *    When comparing an output from one stage to an input of a subsequent
+    *    stage, the input and output don't match if their interpolation
+    *    qualifiers (or lack thereof) are not the same."
+    *
+    *    "It is a link-time error if, within the same stage, the interpolation
+    *    qualifiers of variables of the same name do not match."
+    */
+   if (!separate_shader) {
+      /* Sort varying matches into an order that makes them easy to pack. */
+      qsort(this->matches, this->num_matches, sizeof(*this->matches),
+            &varying_matches::match_comparator);
+   }
 
    unsigned generic_location = 0;
    unsigned generic_patch_location = MAX_VARYING*4;
@@ -1590,7 +1617,8 @@ assign_varying_locations(struct gl_context *ctx,
       reserved_varying_slot(producer, ir_var_shader_out) |
       reserved_varying_slot(consumer, ir_var_shader_in);
 
-   const unsigned slots_used = matches.assign_locations(reserved_slots);
+   const unsigned slots_used = matches.assign_locations(reserved_slots,
+                                                        prog->SeparateShader);
    matches.store_locations();
 
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {

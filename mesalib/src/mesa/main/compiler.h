@@ -47,20 +47,6 @@ extern "C" {
 
 
 /**
-  * Sun compilers define __i386 instead of the gcc-style __i386__
- */
-#ifdef __SUNPRO_C
-# if !defined(__i386__) && defined(__i386)
-#  define __i386__
-# elif !defined(__amd64__) && defined(__amd64)
-#  define __amd64__
-# elif !defined(__sparc__) && defined(__sparc)
-#  define __sparc__
-# endif
-#endif
-
-
-/**
  * Either define MESA_BIG_ENDIAN or MESA_LITTLE_ENDIAN, and CPU_TO_LE32.
  * Do not use these unless absolutely necessary!
  * Try to use a runtime test instead.

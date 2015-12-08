@@ -289,7 +289,7 @@ pipe_buffer_map_range(struct pipe_context *pipe,
    u_box_1d(offset, length, &box);
 
    map = pipe->transfer_map(pipe, buffer, 0, access, &box, transfer);
-   if (map == NULL) {
+   if (!map) {
       return NULL;
    }
 

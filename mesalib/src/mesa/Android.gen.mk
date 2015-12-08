@@ -102,7 +102,7 @@ $(intermediates)/main/remap_helper.h: $(dispatch_deps)
 	$(call es-gen, $*)
 
 $(intermediates)/main/enums.c: PRIVATE_SCRIPT :=$(MESA_PYTHON2) $(glapi)/gl_enums.py
-$(intermediates)/main/enums.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml
+$(intermediates)/main/enums.c: PRIVATE_XML := -f $(glapi)/../registry/gl.xml
 
 $(intermediates)/main/enums.c: $(dispatch_deps)
 	$(call es-gen)
