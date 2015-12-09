@@ -53,6 +53,7 @@
 #include "dmxlog.h"
 
 extern int yyparse(void);
+extern int yydebug;
 extern FILE *yyin;
 
 #define DMX_INFO "xdmxconfig v0.9\nCopyright 2002 Red Hat Inc.\n"

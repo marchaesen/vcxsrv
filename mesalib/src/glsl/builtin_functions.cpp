@@ -606,8 +606,8 @@ private:
                                ir_expression_operation opcode,
                                const glsl_type *return_type,
                                const glsl_type *param_type);
-   ir_function_signature *binop(ir_expression_operation opcode,
-                                builtin_available_predicate avail,
+   ir_function_signature *binop(builtin_available_predicate avail,
+                                ir_expression_operation opcode,
                                 const glsl_type *return_type,
                                 const glsl_type *param0_type,
                                 const glsl_type *param1_type);
@@ -3114,8 +3114,8 @@ builtin_builder::_##NAME(builtin_available_predicate avail, const glsl_type *typ
 }
 
 ir_function_signature *
-builtin_builder::binop(ir_expression_operation opcode,
-                       builtin_available_predicate avail,
+builtin_builder::binop(builtin_available_predicate avail,
+                       ir_expression_operation opcode,
                        const glsl_type *return_type,
                        const glsl_type *param0_type,
                        const glsl_type *param1_type)
@@ -3411,7 +3411,7 @@ builtin_builder::_atanh(const glsl_type *type)
 ir_function_signature *
 builtin_builder::_pow(const glsl_type *type)
 {
-   return binop(ir_binop_pow, always_available, type, type, type);
+   return binop(always_available, ir_binop_pow, type, type, type);
 }
 
 UNOP(exp,         ir_unop_exp,  always_available)
@@ -3435,7 +3435,7 @@ UNOPA(fract,     ir_unop_fract)
 ir_function_signature *
 builtin_builder::_mod(const glsl_type *x_type, const glsl_type *y_type)
 {
-   return binop(ir_binop_mod, always_available, x_type, x_type, y_type);
+   return binop(always_available, ir_binop_mod, x_type, x_type, y_type);
 }
 
 ir_function_signature *
@@ -3457,14 +3457,14 @@ ir_function_signature *
 builtin_builder::_min(builtin_available_predicate avail,
                       const glsl_type *x_type, const glsl_type *y_type)
 {
-   return binop(ir_binop_min, avail, x_type, x_type, y_type);
+   return binop(avail, ir_binop_min, x_type, x_type, y_type);
 }
 
 ir_function_signature *
 builtin_builder::_max(builtin_available_predicate avail,
                       const glsl_type *x_type, const glsl_type *y_type)
 {
-   return binop(ir_binop_max, avail, x_type, x_type, y_type);
+   return binop(avail, ir_binop_max, x_type, x_type, y_type);
 }
 
 ir_function_signature *
@@ -3793,9 +3793,9 @@ ir_function_signature *
 builtin_builder::_dot(builtin_available_predicate avail, const glsl_type *type)
 {
    if (type->vector_elements == 1)
-      return binop(ir_binop_mul, avail, type, type, type);
+      return binop(avail, ir_binop_mul, type, type, type);
 
-   return binop(ir_binop_dot, avail,
+   return binop(avail, ir_binop_dot,
                 type->get_base_type(), type, type);
 }
 
@@ -4311,7 +4311,7 @@ ir_function_signature *
 builtin_builder::_lessThan(builtin_available_predicate avail,
                            const glsl_type *type)
 {
-   return binop(ir_binop_less, avail,
+   return binop(avail, ir_binop_less,
                 glsl_type::bvec(type->vector_elements), type, type);
 }
 
@@ -4319,7 +4319,7 @@ ir_function_signature *
 builtin_builder::_lessThanEqual(builtin_available_predicate avail,
                                 const glsl_type *type)
 {
-   return binop(ir_binop_lequal, avail,
+   return binop(avail, ir_binop_lequal,
                 glsl_type::bvec(type->vector_elements), type, type);
 }
 
@@ -4327,7 +4327,7 @@ ir_function_signature *
 builtin_builder::_greaterThan(builtin_available_predicate avail,
                               const glsl_type *type)
 {
-   return binop(ir_binop_greater, avail,
+   return binop(avail, ir_binop_greater,
                 glsl_type::bvec(type->vector_elements), type, type);
 }
 
@@ -4335,7 +4335,7 @@ ir_function_signature *
 builtin_builder::_greaterThanEqual(builtin_available_predicate avail,
                                    const glsl_type *type)
 {
-   return binop(ir_binop_gequal, avail,
+   return binop(avail, ir_binop_gequal,
                 glsl_type::bvec(type->vector_elements), type, type);
 }
 
@@ -4343,7 +4343,7 @@ ir_function_signature *
 builtin_builder::_equal(builtin_available_predicate avail,
                         const glsl_type *type)
 {
-   return binop(ir_binop_equal, avail,
+   return binop(avail, ir_binop_equal,
                 glsl_type::bvec(type->vector_elements), type, type);
 }
 
@@ -4351,7 +4351,7 @@ ir_function_signature *
 builtin_builder::_notEqual(builtin_available_predicate avail,
                            const glsl_type *type)
 {
-   return binop(ir_binop_nequal, avail,
+   return binop(avail, ir_binop_nequal,
                 glsl_type::bvec(type->vector_elements), type, type);
 }
 
@@ -4939,7 +4939,8 @@ builtin_builder::_fma(builtin_available_predicate avail, const glsl_type *type)
 ir_function_signature *
 builtin_builder::_ldexp(const glsl_type *x_type, const glsl_type *exp_type)
 {
-   return binop(ir_binop_ldexp, x_type->base_type == GLSL_TYPE_DOUBLE ? fp64 : gpu_shader5_or_es31, x_type, x_type, exp_type);
+   return binop(x_type->base_type == GLSL_TYPE_DOUBLE ? fp64 : gpu_shader5_or_es31,
+                ir_binop_ldexp, x_type, x_type, exp_type);
 }
 
 ir_function_signature *

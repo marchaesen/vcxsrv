@@ -1737,7 +1737,7 @@ ast_function_expression::handle_method(exec_list *instructions,
             result = new(ctx) ir_constant(op->type->array_size());
          }
       } else if (op->type->is_vector()) {
-         if (state->ARB_shading_language_420pack_enable) {
+         if (state->has_420pack()) {
             /* .length() returns int. */
             result = new(ctx) ir_constant((int) op->type->vector_elements);
          } else {
@@ -1746,7 +1746,7 @@ ast_function_expression::handle_method(exec_list *instructions,
             goto fail;
          }
       } else if (op->type->is_matrix()) {
-         if (state->ARB_shading_language_420pack_enable) {
+         if (state->has_420pack()) {
             /* .length() returns int. */
             result = new(ctx) ir_constant((int) op->type->matrix_columns);
          } else {
@@ -2075,7 +2075,7 @@ ast_aggregate_initializer::hir(exec_list *instructions,
    }
    const glsl_type *const constructor_type = this->constructor_type;
 
-   if (!state->ARB_shading_language_420pack_enable) {
+   if (!state->has_420pack()) {
       _mesa_glsl_error(&loc, state, "C-style initialization requires the "
                        "GL_ARB_shading_language_420pack extension");
       return ir_rvalue::error_value(ctx);

@@ -44,6 +44,7 @@
 #define YYERROR_VERBOSE
 #define YY_USE_PROTOS
 
+extern int yylex(void);
 DMXConfigEntryPtr dmxConfigEntry = NULL;
 #define APPEND(type, h, t)                 \
 {                                          \

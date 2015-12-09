@@ -1655,7 +1655,13 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
             st_dst_reg temp_dst = st_dst_reg(temp);
             st_src_reg temp1 = st_src_reg(temp), temp2 = st_src_reg(temp);
 
-            emit_asm(ir, TGSI_OPCODE_SEQ, st_dst_reg(temp), op[0], op[1]);
+            if (ir->operands[0]->type->is_boolean() &&
+                ir->operands[1]->as_constant() &&
+                ir->operands[1]->as_constant()->is_one()) {
+               emit_asm(ir, TGSI_OPCODE_MOV, st_dst_reg(temp), op[0]);
+            } else {
+               emit_asm(ir, TGSI_OPCODE_SEQ, st_dst_reg(temp), op[0], op[1]);
+            }
 
             /* Emit 1-3 AND operations to combine the SEQ results. */
             switch (ir->operands[0]->type->vector_elements) {
@@ -1708,7 +1714,13 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
          st_src_reg temp = get_temp(native_integers ?
                                     glsl_type::uvec4_type :
                                     glsl_type::vec4_type);
-         emit_asm(ir, TGSI_OPCODE_SNE, st_dst_reg(temp), op[0], op[1]);
+         if (ir->operands[0]->type->is_boolean() &&
+             ir->operands[1]->as_constant() &&
+             ir->operands[1]->as_constant()->is_zero()) {
+            emit_asm(ir, TGSI_OPCODE_MOV, st_dst_reg(temp), op[0]);
+         } else {
+            emit_asm(ir, TGSI_OPCODE_SNE, st_dst_reg(temp), op[0], op[1]);
+         }
 
          if (native_integers) {
             st_dst_reg temp_dst = st_dst_reg(temp);

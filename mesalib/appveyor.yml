@@ -27,22 +27,26 @@ branches:
 clone_depth: 5
 
 cache:
+- win_flex_bison-2.4.5.zip
 - llvm-3.3.1-msvc2013-mtd.7z
 
 environment:
+  WINFLEXBISON_ARCHIVE: win_flex_bison-2.4.5.zip
   LLVM_ARCHIVE: llvm-3.3.1-msvc2013-mtd.7z
 
 install:
-# Install pip
+# Check pip
 - python --version
-- python -m ensurepip
+- python -m pip --version
 # Install Mako
 - python -m pip install --egg Mako
 # Install SCons
 - python -m pip install --egg scons==2.4.1
 - scons --version
 # Install flex/bison
-- cinst winflexbison -y
+- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "http://downloads.sourceforge.net/project/winflexbison/%WINFLEXBISON_ARCHIVE%"
+- 7z x -y -owinflexbison\ "%WINFLEXBISON_ARCHIVE%" > nul
+- set Path=%CD%\winflexbison;%Path%
 - win_flex --version
 - win_bison --version
 # Download and extract LLVM

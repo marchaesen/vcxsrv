@@ -832,23 +832,26 @@ REQUIRED_MODULES="$FIXESPROTO $DAMAGEPROTO $XCMISCPROTO $XTRANS $BIGREQSPROTO $S
 
 dnl systemd socket activation
 dnl activate the code in libxtrans that grabs systemd's socket fds
+dnl libsystemd-daemon was moved into libsystemd in version 209
+LIBSYSTEMD="libsystemd >= 209"
 AC_ARG_WITH([systemd-daemon],
 	AS_HELP_STRING([--with-systemd-daemon],
 		[support systemd socket activation (default: auto)]),
 	[WITH_SYSTEMD_DAEMON=$withval], [WITH_SYSTEMD_DAEMON=auto])
-PKG_CHECK_MODULES([SYSTEMD_DAEMON], [libsystemd-daemon],
-                  [HAVE_SYSTEMD_DAEMON=yes],
-                  [PKG_CHECK_MODULES([SYSTEMD_DAEMON], [libsystemd],
-                                     [HAVE_SYSTEMD_DAEMON=yes], [HAVE_SYSTEMD_DAEMON=no])])
-if test "x$WITH_SYSTEMD_DAEMON" = xauto; then
-	WITH_SYSTEMD_DAEMON="$HAVE_SYSTEMD_DAEMON"
-fi
-if test "x$WITH_SYSTEMD_DAEMON" = xyes; then
-	if test "x$HAVE_SYSTEMD_DAEMON" = xno; then
+if test "x$WITH_SYSTEMD_DAEMON" = "xyes" -o "x$WITH_SYSTEMD_DAEMON" = "xauto" ; then
+	PKG_CHECK_MODULES([SYSTEMD_DAEMON], [$LIBSYSTEMD],
+			  [HAVE_SYSTEMD_DAEMON=yes;
+			   LIBSYSTEMD_DAEMON="$LIBSYSTEMD"],
+			  [PKG_CHECK_MODULES([SYSTEMD_DAEMON], [libsystemd-daemon],
+					     [HAVE_SYSTEMD_DAEMON=yes;
+					      LIBSYSTEMD_DAEMON=libsystemd-daemon],
+					     [HAVE_SYSTEMD_DAEMON=no])])
+	if test "x$HAVE_SYSTEMD_DAEMON" = xyes; then
+		AC_DEFINE(HAVE_SYSTEMD_DAEMON, 1, [Define to 1 if libsystemd-daemon is available])
+		REQUIRED_LIBS="$REQUIRED_LIBS $LIBSYSTEMD_DAEMON"
+	elif test "x$WITH_SYSTEMD_DAEMON" = xyes; then
 		AC_MSG_ERROR([systemd support requested but no library has been found])
 	fi
-	AC_DEFINE(HAVE_SYSTEMD_DAEMON, 1, [Define to 1 if libsystemd-daemon is available])
-	REQUIRED_LIBS="$REQUIRED_LIBS libsystemd-daemon"
 fi
 AM_CONDITIONAL([HAVE_SYSTEMD_DAEMON], [test "x$HAVE_SYSTEMD_DAEMON" = "xyes"])
 

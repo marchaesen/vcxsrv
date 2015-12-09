@@ -123,7 +123,6 @@ dmxVDLRead(const char *filename)
     DMXConfigSubPtr sub = NULL;
     DMXConfigDisplayPtr display = NULL;
     DMXConfigFullDimPtr fdim = NULL;
-    int vcount = 0;
     int dcount = 0;
     int icount = 0;
     int x, y, xoff, yoff, xorig, yorig;
@@ -167,7 +166,6 @@ dmxVDLRead(const char *filename)
             state = virtualCount;
             break;
         case virtualCount:
-            vcount = dmxVDLCount(buf);
             state = virtualEntry;
             break;
         case virtualEntry:
