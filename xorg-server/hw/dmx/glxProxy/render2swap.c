@@ -67,7 +67,7 @@ void
 __glXDispSwap_Map1f(GLbyte * pc)
 {
     GLint order, k;
-    GLfloat u1, u2, *points;
+    GLfloat *points;
     GLenum target;
     GLint compsize;
 
@@ -81,8 +81,6 @@ __glXDispSwap_Map1f(GLbyte * pc)
 
     target = *(GLenum *) (pc + 0);
     order = *(GLint *) (pc + 12);
-    u1 = *(GLfloat *) (pc + 4);
-    u2 = *(GLfloat *) (pc + 8);
     points = (GLfloat *) (pc + 16);
     k = __glEvalComputeK(target);
 
@@ -100,8 +98,8 @@ __glXDispSwap_Map1f(GLbyte * pc)
 void
 __glXDispSwap_Map2f(GLbyte * pc)
 {
-    GLint uorder, vorder, ustride, vstride, k;
-    GLfloat u1, u2, v1, v2, *points;
+    GLint uorder, vorder, k;
+    GLfloat *points;
     GLenum target;
     GLint compsize;
 
@@ -119,15 +117,9 @@ __glXDispSwap_Map2f(GLbyte * pc)
     target = *(GLenum *) (pc + 0);
     uorder = *(GLint *) (pc + 12);
     vorder = *(GLint *) (pc + 24);
-    u1 = *(GLfloat *) (pc + 4);
-    u2 = *(GLfloat *) (pc + 8);
-    v1 = *(GLfloat *) (pc + 16);
-    v2 = *(GLfloat *) (pc + 20);
     points = (GLfloat *) (pc + 28);
 
     k = __glEvalComputeK(target);
-    ustride = vorder * k;
-    vstride = k;
 
     if (vorder <= 0 || uorder <= 0 || k < 0) {
         /* Erroneous command. */
@@ -145,7 +137,7 @@ __glXDispSwap_Map1d(GLbyte * pc)
 {
     GLint order, k, compsize;
     GLenum target;
-    GLdouble u1, u2, *points;
+    GLdouble u1, u2;
 
     __GLX_DECLARE_SWAP_VARIABLES;
     __GLX_DECLARE_SWAP_ARRAY_VARIABLES;
@@ -177,21 +169,15 @@ __glXDispSwap_Map1d(GLbyte * pc)
          ** the data in the process
          */
         __GLX_MEM_COPY(pc - 4, pc, compsize * 8);
-        points = (GLdouble *) (pc - 4);
     }
-    else {
-        points = (GLdouble *) pc;
-    }
-#else
-    points = (GLdouble *) pc;
 #endif
 }
 
 void
 __glXDispSwap_Map2d(GLbyte * pc)
 {
-    GLdouble u1, u2, v1, v2, *points;
-    GLint uorder, vorder, ustride, vstride, k, compsize;
+    GLdouble u1, u2, v1, v2;
+    GLint uorder, vorder, k, compsize;
     GLenum target;
 
     __GLX_DECLARE_SWAP_VARIABLES;
@@ -222,8 +208,6 @@ __glXDispSwap_Map2d(GLbyte * pc)
     __GLX_GET_DOUBLE(v2, pc + 24);
     __GLX_SWAP_DOUBLE_ARRAY(pc + 44, compsize);
     pc += 44;
-    ustride = vorder * k;
-    vstride = k;
 
 #ifdef __GLX_ALIGN64
     if (((unsigned long) pc) & 7) {
@@ -232,13 +216,7 @@ __glXDispSwap_Map2d(GLbyte * pc)
          ** the data in the process
          */
         __GLX_MEM_COPY(pc - 4, pc, compsize * 8);
-        points = (GLdouble *) (pc - 4);
     }
-    else {
-        points = (GLdouble *) pc;
-    }
-#else
-    points = (GLdouble *) pc;
 #endif
 }
 

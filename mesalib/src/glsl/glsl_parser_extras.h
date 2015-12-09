@@ -255,6 +255,11 @@ struct _mesa_glsl_parse_state {
       return ARB_shading_language_420pack_enable || is_version(420, 0);
    }
 
+   bool has_420pack_or_es31() const
+   {
+      return ARB_shading_language_420pack_enable || is_version(420, 310);
+   }
+
    bool has_compute_shader() const
    {
       return ARB_compute_shader_enable || is_version(430, 310);

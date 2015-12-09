@@ -200,8 +200,6 @@ typedef struct _DMXConfigEntry {
 
 extern DMXConfigEntryPtr dmxConfigEntry;
 
-extern int yylex(void);
-extern int yydebug;
 extern void yyerror(const char *message);
 
 extern void dmxConfigLog(const char *format, ...) _X_ATTRIBUTE_PRINTF(1,0);

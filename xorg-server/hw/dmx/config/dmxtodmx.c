@@ -38,6 +38,7 @@
 #include "dmxcompat.h"
 
 extern int yyparse(void);
+extern int yydebug;
 extern FILE *yyin;
 
 int

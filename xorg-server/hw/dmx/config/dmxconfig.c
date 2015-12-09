@@ -48,7 +48,7 @@
 #include "dmxstat.h"
 #include "parser.h"
 
-extern int yyparse(void);
+extern int yydebug;
 extern FILE *yyin;
 
 static char *dmxXkbRules;

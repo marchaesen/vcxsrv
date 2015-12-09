@@ -380,11 +380,8 @@ __glXDispSwap_SeparableFilter2D(GLbyte * pc)
 {
     __GLXdispatchConvolutionFilterHeader *hdr =
         (__GLXdispatchConvolutionFilterHeader *) pc;
-    GLint hdrlen;
 
     __GLX_DECLARE_SWAP_VARIABLES;
-
-    hdrlen = __GLX_PAD(__GLX_CONV_FILT_CMD_HDR_SIZE);
 
     __GLX_SWAP_INT((GLbyte *) &hdr->rowLength);
     __GLX_SWAP_INT((GLbyte *) &hdr->skipRows);

@@ -804,9 +804,8 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
     int win_y1, win_y2;
     int ebits, rowsize;
 
-    __GLX_DECLARE_SWAP_VARIABLES;
-
     if (client->swapped) {
+        __GLX_DECLARE_SWAP_VARIABLES;
         __GLX_SWAP_INT(&req->contextTag);
     }
 
@@ -834,6 +833,7 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
     lsbFirst = *(GLboolean *) (pc + 25);
 
     if (client->swapped) {
+        __GLX_DECLARE_SWAP_VARIABLES;
         __GLX_SWAP_INT(&x);
         __GLX_SWAP_INT(&y);
         __GLX_SWAP_INT(&width);
@@ -1017,6 +1017,7 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
     };
 
     if (client->swapped) {
+        __GLX_DECLARE_SWAP_VARIABLES;
         __GLX_SWAP_SHORT(&reply.sequenceNumber);
         __GLX_SWAP_INT(&reply.length);
     }

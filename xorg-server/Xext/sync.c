@@ -984,20 +984,7 @@ SyncCreateSystemCounter(const char *name,
                         SyncSystemCounterBracketValues BracketValues
     )
 {
-    SyncCounter *pCounter;
-
-    /* this function may be called before SYNC has been initialized, so we
-     * have to make sure RTCounter is created.
-     */
-    if (RTCounter == 0) {
-        RTCounter = CreateNewResourceType(FreeCounter, "SyncCounter");
-        if (RTCounter == 0) {
-            return NULL;
-        }
-        xorg_list_init(&SysCounterList);
-    }
-
-    pCounter = SyncCreateCounter(NULL, FakeClientID(0), initial);
+    SyncCounter *pCounter = SyncCreateCounter(NULL, FakeClientID(0), initial);
 
     if (pCounter) {
         SysCounterInfo *psci;
@@ -2501,10 +2488,8 @@ SyncExtensionInit(void)
     for (s = 0; s < screenInfo.numScreens; s++)
         miSyncSetup(screenInfo.screens[s]);
 
-    if (RTCounter == 0) {
-        RTCounter = CreateNewResourceType(FreeCounter, "SyncCounter");
-        xorg_list_init(&SysCounterList);
-    }
+    RTCounter = CreateNewResourceType(FreeCounter, "SyncCounter");
+    xorg_list_init(&SysCounterList);
     RTAlarm = CreateNewResourceType(FreeAlarm, "SyncAlarm");
     RTAwait = CreateNewResourceType(FreeAwait, "SyncAwait");
     RTFence = CreateNewResourceType(FreeFence, "SyncFence");
