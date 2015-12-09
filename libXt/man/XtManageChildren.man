@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -95,32 +60,6 @@
 .de ZN
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
-..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
 ..
 .ny0
 .TH XtManageChildren __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
@@ -131,19 +70,19 @@ typedef Widget *WidgetList;
 .HP
 void XtManageChildren(WidgetList \fIchildren\fP, Cardinal \fInum_children\fP);
 .HP
-void XtManageChild(Widget \fIchild\fP); 
+void XtManageChild(Widget \fIchild\fP);
 .HP
 void XtUnmanageChildren(WidgetList \fIchildren\fP, Cardinal
-\fInum_children\fP); 
+\fInum_children\fP);
 .HP
-void XtUnmanageChild(Widget \fIchild\fP); 
+void XtUnmanageChild(Widget \fIchild\fP);
 .HP
-void XtChangeManagedSet(WidgetList \fIunmanage_children\fP, 
+void XtChangeManagedSet(WidgetList \fIunmanage_children\fP,
 Cardinal \fInum_unmanage_children\fP, XtDoChangeProc \fIdo_change_proc\fP,
-XtPointer \fIclient_data\fP, WidgetList \fImanage_children\fP, 
-Cardinal \fInum_manage_children\fP); 
+XtPointer \fIclient_data\fP, WidgetList \fImanage_children\fP,
+Cardinal \fInum_manage_children\fP);
 .HP
-Boolean XtIsManaged(Widget \fIwidget\fP); 
+Boolean XtIsManaged(Widget \fIwidget\fP);
 .SH ARGUMENTS
 .IP \fIchild\fP 1i
 Specifies the child.
@@ -171,7 +110,7 @@ The
 function performs the following:
 .IP \(bu 5
 Issues an error if the children do not all have the same parent or
-if the parent is not a subclass of 
+if the parent is not a subclass of
 .ZN compositeWidgetClass .
 .IP \(bu 5
 Returns immediately if the common parent is being destroyed;
@@ -190,7 +129,7 @@ Calls
 .ZN XtRealizeWidget
 on each previously unmanaged child that is unrealized.
 .IP \- 5
-Maps each previously unmanaged child that has map_when_managed 
+Maps each previously unmanaged child that has map_when_managed
 .ZN True .
 .RE
 .LP
@@ -198,7 +137,7 @@ Managing children is independent of the ordering of children and
 independent of creating and deleting children.
 The layout routine of the parent
 should consider children whose managed field is
-.ZN True 
+.ZN True
 and should ignore all other children.
 Note that some composite widgets, especially fixed boxes, call
 .ZN XtManageChild
@@ -208,7 +147,7 @@ If the parent widget is realized,
 its change_managed procedure is called to notify it
 that its set of managed children has changed.
 The parent can reposition and resize any of its children.
-It moves each child as needed by calling 
+It moves each child as needed by calling
 .ZN XtMoveWidget ,
 which first updates the x and y fields and then calls
 .ZN XMoveWindow
@@ -226,11 +165,11 @@ The
 function performs the following:
 .IP \(bu 5
 Issues an error if the children do not all have the same parent
-or if the parent is not a subclass of 
+or if the parent is not a subclass of
 .ZN compositeWidgetClass .
 .IP \(bu 5
 Returns immediately if the common parent is being destroyed;
-otherwise, for each unique child on the list, 
+otherwise, for each unique child on the list,
 .ZN XtUnmanageChildren
 performs the following:
 .RS
@@ -275,8 +214,8 @@ is defined but with an \fIallows_change_managed_set\fP field with a
 value of
 .ZN False ,
 and
-.ZN XtChangeManagedSet 
-was invoked with a non-NULL \fIdo_change_proc\fP procedure 
+.ZN XtChangeManagedSet
+was invoked with a non-NULL \fIdo_change_proc\fP procedure
 then
 .ZN XtChangeManagedSet
 performs the following:
@@ -301,7 +240,7 @@ is defined with an \fIallows_change_managed_set\fP field with a value of
 or if no
 .ZN CompositeClassExtension
 is defined, and
-.ZN XtChangeManagedSet was invoked with a NULL 
+.ZN XtChangeManagedSet was invoked with a NULL
 \fIdo_change_proc\fP procedure, then the following is
 performed:
 .RS

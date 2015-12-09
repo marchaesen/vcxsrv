@@ -67,7 +67,7 @@ typedef long fd_mask;
 # endif
 #endif
 
-#define XFD_SETSIZE	256
+#define XFD_SETSIZE	512
 
 #ifndef FD_SETSIZE
 #define FD_SETSIZE	XFD_SETSIZE
@@ -127,7 +127,16 @@ typedef struct fd_set {
         (howmany(FD_SETSIZE, NFDBITS) > 4 && (__XFDS_BITS(p, 4))) || \
         (howmany(FD_SETSIZE, NFDBITS) > 5 && (__XFDS_BITS(p, 5))) || \
         (howmany(FD_SETSIZE, NFDBITS) > 6 && (__XFDS_BITS(p, 6))) || \
-        (howmany(FD_SETSIZE, NFDBITS) > 7 && (__XFDS_BITS(p, 7))))
+        (howmany(FD_SETSIZE, NFDBITS) > 7 && (__XFDS_BITS(p, 7))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 8 && (__XFDS_BITS(p, 8))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 9 && (__XFDS_BITS(p, 9))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 10 && (__XFDS_BITS(p, 10))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 11 && (__XFDS_BITS(p, 11))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 12 && (__XFDS_BITS(p, 12))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 13 && (__XFDS_BITS(p, 13))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 14 && (__XFDS_BITS(p, 14))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 15 && (__XFDS_BITS(p, 15))))
+
 
 #define XFD_COPYSET(src,dst) { \
         int __i__; \

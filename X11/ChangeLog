@@ -1,3 +1,45 @@
+commit d5524e2b8d811aa03ed19c6e8fb2ee4162ca2b23
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed Jul 1 11:35:13 2015 -0400
+
+    xproto 7.0.28
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 2c94cdb453bc641246cc8b9a876da9799bee1ce7
+Author: Olivier Fourdan <ofourdan@redhat.com>
+Date:   Fri May 29 18:16:34 2015 +0200
+
+    Increase the number of file descriptors
+    
+    To allow up to 512 clients, the number of file descriptors being
+    monitored need to be increased accordingly.
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+    Signed-off-by: Olivier Fourdan <ofourdan@redhat.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2dc2c38fb530c717b1944c93a889e4deff61b7f9
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon May 25 04:30:29 2015 -0700
+
+    darwin: Include strings.h
+    
+    https://trac.macports.org/ticket/47813
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 70cf8acf06705097b009a488994b526832b0ef66
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Sun Jan 11 00:39:14 2015 +0100
+
+    Use C99 compliant definition of nonnull attribute.
+    
+    Fixes warning with clang.
+    
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 303b137a55bb2d092b008439570a323c89a41d70
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Tue Dec 30 21:15:09 2014 -0800

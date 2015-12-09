@@ -839,14 +839,16 @@ static void HandleSelectionEvents(
 	      IndirectPair *p;
 	      int format;
 	      unsigned long bytesafter, length;
-	      unsigned char *value;
+	      unsigned char *value = NULL;
 	      ev.property = event->xselectionrequest.property;
 	      StartProtectedSection(ev.display, ev.requestor);
-	      (void) XGetWindowProperty(ev.display, ev.requestor,
+	      if (XGetWindowProperty(ev.display, ev.requestor,
 			event->xselectionrequest.property, 0L, 1000000,
 			False,(Atom)AnyPropertyType, &target, &format, &length,
-			&bytesafter, &value);
-	      count = BYTELENGTH(length, format) / sizeof(IndirectPair);
+			&bytesafter, &value) == Success)
+		  count = BYTELENGTH(length, format) / sizeof(IndirectPair);
+	      else
+		  count = 0;
 	      for (p = (IndirectPair *)value; count; p++, count--) {
 		  EndProtectedSection(ctx->dpy);
 		  if (!GetConversion(ctx, (XSelectionRequestEvent*)event,
@@ -1053,9 +1055,10 @@ static Boolean IsINCRtype(
 
     if (prop == None) return False;
 
-    (void)XGetWindowProperty(XtDisplay(info->widget), window, prop, 0L, 0L,
-			     False, info->ctx->prop_list->incr_atom,
-			     &type, &format, &length, &bytesafter, &value);
+    if (XGetWindowProperty(XtDisplay(info->widget), window, prop, 0L, 0L,
+			   False, info->ctx->prop_list->incr_atom, &type,
+			   &format, &length, &bytesafter, &value) != Success)
+	return False;
 
     return (type == info->ctx->prop_list->incr_atom);
 }
@@ -1069,7 +1072,6 @@ static void ReqCleanup(
 {
     CallBackInfo info = (CallBackInfo)closure;
     unsigned long bytesafter, length;
-    char *value;
     int format;
     Atom target;
 
@@ -1093,17 +1095,19 @@ static void ReqCleanup(
 		(ev->xproperty.state == PropertyNewValue) &&
 	        (ev->xproperty.atom == info->property)) {
 	XPropertyEvent *event = (XPropertyEvent *) ev;
-        (void) XGetWindowProperty(event->display, XtWindow(widget),
-			   event->atom, 0L, 1000000, True, AnyPropertyType,
-			   &target, &format, &length, &bytesafter,
-			   (unsigned char **) &value);
-	XFree(value);
-	if (length == 0) {
-           XtRemoveEventHandler(widget, (EventMask) PropertyChangeMask, FALSE,
-			   ReqCleanup, (XtPointer) info );
-           FreeSelectionProperty(XtDisplay(widget), info->property);
-	   XtFree(info->value);	/* requestor never got this, so free now */
-	   FreeInfo(info);
+	char *value = NULL;
+	if (XGetWindowProperty(event->display, XtWindow(widget),
+			       event->atom, 0L, 1000000, True, AnyPropertyType,
+			       &target, &format, &length, &bytesafter,
+			       (unsigned char **) &value) == Success) {
+	    XFree(value);
+	    if (length == 0) {
+		XtRemoveEventHandler(widget, (EventMask) PropertyChangeMask,
+				     FALSE, ReqCleanup, (XtPointer) info );
+		FreeSelectionProperty(XtDisplay(widget), info->property);
+		XtFree(info->value); /* requestor never got this, so free now */
+		FreeInfo(info);
+	    }
 	}
     }
 }
@@ -1121,20 +1125,23 @@ static void ReqTimedOut(
     unsigned long bytesafter;
     unsigned long proplength;
     Atom type;
-    IndirectPair *pairs;
     XtPointer *c;
     int i;
 
     if (*info->target == info->ctx->prop_list->indirect_atom) {
-        (void) XGetWindowProperty(XtDisplay(info->widget),
-			   XtWindow(info->widget), info->property, 0L,
-			   10000000, True, AnyPropertyType, &type, &format,
-			   &proplength, &bytesafter, (unsigned char **) &pairs);
-       XFree((char*)pairs);
-       for (proplength = proplength / IndirectPairWordSize, i = 0, c = info->req_closure;
-	           proplength; proplength--, c++, i++)
-	    (*info->callbacks[i])(info->widget, *c,
-   	          &info->ctx->selection, &resulttype, value, &length, &format);
+	IndirectPair *pairs = NULL;
+	if (XGetWindowProperty(XtDisplay(info->widget), XtWindow(info->widget),
+			       info->property, 0L, 10000000, True,
+			       AnyPropertyType, &type, &format, &proplength,
+			       &bytesafter, (unsigned char **) &pairs)
+	    == Success) {
+	    XFree(pairs);
+	    for (proplength = proplength / IndirectPairWordSize, i = 0,
+		     c = info->req_closure;
+		 proplength; proplength--, c++, i++)
+		(*info->callbacks[i])(info->widget, *c, &info->ctx->selection,
+				      &resulttype, value, &length, &format);
+	}
     } else {
 	(*info->callbacks[0])(info->widget, *info->req_closure,
 	    &info->ctx->selection, &resulttype, value, &length, &format);
@@ -1280,12 +1287,13 @@ Boolean HandleNormal(
     unsigned long length;
     int format;
     Atom type;
-    unsigned char *value;
+    unsigned char *value = NULL;
     int number = info->current;
 
-    (void) XGetWindowProperty(dpy, XtWindow(widget), property, 0L,
-			      10000000, False, AnyPropertyType,
-			      &type, &format, &length, &bytesafter, &value);
+    if (XGetWindowProperty(dpy, XtWindow(widget), property, 0L, 10000000,
+			   False, AnyPropertyType, &type, &format, &length,
+			   &bytesafter, &value) != Success)
+	return FALSE;
 
     if (type == info->ctx->prop_list->incr_atom) {
 	unsigned long size = IncrPropSize(widget, value, format, length);
@@ -1370,7 +1378,6 @@ static void HandleSelectionReplies(
     Display *dpy = event->display;
     CallBackInfo info = (CallBackInfo) closure;
     Select ctx = info->ctx;
-    IndirectPair *pairs, *p;
     unsigned long bytesafter;
     unsigned long length;
     int format;
@@ -1385,9 +1392,12 @@ static void HandleSelectionReplies(
     XtRemoveEventHandler(widget, (EventMask)0, TRUE,
 		HandleSelectionReplies, (XtPointer) info );
     if (event->target == ctx->prop_list->indirect_atom) {
-        (void) XGetWindowProperty(dpy, XtWindow(widget), info->property, 0L,
-			   10000000, True, AnyPropertyType, &type, &format,
-			   &length, &bytesafter, (unsigned char **) &pairs);
+       IndirectPair *pairs = NULL, *p;
+       if (XGetWindowProperty(dpy, XtWindow(widget), info->property, 0L,
+			      10000000, True, AnyPropertyType, &type, &format,
+			      &length, &bytesafter, (unsigned char **) &pairs)
+	   != Success)
+	   length = 0;
        for (length = length / IndirectPairWordSize, p = pairs,
 	    c = info->req_closure;
 	    length; length--, p++, c++, info->current++) {

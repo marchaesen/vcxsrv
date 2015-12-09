@@ -89,7 +89,7 @@ static XrmDatabase errorDB = NULL;
 static Boolean error_inited = FALSE;
 void _XtDefaultErrorMsg(String, String, String, String, String*, Cardinal*);
 void _XtDefaultWarningMsg(String, String, String, String, String*, Cardinal*);
-void _XtDefaultError(String);
+void _XtDefaultError(String) _X_NORETURN;
 void _XtDefaultWarning(String);
 static XtErrorMsgHandler errorMsgHandler = _XtDefaultErrorMsg;
 static XtErrorMsgHandler warningMsgHandler = _XtDefaultWarningMsg;

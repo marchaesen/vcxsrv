@@ -1,26 +1,26 @@
 .\" Copyright (c) 1993, 1994  X Consortium
-.\" 
+.\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a
-.\" copy of this software and associated documentation files (the "Software"), 
-.\" to deal in the Software without restriction, including without limitation 
-.\" the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-.\" and/or sell copies of the Software, and to permit persons to whom the 
+.\" copy of this software and associated documentation files (the "Software"),
+.\" to deal in the Software without restriction, including without limitation
+.\" the rights to use, copy, modify, merge, publish, distribute, sublicense,
+.\" and/or sell copies of the Software, and to permit persons to whom the
 .\" Software furnished to do so, subject to the following conditions:
-.\" 
+.\"
 .\" The above copyright notice and this permission notice shall be included in
 .\" all copies or substantial portions of the Software.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 .\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
-.\" THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF 
-.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+.\" THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
-.\" 
-.\" Except as contained in this notice, the name of the X Consortium shall not 
-.\" be used in advertising or otherwise to promote the sale, use or other 
-.\" dealing in this Software without prior written authorization from the 
+.\"
+.\" Except as contained in this notice, the name of the X Consortium shall not
+.\" be used in advertising or otherwise to promote the sale, use or other
+.\" dealing in this Software without prior written authorization from the
 .\" X Consortium.
 .\"
 .ds tk X Toolkit
@@ -36,7 +36,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -50,42 +50,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -95,32 +60,6 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtAppAddSignal __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
@@ -128,11 +67,11 @@ XtAppAddSignal, XtRemoveSignal, XtNoticeSignal \- register and remove a signal s
 .SH SYNTAX
 .HP
 XtSignalId XtAppAddSignal(XtAppContext \fIapp_context\fP, XtSignalCallbackProc
-\fIproc\fP, XtPointer \fIclient_data\fP); 
+\fIproc\fP, XtPointer \fIclient_data\fP);
 .HP
-void XtRemoveSignal(XtSignalId \fIid\fP); 
+void XtRemoveSignal(XtSignalId \fIid\fP);
 .HP
-void XtNoticeSignal(XtSignalId \fIid\fP); 
+void XtNoticeSignal(XtSignalId \fIid\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
@@ -144,20 +83,20 @@ Specifies the ID returned from the corresponding
 .ZN XtAppAddSignal
 call.
 .IP \fIproc\fP 1i
-Specifies the procedure that is to be called when the signal has been 
+Specifies the procedure that is to be called when the signal has been
 raised.
 .SH DESCRIPTION
 The
 .ZN XtAppAddSignal
 function initiates a mechanism for handling signals within the context
-of the Intrinsics. Prior to establishing an operating system dependent 
+of the Intrinsics. Prior to establishing an operating system dependent
 signal handler the application may call
 .ZN XtAppAddSignal
-and store the returned \fIid\fP in a place accessible to the signal 
+and store the returned \fIid\fP in a place accessible to the signal
 handler.
 .LP
-Upon receipt of a signal from the operating system, the application may 
-call 
+Upon receipt of a signal from the operating system, the application may
+call
 .ZN XtNoticeSignal
 passing the \fIid\fP returned by the call to
 .ZN XtAppAddSignal .
@@ -172,7 +111,7 @@ Intrinsics maintain ``pending'' for each registered callback. This
 flag is initially
 .ZN False
 and is set to
-.ZN True 
+.ZN True
 by
 .ZN XtNoticeSignal ;
 the Intrinsics invoke the callback whenever the flag is
@@ -183,7 +122,7 @@ just before the callback is invoked.
 .LP
 The
 .ZN XtRemoveSignal
-function is called to remove the specified Intrinsics signal handler. The 
+function is called to remove the specified Intrinsics signal handler. The
 client should disable the source of the signal before calling
 .ZN XtRemoveSignal .
 .SH "SEE ALSO"

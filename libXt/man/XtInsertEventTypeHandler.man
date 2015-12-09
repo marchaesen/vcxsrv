@@ -1,26 +1,26 @@
 .\" Copyright (c) 1993, 1994  X Consortium
-.\" 
+.\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a
-.\" copy of this software and associated documentation files (the "Software"), 
-.\" to deal in the Software without restriction, including without limitation 
-.\" the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-.\" and/or sell copies of the Software, and to permit persons to whom the 
+.\" copy of this software and associated documentation files (the "Software"),
+.\" to deal in the Software without restriction, including without limitation
+.\" the rights to use, copy, modify, merge, publish, distribute, sublicense,
+.\" and/or sell copies of the Software, and to permit persons to whom the
 .\" Software furnished to do so, subject to the following conditions:
-.\" 
+.\"
 .\" The above copyright notice and this permission notice shall be included in
 .\" all copies or substantial portions of the Software.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 .\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
-.\" THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF 
-.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+.\" THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
-.\" 
-.\" Except as contained in this notice, the name of the X Consortium shall not 
-.\" be used in advertising or otherwise to promote the sale, use or other 
-.\" dealing in this Software without prior written authorization from the 
+.\"
+.\" Except as contained in this notice, the name of the X Consortium shall not
+.\" be used in advertising or otherwise to promote the sale, use or other
+.\" dealing in this Software without prior written authorization from the
 .\" X Consortium.
 .\"
 .ds tk X Toolkit
@@ -36,7 +36,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -50,42 +50,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -94,32 +59,6 @@
 .de ZN
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
-..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
 ..
 .ny0
 .TH XtInsertEventTypeHandler __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
@@ -131,20 +70,20 @@ XtRegisterExtensionSelector, XtSetEventDispatcher, XtDispatchEventToWidget
 .HP
 void XtInsertEventTypeHandler(Widget \fIwidget\fP, int \fIevent_type\fP,
 XtPointer \fIselect_data\fP, XtEventHandler \fIproc\fP, XtPointer
-\fIclient_data\fP, XtListPosition \fIposition\fP); 
+\fIclient_data\fP, XtListPosition \fIposition\fP);
 .HP
 void XtRemoveEventTypeHandler(Widget \fIwidget\fP, int \fIevent_type\fP,
 XtPointer \fIselect_data\fP, XtEventHandler \fIproc\fP, XtPointer
-\fIclient_data\fP); 
+\fIclient_data\fP);
 .HP
 void XtRegisterExtensionSelector(Display* \fIdisplay\fP, int
 \fImin_event_type\fP, int \fImax_event_type\fP, XtExtensionSelectProc
-\fIproc\fP, XtPointer \fIclient_data\fP); 
+\fIproc\fP, XtPointer \fIclient_data\fP);
 .HP
 XtEventDispatchProc XtSetEventDispatcher(Widget \fIwidget\fP, int
 \fIevent_type\fP, XtEventDispatchProc \fIproc\fP);
 .HP
-Boolean XtDispatchEventToWidget(Widget \fIwidget\fP, XEvent* \fIevent\fP); 
+Boolean XtDispatchEventToWidget(Widget \fIwidget\fP, XEvent* \fIevent\fP);
 .SH ARGUMENTS
 .IP \fIwidget\fP 1i
 Specifies the widget for this event handler.
@@ -173,7 +112,7 @@ function registers a procedure with the dispatch mechanism that is to
 be called when an event that matches the specified \fIevent_type\fP is
 dispatched to the specified \fIwidget\fP.
 .LP
-If \fIevent_type\fP is one of the core X protocol events then 
+If \fIevent_type\fP is one of the core X protocol events then
 \fIselect_data\fP must be a pointer to a value of type
 .ZN EventMask ,
 indicating the event mask to be used to select for the desired event.
@@ -184,7 +123,7 @@ If the widget is realized
 calls
 .ZN XSelectInput
 if necessary. Specifying NULL for \fIselect_data\fP is equivalent to
-specifying a pointer to an event mask containing 0. This is similar to the 
+specifying a pointer to an event mask containing 0. This is similar to the
 .ZN XtInsertRawEventHandler
 function.
 .LP

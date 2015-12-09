@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,49 +61,23 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtSetKeyTranslator __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetKeyTranslator, XtTranslateKeycode, XtRegisterCaseConverter, XtConvertCase \- convert KeySym to KeyCodes
 .SH SYNTAX
 .HP
-void XtSetKeyTranslator(Display *\fIdisplay\fP, XtKeyProc \fIproc\fP); 
+void XtSetKeyTranslator(Display *\fIdisplay\fP, XtKeyProc \fIproc\fP);
 .HP
 void XtTranslateKeycode(Display *\fIdisplay\fP, KeyCode \fIkeycode\fP,
 Modifiers \fImodifiers\fP, Modifiers *\fImodifiers_return\fP, KeySym
-*\fIkeysym_return\fP); 
+*\fIkeysym_return\fP);
 .HP
 void XtRegisterCaseConverter(Display *\fIdisplay\fP, XtCaseProc \fIproc\fP,
-KeySym \fIstart\fP, KeySym \fIstop\fP); 
+KeySym \fIstart\fP, KeySym \fIstop\fP);
 .HP
 void XtConvertCase(Display *\fIdisplay\fP, KeySym \fIkeysym\fP, KeySym
-*\fIlower_return\fP, KeySym *\fIupper_return\fP); 
+*\fIlower_return\fP, KeySym *\fIupper_return\fP);
 .SH ARGUMENTS
 .ds Di
 .IP \fIdisplay\fP 1i
@@ -156,7 +95,7 @@ Returns the uppercase equivalent of the KeySym.
 .IP \fImodifiers\fP 1i
 Specifies the modifiers to the KeyCode.
 .IP \fImodifiers_return\fP 1i
-Returns a mask that indicates the modifiers actually used 
+Returns a mask that indicates the modifiers actually used
 to generate the KeySym.
 .ds Pr \ to perform key translations or conversions
 .IP \fIproc\fP 1i
@@ -169,28 +108,28 @@ Specifies the last KeySym for which this converter is valid.
 The
 .ZN XtSetKeyTranslator
 function sets the specified procedure as the current key translator.
-The default translator is 
+The default translator is
 .ZN XtTranslateKey ,
 an
 .ZN XtKeyProc
 that uses Shift and Lock modifiers with the interpretations defined
 by the core protocol.
-It is provided so that new translators can call it to get default 
-KeyCode-to-KeySym translations and so that the default translator 
+It is provided so that new translators can call it to get default
+KeyCode-to-KeySym translations and so that the default translator
 can be reinstalled.
 .LP
 The
 .ZN XtTranslateKeycode
-function passes the specified arguments 
+function passes the specified arguments
 directly to the currently registered KeyCode to KeySym translator.
 .LP
 The
 .ZN XtRegisterCaseConverter
 registers the specified case converter.
-The start and stop arguments provide the inclusive range of KeySyms 
+The start and stop arguments provide the inclusive range of KeySyms
 for which this converter is to be called.
 The new converter overrides any previous converters for KeySyms in that range.
-No interface exists to remove converters; 
+No interface exists to remove converters;
 you need to register an identity converter.
 When a new converter is registered,
 the \*(xI  refreshes the keyboard state if necessary.
@@ -201,7 +140,7 @@ The
 .ZN XtConvertCase
 function calls the appropriate converter and returns the results.
 A user-supplied
-.ZN XtKeyProc 
+.ZN XtKeyProc
 may need to use this function.
 .SH "SEE ALSO"
 .br

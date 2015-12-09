@@ -60,7 +60,7 @@ in this Software without prior written authorization from The Open Group.
  */
 
 # include <string.h>
-# if defined(__SCO__) || defined(__UNIXWARE__) || defined(__sun) || defined(__CYGWIN__) || defined(_AIX)
+# if defined(__SCO__) || defined(__UNIXWARE__) || defined(__sun) || defined(__CYGWIN__) || defined(_AIX) || defined(__APPLE__)
 #  include <strings.h>
 # else
 #  ifndef index

@@ -1,3 +1,44 @@
+commit bb890936bcc6053cb7a46cd9225c257ff1be389f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 30 22:29:55 2015 -0700
+
+    libXrender 0.9.9
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7887382e59b7a06d6b02501205d543fdf76c8249
+Author: Clemens Eisserer <linuxhippy@gmail.com>
+Date:   Sat Nov 23 22:15:52 2013 -0800
+
+    Fix request length calculation for XRenderCompositeText32
+    
+    Request length calculation inside XRenderCompositeText32 is broken for
+    the case where the number of glyphs fits exactky inside the last
+    xGlyphElt.
+    
+    In XRenderCompositeText8 and XRenderCompositeText16 this case is
+    handled properly, somehow the "-1" got missing in
+    XRenderCompositeText32.
+    
+    Reviewed-by: Keith Packard <keithp@keithp.com>
+
+commit 2222b0fbff96b9f0324bb1e2f56416c84be23c3b
+Author: Michael Joost <mehl@michael-joost.de>
+Date:   Mon Nov 18 16:11:26 2013 +0100
+
+    Remove fallback for _XEatDataWords, require libX11 1.6 for it
+    
+    _XEatDataWords was orignally introduced with the May 2013 security
+    patches, and in order to ease the process of delivering those,
+    fallback versions of _XEatDataWords were included in the X extension
+    library patches so they could be applied to older versions that didn't
+    have libX11 1.6 yet.   Now that we're past that hurdle, we can drop
+    the fallbacks and just require libX11 1.6 for building new versions
+    of the extension libraries.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 61236e831f8cc0761b26b49e37a4df9c187aa0ba
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Jun 13 22:41:00 2013 -0700

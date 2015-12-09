@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,32 +61,6 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtMakeGeometryRequest __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
@@ -129,10 +68,10 @@ XtMakeGeometryRequest, XtMakeResizeRequest \- make geometry manager request
 .SH SYNTAX
 .HP
 XtGeometryResult XtMakeGeometryRequest(Widget \fIw\fP, XtWidgetGeometry
-*\fIrequest\fP, XtWidgetGeometry *\fIreply_return\fP); 
+*\fIrequest\fP, XtWidgetGeometry *\fIreply_return\fP);
 .HP
 XtGeometryResult XtMakeResizeRequest(Widget \fIw\fP, Dimension \fIwidth\fP,
-\fIheight\fP, Dimension *\fIwidth_return\fP, Dimension *\fIheight_return\fP); 
+\fIheight\fP, Dimension *\fIwidth_return\fP, Dimension *\fIheight_return\fP);
 .SH ARGUMENTS
 .IP \fIreply_return\fP 1i
 Returns the allowed widget size or may be NULL
@@ -159,11 +98,11 @@ it makes the changes and returns
 .ZN XtGeometryYes .
 .IP \(bu 5
 If the parent is not a subclass of
-.ZN compositeWidgetClass 
+.ZN compositeWidgetClass
 or the parent's geometry_manager is NULL,
 it issues an error.
 .IP \(bu 5
-If the widget's being_destroyed field is 
+If the widget's being_destroyed field is
 .ZN True ,
 it returns
 .ZN XtGeometryNo .
@@ -172,7 +111,7 @@ If the widget x, y, width, height and border_width fields are
 all equal to the requested values,
 it returns
 .ZN XtGeometryYes ;
-otherwise, it calls the parent's geometry_manager procedure 
+otherwise, it calls the parent's geometry_manager procedure
 with the given parameters.
 .IP \(bu 5
 If the parent's geometry manager returns
@@ -182,9 +121,9 @@ and if
 is not set in the request_mode
 and if the widget is realized,
 .ZN XtMakeGeometryRequest
-calls the 
+calls the
 .ZN XConfigureWindow
-Xlib function to reconfigure the widget's window (set its size, location, 
+Xlib function to reconfigure the widget's window (set its size, location,
 and stacking order as appropriate).
 .IP \(bu 5
 If the geometry manager returns
@@ -192,7 +131,7 @@ If the geometry manager returns
 the change has been approved and actually has been done.
 In this case,
 .ZN XtMakeGeometryRequest
-does no configuring and returns 
+does no configuring and returns
 .ZN XtGeometryYes .
 .ZN XtMakeGeometryRequest
 never returns
@@ -226,7 +165,7 @@ the widget should immediately make an
 and request that the compromise width and height be applied.
 If the widget is not interested in
 .ZN XtGeometryAlmost
-replies, 
+replies,
 it can pass NULL for width_return and height_return.
 .SH "SEE ALSO"
 XtConfigureWidget(__libmansuffix__),

@@ -266,7 +266,12 @@ extern Widget _XtWindowedAncestor( /* internal; implementation-dependent */
     Widget 		/* object */
 );
 
-extern void _XtInherit(
+#if (defined(_WIN32) || defined(__CYGWIN__)) && !defined(LIBXT_COMPILATION)
+__declspec(dllimport)
+#else
+extern
+#endif
+void _XtInherit(
     void
 );
 

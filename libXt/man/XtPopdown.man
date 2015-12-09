@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,44 +61,18 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtPopdown __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtPopdown, XtCallbackPopdown \- unmap a pop-up
 .SH SYNTAX
 .HP
-void XtPopdown(Widget \fIpopup_shell\fP); 
+void XtPopdown(Widget \fIpopup_shell\fP);
 .HP
 void XtCallbackPopdown(Widget \fIw\fP, XtPointer \fIclient_data\fP, XtPointer
 \fIcall_data\fP);
 .HP
-void MenuPopdown(String \fIshell_name\fP); 
+void MenuPopdown(String \fIshell_name\fP);
 .SH ARGUMENTS
 .IP \fIcall_data\fP 1i
 Specifies the callback data,
@@ -174,7 +113,7 @@ it calls
 .ZN XtRemoveGrab .
 .\".ZN XtRemoveGrab(popup_shell)
 .IP \(bu 5
-Sets pop-up shell's popped_up field to 
+Sets pop-up shell's popped_up field to
 .ZN False .
 .IP \(bu 5
 Calls the callback procedures on the shell's popdown_callback list.
@@ -186,20 +125,19 @@ function casts the client data parameter to an
 pointer:
 .LP
 .Ds 0
-.TA .5i 3i
-.ta .5i 3i
 typedef struct {
-	Widget shell_widget;
-	Widget enable_widget;
+        Widget shell_widget;
+        Widget enable_widget;
 } XtPopdownIDRec, *XtPopdownID;
 .De
+.LP
 The shell_widget is the pop-up shell to pop down,
 and the enable_widget is the widget that was used to pop it up.
 .LP
 .ZN XtCallbackPopdown
 calls
 .ZN XtPopdown
-with the specified shell_widget 
+with the specified shell_widget
 and then calls
 .ZN XtSetSensitive
 to resensitize the enable_widget.
@@ -213,14 +151,14 @@ If a shell_name is specified in the translation table,
 .ZN MenuPopdown
 tries to find the shell by looking up the widget tree starting at the
 parent of the widget in which it is invoked.
-If it finds a shell with the specified name in the pop-up children 
-of that parent, 
-it pops down the shell; 
+If it finds a shell with the specified name in the pop-up children
+of that parent,
+it pops down the shell;
 otherwise, it moves up the parent chain as needed.
-If 
-.ZN MenuPopdown 
-gets to the application top-level shell widget 
-and cannot find a matching shell, 
+If
+.ZN MenuPopdown
+gets to the application top-level shell widget
+and cannot find a matching shell,
 it generates an error.
 .SH "SEE ALSO"
 XtCreatePopupShell(__libmansuffix__),

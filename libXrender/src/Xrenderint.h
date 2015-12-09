@@ -109,18 +109,4 @@ XRenderFindDisplay (Display *dpy);
 #define DataInt32(dpy,d,len)	Data(dpy,(char *) (d),len)
 #endif
 
-#ifndef HAVE__XEATDATAWORDS
-#include <X11/Xmd.h>  /* for LONG64 on 64-bit platforms */
-#include <limits.h>
-
-static inline void _XEatDataWords(Display *dpy, unsigned long n)
-{
-# ifndef LONG64
-    if (n >= (ULONG_MAX >> 2))
-        _XIOError(dpy);
-# endif
-    _XEatData (dpy, n << 2);
-}
-#endif
-
 #endif /* _XRENDERINT_H_ */

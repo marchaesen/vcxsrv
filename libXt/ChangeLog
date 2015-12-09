@@ -1,3 +1,408 @@
+commit e7411e7e5299116604ff1f01d9415802607f1051
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 30 22:36:14 2015 -0700
+
+    libXt 1.1.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0c2c7562426aec7bdf9b54a7d6993153e0bce489
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Sun Aug 10 12:44:26 2014 -0500
+
+    Fix _XtInherit on x86_64 Windows
+    
+    As noted in Initialize.c, _XtInherit needs special treatment as it's both called
+    as a function, and used as a value to compare with.
+    
+    We need to change this trickery for x86_64, as the symbols are no longer
+    underscore prefixed, and the address is 64 bits.
+    
+    We also cannot place the trampoline in the .data section, as it may be marked
+    no-execute, so we use a special section for it instead.
+    
+    v2: Uses of XtInherit must also be marked dllimport, so that they do not use a
+    thunk, but instead indirect via the __imp_XtInherit auto-import. This avoids
+    problems with an incorrect relocation being calculated in the case where libXt
+    and a library using it (e.g. libXaw/libXaw3d/libXm/etc.) are loaded more than
+    2GiB apart from each other.
+    
+    This is enough to build a working libXt for Cygwin x86_64, because it uses the
+    LP64 data model.  I believe that more patches are needed for libXt to work
+    correctly when built for the Windows LLP64 data model.
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@cygwin.com>
+    Reviewed-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit 171d82fa36bb601360da2cc519718c46f137c467
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Tue Apr 14 12:21:58 2015 +0100
+
+    Include unistd.h for getpid()
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: David Macek <david.macek.0@gmail.com>
+
+commit af9c277491c9bdc37a6fc5ae5a6c6ca190bfa56c
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Tue Apr 14 12:19:07 2015 +0100
+
+    Include direct.h header for _getdrives() on Win32
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: David Macek <david.macek.0@gmail.com>
+
+commit e7094ceaf95a15eae73819d0ffdb9b982075e0d2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 14 14:10:21 2015 -0800
+
+    unifdef -UCRAY -UCRAY2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 33a6d9dc30188c02a3ec703153728b31d458ec1e
+Author: Rob Clark <robdclark@gmail.com>
+Date:   Mon Jan 26 11:51:48 2015 -0500
+
+    asprintf needs _GNU_SOURCE on some platforms
+    
+    Fixes a build break noticed on fedora 21 on arm (although I doubt that
+    is in any way arch specific).
+    
+    http://tinderbox.x.org/builds/2015-01-26-0012/logs/libXt/#build
+    
+    Signed-off-by: Rob Clark <robdclark@gmail.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ca04f74887d53c75e794f643f7e860ba588c3a57
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jan 18 11:21:45 2015 -0800
+
+    makestrs: Use asprintf() if available
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit fba83e45a8d5dc2ca920ec6c49446d2b54c2db5c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jan 18 10:58:08 2015 -0800
+
+    makestrs: Replace strcpy()+strcat() calls with snprintf() calls
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 47fa41960650dd0e97eb78de2af0f5fcd9323b35
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jan 18 10:43:11 2015 -0800
+
+    makestrs: Replace malloc()+strcpy() calls with strdup() calls
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit f3e5903536f80cb42ee6841f85e013284eb4c2fc
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jan 18 10:27:42 2015 -0800
+
+    makestrs: use strchr() instead of index()
+    
+    Besides being supported by more standards, strchr() has the important
+    characteristic of having a prototype included in <string.h> on Solaris
+    so that 64-bit compiles know it returns a pointer, not an integer.
+    (On Solaris, index() is only found in <strings.h>, for SunOS compatibility.)
+    
+    Without this fix, makestrs segfaulted in 64-bit builds on Solaris after
+    commit f9baaf55ff8cbd4bf018a34f181eda30d03b20dc switched to <string.h>.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit aed2c4d3493cf3a06ad1240f317552fd8bfd687a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jan 18 10:34:38 2015 -0800
+
+    If CFLAGS_FOR_BUILD is not set, include CWARNFLAGS in default value
+    
+    Help catch errors like missing prototypes in makestrs sooner.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit f9baaf55ff8cbd4bf018a34f181eda30d03b20dc
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Thu Jan 8 09:18:16 2015 +0100
+
+    Use string.h instead of X11/Xos.h.
+    
+    Long long ago, Xos.h was needed to choose between <string.h> &
+    <strings.h> depending on the OS in use.
+    
+    Today we can rely on C89 & later providing <string.h> everywhere
+    for us.
+    
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 51d63a9d82dc4f2407862131bbf3e5d72b4505d3
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sat Sep 21 12:52:15 2013 -0400
+
+    Use $(MKDIR_P) in Makefile.am for better code portability
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 8828fc21cb5b10f06294e460d15c38e234324960
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Jul 10 08:18:26 2013 -0700
+
+    Revert "Avoid shadowing variables."
+    
+    This reverts commit 3919044bd7d3bcb85ce3425a43b8889a248a7542.
+    Breaks programs such as xcalc & xlogo on multiple platforms.
+
+commit 9dc5fb0b9640b79a234b58e640e05d8276556beb
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Tue Jun 25 23:02:48 2013 +0200
+
+    Fix char vs. unsigned char warnings.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3919044bd7d3bcb85ce3425a43b8889a248a7542
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Tue Jun 25 23:02:46 2013 +0200
+
+    Avoid shadowing variables.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d395f487e659ee1091eb60c89c551ba1b61dfe51
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Tue Jun 25 23:02:50 2013 +0200
+
+    Ignore test-driver from automake-1.13.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 71c76a6c500761a2ca0091a55b8c106906fcb125
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Wed Jun 26 00:43:03 2013 +0200
+
+    Mark non-returning function with appropriate attribute.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ce57783ea5b5c47f5dca172d36a76f91dd7704df
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Wed Jun 26 00:43:32 2013 +0200
+
+    Use appropriate variable type for vsnprintf return value.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0bf255ce5f2aeacece0b685996491729f804fe94
+Author: Thierry Reding <thierry.reding@avionic-design.de>
+Date:   Thu Jan 3 10:16:55 2013 +0100
+
+    Fix cross-compilation
+    
+    When cross-compiling against a sysroot for instance, a --sysroot option
+    is typically passed via the CPPFLAGS variable. This can cause the build
+    to break in the util subdirectory which requires the CPPFLAGS to be set
+    for the build system.
+    
+    Solve this by using the value of CPPFLAGS_FOR_BUILD for CPPFLAGS in the
+    util subdirectory. Cross-compile setups can override the variable when
+    calling the configure script.
+    
+    Signed-off-by: Thierry Reding <thierry.reding@avionic-design.de>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 02fd80afd5d2416301e5166e202ff859902c7987
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Sun Jun 2 21:48:38 2013 +0200
+
+    Add missing comma to fix DEBUG build.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e83d6d66ea28b0aaa7e574dd2471121a5250b934
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 30 18:13:27 2013 -0700
+
+    libXt 1.1.4
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1f4802b745aa172d375cb79403cb1e013e6aa4c0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 9 13:33:20 2013 -0800
+
+    Remove old strtoul workaround for SunOS 4
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9264a21b688891dbdcee630ff72cf39aa75fc4e1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 9 11:44:14 2013 -0800
+
+    unvalidated length in _XtResourceConfigurationEH [CVE-2013-2002]
+    
+    The RCM_DATA property is expected to be in the format:
+        resource_length, resource, value
+    
+    If the property contains a resource_length thats results in a pointer
+    outside the property string, memory corruption can occur.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit eae57493feec958bcf733ad0d334715107029f8b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 9 11:29:21 2013 -0800
+
+    Unchecked return values of XGetWindowProperty [CVE-2013-2005]
+    
+    Multiple functions in Selection.c assumed that XGetWindowProperty() would
+    always set the pointer to the property, but before libX11 1.6, it could
+    fail to do so in some cases, leading to libXt freeing or operating on an
+    uninitialized pointer value, so libXt should always initialize the pointers
+    and check for failure itself.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ead50a9a274aa96bef94e57c4625be8e9288af4e
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 8f5f3f7a3c36088d6faf0f13da4416596257bc58
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:28:48 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 6731c2c7e3c16ad17425acfb5024fa1501e94411
+Author: Thierry Reding <thierry.reding@avionic-design.de>
+Date:   Thu Jan 3 10:16:56 2013 +0100
+
+    Use AM_CPPFLAGS instead of INCLUDES
+    
+    Recent versions of automake deprecate the INCLUDES variable. The same
+    effect can be achieved by using AM_CPPFLAGS instead, which is also
+    automake's recommendation.
+    
+    Signed-off-by: Thierry Reding <thierry.reding@avionic-design.de>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 97034e393cfa63a55e9cec2d795ac41e5872f5b5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 4 19:52:59 2013 -0800
+
+    unifdef -U__UNIXOS2__
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 0033d063894d003b1cb6edb14107d6ef7e0f3fec
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Thu Sep 8 16:40:27 2011 +0200
+
+    Add XtErrorDB directory to pkg-config file.
+    
+    Should anyone ever desire to supply this file externally
+    it's location is specified in the pkg-config file.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 15d7f9cf9e089f5968a20f80529096e9a1d3551f
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Thu May 19 18:18:52 2011 +0200
+
+    Install ErrorDB into a $datarootdir-path, not $libdir.
+    
+    This lets Xt search for it's ErrorDB in the same location
+    as Xlib. These error databases are architecture independent
+    data files.
+    
+    The XtErrorDB file neither exists in libXt nor has it ever
+    been supplied by any '3rd party' (at least Google didn't
+    turn up any results).
+    Therefore changing the location of this file (again) should
+    have no side effects on backward compatibility.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 690d6587e7e0ba29b70d2b1d6c5c6a128c5547a2
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Thu Aug 23 11:43:42 2012 -0400
+
+    Remove unused macros that are temptations to presentation-level klugery.
+    
+    Also, change .Ds/.De to use CW font, as what they're wrapping is code displays.
+    This may not be recognized on archaic Unixes, but .ft 1 isn't any too safe
+    either. The PostScript and DVI drivers both grok CW.
+    
+    Signed-off-by: Eric S. Raymond <esr@thyrsus.com>
+
+commit 356b3e6235be4cdb51f13249cb68c581c0fc50c7
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Thu Aug 23 11:30:47 2012 -0400
+
+    Eliminate use of tab stops.
+    
+    Signed-off-by: Eric S. Raymond <esr@thyrsus.com>
+
+commit 1e5e04a80b391ea6827bb3c537be47533c6afe1e
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Wed Jul 18 16:45:19 2012 +0200
+
+    Fix DEBUG build (TMparse.c:376:1: error: overflow in implicit constant conversion)
+    
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1ab3a0dd5140489bc80edcfd940609fefaec81f1
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Wed Jul 18 16:45:18 2012 +0200
+
+    Avoid referencing something that isn't defined. Bring in the definition from another manual page.
+    
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6adb4655a15276973f5e74fd79f5c99d3d4b77a0
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Mon Apr 23 20:08:34 2012 +0200
+
+    Add copyright notice and license from the X Consortium to COPYING
+    
+    These appear in the Xt manpages.
+    
+    Reported-by: Ansgar Burchardt
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
 commit 2d689ac861085d1d74bcbd05d1595bac0bf67d20
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Mar 15 22:51:45 2012 -0700

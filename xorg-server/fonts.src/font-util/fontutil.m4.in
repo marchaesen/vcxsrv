@@ -282,10 +282,11 @@ AC_DEFUN([XORG_FONT_CHECK_COMPRESSION],[
 # by ucs2any, and export it as MAPFILES_PATH to the Makefiles
 
 AC_DEFUN([XORG_FONT_UCS2ANY],[
+	AC_REQUIRE([PKG_PROG_PKG_CONFIG])
 	XORG_FONT_REQUIRED_PROG(UCS2ANY, ucs2any)
 	PKG_CHECK_MODULES(MAPS, [fontutil])
 	AC_MSG_CHECKING([for ucs2any encoding data files])
-	MAPFILES_PATH=`pkg-config --variable=mapdir fontutil`
+	MAPFILES_PATH=`$PKG_CONFIG --variable=mapdir fontutil`
 	AC_SUBST(MAPFILES_PATH)
 	AC_MSG_RESULT([${MAPFILES_PATH}])
 ])

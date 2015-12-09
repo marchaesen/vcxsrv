@@ -31,12 +31,16 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #define	XkbCharToInt(v)		((v)&0x80?(int)((v)|(~0xff)):(int)((v)&0x7f))
 #define	XkbIntTo2Chars(i,h,l)	(((h)=((i>>8)&0xff)),((l)=((i)&0xff)))
-
-#if defined(WORD64) && defined(UNSIGNEDBITFIELDS)
-#define	Xkb2CharsToInt(h,l)	((h)&0x80?(int)(((h)<<8)|(l)|(~0xffff)):\
-					  (int)(((h)<<8)|(l)&0x7fff))
-#else
 #define	Xkb2CharsToInt(h,l)	((short)(((h)<<8)|(l)))
+
+/*
+ * The Xkb structs are full of implicit padding to properly align members.
+ * We can't clean that up without breaking ABI, so tell clang not to bother
+ * complaining about it.
+ */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
 #endif
 
 	/*
@@ -82,9 +86,12 @@ typedef struct _XkbKeyType {
 	XkbModsRec		mods;
 	unsigned char	  	num_levels;
 	unsigned char	  	map_count;
+	/* map is an array of map_count XkbKTMapEntryRec structs */
 	XkbKTMapEntryPtr  	map;
+	/* preserve is an array of map_count XkbModsRec structs */
 	XkbModsPtr  		preserve;
 	Atom		  	name;
+	/* level_names is an array of num_levels Atoms */
 	Atom *			level_names;
 } XkbKeyTypeRec, *XkbKeyTypePtr;
 
@@ -215,8 +222,8 @@ typedef struct	_XkbRedirectKeyAction {
 
 #define	XkbSARedirectVMods(a)		((((unsigned int)(a)->vmods1)<<8)|\
 					((unsigned int)(a)->vmods0))
-#define	XkbSARedirectSetVMods(a,m)	(((a)->vmods_mask1=(((m)>>8)&0xff)),\
-					 ((a)->vmods_mask0=((m)&0xff)))
+#define	XkbSARedirectSetVMods(a,m)	(((a)->vmods1=(((m)>>8)&0xff)),\
+					 ((a)->vmods0=((m)&0xff)))
 #define	XkbSARedirectVModsMask(a)	((((unsigned int)(a)->vmods_mask1)<<8)|\
 					((unsigned int)(a)->vmods_mask0))
 #define	XkbSARedirectSetVModsMask(a,m)	(((a)->vmods_mask1=(((m)>>8)&0xff)),\
@@ -288,10 +295,14 @@ typedef	struct _XkbControls {
 #define	XkbAX_NeedFeedback(c,w)	(XkbAX_AnyFeedback(c)&&XkbAX_NeedOption(c,w))
 
 typedef struct _XkbServerMapRec {
+	/* acts is an array of XkbActions structs, with size_acts entries
+	   allocated, and num_acts entries used. */
 	unsigned short		 num_acts;
 	unsigned short		 size_acts;
 	XkbAction		*acts;
 
+	/* behaviors, key_acts, explicit, & vmodmap are all arrays with
+	   (xkb->max_key_code + 1) entries allocated for each. */
 	XkbBehavior		*behaviors;
 	unsigned short		*key_acts;
 #if defined(__cplusplus) || defined(c_plusplus)
@@ -318,15 +329,20 @@ typedef	struct _XkbSymMapRec {
 } XkbSymMapRec, *XkbSymMapPtr;
 
 typedef struct _XkbClientMapRec {
+	/* types is an array of XkbKeyTypeRec structs, with size_types entries
+	   allocated, and num_types entries used. */
 	unsigned char		 size_types;
 	unsigned char		 num_types;
 	XkbKeyTypePtr		 types;
 
+	/* syms is an array of size_syms KeySyms, in which num_syms are used */
 	unsigned short		 size_syms;
 	unsigned short		 num_syms;
 	KeySym			*syms;
+	/* key_sym_map is an array of (max_key_code + 1) XkbSymMapRec structs */
 	XkbSymMapPtr		 key_sym_map;
 
+	/* modmap is an array of (max_key_code + 1) unsigned chars */
 	unsigned char		*modmap;
 } XkbClientMapRec, *XkbClientMapPtr;
 
@@ -354,6 +370,8 @@ typedef struct _XkbSymInterpretRec {
 } XkbSymInterpretRec,*XkbSymInterpretPtr;
 
 typedef struct _XkbCompatMapRec {
+	/* sym_interpret is an array of XkbSymInterpretRec structs,
+	   in which size_si are allocated & num_si are used. */
 	XkbSymInterpretPtr	 sym_interpret;
 	XkbModsRec		 groups[XkbNumKbdGroups];
 	unsigned short		 num_si;
@@ -403,11 +421,15 @@ typedef struct _XkbNamesRec {
 	Atom		  vmods[XkbNumVirtualMods];
 	Atom		  indicators[XkbNumIndicators];
 	Atom		  groups[XkbNumKbdGroups];
+	/* keys is an array of (xkb->max_key_code + 1) XkbKeyNameRec entries */
 	XkbKeyNamePtr	  keys;
+	/* key_aliases is an array of num_key_aliases XkbKeyAliasRec entries */
 	XkbKeyAliasPtr	  key_aliases;
+	/* radio_groups is an array of num_rg Atoms */
 	Atom		 *radio_groups;
 	Atom		  phys_symbols;
 
+	/* num_keys seems to be unused in libX11 */
 	unsigned char	  num_keys;
 	unsigned char	  num_key_aliases;
 	unsigned short	  num_rg;
@@ -582,6 +604,7 @@ typedef struct _XkbDeviceInfo {
 	unsigned short		supported;
 	unsigned short		unsupported;
 
+	/* btn_acts is an array of num_btn XkbAction entries */
 	unsigned short		num_btns;
 	XkbAction *		btn_acts;
 
@@ -589,6 +612,8 @@ typedef struct _XkbDeviceInfo {
 	unsigned short		num_leds;
 	unsigned short		dflt_kbd_fb;
 	unsigned short		dflt_led_fb;
+	/* leds is an array of XkbDeviceLedInfoRec in which
+	   sz_leds entries are allocated and num_leds entries are used */
 	XkbDeviceLedInfoPtr	leds;
 } XkbDeviceInfoRec,*XkbDeviceInfoPtr;
 
@@ -609,5 +634,9 @@ typedef struct _XkbDeviceChanges {
 	unsigned short		num_btns;
 	XkbDeviceLedChangesRec 	leds;
 } XkbDeviceChangesRec,*XkbDeviceChangesPtr;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif /* _XKBSTR_H_ */

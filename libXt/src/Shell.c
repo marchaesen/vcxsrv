@@ -87,6 +87,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/ICE/ICElib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #ifdef EDITRES
 #include <X11/Xmu/Editres.h>
@@ -108,17 +109,10 @@ in this Software without prior written authorization from The Open Group.
  *
  ***************************************************************************/
 
-#ifdef CRAY
-void _XtShellDepth(Widget, int, XrmValue *);
-void _XtShellColormap(Widget, int, XrmValue *);
-void _XtShellAncestorSensitive(Widget, int, XrmValue *);
-void _XtTitleEncoding(Widget, int, XrmValue *);
-#else
 static void _XtShellDepth(Widget, int, XrmValue *);
 static void _XtShellColormap(Widget, int, XrmValue *);
 static void _XtShellAncestorSensitive(Widget, int, XrmValue *);
 static void _XtTitleEncoding(Widget, int, XrmValue *);
-#endif
 
 /***************************************************************************
  *
@@ -931,9 +925,7 @@ static void XtCopyDefaultDepth(
     value->addr = (XPointer)(&DefaultDepthOfScreen(XtScreenOfObject(widget)));
 }
 
-#ifndef CRAY
 static
-#endif
 void _XtShellDepth(
     Widget widget,
     int closure,
@@ -952,9 +944,7 @@ static void XtCopyDefaultColormap(
     value->addr = (XPointer)(&DefaultColormapOfScreen(XtScreenOfObject(widget)));
 }
 
-#ifndef CRAY
 static
-#endif
 void _XtShellColormap(
     Widget widget,
     int closure,
@@ -965,9 +955,7 @@ void _XtShellColormap(
    else _XtCopyFromParent (widget,closure,value);
 }
 
-#ifndef CRAY
 static
-#endif
 void _XtShellAncestorSensitive(
     Widget widget,
     int closure,
@@ -979,9 +967,7 @@ void _XtShellAncestorSensitive(
 }
 
 /*ARGSUSED*/
-#ifndef CRAY
 static
-#endif
 void _XtTitleEncoding(
     Widget widget,
     int offset,

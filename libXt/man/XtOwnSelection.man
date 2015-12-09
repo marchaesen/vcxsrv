@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,32 +61,6 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtOwnSelection __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
@@ -130,31 +69,31 @@ XtOwnSelection, XtOwnSelectionIncremental, XtDisownSelection \- set selection ow
 .HP
 Boolean XtOwnSelection(Widget \fIw\fP, Atom \fIselection\fP, Time \fItime\fP,
 XtConvertSelectionProc \fIconvert_proc\fP, XtLoseSelectionProc
-\fIlose_selection\fP, XtSelectionDoneProc \fIdone_proc\fP); 
+\fIlose_selection\fP, XtSelectionDoneProc \fIdone_proc\fP);
 .HP
 Boolean XtOwnSelectionIncremental(Widget \fIw\fP, Atom \fIselection\fP, Time
 \fItime\fP, XtConvertSelectionIncrProc \fIconvert_callback\fP,
 XtLoseSelectionIncrProc \fIlose_callback\fP, XtSelectionDoneIncrProc
 \fIdone_callback\fP, XtCancelConvertSelectionProc \fIcancel_callback\fP,
-XtPointer \fIclient_data\fP); 
+XtPointer \fIclient_data\fP);
 .HP
 void XtDisownSelection(Widget \fIw\fP, Atom \fIselection\fP, Time \fItime\fP);
 .SH ARGUMENTS
 .IP \fIconvert_proc\fP 1i
-Specifies the procedure that is to be called whenever someone requests the 
+Specifies the procedure that is to be called whenever someone requests the
 current value of the selection.
 .IP \fIdone_proc\fP 1i
-Specifies the procedure that is called 
+Specifies the procedure that is called
 after the requestor has received the selection or NULL if the owner is not
 interested in being called back.
 .IP \fIlose_selection\fP 1i
-Specifies the procedure that is to be called whenever the widget has 
-lost selection ownership or NULL if the owner is not interested in being 
+Specifies the procedure that is to be called whenever the widget has
+lost selection ownership or NULL if the owner is not interested in being
 called back.
 .IP \fIselection\fP 1i
 Specifies an atom that describes the type of the selection (for example,
-.ZN XA_PRIMARY , 
-.ZN XA_SECONDARY , 
+.ZN XA_PRIMARY ,
+.ZN XA_SECONDARY ,
 or
 .ZN XA_CLIPBOARD ).
 .ds Ti ownership should commence or is to be relinquished
@@ -168,24 +107,24 @@ The
 .ZN XtOwnSelection
 function informs the \*(xI selection mechanism that a
 widget believes it owns a selection.
-It returns 
-.ZN True 
-if the widget has successfully become the owner and 
+It returns
+.ZN True
+if the widget has successfully become the owner and
 .ZN False
 otherwise.
-The widget may fail to become the owner if some other widget 
+The widget may fail to become the owner if some other widget
 has asserted ownership at a time later than this widget.
-Note that widgets can lose selection ownership either 
-because someone else asserted later ownership of the selection 
+Note that widgets can lose selection ownership either
+because someone else asserted later ownership of the selection
 or because the widget voluntarily gave up ownership of the selection.
-Also note that the lose_selection procedure is not called 
+Also note that the lose_selection procedure is not called
 if the widget fails to obtain selection ownership in the first place.
 .LP
 The
 .ZN XtOwnSelectionIncremental
 procedure informs the Intrinsics incremental selection mechanism that
 the specified widget wishes to own the selection. It returns
-.ZN True 
+.ZN True
 if the specified widget successfully becomes the selection owner or
 .ZN False
 otherwise. For more information about \fIselection\fP, \fItarget\fP,
@@ -202,17 +141,17 @@ The
 .ZN XtDisownSelection
 function informs the \*(xI selection mechanism that
 the specified widget is to lose ownership of the selection.
-If the widget does not currently own the selection either 
-because it lost the selection 
+If the widget does not currently own the selection either
+because it lost the selection
 or because it never had the selection to begin with,
 .ZN XtDisownSelection
 does nothing.
 .LP
 After a widget has called
 .ZN XtDisownSelection ,
-its convert procedure is not called even if a request arrives later 
+its convert procedure is not called even if a request arrives later
 with a timestamp during the period that this widget owned the selection.
-However, its done procedure will be called if a conversion that started 
+However, its done procedure will be called if a conversion that started
 before the call to
 .ZN XtDisownSelection
 finishes after the call to

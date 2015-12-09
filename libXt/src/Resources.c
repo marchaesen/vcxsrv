@@ -86,11 +86,6 @@ static XrmName Qtranslations, QbaseTranslations;
 static XrmName Qscreen;
 static XrmClass QScreen;
 
-#ifdef CRAY
-void Cjump();
-char *Cjumpp = (char *) Cjump;
-void Cjump() {}
-#endif
 
 void _XtCopyFromParent(
     Widget      widget,
@@ -781,13 +776,6 @@ static XtCacheRef *GetResources(
 		    /* Convert default value to proper type */
 		    xrm_default_type = rx->xrm_default_type;
 		    if (xrm_default_type == QCallProc) {
-#ifdef CRAY
- 			if ( (int) Cjumpp != (int) Cjump)
- 			    (*(XtResourceDefaultProc)
-			      (((int)(rx->xrm_default_addr))<<2))(
- 				 widget,-(rx->xrm_offset+1), &value);
-			else
-#endif
 			(*(XtResourceDefaultProc)(rx->xrm_default_addr))(
 			      widget,-(rx->xrm_offset+1), &value);
 
@@ -1123,15 +1111,6 @@ void _XtGetApplicationResources (
 	XtNumber(quark_cache), &quark_args);
     /* Compile resource list if needed */
     if (((int) resources->resource_offset) >= 0) {
-#ifdef	CRAY2
- 	if (base == 0) {	/* this client is non-portable, but... */
- 	    int count;
-	    XtResourceList  res = resources;
-	    for (count = 0; count < num_resources; res++, count++) {
- 		res->resource_offset *= sizeof(long);
- 	    }
- 	}
-#endif	/* CRAY2 */
 	XrmCompileResourceListEphem(resources, num_resources);
     }
     table = _XtCreateIndirectionTable(resources,num_resources);

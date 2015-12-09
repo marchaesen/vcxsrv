@@ -27,7 +27,7 @@ in this Software without prior written authorization from The Open Group.
 /* Constructs string definitions */
 
 #include <stdio.h>
-#include <X11/Xos.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -90,21 +90,26 @@ static int   solaris_abi_names = FALSE;
 static char* includedir = NULL;
 static FILE *ifopen(const char *file, const char *mode)
 {
+#ifndef HAVE_ASPRINTF
     size_t len;
+#endif
     char *buffer;
     FILE *ret;
 
     if (includedir == NULL)
         return fopen(file, mode);
 
+#ifdef HAVE_ASPRINTF
+    if (asprintf(&buffer, "%s/%s", includedir, file) == -1)
+        return NULL;
+#else
     len = strlen(file) + strlen(includedir) + 1;
     buffer = (char*)malloc(len + 1);
     if (buffer == NULL)
         return NULL;
 
-    strcpy(buffer, includedir);
-    strcat(buffer, "/");
-    strcat(buffer, file);
+    snprintf(buffer, len + 1, "%s/%s", includedir, file);
+#endif
 
     ret = fopen(buffer, mode);
 
@@ -271,13 +276,23 @@ static void WriteHeader (char *tagline, File *phile, int abi)
 
     /* do the right thing for Motif, i.e. avoid _XmXmStrDefs_h_ */
     if (strcmp (prefixstr, "Xm") == 0) {
+#ifdef HAVE_ASPRINTF
+	if (asprintf (&fileprotstr, "_%s_", phile->name) == -1)
+	    exit (1);
+#else
 	if ((fileprotstr = malloc (strlen (phile->name) + 3)) == NULL)
 	   exit (1);
 	(void) sprintf (fileprotstr, "_%s_", phile->name);
+#endif
     } else {
+#ifdef HAVE_ASPRINTF
+	if (asprintf (&fileprotstr, "_%s%s_", prefixstr, phile->name) == -1)
+	    exit (1);
+#else
 	if ((fileprotstr = malloc (strlen (phile->name) + strlen (prefixstr) +  3)) == NULL)
 	   exit (1);
 	(void) sprintf (fileprotstr, "_%s%s_", prefixstr, phile->name);
+#endif
     }
 
     for (tmp = fileprotstr; *tmp; tmp++) if (*tmp == '.') *tmp = '_';
@@ -498,9 +513,8 @@ static void DoLine(char *buf)
 
 	    if ((phile = (File*) malloc (sizeof(File))) == NULL)
 		exit(1);
-	    if ((phile->name = malloc (strlen (buf + strlen (file_str)) + 1)) == NULL)
+	    if ((phile->name = strdup (buf + strlen (file_str) + 1)) == NULL)
 		exit(1);
-	    (void) strcpy (phile->name, buf + strlen (file_str) + 1);
 	    phile->table = NULL;
 	    phile->tablecurrent = NULL;
 	    phile->tabletail = &phile->table;
@@ -517,9 +531,8 @@ static void DoLine(char *buf)
 	    Table* table;
 	    if ((table = (Table*) malloc (sizeof(Table))) == NULL)
 		exit(1);
-	    if ((table->name = malloc (strlen (buf + strlen (table_str)) + 1)) == NULL)
+	    if ((table->name = strdup (buf + strlen (table_str) + 1)) == NULL)
 		exit(1);
-	    (void) strcpy (table->name, buf + strlen (table_str) + 1);
 	    if (solaris_abi_names) {
 		if (strcmp(table->name, "XtStringsR6") == 0) {
 		    strcpy(table->name, "XtR6Strings");
@@ -539,29 +552,24 @@ static void DoLine(char *buf)
 	}
 	break;
     case X_PREFIX_TOKEN:
-	if ((prefixstr = malloc (strlen (buf + strlen (prefix_str)) + 1)) == NULL)
+	if ((prefixstr = strdup (buf + strlen (prefix_str) + 1)) == NULL)
 	    exit(1);
-	(void) strcpy (prefixstr, buf + strlen (prefix_str) + 1);
 	break;
     case X_FEATURE_TOKEN:
-	if ((featurestr = malloc (strlen (buf + strlen (feature_str)) + 1)) == NULL)
+	if ((featurestr = strdup (buf + strlen (feature_str) + 1)) == NULL)
 	    exit(1);
-	(void) strcpy (featurestr, buf + strlen (feature_str) + 1);
 	break;
     case X_EXTERNREF_TOKEN:
-	if ((externrefstr = malloc (strlen (buf + strlen (externref_str)) + 1)) == NULL)
+	if ((externrefstr = strdup (buf + strlen (externref_str) + 1)) == NULL)
 	    exit(1);
-	(void) strcpy (externrefstr, buf + strlen (externref_str) + 1);
 	break;
     case X_EXTERNDEF_TOKEN:
-	if ((externdefstr = malloc (strlen (buf + strlen (externdef_str)) + 1)) == NULL)
+	if ((externdefstr = strdup (buf + strlen (externdef_str) + 1)) == NULL)
 	    exit(1);
-	(void) strcpy (externdefstr, buf + strlen (externdef_str) + 1);
 	break;
     case X_CTMPL_TOKEN:
-	if ((ctmplstr = malloc (strlen (buf + strlen (ctmpl_str)) + 1)) == NULL)
+	if ((ctmplstr = strdup (buf + strlen (ctmpl_str) + 1)) == NULL)
 	    exit(1);
-	(void) strcpy (ctmplstr, buf + strlen (ctmpl_str) + 1);
 	break;
     case X_HTMPL_TOKEN:
 	if ((filecurrent->tmpl = ifopen (buf + strlen (htmpl_str) + 1, "r")) == NULL) {
@@ -571,9 +579,8 @@ static void DoLine(char *buf)
 	}
 	break;
     case X_CONST_TOKEN:
-	if ((conststr = malloc (strlen (buf + strlen (const_str)) + 1)) == NULL)
+	if ((conststr = strdup (buf + strlen (const_str) + 1)) == NULL)
 	    exit(1);
-	(void) strcpy (conststr, buf + strlen (const_str) + 1);
 	break;
     default:
 	{
@@ -583,13 +590,12 @@ static void DoLine(char *buf)
 	    int rlen;
 	    int len;
 
-	    if ((right = index(buf, ' ')))
+	    if ((right = strchr(buf, ' ')))
 		*right++ = 0;
 	    else
 		right = buf + 1;
 	    if (buf[0] == 'H') {
-		strcpy (lbuf, prefixstr);
-		strcat (lbuf, right);
+		snprintf (lbuf, sizeof(lbuf), "%s%s", prefixstr, right);
 		right = lbuf;
 	    }
 
@@ -666,8 +672,8 @@ static char* DoComment (char *line)
     int len;
 
     /* assume that the first line with two '$' in it is the RCS tag line */
-    if ((tag = index (line, '$')) == NULL) return NULL;
-    if ((eol = index (tag + 1, '$')) == NULL) return NULL;
+    if ((tag = strchr (line, '$')) == NULL) return NULL;
+    if ((eol = strchr (tag + 1, '$')) == NULL) return NULL;
     len = eol - tag;
     if ((ret = malloc (len)) == NULL)
 	exit (1);

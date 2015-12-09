@@ -40,7 +40,7 @@ font-schumacher-misc-1.1.2
 font-screen-cyrillic-1.0.4
 font-sony-misc-1.0.3
 font-sun-misc-1.0.3
-font-util-1.3.0
+font-util-1.3.1
 font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
@@ -48,10 +48,10 @@ fontsproto-2.1.3
 freetype-2.6
 glproto git version
 inputproto-2.3.1
-kbproto-1.0.6
+kbproto-1.0.7
 libX11 git version
 libXau git version
-libXaw-1.0.12
+libXaw-1.0.13
 libXdmcp git version
 libXext git version
 libXfixes-5.0
@@ -60,8 +60,8 @@ libXft git version
 libXinerama git version
 libXmu git version
 libXpm-3.5.11
-libXrender-0.9.8
-libXt-1.1.3
+libXrender-0.9.9
+libXt-1.1.5
 libfontenc git version
 libxcb git version
 libxkbfile-1.0.8
@@ -86,12 +86,12 @@ xclock-1.0.7
 xcmiscproto-1.2.2
 xextproto git version
 xf86bigfontproto-1.2.0
-xhost-1.0.6
+xhost-1.0.7
 xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
 xrdb git version
-xproto-7.0.27
+xproto-7.0.28
 xserver git version
 xtrans git version
 xwininfo git version

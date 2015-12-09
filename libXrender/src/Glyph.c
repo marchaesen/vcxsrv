@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -135,7 +135,7 @@ XRenderFreeGlyphs (Display   *dpy,
     UnlockDisplay(dpy);
     SyncHandle();
 }
-	   
+
 void
 XRenderCompositeString8 (Display	    *dpy,
 			 int		    op,
@@ -158,7 +158,7 @@ XRenderCompositeString8 (Display	    *dpy,
 
     if (!nchar)
 	return;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
 
@@ -171,21 +171,21 @@ XRenderCompositeString8 (Display	    *dpy,
     req->maskFormat = maskFormat ? maskFormat->id : None;
     req->glyphset = glyphset;
     req->xSrc = xSrc;
-    req->ySrc = ySrc;    
+    req->ySrc = ySrc;
 
     /*
      * xGlyphElt must be aligned on a 32-bit boundary; this is
      * easily done by filling no more than 252 glyphs in each
      * bucket
      */
-    
+
 #define MAX_8 252
 
     len = SIZEOF(xGlyphElt) * ((nchar + MAX_8-1) / MAX_8) + nchar;
-    
+
     req->length += (len + 3)>>2;  /* convert to number of 32-bit words */
-    
-    /* 
+
+    /*
      * If the entire request does not fit into the remaining space in the
      * buffer, flush the buffer first.
      */
@@ -206,18 +206,18 @@ XRenderCompositeString8 (Display	    *dpy,
 	nchar = nchar - MAX_8;
 	string += MAX_8;
     }
-	
+
     if (nchar)
     {
 	nbytes = (nchar + SIZEOF(xGlyphElt) + 3) & ~3;
-	BufAlloc (xGlyphElt *, elt, nbytes); 
+	BufAlloc (xGlyphElt *, elt, nbytes);
 	elt->len = nchar;
 	elt->deltax = xDst;
 	elt->deltay = yDst;
 	memcpy ((char *) (elt + 1), string, nchar);
     }
 #undef MAX_8
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -243,10 +243,10 @@ XRenderCompositeString16 (Display	    *dpy,
 
     if (!nchar)
 	return;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
-    
+
     GetReq(RenderCompositeGlyphs16, req);
     req->reqType = info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs16;
@@ -256,15 +256,15 @@ XRenderCompositeString16 (Display	    *dpy,
     req->maskFormat = maskFormat ? maskFormat->id : None;
     req->glyphset = glyphset;
     req->xSrc = xSrc;
-    req->ySrc = ySrc;    
+    req->ySrc = ySrc;
 
 #define MAX_16	254
 
     len = SIZEOF(xGlyphElt) * ((nchar + MAX_16-1) / MAX_16) + nchar * 2;
-    
+
     req->length += (len + 3)>>2;  /* convert to number of 32-bit words */
-    
-    /* 
+
+    /*
      * If the entire request does not fit into the remaining space in the
      * buffer, flush the buffer first.
      */
@@ -285,18 +285,18 @@ XRenderCompositeString16 (Display	    *dpy,
 	nchar = nchar - MAX_16;
 	string += MAX_16;
     }
-	
+
     if (nchar)
     {
 	nbytes = (nchar * 2 + SIZEOF(xGlyphElt) + 3) & ~3;
-	BufAlloc (xGlyphElt *, elt, nbytes); 
+	BufAlloc (xGlyphElt *, elt, nbytes);
 	elt->len = nchar;
 	elt->deltax = xDst;
 	elt->deltay = yDst;
 	memcpy ((char *) (elt + 1), (char *) string, nchar * 2);
     }
 #undef MAX_16
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -323,10 +323,10 @@ XRenderCompositeString32 (Display	    *dpy,
 
     if (!nchar)
 	return;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
-    
+
     GetReq(RenderCompositeGlyphs32, req);
     req->reqType = info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs32;
@@ -336,15 +336,15 @@ XRenderCompositeString32 (Display	    *dpy,
     req->maskFormat = maskFormat ? maskFormat->id : None;
     req->glyphset = glyphset;
     req->xSrc = xSrc;
-    req->ySrc = ySrc;    
+    req->ySrc = ySrc;
 
 #define MAX_32	254
 
     len = SIZEOF(xGlyphElt) * ((nchar + MAX_32-1) / MAX_32) + nchar * 4;
-    
+
     req->length += (len + 3)>>2;  /* convert to number of 32-bit words */
-    
-    /* 
+
+    /*
      * If the entire request does not fit into the remaining space in the
      * buffer, flush the buffer first.
      */
@@ -365,18 +365,18 @@ XRenderCompositeString32 (Display	    *dpy,
 	nchar = nchar - MAX_32;
 	string += MAX_32;
     }
-	
+
     if (nchar)
     {
 	nbytes = nchar * 4 + SIZEOF(xGlyphElt);
-	BufAlloc (xGlyphElt *, elt, nbytes); 
+	BufAlloc (xGlyphElt *, elt, nbytes);
 	elt->len = nchar;
 	elt->deltax = xDst;
 	elt->deltay = yDst;
 	memcpy ((char *) (elt + 1), (char *) string, nchar * 4);
     }
 #undef MAX_32
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -406,7 +406,7 @@ XRenderCompositeText8 (Display			    *dpy,
 
     if (!nelt)
 	return;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
 
@@ -419,13 +419,13 @@ XRenderCompositeText8 (Display			    *dpy,
     req->maskFormat = maskFormat ? maskFormat->id : None;
     req->glyphset = elts[0].glyphset;
     req->xSrc = xSrc;
-    req->ySrc = ySrc;    
+    req->ySrc = ySrc;
 
     /*
      * Compute the space necessary
      */
     len = 0;
-    
+
 #define MAX_8 252
 
     glyphset = elts[0].glyphset;
@@ -448,7 +448,7 @@ XRenderCompositeText8 (Display			    *dpy,
 	elen = SIZEOF(xGlyphElt) * ((nchars + MAX_8-1) / MAX_8) + nchars;
 	len += (elen + 3) >> 2;
     }
-    
+
     req->length += len;
 
     /*
@@ -489,7 +489,7 @@ XRenderCompositeText8 (Display			    *dpy,
 	}
     }
 #undef MAX_8
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -519,7 +519,7 @@ XRenderCompositeText16 (Display			    *dpy,
 
     if (!nelt)
 	return;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
 
@@ -532,13 +532,13 @@ XRenderCompositeText16 (Display			    *dpy,
     req->maskFormat = maskFormat ? maskFormat->id : None;
     req->glyphset = elts[0].glyphset;
     req->xSrc = xSrc;
-    req->ySrc = ySrc;    
+    req->ySrc = ySrc;
 
     /*
      * Compute the space necessary
      */
     len = 0;
-    
+
 #define MAX_16	254
 
     glyphset = elts[0].glyphset;
@@ -561,7 +561,7 @@ XRenderCompositeText16 (Display			    *dpy,
 	elen = SIZEOF(xGlyphElt) * ((nchars + MAX_16-1) / MAX_16) + nchars * 2;
 	len += (elen + 3) >> 2;
     }
-    
+
     req->length += len;
 
     glyphset = elts[0].glyphset;
@@ -587,7 +587,7 @@ XRenderCompositeText16 (Display			    *dpy,
 	{
 	    int this_chars = nchars > MAX_16 ? MAX_16 : nchars;
 	    int this_bytes = this_chars * 2;
-    
+
 	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
 	    elt->len = this_chars;
 	    elt->deltax = xDst;
@@ -600,7 +600,7 @@ XRenderCompositeText16 (Display			    *dpy,
 	}
     }
 #undef MAX_16
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -630,11 +630,11 @@ XRenderCompositeText32 (Display			    *dpy,
 
     if (!nelt)
 	return;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
 
-    
+
     GetReq(RenderCompositeGlyphs32, req);
     req->reqType = info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs32;
@@ -644,7 +644,7 @@ XRenderCompositeText32 (Display			    *dpy,
     req->maskFormat = maskFormat ? maskFormat->id : None;
     req->glyphset = elts[0].glyphset;
     req->xSrc = xSrc;
-    req->ySrc = ySrc;    
+    req->ySrc = ySrc;
 
     /*
      * Compute the space necessary
@@ -652,7 +652,7 @@ XRenderCompositeText32 (Display			    *dpy,
     len = 0;
 
 #define MAX_32	254
-    
+
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
@@ -665,10 +665,10 @@ XRenderCompositeText32 (Display			    *dpy,
 	    len += (SIZEOF (xGlyphElt) + 4) >> 2;
 	}
 	nchars = elts[i].nchars;
-	elen = SIZEOF(xGlyphElt) * ((nchars + MAX_32) / MAX_32) + nchars *4;
+	elen = SIZEOF(xGlyphElt) * ((nchars + MAX_32-1) / MAX_32) + nchars *4;
 	len += (elen + 3) >> 2;
     }
-    
+
     req->length += len;
 
     glyphset = elts[0].glyphset;
@@ -706,7 +706,7 @@ XRenderCompositeText32 (Display			    *dpy,
 	}
     }
 #undef MAX_32
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
 }

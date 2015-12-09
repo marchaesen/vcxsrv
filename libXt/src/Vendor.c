@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -64,27 +64,10 @@ SOFTWARE.
  *
  ***************************************************************************/
 
-#if defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__)
+#if defined(__CYGWIN__) || defined(__MINGW32__)
 /* to fix the EditRes problem because of wrong linker semantics */
 extern WidgetClass vendorShellWidgetClass;
 
-#if defined(__UNIXOS2__)
-unsigned long _DLL_InitTerm(unsigned long mod,unsigned long flag)
-{
-        switch (flag) {
-        case 0: /*called on init*/
-                _CRT_init();
-                vendorShellWidgetClass = (WidgetClass)(&vendorShellClassRec);
-                return 1;
-        case 1: /*called on exit*/
-                return 1;
-        default:
-                return 0;
-        }
-}
-#endif
-
-#if defined(__CYGWIN__) || defined(__MINGW32__)
 int __stdcall
 DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 {
@@ -99,7 +82,6 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
   return 1;
 }
 #endif
-#endif
 
 externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
   {
@@ -110,7 +92,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* class_part_initialize*/	NULL,
     /* Class init'ed ?    */	FALSE,
     /* initialize         */    NULL,
-    /* initialize_notify    */	NULL,		
+    /* initialize_notify    */	NULL,
     /* realize            */    XtInheritRealize,
     /* actions            */    NULL,
     /* num_actions        */    0,
@@ -125,8 +107,8 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* resize             */    XtInheritResize,
     /* expose             */    NULL,
     /* set_values         */    NULL,
-    /* set_values_hook      */	NULL,			
-    /* set_values_almost    */	XtInheritSetValuesAlmost,  
+    /* set_values_hook      */	NULL,
+    /* set_values_almost    */	XtInheritSetValuesAlmost,
     /* get_values_hook      */	NULL,
     /* accept_focus       */    NULL,
     /* intrinsics version */	XtVersion,
