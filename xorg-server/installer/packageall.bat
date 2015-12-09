@@ -25,8 +25,10 @@ copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\Debug_NonRed
 copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\Debug_NonRedist\x64\Microsoft.VC140.DebugCRT\vcruntime140d.dll"
 
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
+  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64.nsi
   "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64-debug.nsi
 ) else (
+  "C:\Program Files\NSIS\makensis.exe" vcxsrv-64.nsi
   "C:\Program Files\NSIS\makensis.exe" vcxsrv-64-debug.nsi
 )
 
