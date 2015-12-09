@@ -36,8 +36,8 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
 static const char*
 IsWow64(void)
 {
-#ifdef __x86_64__
-    return " (64-bit)";
+#ifdef _WIN64
+  return " (64-bit)";
 #else
     WINBOOL bIsWow64;
     LPFN_ISWOW64PROCESS fnIsWow64Process =
