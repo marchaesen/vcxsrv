@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2013-2014 The Khronos Group Inc.
+# Copyright (c) 2013-2015 The Khronos Group Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and/or associated documentation files (the
@@ -140,7 +140,7 @@ glx13andLaterPat = '1\.[3-9]'
 # Copyright text prefixing all headers (list of strings).
 prefixStrings = [
     '/*',
-    '** Copyright (c) 2013-2014 The Khronos Group Inc.',
+    '** Copyright (c) 2013-2015 The Khronos Group Inc.',
     '**',
     '** Permission is hereby granted, free of charge, to any person obtaining a',
     '** copy of this software and/or associated documentation files (the',
@@ -225,8 +225,8 @@ gles2PlatformStrings = [ '#include <GLES2/gl2platform.h>', '' ]
 gles3PlatformStrings = [ '#include <GLES3/gl3platform.h>', '' ]
 eglPlatformStrings   = [ '#include <EGL/eglplatform.h>', '' ]
 
-# GLES 1/2 extension .h have small addition to calling convention headers
-gles1ExtPlatformStrings = gles2ExtPlatformStrings = [
+# GLES headers have a small addition to calling convention headers for function pointer typedefs
+apiEntryPrefixStrings = [
     '#ifndef GL_APIENTRYP',
     '#define GL_APIENTRYP GL_APIENTRY*',
     '#endif',
@@ -333,7 +333,7 @@ buildList = [
         defaultExtensions = 'gles1',                # Default extensions for GLES 1
         addExtensions     = None,
         removeExtensions  = es1CorePat,             # Remove mandatory ES1 extensions in GLES1/glext.h
-        prefixText        = prefixStrings + gles1ExtPlatformStrings + genDateCommentString,
+        prefixText        = prefixStrings + apiEntryPrefixStrings + genDateCommentString,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -342,7 +342,7 @@ buildList = [
         apicall           = 'GL_API ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 2.0 API - GLES2/gl2.h (no function pointers)
+    # GLES 2.0 API - GLES2/gl2.h (now with function pointers)
     CGeneratorOptions(
         filename          = 'GLES2/gl2.h',
         apiname           = 'gles2',
@@ -352,11 +352,11 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles2PlatformStrings + genDateCommentString,
-        genFuncPointers   = False,
+        prefixText        = prefixStrings + gles2PlatformStrings + apiEntryPrefixStrings + genDateCommentString,
+        genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = False,                  # Core ES API functions are in the static link libraries
+        protectProto      = protectProto,           # Core ES API functions are in the static link libraries
         protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
@@ -371,7 +371,7 @@ buildList = [
         defaultExtensions = 'gles2',                # Default extensions for GLES 2
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles2ExtPlatformStrings + genDateCommentString,
+        prefixText        = prefixStrings + apiEntryPrefixStrings + genDateCommentString,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -380,7 +380,7 @@ buildList = [
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 3.1 API - GLES3/gl31.h (no function pointers)
+    # GLES 3.1 API - GLES3/gl31.h (now with function pointers)
     CGeneratorOptions(
         filename          = 'GLES3/gl31.h',
         apiname           = 'gles2',
@@ -390,16 +390,16 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles3PlatformStrings + genDateCommentString,
-        genFuncPointers   = False,
+        prefixText        = prefixStrings + gles3PlatformStrings + apiEntryPrefixStrings + genDateCommentString,
+        genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = False,                  # Core ES API functions are in the static link libraries
+        protectProto      = protectProto,           # Core ES API functions are in the static link libraries
         protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 3.0 API - GLES3/gl3.h (no function pointers)
+    # GLES 3.0 API - GLES3/gl3.h (now with function pointers)
     CGeneratorOptions(
         filename          = 'GLES3/gl3.h',
         apiname           = 'gles2',
@@ -409,11 +409,11 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles3PlatformStrings + genDateCommentString,
-        genFuncPointers   = False,
+        prefixText        = prefixStrings + gles3PlatformStrings + apiEntryPrefixStrings + genDateCommentString,
+        genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = False,                  # Core ES API functions are in the static link libraries
+        protectProto      = protectProto,           # Core ES API functions are in the static link libraries
         protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',

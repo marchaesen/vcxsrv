@@ -2,7 +2,7 @@
 <registry>
     <!--
     Copyright (c) 2013-2014 The Khronos Group Inc.
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and/or associated documentation files (the
     "Materials"), to deal in the Materials without restriction, including
@@ -10,10 +10,10 @@
     distribute, sublicense, and/or sell copies of the Materials, and to
     permit persons to whom the Materials are furnished to do so, subject to
     the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included
     in all copies or substantial portions of the Materials.
-    
+
     THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -168,6 +168,7 @@
          extensions and API versions). -->
 
     <enums namespace="WGL" group="SpecialNumbers" vendor="MS">
+        <enum value="0"           name="WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB"/>
         <enum value="0"           name="WGL_FONT_LINES"/>
         <enum value="1"           name="WGL_FONT_POLYGONS"/>
     </enums>
@@ -372,7 +373,8 @@
         <enum value="0x2094"        name="WGL_CONTEXT_FLAGS_ARB"/>
         <enum value="0x2095"        name="ERROR_INVALID_VERSION_ARB"/>
         <enum value="0x2096"        name="ERROR_INVALID_PROFILE_ARB"/>
-            <!-- 0x2097-0x2098 reserved for future WGL/GLX extensions -->
+        <enum value="0x2097"        name="WGL_CONTEXT_RELEASE_BEHAVIOR_ARB"/>
+        <enum value="0x2098"        name="WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB"/>
             <unused start="0x2099" end="0x209F"/>
     </enums>
 
@@ -1374,6 +1376,44 @@
 
     <!-- SECTION: WGL extension interface definitions -->
     <extensions>
+        <extension name="WGL_3DFX_multisample" supported="wgl">
+            <require>
+                <enum name="WGL_SAMPLE_BUFFERS_3DFX"/>
+                <enum name="WGL_SAMPLES_3DFX"/>
+            </require>
+        </extension>
+        <extension name="WGL_3DL_stereo_control" supported="wgl">
+            <require>
+                <enum name="WGL_STEREO_EMITTER_ENABLE_3DL"/>
+                <enum name="WGL_STEREO_EMITTER_DISABLE_3DL"/>
+                <enum name="WGL_STEREO_POLARITY_NORMAL_3DL"/>
+                <enum name="WGL_STEREO_POLARITY_INVERT_3DL"/>
+                <command name="wglSetStereoEmitterState3DL"/>
+            </require>
+        </extension>
+        <extension name="WGL_AMD_gpu_association" supported="wgl">
+            <require>
+                <enum name="WGL_GPU_VENDOR_AMD"/>
+                <enum name="WGL_GPU_RENDERER_STRING_AMD"/>
+                <enum name="WGL_GPU_OPENGL_VERSION_STRING_AMD"/>
+                <enum name="WGL_GPU_FASTEST_TARGET_GPUS_AMD"/>
+                <enum name="WGL_GPU_RAM_AMD"/>
+                <enum name="WGL_GPU_CLOCK_AMD"/>
+                <enum name="WGL_GPU_NUM_PIPES_AMD"/>
+                <enum name="WGL_GPU_NUM_SIMD_AMD"/>
+                <enum name="WGL_GPU_NUM_RB_AMD"/>
+                <enum name="WGL_GPU_NUM_SPI_AMD"/>
+                <command name="wglGetGPUIDsAMD"/>
+                <command name="wglGetGPUInfoAMD"/>
+                <command name="wglGetContextGPUIDAMD"/>
+                <command name="wglCreateAssociatedContextAMD"/>
+                <command name="wglCreateAssociatedContextAttribsAMD"/>
+                <command name="wglDeleteAssociatedContextAMD"/>
+                <command name="wglMakeAssociatedContextCurrentAMD"/>
+                <command name="wglGetCurrentAssociatedContextAMD"/>
+                <command name="wglBlitContextFramebufferAMD"/>
+            </require>
+        </extension>
         <extension name="WGL_ARB_buffer_region" supported="wgl">
             <require>
                 <enum name="WGL_FRONT_COLOR_BUFFER_BIT_ARB"/>
@@ -1386,15 +1426,80 @@
                 <command name="wglRestoreBufferRegionARB"/>
             </require>
         </extension>
+        <extension name="WGL_ARB_context_flush_control" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_RELEASE_BEHAVIOR_ARB"/>
+                <enum name="WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB"/>
+                <enum name="WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ARB_create_context" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_DEBUG_BIT_ARB"/>
+                <enum name="WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB"/>
+                <enum name="WGL_CONTEXT_MAJOR_VERSION_ARB"/>
+                <enum name="WGL_CONTEXT_MINOR_VERSION_ARB"/>
+                <enum name="WGL_CONTEXT_LAYER_PLANE_ARB"/>
+                <enum name="WGL_CONTEXT_FLAGS_ARB"/>
+                <enum name="ERROR_INVALID_VERSION_ARB"/>
+                <command name="wglCreateContextAttribsARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ARB_create_context_profile" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_PROFILE_MASK_ARB"/>
+                <enum name="WGL_CONTEXT_CORE_PROFILE_BIT_ARB"/>
+                <enum name="WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB"/>
+                <enum name="ERROR_INVALID_PROFILE_ARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ARB_create_context_robustness" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB"/>
+                <enum name="WGL_LOSE_CONTEXT_ON_RESET_ARB"/>
+                <enum name="WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB"/>
+                <enum name="WGL_NO_RESET_NOTIFICATION_ARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ARB_extensions_string" supported="wgl">
+            <require>
+                <command name="wglGetExtensionsStringARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ARB_framebuffer_sRGB" supported="wgl">
+            <require>
+                <enum name="WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ARB_make_current_read" supported="wgl">
+            <require>
+                <enum name="ERROR_INVALID_PIXEL_TYPE_ARB"/>
+                <enum name="ERROR_INCOMPATIBLE_DEVICE_CONTEXTS_ARB"/>
+                <command name="wglMakeContextCurrentARB"/>
+                <command name="wglGetCurrentReadDCARB"/>
+            </require>
+        </extension>
         <extension name="WGL_ARB_multisample" supported="wgl">
             <require>
                 <enum name="WGL_SAMPLE_BUFFERS_ARB"/>
                 <enum name="WGL_SAMPLES_ARB"/>
             </require>
         </extension>
-        <extension name="WGL_ARB_extensions_string" supported="wgl">
+        <extension name="WGL_ARB_pbuffer" supported="wgl">
             <require>
-                <command name="wglGetExtensionsStringARB"/>
+                <enum name="WGL_DRAW_TO_PBUFFER_ARB"/>
+                <enum name="WGL_MAX_PBUFFER_PIXELS_ARB"/>
+                <enum name="WGL_MAX_PBUFFER_WIDTH_ARB"/>
+                <enum name="WGL_MAX_PBUFFER_HEIGHT_ARB"/>
+                <enum name="WGL_PBUFFER_LARGEST_ARB"/>
+                <enum name="WGL_PBUFFER_WIDTH_ARB"/>
+                <enum name="WGL_PBUFFER_HEIGHT_ARB"/>
+                <enum name="WGL_PBUFFER_LOST_ARB"/>
+                <command name="wglCreatePbufferARB"/>
+                <command name="wglGetPbufferDCARB"/>
+                <command name="wglReleasePbufferDCARB"/>
+                <command name="wglDestroyPbufferARB"/>
+                <command name="wglQueryPbufferARB"/>
             </require>
         </extension>
         <extension name="WGL_ARB_pixel_format" supported="wgl">
@@ -1453,29 +1558,9 @@
                 <command name="wglChoosePixelFormatARB"/>
             </require>
         </extension>
-        <extension name="WGL_ARB_make_current_read" supported="wgl">
+        <extension name="WGL_ARB_pixel_format_float" supported="wgl">
             <require>
-                <enum name="ERROR_INVALID_PIXEL_TYPE_ARB"/>
-                <enum name="ERROR_INCOMPATIBLE_DEVICE_CONTEXTS_ARB"/>
-                <command name="wglMakeContextCurrentARB"/>
-                <command name="wglGetCurrentReadDCARB"/>
-            </require>
-        </extension>
-        <extension name="WGL_ARB_pbuffer" supported="wgl">
-            <require>
-                <enum name="WGL_DRAW_TO_PBUFFER_ARB"/>
-                <enum name="WGL_MAX_PBUFFER_PIXELS_ARB"/>
-                <enum name="WGL_MAX_PBUFFER_WIDTH_ARB"/>
-                <enum name="WGL_MAX_PBUFFER_HEIGHT_ARB"/>
-                <enum name="WGL_PBUFFER_LARGEST_ARB"/>
-                <enum name="WGL_PBUFFER_WIDTH_ARB"/>
-                <enum name="WGL_PBUFFER_HEIGHT_ARB"/>
-                <enum name="WGL_PBUFFER_LOST_ARB"/>
-                <command name="wglCreatePbufferARB"/>
-                <command name="wglGetPbufferDCARB"/>
-                <command name="wglReleasePbufferDCARB"/>
-                <command name="wglDestroyPbufferARB"/>
-                <command name="wglQueryPbufferARB"/>
+                <enum name="WGL_TYPE_RGBA_FLOAT_ARB"/>
             </require>
         </extension>
         <extension name="WGL_ARB_render_texture" supported="wgl">
@@ -1518,44 +1603,6 @@
                 <command name="wglSetPbufferAttribARB"/>
             </require>
         </extension>
-        <extension name="WGL_ARB_pixel_format_float" supported="wgl">
-            <require>
-                <enum name="WGL_TYPE_RGBA_FLOAT_ARB"/>
-            </require>
-        </extension>
-        <extension name="WGL_ARB_framebuffer_sRGB" supported="wgl">
-            <require>
-                <enum name="WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB"/>
-            </require>
-        </extension>
-        <extension name="WGL_ARB_create_context" supported="wgl">
-            <require>
-                <enum name="WGL_CONTEXT_DEBUG_BIT_ARB"/>
-                <enum name="WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB"/>
-                <enum name="WGL_CONTEXT_MAJOR_VERSION_ARB"/>
-                <enum name="WGL_CONTEXT_MINOR_VERSION_ARB"/>
-                <enum name="WGL_CONTEXT_LAYER_PLANE_ARB"/>
-                <enum name="WGL_CONTEXT_FLAGS_ARB"/>
-                <enum name="ERROR_INVALID_VERSION_ARB"/>
-                <command name="wglCreateContextAttribsARB"/>
-            </require>
-        </extension>
-        <extension name="WGL_ARB_create_context_profile" supported="wgl">
-            <require>
-                <enum name="WGL_CONTEXT_PROFILE_MASK_ARB"/>
-                <enum name="WGL_CONTEXT_CORE_PROFILE_BIT_ARB"/>
-                <enum name="WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB"/>
-                <enum name="ERROR_INVALID_PROFILE_ARB"/>
-            </require>
-        </extension>
-        <extension name="WGL_ARB_create_context_robustness" supported="wgl">
-            <require>
-                <enum name="WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB"/>
-                <enum name="WGL_LOSE_CONTEXT_ON_RESET_ARB"/>
-                <enum name="WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB"/>
-                <enum name="WGL_NO_RESET_NOTIFICATION_ARB"/>
-            </require>
-        </extension>
         <extension name="WGL_ARB_robustness_application_isolation" supported="wgl">
             <require>
                 <enum name="WGL_CONTEXT_RESET_ISOLATION_BIT_ARB"/>
@@ -1564,6 +1611,26 @@
         <extension name="WGL_ARB_robustness_share_group_isolation" supported="wgl">
             <require>
                 <enum name="WGL_CONTEXT_RESET_ISOLATION_BIT_ARB"/>
+            </require>
+        </extension>
+        <extension name="WGL_ATI_pixel_format_float" supported="wgl">
+            <require>
+                <enum name="WGL_TYPE_RGBA_FLOAT_ATI"/>
+            </require>
+        </extension>
+        <extension name="WGL_EXT_create_context_es_profile" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_ES_PROFILE_BIT_EXT"/>
+            </require>
+        </extension>
+        <extension name="WGL_EXT_create_context_es2_profile" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_ES2_PROFILE_BIT_EXT"/>
+            </require>
+        </extension>
+        <extension name="WGL_EXT_depth_float" supported="wgl">
+            <require>
+                <enum name="WGL_DEPTH_FLOAT_EXT"/>
             </require>
         </extension>
         <extension name="WGL_EXT_display_color_table" supported="wgl">
@@ -1579,11 +1646,22 @@
                 <command name="wglGetExtensionsStringEXT"/>
             </require>
         </extension>
+        <extension name="WGL_EXT_framebuffer_sRGB" supported="wgl">
+            <require>
+                <enum name="WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT"/>
+            </require>
+        </extension>
         <extension name="WGL_EXT_make_current_read" supported="wgl">
             <require>
                 <enum name="ERROR_INVALID_PIXEL_TYPE_EXT"/>
                 <command name="wglMakeContextCurrentEXT"/>
                 <command name="wglGetCurrentReadDCEXT"/>
+            </require>
+        </extension>
+        <extension name="WGL_EXT_multisample" supported="wgl">
+            <require>
+                <enum name="WGL_SAMPLE_BUFFERS_EXT"/>
+                <enum name="WGL_SAMPLES_EXT"/>
             </require>
         </extension>
         <extension name="WGL_EXT_pbuffer" supported="wgl">
@@ -1656,43 +1734,19 @@
                 <command name="wglChoosePixelFormatEXT"/>
             </require>
         </extension>
+        <extension name="WGL_EXT_pixel_format_packed_float" supported="wgl">
+            <require>
+                <enum name="WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT"/>
+            </require>
+        </extension>
         <extension name="WGL_EXT_swap_control" supported="wgl">
             <require>
                 <command name="wglSwapIntervalEXT"/>
                 <command name="wglGetSwapIntervalEXT"/>
             </require>
         </extension>
-        <extension name="WGL_EXT_depth_float" supported="wgl">
+        <extension name="WGL_EXT_swap_control_tear" supported="wgl">
             <require>
-                <enum name="WGL_DEPTH_FLOAT_EXT"/>
-            </require>
-        </extension>
-        <extension name="WGL_NV_vertex_array_range" supported="wgl">
-            <require>
-                <command name="wglAllocateMemoryNV"/>
-                <command name="wglFreeMemoryNV"/>
-            </require>
-        </extension>
-        <extension name="WGL_3DFX_multisample" supported="wgl">
-            <require>
-                <enum name="WGL_SAMPLE_BUFFERS_3DFX"/>
-                <enum name="WGL_SAMPLES_3DFX"/>
-            </require>
-        </extension>
-        <extension name="WGL_EXT_multisample" supported="wgl">
-            <require>
-                <enum name="WGL_SAMPLE_BUFFERS_EXT"/>
-                <enum name="WGL_SAMPLES_EXT"/>
-            </require>
-        </extension>
-        <extension name="WGL_OML_sync_control" supported="wgl">
-            <require>
-                <command name="wglGetSyncValuesOML"/>
-                <command name="wglGetMscRateOML"/>
-                <command name="wglSwapBuffersMscOML"/>
-                <command name="wglSwapLayerBuffersMscOML"/>
-                <command name="wglWaitForMscOML"/>
-                <command name="wglWaitForSbcOML"/>
             </require>
         </extension>
         <extension name="WGL_I3D_digital_video_control" supported="wgl">
@@ -1766,9 +1820,33 @@
                 <command name="wglQueryFrameTrackingI3D"/>
             </require>
         </extension>
-        <extension name="WGL_ATI_pixel_format_float" supported="wgl">
+        <extension name="WGL_NV_copy_image" supported="wgl">
             <require>
-                <enum name="WGL_TYPE_RGBA_FLOAT_ATI"/>
+                <command name="wglCopyImageSubDataNV"/>
+            </require>
+        </extension>
+        <extension name="WGL_NV_delay_before_swap" supported="wgl">
+            <require>
+                <command name="wglDelayBeforeSwapNV"/>
+            </require>
+        </extension>
+        <extension name="WGL_NV_DX_interop" supported="wgl">
+            <require>
+                <enum name="WGL_ACCESS_READ_ONLY_NV"/>
+                <enum name="WGL_ACCESS_READ_WRITE_NV"/>
+                <enum name="WGL_ACCESS_WRITE_DISCARD_NV"/>
+                <command name="wglDXSetResourceShareHandleNV"/>
+                <command name="wglDXOpenDeviceNV"/>
+                <command name="wglDXCloseDeviceNV"/>
+                <command name="wglDXRegisterObjectNV"/>
+                <command name="wglDXUnregisterObjectNV"/>
+                <command name="wglDXObjectAccessNV"/>
+                <command name="wglDXLockObjectsNV"/>
+                <command name="wglDXUnlockObjectsNV"/>
+            </require>
+        </extension>
+        <extension name="WGL_NV_DX_interop2" supported="wgl">
+            <require>
             </require>
         </extension>
         <extension name="WGL_NV_float_buffer" supported="wgl">
@@ -1784,23 +1862,21 @@
                 <enum name="WGL_TEXTURE_FLOAT_RGBA_NV"/>
             </require>
         </extension>
-        <extension name="WGL_3DL_stereo_control" supported="wgl">
+        <extension name="WGL_NV_gpu_affinity" supported="wgl">
             <require>
-                <enum name="WGL_STEREO_EMITTER_ENABLE_3DL"/>
-                <enum name="WGL_STEREO_EMITTER_DISABLE_3DL"/>
-                <enum name="WGL_STEREO_POLARITY_NORMAL_3DL"/>
-                <enum name="WGL_STEREO_POLARITY_INVERT_3DL"/>
-                <command name="wglSetStereoEmitterState3DL"/>
+                <enum name="ERROR_INCOMPATIBLE_AFFINITY_MASKS_NV"/>
+                <enum name="ERROR_MISSING_AFFINITY_MASK_NV"/>
+                <command name="wglEnumGpusNV"/>
+                <command name="wglEnumGpuDevicesNV"/>
+                <command name="wglCreateAffinityDCNV"/>
+                <command name="wglEnumGpusFromAffinityDCNV"/>
+                <command name="wglDeleteDCNV"/>
             </require>
         </extension>
-        <extension name="WGL_EXT_pixel_format_packed_float" supported="wgl">
+        <extension name="WGL_NV_multisample_coverage" supported="wgl">
             <require>
-                <enum name="WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT"/>
-            </require>
-        </extension>
-        <extension name="WGL_EXT_framebuffer_sRGB" supported="wgl">
-            <require>
-                <enum name="WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT"/>
+                <enum name="WGL_COVERAGE_SAMPLES_NV"/>
+                <enum name="WGL_COLOR_SAMPLES_NV"/>
             </require>
         </extension>
         <extension name="WGL_NV_present_video" supported="wgl">
@@ -1809,29 +1885,6 @@
                 <command name="wglEnumerateVideoDevicesNV"/>
                 <command name="wglBindVideoDeviceNV"/>
                 <command name="wglQueryCurrentContextNV"/>
-            </require>
-        </extension>
-        <extension name="WGL_NV_video_output" supported="wgl">
-            <require>
-                <enum name="WGL_BIND_TO_VIDEO_RGB_NV"/>
-                <enum name="WGL_BIND_TO_VIDEO_RGBA_NV"/>
-                <enum name="WGL_BIND_TO_VIDEO_RGB_AND_DEPTH_NV"/>
-                <enum name="WGL_VIDEO_OUT_COLOR_NV"/>
-                <enum name="WGL_VIDEO_OUT_ALPHA_NV"/>
-                <enum name="WGL_VIDEO_OUT_DEPTH_NV"/>
-                <enum name="WGL_VIDEO_OUT_COLOR_AND_ALPHA_NV"/>
-                <enum name="WGL_VIDEO_OUT_COLOR_AND_DEPTH_NV"/>
-                <enum name="WGL_VIDEO_OUT_FRAME"/>
-                <enum name="WGL_VIDEO_OUT_FIELD_1"/>
-                <enum name="WGL_VIDEO_OUT_FIELD_2"/>
-                <enum name="WGL_VIDEO_OUT_STACKED_FIELDS_1_2"/>
-                <enum name="WGL_VIDEO_OUT_STACKED_FIELDS_2_1"/>
-                <command name="wglGetVideoDeviceNV"/>
-                <command name="wglReleaseVideoDeviceNV"/>
-                <command name="wglBindVideoImageNV"/>
-                <command name="wglReleaseVideoImageNV"/>
-                <command name="wglSendPbufferToVideoNV"/>
-                <command name="wglGetVideoInfoNV"/>
             </require>
         </extension>
         <extension name="WGL_NV_render_depth_texture" supported="wgl">
@@ -1860,40 +1913,6 @@
                 <command name="wglResetFrameCountNV"/>
             </require>
         </extension>
-        <extension name="WGL_NV_gpu_affinity" supported="wgl">
-            <require>
-                <enum name="ERROR_INCOMPATIBLE_AFFINITY_MASKS_NV"/>
-                <enum name="ERROR_MISSING_AFFINITY_MASK_NV"/>
-                <command name="wglEnumGpusNV"/>
-                <command name="wglEnumGpuDevicesNV"/>
-                <command name="wglCreateAffinityDCNV"/>
-                <command name="wglEnumGpusFromAffinityDCNV"/>
-                <command name="wglDeleteDCNV"/>
-            </require>
-        </extension>
-        <extension name="WGL_AMD_gpu_association" supported="wgl">
-            <require>
-                <enum name="WGL_GPU_VENDOR_AMD"/>
-                <enum name="WGL_GPU_RENDERER_STRING_AMD"/>
-                <enum name="WGL_GPU_OPENGL_VERSION_STRING_AMD"/>
-                <enum name="WGL_GPU_FASTEST_TARGET_GPUS_AMD"/>
-                <enum name="WGL_GPU_RAM_AMD"/>
-                <enum name="WGL_GPU_CLOCK_AMD"/>
-                <enum name="WGL_GPU_NUM_PIPES_AMD"/>
-                <enum name="WGL_GPU_NUM_SIMD_AMD"/>
-                <enum name="WGL_GPU_NUM_RB_AMD"/>
-                <enum name="WGL_GPU_NUM_SPI_AMD"/>
-                <command name="wglGetGPUIDsAMD"/>
-                <command name="wglGetGPUInfoAMD"/>
-                <command name="wglGetContextGPUIDAMD"/>
-                <command name="wglCreateAssociatedContextAMD"/>
-                <command name="wglCreateAssociatedContextAttribsAMD"/>
-                <command name="wglDeleteAssociatedContextAMD"/>
-                <command name="wglMakeAssociatedContextCurrentAMD"/>
-                <command name="wglGetCurrentAssociatedContextAMD"/>
-                <command name="wglBlitContextFramebufferAMD"/>
-            </require>
-        </extension>
         <extension name="WGL_NV_video_capture" supported="wgl">
             <require>
                 <enum name="WGL_UNIQUE_ID_NV"/>
@@ -1905,53 +1924,43 @@
                 <command name="wglReleaseVideoCaptureDeviceNV"/>
             </require>
         </extension>
-        <extension name="WGL_NV_copy_image" supported="wgl">
+        <extension name="WGL_NV_video_output" supported="wgl">
             <require>
-                <command name="wglCopyImageSubDataNV"/>
+                <enum name="WGL_BIND_TO_VIDEO_RGB_NV"/>
+                <enum name="WGL_BIND_TO_VIDEO_RGBA_NV"/>
+                <enum name="WGL_BIND_TO_VIDEO_RGB_AND_DEPTH_NV"/>
+                <enum name="WGL_VIDEO_OUT_COLOR_NV"/>
+                <enum name="WGL_VIDEO_OUT_ALPHA_NV"/>
+                <enum name="WGL_VIDEO_OUT_DEPTH_NV"/>
+                <enum name="WGL_VIDEO_OUT_COLOR_AND_ALPHA_NV"/>
+                <enum name="WGL_VIDEO_OUT_COLOR_AND_DEPTH_NV"/>
+                <enum name="WGL_VIDEO_OUT_FRAME"/>
+                <enum name="WGL_VIDEO_OUT_FIELD_1"/>
+                <enum name="WGL_VIDEO_OUT_FIELD_2"/>
+                <enum name="WGL_VIDEO_OUT_STACKED_FIELDS_1_2"/>
+                <enum name="WGL_VIDEO_OUT_STACKED_FIELDS_2_1"/>
+                <command name="wglGetVideoDeviceNV"/>
+                <command name="wglReleaseVideoDeviceNV"/>
+                <command name="wglBindVideoImageNV"/>
+                <command name="wglReleaseVideoImageNV"/>
+                <command name="wglSendPbufferToVideoNV"/>
+                <command name="wglGetVideoInfoNV"/>
             </require>
         </extension>
-        <extension name="WGL_NV_multisample_coverage" supported="wgl">
+        <extension name="WGL_NV_vertex_array_range" supported="wgl">
             <require>
-                <enum name="WGL_COVERAGE_SAMPLES_NV"/>
-                <enum name="WGL_COLOR_SAMPLES_NV"/>
+                <command name="wglAllocateMemoryNV"/>
+                <command name="wglFreeMemoryNV"/>
             </require>
         </extension>
-        <extension name="WGL_EXT_create_context_es_profile" supported="wgl">
+        <extension name="WGL_OML_sync_control" supported="wgl">
             <require>
-                <enum name="WGL_CONTEXT_ES_PROFILE_BIT_EXT"/>
-            </require>
-        </extension>
-        <extension name="WGL_EXT_create_context_es2_profile" supported="wgl">
-            <require>
-                <enum name="WGL_CONTEXT_ES2_PROFILE_BIT_EXT"/>
-            </require>
-        </extension>
-        <extension name="WGL_NV_DX_interop" supported="wgl">
-            <require>
-                <enum name="WGL_ACCESS_READ_ONLY_NV"/>
-                <enum name="WGL_ACCESS_READ_WRITE_NV"/>
-                <enum name="WGL_ACCESS_WRITE_DISCARD_NV"/>
-                <command name="wglDXSetResourceShareHandleNV"/>
-                <command name="wglDXOpenDeviceNV"/>
-                <command name="wglDXCloseDeviceNV"/>
-                <command name="wglDXRegisterObjectNV"/>
-                <command name="wglDXUnregisterObjectNV"/>
-                <command name="wglDXObjectAccessNV"/>
-                <command name="wglDXLockObjectsNV"/>
-                <command name="wglDXUnlockObjectsNV"/>
-            </require>
-        </extension>
-        <extension name="WGL_NV_DX_interop2" supported="wgl">
-            <require>
-            </require>
-        </extension>
-        <extension name="WGL_EXT_swap_control_tear" supported="wgl">
-            <require>
-            </require>
-        </extension>
-        <extension name="WGL_NV_delay_before_swap" supported="wgl">
-            <require>
-                <command name="wglDelayBeforeSwapNV"/>
+                <command name="wglGetSyncValuesOML"/>
+                <command name="wglGetMscRateOML"/>
+                <command name="wglSwapBuffersMscOML"/>
+                <command name="wglSwapLayerBuffersMscOML"/>
+                <command name="wglWaitForMscOML"/>
+                <command name="wglWaitForSbcOML"/>
             </require>
         </extension>
     </extensions>

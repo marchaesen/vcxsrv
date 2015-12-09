@@ -1249,14 +1249,8 @@ SmartScheduleStopTimer(void)
 }
 
 #ifdef _MSC_VER
-static VOID CALLBACK SmartScheduleTimer( PVOID lpParameter, BOOLEAN TimerOrWaitFired)
-#else
-static void SmartScheduleTimer (int sig)
+static VOID CALLBACK SmartScheduleTimer( PVOID lpParameter, BOOLEAN TimerOrWaitFired);
 #endif
-{
-    SmartScheduleTime += SmartScheduleInterval;
-}
-
 
 void
 SmartScheduleStartTimer(void)
@@ -1287,7 +1281,16 @@ SmartScheduleStartTimer(void)
     setitimer(ITIMER_REAL, &timer, 0);
 #endif
 #endif
+}
 #if HAVE_SETITIMER
+#ifdef _MSC_VER
+static VOID CALLBACK SmartScheduleTimer( PVOID lpParameter, BOOLEAN TimerOrWaitFired)
+#else
+static void
+SmartScheduleTimer(int sig)
+#endif
+{
+    SmartScheduleTime += SmartScheduleInterval;
 }
 
 static int
