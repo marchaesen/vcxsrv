@@ -1470,7 +1470,7 @@ recv_alive_msg(unsigned length)
         return;
     if (XdmcpReadCARD8(&buffer, &SessionRunning) &&
         XdmcpReadCARD32(&buffer, &AliveSessionID)) {
-        if (SessionRunning && AliveSessionID == SessionID) {
+        if (/*SessionRunning && */ AliveSessionID == SessionID) { // For one reason or another, we always receive 0 for SessionRunning????, even if the session is still running
             state = XDM_RUN_SESSION;
             TimerSet(xdmcp_timer, 0, XDM_DEF_DORMANCY * 1000, XdmcpTimerNotify, NULL);
         }
