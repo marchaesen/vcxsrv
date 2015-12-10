@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,32 +61,6 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtAddGrab __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
@@ -129,12 +68,12 @@ XtAddGrab, XtRemoveGrab \- redirect user input to a modal widget
 .SH SYNTAX
 .HP
 void XtAddGrab(Widget \fIw\fP, Boolean \fIexclusive\fP, Boolean
-\fIspring_loaded\fP); 
+\fIspring_loaded\fP);
 .HP
-void XtRemoveGrab(Widget \fIw\fP); 
+void XtRemoveGrab(Widget \fIw\fP);
 .SH ARGUMENTS
 .IP \fIexclusive\fP 1i
-Specifies whether user events should be dispatched exclusively to this widget 
+Specifies whether user events should be dispatched exclusively to this widget
 or also to previous widgets in the cascade.
 .IP \fIspring_loaded\fP 1i
 Specifies whether this widget was popped up because the user pressed
@@ -146,19 +85,19 @@ Specifies the widget \*(Wi.
 The
 .ZN XtAddGrab
 function appends the widget (and associated parameters) to the modal cascade
-and checks that exclusive is 
-.ZN True 
-if spring_loaded is 
+and checks that exclusive is
+.ZN True
+if spring_loaded is
 .ZN True .
-If these are not 
-.ZN True , 
+If these are not
+.ZN True ,
 .ZN XtAddGrab
 generates an error.
 .LP
 The modal cascade is used by
 .ZN XtDispatchEvent
 when it tries to dispatch a user event.
-When at least one modal widget is in the widget cascade, 
+When at least one modal widget is in the widget cascade,
 .ZN XtDispatchEvent
 first determines if the event should be delivered.
 It starts at the most recent cascade entry and follows the cascade up to and
@@ -170,10 +109,10 @@ comprise the active subset.
 User events that occur outside the widgets in this subset are ignored
 or remapped.
 Modal menus with submenus generally add a submenu widget to the cascade
-with exclusive 
+with exclusive
 .ZN False .
 Modal dialog boxes that need to restrict user input to the most deeply nested
-dialog box add a subdialog widget to the cascade with exclusive 
+dialog box add a subdialog widget to the cascade with exclusive
 .ZN True .
 User events that occur within the active subset are delivered to the
 appropriate widget, which is usually a child or further descendant of the modal
@@ -181,13 +120,13 @@ widget.
 .LP
 Regardless of where on the screen they occur,
 remap events are always delivered to the most recent widget in the active
-subset of the cascade that has spring_loaded 
+subset of the cascade that has spring_loaded
 .ZN True ,
 if any such widget exists.
 .LP
 The
 .ZN XtRemoveGrab
-function removes widgets from the modal cascade starting 
+function removes widgets from the modal cascade starting
 at the most recent widget up to and including the specified widget.
 It issues an error if the specified widget is not on the modal cascade.
 .SH "SEE ALSO"

@@ -1,6 +1,6 @@
-# generated automatically by aclocal 1.14 -*- Autoconf -*-
+# generated automatically by aclocal 1.15 -*- Autoconf -*-
 
-# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# Copyright (C) 1996-2014 Free Software Foundation, Inc.
 
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -14,13 +14,13 @@
 m4_ifndef([AC_CONFIG_MACRO_DIRS], [m4_defun([_AM_CONFIG_MACRO_DIRS], [])m4_defun([AC_CONFIG_MACRO_DIRS], [_AM_CONFIG_MACRO_DIRS($@)])])
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
-m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.68],,
-[m4_warning([this file was generated for autoconf 2.68.
+m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.69],,
+[m4_warning([this file was generated for autoconf 2.69.
 You have another version of autoconf.  It may work, but is not guaranteed to.
 If you have problems, you may need to regenerate the build system entirely.
 To do so, use the procedure documented by the package, typically 'autoreconf'.])])
 
-# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -32,10 +32,10 @@ To do so, use the procedure documented by the package, typically 'autoreconf'.])
 # generated from the m4 files accompanying Automake X.Y.
 # (This private macro should not be called outside this file.)
 AC_DEFUN([AM_AUTOMAKE_VERSION],
-[am__api_version='1.14'
+[am__api_version='1.15'
 dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
 dnl require some minimum version.  Point them to the right macro.
-m4_if([$1], [1.14], [],
+m4_if([$1], [1.15], [],
       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
 ])
 
@@ -51,14 +51,14 @@ m4_define([_AM_AUTOCONF_VERSION], [])
 # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
 # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-[AM_AUTOMAKE_VERSION([1.14])dnl
+[AM_AUTOMAKE_VERSION([1.15])dnl
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
 _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
 
 # AM_AUX_DIR_EXPAND                                         -*- Autoconf -*-
 
-# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -103,15 +103,14 @@ _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
 # configured tree to be moved without reconfiguration.
 
 AC_DEFUN([AM_AUX_DIR_EXPAND],
-[dnl Rely on autoconf to set up CDPATH properly.
-AC_PREREQ([2.50])dnl
-# expand $ac_aux_dir to an absolute path
-am_aux_dir=`cd $ac_aux_dir && pwd`
+[AC_REQUIRE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
+# Expand $ac_aux_dir to an absolute path.
+am_aux_dir=`cd "$ac_aux_dir" && pwd`
 ])
 
 # AM_CONDITIONAL                                            -*- Autoconf -*-
 
-# Copyright (C) 1997-2013 Free Software Foundation, Inc.
+# Copyright (C) 1997-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -142,7 +141,7 @@ AC_CONFIG_COMMANDS_PRE(
 Usually this means the macro was only invoked conditionally.]])
 fi])])
 
-# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+# Copyright (C) 1999-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -333,7 +332,7 @@ _AM_SUBST_NOTMAKE([am__nodep])dnl
 
 # Generate code to set up dependency tracking.              -*- Autoconf -*-
 
-# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+# Copyright (C) 1999-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -409,7 +408,7 @@ AC_DEFUN([AM_OUTPUT_DEPENDENCY_COMMANDS],
 
 # Do all the work for Automake.                             -*- Autoconf -*-
 
-# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# Copyright (C) 1996-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -499,8 +498,8 @@ AC_REQUIRE([AC_PROG_MKDIR_P])dnl
 # <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
 # <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
 AC_SUBST([mkdir_p], ['$(MKDIR_P)'])
-# We need awk for the "check" target.  The system "awk" is bad on
-# some platforms.
+# We need awk for the "check" target (and possibly the TAP driver).  The
+# system "awk" is bad on some platforms.
 AC_REQUIRE([AC_PROG_AWK])dnl
 AC_REQUIRE([AC_PROG_MAKE_SET])dnl
 AC_REQUIRE([AM_SET_LEADING_DOT])dnl
@@ -573,7 +572,11 @@ to "yes", and re-run configure.
 END
     AC_MSG_ERROR([Your 'rm' program is bad, sorry.])
   fi
-fi])
+fi
+dnl The trailing newline in this macro's definition is deliberate, for
+dnl backward compatibility and to allow trailing 'dnl'-style comments
+dnl after the AM_INIT_AUTOMAKE invocation. See automake bug#16841.
+])
 
 dnl Hook into '_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
 dnl add the conditional right here, as _AC_COMPILER_EXEEXT may be further
@@ -602,7 +605,7 @@ for _am_header in $config_headers :; do
 done
 echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_count])
 
-# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -613,7 +616,7 @@ echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_co
 # Define $install_sh.
 AC_DEFUN([AM_PROG_INSTALL_SH],
 [AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
-if test x"${install_sh}" != xset; then
+if test x"${install_sh+set}" != xset; then
   case $am_aux_dir in
   *\ * | *\	*)
     install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
@@ -623,7 +626,7 @@ if test x"${install_sh}" != xset; then
 fi
 AC_SUBST([install_sh])])
 
-# Copyright (C) 2003-2013 Free Software Foundation, Inc.
+# Copyright (C) 2003-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -642,45 +645,9 @@ fi
 rmdir .tst 2>/dev/null
 AC_SUBST([am__leading_dot])])
 
-# Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
-# From Jim Meyering
-
-# Copyright (C) 1996-2013 Free Software Foundation, Inc.
-#
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
-
-# AM_MAINTAINER_MODE([DEFAULT-MODE])
-# ----------------------------------
-# Control maintainer-specific portions of Makefiles.
-# Default is to disable them, unless 'enable' is passed literally.
-# For symmetry, 'disable' may be passed as well.  Anyway, the user
-# can override the default with the --enable/--disable switch.
-AC_DEFUN([AM_MAINTAINER_MODE],
-[m4_case(m4_default([$1], [disable]),
-       [enable], [m4_define([am_maintainer_other], [disable])],
-       [disable], [m4_define([am_maintainer_other], [enable])],
-       [m4_define([am_maintainer_other], [enable])
-        m4_warn([syntax], [unexpected argument to AM@&t@_MAINTAINER_MODE: $1])])
-AC_MSG_CHECKING([whether to enable maintainer-specific portions of Makefiles])
-  dnl maintainer-mode's default is 'disable' unless 'enable' is passed
-  AC_ARG_ENABLE([maintainer-mode],
-    [AS_HELP_STRING([--]am_maintainer_other[-maintainer-mode],
-      am_maintainer_other[ make rules and dependencies not useful
-      (and sometimes confusing) to the casual installer])],
-    [USE_MAINTAINER_MODE=$enableval],
-    [USE_MAINTAINER_MODE=]m4_if(am_maintainer_other, [enable], [no], [yes]))
-  AC_MSG_RESULT([$USE_MAINTAINER_MODE])
-  AM_CONDITIONAL([MAINTAINER_MODE], [test $USE_MAINTAINER_MODE = yes])
-  MAINT=$MAINTAINER_MODE_TRUE
-  AC_SUBST([MAINT])dnl
-]
-)
-
 # Check to see how 'make' treats includes.	            -*- Autoconf -*-
 
-# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -730,7 +697,7 @@ rm -f confinc confmf
 
 # Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
 
-# Copyright (C) 1997-2013 Free Software Foundation, Inc.
+# Copyright (C) 1997-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -769,7 +736,7 @@ fi
 
 # Helper functions for option handling.                     -*- Autoconf -*-
 
-# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -798,7 +765,7 @@ AC_DEFUN([_AM_SET_OPTIONS],
 AC_DEFUN([_AM_IF_OPTION],
 [m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
 
-# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+# Copyright (C) 1999-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -845,7 +812,7 @@ AC_LANG_POP([C])])
 # For backward compatibility.
 AC_DEFUN_ONCE([AM_PROG_CC_C_O], [AC_REQUIRE([AC_PROG_CC])])
 
-# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -864,7 +831,7 @@ AC_DEFUN([AM_RUN_LOG],
 
 # Check to make sure that the build environment is sane.    -*- Autoconf -*-
 
-# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# Copyright (C) 1996-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -945,7 +912,7 @@ AC_CONFIG_COMMANDS_PRE(
 rm -f conftest.file
 ])
 
-# Copyright (C) 2009-2013 Free Software Foundation, Inc.
+# Copyright (C) 2009-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -1005,7 +972,7 @@ AC_SUBST([AM_BACKSLASH])dnl
 _AM_SUBST_NOTMAKE([AM_BACKSLASH])dnl
 ])
 
-# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -1033,7 +1000,7 @@ fi
 INSTALL_STRIP_PROGRAM="\$(install_sh) -c -s"
 AC_SUBST([INSTALL_STRIP_PROGRAM])])
 
-# Copyright (C) 2006-2013 Free Software Foundation, Inc.
+# Copyright (C) 2006-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -1052,7 +1019,7 @@ AC_DEFUN([AM_SUBST_NOTMAKE], [_AM_SUBST_NOTMAKE($@)])
 
 # Check how to create a tarball.                            -*- Autoconf -*-
 
-# Copyright (C) 2004-2013 Free Software Foundation, Inc.
+# Copyright (C) 2004-2014 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -1342,7 +1309,7 @@ fi[]dnl
 dnl xorg-macros.m4.  Generated from xorg-macros.m4.in xorgversion.m4 by configure.
 dnl
 dnl Copyright (c) 2005, 2006, Oracle and/or its affiliates. All rights reserved.
-dnl 
+dnl
 dnl Permission is hereby granted, free of charge, to any person obtaining a
 dnl copy of this software and associated documentation files (the "Software"),
 dnl to deal in the Software without restriction, including without limitation
@@ -1375,10 +1342,10 @@ dnl DEALINGS IN THE SOFTWARE.
 #     [m4_fatal([must install xorg-macros 1.1 or later before running autoconf/autogen])])
 #
 #
-# See the "minimum version" comment for each macro you use to see what 
+# See the "minimum version" comment for each macro you use to see what
 # version you require.
 m4_defun([XORG_MACROS_VERSION],[
-m4_define([vers_have], [1.17])
+m4_define([vers_have], [1.19.0])
 m4_define([maj_have], m4_substr(vers_have, 0, m4_index(vers_have, [.])))
 m4_define([maj_needed], m4_substr([$1], 0, m4_index([$1], [.])))
 m4_if(m4_cmp(maj_have, maj_needed), 0,,
@@ -1398,7 +1365,7 @@ m4_undefine([maj_needed])
 # such as man pages and config files
 AC_DEFUN([XORG_PROG_RAWCPP],[
 AC_REQUIRE([AC_PROG_CPP])
-AC_PATH_PROGS(RAWCPP, [cpp], [${CPP}], 
+AC_PATH_PROGS(RAWCPP, [cpp], [${CPP}],
    [$PATH:/bin:/usr/bin:/usr/lib:/usr/libexec:/usr/ccs/lib:/usr/ccs/lbin:/lib])
 
 # Check for flag to avoid builtin definitions - assumes unix is predefined,
@@ -1428,6 +1395,7 @@ if test `${RAWCPP} < conftest.$ac_ext | grep -c 'preserve   \"'` -eq 1 ; then
 	AC_MSG_RESULT([no])
 else
 	if test `${RAWCPP} -traditional < conftest.$ac_ext | grep -c 'preserve   \"'` -eq 1 ; then
+		TRADITIONALCPPFLAGS="-traditional"
 		RAWCPPFLAGS="${RAWCPPFLAGS} -traditional"
 		AC_MSG_RESULT([yes])
 	else
@@ -1436,6 +1404,7 @@ else
 fi
 rm -f conftest.$ac_ext
 AC_SUBST(RAWCPPFLAGS)
+AC_SUBST(TRADITIONALCPPFLAGS)
 ]) # XORG_PROG_RAWCPP
 
 # XORG_MANPAGE_SECTIONS()
@@ -1960,9 +1929,10 @@ AM_CONDITIONAL([HAVE_ASCIIDOC], [test "$have_asciidoc" = yes])
 ]) # XORG_WITH_ASCIIDOC
 
 # XORG_WITH_DOXYGEN([MIN-VERSION], [DEFAULT])
-# --------------------------------
+# -------------------------------------------
 # Minimum version: 1.5.0
 # Minimum version for optional DEFAULT argument: 1.11.0
+# Minimum version for optional DOT checking: 1.18.0
 #
 # Documentation tools are not always available on all platforms and sometimes
 # not at the appropriate level. This macro enables a module to test for the
@@ -1982,6 +1952,7 @@ AM_CONDITIONAL([HAVE_ASCIIDOC], [test "$have_asciidoc" = yes])
 #
 AC_DEFUN([XORG_WITH_DOXYGEN],[
 AC_ARG_VAR([DOXYGEN], [Path to doxygen command])
+AC_ARG_VAR([DOT], [Path to the dot graphics utility])
 m4_define([_defopt], m4_default([$2], [auto]))
 AC_ARG_WITH(doxygen,
 	AS_HELP_STRING([--with-doxygen],
@@ -2025,6 +1996,20 @@ m4_ifval([$1],
             AC_MSG_ERROR([doxygen version $doxygen_version found, but $1 needed])
         fi])
 fi])
+
+dnl Check for DOT if we have doxygen. The caller decides if it is mandatory
+dnl HAVE_DOT is a variable that can be used in your doxygen.in config file:
+dnl 	HAVE_DOT = @HAVE_DOT@
+HAVE_DOT=no
+if test "x$have_doxygen" = "xyes"; then
+  AC_PATH_PROG([DOT], [dot])
+    if test "x$DOT" != "x"; then
+      HAVE_DOT=yes
+    fi
+fi
+
+AC_SUBST([HAVE_DOT])
+AM_CONDITIONAL([HAVE_DOT], [test "$HAVE_DOT" = "yes"])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test "$have_doxygen" = yes])
 ]) # XORG_WITH_DOXYGEN
 
@@ -2206,6 +2191,29 @@ m4_ifval([$1],
 fi])
 AM_CONDITIONAL([HAVE_FOP], [test "$have_fop" = yes])
 ]) # XORG_WITH_FOP
+
+# XORG_WITH_M4([MIN-VERSION])
+# ---------------------------
+# Minimum version: 1.19.0
+#
+# This macro attempts to locate an m4 macro processor which supports
+# -I option and is only useful for modules relying on M4 in order to
+# expand macros in source code files.
+#
+# Interface to module:
+# M4:	 	returns the path of the m4 program found
+#		returns the path set by the user in the environment
+#
+AC_DEFUN([XORG_WITH_M4], [
+AC_CACHE_CHECK([for m4 that supports -I option], [ac_cv_path_M4],
+   [AC_PATH_PROGS_FEATURE_CHECK([M4], [m4 gm4],
+       [[$ac_path_M4 -I. /dev/null > /dev/null 2>&1 && \
+         ac_cv_path_M4=$ac_path_M4 ac_path_M4_found=:]],
+   [AC_MSG_ERROR([could not find m4 that supports -I option])],
+   [$PATH:/usr/gnu/bin])])
+
+AC_SUBST([M4], [$ac_cv_path_M4])
+]) # XORG_WITH_M4
 
 # XORG_WITH_PS2PDF([DEFAULT])
 # ----------------
@@ -2661,7 +2669,8 @@ AC_ARG_ENABLE(malloc0returnsnull,
 
 AC_MSG_CHECKING([whether malloc(0) returns NULL])
 if test "x$MALLOC_ZERO_RETURNS_NULL" = xauto; then
-	AC_RUN_IFELSE([AC_LANG_PROGRAM([
+AC_CACHE_VAL([xorg_cv_malloc0_returns_null],
+	[AC_RUN_IFELSE([AC_LANG_PROGRAM([
 #include <stdlib.h>
 ],[
     char *m0, *r0, *c0, *p;
@@ -2671,9 +2680,9 @@ if test "x$MALLOC_ZERO_RETURNS_NULL" = xauto; then
     c0 = calloc(0,10);
     exit((m0 == 0 || r0 == 0 || c0 == 0) ? 0 : 1);
 ])],
-		[MALLOC_ZERO_RETURNS_NULL=yes],
-		[MALLOC_ZERO_RETURNS_NULL=no],
-		[MALLOC_ZERO_RETURNS_NULL=yes])
+		[xorg_cv_malloc0_returns_null=yes],
+		[xorg_cv_malloc0_returns_null=no])])
+MALLOC_ZERO_RETURNS_NULL=$xorg_cv_malloc0_returns_null
 fi
 AC_MSG_RESULT([$MALLOC_ZERO_RETURNS_NULL])
 
@@ -2884,11 +2893,11 @@ fi
 found="no"
 m4_foreach([flag], m4_cdr($@), [
 	if test $found = "no" ; then
-		if test "x$xorg_testset_unknown_warning_option" = "xyes" ; then
+		if test "x$xorg_testset_]CACHE_PREFIX[_unknown_warning_option" = "xyes" ; then
 			PREFIX[FLAGS]="$PREFIX[FLAGS] -Werror=unknown-warning-option"
 		fi
 
-		if test "x$xorg_testset_unused_command_line_argument" = "xyes" ; then
+		if test "x$xorg_testset_]CACHE_PREFIX[_unused_command_line_argument" = "xyes" ; then
 			PREFIX[FLAGS]="$PREFIX[FLAGS] -Werror=unused-command-line-argument"
 		fi
 
@@ -2962,7 +2971,7 @@ AC_LANG_CASE(
 		XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wmissing-prototypes])
 		XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wnested-externs])
 		XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wbad-function-cast])
-		XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wold-style-definition])
+		XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wold-style-definition], [-fd])
 		XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wdeclaration-after-statement])
 	]
 )
@@ -2971,17 +2980,17 @@ AC_LANG_CASE(
 XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wunused])
 XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wuninitialized])
 XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wshadow])
-XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wcast-qual])
 XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wmissing-noreturn])
 XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wmissing-format-attribute])
 XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wredundant-decls])
+XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wlogical-op])
 
 # These are currently disabled because they are noisy.  They will be enabled
 # in the future once the codebase is sufficiently modernized to silence
 # them.  For now, I don't want them to drown out the other warnings.
-# XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wlogical-op])
 # XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wparentheses])
 # XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wcast-align])
+# XORG_TESTSET_CFLAG([[BASE_]PREFIX[FLAGS]], [-Wcast-qual])
 
 # Turn some warnings into errors, so we don't accidently get successful builds
 # when there are problems that should be fixed.
@@ -3155,7 +3164,7 @@ dnl
 # XORG_RELEASE_VERSION
 # --------------------
 # Defines PACKAGE_VERSION_{MAJOR,MINOR,PATCHLEVEL} for modules to use.
- 
+
 AC_DEFUN([XORG_RELEASE_VERSION],[
 	AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR],
 		[`echo $PACKAGE_VERSION | cut -d . -f 1`],
@@ -3223,12 +3232,12 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
  AC_SEARCH_LIBS(socket, [socket])
  AC_SEARCH_LIBS(gethostbyname, [nsl])
  if test "$ac_cv_search_socket$ac_cv_search_gethostbyname" = "nono"; then
-   AC_HAVE_LIBRARY([ws2_32])
+   AC_CHECK_LIB([ws2_32],[main])
  fi
 
  # Needs to come after above checks for libsocket & libnsl for SVR4 systems
  AC_ARG_ENABLE(ipv6,
-	AC_HELP_STRING([--enable-ipv6],[Enable IPv6 support]),
+	AS_HELP_STRING([--enable-ipv6],[Enable IPv6 support]),
 	[IPV6CONN=$enableval],
 	[AC_CHECK_FUNC(getaddrinfo,[IPV6CONN=yes],[IPV6CONN=no])])
  AC_MSG_CHECKING([if IPv6 support should be built])
@@ -3251,6 +3260,41 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
 AC_INCLUDES_DEFAULT
 #include <sys/socket.h>])
 
+ # XPG4v2/UNIX95 added msg_control - check to see if we need to define
+ # _XOPEN_SOURCE to get it (such as on Solaris)
+ AC_CHECK_MEMBER([struct msghdr.msg_control], [], [],
+                 [
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                 ])
+ # First try for Solaris in C99 compliant mode, which requires XPG6/UNIX03
+ if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
+     unset ac_cv_member_struct_msghdr_msg_control
+     AC_MSG_NOTICE([trying again with _XOPEN_SOURCE=600])
+     AC_CHECK_MEMBER([struct msghdr.msg_control],
+                     [AC_DEFINE([_XOPEN_SOURCE], [600],
+                       [Defined if needed to expose struct msghdr.msg_control])
+                     ], [], [
+#define _XOPEN_SOURCE 600
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                     ])
+ fi
+ # If that didn't work, fall back to XPG5/UNIX98 with C89
+ if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
+     unset ac_cv_member_struct_msghdr_msg_control
+     AC_MSG_NOTICE([trying again with _XOPEN_SOURCE=500])
+     AC_CHECK_MEMBER([struct msghdr.msg_control],
+                     [AC_DEFINE([_XOPEN_SOURCE], [500],
+                       [Defined if needed to expose struct msghdr.msg_control])
+                     ], [], [
+#define _XOPEN_SOURCE 500
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                     ])
+ fi
+
+
 ]) # XTRANS_TCP_FLAGS
 
 # XTRANS_CONNECTION_FLAGS()
@@ -3259,13 +3303,12 @@ AC_INCLUDES_DEFAULT
 # that use Xtrans functions
 AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
  AC_REQUIRE([AC_CANONICAL_HOST])
- AC_REQUIRE([AC_TYPE_SIGNAL])
  [case $host_os in
 	mingw*)	unixdef="no"   ;;
 	*)	unixdef="yes"  ;;
  esac]
  AC_ARG_ENABLE(unix-transport,
-	AC_HELP_STRING([--enable-unix-transport],[Enable UNIX domain socket transport]),
+	AS_HELP_STRING([--enable-unix-transport],[Enable UNIX domain socket transport]),
 	[UNIXCONN=$enableval], [UNIXCONN=$unixdef])
  AC_MSG_CHECKING([if Xtrans should support UNIX socket connections])
  if test "$UNIXCONN" = "yes"; then
@@ -3273,7 +3316,7 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
  fi
  AC_MSG_RESULT($UNIXCONN)
  AC_ARG_ENABLE(tcp-transport,
-	AC_HELP_STRING([--enable-tcp-transport],[Enable TCP socket transport]),
+	AS_HELP_STRING([--enable-tcp-transport],[Enable TCP socket transport]),
 	[TCPCONN=$enableval], [TCPCONN=yes])
  AC_MSG_CHECKING([if Xtrans should support TCP socket connections])
  AC_MSG_RESULT($TCPCONN)
@@ -3286,7 +3329,7 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
 	*)			localdef="no"  ;;
  esac]
  AC_ARG_ENABLE(local-transport,
-	AC_HELP_STRING([--enable-local-transport],[Enable os-specific local transport]),
+	AS_HELP_STRING([--enable-local-transport],[Enable os-specific local transport]),
 	[LOCALCONN=$enableval], [LOCALCONN=$localdef])
  AC_MSG_CHECKING([if Xtrans should support os-specific local connections])
  AC_MSG_RESULT($LOCALCONN)
@@ -3304,7 +3347,7 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
 AC_DEFUN([XTRANS_SECURE_RPC_FLAGS],
 [AC_REQUIRE([XTRANS_TCP_FLAGS])
  AC_ARG_ENABLE(secure-rpc,
-	AC_HELP_STRING([--enable-secure-rpc],[Enable Secure RPC]),
+	AS_HELP_STRING([--enable-secure-rpc],[Enable Secure RPC]),
         [SECURE_RPC=$enableval], [SECURE_RPC="try"])
 
  if test "x$SECURE_RPC" = "xyes" -o "x$SECURE_RPC" = "xtry" ; then

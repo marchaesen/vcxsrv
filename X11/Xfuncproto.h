@@ -75,15 +75,21 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #endif /* _XFUNCPROTOBEGIN */
 
-#if defined(__GNUC__) && (__GNUC__ >= 4)
+/* http://clang.llvm.org/docs/LanguageExtensions.html#has-attribute */
+#ifndef __has_attribute
+# define __has_attribute(x) 0  /* Compatibility with non-clang compilers. */
+#endif
+
+/* Added in X11R6.9, so available in any version of modular xproto */
+#if __has_attribute(__sentinel__) || (defined(__GNUC__) && (__GNUC__ >= 4))
 # define _X_SENTINEL(x) __attribute__ ((__sentinel__(x)))
-# define _X_ATTRIBUTE_PRINTF(x,y) __attribute__((__format__(__printf__,x,y)))
 #else
 # define _X_SENTINEL(x)
-# define _X_ATTRIBUTE_PRINTF(x,y)
 #endif /* GNUC >= 4 */
 
-#if defined(__GNUC__) && (__GNUC__ >= 4) && !defined(__CYGWIN__)
+/* Added in X11R6.9, so available in any version of modular xproto */
+#if (__has_attribute(visibility) || (defined(__GNUC__) && (__GNUC__ >= 4))) \
+    && !defined(__CYGWIN__) && !defined(__MINGW32__)
 # define _X_EXPORT      __attribute__((visibility("default")))
 # define _X_HIDDEN      __attribute__((visibility("hidden")))
 # define _X_INTERNAL    __attribute__((visibility("internal")))
@@ -97,30 +103,97 @@ in this Software without prior written authorization from The Open Group.
 # define _X_INTERNAL
 #endif /* GNUC >= 4 */
 
+/* Branch prediction hints for individual conditionals */
+/* requires xproto >= 7.0.9 */
 #if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 303)
 # define _X_LIKELY(x)   __builtin_expect(!!(x), 1)
 # define _X_UNLIKELY(x) __builtin_expect(!!(x), 0)
-# define _X_INLINE      inline
-#elif defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550)
+#else /* not gcc >= 3.3 */
 # define _X_LIKELY(x)   (x)
 # define _X_UNLIKELY(x) (x)
-# define _X_INLINE      inline
-#else /* not gcc >= 3.3 and not Sun Studio >= 8 */
-# define _X_LIKELY(x)   (x)
-# define _X_UNLIKELY(x) (x)
-# define _X_INLINE
 #endif
 
-#if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 301)
+/* Bulk branch prediction hints via marking error path functions as "cold" */
+/* requires xproto >= 7.0.25 */
+#if __has_attribute(__cold__) || \
+    (defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 403)) /* 4.3+ */
+# define _X_COLD __attribute__((__cold__))
+#else
+# define _X_COLD /* nothing */
+#endif
+
+/* Added in X11R6.9, so available in any version of modular xproto */
+#if __has_attribute(deprecated) \
+    || (defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 301)) \
+    || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x5130))
 # define _X_DEPRECATED  __attribute__((deprecated))
 #else /* not gcc >= 3.1 */
 # define _X_DEPRECATED
 #endif
 
-#if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 205)
+/* requires xproto >= 7.0.17 */
+#if __has_attribute(noreturn) \
+    || (defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 205)) \
+    || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
 # define _X_NORETURN __attribute((noreturn))
 #else
 # define _X_NORETURN
 #endif /* GNUC  */
+
+/* Added in X11R6.9, so available in any version of modular xproto */
+#if __has_attribute(__format__) \
+    || defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 203)
+# define _X_ATTRIBUTE_PRINTF(x,y) __attribute__((__format__(__printf__,x,y)))
+#else /* not gcc >= 2.3 */
+# define _X_ATTRIBUTE_PRINTF(x,y)
+#endif
+
+/* requires xproto >= 7.0.22 - since this uses either gcc or C99 variable
+   argument macros, must be only used inside #ifdef _X_NONNULL guards, as
+   many legacy X clients are compiled in C89 mode still. */
+#if __has_attribute(nonnull) \
+    && defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L) /* C99 */
+#define _X_NONNULL(...)  __attribute__((nonnull(__VA_ARGS__)))
+#elif __has_attribute(nonnull) \
+    || defined(__GNUC__) &&  ((__GNUC__ * 100 + __GNUC_MINOR__) >= 303)
+#define _X_NONNULL(args...)  __attribute__((nonnull(args)))
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L) /* C99 */
+#define _X_NONNULL(...)  /* */
+#endif
+
+/* requires xproto >= 7.0.22 */
+#if __has_attribute(__unused__) \
+    || defined(__GNUC__) &&  ((__GNUC__ * 100 + __GNUC_MINOR__) >= 205)
+#define _X_UNUSED  __attribute__((__unused__))
+#else
+#define _X_UNUSED  /* */
+#endif
+
+/* C99 keyword "inline" or equivalent extensions in pre-C99 compilers */
+/* requires xproto >= 7.0.9
+   (introduced in 7.0.8 but didn't support all compilers until 7.0.9) */
+#if defined(inline) /* assume autoconf set it correctly */ || \
+   (defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L)) /* C99 */ || \
+   (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550))
+# define _X_INLINE inline
+#elif defined(__GNUC__) && !defined(__STRICT_ANSI__) /* gcc w/C89+extensions */
+# define _X_INLINE __inline__
+#else
+# define _X_INLINE
+#endif
+
+/* C99 keyword "restrict" or equivalent extensions in pre-C99 compilers */
+/* requires xproto >= 7.0.21 */
+#ifndef _X_RESTRICT_KYWD
+# if defined(restrict) /* assume autoconf set it correctly */ || \
+    (defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L) /* C99 */ \
+     && !defined(__cplusplus)) /* Workaround g++ issue on Solaris */
+#  define _X_RESTRICT_KYWD  restrict
+# elif defined(__GNUC__) && !defined(__STRICT_ANSI__) /* gcc w/C89+extensions */
+#  define _X_RESTRICT_KYWD __restrict__
+# else
+#  define _X_RESTRICT_KYWD
+# endif
+#endif
 
 #endif /* _XFUNCPROTO_H_ */

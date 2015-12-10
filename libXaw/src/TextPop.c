@@ -310,14 +310,14 @@ InsertFileNamed(Widget tw, char *str)
 
     pos = XawTextGetInsertionPoint(tw);
 
-    fseek(file, 0L, 2);
+    fseek(file, 0L, SEEK_END);
 
     text.firstPos = 0;
     text.length = ftell(file);
     text.ptr = XtMalloc(text.length + 1);
     text.format = XawFmt8Bit;
 
-    fseek(file, 0L, 0);
+    fseek(file, 0L, SEEK_SET);
     if (fread(text.ptr, 1, text.length, file) != text.length)
 	XtErrorMsg("readError", "insertFileNamed", "XawError",
 		   "fread returned error", NULL, NULL);

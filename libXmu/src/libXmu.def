@@ -11,11 +11,14 @@ EXPORTS
   _XA_TEXT
   _XA_UTF8_STRING
   _XEditResCheckMessages
+  XmuAddInitializer
   XmuAreaOrXor
+  XmuCallInitializers
   XmuCompareISOLatin1
   XmuConvertStandardSelection
   XmuCreateStippledPixmap
   XmuCvtBackingStoreToString
+  XmuCvtGravityToString
   XmuCvtJustifyToString
   XmuCvtOrientationToString
   XmuCvtShapeStyleToString
@@ -23,15 +26,19 @@ EXPORTS
   XmuCvtStringToBitmap
   XmuCvtStringToColorCursor
   XmuCvtStringToCursor
+  XmuCvtStringToGravity
   XmuCvtStringToJustify
   XmuCvtStringToOrientation
   XmuCvtStringToShapeStyle
   XmuCvtWidgetToString
   XmuDestroyScanlineList
   XmuDestroySegmentList
+  XmuDistinguishablePixels
   XmuGetHostname
   XmuInternAtom
+  XmuLocatePixmapFile
   XmuNCopyISOLatin1Lowered
+  XmuNCopyISOLatin1Uppered
   XmuNewArea
   XmuNewCvtStringToWidget
   XmuNewScanline

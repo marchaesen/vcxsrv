@@ -56,7 +56,7 @@ XRenderComputeX (XLineFixed *line, XFixed y)
 static double
 XRenderComputeInverseSlope (XLineFixed *l)
 {
-    return (XFixedToDouble (l->p2.x - l->p1.x) / 
+    return (XFixedToDouble (l->p2.x - l->p1.x) /
 	    XFixedToDouble (l->p2.y - l->p1.y));
 }
 
@@ -95,9 +95,9 @@ XRenderComputeTrapezoids (Edge		*edges,
     Edge	*active;
     Edge	*e, *en, *next;
     XFixed	y, next_y, intersect;
-    
+
     qsort (edges, nedges, sizeof (Edge), CompareEdge);
-    
+
     y = edges[0].edge.p1.y;
     active = NULL;
     inactive = 0;
@@ -120,7 +120,7 @@ XRenderComputeTrapezoids (Edge		*edges,
 	/* compute x coordinates along this group */
 	for (e = active; e; e = e->next)
 	    e->current_x = XRenderComputeX (&e->edge, y);
-	
+
 	/* sort active list */
 	for (e = active; e; e = next)
 	{
@@ -177,7 +177,7 @@ XRenderComputeTrapezoids (Edge		*edges,
 		next_y = e->edge.p2.y;
 	    en = e->next;
 	    /* check intersect */
-	    if (en && e->edge.p2.x > en->edge.p2.x) 
+	    if (en && e->edge.p2.x > en->edge.p2.x)
 	    {
 		intersect = XRenderComputeIntersect (&e->edge, &e->next->edge);
 		/* make sure this point is below the actual intersection */
@@ -189,7 +189,7 @@ XRenderComputeTrapezoids (Edge		*edges,
 	/* check next inactive point */
 	if (inactive < nedges && edges[inactive].edge.p1.y < next_y)
 	    next_y = edges[inactive].edge.p1.y;
-	
+
 	/* walk the list generating trapezoids */
 	for (e = active; e && (en = e->next); e = en->next)
 	{
@@ -202,7 +202,7 @@ XRenderComputeTrapezoids (Edge		*edges,
 	}
 
 	y = next_y;
-	
+
 	/* delete inactive edges from list */
 	for (e = active; e; e = next)
 	{

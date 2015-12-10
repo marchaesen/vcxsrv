@@ -1,3 +1,57 @@
+commit 06d71376aa43f9177ec1e37ed1e4d0faca655cff
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 16 23:28:02 2015 -0700
+
+    xhost 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f59d9aaba7ba73533998cb6cc5bd74e6f4d75715
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 31 21:38:41 2014 -0700
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f224c62b89e484ef2fff8499d329e9aeae1c3529
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 27 11:01:35 2013 -0800
+
+    Add AC_USE_SYSTEM_EXTENSIONS to expose non-standard extensions
+    
+    Required on Solaris to expose definitions in system headers that
+    are not defined in the XPG standards now that xtrans 1.3 defines
+    _XOPEN_SOURCE to 600 on Solaris.
+    
+    Fixes build failures:
+    In file included from /usr/include/rpc/rpcb_clnt.h:34:0,
+                     from /usr/include/rpc/rpc.h:49,
+                     from xhost.c:98:
+    /usr/include/rpc/rpcb_prot.h:159:3: error: unknown type name ‘u_int’
+    /usr/include/rpc/rpcb_prot.h:195:3: error: unknown type name ‘u_int’
+    /usr/include/rpc/rpcb_prot.h:223:2: error: unknown type name ‘u_int’
+    /usr/include/rpc/rpcb_prot.h:476:1: error: unknown type name ‘u_int’
+    /usr/include/rpc/rpcb_prot.h:489:1: error: unknown type name ‘u_int’
+    
+    xhost.c: In function ‘change_host’:
+    xhost.c:554:11: error: ‘INET6_ADDRSTRLEN’ undeclared (first use in this function)
+    xhost.c:554:11: note: each undeclared identifier is reported only once for each function it appears in
+    
+    xhost.c: In function ‘get_hostname’:
+    xhost.c:665:23: error: ‘NI_MAXHOST’ undeclared (first use in this function)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Daniel Stone <daniel@fooishbar.org>
+
+commit 984cfd0c90870310e09d55784c3aaa723f59f527
+Author: Colin Walters <walters@verbum.org>
+Date:   Thu Nov 7 20:35:32 2013 -0500
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+
 commit 6c3d341467acd10eafc1462ee94c3efd3a4788ef
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Tue Jul 16 23:10:37 2013 -0700

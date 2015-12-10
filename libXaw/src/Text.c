@@ -2837,7 +2837,7 @@ DoSelection(TextWidget ctx, XawTextPosition pos, Time time, Bool motion)
     if (motion)
 	newType = ctx->text.s.type;
     else {
-	if ((abs((long) time - (long) ctx->text.lasttime) < MULTI_CLICK_TIME)
+	if ((labs((long) time - (long) ctx->text.lasttime) < MULTI_CLICK_TIME)
 	    && (pos >= ctx->text.s.left && pos <= ctx->text.s.right)) {
 	    sarray = ctx->text.sarray;
 	    for (; *sarray != XawselectNull && *sarray != ctx->text.s.type;

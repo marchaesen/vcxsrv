@@ -83,13 +83,8 @@ in this Software without prior written authorization from The Open Group.
 #include	<X11/Xlocale.h>
 #include	<errno.h>	/* for StringToDirectoryString */
 
-#ifdef __UNIXOS2__
-#define IsNewline(str) ((str) == '\n' || (str) == '\r')
-#define IsWhitespace(str) ((str)== ' ' || (str) == '\t' || (str) == '\r')
-#else
 #define IsNewline(str) ((str) == '\n')
 #define IsWhitespace(str) ((str)== ' ' || (str) == '\t')
-#endif
 
 static const String XtNwrongParameters = "wrongParameters";
 static const String XtNconversionError = "conversionError";
@@ -122,11 +117,7 @@ static XrmQuark  XtQGravity;
 static XrmQuark  XtQInt;
 static XrmQuark  XtQPixel;
 static XrmQuark  XtQPosition;
-#ifdef __UNIXOS2__
-XrmQuark  _XtQString = 0;
-#else
 XrmQuark  _XtQString;
-#endif
 
 void _XtConvertInitialize(void)
 {
@@ -270,11 +261,7 @@ static Boolean IsInteger(
     int val = 0;
     char ch;
     /* skip leading whitespace */
-#ifndef __UNIXOS2__
     while ((ch = *string) == ' ' || ch == '\t') string++;
-#else
-    while ((ch = *string) == ' ' || ch == '\t' || ch == '\r') string++;
-#endif
     while ((ch = *string++)) {
 	if (ch >= '0' && ch <= '9') {
 	    val *= 10;

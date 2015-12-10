@@ -75,9 +75,6 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <errno.h>
 
-#ifdef __UNIXOS2__
-#include <sys/time.h>
-#endif
 
 static TimerEventRec* freeTimerRecs;
 static WorkProcRec* freeWorkRecs;

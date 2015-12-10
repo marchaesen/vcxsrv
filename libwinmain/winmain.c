@@ -143,6 +143,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     {
       penv=realloc(penv,(NrEnv+2)*sizeof(*penv));
       penv[NrEnv++]=pTmp;
+      putenv(pTmp);
       while (*pTmp) pTmp++;
       pTmp++;
     }

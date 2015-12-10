@@ -5,7 +5,7 @@ check_PROGRAMS = Alloc Converters Event
 TESTS=$(check_PROGRAMS)
 
 AM_CFLAGS = $(CWARNFLAGS) $(XT_CFLAGS) $(GLIB_CFLAGS)
-INCLUDES = -I$(top_srcdir)/include -I$(top_builddir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include
 LDADD= $(top_builddir)/src/libXt.la $(GLIB_LIBS)
 
 TESTS_ENVIRONMENT = $(MALLOC_DEBUG_ENV)

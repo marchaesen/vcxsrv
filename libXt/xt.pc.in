@@ -3,6 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 appdefaultdir=@appdefaultdir@
+datarootdir=@datarootdir@
+errordbdir=@ERRORDBDIR@
 
 Name: Xt
 Description: X Toolkit Library

@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -47,10 +47,10 @@ XRenderFillRectangles (Display		    *dpy,
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
 
-    while (n_rects) 
+    while (n_rects)
     {
 	GetReq(RenderFillRectangles, req);
-	
+
 	req->reqType = info->codes->major_opcode;
 	req->renderReqType = X_RenderFillRectangles;
 	req->op = op;
@@ -59,10 +59,10 @@ XRenderFillRectangles (Display		    *dpy,
 	req->color.green = color->green;
 	req->color.blue = color->blue;
 	req->color.alpha = color->alpha;
-	
+
 	n = n_rects;
 	len = ((long)n) << 1;
-	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length)) 
+	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length))
 	{
 	    n = (dpy->max_request_size - req->length) >> 1;
 	    len = ((long)n) << 1;

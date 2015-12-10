@@ -140,8 +140,8 @@ zquotedcpy(char **dest, const char *source)
 static void 
 zstrcat(char **dest, const char *source)
 {
-	int dest_size = 1;
-	int source_size;
+	size_t dest_size = 1;
+	size_t source_size;
 
 	if (*dest != NULL)
 		dest_size = strlen(*dest) + 1;
@@ -156,7 +156,7 @@ zstrtoupper(char *s)
 	char *t;
 
 	for (t = s; *t != '\000'; t++)
-		*t = toupper(*t);
+		*t = (char) toupper(*t);
 }
 
 #define zs_true(x)	(x != NULL && strcmp(x, "0") != 0)
@@ -302,7 +302,7 @@ read_line(FILE *fp, char **buffer)
 			buffer_size = buffer_size * 2 + 1;
 			*buffer = zrealloc(*buffer, buffer_size);
 		}
-		(*buffer)[position++] = c;
+		(*buffer)[position++] = (char) c;
 		(*buffer)[position] = '\0';
 		c = getc(fp);
 		if (c == EOF)
@@ -460,7 +460,7 @@ chars_compare(const void *aa, const void *bb)
 static const char *
 startswith(const char *string, const char *pattern)
 {
-	int l = strlen(pattern);
+	size_t l = strlen(pattern);
 
 	if (strlen(string) <= l) return NULL;
 	if (strncmp(string, pattern, l) != 0) return NULL;
@@ -727,7 +727,7 @@ main(int argc, char *argv[])
 			if (p[0] == '\0' || p[0] == '#')
 				continue;
 			if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
-				target = strtol(p+2, &endp, 16);
+				target = (int) strtol(p+2, &endp, 16);
 				if (*endp == '\0') goto bad;
 				p = endp;
 			} else
@@ -735,7 +735,7 @@ main(int argc, char *argv[])
 			for (; isspace(p[0]); p++)
 				;
 			if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
-				ucs = strtol(p+2, &endp, 16);
+				ucs = (int) strtol(p+2, &endp, 16);
 				if (*endp == '\0') goto bad;
 			} else
 				goto bad;
@@ -814,7 +814,7 @@ main(int argc, char *argv[])
 			    || (nextc = strstr(t, "\nBBX")) != NULL)
 			{
 				char *endp;
-				long w, h, x, y;
+				int w, h, x, y;
 
 				if (*nextc == '\n') {
 					nextc += 4;
@@ -823,22 +823,22 @@ main(int argc, char *argv[])
 				}
 				for (;isspace(*nextc);)
 					nextc++;
-				w = strtol(nextc, &endp, 10);
+				w = (int) strtol(nextc, &endp, 10);
 				nextc = endp;
 				if (*nextc == '\0') goto bbxbad;
 				for (;isspace(*nextc);)
 					nextc++;
-				h = strtol(nextc, &endp, 10);
+				h = (int) strtol(nextc, &endp, 10);
 				nextc = endp;
 				if (*nextc == '\0') goto bbxbad;
 				for (;isspace(*nextc);)
 					nextc++;
-				x = strtol(nextc, &endp, 10);
+				x = (int) strtol(nextc, &endp, 10);
 				nextc = endp;
 				if (*nextc == '\0') goto bbxbad;
 				for (;isspace(*nextc);)
 					nextc++;
-				y = strtol(nextc, &endp, 10);
+				y = (int) strtol(nextc, &endp, 10);
 				if (bbx.cwidth == -1) {
 					bbx.cwidth = w;
 					bbx.cheight = h;

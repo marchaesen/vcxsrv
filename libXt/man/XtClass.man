@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,62 +61,36 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtClass __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtClass, XtSuperclass, XtIsSubclass, XtCheckSubclass, XtIsObject, XtIsRectObj, XtIsWidget, XtIsComposite, XtIsConstraint, XtIsShell, XtIsOverrideShell, XtIsWMShell, XtIsVendorShell, XtIsTransientShell, XtIsTopLevelShell, XtIsApplicationShell, XtIsSessionShell \- obtain and verify a widget's class
 .SH SYNTAX
 .HP
-WidgetClass XtClass(Widget \fIw\fP); 
+WidgetClass XtClass(Widget \fIw\fP);
 .HP
-WidgetClass XtSuperclass(Widget \fIw\fP); 
+WidgetClass XtSuperclass(Widget \fIw\fP);
 .HP
-Boolean XtIsSubclass(Widget \fIw\fP, WidgetClass \fIwidget_class\fP); 
+Boolean XtIsSubclass(Widget \fIw\fP, WidgetClass \fIwidget_class\fP);
 .HP
 void XtCheckSubclass(Widget \fIwidget\fP, WidgetClass \fIwidget_class\fP,
-String \fImessage\fP); 
+String \fImessage\fP);
 .HP
-Boolean XtIsObject(Widget \fIw\fP); 
+Boolean XtIsObject(Widget \fIw\fP);
 .HP
-Boolean XtIsRectObj(Widget \fIw\fP); 
+Boolean XtIsRectObj(Widget \fIw\fP);
 .HP
-Boolean XtIsWidget(Widget \fIw\fP); 
+Boolean XtIsWidget(Widget \fIw\fP);
 .HP
-Boolean XtIsComposite(Widget \fIw\fP); 
+Boolean XtIsComposite(Widget \fIw\fP);
 .HP
-Boolean XtIsConstraint(Widget \fIw\fP, 
+Boolean XtIsConstraint(Widget \fIw\fP,
 .HP
-Boolean XtIsShell(Widget \fIw\fP); 
+Boolean XtIsShell(Widget \fIw\fP);
 .HP
-Boolean XtIsOverrideShell(Widget \fIw\fP); 
+Boolean XtIsOverrideShell(Widget \fIw\fP);
 .HP
-Boolean XtIsWMShell(Widget \fIw\fP); 
+Boolean XtIsWMShell(Widget \fIw\fP);
 .HP
 Boolean XtIsVendorShell(Widget \fIw\fP);
 .HP
@@ -181,9 +120,9 @@ function returns a pointer to the widget's superclass class structure.
 .LP
 The
 .ZN XtIsSubclass
-function returns 
-.ZN True 
-if the class of the specified widget is equal to or is a subclass of 
+function returns
+.ZN True
+if the class of the specified widget is equal to or is a subclass of
 the specified class. The widget's class can be any number of subclasses
 down the chain and need not be an immediate subclass of the specified
 class. Composite widgets that need to restrict the class of the items
@@ -203,12 +142,12 @@ constructs an error message from the supplied message,
 the widget's actual class, and the expected class and calls
 .ZN XtErrorMsg .
 .ZN XtCheckSubclass
-should be used at the entry point of exported routines to ensure 
+should be used at the entry point of exported routines to ensure
 that the client has passed in a valid widget class for the exported operation.
 .LP
 .ZN XtCheckSubclass
 is only executed when the widget has been compiled with the compiler symbol
-DEBUG defined; otherwise, it is defined as the empty string 
+DEBUG defined; otherwise, it is defined as the empty string
 and generates no code.
 .LP
 To test if a given widget belongs to a subclass of an Intrinsics-defined

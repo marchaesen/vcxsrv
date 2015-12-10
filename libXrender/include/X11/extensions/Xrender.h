@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -220,7 +220,7 @@ XRenderFindFormat (Display			*dpy,
 		   unsigned long		mask,
 		   _Xconst XRenderPictFormat	*templ,
 		   int				count);
-    
+
 #define PictStandardARGB32  0
 #define PictStandardRGB24   1
 #define PictStandardA8	    2
@@ -468,7 +468,7 @@ XRenderCompositeDoublePoly (Display		    *dpy,
 			    int			    npoints,
 			    int			    winding);
 Status
-XRenderParseColor(Display	*dpy, 
+XRenderParseColor(Display	*dpy,
 		  char		*spec,
 		  XRenderColor	*def);
 

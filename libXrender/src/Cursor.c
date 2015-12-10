@@ -45,7 +45,7 @@ XRenderCreateCursor (Display	    *dpy,
     req->src = source;
     req->x = x;
     req->y = y;
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
     return cid;
@@ -67,12 +67,12 @@ XRenderCreateAnimCursor (Display	*dpy,
     req->reqType = info->codes->major_opcode;
     req->renderReqType = X_RenderCreateAnimCursor;
     req->cid = cid = XAllocID (dpy);
-    
+
     len = (long) ncursor * SIZEOF (xAnimCursorElt) >> 2;
     SetReqLen (req, len, len);
     len <<= 2;
     Data32 (dpy, (long *) cursors, len);
-    
+
     UnlockDisplay(dpy);
     SyncHandle();
     return cid;

@@ -21,7 +21,7 @@ libXrender_la_SOURCES = AddTrap.c \
 libXrender_la_LIBADD = $(RENDER_LIBS)
 
 # -version-number requires libtool >= 1.5
-libXrender_la_LDFLAGS = -version-number 1:3:0 -no-undefined 
+libXrender_la_LDFLAGS = -version-number 1:3:0 -no-undefined
 
 libXrenderincludedir = $(includedir)/X11/extensions
-libXrenderinclude_HEADERS = $(top_srcdir)/include/X11/extensions/Xrender.h 
+libXrenderinclude_HEADERS = $(top_srcdir)/include/X11/extensions/Xrender.h

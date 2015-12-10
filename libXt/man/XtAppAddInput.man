@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,32 +61,6 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtAppAddInput __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
@@ -130,9 +69,9 @@ XtAppAddInput, XtRemoveInput \- register and remove an input source
 .HP
 XtInputId XtAppAddInput(XtAppContext \fIapp_context\fP, int \fIsource\fP,
 XtPointer \fIcondition\fP, XtInputCallbackProc \fIproc\fP, XtPointer
-\fIclient_data\fP); 
+\fIclient_data\fP);
 .HP
-void XtRemoveInput(XtInputId \fIid\fP); 
+void XtRemoveInput(XtInputId \fIid\fP);
 .SH ARGUMENTS
 .ds Co that identifies the application
 .IP \fIapp_context\fP 1i
@@ -159,7 +98,7 @@ The
 .ZN XtAppAddInput
 function registers with the \*(xI read routine a new source of events,
 which is usually file input but can also be file output.
-Note that file should be loosely interpreted to mean any sink 
+Note that file should be loosely interpreted to mean any sink
 or source of data.
 .ZN XtAppAddInput
 also specifies the conditions under which the source can generate events.
@@ -188,7 +127,7 @@ XtAppAddTimeOut(__libmansuffix__),XtAppAddSignal(__libmansuffix__)
 In ANSI C it is necessary to cast the condition to an XtPointer, e.g.:
 .RS 4
 .br
-XtAppAddInput(app_context, 
+XtAppAddInput(app_context,
 .RS 4
 .br
 source,

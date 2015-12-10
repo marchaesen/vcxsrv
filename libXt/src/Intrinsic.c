@@ -81,6 +81,9 @@ in this Software without prior written authorization from The Open Group.
 #ifndef VMS
 #include <sys/stat.h>
 #endif /* VMS */
+#ifdef WIN32
+#include <direct.h>            /* for _getdrives() */
+#endif
 
 #include <stdlib.h>
 
@@ -888,10 +891,6 @@ static int AccessFile (
 
     /* try the places set in the environment */
     drive = getenv ("_XBASEDRIVE");
-#ifdef __UNIXOS2__
-    if (!drive)
-	drive = getenv ("X11ROOT");
-#endif
     if (!drive)
 	drive = "C:";
     len = strlen (drive) + strlen (path);
@@ -903,7 +902,6 @@ static int AccessFile (
 	return 1;
     }
 
-#ifndef __UNIXOS2__
     /* one last place to look */
     drive = getenv ("HOMEDRIVE");
     if (drive) {
@@ -936,7 +934,6 @@ static int AccessFile (
 	    }
 	}
     }
-#endif
     return 0;
 }
 #endif
@@ -1092,21 +1089,12 @@ String XtFindFile(
 		continue;
 	    }
 	    if (*colon == ':')
-#ifdef __UNIXOS2__
-	      if (colon > (path+1))
-#endif
 		break;
 	}
 	len = colon - path;
 	if (Resolve(path, len, substitutions, num_substitutions,
 		    buf, '/')) {
 	    if (firstTime || strcmp(buf1,buf2) != 0) {
-#ifdef __UNIXOS2__
-		{
-			char *bufx = (char*)__XOS2RedirRoot(buf);
-			strcpy(buf,bufx);
-		}
-#endif
 #ifdef XNL_DEBUG
 		printf("Testing file %s\n", buf);
 #endif /* XNL_DEBUG */
@@ -1149,7 +1137,7 @@ static char *ExtractLocaleName(
     String	lang)
 {
 
-#if defined(hpux) || defined(CSRG_BASED) || defined(sun) || defined(SVR4) || defined(sgi) || defined(__osf__) || defined(AIXV3) || defined(ultrix) || defined(WIN32) || defined(__UNIXOS2__) || defined (linux)
+#if defined(hpux) || defined(CSRG_BASED) || defined(sun) || defined(SVR4) || defined(sgi) || defined(__osf__) || defined(AIXV3) || defined(ultrix) || defined(WIN32) || defined (linux)
 # ifdef hpux
 /*
  * We need to discriminated between HPUX 9 and HPUX 10. The equivalent
@@ -1171,7 +1159,7 @@ static char *ExtractLocaleName(
 #   define STARTCHAR '\001'
 #   define ENDCHAR '\001'
 #  else
-#   if defined(WIN32) || defined(__UNIXOS2__)
+#   ifdef WIN32
 #    define SKIPCOUNT 1
 #    define STARTCHAR '='
 #    define ENDCHAR ';'
@@ -1326,18 +1314,6 @@ static const char *implementation_default_path(void)
 #if defined(WIN32)
     static char xfilesearchpath[] = ":";
 
-    return xfilesearchpath;
-#elif defined(__UNIXOS2__)
-    /* if you know how to pass % thru the compiler let me know */
-    static char xfilesearchpath[] = XFILESEARCHPATHDEFAULT;
-    static Bool fixed;
-    char *ch;
-
-    if (!fixed) {
-	for (ch = xfilesearchpath; ch = strchr(ch, ';'); ch++)
-	    *ch = '%';
-	fixed = True;
-    }
     return xfilesearchpath;
 #else
     return XFILESEARCHPATHDEFAULT;

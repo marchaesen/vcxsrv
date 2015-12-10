@@ -37,7 +37,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -51,42 +51,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -96,32 +61,6 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
-..
 .ny0
 .TH XtCreateWidget __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
@@ -129,19 +68,19 @@ XtCreateWidget, XtVaCreateWidget, XtCreateManagedWidget, XtVaCreateManagedWidget
 .SH SYNTAX
 .HP
 Widget XtCreateWidget(String \fIname\fP, WidgetClass \fIwidget_class\fP,
-Widget \fIparent\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP); 
+Widget \fIparent\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP);
 .HP
 Widget XtVaCreateWidget(String \fIname\fP, WidgetClass \fIwidget_class\fP,
 Widget \fIparent\fP, ...\^);
 .HP
 Widget XtCreateManagedWidget(String \fIname\fP, WidgetClass
 \fIwidget_class\fP, Widget \fIparent\fP, ArgList \fIargs\fP, Cardinal
-\fInum_args\fP); 
+\fInum_args\fP);
 .HP
 Widget XtVaCreateManagedWidget(String \fIname\fP, WidgetClass
 \fIwidget_class\fP, Widget \fIparent\fP, ...\^);
 .HP
-void XtDestroyWidget(Widget \fIw\fP); 
+void XtDestroyWidget(Widget \fIw\fP);
 .SH ARGUMENTS
 .ds Al to override the resource defaults
 .IP \fIargs\fP 1i
@@ -191,7 +130,7 @@ by using the constraint resource list specified for the parent's class
 and all superclasses up to
 .ZN constraintWidgetClass .
 .IP \(bu 5
-Calls the initialize procedures for the widget by starting at the 
+Calls the initialize procedures for the widget by starting at the
 .ZN Core
 initialize procedure on down to the widget's initialize procedure.
 .IP \(bu 5
@@ -209,7 +148,7 @@ starting at
 .ZN constraintWidgetClass
 on down to the parent's constraint initialize procedure.
 .LP
-Note that you can determine the number of arguments in an argument list 
+Note that you can determine the number of arguments in an argument list
 by using the
 .ZN  XtNumber
 macro.
@@ -235,13 +174,13 @@ In phase one,
 .ZN XtDestroyWidget
 performs the following:
 .IP \(bu 5
-If the being_destroyed field of the widget is 
+If the being_destroyed field of the widget is
 .ZN True ,
 it returns immediately.
 .IP \(bu 5
 Recursively descends the widget tree and
-sets the being_destroyed field to 
-.ZN True 
+sets the being_destroyed field to
+.ZN True
 for the widget and all children.
 .IP \(bu 5
 Adds the widget to a list of widgets (the destroy list) that should be
@@ -263,15 +202,15 @@ In phase two,
 .ZN XtDestroyWidget
 performs the following on each entry in the destroy list:
 .IP \(bu 5
-Calls the destroy callback procedures registered on the widget 
-(and all descendants) in post-order (it calls children callbacks 
+Calls the destroy callback procedures registered on the widget
+(and all descendants) in post-order (it calls children callbacks
 before parent callbacks).
 .IP \(bu 5
-If the widget's parent is a subclass of 
-.ZN compositeWidgetClass 
-and if the parent is not being destroyed, 
-it calls 
-.ZN XtUnmanageChild 
+If the widget's parent is a subclass of
+.ZN compositeWidgetClass
+and if the parent is not being destroyed,
+it calls
+.ZN XtUnmanageChild
 on the widget and then calls the widget's parent's delete_child procedure
 (see Section 3.4).
 .IP \(bu 5
@@ -296,8 +235,8 @@ if the widget is realized (that is, has an X window).
 The server recursively destroys all descendant windows.
 .IP \(bu 5
 Recursively descends the tree and deallocates all pop-up widgets, constraint
-records, callback lists and, if the widget is a subclass of 
-.ZN compositeWidgetClass , 
+records, callback lists and, if the widget is a subclass of
+.ZN compositeWidgetClass ,
 children.
 .SH "SEE ALSO"
 XtAppCreateShell(__libmansuffix__),

@@ -1,5 +1,3 @@
-/* $Xorg: Xpoll.h,v 1.4 2001/02/09 02:03:23 xorgcvs Exp $ */
-
 /*
 
 Copyright 1994, 1998  The Open Group
@@ -49,43 +47,16 @@ from The Open Group.
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-/* $XFree86: xc/include/Xpoll.h,v 3.8 2001/01/17 17:53:11 dawes Exp $ */
-
 #ifndef _XPOLL_H_
 #define _XPOLL_H_
 
-#ifndef WIN32
+#if !defined(WIN32) || defined(__CYGWIN__)
 
 #ifndef USE_POLL
 
 #include <X11/Xos.h>
 
-/* Below is the monster branch from hell.  Basically, most systems will drop to
- * 'the branch below is the fallthrough for halfway modern systems', and include
- * <sys/select.h>, so we get the FD_* macros. */
-#if !defined(DGUX)
-# if (defined(SVR4) || defined(CRAY) || defined(AIXV3)) && !defined(FD_SETSIZE)
-#  include <sys/select.h>
-#  ifdef luna
-#   include <sysent.h>
-#  endif
-# else /* not SVR4/CRAY/AIXv3 */
-#  if defined(AIXV4) /* AIX 4.2 fubar-ed <sys/select.h>, so try really hard. */
-#   if !defined(NFDBITS)
-#    include <sys/select.h>
-#   endif
-#  else /* the branch below is the fallthrough for halfway modern systems */
-#   ifdef __QNX__  /* Make sure we get 256 bit select masks */
-#    define FD_SETSIZE 256
-#   endif
-#   include <sys/select.h>
-#  endif
-# endif
-#else /* DGUX  -- No sys/select in Intel DG/ux */
-# include <sys/time.h> 
-# include <sys/types.h>
-# include <unistd.h>
-#endif
+#include <sys/select.h>  /* Get the FD_* macros. */
 
 #include <X11/Xmd.h>
 
@@ -114,21 +85,13 @@ typedef long fd_mask;
 #define howmany(x,y)	(((x)+((y)-1))/(y))
 #endif
 
-#if defined(BSD) && BSD < 198911 && !defined(luna)
+#if defined(BSD) && BSD < 198911 
 typedef struct fd_set {
 	fd_mask fds_bits[howmany(FD_SETSIZE, NFDBITS)];
 } fd_set;
 #endif
 
-#ifndef hpux /* and perhaps old BSD ??? */
-# define Select(n,r,w,e,t) select(n,(fd_set*)r,(fd_set*)w,(fd_set*)e,(struct timeval*)t)
-#else
-# ifndef _XPG4_EXTENDED /* HPUX 9.x and earlier */
-#  define Select(n,r,w,e,t) select(n,(int*)r,(int*)w,(int*)e,(struct timeval*)t)
-# else
 #  define Select(n,r,w,e,t) select(n,(fd_set*)r,(fd_set*)w,(fd_set*)e,(struct timeval*)t)
-# endif
-#endif
 
 #define __X_FDS_BITS fds_bits
 
@@ -164,7 +127,16 @@ typedef struct fd_set {
         (howmany(FD_SETSIZE, NFDBITS) > 4 && (__XFDS_BITS(p, 4))) || \
         (howmany(FD_SETSIZE, NFDBITS) > 5 && (__XFDS_BITS(p, 5))) || \
         (howmany(FD_SETSIZE, NFDBITS) > 6 && (__XFDS_BITS(p, 6))) || \
-        (howmany(FD_SETSIZE, NFDBITS) > 7 && (__XFDS_BITS(p, 7))))
+        (howmany(FD_SETSIZE, NFDBITS) > 7 && (__XFDS_BITS(p, 7))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 8 && (__XFDS_BITS(p, 8))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 9 && (__XFDS_BITS(p, 9))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 10 && (__XFDS_BITS(p, 10))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 11 && (__XFDS_BITS(p, 11))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 12 && (__XFDS_BITS(p, 12))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 13 && (__XFDS_BITS(p, 13))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 14 && (__XFDS_BITS(p, 14))) || \
+        (howmany(FD_SETSIZE, NFDBITS) > 15 && (__XFDS_BITS(p, 15))))
+
 
 #define XFD_COPYSET(src,dst) { \
         int __i__; \

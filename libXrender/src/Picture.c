@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -37,7 +37,7 @@ _XRenderProcessPictureAttributes (Display		    *dpy,
     unsigned long values[32];
     register unsigned long *value = values;
     unsigned int nvalues;
-    
+
     if (valuemask & CPRepeat)
 	*value++ = attributes->repeat;
     if (valuemask & CPAlphaMap)
@@ -108,7 +108,7 @@ XRenderChangePicture (Display                   *dpy,
 {
     XRenderExtDisplayInfo	    *info = XRenderFindDisplay (dpy);
     xRenderChangePictureReq *req;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     GetReq(RenderChangePicture, req);
@@ -157,10 +157,10 @@ XRenderSetPictureClipRectangles (Display	*dpy,
 				 int		n)
 {
     XRenderExtDisplayInfo	    *info = XRenderFindDisplay (dpy);
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
-    _XRenderSetPictureClipRectangles (dpy, info, picture, 
+    _XRenderSetPictureClipRectangles (dpy, info, picture,
 				      xOrigin, yOrigin, rects, n);
     UnlockDisplay (dpy);
     SyncHandle ();
@@ -176,7 +176,7 @@ XRenderSetPictureClipRegion (Display	    *dpy,
     XRectangle	    *xr, *pr;
     BOX		    *pb;
     unsigned long   total;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     total = r->numRects * sizeof (XRectangle);
@@ -189,13 +189,13 @@ XRenderSetPictureClipRegion (Display	    *dpy,
 	}
     }
     if (xr || !r->numRects)
-	_XRenderSetPictureClipRectangles (dpy, info, picture, 0, 0, 
+	_XRenderSetPictureClipRectangles (dpy, info, picture, 0, 0,
 					  xr, r->numRects);
     if (xr)
 	_XFreeTemp(dpy, (char *)xr, total);
     UnlockDisplay(dpy);
     SyncHandle();
-}    
+}
 
 void
 XRenderSetPictureTransform (Display	*dpy,
@@ -204,7 +204,7 @@ XRenderSetPictureTransform (Display	*dpy,
 {
     XRenderExtDisplayInfo		    *info = XRenderFindDisplay (dpy);
     xRenderSetPictureTransformReq   *req;
-    
+
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay (dpy);
     GetReq(RenderSetPictureTransform, req);
@@ -222,7 +222,7 @@ XRenderSetPictureTransform (Display	*dpy,
     req->transform.matrix33 = transform->matrix[2][2];
     UnlockDisplay(dpy);
     SyncHandle();
-    
+
 }
 
 void

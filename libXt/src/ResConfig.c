@@ -72,13 +72,6 @@ static void _search_child(Widget, char *, char *, char *, char *, char, char *);
 static void _set_and_search(Widget, char *, char *, char *, char *, char , char *);
 static int _locate_children(Widget, Widget **);
 
-#if defined(sun) && !defined(SVR4)
-# define Strtoul(a,b,c) (unsigned long)strtol(a,b,c)
-#else
-# define Strtoul(a,b,c) strtoul(a,b,c)
-#endif
-
-
 /*
  * NAME: _set_resource_values
  *
@@ -899,7 +892,7 @@ _XtResourceConfigurationEH (
 	int		actual_format;
 	unsigned long	nitems;
 	unsigned long	leftover;
-	unsigned char	*data = NULL;
+	char		*data = NULL;
 	unsigned long	resource_len;
 	char		*data_ptr;
 	char		*resource;
@@ -959,7 +952,7 @@ _XtResourceConfigurationEH (
 		pd->rcm_data, 0L, 8192L,
 		TRUE, XA_STRING,
 		&actual_type, &actual_format, &nitems, &leftover,
-		&data ) == Success && actual_type == XA_STRING
+		(unsigned char **)&data ) == Success && actual_type == XA_STRING
 			   && actual_format == 8) {
 	/*
 	 *      data format is:
@@ -971,26 +964,37 @@ _XtResourceConfigurationEH (
 	 *      resource and value fields.
 	 */
 		if (data) {
-			resource_len = Strtoul ((void *)data, &data_ptr, 10);
-			data_ptr++;
+			char *data_end = data + nitems;
+			char *data_value;
 
-			data_ptr[resource_len] = '\0';
+			resource_len = strtoul (data, &data_ptr, 10);
 
-			resource = XtNewString (data_ptr);
-			value = XtNewString (&data_ptr[resource_len + 1]);
+			if (data_ptr != (char *) data) {
+				data_ptr++;
+				data_value = data_ptr + resource_len;
+			} else /* strtoul failed to convert a number */
+				data_ptr = data_value = NULL;
+
+			if (data_value > data_ptr && data_value < data_end) {
+				*data_value++ = '\0';
+
+				resource = XtNewString (data_ptr);
+				value = XtNewString (data_value);
 #ifdef DEBUG
-			fprintf (stderr, "resource_len=%d\n",resource_len);
-			fprintf (stderr, "resource = %s\t value = %s\n",
-					resource, value);
+				fprintf (stderr, "resource_len=%d\n",
+					 resource_len);
+				fprintf (stderr, "resource = %s\t value = %s\n",
+					 resource, value);
 #endif
-			/*
-			 * descend the application widget tree and
-			 * apply the value to the appropriate widgets
-			 */
-			_search_widget_tree (w, resource, value);
+				/*
+				 * descend the application widget tree and
+				 * apply the value to the appropriate widgets
+				 */
+				_search_widget_tree (w, resource, value);
 
-			XtFree (resource);
-			XtFree (value);
+				XtFree (resource);
+				XtFree (value);
+			}
 		}
 	}
 

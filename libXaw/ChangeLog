@@ -1,3 +1,122 @@
+commit 8c82c47a770274c50944f002b97369c4e30872d8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 30 22:06:03 2015 -0700
+
+    libXaw 1.0.13
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 882da69d577b8f206694691679cef2cc3ca69725
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Sun Sep 14 16:30:45 2014 +0100
+
+    Include <unistd.h>
+    
+    Required for prototype of usleep()
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1955d3917b8d24d7a8621ad80b160e4cefde6fc9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Nov 7 22:01:06 2014 -0800
+
+    Use SEEK_* names instead of raw numbers for fseek whence argument
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3b0de83ef4f2cdb0bfa52aba9092b56a1a1dc6ea
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Nov 5 18:01:17 2014 -0800
+
+    Just use C89 size_t instead of rolling our own Size_t
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit ebaa906159a73eeb001506a7787f5128f17af61a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Nov 5 17:58:48 2014 -0800
+
+    Use autoconf HAVE_UNISTD_H instead of imake X_NOT_POSIX to find <unistd.h>
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 1804def12f26b9f64453fb9d641034f8de92ff7d
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Tue Mar 18 22:51:45 2014 +0100
+
+    Fix abs() usage.
+    
+    For long arguments, use labs().
+    From Jörg Sonnenberger <joerg@NetBSD.org>
+    
+    Reviewed-by: Matt Turner <mattst88@gmail.com>
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+
+commit 1a1bf8404229b5636892d4be2fe9122304603c25
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 31 21:39:32 2014 -0700
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ad1bb9a727c067a586882a478e36bbce532b0fb0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 31 21:38:41 2014 -0700
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6234ea0ba30861547e5cf1f7d4259e39f36618d3
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sat Dec 14 13:23:29 2013 -0500
+
+    Makefile: use $(LN_S) for better code portability
+    
+    Autoconf recommends using LN_S to safeguard against actual or future
+    portability issues.
+    
+    Autoconf:
+      "Symbolic links are not available on old systems; use ‘$(LN_S)’
+      as a portable substitute".
+    
+    AC_PROG_LN_S is brought in by AC_PROG_LIBTOOL
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit ec7d7c303385a6bdb0833a5aaae96be697cca7ab
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Nov 21 11:43:55 2013 -0500
+
+    Fix build with gcc -Werror=format-security
+    
+    DisplayList.c:290:4: error: format not a string literal and no format
+    arguments [-Werror=format-security]
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 0543fa37ebdc48c0432425de80abc63235182085
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Sep 22 16:06:00 2013 -0400
+
+    Makefile: use AM_V_GEN and AM_V_at to implement automake silent rules
+    
+    Passing --enable-silent-rules to configure will cause build rules to be less
+    verbose; the option --disable-silent-rules will cause normal verbose output.
+    
+    At make run time, the default chosen at configure time may be overridden:
+    make V=1 will produce verbose output, make V=0 less verbose output.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
 commit a2d573ad309b4e717c5aef4635daa51e60a46db7
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sat Sep 7 20:57:47 2013 -0700

@@ -133,7 +133,7 @@ Cardinal XtAsprintf(
     ...)
 {
     char buf[256];
-    Cardinal len;
+    int len;
     va_list ap;
 
     va_start(ap, format);
@@ -524,7 +524,7 @@ void _XtPrintMemory(char * filename)
 
     if (filename == NULL)
 	f = stderr;
-    else 
+    else
 	f = fopen(filename, "w");
     LOCK_PROCESS;
     fprintf(f, "total size: %d\n", ActiveXtMemory);

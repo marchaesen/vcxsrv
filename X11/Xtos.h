@@ -52,9 +52,6 @@ SOFTWARE.
 #define DEALLOCATE_LOCAL_FALLBACK(_ptr) XtFree((XtPointer)(_ptr))
 #include <X11/Xalloca.h>
 
-#ifdef CRAY
-#define WORD64
-#endif
 
 #if defined (_LP64) || \
     defined(__alpha) || defined(__alpha__) || \

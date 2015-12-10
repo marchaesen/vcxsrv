@@ -95,6 +95,11 @@ typedef struct	_XkbBounds {
 #define	XkbBoundsWidth(b)	(((b)->x2)-((b)->x1))
 #define	XkbBoundsHeight(b)	(((b)->y2)-((b)->y1))
 
+/*
+ * In the following structs, this pattern is used for dynamically sized arrays:
+ * foo is an array for which sz_foo entries are allocated & num_foo are used
+ */
+
 typedef struct _XkbOutline {
 	unsigned short	num_points;
 	unsigned short	sz_points;

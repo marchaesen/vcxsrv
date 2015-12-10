@@ -24,6 +24,8 @@ EXPORTS
   _XSend
   _XSetLastRequestRead
   _Xsetlocale
+  _Xthread_init
+  _Xthread_waiter
   _XUnlockMutex_fn
   _XUnlockMutex_fn_p
   _XVIDtoVisual
@@ -37,11 +39,13 @@ EXPORTS
   XAllocSizeHints
   XAllocStandardColormap
   XBell
+  XChangeActivePointerGrab
   XChangeGC
   XChangeProperty
   XChangeWindowAttributes
   XCheckIfEvent
   XClearArea
+  XClearWindow
   XClipBox
   XCloseDisplay
   XCloseIM
@@ -256,6 +260,7 @@ EXPORTS
   XRectInRegion
   XRefreshKeyboardMapping
   XRemoveHost
+  XReparentWindow
   XResourceManagerString
   XRootWindow
   XrmCombineDatabase
@@ -318,6 +323,8 @@ EXPORTS
   XSetTile
   XSetTransientForHint
   XSetTSOrigin
+  XSetWindowBackground
+  XSetWindowBackgroundPixmap
   XSetWindowBorder
   XSetWindowBorderPixmap
   XSetWindowBorderWidth
@@ -329,6 +336,7 @@ EXPORTS
   XSetWMProtocols
   XStoreColors
   XStoreName
+  XStoreBytes
   XStringToKeysym
   XSubtractRegion
   XSupportsLocale
@@ -352,6 +360,7 @@ EXPORTS
   Xutf8TextPropertyToTextList
   XVaCreateNestedList
   XVisualIDFromVisual
+  XWarpPointer
   XwcDrawImageString
   XwcDrawString
   XwcFreeStringList

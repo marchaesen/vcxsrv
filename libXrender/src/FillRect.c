@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -73,10 +73,10 @@ XRenderFillRectangle (Display	    *dpy,
 	dpy->bufptr += SIZEOF(xRectangle);
 #endif /* not MUSTCOPY */
     }
-    else 
+    else
     {
 	GetReqExtra(RenderFillRectangles, SIZEOF(xRectangle), req);
-	
+
 	req->reqType = info->codes->major_opcode;
 	req->renderReqType = X_RenderFillRectangles;
 	req->op = op;
@@ -85,7 +85,7 @@ XRenderFillRectangle (Display	    *dpy,
 	req->color.green = color->green;
 	req->color.blue = color->blue;
 	req->color.alpha = color->alpha;
-	
+
 #ifdef MUSTCOPY
 	dpy->bufptr -= SIZEOF(xRectangle);
 #else

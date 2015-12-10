@@ -1,3 +1,127 @@
+commit cfe0b4fb8f87b03060a3d3c9538df144856b5e9f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 14 09:00:06 2015 -0700
+
+    font-util 1.3.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1a0f701dbd33a10151a87a6ff6bd6a63682fc356
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Aug 25 18:56:33 2014 -0700
+
+    Update map-JISX0201.1976-0 to current version from Unicode Consortium
+    
+    New version is exactly as downloaded on August 25, 2014 from
+    ftp://ftp.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/JIS0201.TXT
+    
+    Does not change mappings, only changes comments (including license notice).
+    
+    Reported-by: AGinsberg on #xorg-devel irc
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9f53de00afaf19f9acdb5a796641992ffdaeb255
+Author: Ross Burton <ross.burton@intel.com>
+Date:   Mon Dec 9 11:01:54 2013 +0000
+
+    fontutil.m4.in: use $PKG_CONFIG instead of pkg-config
+    
+    Instead of assuming that pkg-config is on the path, require PKG_PROG_PKG_CONFIG
+    to be called and use $PKG_CONFIG.
+    
+    Signed-off-by: Ross Burton <ross.burton@intel.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5f01ea79f1cb2328bfc4130b1e693f71be916b87
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 82da86fa16f82218787752774a6173e417900dae
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed Jan 16 12:59:17 2013 -0500
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit aba5a2f22ff6e0ada7d606cbf91c5974e3255d77
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Dec 16 15:27:33 2012 -0800
+
+    Fix a bunch of clang integer size conversion warnings in ucs2any
+    
+    ucs2any.c:149:36: warning: implicit conversion changes signedness: 'int' to 'si
+    ze_t' (aka 'unsigned long') [-Wsign-conversion]
+            *dest = zrealloc(*dest, dest_size + source_size);
+                    ~~~~~~~~        ~~~~~~~~~~^~~~~~~~~~~~~
+    ucs2any.c:147:29: warning: implicit conversion loses integer precision: 'unsign
+    ed long' to 'int' [-Wshorten-64-to-32]
+                    dest_size = strlen(*dest) + 1;
+                              ~ ~~~~~~~~~~~~~~^~~
+    ucs2any.c:148:16: warning: implicit conversion loses integer precision: 'size_t
+    ' (aka 'unsigned long') to 'int' [-Wshorten-64-to-32]
+            source_size = strlen(source);
+                        ~ ^~~~~~~~~~~~~~
+    ucs2any.c:159:8: warning: implicit conversion loses integer precision: 'int' to
+     'char' [-Wconversion]
+                    *t = toupper(*t);
+                       ~ ^~~~~~~~~~~
+    ucs2any.c:305:27: warning: implicit conversion loses integer precision: 'int' t
+    o 'char' [-Wconversion]
+                    (*buffer)[position++] = c;
+                                          ~ ^
+    ucs2any.c:465:21: warning: comparison of integers of different signs: 'size_t'
+    (aka 'unsigned long') and 'int' [-Wsign-compare]
+            if (strlen(string) <= l) return NULL;
+                ~~~~~~~~~~~~~~ ^  ~
+    ucs2any.c:466:31: warning: implicit conversion changes signedness: 'int' to 'si
+    ze_t' (aka 'unsigned long') [-Wsign-conversion]
+            if (strncmp(string, pattern, l) != 0) return NULL;
+                ~~~~~~~                  ^
+    ucs2any.c:463:10: warning: implicit conversion loses integer precision: 'size_t
+    ' (aka 'unsigned long') to 'int' [-Wshorten-64-to-32]
+            int l = strlen(pattern);
+                ~   ^~~~~~~~~~~~~~~
+    ucs2any.c:730:14: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                    target = strtol(p+2, &endp, 16);
+                                           ~ ^~~~~~~~~~~~~~~~~~~~~~
+    ucs2any.c:738:11: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                    ucs = strtol(p+2, &endp, 16);
+                                        ~ ^~~~~~~~~~~~~~~~~~~~~~
+    ucs2any.c:843:19: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                            bbx.cwidth = w;
+                                                       ~ ^
+    ucs2any.c:844:20: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                            bbx.cheight = h;
+                                                        ~ ^
+    ucs2any.c:845:18: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                            bbx.cxoff = x;
+                                                      ~ ^
+    ucs2any.c:846:18: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                            bbx.cyoff = y;
+                                                      ~ ^
+    ucs2any.c:850:7: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                                    w, h, x, y, &bbx);
+                                                    ^
+    ucs2any.c:850:10: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                                    w, h, x, y, &bbx);
+                                                       ^
+    ucs2any.c:850:13: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                                    w, h, x, y, &bbx);
+                                                          ^
+    ucs2any.c:850:16: warning: implicit conversion loses integer precision: 'long' to 'int' [-Wshorten-64-to-32]
+                                                    w, h, x, y, &bbx);
+                                                             ^
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit dff77bb76ab2260877a37193df1d728d2f4a1d88
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Tue Feb 28 22:14:18 2012 -0800

@@ -78,14 +78,6 @@ in this Software without prior written authorization from The Open Group.
 #define MAGIC_VALUE	((XawTextPosition)-1)
 #define streq(a, b)	(strcmp((a), (b)) == 0)
 
-#ifdef X_NOT_POSIX
-#define Off_t long
-#define Size_t unsigned int
-#else
-#define Off_t off_t
-#define Size_t size_t
-#endif
-
 
 /*
  * Class Methods
@@ -1329,10 +1321,10 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 	if (src->multi_src.length != 0) {
 	    temp_mb_holder =
 		XtMalloc((src->multi_src.length + 1) * sizeof(unsigned char));
-	    fseek(file, 0, 0);
+	    fseek(file, 0, SEEK_SET);
 	    src->multi_src.length = fread(temp_mb_holder,
-					  (Size_t)sizeof(unsigned char),
-					  (Size_t)src->multi_src.length, file);
+					  sizeof(unsigned char),
+					  (size_t)src->multi_src.length, file);
 	    if (src->multi_src.length <= 0)
 		XtAppErrorMsg(XtWidgetToApplicationContext ((Widget) src),
 			      "readError", "multiSource", "XawError",
