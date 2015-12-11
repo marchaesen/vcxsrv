@@ -947,7 +947,7 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
                the rest. */
             errno=0;
             FD_SET(connection, &ClientsWriteBlocked);
-            AnyWritesPending = TRUE;
+            AnyClientsWriteBlocked = TRUE;
 
             if (written < oco->count) {
                 if (written > 0) {
@@ -1010,10 +1010,10 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
     /* everything was flushed out */
     oco->count = 0;
     /* check to see if this client was write blocked */
-    if (AnyWritesPending) {
+    if (AnyClientsWriteBlocked) {
         FD_CLR(oc->fd, &ClientsWriteBlocked);
-        if (!XFD_ANYSET(&ClientsWriteBlocked) && NumNotifyWriteFd == 0)
-            AnyWritesPending = FALSE;
+        if (!XFD_ANYSET(&ClientsWriteBlocked))
+            AnyClientsWriteBlocked = FALSE;
     }
     if (oco->size > BUFWATERMARK) {
         free(oco->buf);
