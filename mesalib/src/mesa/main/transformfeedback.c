@@ -861,7 +861,7 @@ _mesa_TransformFeedbackVaryings(GLuint program, GLsizei count,
          if (buffers > ctx->Const.MaxTransformFeedbackBuffers) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "glTransformFeedbackVaryings(too many gl_NextBuffer "
-                        "occurences)");
+                        "occurrences)");
             return;
          }
       } else {

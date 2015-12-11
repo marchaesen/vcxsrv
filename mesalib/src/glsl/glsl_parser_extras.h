@@ -97,7 +97,7 @@ struct _mesa_glsl_parse_state {
     * supports the feature.
     *
     * \param required_glsl_es_version is the GLSL ES version that is required
-    * to support the feature, or 0 if no version of GLSL ES suports the
+    * to support the feature, or 0 if no version of GLSL ES supports the
     * feature.
     */
    bool is_version(unsigned required_glsl_version,

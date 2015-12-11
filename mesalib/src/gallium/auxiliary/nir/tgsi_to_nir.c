@@ -468,7 +468,7 @@ ttn_emit_immediate(struct ttn_compile *c)
    nir_builder_instr_insert(b, &load_const->instr);
 }
 
-static nir_src
+static nir_ssa_def *
 ttn_src_for_indirect(struct ttn_compile *c, struct tgsi_ind_register *indirect);
 
 /* generate either a constant or indirect deref chain for accessing an
@@ -487,7 +487,7 @@ ttn_array_deref(struct ttn_compile *c, nir_intrinsic_instr *instr,
 
    if (indirect) {
       arr->deref_array_type = nir_deref_array_type_indirect;
-      arr->indirect = ttn_src_for_indirect(c, indirect);
+      arr->indirect = nir_src_for_ssa(ttn_src_for_indirect(c, indirect));
    } else {
       arr->deref_array_type = nir_deref_array_type_direct;
    }
@@ -586,19 +586,14 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
 
       switch (file) {
       case TGSI_FILE_INPUT:
-         op = indirect ? nir_intrinsic_load_input_indirect :
-                         nir_intrinsic_load_input;
+         op = nir_intrinsic_load_input;
          assert(!dim);
          break;
       case TGSI_FILE_CONSTANT:
          if (dim) {
-            op = indirect ? nir_intrinsic_load_ubo_indirect :
-                            nir_intrinsic_load_ubo;
-            /* convert index from vec4 to byte: */
-            index *= 16;
+            op = nir_intrinsic_load_ubo;
          } else {
-            op = indirect ? nir_intrinsic_load_uniform_indirect :
-                            nir_intrinsic_load_uniform;
+            op = nir_intrinsic_load_uniform;
          }
          break;
       default:
@@ -609,7 +604,6 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
       load = nir_intrinsic_instr_create(b->shader, op);
 
       load->num_components = 4;
-      load->const_index[0] = index;
       if (dim) {
          if (dimind) {
             load->src[srcn] =
@@ -622,17 +616,26 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
          }
          srcn++;
       }
-      if (indirect) {
-         load->src[srcn] = ttn_src_for_indirect(c, indirect);
-         if (dim) {
-            assert(load->src[srcn].is_ssa);
-            /* we also need to covert vec4 to byte here too: */
-            load->src[srcn] =
-               nir_src_for_ssa(nir_ishl(b, load->src[srcn].ssa,
-                                        nir_imm_int(b, 4)));
+
+      nir_ssa_def *offset;
+      if (dim) {
+         /* UBO loads don't have a const_index[0] base offset. */
+         offset = nir_imm_int(b, index);
+         if (indirect) {
+            offset = nir_iadd(b, offset, ttn_src_for_indirect(c, indirect));
          }
-         srcn++;
+         /* UBO offsets are in bytes, but TGSI gives them to us in vec4's */
+         offset = nir_ishl(b, offset, nir_imm_int(b, 4));
+      } else {
+         load->const_index[0] = index;
+         if (indirect) {
+            offset = ttn_src_for_indirect(c, indirect);
+         } else {
+            offset = nir_imm_int(b, 0);
+         }
       }
+      load->src[srcn++] = nir_src_for_ssa(offset);
+
       nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
       nir_builder_instr_insert(b, &load->instr);
 
@@ -648,7 +651,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
    return src;
 }
 
-static nir_src
+static nir_ssa_def *
 ttn_src_for_indirect(struct ttn_compile *c, struct tgsi_ind_register *indirect)
 {
    nir_builder *b = &c->build;
@@ -660,7 +663,7 @@ ttn_src_for_indirect(struct ttn_compile *c, struct tgsi_ind_register *indirect)
                                         indirect->File,
                                         indirect->Index,
                                         NULL, NULL, NULL);
-   return nir_src_for_ssa(nir_imov_alu(b, src, 1));
+   return nir_imov_alu(b, src, 1);
 }
 
 static nir_alu_dest
@@ -729,7 +732,7 @@ ttn_get_dest(struct ttn_compile *c, struct tgsi_full_dst_register *tgsi_fdst)
 
    if (tgsi_dst->Indirect && (tgsi_dst->File != TGSI_FILE_TEMPORARY)) {
       nir_src *indirect = ralloc(c->build.shader, nir_src);
-      *indirect = ttn_src_for_indirect(c, &tgsi_fdst->Indirect);
+      *indirect = nir_src_for_ssa(ttn_src_for_indirect(c, &tgsi_fdst->Indirect));
       dest.dest.reg.indirect = indirect;
    }
 
@@ -1927,9 +1930,10 @@ ttn_add_output_stores(struct ttn_compile *c)
             nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_output);
          unsigned loc = var->data.driver_location + i;
          store->num_components = 4;
-         store->const_index[0] = loc;
          store->src[0].reg.reg = c->output_regs[loc].reg;
          store->src[0].reg.base_offset = c->output_regs[loc].offset;
+         store->const_index[0] = loc;
+         store->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
          nir_builder_instr_insert(b, &store->instr);
       }
    }

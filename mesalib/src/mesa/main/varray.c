@@ -776,7 +776,7 @@ _mesa_VertexAttribLPointer(GLuint index, GLint size, GLenum type,
 
    update_array(ctx, "glVertexAttribLPointer", VERT_ATTRIB_GENERIC(index),
                 legalTypes, 1, 4,
-                size, type, stride, GL_TRUE, GL_FALSE, GL_TRUE, ptr);
+                size, type, stride, GL_FALSE, GL_FALSE, GL_TRUE, ptr);
 }
 
 

@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.0.7 Release Notes / December 9, 2015</h1>
+
+<p>
+Mesa 11.0.7 is a bug fix release which fixes bugs found since the 11.0.6 release.
+</p>
+<p>
+Mesa 11.0.7 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+07c27004ff68b288097d17b2faa7bdf15ec73c96b7e6c9835266e544adf0a62f  mesa-11.0.7.tar.gz
+e7e90a332ede6c8fd08eff90786a3fd1605a4e62ebf3a9b514047838194538cb  mesa-11.0.7.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90348">Bug 90348</a> - Spilling failure of b96 merged value</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92363">Bug 92363</a> - [BSW/BDW] ogles1conform Gets test fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92438">Bug 92438</a> - Segfault in pushbuf_kref when running the android emulator (qemu) on nv50</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93110">Bug 93110</a> - [NVE4] textureSize() and textureQueryLevels() uses a texture bound during the previous draw call</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93126">Bug 93126</a> - wrongly claim supporting GL_EXT_texture_rg</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Chris Wilson (1):</p>
+<ul>
+  <li>meta: Compute correct buffer size with SkipRows/SkipPixels</li>
+</ul>
+
+<p>Daniel Stone (1):</p>
+<ul>
+  <li>egl/wayland: Ignore rects from SwapBuffersWithDamage</li>
+</ul>
+
+<p>Dave Airlie (4):</p>
+<ul>
+  <li>texgetimage: consolidate 1D array handling code.</li>
+  <li>r600: geometry shader gsvs itemsize workaround</li>
+  <li>r600: rv670 use at least 16es/gs threads</li>
+  <li>r600: workaround empty geom shader.</li>
+</ul>
+
+<p>Emil Velikov (4):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.0.6</li>
+  <li>get-pick-list.sh: Require explicit "11.0" for nominating stable patches</li>
+  <li>mesa; add get-extra-pick-list.sh script into bin/</li>
+  <li>Update version to 11.0.7</li>
+</ul>
+
+<p>François Tigeot (1):</p>
+<ul>
+  <li>xmlconfig: Add support for DragonFly</li>
+</ul>
+
+<p>Ian Romanick (22):</p>
+<ul>
+  <li>mesa: Make bind_vertex_buffer avilable outside varray.c</li>
+  <li>mesa: Refactor update_array_format to make _mesa_update_array_format_public</li>
+  <li>mesa: Refactor enable_vertex_array_attrib to make _mesa_enable_vertex_array_attrib</li>
+  <li>i965: Pass brw_context instead of gl_context to brw_draw_rectlist</li>
+  <li>i965: Use DSA functions for VBOs in brw_meta_fast_clear</li>
+  <li>i965: Use internal functions for buffer object access</li>
+  <li>i965: Don't pollute the buffer object namespace in brw_meta_fast_clear</li>
+  <li>meta: Use DSA functions for PBO in create_texture_for_pbo</li>
+  <li>meta: Use _mesa_NamedBufferData and _mesa_NamedBufferSubData for users of _mesa_meta_setup_vertex_objects</li>
+  <li>i965: Use _mesa_NamedBufferSubData for users of _mesa_meta_setup_vertex_objects</li>
+  <li>meta: Don't leave the VBO bound after _mesa_meta_setup_vertex_objects</li>
+  <li>meta: Track VBO using gl_buffer_object instead of GL API object handle</li>
+  <li>meta: Use DSA functions for VBOs in _mesa_meta_setup_vertex_objects</li>
+  <li>meta: Use internal functions for buffer object and VAO access</li>
+  <li>meta: Don't pollute the buffer object namespace in _mesa_meta_setup_vertex_objects</li>
+  <li>meta: Partially convert _mesa_meta_DrawTex to DSA</li>
+  <li>meta: Track VBO using gl_buffer_object instead of GL API object handle in _mesa_meta_DrawTex</li>
+  <li>meta: Use internal functions for buffer object and VAO access in _mesa_meta_DrawTex</li>
+  <li>meta: Don't pollute the buffer object namespace in _mesa_meta_DrawTex</li>
+  <li>meta/TexSubImage: Don't pollute the buffer object namespace</li>
+  <li>meta/generate_mipmap: Don't leak the framebuffer object</li>
+  <li>glsl: Fix off-by-one error in array size check assertion</li>
+</ul>
+
+<p>Ilia Mirkin (7):</p>
+<ul>
+  <li>nvc0/ir: actually emit AFETCH on kepler</li>
+  <li>nir: fix typo in idiv lowering, causing large-udiv-udiv failures</li>
+  <li>nouveau: use the buffer usage to determine placement when no binding</li>
+  <li>nv50,nvc0: properly handle buffer storage invalidation on dsa buffer</li>
+  <li>nv50/ir: fix (un)spilling of 3-wide results</li>
+  <li>mesa: support GL_RED/GL_RG in ES2 contexts when driver support exists</li>
+  <li>nvc0/ir: start offset at texBindBase for txq, like regular texturing</li>
+</ul>
+
+<p>Jonathan Gray (1):</p>
+<ul>
+  <li>automake: fix some occurrences of hardcoded -ldl and -lpthread</li>
+</ul>
+
+<p>Leo Liu (1):</p>
+<ul>
+  <li>radeon/vce: disable Stoney VCE for 11.0</li>
+</ul>
+
+<p>Marta Lofstedt (1):</p>
+<ul>
+  <li>gles2: Update gl2ext.h to revision: 32120</li>
+</ul>
+
+<p>Oded Gabbay (1):</p>
+<ul>
+  <li>llvmpipe: disable VSX in ppc due to LLVM PPC bug</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -145,6 +145,9 @@ u_prims_for_vertices(unsigned prim, unsigned num)
 {
    const struct u_prim_vertex_count *info = u_prim_vertex_count(prim);
 
+   assert(info);
+   assert(info->incr != 0);
+
    if (num < info->min)
       return 0;
 

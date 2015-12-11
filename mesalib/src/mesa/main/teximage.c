@@ -2028,7 +2028,7 @@ compressed_texture_error_check(struct gl_context *ctx, GLint dimensions,
        * if <imageSize> is not consistent with the format, dimensions, and
        * contents of the specified image.
        */
-      reason = "imageSize inconsistant with width/height/format";
+      reason = "imageSize inconsistent with width/height/format";
       error = GL_INVALID_VALUE;
       goto error;
    }

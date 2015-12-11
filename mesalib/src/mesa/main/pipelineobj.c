@@ -341,6 +341,8 @@ _mesa_UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
 
    if ((stages & GL_COMPUTE_SHADER_BIT) != 0)
       _mesa_use_shader_program(ctx, GL_COMPUTE_SHADER, shProg, pipe);
+
+   pipe->Validated = false;
 }
 
 /**

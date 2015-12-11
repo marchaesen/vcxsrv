@@ -81,7 +81,13 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
                                    const struct pipe_vertex_buffer *src,
                                    unsigned start_slot, unsigned count)
 {
-   uint32_t enabled_buffers = (1ull << *dst_count) - 1;
+   unsigned i;
+   uint32_t enabled_buffers = 0;
+
+   for (i = 0; i < *dst_count; i++) {
+      if (dst[i].buffer || dst[i].user_buffer)
+         enabled_buffers |= (1ull << i);
+   }
 
    util_set_vertex_buffers_mask(dst, &enabled_buffers, src, start_slot,
                                 count);

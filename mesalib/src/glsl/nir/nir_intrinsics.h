@@ -203,6 +203,33 @@ INTRINSIC(ssbo_atomic_xor, 3, ARR(1, 1, 1), true, 1, 0, 0, 0)
 INTRINSIC(ssbo_atomic_exchange, 3, ARR(1, 1, 1), true, 1, 0, 0, 0)
 INTRINSIC(ssbo_atomic_comp_swap, 4, ARR(1, 1, 1, 1), true, 1, 0, 0, 0)
 
+/*
+ * CS shared variable atomic intrinsics
+ *
+ * All of the shared variable atomic memory operations read a value from
+ * memory, compute a new value using one of the operations below, write the
+ * new value to memory, and return the original value read.
+ *
+ * All operations take 2 sources except CompSwap that takes 3. These
+ * sources represent:
+ *
+ * 0: The offset into the shared variable storage region that the atomic
+ *    operation will operate on.
+ * 1: The data parameter to the atomic function (i.e. the value to add
+ *    in shared_atomic_add, etc).
+ * 2: For CompSwap only: the second data parameter.
+ */
+INTRINSIC(shared_atomic_add, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_imin, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_umin, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_imax, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_umax, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_and, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_or, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_xor, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_exchange, 2, ARR(1, 1), true, 1, 0, 0, 0)
+INTRINSIC(shared_atomic_comp_swap, 3, ARR(1, 1, 1), true, 1, 0, 0, 0)
+
 #define SYSTEM_VALUE(name, components, num_indices) \
    INTRINSIC(load_##name, 0, ARR(), true, components, 0, num_indices, \
    NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
@@ -228,54 +255,60 @@ SYSTEM_VALUE(num_work_groups, 3, 0)
 SYSTEM_VALUE(helper_invocation, 1, 0)
 
 /*
- * The format of the indices depends on the type of the load.  For uniforms,
- * the first index is the base address and the second index is an offset that
- * should be added to the base address.  (This way you can determine in the
- * back-end which variable is being accessed even in an array.)  For inputs,
- * the one and only index corresponds to the attribute slot.  UBO loads also
- * have a single index which is the base address to load from.
+ * Load operations pull data from some piece of GPU memory.  All load
+ * operations operate in terms of offsets into some piece of theoretical
+ * memory.  Loads from externally visible memory (UBO and SSBO) simply take a
+ * byte offset as a source.  Loads from opaque memory (uniforms, inputs, etc.)
+ * take a base+offset pair where the base (const_index[0]) gives the location
+ * of the start of the variable being loaded and and the offset source is a
+ * offset into that variable.
  *
- * UBO loads have a (possibly constant) source which is the UBO buffer index.
- * For each type of load, the _indirect variant has one additional source
- * (the second in the case of UBO's) that is the is an indirect to be added to
- * the constant address or base offset to compute the final offset.
+ * Some load operations such as UBO/SSBO load and per_vertex loads take an
+ * additional source to specify which UBO/SSBO/vertex to load from.
  *
- * For vector backends, the address is in terms of one vec4, and so each array
- * element is +4 scalar components from the previous array element. For scalar
- * backends, the address is in terms of a single 4-byte float/int and arrays
- * elements begin immediately after the previous array element.
+ * The exact address type depends on the lowering pass that generates the
+ * load/store intrinsics.  Typically, this is vec4 units for things such as
+ * varying slots and float units for fragment shader inputs.  UBO and SSBO
+ * offsets are always in bytes.
  */
 
-#define LOAD(name, extra_srcs, indices, flags) \
-   INTRINSIC(load_##name, extra_srcs, ARR(1), true, 0, 0, indices, flags) \
-   INTRINSIC(load_##name##_indirect, extra_srcs + 1, ARR(1, 1), \
-             true, 0, 0, indices, flags)
+#define LOAD(name, srcs, indices, flags) \
+   INTRINSIC(load_##name, srcs, ARR(1, 1, 1, 1), true, 0, 0, indices, flags)
 
-LOAD(uniform, 0, 2, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(ubo, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(input, 0, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(per_vertex_input, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(ssbo, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE)
-LOAD(output, 0, 1, NIR_INTRINSIC_CAN_ELIMINATE)
-LOAD(per_vertex_output, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE)
+/* src[] = { offset }. const_index[] = { base } */
+LOAD(uniform, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+/* src[] = { buffer_index, offset }. No const_index */
+LOAD(ubo, 2, 0, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+/* src[] = { offset }. const_index[] = { base } */
+LOAD(input, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+/* src[] = { vertex, offset }. const_index[] = { base } */
+LOAD(per_vertex_input, 2, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+/* src[] = { buffer_index, offset }. No const_index */
+LOAD(ssbo, 2, 0, NIR_INTRINSIC_CAN_ELIMINATE)
+/* src[] = { offset }. const_index[] = { base } */
+LOAD(output, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE)
+/* src[] = { vertex, offset }. const_index[] = { base } */
+LOAD(per_vertex_output, 2, 1, NIR_INTRINSIC_CAN_ELIMINATE)
+/* src[] = { offset }. const_index[] = { base } */
+LOAD(shared, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE)
 
 /*
- * Stores work the same way as loads, except now the first register input is
- * the value or array to store and the optional second input is the indirect
- * offset. SSBO stores are similar, but they accept an extra source for the
- * block index and an extra index with the writemask to use.
+ * Stores work the same way as loads, except now the first source is the value
+ * to store and the second (and possibly third) source specify where to store
+ * the value.  SSBO and shared memory stores also have a write mask as
+ * const_index[0].
  */
 
-#define STORE(name, extra_srcs, extra_srcs_size, extra_indices, flags) \
-   INTRINSIC(store_##name, 1 + extra_srcs, \
-             ARR(0, extra_srcs_size, extra_srcs_size, extra_srcs_size), \
-             false, 0, 0, 1 + extra_indices, flags) \
-   INTRINSIC(store_##name##_indirect, 2 + extra_srcs, \
-             ARR(0, 1, extra_srcs_size, extra_srcs_size), \
-             false, 0, 0, 1 + extra_indices, flags)
+#define STORE(name, srcs, indices, flags) \
+   INTRINSIC(store_##name, srcs, ARR(0, 1, 1, 1), false, 0, 0, indices, flags)
 
-STORE(output, 0, 0, 0, 0)
-STORE(per_vertex_output, 1, 1, 0, 0)
-STORE(ssbo, 1, 1, 1, 0)
+/* src[] = { value, offset }. const_index[] = { base } */
+STORE(output, 2, 1, 0)
+/* src[] = { value, vertex, offset }. const_index[] = { base } */
+STORE(per_vertex_output, 3, 1, 0)
+/* src[] = { value, block_index, offset }. const_index[] = { write_mask } */
+STORE(ssbo, 3, 1, 0)
+/* src[] = { value, offset }. const_index[] = { base, write_mask } */
+STORE(shared, 2, 1, 0)
 
-LAST_INTRINSIC(store_ssbo_indirect)
+LAST_INTRINSIC(store_shared)

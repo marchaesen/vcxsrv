@@ -383,7 +383,6 @@ rrDestroySharedPixmap(RRCrtcPtr crtc, PixmapPtr pPixmap) {
 void
 RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
 {
-    ScreenPtr master = crtc->pScreen->current_master;
     rrScrPriv(crtc->pScreen);
 
     pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);

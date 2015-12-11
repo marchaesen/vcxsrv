@@ -51,6 +51,40 @@
 
 
 /**
+ * We count the number of buffer modification calls to check for
+ * inefficient buffer use.  This is the number of such calls before we
+ * issue a warning.
+ */
+#define BUFFER_WARNING_CALL_COUNT 4
+
+
+/**
+ * Helper to warn of possible performance issues, such as frequently
+ * updating a buffer created with GL_STATIC_DRAW.  Called via the macro
+ * below.
+ */
+static void
+buffer_usage_warning(struct gl_context *ctx, GLuint *id, const char *fmt, ...)
+{
+   va_list args;
+
+   va_start(args, fmt);
+   _mesa_gl_vdebug(ctx, id,
+                   MESA_DEBUG_SOURCE_API,
+                   MESA_DEBUG_TYPE_PERFORMANCE,
+                   MESA_DEBUG_SEVERITY_MEDIUM,
+                   fmt, args);
+   va_end(args);
+}
+
+#define BUFFER_USAGE_WARNING(CTX, FMT, ...) \
+   do { \
+      static GLuint id = 0; \
+      buffer_usage_warning(CTX, &id, FMT, ##__VA_ARGS__); \
+   } while (0)
+
+
+/**
  * Used as a placeholder for buffer objects between glGenBuffers() and
  * glBindBuffer() so that glIsBuffer() can work correctly.
  */
@@ -1677,6 +1711,21 @@ _mesa_buffer_sub_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
    if (size == 0)
       return;
 
+   bufObj->NumSubDataCalls++;
+
+   if ((bufObj->Usage == GL_STATIC_DRAW ||
+        bufObj->Usage == GL_STATIC_COPY) &&
+       bufObj->NumSubDataCalls >= BUFFER_WARNING_CALL_COUNT) {
+      /* If the application declared the buffer as static draw/copy or stream
+       * draw, it should not be frequently modified with glBufferSubData.
+       */
+      BUFFER_USAGE_WARNING(ctx,
+                           "using %s(buffer %u, offset %u, size %u) to "
+                           "update a %s buffer",
+                           func, bufObj->Name, offset, size,
+                           _mesa_enum_to_string(bufObj->Usage));
+   }
+
    bufObj->Written = GL_TRUE;
 
    assert(ctx->Driver.BufferSubData);
@@ -2384,6 +2433,18 @@ _mesa_map_buffer_range(struct gl_context *ctx,
       return NULL;
    }
 
+   if (access & GL_MAP_WRITE_BIT) {
+      bufObj->NumMapBufferWriteCalls++;
+      if ((bufObj->Usage == GL_STATIC_DRAW ||
+           bufObj->Usage == GL_STATIC_COPY) &&
+          bufObj->NumMapBufferWriteCalls >= BUFFER_WARNING_CALL_COUNT) {
+         BUFFER_USAGE_WARNING(ctx,
+                              "using %s(buffer %u, offset %u, length %u) to "
+                              "update a %s buffer",
+                              func, bufObj->Name, offset, length,
+                              _mesa_enum_to_string(bufObj->Usage));
+      }
+   }
 
    assert(ctx->Driver.MapBufferRange);
    map = ctx->Driver.MapBufferRange(ctx, offset, length, access, bufObj,
