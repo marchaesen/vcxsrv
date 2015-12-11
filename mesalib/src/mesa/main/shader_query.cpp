@@ -852,13 +852,18 @@ program_resource_location(struct gl_shader_program *shProg,
     * and user-defined attributes.
     */
    switch (res->Type) {
-   case GL_PROGRAM_INPUT:
+   case GL_PROGRAM_INPUT: {
+      const ir_variable *var = RESOURCE_VAR(res);
+
       /* If the input is an array, fail if the index is out of bounds. */
       if (array_index > 0
-          && array_index >= RESOURCE_VAR(res)->type->length) {
+          && array_index >= var->type->length) {
          return -1;
       }
-      return RESOURCE_VAR(res)->data.location + array_index - VERT_ATTRIB_GENERIC0;
+      return (var->data.location +
+	      (array_index * var->type->without_array()->matrix_columns) -
+	      VERT_ATTRIB_GENERIC0);
+   }
    case GL_PROGRAM_OUTPUT:
       /* If the output is an array, fail if the index is out of bounds. */
       if (array_index > 0

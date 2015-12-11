@@ -88,7 +88,7 @@ enum {
 };
 
 
-/** Checks if the context suports a user-facing extension */
+/** Checks if the context supports a user-facing extension */
 #define EXT(name_str, driver_cap, ...) \
 static inline bool \
 _mesa_has_##name_str(const struct gl_context *ctx) \

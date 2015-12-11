@@ -500,7 +500,8 @@ ir_constant_propagation_visitor::add_constant(ir_assignment *ir)
     * the variable value isn't modified between this assignment and the next
     * instruction where its value is read.
     */
-   if (deref->var->data.mode == ir_var_shader_storage)
+   if (deref->var->data.mode == ir_var_shader_storage ||
+       deref->var->data.mode == ir_var_shader_shared)
       return;
 
    entry = new(this->mem_ctx) acp_entry(deref->var, ir->write_mask, constant);

@@ -622,6 +622,7 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
       packed_var->data.interpolation = unpacked_var->data.interpolation;
       packed_var->data.location = location;
       packed_var->data.precision = unpacked_var->data.precision;
+      packed_var->data.always_active_io = unpacked_var->data.always_active_io;
       unpacked_var->insert_before(packed_var);
       this->packed_varyings[slot] = packed_var;
    } else {

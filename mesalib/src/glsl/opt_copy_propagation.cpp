@@ -330,7 +330,8 @@ ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
 	  */
 	 ir->condition = new(ralloc_parent(ir)) ir_constant(false);
 	 this->progress = true;
-      } else if (lhs_var->data.mode != ir_var_shader_storage) {
+      } else if (lhs_var->data.mode != ir_var_shader_storage &&
+                 lhs_var->data.mode != ir_var_shader_shared) {
 	 entry = new(this->acp) acp_entry(lhs_var, rhs_var);
 	 this->acp->push_tail(entry);
       }

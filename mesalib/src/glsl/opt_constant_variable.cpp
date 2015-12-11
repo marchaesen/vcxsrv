@@ -120,7 +120,8 @@ ir_constant_variable_visitor::visit_enter(ir_assignment *ir)
     * and we can't be sure that this variable won't be written by another
     * thread.
     */
-   if (var->data.mode == ir_var_shader_storage)
+   if (var->data.mode == ir_var_shader_storage ||
+       var->data.mode == ir_var_shader_shared)
       return visit_continue;
 
    constval = ir->rhs->constant_expression_value();

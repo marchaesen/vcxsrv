@@ -66,6 +66,7 @@ from The Open Group.
 #include "dix.h"
 #include "miline.h"
 #include "glx_extinit.h"
+#include "randrstr.h"
 
 #define VFB_DEFAULT_WIDTH      1280
 #define VFB_DEFAULT_HEIGHT     1024
@@ -739,6 +740,125 @@ vfbCloseScreen(ScreenPtr pScreen)
 }
 
 static Bool
+vfbRROutputValidateMode(ScreenPtr           pScreen,
+                        RROutputPtr         output,
+                        RRModePtr           mode)
+{
+    rrScrPriv(pScreen);
+
+    if (pScrPriv->minWidth <= mode->mode.width &&
+        pScrPriv->maxWidth >= mode->mode.width &&
+        pScrPriv->minHeight <= mode->mode.height &&
+        pScrPriv->maxHeight >= mode->mode.height)
+        return TRUE;
+    else
+        return FALSE;
+}
+
+static Bool
+vfbRRScreenSetSize(ScreenPtr  pScreen,
+                   CARD16     width,
+                   CARD16     height,
+                   CARD32     mmWidth,
+                   CARD32     mmHeight)
+{
+    // Prevent screen updates while we change things around
+    SetRootClip(pScreen, FALSE);
+
+    pScreen->width = width;
+    pScreen->height = height;
+    pScreen->mmWidth = mmWidth;
+    pScreen->mmHeight = mmHeight;
+
+    // Restore the ability to update screen, now with new dimensions
+    SetRootClip(pScreen, TRUE);
+
+    RRScreenSizeNotify (pScreen);
+    RRTellChanged(pScreen);
+
+    return TRUE;
+}
+
+static Bool
+vfbRRCrtcSet(ScreenPtr pScreen,
+             RRCrtcPtr crtc,
+             RRModePtr mode,
+             int       x,
+             int       y,
+             Rotation  rotation,
+             int       numOutput,
+             RROutputPtr *outputs)
+{
+  return RRCrtcNotify(crtc, mode, x, y, rotation, NULL, numOutput, outputs);
+}
+
+static Bool
+vfbRRGetInfo(ScreenPtr pScreen, Rotation *rotations)
+{
+    return TRUE;
+}
+
+static Bool
+vfbRandRInit(ScreenPtr pScreen)
+{
+    rrScrPrivPtr pScrPriv;
+#if RANDR_12_INTERFACE
+    RRModePtr  mode;
+    RRCrtcPtr  crtc;
+    RROutputPtr        output;
+    xRRModeInfo modeInfo;
+    char       name[64];
+#endif
+
+    if (!RRScreenInit (pScreen))
+       return FALSE;
+    pScrPriv = rrGetScrPriv(pScreen);
+    pScrPriv->rrGetInfo = vfbRRGetInfo;
+#if RANDR_12_INTERFACE
+    pScrPriv->rrCrtcSet = vfbRRCrtcSet;
+    pScrPriv->rrScreenSetSize = vfbRRScreenSetSize;
+    pScrPriv->rrOutputSetProperty = NULL;
+#if RANDR_13_INTERFACE
+    pScrPriv->rrOutputGetProperty = NULL;
+#endif
+    pScrPriv->rrOutputValidateMode = vfbRROutputValidateMode;
+    pScrPriv->rrModeDestroy = NULL;
+
+    RRScreenSetSizeRange (pScreen,
+                         1, 1,
+                         pScreen->width, pScreen->height);
+
+    sprintf (name, "%dx%d", pScreen->width, pScreen->height);
+    memset (&modeInfo, '\0', sizeof (modeInfo));
+    modeInfo.width = pScreen->width;
+    modeInfo.height = pScreen->height;
+    modeInfo.nameLength = strlen (name);
+
+    mode = RRModeGet (&modeInfo, name);
+    if (!mode)
+       return FALSE;
+
+    crtc = RRCrtcCreate (pScreen, NULL);
+    if (!crtc)
+       return FALSE;
+
+    output = RROutputCreate (pScreen, "screen", 6, NULL);
+    if (!output)
+       return FALSE;
+    if (!RROutputSetClones (output, NULL, 0))
+       return FALSE;
+    if (!RROutputSetModes (output, &mode, 1, 0))
+       return FALSE;
+    if (!RROutputSetCrtcs (output, &crtc, 1))
+       return FALSE;
+    if (!RROutputSetConnection (output, RR_Connected))
+       return FALSE;
+    RRCrtcNotify (crtc, mode, 0, 0, RR_Rotate_0, NULL, 1, &output);
+#endif
+    return TRUE;
+}
+
+static Bool
 vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
 {
     vfbScreenInfoPtr pvfb = &vfbScreens[pScreen->myNum];
@@ -810,6 +930,9 @@ vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     if (!ret)
         return FALSE;
+
+    if (!vfbRandRInit(pScreen))
+       return FALSE;
 
     pScreen->InstallColormap = vfbInstallColormap;
 

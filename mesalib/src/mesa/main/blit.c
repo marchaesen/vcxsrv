@@ -129,20 +129,22 @@ compatible_resolve_formats(const struct gl_renderbuffer *readRb,
 {
    GLenum readFormat, drawFormat;
 
-   /* The simple case where we know the backing Mesa formats are the same.
-    */
-   if (_mesa_get_srgb_format_linear(readRb->Format) ==
-       _mesa_get_srgb_format_linear(drawRb->Format)) {
-      return GL_TRUE;
-   }
-
-   /* The Mesa formats are different, so we must check whether the internal
-    * formats are compatible.
+   /* This checks whether the internal formats are compatible rather than the
+    * Mesa format for two reasons:
     *
-    * Under some circumstances, the user may request e.g. two GL_RGBA8
-    * textures and get two entirely different Mesa formats like RGBA8888 and
-    * ARGB8888. Drivers behaving like that should be able to cope with
-    * non-matching formats by themselves, because it's not the user's fault.
+    * • Under some circumstances, the user may request e.g. two GL_RGBA8
+    *   textures and get two entirely different Mesa formats like RGBA8888 and
+    *   ARGB8888. Drivers behaving like that should be able to cope with
+    *   non-matching formats by themselves, because it's not the user's fault.
+    *
+    * • Picking two different internal formats can end up with the same Mesa
+    *   format. For example the driver might be simulating GL_RGB textures
+    *   with GL_RGBA internally and in that case both internal formats would
+    *   end up with RGBA8888.
+    *
+    * This function is used to generate a GL error according to the spec so in
+    * both cases we want to be looking at the application-level format, which
+    * is InternalFormat.
     *
     * Blits between linear and sRGB formats are also allowed.
     */

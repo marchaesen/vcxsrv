@@ -378,6 +378,9 @@ public:
       case ir_var_shader_storage:
 	 return this->lower_uniforms;
 
+      case ir_var_shader_shared:
+	 return false;
+
       case ir_var_function_in:
       case ir_var_const_in:
          return this->lower_temps;

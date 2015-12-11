@@ -1969,7 +1969,7 @@ void nir_assign_var_locations(struct exec_list *var_list,
 void nir_lower_io(nir_shader *shader,
                   nir_variable_mode mode,
                   int (*type_size)(const struct glsl_type *));
-nir_src *nir_get_io_indirect_src(nir_intrinsic_instr *instr);
+nir_src *nir_get_io_offset_src(nir_intrinsic_instr *instr);
 nir_src *nir_get_io_vertex_index_src(nir_intrinsic_instr *instr);
 
 void nir_lower_vars_to_ssa(nir_shader *shader);

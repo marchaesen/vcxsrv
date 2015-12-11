@@ -143,19 +143,21 @@ verify_image_parameter(YYLTYPE *loc, _mesa_glsl_parse_state *state,
 }
 
 static bool
-verify_first_atomic_ssbo_parameter(YYLTYPE *loc, _mesa_glsl_parse_state *state,
+verify_first_atomic_parameter(YYLTYPE *loc, _mesa_glsl_parse_state *state,
                                    ir_variable *var)
 {
-   if (!var || !var->is_in_shader_storage_block()) {
+   if (!var ||
+       (!var->is_in_shader_storage_block() &&
+        var->data.mode != ir_var_shader_shared)) {
       _mesa_glsl_error(loc, state, "First argument to atomic function "
-                       "must be a buffer variable");
+                       "must be a buffer or shared variable");
       return false;
    }
    return true;
 }
 
 static bool
-is_atomic_ssbo_function(const char *func_name)
+is_atomic_function(const char *func_name)
 {
    return !strcmp(func_name, "atomicAdd") ||
           !strcmp(func_name, "atomicMin") ||
@@ -276,16 +278,16 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
 
    /* The first parameter of atomic functions must be a buffer variable */
    const char *func_name = sig->function_name();
-   bool is_atomic_ssbo = is_atomic_ssbo_function(func_name);
-   if (is_atomic_ssbo) {
+   bool is_atomic = is_atomic_function(func_name);
+   if (is_atomic) {
       const ir_rvalue *const actual = (ir_rvalue *) actual_ir_parameters.head;
 
       const ast_expression *const actual_ast =
          exec_node_data(ast_expression, actual_ast_parameters.head, link);
       YYLTYPE loc = actual_ast->get_location();
 
-      if (!verify_first_atomic_ssbo_parameter(&loc, state,
-                                              actual->variable_referenced())) {
+      if (!verify_first_atomic_parameter(&loc, state,
+                                         actual->variable_referenced())) {
          return false;
       }
    }
