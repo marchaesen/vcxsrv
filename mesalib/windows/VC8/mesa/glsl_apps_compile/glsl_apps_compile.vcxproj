@@ -217,6 +217,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_controls.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_unroll.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_buffer_access.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_discard.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_discard_flow.cpp" />
@@ -228,6 +229,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_named_interface_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_noise.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_shared_reference.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_subroutine.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_texture_projection.cpp" />

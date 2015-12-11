@@ -12,10 +12,8 @@ set path=..\..\..\tools\mhmake;%path%
 
 ..\..\..\tools\mhmake\bison.exe -v -o glcpp/glcpp-parse.c -d -p "glcpp_parser_" --defines=glcpp/glcpp-parse.h glcpp/glcpp-parse.y
 
-copy "..\..\..\tools\mhmake\flex++.exe" flex.exe
-flex.exe --nounistd -oglsl_lexer.cpp glsl_lexer.ll
-flex.exe --nounistd -oglcpp/glcpp-lex.c glcpp/glcpp-lex.l
-del flex.exe
+..\..\..\tools\mhmake\flex.exe --nounistd -oglsl_lexer.cpp glsl_lexer.ll
+..\..\..\tools\mhmake\flex.exe --nounistd -oglcpp/glcpp-lex.c glcpp/glcpp-lex.l
 
 endlocal
 
