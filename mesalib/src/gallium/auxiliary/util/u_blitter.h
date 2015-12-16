@@ -398,9 +398,8 @@ util_blitter_save_stencil_ref(struct blitter_context *blitter,
    blitter->saved_stencil_ref = *state;
 }
 
-static inline
-void util_blitter_save_rasterizer(struct blitter_context *blitter,
-                                  void *state)
+static inline void
+util_blitter_save_rasterizer(struct blitter_context *blitter, void *state)
 {
    blitter->saved_rs_state = state;
 }
@@ -459,8 +458,8 @@ util_blitter_save_scissor(struct blitter_context *blitter,
    blitter->saved_scissor = *state;
 }
 
-static inline
-void util_blitter_save_fragment_sampler_states(
+static inline void
+util_blitter_save_fragment_sampler_states(
                   struct blitter_context *blitter,
                   unsigned num_sampler_states,
                   void **sampler_states)

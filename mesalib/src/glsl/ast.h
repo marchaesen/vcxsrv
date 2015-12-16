@@ -726,6 +726,7 @@ public:
 			  struct _mesa_glsl_parse_state *state);
 
    const char *name;
+   ast_type_qualifier *layout;
    /* List of ast_declarator_list * */
    exec_list declarations;
    bool is_declaration;

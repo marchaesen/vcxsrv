@@ -1,5 +1,7 @@
-// Symbols definition for a very simple Azerbaidjani keyboard layout.
+// Symbols definition for a Azerbaijani keyboard layout.
+// Based on AZS 495-2010 standard.
 // 2001 - Pablo Saratxaga <pablo@mandrakesoft.com>
+// 2015 - Adil Aliyev <adilaliev@gmail.com>
 
 default  partial alphanumeric_keys
 xkb_symbols "latin" {
@@ -8,26 +10,23 @@ xkb_symbols "latin" {
 
   name[Group1]= "Azerbaijani";
 
-  key <TLDE> { [ grave,      asciitilde, dead_grave,  dead_tilde      ] };
-
-  key <AE03> { [ 3,          numbersign, U2166        ] };
-  key <AE06> { [ 6,          colon,      EuroSign,    periodcentered  ] };
+  key <TLDE> { [ grave,      asciitilde  ] };
+  key <AE02> { [ 2,          quotedbl    ] };
+  key <AE03> { [ 3,          U2166       ] };
+  key <AE04> { [ 4,          semicolon   ] };
+  key <AE05> { [ 5,          percent     ] };
+  key <AE06> { [ 6,          colon       ] };
   key <AE07> { [ 7,          question    ] };
+  key <AE08> { [ 8,          asterisk    ] };
 
-  key <AE08> { [ 8,          asterisk,   asciicircum, dead_circumflex ] };
-  key <AE11> { [ minus,      underscore, hyphen,      emdash          ] };
+  key <BKSL> { [ backslash,  slash      ] };
 
   key <AD02> { [ udiaeresis, Udiaeresis  ] };
-  key <AD04> { [ r,          R,          registered   ] };
   key <AD08> { [ i,          Iabovedot   ] };
-  key <AD11> { [ odiaeresis, Odiaeresis, bracketleft, braceleft       ] };
-  key <AD12> { [ gbreve,     Gbreve,    bracketright, braceright      ] };
-
+  key <AD11> { [ odiaeresis, Odiaeresis  ] };
+  key <AD12> { [ gbreve,     Gbreve      ] };
   key <AC10> { [ idotless,   I           ] };
   key <AC11> { [ schwa,      SCHWA       ] };
-
-  key <AB03> { [ c,          C,          copyright,      division     ] };
-  key <AB07> { [ m,          M,          periodcentered, currency     ] };
   key <AB08> { [ ccedilla,   Ccedilla    ] };
   key <AB09> { [ scedilla,   Scedilla    ] };
   key <AB10> { [ period,     comma       ] };

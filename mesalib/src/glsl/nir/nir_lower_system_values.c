@@ -26,46 +26,43 @@
  */
 
 #include "nir.h"
-#include "main/mtypes.h"
+#include "nir_builder.h"
+
+struct lower_system_values_state {
+   nir_builder builder;
+   bool progress;
+};
 
 static bool
-convert_instr(nir_intrinsic_instr *instr)
+convert_block(nir_block *block, void *void_state)
 {
-   if (instr->intrinsic != nir_intrinsic_load_var)
-      return false;
+   struct lower_system_values_state *state = void_state;
 
-   nir_variable *var = instr->variables[0]->var;
-   if (var->data.mode != nir_var_system_value)
-      return false;
-
-   void *mem_ctx = ralloc_parent(instr);
-
-   nir_intrinsic_op op = nir_intrinsic_from_system_value(var->data.location);
-   nir_intrinsic_instr *new_instr = nir_intrinsic_instr_create(mem_ctx, op);
-
-   if (instr->dest.is_ssa) {
-      nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,
-                        instr->dest.ssa.num_components, NULL);
-      nir_ssa_def_rewrite_uses(&instr->dest.ssa,
-                               nir_src_for_ssa(&new_instr->dest.ssa));
-   } else {
-      nir_dest_copy(&new_instr->dest, &instr->dest, mem_ctx);
-   }
-
-   nir_instr_insert_before(&instr->instr, &new_instr->instr);
-   nir_instr_remove(&instr->instr);
-
-   return true;
-}
-
-static bool
-convert_block(nir_block *block, void *state)
-{
-   bool *progress = state;
+   nir_builder *b = &state->builder;
 
    nir_foreach_instr_safe(block, instr) {
-      if (instr->type == nir_instr_type_intrinsic)
-         *progress = convert_instr(nir_instr_as_intrinsic(instr)) || *progress;
+      if (instr->type != nir_instr_type_intrinsic)
+         continue;
+
+      nir_intrinsic_instr *load_var = nir_instr_as_intrinsic(instr);
+
+      if (load_var->intrinsic != nir_intrinsic_load_var)
+         continue;
+
+      nir_variable *var = load_var->variables[0]->var;
+      if (var->data.mode != nir_var_system_value)
+         continue;
+
+      b->cursor = nir_after_instr(&load_var->instr);
+
+      nir_intrinsic_op sysval_op =
+         nir_intrinsic_from_system_value(var->data.location);
+      nir_ssa_def *sysval = nir_load_system_value(b, sysval_op, 0);
+
+      nir_ssa_def_rewrite_uses(&load_var->dest.ssa, nir_src_for_ssa(sysval));
+      nir_instr_remove(&load_var->instr);
+
+      state->progress = true;
    }
 
    return true;
@@ -74,12 +71,15 @@ convert_block(nir_block *block, void *state)
 static bool
 convert_impl(nir_function_impl *impl)
 {
-   bool progress = false;
+   struct lower_system_values_state state;
 
-   nir_foreach_block(impl, convert_block, &progress);
+   state.progress = false;
+   nir_builder_init(&state.builder, impl);
+
+   nir_foreach_block(impl, convert_block, &state);
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
-   return progress;
+   return state.progress;
 }
 
 bool

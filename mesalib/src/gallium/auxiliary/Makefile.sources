@@ -93,6 +93,8 @@ C_SOURCES := \
 	pipebuffer/pb_bufmgr_ondemand.c \
 	pipebuffer/pb_bufmgr_pool.c \
 	pipebuffer/pb_bufmgr_slab.c \
+	pipebuffer/pb_cache.c \
+	pipebuffer/pb_cache.h \
 	pipebuffer/pb_validate.c \
 	pipebuffer/pb_validate.h \
 	postprocess/filters.h \

@@ -6179,7 +6179,8 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
                                           bool allow_reserved_names,
                                           ir_variable_mode var_mode,
                                           ast_type_qualifier *layout,
-                                          unsigned block_stream)
+                                          unsigned block_stream,
+                                          unsigned expl_location)
 {
    unsigned decl_count = 0;
 
@@ -6199,6 +6200,9 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
     */
    glsl_struct_field *const fields = ralloc_array(state, glsl_struct_field,
                                                   decl_count);
+
+   bool first_member = true;
+   bool first_member_has_explicit_location;
 
    unsigned i = 0;
    foreach_list_typed (ast_declarator_list, decl_list, link, declarations) {
@@ -6262,6 +6266,27 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
          _mesa_glsl_error(&loc, state,
                           "binding layout qualifier cannot be applied "
                           "to struct or interface block members");
+      }
+
+      if (is_interface) {
+         if (!first_member) {
+            if (!layout->flags.q.explicit_location &&
+                ((first_member_has_explicit_location &&
+                  !qual->flags.q.explicit_location) ||
+                 (!first_member_has_explicit_location &&
+                  qual->flags.q.explicit_location))) {
+               _mesa_glsl_error(&loc, state,
+                                "when block-level location layout qualifier "
+                                "is not supplied either all members must "
+                                "have a location layout qualifier or all "
+                                "members must not have a location layout "
+                                "qualifier");
+            }
+         } else {
+            first_member = false;
+            first_member_has_explicit_location =
+               qual->flags.q.explicit_location;
+         }
       }
 
       if (qual->flags.q.std140 ||
@@ -6338,13 +6363,28 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
          validate_array_dimensions(field_type, state, &loc);
          fields[i].type = field_type;
          fields[i].name = decl->identifier;
-         fields[i].location = -1;
          fields[i].interpolation =
             interpret_interpolation_qualifier(qual, var_mode, state, &loc);
          fields[i].centroid = qual->flags.q.centroid ? 1 : 0;
          fields[i].sample = qual->flags.q.sample ? 1 : 0;
          fields[i].patch = qual->flags.q.patch ? 1 : 0;
          fields[i].precision = qual->precision;
+
+         if (qual->flags.q.explicit_location) {
+            unsigned qual_location;
+            if (process_qualifier_constant(state, &loc, "location",
+                                           qual->location, &qual_location)) {
+               fields[i].location = VARYING_SLOT_VAR0 + qual_location;
+               expl_location = fields[i].location + 1;
+            }
+         } else {
+            if (layout && layout->flags.q.explicit_location) {
+               fields[i].location = expl_location;
+               expl_location = expl_location + 1;
+            } else {
+               fields[i].location = -1;
+            }
+         }
 
          /* Propogate row- / column-major information down the fields of the
           * structure or interface block.  Structures need this data because
@@ -6444,6 +6484,16 @@ ast_struct_specifier::hir(exec_list *instructions,
 
    state->struct_specifier_depth++;
 
+   unsigned expl_location = -1;
+   if (layout && layout->flags.q.explicit_location) {
+      if (!process_qualifier_constant(state, &loc, "location",
+                                      layout->location, &expl_location)) {
+         return NULL;
+      } else {
+         expl_location = VARYING_SLOT_VAR0 + expl_location;
+      }
+   }
+
    glsl_struct_field *fields;
    unsigned decl_count =
       ast_process_struct_or_iface_block_members(instructions,
@@ -6454,8 +6504,9 @@ ast_struct_specifier::hir(exec_list *instructions,
                                                 GLSL_MATRIX_LAYOUT_INHERITED,
                                                 false /* allow_reserved_names */,
                                                 ir_var_auto,
-                                                NULL,
-                                                0 /* for interface only */);
+                                                layout,
+                                                0, /* for interface only */
+                                                expl_location);
 
    validate_identifier(this->name, loc, state);
 
@@ -6620,6 +6671,16 @@ ast_interface_block::hir(exec_list *instructions,
       return NULL;
    }
 
+   unsigned expl_location = -1;
+   if (layout.flags.q.explicit_location) {
+      if (!process_qualifier_constant(state, &loc, "location",
+                                      layout.location, &expl_location)) {
+         return NULL;
+      } else {
+         expl_location = VARYING_SLOT_VAR0 + expl_location;
+      }
+   }
+
    unsigned int num_variables =
       ast_process_struct_or_iface_block_members(&declared_variables,
                                                 state,
@@ -6630,7 +6691,8 @@ ast_interface_block::hir(exec_list *instructions,
                                                 redeclaring_per_vertex,
                                                 var_mode,
                                                 &this->layout,
-                                                qual_stream);
+                                                qual_stream,
+                                                expl_location);
 
    state->struct_specifier_depth--;
 
@@ -6969,6 +7031,10 @@ ast_interface_block::hir(exec_list *instructions,
          }
 
          var->data.stream = qual_stream;
+         if (layout.flags.q.explicit_location) {
+            var->data.location = expl_location;
+            var->data.explicit_location = true;
+         }
 
          state->symbols->add_variable(var);
          instructions->push_tail(var);
@@ -6989,6 +7055,9 @@ ast_interface_block::hir(exec_list *instructions,
          var->data.sample = fields[i].sample;
          var->data.patch = fields[i].patch;
          var->data.stream = qual_stream;
+         var->data.location = fields[i].location;
+         if (fields[i].location != -1)
+            var->data.explicit_location = true;
          var->init_interface_type(block_type);
 
          if (var_mode == ir_var_shader_in || var_mode == ir_var_uniform)

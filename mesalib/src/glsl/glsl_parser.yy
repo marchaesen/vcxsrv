@@ -1130,6 +1130,10 @@ fully_specified_type:
       $$->set_location_range(@1, @2);
       $$->qualifier = $1;
       $$->specifier = $2;
+      if ($$->specifier->structure != NULL &&
+          $$->specifier->structure->is_declaration) {
+            $$->specifier->structure->layout = &$$->qualifier;
+      }
    }
    ;
 

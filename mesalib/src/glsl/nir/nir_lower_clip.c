@@ -180,18 +180,11 @@ lower_clip_vs(nir_function_impl *impl, unsigned ucp_enables,
 
    for (int plane = 0; plane < MAX_CLIP_PLANES; plane++) {
       if (ucp_enables & (1 << plane)) {
-         nir_intrinsic_instr *ucp;
-
-         /* insert intrinsic to fetch ucp[plane]: */
-         ucp = nir_intrinsic_instr_create(b.shader,
-                                          nir_intrinsic_load_user_clip_plane);
-         ucp->num_components = 4;
-         ucp->const_index[0] = plane;
-         nir_ssa_dest_init(&ucp->instr, &ucp->dest, 4, NULL);
-         nir_builder_instr_insert(&b, &ucp->instr);
+         nir_ssa_def *ucp =
+            nir_load_system_value(&b, nir_intrinsic_load_user_clip_plane, plane);
 
          /* calculate clipdist[plane] - dot(ucp, cv): */
-         clipdist[plane] = nir_fdot4(&b, &ucp->dest.ssa, cv);
+         clipdist[plane] = nir_fdot4(&b, ucp, cv);
       }
       else {
          /* 0.0 == don't-clip == disabled: */
