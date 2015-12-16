@@ -18,7 +18,7 @@ bt bw by \
 ca cd ch \
 cm cn cz \
 de dk \
-ee es et epo \
+ee es et epo eu \
 fi fo fr \
 gb ge gh gn \
 gr hr hu \
@@ -36,7 +36,7 @@ pc ph pk pl pt \
 ro rs ru \
 se si sk sn \
 sy th \
-terminate \
+terminate tg \
 tj tm tr tw tz \
 ua us uz vn \
 za \

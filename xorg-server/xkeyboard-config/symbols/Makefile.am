@@ -29,7 +29,7 @@ pc ph pk pl pt \
 ro rs ru \
 se si sk sn \
 sy th \
-terminate \
+terminate tg \
 tj tm tr tw tz \
 ua us uz vn \
 za \

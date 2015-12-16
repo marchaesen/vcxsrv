@@ -985,3 +985,88 @@ partial alphanumeric_keys
 	xkb_symbols "sun_type6" {
 	include "sun_vndr/fr(sun_type6)"
 };
+
+
+partial alphanumeric_keys
+xkb_symbols "azerty" {
+    name[Group1]="French (Azerty)";
+
+    include "level3(ralt_switch)"
+
+// French AZERTY-Keyboard layout
+// Author : 2015, Mats Blakstad <mats @ globalbility.org>
+// Based on the layout at https://en.wikipedia.org/wiki/File:KB_France.svg
+
+// LAYOUT OVERVIEW                              
+//  ____ ____ ____ ____ ____ ____ ____ ____ ____ ____ ____ ____ ____ _______
+// |    | 1  | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  | 0  | °  | +  | <--   |
+// | ²  | &  | é ~| " #| ' {| ( [| - || è `| _ \| ç ^| à @| ) ]| = }|       |
+//  ========================================================================
+// | |<-  | A  | Z  | E  | R  | T  | Y  | U  | I  | O  | P  | ¨  | $  |   , |
+// |  ->| | a  | z  | e €| r  | t  | y  | u  | i  | o  | p  | ^  | £ ¤| <-' |
+//  ===================================================================¬    |
+// |       | Q  | S  | D  | F  | G  | H  | J  | K  | L  | M  | %  | µ  |    |
+// | MAJ   | q  | s  | d  | f  | g  | h  | j  | k  | l  | m  | ù  | *  |    |
+//  ========================================================================
+// | ^   | >  | W  | X  | C  | V  | B  | N  | ?  | .  | /  | §  |     ^     |
+// | |   | <  | w  | x  | c  | v  | b  | n  | ,  | ;  | :  | !  |     |     |
+//  ========================================================================
+// |      |      |      |                       |       |      |     |      |
+// | Ctrl | Super| Alt  | Space    Nobreakspace | AltGr | Super|Menu | Ctrl |
+//  ¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ¯¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯ ¯¯¯¯¯¯
+
+    // First row
+    key <TLDE>	{ [	twosuperior 						] };
+    key <AE01>	{ [	ampersand,	1 					] };
+    key <AE02> { [	eacute,		2,		asciitilde	 	] };
+    key <AE03>	{ [	quotedbl,	3,		numbersign		] };
+    key <AE04>	{ [	apostrophe,	4,		braceleft		] };
+    key <AE05>	{ [	parenleft,	5,		bracketleft		] };
+    key <AE06>	{ [	minus,		6,		bar			] };
+    key <AE07>	{ [	egrave,		7,		grave			] };
+    key <AE08>	{ [	underscore, 	8,		backslash		] };
+    key <AE09>	{ [	ccedilla, 	9,		asciicircum		] };
+    key <AE10>	{ [	agrave,		0,		at			] };
+    key <AE11>	{ [	parenright,	degree,		bracketright		] };
+    key <AE12>	{ [	equal,		plus,		braceright		] };
+
+    // Second row
+    key <AD01>	{ [	a,		A					] };
+    key <AD02>	{ [	z,		Z				 	] };
+    key <AD03>	{ [	e,		E,		EuroSign		] };	
+    key <AD04>	{ [	r,		R				 	] };
+    key <AD05>	{ [	t,		T					] };
+    key <AD06>	{ [	y,		Y					] };	
+    key <AD07>	{ [	u,		U					] };	
+    key <AD08>	{ [	i,		I					] };	
+    key <AD09>	{ [	o,		O					] };	
+    key <AD10>	{ [	p,		P					] };
+    key <AD11>	{ [	dead_circumflex,dead_diaeresis				] };
+    key <AD12>	{ [	dollar,		sterling,	currency		] };	
+
+    // Third row
+    key <AC01>	{ [	q,		Q					] };
+    key <AC02>	{ [	s,		S				 	] };
+    key <AC03>	{ [	d,		D					] };	
+    key <AC04>	{ [	f,		F					] };
+    key <AC05>	{ [	g,		G					] };	
+    key <AC06>	{ [	h,		H				 	] };
+    key <AC07>	{ [	j,		J					] };
+    key <AC08>	{ [	k,		K					] };
+    key <AC09>	{ [	l,		L					] };
+    key <AC10>	{ [	m,		M					] };	
+    key <AC11>	{ [	ugrave,		percent					] };
+    key <BKSL>  { [	asterisk,	mu					] };
+
+    // Fourth row
+    key <LSGT>	{ [	less,		greater					] };
+    key <AB01>	{ [	w,		W					] };
+    key <AB02>	{ [	x,		X					] };
+    key <AB03>	{ [	c,		C					] };
+    key <AB04>	{ [	v,		V					] };	
+    key <AB05>  { [	b,		B				 	] };
+    key <AB06>	{ [	n,		N				 	] };
+    key <AB07>	{ [	comma,		question				] };
+    key <AB08>	{ [ 	semicolon,	period					] };
+    key <AB09>	{ [ 	colon,		slash					] };
+    key <AB10>	{ [	exclam,		section					] };

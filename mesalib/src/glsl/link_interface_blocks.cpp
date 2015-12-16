@@ -30,58 +30,10 @@
 #include "glsl_symbol_table.h"
 #include "linker.h"
 #include "main/macros.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 
 namespace {
-
-/**
- * Information about a single interface block definition that we need to keep
- * track of in order to check linkage rules.
- *
- * Note: this class is expected to be short lived, so it doesn't make copies
- * of the strings it references; it simply borrows the pointers from the
- * ir_variable class.
- */
-struct interface_block_definition
-{
-   /**
-    * Extract an interface block definition from an ir_variable that
-    * represents either the interface instance (for named interfaces), or a
-    * member of the interface (for unnamed interfaces).
-    */
-   explicit interface_block_definition(ir_variable *var)
-      : var(var),
-        type(var->get_interface_type()),
-        instance_name(NULL)
-   {
-      if (var->is_interface_instance()) {
-         instance_name = var->name;
-      }
-      explicitly_declared = (var->data.how_declared != ir_var_declared_implicitly);
-   }
-   /**
-    * Interface block ir_variable
-    */
-   ir_variable *var;
-
-   /**
-    * Interface block type
-    */
-   const glsl_type *type;
-
-   /**
-    * For a named interface block, the instance name.  Otherwise NULL.
-    */
-   const char *instance_name;
-
-   /**
-    * True if this interface block was explicitly declared in the shader;
-    * false if it was an implicitly declared built-in interface block.
-    */
-   bool explicitly_declared;
-};
-
 
 /**
  * Check if two interfaces match, according to intrastage interface matching
@@ -89,41 +41,41 @@ struct interface_block_definition
  * be updated to reflect the array size declared in the second interface.
  */
 bool
-intrastage_match(interface_block_definition *a,
-                 const interface_block_definition *b,
-                 ir_variable_mode mode,
+intrastage_match(ir_variable *a,
+                 ir_variable *b,
                  struct gl_shader_program *prog)
 {
    /* Types must match. */
-   if (a->type != b->type) {
+   if (a->get_interface_type() != b->get_interface_type()) {
       /* Exception: if both the interface blocks are implicitly declared,
        * don't force their types to match.  They might mismatch due to the two
        * shaders using different GLSL versions, and that's ok.
        */
-      if (a->explicitly_declared || b->explicitly_declared)
+      if (a->data.how_declared != ir_var_declared_implicitly ||
+          b->data.how_declared != ir_var_declared_implicitly)
          return false;
    }
 
    /* Presence/absence of interface names must match. */
-   if ((a->instance_name == NULL) != (b->instance_name == NULL))
+   if (a->is_interface_instance() != b->is_interface_instance())
       return false;
 
    /* For uniforms, instance names need not match.  For shader ins/outs,
     * it's not clear from the spec whether they need to match, but
     * Mesa's implementation relies on them matching.
     */
-   if (a->instance_name != NULL &&
-       mode != ir_var_uniform && mode != ir_var_shader_storage &&
-       strcmp(a->instance_name, b->instance_name) != 0) {
+   if (a->is_interface_instance() && b->data.mode != ir_var_uniform &&
+       b->data.mode != ir_var_shader_storage &&
+       strcmp(a->name, b->name) != 0) {
       return false;
    }
 
    /* If a block is an array then it must match across the shader.
     * Unsized arrays are also processed and matched agaist sized arrays.
     */
-   if (b->var->type != a->var->type &&
-       (b->instance_name != NULL || a->instance_name != NULL) &&
-       !validate_intrastage_arrays(prog, b->var, a->var))
+   if (b->type != a->type &&
+       (b->is_interface_instance() || a->is_interface_instance()) &&
+       !validate_intrastage_arrays(prog, b, a))
       return false;
 
    return true;
@@ -139,43 +91,44 @@ intrastage_match(interface_block_definition *a,
  * This is used for tessellation control and geometry shader consumers.
  */
 bool
-interstage_match(const interface_block_definition *producer,
-                 const interface_block_definition *consumer,
+interstage_match(ir_variable *producer,
+                 ir_variable *consumer,
                  bool extra_array_level)
 {
    /* Unsized arrays should not occur during interstage linking.  They
     * should have all been assigned a size by link_intrastage_shaders.
     */
-   assert(!consumer->var->type->is_unsized_array());
-   assert(!producer->var->type->is_unsized_array());
+   assert(!consumer->type->is_unsized_array());
+   assert(!producer->type->is_unsized_array());
 
    /* Types must match. */
-   if (consumer->type != producer->type) {
+   if (consumer->get_interface_type() != producer->get_interface_type()) {
       /* Exception: if both the interface blocks are implicitly declared,
        * don't force their types to match.  They might mismatch due to the two
        * shaders using different GLSL versions, and that's ok.
        */
-      if (consumer->explicitly_declared || producer->explicitly_declared)
+      if (consumer->data.how_declared != ir_var_declared_implicitly ||
+          producer->data.how_declared != ir_var_declared_implicitly)
          return false;
    }
 
    /* Ignore outermost array if geom shader */
    const glsl_type *consumer_instance_type;
    if (extra_array_level) {
-      consumer_instance_type = consumer->var->type->fields.array;
+      consumer_instance_type = consumer->type->fields.array;
    } else {
-      consumer_instance_type = consumer->var->type;
+      consumer_instance_type = consumer->type;
    }
 
    /* If a block is an array then it must match across shaders.
     * Since unsized arrays have been ruled out, we can check this by just
     * making sure the types are equal.
     */
-   if ((consumer->instance_name != NULL &&
+   if ((consumer->is_interface_instance() &&
         consumer_instance_type->is_array()) ||
-       (producer->instance_name != NULL &&
-        producer->var->type->is_array())) {
-      if (consumer_instance_type != producer->var->type)
+       (producer->is_interface_instance() &&
+        producer->type->is_array())) {
+      if (consumer_instance_type != producer->type)
          return false;
    }
 
@@ -197,35 +150,55 @@ class interface_block_definitions
 public:
    interface_block_definitions()
       : mem_ctx(ralloc_context(NULL)),
-        ht(hash_table_ctor(0, hash_table_string_hash,
-                           hash_table_string_compare))
+        ht(_mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                   _mesa_key_string_equal))
    {
    }
 
    ~interface_block_definitions()
    {
-      hash_table_dtor(ht);
       ralloc_free(mem_ctx);
+      _mesa_hash_table_destroy(ht, NULL);
    }
 
    /**
-    * Lookup the interface definition having the given block name.  Return
-    * NULL if none is found.
+    * Lookup the interface definition. Return NULL if none is found.
     */
-   interface_block_definition *lookup(const char *block_name)
+   ir_variable *lookup(ir_variable *var)
    {
-      return (interface_block_definition *) hash_table_find(ht, block_name);
+      if (var->data.explicit_location &&
+          var->data.location >= VARYING_SLOT_VAR0) {
+         char location_str[11];
+         snprintf(location_str, 11, "%d", var->data.location);
+
+         const struct hash_entry *entry =
+            _mesa_hash_table_search(ht, location_str);
+         return entry ? (ir_variable *) entry->data : NULL;
+      } else {
+         const struct hash_entry *entry =
+            _mesa_hash_table_search(ht, var->get_interface_type()->name);
+         return entry ? (ir_variable *) entry->data : NULL;
+      }
    }
 
    /**
     * Add a new interface definition.
     */
-   void store(const interface_block_definition &def)
+   void store(ir_variable *var)
    {
-      interface_block_definition *hash_entry =
-         rzalloc(mem_ctx, interface_block_definition);
-      *hash_entry = def;
-      hash_table_insert(ht, hash_entry, def.type->name);
+      if (var->data.explicit_location &&
+          var->data.location >= VARYING_SLOT_VAR0) {
+         /* If explicit location is given then lookup the variable by location.
+          * We turn the location into a string and use this as the hash key
+          * rather than the name. Note: We allocate enough space for a 32-bit
+          * unsigned location value which is overkill but future proof.
+          */
+         char location_str[11];
+         snprintf(location_str, 11, "%d", var->data.location);
+         _mesa_hash_table_insert(ht, ralloc_strdup(mem_ctx, location_str), var);
+      } else {
+         _mesa_hash_table_insert(ht, var->get_interface_type()->name, var);
+      }
    }
 
 private:
@@ -236,8 +209,7 @@ private:
 
    /**
     * Hash table mapping interface block name to an \c
-    * interface_block_definition struct.  interface_block_definition structs
-    * are allocated using \c mem_ctx.
+    * ir_variable.
     */
    hash_table *ht;
 };
@@ -292,18 +264,13 @@ validate_intrastage_interface_blocks(struct gl_shader_program *prog,
             continue;
          }
 
-         const interface_block_definition def(var);
-         interface_block_definition *prev_def =
-            definitions->lookup(iface_type->name);
-
+         ir_variable *prev_def = definitions->lookup(var);
          if (prev_def == NULL) {
             /* This is the first time we've seen the interface, so save
              * it into the appropriate data structure.
              */
-            definitions->store(def);
-         } else if (!intrastage_match(prev_def, &def,
-                                      (ir_variable_mode) var->data.mode,
-                                      prog)) {
+            definitions->store(var);
+         } else if (!intrastage_match(prev_def, var, prog)) {
             linker_error(prog, "definitions of interface block `%s' do not"
                          " match\n", iface_type->name);
             return;
@@ -329,7 +296,7 @@ validate_interstage_inout_blocks(struct gl_shader_program *prog,
       if (!var || !var->get_interface_type() || var->data.mode != ir_var_shader_in)
          continue;
 
-      definitions.store(interface_block_definition(var));
+      definitions.store(var);
    }
 
    /* Verify that the producer's output interfaces match. */
@@ -338,16 +305,13 @@ validate_interstage_inout_blocks(struct gl_shader_program *prog,
       if (!var || !var->get_interface_type() || var->data.mode != ir_var_shader_out)
          continue;
 
-      interface_block_definition *consumer_def =
-         definitions.lookup(var->get_interface_type()->name);
+      ir_variable *consumer_def = definitions.lookup(var);
 
       /* The consumer doesn't use this output block.  Ignore it. */
       if (consumer_def == NULL)
          continue;
 
-      const interface_block_definition producer_def(var);
-
-      if (!interstage_match(&producer_def, consumer_def, extra_array_level)) {
+      if (!interstage_match(var, consumer_def, extra_array_level)) {
          linker_error(prog, "definitions of interface block `%s' do not "
                       "match\n", var->get_interface_type()->name);
          return;
@@ -374,19 +338,15 @@ validate_interstage_uniform_blocks(struct gl_shader_program *prog,
               var->data.mode != ir_var_shader_storage))
             continue;
 
-         interface_block_definition *old_def =
-            definitions.lookup(var->get_interface_type()->name);
-         const interface_block_definition new_def(var);
+         ir_variable *old_def = definitions.lookup(var);
          if (old_def == NULL) {
-            definitions.store(new_def);
+            definitions.store(var);
          } else {
             /* Interstage uniform matching rules are the same as intrastage
              * uniform matchin rules (for uniforms, it is as though all
              * shaders are in the same shader stage).
              */
-            if (!intrastage_match(old_def, &new_def,
-                                  (ir_variable_mode) var->data.mode,
-                                  prog)) {
+            if (!intrastage_match(old_def, var, prog)) {
                linker_error(prog, "definitions of interface block `%s' do not "
                             "match\n", var->get_interface_type()->name);
                return;

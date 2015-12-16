@@ -62,6 +62,15 @@ fallback_required(struct gl_context *ctx, GLenum target,
    GLuint srcLevel;
    GLenum status;
 
+   /* GL_DRAW_FRAMEBUFFER does not exist in OpenGL ES 1.x, and since
+    * _mesa_meta_begin hasn't been called yet, we have to work-around API
+    * difficulties.  The whole reason that GL_DRAW_FRAMEBUFFER is used instead
+    * of GL_FRAMEBUFFER is that the read framebuffer may be different.  This
+    * is moot in OpenGL ES 1.x.
+    */
+   const GLenum fbo_target = ctx->API == API_OPENGLES
+      ? GL_FRAMEBUFFER : GL_DRAW_FRAMEBUFFER;
+
    /* check for fallbacks */
    if (target == GL_TEXTURE_3D) {
       _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
@@ -102,13 +111,13 @@ fallback_required(struct gl_context *ctx, GLenum target,
     */
    if (!mipmap->FBO)
       _mesa_GenFramebuffers(1, &mipmap->FBO);
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, mipmap->FBO);
+   _mesa_BindFramebuffer(fbo_target, mipmap->FBO);
 
-   _mesa_meta_bind_fbo_image(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, baseImage, 0);
+   _mesa_meta_bind_fbo_image(fbo_target, GL_COLOR_ATTACHMENT0, baseImage, 0);
 
-   status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+   status = _mesa_CheckFramebufferStatus(fbo_target);
 
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSave);
+   _mesa_BindFramebuffer(fbo_target, fboSave);
 
    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,

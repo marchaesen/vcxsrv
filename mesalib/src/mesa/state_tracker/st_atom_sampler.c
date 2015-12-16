@@ -250,7 +250,7 @@ update_shader_samplers(struct st_context *st,
    samplers_used = prog->SamplersUsed;
 
    if (*num_samplers == 0 && samplers_used == 0x0)
-       return;
+      return;
 
    *num_samplers = 0;
 

@@ -4423,13 +4423,13 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    if (first < MESA_SHADER_FRAGMENT) {
       gl_shader *const sh = prog->_LinkedShaders[last];
 
-      if (first == MESA_SHADER_GEOMETRY) {
+      if (first != MESA_SHADER_VERTEX) {
          /* There was no vertex shader, but we still have to assign varying
-          * locations for use by geometry shader inputs in SSO.
+          * locations for use by tessellation/geometry shader inputs in SSO.
           *
           * If the shader is not separable (i.e., prog->SeparateShader is
-          * false), linking will have already failed when first is
-          * MESA_SHADER_GEOMETRY.
+          * false), linking will have already failed when first is not
+          * MESA_SHADER_VERTEX.
           */
          if (!assign_varying_locations(ctx, mem_ctx, prog,
                                        NULL, prog->_LinkedShaders[first],

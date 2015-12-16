@@ -322,12 +322,7 @@ struct clear_state
    GLuint VAO;
    struct gl_buffer_object *buf_obj;
    GLuint ShaderProg;
-   GLint ColorLocation;
-   GLint LayerLocation;
-
    GLuint IntegerShaderProg;
-   GLint IntegerColorLocation;
-   GLint IntegerLayerLocation;
 };
 
 

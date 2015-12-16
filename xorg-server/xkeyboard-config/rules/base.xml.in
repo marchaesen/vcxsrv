@@ -3112,6 +3112,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>azerty</name>
+            <_description>French (Azerty)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>bre</name>
             <_description>French (Breton)</_description>
           </configItem>
@@ -5669,6 +5675,16 @@
         <_description>Swahili (Tanzania)</_description>
         <languageList>
           <iso639Id>swa</iso639Id>
+        </languageList>
+      </configItem>
+    </layout>
+    <layout>
+      <configItem>
+        <name>tg</name>
+        <_shortDescription>fr-tg</_shortDescription>
+        <_description>French (Togo)</_description>
+        <languageList>
+          <iso639Id>fra</iso639Id>
         </languageList>
       </configItem>
     </layout>

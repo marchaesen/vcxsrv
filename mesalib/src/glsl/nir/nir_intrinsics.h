@@ -309,6 +309,6 @@ STORE(per_vertex_output, 3, 1, 0)
 /* src[] = { value, block_index, offset }. const_index[] = { write_mask } */
 STORE(ssbo, 3, 1, 0)
 /* src[] = { value, offset }. const_index[] = { base, write_mask } */
-STORE(shared, 2, 1, 0)
+STORE(shared, 2, 2, 0)
 
 LAST_INTRINSIC(store_shared)
