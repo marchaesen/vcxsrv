@@ -600,7 +600,8 @@ is_box_inside_resource(const struct pipe_resource *res,
       depth = res->array_size;
       assert(res->array_size % 6 == 0);
       break;
-   case PIPE_MAX_TEXTURE_TYPES:;
+   case PIPE_MAX_TEXTURE_TYPES:
+      break;
    }
 
    return box->x >= 0 &&

@@ -3158,7 +3158,7 @@ FcConfigParseAndLoadDir (FcConfig	*config,
     strcat ((char *) file, "/");
     base = file + strlen ((char *) file);
 
-    files = FcStrSetCreate ();
+    files = FcStrSetCreateEx (FCSS_GROW_BY_64);
     if (!files)
     {
 	ret = FcFalse;

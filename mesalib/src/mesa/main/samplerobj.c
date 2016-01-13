@@ -270,6 +270,17 @@ _mesa_IsSampler(GLuint sampler)
    return sampObj != NULL;
 }
 
+void
+_mesa_bind_sampler(struct gl_context *ctx, GLuint unit,
+                   struct gl_sampler_object *sampObj)
+{
+   if (ctx->Texture.Unit[unit].Sampler != sampObj) {
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+   }
+
+   _mesa_reference_sampler_object(ctx, &ctx->Texture.Unit[unit].Sampler,
+                                  sampObj);
+}
 
 void GLAPIENTRY
 _mesa_BindSampler(GLuint unit, GLuint sampler)
@@ -297,13 +308,8 @@ _mesa_BindSampler(GLuint unit, GLuint sampler)
       }
    }
    
-   if (ctx->Texture.Unit[unit].Sampler != sampObj) {
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
-   }
-
    /* bind new sampler */
-   _mesa_reference_sampler_object(ctx, &ctx->Texture.Unit[unit].Sampler,
-                                  sampObj);
+   _mesa_bind_sampler(ctx, unit, sampObj);
 }
 
 
@@ -444,6 +450,22 @@ flush(struct gl_context *ctx)
    FLUSH_VERTICES(ctx, _NEW_TEXTURE);
 }
 
+void
+_mesa_set_sampler_wrap(struct gl_context *ctx, struct gl_sampler_object *samp,
+                       GLenum s, GLenum t, GLenum r)
+{
+   assert(validate_texture_wrap_mode(ctx, s));
+   assert(validate_texture_wrap_mode(ctx, t));
+   assert(validate_texture_wrap_mode(ctx, r));
+
+   if (samp->WrapS == s && samp->WrapT == t && samp->WrapR == r)
+      return;
+
+   flush(ctx);
+   samp->WrapS = s;
+   samp->WrapT = t;
+   samp->WrapR = r;
+}
 
 #define INVALID_PARAM 0x100
 #define INVALID_PNAME 0x101
@@ -493,6 +515,27 @@ set_sampler_wrap_r(struct gl_context *ctx, struct gl_sampler_object *samp,
    return INVALID_PARAM;
 }
 
+void
+_mesa_set_sampler_filters(struct gl_context *ctx,
+                          struct gl_sampler_object *samp,
+                          GLenum min_filter, GLenum mag_filter)
+{
+   assert(min_filter == GL_NEAREST ||
+          min_filter == GL_LINEAR ||
+          min_filter == GL_NEAREST_MIPMAP_NEAREST ||
+          min_filter == GL_LINEAR_MIPMAP_NEAREST ||
+          min_filter == GL_NEAREST_MIPMAP_LINEAR ||
+          min_filter == GL_LINEAR_MIPMAP_LINEAR);
+   assert(mag_filter == GL_NEAREST ||
+          mag_filter == GL_LINEAR);
+
+   if (samp->MinFilter == min_filter && samp->MagFilter == mag_filter)
+      return;
+
+   flush(ctx);
+   samp->MinFilter = min_filter;
+   samp->MagFilter = mag_filter;
+}
 
 static GLuint
 set_sampler_min_filter(struct gl_context *ctx, struct gl_sampler_object *samp,
@@ -711,6 +754,16 @@ set_sampler_cube_map_seamless(struct gl_context *ctx,
    flush(ctx);
    samp->CubeMapSeamless = param;
    return GL_TRUE;
+}
+
+void
+_mesa_set_sampler_srgb_decode(struct gl_context *ctx,
+                              struct gl_sampler_object *samp, GLenum param)
+{
+   assert(param == GL_DECODE_EXT || param == GL_SKIP_DECODE_EXT);
+
+   flush(ctx);
+   samp->sRGBDecode = param;
 }
 
 static GLuint

@@ -487,8 +487,8 @@ opt_gcm_impl(nir_function_impl *impl)
 void
 nir_opt_gcm(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         opt_gcm_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         opt_gcm_impl(function->impl);
    }
 }

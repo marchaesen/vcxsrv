@@ -65,7 +65,7 @@ typedef struct {
 typedef struct {
    AEarray arrays[32];
    AEattrib attribs[VERT_ATTRIB_MAX + 1];
-   GLuint NewState;
+   GLbitfield NewState;
 
    /* List of VBOs we need to map before executing ArrayElements */
    struct gl_buffer_object *vbo[VERT_ATTRIB_MAX];
@@ -1802,7 +1802,7 @@ _ae_ArrayElement(GLint elt)
 
 
 void
-_ae_invalidate_state(struct gl_context *ctx, GLuint new_state)
+_ae_invalidate_state(struct gl_context *ctx, GLbitfield new_state)
 {
    AEcontext *actx = AE_CONTEXT(ctx);
 

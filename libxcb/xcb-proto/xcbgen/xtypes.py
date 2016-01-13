@@ -2,7 +2,10 @@
 This module contains the classes which represent XCB data types.
 '''
 from xcbgen.expr import Field, Expression
+from xcbgen.align import Alignment, AlignmentLog
 import __main__
+
+verbose_align_log = False
 
 class Type(object):
     '''
@@ -36,6 +39,10 @@ class Type(object):
         self.is_case_or_bitcase = False
         self.is_bitcase = False
         self.is_case = False
+        self.required_start_align = Alignment()
+
+        # the biggest align value of an align-pad contained in this type
+        self.max_align_pad = 1
 
     def resolve(self, module):
         '''
@@ -91,7 +98,91 @@ class Type(object):
 
         complex_type.fields.append(new_fd)
 
-class SimpleType(Type):
+
+    def get_total_size(self):
+        '''
+        get the total size of this type if it is fixed-size, otherwise None
+        '''
+        if self.fixed_size():
+            if self.nmemb is None:
+                return self.size
+            else:
+                return self.size * self.nmemb
+        else:
+            return None
+
+    def get_align_offset(self):
+        if self.required_start_align is None:
+            return 0
+        else:
+            return self.required_start_align.offset
+
+    def is_acceptable_start_align(self, start_align, callstack, log):
+        return self.get_alignment_after(start_align, callstack, log) is not None
+
+    def get_alignment_after(self, start_align, callstack, log):
+        '''
+        get the alignment after this type based on the given start_align.
+        the start_align is checked for compatibility with the
+        internal start align. If it is not compatible, then None is returned
+        '''
+        if self.required_start_align is None or self.required_start_align.is_guaranteed_at(start_align):
+            return self.unchecked_get_alignment_after(start_align, callstack, log)
+        else:
+            if log is not None:
+                log.fail(start_align, "", self, callstack + [self],
+                    "start_align is incompatible with required_start_align %s"
+                    % (str(self.required_start_align)))
+            return None
+
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        '''
+        Abstract method for geting the alignment after this type
+        when the alignment at the start is given, and when this type
+        has variable size.
+        '''
+        raise Exception('abstract unchecked_get_alignment_after method not overridden!')
+
+
+    @staticmethod
+    def type_name_to_str(type_name):
+        if isinstance(type_name, str):
+            #already a string
+            return type_name
+        else:
+            return ".".join(type_name)
+
+
+    def __str__(self):
+        return type(self).__name__ + " \"" + Type.type_name_to_str(self.name) + "\""
+
+class PrimitiveType(Type):
+
+    def __init__(self, name, size):
+        Type.__init__(self, name)
+        self.size = size
+        self.nmemb = 1
+
+        # compute the required start_alignment based on the size of the type
+        self.required_start_align = Alignment.for_primitive_type(self.size)
+
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        my_callstack = callstack + [self];
+        after_align = start_align.align_after_fixed_size(self.size)
+
+        if log is not None:
+            if after_align is None:
+                log.fail(start_align, "", self, my_callstack,
+                "align after fixed size %d failed" % self.size)
+            else:
+                log.ok(start_align, "", self, my_callstack, after_align)
+
+        return after_align
+
+    def fixed_size(self):
+        return True
+
+class SimpleType(PrimitiveType):
     '''
     Derived class which represents a cardinal type like CARD32 or char.
     Any type which is typedef'ed to cardinal will be one of these.
@@ -100,16 +191,12 @@ class SimpleType(Type):
     none
     '''
     def __init__(self, name, size):
-        Type.__init__(self, name)
+        PrimitiveType.__init__(self, name, size)
         self.is_simple = True
-        self.size = size
-        self.nmemb = 1
+
 
     def resolve(self, module):
         self.resolved = True
-
-    def fixed_size(self):
-        return True
 
     out = __main__.output['simple']
 
@@ -181,13 +268,22 @@ class ListType(Type):
         self.is_list = True
         self.member = member
         self.parents = list(parent)
+        lenfield_name = False
 
         if elt.tag == 'list':
             elts = list(elt)
             self.expr = Expression(elts[0] if len(elts) else elt, self)
+            is_list_in_parent = self.parents[0].elt.tag in ('request', 'event', 'reply', 'error')
+            if not len(elts) and is_list_in_parent:
+                self.expr = Expression(elt,self)
+                self.expr.op = 'calculate_len'
+            else:
+                self.expr = Expression(elts[0] if len(elts) else elt, self)
 
         self.size = member.size if member.fixed_size() else None
         self.nmemb = self.expr.nmemb if self.expr.fixed_size() else None
+
+        self.required_start_align = self.member.required_start_align
 
     def make_member_of(self, module, complex_type, field_type, field_name, visible, wire, auto, enum=None):
         if not self.fixed_size():
@@ -219,6 +315,8 @@ class ListType(Type):
         self.member.resolve(module)
         self.expr.resolve(module, self.parents)
 
+        self.required_start_align = self.member.required_start_align
+
         # Find my length field again.  We need the actual Field object in the expr.
         # This is needed because we might have added it ourself above.
         if not self.fixed_size():
@@ -233,7 +331,70 @@ class ListType(Type):
     def fixed_size(self):
         return self.member.fixed_size() and self.expr.fixed_size()
 
-class ExprType(Type):
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        my_callstack = callstack[:]
+        my_callstack.append(self)
+        if start_align is None:
+            log.fail(start_align, "", self, my_callstack, "start_align is None")
+            return None
+        if self.expr.fixed_size():
+            # fixed number of elements
+            num_elements = self.nmemb
+            prev_alignment = None
+            alignment = start_align
+            while num_elements > 0:
+                if alignment is None:
+                    if log is not None:
+                        log.fail(start_align, "", self, my_callstack,
+                            ("fixed size list with size %d after %d iterations"
+                            + ", at transition from alignment \"%s\"")
+                            % (self.nmemb,
+                               (self.nmemb - num_elements),
+                               str(prev_alignment)))
+                    return None
+                prev_alignment = alignment
+                alignment = self.member.get_alignment_after(prev_alignment, my_callstack, log)
+                num_elements -= 1
+            if log is not None:
+                log.ok(start_align, "", self, my_callstack, alignment)
+            return alignment
+        else:
+            # variable number of elements
+            # check whether the number of elements is a multiple
+            multiple = self.expr.get_multiple()
+            assert multiple > 0
+
+            # iterate until the combined alignment does not change anymore
+            alignment = start_align
+            while True:
+                prev_multiple_alignment = alignment
+                # apply "multiple" amount of changes sequentially
+                prev_alignment = alignment
+                for multiple_count in range(0, multiple):
+
+                    after_alignment = self.member.get_alignment_after(prev_alignment, my_callstack, log)
+                    if after_alignment is None:
+                        if log is not None:
+                            log.fail(start_align, "", self, my_callstack,
+                                ("variable size list "
+                                + "at transition from alignment \"%s\"")
+                                % (str(prev_alignment)))
+                        return None
+
+                    prev_alignment = after_alignment
+
+                # combine with the cumulatively combined alignment
+                # (to model the variable number of entries)
+                alignment = prev_multiple_alignment.combine_with(after_alignment)
+
+                if alignment == prev_multiple_alignment:
+                    # does not change anymore by adding more potential elements
+                    # -> finished
+                    if log is not None:
+                        log.ok(start_align, "", self, my_callstack, alignment)
+                    return alignment
+
+class ExprType(PrimitiveType):
     '''
     Derived class which represents an exprfield.  Fixed size.
 
@@ -241,15 +402,12 @@ class ExprType(Type):
     expr is an Expression object containing the value of the field.
     '''
     def __init__(self, elt, member, *parents):
-        Type.__init__(self, member.name)
+        PrimitiveType.__init__(self, member.name, member.size)
         self.is_expr = True
         self.member = member
         self.parents = parents
 
         self.expr = Expression(list(elt)[0], self)
-
-        self.size = member.size
-        self.nmemb = 1
 
     def resolve(self, module):
         if self.resolved:
@@ -257,8 +415,6 @@ class ExprType(Type):
         self.member.resolve(module)
         self.resolved = True
 
-    def fixed_size(self):
-        return True
 
 class PadType(Type):
     '''
@@ -274,12 +430,47 @@ class PadType(Type):
             self.nmemb = int(elt.get('bytes', "1"), 0)
             self.align = int(elt.get('align', "1"), 0)
 
+        # pads don't require any alignment at their start
+        self.required_start_align = Alignment(1,0)
+
     def resolve(self, module):
         self.resolved = True
 
     def fixed_size(self):
         return self.align <= 1
 
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        if self.align <= 1:
+            # fixed size pad
+            after_align = start_align.align_after_fixed_size(self.get_total_size())
+            if log is not None:
+                if after_align is None:
+                    log.fail(start_align, "", self, callstack,
+                    "align after fixed size pad of size %d failed" % self.size)
+                else:
+                    log.ok(start_align, "", self, callstack, after_align)
+
+            return after_align
+
+        # align-pad
+        assert self.align > 1
+        assert self.size == 1
+        assert self.nmemb == 1
+        if (start_align.offset == 0
+           and self.align <= start_align.align
+           and start_align.align % self.align == 0):
+            # the alignment pad is size 0 because the start_align
+            # is already sufficiently aligned -> return the start_align
+            after_align = start_align
+        else:
+            # the alignment pad has nonzero size -> return the alignment
+            # that is guaranteed by it, independently of the start_align
+            after_align = Alignment(self.align, 0)
+
+        if log is not None:
+            log.ok(start_align, "", self, callstack, after_align)
+
+        return after_align
     
 class ComplexType(Type):
     '''
@@ -297,6 +488,18 @@ class ComplexType(Type):
         self.size = 0
         self.lenfield_parent = [self]
         self.fds = []
+
+        # get required_start_alignment
+        required_start_align_element = elt.find("required_start_align")
+        if required_start_align_element is None:
+            # unknown -> mark for autocompute
+            self.required_start_align = None
+        else:
+            self.required_start_align = Alignment(
+                int(required_start_align_element.get('align', "4"), 0),
+                int(required_start_align_element.get('offset', "0"), 0))
+            if verbose_align_log:
+                print "Explicit start-align for %s: %s\n" % (self, self.required_start_align)
 
     def resolve(self, module):
         if self.resolved:
@@ -352,7 +555,15 @@ class ComplexType(Type):
             # Recursively resolve the type (could be another structure, list)
             type.resolve(module)
 
+            # Compute the size of the maximally contain align-pad
+            if type.max_align_pad > self.max_align_pad:
+                self.max_align_pad = type.max_align_pad
+
+        self.check_implicit_fixed_size_part_aligns();
+
         self.calc_size() # Figure out how big we are
+        self.calc_or_check_required_start_align()
+
         self.resolved = True
 
     def calc_size(self):
@@ -361,16 +572,154 @@ class ComplexType(Type):
             if not m.wire:
                 continue
             if m.type.fixed_size():
-                self.size = self.size + (m.type.size * m.type.nmemb)
+                self.size = self.size + m.type.get_total_size()
             else:
                 self.size = None
                 break
+
+    def calc_or_check_required_start_align(self):
+        if self.required_start_align is None:
+            # no required-start-align configured -> calculate it
+            log = AlignmentLog()
+            callstack = []
+            self.required_start_align = self.calc_minimally_required_start_align(callstack, log)
+            if self.required_start_align is None:
+                print ("ERROR: could not calc required_start_align of %s\nDetails:\n%s"
+                    % (str(self), str(log)))
+            else:
+                if verbose_align_log:
+                    print ("calc_required_start_align: %s has start-align %s"
+                        % (str(self), str(self.required_start_align)))
+                    print "Details:\n" + str(log)
+                if self.required_start_align.offset != 0:
+                    print (("WARNING: %s\n\thas start-align with non-zero offset: %s"
+                        + "\n\tsuggest to add explicit definition with:"
+                        + "\n\t\t<required_start_align align=\"%d\" offset=\"%d\" />"
+                        + "\n\tor to fix the xml so that zero offset is ok\n")
+                        % (str(self), self.required_start_align,
+                           self.required_start_align.align,
+                           self.required_start_align.offset))
+        else:
+            # required-start-align configured -> check it
+            log = AlignmentLog()
+            callstack = []
+            if not self.is_possible_start_align(self.required_start_align, callstack, log):
+                print ("ERROR: required_start_align %s of %s causes problems\nDetails:\n%s"
+                    % (str(self.required_start_align), str(self), str(log)))
+
+
+    def calc_minimally_required_start_align(self, callstack, log):
+        # calculate the minimally required start_align that causes no
+        # align errors
+        best_log = None
+        best_failed_align = None
+        for align in [1,2,4,8]:
+            for offset in range(0,align):
+                align_candidate = Alignment(align, offset)
+                if verbose_align_log:
+                    print "trying %s for %s" % (str(align_candidate), str(self))
+                my_log = AlignmentLog()
+                if self.is_possible_start_align(align_candidate, callstack, my_log):
+                    log.append(my_log)
+                    if verbose_align_log:
+                        print "found start-align %s for %s" % (str(align_candidate), str(self))
+                    return align_candidate
+                else:
+                    my_ok_count = my_log.ok_count()
+                    if (best_log is None
+                       or my_ok_count > best_log.ok_count()
+                       or (my_ok_count == best_log.ok_count()
+                          and align_candidate.align > best_failed_align.align)
+                          and align_candidate.align != 8):
+                        best_log = my_log
+                        best_failed_align = align_candidate
+
+
+
+        # none of the candidates applies
+        # this type has illegal internal aligns for all possible start_aligns
+        if verbose_align_log:
+            print "didn't find start-align for %s" % str(self)
+        log.append(best_log)
+        return None
+
+    def is_possible_start_align(self, align, callstack, log):
+        if align is None:
+            return False
+        if (self.max_align_pad > align.align
+           or align.align % self.max_align_pad != 0):
+            # our align pad implementation depends on known alignment
+            # at the start of our type
+            return False
+
+        return self.get_alignment_after(align, callstack, log) is not None
 
     def fixed_size(self):
         for m in self.fields:
             if not m.type.fixed_size():
                 return False
         return True
+
+
+    # default impls of polymorphic methods which assume sequential layout of fields
+    # (like Struct or CaseOrBitcaseType)
+    def check_implicit_fixed_size_part_aligns(self):
+        # find places where the implementation of the C-binding would
+        # create code that makes the compiler add implicit alignment.
+        # make these places explicit, so we have
+        # consistent behaviour for all bindings
+        size = 0
+        for field in self.fields:
+            if not field.wire:
+                continue
+            if not field.type.fixed_size():
+                # end of fixed-size part
+                break
+            required_field_align = field.type.required_start_align
+            if required_field_align is None:
+                raise Exception(
+                    "field \"%s\" in \"%s\" has not required_start_align"
+                    % (field.field_name, self.name)
+                )
+            mis_align = (size + required_field_align.offset) % required_field_align.align
+            if mis_align != 0:
+                # implicit align pad is required
+                padsize = required_field_align.align - mis_align
+                raise Exception(
+                    "C-compiler would insert implicit alignpad of size %d before field \"%s\" in \"%s\""
+                    % (padsize, field.field_name, self.name)
+                )
+
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        # default impl assumes sequential layout of fields
+        # (like Struct or CaseOrBitcaseType)
+        my_align = start_align
+        if my_align is None:
+            return None
+
+        for field in self.fields:
+            if not field.wire:
+                continue
+            my_callstack = callstack[:]
+            my_callstack.extend([self, field])
+
+            prev_align = my_align
+            my_align = field.type.get_alignment_after(my_align, my_callstack, log)
+            if my_align is None:
+                if log is not None:
+                    log.fail(prev_align, field.field_name, self, my_callstack,
+                        "alignment is incompatible with this field")
+                return None
+            else:
+                if log is not None:
+                    log.ok(prev_align, field.field_name, self, my_callstack, my_align)
+
+        if log is not None:
+            my_callstack = callstack[:]
+            my_callstack.append(self)
+            log.ok(start_align, "", self, my_callstack, my_align)
+        return my_align
+
 
 class SwitchType(ComplexType):
     '''
@@ -439,6 +788,7 @@ class SwitchType(ComplexType):
                         self.fields.append(new_field)
 
         self.calc_size() # Figure out how big we are
+        self.calc_or_check_required_start_align()
         self.resolved = True
 
     def make_member_of(self, module, complex_type, field_type, field_name, visible, wire, auto, enum=None):
@@ -479,6 +829,123 @@ class SwitchType(ComplexType):
 #        return True
 
 
+
+    def check_implicit_fixed_size_part_aligns(self):
+        # this is done for the CaseType or BitCaseType
+        return
+
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        # we assume that BitCases can appear in any combination,
+        # and that at most one Case can appear
+        # (assuming that Cases are mutually exclusive)
+
+        # get all Cases (we assume that at least one case is selected if there are cases)
+        case_fields = []
+        for field in self.bitcases:
+            if field.type.is_case:
+                case_fields.append(field)
+
+        if not case_fields:
+            # there are no case-fields -> check without case-fields
+            case_fields = [None]
+
+        my_callstack = callstack[:]
+        my_callstack.append(self)
+        #
+        total_align = None
+        first = True
+        for case_field in case_fields:
+            my2_callstack = my_callstack[:]
+            if case_field is not None:
+                my2_callstack.append(case_field)
+
+            case_align = self.get_align_for_selected_case_field(
+                             case_field, start_align, my2_callstack, log)
+
+
+            if case_align is None:
+                if log is not None:
+                    if case_field is None:
+                        log.fail(start_align, "", self, my2_callstack,
+                            "alignment without cases (only bitcases) failed")
+                    else:
+                        log.fail(start_align, "", self, my2_callstack + [case_field],
+                            "alignment for selected case %s failed"
+                            % case_field.field_name)
+                return None
+            if first:
+                total_align = case_align
+            else:
+                total_align = total_align.combine_with(case_align)
+
+            if log is not None:
+                if case_field is None:
+                    log.ok(
+                        start_align,
+                        "without cases (only arbitrary bitcases)",
+                        self, my2_callstack, case_align)
+                else:
+                    log.ok(
+                        start_align,
+                        "case %s and arbitrary bitcases" % case_field.field_name,
+                        self, my2_callstack, case_align)
+
+
+        if log is not None:
+            log.ok(start_align, "", self, my_callstack, total_align)
+        return total_align
+
+    # aux function for unchecked_get_alignment_after
+    def get_align_for_selected_case_field(self, case_field, start_align, callstack, log):
+        if verbose_align_log:
+            print "get_align_for_selected_case_field: %s, case_field = %s" % (str(self), str(case_field))
+        total_align = start_align
+        for field in self.bitcases:
+            my_callstack = callstack[:]
+            my_callstack.append(field)
+
+            if not field.wire:
+                continue
+            if field is case_field:
+                # assume that this field is active -> no combine_with to emulate optional
+                after_field_align = field.type.get_alignment_after(total_align, my_callstack, log)
+
+                if log is not None:
+                    if after_field_align is None:
+                        log.fail(total_align, field.field_name, field.type, my_callstack,
+                            "invalid aligment for this case branch")
+                    else:
+                        log.ok(total_align, field.field_name, field.type, my_callstack,
+                            after_field_align)
+
+                total_align = after_field_align
+            elif field.type.is_bitcase:
+                after_field_align = field.type.get_alignment_after(total_align, my_callstack, log)
+                # we assume that this field is optional, therefore combine
+                # alignment after the field with the alignment before the field.
+                if after_field_align is None:
+                    if log is not None:
+                        log.fail(total_align, field.field_name, field.type, my_callstack,
+                            "invalid aligment for this bitcase branch")
+                    total_align = None
+                else:
+                    if log is not None:
+                        log.ok(total_align, field.field_name, field.type, my_callstack,
+                            after_field_align)
+
+                    # combine with the align before the field because
+                    # the field is optional
+                    total_align = total_align.combine_with(after_field_align)
+            else:
+                # ignore other fields as they are irrelevant for alignment
+                continue
+
+            if total_align is None:
+                break
+
+        return total_align
+
+
 class Struct(ComplexType):
     '''
     Derived class representing a struct data type.
@@ -497,6 +964,66 @@ class Union(ComplexType):
     out = __main__.output['union']
 
 
+    def calc_size(self):
+        self.size = 0
+        for m in self.fields:
+            if not m.wire:
+                continue
+            if m.type.fixed_size():
+                self.size = max(self.size, m.type.get_total_size())
+            else:
+                self.size = None
+                break
+
+
+    def check_implicit_fixed_size_part_aligns(self):
+        # a union does not have implicit aligns because all fields start
+        # at the start of the union
+        return
+
+
+    def unchecked_get_alignment_after(self, start_align, callstack, log):
+        my_callstack = callstack[:]
+        my_callstack.append(self)
+
+        after_align = None
+        if self.fixed_size():
+
+            #check proper alignment for all members
+            start_align_ok = all(
+                [field.type.is_acceptable_start_align(start_align, my_callstack + [field], log)
+                for field in self.fields])
+
+            if start_align_ok:
+                #compute the after align from the start_align
+                after_align = start_align.align_after_fixed_size(self.get_total_size())
+            else:
+                after_align = None
+
+            if log is not None and after_align is not None:
+                log.ok(start_align, "fixed sized union", self, my_callstack, after_align)
+
+        else:
+            if start_align is None:
+                if log is not None:
+                    log.fail(start_align, "", self, my_callstack,
+                        "missing start_align for union")
+                return None
+
+            after_align = reduce(
+                lambda x, y: None if x is None or y is None else x.combine_with(y),
+                [field.type.get_alignment_after(start_align, my_callstack + [field], log)
+                 for field in self.fields])
+
+            if log is not None and after_align is not None:
+                log.ok(start_align, "var sized union", self, my_callstack, after_align)
+
+
+        if after_align is None and log is not None:
+            log.fail(start_align, "", self, my_callstack, "start_align is not ok for all members")
+
+        return after_align
+
 class CaseOrBitcaseType(ComplexType):
     '''
     Derived class representing a case or bitcase.
@@ -504,13 +1031,11 @@ class CaseOrBitcaseType(ComplexType):
     def __init__(self, index, name, elt, *parent):
         elts = list(elt)
         self.expr = []
-        fields = []
-        for elt in elts:
-            if elt.tag == 'enumref':
-                self.expr.append(Expression(elt, self))
-            else:
-                fields.append(elt)
-        ComplexType.__init__(self, name, fields)
+        for sub_elt in elts:
+            if sub_elt.tag == 'enumref':
+                self.expr.append(Expression(sub_elt, self))
+                elt.remove(sub_elt)
+        ComplexType.__init__(self, name, elt)
         self.has_name = True
         self.index = 1
         self.lenfield_parent = list(parent) + [self]
@@ -545,6 +1070,9 @@ class CaseOrBitcaseType(ComplexType):
         # Resolve the bitcase expression
         ComplexType.resolve(self, module)
 
+        #calculate alignment
+        self.calc_or_check_required_start_align()
+
 
 class BitcaseType(CaseOrBitcaseType):
     '''
@@ -571,6 +1099,8 @@ class Reply(ComplexType):
         ComplexType.__init__(self, name, elt)
         self.is_reply = True
         self.doc = None
+        if self.required_start_align is None:
+            self.required_start_align = Alignment(4,0)
 
         for child in list(elt):
             if child.tag == 'doc':
@@ -602,6 +1132,8 @@ class Request(ComplexType):
         self.reply = None
         self.doc = None
         self.opcode = elt.get('opcode')
+        if self.required_start_align is None:
+            self.required_start_align = Alignment(4,0)
 
         for child in list(elt):
             if child.tag == 'reply':
@@ -639,6 +1171,10 @@ class Event(ComplexType):
     '''
     def __init__(self, name, elt):
         ComplexType.__init__(self, name, elt)
+
+        if self.required_start_align is None:
+            self.required_start_align = Alignment(4,0)
+
         self.opcodes = {}
 
         self.has_seq = not bool(elt.get('no-sequence-number'))
@@ -693,6 +1229,8 @@ class Error(ComplexType):
     def __init__(self, name, elt):
         ComplexType.__init__(self, name, elt)
         self.opcodes = {}
+        if self.required_start_align is None:
+            self.required_start_align = Alignment(4,0)
 
     def add_opcode(self, opcode, name, main):
         self.opcodes[name] = opcode

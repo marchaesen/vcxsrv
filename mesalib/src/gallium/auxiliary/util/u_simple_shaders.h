@@ -31,6 +31,7 @@
 
 
 #include "pipe/p_compiler.h"
+#include "pipe/p_shader_tokens.h"
 
 
 struct pipe_context;

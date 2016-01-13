@@ -33,7 +33,7 @@
 
 extern GLboolean _ae_create_context( struct gl_context *ctx );
 extern void _ae_destroy_context( struct gl_context *ctx );
-extern void _ae_invalidate_state( struct gl_context *ctx, GLuint new_state );
+extern void _ae_invalidate_state( struct gl_context *ctx, GLbitfield new_state );
 extern void GLAPIENTRY _ae_ArrayElement( GLint elt );
 
 /* May optionally be called before a batch of element calls:

@@ -24,6 +24,17 @@ class Field(object):
         self.isfd = isfd
         self.parent = None
 
+    def __str__(self):
+        field_string = "Field"
+        if self.field_name is None:
+            if self.field_type is not None:
+                field_string += " with type " + str(self.type)
+        else:
+            field_string += " \"" + self.field_name + "\""
+        if self.parent is not None:
+            field_string += " in " + str(self.parent)
+
+        return field_string
 
 class Expression(object):
     '''
@@ -121,6 +132,21 @@ class Expression(object):
 
     def fixed_size(self):
         return self.nmemb != None
+
+    def get_value(self):
+        return self.nmemb
+
+    # if the value of the expression is a guaranteed multiple of a number
+    # return this number, else return 1 (which is trivially guaranteed for integers)
+    def get_multiple(self):
+        multiple = 1
+        if self.op == '*':
+            if self.lhs.fixed_size():
+                multiple *= self.lhs.get_value()
+            if self.rhs.fixed_size():
+                multiple *= self.rhs.get_value()
+
+        return multiple
 
     def recursive_resolve_tasks(self, module, parents):
         for subexpr in (self.lhs, self.rhs):

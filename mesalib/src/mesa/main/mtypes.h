@@ -2155,8 +2155,6 @@ struct gl_compute_program_state
 /**
  * ATI_fragment_shader runtime state
  */
-#define ATI_FS_INPUT_PRIMARY 0
-#define ATI_FS_INPUT_SECONDARY 1
 
 struct atifs_instruction;
 struct atifs_setupinst;
@@ -2527,6 +2525,67 @@ struct gl_active_atomic_buffer
 };
 
 /**
+ * Data container for shader queries. This holds only the minimal
+ * amount of required information for resource queries to work.
+ */
+struct gl_shader_variable
+{
+   /**
+    * Declared type of the variable
+    */
+   const struct glsl_type *type;
+
+   /**
+    * Declared name of the variable
+    */
+   char *name;
+
+   /**
+    * Storage location of the base of this variable
+    *
+    * The precise meaning of this field depends on the nature of the variable.
+    *
+    *   - Vertex shader input: one of the values from \c gl_vert_attrib.
+    *   - Vertex shader output: one of the values from \c gl_varying_slot.
+    *   - Geometry shader input: one of the values from \c gl_varying_slot.
+    *   - Geometry shader output: one of the values from \c gl_varying_slot.
+    *   - Fragment shader input: one of the values from \c gl_varying_slot.
+    *   - Fragment shader output: one of the values from \c gl_frag_result.
+    *   - Uniforms: Per-stage uniform slot number for default uniform block.
+    *   - Uniforms: Index within the uniform block definition for UBO members.
+    *   - Non-UBO Uniforms: explicit location until linking then reused to
+    *     store uniform slot number.
+    *   - Other: This field is not currently used.
+    *
+    * If the variable is a uniform, shader input, or shader output, and the
+    * slot has not been assigned, the value will be -1.
+    */
+   int location;
+
+   /**
+    * Output index for dual source blending.
+    *
+    * \note
+    * The GLSL spec only allows the values 0 or 1 for the index in \b dual
+    * source blending.
+    */
+   unsigned index:1;
+
+   /**
+    * Specifies whether a shader input/output is per-patch in tessellation
+    * shader stages.
+    */
+   unsigned patch:1;
+
+   /**
+    * Storage class of the variable.
+    *
+    * \sa (n)ir_variable_mode
+    */
+   unsigned mode:4;
+};
+
+/**
  * Active resource in a gl_shader_program
  */
 struct gl_program_resource
@@ -2736,6 +2795,13 @@ struct gl_shader_program
     * GL_UNIFORM_BLOCK_REFERENCED_BY_*_SHADER queries.
     */
    int *InterfaceBlockStageIndex[MESA_SHADER_STAGES];
+
+   /**
+    * Indices into the BufferInterfaceBlocks[] array for Uniform Buffer
+    * Objects and Shader Storage Buffer Objects.
+    */
+   unsigned *UboInterfaceBlockIndex;
+   unsigned *SsboInterfaceBlockIndex;
 
    /**
     * Map of active uniform names to locations
@@ -3517,6 +3583,10 @@ struct gl_constants
     */
    GLboolean GLSLSkipStrictMaxUniformLimitCheck;
 
+   /** Whether gl_FragCoord and gl_FrontFacing are system values. */
+   bool GLSLFragCoordIsSysVal;
+   bool GLSLFrontFacingIsSysVal;
+
    /**
     * Always use the GetTransformFeedbackVertexCount() driver hook, rather
     * than passing the transform feedback object to the drawing function.
@@ -3702,6 +3772,7 @@ struct gl_extensions
    GLboolean ARB_gpu_shader5;
    GLboolean ARB_gpu_shader_fp64;
    GLboolean ARB_half_float_vertex;
+   GLboolean ARB_indirect_parameters;
    GLboolean ARB_instanced_arrays;
    GLboolean ARB_internalformat_query;
    GLboolean ARB_map_buffer_range;
@@ -3714,6 +3785,7 @@ struct gl_extensions
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;
    GLboolean ARB_shader_clock;
+   GLboolean ARB_shader_draw_parameters;
    GLboolean ARB_shader_image_load_store;
    GLboolean ARB_shader_image_size;
    GLboolean ARB_shader_precision;
@@ -4349,6 +4421,7 @@ struct gl_context
    struct gl_perf_monitor_state PerfMonitor;
 
    struct gl_buffer_object *DrawIndirectBuffer; /** < GL_ARB_draw_indirect */
+   struct gl_buffer_object *ParameterBuffer; /** < GL_ARB_indirect_parameters */
    struct gl_buffer_object *DispatchIndirectBuffer; /** < GL_ARB_compute_shader */
 
    struct gl_buffer_object *CopyReadBuffer; /**< GL_ARB_copy_buffer */
@@ -4537,11 +4610,22 @@ enum _debug
    DEBUG_INCOMPLETE_FBO         = (1 << 3)
 };
 
+/**
+ * Checks if the active fragment shader program can have side effects due
+ * to use of things like atomic buffers or images
+ */
 static inline bool
-_mesa_active_fragment_shader_has_atomic_ops(const struct gl_context *ctx)
+_mesa_active_fragment_shader_has_side_effects(const struct gl_context *ctx)
 {
-   return ctx->Shader._CurrentFragmentProgram != NULL &&
-      ctx->Shader._CurrentFragmentProgram->_LinkedShaders[MESA_SHADER_FRAGMENT]->NumAtomicBuffers > 0;
+   const struct gl_shader *sh;
+
+   if (!ctx->_Shader->_CurrentFragmentProgram)
+      return false;
+
+   sh = ctx->_Shader->_CurrentFragmentProgram->_LinkedShaders[MESA_SHADER_FRAGMENT];
+   return sh->NumAtomicBuffers > 0 ||
+          sh->NumImages > 0 ||
+          sh->NumShaderStorageBlocks > 0;
 }
 
 #ifdef __cplusplus

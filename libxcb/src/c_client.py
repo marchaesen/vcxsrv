@@ -471,7 +471,8 @@ def _c_type_setup(self, name, postfix):
             field.first_field_after_varsized = first_field_after_varsized
 
             if field.type.fixed_size():
-                prev_varsized_offset += field.type.size
+                if field.wire:
+                    prev_varsized_offset += field.type.size
                 # special case: intermixed fixed and variable size fields
                 if prev_varsized_field is not None and not field.type.is_pad and field.wire:
                     if not self.is_union:
@@ -649,7 +650,7 @@ def get_expr_fields(self):
     get the Fields referenced by switch or list expression
     """
     def get_expr_field_names(expr):
-        if expr.op is None:
+        if expr.op is None or expr.op == 'calculate_len':
             if expr.lenfield_name is not None:
                 return [expr.lenfield_name]
             else:
@@ -726,15 +727,17 @@ def resolve_expr_fields_list(self, parents):
     all_fields = []
     expr_fields = get_expr_fields(self)
     unresolved = []
-
+    dont_resolve_this = ''
     for complex_obj in parents:
         for field in complex_obj.fields:
+            if field.type.is_list and field.type.expr.op == 'calculate_len':
+                dont_resolve_this = field.type.expr.lenfield_name
             if field.wire:
                 all_fields.append(field)
 
     # try to resolve expr fields
     for e in expr_fields:
-        if e not in all_fields and e not in unresolved:
+        if e not in all_fields and e not in unresolved and e.field_name != dont_resolve_this:
             unresolved.append(e)
 
     return unresolved
@@ -775,7 +778,9 @@ def get_serialize_params(context, self, buffer_var='_buffer', aux_var='_aux'):
     # _serialize()/_unserialize()/_unpack() function parameters
     # note: don't use set() for params, it is unsorted
     params = []
-
+    parameter = ''
+    if self.is_list:
+       parameter = self.type.expr.lenfield_name
     # 1. the parameter for the void * buffer
     if  'serialize' == context:
         params.append(('void', '**', buffer_var))
@@ -795,7 +800,7 @@ def get_serialize_params(context, self, buffer_var='_buffer', aux_var='_aux'):
             pointerspec = p.c_pointer
             add_param(params, (typespec, pointerspec, p.c_field_name))
         else:
-            if p.visible and not p.wire and not p.auto:
+            if p.visible and not p.wire and not p.auto and p.field_name != parameter:
                 typespec = p.c_field_type
                 pointerspec = ''
                 add_param(params, (typespec, pointerspec, p.c_field_name))
@@ -819,7 +824,7 @@ def get_serialize_params(context, self, buffer_var='_buffer', aux_var='_aux'):
 
     return (param_fields, wire_fields, params)
 
-def _c_serialize_helper_insert_padding(context, code_lines, space, postpone, is_case_or_bitcase):
+def _c_serialize_helper_insert_padding(context, complex_type, code_lines, space, postpone, is_case_or_bitcase):
     code_lines.append('%s    /* insert padding */' % space)
     if is_case_or_bitcase:
         code_lines.append(
@@ -894,7 +899,7 @@ def _c_serialize_helper_switch(context, self, complex_name,
         code_lines.append('    }')
 
 #    if 'serialize' == context:
-#        count += _c_serialize_helper_insert_padding(context, code_lines, space, False)
+#        count += _c_serialize_helper_insert_padding(context, self, code_lines, space, False)
 #    elif context in ('unserialize', 'unpack', 'sizeof'):
 #        # padding
 #        code_lines.append('%s    xcb_pad = -xcb_block_len & 3;' % space)
@@ -984,8 +989,10 @@ def _c_serialize_helper_list_field(context, self, field,
         unresolved = [x for x in unresolved if x not in field_mapping]
         if len(unresolved)>0:
             raise Exception('could not resolve the length fields required for list %s' % field.c_field_name)
-
-    list_length = _c_accessor_get_expr(expr, field_mapping)
+    if expr.op == 'calculate_len':
+        list_length = field.type.expr.lenfield_name
+    else:
+        list_length = _c_accessor_get_expr(expr, field_mapping)
 
     # default: list with fixed size elements
     length = '%s * sizeof(%s)' % (list_length, field.type.member.c_wiretype)
@@ -1168,7 +1175,7 @@ def _c_serialize_helper_fields(context, self,
             if self.is_case_or_bitcase or self.c_var_followed_by_fixed_fields:
                 if prev_field_was_variable and need_padding:
                     # insert padding
-#                    count += _c_serialize_helper_insert_padding(context, code_lines, space,
+#                    count += _c_serialize_helper_insert_padding(context, self, code_lines, space,
 #                                                                self.c_var_followed_by_fixed_fields)
                     prev_field_was_variable = False
 
@@ -1186,14 +1193,14 @@ def _c_serialize_helper_fields(context, self,
             if field.type.is_pad:
                 # Variable length pad is <pad align= />
                 code_lines.append('%s    xcb_align_to = %d;' % (space, field.type.align))
-                count += _c_serialize_helper_insert_padding(context, code_lines, space,
+                count += _c_serialize_helper_insert_padding(context, self, code_lines, space,
                                                             self.c_var_followed_by_fixed_fields,
                                                             is_case_or_bitcase)
                 continue
             else:
                 # switch/bitcase: always calculate padding before and after variable sized fields
                 if need_padding or is_case_or_bitcase:
-                    count += _c_serialize_helper_insert_padding(context, code_lines, space,
+                    count += _c_serialize_helper_insert_padding(context, self, code_lines, space,
                                                                 self.c_var_followed_by_fixed_fields,
                                                                 is_case_or_bitcase)
 
@@ -1285,7 +1292,7 @@ def _c_serialize_helper(context, complex_type,
                                             code_lines, temp_vars,
                                             space, prefix, False)
     # "final padding"
-    count += _c_serialize_helper_insert_padding(context, code_lines, space, False, self.is_switch)
+    count += _c_serialize_helper_insert_padding(context, complex_type, code_lines, space, False, self.is_switch)
 
     return count
 
@@ -1356,7 +1363,8 @@ def _c_serialize(context, self):
             _c('    unsigned int xcb_buffer_len = 0;')
             _c('    unsigned int xcb_align_to = 0;')
         if self.is_switch:
-            _c('    unsigned int xcb_padding_offset = ((size_t)xcb_out) & 7;')
+            _c('    unsigned int xcb_padding_offset = %d;',
+	       self.get_align_offset() )
         prefix = [('_aux', '->', self)]
         aux_ptr = 'xcb_out'
 
@@ -1381,7 +1389,8 @@ def _c_serialize(context, self):
         _c('    unsigned int xcb_pad = 0;')
         _c('    unsigned int xcb_align_to = 0;')
         if self.is_switch:
-            _c('    unsigned int xcb_padding_offset = ((size_t)_buffer) & 7;')
+            _c('    unsigned int xcb_padding_offset = %d;',
+	       self.get_align_offset() )
 
     elif 'sizeof' == context:
         param_names = [p[2] for p in params]
@@ -1721,7 +1730,7 @@ def _c_accessor_get_expr(expr, field_mapping):
         return sumvar
     elif expr.op == 'listelement-ref':
         return '(*xcb_listelement)'
-    elif expr.op != None:
+    elif expr.op != None and expr.op != 'calculate_len':
         return ('(' + _c_accessor_get_expr(expr.lhs, field_mapping) +
                 ' ' + expr.op + ' ' +
                 _c_accessor_get_expr(expr.rhs, field_mapping) + ')')
@@ -1911,8 +1920,34 @@ def _c_accessors_list(self, field):
         _h('%s (const %s *R%s);', field.c_length_name, c_type, add_param_str)
         _c('%s (const %s *R%s)', field.c_length_name, c_type, add_param_str)
     _c('{')
-    length = _c_accessor_get_expr(field.type.expr, fields)
-    _c('    return %s;', length)
+
+    def get_length():
+        if field.type.expr.op == 'calculate_len':
+            if field.type.member.fixed_size():
+                if field.prev_varsized_field is None:
+                    # the list is directly after the fixed size part of the
+                    # request: simply subtract the size of the fixed-size part
+                    # from the request size and divide that by the member size
+                    return '(((R->length * 4) - sizeof('+ self.c_type + '))/'+'sizeof('+field.type.member.c_wiretype+'))'
+                else:
+		    # use the accessor to get the start of the list, then
+		    # compute the length of it by subtracting it from
+                    # the adress of the first byte after the end of the
+                    # request
+		    after_end_of_request = '(((char*)R) + R->length * 4)'
+		    start_of_list = '%s(R)' % (field.c_accessor_name)
+                    bytesize_of_list = '%s - (char*)(%s)' % (after_end_of_request, start_of_list)
+		    return '(%s) / sizeof(%s)' % (bytesize_of_list, field.type.member.c_wiretype)
+            else:
+                raise Exception(
+                    "lengthless lists with varsized members are not supported. Fieldname '%s'"
+                    %
+                    (field.c_field_name)
+                );
+        else:
+            return _c_accessor_get_expr(field.type.expr, fields)
+
+    _c('    return %s;', get_length())
     _c('}')
 
     if field.type.member.is_simple:
@@ -1933,10 +1968,10 @@ def _c_accessors_list(self, field):
         param = 'R' if switch_obj is None else 'S'
         if switch_obj is not None:
             _c('    i.data = %s + %s;', fields[field.c_field_name][0],
-               _c_accessor_get_expr(field.type.expr, fields))
+               get_length())
         elif field.prev_varsized_field == None:
             _c('    i.data = ((%s *) (R + 1)) + (%s);', field.type.c_wiretype,
-               _c_accessor_get_expr(field.type.expr, fields))
+               get_length())
         else:
             (prev_varsized_field, align_pad) = get_align_pad(field)
 
@@ -1946,8 +1981,9 @@ def _c_accessors_list(self, field):
 
             _c('    xcb_generic_iterator_t prev = %s;',
                 _c_iterator_get_end(prev_varsized_field, 'R'))
-            _c('    i.data = ((%s *) prev.data) + %s + (%s);', field.type.c_wiretype,
-                align_pad, _c_accessor_get_expr(field.type.expr, fields))
+            _c('    i.data = ((%s *) ((char*) prev.data + %s)) + (%s);',
+                field.type.c_wiretype, align_pad,
+                get_length())
 
         _c('    i.rem = 0;')
         _c('    i.index = (char *) i.data - (char *) %s;', param)
@@ -1958,7 +1994,6 @@ def _c_accessors_list(self, field):
         _hc('')
         _hc('%s', field.c_iterator_type)
         spacing = ' '*(len(field.c_iterator_name)+2)
-        add_param_str = additional_params_to_str(spacing)
         if switch_obj is not None:
             _hc('%s (const %s *R,', field.c_iterator_name, R_obj.c_type)
             _h('%sconst %s *S%s);', spacing, S_obj.c_type, add_param_str)
@@ -1970,7 +2005,7 @@ def _c_accessors_list(self, field):
         _c('    %s i;', field.c_iterator_type)
 
         _c_pre.start()
-        length_expr_str = _c_accessor_get_expr(field.type.expr, fields)
+        length_expr_str = get_length()
 
         if switch_obj is not None:
             _c_pre.end()
@@ -2353,11 +2388,16 @@ def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
                     _c('    xcb_parts[%d].iov_base = (char *) %s;', count, field.c_field_name)
                     if field.type.is_list:
                         if field.type.member.fixed_size():
-                            _c('    xcb_parts[%d].iov_len = %s * sizeof(%s);', count,
-                               _c_accessor_get_expr(field.type.expr, None),
-                               field.type.member.c_wiretype)
+                            if field.type.expr.op == 'calculate_len':
+                                lenfield = field.type.expr.lenfield_name
+                            else:
+                                lenfield = _c_accessor_get_expr(field.type.expr, None)
+
+                            _c('    xcb_parts[%d].iov_len = %s * sizeof(%s);', count, lenfield,
+                                        field.type.member.c_wiretype)
                         else:
                             list_length = _c_accessor_get_expr(field.type.expr, None)
+                            length = ''
 
                             _c("    xcb_parts[%d].iov_len = 0;" % count)
                             _c("    xcb_tmp = (char *)%s;", field.c_field_name)
@@ -3112,9 +3152,12 @@ def c_request(self, name):
         if self.c_need_aux:
             _c_request_helper(self, name, void=True, regular=False, aux=True)
             _c_request_helper(self, name, void=True, regular=True, aux=True)
-        if config_server_side:
-            _c_accessors(self, name, name)
-
+        for field in self.fields:
+            if not field.type.is_pad and field.wire:
+                if _c_field_needs_list_accessor(field):
+                    _c_accessors_list(self, field)
+                elif _c_field_needs_field_accessor(field):
+                    _c_accessors_field(self, field)
     # We generate the manpage afterwards because _c_type_setup has been called.
     # TODO: what about aux helpers?
     _man_request(self, name, void=not self.reply, aux=False)

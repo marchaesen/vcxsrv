@@ -40,7 +40,18 @@ nir_builder_init(nir_builder *build, nir_function_impl *impl)
 {
    memset(build, 0, sizeof(*build));
    build->impl = impl;
-   build->shader = impl->overload->function->shader;
+   build->shader = impl->function->shader;
+}
+
+static inline void
+nir_builder_init_simple_shader(nir_builder *build, void *mem_ctx,
+                               gl_shader_stage stage,
+                               const nir_shader_compiler_options *options)
+{
+   build->shader = nir_shader_create(mem_ctx, stage, options);
+   nir_function *func = nir_function_create(build->shader, "main");
+   build->impl = nir_function_impl_create(func);
+   build->cursor = nir_after_cf_list(&build->impl->body);
 }
 
 static inline void
@@ -310,13 +321,15 @@ nir_load_var(nir_builder *build, nir_variable *var)
 }
 
 static inline void
-nir_store_var(nir_builder *build, nir_variable *var, nir_ssa_def *value)
+nir_store_var(nir_builder *build, nir_variable *var, nir_ssa_def *value,
+              unsigned writemask)
 {
    const unsigned num_components = glsl_get_vector_elements(var->type);
 
    nir_intrinsic_instr *store =
       nir_intrinsic_instr_create(build->shader, nir_intrinsic_store_var);
    store->num_components = num_components;
+   store->const_index[0] = writemask;
    store->variables[0] = nir_deref_var_create(store, var);
    store->src[0] = nir_src_for_ssa(value);
    nir_builder_instr_insert(build, &store->instr);

@@ -339,11 +339,19 @@ struct _FcCharSet {
 					       FcCharLeaf))
 #define FcCharSetNumbers(c)	FcOffsetMember(c,numbers_offset,FcChar16)
 
+#define FCSS_DEFAULT            0 /* default behavior */
+#define FCSS_ALLOW_DUPLICATES   1 /* allows for duplicate strings in the set */
+#define FCSS_GROW_BY_64         2 /* grows buffer by 64 elements instead of 1 */
+
+#define FcStrSetHasControlBit(s,c)  (s->control & c)
+#define FcStrSetHasControlBits(s,c) ( (c) == (s->control & (c)) )
+
 struct _FcStrSet {
     FcRef	    ref;	/* reference count */
     int		    num;
     int		    size;
     FcChar8	    **strs;
+    unsigned int    control;    /* control bits for set behavior */
 };
 
 struct _FcStrList {
@@ -1113,6 +1121,9 @@ FcPrivate FcBool
 FcIsFsMtimeBroken (const FcChar8 *dir);
 
 /* fcstr.c */
+FcPrivate FcStrSet *
+FcStrSetCreateEx (unsigned int control);
+
 FcPrivate FcBool
 FcStrSetAddLangs (FcStrSet *strs, const char *languages);
 

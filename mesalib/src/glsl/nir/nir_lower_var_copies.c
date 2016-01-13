@@ -128,6 +128,7 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
       nir_intrinsic_instr *store =
          nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_store_var);
       store->num_components = num_components;
+      store->const_index[0] = (1 << num_components) - 1;
       store->variables[0] = nir_deref_as_var(nir_copy_deref(store, &dest_head->deref));
 
       store->src[0].is_ssa = true;
@@ -182,8 +183,8 @@ lower_var_copies_impl(nir_function_impl *impl)
 void
 nir_lower_var_copies(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         lower_var_copies_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         lower_var_copies_impl(function->impl);
    }
 }

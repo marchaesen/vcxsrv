@@ -173,6 +173,7 @@ This affects the following:
         <field type="CARD8" name="len" />
         <switch name="info">
             <fieldref>class_id</fieldref>
+            <required_start_align align="4" offset="2" />
             <case name="key">
                 <enumref ref="InputClass">Key</enumref>
                 <field type="KeyCode" name="min_keycode" />
@@ -186,6 +187,7 @@ This affects the following:
             </case>
             <case name="valuator">
                 <enumref ref="InputClass">Valuator</enumref>
+                <required_start_align align="4" offset="2" />
                 <field type="CARD8"   name="axes_len" />
                 <field type="CARD8"   name="mode" enum="ValuatorMode" />
                 <field type="CARD32"  name="motion_size" />
@@ -941,8 +943,10 @@ This affects the following:
         <field type="CARD8" name="len" />
         <switch name="data">
             <fieldref>class_id</fieldref>
+            <required_start_align align="4" offset="2" />
             <case name="key">
                 <enumref ref="InputClass">Key</enumref>
+                <required_start_align align="4" offset="2" />
                 <field type="CARD8" name="num_keys" />
                 <pad bytes="1" />
                 <list type="CARD8" name="keys">
@@ -959,6 +963,7 @@ This affects the following:
             </case>
             <case name="valuator">
                 <enumref ref="InputClass">Valuator</enumref>
+                <required_start_align align="4" offset="2" />
                 <field type="CARD8" name="num_valuators" />
                 <field type="CARD8" name="mode" mask="ValuatorStateModeMask" />
                 <list type="INT32" name="valuators">
@@ -1726,8 +1731,10 @@ This affects the following:
         <field type="DeviceId" name="sourceid" />
 	<switch name="data">
 	    <fieldref>type</fieldref>
+	    <required_start_align align="4" offset="2" />
 	    <case name="key">
 		<enumref ref="DeviceClassType">Key</enumref>
+		<required_start_align align="4" offset="2" />
 		<field type="CARD16"   name="num_keys" />
 		<list type="CARD32" name="keys">
 		    <fieldref>num_keys</fieldref>
@@ -1735,6 +1742,7 @@ This affects the following:
 	    </case>
 	    <case name="button">
 		<enumref ref="DeviceClassType">Button</enumref>
+		<required_start_align align="4" offset="2" />
 		<field type="CARD16"   name="num_buttons" />
 		<list type="CARD32"    name="state">
 		    <op op="/">
@@ -1751,6 +1759,7 @@ This affects the following:
 	    </case>
 	    <case name="valuator">
 		<enumref ref="DeviceClassType">Valuator</enumref>
+		<required_start_align align="4" offset="2" />
 		<field type="CARD16"   name="number" />
 		<field type="ATOM"     name="label" />
 		<field type="FP3232"   name="min" />
@@ -1762,6 +1771,7 @@ This affects the following:
 	    </case>
 	    <case name="scroll">
 		<enumref ref="DeviceClassType">Scroll</enumref>
+                <required_start_align align="4" offset="2" />
 		<field type="CARD16"   name="number" />
 		<field type="CARD16"   name="scroll_type" enum="ScrollType" />
 		<pad bytes="2" />

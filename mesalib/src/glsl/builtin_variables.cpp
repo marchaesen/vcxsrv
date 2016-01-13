@@ -951,6 +951,11 @@ builtin_variable_generator::generate_vs_special_vars()
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceIDARB");
    if (state->ARB_draw_instanced_enable || state->is_version(140, 300))
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceID");
+   if (state->ARB_shader_draw_parameters_enable) {
+      add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertexARB");
+      add_system_value(SYSTEM_VALUE_BASE_INSTANCE, int_t, "gl_BaseInstanceARB");
+      add_system_value(SYSTEM_VALUE_DRAW_ID, int_t, "gl_DrawIDARB");
+   }
    if (state->AMD_vertex_shader_layer_enable) {
       var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
       var->data.interpolation = INTERP_QUALIFIER_FLAT;
@@ -1052,8 +1057,16 @@ builtin_variable_generator::generate_fs_special_vars()
 {
    ir_variable *var;
 
-   add_input(VARYING_SLOT_POS, vec4_t, "gl_FragCoord");
-   add_input(VARYING_SLOT_FACE, bool_t, "gl_FrontFacing");
+   if (this->state->ctx->Const.GLSLFragCoordIsSysVal)
+      add_system_value(SYSTEM_VALUE_FRAG_COORD, vec4_t, "gl_FragCoord");
+   else
+      add_input(VARYING_SLOT_POS, vec4_t, "gl_FragCoord");
+
+   if (this->state->ctx->Const.GLSLFrontFacingIsSysVal)
+      add_system_value(SYSTEM_VALUE_FRONT_FACE, bool_t, "gl_FrontFacing");
+   else
+      add_input(VARYING_SLOT_FACE, bool_t, "gl_FrontFacing");
+
    if (state->is_version(120, 100))
       add_input(VARYING_SLOT_PNTC, vec2_t, "gl_PointCoord");
 

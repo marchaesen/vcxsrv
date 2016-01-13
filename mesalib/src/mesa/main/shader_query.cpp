@@ -56,7 +56,7 @@ const type * RESOURCE_ ## name (gl_program_resource *res) { \
    return (type *) res->Data; \
 }
 
-DECL_RESOURCE_FUNC(VAR, ir_variable);
+DECL_RESOURCE_FUNC(VAR, gl_shader_variable);
 DECL_RESOURCE_FUNC(UBO, gl_uniform_block);
 DECL_RESOURCE_FUNC(UNI, gl_uniform_storage);
 DECL_RESOURCE_FUNC(ATC, gl_active_atomic_buffer);
@@ -101,14 +101,14 @@ _mesa_BindAttribLocation(GLhandleARB program, GLuint index,
 }
 
 static bool
-is_active_attrib(const ir_variable *var)
+is_active_attrib(const gl_shader_variable *var)
 {
    if (!var)
       return false;
 
-   switch (var->data.mode) {
+   switch (var->mode) {
    case ir_var_shader_in:
-      return var->data.location != -1;
+      return var->location != -1;
 
    case ir_var_system_value:
       /* From GL 4.3 core spec, section 11.1.1 (Vertex Attributes):
@@ -116,9 +116,9 @@ is_active_attrib(const ir_variable *var)
        * are enumerated, including the special built-in inputs gl_VertexID
        * and gl_InstanceID."
        */
-      return var->data.location == SYSTEM_VALUE_VERTEX_ID ||
-             var->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE ||
-             var->data.location == SYSTEM_VALUE_INSTANCE_ID;
+      return var->location == SYSTEM_VALUE_VERTEX_ID ||
+             var->location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE ||
+             var->location == SYSTEM_VALUE_INSTANCE_ID;
 
    default:
       return false;
@@ -163,7 +163,7 @@ _mesa_GetActiveAttrib(GLhandleARB program, GLuint desired_index,
       return;
    }
 
-   const ir_variable *const var = RESOURCE_VAR(res);
+   const gl_shader_variable *const var = RESOURCE_VAR(res);
 
    if (!is_active_attrib(var))
       return;
@@ -174,8 +174,8 @@ _mesa_GetActiveAttrib(GLhandleARB program, GLuint desired_index,
     * consider gl_VertexIDMESA as gl_VertexID for purposes of checking
     * active attributes.
     */
-   if (var->data.mode == ir_var_system_value &&
-       var->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
+   if (var->mode == ir_var_system_value &&
+       var->location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
       var_name = "gl_VertexID";
    }
 
@@ -427,7 +427,7 @@ _mesa_GetFragDataLocation(GLuint program, const GLchar *name)
 const char*
 _mesa_program_resource_name(struct gl_program_resource *res)
 {
-   const ir_variable *var;
+   const gl_shader_variable *var;
    switch (res->Type) {
    case GL_UNIFORM_BLOCK:
    case GL_SHADER_STORAGE_BLOCK:
@@ -437,8 +437,8 @@ _mesa_program_resource_name(struct gl_program_resource *res)
    case GL_PROGRAM_INPUT:
       var = RESOURCE_VAR(res);
       /* Special case gl_VertexIDMESA -> gl_VertexID. */
-      if (var->data.mode == ir_var_system_value &&
-          var->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
+      if (var->mode == ir_var_system_value &&
+          var->location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
          return "gl_VertexID";
       }
    /* fallthrough */
@@ -764,8 +764,12 @@ _mesa_program_resource_find_index(struct gl_shader_program *shProg,
 static bool
 add_index_to_name(struct gl_program_resource *res)
 {
-   bool add_index = !(((res->Type == GL_PROGRAM_INPUT) &&
-                       res->StageReferences & (1 << MESA_SHADER_GEOMETRY)));
+   bool add_index = !((res->Type == GL_PROGRAM_INPUT &&
+                       res->StageReferences & (1 << MESA_SHADER_GEOMETRY |
+                                               1 << MESA_SHADER_TESS_CTRL |
+                                               1 << MESA_SHADER_TESS_EVAL)) ||
+                      (res->Type == GL_PROGRAM_OUTPUT &&
+                       res->StageReferences & 1 << MESA_SHADER_TESS_CTRL));
 
    /* Transform feedback varyings have array index already appended
     * in their names.
@@ -853,14 +857,14 @@ program_resource_location(struct gl_shader_program *shProg,
     */
    switch (res->Type) {
    case GL_PROGRAM_INPUT: {
-      const ir_variable *var = RESOURCE_VAR(res);
+      const gl_shader_variable *var = RESOURCE_VAR(res);
 
       /* If the input is an array, fail if the index is out of bounds. */
       if (array_index > 0
           && array_index >= var->type->length) {
          return -1;
       }
-      return (var->data.location +
+      return (var->location +
 	      (array_index * var->type->without_array()->matrix_columns) -
 	      VERT_ATTRIB_GENERIC0);
    }
@@ -870,7 +874,7 @@ program_resource_location(struct gl_shader_program *shProg,
           && array_index >= RESOURCE_VAR(res)->type->length) {
          return -1;
       }
-      return RESOURCE_VAR(res)->data.location + array_index - FRAG_RESULT_DATA0;
+      return RESOURCE_VAR(res)->location + array_index - FRAG_RESULT_DATA0;
    case GL_UNIFORM:
       /* If the uniform is built-in, fail. */
       if (RESOURCE_UNI(res)->builtin)
@@ -950,7 +954,7 @@ _mesa_program_resource_location_index(struct gl_shader_program *shProg,
    if (!res || !(res->StageReferences & (1 << MESA_SHADER_FRAGMENT)))
       return -1;
 
-   return RESOURCE_VAR(res)->data.index;
+   return RESOURCE_VAR(res)->index;
 }
 
 static uint8_t
@@ -1248,7 +1252,7 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
    case GL_LOCATION_INDEX:
       if (res->Type != GL_PROGRAM_OUTPUT)
          goto invalid_operation;
-      *val = RESOURCE_VAR(res)->data.index;
+      *val = RESOURCE_VAR(res)->index;
       return 1;
 
    case GL_NUM_COMPATIBLE_SUBROUTINES:
@@ -1305,7 +1309,7 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
       switch (res->Type) {
       case GL_PROGRAM_INPUT:
       case GL_PROGRAM_OUTPUT:
-         *val = RESOURCE_VAR(res)->data.patch;
+         *val = RESOURCE_VAR(res)->patch;
          return 1;
       default:
          goto invalid_operation;
@@ -1373,46 +1377,107 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
 }
 
 static bool
-validate_io(const struct gl_shader *input_stage,
-            const struct gl_shader *output_stage, bool isES)
+validate_io(const struct gl_shader *producer,
+            const struct gl_shader *consumer, bool isES)
 {
-   assert(input_stage && output_stage);
+   assert(producer && consumer);
+   unsigned inputs = 0, outputs = 0;
+
+   /* From OpenGL ES 3.1 spec (Interface matching):
+    *
+    *    "An output variable is considered to match an input variable in the
+    *    subsequent shader if:
+    *
+    *    - the two variables match in name, type, and qualification; or
+    *    - the two variables are declared with the same location qualifier and
+    *      match in type and qualification.
+    *
+    *    ...
+    *
+    *    At an interface between program objects, the set of inputs and outputs
+    *    are considered to match exactly if and only if:
+    *
+    *    - Every declared input variable has a matching output, as described
+    *    above.
+    *
+    *    - There are no user-defined output variables declared without a
+    *    matching input variable declaration.
+    *
+    *    - All matched input and output variables have identical precision
+    *    qualification.
+    *
+    *    When the set of inputs and outputs on an interface between programs
+    *    matches exactly, all inputs are well-defined except when the
+    *    corresponding outputs were not written in the previous shader. However,
+    *    any mismatch between inputs and outputs will result in a validation
+    *    failure."
+    *
+    * OpenGL Core 4.5 spec includes same paragraph as above but without check
+    * for precision and the last 'validation failure' clause. Therefore
+    * behaviour is more relaxed, input and output amount is not required by the
+    * spec to be validated.
+    *
+    * FIXME: Update once Khronos spec bug #15331 is resolved.
+    * FIXME: Add validation by type, currently information loss during varying
+    * packing makes this challenging.
+    */
+
+   /* Currently no matching done for desktop. */
+   if (!isES)
+      return true;
 
    /* For each output in a, find input in b and do any required checks. */
-   foreach_in_list(ir_instruction, out, input_stage->ir) {
+   foreach_in_list(ir_instruction, out, producer->ir) {
       ir_variable *out_var = out->as_variable();
-      if (!out_var || out_var->data.mode != ir_var_shader_out)
+      if (!out_var || out_var->data.mode != ir_var_shader_out ||
+          is_gl_identifier(out_var->name))
          continue;
 
-      foreach_in_list(ir_instruction, in, output_stage->ir) {
+      outputs++;
+
+      inputs = 0;
+      foreach_in_list(ir_instruction, in, consumer->ir) {
          ir_variable *in_var = in->as_variable();
-         if (!in_var || in_var->data.mode != ir_var_shader_in)
+         if (!in_var || in_var->data.mode != ir_var_shader_in ||
+             is_gl_identifier(in_var->name))
             continue;
 
-         if (strcmp(in_var->name, out_var->name) == 0) {
-            /* Since we now only validate precision, we can skip this step for
-             * desktop GLSL shaders, there precision qualifier is ignored.
-             *
-             * From OpenGL 4.50 Shading Language spec, section 4.7:
-             *     "For the purposes of determining if an output from one
-             *     shader stage matches an input of the next stage, the
-             *     precision qualifier need not match."
+         inputs++;
+
+         /* Match by location qualifier and precision.
+          *
+          * FIXME: Add explicit location matching validation here. Be careful
+          * not to match varyings with explicit locations to varyings without
+          * explicit locations.
+          */
+         if ((in_var->data.explicit_location &&
+             out_var->data.explicit_location) &&
+             in_var->data.location == out_var->data.location &&
+             in_var->data.precision == out_var->data.precision)
+            continue;
+
+         unsigned len = strlen(in_var->name);
+
+         /* Handle input swizzle in variable name. */
+         const char *dot = strchr(in_var->name, '.');
+         if (dot)
+            len = dot - in_var->name;
+
+         /* Match by name and precision. */
+         if (strncmp(in_var->name, out_var->name, len) == 0) {
+            /* From OpenGL ES 3.1 spec:
+             *     "When both shaders are in separate programs, mismatched
+             *     precision qualifiers will result in a program interface
+             *     mismatch that will result in program pipeline validation
+             *     failures, as described in section 7.4.1 (“Shader Interface
+             *     Matching”) of the OpenGL ES 3.1 Specification."
              */
-            if (isES) {
-               /* From OpenGL ES 3.1 spec:
-                *     "When both shaders are in separate programs, mismatched
-                *     precision qualifiers will result in a program interface
-                *     mismatch that will result in program pipeline validation
-                *     failures, as described in section 7.4.1 (“Shader Interface
-                *     Matching”) of the OpenGL ES 3.1 Specification."
-                */
-               if (in_var->data.precision != out_var->data.precision)
-                  return false;
-            }
+            if (in_var->data.precision != out_var->data.precision)
+               return false;
          }
       }
    }
-   return true;
+   return inputs == outputs;
 }
 
 /**
@@ -1435,6 +1500,13 @@ _mesa_validate_pipeline_io(struct gl_pipeline_object *pipeline)
 
    for (idx = prev + 1; idx < ARRAY_SIZE(pipeline->CurrentProgram); idx++) {
       if (shProg[idx]) {
+         /* Pipeline might include both non-compute and a compute program, do
+          * not attempt to validate varyings between non-compute and compute
+          * stage.
+          */
+         if (shProg[idx]->_LinkedShaders[idx]->Stage == MESA_SHADER_COMPUTE)
+            break;
+
          if (!validate_io(shProg[prev]->_LinkedShaders[prev],
                           shProg[idx]->_LinkedShaders[idx],
                           shProg[prev]->IsES || shProg[idx]->IsES))

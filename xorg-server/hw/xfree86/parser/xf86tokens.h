@@ -286,7 +286,17 @@ typedef enum {
     MATCH_IS_JOYSTICK,
     MATCH_IS_TABLET,
     MATCH_IS_TOUCHPAD,
-    MATCH_IS_TOUCHSCREEN
+    MATCH_IS_TOUCHSCREEN,
+
+    NOMATCH_PRODUCT,
+    NOMATCH_VENDOR,
+    NOMATCH_DEVICE_PATH,
+    NOMATCH_OS,
+    NOMATCH_PNPID,
+    NOMATCH_USBID,
+    NOMATCH_DRIVER,
+    NOMATCH_TAG,
+    NOMATCH_LAYOUT,
 } ParserTokens;
 
 #endif                          /* _xf86_tokens_h */

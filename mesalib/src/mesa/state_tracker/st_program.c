@@ -112,8 +112,6 @@ delete_fp_variant(struct st_context *st, struct st_fp_variant *fpv)
 {
    if (fpv->driver_shader) 
       cso_delete_fragment_shader(st->cso_context, fpv->driver_shader);
-   if (fpv->parameters)
-      _mesa_free_parameter_list(fpv->parameters);
    free(fpv);
 }
 
@@ -583,8 +581,11 @@ st_translate_fragment_program(struct st_context *st,
 
    memset(inputSlotToAttr, ~0, sizeof(inputSlotToAttr));
 
-   if (!stfp->glsl_to_tgsi)
+   if (!stfp->glsl_to_tgsi) {
       _mesa_remove_output_reads(&stfp->Base.Base, PROGRAM_OUTPUT);
+      if (st->ctx->Const.GLSLFragCoordIsSysVal)
+         _mesa_program_fragment_position_to_sysval(&stfp->Base.Base);
+   }
 
    /*
     * Convert Mesa program inputs to TGSI input register semantics.
@@ -914,8 +915,6 @@ st_create_fp_variant(struct st_context *st,
          if (tgsi.tokens != stfp->tgsi.tokens)
             tgsi_free_tokens(tgsi.tokens);
          tgsi.tokens = tokens;
-         variant->parameters =
-            _mesa_clone_parameter_list(stfp->Base.Base.Parameters);
       } else
          fprintf(stderr, "mesa: cannot create a shader for glBitmap\n");
    }
@@ -924,6 +923,7 @@ st_create_fp_variant(struct st_context *st,
    if (key->drawpixels) {
       const struct tgsi_token *tokens;
       unsigned scale_const = 0, bias_const = 0, texcoord_const = 0;
+      struct gl_program_parameter_list *params = stfp->Base.Base.Parameters;
 
       /* Find the first unused slot. */
       variant->drawpix_sampler = ffs(~stfp->Base.Base.SamplersUsed) - 1;
@@ -935,27 +935,21 @@ st_create_fp_variant(struct st_context *st,
          variant->pixelmap_sampler = ffs(~samplers_used) - 1;
       }
 
-      variant->parameters =
-         _mesa_clone_parameter_list(stfp->Base.Base.Parameters);
-
       if (key->scaleAndBias) {
          static const gl_state_index scale_state[STATE_LENGTH] =
             { STATE_INTERNAL, STATE_PT_SCALE };
          static const gl_state_index bias_state[STATE_LENGTH] =
             { STATE_INTERNAL, STATE_PT_BIAS };
 
-         scale_const = _mesa_add_state_reference(variant->parameters,
-                                                 scale_state);
-         bias_const = _mesa_add_state_reference(variant->parameters,
-                                                bias_state);
+         scale_const = _mesa_add_state_reference(params, scale_state);
+         bias_const = _mesa_add_state_reference(params, bias_state);
       }
 
       {
          static const gl_state_index state[STATE_LENGTH] =
             { STATE_INTERNAL, STATE_CURRENT_ATTRIB, VERT_ATTRIB_TEX0 };
 
-         texcoord_const = _mesa_add_state_reference(variant->parameters,
-                                                    state);
+         texcoord_const = _mesa_add_state_reference(params, state);
       }
 
       tokens = st_get_drawpix_shader(tgsi.tokens,

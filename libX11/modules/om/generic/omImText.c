@@ -29,10 +29,6 @@
 #include "Xlibint.h"
 #include "XomGeneric.h"
 
-#if 0
-extern int _XomGenericTextExtents(), _XomGenericDrawString();
-#endif
-
 #define GET_VALUE_MASK	(GCFunction | GCForeground | GCBackground | GCFillStyle)
 #define SET_VALUE_MASK	(GCFunction | GCForeground | GCFillStyle)
 

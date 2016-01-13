@@ -80,7 +80,6 @@ struct st_fp_variant
    void *driver_shader;
 
    /** For glBitmap variants */
-   struct gl_program_parameter_list *parameters;
    uint bitmap_sampler;
 
    /** For glDrawPixels variants */
@@ -406,12 +405,12 @@ st_get_gp_variant(struct st_context *st,
 
 extern struct st_tcp_variant *
 st_get_tcp_variant(struct st_context *st,
-                   struct st_tessctrl_program *stgp,
+                   struct st_tessctrl_program *sttcp,
                    const struct st_tcp_variant_key *key);
 
 extern struct st_tep_variant *
 st_get_tep_variant(struct st_context *st,
-                   struct st_tesseval_program *stgp,
+                   struct st_tesseval_program *sttep,
                    const struct st_tep_variant_key *key);
 
 extern void
@@ -428,11 +427,11 @@ st_release_gp_variants(struct st_context *st,
 
 extern void
 st_release_tcp_variants(struct st_context *st,
-                        struct st_tessctrl_program *stgp);
+                        struct st_tessctrl_program *sttcp);
 
 extern void
 st_release_tep_variants(struct st_context *st,
-                        struct st_tesseval_program *stgp);
+                        struct st_tesseval_program *sttep);
 
 extern void
 st_destroy_program_variants(struct st_context *st);

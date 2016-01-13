@@ -648,14 +648,6 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 data.u[c] = bitcast_f2u(op[0]->value.f[c]);
       }
       break;
-   case ir_unop_any:
-      assert(op[0]->type->is_boolean());
-      data.b[0] = false;
-      for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 if (op[0]->value.b[c])
-	    data.b[0] = true;
-      }
-      break;
    case ir_unop_d2f:
       assert(op[0]->type->base_type == GLSL_TYPE_DOUBLE);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
@@ -1832,9 +1824,7 @@ ir_swizzle::constant_expression_value(struct hash_table *variable_context)
 ir_constant *
 ir_dereference_variable::constant_expression_value(struct hash_table *variable_context)
 {
-   /* This may occur during compile and var->type is glsl_type::error_type */
-   if (!var)
-      return NULL;
+   assert(var);
 
    /* Give priority to the context hashtable, if it exists */
    if (variable_context) {

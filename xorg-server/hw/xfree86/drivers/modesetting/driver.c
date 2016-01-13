@@ -90,6 +90,10 @@ static const struct pci_id_match ms_device_match[] = {
 };
 #endif
 
+#ifndef XSERVER_PLATFORM_BUS
+struct xf86_platform_device;
+#endif
+
 #ifdef XSERVER_PLATFORM_BUS
 static Bool ms_platform_probe(DriverPtr driver,
                               int entity_num, int flags,

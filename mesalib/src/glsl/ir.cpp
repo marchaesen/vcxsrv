@@ -307,10 +307,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = glsl_type::uvec2_type;
       break;
 
-   case ir_unop_any:
-      this->type = glsl_type::bool_type;
-      break;
-
    case ir_unop_pack_snorm_2x16:
    case ir_unop_pack_snorm_4x8:
    case ir_unop_pack_unorm_2x16:
@@ -538,7 +534,6 @@ static const char *const operator_strs[] = {
    "bitcast_f2i",
    "bitcast_u2f",
    "bitcast_f2u",
-   "any",
    "trunc",
    "ceil",
    "floor",
@@ -1679,7 +1674,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.mode = mode;
    this->data.interpolation = INTERP_QUALIFIER_NONE;
    this->data.max_array_access = 0;
-   this->data.atomic.offset = 0;
+   this->data.offset = 0;
    this->data.precision = GLSL_PRECISION_NONE;
    this->data.image_read_only = false;
    this->data.image_write_only = false;

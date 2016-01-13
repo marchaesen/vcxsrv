@@ -33,7 +33,6 @@
 #include "pipe/p_defines.h"
 #include "st_context.h"
 #include "st_atom.h"
-#include "st_cb_bitmap.h"
 #include "st_program.h"
 #include "st_manager.h"
 
@@ -96,27 +95,26 @@ void st_destroy_atoms( struct st_context *st )
 }
 
 
-/***********************************************************************
- */
 
-static GLboolean check_state( const struct st_state_flags *a,
-			      const struct st_state_flags *b )
+static bool
+check_state(const struct st_state_flags *a, const struct st_state_flags *b)
 {
-   return ((a->mesa & b->mesa) ||
-	   (a->st & b->st));
+   return (a->mesa & b->mesa) || (a->st & b->st);
 }
 
-static void accumulate_state( struct st_state_flags *a,
-			      const struct st_state_flags *b )
+
+static void
+accumulate_state(struct st_state_flags *a, const struct st_state_flags *b)
 {
    a->mesa |= b->mesa;
    a->st |= b->st;
 }
 
 
-static void xor_states( struct st_state_flags *result,
-			     const struct st_state_flags *a,
-			      const struct st_state_flags *b )
+static void
+xor_states(struct st_state_flags *result,
+           const struct st_state_flags *a,
+           const struct st_state_flags *b)
 {
    result->mesa = a->mesa ^ b->mesa;
    result->st = a->st ^ b->st;
@@ -181,14 +179,11 @@ void st_validate_state( struct st_context *st )
 
    check_attrib_edgeflag(st);
 
-   if (state->mesa)
-      st_flush_bitmap_cache(st);
-
    check_program_state( st );
 
    st_manager_validate_framebuffers(st);
 
-   if (state->st == 0)
+   if (state->st == 0 && state->mesa == 0)
       return;
 
    /*printf("%s %x/%x\n", __func__, state->mesa, state->st);*/
@@ -245,6 +240,3 @@ void st_validate_state( struct st_context *st )
 
    memset(state, 0, sizeof(*state));
 }
-
-
-

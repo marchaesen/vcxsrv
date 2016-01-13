@@ -266,7 +266,7 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
 /* This function resizes the array types of the block so that later we can use
  * this new size to correctly calculate the offest for indirect indexing.
  */
-const glsl_type *
+static const glsl_type *
 resize_block_array(const glsl_type *type,
                    struct uniform_block_array_elements *ub_array)
 {

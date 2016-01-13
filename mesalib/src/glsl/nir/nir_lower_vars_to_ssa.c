@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 #include "nir_vla.h"
 
 
@@ -590,6 +591,9 @@ add_phi_sources(nir_block *block, nir_block *pred,
 static bool
 rename_variables_block(nir_block *block, struct lower_variables_state *state)
 {
+   nir_builder b;
+   nir_builder_init(&b, state->impl);
+
    nir_foreach_instr_safe(block, instr) {
       if (instr->type == nir_instr_type_phi) {
          nir_phi_instr *phi = nir_instr_as_phi(instr);
@@ -675,20 +679,40 @@ rename_variables_block(nir_block *block, struct lower_variables_state *state)
 
             assert(intrin->src[0].is_ssa);
 
-            nir_alu_instr *mov = nir_alu_instr_create(state->shader,
-                                                      nir_op_imov);
-            mov->src[0].src.is_ssa = true;
-            mov->src[0].src.ssa = intrin->src[0].ssa;
-            for (unsigned i = intrin->num_components; i < 4; i++)
-               mov->src[0].swizzle[i] = 0;
+            nir_ssa_def *new_def;
+            b.cursor = nir_before_instr(&intrin->instr);
 
-            mov->dest.write_mask = (1 << intrin->num_components) - 1;
-            nir_ssa_dest_init(&mov->instr, &mov->dest.dest,
-                              intrin->num_components, NULL);
+            if (intrin->const_index[0] == (1 << intrin->num_components) - 1) {
+               /* Whole variable store - just copy the source.  Note that
+                * intrin->num_components and intrin->src[0].ssa->num_components
+                * may differ.
+                */
+               unsigned swiz[4];
+               for (unsigned i = 0; i < 4; i++)
+                  swiz[i] = i < intrin->num_components ? i : 0;
 
-            nir_instr_insert_before(&intrin->instr, &mov->instr);
+               new_def = nir_swizzle(&b, intrin->src[0].ssa, swiz,
+                                     intrin->num_components, false);
+            } else {
+               nir_ssa_def *old_def = get_ssa_def_for_block(node, block, state);
+               /* For writemasked store_var intrinsics, we combine the newly
+                * written values with the existing contents of unwritten
+                * channels, creating a new SSA value for the whole vector.
+                */
+               nir_ssa_def *srcs[4];
+               for (unsigned i = 0; i < intrin->num_components; i++) {
+                  if (intrin->const_index[0] & (1 << i)) {
+                     srcs[i] = nir_channel(&b, intrin->src[0].ssa, i);
+                  } else {
+                     srcs[i] = nir_channel(&b, old_def, i);
+                  }
+               }
+               new_def = nir_vec(&b, srcs, intrin->num_components);
+            }
 
-            def_stack_push(node, &mov->dest.dest.ssa, state);
+            assert(new_def->num_components == intrin->num_components);
+
+            def_stack_push(node, new_def, state);
 
             /* We'll wait to remove the instruction until the next pass
              * where we pop the node we just pushed back off the stack.
@@ -863,7 +887,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
 {
    struct lower_variables_state state;
 
-   state.shader = impl->overload->function->shader;
+   state.shader = impl->function->shader;
    state.dead_ctx = ralloc_context(state.shader);
    state.impl = impl;
 
@@ -942,8 +966,8 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
 void
 nir_lower_vars_to_ssa(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_lower_vars_to_ssa_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_lower_vars_to_ssa_impl(function->impl);
    }
 }

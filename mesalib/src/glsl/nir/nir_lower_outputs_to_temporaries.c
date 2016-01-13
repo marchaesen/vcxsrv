@@ -105,27 +105,27 @@ nir_lower_outputs_to_temporaries(nir_shader *shader)
       exec_list_push_tail(&shader->outputs, &output->node);
    }
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl == NULL)
+   nir_foreach_function(shader, function) {
+      if (function->impl == NULL)
          continue;
 
       if (shader->stage == MESA_SHADER_GEOMETRY) {
          /* For geometry shaders, we have to emit the output copies right
           * before each EmitVertex call.
           */
-         nir_foreach_block(overload->impl, emit_output_copies_block, &state);
-      } else if (strcmp(overload->function->name, "main") == 0) {
+         nir_foreach_block(function->impl, emit_output_copies_block, &state);
+      } else if (strcmp(function->name, "main") == 0) {
          /* For all other shader types, we need to do the copies right before
           * the jumps to the end block.
           */
          struct set_entry *block_entry;
-         set_foreach(overload->impl->end_block->predecessors, block_entry) {
+         set_foreach(function->impl->end_block->predecessors, block_entry) {
             struct nir_block *block = (void *)block_entry->key;
             emit_output_copies(nir_after_block_before_jump(block), &state);
          }
       }
 
-      nir_metadata_preserve(overload->impl, nir_metadata_block_index |
+      nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                             nir_metadata_dominance);
    }
 

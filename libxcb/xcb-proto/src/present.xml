@@ -88,6 +88,7 @@ OF THIS SOFTWARE.
   </request>
 
   <request name="Pixmap" opcode="1">
+    <required_start_align align="8" />
     <field type="WINDOW" name="window" />
     <field type="PIXMAP" name="pixmap" />
     <field type="CARD32" name="serial" />
@@ -107,6 +108,7 @@ OF THIS SOFTWARE.
   </request>
 
   <request name="NotifyMSC" opcode="2">
+    <required_start_align align="8" />
     <field type="WINDOW" name="window" />
     <field type="CARD32" name="serial" />
     <pad bytes="4"/>
@@ -157,6 +159,7 @@ OF THIS SOFTWARE.
   </event>
 
   <event name="CompleteNotify" number="1" xge="true">
+    <required_start_align align="8" />
     <field type="CARD8" name="kind" enum="CompleteKind" />
     <field type="CARD8" name="mode" enum="CompleteMode" />
     <field type="EVENT" name="event" />
@@ -176,6 +179,7 @@ OF THIS SOFTWARE.
   </event>
 
   <event name="RedirectNotify" number="3" xge="true">
+    <required_start_align align="8" />
     <field type="BOOL" name="update_window"/>
     <pad bytes="1"/>
     <field type="EVENT" name="event" />

@@ -18,8 +18,6 @@ NIR_GENERATED_FILES = \
 	nir/nir_opt_algebraic.c
 
 NIR_FILES = \
-	nir/glsl_to_nir.cpp \
-	nir/glsl_to_nir.h \
 	nir/glsl_types.cpp \
 	nir/glsl_types.h \
 	nir/builtin_type_macros.h \
@@ -212,6 +210,11 @@ LIBGLSL_FILES = \
 	program.h \
 	s_expression.cpp \
 	s_expression.h
+
+# glsl to nir pass
+GLSL_TO_NIR_FILES = \
+	nir/glsl_to_nir.cpp \
+	nir/glsl_to_nir.h
 
 # glsl_compiler
 

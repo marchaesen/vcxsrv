@@ -431,6 +431,7 @@ CreateWellKnownSockets(void)
             FatalError("Failed to find a socket to listen on");
         snprintf(dynamic_display, sizeof(dynamic_display), "%d", i);
         display = dynamic_display;
+        LogSetDisplay();
     }
 
     ListenTransFds = xallocarray(ListenTransCount, sizeof (int));
@@ -522,7 +523,8 @@ CloseWellKnownConnections(void)
         if (ListenTransConns[i] != NULL) {
             _XSERVTransClose(ListenTransConns[i]);
             ListenTransConns[i] = NULL;
-            RemoveNotifyFd(ListenTransFds[i]);
+            if (ListenTransFds != NULL)
+                RemoveNotifyFd(ListenTransFds[i]);
         }
     }
     ListenTransCount = 0;

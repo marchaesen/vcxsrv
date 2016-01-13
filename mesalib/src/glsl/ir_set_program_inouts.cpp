@@ -81,16 +81,9 @@ is_shader_inout(ir_variable *var)
           var->data.mode == ir_var_system_value;
 }
 
-static inline bool
-is_dual_slot(ir_variable *var)
-{
-   const glsl_type *type = var->type->without_array();
-   return type == glsl_type::dvec4_type || type == glsl_type::dvec3_type;
-}
-
 static void
 mark(struct gl_program *prog, ir_variable *var, int offset, int len,
-     bool is_fragment_shader)
+     gl_shader_stage stage)
 {
    /* As of GLSL 1.20, varyings can only be floats, floating-point
     * vectors or matrices, or arrays of them.  For Mesa programs using
@@ -101,7 +94,6 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
     */
 
    for (int i = 0; i < len; i++) {
-      bool dual_slot = is_dual_slot(var);
       int idx = var->data.location + var->data.index + offset + i;
       bool is_patch_generic = var->data.patch &&
                               idx != VARYING_SLOT_TESS_LEVEL_INNER &&
@@ -123,9 +115,12 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
          else
             prog->InputsRead |= bitfield;
 
-         if (dual_slot)
+         /* double inputs read is only for vertex inputs */
+         if (stage == MESA_SHADER_VERTEX &&
+             var->type->without_array()->is_dual_slot_double())
             prog->DoubleInputsRead |= bitfield;
-         if (is_fragment_shader) {
+
+         if (stage == MESA_SHADER_FRAGMENT) {
             gl_fragment_program *fprog = (gl_fragment_program *) prog;
             fprog->InterpQualifier[idx] =
                (glsl_interp_qualifier) var->data.interpolation;
@@ -154,6 +149,7 @@ void
 ir_set_program_inouts_visitor::mark_whole_variable(ir_variable *var)
 {
    const glsl_type *type = var->type;
+   bool vertex_input = false;
    if (this->shader_stage == MESA_SHADER_GEOMETRY &&
        var->data.mode == ir_var_shader_in && type->is_array()) {
       type = type->fields.array;
@@ -177,8 +173,12 @@ ir_set_program_inouts_visitor::mark_whole_variable(ir_variable *var)
       type = type->fields.array;
    }
 
-   mark(this->prog, var, 0, type->count_attribute_slots(),
-        this->shader_stage == MESA_SHADER_FRAGMENT);
+   if (this->shader_stage == MESA_SHADER_VERTEX &&
+       var->data.mode == ir_var_shader_in)
+      vertex_input = true;
+
+   mark(this->prog, var, 0, type->count_attribute_slots(vertex_input),
+        this->shader_stage);
 }
 
 /* Default handler: Mark all the locations in the variable as used. */
@@ -301,8 +301,15 @@ ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
       return false;
    }
 
+   /* double element width for double types that takes two slots */
+   if (this->shader_stage != MESA_SHADER_VERTEX ||
+       var->data.mode != ir_var_shader_in) {
+      if (type->without_array()->is_dual_slot_double())
+	 elem_width *= 2;
+   }
+
    mark(this->prog, var, index_as_constant->value.u[0] * elem_width,
-        elem_width, this->shader_stage == MESA_SHADER_FRAGMENT);
+        elem_width, this->shader_stage);
    return true;
 }
 

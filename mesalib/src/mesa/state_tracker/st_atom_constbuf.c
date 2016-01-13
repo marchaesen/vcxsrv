@@ -84,6 +84,7 @@ void st_upload_constants( struct st_context *st,
          cb.buffer = NULL;
          cb.user_buffer = NULL;
          u_upload_data(st->constbuf_uploader, 0, paramBytes,
+                       st->ctx->Const.UniformBufferOffsetAlignment,
                        params->ParameterValues, &cb.buffer_offset, &cb.buffer);
          u_upload_unmap(st->constbuf_uploader);
       } else {

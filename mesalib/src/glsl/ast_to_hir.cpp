@@ -106,6 +106,15 @@ public:
       return found;
    }
 
+   virtual ir_visitor_status visit_enter(ir_expression *ir)
+   {
+      /* .length() doesn't actually read anything */
+      if (ir->operation == ir_unop_ssbo_unsized_array_length)
+         return visit_continue_with_parent;
+
+      return visit_continue;
+   }
+
 private:
    ir_variable *found;
 };
@@ -3105,7 +3114,7 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
                _mesa_glsl_error(loc, state,
                                 "misaligned atomic counter offset");
 
-            var->data.atomic.offset = *offset;
+            var->data.offset = *offset;
             *offset += var->type->atomic_size();
 
          } else {
@@ -3517,7 +3526,7 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
               state->is_version(150, 0))
               && strcmp(var->name, "gl_FragCoord") == 0
               && earlier->type == var->type
-              && earlier->data.mode == var->data.mode) {
+              && var->data.mode == ir_var_shader_in) {
       /* Allow redeclaration of gl_FragCoord for ARB_fcc layout
        * qualifiers.
        */
@@ -6169,7 +6178,7 @@ ast_type_specifier::hir(exec_list *instructions,
  * The number of fields processed.  A pointer to the array structure fields is
  * stored in \c *fields_ret.
  */
-unsigned
+static unsigned
 ast_process_struct_or_iface_block_members(exec_list *instructions,
                                           struct _mesa_glsl_parse_state *state,
                                           exec_list *declarations,
@@ -6375,12 +6384,13 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
             if (process_qualifier_constant(state, &loc, "location",
                                            qual->location, &qual_location)) {
                fields[i].location = VARYING_SLOT_VAR0 + qual_location;
-               expl_location = fields[i].location + 1;
+               expl_location = fields[i].location +
+                  fields[i].type->count_attribute_slots(false);
             }
          } else {
             if (layout && layout->flags.q.explicit_location) {
                fields[i].location = expl_location;
-               expl_location = expl_location + 1;
+               expl_location += fields[i].type->count_attribute_slots(false);
             } else {
                fields[i].location = -1;
             }
@@ -6484,7 +6494,7 @@ ast_struct_specifier::hir(exec_list *instructions,
 
    state->struct_specifier_depth++;
 
-   unsigned expl_location = -1;
+   unsigned expl_location = 0;
    if (layout && layout->flags.q.explicit_location) {
       if (!process_qualifier_constant(state, &loc, "location",
                                       layout->location, &expl_location)) {
@@ -6671,7 +6681,7 @@ ast_interface_block::hir(exec_list *instructions,
       return NULL;
    }
 
-   unsigned expl_location = -1;
+   unsigned expl_location = 0;
    if (layout.flags.q.explicit_location) {
       if (!process_qualifier_constant(state, &loc, "location",
                                       layout.location, &expl_location)) {

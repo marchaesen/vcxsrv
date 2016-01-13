@@ -2506,6 +2506,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 
               if (extensions->ARB_shader_subroutine)
                  add_builtin_define(parser, "GL_ARB_shader_subroutine", 1);
+
+              if (extensions->ARB_shader_draw_parameters)
+                 add_builtin_define(parser, "GL_ARB_shader_draw_parameters", 1);
 	   }
 	}
 

@@ -83,9 +83,9 @@ nir_opt_cse(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress |= nir_opt_cse_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress |= nir_opt_cse_impl(function->impl);
    }
 
    return progress;

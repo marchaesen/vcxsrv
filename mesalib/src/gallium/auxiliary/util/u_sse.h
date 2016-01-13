@@ -166,14 +166,49 @@ _mm_shuffle_epi8(__m128i a, __m128i mask)
 #endif /* !PIPE_ARCH_SSSE3 */
 
 
+/*
+ * Provide an SSE implementation of _mm_mul_epi32() in terms of
+ * _mm_mul_epu32().
+ *
+ * Basically, albeit surprising at first (and second, and third...) look
+ * if a * b is done signed instead of unsigned, can just
+ * subtract b from the high bits of the result if a is negative
+ * (and the same for a if b is negative). Modular arithmetic at its best!
+ *
+ * So for int32 a,b in crude pseudo-code ("*" here denoting a widening mul)
+ * fixupb = (signmask(b) & a) << 32ULL
+ * fixupa = (signmask(a) & b) << 32ULL
+ * a * b = (unsigned)a * (unsigned)b - fixupb - fixupa
+ * = (unsigned)a * (unsigned)b -(fixupb + fixupa)
+ *
+ * This does both lo (dwords 0/2) and hi parts (1/3) at the same time due
+ * to some optimization potential.
+ */
+static inline __m128i
+mm_mullohi_epi32(const __m128i a, const __m128i b, __m128i *res13)
+{
+   __m128i a13, b13, mul02, mul13;
+   __m128i anegmask, bnegmask, fixup, fixup02, fixup13;
+   a13 = _mm_shuffle_epi32(a, _MM_SHUFFLE(2,3,0,1));
+   b13 = _mm_shuffle_epi32(b, _MM_SHUFFLE(2,3,0,1));
+   anegmask = _mm_srai_epi32(a, 31);
+   bnegmask = _mm_srai_epi32(b, 31);
+   fixup = _mm_add_epi32(_mm_and_si128(anegmask, b),
+                         _mm_and_si128(bnegmask, a));
+   mul02 = _mm_mul_epu32(a, b);
+   mul13 = _mm_mul_epu32(a13, b13);
+   fixup02 = _mm_slli_epi64(fixup, 32);
+   fixup13 = _mm_and_si128(fixup, _mm_set_epi32(-1,0,-1,0));
+   *res13 = _mm_sub_epi64(mul13, fixup13);
+   return _mm_sub_epi64(mul02, fixup02);
+}
 
 
 /* Provide an SSE2 implementation of _mm_mullo_epi32() in terms of
  * _mm_mul_epu32().
  *
- * I suspect this works fine for us because one of our operands is
- * always positive, but not sure that this can be used for general
- * signed integer multiplication.
+ * This always works regardless the signs of the operands, since
+ * the high bits (which would be different) aren't used.
  *
  * This seems close enough to the speed of SSE4 and the real
  * _mm_mullo_epi32() intrinsic as to not justify adding an sse4
@@ -188,6 +223,12 @@ static inline __m128i mm_mullo_epi32(const __m128i a, const __m128i b)
 
    /* Interleave the results, either with shuffles or (slightly
     * faster) direct bit operations:
+    * XXX: might be only true for some cpus (in particular 65nm
+    * Core 2). On most cpus (including that Core 2, but not Nehalem...)
+    * using _mm_shuffle_ps/_mm_shuffle_epi32 might also be faster
+    * than using the 3 instructions below. But logic should be fine
+    * as well, we can't have optimal solution for all cpus (if anything,
+    * should just use _mm_mullo_epi32() if sse41 is available...).
     */
 #if 0
    __m128i ba8             = _mm_shuffle_epi32(ba, 8);
@@ -214,16 +255,43 @@ transpose4_epi32(const __m128i * restrict a,
                  __m128i * restrict q,
                  __m128i * restrict r)
 {
-  __m128i t0 = _mm_unpacklo_epi32(*a, *b);
-  __m128i t1 = _mm_unpacklo_epi32(*c, *d);
-  __m128i t2 = _mm_unpackhi_epi32(*a, *b);
-  __m128i t3 = _mm_unpackhi_epi32(*c, *d);
+   __m128i t0 = _mm_unpacklo_epi32(*a, *b);
+   __m128i t1 = _mm_unpacklo_epi32(*c, *d);
+   __m128i t2 = _mm_unpackhi_epi32(*a, *b);
+   __m128i t3 = _mm_unpackhi_epi32(*c, *d);
 
-  *o = _mm_unpacklo_epi64(t0, t1);
-  *p = _mm_unpackhi_epi64(t0, t1);
-  *q = _mm_unpacklo_epi64(t2, t3);
-  *r = _mm_unpackhi_epi64(t2, t3);
+   *o = _mm_unpacklo_epi64(t0, t1);
+   *p = _mm_unpackhi_epi64(t0, t1);
+   *q = _mm_unpacklo_epi64(t2, t3);
+   *r = _mm_unpackhi_epi64(t2, t3);
 }
+
+
+/*
+ * Same as above, except the first two values are already interleaved
+ * (i.e. contain 64bit values).
+ */
+static inline void
+transpose2_64_2_32(const __m128i * restrict a01,
+                   const __m128i * restrict a23,
+                   const __m128i * restrict c,
+                   const __m128i * restrict d,
+                   __m128i * restrict o,
+                   __m128i * restrict p,
+                   __m128i * restrict q,
+                   __m128i * restrict r)
+{
+   __m128i t0 = *a01;
+   __m128i t1 = _mm_unpacklo_epi32(*c, *d);
+   __m128i t2 = *a23;
+   __m128i t3 = _mm_unpackhi_epi32(*c, *d);
+
+   *o = _mm_unpacklo_epi64(t0, t1);
+   *p = _mm_unpackhi_epi64(t0, t1);
+   *q = _mm_unpacklo_epi64(t2, t3);
+   *r = _mm_unpackhi_epi64(t2, t3);
+}
+
 
 #define SCALAR_EPI32(m, i) _mm_shuffle_epi32((m), _MM_SHUFFLE(i,i,i,i))
 

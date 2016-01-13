@@ -417,6 +417,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       assert(instr->variables[0]->var->data.mode != nir_var_shader_in &&
              instr->variables[0]->var->data.mode != nir_var_uniform &&
              instr->variables[0]->var->data.mode != nir_var_shader_storage);
+      assert((instr->const_index[0] & ~((1 << instr->num_components) - 1)) == 0);
       break;
    }
    case nir_intrinsic_copy_var:
@@ -928,17 +929,17 @@ postvalidate_ssa_defs_block(nir_block *block, void *state)
 static void
 validate_function_impl(nir_function_impl *impl, validate_state *state)
 {
-   assert(impl->overload->impl == impl);
+   assert(impl->function->impl == impl);
    assert(impl->cf_node.parent == NULL);
 
-   assert(impl->num_params == impl->overload->num_params);
+   assert(impl->num_params == impl->function->num_params);
    for (unsigned i = 0; i < impl->num_params; i++)
-      assert(impl->params[i]->type == impl->overload->params[i].type);
+      assert(impl->params[i]->type == impl->function->params[i].type);
 
-   if (glsl_type_is_void(impl->overload->return_type))
+   if (glsl_type_is_void(impl->function->return_type))
       assert(impl->return_var == NULL);
    else
-      assert(impl->return_var->type == impl->overload->return_type);
+      assert(impl->return_var->type == impl->function->return_type);
 
    assert(exec_list_is_empty(&impl->end_block->instr_list));
    assert(impl->end_block->successors[0] == NULL);
@@ -980,20 +981,11 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
 }
 
 static void
-validate_function_overload(nir_function_overload *overload,
-                           validate_state *state)
-{
-   if (overload->impl != NULL)
-      validate_function_impl(overload->impl, state);
-}
-
-static void
 validate_function(nir_function *func, validate_state *state)
 {
-   exec_list_validate(&func->overload_list);
-   foreach_list_typed(nir_function_overload, overload, node, &func->overload_list) {
-      assert(overload->function == func);
-      validate_function_overload(overload, state);
+   if (func->impl != NULL) {
+      assert(func->impl->function == func);
+      validate_function_impl(func->impl, state);
    }
 }
 

@@ -1253,23 +1253,22 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       ctx->Driver.ValidateFramebuffer(ctx, fb);
       if (fb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
          fbo_incomplete(ctx, "driver marked FBO as incomplete", -1);
+         return;
       }
    }
 
-   if (fb->_Status == GL_FRAMEBUFFER_COMPLETE_EXT) {
-      /*
-       * Note that if ARB_framebuffer_object is supported and the attached
-       * renderbuffers/textures are different sizes, the framebuffer
-       * width/height will be set to the smallest width/height.
-       */
-      if (numImages != 0) {
-         fb->Width = minWidth;
-         fb->Height = minHeight;
-      }
-
-      /* finally, update the visual info for the framebuffer */
-      _mesa_update_framebuffer_visual(ctx, fb);
+   /*
+    * Note that if ARB_framebuffer_object is supported and the attached
+    * renderbuffers/textures are different sizes, the framebuffer
+    * width/height will be set to the smallest width/height.
+    */
+   if (numImages != 0) {
+      fb->Width = minWidth;
+      fb->Height = minHeight;
    }
+
+   /* finally, update the visual info for the framebuffer */
+   _mesa_update_framebuffer_visual(ctx, fb);
 }
 
 

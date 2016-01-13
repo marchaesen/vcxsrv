@@ -62,6 +62,10 @@ optimizations = [
    (('iadd', ('imul', a, b), ('imul', a, c)), ('imul', a, ('iadd', b, c))),
    (('fadd', ('fneg', a), a), 0.0),
    (('iadd', ('ineg', a), a), 0),
+   (('iadd', ('ineg', a), ('iadd', a, b)), b),
+   (('iadd', a, ('iadd', ('ineg', a), b)), b),
+   (('fadd', ('fneg', a), ('fadd', a, b)), b),
+   (('fadd', a, ('fadd', ('fneg', a), b)), b),
    (('fmul', a, 0.0), 0.0),
    (('imul', a, 0), 0),
    (('umul_unorm_4x8', a, 0), 0),
@@ -179,6 +183,7 @@ optimizations = [
    (('fmul', ('fexp2', a), ('fexp2', b)), ('fexp2', ('fadd', a, b))),
    # Division and reciprocal
    (('fdiv', 1.0, a), ('frcp', a)),
+   (('fdiv', a, b), ('fmul', a, ('frcp', b)), 'options->lower_fdiv'),
    (('frcp', ('frcp', a)), a),
    (('frcp', ('fsqrt', a)), ('frsq', a)),
    (('fsqrt', a), ('frcp', ('frsq', a)), 'options->lower_fsqrt'),
@@ -217,6 +222,12 @@ optimizations = [
    (('iadd', a, ('isub', 0, b)), ('isub', a, b)),
    (('fabs', ('fsub', 0.0, a)), ('fabs', a)),
    (('iabs', ('isub', 0, a)), ('iabs', a)),
+
+   # Misc. lowering
+   (('fmod', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod'),
+   (('bitfield_insert', a, b, c, d), ('bfi', ('bfm', d, c), b, a), 'options->lower_bitfield_insert'),
+   (('uadd_carry', a, b), ('b2i', ('ult', ('iadd', a, b), a)), 'options->lower_uadd_carry'),
+   (('usub_borrow', a, b), ('b2i', ('ult', a, b)), 'options->lower_usub_borrow'),
 ]
 
 # Add optimizations to handle the case where the result of a ternary is

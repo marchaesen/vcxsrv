@@ -21,6 +21,7 @@
 
 #include "st_context.h"
 #include "st_atom.h"
+#include "st_cb_bitmap.h"
 #include "st_cb_drawtex.h"
 
 #include "pipe/p_context.h"
@@ -113,6 +114,8 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    struct pipe_vertex_element velements[2 + MAX_TEXTURE_UNITS];
    unsigned offset;
 
+   st_flush_bitmap_cache(st);
+
    st_validate_state(st);
 
    /* determine if we need vertex color */
@@ -150,7 +153,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       GLuint attr;
 
       u_upload_alloc(st->uploader, 0,
-                     numAttribs * 4 * 4 * sizeof(GLfloat),
+                     numAttribs * 4 * 4 * sizeof(GLfloat), 4,
                      &offset, &vbuffer, (void **) &vbuf);
       if (!vbuffer) {
          return;

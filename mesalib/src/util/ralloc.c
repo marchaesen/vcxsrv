@@ -293,6 +293,7 @@ ralloc_adopt(const void *new_ctx, void *old_ctx)
 
    /* Connect the two lists together; parent them to new_ctx; make old_ctx empty. */
    child->next = new_info->child;
+   child->parent = new_info;
    new_info->child = old_info->child;
    old_info->child = NULL;
 }

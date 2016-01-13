@@ -727,6 +727,65 @@ error1:
    ;
 }
 
+void
+debug_dump_ubyte_rgba_bmp(const char *filename,
+                          unsigned width, unsigned height,
+                          const ubyte *rgba, unsigned stride)
+{
+   FILE *stream;
+   struct bmp_file_header bmfh;
+   struct bmp_info_header bmih;
+   unsigned x, y;
+
+   assert(rgba);
+   if(!rgba)
+      goto error1;
+
+   bmfh.bfType = 0x4d42;
+   bmfh.bfSize = 14 + 40 + height*width*4;
+   bmfh.bfReserved1 = 0;
+   bmfh.bfReserved2 = 0;
+   bmfh.bfOffBits = 14 + 40;
+
+   bmih.biSize = 40;
+   bmih.biWidth = width;
+   bmih.biHeight = height;
+   bmih.biPlanes = 1;
+   bmih.biBitCount = 32;
+   bmih.biCompression = 0;
+   bmih.biSizeImage = height*width*4;
+   bmih.biXPelsPerMeter = 0;
+   bmih.biYPelsPerMeter = 0;
+   bmih.biClrUsed = 0;
+   bmih.biClrImportant = 0;
+
+   stream = fopen(filename, "wb");
+   assert(stream);
+   if(!stream)
+      goto error1;
+
+   fwrite(&bmfh, 14, 1, stream);
+   fwrite(&bmih, 40, 1, stream);
+
+   y = height;
+   while(y--) {
+      const ubyte *ptr = rgba + (stride * y * 4);
+      for(x = 0; x < width; ++x)
+      {
+         struct bmp_rgb_quad pixel;
+         pixel.rgbRed   = ptr[x*4 + 0];
+         pixel.rgbGreen = ptr[x*4 + 1];
+         pixel.rgbBlue  = ptr[x*4 + 2];
+         pixel.rgbAlpha = ptr[x*4 + 3];
+         fwrite(&pixel, 1, 4, stream);
+      }
+   }
+
+   fclose(stream);
+error1:
+   ;
+}
+
 
 /**
  * Print PIPE_TRANSFER_x flags with a message.

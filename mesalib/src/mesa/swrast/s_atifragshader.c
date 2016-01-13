@@ -26,6 +26,8 @@
 #include "swrast/s_atifragshader.h"
 #include "swrast/s_context.h"
 
+#define ATI_FS_INPUT_PRIMARY 0
+#define ATI_FS_INPUT_SECONDARY 1
 
 /**
  * State for executing ATI fragment shader.

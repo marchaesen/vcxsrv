@@ -208,7 +208,7 @@ _mesa_validate_shader_target(const struct gl_context *ctx, GLenum type)
    case GL_TESS_EVALUATION_SHADER:
       return ctx == NULL || _mesa_has_tessellation(ctx);
    case GL_COMPUTE_SHADER:
-      return ctx == NULL || ctx->Extensions.ARB_compute_shader;
+      return ctx == NULL || _mesa_has_compute_shaders(ctx);
    default:
       return false;
    }
@@ -300,7 +300,8 @@ create_shader(struct gl_context *ctx, GLenum type)
    GLuint name;
 
    if (!_mesa_validate_shader_target(ctx, type)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "CreateShader(type)");
+      _mesa_error(ctx, GL_INVALID_ENUM, "CreateShader(%s)",
+                  _mesa_enum_to_string(type));
       return 0;
    }
 
@@ -1514,6 +1515,8 @@ void GLAPIENTRY
 _mesa_LinkProgram(GLhandleARB programObj)
 {
    GET_CURRENT_CONTEXT(ctx);
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glLinkProgram %u\n", programObj);
    link_program(ctx, programObj);
 }
 
@@ -1730,6 +1733,9 @@ _mesa_UseProgram(GLhandleARB program)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_shader_program *shProg;
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glUseProgram %u\n", program);
 
    if (_mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,

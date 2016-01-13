@@ -738,8 +738,10 @@ _mesa_MemoryBarrierByRegion(GLbitfield barriers)
        * That is, if barriers is the special value GL_ALL_BARRIER_BITS, then all
        * barriers allowed by glMemoryBarrierByRegion should be activated."
        */
-      if (barriers == GL_ALL_BARRIER_BITS)
-         return ctx->Driver.MemoryBarrier(ctx, all_allowed_bits);
+      if (barriers == GL_ALL_BARRIER_BITS) {
+         ctx->Driver.MemoryBarrier(ctx, all_allowed_bits);
+         return;
+      }
 
       /* From section 7.11.2 of the OpenGL ES 3.1 specification:
        *

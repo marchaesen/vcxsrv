@@ -293,7 +293,7 @@ _mesa_DeleteFragmentShaderATI(GLuint id)
 	 prog->RefCount--;
 	 if (prog->RefCount <= 0) {
 	    assert(prog != &DummyShader);
-	    free(prog);
+            _mesa_delete_ati_fragment_shader(ctx, prog);
 	 }
       }
    }
@@ -345,6 +345,9 @@ _mesa_BeginFragmentShaderATI(void)
    ctx->ATIFragmentShader.Current->isValid = GL_FALSE;
    ctx->ATIFragmentShader.Current->swizzlerq = 0;
    ctx->ATIFragmentShader.Compiling = 1;
+#if MESA_DEBUG_ATI_FS
+   _mesa_debug(ctx, "%s %u\n", __func__, ctx->ATIFragmentShader.Current->Id);
+#endif
 }
 
 void GLAPIENTRY

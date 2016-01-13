@@ -540,21 +540,24 @@ MatchAttrToken(const char *attr, struct xorg_list *patterns,
     if (xorg_list_is_empty(patterns))
         return TRUE;
 
-    /* If there are patterns but no attribute, reject the match */
-    if (!attr)
-        return FALSE;
-
     /*
-     * Otherwise, iterate the list of patterns ensuring each entry has a
+     * Iterate the list of patterns ensuring each entry has a
      * match. Each list entry is a separate Match line of the same type.
      */
     xorg_list_for_each_entry(group, patterns, entry) {
         char *const *cur;
-        Bool match = FALSE;
+        Bool is_negated = group->is_negated;
+        Bool match = is_negated;
+
+        /* If there's a pattern but no attribute, we reject the match for a
+         * MatchFoo directive, and accept it for a NoMatchFoo directive
+         */
+        if (!attr)
+            return is_negated;
 
         for (cur = group->values; *cur; cur++)
             if ((*compare) (attr, *cur) == 0) {
-                match = TRUE;
+                match = !is_negated;
                 break;
             }
         if (!match)
@@ -857,6 +860,17 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         goto unwind;
     }
 
+    xf86Msg(X_INFO, "Using input driver '%s' for '%s'\n", drv->driverName,
+            pInfo->name);
+
+    if (!drv->PreInit) {
+        xf86Msg(X_ERROR,
+                "Input driver `%s' has no PreInit function (ignoring)\n",
+                drv->driverName);
+        rval = BadImplementation;
+        goto unwind;
+    }
+
     path = xf86CheckStrOption(pInfo->options, "Device", NULL);
     if (path && pInfo->major == 0 && pInfo->minor == 0)
         xf86stat(path, &pInfo->major, &pInfo->minor);
@@ -883,17 +897,6 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
     }
 
     free(path);
-
-    xf86Msg(X_INFO, "Using input driver '%s' for '%s'\n", drv->driverName,
-            pInfo->name);
-
-    if (!drv->PreInit) {
-        xf86Msg(X_ERROR,
-                "Input driver `%s' has no PreInit function (ignoring)\n",
-                drv->driverName);
-        rval = BadImplementation;
-        goto unwind;
-    }
 
     xf86AddInput(drv, pInfo);
 

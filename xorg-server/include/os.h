@@ -626,6 +626,8 @@ typedef enum {
 
 extern _X_EXPORT const char *
 LogInit(const char *fname, const char *backup);
+extern void
+LogSetDisplay(void);
 extern _X_EXPORT void
 LogClose(enum ExitCode error);
 extern _X_EXPORT Bool

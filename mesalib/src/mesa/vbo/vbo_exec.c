@@ -73,7 +73,7 @@ void vbo_exec_destroy( struct gl_context *ctx )
  * invoked according to the state flags.  That will have to wait for a
  * mesa rework:
  */ 
-void vbo_exec_invalidate_state( struct gl_context *ctx, GLuint new_state )
+void vbo_exec_invalidate_state( struct gl_context *ctx, GLbitfield new_state )
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;

@@ -180,8 +180,8 @@ void
 nir_lower_samplers(nir_shader *shader,
                    const struct gl_shader_program *shader_program)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         lower_impl(overload->impl, shader_program, shader->stage);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         lower_impl(function->impl, shader_program, shader->stage);
    }
 }

@@ -168,30 +168,25 @@ _XDefaultOpenIM(
     char                *res_class)
 {
     StaticXIM im;
-    XIMStaticXIMRec *local_impart;
-    XlcConv ctom_conv, ctow_conv;
     int i;
     char *mod;
     char buf[BUFSIZ];
 
-    if (!(ctom_conv = _XlcOpenConverter(lcd,
-			XlcNCompoundText, lcd, XlcNMultiByte))) {
-	return((XIM)NULL);
-    }
+    if ((im = Xcalloc(1, sizeof(StaticXIMRec))) == NULL)
+        return NULL;
 
-    if (!(ctow_conv = _XlcOpenConverter(lcd,
-			XlcNCompoundText, lcd, XlcNWideChar))) {
-	return((XIM)NULL);
-    }
+    if ((im->private = Xcalloc(1, sizeof(XIMStaticXIMRec))) == NULL)
+        goto Error;
 
-    if ((im = Xcalloc(1, sizeof(StaticXIMRec))) == (StaticXIM)NULL) {
-	return((XIM)NULL);
-    }
-    if ((local_impart = Xcalloc(1, sizeof(XIMStaticXIMRec)))
-	== (XIMStaticXIMRec *)NULL) {
-	Xfree(im);
-	return((XIM)NULL);
-    }
+    if ((im->private->ctom_conv = _XlcOpenConverter(lcd, XlcNCompoundText,
+                                                    lcd, XlcNMultiByte))
+        == NULL)
+        goto Error;
+
+    if ((im->private->ctow_conv = _XlcOpenConverter(lcd, XlcNCompoundText,
+                                                    lcd, XlcNWideChar))
+        == NULL)
+        goto Error;
 
     buf[0] = '\0';
     i = 0;
@@ -207,11 +202,9 @@ _XDefaultOpenIM(
 	}
     }
 #undef MODIFIER
-    if ((im->core.im_name = Xmalloc(i+1)) == NULL)
-	goto Error2;
-    strcpy(im->core.im_name, buf);
+    if ((im->core.im_name = strdup(buf)) == NULL)
+	goto Error;
 
-    im->private = local_impart;
     im->methods        = (XIMMethods)&local_im_methods;
     im->core.lcd       = lcd;
     im->core.ic_chain  = (XIC)NULL;
@@ -219,9 +212,6 @@ _XDefaultOpenIM(
     im->core.rdb       = rdb;
     im->core.res_name  = NULL;
     im->core.res_class = NULL;
-
-    local_impart->ctom_conv = ctom_conv;
-    local_impart->ctow_conv = ctow_conv;
 
     if ((res_name != NULL) && (*res_name != '\0')){
 	im->core.res_name  = strdup(res_name);
@@ -231,12 +221,10 @@ _XDefaultOpenIM(
     }
 
     return (XIM)im;
-Error2 :
-    Xfree(im->private);
-    Xfree(im->core.im_name);
+
+  Error:
+    _CloseIM((XIM)im);
     Xfree(im);
-    _XlcCloseConverter(ctom_conv);
-    _XlcCloseConverter(ctow_conv);
     return(NULL);
 }
 
@@ -244,13 +232,16 @@ static Status
 _CloseIM(XIM xim)
 {
     StaticXIM im = (StaticXIM)xim;
-    _XlcCloseConverter(im->private->ctom_conv);
-    _XlcCloseConverter(im->private->ctow_conv);
+
+    if (im->private->ctom_conv != NULL)
+        _XlcCloseConverter(im->private->ctom_conv);
+    if (im->private->ctow_conv != NULL)
+        _XlcCloseConverter(im->private->ctow_conv);
     XFree(im->private);
     XFree(im->core.im_name);
-    if (im->core.res_name) XFree(im->core.res_name);
-    if (im->core.res_class) XFree(im->core.res_class);
-    return 1; /*bugID 4163122*/
+    XFree(im->core.res_name);
+    XFree(im->core.res_class);
+    return 1;
 }
 
 static char *

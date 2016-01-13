@@ -74,7 +74,7 @@ lower_instr(nir_intrinsic_instr *instr,
       state->shader_program->UniformStorage[uniform_loc].opaque[state->shader->stage].index;
 
    nir_load_const_instr *offset_const = nir_load_const_instr_create(mem_ctx, 1);
-   offset_const->value.u[0] = instr->variables[0]->var->data.atomic.offset;
+   offset_const->value.u[0] = instr->variables[0]->var->data.offset;
 
    nir_instr_insert_before(&instr->instr, &offset_const->instr);
 
@@ -156,10 +156,10 @@ nir_lower_atomics(nir_shader *shader,
       .shader_program = shader_program,
    };
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl) {
-         nir_foreach_block(overload->impl, lower_block, (void *) &state);
-         nir_metadata_preserve(overload->impl, nir_metadata_block_index |
+   nir_foreach_function(shader, function) {
+      if (function->impl) {
+         nir_foreach_block(function->impl, lower_block, (void *) &state);
+         nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
       }
    }

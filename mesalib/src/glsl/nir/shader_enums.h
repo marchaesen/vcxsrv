@@ -26,6 +26,10 @@
 #ifndef SHADER_ENUMS_H
 #define SHADER_ENUMS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Shader stages. Note that these will become 5 with tessellation.
  *
@@ -44,6 +48,18 @@ typedef enum
 } gl_shader_stage;
 
 const char * gl_shader_stage_name(gl_shader_stage stage);
+
+/**
+ * Translate a gl_shader_stage to a short shader stage name for debug
+ * printouts and error messages.
+ */
+const char * _mesa_shader_stage_to_string(unsigned stage);
+
+/**
+ * Translate a gl_shader_stage to a shader stage abbreviation (VS, GS, FS)
+ * for debug printouts and error messages.
+ */
+const char * _mesa_shader_stage_to_abbrev(unsigned stage);
 
 #define MESA_SHADER_STAGES (MESA_SHADER_COMPUTE + 1)
 
@@ -379,6 +395,26 @@ typedef enum
     * \sa SYSTEM_VALUE_VERTEX_ID, SYSTEM_VALUE_VERTEX_ID_ZERO_BASE
     */
    SYSTEM_VALUE_BASE_VERTEX,
+
+   /**
+    * Value of \c baseinstance passed to instanced draw entry points
+    *
+    * \sa SYSTEM_VALUE_INSTANCE_ID
+    */
+   SYSTEM_VALUE_BASE_INSTANCE,
+
+   /**
+    * From _ARB_shader_draw_parameters:
+    *
+    *   "Additionally, this extension adds a further built-in variable,
+    *    gl_DrawID to the shading language. This variable contains the index
+    *    of the draw currently being processed by a Multi* variant of a
+    *    drawing command (such as MultiDrawElements or
+    *    MultiDrawArraysIndirect)."
+    *
+    * If GL_ARB_multi_draw_indirect is not supported, this is always 0.
+    */
+   SYSTEM_VALUE_DRAW_ID,
    /*@}*/
 
    /**
@@ -392,7 +428,8 @@ typedef enum
     * \name Fragment shader system values
     */
    /*@{*/
-   SYSTEM_VALUE_FRONT_FACE,     /**< (not done yet) */
+   SYSTEM_VALUE_FRAG_COORD,
+   SYSTEM_VALUE_FRONT_FACE,
    SYSTEM_VALUE_SAMPLE_ID,
    SYSTEM_VALUE_SAMPLE_POS,
    SYSTEM_VALUE_SAMPLE_MASK_IN,
@@ -497,5 +534,9 @@ enum gl_frag_depth_layout
    FRAG_DEPTH_LAYOUT_LESS,
    FRAG_DEPTH_LAYOUT_UNCHANGED
 };
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* SHADER_ENUMS_H */

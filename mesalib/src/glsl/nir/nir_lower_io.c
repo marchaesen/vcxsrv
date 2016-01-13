@@ -261,6 +261,9 @@ nir_lower_io_block(nir_block *block, void *void_state)
          store->const_index[0] =
             intrin->variables[0]->var->data.driver_location;
 
+         /* Copy the writemask */
+         store->const_index[1] = intrin->const_index[0];
+
          if (per_vertex)
             store->src[1] = nir_src_for_ssa(vertex_index);
 
@@ -301,9 +304,9 @@ void
 nir_lower_io(nir_shader *shader, nir_variable_mode mode,
              int (*type_size)(const struct glsl_type *))
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_lower_io_impl(overload->impl, mode, type_size);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_lower_io_impl(function->impl, mode, type_size);
    }
 }
 

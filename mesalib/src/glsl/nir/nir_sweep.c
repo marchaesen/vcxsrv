@@ -137,13 +137,10 @@ static void
 sweep_function(nir_shader *nir, nir_function *f)
 {
    ralloc_steal(nir, f);
+   ralloc_steal(nir, f->params);
 
-   foreach_list_typed(nir_function_overload, overload, node, &f->overload_list) {
-      ralloc_steal(nir, overload);
-      ralloc_steal(nir, overload->params);
-      if (overload->impl)
-         sweep_impl(nir, overload->impl);
-   }
+   if (f->impl)
+      sweep_impl(nir, f->impl);
 }
 
 void

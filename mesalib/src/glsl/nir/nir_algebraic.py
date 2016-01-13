@@ -276,9 +276,9 @@ ${pass_name}(nir_shader *shader)
    condition_flags[${index}] = ${condition};
    % endfor
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress |= ${pass_name}_impl(overload->impl, condition_flags);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress |= ${pass_name}_impl(function->impl, condition_flags);
    }
 
    return progress;

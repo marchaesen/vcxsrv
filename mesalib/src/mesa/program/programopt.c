@@ -589,3 +589,30 @@ _mesa_remove_output_reads(struct gl_program *prog, gl_register_file type)
       }
    }
 }
+
+void
+_mesa_program_fragment_position_to_sysval(struct gl_program *prog)
+{
+   GLuint i;
+
+   if (prog->Target != GL_FRAGMENT_PROGRAM_ARB ||
+       !(prog->InputsRead & BITFIELD64_BIT(VARYING_SLOT_POS)))
+      return;
+
+   prog->InputsRead &= ~BITFIELD64_BIT(VARYING_SLOT_POS);
+   prog->SystemValuesRead |= 1 << SYSTEM_VALUE_FRAG_COORD;
+
+   for (i = 0; i < prog->NumInstructions; i++) {
+      struct prog_instruction *inst = prog->Instructions + i;
+      const GLuint numSrc = _mesa_num_inst_src_regs(inst->Opcode);
+      GLuint j;
+
+      for (j = 0; j < numSrc; j++) {
+         if (inst->SrcReg[j].File == PROGRAM_INPUT &&
+             inst->SrcReg[j].Index == VARYING_SLOT_POS) {
+            inst->SrcReg[j].File = PROGRAM_SYSTEM_VALUE;
+            inst->SrcReg[j].Index = SYSTEM_VALUE_FRAG_COORD;
+         }
+      }
+   }
+}

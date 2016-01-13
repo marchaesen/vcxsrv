@@ -104,3 +104,75 @@ st_print_current(void)
 }
 
 
+/**
+ * Installed as pipe_debug_callback when GL_DEBUG_OUTPUT is enabled.
+ */
+static void
+st_debug_message(void *data,
+                 unsigned *id,
+                 enum pipe_debug_type ptype,
+                 const char *fmt,
+                 va_list args)
+{
+   struct st_context *st = data;
+   enum mesa_debug_source source;
+   enum mesa_debug_type type;
+   enum mesa_debug_severity severity;
+
+   switch (ptype) {
+   case PIPE_DEBUG_TYPE_OUT_OF_MEMORY:
+      source = MESA_DEBUG_SOURCE_API;
+      type = MESA_DEBUG_TYPE_ERROR;
+      severity = MESA_DEBUG_SEVERITY_MEDIUM;
+      break;
+   case PIPE_DEBUG_TYPE_ERROR:
+      source = MESA_DEBUG_SOURCE_API;
+      type = MESA_DEBUG_TYPE_ERROR;
+      severity = MESA_DEBUG_SEVERITY_MEDIUM;
+      break;
+   case PIPE_DEBUG_TYPE_SHADER_INFO:
+      source = MESA_DEBUG_SOURCE_SHADER_COMPILER;
+      type = MESA_DEBUG_TYPE_OTHER;
+      severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
+      break;
+   case PIPE_DEBUG_TYPE_PERF_INFO:
+      source = MESA_DEBUG_SOURCE_API;
+      type = MESA_DEBUG_TYPE_PERFORMANCE;
+      severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
+      break;
+   case PIPE_DEBUG_TYPE_INFO:
+      source = MESA_DEBUG_SOURCE_API;
+      type = MESA_DEBUG_TYPE_OTHER;
+      severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
+      break;
+   case PIPE_DEBUG_TYPE_FALLBACK:
+      source = MESA_DEBUG_SOURCE_API;
+      type = MESA_DEBUG_TYPE_PERFORMANCE;
+      severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
+      break;
+   case PIPE_DEBUG_TYPE_CONFORMANCE:
+      source = MESA_DEBUG_SOURCE_API;
+      type = MESA_DEBUG_TYPE_OTHER;
+      severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
+      break;
+   default:
+      unreachable("invalid debug type");
+   }
+   _mesa_gl_vdebug(st->ctx, id, source, type, severity, fmt, args);
+}
+
+void
+st_enable_debug_output(struct st_context *st, boolean enable)
+{
+   struct pipe_context *pipe = st->pipe;
+
+   if (!pipe->set_debug_callback)
+      return;
+
+   if (enable) {
+      struct pipe_debug_callback cb = { st_debug_message, st };
+      pipe->set_debug_callback(pipe, &cb);
+   } else {
+      pipe->set_debug_callback(pipe, NULL);
+   }
+}

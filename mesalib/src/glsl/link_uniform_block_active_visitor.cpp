@@ -24,7 +24,7 @@
 #include "link_uniform_block_active_visitor.h"
 #include "program.h"
 
-link_uniform_block_active *
+static link_uniform_block_active *
 process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
 {
    const hash_entry *const existing_block =
@@ -92,7 +92,7 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
  * and not over complicating the code we will end up with a count of 8.
  * Here each dimension has 2 different indices counted so we end up with 2*2*2
  */
-struct uniform_block_array_elements **
+static struct uniform_block_array_elements **
 process_arrays(void *mem_ctx, ir_dereference_array *ir,
                struct link_uniform_block_active *block)
 {

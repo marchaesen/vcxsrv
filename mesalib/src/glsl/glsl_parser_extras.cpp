@@ -412,44 +412,6 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
 }
 
 
-/**
- * Translate a gl_shader_stage to a short shader stage name for debug
- * printouts and error messages.
- */
-const char *
-_mesa_shader_stage_to_string(unsigned stage)
-{
-   switch (stage) {
-   case MESA_SHADER_VERTEX:   return "vertex";
-   case MESA_SHADER_FRAGMENT: return "fragment";
-   case MESA_SHADER_GEOMETRY: return "geometry";
-   case MESA_SHADER_COMPUTE:  return "compute";
-   case MESA_SHADER_TESS_CTRL: return "tess ctrl";
-   case MESA_SHADER_TESS_EVAL: return "tess eval";
-   }
-
-   unreachable("Unknown shader stage.");
-}
-
-/**
- * Translate a gl_shader_stage to a shader stage abbreviation (VS, GS, FS)
- * for debug printouts and error messages.
- */
-const char *
-_mesa_shader_stage_to_abbrev(unsigned stage)
-{
-   switch (stage) {
-   case MESA_SHADER_VERTEX:   return "VS";
-   case MESA_SHADER_FRAGMENT: return "FS";
-   case MESA_SHADER_GEOMETRY: return "GS";
-   case MESA_SHADER_COMPUTE:  return "CS";
-   case MESA_SHADER_TESS_CTRL: return "TCS";
-   case MESA_SHADER_TESS_EVAL: return "TES";
-   }
-
-   unreachable("Unknown shader stage.");
-}
-
 /* This helper function will append the given message to the shader's
    info log and report it via GL_ARB_debug_output. Per that extension,
    'type' is one of the enum values classifying the message, and
@@ -608,6 +570,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_shader_atomic_counters,       true,  false,     ARB_shader_atomic_counters),
    EXT(ARB_shader_bit_encoding,          true,  false,     ARB_shader_bit_encoding),
    EXT(ARB_shader_clock,                 true,  false,     ARB_shader_clock),
+   EXT(ARB_shader_draw_parameters,       true,  false,     ARB_shader_draw_parameters),
    EXT(ARB_shader_image_load_store,      true,  false,     ARB_shader_image_load_store),
    EXT(ARB_shader_image_size,            true,  false,     ARB_shader_image_size),
    EXT(ARB_shader_precision,             true,  false,     ARB_shader_precision),

@@ -1092,6 +1092,7 @@ attribute. For example:
 .B  "    # either gizmo or gadget
 .B  "    MatchProduct \*qexample\*q
 .B  "    MatchProduct \*qgizmo|gadget\*q
+.B  "    NoMatchDriver \*qdrivername\*q
 .I  "    ..."
 .B  "EndSection"
 .fi
@@ -1159,6 +1160,20 @@ section. The empty string "" matches an implicit layout which appears
 if no named
 .B ServerLayout
 sections have been found.
+.PP
+The above directives have equivalents for negative matching with the
+.B NoMatchProduct,
+.B NoMatchVendor,
+.B NoMatchDevicePath,
+.B NoMatchOS,
+.B NoMatchPnPID,
+.B NoMatchUSBID,
+.B NoMatchDriver,
+.B NoMatchTag,
+and
+.B NoMatchLayout
+directives. These NoMatch directives match if the subsequent match is not
+met by the device.
 .PP
 The second type of entry is used to match device types. These entries take a
 boolean argument similar to

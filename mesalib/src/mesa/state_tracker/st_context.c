@@ -80,9 +80,26 @@ DEBUG_GET_ONCE_BOOL_OPTION(mesa_mvp_dp4, "MESA_MVP_DP4", FALSE)
 
 
 /**
+ * Called via ctx->Driver.Enable()
+ */
+static void st_Enable(struct gl_context * ctx, GLenum cap, GLboolean state)
+{
+   struct st_context *st = st_context(ctx);
+
+   switch (cap) {
+   case GL_DEBUG_OUTPUT:
+      st_enable_debug_output(st, state);
+      break;
+   default:
+      break;
+   }
+}
+
+
+/**
  * Called via ctx->Driver.UpdateState()
  */
-void st_invalidate_state(struct gl_context * ctx, GLuint new_state)
+void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
 {
    struct st_context *st = st_context(ctx);
 
@@ -172,20 +189,19 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    /* Create upload manager for vertex data for glBitmap, glDrawPixels,
     * glClear, etc.
     */
-   st->uploader = u_upload_create(st->pipe, 65536, 4, PIPE_BIND_VERTEX_BUFFER);
+   st->uploader = u_upload_create(st->pipe, 65536, PIPE_BIND_VERTEX_BUFFER,
+                                  PIPE_USAGE_STREAM);
 
    if (!screen->get_param(screen, PIPE_CAP_USER_INDEX_BUFFERS)) {
-      st->indexbuf_uploader = u_upload_create(st->pipe, 128 * 1024, 4,
-                                              PIPE_BIND_INDEX_BUFFER);
+      st->indexbuf_uploader = u_upload_create(st->pipe, 128 * 1024,
+                                              PIPE_BIND_INDEX_BUFFER,
+                                              PIPE_USAGE_STREAM);
    }
 
-   if (!screen->get_param(screen, PIPE_CAP_USER_CONSTANT_BUFFERS)) {
-      unsigned alignment =
-         screen->get_param(screen, PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT);
-
-      st->constbuf_uploader = u_upload_create(pipe, 128 * 1024, alignment,
-                                              PIPE_BIND_CONSTANT_BUFFER);
-   }
+   if (!screen->get_param(screen, PIPE_CAP_USER_CONSTANT_BUFFERS))
+      st->constbuf_uploader = u_upload_create(pipe, 128 * 1024,
+                                              PIPE_BIND_CONSTANT_BUFFER,
+                                              PIPE_USAGE_STREAM);
 
    st->cso_context = cso_create_context(pipe);
 
@@ -249,6 +265,10 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
           PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_R600));
    st->has_time_elapsed =
       screen->get_param(screen, PIPE_CAP_QUERY_TIME_ELAPSED);
+   st->has_half_float_packing =
+      screen->get_param(screen, PIPE_CAP_TGSI_PACK_HALF_FLOAT);
+   st->has_multi_draw_indirect =
+      screen->get_param(screen, PIPE_CAP_MULTI_DRAW_INDIRECT);
 
    /* GL limits and extensions */
    st_init_limits(st->pipe->screen, &ctx->Const, &ctx->Extensions);
@@ -456,5 +476,6 @@ void st_init_driver_functions(struct pipe_screen *screen,
 
    st_init_vdpau_functions(functions);
 
+   functions->Enable = st_Enable;
    functions->UpdateState = st_invalidate_state;
 }

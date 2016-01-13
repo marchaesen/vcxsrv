@@ -248,7 +248,7 @@ FcDirScanConfig (FcFontSet	*set,
 	goto bail;
     }
 
-    files = FcStrSetCreate ();
+    files = FcStrSetCreateEx (FCSS_ALLOW_DUPLICATES | FCSS_GROW_BY_64);
     if (!files)
     {
 	ret = FcFalse;
@@ -349,7 +349,7 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     if (!set)
 	goto bail;
 
-    dirs = FcStrSetCreate ();
+    dirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
     if (!dirs)
 	goto bail1;
 
@@ -404,7 +404,7 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
 	d = FcStrdup (dir);
     if (FcStatChecksum (d, &dir_stat) < 0)
 	goto bail;
-    dirs = FcStrSetCreate ();
+    dirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
     if (!dirs)
 	goto bail;
 

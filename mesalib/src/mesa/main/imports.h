@@ -151,6 +151,13 @@ static inline int IROUND(float f)
    return (int) ((f >= 0.0F) ? (f + 0.5F) : (f - 0.5F));
 }
 
+/**
+ * Convert double to int by rounding to nearest integer, away from zero.
+ */
+static inline int IROUNDD(double d)
+{
+   return (int) ((d >= 0.0) ? (d + 0.5) : (d - 0.5));
+}
 
 /**
  * Convert float to int64 by rounding to nearest integer.
