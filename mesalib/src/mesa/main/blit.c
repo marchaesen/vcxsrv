@@ -286,8 +286,17 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
             }
             /* extra checks for multisample copies... */
             if (readFb->Visual.samples > 0 || drawFb->Visual.samples > 0) {
-               /* color formats must match */
-               if (!compatible_resolve_formats(colorReadRb, colorDrawRb)) {
+               /* color formats must match on GLES. This isn't checked on
+                * desktop GL because the GL 4.4 spec was changed to allow it.
+                * In the section entitled “Changes in the released
+                * Specification of July 22, 2013” it says:
+                *
+                * “Relax BlitFramebuffer in section 18.3.1 so that format
+                *  conversion can take place during multisample blits, since
+                *  drivers already allow this and some apps depend on it.”
+                */
+               if (_mesa_is_gles(ctx) &&
+                   !compatible_resolve_formats(colorReadRb, colorDrawRb)) {
                   _mesa_error(ctx, GL_INVALID_OPERATION,
                          "%s(bad src/dst multisample pixel formats)", func);
                   return;
