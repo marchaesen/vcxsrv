@@ -131,7 +131,7 @@ static const char *types[] = {
 /**
  * Identity matrix.
  */
-static GLfloat Identity[16] = {
+static const GLfloat Identity[16] = {
    1.0, 0.0, 0.0, 0.0,
    0.0, 1.0, 0.0, 0.0,
    0.0, 0.0, 1.0, 0.0,
@@ -654,7 +654,7 @@ static GLboolean invert_matrix_3d_no_rot( GLmatrix *mat )
    if (MAT(in,0,0) == 0 || MAT(in,1,1) == 0 || MAT(in,2,2) == 0 )
       return GL_FALSE;
 
-   memcpy( out, Identity, 16 * sizeof(GLfloat) );
+   memcpy( out, Identity, sizeof(Identity) );
    MAT(out,0,0) = 1.0F / MAT(in,0,0);
    MAT(out,1,1) = 1.0F / MAT(in,1,1);
    MAT(out,2,2) = 1.0F / MAT(in,2,2);
@@ -687,7 +687,7 @@ static GLboolean invert_matrix_2d_no_rot( GLmatrix *mat )
    if (MAT(in,0,0) == 0 || MAT(in,1,1) == 0)
       return GL_FALSE;
 
-   memcpy( out, Identity, 16 * sizeof(GLfloat) );
+   memcpy( out, Identity, sizeof(Identity) );
    MAT(out,0,0) = 1.0F / MAT(in,0,0);
    MAT(out,1,1) = 1.0F / MAT(in,1,1);
 
@@ -709,7 +709,7 @@ static GLboolean invert_matrix_perspective( GLmatrix *mat )
    if (MAT(in,2,3) == 0)
       return GL_FALSE;
 
-   memcpy( out, Identity, 16 * sizeof(GLfloat) );
+   memcpy( out, Identity, sizeof(Identity) );
 
    MAT(out,0,0) = 1.0F / MAT(in,0,0);
    MAT(out,1,1) = 1.0F / MAT(in,1,1);
@@ -802,7 +802,7 @@ _math_matrix_rotate( GLmatrix *mat,
    s = sinf( angle * M_PI / 180.0 );
    c = cosf( angle * M_PI / 180.0 );
 
-   memcpy(m, Identity, sizeof(GLfloat)*16);
+   memcpy(m, Identity, sizeof(Identity));
    optimized = GL_FALSE;
 
 #define M(row,col)  m[col*4+row]
@@ -1136,8 +1136,8 @@ _math_matrix_viewport(GLmatrix *m, const float scale[3],
 void
 _math_matrix_set_identity( GLmatrix *mat )
 {
-   memcpy( mat->m, Identity, 16*sizeof(GLfloat) );
-   memcpy( mat->inv, Identity, 16*sizeof(GLfloat) );
+   memcpy( mat->m, Identity, sizeof(Identity) );
+   memcpy( mat->inv, Identity, sizeof(Identity) );
 
    mat->type = MATRIX_IDENTITY;
    mat->flags &= ~(MAT_DIRTY_FLAGS|
@@ -1437,7 +1437,7 @@ _math_matrix_is_dirty( const GLmatrix *m )
 void
 _math_matrix_copy( GLmatrix *to, const GLmatrix *from )
 {
-   memcpy( to->m, from->m, sizeof(Identity) );
+   memcpy(to->m, from->m, 16 * sizeof(GLfloat));
    memcpy(to->inv, from->inv, 16 * sizeof(GLfloat));
    to->flags = from->flags;
    to->type = from->type;

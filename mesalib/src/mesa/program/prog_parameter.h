@@ -112,6 +112,10 @@ _mesa_num_parameters(const struct gl_program_parameter_list *list)
    return list ? list->NumParameters : 0;
 }
 
+extern void
+_mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
+                                unsigned reserve_slots);
+
 extern GLint
 _mesa_add_parameter(struct gl_program_parameter_list *paramList,
                     gl_register_file type, const char *name,

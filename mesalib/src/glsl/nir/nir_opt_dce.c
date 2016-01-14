@@ -174,8 +174,8 @@ bool
 nir_opt_dce(nir_shader *shader)
 {
    bool progress = false;
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl && nir_opt_dce_impl(overload->impl))
+   nir_foreach_function(shader, function) {
+      if (function->impl && nir_opt_dce_impl(function->impl))
          progress = true;
    }
 

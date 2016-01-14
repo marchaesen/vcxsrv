@@ -59,7 +59,7 @@ st_copy_framebuffer_to_texture(GLenum srcBuffer,
    _mesa_GetIntegerv(GL_READ_BUFFER, &readBufSave);
 
    /* Read from the winsys buffer */
-   _mesa_BindFramebuffer(GL_READ_BUFFER, 0);
+   _mesa_BindFramebuffer(GL_READ_FRAMEBUFFER, 0);
    _mesa_ReadBuffer(srcBuffer);
 
    /* copy image from pbuffer to texture */
@@ -136,5 +136,5 @@ st_copy_framebuffer_to_texture(GLenum srcBuffer,
 
    /* restore readbuffer */
    _mesa_ReadBuffer(readBufSave);
-   _mesa_BindFramebuffer(GL_READ_BUFFER, readFBOSave);
+   _mesa_BindFramebuffer(GL_READ_FRAMEBUFFER, readFBOSave);
 }

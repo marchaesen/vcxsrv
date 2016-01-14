@@ -72,6 +72,7 @@ store_clipdist_output(nir_builder *b, nir_variable *out, nir_ssa_def **val)
    store = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_output);
    store->num_components = 4;
    store->const_index[0] = out->data.driver_location;
+   store->const_index[1] = 0xf;   /* wrmask */
    store->src[0].ssa = nir_vec4(b, val[0], val[1], val[2], val[3]);
    store->src[0].is_ssa = true;
    store->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
@@ -143,9 +144,9 @@ find_output(nir_shader *shader, unsigned drvloc)
       .drvloc = drvloc,
    };
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl) {
-         nir_foreach_block_reverse(overload->impl,
+   nir_foreach_function(shader, function) {
+      if (function->impl) {
+         nir_foreach_block_reverse(function->impl,
                                    find_output_in_block, &state);
       }
    }
@@ -257,9 +258,9 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables)
       out[1] =
          create_clipdist_var(shader, ++maxloc, true, VARYING_SLOT_CLIP_DIST1);
 
-   nir_foreach_overload(shader, overload) {
-      if (!strcmp(overload->function->name, "main"))
-         lower_clip_vs(overload->impl, ucp_enables, cv, out);
+   nir_foreach_function(shader, function) {
+      if (!strcmp(function->name, "main"))
+         lower_clip_vs(function->impl, ucp_enables, cv, out);
    }
 }
 
@@ -331,8 +332,8 @@ nir_lower_clip_fs(nir_shader *shader, unsigned ucp_enables)
          create_clipdist_var(shader, ++maxloc, false,
                              VARYING_SLOT_CLIP_DIST1);
 
-   nir_foreach_overload(shader, overload) {
-      if (!strcmp(overload->function->name, "main"))
-         lower_clip_fs(overload->impl, ucp_enables, in);
+   nir_foreach_function(shader, function) {
+      if (!strcmp(function->name, "main"))
+         lower_clip_fs(function->impl, ucp_enables, in);
    }
 }

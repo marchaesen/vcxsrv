@@ -112,7 +112,7 @@ GL 4.0, GLSL 4.00 --- all DONE: nvc0, r600, radeonsi
   GL_ARB_gpu_shader_fp64                               DONE (llvmpipe, softpipe)
   GL_ARB_sample_shading                                DONE (i965, nv50)
   GL_ARB_shader_subroutine                             DONE (i965, nv50, llvmpipe, softpipe)
-  GL_ARB_tessellation_shader                           DONE ()
+  GL_ARB_tessellation_shader                           DONE (i965)
   GL_ARB_texture_buffer_object_rgb32                   DONE (i965, llvmpipe, softpipe)
   GL_ARB_texture_cube_map_array                        DONE (i965, nv50, llvmpipe, softpipe)
   GL_ARB_texture_gather                                DONE (i965, nv50, llvmpipe, softpipe)
@@ -233,7 +233,7 @@ GLES3.1, GLSL ES 3.1
       glMemoryBarrierByRegion                          DONE
       glGetTexLevelParameter[fi]v - needs updates      DONE
       glGetBooleani_v - restrict to GLES enums
-      gl_HelperInvocation support
+      gl_HelperInvocation support                      DONE (i965, nvc0, r600)
 
 GLES3.2, GLSL ES 3.2
   GL_EXT_color_buffer_float                            DONE (all drivers)

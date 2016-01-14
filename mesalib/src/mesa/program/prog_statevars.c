@@ -474,7 +474,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
           * single MAD.
           * linear: fogcoord * -1/(end-start) + end/(end-start)
           * exp: 2^-(density/ln(2) * fogcoord)
-          * exp2: 2^-((density/(ln(2)^2) * fogcoord)^2)
+          * exp2: 2^-((density/(sqrt(ln(2))) * fogcoord)^2)
           */
          value[0] = (ctx->Fog.End == ctx->Fog.Start)
             ? 1.0f : (GLfloat)(-1.0F / (ctx->Fog.End - ctx->Fog.Start));

@@ -109,6 +109,10 @@ _mesa_initialize_buffer_object(struct gl_context *ctx,
                                GLuint name);
 
 extern void
+_mesa_delete_buffer_object(struct gl_context *ctx,
+                           struct gl_buffer_object *bufObj);
+
+extern void
 _mesa_reference_buffer_object_(struct gl_context *ctx,
                                struct gl_buffer_object **ptr,
                                struct gl_buffer_object *bufObj);

@@ -82,10 +82,10 @@ nir_lower_global_vars_to_local(nir_shader *shader)
    state.var_func_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                                   _mesa_key_pointer_equal);
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl) {
-         state.impl = overload->impl;
-         nir_foreach_block(overload->impl, mark_global_var_uses_block, &state);
+   nir_foreach_function(shader, function) {
+      if (function->impl) {
+         state.impl = function->impl;
+         nir_foreach_block(function->impl, mark_global_var_uses_block, &state);
       }
    }
 

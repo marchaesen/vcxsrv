@@ -50,6 +50,7 @@
 
 #include "st_atom.h"
 #include "st_atom_constbuf.h"
+#include "st_cb_bitmap.h"
 #include "st_cb_drawpixels.h"
 #include "st_cb_readpixels.h"
 #include "st_cb_fbo.h"
@@ -457,7 +458,7 @@ draw_quad(struct gl_context *ctx, GLfloat x0, GLfloat y0, GLfloat z,
    struct pipe_resource *buf = NULL;
    unsigned offset;
 
-   u_upload_alloc(st->uploader, 0, 4 * sizeof(verts[0]), &offset,
+   u_upload_alloc(st->uploader, 0, 4 * sizeof(verts[0]), 4, &offset,
                   &buf, (void **) &verts);
    if (!buf) {
       return;
@@ -1063,6 +1064,8 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
    /* Mesa state should be up to date by now */
    assert(ctx->NewState == 0x0);
 
+   st_flush_bitmap_cache(st);
+
    st_validate_state(st);
 
    /* Limit the size of the glDrawPixels to the max texture size.
@@ -1110,8 +1113,11 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
          num_sampler_view++;
       }
 
-      /* update fragment program constants */
-      st_upload_constants(st, fpv->parameters, PIPE_SHADER_FRAGMENT);
+      /* compiling a new fragment shader variant added new state constants
+       * into the constant buffer, we need to update them
+       */
+      st_upload_constants(st, st->fp->Base.Base.Parameters,
+                          PIPE_SHADER_FRAGMENT);
    }
 
    /* Put glDrawPixels image into a texture */
@@ -1419,6 +1425,8 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    GLint readX, readY, readW, readH;
    struct gl_pixelstore_attrib pack = ctx->DefaultPacking;
 
+   st_flush_bitmap_cache(st);
+
    st_validate_state(st);
 
    if (type == GL_DEPTH_STENCIL) {
@@ -1463,8 +1471,11 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          num_sampler_view++;
       }
 
-      /* update fragment program constants */
-      st_upload_constants(st, fpv->parameters, PIPE_SHADER_FRAGMENT);
+      /* compiling a new fragment shader variant added new state constants
+       * into the constant buffer, we need to update them
+       */
+      st_upload_constants(st, st->fp->Base.Base.Parameters,
+                          PIPE_SHADER_FRAGMENT);
    }
    else {
       assert(type == GL_DEPTH);

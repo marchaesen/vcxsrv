@@ -42,8 +42,8 @@ struct u_upload_mgr {
    struct pipe_context *pipe;
 
    unsigned default_size;  /* Minimum size of the upload buffer, in bytes. */
-   unsigned alignment;     /* Alignment of each sub-allocation. */
    unsigned bind;          /* Bitmask of PIPE_BIND_* flags. */
+   unsigned usage;         /* PIPE_USAGE_* */
    unsigned map_flags;     /* Bitmask of PIPE_TRANSFER_* flags. */
    boolean map_persistent; /* If persistent mappings are supported. */
 
@@ -55,10 +55,9 @@ struct u_upload_mgr {
 };
 
 
-struct u_upload_mgr *u_upload_create( struct pipe_context *pipe,
-                                      unsigned default_size,
-                                      unsigned alignment,
-                                      unsigned bind )
+struct u_upload_mgr *
+u_upload_create(struct pipe_context *pipe, unsigned default_size,
+                unsigned bind, unsigned usage)
 {
    struct u_upload_mgr *upload = CALLOC_STRUCT( u_upload_mgr );
    if (!upload)
@@ -66,8 +65,8 @@ struct u_upload_mgr *u_upload_create( struct pipe_context *pipe,
 
    upload->pipe = pipe;
    upload->default_size = default_size;
-   upload->alignment = alignment;
    upload->bind = bind;
+   upload->usage = usage;
 
    upload->map_persistent =
       pipe->screen->get_param(pipe->screen,
@@ -149,7 +148,7 @@ u_upload_alloc_buffer(struct u_upload_mgr *upload,
    buffer.target = PIPE_BUFFER;
    buffer.format = PIPE_FORMAT_R8_UNORM; /* want TYPELESS or similar */
    buffer.bind = upload->bind;
-   buffer.usage = PIPE_USAGE_STREAM;
+   buffer.usage = upload->usage;
    buffer.width0 = size;
    buffer.height0 = 1;
    buffer.depth0 = 1;
@@ -181,19 +180,24 @@ void
 u_upload_alloc(struct u_upload_mgr *upload,
                unsigned min_out_offset,
                unsigned size,
+               unsigned alignment,
                unsigned *out_offset,
                struct pipe_resource **outbuf,
                void **ptr)
 {
-   unsigned alloc_size = align(size, upload->alignment);
-   unsigned alloc_offset = align(min_out_offset, upload->alignment);
    unsigned buffer_size = upload->buffer ? upload->buffer->width0 : 0;
    unsigned offset;
 
+   min_out_offset = align(min_out_offset, alignment);
+
+   offset = align(upload->offset, alignment);
+   offset = MAX2(offset, min_out_offset);
+
    /* Make sure we have enough space in the upload buffer
-    * for the sub-allocation. */
-   if (unlikely(MAX2(upload->offset, alloc_offset) + alloc_size > buffer_size)) {
-      u_upload_alloc_buffer(upload, alloc_offset + alloc_size);
+    * for the sub-allocation.
+    */
+   if (unlikely(!upload->buffer || offset + size > buffer_size)) {
+      u_upload_alloc_buffer(upload, min_out_offset + size);
 
       if (unlikely(!upload->buffer)) {
          *out_offset = ~0;
@@ -202,10 +206,9 @@ u_upload_alloc(struct u_upload_mgr *upload,
          return;
       }
 
+      offset = min_out_offset;
       buffer_size = upload->buffer->width0;
    }
-
-   offset = MAX2(upload->offset, alloc_offset);
 
    if (unlikely(!upload->map)) {
       upload->map = pipe_buffer_map_range(upload->pipe, upload->buffer,
@@ -224,8 +227,8 @@ u_upload_alloc(struct u_upload_mgr *upload,
       upload->map -= offset;
    }
 
-   assert(offset < upload->buffer->width0);
-   assert(offset + size <= upload->buffer->width0);
+   assert(offset < buffer_size);
+   assert(offset + size <= buffer_size);
    assert(size);
 
    /* Emit the return values: */
@@ -233,19 +236,20 @@ u_upload_alloc(struct u_upload_mgr *upload,
    pipe_resource_reference(outbuf, upload->buffer);
    *out_offset = offset;
 
-   upload->offset = offset + alloc_size;
+   upload->offset = offset + size;
 }
 
 void u_upload_data(struct u_upload_mgr *upload,
                    unsigned min_out_offset,
                    unsigned size,
+                   unsigned alignment,
                    const void *data,
                    unsigned *out_offset,
                    struct pipe_resource **outbuf)
 {
    uint8_t *ptr;
 
-   u_upload_alloc(upload, min_out_offset, size,
+   u_upload_alloc(upload, min_out_offset, size, alignment,
                   out_offset, outbuf,
                   (void**)&ptr);
    if (ptr)
@@ -257,6 +261,7 @@ void u_upload_buffer(struct u_upload_mgr *upload,
                      unsigned min_out_offset,
                      unsigned offset,
                      unsigned size,
+                     unsigned alignment,
                      struct pipe_resource *inbuf,
                      unsigned *out_offset,
                      struct pipe_resource **outbuf)
@@ -278,6 +283,7 @@ void u_upload_buffer(struct u_upload_mgr *upload,
    if (0)
       debug_printf("upload ptr %p ofs %d sz %d\n", map, offset, size);
 
-   u_upload_data(upload, min_out_offset, size, map, out_offset, outbuf);
+   u_upload_data(upload, min_out_offset, size, alignment,
+                 map, out_offset, outbuf);
    pipe_buffer_unmap( upload->pipe, transfer );
 }

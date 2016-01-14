@@ -590,7 +590,7 @@ FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
 static FcBool
 FcCacheDirsValid (FcConfig *config, FcCache *cache)
 {
-    FcStrSet *dirs = FcStrSetCreate ();
+    FcStrSet *dirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
     FcBool ret = FcFalse;
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
     FcChar8 *d;

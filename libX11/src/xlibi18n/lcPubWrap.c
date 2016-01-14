@@ -78,10 +78,9 @@ _XlcCreateLC(
 	return (XLCd) NULL;
 
     if (lcd->core->name == NULL) {
-	lcd->core->name = Xmalloc(strlen(name) + 1);
+	lcd->core->name = strdup(name);
 	if (lcd->core->name == NULL)
 	    goto err;
-	strcpy(lcd->core->name, name);
     }
 
     if (lcd->methods == NULL)

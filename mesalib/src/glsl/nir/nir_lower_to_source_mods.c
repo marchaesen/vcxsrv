@@ -189,8 +189,8 @@ nir_lower_to_source_mods_impl(nir_function_impl *impl)
 void
 nir_lower_to_source_mods(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_lower_to_source_mods_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_lower_to_source_mods_impl(function->impl);
    }
 }

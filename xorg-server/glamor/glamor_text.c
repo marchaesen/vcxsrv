@@ -142,7 +142,7 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
             int     height = GLYPHHEIGHTPIXELS(ci);
             int     tx, ty = 0;
             int     row = 0, col;
-
+            int     second_row = 0;
             x += ci->metrics.characterWidth;
 
             if (sixteen) {
@@ -153,8 +153,10 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
                     row = chars[0];
                     col = chars[1];
                 }
-                if (FONTLASTROW(font) != 0)
-                    ty = (row - firstRow) * glyph_spacing_y;
+                if (FONTLASTROW(font) != 0) {
+                    ty = ((row - firstRow) / 2) * glyph_spacing_y;
+                    second_row = (row - firstRow) & 1;
+                }
                 else
                     col += row << 8;
             } else {
@@ -165,6 +167,8 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
             }
 
             tx = (col - firstCol) * glyph_spacing_x;
+            /* adjust for second row layout */
+            tx += second_row * glamor_font->row_width * 8;
 
             v[ 0] = x1;
             v[ 1] = y1;

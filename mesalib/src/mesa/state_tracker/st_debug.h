@@ -32,6 +32,8 @@
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"
 
+struct st_context;
+
 extern void
 st_print_current(void);
 
@@ -58,6 +60,8 @@ extern int ST_DEBUG;
 #endif
 
 void st_debug_init( void );
+
+void st_enable_debug_output(struct st_context *st, boolean enable);
 
 static inline void
 ST_DBG( unsigned flag, const char *fmt, ... )

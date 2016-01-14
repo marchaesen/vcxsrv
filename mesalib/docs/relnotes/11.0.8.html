@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.0.8 Release Notes / December 9, 2015</h1>
+
+<p>
+Mesa 11.0.8 is a bug fix release which fixes bugs found since the 11.0.7 release.
+</p>
+<p>
+Mesa 11.0.8 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+ab9db87b54d7525e4b611b82577ea9a9eae55927558df57b190059d5ecd9406f  mesa-11.0.8.tar.gz
+5696e4730518b6805d2ed5def393c4293f425a2c2c01bd5ed4bdd7ad62f7ad75  mesa-11.0.8.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91806">Bug 91806</a> - configure does not test whether assembler supports sse4.1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92849">Bug 92849</a> - [IVB HSW BDW] piglit image load/store load-from-cleared-image.shader_test fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92909">Bug 92909</a> - Offset/alignment issue with layout std140 and vec3</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93004">Bug 93004</a> - Guild Wars 2 crash on nouveau DX11 cards</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93215">Bug 93215</a> - [Regression bisected] Ogles1conform Automatic mipmap generation test is fail</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93266">Bug 93266</a> - gl_arb_shading_language_420pack does not allow binding of image variables</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Boyuan Zhang (1):</p>
+<ul>
+  <li>radeon/uvd: uv pitch separation for stoney</li>
+</ul>
+
+<p>Dave Airlie (9):</p>
+<ul>
+  <li>r600: do SQ flush ES ring rolling workaround</li>
+  <li>r600: SMX returns CONTEXT_DONE early workaround</li>
+  <li>r600/shader: split address get out to a function.</li>
+  <li>r600/shader: add utility functions to do single slot arithmatic</li>
+  <li>r600g: fix geom shader input indirect indexing.</li>
+  <li>r600: handle geometry dynamic input array index</li>
+  <li>radeonsi: handle doubles in lds load path.</li>
+  <li>mesa/varray: set double arrays to non-normalised.</li>
+  <li>mesa/shader: return correct attribute location for double matrix arrays</li>
+</ul>
+
+<p>Emil Velikov (8):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.0.7</li>
+  <li>cherry-ignore: don't pick a specific i965 formats patch</li>
+  <li>Revert "i965/nir: Remove unused indirect handling"</li>
+  <li>Revert "i965/state: Get rid of dword_pitch arguments to buffer functions"</li>
+  <li>Revert "i965/vec4: Use a stride of 1 and byte offsets for UBOs"</li>
+  <li>Revert "i965/fs: Use a stride of 1 and byte offsets for UBOs"</li>
+  <li>Revert "i965/vec4: Use byte offsets for UBO pulls on Sandy Bridge"</li>
+  <li>Update version to 11.0.8</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>i965: Resolve color and flush for all active shader images in intel_update_state().</li>
+</ul>
+
+<p>Ian Romanick (1):</p>
+<ul>
+  <li>meta/generate_mipmap: Work-around GLES 1.x problem with GL_DRAW_FRAMEBUFFER</li>
+</ul>
+
+<p>Ilia Mirkin (17):</p>
+<ul>
+  <li>freedreno/a4xx: support lod_bias</li>
+  <li>freedreno/a4xx: fix 5_5_5_1 texture sampler format</li>
+  <li>freedreno/a4xx: point regid to "red" even for alpha-only rb formats</li>
+  <li>nvc0/ir: fold postfactor into immediate</li>
+  <li>nv50/ir: deal with loops with no breaks</li>
+  <li>nv50/ir: the mad source might not have a defining instruction</li>
+  <li>nv50/ir: fix instruction permutation logic</li>
+  <li>nv50/ir: don't forget to mark flagsDef on cvt in txb lowering</li>
+  <li>nv50/ir: fix DCE to not generate 96-bit loads</li>
+  <li>nv50/ir: avoid looking at uninitialized srcMods entries</li>
+  <li>gk110/ir: fix imul hi emission with limm arg</li>
+  <li>gk104/ir: sampler doesn't matter for txf</li>
+  <li>gk110/ir: fix imad sat/hi flag emission for immediate args</li>
+  <li>nv50/ir: fix cutoff for using r63 vs r127 when replacing zero</li>
+  <li>nv50/ir: can't have predication and immediates</li>
+  <li>glsl: assign varying locations to tess shaders when doing SSO</li>
+  <li>ttn: add TEX2 support</li>
+</ul>
+
+<p>Jason Ekstrand (5):</p>
+<ul>
+  <li>i965/vec4: Use byte offsets for UBO pulls on Sandy Bridge</li>
+  <li>i965/fs: Use a stride of 1 and byte offsets for UBOs</li>
+  <li>i965/vec4: Use a stride of 1 and byte offsets for UBOs</li>
+  <li>i965/state: Get rid of dword_pitch arguments to buffer functions</li>
+  <li>i965/nir: Remove unused indirect handling</li>
+</ul>
+
+<p>Jonathan Gray (2):</p>
+<ul>
+  <li>configure.ac: use pkg-config for libelf</li>
+  <li>configure: check for python2.7 for PYTHON2</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>i965: Fix fragment shader struct inputs.</li>
+  <li>i965: Fix scalar vertex shader struct outputs.</li>
+</ul>
+
+<p>Marek Olšák (8):</p>
+<ul>
+  <li>radeonsi: fix occlusion queries on Fiji</li>
+  <li>radeonsi: fix a hang due to uninitialized border color registers</li>
+  <li>radeonsi: fix Fiji for LLVM &lt;= 3.7</li>
+  <li>radeonsi: don't call of u_prims_for_vertices for patches and rectangles</li>
+  <li>radeonsi: apply the streamout workaround to Fiji as well</li>
+  <li>gallium/radeon: fix Hyper-Z hangs by programming PA_SC_MODE_CNTL_1 correctly</li>
+  <li>tgsi/scan: add flag colors_written</li>
+  <li>r600g: write all MRTs only if there is exactly one output (fixes a hang)</li>
+</ul>
+
+<p>Matt Turner (1):</p>
+<ul>
+  <li>glsl: Allow binding of image variables with 420pack.</li>
+</ul>
+
+<p>Neil Roberts (2):</p>
+<ul>
+  <li>i965: Add MESA_FORMAT_B8G8R8X8_SRGB to brw_format_for_mesa_format</li>
+  <li>i965: Add B8G8R8X8_SRGB to the alpha format override</li>
+</ul>
+
+<p>Oded Gabbay (1):</p>
+<ul>
+  <li>configura.ac: fix test for SSE4.1 assembler support</li>
+</ul>
+
+<p>Patrick Rudolph (2):</p>
+<ul>
+  <li>nv50,nvc0: fix use-after-free when vertex buffers are unbound</li>
+  <li>gallium/util: return correct number of bound vertex buffers</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>nvc0: free memory allocated by the prog which reads MP perf counters</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>i965: use _Shader to get fragment program when updating surface state</li>
+</ul>
+
+<p>Tom Stellard (2):</p>
+<ul>
+  <li>radeonsi: Rename si_shader::ls_rsrc{1,2} to si_shader::rsrc{1,2}</li>
+  <li>radeonsi/compute: Use the compiler's COMPUTE_PGM_RSRC* register values</li>
+</ul>
+
+
+</div>
+</body>
+</html>

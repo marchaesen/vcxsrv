@@ -665,6 +665,7 @@ The patch that fixed this server bug in X.org CVS is here:
 		<field type="CONTEXT_TAG" name="context_tag" />
 		<field type="INT32" name="plane" />
 		<reply>
+			<required_start_align align="8" />
 			<pad bytes="1" />
 			<pad bytes="24" />
 			<list type="FLOAT64" name="data">
@@ -680,6 +681,7 @@ The patch that fixed this server bug in X.org CVS is here:
 		<field type="CONTEXT_TAG" name="context_tag" />
 		<field type="CARD32" name="pname" />
 		<reply>
+			<required_start_align align="8" />
 			<pad bytes="1" />
 			<pad bytes="4" />
 			<field type="CARD32" name="n" />
@@ -766,6 +768,7 @@ The patch that fixed this server bug in X.org CVS is here:
 		<field type="CARD32" name="target" />
 		<field type="CARD32" name="query" />
 		<reply>
+			<required_start_align align="8" />
 			<pad bytes="1" />
 			<pad bytes="4" />
 			<field type="CARD32" name="n" />
@@ -953,6 +956,7 @@ The patch that fixed this server bug in X.org CVS is here:
 		<field type="CARD32" name="coord" />
 		<field type="CARD32" name="pname" />
 		<reply>
+			<required_start_align align="8" />
 			<pad bytes="1" />
 			<pad bytes="4" />
 			<field type="CARD32" name="n" />

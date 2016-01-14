@@ -167,13 +167,6 @@ unop_convert("i2b", tint, tbool, "src0 != 0")
 unop_convert("b2i", tbool, tint, "src0 ? 1 : 0") # Boolean-to-int conversion
 unop_convert("u2f", tuint, tfloat, "src0") # Unsigned-to-float conversion.
 
-unop_reduce("bany", 1, tbool, tbool, "{src}", "{src0} || {src1}", "{src}")
-unop_reduce("ball", 1, tbool, tbool, "{src}", "{src0} && {src1}", "{src}")
-unop_reduce("fany", 1, tfloat, tfloat, "{src} != 0.0f", "{src0} || {src1}",
-            "{src} ? 1.0f : 0.0f")
-unop_reduce("fall", 1, tfloat, tfloat, "{src} != 0.0f", "{src0} && {src1}",
-            "{src} ? 1.0f : 0.0f")
-
 # Unary floating-point rounding operations.
 
 
@@ -368,12 +361,12 @@ binop("udiv", tuint, "", "src0 / src1")
 # returns a boolean representing the carry resulting from the addition of
 # the two unsigned arguments.
 
-binop_convert("uadd_carry", tbool, tuint, commutative, "src0 + src1 < src0")
+binop_convert("uadd_carry", tuint, tuint, commutative, "src0 + src1 < src0")
 
 # returns a boolean representing the borrow resulting from the subtraction
 # of the two unsigned arguments.
 
-binop_convert("usub_borrow", tbool, tuint, "", "src1 < src0")
+binop_convert("usub_borrow", tuint, tuint, "", "src0 < src1")
 
 binop("fmod", tfloat, "", "src0 - src1 * floorf(src0 / src1)")
 binop("umod", tuint, "", "src1 == 0 ? 0 : src0 % src1")

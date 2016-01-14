@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.1.1 Release Notes / January 13, 2016</h1>
+
+<p>
+Mesa 11.1.1 is a bug fix release which fixes bugs found since the 11.1.0 release.
+</p>
+<p>
+Mesa 11.1.1 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+b15089817540ba0bffd0aad323ecf3a8ff6779568451827c7274890b4a269d58  mesa-11.1.1.tar.gz
+64db074fc514136b5fb3890111f0d50604db52f0b1e94ba3fcb0fe8668a7fd20  mesa-11.1.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91806">Bug 91806</a> - configure does not test whether assembler supports sse4.1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92229">Bug 92229</a> - [APITRACE] SOMA have serious graphical errors</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92233">Bug 92233</a> - Unigine Heaven 4.0 silhuette run</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93004">Bug 93004</a> - Guild Wars 2 crash on nouveau DX11 cards</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93215">Bug 93215</a> - [Regression bisected] Ogles1conform Automatic mipmap generation test is fail</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93257">Bug 93257</a> - [SKL, bisected] ASTC dEQP tests segfault</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Brian Paul (1):</p>
+<ul>
+  <li>st/mesa: check state-&gt;mesa in early return check in st_validate_state()</li>
+</ul>
+
+<p>Dave Airlie (6):</p>
+<ul>
+  <li>mesa/varray: set double arrays to non-normalised.</li>
+  <li>mesa/shader: return correct attribute location for double matrix arrays</li>
+  <li>glsl: pass stage into mark function</li>
+  <li>glsl/fp64: add helper for dual slot double detection.</li>
+  <li>glsl: fix count_attribute_slots to allow for different 64-bit handling</li>
+  <li>glsl: only update doubles inputs for vertex inputs.</li>
+</ul>
+
+<p>Emil Velikov (4):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.0.1</li>
+  <li>cherry-ignore: drop the "re-enable" DCC on Stoney</li>
+  <li>cherry-ignore: don't pick a specific i965 formats patch</li>
+  <li>Update version to 11.1.1</li>
+</ul>
+
+<p>Eric Anholt (2):</p>
+<ul>
+  <li>vc4: Warn instead of abort()ing on exec ioctl failures.</li>
+  <li>vc4: Keep sample mask writes from being reordered after TLB writes</li>
+</ul>
+
+<p>Grazvydas Ignotas (1):</p>
+<ul>
+  <li>r600: fix constant buffer size programming</li>
+</ul>
+
+<p>Ian Romanick (1):</p>
+<ul>
+  <li>meta/generate_mipmap: Work-around GLES 1.x problem with GL_DRAW_FRAMEBUFFER</li>
+</ul>
+
+<p>Ilia Mirkin (9):</p>
+<ul>
+  <li>nv50/ir: can't have predication and immediates</li>
+  <li>gk104/ir: simplify and fool-proof texbar algorithm</li>
+  <li>glsl: assign varying locations to tess shaders when doing SSO</li>
+  <li>glx/dri3: a drawable might not be bound at wait time</li>
+  <li>nvc0: don't forget to reset VTX_TMP bufctx slot after blit completion</li>
+  <li>nv50/ir: float(s32 &amp; 0xff) = float(u8), not s8</li>
+  <li>nv50,nvc0: make sure there's pushbuf space and that we ref the bo early</li>
+  <li>nv50,nvc0: fix crash when increasing bsp bo size for h264</li>
+  <li>nvc0: scale up inter_bo size so that it's 16M for a 4K video</li>
+</ul>
+
+<p>Jonathan Gray (2):</p>
+<ul>
+  <li>configure.ac: use pkg-config for libelf</li>
+  <li>configure: check for python2.7 for PYTHON2</li>
+</ul>
+
+<p>Kenneth Graunke (5):</p>
+<ul>
+  <li>ralloc: Fix ralloc_adopt() to the old context's last child's parent.</li>
+  <li>drirc: Disable ARB_blend_func_extended for Heaven 4.0/Valley 1.0.</li>
+  <li>glsl: Fix varying struct locations when varying packing is disabled.</li>
+  <li>nvc0: Set winding order regardless of domain.</li>
+  <li>nir: Add a lower_fdiv option, turn fdiv into fmul/frcp.</li>
+</ul>
+
+<p>Marek Olšák (7):</p>
+<ul>
+  <li>tgsi/scan: add flag colors_written</li>
+  <li>r600g: write all MRTs only if there is exactly one output (fixes a hang)</li>
+  <li>radeonsi: don't call of u_prims_for_vertices for patches and rectangles</li>
+  <li>radeonsi: apply the streamout workaround to Fiji as well</li>
+  <li>gallium/radeon: fix Hyper-Z hangs by programming PA_SC_MODE_CNTL_1 correctly</li>
+  <li>program: add _mesa_reserve_parameter_storage</li>
+  <li>st/mesa: fix GLSL uniform updates for glBitmap &amp; glDrawPixels (v2)</li>
+</ul>
+
+<p>Mark Janes (1):</p>
+<ul>
+  <li>Add missing platform information for KBL</li>
+</ul>
+
+<p>Miklós Máté (1):</p>
+<ul>
+  <li>mesa: Don't leak ATIfs instructions in DeleteFragmentShader</li>
+</ul>
+
+<p>Neil Roberts (3):</p>
+<ul>
+  <li>i965: Add MESA_FORMAT_B8G8R8X8_SRGB to brw_format_for_mesa_format</li>
+  <li>i965: Add B8G8R8X8_SRGB to the alpha format override</li>
+  <li>i965: Fix crash when calling glViewport with no surface bound</li>
+</ul>
+
+<p>Nicolai Hähnle (2):</p>
+<ul>
+  <li>gallium/radeon: only dispose locally created target machine in radeon_llvm_compile</li>
+  <li>gallium/radeon: fix regression in a number of driver queries</li>
+</ul>
+
+<p>Oded Gabbay (1):</p>
+<ul>
+  <li>configura.ac: fix test for SSE4.1 assembler support</li>
+</ul>
+
+<p>Patrick Rudolph (2):</p>
+<ul>
+  <li>nv50,nvc0: fix use-after-free when vertex buffers are unbound</li>
+  <li>gallium/util: return correct number of bound vertex buffers</li>
+</ul>
+
+<p>Rob Herring (1):</p>
+<ul>
+  <li>freedreno/ir3: fix 32-bit builds with pointer-to-int-cast error enabled</li>
+</ul>
+
+<p>Samuel Pitoiset (3):</p>
+<ul>
+  <li>nvc0: free memory allocated by the prog which reads MP perf counters</li>
+  <li>nv50,nvc0: free memory allocated by performance metrics</li>
+  <li>nv50: free memory allocated by the prog which reads MP perf counters</li>
+</ul>
+
+<p>Sarah Sharp (1):</p>
+<ul>
+  <li>mesa: Add KBL PCI IDs and platform information.</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -51,6 +51,8 @@ _mesa_count_texture_instructions(struct gl_program *prog);
 extern void
 _mesa_remove_output_reads(struct gl_program *prog, gl_register_file type);
 
+extern void
+_mesa_program_fragment_position_to_sysval(struct gl_program *prog);
 
 #ifdef __cplusplus
 }

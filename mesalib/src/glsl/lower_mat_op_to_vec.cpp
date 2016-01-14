@@ -277,7 +277,11 @@ ir_mat_op_to_vec_visitor::do_equal_mat_mat(ir_dereference *result,
    }
 
    ir_rvalue *const val = new(this->mem_ctx) ir_dereference_variable(tmp_bvec);
-   ir_expression *any = new(this->mem_ctx) ir_expression(ir_unop_any, val);
+   uint8_t vec_elems = val->type->vector_elements;
+   ir_expression *any =
+      new(this->mem_ctx) ir_expression(ir_binop_any_nequal, val,
+                                       new(this->mem_ctx) ir_constant(false,
+                                                                      vec_elems));
 
    if (test_equal)
       any = new(this->mem_ctx) ir_expression(ir_unop_logic_not, any);

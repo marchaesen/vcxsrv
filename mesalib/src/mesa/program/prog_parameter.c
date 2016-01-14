@@ -89,6 +89,37 @@ _mesa_free_parameter_list(struct gl_program_parameter_list *paramList)
 
 
 /**
+ * Make sure there are enough unused parameter slots. Reallocate the list
+ * if needed.
+ *
+ * \param paramList        where to reserve parameter slots
+ * \param reserve_slots    number of slots to reserve
+ */
+void
+_mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
+                                unsigned reserve_slots)
+{
+   const GLuint oldNum = paramList->NumParameters;
+
+   if (oldNum + reserve_slots > paramList->Size) {
+      /* Need to grow the parameter list array (alloc some extra) */
+      paramList->Size = paramList->Size + 4 * reserve_slots;
+
+      /* realloc arrays */
+      paramList->Parameters =
+         realloc(paramList->Parameters,
+                 paramList->Size * sizeof(struct gl_program_parameter));
+
+      paramList->ParameterValues = (gl_constant_value (*)[4])
+         _mesa_align_realloc(paramList->ParameterValues,         /* old buf */
+                             oldNum * 4 * sizeof(gl_constant_value),/* old sz */
+                             paramList->Size*4*sizeof(gl_constant_value),/*new*/
+                             16);
+   }
+}
+
+
+/**
  * Add a new parameter to a parameter list.
  * Note that parameter values are usually 4-element GLfloat vectors.
  * When size > 4 we'll allocate a sequential block of parameters to
@@ -115,21 +146,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 
    assert(size > 0);
 
-   if (oldNum + sz4 > paramList->Size) {
-      /* Need to grow the parameter list array (alloc some extra) */
-      paramList->Size = paramList->Size + 4 * sz4;
-
-      /* realloc arrays */
-      paramList->Parameters =
-         realloc(paramList->Parameters,
-                 paramList->Size * sizeof(struct gl_program_parameter));
-
-      paramList->ParameterValues = (gl_constant_value (*)[4])
-         _mesa_align_realloc(paramList->ParameterValues,         /* old buf */
-                             oldNum * 4 * sizeof(gl_constant_value),/* old sz */
-                             paramList->Size*4*sizeof(gl_constant_value),/*new*/
-                             16);
-   }
+   _mesa_reserve_parameter_storage(paramList, sz4);
 
    if (!paramList->Parameters ||
        !paramList->ParameterValues) {

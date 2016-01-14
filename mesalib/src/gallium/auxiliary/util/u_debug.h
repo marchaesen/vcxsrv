@@ -404,6 +404,19 @@ debug_get_flags_option(const char *name,
                        const struct debug_named_value *flags,
                        uint64_t dfault);
 
+#define DEBUG_GET_ONCE_OPTION(suffix, name, dfault) \
+static const char * \
+debug_get_option_ ## suffix (void) \
+{ \
+   static boolean first = TRUE; \
+   static const char * value; \
+   if (first) { \
+      first = FALSE; \
+      value = debug_get_option(name, dfault); \
+   } \
+   return value; \
+}
+
 #define DEBUG_GET_ONCE_BOOL_OPTION(sufix, name, dfault) \
 static boolean \
 debug_get_option_ ## sufix (void) \
@@ -477,12 +490,16 @@ void debug_dump_transfer_bmp(struct pipe_context *pipe,
 void debug_dump_float_rgba_bmp(const char *filename,
                                unsigned width, unsigned height,
                                float *rgba, unsigned stride);
+void debug_dump_ubyte_rgba_bmp(const char *filename,
+                               unsigned width, unsigned height,
+                               const ubyte *rgba, unsigned stride);
 #else
 #define debug_dump_image(prefix, format, cpp, width, height, stride, data) ((void)0)
 #define debug_dump_surface(pipe, prefix, surface) ((void)0)
 #define debug_dump_surface_bmp(pipe, filename, surface) ((void)0)
 #define debug_dump_transfer_bmp(filename, transfer, ptr) ((void)0)
 #define debug_dump_float_rgba_bmp(filename, width, height, rgba, stride) ((void)0)
+#define debug_dump_ubyte_rgba_bmp(filename, width, height, rgba, stride) ((void)0)
 #endif
 
 

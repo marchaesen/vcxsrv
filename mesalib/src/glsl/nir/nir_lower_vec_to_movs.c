@@ -217,7 +217,7 @@ lower_vec_to_movs_block(nir_block *block, void *void_state)
 {
    struct vec_to_movs_state *state = void_state;
    nir_function_impl *impl = state->impl;
-   nir_shader *shader = impl->overload->function->shader;
+   nir_shader *shader = impl->function->shader;
 
    nir_foreach_instr_safe(block, instr) {
       if (instr->type != nir_instr_type_alu)
@@ -301,9 +301,9 @@ nir_lower_vec_to_movs(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress = nir_lower_vec_to_movs_impl(overload->impl) || progress;
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress = nir_lower_vec_to_movs_impl(function->impl) || progress;
    }
 
    return progress;

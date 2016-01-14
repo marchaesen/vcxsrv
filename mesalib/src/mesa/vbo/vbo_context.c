@@ -135,6 +135,48 @@ static void init_mat_currval(struct gl_context *ctx)
    }
 }
 
+static void
+vbo_draw_indirect_prims(struct gl_context *ctx,
+                        GLuint mode,
+                        struct gl_buffer_object *indirect_data,
+                        GLsizeiptr indirect_offset,
+                        unsigned draw_count,
+                        unsigned stride,
+                        struct gl_buffer_object *indirect_params,
+                        GLsizeiptr indirect_params_offset,
+                        const struct _mesa_index_buffer *ib)
+{
+   struct vbo_context *vbo = vbo_context(ctx);
+   struct _mesa_prim *prim;
+   GLsizei i;
+
+   prim = calloc(draw_count, sizeof(*prim));
+   if (prim == NULL) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "gl%sDraw%sIndirect%s",
+                  (draw_count > 1) ? "Multi" : "",
+                  ib ? "Elements" : "Arrays",
+                  indirect_params ? "CountARB" : "");
+      return;
+   }
+
+   prim[0].begin = 1;
+   prim[draw_count - 1].end = 1;
+   for (i = 0; i < draw_count; ++i, indirect_offset += stride) {
+      prim[i].mode = mode;
+      prim[i].indexed = !!ib;
+      prim[i].indirect_offset = indirect_offset;
+      prim[i].is_indirect = 1;
+      prim[i].draw_id = i;
+   }
+
+   vbo->draw_prims(ctx, prim, draw_count,
+                   ib, GL_TRUE, 0, ~0,
+                   NULL, 0,
+                   ctx->DrawIndirectBuffer);
+
+   free(prim);
+}
+
 
 GLboolean _vbo_CreateContext( struct gl_context *ctx )
 {
@@ -152,6 +194,7 @@ GLboolean _vbo_CreateContext( struct gl_context *ctx )
    init_legacy_currval( ctx );
    init_generic_currval( ctx );
    init_mat_currval( ctx );
+   vbo_set_indirect_draw_func(ctx, vbo_draw_indirect_prims);
 
    /* Build mappings from VERT_ATTRIB -> VBO_ATTRIB depending on type
     * of vertex program active.
@@ -186,7 +229,7 @@ GLboolean _vbo_CreateContext( struct gl_context *ctx )
 }
 
 
-void _vbo_InvalidateState( struct gl_context *ctx, GLuint new_state )
+void _vbo_InvalidateState( struct gl_context *ctx, GLbitfield new_state )
 {
    vbo_exec_invalidate_state(ctx, new_state);
 }
@@ -223,3 +266,10 @@ void vbo_set_draw_func(struct gl_context *ctx, vbo_draw_func func)
    vbo->draw_prims = func;
 }
 
+
+void vbo_set_indirect_draw_func(struct gl_context *ctx,
+                                vbo_indirect_draw_func func)
+{
+   struct vbo_context *vbo = vbo_context(ctx);
+   vbo->draw_indirect_prims = func;
+}

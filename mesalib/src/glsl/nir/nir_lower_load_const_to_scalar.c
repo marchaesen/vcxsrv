@@ -82,8 +82,8 @@ nir_lower_load_const_to_scalar_impl(nir_function_impl *impl)
 void
 nir_lower_load_const_to_scalar(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_lower_load_const_to_scalar_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_lower_load_const_to_scalar_impl(function->impl);
    }
 }

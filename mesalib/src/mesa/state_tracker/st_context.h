@@ -65,8 +65,8 @@ struct u_upload_mgr;
 
 
 struct st_state_flags {
-   GLuint mesa;
-   uint64_t st;
+   GLbitfield mesa;  /**< Mask of _NEW_x flags */
+   uint64_t st;      /**< Mask of ST_NEW_x flags */
 };
 
 struct st_tracked_state {
@@ -101,6 +101,8 @@ struct st_context
    boolean prefer_blit_based_texture_transfer;
    boolean force_persample_in_shader;
    boolean has_shareable_shaders;
+   boolean has_half_float_packing;
+   boolean has_multi_draw_indirect;
 
    /**
     * If a shader can be created when we get its source.
@@ -251,7 +253,7 @@ struct st_framebuffer
 extern void st_init_driver_functions(struct pipe_screen *screen,
                                      struct dd_function_table *functions);
 
-void st_invalidate_state(struct gl_context * ctx, GLuint new_state);
+void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state);
 
 
 

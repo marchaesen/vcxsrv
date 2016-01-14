@@ -540,6 +540,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_bit_encoding_warn;
    bool ARB_shader_clock_enable;
    bool ARB_shader_clock_warn;
+   bool ARB_shader_draw_parameters_enable;
+   bool ARB_shader_draw_parameters_warn;
    bool ARB_shader_image_load_store_enable;
    bool ARB_shader_image_load_store_warn;
    bool ARB_shader_image_size_enable;
@@ -732,16 +734,6 @@ extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * Get the textual name of the specified shader stage (which is a
- * gl_shader_stage).
- */
-extern const char *
-_mesa_shader_stage_to_string(unsigned stage);
-
-extern const char *
-_mesa_shader_stage_to_abbrev(unsigned stage);
 
 extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
                       const struct gl_extensions *extensions, struct gl_context *gl_ctx);

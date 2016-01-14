@@ -144,8 +144,8 @@ libglsl_la_SOURCES =					\
 	glsl_parser.h					\
 	$(LIBGLSL_FILES)				\
 	$(NIR_FILES)					\
-	$(NIR_GENERATED_FILES)
-
+	$(NIR_GENERATED_FILES)				\
+	$(GLSL_TO_NIR_FILES)
 
 libnir_la_SOURCES =					\
 	$(NIR_FILES)					\

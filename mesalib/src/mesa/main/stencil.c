@@ -124,8 +124,8 @@ _mesa_ClearStencil( GLint s )
  * \sa glStencilFunc().
  *
  * Verifies the parameters and updates the respective values in
- * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies the
- * driver via the dd_function_table::StencilFunc callback.
+ * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies
+ * the driver via the dd_function_table::StencilFunc callback.
  */
 void GLAPIENTRY
 _mesa_StencilFuncSeparateATI( GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask )
@@ -178,8 +178,8 @@ _mesa_StencilFuncSeparateATI( GLenum frontfunc, GLenum backfunc, GLint ref, GLui
  * \sa glStencilFunc().
  *
  * Verifies the parameters and updates the respective values in
- * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies the
- * driver via the dd_function_table::StencilFunc callback.
+ * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies
+ * the driver via the dd_function_table::StencilFunc callback.
  */
 void GLAPIENTRY
 _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
@@ -298,8 +298,8 @@ _mesa_StencilMask( GLuint mask )
  * \sa glStencilOp().
  * 
  * Verifies the parameters and updates the respective fields in
- * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies the
- * driver via the dd_function_table::StencilOp callback.
+ * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies
+ * the driver via the dd_function_table::StencilOp callback.
  */
 void GLAPIENTRY
 _mesa_StencilOp(GLenum fail, GLenum zfail, GLenum zpass)
@@ -389,12 +389,6 @@ _mesa_ActiveStencilFaceEXT(GLenum face)
 
 
 
-/**
- * OpenGL 2.0 function.
- * \todo Make StencilOp() call this function.  And eventually remove the
- * ctx->Driver.StencilOp function and use ctx->Driver.StencilOpSeparate
- * instead.
- */
 void GLAPIENTRY
 _mesa_StencilOpSeparate(GLenum face, GLenum sfail, GLenum zfail, GLenum zpass)
 {

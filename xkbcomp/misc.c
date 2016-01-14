@@ -88,6 +88,15 @@ ProcessIncludeFile(IncludeStmt * stmt,
         fclose(file);
         XkbAddFileToCache(stmt->file, file_type, stmt->path, rtrn);
     }
+
+    /*
+     * A single file may contain several maps. Here's how we choose the map:
+     * - If a specific map was requested, look for it exclusively.
+     * - Otherwise, if the file only contains a single map, return it.
+     * - Otherwise, if the file has maps tagged as default, return the
+     *   first one.
+     * - If all fails, return the first map in the file.
+     */
     mapToUse = rtrn;
     if (stmt->map != NULL)
     {
@@ -105,12 +114,24 @@ ProcessIncludeFile(IncludeStmt * stmt,
             return False;
         }
     }
-    else if ((rtrn->common.next != NULL) && (warningLevel > 5))
+    else if (rtrn->common.next != NULL)
     {
-        WARN1("No map in include statement, but \"%s\" contains several\n",
-              stmt->file);
-        ACTION1("Using first defined map, \"%s\"\n", rtrn->name);
+        while ((mapToUse) && !(mapToUse->flags & XkbLC_Default))
+        {
+            mapToUse = (XkbFile *) mapToUse->common.next;
+        }
+        if (!mapToUse)
+        {
+            if (warningLevel > 5)
+            {
+                WARN1("No map in include statement, but \"%s\" contains several without a default map\n",
+                      stmt->file);
+                ACTION1("Using first defined map, \"%s\"\n", rtrn->name);
+            }
+            mapToUse = rtrn;
+        }
     }
+
     setScanState(oldFile, oldLine);
     if (mapToUse->type != file_type)
     {

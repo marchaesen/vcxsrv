@@ -880,7 +880,7 @@ FcStrBuildFilename (const FcChar8 *path,
     if (!path)
 	return NULL;
 
-    sset = FcStrSetCreate ();
+    sset = FcStrSetCreateEx (FCSS_ALLOW_DUPLICATES | FCSS_GROW_BY_64);
     if (!sset)
 	return NULL;
 
@@ -1130,6 +1130,12 @@ FcStrCanonFilename (const FcChar8 *s)
 FcStrSet *
 FcStrSetCreate (void)
 {
+    return FcStrSetCreateEx (FCSS_DEFAULT);
+}
+
+FcStrSet *
+FcStrSetCreateEx (unsigned int control)
+{
     FcStrSet	*set = malloc (sizeof (FcStrSet));
     if (!set)
 	return 0;
@@ -1137,29 +1143,42 @@ FcStrSetCreate (void)
     set->num = 0;
     set->size = 0;
     set->strs = 0;
+    set->control = control;
     return set;
+}
+
+static FcBool
+_FcStrSetGrow (FcStrSet *set, int growElements)
+{
+    /* accommodate an additional NULL entry at the end of the array */
+    FcChar8 **strs = malloc ((set->size + growElements + 1) * sizeof (FcChar8 *));
+    if (!strs)
+        return FcFalse;
+    if (set->num)
+        memcpy (strs, set->strs, set->num * sizeof (FcChar8 *));
+    if (set->strs)
+        free (set->strs);
+    set->size = set->size + growElements;
+    set->strs = strs;
+    return FcTrue;
 }
 
 static FcBool
 _FcStrSetAppend (FcStrSet *set, FcChar8 *s)
 {
-    if (FcStrSetMember (set, s))
+    if (!FcStrSetHasControlBit (set, FCSS_ALLOW_DUPLICATES))
     {
-	FcStrFree (s);
-	return FcTrue;
+        if (FcStrSetMember (set, s))
+        {
+            FcStrFree (s);
+            return FcTrue;
+        }
     }
     if (set->num == set->size)
     {
-	FcChar8	**strs = malloc ((set->size + 2) * sizeof (FcChar8 *));
-
-	if (!strs)
-	    return FcFalse;
-	if (set->num)
-	    memcpy (strs, set->strs, set->num * sizeof (FcChar8 *));
-	if (set->strs)
-	    free (set->strs);
-	set->size = set->size + 1;
-	set->strs = strs;
+        int growElements = FcStrSetHasControlBit (set, FCSS_GROW_BY_64) ? 64 : 1;
+        if (!_FcStrSetGrow(set, growElements))
+            return FcFalse;
     }
     set->strs[set->num++] = s;
     set->strs[set->num] = 0;

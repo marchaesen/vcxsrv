@@ -2247,6 +2247,22 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
                      _mesa_enum_to_string(internalFormat));
          return GL_TRUE;
       }
+   } else {
+      /*
+       * Section 8.6 (Alternate Texture Image Specification Commands) of the
+       * OpenGL 4.5 (Compatibility Profile) spec says:
+       *
+       *     "Parameters level, internalformat, and border are specified using
+       *     the same values, with the same meanings, as the corresponding
+       *     arguments of TexImage2D, except that internalformat may not be
+       *     specified as 1, 2, 3, or 4."
+       */
+      if (internalFormat >= 1 && internalFormat <= 4) {
+         _mesa_error(ctx, GL_INVALID_ENUM,
+                     "glCopyTexImage%dD(internalFormat=%d)", dimensions,
+                     internalFormat);
+         return GL_TRUE;
+      }
    }
 
    baseFormat = _mesa_base_tex_format(ctx, internalFormat);

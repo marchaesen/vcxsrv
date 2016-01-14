@@ -99,7 +99,8 @@ rewrite_emit_vertex(nir_intrinsic_instr *intrin, struct state *state)
 
    /* Increment the vertex count by 1 */
    nir_store_var(b, state->vertex_count_var,
-                 nir_iadd(b, count, nir_imm_int(b, 1)));
+                 nir_iadd(b, count, nir_imm_int(b, 1)),
+                 0x1); /* .x */
 
    nir_instr_remove(&intrin->instr);
 
@@ -199,18 +200,18 @@ nir_lower_gs_intrinsics(nir_shader *shader)
    exec_list_push_tail(&shader->globals, &var->node);
    state.vertex_count_var = var;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl) {
+   nir_foreach_function(shader, function) {
+      if (function->impl) {
          nir_builder b;
-         nir_builder_init(&b, overload->impl);
+         nir_builder_init(&b, function->impl);
          state.builder = &b;
 
-         nir_foreach_block(overload->impl, rewrite_intrinsics, &state);
+         nir_foreach_block(function->impl, rewrite_intrinsics, &state);
 
          /* This only works because we have a single main() function. */
-         append_set_vertex_count(overload->impl->end_block, &state);
+         append_set_vertex_count(function->impl->end_block, &state);
 
-         nir_metadata_preserve(overload->impl, 0);
+         nir_metadata_preserve(function->impl, 0);
       }
    }
 

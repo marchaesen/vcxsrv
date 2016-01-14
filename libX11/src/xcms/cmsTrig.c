@@ -379,21 +379,10 @@ static double _XcmsPolynomial(
 {
     auto double rtn_value;
 
-#if 0
-    auto double curr_coeff;
-    if (order <= 0) {
-	rtn_value = *coeffs;
-    } else {
-	curr_coeff = *coeffs;	/* Bug in Unisoft's compiler.  Does not */
-	coeffs++;		/* generate good code for *coeffs++ */
-	rtn_value = curr_coeff + x * _XcmsPolynomial (--order, coeffs, x);
-    }
-#else /* ++jrb -- removed tail recursion */
     coeffs += order;
     rtn_value = *coeffs--;
     while(order-- > 0)
 	rtn_value = *coeffs-- + (x * rtn_value);
-#endif
 
     return(rtn_value);
 }

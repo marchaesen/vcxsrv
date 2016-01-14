@@ -47,6 +47,42 @@ const char * gl_shader_stage_name(gl_shader_stage stage)
    return NAME(stage);
 }
 
+/**
+ * Translate a gl_shader_stage to a short shader stage name for debug
+ * printouts and error messages.
+ */
+const char * _mesa_shader_stage_to_string(unsigned stage)
+{
+   switch (stage) {
+   case MESA_SHADER_VERTEX:   return "vertex";
+   case MESA_SHADER_FRAGMENT: return "fragment";
+   case MESA_SHADER_GEOMETRY: return "geometry";
+   case MESA_SHADER_COMPUTE:  return "compute";
+   case MESA_SHADER_TESS_CTRL: return "tess ctrl";
+   case MESA_SHADER_TESS_EVAL: return "tess eval";
+   }
+
+   unreachable("Unknown shader stage.");
+}
+
+/**
+ * Translate a gl_shader_stage to a shader stage abbreviation (VS, GS, FS)
+ * for debug printouts and error messages.
+ */
+const char * _mesa_shader_stage_to_abbrev(unsigned stage)
+{
+   switch (stage) {
+   case MESA_SHADER_VERTEX:   return "VS";
+   case MESA_SHADER_FRAGMENT: return "FS";
+   case MESA_SHADER_GEOMETRY: return "GS";
+   case MESA_SHADER_COMPUTE:  return "CS";
+   case MESA_SHADER_TESS_CTRL: return "TCS";
+   case MESA_SHADER_TESS_EVAL: return "TES";
+   }
+
+   unreachable("Unknown shader stage.");
+}
+
 const char * gl_vert_attrib_name(gl_vert_attrib attrib)
 {
    static const char *names[] = {

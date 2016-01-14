@@ -77,9 +77,25 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     glamor_font->glyph_width_bytes = glyph_width_bytes;
     glamor_font->glyph_height = glyph_height;
 
-    overall_width = glyph_width_bytes * num_cols;
-    overall_height = glyph_height * num_rows;
+    /*
+     * Layout the font two blocks of columns wide.
+     * This avoids a problem with some fonts that are too high to fit.
+     */
+    glamor_font->row_width = glyph_width_bytes * num_cols;
 
+    if (num_rows > 1) {
+       overall_width = glamor_font->row_width * 2;
+       overall_height = glyph_height * ((num_rows + 1) / 2);
+    } else {
+       overall_width = glamor_font->row_width;
+       overall_height = glyph_height;
+    }
+
+    if (overall_width > glamor_priv->max_fbo_size ||
+        overall_height > glamor_priv->max_fbo_size) {
+        /* fallback if we don't fit inside a texture */
+        return NULL;
+    }
     bits = malloc(overall_width * overall_height);
     if (!bits)
         return NULL;
@@ -112,11 +128,17 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
             (*font->get_glyphs)(font, 1, c, TwoD16Bit, &count, &glyph);
 
             if (count) {
-                char *dst = bits + row * glyph_height * overall_width +
-                    col * glyph_width_bytes;
+                char *dst;
                 char *src = glyph->bits;
                 unsigned y;
 
+                dst = bits;
+                /* get offset of start of first row */
+                dst += (row / 2) * glyph_height * overall_width;
+                /* add offset into second row */
+                dst += (row & 1) ? glamor_font->row_width : 0;
+
+                dst += col * glyph_width_bytes;
                 for (y = 0; y < GLYPHHEIGHTPIXELS(glyph); y++) {
                     memcpy(dst, src, GLYPHWIDTHBYTES(glyph));
                     dst += overall_width;

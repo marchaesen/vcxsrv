@@ -23,7 +23,7 @@
 <bookinfo>
    <title>X Display Manager Control Protocol</title>
    <subtitle>X.Org Standard</subtitle>
-   <releaseinfo>X Version 11, Release &fullrelvers;</releaseinfo>
+   <releaseinfo>X Version 11</releaseinfo>
    <releaseinfo>Version 1.1</releaseinfo>
    <authorgroup>
    <author>

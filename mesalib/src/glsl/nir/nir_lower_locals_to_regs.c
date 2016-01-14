@@ -243,7 +243,7 @@ lower_locals_to_regs_block(nir_block *block, void *void_state)
 
          nir_alu_instr *mov = nir_alu_instr_create(state->shader, nir_op_imov);
          nir_src_copy(&mov->src[0].src, &intrin->src[0], mov);
-         mov->dest.write_mask = (1 << intrin->num_components) - 1;
+         mov->dest.write_mask = intrin->const_index[0];
          mov->dest.dest.is_ssa = false;
          mov->dest.dest.reg.reg = reg_src.reg.reg;
          mov->dest.dest.reg.base_offset = reg_src.reg.base_offset;
@@ -348,7 +348,7 @@ nir_lower_locals_to_regs_impl(nir_function_impl *impl)
 {
    struct locals_to_regs_state state;
 
-   state.shader = impl->overload->function->shader;
+   state.shader = impl->function->shader;
    state.impl = impl;
    state.progress = false;
    state.regs_table = _mesa_hash_table_create(NULL, hash_deref, derefs_equal);
@@ -387,9 +387,9 @@ nir_lower_locals_to_regs(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress = nir_lower_locals_to_regs_impl(overload->impl) || progress;
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress = nir_lower_locals_to_regs_impl(function->impl) || progress;
    }
 
    return progress;

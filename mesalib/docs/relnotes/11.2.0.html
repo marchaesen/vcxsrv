@@ -47,7 +47,9 @@ Note: some of the new features are only available with certain drivers.
 <li>GL_ARB_base_instance on freedreno/a4xx</li>
 <li>GL_ARB_compute_shader on i965</li>
 <li>GL_ARB_copy_image on r600</li>
-<li>GL_ARB_tessellation_shader on r600 (evergreen/cayman only)</li>
+<li>GL_ARB_indirect_parameters on nvc0</li>
+<li>GL_ARB_shader_draw_parameters on i965, nvc0</li>
+<li>GL_ARB_tessellation_shader on i965 and r600 (evergreen/cayman only)</li>
 <li>GL_ARB_texture_buffer_object_rgb32 on freedreno/a4xx</li>
 <li>GL_ARB_texture_buffer_range on freedreno/a4xx</li>
 <li>GL_ARB_texture_query_lod on freedreno/a4xx</li>
@@ -56,6 +58,8 @@ Note: some of the new features are only available with certain drivers.
 <li>GL_ARB_vertex_type_10f_11f_11f_rev on freedreno/a4xx</li>
 <li>GL_KHR_texture_compression_astc_ldr on freedreno/a4xx</li>
 <li>GL_AMD_performance_monitor on radeonsi (CIK+ only)</li>
+<li>New OSMesaCreateContextAttribs() function (for creating core profile
+    contexts)</li>
 </ul>
 
 <h2>Bug fixes</h2>

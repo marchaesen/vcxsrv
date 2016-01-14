@@ -76,6 +76,12 @@ struct vbo_context {
     * is responsible for initiating any fallback actions required:
     */
    vbo_draw_func draw_prims;
+
+   /* Optional callback for indirect draws. This allows multidraws to not be
+    * broken up, as well as for the actual count to be passed in as a separate
+    * indirect parameter.
+    */
+   vbo_indirect_draw_func draw_indirect_prims;
 };
 
 

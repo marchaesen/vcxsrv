@@ -220,13 +220,13 @@ static void update_raster_state( struct st_context *st )
    raster->line_smooth = ctx->Line.SmoothFlag;
    if (ctx->Line.SmoothFlag) {
       raster->line_width = CLAMP(ctx->Line.Width,
-                                ctx->Const.MinLineWidthAA,
-                                ctx->Const.MaxLineWidthAA);
+                                 ctx->Const.MinLineWidthAA,
+                                 ctx->Const.MaxLineWidthAA);
    }
    else {
       raster->line_width = CLAMP(ctx->Line.Width,
-                                ctx->Const.MinLineWidth,
-                                ctx->Const.MaxLineWidth);
+                                 ctx->Const.MinLineWidth,
+                                 ctx->Const.MaxLineWidth);
    }
 
    raster->line_stipple_enable = ctx->Line.StippleFlag;

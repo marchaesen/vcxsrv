@@ -30,7 +30,7 @@ typedef struct {
     CARD8       default_col;
 
     GLuint      texture_id;
-
+    GLuint      row_width;
     CARD16      glyph_width_bytes;
     CARD16      glyph_width_pixels;
     CARD16      glyph_height;

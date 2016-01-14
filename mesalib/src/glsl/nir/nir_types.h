@@ -75,6 +75,7 @@ bool glsl_type_is_matrix(const struct glsl_type *type);
 
 const struct glsl_type *glsl_void_type(void);
 const struct glsl_type *glsl_float_type(void);
+const struct glsl_type *glsl_vec_type(unsigned n);
 const struct glsl_type *glsl_vec4_type(void);
 const struct glsl_type *glsl_uint_type(void);
 const struct glsl_type *glsl_array_type(const struct glsl_type *base,

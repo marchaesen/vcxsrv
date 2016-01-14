@@ -2205,7 +2205,7 @@ FcConfigAppFontAddFile (FcConfig    *config,
 	    return FcFalse;
     }
 
-    subdirs = FcStrSetCreate ();
+    subdirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
     if (!subdirs)
 	return FcFalse;
 
@@ -2252,7 +2252,7 @@ FcConfigAppFontAddDir (FcConfig	    *config,
 	    return FcFalse;
     }
 
-    dirs = FcStrSetCreate ();
+    dirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
     if (!dirs)
 	return FcFalse;
 

@@ -65,6 +65,7 @@ for l in ('LIBGLCPP_FILES', 'LIBGLSL_FILES'):
 # XXX: Remove this once we build NIR and NIR_FILES.
 glsl_sources += [
     'nir/glsl_types.cpp',
+    'nir/shader_enums.c',
 ]
 
 if env['msvc']:

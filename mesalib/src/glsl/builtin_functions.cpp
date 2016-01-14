@@ -136,6 +136,12 @@ v140(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+v140_or_es3(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(140, 300);
+}
+
+static bool
 v400_fs_only(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(400, 0) &&
@@ -544,6 +550,7 @@ private:
    ir_variable *in_var(const glsl_type *type, const char *name);
    ir_variable *out_var(const glsl_type *type, const char *name);
    ir_constant *imm(float f, unsigned vector_elements=1);
+   ir_constant *imm(bool b, unsigned vector_elements=1);
    ir_constant *imm(int i, unsigned vector_elements=1);
    ir_constant *imm(unsigned u, unsigned vector_elements=1);
    ir_constant *imm(double d, unsigned vector_elements=1);
@@ -1438,9 +1445,9 @@ builtin_builder::create_builtins()
 
                 NULL);
    add_function("inverse",
-                _inverse_mat2(v120, glsl_type::mat2_type),
-                _inverse_mat3(v120, glsl_type::mat3_type),
-                _inverse_mat4(v120, glsl_type::mat4_type),
+                _inverse_mat2(v140_or_es3, glsl_type::mat2_type),
+                _inverse_mat3(v140_or_es3, glsl_type::mat3_type),
+                _inverse_mat4(v140_or_es3, glsl_type::mat4_type),
                 _inverse_mat2(fp64, glsl_type::dmat2_type),
                 _inverse_mat3(fp64, glsl_type::dmat3_type),
                 _inverse_mat4(fp64, glsl_type::dmat4_type),
@@ -3006,6 +3013,12 @@ builtin_builder::out_var(const glsl_type *type, const char *name)
 }
 
 ir_constant *
+builtin_builder::imm(bool b, unsigned vector_elements)
+{
+   return new(mem_ctx) ir_constant(b, vector_elements);
+}
+
+ir_constant *
 builtin_builder::imm(float f, unsigned vector_elements)
 {
    return new(mem_ctx) ir_constant(f, vector_elements);
@@ -4364,7 +4377,13 @@ builtin_builder::_notEqual(builtin_available_predicate avail,
 ir_function_signature *
 builtin_builder::_any(const glsl_type *type)
 {
-   return unop(always_available, ir_unop_any, glsl_type::bool_type, type);
+   ir_variable *v = in_var(type, "v");
+   MAKE_SIG(glsl_type::bool_type, always_available, 1, v);
+
+   const unsigned vec_elem = v->type->vector_elements;
+   body.emit(ret(expr(ir_binop_any_nequal, v, imm(false, vec_elem))));
+
+   return sig;
 }
 
 ir_function_signature *
@@ -4373,20 +4392,8 @@ builtin_builder::_all(const glsl_type *type)
    ir_variable *v = in_var(type, "v");
    MAKE_SIG(glsl_type::bool_type, always_available, 1, v);
 
-   switch (type->vector_elements) {
-   case 2:
-      body.emit(ret(logic_and(swizzle_x(v), swizzle_y(v))));
-      break;
-   case 3:
-      body.emit(ret(logic_and(logic_and(swizzle_x(v), swizzle_y(v)),
-                              swizzle_z(v))));
-      break;
-   case 4:
-      body.emit(ret(logic_and(logic_and(logic_and(swizzle_x(v), swizzle_y(v)),
-                                        swizzle_z(v)),
-                              swizzle_w(v))));
-      break;
-   }
+   const unsigned vec_elem = v->type->vector_elements;
+   body.emit(ret(expr(ir_binop_all_equal, v, imm(true, vec_elem))));
 
    return sig;
 }

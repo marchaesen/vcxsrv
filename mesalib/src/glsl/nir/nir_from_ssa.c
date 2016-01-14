@@ -798,8 +798,8 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
 void
 nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_convert_from_ssa_impl(overload->impl, phi_webs_only);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_convert_from_ssa_impl(function->impl, phi_webs_only);
    }
 }

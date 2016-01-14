@@ -532,6 +532,8 @@ public:
           */
          if (var->is_interface_instance()) {
             ubo_byte_offset = 0;
+            process(var->get_interface_type(),
+                    var->get_interface_type()->name);
          } else {
             const struct gl_uniform_block *const block =
                &prog->BufferInterfaceBlocks[ubo_block_index];
@@ -542,13 +544,8 @@ public:
                &block->Uniforms[var->data.location];
 
             ubo_byte_offset = ubo_var->Offset;
-         }
-
-         if (var->is_interface_instance())
-            process(var->get_interface_type(),
-                    var->get_interface_type()->name);
-         else
             process(var);
+         }
       } else {
          /* Store any explicit location and reset data location so we can
           * reuse this variable for storing the uniform slot number.

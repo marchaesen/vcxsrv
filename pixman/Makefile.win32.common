@@ -5,6 +5,10 @@ LD = link
 AR = lib
 PERL = perl
 
+ifneq ($(shell echo ""),)
+RM = del
+endif
+
 ifeq ($(top_builddir),)
 top_builddir = $(top_srcdir)
 endif
@@ -45,12 +49,13 @@ endif
 endif
 endif
 
+$(CFG_VAR):
+	@mkdir $@
 
-$(CFG_VAR)/%.obj: %.c $(libpixman_headers)
-	@mkdir -p $(CFG_VAR)
+$(CFG_VAR)/%.obj: %.c $(libpixman_headers) | $(CFG_VAR)
 	@$(CC) -c $(PIXMAN_CFLAGS) -Fo"$@" $<
 
-clean: inform
-	@$(RM) $(CFG_VAR)/*.{exe,ilk,lib,obj,pdb} $(BUILT_SOURCES) || exit 0
+clean: inform $(CFG_VAR)
+	@cd $(CFG_VAR) && echo > silence_error.exe && $(RM) *.exe *.ilk *.lib *.obj *.pdb
 
 .PHONY: inform clean

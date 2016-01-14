@@ -871,9 +871,7 @@ public:
       /**
        * Location an atomic counter is stored at.
        */
-      struct {
-         unsigned offset;
-      } atomic;
+      unsigned offset;
 
       /**
        * Highest element accessed with a constant expression array index
@@ -1355,7 +1353,6 @@ enum ir_expression_operation {
    ir_unop_bitcast_f2i, /**< Bit-identical float-to-int "conversion" */
    ir_unop_bitcast_u2f, /**< Bit-identical uint-to-float "conversion" */
    ir_unop_bitcast_f2u, /**< Bit-identical float-to-uint "conversion" */
-   ir_unop_any,
 
    /**
     * \name Unary floating-point rounding operations.
@@ -1726,9 +1723,15 @@ public:
    {
       return operation == ir_binop_all_equal ||
              operation == ir_binop_any_nequal ||
-             operation == ir_unop_any ||
              operation == ir_binop_dot ||
-             operation == ir_quadop_vector;
+             operation == ir_binop_vector_extract ||
+             operation == ir_triop_vector_insert ||
+             operation == ir_quadop_vector ||
+             /* TODO: these can't currently be vectorized */
+             operation == ir_quadop_bitfield_insert ||
+             operation == ir_triop_bitfield_extract ||
+             operation == ir_triop_bfi ||
+             operation == ir_binop_bfm;
    }
 
    /**

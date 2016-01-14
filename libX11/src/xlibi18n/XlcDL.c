@@ -249,6 +249,7 @@ __lc_path(const char *dl_name, const char *lc_dir)
 {
     char *path;
     size_t len;
+    char *slash_p;
 
     /*
      * reject this for possible security issue
@@ -264,22 +265,21 @@ __lc_path(const char *dl_name, const char *lc_dir)
     path = Xmalloc(len + 1);
 
     if (strchr(dl_name, '/') != NULL) {
-	char *slash_p;
 	slash_p = strrchr(lc_dir, '/');
 	*slash_p = '\0';
-	strcpy(path, lc_dir); strcat(path, "/");
+    } else
+	slash_p = NULL;
+
 #if defined POSTLOCALELIBDIR
-	strcat(path, POSTLOCALELIBDIR); strcat(path, "/");
+    snprintf(path, len + 1, "%s/%s/%s.so.2",
+             lc_dir, POSTLOCALELIBDIR, dl_name);
+#else
+    snprintf(path, len + 1, "%s/%s.so.2", lc_dir, dl_name);
 #endif
-	strcat(path, dl_name); strcat(path, ".so.2");
+
+    if (slash_p != NULL)
 	*slash_p = '/';
-    } else {
-	strcpy(path, lc_dir); strcat(path, "/");
-#if defined POSTLOCALELIBDIR
-	strcat(path, POSTLOCALELIBDIR); strcat(path, "/");
-#endif
-	strcat(path, dl_name); strcat(path, ".so.2");
-    }
+
     return path;
 }
 

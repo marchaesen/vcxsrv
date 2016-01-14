@@ -90,9 +90,9 @@ add_var_use_block(nir_block *block, void *state)
 static void
 add_var_use_shader(nir_shader *shader, struct set *live)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl) {
-         nir_foreach_block(overload->impl, add_var_use_block, live);
+   nir_foreach_function(shader, function) {
+      if (function->impl) {
+         nir_foreach_block(function->impl, add_var_use_block, live);
       }
    }
 }
@@ -125,10 +125,10 @@ nir_remove_dead_variables(nir_shader *shader)
 
    progress = remove_dead_vars(&shader->globals, live) || progress;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl) {
-         if (remove_dead_vars(&overload->impl->locals, live)) {
-            nir_metadata_preserve(overload->impl, nir_metadata_block_index |
+   nir_foreach_function(shader, function) {
+      if (function->impl) {
+         if (remove_dead_vars(&function->impl->locals, live)) {
+            nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                   nir_metadata_dominance |
                                                   nir_metadata_live_ssa_defs);
             progress = true;

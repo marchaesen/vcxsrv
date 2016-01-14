@@ -8247,7 +8247,11 @@
 
 <xi:include href="ARB_multi_bind.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions 148 - 159 -->
+<!-- ARB extensions 148 - 153 -->
+
+<xi:include href="ARB_indirect_parameters.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions 155 - 159 -->
 
 <xi:include href="ARB_clip_control.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

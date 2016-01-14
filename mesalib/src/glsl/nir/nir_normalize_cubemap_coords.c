@@ -111,9 +111,9 @@ nir_normalize_cubemap_coords(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress = normalize_cubemap_coords_impl(overload->impl) || progress;
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress = normalize_cubemap_coords_impl(function->impl) || progress;
    }
 
    return progress;

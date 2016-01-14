@@ -431,7 +431,7 @@ hud_alloc_vertices(struct hud_context *hud, struct vertex_queue *v,
    v->max_num_vertices = num_vertices;
    v->vbuf.stride = stride;
    u_upload_alloc(hud->uploader, 0, v->vbuf.stride * v->max_num_vertices,
-                  &v->vbuf.buffer_offset, &v->vbuf.buffer,
+                  16, &v->vbuf.buffer_offset, &v->vbuf.buffer,
                   (void**)&v->vertices);
 }
 
@@ -1176,8 +1176,8 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
 
    hud->pipe = pipe;
    hud->cso = cso;
-   hud->uploader = u_upload_create(pipe, 256 * 1024, 16,
-                                   PIPE_BIND_VERTEX_BUFFER);
+   hud->uploader = u_upload_create(pipe, 256 * 1024,
+                                   PIPE_BIND_VERTEX_BUFFER, PIPE_USAGE_STREAM);
 
    /* font */
    if (!util_font_create(pipe, UTIL_FONT_FIXED_8X13, &hud->font)) {

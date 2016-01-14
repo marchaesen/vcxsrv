@@ -1640,7 +1640,7 @@ glsl_type::std430_size(bool row_major) const
 }
 
 unsigned
-glsl_type::count_attribute_slots() const
+glsl_type::count_attribute_slots(bool vertex_input_slots) const
 {
    /* From page 31 (page 37 of the PDF) of the GLSL 1.50 spec:
     *
@@ -1661,27 +1661,35 @@ glsl_type::count_attribute_slots() const
     * allows varying structs, the number of varying slots taken up by a
     * varying struct is simply equal to the sum of the number of slots taken
     * up by each element.
+    *
+    * Doubles are counted different depending on whether they are vertex
+    * inputs or everything else. Vertex inputs from ARB_vertex_attrib_64bit
+    * take one location no matter what size they are, otherwise dvec3/4
+    * take two locations.
     */
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_BOOL:
-   case GLSL_TYPE_DOUBLE:
       return this->matrix_columns;
-
+   case GLSL_TYPE_DOUBLE:
+      if (this->vector_elements > 2 && !vertex_input_slots)
+         return this->matrix_columns * 2;
+      else
+         return this->matrix_columns;
    case GLSL_TYPE_STRUCT:
    case GLSL_TYPE_INTERFACE: {
       unsigned size = 0;
 
       for (unsigned i = 0; i < this->length; i++)
-         size += this->fields.structure[i].type->count_attribute_slots();
+         size += this->fields.structure[i].type->count_attribute_slots(vertex_input_slots);
 
       return size;
    }
 
    case GLSL_TYPE_ARRAY:
-      return this->length * this->fields.array->count_attribute_slots();
+      return this->length * this->fields.array->count_attribute_slots(vertex_input_slots);
 
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:

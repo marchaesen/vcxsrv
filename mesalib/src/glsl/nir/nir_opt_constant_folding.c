@@ -192,9 +192,9 @@ nir_opt_constant_folding(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress |= nir_opt_constant_folding_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress |= nir_opt_constant_folding_impl(function->impl);
    }
 
    return progress;

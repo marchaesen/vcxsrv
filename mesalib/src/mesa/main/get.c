@@ -423,6 +423,7 @@ EXTRA_EXT(ARB_framebuffer_no_attachments);
 EXTRA_EXT(ARB_tessellation_shader);
 EXTRA_EXT(ARB_shader_subroutine);
 EXTRA_EXT(ARB_shader_storage_buffer_object);
+EXTRA_EXT(ARB_indirect_parameters);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -1031,6 +1032,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    /* GL_ARB_draw_indirect */
    case GL_DRAW_INDIRECT_BUFFER_BINDING:
       v->value_int = ctx->DrawIndirectBuffer->Name;
+      break;
+   /* GL_ARB_indirect_parameters */
+   case GL_PARAMETER_BUFFER_BINDING_ARB:
+      v->value_int = ctx->ParameterBuffer->Name;
       break;
    /* GL_ARB_separate_shader_objects */
    case GL_PROGRAM_PIPELINE_BINDING:

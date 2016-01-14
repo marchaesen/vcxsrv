@@ -221,9 +221,9 @@ nir_calc_dominance_impl(nir_function_impl *impl)
 void
 nir_calc_dominance(nir_shader *shader)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_calc_dominance_impl(overload->impl);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_calc_dominance_impl(function->impl);
    }
 }
 
@@ -277,7 +277,7 @@ dump_block_dom(nir_block *block, void *state)
 void
 nir_dump_dom_tree_impl(nir_function_impl *impl, FILE *fp)
 {
-   fprintf(fp, "digraph doms_%s {\n", impl->overload->function->name);
+   fprintf(fp, "digraph doms_%s {\n", impl->function->name);
    nir_foreach_block(impl, dump_block_dom, fp);
    fprintf(fp, "}\n\n");
 }
@@ -285,9 +285,9 @@ nir_dump_dom_tree_impl(nir_function_impl *impl, FILE *fp)
 void
 nir_dump_dom_tree(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_dump_dom_tree_impl(overload->impl, fp);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_dump_dom_tree_impl(function->impl, fp);
    }
 }
 
@@ -315,9 +315,9 @@ nir_dump_dom_frontier_impl(nir_function_impl *impl, FILE *fp)
 void
 nir_dump_dom_frontier(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_dump_dom_frontier_impl(overload->impl, fp);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_dump_dom_frontier_impl(function->impl, fp);
    }
 }
 
@@ -335,7 +335,7 @@ dump_block_succs(nir_block *block, void *state)
 void
 nir_dump_cfg_impl(nir_function_impl *impl, FILE *fp)
 {
-   fprintf(fp, "digraph cfg_%s {\n", impl->overload->function->name);
+   fprintf(fp, "digraph cfg_%s {\n", impl->function->name);
    nir_foreach_block(impl, dump_block_succs, fp);
    fprintf(fp, "}\n\n");
 }
@@ -343,8 +343,8 @@ nir_dump_cfg_impl(nir_function_impl *impl, FILE *fp)
 void
 nir_dump_cfg(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         nir_dump_cfg_impl(overload->impl, fp);
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         nir_dump_cfg_impl(function->impl, fp);
    }
 }

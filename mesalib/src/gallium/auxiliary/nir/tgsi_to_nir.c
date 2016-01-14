@@ -22,10 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
-#endif
-
 #include "util/ralloc.h"
 #include "glsl/nir/nir.h"
 #include "glsl/nir/nir_control_flow.h"
@@ -1069,7 +1065,9 @@ ttn_kill(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
 static void
 ttn_kill_if(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
 {
-   nir_ssa_def *cmp = nir_bany4(b, nir_flt(b, src[0], nir_imm_float(b, 0.0)));
+   nir_ssa_def *cmp = nir_bany_inequal4(b, nir_flt(b, src[0],
+                                                   nir_imm_float(b, 0.0)),
+                                        nir_imm_int(b, 0));
    nir_intrinsic_instr *discard =
       nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
    discard->src[0] = nir_src_for_ssa(cmp);
@@ -1901,6 +1899,7 @@ ttn_emit_instruction(struct ttn_compile *c)
                                            &tgsi_dst->Indirect : NULL;
 
       store->num_components = 4;
+      store->const_index[0] = 0xf;
       store->variables[0] = ttn_array_deref(c, store, var, offset, indirect);
       store->src[0] = nir_src_for_reg(dest.dest.reg.reg);
 
@@ -1951,7 +1950,7 @@ tgsi_processor_to_shader_stage(unsigned processor)
    case TGSI_PROCESSOR_COMPUTE:   return MESA_SHADER_COMPUTE;
    default:
       unreachable("invalid TGSI processor");
-   };
+   }
 }
 
 struct nir_shader *
@@ -1969,15 +1968,10 @@ tgsi_to_nir(const void *tgsi_tokens,
    tgsi_scan_shader(tgsi_tokens, &scan);
    c->scan = &scan;
 
-   s = nir_shader_create(NULL, tgsi_processor_to_shader_stage(scan.processor),
-                         options);
-
-   nir_function *func = nir_function_create(s, "main");
-   nir_function_overload *overload = nir_function_overload_create(func);
-   nir_function_impl *impl = nir_function_impl_create(overload);
-
-   nir_builder_init(&c->build, impl);
-   c->build.cursor = nir_after_cf_list(&impl->body);
+   nir_builder_init_simple_shader(&c->build, NULL,
+                                  tgsi_processor_to_shader_stage(scan.processor),
+                                  options);
+   s = c->build.shader;
 
    s->num_inputs = scan.file_max[TGSI_FILE_INPUT] + 1;
    s->num_uniforms = scan.const_file_max[0] + 1;

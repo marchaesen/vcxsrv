@@ -887,6 +887,10 @@ descriptor=[
 # GL_ARB_shader_subroutine
   [ "MAX_SUBROUTINES", "CONST(MAX_SUBROUTINES), extra_ARB_shader_subroutine" ],
   [ "MAX_SUBROUTINE_UNIFORM_LOCATIONS", "CONST(MAX_SUBROUTINE_UNIFORM_LOCATIONS), extra_ARB_shader_subroutine" ],
+
+# GL_ARB_indirect_parameters
+  [ "PARAMETER_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_indirect_parameters" ],
+
 ]}
 
 ]

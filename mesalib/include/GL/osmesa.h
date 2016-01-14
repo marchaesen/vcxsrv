@@ -58,8 +58,8 @@ extern "C" {
 #include <GL/gl.h>
 
 
-#define OSMESA_MAJOR_VERSION 10
-#define OSMESA_MINOR_VERSION 0
+#define OSMESA_MAJOR_VERSION 11
+#define OSMESA_MINOR_VERSION 2
 #define OSMESA_PATCH_VERSION 0
 
 
@@ -95,6 +95,18 @@ extern "C" {
 #define OSMESA_MAX_WIDTH	0x24  /* new in 4.0 */
 #define OSMESA_MAX_HEIGHT	0x25  /* new in 4.0 */
 
+/*
+ * Accepted in OSMesaCreateContextAttrib's attribute list.
+ */
+#define OSMESA_DEPTH_BITS            0x30
+#define OSMESA_STENCIL_BITS          0x31
+#define OSMESA_ACCUM_BITS            0x32
+#define OSMESA_PROFILE               0x33
+#define OSMESA_CORE_PROFILE          0x34
+#define OSMESA_COMPAT_PROFILE        0x35
+#define OSMESA_CONTEXT_MAJOR_VERSION 0x36
+#define OSMESA_CONTEXT_MINOR_VERSION 0x37
+
 
 typedef struct osmesa_context *OSMesaContext;
 
@@ -125,6 +137,35 @@ OSMesaCreateContext( GLenum format, OSMesaContext sharelist );
 GLAPI OSMesaContext GLAPIENTRY
 OSMesaCreateContextExt( GLenum format, GLint depthBits, GLint stencilBits,
                         GLint accumBits, OSMesaContext sharelist);
+
+
+/*
+ * Create an Off-Screen Mesa rendering context with attribute list.
+ * The list is composed of (attribute, value) pairs and terminated with
+ * attribute==0.  Supported Attributes:
+ *
+ * Attributes                    Values
+ * --------------------------------------------------------------------------
+ * OSMESA_FORMAT                 OSMESA_RGBA*, OSMESA_BGRA, OSMESA_ARGB, etc.
+ * OSMESA_DEPTH_BITS             0*, 16, 24, 32
+ * OSMESA_STENCIL_BITS           0*, 8
+ * OSMESA_ACCUM_BITS             0*, 16
+ * OSMESA_PROFILE                OSMESA_COMPAT_PROFILE*, OSMESA_CORE_PROFILE
+ * OSMESA_CONTEXT_MAJOR_VERSION  1*, 2, 3
+ * OSMESA_CONTEXT_MINOR_VERSION  0+
+ *
+ * Note: * = default value
+ *
+ * We return a context version >= what's specified by OSMESA_CONTEXT_MAJOR/
+ * MINOR_VERSION for the given profile.  For example, if you request a GL 1.4
+ * compat profile, you might get a GL 3.0 compat profile.
+ * Otherwise, null is returned if the version/profile is not supported.
+ *
+ * New in Mesa 11.2
+ */
+GLAPI OSMesaContext GLAPIENTRY
+OSMesaCreateContextAttribs( const int *attribList, OSMesaContext sharelist );
+
 
 
 /*

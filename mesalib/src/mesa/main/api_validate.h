@@ -106,6 +106,22 @@ _mesa_validate_MultiDrawElementsIndirect(struct gl_context *ctx,
                                          GLsizei stride);
 
 extern GLboolean
+_mesa_validate_MultiDrawArraysIndirectCount(struct gl_context *ctx,
+                                            GLenum mode,
+                                            GLintptr indirect,
+                                            GLintptr drawcount,
+                                            GLsizei maxdrawcount,
+                                            GLsizei stride);
+
+extern GLboolean
+_mesa_validate_MultiDrawElementsIndirectCount(struct gl_context *ctx,
+                                              GLenum mode, GLenum type,
+                                              GLintptr indirect,
+                                              GLintptr drawcount,
+                                              GLsizei maxdrawcount,
+                                              GLsizei stride);
+
+extern GLboolean
 _mesa_validate_DispatchCompute(struct gl_context *ctx,
                                const GLuint *num_groups);
 

@@ -87,9 +87,9 @@ nir_lower_system_values(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_overload(shader, overload) {
-      if (overload->impl)
-         progress = convert_impl(overload->impl) || progress;
+   nir_foreach_function(shader, function) {
+      if (function->impl)
+         progress = convert_impl(function->impl) || progress;
    }
 
    exec_list_make_empty(&shader->system_values);

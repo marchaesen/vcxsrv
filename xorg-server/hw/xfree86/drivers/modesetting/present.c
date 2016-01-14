@@ -398,6 +398,9 @@ ms_do_pageflip(ScreenPtr screen,
                int ref_crtc_vblank_pipe,
                Bool async)
 {
+#ifndef GLAMOR_HAS_GBM
+    return FALSE;
+#else
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
@@ -505,6 +508,7 @@ error_out:
         flipdata->flip_count--;
 
     return FALSE;
+#endif /* GLAMOR_HAS_GBM */
 }
 
 /*
@@ -533,8 +537,10 @@ ms_present_check_flip(RRCrtcPtr crtc,
         drmmode_crtc_private_ptr drmmode_crtc = config->crtc[i]->driver_private;
 
         /* Don't do pageflipping if CRTCs are rotated. */
+#ifdef GLAMOR_HAS_GBM
         if (drmmode_crtc->rotate_bo.gbm)
             return FALSE;
+#endif
 
         if (ms_crtc_on(config->crtc[i]))
             num_crtcs_on++;

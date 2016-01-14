@@ -65,7 +65,6 @@ name(const in_type *parent)                              \
    return exec_node_data(out_type, parent, field);       \
 }
 
-struct nir_function_overload;
 struct nir_function;
 struct nir_shader;
 struct nir_instr;
@@ -216,15 +215,6 @@ typedef struct {
       unsigned has_initializer:1;
 
       /**
-       * Is this variable a generic output or input that has not yet been matched
-       * up to a variable in another stage of the pipeline?
-       *
-       * This is used by the linker as scratch storage while assigning locations
-       * to generic inputs and outputs.
-       */
-      unsigned is_unmatched_generic_inout:1;
-
-      /**
        * If non-zero, then this variable may be packed along with other variables
        * into a single varying slot, so this offset should be applied when
        * accessing components.  For example, an offset of 1 means that the x
@@ -301,9 +291,7 @@ typedef struct {
       /**
        * Location an atomic counter is stored at.
        */
-      struct {
-         unsigned offset;
-      } atomic;
+      unsigned offset;
 
       /**
        * ARB_shader_image_load_store qualifiers.
@@ -794,7 +782,7 @@ typedef struct {
    nir_deref_var **params;
    nir_deref_var *return_deref;
 
-   struct nir_function_overload *callee;
+   struct nir_function *callee;
 } nir_call_instr;
 
 #define INTRINSIC(name, num_srcs, src_components, has_dest, dest_components, \
@@ -1348,8 +1336,8 @@ typedef enum {
 typedef struct {
    nir_cf_node cf_node;
 
-   /** pointer to the overload of which this is an implementation */
-   struct nir_function_overload *overload;
+   /** pointer to the function of which this is an implementation */
+   struct nir_function *function;
 
    struct exec_list body; /** < list of nir_cf_node */
 
@@ -1434,37 +1422,34 @@ typedef struct {
    const struct glsl_type *type;
 } nir_parameter;
 
-typedef struct nir_function_overload {
+typedef struct nir_function {
    struct exec_node node;
+
+   const char *name;
+   struct nir_shader *shader;
 
    unsigned num_params;
    nir_parameter *params;
    const struct glsl_type *return_type;
 
-   nir_function_impl *impl; /** < NULL if the overload is only declared yet */
-
-   /** pointer to the function of which this is an overload */
-   struct nir_function *function;
-} nir_function_overload;
-
-typedef struct nir_function {
-   struct exec_node node;
-
-   struct exec_list overload_list; /** < list of nir_function_overload */
-   const char *name;
-   struct nir_shader *shader;
+   /** The implementation of this function.
+    *
+    * If the function is only declared and not implemented, this is NULL.
+    */
+   nir_function_impl *impl;
 } nir_function;
 
-#define nir_function_first_overload(func) \
-   exec_node_data(nir_function_overload, \
-                  exec_list_get_head(&(func)->overload_list), node)
-
 typedef struct nir_shader_compiler_options {
+   bool lower_fdiv;
    bool lower_ffma;
    bool lower_flrp;
    bool lower_fpow;
    bool lower_fsat;
    bool lower_fsqrt;
+   bool lower_fmod;
+   bool lower_bitfield_insert;
+   bool lower_uadd_carry;
+   bool lower_usub_borrow;
    /** lowers fneg and ineg to fsub and isub. */
    bool lower_negate;
    /** lowers fsub and isub to fadd+fneg and iadd+ineg. */
@@ -1619,10 +1604,8 @@ typedef struct nir_shader {
    gl_shader_stage stage;
 } nir_shader;
 
-#define nir_foreach_overload(shader, overload)                        \
-   foreach_list_typed(nir_function, func, node, &(shader)->functions) \
-      foreach_list_typed(nir_function_overload, overload, node, \
-                         &(func)->overload_list)
+#define nir_foreach_function(shader, func) \
+   foreach_list_typed(nir_function, func, node, &(shader)->functions)
 
 nir_shader *nir_shader_create(void *mem_ctx,
                               gl_shader_stage stage,
@@ -1658,10 +1641,7 @@ nir_variable *nir_local_variable_create(nir_function_impl *impl,
 /** creates a function and adds it to the shader's list of functions */
 nir_function *nir_function_create(nir_shader *shader, const char *name);
 
-/** creates a null function returning null */
-nir_function_overload *nir_function_overload_create(nir_function *func);
-
-nir_function_impl *nir_function_impl_create(nir_function_overload *func);
+nir_function_impl *nir_function_impl_create(nir_function *func);
 
 nir_block *nir_block_create(nir_shader *shader);
 nir_if *nir_if_create(nir_shader *shader);
@@ -1686,7 +1666,7 @@ nir_intrinsic_instr *nir_intrinsic_instr_create(nir_shader *shader,
                                                 nir_intrinsic_op op);
 
 nir_call_instr *nir_call_instr_create(nir_shader *shader,
-                                      nir_function_overload *callee);
+                                      nir_function *callee);
 
 nir_tex_instr *nir_tex_instr_create(nir_shader *shader, unsigned num_srcs);
 
@@ -1928,11 +1908,45 @@ nir_shader * nir_shader_clone(void *mem_ctx, const nir_shader *s);
 void nir_validate_shader(nir_shader *shader);
 void nir_metadata_set_validation_flag(nir_shader *shader);
 void nir_metadata_check_validation_flag(nir_shader *shader);
+
+#include "util/debug.h"
+static inline bool
+should_clone_nir(void)
+{
+   static int should_clone = -1;
+   if (should_clone < 0)
+      should_clone = env_var_as_boolean("NIR_TEST_CLONE", false);
+
+   return should_clone;
+}
 #else
 static inline void nir_validate_shader(nir_shader *shader) { (void) shader; }
 static inline void nir_metadata_set_validation_flag(nir_shader *shader) { (void) shader; }
 static inline void nir_metadata_check_validation_flag(nir_shader *shader) { (void) shader; }
+static inline bool should_clone_nir(void) { return false; }
 #endif /* DEBUG */
+
+#define _PASS(nir, do_pass) do {                                     \
+   do_pass                                                           \
+   nir_validate_shader(nir);                                         \
+   if (should_clone_nir()) {                                         \
+      nir_shader *clone = nir_shader_clone(ralloc_parent(nir), nir); \
+      ralloc_free(nir);                                              \
+      nir = clone;                                                   \
+   }                                                                 \
+} while (0)
+
+#define NIR_PASS(progress, nir, pass, ...) _PASS(nir,                \
+   nir_metadata_set_validation_flag(nir);                            \
+   if (pass(nir, ##__VA_ARGS__)) {                                   \
+      progress = true;                                               \
+      nir_metadata_check_validation_flag(nir);                       \
+   }                                                                 \
+)
+
+#define NIR_PASS_V(nir, pass, ...) _PASS(nir,                        \
+   pass(nir, ##__VA_ARGS__);                                         \
+)
 
 void nir_calc_dominance_impl(nir_function_impl *impl);
 void nir_calc_dominance(nir_shader *shader);

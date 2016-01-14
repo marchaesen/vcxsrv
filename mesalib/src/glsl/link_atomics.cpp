@@ -83,16 +83,16 @@ namespace {
       const active_atomic_counter *const first = (active_atomic_counter *) a;
       const active_atomic_counter *const second = (active_atomic_counter *) b;
 
-      return int(first->var->data.atomic.offset) - int(second->var->data.atomic.offset);
+      return int(first->var->data.offset) - int(second->var->data.offset);
    }
 
    bool
    check_atomic_counters_overlap(const ir_variable *x, const ir_variable *y)
    {
-      return ((x->data.atomic.offset >= y->data.atomic.offset &&
-               x->data.atomic.offset < y->data.atomic.offset + y->type->atomic_size()) ||
-              (y->data.atomic.offset >= x->data.atomic.offset &&
-               y->data.atomic.offset < x->data.atomic.offset + x->type->atomic_size()));
+      return ((x->data.offset >= y->data.offset &&
+               x->data.offset < y->data.offset + y->type->atomic_size()) ||
+              (y->data.offset >= x->data.offset &&
+               y->data.offset < x->data.offset + x->type->atomic_size()));
    }
 
    void
@@ -158,7 +158,7 @@ namespace {
             ir_variable *var = node->as_variable();
 
             if (var && var->type->contains_atomic()) {
-               int offset = var->data.atomic.offset;
+               int offset = var->data.offset;
                unsigned uniform_loc = var->data.location;
                process_atomic_variable(var->type, prog, &uniform_loc,
                                        var, buffers, num_buffers, &offset, i);
@@ -185,7 +185,7 @@ namespace {
                linker_error(prog, "Atomic counter %s declared at offset %d "
                             "which is already in use.",
                             buffers[i].counters[j].var->name,
-                            buffers[i].counters[j].var->data.atomic.offset);
+                            buffers[i].counters[j].var->data.offset);
             }
          }
       }
@@ -237,7 +237,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
             var->data.binding = i;
 
          storage->atomic_buffer_index = i;
-         storage->offset = var->data.atomic.offset;
+         storage->offset = var->data.offset;
          storage->array_stride = (var->type->is_array() ?
                                   var->type->without_array()->atomic_size() : 0);
          if (!var->type->is_matrix())

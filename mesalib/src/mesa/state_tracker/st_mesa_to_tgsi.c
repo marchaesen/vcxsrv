@@ -475,24 +475,6 @@ static void emit_swz( struct st_translate *t,
 }
 
 
-/**
- * Negate the value of DDY to match GL semantics where (0,0) is the
- * lower-left corner of the window.
- * Note that the GL_ARB_fragment_coord_conventions extension will
- * effect this someday.
- */
-static void emit_ddy( struct st_translate *t,
-                      struct ureg_dst dst,
-                      const struct prog_src_register *SrcReg )
-{
-   struct ureg_program *ureg = t->ureg;
-   struct ureg_src src = translate_src( t, SrcReg );
-   src = ureg_negate( src );
-   ureg_DDY( ureg, dst, src );
-}
-
-
-
 static unsigned
 translate_opcode( unsigned op )
 {
@@ -714,10 +696,6 @@ compile_instruction(
        */
       ureg_MOV( ureg, dst[0], ureg_imm1f(ureg, 0.5) );
       break;
-		 
-   case OPCODE_DDY:
-      emit_ddy( t, dst[0], &inst->SrcReg[0] );
-      break;
 
    case OPCODE_RSQ:
       ureg_RSQ( ureg, dst[0], ureg_abs(src[0]) );
@@ -739,10 +717,11 @@ compile_instruction(
  * a FBO is bound (STATE_FB_WPOS_Y_TRANSFORM).
  */
 static void
-emit_wpos_adjustment( struct st_translate *t,
-                      const struct gl_program *program,
-                      boolean invert,
-                      GLfloat adjX, GLfloat adjY[2])
+emit_wpos_adjustment(struct gl_context *ctx,
+                     struct st_translate *t,
+                     const struct gl_program *program,
+                     boolean invert,
+                     GLfloat adjX, GLfloat adjY[2])
 {
    struct ureg_program *ureg = t->ureg;
 
@@ -762,7 +741,11 @@ emit_wpos_adjustment( struct st_translate *t,
 
    struct ureg_src wpostrans = ureg_DECL_constant( ureg, wposTransConst );
    struct ureg_dst wpos_temp = ureg_DECL_temporary( ureg );
-   struct ureg_src wpos_input = t->inputs[t->inputMapping[VARYING_SLOT_POS]];
+   struct ureg_src *wpos =
+      ctx->Const.GLSLFragCoordIsSysVal ?
+         &t->systemValues[SYSTEM_VALUE_FRAG_COORD] :
+         &t->inputs[t->inputMapping[VARYING_SLOT_POS]];
+   struct ureg_src wpos_input = *wpos;
 
    /* First, apply the coordinate shift: */
    if (adjX || adjY[0] || adjY[1]) {
@@ -813,7 +796,7 @@ emit_wpos_adjustment( struct st_translate *t,
 
    /* Use wpos_temp as position input from here on:
     */
-   t->inputs[t->inputMapping[VARYING_SLOT_POS]] = ureg_src(wpos_temp);
+   *wpos = ureg_src(wpos_temp);
 }
 
 
@@ -921,32 +904,7 @@ emit_wpos(struct st_context *st,
 
    /* we invert after adjustment so that we avoid the MOV to temporary,
     * and reuse the adjustment ADD instead */
-   emit_wpos_adjustment(t, program, invert, adjX, adjY);
-}
-
-
-/**
- * OpenGL's fragment gl_FrontFace input is 1 for front-facing, 0 for back.
- * TGSI uses +1 for front, -1 for back.
- * This function converts the TGSI value to the GL value.  Simply clamping/
- * saturating the value to [0,1] does the job.
- */
-static void
-emit_face_var( struct st_translate *t,
-               const struct gl_program *program )
-{
-   struct ureg_program *ureg = t->ureg;
-   struct ureg_dst face_temp = ureg_DECL_temporary( ureg );
-   struct ureg_src face_input = t->inputs[t->inputMapping[VARYING_SLOT_FACE]];
-
-   /* MOV_SAT face_temp, input[face]
-    */
-   face_temp = ureg_saturate( face_temp );
-   ureg_MOV( ureg, face_temp, face_input );
-
-   /* Use face_temp as face input from here on:
-    */
-   t->inputs[t->inputMapping[VARYING_SLOT_FACE]] = ureg_src(face_temp);
+   emit_wpos_adjustment(st->ctx, t, program, invert, adjX, adjY);
 }
 
 
@@ -1018,10 +976,6 @@ st_translate_mesa_program(
           * emitting constant references, below:
           */
          emit_wpos(st_context(ctx), t, program, ureg);
-      }
-
-      if (program->InputsRead & VARYING_BIT_FACE) {
-         emit_face_var( t, program );
       }
 
       /*
@@ -1100,11 +1054,13 @@ st_translate_mesa_program(
     */
    {
       GLbitfield sysInputs = program->SystemValuesRead;
-      unsigned numSys = 0;
+
       for (i = 0; sysInputs; i++) {
          if (sysInputs & (1 << i)) {
             unsigned semName = _mesa_sysval_to_semantic[i];
-            t->systemValues[i] = ureg_DECL_system_value(ureg, numSys, semName, 0);
+
+            t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
+
             if (semName == TGSI_SEMANTIC_INSTANCEID ||
                 semName == TGSI_SEMANTIC_VERTEXID) {
                /* From Gallium perspective, these system values are always
@@ -1125,7 +1081,11 @@ st_translate_mesa_program(
                   t->systemValues[i] = ureg_scalar(ureg_src(temp), 0);
                }
             }
-            numSys++;
+
+            if (procType == TGSI_PROCESSOR_FRAGMENT &&
+                semName == TGSI_SEMANTIC_POSITION)
+               emit_wpos(st_context(ctx), t, program, ureg);
+
             sysInputs &= ~(1 << i);
          }
       }

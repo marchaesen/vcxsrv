@@ -204,7 +204,7 @@ setup_bitmap_vertex_data(struct st_context *st, bool normalized,
       tBot = (GLfloat) height;
    }
 
-   u_upload_alloc(st->uploader, 0, 4 * sizeof(vertices[0]),
+   u_upload_alloc(st->uploader, 0, 4 * sizeof(vertices[0]), 4,
                   vbuf_offset, vbuf, (void **) &vertices);
    if (!*vbuf) {
       return;
@@ -287,7 +287,8 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       GLfloat colorSave[4];
       COPY_4V(colorSave, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], color);
-      st_upload_constants(st, fpv->parameters, PIPE_SHADER_FRAGMENT);
+      st_upload_constants(st, st->fp->Base.Base.Parameters,
+                          PIPE_SHADER_FRAGMENT);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], colorSave);
    }
 
@@ -404,6 +405,9 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    cso_restore_stream_outputs(cso);
 
    pipe_resource_reference(&vbuf, NULL);
+
+   /* We uploaded modified constants, need to invalidate them. */
+   st->dirty.mesa |= _NEW_PROGRAM_CONSTANTS;
 }
 
 
@@ -490,15 +494,15 @@ st_flush_bitmap_cache(struct st_context *st)
 
       assert(cache->xmin <= cache->xmax);
 
-/*    printf("flush size %d x %d  at %d, %d\n",
-             cache->xmax - cache->xmin,
-             cache->ymax - cache->ymin,
-             cache->xpos, cache->ypos);
-*/
+      if (0)
+         printf("flush bitmap, size %d x %d  at %d, %d\n",
+                cache->xmax - cache->xmin,
+                cache->ymax - cache->ymin,
+                cache->xpos, cache->ypos);
 
       /* The texture transfer has been mapped until now.
-          * So unmap and release the texture transfer before drawing.
-          */
+       * So unmap and release the texture transfer before drawing.
+       */
       if (cache->trans && cache->buffer) {
          if (0)
             print_cache(cache);
@@ -615,10 +619,17 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
    struct st_context *st = st_context(ctx);
    struct pipe_resource *pt;
 
-   if (width == 0 || height == 0)
-      return;
+   assert(width > 0);
+   assert(height > 0);
 
-   st_validate_state(st);
+   /* We only need to validate state of the st dirty flags are set or
+    * any non-_NEW_PROGRAM_CONSTANTS mesa flags are set.  The VS we use
+    * for bitmap drawing uses no constants and the FS constants are
+    * explicitly uploaded in the draw_bitmap_quad() function.
+    */
+   if ((st->dirty.mesa & ~_NEW_PROGRAM_CONSTANTS) || st->dirty.st) {
+      st_validate_state(st);
+   }
 
    if (!st->bitmap.vs) {
       /* create pass-through vertex shader now */

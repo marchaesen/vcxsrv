@@ -388,6 +388,57 @@ guess_base_level_size(GLenum target,
 
 
 /**
+ * Try to determine whether we should allocate memory for a full texture
+ * mipmap.  The problem is when we get a glTexImage(level=0) call, we
+ * can't immediately know if other mipmap levels are coming next.  Here
+ * we try to guess whether to allocate memory for a mipmap or just the
+ * 0th level.
+ *
+ * If we guess incorrectly here we'll later reallocate the right amount of
+ * memory either in st_AllocTextureImageBuffer() or st_finalize_texture().
+ *
+ * \param stObj  the texture object we're going to allocate memory for.
+ * \param stImage  describes the incoming image which we need to store.
+ */
+static boolean
+allocate_full_mipmap(const struct st_texture_object *stObj,
+                     const struct st_texture_image *stImage)
+{
+   switch (stObj->base.Target) {
+   case GL_TEXTURE_RECTANGLE_NV:
+   case GL_TEXTURE_BUFFER:
+   case GL_TEXTURE_EXTERNAL_OES:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      /* these texture types cannot be mipmapped */
+      return FALSE;
+   }
+
+   if (stImage->base.Level > 0 || stObj->base.GenerateMipmap)
+      return TRUE;
+
+   if (stImage->base._BaseFormat == GL_DEPTH_COMPONENT ||
+       stImage->base._BaseFormat == GL_DEPTH_STENCIL_EXT)
+      /* depth/stencil textures are seldom mipmapped */
+      return FALSE;
+
+   if (stObj->base.BaseLevel == 0 && stObj->base.MaxLevel == 0)
+      return FALSE;
+
+   if (stObj->base.Sampler.MinFilter == GL_NEAREST ||
+       stObj->base.Sampler.MinFilter == GL_LINEAR)
+      /* not a mipmap minification filter */
+      return FALSE;
+
+   if (stObj->base.Target == GL_TEXTURE_3D)
+      /* 3D textures are seldom mipmapped */
+      return FALSE;
+
+   return TRUE;
+}
+
+
+/**
  * Try to allocate a pipe_resource object for the given st_texture_object.
  *
  * We use the given st_texture_image as a clue to determine the size of the
@@ -431,21 +482,14 @@ guess_and_alloc_texture(struct st_context *st,
     * to re-allocating a texture buffer with space for more (or fewer)
     * mipmap levels later.
     */
-   if ((stObj->base.Sampler.MinFilter == GL_NEAREST ||
-        stObj->base.Sampler.MinFilter == GL_LINEAR ||
-        (stObj->base.BaseLevel == 0 &&
-         stObj->base.MaxLevel == 0) ||
-        stImage->base._BaseFormat == GL_DEPTH_COMPONENT ||
-        stImage->base._BaseFormat == GL_DEPTH_STENCIL_EXT) &&
-       !stObj->base.GenerateMipmap &&
-       stImage->base.Level == 0) {
-      /* only alloc space for a single mipmap level */
-      lastLevel = 0;
-   }
-   else {
+   if (allocate_full_mipmap(stObj, stImage)) {
       /* alloc space for a full mipmap */
       lastLevel = _mesa_get_tex_max_num_levels(stObj->base.Target,
                                                width, height, depth) - 1;
+   }
+   else {
+      /* only alloc space for a single mipmap level */
+      lastLevel = 0;
    }
 
    /* Save the level=0 dimensions */
