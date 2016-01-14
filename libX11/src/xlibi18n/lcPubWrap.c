@@ -28,6 +28,7 @@
 #endif
 #include "Xlibint.h"
 #include "XlcPubI.h"
+#include <unistd.h>
 
 char *
 _XGetLCValues(XLCd lcd, ...)

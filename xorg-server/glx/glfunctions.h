@@ -945,6 +945,8 @@
 #define glBindSamplers(a1, a2, a3) CALL_BindSamplers(GET_DISPATCH(), (a1, a2, a3))
 #define glBindTextures(a1, a2, a3) CALL_BindTextures(GET_DISPATCH(), (a1, a2, a3))
 #define glBindVertexBuffers(a1, a2, a3, a4, a5) CALL_BindVertexBuffers(GET_DISPATCH(), (a1, a2, a3, a4, a5))
+#define glMultiDrawArraysIndirectCountARB(a1, a2, a3, a4, a5) CALL_MultiDrawArraysIndirectCountARB(GET_DISPATCH(), (a1, a2, a3, a4, a5))
+#define glMultiDrawElementsIndirectCountARB(a1, a2, a3, a4, a5, a6) CALL_MultiDrawElementsIndirectCountARB(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glClipControl(a1, a2) CALL_ClipControl(GET_DISPATCH(), (a1, a2))
 #define glBindTextureUnit(a1, a2) CALL_BindTextureUnit(GET_DISPATCH(), (a1, a2))
 #define glBlitNamedFramebuffer(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) CALL_BlitNamedFramebuffer(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12))

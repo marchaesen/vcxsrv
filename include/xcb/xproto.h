@@ -5904,6 +5904,9 @@ xcb_create_window_aux (xcb_connection_t                     *c,
                        uint32_t                              value_mask,
                        const xcb_create_window_value_list_t *value_list);
 
+void *
+xcb_create_window_value_list (const xcb_create_window_request_t *R);
+
 int
 xcb_change_window_attributes_value_list_serialize (void                                            **_buffer,
                                                    uint32_t                                          value_mask,
@@ -6010,6 +6013,9 @@ xcb_change_window_attributes_aux (xcb_connection_t                              
                                   xcb_window_t                                     window,
                                   uint32_t                                         value_mask,
                                   const xcb_change_window_attributes_value_list_t *value_list);
+
+void *
+xcb_change_window_attributes_value_list (const xcb_change_window_attributes_request_t *R);
 
 /**
  * @brief Gets window attributes
@@ -6484,6 +6490,9 @@ xcb_configure_window_aux (xcb_connection_t                        *c,
                           uint16_t                                 value_mask,
                           const xcb_configure_window_value_list_t *value_list);
 
+void *
+xcb_configure_window_value_list (const xcb_configure_window_request_t *R);
+
 /**
  * @brief Change window stacking order
  *
@@ -6843,6 +6852,15 @@ xcb_change_property (xcb_connection_t *c,
                      uint8_t           format,
                      uint32_t          data_len,
                      const void       *data);
+
+void *
+xcb_change_property_data (const xcb_change_property_request_t *R);
+
+int
+xcb_change_property_data_length (const xcb_change_property_request_t *R);
+
+xcb_generic_iterator_t
+xcb_change_property_data_end (const xcb_change_property_request_t *R);
 
 /**
  *
@@ -8529,6 +8547,15 @@ xcb_open_font (xcb_connection_t *c,
                uint16_t          name_len,
                const char       *name);
 
+char *
+xcb_open_font_name (const xcb_open_font_request_t *R);
+
+int
+xcb_open_font_name_length (const xcb_open_font_request_t *R);
+
+xcb_generic_iterator_t
+xcb_open_font_name_end (const xcb_open_font_request_t *R);
+
 /**
  *
  * @param c The connection
@@ -9005,6 +9032,12 @@ xcb_set_font_path (xcb_connection_t *c,
                    const xcb_str_t  *font);
 
 int
+xcb_set_font_path_font_length (const xcb_set_font_path_request_t *R);
+
+xcb_str_iterator_t
+xcb_set_font_path_font_iterator (const xcb_set_font_path_request_t *R);
+
+int
 xcb_get_font_path_sizeof (const void  *_buffer);
 
 /**
@@ -9244,6 +9277,9 @@ xcb_create_gc_aux (xcb_connection_t                 *c,
                    uint32_t                          value_mask,
                    const xcb_create_gc_value_list_t *value_list);
 
+void *
+xcb_create_gc_value_list (const xcb_create_gc_request_t *R);
+
 int
 xcb_change_gc_value_list_serialize (void                             **_buffer,
                                     uint32_t                           value_mask,
@@ -9351,6 +9387,9 @@ xcb_change_gc_aux (xcb_connection_t                 *c,
                    uint32_t                          value_mask,
                    const xcb_change_gc_value_list_t *value_list);
 
+void *
+xcb_change_gc_value_list (const xcb_change_gc_request_t *R);
+
 /**
  *
  * @param c The connection
@@ -9418,6 +9457,15 @@ xcb_set_dashes (xcb_connection_t *c,
                 uint16_t          dashes_len,
                 const uint8_t    *dashes);
 
+uint8_t *
+xcb_set_dashes_dashes (const xcb_set_dashes_request_t *R);
+
+int
+xcb_set_dashes_dashes_length (const xcb_set_dashes_request_t *R);
+
+xcb_generic_iterator_t
+xcb_set_dashes_dashes_end (const xcb_set_dashes_request_t *R);
+
 int
 xcb_set_clip_rectangles_sizeof (const void  *_buffer,
                                 uint32_t     rectangles_len);
@@ -9458,6 +9506,15 @@ xcb_set_clip_rectangles (xcb_connection_t      *c,
                          int16_t                clip_y_origin,
                          uint32_t               rectangles_len,
                          const xcb_rectangle_t *rectangles);
+
+xcb_rectangle_t *
+xcb_set_clip_rectangles_rectangles (const xcb_set_clip_rectangles_request_t *R);
+
+int
+xcb_set_clip_rectangles_rectangles_length (const xcb_set_clip_rectangles_request_t *R);
+
+xcb_rectangle_iterator_t
+xcb_set_clip_rectangles_rectangles_iterator (const xcb_set_clip_rectangles_request_t *R);
 
 /**
  * @brief Destroys a graphics context
@@ -9674,6 +9731,15 @@ xcb_poly_point (xcb_connection_t  *c,
                 uint32_t           points_len,
                 const xcb_point_t *points);
 
+xcb_point_t *
+xcb_poly_point_points (const xcb_poly_point_request_t *R);
+
+int
+xcb_poly_point_points_length (const xcb_poly_point_request_t *R);
+
+xcb_point_iterator_t
+xcb_poly_point_points_iterator (const xcb_poly_point_request_t *R);
+
 int
 xcb_poly_line_sizeof (const void  *_buffer,
                       uint32_t     points_len);
@@ -9740,6 +9806,15 @@ xcb_poly_line (xcb_connection_t  *c,
                xcb_gcontext_t     gc,
                uint32_t           points_len,
                const xcb_point_t *points);
+
+xcb_point_t *
+xcb_poly_line_points (const xcb_poly_line_request_t *R);
+
+int
+xcb_poly_line_points_length (const xcb_poly_line_request_t *R);
+
+xcb_point_iterator_t
+xcb_poly_line_points_iterator (const xcb_poly_line_request_t *R);
 
 /**
  * Get the next element of the iterator
@@ -9831,6 +9906,15 @@ xcb_poly_segment (xcb_connection_t    *c,
                   uint32_t             segments_len,
                   const xcb_segment_t *segments);
 
+xcb_segment_t *
+xcb_poly_segment_segments (const xcb_poly_segment_request_t *R);
+
+int
+xcb_poly_segment_segments_length (const xcb_poly_segment_request_t *R);
+
+xcb_segment_iterator_t
+xcb_poly_segment_segments_iterator (const xcb_poly_segment_request_t *R);
+
 int
 xcb_poly_rectangle_sizeof (const void  *_buffer,
                            uint32_t     rectangles_len);
@@ -9868,6 +9952,15 @@ xcb_poly_rectangle (xcb_connection_t      *c,
                     uint32_t               rectangles_len,
                     const xcb_rectangle_t *rectangles);
 
+xcb_rectangle_t *
+xcb_poly_rectangle_rectangles (const xcb_poly_rectangle_request_t *R);
+
+int
+xcb_poly_rectangle_rectangles_length (const xcb_poly_rectangle_request_t *R);
+
+xcb_rectangle_iterator_t
+xcb_poly_rectangle_rectangles_iterator (const xcb_poly_rectangle_request_t *R);
+
 int
 xcb_poly_arc_sizeof (const void  *_buffer,
                      uint32_t     arcs_len);
@@ -9904,6 +9997,15 @@ xcb_poly_arc (xcb_connection_t *c,
               xcb_gcontext_t    gc,
               uint32_t          arcs_len,
               const xcb_arc_t  *arcs);
+
+xcb_arc_t *
+xcb_poly_arc_arcs (const xcb_poly_arc_request_t *R);
+
+int
+xcb_poly_arc_arcs_length (const xcb_poly_arc_request_t *R);
+
+xcb_arc_iterator_t
+xcb_poly_arc_arcs_iterator (const xcb_poly_arc_request_t *R);
 
 int
 xcb_fill_poly_sizeof (const void  *_buffer,
@@ -9945,6 +10047,15 @@ xcb_fill_poly (xcb_connection_t  *c,
                uint8_t            coordinate_mode,
                uint32_t           points_len,
                const xcb_point_t *points);
+
+xcb_point_t *
+xcb_fill_poly_points (const xcb_fill_poly_request_t *R);
+
+int
+xcb_fill_poly_points_length (const xcb_fill_poly_request_t *R);
+
+xcb_point_iterator_t
+xcb_fill_poly_points_iterator (const xcb_fill_poly_request_t *R);
 
 int
 xcb_poly_fill_rectangle_sizeof (const void  *_buffer,
@@ -10011,6 +10122,15 @@ xcb_poly_fill_rectangle (xcb_connection_t      *c,
                          uint32_t               rectangles_len,
                          const xcb_rectangle_t *rectangles);
 
+xcb_rectangle_t *
+xcb_poly_fill_rectangle_rectangles (const xcb_poly_fill_rectangle_request_t *R);
+
+int
+xcb_poly_fill_rectangle_rectangles_length (const xcb_poly_fill_rectangle_request_t *R);
+
+xcb_rectangle_iterator_t
+xcb_poly_fill_rectangle_rectangles_iterator (const xcb_poly_fill_rectangle_request_t *R);
+
 int
 xcb_poly_fill_arc_sizeof (const void  *_buffer,
                           uint32_t     arcs_len);
@@ -10047,6 +10167,15 @@ xcb_poly_fill_arc (xcb_connection_t *c,
                    xcb_gcontext_t    gc,
                    uint32_t          arcs_len,
                    const xcb_arc_t  *arcs);
+
+xcb_arc_t *
+xcb_poly_fill_arc_arcs (const xcb_poly_fill_arc_request_t *R);
+
+int
+xcb_poly_fill_arc_arcs_length (const xcb_poly_fill_arc_request_t *R);
+
+xcb_arc_iterator_t
+xcb_poly_fill_arc_arcs_iterator (const xcb_poly_fill_arc_request_t *R);
 
 int
 xcb_put_image_sizeof (const void  *_buffer,
@@ -10098,6 +10227,15 @@ xcb_put_image (xcb_connection_t *c,
                uint8_t           depth,
                uint32_t          data_len,
                const uint8_t    *data);
+
+uint8_t *
+xcb_put_image_data (const xcb_put_image_request_t *R);
+
+int
+xcb_put_image_data_length (const xcb_put_image_request_t *R);
+
+xcb_generic_iterator_t
+xcb_put_image_data_end (const xcb_put_image_request_t *R);
 
 int
 xcb_get_image_sizeof (const void  *_buffer);
@@ -10210,6 +10348,15 @@ xcb_poly_text_8 (xcb_connection_t *c,
                  uint32_t          items_len,
                  const uint8_t    *items);
 
+uint8_t *
+xcb_poly_text_8_items (const xcb_poly_text_8_request_t *R);
+
+int
+xcb_poly_text_8_items_length (const xcb_poly_text_8_request_t *R);
+
+xcb_generic_iterator_t
+xcb_poly_text_8_items_end (const xcb_poly_text_8_request_t *R);
+
 int
 xcb_poly_text_16_sizeof (const void  *_buffer,
                          uint32_t     items_len);
@@ -10250,6 +10397,15 @@ xcb_poly_text_16 (xcb_connection_t *c,
                   int16_t           y,
                   uint32_t          items_len,
                   const uint8_t    *items);
+
+uint8_t *
+xcb_poly_text_16_items (const xcb_poly_text_16_request_t *R);
+
+int
+xcb_poly_text_16_items_length (const xcb_poly_text_16_request_t *R);
+
+xcb_generic_iterator_t
+xcb_poly_text_16_items_end (const xcb_poly_text_16_request_t *R);
 
 int
 xcb_image_text_8_sizeof (const void  *_buffer);
@@ -10328,6 +10484,15 @@ xcb_image_text_8 (xcb_connection_t *c,
                   int16_t           x,
                   int16_t           y,
                   const char       *string);
+
+char *
+xcb_image_text_8_string (const xcb_image_text_8_request_t *R);
+
+int
+xcb_image_text_8_string_length (const xcb_image_text_8_request_t *R);
+
+xcb_generic_iterator_t
+xcb_image_text_8_string_end (const xcb_image_text_8_request_t *R);
 
 int
 xcb_image_text_16_sizeof (const void  *_buffer);
@@ -10408,6 +10573,15 @@ xcb_image_text_16 (xcb_connection_t   *c,
                    int16_t             x,
                    int16_t             y,
                    const xcb_char2b_t *string);
+
+xcb_char2b_t *
+xcb_image_text_16_string (const xcb_image_text_16_request_t *R);
+
+int
+xcb_image_text_16_string_length (const xcb_image_text_16_request_t *R);
+
+xcb_char2b_iterator_t
+xcb_image_text_16_string_iterator (const xcb_image_text_16_request_t *R);
 
 /**
  *
@@ -10911,6 +11085,15 @@ xcb_free_colors (xcb_connection_t *c,
                  uint32_t          pixels_len,
                  const uint32_t   *pixels);
 
+uint32_t *
+xcb_free_colors_pixels (const xcb_free_colors_request_t *R);
+
+int
+xcb_free_colors_pixels_length (const xcb_free_colors_request_t *R);
+
+xcb_generic_iterator_t
+xcb_free_colors_pixels_end (const xcb_free_colors_request_t *R);
+
 /**
  * Get the next element of the iterator
  * @param i Pointer to a xcb_coloritem_iterator_t
@@ -10969,6 +11152,15 @@ xcb_store_colors (xcb_connection_t      *c,
                   uint32_t               items_len,
                   const xcb_coloritem_t *items);
 
+xcb_coloritem_t *
+xcb_store_colors_items (const xcb_store_colors_request_t *R);
+
+int
+xcb_store_colors_items_length (const xcb_store_colors_request_t *R);
+
+xcb_coloritem_iterator_t
+xcb_store_colors_items_iterator (const xcb_store_colors_request_t *R);
+
 int
 xcb_store_named_color_sizeof (const void  *_buffer);
 
@@ -11006,6 +11198,15 @@ xcb_store_named_color (xcb_connection_t *c,
                        uint32_t          pixel,
                        uint16_t          name_len,
                        const char       *name);
+
+char *
+xcb_store_named_color_name (const xcb_store_named_color_request_t *R);
+
+int
+xcb_store_named_color_name_length (const xcb_store_named_color_request_t *R);
+
+xcb_generic_iterator_t
+xcb_store_named_color_name_end (const xcb_store_named_color_request_t *R);
 
 /**
  * Get the next element of the iterator
@@ -11572,6 +11773,15 @@ xcb_change_keyboard_mapping (xcb_connection_t   *c,
                              uint8_t             keysyms_per_keycode,
                              const xcb_keysym_t *keysyms);
 
+xcb_keysym_t *
+xcb_change_keyboard_mapping_keysyms (const xcb_change_keyboard_mapping_request_t *R);
+
+int
+xcb_change_keyboard_mapping_keysyms_length (const xcb_change_keyboard_mapping_request_t *R);
+
+xcb_generic_iterator_t
+xcb_change_keyboard_mapping_keysyms_end (const xcb_change_keyboard_mapping_request_t *R);
+
 int
 xcb_get_keyboard_mapping_sizeof (const void  *_buffer);
 
@@ -11706,6 +11916,9 @@ xcb_void_cookie_t
 xcb_change_keyboard_control_aux (xcb_connection_t                               *c,
                                  uint32_t                                        value_mask,
                                  const xcb_change_keyboard_control_value_list_t *value_list);
+
+void *
+xcb_change_keyboard_control_value_list (const xcb_change_keyboard_control_request_t *R);
 
 /**
  *
@@ -11970,6 +12183,15 @@ xcb_change_hosts (xcb_connection_t *c,
                   uint16_t          address_len,
                   const uint8_t    *address);
 
+uint8_t *
+xcb_change_hosts_address (const xcb_change_hosts_request_t *R);
+
+int
+xcb_change_hosts_address_length (const xcb_change_hosts_request_t *R);
+
+xcb_generic_iterator_t
+xcb_change_hosts_address_end (const xcb_change_hosts_request_t *R);
+
 int
 xcb_host_sizeof (const void  *_buffer);
 
@@ -12186,6 +12408,15 @@ xcb_rotate_properties (xcb_connection_t *c,
                        uint16_t          atoms_len,
                        int16_t           delta,
                        const xcb_atom_t *atoms);
+
+xcb_atom_t *
+xcb_rotate_properties_atoms (const xcb_rotate_properties_request_t *R);
+
+int
+xcb_rotate_properties_atoms_length (const xcb_rotate_properties_request_t *R);
+
+xcb_generic_iterator_t
+xcb_rotate_properties_atoms_end (const xcb_rotate_properties_request_t *R);
 
 /**
  *

@@ -39,7 +39,6 @@
 #include "program/hash_table.h"
 #include "program.h"
 
-
 /**
  * Get the varying type stripped of the outermost array if we're processing
  * a stage whose varyings are arrays indexed by a vertex number (such as

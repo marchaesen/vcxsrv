@@ -348,6 +348,9 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_shared_reference.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\nir\shader_enums.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\glsl\glsl_lexer.ll">
