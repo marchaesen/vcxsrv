@@ -631,8 +631,8 @@ XdmcpInit(void)
                sprintf(ErrorMessage+strlen(ErrorMessage),"\n");
              }
           }
-          sprintf(ErrorMessage+strlen(ErrorMessage),"Please specify the ip-address you want to use with -from\n");
-          FatalError(ErrorMessage);
+          sprintf(ErrorMessage+strlen(ErrorMessage),"When problems connecting, please specify the ip-address you want to use with -from\n");
+          ErrorF(ErrorMessage);
         }
         get_xdmcp_sock();
         send_packet();
