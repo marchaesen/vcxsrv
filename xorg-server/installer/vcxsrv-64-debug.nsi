@@ -66,6 +66,8 @@ Section "VcXsrv debug exe and dlls"
   SectionIn RO
   SectionIn 1
 
+  SetRegView 64
+
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
 
