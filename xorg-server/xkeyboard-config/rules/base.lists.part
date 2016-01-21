@@ -8,6 +8,9 @@
 // PC models
 ! $pcmodels = pc101 pc102 pc104 pc105
 
+// Jolla devices and keyboards
+! $jollamodels = jollasbj
+
 // Microsoft models (using MS geometry)
 ! $msmodels = microsoft microsoft4000 microsoft7000 microsoftpro microsoftprousb microsoftprose
 

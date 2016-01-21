@@ -1,3 +1,4 @@
   de		neo			=	+caps(caps_lock)+misc(assign_shift_left_action)+level5(level5_lock)
   de		adnw			=	+caps(caps_lock)+misc(assign_shift_left_action)+level5(level5_lock)
+  de		koy			=	+caps(caps_lock)+misc(assign_shift_left_action)+level5(level5_lock)
   jp       $sun_compat =   complete+japan(kana_lock)

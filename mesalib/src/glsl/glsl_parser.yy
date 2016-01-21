@@ -300,6 +300,10 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <node> for_init_statement
 %type <for_rest_statement> for_rest_statement
 %type <node> layout_defaults
+%type <node> layout_uniform_defaults
+%type <node> layout_buffer_defaults
+%type <node> layout_in_defaults
+%type <node> layout_out_defaults
 
 %right THEN ELSE
 %%
@@ -954,7 +958,7 @@ parameter_qualifier:
                                       "or precise");
 
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    | precision_qualifier parameter_qualifier
    {
@@ -971,7 +975,7 @@ parameter_qualifier:
    | memory_qualifier parameter_qualifier
    {
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
 
 parameter_direction_qualifier:
@@ -1150,7 +1154,7 @@ layout_qualifier_id_list:
    | layout_qualifier_id_list ',' layout_qualifier_id
    {
       $$ = $1;
-      if (!$$.merge_qualifier(& @3, state, $3)) {
+      if (!$$.merge_qualifier(& @3, state, $3, true)) {
          YYERROR;
       }
    }
@@ -1759,7 +1763,7 @@ type_qualifier:
       }
 
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    | layout_qualifier type_qualifier
    {
@@ -1776,12 +1780,12 @@ type_qualifier:
          _mesa_glsl_error(&@1, state, "duplicate layout(...) qualifiers");
 
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    | subroutine_qualifier type_qualifier
    {
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    | auxiliary_storage_qualifier type_qualifier
    {
@@ -1797,7 +1801,7 @@ type_qualifier:
                           "just before storage qualifiers");
       }
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    | storage_qualifier type_qualifier
    {
@@ -1817,7 +1821,7 @@ type_qualifier:
       }
 
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    | precision_qualifier type_qualifier
    {
@@ -1834,7 +1838,7 @@ type_qualifier:
    | memory_qualifier type_qualifier
    {
       $$ = $1;
-      $$.merge_qualifier(&@1, state, $2);
+      $$.merge_qualifier(&@1, state, $2, false);
    }
    ;
 
@@ -2586,7 +2590,7 @@ interface_block:
          YYERROR;
       }
 
-      if (!block->layout.merge_qualifier(& @1, state, $1)) {
+      if (!block->layout.merge_qualifier(& @1, state, $1, false)) {
          YYERROR;
       }
 
@@ -2603,7 +2607,7 @@ interface_block:
                              "memory qualifiers can only be used in the "
                              "declaration of shader storage blocks");
       }
-      if (!block->layout.merge_qualifier(& @1, state, $1)) {
+      if (!block->layout.merge_qualifier(& @1, state, $1, false)) {
          YYERROR;
       }
       $$ = block;
@@ -2738,18 +2742,48 @@ member_declaration:
    }
    ;
 
-layout_defaults:
-   layout_qualifier UNIFORM ';'
+layout_uniform_defaults:
+   layout_qualifier layout_uniform_defaults
    {
-      if (!state->default_uniform_qualifier->merge_qualifier(& @1, state, $1)) {
+      $$ = NULL;
+      if (!state->has_420pack_or_es31()) {
+         _mesa_glsl_error(&@1, state, "duplicate layout(...) qualifiers");
+         YYERROR;
+      } else {
+         if (!state->default_uniform_qualifier->
+                merge_qualifier(& @1, state, $1, false)) {
+            YYERROR;
+         }
+      }
+   }
+   | layout_qualifier UNIFORM ';'
+   {
+      if (!state->default_uniform_qualifier->
+             merge_qualifier(& @1, state, $1, false)) {
          YYERROR;
       }
       $$ = NULL;
    }
+   ;
 
+layout_buffer_defaults:
+   layout_qualifier layout_buffer_defaults
+   {
+      $$ = NULL;
+      if (!state->has_420pack_or_es31()) {
+         _mesa_glsl_error(&@1, state, "duplicate layout(...) qualifiers");
+         YYERROR;
+      } else {
+         if (!state->default_shader_storage_qualifier->
+                merge_qualifier(& @1, state, $1, false)) {
+            YYERROR;
+         }
+      }
+   }
    | layout_qualifier BUFFER ';'
    {
-      if (!state->default_shader_storage_qualifier->merge_qualifier(& @1, state, $1)) {
+      if (!state->default_shader_storage_qualifier->
+             merge_qualifier(& @1, state, $1, false)) {
          YYERROR;
       }
 
@@ -2765,43 +2799,58 @@ layout_defaults:
 
       $$ = NULL;
    }
+   ;
 
+layout_in_defaults:
+   layout_qualifier layout_in_defaults
+   {
+      $$ = NULL;
+      if (!state->has_420pack_or_es31()) {
+         _mesa_glsl_error(&@1, state, "duplicate layout(...) qualifiers");
+         YYERROR;
+      } else {
+         if (!state->in_qualifier->
+                merge_in_qualifier(& @1, state, $1, $$, false)) {
+            YYERROR;
+         }
+      }
+   }
    | layout_qualifier IN_TOK ';'
    {
       $$ = NULL;
-      if (!state->in_qualifier->merge_in_qualifier(& @1, state, $1, $$)) {
+      if (!state->in_qualifier->
+             merge_in_qualifier(& @1, state, $1, $$, true)) {
          YYERROR;
       }
    }
+   ;
 
+layout_out_defaults:
+   layout_qualifier layout_out_defaults
+   {
+      $$ = NULL;
+      if (!state->has_420pack_or_es31()) {
+         _mesa_glsl_error(&@1, state, "duplicate layout(...) qualifiers");
+         YYERROR;
+      } else {
+         if (!state->out_qualifier->
+                merge_out_qualifier(& @1, state, $1, $$, false)) {
+            YYERROR;
+         }
+      }
+   }
    | layout_qualifier OUT_TOK ';'
    {
       $$ = NULL;
-      if (state->stage == MESA_SHADER_GEOMETRY) {
-         if ($1.flags.q.prim_type) {
-            /* Make sure this is a valid output primitive type. */
-            switch ($1.prim_type) {
-            case GL_POINTS:
-            case GL_LINE_STRIP:
-            case GL_TRIANGLE_STRIP:
-               break;
-            default:
-               _mesa_glsl_error(&@1, state, "invalid geometry shader output "
-                                "primitive type");
-               break;
-            }
-         }
-         if (!state->out_qualifier->merge_qualifier(& @1, state, $1))
-            YYERROR;
-
-         /* Allow future assigments of global out's stream id value */
-         state->out_qualifier->flags.q.explicit_stream = 0;
-      } else if (state->stage == MESA_SHADER_TESS_CTRL) {
-         if (!state->out_qualifier->merge_out_qualifier(& @1, state, $1, $$))
-            YYERROR;
-      } else {
-         _mesa_glsl_error(& @1, state,
-                          "out layout qualifiers only valid in "
-                          "tessellation control or geometry shaders");
-      }
+      if (!state->out_qualifier->
+             merge_out_qualifier(& @1, state, $1, $$, true))
+         YYERROR;
    }
+   ;
+
+layout_defaults:
+   layout_uniform_defaults
+   | layout_buffer_defaults
+   | layout_in_defaults
+   | layout_out_defaults
+   ;

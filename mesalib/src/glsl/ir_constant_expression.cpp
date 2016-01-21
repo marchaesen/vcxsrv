@@ -1539,10 +1539,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
             data.i[c] = -1;
          else {
             int count = 0;
-            int top_bit = op[0]->type->base_type == GLSL_TYPE_UINT
-                          ? 0 : v & (1 << 31);
+            unsigned top_bit = op[0]->type->base_type == GLSL_TYPE_UINT
+                               ? 0 : v & (1u << 31);
 
-            while (((v & (1 << 31)) == top_bit) && count != 32) {
+            while (((v & (1u << 31)) == top_bit) && count != 32) {
                count++;
                v <<= 1;
             }
@@ -1588,10 +1588,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
       break;
 
    case ir_triop_bitfield_extract: {
-      int offset = op[1]->value.i[0];
-      int bits = op[2]->value.i[0];
-
       for (unsigned c = 0; c < components; c++) {
+         int offset = op[1]->value.i[c];
+         int bits = op[2]->value.i[c];
+
          if (bits == 0)
             data.u[c] = 0;
          else if (offset < 0 || bits < 0)
@@ -1612,23 +1612,6 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
                data.u[c] = value;
             }
          }
-      }
-      break;
-   }
-
-   case ir_binop_bfm: {
-      int bits = op[0]->value.i[0];
-      int offset = op[1]->value.i[0];
-
-      for (unsigned c = 0; c < components; c++) {
-         if (bits == 0)
-            data.u[c] = op[0]->value.u[c];
-         else if (offset < 0 || bits < 0)
-            data.u[c] = 0; /* Undefined for bitfieldInsert, per spec. */
-         else if (offset + bits > 32)
-            data.u[c] = 0; /* Undefined for bitfieldInsert, per spec. */
-         else
-            data.u[c] = ((1 << bits) - 1) << offset;
       }
       break;
    }
@@ -1727,10 +1710,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
    }
 
    case ir_quadop_bitfield_insert: {
-      int offset = op[2]->value.i[0];
-      int bits = op[3]->value.i[0];
-
       for (unsigned c = 0; c < components; c++) {
+         int offset = op[2]->value.i[c];
+         int bits = op[3]->value.i[c];
+
          if (bits == 0)
             data.u[c] = op[0]->value.u[c];
          else if (offset < 0 || bits < 0)
@@ -1738,7 +1721,7 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
          else if (offset + bits > 32)
             data.u[c] = 0; /* Undefined, per spec. */
          else {
-            unsigned insert_mask = ((1 << bits) - 1) << offset;
+            unsigned insert_mask = ((1ull << bits) - 1) << offset;
 
             unsigned insert = op[1]->value.u[c];
             insert <<= offset;

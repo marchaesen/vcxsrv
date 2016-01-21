@@ -44,6 +44,7 @@ public:
    }
 
    ir_visitor_status visit_leave(ir_call *);
+   ir_call *call_clone(ir_call *call, ir_function_signature *callee);
    bool progress;
    struct _mesa_glsl_parse_state *state;
 };
@@ -58,6 +59,23 @@ lower_subroutine(exec_list *instructions, struct _mesa_glsl_parse_state *state)
    return v.progress;
 }
 
+ir_call *
+lower_subroutine_visitor::call_clone(ir_call *call, ir_function_signature *callee)
+{
+   void *mem_ctx = ralloc_parent(call);
+   ir_dereference_variable *new_return_ref = NULL;
+   if (call->return_deref != NULL)
+      new_return_ref = call->return_deref->clone(mem_ctx, NULL);
+
+   exec_list new_parameters;
+
+   foreach_in_list(ir_instruction, ir, &call->actual_parameters) {
+      new_parameters.push_tail(ir->clone(mem_ctx, NULL));
+   }
+
+   return new(mem_ctx) ir_call(callee, new_return_ref, &new_parameters);
+}
+
 ir_visitor_status
 lower_subroutine_visitor::visit_leave(ir_call *ir)
 {
@@ -66,7 +84,6 @@ lower_subroutine_visitor::visit_leave(ir_call *ir)
 
    void *mem_ctx = ralloc_parent(ir);
    ir_if *last_branch = NULL;
-   ir_dereference_variable *return_deref = ir->return_deref;
 
    for (int s = this->state->num_subroutines - 1; s >= 0; s--) {
       ir_rvalue *var;
@@ -92,14 +109,11 @@ lower_subroutine_visitor::visit_leave(ir_call *ir)
          fn->exact_matching_signature(this->state,
                                       &ir->actual_parameters);
 
-      ir_call *new_call = new(mem_ctx) ir_call(sub_sig, return_deref, &ir->actual_parameters);
+      ir_call *new_call = call_clone(ir, sub_sig);
       if (!last_branch)
          last_branch = if_tree(equal(subr_to_int(var), lc), new_call);
       else
          last_branch = if_tree(equal(subr_to_int(var), lc), new_call, last_branch);
-
-      if (return_deref && s > 0)
-        return_deref = return_deref->clone(mem_ctx, NULL);
    }
    if (last_branch)
       ir->insert_before(last_branch);

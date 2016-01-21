@@ -5982,9 +5982,8 @@ save_DrawTransformFeedbackStreamInstanced(GLenum mode, GLuint name,
    }
 }
 
-/* aka UseProgram() */
 static void GLAPIENTRY
-save_UseProgramObjectARB(GLhandleARB program)
+save_UseProgram(GLuint program)
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
@@ -9454,7 +9453,7 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
 
    SET_BlitFramebuffer(table, save_BlitFramebufferEXT);
 
-   SET_UseProgram(table, save_UseProgramObjectARB);
+   SET_UseProgram(table, save_UseProgram);
    SET_Uniform1f(table, save_Uniform1fARB);
    SET_Uniform2f(table, save_Uniform2fARB);
    SET_Uniform3f(table, save_Uniform3fARB);

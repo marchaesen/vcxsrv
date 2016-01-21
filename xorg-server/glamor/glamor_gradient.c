@@ -647,12 +647,12 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
                                         PicturePtr dst_picture,
                                         GLfloat *xscale, GLfloat *yscale,
                                         int x_source, int y_source,
-                                        float vertices[8],
-                                        float tex_vertices[8],
                                         int tex_normalize)
 {
     glamor_pixmap_private *pixmap_priv;
     PixmapPtr pixmap = NULL;
+    GLfloat *v;
+    char *vbo_offset;
 
     pixmap = glamor_get_drawable_pixmap(dst_picture->pDrawable);
     pixmap_priv = glamor_get_pixmap_private(pixmap);
@@ -670,13 +670,15 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
            *xscale, *yscale, x_source, y_source,
            dst_picture->pDrawable->width, dst_picture->pDrawable->height);
 
+    v = glamor_get_vbo_space(screen, 16 * sizeof(GLfloat), &vbo_offset);
+
     glamor_set_normalize_vcoords_tri_strip(*xscale, *yscale,
                                            0, 0,
                                            (INT16) (dst_picture->pDrawable->
                                                     width),
                                            (INT16) (dst_picture->pDrawable->
                                                     height),
-                                           vertices);
+                                           v);
 
     if (tex_normalize) {
         glamor_set_normalize_tcoords_tri_stripe(*xscale, *yscale,
@@ -687,7 +689,7 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
                                                 (INT16) (dst_picture->
                                                          pDrawable->height +
                                                          y_source),
-                                                tex_vertices);
+                                                &v[8]);
     }
     else {
         glamor_set_tcoords_tri_strip(x_source, y_source,
@@ -695,28 +697,29 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
                                      x_source,
                                      (INT16) (dst_picture->pDrawable->height) +
                                      y_source,
-                                     tex_vertices);
+                                     &v[8]);
     }
 
     DEBUGF("vertices --> leftup : %f X %f, rightup: %f X %f,"
            "rightbottom: %f X %f, leftbottom : %f X %f\n",
-           vertices[0], vertices[1], vertices[2], vertices[3],
-           vertices[4], vertices[5], vertices[6], vertices[7]);
+           v[0], v[1], v[2], v[3],
+           v[4], v[5], v[6], v[7]);
     DEBUGF("tex_vertices --> leftup : %f X %f, rightup: %f X %f,"
            "rightbottom: %f X %f, leftbottom : %f X %f\n",
-           tex_vertices[0], tex_vertices[1], tex_vertices[2], tex_vertices[3],
-           tex_vertices[4], tex_vertices[5], tex_vertices[6], tex_vertices[7]);
+           v[8], v[9], v[10], v[11],
+           v[12], v[13], v[14], v[15]);
 
     glamor_make_current(glamor_priv);
 
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                          GL_FALSE, 0, vertices);
+                          GL_FALSE, 0, vbo_offset);
     glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
-                          GL_FALSE, 0, tex_vertices);
+                          GL_FALSE, 0, vbo_offset + 8 * sizeof(GLfloat));
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
+    glamor_put_vbo_space(screen);
     return 1;
 }
 
@@ -812,13 +815,11 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
     PixmapPtr pixmap = NULL;
     GLint gradient_prog = 0;
     int error;
-    float tex_vertices[8];
     int stops_count = 0;
     int count = 0;
     GLfloat *stop_colors = NULL;
     GLfloat *n_stops = NULL;
     GLfloat xscale, yscale;
-    float vertices[8];
     float transform_mat[3][3];
     static const float identity_mat[3][3] = { {1.0, 0.0, 0.0},
     {0.0, 1.0, 0.0},
@@ -969,7 +970,7 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
 
     if (!_glamor_gradient_set_pixmap_destination
         (screen, glamor_priv, dst_picture, &xscale, &yscale, x_source, y_source,
-         vertices, tex_vertices, 0))
+         0))
         goto GRADIENT_FAIL;
 
     glamor_set_alu(screen, GXcopy);
@@ -1123,7 +1124,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     float pt_distance;
     float p1_distance;
     GLfloat cos_val;
-    float tex_vertices[8];
     int stops_count = 0;
     GLfloat *stop_colors = NULL;
     GLfloat *n_stops = NULL;
@@ -1131,7 +1131,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     float slope;
     GLfloat xscale, yscale;
     GLfloat pt1[2], pt2[2];
-    float vertices[8];
     float transform_mat[3][3];
     static const float identity_mat[3][3] = { {1.0, 0.0, 0.0},
     {0.0, 1.0, 0.0},
@@ -1287,7 +1286,7 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
 
     if (!_glamor_gradient_set_pixmap_destination
         (screen, glamor_priv, dst_picture, &xscale, &yscale, x_source, y_source,
-         vertices, tex_vertices, 1))
+         1))
         goto GRADIENT_FAIL;
 
     glamor_set_alu(screen, GXcopy);

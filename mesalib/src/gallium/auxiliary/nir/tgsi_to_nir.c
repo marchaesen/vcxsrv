@@ -673,10 +673,6 @@ ttn_get_dest(struct ttn_compile *c, struct tgsi_full_dst_register *tgsi_fdst)
 
    if (tgsi_dst->File == TGSI_FILE_TEMPORARY) {
       if (c->temp_regs[index].var) {
-          nir_builder *b = &c->build;
-          nir_intrinsic_instr *load;
-          struct tgsi_ind_register *indirect =
-                tgsi_dst->Indirect ? &tgsi_fdst->Indirect : NULL;
           nir_register *reg;
 
          /* this works, because TGSI will give us a base offset
@@ -690,26 +686,6 @@ ttn_get_dest(struct ttn_compile *c, struct tgsi_full_dst_register *tgsi_fdst)
          reg->num_components = 4;
          dest.dest.reg.reg = reg;
          dest.dest.reg.base_offset = 0;
-
-         /* since the alu op might not write to all components
-          * of the temporary, we must first do a load_var to
-          * get the previous array elements into the register.
-          * This is one area that NIR could use a bit of
-          * improvement (or opt pass to clean up the mess
-          * once things are scalarized)
-          */
-
-         load = nir_intrinsic_instr_create(c->build.shader,
-                                           nir_intrinsic_load_var);
-         load->num_components = 4;
-         load->variables[0] =
-               ttn_array_deref(c, load, c->temp_regs[index].var,
-                               c->temp_regs[index].offset,
-                               indirect);
-
-         load->dest = nir_dest_for_reg(reg);
-
-         nir_builder_instr_insert(b, &load->instr);
       } else {
          assert(!tgsi_dst->Indirect);
          dest.dest.reg.reg = c->temp_regs[index].reg;
@@ -1886,7 +1862,7 @@ ttn_emit_instruction(struct ttn_compile *c)
       ttn_move_dest(b, dest, nir_fsat(b, ttn_src_for_dest(b, &dest)));
    }
 
-   /* if the dst has a matching var, append store_global to move
+   /* if the dst has a matching var, append store_var to move
     * output from reg to var
     */
    nir_variable *var = ttn_get_var(c, tgsi_dst);
@@ -1899,7 +1875,7 @@ ttn_emit_instruction(struct ttn_compile *c)
                                            &tgsi_dst->Indirect : NULL;
 
       store->num_components = 4;
-      store->const_index[0] = 0xf;
+      store->const_index[0] = dest.write_mask;
       store->variables[0] = ttn_array_deref(c, store, var, offset, indirect);
       store->src[0] = nir_src_for_reg(dest.dest.reg.reg);
 
@@ -1932,6 +1908,7 @@ ttn_add_output_stores(struct ttn_compile *c)
          store->src[0].reg.reg = c->output_regs[loc].reg;
          store->src[0].reg.base_offset = c->output_regs[loc].offset;
          store->const_index[0] = loc;
+         store->const_index[1] = 0xf;  /* writemask */
          store->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
          nir_builder_instr_insert(b, &store->instr);
       }

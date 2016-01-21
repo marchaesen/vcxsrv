@@ -139,7 +139,7 @@ typedef enum {
  * ir_variable - it should be easy to translate between the two.
  */
 
-typedef struct {
+typedef struct nir_variable {
    struct exec_node node;
 
    /**
@@ -349,7 +349,7 @@ typedef struct {
 #define nir_foreach_variable(var, var_list) \
    foreach_list_typed(nir_variable, var, node, var_list)
 
-typedef struct {
+typedef struct nir_register {
    struct exec_node node;
 
    unsigned num_components; /** < number of vector components */
@@ -443,7 +443,7 @@ nir_instr_is_last(nir_instr *instr)
    return exec_node_is_tail_sentinel(exec_node_get_next(&instr->node));
 }
 
-typedef struct {
+typedef struct nir_ssa_def {
    /** for debugging only, can be NULL */
    const char* name;
 
@@ -1447,6 +1447,7 @@ typedef struct nir_shader_compiler_options {
    bool lower_fsat;
    bool lower_fsqrt;
    bool lower_fmod;
+   bool lower_bitfield_extract;
    bool lower_bitfield_insert;
    bool lower_uadd_carry;
    bool lower_usub_borrow;

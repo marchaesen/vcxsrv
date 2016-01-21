@@ -511,12 +511,15 @@ binop("fpow", tfloat, "", "powf(src0, src1)")
 binop_horiz("pack_half_2x16_split", 1, tuint, 1, tfloat, 1, tfloat,
             "pack_half_1x16(src0.x) | (pack_half_1x16(src1.x) << 16)")
 
+# bfm implements the behavior of the first operation of the SM5 "bfi" assembly
+# and that of the "bfi1" i965 instruction. That is, it has undefined behavior
+# if either of its arguments are 32.
 binop_convert("bfm", tuint, tint, "", """
-int offset = src0, bits = src1;
-if (offset < 0 || bits < 0 || offset + bits > 32)
-   dst = 0; /* undefined per the spec */
+int bits = src0, offset = src1;
+if (offset < 0 || bits < 0 || offset > 31 || bits > 31 || offset + bits > 32)
+   dst = 0; /* undefined */
 else
-   dst = ((1 << bits)- 1) << offset;
+   dst = ((1u << bits) - 1) << offset;
 """)
 
 opcode("ldexp", 0, tfloat, [0, 0], [tfloat, tint], "", """
@@ -555,6 +558,7 @@ triop("fcsel", tfloat, "(src0 != 0.0f) ? src1 : src2")
 opcode("bcsel", 0, tuint, [0, 0, 0],
       [tbool, tuint, tuint], "", "src0 ? src1 : src2")
 
+# SM5 bfi assembly
 triop("bfi", tuint, """
 unsigned mask = src0, insert = src1, base = src2;
 if (mask == 0) {
@@ -569,22 +573,53 @@ if (mask == 0) {
 }
 """)
 
-opcode("ubitfield_extract", 0, tuint,
-       [0, 1, 1], [tuint, tint, tint], "", """
+# SM5 ubfe/ibfe assembly
+opcode("ubfe", 0, tuint,
+       [0, 0, 0], [tuint, tint, tint], "", """
 unsigned base = src0;
-int offset = src1.x, bits = src2.x;
+int offset = src1, bits = src2;
+if (bits == 0) {
+   dst = 0;
+} else if (bits < 0 || offset < 0) {
+   dst = 0; /* undefined */
+} else if (offset + bits < 32) {
+   dst = (base << (32 - bits - offset)) >> (32 - bits);
+} else {
+   dst = base >> offset;
+}
+""")
+opcode("ibfe", 0, tint,
+       [0, 0, 0], [tint, tint, tint], "", """
+int base = src0;
+int offset = src1, bits = src2;
+if (bits == 0) {
+   dst = 0;
+} else if (bits < 0 || offset < 0) {
+   dst = 0; /* undefined */
+} else if (offset + bits < 32) {
+   dst = (base << (32 - bits - offset)) >> (32 - bits);
+} else {
+   dst = base >> offset;
+}
+""")
+
+# GLSL bitfieldExtract()
+opcode("ubitfield_extract", 0, tuint,
+       [0, 0, 0], [tuint, tint, tint], "", """
+unsigned base = src0;
+int offset = src1, bits = src2;
 if (bits == 0) {
    dst = 0;
 } else if (bits < 0 || offset < 0 || offset + bits > 32) {
    dst = 0; /* undefined per the spec */
 } else {
-   dst = (base >> offset) & ((1 << bits) - 1);
+   dst = (base >> offset) & ((1ull << bits) - 1);
 }
 """)
 opcode("ibitfield_extract", 0, tint,
-       [0, 1, 1], [tint, tint, tint], "", """
+       [0, 0, 0], [tint, tint, tint], "", """
 int base = src0;
-int offset = src1.x, bits = src2.x;
+int offset = src1, bits = src2;
 if (bits == 0) {
    dst = 0;
 } else if (offset < 0 || bits < 0 || offset + bits > 32) {
@@ -609,16 +644,16 @@ def quadop_horiz(name, output_size, src1_size, src2_size, src3_size,
           [tuint, tuint, tuint, tuint],
           "", const_expr)
 
-opcode("bitfield_insert", 0, tuint, [0, 0, 1, 1],
+opcode("bitfield_insert", 0, tuint, [0, 0, 0, 0],
        [tuint, tuint, tint, tint], "", """
 unsigned base = src0, insert = src1;
-int offset = src2.x, bits = src3.x;
+int offset = src2, bits = src3;
 if (bits == 0) {
    dst = 0;
 } else if (offset < 0 || bits < 0 || bits + offset > 32) {
    dst = 0;
 } else {
-   unsigned mask = ((1 << bits) - 1) << offset;
+   unsigned mask = ((1ull << bits) - 1) << offset;
    dst = (base & ~mask) | ((insert << bits) & mask);
 }
 """)

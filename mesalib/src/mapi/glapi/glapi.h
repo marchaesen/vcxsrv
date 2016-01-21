@@ -177,6 +177,9 @@ _glapi_add_dispatch( const char * const * function_names,
 _GLAPI_EXPORT _glapi_proc
 _glapi_get_proc_address(const char *funcName);
 
+_GLAPI_EXPORT const char *
+_glapi_get_proc_name(unsigned int offset);
+
 extern struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
 

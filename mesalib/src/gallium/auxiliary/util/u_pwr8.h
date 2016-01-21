@@ -153,6 +153,12 @@ vec_mullo_epi32 (__m128i a, __m128i b)
    return v;
 }
 
+static inline __m128i
+vec_andnot_si128 (__m128i a, __m128i b)
+{
+   return vec_andc (b, a);
+}
+
 static inline void
 transpose4_epi32(const __m128i * restrict a,
                  const __m128i * restrict b,

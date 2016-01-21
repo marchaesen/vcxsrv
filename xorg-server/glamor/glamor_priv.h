@@ -201,6 +201,7 @@ typedef struct glamor_screen_private {
     Bool has_unpack_subimage;
     Bool has_rw_pbo;
     Bool use_quads;
+    Bool has_vertex_array_object;
     int max_fbo_size;
 
     struct xorg_list
@@ -247,6 +248,7 @@ typedef struct glamor_screen_private {
     char                        *glyph_defines;
 
     /** Vertex buffer for all GPU rendering. */
+    GLuint vao;
     GLuint vbo;
     /** Next offset within the VBO that glamor_get_vbo_space() will use. */
     int vbo_offset;

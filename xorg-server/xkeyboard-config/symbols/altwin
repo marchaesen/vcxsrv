@@ -107,3 +107,10 @@ xkb_symbols "swap_ralt_rwin" {
                  symbols[Group1] = [ Super_R ] };
     key <RWIN> { [ Alt_R, Meta_R ] };
 };
+
+// Win is mapped to the PrtSc key (and the usual Win key).
+partial modifier_keys
+xkb_symbols "prtsc_rwin" {
+    replace key <PRSC> { [ Super_R, Super_R ] };
+    modifier_map Mod4 { <PRSC>, <RWIN> };
+};

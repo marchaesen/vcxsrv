@@ -71,6 +71,8 @@ struct ephyr_glamor {
 
     /* Size of the window that we're rendering to. */
     unsigned width, height;
+
+    GLuint vao, vbo;
 };
 
 static GLint
@@ -189,27 +191,38 @@ ephyr_glamor_set_texture(struct ephyr_glamor *glamor, uint32_t tex)
     glamor->tex = tex;
 }
 
+static void
+ephyr_glamor_set_vertices(struct ephyr_glamor *glamor)
+{
+    glVertexAttribPointer(glamor->texture_shader_position_loc,
+                          2, GL_FLOAT, FALSE, 0, (void *) 0);
+    glVertexAttribPointer(glamor->texture_shader_texcoord_loc,
+                          2, GL_FLOAT, FALSE, 0, (void *) (sizeof (float) * 8));
+
+    glEnableVertexAttribArray(glamor->texture_shader_position_loc);
+    glEnableVertexAttribArray(glamor->texture_shader_texcoord_loc);
+}
+
+static void
+ephyr_glamor_clear_vertices(struct ephyr_glamor *glamor)
+{
+    glDisableVertexAttribArray(glamor->texture_shader_position_loc);
+    glDisableVertexAttribArray(glamor->texture_shader_texcoord_loc);
+}
+
 void
 ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
                               struct pixman_region16 *damage)
 {
-    /* Redraw the whole screen, since glXSwapBuffers leaves the back
-     * buffer undefined.
-     */
-    static const float position[] = {
-        -1, -1,
-         1, -1,
-         1,  1,
-        -1,  1,
-    };
-    static const float texcoords[] = {
-        0, 1,
-        1, 1,
-        1, 0,
-        0, 0,
-    };
+    GLint old_vao;
 
     glXMakeCurrent(dpy, glamor->glx_win, glamor->ctx);
+
+    if (glamor->vao) {
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
+        glBindVertexArray(glamor->vao);
+    } else
+        ephyr_glamor_set_vertices(glamor);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(glamor->texture_shader);
@@ -217,19 +230,14 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
     if (!ephyr_glamor_gles2)
         glDisable(GL_COLOR_LOGIC_OP);
 
-    glVertexAttribPointer(glamor->texture_shader_position_loc,
-                          2, GL_FLOAT, FALSE, 0, position);
-    glVertexAttribPointer(glamor->texture_shader_texcoord_loc,
-                          2, GL_FLOAT, FALSE, 0, texcoords);
-    glEnableVertexAttribArray(glamor->texture_shader_position_loc);
-    glEnableVertexAttribArray(glamor->texture_shader_texcoord_loc);
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, glamor->tex);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-    glDisableVertexAttribArray(glamor->texture_shader_position_loc);
-    glDisableVertexAttribArray(glamor->texture_shader_texcoord_loc);
+    if (glamor->vao)
+        glBindVertexArray(old_vao);
+    else
+        ephyr_glamor_clear_vertices(glamor);
 
     glXSwapBuffers(dpy, glamor->glx_win);
 }
@@ -271,6 +279,18 @@ ephyr_glamor_process_event(xcb_generic_event_t *xev)
 struct ephyr_glamor *
 ephyr_glamor_glx_screen_init(xcb_window_t win)
 {
+    static const float position[] = {
+        -1, -1,
+         1, -1,
+         1,  1,
+        -1,  1,
+        0, 1,
+        1, 1,
+        1, 0,
+        0, 0,
+    };
+    GLint old_vao;
+
     GLXContext ctx;
     struct ephyr_glamor *glamor;
     GLXWindow glx_win;
@@ -311,6 +331,24 @@ ephyr_glamor_glx_screen_init(xcb_window_t win)
     glamor->win = win;
     glamor->glx_win = glx_win;
     ephyr_glamor_setup_texturing_shader(glamor);
+
+    if (epoxy_has_gl_extension("GL_ARB_vertex_array_object")) {
+        glGenVertexArrays(1, &glamor->vao);
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
+        glBindVertexArray(glamor->vao);
+    } else
+        glamor->vao = 0;
+
+    glGenBuffers(1, &glamor->vbo);
+
+    glBindBuffer(GL_ARRAY_BUFFER, glamor->vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (position), position, GL_STATIC_DRAW);
+
+    if (glamor->vao) {
+        ephyr_glamor_set_vertices(glamor);
+        glBindVertexArray(old_vao);
+    } else
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return glamor;
 }

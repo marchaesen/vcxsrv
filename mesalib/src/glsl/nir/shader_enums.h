@@ -47,19 +47,19 @@ typedef enum
    MESA_SHADER_COMPUTE = 5,
 } gl_shader_stage;
 
-const char * gl_shader_stage_name(gl_shader_stage stage);
+const char *gl_shader_stage_name(gl_shader_stage stage);
 
 /**
  * Translate a gl_shader_stage to a short shader stage name for debug
  * printouts and error messages.
  */
-const char * _mesa_shader_stage_to_string(unsigned stage);
+const char *_mesa_shader_stage_to_string(unsigned stage);
 
 /**
  * Translate a gl_shader_stage to a shader stage abbreviation (VS, GS, FS)
  * for debug printouts and error messages.
  */
-const char * _mesa_shader_stage_to_abbrev(unsigned stage);
+const char *_mesa_shader_stage_to_abbrev(unsigned stage);
 
 #define MESA_SHADER_STAGES (MESA_SHADER_COMPUTE + 1)
 
@@ -109,7 +109,7 @@ typedef enum
    VERT_ATTRIB_MAX = 33
 } gl_vert_attrib;
 
-const char * gl_vert_attrib_name(gl_vert_attrib attrib);
+const char *gl_vert_attrib_name(gl_vert_attrib attrib);
 
 /**
  * Symbolic constats to help iterating over
@@ -254,7 +254,7 @@ typedef enum
 #define VARYING_SLOT_PATCH0	(VARYING_SLOT_MAX)
 #define VARYING_SLOT_TESS_MAX	(VARYING_SLOT_PATCH0 + MAX_VARYING)
 
-const char * gl_varying_slot_name(gl_varying_slot slot);
+const char *gl_varying_slot_name(gl_varying_slot slot);
 
 /**
  * Bitflags for varying slots.
@@ -465,7 +465,7 @@ typedef enum
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
 
-const char * gl_system_value_name(gl_system_value sysval);
+const char *gl_system_value_name(gl_system_value sysval);
 
 /**
  * The possible interpolation qualifiers that can be applied to a fragment
@@ -483,7 +483,7 @@ enum glsl_interp_qualifier
    INTERP_QUALIFIER_COUNT /**< Number of interpolation qualifiers */
 };
 
-const char * glsl_interp_qualifier_name(enum glsl_interp_qualifier qual);
+const char *glsl_interp_qualifier_name(enum glsl_interp_qualifier qual);
 
 /**
  * Fragment program results
@@ -514,7 +514,7 @@ typedef enum
    FRAG_RESULT_DATA7,
 } gl_frag_result;
 
-const char * gl_frag_result_name(gl_frag_result result);
+const char *gl_frag_result_name(gl_frag_result result);
 
 #define FRAG_RESULT_MAX		(FRAG_RESULT_DATA0 + MAX_DRAW_BUFFERS)
 

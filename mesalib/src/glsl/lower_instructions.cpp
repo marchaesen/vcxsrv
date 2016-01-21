@@ -39,7 +39,6 @@
  * - MOD_TO_FLOOR
  * - LDEXP_TO_ARITH
  * - DFREXP_TO_ARITH
- * - BITFIELD_INSERT_TO_BFM_BFI
  * - CARRY_TO_ARITH
  * - BORROW_TO_ARITH
  * - SAT_TO_CLAMP
@@ -99,14 +98,6 @@
  * Converts ir_binop_ldexp, ir_unop_frexp_sig, and ir_unop_frexp_exp to
  * arithmetic and bit ops for double arguments.
  *
- * BITFIELD_INSERT_TO_BFM_BFI:
- * ---------------------------
- * Breaks ir_quadop_bitfield_insert into ir_binop_bfm (bitfield mask) and
- * ir_triop_bfi (bitfield insert).
- *
- * Many GPUs implement the bitfieldInsert() built-in from ARB_gpu_shader_5
- * with a pair of instructions.
- *
  * CARRY_TO_ARITH:
  * ---------------
  * Converts ir_carry into (x + y) < x.
@@ -154,7 +145,6 @@ private:
    void exp_to_exp2(ir_expression *);
    void pow_to_exp2(ir_expression *);
    void log_to_log2(ir_expression *);
-   void bitfield_insert_to_bfm_bfi(ir_expression *);
    void ldexp_to_arith(ir_expression *);
    void dldexp_to_arith(ir_expression *);
    void dfrexp_sig_to_arith(ir_expression *);
@@ -348,29 +338,6 @@ lower_instructions_visitor::mod_to_floor(ir_expression *ir)
 }
 
 void
-lower_instructions_visitor::bitfield_insert_to_bfm_bfi(ir_expression *ir)
-{
-   /* Translates
-    *    ir_quadop_bitfield_insert base insert offset bits
-    * into
-    *    ir_triop_bfi (ir_binop_bfm bits offset) insert base
-    */
-
-   ir_rvalue *base_expr = ir->operands[0];
-
-   ir->operation = ir_triop_bfi;
-   ir->operands[0] = new(ir) ir_expression(ir_binop_bfm,
-                                           ir->type->get_base_type(),
-                                           ir->operands[3],
-                                           ir->operands[2]);
-   /* ir->operands[1] is still the value to insert. */
-   ir->operands[2] = base_expr;
-   ir->operands[3] = NULL;
-
-   this->progress = true;
-}
-
-void
 lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
 {
    /* Translates
@@ -414,8 +381,8 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
 
    ir_constant *sign_mask = new(ir) ir_constant(0x80000000u, vec_elem);
 
-   ir_constant *exp_shift = new(ir) ir_constant(23);
-   ir_constant *exp_width = new(ir) ir_constant(8);
+   ir_constant *exp_shift = new(ir) ir_constant(23, vec_elem);
+   ir_constant *exp_width = new(ir) ir_constant(8, vec_elem);
 
    /* Temporary variables */
    ir_variable *x = new(ir) ir_variable(ir->type, "x", ir_var_temporary);
@@ -482,12 +449,6 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
                                      exp_shift_clone, exp_width);
    ir->operands[1] = NULL;
 
-   /* Don't generate new IR that would need to be lowered in an additional
-    * pass.
-    */
-   if (lowering(BITFIELD_INSERT_TO_BFM_BFI))
-      bitfield_insert_to_bfm_bfi(ir->operands[0]->as_expression());
-
    this->progress = true;
 }
 
@@ -509,8 +470,8 @@ lower_instructions_visitor::dldexp_to_arith(ir_expression *ir)
 
    ir_constant *sign_mask = new(ir) ir_constant(0x80000000u);
 
-   ir_constant *exp_shift = new(ir) ir_constant(20);
-   ir_constant *exp_width = new(ir) ir_constant(11);
+   ir_constant *exp_shift = new(ir) ir_constant(20, vec_elem);
+   ir_constant *exp_width = new(ir) ir_constant(11, vec_elem);
    ir_constant *exp_bias = new(ir) ir_constant(1022, vec_elem);
 
    /* Temporary variables */
@@ -601,9 +562,6 @@ lower_instructions_visitor::dldexp_to_arith(ir_expression *ir)
             i2u(swizzle(resulting_biased_exp, elem, 1)),
             exp_shift->clone(ir, NULL),
             exp_width->clone(ir, NULL));
-
-      if (lowering(BITFIELD_INSERT_TO_BFM_BFI))
-         bitfield_insert_to_bfm_bfi(bfi);
 
       i.insert_before(assign(unpacked, bfi, WRITEMASK_Y));
 
@@ -1037,11 +995,6 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
    case ir_binop_pow:
       if (lowering(POW_TO_EXP2))
 	 pow_to_exp2(ir);
-      break;
-
-   case ir_quadop_bitfield_insert:
-      if (lowering(BITFIELD_INSERT_TO_BFM_BFI))
-         bitfield_insert_to_bfm_bfi(ir);
       break;
 
    case ir_binop_ldexp:

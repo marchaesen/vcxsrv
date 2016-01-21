@@ -573,12 +573,6 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[1]->type == glsl_type::float_type);
       break;
 
-   case ir_binop_bfm:
-      assert(ir->type->is_integer());
-      assert(ir->operands[0]->type->is_integer());
-      assert(ir->operands[1]->type->is_integer());
-      break;
-
    case ir_binop_ubo_load:
       assert(ir->operands[0]->type == glsl_type::uint_type);
 
@@ -637,16 +631,11 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->type == ir->operands[2]->type);
       break;
 
-   case ir_triop_bfi:
-      assert(ir->operands[0]->type->is_integer());
-      assert(ir->operands[1]->type == ir->operands[2]->type);
-      assert(ir->operands[1]->type == ir->type);
-      break;
-
    case ir_triop_bitfield_extract:
+      assert(ir->type->is_integer());
       assert(ir->operands[0]->type == ir->type);
-      assert(ir->operands[1]->type == glsl_type::int_type);
-      assert(ir->operands[2]->type == glsl_type::int_type);
+      assert(ir->operands[1]->type == ir->type);
+      assert(ir->operands[2]->type == ir->type);
       break;
 
    case ir_triop_vector_insert:
@@ -659,10 +648,11 @@ ir_validate::visit_leave(ir_expression *ir)
       break;
 
    case ir_quadop_bitfield_insert:
+      assert(ir->type->is_integer());
       assert(ir->operands[0]->type == ir->type);
       assert(ir->operands[1]->type == ir->type);
-      assert(ir->operands[2]->type == glsl_type::int_type);
-      assert(ir->operands[3]->type == glsl_type::int_type);
+      assert(ir->operands[2]->type == ir->type);
+      assert(ir->operands[3]->type == ir->type);
       break;
 
    case ir_quadop_vector:

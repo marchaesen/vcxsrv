@@ -1302,6 +1302,7 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
        ctx->_ImageTransferState == 0x0 &&
        !ctx->Color.BlendEnabled &&
        !ctx->Color.AlphaEnabled &&
+       (!ctx->Color.ColorLogicOpEnabled || ctx->Color.LogicOp == GL_COPY) &&
        !ctx->Depth.Test &&
        !ctx->Fog.Enabled &&
        !ctx->Stencil.Enabled &&

@@ -33,6 +33,7 @@
 
 struct dd_function_table;
 struct pipe_resource;
+struct pipe_screen;
 struct st_context;
 
 /**
@@ -62,7 +63,8 @@ st_bufferobj_validate_usage(struct st_context *st,
 
 
 extern void
-st_init_bufferobject_functions(struct dd_function_table *functions);
+st_init_bufferobject_functions(struct pipe_screen *screen,
+                               struct dd_function_table *functions);
 
 
 #endif

@@ -1670,6 +1670,12 @@ st_finalize_texture(struct gl_context *ctx,
          width = stObj->width0;
          height = stObj->height0;
          depth = stObj->depth0;
+      } else {
+         /* The width/height/depth may have been previously reset in
+          * guess_and_alloc_texture. */
+         stObj->width0 = width;
+         stObj->height0 = height;
+         stObj->depth0 = depth;
       }
       /* convert GL dims to Gallium dims */
       st_gl_texture_dims_to_pipe_dims(stObj->base.Target, width, height, depth,

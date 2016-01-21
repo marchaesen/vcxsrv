@@ -4889,12 +4889,18 @@ builtin_builder::_noise4(const glsl_type *type)
 ir_function_signature *
 builtin_builder::_bitfieldExtract(const glsl_type *type)
 {
+   bool is_uint = type->base_type == GLSL_TYPE_UINT;
    ir_variable *value  = in_var(type, "value");
    ir_variable *offset = in_var(glsl_type::int_type, "offset");
    ir_variable *bits   = in_var(glsl_type::int_type, "bits");
    MAKE_SIG(type, gpu_shader5_or_es31, 3, value, offset, bits);
 
-   body.emit(ret(expr(ir_triop_bitfield_extract, value, offset, bits)));
+   operand cast_offset = is_uint ? i2u(offset) : operand(offset);
+   operand cast_bits = is_uint ? i2u(bits) : operand(bits);
+
+   body.emit(ret(expr(ir_triop_bitfield_extract, value,
+      swizzle(cast_offset, SWIZZLE_XXXX, type->vector_elements),
+      swizzle(cast_bits, SWIZZLE_XXXX, type->vector_elements))));
 
    return sig;
 }
@@ -4902,13 +4908,19 @@ builtin_builder::_bitfieldExtract(const glsl_type *type)
 ir_function_signature *
 builtin_builder::_bitfieldInsert(const glsl_type *type)
 {
+   bool is_uint = type->base_type == GLSL_TYPE_UINT;
    ir_variable *base   = in_var(type, "base");
    ir_variable *insert = in_var(type, "insert");
    ir_variable *offset = in_var(glsl_type::int_type, "offset");
    ir_variable *bits   = in_var(glsl_type::int_type, "bits");
    MAKE_SIG(type, gpu_shader5_or_es31, 4, base, insert, offset, bits);
 
-   body.emit(ret(bitfield_insert(base, insert, offset, bits)));
+   operand cast_offset = is_uint ? i2u(offset) : operand(offset);
+   operand cast_bits = is_uint ? i2u(bits) : operand(bits);
+
+   body.emit(ret(bitfield_insert(base, insert,
+      swizzle(cast_offset, SWIZZLE_XXXX, type->vector_elements),
+      swizzle(cast_bits, SWIZZLE_XXXX, type->vector_elements))));
 
    return sig;
 }

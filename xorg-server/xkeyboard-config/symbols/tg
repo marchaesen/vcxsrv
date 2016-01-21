@@ -5,7 +5,8 @@ xkb_symbols "basic" {
 
     name[Group1]="French (Togo)";
 
-// French AZERTY-Keyboard layout including symbols for Togolese local languages
+// This is based on French AZERTY-Keyboard layout that is mostly used in Togo.
+// It includes symbols used to write different local languages in Togo.
 // Created 2015 by Globalbility Togo (www.globalbility.org)
 // Authors: Issaka Ouro-Wétchiré, Caroline Riefstahl, Mats Blakstad <mats @ globalbility.org>
 //
@@ -18,35 +19,39 @@ xkb_symbols "basic" {
 // |    | 1  | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  | 0  | °  | +  | <--   |
 // | ²  | &  | é ~| " #| ' {| ( [| - || è `| _ \| ç ^| à @| ) ]| = }|       |
 //  ========================================================================
-// | |<-  | A  | Z Ʒ| E Ɛ| R Ɗ| T  | Y Ƴ| U Ʊ| I Ɩ| O Ɔ| P  | ¨  | $ €|   , |
-// |  ->| | a  | z ʒ| e ɛ| r ɗ| t  | y ƴ| u ʊ| i ɩ| o ɔ| p  | ^  ̌| £ ¤| <-' |
+// | |<-  | A  | Z Ʒ| E  | R Ɛ| T Ɗ| Y Ƴ| U Ʊ| I Ɩ| O Ɔ| P  | ¨  | $  |   , |
+// |  ->| | a  | z ʒ| e €| r ɛ| t ɗ| y ƴ| u ʊ| i ɩ| o ɔ| p  | ^  ̌| £ ¤| <-' |
 //  ===================================================================¬    |
 // |       | Q Ǝ| S  | D Ɖ| F Ƒ| G Ɣ| H Ĥ | J  | K  | L  | M Ŋ| %  | µ  |    |
 // | MAJ   | q ǝ| s  | d ɖ| f ƒ| g ɣ| h ɦ| j  | k  | l  | m ɲ| ù `| *  ́|    |
 //  ========================================================================
 // | ^   | >  | W  | X  | C  | V Ʋ| B Ɓ| N Ŋ| ?  | .  | /  | §  |     |     |
-// | |   | <  | w  | x  | c  | v ʋ| b ɓ| n ŋ| , ~| ; ¯| :  | !  |     |     |
+// | |   | <  | w  | x  | c  | v ʋ| b ɓ| n ŋ| ,  | ;  | : ¯| ! ~|     |     |
 //  ========================================================================
 // |      |      |      |                       |       |      |     |      |
 // | Ctrl | Super| Alt  | Space    Nobreakspace | AltGr | Super|Menu | Ctrl |
 //  ¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ¯¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯ ¯¯¯¯¯¯
-// Togolese local languages use 8 tones markers.
-// Acute ( ´ ),	Grave ( ` ), Circumflex ( ˆ ), Caron ( ˇ ), Macron ( ¯ ), Tilde ( ~ ), Tilde + Acute (  ̃́ ), Tilde + Grave (  ̃̀ )
-// All vowels can have tones except "y" (which is not vowel in Togolese local languages)
-// Nasal consonants ("m" and "n") can have have high tones.
+// The different local languages in Togo uses all together 16 symbols not found in French language:
+// Ʒ, ɛ, Ɗ, Ƴ, Ʊ, Ɩ, Ɔ, Ǝ, Ɖ, Ƒ, Ɣ, Ĥ, Ɲ, Ʋ, Ɓ, Ŋ.
+// Togolese local languages use 9 tone markers:
+// Acute ( ´ ),	Grave ( ` ), Circumflex ( ˆ ), Caron ( ˇ ), Macron ( ¯ ), Tilde ( ~ ), Tilde + Acute (  ̃́ ), Tilde + Grave (  ̃̀ ), Diaeresis ( ¨ )
+// The vowels can use these tone markers except diaeresis.
+// 'Y' is not used as a vowel in most local languages, and can only use diaeresis.
+// Nasal consonants (m, n, ŋ) can only have have accent tones (acute and grave)
 
-             // Modifications of the basic French Azerty layout, adding symbols for Togolese local languages
+    // Modifications of the basic French Azerty layout to add symbols for Togolese local languages
 
              // Second row
              key <AD02>	{ [	z,		Z,		ezh,		EZH 	] };	// U0292 = ʒ (small), U01B7 = Ʒ (capital)
-    override key <AD03>	{ [	e,		E,		U025B,		U0190	] };	// Replqce Eurosign with U025B = ɛ (small), U0190 = Ɛ (capital)
-             key <AD04>	{ [	r,		R,		U0257,		U018A 	] };	// U0257 = ɗ (small), U018A = Ɗ (capital)
+
+             key <AD04>	{ [	r,		R,		U025B,		U0190 	] };	// U025B = ɛ (small), U0190 = Ɛ (capital)
+             key <AD05>	{ [	t,		T,		U0257,		U018A 	] };	// U0257 = ɗ (small), U018A = Ɗ (capital)
              key <AD06>	{ [	y,		Y,		U01B4,		U01B3 	] };	// U01B4 = ƴ (small), U01B3 = Ƴ (capital)
              key <AD07>	{ [	u,		U,		U028A,		U01B1 	] };	// U028A = ʊ (small), U01B1 = Ʊ (capital)
              key <AD08>	{ [	i,		I,		U0269,		U0196 	] };	// U0269 = ɩ (small), U0196 = Ɩ (capital)
              key <AD09>	{ [	o,		O,		U0254,		U0186 	] };	// U0254 = ɔ (small), U0186 = Ɔ (capital)
              key <AD11>	{ [	dead_circumflex,dead_diaeresis,	dead_caron		] };
-             key <AD12>	{ [	dollar,		sterling,	currency, 	EuroSign] };	// EuroSign moved together with other currencies
+
 
              // Third row
              key <AC01>	{ [	q,		Q,		U01DD,		U018E 	] };	// U01DD = ǝ (small), U018E = Ǝ (capital)
@@ -56,13 +61,16 @@ xkb_symbols "basic" {
              key <AC06>	{ [	h,		H,		U0266,		U0124 	] };	// U0266 = ɦ (small), U0124 = Ĥ (capital)
              key <AC10>	{ [	m,		M,		U0272,		U019D	] };	// U0272 = ɲ (small), U019D = Ɲ (capital)
              key <AC11>	{ [	ugrave,		percent,	dead_grave		] };	
-             key <BKSL>  { [	asterisk,	mu,		dead_acute		] };
+             key <BKSL> { [	asterisk,	mu,		dead_acute		] };
+
 
              // Fourth row
              key <AB04>	{ [	v,		V,		U028B,		U01B2	] };	// U028B = ʋ (small), U01B2 = Ʋ (capital)
-             key <AB05>  { [	b,		B,		U0253,		U0181 	] };	// U0253 = ɓ (small), U0181 = Ɓ (capital)
+             key <AB05> { [	b,		B,		U0253,		U0181 	] };	// U0253 = ɓ (small), U0181 = Ɓ (capital)
              key <AB06>	{ [	n,		N,		U014B,		U014A 	] };	// U014B = ŋ (small), U014A = Ŋ (capital)
-             key <AB07>	{ [	comma,		question,	dead_tilde		] };	// U007E = ~ (combining tilde)
-             key <AB08>	{ [ 	semicolon,	period,		dead_macron		] };	// U00AF = ¯ (combining macron)
+             key <AB09> { [	colon,		slash,		dead_macron		] };
+             key <AB10>	{ [	exclam,		section,	dead_tilde		] };
+
+
 
 };
