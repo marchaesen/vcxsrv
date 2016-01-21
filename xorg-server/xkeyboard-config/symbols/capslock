@@ -52,6 +52,11 @@ xkb_symbols "hyper" {
 };
 
 hidden partial modifier_keys
+xkb_symbols "menu" {
+    key <CAPS> { [ Menu ] };
+};
+
+hidden partial modifier_keys
 xkb_symbols "none" {
     key <CAPS> { [ VoidSymbol ] };
 };

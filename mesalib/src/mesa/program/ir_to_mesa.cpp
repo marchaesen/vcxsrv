@@ -1303,9 +1303,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       break;
 
    case ir_binop_vector_extract:
-   case ir_binop_bfm:
    case ir_triop_fma:
-   case ir_triop_bfi:
    case ir_triop_bitfield_extract:
    case ir_triop_vector_insert:
    case ir_quadop_bitfield_insert:

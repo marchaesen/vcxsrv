@@ -247,23 +247,23 @@ PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
 	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
+	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@ || ($(RM) $@; false)
 
 nir/nir_constant_expressions.c: nir/nir_opcodes.py nir/nir_constant_expressions.py
 	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/nir/nir_constant_expressions.py > $@
+	$(PYTHON_GEN) $(srcdir)/nir/nir_constant_expressions.py > $@ || ($(RM) $@; false)
 
 nir/nir_opcodes.h: nir/nir_opcodes.py nir/nir_opcodes_h.py
 	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/nir/nir_opcodes_h.py > $@
+	$(PYTHON_GEN) $(srcdir)/nir/nir_opcodes_h.py > $@ || ($(RM) $@; false)
 
 nir/nir_opcodes.c: nir/nir_opcodes.py nir/nir_opcodes_c.py
 	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/nir/nir_opcodes_c.py > $@
+	$(PYTHON_GEN) $(srcdir)/nir/nir_opcodes_c.py > $@ || ($(RM) $@; false)
 
 nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
 	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/nir/nir_opt_algebraic.py > $@
+	$(PYTHON_GEN) $(srcdir)/nir/nir_opt_algebraic.py > $@ || ($(RM) $@; false)
 
 nir_tests_control_flow_tests_SOURCES =			\
 	nir/tests/control_flow_tests.cpp

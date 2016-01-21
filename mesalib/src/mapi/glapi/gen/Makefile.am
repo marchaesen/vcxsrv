@@ -27,8 +27,11 @@ MESA_GLAPI_OUTPUTS = \
 	$(MESA_GLAPI_DIR)/glapi_mapi_tmp.h \
 	$(MESA_GLAPI_DIR)/glprocs.h \
 	$(MESA_GLAPI_DIR)/glapitemp.h \
-	$(MESA_GLAPI_DIR)/glapitable.h \
-	$(MESA_GLAPI_DIR)/glapi_gentable.c
+	$(MESA_GLAPI_DIR)/glapitable.h
+
+if HAVE_APPLEDRI
+MESA_GLAPI_OUTPUTS += $(MESA_GLAPI_DIR)/glapi_gentable.c
+endif
 
 MESA_GLAPI_ASM_OUTPUTS =
 if HAVE_X86_ASM
@@ -57,6 +60,7 @@ BUILT_SOURCES = \
 	$(MESA_GLX_DIR)/indirect_size.c
 EXTRA_DIST= \
 	$(BUILT_SOURCES) \
+	$(MESA_GLAPI_DIR)/glapi_gentable.c \
 	$(MESA_GLAPI_DIR)/glapi_x86.S \
 	$(MESA_GLAPI_DIR)/glapi_x86-64.S \
 	$(MESA_GLAPI_DIR)/glapi_sparc.S \
@@ -88,8 +92,12 @@ XORG_GLAPI_DIR = $(XORG_BASE)/glx
 XORG_GLAPI_OUTPUTS = \
 	$(XORG_GLAPI_DIR)/glprocs.h \
 	$(XORG_GLAPI_DIR)/glapitable.h \
-	$(XORG_GLAPI_DIR)/dispatch.h \
+	$(XORG_GLAPI_DIR)/dispatch.h
+
+if HAVE_APPLEDRI
+XORG_GLAPI_OUTPUTS += \
 	$(XORG_GLAPI_DIR)/glapi_gentable.c
+endif
 
 XORG_OUTPUTS = \
 	$(XORG_GLAPI_OUTPUTS) \

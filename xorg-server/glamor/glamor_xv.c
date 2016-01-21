@@ -245,7 +245,6 @@ glamor_xv_render(glamor_port_private *port_priv)
     PixmapPtr pixmap = port_priv->pPixmap;
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_pixmap_private *src_pixmap_priv[3];
-    float vertices[32], texcoords[8];
     BoxPtr box = REGION_RECTS(&port_priv->clip);
     int nBox = REGION_NUM_RECTS(&port_priv->clip);
     int dst_x_off, dst_y_off;
@@ -260,6 +259,8 @@ glamor_xv_render(glamor_port_private *port_priv)
     float bright, cont, gamma;
     int ref = port_priv->transform_index;
     GLint uloc, sampler_loc;
+    GLfloat *v;
+    char *vbo_offset;
 
     if (!glamor_priv->xv_prog)
         glamor_init_xv_shader(screen);
@@ -335,16 +336,13 @@ glamor_xv_render(glamor_port_private *port_priv)
     sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "v_sampler");
     glUniform1i(sampler_loc, 2);
 
-    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
-                          GL_FLOAT, GL_FALSE,
-                          2 * sizeof(float), texcoords);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                          GL_FALSE, 2 * sizeof(float), vertices);
-
-    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glEnable(GL_SCISSOR_TEST);
+
+    v = glamor_get_vbo_space(screen, 16 * sizeof(GLfloat) * nBox, &vbo_offset);
+
     for (i = 0; i < nBox; i++) {
         float off_x = box[i].x1 - port_priv->drw_x;
         float off_y = box[i].y1 - port_priv->drw_y;
@@ -352,6 +350,8 @@ glamor_xv_render(glamor_port_private *port_priv)
         float diff_y = (float) port_priv->src_h / (float) port_priv->dst_h;
         float srcx, srcy, srcw, srch;
         int dstx, dsty, dstw, dsth;
+        GLfloat *vptr = v + (i * 8);
+        GLfloat *tptr = vptr + (8 * nBox);
 
         dstx = box[i].x1 + dst_x_off;
         dsty = box[i].y1 + dst_y_off;
@@ -369,7 +369,7 @@ glamor_xv_render(glamor_port_private *port_priv)
                                      dsty,
                                      dstx + dstw,
                                      dsty + dsth * 2,
-                                     vertices);
+                                     vptr);
 
         glamor_set_normalize_tcoords(src_pixmap_priv[0],
                                      src_xscale[0],
@@ -378,10 +378,29 @@ glamor_xv_render(glamor_port_private *port_priv)
                                      srcy,
                                      srcx + srcw,
                                      srcy + srch * 2,
-                                     texcoords);
+                                     tptr);
+    }
+
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2,
+                          GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), vbo_offset);
+
+    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
+                          GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), vbo_offset + (nBox * 8 * sizeof(GLfloat)));
+
+    glamor_put_vbo_space(screen);
+
+    for (i = 0; i < nBox; i++) {
+        int dstx, dsty, dstw, dsth;
+
+        dstx = box[i].x1 + dst_x_off;
+        dsty = box[i].y1 + dst_y_off;
+        dstw = box[i].x2 - box[i].x1;
+        dsth = box[i].y2 - box[i].y1;
 
         glScissor(dstx, dsty, dstw, dsth);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+        glDrawArrays(GL_TRIANGLE_FAN, i * 4, 3);
     }
     glDisable(GL_SCISSOR_TEST);
 

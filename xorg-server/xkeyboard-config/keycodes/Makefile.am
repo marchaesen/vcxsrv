@@ -11,6 +11,7 @@ evdev \
 fujitsu \
 hp \
 ibm \
+jolla \
 macintosh \
 olpc \
 sony \

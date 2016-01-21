@@ -717,6 +717,28 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     present_vblank_destroy(vblank);
 }
 
+/*
+ * Returns:
+ * TRUE if the first MSC value is after the second one
+ * FALSE if the first MSC value is equal to or before the second one
+ */
+static Bool
+msc_is_after(uint64_t test, uint64_t reference)
+{
+    return (int64_t)(test - reference) > 0;
+}
+
+/*
+ * Returns:
+ * TRUE if the first MSC value is equal to or after the second one
+ * FALSE if the first MSC value is before the second one
+ */
+static Bool
+msc_is_equal_or_after(uint64_t test, uint64_t reference)
+{
+    return (int64_t)(test - reference) >= 0;
+}
+
 int
 present_pixmap(WindowPtr window,
                PixmapPtr pixmap,
@@ -771,14 +793,14 @@ present_pixmap(WindowPtr window,
 
     /* Adjust target_msc to match modulus
      */
-    if (crtc_msc >= target_msc) {
+    if (msc_is_equal_or_after(crtc_msc, target_msc)) {
         if (divisor != 0) {
             target_msc = crtc_msc - (crtc_msc % divisor) + remainder;
             if (options & PresentOptionAsync) {
-                if (target_msc < crtc_msc)
+                if (msc_is_after(crtc_msc, target_msc))
                     target_msc += divisor;
             } else {
-                if (target_msc <= crtc_msc)
+                if (msc_is_equal_or_after(crtc_msc, target_msc))
                     target_msc += divisor;
             }
         } else {
@@ -864,7 +886,7 @@ present_pixmap(WindowPtr window,
     if (pixmap != NULL &&
         !(options & PresentOptionCopy) &&
         screen_priv->info) {
-        if (target_msc > crtc_msc &&
+        if (msc_is_after(target_msc, crtc_msc) &&
             present_check_flip (target_crtc, window, pixmap, TRUE, valid, x_off, y_off))
         {
             vblank->flip = TRUE;
@@ -897,7 +919,7 @@ present_pixmap(WindowPtr window,
 
     xorg_list_add(&vblank->event_queue, &present_exec_queue);
     vblank->queued = TRUE;
-    if (target_msc > crtc_msc) {
+    if (msc_is_after(target_msc, crtc_msc)) {
         ret = present_queue_vblank(screen, target_crtc, vblank->event_id, target_msc);
         if (ret == Success)
             return Success;

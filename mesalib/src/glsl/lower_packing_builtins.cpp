@@ -230,8 +230,8 @@ private:
       if (op_mask & LOWER_PACK_USE_BFI) {
          return bitfield_insert(bit_and(swizzle_x(u), constant(0xffffu)),
                                 swizzle_y(u),
-                                constant(16),
-                                constant(16));
+                                constant(16u),
+                                constant(16u));
       }
 
       /* return (u.y << 16) | (u.x & 0xffff); */
@@ -261,9 +261,9 @@ private:
          return bitfield_insert(bitfield_insert(
                                    bitfield_insert(
                                       bit_and(swizzle_x(u), constant(0xffu)),
-                                      swizzle_y(u), constant(8), constant(8)),
-                                   swizzle_z(u), constant(16), constant(8)),
-                                swizzle_w(u), constant(24), constant(8));
+                                      swizzle_y(u), constant(8u), constant(8u)),
+                                   swizzle_z(u), constant(16u), constant(8u)),
+                                swizzle_w(u), constant(24u), constant(8u));
       }
 
       /* uvec4 u = UVEC4_RVAL & 0xff */
@@ -365,11 +365,11 @@ private:
 
       if (op_mask & LOWER_PACK_USE_BFE) {
          /* u4.y = bitfield_extract(u, 8, 8); */
-         factory.emit(assign(u4, bitfield_extract(u, constant(8), constant(8)),
+         factory.emit(assign(u4, bitfield_extract(u, constant(8u), constant(8u)),
                              WRITEMASK_Y));
 
          /* u4.z = bitfield_extract(u, 16, 8); */
-         factory.emit(assign(u4, bitfield_extract(u, constant(16), constant(8)),
+         factory.emit(assign(u4, bitfield_extract(u, constant(16u), constant(8u)),
                              WRITEMASK_Z));
       } else {
          /* u4.y = (u >> 8u) & 0xffu; */

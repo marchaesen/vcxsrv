@@ -2183,8 +2183,6 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_unorm_4x8:
 
    case ir_binop_pack_half_2x16_split:
-   case ir_binop_bfm:
-   case ir_triop_bfi:
    case ir_quadop_vector:
    case ir_binop_vector_extract:
    case ir_triop_vector_insert:

@@ -953,7 +953,7 @@ _mesa_handle_bind_buffer_gen(struct gl_context *ctx,
 {
    struct gl_buffer_object *buf = *buf_handle;
 
-   if (!buf && (ctx->API == API_OPENGL_CORE || _mesa_is_gles31(ctx))) {
+   if (!buf && (ctx->API == API_OPENGL_CORE)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(non-gen name)", caller);
       return false;
    }
@@ -3898,8 +3898,14 @@ _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
    struct gl_buffer_object *bufObj;
    const GLintptr end = offset + length;
 
+   /* Section 6.5 (Invalidating Buffer Data) of the OpenGL 4.5 (Compatibility
+    * Profile) spec says:
+    *
+    *     "An INVALID_VALUE error is generated if buffer is zero or is not the
+    *     name of an existing buffer object."
+    */
    bufObj = _mesa_lookup_bufferobj(ctx, buffer);
-   if (!bufObj) {
+   if (!bufObj || bufObj == &DummyBufferObject) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glInvalidateBufferSubData(name = 0x%x) invalid object",
                   buffer);
@@ -3912,7 +3918,7 @@ _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
     *     negative, or if <offset> + <length> is greater than the value of
     *     BUFFER_SIZE."
     */
-   if (end < 0 || end > bufObj->Size) {
+   if (offset < 0 || length < 0 || end > bufObj->Size) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glInvalidateBufferSubData(invalid offset or length)");
       return;
@@ -3933,10 +3939,8 @@ _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
       return;
    }
 
-   /* We don't actually do anything for this yet.  Just return after
-    * validating the parameters and generating the required errors.
-    */
-   return;
+   if (ctx->Driver.InvalidateBufferSubData)
+      ctx->Driver.InvalidateBufferSubData(ctx, bufObj, offset, length);
 }
 
 void GLAPIENTRY
@@ -3945,8 +3949,14 @@ _mesa_InvalidateBufferData(GLuint buffer)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
 
+   /* Section 6.5 (Invalidating Buffer Data) of the OpenGL 4.5 (Compatibility
+    * Profile) spec says:
+    *
+    *     "An INVALID_VALUE error is generated if buffer is zero or is not the
+    *     name of an existing buffer object."
+    */
    bufObj = _mesa_lookup_bufferobj(ctx, buffer);
-   if (!bufObj) {
+   if (!bufObj || bufObj == &DummyBufferObject) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glInvalidateBufferData(name = 0x%x) invalid object",
                   buffer);
@@ -3967,8 +3977,6 @@ _mesa_InvalidateBufferData(GLuint buffer)
       return;
    }
 
-   /* We don't actually do anything for this yet.  Just return after
-    * validating the parameters and generating the required errors.
-    */
-   return;
+   if (ctx->Driver.InvalidateBufferSubData)
+      ctx->Driver.InvalidateBufferSubData(ctx, bufObj, 0, bufObj->Size);
 }

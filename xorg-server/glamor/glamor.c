@@ -393,6 +393,9 @@ glamor_setup_debug_output(ScreenPtr screen)
         return;
 
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    /* Disable debugging messages other than GL API errors */
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL,
+                          GL_FALSE);
     glDebugMessageControl(GL_DEBUG_SOURCE_API,
                           GL_DEBUG_TYPE_ERROR,
                           GL_DONT_CARE,
@@ -571,6 +574,8 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP ||
         epoxy_gl_version() >= 30 ||
         epoxy_has_gl_extension("GL_NV_pack_subimage");
+    glamor_priv->has_vertex_array_object =
+        epoxy_has_gl_extension("GL_ARB_vertex_array_object");
 
     glamor_setup_debug_output(screen);
 

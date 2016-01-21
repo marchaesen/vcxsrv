@@ -634,6 +634,11 @@ struct dd_function_table {
                               GLintptr readOffset, GLintptr writeOffset,
                               GLsizeiptr size );
 
+   void (*InvalidateBufferSubData)( struct gl_context *ctx,
+                                    struct gl_buffer_object *obj,
+                                    GLintptr offset,
+                                    GLsizeiptr length );
+
    /* Returns pointer to the start of the mapped range.
     * May return NULL if MESA_MAP_NOWAIT_BIT is set in access:
     */

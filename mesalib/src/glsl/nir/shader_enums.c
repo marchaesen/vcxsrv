@@ -33,7 +33,8 @@
 #define ENUM(x) [x] = #x
 #define NAME(val) ((((val) < ARRAY_SIZE(names)) && names[(val)]) ? names[(val)] : "UNKNOWN")
 
-const char * gl_shader_stage_name(gl_shader_stage stage)
+const char *
+gl_shader_stage_name(gl_shader_stage stage)
 {
    static const char *names[] = {
       ENUM(MESA_SHADER_VERTEX),
@@ -51,15 +52,16 @@ const char * gl_shader_stage_name(gl_shader_stage stage)
  * Translate a gl_shader_stage to a short shader stage name for debug
  * printouts and error messages.
  */
-const char * _mesa_shader_stage_to_string(unsigned stage)
+const char *
+_mesa_shader_stage_to_string(unsigned stage)
 {
    switch (stage) {
    case MESA_SHADER_VERTEX:   return "vertex";
    case MESA_SHADER_FRAGMENT: return "fragment";
    case MESA_SHADER_GEOMETRY: return "geometry";
    case MESA_SHADER_COMPUTE:  return "compute";
-   case MESA_SHADER_TESS_CTRL: return "tess ctrl";
-   case MESA_SHADER_TESS_EVAL: return "tess eval";
+   case MESA_SHADER_TESS_CTRL: return "tessellation control";
+   case MESA_SHADER_TESS_EVAL: return "tessellation evaluation";
    }
 
    unreachable("Unknown shader stage.");
@@ -69,7 +71,8 @@ const char * _mesa_shader_stage_to_string(unsigned stage)
  * Translate a gl_shader_stage to a shader stage abbreviation (VS, GS, FS)
  * for debug printouts and error messages.
  */
-const char * _mesa_shader_stage_to_abbrev(unsigned stage)
+const char *
+_mesa_shader_stage_to_abbrev(unsigned stage)
 {
    switch (stage) {
    case MESA_SHADER_VERTEX:   return "VS";
@@ -83,7 +86,8 @@ const char * _mesa_shader_stage_to_abbrev(unsigned stage)
    unreachable("Unknown shader stage.");
 }
 
-const char * gl_vert_attrib_name(gl_vert_attrib attrib)
+const char *
+gl_vert_attrib_name(gl_vert_attrib attrib)
 {
    static const char *names[] = {
       ENUM(VERT_ATTRIB_POS),
@@ -124,7 +128,8 @@ const char * gl_vert_attrib_name(gl_vert_attrib attrib)
    return NAME(attrib);
 }
 
-const char * gl_varying_slot_name(gl_varying_slot slot)
+const char *
+gl_varying_slot_name(gl_varying_slot slot)
 {
    static const char *names[] = {
       ENUM(VARYING_SLOT_POS),
@@ -190,7 +195,8 @@ const char * gl_varying_slot_name(gl_varying_slot slot)
    return NAME(slot);
 }
 
-const char * gl_system_value_name(gl_system_value sysval)
+const char *
+gl_system_value_name(gl_system_value sysval)
 {
    static const char *names[] = {
      ENUM(SYSTEM_VALUE_VERTEX_ID),
@@ -216,7 +222,8 @@ const char * gl_system_value_name(gl_system_value sysval)
    return NAME(sysval);
 }
 
-const char * glsl_interp_qualifier_name(enum glsl_interp_qualifier qual)
+const char *
+glsl_interp_qualifier_name(enum glsl_interp_qualifier qual)
 {
    static const char *names[] = {
       ENUM(INTERP_QUALIFIER_NONE),
@@ -228,7 +235,8 @@ const char * glsl_interp_qualifier_name(enum glsl_interp_qualifier qual)
    return NAME(qual);
 }
 
-const char * gl_frag_result_name(gl_frag_result result)
+const char *
+gl_frag_result_name(gl_frag_result result)
 {
    static const char *names[] = {
       ENUM(FRAG_RESULT_DEPTH),

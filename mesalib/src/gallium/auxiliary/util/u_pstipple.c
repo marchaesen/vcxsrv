@@ -230,6 +230,7 @@ pstip_transform_immed(struct tgsi_transform_context *ctx,
    struct pstip_transform_context *pctx =
       (struct pstip_transform_context *) ctx;
    pctx->numImmed++;
+   ctx->emit_immediate(ctx, immed);
 }
 
 

@@ -74,9 +74,11 @@ ast_type_qualifier::has_layout() const
           || this->flags.q.row_major
           || this->flags.q.packed
           || this->flags.q.explicit_location
+          || this->flags.q.explicit_image_format
           || this->flags.q.explicit_index
           || this->flags.q.explicit_binding
-          || this->flags.q.explicit_offset;
+          || this->flags.q.explicit_offset
+          || this->flags.q.explicit_stream;
 }
 
 bool
@@ -113,10 +115,16 @@ ast_type_qualifier::interpolation_string() const
       return NULL;
 }
 
+/**
+ * This function merges both duplicate identifies within a single layout and
+ * multiple layout qualifiers on a single variable declaration. The
+ * is_single_layout_merge param is used differentiate between the two.
+ */
 bool
 ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 				    _mesa_glsl_parse_state *state,
-				    const ast_type_qualifier &q)
+                                    const ast_type_qualifier &q,
+                                    bool is_single_layout_merge)
 {
    ast_type_qualifier ubo_mat_mask;
    ubo_mat_mask.flags.i = 0;
@@ -156,7 +164,8 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
       allowed_duplicates_mask.flags.i |=
          stream_layout_mask.flags.i;
 
-   if ((this->flags.i & q.flags.i & ~allowed_duplicates_mask.flags.i) != 0) {
+   if (is_single_layout_merge && !state->has_enhanced_layouts() &&
+       (this->flags.i & q.flags.i & ~allowed_duplicates_mask.flags.i) != 0) {
       _mesa_glsl_error(loc, state,
 		       "duplicate layout qualifiers used");
       return false;
@@ -206,11 +215,6 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
             /* Assign default global stream value */
             this->flags.q.stream = 1;
             this->stream = state->out_qualifier->stream;
-         }
-      } else {
-         if (q.flags.q.explicit_stream) {
-            _mesa_glsl_error(loc, state,
-                             "duplicate layout `stream' qualifier");
          }
       }
    }
@@ -294,13 +298,35 @@ bool
 ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
                                         _mesa_glsl_parse_state *state,
                                         const ast_type_qualifier &q,
-                                        ast_node* &node)
+                                        ast_node* &node, bool create_node)
 {
    void *mem_ctx = state;
-   const bool r = this->merge_qualifier(loc, state, q);
+   const bool r = this->merge_qualifier(loc, state, q, false);
 
-   if (state->stage == MESA_SHADER_TESS_CTRL) {
-      node = new(mem_ctx) ast_tcs_output_layout(*loc);
+   if (state->stage == MESA_SHADER_GEOMETRY) {
+      if (q.flags.q.prim_type) {
+         /* Make sure this is a valid output primitive type. */
+         switch (q.prim_type) {
+         case GL_POINTS:
+         case GL_LINE_STRIP:
+         case GL_TRIANGLE_STRIP:
+            break;
+         default:
+            _mesa_glsl_error(loc, state, "invalid geometry shader output "
+                             "primitive type");
+            break;
+         }
+      }
+
+      /* Allow future assigments of global out's stream id value */
+      this->flags.q.explicit_stream = 0;
+   } else if (state->stage == MESA_SHADER_TESS_CTRL) {
+      if (create_node) {
+         node = new(mem_ctx) ast_tcs_output_layout(*loc);
+      }
+   } else {
+      _mesa_glsl_error(loc, state, "out layout qualifiers only valid in "
+                       "tessellation control or geometry shaders");
    }
 
    return r;
@@ -310,7 +336,7 @@ bool
 ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
                                        _mesa_glsl_parse_state *state,
                                        const ast_type_qualifier &q,
-                                       ast_node* &node)
+                                       ast_node* &node, bool create_node)
 {
    void *mem_ctx = state;
    bool create_gs_ast = false;
@@ -450,10 +476,12 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
       this->point_mode = q.point_mode;
    }
 
-   if (create_gs_ast) {
-      node = new(mem_ctx) ast_gs_input_layout(*loc, q.prim_type);
-   } else if (create_cs_ast) {
-      node = new(mem_ctx) ast_cs_input_layout(*loc, q.local_size);
+   if (create_node) {
+      if (create_gs_ast) {
+         node = new(mem_ctx) ast_gs_input_layout(*loc, q.prim_type);
+      } else if (create_cs_ast) {
+         node = new(mem_ctx) ast_cs_input_layout(*loc, q.local_size);
+      }
    }
 
    return true;

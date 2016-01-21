@@ -23,6 +23,7 @@ xkb_symbols "basic" {
     key <AD11>	{ [       eth,        ETH, dead_diaeresis, dead_abovering ] };
     key <AD12>	{ [apostrophe,   question,   asciitilde,  dead_macron ]	};
 
+    key <AC03>	{ [         d,          D,  U201e,       U201c ] };
     key <AC10>	{ [        ae,         AE,  asciicircum, dead_doubleacute ] };
     key <AC11>	{ [dead_acute, dead_acute, dead_circumflex, dead_caron ] };
     key <TLDE>	{ [dead_abovering,  dead_diaeresis,      notsign,      hyphen ]	};

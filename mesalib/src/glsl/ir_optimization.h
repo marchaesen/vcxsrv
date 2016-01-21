@@ -36,13 +36,12 @@
 #define LOG_TO_LOG2        0x10
 #define MOD_TO_FLOOR       0x20
 #define INT_DIV_TO_MUL_RCP 0x40
-#define BITFIELD_INSERT_TO_BFM_BFI 0x80
-#define LDEXP_TO_ARITH     0x100
-#define CARRY_TO_ARITH     0x200
-#define BORROW_TO_ARITH    0x400
-#define SAT_TO_CLAMP       0x800
-#define DOPS_TO_DFRAC      0x1000
-#define DFREXP_DLDEXP_TO_ARITH    0x2000
+#define LDEXP_TO_ARITH     0x80
+#define CARRY_TO_ARITH     0x100
+#define BORROW_TO_ARITH    0x200
+#define SAT_TO_CLAMP       0x400
+#define DOPS_TO_DFRAC      0x800
+#define DFREXP_DLDEXP_TO_ARITH    0x1000
 
 /**
  * \see class lower_packing_builtins_visitor

@@ -480,7 +480,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       if (i != 0)
          fprintf(fp, ", ");
 
-      fprintf(fp, "%u", instr->const_index[i]);
+      fprintf(fp, "%d", instr->const_index[i]);
    }
 
    fprintf(fp, ")");

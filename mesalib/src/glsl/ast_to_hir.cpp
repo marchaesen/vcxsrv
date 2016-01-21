@@ -487,15 +487,17 @@ unary_arithmetic_result_type(const struct glsl_type *type,
  * If the given types to the bit-logic operator are invalid, return
  * glsl_type::error_type.
  *
- * \param type_a Type of LHS of bit-logic op
- * \param type_b Type of RHS of bit-logic op
+ * \param value_a LHS of bit-logic op
+ * \param value_b RHS of bit-logic op
  */
 static const struct glsl_type *
-bit_logic_result_type(const struct glsl_type *type_a,
-                      const struct glsl_type *type_b,
+bit_logic_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
                       ast_operators op,
                       struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
 {
+   const glsl_type *type_a = value_a->type;
+   const glsl_type *type_b = value_b->type;
+
    if (!state->check_bitwise_operations_allowed(loc)) {
       return glsl_type::error_type;
    }
@@ -515,6 +517,36 @@ bit_logic_result_type(const struct glsl_type *type_a,
       _mesa_glsl_error(loc, state, "RHS of `%s' must be an integer",
                        ast_expression::operator_string(op));
       return glsl_type::error_type;
+   }
+
+   /* Prior to GLSL 4.0 / GL_ARB_gpu_shader5, implicit conversions didn't
+    * make sense for bitwise operations, as they don't operate on floats.
+    *
+    * GLSL 4.0 added implicit int -> uint conversions, which are relevant
+    * here.  It wasn't clear whether or not we should apply them to bitwise
+    * operations.  However, Khronos has decided that they should in future
+    * language revisions.  Applications also rely on this behavior.  We opt
+    * to apply them in general, but issue a portability warning.
+    *
+    * See https://www.khronos.org/bugzilla/show_bug.cgi?id=1405
+    */
+   if (type_a->base_type != type_b->base_type) {
+      if (!apply_implicit_conversion(type_a, value_b, state)
+          && !apply_implicit_conversion(type_b, value_a, state)) {
+         _mesa_glsl_error(loc, state,
+                          "could not implicitly convert operands to "
+                          "`%s` operator",
+                          ast_expression::operator_string(op));
+         return glsl_type::error_type;
+      } else {
+         _mesa_glsl_warning(loc, state,
+                            "some implementations may not support implicit "
+                            "int -> uint conversions for `%s' operators; "
+                            "consider casting explicitly for portability",
+                            ast_expression::operator_string(op));
+      }
+      type_a = value_a->type;
+      type_b = value_b->type;
    }
 
    /*     "The fundamental types of the operands (signed or unsigned) must
@@ -1434,8 +1466,7 @@ ast_expression::do_hir(exec_list *instructions,
    case ast_bit_or:
       op[0] = this->subexpressions[0]->hir(instructions, state);
       op[1] = this->subexpressions[1]->hir(instructions, state);
-      type = bit_logic_result_type(op[0]->type, op[1]->type, this->oper,
-                                   state, &loc);
+      type = bit_logic_result_type(op[0], op[1], this->oper, state, &loc);
       result = new(ctx) ir_expression(operations[this->oper], type,
                                       op[0], op[1]);
       error_emitted = op[0]->type->is_error() || op[1]->type->is_error();
@@ -1625,8 +1656,7 @@ ast_expression::do_hir(exec_list *instructions,
    case ast_or_assign: {
       op[0] = this->subexpressions[0]->hir(instructions, state);
       op[1] = this->subexpressions[1]->hir(instructions, state);
-      type = bit_logic_result_type(op[0]->type, op[1]->type, this->oper,
-                                   state, &loc);
+      type = bit_logic_result_type(op[0], op[1], this->oper, state, &loc);
       ir_rvalue *temp_rhs = new(ctx) ir_expression(operations[this->oper],
                                                    type, op[0], op[1]);
       error_emitted =
@@ -6328,7 +6358,7 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
              qual_stream != block_stream) {
             _mesa_glsl_error(&loc, state, "stream layout qualifier on "
                              "interface block member does not match "
-                             "the interface block (%d vs %d)", qual->stream,
+                             "the interface block (%u vs %u)", qual_stream,
                              block_stream);
          }
       }

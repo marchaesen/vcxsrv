@@ -113,6 +113,9 @@ __glapi_gentable_set_remaining_noop(struct _glapi_table *disp) {
             dispatch[i] = p.v;
 }
 
+"""
+
+footer = """
 struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     struct _glapi_table *disp = calloc(_glapi_get_dispatch_table_size(), sizeof(_glapi_proc));
@@ -123,26 +126,27 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
 
     if(symbol_prefix == NULL)
         symbol_prefix = "";
-"""
 
-footer = """
-    __glapi_gentable_set_remaining_noop(disp);
+    /* Note: This code relies on _glapi_table_func_names being sorted by the
+     * entry point index of each function.
+     */
+    for (int func_index = 0; func_index < GLAPI_TABLE_COUNT; ++func_index) {
+        const char *name = _glapi_table_func_names[func_index];
+        void ** procp = &((void **)disp)[func_index];
 
-    return disp;
-}
-"""
-
-body_template = """
-    if(!disp->%(name)s) {
-        void ** procp = (void **) &disp->%(name)s;
-        snprintf(symboln, sizeof(symboln), "%%s%(entry_point)s", symbol_prefix);
+        snprintf(symboln, sizeof(symboln), \"%s%s\", symbol_prefix, name);
 #ifdef _WIN32
         *procp = GetProcAddress(handle, symboln);
 #else
         *procp = dlsym(handle, symboln);
 #endif
     }
+    __glapi_gentable_set_remaining_noop(disp);
+
+    return disp;
+}
 """
+
 
 class PrintCode(gl_XML.gl_print_base):
 
@@ -180,12 +184,33 @@ class PrintCode(gl_XML.gl_print_base):
 
 
     def printBody(self, api):
-        for f in api.functionIterateByOffset():
-            for entry_point in f.entry_points:
-                vars = { 'entry_point' : entry_point,
-                         'name' : f.name }
 
-                print body_template % vars
+        # Determine how many functions have a defined offset.
+        func_count = 0
+        for f in api.functions_by_name.itervalues():
+            if f.offset != -1:
+                func_count += 1
+
+        # Build the mapping from offset to function name.
+        funcnames = [None] * func_count
+        for f in api.functions_by_name.itervalues():
+            if f.offset != -1:
+                if not (funcnames[f.offset] is None):
+                    raise Exception("Function table has more than one function with same offset (offset %d, func %s)" % (f.offset, f.name))
+                funcnames[f.offset] = f.name
+
+        # Check that the table has no gaps.  We expect a function at every offset,
+        # and the code which generates the table relies on this.
+        for i in xrange(0, func_count):
+            if funcnames[i] is None:
+                raise Exception("Function table has no function at offset %d" % (i))
+
+        print "#define GLAPI_TABLE_COUNT %d" % func_count
+        print "static const char * const _glapi_table_func_names[GLAPI_TABLE_COUNT] = {"
+        for i in xrange(0, func_count):
+            print "    /* %5d */ \"%s\"," % (i, funcnames[i])
+        print "};"
+
         return
 
 

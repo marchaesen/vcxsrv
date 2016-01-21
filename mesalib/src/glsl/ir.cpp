@@ -431,7 +431,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
    case ir_binop_borrow:
    case ir_binop_lshift:
    case ir_binop_rshift:
-   case ir_binop_bfm:
    case ir_binop_ldexp:
    case ir_binop_interpolate_at_offset:
    case ir_binop_interpolate_at_sample:
@@ -468,7 +467,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1,
       this->type = op0->type;
       break;
 
-   case ir_triop_bfi:
    case ir_triop_csel:
       this->type = op1->type;
       break;
@@ -602,7 +600,6 @@ static const char *const operator_strs[] = {
    "max",
    "pow",
    "packHalf2x16_split",
-   "bfm",
    "ubo_load",
    "ldexp",
    "vector_extract",
@@ -611,7 +608,6 @@ static const char *const operator_strs[] = {
    "fma",
    "lrp",
    "csel",
-   "bfi",
    "bitfield_extract",
    "vector_insert",
    "bitfield_insert",

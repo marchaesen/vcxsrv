@@ -968,10 +968,12 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
    }
 
    if ((consumer_var == NULL && producer_var->type->contains_integer()) ||
-       consumer_stage != MESA_SHADER_FRAGMENT) {
+       (consumer_stage != -1 && consumer_stage != MESA_SHADER_FRAGMENT)) {
       /* Since this varying is not being consumed by the fragment shader, its
-       * interpolation type varying cannot possibly affect rendering.  Also,
-       * this variable is non-flat and is (or contains) an integer.
+       * interpolation type varying cannot possibly affect rendering.
+       * Also, this variable is non-flat and is (or contains) an integer.
+       * If the consumer stage is unknown, don't modify the interpolation
+       * type as it could affect rendering later with separate shaders.
        *
        * lower_packed_varyings requires all integer varyings to flat,
        * regardless of where they appear.  We can trivially satisfy that

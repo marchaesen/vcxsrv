@@ -1,5 +1,6 @@
   ataritt	*			=	xfree68_vndr/ataritt(us)+%l[1]%(v[1])
   amiga		*			=	xfree68_vndr/amiga(usa1)+%l[1]%(v[1])
+  jollasbj	*			=	jolla_vndr/sbj(common)+%l[1]%(v[1])
  $sun		$sun_custom	=	pc+sun_vndr/%l[1]%(v[1])
   macintosh_old	us			=	macintosh_vndr/us(oldmac)
   macintosh_old	$macvendorlayouts	=	macintosh_vndr/us(oldmac)+macintosh_vndr/%l[1]%(v[1])
