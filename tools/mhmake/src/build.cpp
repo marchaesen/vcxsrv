@@ -926,9 +926,9 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
     if (!fSuccess) return (mh_pid_t)-1;
     CloseHandle(hChildStdoutRd);
 
-    int hStdIn = _open_osfhandle((long)hChildStdinWrDup, _O_WRONLY|_O_TEXT);
+    int hStdIn = _open_osfhandle((intptr_t)hChildStdinWrDup, _O_WRONLY|_O_TEXT);
     FILE *pStdIn = _fdopen(hStdIn, "w");
-    int hStdOut = _open_osfhandle((long)hChildStdoutRdDup, _O_RDONLY|_O_TEXT);
+    int hStdOut = _open_osfhandle((intptr_t)hChildStdoutRdDup, _O_RDONLY|_O_TEXT);
     FILE *pStdOut = _fdopen(hStdOut, "r");
 
     StartupInfo.dwFlags = STARTF_USESTDHANDLES;

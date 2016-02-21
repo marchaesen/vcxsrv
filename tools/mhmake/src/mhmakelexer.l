@@ -387,7 +387,7 @@ load_makefile {
   if (m_IndentStack.size())
   {
     m_IndentStack.pop();
-    PRINTF(("%s %d: %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
   }
   else
   {
@@ -465,7 +465,7 @@ load_makefile {
 ^else[ \t]* {
   if (m_IndentStack.size() && (!m_IndentStack.top()))
   {
-    PRINTF(("%s %d: skipping else: depth %d\n",m_InputFileName.c_str(),lineno(),m_IndentStack.size()));
+    PRINTF(("%s %d: skipping else: depth %zd\n",m_InputFileName.c_str(),lineno(),m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     m_IndentStack.top()=1;
     BEGIN(SKIPUNTILELSEORENDIF);
@@ -482,12 +482,12 @@ load_makefile {
   m_IndentStack.push(0);
   if (GetParser()->IsEqual(m_curtoken))
   {
-    PRINTF(("%s %d: Not Skipping ifeq %s: depth %d\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
+    PRINTF(("%s %d: Not Skipping ifeq %s: depth %zd\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
     BEGIN(INITIAL);
   }
   else
   {
-    PRINTF(("%s %d: Skipping ifeq %s: depth %d\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
+    PRINTF(("%s %d: Skipping ifeq %s: depth %zd\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     BEGIN(SKIPUNTILELSEORENDIF);
   }
@@ -506,12 +506,12 @@ load_makefile {
   m_IndentStack.push(0);
   if (!GetParser()->IsEqual(m_curtoken))
   {
-    PRINTF(("%s %d: Not Skipping ifneq %s: depth %d\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
+    PRINTF(("%s %d: Not Skipping ifneq %s: depth %zd\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
     BEGIN(INITIAL);
   }
   else
   {
-    PRINTF(("%s %d: Skipping ifneq %s: depth %d\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
+    PRINTF(("%s %d: Skipping ifneq %s: depth %zd\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     BEGIN(SKIPUNTILELSEORENDIF);
   }
@@ -529,13 +529,13 @@ load_makefile {
   string Val=GetParser()->ExpandVar((const char *)yytext);
   if (Val.empty() || Val=="0")
   {
-    PRINTF(("%s %d: Skipping if %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: Skipping if %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     BEGIN(SKIPUNTILELSEORENDIF);
   }
   else
   {
-    PRINTF(("%s %d: Not Skipping if %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: Not Skipping if %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
     BEGIN(INITIAL);
   }
 }
@@ -546,12 +546,12 @@ load_makefile {
   m_IndentStack.push(0);
   if (GetParser()->IsExprTrue(m_curtoken))
   {
-    PRINTF(("%s %d: Not Skipping ifeq %s: depth %d\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
+    PRINTF(("%s %d: Not Skipping ifeq %s: depth %zd\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
     BEGIN(INITIAL);
   }
   else
   {
-    PRINTF(("%s %d: Skipping ifeq %s: depth %d\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
+    PRINTF(("%s %d: Skipping ifeq %s: depth %zd\n",m_InputFileName.c_str(),lineno(),m_curtoken.c_str(),m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     BEGIN(SKIPUNTILELSEORENDIF);
   }
@@ -565,12 +565,12 @@ load_makefile {
   m_IndentStack.push(0);
   if (GetParser()->IsDefined((const char *)yytext))
   {
-    PRINTF(("%s %d: Not Skipping ifdef %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: Not Skipping ifdef %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
     BEGIN(INITIAL);
   }
   else
   {
-    PRINTF(("%s %d: Skipping ifdef %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: Skipping ifdef %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     BEGIN(SKIPUNTILELSEORENDIF);
   }
@@ -580,12 +580,12 @@ load_makefile {
 <IFNDEF>[a-zA-Z0-9_]+ {
   m_IndentStack.push(0);
   if (!GetParser()->IsDefined((const char *)yytext)) {
-    PRINTF(("%s %d: Not Skipping ifndef %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: Not Skipping ifndef %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
     BEGIN(INITIAL);
   }
   else
   {
-    PRINTF(("%s %d: Skipping ifndef %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
+    PRINTF(("%s %d: Skipping ifndef %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext,m_IndentStack.size()));
     m_IndentSkip=m_IndentStack.size();
     BEGIN(SKIPUNTILELSEORENDIF);
   }
@@ -601,7 +601,7 @@ load_makefile {
   else
   {
     m_IndentStack.pop();
-    PRINTF(("%s %d: endif: depth %d\n",m_InputFileName.c_str(),lineno(),m_IndentStack.size()));
+    PRINTF(("%s %d: endif: depth %zd\n",m_InputFileName.c_str(),lineno(),m_IndentStack.size()));
     if (m_IndentStack.size()==m_IndentSkip-1) BEGIN(INITIAL);
   }
 }
@@ -609,7 +609,7 @@ load_makefile {
  /*---------------------------------------------------------------------------*/
 <SKIPUNTILELSEORENDIF>\n[ ]*else {
   inclineno();
-  PRINTF(("%s %d: else: depth %d\n",m_InputFileName.c_str(),lineno(),m_IndentStack.size()));
+  PRINTF(("%s %d: else: depth %zd\n",m_InputFileName.c_str(),lineno(),m_IndentStack.size()));
   if (m_IndentStack.top())
   {
     throw string("Unexpected else at line ") + stringify(lineno()) + " of file " + m_InputFileName;
@@ -625,7 +625,7 @@ load_makefile {
 <SKIPUNTILELSEORENDIF>\n[ ]*if(def|ndef|eq|neq)? {
   inclineno();
   m_IndentStack.push(0);
-  PRINTF(("%s %d: %s: depth %d\n",m_InputFileName.c_str(),lineno(),yytext+1,m_IndentStack.size()));
+  PRINTF(("%s %d: %s: depth %zd\n",m_InputFileName.c_str(),lineno(),yytext+1,m_IndentStack.size()));
 }
 
  /*---------------------------------------------------------------------------*/
