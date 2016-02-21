@@ -91,11 +91,20 @@ This is only valid for versions &gt;= 3.0.
 <li> Mesa may not really implement all the features of the given version.
 (for developers only)
 </ul>
+<li>MESA_GLES_VERSION_OVERRIDE - changes the value returned by
+glGetString(GL_VERSION) for OpenGL ES.
+<ul>
+<li> The format should be MAJOR.MINOR
+<li> Examples: 2.0, 3.0, 3.1
+<li> Mesa may not really implement all the features of the given version.
+(for developers only)
+</ul>
 <li>MESA_GLSL_VERSION_OVERRIDE - changes the value returned by
 glGetString(GL_SHADING_LANGUAGE_VERSION). Valid values are integers, such as
 "130".  Mesa will not really implement all the features of the given language version
 if it's higher than what's normally reported. (for developers only)
 <li>MESA_GLSL - <a href="shading.html#envvars">shading language compiler options</a>
+<li>MESA_NO_MINMAX_CACHE - when set, the minmax index cache is globally disabled.
 </ul>
 
 
@@ -223,7 +232,7 @@ See src/mesa/state_tracker/st_debug.c for other options.
 <li>LP_PERF - a comma-separated list of options to selectively no-op various
     parts of the driver.  See the source code for details.
 <li>LP_NUM_THREADS - an integer indicating how many threads to use for rendering.
-    Zero turns of threading completely.  The default value is the number of CPU
+    Zero turns off threading completely.  The default value is the number of CPU
     cores present.
 </ul>
 
@@ -241,6 +250,25 @@ for details.
 <h3>VA-API state tracker environment variables</h3>
 <ul>
 <li>VAAPI_MPEG4_ENABLED - enable MPEG4 for VA-API, disabled by default.
+</ul>
+
+
+<h3>VC4 driver environment variables</h3>
+<ul>
+<li>VC4_DEBUG - a comma-separated list of named flags, which do various things:
+<ul>
+   <li>cl - dump command list during creation</li>
+   <li>qpu - dump generated QPU instructions</li>
+   <li>qir - dump QPU IR during program compile</li>
+   <li>nir - dump NIR during program compile</li>
+   <li>tgsi - dump TGSI during program compile</li>
+   <li>shaderdb - dump program compile information for shader-db analysis</li>
+   <li>perf - print during performance-related events</li>
+   <li>norast - skip actual hardware execution of commands</li>
+   <li>always_flush - flush after each draw call</li>
+   <li>always_sync - wait for finish after each flush</li>
+   <li>dump - write a GPU command stream trace file (VC4 simulator only)</li>
+</ul>
 </ul>
 
 

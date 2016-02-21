@@ -6,7 +6,7 @@
 # - Select Git and fill in the Git clone URL
 # - Setup a Git hook as explained in
 #   https://github.com/appveyor/webhooks#installing-git-hook
-# - Check 'Settings > General > Skip branches without appveyor'
+# - Check 'Settings > General > Skip branches without appveyor.yml'
 # - Check 'Settings > General > Rolling builds'
 # - Setup the global or project notifications to your liking
 #
@@ -24,7 +24,14 @@ branches:
   except:
   - /^travis.*$/
 
-clone_depth: 5
+# Don't download the full Mesa history to speed up cloning.  However the clone
+# depth must not be too small, otherwise builds might fail when lots of patches
+# are committed in succession, because the desired commit is not found on the
+# truncated history.
+#
+# See also:
+# - https://www.appveyor.com/blog/2014/06/04/shallow-clone-for-git-repositories
+clone_depth: 100
 
 cache:
 - win_flex_bison-2.4.5.zip

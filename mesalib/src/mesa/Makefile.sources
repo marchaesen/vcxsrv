@@ -57,6 +57,8 @@ MAIN_FILES = \
 	main/dd.h \
 	main/debug.c \
 	main/debug.h \
+	main/debug_output.c \
+	main/debug_output.h \
 	main/depth.c \
 	main/depth.h \
 	main/dlist.c \
@@ -377,6 +379,7 @@ VBO_FILES = \
 	vbo/vbo_exec_eval.c \
 	vbo/vbo_exec.h \
 	vbo/vbo.h \
+	vbo/vbo_minmax_index.c \
 	vbo/vbo_noop.c \
 	vbo/vbo_noop.h \
 	vbo/vbo_primitive_restart.c \
@@ -393,6 +396,7 @@ VBO_FILES = \
 
 STATETRACKER_FILES = \
 	state_tracker/st_atom_array.c \
+	state_tracker/st_atom_atomicbuf.c \
 	state_tracker/st_atom_blend.c \
 	state_tracker/st_atom.c \
 	state_tracker/st_atom_clip.c \
@@ -401,6 +405,7 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_depth.c \
 	state_tracker/st_atom_framebuffer.c \
 	state_tracker/st_atom.h \
+	state_tracker/st_atom_image.c \
 	state_tracker/st_atom_msaa.c \
 	state_tracker/st_atom_pixeltransfer.c \
 	state_tracker/st_atom_rasterizer.c \
@@ -409,6 +414,7 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_shader.c \
 	state_tracker/st_atom_shader.h \
 	state_tracker/st_atom_stipple.c \
+	state_tracker/st_atom_storagebuf.c \
 	state_tracker/st_atom_tess.c \
 	state_tracker/st_atom_texture.c \
 	state_tracker/st_atom_viewport.c \
@@ -422,6 +428,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_bufferobjects.h \
 	state_tracker/st_cb_clear.c \
 	state_tracker/st_cb_clear.h \
+	state_tracker/st_cb_compute.c \
+	state_tracker/st_cb_compute.h \
 	state_tracker/st_cb_condrender.c \
 	state_tracker/st_cb_condrender.h \
 	state_tracker/st_cb_copyimage.c \
@@ -527,8 +535,6 @@ PROGRAM_FILES = \
 	program/program_parser.h \
 	program/prog_statevars.c \
 	program/prog_statevars.h \
-	program/sampler.cpp \
-	program/sampler.h \
 	program/string_to_uint_map.cpp \
 	program/symbol_table.c \
 	program/symbol_table.h
@@ -623,11 +629,7 @@ MESA_GALLIUM_FILES = \
 INCLUDE_DIRS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/glsl \
-	-I$(top_srcdir)/src/glsl/nir \
-	-I$(top_builddir)/src/glsl \
-	-I$(top_builddir)/src/glsl/nir \
-	-I$(top_srcdir)/src/glsl/glcpp \
+	-I$(top_builddir)/src/compiler/nir \
 	-I$(top_srcdir)/src/mesa \
 	-I$(top_builddir)/src/mesa \
 	-I$(top_srcdir)/src/mesa/main \

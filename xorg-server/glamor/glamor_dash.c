@@ -205,16 +205,16 @@ glamor_dash_loop(DrawablePtr drawable, GCPtr gc, glamor_program *prog,
 {
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
-    int box_x, box_y;
+    int box_index;
     int off_x, off_y;
 
     glEnable(GL_SCISSOR_TEST);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+    glamor_pixmap_loop(pixmap_priv, box_index) {
         int nbox = RegionNumRects(gc->pCompositeClip);
         BoxPtr box = RegionRects(gc->pCompositeClip);
 
-        glamor_set_destination_drawable(drawable, box_x, box_y, TRUE, TRUE,
+        glamor_set_destination_drawable(drawable, box_index, TRUE, TRUE,
                                         prog->matrix_uniform, &off_x, &off_y);
 
         while (nbox--) {

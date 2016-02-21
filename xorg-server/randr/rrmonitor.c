@@ -326,7 +326,7 @@ RRMonitorMakeList(ScreenPtr screen, Bool get_active, RRMonitorPtr *monitors_ret,
         RRMonitorSetFromClient(pScrPriv->monitors[list.client_primary], mon);
         mon++;
     } else if (list.server_primary >= 0) {
-        RRMonitorSetFromServer(pScrPriv->crtcs[list.server_primary], mon);
+        RRMonitorSetFromServer(list.server_crtc[list.server_primary], mon);
         mon++;
     }
 
@@ -354,8 +354,8 @@ RRMonitorMakeList(ScreenPtr screen, Bool get_active, RRMonitorPtr *monitors_ret,
 
     /* And finish with the list of crtc-inspired monitors
      */
-    for (c = 0; c < pScrPriv->numCrtcs; c++) {
-        RRCrtcPtr crtc = pScrPriv->crtcs[c];
+    for (c = 0; c < list.num_crtcs; c++) {
+        RRCrtcPtr crtc = list.server_crtc[c];
         if (c == list.server_primary && list.client_primary < 0)
             continue;
 
@@ -721,7 +721,9 @@ ProcRRSetMonitor(ClientPtr client)
     monitor->geometry.mmHeight = stuff->monitor.heightInMillimeters;
 
     r = RRMonitorAdd(client, screen, monitor);
-    if (r != Success)
+    if (r == Success)
+        RRSendConfigNotify(screen);
+    else
         RRMonitorFree(monitor);
     return r;
 }
@@ -745,5 +747,8 @@ ProcRRDeleteMonitor(ClientPtr client)
         return BadAtom;
     }
 
-    return RRMonitorDelete(client, screen, stuff->name);
+    r = RRMonitorDelete(client, screen, stuff->name);
+    if (r == Success)
+        RRSendConfigNotify(screen);
+    return r;
 }

@@ -500,9 +500,7 @@ set_tex_parameteri(struct gl_context *ctx,
       goto invalid_pname;
 
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
-      if ((_mesa_is_desktop_gl(ctx) &&
-           ctx->Extensions.ARB_stencil_texturing) ||
-          _mesa_is_gles31(ctx)) {
+      if (_mesa_has_ARB_stencil_texturing(ctx) || _mesa_is_gles31(ctx)) {
          bool stencil = params[0] == GL_STENCIL_INDEX;
          if (!stencil && params[0] != GL_DEPTH_COMPONENT)
             goto invalid_param;
@@ -1215,12 +1213,12 @@ legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target,
       return GL_TRUE;
    case GL_TEXTURE_2D_ARRAY_EXT:
       return ctx->Extensions.EXT_texture_array;
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
       return ctx->Extensions.ARB_texture_cube_map;
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
@@ -1237,7 +1235,7 @@ legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target,
    case GL_PROXY_TEXTURE_2D:
    case GL_PROXY_TEXTURE_3D:
       return GL_TRUE;
-   case GL_PROXY_TEXTURE_CUBE_MAP_ARB:
+   case GL_PROXY_TEXTURE_CUBE_MAP:
       return ctx->Extensions.ARB_texture_cube_map;
    case GL_TEXTURE_CUBE_MAP_ARRAY_ARB:
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY_ARB:
@@ -1312,6 +1310,7 @@ get_tex_level_parameter_image(struct gl_context *ctx,
       dummy_image.TexFormat = MESA_FORMAT_NONE;
       dummy_image.InternalFormat = GL_RGBA;
       dummy_image._BaseFormat = GL_NONE;
+      dummy_image.FixedSampleLocations = GL_TRUE;
 
       img = &dummy_image;
    }
@@ -1819,7 +1818,7 @@ get_tex_parameterfv(struct gl_context *ctx,
          *params = (GLfloat) obj->DepthMode;
          break;
       case GL_DEPTH_STENCIL_TEXTURE_MODE:
-         if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_stencil_texturing)
+         if (!_mesa_has_ARB_stencil_texturing(ctx) && !_mesa_is_gles31(ctx))
             goto invalid_pname;
          *params = (GLfloat)
             (obj->StencilSampling ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);
@@ -2054,7 +2053,7 @@ get_tex_parameteriv(struct gl_context *ctx,
          *params = (GLint) obj->DepthMode;
          break;
       case GL_DEPTH_STENCIL_TEXTURE_MODE:
-         if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_stencil_texturing)
+         if (!_mesa_has_ARB_stencil_texturing(ctx) && !_mesa_is_gles31(ctx))
             goto invalid_pname;
          *params = (GLint)
             (obj->StencilSampling ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);

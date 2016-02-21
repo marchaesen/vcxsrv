@@ -24,7 +24,7 @@
 # BOARD_GPU_DRIVERS should be defined.  The valid values are
 #
 #   classic drivers: i915 i965
-#   gallium drivers: swrast freedreno i915g ilo nouveau r300g r600g radeonsi vc4 vmwgfx
+#   gallium drivers: swrast freedreno i915g ilo nouveau r300g r600g radeonsi vc4 virgl vmwgfx
 #
 # The main target is libGLES_mesa.  For each classic driver enabled, a DRI
 # module will also be built.  DRI modules will be loaded by libGLES_mesa.
@@ -46,7 +46,7 @@ MESA_COMMON_MK := $(MESA_TOP)/Android.common.mk
 MESA_PYTHON2 := python
 
 classic_drivers := i915 i965
-gallium_drivers := swrast freedreno i915g ilo nouveau r300g r600g radeonsi vmwgfx vc4
+gallium_drivers := swrast freedreno i915g ilo nouveau r300g r600g radeonsi vmwgfx vc4 virgl
 
 MESA_GPU_DRIVERS := $(strip $(BOARD_GPU_DRIVERS))
 
@@ -86,6 +86,7 @@ ifneq ($(strip $(MESA_GPU_DRIVERS)),)
 SUBDIRS := \
 	src/loader \
 	src/mapi \
+	src/compiler \
 	src/glsl \
 	src/mesa \
 	src/util \

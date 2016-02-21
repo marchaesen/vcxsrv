@@ -46,7 +46,7 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
     int off_x, off_y;
     GLshort *vbo_ppt;
     char *vbo_offset;
-    int box_x, box_y;
+    int box_index;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -86,11 +86,12 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
 
     glEnable(GL_SCISSOR_TEST);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+    glamor_pixmap_loop(pixmap_priv, box_index) {
         int nbox = RegionNumRects(gc->pCompositeClip);
         BoxPtr box = RegionRects(gc->pCompositeClip);
 
-        glamor_set_destination_drawable(drawable, box_x, box_y, TRUE, TRUE, prog->matrix_uniform, &off_x, &off_y);
+        glamor_set_destination_drawable(drawable, box_index, TRUE, TRUE,
+                                        prog->matrix_uniform, &off_x, &off_y);
 
         while (nbox--) {
             glScissor(box->x1 + off_x,

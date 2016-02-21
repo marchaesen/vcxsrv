@@ -131,11 +131,14 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
             internalformat, buffer);
       break;
    case GL_NUM_SAMPLE_COUNTS: {
-      if (_mesa_is_gles3(ctx) && _mesa_is_enum_format_integer(internalformat)) {
+      if ((ctx->API == API_OPENGLES2 && ctx->Version == 30) &&
+          _mesa_is_enum_format_integer(internalformat)) {
          /* From GL ES 3.0 specification, section 6.1.15 page 236: "Since
           * multisampling is not supported for signed and unsigned integer
           * internal formats, the value of NUM_SAMPLE_COUNTS will be zero
           * for such formats.
+          *
+          * Such a restriction no longer exists in GL ES 3.1.
           */
          buffer[0] = 0;
          count = 1;

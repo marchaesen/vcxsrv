@@ -47,15 +47,12 @@ _mesa_init_sync(struct gl_context *);
 extern void
 _mesa_free_sync_data(struct gl_context *);
 
-extern void
-_mesa_ref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj);
+struct gl_sync_object *
+_mesa_get_and_ref_sync(struct gl_context *ctx, GLsync sync, bool incRefCount);
 
 extern void
-_mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj);
-
-extern bool
-_mesa_validate_sync(struct gl_context *ctx,
-                    const struct gl_sync_object *syncObj);
+_mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj,
+                        int amount);
 
 extern GLboolean GLAPIENTRY
 _mesa_IsSync(GLsync sync);

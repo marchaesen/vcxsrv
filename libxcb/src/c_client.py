@@ -2107,7 +2107,8 @@ def _c_complex(self, force_packed = False):
             (self.is_switch and field.type.is_switch)):
             spacing = ' ' * (maxtypelen - len(field.c_field_type))
             _h('%s    %s%s %s%s;', space, field.c_field_type, spacing, field.c_field_name, field.c_subscript)
-        else:
+        elif (not field.type.is_pad) or field.type.serialize:
+            # serialize everything except pads (unless serialization of pads is enforced by serialize=true)
             spacing = ' ' * (maxtypelen - (len(field.c_field_type) + 1))
             _h('%s    %s%s *%s%s;', space, field.c_field_type, spacing, field.c_field_name, field.c_subscript)
 

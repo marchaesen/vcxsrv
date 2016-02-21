@@ -270,6 +270,15 @@ xwl_drm_init_egl(struct xwl_screen *xwl_screen)
 {
     EGLint major, minor;
     const char *version;
+    static const EGLint config_attribs_core[] = {
+        EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
+        EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
+        EGL_CONTEXT_MAJOR_VERSION_KHR,
+        GLAMOR_GL_CORE_VER_MAJOR,
+        EGL_CONTEXT_MINOR_VERSION_KHR,
+        GLAMOR_GL_CORE_VER_MINOR,
+        EGL_NONE
+    };
 
     if (xwl_screen->egl_display)
         return;
@@ -298,7 +307,11 @@ xwl_drm_init_egl(struct xwl_screen *xwl_screen)
     ErrorF("glamor: EGL version %s:\n", version);
 
     xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display,
-                                               NULL, EGL_NO_CONTEXT, NULL);
+                                               NULL, EGL_NO_CONTEXT, config_attribs_core);
+    if (!xwl_screen->egl_context)
+        xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display,
+                                                   NULL, EGL_NO_CONTEXT, NULL);
+
     if (xwl_screen->egl_context == EGL_NO_CONTEXT) {
         ErrorF("Failed to create EGL context\n");
         return;

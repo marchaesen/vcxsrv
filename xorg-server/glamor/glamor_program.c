@@ -344,6 +344,10 @@ glamor_build_program(ScreenPtr          screen,
 #endif
         glBindAttribLocation(prog->prog, GLAMOR_VERTEX_SOURCE, prim->source_name);
     }
+    if (prog->alpha == glamor_program_alpha_dual_blend) {
+        glBindFragDataLocationIndexed(prog->prog, 0, 0, "color0");
+        glBindFragDataLocationIndexed(prog->prog, 0, 1, "color1");
+    }
 
     glamor_link_glsl_prog(screen, prog->prog, "%s_%s", prim->name, fill->name);
 
@@ -474,11 +478,24 @@ glamor_set_blend(CARD8 op, glamor_program_alpha alpha, PicturePtr dst)
     }
 
     /* Set up the source alpha value for blending in component alpha mode. */
-    if (alpha != glamor_program_alpha_normal && op_info->source_alpha) {
-        if (dst_blend == GL_SRC_ALPHA)
+    if (alpha == glamor_program_alpha_dual_blend) {
+        switch (dst_blend) {
+        case GL_SRC_ALPHA:
+            dst_blend = GL_SRC1_COLOR;
+            break;
+        case GL_ONE_MINUS_SRC_ALPHA:
+            dst_blend = GL_ONE_MINUS_SRC1_COLOR;
+            break;
+        }
+    } else if (alpha != glamor_program_alpha_normal) {
+        switch (dst_blend) {
+        case GL_SRC_ALPHA:
             dst_blend = GL_SRC_COLOR;
-        else if (dst_blend == GL_ONE_MINUS_SRC_ALPHA)
+            break;
+        case GL_ONE_MINUS_SRC_ALPHA:
             dst_blend = GL_ONE_MINUS_SRC_COLOR;
+            break;
+        }
     }
 
     glEnable(GL_BLEND);
@@ -547,7 +564,9 @@ static const glamor_facet *glamor_facet_source[glamor_program_source_count] = {
 static const char *glamor_combine[] = {
     [glamor_program_alpha_normal]    = "       gl_FragColor = source * mask.a;\n",
     [glamor_program_alpha_ca_first]  = "       gl_FragColor = source.a * mask;\n",
-    [glamor_program_alpha_ca_second] = "       gl_FragColor = source * mask;\n"
+    [glamor_program_alpha_ca_second] = "       gl_FragColor = source * mask;\n",
+    [glamor_program_alpha_dual_blend] = "      color0 = source * mask;\n"
+                                        "      color1 = source.a * mask;\n"
 };
 
 static Bool
@@ -567,9 +586,9 @@ glamor_setup_one_program_render(ScreenPtr               screen,
         if (!fill)
             return FALSE;
 
+        prog->alpha = alpha;
         if (!glamor_build_program(screen, prog, prim, fill, glamor_combine[alpha], defines))
             return FALSE;
-        prog->alpha = alpha;
     }
 
     return TRUE;
@@ -585,6 +604,7 @@ glamor_setup_program_render(CARD8                 op,
                             const char            *defines)
 {
     ScreenPtr                   screen = dst->pDrawable->pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     glamor_program_alpha        alpha;
     glamor_program_source       source_type;
     glamor_program              *prog;
@@ -593,10 +613,15 @@ glamor_setup_program_render(CARD8                 op,
         return NULL;
 
     if (glamor_is_component_alpha(mask)) {
-        /* This only works for PictOpOver */
-        if (op != PictOpOver)
-            return NULL;
-        alpha = glamor_program_alpha_ca_first;
+        if (glamor_priv->has_dual_blend) {
+            alpha = glamor_program_alpha_dual_blend;
+        } else {
+            /* This only works for PictOpOver */
+            if (op != PictOpOver)
+                return NULL;
+
+            alpha = glamor_program_alpha_ca_first;
+        }
     } else
         alpha = glamor_program_alpha_normal;
 

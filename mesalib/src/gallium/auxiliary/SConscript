@@ -10,7 +10,7 @@ env.Append(CPPPATH = [
 
 env = env.Clone()
 
-env.MSVC2008Compat()
+env.MSVC2013Compat()
 
 env.CodeGenerate(
     target = 'indices/u_indices_gen.c', 

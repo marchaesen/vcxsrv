@@ -220,7 +220,8 @@ EvdevPtrInit(KdPointerInfo * pi)
 
     close(fd);
 
-    pi->name = strdup("Evdev mouse");
+    if (!pi->name)
+        pi->name = strdup("Evdev mouse");
 
     return Success;
 }
@@ -390,7 +391,8 @@ EvdevKbdInit(KdKeyboardInfo * ki)
 
     close(fd);
 
-    ki->name = strdup("Evdev keyboard");
+    if (!ki->name)
+        ki->name = strdup("Evdev keyboard");
 
     readMapping(ki);
 

@@ -186,7 +186,7 @@ struct save_state
    GLboolean RasterDiscard;
    GLboolean TransformFeedbackNeedsResume;
 
-   GLuint DrawBufferName, ReadBufferName, RenderbufferName;
+   GLuint DrawBufferName, ReadBufferName;
 
    /** MESA_META_DRAW_BUFFERS */
    GLenum ColorDrawBuffers[MAX_DRAW_BUFFERS];
@@ -380,7 +380,8 @@ struct gen_mipmap_state
  */
 struct decompress_fbo_state
 {
-   GLuint FBO, RBO;
+   struct gl_renderbuffer *rb;
+   GLuint FBO;
    GLint Width, Height;
 };
 
@@ -469,7 +470,7 @@ _mesa_meta_bind_rb_as_tex_image(struct gl_context *ctx,
 
 struct gl_sampler_object *
 _mesa_meta_setup_sampler(struct gl_context *ctx,
-                         const struct gl_texture_object *texObj,
+                         struct gl_texture_object *texObj,
                          GLenum target, GLenum filter, GLuint srcLevel);
 
 extern GLbitfield

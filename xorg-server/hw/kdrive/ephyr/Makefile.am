@@ -46,19 +46,6 @@ GLAMOR_SRCS = \
 	$()
 endif
 
-if DRI
-DRI_SRCS =			\
-	ephyrdriext.c		\
-	ephyrdriext.h		\
-	ephyrdri.c		\
-	ephyrdri.h		\
-	ephyrglxext.c		\
-	ephyrglxext.h		\
-	ephyrhostglx.c		\
-	ephyrhostglx.h		\
-	$()
-endif
-
 bin_PROGRAMS = Xephyr
 
 Xephyr_SOURCES = \
@@ -72,7 +59,6 @@ Xephyr_SOURCES = \
 	hostx.c \
 	hostx.h \
 	$(XV_SRCS) \
-	$(DRI_SRCS) \
 	$(GLAMOR_SRCS) \
 	$()
 

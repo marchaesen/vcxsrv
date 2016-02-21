@@ -32,6 +32,7 @@
 
 #include <stdbool.h>
 #include <inttypes.h>  /* for PRId64 macro */
+#include "util/debug.h"
 #include "glheader.h"
 #include "enums.h"
 #include "hash.h"
@@ -120,6 +121,10 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
       return &ctx->CopyReadBuffer;
    case GL_COPY_WRITE_BUFFER:
       return &ctx->CopyWriteBuffer;
+   case GL_QUERY_BUFFER:
+      if (_mesa_has_ARB_query_buffer_object(ctx))
+         return &ctx->QueryBuffer;
+      break;
    case GL_DRAW_INDIRECT_BUFFER:
       if ((ctx->API == API_OPENGL_CORE &&
            ctx->Extensions.ARB_draw_indirect) ||
@@ -458,6 +463,7 @@ _mesa_delete_buffer_object(struct gl_context *ctx,
 {
    (void) ctx;
 
+   vbo_delete_minmax_cache(bufObj);
    _mesa_align_free(bufObj->Data);
 
    /* assign strange values here to help w/ debugging */
@@ -520,6 +526,24 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
 
 
 /**
+ * Get the value of MESA_NO_MINMAX_CACHE.
+ */
+static bool
+get_no_minmax_cache()
+{
+   static bool read = false;
+   static bool disable = false;
+
+   if (!read) {
+      disable = env_var_as_boolean("MESA_NO_MINMAX_CACHE", false);
+      read = true;
+   }
+
+   return disable;
+}
+
+
+/**
  * Initialize a buffer object to default values.
  */
 void
@@ -532,6 +556,9 @@ _mesa_initialize_buffer_object(struct gl_context *ctx,
    obj->RefCount = 1;
    obj->Name = name;
    obj->Usage = GL_STATIC_DRAW_ARB;
+
+   if (get_no_minmax_cache())
+      obj->UsageHistory |= USAGE_DISABLE_MINMAX_CACHE;
 }
 
 
@@ -877,6 +904,9 @@ _mesa_init_buffer_objects( struct gl_context *ctx )
    _mesa_reference_buffer_object(ctx, &ctx->DispatchIndirectBuffer,
 				 ctx->Shared->NullBufferObj);
 
+   _mesa_reference_buffer_object(ctx, &ctx->QueryBuffer,
+                                 ctx->Shared->NullBufferObj);
+
    for (i = 0; i < MAX_COMBINED_UNIFORM_BUFFERS; i++) {
       _mesa_reference_buffer_object(ctx,
 				    &ctx->UniformBufferBindings[i].BufferObject,
@@ -924,6 +954,8 @@ _mesa_free_buffer_objects( struct gl_context *ctx )
    _mesa_reference_buffer_object(ctx, &ctx->ParameterBuffer, NULL);
 
    _mesa_reference_buffer_object(ctx, &ctx->DispatchIndirectBuffer, NULL);
+
+   _mesa_reference_buffer_object(ctx, &ctx->QueryBuffer, NULL);
 
    for (i = 0; i < MAX_COMBINED_UNIFORM_BUFFERS; i++) {
       _mesa_reference_buffer_object(ctx,
@@ -1012,6 +1044,15 @@ bind_buffer_object(struct gl_context *ctx, GLenum target, GLuint buffer)
       if (!_mesa_handle_bind_buffer_gen(ctx, buffer,
                                         &newBufObj, "glBindBuffer"))
          return;
+   }
+
+   /* record usage history */
+   switch (target) {
+   case GL_PIXEL_PACK_BUFFER:
+      newBufObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
+      break;
+   default:
+      break;
    }
 
    /* bind new buffer */
@@ -1348,6 +1389,11 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
             _mesa_BindBuffer(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, 0);
          }
 
+         /* unbind query buffer binding point */
+         if (ctx->QueryBuffer == bufObj) {
+            _mesa_BindBuffer(GL_QUERY_BUFFER, 0);
+         }
+
          /* The ID is immediately freed for re-use */
          _mesa_HashRemove(ctx->Shared->BufferObjects, ids[i]);
          /* Make sure we do not run into the classic ABA problem on bind.
@@ -1519,6 +1565,7 @@ _mesa_buffer_storage(struct gl_context *ctx, struct gl_buffer_object *bufObj,
 
    bufObj->Written = GL_TRUE;
    bufObj->Immutable = GL_TRUE;
+   bufObj->MinMaxCacheDirty = true;
 
    assert(ctx->Driver.BufferData);
    if (!ctx->Driver.BufferData(ctx, target, size, data, GL_DYNAMIC_DRAW,
@@ -1632,6 +1679,7 @@ _mesa_buffer_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
    FLUSH_VERTICES(ctx, _NEW_BUFFER_OBJECT);
 
    bufObj->Written = GL_TRUE;
+   bufObj->MinMaxCacheDirty = true;
 
 #ifdef VBO_DEBUG
    printf("glBufferDataARB(%u, sz %ld, from %p, usage 0x%x)\n",
@@ -1744,6 +1792,7 @@ _mesa_buffer_sub_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
    }
 
    bufObj->Written = GL_TRUE;
+   bufObj->MinMaxCacheDirty = true;
 
    assert(ctx->Driver.BufferSubData);
    ctx->Driver.BufferSubData(ctx, offset, size, data, bufObj);
@@ -1859,12 +1908,16 @@ _mesa_clear_buffer_sub_data(struct gl_context *ctx,
       return;
    }
 
+   /* Bail early. Negative size has already been checked. */
+   if (size == 0)
+      return;
+
+   bufObj->MinMaxCacheDirty = true;
+
    if (data == NULL) {
       /* clear to zeros, per the spec */
-      if (size > 0) {
-         ctx->Driver.ClearBufferSubData(ctx, offset, size,
-                                        NULL, clearValueSize, bufObj);
-      }
+      ctx->Driver.ClearBufferSubData(ctx, offset, size,
+                                     NULL, clearValueSize, bufObj);
       return;
    }
 
@@ -1873,10 +1926,8 @@ _mesa_clear_buffer_sub_data(struct gl_context *ctx,
       return;
    }
 
-   if (size > 0) {
-      ctx->Driver.ClearBufferSubData(ctx, offset, size,
-                                     clearValue, clearValueSize, bufObj);
-   }
+   ctx->Driver.ClearBufferSubData(ctx, offset, size,
+                                  clearValue, clearValueSize, bufObj);
 }
 
 void GLAPIENTRY
@@ -2276,6 +2327,8 @@ _mesa_copy_buffer_sub_data(struct gl_context *ctx,
       }
    }
 
+   dst->MinMaxCacheDirty = true;
+
    ctx->Driver.CopyBufferSubData(ctx, src, dst, readOffset, writeOffset, size);
 }
 
@@ -2480,8 +2533,10 @@ _mesa_map_buffer_range(struct gl_context *ctx,
       assert(bufObj->Mappings[MAP_USER].AccessFlags == access);
    }
 
-   if (access & GL_MAP_WRITE_BIT)
+   if (access & GL_MAP_WRITE_BIT) {
       bufObj->Written = GL_TRUE;
+      bufObj->MinMaxCacheDirty = true;
+   }
 
 #ifdef VBO_DEBUG
    if (strstr(func, "Range") == NULL) { /* If not MapRange */
@@ -2952,8 +3007,8 @@ set_atomic_buffer_binding(struct gl_context *ctx,
    _mesa_reference_buffer_object(ctx, &binding->BufferObject, bufObj);
 
    if (bufObj == ctx->Shared->NullBufferObj) {
-      binding->Offset = -1;
-      binding->Size = -1;
+      binding->Offset = 0;
+      binding->Size = 0;
    } else {
       binding->Offset = offset;
       binding->Size = size;

@@ -3153,6 +3153,14 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
       }
       break;
 
+   case GL_STENCIL_INDEX:
+      if (!_mesa_has_OES_texture_stencil8(ctx) ||
+          type != GL_UNSIGNED_BYTE ||
+          internalFormat != GL_STENCIL_INDEX8) {
+         return GL_INVALID_OPERATION;
+      }
+      break;
+
    case GL_ALPHA:
    case GL_LUMINANCE:
    case GL_LUMINANCE_ALPHA:

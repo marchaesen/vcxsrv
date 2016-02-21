@@ -2035,8 +2035,7 @@ if test "x$XORG" = xyes; then
 
 	if test "x$DRM" = xyes; then
 		dnl 2.4.46 is required for cursor hotspot support.
-		PKG_CHECK_EXISTS(libdrm >= 2.4.46)
-		XORG_DRIVER_MODESETTING=yes
+		PKG_CHECK_EXISTS(libdrm >= 2.4.46, XORG_DRIVER_MODESETTING=yes, XORG_DRIVER_MODESETTING=no)
 	fi
 
 	AC_SUBST([XORG_LIBS])

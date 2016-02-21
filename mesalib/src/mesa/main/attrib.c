@@ -766,7 +766,7 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
       _mesa_set_enable(ctx, GL_TEXTURE_2D, !!(unit->Enabled & TEXTURE_2D_BIT));
       _mesa_set_enable(ctx, GL_TEXTURE_3D, !!(unit->Enabled & TEXTURE_3D_BIT));
       if (ctx->Extensions.ARB_texture_cube_map) {
-         _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP_ARB,
+         _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP,
                           !!(unit->Enabled & TEXTURE_CUBE_BIT));
       }
       if (ctx->Extensions.NV_texture_rectangle) {
@@ -837,7 +837,7 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
          /* don't restore state for unsupported targets to prevent
           * raising GL errors.
           */
-         if (obj->Target == GL_TEXTURE_CUBE_MAP_ARB &&
+         if (obj->Target == GL_TEXTURE_CUBE_MAP &&
              !ctx->Extensions.ARB_texture_cube_map) {
             continue;
          }

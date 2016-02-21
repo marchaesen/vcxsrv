@@ -74,6 +74,9 @@ st_bind_program(struct gl_context *ctx, GLenum target, struct gl_program *prog)
    case GL_TESS_EVALUATION_PROGRAM_NV:
       st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
       break;
+   case GL_COMPUTE_PROGRAM_NV:
+      st->dirty_cp.st |= ST_NEW_COMPUTE_PROGRAM;
+      break;
    }
 }
 
@@ -92,6 +95,7 @@ st_use_program(struct gl_context *ctx, struct gl_shader_program *shProg)
    st->dirty.st |= ST_NEW_GEOMETRY_PROGRAM;
    st->dirty.st |= ST_NEW_TESSCTRL_PROGRAM;
    st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
+   st->dirty_cp.st |= ST_NEW_COMPUTE_PROGRAM;
 }
 
 
@@ -121,6 +125,10 @@ st_new_program(struct gl_context *ctx, GLenum target, GLuint id)
    }
    case GL_TESS_EVALUATION_PROGRAM_NV: {
       struct st_tesseval_program *prog = ST_CALLOC_STRUCT(st_tesseval_program);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+   }
+   case GL_COMPUTE_PROGRAM_NV: {
+      struct st_compute_program *prog = ST_CALLOC_STRUCT(st_compute_program);
       return _mesa_init_gl_program(&prog->Base.Base, target, id);
    }
    default:
@@ -153,7 +161,8 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          struct st_geometry_program *stgp =
             (struct st_geometry_program *) prog;
 
-         st_release_gp_variants(st, stgp);
+         st_release_basic_variants(st, stgp->Base.Base.Target,
+                                   &stgp->variants, &stgp->tgsi);
          
          if (stgp->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(stgp->glsl_to_tgsi);
@@ -175,7 +184,8 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          struct st_tessctrl_program *sttcp =
             (struct st_tessctrl_program *) prog;
 
-         st_release_tcp_variants(st, sttcp);
+         st_release_basic_variants(st, sttcp->Base.Base.Target,
+                                   &sttcp->variants, &sttcp->tgsi);
 
          if (sttcp->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(sttcp->glsl_to_tgsi);
@@ -186,10 +196,22 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          struct st_tesseval_program *sttep =
             (struct st_tesseval_program *) prog;
 
-         st_release_tep_variants(st, sttep);
+         st_release_basic_variants(st, sttep->Base.Base.Target,
+                                   &sttep->variants, &sttep->tgsi);
 
          if (sttep->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(sttep->glsl_to_tgsi);
+      }
+      break;
+   case GL_COMPUTE_PROGRAM_NV:
+      {
+         struct st_compute_program *stcp =
+            (struct st_compute_program *) prog;
+
+         st_release_cp_variants(st, stcp);
+
+         if (stcp->glsl_to_tgsi)
+            free_glsl_to_tgsi_visitor(stcp->glsl_to_tgsi);
       }
       break;
    default:
@@ -198,18 +220,6 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
 
    /* delete base class */
    _mesa_delete_program( ctx, prog );
-}
-
-
-/**
- * Called via ctx->Driver.IsProgramNative()
- */
-static GLboolean
-st_is_program_native(struct gl_context *ctx,
-                     GLenum target, 
-                     struct gl_program *prog)
-{
-   return GL_TRUE;
 }
 
 
@@ -239,7 +249,8 @@ st_program_string_notify( struct gl_context *ctx,
    else if (target == GL_GEOMETRY_PROGRAM_NV) {
       struct st_geometry_program *stgp = (struct st_geometry_program *) prog;
 
-      st_release_gp_variants(st, stgp);
+      st_release_basic_variants(st, stgp->Base.Base.Target,
+                                &stgp->variants, &stgp->tgsi);
       if (!st_translate_geometry_program(st, stgp))
          return false;
 
@@ -260,7 +271,8 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_tessctrl_program *sttcp =
          (struct st_tessctrl_program *) prog;
 
-      st_release_tcp_variants(st, sttcp);
+      st_release_basic_variants(st, sttcp->Base.Base.Target,
+                                &sttcp->variants, &sttcp->tgsi);
       if (!st_translate_tessctrl_program(st, sttcp))
          return false;
 
@@ -271,12 +283,24 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_tesseval_program *sttep =
          (struct st_tesseval_program *) prog;
 
-      st_release_tep_variants(st, sttep);
+      st_release_basic_variants(st, sttep->Base.Base.Target,
+                                &sttep->variants, &sttep->tgsi);
       if (!st_translate_tesseval_program(st, sttep))
          return false;
 
       if (st->tep == sttep)
          st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
+   }
+   else if (target == GL_COMPUTE_PROGRAM_NV) {
+      struct st_compute_program *stcp =
+         (struct st_compute_program *) prog;
+
+      st_release_cp_variants(st, stcp);
+      if (!st_translate_compute_program(st, stcp))
+         return false;
+
+      if (st->cp == stcp)
+         st->dirty_cp.st |= ST_NEW_COMPUTE_PROGRAM;
    }
 
    if (ST_DEBUG & DEBUG_PRECOMPILE ||
@@ -297,7 +321,6 @@ st_init_program_functions(struct dd_function_table *functions)
    functions->UseProgram = st_use_program;
    functions->NewProgram = st_new_program;
    functions->DeleteProgram = st_delete_program;
-   functions->IsProgramNative = st_is_program_native;
    functions->ProgramStringNotify = st_program_string_notify;
    
    functions->LinkShader = st_link_shader;

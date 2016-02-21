@@ -184,20 +184,6 @@ int hostx_set_window_bounding_rectangles(int a_window,
 
 int hostx_has_extension(xcb_extension_t *extension);
 
-#ifdef XF86DRI
-int hostx_lookup_peer_window(void *a_local_window,
-                             int *a_host_peer /*out parameter */ );
-int
-
-hostx_allocate_resource_id_peer(int a_local_resource_id,
-                                int *a_remote_resource_id);
-int
- hostx_get_resource_id_peer(int a_local_resource_id, int *a_remote_resource_id);
-int hostx_has_dri(void);
-
-int hostx_has_glx(void);
-#endif                          /* XF86DRI */
-
 int hostx_get_fd(void);
 
 #endif /*_XLIBS_STUFF_H_*/

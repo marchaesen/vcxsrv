@@ -428,6 +428,8 @@ static int _xcb_open_unix(char *protocol, const char *file)
 {
     int fd;
     struct sockaddr_un addr;
+    socklen_t len = sizeof(int);
+    int val;
 
     if (protocol && strcmp("unix",protocol))
         return -1;
@@ -440,6 +442,11 @@ static int _xcb_open_unix(char *protocol, const char *file)
     fd = _xcb_socket(AF_UNIX, SOCK_STREAM, 0);
     if(fd == -1)
         return -1;
+    if(getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, &len) == 0 && val < 64 * 1024)
+    {
+        val = 64 * 1024;
+        setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(int));
+    }
     if(connect(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
         close(fd);
         return -1;

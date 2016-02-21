@@ -37,6 +37,7 @@
 #endif
 
 #include "glamor_priv.h"
+#include "glamor_transform.h"
 #include "glamor_transfer.h"
 
 #include <X11/extensions/Xv.h>
@@ -58,36 +59,36 @@ typedef struct tagREF_TRANSFORM {
 #define RTFContrast(a)   (1.0 + ((a)*1.0)/1000.0)
 #define RTFHue(a)   (((a)*3.1416)/1000.0)
 
-static const char *xv_vs = "attribute vec4 v_position;\n"
-    "attribute vec4 v_texcoord0;\n"
-    "varying vec2 tcs;\n"
-    "void main()\n"
-    "{\n"
-    "     gl_Position = v_position;\n"
-    "tcs = v_texcoord0.xy;\n"
-    "}\n";
+static const glamor_facet glamor_facet_xv_planar = {
+    .name = "xv_planar",
 
-static const char *xv_ps = GLAMOR_DEFAULT_PRECISION
-    "uniform sampler2D y_sampler;\n"
-    "uniform sampler2D u_sampler;\n"
-    "uniform sampler2D v_sampler;\n"
-    "uniform vec4 offsetyco;\n"
-    "uniform vec4 ucogamma;\n"
-    "uniform vec4 vco;\n"
-    "varying vec2 tcs;\n"
-    "float sample;\n"
-    "vec4 temp1;\n"
-    "void main()\n"
-    "{\n"
-    "sample = texture2D(y_sampler, tcs).w;\n"
-    "temp1.xyz = offsetyco.www * vec3(sample) + offsetyco.xyz;\n"
-    "sample = texture2D(u_sampler, tcs).w;\n"
-    "temp1.xyz = ucogamma.xyz * vec3(sample) + temp1.xyz;\n"
-    "sample = texture2D(v_sampler, tcs).w;\n"
-    "temp1.xyz = clamp(vco.xyz * vec3(sample) + temp1.xyz, 0.0, 1.0);\n"
-    "temp1.w = 1.0;\n"
-    "gl_FragColor = temp1;\n"
-    "}\n";
+    .source_name = "v_texcoord0",
+    .vs_vars = ("attribute vec2 position;\n"
+                "attribute vec2 v_texcoord0;\n"
+                "varying vec2 tcs;\n"),
+    .vs_exec = (GLAMOR_POS(gl_Position, position)
+                "        tcs = v_texcoord0;\n"),
+
+    .fs_vars = ("uniform sampler2D y_sampler;\n"
+                "uniform sampler2D u_sampler;\n"
+                "uniform sampler2D v_sampler;\n"
+                "uniform vec4 offsetyco;\n"
+                "uniform vec4 ucogamma;\n"
+                "uniform vec4 vco;\n"
+                "varying vec2 tcs;\n"),
+    .fs_exec = (
+                "        float sample;\n"
+                "        vec4 temp1;\n"
+                "        sample = texture2D(y_sampler, tcs).w;\n"
+                "        temp1.xyz = offsetyco.www * vec3(sample) + offsetyco.xyz;\n"
+                "        sample = texture2D(u_sampler, tcs).w;\n"
+                "        temp1.xyz = ucogamma.xyz * vec3(sample) + temp1.xyz;\n"
+                "        sample = texture2D(v_sampler, tcs).w;\n"
+                "        temp1.xyz = clamp(vco.xyz * vec3(sample) + temp1.xyz, 0.0, 1.0);\n"
+                "        temp1.w = 1.0;\n"
+                "        gl_FragColor = temp1;\n"
+                ),
+};
 
 #define MAKE_ATOM(a) MakeAtom(a, sizeof(a) - 1, TRUE)
 
@@ -113,23 +114,21 @@ int glamor_xv_num_images = ARRAY_SIZE(glamor_xv_images);
 static void
 glamor_init_xv_shader(ScreenPtr screen)
 {
-    glamor_screen_private *glamor_priv;
-    GLint fs_prog, vs_prog;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    GLint sampler_loc;
 
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_make_current(glamor_priv);
-    glamor_priv->xv_prog = glCreateProgram();
+    glamor_build_program(screen,
+                         &glamor_priv->xv_prog,
+                         &glamor_facet_xv_planar, NULL, NULL, NULL);
 
-    vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, xv_vs);
-    fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, xv_ps);
-    glAttachShader(glamor_priv->xv_prog, vs_prog);
-    glAttachShader(glamor_priv->xv_prog, fs_prog);
+    glUseProgram(glamor_priv->xv_prog.prog);
+    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "y_sampler");
+    glUniform1i(sampler_loc, 0);
+    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "u_sampler");
+    glUniform1i(sampler_loc, 1);
+    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "v_sampler");
+    glUniform1i(sampler_loc, 2);
 
-    glBindAttribLocation(glamor_priv->xv_prog,
-                         GLAMOR_VERTEX_POS, "v_position");
-    glBindAttribLocation(glamor_priv->xv_prog,
-                         GLAMOR_VERTEX_SOURCE, "v_texcoord0");
-    glamor_link_glsl_prog(screen, glamor_priv->xv_prog, "xv");
 }
 
 #define ClipValue(v,min,max) ((v) < (min) ? (min) : (v) > (max) ? (max) : (v))
@@ -247,8 +246,6 @@ glamor_xv_render(glamor_port_private *port_priv)
     glamor_pixmap_private *src_pixmap_priv[3];
     BoxPtr box = REGION_RECTS(&port_priv->clip);
     int nBox = REGION_NUM_RECTS(&port_priv->clip);
-    int dst_x_off, dst_y_off;
-    GLfloat dst_xscale, dst_yscale;
     GLfloat src_xscale[3], src_yscale[3];
     int i;
     const float Loff = -0.0627;
@@ -258,11 +255,12 @@ glamor_xv_render(glamor_port_private *port_priv)
     float uco[3], vco[3], off[3];
     float bright, cont, gamma;
     int ref = port_priv->transform_index;
-    GLint uloc, sampler_loc;
+    GLint uloc;
     GLfloat *v;
     char *vbo_offset;
+    int dst_box_index;
 
-    if (!glamor_priv->xv_prog)
+    if (!glamor_priv->xv_prog.prog)
         glamor_init_xv_shader(screen);
 
     cont = RTFContrast(port_priv->contrast);
@@ -284,10 +282,6 @@ glamor_xv_render(glamor_port_private *port_priv)
     off[2] = Loff * yco + Coff * (uco[2] + vco[2]) + bright;
     gamma = 1.0;
 
-    pixmap_priv_get_dest_scale(pixmap, pixmap_priv, &dst_xscale, &dst_yscale);
-    glamor_get_drawable_deltas(port_priv->pDraw, port_priv->pPixmap, &dst_x_off,
-                               &dst_y_off);
-    glamor_set_destination_pixmap_priv_nc(glamor_priv, pixmap, pixmap_priv);
     glamor_set_alu(screen, GXcopy);
 
     for (i = 0; i < 3; i++) {
@@ -299,13 +293,13 @@ glamor_xv_render(glamor_port_private *port_priv)
         }
     }
     glamor_make_current(glamor_priv);
-    glUseProgram(glamor_priv->xv_prog);
+    glUseProgram(glamor_priv->xv_prog.prog);
 
-    uloc = glGetUniformLocation(glamor_priv->xv_prog, "offsetyco");
+    uloc = glGetUniformLocation(glamor_priv->xv_prog.prog, "offsetyco");
     glUniform4f(uloc, off[0], off[1], off[2], yco);
-    uloc = glGetUniformLocation(glamor_priv->xv_prog, "ucogamma");
+    uloc = glGetUniformLocation(glamor_priv->xv_prog.prog, "ucogamma");
     glUniform4f(uloc, uco[0], uco[1], uco[2], gamma);
-    uloc = glGetUniformLocation(glamor_priv->xv_prog, "vco");
+    uloc = glGetUniformLocation(glamor_priv->xv_prog.prog, "vco");
     glUniform4f(uloc, vco[0], vco[1], vco[2], 0);
 
     glActiveTexture(GL_TEXTURE0);
@@ -329,57 +323,39 @@ glamor_xv_render(glamor_port_private *port_priv)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "y_sampler");
-    glUniform1i(sampler_loc, 0);
-    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "u_sampler");
-    glUniform1i(sampler_loc, 1);
-    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "v_sampler");
-    glUniform1i(sampler_loc, 2);
-
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
     glEnable(GL_SCISSOR_TEST);
 
-    v = glamor_get_vbo_space(screen, 16 * sizeof(GLfloat) * nBox, &vbo_offset);
+    v = glamor_get_vbo_space(screen, 3 * 4 * sizeof(GLfloat), &vbo_offset);
 
-    for (i = 0; i < nBox; i++) {
-        float off_x = box[i].x1 - port_priv->drw_x;
-        float off_y = box[i].y1 - port_priv->drw_y;
-        float diff_x = (float) port_priv->src_w / (float) port_priv->dst_w;
-        float diff_y = (float) port_priv->src_h / (float) port_priv->dst_h;
-        float srcx, srcy, srcw, srch;
-        int dstx, dsty, dstw, dsth;
-        GLfloat *vptr = v + (i * 8);
-        GLfloat *tptr = vptr + (8 * nBox);
+    /* Set up a single primitive covering the area being drawn.  We'll
+     * clip it to port_priv->clip using GL scissors instead of just
+     * emitting a GL_QUAD per box, because this way we hopefully avoid
+     * diagonal tearing between the two trangles used to rasterize a
+     * GL_QUAD.
+     */
+    i = 0;
+    v[i++] = port_priv->drw_x;
+    v[i++] = port_priv->drw_y;
 
-        dstx = box[i].x1 + dst_x_off;
-        dsty = box[i].y1 + dst_y_off;
-        dstw = box[i].x2 - box[i].x1;
-        dsth = box[i].y2 - box[i].y1;
+    v[i++] = port_priv->drw_x + port_priv->dst_w * 2;
+    v[i++] = port_priv->drw_y;
 
-        srcx = port_priv->src_x + off_x * diff_x;
-        srcy = port_priv->src_y + off_y * diff_y;
-        srcw = (port_priv->src_w * dstw) / (float) port_priv->dst_w;
-        srch = (port_priv->src_h * dsth) / (float) port_priv->dst_h;
+    v[i++] = port_priv->drw_x;
+    v[i++] = port_priv->drw_y + port_priv->dst_h * 2;
 
-        glamor_set_normalize_vcoords(pixmap_priv,
-                                     dst_xscale, dst_yscale,
-                                     dstx - dstw,
-                                     dsty,
-                                     dstx + dstw,
-                                     dsty + dsth * 2,
-                                     vptr);
+    v[i++] = t_from_x_coord_x(src_xscale[0], port_priv->src_x);
+    v[i++] = t_from_x_coord_y(src_yscale[0], port_priv->src_y);
 
-        glamor_set_normalize_tcoords(src_pixmap_priv[0],
-                                     src_xscale[0],
-                                     src_yscale[0],
-                                     srcx - srcw,
-                                     srcy,
-                                     srcx + srcw,
-                                     srcy + srch * 2,
-                                     tptr);
-    }
+    v[i++] = t_from_x_coord_x(src_xscale[0], port_priv->src_x +
+                              port_priv->src_w * 2);
+    v[i++] = t_from_x_coord_y(src_yscale[0], port_priv->src_y);
+
+    v[i++] = t_from_x_coord_x(src_xscale[0], port_priv->src_x);
+    v[i++] = t_from_x_coord_y(src_yscale[0], port_priv->src_y +
+                              port_priv->src_h * 2);
 
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2,
                           GL_FLOAT, GL_FALSE,
@@ -387,20 +363,31 @@ glamor_xv_render(glamor_port_private *port_priv)
 
     glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
                           GL_FLOAT, GL_FALSE,
-                          2 * sizeof(float), vbo_offset + (nBox * 8 * sizeof(GLfloat)));
+                          2 * sizeof(float), vbo_offset + 6 * sizeof(GLfloat));
 
     glamor_put_vbo_space(screen);
 
-    for (i = 0; i < nBox; i++) {
-        int dstx, dsty, dstw, dsth;
+    /* Now draw our big triangle, clipped to each of the clip boxes. */
+    glamor_pixmap_loop(pixmap_priv, dst_box_index) {
+        int dst_off_x, dst_off_y;
 
-        dstx = box[i].x1 + dst_x_off;
-        dsty = box[i].y1 + dst_y_off;
-        dstw = box[i].x2 - box[i].x1;
-        dsth = box[i].y2 - box[i].y1;
+        glamor_set_destination_drawable(port_priv->pDraw,
+                                        dst_box_index,
+                                        FALSE, FALSE,
+                                        glamor_priv->xv_prog.matrix_uniform,
+                                        &dst_off_x, &dst_off_y);
 
-        glScissor(dstx, dsty, dstw, dsth);
-        glDrawArrays(GL_TRIANGLE_FAN, i * 4, 3);
+        for (i = 0; i < nBox; i++) {
+            int dstx, dsty, dstw, dsth;
+
+            dstx = box[i].x1 + dst_off_x;
+            dsty = box[i].y1 + dst_off_y;
+            dstw = box[i].x2 - box[i].x1;
+            dsth = box[i].y2 - box[i].y1;
+
+            glScissor(dstx, dsty, dstw, dsth);
+            glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+        }
     }
     glDisable(GL_SCISSOR_TEST);
 

@@ -123,7 +123,7 @@ _mesa_generate_texture_mipmap(struct gl_context *ctx,
       GLuint face;
       for (face = 0; face < 6; face++) {
          ctx->Driver.GenerateMipmap(ctx,
-                      GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + face, texObj);
+                      GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, texObj);
       }
    }
    else {

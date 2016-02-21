@@ -52,10 +52,6 @@
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/randr.h>
-#ifdef XF86DRI
-#include <xcb/xf86dri.h>
-#include <xcb/glx.h>
-#endif /* XF86DRI */
 #ifdef GLAMOR
 #include <epoxy/gl.h>
 #include "glamor.h"
@@ -1344,80 +1340,6 @@ out:
     EPHYR_LOG("leave\n");
     return is_ok;
 }
-
-#ifdef XF86DRI
-typedef struct {
-    int is_valid;
-    int local_id;
-    int remote_id;
-} ResourcePair;
-
-#define RESOURCE_PEERS_SIZE 1024*10
-static ResourcePair resource_peers[RESOURCE_PEERS_SIZE];
-
-int
-hostx_allocate_resource_id_peer(int a_local_resource_id,
-                                int *a_remote_resource_id)
-{
-    int i = 0;
-    ResourcePair *peer = NULL;
-
-    /*
-     * first make sure a resource peer
-     * does not exist already for
-     * a_local_resource_id
-     */
-    for (i = 0; i < RESOURCE_PEERS_SIZE; i++) {
-        if (resource_peers[i].is_valid
-            && resource_peers[i].local_id == a_local_resource_id) {
-            peer = &resource_peers[i];
-            break;
-        }
-    }
-    /*
-     * find one free peer entry, an feed it with
-     */
-    if (!peer) {
-        for (i = 0; i < RESOURCE_PEERS_SIZE; i++) {
-            if (!resource_peers[i].is_valid) {
-                peer = &resource_peers[i];
-                break;
-            }
-        }
-        if (peer) {
-            peer->remote_id = xcb_generate_id(HostX.conn);
-            peer->local_id = a_local_resource_id;
-            peer->is_valid = TRUE;
-        }
-    }
-    if (peer) {
-        *a_remote_resource_id = peer->remote_id;
-        return TRUE;
-    }
-    return FALSE;
-}
-
-int
-hostx_get_resource_id_peer(int a_local_resource_id, int *a_remote_resource_id)
-{
-    int i = 0;
-    ResourcePair *peer = NULL;
-
-    for (i = 0; i < RESOURCE_PEERS_SIZE; i++) {
-        if (resource_peers[i].is_valid
-            && resource_peers[i].local_id == a_local_resource_id) {
-            peer = &resource_peers[i];
-            break;
-        }
-    }
-    if (peer) {
-        *a_remote_resource_id = peer->remote_id;
-        return TRUE;
-    }
-    return FALSE;
-}
-
-#endif                          /* XF86DRI */
 
 #ifdef GLAMOR
 Bool

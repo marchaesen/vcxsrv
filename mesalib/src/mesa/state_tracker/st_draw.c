@@ -42,7 +42,7 @@
 #include "main/macros.h"
 #include "main/varray.h"
 
-#include "glsl/ir_uniform.h"
+#include "compiler/glsl/ir_uniform.h"
 
 #include "vbo/vbo.h"
 
@@ -60,7 +60,7 @@
 #include "util/u_inlines.h"
 #include "util/u_format.h"
 #include "util/u_prim.h"
-#include "util/u_draw_quad.h"
+#include "util/u_draw.h"
 #include "util/u_upload_mgr.h"
 #include "draw/draw_context.h"
 #include "cso_cache/cso_context.h"
@@ -202,7 +202,7 @@ st_draw_vbo(struct gl_context *ctx,
 
    /* Validate state. */
    if (st->dirty.st || ctx->NewDriverState) {
-      st_validate_state(st);
+      st_validate_state(st, ST_PIPELINE_RENDER);
 
 #if 0
       if (MESA_VERBOSE & VERBOSE_GLSL) {
@@ -315,7 +315,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
 
    /* Validate state. */
    if (st->dirty.st || ctx->NewDriverState) {
-      st_validate_state(st);
+      st_validate_state(st, ST_PIPELINE_RENDER);
    }
 
    if (st->vertex_array_out_of_memory) {
@@ -397,4 +397,94 @@ void
 st_destroy_draw(struct st_context *st)
 {
    draw_destroy(st->draw);
+}
+
+
+/**
+ * Draw a quad with given position, texcoords and color.
+ */
+bool
+st_draw_quad(struct st_context *st,
+             float x0, float y0, float x1, float y1, float z,
+             float s0, float t0, float s1, float t1,
+             const float *color,
+             unsigned num_instances)
+{
+   struct pipe_vertex_buffer vb = {0};
+   struct st_util_vertex *verts;
+
+   vb.stride = sizeof(struct st_util_vertex);
+
+   u_upload_alloc(st->uploader, 0, 4 * sizeof(struct st_util_vertex), 4,
+                  &vb.buffer_offset, &vb.buffer, (void **) &verts);
+   if (!vb.buffer) {
+      return false;
+   }
+
+   /* lower-left */
+   verts[0].x = x0;
+   verts[0].y = y1;
+   verts[0].z = z;
+   verts[0].r = color[0];
+   verts[0].g = color[1];
+   verts[0].b = color[2];
+   verts[0].a = color[3];
+   verts[0].s = s0;
+   verts[0].t = t0;
+
+   /* lower-right */
+   verts[1].x = x1;
+   verts[1].y = y1;
+   verts[1].z = z;
+   verts[1].r = color[0];
+   verts[1].g = color[1];
+   verts[1].b = color[2];
+   verts[1].a = color[3];
+   verts[1].s = s1;
+   verts[1].t = t0;
+
+   /* upper-right */
+   verts[2].x = x1;
+   verts[2].y = y0;
+   verts[2].z = z;
+   verts[2].r = color[0];
+   verts[2].g = color[1];
+   verts[2].b = color[2];
+   verts[2].a = color[3];
+   verts[2].s = s1;
+   verts[2].t = t1;
+
+   /* upper-left */
+   verts[3].x = x0;
+   verts[3].y = y0;
+   verts[3].z = z;
+   verts[3].r = color[0];
+   verts[3].g = color[1];
+   verts[3].b = color[2];
+   verts[3].a = color[3];
+   verts[3].s = s0;
+   verts[3].t = t1;
+
+   u_upload_unmap(st->uploader);
+
+   /* At the time of writing, cso_get_aux_vertex_buffer_slot() always returns
+    * zero.  If that ever changes we need to audit the calls to that function
+    * and make sure the slot number is used consistently everywhere.
+    */
+   assert(cso_get_aux_vertex_buffer_slot(st->cso_context) == 0);
+
+   cso_set_vertex_buffers(st->cso_context,
+                          cso_get_aux_vertex_buffer_slot(st->cso_context),
+                          1, &vb);
+
+   if (num_instances > 1) {
+      cso_draw_arrays_instanced(st->cso_context, PIPE_PRIM_TRIANGLE_FAN, 0, 4,
+                                0, num_instances);
+   } else {
+      cso_draw_arrays(st->cso_context, PIPE_PRIM_TRIANGLE_FAN, 0, 4);
+   }
+
+   pipe_resource_reference(&vb.buffer, NULL);
+
+   return true;
 }

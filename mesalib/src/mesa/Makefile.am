@@ -165,7 +165,7 @@ libmesa_la_SOURCES = \
 	$(MESA_ASM_FILES_FOR_ARCH)
 
 libmesa_la_LIBADD = \
-	$(top_builddir)/src/glsl/libglsl.la \
+	$(top_builddir)/src/compiler/glsl/libglsl.la \
 	$(ARCH_LIBS)
 
 libmesagallium_la_SOURCES = \
@@ -175,7 +175,7 @@ libmesagallium_la_SOURCES = \
 	$(MESA_ASM_FILES_FOR_ARCH)
 
 libmesagallium_la_LIBADD = \
-	$(top_builddir)/src/glsl/libglsl.la \
+	$(top_builddir)/src/compiler/glsl/libglsl.la \
 	$(ARCH_LIBS)
 
 libmesa_sse41_la_SOURCES = \

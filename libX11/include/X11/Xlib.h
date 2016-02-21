@@ -88,39 +88,39 @@ typedef char *XPointer;
 #define QueuedAfterReading 1
 #define QueuedAfterFlush 2
 
-#define ConnectionNumber(dpy) 	(((_XPrivDisplay)dpy)->fd)
+#define ConnectionNumber(dpy) 	(((_XPrivDisplay)(dpy))->fd)
 #define RootWindow(dpy, scr) 	(ScreenOfDisplay(dpy,scr)->root)
-#define DefaultScreen(dpy) 	(((_XPrivDisplay)dpy)->default_screen)
+#define DefaultScreen(dpy) 	(((_XPrivDisplay)(dpy))->default_screen)
 #define DefaultRootWindow(dpy) 	(ScreenOfDisplay(dpy,DefaultScreen(dpy))->root)
 #define DefaultVisual(dpy, scr) (ScreenOfDisplay(dpy,scr)->root_visual)
 #define DefaultGC(dpy, scr) 	(ScreenOfDisplay(dpy,scr)->default_gc)
 #define BlackPixel(dpy, scr) 	(ScreenOfDisplay(dpy,scr)->black_pixel)
 #define WhitePixel(dpy, scr) 	(ScreenOfDisplay(dpy,scr)->white_pixel)
 #define AllPlanes 		((unsigned long)~0L)
-#define QLength(dpy) 		(((_XPrivDisplay)dpy)->qlen)
+#define QLength(dpy) 		(((_XPrivDisplay)(dpy))->qlen)
 #define DisplayWidth(dpy, scr) 	(ScreenOfDisplay(dpy,scr)->width)
 #define DisplayHeight(dpy, scr) (ScreenOfDisplay(dpy,scr)->height)
 #define DisplayWidthMM(dpy, scr)(ScreenOfDisplay(dpy,scr)->mwidth)
 #define DisplayHeightMM(dpy, scr)(ScreenOfDisplay(dpy,scr)->mheight)
 #define DisplayPlanes(dpy, scr) (ScreenOfDisplay(dpy,scr)->root_depth)
 #define DisplayCells(dpy, scr) 	(DefaultVisual(dpy,scr)->map_entries)
-#define ScreenCount(dpy) 	(((_XPrivDisplay)dpy)->nscreens)
-#define ServerVendor(dpy) 	(((_XPrivDisplay)dpy)->vendor)
-#define ProtocolVersion(dpy) 	(((_XPrivDisplay)dpy)->proto_major_version)
-#define ProtocolRevision(dpy) 	(((_XPrivDisplay)dpy)->proto_minor_version)
-#define VendorRelease(dpy) 	(((_XPrivDisplay)dpy)->release)
-#define DisplayString(dpy) 	(((_XPrivDisplay)dpy)->display_name)
+#define ScreenCount(dpy) 	(((_XPrivDisplay)(dpy))->nscreens)
+#define ServerVendor(dpy) 	(((_XPrivDisplay)(dpy))->vendor)
+#define ProtocolVersion(dpy) 	(((_XPrivDisplay)(dpy))->proto_major_version)
+#define ProtocolRevision(dpy) 	(((_XPrivDisplay)(dpy))->proto_minor_version)
+#define VendorRelease(dpy) 	(((_XPrivDisplay)(dpy))->release)
+#define DisplayString(dpy) 	(((_XPrivDisplay)(dpy))->display_name)
 #define DefaultDepth(dpy, scr) 	(ScreenOfDisplay(dpy,scr)->root_depth)
 #define DefaultColormap(dpy, scr)(ScreenOfDisplay(dpy,scr)->cmap)
-#define BitmapUnit(dpy) 	(((_XPrivDisplay)dpy)->bitmap_unit)
-#define BitmapBitOrder(dpy) 	(((_XPrivDisplay)dpy)->bitmap_bit_order)
-#define BitmapPad(dpy) 		(((_XPrivDisplay)dpy)->bitmap_pad)
-#define ImageByteOrder(dpy) 	(((_XPrivDisplay)dpy)->byte_order)
-#define NextRequest(dpy)	(((_XPrivDisplay)dpy)->request + 1)
-#define LastKnownRequestProcessed(dpy)	(((_XPrivDisplay)dpy)->last_request_read)
+#define BitmapUnit(dpy) 	(((_XPrivDisplay)(dpy))->bitmap_unit)
+#define BitmapBitOrder(dpy) 	(((_XPrivDisplay)(dpy))->bitmap_bit_order)
+#define BitmapPad(dpy) 		(((_XPrivDisplay)(dpy))->bitmap_pad)
+#define ImageByteOrder(dpy) 	(((_XPrivDisplay)(dpy))->byte_order)
+#define NextRequest(dpy)	(((_XPrivDisplay)(dpy))->request + 1)
+#define LastKnownRequestProcessed(dpy)	(((_XPrivDisplay)(dpy))->last_request_read)
 
 /* macros for screen oriented applications (toolkit) */
-#define ScreenOfDisplay(dpy, scr)(&((_XPrivDisplay)dpy)->screens[scr])
+#define ScreenOfDisplay(dpy, scr)(&((_XPrivDisplay)(dpy))->screens[scr])
 #define DefaultScreenOfDisplay(dpy) ScreenOfDisplay(dpy,DefaultScreen(dpy))
 #define DisplayOfScreen(s)	((s)->display)
 #define RootWindowOfScreen(s)	((s)->root)
@@ -1009,7 +1009,7 @@ typedef union _XEvent {
 } XEvent;
 #endif
 
-#define XAllocID(dpy) ((*((_XPrivDisplay)dpy)->resource_alloc)((dpy)))
+#define XAllocID(dpy) ((*((_XPrivDisplay)(dpy))->resource_alloc)((dpy)))
 
 /*
  * per character font metric information.

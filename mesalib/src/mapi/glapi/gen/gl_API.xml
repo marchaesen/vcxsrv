@@ -8247,7 +8247,14 @@
 
 <xi:include href="ARB_multi_bind.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions 148 - 153 -->
+<category name="GL_ARB_query_buffer_object" number="148">
+    <enum name="QUERY_RESULT_NO_WAIT"               value="0x9194"/>
+    <enum name="QUERY_BUFFER"                       value="0x9192"/>
+    <enum name="QUERY_BUFFER_BINDING"               value="0x9193"/>
+    <enum name="QUERY_BUFFER_BARRIER_BIT"           value="0x00008000"/>
+</category>
+
+<!-- ARB extensions 149 - 153 -->
 
 <xi:include href="ARB_indirect_parameters.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -12620,6 +12627,8 @@
 
 <xi:include href="EXT_framebuffer_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="GREMEDY_string_marker.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <xi:include href="EXT_packed_depth_stencil.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="EXT_provoking_vertex.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
@@ -12657,6 +12666,12 @@
 <category name="GL_EXT_framebuffer_sRGB" number="337">
     <enum name="FRAMEBUFFER_SRGB_EXT"              value="0x8DB9"/>
     <enum name="FRAMEBUFFER_SRGB_CAPABLE_EXT"      value="0x8DBA"/>
+</category>
+
+<category name="GL_ATI_meminfo" number="359">
+    <enum name="VBO_FREE_MEMORY_ATI"          value="0x87FB" />
+    <enum name="TEXTURE_FREE_MEMORY_ATI"      value="0x87FC" />
+    <enum name="RENDERBUFFER_FREE_MEMORY_ATI" value="0x87FD" />
 </category>
 
 <xi:include href="AMD_performance_monitor.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
@@ -12710,6 +12725,14 @@
 
 <category name="GL_AMD_pinned_memory" number="411">
     <enum name="EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD"   value="0x9160"/>
+</category>
+
+<category name="GL_NVX_gpu_memory_info" number="438">
+    <enum name="GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX"         value="0x9047" />
+    <enum name="GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX"   value="0x9048" />
+    <enum name="GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX" value="0x9049" />
+    <enum name="GPU_MEMORY_INFO_EVICTION_COUNT_NVX"           value="0x904A" />
+    <enum name="GPU_MEMORY_INFO_EVICTED_MEMORY_NVX"           value="0x904B" />
 </category>
 
 <xi:include href="INTEL_performance_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>

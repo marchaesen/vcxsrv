@@ -83,9 +83,6 @@ typedef union { GLfloat f; GLint i; GLuint u; } fi_type;
 
 
 #if defined(_MSC_VER)
-#if _MSC_VER < 1800  /* Not req'd on VS2013 and above */
-#define strtoll(p, e, b) _strtoi64(p, e, b)
-#endif /* _MSC_VER < 1800 */
 #define strcasecmp(s1, s2) _stricmp(s1, s2)
 #endif
 /*@}*/

@@ -37,6 +37,7 @@
 #include "util/u_math.h"
 
 #include "st_context.h"
+#include "st_debug.h"
 #include "st_extensions.h"
 #include "st_format.h"
 
@@ -74,6 +75,7 @@ static int _clamp(int a, int min, int max)
 void st_init_limits(struct pipe_screen *screen,
                     struct gl_constants *c, struct gl_extensions *extensions)
 {
+   int supported_irs;
    unsigned sh;
    boolean can_ubo = TRUE;
 
@@ -173,9 +175,19 @@ void st_init_limits(struct pipe_screen *screen,
          pc = &c->Program[MESA_SHADER_TESS_EVAL];
          options = &c->ShaderCompilerOptions[MESA_SHADER_TESS_EVAL];
          break;
+      case PIPE_SHADER_COMPUTE:
+         pc = &c->Program[MESA_SHADER_COMPUTE];
+         options = &c->ShaderCompilerOptions[MESA_SHADER_COMPUTE];
+
+         if (!screen->get_param(screen, PIPE_CAP_COMPUTE))
+            continue;
+         supported_irs =
+            screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUPPORTED_IRS);
+         if (!(supported_irs & (1 << PIPE_SHADER_IR_TGSI)))
+            continue;
+         break;
       default:
-         /* compute shader, etc. */
-         continue;
+         assert(0);
       }
 
       pc->MaxTextureImageUnits =
@@ -217,6 +229,14 @@ void st_init_limits(struct pipe_screen *screen,
                                           c->MaxUniformBlockSize / 4 *
                                           pc->MaxUniformBlocks);
 
+      pc->MaxAtomicCounters = MAX_ATOMIC_COUNTERS;
+      pc->MaxAtomicBuffers = screen->get_shader_param(
+            screen, sh, PIPE_SHADER_CAP_MAX_SHADER_BUFFERS) / 2;
+      pc->MaxShaderStorageBlocks = pc->MaxAtomicBuffers;
+
+      pc->MaxImageUniforms = screen->get_shader_param(
+            screen, sh, PIPE_SHADER_CAP_MAX_SHADER_IMAGES);
+
       /* Gallium doesn't really care about local vs. env parameters so use the
        * same limits.
        */
@@ -255,6 +275,9 @@ void st_init_limits(struct pipe_screen *screen,
 
       options->LowerClipDistance = true;
       options->LowerBufferInterfaceBlocks = true;
+
+      if (sh == PIPE_SHADER_COMPUTE)
+         options->LowerShaderSharedVariables = true;
    }
 
    c->LowerTessLevel = true;
@@ -264,7 +287,8 @@ void st_init_limits(struct pipe_screen *screen,
               c->Program[MESA_SHADER_TESS_CTRL].MaxTextureImageUnits +
               c->Program[MESA_SHADER_TESS_EVAL].MaxTextureImageUnits +
               c->Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits +
-              c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits,
+              c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits +
+              c->Program[MESA_SHADER_COMPUTE].MaxTextureImageUnits,
               MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
    /* This depends on program constants. */
@@ -324,7 +348,8 @@ void st_init_limits(struct pipe_screen *screen,
          c->Program[MESA_SHADER_TESS_CTRL].MaxUniformBlocks +
          c->Program[MESA_SHADER_TESS_EVAL].MaxUniformBlocks +
          c->Program[MESA_SHADER_GEOMETRY].MaxUniformBlocks +
-         c->Program[MESA_SHADER_FRAGMENT].MaxUniformBlocks;
+         c->Program[MESA_SHADER_FRAGMENT].MaxUniformBlocks +
+         c->Program[MESA_SHADER_COMPUTE].MaxUniformBlocks;
       assert(c->MaxCombinedUniformBlocks <= MAX_COMBINED_UNIFORM_BUFFERS);
    }
 
@@ -332,6 +357,46 @@ void st_init_limits(struct pipe_screen *screen,
       screen->get_param(screen, PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL);
    c->GLSLFrontFacingIsSysVal =
       screen->get_param(screen, PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL);
+
+   c->MaxAtomicBufferBindings =
+         c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
+   c->MaxCombinedAtomicBuffers =
+         c->Program[MESA_SHADER_VERTEX].MaxAtomicBuffers +
+         c->Program[MESA_SHADER_TESS_CTRL].MaxAtomicBuffers +
+         c->Program[MESA_SHADER_TESS_EVAL].MaxAtomicBuffers +
+         c->Program[MESA_SHADER_GEOMETRY].MaxAtomicBuffers +
+         c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
+   assert(c->MaxCombinedAtomicBuffers <= MAX_COMBINED_ATOMIC_BUFFERS);
+
+   if (c->MaxCombinedAtomicBuffers > 0)
+      extensions->ARB_shader_atomic_counters = GL_TRUE;
+
+   c->MaxCombinedShaderOutputResources = c->MaxDrawBuffers;
+   c->ShaderStorageBufferOffsetAlignment =
+      screen->get_param(screen, PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT);
+   if (c->ShaderStorageBufferOffsetAlignment) {
+      c->MaxCombinedShaderStorageBlocks = c->MaxShaderStorageBufferBindings =
+         c->MaxCombinedAtomicBuffers;
+      c->MaxCombinedShaderOutputResources +=
+         c->MaxCombinedShaderStorageBlocks;
+      c->MaxShaderStorageBlockSize = 1 << 27;
+      extensions->ARB_shader_storage_buffer_object = GL_TRUE;
+   }
+
+   c->MaxCombinedImageUniforms =
+         c->Program[MESA_SHADER_VERTEX].MaxImageUniforms +
+         c->Program[MESA_SHADER_TESS_CTRL].MaxImageUniforms +
+         c->Program[MESA_SHADER_TESS_EVAL].MaxImageUniforms +
+         c->Program[MESA_SHADER_GEOMETRY].MaxImageUniforms +
+         c->Program[MESA_SHADER_FRAGMENT].MaxImageUniforms +
+         c->Program[MESA_SHADER_COMPUTE].MaxImageUniforms;
+   c->MaxCombinedShaderOutputResources += c->MaxCombinedImageUniforms;
+   c->MaxImageUnits = MAX_IMAGE_UNITS;
+   c->MaxImageSamples = 0; /* XXX */
+   if (c->MaxCombinedImageUniforms) {
+      extensions->ARB_shader_image_load_store = GL_TRUE;
+      extensions->ARB_shader_image_size = GL_TRUE;
+   }
 }
 
 
@@ -464,6 +529,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_occlusion_query2),             PIPE_CAP_OCCLUSION_QUERY                  },
       { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS        },
       { o(ARB_point_sprite),                 PIPE_CAP_POINT_SPRITE                     },
+      { o(ARB_query_buffer_object),          PIPE_CAP_QUERY_BUFFER_OBJECT              },
       { o(ARB_sample_shading),               PIPE_CAP_SAMPLE_SHADING                   },
       { o(ARB_seamless_cube_map),            PIPE_CAP_SEAMLESS_CUBE_MAP                },
       { o(ARB_shader_draw_parameters),       PIPE_CAP_DRAW_PARAMETERS                  },
@@ -495,12 +561,14 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_transform_feedback),           PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS        },
 
       { o(AMD_pinned_memory),                PIPE_CAP_RESOURCE_FROM_USER_MEMORY        },
+      { o(ATI_meminfo),                      PIPE_CAP_QUERY_MEMORY_INFO                },
       { o(AMD_seamless_cubemap_per_texture), PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE    },
       { o(ATI_separate_stencil),             PIPE_CAP_TWO_SIDED_STENCIL                },
       { o(ATI_texture_mirror_once),          PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
       { o(NV_conditional_render),            PIPE_CAP_CONDITIONAL_RENDER               },
       { o(NV_primitive_restart),             PIPE_CAP_PRIMITIVE_RESTART                },
       { o(NV_texture_barrier),               PIPE_CAP_TEXTURE_BARRIER                  },
+      { o(NVX_gpu_memory_info),              PIPE_CAP_QUERY_MEMORY_INFO                },
       /* GL_NV_point_sprite is not supported by gallium because we don't
        * support the GL_POINT_SPRITE_R_MODE_NV option. */
 
@@ -774,6 +842,7 @@ void st_init_extensions(struct pipe_screen *screen,
       }
 
       extensions->EXT_shader_integer_mix = GL_TRUE;
+      extensions->ARB_arrays_of_arrays = GL_TRUE;
    } else {
       /* Optional integer support for GLSL 1.2. */
       if (screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
@@ -972,5 +1041,36 @@ void st_init_extensions(struct pipe_screen *screen,
                                 PIPE_SHADER_CAP_DOUBLES)) {
       extensions->ARB_gpu_shader_fp64 = GL_TRUE;
       extensions->ARB_vertex_attrib_64bit = GL_TRUE;
+   }
+
+   if ((ST_DEBUG & DEBUG_GREMEDY) &&
+       screen->get_param(screen, PIPE_CAP_STRING_MARKER))
+      extensions->GREMEDY_string_marker = GL_TRUE;
+
+   if (screen->get_param(screen, PIPE_CAP_COMPUTE)) {
+      int compute_supported_irs =
+         screen->get_shader_param(screen, PIPE_SHADER_COMPUTE,
+                                  PIPE_SHADER_CAP_SUPPORTED_IRS);
+      if (compute_supported_irs & (1 << PIPE_SHADER_IR_TGSI)) {
+         uint64_t grid_size[3], block_size[3];
+
+         screen->get_compute_param(screen, PIPE_COMPUTE_CAP_MAX_GRID_SIZE,
+                                   grid_size);
+         screen->get_compute_param(screen, PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE,
+                                   block_size);
+         screen->get_compute_param(screen,
+                                   PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK,
+                                   &consts->MaxComputeWorkGroupInvocations);
+         screen->get_compute_param(screen, PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE,
+                                   &consts->MaxComputeSharedMemorySize);
+
+         for (i = 0; i < 3; i++) {
+            consts->MaxComputeWorkGroupCount[i] = grid_size[i];
+            consts->MaxComputeWorkGroupSize[i] = block_size[i];
+         }
+         /* XXX: ARB_compute_shader is not enabled by default because images
+          * support is still not implemented yet. */
+         /* extensions->ARB_compute_shader = true; */
+      }
    }
 }

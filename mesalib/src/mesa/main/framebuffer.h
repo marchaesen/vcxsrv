@@ -26,7 +26,7 @@
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
-#include "glheader.h"
+#include "mtypes.h"
 
 struct gl_config;
 struct gl_context;
@@ -97,7 +97,8 @@ static inline GLuint
 _mesa_geometric_samples(const struct gl_framebuffer *buffer)
 {
    return buffer->_HasAttachments ?
-      buffer->Visual.samples : buffer->DefaultGeometry.NumSamples;
+      buffer->Visual.samples :
+      buffer->DefaultGeometry._NumSamples;
 }
 
 static inline GLuint

@@ -135,13 +135,13 @@ CIEuvY_ParseString(
  *		0 if failed, non-zero otherwise.
  */
 {
-    int n;
+    size_t n;
     char *pchar;
 
     if ((pchar = strchr(spec, ':')) == NULL) {
 	return(XcmsFailure);
     }
-    n = (int)(pchar - spec);
+    n = (size_t)(pchar - spec);
 
     /*
      * Check for proper prefix.
@@ -243,7 +243,7 @@ XcmsCIEuvYToCIEXYZ(
 {
     XcmsCIEXYZ XYZ_return;
     XcmsColor whitePt;
-    int i;
+    unsigned int i;
     XcmsColor *pColor = pColors_in_out;
     XcmsFloat div, x, y, z, Y;
 
@@ -358,7 +358,7 @@ XcmsCIEXYZToCIEuvY(
 {
     XcmsCIEuvY uvY_return;
     XcmsColor whitePt;
-    int i;
+    unsigned int i;
     XcmsColor *pColor = pColors_in_out;
     XcmsFloat div;
 

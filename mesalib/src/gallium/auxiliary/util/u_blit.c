@@ -541,23 +541,23 @@ util_blit_pixels_tex(struct blit_state *ctx,
                                                  PIPE_BIND_RENDER_TARGET));
 
    /* save state (restored below) */
-   cso_save_blend(ctx->cso);
-   cso_save_depth_stencil_alpha(ctx->cso);
-   cso_save_rasterizer(ctx->cso);
-   cso_save_sample_mask(ctx->cso);
-   cso_save_min_samples(ctx->cso);
-   cso_save_fragment_samplers(ctx->cso);
-   cso_save_fragment_sampler_views(ctx->cso);
-   cso_save_stream_outputs(ctx->cso);
-   cso_save_viewport(ctx->cso);
-   cso_save_framebuffer(ctx->cso);
-   cso_save_fragment_shader(ctx->cso);
-   cso_save_vertex_shader(ctx->cso);
-   cso_save_tessctrl_shader(ctx->cso);
-   cso_save_tesseval_shader(ctx->cso);
-   cso_save_geometry_shader(ctx->cso);
-   cso_save_vertex_elements(ctx->cso);
-   cso_save_aux_vertex_buffer_slot(ctx->cso);
+   cso_save_state(ctx->cso, (CSO_BIT_BLEND |
+                             CSO_BIT_DEPTH_STENCIL_ALPHA |
+                             CSO_BIT_RASTERIZER |
+                             CSO_BIT_SAMPLE_MASK |
+                             CSO_BIT_MIN_SAMPLES |
+                             CSO_BIT_FRAGMENT_SAMPLERS |
+                             CSO_BIT_FRAGMENT_SAMPLER_VIEWS |
+                             CSO_BIT_STREAM_OUTPUTS |
+                             CSO_BIT_VIEWPORT |
+                             CSO_BIT_FRAMEBUFFER |
+                             CSO_BIT_FRAGMENT_SHADER |
+                             CSO_BIT_VERTEX_SHADER |
+                             CSO_BIT_TESSCTRL_SHADER |
+                             CSO_BIT_TESSEVAL_SHADER |
+                             CSO_BIT_GEOMETRY_SHADER |
+                             CSO_BIT_VERTEX_ELEMENTS |
+                             CSO_BIT_AUX_VERTEX_BUFFER_SLOT));
 
    /* set misc state we care about */
    cso_set_blend(ctx->cso, &ctx->blend_write_color);
@@ -625,21 +625,5 @@ util_blit_pixels_tex(struct blit_state *ctx,
                            2); /* attribs/vert */
 
    /* restore state we changed */
-   cso_restore_blend(ctx->cso);
-   cso_restore_depth_stencil_alpha(ctx->cso);
-   cso_restore_rasterizer(ctx->cso);
-   cso_restore_sample_mask(ctx->cso);
-   cso_restore_min_samples(ctx->cso);
-   cso_restore_fragment_samplers(ctx->cso);
-   cso_restore_fragment_sampler_views(ctx->cso);
-   cso_restore_viewport(ctx->cso);
-   cso_restore_framebuffer(ctx->cso);
-   cso_restore_fragment_shader(ctx->cso);
-   cso_restore_vertex_shader(ctx->cso);
-   cso_restore_tessctrl_shader(ctx->cso);
-   cso_restore_tesseval_shader(ctx->cso);
-   cso_restore_geometry_shader(ctx->cso);
-   cso_restore_vertex_elements(ctx->cso);
-   cso_restore_aux_vertex_buffer_slot(ctx->cso);
-   cso_restore_stream_outputs(ctx->cso);
+   cso_restore_state(ctx->cso);
 }

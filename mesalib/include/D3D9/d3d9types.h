@@ -227,6 +227,7 @@ typedef struct _RGNDATA {
 #define D3DERR_DRIVERINVALIDCALL         MAKE_D3DHRESULT(2157)
 #define D3DERR_DEVICEREMOVED             MAKE_D3DHRESULT(2160)
 #define D3DERR_DEVICEHUNG                MAKE_D3DHRESULT(2164)
+#define S_PRESENT_OCCLUDED               MAKE_D3DSTATUS(2168)
 
 /********************************************************
  * Bitmasks                                             *

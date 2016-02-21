@@ -288,16 +288,18 @@ void GLAPIENTRY
 _mesa_ObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_sync_object *const syncObj = (struct gl_sync_object *) ptr;
+   struct gl_sync_object *syncObj;
    const char *callerstr;
    char **labelPtr;
+
+   syncObj = _mesa_get_and_ref_sync(ctx, (void*)ptr, true);
 
    if (_mesa_is_desktop_gl(ctx))
       callerstr = "glObjectPtrLabel";
    else
       callerstr = "glObjectPtrLabelKHR";
 
-   if (!_mesa_validate_sync(ctx, syncObj)) {
+   if (!syncObj) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s (not a valid sync object)",
                   callerstr);
       return;
@@ -306,6 +308,7 @@ _mesa_ObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
    labelPtr = &syncObj->Label;
 
    set_label(ctx, labelPtr, label, length, callerstr);
+   _mesa_unref_sync_object(ctx, syncObj, 1);
 }
 
 void GLAPIENTRY
@@ -313,7 +316,7 @@ _mesa_GetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
                         GLchar *label)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_sync_object *const syncObj = (struct gl_sync_object *) ptr;
+   struct gl_sync_object *syncObj;
    const char *callerstr;
    char **labelPtr;
 
@@ -328,7 +331,8 @@ _mesa_GetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
       return;
    }
 
-   if (!_mesa_validate_sync(ctx, syncObj)) {
+   syncObj = _mesa_get_and_ref_sync(ctx, (void*)ptr, true);
+   if (!syncObj) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s (not a valid sync object)",
                   callerstr);
       return;
@@ -337,4 +341,5 @@ _mesa_GetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
    labelPtr = &syncObj->Label;
 
    copy_label(*labelPtr, label, length, bufSize);
+   _mesa_unref_sync_object(ctx, syncObj, 1);
 }

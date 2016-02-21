@@ -34,9 +34,9 @@
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-#include "glsl/glsl_symbol_table.h"
-#include "glsl/ir.h"
-#include "glsl/program.h"
+#include "compiler/glsl/glsl_symbol_table.h"
+#include "compiler/glsl/ir.h"
+#include "compiler/glsl/program.h"
 #include "program/hash_table.h"
 #include "util/strndup.h"
 

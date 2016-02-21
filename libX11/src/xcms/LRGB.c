@@ -966,7 +966,7 @@ _XcmsGetTableType1(
  *
  */
 {
-    int count;
+    unsigned int count;
     unsigned int max_index;
     IntensityRec *pIRec;
 
@@ -1405,13 +1405,13 @@ XcmsLRGB_RGBi_ParseString(
  *		0 if failed, non-zero otherwise.
  */
 {
-    int n;
+    size_t n;
     char *pchar;
 
     if ((pchar = strchr(spec, ':')) == NULL) {
 	return(XcmsFailure);
     }
-    n = (int)(pchar - spec);
+    n = (size_t)(pchar - spec);
 
     /*
      * Check for proper prefix.

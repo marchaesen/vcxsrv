@@ -41,19 +41,21 @@
  * Return 0 if find a matched texture type. Otherwise return -1.
  **/
 static int
-glamor_get_tex_format_type_from_pictformat_gl(PictFormatShort format,
+glamor_get_tex_format_type_from_pictformat_gl(ScreenPtr pScreen,
+                                              PictFormatShort format,
                                               GLenum *tex_format,
                                               GLenum *tex_type,
                                               int *no_alpha,
                                               int *revert,
                                               int *swap_rb, int is_upload)
 {
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(pScreen);
     *no_alpha = 0;
     *revert = REVERT_NONE;
     *swap_rb = is_upload ? SWAP_NONE_UPLOADING : SWAP_NONE_DOWNLOADING;
     switch (format) {
     case PICT_a1:
-        *tex_format = GL_ALPHA;
+        *tex_format = glamor_priv->one_channel_format;
         *tex_type = GL_UNSIGNED_BYTE;
         *revert = is_upload ? REVERT_UPLOADING_A1 : REVERT_DOWNLOADING_A1;
         break;
@@ -111,7 +113,7 @@ glamor_get_tex_format_type_from_pictformat_gl(PictFormatShort format,
         *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
         break;
     case PICT_a8:
-        *tex_format = GL_ALPHA;
+        *tex_format = glamor_priv->one_channel_format;
         *tex_type = GL_UNSIGNED_BYTE;
         break;
     case PICT_x4r4g4b4:
@@ -137,13 +139,15 @@ glamor_get_tex_format_type_from_pictformat_gl(PictFormatShort format,
 #define IS_LITTLE_ENDIAN  (IMAGE_BYTE_ORDER == LSBFirst)
 
 static int
-glamor_get_tex_format_type_from_pictformat_gles2(PictFormatShort format,
+glamor_get_tex_format_type_from_pictformat_gles2(ScreenPtr pScreen,
+                                                 PictFormatShort format,
                                                  GLenum *tex_format,
                                                  GLenum *tex_type,
                                                  int *no_alpha,
                                                  int *revert,
                                                  int *swap_rb, int is_upload)
 {
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(pScreen);
     int need_swap_rb = 0;
 
     *no_alpha = 0;
@@ -264,13 +268,13 @@ glamor_get_tex_format_type_from_pictformat_gles2(PictFormatShort format,
         break;
 
     case PICT_a1:
-        *tex_format = GL_ALPHA;
+        *tex_format = glamor_priv->one_channel_format;
         *tex_type = GL_UNSIGNED_BYTE;
         *revert = is_upload ? REVERT_UPLOADING_A1 : REVERT_DOWNLOADING_A1;
         break;
 
     case PICT_a8:
-        *tex_format = GL_ALPHA;
+        *tex_format = glamor_priv->one_channel_format;
         *tex_type = GL_UNSIGNED_BYTE;
         *revert = REVERT_NONE;
         break;
@@ -317,14 +321,16 @@ glamor_get_tex_format_type_from_pixmap(PixmapPtr pixmap,
         glamor_get_screen_private(pixmap->drawable.pScreen);
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-        return glamor_get_tex_format_type_from_pictformat_gl(pict_format,
+        return glamor_get_tex_format_type_from_pictformat_gl(pixmap->drawable.pScreen,
+                                                             pict_format,
                                                              format, type,
                                                              no_alpha,
                                                              revert,
                                                              swap_rb,
                                                              is_upload);
     } else {
-        return glamor_get_tex_format_type_from_pictformat_gles2(pict_format,
+        return glamor_get_tex_format_type_from_pictformat_gles2(pixmap->drawable.pScreen,
+                                                                pict_format,
                                                                 format, type,
                                                                 no_alpha,
                                                                 revert,

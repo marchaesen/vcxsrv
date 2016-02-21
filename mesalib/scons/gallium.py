@@ -94,16 +94,8 @@ def msvc2013_compat(env):
             '-Werror=pointer-arith',
         ])
 
-def msvc2008_compat(env):
-    msvc2013_compat(env)
-    if env['gcc']:
-        env.Append(CFLAGS = [
-            '-Werror=declaration-after-statement',
-        ])
-
 def createMSVCCompatMethods(env):
     env.AddMethod(msvc2013_compat, 'MSVC2013Compat')
-    env.AddMethod(msvc2008_compat, 'MSVC2008Compat')
 
 
 def num_jobs():
@@ -479,20 +471,12 @@ def generate(env):
         # See also:
         # - http://msdn.microsoft.com/en-us/library/19z1t1wy.aspx
         # - cl /?
-        if 'MSVC_VERSION' not in env or distutils.version.LooseVersion(env['MSVC_VERSION']) < distutils.version.LooseVersion('12.0'):
-            # Use bundled stdbool.h and stdint.h headers for older MSVC
-            # versions.  stdint.h was introduced in MSVC 2010, but stdbool.h
-            # was only introduced in MSVC 2013.
-            top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-            env.Append(CPPPATH = [os.path.join(top_dir, 'include/c99')])
         if env['build'] == 'debug':
             ccflags += [
               '/Od', # disable optimizations
               '/Oi', # enable intrinsic functions
             ]
         else:
-            if 'MSVC_VERSION' in env and distutils.version.LooseVersion(env['MSVC_VERSION']) < distutils.version.LooseVersion('11.0'):
-                print 'scons: warning: Visual Studio versions prior to 2012 are known to produce incorrect code when optimizations are enabled ( https://bugs.freedesktop.org/show_bug.cgi?id=58718 )'
             ccflags += [
                 '/O2', # optimize for speed
             ]

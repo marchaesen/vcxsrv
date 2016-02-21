@@ -49,10 +49,10 @@
 #include "main/shaderobj.h"
 #include "main/transformfeedback.h"
 #include "main/uniforms.h"
-#include "glsl/glsl_parser_extras.h"
-#include "glsl/ir.h"
-#include "glsl/ir_uniform.h"
-#include "glsl/program.h"
+#include "compiler/glsl/glsl_parser_extras.h"
+#include "compiler/glsl/ir.h"
+#include "compiler/glsl/ir_uniform.h"
+#include "compiler/glsl/program.h"
 #include "program/program.h"
 #include "program/prog_print.h"
 #include "program/prog_parameter.h"
@@ -1374,26 +1374,10 @@ _mesa_DetachShader(GLuint program, GLuint shader)
 
 void GLAPIENTRY
 _mesa_GetAttachedObjectsARB(GLhandleARB container, GLsizei maxCount,
-                            GLsizei * count, GLhandleARB * objARB)
+                            GLsizei * count, GLhandleARB * obj)
 {
-   int i;
-   GLuint *obj;
-
    GET_CURRENT_CONTEXT(ctx);
-
-   obj = calloc(maxCount, sizeof(GLuint));
-   if (!obj) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetAttachedObjectsARB");
-      return;
-   }
-
    get_attached_shaders(ctx, container, maxCount, count, obj);
-
-   for (i = 0 ; i < *count; i++) {
-      objARB[i] = (GLhandleARB)obj[i];
-   }
-
-   free(obj);
 }
 
 
@@ -2140,6 +2124,7 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
       int i;
       for (i = 0; i < 3; i++)
          dst_cp->LocalSize[i] = src->Comp.LocalSize[i];
+      dst_cp->SharedSize = src->Comp.SharedSize;
       break;
    }
    default:

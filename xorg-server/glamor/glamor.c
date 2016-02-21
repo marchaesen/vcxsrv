@@ -576,10 +576,18 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         epoxy_has_gl_extension("GL_NV_pack_subimage");
     glamor_priv->has_vertex_array_object =
         epoxy_has_gl_extension("GL_ARB_vertex_array_object");
+    glamor_priv->has_dual_blend =
+        epoxy_has_gl_extension("GL_ARB_blend_func_extended");
+
+    /* assume a core profile if we are GL 3.1 and don't have ARB_compatibility */
+    glamor_priv->is_core_profile =
+        gl_version >= 31 && !epoxy_has_gl_extension("GL_ARB_compatibility");
 
     glamor_setup_debug_output(screen);
 
-    glamor_priv->use_quads = (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP);
+    glamor_priv->use_quads = (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) &&
+                             !glamor_priv->is_core_profile;
+
     /* Driver-specific hack: Avoid using GL_QUADS on VC4, where
      * they'll be emulated more expensively than we can with our
      * cached IB.
@@ -596,6 +604,10 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 #ifdef MAX_FBO_SIZE
     glamor_priv->max_fbo_size = MAX_FBO_SIZE;
 #endif
+
+    glamor_priv->one_channel_format = GL_ALPHA;
+    if (epoxy_has_gl_extension("GL_ARB_texture_rg") && epoxy_has_gl_extension("GL_ARB_texture_swizzle"))
+        glamor_priv->one_channel_format = GL_RED;
 
     glamor_set_debug_level(&glamor_debug_level);
 

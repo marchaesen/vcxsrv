@@ -82,7 +82,7 @@ SOFTWARE.
 #ifndef WIN32
 #include <sys/socket.h>
 
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #ifdef apollo
@@ -554,7 +554,7 @@ AuthAudit(ClientPtr client, Bool letin,
 #endif
             strlcpy(addr, "local host", sizeof(addr));
             break;
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
         case AF_INET:
             snprintf(addr, sizeof(addr), "IP %s",
                      inet_ntoa(((struct sockaddr_in *) saddr)->sin_addr));

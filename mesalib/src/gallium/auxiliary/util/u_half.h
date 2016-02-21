@@ -74,7 +74,11 @@ util_float_to_half(float f)
       f32.ui &= round_mask;
       f32.f  *= magic.f;
       f32.ui -= round_mask;
-
+      /*
+       * XXX: The magic mul relies on denorms being available, otherwise
+       * all f16 denorms get flushed to zero - hence when this is used
+       * for tgsi_exec in softpipe we won't get f16 denorms.
+       */
       /*
        * Clamp to max finite value if overflowed.
        * OpenGL has completely undefined rounding behavior for float to
@@ -112,6 +116,7 @@ util_half_to_float(uint16_t f16)
 
    /* Adjust */
    f32.f *= magic.f;
+   /* XXX: The magic mul relies on denorms being available */
 
    /* Inf / NaN */
    if (f32.f >= infnan.f)

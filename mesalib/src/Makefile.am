@@ -21,8 +21,11 @@
 
 SUBDIRS = . gtest util mapi/glapi/gen mapi
 
+# include only conditionally ?
+SUBDIRS += compiler
+
 if NEED_OPENGL_COMMON
-SUBDIRS += glsl mesa
+SUBDIRS += mesa
 endif
 
 SUBDIRS += loader

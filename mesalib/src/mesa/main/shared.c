@@ -65,6 +65,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    mtx_init(&shared->Mutex, mtx_plain);
 
    shared->DisplayList = _mesa_NewHashTable();
+   shared->BitmapAtlas = _mesa_NewHashTable();
    shared->TexObjects = _mesa_NewHashTable();
    shared->Programs = _mesa_NewHashTable();
 
@@ -140,6 +141,18 @@ delete_displaylist_cb(GLuint id, void *data, void *userData)
    struct gl_display_list *list = (struct gl_display_list *) data;
    struct gl_context *ctx = (struct gl_context *) userData;
    _mesa_delete_list(ctx, list);
+}
+
+
+/**
+ * Callback for deleting a bitmap atlas.  Called by _mesa_HashDeleteAll().
+ */
+static void
+delete_bitmap_atlas_cb(GLuint id, void *data, void *userData)
+{
+   struct gl_bitmap_atlas *atlas = (struct gl_bitmap_atlas *) data;
+   struct gl_context *ctx = (struct gl_context *) userData;
+   _mesa_delete_bitmap_atlas(ctx, atlas);
 }
 
 
@@ -309,6 +322,8 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
     */
    _mesa_HashDeleteAll(shared->DisplayList, delete_displaylist_cb, ctx);
    _mesa_DeleteHashTable(shared->DisplayList);
+   _mesa_HashDeleteAll(shared->BitmapAtlas, delete_bitmap_atlas_cb, ctx);
+   _mesa_DeleteHashTable(shared->BitmapAtlas);
 
    _mesa_HashWalk(shared->ShaderObjects, free_shader_program_data_cb, ctx);
    _mesa_HashDeleteAll(shared->ShaderObjects, delete_shader_cb, ctx);
@@ -338,7 +353,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
       struct set_entry *entry;
 
       set_foreach(shared->SyncObjects, entry) {
-         _mesa_unref_sync_object(ctx, (struct gl_sync_object *) entry->key);
+         _mesa_unref_sync_object(ctx, (struct gl_sync_object *) entry->key, 1);
       }
    }
    _mesa_set_destroy(shared->SyncObjects, NULL);

@@ -31,10 +31,10 @@
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-#include "glsl/ir.h"
-#include "glsl/ir_uniform.h"
-#include "glsl/glsl_parser_extras.h"
-#include "glsl/program.h"
+#include "compiler/glsl/ir.h"
+#include "compiler/glsl/ir_uniform.h"
+#include "compiler/glsl/glsl_parser_extras.h"
+#include "compiler/glsl/program.h"
 #include "program/hash_table.h"
 
 

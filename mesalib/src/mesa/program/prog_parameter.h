@@ -99,13 +99,6 @@ _mesa_new_parameter_list_sized(unsigned size);
 extern void
 _mesa_free_parameter_list(struct gl_program_parameter_list *paramList);
 
-extern struct gl_program_parameter_list *
-_mesa_clone_parameter_list(const struct gl_program_parameter_list *list);
-
-extern struct gl_program_parameter_list *
-_mesa_combine_parameter_lists(const struct gl_program_parameter_list *a,
-                              const struct gl_program_parameter_list *b);
-
 static inline GLuint
 _mesa_num_parameters(const struct gl_program_parameter_list *list)
 {

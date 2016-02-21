@@ -29,11 +29,14 @@
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 
+
 static void
-util_staging_resource_template(struct pipe_resource *pt, unsigned width, unsigned height, unsigned depth, struct pipe_resource *template)
+util_staging_resource_template(struct pipe_resource *pt, unsigned width,
+                               unsigned height, unsigned depth,
+                               struct pipe_resource *template)
 {
    memset(template, 0, sizeof(struct pipe_resource));
-   if(pt->target != PIPE_BUFFER && depth <= 1)
+   if (pt->target != PIPE_BUFFER && depth <= 1)
       template->target = PIPE_TEXTURE_RECT;
    else
       template->target = pt->target;
@@ -49,16 +52,15 @@ util_staging_resource_template(struct pipe_resource *pt, unsigned width, unsigne
    template->flags = 0;
 }
 
+
 struct util_staging_transfer *
 util_staging_transfer_init(struct pipe_context *pipe,
-           struct pipe_resource *pt,
-           unsigned level,
-           unsigned usage,
-           const struct pipe_box *box,
-           boolean direct, struct util_staging_transfer *tx)
+                           struct pipe_resource *pt,
+                           unsigned level, unsigned usage,
+                           const struct pipe_box *box,
+                           boolean direct, struct util_staging_transfer *tx)
 {
    struct pipe_screen *pscreen = pipe->screen;
-
    struct pipe_resource staging_resource_template;
 
    pipe_resource_reference(&tx->base.resource, pt);
@@ -66,23 +68,22 @@ util_staging_transfer_init(struct pipe_context *pipe,
    tx->base.usage = usage;
    tx->base.box = *box;
 
-   if (direct)
-   {
+   if (direct) {
       tx->staging_resource = pt;
       return tx;
    }
 
-   util_staging_resource_template(pt, box->width, box->height, box->depth, &staging_resource_template);
-   tx->staging_resource = pscreen->resource_create(pscreen, &staging_resource_template);
-   if (!tx->staging_resource)
-   {
+   util_staging_resource_template(pt, box->width, box->height,
+                                  box->depth, &staging_resource_template);
+   tx->staging_resource = pscreen->resource_create(pscreen,
+                                                   &staging_resource_template);
+   if (!tx->staging_resource) {
       pipe_resource_reference(&tx->base.resource, NULL);
       FREE(tx);
       return NULL;
    }
 
-   if (usage & PIPE_TRANSFER_READ)
-   {
+   if (usage & PIPE_TRANSFER_READ) {
       /* XXX this looks wrong dst is always the same but looping over src z? */
       int zi;
       struct pipe_box sbox;
@@ -92,7 +93,7 @@ util_staging_transfer_init(struct pipe_context *pipe,
       sbox.width = box->width;
       sbox.height = box->height;
       sbox.depth = 1;
-      for(zi = 0; zi < box->depth; ++zi) {
+      for (zi = 0; zi < box->depth; ++zi) {
          sbox.z = sbox.z + zi;
          pipe->resource_copy_region(pipe, tx->staging_resource, 0, 0, 0, 0,
                                     tx->base.resource, level, &sbox);
@@ -102,14 +103,15 @@ util_staging_transfer_init(struct pipe_context *pipe,
    return tx;
 }
 
+
 void
-util_staging_transfer_destroy(struct pipe_context *pipe, struct pipe_transfer *ptx)
+util_staging_transfer_destroy(struct pipe_context *pipe,
+                              struct pipe_transfer *ptx)
 {
    struct util_staging_transfer *tx = (struct util_staging_transfer *)ptx;
 
-   if (tx->staging_resource != tx->base.resource)
-   {
-      if(tx->base.usage & PIPE_TRANSFER_WRITE) {
+   if (tx->staging_resource != tx->base.resource) {
+      if (tx->base.usage & PIPE_TRANSFER_WRITE) {
          /* XXX this looks wrong src is always the same but looping over dst z? */
          int zi;
          struct pipe_box sbox;
@@ -119,8 +121,10 @@ util_staging_transfer_destroy(struct pipe_context *pipe, struct pipe_transfer *p
          sbox.width = tx->base.box.width;
          sbox.height = tx->base.box.height;
          sbox.depth = 1;
-         for(zi = 0; zi < tx->base.box.depth; ++zi)
-            pipe->resource_copy_region(pipe, tx->base.resource, tx->base.level, tx->base.box.x, tx->base.box.y, tx->base.box.z + zi,
+         for (zi = 0; zi < tx->base.box.depth; ++zi)
+            pipe->resource_copy_region(pipe, tx->base.resource, tx->base.level,
+                                       tx->base.box.x, tx->base.box.y,
+                                       tx->base.box.z + zi,
                                        tx->staging_resource, 0, &sbox);
       }
 

@@ -31,6 +31,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
+#include "main/framebuffer.h"
 #include "main/hash.h"
 #include "main/macros.h"
 #include "program.h"
@@ -534,14 +535,14 @@ _mesa_get_min_invocations_per_fragment(struct gl_context *ctx,
        *  forces per-sample shading"
        */
       if (prog->IsSample && !ignore_sample_qualifier)
-         return MAX2(ctx->DrawBuffer->Visual.samples, 1);
+         return MAX2(_mesa_geometric_samples(ctx->DrawBuffer), 1);
 
       if (prog->Base.SystemValuesRead & (SYSTEM_BIT_SAMPLE_ID |
                                          SYSTEM_BIT_SAMPLE_POS))
-         return MAX2(ctx->DrawBuffer->Visual.samples, 1);
+         return MAX2(_mesa_geometric_samples(ctx->DrawBuffer), 1);
       else if (ctx->Multisample.SampleShading)
          return MAX2(ceil(ctx->Multisample.MinSampleShadingValue *
-                          ctx->DrawBuffer->Visual.samples), 1);
+                          _mesa_geometric_samples(ctx->DrawBuffer)), 1);
       else
          return 1;
    }

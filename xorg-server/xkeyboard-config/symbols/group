@@ -322,12 +322,12 @@ partial modifier_keys
 xkb_symbols "ctrls_toggle" {
     virtual_modifiers LControl, RControl;
     key <LCTL> {
-        type[Group1]="PC_RCONTROL_LEVEL2",
+        type[Group1]="PC_CONTROL_LEVEL2",
         symbols[Group1] = [ NoSymbol, ISO_Prev_Group ],
         virtualMods= LControl
     };
     key <RCTL> {
-        type[Group1]="PC_LCONTROL_LEVEL2",
+        type[Group1]="PC_CONTROL_LEVEL2",
         symbols[Group1] = [ NoSymbol, ISO_Next_Group ],
         virtualMods= RControl
     };

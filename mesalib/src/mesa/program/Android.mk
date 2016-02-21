@@ -75,7 +75,7 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \
 	$(MESA_TOP)/src/mesa \
 	$(MESA_TOP)/src/glsl \
-	$(MESA_TOP)/src/glsl/nir \
+	$(MESA_TOP)/src/compiler/nir \
 	$(MESA_TOP)/src/gallium/auxiliary \
 	$(MESA_TOP)/src/gallium/include
 

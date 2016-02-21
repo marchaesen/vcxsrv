@@ -869,12 +869,12 @@ legal_getteximage_target(struct gl_context *ctx, GLenum target, bool dsa)
     *    the targets from table 8.19 (for GetTexImage and GetnTexImage *only*),
     *    or TEXTURE_CUBE_MAP (for GetTextureImage *only*)." (Emphasis added.)
     */
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
       return dsa ? GL_FALSE : ctx->Extensions.ARB_texture_cube_map;
    case GL_TEXTURE_CUBE_MAP:
       return dsa ? GL_TRUE : GL_FALSE;
@@ -886,7 +886,7 @@ legal_getteximage_target(struct gl_context *ctx, GLenum target, bool dsa)
 
 /**
  * Wrapper for _mesa_select_tex_image() which can handle target being
- * GL_TEXTURE_CUBE_MAP_ARB in which case we use zoffset to select a cube face.
+ * GL_TEXTURE_CUBE_MAP in which case we use zoffset to select a cube face.
  * This can happen for glGetTextureImage and glGetTextureSubImage (DSA
  * functions).
  */

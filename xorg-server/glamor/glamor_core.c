@@ -87,6 +87,17 @@ glamor_link_glsl_prog(ScreenPtr screen, GLint prog, const char *format, ...)
     GLint ok;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
+    if (glamor_priv->has_khr_debug) {
+        char *label;
+        va_list va;
+
+        va_start(va, format);
+        XNFvasprintf(&label, format, va);
+        glObjectLabel(GL_PROGRAM, prog, -1, label);
+        free(label);
+        va_end(va);
+    }
+
     glLinkProgram(prog);
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (!ok) {
@@ -99,17 +110,6 @@ glamor_link_glsl_prog(ScreenPtr screen, GLint prog, const char *format, ...)
         glGetProgramInfoLog(prog, size, NULL, info);
         ErrorF("Failed to link: %s\n", info);
         FatalError("GLSL link failure\n");
-    }
-
-    if (glamor_priv->has_khr_debug) {
-        char *label;
-        va_list va;
-
-        va_start(va, format);
-        XNFvasprintf(&label, format, va);
-        glObjectLabel(GL_PROGRAM, prog, -1, label);
-        free(label);
-        va_end(va);
     }
 }
 

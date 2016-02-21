@@ -36,13 +36,6 @@
 #include "scrnintstr.h"
 #include "ephyrlog.h"
 
-#ifdef XF86DRI
-#include <xcb/xf86dri.h>
-#include "ephyrdri.h"
-#include "ephyrdriext.h"
-#include "ephyrglxext.h"
-#endif                          /* XF86DRI */
-
 #ifdef GLAMOR
 #include "glamor.h"
 #endif
@@ -658,16 +651,6 @@ ephyrInitScreen(ScreenPtr pScreen)
         }
     }
 #endif /*XV*/
-#ifdef XF86DRI
-    if (!ephyrNoDRI && !hostx_has_extension(&xcb_xf86dri_id)) {
-        EPHYR_LOG("host x does not support DRI. Disabling DRI forwarding\n");
-        ephyrNoDRI = TRUE;
-    }
-    if (!ephyrNoDRI) {
-        ephyrDRIExtensionInit(pScreen);
-        ephyrHijackGLXExtension();
-    }
-#endif
 
     return TRUE;
 }
@@ -849,40 +832,6 @@ miPointerScreenFuncRec ephyrPointerScreenFuncs = {
     ephyrWarpCursor,
 };
 
-#ifdef XF86DRI
-/**
- * find if the remote window denoted by a_remote
- * is paired with an internal Window within the Xephyr server.
- * If the remove window is paired with an internal window, send an
- * expose event to the client insterested in the internal window expose event.
- *
- * Pairing happens when a drawable inside Xephyr is associated with
- * a GL surface in a DRI environment.
- * Look at the function ProcXF86DRICreateDrawable in ephyrdriext.c to
- * know a paired window is created.
- *
- * This is useful to make GL drawables (only windows for now) handle
- * expose events and send those events to clients.
- */
-static void
-ephyrExposePairedWindow(int a_remote)
-{
-    EphyrWindowPair *pair = NULL;
-    RegionRec reg;
-    ScreenPtr screen;
-
-    if (!findWindowPairFromRemote(a_remote, &pair)) {
-        EPHYR_LOG("did not find a pair for this window\n");
-        return;
-    }
-    screen = pair->local->drawable.pScreen;
-    RegionNull(&reg);
-    RegionCopy(&reg, &pair->local->clipList);
-    screen->WindowExposures(pair->local, &reg);
-    RegionUninit(&reg);
-}
-#endif                          /* XF86DRI */
-
 static KdScreenInfo *
 screen_from_window(Window w)
 {
@@ -939,16 +888,6 @@ ephyrProcessExpose(xcb_generic_event_t *xev)
                          scrpriv->win_height);
     } else {
         EPHYR_LOG_ERROR("failed to get host screen\n");
-#ifdef XF86DRI
-        /*
-         * We only receive expose events when the expose event
-         * have be generated for a drawable that is a host X
-         * window managed by Xephyr. Host X windows managed by
-         * Xephyr exists for instance when Xephyr is asked to
-         * create a GL drawable in a DRI environment.
-         */
-        ephyrExposePairedWindow(expose->window);
-#endif                          /* XF86DRI */
     }
 }
 
@@ -974,25 +913,10 @@ ephyrProcessMouseMotion(xcb_generic_event_t *xev)
     else {
         int x = 0, y = 0;
 
-#ifdef XF86DRI
-        EphyrWindowPair *pair = NULL;
-#endif
         EPHYR_LOG("enqueuing mouse motion:%d\n", screen->pScreen->myNum);
         x = motion->event_x;
         y = motion->event_y;
         EPHYR_LOG("initial (x,y):(%d,%d)\n", x, y);
-#ifdef XF86DRI
-        EPHYR_LOG("is this window peered by a gl drawable ?\n");
-        if (findWindowPairFromRemote(motion->event, &pair)) {
-            EPHYR_LOG("yes, it is peered\n");
-            x += pair->local->drawable.x;
-            y += pair->local->drawable.y;
-        }
-        else {
-            EPHYR_LOG("no, it is not peered\n");
-        }
-        EPHYR_LOG("final (x,y):(%d,%d)\n", x, y);
-#endif
 
         /* convert coords into desktop-wide coordinates.
          * fill_pointer_events will convert that back to

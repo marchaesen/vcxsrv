@@ -6,6 +6,7 @@ from xcbgen.align import Alignment, AlignmentLog
 import __main__
 
 verbose_align_log = False
+true_values = ['true', '1', 'yes']
 
 class Type(object):
     '''
@@ -429,6 +430,7 @@ class PadType(Type):
         if elt != None:
             self.nmemb = int(elt.get('bytes', "1"), 0)
             self.align = int(elt.get('align', "1"), 0)
+            self.serialize = elt.get('serialize', "false").lower() in true_values
 
         # pads don't require any alignment at their start
         self.required_start_align = Alignment(1,0)

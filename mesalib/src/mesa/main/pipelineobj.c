@@ -43,8 +43,8 @@
 #include "main/shaderobj.h"
 #include "main/transformfeedback.h"
 #include "main/uniforms.h"
-#include "glsl/glsl_parser_extras.h"
-#include "glsl/ir_uniform.h"
+#include "compiler/glsl/glsl_parser_extras.h"
+#include "compiler/glsl/ir_uniform.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
@@ -964,8 +964,5 @@ _mesa_GetProgramPipelineInfoLog(GLuint pipeline, GLsizei bufSize,
       return;
    }
 
-   if (pipe->InfoLog)
-      _mesa_copy_string(infoLog, bufSize, length, pipe->InfoLog);
-   else
-      *length = 0;
+   _mesa_copy_string(infoLog, bufSize, length, pipe->InfoLog);
 }

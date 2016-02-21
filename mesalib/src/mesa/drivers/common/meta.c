@@ -61,6 +61,7 @@
 #include "main/polygon.h"
 #include "main/queryobj.h"
 #include "main/readpix.h"
+#include "main/renderbuffer.h"
 #include "main/scissor.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
@@ -848,8 +849,6 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 
       save->DrawBufferName = ctx->DrawBuffer->Name;
       save->ReadBufferName = ctx->ReadBuffer->Name;
-      save->RenderbufferName = (ctx->CurrentRenderbuffer ?
-                                ctx->CurrentRenderbuffer->Name : 0);
    }
 }
 
@@ -1240,10 +1239,6 @@ _mesa_meta_end(struct gl_context *ctx)
 
    if (ctx->ReadBuffer->Name != save->ReadBufferName)
       _mesa_BindFramebuffer(GL_READ_FRAMEBUFFER, save->ReadBufferName);
-
-   if (!ctx->CurrentRenderbuffer ||
-       ctx->CurrentRenderbuffer->Name != save->RenderbufferName)
-      _mesa_BindRenderbuffer(GL_RENDERBUFFER, save->RenderbufferName);
 
    if (state & MESA_META_DRAW_BUFFERS) {
       _mesa_drawbuffers(ctx, ctx->DrawBuffer, ctx->Const.MaxDrawBuffers,
@@ -2968,7 +2963,7 @@ meta_decompress_fbo_cleanup(struct decompress_fbo_state *decompress_fbo)
 {
    if (decompress_fbo->FBO != 0) {
       _mesa_DeleteFramebuffers(1, &decompress_fbo->FBO);
-      _mesa_DeleteRenderbuffers(1, &decompress_fbo->RBO);
+      _mesa_reference_renderbuffer(&decompress_fbo->rb, NULL);
    }
 
    memset(decompress_fbo, 0, sizeof(*decompress_fbo));
@@ -3071,14 +3066,18 @@ decompress_texture_image(struct gl_context *ctx,
 
    /* Create/bind FBO/renderbuffer */
    if (decompress_fbo->FBO == 0) {
+      decompress_fbo->rb = ctx->Driver.NewRenderbuffer(ctx, 0xDEADBEEF);
+      if (decompress_fbo->rb == NULL) {
+         _mesa_meta_end(ctx);
+         return false;
+      }
+
+      decompress_fbo->rb->RefCount = 1;
+
       _mesa_GenFramebuffers(1, &decompress_fbo->FBO);
-      _mesa_GenRenderbuffers(1, &decompress_fbo->RBO);
       _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress_fbo->FBO);
-      _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, decompress_fbo->RBO);
-      _mesa_FramebufferRenderbuffer(GL_FRAMEBUFFER_EXT,
-                                       GL_COLOR_ATTACHMENT0_EXT,
-                                       GL_RENDERBUFFER_EXT,
-                                       decompress_fbo->RBO);
+      _mesa_framebuffer_renderbuffer(ctx, ctx->DrawBuffer, GL_COLOR_ATTACHMENT0,
+                                     decompress_fbo->rb);
    }
    else {
       _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress_fbo->FBO);
@@ -3086,9 +3085,8 @@ decompress_texture_image(struct gl_context *ctx,
 
    /* alloc dest surface */
    if (width > decompress_fbo->Width || height > decompress_fbo->Height) {
-      _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, decompress_fbo->RBO);
-      _mesa_RenderbufferStorage(GL_RENDERBUFFER_EXT, rbFormat,
-                                width, height);
+      _mesa_renderbuffer_storage(ctx, decompress_fbo->rb, rbFormat,
+                                 width, height, 0);
       status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
       if (status != GL_FRAMEBUFFER_COMPLETE) {
          /* If the framebuffer isn't complete then we'll leave
@@ -3179,8 +3177,10 @@ decompress_texture_image(struct gl_context *ctx,
 
       /* restrict sampling to the texture level of interest */
       if (target != GL_TEXTURE_RECTANGLE_ARB) {
-         _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, texImage->Level);
-         _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, texImage->Level);
+         _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_BASE_LEVEL,
+                                   (GLint *) &texImage->Level, false);
+         _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
+                                   (GLint *) &texImage->Level, false);
       }
 
       /* render quad w/ texture into renderbuffer */
@@ -3190,8 +3190,10 @@ decompress_texture_image(struct gl_context *ctx,
        * be restored by _mesa_meta_end().
        */
       if (target != GL_TEXTURE_RECTANGLE_ARB) {
-         _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, baseLevelSave);
-         _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, maxLevelSave);
+         _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_BASE_LEVEL,
+                                   &baseLevelSave, false);
+         _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
+                                   &maxLevelSave, false);
       }
 
    }

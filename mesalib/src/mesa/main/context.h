@@ -330,7 +330,8 @@ _mesa_is_gles31(const struct gl_context *ctx)
 static inline bool
 _mesa_has_geometry_shaders(const struct gl_context *ctx)
 {
-   return _mesa_is_desktop_gl(ctx) && ctx->Version >= 32;
+   return _mesa_has_OES_geometry_shader(ctx) ||
+          (_mesa_is_desktop_gl(ctx) && ctx->Version >= 32);
 }
 
 

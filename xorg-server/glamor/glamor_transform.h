@@ -25,8 +25,7 @@
 
 void
 glamor_set_destination_drawable(DrawablePtr     drawable,
-                                int             box_x,
-                                int             box_y,
+                                int             box_index,
                                 Bool            do_drawable_translate,
                                 Bool            center_offset,
                                 GLint           matrix_uniform_location,

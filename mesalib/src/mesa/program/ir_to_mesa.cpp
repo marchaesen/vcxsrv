@@ -31,27 +31,27 @@
 
 #include <stdio.h>
 #include "main/compiler.h"
+#include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-#include "glsl/ast.h"
-#include "glsl/ir.h"
-#include "glsl/ir_expression_flattening.h"
-#include "glsl/ir_visitor.h"
-#include "glsl/ir_optimization.h"
-#include "glsl/ir_uniform.h"
-#include "glsl/glsl_parser_extras.h"
-#include "glsl/nir/glsl_types.h"
-#include "glsl/linker.h"
-#include "glsl/program.h"
+#include "compiler/glsl/ast.h"
+#include "compiler/glsl/ir.h"
+#include "compiler/glsl/ir_expression_flattening.h"
+#include "compiler/glsl/ir_visitor.h"
+#include "compiler/glsl/ir_optimization.h"
+#include "compiler/glsl/ir_uniform.h"
+#include "compiler/glsl/glsl_parser_extras.h"
+#include "compiler/glsl_types.h"
+#include "compiler/glsl/linker.h"
+#include "compiler/glsl/program.h"
 #include "program/hash_table.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
-#include "program/sampler.h"
 
 
 static int swizzle_for_size(int size);
@@ -541,6 +541,7 @@ type_size(const struct glsl_type *type)
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_INTERFACE:
+   case GLSL_TYPE_FUNCTION:
       assert(!"Invalid type in type_size");
       break;
    }
@@ -1244,10 +1245,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_unorm_2x16:
    case ir_unop_unpack_unorm_4x8:
    case ir_unop_unpack_half_2x16:
-   case ir_unop_unpack_half_2x16_split_x:
-   case ir_unop_unpack_half_2x16_split_y:
    case ir_unop_unpack_double_2x32:
-   case ir_binop_pack_half_2x16_split:
    case ir_unop_bitfield_reverse:
    case ir_unop_bit_count:
    case ir_unop_find_msb:
@@ -1392,7 +1390,7 @@ ir_to_mesa_visitor::visit(ir_dereference_variable *ir)
       switch (var->data.mode) {
       case ir_var_uniform:
 	 entry = new(mem_ctx) variable_storage(var, PROGRAM_UNIFORM,
-					       var->data.location);
+					       var->data.param_index);
 	 this->variables.push_tail(entry);
 	 break;
       case ir_var_shader_in:
@@ -1540,6 +1538,82 @@ get_assignment_lhs(ir_dereference *ir, ir_to_mesa_visitor *v)
     */
    ir->accept(v);
    return dst_reg(v->result);
+}
+
+/* Calculate the sampler index and also calculate the base uniform location
+ * for struct members.
+ */
+static void
+calc_sampler_offsets(struct gl_shader_program *prog, ir_dereference *deref,
+                     unsigned *offset, unsigned *array_elements,
+                     unsigned *location)
+{
+   if (deref->ir_type == ir_type_dereference_variable)
+      return;
+
+   switch (deref->ir_type) {
+   case ir_type_dereference_array: {
+      ir_dereference_array *deref_arr = deref->as_dereference_array();
+      ir_constant *array_index =
+         deref_arr->array_index->constant_expression_value();
+
+      if (!array_index) {
+	 /* GLSL 1.10 and 1.20 allowed variable sampler array indices,
+	  * while GLSL 1.30 requires that the array indices be
+	  * constant integer expressions.  We don't expect any driver
+	  * to actually work with a really variable array index, so
+	  * all that would work would be an unrolled loop counter that ends
+	  * up being constant above.
+	  */
+	 ralloc_strcat(&prog->InfoLog,
+		       "warning: Variable sampler array index unsupported.\n"
+		       "This feature of the language was removed in GLSL 1.20 "
+		       "and is unlikely to be supported for 1.10 in Mesa.\n");
+      } else {
+         *offset += array_index->value.u[0] * *array_elements;
+      }
+
+      *array_elements *= deref_arr->array->type->length;
+
+      calc_sampler_offsets(prog, deref_arr->array->as_dereference(),
+                           offset, array_elements, location);
+      break;
+   }
+
+   case ir_type_dereference_record: {
+      ir_dereference_record *deref_record = deref->as_dereference_record();
+      unsigned field_index =
+         deref_record->record->type->field_index(deref_record->field);
+      *location +=
+         deref_record->record->type->record_location_offset(field_index);
+      calc_sampler_offsets(prog, deref_record->record->as_dereference(),
+                           offset, array_elements, location);
+      break;
+   }
+
+   default:
+      unreachable("Invalid deref type");
+      break;
+   }
+}
+
+static int
+get_sampler_uniform_value(class ir_dereference *sampler,
+                          struct gl_shader_program *shader_program,
+                          const struct gl_program *prog)
+{
+   GLuint shader = _mesa_program_enum_to_shader_stage(prog->Target);
+   ir_variable *var = sampler->variable_referenced();
+   unsigned location = var->data.location;
+   unsigned array_elements = 1;
+   unsigned offset = 0;
+
+   calc_sampler_offsets(shader_program, sampler, &offset, &array_elements,
+                        &location);
+
+   assert(shader_program->UniformStorage[location].opaque[shader].active);
+   return shader_program->UniformStorage[location].opaque[shader].index +
+          offset;
 }
 
 /**
@@ -1991,9 +2065,8 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
    if (ir->shadow_comparitor)
       inst->tex_shadow = GL_TRUE;
 
-   inst->sampler = _mesa_get_sampler_uniform_value(ir->sampler,
-						   this->shader_program,
-						   this->prog);
+   inst->sampler = get_sampler_uniform_value(ir->sampler, shader_program,
+                                             prog);
 
    switch (sampler_type->sampler_dimensionality) {
    case GLSL_SAMPLER_DIM_1D:
@@ -2271,8 +2344,7 @@ public:
    {
       this->idx = -1;
       this->program_resource_visitor::process(var);
-
-      var->data.location = this->idx;
+      var->data.param_index = this->idx;
    }
 
 private:
@@ -2294,6 +2366,10 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
    unsigned int size;
 
    (void) row_major;
+
+   /* atomics don't get real storage */
+   if (type->contains_atomic())
+      return;
 
    if (type->is_vector() || type->is_scalar()) {
       size = type->vector_elements;
@@ -2446,6 +2522,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
          case GLSL_TYPE_STRUCT:
          case GLSL_TYPE_ERROR:
          case GLSL_TYPE_INTERFACE:
+         case GLSL_TYPE_FUNCTION:
 	    assert(!"Should not get here.");
 	    break;
 	 }
@@ -2933,6 +3010,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       _mesa_reference_program(ctx, &linked_prog, NULL);
    }
 
+   build_program_resource_list(prog);
    return prog->LinkStatus;
 }
 
@@ -2961,8 +3039,6 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
    if (prog->LinkStatus) {
       if (!ctx->Driver.LinkShader(ctx, prog)) {
 	 prog->LinkStatus = GL_FALSE;
-      } else {
-         build_program_resource_list(prog);
       }
    }
 

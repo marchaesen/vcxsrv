@@ -43,6 +43,7 @@ typedef enum {
     glamor_program_alpha_normal,
     glamor_program_alpha_ca_first,
     glamor_program_alpha_ca_second,
+    glamor_program_alpha_dual_blend,
     glamor_program_alpha_count
 } glamor_program_alpha;
 

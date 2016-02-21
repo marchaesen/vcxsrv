@@ -37,26 +37,26 @@ TODO: document the other workarounds.
 
         <application name="Unigine Heaven (32-bit)" executable="heaven_x86">
             <option name="allow_glsl_extension_directive_midshader" value="true" />
-            <!-- remove disable_blend_func_extended if 4.1 ever comes out -->
-            <option name="disable_blend_func_extended" value="true" />
+            <!-- remove dual_color_blend_by_location if 4.1 ever comes out -->
+            <option name="dual_color_blend_by_location" value="true" />
 	</application>
 
         <application name="Unigine Heaven (64-bit)" executable="heaven_x64">
             <option name="allow_glsl_extension_directive_midshader" value="true" />
-            <!-- remove disable_blend_func_extended if 4.1 ever comes out -->
-            <option name="disable_blend_func_extended" value="true" />
+            <!-- remove dual_color_blend_by_location if 4.1 ever comes out -->
+            <option name="dual_color_blend_by_location" value="true" />
 	</application>
 
         <application name="Unigine Valley (32-bit)" executable="valley_x86">
             <option name="allow_glsl_extension_directive_midshader" value="true" />
-            <!-- remove disable_blend_func_extended if 1.1 ever comes out -->
-            <option name="disable_blend_func_extended" value="true" />
+            <!-- remove dual_color_blend_by_location if 1.1 ever comes out -->
+            <option name="dual_color_blend_by_location" value="true" />
 	</application>
 
         <application name="Unigine Valley (64-bit)" executable="valley_x64">
             <option name="allow_glsl_extension_directive_midshader" value="true" />
-            <!-- remove disable_blend_func_extended if 1.1 ever comes out -->
-            <option name="disable_blend_func_extended" value="true" />
+            <!-- remove dual_color_blend_by_location if 1.1 ever comes out -->
+            <option name="dual_color_blend_by_location" value="true" />
 	</application>
 
         <application name="Unigine OilRush (32-bit)" executable="OilRush_x86">

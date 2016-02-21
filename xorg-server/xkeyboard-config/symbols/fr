@@ -1070,3 +1070,4 @@ xkb_symbols "azerty" {
     key <AB08>	{ [ 	semicolon,	period					] };
     key <AB09>	{ [ 	colon,		slash					] };
     key <AB10>	{ [	exclam,		section					] };
+};

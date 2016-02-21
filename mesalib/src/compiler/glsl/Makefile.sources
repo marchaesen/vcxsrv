@@ -1,0 +1,222 @@
+# shared source lists for Makefile, SConscript, and Android.mk
+
+# libglcpp
+
+LIBGLCPP_FILES = \
+	glcpp/glcpp.h \
+	glcpp/pp.c
+
+LIBGLCPP_GENERATED_FILES = \
+	glcpp/glcpp-lex.c \
+	glcpp/glcpp-parse.c
+
+NIR_GENERATED_FILES = \
+	nir/nir_builder_opcodes.h \
+	nir/nir_constant_expressions.c \
+	nir/nir_opcodes.c \
+	nir/nir_opcodes.h \
+	nir/nir_opt_algebraic.c
+
+NIR_FILES = \
+	nir/nir.c \
+	nir/nir.h \
+	nir/nir_array.h \
+	nir/nir_builder.h \
+	nir/nir_clone.c \
+	nir/nir_constant_expressions.h \
+	nir/nir_control_flow.c \
+	nir/nir_control_flow.h \
+	nir/nir_control_flow_private.h \
+	nir/nir_dominance.c \
+	nir/nir_from_ssa.c \
+	nir/nir_gs_count_vertices.c \
+	nir/nir_intrinsics.c \
+	nir/nir_intrinsics.h \
+	nir/nir_instr_set.c \
+	nir/nir_instr_set.h \
+	nir/nir_liveness.c \
+	nir/nir_lower_alu_to_scalar.c \
+	nir/nir_lower_atomics.c \
+	nir/nir_lower_clip.c \
+	nir/nir_lower_global_vars_to_local.c \
+	nir/nir_lower_gs_intrinsics.c \
+	nir/nir_lower_load_const_to_scalar.c \
+	nir/nir_lower_locals_to_regs.c \
+	nir/nir_lower_idiv.c \
+	nir/nir_lower_io.c \
+	nir/nir_lower_outputs_to_temporaries.c \
+	nir/nir_lower_phis_to_scalar.c \
+	nir/nir_lower_samplers.c \
+	nir/nir_lower_system_values.c \
+	nir/nir_lower_tex.c \
+	nir/nir_lower_to_source_mods.c \
+	nir/nir_lower_two_sided_color.c \
+	nir/nir_lower_vars_to_ssa.c \
+	nir/nir_lower_var_copies.c \
+	nir/nir_lower_vec_to_movs.c \
+	nir/nir_metadata.c \
+	nir/nir_move_vec_src_uses_to_dest.c \
+	nir/nir_normalize_cubemap_coords.c \
+	nir/nir_opt_constant_folding.c \
+	nir/nir_opt_copy_propagate.c \
+	nir/nir_opt_cse.c \
+	nir/nir_opt_dce.c \
+	nir/nir_opt_dead_cf.c \
+	nir/nir_opt_gcm.c \
+	nir/nir_opt_global_to_local.c \
+	nir/nir_opt_peephole_select.c \
+	nir/nir_opt_remove_phis.c \
+	nir/nir_opt_undef.c \
+	nir/nir_print.c \
+	nir/nir_remove_dead_variables.c \
+	nir/nir_search.c \
+	nir/nir_search.h \
+	nir/nir_split_var_copies.c \
+	nir/nir_sweep.c \
+	nir/nir_to_ssa.c \
+	nir/nir_validate.c \
+	nir/nir_vla.h \
+	nir/nir_worklist.c \
+	nir/nir_worklist.h
+
+# libglsl
+
+LIBGLSL_FILES = \
+	ast.h \
+	ast_array_index.cpp \
+	ast_expr.cpp \
+	ast_function.cpp \
+	ast_to_hir.cpp \
+	ast_type.cpp \
+	blob.c \
+	blob.h \
+	builtin_functions.cpp \
+	builtin_types.cpp \
+	builtin_variables.cpp \
+	glsl_parser_extras.cpp \
+	glsl_parser_extras.h \
+	glsl_symbol_table.cpp \
+	glsl_symbol_table.h \
+	hir_field_selection.cpp \
+	ir_basic_block.cpp \
+	ir_basic_block.h \
+	ir_builder.cpp \
+	ir_builder.h \
+	ir_clone.cpp \
+	ir_constant_expression.cpp \
+	ir.cpp \
+	ir.h \
+	ir_equals.cpp \
+	ir_expression_flattening.cpp \
+	ir_expression_flattening.h \
+	ir_function_can_inline.cpp \
+	ir_function_detect_recursion.cpp \
+	ir_function_inlining.h \
+	ir_function.cpp \
+	ir_hierarchical_visitor.cpp \
+	ir_hierarchical_visitor.h \
+	ir_hv_accept.cpp \
+	ir_import_prototypes.cpp \
+	ir_optimization.h \
+	ir_print_visitor.cpp \
+	ir_print_visitor.h \
+	ir_reader.cpp \
+	ir_reader.h \
+	ir_rvalue_visitor.cpp \
+	ir_rvalue_visitor.h \
+	ir_set_program_inouts.cpp \
+	ir_uniform.h \
+	ir_validate.cpp \
+	ir_variable_refcount.cpp \
+	ir_variable_refcount.h \
+	ir_visitor.h \
+	linker.cpp \
+	linker.h \
+	link_atomics.cpp \
+	link_functions.cpp \
+	link_interface_blocks.cpp \
+	link_uniforms.cpp \
+	link_uniform_initializers.cpp \
+	link_uniform_block_active_visitor.cpp \
+	link_uniform_block_active_visitor.h \
+	link_uniform_blocks.cpp \
+	link_varyings.cpp \
+	link_varyings.h \
+	list.h \
+	loop_analysis.cpp \
+	loop_analysis.h \
+	loop_controls.cpp \
+	loop_unroll.cpp \
+	lower_buffer_access.cpp \
+	lower_buffer_access.h \
+	lower_clip_distance.cpp \
+	lower_const_arrays_to_uniforms.cpp \
+	lower_discard.cpp \
+	lower_discard_flow.cpp \
+	lower_if_to_cond_assign.cpp \
+	lower_instructions.cpp \
+	lower_jumps.cpp \
+	lower_mat_op_to_vec.cpp \
+	lower_noise.cpp \
+	lower_offset_array.cpp \
+	lower_packed_varyings.cpp \
+	lower_named_interface_blocks.cpp \
+	lower_packing_builtins.cpp \
+	lower_subroutine.cpp \
+	lower_tess_level.cpp \
+	lower_texture_projection.cpp \
+	lower_variable_index_to_cond_assign.cpp \
+	lower_vec_index_to_cond_assign.cpp \
+	lower_vec_index_to_swizzle.cpp \
+	lower_vector.cpp \
+	lower_vector_derefs.cpp \
+	lower_vector_insert.cpp \
+	lower_vertex_id.cpp \
+	lower_output_reads.cpp \
+	lower_shared_reference.cpp \
+	lower_ubo_reference.cpp \
+	opt_algebraic.cpp \
+	opt_array_splitting.cpp \
+	opt_conditional_discard.cpp \
+	opt_constant_folding.cpp \
+	opt_constant_propagation.cpp \
+	opt_constant_variable.cpp \
+	opt_copy_propagation.cpp \
+	opt_copy_propagation_elements.cpp \
+	opt_dead_builtin_variables.cpp \
+	opt_dead_builtin_varyings.cpp \
+	opt_dead_code.cpp \
+	opt_dead_code_local.cpp \
+	opt_dead_functions.cpp \
+	opt_flatten_nested_if_blocks.cpp \
+	opt_flip_matrices.cpp \
+	opt_function_inlining.cpp \
+	opt_if_simplification.cpp \
+	opt_minmax.cpp \
+	opt_noop_swizzle.cpp \
+	opt_rebalance_tree.cpp \
+	opt_redundant_jumps.cpp \
+	opt_structure_splitting.cpp \
+	opt_swizzle_swizzle.cpp \
+	opt_tree_grafting.cpp \
+	opt_vectorize.cpp \
+	program.h \
+	s_expression.cpp \
+	s_expression.h
+
+# glsl to nir pass
+GLSL_TO_NIR_FILES = \
+	nir/glsl_to_nir.cpp \
+	nir/glsl_to_nir.h
+
+# glsl_compiler
+
+GLSL_COMPILER_CXX_FILES = \
+	standalone_scaffolding.cpp \
+	standalone_scaffolding.h \
+	main.cpp
+
+# libglsl generated sources
+LIBGLSL_GENERATED_CXX_FILES = \
+	glsl_lexer.cpp \
+	glsl_parser.cpp
