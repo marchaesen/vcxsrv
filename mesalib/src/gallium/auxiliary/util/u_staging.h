@@ -42,22 +42,26 @@
 struct util_staging_transfer {
    struct pipe_transfer base;
 
-   /* if direct, same as base.resource, otherwise the temporary staging resource */
+   /* if direct, same as base.resource, otherwise the temporary staging
+    * resource
+    */
    struct pipe_resource *staging_resource;
 };
 
-/* user must be stride, slice_stride and offset */
-/* pt->usage == PIPE_USAGE_DYNAMIC || pt->usage == PIPE_USAGE_STAGING should be a good value to pass for direct */
-/* staging resource is currently created with PIPE_USAGE_STAGING */
+/* user must be stride, slice_stride and offset.
+ * pt->usage == PIPE_USAGE_DYNAMIC || pt->usage == PIPE_USAGE_STAGING
+ * should be a good value to pass for direct staging resource is currently
+ * created with PIPE_USAGE_STAGING
+ */
 struct util_staging_transfer *
 util_staging_transfer_init(struct pipe_context *pipe,
-           struct pipe_resource *pt,
-           unsigned level,
-           unsigned usage,
-           const struct pipe_box *box,
-           boolean direct, struct util_staging_transfer *tx);
+                           struct pipe_resource *pt,
+                           unsigned level, unsigned usage,
+                           const struct pipe_box *box,
+                           boolean direct, struct util_staging_transfer *tx);
 
 void
-util_staging_transfer_destroy(struct pipe_context *pipe, struct pipe_transfer *ptx);
+util_staging_transfer_destroy(struct pipe_context *pipe,
+                              struct pipe_transfer *ptx);
 
 #endif

@@ -35,8 +35,7 @@
 
 void
 glamor_set_destination_drawable(DrawablePtr     drawable,
-                                int             box_x,
-                                int             box_y,
+                                int             box_index,
                                 Bool            do_drawable_translate,
                                 Bool            center_offset,
                                 GLint           matrix_uniform_location,
@@ -48,7 +47,7 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     int off_x, off_y;
-    BoxPtr box = glamor_pixmap_box_at(pixmap_priv, box_x, box_y);
+    BoxPtr box = glamor_pixmap_box_at(pixmap_priv, box_index);
     int w = box->x2 - box->x1;
     int h = box->y2 - box->y1;
     float scale_x = 2.0f / (float) w;
@@ -77,8 +76,6 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
      *  gl_x = (render_x + drawable->x + off_x) * 2 / width - 1
      *
      *  gl_x = (render_x) * 2 / width + (drawable->x + off_x) * 2 / width - 1
-     *
-     * I'll think about yInverted later, when I have some way to test
      */
 
     if (do_drawable_translate) {
@@ -97,7 +94,7 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
                 scale_x, (off_x + center_adjust) * scale_x - 1.0f,
                 scale_y, (off_y + center_adjust) * scale_y - 1.0f);
 
-    glamor_set_destination_pixmap_fbo(glamor_priv, glamor_pixmap_fbo_at(pixmap_priv, box_x, box_y),
+    glamor_set_destination_pixmap_fbo(glamor_priv, glamor_pixmap_fbo_at(pixmap_priv, box_index),
                                       0, 0, w, h);
 }
 
@@ -111,11 +108,17 @@ glamor_set_color(PixmapPtr      pixmap,
                  CARD32         pixel,
                  GLint          uniform)
 {
+    glamor_screen_private *glamor_priv =
+        glamor_get_screen_private((pixmap)->drawable.pScreen);
     float       color[4];
 
     glamor_get_rgba_from_pixel(pixel,
                                &color[0], &color[1], &color[2], &color[3],
                                format_for_pixmap(pixmap));
+
+    if ((pixmap->drawable.depth == 1 || pixmap->drawable.depth == 8) &&
+	glamor_priv->one_channel_format == GL_RED)
+      color[0] = color[3];
 
     glUniform4fv(uniform, 1, color);
 }

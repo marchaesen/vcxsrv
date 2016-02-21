@@ -1,0 +1,91 @@
+# Mesa 3-D graphics library
+#
+# Copyright (C) 2010-2011 Chia-I Wu <olvaffe@gmail.com>
+# Copyright (C) 2010-2011 LunarG Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# included by glsl Android.mk for source generation
+
+ifeq ($(LOCAL_MODULE_CLASS),)
+LOCAL_MODULE_CLASS := STATIC_LIBRARIES
+endif
+
+intermediates := $(call local-generated-sources-dir)
+
+LOCAL_SRC_FILES := $(LOCAL_SRC_FILES)
+
+LOCAL_C_INCLUDES += \
+	$(intermediates)/nir \
+	$(MESA_TOP)/src/compiler/nir
+
+LOCAL_EXPORT_C_INCLUDE_DIRS += \
+	$(intermediates)/nir \
+	$(MESA_TOP)/src/compiler/nir
+
+LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
+	$(NIR_GENERATED_FILES))
+
+
+nir_builder_opcodes_gen := $(LOCAL_PATH)/nir/nir_builder_opcodes_h.py
+nir_builder_opcodes_deps := \
+	$(LOCAL_PATH)/nir/nir_opcodes.py \
+	$(LOCAL_PATH)/nir/nir_builder_opcodes_h.py
+
+$(intermediates)/nir/nir_builder_opcodes.h: $(nir_builder_opcodes_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(nir_builder_opcodes_gen) $< > $@
+
+nir_constant_expressions_gen := $(LOCAL_PATH)/nir/nir_constant_expressions.py
+nir_constant_expressions_deps := \
+	$(LOCAL_PATH)/nir/nir_opcodes.py \
+	$(LOCAL_PATH)/nir/nir_constant_expressions.py
+
+$(intermediates)/nir/nir_constant_expressions.c: $(nir_constant_expressions_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(nir_constant_expressions_gen) $< > $@
+
+nir_opcodes_h_gen := $(LOCAL_PATH)/nir/nir_opcodes_h.py
+nir_opcodes_h_deps := \
+	$(LOCAL_PATH)/nir/nir_opcodes.py \
+	$(LOCAL_PATH)/nir/nir_opcodes_h.py
+
+$(intermediates)/nir/nir_opcodes.h: $(nir_opcodes_h_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(nir_opcodes_h_gen) $< > $@
+
+$(LOCAL_PATH)/nir/nir.h: $(intermediates)/nir/nir_opcodes.h
+
+nir_opcodes_c_gen := $(LOCAL_PATH)/nir/nir_opcodes_c.py
+nir_opcodes_c_deps := \
+	$(LOCAL_PATH)/nir/nir_opcodes.py \
+	$(LOCAL_PATH)/nir/nir_opcodes_c.py
+
+$(intermediates)/nir/nir_opcodes.c: $(nir_opcodes_c_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(nir_opcodes_c_gen) $< > $@
+
+nir_opt_algebraic_gen := $(LOCAL_PATH)/nir/nir_opt_algebraic.py
+nir_opt_algebraic_deps := \
+	$(LOCAL_PATH)/nir/nir_opt_algebraic.py \
+	$(LOCAL_PATH)/nir/nir_algebraic.py
+
+$(intermediates)/nir/nir_opt_algebraic.c: $(nir_opt_algebraic_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(nir_opt_algebraic_gen) $< > $@

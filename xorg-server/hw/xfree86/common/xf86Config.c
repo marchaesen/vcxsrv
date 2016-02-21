@@ -46,10 +46,8 @@
 #include <xorg-config.h>
 #endif
 
-#ifdef XF86DRI
 #include <sys/types.h>
 #include <grp.h>
-#endif
 
 #include "xf86.h"
 #include "xf86Modes.h"
@@ -132,9 +130,7 @@ static Bool configInput(InputInfoPtr pInfo, XF86ConfInputPtr conf_input,
 static Bool configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display);
 static Bool addDefaultModes(MonPtr monitorp);
 
-#ifdef XF86DRI
 static void configDRI(XF86ConfDRIPtr drip);
-#endif
 static void configExtensions(XF86ConfExtensionsPtr conf_ext);
 
 /*
@@ -2218,7 +2214,6 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active, Bool g
     return TRUE;
 }
 
-#ifdef XF86DRI
 static void
 configDRI(XF86ConfDRIPtr drip)
 {
@@ -2239,7 +2234,6 @@ configDRI(XF86ConfDRIPtr drip)
         xf86ConfigDRI.mode = drip->dri_mode;
     }
 }
-#endif
 
 static void
 configExtensions(XF86ConfExtensionsPtr conf_ext)
@@ -2532,9 +2526,7 @@ xf86HandleConfigFile(Bool autoconfig)
     configServerFlags(xf86configptr->conf_flags, xf86ConfigLayout.options);
     configFiles(xf86configptr->conf_files);
     configExtensions(xf86configptr->conf_extensions);
-#ifdef XF86DRI
     configDRI(xf86configptr->conf_dri);
-#endif
 
     checkInput(&xf86ConfigLayout, implicit_layout);
 

@@ -195,4 +195,16 @@ u_box_minify_2d(struct pipe_box *dst,
    dst->height = MAX2(src->height >> l, 1);
 }
 
+static inline void
+u_box_minify_3d(struct pipe_box *dst,
+                const struct pipe_box *src, unsigned l)
+{
+   dst->x = src->x >> l;
+   dst->y = src->y >> l;
+   dst->z = src->z >> l;
+   dst->width = MAX2(src->width >> l, 1);
+   dst->height = MAX2(src->height >> l, 1);
+   dst->depth = MAX2(src->depth >> l, 1);
+}
+
 #endif

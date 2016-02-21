@@ -88,65 +88,6 @@
 #include <intrin.h>
 #include <assert.h>
 
-#if _MSC_VER < 1600
-
-/* Implement _InterlockedCompareExchange8 in terms of _InterlockedCompareExchange16 */
-static __inline char
-_InterlockedCompareExchange8(char volatile *destination8, char exchange8, char comparand8)
-{
-   INT_PTR destinationAddr = (INT_PTR)destination8;
-   short volatile *destination16 = (short volatile *)(destinationAddr & ~1);
-   const short shift8 = (destinationAddr & 1) * 8;
-   const short mask8 = 0xff << shift8;
-   short initial16 = *destination16;
-   char initial8 = initial16 >> shift8;
-   while (initial8 == comparand8) {
-      /* initial *destination8 matches, so try exchange it while keeping the
-       * neighboring byte untouched */
-      short exchange16 = (initial16 & ~mask8) | ((short)exchange8 << shift8);
-      short comparand16 = initial16;
-      short initial16 = _InterlockedCompareExchange16(destination16, exchange16, comparand16);
-      if (initial16 == comparand16) {
-         /* succeeded */
-         return comparand8;
-      }
-      /* something changed, retry with the new initial value */
-      initial8 = initial16 >> shift8;
-   }
-   return initial8;
-}
-
-/* Implement _InterlockedExchangeAdd16 in terms of _InterlockedCompareExchange16 */
-static __inline short
-_InterlockedExchangeAdd16(short volatile *addend, short value)
-{
-   short initial = *addend;
-   short comparand;
-   do {
-      short exchange = initial + value;
-      comparand = initial;
-      /* if *addend==comparand then *addend=exchange, return original *addend */
-      initial = _InterlockedCompareExchange16(addend, exchange, comparand);
-   } while(initial != comparand);
-   return comparand;
-}
-
-/* Implement _InterlockedExchangeAdd8 in terms of _InterlockedCompareExchange8 */
-static __inline char
-_InterlockedExchangeAdd8(char volatile *addend, char value)
-{
-   char initial = *addend;
-   char comparand;
-   do {
-      char exchange = initial + value;
-      comparand = initial;
-      initial = _InterlockedCompareExchange8(addend, exchange, comparand);
-   } while(initial != comparand);
-   return comparand;
-}
-
-#endif /* _MSC_VER < 1600 */
-
 /* MSVC supports decltype keyword, but it's only supported on C++ and doesn't
  * quite work here; and if a C++-only solution is worthwhile, then it would be
  * better to use templates / function overloading, instead of decltype magic.

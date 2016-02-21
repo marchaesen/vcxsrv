@@ -464,45 +464,6 @@ void
 debug_memory_end(unsigned long beginning);
 
 
-#ifdef DEBUG
-struct pipe_context;
-struct pipe_surface;
-struct pipe_transfer;
-struct pipe_resource;
-
-void debug_dump_image(const char *prefix,
-                      enum pipe_format format, unsigned cpp,
-                      unsigned width, unsigned height,
-                      unsigned stride,
-                      const void *data);
-void debug_dump_surface(struct pipe_context *pipe,
-			const char *prefix,
-                        struct pipe_surface *surface);   
-void debug_dump_texture(struct pipe_context *pipe,
-			const char *prefix,
-                        struct pipe_resource *texture);
-void debug_dump_surface_bmp(struct pipe_context *pipe,
-                            const char *filename,
-                            struct pipe_surface *surface);
-void debug_dump_transfer_bmp(struct pipe_context *pipe,
-                             const char *filename,
-                             struct pipe_transfer *transfer, void *ptr);
-void debug_dump_float_rgba_bmp(const char *filename,
-                               unsigned width, unsigned height,
-                               float *rgba, unsigned stride);
-void debug_dump_ubyte_rgba_bmp(const char *filename,
-                               unsigned width, unsigned height,
-                               const ubyte *rgba, unsigned stride);
-#else
-#define debug_dump_image(prefix, format, cpp, width, height, stride, data) ((void)0)
-#define debug_dump_surface(pipe, prefix, surface) ((void)0)
-#define debug_dump_surface_bmp(pipe, filename, surface) ((void)0)
-#define debug_dump_transfer_bmp(filename, transfer, ptr) ((void)0)
-#define debug_dump_float_rgba_bmp(filename, width, height, rgba, stride) ((void)0)
-#define debug_dump_ubyte_rgba_bmp(filename, width, height, rgba, stride) ((void)0)
-#endif
-
-
 void
 debug_print_transfer_flags(const char *msg, unsigned usage);
 

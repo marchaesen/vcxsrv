@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.1.2 Release Notes / February 10, 2016</h1>
+
+<p>
+Mesa 11.1.2 is a bug fix release which fixes bugs found since the 11.1.1 release.
+</p>
+<p>
+Mesa 11.1.2 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+ba0e7462b2936b86e6684c26fbb55519f8d9ad31d13a1c1e1afbe41e73466eea  mesa-11.1.2.tar.gz
+8f72aead896b340ba0f7a4a474bfaf71681f5d675592aec1cb7ba698e319148b  mesa-11.1.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91596">Bug 91596</a> - EGL_KHR_gl_colorspace (v2) causes problem with Android-x86 GUI</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93628">Bug 93628</a> - Exception: attempt to use unavailable module DRM when building MesaGL 11.1.0 on windows</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93648">Bug 93648</a> - Random lines being rendered when playing Dolphin (geometry shaders related, w/ apitrace)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93650">Bug 93650</a> - GL_ARB_separate_shader_objects is buggy (PCSX2)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93717">Bug 93717</a> - Meta mipmap generation can corrupt texture state</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93722">Bug 93722</a> - Segfault when compiling shader with a subroutine that takes a parameter</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93731">Bug 93731</a> - glUniformSubroutinesuiv segfaults when subroutine uniform is bound to a specific location</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93761">Bug 93761</a> - A conditional discard in a fragment shader causes no depth writing at all</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Ben Widawsky (1):</p>
+<ul>
+  <li>i965/bxt: Fix conservative wm thread counts.</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>glsl: fix subroutine lowering reusing actual parmaters</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.1.1</li>
+  <li>cherry-ignore: drop the i965/kbl .num_slices patch</li>
+  <li>i915: correctly parse/set the context flags</li>
+  <li>targets/dri: android: use WHOLE static libraries</li>
+  <li>egl/dri2: expose srgb configs when KHR_gl_colorspace is available</li>
+  <li>Update version to 11.1.2</li>
+</ul>
+
+<p>Eric Anholt (2):</p>
+<ul>
+  <li>vc4: Don't record the seqno of a failed job submit.</li>
+  <li>vc4: Throttle outstanding rendering after submission.</li>
+</ul>
+
+<p>François Tigeot (1):</p>
+<ul>
+  <li>gallium: Add DragonFly support</li>
+</ul>
+
+<p>Grazvydas Ignotas (1):</p>
+<ul>
+  <li>r600g: don't leak driver const buffers</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>meta/blit: Restore GL_DEPTH_STENCIL_TEXTURE_MODE state for GL_TEXTURE_RECTANGLE</li>
+  <li>meta: Use internal functions to set texture parameters</li>
+</ul>
+
+<p>Ilia Mirkin (6):</p>
+<ul>
+  <li>st/mesa: use surface format to generate mipmaps when available</li>
+  <li>glsl: always compute proper varying type, irrespective of varying packing</li>
+  <li>nvc0: avoid crashing when there are holes in vertex array bindings</li>
+  <li>nv50,nvc0: fix buffer clearing to respect engine alignment requirements</li>
+  <li>nv50/ir: fix false global CSE on instructions with multiple defs</li>
+  <li>st/mesa: treat a write as a read for range purposes</li>
+</ul>
+
+<p>Jason Ekstrand (3):</p>
+<ul>
+  <li>i965/vec4: Use UW type for multiply into accumulator on GEN8+</li>
+  <li>i965/fs/generator: Take an actual shader stage rather than a string</li>
+  <li>i965/fs: Always set channel 2 of texture headers in some stages</li>
+</ul>
+
+<p>Jose Fonseca (2):</p>
+<ul>
+  <li>scons: Conditionally use DRM module on pipe-loader.</li>
+  <li>pipe-loader: Fix PATH_MAX define on MSVC.</li>
+</ul>
+
+<p>Karol Herbst (1):</p>
+<ul>
+  <li>nv50/ir: fix memory corruption when spilling and redoing RA</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>glsl: Make bitfield_insert/extract and bfi/bfm non-vectorizable.</li>
+  <li>glsl: Allow implicit int -&gt; uint conversions for bitwise operators (&amp;, ^, |).</li>
+</ul>
+
+<p>Leo Liu (2):</p>
+<ul>
+  <li>vl: add zig zag scan for list 4x4</li>
+  <li>st/omx/dec/h264: fix corruption when scaling matrix present flag set</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>radeonsi: don't miss changes to SPI_TMPRING_SIZE</li>
+</ul>
+
+<p>Nicolai Hähnle (11):</p>
+<ul>
+  <li>mesa/bufferobj: make _mesa_delete_buffer_object externally accessible</li>
+  <li>st/mesa: use _mesa_delete_buffer_object</li>
+  <li>radeon: use _mesa_delete_buffer_object</li>
+  <li>i915: use _mesa_delete_buffer_object</li>
+  <li>i965: use _mesa_delete_buffer_object</li>
+  <li>util/u_pstipple.c: copy immediates during transformation</li>
+  <li>radeonsi: extract the VGT_GS_MODE calculation into its own function</li>
+  <li>radeonsi: ensure that VGT_GS_MODE is sent when necessary</li>
+  <li>radeonsi: add DCC buffer for sampler views on new CS</li>
+  <li>st/mesa: use the correct address generation functions in st_TexSubImage blit</li>
+  <li>radeonsi: fix discard-only fragment shaders (11.1 version)</li>
+</ul>
+
+<p>Timothy Arceri (4):</p>
+<ul>
+  <li>glsl: fix segfault linking subroutine uniform with explicit location</li>
+  <li>mesa: fix segfault in glUniformSubroutinesuiv()</li>
+  <li>glsl: fix interface block error message</li>
+  <li>glsl: create helper to remove outer vertex index array used by some stages</li>
+</ul>
+
+
+</div>
+</body>
+</html>

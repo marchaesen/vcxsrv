@@ -282,7 +282,8 @@ set_add(struct set *ht, uint32_t hash, const void *key)
        * If freeing of old keys is required to avoid memory leaks,
        * perform a search before inserting.
        */
-      if (entry->hash == hash &&
+      if (!entry_is_deleted(entry) &&
+          entry->hash == hash &&
           ht->key_equals_function(key, entry->key)) {
          entry->key = key;
          return entry;

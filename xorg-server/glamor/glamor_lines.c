@@ -44,7 +44,7 @@ glamor_poly_lines_solid_gl(DrawablePtr drawable, GCPtr gc,
     int off_x, off_y;
     DDXPointPtr v;
     char *vbo_offset;
-    int box_x, box_y;
+    int box_index;
     int add_last;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
@@ -99,11 +99,11 @@ glamor_poly_lines_solid_gl(DrawablePtr drawable, GCPtr gc,
 
     glEnable(GL_SCISSOR_TEST);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+    glamor_pixmap_loop(pixmap_priv, box_index) {
         int nbox = RegionNumRects(gc->pCompositeClip);
         BoxPtr box = RegionRects(gc->pCompositeClip);
 
-        glamor_set_destination_drawable(drawable, box_x, box_y, TRUE, TRUE,
+        glamor_set_destination_drawable(drawable, box_index, TRUE, TRUE,
                                         prog->matrix_uniform, &off_x, &off_y);
 
         while (nbox--) {

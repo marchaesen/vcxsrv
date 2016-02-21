@@ -456,11 +456,11 @@ _mesa_get_viewport_xform(struct gl_context *ctx, unsigned i,
    translate[0] = half_width + x;
    if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT) {
       scale[1] = -half_height;
-      translate[1] = half_height - y;
    } else {
       scale[1] = half_height;
-      translate[1] = half_height + y;
    }
+   translate[1] = half_height + y;
+
    if (ctx->Transform.ClipDepthMode == GL_NEGATIVE_ONE_TO_ONE) {
       scale[2] = 0.5 * (f - n);
       translate[2] = 0.5 * (n + f);

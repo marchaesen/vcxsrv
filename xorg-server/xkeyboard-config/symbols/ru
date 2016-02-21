@@ -15,10 +15,12 @@ xkb_symbols "winkeys" {
     key <AE05> { [           5,     percent  ] };
     key <AE06> { [           6,       colon  ] };
     key <AE07> { [           7,    question  ] };
-    key <AE08> { [           8,    asterisk  ] };
+    key <AE08> { [           8,    asterisk, U20BD  ] };
 
     key <AB10> { [      period,       comma  ] };
     key <BKSL> { [   backslash,       slash  ] };
+
+    include "level3(ralt_switch)"
 };
 
 hidden partial alphanumeric_keys
@@ -718,4 +720,8 @@ xkb_symbols "mac" {
     key <AE08> { [             8,    semicolon  ] };
     key <TLDE> { [  bracketright,  bracketleft  ] };
     key <BKSL> { [   Cyrillic_io,  Cyrillic_IO  ] };
+
+    key <AC06> { [   Cyrillic_er,  Cyrillic_ER, U20BD ] };
+
+    include "level3(ralt_switch)"
 };

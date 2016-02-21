@@ -858,46 +858,40 @@ _mesa_readpixels(struct gl_context *ctx,
                  const struct gl_pixelstore_attrib *packing,
                  GLvoid *pixels)
 {
-   struct gl_pixelstore_attrib clippedPacking = *packing;
-
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   /* Do all needed clipping here, so that we can forget about it later */
-   if (_mesa_clip_readpixels(ctx, &x, &y, &width, &height, &clippedPacking)) {
+   pixels = _mesa_map_pbo_dest(ctx, packing, pixels);
 
-      pixels = _mesa_map_pbo_dest(ctx, &clippedPacking, pixels);
-
-      if (pixels) {
-         /* Try memcpy first. */
-         if (readpixels_memcpy(ctx, x, y, width, height, format, type,
-                               pixels, packing)) {
-            _mesa_unmap_pbo_dest(ctx, &clippedPacking);
-            return;
-         }
-
-         /* Otherwise take the slow path. */
-         switch (format) {
-         case GL_STENCIL_INDEX:
-            read_stencil_pixels(ctx, x, y, width, height, type, pixels,
-                                &clippedPacking);
-            break;
-         case GL_DEPTH_COMPONENT:
-            read_depth_pixels(ctx, x, y, width, height, type, pixels,
-                              &clippedPacking);
-            break;
-         case GL_DEPTH_STENCIL_EXT:
-            read_depth_stencil_pixels(ctx, x, y, width, height, type, pixels,
-                                      &clippedPacking);
-            break;
-         default:
-            /* all other formats should be color formats */
-            read_rgba_pixels(ctx, x, y, width, height, format, type, pixels,
-                             &clippedPacking);
-         }
-
-         _mesa_unmap_pbo_dest(ctx, &clippedPacking);
+   if (pixels) {
+      /* Try memcpy first. */
+      if (readpixels_memcpy(ctx, x, y, width, height, format, type,
+                            pixels, packing)) {
+         _mesa_unmap_pbo_dest(ctx, packing);
+         return;
       }
+
+      /* Otherwise take the slow path. */
+      switch (format) {
+      case GL_STENCIL_INDEX:
+         read_stencil_pixels(ctx, x, y, width, height, type, pixels,
+                             packing);
+         break;
+      case GL_DEPTH_COMPONENT:
+         read_depth_pixels(ctx, x, y, width, height, type, pixels,
+                           packing);
+         break;
+      case GL_DEPTH_STENCIL_EXT:
+         read_depth_stencil_pixels(ctx, x, y, width, height, type, pixels,
+                                   packing);
+         break;
+      default:
+         /* all other formats should be color formats */
+         read_rgba_pixels(ctx, x, y, width, height, format, type, pixels,
+                          packing);
+      }
+
+      _mesa_unmap_pbo_dest(ctx, packing);
    }
 }
 
@@ -993,6 +987,7 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
 {
    GLenum err = GL_NO_ERROR;
    struct gl_renderbuffer *rb;
+   struct gl_pixelstore_attrib clippedPacking;
 
    GET_CURRENT_CONTEXT(ctx);
 
@@ -1094,7 +1089,9 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
       }
    }
 
-   if (width == 0 || height == 0)
+   /* Do all needed clipping here, so that we can forget about it later */
+   clippedPacking = ctx->Pack;
+   if (!_mesa_clip_readpixels(ctx, &x, &y, &width, &height, &clippedPacking))
       return; /* nothing to do */
 
    if (!_mesa_validate_pbo_access(2, &ctx->Pack, width, height, 1,
@@ -1118,7 +1115,7 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
    }
 
    ctx->Driver.ReadPixels(ctx, x, y, width, height,
-			  format, type, &ctx->Pack, pixels);
+                          format, type, &clippedPacking, pixels);
 }
 
 void GLAPIENTRY

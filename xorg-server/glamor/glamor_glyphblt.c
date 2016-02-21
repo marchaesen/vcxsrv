@@ -48,7 +48,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
     glamor_pixmap_private *pixmap_priv;
     glamor_program *prog;
     RegionPtr clip = gc->pCompositeClip;
-    int box_x, box_y;
+    int box_index;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -67,7 +67,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
     start_x += drawable->x;
     y += drawable->y;
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+    glamor_pixmap_loop(pixmap_priv, box_index) {
         int x;
         int n;
         int num_points, max_points;
@@ -75,7 +75,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
         int off_x, off_y;
         char *vbo_offset;
 
-        glamor_set_destination_drawable(drawable, box_x, box_y, FALSE, TRUE,
+        glamor_set_destination_drawable(drawable, box_index, FALSE, TRUE,
                                         prog->matrix_uniform, &off_x, &off_y);
 
         max_points = 500;
@@ -169,7 +169,7 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
     int bitmap_stride = bitmap->devKind;
     glamor_program *prog;
     RegionPtr clip = gc->pCompositeClip;
-    int box_x, box_y;
+    int box_index;
     int yy, xx;
     int num_points;
     INT16 *points = NULL;
@@ -220,8 +220,8 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
 
     glamor_put_vbo_space(screen);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
-        glamor_set_destination_drawable(drawable, box_x, box_y, FALSE, TRUE,
+    glamor_pixmap_loop(pixmap_priv, box_index) {
+        glamor_set_destination_drawable(drawable, box_index, FALSE, TRUE,
                                         prog->matrix_uniform, NULL, NULL);
 
         glDrawArrays(GL_POINTS, 0, num_points);

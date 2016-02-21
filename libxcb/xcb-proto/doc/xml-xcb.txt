@@ -191,10 +191,17 @@ enum; the value is restricted to one of the constants named in the enum.
 "mask" refers to an exhaustive enum to be used as a bitmask.
 "altmask" may be a mask from the referred enum, but it need not be.
 
-<pad bytes="integer" />
+<pad bytes="integer" serialize="bool" />
 
   This element declares some padding in a data structure.  The bytes
   attribute declares the number of bytes of padding.
+
+  If serialize="true", then the pad will be serialized/deserialized.
+  This is only needed for ABI compatibility with legacy.
+  Newly added pads should not be defined with serialize="true".
+
+  The serialize attribute may be omitted.
+  Default is serialize="false".
 
 <field type="identifier" name="identifier" />
 

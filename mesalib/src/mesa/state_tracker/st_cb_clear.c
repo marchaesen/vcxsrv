@@ -44,6 +44,7 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_clear.h"
 #include "st_cb_fbo.h"
+#include "st_draw.h"
 #include "st_format.h"
 #include "st_program.h"
 
@@ -55,8 +56,6 @@
 #include "util/u_framebuffer.h"
 #include "util/u_inlines.h"
 #include "util/u_simple_shaders.h"
-#include "util/u_draw_quad.h"
-#include "util/u_upload_mgr.h"
 
 #include "cso_cache/cso_context.h"
 
@@ -169,67 +168,6 @@ set_vertex_shader_layered(struct st_context *st)
 
 
 /**
- * Draw a screen-aligned quadrilateral.
- * Coords are clip coords with y=0=bottom.
- */
-static void
-draw_quad(struct st_context *st,
-          float x0, float y0, float x1, float y1, GLfloat z,
-          unsigned num_instances,
-          const union pipe_color_union *color)
-{
-   struct cso_context *cso = st->cso_context;
-   struct pipe_vertex_buffer vb = {0};
-   GLuint i;
-   float (*vertices)[2][4];  /**< vertex pos + color */
-
-   vb.stride = 8 * sizeof(float);
-
-   u_upload_alloc(st->uploader, 0, 4 * sizeof(vertices[0]), 4,
-                  &vb.buffer_offset, &vb.buffer,
-                  (void **) &vertices);
-   if (!vb.buffer) {
-      return;
-   }
-
-   /* Convert Z from [0,1] to [-1,1] range */
-   z = z * 2.0f - 1.0f;
-
-   /* positions */
-   vertices[0][0][0] = x0;
-   vertices[0][0][1] = y0;
-
-   vertices[1][0][0] = x1;
-   vertices[1][0][1] = y0;
-
-   vertices[2][0][0] = x1;
-   vertices[2][0][1] = y1;
-
-   vertices[3][0][0] = x0;
-   vertices[3][0][1] = y1;
-
-   /* same for all verts: */
-   for (i = 0; i < 4; i++) {
-      vertices[i][0][2] = z;
-      vertices[i][0][3] = 1.0;
-      vertices[i][1][0] = color->f[0];
-      vertices[i][1][1] = color->f[1];
-      vertices[i][1][2] = color->f[2];
-      vertices[i][1][3] = color->f[3];
-   }
-
-   u_upload_unmap(st->uploader);
-
-   /* draw */
-   cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1, &vb);
-   cso_draw_arrays_instanced(cso, PIPE_PRIM_TRIANGLE_FAN, 0, 4,
-                             0, num_instances);
-   pipe_resource_reference(&vb.buffer, NULL);
-}
-
-
-
-/**
  * Do glClear by drawing a quadrilateral.
  * The vertices of the quad will be computed from the
  * ctx->DrawBuffer->_X/Ymin/max fields.
@@ -238,6 +176,7 @@ static void
 clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
 {
    struct st_context *st = st_context(ctx);
+   struct cso_context *cso = st->cso_context;
    const struct gl_framebuffer *fb = ctx->DrawBuffer;
    const GLfloat fb_width = (GLfloat) fb->Width;
    const GLfloat fb_height = (GLfloat) fb->Height;
@@ -257,21 +196,17 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
 	  x1, y1);
    */
 
-   cso_save_blend(st->cso_context);
-   cso_save_stencil_ref(st->cso_context);
-   cso_save_depth_stencil_alpha(st->cso_context);
-   cso_save_rasterizer(st->cso_context);
-   cso_save_sample_mask(st->cso_context);
-   cso_save_min_samples(st->cso_context);
-   cso_save_viewport(st->cso_context);
-   cso_save_fragment_shader(st->cso_context);
-   cso_save_stream_outputs(st->cso_context);
-   cso_save_vertex_shader(st->cso_context);
-   cso_save_tessctrl_shader(st->cso_context);
-   cso_save_tesseval_shader(st->cso_context);
-   cso_save_geometry_shader(st->cso_context);
-   cso_save_vertex_elements(st->cso_context);
-   cso_save_aux_vertex_buffer_slot(st->cso_context);
+   cso_save_state(cso, (CSO_BIT_BLEND |
+                        CSO_BIT_STENCIL_REF |
+                        CSO_BIT_DEPTH_STENCIL_ALPHA |
+                        CSO_BIT_RASTERIZER |
+                        CSO_BIT_SAMPLE_MASK |
+                        CSO_BIT_MIN_SAMPLES |
+                        CSO_BIT_VIEWPORT |
+                        CSO_BIT_STREAM_OUTPUTS |
+                        CSO_BIT_VERTEX_ELEMENTS |
+                        CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
+                        CSO_BITS_ALL_SHADERS));
 
    /* blend state: RGBA masking */
    {
@@ -298,10 +233,10 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
                blend.rt[i].colormask |= PIPE_MASK_A;
          }
 
-         if (st->ctx->Color.DitherFlag)
+         if (ctx->Color.DitherFlag)
             blend.dither = 1;
       }
-      cso_set_blend(st->cso_context, &blend);
+      cso_set_blend(cso, &blend);
    }
 
    /* depth_stencil state: always pass/set to ref value */
@@ -325,64 +260,49 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
          depth_stencil.stencil[0].valuemask = 0xff;
          depth_stencil.stencil[0].writemask = ctx->Stencil.WriteMask[0] & 0xff;
          stencil_ref.ref_value[0] = ctx->Stencil.Clear;
-         cso_set_stencil_ref(st->cso_context, &stencil_ref);
+         cso_set_stencil_ref(cso, &stencil_ref);
       }
 
-      cso_set_depth_stencil_alpha(st->cso_context, &depth_stencil);
+      cso_set_depth_stencil_alpha(cso, &depth_stencil);
    }
 
-   cso_set_vertex_elements(st->cso_context, 2, st->velems_util_draw);
-   cso_set_stream_outputs(st->cso_context, 0, NULL, NULL);
-   cso_set_sample_mask(st->cso_context, ~0);
-   cso_set_min_samples(st->cso_context, 1);
-   cso_set_rasterizer(st->cso_context, &st->clear.raster);
+   cso_set_vertex_elements(cso, 2, st->util_velems);
+   cso_set_stream_outputs(cso, 0, NULL, NULL);
+   cso_set_sample_mask(cso, ~0);
+   cso_set_min_samples(cso, 1);
+   cso_set_rasterizer(cso, &st->clear.raster);
 
    /* viewport state: viewport matching window dims */
-   {
-      const GLboolean invert = (st_fb_orientation(fb) == Y_0_TOP);
-      struct pipe_viewport_state vp;
-      vp.scale[0] = 0.5f * fb_width;
-      vp.scale[1] = fb_height * (invert ? -0.5f : 0.5f);
-      vp.scale[2] = 0.5f;
-      vp.translate[0] = 0.5f * fb_width;
-      vp.translate[1] = 0.5f * fb_height;
-      vp.translate[2] = 0.5f;
-      cso_set_viewport(st->cso_context, &vp);
-   }
+   cso_set_viewport_dims(st->cso_context, fb_width, fb_height,
+                         st_fb_orientation(fb) == Y_0_TOP);
 
    set_fragment_shader(st);
-   cso_set_tessctrl_shader_handle(st->cso_context, NULL);
-   cso_set_tesseval_shader_handle(st->cso_context, NULL);
+   cso_set_tessctrl_shader_handle(cso, NULL);
+   cso_set_tesseval_shader_handle(cso, NULL);
 
    if (num_layers > 1)
       set_vertex_shader_layered(st);
    else
       set_vertex_shader(st);
 
-   /* We can't translate the clear color to the colorbuffer format,
+   /* draw quad matching scissor rect.
+    *
+    * Note: if we're only clearing depth/stencil we still setup vertices
+    * with color, but they'll be ignored.
+    *
+    * We can't translate the clear color to the colorbuffer format,
     * because different colorbuffers may have different formats.
     */
-
-   /* draw quad matching scissor rect */
-   draw_quad(st, x0, y0, x1, y1, (GLfloat) ctx->Depth.Clear, num_layers,
-             (union pipe_color_union*)&ctx->Color.ClearColor);
+   if (!st_draw_quad(st, x0, y0, x1, y1,
+                     ctx->Depth.Clear * 2.0f - 1.0f,
+                     0.0f, 0.0f, 0.0f, 0.0f,
+                     (const float *) &ctx->Color.ClearColor.f,
+                     num_layers)) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glClear");
+   }
 
    /* Restore pipe state */
-   cso_restore_blend(st->cso_context);
-   cso_restore_stencil_ref(st->cso_context);
-   cso_restore_depth_stencil_alpha(st->cso_context);
-   cso_restore_rasterizer(st->cso_context);
-   cso_restore_sample_mask(st->cso_context);
-   cso_restore_min_samples(st->cso_context);
-   cso_restore_viewport(st->cso_context);
-   cso_restore_fragment_shader(st->cso_context);
-   cso_restore_vertex_shader(st->cso_context);
-   cso_restore_tessctrl_shader(st->cso_context);
-   cso_restore_tesseval_shader(st->cso_context);
-   cso_restore_geometry_shader(st->cso_context);
-   cso_restore_vertex_elements(st->cso_context);
-   cso_restore_aux_vertex_buffer_slot(st->cso_context);
-   cso_restore_stream_outputs(st->cso_context);
+   cso_restore_state(cso);
 }
 
 
@@ -470,7 +390,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
    st_flush_bitmap_cache(st);
 
    /* This makes sure the pipe has the latest scissor, etc values */
-   st_validate_state( st );
+   st_validate_state( st, ST_PIPELINE_RENDER );
 
    if (mask & BUFFER_BITS_COLOR) {
       for (i = 0; i < ctx->DrawBuffer->_NumColorDrawBuffers; i++) {

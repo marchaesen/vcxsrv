@@ -251,7 +251,7 @@ XcmsCIELabToCIEXYZ(
     XcmsCIEXYZ XYZ_return;
     XcmsFloat tmpFloat, tmpL;
     XcmsColor whitePt;
-    int i;
+    unsigned int i;
     XcmsColor *pColor = pColors_in_out;
 
     /*
@@ -354,7 +354,7 @@ XcmsCIEXYZToCIELab(
     XcmsCIELab Lab_return;
     XcmsFloat fX_Xn, fY_Yn, fZ_Zn;
     XcmsColor whitePt;
-    int i;
+    unsigned int i;
     XcmsColor *pColor = pColors_in_out;
 
     /*

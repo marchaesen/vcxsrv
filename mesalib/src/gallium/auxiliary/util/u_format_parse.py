@@ -313,7 +313,7 @@ def _parse_channels(fields, layout, colorspace, swizzles):
     return channels
 
 def parse(filename):
-    '''Parse the format descrition in CSV format in terms of the 
+    '''Parse the format description in CSV format in terms of the
     Channel and Format classes above.'''
 
     stream = open(filename)

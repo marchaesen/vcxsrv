@@ -41,6 +41,9 @@ _mesa_DispatchCompute(GLuint num_groups_x,
    if (!_mesa_validate_DispatchCompute(ctx, num_groups))
       return;
 
+   if (num_groups_x == 0u || num_groups_y == 0u || num_groups_z == 0u)
+       return;
+
    ctx->Driver.DispatchCompute(ctx, num_groups);
 }
 

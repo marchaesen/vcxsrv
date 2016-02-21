@@ -88,6 +88,7 @@ EXT(ARB_point_parameters                    , EXT_point_parameters              
 EXT(ARB_point_sprite                        , ARB_point_sprite                       , GLL, GLC,  x ,  x , 2003)
 EXT(ARB_program_interface_query             , dummy_true                             , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_provoking_vertex                    , EXT_provoking_vertex                   , GLL, GLC,  x ,  x , 2009)
+EXT(ARB_query_buffer_object                 , ARB_query_buffer_object                , GLL, GLC,  x ,  x , 2013)
 EXT(ARB_robustness                          , dummy_true                             , GLL, GLC,  x ,  x , 2010)
 EXT(ARB_sample_shading                      , ARB_sample_shading                     , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_sampler_objects                     , dummy_true                             , GLL, GLC,  x ,  x , 2009)
@@ -165,6 +166,7 @@ EXT(ARB_window_pos                          , dummy_true                        
 EXT(ATI_blend_equation_separate             , EXT_blend_equation_separate            , GLL, GLC,  x ,  x , 2003)
 EXT(ATI_draw_buffers                        , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 EXT(ATI_fragment_shader                     , ATI_fragment_shader                    , GLL,  x ,  x ,  x , 2001)
+EXT(ATI_meminfo                             , ATI_meminfo                            , GLL, GLC,  x ,  x , 2009)
 EXT(ATI_separate_stencil                    , ATI_separate_stencil                   , GLL,  x ,  x ,  x , 2006)
 EXT(ATI_texture_compression_3dc             , ATI_texture_compression_3dc            , GLL,  x ,  x ,  x , 2004)
 EXT(ATI_texture_env_combine3                , ATI_texture_env_combine3               , GLL,  x ,  x ,  x , 2002)
@@ -251,6 +253,8 @@ EXT(EXT_unpack_subimage                     , dummy_true                        
 EXT(EXT_vertex_array                        , dummy_true                             , GLL,  x ,  x ,  x , 1995)
 EXT(EXT_vertex_array_bgra                   , EXT_vertex_array_bgra                  , GLL, GLC,  x ,  x , 2008)
 
+EXT(GREMEDY_string_marker                   , GREMEDY_string_marker                  , GLL, GLC,  x ,  x , 2007)
+
 EXT(IBM_multimode_draw_arrays               , dummy_true                             , GLL, GLC,  x ,  x , 1998)
 EXT(IBM_rasterpos_clip                      , dummy_true                             , GLL,  x ,  x ,  x , 1996)
 EXT(IBM_texture_mirrored_repeat             , dummy_true                             , GLL,  x ,  x ,  x , 1998)
@@ -268,6 +272,8 @@ EXT(MESA_pack_invert                        , MESA_pack_invert                  
 EXT(MESA_texture_signed_rgba                , EXT_texture_snorm                      , GLL, GLC,  x ,  x , 2009)
 EXT(MESA_window_pos                         , dummy_true                             , GLL,  x ,  x ,  x , 2000)
 EXT(MESA_ycbcr_texture                      , MESA_ycbcr_texture                     , GLL, GLC,  x ,  x , 2002)
+
+EXT(NVX_gpu_memory_info                     , NVX_gpu_memory_info                    , GLL, GLC,  x ,  x , 2013)
 
 EXT(NV_blend_square                         , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(NV_conditional_render                   , NV_conditional_render                  , GLL, GLC,  x ,  x , 2008)
@@ -309,6 +315,8 @@ EXT(OES_element_index_uint                  , dummy_true                        
 EXT(OES_fbo_render_mipmap                   , dummy_true                             ,  x ,  x , ES1, ES2, 2005)
 EXT(OES_fixed_point                         , dummy_true                             ,  x ,  x , ES1,  x , 2002)
 EXT(OES_framebuffer_object                  , dummy_true                             ,  x ,  x , ES1,  x , 2005)
+EXT(OES_geometry_point_size                 , OES_geometry_shader                    ,  x ,  x ,  x ,  31, 2015)
+EXT(OES_geometry_shader                     , OES_geometry_shader                    ,  x ,  x ,  x ,  31, 2015)
 EXT(OES_get_program_binary                  , dummy_true                             ,  x ,  x ,  x , ES2, 2008)
 EXT(OES_mapbuffer                           , dummy_true                             ,  x ,  x , ES1, ES2, 2005)
 EXT(OES_packed_depth_stencil                , dummy_true                             ,  x ,  x , ES1, ES2, 2007)
@@ -333,6 +341,7 @@ EXT(OES_texture_half_float                  , OES_texture_half_float            
 EXT(OES_texture_half_float_linear           , OES_texture_half_float_linear          ,  x ,  x ,  x , ES2, 2005)
 EXT(OES_texture_mirrored_repeat             , dummy_true                             ,  x ,  x , ES1,  x , 2005)
 EXT(OES_texture_npot                        , ARB_texture_non_power_of_two           ,  x ,  x , ES1, ES2, 2005)
+EXT(OES_texture_stencil8                    , ARB_texture_stencil8                   ,  x ,  x ,  x ,  30, 2014)
 EXT(OES_texture_storage_multisample_2d_array, ARB_texture_multisample                ,  x ,  x , ES1,  31, 2014)
 EXT(OES_vertex_array_object                 , dummy_true                             ,  x ,  x , ES1, ES2, 2010)
 

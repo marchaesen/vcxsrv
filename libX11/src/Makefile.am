@@ -346,7 +346,6 @@ EXTRA_DIST = \
 
 libX11_xcb_la_SOURCES = x11_xcb.c Xxcbint.h
 libX11_xcb_la_LDFLAGS = -version-number 1:0:0 -no-undefined
-libX11_xcb_la_LIBADD = libX11.la
 
 #
 # Figure out which sub-libraries to link into Xlib

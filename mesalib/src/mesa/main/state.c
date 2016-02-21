@@ -352,7 +352,7 @@ update_multisample(struct gl_context *ctx)
    ctx->Multisample._Enabled = GL_FALSE;
    if (ctx->Multisample.Enabled &&
        ctx->DrawBuffer &&
-       ctx->DrawBuffer->Visual.sampleBuffers)
+       _mesa_geometric_samples(ctx->DrawBuffer) > 0)
       ctx->Multisample._Enabled = GL_TRUE;
 }
 

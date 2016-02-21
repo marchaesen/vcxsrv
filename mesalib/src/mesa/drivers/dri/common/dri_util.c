@@ -46,6 +46,7 @@
 #include "main/mtypes.h"
 #include "main/framebuffer.h"
 #include "main/version.h"
+#include "main/debug_output.h"
 #include "main/errors.h"
 #include "main/macros.h"
 

@@ -251,7 +251,7 @@ XcmsCIELuvToCIEuvY(
     XcmsColor	whitePt;
     XcmsCIEuvY	uvY_return;
     XcmsFloat	tmpVal;
-    register int i;
+    unsigned int i;
 
     /*
      * Check arguments
@@ -343,7 +343,7 @@ XcmsCIEuvYToCIELuv(
     XcmsColor	whitePt;
     XcmsCIELuv	Luv_return;
     XcmsFloat	tmpVal;
-    register int i;
+    unsigned int i;
 
     /*
      * Check arguments

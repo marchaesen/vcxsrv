@@ -64,8 +64,15 @@ _mesa_hash_table_create(void *mem_ctx,
                                                     const void *b));
 void _mesa_hash_table_destroy(struct hash_table *ht,
                               void (*delete_function)(struct hash_entry *entry));
+void _mesa_hash_table_clear(struct hash_table *ht,
+                            void (*delete_function)(struct hash_entry *entry));
 void _mesa_hash_table_set_deleted_key(struct hash_table *ht,
                                       const void *deleted_key);
+
+static inline uint32_t _mesa_hash_table_num_entries(struct hash_table *ht)
+{
+   return ht->entries;
+}
 
 struct hash_entry *
 _mesa_hash_table_insert(struct hash_table *ht, const void *key, void *data);
@@ -101,7 +108,9 @@ static inline uint32_t _mesa_hash_pointer(const void *pointer)
    return _mesa_hash_data(&pointer, sizeof(pointer));
 }
 
-static const uint32_t _mesa_fnv32_1a_offset_bias = 2166136261u;
+enum {
+   _mesa_fnv32_1a_offset_bias = 2166136261u,
+};
 
 static inline uint32_t
 _mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)

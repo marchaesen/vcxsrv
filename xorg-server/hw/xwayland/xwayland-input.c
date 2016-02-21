@@ -267,6 +267,16 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     for (i = 0; i < dev->button->numButtons; i++)
         if (BitIsOn(dev->button->down, i))
             QueuePointerEvents(dev, ButtonRelease, i, 0, &mask);
+
+    /* The last cursor frame we commited before the pointer left one
+     * of our surfaces might not have been shown. In that case we'll
+     * have a cursor surface frame callback pending which we need to
+     * clear so that we can continue submitting new cursor frames. */
+    if (xwl_seat->cursor_frame_cb) {
+        wl_callback_destroy(xwl_seat->cursor_frame_cb);
+        xwl_seat->cursor_frame_cb = NULL;
+        xwl_seat_set_cursor(xwl_seat);
+    }
 }
 
 static void

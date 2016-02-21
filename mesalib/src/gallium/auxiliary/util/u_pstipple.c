@@ -58,7 +58,7 @@
 #define NUM_NEW_TOKENS 53
 
 
-static void
+void
 util_pstipple_update_stipple_texture(struct pipe_context *pipe,
                                      struct pipe_resource *tex,
                                      const uint32_t pattern[32])
@@ -118,7 +118,7 @@ util_pstipple_create_stipple_texture(struct pipe_context *pipe,
 
    tex = screen->resource_create(screen, &templat);
 
-   if (tex)
+   if (tex && pattern)
       util_pstipple_update_stipple_texture(pipe, tex, pattern);
 
    return tex;

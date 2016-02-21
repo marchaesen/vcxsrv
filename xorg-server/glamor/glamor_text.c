@@ -107,7 +107,7 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
     int firstCol = font->info.firstCol;
     int glyph_spacing_x = glamor_font->glyph_width_bytes * 8;
     int glyph_spacing_y = glamor_font->glyph_height;
-    int box_x, box_y;
+    int box_index;
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
 
@@ -188,11 +188,13 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
 
         glEnable(GL_SCISSOR_TEST);
 
-        glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+        glamor_pixmap_loop(pixmap_priv, box_index) {
             BoxPtr box = RegionRects(gc->pCompositeClip);
             int nbox = RegionNumRects(gc->pCompositeClip);
 
-            glamor_set_destination_drawable(drawable, box_x, box_y, TRUE, FALSE, prog->matrix_uniform, &off_x, &off_y);
+            glamor_set_destination_drawable(drawable, box_index, TRUE, FALSE,
+                                            prog->matrix_uniform,
+                                            &off_x, &off_y);
 
             /* Run over the clip list, drawing the glyphs
              * in each box

@@ -179,6 +179,63 @@ _mesa_compute_rgba2base2rgba_component_mapping(GLenum baseFormat, uint8_t *map)
    }
 }
 
+
+/**
+ * Special case conversion function to swap r/b channels from the source
+ * image to the dest image.
+ */
+static void
+convert_ubyte_rgba_to_bgra(size_t width, size_t height,
+                           const uint8_t *src, size_t src_stride,
+                           uint8_t *dst, size_t dst_stride)
+{
+   int row;
+
+   if (sizeof(void *) == 8 &&
+       src_stride % 8 == 0 &&
+       dst_stride % 8 == 0 &&
+       (GLsizeiptr) src % 8 == 0 &&
+       (GLsizeiptr) dst % 8 == 0) {
+      /* use 64-bit word to swizzle two 32-bit pixels.  We need 8-byte
+       * alignment for src/dst addresses and strides.
+       */
+      for (row = 0; row < height; row++) {
+         const GLuint64 *s = (const GLuint64 *) src;
+         GLuint64 *d = (GLuint64 *) dst;
+         int i;
+         for (i = 0; i < width/2; i++) {
+            d[i] = ( (s[i] & 0xff00ff00ff00ff00) |
+                    ((s[i] &       0xff000000ff) << 16) |
+                    ((s[i] &   0xff000000ff0000) >> 16));
+         }
+         if (width & 1) {
+            /* handle the case of odd widths */
+            const GLuint s = ((const GLuint *) src)[width - 1];
+            GLuint *d = (GLuint *) dst + width - 1;
+            *d = ( (s & 0xff00ff00) |
+                  ((s &       0xff) << 16) |
+                  ((s &   0xff0000) >> 16));
+         }
+         src += src_stride;
+         dst += dst_stride;
+      }
+   } else {
+      for (row = 0; row < height; row++) {
+         const GLuint *s = (const GLuint *) src;
+         GLuint *d = (GLuint *) dst;
+         int i;
+         for (i = 0; i < width; i++) {
+            d[i] = ( (s[i] & 0xff00ff00) |
+                    ((s[i] &       0xff) << 16) |
+                    ((s[i] &   0xff0000) >> 16));
+         }
+         src += src_stride;
+         dst += dst_stride;
+      }
+   }
+}
+
+
 /**
  * This can be used to convert between most color formats.
  *
@@ -299,11 +356,18 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
             return;
          } else if (src_array_format == RGBA8_UBYTE) {
             assert(!_mesa_is_format_integer_color(dst_format));
-            for (row = 0; row < height; ++row) {
-               _mesa_pack_ubyte_rgba_row(dst_format, width,
-                                         (const uint8_t (*)[4])src, dst);
-               src += src_stride;
-               dst += dst_stride;
+
+            if (dst_format == MESA_FORMAT_B8G8R8A8_UNORM) {
+               convert_ubyte_rgba_to_bgra(width, height, src, src_stride,
+                                          dst, dst_stride);
+            }
+            else {
+               for (row = 0; row < height; ++row) {
+                  _mesa_pack_ubyte_rgba_row(dst_format, width,
+                                            (const uint8_t (*)[4])src, dst);
+                  src += src_stride;
+                  dst += dst_stride;
+               }
             }
             return;
          } else if (src_array_format == RGBA32_UINT &&

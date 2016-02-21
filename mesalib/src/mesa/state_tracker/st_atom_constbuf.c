@@ -61,7 +61,8 @@ void st_upload_constants( struct st_context *st,
           shader_type == PIPE_SHADER_FRAGMENT ||
           shader_type == PIPE_SHADER_GEOMETRY ||
           shader_type == PIPE_SHADER_TESS_CTRL ||
-          shader_type == PIPE_SHADER_TESS_EVAL);
+          shader_type == PIPE_SHADER_TESS_EVAL ||
+          shader_type == PIPE_SHADER_COMPUTE);
 
    /* update constants */
    if (params && params->NumParameters) {
@@ -226,6 +227,28 @@ const struct st_tracked_state st_update_tes_constants = {
    update_tes_constants					/* update */
 };
 
+/* Compute shader:
+ */
+static void update_cs_constants(struct st_context *st )
+{
+   struct st_compute_program *cp = st->cp;
+   struct gl_program_parameter_list *params;
+
+   if (cp) {
+      params = cp->Base.Base.Parameters;
+      st_upload_constants( st, params, PIPE_SHADER_COMPUTE );
+   }
+}
+
+const struct st_tracked_state st_update_cs_constants = {
+   "st_update_cs_constants",				/* name */
+   {							/* dirty */
+      _NEW_PROGRAM_CONSTANTS,                           /* mesa */
+      ST_NEW_COMPUTE_PROGRAM,				/* st */
+   },
+   update_cs_constants					/* update */
+};
+
 static void st_bind_ubos(struct st_context *st,
                            struct gl_shader *shader,
                            unsigned shader_type)
@@ -362,4 +385,25 @@ const struct st_tracked_state st_bind_tes_ubos = {
       ST_NEW_TESSEVAL_PROGRAM | ST_NEW_UNIFORM_BUFFER,
    },
    bind_tes_ubos
+};
+
+static void bind_cs_ubos(struct st_context *st)
+{
+   struct gl_shader_program *prog =
+      st->ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
+
+   if (!prog)
+      return;
+
+   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_COMPUTE],
+                PIPE_SHADER_COMPUTE);
+}
+
+const struct st_tracked_state st_bind_cs_ubos = {
+   "st_bind_cs_ubos",
+   {
+      0,
+      ST_NEW_COMPUTE_PROGRAM | ST_NEW_UNIFORM_BUFFER,
+   },
+   bind_cs_ubos
 };

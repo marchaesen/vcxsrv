@@ -248,7 +248,7 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    draw_set_rasterize_stage(st->draw, st->rastpos_stage);
 
    /* make sure everything's up to date */
-   st_validate_state(st);
+   st_validate_state(st, ST_PIPELINE_RENDER);
 
    /* This will get set only if rastpos_point(), above, gets called */
    ctx->Current.RasterPosValid = GL_FALSE;

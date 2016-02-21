@@ -74,7 +74,7 @@ LIBDRM_AMDGPU_REQUIRED=2.4.63
 LIBDRM_INTEL_REQUIRED=2.4.61
 LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
-LIBDRM_FREEDRENO_REQUIRED=2.4.65
+LIBDRM_FREEDRENO_REQUIRED=2.4.67
 DRI2PROTO_REQUIRED=2.6
 DRI3PROTO_REQUIRED=1.0
 PRESENTPROTO_REQUIRED=1.0
@@ -305,8 +305,7 @@ if test "x$GCC" = xyes; then
 
     # Flags to help ensure that certain portions of the code -- and only those
     # portions -- can be built with MSVC:
-    # - src/util, src/gallium/auxiliary, and src/gallium/drivers/llvmpipe needs
-    #   to build with Windows SDK 7.0.7600, which bundles MSVC 2008
+    # - src/util, src/gallium/auxiliary, rc/gallium/drivers/llvmpipe, and
     # - non-Linux/Posix OpenGL portions needs to build on MSVC 2013 (which
     #   supports most of C99)
     # - the rest has no compiler compiler restrictions
@@ -323,9 +322,6 @@ if test "x$GCC" = xyes; then
 		    AC_MSG_RESULT([yes])],
 		    AC_MSG_RESULT([no]));
     CFLAGS="$save_CFLAGS"
-
-    MSVC2008_COMPAT_CFLAGS="$MSVC2013_COMPAT_CFLAGS -Werror=declaration-after-statement"
-    MSVC2008_COMPAT_CXXFLAGS="$MSVC2013_COMPAT_CXXFLAGS"
 fi
 if test "x$GXX" = xyes; then
     CXXFLAGS="$CXXFLAGS -Wall"
@@ -353,8 +349,6 @@ fi
 
 AC_SUBST([MSVC2013_COMPAT_CFLAGS])
 AC_SUBST([MSVC2013_COMPAT_CXXFLAGS])
-AC_SUBST([MSVC2008_COMPAT_CFLAGS])
-AC_SUBST([MSVC2008_COMPAT_CXXFLAGS])
 
 dnl even if the compiler appears to support it, using visibility attributes isn't
 dnl going to do anything useful currently on cygwin apart from emit lots of warnings
@@ -2159,7 +2153,12 @@ gallium_require_drm_loader() {
     fi
 }
 
+dnl This is for Glamor. Skip this if OpenGL is disabled.
 require_egl_drm() {
+    if test "x$enable_opengl" = xno; then
+        return 0
+    fi
+
     case "$with_egl_platforms" in
         *drm*)
             ;;
@@ -2181,7 +2180,7 @@ radeon_llvm_check() {
     if test "x$enable_gallium_llvm" != "xyes"; then
         AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
     fi
-    llvm_check_version_for "3" "5" "0" $1
+    llvm_check_version_for "3" "6" "0" $1
     if test true && $LLVM_CONFIG --targets-built | grep -iqvw $amdgpu_llvm_target_name ; then
         AC_MSG_ERROR([LLVM $amdgpu_llvm_target_name not enabled in your LLVM build.])
     fi
@@ -2296,6 +2295,9 @@ dnl in LLVM_LIBS.
 
 if test "x$MESA_LLVM" != x0; then
 
+    if ! $LLVM_CONFIG --libs ${LLVM_COMPONENTS} >/dev/null; then
+       AC_MSG_ERROR([Calling ${LLVM_CONFIG} failed])
+    fi
     LLVM_LIBS="`$LLVM_CONFIG --libs ${LLVM_COMPONENTS}`"
 
     dnl llvm-config may not give the right answer when llvm is a built as a
@@ -2436,6 +2438,7 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 dnl Substitute the config
 AC_CONFIG_FILES([Makefile
 		src/Makefile
+		src/compiler/Makefile
 		src/egl/Makefile
 		src/egl/main/egl.pc
 		src/egl/wayland/wayland-drm/Makefile
@@ -2505,7 +2508,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/winsys/virgl/vtest/Makefile
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
-		src/glsl/Makefile
 		src/glx/Makefile
 		src/glx/apple/Makefile
 		src/glx/tests/Makefile

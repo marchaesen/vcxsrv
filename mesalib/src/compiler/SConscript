@@ -1,0 +1,24 @@
+Import('*')
+
+env = env.Clone()
+
+env.MSVC2013Compat()
+
+env.Prepend(CPPPATH = [
+    '#include',
+    '#src',
+    '#src/mapi',
+    '#src/mesa',
+    '#src/gallium/include',
+    '#src/gallium/auxiliary',
+])
+
+sources = env.ParseSourceList('Makefile.sources', 'LIBCOMPILER_FILES')
+
+compiler = env.ConvenienceLibrary(
+    target = 'compiler',
+    source = sources
+)
+Export('compiler')
+
+SConscript('glsl/SConscript')

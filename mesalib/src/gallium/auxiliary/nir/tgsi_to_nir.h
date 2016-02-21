@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "glsl/nir/nir.h"
+#include "compiler/nir/nir.h"
 
 struct nir_shader_compiler_options *options;
 

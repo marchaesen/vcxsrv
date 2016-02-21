@@ -496,14 +496,12 @@ _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys)
 GLuint
 _mesa_HashNumEntries(const struct _mesa_HashTable *table)
 {
-   struct hash_entry *entry;
    GLuint count = 0;
 
    if (table->deleted_key_data)
       count++;
 
-   hash_table_foreach(table->ht, entry)
-      count++;
+   count += _mesa_hash_table_num_entries(table->ht);
 
    return count;
 }

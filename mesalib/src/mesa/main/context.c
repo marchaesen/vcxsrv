@@ -89,6 +89,7 @@
 #include "context.h"
 #include "cpuinfo.h"
 #include "debug.h"
+#include "debug_output.h"
 #include "depth.h"
 #include "dlist.h"
 #include "eval.h"
@@ -142,7 +143,7 @@
 #include "sparc/sparc.h"
 #endif
 
-#include "glsl_parser_extras.h"
+#include "compiler/glsl/glsl_parser_extras.h"
 #include <stdbool.h>
 
 
@@ -814,8 +815,8 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_current( ctx );
    _mesa_init_depth( ctx );
    _mesa_init_debug( ctx );
+   _mesa_init_debug_output( ctx );
    _mesa_init_display_list( ctx );
-   _mesa_init_errors( ctx );
    _mesa_init_eval( ctx );
    _mesa_init_fbobjects( ctx );
    _mesa_init_feedback( ctx );

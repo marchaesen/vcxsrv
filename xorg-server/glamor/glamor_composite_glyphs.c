@@ -186,7 +186,9 @@ static const glamor_facet glamor_facet_composite_glyphs_130 = {
     .vs_exec = ("       vec2 pos = primitive.zw * vec2(gl_VertexID&1, (gl_VertexID&2)>>1);\n"
                 GLAMOR_POS(gl_Position, (primitive.xy + pos))
                 "       glyph_pos = (source + pos) * ATLAS_DIM_INV;\n"),
-    .fs_vars = ("varying vec2 glyph_pos;\n"),
+    .fs_vars = ("varying vec2 glyph_pos;\n"
+                "out vec4 color0;\n"
+                "out vec4 color1;\n"),
     .fs_exec = ("       vec4 mask = texture2D(atlas, glyph_pos);\n"),
     .source_name = "source",
     .locations = glamor_program_location_atlas,
@@ -235,10 +237,10 @@ glamor_glyphs_flush(CARD8 op, PicturePtr src, PicturePtr dst,
     glamor_screen_private *glamor_priv = glamor_get_screen_private(drawable->pScreen);
     PixmapPtr atlas_pixmap = atlas->atlas;
     glamor_pixmap_private *atlas_priv = glamor_get_pixmap_private(atlas_pixmap);
-    glamor_pixmap_fbo *atlas_fbo = glamor_pixmap_fbo_at(atlas_priv, 0, 0);
+    glamor_pixmap_fbo *atlas_fbo = glamor_pixmap_fbo_at(atlas_priv, 0);
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
-    int box_x, box_y;
+    int box_index;
     int off_x, off_y;
 
     glamor_put_vbo_space(drawable->pScreen);
@@ -253,11 +255,13 @@ glamor_glyphs_flush(CARD8 op, PicturePtr src, PicturePtr dst,
 
         glUniform1i(prog->atlas_uniform, 1);
 
-        glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+        glamor_pixmap_loop(pixmap_priv, box_index) {
             BoxPtr box = RegionRects(dst->pCompositeClip);
             int nbox = RegionNumRects(dst->pCompositeClip);
 
-            glamor_set_destination_drawable(drawable, box_x, box_y, TRUE, FALSE, prog->matrix_uniform, &off_x, &off_y);
+            glamor_set_destination_drawable(drawable, box_index, TRUE, FALSE,
+                                            prog->matrix_uniform,
+                                            &off_x, &off_y);
 
             /* Run over the clip list, drawing the glyphs
              * in each box

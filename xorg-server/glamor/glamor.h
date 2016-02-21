@@ -66,6 +66,10 @@ typedef enum glamor_pixmap_type {
 #define GLAMOR_VALID_FLAGS      (GLAMOR_USE_EGL_SCREEN                \
                                  | GLAMOR_NO_DRI3)
 
+/* until we need geometry shaders GL3.1 should suffice. */
+#define GLAMOR_GL_CORE_VER_MAJOR 3
+#define GLAMOR_GL_CORE_VER_MINOR 1
+
 /* @glamor_init: Initialize glamor internal data structure.
  *
  * @screen: Current screen pointer.

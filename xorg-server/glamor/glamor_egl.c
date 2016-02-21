@@ -738,6 +738,15 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
 #endif
         EGL_NONE
     };
+    static const EGLint config_attribs_core[] = {
+        EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
+        EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
+        EGL_CONTEXT_MAJOR_VERSION_KHR,
+        GLAMOR_GL_CORE_VER_MAJOR,
+        EGL_CONTEXT_MINOR_VERSION_KHR,
+        GLAMOR_GL_CORE_VER_MINOR,
+        EGL_NONE
+    };
 
     glamor_identify(0);
     glamor_egl = calloc(sizeof(*glamor_egl), 1);
@@ -798,12 +807,21 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                                 KHR_surfaceless_opengl);
 #endif
 
+#ifndef GLAMOR_GLES2
     glamor_egl->context = eglCreateContext(glamor_egl->display,
                                            NULL, EGL_NO_CONTEXT,
-                                           config_attribs);
-    if (glamor_egl->context == EGL_NO_CONTEXT) {
-        xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed to create EGL context\n");
-        goto error;
+                                           config_attribs_core);
+#else
+    glamor_egl->context = NULL;
+#endif
+    if (!glamor_egl->context) {
+        glamor_egl->context = eglCreateContext(glamor_egl->display,
+                                               NULL, EGL_NO_CONTEXT,
+                                               config_attribs);
+        if (glamor_egl->context == EGL_NO_CONTEXT) {
+            xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed to create EGL context\n");
+            goto error;
+        }
     }
 
     if (!eglMakeCurrent(glamor_egl->display,

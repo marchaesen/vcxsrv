@@ -14,5 +14,4 @@ endif ENABLE_DEVEL_DOCS
 EXTRA_DIST =		\
 	Registry	\
 	exa-driver.txt	\
-	README.DRIcomp	\
 	README.modes

@@ -87,9 +87,6 @@ enum {
  * Texture image storage function.
  */
 typedef GLboolean (*StoreTexImageFunc)(TEXSTORE_PARAMS);
-static const GLubyte map_identity[6] = { 0, 1, 2, 3, ZERO, ONE };
-static const GLubyte map_3210[6] = { 3, 2, 1, 0, ZERO, ONE };
-static const GLubyte map_1032[6] = { 1, 0, 3, 2, ZERO, ONE };
 
 
 /**

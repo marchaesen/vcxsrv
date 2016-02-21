@@ -116,20 +116,6 @@ adjust_for_oes_float_texture(GLenum format, GLenum type)
    return format;
 }
 
-/**
- * For cube map faces, return a face index in [0,5].
- * For other targets return 0;
- */
-GLuint
-_mesa_tex_target_to_face(GLenum target)
-{
-   if (_mesa_is_cube_face(target))
-      return (GLuint) target - (GLuint) GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-   else
-      return 0;
-}
-
-
 
 /**
  * Install gl_texture_image in a gl_texture_object according to the target
@@ -273,15 +259,15 @@ proxy_target(GLenum target)
    case GL_TEXTURE_3D:
    case GL_PROXY_TEXTURE_3D:
       return GL_PROXY_TEXTURE_3D;
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB:
-   case GL_TEXTURE_CUBE_MAP_ARB:
-   case GL_PROXY_TEXTURE_CUBE_MAP_ARB:
-      return GL_PROXY_TEXTURE_CUBE_MAP_ARB;
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_PROXY_TEXTURE_CUBE_MAP:
+      return GL_PROXY_TEXTURE_CUBE_MAP;
    case GL_TEXTURE_RECTANGLE_NV:
    case GL_PROXY_TEXTURE_RECTANGLE_NV:
       return GL_PROXY_TEXTURE_RECTANGLE_NV;
@@ -472,13 +458,13 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target)
    case GL_PROXY_TEXTURE_3D:
       return ctx->Const.Max3DTextureLevels;
    case GL_TEXTURE_CUBE_MAP:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB:
-   case GL_PROXY_TEXTURE_CUBE_MAP_ARB:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+   case GL_PROXY_TEXTURE_CUBE_MAP:
       return ctx->Extensions.ARB_texture_cube_map
          ? ctx->Const.MaxCubeTextureLevels : 0;
    case GL_TEXTURE_RECTANGLE_NV:
@@ -1016,7 +1002,7 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-   case GL_PROXY_TEXTURE_CUBE_MAP_ARB:
+   case GL_PROXY_TEXTURE_CUBE_MAP:
       maxSize = 1 << (ctx->Const.MaxCubeTextureLevels - 1);
       maxSize >>= level;
       if (width != height)
@@ -2299,8 +2285,10 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
       }
       if (baseFormat == GL_DEPTH_COMPONENT ||
           baseFormat == GL_DEPTH_STENCIL ||
+          baseFormat == GL_STENCIL_INDEX ||
           rb_base_format == GL_DEPTH_COMPONENT ||
           rb_base_format == GL_DEPTH_STENCIL ||
+          rb_base_format == GL_STENCIL_INDEX ||
           ((baseFormat == GL_LUMINANCE_ALPHA ||
             baseFormat == GL_ALPHA) &&
            rb_base_format != GL_RGBA) ||

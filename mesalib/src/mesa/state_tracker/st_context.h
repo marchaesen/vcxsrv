@@ -62,6 +62,10 @@ struct u_upload_mgr;
 #define ST_NEW_TESSCTRL_PROGRAM        (1 << 9)
 #define ST_NEW_TESSEVAL_PROGRAM        (1 << 10)
 #define ST_NEW_SAMPLER_VIEWS           (1 << 11)
+#define ST_NEW_ATOMIC_BUFFER           (1 << 12)
+#define ST_NEW_STORAGE_BUFFER          (1 << 13)
+#define ST_NEW_COMPUTE_PROGRAM         (1 << 14)
+#define ST_NEW_IMAGE_UNITS             (1 << 15)
 
 
 struct st_state_flags {
@@ -75,6 +79,23 @@ struct st_tracked_state {
    void (*update)( struct st_context *st );
 };
 
+
+/**
+ * Enumeration of state tracker pipelines.
+ */
+enum st_pipeline {
+   ST_PIPELINE_RENDER,
+   ST_PIPELINE_COMPUTE,
+};
+
+
+/** For drawing quads for glClear, glDraw/CopyPixels, glBitmap, etc. */
+struct st_util_vertex
+{
+   float x, y, z;
+   float r, g, b, a;
+   float s, t;
+};
 
 
 struct st_context
@@ -151,6 +172,7 @@ struct st_context
    char renderer[100];
 
    struct st_state_flags dirty;
+   struct st_state_flags dirty_cp;
 
    GLboolean vertdata_edgeflags;
    GLboolean edgeflag_culls_prims;
@@ -163,12 +185,14 @@ struct st_context
    struct st_geometry_program *gp;  /**< Currently bound geometry program */
    struct st_tessctrl_program *tcp; /**< Currently bound tess control program */
    struct st_tesseval_program *tep; /**< Currently bound tess eval program */
+   struct st_compute_program *cp;   /**< Currently bound compute program */
 
    struct st_vp_variant *vp_variant;
    struct st_fp_variant *fp_variant;
-   struct st_gp_variant *gp_variant;
-   struct st_tcp_variant *tcp_variant;
-   struct st_tep_variant *tep_variant;
+   struct st_basic_variant *gp_variant;
+   struct st_basic_variant *tcp_variant;
+   struct st_basic_variant *tep_variant;
+   struct st_basic_variant *cp_variant;
 
    struct gl_texture_object *default_texture;
 
@@ -180,7 +204,8 @@ struct st_context
    /** for glBitmap */
    struct {
       struct pipe_rasterizer_state rasterizer;
-      struct pipe_sampler_state samplers[2];
+      struct pipe_sampler_state sampler;
+      struct pipe_sampler_state atlas_sampler;
       enum pipe_format tex_format;
       void *vs;
       struct bitmap_cache *cache;
@@ -192,6 +217,14 @@ struct st_context
       void *vert_shaders[2];   /**< ureg shaders */
    } drawpix;
 
+   struct {
+      GLsizei width, height;
+      GLenum format, type;
+      const void *user_pointer;  /**< Last user 'pixels' pointer */
+      void *image;               /**< Copy of the glDrawPixels image data */
+      struct pipe_resource *texture;
+   } drawpix_cache;
+
    /** for glClear */
    struct {
       struct pipe_rasterizer_state raster;
@@ -202,8 +235,21 @@ struct st_context
       void *gs_layered;
    } clear;
 
-   /** used for anything using util_draw_vertex_buffer */
-   struct pipe_vertex_element velems_util_draw[3];
+   /* For gl(Compressed)Tex(Sub)Image */
+   struct {
+      struct pipe_rasterizer_state raster;
+      struct pipe_blend_state blend;
+      void *vs;
+      void *gs;
+      void *fs;
+      bool enabled;
+      bool rgba_only;
+      bool upload_layers;
+      bool use_gs;
+   } pbo_upload;
+
+   /** for drawing with st_util_vertex */
+   struct pipe_vertex_element util_velems[3];
 
    void *passthrough_fs;  /**< simple pass-through frag shader */
 

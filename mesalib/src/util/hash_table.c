@@ -163,6 +163,32 @@ _mesa_hash_table_destroy(struct hash_table *ht,
    ralloc_free(ht);
 }
 
+/**
+ * Deletes all entries of the given hash table without deleting the table
+ * itself or changing its structure.
+ *
+ * If delete_function is passed, it gets called on each entry present.
+ */
+void
+_mesa_hash_table_clear(struct hash_table *ht,
+                       void (*delete_function)(struct hash_entry *entry))
+{
+   struct hash_entry *entry;
+
+   for (entry = ht->table; entry != ht->table + ht->size; entry++) {
+      if (entry->key == NULL)
+         continue;
+
+      if (delete_function != NULL && entry->key != ht->deleted_key)
+         delete_function(entry);
+
+      entry->key = NULL;
+   }
+
+   ht->entries = 0;
+   ht->deleted_entries = 0;
+}
+
 /** Sets the value of the key pointer used for deleted entries in the table.
  *
  * The assumption is that usually keys are actual pointers, so we use a
@@ -300,7 +326,8 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
        * required to avoid memory leaks, perform a search
        * before inserting.
        */
-      if (entry->hash == hash &&
+      if (!entry_is_deleted(ht, entry) &&
+          entry->hash == hash &&
           ht->key_equals_function(key, entry->key)) {
          entry->key = key;
          entry->data = data;

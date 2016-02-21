@@ -36,11 +36,9 @@
 #include "mipict.h"
 
 #define v_from_x_coord_x(_xscale_, _x_)          ( 2 * (_x_) * (_xscale_) - 1.0)
-#define v_from_x_coord_y(_yscale_, _y_)          (-2 * (_y_) * (_yscale_) + 1.0)
-#define v_from_x_coord_y_inverted(_yscale_, _y_) (2 * (_y_) * (_yscale_) - 1.0)
+#define v_from_x_coord_y(_yscale_, _y_)          (2 * (_y_) * (_yscale_) - 1.0)
 #define t_from_x_coord_x(_xscale_, _x_)          ((_x_) * (_xscale_))
-#define t_from_x_coord_y(_yscale_, _y_)          (1.0 - (_y_) * (_yscale_))
-#define t_from_x_coord_y_inverted(_yscale_, _y_) ((_y_) * (_yscale_))
+#define t_from_x_coord_y(_yscale_, _y_)          ((_y_) * (_yscale_))
 
 #define pixmap_priv_get_dest_scale(pixmap, _pixmap_priv_, _pxscale_, _pyscale_) \
   do {                                                                   \
@@ -313,7 +311,7 @@
 				     texcoord)                          \
   do {									\
 	(texcoord)[0] = t_from_x_coord_x(xscale, _tx_);			\
-        (texcoord)[1] = t_from_x_coord_y_inverted(yscale, _ty_);        \
+        (texcoord)[1] = t_from_x_coord_y(yscale, _ty_);                 \
         DEBUGF("normalized point tx %f ty %f \n", (texcoord)[0],	\
 		(texcoord)[1]);						\
   } while(0)
@@ -332,7 +330,7 @@
     tx += fbo_x_off;							\
     ty += fbo_y_off;							\
     (texcoord)[0] = t_from_x_coord_x(xscale, tx);			\
-    (texcoord)[1] = t_from_x_coord_y_inverted(yscale, ty);		\
+    (texcoord)[1] = t_from_x_coord_y(yscale, ty);                       \
     DEBUGF("normalized tx %f ty %f \n", (texcoord)[0], (texcoord)[1]);	\
   } while(0)
 
@@ -484,8 +482,8 @@
     (vertices)[1 * stride] = _t2_ = t_from_x_coord_x(xscale, tx2);	\
     (vertices)[2 * stride] = _t2_;					\
     (vertices)[3 * stride] = _t0_;					\
-    (vertices)[1] = _t1_ = t_from_x_coord_y_inverted(yscale, ty1);	\
-    (vertices)[2 * stride + 1] = _t5_ = t_from_x_coord_y_inverted(yscale, ty2); \
+    (vertices)[1] = _t1_ = t_from_x_coord_y(yscale, ty1);               \
+    (vertices)[2 * stride + 1] = _t5_ = t_from_x_coord_y(yscale, ty2);  \
     (vertices)[1 * stride + 1] = _t1_;					\
     (vertices)[3 * stride + 1] = _t5_;					\
   } while(0)
@@ -564,8 +562,8 @@
 	(vertices)[2] = t_from_x_coord_x(xscale, x2);			\
 	(vertices)[6] = (vertices)[2];					\
 	(vertices)[4] = (vertices)[0];					\
-        (vertices)[1] = t_from_x_coord_y_inverted(yscale, y1);          \
-        (vertices)[7] = t_from_x_coord_y_inverted(yscale, y2);          \
+        (vertices)[1] = t_from_x_coord_y(yscale, y1);                   \
+        (vertices)[7] = t_from_x_coord_y(yscale, y2);                   \
 	(vertices)[3] = (vertices)[1];					\
 	(vertices)[5] = (vertices)[7];					\
     } while(0)
@@ -598,7 +596,7 @@
 					vertices)                       \
     do {								\
 	(vertices)[0] = v_from_x_coord_x(xscale, x);			\
-        (vertices)[1] = v_from_x_coord_y_inverted(yscale, y);           \
+        (vertices)[1] = v_from_x_coord_y(yscale, y);                    \
     } while(0)
 
 #define glamor_set_normalize_tri_vcoords(xscale, yscale, vtx,		\
@@ -641,11 +639,9 @@
 					x2 + fbo_x_off);		\
     (vertices)[2 * stride] = _t2_;					\
     (vertices)[3 * stride] = _t0_;					\
-    (vertices)[1] = _t1_ = v_from_x_coord_y_inverted(yscale,		\
-                                                     y1 + fbo_y_off);   \
+    (vertices)[1] = _t1_ = v_from_x_coord_y(yscale, y1 + fbo_y_off);    \
     (vertices)[2 * stride + 1] = _t5_ =                                 \
-        v_from_x_coord_y_inverted(yscale,                               \
-                                  y2 + fbo_y_off);                      \
+        v_from_x_coord_y(yscale, y2 + fbo_y_off);                       \
     (vertices)[1 * stride + 1] = _t1_;					\
     (vertices)[3 * stride + 1] = _t5_;					\
   } while(0)
@@ -677,8 +673,8 @@
 	(vertices)[2] = v_from_x_coord_x(xscale, x2);			\
 	(vertices)[6] = (vertices)[2];					\
 	(vertices)[4] = (vertices)[0];					\
-        (vertices)[1] = v_from_x_coord_y_inverted(yscale, y1);          \
-        (vertices)[7] = v_from_x_coord_y_inverted(yscale, y2);          \
+        (vertices)[1] = v_from_x_coord_y(yscale, y1);                   \
+        (vertices)[7] = v_from_x_coord_y(yscale, y2);                   \
 	(vertices)[3] = (vertices)[1];					\
 	(vertices)[5] = (vertices)[7];					\
     } while(0)
@@ -687,7 +683,7 @@
                                 pt)				\
     do {							\
         (pt)[0] = t_from_x_coord_x(xscale, x);			\
-        (pt)[1] = t_from_x_coord_y_inverted(yscale, y);         \
+        (pt)[1] = t_from_x_coord_y(yscale, y);                  \
     } while(0)
 
 #define glamor_set_circle_centre(width, height, x, y,	\
@@ -757,7 +753,7 @@ gl_iformat_for_pixmap(PixmapPtr pixmap)
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
         ((pixmap)->drawable.depth == 1 || (pixmap)->drawable.depth == 8)) {
-        return GL_ALPHA;
+        return glamor_priv->one_channel_format;
     } else {
         return GL_RGBA;
     }
@@ -853,24 +849,6 @@ glamor_get_rgba_from_pixel(CARD32 pixel,
         *alpha = 1;
 
     return TRUE;
-}
-
-inline static Bool
-glamor_pict_format_is_compatible(PicturePtr picture)
-{
-    GLenum iformat;
-    PixmapPtr pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
-
-    iformat = gl_iformat_for_pixmap(pixmap);
-    switch (iformat) {
-    case GL_RGBA:
-        return (picture->format == PICT_a8r8g8b8 ||
-                picture->format == PICT_x8r8g8b8);
-    case GL_ALPHA:
-        return (picture->format == PICT_a8);
-    default:
-        return FALSE;
-    }
 }
 
 inline static Bool

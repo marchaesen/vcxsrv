@@ -51,6 +51,11 @@
 #include "inpututils.h"
 #include "optionstr.h"
 
+#ifdef KDRIVE_EVDEV
+#define DEV_INPUT_EVENT_PREFIX "/dev/input/event"
+#define DEV_INPUT_EVENT_PREFIX_LEN (sizeof(DEV_INPUT_EVENT_PREFIX) - 1)
+#endif
+
 #define AtomFromName(x) MakeAtom(x, strlen(x), 1)
 
 struct KdConfigDevice {
@@ -1114,10 +1119,22 @@ KdParseKbdOptions(KdKeyboardInfo * ki)
             ki->xkbOptions = strdup(value);
         else if (!strcasecmp(key, "device"))
             ki->path = strdup(value);
+        else if (!strcasecmp(key, "driver"))
+            ki->driver = KdFindKeyboardDriver(value);
         else
             ErrorF("Kbd option key (%s) of value (%s) not assigned!\n",
                    key, value);
     }
+
+#ifdef KDRIVE_EVDEV
+    if (!ki->driver && ki->path != NULL &&
+        strncasecmp(ki->path,
+                    DEV_INPUT_EVENT_PREFIX,
+                    DEV_INPUT_EVENT_PREFIX_LEN) == 0) {
+            ki->driver = KdFindKeyboardDriver("evdev");
+            ki->options = input_option_new(ki->options, "driver", "evdev");
+    }
+#endif
 }
 
 KdKeyboardInfo *
@@ -1194,22 +1211,34 @@ KdParsePointerOptions(KdPointerInfo * pi)
         const char *key = input_option_get_key(option);
         const char *value = input_option_get_value(option);
 
-        if (!strcmp(key, "emulatemiddle"))
+        if (!strcasecmp(key, "emulatemiddle"))
             pi->emulateMiddleButton = TRUE;
-        else if (!strcmp(key, "noemulatemiddle"))
+        else if (!strcasecmp(key, "noemulatemiddle"))
             pi->emulateMiddleButton = FALSE;
-        else if (!strcmp(key, "transformcoord"))
+        else if (!strcasecmp(key, "transformcoord"))
             pi->transformCoordinates = TRUE;
-        else if (!strcmp(key, "rawcoord"))
+        else if (!strcasecmp(key, "rawcoord"))
             pi->transformCoordinates = FALSE;
         else if (!strcasecmp(key, "device"))
             pi->path = strdup(value);
         else if (!strcasecmp(key, "protocol"))
             pi->protocol = strdup(value);
+        else if (!strcasecmp(key, "driver"))
+            pi->driver = KdFindPointerDriver(value);
         else
             ErrorF("Pointer option key (%s) of value (%s) not assigned!\n",
                    key, value);
     }
+
+#ifdef KDRIVE_EVDEV
+    if (!pi->driver && pi->path != NULL &&
+        strncasecmp(pi->path,
+                    DEV_INPUT_EVENT_PREFIX,
+                    DEV_INPUT_EVENT_PREFIX_LEN) == 0) {
+            pi->driver = KdFindPointerDriver("evdev");
+            pi->options = input_option_new(pi->options, "driver", "evdev");
+    }
+#endif
 }
 
 KdPointerInfo *
@@ -2177,67 +2206,47 @@ NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
 #endif
     }
 
-    if (!ki && !pi) {
-        ErrorF("unrecognised device identifier!\n");
-        return BadValue;
-    }
-
-    /* FIXME: change this code below to use KdParseKbdOptions and
-     * KdParsePointerOptions */
-    nt_list_for_each_entry(option, options, list.next) {
-        const char *key = input_option_get_key(option);
-        const char *value = input_option_get_value(option);
-
-        if (strcmp(key, "device") == 0) {
-            if (pi && value)
-                pi->path = strdup(value);
-            else if (ki && value)
-                ki->path = strdup(value);
-        }
-        else if (strcmp(key, "driver") == 0) {
-            if (pi) {
-                pi->driver = KdFindPointerDriver(value);
-                if (!pi->driver) {
-                    ErrorF("couldn't find driver!\n");
-                    KdFreePointer(pi);
-                    return BadValue;
-                }
-                pi->options = options;
-            }
-            else if (ki) {
-                ki->driver = KdFindKeyboardDriver(value);
-                if (!ki->driver) {
-                    ErrorF("couldn't find driver!\n");
-                    KdFreeKeyboard(ki);
-                    return BadValue;
-                }
-                ki->options = options;
-            }
-        }
-    }
-
     if (pi) {
+        pi->options = options;
+        KdParsePointerOptions(pi);
+
+        if (!pi->driver) {
+            ErrorF("couldn't find driver!\n");
+            KdFreePointer(pi);
+            return BadValue;
+        }
+
         if (KdAddPointer(pi) != Success ||
             ActivateDevice(pi->dixdev, TRUE) != Success ||
             EnableDevice(pi->dixdev, TRUE) != TRUE) {
             ErrorF("couldn't add or enable pointer\n");
             return BadImplementation;
         }
+
+        *pdev = pi->dixdev;
     }
     else if (ki) {
+        ki->options = options;
+        KdParseKbdOptions(ki);
+
+        if (!ki->driver) {
+            ErrorF("couldn't find driver!\n");
+            KdFreeKeyboard(ki);
+            return BadValue;
+        }
+
         if (KdAddKeyboard(ki) != Success ||
             ActivateDevice(ki->dixdev, TRUE) != Success ||
             EnableDevice(ki->dixdev, TRUE) != TRUE) {
             ErrorF("couldn't add or enable keyboard\n");
             return BadImplementation;
         }
-    }
 
-    if (pi) {
-        *pdev = pi->dixdev;
-    }
-    else if (ki) {
         *pdev = ki->dixdev;
+    }
+    else {
+        ErrorF("unrecognised device identifier!\n");
+        return BadValue;
     }
 
     return Success;

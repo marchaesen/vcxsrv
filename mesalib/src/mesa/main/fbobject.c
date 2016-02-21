@@ -811,7 +811,7 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
          break;
       }
 
-      baseFormat = _mesa_get_format_base_format(texImage->TexFormat);
+      baseFormat = texImage->_BaseFormat;
 
       if (format == GL_COLOR) {
          if (!_mesa_is_legal_color_format(ctx, baseFormat)) {
@@ -868,8 +868,7 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
       }
    }
    else if (att->Type == GL_RENDERBUFFER_EXT) {
-      const GLenum baseFormat =
-         _mesa_get_format_base_format(att->Renderbuffer->Format);
+      const GLenum baseFormat = att->Renderbuffer->_BaseFormat;
 
       assert(att->Renderbuffer);
       if (!att->Renderbuffer->InternalFormat ||
@@ -1414,6 +1413,9 @@ framebuffer_parameteri(struct gl_context *ctx, struct gl_framebuffer *fb,
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "%s(pname=0x%x)", func, pname);
    }
+
+   invalidate_framebuffer(fb);
+   ctx->NewState |= _NEW_BUFFERS;
 }
 
 void GLAPIENTRY
@@ -2005,6 +2007,63 @@ invalidate_rb(GLuint key, void *data, void *userData)
 /** sentinal value, see below */
 #define NO_SAMPLES 1000
 
+void
+_mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
+                           GLenum internalFormat, GLsizei width,
+                           GLsizei height, GLsizei samples)
+{
+   const GLenum baseFormat = _mesa_base_fbo_format(ctx, internalFormat);
+
+   assert(baseFormat != 0);
+   assert(width >= 0 && width <= (GLsizei) ctx->Const.MaxRenderbufferSize);
+   assert(height >= 0 && height <= (GLsizei) ctx->Const.MaxRenderbufferSize);
+   assert(samples != NO_SAMPLES);
+   if (samples != 0) {
+      assert(samples > 0);
+      assert(_mesa_check_sample_count(ctx, GL_RENDERBUFFER,
+                                      internalFormat, samples) == GL_NO_ERROR);
+   }
+
+   FLUSH_VERTICES(ctx, _NEW_BUFFERS);
+
+   if (rb->InternalFormat == internalFormat &&
+       rb->Width == (GLuint) width &&
+       rb->Height == (GLuint) height &&
+       rb->NumSamples == samples) {
+      /* no change in allocation needed */
+      return;
+   }
+
+   /* These MUST get set by the AllocStorage func */
+   rb->Format = MESA_FORMAT_NONE;
+   rb->NumSamples = samples;
+
+   /* Now allocate the storage */
+   assert(rb->AllocStorage);
+   if (rb->AllocStorage(ctx, rb, internalFormat, width, height)) {
+      /* No error - check/set fields now */
+      /* If rb->Format == MESA_FORMAT_NONE, the format is unsupported. */
+      assert(rb->Width == (GLuint) width);
+      assert(rb->Height == (GLuint) height);
+      rb->InternalFormat = internalFormat;
+      rb->_BaseFormat = baseFormat;
+      assert(rb->_BaseFormat != 0);
+   }
+   else {
+      /* Probably ran out of memory - clear the fields */
+      rb->Width = 0;
+      rb->Height = 0;
+      rb->Format = MESA_FORMAT_NONE;
+      rb->InternalFormat = GL_NONE;
+      rb->_BaseFormat = GL_NONE;
+      rb->NumSamples = 0;
+   }
+
+   /* Invalidate the framebuffers the renderbuffer is attached in. */
+   if (rb->AttachedAnytime) {
+      _mesa_HashWalk(ctx->Shared->FrameBuffers, invalidate_rb, rb);
+   }
+}
 
 /**
  * Helper function used by renderbuffer_storage_direct() and
@@ -2064,45 +2123,7 @@ renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
       }
    }
 
-   FLUSH_VERTICES(ctx, _NEW_BUFFERS);
-
-   if (rb->InternalFormat == internalFormat &&
-       rb->Width == (GLuint) width &&
-       rb->Height == (GLuint) height &&
-       rb->NumSamples == samples) {
-      /* no change in allocation needed */
-      return;
-   }
-
-   /* These MUST get set by the AllocStorage func */
-   rb->Format = MESA_FORMAT_NONE;
-   rb->NumSamples = samples;
-
-   /* Now allocate the storage */
-   assert(rb->AllocStorage);
-   if (rb->AllocStorage(ctx, rb, internalFormat, width, height)) {
-      /* No error - check/set fields now */
-      /* If rb->Format == MESA_FORMAT_NONE, the format is unsupported. */
-      assert(rb->Width == (GLuint) width);
-      assert(rb->Height == (GLuint) height);
-      rb->InternalFormat = internalFormat;
-      rb->_BaseFormat = baseFormat;
-      assert(rb->_BaseFormat != 0);
-   }
-   else {
-      /* Probably ran out of memory - clear the fields */
-      rb->Width = 0;
-      rb->Height = 0;
-      rb->Format = MESA_FORMAT_NONE;
-      rb->InternalFormat = GL_NONE;
-      rb->_BaseFormat = GL_NONE;
-      rb->NumSamples = 0;
-   }
-
-   /* Invalidate the framebuffers the renderbuffer is attached in. */
-   if (rb->AttachedAnytime) {
-      _mesa_HashWalk(ctx->Shared->FrameBuffers, invalidate_rb, rb);
-   }
+   _mesa_renderbuffer_storage(ctx, rb, internalFormat, width, height, samples);
 }
 
 /**
@@ -3410,8 +3431,27 @@ void
 _mesa_framebuffer_renderbuffer(struct gl_context *ctx,
                                struct gl_framebuffer *fb,
                                GLenum attachment,
-                               struct gl_renderbuffer *rb,
-                               const char *func)
+                               struct gl_renderbuffer *rb)
+{
+   assert(!_mesa_is_winsys_fbo(fb));
+
+   FLUSH_VERTICES(ctx, _NEW_BUFFERS);
+
+   assert(ctx->Driver.FramebufferRenderbuffer);
+   ctx->Driver.FramebufferRenderbuffer(ctx, fb, attachment, rb);
+
+   /* Some subsequent GL commands may depend on the framebuffer's visual
+    * after the binding is updated.  Update visual info now.
+    */
+   _mesa_update_framebuffer_visual(ctx, fb);
+}
+
+static void
+framebuffer_renderbuffer(struct gl_context *ctx,
+                         struct gl_framebuffer *fb,
+                         GLenum attachment,
+                         struct gl_renderbuffer *rb,
+                         const char *func)
 {
    struct gl_renderbuffer_attachment *att;
 
@@ -3441,17 +3481,8 @@ _mesa_framebuffer_renderbuffer(struct gl_context *ctx,
       }
    }
 
-   FLUSH_VERTICES(ctx, _NEW_BUFFERS);
-
-   assert(ctx->Driver.FramebufferRenderbuffer);
-   ctx->Driver.FramebufferRenderbuffer(ctx, fb, attachment, rb);
-
-   /* Some subsequent GL commands may depend on the framebuffer's visual
-    * after the binding is updated.  Update visual info now.
-    */
-   _mesa_update_framebuffer_visual(ctx, fb);
+   _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb);
 }
-
 
 void GLAPIENTRY
 _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
@@ -3488,8 +3519,8 @@ _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
       rb = NULL;
    }
 
-   _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb,
-                                  "glFramebufferRenderbuffer");
+   framebuffer_renderbuffer(ctx, fb, attachment, rb,
+                            "glFramebufferRenderbuffer");
 }
 
 
@@ -3525,8 +3556,8 @@ _mesa_NamedFramebufferRenderbuffer(GLuint framebuffer, GLenum attachment,
       rb = NULL;
    }
 
-   _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb,
-                                  "glNamedFramebufferRenderbuffer");
+   framebuffer_renderbuffer(ctx, fb, attachment, rb,
+                            "glNamedFramebufferRenderbuffer");
 }
 
 

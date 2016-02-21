@@ -44,7 +44,7 @@ XkbGetKeyboardByName(Display *dpy,
 {
     register xkbGetKbdByNameReq *req;
     xkbGetKbdByNameReply rep;
-    int len, extraLen;
+    int len, extraLen = 0;
     char *str;
     XkbDescPtr xkb;
     int mapLen, codesLen, typesLen, compatLen;
@@ -204,12 +204,16 @@ XkbGetKeyboardByName(Display *dpy,
         if (status != Success)
             goto BAILOUT;
     }
+    if (extraLen > 0)
+        goto BAILOUT;
     UnlockDisplay(dpy);
     SyncHandle();
     return xkb;
  BAILOUT:
     if (xkb != NULL)
         XkbFreeKeyboard(xkb, XkbAllComponentsMask, xTrue);
+    if (extraLen > 0)
+        _XEatData(dpy, extraLen);
     UnlockDisplay(dpy);
     SyncHandle();
     return NULL;

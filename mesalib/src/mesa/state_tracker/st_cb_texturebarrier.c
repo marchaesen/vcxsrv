@@ -65,6 +65,13 @@ st_MemoryBarrier(struct gl_context *ctx, GLbitfield barriers)
 
    if (barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
       flags |= PIPE_BARRIER_MAPPED_BUFFER;
+   if (barriers & GL_ATOMIC_COUNTER_BARRIER_BIT)
+      flags |= PIPE_BARRIER_SHADER_BUFFER;
+   if (barriers & GL_SHADER_STORAGE_BARRIER_BIT)
+      flags |= PIPE_BARRIER_SHADER_BUFFER;
+
+   if (barriers & GL_QUERY_BUFFER_BARRIER_BIT)
+      flags |= PIPE_BARRIER_QUERY_BUFFER;
 
    if (flags && pipe->memory_barrier)
       pipe->memory_barrier(pipe, flags);

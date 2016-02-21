@@ -159,6 +159,9 @@ draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
       case GL_COLOR_ATTACHMENT7_EXT:
          return BUFFER_BIT_COLOR7;
       default:
+         /* not an error, but also not supported */
+         if (buffer >= GL_COLOR_ATTACHMENT8 && buffer <= GL_COLOR_ATTACHMENT31)
+            return 1 << BUFFER_COUNT;
          /* error */
          return BAD_MASK;
    }
@@ -214,6 +217,9 @@ read_buffer_enum_to_index(GLenum buffer)
       case GL_COLOR_ATTACHMENT7_EXT:
          return BUFFER_COLOR7;
       default:
+         /* not an error, but also not supported */
+         if (buffer >= GL_COLOR_ATTACHMENT8 && buffer <= GL_COLOR_ATTACHMENT31)
+            return BUFFER_COUNT;
          /* error */
          return -1;
    }

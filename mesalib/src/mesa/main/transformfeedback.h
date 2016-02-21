@@ -145,6 +145,9 @@ _mesa_set_transform_feedback_binding(struct gl_context *ctx,
    tfObj->BufferNames[index]   = bufObj->Name;
    tfObj->Offset[index]        = offset;
    tfObj->RequestedSize[index] = size;
+
+   if (bufObj != ctx->Shared->NullBufferObj)
+      bufObj->UsageHistory |= USAGE_TRANSFORM_FEEDBACK_BUFFER;
 }
 
 /*** GL_ARB_direct_state_access ***/

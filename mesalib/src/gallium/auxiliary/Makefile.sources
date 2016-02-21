@@ -191,11 +191,13 @@ C_SOURCES := \
 	util/u_cpu_detect.c \
 	util/u_cpu_detect.h \
 	util/u_debug.c \
+	util/u_debug.h \
 	util/u_debug_describe.c \
 	util/u_debug_describe.h \
 	util/u_debug_flush.c \
 	util/u_debug_flush.h \
-	util/u_debug.h \
+	util/u_debug_image.c \
+	util/u_debug_image.h \
 	util/u_debug_memory.c \
 	util/u_debug_refcnt.c \
 	util/u_debug_refcnt.h \

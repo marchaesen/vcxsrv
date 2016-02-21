@@ -55,7 +55,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
     GLshort *v;
     char *vbo_offset;
     int c;
-    int box_x, box_y;
+    int box_index;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -119,11 +119,12 @@ glamor_fill_spans_gl(DrawablePtr drawable,
 
     glEnable(GL_SCISSOR_TEST);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+    glamor_pixmap_loop(pixmap_priv, box_index) {
         int nbox = RegionNumRects(gc->pCompositeClip);
         BoxPtr box = RegionRects(gc->pCompositeClip);
 
-        glamor_set_destination_drawable(drawable, box_x, box_y, FALSE, FALSE, prog->matrix_uniform, &off_x, &off_y);
+        glamor_set_destination_drawable(drawable, box_index, FALSE, FALSE,
+                                        prog->matrix_uniform, &off_x, &off_y);
 
         while (nbox--) {
             glScissor(box->x1 + off_x,
@@ -180,7 +181,7 @@ glamor_get_spans_gl(DrawablePtr drawable, int wmax,
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv;
-    int box_x, box_y;
+    int box_index;
     int n;
     char *d;
     GLenum type;
@@ -197,9 +198,9 @@ glamor_get_spans_gl(DrawablePtr drawable, int wmax,
 
     glamor_make_current(glamor_priv);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
-        BoxPtr                  box = glamor_pixmap_box_at(pixmap_priv, box_x, box_y);
-        glamor_pixmap_fbo       *fbo = glamor_pixmap_fbo_at(pixmap_priv, box_x, box_y);
+    glamor_pixmap_loop(pixmap_priv, box_index) {
+        BoxPtr                  box = glamor_pixmap_box_at(pixmap_priv, box_index);
+        glamor_pixmap_fbo       *fbo = glamor_pixmap_fbo_at(pixmap_priv, box_index);
 
         glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
         glPixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -265,7 +266,7 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv;
-    int box_x, box_y;
+    int box_index;
     int n;
     char *s;
     GLenum type;
@@ -289,9 +290,9 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
-    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
-        BoxPtr                  box = glamor_pixmap_box_at(pixmap_priv, box_x, box_y);
-        glamor_pixmap_fbo       *fbo = glamor_pixmap_fbo_at(pixmap_priv, box_x, box_y);
+    glamor_pixmap_loop(pixmap_priv, box_index) {
+        BoxPtr              box = glamor_pixmap_box_at(pixmap_priv, box_index);
+        glamor_pixmap_fbo  *fbo = glamor_pixmap_fbo_at(pixmap_priv, box_index);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fbo->tex);

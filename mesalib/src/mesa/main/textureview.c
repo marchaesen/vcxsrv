@@ -211,10 +211,7 @@ initialize_texture_fields(struct gl_context *ctx,
    for (level = 0; level < levels; level++) {
       for (face = 0; face < numFaces; face++) {
          struct gl_texture_image *texImage;
-         GLenum faceTarget = target;
-
-         if (target == GL_TEXTURE_CUBE_MAP)
-            faceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
+         const GLenum faceTarget = _mesa_cube_face_target(target, face);
 
          texImage = _mesa_get_tex_image(ctx, texObj, faceTarget, level);
 
@@ -536,9 +533,7 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
    newViewNumLevels = MIN2(numlevels, origTexObj->NumLevels - minlevel);
    newViewNumLayers = MIN2(numlayers, origTexObj->NumLayers - minlayer);
 
-   faceTarget = origTexObj->Target;
-   if (faceTarget == GL_TEXTURE_CUBE_MAP)
-      faceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + minlayer;
+   faceTarget = _mesa_cube_face_target(origTexObj->Target, minlayer);
 
    /* Get a reference to what will become this View's base level */
    origTexImage = _mesa_select_tex_image(origTexObj, faceTarget, minlevel);

@@ -307,7 +307,7 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
     PixmapPtr dst_pixmap = glamor_get_drawable_pixmap(dst);
     glamor_pixmap_private *src_priv = glamor_get_pixmap_private(src_pixmap);
     glamor_pixmap_private *dst_priv = glamor_get_pixmap_private(dst_pixmap);
-    int src_box_x, src_box_y, dst_box_x, dst_box_y;
+    int src_box_index, dst_box_index;
     int dst_off_x, dst_off_y;
     int src_off_x, src_off_y;
     GLshort *v;
@@ -368,19 +368,20 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
 
     glEnable(GL_SCISSOR_TEST);
 
-    glamor_pixmap_loop(src_priv, src_box_x, src_box_y) {
-        BoxPtr src_box = glamor_pixmap_box_at(src_priv, src_box_x, src_box_y);
+    glamor_pixmap_loop(src_priv, src_box_index) {
+        BoxPtr src_box = glamor_pixmap_box_at(src_priv, src_box_index);
 
         args.dx = dx + src_off_x - src_box->x1;
         args.dy = dy + src_off_y - src_box->y1;
-        args.src = glamor_pixmap_fbo_at(src_priv, src_box_x, src_box_y);
+        args.src = glamor_pixmap_fbo_at(src_priv, src_box_index);
 
         if (!glamor_use_program(dst_pixmap, gc, prog, &args))
             goto bail_ctx;
 
-        glamor_pixmap_loop(dst_priv, dst_box_x, dst_box_y) {
-            glamor_set_destination_drawable(dst, dst_box_x, dst_box_y, FALSE, FALSE,
-                                            prog->matrix_uniform, &dst_off_x, &dst_off_y);
+        glamor_pixmap_loop(dst_priv, dst_box_index) {
+            glamor_set_destination_drawable(dst, dst_box_index, FALSE, FALSE,
+                                            prog->matrix_uniform,
+                                            &dst_off_x, &dst_off_y);
 
             glScissor(dst_off_x - args.dx,
                       dst_off_y - args.dy,
@@ -640,6 +641,9 @@ glamor_copy(DrawablePtr src,
             Pixel bitplane,
             void *closure)
 {
+    if (nbox == 0)
+	return;
+
     if (glamor_copy_gl(src, dst, gc, box, nbox, dx, dy, reverse, upsidedown, bitplane, closure))
         return;
     glamor_copy_bail(src, dst, gc, box, nbox, dx, dy, reverse, upsidedown, bitplane, closure);

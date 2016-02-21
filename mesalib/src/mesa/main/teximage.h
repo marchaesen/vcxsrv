@@ -43,9 +43,62 @@ extern "C" {
 static inline GLboolean
 _mesa_is_cube_face(GLenum target)
 {
-   return (target >= GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB &&
-           target <= GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB);
+   return (target >= GL_TEXTURE_CUBE_MAP_POSITIVE_X &&
+           target <= GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
 }
+
+
+/**
+ * Return number of faces for a texture target.  This will be 6 for
+ * cube maps and 1 otherwise.
+ * NOTE: this function is not used for cube map arrays which operate
+ * more like 2D arrays than cube maps.
+ */
+static inline GLuint
+_mesa_num_tex_faces(GLenum target)
+{
+   switch (target) {
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_PROXY_TEXTURE_CUBE_MAP:
+      return 6;
+   default:
+      return 1;
+   }
+}
+
+
+/**
+ * If the target is GL_TEXTURE_CUBE_MAP, return one of the
+ * GL_TEXTURE_CUBE_MAP_POSITIVE/NEGATIVE_X/Y/Z targets corresponding to
+ * the face parameter.
+ * Else, return target as-is.
+ */
+static inline GLenum
+_mesa_cube_face_target(GLenum target, unsigned face)
+{
+   if (target == GL_TEXTURE_CUBE_MAP) {
+      assert(face < 6);
+      return GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
+   }
+   else {
+      return target;
+   }
+}
+
+
+/**
+ * For cube map faces, return a face index in [0,5].
+ * For other targets return 0;
+ */
+static inline GLuint
+_mesa_tex_target_to_face(GLenum target)
+{
+   if (_mesa_is_cube_face(target))
+      return (GLuint) target - (GLuint) GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+   else
+      return 0;
+}
+
 
 /** Are any of the dimensions of given texture equal to zero? */
 static inline GLboolean
@@ -130,9 +183,6 @@ _mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target, GLint level,
 extern GLboolean
 _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
                                GLenum intFormat, GLenum *error);
-
-extern GLuint
-_mesa_tex_target_to_face(GLenum target);
 
 extern GLint
 _mesa_get_texture_dimensions(GLenum target);

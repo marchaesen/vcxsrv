@@ -140,112 +140,81 @@ st_release_fp_variants(struct st_context *st, struct st_fragment_program *stfp)
 
 
 /**
- * Delete a geometry program variant.  Note the caller must unlink
+ * Delete a basic program variant.  Note the caller must unlink
  * the variant from the linked list.
  */
 static void
-delete_gp_variant(struct st_context *st, struct st_gp_variant *gpv)
+delete_basic_variant(struct st_context *st, struct st_basic_variant *v,
+                     GLenum target)
 {
-   if (gpv->driver_shader) 
-      cso_delete_geometry_shader(st->cso_context, gpv->driver_shader);
-      
-   free(gpv);
+   if (v->driver_shader) {
+      switch (target) {
+      case GL_TESS_CONTROL_PROGRAM_NV:
+         cso_delete_tessctrl_shader(st->cso_context, v->driver_shader);
+         break;
+      case GL_TESS_EVALUATION_PROGRAM_NV:
+         cso_delete_tesseval_shader(st->cso_context, v->driver_shader);
+         break;
+      case GL_GEOMETRY_PROGRAM_NV:
+         cso_delete_geometry_shader(st->cso_context, v->driver_shader);
+         break;
+      case GL_COMPUTE_PROGRAM_NV:
+         cso_delete_compute_shader(st->cso_context, v->driver_shader);
+         break;
+      default:
+         assert(!"this shouldn't occur");
+      }
+   }
+
+   free(v);
 }
 
 
 /**
- * Free all variants of a geometry program.
+ * Free all basic program variants.
  */
 void
-st_release_gp_variants(struct st_context *st, struct st_geometry_program *stgp)
+st_release_basic_variants(struct st_context *st, GLenum target,
+                          struct st_basic_variant **variants,
+                          struct pipe_shader_state *tgsi)
 {
-   struct st_gp_variant *gpv;
+   struct st_basic_variant *v;
 
-   for (gpv = stgp->variants; gpv; ) {
-      struct st_gp_variant *next = gpv->next;
-      delete_gp_variant(st, gpv);
-      gpv = next;
+   for (v = *variants; v; ) {
+      struct st_basic_variant *next = v->next;
+      delete_basic_variant(st, v, target);
+      v = next;
    }
 
-   stgp->variants = NULL;
+   *variants = NULL;
 
-   if (stgp->tgsi.tokens) {
-      ureg_free_tokens(stgp->tgsi.tokens);
-      stgp->tgsi.tokens = NULL;
+   if (tgsi->tokens) {
+      ureg_free_tokens(tgsi->tokens);
+      tgsi->tokens = NULL;
    }
 }
 
 
 /**
- * Delete a tessellation control program variant.  Note the caller must unlink
- * the variant from the linked list.
- */
-static void
-delete_tcp_variant(struct st_context *st, struct st_tcp_variant *tcpv)
-{
-   if (tcpv->driver_shader)
-      cso_delete_tessctrl_shader(st->cso_context, tcpv->driver_shader);
-
-   free(tcpv);
-}
-
-
-/**
- * Free all variants of a tessellation control program.
+ * Free all variants of a compute program.
  */
 void
-st_release_tcp_variants(struct st_context *st, struct st_tessctrl_program *sttcp)
+st_release_cp_variants(struct st_context *st, struct st_compute_program *stcp)
 {
-   struct st_tcp_variant *tcpv;
+   struct st_basic_variant **variants = &stcp->variants;
+   struct st_basic_variant *v;
 
-   for (tcpv = sttcp->variants; tcpv; ) {
-      struct st_tcp_variant *next = tcpv->next;
-      delete_tcp_variant(st, tcpv);
-      tcpv = next;
+   for (v = *variants; v; ) {
+      struct st_basic_variant *next = v->next;
+      delete_basic_variant(st, v, stcp->Base.Base.Target);
+      v = next;
    }
 
-   sttcp->variants = NULL;
+   *variants = NULL;
 
-   if (sttcp->tgsi.tokens) {
-      ureg_free_tokens(sttcp->tgsi.tokens);
-      sttcp->tgsi.tokens = NULL;
-   }
-}
-
-
-/**
- * Delete a tessellation evaluation program variant.  Note the caller must
- * unlink the variant from the linked list.
- */
-static void
-delete_tep_variant(struct st_context *st, struct st_tep_variant *tepv)
-{
-   if (tepv->driver_shader)
-      cso_delete_tesseval_shader(st->cso_context, tepv->driver_shader);
-
-   free(tepv);
-}
-
-
-/**
- * Free all variants of a tessellation evaluation program.
- */
-void
-st_release_tep_variants(struct st_context *st, struct st_tesseval_program *sttep)
-{
-   struct st_tep_variant *tepv;
-
-   for (tepv = sttep->variants; tepv; ) {
-      struct st_tep_variant *next = tepv->next;
-      delete_tep_variant(st, tepv);
-      tepv = next;
-   }
-
-   sttep->variants = NULL;
-
-   if (sttep->tgsi.tokens) {
-      ureg_free_tokens(sttep->tgsi.tokens);
-      sttep->tgsi.tokens = NULL;
+   if (stcp->tgsi.prog) {
+      ureg_free_tokens(stcp->tgsi.prog);
+      stcp->tgsi.prog = NULL;
    }
 }
 
@@ -1324,53 +1293,59 @@ st_translate_geometry_program(struct st_context *st,
 }
 
 
-static struct st_gp_variant *
-st_create_gp_variant(struct st_context *st,
-                     struct st_geometry_program *stgp,
-                     const struct st_gp_variant_key *key)
+/**
+ * Get/create a basic program variant.
+ */
+struct st_basic_variant *
+st_get_basic_variant(struct st_context *st,
+                     unsigned pipe_shader,
+                     struct pipe_shader_state *tgsi,
+                     struct st_basic_variant **variants)
 {
    struct pipe_context *pipe = st->pipe;
-   struct st_gp_variant *gpv;
+   struct st_basic_variant *v;
+   struct st_basic_variant_key key;
 
-   gpv = CALLOC_STRUCT(st_gp_variant);
-   if (!gpv)
-      return NULL;
-
-   /* fill in new variant */
-   gpv->driver_shader = pipe->create_gs_state(pipe, &stgp->tgsi);
-   gpv->key = *key;
-   return gpv;
-}
-
-
-/**
- * Get/create geometry program variant.
- */
-struct st_gp_variant *
-st_get_gp_variant(struct st_context *st,
-                  struct st_geometry_program *stgp,
-                  const struct st_gp_variant_key *key)
-{
-   struct st_gp_variant *gpv;
+   memset(&key, 0, sizeof(key));
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    /* Search for existing variant */
-   for (gpv = stgp->variants; gpv; gpv = gpv->next) {
-      if (memcmp(&gpv->key, key, sizeof(*key)) == 0) {
+   for (v = *variants; v; v = v->next) {
+      if (memcmp(&v->key, &key, sizeof(key)) == 0) {
          break;
       }
    }
 
-   if (!gpv) {
+   if (!v) {
       /* create new */
-      gpv = st_create_gp_variant(st, stgp, key);
-      if (gpv) {
+      v = CALLOC_STRUCT(st_basic_variant);
+      if (v) {
+         /* fill in new variant */
+         switch (pipe_shader) {
+         case PIPE_SHADER_TESS_CTRL:
+            v->driver_shader = pipe->create_tcs_state(pipe, tgsi);
+            break;
+         case PIPE_SHADER_TESS_EVAL:
+            v->driver_shader = pipe->create_tes_state(pipe, tgsi);
+            break;
+         case PIPE_SHADER_GEOMETRY:
+            v->driver_shader = pipe->create_gs_state(pipe, tgsi);
+            break;
+         default:
+            assert(!"unhandled shader type");
+            free(v);
+            return NULL;
+         }
+
+         v->key = key;
+
          /* insert into list */
-         gpv->next = stgp->variants;
-         stgp->variants = gpv;
+         v->next = *variants;
+         *variants = v;
       }
    }
 
-   return gpv;
+   return v;
 }
 
 
@@ -1396,56 +1371,6 @@ st_translate_tessctrl_program(struct st_context *st,
    free_glsl_to_tgsi_visitor(sttcp->glsl_to_tgsi);
    sttcp->glsl_to_tgsi = NULL;
    return true;
-}
-
-
-static struct st_tcp_variant *
-st_create_tcp_variant(struct st_context *st,
-                      struct st_tessctrl_program *sttcp,
-                      const struct st_tcp_variant_key *key)
-{
-   struct pipe_context *pipe = st->pipe;
-   struct st_tcp_variant *tcpv;
-
-   tcpv = CALLOC_STRUCT(st_tcp_variant);
-   if (!tcpv)
-      return NULL;
-
-   /* fill in new variant */
-   tcpv->driver_shader = pipe->create_tcs_state(pipe, &sttcp->tgsi);
-   tcpv->key = *key;
-   return tcpv;
-}
-
-
-/**
- * Get/create tessellation control program variant.
- */
-struct st_tcp_variant *
-st_get_tcp_variant(struct st_context *st,
-                  struct st_tessctrl_program *sttcp,
-                  const struct st_tcp_variant_key *key)
-{
-   struct st_tcp_variant *tcpv;
-
-   /* Search for existing variant */
-   for (tcpv = sttcp->variants; tcpv; tcpv = tcpv->next) {
-      if (memcmp(&tcpv->key, key, sizeof(*key)) == 0) {
-         break;
-      }
-   }
-
-   if (!tcpv) {
-      /* create new */
-      tcpv = st_create_tcp_variant(st, sttcp, key);
-      if (tcpv) {
-         /* insert into list */
-         tcpv->next = sttcp->variants;
-         sttcp->variants = tcpv;
-      }
-   }
-
-   return tcpv;
 }
 
 
@@ -1496,53 +1421,71 @@ st_translate_tesseval_program(struct st_context *st,
 }
 
 
-static struct st_tep_variant *
-st_create_tep_variant(struct st_context *st,
-                      struct st_tesseval_program *sttep,
-                      const struct st_tep_variant_key *key)
+/**
+ * Translate a compute program to create a new variant.
+ */
+bool
+st_translate_compute_program(struct st_context *st,
+                             struct st_compute_program *stcp)
 {
-   struct pipe_context *pipe = st->pipe;
-   struct st_tep_variant *tepv;
+   struct ureg_program *ureg;
+   struct pipe_shader_state prog;
 
-   tepv = CALLOC_STRUCT(st_tep_variant);
-   if (!tepv)
-      return NULL;
+   ureg = ureg_create_with_screen(TGSI_PROCESSOR_COMPUTE, st->pipe->screen);
+   if (ureg == NULL)
+      return false;
 
-   /* fill in new variant */
-   tepv->driver_shader = pipe->create_tes_state(pipe, &sttep->tgsi);
-   tepv->key = *key;
-   return tepv;
+   st_translate_program_common(st, &stcp->Base.Base, stcp->glsl_to_tgsi, ureg,
+                               TGSI_PROCESSOR_COMPUTE, &prog);
+
+   stcp->tgsi.prog = prog.tokens;
+   stcp->tgsi.req_local_mem = stcp->Base.SharedSize;
+   stcp->tgsi.req_private_mem = 0;
+   stcp->tgsi.req_input_mem = 0;
+
+   free_glsl_to_tgsi_visitor(stcp->glsl_to_tgsi);
+   stcp->glsl_to_tgsi = NULL;
+   return true;
 }
 
 
 /**
- * Get/create tessellation evaluation program variant.
+ * Get/create compute program variant.
  */
-struct st_tep_variant *
-st_get_tep_variant(struct st_context *st,
-                  struct st_tesseval_program *sttep,
-                  const struct st_tep_variant_key *key)
+struct st_basic_variant *
+st_get_cp_variant(struct st_context *st,
+                  struct pipe_compute_state *tgsi,
+                  struct st_basic_variant **variants)
 {
-   struct st_tep_variant *tepv;
+   struct pipe_context *pipe = st->pipe;
+   struct st_basic_variant *v;
+   struct st_basic_variant_key key;
+
+   memset(&key, 0, sizeof(key));
+   key.st = st->has_shareable_shaders ? NULL : st;
 
    /* Search for existing variant */
-   for (tepv = sttep->variants; tepv; tepv = tepv->next) {
-      if (memcmp(&tepv->key, key, sizeof(*key)) == 0) {
+   for (v = *variants; v; v = v->next) {
+      if (memcmp(&v->key, &key, sizeof(key)) == 0) {
          break;
       }
    }
 
-   if (!tepv) {
+   if (!v) {
       /* create new */
-      tepv = st_create_tep_variant(st, sttep, key);
-      if (tepv) {
+      v = CALLOC_STRUCT(st_basic_variant);
+      if (v) {
+         /* fill in new variant */
+         v->driver_shader = pipe->create_compute_state(pipe, tgsi);
+         v->key = key;
+
          /* insert into list */
-         tepv->next = sttep->variants;
-         sttep->variants = tepv;
+         v->next = *variants;
+         *variants = v;
       }
    }
 
-   return tepv;
+   return v;
 }
 
 
@@ -1551,15 +1494,15 @@ st_get_tep_variant(struct st_context *st,
  * variants attached to the given program which match the given context.
  */
 static void
-destroy_program_variants(struct st_context *st, struct gl_program *program)
+destroy_program_variants(struct st_context *st, struct gl_program *target)
 {
-   if (!program || program == &_mesa_DummyProgram)
+   if (!target || target == &_mesa_DummyProgram)
       return;
 
-   switch (program->Target) {
+   switch (target->Target) {
    case GL_VERTEX_PROGRAM_ARB:
       {
-         struct st_vertex_program *stvp = (struct st_vertex_program *) program;
+         struct st_vertex_program *stvp = (struct st_vertex_program *) target;
          struct st_vp_variant *vpv, **prevPtr = &stvp->variants;
 
          for (vpv = stvp->variants; vpv; ) {
@@ -1580,7 +1523,7 @@ destroy_program_variants(struct st_context *st, struct gl_program *program)
    case GL_FRAGMENT_PROGRAM_ARB:
       {
          struct st_fragment_program *stfp =
-            (struct st_fragment_program *) program;
+            (struct st_fragment_program *) target;
          struct st_fp_variant *fpv, **prevPtr = &stfp->variants;
 
          for (fpv = stfp->variants; fpv; ) {
@@ -1599,71 +1542,40 @@ destroy_program_variants(struct st_context *st, struct gl_program *program)
       }
       break;
    case GL_GEOMETRY_PROGRAM_NV:
-      {
-         struct st_geometry_program *stgp =
-            (struct st_geometry_program *) program;
-         struct st_gp_variant *gpv, **prevPtr = &stgp->variants;
-
-         for (gpv = stgp->variants; gpv; ) {
-            struct st_gp_variant *next = gpv->next;
-            if (gpv->key.st == st) {
-               /* unlink from list */
-               *prevPtr = next;
-               /* destroy this variant */
-               delete_gp_variant(st, gpv);
-            }
-            else {
-               prevPtr = &gpv->next;
-            }
-            gpv = next;
-         }
-      }
-      break;
    case GL_TESS_CONTROL_PROGRAM_NV:
-      {
-         struct st_tessctrl_program *sttcp =
-            (struct st_tessctrl_program *) program;
-         struct st_tcp_variant *tcpv, **prevPtr = &sttcp->variants;
-
-         for (tcpv = sttcp->variants; tcpv; ) {
-            struct st_tcp_variant *next = tcpv->next;
-            if (tcpv->key.st == st) {
-               /* unlink from list */
-               *prevPtr = next;
-               /* destroy this variant */
-               delete_tcp_variant(st, tcpv);
-            }
-            else {
-               prevPtr = &tcpv->next;
-            }
-            tcpv = next;
-         }
-      }
-      break;
    case GL_TESS_EVALUATION_PROGRAM_NV:
+   case GL_COMPUTE_PROGRAM_NV:
       {
-         struct st_tesseval_program *sttep =
-            (struct st_tesseval_program *) program;
-         struct st_tep_variant *tepv, **prevPtr = &sttep->variants;
+         struct st_geometry_program *gp = (struct st_geometry_program*)target;
+         struct st_tessctrl_program *tcp = (struct st_tessctrl_program*)target;
+         struct st_tesseval_program *tep = (struct st_tesseval_program*)target;
+         struct st_compute_program *cp = (struct st_compute_program*)target;
+         struct st_basic_variant **variants =
+            target->Target == GL_GEOMETRY_PROGRAM_NV ? &gp->variants :
+            target->Target == GL_TESS_CONTROL_PROGRAM_NV ? &tcp->variants :
+            target->Target == GL_TESS_EVALUATION_PROGRAM_NV ? &tep->variants :
+            target->Target == GL_COMPUTE_PROGRAM_NV ? &cp->variants :
+            NULL;
+         struct st_basic_variant *v, **prevPtr = variants;
 
-         for (tepv = sttep->variants; tepv; ) {
-            struct st_tep_variant *next = tepv->next;
-            if (tepv->key.st == st) {
+         for (v = *variants; v; ) {
+            struct st_basic_variant *next = v->next;
+            if (v->key.st == st) {
                /* unlink from list */
                *prevPtr = next;
                /* destroy this variant */
-               delete_tep_variant(st, tepv);
+               delete_basic_variant(st, v, target->Target);
             }
             else {
-               prevPtr = &tepv->next;
+               prevPtr = &v->next;
             }
-            tepv = next;
+            v = next;
          }
       }
       break;
    default:
       _mesa_problem(NULL, "Unexpected program target 0x%x in "
-                    "destroy_program_variants_cb()", program->Target);
+                    "destroy_program_variants_cb()", target->Target);
    }
 }
 
@@ -1699,6 +1611,7 @@ destroy_shader_program_variants_cb(GLuint key, void *data, void *userData)
    case GL_GEOMETRY_SHADER:
    case GL_TESS_CONTROL_SHADER:
    case GL_TESS_EVALUATION_SHADER:
+   case GL_COMPUTE_SHADER:
       {
          destroy_program_variants(st, shader->Program);
       }
@@ -1789,31 +1702,19 @@ st_precompile_shader_variant(struct st_context *st,
 
    case GL_TESS_CONTROL_PROGRAM_NV: {
       struct st_tessctrl_program *p = (struct st_tessctrl_program *)prog;
-      struct st_tcp_variant_key key;
-
-      memset(&key, 0, sizeof(key));
-      key.st = st->has_shareable_shaders ? NULL : st;
-      st_get_tcp_variant(st, p, &key);
+      st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL, &p->tgsi, &p->variants);
       break;
    }
 
    case GL_TESS_EVALUATION_PROGRAM_NV: {
       struct st_tesseval_program *p = (struct st_tesseval_program *)prog;
-      struct st_tep_variant_key key;
-
-      memset(&key, 0, sizeof(key));
-      key.st = st->has_shareable_shaders ? NULL : st;
-      st_get_tep_variant(st, p, &key);
+      st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL, &p->tgsi, &p->variants);
       break;
    }
 
    case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *p = (struct st_geometry_program *)prog;
-      struct st_gp_variant_key key;
-
-      memset(&key, 0, sizeof(key));
-      key.st = st->has_shareable_shaders ? NULL : st;
-      st_get_gp_variant(st, p, &key);
+      st_get_basic_variant(st, PIPE_SHADER_GEOMETRY, &p->tgsi, &p->variants);
       break;
    }
 
@@ -1824,6 +1725,12 @@ st_precompile_shader_variant(struct st_context *st,
       memset(&key, 0, sizeof(key));
       key.st = st->has_shareable_shaders ? NULL : st;
       st_get_fp_variant(st, p, &key);
+      break;
+   }
+
+   case GL_COMPUTE_PROGRAM_NV: {
+      struct st_compute_program *p = (struct st_compute_program *)prog;
+      st_get_cp_variant(st, &p->tgsi, &p->variants);
       break;
    }
 

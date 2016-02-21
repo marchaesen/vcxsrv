@@ -1356,7 +1356,7 @@ authorization from the authors.
 					<list name="acts_rtrn_count" type="CARD8">
 						<fieldref>nKeyActions</fieldref>
 					</list>
-                                        <pad align="4" />
+                                        <pad align="4" serialize="true"/>
 					<list name="acts_rtrn_acts" type="Action">
 						<fieldref>totalActions</fieldref>
 					</list>
@@ -1372,21 +1372,21 @@ authorization from the authors.
 					<list name="vmods_rtrn" type="CARD8" mask="ModMask">
 						<popcount><fieldref>virtualMods</fieldref></popcount>
 					</list>
-                                        <pad align="4" />
+                                        <pad align="4" serialize="true" />
 				</bitcase>
 				<bitcase>
 					<enumref ref="MapPart">ExplicitComponents</enumref>
 					<list name="explicit_rtrn" type="SetExplicit">
 						<fieldref>totalKeyExplicit</fieldref>
 					</list>
-                                        <pad align="4" />
+                                        <pad align="4" serialize="true" />
 				</bitcase>
 				<bitcase>
 					<enumref ref="MapPart">ModifierMap</enumref>
 					<list name="modmap_rtrn" type="KeyModMap">
 						<fieldref>totalModMapKeys</fieldref>
 					</list>
-                                        <pad align="4" />
+                                        <pad align="4" serialize="true" />
 				</bitcase>
 				<bitcase>
 					<enumref ref="MapPart">VirtualModMap</enumref>
@@ -1670,7 +1670,7 @@ authorization from the authors.
 					       <fieldref>nKTLevels</fieldref> -->
 					        <fieldref>nTypes</fieldref>
 					</list>
-					<pad align="4" />
+					<pad align="4" serialize="true" />
 					<list name="ktLevelNames" type="ATOM">
 						<sumof ref="nLevelsPerType" />
 					</list>

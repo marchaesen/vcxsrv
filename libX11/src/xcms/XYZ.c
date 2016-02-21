@@ -120,13 +120,13 @@ CIEXYZ_ParseString(
  *	RETURNS
  */
 {
-    int n;
+    size_t n;
     char *pchar;
 
     if ((pchar = strchr(spec, ':')) == NULL) {
 	return(XcmsFailure);
     }
-    n = (int)(pchar - spec);
+    n = (size_t)(pchar - spec);
 
     /*
      * Check for proper prefix.

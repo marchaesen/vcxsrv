@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include "glheader.h"
 #include "context.h"
+#include "debug_output.h"
 #include "get.h"
 #include "enums.h"
 #include "extensions.h"

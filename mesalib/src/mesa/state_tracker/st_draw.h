@@ -85,4 +85,11 @@ pointer_to_offset(const void *ptr)
 }
 
 
+bool
+st_draw_quad(struct st_context *st,
+             float x0, float y0, float x1, float y1, float z,
+             float s0, float t0, float s1, float t1,
+             const float *color,
+             unsigned num_instances);
+
 #endif

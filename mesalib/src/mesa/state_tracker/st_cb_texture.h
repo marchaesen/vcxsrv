@@ -53,5 +53,10 @@ st_finalize_texture(struct gl_context *ctx,
 extern void
 st_init_texture_functions(struct dd_function_table *functions);
 
+extern void
+st_init_pbo_upload(struct st_context *st);
+
+extern void
+st_destroy_pbo_upload(struct st_context *st);
 
 #endif /* ST_CB_TEXTURE_H */

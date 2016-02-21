@@ -49,6 +49,7 @@ struct cached_shader
 /**
  * Simple linear list cache.
  * Most of the time there'll only be one cached shader.
+ * XXX This should be per-st_context state.
  */
 static struct cached_shader CachedShaders[MAX_SHADERS];
 static GLuint NumCachedShaders = 0;
@@ -99,13 +100,14 @@ lookup_shader(struct pipe_context *pipe,
    return CachedShaders[i].handle;
 }
 
+
 static void
 st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
            GLfloat width, GLfloat height)
 {
    struct st_context *st = ctx->st;
    struct pipe_context *pipe = st->pipe;
-   struct cso_context *cso = ctx->st->cso_context;
+   struct cso_context *cso = st->cso_context;
    struct pipe_resource *vbuffer = NULL;
    GLuint i, numTexCoords, numAttribs;
    GLboolean emitColor;
@@ -116,7 +118,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
 
    st_flush_bitmap_cache(st);
 
-   st_validate_state(st);
+   st_validate_state(st, ST_PIPELINE_RENDER);
 
    /* determine if we need vertex color */
    if (ctx->FragmentProgram._Current->Base.InputsRead & VARYING_BIT_COL0)
@@ -150,7 +152,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
 
       const GLfloat x0 = x, y0 = y, x1 = x + width, y1 = y + height;
       GLfloat *vbuf = NULL;
-      GLuint attr;
+      GLuint tex_attr;
 
       u_upload_alloc(st->uploader, 0,
                      numAttribs * 4 * 4 * sizeof(GLfloat), 4,
@@ -158,12 +160,12 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       if (!vbuffer) {
          return;
       }
-      
+
       z = CLAMP(z, 0.0f, 1.0f);
 
       /* positions (in clip coords) */
       {
-         const struct gl_framebuffer *fb = st->ctx->DrawBuffer;
+         const struct gl_framebuffer *fb = ctx->DrawBuffer;
          const GLfloat fb_width = (GLfloat)fb->Width;
          const GLfloat fb_height = (GLfloat)fb->Height;
 
@@ -190,10 +192,10 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
          SET_ATTRIB(3, 1, c[0], c[1], c[2], c[3]);
          semantic_names[1] = TGSI_SEMANTIC_COLOR;
          semantic_indexes[1] = 0;
-         attr = 2;
+         tex_attr = 2;
       }
       else {
-         attr = 1;
+         tex_attr = 1;
       }
 
       /* texcoords */
@@ -210,17 +212,17 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
             const GLfloat t1 = (obj->CropRect[1] + obj->CropRect[3]) / ht;
 
             /*printf("crop texcoords: %g, %g .. %g, %g\n", s0, t0, s1, t1);*/
-            SET_ATTRIB(0, attr, s0, t0, 0.0f, 1.0f);  /* lower left */
-            SET_ATTRIB(1, attr, s1, t0, 0.0f, 1.0f);  /* lower right */
-            SET_ATTRIB(2, attr, s1, t1, 0.0f, 1.0f);  /* upper right */
-            SET_ATTRIB(3, attr, s0, t1, 0.0f, 1.0f);  /* upper left */
+            SET_ATTRIB(0, tex_attr, s0, t0, 0.0f, 1.0f);  /* lower left */
+            SET_ATTRIB(1, tex_attr, s1, t0, 0.0f, 1.0f);  /* lower right */
+            SET_ATTRIB(2, tex_attr, s1, t1, 0.0f, 1.0f);  /* upper right */
+            SET_ATTRIB(3, tex_attr, s0, t1, 0.0f, 1.0f);  /* upper left */
 
-            semantic_names[attr] = st->needs_texcoord_semantic ?
+            semantic_names[tex_attr] = st->needs_texcoord_semantic ?
                TGSI_SEMANTIC_TEXCOORD : TGSI_SEMANTIC_GENERIC;
             /* XXX: should this use semantic index i instead of 0 ? */
-            semantic_indexes[attr] = 0;
+            semantic_indexes[tex_attr] = 0;
 
-            attr++;
+            tex_attr++;
          }
       }
 
@@ -229,15 +231,14 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
 #undef SET_ATTRIB
    }
 
-
-   cso_save_viewport(cso);
-   cso_save_stream_outputs(cso);
-   cso_save_vertex_shader(cso);
-   cso_save_tessctrl_shader(cso);
-   cso_save_tesseval_shader(cso);
-   cso_save_geometry_shader(cso);
-   cso_save_vertex_elements(cso);
-   cso_save_aux_vertex_buffer_slot(cso);
+   cso_save_state(cso, (CSO_BIT_VIEWPORT |
+                        CSO_BIT_STREAM_OUTPUTS |
+                        CSO_BIT_VERTEX_SHADER |
+                        CSO_BIT_TESSCTRL_SHADER |
+                        CSO_BIT_TESSEVAL_SHADER |
+                        CSO_BIT_GEOMETRY_SHADER |
+                        CSO_BIT_VERTEX_ELEMENTS |
+                        CSO_BIT_AUX_VERTEX_BUFFER_SLOT));
 
    {
       void *vs = lookup_shader(pipe, numAttribs,
@@ -255,11 +256,11 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       velements[i].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
    }
    cso_set_vertex_elements(cso, numAttribs, velements);
-   cso_set_stream_outputs(st->cso_context, 0, NULL, NULL);
+   cso_set_stream_outputs(cso, 0, NULL, NULL);
 
    /* viewport state: viewport matching window dims */
    {
-      const struct gl_framebuffer *fb = st->ctx->DrawBuffer;
+      const struct gl_framebuffer *fb = ctx->DrawBuffer;
       const GLboolean invert = (st_fb_orientation(fb) == Y_0_TOP);
       const GLfloat width = (GLfloat)fb->Width;
       const GLfloat height = (GLfloat)fb->Height;
@@ -273,7 +274,6 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       cso_set_viewport(cso, &vp);
    }
 
-
    util_draw_vertex_buffer(pipe, cso, vbuffer,
 			   cso_get_aux_vertex_buffer_slot(cso),
                            offset,  /* offset */
@@ -281,18 +281,10 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                            4,  /* verts */
                            numAttribs); /* attribs/vert */
 
-
    pipe_resource_reference(&vbuffer, NULL);
 
    /* restore state */
-   cso_restore_viewport(cso);
-   cso_restore_vertex_shader(cso);
-   cso_restore_tessctrl_shader(cso);
-   cso_restore_tesseval_shader(cso);
-   cso_restore_geometry_shader(cso);
-   cso_restore_vertex_elements(cso);
-   cso_restore_aux_vertex_buffer_slot(cso);
-   cso_restore_stream_outputs(cso);
+   cso_restore_state(cso);
 }
 
 

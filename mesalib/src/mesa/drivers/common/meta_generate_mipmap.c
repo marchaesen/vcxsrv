@@ -185,6 +185,12 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    GLint swizzle[4];
    GLboolean swizzleSaved = GL_FALSE;
 
+   /* GLint so the compiler won't complain about type signedness mismatch in
+    * the calls to _mesa_texture_parameteriv below.
+    */
+   static const GLint always_false = GL_FALSE;
+   static const GLint always_true = GL_TRUE;
+
    if (fallback_required(ctx, target, texObj)) {
       _mesa_generate_mipmap(ctx, target, texObj);
       return;
@@ -248,13 +254,14 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    assert(mipmap->FBO != 0);
    _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, mipmap->FBO);
 
-   _mesa_TexParameteri(target, GL_GENERATE_MIPMAP, GL_FALSE);
+   _mesa_texture_parameteriv(ctx, texObj, GL_GENERATE_MIPMAP, &always_false, false);
 
    if (texObj->_Swizzle != SWIZZLE_NOOP) {
       static const GLint swizzleNoop[4] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
       memcpy(swizzle, texObj->Swizzle, sizeof(swizzle));
       swizzleSaved = GL_TRUE;
-      _mesa_TexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzleNoop);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_SWIZZLE_RGBA,
+                                swizzleNoop, false);
    }
 
    /* Silence valgrind warnings about reading uninitialized stack. */
@@ -309,7 +316,8 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
       /* Allocate storage for the destination mipmap image(s) */
 
       /* Set MaxLevel large enough to hold the new level when we allocate it */
-      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, dstLevel);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
+                                (GLint *) &dstLevel, false);
 
       if (!prepare_mipmap_level(ctx, texObj, dstLevel,
                                 dstWidth, dstHeight, dstDepth,
@@ -323,7 +331,8 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
       dstImage = _mesa_select_tex_image(texObj, faceTarget, dstLevel);
 
       /* limit minification to src level */
-      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, srcLevel);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
+                                (GLint *) &srcLevel, false);
 
       /* setup viewport */
       _mesa_set_viewport(ctx, 0, 0, 0, dstWidth, dstHeight);
@@ -373,9 +382,12 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
 
    _mesa_meta_end(ctx);
 
-   _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, maxLevelSave);
+   _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL, &maxLevelSave,
+                             false);
    if (genMipmapSave)
-      _mesa_TexParameteri(target, GL_GENERATE_MIPMAP, genMipmapSave);
+      _mesa_texture_parameteriv(ctx, texObj, GL_GENERATE_MIPMAP, &always_true,
+                                false);
    if (swizzleSaved)
-      _mesa_TexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_SWIZZLE_RGBA, swizzle,
+                                false);
 }

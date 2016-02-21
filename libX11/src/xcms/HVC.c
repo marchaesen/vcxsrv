@@ -176,13 +176,13 @@ TekHVC_ParseString(
  *		XcmsSuccess if valid.
  */
 {
-    int n;
+    size_t n;
     char *pchar;
 
     if ((pchar = strchr(spec, ':')) == NULL) {
 	return(XcmsFailure);
     }
-    n = (int)(pchar - spec);
+    n = (size_t)(pchar - spec);
 
     /*
      * Check for proper prefix.
@@ -349,7 +349,7 @@ XcmsTekHVCToCIEuvY(
     XcmsCIEuvY	uvY_return;
     XcmsFloat	tempHue, u, v;
     XcmsFloat	tmpVal;
-    register int i;
+    unsigned int i;
 
     /*
      * Check arguments
@@ -468,7 +468,7 @@ XcmsCIEuvYToTekHVC(
     XcmsColor	*pColor = pColors_in_out;
     XcmsColor	whitePt;
     XcmsTekHVC	HVC_return;
-    register int i;
+    unsigned int i;
 
     /*
      * Check arguments

@@ -1715,12 +1715,12 @@ _mesa_generate_mipmap_level(GLenum target,
                      dstWidth, dstData[0]);
       break;
    case GL_TEXTURE_2D:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB:
-   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB:
-   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
       make_2d_mipmap(datatype, comps, border,
                      srcWidth, srcHeight, srcData[0], srcRowStride,
                      dstWidth, dstHeight, dstData[0], dstRowStride);
@@ -1838,12 +1838,7 @@ _mesa_prepare_mipmap_level(struct gl_context *ctx,
 
    for (face = 0; face < numFaces; face++) {
       struct gl_texture_image *dstImage;
-      GLenum target;
-
-      if (numFaces == 1)
-         target = texObj->Target;
-      else
-         target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
+      const GLenum target = _mesa_cube_face_target(texObj->Target, face);
 
       dstImage = _mesa_get_tex_image(ctx, texObj, target, level);
       if (!dstImage) {
@@ -2024,7 +2019,7 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
    /* only two types of compressed textures at this time */
    assert(texObj->Target == GL_TEXTURE_2D ||
 	  texObj->Target == GL_TEXTURE_2D_ARRAY ||
-	  texObj->Target == GL_TEXTURE_CUBE_MAP_ARB ||
+	  texObj->Target == GL_TEXTURE_CUBE_MAP ||
           texObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY);
 
    /*

@@ -106,7 +106,7 @@ SOFTWARE.
 #include <pwd.h>
 #endif
 
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
 #include <netinet/in.h>
 #endif                          /* TCPCONN || STREAMSCONN */
 
@@ -508,7 +508,7 @@ ifioctl(int fd, int cmd, char *arg)
 void
 DefineSelf(int fd, const int protocol)
 {
-#if !defined(TCPCONN) && !defined(STREAMSCONN) && !defined(UNIXCONN)
+#if !defined(TCPCONN) && !defined(UNIXCONN)
     return;
 #else
     int len;
@@ -1104,11 +1104,10 @@ ResetHosts(const char *display)
     char *ptr;
     int i, hostlen;
 
-#if (defined(TCPCONN) || defined(STREAMSCONN) ) && \
-     (!defined(IPv6) || !defined(AF_INET6))
+#if defined(TCPCONN) &&  (!defined(IPv6) || !defined(AF_INET6))
     union {
         struct sockaddr sa;
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
         struct sockaddr_in in;
 #endif                          /* TCPCONN || STREAMSCONN */
     } saddr;
@@ -1155,7 +1154,7 @@ ResetHosts(const char *display)
                 NewHost(family, "", 0, FALSE);
                 LocalHostRequested = TRUE;      /* Fix for XFree86 bug #156 */
             }
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
             else if (!strncmp("inet:", lhostname, 5)) {
                 family = FamilyInternet;
                 hostname = ohostname + 5;
@@ -1194,7 +1193,7 @@ ResetHosts(const char *display)
             }
             else
 #endif                          /* SECURE_RPC */
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
             {
 #if defined(IPv6) && defined(AF_INET6)
                 if ((family == FamilyInternet) || (family == FamilyInternet6) ||
@@ -1618,7 +1617,7 @@ CheckAddr(int family, const void *pAddr, unsigned length)
     int len;
 
     switch (family) {
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
     case FamilyInternet:
         if (length == sizeof(struct in_addr))
             len = length;
@@ -1701,7 +1700,7 @@ ConvertAddr(register struct sockaddr *saddr, int *len, void **addr)
     case AF_UNIX:
 #endif
         return FamilyLocal;
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#if defined(TCPCONN)
     case AF_INET:
 #ifdef WIN32
         if (16777343 == *(long *) &((struct sockaddr_in *) saddr)->sin_addr)

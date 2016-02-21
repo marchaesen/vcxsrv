@@ -253,7 +253,7 @@ XcmsCIExyYToCIEXYZ(
     XcmsCIEXYZ	XYZ_return;
     XcmsFloat	div;		/* temporary storage in case divisor is zero */
     XcmsFloat	u, v, x, y, z;	/* temporary storage */
-    register int i;
+    unsigned int i;
 
     /*
      * Check arguments
@@ -359,7 +359,7 @@ XcmsCIEXYZToCIExyY(
     XcmsColor	*pColor = pColors_in_out;
     XcmsCIExyY	xyY_return;
     XcmsFloat	div;		/* temporary storage in case divisor is zero */
-    register int i;
+    unsigned int i;
 
     /*
      * Check arguments

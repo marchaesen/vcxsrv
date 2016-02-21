@@ -828,22 +828,29 @@ void
 _mesa_meta_fb_tex_blit_end(struct gl_context *ctx, GLenum target,
                            struct fb_tex_blit_state *blit)
 {
+   struct gl_texture_object *const texObj =
+      _mesa_get_current_tex_object(ctx, target);
+
    /* Restore texture object state, the texture binding will
     * be restored by _mesa_meta_end().
     */
    if (target != GL_TEXTURE_RECTANGLE_ARB) {
-      _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, blit->baseLevelSave);
-      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, blit->maxLevelSave);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_BASE_LEVEL,
+                                &blit->baseLevelSave, false);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
+                                &blit->maxLevelSave, false);
+   }
 
-      if (ctx->Extensions.ARB_stencil_texturing) {
-         const struct gl_texture_object *texObj =
-            _mesa_get_current_tex_object(ctx, target);
+   /* If ARB_stencil_texturing is not supported, the mode won't have changed. */
+   if (texObj->StencilSampling != blit->stencilSamplingSave) {
+      /* GLint so the compiler won't complain about type signedness mismatch
+       * in the call to _mesa_texture_parameteriv below.
+       */
+      const GLint param = blit->stencilSamplingSave ?
+         GL_STENCIL_INDEX : GL_DEPTH_COMPONENT;
 
-         if (texObj->StencilSampling != blit->stencilSamplingSave)
-            _mesa_TexParameteri(target, GL_DEPTH_STENCIL_TEXTURE_MODE,
-                                blit->stencilSamplingSave ?
-                                   GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);
-      }
+      _mesa_texture_parameteriv(ctx, texObj, GL_DEPTH_STENCIL_TEXTURE_MODE,
+                                &param, false);
    }
 
    _mesa_bind_sampler(ctx, ctx->Texture.CurrentUnit, blit->samp_obj_save);
@@ -895,7 +902,7 @@ _mesa_meta_bind_rb_as_tex_image(struct gl_context *ctx,
 
 struct gl_sampler_object *
 _mesa_meta_setup_sampler(struct gl_context *ctx,
-                         const struct gl_texture_object *texObj,
+                         struct gl_texture_object *texObj,
                          GLenum target, GLenum filter, GLuint srcLevel)
 {
    struct gl_sampler_object *samp_obj;
@@ -915,8 +922,10 @@ _mesa_meta_setup_sampler(struct gl_context *ctx,
    /* Prepare src texture state */
    _mesa_BindTexture(target, texObj->Name);
    if (target != GL_TEXTURE_RECTANGLE_ARB) {
-      _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, srcLevel);
-      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, srcLevel);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_BASE_LEVEL,
+                                (GLint *) &srcLevel, false);
+      _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
+                                (GLint *) &srcLevel, false);
    }
 
    return samp_obj;

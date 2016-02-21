@@ -532,7 +532,7 @@ def _parse_channels(fields, layout, colorspace, swizzle):
    return channels
 
 def parse(filename):
-   """Parse a format descrition in CSV format.
+   """Parse a format description in CSV format.
 
    This function parses the given CSV file and returns an iterable of
    channels."""

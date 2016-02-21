@@ -89,7 +89,7 @@ _mesa_align_malloc(size_t bytes, unsigned long alignment)
    if (err)
       return NULL;
    return mem;
-#elif defined(_WIN32) && defined(_MSC_VER)
+#elif defined(_WIN32)
    return _aligned_malloc(bytes, alignment);
 #else
    uintptr_t ptr, buf;
@@ -131,7 +131,7 @@ _mesa_align_calloc(size_t bytes, unsigned long alignment)
    }
 
    return mem;
-#elif defined(_WIN32) && defined(_MSC_VER)
+#elif defined(_WIN32)
    void *mem;
 
    mem = _aligned_malloc(bytes, alignment);
@@ -178,7 +178,7 @@ _mesa_align_free(void *ptr)
 {
 #if defined(HAVE_POSIX_MEMALIGN)
    free(ptr);
-#elif defined(_WIN32) && defined(_MSC_VER)
+#elif defined(_WIN32)
    _aligned_free(ptr);
 #else
    if (ptr) {
@@ -196,7 +196,7 @@ void *
 _mesa_align_realloc(void *oldBuffer, size_t oldSize, size_t newSize,
                     unsigned long alignment)
 {
-#if defined(_WIN32) && defined(_MSC_VER)
+#if defined(_WIN32)
    (void) oldSize;
    return _aligned_realloc(oldBuffer, newSize, alignment);
 #else

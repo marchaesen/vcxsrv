@@ -41,6 +41,10 @@
 #include "os.h"
 #include <X11/Xproto.h>
 
+/* until we need geometry shaders GL3.1 should suffice. */
+/* Xephyr has it's own copy of this for build reasons */
+#define GLAMOR_GL_CORE_VER_MAJOR 3
+#define GLAMOR_GL_CORE_VER_MINOR 1
 /** @{
  *
  * global state for Xephyr with glamor.
@@ -276,9 +280,16 @@ ephyr_glamor_process_event(xcb_generic_event_t *xev)
     XUnlockDisplay(dpy);
 }
 
+static int
+ephyr_glx_error_handler(Display * _dpy, XErrorEvent * ev)
+{
+    return 0;
+}
+
 struct ephyr_glamor *
 ephyr_glamor_glx_screen_init(xcb_window_t win)
 {
+    int (*oldErrorHandler) (Display *, XErrorEvent *);
     static const float position[] = {
         -1, -1,
          1, -1,
@@ -319,7 +330,28 @@ ephyr_glamor_glx_screen_init(xcb_window_t win)
                        "GLX_EXT_create_context_es2_profile\n");
         }
     } else {
-        ctx = glXCreateContext(dpy, visual_info, NULL, True);
+        if (epoxy_has_glx_extension(dpy, DefaultScreen(dpy),
+                                    "GLX_ARB_create_context")) {
+            static const int context_attribs[] = {
+                GLX_CONTEXT_PROFILE_MASK_ARB,
+                GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+                GLX_CONTEXT_MAJOR_VERSION_ARB,
+                GLAMOR_GL_CORE_VER_MAJOR,
+                GLX_CONTEXT_MINOR_VERSION_ARB,
+                GLAMOR_GL_CORE_VER_MINOR,
+                0,
+            };
+            oldErrorHandler = XSetErrorHandler(ephyr_glx_error_handler);
+            ctx = glXCreateContextAttribsARB(dpy, fb_config, NULL, True,
+                                             context_attribs);
+            XSync(dpy, False);
+            XSetErrorHandler(oldErrorHandler);
+        } else {
+            ctx = NULL;
+        }
+
+        if (!ctx)
+            ctx = glXCreateContext(dpy, visual_info, NULL, True);
     }
     if (ctx == NULL)
         FatalError("glXCreateContext failed\n");

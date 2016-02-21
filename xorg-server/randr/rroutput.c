@@ -544,6 +544,7 @@ ProcRRSetOutputPrimary(ClientPtr client)
     WindowPtr pWin;
     rrScrPrivPtr pScrPriv;
     int ret;
+    ScreenPtr slave;
 
     REQUEST_SIZE_MATCH(xRRSetOutputPrimaryReq);
 
@@ -566,7 +567,18 @@ ProcRRSetOutputPrimary(ClientPtr client)
 
     pScrPriv = rrGetScrPriv(pWin->drawable.pScreen);
     if (pScrPriv)
+    {
         RRSetPrimaryOutput(pWin->drawable.pScreen, pScrPriv, output);
+
+        xorg_list_for_each_entry(slave,
+                                 &pWin->drawable.pScreen->output_slave_list,
+                                 output_head) {
+            rrScrPrivPtr pSlavePriv;
+            pSlavePriv = rrGetScrPriv(slave);
+
+            RRSetPrimaryOutput(slave, pSlavePriv, output);
+        }
+    }
 
     return Success;
 }
