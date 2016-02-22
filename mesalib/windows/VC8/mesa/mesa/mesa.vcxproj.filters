@@ -434,124 +434,124 @@
     <ClCompile Include="..\..\..\..\src\mesa\program\string_to_uint_map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_variable_index_to_cond_assign.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_variable_index_to_cond_assign.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_hierarchical_visitor.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hierarchical_visitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_variables.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\builtin_variables.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_function.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_function_can_inline.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function_can_inline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_function_detect_recursion.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function_detect_recursion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_rvalue_visitor.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_rvalue_visitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_hv_accept.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hv_accept.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_symbol_table.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_symbol_table.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_constant_expression.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_constant_expression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_clone.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_clone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\linker.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\linker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_parser_extras.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_parser_extras.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_variable_refcount.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_variable_refcount.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_basic_block.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_basic_block.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_analysis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\loop_controls.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_controls.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_expression_flattening.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_expression_flattening.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_import_prototypes.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_import_prototypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\loop_unroll.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_unroll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_redundant_jumps.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_redundant_jumps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ast_to_hir.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_to_hir.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ast_expr.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_expr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\hir_field_selection.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\hir_field_selection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_lexer.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_lexer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ast_type.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_type.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glcpp\pp.c">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glcpp\pp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glcpp\glcpp-parse.c">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glcpp\glcpp-lex.c">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_reader.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_reader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_parser.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_print_visitor.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_print_visitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_validate.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_validate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_set_program_inouts.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_set_program_inouts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_noise.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_noise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ast_function.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_function.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\s_expression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c">
@@ -560,82 +560,79 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vec_index_to_swizzle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_constant_folding.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_folding.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_structure_splitting.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_structure_splitting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_constant_variable.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_variable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_algebraic.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_algebraic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_if_simplification.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_if_simplification.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_instructions.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_instructions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code_local.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_code_local.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vec_index_to_cond_assign.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_function_inlining.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_function_inlining.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_texture_projection.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_texture_projection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_functions.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vector.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_copy_propagation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_code.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_discard.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_mat_op_to_vec.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_mat_op_to_vec.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_tree_grafting.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_tree_grafting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_noop_swizzle.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_noop_swizzle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_jumps.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_jumps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_clip_distance.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_clip_distance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_constant_propagation.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_propagation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_if_to_cond_assign.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_if_to_cond_assign.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_swizzle_swizzle.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_swizzle_swizzle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\sampler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation_elements.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_copy_propagation_elements.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\pbo.c">
@@ -650,19 +647,19 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\errors.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_array_splitting.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_array_splitting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_builder.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_discard_flow.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard_flow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_primitive_restart.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_initializers.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_initializers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\glformats.c">
@@ -680,52 +677,52 @@
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_packed_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_varyings.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\formatquery.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_blocks.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_blocks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_block_active_visitor.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_block_active_visitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_flatten_nested_if_blocks.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_flatten_nested_if_blocks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\remap.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_insert.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vector_insert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_named_interface_blocks.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_named_interface_blocks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_interface_blocks.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_interface_blocks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_flip_matrices.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_flip_matrices.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ast_array_index.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_array_index.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_types.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\builtin_types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_varyings.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_builtin_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\objectlabel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_functions.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\builtin_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\performance_monitor.c">
@@ -734,10 +731,10 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\vdpau.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\link_atomics.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_atomics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ir_equals.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_equals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\textureview.c">
@@ -746,7 +743,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderimage.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_vectorize.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_vectorize.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\blit.c">
@@ -764,7 +761,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\pipelineobj.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_rebalance_tree.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_rebalance_tree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\util\hash_table.c">
@@ -788,16 +785,16 @@
     <ClCompile Include="..\..\..\..\src\util\rgtc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vertex_id.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vertex_id.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_variables.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_builtin_variables.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_minmax.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_minmax.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_const_arrays_to_uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\util\set.c">
@@ -809,7 +806,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\format_unpack.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_conditional_discard.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_conditional_discard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mapi\glapi\glapi_nop.c">
@@ -824,13 +821,10 @@
     <ClCompile Include="..\..\..\..\src\util\strtod.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_subroutine.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_subroutine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\nir\glsl_types.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_tess_level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\util\half_float.c">
@@ -842,19 +836,28 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\objectpurge.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_ubo_reference.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_ubo_reference.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_derefs.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vector_derefs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_buffer_access.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_buffer_access.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\lower_shared_reference.cpp">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_shared_reference.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\nir\shader_enums.c">
+    <ClCompile Include="..\..\..\..\src\compiler\glsl_types.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\compiler\shader_enums.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\debug_output.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_minmax_index.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -92,7 +92,7 @@
       </PrecompiledHeader>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\compiler\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\compiler\glsl\nir</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -114,7 +114,7 @@
       </PrecompiledHeader>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\compiler\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\compiler\glsl\nir</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -133,7 +133,7 @@
       </PrecompiledHeader>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\compiler\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\compiler\glsl\nir</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -155,7 +155,7 @@
       </PrecompiledHeader>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\glsl\nir</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\compiler\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include;..\..\..\..\src\compiler\glsl\nir</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -169,108 +169,108 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\glsl\ast_array_index.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ast_expr.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ast_function.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ast_to_hir.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ast_type.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_functions.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_types.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\getopt.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\glcpp\glcpp-lex.c" />
-    <ClCompile Include="..\..\..\..\src\glsl\glcpp\glcpp-parse.c" />
-    <ClCompile Include="..\..\..\..\src\glsl\glcpp\pp.c" />
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_lexer.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_parser.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_parser_extras.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\glsl_symbol_table.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\hir_field_selection.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_basic_block.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_builder.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_clone.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_constant_expression.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_equals.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_expression_flattening.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_function.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_function_can_inline.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_function_detect_recursion.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_hierarchical_visitor.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_hv_accept.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_import_prototypes.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_print_visitor.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_reader.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_rvalue_visitor.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_set_program_inouts.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_validate.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_variables.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ir_variable_refcount.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\linker.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_atomics.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_interface_blocks.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_blocks.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_block_active_visitor.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_initializers.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\link_varyings.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\loop_controls.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\loop_unroll.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_buffer_access.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_discard.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_discard_flow.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_if_to_cond_assign.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_instructions.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_jumps.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_clip_distance.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_mat_op_to_vec.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_named_interface_blocks.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_noise.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_shared_reference.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_subroutine.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_tess_level.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_texture_projection.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_ubo_reference.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_variable_index_to_cond_assign.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vector.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_derefs.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_insert.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\lower_vertex_id.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\main.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\nir\glsl_types.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\nir\shader_enums.c" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_algebraic.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_array_splitting.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_conditional_discard.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_constant_folding.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_constant_propagation.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_constant_variable.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation_elements.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_variables.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_varyings.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code_local.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_functions.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_flatten_nested_if_blocks.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_flip_matrices.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_function_inlining.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_if_simplification.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_minmax.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_noop_swizzle.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_rebalance_tree.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_redundant_jumps.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_structure_splitting.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_swizzle_swizzle.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_tree_grafting.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\opt_vectorize.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\standalone_scaffolding.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_array_index.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_expr.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_function.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_to_hir.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_type.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\builtin_functions.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\builtin_types.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\getopt.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glcpp\pp.c" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_lexer.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_parser.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_parser_extras.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_symbol_table.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\hir_field_selection.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_basic_block.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_clone.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_constant_expression.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_equals.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_expression_flattening.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function_can_inline.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function_detect_recursion.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hierarchical_visitor.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hv_accept.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_import_prototypes.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_print_visitor.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_reader.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_rvalue_visitor.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_set_program_inouts.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_validate.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\builtin_variables.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_variable_refcount.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\linker.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_atomics.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_functions.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_interface_blocks.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniforms.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_blocks.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_block_active_visitor.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_initializers.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\link_varyings.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_analysis.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_controls.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_unroll.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_buffer_access.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_const_arrays_to_uniforms.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard_flow.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_if_to_cond_assign.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_instructions.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_jumps.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_clip_distance.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_mat_op_to_vec.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_named_interface_blocks.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_noise.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_packed_varyings.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_shared_reference.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_subroutine.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_tess_level.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_texture_projection.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_ubo_reference.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_variable_index_to_cond_assign.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vector.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vector_derefs.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vector_insert.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vec_index_to_cond_assign.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vec_index_to_swizzle.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_vertex_id.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\main.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_algebraic.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_array_splitting.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_conditional_discard.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_folding.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_propagation.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_variable.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_copy_propagation.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_copy_propagation_elements.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_builtin_variables.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_builtin_varyings.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_code.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_code_local.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_dead_functions.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_flatten_nested_if_blocks.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_flip_matrices.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_function_inlining.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_if_simplification.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_minmax.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_noop_swizzle.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_rebalance_tree.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_redundant_jumps.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_structure_splitting.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_swizzle_swizzle.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_tree_grafting.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_vectorize.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\standalone_scaffolding.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\s_expression.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl_types.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\shader_enums.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\imports.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
@@ -283,30 +283,30 @@
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\..\src\glsl\glsl_lexer.ll">
+    <CustomBuild Include="..\..\..\..\src\compiler\glsl\glsl_lexer.ll">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\doflexbison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\doflexbison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\doflexbison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\doflexbison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <None Include="..\..\..\..\src\glsl\glsl_parser.yy">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\dobison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\dobison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\dobison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\dobison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
+    <None Include="..\..\..\..\src\compiler\glsl\glsl_parser.yy">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

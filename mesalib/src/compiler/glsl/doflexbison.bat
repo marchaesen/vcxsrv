@@ -3,7 +3,7 @@ setlocal
 
 cd "%~dp0"
 
-set BISON_PKGDATADIR=../../../tools/mhmake/src/bisondata
+set BISON_PKGDATADIR=../../../../tools/mhmake/src/bisondata
 
 bison.exe -v -o glsl_parser.cpp -p "_mesa_glsl_" --defines=glsl_parser.h glsl_parser.yy
 

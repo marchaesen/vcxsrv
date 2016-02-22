@@ -92,7 +92,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/compiler/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -128,7 +128,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/compiler/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -167,7 +167,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/compiler/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -209,7 +209,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/compiler/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -283,6 +283,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_zoom.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast_setup\ss_context.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast_setup\ss_triangle.c" />
+    <ClCompile Include="..\..\..\..\src\util\debug.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast_priv.h" />
