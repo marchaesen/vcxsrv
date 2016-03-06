@@ -44,9 +44,9 @@ LOCAL_SRC_FILES += \
 LOCAL_CPPFLAGS := -std=c++11
 endif
 
-# We need libmesa_glsl to get NIR's generated include directories.
+# We need libmesa_nir to get NIR's generated include directories.
 LOCAL_MODULE := libmesa_gallium
-LOCAL_STATIC_LIBRARIES += libmesa_glsl
+LOCAL_STATIC_LIBRARIES += libmesa_nir
 
 # generate sources
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
@@ -63,6 +63,8 @@ $(intermediates)/util/u_format_srgb.c: $(intermediates)/%.c: $(LOCAL_PATH)/%.py
 
 $(intermediates)/util/u_format_table.c: $(intermediates)/%.c: $(LOCAL_PATH)/%.py $(LOCAL_PATH)/util/u_format.csv
 	$(transform-generated-source)
+
+LOCAL_GENERATED_SOURCES += $(MESA_GEN_NIR_H)
 
 include $(GALLIUM_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

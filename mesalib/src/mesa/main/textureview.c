@@ -162,12 +162,8 @@ static const struct internal_format_class_info s3tc_compatible_internal_formats[
    {GL_VIEW_CLASS_S3TC_DXT5_RGBA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT},
 };
 
-/**
- * Lookup format view class based on internalformat
- * \return VIEW_CLASS if internalformat found in table, false otherwise.
- */
-static GLenum
-lookup_view_class(const struct gl_context *ctx, GLenum internalformat)
+GLenum
+_mesa_texture_view_lookup_view_class(const struct gl_context *ctx, GLenum internalformat)
 {
    GLuint i;
 
@@ -336,8 +332,8 @@ _mesa_texture_view_compatible_format(const struct gl_context *ctx,
    if (origInternalFormat == newInternalFormat)
       return true;
 
-   origViewClass = lookup_view_class(ctx, origInternalFormat);
-   newViewClass = lookup_view_class(ctx, newInternalFormat);
+   origViewClass = _mesa_texture_view_lookup_view_class(ctx, origInternalFormat);
+   newViewClass = _mesa_texture_view_lookup_view_class(ctx, newInternalFormat);
    if ((origViewClass == newViewClass) && origViewClass != false)
       return true;
 

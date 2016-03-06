@@ -51,7 +51,7 @@ assign(deref lhs, operand rhs, operand condition, int writemask)
    void *mem_ctx = ralloc_parent(lhs.val);
 
    ir_assignment *assign = new(mem_ctx) ir_assignment(lhs.val,
-						      rhs.val,
+                                                      rhs.val,
                                                       condition.val,
                                                       writemask);
 
@@ -89,11 +89,11 @@ swizzle(operand a, int swizzle, int components)
    void *mem_ctx = ralloc_parent(a.val);
 
    return new(mem_ctx) ir_swizzle(a.val,
-				  GET_SWZ(swizzle, 0),
-				  GET_SWZ(swizzle, 1),
-				  GET_SWZ(swizzle, 2),
-				  GET_SWZ(swizzle, 3),
-				  components);
+                                  GET_SWZ(swizzle, 0),
+                                  GET_SWZ(swizzle, 1),
+                                  GET_SWZ(swizzle, 2),
+                                  GET_SWZ(swizzle, 3),
+                                  components);
 }
 
 ir_swizzle *

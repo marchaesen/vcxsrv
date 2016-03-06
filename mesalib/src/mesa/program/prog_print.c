@@ -354,8 +354,7 @@ arb_output_attrib_string(GLuint index, GLenum progType)
  */
 static const char *
 reg_string(gl_register_file f, GLint index, gl_prog_print_mode mode,
-           GLboolean relAddr, const struct gl_program *prog,
-           GLboolean hasIndex2, GLboolean relAddr2, GLint index2)
+           GLboolean relAddr, const struct gl_program *prog)
 {
    static char str[100];
    const char *addr = relAddr ? "ADDR+" : "";
@@ -366,11 +365,6 @@ reg_string(gl_register_file f, GLint index, gl_prog_print_mode mode,
    case PROG_PRINT_DEBUG:
       sprintf(str, "%s[%s%d]",
               _mesa_register_file_name(f), addr, index);
-      if (hasIndex2) {
-         int offset = strlen(str);
-         const char *addr2 = relAddr2 ? "ADDR+" : "";
-         sprintf(str+offset, "[%s%d]", addr2, index2);
-      }
       break;
 
    case PROG_PRINT_ARB:
@@ -508,24 +502,6 @@ _mesa_writemask_string(GLuint writeMask)
 }
 
 
-const char *
-_mesa_condcode_string(GLuint condcode)
-{
-   switch (condcode) {
-   case COND_GT:  return "GT";
-   case COND_EQ:  return "EQ";
-   case COND_LT:  return "LT";
-   case COND_UN:  return "UN";
-   case COND_GE:  return "GE";
-   case COND_LE:  return "LE";
-   case COND_NE:  return "NE";
-   case COND_TR:  return "TR";
-   case COND_FL:  return "FL";
-   default: return "cond???";
-   }
-}
-
-
 static void
 fprint_dst_reg(FILE * f,
                const struct prog_dst_register *dstReg,
@@ -534,17 +510,9 @@ fprint_dst_reg(FILE * f,
 {
    fprintf(f, "%s%s",
 	   reg_string((gl_register_file) dstReg->File,
-		      dstReg->Index, mode, dstReg->RelAddr, prog,
-                      GL_FALSE, GL_FALSE, 0),
+		      dstReg->Index, mode, dstReg->RelAddr, prog),
 	   _mesa_writemask_string(dstReg->WriteMask));
    
-   if (dstReg->CondMask != COND_TR) {
-      fprintf(f, " (%s.%s)",
-	      _mesa_condcode_string(dstReg->CondMask),
-	      _mesa_swizzle_string(dstReg->CondSwizzle,
-				   GL_FALSE, GL_FALSE));
-   }
-
 #if 0
    fprintf(f, "%s[%d]%s",
 	   _mesa_register_file_name((gl_register_file) dstReg->File),
@@ -560,16 +528,11 @@ fprint_src_reg(FILE *f,
                gl_prog_print_mode mode,
                const struct gl_program *prog)
 {
-   const char *abs = srcReg->Abs ? "|" : "";
-
-   fprintf(f, "%s%s%s%s",
-	   abs,
+   fprintf(f, "%s%s",
 	   reg_string((gl_register_file) srcReg->File,
-		      srcReg->Index, mode, srcReg->RelAddr, prog,
-                      srcReg->HasIndex2, srcReg->RelAddr2, srcReg->Index2),
+		      srcReg->Index, mode, srcReg->RelAddr, prog),
 	   _mesa_swizzle_string(srcReg->Swizzle,
-				srcReg->Negate, GL_FALSE),
-	   abs);
+				srcReg->Negate, GL_FALSE));
 #if 0
    fprintf(f, "%s[%d]%s",
 	   _mesa_register_file_name((gl_register_file) srcReg->File),
@@ -600,8 +563,6 @@ _mesa_fprint_alu_instruction(FILE *f,
    GLuint j;
 
    fprintf(f, "%s", opcode_string);
-   if (inst->CondUpdate)
-      fprintf(f, ".C");
 
    /* frag prog only */
    if (inst->Saturate)
@@ -714,16 +675,6 @@ _mesa_fprint_instruction_opt(FILE *f,
       fprint_src_reg(f, &inst->SrcReg[0], mode, prog);
       fprint_comment(f, inst);
       break;
-   case OPCODE_KIL_NV:
-      fprintf(f, "%s", _mesa_opcode_string(inst->Opcode));
-      fprintf(f, " ");
-      fprintf(f, "%s.%s",
-	      _mesa_condcode_string(inst->DstReg.CondMask),
-	      _mesa_swizzle_string(inst->DstReg.CondSwizzle,
-				   GL_FALSE, GL_FALSE));
-      fprint_comment(f, inst);
-      break;
-
    case OPCODE_ARL:
       fprintf(f, "ARL ");
       fprint_dst_reg(f, &inst->DstReg, mode, prog);
@@ -732,19 +683,9 @@ _mesa_fprint_instruction_opt(FILE *f,
       fprint_comment(f, inst);
       break;
    case OPCODE_IF:
-      if (inst->SrcReg[0].File != PROGRAM_UNDEFINED) {
-         /* Use ordinary register */
-         fprintf(f, "IF ");
-         fprint_src_reg(f, &inst->SrcReg[0], mode, prog);
-         fprintf(f, "; ");
-      }
-      else {
-         /* Use cond codes */
-         fprintf(f, "IF (%s%s);",
-		 _mesa_condcode_string(inst->DstReg.CondMask),
-		 _mesa_swizzle_string(inst->DstReg.CondSwizzle,
-				      0, GL_FALSE));
-      }
+      fprintf(f, "IF ");
+      fprint_src_reg(f, &inst->SrcReg[0], mode, prog);
+      fprintf(f, "; ");
       fprintf(f, " # (if false, goto %d)", inst->BranchTarget);
       fprint_comment(f, inst);
       return indent + 3;
@@ -762,10 +703,8 @@ _mesa_fprint_instruction_opt(FILE *f,
       break;
    case OPCODE_BRK:
    case OPCODE_CONT:
-      fprintf(f, "%s (%s%s); # (goto %d)",
+      fprintf(f, "%s; # (goto %d)",
 	      _mesa_opcode_string(inst->Opcode),
-	      _mesa_condcode_string(inst->DstReg.CondMask),
-	      _mesa_swizzle_string(inst->DstReg.CondSwizzle, 0, GL_FALSE),
 	      inst->BranchTarget);
       fprint_comment(f, inst);
       break;
@@ -785,9 +724,7 @@ _mesa_fprint_instruction_opt(FILE *f,
       fprint_comment(f, inst);
       break;
    case OPCODE_RET:
-      fprintf(f, "RET (%s%s)",
-	      _mesa_condcode_string(inst->DstReg.CondMask),
-	      _mesa_swizzle_string(inst->DstReg.CondSwizzle, 0, GL_FALSE));
+      fprintf(f, "RET");
       fprint_comment(f, inst);
       break;
 

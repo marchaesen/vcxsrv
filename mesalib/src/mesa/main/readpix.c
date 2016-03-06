@@ -582,7 +582,7 @@ read_rgba_pixels( struct gl_context *ctx,
       void *luminance;
       uint32_t luminance_format;
 
-      luminance_stride = width * sizeof(GL_FLOAT);
+      luminance_stride = width * sizeof(GLfloat);
       if (format == GL_LUMINANCE_ALPHA)
          luminance_stride *= 2;
       luminance_bytes = height * luminance_stride;

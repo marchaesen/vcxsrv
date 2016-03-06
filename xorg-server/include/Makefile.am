@@ -53,6 +53,7 @@ sdk_HEADERS =		\
 	servermd.h	\
 	site.h		\
 	validate.h	\
+	displaymode.h    \
 	window.h	\
 	windowstr.h	\
 	xkbfile.h	\
@@ -75,4 +76,5 @@ EXTRA_DIST = 	\
 	swaprep.h \
 	swapreq.h \
 	systemd-logind.h \
+        vidmodestr.h \
 	xsha1.h

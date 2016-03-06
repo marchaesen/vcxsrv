@@ -47,7 +47,6 @@ extern Bool ephyr_glamor;
 
 KdKeyboardInfo *ephyrKbd;
 KdPointerInfo *ephyrMouse;
-EphyrKeySyms ephyrKeySyms;
 Bool ephyrNoDRI = FALSE;
 Bool ephyrNoXV = FALSE;
 
@@ -1291,16 +1290,29 @@ KdPointerDriver EphyrMouseDriver = {
 static Status
 EphyrKeyboardInit(KdKeyboardInfo * ki)
 {
+    KeySymsRec keySyms;
+    CARD8 modmap[MAP_LENGTH];
+    XkbControlsRec controls;
+
     ki->driverPrivate = (EphyrKbdPrivate *)
         calloc(sizeof(EphyrKbdPrivate), 1);
-    hostx_load_keymap();
-    if (!ephyrKeySyms.minKeyCode) {
-        ErrorF("Couldn't load keymap from host\n");
-        return BadAlloc;
+
+    if (hostx_load_keymap(&keySyms, modmap, &controls)) {
+        XkbApplyMappingChange(ki->dixdev, &keySyms,
+                              keySyms.minKeyCode,
+                              keySyms.maxKeyCode - keySyms.minKeyCode + 1,
+                              modmap, serverClient);
+        XkbDDXChangeControls(ki->dixdev, &controls, &controls);
+        free(keySyms.map);
     }
-    ki->minScanCode = ephyrKeySyms.minKeyCode;
-    ki->maxScanCode = ephyrKeySyms.maxKeyCode;
-    free(ki->name);
+
+    ki->minScanCode = keySyms.minKeyCode;
+    ki->maxScanCode = keySyms.maxKeyCode;
+
+    if (ki->name != NULL) {
+        free(ki->name);
+    }
+
     ki->name = strdup("Xephyr virtual keyboard");
     ephyrKbd = ki;
     return Success;

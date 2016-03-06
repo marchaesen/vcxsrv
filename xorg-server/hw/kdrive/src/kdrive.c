@@ -45,6 +45,14 @@
 
 #include <signal.h>
 
+#if defined(CONFIG_UDEV) || defined(CONFIG_HAL)
+#include <hotplug.h>
+#endif
+
+/* This stub can be safely removed once we can
+ * split input and GPU parts in hotplug.h et al. */
+#include <systemd-logind.h>
+
 typedef struct _kdDepths {
     CARD8 depth;
     CARD8 bpp;
@@ -81,6 +89,11 @@ char *kdSwitchCmd;
 DDXPointRec kdOrigin;
 Bool kdHasPointer = FALSE;
 Bool kdHasKbd = FALSE;
+const char *kdGlobalXkbRules = NULL;
+const char *kdGlobalXkbModel = NULL;
+const char *kdGlobalXkbLayout = NULL;
+const char *kdGlobalXkbVariant = NULL;
+const char *kdGlobalXkbOptions = NULL;
 
 static Bool kdCaughtSignal = FALSE;
 
@@ -99,7 +112,7 @@ KdDisableScreen(ScreenPtr pScreen)
     if (!pScreenPriv->enabled)
         return;
     if (!pScreenPriv->closed)
-        SetRootClip(pScreen, FALSE);
+        SetRootClip(pScreen, ROOT_CLIP_NONE);
     KdDisableColormap(pScreen);
     if (!pScreenPriv->screen->dumb && pScreenPriv->card->cfuncs->disableAccel)
         (*pScreenPriv->card->cfuncs->disableAccel) (pScreen);
@@ -182,7 +195,7 @@ KdEnableScreen(ScreenPtr pScreen)
     if (!pScreenPriv->screen->dumb && pScreenPriv->card->cfuncs->enableAccel)
         (*pScreenPriv->card->cfuncs->enableAccel) (pScreen);
     KdEnableColormap(pScreen);
-    SetRootClip(pScreen, TRUE);
+    SetRootClip(pScreen, ROOT_CLIP_FULL);
     if (pScreenPriv->card->cfuncs->dpms)
         (*pScreenPriv->card->cfuncs->dpms) (pScreen, pScreenPriv->dpmsState);
     return TRUE;
@@ -447,6 +460,11 @@ KdUseMsg(void)
         ("-mouse driver [,n,,options]    Specify the pointer driver and its options (n is the number of buttons)\n");
     ErrorF
         ("-keybd driver [,,options]      Specify the keyboard driver and its options\n");
+    ErrorF("-xkb-rules       Set default XkbRules value (can be overriden by -keybd options)\n");
+    ErrorF("-xkb-model       Set default XkbModel value (can be overriden by -keybd options)\n");
+    ErrorF("-xkb-layout      Set default XkbLayout value (can be overriden by -keybd options)\n");
+    ErrorF("-xkb-variant     Set default XkbVariant value (can be overriden by -keybd options)\n");
+    ErrorF("-xkb-options     Set default XkbOptions value (can be overriden by -keybd options)\n");
     ErrorF("-zaphod          Disable cursor screen switching\n");
     ErrorF("-2button         Emulate 3 button mouse\n");
     ErrorF("-3button         Disable 3 button mouse emulation\n");
@@ -554,6 +572,46 @@ KdProcessArgument(int argc, char **argv, int i)
     if (!strncmp(argv[i], "vt", 2) &&
         sscanf(argv[i], "vt%2d", &kdVirtualTerminal) == 1) {
         return 1;
+    }
+    if (!strcmp(argv[i], "-xkb-rules")) {
+        if (i + 1 >= argc) {
+            UseMsg();
+            FatalError("Missing argument for option -xkb-rules.\n");
+        }
+        kdGlobalXkbRules = argv[i + 1];
+        return 2;
+    }
+    if (!strcmp(argv[i], "-xkb-model")) {
+        if (i + 1 >= argc) {
+            UseMsg();
+            FatalError("Missing argument for option -xkb-model.\n");
+        }
+        kdGlobalXkbModel = argv[i + 1];
+        return 2;
+    }
+    if (!strcmp(argv[i], "-xkb-layout")) {
+        if (i + 1 >= argc) {
+            UseMsg();
+            FatalError("Missing argument for option -xkb-layout.\n");
+        }
+        kdGlobalXkbLayout = argv[i + 1];
+        return 2;
+    }
+    if (!strcmp(argv[i], "-xkb-variant")) {
+        if (i + 1 >= argc) {
+            UseMsg();
+            FatalError("Missing argument for option -xkb-variant.\n");
+        }
+        kdGlobalXkbVariant = argv[i + 1];
+        return 2;
+    }
+    if (!strcmp(argv[i], "-xkb-options")) {
+        if (i + 1 >= argc) {
+            UseMsg();
+            FatalError("Missing argument for option -xkb-options.\n");
+        }
+        kdGlobalXkbOptions = argv[i + 1];
+        return 2;
     }
     if (!strcmp(argv[i], "-mouse") || !strcmp(argv[i], "-pointer")) {
         if (i + 1 >= argc)
@@ -1125,6 +1183,11 @@ KdInitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             KdAddScreen(pScreenInfo, screen, argc, argv);
 
     OsRegisterSigWrapper(KdSignalWrapper);
+
+#if defined(CONFIG_UDEV) || defined(CONFIG_HAL)
+    if (SeatId) /* Enable input hot-plugging */
+        config_pre_init();
+#endif
 }
 
 void
@@ -1143,3 +1206,36 @@ DPMSSupported(void)
 {
     return FALSE;
 }
+
+/* These stubs can be safely removed once we can
+ * split input and GPU parts in hotplug.h et al. */
+#ifdef CONFIG_UDEV_KMS
+void
+NewGPUDeviceRequest(struct OdevAttributes *attribs)
+{
+}
+
+void
+DeleteGPUDeviceRequest(struct OdevAttributes *attribs)
+{
+}
+#endif
+
+struct xf86_platform_device *
+xf86_find_platform_device_by_devnum(int major, int minor)
+{
+    return NULL;
+}
+
+#ifdef SYSTEMD_LOGIND
+void
+systemd_logind_vtenter(void)
+{
+}
+
+void
+systemd_logind_release_fd(int major, int minor, int fd)
+{
+    close(fd);
+}
+#endif

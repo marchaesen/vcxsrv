@@ -28,6 +28,7 @@
 #endif
 
 #include "extension.h"
+#include "extinit.h"
 #include "globals.h"
 
 #include "xf86.h"
@@ -47,7 +48,7 @@
 
 #ifdef XF86VIDMODE
 #include <X11/extensions/xf86vmproto.h>
-#include "vidmodeproc.h"
+#include "vidmodestr.h"
 #endif
 
 /*

@@ -573,10 +573,6 @@ st_translate_fragment_program(struct st_context *st,
          else
             interpLocation[slot] = TGSI_INTERPOLATE_LOC_CENTER;
 
-         if (stfp->Base.Base.SystemValuesRead & (SYSTEM_BIT_SAMPLE_ID |
-                                                 SYSTEM_BIT_SAMPLE_POS))
-            interpLocation[slot] = TGSI_INTERPOLATE_LOC_SAMPLE;
-
          switch (attr) {
          case VARYING_SLOT_POS:
             input_semantic_name[slot] = TGSI_SEMANTIC_POSITION;

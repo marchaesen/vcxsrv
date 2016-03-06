@@ -304,8 +304,8 @@ typedef enum
    OPCODE_SAMPLE_COVERAGE,
    /* GL_ARB_window_pos */
    OPCODE_WINDOW_POS_ARB,
-   /* GL_NV_fragment_program */
-   OPCODE_BIND_PROGRAM_NV,
+   /* GL_ARB_vertex_program */
+   OPCODE_BIND_PROGRAM_ARB,
    OPCODE_PROGRAM_LOCAL_PARAMETER_ARB,
    /* GL_EXT_stencil_two_side */
    OPCODE_ACTIVE_STENCIL_FACE_EXT,
@@ -4957,15 +4957,15 @@ save_SampleCoverageARB(GLclampf value, GLboolean invert)
 
 
 /*
- * GL_NV_fragment_program
+ * GL_ARB_vertex_program
  */
 static void GLAPIENTRY
-save_BindProgramNV(GLenum target, GLuint id)
+save_BindProgramARB(GLenum target, GLuint id)
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_BIND_PROGRAM_NV, 2);
+   n = alloc_instruction(ctx, OPCODE_BIND_PROGRAM_ARB, 2);
    if (n) {
       n[1].e = target;
       n[2].ui = id;
@@ -8607,7 +8607,7 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_WINDOW_POS_ARB:   /* GL_ARB_window_pos */
             CALL_WindowPos3f(ctx->Exec, (n[1].f, n[2].f, n[3].f));
             break;
-         case OPCODE_BIND_PROGRAM_NV:  /* GL_ARB_vertex_program */
+         case OPCODE_BIND_PROGRAM_ARB:  /* GL_ARB_vertex_program */
             CALL_BindProgramARB(ctx->Exec, (n[1].e, n[2].ui));
             break;
          case OPCODE_PROGRAM_LOCAL_PARAMETER_ARB:
@@ -9787,13 +9787,6 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_WindowPos4sMESA(table, save_WindowPos4sMESA);
    SET_WindowPos4svMESA(table, save_WindowPos4svMESA);
 
-   /* 233. GL_NV_vertex_program */
-   /* The following commands DO NOT go into display lists:
-    * AreProgramsResidentNV, IsProgramNV, GenProgramsNV, DeleteProgramsNV,
-    * VertexAttribPointerNV, GetProgram*, GetVertexAttrib*
-    */
-   SET_BindProgramARB(table, save_BindProgramNV);
-
    /* 245. GL_ATI_fragment_shader */
    SET_BindFragmentShaderATI(table, save_BindFragmentShaderATI);
    SET_SetFragmentShaderConstantATI(table, save_SetFragmentShaderConstantATI);
@@ -9838,7 +9831,7 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    /* ARB 27. GL_ARB_fragment_program */
    /* glVertexAttrib* functions alias the NV ones, handled elsewhere */
    SET_ProgramStringARB(table, save_ProgramStringARB);
-   SET_BindProgramARB(table, save_BindProgramNV);
+   SET_BindProgramARB(table, save_BindProgramARB);
    SET_ProgramEnvParameter4dARB(table, save_ProgramEnvParameter4dARB);
    SET_ProgramEnvParameter4dvARB(table, save_ProgramEnvParameter4dvARB);
    SET_ProgramEnvParameter4fARB(table, save_ProgramEnvParameter4fARB);

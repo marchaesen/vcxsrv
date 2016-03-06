@@ -1848,13 +1848,13 @@ xf86RandR14ProviderSetOutputSource(ScreenPtr pScreen,
     if (provider->output_source == source_provider)
         return TRUE;
 
-    SetRootClip(source_provider->pScreen, FALSE);
+    SetRootClip(source_provider->pScreen, ROOT_CLIP_NONE);
 
     DetachUnboundGPU(pScreen);
     AttachOutputGPU(source_provider->pScreen, pScreen);
 
     provider->output_source = source_provider;
-    SetRootClip(source_provider->pScreen, TRUE);
+    SetRootClip(source_provider->pScreen, ROOT_CLIP_FULL);
     return TRUE;
 }
 

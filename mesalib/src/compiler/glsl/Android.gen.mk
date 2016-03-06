@@ -33,7 +33,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES)
 
 LOCAL_C_INCLUDES += \
 	$(intermediates)/glcpp \
-	$(MESA_TOP)/src/glsl/glcpp \
+	$(LOCAL_PATH)/glcpp \
 
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
 	$(LIBGLCPP_GENERATED_FILES) \
@@ -50,6 +50,8 @@ define glsl_local-y-to-c-and-h
 	@echo "Mesa Yacc: $(PRIVATE_MODULE) <= $<"
 	$(hide) $(YACC) -o $@ -p "glcpp_parser_" $<
 endef
+
+YACC_HEADER_SUFFIX := .hpp
 
 define local-yy-to-cpp-and-h
 	@mkdir -p $(dir $@)

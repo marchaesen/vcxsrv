@@ -33,6 +33,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/securproto.h>
 #include <X11/extensions/security.h>
+#include <assert.h>
 
 static XExtensionInfo _Security_info_data;
 static XExtensionInfo *Security_info = &_Security_info_data;
@@ -195,15 +196,24 @@ XSecurityFreeXauth(Xauth *auth)
     XFree(auth);
 }
 
-static int
+#ifdef HAVE___BUILTIN_POPCOUNTL
+# define Ones __builtin_popcountl
+#else
+/*
+ * Count the number of bits set to 1 in a 32-bit word.
+ * Algorithm from MIT AI Lab Memo 239: "HAKMEM", ITEM 169.
+ * http://dspace.mit.edu/handle/1721.1/6086
+ */
+static inline int
 Ones(Mask mask)
 {
     register Mask y;
 
-    y = (mask >> 1) &033333333333;
+    y = (mask >> 1) & 033333333333;
     y = mask - y - ((y >>1) & 033333333333);
     return (((y + (y >> 3)) & 030707070707) % 077);
 }
+#endif
 
 Xauth *
 XSecurityGenerateAuthorization(
@@ -217,9 +227,13 @@ XSecurityGenerateAuthorization(
     register xSecurityGenerateAuthorizationReq *req;
     xSecurityGenerateAuthorizationReply rep;
     Xauth *auth_return;
-    unsigned long values[3];
+    unsigned long values[4];
     unsigned long *value = values;
     unsigned int nvalues;
+
+    /* values array must have a slot for each possible valuemask value */
+    assert(Ones(XSecurityAllAuthorizationAttributes)
+           == (sizeof(values) / sizeof(values[0])));
 
     *auth_id_return = 0;  /* in case we fail */
 

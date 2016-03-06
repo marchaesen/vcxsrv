@@ -132,11 +132,6 @@
  */
 #define MAX_TEXTURE_UNITS ((MAX_TEXTURE_COORD_UNITS > MAX_TEXTURE_IMAGE_UNITS) ? MAX_TEXTURE_COORD_UNITS : MAX_TEXTURE_IMAGE_UNITS)
 
-
-/** Maximum viewport size */
-#define MAX_VIEWPORT_WIDTH 16384
-#define MAX_VIEWPORT_HEIGHT 16384
-
 /** Maximun number of viewports supported with ARB_viewport_array */
 #define MAX_VIEWPORTS 16
 

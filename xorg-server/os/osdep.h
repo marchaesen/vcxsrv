@@ -72,7 +72,7 @@ SOFTWARE.
 #if defined(NOFILE) && !defined(NOFILES_MAX)
 #define OPEN_MAX NOFILE
 #else
-#if !defined(WIN32)
+#if !defined(WIN32) || defined(__CYGWIN__)
 #define OPEN_MAX NOFILES_MAX
 #else
 #define OPEN_MAX 512
@@ -178,7 +178,7 @@ extern fd_set ClientsWriteBlocked;
 extern fd_set OutputPending;
 extern fd_set IgnoredClientsWithInput;
 
-#ifndef WIN32
+#if !defined(WIN32) || defined(__CYGWIN__)
 extern int *ConnectionTranslation;
 #else
 extern int GetConnectionTranslation(int conn);
@@ -193,7 +193,7 @@ extern Bool NumNotifyWriteFd;
 extern WorkQueuePtr workQueue;
 
 /* in WaitFor.c */
-#ifdef WIN32
+#if defined(WIN32) && !defined(__CYGWIN__)
 typedef long int fd_mask;
 #endif
 #define ffs mffs

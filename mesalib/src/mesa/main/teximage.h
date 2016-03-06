@@ -210,9 +210,13 @@ _mesa_validate_texbuffer_format(const struct gl_context *ctx,
 bool
 _mesa_legal_texture_base_format_for_target(struct gl_context *ctx,
                                            GLenum target,
-                                           GLenum internalFormat,
-                                           unsigned dimensions,
-                                           const char *caller);
+                                           GLenum internalFormat);
+
+bool
+_mesa_format_no_online_compression(const struct gl_context *ctx, GLenum format);
+
+GLboolean
+_mesa_is_renderable_texture_format(struct gl_context *ctx, GLenum internalformat);
 
 extern void
 _mesa_texture_sub_image(struct gl_context *ctx, GLuint dims,
@@ -252,6 +256,10 @@ _mesa_texture_buffer_range(struct gl_context *ctx,
                            struct gl_buffer_object *bufObj,
                            GLintptr offset, GLsizeiptr size,
                            const char *caller);
+
+bool
+_mesa_is_cube_map_texture(GLenum target);
+
 /*@}*/
 
 

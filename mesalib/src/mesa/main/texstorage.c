@@ -358,11 +358,11 @@ tex_storage_error_check(struct gl_context *ctx,
    }
 
    /* additional checks for depth textures */
-   if (!_mesa_legal_texture_base_format_for_target(ctx, target, internalformat,
-                                                   dims, dsa ?
-                                                   "glTextureStorage" :
-                                                   "glTexStorage"))
+   if (!_mesa_legal_texture_base_format_for_target(ctx, target, internalformat)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(bad target for texture)",
+                  suffix, dims);
       return GL_TRUE;
+   }
 
    return GL_FALSE;
 }

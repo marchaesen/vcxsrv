@@ -31,11 +31,24 @@
  */
 
 /*
+ * The next block of definitions are for window manager properties that
+ * clients and applications use for communication.
+ */
+
+/*
  * Structures
  */
 
+/*
+ * WM_HINTS structure
+ *
+ * NOTE: this structure represents the internal format stored in the property
+ * after it is marshalled by libX11, converting the flags field from an
+ * arch-dependent long to a 32-bit int.
+ */
+
 typedef struct {
-    long flags;                 /* marks which fields in this structure are defined */
+    int flags;                  /* marks which fields in this structure are defined */
     Bool input;                 /* does this application rely on the window manager to
                                    get keyboard input? */
     int initial_state;          /* see below */
@@ -59,11 +72,15 @@ typedef struct {
 #define	AllHints 	(InputHint|StateHint|IconPixmapHint|IconWindowHint|IconPositionHint|IconMaskHint|WindowGroupHint)
 
 /*
- * new version containing base_width, base_height, and win_gravity fields;
+ * ICCCM 1.0 version containing base_width, base_height, and win_gravity fields;
  * used with WM_NORMAL_HINTS.
+ *
+ * NOTE: this structure represents the internal format stored in the property
+ * after it is marshalled by libX11, converting the flags field from an
+ * arch-dependent long to a 32-bit int.
  */
 typedef struct {
-    long flags;                 /* marks which fields in this structure are defined */
+    int flags;                  /* marks which fields in this structure are defined */
     int x, y;                   /* obsolete for new window mgrs, but clients */
     int width, height;          /* should set so old wm's don't mess up */
     int min_width, min_height;
@@ -76,11 +93,6 @@ typedef struct {
     int base_width, base_height;        /* added by ICCCM version 1 */
     int win_gravity;            /* added by ICCCM version 1 */
 } WinXSizeHints;
-
-/*
- * The next block of definitions are for window manager properties that
- * clients and applications use for communication.
- */
 
 /* flags argument in size hints */
 #define USPosition      (1L << 0)       /* user specified x, y */

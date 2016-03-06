@@ -33,6 +33,11 @@
 #include <compositeext.h>
 #include <glx_extinit.h>
 
+#ifdef XF86VIDMODE
+#include <X11/extensions/xf86vmproto.h>
+_X_EXPORT Bool noXFree86VidModeExtension;
+#endif
+
 void
 ddxGiveUp(enum ExitCode error)
 {
@@ -590,6 +595,13 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         }
     }
 
+    /* In rootless mode, we don't have any screen storage, and the only
+     * rendering should be to redirected mode. */
+    if (xwl_screen->rootless)
+        xwl_screen->root_clip_mode = ROOT_CLIP_INPUT_ONLY;
+    else
+        xwl_screen->root_clip_mode = ROOT_CLIP_FULL;
+
     if (xwl_screen->listen_fd_count > 0) {
         if (xwl_screen->wm_fd >= 0)
             AddCallback(&SelectionCallback, wm_selection_callback, xwl_screen);
@@ -704,6 +716,9 @@ xwl_log_handler(const char *format, va_list args)
 static const ExtensionModule xwayland_extensions[] = {
 #ifdef GLXEXT
     { GlxExtensionInit, "GLX", &noGlxExtension },
+#endif
+#ifdef XF86VIDMODE
+    { xwlVidModeExtensionInit, XF86VIDMODENAME, &noXFree86VidModeExtension },
 #endif
 };
 

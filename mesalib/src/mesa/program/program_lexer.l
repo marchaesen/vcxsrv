@@ -32,7 +32,6 @@
 
 #define require_ARB_vp (yyextra->mode == ARB_vertex)
 #define require_ARB_fp (yyextra->mode == ARB_fragment)
-#define require_NV_fp  (yyextra->option.NV_fragment)
 #define require_shadow (yyextra->option.Shadow)
 #define require_rect   (yyextra->option.TexRect)
 #define require_texarray        (yyextra->option.TexArray)
@@ -161,9 +160,6 @@ exp    [Ee][-+]?[0-9]+
 frac   "."[0-9]+
 dot    "."[ \t]*
 
-sz     [HRX]?
-szf    [HR]?
-cc     C?
 sat    (_SAT)?
 
 %option prefix="_mesa_program_lexer_"
@@ -184,59 +180,52 @@ OUTPUT                    { return OUTPUT; }
 PARAM                     { return PARAM; }
 TEMP                      { yylval->integer = at_temp; return TEMP; }
 
-ABS{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, ABS, 3); }
-ADD{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, ADD, 3); }
+ABS{sat}           { return_opcode(             1, VECTOR_OP, ABS, 3); }
+ADD{sat}           { return_opcode(             1, BIN_OP, ADD, 3); }
 ARL                { return_opcode(require_ARB_vp, ARL, ARL, 3); }
 
 CMP{sat}           { return_opcode(require_ARB_fp, TRI_OP, CMP, 3); }
-COS{szf}{cc}{sat}  { return_opcode(require_ARB_fp, SCALAR_OP, COS, 3); }
+COS{sat}           { return_opcode(require_ARB_fp, SCALAR_OP, COS, 3); }
 
-DDX{szf}{cc}{sat}  { return_opcode(require_NV_fp,  VECTOR_OP, DDX, 3); }
-DDY{szf}{cc}{sat}  { return_opcode(require_NV_fp,  VECTOR_OP, DDY, 3); }
-DP3{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, DP3, 3); }
-DP4{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, DP4, 3); }
-DPH{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, DPH, 3); }
-DST{szf}{cc}{sat}  { return_opcode(             1, BIN_OP, DST, 3); }
+DP3{sat}           { return_opcode(             1, BIN_OP, DP3, 3); }
+DP4{sat}           { return_opcode(             1, BIN_OP, DP4, 3); }
+DPH{sat}           { return_opcode(             1, BIN_OP, DPH, 3); }
+DST{sat}           { return_opcode(             1, BIN_OP, DST, 3); }
 
-EX2{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, EX2, 3); }
+EX2{sat}           { return_opcode(             1, SCALAR_OP, EX2, 3); }
 EXP                { return_opcode(require_ARB_vp, SCALAR_OP, EXP, 3); }
 
-FLR{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, FLR, 3); }
-FRC{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, FRC, 3); }
+FLR{sat}           { return_opcode(             1, VECTOR_OP, FLR, 3); }
+FRC{sat}           { return_opcode(             1, VECTOR_OP, FRC, 3); }
 
 KIL                { return_opcode(require_ARB_fp, KIL, KIL, 3); }
 
-LIT{szf}{cc}{sat}  { return_opcode(             1, VECTOR_OP, LIT, 3); }
-LG2{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, LG2, 3); }
+LIT{sat}           { return_opcode(             1, VECTOR_OP, LIT, 3); }
+LG2{sat}           { return_opcode(             1, SCALAR_OP, LG2, 3); }
 LOG                { return_opcode(require_ARB_vp, SCALAR_OP, LOG, 3); }
-LRP{sz}{cc}{sat}   { return_opcode(require_ARB_fp, TRI_OP, LRP, 3); }
+LRP{sat}           { return_opcode(require_ARB_fp, TRI_OP, LRP, 3); }
 
-MAD{sz}{cc}{sat}   { return_opcode(             1, TRI_OP, MAD, 3); }
-MAX{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MAX, 3); }
-MIN{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MIN, 3); }
-MOV{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, MOV, 3); }
-MUL{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MUL, 3); }
+MAD{sat}           { return_opcode(             1, TRI_OP, MAD, 3); }
+MAX{sat}           { return_opcode(             1, BIN_OP, MAX, 3); }
+MIN{sat}           { return_opcode(             1, BIN_OP, MIN, 3); }
+MOV{sat}           { return_opcode(             1, VECTOR_OP, MOV, 3); }
+MUL{sat}           { return_opcode(             1, BIN_OP, MUL, 3); }
 
-POW{szf}{cc}{sat}  { return_opcode(             1, BINSC_OP, POW, 3); }
+POW{sat}           { return_opcode(             1, BINSC_OP, POW, 3); }
 
-RCP{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, RCP, 3); }
-RSQ{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, RSQ, 3); }
+RCP{sat}           { return_opcode(             1, SCALAR_OP, RCP, 3); }
+RSQ{sat}           { return_opcode(             1, SCALAR_OP, RSQ, 3); }
 
 SCS{sat}           { return_opcode(require_ARB_fp, SCALAR_OP, SCS, 3); }
-SEQ{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SEQ, 3); }
-SGE{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SGE, 3); }
-SGT{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SGT, 3); }
-SIN{szf}{cc}{sat}  { return_opcode(require_ARB_fp, SCALAR_OP, SIN, 3); }
-SLE{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SLE, 3); }
-SLT{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SLT, 3); }
-SNE{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SNE, 3); }
-SUB{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SUB, 3); }
+SGE{sat}           { return_opcode(             1, BIN_OP, SGE, 3); }
+SIN{sat}           { return_opcode(require_ARB_fp, SCALAR_OP, SIN, 3); }
+SLT{sat}           { return_opcode(             1, BIN_OP, SLT, 3); }
+SUB{sat}           { return_opcode(             1, BIN_OP, SUB, 3); }
 SWZ{sat}           { return_opcode(             1, SWZ, SWZ, 3); }
 
-TEX{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TEX, 3); }
-TXB{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TXB, 3); }
-TXD{cc}{sat}       { return_opcode(require_NV_fp,  TXD_OP, TXD, 3); }
-TXP{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TXP, 3); }
+TEX{sat}           { return_opcode(require_ARB_fp, SAMPLE_OP, TEX, 3); }
+TXB{sat}           { return_opcode(require_ARB_fp, SAMPLE_OP, TXB, 3); }
+TXP{sat}           { return_opcode(require_ARB_fp, SAMPLE_OP, TXP, 3); }
 
 XPD{sat}           { return_opcode(             1, BIN_OP, XPD, 3); }
 

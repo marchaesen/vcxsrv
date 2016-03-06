@@ -236,14 +236,23 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
             _mesa_glsl_error(&loc, state, "unsized array index must be constant");
          }
       } else if (array->type->without_array()->is_interface()
-                 && (array->variable_referenced()->data.mode == ir_var_uniform ||
-                     array->variable_referenced()->data.mode == ir_var_shader_storage)
-                 && !state->is_version(400, 0) && !state->ARB_gpu_shader5_enable) {
-	 /* Page 50 in section 4.3.9 of the OpenGL ES 3.10 spec says:
-	  *
-	  *     "All indices used to index a uniform or shader storage block
-	  *     array must be constant integral expressions."
-	  */
+                 && ((array->variable_referenced()->data.mode == ir_var_uniform
+                      && !state->is_version(400, 320)
+                      && !state->ARB_gpu_shader5_enable
+                      && !state->EXT_gpu_shader5_enable
+                      && !state->OES_gpu_shader5_enable) ||
+                     (array->variable_referenced()->data.mode == ir_var_shader_storage
+                      && !state->is_version(400, 0)
+                      && !state->ARB_gpu_shader5_enable))) {
+         /* Page 50 in section 4.3.9 of the OpenGL ES 3.10 spec says:
+          *
+          *     "All indices used to index a uniform or shader storage block
+          *     array must be constant integral expressions."
+          *
+          * But OES_gpu_shader5 (and ESSL 3.20) relax this to allow indexing
+          * on uniform blocks but not shader storage blocks.
+          *
+          */
 	 _mesa_glsl_error(&loc, state, "%s block array index must be constant",
                           array->variable_referenced()->data.mode
                           == ir_var_uniform ? "uniform" : "shader storage");
@@ -279,7 +288,10 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
        * dynamically uniform expression is undefined.
        */
       if (array->type->without_array()->is_sampler()) {
-         if (!state->is_version(400, 0) && !state->ARB_gpu_shader5_enable) {
+         if (!state->is_version(400, 320) &&
+             !state->ARB_gpu_shader5_enable &&
+             !state->EXT_gpu_shader5_enable &&
+             !state->OES_gpu_shader5_enable) {
             if (state->is_version(130, 300))
                _mesa_glsl_error(&loc, state,
                                 "sampler arrays indexed with non-constant "

@@ -443,7 +443,7 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
 
 
 /**
- * Convert a compressed MESA_FORMAT_x to a GLenum.
+ * Convert GLenum to a compressed MESA_FORMAT_x.
  */
 mesa_format
 _mesa_glenum_to_compressed_format(GLenum format)

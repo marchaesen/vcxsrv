@@ -70,11 +70,9 @@ st_ChooseTextureFormat(struct gl_context * ctx, GLenum target,
                        GLint internalFormat,
                        GLenum format, GLenum type);
 
-size_t
-st_QuerySamplesForFormat(struct gl_context *ctx, GLenum target,
-                         GLenum internalFormat, int samples[16]);
-
-
+void
+st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
+                       GLenum internalFormat, GLenum pname, GLint *params);
 
 extern void
 st_translate_color(const union gl_color_union *colorIn,

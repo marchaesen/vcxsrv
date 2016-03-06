@@ -440,6 +440,10 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
             else
                field_align = type->std140_base_alignment(field_row_major);
 
+            if (struct_type->fields.structure[i].offset != -1) {
+               intra_struct_offset = struct_type->fields.structure[i].offset;
+            }
+
             intra_struct_offset = glsl_align(intra_struct_offset, field_align);
 
             if (strcmp(struct_type->fields.structure[i].name,

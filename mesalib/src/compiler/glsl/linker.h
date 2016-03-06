@@ -182,6 +182,8 @@ protected:
    virtual void leave_record(const glsl_type *type, const char *name,
                              bool row_major, const unsigned packing);
 
+   virtual void set_buffer_offset(unsigned offset);
+
    virtual void set_record_array_count(unsigned record_array_count);
 
 private:

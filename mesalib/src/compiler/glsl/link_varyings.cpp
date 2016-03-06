@@ -219,7 +219,7 @@ cross_validate_front_and_back_color(struct gl_shader_program *prog,
  */
 void
 cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
-				 gl_shader *producer, gl_shader *consumer)
+                                 gl_shader *producer, gl_shader *consumer)
 {
    glsl_symbol_table parameters;
    ir_variable *explicit_locations[MAX_VARYING] = { NULL, };
@@ -348,7 +348,7 @@ remove_unused_shader_inputs_and_outputs(bool is_separate_shader_object,
       ir_variable *const var = node->as_variable();
 
       if ((var == NULL) || (var->data.mode != int(mode)))
-	 continue;
+         continue;
 
       /* A shader 'in' or 'out' variable is only really an input or output if
        * its value is used by other shader stages. This will cause the
@@ -356,7 +356,7 @@ remove_unused_shader_inputs_and_outputs(bool is_separate_shader_object,
        */
       if (var->data.is_unmatched_generic_inout) {
          assert(var->data.mode != ir_var_temporary);
-	 var->data.mode = ir_var_auto;
+         var->data.mode = ir_var_auto;
       }
    }
 
@@ -748,8 +748,8 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
 
    prog->LinkedTransformFeedback.Varyings =
       rzalloc_array(prog,
-		    struct gl_transform_feedback_varying_info,
-		    num_tfeedback_decls);
+                    struct gl_transform_feedback_varying_info,
+                    num_tfeedback_decls);
 
    unsigned num_outputs = 0;
    for (unsigned i = 0; i < num_tfeedback_decls; ++i)
@@ -1561,9 +1561,9 @@ reserved_varying_slot(struct gl_shader *stage, ir_variable_mode io_mode)
  */
 bool
 assign_varying_locations(struct gl_context *ctx,
-			 void *mem_ctx,
-			 struct gl_shader_program *prog,
-			 gl_shader *producer, gl_shader *consumer,
+                         void *mem_ctx,
+                         struct gl_shader_program *prog,
+                         gl_shader *producer, gl_shader *consumer,
                          unsigned num_tfeedback_decls,
                          tfeedback_decl *tfeedback_decls)
 {
@@ -1755,7 +1755,7 @@ assign_varying_locations(struct gl_context *ctx,
                linker_error(prog, "%s shader varying %s not written "
                             "by %s shader\n.",
                             _mesa_shader_stage_to_string(consumer->Stage),
-			    var->name,
+                            var->name,
                             _mesa_shader_stage_to_string(producer->Stage));
             } else {
                linker_warning(prog, "%s shader varying %s not written "

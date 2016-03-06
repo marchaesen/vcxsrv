@@ -537,7 +537,6 @@ static void emit_arg( struct prog_src_register *src,
    src->File = reg.file;
    src->Index = reg.idx;
    src->Swizzle = reg.swz;
-   src->Abs = reg.abs;
    src->Negate = reg.negate ? NEGATE_XYZW : NEGATE_NONE;
    src->RelAddr = 0;
    /* Check that bitfield sizes aren't exceeded */
@@ -552,8 +551,6 @@ static void emit_dst( struct prog_dst_register *dst,
    dst->Index = reg.idx;
    /* allow zero as a shorthand for xyzw */
    dst->WriteMask = mask ? mask : WRITEMASK_XYZW;
-   dst->CondMask = COND_TR;  /* always pass cond test */
-   dst->CondSwizzle = SWIZZLE_NOOP;
    /* Check that bitfield sizes aren't exceeded */
    assert(dst->Index == reg.idx);
 }

@@ -311,15 +311,6 @@ translate_src( struct st_translate *t,
 {
    struct ureg_src src = src_register( t, SrcReg->File, SrcReg->Index );
 
-   if (t->procType == TGSI_PROCESSOR_GEOMETRY && SrcReg->HasIndex2) {
-      src = src_register( t, SrcReg->File, SrcReg->Index2 );
-      if (SrcReg->RelAddr2)
-         src = ureg_src_dimension_indirect( src, ureg_src(t->address[0]),
-                                            SrcReg->Index);
-      else
-         src = ureg_src_dimension( src, SrcReg->Index);
-   }
-
    src = ureg_swizzle( src,
                        GET_SWZ( SrcReg->Swizzle, 0 ) & 0x3,
                        GET_SWZ( SrcReg->Swizzle, 1 ) & 0x3,
@@ -328,9 +319,6 @@ translate_src( struct st_translate *t,
 
    if (SrcReg->Negate == NEGATE_XYZW)
       src = ureg_negate(src);
-
-   if (SrcReg->Abs) 
-      src = ureg_abs(src);
 
    if (SrcReg->RelAddr) {
       src = ureg_src_indirect( src, ureg_src(t->address[0]));
@@ -535,9 +523,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_TRUNC;
    case OPCODE_KIL:
       return TGSI_OPCODE_KILL_IF;
-   case OPCODE_KIL_NV:
-      /* XXX we don't support condition codes in TGSI */
-      return TGSI_OPCODE_KILL;
    case OPCODE_LG2:
       return TGSI_OPCODE_LG2;
    case OPCODE_LOG:

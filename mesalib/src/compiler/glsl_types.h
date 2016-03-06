@@ -838,6 +838,14 @@ struct glsl_struct_field {
    int location;
 
    /**
+    * For interface blocks, members may have an explicit byte offset
+    * specified; -1 otherwise.
+    *
+    * Ignored for structs.
+    */
+   int offset;
+
+   /**
     * For interface blocks, the interpolation mode (as in
     * ir_variable::interpolation).  0 otherwise.
     */

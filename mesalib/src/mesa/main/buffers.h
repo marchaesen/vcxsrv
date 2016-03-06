@@ -34,23 +34,17 @@
 
 
 #include "glheader.h"
+#include "mtypes.h"
 
 struct gl_context;
 struct gl_framebuffer;
 
-extern void
-_mesa_draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-                  GLenum buffer, const char *caller);
 
 extern void GLAPIENTRY
 _mesa_DrawBuffer( GLenum mode );
 
 extern void GLAPIENTRY
 _mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf);
-
-extern void
-_mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
-                   GLsizei n, const GLenum *buffers, const char *caller);
 
 extern void GLAPIENTRY
 _mesa_DrawBuffers(GLsizei n, const GLenum *buffers);
@@ -66,15 +60,11 @@ _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
 
 extern void
 _mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-                 GLenum buffer, GLint bufferIndex);
+                 GLenum buffer, gl_buffer_index bufferIndex);
 
 extern void
 _mesa_update_draw_buffers(struct gl_context *ctx);
 
-
-extern void
-_mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-                  GLenum buffer, const char *caller);
 
 extern void GLAPIENTRY
 _mesa_ReadBuffer( GLenum mode );

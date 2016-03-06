@@ -42,7 +42,8 @@ typedef struct {
 */
 
 WinKBLayoutRec winKBLayouts[] = {
-    {0x00000404, -1, "pc105", "zh_TW", NULL, NULL, "Chinese (Taiwan)"},
+    {0x00000404, -1, "pc105", "cn", NULL, NULL, "Chinese (Traditional)"},
+    {0x00000804, -1, "pc105", "cn", NULL, NULL, "Chinese (Simplified)"},
     {0x00000405, -1, "pc105", "cz", NULL, NULL, "Czech"},
     {0x00010405, -1, "pc105", "cz_qwerty", NULL, NULL, "Czech (QWERTY)"},
     {0x00000406, -1, "pc105", "dk", NULL, NULL, "Danish"},
@@ -72,8 +73,8 @@ WinKBLayoutRec winKBLayouts[] = {
     {0x0000040f, -1, "pc105", "is", NULL, NULL, "Icelandic"},
     {0x00000410, -1, "pc105", "it", NULL, NULL, "Italian"},
     {0x00010410, -1, "pc105", "it", NULL, NULL, "Italian (142)"},
-    {0xa0000410, -1, "macbook79", "it", "mac", NULL, "Italiano (Apple)"},
     {0x00000411, 7, "jp106", "jp", NULL, NULL, "Japanese"},
+    {0x00000412, -1, "kr106", "kr", NULL, NULL, "Korean"},
     {0x00000413, -1, "pc105", "nl", NULL, NULL, "Dutch"},
     {0x00000813, -1, "pc105", "be", NULL, NULL, "Dutch (Belgian)"},
     {0x00000414, -1, "pc105", "no", NULL, NULL, "Norwegian"},

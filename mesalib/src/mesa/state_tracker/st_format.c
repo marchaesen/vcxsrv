@@ -42,6 +42,7 @@
 #include "main/texstore.h"
 #include "main/image.h"
 #include "main/macros.h"
+#include "main/formatquery.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -2308,9 +2309,9 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
 
 
 /**
- * Called via ctx->Driver.ChooseTextureFormat().
+ * Called via ctx->Driver.QueryInternalFormat().
  */
-size_t
+static size_t
 st_QuerySamplesForFormat(struct gl_context *ctx, GLenum target,
                          GLenum internalFormat, int samples[16])
 {
@@ -2349,6 +2350,39 @@ st_QuerySamplesForFormat(struct gl_context *ctx, GLenum target,
    return num_sample_counts;
 }
 
+/**
+ * ARB_internalformat_query2 driver hook.
+ */
+void
+st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
+                       GLenum internalFormat, GLenum pname, GLint *params)
+{
+   /* The API entry-point gives us a temporary params buffer that is non-NULL
+    * and guaranteed to have at least 16 elements.
+    */
+   assert(params != NULL);
+
+   switch (pname) {
+   case GL_SAMPLES:
+      st_QuerySamplesForFormat(ctx, target, internalFormat, params);
+      break;
+
+   case GL_NUM_SAMPLE_COUNTS: {
+      size_t num_samples;
+      num_samples = st_QuerySamplesForFormat(ctx, target, internalFormat,
+                                             params);
+      params[0] = (GLint) num_samples;
+      break;
+   }
+
+   default:
+      /* For the rest of the pnames, we call back the Mesa's default
+       * function for drivers that don't implement ARB_internalformat_query2.
+       */
+      _mesa_query_internal_format_default(ctx, target, internalFormat, pname,
+                                          params);
+   }
+}
 
 /**
  * This is used for translating texture border color and the clear

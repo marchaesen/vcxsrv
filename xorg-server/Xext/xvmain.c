@@ -800,10 +800,9 @@ XvdiSelectVideoNotify(ClientPtr client, DrawablePtr pDraw, BOOL onoff)
         if (!(tpn = malloc(sizeof(XvVideoNotifyRec))))
             return BadAlloc;
         tpn->next = NULL;
-        if (!AddResource(pDraw->id, XvRTVideoNotifyList, tpn)) {
-            free(tpn);
+        tpn->client = NULL;
+        if (!AddResource(pDraw->id, XvRTVideoNotifyList, tpn))
             return BadAlloc;
-        }
     }
     else {
         /* LOOK TO SEE IF ENTRY ALREADY EXISTS */
@@ -844,7 +843,8 @@ XvdiSelectVideoNotify(ClientPtr client, DrawablePtr pDraw, BOOL onoff)
 
     tpn->client = NULL;
     tpn->id = FakeClientID(client->index);
-    AddResource(tpn->id, XvRTVideoNotify, tpn);
+    if (!AddResource(tpn->id, XvRTVideoNotify, tpn))
+        return BadAlloc;
 
     tpn->client = client;
     return Success;
@@ -893,7 +893,8 @@ XvdiSelectPortNotify(ClientPtr client, XvPortPtr pPort, BOOL onoff)
 
     tpn->client = client;
     tpn->id = FakeClientID(client->index);
-    AddResource(tpn->id, XvRTPortNotify, tpn);
+    if (!AddResource(tpn->id, XvRTPortNotify, tpn))
+        return BadAlloc;
 
     return Success;
 

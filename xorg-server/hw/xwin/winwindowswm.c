@@ -312,7 +312,7 @@ ProcWindowsWMFrameGetRect(ClientPtr client)
     REQUEST(xWindowsWMFrameGetRectReq);
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF("ProcWindowsWMFrameGetRect %d %d\n",
+    ErrorF("ProcWindowsWMFrameGetRect %zu %d\n",
            (sizeof(xWindowsWMFrameGetRectReq) >> 2), (int) client->req_len);
 #endif
 

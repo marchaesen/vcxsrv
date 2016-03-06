@@ -28,9 +28,6 @@ include $(LOCAL_PATH)/common/Makefile.sources
 #-----------------------------------------------
 # Variables common to all DRI drivers
 
-MESA_DRI_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/dri
-MESA_DRI_MODULE_UNSTRIPPED_PATH := $(TARGET_OUT_SHARED_LIBRARIES_UNSTRIPPED)/dri
-
 MESA_DRI_CFLAGS := \
 	-DHAVE_ANDROID_PLATFORM
 
@@ -42,6 +39,8 @@ MESA_DRI_C_INCLUDES := \
 
 MESA_DRI_WHOLE_STATIC_LIBRARIES := \
 	libmesa_glsl \
+	libmesa_compiler \
+	libmesa_nir \
 	libmesa_megadriver_stub \
 	libmesa_dri_common \
 	libmesa_dricore \

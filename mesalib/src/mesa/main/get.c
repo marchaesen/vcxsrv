@@ -1055,6 +1055,8 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       }
       break;
    /* GL_KHR_DEBUG */
+   case GL_DEBUG_OUTPUT:
+   case GL_DEBUG_OUTPUT_SYNCHRONOUS:
    case GL_DEBUG_LOGGED_MESSAGES:
    case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
    case GL_DEBUG_GROUP_STACK_DEPTH:

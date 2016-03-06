@@ -49,6 +49,7 @@ struct xwl_screen {
     ScreenPtr screen;
     WindowPtr pointer_limbo_window;
     int expecting_event;
+    enum RootClipMode root_clip_mode;
 
     int wm_fd;
     int listen_fds[5];
@@ -188,5 +189,9 @@ Bool xwl_glamor_init(struct xwl_screen *xwl_screen);
 Bool xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
                          uint32_t id, uint32_t version);
 struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
+
+#ifdef XF86VIDMODE
+void xwlVidModeExtensionInit(void);
+#endif
 
 #endif

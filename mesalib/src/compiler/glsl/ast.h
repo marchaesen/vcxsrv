@@ -479,6 +479,12 @@ struct ast_type_qualifier {
 	 unsigned pixel_center_integer:1;
 	 /*@}*/
 
+         /**
+          * Flag set if GL_ARB_enhanced_layouts "align" layout qualifier is
+          * used.
+          */
+         unsigned explicit_align:1;
+
 	 /**
 	  * Flag set if GL_ARB_explicit_attrib_location "location" layout
 	  * qualifier is used.
@@ -576,6 +582,11 @@ struct ast_type_qualifier {
 
    /** Precision of the type (highp/medium/lowp). */
    unsigned precision:2;
+
+   /**
+    * Alignment specified via GL_ARB_enhanced_layouts "align" layout qualifier
+    */
+   ast_expression *align;
 
    /** Geometry shader invocations for GL_ARB_gpu_shader5. */
    ast_layout_expression *invocations;
@@ -1061,10 +1072,9 @@ public:
 
 class ast_interface_block : public ast_node {
 public:
-   ast_interface_block(ast_type_qualifier layout,
-                       const char *instance_name,
+   ast_interface_block(const char *instance_name,
                        ast_array_specifier *array_specifier)
-   : layout(layout), block_name(NULL), instance_name(instance_name),
+   : block_name(NULL), instance_name(instance_name),
      array_specifier(array_specifier)
    {
    }

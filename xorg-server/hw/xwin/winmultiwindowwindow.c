@@ -503,15 +503,19 @@ winCreateWindowsWindow(WindowPtr pWin)
     iHeight = pWin->drawable.height;
 
     /* If it's an InputOutput window, and so is going to end up being made visible,
-       make sure the window actually ends up somewhere where it will be visible */
-    if (pWin->drawable.class != InputOnly) {
-        if ((iX < GetSystemMetrics(SM_XVIRTUALSCREEN)) ||
-            (iX > GetSystemMetrics(SM_CXVIRTUALSCREEN)))
-            iX = CW_USEDEFAULT;
+       make sure the window actually ends up somewhere where it will be visible
 
-        if ((iY < GetSystemMetrics(SM_YVIRTUALSCREEN)) ||
-            (iY > GetSystemMetrics(SM_CYVIRTUALSCREEN)))
-            iY = CW_USEDEFAULT;
+       To handle arrangements of monitors which form a non-rectangular virtual
+       desktop, check if the window will end up with it's top-left corner on any
+       monitor
+    */
+    if (pWin->drawable.class != InputOnly) {
+        POINT pt = { iX, iY };
+        if (MonitorFromPoint(pt, MONITOR_DEFAULTTONULL) == NULL)
+            {
+                iX = CW_USEDEFAULT;
+                iY = CW_USEDEFAULT;
+            }
     }
 
     winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX,
@@ -519,9 +523,13 @@ winCreateWindowsWindow(WindowPtr pWin)
 
     if (winMultiWindowGetTransientFor(pWin, &daddyId)) {
         if (daddyId) {
-            hFore = GetForegroundWindow();
-            if (hFore && (daddyId != (Window) (INT_PTR) GetProp(hFore, WIN_WID_PROP)))
-                hFore = NULL;
+            WindowPtr pParent;
+            int res = dixLookupWindow(&pParent, daddyId, serverClient, DixReadAccess);
+            if (res == Success)
+                {
+                    winPrivWinPtr pParentPriv = winGetWindowPriv(pParent);
+                    hFore = pParentPriv->hWnd;
+                }
         }
     }
     else {

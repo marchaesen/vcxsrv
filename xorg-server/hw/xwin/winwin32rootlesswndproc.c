@@ -417,12 +417,12 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winDebugWin32Message("winMWExtWMWindowProc", hwnd, message, wParam,
                              lParam);
 
-        winDebug("\thWnd %08X\n", hwnd);
-        winDebug("\tpScreenPriv %08X\n", pScreenPriv);
-        winDebug("\tpScreenInfo %08X\n", pScreenInfo);
-        winDebug("\thwndScreen %08X\n", hwndScreen);
-        winDebug("winMWExtWMWindowProc (%08x) %08x %08x %08x\n",
-                 pRLWinPriv, message, wParam, lParam);
+        winDebug("\thWnd %p\n", hwnd);
+        winDebug("\tpScreenPriv %p\n", pScreenPriv);
+        winDebug("\tpScreenInfo %p\n", pScreenInfo);
+        winDebug("\thwndScreen %p\n", hwndScreen);
+        winDebug("winMWExtWMWindowProc (%p) %08x %08x %08x\n",
+                 pRLWinPriv, message, (int)wParam, (int)lParam);
 #endif
     }
     /* Branch on message type */

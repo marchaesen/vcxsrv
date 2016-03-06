@@ -35,6 +35,7 @@
 #include "main/enums.h"
 #include "main/enable.h"
 #include "main/fbobject.h"
+#include "main/framebuffer.h"
 #include "main/macros.h"
 #include "main/mipmap.h"
 #include "main/teximage.h"
@@ -56,20 +57,10 @@ static bool
 fallback_required(struct gl_context *ctx, GLenum target,
                   struct gl_texture_object *texObj)
 {
-   const GLuint fboSave = ctx->DrawBuffer->Name;
    struct gen_mipmap_state *mipmap = &ctx->Meta->Mipmap;
    struct gl_texture_image *baseImage;
    GLuint srcLevel;
    GLenum status;
-
-   /* GL_DRAW_FRAMEBUFFER does not exist in OpenGL ES 1.x, and since
-    * _mesa_meta_begin hasn't been called yet, we have to work-around API
-    * difficulties.  The whole reason that GL_DRAW_FRAMEBUFFER is used instead
-    * of GL_FRAMEBUFFER is that the read framebuffer may be different.  This
-    * is moot in OpenGL ES 1.x.
-    */
-   const GLenum fbo_target = ctx->API == API_OPENGLES
-      ? GL_FRAMEBUFFER : GL_DRAW_FRAMEBUFFER;
 
    /* check for fallbacks */
    if (target == GL_TEXTURE_3D) {
@@ -109,16 +100,19 @@ fallback_required(struct gl_context *ctx, GLenum target,
    /*
     * Test that we can actually render in the texture's format.
     */
-   if (!mipmap->FBO)
-      _mesa_GenFramebuffers(1, &mipmap->FBO);
-   _mesa_BindFramebuffer(fbo_target, mipmap->FBO);
+   if (mipmap->fb == NULL) {
+      mipmap->fb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
+      if (mipmap->fb == NULL) {
+         _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                          "glGenerateMipmap() ran out of memory\n");
+         return true;
+      }
+   }
 
-   _mesa_meta_bind_fbo_image(fbo_target, GL_COLOR_ATTACHMENT0, baseImage, 0);
+   _mesa_meta_framebuffer_texture_image(ctx, mipmap->fb,
+                                        GL_COLOR_ATTACHMENT0, baseImage, 0);
 
-   status = _mesa_CheckFramebufferStatus(fbo_target);
-
-   _mesa_BindFramebuffer(fbo_target, fboSave);
-
+   status = _mesa_check_framebuffer_status(ctx, mipmap->fb);
    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
                        "glGenerateMipmap() got incomplete FBO\n");
@@ -138,11 +132,7 @@ _mesa_meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
    mipmap->VAO = 0;
    _mesa_reference_buffer_object(ctx, &mipmap->buf_obj, NULL);
    _mesa_reference_sampler_object(ctx, &mipmap->samp_obj, NULL);
-
-   if (mipmap->FBO != 0) {
-      _mesa_DeleteFramebuffers(1, &mipmap->FBO);
-      mipmap->FBO = 0;
-   }
+   _mesa_reference_framebuffer(&mipmap->fb, NULL);
 
    _mesa_meta_blit_shader_table_cleanup(&mipmap->shaders);
 }
@@ -251,8 +241,8 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
 
    _mesa_bind_sampler(ctx, ctx->Texture.CurrentUnit, mipmap->samp_obj);
 
-   assert(mipmap->FBO != 0);
-   _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, mipmap->FBO);
+   assert(mipmap->fb != NULL);
+   _mesa_bind_framebuffers(ctx, mipmap->fb, mipmap->fb);
 
    _mesa_texture_parameteriv(ctx, texObj, GL_GENERATE_MIPMAP, &always_false, false);
 
@@ -354,10 +344,12 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
          _mesa_buffer_data(ctx, mipmap->buf_obj, GL_NONE, sizeof(verts), verts,
                            GL_DYNAMIC_DRAW, __func__);
 
-         _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dstImage, layer);
+         _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                              GL_COLOR_ATTACHMENT0, dstImage,
+                                              layer);
 
          /* sanity check */
-         if (_mesa_CheckFramebufferStatus(GL_FRAMEBUFFER) !=
+         if (_mesa_check_framebuffer_status(ctx, ctx->DrawBuffer) !=
              GL_FRAMEBUFFER_COMPLETE) {
             _mesa_problem(ctx, "Unexpected incomplete framebuffer in "
                           "_mesa_meta_GenerateMipmap()");

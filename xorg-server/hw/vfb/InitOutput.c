@@ -763,7 +763,7 @@ vfbRRScreenSetSize(ScreenPtr  pScreen,
                    CARD32     mmHeight)
 {
     // Prevent screen updates while we change things around
-    SetRootClip(pScreen, FALSE);
+    SetRootClip(pScreen, ROOT_CLIP_NONE);
 
     pScreen->width = width;
     pScreen->height = height;
@@ -771,7 +771,7 @@ vfbRRScreenSetSize(ScreenPtr  pScreen,
     pScreen->mmHeight = mmHeight;
 
     // Restore the ability to update screen, now with new dimensions
-    SetRootClip(pScreen, TRUE);
+    SetRootClip(pScreen, ROOT_CLIP_FULL);
 
     RRScreenSizeNotify (pScreen);
     RRTellChanged(pScreen);

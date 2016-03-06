@@ -275,7 +275,7 @@ DarwinEventHandler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
         break;
 
     case kXquartzSetRootClip:
-        QuartzSetRootClip((Bool)e->data[0]);
+        QuartzSetRootClip(e->data[0]);
         break;
 
     case kXquartzQuit:

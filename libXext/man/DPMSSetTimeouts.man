@@ -95,7 +95,7 @@ monitor.  As noted above, many
 monitors implement this mode identical to the standby mode.  A value of zero
 disables this mode.
 .LP
-The value \fIoff\fP is the amount of time of inactivity,in seconds, before the
+The value \fIoff\fP is the amount of time of inactivity, in seconds, before the
 third and final level of power
 savings is invoked. Off mode's physical and electrical characteristics are
 implementation defined. In DPMS

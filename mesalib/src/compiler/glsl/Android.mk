@@ -36,7 +36,6 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	$(LIBGLCPP_FILES) \
 	$(LIBGLSL_FILES) \
-	$(NIR_FILES)
 
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \
@@ -67,7 +66,7 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/gallium/include \
 	$(MESA_TOP)/src/gallium/auxiliary
 
-LOCAL_STATIC_LIBRARIES := libmesa_glsl libmesa_glsl_utils libmesa_util
+LOCAL_STATIC_LIBRARIES := libmesa_glsl libmesa_glsl_utils libmesa_util libmesa_compiler
 
 LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE := glsl_compiler

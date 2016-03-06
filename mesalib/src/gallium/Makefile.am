@@ -78,6 +78,12 @@ SUBDIRS += drivers/llvmpipe
 endif
 endif
 
+if HAVE_GALLIUM_SWR
+SUBDIRS += drivers/swr
+SUBDIRS += drivers/swr/avx
+SUBDIRS += drivers/swr/avx2
+endif
+
 ## vc4/rpi
 if HAVE_GALLIUM_VC4
 SUBDIRS += drivers/vc4 winsys/vc4/drm

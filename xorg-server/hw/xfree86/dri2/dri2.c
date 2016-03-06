@@ -90,8 +90,6 @@ typedef struct _DRI2Drawable {
     DRI2BufferPtr *buffers;
     int bufferCount;
     unsigned int swapsPending;
-    ClientPtr blockedClient;
-    Bool blockedOnMsc;
     int swap_interval;
     CARD64 swap_count;
     int64_t target_sbc;         /* -1 means no SBC wait outstanding */
@@ -99,6 +97,7 @@ typedef struct _DRI2Drawable {
     CARD64 last_swap_msc;       /* msc at completion of most recent swap */
     CARD64 last_swap_ust;       /* ust at completion of most recent swap */
     int swap_limit;             /* for N-buffering */
+    unsigned blocked[3];
     Bool needInvalidate;
     int prime_id;
     PixmapPtr prime_slave_pixmap;
@@ -138,6 +137,44 @@ typedef struct _DRI2Screen {
 
 static void
 destroy_buffer(DrawablePtr pDraw, DRI2BufferPtr buffer, int prime_id);
+
+enum DRI2WakeType {
+    WAKE_SBC,
+    WAKE_MSC,
+    WAKE_SWAP,
+};
+
+#define Wake(c, t) (void *)((uintptr_t)(c) | (t))
+
+static Bool
+dri2WakeClient(ClientPtr client, void *closure)
+{
+    ClientWakeup(client);
+    return TRUE;
+}
+
+static Bool
+dri2WakeAll(ClientPtr client, DRI2DrawablePtr pPriv, enum DRI2WakeType t)
+{
+    int count;
+
+    if (!pPriv->blocked[t])
+        return FALSE;
+
+    count = ClientSignalAll(client, dri2WakeClient, Wake(pPriv, t));
+    pPriv->blocked[t] -= count;
+    return count;
+}
+
+static Bool
+dri2Sleep(ClientPtr client, DRI2DrawablePtr pPriv, enum DRI2WakeType t)
+{
+    if (ClientSleep(client, dri2WakeClient, Wake(pPriv, t))) {
+        pPriv->blocked[t]++;
+        return TRUE;
+    }
+    return FALSE;
+}
 
 static DRI2ScreenPtr
 DRI2GetScreen(ScreenPtr pScreen)
@@ -210,8 +247,6 @@ DRI2AllocateDrawable(DrawablePtr pDraw)
     pPriv->buffers = NULL;
     pPriv->bufferCount = 0;
     pPriv->swapsPending = 0;
-    pPriv->blockedClient = NULL;
-    pPriv->blockedOnMsc = FALSE;
     pPriv->swap_count = 0;
     pPriv->target_sbc = -1;
     pPriv->swap_interval = 1;
@@ -219,6 +254,7 @@ DRI2AllocateDrawable(DrawablePtr pDraw)
     if (!ds->GetMSC || !(*ds->GetMSC) (pDraw, &ust, &pPriv->last_swap_target))
         pPriv->last_swap_target = 0;
 
+    memset(pPriv->blocked, 0, sizeof(pPriv->blocked));
     pPriv->swap_limit = 1;      /* default to double buffering */
     pPriv->last_swap_msc = 0;
     pPriv->last_swap_ust = 0;
@@ -258,12 +294,7 @@ DRI2SwapLimit(DrawablePtr pDraw, int swap_limit)
     if (pPriv->swapsPending >= pPriv->swap_limit)
         return TRUE;
 
-    if (pPriv->target_sbc == -1 && !pPriv->blockedOnMsc) {
-        if (pPriv->blockedClient) {
-            ClientSignal(pPriv->blockedClient);
-        }
-    }
-
+    dri2WakeAll(CLIENT_SIGNAL_ANY, pPriv, WAKE_SWAP);
     return TRUE;
 }
 
@@ -412,8 +443,9 @@ DRI2DrawableGone(void *p, XID id)
         (*pDraw->pScreen->DestroyPixmap)(pPriv->redirectpixmap);
     }
 
-    if (pPriv->blockedClient)
-        ClientSignal(pPriv->blockedClient);
+    dri2WakeAll(CLIENT_SIGNAL_ANY, pPriv, WAKE_SWAP);
+    dri2WakeAll(CLIENT_SIGNAL_ANY, pPriv, WAKE_MSC);
+    dri2WakeAll(CLIENT_SIGNAL_ANY, pPriv, WAKE_SBC);
 
     free(pPriv);
 
@@ -689,15 +721,6 @@ DRI2InvalidateDrawable(DrawablePtr pDraw)
         ref->invalidate(pDraw, ref->priv, ref->id);
 }
 
-static Bool
-dri2ClientWake(ClientPtr client, void *closure)
-{
-    DRI2DrawablePtr pPriv = closure;
-    ClientWakeup(client);
-    pPriv->blockedClient = NULL;
-    return TRUE;
-}
-
 /*
  * In the direct rendered case, we throttle the clients that have more
  * than their share of outstanding swaps (and thus busy buffers) when a
@@ -715,24 +738,15 @@ DRI2ThrottleClient(ClientPtr client, DrawablePtr pDraw)
         return FALSE;
 
     /* Throttle to swap limit */
-    if ((pPriv->swapsPending >= pPriv->swap_limit) && !pPriv->blockedClient) {
-        ResetCurrentRequest(client);
-        client->sequence--;
-        ClientSleep(client, dri2ClientWake, pPriv);
-        pPriv->blockedClient = client;
-        return TRUE;
+    if (pPriv->swapsPending >= pPriv->swap_limit) {
+        if (dri2Sleep(client, pPriv, WAKE_SWAP)) {
+            ResetCurrentRequest(client);
+            client->sequence--;
+            return TRUE;
+        }
     }
 
     return FALSE;
-}
-
-static void
-__DRI2BlockClient(ClientPtr client, DRI2DrawablePtr pPriv)
-{
-    if (pPriv->blockedClient == NULL) {
-        ClientSleep(client, dri2ClientWake, pPriv);
-        pPriv->blockedClient = client;
-    }
 }
 
 void
@@ -744,8 +758,7 @@ DRI2BlockClient(ClientPtr client, DrawablePtr pDraw)
     if (pPriv == NULL)
         return;
 
-    __DRI2BlockClient(client, pPriv);
-    pPriv->blockedOnMsc = TRUE;
+    dri2Sleep(client, pPriv, WAKE_MSC);
 }
 
 static inline PixmapPtr GetDrawablePixmap(DrawablePtr drawable)
@@ -978,10 +991,7 @@ DRI2WaitMSCComplete(ClientPtr client, DrawablePtr pDraw, int frame,
     ProcDRI2WaitMSCReply(client, ((CARD64) tv_sec * 1000000) + tv_usec,
                          frame, pPriv->swap_count);
 
-    if (pPriv->blockedClient)
-        ClientSignal(pPriv->blockedClient);
-
-    pPriv->blockedOnMsc = FALSE;
+    dri2WakeAll(client, pPriv, WAKE_MSC);
 }
 
 static void
@@ -1007,16 +1017,14 @@ DRI2WakeClient(ClientPtr client, DrawablePtr pDraw, int frame,
      *   - is not blocked due to an MSC wait
      */
     if (pPriv->target_sbc != -1 && pPriv->target_sbc <= pPriv->swap_count) {
-        ProcDRI2WaitMSCReply(client, ((CARD64) tv_sec * 1000000) + tv_usec,
-                             frame, pPriv->swap_count);
-        pPriv->target_sbc = -1;
-        ClientSignal(pPriv->blockedClient);
-    }
-    else if (pPriv->target_sbc == -1 && !pPriv->blockedOnMsc) {
-        if (pPriv->blockedClient) {
-            ClientSignal(pPriv->blockedClient);
+        if (dri2WakeAll(client, pPriv, WAKE_SBC)) {
+            ProcDRI2WaitMSCReply(client, ((CARD64) tv_sec * 1000000) + tv_usec,
+                                 frame, pPriv->swap_count);
+            pPriv->target_sbc = -1;
         }
     }
+
+    dri2WakeAll(CLIENT_SIGNAL_ANY, pPriv, WAKE_SWAP);
 }
 
 void
@@ -1064,13 +1072,13 @@ DRI2WaitSwap(ClientPtr client, DrawablePtr pDrawable)
     DRI2DrawablePtr pPriv = DRI2GetDrawable(pDrawable);
 
     /* If we're currently waiting for a swap on this drawable, reset
-     * the request and suspend the client.  We only support one
-     * blocked client per drawable. */
-    if (pPriv && pPriv->swapsPending && pPriv->blockedClient == NULL) {
-        ResetCurrentRequest(client);
-        client->sequence--;
-        __DRI2BlockClient(client, pPriv);
-        return TRUE;
+     * the request and suspend the client. */
+    if (pPriv && pPriv->swapsPending) {
+        if (dri2Sleep(client, pPriv, WAKE_SWAP)) {
+            ResetCurrentRequest(client);
+            client->sequence--;
+            return TRUE;
+        }
     }
 
     return FALSE;
@@ -1271,6 +1279,9 @@ DRI2WaitSBC(ClientPtr client, DrawablePtr pDraw, CARD64 target_sbc)
     if (pPriv == NULL)
         return BadDrawable;
 
+    if (pPriv->target_sbc != -1) /* already in use */
+        return BadDrawable;
+
     /* target_sbc == 0 means to block until all pending swaps are
      * finished. Recalculate target_sbc to get that behaviour.
      */
@@ -1287,9 +1298,10 @@ DRI2WaitSBC(ClientPtr client, DrawablePtr pDraw, CARD64 target_sbc)
         return Success;
     }
 
-    pPriv->target_sbc = target_sbc;
-    __DRI2BlockClient(client, pPriv);
+    if (!dri2Sleep(client, pPriv, WAKE_SBC))
+        return BadAlloc;
 
+    pPriv->target_sbc = target_sbc;
     return Success;
 }
 

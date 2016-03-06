@@ -109,23 +109,20 @@ void st_init_limits(struct pipe_screen *screen,
       _clamp(screen->get_param(screen, PIPE_CAP_MAX_RENDER_TARGETS),
              1, MAX_DRAW_BUFFERS);
 
-   c->MaxDualSourceDrawBuffers
-      = _clamp(screen->get_param(screen, PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS),
-              0, MAX_DRAW_BUFFERS);
+   c->MaxDualSourceDrawBuffers =
+      _clamp(screen->get_param(screen,
+                               PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS),
+             0, MAX_DRAW_BUFFERS);
 
-   c->MaxLineWidth
-      = _maxf(1.0f, screen->get_paramf(screen,
-                                       PIPE_CAPF_MAX_LINE_WIDTH));
-   c->MaxLineWidthAA
-      = _maxf(1.0f, screen->get_paramf(screen,
-                                       PIPE_CAPF_MAX_LINE_WIDTH_AA));
+   c->MaxLineWidth =
+      _maxf(1.0f, screen->get_paramf(screen, PIPE_CAPF_MAX_LINE_WIDTH));
+   c->MaxLineWidthAA =
+      _maxf(1.0f, screen->get_paramf(screen, PIPE_CAPF_MAX_LINE_WIDTH_AA));
 
-   c->MaxPointSize
-      = _maxf(1.0f, screen->get_paramf(screen,
-                                       PIPE_CAPF_MAX_POINT_WIDTH));
-   c->MaxPointSizeAA
-      = _maxf(1.0f, screen->get_paramf(screen,
-                                       PIPE_CAPF_MAX_POINT_WIDTH_AA));
+   c->MaxPointSize =
+      _maxf(1.0f, screen->get_paramf(screen, PIPE_CAPF_MAX_POINT_WIDTH));
+   c->MaxPointSizeAA =
+      _maxf(1.0f, screen->get_paramf(screen, PIPE_CAPF_MAX_POINT_WIDTH_AA));
 
    /* these are not queryable. Note that GL basically mandates a 1.0 minimum
     * for non-aa sizes, but we can go down to 0.0 for aa points.
@@ -133,15 +130,16 @@ void st_init_limits(struct pipe_screen *screen,
    c->MinPointSize = 1.0f;
    c->MinPointSizeAA = 0.0f;
 
-   c->MaxTextureMaxAnisotropy
-      = _maxf(2.0f, screen->get_paramf(screen,
-                                 PIPE_CAPF_MAX_TEXTURE_ANISOTROPY));
+   c->MaxTextureMaxAnisotropy =
+      _maxf(2.0f,
+            screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_ANISOTROPY));
 
-   c->MaxTextureLodBias
-      = screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_LOD_BIAS);
+   c->MaxTextureLodBias =
+      screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_LOD_BIAS);
 
-   c->QuadsFollowProvokingVertexConvention = screen->get_param(
-      screen, PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION);
+   c->QuadsFollowProvokingVertexConvention =
+      screen->get_param(screen,
+                        PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION);
 
    c->MaxUniformBlockSize =
       screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
@@ -195,21 +193,31 @@ void st_init_limits(struct pipe_screen *screen,
                                        PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS),
               MAX_TEXTURE_IMAGE_UNITS);
 
-      pc->MaxInstructions    = pc->MaxNativeInstructions    =
+      pc->MaxInstructions =
+      pc->MaxNativeInstructions =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INSTRUCTIONS);
-      pc->MaxAluInstructions = pc->MaxNativeAluInstructions =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS);
-      pc->MaxTexInstructions = pc->MaxNativeTexInstructions =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS);
-      pc->MaxTexIndirections = pc->MaxNativeTexIndirections =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS);
-      pc->MaxAttribs         = pc->MaxNativeAttribs         =
+      pc->MaxAluInstructions =
+      pc->MaxNativeAluInstructions =
+         screen->get_shader_param(screen, sh,
+                                  PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS);
+      pc->MaxTexInstructions =
+      pc->MaxNativeTexInstructions =
+         screen->get_shader_param(screen, sh,
+                                  PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS);
+      pc->MaxTexIndirections =
+      pc->MaxNativeTexIndirections =
+         screen->get_shader_param(screen, sh,
+                                  PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS);
+      pc->MaxAttribs =
+      pc->MaxNativeAttribs =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS);
-      pc->MaxTemps           = pc->MaxNativeTemps           =
+      pc->MaxTemps =
+      pc->MaxNativeTemps =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEMPS);
-      pc->MaxAddressRegs     = pc->MaxNativeAddressRegs     =
-         sh == PIPE_SHADER_VERTEX ? 1 : 0;
-      pc->MaxParameters      = pc->MaxNativeParameters      =
+      pc->MaxAddressRegs =
+      pc->MaxNativeAddressRegs = sh == PIPE_SHADER_VERTEX ? 1 : 0;
+      pc->MaxParameters =
+      pc->MaxNativeParameters =
          screen->get_shader_param(screen, sh,
                    PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE) / sizeof(float[4]);
       pc->MaxInputComponents =
@@ -217,10 +225,12 @@ void st_init_limits(struct pipe_screen *screen,
       pc->MaxOutputComponents =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_OUTPUTS) * 4;
 
-      pc->MaxUniformComponents = 4 * MIN2(pc->MaxNativeParameters, MAX_UNIFORMS);
+      pc->MaxUniformComponents =
+         4 * MIN2(pc->MaxNativeParameters, MAX_UNIFORMS);
 
       pc->MaxUniformBlocks =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_CONST_BUFFERS);
+         screen->get_shader_param(screen, sh,
+                                  PIPE_SHADER_CAP_MAX_CONST_BUFFERS);
       if (pc->MaxUniformBlocks)
          pc->MaxUniformBlocks -= 1; /* The first one is for ordinary uniforms. */
       pc->MaxUniformBlocks = _min(pc->MaxUniformBlocks, MAX_UNIFORM_BUFFERS);
@@ -246,21 +256,33 @@ void st_init_limits(struct pipe_screen *screen,
       options->EmitNoNoise = TRUE;
 
       /* TODO: make these more fine-grained if anyone needs it */
-      options->MaxIfDepth = screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
-      options->EmitNoLoops = !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
-      options->EmitNoFunctions = !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUBROUTINES);
-      options->EmitNoMainReturn = !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUBROUTINES);
+      options->MaxIfDepth =
+         screen->get_shader_param(screen, sh,
+                                  PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
+      options->EmitNoLoops =
+         !screen->get_shader_param(screen, sh,
+                                   PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
+      options->EmitNoFunctions =
+         !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUBROUTINES);
+      options->EmitNoMainReturn =
+         !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUBROUTINES);
 
-      options->EmitNoCont = !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_TGSI_CONT_SUPPORTED);
+      options->EmitNoCont =
+         !screen->get_shader_param(screen, sh,
+                                   PIPE_SHADER_CAP_TGSI_CONT_SUPPORTED);
 
-      options->EmitNoIndirectInput = !screen->get_shader_param(screen, sh,
-                                        PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR);
-      options->EmitNoIndirectOutput = !screen->get_shader_param(screen, sh,
-                                        PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR);
-      options->EmitNoIndirectTemp = !screen->get_shader_param(screen, sh,
-                                        PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR);
-      options->EmitNoIndirectUniform = !screen->get_shader_param(screen, sh,
-                                        PIPE_SHADER_CAP_INDIRECT_CONST_ADDR);
+      options->EmitNoIndirectInput =
+         !screen->get_shader_param(screen, sh,
+                                   PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR);
+      options->EmitNoIndirectOutput =
+         !screen->get_shader_param(screen, sh,
+                                   PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR);
+      options->EmitNoIndirectTemp =
+         !screen->get_shader_param(screen, sh,
+                                   PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR);
+      options->EmitNoIndirectUniform =
+         !screen->get_shader_param(screen, sh,
+                                   PIPE_SHADER_CAP_INDIRECT_CONST_ADDR);
 
       if (pc->MaxNativeInstructions &&
           (options->EmitNoIndirectUniform || pc->MaxUniformBlocks < 12)) {
@@ -268,10 +290,14 @@ void st_init_limits(struct pipe_screen *screen,
       }
 
       if (options->EmitNoLoops)
-         options->MaxUnrollIterations = MIN2(screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INSTRUCTIONS), 65536);
+         options->MaxUnrollIterations =
+            MIN2(screen->get_shader_param(screen, sh,
+                                          PIPE_SHADER_CAP_MAX_INSTRUCTIONS),
+                 65536);
       else
-         options->MaxUnrollIterations = screen->get_shader_param(screen, sh,
-                                      PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT);
+         options->MaxUnrollIterations =
+            screen->get_shader_param(screen, sh,
+                                  PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT);
 
       options->LowerClipDistance = true;
       options->LowerBufferInterfaceBlocks = true;
@@ -293,37 +319,50 @@ void st_init_limits(struct pipe_screen *screen,
 
    /* This depends on program constants. */
    c->MaxTextureCoordUnits
-      = _min(c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits, MAX_TEXTURE_COORD_UNITS);
+      = _min(c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits,
+             MAX_TEXTURE_COORD_UNITS);
 
-   c->MaxTextureUnits = _min(c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits, c->MaxTextureCoordUnits);
+   c->MaxTextureUnits =
+      _min(c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits,
+           c->MaxTextureCoordUnits);
 
-   c->Program[MESA_SHADER_VERTEX].MaxAttribs = MIN2(c->Program[MESA_SHADER_VERTEX].MaxAttribs, 16);
+   c->Program[MESA_SHADER_VERTEX].MaxAttribs =
+      MIN2(c->Program[MESA_SHADER_VERTEX].MaxAttribs, 16);
 
    /* PIPE_SHADER_CAP_MAX_INPUTS for the FS specifies the maximum number
     * of inputs. It's always 2 colors + N generic inputs. */
    c->MaxVarying = screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
                                             PIPE_SHADER_CAP_MAX_INPUTS);
    c->MaxVarying = MIN2(c->MaxVarying, MAX_VARYING);
-   c->MaxGeometryOutputVertices = screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES);
-   c->MaxGeometryTotalOutputComponents = screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
+   c->MaxGeometryOutputVertices =
+      screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES);
+   c->MaxGeometryTotalOutputComponents =
+      screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
    c->MaxTessPatchComponents =
       MAX2(screen->get_param(screen, PIPE_CAP_MAX_SHADER_PATCH_VARYINGS),
            MAX_VARYING) * 4;
 
-   c->MinProgramTexelOffset = screen->get_param(screen, PIPE_CAP_MIN_TEXEL_OFFSET);
-   c->MaxProgramTexelOffset = screen->get_param(screen, PIPE_CAP_MAX_TEXEL_OFFSET);
+   c->MinProgramTexelOffset =
+      screen->get_param(screen, PIPE_CAP_MIN_TEXEL_OFFSET);
+   c->MaxProgramTexelOffset =
+      screen->get_param(screen, PIPE_CAP_MAX_TEXEL_OFFSET);
 
-   c->MaxProgramTextureGatherComponents = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS);
-   c->MinProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET);
-   c->MaxProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET);
+   c->MaxProgramTextureGatherComponents =
+      screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS);
+   c->MinProgramTextureGatherOffset =
+      screen->get_param(screen, PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET);
+   c->MaxProgramTextureGatherOffset =
+      screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET);
 
    c->MaxTransformFeedbackBuffers =
       screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS);
-   c->MaxTransformFeedbackBuffers = MIN2(c->MaxTransformFeedbackBuffers, MAX_FEEDBACK_BUFFERS);
+   c->MaxTransformFeedbackBuffers = MIN2(c->MaxTransformFeedbackBuffers,
+                                         MAX_FEEDBACK_BUFFERS);
    c->MaxTransformFeedbackSeparateComponents =
       screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS);
    c->MaxTransformFeedbackInterleavedComponents =
-      screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS);
+      screen->get_param(screen,
+                        PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS);
    c->MaxVertexStreams =
       MAX2(1, screen->get_param(screen, PIPE_CAP_MAX_VERTEX_STREAMS));
 

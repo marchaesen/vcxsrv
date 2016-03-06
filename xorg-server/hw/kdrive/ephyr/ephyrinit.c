@@ -373,6 +373,9 @@ OsVendorInit(void)
 {
     EPHYR_DBG("mark");
 
+    if (SeatId)
+        hostx_use_sw_cursor();
+
     if (hostx_want_host_cursor())
         ephyrFuncs.initCursor = &ephyrCursorInit;
 

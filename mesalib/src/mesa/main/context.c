@@ -582,8 +582,8 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxLights = MAX_LIGHTS;
    consts->MaxShininess = 128.0;
    consts->MaxSpotExponent = 128.0;
-   consts->MaxViewportWidth = MAX_VIEWPORT_WIDTH;
-   consts->MaxViewportHeight = MAX_VIEWPORT_HEIGHT;
+   consts->MaxViewportWidth = 16384;
+   consts->MaxViewportHeight = 16384;
    consts->MinMapBufferAlignment = 64;
 
    /* Driver must override these values if ARB_viewport_array is supported. */
@@ -1600,9 +1600,6 @@ _mesa_check_init_viewport(struct gl_context *ctx, GLuint width, GLuint height)
 static void
 handle_first_current(struct gl_context *ctx)
 {
-   GLenum buffer;
-   GLint bufferIndex;
-
    if (ctx->Version == 0) {
       /* probably in the process of tearing down the context */
       return;
@@ -1617,6 +1614,8 @@ handle_first_current(struct gl_context *ctx)
     * For GLES it is always GL_BACK which has a magic interpretation */
    if (!ctx->HasConfig && _mesa_is_desktop_gl(ctx)) {
       if (ctx->DrawBuffer != _mesa_get_incomplete_framebuffer()) {
+         GLenum buffer;
+
          if (ctx->DrawBuffer->Visual.doubleBufferMode)
             buffer = GL_BACK;
          else
@@ -1627,6 +1626,9 @@ handle_first_current(struct gl_context *ctx)
       }
 
       if (ctx->ReadBuffer != _mesa_get_incomplete_framebuffer()) {
+         gl_buffer_index bufferIndex;
+         GLenum buffer;
+
          if (ctx->ReadBuffer->Visual.doubleBufferMode) {
             buffer = GL_BACK;
             bufferIndex = BUFFER_BACK_LEFT;

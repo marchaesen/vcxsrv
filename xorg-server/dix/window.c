@@ -3647,7 +3647,7 @@ WindowParentHasDeviceCursor(WindowPtr pWin,
  *	all of the windows
  */
 void
-SetRootClip(ScreenPtr pScreen, Bool enable)
+SetRootClip(ScreenPtr pScreen, int enable)
 {
     WindowPtr pWin = pScreen->root;
     WindowPtr pChild;
@@ -3655,6 +3655,7 @@ SetRootClip(ScreenPtr pScreen, Bool enable)
     Bool anyMarked = FALSE;
     WindowPtr pLayerWin;
     BoxRec box;
+    enum RootClipMode mode = enable;
 
     if (!pWin)
         return;
@@ -3679,23 +3680,32 @@ SetRootClip(ScreenPtr pScreen, Bool enable)
         }
     }
 
-    /*
-     * Use REGION_BREAK to avoid optimizations in ValidateTree
-     * that assume the root borderClip can't change well, normally
-     * it doesn't...)
-     */
-    if (enable) {
+    if (mode != ROOT_CLIP_NONE) {
+        pWin->drawable.width = pScreen->width;
+        pWin->drawable.height = pScreen->height;
+
         box.x1 = 0;
         box.y1 = 0;
         box.x2 = pScreen->width;
         box.y2 = pScreen->height;
+
         RegionInit(&pWin->winSize, &box, 1);
         RegionInit(&pWin->borderSize, &box, 1);
-        if (WasViewable)
-            RegionReset(&pWin->borderClip, &box);
-        pWin->drawable.width = pScreen->width;
-        pWin->drawable.height = pScreen->height;
+
+        /*
+         * Use REGION_BREAK to avoid optimizations in ValidateTree
+         * that assume the root borderClip can't change well, normally
+         * it doesn't...)
+         */
         RegionBreak(&pWin->clipList);
+
+	/* For INPUT_ONLY, empty the borderClip so no rendering will ever
+	 * be attempted to the screen pixmap (only redirected windows),
+	 * but we keep borderSize as full regardless. */
+        if (WasViewable && mode == ROOT_CLIP_FULL)
+            RegionReset(&pWin->borderClip, &box);
+        else
+            RegionEmpty(&pWin->borderClip);
     }
     else {
         RegionEmpty(&pWin->borderClip);

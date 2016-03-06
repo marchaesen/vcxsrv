@@ -2946,7 +2946,6 @@ struct gl_pipeline_shader_state
 struct gl_shader_compiler_options
 {
    /** Driver-selectable options: */
-   GLboolean EmitCondCodes;             /**< Use condition codes? */
    GLboolean EmitNoLoops;
    GLboolean EmitNoFunctions;
    GLboolean EmitNoCont;                  /**< Emit CONT opcode? */
@@ -3807,6 +3806,7 @@ struct gl_extensions
    GLboolean ARB_indirect_parameters;
    GLboolean ARB_instanced_arrays;
    GLboolean ARB_internalformat_query;
+   GLboolean ARB_internalformat_query2;
    GLboolean ARB_map_buffer_range;
    GLboolean ARB_occlusion_query;
    GLboolean ARB_occlusion_query2;
@@ -3922,7 +3922,6 @@ struct gl_extensions
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_conditional_render;
    GLboolean NV_fog_distance;
-   GLboolean NV_fragment_program_option;
    GLboolean NV_point_sprite;
    GLboolean NV_primitive_restart;
    GLboolean NV_texture_barrier;

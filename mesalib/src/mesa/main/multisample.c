@@ -174,10 +174,15 @@ _mesa_check_sample_count(struct gl_context *ctx, GLenum target,
     * for <internalformat> then the error INVALID_OPERATION is generated."
     */
    if (ctx->Extensions.ARB_internalformat_query) {
-      GLint buffer[16];
-      int count = ctx->Driver.QuerySamplesForFormat(ctx, target,
-                                                    internalFormat, buffer);
-      int limit = count ? buffer[0] : -1;
+      GLint buffer[16] = {-1};
+      GLint limit;
+
+      ctx->Driver.QueryInternalFormat(ctx, target, internalFormat,
+                                      GL_SAMPLES, buffer);
+      /* since the query returns samples sorted in descending order,
+       * the first element is the greatest supported sample value.
+       */
+      limit = buffer[0];
 
       return samples > limit ? GL_INVALID_OPERATION : GL_NO_ERROR;
    }

@@ -134,6 +134,7 @@ KdFreePointer(KdPointerInfo * pi)
     free(pi->name);
     free(pi->path);
     input_option_free_list(&pi->options);
+    pi->next = NULL;
     free(pi);
 }
 
@@ -145,6 +146,9 @@ KdFreeKeyboard(KdKeyboardInfo * ki)
     free(ki->xkbRules);
     free(ki->xkbModel);
     free(ki->xkbLayout);
+    free(ki->xkbVariant);
+    free(ki->xkbOptions);
+    input_option_free_list(&ki->options);
     ki->next = NULL;
     free(ki);
 }

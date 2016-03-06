@@ -3,9 +3,9 @@
 
 if BUILD_SHARED
 if HAVE_COMPAT_SYMLINKS
-all-local : .libs/install-gallium-links
+all-local : .install-gallium-links
 
-.libs/install-gallium-links : $(dri_LTLIBRARIES) $(egl_LTLIBRARIES) $(lib_LTLIBRARIES)
+.install-gallium-links : $(dri_LTLIBRARIES) $(egl_LTLIBRARIES) $(lib_LTLIBRARIES)
 	$(AM_V_GEN)$(MKDIR_P) $(top_builddir)/$(LIB_DIR);	\
 	link_dir=$(top_builddir)/$(LIB_DIR)/gallium;		\
 	if test x$(egl_LTLIBRARIES) != x; then			\
@@ -23,4 +23,15 @@ all-local : .libs/install-gallium-links
 		fi;						\
 	done && touch $@
 endif
+
+clean-local:
+	for f in $(notdir $(dri_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)) \
+		 $(notdir $(egl_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)) \
+		 $(notdir $(lib_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)); do \
+		echo $$f; \
+		$(RM) $(top_builddir)/$(LIB_DIR)/gallium/$$f;   \
+	done;
+	rmdir $(top_builddir)/$(LIB_DIR)/gallium || true
+	$(RM) .install-gallium-links
+
 endif

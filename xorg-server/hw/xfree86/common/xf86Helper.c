@@ -1076,14 +1076,14 @@ xf86EnableDisableFBAccess(ScrnInfoPtr pScrnInfo, Bool enable)
          * Restore all of the clip lists on the screen
          */
         if (!xf86Resetting)
-            SetRootClip(pScreen, TRUE);
+            SetRootClip(pScreen, ROOT_CLIP_FULL);
 
     }
     else {
         /*
          * Empty all of the clip lists on the screen
          */
-        SetRootClip(pScreen, FALSE);
+        SetRootClip(pScreen, ROOT_CLIP_NONE);
     }
 }
 

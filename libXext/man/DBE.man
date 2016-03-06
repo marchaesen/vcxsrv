@@ -218,7 +218,7 @@ applications may need a richer set of swap actions than DBE provides.  Some
 DBE implementations have knowledge of ancillary buffers, and/or can provide
 a rich set of swap actions. Instead of continually extending DBE to increase
 its set of swap actions, DBE provides a flexible "idiom" mechanism.  If an
-applications's needs are served by the defined swap actions, it should use
+application's needs are served by the defined swap actions, it should use
 them; otherwise, it should use the following method of expressing a complex
 swap action as an idiom.  Following this policy will ensure the best possible
 performance across a wide variety of implementations.

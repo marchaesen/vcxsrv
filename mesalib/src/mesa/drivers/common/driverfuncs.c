@@ -90,7 +90,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* Texture functions */
    driver->ChooseTextureFormat = _mesa_choose_tex_format;
-   driver->QuerySamplesForFormat = _mesa_query_samples_for_format;
+   driver->QueryInternalFormat = _mesa_query_internal_format_default;
    driver->TexImage = _mesa_store_teximage;
    driver->TexSubImage = _mesa_store_texsubimage;
    driver->GetTexSubImage = _mesa_meta_GetTexSubImage;

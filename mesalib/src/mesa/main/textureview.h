@@ -34,6 +34,14 @@ _mesa_texture_view_compatible_format(const struct gl_context *ctx,
                                      GLenum origInternalFormat,
                                      GLenum newInternalFormat);
 
+/**
+ * Lookup format view class based on internalformat
+ * \return VIEW_CLASS if internalformat found in table, false otherwise.
+ */
+GLenum
+_mesa_texture_view_lookup_view_class(const struct gl_context *ctx,
+                                     GLenum internalformat);
+
 extern void GLAPIENTRY
 _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
                   GLenum internalformat,

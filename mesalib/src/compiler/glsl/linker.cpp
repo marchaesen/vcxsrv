@@ -3180,7 +3180,6 @@ check_explicit_uniform_locations(struct gl_context *ctx,
       }
    }
 
-   exec_list_make_empty(&prog->EmptyUniformLocations);
    struct empty_uniform_block *current_block = NULL;
 
    for (unsigned i = 0; i < prog->NumUniformRemapTable; i++) {

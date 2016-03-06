@@ -236,7 +236,6 @@ xwl_glamor_create_screen_resources(ScreenPtr screen)
     if (xwl_screen->rootless) {
         screen->devPrivate =
             fbCreatePixmap(screen, 0, 0, screen->rootDepth, 0);
-        SetRootClip(screen, FALSE);
     }
     else {
         screen->devPrivate =
@@ -246,6 +245,8 @@ xwl_glamor_create_screen_resources(ScreenPtr screen)
         if (screen->devPrivate)
             glamor_set_screen_pixmap(screen->devPrivate, NULL);
     }
+
+    SetRootClip(screen, xwl_screen->root_clip_mode);
 
     return screen->devPrivate != NULL;
 }

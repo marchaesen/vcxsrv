@@ -30,6 +30,7 @@
 #include "teximage.h"
 #include "texobj.h"
 #include "fbobject.h"
+#include "framebuffer.h"
 #include "buffers.h"
 #include "state.h"
 #include "mtypes.h"
@@ -166,7 +167,8 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
    GLint src_internal_format, dst_internal_format;
    GLuint src_view_texture = 0;
    struct gl_texture_image *src_view_tex_image;
-   GLuint fbos[2];
+   struct gl_framebuffer *readFb;
+   struct gl_framebuffer *drawFb;
    bool success = false;
    GLbitfield mask;
    GLenum status, attachment;
@@ -210,9 +212,15 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
    /* We really only need to stash the bound framebuffers and scissor. */
    _mesa_meta_begin(ctx, MESA_META_SCISSOR);
 
-   _mesa_GenFramebuffers(2, fbos);
-   _mesa_BindFramebuffer(GL_READ_FRAMEBUFFER, fbos[0]);
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[1]);
+   readFb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
+   if (readFb == NULL)
+      goto meta_end;
+
+   drawFb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
+   if (drawFb == NULL)
+      goto meta_end;
+
+   _mesa_bind_framebuffers(ctx, drawFb, readFb);
 
    switch (_mesa_get_format_base_format(src_format)) {
    case GL_DEPTH_COMPONENT:
@@ -238,14 +246,14 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
       /* Prefer the tex image because, even if we have a renderbuffer, we may
        * have had to wrap it in a texture view.
        */
-      _mesa_meta_bind_fbo_image(GL_READ_FRAMEBUFFER, attachment,
-                                src_view_tex_image, src_z);
+      _mesa_meta_framebuffer_texture_image(ctx, ctx->ReadBuffer, attachment,
+                                           src_view_tex_image, src_z);
    } else {
       _mesa_framebuffer_renderbuffer(ctx, ctx->ReadBuffer, attachment,
                                      src_renderbuffer);
    }
 
-   status = _mesa_CheckFramebufferStatus(GL_READ_FRAMEBUFFER);
+   status = _mesa_check_framebuffer_status(ctx, ctx->ReadBuffer);
    if (status != GL_FRAMEBUFFER_COMPLETE)
       goto meta_end;
 
@@ -253,11 +261,11 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
       _mesa_framebuffer_renderbuffer(ctx, ctx->DrawBuffer, attachment,
                                      dst_renderbuffer);
    } else {
-      _mesa_meta_bind_fbo_image(GL_DRAW_FRAMEBUFFER, attachment,
-                                dst_tex_image, dst_z);
+      _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer, attachment,
+                                           dst_tex_image, dst_z);
    }
 
-   status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+   status = _mesa_check_framebuffer_status(ctx, ctx->DrawBuffer);
    if (status != GL_FRAMEBUFFER_COMPLETE)
       goto meta_end;
 
@@ -281,7 +289,8 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
    success = true;
 
 meta_end:
-   _mesa_DeleteFramebuffers(2, fbos);
+   _mesa_reference_framebuffer(&readFb, NULL);
+   _mesa_reference_framebuffer(&drawFb, NULL);
    _mesa_meta_end(ctx);
 
 cleanup:

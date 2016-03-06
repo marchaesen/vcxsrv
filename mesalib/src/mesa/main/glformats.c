@@ -1339,6 +1339,51 @@ _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
 }
 
 /**
+ * Test if the given format represents an sRGB format.
+ * \param format the GL format (can be an internal format)
+ * \return GL_TRUE if format is sRGB, GL_FALSE otherwise
+ */
+GLboolean
+_mesa_is_srgb_format(GLenum format)
+{
+   switch (format) {
+   case GL_SRGB:
+   case GL_SRGB8:
+   case GL_SRGB_ALPHA:
+   case GL_SRGB8_ALPHA8:
+   case GL_COMPRESSED_SRGB:
+   case GL_COMPRESSED_SRGB_ALPHA:
+   case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+   case GL_COMPRESSED_SRGB8_ETC2:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+   case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+   case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+      return GL_TRUE;
+   default:
+      break;
+   }
+
+   return GL_FALSE;
+}
+
+/**
  * Convert various unpack formats to the corresponding base format.
  */
 GLenum
@@ -1430,6 +1475,8 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
    case GL_TEXTURE_RED_TYPE:
    case GL_RENDERBUFFER_RED_SIZE_EXT:
    case GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE:
+   case GL_INTERNALFORMAT_RED_SIZE:
+   case GL_INTERNALFORMAT_RED_TYPE:
       if (base_format == GL_RED ||
 	  base_format == GL_RG ||
 	  base_format == GL_RGB ||
@@ -1441,6 +1488,8 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
    case GL_TEXTURE_GREEN_TYPE:
    case GL_RENDERBUFFER_GREEN_SIZE_EXT:
    case GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE:
+   case GL_INTERNALFORMAT_GREEN_SIZE:
+   case GL_INTERNALFORMAT_GREEN_TYPE:
       if (base_format == GL_RG ||
 	  base_format == GL_RGB ||
 	  base_format == GL_RGBA) {
@@ -1451,6 +1500,8 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
    case GL_TEXTURE_BLUE_TYPE:
    case GL_RENDERBUFFER_BLUE_SIZE_EXT:
    case GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE:
+   case GL_INTERNALFORMAT_BLUE_SIZE:
+   case GL_INTERNALFORMAT_BLUE_TYPE:
       if (base_format == GL_RGB ||
 	  base_format == GL_RGBA) {
 	 return GL_TRUE;
@@ -1460,6 +1511,8 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
    case GL_TEXTURE_ALPHA_TYPE:
    case GL_RENDERBUFFER_ALPHA_SIZE_EXT:
    case GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE:
+   case GL_INTERNALFORMAT_ALPHA_SIZE:
+   case GL_INTERNALFORMAT_ALPHA_TYPE:
       if (base_format == GL_RGBA ||
 	  base_format == GL_ALPHA ||
 	  base_format == GL_LUMINANCE_ALPHA) {
@@ -1483,6 +1536,8 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
    case GL_TEXTURE_DEPTH_TYPE:
    case GL_RENDERBUFFER_DEPTH_SIZE_EXT:
    case GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE:
+   case GL_INTERNALFORMAT_DEPTH_SIZE:
+   case GL_INTERNALFORMAT_DEPTH_TYPE:
       if (base_format == GL_DEPTH_STENCIL ||
 	  base_format == GL_DEPTH_COMPONENT) {
 	 return GL_TRUE;
@@ -1490,6 +1545,8 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
       return GL_FALSE;
    case GL_RENDERBUFFER_STENCIL_SIZE_EXT:
    case GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE:
+   case GL_INTERNALFORMAT_STENCIL_SIZE:
+   case GL_INTERNALFORMAT_STENCIL_TYPE:
       if (base_format == GL_DEPTH_STENCIL ||
 	  base_format == GL_STENCIL_INDEX) {
 	 return GL_TRUE;
@@ -3464,6 +3521,27 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
    case GL_UNSIGNED_INT_10F_11F_11F_REV:
       if (format == GL_RGB)
          return MESA_FORMAT_R11G11B10_FLOAT;
+      break;
+   case GL_FLOAT:
+      if (format == GL_DEPTH_COMPONENT)
+         return MESA_FORMAT_Z_FLOAT32;
+      break;
+   case GL_UNSIGNED_INT:
+      if (format == GL_DEPTH_COMPONENT)
+         return MESA_FORMAT_Z_UNORM32;
+      break;
+   case GL_UNSIGNED_SHORT:
+      if (format == GL_DEPTH_COMPONENT)
+         return MESA_FORMAT_Z_UNORM16;
+      break;
+   case GL_UNSIGNED_INT_24_8:
+      if (format == GL_DEPTH_STENCIL)
+         return MESA_FORMAT_Z24_UNORM_S8_UINT;
+      break;
+   case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
+      if (format == GL_DEPTH_STENCIL)
+         return MESA_FORMAT_Z32_FLOAT_S8X24_UINT;
+      break;
    default:
       break;
    }

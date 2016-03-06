@@ -240,6 +240,10 @@ device_added(struct udev_device *udev_device)
         }
         else if (!strcmp(key, "ID_INPUT_KEY")) {
             LOG_PROPERTY(path, key, value);
+            attrs.flags |= ATTR_KEY;
+        }
+        else if (!strcmp(key, "ID_INPUT_KEYBOARD")) {
+            LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_KEYBOARD;
         }
         else if (!strcmp(key, "ID_INPUT_MOUSE")) {

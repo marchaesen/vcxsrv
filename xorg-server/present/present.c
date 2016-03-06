@@ -46,6 +46,28 @@ static void
 present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc);
 
 /*
+ * Returns:
+ * TRUE if the first MSC value is after the second one
+ * FALSE if the first MSC value is equal to or before the second one
+ */
+static Bool
+msc_is_after(uint64_t test, uint64_t reference)
+{
+    return (int64_t)(test - reference) > 0;
+}
+
+/*
+ * Returns:
+ * TRUE if the first MSC value is equal to or after the second one
+ * FALSE if the first MSC value is before the second one
+ */
+static Bool
+msc_is_equal_or_after(uint64_t test, uint64_t reference)
+{
+    return (int64_t)(test - reference) >= 0;
+}
+
+/*
  * Copies the update region from a pixmap to the target drawable
  */
 static void
@@ -392,22 +414,44 @@ present_set_tree_pixmap(WindowPtr window,
 }
 
 static void
-present_set_abort_flip(ScreenPtr screen)
+present_restore_screen_pixmap(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
-    PixmapPtr pixmap = (*screen->GetScreenPixmap)(screen);
+    PixmapPtr screen_pixmap = (*screen->GetScreenPixmap)(screen);
+    PixmapPtr flip_pixmap;
+    WindowPtr flip_window;
+
+    if (screen_priv->flip_pending) {
+        flip_window = screen_priv->flip_pending->window;
+        flip_pixmap = screen_priv->flip_pending->pixmap;
+    } else {
+        flip_window = screen_priv->flip_window;
+        flip_pixmap = screen_priv->flip_pixmap;
+    }
+
+    assert (flip_pixmap);
+
+    /* Update the screen pixmap with the current flip pixmap contents
+     * Only do this the first time for a particular unflip operation, or
+     * we'll probably scribble over other windows
+     */
+    if (screen->GetWindowPixmap(screen->root) == flip_pixmap)
+        present_copy_region(&screen_pixmap->drawable, flip_pixmap, NULL, 0, 0);
 
     /* Switch back to using the screen pixmap now to avoid
      * 2D applications drawing to the wrong pixmap.
      */
+    if (flip_window)
+        present_set_tree_pixmap(flip_window, flip_pixmap, screen_pixmap);
+    present_set_tree_pixmap(screen->root, NULL, screen_pixmap);
+}
 
-    if (screen_priv->flip_window)
-        present_set_tree_pixmap(screen_priv->flip_window,
-                                screen_priv->flip_pixmap,
-                                pixmap);
+static void
+present_set_abort_flip(ScreenPtr screen)
+{
+    present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    if (screen->root)
-        present_set_tree_pixmap(screen->root, NULL, pixmap);
+    present_restore_screen_pixmap(screen);
 
     screen_priv->flip_pending->abort_flip = TRUE;
 }
@@ -416,25 +460,12 @@ static void
 present_unflip(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
-    PixmapPtr pixmap = (*screen->GetScreenPixmap)(screen);
 
     assert (!screen_priv->unflip_event_id);
     assert (!screen_priv->flip_pending);
 
-    if (screen_priv->flip_pixmap && screen_priv->flip_window)
-        present_set_tree_pixmap(screen_priv->flip_window,
-                                screen_priv->flip_pixmap,
-                                pixmap);
+    present_restore_screen_pixmap(screen);
 
-    present_set_tree_pixmap(screen->root, NULL, pixmap);
-
-    /* Update the screen pixmap with the current flip pixmap contents
-     */
-    if (screen_priv->flip_pixmap && screen_priv->flip_window) {
-        present_copy_region(&pixmap->drawable,
-                            screen_priv->flip_pixmap,
-                            NULL, 0, 0);
-    }
     screen_priv->unflip_event_id = ++present_event_id;
     DebugPresent(("u %lld\n", screen_priv->unflip_event_id));
     (*screen_priv->info->unflip) (screen, screen_priv->unflip_event_id);
@@ -560,10 +591,8 @@ present_check_flip_window (WindowPtr window)
     xorg_list_for_each_entry(vblank, &window_priv->vblank, window_list) {
         if (vblank->queued && vblank->flip && !present_check_flip(vblank->crtc, window, vblank->pixmap, vblank->sync_flip, NULL, 0, 0)) {
             vblank->flip = FALSE;
-            if (vblank->sync_flip) {
+            if (vblank->sync_flip)
                 vblank->requeue = TRUE;
-                vblank->target_msc++;
-            }
         }
     }
 }
@@ -600,7 +629,8 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
     if (vblank->requeue) {
         vblank->requeue = FALSE;
-        if (Success == present_queue_vblank(screen,
+        if (msc_is_after(vblank->target_msc, crtc_msc) &&
+            Success == present_queue_vblank(screen,
                                             vblank->crtc,
                                             vblank->event_id,
                                             vblank->target_msc))
@@ -690,6 +720,20 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
             if (window == screen_priv->flip_window)
                 present_unflip(screen);
         }
+
+        /* If present_flip failed, we may have to requeue for the target MSC */
+        if (msc_is_after(vblank->target_msc, crtc_msc) &&
+            Success == present_queue_vblank(screen,
+                                            vblank->crtc,
+                                            vblank->event_id,
+                                            vblank->target_msc)) {
+            xorg_list_add(&vblank->event_queue, &present_exec_queue);
+            xorg_list_append(&vblank->window_list,
+                             &present_get_window_priv(window, TRUE)->vblank);
+            vblank->queued = TRUE;
+            return;
+        }
+
         present_copy_region(&window->drawable, vblank->pixmap, vblank->update, vblank->x_off, vblank->y_off);
 
         /* present_copy_region sticks the region into a scratch GC,
@@ -715,28 +759,6 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
     present_vblank_notify(vblank, vblank->kind, mode, ust, crtc_msc);
     present_vblank_destroy(vblank);
-}
-
-/*
- * Returns:
- * TRUE if the first MSC value is after the second one
- * FALSE if the first MSC value is equal to or before the second one
- */
-static Bool
-msc_is_after(uint64_t test, uint64_t reference)
-{
-    return (int64_t)(test - reference) > 0;
-}
-
-/*
- * Returns:
- * TRUE if the first MSC value is equal to or after the second one
- * FALSE if the first MSC value is before the second one
- */
-static Bool
-msc_is_equal_or_after(uint64_t test, uint64_t reference)
-{
-    return (int64_t)(test - reference) >= 0;
 }
 
 int

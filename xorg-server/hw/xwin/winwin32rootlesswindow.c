@@ -402,7 +402,7 @@ winMWExtWMRestackWindows(ScreenPtr pScreen)
 
 #if CYGMULTIWINDOW_DEBUG
                 winDebug
-                    ("winMWExtWMRestackWindows - DeferWindowPos (%08x, %08x)\n",
+                    ("winMWExtWMRestackWindows - DeferWindowPos (%p, %p)\n",
                      pRLWin->hWnd, pRLWinPrev ? pRLWinPrev->hWnd : HWND_TOP);
 #endif
                 hWinPosInfo = DeferWindowPos(hWinPosInfo, pRLWin->hWnd,

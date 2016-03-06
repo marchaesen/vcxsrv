@@ -426,7 +426,6 @@ is_texture_instruction(const struct prog_instruction *inst)
    case OPCODE_TXD:
    case OPCODE_TXL:
    case OPCODE_TXP:
-   case OPCODE_TXP_NV:
       return GL_TRUE;
    default:
       return GL_FALSE;

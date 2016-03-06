@@ -186,7 +186,8 @@ struct save_state
    GLboolean RasterDiscard;
    GLboolean TransformFeedbackNeedsResume;
 
-   GLuint DrawBufferName, ReadBufferName;
+   struct gl_framebuffer *DrawBuffer;
+   struct gl_framebuffer *ReadBuffer;
 
    /** MESA_META_DRAW_BUFFERS */
    GLenum ColorDrawBuffers[MAX_DRAW_BUFFERS];
@@ -368,7 +369,7 @@ struct gen_mipmap_state
 {
    GLuint VAO;
    struct gl_buffer_object *buf_obj;
-   GLuint FBO;
+   struct gl_framebuffer *fb;
    struct gl_sampler_object *samp_obj;
 
    struct blit_shader_table shaders;
@@ -381,7 +382,7 @@ struct gen_mipmap_state
 struct decompress_fbo_state
 {
    struct gl_renderbuffer *rb;
-   GLuint FBO;
+   struct gl_framebuffer *fb;
    GLint Width, Height;
 };
 
@@ -535,7 +536,7 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
                            int xoffset, int yoffset, int zoffset,
                            int width, int height, int depth,
                            GLenum format, GLenum type, const void *pixels,
-                           bool allocate_storage, bool create_pbo,
+                           bool create_pbo,
                            const struct gl_pixelstore_attrib *packing);
 
 extern bool
@@ -661,7 +662,10 @@ _mesa_meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
                                         struct gen_mipmap_state *mipmap);
 
 void
-_mesa_meta_bind_fbo_image(GLenum target, GLenum attachment,
-                          struct gl_texture_image *texImage, GLuint layer);
+_mesa_meta_framebuffer_texture_image(struct gl_context *ctx,
+                                     struct gl_framebuffer *fb,
+                                     GLenum attachment,
+                                     struct gl_texture_image *texImage,
+                                     GLuint layer);
 
 #endif /* META_H */

@@ -97,6 +97,11 @@ private:
             this->offset, type->std140_base_alignment(row_major));
    }
 
+   virtual void set_buffer_offset(unsigned offset)
+   {
+      this->offset = offset;
+   }
+
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *,
                             const unsigned packing,

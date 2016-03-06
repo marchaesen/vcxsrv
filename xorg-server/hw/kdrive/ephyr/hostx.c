@@ -52,6 +52,7 @@
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/randr.h>
+#include <xcb/xkb.h>
 #ifdef GLAMOR
 #include <epoxy/gl.h>
 #include "glamor.h"
@@ -85,8 +86,6 @@ struct EphyrHostXVars {
 static EphyrHostXVars HostX;
 
 static int HostXWantDamageDebug = 0;
-
-extern EphyrKeySyms ephyrKeySyms;
 
 extern Bool EphyrWantResize;
 
@@ -1082,18 +1081,136 @@ hostx_paint_debug_rect(KdScreenInfo *screen,
     nanosleep(&tspec, NULL);
 }
 
-void
-hostx_load_keymap(void)
+Bool
+hostx_load_keymap(KeySymsPtr keySyms, CARD8 *modmap, XkbControlsPtr controls)
 {
     int min_keycode, max_keycode;
+    int map_width;
+    size_t i, j;
+    int keymap_len;
+    xcb_keysym_t *keymap;
+    xcb_keycode_t *modifier_map;
+    xcb_get_keyboard_mapping_cookie_t mapping_c;
+    xcb_get_keyboard_mapping_reply_t *mapping_r;
+    xcb_get_modifier_mapping_cookie_t modifier_c;
+    xcb_get_modifier_mapping_reply_t *modifier_r;
+    xcb_xkb_use_extension_cookie_t use_c;
+    xcb_xkb_use_extension_reply_t *use_r;
+    xcb_xkb_get_controls_cookie_t controls_c;
+    xcb_xkb_get_controls_reply_t *controls_r;
 
+    /* First of all, collect host X server's
+     * min_keycode and max_keycode, which are
+     * independent from XKB support. */
     min_keycode = xcb_get_setup(HostX.conn)->min_keycode;
     max_keycode = xcb_get_setup(HostX.conn)->max_keycode;
 
     EPHYR_DBG("min: %d, max: %d", min_keycode, max_keycode);
 
-    ephyrKeySyms.minKeyCode = min_keycode;
-    ephyrKeySyms.maxKeyCode = max_keycode;
+    keySyms->minKeyCode = min_keycode;
+    keySyms->maxKeyCode = max_keycode;
+
+    /* Check for XKB availability in host X server */
+    if (!hostx_has_extension(&xcb_xkb_id)) {
+        EPHYR_LOG_ERROR("XKB extension is not supported in host X server.");
+        return FALSE;
+    }
+
+    use_c = xcb_xkb_use_extension(HostX.conn,
+                                  XCB_XKB_MAJOR_VERSION,
+                                  XCB_XKB_MINOR_VERSION);
+    use_r = xcb_xkb_use_extension_reply(HostX.conn, use_c, NULL);
+
+    if (!use_r) {
+        EPHYR_LOG_ERROR("Couldn't use XKB extension.");
+        return FALSE;
+    } else if (!use_r->supported) {
+        EPHYR_LOG_ERROR("XKB extension is not supported in host X server.");
+        free(use_r);
+        return FALSE;
+    }
+
+    free(use_r);
+
+    /* Send all needed XCB requests at once,
+     * and process the replies as needed. */
+    mapping_c = xcb_get_keyboard_mapping(HostX.conn,
+                                         min_keycode,
+                                         max_keycode - min_keycode + 1);
+    modifier_c = xcb_get_modifier_mapping(HostX.conn);
+    controls_c = xcb_xkb_get_controls(HostX.conn,
+                                      XCB_XKB_ID_USE_CORE_KBD);
+
+    mapping_r = xcb_get_keyboard_mapping_reply(HostX.conn,
+                                               mapping_c,
+                                               NULL);
+
+    if (!mapping_r) {
+        EPHYR_LOG_ERROR("xcb_get_keyboard_mapping_reply() failed.");
+        return FALSE;
+    }
+
+    map_width = mapping_r->keysyms_per_keycode;
+    keymap = xcb_get_keyboard_mapping_keysyms(mapping_r);
+    keymap_len = xcb_get_keyboard_mapping_keysyms_length(mapping_r);
+
+    keySyms->mapWidth = map_width;
+    keySyms->map = calloc(keymap_len, sizeof(KeySym));
+
+    if (!keySyms->map) {
+        EPHYR_LOG_ERROR("Failed to allocate KeySym map.");
+        free(mapping_r);
+        return FALSE;
+    }
+
+    for (i = 0; i < keymap_len; i++) {
+        keySyms->map[i] = keymap[i];
+    }
+
+    free(mapping_r);
+
+    modifier_r = xcb_get_modifier_mapping_reply(HostX.conn,
+                                                modifier_c,
+                                                NULL);
+
+    if (!modifier_r) {
+        EPHYR_LOG_ERROR("xcb_get_modifier_mapping_reply() failed.");
+        return FALSE;
+    }
+
+    modifier_map = xcb_get_modifier_mapping_keycodes(modifier_r);
+    memset(modmap, 0, sizeof(CARD8) * MAP_LENGTH);
+
+    for (j = 0; j < 8; j++) {
+        for (i = 0; i < modifier_r->keycodes_per_modifier; i++) {
+            CARD8 keycode;
+
+            if ((keycode = modifier_map[j * modifier_r->keycodes_per_modifier + i])) {
+                modmap[keycode] |= 1 << j;
+            }
+        }
+    }
+
+    free(modifier_r);
+
+    controls_r = xcb_xkb_get_controls_reply(HostX.conn,
+                                            controls_c,
+                                            NULL);
+
+    if (!controls_r) {
+        EPHYR_LOG_ERROR("xcb_xkb_get_controls_reply() failed.");
+        return FALSE;
+    }
+
+    controls->enabled_ctrls = controls_r->enabledControls;
+
+    for (i = 0; i < XkbPerKeyBitArraySize; i++) {
+        controls->per_key_repeat[i] = controls_r->perKeyRepeat[i];
+    }
+
+    free(controls_r);
+
+    return TRUE;
 }
 
 xcb_connection_t *

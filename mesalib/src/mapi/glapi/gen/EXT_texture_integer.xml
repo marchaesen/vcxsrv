@@ -69,25 +69,25 @@
         <param name="a" type="GLuint"/>
     </function>
 
-    <function name="TexParameterIivEXT" alias="TexParameterIiv">
+    <function name="TexParameterIivEXT" alias="TexParameterIiv" es2="3.0">
         <param name="target" type="GLenum"/>
         <param name="pname"  type="GLenum"/>
         <param name="params" type="const GLint *"/>
     </function>
 
-    <function name="TexParameterIuivEXT" alias="TexParameterIuiv">
+    <function name="TexParameterIuivEXT" alias="TexParameterIuiv" es2="3.0">
         <param name="target" type="GLenum"/>
         <param name="pname"  type="GLenum"/>
         <param name="params" type="const GLuint *"/>
     </function>
 
-    <function name="GetTexParameterIivEXT" alias="GetTexParameterIiv">
+    <function name="GetTexParameterIivEXT" alias="GetTexParameterIiv" es2="3.0">
         <param name="target" type="GLenum"/>
         <param name="pname"  type="GLenum"/>
         <param name="params" type="GLint *"/>
     </function>
 
-    <function name="GetTexParameterIuivEXT" alias="GetTexParameterIuiv">
+    <function name="GetTexParameterIuivEXT" alias="GetTexParameterIuiv" es2="3.0">
         <param name="target" type="GLenum"/>
         <param name="pname"  type="GLenum"/>
         <param name="params" type="GLuint *"/>

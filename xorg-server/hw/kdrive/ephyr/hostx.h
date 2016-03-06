@@ -44,11 +44,6 @@
 typedef struct EphyrHostXVars EphyrHostXVars;
 
 typedef struct {
-    int minKeyCode;
-    int maxKeyCode;
-} EphyrKeySyms;
-
-typedef struct {
     VisualID visualid;
     int screen;
     int depth;
@@ -153,8 +148,8 @@ void
 hostx_paint_rect(KdScreenInfo *screen,
                  int sx, int sy, int dx, int dy, int width, int height);
 
-void
- hostx_load_keymap(void);
+Bool
+hostx_load_keymap(KeySymsPtr keySyms, CARD8 *modmap, XkbControlsPtr controls);
 
 xcb_connection_t *
 hostx_get_xcbconn(void);

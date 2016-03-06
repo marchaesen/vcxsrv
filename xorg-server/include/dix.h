@@ -255,6 +255,14 @@ extern _X_EXPORT Bool ClientSleep(ClientPtr client,
 extern _X_EXPORT Bool ClientSignal(ClientPtr /*client */ );
 #endif                          /* ___CLIENTSIGNAL_DEFINED___ */
 
+#ifndef ___CLIENTSIGNALALL_DEFINED___
+#define ___CLIENTSIGNALALL_DEFINED___
+#define CLIENT_SIGNAL_ANY ((void *)-1)
+extern _X_EXPORT int ClientSignalAll(ClientPtr /*client*/,
+                                     ClientSleepProcPtr /*function*/,
+                                     void * /*closure*/);
+#endif                          /* ___CLIENTSIGNALALL_DEFINED___ */
+
 extern _X_EXPORT void ClientWakeup(ClientPtr /*client */ );
 
 extern _X_EXPORT Bool ClientIsAsleep(ClientPtr /*client */ );

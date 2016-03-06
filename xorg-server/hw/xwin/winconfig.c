@@ -224,7 +224,8 @@ winConfigKeyboard(DeviceIntPtr pDevice)
 {
     char layoutName[KL_NAMELENGTH];
     unsigned char layoutFriendlyName[256];
-    static unsigned int layoutNum = 0;
+    unsigned int layoutNum = 0;
+    unsigned int deviceIdentifier = 0;
     int keyboardType;
 
 #ifdef XWIN_XF86CONFIG
@@ -272,15 +273,10 @@ winConfigKeyboard(DeviceIntPtr pDevice)
     if (keyboardType > 0 && GetKeyboardLayoutName(layoutName)) {
         WinKBLayoutPtr pLayout;
         Bool bfound = FALSE;
+        int pass;
 
-        if (!layoutNum)
-            layoutNum = strtoul(layoutName, (char **) NULL, 16);
+        layoutNum = strtoul(layoutName, (char **) NULL, 16);
         if ((layoutNum & 0xffff) == 0x411) {
-            /* The japanese layouts know a lot of different IMEs which all have
-               different layout numbers set. Map them to a single entry.
-               Same might apply for chinese, korean and other symbol languages
-               too */
-            layoutNum = (layoutNum & 0xffff);
             if (keyboardType == 7) {
                 /* Japanese layouts have problems with key event messages
                    such as the lack of WM_KEYUP for Caps Lock key.
@@ -318,31 +314,47 @@ winConfigKeyboard(DeviceIntPtr pDevice)
                "Windows keyboard layout: \"%s\" (%08x) \"%s\", type %d\n",
                layoutName, layoutNum, layoutFriendlyName, keyboardType);
 
-        for (pLayout = winKBLayouts; pLayout->winlayout != -1; pLayout++) {
-            if (pLayout->winlayout != layoutNum)
-                continue;
-            if (pLayout->winkbtype > 0 && pLayout->winkbtype != keyboardType)
-                continue;
+        deviceIdentifier = layoutNum >> 16;
+        for (pass = 0; pass < 2; pass++) {
+            /* If we didn't find an exact match for the input locale identifer,
+               try to find an match on the language identifier part only  */
+            if (pass == 1)
+                layoutNum = (layoutNum & 0xffff);
 
-            bfound = TRUE;
-            winMsg(X_PROBED,
-                   "Found matching XKB configuration \"%s\"\n",
-                   pLayout->layoutname);
+            for (pLayout = winKBLayouts; pLayout->winlayout != -1; pLayout++) {
+                if (pLayout->winlayout != layoutNum)
+                    continue;
+                if (pLayout->winkbtype > 0 && pLayout->winkbtype != keyboardType)
+                    continue;
 
-            winMsg(X_PROBED,
-                   "Model = \"%s\" Layout = \"%s\""
-                   " Variant = \"%s\" Options = \"%s\"\n",
-                   pLayout->xkbmodel ? pLayout->xkbmodel : "none",
-                   pLayout->xkblayout ? pLayout->xkblayout : "none",
-                   pLayout->xkbvariant ? pLayout->xkbvariant : "none",
-                   pLayout->xkboptions ? pLayout->xkboptions : "none");
+                bfound = TRUE;
+                winMsg(X_PROBED,
+                       "Found matching XKB configuration \"%s\"\n",
+                       pLayout->layoutname);
 
-            g_winInfo.xkb.model = pLayout->xkbmodel;
-            g_winInfo.xkb.layout = pLayout->xkblayout;
-            g_winInfo.xkb.variant = pLayout->xkbvariant;
-            g_winInfo.xkb.options = pLayout->xkboptions;
+                winMsg(X_PROBED,
+                       "Model = \"%s\" Layout = \"%s\""
+                       " Variant = \"%s\" Options = \"%s\"\n",
+                       pLayout->xkbmodel ? pLayout->xkbmodel : "none",
+                       pLayout->xkblayout ? pLayout->xkblayout : "none",
+                       pLayout->xkbvariant ? pLayout->xkbvariant : "none",
+                       pLayout->xkboptions ? pLayout->xkboptions : "none");
 
-            break;
+                g_winInfo.xkb.model = pLayout->xkbmodel;
+                g_winInfo.xkb.layout = pLayout->xkblayout;
+                g_winInfo.xkb.variant = pLayout->xkbvariant;
+                g_winInfo.xkb.options = pLayout->xkboptions;
+
+                if (deviceIdentifier == 0xa000) {
+                    winMsg(X_PROBED, "Windows keyboard layout device identifier indicates Macintosh, setting Model = \"macintosh\"");
+                    g_winInfo.xkb.model = "macintosh";
+                }
+
+                break;
+            }
+
+            if (bfound)
+                break;
         }
 
         if (!bfound) {
