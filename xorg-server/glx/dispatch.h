@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1322
+#define _gloffset_COUNT 1323
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 914
+#define driDispatchRemapTable_size 915
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1284,112 +1284,113 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define DepthBoundsEXT_remap_index 805
 #define BindFramebufferEXT_remap_index 806
 #define BindRenderbufferEXT_remap_index 807
-#define BufferParameteriAPPLE_remap_index 808
-#define FlushMappedBufferRangeAPPLE_remap_index 809
-#define VertexAttribI1iEXT_remap_index 810
-#define VertexAttribI1uiEXT_remap_index 811
-#define VertexAttribI2iEXT_remap_index 812
-#define VertexAttribI2ivEXT_remap_index 813
-#define VertexAttribI2uiEXT_remap_index 814
-#define VertexAttribI2uivEXT_remap_index 815
-#define VertexAttribI3iEXT_remap_index 816
-#define VertexAttribI3ivEXT_remap_index 817
-#define VertexAttribI3uiEXT_remap_index 818
-#define VertexAttribI3uivEXT_remap_index 819
-#define VertexAttribI4iEXT_remap_index 820
-#define VertexAttribI4ivEXT_remap_index 821
-#define VertexAttribI4uiEXT_remap_index 822
-#define VertexAttribI4uivEXT_remap_index 823
-#define ClearColorIiEXT_remap_index 824
-#define ClearColorIuiEXT_remap_index 825
-#define BindBufferOffsetEXT_remap_index 826
-#define BeginPerfMonitorAMD_remap_index 827
-#define DeletePerfMonitorsAMD_remap_index 828
-#define EndPerfMonitorAMD_remap_index 829
-#define GenPerfMonitorsAMD_remap_index 830
-#define GetPerfMonitorCounterDataAMD_remap_index 831
-#define GetPerfMonitorCounterInfoAMD_remap_index 832
-#define GetPerfMonitorCounterStringAMD_remap_index 833
-#define GetPerfMonitorCountersAMD_remap_index 834
-#define GetPerfMonitorGroupStringAMD_remap_index 835
-#define GetPerfMonitorGroupsAMD_remap_index 836
-#define SelectPerfMonitorCountersAMD_remap_index 837
-#define GetObjectParameterivAPPLE_remap_index 838
-#define ObjectPurgeableAPPLE_remap_index 839
-#define ObjectUnpurgeableAPPLE_remap_index 840
-#define ActiveProgramEXT_remap_index 841
-#define CreateShaderProgramEXT_remap_index 842
-#define UseShaderProgramEXT_remap_index 843
-#define TextureBarrierNV_remap_index 844
-#define VDPAUFiniNV_remap_index 845
-#define VDPAUGetSurfaceivNV_remap_index 846
-#define VDPAUInitNV_remap_index 847
-#define VDPAUIsSurfaceNV_remap_index 848
-#define VDPAUMapSurfacesNV_remap_index 849
-#define VDPAURegisterOutputSurfaceNV_remap_index 850
-#define VDPAURegisterVideoSurfaceNV_remap_index 851
-#define VDPAUSurfaceAccessNV_remap_index 852
-#define VDPAUUnmapSurfacesNV_remap_index 853
-#define VDPAUUnregisterSurfaceNV_remap_index 854
-#define BeginPerfQueryINTEL_remap_index 855
-#define CreatePerfQueryINTEL_remap_index 856
-#define DeletePerfQueryINTEL_remap_index 857
-#define EndPerfQueryINTEL_remap_index 858
-#define GetFirstPerfQueryIdINTEL_remap_index 859
-#define GetNextPerfQueryIdINTEL_remap_index 860
-#define GetPerfCounterInfoINTEL_remap_index 861
-#define GetPerfQueryDataINTEL_remap_index 862
-#define GetPerfQueryIdByNameINTEL_remap_index 863
-#define GetPerfQueryInfoINTEL_remap_index 864
-#define PolygonOffsetClampEXT_remap_index 865
-#define StencilFuncSeparateATI_remap_index 866
-#define ProgramEnvParameters4fvEXT_remap_index 867
-#define ProgramLocalParameters4fvEXT_remap_index 868
-#define EGLImageTargetRenderbufferStorageOES_remap_index 869
-#define EGLImageTargetTexture2DOES_remap_index 870
-#define AlphaFuncx_remap_index 871
-#define ClearColorx_remap_index 872
-#define ClearDepthx_remap_index 873
-#define Color4x_remap_index 874
-#define DepthRangex_remap_index 875
-#define Fogx_remap_index 876
-#define Fogxv_remap_index 877
-#define Frustumf_remap_index 878
-#define Frustumx_remap_index 879
-#define LightModelx_remap_index 880
-#define LightModelxv_remap_index 881
-#define Lightx_remap_index 882
-#define Lightxv_remap_index 883
-#define LineWidthx_remap_index 884
-#define LoadMatrixx_remap_index 885
-#define Materialx_remap_index 886
-#define Materialxv_remap_index 887
-#define MultMatrixx_remap_index 888
-#define MultiTexCoord4x_remap_index 889
-#define Normal3x_remap_index 890
-#define Orthof_remap_index 891
-#define Orthox_remap_index 892
-#define PointSizex_remap_index 893
-#define PolygonOffsetx_remap_index 894
-#define Rotatex_remap_index 895
-#define SampleCoveragex_remap_index 896
-#define Scalex_remap_index 897
-#define TexEnvx_remap_index 898
-#define TexEnvxv_remap_index 899
-#define TexParameterx_remap_index 900
-#define Translatex_remap_index 901
-#define ClipPlanef_remap_index 902
-#define ClipPlanex_remap_index 903
-#define GetClipPlanef_remap_index 904
-#define GetClipPlanex_remap_index 905
-#define GetFixedv_remap_index 906
-#define GetLightxv_remap_index 907
-#define GetMaterialxv_remap_index 908
-#define GetTexEnvxv_remap_index 909
-#define GetTexParameterxv_remap_index 910
-#define PointParameterx_remap_index 911
-#define PointParameterxv_remap_index 912
-#define TexParameterxv_remap_index 913
+#define StringMarkerGREMEDY_remap_index 808
+#define BufferParameteriAPPLE_remap_index 809
+#define FlushMappedBufferRangeAPPLE_remap_index 810
+#define VertexAttribI1iEXT_remap_index 811
+#define VertexAttribI1uiEXT_remap_index 812
+#define VertexAttribI2iEXT_remap_index 813
+#define VertexAttribI2ivEXT_remap_index 814
+#define VertexAttribI2uiEXT_remap_index 815
+#define VertexAttribI2uivEXT_remap_index 816
+#define VertexAttribI3iEXT_remap_index 817
+#define VertexAttribI3ivEXT_remap_index 818
+#define VertexAttribI3uiEXT_remap_index 819
+#define VertexAttribI3uivEXT_remap_index 820
+#define VertexAttribI4iEXT_remap_index 821
+#define VertexAttribI4ivEXT_remap_index 822
+#define VertexAttribI4uiEXT_remap_index 823
+#define VertexAttribI4uivEXT_remap_index 824
+#define ClearColorIiEXT_remap_index 825
+#define ClearColorIuiEXT_remap_index 826
+#define BindBufferOffsetEXT_remap_index 827
+#define BeginPerfMonitorAMD_remap_index 828
+#define DeletePerfMonitorsAMD_remap_index 829
+#define EndPerfMonitorAMD_remap_index 830
+#define GenPerfMonitorsAMD_remap_index 831
+#define GetPerfMonitorCounterDataAMD_remap_index 832
+#define GetPerfMonitorCounterInfoAMD_remap_index 833
+#define GetPerfMonitorCounterStringAMD_remap_index 834
+#define GetPerfMonitorCountersAMD_remap_index 835
+#define GetPerfMonitorGroupStringAMD_remap_index 836
+#define GetPerfMonitorGroupsAMD_remap_index 837
+#define SelectPerfMonitorCountersAMD_remap_index 838
+#define GetObjectParameterivAPPLE_remap_index 839
+#define ObjectPurgeableAPPLE_remap_index 840
+#define ObjectUnpurgeableAPPLE_remap_index 841
+#define ActiveProgramEXT_remap_index 842
+#define CreateShaderProgramEXT_remap_index 843
+#define UseShaderProgramEXT_remap_index 844
+#define TextureBarrierNV_remap_index 845
+#define VDPAUFiniNV_remap_index 846
+#define VDPAUGetSurfaceivNV_remap_index 847
+#define VDPAUInitNV_remap_index 848
+#define VDPAUIsSurfaceNV_remap_index 849
+#define VDPAUMapSurfacesNV_remap_index 850
+#define VDPAURegisterOutputSurfaceNV_remap_index 851
+#define VDPAURegisterVideoSurfaceNV_remap_index 852
+#define VDPAUSurfaceAccessNV_remap_index 853
+#define VDPAUUnmapSurfacesNV_remap_index 854
+#define VDPAUUnregisterSurfaceNV_remap_index 855
+#define BeginPerfQueryINTEL_remap_index 856
+#define CreatePerfQueryINTEL_remap_index 857
+#define DeletePerfQueryINTEL_remap_index 858
+#define EndPerfQueryINTEL_remap_index 859
+#define GetFirstPerfQueryIdINTEL_remap_index 860
+#define GetNextPerfQueryIdINTEL_remap_index 861
+#define GetPerfCounterInfoINTEL_remap_index 862
+#define GetPerfQueryDataINTEL_remap_index 863
+#define GetPerfQueryIdByNameINTEL_remap_index 864
+#define GetPerfQueryInfoINTEL_remap_index 865
+#define PolygonOffsetClampEXT_remap_index 866
+#define StencilFuncSeparateATI_remap_index 867
+#define ProgramEnvParameters4fvEXT_remap_index 868
+#define ProgramLocalParameters4fvEXT_remap_index 869
+#define EGLImageTargetRenderbufferStorageOES_remap_index 870
+#define EGLImageTargetTexture2DOES_remap_index 871
+#define AlphaFuncx_remap_index 872
+#define ClearColorx_remap_index 873
+#define ClearDepthx_remap_index 874
+#define Color4x_remap_index 875
+#define DepthRangex_remap_index 876
+#define Fogx_remap_index 877
+#define Fogxv_remap_index 878
+#define Frustumf_remap_index 879
+#define Frustumx_remap_index 880
+#define LightModelx_remap_index 881
+#define LightModelxv_remap_index 882
+#define Lightx_remap_index 883
+#define Lightxv_remap_index 884
+#define LineWidthx_remap_index 885
+#define LoadMatrixx_remap_index 886
+#define Materialx_remap_index 887
+#define Materialxv_remap_index 888
+#define MultMatrixx_remap_index 889
+#define MultiTexCoord4x_remap_index 890
+#define Normal3x_remap_index 891
+#define Orthof_remap_index 892
+#define Orthox_remap_index 893
+#define PointSizex_remap_index 894
+#define PolygonOffsetx_remap_index 895
+#define Rotatex_remap_index 896
+#define SampleCoveragex_remap_index 897
+#define Scalex_remap_index 898
+#define TexEnvx_remap_index 899
+#define TexEnvxv_remap_index 900
+#define TexParameterx_remap_index 901
+#define Translatex_remap_index 902
+#define ClipPlanef_remap_index 903
+#define ClipPlanex_remap_index 904
+#define GetClipPlanef_remap_index 905
+#define GetClipPlanex_remap_index 906
+#define GetFixedv_remap_index 907
+#define GetLightxv_remap_index 908
+#define GetMaterialxv_remap_index 909
+#define GetTexEnvxv_remap_index 910
+#define GetTexParameterxv_remap_index 911
+#define PointParameterx_remap_index 912
+#define PointParameterxv_remap_index 913
+#define TexParameterxv_remap_index 914
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2199,6 +2200,7 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_DepthBoundsEXT driDispatchRemapTable[DepthBoundsEXT_remap_index]
 #define _gloffset_BindFramebufferEXT driDispatchRemapTable[BindFramebufferEXT_remap_index]
 #define _gloffset_BindRenderbufferEXT driDispatchRemapTable[BindRenderbufferEXT_remap_index]
+#define _gloffset_StringMarkerGREMEDY driDispatchRemapTable[StringMarkerGREMEDY_remap_index]
 #define _gloffset_BufferParameteriAPPLE driDispatchRemapTable[BufferParameteriAPPLE_remap_index]
 #define _gloffset_FlushMappedBufferRangeAPPLE driDispatchRemapTable[FlushMappedBufferRangeAPPLE_remap_index]
 #define _gloffset_VertexAttribI1iEXT driDispatchRemapTable[VertexAttribI1iEXT_remap_index]
@@ -15680,6 +15682,17 @@ static INLINE _glptr_BindRenderbufferEXT GET_BindRenderbufferEXT(struct _glapi_t
 
 static INLINE void SET_BindRenderbufferEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLuint)) {
    SET_by_offset(disp, _gloffset_BindRenderbufferEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_StringMarkerGREMEDY)(GLsizei, const GLvoid *);
+#define CALL_StringMarkerGREMEDY(disp, parameters) \
+    (* GET_StringMarkerGREMEDY(disp)) parameters
+static INLINE _glptr_StringMarkerGREMEDY GET_StringMarkerGREMEDY(struct _glapi_table *disp) {
+   return (_glptr_StringMarkerGREMEDY) (GET_by_offset(disp, _gloffset_StringMarkerGREMEDY));
+}
+
+static INLINE void SET_StringMarkerGREMEDY(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_StringMarkerGREMEDY, fn);
 }
 
 typedef void (GLAPIENTRYP _glptr_BufferParameteriAPPLE)(GLenum, GLenum, GLint);

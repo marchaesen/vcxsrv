@@ -1250,6 +1250,7 @@
 #define glDepthBoundsEXT(a1, a2) CALL_DepthBoundsEXT(GET_DISPATCH(), (a1, a2))
 #define glBindFramebufferEXT(a1, a2) CALL_BindFramebufferEXT(GET_DISPATCH(), (a1, a2))
 #define glBindRenderbufferEXT(a1, a2) CALL_BindRenderbufferEXT(GET_DISPATCH(), (a1, a2))
+#define glStringMarkerGREMEDY(a1, a2) CALL_StringMarkerGREMEDY(GET_DISPATCH(), (a1, a2))
 #define glBufferParameteriAPPLE(a1, a2, a3) CALL_BufferParameteriAPPLE(GET_DISPATCH(), (a1, a2, a3))
 #define glFlushMappedBufferRangeAPPLE(a1, a2, a3) CALL_FlushMappedBufferRangeAPPLE(GET_DISPATCH(), (a1, a2, a3))
 #define glVertexAttribI1iEXT(a1, a2) CALL_VertexAttribI1iEXT(GET_DISPATCH(), (a1, a2))
