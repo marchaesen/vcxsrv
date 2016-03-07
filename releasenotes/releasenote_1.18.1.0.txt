@@ -2,7 +2,8 @@ Changes in 1.18.1.0
 -------------------
 - Update the following packages:
      openssl-1.0.2g
-  git updates until 6/3/2016 of the following packages
+     freetype-2.6.3
+  git updates until 7/3/2016 of the following packages
      mesa
      xserver
      libXExt
