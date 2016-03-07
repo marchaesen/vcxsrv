@@ -1136,6 +1136,11 @@ _mesa_DeleteTransformFeedbacks(GLsizei n, const GLuint *names)
             }
             _mesa_HashRemove(ctx->TransformFeedback.Objects, names[i]);
             /* unref, but object may not be deleted until later */
+            if (obj == ctx->TransformFeedback.CurrentObject) {
+               reference_transform_feedback_object(
+                     &ctx->TransformFeedback.CurrentObject,
+                     ctx->TransformFeedback.DefaultObject);
+            }
             reference_transform_feedback_object(&obj, NULL);
          }
       }
