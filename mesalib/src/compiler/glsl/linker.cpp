@@ -2625,6 +2625,13 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
 	 continue;
       }
 
+      if (num_attr >= ARRAY_SIZE(to_assign)) {
+         linker_error(prog, "too many %s (max %u)",
+                      target_index == MESA_SHADER_VERTEX ?
+                      "vertex shader inputs" : "fragment shader outputs",
+                      (unsigned)ARRAY_SIZE(to_assign));
+         return false;
+      }
       to_assign[num_attr].slots = slots;
       to_assign[num_attr].var = var;
       num_attr++;
