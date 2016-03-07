@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libXext.la libXextdpmsstubs.la
+noinst_LTLIBRARIES = libXext.la libXextdpmsstubs.la libXvidmode.la
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
@@ -6,7 +6,7 @@ if XORG
 sdk_HEADERS = xvdix.h xvmcext.h geext.h geint.h shmint.h syncsdk.h
 endif
 
-# Sources always included in libXextbuiltin.la & libXext.la
+# Sources always included in libXextbuiltin.la, libXext.la
 BUILTIN_SRCS =			\
 	bigreq.c		\
         geext.c			\
@@ -97,6 +97,9 @@ libXext_la_SOURCES =		$(BUILTIN_SRCS)
 libXext_la_LIBADD =		$(BUILTIN_LIBS)
 
 libXextdpmsstubs_la_SOURCES = dpmsstubs.c
+
+# XVidMode extension
+libXvidmode_la_SOURCES = vidmode.c
 
 EXTRA_DIST = \
 	$(MITSHM_SRCS) \

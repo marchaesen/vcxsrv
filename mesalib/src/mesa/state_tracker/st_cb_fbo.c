@@ -44,6 +44,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
+#include "st_atom.h"
 #include "st_context.h"
 #include "st_cb_fbo.h"
 #include "st_cb_flush.h"
@@ -711,9 +712,17 @@ st_ReadBuffer(struct gl_context *ctx, GLenum buffer)
 
    (void) buffer;
 
-   /* add the renderbuffer on demand */
-   if (fb->_ColorReadBufferIndex >= 0)
+   /* Check if we need to allocate a front color buffer.
+    * Front buffers are often allocated on demand (other color buffers are
+    * always allocated in advance).
+    */
+   if ((fb->_ColorReadBufferIndex == BUFFER_FRONT_LEFT ||
+        fb->_ColorReadBufferIndex == BUFFER_FRONT_RIGHT) &&
+       fb->Attachment[fb->_ColorReadBufferIndex].Type == GL_NONE) {
+      /* add the buffer */
       st_manager_add_color_renderbuffer(st, fb, fb->_ColorReadBufferIndex);
+      st_validate_state(st, ST_PIPELINE_RENDER);
+   }
 }
 
 

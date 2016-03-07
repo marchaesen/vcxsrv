@@ -33,6 +33,7 @@ MESA_VERSION := $(shell cat $(MESA_TOP)/VERSION)
 # define ANDROID_VERSION (e.g., 4.0.x => 0x0400)
 LOCAL_CFLAGS += \
 	-Wno-unused-parameter \
+	-Wno-date-time \
 	-DPACKAGE_VERSION=\"$(MESA_VERSION)\" \
 	-DPACKAGE_BUGREPORT=\"https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa\" \
 	-DANDROID_VERSION=0x0$(MESA_ANDROID_MAJOR_VERSION)0$(MESA_ANDROID_MINOR_VERSION)
@@ -88,3 +89,6 @@ LOCAL_CPPFLAGS += \
 ifeq ($(strip $(LOCAL_MODULE_TAGS)),)
 LOCAL_MODULE_TAGS := optional
 endif
+
+# Quiet down the build system and remove any .h files from the sources
+LOCAL_SRC_FILES := $(patsubst %.h, , $(LOCAL_SRC_FILES))

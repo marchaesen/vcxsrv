@@ -82,7 +82,6 @@ src_regs_are_same(const struct prog_src_register *a,
    return (a->File == b->File)
       && (a->Index == b->Index)
       && (a->Swizzle == b->Swizzle)
-      && (a->Abs == b->Abs)
       && (a->Negate == b->Negate)
       && (a->RelAddr == 0)
       && (b->RelAddr == 0);
@@ -98,13 +97,6 @@ get_value(struct gl_program *prog, struct prog_src_register *r, float *data)
    data[1] = value[GET_SWZ(r->Swizzle, 1)].f;
    data[2] = value[GET_SWZ(r->Swizzle, 2)].f;
    data[3] = value[GET_SWZ(r->Swizzle, 3)].f;
-
-   if (r->Abs) {
-      data[0] = fabsf(data[0]);
-      data[1] = fabsf(data[1]);
-      data[2] = fabsf(data[2]);
-      data[3] = fabsf(data[3]);
-   }
 
    if (r->Negate & 0x01) {
       data[0] = -data[0];

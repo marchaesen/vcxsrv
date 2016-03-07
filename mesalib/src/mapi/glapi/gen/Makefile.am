@@ -148,6 +148,7 @@ API_XML = \
 	ARB_indirect_parameters.xml \
 	ARB_instanced_arrays.xml \
 	ARB_internalformat_query.xml \
+	ARB_internalformat_query2.xml \
 	ARB_invalidate_subdata.xml \
 	ARB_map_buffer_range.xml \
 	ARB_multi_bind.xml \

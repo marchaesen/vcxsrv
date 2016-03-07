@@ -42,113 +42,62 @@
 #include "os.h"
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "extinit.h"
 
 #ifdef XF86VIDMODE
-#include "vidmodeproc.h"
+#include "vidmodestr.h"
+#include "xf86Privstr.h"
+#include "xf86Extensions.h"
 #include "xf86cmap.h"
 
-static DevPrivateKeyRec VidModeKeyRec;
-static DevPrivateKey VidModeKey;
-static int VidModeCount = 0;
-static Bool VidModeClose(ScreenPtr pScreen);
-
-#define VMPTR(p) ((VidModePtr)dixLookupPrivate(&(p)->devPrivates, VidModeKey))
-
-#endif
-
-Bool
-VidModeExtensionInit(ScreenPtr pScreen)
+static vidMonitorValue
+xf86VidModeGetMonitorValue(ScreenPtr pScreen, int valtyp, int indx)
 {
-#ifdef XF86VIDMODE
-    VidModePtr pVidMode;
+    vidMonitorValue ret = { NULL, };
+    MonPtr monitor;
+    ScrnInfoPtr pScrn;
 
-    if (!xf86GetVidModeEnabled()) {
-        DebugF("!xf86GetVidModeEnabled()\n");
-        return FALSE;
+    pScrn = xf86ScreenToScrn(pScreen);
+    monitor = pScrn->monitor;
+
+    switch (valtyp) {
+    case VIDMODE_MON_VENDOR:
+        ret.ptr = monitor->vendor;
+        break;
+    case VIDMODE_MON_MODEL:
+        ret.ptr = monitor->model;
+        break;
+    case VIDMODE_MON_NHSYNC:
+        ret.i = monitor->nHsync;
+        break;
+    case VIDMODE_MON_NVREFRESH:
+        ret.i = monitor->nVrefresh;
+        break;
+    case VIDMODE_MON_HSYNC_LO:
+        ret.f = (100.0 * monitor->hsync[indx].lo);
+        break;
+    case VIDMODE_MON_HSYNC_HI:
+        ret.f = (100.0 * monitor->hsync[indx].hi);
+        break;
+    case VIDMODE_MON_VREFRESH_LO:
+        ret.f = (100.0 * monitor->vrefresh[indx].lo);
+        break;
+    case VIDMODE_MON_VREFRESH_HI:
+        ret.f = (100.0 * monitor->vrefresh[indx].hi);
+        break;
     }
-
-    VidModeKey = &VidModeKeyRec;
-
-    if (!dixRegisterPrivateKey(&VidModeKeyRec, PRIVATE_SCREEN, 0))
-        return FALSE;
-
-    pVidMode = calloc(sizeof(VidModeRec), 1);
-    if (!pVidMode)
-        return FALSE;
-
-    dixSetPrivate(&pScreen->devPrivates, VidModeKey, pVidMode);
-
-    pVidMode->Flags = 0;
-    pVidMode->Next = NULL;
-    pVidMode->CloseScreen = pScreen->CloseScreen;
-    pScreen->CloseScreen = VidModeClose;
-    VidModeCount++;
-    return TRUE;
-#else
-    DebugF("no vidmode extension\n");
-    return FALSE;
-#endif
-}
-
-#ifdef XF86VIDMODE
-
-static Bool
-VidModeClose(ScreenPtr pScreen)
-{
-    VidModePtr pVidMode = VMPTR(pScreen);
-
-    /* This shouldn't happen */
-    if (!pVidMode)
-        return FALSE;
-
-    pScreen->CloseScreen = pVidMode->CloseScreen;
-
-    if (--VidModeCount == 0) {
-        free(dixLookupPrivate(&pScreen->devPrivates, VidModeKey));
-        dixSetPrivate(&pScreen->devPrivates, VidModeKey, NULL);
-        VidModeKey = NULL;
-    }
-    return pScreen->CloseScreen(pScreen);
+    return ret;
 }
 
 static Bool
-VidModeAvailable(int scrnIndex)
-{
-    ScrnInfoPtr pScrn;
-    VidModePtr pVidMode;
-
-    if (VidModeKey == NULL) {
-        DebugF("VidModeKey == NULL\n");
-        return FALSE;
-    }
-
-    pScrn = xf86Screens[scrnIndex];
-    if (pScrn == NULL) {
-        DebugF("pScrn == NULL\n");
-        return FALSE;
-    }
-
-    pVidMode = VMPTR(pScrn->pScreen);
-    if (pVidMode)
-        return TRUE;
-    else {
-        DebugF("pVidMode == NULL\n");
-        return FALSE;
-    }
-}
-
-Bool
-VidModeGetCurrentModeline(int scrnIndex, void **mode, int *dotClock)
+xf86VidModeGetCurrentModeline(ScreenPtr pScreen, DisplayModePtr *mode, int *dotClock)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
 
     if (pScrn->currentMode) {
-        *mode = (void *) (pScrn->currentMode);
+        *mode = pScrn->currentMode;
         *dotClock = pScrn->currentMode->Clock;
 
         return TRUE;
@@ -156,30 +105,24 @@ VidModeGetCurrentModeline(int scrnIndex, void **mode, int *dotClock)
     return FALSE;
 }
 
-int
-VidModeGetDotClock(int scrnIndex, int Clock)
+static int
+xf86VidModeGetDotClock(ScreenPtr pScreen, int Clock)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return 0;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     if ((pScrn->progClock) || (Clock >= MAXCLOCKS))
         return Clock;
     else
         return pScrn->clock[Clock];
 }
 
-int
-VidModeGetNumOfClocks(int scrnIndex, Bool *progClock)
+static int
+xf86VidModeGetNumOfClocks(ScreenPtr pScreen, Bool *progClock)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return 0;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     if (pScrn->progClock) {
         *progClock = TRUE;
         return 0;
@@ -190,16 +133,13 @@ VidModeGetNumOfClocks(int scrnIndex, Bool *progClock)
     }
 }
 
-Bool
-VidModeGetClocks(int scrnIndex, int *Clocks)
+static Bool
+xf86VidModeGetClocks(ScreenPtr pScreen, int *Clocks)
 {
     ScrnInfoPtr pScrn;
     int i;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
 
     if (pScrn->progClock)
         return FALSE;
@@ -210,50 +150,19 @@ VidModeGetClocks(int scrnIndex, int *Clocks)
     return TRUE;
 }
 
-Bool
-VidModeGetFirstModeline(int scrnIndex, void **mode, int *dotClock)
+static Bool
+xf86VidModeGetNextModeline(ScreenPtr pScreen, DisplayModePtr *mode, int *dotClock)
 {
-    ScrnInfoPtr pScrn;
-    VidModePtr pVidMode;
-
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-    if (pScrn->modes == NULL)
-        return FALSE;
-
-    pVidMode = VMPTR(pScrn->pScreen);
-    pVidMode->First = pScrn->modes;
-    pVidMode->Next = pVidMode->First->next;
-
-    if (pVidMode->First->status == MODE_OK) {
-        *mode = (void *) (pVidMode->First);
-        *dotClock = VidModeGetDotClock(scrnIndex, pVidMode->First->Clock);
-        return TRUE;
-    }
-
-    return VidModeGetNextModeline(scrnIndex, mode, dotClock);
-}
-
-Bool
-VidModeGetNextModeline(int scrnIndex, void **mode, int *dotClock)
-{
-    ScrnInfoPtr pScrn;
     VidModePtr pVidMode;
     DisplayModePtr p;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-    pVidMode = VMPTR(pScrn->pScreen);
+    pVidMode = VidModeGetPtr(pScreen);
 
     for (p = pVidMode->Next; p != NULL && p != pVidMode->First; p = p->next) {
         if (p->status == MODE_OK) {
             pVidMode->Next = p->next;
-            *mode = (void *) p;
-            *dotClock = VidModeGetDotClock(scrnIndex, p->Clock);
+            *mode = p;
+            *dotClock = xf86VidModeGetDotClock(pScreen, p->Clock);
             return TRUE;
         }
     }
@@ -261,41 +170,55 @@ VidModeGetNextModeline(int scrnIndex, void **mode, int *dotClock)
     return FALSE;
 }
 
-Bool
-VidModeDeleteModeline(int scrnIndex, void *mode)
+static Bool
+xf86VidModeGetFirstModeline(ScreenPtr pScreen, DisplayModePtr *mode, int *dotClock)
+{
+    ScrnInfoPtr pScrn;
+    VidModePtr pVidMode;
+
+    pScrn = xf86ScreenToScrn(pScreen);
+    if (pScrn->modes == NULL)
+        return FALSE;
+
+    pVidMode = VidModeGetPtr(pScreen);
+    pVidMode->First = pScrn->modes;
+    pVidMode->Next = pVidMode->First->next;
+
+    if (pVidMode->First->status == MODE_OK) {
+        *mode = pVidMode->First;
+        *dotClock = xf86VidModeGetDotClock(pScreen, pVidMode->First->Clock);
+        return TRUE;
+    }
+
+    return xf86VidModeGetNextModeline(pScreen, mode, dotClock);
+}
+
+static Bool
+xf86VidModeDeleteModeline(ScreenPtr pScreen, DisplayModePtr mode)
 {
     ScrnInfoPtr pScrn;
 
-    if ((mode == NULL) || (!VidModeAvailable(scrnIndex)))
+    if (mode == NULL)
         return FALSE;
 
-    pScrn = xf86Screens[scrnIndex];
-    xf86DeleteMode(&(pScrn->modes), (DisplayModePtr) mode);
+    pScrn = xf86ScreenToScrn(pScreen);
+    xf86DeleteMode(&(pScrn->modes), mode);
     return TRUE;
 }
 
-Bool
-VidModeZoomViewport(int scrnIndex, int zoom)
+static Bool
+xf86VidModeZoomViewport(ScreenPtr pScreen, int zoom)
 {
-    ScrnInfoPtr pScrn;
-
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-    xf86ZoomViewport(pScrn->pScreen, zoom);
+    xf86ZoomViewport(pScreen, zoom);
     return TRUE;
 }
 
-Bool
-VidModeSetViewPort(int scrnIndex, int x, int y)
+static Bool
+xf86VidModeSetViewPort(ScreenPtr pScreen, int x, int y)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     pScrn->frameX0 = min(max(x, 0),
                          pScrn->virtualX - pScrn->currentMode->HDisplay);
     pScrn->frameX1 = pScrn->frameX0 + pScrn->currentMode->HDisplay - 1;
@@ -308,31 +231,25 @@ VidModeSetViewPort(int scrnIndex, int x, int y)
     return TRUE;
 }
 
-Bool
-VidModeGetViewPort(int scrnIndex, int *x, int *y)
+static Bool
+xf86VidModeGetViewPort(ScreenPtr pScreen, int *x, int *y)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     *x = pScrn->frameX0;
     *y = pScrn->frameY0;
     return TRUE;
 }
 
-Bool
-VidModeSwitchMode(int scrnIndex, void *mode)
+static Bool
+xf86VidModeSwitchMode(ScreenPtr pScreen, DisplayModePtr mode)
 {
     ScrnInfoPtr pScrn;
     DisplayModePtr pTmpMode;
     Bool retval;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     /* save in case we fail */
     pTmpMode = pScrn->currentMode;
     /* Force a mode switch */
@@ -344,326 +261,203 @@ VidModeSwitchMode(int scrnIndex, void *mode)
     return retval;
 }
 
-Bool
-VidModeLockZoom(int scrnIndex, Bool lock)
+static Bool
+xf86VidModeLockZoom(ScreenPtr pScreen, Bool lock)
 {
-    ScrnInfoPtr pScrn;
-
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-
     if (xf86Info.dontZoom)
         return FALSE;
 
-    xf86LockZoom(pScrn->pScreen, lock);
+    xf86LockZoom(pScreen, lock);
     return TRUE;
 }
 
-Bool
-VidModeGetMonitor(int scrnIndex, void **monitor)
+static ModeStatus
+xf86VidModeCheckModeForMonitor(ScreenPtr pScreen, DisplayModePtr mode)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-    *monitor = (void *) (pScrn->monitor);
-
-    return TRUE;
-}
-
-ModeStatus
-VidModeCheckModeForMonitor(int scrnIndex, void *mode)
-{
-    ScrnInfoPtr pScrn;
-
-    if ((mode == NULL) || (!VidModeAvailable(scrnIndex)))
+    if (mode == NULL)
         return MODE_ERROR;
 
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
 
-    return xf86CheckModeForMonitor((DisplayModePtr) mode, pScrn->monitor);
+    return xf86CheckModeForMonitor(mode, pScrn->monitor);
 }
 
-ModeStatus
-VidModeCheckModeForDriver(int scrnIndex, void *mode)
+static ModeStatus
+xf86VidModeCheckModeForDriver(ScreenPtr pScreen, DisplayModePtr mode)
 {
     ScrnInfoPtr pScrn;
 
-    if ((mode == NULL) || (!VidModeAvailable(scrnIndex)))
+    if (mode == NULL)
         return MODE_ERROR;
 
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
 
-    return xf86CheckModeForDriver(pScrn, (DisplayModePtr) mode, 0);
+    return xf86CheckModeForDriver(pScrn, mode, 0);
 }
 
-void
-VidModeSetCrtcForMode(int scrnIndex, void *mode)
+static void
+xf86VidModeSetCrtcForMode(ScreenPtr pScreen, DisplayModePtr mode)
 {
     ScrnInfoPtr pScrn;
     DisplayModePtr ScreenModes;
 
-    if ((mode == NULL) || (!VidModeAvailable(scrnIndex)))
+    if (mode == NULL)
         return;
 
     /* Ugly hack so that the xf86Mode.c function can be used without change */
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     ScreenModes = pScrn->modes;
-    pScrn->modes = (DisplayModePtr) mode;
+    pScrn->modes = mode;
 
     xf86SetCrtcForModes(pScrn, pScrn->adjustFlags);
     pScrn->modes = ScreenModes;
     return;
 }
 
-Bool
-VidModeAddModeline(int scrnIndex, void *mode)
+static Bool
+xf86VidModeAddModeline(ScreenPtr pScreen, DisplayModePtr mode)
 {
     ScrnInfoPtr pScrn;
 
-    if ((mode == NULL) || (!VidModeAvailable(scrnIndex)))
+    if (mode == NULL)
         return FALSE;
 
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
 
-    ((DisplayModePtr) mode)->name = strdup(""); /* freed by deletemode */
-    ((DisplayModePtr) mode)->status = MODE_OK;
-    ((DisplayModePtr) mode)->next = pScrn->modes->next;
-    ((DisplayModePtr) mode)->prev = pScrn->modes;
-    pScrn->modes->next = (DisplayModePtr) mode;
-    if (((DisplayModePtr) mode)->next != NULL)
-        ((DisplayModePtr) mode)->next->prev = (DisplayModePtr) mode;
+    mode->name = strdup(""); /* freed by deletemode */
+    mode->status = MODE_OK;
+    mode->next = pScrn->modes->next;
+    mode->prev = pScrn->modes;
+    pScrn->modes->next = mode;
+    if (mode->next != NULL)
+        mode->next->prev = mode;
 
     return TRUE;
 }
 
-int
-VidModeGetNumOfModes(int scrnIndex)
+static int
+xf86VidModeGetNumOfModes(ScreenPtr pScreen)
 {
-    void *mode = NULL;
+    DisplayModePtr mode = NULL;
     int dotClock = 0, nummodes = 0;
 
-    if (!VidModeGetFirstModeline(scrnIndex, &mode, &dotClock))
+    if (!xf86VidModeGetFirstModeline(pScreen, &mode, &dotClock))
         return nummodes;
 
     do {
         nummodes++;
-        if (!VidModeGetNextModeline(scrnIndex, &mode, &dotClock))
+        if (!xf86VidModeGetNextModeline(pScreen, &mode, &dotClock))
             return nummodes;
     } while (TRUE);
 }
 
-Bool
-VidModeSetGamma(int scrnIndex, float red, float green, float blue)
+static Bool
+xf86VidModeSetGamma(ScreenPtr pScreen, float red, float green, float blue)
 {
-    ScrnInfoPtr pScrn;
     Gamma gamma;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
     gamma.red = red;
     gamma.green = green;
     gamma.blue = blue;
-    if (xf86ChangeGamma(pScrn->pScreen, gamma) != Success)
+    if (xf86ChangeGamma(pScreen, gamma) != Success)
         return FALSE;
     else
         return TRUE;
 }
 
-Bool
-VidModeGetGamma(int scrnIndex, float *red, float *green, float *blue)
+static Bool
+xf86VidModeGetGamma(ScreenPtr pScreen, float *red, float *green, float *blue)
 {
     ScrnInfoPtr pScrn;
 
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
+    pScrn = xf86ScreenToScrn(pScreen);
     *red = pScrn->gamma.red;
     *green = pScrn->gamma.green;
     *blue = pScrn->gamma.blue;
     return TRUE;
 }
 
-Bool
-VidModeSetGammaRamp(int scrnIndex, int size, CARD16 *r, CARD16 *g, CARD16 *b)
+static Bool
+xf86VidModeSetGammaRamp(ScreenPtr pScreen, int size, CARD16 *r, CARD16 *g, CARD16 *b)
 {
-    ScrnInfoPtr pScrn;
-
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-    xf86ChangeGammaRamp(pScrn->pScreen, size, r, g, b);
+    xf86ChangeGammaRamp(pScreen, size, r, g, b);
     return TRUE;
 }
 
-Bool
-VidModeGetGammaRamp(int scrnIndex, int size, CARD16 *r, CARD16 *g, CARD16 *b)
+static Bool
+xf86VidModeGetGammaRamp(ScreenPtr pScreen, int size, CARD16 *r, CARD16 *g, CARD16 *b)
 {
-    ScrnInfoPtr pScrn;
-
-    if (!VidModeAvailable(scrnIndex))
-        return FALSE;
-
-    pScrn = xf86Screens[scrnIndex];
-    xf86GetGammaRamp(pScrn->pScreen, size, r, g, b);
+    xf86GetGammaRamp(pScreen, size, r, g, b);
     return TRUE;
 }
 
-int
-VidModeGetGammaRampSize(int scrnIndex)
+static Bool
+xf86VidModeInit(ScreenPtr pScreen)
 {
-    if (!VidModeAvailable(scrnIndex))
-        return 0;
+    VidModePtr pVidMode;
 
-    return xf86GetGammaRampSize(xf86Screens[scrnIndex]->pScreen);
-}
-
-void *
-VidModeCreateMode(void)
-{
-    DisplayModePtr mode;
-
-    mode = malloc(sizeof(DisplayModeRec));
-    if (mode != NULL) {
-        mode->name = "";
-        mode->VScan = 1;        /* divides refresh rate. default = 1 */
-        mode->Private = NULL;
-        mode->next = mode;
-        mode->prev = mode;
+    if (!xf86GetVidModeEnabled()) {
+        DebugF("!xf86GetVidModeEnabled()\n");
+        return FALSE;
     }
-    return mode;
+
+    pVidMode = VidModeInit(pScreen);
+    if (!pVidMode)
+        return FALSE;
+
+    pVidMode->Flags = 0;
+    pVidMode->Next = NULL;
+
+    pVidMode->GetMonitorValue = xf86VidModeGetMonitorValue;
+    pVidMode->GetCurrentModeline = xf86VidModeGetCurrentModeline;
+    pVidMode->GetFirstModeline = xf86VidModeGetFirstModeline;
+    pVidMode->GetNextModeline = xf86VidModeGetNextModeline;
+    pVidMode->DeleteModeline = xf86VidModeDeleteModeline;
+    pVidMode->ZoomViewport = xf86VidModeZoomViewport;
+    pVidMode->GetViewPort = xf86VidModeGetViewPort;
+    pVidMode->SetViewPort = xf86VidModeSetViewPort;
+    pVidMode->SwitchMode = xf86VidModeSwitchMode;
+    pVidMode->LockZoom = xf86VidModeLockZoom;
+    pVidMode->GetNumOfClocks = xf86VidModeGetNumOfClocks;
+    pVidMode->GetClocks = xf86VidModeGetClocks;
+    pVidMode->CheckModeForMonitor = xf86VidModeCheckModeForMonitor;
+    pVidMode->CheckModeForDriver = xf86VidModeCheckModeForDriver;
+    pVidMode->SetCrtcForMode = xf86VidModeSetCrtcForMode;
+    pVidMode->AddModeline = xf86VidModeAddModeline;
+    pVidMode->GetDotClock = xf86VidModeGetDotClock;
+    pVidMode->GetNumOfModes = xf86VidModeGetNumOfModes;
+    pVidMode->SetGamma = xf86VidModeSetGamma;
+    pVidMode->GetGamma = xf86VidModeGetGamma;
+    pVidMode->SetGammaRamp = xf86VidModeSetGammaRamp;
+    pVidMode->GetGammaRamp = xf86VidModeGetGammaRamp;
+    pVidMode->GetGammaRampSize = xf86GetGammaRampSize; /* use xf86cmap API directly */
+
+    return TRUE;
 }
 
 void
-VidModeCopyMode(void *modefrom, void *modeto)
+XFree86VidModeExtensionInit(void)
 {
-    memcpy(modeto, modefrom, sizeof(DisplayModeRec));
-}
+    int i;
+    Bool enabled = FALSE;
 
-int
-VidModeGetModeValue(void *mode, int valtyp)
-{
-    int ret = 0;
+    DebugF("XFree86VidModeExtensionInit");
 
-    switch (valtyp) {
-    case VIDMODE_H_DISPLAY:
-        ret = ((DisplayModePtr) mode)->HDisplay;
-        break;
-    case VIDMODE_H_SYNCSTART:
-        ret = ((DisplayModePtr) mode)->HSyncStart;
-        break;
-    case VIDMODE_H_SYNCEND:
-        ret = ((DisplayModePtr) mode)->HSyncEnd;
-        break;
-    case VIDMODE_H_TOTAL:
-        ret = ((DisplayModePtr) mode)->HTotal;
-        break;
-    case VIDMODE_H_SKEW:
-        ret = ((DisplayModePtr) mode)->HSkew;
-        break;
-    case VIDMODE_V_DISPLAY:
-        ret = ((DisplayModePtr) mode)->VDisplay;
-        break;
-    case VIDMODE_V_SYNCSTART:
-        ret = ((DisplayModePtr) mode)->VSyncStart;
-        break;
-    case VIDMODE_V_SYNCEND:
-        ret = ((DisplayModePtr) mode)->VSyncEnd;
-        break;
-    case VIDMODE_V_TOTAL:
-        ret = ((DisplayModePtr) mode)->VTotal;
-        break;
-    case VIDMODE_FLAGS:
-        ret = ((DisplayModePtr) mode)->Flags;
-        break;
-    case VIDMODE_CLOCK:
-        ret = ((DisplayModePtr) mode)->Clock;
-        break;
+    /* This means that the DDX doesn't want the vidmode extension enabled */
+    if (!xf86GetVidModeEnabled())
+        return;
+
+    for (i = 0; i < screenInfo.numScreens; i++) {
+        if (xf86VidModeInit (screenInfo.screens[i]))
+            enabled = TRUE;
     }
-    return ret;
-}
+    /* This means that the DDX doesn't want the vidmode extension enabled */
+    if (!enabled)
+        return;
 
-void
-VidModeSetModeValue(void *mode, int valtyp, int val)
-{
-    switch (valtyp) {
-    case VIDMODE_H_DISPLAY:
-        ((DisplayModePtr) mode)->HDisplay = val;
-        break;
-    case VIDMODE_H_SYNCSTART:
-        ((DisplayModePtr) mode)->HSyncStart = val;
-        break;
-    case VIDMODE_H_SYNCEND:
-        ((DisplayModePtr) mode)->HSyncEnd = val;
-        break;
-    case VIDMODE_H_TOTAL:
-        ((DisplayModePtr) mode)->HTotal = val;
-        break;
-    case VIDMODE_H_SKEW:
-        ((DisplayModePtr) mode)->HSkew = val;
-        break;
-    case VIDMODE_V_DISPLAY:
-        ((DisplayModePtr) mode)->VDisplay = val;
-        break;
-    case VIDMODE_V_SYNCSTART:
-        ((DisplayModePtr) mode)->VSyncStart = val;
-        break;
-    case VIDMODE_V_SYNCEND:
-        ((DisplayModePtr) mode)->VSyncEnd = val;
-        break;
-    case VIDMODE_V_TOTAL:
-        ((DisplayModePtr) mode)->VTotal = val;
-        break;
-    case VIDMODE_FLAGS:
-        ((DisplayModePtr) mode)->Flags = val;
-        break;
-    case VIDMODE_CLOCK:
-        ((DisplayModePtr) mode)->Clock = val;
-        break;
-    }
-    return;
-}
-
-vidMonitorValue
-VidModeGetMonitorValue(void *monitor, int valtyp, int indx)
-{
-    vidMonitorValue ret = { NULL, };
-
-    switch (valtyp) {
-    case VIDMODE_MON_VENDOR:
-        ret.ptr = (((MonPtr) monitor)->vendor);
-        break;
-    case VIDMODE_MON_MODEL:
-        ret.ptr = (((MonPtr) monitor)->model);
-        break;
-    case VIDMODE_MON_NHSYNC:
-        ret.i = ((MonPtr) monitor)->nHsync;
-        break;
-    case VIDMODE_MON_NVREFRESH:
-        ret.i = ((MonPtr) monitor)->nVrefresh;
-        break;
-    case VIDMODE_MON_HSYNC_LO:
-        ret.f = (100.0 * ((MonPtr) monitor)->hsync[indx].lo);
-        break;
-    case VIDMODE_MON_HSYNC_HI:
-        ret.f = (100.0 * ((MonPtr) monitor)->hsync[indx].hi);
-        break;
-    case VIDMODE_MON_VREFRESH_LO:
-        ret.f = (100.0 * ((MonPtr) monitor)->vrefresh[indx].lo);
-        break;
-    case VIDMODE_MON_VREFRESH_HI:
-        ret.f = (100.0 * ((MonPtr) monitor)->vrefresh[indx].hi);
-        break;
-    }
-    return ret;
+   VidModeAddExtension(xf86GetVidModeAllowNonLocal());
 }
 
 #endif                          /* XF86VIDMODE */

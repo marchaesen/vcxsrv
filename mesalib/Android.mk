@@ -42,6 +42,10 @@ $(call local-intermediates-dir)
 endef
 endif
 
+MESA_DRI_MODULE_REL_PATH := dri
+MESA_DRI_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/$(MESA_DRI_MODULE_REL_PATH)
+MESA_DRI_MODULE_UNSTRIPPED_PATH := $(TARGET_OUT_SHARED_LIBRARIES_UNSTRIPPED)/$(MESA_DRI_MODULE_REL_PATH)
+
 MESA_COMMON_MK := $(MESA_TOP)/Android.common.mk
 MESA_PYTHON2 := python
 
@@ -87,7 +91,7 @@ SUBDIRS := \
 	src/loader \
 	src/mapi \
 	src/compiler \
-	src/glsl \
+	src/compiler/glsl \
 	src/mesa \
 	src/util \
 	src/egl \

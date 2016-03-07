@@ -3,7 +3,7 @@
 #
 
 
-# Copyright 1996-2015 by
+# Copyright 1996-2016 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -97,7 +97,7 @@ BASE_DIR := $(SRC_DIR)/base
 
 # Other derived directories.
 #
-PUBLIC_DIR   := $(TOP_DIR)/include
+PUBLIC_DIR   := $(TOP_DIR)/include/freetype
 INTERNAL_DIR := $(PUBLIC_DIR)/internal
 SERVICES_DIR := $(INTERNAL_DIR)/services
 CONFIG_DIR   := $(PUBLIC_DIR)/config

@@ -73,6 +73,7 @@ ast_type_qualifier::has_layout() const
           || this->flags.q.column_major
           || this->flags.q.row_major
           || this->flags.q.packed
+          || this->flags.q.explicit_align
           || this->flags.q.explicit_location
           || this->flags.q.explicit_image_format
           || this->flags.q.explicit_index
@@ -133,6 +134,28 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    ast_type_qualifier stream_layout_mask;
    stream_layout_mask.flags.i = 0;
    stream_layout_mask.flags.q.stream = 1;
+
+   /* FIXME: We should probably do interface and function param validation
+    * separately.
+    */
+   ast_type_qualifier input_layout_mask;
+   input_layout_mask.flags.i = 0;
+   input_layout_mask.flags.q.centroid = 1;
+   /* Function params can have constant */
+   input_layout_mask.flags.q.constant = 1;
+   input_layout_mask.flags.q.explicit_location = 1;
+   input_layout_mask.flags.q.flat = 1;
+   input_layout_mask.flags.q.in = 1;
+   input_layout_mask.flags.q.invariant = 1;
+   input_layout_mask.flags.q.noperspective = 1;
+   input_layout_mask.flags.q.origin_upper_left = 1;
+   /* Function params 'inout' will set this */
+   input_layout_mask.flags.q.out = 1;
+   input_layout_mask.flags.q.patch = 1;
+   input_layout_mask.flags.q.pixel_center_integer = 1;
+   input_layout_mask.flags.q.precise = 1;
+   input_layout_mask.flags.q.sample = 1;
+   input_layout_mask.flags.q.smooth = 1;
 
    /* Uniform block layout qualifiers get to overwrite each
     * other (rightmost having priority), while all other
@@ -257,6 +280,16 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    }
 
    this->flags.i |= q.flags.i;
+
+   if (this->flags.q.in &&
+       (this->flags.i & ~input_layout_mask.flags.i) != 0) {
+      _mesa_glsl_error(loc, state,
+		       "invalid input layout qualifier used");
+      return false;
+   }
+
+   if (q.flags.q.explicit_align)
+      this->align = q.align;
 
    if (q.flags.q.explicit_location)
       this->location = q.location;

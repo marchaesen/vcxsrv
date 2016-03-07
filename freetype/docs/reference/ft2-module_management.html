@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6 API Reference</title>
+<title>FreeType-2.6.3 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,9 +100,9 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6 API Reference</h1>
+<h1>FreeType-2.6.3 API Reference</h1>
 
-<h1>Module Management</h1>
+<h1 id="module_management">Module Management</h1>
 <h2>Synopsis</h2>
 <table class="synopsis">
 <tr><td><a href="#FT_Module">FT_Module</a></td><td><a href="#FT_Add_Default_Modules">FT_Add_Default_Modules</a></td><td><a href="#FT_Renderer">FT_Renderer</a></td></tr>
@@ -130,7 +130,7 @@
   psaux                                                            
   pshinter                                                         
   psnames                                                          
-  raster1, raster5                                                 
+  raster1                                                          
   sfnt                                                             
   smooth, smooth-lcd, smooth-lcdv                                  
   truetype                                                         
@@ -143,7 +143,7 @@
 
 <div class="section">
 <h3 id="FT_Module">FT_Module</h3>
-<p>Defined in FT_FREETYPE_H (freetype.h).</p>
+<p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span> FT_ModuleRec_*  <b>FT_Module</b>;
 </pre>
@@ -155,7 +155,7 @@
 
 <div class="section">
 <h3 id="FT_Module_Constructor">FT_Module_Constructor</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   <span class="keyword">typedef</span> <a href="ft2-basic_types.html#FT_Error">FT_Error</a>
   (*<b>FT_Module_Constructor</b>)( <a href="ft2-module_management.html#FT_Module">FT_Module</a>  module );
@@ -175,7 +175,7 @@
 
 <div class="section">
 <h3 id="FT_Module_Destructor">FT_Module_Destructor</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">void</span>
   (*<b>FT_Module_Destructor</b>)( <a href="ft2-module_management.html#FT_Module">FT_Module</a>  module );
@@ -195,7 +195,7 @@
 
 <div class="section">
 <h3 id="FT_Module_Requester">FT_Module_Requester</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   <span class="keyword">typedef</span> FT_Module_Interface
   (*<b>FT_Module_Requester</b>)( <a href="ft2-module_management.html#FT_Module">FT_Module</a>    module,
@@ -219,7 +219,7 @@
 
 <div class="section">
 <h3 id="FT_Module_Class">FT_Module_Class</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span>  FT_Module_Class_
   {
@@ -273,7 +273,7 @@
 
 <div class="section">
 <h3 id="FT_Add_Module">FT_Add_Module</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Add_Module</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>              library,
@@ -307,7 +307,7 @@
 
 <div class="section">
 <h3 id="FT_Get_Module">FT_Get_Module</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-module_management.html#FT_Module">FT_Module</a> )
   <b>FT_Get_Module</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>   library,
@@ -337,7 +337,7 @@
 
 <div class="section">
 <h3 id="FT_Remove_Module">FT_Remove_Module</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Remove_Module</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>  library,
@@ -371,7 +371,7 @@
 
 <div class="section">
 <h3 id="FT_Add_Default_Modules">FT_Add_Default_Modules</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <span class="keyword">void</span> )
   <b>FT_Add_Default_Modules</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>  library );
@@ -391,7 +391,7 @@
 
 <div class="section">
 <h3 id="FT_Property_Set">FT_Property_Set</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Property_Set</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>        library,
@@ -443,7 +443,7 @@
 
 <div class="section">
 <h3 id="FT_Property_Get">FT_Property_Get</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Property_Get</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>        library,
@@ -503,7 +503,7 @@
 
 <div class="section">
 <h3 id="FT_New_Library">FT_New_Library</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_New_Library</b>( <a href="ft2-system_interface.html#FT_Memory">FT_Memory</a>    memory,
@@ -539,7 +539,7 @@
 
 <div class="section">
 <h3 id="FT_Done_Library">FT_Done_Library</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Done_Library</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>  library );
@@ -565,7 +565,7 @@
 
 <div class="section">
 <h3 id="FT_Reference_Library">FT_Reference_Library</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Reference_Library</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>  library );
@@ -592,7 +592,7 @@
 
 <div class="section">
 <h3 id="FT_Renderer">FT_Renderer</h3>
-<p>Defined in FT_FREETYPE_H (freetype.h).</p>
+<p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span> FT_RendererRec_*  <b>FT_Renderer</b>;
 </pre>
@@ -604,7 +604,7 @@
 
 <div class="section">
 <h3 id="FT_Renderer_Class">FT_Renderer_Class</h3>
-<p>Defined in FT_RENDER_H (ftrender.h).</p>
+<p>Defined in FT_RENDER_H (freetype/ftrender.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span>  FT_Renderer_Class_
   {
@@ -654,7 +654,7 @@
 
 <div class="section">
 <h3 id="FT_Get_Renderer">FT_Get_Renderer</h3>
-<p>Defined in FT_RENDER_H (ftrender.h).</p>
+<p>Defined in FT_RENDER_H (freetype/ftrender.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-module_management.html#FT_Renderer">FT_Renderer</a> )
   <b>FT_Get_Renderer</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>       library,
@@ -685,7 +685,7 @@
 
 <div class="section">
 <h3 id="FT_Set_Renderer">FT_Set_Renderer</h3>
-<p>Defined in FT_RENDER_H (ftrender.h).</p>
+<p>Defined in FT_RENDER_H (freetype/ftrender.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Set_Renderer</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>     library,
@@ -729,7 +729,7 @@
 
 <div class="section">
 <h3 id="FT_Set_Debug_Hook">FT_Set_Debug_Hook</h3>
-<p>Defined in FT_MODULE_H (ftmodapi.h).</p>
+<p>Defined in FT_MODULE_H (freetype/ftmodapi.h).</p>
 <pre>
   FT_EXPORT( <span class="keyword">void</span> )
   <b>FT_Set_Debug_Hook</b>( <a href="ft2-base_interface.html#FT_Library">FT_Library</a>         library,
@@ -765,7 +765,7 @@
 
 <div class="section">
 <h3 id="FT_Driver">FT_Driver</h3>
-<p>Defined in FT_FREETYPE_H (freetype.h).</p>
+<p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span> FT_DriverRec_*  <b>FT_Driver</b>;
 </pre>

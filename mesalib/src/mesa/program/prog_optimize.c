@@ -60,52 +60,47 @@ get_src_arg_mask(const struct prog_instruction *inst,
    assert(arg < _mesa_num_inst_src_regs(inst->Opcode));
 
    /* Form the dst register, find the written channels */
-   if (inst->CondUpdate) {
+   switch (inst->Opcode) {
+   case OPCODE_MOV:
+   case OPCODE_MIN:
+   case OPCODE_MAX:
+   case OPCODE_ABS:
+   case OPCODE_ADD:
+   case OPCODE_MAD:
+   case OPCODE_MUL:
+   case OPCODE_SUB:
+   case OPCODE_CMP:
+   case OPCODE_FLR:
+   case OPCODE_FRC:
+   case OPCODE_LRP:
+   case OPCODE_SEQ:
+   case OPCODE_SGE:
+   case OPCODE_SGT:
+   case OPCODE_SLE:
+   case OPCODE_SLT:
+   case OPCODE_SNE:
+   case OPCODE_SSG:
+      channel_mask = inst->DstReg.WriteMask & dst_mask;
+      break;
+   case OPCODE_RCP:
+   case OPCODE_SIN:
+   case OPCODE_COS:
+   case OPCODE_RSQ:
+   case OPCODE_POW:
+   case OPCODE_EX2:
+   case OPCODE_LOG:
+      channel_mask = WRITEMASK_X;
+      break;
+   case OPCODE_DP2:
+      channel_mask = WRITEMASK_XY;
+      break;
+   case OPCODE_DP3:
+   case OPCODE_XPD:
+      channel_mask = WRITEMASK_XYZ;
+      break;
+   default:
       channel_mask = WRITEMASK_XYZW;
-   }
-   else {
-      switch (inst->Opcode) {
-      case OPCODE_MOV:
-      case OPCODE_MIN:
-      case OPCODE_MAX:
-      case OPCODE_ABS:
-      case OPCODE_ADD:
-      case OPCODE_MAD:
-      case OPCODE_MUL:
-      case OPCODE_SUB:
-      case OPCODE_CMP:
-      case OPCODE_FLR:
-      case OPCODE_FRC:
-      case OPCODE_LRP:
-      case OPCODE_SEQ:
-      case OPCODE_SGE:
-      case OPCODE_SGT:
-      case OPCODE_SLE:
-      case OPCODE_SLT:
-      case OPCODE_SNE:
-      case OPCODE_SSG:
-         channel_mask = inst->DstReg.WriteMask & dst_mask;
-         break;
-      case OPCODE_RCP:
-      case OPCODE_SIN:
-      case OPCODE_COS:
-      case OPCODE_RSQ:
-      case OPCODE_POW:
-      case OPCODE_EX2:
-      case OPCODE_LOG:
-         channel_mask = WRITEMASK_X;
-         break;
-      case OPCODE_DP2:
-         channel_mask = WRITEMASK_XY;
-         break;
-      case OPCODE_DP3:
-      case OPCODE_XPD:
-         channel_mask = WRITEMASK_XYZ;
-         break;
-      default:
-         channel_mask = WRITEMASK_XYZW;
-         break;
-      }
+      break;
    }
 
    /* Now, given the src swizzle and the written channels, find which
@@ -294,24 +289,12 @@ _mesa_remove_dead_code_global(struct gl_program *prog)
 
       /* check dst reg */
       if (inst->DstReg.File == PROGRAM_TEMPORARY) {
-         const GLuint index = inst->DstReg.Index;
-         assert(index < REG_ALLOCATE_MAX_PROGRAM_TEMPS);
+         assert(inst->DstReg.Index < REG_ALLOCATE_MAX_PROGRAM_TEMPS);
 
          if (inst->DstReg.RelAddr) {
             if (dbg)
                printf("abort remove dead code (indirect temp)\n");
             goto done;
-         }
-
-         if (inst->CondUpdate) {
-            /* If we're writing to this register and setting condition
-             * codes we cannot remove the instruction.  Prevent removal
-             * by setting the 'read' flag.
-             */
-            tempRead[index][0] = GL_TRUE;
-            tempRead[index][1] = GL_TRUE;
-            tempRead[index][2] = GL_TRUE;
-            tempRead[index][3] = GL_TRUE;
          }
       }
    }
@@ -461,14 +444,9 @@ can_downward_mov_be_modifed(const struct prog_instruction *mov)
 {
    return
       mov->Opcode == OPCODE_MOV &&
-      mov->CondUpdate == GL_FALSE &&
       mov->SrcReg[0].RelAddr == 0 &&
       mov->SrcReg[0].Negate == 0 &&
-      mov->SrcReg[0].Abs == 0 &&
-      mov->SrcReg[0].HasIndex2 == 0 &&
-      mov->SrcReg[0].RelAddr2 == 0 &&
-      mov->DstReg.RelAddr == 0 &&
-      mov->DstReg.CondMask == COND_TR;
+      mov->DstReg.RelAddr == 0;
 }
 
 
@@ -536,8 +514,7 @@ _mesa_remove_extra_move_use(struct gl_program *prog)
 
 	    if (inst2->SrcReg[arg].File != mov->DstReg.File ||
 		inst2->SrcReg[arg].Index != mov->DstReg.Index ||
-		inst2->SrcReg[arg].RelAddr ||
-		inst2->SrcReg[arg].Abs)
+		inst2->SrcReg[arg].RelAddr)
 	       continue;
             read_mask = get_src_arg_mask(inst2, arg, NO_MASK);
 
@@ -786,8 +763,7 @@ _mesa_remove_extra_moves(struct gl_program *prog)
 
             if (prevInst->DstReg.File == PROGRAM_TEMPORARY &&
                 prevInst->DstReg.Index == id &&
-                prevInst->DstReg.RelAddr == 0 &&
-                prevInst->DstReg.CondMask == COND_TR) {
+                prevInst->DstReg.RelAddr == 0) {
 
                const GLuint dst_mask = prevInst->DstReg.WriteMask;
                enum inst_use next_use = find_next_use(prog, i+1, id, dst_mask);

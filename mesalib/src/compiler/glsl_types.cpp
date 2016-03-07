@@ -120,6 +120,7 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
                                                      fields[i].name);
       this->fields.structure[i].location = fields[i].location;
+      this->fields.structure[i].offset = fields[i].offset;
       this->fields.structure[i].interpolation = fields[i].interpolation;
       this->fields.structure[i].centroid = fields[i].centroid;
       this->fields.structure[i].sample = fields[i].sample;
@@ -159,6 +160,7 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
                                                      fields[i].name);
       this->fields.structure[i].location = fields[i].location;
+      this->fields.structure[i].offset = fields[i].offset;
       this->fields.structure[i].interpolation = fields[i].interpolation;
       this->fields.structure[i].centroid = fields[i].centroid;
       this->fields.structure[i].sample = fields[i].sample;
@@ -879,6 +881,9 @@ glsl_type::record_compare(const glsl_type *b) const
         return false;
       if (this->fields.structure[i].location
           != b->fields.structure[i].location)
+         return false;
+      if (this->fields.structure[i].offset
+          != b->fields.structure[i].offset)
          return false;
       if (this->fields.structure[i].interpolation
           != b->fields.structure[i].interpolation)

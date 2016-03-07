@@ -81,7 +81,7 @@ needs_integer_signed_unsigned_conversion(const struct gl_context *ctx,
  *       we do here should be free in such cases.
  */
 static void
-st_readpixels(struct gl_context *ctx, GLint x, GLint y,
+st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
               GLsizei width, GLsizei height,
               GLenum format, GLenum type,
               const struct gl_pixelstore_attrib *pack,
@@ -257,5 +257,5 @@ fallback:
 
 void st_init_readpixels_functions(struct dd_function_table *functions)
 {
-   functions->ReadPixels = st_readpixels;
+   functions->ReadPixels = st_ReadPixels;
 }

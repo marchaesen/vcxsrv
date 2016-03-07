@@ -3,7 +3,7 @@
 #
 
 
-# Copyright 2004-2015 by
+# Copyright 2004-2016 by
 # Albert Chin-A-Young.
 #
 # based on `src/lzw/rules.mk'

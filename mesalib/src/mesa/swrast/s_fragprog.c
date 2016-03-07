@@ -189,12 +189,6 @@ init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
 
    machine->CurElement = col;
 
-   /* init condition codes */
-   machine->CondCodes[0] = COND_EQ;
-   machine->CondCodes[1] = COND_EQ;
-   machine->CondCodes[2] = COND_EQ;
-   machine->CondCodes[3] = COND_EQ;
-
    /* init call stack */
    machine->StackDepth = 0;
 

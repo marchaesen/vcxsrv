@@ -137,6 +137,11 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
                                            GLint *params, const char *caller);
 
 
+extern void
+_mesa_bind_framebuffers(struct gl_context *ctx,
+                        struct gl_framebuffer *newDrawFb,
+                        struct gl_framebuffer *newReadFb);
+
 extern GLboolean GLAPIENTRY
 _mesa_IsRenderbuffer(GLuint renderbuffer);
 

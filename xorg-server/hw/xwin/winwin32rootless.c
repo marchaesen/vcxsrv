@@ -475,7 +475,7 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
         ShowWindow(pRLWinPriv->hWnd, SW_SHOWNOACTIVATE);
 
     if (pRLNextWinPriv == NULL) {
-        winDebug("Win %08x is top\n", pRLWinPriv);
+        winDebug("Win %p is top\n", pRLWinPriv);
         pScreenPriv->widTop = wid;
         SetWindowPos(pRLWinPriv->hWnd, HWND_TOP,
                      0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -483,7 +483,7 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
 #ifdef XWIN_MULTIWINDOWINTWM
   else if (winIsInternalWMRunning(pScreenInfo)) {
       /* using mulwinidow wm */
-        winDebug("Win %08x is not top\n", pRLWinPriv);
+        winDebug("Win %p is not top\n", pRLWinPriv);
 
         for (hWnd = GetNextWindow(pRLWinPriv->hWnd, GW_HWNDPREV);
              fNeedRestack && hWnd != NULL;
@@ -495,7 +495,7 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
                 if (hWnd == pRLNextWinPriv->hWnd) {
                     /* Enable interleave X window and Windows window */
                     if (!fFirst) {
-                        winDebug("raise: Insert after Win %08x\n",
+                        winDebug("raise: Insert after Win %p\n",
                                  pRLNextWinPriv);
                         SetWindowPos(pRLWinPriv->hWnd, pRLNextWinPriv->hWnd,
                                      0, 0, 0, 0,
@@ -520,7 +520,7 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
             if ((dwWindowProcessID == dwCurrentProcessID)
                 && GetProp(hWnd, WIN_WINDOW_PROP)) {
                 if (hWnd == pRLNextWinPriv->hWnd) {
-                    winDebug("lower: Insert after Win %08x\n", pRLNextWinPriv);
+                    winDebug("lower: Insert after Win %p\n", pRLNextWinPriv);
 
                     SetWindowPos(pRLWinPriv->hWnd, pRLNextWinPriv->hWnd,
                                  0, 0, 0, 0,

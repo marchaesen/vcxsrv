@@ -114,7 +114,6 @@ typedef struct _WMMsgQueueRec {
     pthread_mutex_t pmMutex;
     pthread_cond_t pcNotEmpty;
 #ifdef _DEBUG
-    int nQueueSize;
 #endif
 } WMMsgQueueRec, *WMMsgQueuePtr;
 
@@ -215,8 +214,61 @@ static Bool redirectError = FALSE;
 static Bool g_fAnotherWMRunning = FALSE;
 
 /*
- * PushMessage - Push a message onto the queue
+ * Translate msg id to text, for debug purposes
  */
+
+static const char *
+MessageName(winWMMessagePtr msg)
+{
+  switch (msg->msg)
+    {
+    case WM_WM_MOVE:
+      return "WM_WM_MOVE";
+      break;
+    case WM_WM_SIZE:
+      return "WM_WM_SIZE";
+      break;
+    case WM_WM_RAISE:
+      return "WM_WM_RAISE";
+      break;
+    case WM_WM_LOWER:
+      return "WM_WM_LOWER";
+      break;
+    case WM_WM_UNMAP:
+      return "WM_WM_UNMAP";
+      break;
+    case WM_WM_KILL:
+      return "WM_WM_KILL";
+      break;
+    case WM_WM_ACTIVATE:
+      return "WM_WM_ACTIVATE";
+      break;
+    case WM_WM_NAME_EVENT:
+      return "WM_WM_NAME_EVENT";
+      break;
+    case WM_WM_ICON_EVENT:
+      return "WM_WM_ICON_EVENT";
+      break;
+    case WM_WM_CHANGE_STATE:
+      return "WM_WM_CHANGE_STATE";
+      break;
+    case WM_WM_MAP:
+      return "WM_WM_MAP";
+      break;
+    case WM_WM_MAP2:
+      return "WM_WM_MAP2";
+      break;
+    case WM_WM_MAP3:
+      return "WM_WM_MAP3";
+      break;
+    case WM_WM_HINTS_EVENT:
+      return "WM_WM_HINTS_EVENT";
+      break;
+    default:
+      return "Unknown Message";
+      break;
+    }
+}
 
 static void
 PushMessage(WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
@@ -236,10 +288,6 @@ PushMessage(WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
         pQueue->pHead = pNode;
     }
 
-#ifdef _DEBUG
-    /* Increase the count of elements in the queue by one */
-    ++(pQueue->nQueueSize);
-#endif
 
     /* Release the queue mutex */
     pthread_mutex_unlock(&pQueue->pmMutex);
@@ -248,24 +296,7 @@ PushMessage(WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
     pthread_cond_signal(&pQueue->pcNotEmpty);
 }
 
-#ifdef WINDBG
-/*
- * QueueSize - Return the size of the queue
- */
 
-static int
-QueueSize(WMMsgQueuePtr pQueue)
-{
-    WMMsgNodePtr pNode;
-    int nSize = 0;
-
-    /* Loop through all elements in the queue */
-    for (pNode = pQueue->pHead; pNode != NULL; pNode = pNode->pNext)
-        ++nSize;
-
-    return nSize;
-}
-#endif
 
 /*
  * PopMessage - Pop a message from the queue
@@ -292,13 +323,6 @@ PopMessage(WMMsgQueuePtr pQueue, WMInfoPtr pWMInfo)
     if (pQueue->pTail == pNode) {
         pQueue->pTail = NULL;
     }
-
-  #ifdef _DEBUG
-    /* Drop the number of elements in the queue by one */
-    --(pQueue->nQueueSize);
-
-  winDebug ("Queue Size %d %d\n", pQueue->nQueueSize, QueueSize(pQueue));
-  #endif
 
     /* Release the queue mutex */
     pthread_mutex_unlock(&pQueue->pmMutex);
@@ -342,14 +366,6 @@ InitQueue(WMMsgQueuePtr pQueue)
     /* Set the head and tail to NULL */
     pQueue->pHead = NULL;
     pQueue->pTail = NULL;
-
-    /* There are no elements initially */
-  #ifdef _DEBUG
-    pQueue->nQueueSize = 0;
-
-    winDebug("InitQueue - Queue Size %d %d\n", pQueue->nQueueSize,
-             QueueSize(pQueue));
-  #endif
 
     winDebug ("InitQueue - Calling pthread_mutex_init\n");
 
@@ -738,26 +754,22 @@ winMultiWindowWMProc(void *pArg)
             pthread_exit(NULL);
         }
 
-        winDebug("winMultiWindowWMProc - MSG: %d ID: %d\n",
-               (int) pNode->msg.msg, (int) pNode->msg.dwID);
+        winDebug("winMultiWindowWMProc - MSG: %s (%d) ID: %d\n",
+               MessageName(&(pNode->msg)), (int)pNode->msg.msg, (int)pNode->msg.dwID);
 
         /* Branch on the message type */
         switch (pNode->msg.msg) {
         case WM_WM_RAISE:
-            winDebug ("\tWM_WM_RAISE\n");
             /* Raise the window */
             XRaiseWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
             break;
 
         case WM_WM_LOWER:
-            winDebug ("\tWM_WM_LOWER\n");
-
             /* Lower the window */
             XLowerWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
             break;
 
         case WM_WM_MAP:
-            winDebug ("\tWM_WM_MAP\n");
             /* Put a note as to the HWND associated with this Window */
             XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
@@ -768,8 +780,6 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_MAP2:
-            winDebug ("\tWM_WM_MAP2\n");
-
             XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
@@ -777,8 +787,6 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_MAP3:
-            winDebug ("\tWM_WM_MAP3\n");
-
             /* Put a note as to the HWND associated with this Window */
             XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
@@ -802,14 +810,12 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_UNMAP:
-            winDebug ("\tWM_WM_UNMAP\n");
 
             /* Unmap the window */
             XUnmapWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
             break;
 
         case WM_WM_KILL:
-            winDebug ("\tWM_WM_KILL\n");
             {
                 /* --- */
                 if (IsWmProtocolAvailable(pWMInfo->pDisplay,
@@ -824,7 +830,6 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_ACTIVATE:
-            winDebug ("\tWM_WM_ACTIVATE\n");
             /* Set the input focus */
 
             /*
@@ -1448,7 +1453,7 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
 {
     WMMsgNodePtr pNode;
 
-    winDebug("winSendMessageToWM ()\n");
+    winDebug("winSendMessageToWM %s\n", MessageName(pMsg));
 
     pNode = malloc(sizeof(WMMsgNodeRec));
     if (pNode != NULL) {
@@ -1745,7 +1750,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
                            (unsigned char **) &pAtom) == Success) {
         if (pAtom && nitems == 1) {
             if (*pAtom == dockWindow) {
-                hint = (hint & ~HINT_NOFRAME) | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
+                hint = (hint & ~HINT_NOFRAME) | HINT_SKIPTASKBAR | HINT_SIZEBOX;
                 *zstyle = HWND_TOPMOST;
             }
             else if (*pAtom == splashWindow) {
@@ -1762,8 +1767,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         long supplied;
 
         if (normal_hint &&
-            (XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied) ==
-             Success)) {
+            XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied)) {
             if (normal_hint->flags & PMaxSize) {
                 /* Not maximizable if a maximum size is specified */
                 hint |= HINT_NOMAXIMIZE;

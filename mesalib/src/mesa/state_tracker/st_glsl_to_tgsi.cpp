@@ -166,7 +166,6 @@ public:
       this->index = index;
       this->index2D = 0;
       this->writemask = writemask;
-      this->cond_mask = COND_TR;
       this->reladdr = NULL;
       this->reladdr2 = NULL;
       this->has_index2 = false;
@@ -180,7 +179,6 @@ public:
       this->index = 0;
       this->index2D = 0;
       this->writemask = writemask;
-      this->cond_mask = COND_TR;
       this->reladdr = NULL;
       this->reladdr2 = NULL;
       this->has_index2 = false;
@@ -195,7 +193,6 @@ public:
       this->index = 0;
       this->index2D = 0;
       this->writemask = 0;
-      this->cond_mask = COND_TR;
       this->reladdr = NULL;
       this->reladdr2 = NULL;
       this->has_index2 = false;
@@ -208,7 +205,6 @@ public:
    int index; /**< temporary index, VERT_ATTRIB_*, VARYING_SLOT_*, etc. */
    int index2D;
    int writemask; /**< Bitfield of WRITEMASK_[XYZW] */
-   GLuint cond_mask:4;
    int type; /** GLSL_TYPE_* from GLSL IR (enum glsl_base_type) */
    /** Register index should be offset by the integer in this reg. */
    st_src_reg *reladdr;
@@ -239,7 +235,6 @@ st_dst_reg::st_dst_reg(st_src_reg reg)
    this->file = reg.file;
    this->index = reg.index;
    this->writemask = WRITEMASK_XYZW;
-   this->cond_mask = COND_TR;
    this->reladdr = reg.reladdr;
    this->index2D = reg.index2D;
    this->reladdr2 = reg.reladdr2;
@@ -3675,7 +3670,6 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
          l.index = storage->index;
          l.reladdr = NULL;
          l.writemask = WRITEMASK_XYZW;
-         l.cond_mask = COND_TR;
 
          for (i = 0; i < type_size(param->type); i++) {
             emit_asm(ir, TGSI_OPCODE_MOV, l, r);

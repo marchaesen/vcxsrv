@@ -3104,7 +3104,7 @@ void
 st_init_texture_functions(struct dd_function_table *functions)
 {
    functions->ChooseTextureFormat = st_ChooseTextureFormat;
-   functions->QuerySamplesForFormat = st_QuerySamplesForFormat;
+   functions->QueryInternalFormat = st_QueryInternalFormat;
    functions->TexImage = st_TexImage;
    functions->TexSubImage = st_TexSubImage;
    functions->CompressedTexSubImage = st_CompressedTexSubImage;

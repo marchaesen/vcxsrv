@@ -52,11 +52,8 @@ _mesa_init_instructions(struct prog_instruction *inst, GLuint count)
 
       inst[i].DstReg.File = PROGRAM_UNDEFINED;
       inst[i].DstReg.WriteMask = WRITEMASK_XYZW;
-      inst[i].DstReg.CondMask = COND_TR;
-      inst[i].DstReg.CondSwizzle = SWIZZLE_NOOP;
 
       inst[i].Saturate = GL_FALSE;
-      inst[i].Precision = FLOAT32;
    }
 }
 
@@ -154,7 +151,6 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
    { OPCODE_FRC,    "FRC",     1, 1 },
    { OPCODE_IF,     "IF",      1, 0 },
    { OPCODE_KIL,    "KIL",     1, 0 },
-   { OPCODE_KIL_NV, "KIL_NV",  0, 0 },
    { OPCODE_LG2,    "LG2",     1, 1 },
    { OPCODE_LIT,    "LIT",     1, 1 },
    { OPCODE_LOG,    "LOG",     1, 1 },
@@ -188,7 +184,6 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
    { OPCODE_TXD,    "TXD",     3, 1 },
    { OPCODE_TXL,    "TXL",     1, 1 },
    { OPCODE_TXP,    "TXP",     1, 1 },
-   { OPCODE_TXP_NV, "TXP_NV",  1, 1 },
    { OPCODE_TRUNC,  "TRUNC",   1, 1 },
    { OPCODE_XPD,    "XPD",     2, 1 }
 };

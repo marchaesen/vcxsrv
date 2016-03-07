@@ -23,3 +23,11 @@ libkdrive_la_SOURCES =	\
 	kshadow.c	\
 	$(KDRIVE_XV_SOURCES) \
         $(top_srcdir)/mi/miinitext.c
+
+if CONFIG_UDEV
+libkdrive_la_LIBADD = $(top_builddir)/config/libconfig.la
+else
+if CONFIG_HAL
+libkdrive_la_LIBADD = $(top_builddir)/config/libconfig.la
+endif
+endif

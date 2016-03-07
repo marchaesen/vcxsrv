@@ -906,7 +906,6 @@ st_manager_add_color_renderbuffer(struct st_context *st,
       break;
    default:
       return FALSE;
-      break;
    }
 
    if (!st_framebuffer_add_renderbuffer(stfb, idx))

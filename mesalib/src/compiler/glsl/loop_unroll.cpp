@@ -315,11 +315,33 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
       return visit_continue;
    }
 
-   /* Don't try to unroll loops where the number of iterations is not known
-    * at compile-time.
-    */
-   if (ls->limiting_terminator == NULL)
+   if (ls->limiting_terminator == NULL) {
+      ir_instruction *last_ir =
+         (ir_instruction *) ir->body_instructions.get_tail();
+
+      /* If a loop has no induction variable and the last instruction is
+       * a break, unroll the loop with a count of 1.  This is the classic
+       *
+       *    do {
+       *        // ...
+       *    } while (false)
+       *
+       * that is used to wrap multi-line macros.
+       *
+       * If num_loop_jumps is not zero, last_ir cannot be NULL... there has to
+       * be at least num_loop_jumps instructions in the loop.
+       */
+      if (ls->num_loop_jumps == 1 && is_break(last_ir)) {
+         last_ir->remove();
+
+         simple_unroll(ir, 1);
+      }
+
+      /* Don't try to unroll loops where the number of iterations is not known
+       * at compile-time.
+       */
       return visit_continue;
+   }
 
    iterations = ls->limiting_terminator->iterations;
 

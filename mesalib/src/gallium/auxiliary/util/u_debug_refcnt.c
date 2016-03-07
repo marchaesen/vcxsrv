@@ -26,9 +26,14 @@
 
 #if defined(DEBUG)
 
-/* see http://www.mozilla.org/performance/refcnt-balancer.html for what do with the output
- * on Linux, use tools/addr2line.sh to postprocess it before anything else
- **/
+/**
+ * If the GALLIUM_REFCNT_LOG env var is defined as a filename, gallium
+ * reference counting will be logged to the file.
+ *
+ * See http://www-archive.mozilla.org/performance/refcnt-balancer.html
+ * for what to do with the output on Linux, use tools/addr2line.sh to
+ * postprocess it before anything else.
+ */
 
 #include <stdio.h>
 
@@ -42,30 +47,41 @@
 
 int debug_refcnt_state;
 
-FILE* stream;
+static FILE *stream;
 
-/* TODO: maybe move this serial machinery to a stand-alone module and expose it? */
+/* TODO: maybe move this serial machinery to a stand-alone module and
+ * expose it?
+ */
 pipe_static_mutex(serials_mutex);
 
-static struct util_hash_table* serials_hash;
+static struct util_hash_table *serials_hash;
 static unsigned serials_last;
 
-static unsigned hash_ptr(void* p)
+
+static unsigned
+hash_ptr(void *p)
 {
-   return (unsigned)(uintptr_t)p;
+   return (unsigned) (uintptr_t) p;
 }
 
-static int compare_ptr(void* a, void* b)
+
+static int
+compare_ptr(void *a, void *b)
 {
-   if(a == b)
+   if (a == b)
       return 0;
-   else if(a < b)
+   else if (a < b)
       return -1;
    else
       return 1;
 }
 
-static boolean debug_serial(void* p, unsigned* pserial)
+
+/**
+ * Return a small integer serial number for the given pointer.
+ */
+static boolean
+debug_serial(void *p, unsigned *pserial)
 {
    unsigned serial;
    boolean found = TRUE;
@@ -81,79 +97,99 @@ static boolean debug_serial(void* p, unsigned* pserial)
    pipe_mutex_lock(serials_mutex);
    if (!serials_hash)
       serials_hash = util_hash_table_create(hash_ptr, compare_ptr);
-   serial = (unsigned)(uintptr_t)util_hash_table_get(serials_hash, p);
-   if(!serial)
-   {
-      /* time to stop logging... (you'll have a 100 GB logfile at least at this point)
-       * TODO: avoid this
+
+   serial = (unsigned) (uintptr_t) util_hash_table_get(serials_hash, p);
+   if (!serial) {
+      /* time to stop logging... (you'll have a 100 GB logfile at least at
+       * this point)  TODO: avoid this
        */
       serial = ++serials_last;
-      if(!serial)
-      {
+      if (!serial) {
          debug_error("More than 2^32 objects detected, aborting.\n");
          os_abort();
       }
 
-      util_hash_table_set(serials_hash, p, (void*)(uintptr_t)serial);
+      util_hash_table_set(serials_hash, p, (void *) (uintptr_t) serial);
       found = FALSE;
    }
    pipe_mutex_unlock(serials_mutex);
+
    *pserial = serial;
+
    return found;
 }
 
-static void debug_serial_delete(void* p)
+
+/**
+ * Free the serial number for the given pointer.
+ */
+static void
+debug_serial_delete(void *p)
 {
    pipe_mutex_lock(serials_mutex);
    util_hash_table_remove(serials_hash, p);
    pipe_mutex_unlock(serials_mutex);
 }
 
+
 #define STACK_LEN 64
 
-static void dump_stack(const char* symbols[STACK_LEN])
+static void
+dump_stack(const char *symbols[STACK_LEN])
 {
    unsigned i;
-   for(i = 0; i < STACK_LEN; ++i)
-   {
-      if(symbols[i])
+   for (i = 0; i < STACK_LEN; ++i) {
+      if (symbols[i])
          fprintf(stream, "%s\n", symbols[i]);
    }
    fprintf(stream, "\n");
 }
 
-void debug_reference_slowpath(const struct pipe_reference* p, debug_reference_descriptor get_desc, int change)
+
+/**
+ * Log a reference count change to the log file (if enabled).
+ * This is called via the pipe_reference() and debug_reference() functions,
+ * basically whenever a reference count is initialized or changed.
+ *
+ * \param p  the refcount being changed (the value is not changed here)
+ * \param get_desc  a function which will be called to print an object's
+ *                  name/pointer into a string buffer during logging
+ * \param change  the reference count change which must be +/-1 or 0 when
+ *                creating the object and initializing the refcount.
+ */
+void
+debug_reference_slowpath(const struct pipe_reference *p,
+                         debug_reference_descriptor get_desc, int change)
 {
-   if(debug_refcnt_state < 0)
+   assert(change >= -1);
+   assert(change <= 1);
+
+   if (debug_refcnt_state < 0)
       return;
 
-   if(!debug_refcnt_state)
-   {
-      const char* filename = debug_get_option("GALLIUM_REFCNT_LOG", NULL);
-      if(filename && filename[0])
+   if (!debug_refcnt_state) {
+      const char *filename = debug_get_option("GALLIUM_REFCNT_LOG", NULL);
+      if (filename && filename[0])
          stream = fopen(filename, "wt");
 
-      if(stream)
+      if (stream)
          debug_refcnt_state = 1;
       else
          debug_refcnt_state = -1;
    }
 
-   if(debug_refcnt_state > 0)
-   {
+   if (debug_refcnt_state > 0) {
       struct debug_stack_frame frames[STACK_LEN];
-      const char* symbols[STACK_LEN];
+      const char *symbols[STACK_LEN];
       char buf[1024];
-
       unsigned i;
       unsigned refcnt = p->count;
       unsigned serial;
-      boolean existing = debug_serial((void*)p, &serial);
+      boolean existing = debug_serial((void *) p, &serial);
 
       debug_backtrace_capture(frames, 1, STACK_LEN);
-      for(i = 0; i < STACK_LEN; ++i)
-      {
-         if(frames[i].function)
+      for (i = 0; i < STACK_LEN; ++i) {
+         if (frames[i].function)
             symbols[i] = debug_symbol_name_cached(frames[i].function);
          else
             symbols[i] = 0;
@@ -161,30 +197,28 @@ void debug_reference_slowpath(const struct pipe_reference* p, debug_reference_de
 
       get_desc(buf, p);
 
-      if(!existing)
-      {
+      if (!existing) {
          fprintf(stream, "<%s> %p %u Create\n", buf, (void *) p, serial);
          dump_stack(symbols);
 
-         /* this is there to provide a gradual change even if we don't see the initialization */
-         for(i = 1; i <= refcnt - change; ++i)
-         {
+         /* this is here to provide a gradual change even if we don't see
+          * the initialization
+          */
+         for (i = 1; i <= refcnt - change; ++i) {
             fprintf(stream, "<%s> %p %u AddRef %u\n", buf, (void *) p,
                     serial, i);
             dump_stack(symbols);
          }
       }
 
-      if(change)
-      {
+      if (change) {
          fprintf(stream, "<%s> %p %u %s %u\n", buf, (void *) p, serial,
                  change > 0 ? "AddRef" : "Release", refcnt);
          dump_stack(symbols);
       }
 
-      if(!refcnt)
-      {
-         debug_serial_delete((void*)p);
+      if (!refcnt) {
+         debug_serial_delete((void *) p);
          fprintf(stream, "<%s> %p %u Destroy\n", buf, (void *) p, serial);
          dump_stack(symbols);
       }
@@ -192,4 +226,5 @@ void debug_reference_slowpath(const struct pipe_reference* p, debug_reference_de
       fflush(stream);
    }
 }
-#endif
+
+#endif /* DEBUG */

@@ -48,6 +48,7 @@
 #include "main/feedback.h"
 #include "main/formats.h"
 #include "main/format_unpack.h"
+#include "main/framebuffer.h"
 #include "main/glformats.h"
 #include "main/image.h"
 #include "main/macros.h"
@@ -104,42 +105,20 @@ static void meta_drawpix_cleanup(struct gl_context *ctx,
                                  struct drawpix_state *drawpix);
 
 void
-_mesa_meta_bind_fbo_image(GLenum fboTarget, GLenum attachment,
-                          struct gl_texture_image *texImage, GLuint layer)
+_mesa_meta_framebuffer_texture_image(struct gl_context *ctx,
+                                     struct gl_framebuffer *fb,
+                                     GLenum attachment,
+                                     struct gl_texture_image *texImage,
+                                     GLuint layer)
 {
    struct gl_texture_object *texObj = texImage->TexObject;
    int level = texImage->Level;
-   GLenum texTarget = texObj->Target;
+   const GLenum texTarget = texObj->Target == GL_TEXTURE_CUBE_MAP
+      ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + texImage->Face
+      : texObj->Target;
 
-   switch (texTarget) {
-   case GL_TEXTURE_1D:
-      _mesa_FramebufferTexture1D(fboTarget,
-                                 attachment,
-                                 texTarget,
-                                 texObj->Name,
-                                 level);
-      break;
-   case GL_TEXTURE_1D_ARRAY:
-   case GL_TEXTURE_2D_ARRAY:
-   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-   case GL_TEXTURE_CUBE_MAP_ARRAY:
-   case GL_TEXTURE_3D:
-      _mesa_FramebufferTextureLayer(fboTarget,
-                                    attachment,
-                                    texObj->Name,
-                                    level,
-                                    layer);
-      break;
-   default: /* 2D / cube */
-      if (texTarget == GL_TEXTURE_CUBE_MAP)
-         texTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + texImage->Face;
-
-      _mesa_FramebufferTexture2D(fboTarget,
-                                 attachment,
-                                 texTarget,
-                                 texObj->Name,
-                                 level);
-   }
+   _mesa_framebuffer_texture(ctx, fb, attachment, texObj, texTarget,
+                             level, layer, false, __func__);
 }
 
 GLuint
@@ -847,8 +826,8 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
       if (ctx->RasterDiscard)
          _mesa_set_enable(ctx, GL_RASTERIZER_DISCARD, GL_FALSE);
 
-      save->DrawBufferName = ctx->DrawBuffer->Name;
-      save->ReadBufferName = ctx->ReadBuffer->Name;
+      _mesa_reference_framebuffer(&save->DrawBuffer, ctx->DrawBuffer);
+      _mesa_reference_framebuffer(&save->ReadBuffer, ctx->ReadBuffer);
    }
 }
 
@@ -1234,11 +1213,9 @@ _mesa_meta_end(struct gl_context *ctx)
    if (save->TransformFeedbackNeedsResume)
       _mesa_ResumeTransformFeedback();
 
-   if (ctx->DrawBuffer->Name != save->DrawBufferName)
-      _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, save->DrawBufferName);
-
-   if (ctx->ReadBuffer->Name != save->ReadBufferName)
-      _mesa_BindFramebuffer(GL_READ_FRAMEBUFFER, save->ReadBufferName);
+   _mesa_bind_framebuffers(ctx, save->DrawBuffer, save->ReadBuffer);
+   _mesa_reference_framebuffer(&save->DrawBuffer, NULL);
+   _mesa_reference_framebuffer(&save->ReadBuffer, NULL);
 
    if (state & MESA_META_DRAW_BUFFERS) {
       _mesa_drawbuffers(ctx, ctx->DrawBuffer, ctx->Const.MaxDrawBuffers,
@@ -2807,7 +2784,7 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
                                        GLint x, GLint y,
                                        GLsizei width, GLsizei height)
 {
-   GLuint fbo;
+   struct gl_framebuffer *drawFb;
    bool success = false;
    GLbitfield mask;
    GLenum status;
@@ -2815,32 +2792,37 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
    if (!ctx->Extensions.ARB_framebuffer_object)
       return false;
 
-   _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_DRAW_BUFFERS);
+   drawFb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
+   if (drawFb == NULL)
+      return false;
 
-   _mesa_GenFramebuffers(1, &fbo);
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+   _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_DRAW_BUFFERS);
+   _mesa_bind_framebuffers(ctx, drawFb, ctx->ReadBuffer);
 
    if (rb->_BaseFormat == GL_DEPTH_STENCIL ||
        rb->_BaseFormat == GL_DEPTH_COMPONENT) {
-      _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                texImage, zoffset);
+      _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                           GL_DEPTH_ATTACHMENT,
+                                           texImage, zoffset);
       mask = GL_DEPTH_BUFFER_BIT;
 
       if (rb->_BaseFormat == GL_DEPTH_STENCIL &&
           texImage->_BaseFormat == GL_DEPTH_STENCIL) {
-         _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-                                   texImage, zoffset);
+         _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                              GL_STENCIL_ATTACHMENT,
+                                              texImage, zoffset);
          mask |= GL_STENCIL_BUFFER_BIT;
       }
       _mesa_DrawBuffer(GL_NONE);
    } else {
-      _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                texImage, zoffset);
+      _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                           GL_COLOR_ATTACHMENT0,
+                                           texImage, zoffset);
       mask = GL_COLOR_BUFFER_BIT;
       _mesa_DrawBuffer(GL_COLOR_ATTACHMENT0);
    }
 
-   status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+   status = _mesa_check_framebuffer_status(ctx, ctx->DrawBuffer);
    if (status != GL_FRAMEBUFFER_COMPLETE)
       goto out;
 
@@ -2866,7 +2848,7 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
    success = mask == 0x0;
 
  out:
-   _mesa_DeleteFramebuffers(1, &fbo);
+   _mesa_reference_framebuffer(&drawFb, NULL);
    _mesa_meta_end(ctx);
    return success;
 }
@@ -2961,8 +2943,8 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 static void
 meta_decompress_fbo_cleanup(struct decompress_fbo_state *decompress_fbo)
 {
-   if (decompress_fbo->FBO != 0) {
-      _mesa_DeleteFramebuffers(1, &decompress_fbo->FBO);
+   if (decompress_fbo->fb != NULL) {
+      _mesa_reference_framebuffer(&decompress_fbo->fb, NULL);
       _mesa_reference_renderbuffer(&decompress_fbo->rb, NULL);
    }
 
@@ -3065,7 +3047,7 @@ decompress_texture_image(struct gl_context *ctx,
                                   ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler);
 
    /* Create/bind FBO/renderbuffer */
-   if (decompress_fbo->FBO == 0) {
+   if (decompress_fbo->fb == NULL) {
       decompress_fbo->rb = ctx->Driver.NewRenderbuffer(ctx, 0xDEADBEEF);
       if (decompress_fbo->rb == NULL) {
          _mesa_meta_end(ctx);
@@ -3074,20 +3056,25 @@ decompress_texture_image(struct gl_context *ctx,
 
       decompress_fbo->rb->RefCount = 1;
 
-      _mesa_GenFramebuffers(1, &decompress_fbo->FBO);
-      _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress_fbo->FBO);
+      decompress_fbo->fb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
+      if (decompress_fbo->fb == NULL) {
+         _mesa_meta_end(ctx);
+         return false;
+      }
+
+      _mesa_bind_framebuffers(ctx, decompress_fbo->fb, decompress_fbo->fb);
       _mesa_framebuffer_renderbuffer(ctx, ctx->DrawBuffer, GL_COLOR_ATTACHMENT0,
                                      decompress_fbo->rb);
    }
    else {
-      _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress_fbo->FBO);
+      _mesa_bind_framebuffers(ctx, decompress_fbo->fb, decompress_fbo->fb);
    }
 
    /* alloc dest surface */
    if (width > decompress_fbo->Width || height > decompress_fbo->Height) {
       _mesa_renderbuffer_storage(ctx, decompress_fbo->rb, rbFormat,
                                  width, height, 0);
-      status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+      status = _mesa_check_framebuffer_status(ctx, ctx->DrawBuffer);
       if (status != GL_FRAMEBUFFER_COMPLETE) {
          /* If the framebuffer isn't complete then we'll leave
           * decompress_fbo->Width as zero so that it will fail again next time
@@ -3434,10 +3421,11 @@ cleartexsubimage_color(struct gl_context *ctx,
    GLenum datatype;
    GLenum status;
 
-   _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                             texImage, zoffset);
+   _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                        GL_COLOR_ATTACHMENT0,
+                                        texImage, zoffset);
 
-   status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+   status = _mesa_check_framebuffer_status(ctx, ctx->DrawBuffer);
    if (status != GL_FRAMEBUFFER_COMPLETE)
       return false;
 
@@ -3481,14 +3469,16 @@ cleartexsubimage_depth_stencil(struct gl_context *ctx,
    GLfloat depthValue;
    GLenum status;
 
-   _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                             texImage, zoffset);
+   _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                        GL_DEPTH_ATTACHMENT,
+                                        texImage, zoffset);
 
    if (texImage->_BaseFormat == GL_DEPTH_STENCIL)
-      _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-                                texImage, zoffset);
+      _mesa_meta_framebuffer_texture_image(ctx, ctx->DrawBuffer,
+                                           GL_STENCIL_ATTACHMENT,
+                                           texImage, zoffset);
 
-   status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+   status = _mesa_check_framebuffer_status(ctx, ctx->DrawBuffer);
    if (status != GL_FRAMEBUFFER_COMPLETE)
       return false;
 
@@ -3526,11 +3516,14 @@ cleartexsubimage_for_zoffset(struct gl_context *ctx,
                              GLint zoffset,
                              const GLvoid *clearValue)
 {
-   GLuint fbo;
+   struct gl_framebuffer *drawFb;
    bool success;
 
-   _mesa_GenFramebuffers(1, &fbo);
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+   drawFb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
+   if (drawFb == NULL)
+      return false;
+
+   _mesa_bind_framebuffers(ctx, drawFb, ctx->ReadBuffer);
 
    switch(texImage->_BaseFormat) {
    case GL_DEPTH_STENCIL:
@@ -3543,7 +3536,7 @@ cleartexsubimage_for_zoffset(struct gl_context *ctx,
       break;
    }
 
-   _mesa_DeleteFramebuffers(1, &fbo);
+   _mesa_reference_framebuffer(&drawFb, NULL);
 
    return success;
 }

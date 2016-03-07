@@ -312,6 +312,8 @@ int
 proc_dri3_dispatch(ClientPtr client)
 {
     REQUEST(xReq);
+    if (!client->local)
+        return BadMatch;
     if (stuff->data >= DRI3NumberRequests || !proc_dri3_vector[stuff->data])
         return BadRequest;
     return (*proc_dri3_vector[stuff->data]) (client);
@@ -405,6 +407,8 @@ int
 sproc_dri3_dispatch(ClientPtr client)
 {
     REQUEST(xReq);
+    if (!client->local)
+        return BadMatch;
     if (stuff->data >= DRI3NumberRequests || !sproc_dri3_vector[stuff->data])
         return BadRequest;
     return (*sproc_dri3_vector[stuff->data]) (client);

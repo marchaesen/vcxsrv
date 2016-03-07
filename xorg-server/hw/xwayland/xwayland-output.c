@@ -164,8 +164,8 @@ update_screen_size(struct xwl_output *xwl_output, int width, int height)
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
     double mmpd;
 
-    if (!xwl_screen->rootless)
-        SetRootClip(xwl_screen->screen, FALSE);
+    if (xwl_screen->root_clip_mode == ROOT_CLIP_FULL)
+        SetRootClip(xwl_screen->screen, ROOT_CLIP_NONE);
 
     xwl_screen->width = width;
     xwl_screen->height = height;
@@ -181,6 +181,8 @@ update_screen_size(struct xwl_output *xwl_output, int width, int height)
         xwl_screen->screen->mmHeight = height * mmpd;
     }
 
+    SetRootClip(xwl_screen->screen, xwl_screen->root_clip_mode);
+
     if (xwl_screen->screen->root) {
         xwl_screen->screen->root->drawable.width = width;
         xwl_screen->screen->root->drawable.height = height;
@@ -188,9 +190,6 @@ update_screen_size(struct xwl_output *xwl_output, int width, int height)
     }
 
     update_desktop_dimensions();
-
-    if (!xwl_screen->rootless)
-        SetRootClip(xwl_screen->screen, TRUE);
 }
 
 static void
@@ -298,6 +297,7 @@ xwl_output_destroy(struct xwl_output *xwl_output)
 
     wl_output_destroy(xwl_output->output);
     xorg_list_del(&xwl_output->link);
+    RRCrtcDestroy(xwl_output->randr_crtc);
     RROutputDestroy(xwl_output->randr_output);
 
     xorg_list_for_each_entry(it, &xwl_screen->output_list, link)

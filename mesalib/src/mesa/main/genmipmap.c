@@ -38,20 +38,11 @@
 #include "texobj.h"
 #include "hash.h"
 
-/**
- * Implements glGenerateMipmap and glGenerateTextureMipmap.
- * Generates all the mipmap levels below the base level.
- */
-void
-_mesa_generate_texture_mipmap(struct gl_context *ctx,
-                              struct gl_texture_object *texObj, GLenum target,
-                              bool dsa)
+bool
+_mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,
+                                              GLenum target)
 {
-   struct gl_texture_image *srcImage;
    GLboolean error;
-   const char *suffix = dsa ? "Texture" : "";
-
-   FLUSH_VERTICES(ctx, 0);
 
    switch (target) {
    case GL_TEXTURE_1D:
@@ -81,7 +72,34 @@ _mesa_generate_texture_mipmap(struct gl_context *ctx,
       error = GL_TRUE;
    }
 
-   if (error) {
+   return (error != GL_TRUE);
+}
+
+bool
+_mesa_is_valid_generate_texture_mipmap_internalformat(struct gl_context *ctx,
+                                                      GLenum internalformat)
+{
+   return (!_mesa_is_enum_format_integer(internalformat) &&
+           !_mesa_is_depthstencil_format(internalformat) &&
+           !_mesa_is_astc_format(internalformat) &&
+           !_mesa_is_stencil_format(internalformat));
+}
+
+/**
+ * Implements glGenerateMipmap and glGenerateTextureMipmap.
+ * Generates all the mipmap levels below the base level.
+ */
+void
+_mesa_generate_texture_mipmap(struct gl_context *ctx,
+                              struct gl_texture_object *texObj, GLenum target,
+                              bool dsa)
+{
+   struct gl_texture_image *srcImage;
+   const char *suffix = dsa ? "Texture" : "";
+
+   FLUSH_VERTICES(ctx, 0);
+
+   if (!_mesa_is_valid_generate_texture_mipmap_target(ctx, target)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGenerate%sMipmap(target=%s)",
                   suffix, _mesa_enum_to_string(target));
       return;
@@ -109,10 +127,8 @@ _mesa_generate_texture_mipmap(struct gl_context *ctx,
       return;
    }
 
-   if (_mesa_is_enum_format_integer(srcImage->InternalFormat) ||
-       _mesa_is_depthstencil_format(srcImage->InternalFormat) ||
-       _mesa_is_astc_format(srcImage->InternalFormat) ||
-       _mesa_is_stencil_format(srcImage->InternalFormat)) {
+   if (!_mesa_is_valid_generate_texture_mipmap_internalformat(ctx,
+                                                              srcImage->InternalFormat)) {
       _mesa_unlock_texture(ctx, texObj);
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGenerate%sMipmap(invalid internal format)", suffix);

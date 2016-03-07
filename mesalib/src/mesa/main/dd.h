@@ -184,22 +184,24 @@ struct dd_function_table {
                                       GLenum srcFormat, GLenum srcType );
 
    /**
-    * Determine sample counts support for a particular target and format
+    * Queries different driver parameters for a particular target and format.
+    * Since ARB_internalformat_query2 introduced several new query parameters
+    * over ARB_internalformat_query, having one driver hook for each parameter
+    * is no longer feasible. So this is the generic entry-point for calls
+    * to glGetInternalFormativ and glGetInternalFormati64v, after Mesa has
+    * checked errors and default values.
     *
     * \param ctx            GL context
     * \param target         GL target enum
     * \param internalFormat GL format enum
-    * \param samples        Buffer to hold the returned sample counts.
-    *                       Drivers \b must \b not return more than 16 counts.
-    *
-    * \returns
-    * The number of sample counts actually written to \c samples.  If
-    * \c internaFormat is not renderable, zero is returned.
+    * \param pname          GL enum that specifies the info to query.
+    * \param params         Buffer to hold the result of the query.
     */
-   size_t (*QuerySamplesForFormat)(struct gl_context *ctx,
-                                   GLenum target,
-                                   GLenum internalFormat,
-                                   int samples[16]);
+   void (*QueryInternalFormat)(struct gl_context *ctx,
+                               GLenum target,
+                               GLenum internalFormat,
+                               GLenum pname,
+                               GLint *params);
 
    /**
     * Called by glTexImage[123]D() and glCopyTexImage[12]D()

@@ -37,6 +37,7 @@
 
 #include "main/imports.h"
 #include "main/mtypes.h"
+#include "main/framebuffer.h"
 #include "program/program.h"
 
 #include "pipe/p_context.h"
@@ -70,16 +71,13 @@ update_fp( struct st_context *st )
    key.clamp_color = st->clamp_frag_color_in_shader &&
                      st->ctx->Color._ClampFragmentColor;
 
-   /* Don't set it if the driver can force the interpolation by itself.
-    * If SAMPLE_ID or SAMPLE_POS are used, the interpolation is set
-    * automatically.
-    * Ignore sample qualifier while computing this flag.
-    */
+   /* _NEW_MULTISAMPLE | _NEW_BUFFERS */
    key.persample_shading =
       st->force_persample_in_shader &&
-      !(stfp->Base.Base.SystemValuesRead & (SYSTEM_BIT_SAMPLE_ID |
-                                            SYSTEM_BIT_SAMPLE_POS)) &&
-      _mesa_get_min_invocations_per_fragment(st->ctx, &stfp->Base, true) > 1;
+      st->ctx->Multisample._Enabled &&
+      st->ctx->Multisample.SampleShading &&
+      st->ctx->Multisample.MinSampleShadingValue *
+      _mesa_geometric_samples(st->ctx->DrawBuffer) > 1;
 
    st->fp_variant = st_get_fp_variant(st, stfp, &key);
 

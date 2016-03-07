@@ -305,7 +305,7 @@ ProcWindowsWMFrameGetRect(ClientPtr client)
 
     REQUEST(xWindowsWMFrameGetRectReq);
 
-  winDebug ("ProcWindowsWMFrameGetRect %d %d\n",
+  winDebug ("ProcWindowsWMFrameGetRect %zu %d\n",
             (sizeof(xWindowsWMFrameGetRectReq) >> 2), (int) client->req_len);
 
     REQUEST_SIZE_MATCH(xWindowsWMFrameGetRectReq);

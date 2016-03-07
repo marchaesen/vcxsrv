@@ -620,6 +620,28 @@ ClientSignal(ClientPtr client)
     return FALSE;
 }
 
+int
+ClientSignalAll(ClientPtr client, ClientSleepProcPtr function, void *closure)
+{
+    SleepQueuePtr q;
+    int count = 0;
+
+    for (q = sleepQueue; q; q = q->next) {
+        if (!(client == CLIENT_SIGNAL_ANY || q->client == client))
+            continue;
+
+        if (!(function == CLIENT_SIGNAL_ANY || q->function == function))
+            continue;
+
+        if (!(closure == CLIENT_SIGNAL_ANY || q->closure == closure))
+            continue;
+
+        count += QueueWorkProc(q->function, q->client, q->closure);
+    }
+
+    return count;
+}
+
 void
 ClientWakeup(ClientPtr client)
 {

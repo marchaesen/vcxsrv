@@ -63,6 +63,9 @@
 
 #define WIN_POLL_TIMEOUT	1
 
+#ifndef WM_CLIPBOARDUPDATE
+#define WM_CLIPBOARDUPDATE 0x031D
+#endif
 /*
  * References to external symbols
  */
@@ -165,8 +168,16 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         winDebug("winClipboardWindowProc - WM_DESTROY\n");
 
-        /* Remove ourselves from the clipboard chain */
-        ChangeClipboardChain(hwnd, s_hwndNextViewer);
+        if (g_fHasModernClipboardApi)
+            {
+                /* Remove clipboard listener */
+                g_fpRemoveClipboardFormatListener(hwnd);
+            }
+        else
+            {
+                /* Remove ourselves from the clipboard chain */
+                ChangeClipboardChain(hwnd, s_hwndNextViewer);
+            }
 
         s_hwndNextViewer = NULL;
         g_hwndClipboard = NULL;
@@ -184,8 +195,6 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_CREATE:
     {
-        HWND first, next;
-        DWORD error_code = 0;
         ClipboardWindowCreationParams *cwcp = (ClipboardWindowCreationParams *)((CREATESTRUCT *)lParam)->lpCreateParams;
 
         winDebug("winClipboardWindowProc - WM_CREATE\n");
@@ -195,16 +204,26 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         atoms = cwcp->atoms;
         fRunning = TRUE;
 
-        first = GetClipboardViewer();   /* Get handle to first viewer in chain. */
-        if (first == hwnd)
-            return 0;           /* Make sure it's not us! */
-        /* Add ourselves to the clipboard viewer chain */
-        next = SetClipboardViewer(hwnd);
-        error_code = GetLastError();
-        if (SUCCEEDED(error_code) && (next == first))   /* SetClipboardViewer must have succeeded, and the handle */
-            s_hwndNextViewer = next;    /* it returned must have been the first window in the chain */
+        if (g_fHasModernClipboardApi)
+            {
+                g_fpAddClipboardFormatListener(hwnd);
+            }
         else
-            s_fCBCInitialized = FALSE;
+            {
+                HWND first, next;
+                DWORD error_code = 0;
+
+                first = GetClipboardViewer();   /* Get handle to first viewer in chain. */
+                if (first == hwnd)
+                    return 0;           /* Make sure it's not us! */
+                /* Add ourselves to the clipboard viewer chain */
+                next = SetClipboardViewer(hwnd);
+                error_code = GetLastError();
+                if (SUCCEEDED(error_code) && (next == first))   /* SetClipboardViewer must have succeeded, and the handle */
+                    s_hwndNextViewer = next;    /* it returned must have been the first window in the chain */
+                else
+                    s_fCBCInitialized = FALSE;
+            }
     }
         return 0;
 
@@ -250,6 +269,11 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
           return 0;
         winDebug("winClipboardWindowProc - WM_WM_REINIT: Enter\n");
 
+        if (g_fHasModernClipboardApi)
+            {
+                return 0;
+            }
+
         first = GetClipboardViewer();   /* Get handle to first viewer in chain. */
         if (first == hwnd)
             return 0;           /* Make sure it's not us! */
@@ -274,45 +298,49 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_DRAWCLIPBOARD:
+    case WM_CLIPBOARDUPDATE:
     {
         static Bool s_fProcessingDrawClipboard = FALSE;
         int iReturn;
 
         winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD 0x%x 0x%x 0x%x: Enter\n",hwnd,wParam,lParam);
 
-        if (!g_fClipboardStarted) {
-          winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit with no processing\n");
-          if (s_hwndNextViewer)
-            SendMessage (s_hwndNextViewer, message, wParam, lParam);
-          return 0;
-        }
+        if (!g_fHasModernClipboardApi)
+            {
+                if (!g_fClipboardStarted) {
+                  winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit with no processing\n");
+                  if (s_hwndNextViewer)
+                    SendMessage (s_hwndNextViewer, message, wParam, lParam);
+                  return 0;
+                }
 
-        /*
-         * We've occasionally seen a loop in the clipboard chain.
-         * Try and fix it on the first hint of recursion.
-         */
-        if (!s_fProcessingDrawClipboard) {
-            s_fProcessingDrawClipboard = TRUE;
-        }
-        else {
-            /* Attempt to break the nesting by getting out of the chain, twice?, and then fix and bail */
-            s_fCBCInitialized = FALSE;
-            ChangeClipboardChain(hwnd, s_hwndNextViewer);
-            winFixClipboardChain(1);
-            ErrorF("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-                   "Nested calls detected.  Re-initing.\n");
-            winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
-            s_fProcessingDrawClipboard = FALSE;
-            return 0;
-        }
+                /*
+                 * We've occasionally seen a loop in the clipboard chain.
+                 * Try and fix it on the first hint of recursion.
+                 */
+                if (!s_fProcessingDrawClipboard) {
+                    s_fProcessingDrawClipboard = TRUE;
+                }
+                else {
+                    /* Attempt to break the nesting by getting out of the chain, twice?, and then fix and bail */
+                    s_fCBCInitialized = FALSE;
+                    ChangeClipboardChain(hwnd, s_hwndNextViewer);
+                    winFixClipboardChain(1);
+                    ErrorF("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                           "Nested calls detected.  Re-initing.\n");
+                    winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
+                    s_fProcessingDrawClipboard = FALSE;
+                    return 0;
+                }
 
-        /* Bail on first message */
-        if (!s_fCBCInitialized) {
-            s_fCBCInitialized = TRUE;
-            s_fProcessingDrawClipboard = FALSE;
-            winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
-            return 0;
-        }
+                /* Bail on first message */
+                if (!s_fCBCInitialized) {
+                    s_fCBCInitialized = TRUE;
+                    s_fProcessingDrawClipboard = FALSE;
+                    winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
+                    return 0;
+                }
+            }
 
         /*
          * NOTE: We cannot bail out when NULL == GetClipboardOwner ()

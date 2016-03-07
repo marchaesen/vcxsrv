@@ -72,7 +72,9 @@ LOCAL_LIBS = \
 	    $(DRI3_LIB) \
 	    $(top_builddir)/miext/sync/libsync.la \
             $(top_builddir)/mi/libmi.la \
-            $(top_builddir)/os/libos.la
+            $(top_builddir)/os/libos.la \
+	    $(top_builddir)/Xext/libXvidmode.la
+
 Xorg_LDADD = \
             $(LOCAL_LIBS) \
             $(XORG_SYS_LIBS) \

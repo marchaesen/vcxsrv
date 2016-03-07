@@ -163,7 +163,7 @@ wscons_add_keyboard(void)
         }
 
  kbd_config_done:
-    attrs.flags |= ATTR_KEYBOARD;
+    attrs.flags |= ATTR_KEY | ATTR_KEYBOARD;
     rc = NewInputDeviceRequest(input_options, &attrs, &dev);
     if (rc != Success)
         goto unwind;

@@ -231,15 +231,14 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 
 
 static ir_expression_operation
-get_conversion_operation(const glsl_type *to, const glsl_type *from,
-                         struct _mesa_glsl_parse_state *state)
+get_implicit_conversion_operation(const glsl_type *to, const glsl_type *from,
+                                  struct _mesa_glsl_parse_state *state)
 {
    switch (to->base_type) {
    case GLSL_TYPE_FLOAT:
       switch (from->base_type) {
       case GLSL_TYPE_INT: return ir_unop_i2f;
       case GLSL_TYPE_UINT: return ir_unop_u2f;
-      case GLSL_TYPE_DOUBLE: return ir_unop_d2f;
       default: return (ir_expression_operation)0;
       }
 
@@ -311,7 +310,7 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
    to = glsl_type::get_instance(to->base_type, from->type->vector_elements,
                                 from->type->matrix_columns);
 
-   ir_expression_operation op = get_conversion_operation(to, from->type, state);
+   ir_expression_operation op = get_implicit_conversion_operation(to, from->type, state);
    if (op) {
       from = new(ctx) ir_expression(op, to, from, NULL);
       return true;
@@ -6245,9 +6244,11 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
                                           ir_variable_mode var_mode,
                                           ast_type_qualifier *layout,
                                           unsigned block_stream,
-                                          unsigned expl_location)
+                                          unsigned expl_location,
+                                          unsigned expl_align)
 {
    unsigned decl_count = 0;
+   unsigned next_offset = 0;
 
    /* Make an initial pass over the list of fields to determine how
     * many there are.  Each element in this list is an ast_declarator_list.
@@ -6461,13 +6462,93 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
             }
          }
 
+         /* Offset can only be used with std430 and std140 layouts an initial
+          * value of 0 is used for error detection.
+          */
+         unsigned align = 0;
+         unsigned size = 0;
+         if (layout) {
+            bool row_major;
+            if (qual->flags.q.row_major ||
+                matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR) {
+               row_major = true;
+            } else {
+               row_major = false;
+            }
+
+            if(layout->flags.q.std140) {
+               align = field_type->std140_base_alignment(row_major);
+               size = field_type->std140_size(row_major);
+            } else if (layout->flags.q.std430) {
+               align = field_type->std430_base_alignment(row_major);
+               size = field_type->std430_size(row_major);
+            }
+         }
+
+         if (qual->flags.q.explicit_offset) {
+            unsigned qual_offset;
+            if (process_qualifier_constant(state, &loc, "offset",
+                                           qual->offset, &qual_offset)) {
+               if (align != 0 && size != 0) {
+                   if (next_offset > qual_offset)
+                      _mesa_glsl_error(&loc, state, "layout qualifier "
+                                       "offset overlaps previous member");
+
+                  if (qual_offset % align) {
+                     _mesa_glsl_error(&loc, state, "layout qualifier offset "
+                                      "must be a multiple of the base "
+                                      "alignment of %s", field_type->name);
+                  }
+                  fields[i].offset = qual_offset;
+                  next_offset = glsl_align(qual_offset + size, align);
+               } else {
+                  _mesa_glsl_error(&loc, state, "offset can only be used "
+                                   "with std430 and std140 layouts");
+               }
+            }
+         } else {
+            fields[i].offset = -1;
+         }
+
+         if (qual->flags.q.explicit_align || expl_align != 0) {
+            unsigned offset = fields[i].offset != -1 ? fields[i].offset :
+               next_offset;
+            if (align == 0 || size == 0) {
+               _mesa_glsl_error(&loc, state, "align can only be used with "
+                                "std430 and std140 layouts");
+            } else if (qual->flags.q.explicit_align) {
+               unsigned member_align;
+               if (process_qualifier_constant(state, &loc, "align",
+                                              qual->align, &member_align)) {
+                  if (member_align == 0 ||
+                      member_align & (member_align - 1)) {
+                     _mesa_glsl_error(&loc, state, "align layout qualifier "
+                                      "in not a power of 2");
+                  } else {
+                     fields[i].offset = glsl_align(offset, member_align);
+                     next_offset = glsl_align(fields[i].offset + size, align);
+                  }
+               }
+            } else {
+               fields[i].offset = glsl_align(offset, expl_align);
+               next_offset = glsl_align(fields[i].offset + size, align);
+            }
+         }
+
+         if (!qual->flags.q.explicit_offset) {
+            if (align != 0 && size != 0)
+               next_offset = glsl_align(next_offset + size, align);
+         }
+
          /* Propogate row- / column-major information down the fields of the
           * structure or interface block.  Structures need this data because
           * the structure may contain a structure that contains ... a matrix
           * that need the proper layout.
           */
-         if (field_type->without_array()->is_matrix()
-             || field_type->without_array()->is_record()) {
+         if (is_interface &&
+             (layout->flags.q.uniform || layout->flags.q.buffer) &&
+             (field_type->without_array()->is_matrix()
+              || field_type->without_array()->is_record())) {
             /* If no layout is specified for the field, inherit the layout
              * from the block.
              */
@@ -6478,11 +6559,10 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
             else if (qual->flags.q.column_major)
                fields[i].matrix_layout = GLSL_MATRIX_LAYOUT_COLUMN_MAJOR;
 
-            /* If we're processing an interface block, the matrix layout must
-             * be decided by this point.
+            /* If we're processing an uniform or buffer block, the matrix
+             * layout must be decided by this point.
              */
-            assert(!is_interface
-                   || fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR
+            assert(fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR
                    || fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_COLUMN_MAJOR);
          }
 
@@ -6554,7 +6634,8 @@ ast_struct_specifier::hir(exec_list *instructions,
                                                 ir_var_auto,
                                                 layout,
                                                 0, /* for interface only */
-                                                expl_location);
+                                                expl_location,
+                                                0 /* for interface only */);
 
    validate_identifier(this->name, loc, state);
 
@@ -6722,6 +6803,20 @@ ast_interface_block::hir(exec_list *instructions,
       }
    }
 
+   unsigned expl_align = 0;
+   if (layout.flags.q.explicit_align) {
+      if (!process_qualifier_constant(state, &loc, "align",
+                                      layout.align, &expl_align)) {
+         return NULL;
+      } else {
+         if (expl_align == 0 || expl_align & (expl_align - 1)) {
+            _mesa_glsl_error(&loc, state, "align layout qualifier in not a "
+                             "power of 2.");
+            return NULL;
+         }
+      }
+   }
+
    unsigned int num_variables =
       ast_process_struct_or_iface_block_members(&declared_variables,
                                                 state,
@@ -6733,7 +6828,8 @@ ast_interface_block::hir(exec_list *instructions,
                                                 var_mode,
                                                 &this->layout,
                                                 qual_stream,
-                                                expl_location);
+                                                expl_location,
+                                                expl_align);
 
    if (!redeclaring_per_vertex) {
       validate_identifier(this->block_name, loc, state);
@@ -6834,6 +6930,8 @@ ast_interface_block::hir(exec_list *instructions,
          } else {
             fields[i].location =
                earlier_per_vertex->fields.structure[j].location;
+            fields[i].offset =
+               earlier_per_vertex->fields.structure[j].offset;
             fields[i].interpolation =
                earlier_per_vertex->fields.structure[j].interpolation;
             fields[i].centroid =

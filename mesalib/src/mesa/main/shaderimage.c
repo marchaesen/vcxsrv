@@ -331,12 +331,54 @@ get_image_format_class(mesa_format format)
    }
 }
 
-/**
- * Return whether an image format should be supported based on the current API
- * version of the context.
- */
-static bool
-is_image_format_supported(const struct gl_context *ctx, GLenum format)
+static GLenum
+_image_format_class_to_glenum(enum image_format_class class)
+{
+   switch (class) {
+   case IMAGE_FORMAT_CLASS_NONE:
+      return GL_NONE;
+   case IMAGE_FORMAT_CLASS_1X8:
+      return GL_IMAGE_CLASS_1_X_8;
+   case IMAGE_FORMAT_CLASS_1X16:
+      return GL_IMAGE_CLASS_1_X_16;
+   case IMAGE_FORMAT_CLASS_1X32:
+      return GL_IMAGE_CLASS_1_X_32;
+   case IMAGE_FORMAT_CLASS_2X8:
+      return GL_IMAGE_CLASS_2_X_8;
+   case IMAGE_FORMAT_CLASS_2X16:
+      return GL_IMAGE_CLASS_2_X_16;
+   case IMAGE_FORMAT_CLASS_2X32:
+      return GL_IMAGE_CLASS_2_X_32;
+   case IMAGE_FORMAT_CLASS_10_11_11:
+      return GL_IMAGE_CLASS_11_11_10;
+   case IMAGE_FORMAT_CLASS_4X8:
+      return GL_IMAGE_CLASS_4_X_8;
+   case IMAGE_FORMAT_CLASS_4X16:
+      return GL_IMAGE_CLASS_4_X_16;
+   case IMAGE_FORMAT_CLASS_4X32:
+      return GL_IMAGE_CLASS_4_X_32;
+   case IMAGE_FORMAT_CLASS_2_10_10_10:
+      return GL_IMAGE_CLASS_10_10_10_2;
+   default:
+      assert("Invalid image_format_class");
+      return GL_NONE;
+   }
+}
+
+GLenum
+_mesa_get_image_format_class(GLenum format)
+{
+   mesa_format tex_format = _mesa_get_shader_image_format(format);
+   if (tex_format == MESA_FORMAT_NONE)
+      return GL_NONE;
+
+   enum image_format_class class = get_image_format_class(tex_format);
+   return _image_format_class_to_glenum(class);
+}
+
+bool
+_mesa_is_shader_image_format_supported(const struct gl_context *ctx,
+                                       GLenum format)
 {
    switch (format) {
    /* Formats supported on both desktop and ES GL, c.f. table 8.27 of the
@@ -503,7 +545,7 @@ validate_bind_image_texture(struct gl_context *ctx, GLuint unit,
       return GL_FALSE;
    }
 
-   if (!is_image_format_supported(ctx, format)) {
+   if (!_mesa_is_shader_image_format_supported(ctx, format)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(format)");
       return GL_FALSE;
    }
@@ -668,7 +710,7 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
             tex_format = image->InternalFormat;
          }
 
-         if (!is_image_format_supported(ctx, tex_format)) {
+         if (!_mesa_is_shader_image_format_supported(ctx, tex_format)) {
             /* The ARB_multi_bind spec says:
              *
              *   "An INVALID_OPERATION error is generated if the internal

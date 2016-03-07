@@ -2,7 +2,7 @@ TTYAPP = mkfontscale
 
 DEFINES += _BSD_SOURCE
 
-INCLUDES += $(MHMAKECONF)\freetype\include
+INCLUDES += $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include
 
 INCLUDELIBFILES = \
  $(MHMAKECONF)\zlib\$(OBJDIR)\zlib1.lib \

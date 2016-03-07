@@ -17,7 +17,7 @@ INCLUDELIBFILES = \
  $(MHMAKECONF)\fontconfig\src\$(OBJDIR)\libfontconfig.lib \
  $(MHMAKECONF)\libXfont\src\util\$(OBJDIR)\libutil.lib
 
-INCLUDES += $(MHMAKECONF)\libXft\include $(MHMAKECONF)\freetype\include $(MHMAKECONF)\fontconfig
+INCLUDES += $(MHMAKECONF)\libXft\include $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\fontconfig
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 

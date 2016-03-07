@@ -26,7 +26,7 @@
 #
 ###########################################################################
 
-# This CSV file has the input data for gen_format.h and gen_format.c
+# This CSV file has the input data for format_parser.py
 #
 # Each format entry contains:
 # - name, per enum mesa_format

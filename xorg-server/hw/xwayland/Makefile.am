@@ -16,6 +16,7 @@ Xwayland_SOURCES =				\
 	xwayland-shm.c				\
 	xwayland-output.c			\
 	xwayland-cvt.c				\
+	xwayland-vidmode.c			\
 	xwayland.h				\
 	$(top_srcdir)/Xext/dpmsstubs.c		\
 	$(top_srcdir)/Xi/stubs.c		\
@@ -25,6 +26,7 @@ Xwayland_LDADD =				\
 	$(glamor_lib)				\
 	$(XWAYLAND_LIBS)			\
 	$(XWAYLAND_SYS_LIBS)			\
+	$(top_builddir)/Xext/libXvidmode.la	\
 	$(XSERVER_SYS_LIBS)
 Xwayland_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
 

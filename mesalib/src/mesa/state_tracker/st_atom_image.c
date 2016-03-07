@@ -48,10 +48,12 @@ st_bind_images(struct st_context *st, struct gl_shader *shader,
 {
    unsigned i;
    struct pipe_image_view images[MAX_IMAGE_UNIFORMS];
-   struct gl_program_constants *c = &st->ctx->Const.Program[shader->Stage];
+   struct gl_program_constants *c;
 
    if (!shader || !st->pipe->set_shader_images)
       return;
+
+   c = &st->ctx->Const.Program[shader->Stage];
 
    for (i = 0; i < shader->NumImages; i++) {
       struct gl_image_unit *u = &st->ctx->ImageUnits[shader->ImageUnits[i]];

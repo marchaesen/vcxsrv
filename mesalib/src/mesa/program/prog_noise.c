@@ -188,7 +188,7 @@ grad4(int hash, float x, float y, float z, float t)
  * Details can be found where this table is used, in the 4D noise method.
  * TODO: This should not be required, backport it from Bill's GLSL code!
  */
-static unsigned char simplex[64][4] = {
+static const unsigned char simplex[64][4] = {
    {0, 1, 2, 3}, {0, 1, 3, 2}, {0, 0, 0, 0}, {0, 2, 3, 1},
    {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 2, 3, 0},
    {0, 2, 1, 3}, {0, 0, 0, 0}, {0, 3, 1, 2}, {0, 3, 2, 1},

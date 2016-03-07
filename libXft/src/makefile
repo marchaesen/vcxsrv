@@ -20,4 +20,4 @@ CSRCS = \
                     xftswap.c \
                     xftxlfd.c
 
-INCLUDES += $(MHMAKECONF)\freetype\include $(MHMAKECONF)\fontconfig
+INCLUDES += $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\fontconfig

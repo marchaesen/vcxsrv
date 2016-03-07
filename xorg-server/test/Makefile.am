@@ -56,6 +56,7 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/ddc/libddc.la \
             $(top_builddir)/hw/xfree86/i2c/libi2c.la \
             $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la \
+            $(top_builddir)/Xext/libXvidmode.la \
             @XORG_LIBS@
 
 BUILT_SOURCES = sdksyms.c
@@ -91,6 +92,7 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/render/librender.la \
             $(top_builddir)/Xext/libXext.la \
             $(top_builddir)/Xext/libXextdpmsstubs.la \
+            $(top_builddir)/Xext/libXvidmode.la \
             $(top_builddir)/Xi/libXi.la \
             $(top_builddir)/Xi/libXistubs.la \
             $(top_builddir)/xfixes/libxfixes.la \

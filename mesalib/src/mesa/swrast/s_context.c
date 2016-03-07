@@ -900,11 +900,16 @@ void
 _swrast_render_finish( struct gl_context *ctx )
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
+   struct gl_query_object *query = ctx->Query.CurrentOcclusionObject;
 
    _swrast_flush(ctx);
 
    if (swrast->Driver.SpanRenderFinish)
       swrast->Driver.SpanRenderFinish( ctx );
+
+   if (query && (query->Target == GL_ANY_SAMPLES_PASSED ||
+                 query->Target == GL_ANY_SAMPLES_PASSED_CONSERVATIVE))
+      query->Result = !!query->Result;
 }
 
 

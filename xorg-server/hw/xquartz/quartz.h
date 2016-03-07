@@ -149,7 +149,7 @@ QuartzShow(void);
 void
 QuartzHide(void);
 void
-QuartzSetRootClip(BOOL enable);
+QuartzSetRootClip(int mode);
 void
 QuartzSpaceChanged(uint32_t space_id);
 

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Auto-fitter hinting routines for latin writing system (body).        */
 /*                                                                         */
-/*  Copyright 2003-2015 by                                                 */
+/*  Copyright 2003-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -693,6 +693,22 @@
   }
 
 
+  /* Extract standard_width from writing system/script specific */
+  /* metrics class.                                             */
+
+  FT_LOCAL_DEF( void )
+  af_latin2_get_standard_widths( AF_LatinMetrics  metrics,
+                                 FT_Pos*          stdHW,
+                                 FT_Pos*          stdVW )
+  {
+    if ( stdHW )
+      *stdHW = metrics->axis[AF_DIMENSION_VERT].standard_width;
+
+    if ( stdVW )
+      *stdVW = metrics->axis[AF_DIMENSION_HORZ].standard_width;
+  }
+
+
   /*************************************************************************/
   /*************************************************************************/
   /*****                                                               *****/
@@ -1179,7 +1195,7 @@
 
         /* insert a new edge in the list and */
         /* sort according to the position    */
-        error = af_axis_hints_new_edge( axis, seg->pos, seg->dir,
+        error = af_axis_hints_new_edge( axis, seg->pos, seg->dir, 0,
                                         memory, &edge );
         if ( error )
           goto Exit;
@@ -2300,12 +2316,15 @@
 
 
   static FT_Error
-  af_latin2_hints_apply( AF_GlyphHints    hints,
+  af_latin2_hints_apply( FT_UInt          glyph_index,
+                         AF_GlyphHints    hints,
                          FT_Outline*      outline,
                          AF_LatinMetrics  metrics )
   {
     FT_Error  error;
     int       dim;
+
+    FT_UNUSED( glyph_index );
 
 
     error = af_glyph_hints_reload( hints, outline );
@@ -2389,6 +2408,7 @@
     (AF_WritingSystem_InitMetricsFunc) af_latin2_metrics_init,
     (AF_WritingSystem_ScaleMetricsFunc)af_latin2_metrics_scale,
     (AF_WritingSystem_DoneMetricsFunc) NULL,
+    (AF_WritingSystem_GetStdWidthsFunc)af_latin2_get_standard_widths,
 
     (AF_WritingSystem_InitHintsFunc)   af_latin2_hints_init,
     (AF_WritingSystem_ApplyHintsFunc)  af_latin2_hints_apply

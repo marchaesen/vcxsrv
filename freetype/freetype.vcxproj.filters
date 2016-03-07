@@ -197,9 +197,6 @@
     <ClCompile Include="src\pcf\pcfutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\autofit\hbshim.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\autofit\afblue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -210,6 +207,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\base\ftfntfmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\autofit\afshaper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

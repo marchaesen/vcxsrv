@@ -5,6 +5,7 @@ AC_INIT([libXext], [1.3.3],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXext])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -37,6 +38,8 @@ AC_SUBST(XEXT_SOREV)
 
 # Obtain compiler/linker options for depedencies
 PKG_CHECK_MODULES(XEXT, [xproto >= 7.0.13] [x11 >= 1.6] [xextproto >= 7.1.99])
+
+AX_GCC_BUILTIN([__builtin_popcountl])
 
 # Allow checking code with lint, sparse, etc.
 XORG_WITH_LINT

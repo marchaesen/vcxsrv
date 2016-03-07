@@ -442,10 +442,16 @@ EvdevKbdEnable(KdKeyboardInfo * ki)
 static void
 EvdevKbdLeds(KdKeyboardInfo * ki, int leds)
 {
-/*    struct input_event event;
+    struct input_event event;
     Kevdev             *ke;
 
-    ki->driverPrivate = ke;
+    if (!ki)
+        return;
+
+    ke = ki->driverPrivate;
+
+    if (!ke)
+        return;
 
     memset(&event, 0, sizeof(event));
 
@@ -468,7 +474,6 @@ EvdevKbdLeds(KdKeyboardInfo * ki, int leds)
     event.code = LED_COMPOSE;
     event.value = leds & (1 << 3) ? 1 : 0;
     write(ke->fd, (char *) &event, sizeof(event));
-*/
 }
 
 static void

@@ -606,6 +606,8 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(OES_EGL_image_external,         false, true,      OES_EGL_image_external),
    EXT(OES_geometry_point_size,        false, true,      OES_geometry_shader),
    EXT(OES_geometry_shader,            false, true,      OES_geometry_shader),
+   EXT(OES_gpu_shader5,                false, true,      ARB_gpu_shader5),
+   EXT(OES_shader_image_atomic,        false, true,      ARB_shader_image_load_store),
    EXT(OES_standard_derivatives,       false, true,      OES_standard_derivatives),
    EXT(OES_texture_3D,                 false, true,      dummy_true),
    EXT(OES_texture_storage_multisample_2d_array, false, true, ARB_texture_multisample),
@@ -619,6 +621,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_vertex_shader_viewport_index, true,  false,   AMD_vertex_shader_viewport_index),
    EXT(EXT_blend_func_extended,        false,  true,     ARB_blend_func_extended),
    EXT(EXT_draw_buffers,               false,  true,     dummy_true),
+   EXT(EXT_gpu_shader5,                false, true,      ARB_gpu_shader5),
    EXT(EXT_separate_shader_objects,    false, true,      dummy_true),
    EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
    EXT(EXT_shader_samples_identical,   true,  true,      EXT_shader_samples_identical),
@@ -921,7 +924,8 @@ _mesa_ast_process_interface_block(YYLTYPE *locp,
    block->layout.flags.i |= block_interface_qualifier;
 
    if (state->stage == MESA_SHADER_GEOMETRY &&
-       state->has_explicit_attrib_stream()) {
+       state->has_explicit_attrib_stream() &&
+       block->layout.flags.q.out) {
       /* Assign global layout's stream value. */
       block->layout.flags.q.stream = 1;
       block->layout.flags.q.explicit_stream = 0;

@@ -34,11 +34,6 @@
 #include <xwin-config.h>
 #endif
 #include "win.h"
-#include "mivalidate.h"         // for union _Validate used by windowstr.h
-
-#ifndef RANDR_12_INTERFACE
-#error X server must have RandR 1.2 interface
-#endif
 
 /*
  * Answer queries about the RandR features supported.
@@ -47,17 +42,47 @@
 static Bool
 winRandRGetInfo(ScreenPtr pScreen, Rotation * pRotations)
 {
+    rrScrPrivPtr pRRScrPriv;
+    RROutputPtr output;
+
+    pRRScrPriv = rrGetScrPriv(pScreen);
+    output = pRRScrPriv->outputs[0];
+
     winDebug("winRandRGetInfo ()\n");
 
     /* Don't support rotations */
     *pRotations = RR_Rotate_0;
 
-    /*
-       The screen doesn't have to be limited to the actual
-       monitor size (we can have scrollbars :-), so what is
-       the upper limit?
-     */
-    RRScreenSetSizeRange(pScreen, 0, 0, 4096, 4096);
+    /* Delete previous mode */
+    if (output->modes[0])
+        {
+            RRModeDestroy(output->modes[0]);
+            RRModeDestroy(output->crtc->mode);
+        }
+
+    /* Register current mode */
+    {
+        xRRModeInfo modeInfo;
+        RRModePtr mode;
+        char name[100];
+
+        memset(&modeInfo, '\0', sizeof(modeInfo));
+        snprintf(name, sizeof(name), "%dx%d", pScreen->width, pScreen->height);
+
+        modeInfo.width = pScreen->width;
+        modeInfo.height = pScreen->height;
+        modeInfo.hTotal = pScreen->width;
+        modeInfo.vTotal = pScreen->height;
+        modeInfo.dotClock = 0;
+        modeInfo.nameLength = strlen(name);
+        mode = RRModeGet(&modeInfo, name);
+
+        output->modes[0] = mode;
+        output->numModes = 1;
+
+        mode = RRModeGet(&modeInfo, name);
+        output->crtc->mode = mode;
+    }
 
     return TRUE;
 }
@@ -74,8 +99,13 @@ winDoRandRScreenSetSize(ScreenPtr pScreen,
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
     WindowPtr pRoot = pScreen->root;
 
+    /* Ignore changes which do nothing */
+    if ((pScreen->width == width) && (pScreen->height == height) &&
+        (pScreen->mmWidth == mmWidth) && (pScreen->mmHeight == mmHeight))
+        return;
+
     // Prevent screen updates while we change things around
-    SetRootClip(pScreen, FALSE);
+    SetRootClip(pScreen, ROOT_CLIP_NONE);
 
     /* Update the screen size as requested */
     pScreenInfo->dwWidth = width;
@@ -101,7 +131,7 @@ winDoRandRScreenSetSize(ScreenPtr pScreen,
     // does this emit a ConfigureNotify??
 
     // Restore the ability to update screen, now with new dimensions
-    SetRootClip(pScreen, TRUE);
+    SetRootClip(pScreen, ROOT_CLIP_FULL);
 
     // and arrange for it to be repainted
     pScreen->PaintWindow(pRoot, &pRoot->borderClip, PW_BACKGROUND);
@@ -213,6 +243,46 @@ winRandRInit(ScreenPtr pScreen)
     pRRScrPriv->rrScreenSetSize = winRandRScreenSetSize;
     pRRScrPriv->rrCrtcSet = NULL;
     pRRScrPriv->rrCrtcSetGamma = NULL;
+
+    /* Create a CRTC and an output for the screen, and hook them together */
+    {
+        RRCrtcPtr crtc;
+        RROutputPtr output;
+
+        crtc = RRCrtcCreate(pScreen, NULL);
+        if (!crtc)
+            return FALSE;
+
+        crtc->rotations = RR_Rotate_0;
+
+        output = RROutputCreate(pScreen, "default", 7, NULL);
+        if (!output)
+            return FALSE;
+
+        RROutputSetCrtcs(output, &crtc, 1);
+        RROutputSetConnection(output, RR_Connected);
+        RROutputSetSubpixelOrder(output, PictureGetSubpixelOrder(pScreen));
+
+        output->crtc = crtc;
+
+        /* Set crtc outputs (should use RRCrtcNotify?) */
+        crtc->outputs = malloc(sizeof(RROutputPtr));
+        crtc->outputs[0] = output;
+        crtc->numOutputs = 1;
+
+        pRRScrPriv->primaryOutput = output;
+
+        /* Ensure we have space for exactly one mode */
+        output->modes = malloc(sizeof(RRModePtr));
+        output->modes[0] = NULL;
+    }
+
+    /*
+       The screen doesn't have to be limited to the actual
+       monitor size (we can have scrollbars :-), so set the
+       upper limit to the maximum coordinates X11 can use.
+     */
+    RRScreenSetSizeRange(pScreen, 0, 0, 32768, 32768);
 
     return TRUE;
 }

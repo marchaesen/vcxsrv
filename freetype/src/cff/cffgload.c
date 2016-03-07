@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    OpenType Glyph Loader (body).                                        */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -2082,15 +2082,14 @@
 
           if ( args[0] > 0 )
           {
-            FT_Int    count = 9;
-            FT_Fixed  root  = args[0];
+            FT_Fixed  root = args[0];
             FT_Fixed  new_root;
 
 
             for (;;)
             {
               new_root = ( root + FT_DivFix( args[0], root ) + 1 ) >> 1;
-              if ( new_root == root || count <= 0 )
+              if ( new_root == root )
                 break;
               root = new_root;
             }
@@ -2221,12 +2220,23 @@
           break;
 
         case cff_op_store:
+          /* this operator was removed from the Type2 specification */
+          /* in version 16-March-2000                               */
           FT_TRACE4(( " store\n"));
 
           goto Unimplemented;
 
         case cff_op_load:
+          /* this operator was removed from the Type2 specification */
+          /* in version 16-March-2000                               */
           FT_TRACE4(( " load\n" ));
+
+          goto Unimplemented;
+
+        case cff_op_blend:
+          /* this operator was removed from the Type2 specification */
+          /* in version 16-March-2000                               */
+          FT_TRACE4(( " blend\n" ));
 
           goto Unimplemented;
 
@@ -2358,9 +2368,21 @@
           }
           break;
 
-        case cff_op_eq:
+        case cff_op_not:
           {
             FT_Fixed  cond = !args[0];
+
+
+            FT_TRACE4(( " not\n" ));
+
+            args[0] = cond ? 0x10000L : 0;
+            args++;
+          }
+          break;
+
+        case cff_op_eq:
+          {
+            FT_Fixed  cond = args[0] == args[1];
 
 
             FT_TRACE4(( " eq\n" ));
@@ -2949,7 +2971,6 @@
       {
         FT_BBox            cbox;
         FT_Glyph_Metrics*  metrics = &glyph->root.metrics;
-        FT_Vector          advance;
         FT_Bool            has_vertical_info;
 
 
@@ -3014,26 +3035,27 @@
 
         glyph->root.outline.flags |= FT_OUTLINE_REVERSE_FILL;
 
-        if ( !( font_matrix.xx == 0x10000L &&
-                font_matrix.yy == 0x10000L &&
-                font_matrix.xy == 0        &&
-                font_matrix.yx == 0        ) )
+        /* apply the font matrix, if any */
+        if ( font_matrix.xx != 0x10000L || font_matrix.yy != 0x10000L ||
+             font_matrix.xy != 0        || font_matrix.yx != 0        )
+        {
           FT_Outline_Transform( &glyph->root.outline, &font_matrix );
 
-        if ( !( font_offset.x == 0 &&
-                font_offset.y == 0 ) )
+          metrics->horiAdvance = FT_MulFix( metrics->horiAdvance,
+                                            font_matrix.xx );
+          metrics->vertAdvance = FT_MulFix( metrics->vertAdvance,
+                                            font_matrix.yy );
+        }
+
+        if ( font_offset.x || font_offset.y )
+        {
           FT_Outline_Translate( &glyph->root.outline,
-                                font_offset.x, font_offset.y );
+                                font_offset.x,
+                                font_offset.y );
 
-        advance.x = metrics->horiAdvance;
-        advance.y = 0;
-        FT_Vector_Transform( &advance, &font_matrix );
-        metrics->horiAdvance = advance.x + font_offset.x;
-
-        advance.x = 0;
-        advance.y = metrics->vertAdvance;
-        FT_Vector_Transform( &advance, &font_matrix );
-        metrics->vertAdvance = advance.y + font_offset.y;
+          metrics->horiAdvance += font_offset.x;
+          metrics->vertAdvance += font_offset.y;
+        }
 
         if ( ( load_flags & FT_LOAD_NO_SCALE ) == 0 || force_scaling )
         {
@@ -3064,9 +3086,7 @@
         metrics->width  = cbox.xMax - cbox.xMin;
         metrics->height = cbox.yMax - cbox.yMin;
 
-        if ( !face->horizontal.number_Of_HMetrics )
-          metrics->horiBearingX = cbox.xMin;
-
+        metrics->horiBearingX = cbox.xMin;
         metrics->horiBearingY = cbox.yMax;
 
         if ( has_vertical_info )

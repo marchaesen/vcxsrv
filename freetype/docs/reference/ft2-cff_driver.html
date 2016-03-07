@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6 API Reference</title>
+<title>FreeType-2.6.3 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,13 +100,14 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6 API Reference</h1>
+<h1>FreeType-2.6.3 API Reference</h1>
 
-<h1>The CFF driver</h1>
+<h1 id="cff_driver">The CFF driver</h1>
 <h2>Synopsis</h2>
 <table class="synopsis">
-<tr><td><a href="#hinting-engine">hinting-engine</a></td><td><a href="#darkening-parameters">darkening-parameters</a></td><td><a href="#FT_CFF_HINTING_XXX">FT_CFF_HINTING_XXX</a></td></tr>
-<tr><td><a href="#no-stem-darkening">no-stem-darkening</a></td><td>&nbsp;</td><td></td></tr>
+<tr><td><a href="#hinting-engine">hinting-engine</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#no-stem-darkening(cff)">no-stem-darkening</a></td><td><a href="#FT_CFF_HINTING_XXX">FT_CFF_HINTING_XXX</a></td></tr>
+<tr><td><a href="#darkening-parameters(cff)">darkening-parameters</a></td><td></td></tr>
 </table>
 
 
@@ -145,7 +146,7 @@
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
 
 <div class="section">
-<h3 id="no-stem-darkening">no-stem-darkening</h3>
+<h3 id="no-stem-darkening(cff)">no-stem-darkening</h3>
 
 <p>By default, the Adobe CFF engine darkens stems at smaller sizes, regardless of hinting, to enhance contrast. This feature requires a rendering system with proper gamma correction. Setting this property, stem darkening gets switched off.</p>
 <p>Note that stem darkening is never applied if <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_NO_SCALE</a> is set.</p>
@@ -167,7 +168,7 @@
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
 
 <div class="section">
-<h3 id="darkening-parameters">darkening-parameters</h3>
+<h3 id="darkening-parameters(cff)">darkening-parameters</h3>
 
 <p>By default, the Adobe CFF engine darkens stems as follows (if the &lsquo;no-stem-darkening&rsquo; property isn't set):</p>
 <pre class="colored">
@@ -200,7 +201,7 @@
 
 <div class="section">
 <h3 id="FT_CFF_HINTING_XXX">FT_CFF_HINTING_XXX</h3>
-<p>Defined in FT_CFF_DRIVER_H (ftcffdrv.h).</p>
+<p>Defined in FT_CFF_DRIVER_H (freetype/ftcffdrv.h).</p>
 <pre>
 #define <a href="ft2-cff_driver.html#FT_CFF_HINTING_FREETYPE">FT_CFF_HINTING_FREETYPE</a>  0
 #define <a href="ft2-cff_driver.html#FT_CFF_HINTING_ADOBE">FT_CFF_HINTING_ADOBE</a>     1

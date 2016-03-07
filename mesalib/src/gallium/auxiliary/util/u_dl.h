@@ -32,6 +32,9 @@
 
 #include "pipe/p_config.h"
 
+#ifdef	__cplusplus
+extern "C" {
+#endif
 
 #if defined(PIPE_OS_WINDOWS)
 #  define UTIL_DL_EXT ".dll"
@@ -79,5 +82,8 @@ util_dl_close(struct util_dl_library *library);
 const char *
 util_dl_error(void);
 
+#ifdef	__cplusplus
+}
+#endif
 
 #endif /* U_DL_H_ */

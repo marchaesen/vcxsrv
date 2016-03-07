@@ -200,12 +200,6 @@ fetch_vector4(const struct prog_src_register *source,
       result[3] = src[GET_SWZ(source->Swizzle, 3)];
    }
 
-   if (source->Abs) {
-      result[0] = fabsf(result[0]);
-      result[1] = fabsf(result[1]);
-      result[2] = fabsf(result[2]);
-      result[3] = fabsf(result[3]);
-   }
    if (source->Negate) {
       assert(source->Negate == NEGATE_XYZW);
       result[0] = -result[0];
@@ -258,12 +252,6 @@ fetch_vector4_deriv(struct gl_context * ctx,
       result[2] = deriv[GET_SWZ(source->Swizzle, 2)];
       result[3] = deriv[GET_SWZ(source->Swizzle, 3)];
       
-      if (source->Abs) {
-         result[0] = fabsf(result[0]);
-         result[1] = fabsf(result[1]);
-         result[2] = fabsf(result[2]);
-         result[3] = fabsf(result[3]);
-      }
       if (source->Negate) {
          assert(source->Negate == NEGATE_XYZW);
          result[0] = -result[0];
@@ -289,9 +277,6 @@ fetch_vector1(const struct prog_src_register *source,
 
    result[0] = src[GET_SWZ(source->Swizzle, 0)];
 
-   if (source->Abs) {
-      result[0] = fabsf(result[0]);
-   }
    if (source->Negate) {
       result[0] = -result[0];
    }
@@ -329,66 +314,6 @@ fetch_texel(struct gl_context *ctx,
 
 
 /**
- * Test value against zero and return GT, LT, EQ or UN if NaN.
- */
-static inline GLuint
-generate_cc(float value)
-{
-   if (value != value)
-      return COND_UN;           /* NaN */
-   if (value > 0.0F)
-      return COND_GT;
-   if (value < 0.0F)
-      return COND_LT;
-   return COND_EQ;
-}
-
-
-/**
- * Test if the ccMaskRule is satisfied by the given condition code.
- * Used to mask destination writes according to the current condition code.
- */
-static inline GLboolean
-test_cc(GLuint condCode, GLuint ccMaskRule)
-{
-   switch (ccMaskRule) {
-   case COND_EQ: return (condCode == COND_EQ);
-   case COND_NE: return (condCode != COND_EQ);
-   case COND_LT: return (condCode == COND_LT);
-   case COND_GE: return (condCode == COND_GT || condCode == COND_EQ);
-   case COND_LE: return (condCode == COND_LT || condCode == COND_EQ);
-   case COND_GT: return (condCode == COND_GT);
-   case COND_TR: return GL_TRUE;
-   case COND_FL: return GL_FALSE;
-   default:      return GL_TRUE;
-   }
-}
-
-
-/**
- * Evaluate the 4 condition codes against a predicate and return GL_TRUE
- * or GL_FALSE to indicate result.
- */
-static inline GLboolean
-eval_condition(const struct gl_program_machine *machine,
-               const struct prog_instruction *inst)
-{
-   const GLuint swizzle = inst->DstReg.CondSwizzle;
-   const GLuint condMask = inst->DstReg.CondMask;
-   if (test_cc(machine->CondCodes[GET_SWZ(swizzle, 0)], condMask) ||
-       test_cc(machine->CondCodes[GET_SWZ(swizzle, 1)], condMask) ||
-       test_cc(machine->CondCodes[GET_SWZ(swizzle, 2)], condMask) ||
-       test_cc(machine->CondCodes[GET_SWZ(swizzle, 3)], condMask)) {
-      return GL_TRUE;
-   }
-   else {
-      return GL_FALSE;
-   }
-}
-
-
-
-/**
  * Store 4 floats into a register.  Observe the instructions saturate and
  * set-condition-code flags.
  */
@@ -418,30 +343,6 @@ store_vector4(const struct prog_instruction *inst,
       value = clampedValue;
    }
 
-   if (dstReg->CondMask != COND_TR) {
-      /* condition codes may turn off some writes */
-      if (writeMask & WRITEMASK_X) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 0)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_X;
-      }
-      if (writeMask & WRITEMASK_Y) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 1)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_Y;
-      }
-      if (writeMask & WRITEMASK_Z) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 2)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_Z;
-      }
-      if (writeMask & WRITEMASK_W) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 3)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_W;
-      }
-   }
-
 #ifdef NAN_CHECK
    assert(!IS_INF_OR_NAN(value[0]));
    assert(!IS_INF_OR_NAN(value[0]));
@@ -457,24 +358,6 @@ store_vector4(const struct prog_instruction *inst,
       dst[2] = value[2];
    if (writeMask & WRITEMASK_W)
       dst[3] = value[3];
-
-   if (inst->CondUpdate) {
-      if (writeMask & WRITEMASK_X)
-         machine->CondCodes[0] = generate_cc(value[0]);
-      if (writeMask & WRITEMASK_Y)
-         machine->CondCodes[1] = generate_cc(value[1]);
-      if (writeMask & WRITEMASK_Z)
-         machine->CondCodes[2] = generate_cc(value[2]);
-      if (writeMask & WRITEMASK_W)
-         machine->CondCodes[3] = generate_cc(value[3]);
-#if DEBUG_PROG
-      printf("CondCodes=(%s,%s,%s,%s) for:\n",
-             _mesa_condcode_string(machine->CondCodes[0]),
-             _mesa_condcode_string(machine->CondCodes[1]),
-             _mesa_condcode_string(machine->CondCodes[2]),
-             _mesa_condcode_string(machine->CondCodes[3]));
-#endif
-   }
 }
 
 
@@ -572,31 +455,25 @@ _mesa_execute_program(struct gl_context * ctx,
       case OPCODE_BRK:         /* break out of loop (conditional) */
          assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
-         if (eval_condition(machine, inst)) {
-            /* break out of loop */
-            /* pc++ at end of for-loop will put us after the ENDLOOP inst */
-            pc = inst->BranchTarget;
-         }
+         /* break out of loop */
+         /* pc++ at end of for-loop will put us after the ENDLOOP inst */
+         pc = inst->BranchTarget;
          break;
       case OPCODE_CONT:        /* continue loop (conditional) */
          assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
-         if (eval_condition(machine, inst)) {
-            /* continue at ENDLOOP */
-            /* Subtract 1 here since we'll do pc++ at end of for-loop */
-            pc = inst->BranchTarget - 1;
-         }
+         /* continue at ENDLOOP */
+         /* Subtract 1 here since we'll do pc++ at end of for-loop */
+         pc = inst->BranchTarget - 1;
          break;
       case OPCODE_CAL:         /* Call subroutine (conditional) */
-         if (eval_condition(machine, inst)) {
-            /* call the subroutine */
-            if (machine->StackDepth >= MAX_PROGRAM_CALL_DEPTH) {
-               return GL_TRUE;  /* Per GL_NV_vertex_program2 spec */
-            }
-            machine->CallStack[machine->StackDepth++] = pc + 1; /* next inst */
-            /* Subtract 1 here since we'll do pc++ at end of for-loop */
-            pc = inst->BranchTarget - 1;
+         /* call the subroutine */
+         if (machine->StackDepth >= MAX_PROGRAM_CALL_DEPTH) {
+            return GL_TRUE;  /* Per GL_NV_vertex_program2 spec */
          }
+         machine->CallStack[machine->StackDepth++] = pc + 1; /* next inst */
+         /* Subtract 1 here since we'll do pc++ at end of for-loop */
+         pc = inst->BranchTarget - 1;
          break;
       case OPCODE_CMP:
          {
@@ -773,14 +650,9 @@ _mesa_execute_program(struct gl_context * ctx,
                    program->Instructions[inst->BranchTarget].Opcode
                    == OPCODE_ENDIF);
             /* eval condition */
-            if (inst->SrcReg[0].File != PROGRAM_UNDEFINED) {
-               GLfloat a[4];
-               fetch_vector1(&inst->SrcReg[0], machine, a);
-               cond = (a[0] != 0.0F);
-            }
-            else {
-               cond = eval_condition(machine, inst);
-            }
+            GLfloat a[4];
+            fetch_vector1(&inst->SrcReg[0], machine, a);
+            cond = (a[0] != 0.0F);
             if (DEBUG_PROG) {
                printf("IF: %d\n", cond);
             }
@@ -804,11 +676,6 @@ _mesa_execute_program(struct gl_context * ctx,
          break;
       case OPCODE_ENDIF:
          /* nothing */
-         break;
-      case OPCODE_KIL_NV:      /* NV_f_p only (conditional) */
-         if (eval_condition(machine, inst)) {
-            return GL_FALSE;
-         }
          break;
       case OPCODE_KIL:         /* ARB_f_p only */
          {
@@ -1071,13 +938,11 @@ _mesa_execute_program(struct gl_context * ctx,
          }
          break;
       case OPCODE_RET:         /* return from subroutine (conditional) */
-         if (eval_condition(machine, inst)) {
-            if (machine->StackDepth == 0) {
-               return GL_TRUE;  /* Per GL_NV_vertex_program2 spec */
-            }
-            /* subtract one because of pc++ in the for loop */
-            pc = machine->CallStack[--machine->StackDepth] - 1;
+         if (machine->StackDepth == 0) {
+            return GL_TRUE;  /* Per GL_NV_vertex_program2 spec */
          }
+         /* subtract one because of pc++ in the for loop */
+         pc = machine->CallStack[--machine->StackDepth] - 1;
          break;
       case OPCODE_RSQ:         /* 1 / sqrt() */
          {
@@ -1321,7 +1186,7 @@ _mesa_execute_program(struct gl_context * ctx,
             store_vector4(inst, machine, color);
          }
          break;
-      case OPCODE_TXD:         /* GL_NV_fragment_program only */
+      case OPCODE_TXD:
          /* Texture lookup w/ partial derivatives for LOD */
          {
             GLfloat texcoord[4], dtdx[4], dtdy[4], color[4];
@@ -1361,26 +1226,6 @@ _mesa_execute_program(struct gl_context * ctx,
              * IROUND_POS() which gets triggered by the inf values created.
              */
             if (texcoord[3] != 0.0F) {
-               texcoord[0] /= texcoord[3];
-               texcoord[1] /= texcoord[3];
-               texcoord[2] /= texcoord[3];
-            }
-
-            fetch_texel(ctx, machine, inst, texcoord, 0.0, color);
-
-            store_vector4(inst, machine, color);
-         }
-         break;
-      case OPCODE_TXP_NV:      /* GL_NV_fragment_program only */
-         /* Texture lookup w/ projective divide, as above, but do not
-          * do the divide by w if sampling from a cube map.
-          */
-         {
-            GLfloat texcoord[4], color[4];
-
-            fetch_vector4(&inst->SrcReg[0], machine, texcoord);
-            if (inst->TexSrcTarget != TEXTURE_CUBE_INDEX &&
-                texcoord[3] != 0.0F) {
                texcoord[0] /= texcoord[3];
                texcoord[1] /= texcoord[3];
                texcoord[2] /= texcoord[3];

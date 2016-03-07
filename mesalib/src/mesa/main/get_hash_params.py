@@ -126,6 +126,8 @@ descriptor=[
   [ "MAX_TEXTURE_MAX_ANISOTROPY_EXT", "CONTEXT_FLOAT(Const.MaxTextureMaxAnisotropy), extra_EXT_texture_filter_anisotropic" ],
 
 # GL_KHR_debug (GL 4.3)/ GL_ARB_debug_output
+  [ "DEBUG_OUTPUT", "LOC_CUSTOM, TYPE_BOOLEAN, 0, NO_EXTRA" ],
+  [ "DEBUG_OUTPUT_SYNCHRONOUS", "LOC_CUSTOM, TYPE_BOOLEAN, 0, NO_EXTRA" ],
   [ "DEBUG_LOGGED_MESSAGES", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
   [ "DEBUG_NEXT_LOGGED_MESSAGE_LENGTH", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
   [ "MAX_DEBUG_LOGGED_MESSAGES", "CONST(MAX_DEBUG_LOGGED_MESSAGES), NO_EXTRA" ],
@@ -773,6 +775,7 @@ descriptor=[
   [ "DEPTH_CLAMP", "CONTEXT_BOOL(Transform.DepthClamp), extra_ARB_depth_clamp" ],
 
 # GL_ATI_fragment_shader
+  [ "FRAGMENT_SHADER_ATI", "CONTEXT_BOOL(ATIFragmentShader.Enabled), extra_ATI_fragment_shader" ],
   [ "NUM_FRAGMENT_REGISTERS_ATI", "CONST(6), extra_ATI_fragment_shader" ],
   [ "NUM_FRAGMENT_CONSTANTS_ATI", "CONST(8), extra_ATI_fragment_shader" ],
   [ "NUM_PASSES_ATI", "CONST(2), extra_ATI_fragment_shader" ],

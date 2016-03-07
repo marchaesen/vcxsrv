@@ -106,6 +106,14 @@ typedef struct
     Atom atomTargets;
 } ClipboardAtoms;
 
+/* Modern clipboard API functions */
+typedef wBOOL (WINAPI *ADDCLIPBOARDFORMATLISTENERPROC)(HWND hwnd);
+typedef wBOOL (WINAPI *REMOVECLIPBOARDFORMATLISTENERPROC)(HWND hwnd);
+
+extern Bool g_fHasModernClipboardApi;
+extern ADDCLIPBOARDFORMATLISTENERPROC g_fpAddClipboardFormatListener;
+extern REMOVECLIPBOARDFORMATLISTENERPROC g_fpRemoveClipboardFormatListener;
+
 /*
  * winclipboardwndproc.c
  */

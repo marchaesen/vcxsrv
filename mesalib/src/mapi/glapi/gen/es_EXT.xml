@@ -817,6 +817,36 @@
     </function>
 </category>
 
+<category name="GL_EXT_texture_border_clamp" number="182">
+
+    <!-- The *TexParameter* functions are added in EXT_texture_integer -->
+
+    <function name="SamplerParameterIivEXT" es2="3.0" alias="SamplerParameterIiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="const GLint *"/>
+    </function>
+
+    <function name="SamplerParameterIuivEXT" es2="3.0" alias="SamplerParameterIuiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="const GLuint *"/>
+    </function>
+
+    <function name="GetSamplerParameterIivEXT" es2="3.0" alias="GetSamplerParameterIiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="GLint *"/>
+    </function>
+
+    <function name="GetSamplerParameterIuivEXT" es2="3.0" alias="GetSamplerParameterIuiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="GLfloat *"/>
+    </function>
+
+</category>
+
 <category name="GL_EXT_draw_elements_base_vertex" number="204">
 
     <function name="DrawElementsBaseVertexEXT" alias="DrawElementsBaseVertex"
@@ -982,5 +1012,61 @@
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
     </function>
-  </category>
+</category>
+
+<category name="GL_OES_texture_border_clamp" number="215">
+
+    <enum name="TEXTURE_BORDER_COLOR_OES" value ="0x1004"/>
+    <enum name="CLAMP_TO_BORDER_OES"      value="0x812D"/>
+
+    <function name="TexParameterIivOES" es2="3.0" alias="TexParameterIiv">
+        <param name="target" type="GLenum"/>
+        <param name="pname"  type="GLenum"/>
+        <param name="params" type="const GLint *"/>
+    </function>
+
+    <function name="TexParameterIuivOES" es2="3.0" alias="TexParameterIuiv">
+        <param name="target" type="GLenum"/>
+        <param name="pname"  type="GLenum"/>
+        <param name="params" type="const GLuint *"/>
+    </function>
+
+    <function name="GetTexParameterIivOES" es2="3.0" alias="GetTexParameterIiv">
+        <param name="target" type="GLenum"/>
+        <param name="pname"  type="GLenum"/>
+        <param name="params" type="GLint *"/>
+    </function>
+
+    <function name="GetTexParameterIuivOES" es2="3.0" alias="GetTexParameterIuiv">
+        <param name="target" type="GLenum"/>
+        <param name="pname"  type="GLenum"/>
+        <param name="params" type="GLuint *"/>
+    </function>
+
+    <function name="SamplerParameterIivOES" es2="3.0" alias="SamplerParameterIiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="const GLint *"/>
+    </function>
+
+    <function name="SamplerParameterIuivOES" es2="3.0" alias="SamplerParameterIuiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="const GLuint *"/>
+    </function>
+
+    <function name="GetSamplerParameterIivOES" es2="3.0" alias="GetSamplerParameterIiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="GLint *"/>
+    </function>
+
+    <function name="GetSamplerParameterIuivOES" es2="3.0" alias="GetSamplerParameterIuiv">
+      <param name="sampler" type="GLuint"/>
+      <param name="pname" type="GLenum"/>
+      <param name="params" type="GLfloat *"/>
+    </function>
+
+</category>
+
 </OpenGLAPI>

@@ -761,15 +761,11 @@ _mesa_set_debug_state_int(struct gl_context *ctx, GLenum pname, GLint val)
 GLint
 _mesa_get_debug_state_int(struct gl_context *ctx, GLenum pname)
 {
-   struct gl_debug_state *debug;
    GLint val;
 
-   mtx_lock(&ctx->DebugMutex);
-   debug = ctx->Debug;
-   if (!debug) {
-      mtx_unlock(&ctx->DebugMutex);
+   struct gl_debug_state *debug = _mesa_lock_debug_state(ctx);
+   if (!debug)
       return 0;
-   }
 
    switch (pname) {
    case GL_DEBUG_OUTPUT:
@@ -794,7 +790,7 @@ _mesa_get_debug_state_int(struct gl_context *ctx, GLenum pname)
       break;
    }
 
-   mtx_unlock(&ctx->DebugMutex);
+   _mesa_unlock_debug_state(ctx);
 
    return val;
 }
@@ -806,15 +802,11 @@ _mesa_get_debug_state_int(struct gl_context *ctx, GLenum pname)
 void *
 _mesa_get_debug_state_ptr(struct gl_context *ctx, GLenum pname)
 {
-   struct gl_debug_state *debug;
    void *val;
+   struct gl_debug_state *debug = _mesa_lock_debug_state(ctx);
 
-   mtx_lock(&ctx->DebugMutex);
-   debug = ctx->Debug;
-   if (!debug) {
-      mtx_unlock(&ctx->DebugMutex);
+   if (!debug)
       return NULL;
-   }
 
    switch (pname) {
    case GL_DEBUG_CALLBACK_FUNCTION_ARB:
@@ -829,7 +821,7 @@ _mesa_get_debug_state_ptr(struct gl_context *ctx, GLenum pname)
       break;
    }
 
-   mtx_unlock(&ctx->DebugMutex);
+   _mesa_unlock_debug_state(ctx);
 
    return val;
 }

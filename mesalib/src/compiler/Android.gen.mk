@@ -42,6 +42,10 @@ LOCAL_EXPORT_C_INCLUDE_DIRS += \
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
 	$(NIR_GENERATED_FILES))
 
+# Modules using libmesa_nir must set LOCAL_GENERATED_SOURCES to this
+MESA_GEN_NIR_H := $(addprefix $(call local-generated-sources-dir)/, \
+	nir/nir_opcodes.h \
+	nir/nir_builder_opcodes.h)
 
 nir_builder_opcodes_gen := $(LOCAL_PATH)/nir/nir_builder_opcodes_h.py
 nir_builder_opcodes_deps := \

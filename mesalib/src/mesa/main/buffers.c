@@ -58,10 +58,7 @@ supported_buffer_bitmask(const struct gl_context *ctx,
 
    if (_mesa_is_user_fbo(fb)) {
       /* A user-created renderbuffer */
-      GLuint i;
-      for (i = 0; i < ctx->Const.MaxColorAttachments; i++) {
-         mask |= (BUFFER_BIT_COLOR0 << i);
-      }
+      mask = ((1 << ctx->Const.MaxColorAttachments) - 1) << BUFFER_COLOR0;
    }
    else {
       /* A window system framebuffer */
@@ -174,7 +171,7 @@ draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
  * renderbuffer (a BUFFER_* value).
  * return -1 for an invalid buffer.
  */
-static GLint
+static gl_buffer_index
 read_buffer_enum_to_index(GLenum buffer)
 {
    switch (buffer) {
@@ -227,7 +224,7 @@ read_buffer_enum_to_index(GLenum buffer)
 
 
 /**
- * Called by glDrawBuffer().
+ * Called by glDrawBuffer() and glNamedFramebufferDrawBuffer().
  * Specify which renderbuffer(s) to draw into for the first color output.
  * <buffer> can name zero, one, two or four renderbuffers!
  * \sa _mesa_DrawBuffers
@@ -248,9 +245,9 @@ read_buffer_enum_to_index(GLenum buffer)
  *
  * See the GL_EXT_framebuffer_object spec for more info.
  */
-void
-_mesa_draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-                  GLenum buffer, const char *caller)
+static void
+draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+            GLenum buffer, const char *caller)
 {
    GLbitfield destMask;
 
@@ -299,7 +296,7 @@ void GLAPIENTRY
 _mesa_DrawBuffer(GLenum buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_draw_buffer(ctx, ctx->DrawBuffer, buffer, "glDrawBuffer");
+   draw_buffer(ctx, ctx->DrawBuffer, buffer, "glDrawBuffer");
 }
 
 
@@ -318,22 +315,22 @@ _mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf)
    else
       fb = ctx->WinSysDrawBuffer;
 
-   _mesa_draw_buffer(ctx, fb, buf, "glNamedFramebufferDrawBuffer");
+   draw_buffer(ctx, fb, buf, "glNamedFramebufferDrawBuffer");
 }
 
 
 /**
- * Called by glDrawBuffersARB; specifies the destination color renderbuffers
- * for N fragment program color outputs.
+ * Called by glDrawBuffersARB() and glNamedFramebufferDrawBuffers() to specify
+ * the destination color renderbuffers for N fragment program color outputs.
  * \sa _mesa_DrawBuffer
  * \param n  number of outputs
  * \param buffers  array [n] of renderbuffer names.  Unlike glDrawBuffer, the
  *                 names cannot specify more than one buffer.  For example,
  *                 GL_FRONT_AND_BACK is illegal.
  */
-void
-_mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
-                   GLsizei n, const GLenum *buffers, const char *caller)
+static void
+draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
+             GLsizei n, const GLenum *buffers, const char *caller)
 {
    GLuint output;
    GLbitfield usedBufferMask, supportedMask;
@@ -508,7 +505,7 @@ void GLAPIENTRY
 _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_draw_buffers(ctx, ctx->DrawBuffer, n, buffers, "glDrawBuffers");
+   draw_buffers(ctx, ctx->DrawBuffer, n, buffers, "glDrawBuffers");
 }
 
 
@@ -528,7 +525,7 @@ _mesa_NamedFramebufferDrawBuffers(GLuint framebuffer, GLsizei n,
    else
       fb = ctx->WinSysDrawBuffer;
 
-   _mesa_draw_buffers(ctx, fb, n, bufs, "glNamedFramebufferDrawBuffers");
+   draw_buffers(ctx, fb, n, bufs, "glNamedFramebufferDrawBuffers");
 }
 
 
@@ -551,8 +548,8 @@ updated_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb)
 
 
 /**
- * Helper function to set the GL_DRAW_BUFFER state in the context and
- * current FBO.  Called via glDrawBuffer(), glDrawBuffersARB()
+ * Helper function to set the GL_DRAW_BUFFER state for the given context and
+ * FBO.  Called via glDrawBuffer(), glDrawBuffersARB()
  *
  * All error checking will have been done prior to calling this function
  * so nothing should go wrong at this point.
@@ -668,14 +665,17 @@ _mesa_update_draw_buffers(struct gl_context *ctx)
 
 /**
  * Like \sa _mesa_drawbuffers(), this is a helper function for setting
- * GL_READ_BUFFER state in the context and current FBO.
+ * GL_READ_BUFFER state for the given context and FBO.
+ * Note that all error checking should have been done before calling
+ * this function.
  * \param ctx  the rendering context
+ * \param fb  the framebuffer object to update
  * \param buffer  GL_FRONT, GL_BACK, GL_COLOR_ATTACHMENT0, etc.
  * \param bufferIndex  the numerical index corresponding to 'buffer'
  */
 void
 _mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-                 GLenum buffer, GLint bufferIndex)
+                 GLenum buffer, gl_buffer_index bufferIndex)
 {
    if ((fb == ctx->ReadBuffer) && _mesa_is_winsys_fbo(fb)) {
       /* Only update the per-context READ_BUFFER state if we're bound to
@@ -693,15 +693,16 @@ _mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 
 
 /**
- * Called by glReadBuffer to set the source renderbuffer for reading pixels.
+ * Called by glReadBuffer and glNamedFramebufferReadBuffer to set the source
+ * renderbuffer for reading pixels.
  * \param mode color buffer such as GL_FRONT, GL_BACK, etc.
  */
-void
-_mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-                  GLenum buffer, const char *caller)
+static void
+read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+            GLenum buffer, const char *caller)
 {
    GLbitfield supportedMask;
-   GLint srcBuffer;
+   gl_buffer_index srcBuffer;
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -746,7 +747,7 @@ void GLAPIENTRY
 _mesa_ReadBuffer(GLenum buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_read_buffer(ctx, ctx->ReadBuffer, buffer, "glReadBuffer");
+   read_buffer(ctx, ctx->ReadBuffer, buffer, "glReadBuffer");
 }
 
 
@@ -765,5 +766,5 @@ _mesa_NamedFramebufferReadBuffer(GLuint framebuffer, GLenum src)
    else
       fb = ctx->WinSysReadBuffer;
 
-   _mesa_read_buffer(ctx, fb, src, "glNamedFramebufferReadBuffer");
+   read_buffer(ctx, fb, src, "glNamedFramebufferReadBuffer");
 }

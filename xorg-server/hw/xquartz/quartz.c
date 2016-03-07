@@ -485,7 +485,7 @@ QuartzHide(void)
  *  Enable or disable rendering to the X screen.
  */
 void
-QuartzSetRootClip(BOOL enable)
+QuartzSetRootClip(int mode)
 {
     int i;
 
@@ -494,7 +494,7 @@ QuartzSetRootClip(BOOL enable)
 
     for (i = 0; i < screenInfo.numScreens; i++) {
         if (screenInfo.screens[i]) {
-            SetRootClip(screenInfo.screens[i], enable);
+            SetRootClip(screenInfo.screens[i], mode);
         }
     }
 }

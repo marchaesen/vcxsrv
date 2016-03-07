@@ -43,6 +43,20 @@ mesa_format
 _mesa_get_shader_image_format(GLenum format);
 
 /**
+ * Get the GL image format class for a shader image format GL enum
+ */
+GLenum
+_mesa_get_image_format_class(GLenum format);
+
+/**
+ * Return whether an image format should be supported based on the current API
+ * version of the context.
+ */
+bool
+_mesa_is_shader_image_format_supported(const struct gl_context *ctx,
+                                       GLenum format);
+
+/**
  * Get a single image unit struct with the default state.
  */
 struct gl_image_unit

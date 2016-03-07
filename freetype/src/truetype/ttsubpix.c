@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType Subpixel Hinting.                                           */
 /*                                                                         */
-/*  Copyright 2010-2015 by                                                 */
+/*  Copyright 2010-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -903,7 +903,7 @@
   sph_set_tweaks( TT_Loader  loader,
                   FT_UInt    glyph_index )
   {
-    TT_Face     face   = (TT_Face)loader->face;
+    TT_Face     face   = loader->face;
     FT_String*  family = face->root.family_name;
     FT_UInt     ppem   = loader->size->metrics.x_ppem;
     FT_String*  style  = face->root.style_name;

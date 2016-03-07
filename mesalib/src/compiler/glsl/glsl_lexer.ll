@@ -361,7 +361,7 @@ samplerExternalOES		{
 		}
 
    /* keywords available with ARB_gpu_shader5 */
-precise		KEYWORD_WITH_ALT(400, 0, 400, 0, yyextra->ARB_gpu_shader5_enable, PRECISE);
+precise		KEYWORD_WITH_ALT(400, 310, 400, 320, yyextra->ARB_gpu_shader5_enable || yyextra->EXT_gpu_shader5_enable || yyextra->OES_gpu_shader5_enable, PRECISE);
 
    /* keywords available with ARB_shader_image_load_store */
 image1D         KEYWORD_WITH_ALT(130, 300, 420, 0, yyextra->ARB_shader_image_load_store_enable, IMAGE1D);

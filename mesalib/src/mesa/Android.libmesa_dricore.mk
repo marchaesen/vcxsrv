@@ -59,7 +59,6 @@ endif
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \
 	$(MESA_TOP)/src/mesa/main \
-	$(MESA_TOP)/src/glsl \
 	$(MESA_TOP)/src/compiler/nir \
 	$(MESA_TOP)/src/gallium/include \
 	$(MESA_TOP)/src/gallium/auxiliary

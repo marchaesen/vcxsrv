@@ -92,32 +92,6 @@
 
 
 /**
- * Condition codes
- */
-/*@{*/
-#define COND_GT  1  /**< greater than zero */
-#define COND_EQ  2  /**< equal to zero */
-#define COND_LT  3  /**< less than zero */
-#define COND_UN  4  /**< unordered (NaN) */
-#define COND_GE  5  /**< greater than or equal to zero */
-#define COND_LE  6  /**< less than or equal to zero */
-#define COND_NE  7  /**< not equal to zero */
-#define COND_TR  8  /**< always true */
-#define COND_FL  9  /**< always false */
-/*@}*/
-
-
-/**
- * Instruction precision for GL_NV_fragment_program
- */
-/*@{*/
-#define FLOAT32  0x1
-#define FLOAT16  0x2
-#define FIXED12  0x4
-/*@}*/
-
-
-/**
  * Per-component negation masks
  */
 /*@{*/
@@ -166,7 +140,6 @@ enum prog_opcode {
    OPCODE_FRC,       /*   X        X       2       X         X   */
    OPCODE_IF,        /*                                     opt  */
    OPCODE_KIL,       /*            X                         X   */
-   OPCODE_KIL_NV,    /*                            X         X   */
    OPCODE_LG2,       /*   X        X       2       X         X   */
    OPCODE_LIT,       /*   X        X       X       X             */
    OPCODE_LOG,       /*   X                X                     */
@@ -200,7 +173,6 @@ enum prog_opcode {
    OPCODE_TXD,       /*                            X         X   */
    OPCODE_TXL,       /*                    3       2         X   */
    OPCODE_TXP,       /*            X                         X   */
-   OPCODE_TXP_NV,    /*                    3       X             */
    OPCODE_TRUNC,     /*                                      X   */
    OPCODE_XPD,       /*   X        X                             */
    MAX_OPCODE
@@ -226,31 +198,12 @@ struct prog_src_register
    GLuint Swizzle:12;
    GLuint RelAddr:1;
 
-   /** Take the component-wise absolute value */
-   GLuint Abs:1;
-
    /**
-    * Post-Abs negation.
+    * Negation.
     * This will either be NEGATE_NONE or NEGATE_XYZW, except for the SWZ
     * instruction which allows per-component negation.
     */
    GLuint Negate:4;
-
-   /**
-    * Is the register two-dimensional.
-    * Two dimensional registers are of the
-    * REGISTER[index][index2] format.
-    * They are used by the geometry shaders where
-    * the first index is the index within an array
-    * and the second index is the semantic of the
-    * array, e.g. gl_PositionIn[index] would become
-    * INPUT[index][gl_PositionIn]
-    */
-   GLuint HasIndex2:1;
-   GLuint RelAddr2:1;
-   GLint Index2:(INST_INDEX_BITS+1); /**< Extra bit here for sign bit.
-                                       * May be negative for relative
-                                       * addressing. */
 };
 
 
@@ -263,26 +216,6 @@ struct prog_dst_register
    GLuint Index:INST_INDEX_BITS;  /**< Unsigned, never negative */
    GLuint WriteMask:4;
    GLuint RelAddr:1;
-
-   /**
-    * \name Conditional destination update control.
-    *
-    * \since
-    * NV_fragment_program_option, NV_vertex_program2, NV_vertex_program2_option.
-    */
-   /*@{*/
-   /**
-    * Takes one of the 9 possible condition values (EQ, FL, GT, GE, LE, LT,
-    * NE, TR, or UN).  Dest reg is only written to if the matching
-    * (swizzled) condition code value passes.  When a conditional update mask
-    * is not specified, this will be \c COND_TR.
-    */
-   GLuint CondMask:4;
-
-   /**
-    * Condition code swizzle value.
-    */
-   GLuint CondSwizzle:12;
 };
 
 
@@ -296,42 +229,12 @@ struct prog_instruction
    struct prog_dst_register DstReg;
 
    /**
-    * Indicates that the instruction should update the condition code
-    * register.
-    *
-    * \since
-    * NV_fragment_program_option, NV_vertex_program2, NV_vertex_program2_option.
-    */
-   GLuint CondUpdate:1;
-
-   /**
-    * If prog_instruction::CondUpdate is \c GL_TRUE, this value selects the
-    * condition code register that is to be updated.
-    *
-    * In GL_NV_fragment_program or GL_NV_vertex_program2 mode, only condition
-    * code register 0 is available.  In GL_NV_vertex_program3 mode, condition
-    * code registers 0 and 1 are available.
-    *
-    * \since
-    * NV_fragment_program_option, NV_vertex_program2, NV_vertex_program2_option.
-    */
-   GLuint CondDst:1;
-
-   /**
     * Saturate each value of the vectored result to the range [0,1].
     *
     * \since
-    * NV_fragment_program_option, NV_vertex_program3.
+    * ARB_fragment_program
     */
    GLuint Saturate:1;
-
-   /**
-    * Per-instruction selectable precision: FLOAT32, FLOAT16, FIXED12.
-    *
-    * \since
-    * NV_fragment_program_option.
-    */
-   GLuint Precision:3;
 
    /**
     * \name Extra fields for TEX, TXB, TXD, TXL, TXP instructions.

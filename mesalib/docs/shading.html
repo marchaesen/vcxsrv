@@ -209,51 +209,6 @@ The final vertex and fragment programs may be interpreted in software
 (see drivers/dri/i915/i915_fragprog.c for example).
 </p>
 
-<h3>Code Generation Options</h3>
-
-<p>
-Internally, there are several options that control the compiler's code
-generation and instruction selection.
-These options are seen in the gl_shader_state struct and may be set
-by the device driver to indicate its preferences:
-
-<pre>
-struct gl_shader_state
-{
-   ...
-   /** Driver-selectable options: */
-   GLboolean EmitHighLevelInstructions;
-   GLboolean EmitCondCodes;
-   GLboolean EmitComments;
-};
-</pre>
-
-<dl>
-<dt>EmitHighLevelInstructions</dt>
-<dd>
-This option controls instruction selection for loops and conditionals.
-If the option is set high-level IF/ELSE/ENDIF, LOOP/ENDLOOP, CONT/BRK
-instructions will be emitted.
-Otherwise, those constructs will be implemented with BRA instructions.
-</dd>
-
-<dt>EmitCondCodes</dt>
-<dd>
-If set, condition codes (ala GL_NV_fragment_program) will be used for
-branching and looping.
-Otherwise, ordinary registers will be used (the IF instruction will
-examine the first operand's X component and do the if-part if non-zero).
-This option is only relevant if EmitHighLevelInstructions is set.
-</dd>
-
-<dt>EmitComments</dt>
-<dd>
-If set, instructions will be annotated with comments to help with debugging.
-Extra NOP instructions will also be inserted.
-</dd>
-</dl>
-
-
 <h2 id="validation">Compiler Validation</h2>
 
 <p>

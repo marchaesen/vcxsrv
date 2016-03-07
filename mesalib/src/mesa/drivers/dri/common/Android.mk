@@ -74,19 +74,23 @@ $(intermediates)/xmlpool/%.po: $(LOCAL_PATH)/xmlpool/%.po $(POT)
 		sed -i -e 's/charset=.*\\n/charset=UTF-8\\n/' $@; \
 	fi
 
-$(intermediates)/xmlpool/%/LC_MESSAGES/options.mo: $(intermediates)/xmlpool/%.po
+PRIVATE_SCRIPT := $(LOCAL_PATH)/xmlpool/gen_xmlpool.py
+PRIVATE_LOCALEDIR := $(intermediates)/xmlpool
+PRIVATE_TEMPLATE_HEADER := $(LOCAL_PATH)/xmlpool/t_options.h
+PRIVATE_MO_FILES := $(MESA_DRI_OPTIONS_LANGS:%=$(intermediates)/xmlpool/%/LC_MESSAGES/options.mo)
+
+LOCAL_GENERATED_SOURCES += $(PRIVATE_MO_FILES)
+
+$(PRIVATE_MO_FILES): $(intermediates)/xmlpool/%/LC_MESSAGES/options.mo: $(intermediates)/xmlpool/%.po
 	mkdir -p $(dir $@)
 	msgfmt -o $@ $<
 
-$(MESA_DRI_OPTIONS_H): PRIVATE_SCRIPT := $(LOCAL_PATH)/xmlpool/gen_xmlpool.py
-$(MESA_DRI_OPTIONS_H): PRIVATE_LOCALEDIR := $(intermediates)/xmlpool
-$(MESA_DRI_OPTIONS_H): PRIVATE_TEMPLATE_HEADER := $(LOCAL_PATH)/xmlpool/t_options.h
-$(MESA_DRI_OPTIONS_H): PRIVATE_MO_FILES := $(MESA_DRI_OPTIONS_LANGS:%=$(intermediates)/xmlpool/%/LC_MESSAGES/options.mo)
-.SECONDEXPANSION:
-$(MESA_DRI_OPTIONS_H): $$(PRIVATE_SCRIPT) $$(PRIVATE_TEMPLATE_HEADER) $$(PRIVATE_MO_FILES)
-	@mkdir -p $(dir $@)
-	$(hide) $(MESA_PYTHON2) $(PRIVATE_SCRIPT) $(PRIVATE_TEMPLATE_HEADER) \
+$(LOCAL_GENERATED_SOURCES): PRIVATE_PYTHON := $(MESA_PYTHON2)
+$(LOCAL_GENERATED_SOURCES): PRIVATE_CUSTOM_TOOL = $(PRIVATE_PYTHON) $^ $(PRIVATE_TEMPLATE_HEADER) \
 		$(PRIVATE_LOCALEDIR) $(MESA_DRI_OPTIONS_LANGS) > $@
+
+$(MESA_DRI_OPTIONS_H): $(PRIVATE_SCRIPT) $(PRIVATE_TEMPLATE_HEADER) $(PRIVATE_MO_FILES)
+	$(transform-generated-source)
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
