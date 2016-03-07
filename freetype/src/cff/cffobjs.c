@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    OpenType objects manager (body).                                     */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -583,10 +583,18 @@
       if ( error )
         goto Exit;
 
+      /* if we are performing a simple font format check, exit immediately */
+      /* (this is here for pure CFF)                                       */
+      if ( face_index < 0 )
+      {
+        cffface->num_faces = (FT_Long)cff->num_faces;
+        return FT_Err_Ok;
+      }
+
       cff->pshinter = pshinter;
       cff->psnames  = psnames;
 
-      cffface->face_index = face_index;
+      cffface->face_index = face_index & 0xFFFF;
 
       /* Complement the root flags with some interesting information. */
       /* Note that this is only necessary for pure CFF and CEF fonts; */
@@ -629,7 +637,7 @@
       if ( !dict->has_font_matrix )
         dict->units_per_em = pure_cff ? 1000 : face->root.units_per_EM;
 
-      /* Normalize the font matrix so that `matrix->xx' is 1; the */
+      /* Normalize the font matrix so that `matrix->yy' is 1; the */
       /* scaling is done with `units_per_em' then (at this point, */
       /* it already contains the scaling factor, but without      */
       /* normalization of the matrix).                            */
@@ -765,8 +773,9 @@
           (FT_Short)( dict->underline_thickness >> 16 );
 
         /* retrieve font family & style name */
-        cffface->family_name = cff_index_get_name( cff,
-                                                   (FT_UInt)face_index );
+        cffface->family_name = cff_index_get_name(
+                                 cff,
+                                 (FT_UInt)( face_index & 0xFFFF ) );
         if ( cffface->family_name )
         {
           char*  full   = cff_index_get_sid_string( cff,
@@ -1046,7 +1055,7 @@
     driver->hinting_engine = FT_CFF_HINTING_ADOBE;
 #endif
 
-    driver->no_stem_darkening = FALSE;
+    driver->no_stem_darkening = TRUE;
 
     driver->darken_params[0] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_X1;
     driver->darken_params[1] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_Y1;

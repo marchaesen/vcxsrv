@@ -16,8 +16,8 @@ I. Standard procedure
     which are not correctly supported by this compiler while being ISO
     C compliant!
 
-  * You  need  to  add  the directories  `freetype2/include'  to  your
-    include path when compiling the library.
+  * You need to add the directory `include' to your  include path when
+    compiling the library.
 
   * FreeType 2 is made of  several components; each of them is located
     in    a   subdirectory    of   `freetype2/src'.     For   example,
@@ -103,7 +103,7 @@ I. Standard procedure
       `type1cid.c' needs `psaux.c', `pshinter.c', and `psnames.c'
       `type42.c'   needs `truetype.c'
 
-      Please consult the central `include/config/ftoption.h'
+      Please consult the central  `include/freetype/config/ftoption.h'
       configuration file for details on additional libraries necessary
       for some optional features.
 
@@ -132,10 +132,10 @@ II. Support for flat-directory compilation
 
   2. Compile sources
 
-      cc -c -Ifreetype2/include -DFT2_BUILD_LIBRARY ftsystem.c
-      cc -c -Ifreetype2/include -DFT2_BUILD_LIBRARY ftinit.c
-      cc -c -Ifreetype2/include -DFT2_BUILD_LIBRARY ftdebug.c
-      cc -c -Ifreetype2/include -DFT2_BUILD_LIBRARY ftbase.c
+      cc -c -Iinclude -DFT2_BUILD_LIBRARY ftsystem.c
+      cc -c -Iinclude -DFT2_BUILD_LIBRARY ftinit.c
+      cc -c -Iinclude -DFT2_BUILD_LIBRARY ftdebug.c
+      cc -c -Iinclude -DFT2_BUILD_LIBRARY ftbase.c
       etc.
 
     You don't  need to define  the FT_FLAT_COMPILATION macro  (as this
@@ -143,7 +143,7 @@ II. Support for flat-directory compilation
 
 ----------------------------------------------------------------------
 
-Copyright 2003-2015 by
+Copyright 2003-2016 by
 David Turner, Robert Wilhelm, and Werner Lemberg.
 
 This  file is  part of  the FreeType  project, and  may only  be used,

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType initialization layer (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -23,8 +23,8 @@
   /*  FT_Add_Default_Modules():                                            */
   /*     This function is used to add the set of default modules to a      */
   /*     fresh new library object.  The set is taken from the header file  */
-  /*     `config/ftmodule.h'.  See the document `FreeType 2.0 Build        */
-  /*     System' for more information.                                     */
+  /*     `freetype/config/ftmodule.h'.  See the document `FreeType 2.0     */
+  /*     Build System' for more information.                               */
   /*                                                                       */
   /*  FT_Init_FreeType():                                                  */
   /*     This function creates a system object for the current platform,   */

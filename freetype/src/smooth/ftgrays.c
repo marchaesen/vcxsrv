@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    A new `perfect' anti-aliasing renderer (body).                       */
 /*                                                                         */
-/*  Copyright 2000-2015 by                                                 */
+/*  Copyright 2000-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -18,18 +18,18 @@
   /*************************************************************************/
   /*                                                                       */
   /* This file can be compiled without the rest of the FreeType engine, by */
-  /* defining the _STANDALONE_ macro when compiling it.  You also need to  */
+  /* defining the STANDALONE_ macro when compiling it.  You also need to   */
   /* put the files `ftgrays.h' and `ftimage.h' into the current            */
   /* compilation directory.  Typically, you could do something like        */
   /*                                                                       */
   /* - copy `src/smooth/ftgrays.c' (this file) to your current directory   */
   /*                                                                       */
-  /* - copy `include/ftimage.h' and `src/smooth/ftgrays.h' to the same     */
-  /*   directory                                                           */
+  /* - copy `include/freetype/ftimage.h' and `src/smooth/ftgrays.h' to the */
+  /*   same directory                                                      */
   /*                                                                       */
-  /* - compile `ftgrays' with the _STANDALONE_ macro defined, as in        */
+  /* - compile `ftgrays' with the STANDALONE_ macro defined, as in         */
   /*                                                                       */
-  /*     cc -c -D_STANDALONE_ ftgrays.c                                    */
+  /*     cc -c -DSTANDALONE_ ftgrays.c                                     */
   /*                                                                       */
   /* The renderer can be initialized with a call to                        */
   /* `ft_gray_raster.raster_new'; an anti-aliased bitmap can be generated  */
@@ -91,7 +91,7 @@
 #define FT_COMPONENT  trace_smooth
 
 
-#ifdef _STANDALONE_
+#ifdef STANDALONE_
 
 
   /* The size in bytes of the render pool used by the scan-line converter  */
@@ -135,8 +135,10 @@
 #include <string.h>
 #include <setjmp.h>
 #include <limits.h>
-#define FT_UINT_MAX  UINT_MAX
-#define FT_INT_MAX   INT_MAX
+#define FT_CHAR_BIT   CHAR_BIT
+#define FT_UINT_MAX   UINT_MAX
+#define FT_INT_MAX    INT_MAX
+#define FT_ULONG_MAX  ULONG_MAX
 
 #define ft_memset   memset
 
@@ -254,7 +256,7 @@ typedef ptrdiff_t  FT_PtrDist;
          };
 
 
-#else /* !_STANDALONE_ */
+#else /* !STANDALONE_ */
 
 
 #include <ft2build.h>
@@ -272,7 +274,7 @@ typedef ptrdiff_t  FT_PtrDist;
 #define ErrRaster_Memory_Overflow   Smooth_Err_Out_Of_Memory
 
 
-#endif /* !_STANDALONE_ */
+#endif /* !STANDALONE_ */
 
 
 #ifndef FT_MEM_SET
@@ -317,7 +319,6 @@ typedef ptrdiff_t  FT_PtrDist;
 #undef SCALED
 
 #define ONE_PIXEL       ( 1L << PIXEL_BITS )
-#define PIXEL_MASK      ( -1L << PIXEL_BITS )
 #define TRUNC( x )      ( (TCoord)( (x) >> PIXEL_BITS ) )
 #define SUBPIXELS( x )  ( (TPos)(x) << PIXEL_BITS )
 #define FLOOR( x )      ( (x) & -ONE_PIXEL )
@@ -365,6 +366,15 @@ typedef ptrdiff_t  FT_PtrDist;
     }                                                              \
   FT_END_STMNT
 #endif /* __arm__ */
+
+
+  /* These macros speed up repetitive divisions by replacing them */
+  /* with multiplications and right shifts.                       */ 
+#define FT_UDIVPREP( b )                                       \
+  long  b ## _r = (long)( FT_ULONG_MAX >> PIXEL_BITS ) / ( b )
+#define FT_UDIV( a, b )                                        \
+  ( ( (unsigned long)( a ) * (unsigned long)( b ## _r ) ) >>   \
+    ( sizeof( long ) * FT_CHAR_BIT - PIXEL_BITS ) )
 
 
   /*************************************************************************/
@@ -440,10 +450,7 @@ typedef ptrdiff_t  FT_PtrDist;
     FT_PtrDist  max_cells;
     FT_PtrDist  num_cells;
 
-    TCoord  cx, cy;
     TPos    x,  y;
-
-    TPos    last_ey;
 
     FT_Vector   bez_stack[32 * 3 + 1];
     int         lev_stack[32];
@@ -677,12 +684,12 @@ typedef ptrdiff_t  FT_PtrDist;
     ras.cover   = 0;
     ras.ex      = ex - ras.min_ex;
     ras.ey      = ey - ras.min_ey;
-    ras.last_ey = SUBPIXELS( ey );
     ras.invalid = 0;
 
     gray_set_cell( RAS_VAR_ ex, ey );
   }
 
+#if 0
 
   /*************************************************************************/
   /*                                                                       */
@@ -758,7 +765,7 @@ typedef ptrdiff_t  FT_PtrDist;
 
       mod -= (int)dx;
 
-      while ( ex1 != ex2 )
+      do
       {
         delta = lift;
         mod  += rem;
@@ -773,7 +780,7 @@ typedef ptrdiff_t  FT_PtrDist;
         y1        += delta;
         ex1       += incr;
         gray_set_cell( RAS_VAR_ ex1, ey );
-      }
+      } while ( ex1 != ex2 );
     }
 
     delta      = y2 - y1;
@@ -796,29 +803,18 @@ typedef ptrdiff_t  FT_PtrDist;
     int     delta, rem, lift, incr;
 
 
-    ey1 = TRUNC( ras.last_ey );
+    ey1 = TRUNC( ras.y );
     ey2 = TRUNC( to_y );     /* if (ey2 >= ras.max_ey) ey2 = ras.max_ey-1; */
-    fy1 = (TCoord)( ras.y - ras.last_ey );
+    fy1 = (TCoord)( ras.y - SUBPIXELS( ey1 ) );
     fy2 = (TCoord)( to_y - SUBPIXELS( ey2 ) );
 
     dx = to_x - ras.x;
     dy = to_y - ras.y;
 
     /* perform vertical clipping */
-    {
-      TCoord  min, max;
-
-
-      min = ey1;
-      max = ey2;
-      if ( ey1 > ey2 )
-      {
-        min = ey2;
-        max = ey1;
-      }
-      if ( min >= ras.max_ey || max < ras.min_ey )
-        goto End;
-    }
+    if ( ( ey1 >= ras.max_ey && ey2 >= ras.max_ey ) ||
+         ( ey1 <  ras.min_ey && ey2 <  ras.min_ey ) )
+      goto End;
 
     /* everything is on a single scanline */
     if ( ey1 == ey2 )
@@ -896,7 +892,7 @@ typedef ptrdiff_t  FT_PtrDist;
       FT_DIV_MOD( int, p, dy, lift, rem );
       mod -= (int)dy;
 
-      while ( ey1 != ey2 )
+      do
       {
         delta = lift;
         mod  += rem;
@@ -914,7 +910,7 @@ typedef ptrdiff_t  FT_PtrDist;
 
         ey1 += incr;
         gray_set_cell( RAS_VAR_ TRUNC( x ), ey1 );
-      }
+      } while ( ey1 != ey2 );
     }
 
     gray_render_scanline( RAS_VAR_ ey1, x,
@@ -924,9 +920,145 @@ typedef ptrdiff_t  FT_PtrDist;
   End:
     ras.x       = to_x;
     ras.y       = to_y;
-    ras.last_ey = SUBPIXELS( ey2 );
   }
 
+#else
+
+  /*************************************************************************/
+  /*                                                                       */
+  /* Render a straight line across multiple cells in any direction.        */
+  /*                                                                       */
+  static void
+  gray_render_line( RAS_ARG_ TPos  to_x,
+                             TPos  to_y )
+  {
+    TPos    dx, dy, fx1, fy1, fx2, fy2;
+    TCoord  ex1, ex2, ey1, ey2;
+
+
+    ex1 = TRUNC( ras.x );
+    ex2 = TRUNC( to_x );
+    ey1 = TRUNC( ras.y );
+    ey2 = TRUNC( to_y );
+
+    /* perform vertical clipping */
+    if ( ( ey1 >= ras.max_ey && ey2 >= ras.max_ey ) ||
+         ( ey1 <  ras.min_ey && ey2 <  ras.min_ey ) )
+      goto End;
+
+    dx = to_x - ras.x;
+    dy = to_y - ras.y;
+
+    fx1 = ras.x - SUBPIXELS( ex1 );
+    fy1 = ras.y - SUBPIXELS( ey1 );
+
+    if ( ex1 == ex2 && ey1 == ey2 )       /* inside one cell */
+      ;
+    else if ( dy == 0 ) /* ex1 != ex2 */  /* any horizontal line */
+    {
+      ex1 = ex2;
+      gray_set_cell( RAS_VAR_ ex1, ey1 );
+    }
+    else if ( dx == 0 )
+    {
+      if ( dy > 0 )                       /* vertical line up */
+        do
+        {
+          fy2 = ONE_PIXEL;
+          ras.cover += ( fy2 - fy1 );
+          ras.area  += ( fy2 - fy1 ) * fx1 * 2;
+          fy1 = 0;
+          ey1++;
+          gray_set_cell( RAS_VAR_ ex1, ey1 );
+        } while ( ey1 != ey2 );
+      else                                /* vertical line down */
+        do
+        {
+          fy2 = 0;
+          ras.cover += ( fy2 - fy1 );
+          ras.area  += ( fy2 - fy1 ) * fx1 * 2;
+          fy1 = ONE_PIXEL;
+          ey1--;
+          gray_set_cell( RAS_VAR_ ex1, ey1 );
+        } while ( ey1 != ey2 );
+    }
+    else                                  /* any other line */
+    {
+      TArea  prod = dx * fy1 - dy * fx1;
+      FT_UDIVPREP( dx );
+      FT_UDIVPREP( dy );
+
+
+      /* The fundamental value `prod' determines which side and the  */
+      /* exact coordinate where the line exits current cell.  It is  */
+      /* also easily updated when moving from one cell to the next.  */
+      do
+      {
+        if      ( prod                                   <= 0 &&
+                  prod - dx * ONE_PIXEL                  >  0 ) /* left */
+        {
+          fx2 = 0;
+          fy2 = (TPos)FT_UDIV( -prod, -dx );
+          prod -= dy * ONE_PIXEL;
+          ras.cover += ( fy2 - fy1 );
+          ras.area  += ( fy2 - fy1 ) * ( fx1 + fx2 );
+          fx1 = ONE_PIXEL;
+          fy1 = fy2;
+          ex1--;
+        }
+        else if ( prod - dx * ONE_PIXEL                  <= 0 &&
+                  prod - dx * ONE_PIXEL + dy * ONE_PIXEL >  0 ) /* up */
+        {
+          prod -= dx * ONE_PIXEL;
+          fx2 = (TPos)FT_UDIV( -prod, dy );
+          fy2 = ONE_PIXEL;
+          ras.cover += ( fy2 - fy1 );
+          ras.area  += ( fy2 - fy1 ) * ( fx1 + fx2 );
+          fx1 = fx2;
+          fy1 = 0;
+          ey1++;
+        }
+        else if ( prod - dx * ONE_PIXEL + dy * ONE_PIXEL <= 0 &&
+                  prod                  + dy * ONE_PIXEL >= 0 ) /* right */
+        {
+          prod += dy * ONE_PIXEL;
+          fx2 = ONE_PIXEL;
+          fy2 = (TPos)FT_UDIV( prod, dx );
+          ras.cover += ( fy2 - fy1 );
+          ras.area  += ( fy2 - fy1 ) * ( fx1 + fx2 );
+          fx1 = 0;
+          fy1 = fy2;
+          ex1++;
+        }
+        else /* ( prod                  + dy * ONE_PIXEL <  0 &&
+                  prod                                   >  0 )    down */
+        {
+          fx2 = (TPos)FT_UDIV( prod, -dy );
+          fy2 = 0;
+          prod += dx * ONE_PIXEL;
+          ras.cover += ( fy2 - fy1 );
+          ras.area  += ( fy2 - fy1 ) * ( fx1 + fx2 );
+          fx1 = fx2;
+          fy1 = ONE_PIXEL;
+          ey1--;
+        }
+
+        gray_set_cell( RAS_VAR_ ex1, ey1 );
+      } while ( ex1 != ex2 || ey1 != ey2 );
+    }
+
+    fx2 = to_x - SUBPIXELS( ex2 );
+    fy2 = to_y - SUBPIXELS( ey2 );
+
+    ras.cover += ( fy2 - fy1 );
+    ras.area  += ( fy2 - fy1 ) * ( fx1 + fx2 );
+
+  End:
+    ras.x       = to_x;
+    ras.y       = to_y;
+  }
+
+#endif
 
   static void
   gray_split_conic( FT_Vector*  base )
@@ -1469,7 +1601,7 @@ typedef ptrdiff_t  FT_PtrDist;
   }
 
 
-#ifdef _STANDALONE_
+#ifdef STANDALONE_
 
   /*************************************************************************/
   /*                                                                       */
@@ -1751,7 +1883,7 @@ typedef ptrdiff_t  FT_PtrDist;
     return FT_THROW( Invalid_Outline );
   }
 
-#endif /* _STANDALONE_ */
+#endif /* STANDALONE_ */
 
 
   typedef struct  gray_TBand_
@@ -1847,7 +1979,7 @@ typedef ptrdiff_t  FT_PtrDist;
       bands[0].max = max;
       band         = bands;
 
-      while ( band >= bands )
+      do
       {
         TPos  bottom, top, middle;
         int   error;
@@ -1923,7 +2055,7 @@ typedef ptrdiff_t  FT_PtrDist;
         band[0].min = middle;
         band[0].max = top;
         band++;
-      }
+      } while ( band >= bands );
     }
 
     if ( ras.band_shoot > 8 && ras.band_size > 16 )
@@ -2030,7 +2162,7 @@ typedef ptrdiff_t  FT_PtrDist;
   /**** RASTER OBJECT CREATION: In stand-alone mode, we simply use *****/
   /****                         a static object.                   *****/
 
-#ifdef _STANDALONE_
+#ifdef STANDALONE_
 
   static int
   gray_raster_new( void*       memory,
@@ -2055,7 +2187,7 @@ typedef ptrdiff_t  FT_PtrDist;
     FT_UNUSED( raster );
   }
 
-#else /* !_STANDALONE_ */
+#else /* !STANDALONE_ */
 
   static int
   gray_raster_new( FT_Memory   memory,
@@ -2085,7 +2217,7 @@ typedef ptrdiff_t  FT_PtrDist;
     FT_FREE( raster );
   }
 
-#endif /* !_STANDALONE_ */
+#endif /* !STANDALONE_ */
 
 
   static void

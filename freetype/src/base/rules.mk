@@ -3,7 +3,7 @@
 #
 
 
-# Copyright 1996-2015 by
+# Copyright 1996-2016 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -41,6 +41,7 @@ BASE_SRC := $(BASE_DIR)/basepic.c  \
             $(BASE_DIR)/ftcalc.c   \
             $(BASE_DIR)/ftdbgmem.c \
             $(BASE_DIR)/ftgloadr.c \
+            $(BASE_DIR)/fthash.c   \
             $(BASE_DIR)/ftobjs.c   \
             $(BASE_DIR)/ftoutln.c  \
             $(BASE_DIR)/ftpic.c    \

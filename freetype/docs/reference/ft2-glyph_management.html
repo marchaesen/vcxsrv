@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6 API Reference</title>
+<title>FreeType-2.6.3 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,9 +100,9 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6 API Reference</h1>
+<h1>FreeType-2.6.3 API Reference</h1>
 
-<h1>Glyph Management</h1>
+<h1 id="glyph_management">Glyph Management</h1>
 <h2>Synopsis</h2>
 <table class="synopsis">
 <tr><td><a href="#FT_Glyph">FT_Glyph</a></td><td><a href="#FT_OutlineGlyphRec">FT_OutlineGlyphRec</a></td><td><a href="#FT_Glyph_Get_CBox">FT_Glyph_Get_CBox</a></td></tr>
@@ -117,7 +117,7 @@
 
 <div class="section">
 <h3 id="FT_Glyph">FT_Glyph</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span> FT_GlyphRec_*  <b>FT_Glyph</b>;
 </pre>
@@ -132,7 +132,7 @@
 
 <div class="section">
 <h3 id="FT_GlyphRec">FT_GlyphRec</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span>  FT_GlyphRec_
   {
@@ -167,7 +167,7 @@
 
 <div class="section">
 <h3 id="FT_BitmapGlyph">FT_BitmapGlyph</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span> FT_BitmapGlyphRec_*  <b>FT_BitmapGlyph</b>;
 </pre>
@@ -179,7 +179,7 @@
 
 <div class="section">
 <h3 id="FT_BitmapGlyphRec">FT_BitmapGlyphRec</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span>  FT_BitmapGlyphRec_
   {
@@ -218,7 +218,7 @@
 
 <div class="section">
 <h3 id="FT_OutlineGlyph">FT_OutlineGlyph</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span> FT_OutlineGlyphRec_*  <b>FT_OutlineGlyph</b>;
 </pre>
@@ -230,7 +230,7 @@
 
 <div class="section">
 <h3 id="FT_OutlineGlyphRec">FT_OutlineGlyphRec</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">struct</span>  FT_OutlineGlyphRec_
   {
@@ -262,7 +262,7 @@
 
 <div class="section">
 <h3 id="FT_Get_Glyph">FT_Get_Glyph</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Get_Glyph</b>( <a href="ft2-base_interface.html#FT_GlyphSlot">FT_GlyphSlot</a>  slot,
@@ -293,7 +293,7 @@
 
 <div class="section">
 <h3 id="FT_Glyph_Copy">FT_Glyph_Copy</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Glyph_Copy</b>( <a href="ft2-glyph_management.html#FT_Glyph">FT_Glyph</a>   source,
@@ -324,7 +324,7 @@
 
 <div class="section">
 <h3 id="FT_Glyph_Transform">FT_Glyph_Transform</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Glyph_Transform</b>( <a href="ft2-glyph_management.html#FT_Glyph">FT_Glyph</a>    glyph,
@@ -362,7 +362,7 @@
 
 <div class="section">
 <h3 id="FT_Glyph_BBox_Mode">FT_Glyph_BBox_Mode</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   <span class="keyword">typedef</span> <span class="keyword">enum</span>  FT_Glyph_BBox_Mode_
   {
@@ -410,7 +410,7 @@
 
 <div class="section">
 <h3 id="FT_Glyph_Get_CBox">FT_Glyph_Get_CBox</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   FT_EXPORT( <span class="keyword">void</span> )
   <b>FT_Glyph_Get_CBox</b>( <a href="ft2-glyph_management.html#FT_Glyph">FT_Glyph</a>  glyph,
@@ -462,7 +462,7 @@
 
 <div class="section">
 <h3 id="FT_Glyph_To_Bitmap">FT_Glyph_To_Bitmap</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   FT_EXPORT( <a href="ft2-basic_types.html#FT_Error">FT_Error</a> )
   <b>FT_Glyph_To_Bitmap</b>( <a href="ft2-glyph_management.html#FT_Glyph">FT_Glyph</a>*       the_glyph,
@@ -572,7 +572,7 @@
 
 <div class="section">
 <h3 id="FT_Done_Glyph">FT_Done_Glyph</h3>
-<p>Defined in FT_GLYPH_H (ftglyph.h).</p>
+<p>Defined in FT_GLYPH_H (freetype/ftglyph.h).</p>
 <pre>
   FT_EXPORT( <span class="keyword">void</span> )
   <b>FT_Done_Glyph</b>( <a href="ft2-glyph_management.html#FT_Glyph">FT_Glyph</a>  glyph );

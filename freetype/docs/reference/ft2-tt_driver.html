@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6 API Reference</title>
+<title>FreeType-2.6.3 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,9 +100,9 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6 API Reference</h1>
+<h1>FreeType-2.6.3 API Reference</h1>
 
-<h1>The TrueType driver</h1>
+<h1 id="tt_driver">The TrueType driver</h1>
 <h2>Synopsis</h2>
 <table class="synopsis">
 <tr><td><a href="#interpreter-version">interpreter-version</a></td><td><a href="#TT_INTERPRETER_VERSION_XXX">TT_INTERPRETER_VERSION_XXX</a></td></tr>
@@ -111,6 +111,21 @@
 
 <p>While FreeType's TrueType driver doesn't expose API functions by itself, it is possible to control its behaviour with <a href="ft2-module_management.html#FT_Property_Set">FT_Property_Set</a> and <a href="ft2-module_management.html#FT_Property_Get">FT_Property_Get</a>. The following lists the available properties together with the necessary macros and structures.</p>
 <p>The TrueType driver's module name is &lsquo;truetype&rsquo;.</p>
+<p>We start with a list of definitions, kindly provided by Greg Hitchcock.</p>
+<p><i>Bi-Level</i> <i>Rendering</i></p>
+<p>Monochromatic rendering, exclusively used in the early days of TrueType by both Apple and Microsoft. Microsoft's GDI interface supported hinting of the right-side bearing point, such that the advance width could be non-linear. Most often this was done to achieve some level of glyph symmetry. To enable reasonable performance (e.g., not having to run hinting on all glyphs just to get the widths) there was a bit in the head table indicating if the side bearing was hinted, and additional tables, &lsquo;hdmx&rsquo; and &lsquo;LTSH&rsquo;, to cache hinting widths across multiple sizes and device aspect ratios.</p>
+<p><i>Font</i> <i>Smoothing</i></p>
+<p>Microsoft's GDI implementation of anti-aliasing. Not traditional anti-aliasing as the outlines were hinted before the sampling. The widths matched the bi-level rendering.</p>
+<p><i>ClearType</i> <i>Rendering</i></p>
+<p>Technique that uses physical subpixels to improve rendering on LCD (and other) displays. Because of the higher resolution, many methods of improving symmetry in glyphs through hinting the right-side bearing were no longer necessary. This lead to what GDI calls &lsquo;natural widths&rsquo; ClearType, see <a href="http://www.beatstamm.com/typography/RTRCh4.htm#Sec21">http://www.beatstamm.com/typography/RTRCh4.htm#Sec21</a>. Since hinting has extra resolution, most non-linearity went away, but it is still possible for hints to change the advance widths in this mode.</p>
+<p><i>ClearType</i> <i>Compatible</i> <i>Widths</i></p>
+<p>One of the earliest challenges with ClearType was allowing the implementation in GDI to be selected without requiring all UI and documents to reflow. To address this, a compatible method of rendering ClearType was added where the font hints are executed once to determine the width in bi-level rendering, and then re-run in ClearType, with the difference in widths being absorbed in the font hints for ClearType (mostly in the white space of hints); see <a href="http://www.beatstamm.com/typography/RTRCh4.htm#Sec20">http://www.beatstamm.com/typography/RTRCh4.htm#Sec20</a>. Somewhat by definition, compatible width ClearType allows for non-linear widths, but only when the bi-level version has non-linear widths.</p>
+<p><i>ClearType</i> <i>Subpixel</i> <i>Positioning</i></p>
+<p>One of the nice benefits of ClearType is the ability to more crisply display fractional widths; unfortunately, the GDI model of integer bitmaps did not support this. However, the WPF and Direct Write frameworks do support fractional widths. DWrite calls this &lsquo;natural mode&rsquo;, not to be confused with GDI's &lsquo;natural widths&rsquo;. Subpixel positioning, in the current implementation of Direct Write, unfortunately does not support hinted advance widths, see <a href="http://www.beatstamm.com/typography/RTRCh4.htm#Sec22">http://www.beatstamm.com/typography/RTRCh4.htm#Sec22</a>. Note that the TrueType interpreter fully allows the advance width to be adjusted in this mode, just the DWrite client will ignore those changes.</p>
+<p><i>ClearType</i> <i>Backwards</i> <i>Compatibility</i></p>
+<p>This is a set of exceptions made in the TrueType interpreter to minimize hinting techniques that were problematic with the extra resolution of ClearType; see <a href="http://www.beatstamm.com/typography/RTRCh4.htm#Sec1">http://www.beatstamm.com/typography/RTRCh4.htm#Sec1</a> and <a href="http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx">http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx</a>. This technique is not to be confused with ClearType compatible widths. ClearType backwards compatibility has no direct impact on changing advance widths, but there might be an indirect impact on disabling some deltas. This could be worked around in backwards compatibility mode.</p>
+<p><i>Native</i> <i>ClearType</i> <i>Mode</i></p>
+<p>(Not to be confused with &lsquo;natural widths&rsquo;.) This mode removes all the exceptions in the TrueType interpreter when running with ClearType. Any issues on widths would still apply, though.</p>
 
 <div class="section">
 <h3 id="interpreter-version">interpreter-version</h3>
@@ -140,7 +155,7 @@
 
 <div class="section">
 <h3 id="TT_INTERPRETER_VERSION_XXX">TT_INTERPRETER_VERSION_XXX</h3>
-<p>Defined in FT_TRUETYPE_DRIVER_H (ftttdrv.h).</p>
+<p>Defined in FT_TRUETYPE_DRIVER_H (freetype/ftttdrv.h).</p>
 <pre>
 #define <a href="ft2-tt_driver.html#TT_INTERPRETER_VERSION_35">TT_INTERPRETER_VERSION_35</a>  35
 #define <a href="ft2-tt_driver.html#TT_INTERPRETER_VERSION_38">TT_INTERPRETER_VERSION_38</a>  38

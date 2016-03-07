@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Auto-fitter styles (specification only).                             */
 /*                                                                         */
-/*  Copyright 2013-2015 by                                                 */
+/*  Copyright 2013-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -27,7 +27,9 @@
   /* coverage.                                                     */
   /*                                                               */
   /* Note that styles using `AF_COVERAGE_DEFAULT' should always    */
-  /* come after styles with other coverages.                       */
+  /* come after styles with other coverages.  Also note that       */
+  /* fallback scripts only use `AF_COVERAGE_DEFAULT' for its       */
+  /* style.                                                        */
   /*                                                               */
   /* Example:                                                      */
   /*                                                               */
@@ -88,7 +90,21 @@
          AF_BLUE_STRINGSET_ARAB,
          AF_COVERAGE_DEFAULT )
 
+  STYLE( beng_dflt, BENG_DFLT,
+         "Bengali default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_BENG,
+         AF_BLUE_STRINGSET_BENG,
+         AF_COVERAGE_DEFAULT )
+
   META_STYLE_LATIN( cyrl, CYRL, "Cyrillic" )
+
+  STYLE( deva_dflt, DEVA_DFLT,
+         "Devanagari default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_DEVA,
+         AF_BLUE_STRINGSET_DEVA,
+         AF_COVERAGE_DEFAULT )
 
   META_STYLE_LATIN( grek, GREK, "Greek" )
 
@@ -98,13 +114,49 @@
          AF_SCRIPT_HEBR,
          AF_BLUE_STRINGSET_HEBR,
          AF_COVERAGE_DEFAULT )
+
+  STYLE( knda_dflt, KNDA_DFLT,
+         "Kannada default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_KNDA,
+         AF_BLUE_STRINGSET_KNDA,
+         AF_COVERAGE_DEFAULT )
+
+  STYLE( khmr_dflt, KHMR_DFLT,
+         "Khmer default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_KHMR,
+         AF_BLUE_STRINGSET_KHMR,
+         AF_COVERAGE_DEFAULT )
+
+  STYLE( khms_dflt, KHMS_DFLT,
+         "Khmer Symbols default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_KHMS,
+         AF_BLUE_STRINGSET_KHMS,
+         AF_COVERAGE_DEFAULT )
+
+  STYLE( lao_dflt, LAO_DFLT,
+         "Lao default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_LAO,
+         AF_BLUE_STRINGSET_LAO,
+         AF_COVERAGE_DEFAULT )
+
   META_STYLE_LATIN( latn, LATN, "Latin" )
 
-  STYLE( deva_dflt, DEVA_DFLT,
-         "Devanagari default style",
+  STYLE( latb_dflt, LATB_DFLT,
+         "Latin subscript fallback default style",
          AF_WRITING_SYSTEM_LATIN,
-         AF_SCRIPT_DEVA,
-         AF_BLUE_STRINGSET_DEVA,
+         AF_SCRIPT_LATB,
+         AF_BLUE_STRINGSET_LATB,
+         AF_COVERAGE_DEFAULT )
+
+  STYLE( latp_dflt, LATP_DFLT,
+         "Latin superscript fallback default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_LATP,
+         AF_BLUE_STRINGSET_LATP,
          AF_COVERAGE_DEFAULT )
 
 #ifdef FT_OPTION_AUTOFIT2
@@ -115,6 +167,13 @@
          AF_BLUE_STRINGSET_LATN,
          AF_COVERAGE_DEFAULT )
 #endif
+
+  STYLE( mymr_dflt, MYMR_DFLT,
+         "Myanmar default style",
+         AF_WRITING_SYSTEM_LATIN,
+         AF_SCRIPT_MYMR,
+         AF_BLUE_STRINGSET_MYMR,
+         AF_COVERAGE_DEFAULT )
 
   STYLE( none_dflt, NONE_DFLT,
          "no style",
@@ -149,10 +208,8 @@
                  (AF_Blue_Stringset)0,    \
                  AF_COVERAGE_DEFAULT )
 
-  STYLE_DEFAULT_INDIC( beng, BENG, "Bengali" )
   STYLE_DEFAULT_INDIC( gujr, GUJR, "Gujarati" )
   STYLE_DEFAULT_INDIC( guru, GURU, "Gurmukhi" )
-  STYLE_DEFAULT_INDIC( knda, KNDA, "Kannada" )
   STYLE_DEFAULT_INDIC( limb, LIMB, "Limbu" )
   STYLE_DEFAULT_INDIC( mlym, MLYM, "Malayalam" )
   STYLE_DEFAULT_INDIC( orya, ORYA, "Oriya" )
