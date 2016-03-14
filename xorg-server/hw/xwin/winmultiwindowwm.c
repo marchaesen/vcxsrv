@@ -113,8 +113,6 @@ typedef struct _WMMsgQueueRec {
     struct _WMMsgNodeRec *pTail;
     pthread_mutex_t pmMutex;
     pthread_cond_t pcNotEmpty;
-#ifdef _DEBUG
-#endif
 } WMMsgQueueRec, *WMMsgQueuePtr;
 
 typedef struct _WMInfo {
@@ -1872,7 +1870,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 
     style &= ~WS_CAPTION & ~WS_SIZEBOX; /* Just in case */
 
-    if (!(hint & ~HINT_SKIPTASKBAR))    /* No hints, default */
+    if (!(hint & ~(HINT_SKIPTASKBAR|HINT_NOMAXIMIZE)))    /* No hints, default */
         style = style | WS_CAPTION | WS_SIZEBOX;
     else if (hint & HINT_NOFRAME)       /* No frame, no decorations */
         style = style & ~WS_CAPTION & ~WS_SIZEBOX;
