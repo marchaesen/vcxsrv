@@ -54,14 +54,27 @@ FcWeightFromOpenType (int ot_weight)
 {
 	int i;
 
-	/* Follow WPF Font Selection Model's advice. */
-	if (1 <= ot_weight && ot_weight <= 9)
-	    ot_weight *= 100;
+	/* Loosely based on WPF Font Selection Model's advice. */
 
-	/* WPF Font Selection Model rejects 1000, we allow it
-	 * because Pango uses that number. */
-	if (ot_weight < 1 || ot_weight > 1000)
+	if (ot_weight < 0)
 	    return -1;
+	else if (1 <= ot_weight && ot_weight <= 9)
+	{
+	    /* WPF Font Selection Model says do "ot_weight *= 100",
+	     * but Greg Hitchcock revealed that GDI had a mapping
+	     * reflected below: */
+	    switch (ot_weight) {
+		case 1: ot_weight =  80; break;
+		case 2: ot_weight = 160; break;
+		case 3: ot_weight = 240; break;
+		case 4: ot_weight = 320; break;
+		case 5: ot_weight = 400; break;
+		case 6: ot_weight = 550; break;
+		case 7: ot_weight = 700; break;
+		case 8: ot_weight = 800; break;
+		case 9: ot_weight = 900; break;
+	    }
+	}
 
 	for (i = 1; ot_weight > map[i].ot; i++)
 	  ;

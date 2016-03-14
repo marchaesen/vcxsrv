@@ -115,6 +115,10 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
       assert(!"nir_shader_add_variable cannot be used for local variables");
       break;
 
+   case nir_var_param:
+      assert(!"nir_shader_add_variable cannot be used for function parameters");
+      break;
+
    case nir_var_global:
       exec_list_push_tail(&shader->globals, &var->node);
       break;
@@ -254,16 +258,11 @@ cf_init(nir_cf_node *node, nir_cf_node_type type)
 }
 
 nir_function_impl *
-nir_function_impl_create(nir_function *function)
+nir_function_impl_create_bare(nir_shader *shader)
 {
-   assert(function->impl == NULL);
+   nir_function_impl *impl = ralloc(shader, nir_function_impl);
 
-   void *mem_ctx = ralloc_parent(function);
-
-   nir_function_impl *impl = ralloc(mem_ctx, nir_function_impl);
-
-   function->impl = impl;
-   impl->function = function;
+   impl->function = NULL;
 
    cf_init(&impl->cf_node, nir_cf_node_function);
 
@@ -278,8 +277,8 @@ nir_function_impl_create(nir_function *function)
    impl->valid_metadata = nir_metadata_none;
 
    /* create start & end blocks */
-   nir_block *start_block = nir_block_create(mem_ctx);
-   nir_block *end_block = nir_block_create(mem_ctx);
+   nir_block *start_block = nir_block_create(shader);
+   nir_block *end_block = nir_block_create(shader);
    start_block->cf_node.parent = &impl->cf_node;
    end_block->cf_node.parent = &impl->cf_node;
    impl->end_block = end_block;
@@ -288,6 +287,39 @@ nir_function_impl_create(nir_function *function)
 
    start_block->successors[0] = end_block;
    _mesa_set_add(end_block->predecessors, start_block);
+   return impl;
+}
+
+nir_function_impl *
+nir_function_impl_create(nir_function *function)
+{
+   assert(function->impl == NULL);
+
+   nir_function_impl *impl = nir_function_impl_create_bare(function->shader);
+
+   function->impl = impl;
+   impl->function = function;
+
+   impl->num_params = function->num_params;
+   impl->params = ralloc_array(function->shader,
+                               nir_variable *, impl->num_params);
+
+   for (unsigned i = 0; i < impl->num_params; i++) {
+      impl->params[i] = rzalloc(function->shader, nir_variable);
+      impl->params[i]->type = function->params[i].type;
+      impl->params[i]->data.mode = nir_var_param;
+      impl->params[i]->data.location = i;
+   }
+
+   if (!glsl_type_is_void(function->return_type)) {
+      impl->return_var = rzalloc(function->shader, nir_variable);
+      impl->return_var->type = function->return_type;
+      impl->return_var->data.mode = nir_var_param;
+      impl->return_var->data.location = -1;
+   } else {
+      impl->return_var = NULL;
+   }
+
    return impl;
 }
 

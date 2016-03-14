@@ -59,6 +59,7 @@ extern _X_EXPORT Bool xf86InitCursor(ScreenPtr pScreen,
                                      xf86CursorInfoPtr infoPtr);
 extern _X_EXPORT xf86CursorInfoPtr xf86CreateCursorInfoRec(void);
 extern _X_EXPORT void xf86DestroyCursorInfoRec(xf86CursorInfoPtr);
+extern _X_EXPORT void xf86CursorResetCursor(ScreenPtr pScreen);
 extern _X_EXPORT void xf86ForceHWCursor(ScreenPtr pScreen, Bool on);
 
 #define HARDWARE_CURSOR_INVERT_MASK 			0x00000001

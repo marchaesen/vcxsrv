@@ -1717,19 +1717,19 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
       break;
 
    case TYPE_FLOATN_4:
-      params[3] = FLOAT_TO_INT64(((GLfloat *) p)[3]);
+      params[3] = FLOAT_TO_INT(((GLfloat *) p)[3]);
    case TYPE_FLOATN_3:
-      params[2] = FLOAT_TO_INT64(((GLfloat *) p)[2]);
+      params[2] = FLOAT_TO_INT(((GLfloat *) p)[2]);
    case TYPE_FLOATN_2:
-      params[1] = FLOAT_TO_INT64(((GLfloat *) p)[1]);
+      params[1] = FLOAT_TO_INT(((GLfloat *) p)[1]);
    case TYPE_FLOATN:
-      params[0] = FLOAT_TO_INT64(((GLfloat *) p)[0]);
+      params[0] = FLOAT_TO_INT(((GLfloat *) p)[0]);
       break;
 
    case TYPE_DOUBLEN_2:
-      params[1] = FLOAT_TO_INT64(((GLdouble *) p)[1]);
+      params[1] = FLOAT_TO_INT(((GLdouble *) p)[1]);
    case TYPE_DOUBLEN:
-      params[0] = FLOAT_TO_INT64(((GLdouble *) p)[0]);
+      params[0] = FLOAT_TO_INT(((GLdouble *) p)[0]);
       break;
 
    case TYPE_INT_4:

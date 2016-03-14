@@ -225,8 +225,10 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
     if (glamor->vao) {
         glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
         glBindVertexArray(glamor->vao);
-    } else
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, glamor->vbo);
         ephyr_glamor_set_vertices(glamor);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(glamor->texture_shader);

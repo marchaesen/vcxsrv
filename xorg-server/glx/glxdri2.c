@@ -895,6 +895,12 @@ initializeExtensions(__GLXDRIscreen * screen)
         LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_fbconfig_float\n");
     }
 
+    /* enable EXT_fbconfig_packed_float (even if there are no packed float fbconfigs) */
+    {
+        __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
+        LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_fbconfig_packed_float\n");
+    }
+
     for (i = 0; extensions[i]; i++) {
         if (strcmp(extensions[i]->name, __DRI_READ_DRAWABLE) == 0) {
             __glXEnableExtension(screen->glx_enable_bits,

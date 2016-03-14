@@ -913,8 +913,7 @@ __glGetTexLevelParameterfv_size( GLenum e )
         case GL_TEXTURE_INDEX_SIZE_EXT:
         case GL_TEXTURE_COMPRESSED_IMAGE_SIZE:
 /*      case GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB:*/
-        case GL_TEXTURE_COMPRESSED:
-/*      case GL_TEXTURE_COMPRESSED_ARB:*/
+        case GL_TEXTURE_COMPRESSED_ARB:
         case GL_TEXTURE_DEPTH_SIZE:
 /*      case GL_TEXTURE_DEPTH_SIZE_ARB:*/
         case GL_TEXTURE_STENCIL_SIZE:

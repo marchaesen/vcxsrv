@@ -98,7 +98,8 @@ u_resource( struct pipe_resource *res )
 
 boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
                                    struct pipe_resource *resource,
-                                   struct winsys_handle *handle)
+                                   struct winsys_handle *handle,
+                                   unsigned usage)
 {
    struct u_resource *ur = u_resource(resource);
    return ur->vtbl->resource_get_handle(screen, resource, handle);

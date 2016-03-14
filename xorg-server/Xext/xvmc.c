@@ -253,6 +253,10 @@ ProcXvMCCreateContext(ClientPtr client)
         free(pContext);
         return result;
     }
+    if (!AddResource(pContext->context_id, XvMCRTContext, pContext)) {
+        free(data);
+        return BadAlloc;
+    }
 
     rep = (xvmcCreateContextReply) {
         .type = X_Reply,
@@ -266,7 +270,6 @@ ProcXvMCCreateContext(ClientPtr client)
     WriteToClient(client, sizeof(xvmcCreateContextReply), &rep);
     if (dwords)
         WriteToClient(client, dwords << 2, data);
-    AddResource(pContext->context_id, XvMCRTContext, pContext);
 
     free(data);
 
@@ -329,6 +332,11 @@ ProcXvMCCreateSurface(ClientPtr client)
         free(pSurface);
         return result;
     }
+    if (!AddResource(pSurface->surface_id, XvMCRTSurface, pSurface)) {
+        free(data);
+        return BadAlloc;
+    }
+
     rep = (xvmcCreateSurfaceReply) {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
@@ -338,7 +346,6 @@ ProcXvMCCreateSurface(ClientPtr client)
     WriteToClient(client, sizeof(xvmcCreateSurfaceReply), &rep);
     if (dwords)
         WriteToClient(client, dwords << 2, data);
-    AddResource(pSurface->surface_id, XvMCRTSurface, pSurface);
 
     free(data);
 
@@ -445,6 +452,11 @@ ProcXvMCCreateSubpicture(ClientPtr client)
         free(pSubpicture);
         return result;
     }
+    if (!AddResource(pSubpicture->subpicture_id, XvMCRTSubpicture, pSubpicture)) {
+        free(data);
+        return BadAlloc;
+    }
+
     rep = (xvmcCreateSubpictureReply) {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
@@ -462,7 +474,6 @@ ProcXvMCCreateSubpicture(ClientPtr client)
     WriteToClient(client, sizeof(xvmcCreateSubpictureReply), &rep);
     if (dwords)
         WriteToClient(client, dwords << 2, data);
-    AddResource(pSubpicture->subpicture_id, XvMCRTSubpicture, pSubpicture);
 
     free(data);
 

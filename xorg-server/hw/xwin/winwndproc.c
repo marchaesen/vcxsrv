@@ -290,14 +290,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                  * the display dimensions change.
                  */
 
-                /*
-                 * NOTE: The non-DirectDraw engines set the ReleasePrimarySurface
-                 * and CreatePrimarySurface function pointers to point
-                 * to the no operation function, NoopDDA.  This allows us
-                 * to blindly call these functions, even if they are not
-                 * relevant to the current engine (e.g., Shadow GDI).
-                 */
-
                 winDebug
                     ("winWindowProc - WM_DISPLAYCHANGE - Releasing and recreating primary surface\n");
 
@@ -1082,14 +1074,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             winFixShiftKeys(iScanCode);
         return 0;
 
-    case WM_HOTKEY:
-        if (s_pScreenPriv == NULL)
-            break;
-
-        /* Call the engine-specific hot key handler */
-        (*s_pScreenPriv->pwinHotKeyAltTab) (s_pScreen);
-        return 0;
-
     case WM_ACTIVATE:
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
@@ -1160,10 +1144,10 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Call engine specific screen activation/deactivation function */
         (*s_pScreenPriv->pwinActivateApp) (s_pScreen);
 
-#ifdef XWIN_MULTIWINDOWINTWM
+#ifdef XWIN_MULTIWINDOWEXTWM
         if (s_pScreenPriv->fActive) {
             /* Restack all window unless using built-in wm. */
-            if (s_pScreenInfo->fInternalWM && s_pScreenInfo->fAnotherWMRunning)
+            if (s_pScreenInfo->fMWExtWM)
                 winMWExtWMRestackWindows(s_pScreen);
         }
 #endif
@@ -1227,32 +1211,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return TRUE;
         }
         break;
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    case WM_MANAGE:
-        winDebug("winWindowProc - WM_MANAGE\n");
-        s_pScreenInfo->fAnotherWMRunning = FALSE;
-
-#ifdef XWIN_MULTIWINDOWINTWM
-        if (s_pScreenInfo->fInternalWM) {
-            EnumThreadWindows(g_dwCurrentThreadID, winMWExtWMDecorateWindow, 0);
-            //RootlessRepositionWindows (s_pScreen);
-        }
-#endif
-        break;
-
-    case WM_UNMANAGE:
-        winDebug("winWindowProc - WM_UNMANAGE\n");
-        s_pScreenInfo->fAnotherWMRunning = TRUE;
-
-#ifdef XWIN_MULTIWINDOWINTWM
-        if (s_pScreenInfo->fInternalWM) {
-            EnumThreadWindows(g_dwCurrentThreadID, winMWExtWMDecorateWindow, 0);
-            winMWExtWMRestackWindows(s_pScreen);
-        }
-#endif
-        break;
-#endif
 
     default:
         if (message == s_uTaskbarRestart) {

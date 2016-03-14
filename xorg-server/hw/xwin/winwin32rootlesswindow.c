@@ -194,12 +194,7 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
     /* Get current window placement */
     GetWindowPlacement(pRLWinPriv->hWnd, &wndPlace);
 
-#ifdef XWIN_MULTIWINDOWINTWM
-    if (winIsInternalWMRunning(pScreenInfo)) {
-        if (!pRLWinPriv->pFrame->win->overrideRedirect)
-            fDecorate = TRUE;
-    }
-#endif
+
     if (wndPlace.showCmd == SW_HIDE)
         return;
 
@@ -339,16 +334,6 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
     }
 }
 
-#ifdef XWIN_MULTIWINDOWINTWM
-/*
- * winIsInternalWMRunning (winScreenInfoPtr pScreenInfo)
- */
-Bool
-winIsInternalWMRunning(winScreenInfoPtr pScreenInfo)
-{
-    return pScreenInfo->fInternalWM && !pScreenInfo->fAnotherWMRunning;
-}
-#endif
 /*
  * winMWExtWMRestackWindows
  */

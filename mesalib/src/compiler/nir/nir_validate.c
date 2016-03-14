@@ -457,10 +457,12 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
 static void
 validate_call_instr(nir_call_instr *instr, validate_state *state)
 {
-   if (instr->return_deref == NULL)
+   if (instr->return_deref == NULL) {
       assert(glsl_type_is_void(instr->callee->return_type));
-   else
+   } else {
       assert(instr->return_deref->deref.type == instr->callee->return_type);
+      validate_deref_var(instr, instr->return_deref, state);
+   }
 
    assert(instr->num_params == instr->callee->num_params);
 
@@ -468,8 +470,6 @@ validate_call_instr(nir_call_instr *instr, validate_state *state)
       assert(instr->callee->params[i].type == instr->params[i]->deref.type);
       validate_deref_var(instr, instr->params[i], state);
    }
-
-   validate_deref_var(instr, instr->return_deref, state);
 }
 
 static void
@@ -867,7 +867,7 @@ postvalidate_reg_decl(nir_register *reg, validate_state *state)
 static void
 validate_var_decl(nir_variable *var, bool is_global, validate_state *state)
 {
-   assert(is_global != (var->data.mode == nir_var_local));
+   assert(is_global == nir_variable_is_global(var));
 
    /*
     * TODO validate some things ir_validate.cpp does (requires more GLSL type
@@ -936,13 +936,21 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
    assert(impl->cf_node.parent == NULL);
 
    assert(impl->num_params == impl->function->num_params);
-   for (unsigned i = 0; i < impl->num_params; i++)
+   for (unsigned i = 0; i < impl->num_params; i++) {
       assert(impl->params[i]->type == impl->function->params[i].type);
+      assert(impl->params[i]->data.mode == nir_var_param);
+      assert(impl->params[i]->data.location == i);
+      validate_var_decl(impl->params[i], false, state);
+   }
 
-   if (glsl_type_is_void(impl->function->return_type))
+   if (glsl_type_is_void(impl->function->return_type)) {
       assert(impl->return_var == NULL);
-   else
+   } else {
       assert(impl->return_var->type == impl->function->return_type);
+      assert(impl->return_var->data.mode == nir_var_param);
+      assert(impl->return_var->data.location == -1);
+      validate_var_decl(impl->return_var, false, state);
+   }
 
    assert(exec_list_is_empty(&impl->end_block->instr_list));
    assert(impl->end_block->successors[0] == NULL);

@@ -49,6 +49,8 @@
 #include "st_format.h"
 #include "st_cb_flush.h"
 
+#ifdef HAVE_ST_VDPAU
+
 static void
 st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
                      GLboolean output, struct gl_texture_object *texObj,
@@ -180,9 +182,13 @@ st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
    st_flush(st, NULL, 0);
 }
 
+#endif
+
 void
 st_init_vdpau_functions(struct dd_function_table *functions)
 {
+#ifdef HAVE_ST_VDPAU
    functions->VDPAUMapSurface = st_vdpau_map_surface;
    functions->VDPAUUnmapSurface = st_vdpau_unmap_surface;
+#endif
 }

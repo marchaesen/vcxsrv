@@ -1,5 +1,3 @@
-#ifndef __WIN_MSG_H__
-#define __WIN_MSG_H__
 /*
  *Copyright (C) 1994-2000 The XFree86 Project, Inc. All Rights Reserved.
  *
@@ -30,7 +28,11 @@
  * Authors: Alexander Gottwald	
  */
 
+#ifndef __WIN_MSG_H__
+#define __WIN_MSG_H__
+
 #include <X11/Xwindows.h>
+#include <X11/Xfuncproto.h>
 
 /*
  * Function prototypes

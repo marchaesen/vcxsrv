@@ -4223,6 +4223,18 @@ ast_declarator_list::hir(exec_list *instructions,
                           type_name);
       } else {
          if (decl_type->base_type == GLSL_TYPE_ARRAY) {
+            /* From Section 13.22 (Array Declarations) of the GLSL ES 3.2
+             * spec:
+             *
+             *    "... any declaration that leaves the size undefined is
+             *    disallowed as this would add complexity and there are no
+             *    use-cases."
+             */
+            if (state->es_shader && decl_type->is_unsized_array()) {
+               _mesa_glsl_error(&loc, state, "array size must be explicitly "
+                                "or implicitly defined");
+            }
+
             /* From Section 4.12 (Empty Declarations) of the GLSL 4.5 spec:
              *
              *    "The combinations of types and qualifiers that cause

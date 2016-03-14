@@ -88,7 +88,8 @@ typedef enum {
    nir_var_local,
    nir_var_uniform,
    nir_var_shader_storage,
-   nir_var_system_value
+   nir_var_system_value,
+   nir_var_param,
 } nir_variable_mode;
 
 /**
@@ -330,6 +331,12 @@ typedef struct nir_variable {
 
 #define nir_foreach_variable(var, var_list) \
    foreach_list_typed(nir_variable, var, node, var_list)
+
+static inline bool
+nir_variable_is_global(const nir_variable *var)
+{
+   return var->data.mode != nir_var_local && var->data.mode != nir_var_param;
+}
 
 typedef struct nir_register {
    struct exec_node node;
@@ -1725,6 +1732,8 @@ nir_variable *nir_local_variable_create(nir_function_impl *impl,
 nir_function *nir_function_create(nir_shader *shader, const char *name);
 
 nir_function_impl *nir_function_impl_create(nir_function *func);
+/** creates a function_impl that isn't tied to any particular function */
+nir_function_impl *nir_function_impl_create_bare(nir_shader *shader);
 
 nir_block *nir_block_create(nir_shader *shader);
 nir_if *nir_if_create(nir_shader *shader);
@@ -1986,6 +1995,7 @@ void nir_print_shader(nir_shader *shader, FILE *fp);
 void nir_print_instr(const nir_instr *instr, FILE *fp);
 
 nir_shader * nir_shader_clone(void *mem_ctx, const nir_shader *s);
+nir_function_impl *nir_function_impl_clone(const nir_function_impl *fi);
 
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);
@@ -2054,6 +2064,8 @@ void nir_lower_var_copy_instr(nir_intrinsic_instr *copy, void *mem_ctx);
 void nir_lower_var_copies(nir_shader *shader);
 
 bool nir_lower_global_vars_to_local(nir_shader *shader);
+
+bool nir_lower_indirect_derefs(nir_shader *shader, uint32_t mode_mask);
 
 bool nir_lower_locals_to_regs(nir_shader *shader);
 

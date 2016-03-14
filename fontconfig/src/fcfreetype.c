@@ -62,6 +62,7 @@
 #include FT_BDF_H
 #include FT_MODULE_H
 #endif
+#include FT_MULTIPLE_MASTERS_H
 
 #include "ftglue.h"
 
@@ -1172,6 +1173,13 @@ FcFreeTypeQueryFace (const FT_Face  face,
     FcChar8	    *complex_, *foundry_ = NULL;
     const FcChar8   *foundry = 0;
     int		    spacing;
+
+    /* Support for glyph-variation named-instances. */
+    FT_MM_Var       *master = NULL;
+    FT_Var_Named_Style *instance = NULL;
+    double          weight_mult = 1.0;
+    double          width_mult = 1.0;
+
     TT_OS2	    *os2;
 #if HAVE_FT_GET_PS_FONT_INFO
     PS_FontInfoRec  psfontinfo;
@@ -1231,6 +1239,37 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	    goto bail1;
     }
 
+    if (id >> 16)
+    {
+      if (!FT_Get_MM_Var (face, &master))
+	instance = &master->namedstyle[(id >> 16) - 1];
+
+      if (instance)
+      {
+	  /* Pull out weight and width from named-instance. */
+	  unsigned int i;
+
+	  for (i = 0; i < master->num_axis; i++)
+	  {
+	    double value = instance->coords[i] / (double) (1 << 16);
+	    double default_value = master->axis[i].def / (double) (1 << 16);
+	    double mult = value / default_value;
+	    //printf ("named-instance, axis %d tag %lx value %g\n", i, master->axis[i].tag, value);
+	    switch (master->axis[i].tag)
+	    {
+	      case FT_MAKE_TAG ('w','g','h','t'):
+	        weight_mult = mult;
+		break;
+
+	      case FT_MAKE_TAG ('w','d','t','h'):
+		width_mult = mult;
+		break;
+
+	      /* TODO optical size! */
+	    }
+	  }
+	}
+    }
 
     /*
      * Get the OS/2 table
@@ -1289,6 +1328,19 @@ FcFreeTypeQueryFace (const FT_Face  face,
 
 		if (FT_Get_Sfnt_Name (face, snamei, &sname) != 0)
 		    continue;
+
+		if (instance)
+		{
+		    /* For named-instances, we regular style nameIDs,
+		     * and map the instance's strid to FONT_SUBFAMILY. */
+		    if (sname.name_id == TT_NAME_ID_WWS_SUBFAMILY ||
+			sname.name_id == TT_NAME_ID_PREFERRED_SUBFAMILY ||
+			sname.name_id == TT_NAME_ID_FONT_SUBFAMILY)
+			continue;
+		    if (sname.name_id == instance->strid)
+			sname.name_id = TT_NAME_ID_FONT_SUBFAMILY;
+		}
+
 		if (sname.name_id != nameid)
 		    continue;
 
@@ -1428,6 +1480,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	    printf ("using FreeType family \"%s\"\n", face->family_name);
 	if (!FcPatternAddString (pat, FC_FAMILY, (FcChar8 *) face->family_name))
 	    goto bail1;
+	if (!FcPatternAddString (pat, FC_STYLELANG, (FcChar8 *) "en"))
+	    goto bail1;
 	++nfamily;
     }
 
@@ -1437,6 +1491,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	if (FcDebug () & FC_DBG_SCANV)
 	    printf ("using FreeType style \"%s\"\n", face->style_name);
 	if (!FcPatternAddString (pat, FC_STYLE, (FcChar8 *) face->style_name))
+	    goto bail1;
+	if (!FcPatternAddString (pat, FC_STYLELANG, (FcChar8 *) "en"))
 	    goto bail1;
 	++nstyle;
     }
@@ -1583,12 +1639,22 @@ FcFreeTypeQueryFace (const FT_Face  face,
 
     if (os2 && os2->version != 0xffff)
     {
-	weight = FcWeightFromOpenType (os2->usWeightClass);
+	weight = os2->usWeightClass;
+	if (weight < 10 && weight_mult != 1.0)
+	{
+		/* Work around bad values by cleaning them up before
+		 * multiplying by weight_mult. */
+		weight = FcWeightToOpenType (FcWeightFromOpenType (weight));
+	}
+	weight = FcWeightFromOpenType ((int) (weight * weight_mult + .5));
 	if ((FcDebug() & FC_DBG_SCANV) && weight != -1)
-	    printf ("\tos2 weight class %d maps to weight %d\n",
-		    os2->usWeightClass, weight);
+	    printf ("\tos2 weight class %d multiplier %g maps to weight %d\n",
+		    os2->usWeightClass, weight_mult, weight);
 
-	switch (os2->usWidthClass) {
+	/* TODO:
+	 * Add FcWidthFromOpenType and FcWidthToOpenType,
+	 * and apply width_mult post-conversion? */
+	switch ((int) (os2->usWidthClass * width_mult + .5)) {
 	case 1:	width = FC_WIDTH_ULTRACONDENSED; break;
 	case 2:	width = FC_WIDTH_EXTRACONDENSED; break;
 	case 3:	width = FC_WIDTH_CONDENSED; break;
@@ -1600,8 +1666,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	case 9:	width = FC_WIDTH_ULTRAEXPANDED; break;
 	}
 	if ((FcDebug() & FC_DBG_SCANV) && width != -1)
-	    printf ("\tos2 width class %d maps to width %d\n",
-		    os2->usWidthClass, width);
+	    printf ("\tos2 width class %d multiplier %g maps to width %d\n",
+		    os2->usWidthClass, width_mult, width);
     }
     if (os2 && (complex_ = FcFontCapabilities(face)))
     {
@@ -1880,6 +1946,11 @@ FcFreeTypeQueryFace (const FT_Face  face,
     FcCharSetDestroy (cs);
     if (foundry_)
 	free (foundry_);
+
+    if (master)
+      {
+	/* TODO: How to free master?! */
+      }
 
     return pat;
 

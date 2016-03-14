@@ -407,8 +407,10 @@ void st_init_limits(struct pipe_screen *screen,
          c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
    assert(c->MaxCombinedAtomicBuffers <= MAX_COMBINED_ATOMIC_BUFFERS);
 
-   if (c->MaxCombinedAtomicBuffers > 0)
+   if (c->MaxCombinedAtomicBuffers > 0) {
       extensions->ARB_shader_atomic_counters = GL_TRUE;
+      extensions->ARB_shader_atomic_counter_ops = GL_TRUE;
+   }
 
    c->MaxCombinedShaderOutputResources = c->MaxDrawBuffers;
    c->ShaderStorageBufferOffsetAlignment =
@@ -1067,12 +1069,14 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->ARB_ES3_compatibility = GL_TRUE;
    }
 
+#ifdef HAVE_ST_VDPAU
    if (screen->get_video_param &&
        screen->get_video_param(screen, PIPE_VIDEO_PROFILE_UNKNOWN,
                                PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
                                PIPE_VIDEO_CAP_SUPPORTS_INTERLACED)) {
       extensions->NV_vdpau_interop = GL_TRUE;
    }
+#endif
 
    if (screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
                                 PIPE_SHADER_CAP_DOUBLES) &&

@@ -924,6 +924,7 @@
 #define glVertexBindingDivisor(a1, a2) CALL_VertexBindingDivisor(GET_DISPATCH(), (a1, a2))
 #define glFramebufferParameteri(a1, a2, a3) CALL_FramebufferParameteri(GET_DISPATCH(), (a1, a2, a3))
 #define glGetFramebufferParameteriv(a1, a2, a3) CALL_GetFramebufferParameteriv(GET_DISPATCH(), (a1, a2, a3))
+#define glGetInternalformati64v(a1, a2, a3, a4, a5) CALL_GetInternalformati64v(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glMultiDrawArraysIndirect(a1, a2, a3, a4) CALL_MultiDrawArraysIndirect(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glMultiDrawElementsIndirect(a1, a2, a3, a4, a5) CALL_MultiDrawElementsIndirect(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glGetProgramInterfaceiv(a1, a2, a3, a4) CALL_GetProgramInterfaceiv(GET_DISPATCH(), (a1, a2, a3, a4))

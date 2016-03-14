@@ -264,7 +264,8 @@ winConfigKeyboard(DeviceIntPtr pDevice)
             }
             g_winInfo.keyboard.rate = (kbd_speed > 0) ? kbd_speed : 1;
             winDebug("Setting autorepeat to delay=%ld, rate=%ld\n",
-                       g_winInfo.keyboard.delay, g_winInfo.keyboard.rate);
+                   g_winInfo.keyboard.delay, g_winInfo.keyboard.rate);
+
         }
     }
 

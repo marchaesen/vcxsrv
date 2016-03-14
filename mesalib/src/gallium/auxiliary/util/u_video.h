@@ -28,10 +28,6 @@
 #ifndef U_VIDEO_H
 #define U_VIDEO_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "pipe/p_defines.h"
 #include "pipe/p_video_enums.h"
 
@@ -39,6 +35,10 @@ extern "C" {
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"
 #include "util/u_math.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static inline enum pipe_video_format
 u_reduce_video_profile(enum pipe_video_profile profile)

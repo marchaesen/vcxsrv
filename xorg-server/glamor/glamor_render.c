@@ -788,8 +788,8 @@ glamor_composite_choose_shader(CARD8 op,
 {
     ScreenPtr screen = dest->pDrawable->pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    enum glamor_pixmap_status source_status = GLAMOR_NONE;
-    enum glamor_pixmap_status mask_status = GLAMOR_NONE;
+    Bool source_needs_upload = FALSE;
+    Bool mask_needs_upload = FALSE;
     PictFormatShort saved_source_format = 0;
     struct shader_key key;
     GLfloat source_solid_color[4];
@@ -900,7 +900,7 @@ glamor_composite_choose_shader(CARD8 op,
         }
         if (source_pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED) {
 #ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
-            source_status = GLAMOR_UPLOAD_PENDING;
+            source_needs_upload = TRUE;
 #else
             glamor_fallback("no texture in source\n");
             goto fail;
@@ -916,7 +916,7 @@ glamor_composite_choose_shader(CARD8 op,
         }
         if (mask_pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED) {
 #ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
-            mask_status = GLAMOR_UPLOAD_PENDING;
+            mask_needs_upload = TRUE;
 #else
             glamor_fallback("no texture in mask\n");
             goto fail;
@@ -925,8 +925,7 @@ glamor_composite_choose_shader(CARD8 op,
     }
 
 #ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
-    if (source_status == GLAMOR_UPLOAD_PENDING
-        && mask_status == GLAMOR_UPLOAD_PENDING
+    if (source_needs_upload && mask_needs_upload
         && source_pixmap == mask_pixmap) {
 
         if (source->format != mask->format) {
@@ -962,20 +961,17 @@ glamor_composite_choose_shader(CARD8 op,
             if (!PICT_FORMAT_A(mask->format)
                 && PICT_FORMAT_A(saved_source_format))
                 key.mask = SHADER_MASK_TEXTURE;
-
-            mask_status = GLAMOR_NONE;
         }
 
-        source_status = glamor_upload_picture_to_texture(source);
-        if (source_status != GLAMOR_UPLOAD_DONE) {
+        if (!glamor_upload_picture_to_texture(source)) {
             glamor_fallback("Failed to upload source texture.\n");
             goto fail;
         }
+        mask_needs_upload = FALSE;
     }
     else {
-        if (source_status == GLAMOR_UPLOAD_PENDING) {
-            source_status = glamor_upload_picture_to_texture(source);
-            if (source_status != GLAMOR_UPLOAD_DONE) {
+        if (source_needs_upload) {
+            if (!glamor_upload_picture_to_texture(source)) {
                 glamor_fallback("Failed to upload source texture.\n");
                 goto fail;
             }
@@ -986,9 +982,8 @@ glamor_composite_choose_shader(CARD8 op,
             }
         }
 
-        if (mask_status == GLAMOR_UPLOAD_PENDING) {
-            mask_status = glamor_upload_picture_to_texture(mask);
-            if (mask_status != GLAMOR_UPLOAD_DONE) {
+        if (mask_needs_upload) {
+            if (!glamor_upload_picture_to_texture(mask)) {
                 glamor_fallback("Failed to upload mask texture.\n");
                 goto fail;
             }
@@ -1130,7 +1125,7 @@ glamor_composite_with_shader(CARD8 op,
                                         &key, &shader, &op_info,
                                         &saved_source_format, ca_state)) {
         glamor_fallback("glamor_composite_choose_shader failed\n");
-        return ret;
+        goto fail;
     }
     if (ca_state == CA_TWO_PASS) {
         if (!glamor_composite_choose_shader(PictOpAdd, source, mask, dest,
@@ -1140,7 +1135,7 @@ glamor_composite_with_shader(CARD8 op,
                                             &key_ca, &shader_ca, &op_info_ca,
                                             &saved_source_format, ca_state)) {
             glamor_fallback("glamor_composite_choose_shader failed\n");
-            return ret;
+            goto fail;
         }
     }
 
@@ -1272,6 +1267,13 @@ glamor_composite_with_shader(CARD8 op,
         source->format = saved_source_format;
 
     ret = TRUE;
+
+fail:
+    if (mask_pixmap && glamor_pixmap_is_memory(mask_pixmap))
+        glamor_pixmap_destroy_fbo(mask_pixmap);
+    if (source_pixmap && glamor_pixmap_is_memory(source_pixmap))
+        glamor_pixmap_destroy_fbo(source_pixmap);
+
     return ret;
 }
 

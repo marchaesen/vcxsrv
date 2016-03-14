@@ -1877,7 +1877,6 @@ ProcRecordCreateContext(ClientPtr client)
         return Success;
     }
     else {
-        RecordDeleteContext((void *) pContext, pContext->id);
         return BadAlloc;
     }
  bailout:

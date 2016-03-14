@@ -46,3 +46,4 @@ manifest.txt
 Makefile
 Makefile.in
 .install-mesa-links
+.install-gallium-links

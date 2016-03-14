@@ -32,7 +32,12 @@ Xwayland_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
 
 
 if GLAMOR_EGL
-Xwayland_SOURCES += xwayland-glamor.c
+Xwayland_SOURCES += 				\
+	xwayland-glamor.c
+if XV
+Xwayland_SOURCES += 				\
+	xwayland-glamor-xv.c
+endif
 
 nodist_Xwayland_SOURCES =			\
 	drm-client-protocol.h			\

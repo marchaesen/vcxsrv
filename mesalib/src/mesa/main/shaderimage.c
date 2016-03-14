@@ -360,7 +360,7 @@ _image_format_class_to_glenum(enum image_format_class class)
    case IMAGE_FORMAT_CLASS_2_10_10_10:
       return GL_IMAGE_CLASS_10_10_10_2;
    default:
-      assert("Invalid image_format_class");
+      assert(!"Invalid image_format_class");
       return GL_NONE;
    }
 }

@@ -120,6 +120,11 @@ void glcpp_set_column (int  column_no , yyscan_t yyscanner);
 static int
 glcpp_lex_update_state_per_token (glcpp_parser_t *parser, int token)
 {
+	if (token != NEWLINE && token != SPACE && token != HASH_TOKEN &&
+	    !parser->lexing_version_directive) {
+		glcpp_parser_resolve_implicit_version(parser);
+	}
+
 	/* After the first non-space token in a line, we won't
 	 * allow any '#' to introduce a directive. */
 	if (token == NEWLINE) {
@@ -285,6 +290,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 <HASH>version{HSPACE}+ {
 	BEGIN INITIAL;
 	yyextra->space_tokens = 0;
+	yyextra->lexing_version_directive = 1;
 	RETURN_STRING_TOKEN (VERSION_TOKEN);
 }
 
@@ -314,6 +320,9 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 
 <HASH>{NEWLINE} {
 	BEGIN INITIAL;
+	yyextra->space_tokens = 0;
+	yylineno++;
+	yycolumn = 0;
 	RETURN_TOKEN_NEVER_SKIP (NEWLINE);
 }
 
@@ -536,6 +545,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 	}
 	yyextra->space_tokens = 1;
 	yyextra->lexing_directive = 0;
+	yyextra->lexing_version_directive = 0;
 	yylineno++;
 	yycolumn = 0;
 	RETURN_TOKEN_NEVER_SKIP (NEWLINE);
@@ -546,6 +556,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 		glcpp_error(yylloc, yyextra, "Unterminated comment");
 	BEGIN DONE; /* Don't keep matching this rule forever. */
 	yyextra->lexing_directive = 0;
+	yyextra->lexing_version_directive = 0;
 	if (! parser->last_token_was_newline)
 		RETURN_TOKEN (NEWLINE);
 }

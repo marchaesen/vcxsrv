@@ -99,7 +99,6 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_SIZE		(WM_USER + 2)
 #define		WM_WM_RAISE		(WM_USER + 3)
 #define		WM_WM_LOWER		(WM_USER + 4)
-#define		WM_WM_MAP		(WM_USER + 5)
 #define		WM_WM_UNMAP		(WM_USER + 6)
 #define		WM_WM_KILL		(WM_USER + 7)
 #define		WM_WM_ACTIVATE		(WM_USER + 8)
@@ -109,8 +108,6 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_MAP2		(WM_USER + 12)
 #define		WM_WM_MAP3		(WM_USER + 13)
 #define		WM_WM_HINTS_EVENT	(WM_USER + 14)
-#define		WM_MANAGE		(WM_USER + 100)
-#define		WM_UNMANAGE		(WM_USER + 102)
 
 #define		MwmHintsDecorations	(1L << 1)
 
@@ -139,7 +136,7 @@ winInitWM(void **ppWMInfo,
           pthread_t * ptWMProc,
           pthread_t * ptXMsgProc,
           pthread_mutex_t * ppmServerStarted,
-          int dwScreen, HWND hwndScreen, BOOL allowOtherWM);
+          int dwScreen, HWND hwndScreen);
 
 void
  winDeinitMultiWindowWM(void);

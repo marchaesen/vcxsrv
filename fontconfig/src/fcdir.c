@@ -23,6 +23,9 @@
  */
 
 #include "fcint.h"
+#include "fcftint.h"
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <dirent.h>
 
 FcBool
@@ -65,13 +68,20 @@ FcFileScanFontConfig (FcFontSet		*set,
 		      const FcChar8	*file,
 		      FcConfig		*config)
 {
+    FT_Library	ftLibrary;
+    FT_Face	face;
     FcPattern	*font;
     FcBool	ret = FcTrue;
+    int		num_faces = 0;
+    int		num_instances = 0;
+    int		face_num = 0;
+    int		instance_num = 0;
     int		id;
-    int		count = 0;
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
 
-    id = 0;
+    if (FT_Init_FreeType (&ftLibrary))
+	return FcFalse;
+
     do
     {
 	font = 0;
@@ -83,14 +93,22 @@ FcFileScanFontConfig (FcFontSet		*set,
 	    printf ("\tScanning file %s...", file);
 	    fflush (stdout);
 	}
-	font = FcFreeTypeQuery (file, id, blanks, &count);
+
+	id = ((instance_num << 16) + face_num);
+	if (FT_New_Face (ftLibrary, (char *) file, id, &face))
+	    return FcFalse;
+	num_faces = face->num_faces;
+	num_instances = face->style_flags >> 16;
+	font = FcFreeTypeQueryFace (face, file, id, blanks);
+	FT_Done_Face (face);
+
 	if (FcDebug () & FC_DBG_SCAN)
 	    printf ("done\n");
 	/*
 	 * Get rid of sysroot here so that targeting scan rule may contains FC_FILE pattern
 	 * and they should usually expect without sysroot.
 	 */
-	if (sysroot)
+	if (font && sysroot)
 	{
 	    size_t len = strlen ((const char *)sysroot);
 	    FcChar8 *f = NULL;
@@ -138,8 +156,18 @@ FcFileScanFontConfig (FcFontSet		*set,
 	}
 	else
 	    ret = FcFalse;
-	id++;
-    } while (font && ret && id < count);
+
+	if (instance_num < num_instances)
+	    instance_num++;
+	else
+	{
+	    face_num++;
+	    instance_num = 0;
+	}
+    } while (font && ret && face_num < num_faces);
+
+    FT_Done_FreeType (ftLibrary);
+
     return ret;
 }
 

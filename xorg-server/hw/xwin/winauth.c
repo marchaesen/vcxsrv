@@ -139,7 +139,7 @@ winGenerateAuthorization(void)
                                      0, NULL, &g_uiAuthDataLen, &g_pAuthData);
     if ((XID) ~0L == g_authId) {
         ErrorF("winGenerateAuthorization - GenerateAuthorization failed\n");
-        goto auth_bailout;
+        return FALSE;
     }
 #ifdef WINDBG
     else {
@@ -156,7 +156,7 @@ winGenerateAuthorization(void)
     if (!(pAuth)) {
         ErrorF("winGenerateAuthorization - Failed allocating "
                "SecurityAuthorizationPtr.\n");
-        goto auth_bailout;
+        return FALSE;
     }
 
     /* Fill in the auth fields */
@@ -172,18 +172,11 @@ winGenerateAuthorization(void)
     /* Add the authorization to the server's auth list */
     if (!AddResource(g_authId, SecurityAuthorizationResType, pAuth)) {
         ErrorF("winGenerateAuthorization - AddResource failed for auth.\n");
-        goto auth_bailout;
+        return FALSE;
     }
-
-    /* Don't free the auth data, since it is still used internally */
 #endif
 
     return TRUE;
-
- auth_bailout:
-    free(pAuth);
-
-    return FALSE;
 }
 
 /* Use our generated cookie for authentication */

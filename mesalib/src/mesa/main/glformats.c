@@ -2603,6 +2603,10 @@ _mesa_es3_effective_internal_format_for_format_and_type(GLenum format,
          return GL_RGBA8;
       case GL_RGB:
          return GL_RGB8;
+      case GL_RG:
+         return GL_RG8;
+      case GL_RED:
+         return GL_R8;
       /* Although LUMINANCE_ALPHA, LUMINANCE and ALPHA appear in table 3.12,
        * (section 3.8 Texturing, page 128 of the OpenGL-ES 3.0.4) as effective
        * internal formats, they do not correspond to GL constants, so the base

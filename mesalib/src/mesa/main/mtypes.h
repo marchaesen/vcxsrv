@@ -3815,6 +3815,7 @@ struct gl_extensions
    GLboolean ARB_query_buffer_object;
    GLboolean ARB_sample_shading;
    GLboolean ARB_seamless_cube_map;
+   GLboolean ARB_shader_atomic_counter_ops;
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;
    GLboolean ARB_shader_clock;

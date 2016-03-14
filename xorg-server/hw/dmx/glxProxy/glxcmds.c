@@ -2010,11 +2010,8 @@ CreateGLXPixmap(__GLXclientState * cl,
         XFlush(dpy);
     }
 
-    if (!(AddResource(glxpixmapId, __glXPixmapRes, pGlxPixmap))) {
-        free(pGlxPixmap->be_xids);
-        free(pGlxPixmap);
+    if (!(AddResource(glxpixmapId, __glXPixmapRes, pGlxPixmap)))
         return BadAlloc;
-    }
 
     return Success;
 }

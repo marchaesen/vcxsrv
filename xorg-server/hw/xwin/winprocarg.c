@@ -133,7 +133,6 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fMWExtWM = FALSE;
 #endif
 #ifdef XWIN_MULTIWINDOWINTWM
-    defaultScreenInfo.fInternalWM = FALSE;
 #endif
     defaultScreenInfo.fRootless = FALSE;
 #ifdef XWIN_MULTIWINDOW
@@ -580,11 +579,8 @@ ddxProcessArgument(int argc, char *argv[], int i)
      * Look for the '-internalwm' argument
      */
     if (IS_OPTION("-internalwm")) {
-        if (!screenInfoPtr->fMultiMonitorOverride)
-            screenInfoPtr->fMultipleMonitors = TRUE;
-        screenInfoPtr->fMWExtWM = TRUE;
-        screenInfoPtr->fInternalWM = TRUE;
-
+        ErrorF("Ignoring obsolete -internalwm option\n");
+        /* Ignored, but we still accept the arg for backwards compatibility */
         /* Indicate that we have processed this argument */
         return 1;
     }
@@ -1079,11 +1075,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
     if (IS_OPTION("-swcursor")) {
         g_fSoftwareCursor = TRUE;
-        return 1;
-    }
-
-    if (IS_OPTION("-silent-dup-error")) {
-        g_fSilentDupError = TRUE;
         return 1;
     }
 

@@ -81,6 +81,66 @@ intrastage_match(ir_variable *a,
    return true;
 }
 
+/**
+ * Return true if interface members mismatch and its not allowed by GLSL.
+ */
+static bool
+interstage_member_mismatch(struct gl_shader_program *prog,
+                           const glsl_type *c, const glsl_type *p) {
+
+   if (c->length != p->length)
+      return true;
+
+   for (unsigned i = 0; i < c->length; i++) {
+      if (c->fields.structure[i].type != p->fields.structure[i].type)
+         return true;
+      if (strcmp(c->fields.structure[i].name,
+                 p->fields.structure[i].name) != 0)
+         return true;
+      if (c->fields.structure[i].location !=
+          p->fields.structure[i].location)
+         return true;
+      if (c->fields.structure[i].patch !=
+          p->fields.structure[i].patch)
+         return true;
+
+      /* From Section 4.5 (Interpolation Qualifiers) of the GLSL 4.40 spec:
+       *
+       *    "It is a link-time error if, within the same stage, the
+       *    interpolation qualifiers of variables of the same name do not
+       *    match."
+       */
+      if (prog->IsES || prog->Version < 440)
+         if (c->fields.structure[i].interpolation !=
+             p->fields.structure[i].interpolation)
+            return true;
+
+      /* From Section 4.3.4 (Input Variables) of the GLSL ES 3.0 spec:
+       *
+       *    "The output of the vertex shader and the input of the fragment
+       *    shader form an interface.  For this interface, vertex shader
+       *    output variables and fragment shader input variables of the same
+       *    name must match in type and qualification (other than precision
+       *    and out matching to in).
+       *
+       * The table in Section 9.2.1 Linked Shaders of the GLSL ES 3.1 spec
+       * says that centroid no longer needs to match for varyings.
+       *
+       * The table in Section 9.2.1 Linked Shaders of the GLSL ES 3.2 spec
+       * says that sample need not match for varyings.
+       */
+      if (!prog->IsES || prog->Version < 310)
+         if (c->fields.structure[i].centroid !=
+             p->fields.structure[i].centroid)
+            return true;
+      if (!prog->IsES)
+         if (c->fields.structure[i].sample !=
+             p->fields.structure[i].sample)
+            return true;
+   }
+
+   return false;
+}
 
 /**
  * Check if two interfaces match, according to interstage (in/out) interface
@@ -90,10 +150,9 @@ intrastage_match(ir_variable *a,
  * an array and the producer interface is required to be a non-array.
  * This is used for tessellation control and geometry shader consumers.
  */
-bool
-interstage_match(ir_variable *producer,
-                 ir_variable *consumer,
-                 bool extra_array_level)
+static bool
+interstage_match(struct gl_shader_program *prog, ir_variable *producer,
+                 ir_variable *consumer, bool extra_array_level)
 {
    /* Unsized arrays should not occur during interstage linking.  They
     * should have all been assigned a size by link_intrastage_shaders.
@@ -106,9 +165,16 @@ interstage_match(ir_variable *producer,
       /* Exception: if both the interface blocks are implicitly declared,
        * don't force their types to match.  They might mismatch due to the two
        * shaders using different GLSL versions, and that's ok.
+       *
+       * Also we store some member information such as interpolation in
+       * glsl_type that doesn't always have to match across shader stages.
+       * Therefore we make a pass over the members glsl_struct_field to make
+       * sure we don't reject shaders where fields don't need to match.
        */
-      if (consumer->data.how_declared != ir_var_declared_implicitly ||
-          producer->data.how_declared != ir_var_declared_implicitly)
+      if ((consumer->data.how_declared != ir_var_declared_implicitly ||
+           producer->data.how_declared != ir_var_declared_implicitly) &&
+          interstage_member_mismatch(prog, consumer->get_interface_type(),
+                                     producer->get_interface_type()))
          return false;
    }
 
@@ -311,7 +377,7 @@ validate_interstage_inout_blocks(struct gl_shader_program *prog,
       if (consumer_def == NULL)
          continue;
 
-      if (!interstage_match(var, consumer_def, extra_array_level)) {
+      if (!interstage_match(prog, var, consumer_def, extra_array_level)) {
          linker_error(prog, "definitions of interface block `%s' do not "
                       "match\n", var->get_interface_type()->name);
          return;

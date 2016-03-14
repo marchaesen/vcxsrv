@@ -160,7 +160,6 @@ typedef int pid_t;
 #include "mipointer.h"
 #include "X11/keysym.h"
 #include "micoord.h"
-#include "dix.h"
 #include "miline.h"
 #include "shadow.h"
 #include "fb.h"
@@ -248,24 +247,11 @@ typedef Bool (*winCreateColormapProcPtr) (ColormapPtr pColormap);
 
 typedef Bool (*winDestroyColormapProcPtr) (ColormapPtr pColormap);
 
-typedef Bool (*winHotKeyAltTabProcPtr) (ScreenPtr);
-
 typedef Bool (*winCreatePrimarySurfaceProcPtr) (ScreenPtr);
 
 typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
 
-typedef Bool (*winFinishCreateWindowsWindowProcPtr) (WindowPtr pWin);
-
 typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
-
-/*
- * GC (graphics context) privates
- */
-
-typedef struct {
-    HDC hdc;
-    HDC hdcMem;
-} winPrivGCRec, *winPrivGCPtr;
 
 /*
  * Pixmap privates
@@ -289,6 +275,7 @@ typedef struct {
     RGBQUAD rgbColors[WIN_NUM_PALETTE_ENTRIES];
     PALETTEENTRY peColors[WIN_NUM_PALETTE_ENTRIES];
 } winPrivCmapRec, *winPrivCmapPtr;
+
 
 /*
  * Windows Cursor handling.
@@ -365,7 +352,6 @@ typedef struct {
     Bool fDecoration;
 #ifdef XWIN_MULTIWINDOWEXTWM
     Bool fMWExtWM;
-    Bool fAnotherWMRunning;
 #endif
 #ifdef XWIN_MULTIWINDOWINTWM
   Bool			fInternalWM;
@@ -487,16 +473,9 @@ typedef struct _winPrivScreenRec {
     winStoreColorsProcPtr pwinStoreColors;
     winCreateColormapProcPtr pwinCreateColormap;
     winDestroyColormapProcPtr pwinDestroyColormap;
-    winHotKeyAltTabProcPtr pwinHotKeyAltTab;
     winCreatePrimarySurfaceProcPtr pwinCreatePrimarySurface;
     winReleasePrimarySurfaceProcPtr pwinReleasePrimarySurface;
-
     winCreateScreenResourcesProc pwinCreateScreenResources;
-
-#ifdef XWIN_MULTIWINDOW
-    /* Window Procedures for MultiWindow mode */
-    winFinishCreateWindowsWindowProcPtr pwinFinishCreateWindowsWindow;
-#endif
 
     /* Window Procedures for Rootless mode */
     CreateWindowProcPtr CreateWindow;

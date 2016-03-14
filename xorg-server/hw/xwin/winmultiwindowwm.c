@@ -122,9 +122,6 @@ typedef struct _WMInfo {
     Atom atmWmDelete;
     Atom atmWmTakeFocus;
     Atom atmPrivMap;
-#ifdef XWIN_MULTIWINDOWINTWM
-    Bool fAllowOtherWM;
-#endif
 } WMInfoRec, *WMInfoPtr;
 
 typedef struct _WMProcArgRec {
@@ -188,8 +185,7 @@ static void
  winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg);
 
 static Bool
- CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
-                          Bool fAllowOtherWM);
+CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen);
 
 static void
  winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
@@ -209,7 +205,6 @@ static XIOErrorHandler g_winMultiWindowXMsgProcOldIOErrorHandler;
 static pthread_t g_winMultiWindowXMsgProcThread;
 static Bool g_shutdown = FALSE;
 static Bool redirectError = FALSE;
-static Bool g_fAnotherWMRunning = FALSE;
 
 /*
  * Translate msg id to text, for debug purposes
@@ -250,9 +245,6 @@ MessageName(winWMMessagePtr msg)
     case WM_WM_CHANGE_STATE:
       return "WM_WM_CHANGE_STATE";
       break;
-    case WM_WM_MAP:
-      return "WM_WM_MAP";
-      break;
     case WM_WM_MAP2:
       return "WM_WM_MAP2";
       break;
@@ -267,6 +259,11 @@ MessageName(winWMMessagePtr msg)
       break;
     }
 }
+
+
+/*
+ * PushMessage - Push a message onto the queue
+ */
 
 static void
 PushMessage(WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
@@ -286,15 +283,12 @@ PushMessage(WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
         pQueue->pHead = pNode;
     }
 
-
     /* Release the queue mutex */
     pthread_mutex_unlock(&pQueue->pmMutex);
 
     /* Signal that the queue is not empty */
     pthread_cond_signal(&pQueue->pcNotEmpty);
 }
-
-
 
 /*
  * PopMessage - Pop a message from the queue
@@ -365,17 +359,17 @@ InitQueue(WMMsgQueuePtr pQueue)
     pQueue->pHead = NULL;
     pQueue->pTail = NULL;
 
-    winDebug ("InitQueue - Calling pthread_mutex_init\n");
+    winDebug("InitQueue - Calling pthread_mutex_init\n");
 
     /* Create synchronization objects */
     pthread_mutex_init(&pQueue->pmMutex, NULL);
 
-    winDebug ("InitQueue - pthread_mutex_init returned\n");
-    winDebug ("InitQueue - Calling pthread_cond_init\n");
+    winDebug("InitQueue - pthread_mutex_init returned\n");
+    winDebug("InitQueue - Calling pthread_cond_init\n");
 
     pthread_cond_init(&pQueue->pcNotEmpty, NULL);
 
-    winDebug ("InitQueue - pthread_cond_init returned\n");
+    winDebug("InitQueue - pthread_cond_init returned\n");
 
     return TRUE;
 }
@@ -736,13 +730,6 @@ winMultiWindowWMProc(void *pArg)
     for (;;) {
         WMMsgNodePtr pNode;
 
-#ifdef XWIN_MULTIWINDOWINTWM
-        if (g_fAnotherWMRunning) {      /* Another Window manager exists. */
-            Sleep(1000);
-            continue;
-        }
-#endif
-
         /* Pop a message off of our queue */
         pNode = PopMessage(&pWMInfo->wmMsgQueue, pWMInfo);
         if (pNode == NULL) {
@@ -765,16 +752,6 @@ winMultiWindowWMProc(void *pArg)
         case WM_WM_LOWER:
             /* Lower the window */
             XLowerWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
-            break;
-
-        case WM_WM_MAP:
-            /* Put a note as to the HWND associated with this Window */
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
-                            32,
-                            PropModeReplace,
-                            (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
-            UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
 
         case WM_WM_MAP2:
@@ -1022,21 +999,7 @@ winMultiWindowXMsgProc(void *pArg)
              "successfully opened the display.\n");
 
     /* Check if another window manager is already running */
-#ifdef XWIN_MULTIWINDOWINTWM
-    g_fAnotherWMRunning =
-        CheckAnotherWindowManager(pProcArg->pDisplay, pProcArg->dwScreen,
-                                  pProcArg->pWMInfo->fAllowOtherWM);
-#else
-    g_fAnotherWMRunning =
-        CheckAnotherWindowManager(pProcArg->pDisplay, pProcArg->dwScreen,
-                                  FALSE);
-#endif
-
-    if (g_fAnotherWMRunning
-#ifdef XWIN_MULTIWINDOWINTWM
-        && !pProcArg->pWMInfo->fAllowOtherWM
-#endif
-      ) {
+    if (CheckAnotherWindowManager(pProcArg->pDisplay, pProcArg->dwScreen)) {
         ErrorF("winMultiWindowXMsgProc - "
                "another window manager is running.  Exiting.\n");
         pthread_exit(NULL);
@@ -1071,26 +1034,6 @@ winMultiWindowXMsgProc(void *pArg)
     while (1) {
         if (g_shutdown)
             break;
-
-#ifdef XWIN_MULTIWINDOWINTWM
-        if (pProcArg->pWMInfo->fAllowOtherWM && !XPending(pProcArg->pDisplay)) {
-            if (CheckAnotherWindowManager
-                (pProcArg->pDisplay, pProcArg->dwScreen, TRUE)) {
-                if (!g_fAnotherWMRunning) {
-                    g_fAnotherWMRunning = TRUE;
-                    SendMessage(pProcArg->hwndScreen, WM_UNMANAGE, 0, 0);
-                }
-            }
-            else {
-                if (g_fAnotherWMRunning) {
-                    g_fAnotherWMRunning = FALSE;
-                    SendMessage(pProcArg->hwndScreen, WM_MANAGE, 0, 0);
-                }
-            }
-            Sleep(500);
-            continue;
-        }
-#endif
 
         /* Fetch next event */
         XNextEvent(pProcArg->pDisplay, &event);
@@ -1268,7 +1211,7 @@ winInitWM(void **ppWMInfo,
           pthread_t * ptWMProc,
           pthread_t * ptXMsgProc,
           pthread_mutex_t * ppmServerStarted,
-          int dwScreen, HWND hwndScreen, BOOL allowOtherWM)
+          int dwScreen, HWND hwndScreen)
 {
     WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
     WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
@@ -1290,9 +1233,6 @@ winInitWM(void **ppWMInfo,
 
     /* Set a return pointer to the Window Manager info structure */
     *ppWMInfo = pWMInfo;
-#ifdef XWIN_MULTIWINDOWINTWM
-    pWMInfo->fAllowOtherWM = allowOtherWM;
-#endif
 
     /* Setup the argument structure for the thread function */
     pArg->dwScreen = dwScreen;
@@ -1592,8 +1532,7 @@ winRedirectErrorHandler(Display * pDisplay, XErrorEvent * pErr)
  */
 
 static Bool
-CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
-                          Bool fAllowOtherWM)
+CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen)
 {
     /*
        Try to select the events which only one client at a time is allowed to select.
@@ -1610,12 +1549,11 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
     /*
        Side effect: select the events we are actually interested in...
 
-       If other WMs are not allowed, also select one of the events which only one client
+       Other WMs are not allowed, also select one of the events which only one client
        at a time is allowed to select, so other window managers won't start...
      */
     XSelectInput(pDisplay, XRootWindow(pDisplay, dwScreen),
-                 SubstructureNotifyMask | (!fAllowOtherWM ? ButtonPressMask :
-                                           0));
+                 SubstructureNotifyMask | ButtonPressMask);
     XSync(pDisplay, 0);
     return redirectError;
 }

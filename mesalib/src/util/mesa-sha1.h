@@ -23,11 +23,11 @@
 #ifndef SHA1_H
 #define SHA1_H
 
+#include <stdlib.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdlib.h>
 
 struct mesa_sha1;
 

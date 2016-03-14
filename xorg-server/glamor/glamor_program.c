@@ -508,9 +508,9 @@ use_source_solid(CARD8 op, PicturePtr src, PicturePtr dst, glamor_program *prog)
 
     glamor_set_blend(op, prog->alpha, dst);
 
-    glamor_set_color(glamor_get_drawable_pixmap(dst->pDrawable),
-                     src->pSourcePict->solidFill.color,
-                     prog->fg_uniform);
+    glamor_set_color_depth(dst->pDrawable->pScreen, 32,
+                           src->pSourcePict->solidFill.color,
+                           prog->fg_uniform);
     return TRUE;
 }
 

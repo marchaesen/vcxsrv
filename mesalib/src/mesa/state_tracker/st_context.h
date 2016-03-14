@@ -50,7 +50,7 @@ struct st_perf_monitor_group;
 struct u_upload_mgr;
 
 
-#define ST_NEW_MESA                    (1 << 0) /* Mesa state has changed */
+/* gap  */
 #define ST_NEW_FRAGMENT_PROGRAM        (1 << 1)
 #define ST_NEW_VERTEX_PROGRAM          (1 << 2)
 #define ST_NEW_FRAMEBUFFER             (1 << 3)

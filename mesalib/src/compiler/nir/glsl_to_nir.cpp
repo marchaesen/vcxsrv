@@ -441,34 +441,8 @@ nir_visitor::create_function(ir_function_signature *ir)
 
    nir_function *func = nir_function_create(shader, ir->function_name());
 
-   unsigned num_params = ir->parameters.length();
-   func->num_params = num_params;
-   func->params = ralloc_array(shader, nir_parameter, num_params);
-
-   unsigned i = 0;
-   foreach_in_list(ir_variable, param, &ir->parameters) {
-      switch (param->data.mode) {
-      case ir_var_function_in:
-         func->params[i].param_type = nir_parameter_in;
-         break;
-
-      case ir_var_function_out:
-         func->params[i].param_type = nir_parameter_out;
-         break;
-
-      case ir_var_function_inout:
-         func->params[i].param_type = nir_parameter_inout;
-         break;
-
-      default:
-         unreachable("not reached");
-      }
-
-      func->params[i].type = param->type;
-      i++;
-   }
-
-   func->return_type = ir->return_type;
+   assert(ir->parameters.is_empty());
+   assert(ir->return_type == glsl_type::void_type);
 
    _mesa_hash_table_insert(this->overload_table, ir, func);
 }
@@ -496,24 +470,9 @@ nir_visitor::visit(ir_function_signature *ir)
       nir_function_impl *impl = nir_function_impl_create(func);
       this->impl = impl;
 
-      unsigned num_params = func->num_params;
-      impl->num_params = num_params;
-      impl->params = ralloc_array(this->shader, nir_variable *, num_params);
-      unsigned i = 0;
-      foreach_in_list(ir_variable, param, &ir->parameters) {
-         param->accept(this);
-         impl->params[i] = this->var;
-         i++;
-      }
-
-      if (func->return_type == glsl_type::void_type) {
-         impl->return_var = NULL;
-      } else {
-         impl->return_var = ralloc(this->shader, nir_variable);
-         impl->return_var->name = ralloc_strdup(impl->return_var,
-                                                "return_var");
-         impl->return_var->type = func->return_type;
-      }
+      assert(strcmp(func->name, "main") == 0);
+      assert(ir->parameters.is_empty());
+      assert(func->return_type == glsl_type::void_type);
 
       this->is_global = false;
 

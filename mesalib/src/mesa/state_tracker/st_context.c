@@ -141,9 +141,7 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
 
    /* Invalidate render and compute pipelines. */
    st->dirty.mesa |= new_state;
-   st->dirty.st |= ST_NEW_MESA;
    st->dirty_cp.mesa |= new_state;
-   st->dirty_cp.st |= ST_NEW_MESA;
 
    /* This is the only core Mesa module we depend upon.
     * No longer use swrast, swsetup, tnl.

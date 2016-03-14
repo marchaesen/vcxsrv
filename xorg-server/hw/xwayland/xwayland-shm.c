@@ -24,6 +24,10 @@
  * SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <dix-config.h>
+#endif
+
 #include "xwayland.h"
 
 #include <sys/mman.h>
