@@ -201,7 +201,7 @@ st_draw_vbo(struct gl_context *ctx,
    st_flush_bitmap_cache(st);
 
    /* Validate state. */
-   if (st->dirty.st || ctx->NewDriverState) {
+   if (st->dirty.st || st->dirty.mesa || ctx->NewDriverState) {
       st_validate_state(st, ST_PIPELINE_RENDER);
 
 #if 0
@@ -314,7 +314,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    assert(stride);
 
    /* Validate state. */
-   if (st->dirty.st || ctx->NewDriverState) {
+   if (st->dirty.st || st->dirty.mesa || ctx->NewDriverState) {
       st_validate_state(st, ST_PIPELINE_RENDER);
    }
 

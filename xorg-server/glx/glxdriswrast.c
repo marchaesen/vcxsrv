@@ -413,6 +413,7 @@ initializeExtensions(__GLXDRIscreen * screen)
     /* these are harmless to enable unconditionally */
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_framebuffer_sRGB");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_SGI_make_current_read");
 
     extensions = screen->core->getExtensions(screen->driScreen);

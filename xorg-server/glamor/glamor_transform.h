@@ -33,9 +33,19 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
                                 int             *p_off_y);
 
 void
+glamor_set_color_depth(ScreenPtr      pScreen,
+                       int            depth,
+                       CARD32         pixel,
+                       GLint          uniform);
+
+static inline void
 glamor_set_color(PixmapPtr      pixmap,
                  CARD32         pixel,
-                 GLint          uniform);
+                 GLint          uniform)
+{
+    glamor_set_color_depth(pixmap->drawable.pScreen,
+                           pixmap->drawable.depth, pixel, uniform);
+}
 
 Bool
 glamor_set_texture_pixmap(PixmapPtr    texture);

@@ -774,10 +774,8 @@ createCursorHideCount(ClientPtr pClient, ScreenPtr pScreen)
      * Create a resource for this element so it can be deleted
      * when the client goes away.
      */
-    if (!AddResource(pChc->resource, CursorHideCountType, (void *) pChc)) {
-        free(pChc);
+    if (!AddResource(pChc->resource, CursorHideCountType, (void *) pChc))
         return BadAlloc;
-    }
 
     return Success;
 }

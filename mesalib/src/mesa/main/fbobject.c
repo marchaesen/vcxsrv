@@ -3580,8 +3580,22 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
    const struct gl_renderbuffer_attachment *att;
    GLenum err;
 
-   /* The error differs in GL and GLES. */
-   err = _mesa_is_desktop_gl(ctx) ? GL_INVALID_OPERATION : GL_INVALID_ENUM;
+   /* The error code for an attachment type of GL_NONE differs between APIs.
+    *
+    * From the ES 2.0.25 specification, page 127:
+    * "If the value of FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is NONE, then
+    *  querying any other pname will generate INVALID_ENUM."
+    *
+    * From the OpenGL 3.0 specification, page 337, or identically,
+    * the OpenGL ES 3.0.4 specification, page 240:
+    *
+    * "If the value of FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is NONE, no
+    *  framebuffer is bound to target.  In this case querying pname
+    *  FRAMEBUFFER_ATTACHMENT_OBJECT_NAME will return zero, and all other
+    *  queries will generate an INVALID_OPERATION error."
+    */
+   err = ctx->API == API_OPENGLES2 && ctx->Version < 30 ?
+      GL_INVALID_ENUM : GL_INVALID_OPERATION;
 
    if (_mesa_is_winsys_fbo(buffer)) {
       /* Page 126 (page 136 of the PDF) of the OpenGL ES 2.0.25 spec

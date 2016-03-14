@@ -42,14 +42,14 @@ bool
 _mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,
                                               GLenum target)
 {
-   GLboolean error;
+   bool error;
 
    switch (target) {
    case GL_TEXTURE_1D:
       error = _mesa_is_gles(ctx);
       break;
    case GL_TEXTURE_2D:
-      error = GL_FALSE;
+      error = false;
       break;
    case GL_TEXTURE_3D:
       error = ctx->API == API_OPENGLES;
@@ -69,10 +69,10 @@ _mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,
               !ctx->Extensions.ARB_texture_cube_map_array;
       break;
    default:
-      error = GL_TRUE;
+      error = true;
    }
 
-   return (error != GL_TRUE);
+   return !error;
 }
 
 bool
@@ -98,12 +98,6 @@ _mesa_generate_texture_mipmap(struct gl_context *ctx,
    const char *suffix = dsa ? "Texture" : "";
 
    FLUSH_VERTICES(ctx, 0);
-
-   if (!_mesa_is_valid_generate_texture_mipmap_target(ctx, target)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGenerate%sMipmap(target=%s)",
-                  suffix, _mesa_enum_to_string(target));
-      return;
-   }
 
    if (texObj->BaseLevel >= texObj->MaxLevel) {
       /* nothing to do */
@@ -159,6 +153,12 @@ _mesa_GenerateMipmap(GLenum target)
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!_mesa_is_valid_generate_texture_mipmap_target(ctx, target)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glGenerateMipmap(target=%s)",
+                  _mesa_enum_to_string(target));
+      return;
+   }
+
    texObj = _mesa_get_current_tex_object(ctx, target);
    if (!texObj)
       return;
@@ -178,6 +178,12 @@ _mesa_GenerateTextureMipmap(GLuint texture)
    texObj = _mesa_lookup_texture_err(ctx, texture, "glGenerateTextureMipmap");
    if (!texObj)
       return;
+
+   if (!_mesa_is_valid_generate_texture_mipmap_target(ctx, texObj->Target)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glGenerateTextureMipmap(target=%s)",
+                  _mesa_enum_to_string(texObj->Target));
+      return;
+   }
 
    _mesa_generate_texture_mipmap(ctx, texObj, texObj->Target, true);
 }

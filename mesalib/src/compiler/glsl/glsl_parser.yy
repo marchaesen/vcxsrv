@@ -894,6 +894,7 @@ parameter_declarator:
       $$->type->set_location(@1);
       $$->type->specifier = $1;
       $$->identifier = $2;
+      state->symbols->add_variable(new(state) ir_variable(NULL, $2, ir_var_auto));
    }
    | type_specifier any_identifier array_specifier
    {
@@ -905,6 +906,7 @@ parameter_declarator:
       $$->type->specifier = $1;
       $$->identifier = $2;
       $$->array_specifier = $3;
+      state->symbols->add_variable(new(state) ir_variable(NULL, $2, ir_var_auto));
    }
    ;
 
@@ -1062,6 +1064,7 @@ single_declaration:
       $$ = new(ctx) ast_declarator_list($1);
       $$->set_location_range(@1, @2);
       $$->declarations.push_tail(&decl->link);
+      state->symbols->add_variable(new(state) ir_variable(NULL, $2, ir_var_auto));
    }
    | fully_specified_type any_identifier array_specifier
    {
@@ -1072,6 +1075,7 @@ single_declaration:
       $$ = new(ctx) ast_declarator_list($1);
       $$->set_location_range(@1, @3);
       $$->declarations.push_tail(&decl->link);
+      state->symbols->add_variable(new(state) ir_variable(NULL, $2, ir_var_auto));
    }
    | fully_specified_type any_identifier array_specifier '=' initializer
    {
@@ -1082,6 +1086,7 @@ single_declaration:
       $$ = new(ctx) ast_declarator_list($1);
       $$->set_location_range(@1, @3);
       $$->declarations.push_tail(&decl->link);
+      state->symbols->add_variable(new(state) ir_variable(NULL, $2, ir_var_auto));
    }
    | fully_specified_type any_identifier '=' initializer
    {
@@ -1092,6 +1097,7 @@ single_declaration:
       $$ = new(ctx) ast_declarator_list($1);
       $$->set_location_range(@1, @2);
       $$->declarations.push_tail(&decl->link);
+      state->symbols->add_variable(new(state) ir_variable(NULL, $2, ir_var_auto));
    }
    | INVARIANT variable_identifier
    {

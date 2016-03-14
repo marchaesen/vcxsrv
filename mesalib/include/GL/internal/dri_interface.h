@@ -1100,6 +1100,11 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_USE_SCANOUT		0x0002
 #define __DRI_IMAGE_USE_CURSOR		0x0004 /* Depricated */
 #define __DRI_IMAGE_USE_LINEAR		0x0008
+/* The buffer will only be read by an external process after SwapBuffers,
+ * in contrary to gbm buffers, front buffers and fake front buffers, which
+ * could be read after a flush."
+ */
+#define __DRI_IMAGE_USE_BACKBUFFER      0x0010
 
 
 /**

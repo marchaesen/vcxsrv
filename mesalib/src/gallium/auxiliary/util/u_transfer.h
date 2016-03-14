@@ -78,7 +78,8 @@ struct u_resource {
 
 boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
                                    struct pipe_resource *resource,
-                                   struct winsys_handle *handle);
+                                   struct winsys_handle *handle,
+                                   unsigned usage);
 
 void u_resource_destroy_vtbl(struct pipe_screen *screen,
                              struct pipe_resource *resource);

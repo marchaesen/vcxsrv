@@ -190,6 +190,11 @@ Bool xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
                          uint32_t id, uint32_t version);
 struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
 
+#ifdef XV
+/* glamor Xv Adaptor */
+Bool xwl_glamor_xv_init(ScreenPtr pScreen);
+#endif
+
 #ifdef XF86VIDMODE
 void xwlVidModeExtensionInit(void);
 #endif

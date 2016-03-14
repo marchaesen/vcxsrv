@@ -189,6 +189,7 @@ NIR_FILES = \
 	nir/nir_lower_load_const_to_scalar.c \
 	nir/nir_lower_locals_to_regs.c \
 	nir/nir_lower_idiv.c \
+	nir/nir_lower_indirect_derefs.c \
 	nir/nir_lower_io.c \
 	nir/nir_lower_outputs_to_temporaries.c \
 	nir/nir_lower_phis_to_scalar.c \

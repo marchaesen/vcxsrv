@@ -534,9 +534,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
 #ifdef XWIN_MULTIWINDOW
         || pScreenInfo->fMultiWindow
 #endif
-#ifdef XWIN_MULTIWINDOWEXTWM
-        || pScreenInfo->fInternalWM
-#endif
         ) {
 #if CYGDEBUG || YES
         winDebug("winFinishScreenInitFB - Calling winInitWM.\n");
@@ -547,11 +544,8 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
                        &pScreenPriv->ptWMProc,
                        &pScreenPriv->ptXMsgProc,
                        &pScreenPriv->pmServerStarted,
-                       pScreenInfo->dwScreen, (HWND) &pScreenPriv->hwndScreen,
-#ifdef XWIN_MULTIWINDOWEXTWM
-                       pScreenInfo->fInternalWM ||
-#endif
-                       FALSE)) {
+                       pScreenInfo->dwScreen,
+                       (HWND) &pScreenPriv->hwndScreen)) {
             ErrorF("winFinishScreenInitFB - winInitWM () failed.\n");
             return FALSE;
         }

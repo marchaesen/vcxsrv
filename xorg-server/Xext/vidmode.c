@@ -69,7 +69,7 @@ typedef struct {
     dixSetPrivate(&(c)->devPrivates, VidModeClientPrivateKey, p)
 
 #ifdef DEBUG
-#define DEBUG_P(x) LogMessage(X_INFO, x"\n");
+#define DEBUG_P(x) DebugF(x"\n")
 #else
 #define DEBUG_P(x) /**/
 #endif
@@ -267,13 +267,13 @@ ProcVidModeGetModeLine(ClientPtr client)
     rep.vtotal = VidModeGetModeValue(mode, VIDMODE_V_TOTAL);
     rep.flags = VidModeGetModeValue(mode, VIDMODE_FLAGS);
 
-    LogMessage(X_INFO, "GetModeLine - scrn: %d clock: %ld\n",
-               stuff->screen, (unsigned long) rep.dotclock);
-    LogMessage(X_INFO, "GetModeLine - hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               rep.hdisplay, rep.hsyncstart, rep.hsyncend, rep.htotal);
-    LogMessage(X_INFO, "              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-               rep.vdisplay, rep.vsyncstart, rep.vsyncend,
-               rep.vtotal, (unsigned long) rep.flags);
+    DebugF("GetModeLine - scrn: %d clock: %ld\n",
+           stuff->screen, (unsigned long) rep.dotclock);
+    DebugF("GetModeLine - hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           rep.hdisplay, rep.hsyncstart, rep.hsyncend, rep.htotal);
+    DebugF("              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           rep.vdisplay, rep.vsyncstart, rep.vsyncend,
+           rep.vtotal, (unsigned long) rep.flags);
 
     /*
      * Older servers sometimes had server privates that the VidMode
@@ -483,23 +483,23 @@ ProcVidModeAddModeLine(ClientPtr client)
         stuff->after_vtotal = oldstuff->after_vtotal;
         stuff->after_flags = oldstuff->after_flags;
     }
-    LogMessage(X_INFO, "AddModeLine - scrn: %d clock: %ld\n",
-               (int) stuff->screen, (unsigned long) stuff->dotclock);
-    LogMessage(X_INFO, "AddModeLine - hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               stuff->hdisplay, stuff->hsyncstart,
-               stuff->hsyncend, stuff->htotal);
-    LogMessage(X_INFO, "              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-               stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend,
-               stuff->vtotal, (unsigned long) stuff->flags);
-    LogMessage(X_INFO, "      after - scrn: %d clock: %ld\n",
-               (int) stuff->screen, (unsigned long) stuff->after_dotclock);
-    LogMessage(X_INFO, "              hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               stuff->after_hdisplay, stuff->after_hsyncstart,
-               stuff->after_hsyncend, stuff->after_htotal);
-    LogMessage(X_INFO, "              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-               stuff->after_vdisplay, stuff->after_vsyncstart,
-               stuff->after_vsyncend, stuff->after_vtotal,
-               (unsigned long) stuff->after_flags);
+    DebugF("AddModeLine - scrn: %d clock: %ld\n",
+           (int) stuff->screen, (unsigned long) stuff->dotclock);
+    DebugF("AddModeLine - hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           stuff->hdisplay, stuff->hsyncstart,
+           stuff->hsyncend, stuff->htotal);
+    DebugF("              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend,
+           stuff->vtotal, (unsigned long) stuff->flags);
+    DebugF("      after - scrn: %d clock: %ld\n",
+           (int) stuff->screen, (unsigned long) stuff->after_dotclock);
+    DebugF("              hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           stuff->after_hdisplay, stuff->after_hsyncstart,
+           stuff->after_hsyncend, stuff->after_htotal);
+    DebugF("              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           stuff->after_vdisplay, stuff->after_vsyncstart,
+           stuff->after_vsyncend, stuff->after_vtotal,
+           (unsigned long) stuff->after_flags);
 
     if (ver < 2) {
         REQUEST_AT_LEAST_SIZE(xXF86OldVidModeAddModeLineReq);
@@ -572,7 +572,7 @@ ProcVidModeAddModeLine(ClientPtr client)
     VidModeSetModeValue(mode, VIDMODE_FLAGS, stuff->flags);
 
     if (stuff->privsize)
-        LogMessage(X_INFO, "AddModeLine - Privates in request have been ignored\n");
+        DebugF("AddModeLine - Privates in request have been ignored\n");
 
     /* Check that the mode is consistent with the monitor specs */
     switch (pVidMode->CheckModeForMonitor(pScreen, mode)) {
@@ -601,7 +601,7 @@ ProcVidModeAddModeLine(ClientPtr client)
 
     pVidMode->AddModeline(pScreen, mode);
 
-    LogMessage(X_INFO, "AddModeLine - Succeeded\n");
+    DebugF("AddModeLine - Succeeded\n");
 
     return Success;
 }
@@ -640,14 +640,14 @@ ProcVidModeDeleteModeLine(ClientPtr client)
         stuff->flags = oldstuff->flags;
         stuff->privsize = oldstuff->privsize;
     }
-    LogMessage(X_INFO, "DeleteModeLine - scrn: %d clock: %ld\n",
-               (int) stuff->screen, (unsigned long) stuff->dotclock);
-    LogMessage(X_INFO, "                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               stuff->hdisplay, stuff->hsyncstart,
-               stuff->hsyncend, stuff->htotal);
-    LogMessage(X_INFO, "                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-             stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend, stuff->vtotal,
-             (unsigned long) stuff->flags);
+    DebugF("DeleteModeLine - scrn: %d clock: %ld\n",
+           (int) stuff->screen, (unsigned long) stuff->dotclock);
+    DebugF("                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           stuff->hdisplay, stuff->hsyncstart,
+           stuff->hsyncend, stuff->htotal);
+    DebugF("                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend, stuff->vtotal,
+           (unsigned long) stuff->flags);
 
     if (ver < 2) {
         REQUEST_AT_LEAST_SIZE(xXF86OldVidModeDeleteModeLineReq);
@@ -662,11 +662,11 @@ ProcVidModeDeleteModeLine(ClientPtr client)
             bytes_to_int32(sizeof(xXF86VidModeDeleteModeLineReq));
     }
     if (len != stuff->privsize) {
-        LogMessage(X_INFO, "req_len = %ld, sizeof(Req) = %d, privsize = %ld, "
-                   "len = %d, length = %d\n",
-                   (unsigned long) client->req_len,
-                   (int) sizeof(xXF86VidModeDeleteModeLineReq) >> 2,
-                   (unsigned long) stuff->privsize, len, stuff->length);
+        DebufF("req_len = %ld, sizeof(Req) = %d, privsize = %ld, "
+               "len = %d, length = %d\n",
+               (unsigned long) client->req_len,
+               (int) sizeof(xXF86VidModeDeleteModeLineReq) >> 2,
+               (unsigned long) stuff->privsize, len, stuff->length);
         return BadLength;
     }
 
@@ -681,19 +681,19 @@ ProcVidModeDeleteModeLine(ClientPtr client)
     if (!pVidMode->GetCurrentModeline(pScreen, &mode, &dotClock))
         return BadValue;
 
-    LogMessage(X_INFO, "Checking against clock: %d (%d)\n",
-               VidModeGetModeValue(mode, VIDMODE_CLOCK), dotClock);
-    LogMessage(X_INFO, "                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               VidModeGetModeValue(mode, VIDMODE_H_DISPLAY),
-               VidModeGetModeValue(mode, VIDMODE_H_SYNCSTART),
-               VidModeGetModeValue(mode, VIDMODE_H_SYNCEND),
-               VidModeGetModeValue(mode, VIDMODE_H_TOTAL));
-    LogMessage(X_INFO, "                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %d\n",
-               VidModeGetModeValue(mode, VIDMODE_V_DISPLAY),
-               VidModeGetModeValue(mode, VIDMODE_V_SYNCSTART),
-               VidModeGetModeValue(mode, VIDMODE_V_SYNCEND),
-               VidModeGetModeValue(mode, VIDMODE_V_TOTAL),
-               VidModeGetModeValue(mode, VIDMODE_FLAGS));
+    DebugF("Checking against clock: %d (%d)\n",
+           VidModeGetModeValue(mode, VIDMODE_CLOCK), dotClock);
+    DebugF("                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           VidModeGetModeValue(mode, VIDMODE_H_DISPLAY),
+           VidModeGetModeValue(mode, VIDMODE_H_SYNCSTART),
+           VidModeGetModeValue(mode, VIDMODE_H_SYNCEND),
+           VidModeGetModeValue(mode, VIDMODE_H_TOTAL));
+    DebugF("                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %d\n",
+           VidModeGetModeValue(mode, VIDMODE_V_DISPLAY),
+           VidModeGetModeValue(mode, VIDMODE_V_SYNCSTART),
+           VidModeGetModeValue(mode, VIDMODE_V_SYNCEND),
+           VidModeGetModeValue(mode, VIDMODE_V_TOTAL),
+           VidModeGetModeValue(mode, VIDMODE_FLAGS));
 
     if ((pVidMode->GetDotClock(pScreen, stuff->dotclock) == dotClock) &&
         MODEMATCH(mode, stuff))
@@ -703,24 +703,24 @@ ProcVidModeDeleteModeLine(ClientPtr client)
         return BadValue;
 
     do {
-        LogMessage(X_INFO, "Checking against clock: %d (%d)\n",
-                   VidModeGetModeValue(mode, VIDMODE_CLOCK), dotClock);
-        LogMessage(X_INFO, "                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
-                   VidModeGetModeValue(mode, VIDMODE_H_DISPLAY),
-                   VidModeGetModeValue(mode, VIDMODE_H_SYNCSTART),
-                   VidModeGetModeValue(mode, VIDMODE_H_SYNCEND),
-                   VidModeGetModeValue(mode, VIDMODE_H_TOTAL));
-        LogMessage(X_INFO, "                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %d\n",
-                   VidModeGetModeValue(mode, VIDMODE_V_DISPLAY),
-                   VidModeGetModeValue(mode, VIDMODE_V_SYNCSTART),
-                   VidModeGetModeValue(mode, VIDMODE_V_SYNCEND),
-                   VidModeGetModeValue(mode, VIDMODE_V_TOTAL),
-                   VidModeGetModeValue(mode, VIDMODE_FLAGS));
+        DebugF("Checking against clock: %d (%d)\n",
+               VidModeGetModeValue(mode, VIDMODE_CLOCK), dotClock);
+        DebugF("                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
+               VidModeGetModeValue(mode, VIDMODE_H_DISPLAY),
+               VidModeGetModeValue(mode, VIDMODE_H_SYNCSTART),
+               VidModeGetModeValue(mode, VIDMODE_H_SYNCEND),
+               VidModeGetModeValue(mode, VIDMODE_H_TOTAL));
+        DebugF("                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %d\n",
+               VidModeGetModeValue(mode, VIDMODE_V_DISPLAY),
+               VidModeGetModeValue(mode, VIDMODE_V_SYNCSTART),
+               VidModeGetModeValue(mode, VIDMODE_V_SYNCEND),
+               VidModeGetModeValue(mode, VIDMODE_V_TOTAL),
+               VidModeGetModeValue(mode, VIDMODE_FLAGS));
 
         if ((pVidMode->GetDotClock(pScreen, stuff->dotclock) == dotClock) &&
             MODEMATCH(mode, stuff)) {
             pVidMode->DeleteModeline(pScreen, mode);
-            LogMessage(X_INFO, "DeleteModeLine - Succeeded\n");
+            DebugF("DeleteModeLine - Succeeded\n");
             return Success;
         }
     } while (pVidMode->GetNextModeline(pScreen, &mode, &dotClock));
@@ -761,12 +761,12 @@ ProcVidModeModModeLine(ClientPtr client)
         stuff->flags = oldstuff->flags;
         stuff->privsize = oldstuff->privsize;
     }
-    LogMessage(X_INFO, "ModModeLine - scrn: %d hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               (int) stuff->screen, stuff->hdisplay, stuff->hsyncstart,
-               stuff->hsyncend, stuff->htotal);
-    LogMessage(X_INFO, "              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-               stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend,
-               stuff->vtotal, (unsigned long) stuff->flags);
+    DebugF("ModModeLine - scrn: %d hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           (int) stuff->screen, stuff->hdisplay, stuff->hsyncstart,
+           stuff->hsyncend, stuff->htotal);
+    DebugF("              vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend,
+           stuff->vtotal, (unsigned long) stuff->flags);
 
     if (ver < 2) {
         REQUEST_AT_LEAST_SIZE(xXF86OldVidModeModModeLineReq);
@@ -816,7 +816,7 @@ ProcVidModeModModeLine(ClientPtr client)
     VidModeSetModeValue(modetmp, VIDMODE_FLAGS, stuff->flags);
 
     if (stuff->privsize)
-        LogMessage(X_INFO, "ModModeLine - Privates in request have been ignored\n");
+        DebugF("ModModeLine - Privates in request have been ignored\n");
 
     /* Check that the mode is consistent with the monitor specs */
     switch (pVidMode->CheckModeForMonitor(pScreen, modetmp)) {
@@ -856,7 +856,7 @@ ProcVidModeModModeLine(ClientPtr client)
     pVidMode->SetCrtcForMode(pScreen, mode);
     pVidMode->SwitchMode(pScreen, mode);
 
-    LogMessage(X_INFO, "ModModeLine - Succeeded\n");
+    DebugF("ModModeLine - Succeeded\n");
     return Success;
 }
 
@@ -896,14 +896,14 @@ ProcVidModeValidateModeLine(ClientPtr client)
         stuff->privsize = oldstuff->privsize;
     }
 
-    LogMessage(X_INFO, "ValidateModeLine - scrn: %d clock: %ld\n",
-               (int) stuff->screen, (unsigned long) stuff->dotclock);
-    LogMessage(X_INFO, "                   hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               stuff->hdisplay, stuff->hsyncstart,
-               stuff->hsyncend, stuff->htotal);
-    LogMessage(X_INFO, "                   vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-             stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend, stuff->vtotal,
-             (unsigned long) stuff->flags);
+    DebugF("ValidateModeLine - scrn: %d clock: %ld\n",
+           (int) stuff->screen, (unsigned long) stuff->dotclock);
+    DebugF("                   hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           stuff->hdisplay, stuff->hsyncstart,
+           stuff->hsyncend, stuff->htotal);
+    DebugF("                   vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend, stuff->vtotal,
+           (unsigned long) stuff->flags);
 
     if (ver < 2) {
         REQUEST_AT_LEAST_SIZE(xXF86OldVidModeValidateModeLineReq);
@@ -956,7 +956,7 @@ ProcVidModeValidateModeLine(ClientPtr client)
     VidModeSetModeValue(modetmp, VIDMODE_V_TOTAL, stuff->vtotal);
     VidModeSetModeValue(modetmp, VIDMODE_FLAGS, stuff->flags);
     if (stuff->privsize)
-        LogMessage(X_INFO, "ValidateModeLine - Privates in request have been ignored\n");
+        DebugF("ValidateModeLine - Privates in request have been ignored\n");
 
     /* Check that the mode is consistent with the monitor specs */
     if ((status =
@@ -982,7 +982,7 @@ ProcVidModeValidateModeLine(ClientPtr client)
         swapl(&rep.status);
     }
     WriteToClient(client, sizeof(xXF86VidModeValidateModeLineReply), &rep);
-    LogMessage(X_INFO, "ValidateModeLine - Succeeded (status = %d)\n", status);
+    DebugF("ValidateModeLine - Succeeded (status = %d)\n", status);
 
     return Success;
 }
@@ -1046,14 +1046,14 @@ ProcVidModeSwitchToMode(ClientPtr client)
         stuff->privsize = oldstuff->privsize;
     }
 
-    LogMessage(X_INFO, "SwitchToMode - scrn: %d clock: %ld\n",
-               (int) stuff->screen, (unsigned long) stuff->dotclock);
-    LogMessage(X_INFO, "               hdsp: %d hbeg: %d hend: %d httl: %d\n",
-               stuff->hdisplay, stuff->hsyncstart,
-               stuff->hsyncend, stuff->htotal);
-    LogMessage(X_INFO, "               vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
-               stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend, stuff->vtotal,
-               (unsigned long) stuff->flags);
+    DebugF("SwitchToMode - scrn: %d clock: %ld\n",
+           (int) stuff->screen, (unsigned long) stuff->dotclock);
+    DebugF("               hdsp: %d hbeg: %d hend: %d httl: %d\n",
+           stuff->hdisplay, stuff->hsyncstart,
+           stuff->hsyncend, stuff->htotal);
+    DebugF("               vdsp: %d vbeg: %d vend: %d vttl: %d flags: %ld\n",
+           stuff->vdisplay, stuff->vsyncstart, stuff->vsyncend, stuff->vtotal,
+           (unsigned long) stuff->flags);
 
     if (ver < 2) {
         REQUEST_AT_LEAST_SIZE(xXF86OldVidModeSwitchToModeReq);
@@ -1089,19 +1089,19 @@ ProcVidModeSwitchToMode(ClientPtr client)
         return BadValue;
 
     do {
-        LogMessage(X_INFO, "Checking against clock: %d (%d)\n",
-                   VidModeGetModeValue(mode, VIDMODE_CLOCK), dotClock);
-        LogMessage(X_INFO, "                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
-                   VidModeGetModeValue(mode, VIDMODE_H_DISPLAY),
-                   VidModeGetModeValue(mode, VIDMODE_H_SYNCSTART),
-                   VidModeGetModeValue(mode, VIDMODE_H_SYNCEND),
-                   VidModeGetModeValue(mode, VIDMODE_H_TOTAL));
-        LogMessage(X_INFO, "                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %d\n",
-                 VidModeGetModeValue(mode, VIDMODE_V_DISPLAY),
-                 VidModeGetModeValue(mode, VIDMODE_V_SYNCSTART),
-                 VidModeGetModeValue(mode, VIDMODE_V_SYNCEND),
-                 VidModeGetModeValue(mode, VIDMODE_V_TOTAL),
-                 VidModeGetModeValue(mode, VIDMODE_FLAGS));
+        DebugF("Checking against clock: %d (%d)\n",
+               VidModeGetModeValue(mode, VIDMODE_CLOCK), dotClock);
+        DebugF("                 hdsp: %d hbeg: %d hend: %d httl: %d\n",
+               VidModeGetModeValue(mode, VIDMODE_H_DISPLAY),
+               VidModeGetModeValue(mode, VIDMODE_H_SYNCSTART),
+               VidModeGetModeValue(mode, VIDMODE_H_SYNCEND),
+               VidModeGetModeValue(mode, VIDMODE_H_TOTAL));
+        DebugF("                 vdsp: %d vbeg: %d vend: %d vttl: %d flags: %d\n",
+               VidModeGetModeValue(mode, VIDMODE_V_DISPLAY),
+               VidModeGetModeValue(mode, VIDMODE_V_SYNCSTART),
+               VidModeGetModeValue(mode, VIDMODE_V_SYNCEND),
+               VidModeGetModeValue(mode, VIDMODE_V_TOTAL),
+               VidModeGetModeValue(mode, VIDMODE_FLAGS));
 
         if ((pVidMode->GetDotClock(pScreen, stuff->dotclock) == dotClock) &&
             MODEMATCH(mode, stuff)) {
@@ -1109,7 +1109,7 @@ ProcVidModeSwitchToMode(ClientPtr client)
             if (!pVidMode->SwitchMode(pScreen, mode))
                 return BadValue;
 
-            LogMessage(X_INFO, "SwitchToMode - Succeeded\n");
+            DebugF("SwitchToMode - Succeeded\n");
             return Success;
         }
     } while (pVidMode->GetNextModeline(pScreen, &mode, &dotClock));

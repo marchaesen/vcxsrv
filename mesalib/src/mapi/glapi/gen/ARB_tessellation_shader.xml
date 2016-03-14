@@ -49,11 +49,11 @@
     <enum value="0x8E89" name="MAX_TESS_CONTROL_UNIFORM_BLOCKS"/>
     <enum value="0x8E8A" name="MAX_TESS_EVALUATION_UNIFORM_BLOCKS"/>
 
-    <function name="PatchParameteri" offset="assign">
+    <function name="PatchParameteri">
         <param name="pname" type="GLenum"/>
         <param name="value" type="GLint"/>
     </function>
-    <function name="PatchParameterfv" offset="assign">
+    <function name="PatchParameterfv">
         <param name="pname" type="GLenum"/>
         <param name="values" type="const GLfloat *"/>
     </function>

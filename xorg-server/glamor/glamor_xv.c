@@ -495,7 +495,7 @@ glamor_xv_put_image(glamor_port_private *port_priv,
     RegionCopy(&port_priv->clip, clipBoxes);
 
     port_priv->src_x = src_x;
-    port_priv->src_y = src_y;
+    port_priv->src_y = src_y - top;
     port_priv->src_w = src_w;
     port_priv->src_h = src_h;
     port_priv->dst_w = drw_w;

@@ -32,6 +32,7 @@
 #include "pipe/p_compiler.h"
 #include "pipe/p_context.h"
 
+#include "util/u_draw.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,8 +40,6 @@ extern "C" {
 
 struct pipe_resource;
 struct cso_context;
-
-#include "util/u_draw.h"
 
 extern void 
 util_draw_vertex_buffer(struct pipe_context *pipe, struct cso_context *cso,

@@ -1735,6 +1735,7 @@ AM_CONDITIONAL(HAVE_ST_XVMC, test "x$enable_xvmc" = xyes)
 if test "x$enable_vdpau" = xyes; then
     PKG_CHECK_MODULES([VDPAU], [vdpau >= $VDPAU_REQUIRED])
     gallium_st="$gallium_st vdpau"
+    DEFINES="$DEFINES -DHAVE_ST_VDPAU"
 fi
 AM_CONDITIONAL(HAVE_ST_VDPAU, test "x$enable_vdpau" = xyes)
 

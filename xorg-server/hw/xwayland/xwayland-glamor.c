@@ -569,5 +569,10 @@ xwl_glamor_init(struct xwl_screen *xwl_screen)
     screen->CreatePixmap = xwl_glamor_create_pixmap;
     screen->DestroyPixmap = xwl_glamor_destroy_pixmap;
 
+#ifdef XV
+    if (!xwl_glamor_xv_init(screen))
+        ErrorF("Failed to initialize glamor Xv extension\n");
+#endif
+
     return TRUE;
 }

@@ -544,7 +544,6 @@ __glXGetDrawable(__GLXcontext * glxc, GLXDrawable drawId, ClientPtr client,
 
     /* since we are creating the drawablePrivate, drawId should be new */
     if (!AddResource(drawId, __glXDrawableRes, pGlxDraw)) {
-        pGlxDraw->destroy(pGlxDraw);
         *error = BadAlloc;
         return NULL;
     }
@@ -1239,20 +1238,16 @@ DoCreateGLXDrawable(ClientPtr client, __GLXscreen * pGlxScreen,
     if (pGlxDraw == NULL)
         return BadAlloc;
 
-    if (!AddResource(glxDrawableId, __glXDrawableRes, pGlxDraw)) {
-        pGlxDraw->destroy(pGlxDraw);
+    if (!AddResource(glxDrawableId, __glXDrawableRes, pGlxDraw))
         return BadAlloc;
-    }
 
     /*
      * Windows aren't refcounted, so track both the X and the GLX window
      * so we get called regardless of destruction order.
      */
     if (drawableId != glxDrawableId && type == GLX_DRAWABLE_WINDOW &&
-        !AddResource(pDraw->id, __glXDrawableRes, pGlxDraw)) {
-        pGlxDraw->destroy(pGlxDraw);
+        !AddResource(pDraw->id, __glXDrawableRes, pGlxDraw))
         return BadAlloc;
-    }
 
     return Success;
 }
@@ -1926,6 +1921,11 @@ __glXDisp_CopySubBufferMESA(__GLXclientState * cl, GLbyte * pc)
     return Success;
 }
 
+/* hack for old glxext.h */
+#ifndef GLX_STEREO_TREE_EXT
+#define GLX_STEREO_TREE_EXT                 0x20F5
+#endif
+
 /*
 ** Get drawable attributes
 */
@@ -1936,7 +1936,7 @@ DoGetDrawableAttributes(__GLXclientState * cl, XID drawId)
     xGLXGetDrawableAttributesReply reply;
     __GLXdrawable *pGlxDraw = NULL;
     DrawablePtr pDraw;
-    CARD32 attributes[14];
+    CARD32 attributes[18];
     int num = 0, error;
 
     if (!validGlxDrawable(client, drawId, GLX_DRAWABLE_ANY,
@@ -1950,33 +1950,30 @@ DoGetDrawableAttributes(__GLXclientState * cl, XID drawId)
     if (pGlxDraw)
         pDraw = pGlxDraw->pDraw;
 
-    attributes[2*num] = GLX_Y_INVERTED_EXT;
-    attributes[2*num+1] = GL_FALSE;
-    num++;
-    attributes[2*num] = GLX_WIDTH;
-    attributes[2*num+1] = pDraw->width;
-    num++;
-    attributes[2*num] = GLX_HEIGHT;
-    attributes[2*num+1] = pDraw->height;
-    num++;
+#define ATTRIB(a, v) do { \
+    attributes[2*num] = (a); \
+    attributes[2*num+1] = (v); \
+    num++; \
+    } while (0)
+
+    ATTRIB(GLX_Y_INVERTED_EXT, GL_FALSE);
+    ATTRIB(GLX_WIDTH, pDraw->width);
+    ATTRIB(GLX_HEIGHT, pDraw->height);
+    ATTRIB(GLX_SCREEN, pDraw->pScreen->myNum);
     if (pGlxDraw) {
-        attributes[2*num] = GLX_TEXTURE_TARGET_EXT;
-        attributes[2*num+1] = pGlxDraw->target == GL_TEXTURE_2D ?
-            GLX_TEXTURE_2D_EXT :
-            GLX_TEXTURE_RECTANGLE_EXT;
-        num++;
-        attributes[2*num] = GLX_EVENT_MASK;
-        attributes[2*num+1] = pGlxDraw->eventMask;
-        num++;
-        attributes[2*num] = GLX_FBCONFIG_ID;
-        attributes[2*num+1] = pGlxDraw->config->fbconfigID;
-        num++;
+        ATTRIB(GLX_TEXTURE_TARGET_EXT,
+               pGlxDraw->target == GL_TEXTURE_2D ?
+                GLX_TEXTURE_2D_EXT : GLX_TEXTURE_RECTANGLE_EXT);
+        ATTRIB(GLX_EVENT_MASK, pGlxDraw->eventMask);
+        ATTRIB(GLX_FBCONFIG_ID, pGlxDraw->config->fbconfigID);
         if (pGlxDraw->type == GLX_DRAWABLE_PBUFFER) {
-            attributes[2*num] = GLX_PRESERVED_CONTENTS;
-            attributes[2*num+1] = GL_TRUE;
-            num++;
+            ATTRIB(GLX_PRESERVED_CONTENTS, GL_TRUE);
+        }
+        if (pGlxDraw->type == GLX_DRAWABLE_WINDOW) {
+            ATTRIB(GLX_STEREO_TREE_EXT, 0);
         }
     }
+#undef ATTRIB
 
     reply = (xGLXGetDrawableAttributesReply) {
         .type = X_Reply,

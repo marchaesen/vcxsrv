@@ -144,6 +144,10 @@ present_check_flip(RRCrtcPtr    crtc,
     if (!screen_priv->info->flip)
         return FALSE;
 
+    /* Fail to flip if we have slave outputs */
+    if (!xorg_list_is_empty(&screen->output_slave_list))
+        return FALSE;
+
     /* Make sure the window hasn't been redirected with Composite */
     window_pixmap = screen->GetWindowPixmap(window);
     if (window_pixmap != screen->GetScreenPixmap(screen) &&

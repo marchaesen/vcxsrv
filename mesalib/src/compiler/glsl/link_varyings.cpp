@@ -312,8 +312,14 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
          }
 
          if (output != NULL) {
-            cross_validate_types_and_qualifiers(prog, input, output,
-                                                consumer->Stage, producer->Stage);
+            /* Interface blocks have their own validation elsewhere so don't
+             * try validating them here.
+             */
+            if (!(input->get_interface_type() &&
+                  output->get_interface_type()))
+               cross_validate_types_and_qualifiers(prog, input, output,
+                                                   consumer->Stage,
+                                                   producer->Stage);
          } else {
             /* Check for input vars with unmatched output vars in prev stage
              * taking into account that interface blocks could have a matching

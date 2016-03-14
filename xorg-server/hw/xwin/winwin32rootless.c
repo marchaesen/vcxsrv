@@ -516,12 +516,6 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
     win32RootlessWindowPtr pRLNextWinPriv = (win32RootlessWindowPtr) nextWid;
 
     winScreenPriv(pRLWinPriv->pFrame->win->drawable.pScreen);
-    winScreenInfo *pScreenInfo = NULL;
-    DWORD dwCurrentProcessID = GetCurrentProcessId();
-    DWORD dwWindowProcessID = 0;
-    HWND hWnd;
-    Bool fFirst = TRUE;
-    Bool fNeedRestack = TRUE;
 
 #if CYGMULTIWINDOW_DEBUG
     winDebug("winMWExtWMRestackFrame (%p)\n", pRLWinPriv);
@@ -529,9 +523,6 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
 
     if (pScreenPriv && pScreenPriv->fRestacking)
         return;
-
-    if (pScreenPriv)
-        pScreenInfo = pScreenPriv->pScreenInfo;
 
     pRLWinPriv->fRestackingNow = TRUE;
 
@@ -546,62 +537,6 @@ winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
         pScreenPriv->widTop = wid;
         SetWindowPos(pRLWinPriv->hWnd, HWND_TOP,
                      0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    }
-    else if (winIsInternalWMRunning(pScreenInfo)) {
-        /* using mulwinidow wm */
-#if CYGMULTIWINDOW_DEBUG
-        winDebug("Win %p is not top\n", pRLWinPriv);
-#endif
-        for (hWnd = GetNextWindow(pRLWinPriv->hWnd, GW_HWNDPREV);
-             fNeedRestack && hWnd != NULL;
-             hWnd = GetNextWindow(hWnd, GW_HWNDPREV)) {
-            GetWindowThreadProcessId(hWnd, &dwWindowProcessID);
-
-            if ((dwWindowProcessID == dwCurrentProcessID)
-                && GetProp(hWnd, WIN_WINDOW_PROP)) {
-                if (hWnd == pRLNextWinPriv->hWnd) {
-                    /* Enable interleave X window and Windows window */
-                    if (!fFirst) {
-#if CYGMULTIWINDOW_DEBUG
-                        winDebug("raise: Insert after Win %p\n",
-                                 pRLNextWinPriv);
-#endif
-                        SetWindowPos(pRLWinPriv->hWnd, pRLNextWinPriv->hWnd,
-                                     0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    }
-                    else {
-#if CYGMULTIWINDOW_DEBUG
-                        winDebug("No change\n");
-#endif
-                    }
-                    fNeedRestack = FALSE;
-                    break;
-                }
-                if (fFirst)
-                    fFirst = FALSE;
-            }
-        }
-
-        for (hWnd = GetNextWindow(pRLWinPriv->hWnd, GW_HWNDNEXT);
-             fNeedRestack && hWnd != NULL;
-             hWnd = GetNextWindow(hWnd, GW_HWNDNEXT)) {
-            GetWindowThreadProcessId(hWnd, &dwWindowProcessID);
-
-            if ((dwWindowProcessID == dwCurrentProcessID)
-                && GetProp(hWnd, WIN_WINDOW_PROP)) {
-                if (hWnd == pRLNextWinPriv->hWnd) {
-#if CYGMULTIWINDOW_DEBUG
-                    winDebug("lower: Insert after Win %p\n", pRLNextWinPriv);
-#endif
-                    SetWindowPos(pRLWinPriv->hWnd, pRLNextWinPriv->hWnd,
-                                 0, 0, 0, 0,
-                                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    fNeedRestack = FALSE;
-                    break;
-                }
-            }
-        }
     }
     else {
         /* using general wm like twm, wmaker etc.

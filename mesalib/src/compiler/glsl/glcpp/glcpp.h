@@ -176,6 +176,7 @@ struct glcpp_parser {
 	struct hash_table *defines;
 	active_list_t *active;
 	int lexing_directive;
+	int lexing_version_directive;
 	int space_tokens;
 	int last_token_was_newline;
 	int last_token_was_space;

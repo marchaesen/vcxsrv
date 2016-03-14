@@ -219,6 +219,40 @@ print_alu_instr(nir_alu_instr *instr, print_state *state)
    }
 }
 
+static const char *
+get_var_name(nir_variable *var, print_state *state)
+{
+   if (state->ht == NULL)
+      return var->name;
+
+   assert(state->syms);
+
+   struct hash_entry *entry = _mesa_hash_table_search(state->ht, var);
+   if (entry)
+      return entry->data;
+
+   char *name;
+   if (var->name == NULL) {
+      name = ralloc_asprintf(state->syms, "@%u", state->index++);
+   } else {
+      struct set_entry *set_entry = _mesa_set_search(state->syms, var->name);
+      if (set_entry != NULL) {
+         /* we have a collision with another name, append an @ + a unique
+          * index */
+         name = ralloc_asprintf(state->syms, "%s@%u", var->name,
+                                state->index++);
+      } else {
+         /* Mark this one as seen */
+         _mesa_set_add(state->syms, var->name);
+         name = var->name;
+      }
+   }
+
+   _mesa_hash_table_insert(state->ht, var, name);
+
+   return name;
+}
+
 static void
 print_constant(nir_constant *c, const struct glsl_type *type, print_state *state)
 {
@@ -286,20 +320,7 @@ print_var_decl(nir_variable *var, print_state *state)
 
    glsl_print_type(var->type, fp);
 
-   struct set_entry *entry = NULL;
-   if (state->syms)
-      entry = _mesa_set_search(state->syms, var->name);
-
-   char *name;
-
-   if (entry != NULL) {
-      /* we have a collision with another name, append an @ + a unique index */
-      name = ralloc_asprintf(state->syms, "%s@%u", var->name, state->index++);
-   } else {
-      name = var->name;
-   }
-
-   fprintf(fp, " %s", name);
+   fprintf(fp, " %s", get_var_name(var, state));
 
    if (var->data.mode == nir_var_shader_in ||
        var->data.mode == nir_var_shader_out ||
@@ -349,28 +370,21 @@ print_var_decl(nir_variable *var, print_state *state)
    }
 
    fprintf(fp, "\n");
-
-   if (state->syms) {
-      _mesa_set_add(state->syms, name);
-      _mesa_hash_table_insert(state->ht, var, name);
-   }
 }
 
 static void
 print_var(nir_variable *var, print_state *state)
 {
    FILE *fp = state->fp;
-   const char *name;
-   if (state->ht) {
-      struct hash_entry *entry = _mesa_hash_table_search(state->ht, var);
+   fprintf(fp, "%s", get_var_name(var, state));
+}
 
-      assert(entry != NULL);
-      name = entry->data;
-   } else {
-      name = var->name;
-   }
-
-   fprintf(fp, "%s", name);
+static void
+print_arg(nir_variable *var, print_state *state)
+{
+   FILE *fp = state->fp;
+   glsl_print_type(var->type, fp);
+   fprintf(fp, " %s", get_var_name(var, state));
 }
 
 static void
@@ -932,14 +946,14 @@ print_function_impl(nir_function_impl *impl, print_state *state)
       if (i != 0)
          fprintf(fp, ", ");
 
-      print_var(impl->params[i], state);
+      print_arg(impl->params[i], state);
    }
 
    if (impl->return_var != NULL) {
       if (impl->num_params != 0)
          fprintf(fp, ", ");
       fprintf(fp, "returning ");
-      print_var(impl->return_var, state);
+      print_arg(impl->return_var, state);
    }
 
    fprintf(fp, "{\n");

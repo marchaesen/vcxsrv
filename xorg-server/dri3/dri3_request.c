@@ -178,8 +178,8 @@ proc_dri3_pixmap_from_buffer(ClientPtr client)
         (*drawable->pScreen->DestroyPixmap) (pixmap);
         return rc;
     }
-    if (AddResource(stuff->pixmap, RT_PIXMAP, (void *) pixmap))
-        return Success;
+    if (!AddResource(stuff->pixmap, RT_PIXMAP, (void *) pixmap))
+        return BadAlloc;
 
     return Success;
 }

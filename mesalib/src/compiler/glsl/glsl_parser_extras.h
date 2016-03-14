@@ -533,6 +533,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_sample_shading_warn;
    bool ARB_separate_shader_objects_enable;
    bool ARB_separate_shader_objects_warn;
+   bool ARB_shader_atomic_counter_ops_enable;
+   bool ARB_shader_atomic_counter_ops_warn;
    bool ARB_shader_atomic_counters_enable;
    bool ARB_shader_atomic_counters_warn;
    bool ARB_shader_bit_encoding_enable;

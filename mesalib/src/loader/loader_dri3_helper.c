@@ -858,7 +858,8 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
                                                       width, height,
                                                       format,
                                                       __DRI_IMAGE_USE_SHARE |
-                                                      __DRI_IMAGE_USE_SCANOUT,
+                                                      __DRI_IMAGE_USE_SCANOUT |
+                                                      __DRI_IMAGE_USE_BACKBUFFER,
                                                       buffer);
       pixmap_buffer = buffer->image;
 
@@ -878,7 +879,8 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
         (draw->ext->image->createImage)(draw->dri_screen,
                                         width, height, format,
                                         __DRI_IMAGE_USE_SHARE |
-                                           __DRI_IMAGE_USE_LINEAR,
+                                        __DRI_IMAGE_USE_LINEAR |
+                                        __DRI_IMAGE_USE_BACKBUFFER,
                                         buffer);
       pixmap_buffer = buffer->linear_buffer;
 

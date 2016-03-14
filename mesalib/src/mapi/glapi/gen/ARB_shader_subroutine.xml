@@ -7,21 +7,21 @@
 
 <category name="GL_ARB_shader_subroutine" number="90">
 
-    <function name="GetSubroutineUniformLocation" offset="assign">
+    <function name="GetSubroutineUniformLocation">
         <param name="program" type="GLuint"/>
         <param name="shadertype" type="GLenum"/>
         <param name="name" type="const GLchar *"/>
         <return type="GLint"/>
     </function>
 
-    <function name="GetSubroutineIndex" offset="assign">
+    <function name="GetSubroutineIndex">
         <param name="program" type="GLuint"/>
         <param name="shadertype" type="GLenum"/>
         <param name="name" type="const GLchar *"/>
         <return type="GLuint"/>
     </function>
 
-    <function name="GetActiveSubroutineUniformiv" offset="assign">
+    <function name="GetActiveSubroutineUniformiv">
         <param name="program" type="GLuint"/>
         <param name="shadertype" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -29,7 +29,7 @@
         <param name="values" type="GLint *" output="true"/>
     </function>
 
-    <function name="GetActiveSubroutineUniformName" offset="assign">
+    <function name="GetActiveSubroutineUniformName">
         <param name="program" type="GLuint"/>
         <param name="shadertype" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -38,7 +38,7 @@
         <param name="name" type="GLchar *" output="true"/>
     </function>
 
-    <function name="GetActiveSubroutineName" offset="assign">
+    <function name="GetActiveSubroutineName">
         <param name="program" type="GLuint"/>
         <param name="shadertype" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -47,19 +47,19 @@
         <param name="name" type="GLchar *" output="true"/>
     </function>
 
-    <function name="UniformSubroutinesuiv" offset="assign">
+    <function name="UniformSubroutinesuiv">
         <param name="shadertype" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="indices" type="const GLuint *"/>
     </function>
 
-    <function name="GetUniformSubroutineuiv" offset="assign">
+    <function name="GetUniformSubroutineuiv">
         <param name="shadertype" type="GLenum"/>
         <param name="location" type="GLint"/>
         <param name="params" type="GLuint *" output="true"/>
     </function>
 
-    <function name="GetProgramStageiv" offset="assign">
+    <function name="GetProgramStageiv">
         <param name="program" type="GLuint"/>
         <param name="shadertype" type="GLenum"/>
         <param name="pname" type="GLenum"/>

@@ -76,7 +76,6 @@ DWORD g_dwCurrentThreadID = 0;
 Bool g_fKeyboardHookLL = FALSE;
 Bool g_fNoHelpMessageBox = FALSE;
 Bool g_fSoftwareCursor = FALSE;
-Bool g_fSilentDupError = FALSE;
 Bool g_fNativeGl = TRUE;
 Bool g_fHostInTitle = TRUE;
 pthread_mutex_t g_pmTerminating = PTHREAD_MUTEX_INITIALIZER;

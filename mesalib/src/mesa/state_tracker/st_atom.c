@@ -62,7 +62,12 @@ static const struct st_tracked_state *render_atoms[] =
    &st_update_tessctrl_texture,
    &st_update_tesseval_texture,
    &st_update_sampler, /* depends on update_*_texture for swizzle */
-   &st_update_framebuffer,
+   &st_bind_vs_images,
+   &st_bind_tcs_images,
+   &st_bind_tes_images,
+   &st_bind_gs_images,
+   &st_bind_fs_images,
+   &st_update_framebuffer, /* depends on update_*_texture and bind_*_images */
    &st_update_msaa,
    &st_update_sample_shading,
    &st_update_vs_constants,
@@ -85,11 +90,6 @@ static const struct st_tracked_state *render_atoms[] =
    &st_bind_tes_ssbos,
    &st_bind_fs_ssbos,
    &st_bind_gs_ssbos,
-   &st_bind_vs_images,
-   &st_bind_tcs_images,
-   &st_bind_tes_images,
-   &st_bind_gs_images,
-   &st_bind_fs_images,
    &st_update_pixel_transfer,
    &st_update_tess,
 

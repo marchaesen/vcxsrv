@@ -605,9 +605,15 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     glamor_priv->max_fbo_size = MAX_FBO_SIZE;
 #endif
 
+    glamor_priv->has_texture_swizzle =
+        (epoxy_has_gl_extension("GL_ARB_texture_swizzle") ||
+         (glamor_priv->gl_flavor != GLAMOR_GL_DESKTOP && gl_version >= 30));
+
     glamor_priv->one_channel_format = GL_ALPHA;
-    if (epoxy_has_gl_extension("GL_ARB_texture_rg") && epoxy_has_gl_extension("GL_ARB_texture_swizzle"))
+    if (epoxy_has_gl_extension("GL_ARB_texture_rg") &&
+        glamor_priv->has_texture_swizzle) {
         glamor_priv->one_channel_format = GL_RED;
+    }
 
     glamor_set_debug_level(&glamor_debug_level);
 
@@ -668,7 +674,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     glamor_init_vbo(screen);
     glamor_init_pixmap_fbo(screen);
-    glamor_init_finish_access_shaders(screen);
 
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_init_gradient_shader(screen);

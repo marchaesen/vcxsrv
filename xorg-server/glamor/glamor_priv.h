@@ -208,6 +208,7 @@ typedef struct glamor_screen_private {
     Bool use_quads;
     Bool has_vertex_array_object;
     Bool has_dual_blend;
+    Bool has_texture_swizzle;
     Bool is_core_profile;
     int max_fbo_size;
 
@@ -285,11 +286,6 @@ typedef struct glamor_screen_private {
         [SHADER_MASK_COUNT]
         [glamor_program_alpha_count]
         [SHADER_DEST_SWIZZLE_COUNT];
-
-    /* shaders to restore a texture to another texture. */
-    GLint finish_access_prog[2];
-    GLint finish_access_revert[2];
-    GLint finish_access_swap_rb[2];
 
     /* glamor gradient, 0 for small nstops, 1 for
        large nstops and 2 for dynamic generate. */
@@ -514,22 +510,6 @@ glamor_pixmap_hcnt(glamor_pixmap_private *priv)
     for (box_index = 0; box_index < glamor_pixmap_hcnt(priv) *         \
              glamor_pixmap_wcnt(priv); box_index++)                    \
 
-/**
- * Pixmap upload status, used by glamor_render.c's support for
- * temporarily uploading pixmaps to GL textures to get a Composite
- * operation done.
- */
-typedef enum glamor_pixmap_status {
-    /** initial status, don't need to do anything. */
-    GLAMOR_NONE,
-    /** marked as need to be uploaded to gl texture. */
-    GLAMOR_UPLOAD_PENDING,
-    /** the pixmap has been uploaded successfully. */
-    GLAMOR_UPLOAD_DONE,
-    /** fail to upload the pixmap. */
-    GLAMOR_UPLOAD_FAILED
-} glamor_pixmap_status_t;
-
 /* GC private structure. Currently holds only any computed dash pixmap */
 
 typedef struct {
@@ -602,8 +582,6 @@ void glamor_gldrawarrays_quads_using_indices(glamor_screen_private *glamor_priv,
                                              unsigned count);
 
 /* glamor_core.c */
-void glamor_init_finish_access_shaders(ScreenPtr screen);
-
 Bool glamor_get_drawable_location(const DrawablePtr drawable);
 void glamor_get_drawable_deltas(DrawablePtr drawable, PixmapPtr pixmap,
                                 int *x, int *y);
@@ -739,7 +717,7 @@ Bool glamor_composite_largepixmap_region(CARD8 op,
  * Upload a picture to gl texture. Similar to the
  * glamor_upload_pixmap_to_texture. Used in rendering.
  **/
-enum glamor_pixmap_status glamor_upload_picture_to_texture(PicturePtr picture);
+Bool glamor_upload_picture_to_texture(PicturePtr picture);
 
 void glamor_add_traps(PicturePtr pPicture,
                       INT16 x_off, INT16 y_off, int ntrap, xTrap *traps);
@@ -942,7 +920,6 @@ void glamor_xv_render(glamor_port_private *port_priv);
 #define GLAMOR_PIXMAP_DYNAMIC_UPLOAD
 #define GLAMOR_GRADIENT_SHADER
 #define GLAMOR_TEXTURED_LARGE_PIXMAP 1
-#define WALKAROUND_LARGE_TEXTURE_MAP
 #if 0
 #define MAX_FBO_SIZE 32         /* For test purpose only. */
 #endif

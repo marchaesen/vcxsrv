@@ -385,6 +385,30 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
     (*ScreenPriv->spriteFuncs->SetCursor) (pDev, pScreen, pCurs, x, y);
 }
 
+/* Re-set the current cursor. This will switch between hardware and software
+ * cursor depending on whether hardware cursor is currently supported
+ * according to the driver.
+ */
+void
+xf86CursorResetCursor(ScreenPtr pScreen)
+{
+    xf86CursorScreenPtr ScreenPriv;
+
+    if (!inputInfo.pointer)
+        return;
+
+    if (!dixPrivateKeyRegistered(xf86CursorScreenKey))
+        return;
+
+    ScreenPriv = (xf86CursorScreenPtr) dixLookupPrivate(&pScreen->devPrivates,
+                                                        xf86CursorScreenKey);
+    if (!ScreenPriv)
+        return;
+
+    xf86CursorSetCursor(inputInfo.pointer, pScreen, ScreenPriv->CurrentCursor,
+                        ScreenPriv->x, ScreenPriv->y);
+}
+
 static void
 xf86CursorMoveCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {

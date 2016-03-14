@@ -97,10 +97,8 @@ ms_get_resource(XID id, RESTYPE type)
     if (resource == NULL)
         return NULL;
 
-    if (!AddResource(id, type, resource)) {
-        free(resource);
+    if (!AddResource(id, type, resource))
         return NULL;
-    }
 
     resource->id = id;
     resource->type = type;

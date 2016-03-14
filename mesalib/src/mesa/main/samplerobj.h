@@ -27,13 +27,11 @@
 #ifndef SAMPLEROBJ_H
 #define SAMPLEROBJ_H
 
+#include "mtypes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-#include "mtypes.h"
-
 
 struct dd_function_table;
 

@@ -3121,6 +3121,12 @@ xf86DisableUnusedFunctions(ScrnInfoPtr pScrn)
         xf86_crtc_notify(pScrn->pScreen);
     if (pScrn->ModeSet)
         pScrn->ModeSet(pScrn);
+    if (pScrn->pScreen) {
+        if (pScrn->pScreen->isGPU)
+            xf86CursorResetCursor(pScrn->pScreen->current_master);
+        else
+            xf86CursorResetCursor(pScrn->pScreen);
+    }
 }
 
 #ifdef RANDR_12_INTERFACE

@@ -25,6 +25,7 @@
  **************************************************************************/
 
 #include "main/imports.h"
+#include "main/shaderimage.h"
 #include "program/prog_parameter.h"
 #include "program/prog_print.h"
 #include "compiler/glsl/ir_uniform.h"
@@ -60,7 +61,7 @@ st_bind_images(struct st_context *st, struct gl_shader *shader,
       struct st_texture_object *stObj = st_texture_object(u->TexObj);
       struct pipe_image_view *img = &images[i];
 
-      if (!stObj ||
+      if (!_mesa_is_image_unit_valid(st->ctx, u) ||
           !st_finalize_texture(st->ctx, st->pipe, u->TexObj) ||
           !stObj->pt) {
          memset(img, 0, sizeof(*img));

@@ -40,7 +40,6 @@ _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
 {
    inst->Saturate = GL_FALSE;
 
-
    /* The only possible suffix element is the saturation selector from
     * ARB_fragment_program.
     */
@@ -50,7 +49,6 @@ _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
 	 suffix += 4;
       }
    }
-
 
    /* It is an error for all of the suffix string not to be consumed.
     */
@@ -84,7 +82,6 @@ _mesa_ARBfp_parse_option(struct asm_parser_state *state, const char *option)
       /* Advance the pointer past the "ARB_" prefix.
        */
       option += 4;
-
 
       if (strncmp(option, "fog_", 4) == 0) {
 	 option += 4;
@@ -136,10 +133,12 @@ _mesa_ARBfp_parse_option(struct asm_parser_state *state, const char *option)
           * program options will fail to load.
           */
 
-         if (strcmp(option, "nicest") == 0 && state->option.PrecisionHint != OPTION_FASTEST) {
+         if (strcmp(option, "nicest") == 0 &&
+             state->option.PrecisionHint != OPTION_FASTEST) {
             state->option.PrecisionHint = OPTION_NICEST;
             return 1;
-         } else if (strcmp(option, "fastest") == 0 && state->option.PrecisionHint != OPTION_NICEST) {
+         } else if (strcmp(option, "fastest") == 0 &&
+                    state->option.PrecisionHint != OPTION_NICEST) {
             state->option.PrecisionHint = OPTION_FASTEST;
             return 1;
          }

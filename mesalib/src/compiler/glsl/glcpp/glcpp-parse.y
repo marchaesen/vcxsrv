@@ -266,45 +266,37 @@ control_line:
 		ralloc_asprintf_rewrite_tail (&parser->output, &parser->output_length, "\n");
 	}
 |	control_line_error
-|	HASH_TOKEN LINE {
-		glcpp_parser_resolve_implicit_version(parser);
-	} pp_tokens NEWLINE {
+|	HASH_TOKEN LINE pp_tokens NEWLINE {
 
 		if (parser->skip_stack == NULL ||
 		    parser->skip_stack->type == SKIP_NO_SKIP)
 		{
 			_glcpp_parser_expand_and_lex_from (parser,
-							   LINE_EXPANDED, $4,
+							   LINE_EXPANDED, $3,
 							   EXPANSION_MODE_IGNORE_DEFINED);
 		}
 	}
 ;
 
 control_line_success:
-	HASH_TOKEN DEFINE_TOKEN {
-		glcpp_parser_resolve_implicit_version(parser);
-	} define
-|	HASH_TOKEN UNDEF {
-		glcpp_parser_resolve_implicit_version(parser);
-	} IDENTIFIER NEWLINE {
+	HASH_TOKEN DEFINE_TOKEN define
+|	HASH_TOKEN UNDEF IDENTIFIER NEWLINE {
 		macro_t *macro;
-		if (strcmp("__LINE__", $4) == 0
-		    || strcmp("__FILE__", $4) == 0
-		    || strcmp("__VERSION__", $4) == 0
-		    || strncmp("GL_", $4, 3) == 0)
+		if (strcmp("__LINE__", $3) == 0
+		    || strcmp("__FILE__", $3) == 0
+		    || strcmp("__VERSION__", $3) == 0
+		    || strncmp("GL_", $3, 3) == 0)
 			glcpp_error(& @1, parser, "Built-in (pre-defined)"
 				    " macro names cannot be undefined.");
 
-		macro = hash_table_find (parser->defines, $4);
+		macro = hash_table_find (parser->defines, $3);
 		if (macro) {
-			hash_table_remove (parser->defines, $4);
+			hash_table_remove (parser->defines, $3);
 			ralloc_free (macro);
 		}
-		ralloc_free ($4);
+		ralloc_free ($3);
 	}
-|	HASH_TOKEN IF {
-		glcpp_parser_resolve_implicit_version(parser);
-	} pp_tokens NEWLINE {
+|	HASH_TOKEN IF pp_tokens NEWLINE {
 		/* Be careful to only evaluate the 'if' expression if
 		 * we are not skipping. When we are skipping, we
 		 * simply push a new 0-valued 'if' onto the skip
@@ -316,7 +308,7 @@ control_line_success:
 		    parser->skip_stack->type == SKIP_NO_SKIP)
 		{
 			_glcpp_parser_expand_and_lex_from (parser,
-							   IF_EXPANDED, $4,
+							   IF_EXPANDED, $3,
 							   EXPANSION_MODE_EVALUATE_DEFINED);
 		}	
 		else
@@ -335,18 +327,14 @@ control_line_success:
 		}	
 		_glcpp_parser_skip_stack_push_if (parser, & @1, 0);
 	}
-|	HASH_TOKEN IFDEF {
-		glcpp_parser_resolve_implicit_version(parser);
-	} IDENTIFIER junk NEWLINE {
-		macro_t *macro = hash_table_find (parser->defines, $4);
-		ralloc_free ($4);
+|	HASH_TOKEN IFDEF IDENTIFIER junk NEWLINE {
+		macro_t *macro = hash_table_find (parser->defines, $3);
+		ralloc_free ($3);
 		_glcpp_parser_skip_stack_push_if (parser, & @1, macro != NULL);
 	}
-|	HASH_TOKEN IFNDEF {
-		glcpp_parser_resolve_implicit_version(parser);
-	} IDENTIFIER junk NEWLINE {
-		macro_t *macro = hash_table_find (parser->defines, $4);
-		ralloc_free ($4);
+|	HASH_TOKEN IFNDEF IDENTIFIER junk NEWLINE {
+		macro_t *macro = hash_table_find (parser->defines, $3);
+		ralloc_free ($3);
 		_glcpp_parser_skip_stack_push_if (parser, & @3, macro == NULL);
 	}
 |	HASH_TOKEN ELIF pp_tokens NEWLINE {
@@ -2493,6 +2481,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 
 	      if (extensions->ARB_shader_atomic_counters)
 	         add_builtin_define(parser, "GL_ARB_shader_atomic_counters", 1);
+
+	      if (extensions->ARB_shader_atomic_counter_ops)
+	         add_builtin_define(parser, "GL_ARB_shader_atomic_counter_ops", 1);
 
 	      if (extensions->ARB_viewport_array)
 	         add_builtin_define(parser, "GL_ARB_viewport_array", 1);

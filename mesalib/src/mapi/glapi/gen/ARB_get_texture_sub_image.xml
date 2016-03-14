@@ -7,7 +7,7 @@
 
 <category name="GL_ARB_get_texture_sub_image" number="165">
 
-    <function name="GetTextureSubImage" offset="assign">
+    <function name="GetTextureSubImage">
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -22,7 +22,7 @@
         <param name="pixels" type="GLvoid *"/>
     </function>
 
-    <function name="GetCompressedTextureSubImage" offset="assign">
+    <function name="GetCompressedTextureSubImage">
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>

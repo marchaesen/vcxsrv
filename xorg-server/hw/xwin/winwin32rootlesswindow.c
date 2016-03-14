@@ -194,10 +194,6 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
     /* Get current window placement */
     GetWindowPlacement(pRLWinPriv->hWnd, &wndPlace);
 
-    if (winIsInternalWMRunning(pScreenInfo)) {
-        if (!pRLWinPriv->pFrame->win->overrideRedirect)
-            fDecorate = TRUE;
-    }
 #if 0
     if (wndPlace.showCmd == SW_HIDE)
         return;                 //showCmd = SWP_HIDEWINDOW;
@@ -342,15 +338,6 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
                                    wBoundingShape(pRLWinPriv->pFrame->win));
         }
     }
-}
-
-/*
- * winIsInternalWMRunning (winScreenInfoPtr pScreenInfo)
- */
-Bool
-winIsInternalWMRunning(winScreenInfoPtr pScreenInfo)
-{
-    return pScreenInfo->fInternalWM && !pScreenInfo->fAnotherWMRunning;
 }
 
 /*

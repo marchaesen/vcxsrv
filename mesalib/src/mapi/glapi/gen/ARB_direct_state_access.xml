@@ -153,32 +153,32 @@
 
    <!-- Framebuffer object functions -->
 
-   <function name="CreateFramebuffers" offset="assign">
+   <function name="CreateFramebuffers">
       <param name="n" type="GLsizei" />
       <param name="framebuffers" type="GLuint *" />
    </function>
 
-   <function name="NamedFramebufferRenderbuffer" offset="assign">
+   <function name="NamedFramebufferRenderbuffer">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="renderbuffertarget" type="GLenum" />
       <param name="renderbuffer" type="GLuint" />
    </function>
 
-   <function name="NamedFramebufferParameteri" offset="assign">
+   <function name="NamedFramebufferParameteri">
       <param name="framebuffer" type="GLuint" />
       <param name="pname" type="GLenum" />
       <param name="param" type="GLint" />
    </function>
 
-   <function name="NamedFramebufferTexture" offset="assign">
+   <function name="NamedFramebufferTexture">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
    </function>
 
-   <function name="NamedFramebufferTextureLayer" offset="assign">
+   <function name="NamedFramebufferTextureLayer">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="texture" type="GLuint" />
@@ -186,29 +186,29 @@
       <param name="layer" type="GLint" />
    </function>
 
-   <function name="NamedFramebufferDrawBuffer" offset="assign">
+   <function name="NamedFramebufferDrawBuffer">
       <param name="framebuffer" type="GLuint" />
       <param name="buf" type="GLenum" />
    </function>
 
-   <function name="NamedFramebufferDrawBuffers" offset="assign">
+   <function name="NamedFramebufferDrawBuffers">
       <param name="framebuffer" type="GLuint" />
       <param name="n" type="GLsizei" />
       <param name="bufs" type="const GLenum *" />
    </function>
 
-   <function name="NamedFramebufferReadBuffer" offset="assign">
+   <function name="NamedFramebufferReadBuffer">
       <param name="framebuffer" type="GLuint" />
       <param name="buf" type="GLenum" />
    </function>
 
-   <function name="InvalidateNamedFramebufferData" offset="assign">
+   <function name="InvalidateNamedFramebufferData">
       <param name="framebuffer" type="GLuint" />
       <param name="numAttachments" type="GLsizei" />
       <param name="attachments" type="const GLenum *" />
    </function>
 
-   <function name="InvalidateNamedFramebufferSubData" offset="assign">
+   <function name="InvalidateNamedFramebufferSubData">
       <param name="framebuffer" type="GLuint" />
       <param name="numAttachments" type="GLsizei" />
       <param name="attachments" type="const GLenum *" />
@@ -218,35 +218,35 @@
       <param name="height" type="GLsizei" />
    </function>
 
-   <function name="ClearNamedFramebufferiv" offset="assign">
+   <function name="ClearNamedFramebufferiv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
       <param name="value" type="const GLint *" />
    </function>
 
-   <function name="ClearNamedFramebufferuiv" offset="assign">
+   <function name="ClearNamedFramebufferuiv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
       <param name="value" type="const GLuint *" />
    </function>
 
-   <function name="ClearNamedFramebufferfv" offset="assign">
+   <function name="ClearNamedFramebufferfv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
       <param name="value" type="const GLfloat *" />
    </function>
 
-   <function name="ClearNamedFramebufferfi" offset="assign">
+   <function name="ClearNamedFramebufferfi">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="depth" type="GLfloat" />
       <param name="stencil" type="GLint" />
    </function>
 
-   <function name="BlitNamedFramebuffer" offset="assign">
+   <function name="BlitNamedFramebuffer">
       <param name="readFramebuffer" type="GLuint" />
       <param name="drawFramebuffer" type="GLuint" />
       <param name="srcX0" type="GLint" />
@@ -261,19 +261,19 @@
       <param name="filter" type="GLenum" />
    </function>
 
-   <function name="CheckNamedFramebufferStatus" offset="assign">
+   <function name="CheckNamedFramebufferStatus">
       <return type="GLenum" />
       <param name="framebuffer" type="GLuint" />
       <param name="target" type="GLenum" />
    </function>
 
-   <function name="GetNamedFramebufferParameteriv" offset="assign">
+   <function name="GetNamedFramebufferParameteriv">
       <param name="framebuffer" type="GLuint" />
       <param name="pname" type="GLenum" />
       <param name="param" type="GLint *" />
    </function>
 
-   <function name="GetNamedFramebufferAttachmentParameteriv" offset="assign">
+   <function name="GetNamedFramebufferAttachmentParameteriv">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="pname" type="GLenum" />
