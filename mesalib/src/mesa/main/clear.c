@@ -646,12 +646,12 @@ _mesa_ClearBufferfi(GLenum buffer, GLint drawbuffer,
  */
 void GLAPIENTRY
 _mesa_ClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
-                              GLfloat depth, GLint stencil)
+                              GLint drawbuffer, GLfloat depth, GLint stencil)
 {
    GLint oldfb;
 
    _mesa_GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &oldfb);
    _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
-   _mesa_ClearBufferfi(buffer, 0, depth, stencil);
+   _mesa_ClearBufferfi(buffer, drawbuffer, depth, stencil);
    _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint) oldfb);
 }

@@ -16,7 +16,7 @@
       <param name="fixedsamplelocations" type="GLboolean"/>
    </function>
 
-   <function name="TexStorage3DMultisample">
+   <function name="TexStorage3DMultisample" es2="3.2">
       <param name="target" type="GLenum"/>
       <param name="samples" type="GLsizei"/>
       <param name="internalformat" type="GLenum"/>

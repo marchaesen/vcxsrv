@@ -61,7 +61,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec MonitorTab[] = {
+static const xf86ConfigSymTabRec MonitorTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {VENDOR, "vendorname"},
@@ -77,7 +77,7 @@ static xf86ConfigSymTabRec MonitorTab[] = {
     {-1, ""},
 };
 
-static xf86ConfigSymTabRec ModesTab[] = {
+static const xf86ConfigSymTabRec ModesTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {MODELINE, "modeline"},
@@ -85,7 +85,7 @@ static xf86ConfigSymTabRec ModesTab[] = {
     {-1, ""},
 };
 
-static xf86ConfigSymTabRec TimingTab[] = {
+static const xf86ConfigSymTabRec TimingTab[] = {
     {TT_INTERLACE, "interlace"},
     {TT_PHSYNC, "+hsync"},
     {TT_NHSYNC, "-hsync"},
@@ -101,7 +101,7 @@ static xf86ConfigSymTabRec TimingTab[] = {
     {-1, ""},
 };
 
-static xf86ConfigSymTabRec ModeTab[] = {
+static const xf86ConfigSymTabRec ModeTab[] = {
     {DOTCLOCK, "dotclock"},
     {HTIMINGS, "htimings"},
     {VTIMINGS, "vtimings"},

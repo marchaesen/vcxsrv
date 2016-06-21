@@ -79,6 +79,7 @@ OF THIS SOFTWARE.
 
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 
 #ifndef MAXSCREENS
 #define MAXSCREENS	16

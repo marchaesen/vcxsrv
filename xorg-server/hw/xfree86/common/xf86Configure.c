@@ -264,7 +264,7 @@ configureDeviceSection(int screennum)
     ptr->dev_busid = DevToConfig[screennum].GDev.busID;
     ptr->dev_driver = DevToConfig[screennum].GDev.driver;
     ptr->dev_ramdac = DevToConfig[screennum].GDev.ramdac;
-    for (i = 0; (i < MAXDACSPEEDS) && (i < CONF_MAXDACSPEEDS); i++)
+    for (i = 0; i < MAXDACSPEEDS; i++)
         ptr->dev_dacSpeeds[i] = DevToConfig[screennum].GDev.dacSpeeds[i];
     ptr->dev_videoram = DevToConfig[screennum].GDev.videoRam;
     ptr->dev_bios_base = DevToConfig[screennum].GDev.BiosBase;

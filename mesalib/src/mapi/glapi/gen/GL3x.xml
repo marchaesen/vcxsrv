@@ -156,7 +156,7 @@
 
   <!-- These functions alias ones form GL_ARB_draw_buffers2 -->
 
-  <function name="ColorMaski">
+  <function name="ColorMaski" es2="3.2">
     <param name="buf" type="GLuint"/>
     <param name="r" type="GLboolean"/>
     <param name="g" type="GLboolean"/>
@@ -176,17 +176,17 @@
     <param name="data" type="GLint *"/>
   </function>
 
-  <function name="Enablei">
+  <function name="Enablei" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
   </function>
 
-  <function name="Disablei">
+  <function name="Disablei" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
   </function>
 
-  <function name="IsEnabledi">
+  <function name="IsEnabledi" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
       <return type="GLboolean"/>
@@ -446,25 +446,25 @@
 
   <!-- These functions alias ones from GL_EXT_texture_integer -->
 
-  <function name="TexParameterIiv">
+  <function name="TexParameterIiv" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
     <param name="params" type="const GLint *"/>
   </function>
 
-  <function name="TexParameterIuiv">
+  <function name="TexParameterIuiv" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
     <param name="params" type="const GLuint *"/>
   </function>
 
-  <function name="GetTexParameterIiv">
+  <function name="GetTexParameterIiv" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
     <param name="params" type="GLint *"/>
   </function>
 
-  <function name="GetTexParameterIuiv">
+  <function name="GetTexParameterIuiv" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
     <param name="params" type="GLuint *"/>
@@ -555,7 +555,7 @@
     <param name="primcount" type="GLsizei"/>
   </function>
 
-  <function name="TexBuffer">
+  <function name="TexBuffer" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="internalFormat" type="GLenum"/>
     <param name="buffer" type="GLuint"/>
@@ -605,7 +605,7 @@
     <param name="params" type="GLint64 *"/>
   </function>
 
-  <function name="FramebufferTexture">
+  <function name="FramebufferTexture" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="attachment" type="GLenum"/>
     <param name="texture" type="GLuint"/>

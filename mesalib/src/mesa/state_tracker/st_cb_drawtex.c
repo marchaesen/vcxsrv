@@ -16,6 +16,7 @@
 #include "main/image.h"
 #include "main/macros.h"
 #include "main/teximage.h"
+#include "main/framebuffer.h"
 #include "program/program.h"
 #include "program/prog_print.h"
 
@@ -117,6 +118,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    unsigned offset;
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    st_validate_state(st, ST_PIPELINE_RENDER);
 
@@ -166,8 +168,8 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       /* positions (in clip coords) */
       {
          const struct gl_framebuffer *fb = ctx->DrawBuffer;
-         const GLfloat fb_width = (GLfloat)fb->Width;
-         const GLfloat fb_height = (GLfloat)fb->Height;
+         const GLfloat fb_width = (GLfloat)_mesa_geometric_width(fb);
+         const GLfloat fb_height = (GLfloat)_mesa_geometric_height(fb);
 
          const GLfloat clip_x0 = (GLfloat)(x0 / fb_width * 2.0 - 1.0);
          const GLfloat clip_y0 = (GLfloat)(y0 / fb_height * 2.0 - 1.0);
@@ -262,8 +264,8 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    {
       const struct gl_framebuffer *fb = ctx->DrawBuffer;
       const GLboolean invert = (st_fb_orientation(fb) == Y_0_TOP);
-      const GLfloat width = (GLfloat)fb->Width;
-      const GLfloat height = (GLfloat)fb->Height;
+      const GLfloat width = (GLfloat)_mesa_geometric_width(fb);
+      const GLfloat height = (GLfloat)_mesa_geometric_height(fb);
       struct pipe_viewport_state vp;
       vp.scale[0] =  0.5f * width;
       vp.scale[1] = height * (invert ? -0.5f : 0.5f);

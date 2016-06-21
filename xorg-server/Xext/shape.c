@@ -881,6 +881,7 @@ SendShapeNotify(WindowPtr pWin, int which)
     default:
         return;
     }
+    UpdateCurrentTimeIf();
     for (pShapeEvent = *pHead; pShapeEvent; pShapeEvent = pShapeEvent->next) {
         xShapeNotifyEvent se = {
             .type = ShapeNotify + ShapeEventBase,

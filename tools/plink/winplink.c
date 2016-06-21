@@ -11,6 +11,7 @@
 #include "putty.h"
 #include "storage.h"
 #include "tree234.h"
+#include "winsecur.h"
 
 #define WM_AGENT_CALLBACK (WM_APP + 4)
 
@@ -497,6 +498,22 @@ int main(int argc, char **argv)
 	}
     }
 
+#if !defined UNPROTECT && !defined NO_SECURITY
+    /*
+     * Protect our process.
+     */
+    {
+        char *error = NULL;
+        if (!setprocessacl(error)) {
+            char *message = dupprintf("Could not restrict process ACL: %s",
+                                      error);
+            logevent(NULL, message);
+            sfree(message);
+            sfree(error);
+        }
+    }
+#endif
+
     if (errors)
 	return 1;
 
@@ -600,6 +617,17 @@ int main(int argc, char **argv)
 	fprintf(stderr, "Plink requires WinSock 2\n");
 	return 1;
     }
+
+    /*
+     * Plink doesn't provide any way to add forwardings after the
+     * connection is set up, so if there are none now, we can safely set
+     * the "simple" flag.
+     */
+    if (conf_get_int(conf, CONF_protocol) == PROT_SSH &&
+	!conf_get_int(conf, CONF_x11_forward) &&
+	!conf_get_int(conf, CONF_agentfwd) &&
+	!conf_get_str_nthstrkey(conf, CONF_portfwd, 0))
+	conf_set_int(conf, CONF_ssh_simple, TRUE);
 
     logctx = log_init(NULL, conf);
     console_provide_logctx(logctx);

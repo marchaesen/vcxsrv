@@ -80,8 +80,6 @@ endif
 
 if HAVE_GALLIUM_SWR
 SUBDIRS += drivers/swr
-SUBDIRS += drivers/swr/avx
-SUBDIRS += drivers/swr/avx2
 endif
 
 ## vc4/rpi
@@ -140,7 +138,7 @@ if HAVE_DRICOMMON
 SUBDIRS += state_trackers/dri targets/dri
 endif
 
-if HAVE_X11_DRIVER
+if HAVE_GALLIUM_XLIB_GLX
 SUBDIRS += state_trackers/glx/xlib targets/libgl-xlib
 endif
 

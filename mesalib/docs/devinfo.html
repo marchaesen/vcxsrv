@@ -684,9 +684,11 @@ To add a new GL extension to Mesa you have to do at least the following.
 </li>
 <li>
    Add a new entry to the <code>gl_extensions</code> struct in mtypes.h
+   if the extension requires driver capabilities not already exposed by
+   another extension.
 </li>
 <li>
-   Update the <code>extensions.c</code> file.
+   Add a new entry to the src/mesa/main/extensions_table.h file.
 </li>
 <li>
    From this point, the best way to proceed is to find another extension,
@@ -698,11 +700,17 @@ To add a new GL extension to Mesa you have to do at least the following.
    and attrib.c will most likely require new code.
 </li>
 <li>
+   To determine if the new extension is active in the current context,
+   use the auto-generated _mesa_has_##name_str() function defined in
+   src/mesa/main/extensions.h.
+</li>
+<li>
    The dispatch tests check_table.cpp and dispatch_sanity.cpp
    should be updated with details about the new extensions functions. These
    tests are run using 'make check'
 </li>
 </ul>
+</p>
 
 
 

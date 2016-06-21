@@ -206,6 +206,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
                         CSO_BIT_STREAM_OUTPUTS |
                         CSO_BIT_VERTEX_ELEMENTS |
                         CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
+                        CSO_BIT_PAUSE_QUERIES |
                         CSO_BITS_ALL_SHADERS));
 
    /* blend state: RGBA masking */
@@ -319,6 +320,18 @@ is_scissor_enabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
            (unsigned) ctx->Scissor.ScissorArray[0].Height < rb->Height);
 }
 
+/**
+ * Return if window rectangles must be enabled during the clear.
+ */
+static inline bool
+is_window_rectangle_enabled(struct gl_context *ctx)
+{
+   if (ctx->DrawBuffer == ctx->WinSysDrawBuffer)
+      return false;
+   return ctx->Scissor.NumWindowRects > 0 ||
+      ctx->Scissor.WindowRectMode == GL_INCLUSIVE_EXT;
+}
+
 
 /**
  * Return if all of the color channels are masked.
@@ -388,6 +401,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
    GLuint i;
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    /* This makes sure the pipe has the latest scissor, etc values */
    st_validate_state( st, ST_PIPELINE_RENDER );
@@ -409,6 +423,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
                continue;
 
             if (is_scissor_enabled(ctx, rb) ||
+                is_window_rectangle_enabled(ctx) ||
                 is_color_masked(ctx, colormask_index))
                quad_buffers |= PIPE_CLEAR_COLOR0 << i;
             else
@@ -421,7 +436,8 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
       struct st_renderbuffer *strb = st_renderbuffer(depthRb);
 
       if (strb->surface && ctx->Depth.Mask) {
-         if (is_scissor_enabled(ctx, depthRb))
+         if (is_scissor_enabled(ctx, depthRb) ||
+             is_window_rectangle_enabled(ctx))
             quad_buffers |= PIPE_CLEAR_DEPTH;
          else
             clear_buffers |= PIPE_CLEAR_DEPTH;
@@ -432,6 +448,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
 
       if (strb->surface && !is_stencil_disabled(ctx, stencilRb)) {
          if (is_scissor_enabled(ctx, stencilRb) ||
+             is_window_rectangle_enabled(ctx) ||
              is_stencil_masked(ctx, stencilRb))
             quad_buffers |= PIPE_CLEAR_STENCIL;
          else

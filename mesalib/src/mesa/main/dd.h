@@ -63,7 +63,7 @@ struct gl_memory_info;
  * want to provoke the driver to throw away the old storage, we will
  * respect the contents of already referenced data.
  */
-#define MESA_MAP_NOWAIT_BIT       0x0040
+#define MESA_MAP_NOWAIT_BIT       0x4000
 
 
 /**
@@ -477,6 +477,11 @@ struct dd_function_table {
    /** Delete a program */
    void (*DeleteProgram)(struct gl_context *ctx, struct gl_program *prog);   
    /**
+    * Allocate a program to associate with the new ATI fragment shader (optional)
+    */
+   struct gl_program * (*NewATIfs)(struct gl_context *ctx,
+                                   struct ati_fragment_shader *curProg);
+   /**
     * Notify driver that a program string (and GPU code) has been specified
     * or modified.  Return GL_TRUE or GL_FALSE to indicate if the program is
     * supported by the driver.
@@ -779,7 +784,7 @@ struct dd_function_table {
     */
    /*@{*/
    struct gl_shader *(*NewShader)(struct gl_context *ctx,
-                                  GLuint name, GLenum type);
+                                  GLuint name, gl_shader_stage stage);
    void (*UseProgram)(struct gl_context *ctx, struct gl_shader_program *shProg);
    /*@}*/
 

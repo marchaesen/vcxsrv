@@ -167,8 +167,7 @@ link_uniform_block_active_visitor::visit(ir_variable *var)
     *     also considered active, even if no member of the block is
     *     referenced."
     */
-   if (var->get_interface_type()->interface_packing ==
-       GLSL_INTERFACE_PACKING_PACKED)
+   if (var->get_interface_type_packing() == GLSL_INTERFACE_PACKING_PACKED)
       return visit_continue;
 
    /* Process the block.  Bail if there was an error.
@@ -258,8 +257,7 @@ link_uniform_block_active_visitor::visit_enter(ir_dereference_array *ir)
     * std140 layout qualifier, all its instances have been already marked
     * as used in link_uniform_block_active_visitor::visit(ir_variable *).
     */
-   if (var->get_interface_type()->interface_packing ==
-       GLSL_INTERFACE_PACKING_PACKED) {
+   if (var->get_interface_type_packing() == GLSL_INTERFACE_PACKING_PACKED) {
       b->var = var;
       process_arrays(this->mem_ctx, ir, b);
    }

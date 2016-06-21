@@ -124,7 +124,8 @@ update_program(struct gl_context *ctx)
     * follows:
     *   1. OpenGL 2.0/ARB vertex/fragment shaders
     *   2. ARB/NV vertex/fragment programs
-    *   3. Programs derived from fixed-function state.
+    *   3. ATI fragment shader
+    *   4. Programs derived from fixed-function state.
     *
     * Note: it's possible for a vertex shader to get used with a fragment
     * program (and vice versa) here, but in practice that shouldn't ever
@@ -151,6 +152,17 @@ update_program(struct gl_context *ctx)
                                ctx->FragmentProgram.Current);
       _mesa_reference_fragprog(ctx, &ctx->FragmentProgram._TexEnvProgram,
 			       NULL);
+   }
+   else if (ctx->ATIFragmentShader._Enabled &&
+            ctx->ATIFragmentShader.Current->Program) {
+       /* Use the enabled ATI fragment shader's associated program */
+      _mesa_reference_shader_program(ctx,
+                                     &ctx->_Shader->_CurrentFragmentProgram,
+                                     NULL);
+      _mesa_reference_fragprog(ctx, &ctx->FragmentProgram._Current,
+                               gl_fragment_program(ctx->ATIFragmentShader.Current->Program));
+      _mesa_reference_fragprog(ctx, &ctx->FragmentProgram._TexEnvProgram,
+                               NULL);
    }
    else if (ctx->FragmentProgram._MaintainTexEnvProgram) {
       /* Use fragment program generated from fixed-function state */
@@ -344,20 +356,6 @@ update_frontbit(struct gl_context *ctx)
 
 
 /**
- * Update derived multisample state.
- */
-static void
-update_multisample(struct gl_context *ctx)
-{
-   ctx->Multisample._Enabled = GL_FALSE;
-   if (ctx->Multisample.Enabled &&
-       ctx->DrawBuffer &&
-       _mesa_geometric_samples(ctx->DrawBuffer) > 0)
-      ctx->Multisample._Enabled = GL_TRUE;
-}
-
-
-/**
  * Update the ctx->VertexProgram._TwoSideEnabled flag.
  */
 static void
@@ -449,9 +447,6 @@ _mesa_update_state_locked( struct gl_context *ctx )
 
    if (new_state & _NEW_PIXEL)
       _mesa_update_pixel( ctx, new_state );
-
-   if (new_state & (_NEW_MULTISAMPLE | _NEW_BUFFERS))
-      update_multisample( ctx );
 
    /* ctx->_NeedEyeCoords is now up to date.
     *

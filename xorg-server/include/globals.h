@@ -2,8 +2,6 @@
 #ifndef _XSERV_GLOBAL_H_
 #define _XSERV_GLOBAL_H_
 
-#include <signal.h>
-
 #include "window.h"             /* for WindowPtr */
 #include "extinit.h"
 

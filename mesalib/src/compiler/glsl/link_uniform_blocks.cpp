@@ -34,9 +34,10 @@ namespace {
 class ubo_visitor : public program_resource_visitor {
 public:
    ubo_visitor(void *mem_ctx, gl_uniform_buffer_variable *variables,
-               unsigned num_variables)
+               unsigned num_variables, struct gl_shader_program *prog)
       : index(0), offset(0), buffer_size(0), variables(variables),
-        num_variables(num_variables), mem_ctx(mem_ctx), is_array_instance(false)
+        num_variables(num_variables), mem_ctx(mem_ctx), is_array_instance(false),
+        prog(prog)
    {
       /* empty */
    }
@@ -56,6 +57,7 @@ public:
    unsigned num_variables;
    void *mem_ctx;
    bool is_array_instance;
+   struct gl_shader_program *prog;
 
 private:
    virtual void visit_field(const glsl_type *type, const char *name,
@@ -68,7 +70,7 @@ private:
    }
 
    virtual void enter_record(const glsl_type *type, const char *,
-                             bool row_major, const unsigned packing) {
+                             bool row_major, const enum glsl_interface_packing packing) {
       assert(type->is_record());
       if (packing == GLSL_INTERFACE_PACKING_STD430)
          this->offset = glsl_align(
@@ -79,7 +81,7 @@ private:
    }
 
    virtual void leave_record(const glsl_type *type, const char *,
-                             bool row_major, const unsigned packing) {
+                             bool row_major, const enum glsl_interface_packing packing) {
       assert(type->is_record());
 
       /* If this is the last field of a structure, apply rule #9.  The
@@ -104,7 +106,7 @@ private:
 
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *,
-                            const unsigned packing,
+                            const enum glsl_interface_packing packing,
                             bool last_field)
    {
       assert(this->index < this->num_variables);
@@ -148,7 +150,13 @@ private:
        */
       const glsl_type *type_for_size = type;
       if (type->is_unsized_array()) {
-         assert(last_field);
+         if (!last_field) {
+            linker_error(prog, "unsized array `%s' definition: "
+                         "only last member of a shader storage block "
+                         "can be defined as unsized array",
+                         name);
+         }
+
          type_for_size = type->without_array();
       }
 
@@ -216,7 +224,7 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
 {
    if (ub_array) {
       for (unsigned j = 0; j < ub_array->num_array_elements; j++) {
-	 size_t new_length = name_length;
+         size_t new_length = name_length;
 
          /* Append the subscript to the current variable name */
          ralloc_asprintf_rewrite_tail(name, &new_length, "[%u]",
@@ -261,7 +269,6 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
       }
       blocks[i].NumUniforms =
          (unsigned)(ptrdiff_t)(&variables[parcel->index] - blocks[i].Uniforms);
-      blocks[i].IsShaderStorage = b->is_shader_storage;
 
       *block_index = *block_index + 1;
       *binding_offset = *binding_offset + 1;
@@ -291,13 +298,105 @@ resize_block_array(const glsl_type *type,
    }
 }
 
-unsigned
+static void
+create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
+                     struct gl_shader_program *prog,
+                     struct gl_uniform_block **out_blks, unsigned num_blocks,
+                     struct hash_table *block_hash, unsigned num_variables,
+                     bool create_ubo_blocks)
+{
+   if (num_blocks == 0) {
+      assert(num_variables == 0);
+      return;
+   }
+
+   assert(num_variables != 0);
+
+   /* Allocate storage to hold all of the information related to uniform
+    * blocks that can be queried through the API.
+    */
+   struct gl_uniform_block *blocks = ralloc_array(mem_ctx, gl_uniform_block, num_blocks);
+   gl_uniform_buffer_variable *variables =
+      ralloc_array(blocks, gl_uniform_buffer_variable, num_variables);
+
+   /* Add each variable from each uniform block to the API tracking
+    * structures.
+    */
+   ubo_visitor parcel(blocks, variables, num_variables, prog);
+
+   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD140)
+                 == unsigned(ubo_packing_std140));
+   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_SHARED)
+                 == unsigned(ubo_packing_shared));
+   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_PACKED)
+                 == unsigned(ubo_packing_packed));
+   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD430)
+                 == unsigned(ubo_packing_std430));
+
+   unsigned i = 0;
+   struct hash_entry *entry;
+   hash_table_foreach (block_hash, entry) {
+      const struct link_uniform_block_active *const b =
+         (const struct link_uniform_block_active *) entry->data;
+      const glsl_type *block_type = b->type;
+
+      if ((create_ubo_blocks && !b->is_shader_storage) ||
+          (!create_ubo_blocks && b->is_shader_storage)) {
+
+         if (b->array != NULL) {
+            unsigned binding_offset = 0;
+            char *name = ralloc_strdup(NULL,
+                                       block_type->without_array()->name);
+            size_t name_length = strlen(name);
+
+            assert(b->has_instance_name);
+            process_block_array(b->array, &name, name_length, blocks, &parcel,
+                                variables, b, &i, &binding_offset, ctx, prog);
+            ralloc_free(name);
+         } else {
+            blocks[i].Name = ralloc_strdup(blocks, block_type->name);
+            blocks[i].Uniforms = &variables[parcel.index];
+            blocks[i].Binding = (b->has_binding) ? b->binding : 0;
+            blocks[i].UniformBufferSize = 0;
+            blocks[i]._Packing =
+               gl_uniform_block_packing(block_type->interface_packing);
+
+            parcel.process(block_type,
+                           b->has_instance_name ? block_type->name : "");
+
+            blocks[i].UniformBufferSize = parcel.buffer_size;
+
+            /* Check SSBO size is lower than maximum supported size for SSBO
+             */
+            if (b->is_shader_storage &&
+                parcel.buffer_size > ctx->Const.MaxShaderStorageBlockSize) {
+               linker_error(prog, "shader storage block `%s' has size %d, "
+                            "which is larger than than the maximum allowed (%d)",
+                            block_type->name, parcel.buffer_size,
+                            ctx->Const.MaxShaderStorageBlockSize);
+            }
+            blocks[i].NumUniforms = (unsigned)(ptrdiff_t)
+               (&variables[parcel.index] - blocks[i].Uniforms);
+            i++;
+         }
+      }
+   }
+
+   *out_blks = blocks;
+
+   assert(parcel.index == num_variables);
+}
+
+void
 link_uniform_blocks(void *mem_ctx,
                     struct gl_context *ctx,
                     struct gl_shader_program *prog,
                     struct gl_shader **shader_list,
                     unsigned num_shaders,
-                    struct gl_uniform_block **blocks_ret)
+                    struct gl_uniform_block **ubo_blocks,
+                    unsigned *num_ubo_blocks,
+                    struct gl_uniform_block **ssbo_blocks,
+                    unsigned *num_ssbo_blocks)
 {
    /* This hash table will track all of the uniform blocks that have been
     * encountered.  Since blocks with the same block-name must be the same,
@@ -310,7 +409,7 @@ link_uniform_blocks(void *mem_ctx,
    if (block_hash == NULL) {
       _mesa_error_no_memory(__func__);
       linker_error(prog, "out of memory\n");
-      return 0;
+      return;
    }
 
    /* Determine which uniform blocks are active.
@@ -323,8 +422,8 @@ link_uniform_blocks(void *mem_ctx,
    /* Count the number of active uniform blocks.  Count the total number of
     * active slots in those uniform blocks.
     */
-   unsigned num_blocks = 0;
-   unsigned num_variables = 0;
+   unsigned num_ubo_variables = 0;
+   unsigned num_ssbo_variables = 0;
    count_block_size block_size;
    struct hash_entry *entry;
 
@@ -346,102 +445,36 @@ link_uniform_blocks(void *mem_ctx,
 
       if (b->array != NULL) {
          unsigned aoa_size = b->type->arrays_of_arrays_size();
-         num_blocks += aoa_size;
-         num_variables += aoa_size * block_size.num_active_uniforms;
-      } else {
-         num_blocks++;
-         num_variables += block_size.num_active_uniforms;
-      }
-
-   }
-
-   if (num_blocks == 0) {
-      assert(num_variables == 0);
-      _mesa_hash_table_destroy(block_hash, NULL);
-      return 0;
-   }
-
-   assert(num_variables != 0);
-
-   /* Allocate storage to hold all of the informatation related to uniform
-    * blocks that can be queried through the API.
-    */
-   gl_uniform_block *blocks =
-      ralloc_array(mem_ctx, gl_uniform_block, num_blocks);
-   gl_uniform_buffer_variable *variables =
-      ralloc_array(blocks, gl_uniform_buffer_variable, num_variables);
-
-   /* Add each variable from each uniform block to the API tracking
-    * structures.
-    */
-   unsigned i = 0;
-   ubo_visitor parcel(blocks, variables, num_variables);
-
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD140)
-                 == unsigned(ubo_packing_std140));
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_SHARED)
-                 == unsigned(ubo_packing_shared));
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_PACKED)
-                 == unsigned(ubo_packing_packed));
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD430)
-                 == unsigned(ubo_packing_std430));
-
-   hash_table_foreach (block_hash, entry) {
-      const struct link_uniform_block_active *const b =
-         (const struct link_uniform_block_active *) entry->data;
-      const glsl_type *block_type = b->type;
-
-      if (b->array != NULL) {
-         unsigned binding_offset = 0;
-         char *name = ralloc_strdup(NULL, block_type->without_array()->name);
-         size_t name_length = strlen(name);
-
-         assert(b->has_instance_name);
-         process_block_array(b->array, &name, name_length, blocks, &parcel,
-                             variables, b, &i, &binding_offset, ctx, prog);
-         ralloc_free(name);
-      } else {
-         blocks[i].Name = ralloc_strdup(blocks, block_type->name);
-         blocks[i].Uniforms = &variables[parcel.index];
-         blocks[i].Binding = (b->has_binding) ? b->binding : 0;
-         blocks[i].UniformBufferSize = 0;
-         blocks[i]._Packing =
-            gl_uniform_block_packing(block_type->interface_packing);
-
-         parcel.process(block_type,
-                        b->has_instance_name ? block_type->name : "");
-
-         blocks[i].UniformBufferSize = parcel.buffer_size;
-
-         /* Check SSBO size is lower than maximum supported size for SSBO */
-         if (b->is_shader_storage &&
-             parcel.buffer_size > ctx->Const.MaxShaderStorageBlockSize) {
-            linker_error(prog, "shader storage block `%s' has size %d, "
-                         "which is larger than than the maximum allowed (%d)",
-                         block_type->name,
-                         parcel.buffer_size,
-                         ctx->Const.MaxShaderStorageBlockSize);
+         if (b->is_shader_storage) {
+            *num_ssbo_blocks += aoa_size;
+            num_ssbo_variables += aoa_size * block_size.num_active_uniforms;
+         } else {
+            *num_ubo_blocks += aoa_size;
+            num_ubo_variables += aoa_size * block_size.num_active_uniforms;
          }
-         blocks[i].NumUniforms =
-            (unsigned)(ptrdiff_t)(&variables[parcel.index] - blocks[i].Uniforms);
-
-         blocks[i].IsShaderStorage = b->is_shader_storage;
-
-         i++;
+      } else {
+         if (b->is_shader_storage) {
+            (*num_ssbo_blocks)++;
+            num_ssbo_variables += block_size.num_active_uniforms;
+         } else {
+            (*num_ubo_blocks)++;
+            num_ubo_variables += block_size.num_active_uniforms;
+         }
       }
+
    }
 
-   assert(parcel.index == num_variables);
+   create_buffer_blocks(mem_ctx, ctx, prog, ubo_blocks, *num_ubo_blocks,
+                        block_hash, num_ubo_variables, true);
+   create_buffer_blocks(mem_ctx, ctx, prog, ssbo_blocks, *num_ssbo_blocks,
+                        block_hash, num_ssbo_variables, false);
 
    _mesa_hash_table_destroy(block_hash, NULL);
-
-   *blocks_ret = blocks;
-   return num_blocks;
 }
 
 bool
 link_uniform_blocks_are_compatible(const gl_uniform_block *a,
-				   const gl_uniform_block *b)
+                                   const gl_uniform_block *b)
 {
    assert(strcmp(a->Name, b->Name) == 0);
 
@@ -464,14 +497,67 @@ link_uniform_blocks_are_compatible(const gl_uniform_block *a,
 
    for (unsigned i = 0; i < a->NumUniforms; i++) {
       if (strcmp(a->Uniforms[i].Name, b->Uniforms[i].Name) != 0)
-	 return false;
+         return false;
 
       if (a->Uniforms[i].Type != b->Uniforms[i].Type)
-	 return false;
+         return false;
 
       if (a->Uniforms[i].RowMajor != b->Uniforms[i].RowMajor)
-	 return false;
+         return false;
    }
 
    return true;
+}
+
+/**
+ * Merges a uniform block into an array of uniform blocks that may or
+ * may not already contain a copy of it.
+ *
+ * Returns the index of the new block in the array.
+ */
+int
+link_cross_validate_uniform_block(void *mem_ctx,
+                                  struct gl_uniform_block **linked_blocks,
+                                  unsigned int *num_linked_blocks,
+                                  struct gl_uniform_block *new_block)
+{
+   for (unsigned int i = 0; i < *num_linked_blocks; i++) {
+      struct gl_uniform_block *old_block = &(*linked_blocks)[i];
+
+      if (strcmp(old_block->Name, new_block->Name) == 0)
+         return link_uniform_blocks_are_compatible(old_block, new_block)
+            ? i : -1;
+   }
+
+   *linked_blocks = reralloc(mem_ctx, *linked_blocks,
+                             struct gl_uniform_block,
+                             *num_linked_blocks + 1);
+   int linked_block_index = (*num_linked_blocks)++;
+   struct gl_uniform_block *linked_block = &(*linked_blocks)[linked_block_index];
+
+   memcpy(linked_block, new_block, sizeof(*new_block));
+   linked_block->Uniforms = ralloc_array(*linked_blocks,
+                                         struct gl_uniform_buffer_variable,
+                                         linked_block->NumUniforms);
+
+   memcpy(linked_block->Uniforms,
+          new_block->Uniforms,
+          sizeof(*linked_block->Uniforms) * linked_block->NumUniforms);
+
+   linked_block->Name = ralloc_strdup(*linked_blocks, linked_block->Name);
+
+   for (unsigned int i = 0; i < linked_block->NumUniforms; i++) {
+      struct gl_uniform_buffer_variable *ubo_var =
+         &linked_block->Uniforms[i];
+
+      if (ubo_var->Name == ubo_var->IndexName) {
+         ubo_var->Name = ralloc_strdup(*linked_blocks, ubo_var->Name);
+         ubo_var->IndexName = ubo_var->Name;
+      } else {
+         ubo_var->Name = ralloc_strdup(*linked_blocks, ubo_var->Name);
+         ubo_var->IndexName = ralloc_strdup(*linked_blocks, ubo_var->IndexName);
+      }
+   }
+
+   return linked_block_index;
 }

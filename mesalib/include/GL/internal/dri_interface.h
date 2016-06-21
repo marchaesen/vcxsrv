@@ -79,6 +79,7 @@ typedef struct __DRIdri2LoaderExtensionRec	__DRIdri2LoaderExtension;
 typedef struct __DRI2flushExtensionRec	__DRI2flushExtension;
 typedef struct __DRI2throttleExtensionRec	__DRI2throttleExtension;
 typedef struct __DRI2fenceExtensionRec          __DRI2fenceExtension;
+typedef struct __DRI2interopExtensionRec	__DRI2interopExtension;
 
 
 typedef struct __DRIimageLoaderExtensionRec     __DRIimageLoaderExtension;
@@ -391,6 +392,31 @@ struct __DRI2fenceExtensionRec {
    void (*server_wait_sync)(__DRIcontext *ctx, void *fence, unsigned flags);
 };
 
+
+/**
+ * Extension for API interop.
+ * See GL/mesa_glinterop.h.
+ */
+
+#define __DRI2_INTEROP "DRI2_Interop"
+#define __DRI2_INTEROP_VERSION 1
+
+struct mesa_glinterop_device_info;
+struct mesa_glinterop_export_in;
+struct mesa_glinterop_export_out;
+
+struct __DRI2interopExtensionRec {
+   __DRIextension base;
+
+   /** Same as MesaGLInterop*QueryDeviceInfo. */
+   int (*query_device_info)(__DRIcontext *ctx,
+                            struct mesa_glinterop_device_info *out);
+
+   /** Same as MesaGLInterop*ExportObject. */
+   int (*export_object)(__DRIcontext *ctx,
+                        struct mesa_glinterop_export_in *in,
+                        struct mesa_glinterop_export_out *out);
+};
 
 /*@}*/
 
@@ -1068,7 +1094,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 11
+#define __DRI_IMAGE_VERSION 12
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1107,6 +1133,11 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_USE_BACKBUFFER      0x0010
 
 
+#define __DRI_IMAGE_TRANSFER_READ            0x1
+#define __DRI_IMAGE_TRANSFER_WRITE           0x2
+#define __DRI_IMAGE_TRANSFER_READ_WRITE      \
+        (__DRI_IMAGE_TRANSFER_READ | __DRI_IMAGE_TRANSFER_WRITE)
+
 /**
  * Four CC formats that matches with WL_DRM_FORMAT_* from wayland_drm.h,
  * GBM_FORMAT_* from gbm.h, and DRM_FORMAT_* from drm_fourcc.h. Used with
@@ -1132,6 +1163,11 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FOURCC_NV16		0x3631564e
 #define __DRI_IMAGE_FOURCC_YUYV		0x56595559
 
+#define __DRI_IMAGE_FOURCC_YVU410	0x39555659
+#define __DRI_IMAGE_FOURCC_YVU411	0x31315659
+#define __DRI_IMAGE_FOURCC_YVU420	0x32315659
+#define __DRI_IMAGE_FOURCC_YVU422	0x36315659
+#define __DRI_IMAGE_FOURCC_YVU444	0x34325659
 
 /**
  * Queryable on images created by createImageFromNames.
@@ -1355,6 +1391,33 @@ struct __DRIimageExtensionRec {
     * \since 10
     */
    int (*getCapabilities)(__DRIscreen *screen);
+
+   /**
+    * Returns a map of the specified region of a __DRIimage for the specified usage.
+    *
+    * flags may include __DRI_IMAGE_TRANSFER_READ, which will populate the
+    * mapping with the current buffer content. If __DRI_IMAGE_TRANSFER_READ
+    * is not included in the flags, the buffer content at map time is
+    * undefined. Users wanting to modify the mapping must include
+    * __DRI_IMAGE_TRANSFER_WRITE; if __DRI_IMAGE_TRANSFER_WRITE is not
+    * included, behaviour when writing the mapping is undefined.
+    *
+    * Returns the byte stride in *stride, and an opaque pointer to data
+    * tracking the mapping in **data, which must be passed to unmapImage().
+    *
+    * \since 12
+    */
+   void *(*mapImage)(__DRIcontext *context, __DRIimage *image,
+                     int x0, int y0, int width, int height,
+                     unsigned int flags, int *stride, void **data);
+
+   /**
+    * Unmap a previously mapped __DRIimage
+    *
+    * \since 12
+    */
+   void (*unmapImage)(__DRIcontext *context, __DRIimage *image, void *data);
+
 };
 
 

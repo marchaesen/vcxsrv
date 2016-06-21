@@ -128,6 +128,8 @@ typedef enum gl_state_index_ {
    STATE_PT_BIAS,               /**< Pixel transfer RGBA bias */
    STATE_FB_SIZE,               /**< (width-1, height-1, 0, 0) */
    STATE_FB_WPOS_Y_TRANSFORM,   /**< (1, 0, -1, height) if a FBO is bound, (-1, height, 1, 0) otherwise */
+   STATE_TCS_PATCH_VERTICES_IN, /**< gl_PatchVerticesIn for TCS (integer) */
+   STATE_TES_PATCH_VERTICES_IN, /**< gl_PatchVerticesIn for TES (integer) */
    STATE_INTERNAL_DRIVER	/* first available state index for drivers (must be last) */
 } gl_state_index;
 

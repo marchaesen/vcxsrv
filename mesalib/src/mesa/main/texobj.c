@@ -204,8 +204,8 @@ _mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
       case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
          return arrayTex ? ctx->Texture.ProxyTex[TEXTURE_2D_ARRAY_INDEX] : NULL;
       case GL_TEXTURE_BUFFER:
-         return ctx->API == API_OPENGL_CORE &&
-                ctx->Extensions.ARB_texture_buffer_object ?
+         return (_mesa_has_ARB_texture_buffer_object(ctx) ||
+                 _mesa_has_OES_texture_buffer(ctx)) ?
                 texUnit->CurrentTex[TEXTURE_BUFFER_INDEX] : NULL;
       case GL_TEXTURE_EXTERNAL_OES:
          return _mesa_is_gles(ctx) && ctx->Extensions.OES_EGL_image_external
@@ -1219,7 +1219,7 @@ create_textures(struct gl_context *ctx, GLenum target,
    /*
     * This must be atomic (generation and allocation of texture IDs)
     */
-   mtx_lock(&ctx->Shared->Mutex);
+   _mesa_HashLockMutex(ctx->Shared->TexObjects);
 
    first = _mesa_HashFindFreeKeyBlock(ctx->Shared->TexObjects, n);
 
@@ -1229,18 +1229,18 @@ create_textures(struct gl_context *ctx, GLenum target,
       GLuint name = first + i;
       texObj = ctx->Driver.NewTextureObject(ctx, name, target);
       if (!texObj) {
-         mtx_unlock(&ctx->Shared->Mutex);
+         _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "gl%sTextures", caller);
          return;
       }
 
       /* insert into hash table */
-      _mesa_HashInsert(ctx->Shared->TexObjects, texObj->Name, texObj);
+      _mesa_HashInsertLocked(ctx->Shared->TexObjects, texObj->Name, texObj);
 
       textures[i] = name;
    }
 
-   mtx_unlock(&ctx->Shared->Mutex);
+   _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
 }
 
 /*@}*/
@@ -1489,9 +1489,7 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures)
             /* The texture _name_ is now free for re-use.
              * Remove it from the hash table now.
              */
-            mtx_lock(&ctx->Shared->Mutex);
             _mesa_HashRemove(ctx->Shared->TexObjects, delObj->Name);
-            mtx_unlock(&ctx->Shared->Mutex);
 
             /* Unreference the texobj.  If refcount hits zero, the texture
              * will be deleted.
@@ -1574,8 +1572,8 @@ _mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
          || _mesa_is_gles3(ctx)
          ? TEXTURE_2D_ARRAY_INDEX : -1;
    case GL_TEXTURE_BUFFER:
-      return ctx->API == API_OPENGL_CORE &&
-             ctx->Extensions.ARB_texture_buffer_object ?
+      return (_mesa_has_ARB_texture_buffer_object(ctx) ||
+              _mesa_has_OES_texture_buffer(ctx)) ?
              TEXTURE_BUFFER_INDEX : -1;
    case GL_TEXTURE_EXTERNAL_OES:
       return _mesa_is_gles(ctx) && ctx->Extensions.OES_EGL_image_external
@@ -1723,9 +1721,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
          }
 
          /* and insert it into hash table */
-         mtx_lock(&ctx->Shared->Mutex);
          _mesa_HashInsert(ctx->Shared->TexObjects, texName, newTexObj);
-         mtx_unlock(&ctx->Shared->Mutex);
       }
    }
 

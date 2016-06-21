@@ -700,6 +700,7 @@ typedef enum {
     FLAG_USE_SIGIO,
     FLAG_AUTO_ADD_GPU,
     FLAG_MAX_CLIENTS,
+    FLAG_IGLX,
 } FlagValues;
 
 /**
@@ -761,6 +762,8 @@ static OptionInfoRec FlagOptions[] = {
      {0}, FALSE},
     {FLAG_MAX_CLIENTS, "MaxClients", OPTV_INTEGER,
      {0}, FALSE },
+    {FLAG_IGLX, "IndirectGLX", OPTV_BOOLEAN,
+     {0}, FALSE},
     {-1, NULL, OPTV_NONE,
      {0}, FALSE},
 };
@@ -802,27 +805,6 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     xf86GetOptValBool(FlagOptions, FLAG_IGNORE_ABI, &xf86Info.ignoreABI);
     if (xf86Info.ignoreABI) {
         xf86Msg(X_CONFIG, "Ignoring ABI Version\n");
-    }
-
-    if (xf86SIGIOSupported()) {
-        xf86Info.useSIGIO =
-            xf86ReturnOptValBool(FlagOptions, FLAG_USE_SIGIO,
-                                 USE_SIGIO_BY_DEFAULT);
-        if (xf86IsOptionSet(FlagOptions, FLAG_USE_SIGIO)) {
-            from = X_CONFIG;
-        }
-        else {
-            from = X_DEFAULT;
-        }
-        if (!xf86Info.useSIGIO) {
-            xf86Msg(from, "Disabling SIGIO handlers for input devices\n");
-        }
-        else if (from == X_CONFIG) {
-            xf86Msg(from, "Enabling SIGIO handlers for input devices\n");
-        }
-    }
-    else {
-        xf86Info.useSIGIO = FALSE;
     }
 
     if (xf86IsOptionSet(FlagOptions, FLAG_AUTO_ADD_DEVICES)) {
@@ -916,11 +898,6 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
 
     xf86Info.aiglx = TRUE;
     xf86Info.aiglxFrom = X_DEFAULT;
-    if (xf86GetOptValBool(FlagOptions, FLAG_AIGLX, &value)) {
-        xf86Info.aiglx = value;
-        xf86Info.aiglxFrom = X_CONFIG;
-    }
-
 #ifdef GLXEXT
     xf86Info.glxVisuals = XF86_GlxVisualsTypical;
     xf86Info.glxVisualsFrom = X_DEFAULT;
@@ -942,6 +919,12 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     if (xf86GetOptValBool(FlagOptions, FLAG_AIGLX, &value)) {
         xf86Info.aiglx = value;
         xf86Info.aiglxFrom = X_CONFIG;
+    }
+    if (xf86Info.iglxFrom != X_CMDLINE) {
+        if (xf86GetOptValBool(FlagOptions, FLAG_IGLX, &value)) {
+            enableIndirectGLX = value;
+            xf86Info.iglxFrom = X_CONFIG;
+        }
     }
 #endif
 

@@ -48,8 +48,13 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    /* Emit the individual loads. */
    nir_ssa_def *loads[4];
    for (unsigned i = 0; i < lower->def.num_components; i++) {
-      nir_load_const_instr *load_comp = nir_load_const_instr_create(b.shader, 1);
-      load_comp->value.u[0] = lower->value.u[i];
+      nir_load_const_instr *load_comp =
+         nir_load_const_instr_create(b.shader, 1, lower->def.bit_size);
+      if (lower->def.bit_size == 64)
+         load_comp->value.f64[0] = lower->value.f64[i];
+      else
+         load_comp->value.u32[0] = lower->value.u32[i];
+      assert(lower->def.bit_size == 64 || lower->def.bit_size == 32);
       nir_builder_instr_insert(&b, &load_comp->instr);
       loads[i] = &load_comp->def;
    }
@@ -62,27 +67,21 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    nir_instr_remove(&lower->instr);
 }
 
-static bool
-lower_load_const_to_scalar_block(nir_block *block, void *data)
-{
-   nir_foreach_instr_safe(block, instr) {
-      if (instr->type == nir_instr_type_load_const)
-         lower_load_const_instr_scalar(nir_instr_as_load_const(instr));
-   }
-
-   return true;
-}
-
 static void
 nir_lower_load_const_to_scalar_impl(nir_function_impl *impl)
 {
-   nir_foreach_block(impl, lower_load_const_to_scalar_block, NULL);
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type == nir_instr_type_load_const)
+            lower_load_const_instr_scalar(nir_instr_as_load_const(instr));
+      }
+   }
 }
 
 void
 nir_lower_load_const_to_scalar(nir_shader *shader)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          nir_lower_load_const_to_scalar_impl(function->impl);
    }

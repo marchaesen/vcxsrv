@@ -51,7 +51,9 @@
 #include "driver.h"
 
 static Bool drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height);
-
+static PixmapPtr drmmode_create_pixmap_header(ScreenPtr pScreen, int width, int height,
+                                              int depth, int bitsPerPixel, int devKind,
+                                              void *pPixData);
 static Bool
 drmmode_zaphod_string_matches(ScrnInfoPtr scrn, const char *s, char *output_name)
 {
@@ -212,6 +214,12 @@ drmmode_SetSlaveBO(PixmapPtr ppix,
 {
     msPixmapPrivPtr ppriv = msGetPixmapPriv(drmmode, ppix);
 
+    if (fd_handle == -1) {
+        dumb_bo_destroy(drmmode->fd, ppriv->backing_bo);
+        ppriv->backing_bo = NULL;
+        return TRUE;
+    }
+
     ppriv->backing_bo =
         dumb_get_bo_from_fd(drmmode->fd, fd_handle, pitch, size);
     if (!ppriv->backing_bo)
@@ -285,49 +293,105 @@ drmmode_crtc_dpms(xf86CrtcPtr crtc, int mode)
     drmmode_crtc->dpms_mode = mode;
 }
 
-#if 0
+#ifdef GLAMOR
 static PixmapPtr
-create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int crtc_id)
+create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int fbcon_id)
 {
-    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
-    drmmode_crtc_private_ptr drmmode_crtc;
-    ScreenPtr pScreen = pScrn->pScreen;
-    PixmapPtr pixmap;
-    struct radeon_bo *bo;
+    PixmapPtr pixmap = drmmode->fbcon_pixmap;
     drmModeFBPtr fbcon;
     struct drm_gem_flink flink;
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
+    Bool ret;
 
-    drmmode_crtc = xf86_config->crtc[crtc_id]->driver_private;
+    if (pixmap)
+        return pixmap;
 
-    fbcon = drmModeGetFB(drmmode->fd, drmmode_crtc->mode_crtc->buffer_id);
+    fbcon = drmModeGetFB(drmmode->fd, fbcon_id);
     if (fbcon == NULL)
         return NULL;
+
+    if (fbcon->depth != pScrn->depth ||
+        fbcon->width != pScrn->virtualX ||
+        fbcon->height != pScrn->virtualY)
+        goto out_free_fb;
 
     flink.handle = fbcon->handle;
     if (ioctl(drmmode->fd, DRM_IOCTL_GEM_FLINK, &flink) < 0) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Couldn't flink fbcon handle\n");
-        return NULL;
+        goto out_free_fb;
     }
 
-    bo = radeon_bo_open(drmmode->bufmgr, flink.name, 0, 0, 0, 0);
-    if (bo == NULL) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                   "Couldn't allocate bo for fbcon handle\n");
-        return NULL;
-    }
-
-    pixmap = drmmode_create_bo_pixmap(pScreen, fbcon->width, fbcon->height,
-                                      fbcon->depth, fbcon->bpp,
-                                      fbcon->pitch, bo);
+    pixmap = drmmode_create_pixmap_header(pScreen, fbcon->width,
+                                          fbcon->height, fbcon->depth,
+                                          fbcon->bpp, fbcon->pitch, NULL);
     if (!pixmap)
-        return NULL;
+        goto out_free_fb;
 
-    radeon_bo_unref(bo);
+    ret = glamor_egl_create_textured_pixmap(pixmap, fbcon->handle, fbcon->pitch);
+    if (!ret) {
+      FreePixmap(pixmap);
+      pixmap = NULL;
+    }
+
+    drmmode->fbcon_pixmap = pixmap;
+out_free_fb:
     drmModeFreeFB(fbcon);
     return pixmap;
 }
-
 #endif
+
+void
+drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
+{
+#ifdef GLAMOR
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
+    PixmapPtr src, dst;
+    int fbcon_id = 0;
+    GCPtr gc;
+    int i;
+
+    for (i = 0; i < xf86_config->num_crtc; i++) {
+        drmmode_crtc_private_ptr drmmode_crtc = xf86_config->crtc[i]->driver_private;
+        if (drmmode_crtc->mode_crtc->buffer_id)
+            fbcon_id = drmmode_crtc->mode_crtc->buffer_id;
+    }
+
+    if (!fbcon_id)
+        return;
+
+    if (fbcon_id == drmmode->fb_id) {
+        /* in some rare case there might be no fbcon and we might already
+         * be the one with the current fb to avoid a false deadlck in
+         * kernel ttm code just do nothing as anyway there is nothing
+         * to do
+         */
+        return;
+    }
+
+    src = create_pixmap_for_fbcon(drmmode, pScrn, fbcon_id);
+    if (!src)
+        return;
+
+    dst = pScreen->GetScreenPixmap(pScreen);
+
+    gc = GetScratchGC(pScrn->depth, pScreen);
+    ValidateGC(&dst->drawable, gc);
+
+    (*gc->ops->CopyArea)(&src->drawable, &dst->drawable, gc, 0, 0,
+                         pScrn->virtualX, pScrn->virtualY, 0, 0);
+
+    FreeScratchGC(gc);
+
+    glamor_finish(pScreen);
+
+    pScreen->canDoBGNoneRoot = TRUE;
+
+    if (drmmode->fbcon_pixmap)
+        pScrn->pScreen->DestroyPixmap(drmmode->fbcon_pixmap);
+    drmmode->fbcon_pixmap = NULL;
+#endif
+}
 
 static Bool
 drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
@@ -344,24 +408,8 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
     int output_count = 0;
     Bool ret = TRUE;
     int i;
-    uint32_t fb_id;
+    uint32_t fb_id = 0;
     drmModeModeInfo kmode;
-    int height;
-
-    height = pScrn->virtualY;
-
-    if (drmmode->fb_id == 0) {
-        ret = drmModeAddFB(drmmode->fd,
-                           pScrn->virtualX, height,
-                           pScrn->depth, pScrn->bitsPerPixel,
-                           drmmode_bo_get_pitch(&drmmode->front_bo),
-                           drmmode_bo_get_handle(&drmmode->front_bo),
-                           &drmmode->fb_id);
-        if (ret < 0) {
-            ErrorF("failed to add fb %d\n", ret);
-            return FALSE;
-        }
-    }
 
     saved_mode = crtc->mode;
     saved_x = crtc->x;
@@ -420,6 +468,22 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
             fb_id = drmmode_crtc->rotate_fb_id;
             x = y = 0;
         }
+
+        if (fb_id == 0) {
+            ret = drmModeAddFB(drmmode->fd,
+                               pScrn->virtualX, pScrn->virtualY,
+                               pScrn->depth, pScrn->bitsPerPixel,
+                               drmmode_bo_get_pitch(&drmmode->front_bo),
+                               drmmode_bo_get_handle(&drmmode->front_bo),
+                               &drmmode->fb_id);
+            if (ret < 0) {
+                ErrorF("failed to add fb %d\n", ret);
+                ret = FALSE;
+                goto done;
+            }
+            fb_id = drmmode->fb_id;
+        }
+
         if (drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
                            fb_id, x, y, output_ids, output_count, &kmode)) {
             xf86DrvMsg(crtc->scrn->scrnIndex, X_ERROR,
@@ -450,11 +514,6 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
         }
     }
 
-#if 0
-    if (pScrn->pScreen &&
-        !xf86ReturnOptValBool(info->Options, OPTION_SW_CURSOR, FALSE))
-        xf86_reload_cursors(pScrn->pScreen);
-#endif
  done:
     if (!ret) {
         crtc->x = saved_x;
@@ -495,8 +554,7 @@ drmmode_set_cursor(xf86CrtcPtr crtc)
     int ret;
 
     if (use_set_cursor2) {
-        xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
-        CursorPtr cursor = xf86_config->cursor;
+        CursorPtr cursor = xf86CurrentCursor(crtc->scrn->pScreen);
 
         ret =
             drmModeSetCursor2(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
@@ -577,11 +635,17 @@ drmmode_set_scanout_pixmap_gpu(xf86CrtcPtr crtc, PixmapPtr ppix)
     PixmapPtr screenpix = screen->GetScreenPixmap(screen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
+    drmmode_ptr drmmode = drmmode_crtc->drmmode;
     int c, total_width = 0, max_height = 0, this_x = 0;
 
     if (!ppix) {
-        if (crtc->randr_crtc->scanout_pixmap)
+        if (crtc->randr_crtc->scanout_pixmap) {
             PixmapStopDirtyTracking(crtc->randr_crtc->scanout_pixmap, screenpix);
+            if (drmmode->fb_id) {
+                drmModeRmFB(drmmode->fd, drmmode->fb_id);
+                drmmode->fb_id = 0;
+            }
+        }
         drmmode_crtc->prime_pixmap_x = 0;
         return TRUE;
     }
@@ -629,6 +693,7 @@ drmmode_set_scanout_pixmap_cpu(xf86CrtcPtr crtc, PixmapPtr ppix)
         if (crtc->randr_crtc->scanout_pixmap) {
             ppriv = msGetPixmapPriv(drmmode, crtc->randr_crtc->scanout_pixmap);
             drmModeRmFB(drmmode->fd, ppriv->fb_id);
+            ppriv->fb_id = 0;
         }
         if (drmmode_crtc->slave_damage) {
             DamageUnregister(drmmode_crtc->slave_damage);
@@ -1632,7 +1697,6 @@ drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height)
         drmmode_crtc = xf86_config->crtc[0]->driver_private;
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
     drmmode_bo old_front;
-    Bool ret;
     ScreenPtr screen = xf86ScrnToScreen(scrn);
     uint32_t old_fb_id;
     int i, pitch, old_width, old_height, old_pitch;
@@ -1654,8 +1718,9 @@ drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height)
     old_width = scrn->virtualX;
     old_height = scrn->virtualY;
     old_pitch = drmmode_bo_get_pitch(&drmmode->front_bo);
-    old_fb_id = drmmode->fb_id;
     old_front = drmmode->front_bo;
+    old_fb_id = drmmode->fb_id;
+    drmmode->fb_id = 0;
 
     if (!drmmode_create_bo(drmmode, &drmmode->front_bo,
                            width, height, scrn->bitsPerPixel))
@@ -1666,13 +1731,6 @@ drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height)
     scrn->virtualX = width;
     scrn->virtualY = height;
     scrn->displayWidth = pitch / cpp;
-
-    ret = drmModeAddFB(drmmode->fd, width, height, scrn->depth,
-                       scrn->bitsPerPixel, pitch,
-                       drmmode_bo_get_handle(&drmmode->front_bo),
-                       &drmmode->fb_id);
-    if (ret)
-        goto fail;
 
     if (!drmmode->gbm) {
         new_pixels = drmmode_map_front_bo(drmmode);
@@ -1799,7 +1857,7 @@ drmmode_adjust_frame(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int x, int y)
 }
 
 Bool
-drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
+drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode, Bool set_hw)
 {
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     int c;
@@ -1812,8 +1870,10 @@ drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 
         /* Skip disabled CRTCs */
         if (!crtc->enabled) {
-            drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
-                           0, 0, 0, NULL, 0, NULL);
+            if (set_hw) {
+                drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
+                               0, 0, 0, NULL, 0, NULL);
+            }
             continue;
         }
 
@@ -1844,10 +1904,19 @@ drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
             crtc->desiredY = 0;
         }
 
-        if (!crtc->funcs->
-            set_mode_major(crtc, &crtc->desiredMode, crtc->desiredRotation,
-                           crtc->desiredX, crtc->desiredY))
-            return FALSE;
+        if (set_hw) {
+            if (!crtc->funcs->
+                set_mode_major(crtc, &crtc->desiredMode, crtc->desiredRotation,
+                               crtc->desiredX, crtc->desiredY))
+                return FALSE;
+        } else {
+            crtc->mode = crtc->desiredMode;
+            crtc->rotation = crtc->desiredRotation;
+            crtc->x = crtc->desiredX;
+            crtc->y = crtc->desiredY;
+            if (!xf86CrtcRotate(crtc))
+                return FALSE;
+        }
     }
     return TRUE;
 }

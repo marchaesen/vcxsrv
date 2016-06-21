@@ -98,7 +98,7 @@ static void
 st_bufferobj_subdata(struct gl_context *ctx,
 		     GLintptrARB offset,
 		     GLsizeiptrARB size,
-		     const GLvoid * data, struct gl_buffer_object *obj)
+		     const void * data, struct gl_buffer_object *obj)
 {
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
@@ -142,7 +142,7 @@ static void
 st_bufferobj_get_subdata(struct gl_context *ctx,
                          GLintptrARB offset,
                          GLsizeiptrARB size,
-                         GLvoid * data, struct gl_buffer_object *obj)
+                         void * data, struct gl_buffer_object *obj)
 {
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
@@ -175,7 +175,7 @@ static GLboolean
 st_bufferobj_data(struct gl_context *ctx,
 		  GLenum target,
 		  GLsizeiptrARB size,
-		  const GLvoid * data,
+		  const void * data,
 		  GLenum usage,
                   GLbitfield storageFlags,
 		  struct gl_buffer_object *obj)
@@ -332,8 +332,19 @@ st_bufferobj_data(struct gl_context *ctx,
       }
    }
 
-   /* BufferData may change an array or uniform buffer, need to update it */
-   st->dirty.st |= ST_NEW_VERTEX_ARRAYS | ST_NEW_UNIFORM_BUFFER;
+   /* The current buffer may be bound, so we have to revalidate all atoms that
+    * might be using it.
+    */
+   /* TODO: Add arrays to usage history */
+   st->dirty.st |= ST_NEW_VERTEX_ARRAYS;
+   if (st_obj->Base.UsageHistory & USAGE_UNIFORM_BUFFER)
+      st->dirty.st |= ST_NEW_UNIFORM_BUFFER;
+   if (st_obj->Base.UsageHistory & USAGE_SHADER_STORAGE_BUFFER)
+      st->dirty.st |= ST_NEW_STORAGE_BUFFER;
+   if (st_obj->Base.UsageHistory & USAGE_TEXTURE_BUFFER)
+      st->dirty.st |= ST_NEW_SAMPLER_VIEWS | ST_NEW_IMAGE_UNITS;
+   if (st_obj->Base.UsageHistory & USAGE_ATOMIC_COUNTER_BUFFER)
+      st->dirty.st |= ST_NEW_ATOMIC_BUFFER;
 
    return GL_TRUE;
 }
@@ -513,7 +524,7 @@ st_copy_buffer_subdata(struct gl_context *ctx,
 static void
 st_clear_buffer_subdata(struct gl_context *ctx,
                         GLintptr offset, GLsizeiptr size,
-                        const GLvoid *clearValue,
+                        const void *clearValue,
                         GLsizeiptr clearValueSize,
                         struct gl_buffer_object *bufObj)
 {

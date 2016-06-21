@@ -1848,11 +1848,7 @@ TRANS(LocalOpenClient)(int type, const char *protocol,
 	case XTRANS_OPEN_COTS_CLIENT:
 	    ciptr->fd=transptr->devcotsopenclient(ciptr,port);
 	    break;
-	case XTRANS_OPEN_CLTS_CLIENT:
-	    ciptr->fd=transptr->devcltsopenclient(ciptr,port);
-	    break;
 	case XTRANS_OPEN_COTS_SERVER:
-	case XTRANS_OPEN_CLTS_SERVER:
 	    prmsg(1,
 		  "LocalOpenClient: Should not be opening a server with this function\n");
 	    break;
@@ -1917,15 +1913,11 @@ TRANS(LocalOpenServer)(int type, const char *protocol,
 	switch( type )
 	{
 	case XTRANS_OPEN_COTS_CLIENT:
-	case XTRANS_OPEN_CLTS_CLIENT:
 	    prmsg(1,
 		  "LocalOpenServer: Should not be opening a client with this function\n");
 	    break;
 	case XTRANS_OPEN_COTS_SERVER:
 	    ciptr->fd=LOCALtrans2devtab[i].devcotsopenserver(ciptr,port);
-	    break;
-	case XTRANS_OPEN_CLTS_SERVER:
-	    ciptr->fd=LOCALtrans2devtab[i].devcltsopenserver(ciptr,port);
 	    break;
 	default:
 	    prmsg(1,"LocalOpenServer: Unknown Open type %d\n",
@@ -1970,9 +1962,6 @@ TRANS(LocalReopenServer)(int type, int index, int fd, const char *port)
     {
     case XTRANS_OPEN_COTS_SERVER:
 	stat = LOCALtrans2devtab[index].devcotsreopenserver(ciptr,fd,port);
-	break;
-    case XTRANS_OPEN_CLTS_SERVER:
-	stat = LOCALtrans2devtab[index].devcltsreopenserver(ciptr,fd,port);
 	break;
     default:
 	prmsg(1,"LocalReopenServer: Unknown Open type %d\n",
@@ -2056,37 +2045,6 @@ TRANS(LocalOpenCOTSServer)(Xtransport *thistrans, const char *protocol,
 
 #endif /* TRANS_SERVER */
 
-
-#ifdef TRANS_CLIENT
-
-static XtransConnInfo
-TRANS(LocalOpenCLTSClient)(Xtransport *thistrans _X_UNUSED, const char *protocol,
-			   const char *host, const char *port)
-
-{
-    prmsg(2,"LocalOpenCLTSClient(%s,%s,%s)\n",protocol,host,port);
-
-    return TRANS(LocalOpenClient)(XTRANS_OPEN_CLTS_CLIENT, protocol, host, port);
-}
-
-#endif /* TRANS_CLIENT */
-
-
-#ifdef TRANS_SERVER
-
-static XtransConnInfo
-TRANS(LocalOpenCLTSServer)(Xtransport *thistrans _X_UNUSED, const char *protocol,
-			   const char *host, const char *port)
-
-{
-    prmsg(2,"LocalOpenCLTSServer(%s,%s,%s)\n",protocol,host,port);
-
-    return TRANS(LocalOpenServer)(XTRANS_OPEN_CLTS_SERVER, protocol, host, port);
-}
-
-#endif /* TRANS_SERVER */
-
-
 #ifdef TRANS_REOPEN
 
 static XtransConnInfo
@@ -2110,30 +2068,6 @@ TRANS(LocalReopenCOTSServer)(Xtransport *thistrans, int fd, const char *port)
     }
 
     return TRANS(LocalReopenServer)(XTRANS_OPEN_COTS_SERVER,
-	index, fd, port);
-}
-
-static XtransConnInfo
-TRANS(LocalReopenCLTSServer)(Xtransport *thistrans, int fd, const char *port)
-
-{
-    int index;
-
-    prmsg(2,"LocalReopenCLTSServer(%d,%s)\n", fd, port);
-
-    for(index=1;index<NUMTRANSPORTS;index++)
-    {
-	if( strcmp(thistrans->TransName,
-	    LOCALtrans2devtab[index].transname) == 0 )
-	    break;
-    }
-
-    if (index >= NUMTRANSPORTS)
-    {
-	return (NULL);
-    }
-
-    return TRANS(LocalReopenServer)(XTRANS_OPEN_CLTS_SERVER,
 	index, fd, port);
 }
 
@@ -2365,15 +2299,8 @@ Xtransport	TRANS(LocalFuncs) = {
 	local_aliases,
 	TRANS(LocalOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(LocalOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(LocalOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(LocalReopenCOTSServer),
-	TRANS(LocalReopenCLTSServer),
 #endif
 	TRANS(LocalSetOption),
 #ifdef TRANS_SERVER
@@ -2411,15 +2338,8 @@ Xtransport	TRANS(PTSFuncs) = {
 	NULL,
 	TRANS(LocalOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(LocalOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(LocalOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(LocalReopenCOTSServer),
-	TRANS(LocalReopenCLTSServer),
 #endif
 	TRANS(LocalSetOption),
 #ifdef TRANS_SERVER
@@ -2459,15 +2379,8 @@ Xtransport	TRANS(NAMEDFuncs) = {
 	NULL,
 	TRANS(LocalOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(LocalOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(LocalOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(LocalReopenCOTSServer),
-	TRANS(LocalReopenCLTSServer),
 #endif
 	TRANS(LocalSetOption),
 #ifdef TRANS_SERVER
@@ -2504,15 +2417,8 @@ Xtransport	TRANS(PIPEFuncs) = {
 	NULL,
 	TRANS(LocalOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(LocalOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(LocalOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(LocalReopenCOTSServer),
-	TRANS(LocalReopenCLTSServer),
 #endif
 	TRANS(LocalSetOption),
 #ifdef TRANS_SERVER
@@ -2552,15 +2458,8 @@ Xtransport	TRANS(SCOFuncs) = {
 	NULL,
 	TRANS(LocalOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(LocalOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(LocalOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(LocalReopenCOTSServer),
-	TRANS(LocalReopenCLTSServer),
 #endif
 	TRANS(LocalSetOption),
 #ifdef TRANS_SERVER

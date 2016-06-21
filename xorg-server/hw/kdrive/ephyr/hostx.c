@@ -70,6 +70,7 @@ struct EphyrHostXVars {
     xcb_gcontext_t  gc;
     xcb_render_pictformat_t argb_format;
     xcb_cursor_t empty_cursor;
+    xcb_generic_event_t *saved_event;
     int depth;
     Bool use_sw_cursor;
     Bool use_fullscreen;
@@ -79,6 +80,7 @@ struct EphyrHostXVars {
     KdScreenInfo **screens;
 
     long damage_debug_msec;
+    Bool size_set_from_configure;
 };
 
 /* memset ( missing> ) instead of below  */
@@ -878,6 +880,7 @@ hostx_screen_init(KdScreenInfo *screen,
             xallocarray(scrpriv->ximg->stride, buffer_height);
     }
 
+    if (!HostX.size_set_from_configure)
     {
         uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         uint32_t values[2] = {width, height};
@@ -1213,10 +1216,41 @@ hostx_load_keymap(KeySymsPtr keySyms, CARD8 *modmap, XkbControlsPtr controls)
     return TRUE;
 }
 
+void
+hostx_size_set_from_configure(Bool ss)
+{
+    HostX.size_set_from_configure = ss;
+}
+
 xcb_connection_t *
 hostx_get_xcbconn(void)
 {
     return HostX.conn;
+}
+
+xcb_generic_event_t *
+hostx_get_event(Bool queued_only)
+{
+    xcb_generic_event_t *xev;
+
+    if (HostX.saved_event) {
+        xev = HostX.saved_event;
+        HostX.saved_event = NULL;
+    } else {
+        if (queued_only)
+            xev = xcb_poll_for_queued_event(HostX.conn);
+        else
+            xev = xcb_poll_for_event(HostX.conn);
+    }
+    return xev;
+}
+
+Bool
+hostx_has_queued_event(void)
+{
+    if (!HostX.saved_event)
+        HostX.saved_event = xcb_poll_for_queued_event(HostX.conn);
+    return HostX.saved_event != NULL;
 }
 
 int
@@ -1478,13 +1512,25 @@ ephyr_glamor_init(ScreenPtr screen)
     return TRUE;
 }
 
+static int
+ephyrSetPixmapVisitWindow(WindowPtr window, void *data)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+
+    if (screen->GetWindowPixmap(window) == data) {
+        screen->SetWindowPixmap(window, screen->GetScreenPixmap(screen));
+        return WT_WALKCHILDREN;
+    }
+    return WT_DONTWALKCHILDREN;
+}
+
 Bool
 ephyr_glamor_create_screen_resources(ScreenPtr pScreen)
 {
     KdScreenPriv(pScreen);
     KdScreenInfo *kd_screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = kd_screen->driver;
-    PixmapPtr screen_pixmap;
+    PixmapPtr old_screen_pixmap, screen_pixmap;
     uint32_t tex;
 
     if (!ephyr_glamor)
@@ -1501,8 +1547,8 @@ ephyr_glamor_create_screen_resources(ScreenPtr pScreen)
      *
      * Thus, delete the current screen pixmap, and put a fresh one in.
      */
-    screen_pixmap = pScreen->GetScreenPixmap(pScreen);
-    pScreen->DestroyPixmap(screen_pixmap);
+    old_screen_pixmap = pScreen->GetScreenPixmap(pScreen);
+    pScreen->DestroyPixmap(old_screen_pixmap);
 
     screen_pixmap = pScreen->CreatePixmap(pScreen,
                                           pScreen->width,
@@ -1511,6 +1557,8 @@ ephyr_glamor_create_screen_resources(ScreenPtr pScreen)
                                           GLAMOR_CREATE_NO_LARGE);
 
     pScreen->SetScreenPixmap(screen_pixmap);
+    if (pScreen->root && pScreen->SetWindowPixmap)
+        TraverseTree(pScreen->root, ephyrSetPixmapVisitWindow, old_screen_pixmap);
 
     /* Tell the GLX code what to GL texture to read from. */
     tex = glamor_get_pixmap_texture(screen_pixmap);

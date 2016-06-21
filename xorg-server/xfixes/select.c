@@ -75,6 +75,7 @@ XFixesSelectionCallback(CallbackListPtr *callbacks, void *data, void *args)
     default:
         return;
     }
+    UpdateCurrentTimeIf();
     for (e = selectionEvents; e; e = e->next) {
         if (e->selection == selection->selection && (e->eventMask & eventMask)) {
             xXFixesSelectionNotifyEvent ev = {

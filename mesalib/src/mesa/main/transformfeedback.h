@@ -50,7 +50,7 @@ extern void
 _mesa_init_transform_feedback_functions(struct dd_function_table *driver);
 
 extern unsigned
-_mesa_compute_max_transform_feedback_vertices(
+_mesa_compute_max_transform_feedback_vertices( struct gl_context *ctx,
       const struct gl_transform_feedback_object *obj,
       const struct gl_transform_feedback_info *info);
 

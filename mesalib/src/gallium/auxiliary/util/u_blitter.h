@@ -32,12 +32,6 @@
 
 #include "pipe/p_state.h"
 
-/* u_memory.h conflicts with st/mesa */
-#ifndef Elements
-#define Elements(x) (sizeof(x)/sizeof((x)[0]))
-#endif
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -252,6 +246,12 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
 void util_blitter_blit(struct blitter_context *blitter,
 		       const struct pipe_blit_info *info);
 
+void util_blitter_generate_mipmap(struct blitter_context *blitter,
+                                  struct pipe_resource *tex,
+                                  enum pipe_format format,
+                                  unsigned base_level, unsigned last_level,
+                                  unsigned first_layer, unsigned last_layer);
+
 /**
  * Helper function to initialize a view for copy_texture_view.
  * The parameters must match copy_texture_view.
@@ -464,7 +464,7 @@ util_blitter_save_fragment_sampler_states(
                   unsigned num_sampler_states,
                   void **sampler_states)
 {
-   assert(num_sampler_states <= Elements(blitter->saved_sampler_states));
+   assert(num_sampler_states <= ARRAY_SIZE(blitter->saved_sampler_states));
 
    blitter->saved_num_sampler_states = num_sampler_states;
    memcpy(blitter->saved_sampler_states, sampler_states,
@@ -477,7 +477,7 @@ util_blitter_save_fragment_sampler_views(struct blitter_context *blitter,
                                          struct pipe_sampler_view **views)
 {
    unsigned i;
-   assert(num_views <= Elements(blitter->saved_sampler_views));
+   assert(num_views <= ARRAY_SIZE(blitter->saved_sampler_views));
 
    blitter->saved_num_sampler_views = num_views;
    for (i = 0; i < num_views; i++)
@@ -501,7 +501,7 @@ util_blitter_save_so_targets(struct blitter_context *blitter,
                              struct pipe_stream_output_target **targets)
 {
    unsigned i;
-   assert(num_targets <= Elements(blitter->saved_so_targets));
+   assert(num_targets <= ARRAY_SIZE(blitter->saved_so_targets));
 
    blitter->saved_num_so_targets = num_targets;
    for (i = 0; i < num_targets; i++)

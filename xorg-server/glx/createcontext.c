@@ -315,16 +315,8 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     ctx->id = req->context;
     ctx->share_id = req->shareList;
     ctx->idExists = True;
-    ctx->currentClient = False;
     ctx->isDirect = req->isDirect;
-    ctx->hasUnflushedCommands = False;
     ctx->renderMode = GL_RENDER;
-    ctx->feedbackBuf = NULL;
-    ctx->feedbackBufSize = 0;
-    ctx->selectBuf = NULL;
-    ctx->selectBufSize = 0;
-    ctx->drawPriv = NULL;
-    ctx->readPriv = NULL;
     ctx->resetNotificationStrategy = reset;
 #ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
     ctx->releaseBehavior = flush;

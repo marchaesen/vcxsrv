@@ -1,0 +1,106 @@
+Overview:
+
+	This file is similar in syntax (or more precisly a subset) of what is
+	used by the MAINTAINERS file in the linux kernel.  Some fields do not
+	apply, for example, in all cases, send patches to:
+
+		mesa-dev@lists.freedesktop.org
+
+	and in all cases the patchwork instance is:
+
+		https://patchwork.freedesktop.org/project/mesa/
+
+	The purpose is not exactly the same the MAINTAINERS file in the linux
+	kernel, as there are not official/formal maintainers of different
+	subsystems in mesa, but is meant to give an idea of who to CC for
+	various patches for review, and to allow the use of
+	scripts/get_reviewer.pl as git --cc-cmd.
+
+Usage:
+
+	When sending patches:
+
+		git send-email --cc-cmd ./scripts/get_reviewer.pl ...
+
+	Or to configure as default:
+
+		git config sendemail.cccmd ./scripts/get_reviewer.pl
+
+Descriptions of section entries:
+
+	R: Designated reviewer: FullName <address@domain>
+	   These reviewers should be CCed on patches.
+	F: Files and directories with wildcard patterns.
+	   A trailing slash includes all files and subdirectory files.
+	   F:	drivers/net/	all files in and below drivers/net
+	   F:	drivers/net/*	all files in drivers/net, but not below
+	   F:	*/net/*		all files in "any top level directory"/net
+	   One pattern per line.  Multiple F: lines acceptable.
+	N: Files and directories with regex patterns.
+	   N:	[^a-z]tegra	all files whose path contains the word tegra
+	   One pattern per line.  Multiple N: lines acceptable.
+	   scripts/get_maintainer.pl has different behavior for files that
+	   match F: pattern and matches of N: patterns.  By default,
+	   get_maintainer will not look at git log history when an F: pattern
+	   match occurs.  When an N: match occurs, git log history is used
+	   to also notify the people that have git commit signatures.
+
+Maintainers List (try to look for most precise areas first)
+
+Note: this is an opt-in system, I have not tried to add anyone who hasn't
+either asked me or sent a patch to add themselves.
+
+		-----------------------------------
+
+NIR
+R:	Jason Ekstrand <jason@jlekstrand.net>
+F:	src/compiler/nir/
+
+DOCUMENTATION
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: docs/
+F: doxygen/
+
+COMPATIBILITY HEADERS
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: include/c99*
+
+DRI LOADER
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: src/loader/
+
+GALLIUM LOADER
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: src/gallium/auxiliary/pipe-loader/
+F: src/gallium/auxiliary/target-helpers/
+
+GALLIUM TARGETS
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: src/gallium/targets/
+
+AUTOCONF BUILD
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: configure.ac
+F: */Automake.inc
+F: */Makefile.*am
+F: */Makefile.sources
+
+SCONS BUILD
+F: scons/
+F: */SConscript*
+F: */Makefile.sources
+
+ANDROID BUILD
+R: Emil Velikov <emil.l.velikov@gmail.com>
+F: CleanSpec.mk
+F: */Android.*mk
+F: */Makefile.sources
+
+WAYLAND EGL SUPPORT
+R: Daniel Stone <daniels@collabora.com>
+F: src/egl/wayland/*
+F: src/egl/drivers/dri2/platform_wayland.c
+
+FREEDRENO
+R:	Rob Clark <robclark@freedesktop.org>
+F:	src/gallium/drivers/freedreno/

@@ -25,6 +25,7 @@
  *    Jason Ekstrand <jason.ekstrand@intel.com>
  */
 
+#include "context.h"
 #include "glheader.h"
 #include "errors.h"
 #include "enums.h"
@@ -64,6 +65,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
                GLenum *internalFormat,
                GLuint *width,
                GLuint *height,
+               GLuint *num_samples,
                const char *dbg_prefix)
 {
    if (name == 0) {
@@ -130,6 +132,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
       *internalFormat = rb->InternalFormat;
       *width = rb->Width;
       *height = rb->Height;
+      *num_samples = rb->NumSamples;
       *tex_image = NULL;
    } else {
       struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, name);
@@ -177,7 +180,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
          for (i = 0; i < depth; i++) {
             if (!texObj->Image[z+i][level]) {
                /* missing cube face */
-               _mesa_error(ctx, GL_INVALID_OPERATION,
+               _mesa_error(ctx, GL_INVALID_VALUE,
                            "glCopyImageSubData(missing cube face)");
                return false;
             }
@@ -200,6 +203,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
       *internalFormat = (*tex_image)->InternalFormat;
       *width = (*tex_image)->Width;
       *height = (*tex_image)->Height;
+      *num_samples = (*tex_image)->NumSamples;
    }
 
    return true;
@@ -360,8 +364,32 @@ compressed_format_compatible(const struct gl_context *ctx,
       case GL_COMPRESSED_SIGNED_RED_RGTC1:
          compressedClass = BLOCK_CLASS_64_BITS;
          break;
+      case GL_COMPRESSED_RGBA8_ETC2_EAC:
+      case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+      case GL_COMPRESSED_RG11_EAC:
+      case GL_COMPRESSED_SIGNED_RG11_EAC:
+         if (_mesa_is_gles(ctx))
+            compressedClass = BLOCK_CLASS_128_BITS;
+         else
+            return false;
+         break;
+      case GL_COMPRESSED_RGB8_ETC2:
+      case GL_COMPRESSED_SRGB8_ETC2:
+      case GL_COMPRESSED_R11_EAC:
+      case GL_COMPRESSED_SIGNED_R11_EAC:
+      case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+      case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+         if (_mesa_is_gles(ctx))
+            compressedClass = BLOCK_CLASS_64_BITS;
+         else
+            return false;
+         break;
       default:
-         return false;
+         if (_mesa_is_gles(ctx) && _mesa_is_astc_format(compressedFormat))
+            compressedClass = BLOCK_CLASS_128_BITS;
+         else
+            return false;
+         break;
    }
 
    switch (otherFormat) {
@@ -431,6 +459,7 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
    GLenum srcIntFormat, dstIntFormat;
    GLuint src_w, src_h, dst_w, dst_h;
    GLuint src_bw, src_bh, dst_bw, dst_bh;
+   GLuint src_num_samples, dst_num_samples;
    int dstWidth, dstHeight, dstDepth;
    int i;
 
@@ -452,12 +481,12 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
 
    if (!prepare_target(ctx, srcName, srcTarget, srcLevel, srcZ, srcDepth,
                        &srcTexImage, &srcRenderbuffer, &srcFormat,
-                       &srcIntFormat, &src_w, &src_h, "src"))
+                       &srcIntFormat, &src_w, &src_h, &src_num_samples, "src"))
       return;
 
    if (!prepare_target(ctx, dstName, dstTarget, dstLevel, dstZ, srcDepth,
                        &dstTexImage, &dstRenderbuffer, &dstFormat,
-                       &dstIntFormat, &dst_w, &dst_h, "dst"))
+                       &dstIntFormat, &dst_w, &dst_h, &dst_num_samples, "dst"))
       return;
 
    _mesa_get_format_block_size(srcFormat, &src_bw, &src_bh);
@@ -527,9 +556,22 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                             "dst"))
       return;
 
+   /* Section 18.3.2 (Copying Between Images) of the OpenGL 4.5 Core Profile
+    * spec says:
+    *
+    *    An INVALID_OPERATION error is generated if either object is a texture
+    *    and the texture is not complete, if the source and destination internal
+    *    formats are not compatible, or if the number of samples do not match.
+    */
    if (!copy_format_compatible(ctx, srcIntFormat, dstIntFormat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glCopyImageSubData(internalFormat mismatch)");
+      return;
+   }
+
+   if (src_num_samples != dst_num_samples) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyImageSubData(number of samples mismatch)");
       return;
    }
 

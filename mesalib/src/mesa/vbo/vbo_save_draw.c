@@ -34,6 +34,7 @@
 #include "main/macros.h"
 #include "main/light.h"
 #include "main/state.h"
+#include "util/bitscan.h"
 
 #include "vbo_context.h"
 
@@ -49,7 +50,8 @@ _playback_copy_to_current(struct gl_context *ctx,
    struct vbo_context *vbo = vbo_context(ctx);
    fi_type vertex[VBO_ATTRIB_MAX * 4];
    fi_type *data;
-   GLuint i, offset;
+   GLbitfield64 mask;
+   GLuint offset;
 
    if (node->current_size == 0)
       return;
@@ -73,35 +75,36 @@ _playback_copy_to_current(struct gl_context *ctx,
       data += node->attrsz[0]; /* skip vertex position */
    }
 
-   for (i = VBO_ATTRIB_POS+1 ; i < VBO_ATTRIB_MAX ; i++) {
-      if (node->attrsz[i]) {
-	 fi_type *current = (fi_type *)vbo->currval[i].Ptr;
-         fi_type tmp[4];
+   mask = node->enabled & (~BITFIELD64_BIT(VBO_ATTRIB_POS));
+   while (mask) {
+      const int i = u_bit_scan64(&mask);
+      fi_type *current = (fi_type *)vbo->currval[i].Ptr;
+      fi_type tmp[4];
+      assert(node->attrsz[i]);
 
-         COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
-                                     node->attrsz[i],
-                                     data,
-                                     node->attrtype[i]);
+      COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
+                                  node->attrsz[i],
+                                  data,
+                                  node->attrtype[i]);
+
+      if (node->attrtype[i] != vbo->currval[i].Type ||
+          memcmp(current, tmp, 4 * sizeof(GLfloat)) != 0) {
+         memcpy(current, tmp, 4 * sizeof(GLfloat));
          
-         if (node->attrtype[i] != vbo->currval[i].Type ||
-             memcmp(current, tmp, 4 * sizeof(GLfloat)) != 0) {
-            memcpy(current, tmp, 4 * sizeof(GLfloat));
+         vbo->currval[i].Size = node->attrsz[i];
+         vbo->currval[i]._ElementSize = vbo->currval[i].Size * sizeof(GLfloat);
+         vbo->currval[i].Type = node->attrtype[i];
+         vbo->currval[i].Integer =
+            vbo_attrtype_to_integer_flag(node->attrtype[i]);
 
-            vbo->currval[i].Size = node->attrsz[i];
-            vbo->currval[i]._ElementSize = vbo->currval[i].Size * sizeof(GLfloat);
-            vbo->currval[i].Type = node->attrtype[i];
-            vbo->currval[i].Integer =
-                  vbo_attrtype_to_integer_flag(node->attrtype[i]);
+         if (i >= VBO_ATTRIB_FIRST_MATERIAL &&
+             i <= VBO_ATTRIB_LAST_MATERIAL)
+            ctx->NewState |= _NEW_LIGHT;
 
-            if (i >= VBO_ATTRIB_FIRST_MATERIAL &&
-                i <= VBO_ATTRIB_LAST_MATERIAL)
-               ctx->NewState |= _NEW_LIGHT;
-
-            ctx->NewState |= _NEW_CURRENT_ATTRIB;
-         }
-
-	 data += node->attrsz[i];
+         ctx->NewState |= _NEW_CURRENT_ATTRIB;
       }
+
+      data += node->attrsz[i];
    }
 
    /* Colormaterial -- this kindof sucks.

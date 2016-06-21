@@ -247,34 +247,6 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
 void
 xf86Wakeup(void *blockData, int err, void *pReadmask)
 {
-    fd_set *LastSelectMask = (fd_set *) pReadmask;
-    fd_set devicesWithInput;
-    InputInfoPtr pInfo;
-
-    if (err >= 0) {
-
-        XFD_ANDSET(&devicesWithInput, LastSelectMask, &EnabledDevices);
-        if (XFD_ANYSET(&devicesWithInput)) {
-            pInfo = xf86InputDevs;
-            while (pInfo) {
-                if (pInfo->read_input && pInfo->fd >= 0 &&
-                    (FD_ISSET(pInfo->fd, &devicesWithInput) != 0)) {
-                    OsBlockSIGIO();
-
-                    /*
-                     * Remove the descriptior from the set because more than one
-                     * device may share the same file descriptor.
-                     */
-                    FD_CLR(pInfo->fd, &devicesWithInput);
-
-                    pInfo->read_input(pInfo);
-                    OsReleaseSIGIO();
-                }
-                pInfo = pInfo->next;
-            }
-        }
-    }
-
     if (err >= 0) {             /* we don't want the handlers called if select() */
         IHPtr ih, ih_tmp;       /* returned with an error condition, do we?      */
 
@@ -291,18 +263,16 @@ xf86Wakeup(void *blockData, int err, void *pReadmask)
 }
 
 /*
- * xf86SigioReadInput --
- *    signal handler for the SIGIO signal.
+ * xf86ReadInput --
+ *    input thread handler
  */
+
 static void
-xf86SigioReadInput(int fd, void *closure)
+xf86ReadInput(int fd, int ready, void *closure)
 {
-    int errno_save = errno;
     InputInfoPtr pInfo = closure;
 
     pInfo->read_input(pInfo);
-
-    errno = errno_save;
 }
 
 /*
@@ -312,9 +282,7 @@ xf86SigioReadInput(int fd, void *closure)
 void
 xf86AddEnabledDevice(InputInfoPtr pInfo)
 {
-    if (!xf86InstallSIGIOHandler(pInfo->fd, xf86SigioReadInput, pInfo)) {
-        AddEnabledDevice(pInfo->fd);
-    }
+    InputThreadRegisterDev(pInfo->fd, xf86ReadInput, pInfo);
 }
 
 /*
@@ -324,9 +292,7 @@ xf86AddEnabledDevice(InputInfoPtr pInfo)
 void
 xf86RemoveEnabledDevice(InputInfoPtr pInfo)
 {
-    if (!xf86RemoveSIGIOHandler(pInfo->fd)) {
-        RemoveEnabledDevice(pInfo->fd);
-    }
+    InputThreadUnregisterDev(pInfo->fd);
 }
 
 static int *xf86SignalIntercept = NULL;
@@ -402,9 +368,9 @@ xf86ReleaseKeys(DeviceIntPtr pDev)
     for (i = keyc->xkbInfo->desc->min_key_code;
          i < keyc->xkbInfo->desc->max_key_code; i++) {
         if (key_is_down(pDev, i, KEY_POSTED)) {
-            OsBlockSIGIO();
+            input_lock();
             QueueKeyboardEvents(pDev, KeyRelease, i);
-            OsReleaseSIGIO();
+            input_unlock();
         }
     }
 }
@@ -487,7 +453,7 @@ xf86VTLeave(void)
     for (pInfo = xf86InputDevs; pInfo; pInfo = pInfo->next)
         xf86DisableInputDeviceForVTSwitch(pInfo);
 
-    OsBlockSIGIO();
+    input_lock();
     for (i = 0; i < xf86NumScreens; i++)
         xf86Screens[i]->LeaveVT(xf86Screens[i]);
     for (i = 0; i < xf86NumGPUScreens; i++)
@@ -545,7 +511,7 @@ switch_failed:
         else
             xf86EnableGeneralHandler(ih);
     }
-    OsReleaseSIGIO();
+    input_unlock();
 }
 
 void
@@ -603,7 +569,7 @@ xf86VTEnter(void)
 
     xf86UpdateHasVTProperty(TRUE);
 
-    OsReleaseSIGIO();
+    input_unlock();
 }
 
 /*

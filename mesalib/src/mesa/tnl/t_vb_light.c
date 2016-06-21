@@ -33,6 +33,8 @@
 
 #include "math/m_translate.h"
 
+#include "util/bitscan.h"
+
 #include "t_context.h"
 #include "t_pipeline.h"
 #include "tnl.h"
@@ -231,10 +233,12 @@ prepare_materials(struct gl_context *ctx,
     * with the color pointer for each one.
     */
    if (ctx->Light.ColorMaterialEnabled) {
-      const GLuint bitmask = ctx->Light._ColorMaterialBitmask;
-      for (i = 0 ; i < MAT_ATTRIB_MAX ; i++)
-	 if (bitmask & (1<<i))
-	    VB->AttribPtr[_TNL_ATTRIB_MAT_FRONT_AMBIENT + i] = VB->AttribPtr[_TNL_ATTRIB_COLOR0];
+      GLbitfield bitmask = ctx->Light._ColorMaterialBitmask;
+      while (bitmask) {
+         const int i = u_bit_scan(&bitmask);
+         VB->AttribPtr[_TNL_ATTRIB_MAT_FRONT_AMBIENT + i] =
+            VB->AttribPtr[_TNL_ATTRIB_COLOR0];
+      }
    }
 
    /* Now, for each material attribute that's tracking vertex color, save
@@ -394,7 +398,8 @@ static void validate_lighting( struct gl_context *ctx,
 	 tab = _tnl_light_tab;
    }
    else {
-      if (ctx->Light.EnabledList.next == ctx->Light.EnabledList.prev)
+      /* Power of two means only a single active light. */
+      if (_mesa_is_pow_two(ctx->Light._EnabledLights))
 	 tab = _tnl_light_fast_single_tab;
       else
 	 tab = _tnl_light_fast_tab;

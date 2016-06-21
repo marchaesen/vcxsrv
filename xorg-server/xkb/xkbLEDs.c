@@ -304,7 +304,7 @@ XkbUpdateLedAutoState(DeviceIntPtr dev,
     return;
 }
 
-static void
+void
 XkbUpdateAllDeviceIndicators(XkbChangesPtr changes, XkbEventCausePtr cause)
 {
     DeviceIntPtr edev;

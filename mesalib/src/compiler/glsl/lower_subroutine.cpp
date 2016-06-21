@@ -87,8 +87,9 @@ lower_subroutine_visitor::visit_leave(ir_call *ir)
 
    for (int s = this->state->num_subroutines - 1; s >= 0; s--) {
       ir_rvalue *var;
-      ir_constant *lc = new(mem_ctx)ir_constant(s);
       ir_function *fn = this->state->subroutines[s];
+      ir_constant *lc = new(mem_ctx)ir_constant(fn->subroutine_index);
+
       bool is_compat = false;
 
       for (int i = 0; i < fn->num_subroutine_types; i++) {

@@ -73,19 +73,29 @@ struct util_cache
    /** Destroy a (key, value) pair */
    void (*destroy)(void *key, void *value);
 
+   /** Max entries in the cache */
    uint32_t size;
    
+   /** Array [size] of entries */
    struct util_cache_entry *entries;
    
+   /** Number of entries in the cache */
    unsigned count;
+
+   /** Head of list, sorted from Least-recently used to Most-recently used */
    struct util_cache_entry lru;
 };
+
 
 static void
 ensure_sanity(const struct util_cache *cache);
 
 #define CACHE_DEFAULT_ALPHA 2
 
+/**
+ * Create a new cache with 'size' entries.  Also provide functions for
+ * hashing keys, comparing keys and destroying (key,value) pairs.
+ */
 struct util_cache *
 util_cache_create(uint32_t (*hash)(const void *key),
                   int (*compare)(const void *key1, const void *key2),
@@ -108,7 +118,7 @@ util_cache_create(uint32_t (*hash)(const void *key),
    cache->size = size;
    
    cache->entries = CALLOC(size, sizeof(struct util_cache_entry));
-   if(!cache->entries) {
+   if (!cache->entries) {
       FREE(cache);
       return NULL;
    }
@@ -118,6 +128,9 @@ util_cache_create(uint32_t (*hash)(const void *key),
 }
 
 
+/**
+ * Try to find a cache entry, given the key and hash of the key.
+ */
 static struct util_cache_entry *
 util_cache_entry_get(struct util_cache *cache,
                      uint32_t hash,
@@ -169,7 +182,7 @@ util_cache_entry_destroy(struct util_cache *cache,
       remove_from_list(entry);
       cache->count--;
 
-      if(cache->destroy)
+      if (cache->destroy)
          cache->destroy(key, value);
 
       entry->state = DELETED;
@@ -177,6 +190,9 @@ util_cache_entry_destroy(struct util_cache *cache,
 }
 
 
+/**
+ * Insert an entry in the cache, given the key and value.
+ */
 void
 util_cache_set(struct util_cache *cache,
                void *key,
@@ -213,6 +229,10 @@ util_cache_set(struct util_cache *cache,
 }
 
 
+/**
+ * Search the cache for an entry with the given key.  Return the corresponding
+ * value or NULL if not found.
+ */
 void *
 util_cache_get(struct util_cache *cache, 
                const void *key)
@@ -235,6 +255,10 @@ util_cache_get(struct util_cache *cache,
 }
 
 
+/**
+ * Remove all entries from the cache.  The 'destroy' function will be called
+ * for each entry's (key, value).
+ */
 void 
 util_cache_clear(struct util_cache *cache)
 {
@@ -244,7 +268,7 @@ util_cache_clear(struct util_cache *cache)
    if (!cache)
       return;
 
-   for(i = 0; i < cache->size; ++i) {
+   for (i = 0; i < cache->size; ++i) {
       util_cache_entry_destroy(cache, &cache->entries[i]);
       cache->entries[i].state = EMPTY;
    }
@@ -255,6 +279,9 @@ util_cache_clear(struct util_cache *cache)
 }
 
 
+/**
+ * Destroy the cache and all entries.
+ */
 void
 util_cache_destroy(struct util_cache *cache)
 {
@@ -263,12 +290,12 @@ util_cache_destroy(struct util_cache *cache)
       return;
 
 #ifdef DEBUG
-   if(cache->count >= 20*cache->size) {
+   if (cache->count >= 20*cache->size) {
       /* Normal approximation of the Poisson distribution */
       double mean = (double)cache->count/(double)cache->size;
       double stddev = sqrt(mean);
       unsigned i;
-      for(i = 0; i < cache->size; ++i) {
+      for (i = 0; i < cache->size; ++i) {
          double z = fabs(cache->entries[i].count - mean)/stddev;
          /* This assert should not fail 99.9999998027% of the times, unless 
           * the hash function is a poor one */
@@ -284,6 +311,9 @@ util_cache_destroy(struct util_cache *cache)
 }
 
 
+/**
+ * Remove the cache entry which matches the given key.
+ */
 void
 util_cache_remove(struct util_cache *cache,
                   const void *key)

@@ -42,6 +42,7 @@
 #include "compiler.h"
 #include "glheader.h"
 #include "errors.h"
+#include "util/bitscan.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -322,22 +323,6 @@ _mesa_exec_malloc( GLuint size );
 
 extern void 
 _mesa_exec_free( void *addr );
-
-
-#ifndef FFS_DEFINED
-#define FFS_DEFINED 1
-#ifdef HAVE___BUILTIN_FFS
-#define ffs __builtin_ffs
-#else
-extern int ffs(int i);
-#endif
-
-#ifdef HAVE___BUILTIN_FFSLL
-#define ffsll __builtin_ffsll
-#else
-extern int ffsll(long long int i);
-#endif
-#endif /* FFS_DEFINED */
 
 
 #ifdef HAVE___BUILTIN_POPCOUNT

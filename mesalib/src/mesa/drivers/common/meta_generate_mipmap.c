@@ -31,6 +31,7 @@
  */
 
 #include "main/arrayobj.h"
+#include "main/blend.h"
 #include "main/buffers.h"
 #include "main/enums.h"
 #include "main/enable.h"
@@ -134,24 +135,9 @@ _mesa_meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
    _mesa_reference_sampler_object(ctx, &mipmap->samp_obj, NULL);
    _mesa_reference_framebuffer(&mipmap->fb, NULL);
 
-   _mesa_meta_blit_shader_table_cleanup(&mipmap->shaders);
+   _mesa_meta_blit_shader_table_cleanup(ctx, &mipmap->shaders);
 }
 
-static GLboolean
-prepare_mipmap_level(struct gl_context *ctx,
-                     struct gl_texture_object *texObj, GLuint level,
-                     GLsizei width, GLsizei height, GLsizei depth,
-                     GLenum intFormat, mesa_format format)
-{
-   if (texObj->Target == GL_TEXTURE_1D_ARRAY) {
-      /* Work around Mesa expecting the number of array slices in "height". */
-      height = depth;
-      depth = 1;
-   }
-
-   return _mesa_prepare_mipmap_level(ctx, texObj, level, width, height, depth,
-                                     0, intFormat, format);
-}
 
 /**
  * Called via ctx->Driver.GenerateMipmap()
@@ -195,6 +181,7 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    }
 
    _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_DRAW_BUFFERS);
+   _mesa_ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
    /* Choose between glsl version and fixed function version of
     * GenerateMipmap function.
@@ -270,6 +257,8 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    /* texture is already locked, unlock now */
    _mesa_unlock_texture(ctx, texObj);
 
+   _mesa_prepare_mipmap_levels(ctx, texObj, baseLevel, maxLevel);
+
    for (dstLevel = baseLevel + 1; dstLevel <= maxLevel; dstLevel++) {
       const struct gl_texture_image *srcImage;
       struct gl_texture_image *dstImage;
@@ -309,16 +298,13 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
       _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,
                                 (GLint *) &dstLevel, false);
 
-      if (!prepare_mipmap_level(ctx, texObj, dstLevel,
-                                dstWidth, dstHeight, dstDepth,
-                                srcImage->InternalFormat,
-                                srcImage->TexFormat)) {
-         /* All done.  We either ran out of memory or we would go beyond the
-          * last valid level of an immutable texture if we continued.
-          */
-         break;
-      }
       dstImage = _mesa_select_tex_image(texObj, faceTarget, dstLevel);
+
+      /* All done.  We either ran out of memory or we would go beyond the last
+       * valid level of an immutable texture if we continued.
+       */
+      if (dstImage == NULL)
+         break;
 
       /* limit minification to src level */
       _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_MAX_LEVEL,

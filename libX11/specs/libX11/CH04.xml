@@ -1761,7 +1761,8 @@ To change a property of a given window, use
   <funcdef><function>XChangeProperty</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Atomproperty,<parameter> type</parameter></paramdef>
+  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Atom<parameter> type</parameter></paramdef>
   <paramdef>int<parameter> format</parameter></paramdef>
   <paramdef>int<parameter> mode</parameter></paramdef>
   <paramdef>unsignedchar<parameter> *data</parameter></paramdef>

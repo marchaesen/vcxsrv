@@ -61,7 +61,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec DisplayTab[] = {
+static const xf86ConfigSymTabRec DisplayTab[] = {
     {ENDSUBSECTION, "endsubsection"},
     {MODES, "modes"},
     {VIEWPORT, "viewport"},
@@ -222,7 +222,7 @@ xf86parseDisplaySubSection(void)
 
 #undef CLEANUP
 
-static xf86ConfigSymTabRec ScreenTab[] = {
+static const xf86ConfigSymTabRec ScreenTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {MATCHSEAT, "matchseat"},

@@ -337,17 +337,35 @@ ephyrInternalDamageRedisplay(ScreenPtr pScreen)
 }
 
 static void
-ephyrInternalDamageBlockHandler(void *data, OSTimePtr pTimeout, void *pRead)
-{
-    ScreenPtr pScreen = (ScreenPtr) data;
+ephyrXcbProcessEvents(Bool queued_only);
 
-    ephyrInternalDamageRedisplay(pScreen);
+static Bool
+ephyrEventWorkProc(ClientPtr client, void *closure)
+{
+    ephyrXcbProcessEvents(TRUE);
+    return TRUE;
 }
 
 static void
-ephyrInternalDamageWakeupHandler(void *data, int i, void *LastSelectMask)
+ephyrScreenBlockHandler(ScreenPtr pScreen, void *timeout, void *pRead)
 {
-    /* FIXME: Not needed ? */
+    KdScreenPriv(pScreen);
+    KdScreenInfo *screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = screen->driver;
+
+    pScreen->BlockHandler = scrpriv->BlockHandler;
+    (*pScreen->BlockHandler)(pScreen, timeout, pRead);
+    scrpriv->BlockHandler = pScreen->BlockHandler;
+    pScreen->BlockHandler = ephyrScreenBlockHandler;
+
+    if (scrpriv->pDamage)
+        ephyrInternalDamageRedisplay(pScreen);
+
+    if (hostx_has_queued_event()) {
+        if (!QueueWorkProc(ephyrEventWorkProc, NULL, NULL))
+            FatalError("cannot queue event processing in ephyr block handler");
+        AdjustWaitForDelay(timeout, 0);
+    }
 }
 
 Bool
@@ -361,11 +379,6 @@ ephyrSetInternalDamage(ScreenPtr pScreen)
     scrpriv->pDamage = DamageCreate((DamageReportFunc) 0,
                                     (DamageDestroyFunc) 0,
                                     DamageReportNone, TRUE, pScreen, pScreen);
-
-    if (!RegisterBlockAndWakeupHandlers(ephyrInternalDamageBlockHandler,
-                                        ephyrInternalDamageWakeupHandler,
-                                        (void *) pScreen))
-        return FALSE;
 
     pPixmap = (*pScreen->GetScreenPixmap) (pScreen);
 
@@ -382,10 +395,7 @@ ephyrUnsetInternalDamage(ScreenPtr pScreen)
     EphyrScrPriv *scrpriv = screen->driver;
 
     DamageDestroy(scrpriv->pDamage);
-
-    RemoveBlockAndWakeupHandlers(ephyrInternalDamageBlockHandler,
-                                 ephyrInternalDamageWakeupHandler,
-                                 (void *) pScreen);
+    scrpriv->pDamage = NULL;
 }
 
 #ifdef RANDR
@@ -500,6 +510,14 @@ ephyrRandRSetConfig(ScreenPtr pScreen,
     screen->width = newwidth;
     screen->height = newheight;
 
+    scrpriv->win_width = screen->width;
+    scrpriv->win_height = screen->height;
+#ifdef GLAMOR
+    ephyr_glamor_set_window_size(scrpriv->glamor,
+                                 scrpriv->win_width,
+                                 scrpriv->win_height);
+#endif
+
     if (!ephyrMapFramebuffer(screen))
         goto bail4;
 
@@ -510,12 +528,18 @@ ephyrRandRSetConfig(ScreenPtr pScreen,
     else
         ephyrUnsetInternalDamage(screen->pScreen);
 
+    ephyrSetScreenSizes(screen->pScreen);
+
     if (scrpriv->shadow) {
         if (!KdShadowSet(screen->pScreen,
                          scrpriv->randr, ephyrShadowUpdate, ephyrWindowLinear))
             goto bail4;
     }
     else {
+#ifdef GLAMOR
+        if (ephyr_glamor)
+            ephyr_glamor_create_screen_resources(pScreen);
+#endif
         /* Without shadow fb ( non rotated ) we need
          * to use damage to efficiently update display
          * via signal regions what to copy from 'fb'.
@@ -523,8 +547,6 @@ ephyrRandRSetConfig(ScreenPtr pScreen,
         if (!ephyrSetInternalDamage(screen->pScreen))
             goto bail4;
     }
-
-    ephyrSetScreenSizes(screen->pScreen);
 
     /*
      * Set frame buffer mapping
@@ -603,7 +625,9 @@ ephyrResizeScreen (ScreenPtr           pScreen,
     size.width = newwidth;
     size.height = newheight;
 
+    hostx_size_set_from_configure(TRUE);
     ret = ephyrRandRSetConfig (pScreen, screen->randr, 0, &size);
+    hostx_size_set_from_configure(FALSE);
     if (ret) {
         RROutputPtr output;
 
@@ -658,6 +682,10 @@ ephyrInitScreen(ScreenPtr pScreen)
 Bool
 ephyrFinishInitScreen(ScreenPtr pScreen)
 {
+    KdScreenPriv(pScreen);
+    KdScreenInfo *screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = screen->driver;
+
     /* FIXME: Calling this even if not using shadow.
      * Seems harmless enough. But may be safer elsewhere.
      */
@@ -668,6 +696,9 @@ ephyrFinishInitScreen(ScreenPtr pScreen)
     if (!ephyrRandRInit(pScreen))
         return FALSE;
 #endif
+
+    scrpriv->BlockHandler = pScreen->BlockHandler;
+    pScreen->BlockHandler = ephyrScreenBlockHandler;
 
     return TRUE;
 }
@@ -736,6 +767,7 @@ ephyrScreenFini(KdScreenInfo * screen)
     if (scrpriv->shadow) {
         KdShadowFbFree(screen);
     }
+    scrpriv->BlockHandler = NULL;
 }
 
 void
@@ -818,11 +850,11 @@ ScreenPtr ephyrCursorScreen; /* screen containing the cursor */
 static void
 ephyrWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
-    OsBlockSIGIO();
+    input_lock();
     ephyrCursorScreen = pScreen;
     miPointerWarpCursor(inputInfo.pointer, pScreen, x, y);
 
-    OsReleaseSIGIO();
+    input_unlock();
 }
 
 miPointerScreenFuncRec ephyrPointerScreenFuncs = {
@@ -1106,12 +1138,14 @@ ephyrProcessConfigureNotify(xcb_generic_event_t *xev)
 }
 
 static void
-ephyrXcbNotify(int fd, int ready, void *data)
+ephyrXcbProcessEvents(Bool queued_only)
 {
     xcb_connection_t *conn = hostx_get_xcbconn();
+    xcb_generic_event_t *expose = NULL, *configure = NULL;
 
     while (TRUE) {
-        xcb_generic_event_t *xev = xcb_poll_for_event(conn);
+        xcb_generic_event_t *xev = hostx_get_event(queued_only);
+
         if (!xev) {
             /* If our XCB connection has died (for example, our window was
              * closed), exit now.
@@ -1131,7 +1165,9 @@ ephyrXcbNotify(int fd, int ready, void *data)
             break;
 
         case XCB_EXPOSE:
-            ephyrProcessExpose(xev);
+            free(expose);
+            expose = xev;
+            xev = NULL;
             break;
 
         case XCB_MOTION_NOTIFY:
@@ -1155,15 +1191,35 @@ ephyrXcbNotify(int fd, int ready, void *data)
             break;
 
         case XCB_CONFIGURE_NOTIFY:
-            ephyrProcessConfigureNotify(xev);
+            free(configure);
+            configure = xev;
+            xev = NULL;
             break;
         }
 
-        if (ephyr_glamor)
-            ephyr_glamor_process_event(xev);
+        if (xev) {
+            if (ephyr_glamor)
+                ephyr_glamor_process_event(xev);
 
-        free(xev);
+            free(xev);
+        }
     }
+
+    if (configure) {
+        ephyrProcessConfigureNotify(configure);
+        free(configure);
+    }
+
+    if (expose) {
+        ephyrProcessExpose(expose);
+        free(expose);
+    }
+}
+
+static void
+ephyrXcbNotify(int fd, int ready, void *data)
+{
+    ephyrXcbProcessEvents(FALSE);
 }
 
 void

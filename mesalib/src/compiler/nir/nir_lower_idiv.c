@@ -36,7 +36,7 @@
  * branch out to a pre-optimized shader library routine..
  */
 
-static void
+static bool
 convert_instr(nir_builder *bld, nir_alu_instr *alu)
 {
    nir_ssa_def *numer, *denom, *af, *bf, *a, *b, *q, *r;
@@ -46,7 +46,7 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    if ((op != nir_op_idiv) &&
        (op != nir_op_udiv) &&
        (op != nir_op_umod))
-      return;
+      return false;
 
    is_signed = (op == nir_op_idiv);
 
@@ -115,37 +115,39 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
 
    assert(alu->dest.dest.is_ssa);
    nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(q));
-}
-
-static bool
-convert_block(nir_block *block, void *state)
-{
-   nir_builder *b = state;
-
-   nir_foreach_instr_safe(block, instr) {
-      if (instr->type == nir_instr_type_alu)
-         convert_instr(b, nir_instr_as_alu(instr));
-   }
 
    return true;
 }
 
-static void
+static bool
 convert_impl(nir_function_impl *impl)
 {
    nir_builder b;
    nir_builder_init(&b, impl);
+   bool progress = false;
 
-   nir_foreach_block(impl, convert_block, &b);
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type == nir_instr_type_alu)
+            progress |= convert_instr(&b, nir_instr_as_alu(instr));
+      }
+   }
+
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
+
+   return progress;
 }
 
-void
+bool
 nir_lower_idiv(nir_shader *shader)
 {
-   nir_foreach_function(shader, function) {
+   bool progress = false;
+
+   nir_foreach_function(function, shader) {
       if (function->impl)
-         convert_impl(function->impl);
+         progress |= convert_impl(function->impl);
    }
+
+   return progress;
 }

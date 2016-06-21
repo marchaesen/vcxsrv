@@ -568,32 +568,32 @@ static void
 redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty)
 {
 
-        RegionRec pixregion;
+    RegionRec pixregion;
 
-        PixmapRegionInit(&pixregion, dirty->slave_dst);
-        DamageRegionAppend(&dirty->slave_dst->drawable, &pixregion);
-        PixmapSyncDirtyHelper(dirty);
+    PixmapRegionInit(&pixregion, dirty->slave_dst);
+    DamageRegionAppend(&dirty->slave_dst->drawable, &pixregion);
+    PixmapSyncDirtyHelper(dirty);
 
-        DamageRegionProcessPending(&dirty->slave_dst->drawable);
-        RegionUninit(&pixregion);
+    DamageRegionProcessPending(&dirty->slave_dst->drawable);
+    RegionUninit(&pixregion);
 }
 
 static void
 ms_dirty_update(ScreenPtr screen)
 {
-        RegionPtr region;
-        PixmapDirtyUpdatePtr ent;
+    RegionPtr region;
+    PixmapDirtyUpdatePtr ent;
 
-        if (xorg_list_is_empty(&screen->pixmap_dirty_list))
-                return;
+    if (xorg_list_is_empty(&screen->pixmap_dirty_list))
+        return;
 
-        xorg_list_for_each_entry(ent, &screen->pixmap_dirty_list, ent) {
-                region = DamageRegion(ent->damage);
-                if (RegionNotEmpty(region)) {
-                        redisplay_dirty(screen, ent);
-                        DamageEmpty(ent->damage);
-                }
+    xorg_list_for_each_entry(ent, &screen->pixmap_dirty_list, ent) {
+        region = DamageRegion(ent->damage);
+        if (RegionNotEmpty(region)) {
+            redisplay_dirty(screen, ent);
+            DamageEmpty(ent->damage);
         }
+    }
 }
 
 static void
@@ -614,6 +614,17 @@ msBlockHandler(ScreenPtr pScreen, void *pTimeout, void *pReadmask)
 }
 
 static void
+msBlockHandler_oneshot(ScreenPtr pScreen, void *pTimeout, void *pReadmask)
+{
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(pScrn);
+
+    msBlockHandler(pScreen, pTimeout, pReadmask);
+
+    drmmode_set_desired_modes(pScrn, &ms->drmmode, TRUE);
+}
+
+static void
 FreeRec(ScrnInfoPtr pScrn)
 {
     modesettingPtr ms;
@@ -624,7 +635,6 @@ FreeRec(ScrnInfoPtr pScrn)
     ms = modesettingPTR(pScrn);
     if (!ms)
         return;
-    pScrn->driverPrivate = NULL;
 
     if (ms->fd > 0) {
         modesettingEntPtr ms_ent;
@@ -645,6 +655,7 @@ FreeRec(ScrnInfoPtr pScrn)
             ms_ent->fd = 0;
         }
     }
+    pScrn->driverPrivate = NULL;
     free(ms->drmmode.Options);
     free(ms);
 
@@ -809,18 +820,6 @@ PreInit(ScrnInfoPtr pScrn, int flags)
         return FALSE;
     ms->drmmode.fd = ms->fd;
 
-    pScrn->capabilities = 0;
-#ifdef DRM_CAP_PRIME
-    ret = drmGetCap(ms->fd, DRM_CAP_PRIME, &value);
-    if (ret == 0) {
-        if (value & DRM_PRIME_CAP_IMPORT)
-            pScrn->capabilities |= RR_Capability_SinkOutput;
-#if GLAMOR_HAS_GBM_LINEAR
-        if (value & DRM_PRIME_CAP_EXPORT)
-            pScrn->capabilities |= RR_Capability_SourceOutput;
-#endif
-    }
-#endif
     drmmode_get_default_bpp(pScrn, &ms->drmmode, &defaultdepth, &defaultbpp);
     if (defaultdepth == 24 && defaultbpp == 24)
         bppflags = SupportConvert32to24 | Support24bppFb;
@@ -895,6 +894,22 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 
         ms->drmmode.pageflip = FALSE;
     }
+
+    pScrn->capabilities = 0;
+#ifdef DRM_CAP_PRIME
+    ret = drmGetCap(ms->fd, DRM_CAP_PRIME, &value);
+    if (ret == 0) {
+        if (value & DRM_PRIME_CAP_IMPORT) {
+            pScrn->capabilities |= RR_Capability_SinkOutput;
+            if (ms->drmmode.glamor)
+                pScrn->capabilities |= RR_Capability_SourceOffload;
+        }
+#if GLAMOR_HAS_GBM_LINEAR
+        if (value & DRM_PRIME_CAP_EXPORT && ms->drmmode.glamor)
+            pScrn->capabilities |= RR_Capability_SourceOutput | RR_Capability_SinkOffload;
+#endif
+    }
+#endif
 
     if (drmmode_pre_init(pScrn, &ms->drmmode, pScrn->bitsPerPixel / 8) == FALSE) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "KMS setup failed\n");
@@ -972,7 +987,7 @@ CreateScreenResources(ScreenPtr pScreen)
     ret = pScreen->CreateScreenResources(pScreen);
     pScreen->CreateScreenResources = CreateScreenResources;
 
-    if (!drmmode_set_desired_modes(pScrn, &ms->drmmode))
+    if (!drmmode_set_desired_modes(pScrn, &ms->drmmode, pScrn->is_gpu))
         return FALSE;
 
     if (!drmmode_glamor_handle_new_screen_pixmap(&ms->drmmode))
@@ -1059,6 +1074,10 @@ msSetSharedPixmapBacking(PixmapPtr ppix, void *fd_handle)
     Bool ret;
     int ihandle = (int) (long) fd_handle;
 
+    if (ihandle == -1)
+        if (!ms->drmmode.reverse_prime_offload_mode)
+           return drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, 0, 0);
+
     if (ms->drmmode.reverse_prime_offload_mode) {
         ret = glamor_back_pixmap_from_fd(ppix, ihandle,
                                          ppix->drawable.width,
@@ -1096,6 +1115,25 @@ SetMaster(ScrnInfoPtr pScrn)
                    strerror(errno));
 
     return ret == 0;
+}
+
+/* When the root window is created, initialize the screen contents from
+ * console if -background none was specified on the command line
+ */
+static Bool
+CreateWindow_oneshot(WindowPtr pWin)
+{
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(pScrn);
+    Bool ret;
+
+    pScreen->CreateWindow = ms->CreateWindow;
+    ret = pScreen->CreateWindow(pWin);
+
+    if (ret)
+        drmmode_copy_fb(pScrn, &ms->drmmode);
+    return ret;
 }
 
 static Bool
@@ -1206,12 +1244,17 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
      * later memory should be bound when allocating, e.g rotate_mem */
     pScrn->vtSema = TRUE;
 
+    if (serverGeneration == 1 && bgNoneRoot && ms->drmmode.glamor) {
+        ms->CreateWindow = pScreen->CreateWindow;
+        pScreen->CreateWindow = CreateWindow_oneshot;
+    }
+
     pScreen->SaveScreen = xf86SaveScreen;
     ms->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = CloseScreen;
 
     ms->BlockHandler = pScreen->BlockHandler;
-    pScreen->BlockHandler = msBlockHandler;
+    pScreen->BlockHandler = msBlockHandler_oneshot;
 
     pScreen->SharePixmapBacking = msSharePixmapBacking;
     pScreen->SetSharedPixmapBacking = msSetSharedPixmapBacking;
@@ -1265,7 +1308,9 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     }
 #endif
 
-    return EnterVT(pScrn);
+    pScrn->vtSema = TRUE;
+
+    return TRUE;
 }
 
 static void
@@ -1312,7 +1357,7 @@ EnterVT(ScrnInfoPtr pScrn)
 
     SetMaster(pScrn);
 
-    if (!drmmode_set_desired_modes(pScrn, &ms->drmmode))
+    if (!drmmode_set_desired_modes(pScrn, &ms->drmmode, TRUE))
         return FALSE;
 
     return TRUE;

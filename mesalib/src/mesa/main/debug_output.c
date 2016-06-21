@@ -779,7 +779,7 @@ _mesa_get_debug_state_int(struct gl_context *ctx, GLenum pname)
       break;
    case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
       val = (debug->Log.NumMessages) ?
-         debug->Log.Messages[debug->Log.NextMessage].length : 0;
+         debug->Log.Messages[debug->Log.NextMessage].length + 1 : 0;
       break;
    case GL_DEBUG_GROUP_STACK_DEPTH:
       val = debug->CurrentGroup + 1;
@@ -1009,15 +1009,16 @@ _mesa_DebugMessageInsert(GLenum source, GLenum type, GLuint id,
    if (!validate_length(ctx, callerstr, length, buf))
       return; /* GL_INVALID_VALUE */
 
+   /* if length not specified, string will be null terminated: */
+   if (length < 0)
+      length = strlen(buf);
+
    _mesa_log_msg(ctx, gl_enum_to_debug_source(source),
                  gl_enum_to_debug_type(type), id,
                  gl_enum_to_debug_severity(severity),
                  length, buf);
 
    if (type == GL_DEBUG_TYPE_MARKER && ctx->Driver.EmitStringMarker) {
-      /* if length not specified, string will be null terminated: */
-      if (length < 0)
-         length = strlen(buf);
       ctx->Driver.EmitStringMarker(ctx, buf, length);
    }
 }
@@ -1187,6 +1188,9 @@ _mesa_PushDebugGroup(GLenum source, GLuint id, GLsizei length,
 
    if (!validate_length(ctx, callerstr, length, message))
       return; /* GL_INVALID_VALUE */
+
+   if (length < 0)
+      length = strlen(message);
 
    debug = _mesa_lock_debug_state(ctx);
    if (!debug)

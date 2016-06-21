@@ -146,6 +146,30 @@
             <_description>German (KOY)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>bone</name>
+            <_description>German (Bone)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>bone_eszett_home</name>
+            <_description>German (Bone, eszett home row)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>neo_qwertz</name>
+            <_description>German (Neo qwertz)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>neo_qwerty</name>
+            <_description>German (Neo qwerty)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -311,6 +335,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>ibm238l</name>
+            <_description>English (US, IBM Arabic 238_L)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>sun_type6</name>
             <_description>English (US, Sun Type 6/7)</_description>
           </configItem>
@@ -319,6 +349,18 @@
           <configItem>
             <name>norman</name>
             <_description>English (Norman)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>carpalx</name>
+            <_description>English (Carpalx)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>carpalx-full</name>
+            <_description>English (Carpalx, full optimization)</_description>
           </configItem>
         </variant>
       </variantList>

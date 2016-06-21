@@ -473,7 +473,7 @@ void
 debug_print_bind_flags(const char *msg, unsigned usage);
 
 void
-debug_print_usage_enum(const char *msg, unsigned usage);
+debug_print_usage_enum(const char *msg, enum pipe_resource_usage usage);
 
 
 #ifdef	__cplusplus

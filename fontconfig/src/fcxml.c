@@ -1352,7 +1352,11 @@ FcParseInt (FcConfigParse *parse)
 static double
 FcStrtod (char *s, char **end)
 {
+#ifndef __BIONIC__
     struct lconv    *locale_data;
+#endif
+    const char	    *decimal_point;
+    int		    dlen;
     char	    *dot;
     double	    v;
 
@@ -1360,14 +1364,21 @@ FcStrtod (char *s, char **end)
      * Have to swap the decimal point to match the current locale
      * if that locale doesn't use 0x2e
      */
+#ifndef __BIONIC__
+    locale_data = localeconv ();
+    decimal_point = locale_data->decimal_point;
+    dlen = strlen (decimal_point);
+#else
+    decimal_point = ".";
+    dlen = 1;
+#endif
+
     if ((dot = strchr (s, 0x2e)) &&
-	(locale_data = localeconv ()) &&
-	(locale_data->decimal_point[0] != 0x2e ||
-	 locale_data->decimal_point[1] != 0))
+	(decimal_point[0] != 0x2e ||
+	 decimal_point[1] != 0))
     {
 	char	buf[128];
 	int	slen = strlen (s);
-	int	dlen = strlen (locale_data->decimal_point);
 	
 	if (slen + dlen > (int) sizeof (buf))
 	{
@@ -1381,7 +1392,7 @@ FcStrtod (char *s, char **end)
 	    /* mantissa */
 	    strncpy (buf, s, dot - s);
 	    /* decimal point */
-	    strcpy (buf + (dot - s), locale_data->decimal_point);
+	    strcpy (buf + (dot - s), decimal_point);
 	    /* rest of number */
 	    strcpy (buf + (dot - s) + dlen, dot + 1);
 	    buf_end = 0;

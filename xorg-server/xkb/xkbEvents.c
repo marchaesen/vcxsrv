@@ -505,7 +505,7 @@ XkbHandleBell(BOOL force,
     if ((!interest) || (force))
         return;
 
-    if ((class == 0) || (class == KbdFeedbackClass)) {
+    if (class == KbdFeedbackClass) {
         KeybdCtrl *pKeyCtrl = (KeybdCtrl *) pCtrl;
 
         id = pKeyCtrl->id;

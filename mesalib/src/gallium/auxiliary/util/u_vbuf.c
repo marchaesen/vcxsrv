@@ -269,7 +269,7 @@ boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps)
    for (i = 0; i < PIPE_FORMAT_COUNT; i++)
       caps->format_translation[i] = i;
 
-   for (i = 0; i < Elements(vbuf_format_fallbacks); i++) {
+   for (i = 0; i < ARRAY_SIZE(vbuf_format_fallbacks); i++) {
       enum pipe_format format = vbuf_format_fallbacks[i].from;
 
       if (!screen->is_format_supported(screen, format, PIPE_BUFFER, 0,
@@ -694,8 +694,8 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
             mgr->fallback_velems[i].vertex_buffer_index = mgr->fallback_vbs[type];
 
             /* elem_index[type][i] can only be set for one type. */
-            assert(type > VB_INSTANCE || elem_index[type+1][i] == ~0);
-            assert(type > VB_VERTEX   || elem_index[type+2][i] == ~0);
+            assert(type > VB_INSTANCE || elem_index[type+1][i] == ~0u);
+            assert(type > VB_VERTEX   || elem_index[type+2][i] == ~0u);
             break;
          }
       }
@@ -723,7 +723,7 @@ static void u_vbuf_translate_end(struct u_vbuf *mgr)
    /* Unreference the now-unused VBOs. */
    for (i = 0; i < VB_NUM; i++) {
       unsigned vb = mgr->fallback_vbs[i];
-      if (vb != ~0) {
+      if (vb != ~0u) {
          pipe_resource_reference(&mgr->real_vertex_buffer[vb].buffer, NULL);
          mgr->fallback_vbs[i] = ~0;
 
@@ -1197,7 +1197,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
       if (u_vbuf_need_minmax_index(mgr)) {
          int max_index;
 
-         if (new_info.max_index != ~0) {
+         if (new_info.max_index != ~0u) {
             min_index = new_info.min_index;
             max_index = new_info.max_index;
          } else {

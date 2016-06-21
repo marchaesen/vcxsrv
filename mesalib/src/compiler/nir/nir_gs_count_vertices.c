@@ -55,7 +55,7 @@ nir_gs_count_vertices(const nir_shader *shader)
 {
    int count = -1;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (!function->impl)
          continue;
 
@@ -66,7 +66,7 @@ nir_gs_count_vertices(const nir_shader *shader)
       set_foreach(function->impl->end_block->predecessors, entry) {
          nir_block *block = (nir_block *) entry->key;
 
-         nir_foreach_instr_reverse(block, instr) {
+         nir_foreach_instr_reverse(instr, block) {
             nir_intrinsic_instr *intrin = as_set_vertex_count(instr);
             if (!intrin)
                continue;
@@ -77,13 +77,13 @@ nir_gs_count_vertices(const nir_shader *shader)
                return -1;
 
             if (count == -1)
-               count = val->i[0];
+               count = val->i32[0];
 
             /* We've found contradictory set_vertex_count intrinsics.
              * This can happen if there are early-returns in main() and
              * different paths emit different numbers of vertices.
              */
-            if (count != val->i[0])
+            if (count != val->i32[0])
                return -1;
          }
       }

@@ -537,7 +537,6 @@ struct detailed_monitor_section {
 #define MONITOR_EDID_COMPLETE_RAWDATA	0x01
 /* old, don't use */
 #define EDID_COMPLETE_RAWDATA		0x01
-#define MONITOR_DISPLAYID		0x02
 
 /*
  * For DisplayID devices, only the scrnIndex, flags, and rawData fields

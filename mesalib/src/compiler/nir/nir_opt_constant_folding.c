@@ -46,9 +46,27 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
    if (!instr->dest.dest.is_ssa)
       return false;
 
+   /* In the case that any outputs/inputs have unsized types, then we need to
+    * guess the bit-size. In this case, the validator ensures that all
+    * bit-sizes match so we can just take the bit-size from first
+    * output/input with an unsized type. If all the outputs/inputs are sized
+    * then we don't need to guess the bit-size at all because the code we
+    * generate for constant opcodes in this case already knows the sizes of
+    * the types involved and does not need the provided bit-size for anything
+    * (although it still requires to receive a valid bit-size).
+    */
+   unsigned bit_size = 0;
+   if (!nir_alu_type_get_type_size(nir_op_infos[instr->op].output_type))
+      bit_size = instr->dest.dest.ssa.bit_size;
+
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
       if (!instr->src[i].src.is_ssa)
          return false;
+
+      if (bit_size == 0 &&
+          !nir_alu_type_get_type_size(nir_op_infos[instr->op].input_sizes[i])) {
+         bit_size = instr->src[i].src.ssa->bit_size;
+      }
 
       nir_instr *src_instr = instr->src[i].src.ssa->parent_instr;
 
@@ -58,23 +76,30 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
 
       for (unsigned j = 0; j < nir_ssa_alu_instr_src_components(instr, i);
            j++) {
-         src[i].u[j] = load_const->value.u[instr->src[i].swizzle[j]];
+         if (load_const->def.bit_size == 64)
+            src[i].u64[j] = load_const->value.u64[instr->src[i].swizzle[j]];
+         else
+            src[i].u32[j] = load_const->value.u32[instr->src[i].swizzle[j]];
       }
 
       /* We shouldn't have any source modifiers in the optimization loop. */
       assert(!instr->src[i].abs && !instr->src[i].negate);
    }
 
+   if (bit_size == 0)
+      bit_size = 32;
+
    /* We shouldn't have any saturate modifiers in the optimization loop. */
    assert(!instr->dest.saturate);
 
    nir_const_value dest =
       nir_eval_const_opcode(instr->op, instr->dest.dest.ssa.num_components,
-                            src);
+                            bit_size, src);
 
    nir_load_const_instr *new_instr =
       nir_load_const_instr_create(mem_ctx,
-                                  instr->dest.dest.ssa.num_components);
+                                  instr->dest.dest.ssa.num_components,
+                                  instr->dest.dest.ssa.bit_size);
 
    new_instr->value = dest;
 
@@ -106,7 +131,7 @@ constant_fold_deref(nir_instr *instr, nir_deref_var *deref)
          nir_load_const_instr *indirect =
             nir_instr_as_load_const(arr->indirect.ssa->parent_instr);
 
-         arr->base_offset += indirect->value.u[0];
+         arr->base_offset += indirect->value.u32[0];
 
          /* Clear out the source */
          nir_instr_rewrite_src(instr, &arr->indirect, nir_src_for_ssa(NULL));
@@ -148,22 +173,21 @@ constant_fold_tex_instr(nir_tex_instr *instr)
 }
 
 static bool
-constant_fold_block(nir_block *block, void *void_state)
+constant_fold_block(nir_block *block, void *mem_ctx)
 {
-   struct constant_fold_state *state = void_state;
+   bool progress = false;
 
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       switch (instr->type) {
       case nir_instr_type_alu:
-         state->progress |= constant_fold_alu_instr(nir_instr_as_alu(instr),
-                                                    state->mem_ctx);
+         progress |= constant_fold_alu_instr(nir_instr_as_alu(instr), mem_ctx);
          break;
       case nir_instr_type_intrinsic:
-         state->progress |=
+         progress |=
             constant_fold_intrinsic_instr(nir_instr_as_intrinsic(instr));
          break;
       case nir_instr_type_tex:
-         state->progress |= constant_fold_tex_instr(nir_instr_as_tex(instr));
+         progress |= constant_fold_tex_instr(nir_instr_as_tex(instr));
          break;
       default:
          /* Don't know how to constant fold */
@@ -171,25 +195,24 @@ constant_fold_block(nir_block *block, void *void_state)
       }
    }
 
-   return true;
+   return progress;
 }
 
 static bool
 nir_opt_constant_folding_impl(nir_function_impl *impl)
 {
-   struct constant_fold_state state;
+   void *mem_ctx = ralloc_parent(impl);
+   bool progress = false;
 
-   state.mem_ctx = ralloc_parent(impl);
-   state.impl = impl;
-   state.progress = false;
+   nir_foreach_block(block, impl) {
+      progress |= constant_fold_block(block, mem_ctx);
+   }
 
-   nir_foreach_block(impl, constant_fold_block, &state);
-
-   if (state.progress)
+   if (progress)
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
 
-   return state.progress;
+   return progress;
 }
 
 bool
@@ -197,7 +220,7 @@ nir_opt_constant_folding(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          progress |= nir_opt_constant_folding_impl(function->impl);
    }

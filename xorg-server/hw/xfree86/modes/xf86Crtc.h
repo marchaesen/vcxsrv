@@ -70,6 +70,14 @@ typedef enum _xf86OutputStatus {
     XF86OutputStatusUnknown
 } xf86OutputStatus;
 
+typedef enum _xf86DriverTransforms {
+    XF86DriverTransformNone = 0,
+    XF86DriverTransformOutput = 1 << 0,
+    XF86DriverTransformCursorImage = 1 << 1,
+    XF86DriverTransformCursorPosition = 1 << 2,
+} xf86DriverTransforms;
+
+
 struct xf86CrtcTileInfo {
     uint32_t group_id;
     uint32_t flags;
@@ -237,7 +245,7 @@ typedef struct _xf86CrtcFuncs {
 
 } xf86CrtcFuncsRec, *xf86CrtcFuncsPtr;
 
-#define XF86_CRTC_VERSION 6
+#define XF86_CRTC_VERSION 7
 
 struct _xf86Crtc {
     /**
@@ -377,17 +385,22 @@ struct _xf86Crtc {
     Bool shadowClear;
 
     /**
-     * Indicates that the driver is handling the transform, so the shadow
-     * surface should be disabled.  The driver writes this field before calling
-     * xf86CrtcRotate to indicate that it is handling the transform (including
-     * rotation and reflection).
+     * Indicates that the driver is handling some or all transforms:
      *
-     * Setting this flag also causes the server to stop adjusting the cursor
-     * image and position.
+     * XF86DriverTransformOutput: The driver handles the output transform, so
+     * the shadow surface should be disabled.  The driver writes this field
+     * before calling xf86CrtcRotate to indicate that it is handling the
+     * transform (including rotation and reflection).
      *
-     * Added in ABI version 4
+     * XF86DriverTransformCursorImage: Setting this flag causes the server to
+     * pass the untransformed cursor image to the driver hook.
+     *
+     * XF86DriverTransformCursorPosition: Setting this flag causes the server
+     * to pass the untransformed cursor position to the driver hook.
+     *
+     * Added in ABI version 4, changed to xf86DriverTransforms in ABI version 7
      */
-    Bool driverIsPerformingTransform;
+    xf86DriverTransforms driverIsPerformingTransform;
 
     /* Added in ABI version 5
      */
@@ -968,14 +981,10 @@ extern _X_EXPORT Bool
  xf86_cursors_init(ScreenPtr screen, int max_width, int max_height, int flags);
 
 /**
- * Called when anything on the screen is reconfigured.
- *
- * Reloads cursor images as needed, then adjusts cursor positions.
- *
- * Driver should call this from crtc commit function.
+ * Superseeded by xf86CursorResetCursor, which is getting called
+ * automatically when necessary.
  */
-extern _X_EXPORT void
- xf86_reload_cursors(ScreenPtr screen);
+static _X_INLINE _X_DEPRECATED void xf86_reload_cursors(ScreenPtr screen) {}
 
 /**
  * Called from EnterVT to turn the cursors back on
@@ -994,14 +1003,6 @@ extern _X_EXPORT void
  */
 extern _X_EXPORT void
  xf86_cursors_fini(ScreenPtr screen);
-
-/**
- * Transform the cursor's coordinates based on the crtc transform.  Normally
- * this is done by the server, but if crtc->driverIsPerformingTransform is TRUE,
- * then the server does not transform the cursor position automatically.
- */
-extern _X_EXPORT void
- xf86CrtcTransformCursorPos(xf86CrtcPtr crtc, int *x, int *y);
 
 #ifdef XV
 /*

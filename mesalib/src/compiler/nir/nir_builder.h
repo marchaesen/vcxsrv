@@ -31,6 +31,9 @@ struct exec_list;
 typedef struct nir_builder {
    nir_cursor cursor;
 
+   /* Whether new ALU instructions will be marked "exact" */
+   bool exact;
+
    nir_shader *shader;
    nir_function_impl *impl;
 } nir_builder;
@@ -39,6 +42,7 @@ static inline void
 nir_builder_init(nir_builder *build, nir_function_impl *impl)
 {
    memset(build, 0, sizeof(*build));
+   build->exact = false;
    build->impl = impl;
    build->shader = impl->function->shader;
 }
@@ -50,6 +54,7 @@ nir_builder_init_simple_shader(nir_builder *build, void *mem_ctx,
 {
    build->shader = nir_shader_create(mem_ctx, stage, options);
    nir_function *func = nir_function_create(build->shader, "main");
+   build->exact = false;
    build->impl = nir_function_impl_create(func);
    build->cursor = nir_after_cf_list(&build->impl->body);
 }
@@ -70,10 +75,24 @@ nir_builder_cf_insert(nir_builder *build, nir_cf_node *cf)
 }
 
 static inline nir_ssa_def *
-nir_build_imm(nir_builder *build, unsigned num_components, nir_const_value value)
+nir_ssa_undef(nir_builder *build, unsigned num_components, unsigned bit_size)
+{
+   nir_ssa_undef_instr *undef =
+      nir_ssa_undef_instr_create(build->shader, num_components, bit_size);
+   if (!undef)
+      return NULL;
+
+   nir_instr_insert(nir_before_cf_list(&build->impl->body), &undef->instr);
+
+   return &undef->def;
+}
+
+static inline nir_ssa_def *
+nir_build_imm(nir_builder *build, unsigned num_components,
+              unsigned bit_size, nir_const_value value)
 {
    nir_load_const_instr *load_const =
-      nir_load_const_instr_create(build->shader, num_components);
+      nir_load_const_instr_create(build->shader, num_components, bit_size);
    if (!load_const)
       return NULL;
 
@@ -90,9 +109,20 @@ nir_imm_float(nir_builder *build, float x)
    nir_const_value v;
 
    memset(&v, 0, sizeof(v));
-   v.f[0] = x;
+   v.f32[0] = x;
 
-   return nir_build_imm(build, 1, v);
+   return nir_build_imm(build, 1, 32, v);
+}
+
+static inline nir_ssa_def *
+nir_imm_double(nir_builder *build, double x)
+{
+   nir_const_value v;
+
+   memset(&v, 0, sizeof(v));
+   v.f64[0] = x;
+
+   return nir_build_imm(build, 1, 64, v);
 }
 
 static inline nir_ssa_def *
@@ -101,12 +131,12 @@ nir_imm_vec4(nir_builder *build, float x, float y, float z, float w)
    nir_const_value v;
 
    memset(&v, 0, sizeof(v));
-   v.f[0] = x;
-   v.f[1] = y;
-   v.f[2] = z;
-   v.f[3] = w;
+   v.f32[0] = x;
+   v.f32[1] = y;
+   v.f32[2] = z;
+   v.f32[3] = w;
 
-   return nir_build_imm(build, 4, v);
+   return nir_build_imm(build, 4, 32, v);
 }
 
 static inline nir_ssa_def *
@@ -115,9 +145,9 @@ nir_imm_int(nir_builder *build, int x)
    nir_const_value v;
 
    memset(&v, 0, sizeof(v));
-   v.i[0] = x;
+   v.i32[0] = x;
 
-   return nir_build_imm(build, 1, v);
+   return nir_build_imm(build, 1, 32, v);
 }
 
 static inline nir_ssa_def *
@@ -126,12 +156,12 @@ nir_imm_ivec4(nir_builder *build, int x, int y, int z, int w)
    nir_const_value v;
 
    memset(&v, 0, sizeof(v));
-   v.i[0] = x;
-   v.i[1] = y;
-   v.i[2] = z;
-   v.i[3] = w;
+   v.i32[0] = x;
+   v.i32[1] = y;
+   v.i32[2] = z;
+   v.i32[3] = w;
 
-   return nir_build_imm(build, 4, v);
+   return nir_build_imm(build, 4, 32, v);
 }
 
 static inline nir_ssa_def *
@@ -142,6 +172,8 @@ nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
    nir_alu_instr *instr = nir_alu_instr_create(build->shader, op);
    if (!instr)
       return NULL;
+
+   instr->exact = build->exact;
 
    instr->src[0].src = nir_src_for_ssa(src0);
    if (src1)
@@ -164,6 +196,25 @@ nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
    }
    assert(num_components != 0);
 
+   /* Figure out the bitwidth based on the source bitwidth if the instruction
+    * is variable-width.
+    */
+   unsigned bit_size = nir_alu_type_get_type_size(op_info->output_type);
+   if (bit_size == 0) {
+      for (unsigned i = 0; i < op_info->num_inputs; i++) {
+         unsigned src_bit_size = instr->src[i].src.ssa->bit_size;
+         if (nir_alu_type_get_type_size(op_info->input_types[i]) == 0) {
+            if (bit_size)
+               assert(src_bit_size == bit_size);
+            else
+               bit_size = src_bit_size;
+         } else {
+            assert(src_bit_size ==
+               nir_alu_type_get_type_size(op_info->input_types[i]));
+         }
+      }
+   }
+
    /* Make sure we don't swizzle from outside of our source vector (like if a
     * scalar value was passed into a multiply with a vector).
     */
@@ -173,42 +224,13 @@ nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
       }
    }
 
-   nir_ssa_dest_init(&instr->instr, &instr->dest.dest, num_components, NULL);
+   nir_ssa_dest_init(&instr->instr, &instr->dest.dest, num_components,
+                     bit_size, NULL);
    instr->dest.write_mask = (1 << num_components) - 1;
 
    nir_builder_instr_insert(build, &instr->instr);
 
    return &instr->dest.dest.ssa;
-}
-
-#define ALU1(op)                                                          \
-static inline nir_ssa_def *                                               \
-nir_##op(nir_builder *build, nir_ssa_def *src0)                           \
-{                                                                         \
-   return nir_build_alu(build, nir_op_##op, src0, NULL, NULL, NULL);      \
-}
-
-#define ALU2(op)                                                          \
-static inline nir_ssa_def *                                               \
-nir_##op(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1)        \
-{                                                                         \
-   return nir_build_alu(build, nir_op_##op, src0, src1, NULL, NULL);      \
-}
-
-#define ALU3(op)                                                          \
-static inline nir_ssa_def *                                               \
-nir_##op(nir_builder *build, nir_ssa_def *src0,                           \
-         nir_ssa_def *src1, nir_ssa_def *src2)                            \
-{                                                                         \
-   return nir_build_alu(build, nir_op_##op, src0, src1, src2, NULL);      \
-}
-
-#define ALU4(op)                                                          \
-static inline nir_ssa_def *                                               \
-nir_##op(nir_builder *build, nir_ssa_def *src0,                           \
-         nir_ssa_def *src1, nir_ssa_def *src2, nir_ssa_def *src3)         \
-{                                                                         \
-   return nir_build_alu(build, nir_op_##op, src0, src1, src2, src3);      \
 }
 
 #include "nir_builder_opcodes.h"
@@ -238,7 +260,9 @@ static inline nir_ssa_def *
 nir_fmov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
 {
    nir_alu_instr *mov = nir_alu_instr_create(build->shader, nir_op_fmov);
-   nir_ssa_dest_init(&mov->instr, &mov->dest.dest, num_components, NULL);
+   nir_ssa_dest_init(&mov->instr, &mov->dest.dest, num_components,
+                     nir_src_bit_size(src.src), NULL);
+   mov->exact = build->exact;
    mov->dest.write_mask = (1 << num_components) - 1;
    mov->src[0] = src;
    nir_builder_instr_insert(build, &mov->instr);
@@ -250,7 +274,9 @@ static inline nir_ssa_def *
 nir_imov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
 {
    nir_alu_instr *mov = nir_alu_instr_create(build->shader, nir_op_imov);
-   nir_ssa_dest_init(&mov->instr, &mov->dest.dest, num_components, NULL);
+   nir_ssa_dest_init(&mov->instr, &mov->dest.dest, num_components,
+                     nir_src_bit_size(src.src), NULL);
+   mov->exact = build->exact;
    mov->dest.write_mask = (1 << num_components) - 1;
    mov->src[0] = src;
    nir_builder_instr_insert(build, &mov->instr);
@@ -262,7 +288,7 @@ nir_imov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
  * Construct an fmov or imov that reswizzles the source's components.
  */
 static inline nir_ssa_def *
-nir_swizzle(nir_builder *build, nir_ssa_def *src, unsigned swiz[4],
+nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned swiz[4],
             unsigned num_components, bool use_fmov)
 {
    nir_alu_src alu_src = { NIR_SRC_INIT };
@@ -274,11 +300,42 @@ nir_swizzle(nir_builder *build, nir_ssa_def *src, unsigned swiz[4],
                      nir_imov_alu(build, alu_src, num_components);
 }
 
+/* Selects the right fdot given the number of components in each source. */
+static inline nir_ssa_def *
+nir_fdot(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1)
+{
+   assert(src0->num_components == src1->num_components);
+   switch (src0->num_components) {
+   case 1: return nir_fmul(build, src0, src1);
+   case 2: return nir_fdot2(build, src0, src1);
+   case 3: return nir_fdot3(build, src0, src1);
+   case 4: return nir_fdot4(build, src0, src1);
+   default:
+      unreachable("bad component size");
+   }
+
+   return NULL;
+}
+
 static inline nir_ssa_def *
 nir_channel(nir_builder *b, nir_ssa_def *def, unsigned c)
 {
    unsigned swizzle[4] = {c, c, c, c};
    return nir_swizzle(b, def, swizzle, 1, false);
+}
+
+static inline nir_ssa_def *
+nir_channels(nir_builder *b, nir_ssa_def *def, unsigned mask)
+{
+   unsigned num_channels = 0, swizzle[4] = { 0, 0, 0, 0 };
+
+   for (unsigned i = 0; i < 4; i++) {
+      if ((mask & (1 << i)) == 0)
+         continue;
+      swizzle[num_channels++] = i;
+   }
+
+   return nir_swizzle(b, def, swizzle, num_channels, false);
 }
 
 /**
@@ -329,7 +386,8 @@ nir_load_var(nir_builder *build, nir_variable *var)
       nir_intrinsic_instr_create(build->shader, nir_intrinsic_load_var);
    load->num_components = num_components;
    load->variables[0] = nir_deref_var_create(load, var);
-   nir_ssa_dest_init(&load->instr, &load->dest, num_components, NULL);
+   nir_ssa_dest_init(&load->instr, &load->dest, num_components,
+                     glsl_get_bit_size(var->type), NULL);
    nir_builder_instr_insert(build, &load->instr);
    return &load->dest.ssa;
 }
@@ -349,6 +407,45 @@ nir_store_var(nir_builder *build, nir_variable *var, nir_ssa_def *value,
    nir_builder_instr_insert(build, &store->instr);
 }
 
+static inline void
+nir_store_deref_var(nir_builder *build, nir_deref_var *deref,
+                    nir_ssa_def *value, unsigned writemask)
+{
+   const unsigned num_components =
+      glsl_get_vector_elements(nir_deref_tail(&deref->deref)->type);
+
+   nir_intrinsic_instr *store =
+      nir_intrinsic_instr_create(build->shader, nir_intrinsic_store_var);
+   store->num_components = num_components;
+   store->const_index[0] = writemask & ((1 << num_components) - 1);
+   store->variables[0] = nir_deref_as_var(nir_copy_deref(store, &deref->deref));
+   store->src[0] = nir_src_for_ssa(value);
+   nir_builder_instr_insert(build, &store->instr);
+}
+
+static inline void
+nir_copy_deref_var(nir_builder *build, nir_deref_var *dest, nir_deref_var *src)
+{
+   assert(nir_deref_tail(&dest->deref)->type ==
+          nir_deref_tail(&src->deref)->type);
+
+   nir_intrinsic_instr *copy =
+      nir_intrinsic_instr_create(build->shader, nir_intrinsic_copy_var);
+   copy->variables[0] = nir_deref_as_var(nir_copy_deref(copy, &dest->deref));
+   copy->variables[1] = nir_deref_as_var(nir_copy_deref(copy, &src->deref));
+   nir_builder_instr_insert(build, &copy->instr);
+}
+
+static inline void
+nir_copy_var(nir_builder *build, nir_variable *dest, nir_variable *src)
+{
+   nir_intrinsic_instr *copy =
+      nir_intrinsic_instr_create(build->shader, nir_intrinsic_copy_var);
+   copy->variables[0] = nir_deref_var_create(copy, dest);
+   copy->variables[1] = nir_deref_var_create(copy, src);
+   nir_builder_instr_insert(build, &copy->instr);
+}
+
 static inline nir_ssa_def *
 nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
 {
@@ -356,9 +453,16 @@ nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
    load->num_components = nir_intrinsic_infos[op].dest_components;
    load->const_index[0] = index;
    nir_ssa_dest_init(&load->instr, &load->dest,
-                     nir_intrinsic_infos[op].dest_components, NULL);
+                     nir_intrinsic_infos[op].dest_components, 32, NULL);
    nir_builder_instr_insert(build, &load->instr);
    return &load->dest.ssa;
+}
+
+static inline void
+nir_jump(nir_builder *build, nir_jump_type jump_type)
+{
+   nir_jump_instr *jump = nir_jump_instr_create(build->shader, jump_type);
+   nir_builder_instr_insert(build, &jump->instr);
 }
 
 #endif /* NIR_BUILDER_H */

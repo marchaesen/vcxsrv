@@ -28,6 +28,7 @@
 #include "main/state.h"
 #include "st_atom.h"
 #include "st_context.h"
+#include "st_cb_bitmap.h"
 #include "st_cb_bufferobjects.h"
 #include "st_cb_compute.h"
 
@@ -43,6 +44,9 @@ static void st_dispatch_compute_common(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_grid_info info = { 0 };
+
+   st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    if (ctx->NewState)
       _mesa_update_state(ctx);

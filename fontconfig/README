@@ -1,11 +1,66 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.11.94 (2.12 RC4)
-                              2015-06-02
+                             Version 2.12
+                              2016-06-15
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12
+
+Akira TAGOH (8):
+      Modernize fc-blanks.py
+      Update URL
+      Bug 95477 - FcAtomicLock fails when SELinux denies link() syscall with EACCES
+      45-latin.conf: Add some Windows fonts to categorize them properly
+      Correct one for the previous change
+      Bug 95481 - Build fails on Android due to broken lconv struct
+      Add the static raw data to generate fcblanks.h
+      Remove unused code
+
+Erik de Castro Lopo (1):
+      Fix a couple of minor memory leaks
+
+Petr Filipsky (1):
+      Fix memory leak in FcDirCacheLock
+
+2.11.95 (2.12 RC5)
+
+Akira TAGOH (22):
+      Add one more debugging option to see transformation on font-matching
+      Fix a crash when no objects are available after filtering
+      No need to be public
+      mark as private at this moment
+      Don't return FcFalse even when no fonts dirs is configured
+      Add a warning for blank in fonts.conf
+      Fix a memory leak in FcFreeTypeQueryFace
+      Update CaseFolding.txt to Unicode 8.0
+      Bug 90867 - Memory Leak during error case in fccharset
+      Fix the broken cache more.
+      Fail on make runtime as needed instead of configure if no python installed
+      Use long long to see the same size between LP64 and LLP64
+      Fix build issue on MinGW
+      Use int64_t instead of long long
+      Fix compiler warnings on MinGW
+      Fix assertion on 32bit arch
+      remomve unnecessary code
+      Bug 93075 - Possible fix for make check failure on msys/MinGW...
+      Avoid an error message on testing when no fonts.conf installed
+      Add hintstyle templates and make hintslight default
+      Revert "Workaround another race condition issue"
+      Update libtool revision
+
+Behdad Esfahbod (6):
+      Revert changes made to FcConfigAppFontAddDir() recently
+      Call FcFreeTypeQueryFace() from fcdir.c, instead of FcFreeTypeQuery()
+      [GX] Support instance weight, width, and style name
+      [GX] Enumerate all named-instances in TrueType GX fonts
+      Improve OpenType to Fontconfig weight mapping
+      [GX] Improve weight mapping
+
+Patrick Haller (1):
+      Optimizations in FcStrSet
 
 2.11.94 (2.12 RC4)
 

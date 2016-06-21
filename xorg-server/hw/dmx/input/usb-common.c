@@ -77,7 +77,7 @@
 /** Read an event from the \a pDev device.  If the event is a motion
  * event, enqueue it with the \a motion function.  Otherwise, enqueue
  * the event with the \a enqueue function.  The \a block type is passed
- * to the functions so that they may block SIGIO handling as appropriate
+ * to the functions so that they may block the input thread as appropriate
  * to the caller of this function.
  *
  * Since USB devices return EV_KEY events for buttons and keys, \a

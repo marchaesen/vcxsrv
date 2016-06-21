@@ -661,7 +661,7 @@ void
 DeepCopyDeviceClasses(DeviceIntPtr from, DeviceIntPtr to,
                       DeviceChangedEvent *dce)
 {
-    OsBlockSIGIO();
+    input_lock();
 
     /* generic feedback classes, not tied to pointer and/or keyboard */
     DeepCopyFeedbackClasses(from, to);
@@ -671,7 +671,7 @@ DeepCopyDeviceClasses(DeviceIntPtr from, DeviceIntPtr to,
     if ((dce->flags & DEVCHANGE_POINTER_EVENT))
         DeepCopyPointerClasses(from, to);
 
-    OsReleaseSIGIO();
+    input_unlock();
 }
 
 /**
@@ -1377,6 +1377,9 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
     /* We don't deliver pointer events to non-owners */
     if (!TouchResourceIsOwner(ti, listener->listener))
+        return !Success;
+
+    if (!ti->emulate_pointer)
         return !Success;
 
     nevents = TouchConvertToPointerEvent(ev, &motion, &button);

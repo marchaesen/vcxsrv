@@ -42,6 +42,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/api_arrayelt.h"
 #include "main/api_validate.h"
 #include "main/dispatch.h"
+#include "util/bitscan.h"
 
 #include "vbo_context.h"
 #include "vbo_noop.h"
@@ -167,54 +168,56 @@ static void vbo_exec_copy_to_current( struct vbo_exec_context *exec )
 {
    struct gl_context *ctx = exec->ctx;
    struct vbo_context *vbo = vbo_context(ctx);
-   GLuint i;
+   GLbitfield64 enabled = exec->vtx.enabled & (~BITFIELD64_BIT(VBO_ATTRIB_POS));
 
-   for (i = VBO_ATTRIB_POS+1 ; i < VBO_ATTRIB_MAX ; i++) {
-      if (exec->vtx.attrsz[i]) {
-         /* Note: the exec->vtx.current[i] pointers point into the
-          * ctx->Current.Attrib and ctx->Light.Material.Attrib arrays.
-          */
-	 GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
-         fi_type tmp[8]; /* space for doubles */
-         int dmul = exec->vtx.attrtype[i] == GL_DOUBLE ? 2 : 1;
+   while (enabled) {
+      const int i = u_bit_scan64(&enabled);
 
-         if (exec->vtx.attrtype[i] == GL_DOUBLE) {
-            memset(tmp, 0, sizeof(tmp));
-            memcpy(tmp, exec->vtx.attrptr[i], exec->vtx.attrsz[i] * sizeof(GLfloat));
-         } else {
-            COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
-                                        exec->vtx.attrsz[i],
-                                        exec->vtx.attrptr[i],
-                                        exec->vtx.attrtype[i]);
-         }
+      /* Note: the exec->vtx.current[i] pointers point into the
+       * ctx->Current.Attrib and ctx->Light.Material.Attrib arrays.
+       */
+      GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
+      fi_type tmp[8]; /* space for doubles */
+      int dmul = exec->vtx.attrtype[i] == GL_DOUBLE ? 2 : 1;
 
-         if (exec->vtx.attrtype[i] != vbo->currval[i].Type ||
-             memcmp(current, tmp, 4 * sizeof(GLfloat) * dmul) != 0) {
-            memcpy(current, tmp, 4 * sizeof(GLfloat) * dmul);
+      assert(exec->vtx.attrsz[i]);
+
+      if (exec->vtx.attrtype[i] == GL_DOUBLE) {
+         memset(tmp, 0, sizeof(tmp));
+         memcpy(tmp, exec->vtx.attrptr[i], exec->vtx.attrsz[i] * sizeof(GLfloat));
+      } else {
+         COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
+                                     exec->vtx.attrsz[i],
+                                     exec->vtx.attrptr[i],
+                                     exec->vtx.attrtype[i]);
+      }
+
+      if (exec->vtx.attrtype[i] != vbo->currval[i].Type ||
+          memcmp(current, tmp, 4 * sizeof(GLfloat) * dmul) != 0) {
+         memcpy(current, tmp, 4 * sizeof(GLfloat) * dmul);
 	 
-            /* Given that we explicitly state size here, there is no need
-             * for the COPY_CLEAN above, could just copy 16 bytes and be
-             * done.  The only problem is when Mesa accesses ctx->Current
-             * directly.
-             */
-            /* Size here is in components - not bytes */
-            vbo->currval[i].Size = exec->vtx.attrsz[i] / dmul;
-            vbo->currval[i]._ElementSize = vbo->currval[i].Size * sizeof(GLfloat) * dmul;
-            vbo->currval[i].Type = exec->vtx.attrtype[i];
-            vbo->currval[i].Integer =
-                  vbo_attrtype_to_integer_flag(exec->vtx.attrtype[i]);
-            vbo->currval[i].Doubles =
-                  vbo_attrtype_to_double_flag(exec->vtx.attrtype[i]);
+         /* Given that we explicitly state size here, there is no need
+          * for the COPY_CLEAN above, could just copy 16 bytes and be
+          * done.  The only problem is when Mesa accesses ctx->Current
+          * directly.
+          */
+         /* Size here is in components - not bytes */
+         vbo->currval[i].Size = exec->vtx.attrsz[i] / dmul;
+         vbo->currval[i]._ElementSize = vbo->currval[i].Size * sizeof(GLfloat) * dmul;
+         vbo->currval[i].Type = exec->vtx.attrtype[i];
+         vbo->currval[i].Integer =
+            vbo_attrtype_to_integer_flag(exec->vtx.attrtype[i]);
+         vbo->currval[i].Doubles =
+            vbo_attrtype_to_double_flag(exec->vtx.attrtype[i]);
 
-            /* This triggers rather too much recalculation of Mesa state
-             * that doesn't get used (eg light positions).
-             */
-            if (i >= VBO_ATTRIB_MAT_FRONT_AMBIENT &&
-                i <= VBO_ATTRIB_MAT_BACK_INDEXES)
-               ctx->NewState |= _NEW_LIGHT;
-            
-            ctx->NewState |= _NEW_CURRENT_ATTRIB;
-         }
+         /* This triggers rather too much recalculation of Mesa state
+          * that doesn't get used (eg light positions).
+          */
+         if (i >= VBO_ATTRIB_MAT_FRONT_AMBIENT &&
+             i <= VBO_ATTRIB_MAT_BACK_INDEXES)
+            ctx->NewState |= _NEW_LIGHT;
+
+         ctx->NewState |= _NEW_CURRENT_ATTRIB;
       }
    }
 
@@ -311,6 +314,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
    exec->vtx.max_vert = vbo_compute_max_verts(exec);
    exec->vtx.vert_count = 0;
    exec->vtx.buffer_ptr = exec->vtx.buffer_map;
+   exec->vtx.enabled |= BITFIELD64_BIT(attr);
 
    if (unlikely(oldSize)) {
       /* Size changed, recalculate all the attrptr[] values
@@ -345,34 +349,34 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
    if (unlikely(exec->vtx.copied.nr)) {
       fi_type *data = exec->vtx.copied.buffer;
       fi_type *dest = exec->vtx.buffer_ptr;
-      GLuint j;
 
       assert(exec->vtx.buffer_ptr == exec->vtx.buffer_map);
 
       for (i = 0 ; i < exec->vtx.copied.nr ; i++) {
-	 for (j = 0 ; j < VBO_ATTRIB_MAX ; j++) {
+         GLbitfield64 enabled = exec->vtx.enabled;
+         while (enabled) {
+            const int j = u_bit_scan64(&enabled);
 	    GLuint sz = exec->vtx.attrsz[j];
+            GLint old_offset = old_attrptr[j] - exec->vtx.vertex;
+            GLint new_offset = exec->vtx.attrptr[j] - exec->vtx.vertex;
 
-	    if (sz) {
-	       GLint old_offset = old_attrptr[j] - exec->vtx.vertex;
-	       GLint new_offset = exec->vtx.attrptr[j] - exec->vtx.vertex;
+            assert(sz);
 
-	       if (j == attr) {
-		  if (oldSize) {
-		     fi_type tmp[4];
-		     COPY_CLEAN_4V_TYPE_AS_UNION(tmp, oldSize,
-                                                 data + old_offset,
-                                                 exec->vtx.attrtype[j]);
-		     COPY_SZ_4V(dest + new_offset, newSize, tmp);
-		  } else {
-		     fi_type *current = (fi_type *)vbo->currval[j].Ptr;
-		     COPY_SZ_4V(dest + new_offset, sz, current);
-		  }
-	       }
-	       else {
-		  COPY_SZ_4V(dest + new_offset, sz, data + old_offset);
-	       }
-	    }
+            if (j == attr) {
+               if (oldSize) {
+                  fi_type tmp[4];
+                  COPY_CLEAN_4V_TYPE_AS_UNION(tmp, oldSize,
+                                              data + old_offset,
+                                              exec->vtx.attrtype[j]);
+                  COPY_SZ_4V(dest + new_offset, newSize, tmp);
+               } else {
+                  fi_type *current = (fi_type *)vbo->currval[j].Ptr;
+                  COPY_SZ_4V(dest + new_offset, sz, current);
+               }
+            }
+            else {
+               COPY_SZ_4V(dest + new_offset, sz, data + old_offset);
+            }
 	 }
 
 	 data += old_vtx_size;
@@ -1145,6 +1149,7 @@ void vbo_exec_vtx_init( struct vbo_exec_context *exec )
    vbo_exec_vtxfmt_init( exec );
    _mesa_noop_vtxfmt_init(&exec->vtxfmt_noop);
 
+   exec->vtx.enabled = 0;
    for (i = 0 ; i < VBO_ATTRIB_MAX ; i++) {
       assert(i < ARRAY_SIZE(exec->vtx.attrsz));
       exec->vtx.attrsz[i] = 0;
@@ -1273,9 +1278,10 @@ void vbo_exec_FlushVertices( struct gl_context *ctx, GLuint flags )
 
 static void reset_attrfv( struct vbo_exec_context *exec )
 {   
-   GLuint i;
+   while (exec->vtx.enabled) {
+      const int i = u_bit_scan64(&exec->vtx.enabled);
+      assert(exec->vtx.attrsz[i]);
 
-   for (i = 0 ; i < VBO_ATTRIB_MAX ; i++) {
       exec->vtx.attrsz[i] = 0;
       exec->vtx.attrtype[i] = GL_FLOAT;
       exec->vtx.active_sz[i] = 0;

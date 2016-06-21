@@ -291,7 +291,7 @@ class glx_server_enum_function(glx_enum_function):
         print ''
         print '    compsize = __gl%s_size(%s);' % (f.name, string.join(f.count_parameter_list, ","))
         p = f.variable_length_parameter()
-        print '    return __GLX_PAD(%s);' % (p.size_string())
+        print '    return safe_pad(%s);' % (p.size_string())
 
         print '}'
         print ''
@@ -428,7 +428,7 @@ class PrintGlxReqSize_h(PrintGlxReqSize_common):
     def printBody(self, api):
         for func in api.functionIterateGlx():
             if not func.ignore and func.has_variable_size_request():
-                print 'extern PURE _X_HIDDEN int __glX%sReqSize(const GLbyte *pc, Bool swap);' % (func.name)
+                print 'extern PURE _X_HIDDEN int __glX%sReqSize(const GLbyte *pc, Bool swap, int reqlen);' % (func.name)
 
 
 class PrintGlxReqSize_c(PrintGlxReqSize_common):
@@ -452,20 +452,18 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         print '#include "indirect_size.h"'
         print '#include "indirect_reqsize.h"'
         print ''
-        print '#define __GLX_PAD(x)  (((x) + 3) & ~3)'
-        print ''
         print '#if defined(__CYGWIN__) || defined(__MINGW32__)'
         print '#  undef HAVE_ALIAS'
         print '#endif'
         print '#ifdef HAVE_ALIAS'
         print '#  define ALIAS2(from,to) \\'
-        print '    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \\'
+        print '    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \\'
         print '        __attribute__ ((alias( # to )));'
         print '#  define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )'
         print '#else'
         print '#  define ALIAS(from,to) \\'
-        print '    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \\'
-        print '    { return __glX ## to ## ReqSize( pc, swap ); }'
+        print '    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \\'
+        print '    { return __glX ## to ## ReqSize( pc, swap, reqlen ); }'
         print '#endif'
         print ''
         print ''
@@ -547,7 +545,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
 
     def common_func_print_just_header(self, f):
         print 'int'
-        print '__glX%sReqSize( const GLbyte * pc, Bool swap )' % (f.name)
+        print '__glX%sReqSize( const GLbyte * pc, Bool swap, int reqlen )' % (f.name)
         print '{'
 
 
@@ -602,7 +600,6 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         offset = 0
         fixup = []
         params = []
-        plus = ''
         size = ''
         param_offsets = {}
 
@@ -620,9 +617,10 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
                 if s == 0: s = 1
 
                 sig += "(%u,%u)" % (f.offset_of(p.counter), s)
-                size += '%s%s' % (plus, p.size_string())
-                plus = ' + '
-
+		if size == '':
+		    size = p.size_string()
+		else:
+		    size = "safe_add(%s, %s)" % (size, p.size_string())
 
         # If the calculated signature matches a function that has
         # already be emitted, don't emit this function.  Instead, add
@@ -645,7 +643,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
             self.common_emit_fixups(fixup)
             print ''
 
-            print '    return __GLX_PAD(%s);' % (size)
+            print '    return safe_pad(%s);' % (size)
             print '}'
             print ''
 

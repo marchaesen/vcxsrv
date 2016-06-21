@@ -52,10 +52,10 @@ default_template(struct pipe_sampler_view *view,
    view->u.tex.first_layer = 0;
    view->u.tex.last_layer = texture->target == PIPE_TEXTURE_3D ?
                                texture->depth0 - 1 : texture->array_size - 1;
-   view->swizzle_r = PIPE_SWIZZLE_RED;
-   view->swizzle_g = PIPE_SWIZZLE_GREEN;
-   view->swizzle_b = PIPE_SWIZZLE_BLUE;
-   view->swizzle_a = PIPE_SWIZZLE_ALPHA;
+   view->swizzle_r = PIPE_SWIZZLE_X;
+   view->swizzle_g = PIPE_SWIZZLE_Y;
+   view->swizzle_b = PIPE_SWIZZLE_Z;
+   view->swizzle_a = PIPE_SWIZZLE_W;
 
    /* Override default green and blue component expansion to the requested
     * one.
@@ -66,7 +66,7 @@ default_template(struct pipe_sampler_view *view,
     * components.
     *
     * To make it look less hackish, one would have to add
-    * UTIL_FORMAT_SWIZZLE_EXPAND to indicate components for expansion
+    * PIPE_SWIZZLE_EXPAND to indicate components for expansion
     * and then override without exceptions or favoring one component
     * over another.
     */
@@ -75,10 +75,10 @@ default_template(struct pipe_sampler_view *view,
 
       assert(desc);
       if (desc) {
-         if (desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_0) {
+         if (desc->swizzle[1] == PIPE_SWIZZLE_0) {
             view->swizzle_g = expand_green_blue;
          }
-         if (desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_0) {
+         if (desc->swizzle[2] == PIPE_SWIZZLE_0) {
             view->swizzle_b = expand_green_blue;
          }
       }
@@ -94,7 +94,7 @@ u_sampler_view_default_template(struct pipe_sampler_view *view,
    default_template(view,
                     texture,
                     format,
-                    PIPE_SWIZZLE_ZERO);
+                    PIPE_SWIZZLE_0);
 }
 
 void
@@ -106,5 +106,5 @@ u_sampler_view_default_dx9_template(struct pipe_sampler_view *view,
    default_template(view,
                     texture,
                     format,
-                    PIPE_SWIZZLE_ONE);
+                    PIPE_SWIZZLE_1);
 }

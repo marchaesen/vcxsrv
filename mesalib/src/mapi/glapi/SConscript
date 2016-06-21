@@ -52,8 +52,7 @@ for s in mapi_sources:
 #
 # Assembly sources
 #
-if (env['gcc'] or env['clang']) and \
-   env['platform'] not in ('cygwin', 'darwin', 'windows'):
+if env['platform'] not in ('cygwin', 'darwin', 'windows'):
     GLAPI = '#src/mapi/glapi/'
     sources = [GLAPI + 'gen/gl_and_es_API.xml'] + env.Glob(GLAPI + 'gen/*.xml')
 

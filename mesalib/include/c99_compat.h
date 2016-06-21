@@ -135,4 +135,48 @@ test_c99_compat_h(const void * restrict a,
 #endif
 
 
+/* Fallback definitions, for build systems other than autoconfig which don't
+ * auto-detect these things. */
+#ifdef HAVE_NO_AUTOCONF
+
+#  ifndef _WIN32
+#    define HAVE_PTHREAD
+#    define HAVE_POSIX_MEMALIGN
+#  endif
+
+#  ifdef __GNUC__
+#    if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 2)
+#      error "GCC version 4.2 or higher required"
+#    endif
+
+     /* https://gcc.gnu.org/onlinedocs/gcc-4.2.4/gcc/Other-Builtins.html */
+#    define HAVE___BUILTIN_CLZ 1
+#    define HAVE___BUILTIN_CLZLL 1
+#    define HAVE___BUILTIN_CTZ 1
+#    define HAVE___BUILTIN_EXPECT 1
+#    define HAVE___BUILTIN_FFS 1
+#    define HAVE___BUILTIN_FFSLL 1
+#    define HAVE___BUILTIN_POPCOUNT 1
+#    define HAVE___BUILTIN_POPCOUNTLL 1
+     /* https://gcc.gnu.org/onlinedocs/gcc-4.2.4/gcc/Function-Attributes.html */
+#    define HAVE_FUNC_ATTRIBUTE_FLATTEN 1
+#    define HAVE_FUNC_ATTRIBUTE_UNUSED 1
+#    define HAVE_FUNC_ATTRIBUTE_FORMAT 1
+#    define HAVE_FUNC_ATTRIBUTE_PACKED 1
+
+#    if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
+       /* https://gcc.gnu.org/onlinedocs/gcc-4.3.6/gcc/Other-Builtins.html */
+#      define HAVE___BUILTIN_BSWAP32 1
+#      define HAVE___BUILTIN_BSWAP64 1
+#    endif
+
+#    if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
+#      define HAVE___BUILTIN_UNREACHABLE 1
+#    endif
+
+#  endif /* __GNUC__ */
+
+#endif /* !HAVE_AUTOCONF */
+
+
 #endif /* _C99_COMPAT_H_ */

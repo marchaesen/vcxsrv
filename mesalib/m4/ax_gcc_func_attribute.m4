@@ -53,6 +53,7 @@
 #    optimize
 #    packed
 #    pure
+#    returns_nonnull
 #    unused
 #    used
 #    visibility
@@ -75,6 +76,9 @@
 #   warranty.
 
 #serial 2
+
+# mattst88:
+#     Added support for returns_nonnull attribute
 
 AC_DEFUN([AX_GCC_FUNC_ATTRIBUTE], [
     AS_VAR_PUSHDEF([ac_var], [ax_cv_have_func_attribute_$1])
@@ -174,6 +178,9 @@ AC_DEFUN([AX_GCC_FUNC_ATTRIBUTE], [
                 ],
                 [pure], [
                     int foo( void ) __attribute__(($1));
+                ],
+                [returns_nonnull], [
+                    int *foo( void ) __attribute__(($1));
                 ],
                 [unused], [
                     int foo( void ) __attribute__(($1));

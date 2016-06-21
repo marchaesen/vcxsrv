@@ -32,8 +32,7 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-static
-xf86ConfigSymTabRec OutputClassTab[] = {
+static const xf86ConfigSymTabRec OutputClassTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {DRIVER, "driver"},

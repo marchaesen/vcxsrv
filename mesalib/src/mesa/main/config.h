@@ -132,10 +132,13 @@
  */
 #define MAX_TEXTURE_UNITS ((MAX_TEXTURE_COORD_UNITS > MAX_TEXTURE_IMAGE_UNITS) ? MAX_TEXTURE_COORD_UNITS : MAX_TEXTURE_IMAGE_UNITS)
 
-/** Maximun number of viewports supported with ARB_viewport_array */
+/** Maximum number of viewports supported with ARB_viewport_array */
 #define MAX_VIEWPORTS 16
 
-/** Maxmimum size for CVA.  May be overridden by the drivers.  */
+/** Maximum number of window rectangles supported with EXT_window_rectangles */
+#define MAX_WINDOW_RECTANGLES 8
+
+/** Maximum size for CVA.  May be overridden by the drivers.  */
 #define MAX_ARRAY_LOCK_SIZE 3000
 
 /** Subpixel precision for antialiasing, window coordinate snapping */

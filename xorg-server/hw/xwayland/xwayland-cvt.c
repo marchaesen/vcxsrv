@@ -296,8 +296,8 @@ xwayland_cvt(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
     if (Interlaced)
         modeinfo.modeFlags |= RR_Interlace;
 
-    snprintf(name, sizeof name, "%dx%d@%.1fHz",
-             modeinfo.width, modeinfo.height, VRefresh);
+    snprintf(name, sizeof name, "%dx%d",
+             modeinfo.width, modeinfo.height);
     modeinfo.nameLength = strlen(name);
 
     return RRModeGet(&modeinfo, name);

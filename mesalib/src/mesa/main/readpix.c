@@ -608,8 +608,7 @@ read_rgba_pixels( struct gl_context *ctx,
                                              dst, format, type);
    }
 
-   if (rgba)
-      free(rgba);
+   free(rgba);
 
 done_swap:
    /* Handle byte swapping if required */

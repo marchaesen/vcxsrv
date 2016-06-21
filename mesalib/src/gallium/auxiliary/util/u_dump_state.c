@@ -474,7 +474,7 @@ util_dump_shader_state(FILE *stream, const struct pipe_shader_state *state)
       util_dump_struct_begin(stream, "pipe_stream_output_info");
       util_dump_member(stream, uint, &state->stream_output, num_outputs);
       util_dump_array(stream, uint, state->stream_output.stride,
-                      Elements(state->stream_output.stride));
+                      ARRAY_SIZE(state->stream_output.stride));
       util_dump_array_begin(stream);
       for(i = 0; i < state->stream_output.num_outputs; ++i) {
          util_dump_elem_begin(stream);
@@ -519,7 +519,7 @@ util_dump_depth_stencil_alpha_state(FILE *stream, const struct pipe_depth_stenci
 
    util_dump_member_begin(stream, "stencil");
    util_dump_array_begin(stream);
-   for(i = 0; i < Elements(state->stencil); ++i) {
+   for(i = 0; i < ARRAY_SIZE(state->stencil); ++i) {
       util_dump_elem_begin(stream);
       util_dump_struct_begin(stream, "pipe_stencil_state");
       util_dump_member(stream, bool, &state->stencil[i], enabled);
@@ -645,6 +645,8 @@ util_dump_framebuffer_state(FILE *stream, const struct pipe_framebuffer_state *s
 
    util_dump_member(stream, uint, state, width);
    util_dump_member(stream, uint, state, height);
+   util_dump_member(stream, uint, state, samples);
+   util_dump_member(stream, uint, state, layers);
    util_dump_member(stream, uint, state, nr_cbufs);
    util_dump_member_array(stream, ptr, state, cbufs);
    util_dump_member(stream, ptr, state, zsbuf);

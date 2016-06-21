@@ -43,7 +43,7 @@ struct u_upload_mgr {
 
    unsigned default_size;  /* Minimum size of the upload buffer, in bytes. */
    unsigned bind;          /* Bitmask of PIPE_BIND_* flags. */
-   unsigned usage;         /* PIPE_USAGE_* */
+   enum pipe_resource_usage usage;
    unsigned map_flags;     /* Bitmask of PIPE_TRANSFER_* flags. */
    boolean map_persistent; /* If persistent mappings are supported. */
 
@@ -57,7 +57,7 @@ struct u_upload_mgr {
 
 struct u_upload_mgr *
 u_upload_create(struct pipe_context *pipe, unsigned default_size,
-                unsigned bind, unsigned usage)
+                unsigned bind, enum pipe_resource_usage usage)
 {
    struct u_upload_mgr *upload = CALLOC_STRUCT( u_upload_mgr );
    if (!upload)

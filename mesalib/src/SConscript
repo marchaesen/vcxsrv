@@ -1,5 +1,8 @@
-Import('*')
+import filecmp
+import os
+import subprocess
 
+Import('*')
 
 if env['platform'] == 'windows':
     SConscript('getopt/SConscript')
@@ -11,6 +14,50 @@ if env['hostonly']:
     # We are just compiling the things necessary on the host for cross
     # compilation
     Return()
+
+
+def write_git_sha1_h_file(filename):
+    """Mesa looks for a git_sha1.h file at compile time in order to display
+    the current git hash id in the GL_VERSION string.  This function tries
+    to retrieve the git hashid and write the header file.  An empty file
+    will be created if anything goes wrong."""
+
+    args = [ 'git', 'rev-parse', '--short=10', 'HEAD' ]
+    try:
+        (commit, foo) = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()
+    except:
+        print "Warning: exception in write_git_sha1_h_file()"
+        # git log command didn't work
+        if not os.path.exists(filename):
+            dirname = os.path.dirname(filename)
+            if dirname and not os.path.exists(dirname):
+                os.makedirs(dirname)
+            # create an empty file if none already exists
+            f = open(filename, "w")
+            f.close()
+        return
+
+    # note that commit[:-1] removes the trailing newline character
+    commit = '#define MESA_GIT_SHA1 "git-%s"\n' % commit[:-1]
+    tempfile = "git_sha1.h.tmp"
+    f = open(tempfile, "w")
+    f.write(commit)
+    f.close()
+    if not os.path.exists(filename) or not filecmp.cmp(tempfile, filename):
+        # The filename does not exist or it's different from the new file,
+        # so replace old file with new.
+        if os.path.exists(filename):
+            os.remove(filename)
+        os.rename(tempfile, filename)
+    return
+
+
+# Create the git_sha1.h header file
+write_git_sha1_h_file("git_sha1.h")
+# and update CPPPATH so the git_sha1.h header can be found
+env.Append(CPPPATH = ["#" + env['build_dir']])
+
+
 
 if env['platform'] != 'windows':
     SConscript('loader/SConscript')

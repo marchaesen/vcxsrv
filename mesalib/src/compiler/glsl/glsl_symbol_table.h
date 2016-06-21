@@ -100,6 +100,11 @@ struct glsl_symbol_table {
     */
    void disable_variable(const char *name);
 
+   /**
+    * Replaces the variable in the entry by the new variable.
+    */
+   void replace_variable(const char *name, ir_variable *v);
+
 private:
    symbol_table_entry *get_entry(const char *name);
 

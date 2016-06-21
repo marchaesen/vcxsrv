@@ -127,7 +127,8 @@ _mesa_MinSampleShading(GLclampf value)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_sample_shading || !_mesa_is_desktop_gl(ctx)) {
+   if (!_mesa_has_ARB_sample_shading(ctx) &&
+       !_mesa_has_OES_sample_shading(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glMinSampleShading");
       return;
    }

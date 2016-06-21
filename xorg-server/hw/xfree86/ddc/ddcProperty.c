@@ -27,6 +27,7 @@
 
 #include "xf86.h"
 #include "xf86DDC.h"
+#include "xf86Priv.h"
 #include <X11/Xatom.h>
 #include "property.h"
 #include "propertyst.h"
@@ -34,40 +35,35 @@
 
 #define EDID1_ATOM_NAME         "XFree86_DDC_EDID1_RAWDATA"
 
-static void
-edidMakeAtom(int i, const char *name, CARD8 *data, int size)
+static int
+edidSize(const xf86MonPtr DDC)
 {
-    Atom atom;
-    unsigned char *atom_data;
+    int ret = 128;
 
-    if (!(atom_data = malloc(size * sizeof(CARD8))))
-        return;
+    if (DDC->flags & EDID_COMPLETE_RAWDATA)
+       ret += DDC->no_sections * 128;
 
-    atom = MakeAtom(name, strlen(name), TRUE);
-    memcpy(atom_data, data, size);
-    xf86RegisterRootWindowProperty(i, atom, XA_INTEGER, 8, size, atom_data);
+    return ret;
 }
 
 static void
-addRootWindowProperties(ScrnInfoPtr pScrn, xf86MonPtr DDC)
+setRootWindowEDID(ScreenPtr pScreen, xf86MonPtr DDC)
 {
-    int scrnIndex = pScrn->scrnIndex;
+    Atom atom = MakeAtom(EDID1_ATOM_NAME, strlen(EDID1_ATOM_NAME), TRUE);
 
-    if (DDC->flags & MONITOR_DISPLAYID) {
-        /* Don't bother, use RANDR already */
-        return;
-    }
-    else if (DDC->ver.version == 1) {
-        int size = 128 +
-            (DDC->flags & EDID_COMPLETE_RAWDATA ? DDC->no_sections * 128 : 0);
+    dixChangeWindowProperty(serverClient, pScreen->root, atom, XA_INTEGER,
+                            8, PropModeReplace, edidSize(DDC), DDC->rawData,
+                            FALSE);
+}
 
-        edidMakeAtom(scrnIndex, EDID1_ATOM_NAME, DDC->rawData, size);
-    }
-    else {
-        xf86DrvMsg(scrnIndex, X_PROBED, "unexpected EDID version %d.%d\n",
-                   DDC->ver.version, DDC->ver.revision);
-        return;
-    }
+static void
+addEDIDProp(CallbackListPtr *pcbl, void *scrn, void *screen)
+{
+    ScreenPtr pScreen = screen;
+    ScrnInfoPtr pScrn = scrn;
+
+    if (xf86ScreenToScrn(pScreen) == pScrn)
+        setRootWindowEDID(pScreen, pScrn->monitor->DDC);
 }
 
 Bool
@@ -76,11 +72,12 @@ xf86SetDDCproperties(ScrnInfoPtr pScrn, xf86MonPtr DDC)
     if (!pScrn || !pScrn->monitor || !DDC)
         return FALSE;
 
-    if (DDC->flags & MONITOR_DISPLAYID);
-    else
-        xf86EdidMonitorSet(pScrn->scrnIndex, pScrn->monitor, DDC);
+    xf86EdidMonitorSet(pScrn->scrnIndex, pScrn->monitor, DDC);
 
-    addRootWindowProperties(pScrn, DDC);
+    if (xf86Initialising)
+        AddCallback(&RootWindowFinalizeCallback, addEDIDProp, pScrn);
+    else
+        setRootWindowEDID(pScrn->pScreen, DDC);
 
     return TRUE;
 }

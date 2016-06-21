@@ -86,7 +86,6 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
         __GLX_SEND_HEADER();
         __GLX_SEND_VOID_ARRAY(compsize);
     }
-    cx->hasUnflushedCommands = GL_FALSE;
     return Success;
 }
 

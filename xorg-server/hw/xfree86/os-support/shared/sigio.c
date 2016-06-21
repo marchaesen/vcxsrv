@@ -130,6 +130,26 @@ xf86IsPipe(int fd)
     return S_ISFIFO(buf.st_mode);
 }
 
+static void
+block_sigio(void)
+{
+    sigset_t set;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGIO);
+    xthread_sigmask(SIG_BLOCK, &set, NULL);
+}
+
+static void
+release_sigio(void)
+{
+    sigset_t set;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGIO);
+    xthread_sigmask(SIG_UNBLOCK, &set, NULL);
+}
+
 int
 xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
 {
@@ -145,7 +165,7 @@ xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
         if (!xf86SigIOFuncs[i].f) {
             if (xf86IsPipe(fd))
                 return 0;
-            OsBlockSIGIO();
+            block_sigio();
 #ifdef O_ASYNC
             if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_ASYNC) == -1) {
                 xf86Msg(X_WARNING, "fcntl(%d, O_ASYNC): %s\n",
@@ -173,7 +193,7 @@ xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
             }
 #endif
             if (!installed) {
-                OsReleaseSIGIO();
+                release_sigio();
                 return 0;
             }
             sigemptyset(&sa.sa_mask);
@@ -189,7 +209,7 @@ xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
             if (fd >= xf86SigIOMaxFd)
                 xf86SigIOMaxFd = fd + 1;
             FD_SET(fd, &xf86SigIOMask);
-            OsReleaseSIGIO();
+            release_sigio();
             return 1;
         }
         /* Allow overwriting of the closure and callback */
@@ -257,35 +277,4 @@ xf86RemoveSIGIOHandler(int fd)
         }
     }
     return ret;
-}
-
-int
-xf86BlockSIGIO(void)
-{
-    return OsBlockSIGIO();
-}
-
-void
-xf86UnblockSIGIO(int wasset)
-{
-    OsReleaseSIGIO();
-}
-
-void
-xf86AssertBlockedSIGIO(char *where)
-{
-    sigset_t set, old;
-
-    sigemptyset(&set);
-    sigprocmask(SIG_BLOCK, &set, &old);
-    if (!sigismember(&old, SIGIO))
-        xf86Msg(X_ERROR, "SIGIO not blocked at %s\n", where);
-}
-
-/* XXX This is a quick hack for the benefit of xf86SetSilkenMouse() */
-
-int
-xf86SIGIOSupported(void)
-{
-    return 1;
 }

@@ -1526,7 +1526,7 @@ InjectPointerKeyEvents(DeviceIntPtr dev, int type, int button, int flags,
         return;
 
     events = InitEventList(GetMaximumEventsNum() + 1);
-    OsBlockSignals();
+    input_lock();
     pScreen = miPointerGetScreen(ptr);
     saveWait = miPointerSetWaitForUpdate(pScreen, FALSE);
     nevents = GetPointerEvents(events, ptr, type, button, flags, mask);
@@ -1534,13 +1534,12 @@ InjectPointerKeyEvents(DeviceIntPtr dev, int type, int button, int flags,
         UpdateFromMaster(&events[nevents], lastSlave, DEVCHANGE_POINTER_EVENT,
                          &nevents);
     miPointerSetWaitForUpdate(pScreen, saveWait);
-    OsReleaseSignals();
 
     for (i = 0; i < nevents; i++)
         mieqProcessDeviceEvent(ptr, &events[i], NULL);
+    input_unlock();
 
     FreeEventList(events, GetMaximumEventsNum());
-
 }
 
 static void

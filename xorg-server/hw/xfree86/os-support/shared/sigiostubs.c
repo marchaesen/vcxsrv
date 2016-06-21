@@ -45,26 +45,3 @@ xf86RemoveSIGIOHandler(int fd)
 {
     return 0;
 }
-
-int
-xf86BlockSIGIO(void)
-{
-    return 0;
-}
-
-void
-xf86UnblockSIGIO(int wasset)
-{
-}
-
-void
-xf86AssertBlockedSIGIO(char *where)
-{
-}
-
-/* XXX This is a quick hack for the benefit of xf86SetSilkenMouse() */
-Bool
-xf86SIGIOSupported()
-{
-    return FALSE;
-}

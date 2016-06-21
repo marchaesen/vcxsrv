@@ -8269,7 +8269,14 @@
     <enum name="QUERY_BY_REGION_NO_WAIT_INVERTED"         value="0x8E1A"/>
 </category>
 
-<!-- ARB extensions 162 - 163 -->
+<category name="ARB_cull_distance" number="162">
+    <enum name="MAX_CULL_DISTANCES"                      value="0x82F9"/>
+    <enum name="MAX_COMBINED_CLIP_AND_CULL_DISTANCES"    value="0x82FA"/>
+</category>
+
+<!-- ARB extensions 163 -->
+
+<xi:include href="OES_texture_compression_astc.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="ARB_direct_state_access.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8280,6 +8287,9 @@
 <xi:include href="ARB_texture_barrier.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="KHR_context_flush_control.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extension 170 -->
+<xi:include href="KHR_robustness.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <!-- ARB extension 171 -->
 <xi:include href="ARB_pipeline_statistics_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
@@ -12741,12 +12751,14 @@
     <enum name="POLYGON_OFFSET_CLAMP_EXT"             value="0x8E1B">
         <size name="Get" mode="get"/>
     </enum>
-    <function name="PolygonOffsetClampEXT">
+    <function name="PolygonOffsetClampEXT" es1="1.0" es2="2.0">
         <param name="factor" type="GLfloat"/>
         <param name="units"  type="GLfloat"/>
         <param name="clamp"  type="GLfloat"/>
     </function>
 </category>
+
+<xi:include href="EXT_window_rectangles.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <!-- Unnumbered extensions sorted by name. -->
 

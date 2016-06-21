@@ -43,8 +43,6 @@
 #include <execinfo.h>
 #endif
 
-#include <signal.h>
-
 #if defined(CONFIG_UDEV) || defined(CONFIG_HAL)
 #include <hotplug.h>
 #endif

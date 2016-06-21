@@ -61,7 +61,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec FilesTab[] = {
+static const xf86ConfigSymTabRec FilesTab[] = {
     {ENDSECTION, "endsection"},
     {FONTPATH, "fontpath"},
     {MODULEPATH, "modulepath"},

@@ -136,13 +136,11 @@ struct __GLXWinDrawable {
 struct __GLXWinScreen {
     __GLXscreen base;
 
-    /* Supported GLX extensions */
-    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
-
     Bool has_WGL_ARB_multisample;
     Bool has_WGL_ARB_pixel_format;
     Bool has_WGL_ARB_pbuffer;
     Bool has_WGL_ARB_render_texture;
+    Bool has_WGL_ARB_make_current_read;
 
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;
@@ -627,75 +625,46 @@ glxWinScreenProbe(ScreenPtr pScreen)
     // those screens to be accelerated in XP and earlier...
 
     {
-        // testing facility to not use any WGL extensions
-        char *envptr = getenv("GLWIN_NO_WGL_EXTENSIONS");
-
-        if ((envptr != NULL) && (atoi(envptr) != 0)) {
-            ErrorF("GLWIN_NO_WGL_EXTENSIONS is set, ignoring WGL_EXTENSIONS\n");
-            wgl_extensions = "";
-        }
-    }
-
-    {
-        Bool glx_sgi_make_current_read = FALSE;
-
         //
         // Based on the WGL extensions available, enable various GLX extensions
         // XXX: make this table-driven ?
         //
-        memset(screen->glx_enable_bits, 0, __GLX_EXT_BYTES);
+        __glXInitExtensionEnableBits(screen->base.glx_enable_bits);
 
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_info");
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_rating");
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_import_context");
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_OML_swap_method");
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_fbconfig");
-
-        if (strstr(wgl_extensions, "WGL_ARB_make_current_read")) {
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_SGI_make_current_read");
-            LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_make_current_read\n");
-            glx_sgi_make_current_read = TRUE;
-        }
+        if (strstr(wgl_extensions, "WGL_ARB_make_current_read"))
+            screen->has_WGL_ARB_make_current_read = TRUE;
+        else
+            LogMessage(X_WARNING, "AIGLX: missing WGL_ARB_make_current_read\n");
 
         if (strstr(gl_extensions, "GL_WIN_swap_hint")) {
-            __glXEnableExtension(screen->glx_enable_bits,
+            __glXEnableExtension(screen->base.glx_enable_bits,
                                  "GLX_MESA_copy_sub_buffer");
             LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
         }
 
         if (strstr(wgl_extensions, "WGL_EXT_swap_control")) {
-            __glXEnableExtension(screen->glx_enable_bits,
+            __glXEnableExtension(screen->base.glx_enable_bits,
                                  "GLX_SGI_swap_control");
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_MESA_swap_control");
-            LogMessage(X_INFO,
-                       "AIGLX: enabled GLX_SGI_swap_control and GLX_MESA_swap_control\n");
+            LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_swap_control\n");
         }
 
 /*       // Hmm?  screen->texOffset */
 /*       if (strstr(wgl_extensions, "WGL_ARB_render_texture")) */
 /*         { */
-/*           __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap"); */
+/*           __glXEnableExtension(screen->base.glx_enable_bits, "GLX_EXT_texture_from_pixmap"); */
 /*           LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n"); */
 /*           screen->has_WGL_ARB_render_texture = TRUE; */
 /*         } */
 
-        if (strstr(wgl_extensions, "WGL_ARB_pbuffer")) {
-            __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_pbuffer");
-            LogMessage(X_INFO, "AIGLX: enabled GLX_SGIX_pbuffer\n");
+        if (strstr(wgl_extensions, "WGL_ARB_pbuffer"))
             screen->has_WGL_ARB_pbuffer = TRUE;
-        }
+        else
+            LogMessage(X_WARNING, "AIGLX: missing WGL_ARB_pbuffer\n");
 
-        if (strstr(wgl_extensions, "WGL_ARB_multisample")) {
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_ARB_multisample");
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_SGIS_multisample");
-            LogMessage(X_INFO,
-                       "AIGLX: enabled GLX_ARB_multisample and GLX_SGIS_multisample\n");
+        if (strstr(wgl_extensions, "WGL_ARB_multisample"))
             screen->has_WGL_ARB_multisample = TRUE;
-        }
+        else
+            LogMessage(X_WARNING, "AIGLX: missing WGL_ARB_multisample\n");
 
         screen->base.destroy = glxWinScreenDestroy;
         screen->base.createContext = glxWinCreateContext;
@@ -737,40 +706,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
         screen->base.numVisuals = 0;
 
         __glXScreenInit(&screen->base, pScreen);
-
-        // Generate the GLX extensions string (overrides that set by __glXScreenInit())
-        {
-            unsigned int buffer_size =
-                __glXGetExtensionString(screen->glx_enable_bits, NULL);
-            if (buffer_size > 0) {
-                free(screen->base.GLXextensions);
-
-                screen->base.GLXextensions = xnfalloc(buffer_size);
-                __glXGetExtensionString(screen->glx_enable_bits,
-                                        screen->base.GLXextensions);
-            }
-        }
-
-        //
-        // Override the GLX version (__glXScreenInit() sets it to "1.2")
-        // if we have all the needed extensions to operate as a higher version
-        //
-        // SGIX_fbconfig && SGIX_pbuffer && SGI_make_current_read -> 1.3
-        // ARB_multisample -> 1.4
-        //
-        if (screen->has_WGL_ARB_pbuffer && glx_sgi_make_current_read) {
-            if (screen->has_WGL_ARB_multisample) {
-                screen->base.GLXmajor = 1;
-                screen->base.GLXminor = 4;
-            }
-            else {
-                screen->base.GLXmajor = 1;
-                screen->base.GLXminor = 3;
-            }
-        }
     }
-    LogMessage(X_INFO, "AIGLX: Set GLX version to %d.%d\n",
-               screen->base.GLXmajor, screen->base.GLXminor);
 
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hglrc);
@@ -1434,6 +1370,7 @@ static int
 glxWinContextMakeCurrent(__GLXcontext * base)
 {
     __GLXWinContext *gc = (__GLXWinContext *) base;
+    glxWinScreen *scr = (glxWinScreen *)base->pGlxScreen;
     BOOL ret;
     HDC drawDC;
     HDC readDC = NULL;
@@ -1466,7 +1403,14 @@ glxWinContextMakeCurrent(__GLXcontext * base)
     }
 
     if ((gc->base.readPriv != NULL) && (gc->base.readPriv != gc->base.drawPriv)) {
-        // XXX: should only occur with WGL_ARB_make_current_read
+        /*
+         * We enable GLX_SGI_make_current_read unconditionally, but the
+         * renderer might not support it. It's fairly rare to use this
+         * feature so just error out if it can't work.
+         */
+        if (!scr->has_WGL_ARB_make_current_read)
+            return False;
+
         /*
            If there is a separate read drawable, create a separate read DC, and
            use the wglMakeContextCurrent extension to make the context current drawing

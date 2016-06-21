@@ -134,13 +134,19 @@ InitPredictableAccelerationScheme(DeviceIntPtr dev,
     scheme = *protoScheme;
     vel = calloc(1, sizeof(DeviceVelocityRec));
     schemeData = calloc(1, sizeof(PredictableAccelSchemeRec));
-    if (!vel || !schemeData)
+    if (!vel || !schemeData) {
+        free(vel);
+        free(schemeData);
         return FALSE;
+    }
     InitVelocityData(vel);
     schemeData->vel = vel;
     scheme.accelData = schemeData;
-    if (!InitializePredictableAccelerationProperties(dev, vel, schemeData))
+    if (!InitializePredictableAccelerationProperties(dev, vel, schemeData)) {
+        free(vel);
+        free(schemeData);
         return FALSE;
+    }
     /* all fine, assign scheme to device */
     dev->valuator->accelScheme = scheme;
     return TRUE;
@@ -159,7 +165,7 @@ AccelerationDefaultCleanup(DeviceIntPtr dev)
          * AccelSchemeProc(), but that seems impossible. Schemes don't get
          * switched often anyway.
          */
-        OsBlockSignals();
+        input_lock();
         dev->valuator->accelScheme.AccelSchemeProc = NULL;
         FreeVelocityData(vel);
         free(vel);
@@ -169,7 +175,7 @@ AccelerationDefaultCleanup(DeviceIntPtr dev)
                                                 accelData);
         free(dev->valuator->accelScheme.accelData);
         dev->valuator->accelScheme.accelData = NULL;
-        OsReleaseSignals();
+        input_unlock();
     }
 }
 
@@ -788,12 +794,12 @@ ComputeAcceleration(DeviceIntPtr dev,
             BasicComputeAcceleration(dev, vel, vel->last_velocity, threshold,
                                      acc);
         result +=
-            4.0f * BasicComputeAcceleration(dev, vel,
+            4.0 * BasicComputeAcceleration(dev, vel,
                                             (vel->last_velocity +
                                              vel->velocity) / 2,
                                             threshold,
                                             acc);
-        result /= 6.0f;
+        result /= 6.0;
         DebugAccelF("profile average [%.2f ... %.2f] is %.3f\n",
                     vel->velocity, vel->last_velocity, result);
     }
@@ -854,7 +860,7 @@ PowerProfile(DeviceIntPtr dev,
 {
     double vel_dist;
 
-    acc = (acc - 1.0) * 0.1f + 1.0;     /* without this, acc of 2 is unuseable */
+    acc = (acc - 1.0) * 0.1 + 1.0;     /* without this, acc of 2 is unuseable */
 
     if (velocity <= threshold)
         return vel->min_acceleration;
@@ -872,9 +878,9 @@ PowerProfile(DeviceIntPtr dev,
 static inline double
 CalcPenumbralGradient(double x)
 {
-    x *= 2.0f;
-    x -= 1.0f;
-    return 0.5f + (x * sqrt(1.0 - x * x) + asin(x)) / M_PI;
+    x *= 2.0;
+    x -= 1.0;
+    return 0.5 + (x * sqrt(1.0 - x * x) + asin(x)) / M_PI;
 }
 
 /**
@@ -910,23 +916,23 @@ SmoothLinearProfile(DeviceIntPtr dev,
 {
     double res, nv;
 
-    if (acc > 1.0f)
-        acc -= 1.0f;            /*this is so acc = 1 is no acceleration */
+    if (acc > 1.0)
+        acc -= 1.0;            /*this is so acc = 1 is no acceleration */
     else
-        return 1.0f;
+        return 1.0;
 
-    nv = (velocity - threshold) * acc * 0.5f;
+    nv = (velocity - threshold) * acc * 0.5;
 
     if (nv < 0) {
         res = 0;
     }
     else if (nv < 2) {
-        res = CalcPenumbralGradient(nv * 0.25f) * 2.0f;
+        res = CalcPenumbralGradient(nv * 0.25) * 2.0;
     }
     else {
-        nv -= 2.0f;
-        res = nv * 2.0f / M_PI  /* steepness of gradient at 0.5 */
-            + 1.0f;             /* gradient crosses 2|1 */
+        nv -= 2.0;
+        res = nv * 2.0 / M_PI  /* steepness of gradient at 0.5 */
+            + 1.0;             /* gradient crosses 2|1 */
     }
     res += vel->min_acceleration;
     return res;
@@ -943,7 +949,7 @@ SmoothLimitedProfile(DeviceIntPtr dev,
 {
     double res;
 
-    if (velocity >= threshold || threshold == 0.0f)
+    if (velocity >= threshold || threshold == 0.0)
         return acc;
 
     velocity /= threshold;      /* should be [0..1[ now */
@@ -965,7 +971,7 @@ static double
 NoProfile(DeviceIntPtr dev,
           DeviceVelocityPtr vel, double velocity, double threshold, double acc)
 {
-    return 1.0f;
+    return 1.0;
 }
 
 static PointerAccelerationProfileFunc
@@ -1085,7 +1091,7 @@ acceleratePointerPredictable(DeviceIntPtr dev, ValuatorMask *val, CARD32 evtime)
         return;
 
     if (velocitydata->statistics.profile_number == AccelProfileNone &&
-        velocitydata->const_acceleration == 1.0f) {
+        velocitydata->const_acceleration == 1.0) {
         return;                 /*we're inactive anyway, so skip the whole thing. */
     }
 
@@ -1113,8 +1119,8 @@ acceleratePointerPredictable(DeviceIntPtr dev, ValuatorMask *val, CARD32 evtime)
                                        (double) dev->ptrfeed->ctrl.den);
 
             DebugAccelF("mult is %f\n", mult);
-            if (mult != 1.0f || velocitydata->const_acceleration != 1.0f) {
-                if (mult > 1.0f && soften)
+            if (mult != 1.0 || velocitydata->const_acceleration != 1.0) {
+                if (mult > 1.0 && soften)
                     ApplySoftening(velocitydata, &dx, &dy);
                 ApplyConstantDeceleration(velocitydata, &dx, &dy);
 

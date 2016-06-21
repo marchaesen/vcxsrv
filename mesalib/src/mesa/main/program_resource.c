@@ -39,6 +39,7 @@ supported_interface_enum(struct gl_context *ctx, GLenum iface)
    case GL_UNIFORM_BLOCK:
    case GL_PROGRAM_INPUT:
    case GL_PROGRAM_OUTPUT:
+   case GL_TRANSFORM_FEEDBACK_BUFFER:
    case GL_TRANSFORM_FEEDBACK_VARYING:
    case GL_ATOMIC_COUNTER_BUFFER:
    case GL_BUFFER_VARIABLE:
@@ -105,7 +106,8 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
             (*params)++;
       break;
    case GL_MAX_NAME_LENGTH:
-      if (programInterface == GL_ATOMIC_COUNTER_BUFFER) {
+      if (programInterface == GL_ATOMIC_COUNTER_BUFFER ||
+          programInterface == GL_TRANSFORM_FEEDBACK_BUFFER) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glGetProgramInterfaceiv(%s pname %s)",
                      _mesa_enum_to_string(programInterface),
@@ -162,6 +164,16 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
                   (struct gl_active_atomic_buffer *)
                   shProg->ProgramResourceList[i].Data;
                *params = MAX2(*params, buffer->NumUniforms);
+            }
+         }
+         break;
+      case GL_TRANSFORM_FEEDBACK_BUFFER:
+         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
+            if (shProg->ProgramResourceList[i].Type == programInterface) {
+               struct gl_transform_feedback_buffer *buffer =
+                  (struct gl_transform_feedback_buffer *)
+                  shProg->ProgramResourceList[i].Data;
+               *params = MAX2(*params, buffer->NumVaryings);
             }
          }
          break;
@@ -289,6 +301,7 @@ _mesa_GetProgramResourceIndex(GLuint program, GLenum programInterface,
 
       return _mesa_program_resource_index(shProg, res);
    case GL_ATOMIC_COUNTER_BUFFER:
+   case GL_TRANSFORM_FEEDBACK_BUFFER:
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramResourceIndex(%s)",
                   _mesa_enum_to_string(programInterface));
@@ -318,6 +331,7 @@ _mesa_GetProgramResourceName(GLuint program, GLenum programInterface,
       return;
 
    if (programInterface == GL_ATOMIC_COUNTER_BUFFER ||
+       programInterface == GL_TRANSFORM_FEEDBACK_BUFFER ||
        !supported_interface_enum(ctx, programInterface)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramResourceName(%s)",
                   _mesa_enum_to_string(programInterface));

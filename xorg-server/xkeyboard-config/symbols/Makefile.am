@@ -2,28 +2,29 @@ SUBDIRS = digital_vndr fujitsu_vndr hp_vndr jolla_vndr macintosh_vndr nec_vndr n
 
 symbolsdir = $(xkb_base)/symbols
 symbols_DATA = \
-af al \
-am apl ara \
-at az \
+af al am apl \
+ara at az \
 ba bd be \
-bg br brai \
+bg bn br brai \
 bt bw by \
 ca cd ch \
 cm cn cz \
-de dk \
+de dk dz \
 ee es et epo eu \
 fi fo fr \
 gb ge gh gn \
 gr hr hu \
-ie il in iq \
-ir is it jp \
+id ie il \
+in iq \
+ir is it \
+jp \
 ke kg kh \
 kr kz \
 la latam latin \
 lk lt lv \
 ma mao md me \
 mk ml mm \
-mn mt mv \
+mn mt mv my \
 ng nl no np \
 pc ph pk pl pt \
 ro rs ru \

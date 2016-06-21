@@ -65,16 +65,15 @@ shadowRedisplay(ScreenPtr pScreen)
 }
 
 static void
-shadowBlockHandler(void *data, OSTimePtr pTimeout, void *pRead)
+shadowBlockHandler(ScreenPtr pScreen, void *timeout, void *pRead)
 {
-    ScreenPtr pScreen = (ScreenPtr) data;
+    shadowBuf(pScreen);
 
     shadowRedisplay(pScreen);
-}
 
-static void
-shadowWakeupHandler(void *data, int i, void *LastSelectMask)
-{
+    unwrap(pBuf, pScreen, BlockHandler);
+    pScreen->BlockHandler(pScreen, timeout, pRead);
+    wrap(pBuf, pScreen, BlockHandler);
 }
 
 static void
@@ -100,6 +99,7 @@ shadowCloseScreen(ScreenPtr pScreen)
 
     unwrap(pBuf, pScreen, GetImage);
     unwrap(pBuf, pScreen, CloseScreen);
+    unwrap(pBuf, pScreen, BlockHandler);
     shadowRemove(pScreen, pBuf->pPixmap);
     DamageDestroy(pBuf->pDamage);
     if (pBuf->pPixmap)
@@ -132,6 +132,7 @@ shadowSetup(ScreenPtr pScreen)
 
     wrap(pBuf, pScreen, CloseScreen);
     wrap(pBuf, pScreen, GetImage);
+    wrap(pBuf, pScreen, BlockHandler);
     pBuf->update = 0;
     pBuf->window = 0;
     pBuf->pPixmap = 0;
@@ -147,10 +148,6 @@ shadowAdd(ScreenPtr pScreen, PixmapPtr pPixmap, ShadowUpdateProc update,
           ShadowWindowProc window, int randr, void *closure)
 {
     shadowBuf(pScreen);
-
-    if (!RegisterBlockAndWakeupHandlers(shadowBlockHandler, shadowWakeupHandler,
-                                        (void *) pScreen))
-        return FALSE;
 
     /*
      * Map simple rotation values to bitmasks; fortunately,
@@ -192,7 +189,4 @@ shadowRemove(ScreenPtr pScreen, PixmapPtr pPixmap)
         pBuf->closure = 0;
         pBuf->pPixmap = 0;
     }
-
-    RemoveBlockAndWakeupHandlers(shadowBlockHandler, shadowWakeupHandler,
-                                 (void *) pScreen);
 }

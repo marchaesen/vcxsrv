@@ -38,6 +38,7 @@
 #include "teximage.h"
 #include "texstate.h"
 #include "mtypes.h"
+#include "util/bitscan.h"
 #include "util/bitset.h"
 
 
@@ -611,7 +612,8 @@ update_ff_texture_state(struct gl_context *ctx,
 
    for (unit = 0; unit < ctx->Const.MaxTextureUnits; unit++) {
       struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
-      GLuint texIndex;
+      GLbitfield mask;
+      bool complete;
 
       if (texUnit->Enabled == 0x0)
          continue;
@@ -649,23 +651,25 @@ update_ff_texture_state(struct gl_context *ctx,
        *      another unit, then the results of texture blending are
        *      undefined."
        */
-      for (texIndex = 0; texIndex < NUM_TEXTURE_TARGETS; texIndex++) {
-         if (texUnit->Enabled & (1 << texIndex)) {
-            struct gl_texture_object *texObj = texUnit->CurrentTex[texIndex];
-            struct gl_sampler_object *sampler = texUnit->Sampler ?
-               texUnit->Sampler : &texObj->Sampler;
+      complete = false;
+      mask = texUnit->Enabled;
+      while (mask) {
+         const int texIndex = u_bit_scan(&mask);
+         struct gl_texture_object *texObj = texUnit->CurrentTex[texIndex];
+         struct gl_sampler_object *sampler = texUnit->Sampler ?
+            texUnit->Sampler : &texObj->Sampler;
 
-            if (!_mesa_is_texture_complete(texObj, sampler)) {
-               _mesa_test_texobj_completeness(ctx, texObj);
-            }
-            if (_mesa_is_texture_complete(texObj, sampler)) {
-               _mesa_reference_texobj(&texUnit->_Current, texObj);
-               break;
-            }
+         if (!_mesa_is_texture_complete(texObj, sampler)) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (_mesa_is_texture_complete(texObj, sampler)) {
+            _mesa_reference_texobj(&texUnit->_Current, texObj);
+            complete = true;
+            break;
          }
       }
 
-      if (texIndex == NUM_TEXTURE_TARGETS)
+      if (!complete)
          continue;
 
       /* if we get here, we know this texture unit is enabled */

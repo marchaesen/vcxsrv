@@ -35,22 +35,10 @@ in this Software without prior written authorization from The Open Group.
 #include "scrnintstr.h"
 
 typedef struct {
-    ScreenPtr pScreen;          /* current screen */
-    ScreenPtr pSpriteScreen;    /* screen containing current sprite */
-    CursorPtr pCursor;          /* current cursor */
-    CursorPtr pSpriteCursor;    /* cursor on screen */
-    BoxRec limits;              /* current constraints */
-    Bool confined;              /* pointer can't change screens */
-    int x, y;                   /* hot spot location */
-    int devx, devy;             /* sprite position */
-    Bool generateEvent;         /* generate an event during warping? */
-} miPointerRec, *miPointerPtr;
-
-typedef struct {
     miPointerSpriteFuncPtr spriteFuncs; /* sprite-specific methods */
     miPointerScreenFuncPtr screenFuncs; /* screen-specific methods */
     CloseScreenProcPtr CloseScreen;
-    Bool waitForUpdate;         /* don't move cursor in SIGIO */
+    Bool waitForUpdate;         /* don't move cursor from input thread */
     Bool showTransparent;       /* show empty cursors */
 } miPointerScreenRec, *miPointerScreenPtr;
 #endif                          /* MIPOINTRST_H */

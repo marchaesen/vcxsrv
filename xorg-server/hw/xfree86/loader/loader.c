@@ -180,7 +180,6 @@ LoaderGetABIVersion(const char *abiclass)
         {ABI_CLASS_VIDEODRV, LoaderVersionInfo.videodrvVersion},
         {ABI_CLASS_XINPUT, LoaderVersionInfo.xinputVersion},
         {ABI_CLASS_EXTENSION, LoaderVersionInfo.extensionVersion},
-        {ABI_CLASS_FONT, LoaderVersionInfo.fontVersion},
         {NULL, 0}
     };
     int i;

@@ -48,10 +48,12 @@ glamor_set_color(PixmapPtr      pixmap,
 }
 
 Bool
-glamor_set_texture_pixmap(PixmapPtr    texture);
+glamor_set_texture_pixmap(PixmapPtr     texture,
+                          Bool          destination_red);
 
 Bool
 glamor_set_texture(PixmapPtr    texture,
+                   Bool         destination_red,
                    int          off_x,
                    int          off_y,
                    GLint        offset_uniform,

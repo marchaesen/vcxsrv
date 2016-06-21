@@ -662,7 +662,7 @@ ProcVidModeDeleteModeLine(ClientPtr client)
             bytes_to_int32(sizeof(xXF86VidModeDeleteModeLineReq));
     }
     if (len != stuff->privsize) {
-        DebufF("req_len = %ld, sizeof(Req) = %d, privsize = %ld, "
+        DebugF("req_len = %ld, sizeof(Req) = %d, privsize = %ld, "
                "len = %d, length = %d\n",
                (unsigned long) client->req_len,
                (int) sizeof(xXF86VidModeDeleteModeLineReq) >> 2,

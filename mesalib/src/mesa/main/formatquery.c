@@ -877,6 +877,9 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
        *     "Since multisampling is not supported for signed and unsigned
        *     integer internal formats, the value of NUM_SAMPLE_COUNTS will be
        *     zero for such formats.
+       *
+       * Since OpenGL ES 3.1 adds support for multisampled integer formats, we
+       * have to check the version for 30 exactly.
        */
       if (pname == GL_NUM_SAMPLE_COUNTS && ctx->API == API_OPENGLES2 &&
           ctx->Version == 30 && _mesa_is_enum_format_integer(internalformat)) {
@@ -902,7 +905,10 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
        *     format for representing resources of the specified <internalformat> is
        *     returned in <params>.
        *
-       * Therefore, we let the driver answer.
+       * Therefore, we let the driver answer. Note that if we reach this
+       * point, it means that the internalformat is supported, so the driver
+       * is called just to try to get a preferred format. If not supported,
+       * GL_NONE was already returned and the driver is not called.
        */
       ctx->Driver.QueryInternalFormat(ctx, target, internalformat, pname,
                                       buffer);

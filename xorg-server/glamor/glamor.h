@@ -336,6 +336,7 @@ extern _X_EXPORT void glamor_destroy_gc(GCPtr gc);
 extern Bool _X_EXPORT glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
 extern void _X_EXPORT glamor_copy_window(WindowPtr window, DDXPointRec old_origin, RegionPtr src_region);
 
+extern _X_EXPORT void glamor_finish(ScreenPtr screen);
 #define HAS_GLAMOR_TEXT 1
 
 #ifdef GLAMOR_FOR_XORG

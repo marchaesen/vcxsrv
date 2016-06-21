@@ -368,6 +368,12 @@ xf86CrtcSetModeTransform(xf86CrtcPtr crtc, DisplayModePtr mode,
             xf86CrtcSetScreenSubpixelOrder(scrn->pScreen);
         if (scrn->ModeSet)
             scrn->ModeSet(scrn);
+
+        /* Make sure the HW cursor is hidden if it's supposed to be, in case
+         * it was hidden while the CRTC was disabled
+         */
+        if (!xf86_config->cursor_on)
+            xf86_hide_cursors(scrn);
     }
     else {
         crtc->x = saved_x;
@@ -3279,7 +3285,8 @@ xf86OutputSetEDID(xf86OutputPtr output, xf86MonPtr edid_mon)
     }
 
     /* Set the DDC properties for the 'compat' output */
-    if (output == xf86CompatOutput(scrn))
+    /* GPU screens don't have a root window */
+    if (output == xf86CompatOutput(scrn) && !scrn->is_gpu)
         xf86SetDDCproperties(scrn, edid_mon);
 
 #ifdef RANDR_12_INTERFACE

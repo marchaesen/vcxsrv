@@ -37,6 +37,99 @@
 #include "prog_statevars.h"
 
 
+/**
+ * Look for a float vector in the given parameter list.  The float vector
+ * may be of length 1, 2, 3 or 4.  If swizzleOut is non-null, we'll try
+ * swizzling to find a match.
+ * \param list  the parameter list to search
+ * \param v  the float vector to search for
+ * \param vSize  number of element in v
+ * \param posOut  returns the position of the constant, if found
+ * \param swizzleOut  returns a swizzle mask describing location of the
+ *                    vector elements if found.
+ * \return GL_TRUE if found, GL_FALSE if not found
+ */
+static GLboolean
+lookup_parameter_constant(const struct gl_program_parameter_list *list,
+                          const gl_constant_value v[], GLuint vSize,
+                          GLint *posOut, GLuint *swizzleOut)
+{
+   GLuint i;
+
+   assert(vSize >= 1);
+   assert(vSize <= 4);
+
+   if (!list) {
+      *posOut = -1;
+      return GL_FALSE;
+   }
+
+   for (i = 0; i < list->NumParameters; i++) {
+      if (list->Parameters[i].Type == PROGRAM_CONSTANT) {
+         if (!swizzleOut) {
+            /* swizzle not allowed */
+            GLuint j, match = 0;
+            for (j = 0; j < vSize; j++) {
+               if (v[j].u == list->ParameterValues[i][j].u)
+                  match++;
+            }
+            if (match == vSize) {
+               *posOut = i;
+               return GL_TRUE;
+            }
+         }
+         else {
+            /* try matching w/ swizzle */
+             if (vSize == 1) {
+                /* look for v[0] anywhere within float[4] value */
+                GLuint j;
+                for (j = 0; j < list->Parameters[i].Size; j++) {
+                   if (list->ParameterValues[i][j].u == v[0].u) {
+                      /* found it */
+                      *posOut = i;
+                      *swizzleOut = MAKE_SWIZZLE4(j, j, j, j);
+                      return GL_TRUE;
+                   }
+                }
+             }
+             else if (vSize <= list->Parameters[i].Size) {
+                /* see if we can match this constant (with a swizzle) */
+                GLuint swz[4];
+                GLuint match = 0, j, k;
+                for (j = 0; j < vSize; j++) {
+                   if (v[j].u == list->ParameterValues[i][j].u) {
+                      swz[j] = j;
+                      match++;
+                   }
+                   else {
+                      for (k = 0; k < list->Parameters[i].Size; k++) {
+                         if (v[j].u == list->ParameterValues[i][k].u) {
+                            swz[j] = k;
+                            match++;
+                            break;
+                         }
+                      }
+                   }
+                }
+                /* smear last value to remaining positions */
+                for (; j < 4; j++)
+                   swz[j] = swz[j-1];
+
+                if (match == vSize) {
+                   *posOut = i;
+                   *swizzleOut = MAKE_SWIZZLE4(swz[0], swz[1], swz[2], swz[3]);
+                   return GL_TRUE;
+                }
+             }
+         }
+      }
+   }
+
+   *posOut = -1;
+   return GL_FALSE;
+}
+
+
 struct gl_program_parameter_list *
 _mesa_new_parameter_list(void)
 {
@@ -54,17 +147,17 @@ _mesa_new_parameter_list_sized(unsigned size)
 
       /* alloc arrays */
       p->Parameters = (struct gl_program_parameter *)
-	 calloc(size, sizeof(struct gl_program_parameter));
+         calloc(size, sizeof(struct gl_program_parameter));
 
       p->ParameterValues = (gl_constant_value (*)[4])
          _mesa_align_malloc(size * 4 *sizeof(gl_constant_value), 16);
 
 
       if ((p->Parameters == NULL) || (p->ParameterValues == NULL)) {
-	 free(p->Parameters);
-	 _mesa_align_free(p->ParameterValues);
-	 free(p);
-	 p = NULL;
+         free(p->Parameters);
+         _mesa_align_free(p->ParameterValues);
+         free(p);
+         p = NULL;
       }
    }
 
@@ -155,54 +248,51 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
       paramList->Size = 0;
       return -1;
    }
-   else {
-      GLuint i, j;
 
-      paramList->NumParameters = oldNum + sz4;
+   GLuint i, j;
 
-      memset(&paramList->Parameters[oldNum], 0,
-             sz4 * sizeof(struct gl_program_parameter));
+   paramList->NumParameters = oldNum + sz4;
 
-      for (i = 0; i < sz4; i++) {
-         struct gl_program_parameter *p = paramList->Parameters + oldNum + i;
-         p->Name = name ? strdup(name) : NULL;
-         p->Type = type;
-         p->Size = size;
-         p->DataType = datatype;
-         if (values) {
-            if (size >= 4) {
-               COPY_4V(paramList->ParameterValues[oldNum + i], values);
+   memset(&paramList->Parameters[oldNum], 0,
+          sz4 * sizeof(struct gl_program_parameter));
+
+   for (i = 0; i < sz4; i++) {
+      struct gl_program_parameter *p = paramList->Parameters + oldNum + i;
+      p->Name = name ? strdup(name) : NULL;
+      p->Type = type;
+      p->Size = size;
+      p->DataType = datatype;
+      if (values) {
+         if (size >= 4) {
+            COPY_4V(paramList->ParameterValues[oldNum + i], values);
+         } else {
+            /* copy 1, 2 or 3 values */
+            GLuint remaining = size % 4;
+            assert(remaining < 4);
+            for (j = 0; j < remaining; j++) {
+               paramList->ParameterValues[oldNum + i][j].f = values[j].f;
             }
-            else {
-               /* copy 1, 2 or 3 values */
-               GLuint remaining = size % 4;
-               assert(remaining < 4);
-               for (j = 0; j < remaining; j++) {
-                  paramList->ParameterValues[oldNum + i][j].f = values[j].f;
-               }
-               /* fill in remaining positions with zeros */
-               for (; j < 4; j++) {
-                  paramList->ParameterValues[oldNum + i][j].f = 0.0f;
-               }
+            /* fill in remaining positions with zeros */
+            for (; j < 4; j++) {
+               paramList->ParameterValues[oldNum + i][j].f = 0.0f;
             }
-            values += 4;
-            p->Initialized = GL_TRUE;
          }
-         else {
-            /* silence valgrind */
-            for (j = 0; j < 4; j++)
-            	paramList->ParameterValues[oldNum + i][j].f = 0;
-         }
-         size -= 4;
+         values += 4;
+         p->Initialized = GL_TRUE;
+      } else {
+         /* silence valgrind */
+         for (j = 0; j < 4; j++)
+            paramList->ParameterValues[oldNum + i][j].f = 0;
       }
-
-      if (state) {
-         for (i = 0; i < STATE_LENGTH; i++)
-            paramList->Parameters[oldNum].StateIndexes[i] = state[i];
-      }
-
-      return (GLint) oldNum;
+      size -= 4;
    }
+
+   if (state) {
+      for (i = 0; i < STATE_LENGTH; i++)
+         paramList->Parameters[oldNum].StateIndexes[i] = state[i];
+   }
+
+   return (GLint) oldNum;
 }
 
 
@@ -228,8 +318,7 @@ _mesa_add_typed_unnamed_constant(struct gl_program_parameter_list *paramList,
    assert(size <= 4);
 
    if (swizzleOut &&
-       _mesa_lookup_parameter_constant(paramList, values,
-                                       size, &pos, swizzleOut)) {
+       lookup_parameter_constant(paramList, values, size, &pos, swizzleOut)) {
       return pos;
    }
 
@@ -264,28 +353,6 @@ _mesa_add_typed_unnamed_constant(struct gl_program_parameter_list *paramList,
    return pos;
 }
 
-/**
- * Add a new unnamed constant to the parameter list.  This will be used
- * when a fragment/vertex program contains something like this:
- *    MOV r, { 0, 1, 2, 3 };
- * If swizzleOut is non-null we'll search the parameter list for an
- * existing instance of the constant which matches with a swizzle.
- *
- * \param paramList  the parameter list
- * \param values  four float values
- * \param swizzleOut  returns swizzle mask for accessing the constant
- * \return index/position of the new parameter in the parameter list.
- * \sa _mesa_add_typed_unnamed_constant
- */
-GLint
-_mesa_add_unnamed_constant(struct gl_program_parameter_list *paramList,
-                           const gl_constant_value values[4], GLuint size,
-                           GLuint *swizzleOut)
-{
-   return _mesa_add_typed_unnamed_constant(paramList, values, size, GL_NONE,
-                                           swizzleOut);
-}
-
 
 /**
  * Add a new state reference to the parameter list.
@@ -307,8 +374,8 @@ _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
    /* Check if the state reference is already in the list */
    for (index = 0; index < (GLint) paramList->NumParameters; index++) {
       if (!memcmp(paramList->Parameters[index].StateIndexes,
-		  stateTokens, STATE_LENGTH * sizeof(gl_state_index))) {
-	 return index;
+                  stateTokens, STATE_LENGTH * sizeof(gl_state_index))) {
+         return index;
       }
    }
 
@@ -322,135 +389,4 @@ _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
    free(name);
 
    return index;
-}
-
-
-/**
- * Given a program parameter name, find its position in the list of parameters.
- * \param paramList  the parameter list to search
- * \param nameLen  length of name (in chars).
- *                 If length is negative, assume that name is null-terminated.
- * \param name  the name to search for
- * \return index of parameter in the list.
- */
-GLint
-_mesa_lookup_parameter_index(const struct gl_program_parameter_list *paramList,
-                             GLsizei nameLen, const char *name)
-{
-   GLint i;
-
-   if (!paramList)
-      return -1;
-
-   if (nameLen == -1) {
-      /* name is null-terminated */
-      for (i = 0; i < (GLint) paramList->NumParameters; i++) {
-         if (paramList->Parameters[i].Name &&
-	     strcmp(paramList->Parameters[i].Name, name) == 0)
-            return i;
-      }
-   }
-   else {
-      /* name is not null-terminated, use nameLen */
-      for (i = 0; i < (GLint) paramList->NumParameters; i++) {
-         if (paramList->Parameters[i].Name &&
-	     strncmp(paramList->Parameters[i].Name, name, nameLen) == 0
-             && strlen(paramList->Parameters[i].Name) == (size_t)nameLen)
-            return i;
-      }
-   }
-   return -1;
-}
-
-
-/**
- * Look for a float vector in the given parameter list.  The float vector
- * may be of length 1, 2, 3 or 4.  If swizzleOut is non-null, we'll try
- * swizzling to find a match.
- * \param list  the parameter list to search
- * \param v  the float vector to search for
- * \param vSize  number of element in v
- * \param posOut  returns the position of the constant, if found
- * \param swizzleOut  returns a swizzle mask describing location of the
- *                    vector elements if found.
- * \return GL_TRUE if found, GL_FALSE if not found
- */
-GLboolean
-_mesa_lookup_parameter_constant(const struct gl_program_parameter_list *list,
-                                const gl_constant_value v[], GLuint vSize,
-                                GLint *posOut, GLuint *swizzleOut)
-{
-   GLuint i;
-
-   assert(vSize >= 1);
-   assert(vSize <= 4);
-
-   if (!list) {
-      *posOut = -1;
-      return GL_FALSE;
-   }
-
-   for (i = 0; i < list->NumParameters; i++) {
-      if (list->Parameters[i].Type == PROGRAM_CONSTANT) {
-         if (!swizzleOut) {
-            /* swizzle not allowed */
-            GLuint j, match = 0;
-            for (j = 0; j < vSize; j++) {
-               if (v[j].u == list->ParameterValues[i][j].u)
-                  match++;
-            }
-            if (match == vSize) {
-               *posOut = i;
-               return GL_TRUE;
-            }
-         }
-         else {
-            /* try matching w/ swizzle */
-             if (vSize == 1) {
-                /* look for v[0] anywhere within float[4] value */
-                GLuint j;
-                for (j = 0; j < list->Parameters[i].Size; j++) {
-                   if (list->ParameterValues[i][j].u == v[0].u) {
-                      /* found it */
-                      *posOut = i;
-                      *swizzleOut = MAKE_SWIZZLE4(j, j, j, j);
-                      return GL_TRUE;
-                   }
-                }
-             }
-             else if (vSize <= list->Parameters[i].Size) {
-                /* see if we can match this constant (with a swizzle) */
-                GLuint swz[4];
-                GLuint match = 0, j, k;
-                for (j = 0; j < vSize; j++) {
-                   if (v[j].u == list->ParameterValues[i][j].u) {
-                      swz[j] = j;
-                      match++;
-                   }
-                   else {
-                      for (k = 0; k < list->Parameters[i].Size; k++) {
-                         if (v[j].u == list->ParameterValues[i][k].u) {
-                            swz[j] = k;
-                            match++;
-                            break;
-                         }
-                      }
-                   }
-                }
-                /* smear last value to remaining positions */
-                for (; j < 4; j++)
-                   swz[j] = swz[j-1];
-
-                if (match == vSize) {
-                   *posOut = i;
-                   *swizzleOut = MAKE_SWIZZLE4(swz[0], swz[1], swz[2], swz[3]);
-                   return GL_TRUE;
-                }
-             }
-         }
-      }
-   }
-
-   *posOut = -1;
-   return GL_FALSE;
 }

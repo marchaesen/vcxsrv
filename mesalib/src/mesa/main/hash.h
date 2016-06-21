@@ -54,6 +54,8 @@ extern void *_mesa_HashLookupLocked(struct _mesa_HashTable *table, GLuint key);
 extern void _mesa_HashInsertLocked(struct _mesa_HashTable *table,
                                    GLuint key, void *data);
 
+extern void _mesa_HashRemoveLocked(struct _mesa_HashTable *table, GLuint key);
+
 extern void
 _mesa_HashDeleteAll(struct _mesa_HashTable *table,
                     void (*callback)(GLuint key, void *data, void *userData),

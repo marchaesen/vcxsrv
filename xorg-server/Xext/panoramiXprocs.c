@@ -106,7 +106,7 @@ PanoramiXCreateWindow(ClientPtr client)
     if ((Mask) stuff->mask & CWColormap) {
         cmap_offset = Ones((Mask) stuff->mask & (CWColormap - 1));
         tmp = *((CARD32 *) &stuff[1] + cmap_offset);
-        if ((tmp != CopyFromParent) && (tmp != None)) {
+        if (tmp != CopyFromParent) {
             result = dixLookupResourceByType((void **) &cmap, tmp,
                                              XRT_COLORMAP, client,
                                              DixReadAccess);
@@ -210,7 +210,7 @@ PanoramiXChangeWindowAttributes(ClientPtr client)
     if ((Mask) stuff->valueMask & CWColormap) {
         cmap_offset = Ones((Mask) stuff->valueMask & (CWColormap - 1));
         tmp = *((CARD32 *) &stuff[1] + cmap_offset);
-        if ((tmp != CopyFromParent) && (tmp != None)) {
+        if (tmp != CopyFromParent) {
             result = dixLookupResourceByType((void **) &cmap, tmp,
                                              XRT_COLORMAP, client,
                                              DixReadAccess);

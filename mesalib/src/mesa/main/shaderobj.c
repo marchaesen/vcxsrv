@@ -99,14 +99,12 @@ _mesa_init_shader(struct gl_context *ctx, struct gl_shader *shader)
  * Called via ctx->Driver.NewShader()
  */
 struct gl_shader *
-_mesa_new_shader(struct gl_context *ctx, GLuint name, GLenum type)
+_mesa_new_shader(struct gl_context *ctx, GLuint name, gl_shader_stage stage)
 {
    struct gl_shader *shader;
-   assert(_mesa_validate_shader_target(ctx, type));
    shader = rzalloc(NULL, struct gl_shader);
    if (shader) {
-      shader->Type = type;
-      shader->Stage = _mesa_shader_enum_to_shader_stage(type);
+      shader->Stage = stage;
       shader->Name = name;
       _mesa_init_shader(ctx, shader);
    }
@@ -232,7 +230,7 @@ init_shader_program(struct gl_shader_program *prog)
    prog->FragDataBindings = string_to_uint_map_ctor();
    prog->FragDataIndexBindings = string_to_uint_map_ctor();
 
-   prog->Geom.VerticesOut = 0;
+   prog->Geom.VerticesOut = -1;
    prog->Geom.InputType = GL_TRIANGLES;
    prog->Geom.OutputType = GL_TRIANGLE_STRIP;
    prog->Geom.UsesEndPrimitive = false;
@@ -292,13 +290,13 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
    ralloc_free(shProg->InfoLog);
    shProg->InfoLog = ralloc_strdup(shProg, "");
 
-   ralloc_free(shProg->BufferInterfaceBlocks);
-   shProg->BufferInterfaceBlocks = NULL;
-   shProg->NumBufferInterfaceBlocks = 0;
-   for (i = 0; i < MESA_SHADER_STAGES; i++) {
-      ralloc_free(shProg->InterfaceBlockStageIndex[i]);
-      shProg->InterfaceBlockStageIndex[i] = NULL;
-   }
+   ralloc_free(shProg->UniformBlocks);
+   shProg->UniformBlocks = NULL;
+   shProg->NumUniformBlocks = 0;
+
+   ralloc_free(shProg->ShaderStorageBlocks);
+   shProg->ShaderStorageBlocks = NULL;
+   shProg->NumShaderStorageBlocks = 0;
 
    ralloc_free(shProg->AtomicBuffers);
    shProg->AtomicBuffers = NULL;

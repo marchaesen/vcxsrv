@@ -297,50 +297,6 @@ xf86PrivsElevated(void)
     return privsElevated;
 }
 
-static Bool
-xf86CreateRootWindow(WindowPtr pWin)
-{
-    int ret = TRUE;
-    int err = Success;
-    ScreenPtr pScreen = pWin->drawable.pScreen;
-    RootWinPropPtr pProp;
-    CreateWindowProcPtr create_window = (CreateWindowProcPtr)
-        dixLookupPrivate(&pScreen->devPrivates, xf86CreateRootWindowKey);
-
-    DebugF("xf86CreateRootWindow(%p)\n", pWin);
-
-    /* Unhook this function ... */
-    pScreen->CreateWindow = create_window;
-    dixSetPrivate(&pScreen->devPrivates, xf86CreateRootWindowKey, NULL);
-
-    /* ... and call the previous CreateWindow fuction, if any */
-    if (NULL != pScreen->CreateWindow) {
-        ret = (*pScreen->CreateWindow) (pWin);
-    }
-
-    /* Now do our stuff */
-    if (xf86RegisteredPropertiesTable != NULL) {
-        if (pWin->parent == NULL && xf86RegisteredPropertiesTable != NULL) {
-            for (pProp = xf86RegisteredPropertiesTable[pScreen->myNum];
-                 pProp != NULL && err == Success; pProp = pProp->next) {
-                Atom prop;
-
-                prop = MakeAtom(pProp->name, strlen(pProp->name), TRUE);
-                err = dixChangeWindowProperty(serverClient, pWin,
-                                              prop, pProp->type,
-                                              pProp->format, PropModeReplace,
-                                              pProp->size, pProp->data, FALSE);
-            }
-
-            /* Look at err */
-            ret &= (err == Success);
-
-        }
-    }
-
-    return ret;
-}
-
 static void
 InstallSignalHandlers(void)
 {
@@ -352,23 +308,57 @@ InstallSignalHandlers(void)
         OsRegisterSigWrapper(xf86SigWrapper);
     }
     else {
-        signal(SIGSEGV, SIG_DFL);
-        signal(SIGILL, SIG_DFL);
+        OsSignal(SIGSEGV, SIG_DFL);
+        OsSignal(SIGILL, SIG_DFL);
 #ifdef SIGEMT
-        signal(SIGEMT, SIG_DFL);
+        OsSignal(SIGEMT, SIG_DFL);
 #endif
-        signal(SIGFPE, SIG_DFL);
-        signal(SIGBUS, SIG_DFL);
-        signal(SIGSYS, SIG_DFL);
-        signal(SIGXCPU, SIG_DFL);
-        signal(SIGXFSZ, SIG_DFL);
+        OsSignal(SIGFPE, SIG_DFL);
+        OsSignal(SIGBUS, SIG_DFL);
+        OsSignal(SIGSYS, SIG_DFL);
+        OsSignal(SIGXCPU, SIG_DFL);
+        OsSignal(SIGXFSZ, SIG_DFL);
     }
 }
 
-/* The memory storing the initial value of the XFree86_has_VT root window
- * property.  This has to remain available until server start-up, so we just
- * use a global. */
-static CARD32 HasVTValue = 1;
+static void
+AddSeatId(CallbackListPtr *pcbl, void *data, void *screen)
+{
+    ScreenPtr pScreen = screen;
+    Atom SeatAtom = MakeAtom(SEAT_ATOM_NAME, sizeof(SEAT_ATOM_NAME) - 1, TRUE);
+    int err;
+
+    err = dixChangeWindowProperty(serverClient, pScreen->root, SeatAtom,
+                                  XA_STRING, 8, PropModeReplace,
+                                  strlen(data) + 1, data, FALSE);
+
+    if (err != Success)
+        xf86DrvMsg(pScreen->myNum, X_WARNING,
+                   "Failed to register seat property\n");
+}
+
+static void
+AddVTAtoms(CallbackListPtr *pcbl, void *data, void *screen)
+{
+#define VT_ATOM_NAME         "XFree86_VT"
+    int err, HasVT = 1;
+    ScreenPtr pScreen = screen;
+    Atom VTAtom = MakeAtom(VT_ATOM_NAME, sizeof(VT_ATOM_NAME) - 1, TRUE);
+    Atom HasVTAtom = MakeAtom(HAS_VT_ATOM_NAME, sizeof(HAS_VT_ATOM_NAME) - 1,
+                              TRUE);
+
+    err = dixChangeWindowProperty(serverClient, pScreen->root, VTAtom,
+                                  XA_INTEGER, 32, PropModeReplace, 1,
+                                  &xf86Info.vtno, FALSE);
+
+    err |= dixChangeWindowProperty(serverClient, pScreen->root, HasVTAtom,
+                                   XA_INTEGER, 32, PropModeReplace, 1,
+                                   &HasVT, FALSE);
+
+    if (err != Success)
+        xf86DrvMsg(pScreen->myNum, X_WARNING,
+                   "Failed to register VT properties\n");
+}
 
 /*
  * InitOutput --
@@ -711,64 +701,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         }
         formatsDone = TRUE;
 
-        if (xf86Info.vtno >= 0) {
-#define VT_ATOM_NAME         "XFree86_VT"
-            Atom VTAtom = -1;
-            Atom HasVTAtom = -1;
-            CARD32 *VT = NULL;
-            CARD32 *HasVT = &HasVTValue;
-            int ret;
-
-            /* This memory needs to stay available until the screen has been
-               initialized, and we can create the property for real.
-             */
-            if ((VT = malloc(sizeof(CARD32))) == NULL) {
-                FatalError
-                    ("Unable to make VT property - out of memory. Exiting...\n");
-            }
-            *VT = xf86Info.vtno;
-
-            VTAtom = MakeAtom(VT_ATOM_NAME, sizeof(VT_ATOM_NAME) - 1, TRUE);
-            HasVTAtom = MakeAtom(HAS_VT_ATOM_NAME,
-                                 sizeof(HAS_VT_ATOM_NAME) - 1, TRUE);
-
-            for (i = 0, ret = Success; i < xf86NumScreens && ret == Success;
-                 i++) {
-                ret =
-                    xf86RegisterRootWindowProperty(xf86Screens[i]->scrnIndex,
-                                                   VTAtom, XA_INTEGER, 32, 1,
-                                                   VT);
-                if (ret == Success)
-                    ret = xf86RegisterRootWindowProperty(xf86Screens[i]
-                                                             ->scrnIndex,
-                                                         HasVTAtom, XA_INTEGER,
-                                                         32, 1, HasVT);
-                if (ret != Success)
-                    xf86DrvMsg(xf86Screens[i]->scrnIndex, X_WARNING,
-                               "Failed to register VT properties\n");
-            }
-        }
-
-        if (SeatId) {
-            Atom SeatAtom;
-
-            SeatAtom =
-                MakeAtom(SEAT_ATOM_NAME, sizeof(SEAT_ATOM_NAME) - 1, TRUE);
-
-            for (i = 0; i < xf86NumScreens; i++) {
-                int ret;
-
-                ret = xf86RegisterRootWindowProperty(xf86Screens[i]->scrnIndex,
-                                                     SeatAtom, XA_STRING, 8,
-                                                     strlen(SeatId) + 1,
-                                                     SeatId);
-                if (ret != Success) {
-                    xf86DrvMsg(xf86Screens[i]->scrnIndex, X_WARNING,
-                               "Failed to register seat property\n");
-                }
-            }
-        }
-
         /* If a screen uses depth 24, show what the pixmap format is */
         for (i = 0; i < xf86NumScreens; i++) {
             if (xf86Screens[i]->depth == 24) {
@@ -802,6 +734,12 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             xf86EnableIO();
     }
 
+    if (xf86Info.vtno >= 0)
+        AddCallback(&RootWindowFinalizeCallback, AddVTAtoms, NULL);
+
+    if (SeatId)
+        AddCallback(&RootWindowFinalizeCallback, AddSeatId, SeatId);
+
     /*
      * Use the previously collected parts to setup pScreenInfo
      */
@@ -824,7 +762,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ);
 #endif
             xf86AccessEnter();
-            OsBlockSIGIO();
+            input_lock();
             sigio_blocked = TRUE;
         }
     }
@@ -833,8 +771,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         if (!xf86ColormapAllocatePrivates(xf86Screens[i]))
             FatalError("Cannot register DDX private keys");
 
-    if (!dixRegisterPrivateKey(&xf86ScreenKeyRec, PRIVATE_SCREEN, 0) ||
-        !dixRegisterPrivateKey(&xf86CreateRootWindowKeyRec, PRIVATE_SCREEN, 0))
+    if (!dixRegisterPrivateKey(&xf86ScreenKeyRec, PRIVATE_SCREEN, 0))
         FatalError("Cannot register DDX private keys");
 
     for (i = 0; i < xf86NumGPUScreens; i++) {
@@ -905,11 +842,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         DebugF("xf86Screens[%d]->pScreen->CreateWindow = %p\n",
                i, xf86Screens[i]->pScreen->CreateWindow);
 
-        dixSetPrivate(&screenInfo.screens[scr_index]->devPrivates,
-                      xf86CreateRootWindowKey,
-                      xf86Screens[i]->pScreen->CreateWindow);
-        xf86Screens[i]->pScreen->CreateWindow = xf86CreateRootWindow;
-
         if (PictureGetSubpixelOrder(xf86Screens[i]->pScreen) == SubPixelUnknown) {
             xf86MonPtr DDC = (xf86MonPtr) (xf86Screens[i]->monitor->DDC);
 
@@ -932,7 +864,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 
     xf86VGAarbiterWrapFunctions();
     if (sigio_blocked)
-        OsReleaseSIGIO();
+        input_unlock();
 
     xf86InitOrigins();
 
@@ -954,6 +886,9 @@ InitInput(int argc, char **argv)
     DeviceIntPtr dev;
 
     xf86Info.vtRequestsPending = FALSE;
+
+    /* Enable threaded input */
+    InputThreadPreInit();
 
     mieqInit();
 
@@ -989,7 +924,7 @@ OsVendorInit(void)
 {
     static Bool beenHere = FALSE;
 
-    signal(SIGCHLD, SIG_DFL);   /* Need to wait for child processes */
+    OsSignal(SIGCHLD, SIG_DFL);   /* Need to wait for child processes */
 
     if (!beenHere) {
         umask(022);
@@ -1078,7 +1013,7 @@ AbortDDX(enum ExitCode error)
 {
     int i;
 
-    OsBlockSIGIO();
+    input_lock();
 
     /*
      * try to restore the original video state
@@ -1158,6 +1093,16 @@ xf86PrintDefaultLibraryPath(void)
     ErrorF("%s\n", DEFAULT_LIBRARY_PATH);
 }
 
+static void
+xf86CheckPrivs(const char *option, const char *arg)
+{
+    if (xf86PrivsElevated() && !xf86PathIsSafe(arg)) {
+        FatalError("\nInvalid argument for %s - \"%s\"\n"
+                    "\tWith elevated privileges %s must specify a relative path\n"
+                    "\twithout any \"..\" elements.\n\n", option, arg, option);
+    }
+}
+
 /*
  * ddxProcessArgument --
  *	Process device-dependent command line args. Returns 0 if argument is
@@ -1178,55 +1123,29 @@ ddxProcessArgument(int argc, char **argv, int i)
     }
 
     /* First the options that are not allowed with elevated privileges */
-    if (!strcmp(argv[i], "-modulepath") || !strcmp(argv[i], "-logfile")) {
-        if (xf86PrivsElevated()) {
-            FatalError("The '%s' option cannot be used with "
-                       "elevated privileges.\n", argv[i]);
-        }
-        else if (!strcmp(argv[i], "-modulepath")) {
-            char *mp;
-
-            CHECK_FOR_REQUIRED_ARGUMENT();
-            mp = strdup(argv[i + 1]);
-            if (!mp)
-                FatalError("Can't allocate memory for ModulePath\n");
-            xf86ModulePath = mp;
-            xf86ModPathFrom = X_CMDLINE;
-            return 2;
-        }
-        else if (!strcmp(argv[i], "-logfile")) {
-            char *lf;
-
-            CHECK_FOR_REQUIRED_ARGUMENT();
-            lf = strdup(argv[i + 1]);
-            if (!lf)
-                FatalError("Can't allocate memory for LogFile\n");
-            xf86LogFile = lf;
-            xf86LogFileFrom = X_CMDLINE;
-            return 2;
-        }
+    if (!strcmp(argv[i], "-modulepath")) {
+        CHECK_FOR_REQUIRED_ARGUMENT();
+        xf86CheckPrivs(argv[i], argv[i + 1]);
+        xf86ModulePath = argv[i + 1];
+        xf86ModPathFrom = X_CMDLINE;
+        return 2;
+    }
+    if (!strcmp(argv[i], "-logfile")) {
+        CHECK_FOR_REQUIRED_ARGUMENT();
+        xf86CheckPrivs(argv[i], argv[i + 1]);
+        xf86LogFile = argv[i + 1];
+        xf86LogFileFrom = X_CMDLINE;
+        return 2;
     }
     if (!strcmp(argv[i], "-config") || !strcmp(argv[i], "-xf86config")) {
         CHECK_FOR_REQUIRED_ARGUMENT();
-        if (xf86PrivsElevated() && !xf86PathIsSafe(argv[i + 1])) {
-            FatalError("\nInvalid argument for %s\n"
-                       "\tWith elevated privileges, the file specified with %s must be\n"
-                       "\ta relative path and must not contain any \"..\" elements.\n"
-                       "\tUsing default " __XCONFIGFILE__ " search path.\n\n",
-                       argv[i], argv[i]);
-        }
+        xf86CheckPrivs(argv[i], argv[i + 1]);
         xf86ConfigFile = argv[i + 1];
         return 2;
     }
     if (!strcmp(argv[i], "-configdir")) {
         CHECK_FOR_REQUIRED_ARGUMENT();
-        if (xf86PrivsElevated() && !xf86PathIsSafe(argv[i + 1])) {
-            FatalError("\nInvalid argument for %s\n"
-                       "\tWith elevated privileges, the file specified with %s must be\n"
-                       "\ta relative path and must not contain any \"..\" elements.\n"
-                       "\tUsing default " __XCONFIGDIR__ " search path.\n\n",
-                       argv[i], argv[i]);
-        }
+        xf86CheckPrivs(argv[i], argv[i + 1]);
         xf86ConfigDir = argv[i + 1];
         return 2;
     }
@@ -1456,6 +1375,10 @@ ddxProcessArgument(int argc, char **argv, int i)
     if (!strcmp(argv[i], "-sharevts")) {
         xf86Info.ShareVTs = TRUE;
         return 1;
+    }
+    if (!strcmp(argv[i], "-iglx") || !strcmp(argv[i], "+iglx")) {
+        xf86Info.iglxFrom = X_CMDLINE;
+        return 0;
     }
 
     /* OS-specific processing */

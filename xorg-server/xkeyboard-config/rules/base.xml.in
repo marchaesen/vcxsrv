@@ -2307,6 +2307,35 @@
     </layout>
     <layout>
       <configItem>
+        <name>dz</name>
+        <_shortDescription>la</_shortDescription>
+        <_description>Berber (Algeria, Latin characters)</_description>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>ber</name>
+            <_shortDescription>ber</_shortDescription>
+            <_description>Berber (Algeria, Tifinagh characters)</_description>
+            <languageList>
+              <iso639Id>ber</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>ar</name>
+            <_shortDescription>ar</_shortDescription>
+            <_description>Arabic (Algeria)</_description>
+            <languageList>
+              <iso639Id>ara</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
+    <layout>
+      <configItem>
         <name>ma</name>
         <!-- Keyboard indicator for Arabic layouts -->
         <_shortDescription>ar</_shortDescription>
@@ -5012,7 +5041,7 @@
         <variant>
           <configItem>
             <name>us</name>
-            <shortDescription>us</shortDescription>
+            <_shortDescription>us</_shortDescription>
             <_description>Sinhala (US keyboard with Sinhala letters)</_description>
           </configItem>
         </variant>
@@ -5888,6 +5917,57 @@
         </variant>
       </variantList>
     </layout>
+    <layout>
+      <configItem>
+        <name>id</name>
+        <shortDescription>id</shortDescription>
+        <description>Indonesian (Jawi)</description>
+        <languageList>
+          <iso639Id>ind</iso639Id>
+          <iso639Id>msa</iso639Id>
+          <iso639Id>min</iso639Id>
+          <iso639Id>ace</iso639Id>
+          <iso639Id>bjn</iso639Id>
+          <iso639Id>tsg</iso639Id>
+          <iso639Id>mfa</iso639Id>
+        </languageList>
+      </configItem>
+      <variantList></variantList>
+    </layout>
+    <layout>
+      <configItem>
+        <name>my</name>
+        <shortDescription>ms</shortDescription>
+        <description>Malay (Jawi)</description>
+        <languageList>
+          <iso639Id>ind</iso639Id>
+          <iso639Id>msa</iso639Id>
+          <iso639Id>min</iso639Id>
+          <iso639Id>ace</iso639Id>
+          <iso639Id>bjn</iso639Id>
+          <iso639Id>tsg</iso639Id>
+          <iso639Id>mfa</iso639Id>
+        </languageList>
+      </configItem>
+      <variantList></variantList>
+    </layout>
+    <layout>
+      <configItem>
+        <name>bn</name>
+        <shortDescription>ms</shortDescription>
+        <description>Malay (Jawi)</description>
+        <languageList>
+          <iso639Id>ind</iso639Id>
+          <iso639Id>msa</iso639Id>
+          <iso639Id>min</iso639Id>
+          <iso639Id>ace</iso639Id>
+          <iso639Id>bjn</iso639Id>
+          <iso639Id>tsg</iso639Id>
+          <iso639Id>mfa</iso639Id>
+        </languageList>
+      </configItem>
+      <variantList></variantList>
+    </layout>
   </layoutList>
   <optionList>
     <group allowMultipleSelection="true">
@@ -6104,6 +6184,12 @@
         <configItem>
           <name>grp:lctrl_lwin_rctrl_menu</name>
           <_description>LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>grp:lctrl_lwin_toggle</name>
+          <_description>LeftCtrl+LeftWin</_description>
         </configItem>
       </option>
     </group>
@@ -6475,8 +6561,8 @@
       </option>
       <option>
         <configItem>
-          <name>caps:numlock</name>
-          <_description>Make Caps Lock an additional Num Lock</_description>
+          <name>caps:shiftlock</name>
+          <_description>Caps Lock toggles ShiftLock (affects all keys)</_description>
         </configItem>
       </option>
       <option>
@@ -6517,20 +6603,20 @@
       </option>
       <option>
         <configItem>
-          <name>caps:shiftlock</name>
-          <_description>Caps Lock toggles ShiftLock (affects all keys)</_description>
+          <name>caps:numlock</name>
+          <_description>Make Caps Lock an additional Num Lock</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>caps:ctrl_modifier</name>
+          <_description>Caps Lock is also a Ctrl</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>caps:none</name>
           <_description>Caps Lock is disabled</_description>
-        </configItem>
-      </option>
-      <option>
-        <configItem>
-          <name>caps:ctrl_modifier</name>
-          <_description>Make Caps Lock an additional Ctrl</_description>
         </configItem>
       </option>
     </group>

@@ -116,6 +116,28 @@ static inline unsigned list_length(struct list_head *list)
    return length;
 }
 
+static inline void list_splice(struct list_head *src, struct list_head *dst)
+{
+   if (list_empty(src))
+      return;
+
+   src->next->prev = dst;
+   src->prev->next = dst->next;
+   dst->next->prev = src->prev;
+   dst->next = src->next;
+}
+
+static inline void list_splicetail(struct list_head *src, struct list_head *dst)
+{
+   if (list_empty(src))
+      return;
+
+   src->prev->next = dst;
+   src->next->prev = dst->prev;
+   dst->prev->next = src->next;
+   dst->prev = src->prev;
+}
+
 static inline void list_validate(struct list_head *list)
 {
    struct list_head *node;

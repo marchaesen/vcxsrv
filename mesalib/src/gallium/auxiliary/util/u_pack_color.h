@@ -367,7 +367,7 @@ util_pack_color(const float rgba[4], enum pipe_format format, union util_color *
       return;
    case PIPE_FORMAT_BGRX8888_UNORM:
       {
-         uc->ui[0] = (0xff << 24) | (r << 16) | (g << 8) | b;
+         uc->ui[0] = (0xffu << 24) | (r << 16) | (g << 8) | b;
       }
       return;
    case PIPE_FORMAT_ARGB8888_UNORM:

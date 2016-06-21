@@ -158,7 +158,7 @@ glamor_set_solid(PixmapPtr      pixmap,
 }
 
 Bool
-glamor_set_texture_pixmap(PixmapPtr texture)
+glamor_set_texture_pixmap(PixmapPtr texture, Bool destination_red)
 {
     glamor_pixmap_private *texture_priv;
 
@@ -170,8 +170,9 @@ glamor_set_texture_pixmap(PixmapPtr texture)
     if (glamor_pixmap_priv_is_large(texture_priv))
         return FALSE;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_priv->fbo->tex);
+    glamor_bind_texture(glamor_get_screen_private(texture->drawable.pScreen),
+                        GL_TEXTURE0,
+                        texture_priv->fbo, destination_red);
 
     /* we're not setting the sampler uniform here as we always use
      * GL_TEXTURE0, and the default value for uniforms is zero. So,
@@ -182,12 +183,13 @@ glamor_set_texture_pixmap(PixmapPtr texture)
 
 Bool
 glamor_set_texture(PixmapPtr    texture,
+                   Bool         destination_red,
                    int          off_x,
                    int          off_y,
                    GLint        offset_uniform,
                    GLint        size_inv_uniform)
 {
-    if (!glamor_set_texture_pixmap(texture))
+    if (!glamor_set_texture_pixmap(texture, destination_red))
         return FALSE;
 
     glUniform2f(offset_uniform, off_x, off_y);
@@ -208,6 +210,7 @@ glamor_set_tiled(PixmapPtr      pixmap,
         return FALSE;
 
     return glamor_set_texture(gc->tile.pixmap,
+                              TRUE,
                               -gc->patOrg.x,
                               -gc->patOrg.y,
                               offset_uniform,
@@ -289,6 +292,7 @@ glamor_set_stippled(PixmapPtr      pixmap,
         return FALSE;
 
     return glamor_set_texture(stipple,
+                              FALSE,
                               -gc->patOrg.x,
                               -gc->patOrg.y,
                               offset_uniform,

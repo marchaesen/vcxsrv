@@ -332,9 +332,6 @@ extern _X_EXPORT void DRIMoveBuffersHelper(ScreenPtr pScreen,
 
 extern _X_EXPORT char *DRICreatePCIBusID(const struct pci_device *PciInfo);
 
-extern _X_EXPORT int drmInstallSIGIOHandler(int fd,
-                                            void (*f) (int, void *, void *));
-extern _X_EXPORT int drmRemoveSIGIOHandler(int fd);
 extern _X_EXPORT int DRIMasterFD(ScrnInfoPtr pScrn);
 
 extern _X_EXPORT void *DRIMasterSareaPointer(ScrnInfoPtr pScrn);

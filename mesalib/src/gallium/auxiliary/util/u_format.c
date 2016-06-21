@@ -45,7 +45,7 @@ boolean
 util_format_is_float(enum pipe_format format)
 {
    const struct util_format_description *desc = util_format_description(format);
-   unsigned i;
+   int i;
 
    assert(desc);
    if (!desc) {
@@ -53,7 +53,7 @@ util_format_is_float(enum pipe_format format)
    }
 
    i = util_format_get_first_non_void_channel(format);
-   if (i == -1) {
+   if (i < 0) {
       return FALSE;
    }
 
@@ -70,7 +70,7 @@ util_format_has_alpha(enum pipe_format format)
 
    return (desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
            desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) &&
-          desc->swizzle[3] != UTIL_FORMAT_SWIZZLE_1;
+          desc->swizzle[3] != PIPE_SWIZZLE_1;
 }
 
 
@@ -82,10 +82,10 @@ util_format_is_luminance(enum pipe_format format)
 
    if ((desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
         desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) &&
-       desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[3] == UTIL_FORMAT_SWIZZLE_1) {
+       desc->swizzle[0] == PIPE_SWIZZLE_X &&
+       desc->swizzle[1] == PIPE_SWIZZLE_X &&
+       desc->swizzle[2] == PIPE_SWIZZLE_X &&
+       desc->swizzle[3] == PIPE_SWIZZLE_1) {
       return TRUE;
    }
    return FALSE;
@@ -99,10 +99,10 @@ util_format_is_alpha(enum pipe_format format)
 
    if ((desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
         desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) &&
-       desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_0 &&
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_0 &&
-       desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_0 &&
-       desc->swizzle[3] == UTIL_FORMAT_SWIZZLE_X) {
+       desc->swizzle[0] == PIPE_SWIZZLE_0 &&
+       desc->swizzle[1] == PIPE_SWIZZLE_0 &&
+       desc->swizzle[2] == PIPE_SWIZZLE_0 &&
+       desc->swizzle[3] == PIPE_SWIZZLE_X) {
       return TRUE;
    }
    return FALSE;
@@ -196,10 +196,10 @@ util_format_is_luminance_alpha(enum pipe_format format)
 
    if ((desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
         desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) &&
-       desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[3] == UTIL_FORMAT_SWIZZLE_Y) {
+       desc->swizzle[0] == PIPE_SWIZZLE_X &&
+       desc->swizzle[1] == PIPE_SWIZZLE_X &&
+       desc->swizzle[2] == PIPE_SWIZZLE_X &&
+       desc->swizzle[3] == PIPE_SWIZZLE_Y) {
       return TRUE;
    }
    return FALSE;
@@ -214,10 +214,10 @@ util_format_is_intensity(enum pipe_format format)
 
    if ((desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
         desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) &&
-       desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_X &&
-       desc->swizzle[3] == UTIL_FORMAT_SWIZZLE_X) {
+       desc->swizzle[0] == PIPE_SWIZZLE_X &&
+       desc->swizzle[1] == PIPE_SWIZZLE_X &&
+       desc->swizzle[2] == PIPE_SWIZZLE_X &&
+       desc->swizzle[3] == PIPE_SWIZZLE_X) {
       return TRUE;
    }
    return FALSE;
@@ -486,7 +486,7 @@ util_is_format_compatible(const struct util_format_description *src_desc,
    }
 
    for (chan = 0; chan < 4; ++chan) {
-      enum util_format_swizzle swizzle = dst_desc->swizzle[chan];
+      enum pipe_swizzle swizzle = dst_desc->swizzle[chan];
 
       if (swizzle < 4) {
          if (src_desc->swizzle[chan] != swizzle) {
@@ -739,6 +739,40 @@ util_format_translate(enum pipe_format dst_format,
    return TRUE;
 }
 
+boolean
+util_format_translate_3d(enum pipe_format dst_format,
+                         void *dst, unsigned dst_stride,
+                         unsigned dst_slice_stride,
+                         unsigned dst_x, unsigned dst_y,
+                         unsigned dst_z,
+                         enum pipe_format src_format,
+                         const void *src, unsigned src_stride,
+                         unsigned src_slice_stride,
+                         unsigned src_x, unsigned src_y,
+                         unsigned src_z, unsigned width,
+                         unsigned height, unsigned depth)
+{
+   uint8_t *dst_layer;
+   const uint8_t *src_layer;
+   unsigned z;
+   dst_layer = dst;
+   src_layer = src;
+   dst_layer += dst_z * dst_slice_stride;
+   src_layer += src_z * src_slice_stride;
+   for (z = 0; z < depth; ++z) {
+      if (!util_format_translate(dst_format, dst_layer, dst_stride,
+                                 dst_x, dst_y,
+                                 src_format, src_layer, src_stride,
+                                 src_x, src_y,
+                                 width, height))
+          return FALSE;
+
+      dst_layer += dst_slice_stride;
+      src_layer += src_slice_stride;
+   }
+   return TRUE;
+}
+
 void util_format_compose_swizzles(const unsigned char swz1[4],
                                   const unsigned char swz2[4],
                                   unsigned char dst[4])
@@ -746,7 +780,7 @@ void util_format_compose_swizzles(const unsigned char swz1[4],
    unsigned i;
 
    for (i = 0; i < 4; i++) {
-      dst[i] = swz2[i] <= UTIL_FORMAT_SWIZZLE_W ?
+      dst[i] = swz2[i] <= PIPE_SWIZZLE_W ?
                swz1[swz2[i]] : swz2[i];
    }
 }
@@ -761,41 +795,41 @@ void util_format_apply_color_swizzle(union pipe_color_union *dst,
    if (is_integer) {
       for (c = 0; c < 4; ++c) {
          switch (swz[c]) {
-         case PIPE_SWIZZLE_RED:   dst->ui[c] = src->ui[0]; break;
-         case PIPE_SWIZZLE_GREEN: dst->ui[c] = src->ui[1]; break;
-         case PIPE_SWIZZLE_BLUE:  dst->ui[c] = src->ui[2]; break;
-         case PIPE_SWIZZLE_ALPHA: dst->ui[c] = src->ui[3]; break;
+         case PIPE_SWIZZLE_X:   dst->ui[c] = src->ui[0]; break;
+         case PIPE_SWIZZLE_Y: dst->ui[c] = src->ui[1]; break;
+         case PIPE_SWIZZLE_Z:  dst->ui[c] = src->ui[2]; break;
+         case PIPE_SWIZZLE_W: dst->ui[c] = src->ui[3]; break;
          default:
-            dst->ui[c] = (swz[c] == PIPE_SWIZZLE_ONE) ? 1 : 0;
+            dst->ui[c] = (swz[c] == PIPE_SWIZZLE_1) ? 1 : 0;
             break;
          }
       }
    } else {
       for (c = 0; c < 4; ++c) {
          switch (swz[c]) {
-         case PIPE_SWIZZLE_RED:   dst->f[c] = src->f[0]; break;
-         case PIPE_SWIZZLE_GREEN: dst->f[c] = src->f[1]; break;
-         case PIPE_SWIZZLE_BLUE:  dst->f[c] = src->f[2]; break;
-         case PIPE_SWIZZLE_ALPHA: dst->f[c] = src->f[3]; break;
+         case PIPE_SWIZZLE_X:   dst->f[c] = src->f[0]; break;
+         case PIPE_SWIZZLE_Y: dst->f[c] = src->f[1]; break;
+         case PIPE_SWIZZLE_Z:  dst->f[c] = src->f[2]; break;
+         case PIPE_SWIZZLE_W: dst->f[c] = src->f[3]; break;
          default:
-            dst->f[c] = (swz[c] == PIPE_SWIZZLE_ONE) ? 1.0f : 0.0f;
+            dst->f[c] = (swz[c] == PIPE_SWIZZLE_1) ? 1.0f : 0.0f;
             break;
          }
       }
    }
 }
 
-void util_format_swizzle_4f(float *dst, const float *src,
+void pipe_swizzle_4f(float *dst, const float *src,
                             const unsigned char swz[4])
 {
    unsigned i;
 
    for (i = 0; i < 4; i++) {
-      if (swz[i] <= UTIL_FORMAT_SWIZZLE_W)
+      if (swz[i] <= PIPE_SWIZZLE_W)
          dst[i] = src[swz[i]];
-      else if (swz[i] == UTIL_FORMAT_SWIZZLE_0)
+      else if (swz[i] == PIPE_SWIZZLE_0)
          dst[i] = 0;
-      else if (swz[i] == UTIL_FORMAT_SWIZZLE_1)
+      else if (swz[i] == PIPE_SWIZZLE_1)
          dst[i] = 1;
    }
 }
@@ -807,16 +841,16 @@ void util_format_unswizzle_4f(float *dst, const float *src,
 
    for (i = 0; i < 4; i++) {
       switch (swz[i]) {
-      case UTIL_FORMAT_SWIZZLE_X:
+      case PIPE_SWIZZLE_X:
          dst[0] = src[i];
          break;
-      case UTIL_FORMAT_SWIZZLE_Y:
+      case PIPE_SWIZZLE_Y:
          dst[1] = src[i];
          break;
-      case UTIL_FORMAT_SWIZZLE_Z:
+      case PIPE_SWIZZLE_Z:
          dst[2] = src[i];
          break;
-      case UTIL_FORMAT_SWIZZLE_W:
+      case PIPE_SWIZZLE_W:
          dst[3] = src[i];
          break;
       }

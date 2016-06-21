@@ -460,20 +460,22 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
 	 return;
       }
       if (pname == GL_COORD_REPLACE_NV) {
-         if (iparam0 == GL_TRUE || iparam0 == GL_FALSE) {
-            /* It's kind of weird to set point state via glTexEnv,
-             * but that's what the spec calls for.
-             */
-            const GLboolean state = (GLboolean) iparam0;
-            if (ctx->Point.CoordReplace[ctx->Texture.CurrentUnit] == state)
+         /* It's kind of weird to set point state via glTexEnv,
+          * but that's what the spec calls for.
+          */
+         if (iparam0 == GL_TRUE) {
+            if (ctx->Point.CoordReplace & (1u << ctx->Texture.CurrentUnit))
                return;
-            FLUSH_VERTICES(ctx, _NEW_POINT);
-            ctx->Point.CoordReplace[ctx->Texture.CurrentUnit] = state;
-         }
-         else {
+            ctx->Point.CoordReplace |= (1u << ctx->Texture.CurrentUnit);
+         } else if (iparam0 == GL_FALSE) {
+            if (~(ctx->Point.CoordReplace) & (1u << ctx->Texture.CurrentUnit))
+               return;
+            ctx->Point.CoordReplace &= ~(1u << ctx->Texture.CurrentUnit);
+         } else {
             _mesa_error( ctx, GL_INVALID_VALUE, "glTexEnv(param=0x%x)", iparam0);
             return;
          }
+         FLUSH_VERTICES(ctx, _NEW_POINT);
       }
       else {
          _mesa_error( ctx, GL_INVALID_ENUM, "glTexEnv(pname=0x%x)", pname );
@@ -675,7 +677,10 @@ _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
          return;
       }
       if (pname == GL_COORD_REPLACE_NV) {
-         *params = (GLfloat) ctx->Point.CoordReplace[ctx->Texture.CurrentUnit];
+         if (ctx->Point.CoordReplace & (1u << ctx->Texture.CurrentUnit))
+            *params = 1.0f;
+         else
+            *params = 0.0f;
       }
       else {
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexEnvfv(pname)" );
@@ -736,7 +741,10 @@ _mesa_GetTexEnviv( GLenum target, GLenum pname, GLint *params )
          return;
       }
       if (pname == GL_COORD_REPLACE_NV) {
-         *params = (GLint) ctx->Point.CoordReplace[ctx->Texture.CurrentUnit];
+         if (ctx->Point.CoordReplace & (1u << ctx->Texture.CurrentUnit))
+            *params = GL_TRUE;
+         else
+            *params = GL_FALSE;
       }
       else {
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexEnviv(pname)" );

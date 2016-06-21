@@ -357,7 +357,7 @@ class glx_function(gl_XML.gl_function):
                 # FIXME adds some extra diffs to the generated
                 # FIXME code.
 
-                size_string = size_string + " + __GLX_PAD(%s)" % (p.size_string(1))
+                size_string = size_string + " + safe_pad(%s)" % (p.size_string(1))
 
         return size_string
 

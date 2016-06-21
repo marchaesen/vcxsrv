@@ -445,6 +445,7 @@ static struct blendinfo composite_op_info[] = {
 static void
 glamor_set_blend(CARD8 op, glamor_program_alpha alpha, PicturePtr dst)
 {
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(dst->pDrawable->pScreen);
     GLenum src_blend, dst_blend;
     struct blendinfo *op_info;
 
@@ -458,6 +459,9 @@ glamor_set_blend(CARD8 op, glamor_program_alpha alpha, PicturePtr dst)
     default:
         break;
     }
+
+    if (glamor_priv->gl_flavor != GLAMOR_GL_ES2)
+        glDisable(GL_COLOR_LOGIC_OP);
 
     if (op == PictOpSrc)
         return;
@@ -527,6 +531,7 @@ use_source_picture(CARD8 op, PicturePtr src, PicturePtr dst, glamor_program *pro
     glamor_set_blend(op, prog->alpha, dst);
 
     return glamor_set_texture((PixmapPtr) src->pDrawable,
+                              glamor_picture_red_is_alpha(dst),
                               0, 0,
                               prog->fill_offset_uniform,
                               prog->fill_size_inv_uniform);
@@ -545,7 +550,8 @@ use_source_1x1_picture(CARD8 op, PicturePtr src, PicturePtr dst, glamor_program 
 {
     glamor_set_blend(op, prog->alpha, dst);
 
-    return glamor_set_texture_pixmap((PixmapPtr) src->pDrawable);
+    return glamor_set_texture_pixmap((PixmapPtr) src->pDrawable,
+                                     glamor_picture_red_is_alpha(dst));
 }
 
 static const glamor_facet glamor_source_1x1_picture = {

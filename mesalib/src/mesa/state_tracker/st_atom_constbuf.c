@@ -64,6 +64,21 @@ void st_upload_constants( struct st_context *st,
           shader_type == PIPE_SHADER_TESS_EVAL ||
           shader_type == PIPE_SHADER_COMPUTE);
 
+   /* update the ATI constants before rendering */
+   if (shader_type == PIPE_SHADER_FRAGMENT && st->fp->ati_fs) {
+      struct ati_fragment_shader *ati_fs = st->fp->ati_fs;
+      unsigned c;
+
+      for (c = 0; c < MAX_NUM_FRAGMENT_CONSTANTS_ATI; c++) {
+         if (ati_fs->LocalConstDef & (1 << c))
+            memcpy(params->ParameterValues[c],
+                   ati_fs->Constants[c], sizeof(GLfloat) * 4);
+         else
+            memcpy(params->ParameterValues[c],
+                   st->ctx->ATIFragmentShader.GlobalConstants[c], sizeof(GLfloat) * 4);
+      }
+   }
+
    /* update constants */
    if (params && params->NumParameters) {
       struct pipe_constant_buffer cb;

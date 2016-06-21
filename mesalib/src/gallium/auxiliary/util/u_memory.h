@@ -78,14 +78,6 @@ mem_dup(const void *src, uint size)
 
 
 /**
- * Number of elements in an array.
- */
-#ifndef Elements
-#define Elements(x) (sizeof(x)/sizeof((x)[0]))
-#endif
-
-
-/**
  * Offset of a field in a struct, in bytes.
  */
 #define Offset(TYPE, MEMBER) ((uintptr_t)&(((TYPE *)NULL)->MEMBER))

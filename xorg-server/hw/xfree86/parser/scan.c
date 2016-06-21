@@ -87,8 +87,6 @@
 #define CONFIG_BUF_LEN     1024
 #define CONFIG_MAX_FILES   64
 
-static int StringToToken(const char *, xf86ConfigSymTabRec *);
-
 static struct {
     FILE *file;
     char *path;
@@ -241,13 +239,25 @@ xf86getNextLine(void)
     return ret;
 }
 
+static int
+StringToToken(const char *str, const xf86ConfigSymTabRec * tab)
+{
+    int i;
+
+    for (i = 0; tab[i].token != -1; i++) {
+        if (!xf86nameCompare(tab[i].name, str))
+            return tab[i].token;
+    }
+    return ERROR_TOKEN;
+}
+
 /*
  * xf86getToken --
  *      Read next Token from the config file. Handle the global variable
  *      pushToken.
  */
 int
-xf86getToken(xf86ConfigSymTabRec * tab)
+xf86getToken(const xf86ConfigSymTabRec * tab)
 {
     int c, i;
 
@@ -431,14 +441,8 @@ xf86getToken(xf86ConfigSymTabRec * tab)
     /*
      * Joop, at last we have to lookup the token ...
      */
-    if (tab) {
-        i = 0;
-        while (tab[i].token != -1)
-            if (xf86nameCompare(configRBuf, tab[i].name) == 0)
-                return tab[i].token;
-            else
-                i++;
-    }
+    if (tab)
+        return StringToToken(configRBuf, tab);
 
     return ERROR_TOKEN;         /* Error catcher */
 }
@@ -460,7 +464,7 @@ xf86getSubToken(char **comment)
  /*NOTREACHED*/}
 
 int
-xf86getSubTokenWithTab(char **comment, xf86ConfigSymTabRec * tab)
+xf86getSubTokenWithTab(char **comment, const xf86ConfigSymTabRec * tab)
 {
     int token;
 
@@ -1023,21 +1027,9 @@ xf86setSection(const char *section)
  *  Lookup a string if it is actually a token in disguise.
  */
 int
-xf86getStringToken(xf86ConfigSymTabRec * tab)
+xf86getStringToken(const xf86ConfigSymTabRec * tab)
 {
     return StringToToken(xf86_lex_val.str, tab);
-}
-
-static int
-StringToToken(const char *str, xf86ConfigSymTabRec * tab)
-{
-    int i;
-
-    for (i = 0; tab[i].token != -1; i++) {
-        if (!xf86nameCompare(tab[i].name, str))
-            return tab[i].token;
-    }
-    return ERROR_TOKEN;
 }
 
 /*

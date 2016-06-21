@@ -63,7 +63,7 @@
 #include "optionstr.h"
 
 
-static xf86ConfigSymTabRec ServerFlagsTab[] = {
+static const xf86ConfigSymTabRec ServerFlagsTab[] = {
     {ENDSECTION, "endsection"},
     {NOTRAPSIGNALS, "notrapsignals"},
     {DONTZAP, "dontzap"},

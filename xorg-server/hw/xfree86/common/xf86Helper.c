@@ -1516,12 +1516,6 @@ xf86ServerIsResetting(void)
 }
 
 Bool
-xf86ServerIsInitialising(void)
-{
-    return xf86Initialising;
-}
-
-Bool
 xf86ServerIsOnlyDetecting(void)
 {
     return xf86DoConfigure;
@@ -1725,11 +1719,9 @@ xf86SetSilkenMouse(ScreenPtr pScreen)
     }
     free(options);
     /*
-     * XXX quick hack to report correctly for OSs that can't do SilkenMouse
-     * yet.  Should handle this differently so that alternate async methods
-     * work correctly with this too.
+     * Use silken mouse if requested and if we have threaded input
      */
-    pScrn->silkenMouse = useSM && xf86Info.useSIGIO && xf86SIGIOSupported();
+    pScrn->silkenMouse = useSM && InputThreadEnable;
     if (serverGeneration == 1)
         xf86DrvMsg(pScreen->myNum, from, "Silken mouse %s\n",
                    pScrn->silkenMouse ? "enabled" : "disabled");
@@ -1821,81 +1813,6 @@ xf86IsScreenPrimary(ScrnInfoPtr pScrn)
             return TRUE;
     }
     return FALSE;
-}
-
-int
-xf86RegisterRootWindowProperty(int ScrnIndex, Atom property, Atom type,
-                               int format, unsigned long len, void *value)
-{
-    RootWinPropPtr pNewProp = NULL, pRegProp;
-    Bool existing = FALSE;
-
-    DebugF("xf86RegisterRootWindowProperty(%d, %ld, %ld, %d, %ld, %p)\n",
-           ScrnIndex, (long)property, (long)type, format, len, value);
-
-    if (ScrnIndex < 0 || ScrnIndex >= xf86NumScreens) {
-        return BadMatch;
-    }
-
-    if (xf86RegisteredPropertiesTable &&
-        xf86RegisteredPropertiesTable[ScrnIndex]) {
-        for (pNewProp = xf86RegisteredPropertiesTable[ScrnIndex];
-             pNewProp; pNewProp = pNewProp->next) {
-            if (strcmp(pNewProp->name, NameForAtom(property)) == 0)
-                break;
-        }
-    }
-
-    if (!pNewProp) {
-        if ((pNewProp = (RootWinPropPtr) malloc(sizeof(RootWinProp))) == NULL) {
-            return BadAlloc;
-        }
-        /*
-         * We will put this property at the end of the list so that
-         * the changes are made in the order they were requested.
-         */
-        pNewProp->next = NULL;
-    }
-    else {
-        free((void *) pNewProp->name);
-        existing = TRUE;
-    }
-
-    pNewProp->name = xnfstrdup(NameForAtom(property));
-    pNewProp->type = type;
-    pNewProp->format = format;
-    pNewProp->size = len;
-    pNewProp->data = value;
-
-    DebugF("new property filled\n");
-
-    if (xf86RegisteredPropertiesTable == NULL) {
-        DebugF("creating xf86RegisteredPropertiesTable[] size %d\n",
-               xf86NumScreens);
-        xf86RegisteredPropertiesTable =
-            xnfcalloc(sizeof(RootWinProp), xf86NumScreens);
-    }
-
-    DebugF("xf86RegisteredPropertiesTable %p\n",
-           (void *) xf86RegisteredPropertiesTable);
-    DebugF("xf86RegisteredPropertiesTable[%d] %p\n",
-           ScrnIndex, (void *) xf86RegisteredPropertiesTable[ScrnIndex]);
-
-    if (!existing) {
-        if (xf86RegisteredPropertiesTable[ScrnIndex] == NULL) {
-            xf86RegisteredPropertiesTable[ScrnIndex] = pNewProp;
-        }
-        else {
-            pRegProp = xf86RegisteredPropertiesTable[ScrnIndex];
-            while (pRegProp->next != NULL) {
-                DebugF("- next %p\n", (void *) pRegProp);
-                pRegProp = pRegProp->next;
-            }
-            pRegProp->next = pNewProp;
-        }
-    }
-    DebugF("xf86RegisterRootWindowProperty succeeded\n");
-    return Success;
 }
 
 Bool

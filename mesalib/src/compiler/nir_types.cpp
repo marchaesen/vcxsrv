@@ -65,6 +65,12 @@ glsl_get_array_element(const glsl_type* type)
 }
 
 const glsl_type *
+glsl_without_array(const glsl_type *type)
+{
+   return type->without_array();
+}
+
+const glsl_type *
 glsl_get_struct_field(const glsl_type *type, unsigned index)
 {
    return type->fields.structure[index].type;
@@ -122,6 +128,13 @@ unsigned
 glsl_get_aoa_size(const struct glsl_type *type)
 {
    return type->arrays_of_arrays_size();
+}
+
+unsigned
+glsl_count_attribute_slots(const struct glsl_type *type,
+                           bool is_vertex_input)
+{
+   return type->count_attribute_slots(is_vertex_input);
 }
 
 const char *

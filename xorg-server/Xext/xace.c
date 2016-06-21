@@ -33,28 +33,17 @@ _X_EXPORT CallbackListPtr XaceHooks[XACE_NUM_HOOKS] = { 0 };
 
 /* Special-cased hook functions.  Called by Xserver.
  */
+#undef XaceHookDispatch
 int
 XaceHookDispatch(ClientPtr client, int major)
 {
-    /* Call the audit begin callback, there is no return value. */
-    XaceAuditRec rec = { client, 0 };
-    CallCallbacks(&XaceHooks[XACE_AUDIT_BEGIN], &rec);
-
-    if (major < 128) {
-        /* Call the core dispatch hook */
-        XaceCoreDispatchRec drec = { client, Success /* default allow */  };
-        CallCallbacks(&XaceHooks[XACE_CORE_DISPATCH], &drec);
-        return drec.status;
-    }
-    else {
-        /* Call the extension dispatch hook */
-        ExtensionEntry *ext = GetExtensionEntry(major);
-        XaceExtAccessRec erec = { client, ext, DixUseAccess, Success };
-        if (ext)
-            CallCallbacks(&XaceHooks[XACE_EXT_DISPATCH], &erec);
-        /* On error, pretend extension doesn't exist */
-        return (erec.status == Success) ? Success : BadRequest;
-    }
+    /* Call the extension dispatch hook */
+    ExtensionEntry *ext = GetExtensionEntry(major);
+    XaceExtAccessRec erec = { client, ext, DixUseAccess, Success };
+    if (ext)
+        CallCallbacks(&XaceHooks[XACE_EXT_DISPATCH], &erec);
+    /* On error, pretend extension doesn't exist */
+    return (erec.status == Success) ? Success : BadRequest;
 }
 
 int
@@ -72,14 +61,6 @@ XaceHookSelectionAccess(ClientPtr client, Selection ** ppSel, Mask access_mode)
     XaceSelectionAccessRec rec = { client, ppSel, access_mode, Success };
     CallCallbacks(&XaceHooks[XACE_SELECTION_ACCESS], &rec);
     return rec.status;
-}
-
-void
-XaceHookAuditEnd(ClientPtr ptr, int result)
-{
-    XaceAuditRec rec = { ptr, result };
-    /* call callbacks, there is no return value. */
-    CallCallbacks(&XaceHooks[XACE_AUDIT_END], &rec);
 }
 
 /* Entry point for hook functions.  Called by Xserver.

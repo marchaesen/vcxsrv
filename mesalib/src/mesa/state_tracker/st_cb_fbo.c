@@ -40,6 +40,7 @@
 #include "main/glformats.h"
 #include "main/macros.h"
 #include "main/renderbuffer.h"
+#include "main/state.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -387,6 +388,7 @@ st_update_renderbuffer_surface(struct st_context *st,
 {
    struct pipe_context *pipe = st->pipe;
    struct pipe_resource *resource = strb->texture;
+   struct st_texture_object *stTexObj = NULL;
    unsigned rtt_width = strb->Base.Width;
    unsigned rtt_height = strb->Base.Height;
    unsigned rtt_depth = strb->Base.Depth;
@@ -398,9 +400,18 @@ st_update_renderbuffer_surface(struct st_context *st,
     */
    boolean enable_srgb = (st->ctx->Color.sRGBEnabled &&
          _mesa_get_format_color_encoding(strb->Base.Format) == GL_SRGB);
-   enum pipe_format format = (enable_srgb) ?
-      util_format_srgb(resource->format) :
-      util_format_linear(resource->format);
+   enum pipe_format format = resource->format;
+
+   if (strb->is_rtt) {
+      stTexObj = st_texture_object(strb->Base.TexImage->TexObject);
+      if (stTexObj->surface_based)
+         format = stTexObj->surface_format;
+   }
+
+   format = (enable_srgb) ?
+      util_format_srgb(format) :
+      util_format_linear(format);
+
    unsigned first_layer, last_layer, level;
 
    if (resource->target == PIPE_TEXTURE_1D_ARRAY) {
@@ -431,8 +442,8 @@ st_update_renderbuffer_surface(struct st_context *st,
 
    /* Adjust for texture views */
    if (strb->is_rtt && resource->array_size > 1 &&
-       strb->Base.TexImage->TexObject->Immutable) {
-      struct gl_texture_object *tex = strb->Base.TexImage->TexObject;
+       stTexObj->base.Immutable) {
+      struct gl_texture_object *tex = &stTexObj->base;
       first_layer += tex->MinLayer;
       if (!strb->rtt_layered)
          last_layer += tex->MinLayer;
@@ -491,8 +502,6 @@ st_render_texture(struct gl_context *ctx,
    pipe_resource_reference(&strb->texture, pt);
 
    st_update_renderbuffer_surface(st, strb);
-
-   strb->Base.Format = st_pipe_format_to_mesa_format(pt->format);
 
    /* Invalidate buffer state so that the pipe's framebuffer state
     * gets updated.
@@ -635,6 +644,7 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
                                depth,
 			       PIPE_BIND_DEPTH_STENCIL)) {
       fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      st_fbo_invalid("Invalid depth attachment");
       return;
    }
    if (!st_validate_attachment(ctx,
@@ -642,6 +652,7 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
                                stencil,
 			       PIPE_BIND_DEPTH_STENCIL)) {
       fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      st_fbo_invalid("Invalid stencil attachment");
       return;
    }
    for (i = 0; i < ctx->Const.MaxColorAttachments; i++) {
@@ -654,6 +665,7 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 				  att,
 				  PIPE_BIND_RENDER_TARGET)) {
 	 fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+	 st_fbo_invalid("Invalid color attachment");
 	 return;
       }
 
@@ -721,6 +733,7 @@ st_ReadBuffer(struct gl_context *ctx, GLenum buffer)
        fb->Attachment[fb->_ColorReadBufferIndex].Type == GL_NONE) {
       /* add the buffer */
       st_manager_add_color_renderbuffer(st, fb, fb->_ColorReadBufferIndex);
+      _mesa_update_state(ctx);
       st_validate_state(st, ST_PIPELINE_RENDER);
    }
 }

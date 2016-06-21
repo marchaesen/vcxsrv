@@ -161,6 +161,11 @@ struct st_context
       struct pipe_framebuffer_state framebuffer;
       struct pipe_scissor_state scissor[PIPE_MAX_VIEWPORTS];
       struct pipe_viewport_state viewport[PIPE_MAX_VIEWPORTS];
+      struct {
+         unsigned num;
+         boolean include;
+         struct pipe_scissor_state rects[PIPE_MAX_WINDOW_RECTANGLES];
+      } window_rects;
       unsigned sample_mask;
 
       GLuint poly_stipple[32];  /**< In OpenGL's bottom-to-top order */
@@ -194,8 +199,6 @@ struct st_context
    struct st_basic_variant *tep_variant;
    struct st_basic_variant *cp_variant;
 
-   struct gl_texture_object *default_texture;
-
    struct {
       struct pipe_resource *pixelmap_texture;
       struct pipe_sampler_view *pixelmap_sampler_view;
@@ -225,6 +228,16 @@ struct st_context
       struct pipe_resource *texture;
    } drawpix_cache;
 
+   /** for glReadPixels */
+   struct {
+      struct pipe_resource *src;
+      struct pipe_resource *cache;
+      enum pipe_format dst_format;
+      unsigned level;
+      unsigned layer;
+      unsigned hits;
+   } readpix_cache;
+
    /** for glClear */
    struct {
       struct pipe_rasterizer_state raster;
@@ -238,15 +251,17 @@ struct st_context
    /* For gl(Compressed)Tex(Sub)Image */
    struct {
       struct pipe_rasterizer_state raster;
-      struct pipe_blend_state blend;
+      struct pipe_blend_state upload_blend;
       void *vs;
       void *gs;
-      void *fs;
-      bool enabled;
+      void *upload_fs;
+      void *download_fs[PIPE_MAX_TEXTURE_TYPES];
+      bool upload_enabled;
+      bool download_enabled;
       bool rgba_only;
-      bool upload_layers;
+      bool layers;
       bool use_gs;
-   } pbo_upload;
+   } pbo;
 
    /** for drawing with st_util_vertex */
    struct pipe_vertex_element util_velems[3];
@@ -301,6 +316,7 @@ extern void st_init_driver_functions(struct pipe_screen *screen,
 
 void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state);
 
+void st_invalidate_readpix_cache(struct st_context *st);
 
 
 #define Y_0_TOP 1

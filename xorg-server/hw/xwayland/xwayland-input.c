@@ -41,6 +41,11 @@
         (miPointerPtr)dixLookupPrivate(&(dev)->devPrivates, miPointerPrivKey): \
         (miPointerPtr)dixLookupPrivate(&(GetMaster(dev, MASTER_POINTER))->devPrivates, miPointerPrivKey))
 
+struct sync_pending {
+    struct xorg_list l;
+    DeviceIntPtr pending_dev;
+};
+
 static void
 xwl_pointer_control(DeviceIntPtr device, PtrCtrl *ctrl)
 {
@@ -78,7 +83,7 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
         axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
         axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
 
-        if (!InitValuatorClassDeviceStruct(device, NAXES, btn_labels,
+        if (!InitValuatorClassDeviceStruct(device, NAXES, axes_labels,
                                            GetMotionHistorySize(), Absolute))
             return BadValue;
 
@@ -98,7 +103,7 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
         if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
             return BadValue;
 
-        if (!InitButtonClassDeviceStruct(device, 3, btn_labels, map))
+        if (!InitButtonClassDeviceStruct(device, NBUTTONS, btn_labels, map))
             return BadValue;
 
         return Success;
@@ -219,7 +224,6 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     struct xwl_seat *xwl_seat = data;
     DeviceIntPtr dev = xwl_seat->pointer;
     DeviceIntPtr master;
-    miPointerPtr mipointer;
     int i;
     int sx = wl_fixed_to_int(sx_w);
     int sy = wl_fixed_to_int(sy_w);
@@ -243,13 +247,7 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     master = GetMaster(dev, POINTER_OR_FLOAT);
     (*pScreen->SetCursorPosition) (dev, pScreen, sx, sy, TRUE);
 
-    /* X is very likely to have the wrong idea of what the actual cursor
-     * sprite is, so in order to force updating the cursor lets set the
-     * current sprite to some invalid cursor behind its back so that it
-     * always will think it changed to the not invalid cursor.
-     */
-    mipointer = MIPOINTER(master);
-    mipointer->pSpriteCursor = (CursorPtr) 1;
+    miPointerInvalidateSprite(master);
 
     CheckMotion(NULL, master);
 
@@ -527,6 +525,64 @@ keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
 }
 
 static void
+remove_sync_pending(DeviceIntPtr dev)
+{
+    struct xwl_seat *xwl_seat = dev->public.devicePrivate;
+    struct sync_pending *p, *npd;
+
+    xorg_list_for_each_entry_safe(p, npd, &xwl_seat->sync_pending, l) {
+        if (p->pending_dev == dev) {
+            xorg_list_del(&xwl_seat->sync_pending);
+            free (p);
+            return;
+        }
+    }
+}
+
+static void
+sync_callback(void *data, struct wl_callback *callback, uint32_t serial)
+{
+    DeviceIntPtr dev = (DeviceIntPtr) data;
+
+    remove_sync_pending(dev);
+    wl_callback_destroy(callback);
+}
+
+static const struct wl_callback_listener sync_listener = {
+   sync_callback
+};
+
+static Bool
+keyboard_check_repeat (DeviceIntPtr dev, XkbSrvInfoPtr xkbi, unsigned key)
+{
+    struct xwl_seat *xwl_seat = dev->public.devicePrivate;
+    struct xwl_screen *xwl_screen = xwl_seat->xwl_screen;
+    struct wl_callback *callback;
+    struct sync_pending *p;
+
+    /* Make sure we didn't miss a possible reply from the compositor */
+    xwl_sync_events (xwl_screen);
+
+    xorg_list_for_each_entry(p, &xwl_seat->sync_pending, l) {
+        if (p->pending_dev == dev) {
+            ErrorF("Key repeat discarded, Wayland compositor doesn't "
+                   "seem to be processing events fast enough!\n");
+
+            return FALSE;
+        }
+    }
+
+    p = xnfalloc(sizeof(struct sync_pending));
+    p->pending_dev = dev;
+    callback = wl_display_sync (xwl_screen->display);
+    xorg_list_add(&p->l, &xwl_seat->sync_pending);
+
+    wl_callback_add_listener(callback, &sync_listener, dev);
+
+    return TRUE;
+}
+
+static void
 keyboard_handle_repeat_info (void *data, struct wl_keyboard *keyboard,
                              int32_t rate, int32_t delay)
 {
@@ -535,8 +591,8 @@ keyboard_handle_repeat_info (void *data, struct wl_keyboard *keyboard,
     XkbControlsPtr ctrl;
 
     if (rate < 0 || delay < 0) {
-	ErrorF("Wrong rate/delay: %d, %d\n", rate, delay);
-	return;
+        ErrorF("Wrong rate/delay: %d, %d\n", rate, delay);
+        return;
     }
 
     for (dev = inputInfo.devices; dev; dev = dev->next) {
@@ -544,15 +600,15 @@ keyboard_handle_repeat_info (void *data, struct wl_keyboard *keyboard,
             dev != GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD))
             continue;
 
-	if (rate != 0) {
+        if (rate != 0) {
             ctrl = dev->key->xkbInfo->desc->ctrls;
             ctrl->repeat_delay = delay;
             /* rate is number of keys per second */
             ctrl->repeat_interval = 1000 / rate;
 
-	    XkbSetRepeatKeys(dev, -1, AutoRepeatModeOn);
-	} else
-	    XkbSetRepeatKeys(dev, -1, AutoRepeatModeOff);
+            XkbSetRepeatKeys(dev, -1, AutoRepeatModeOn);
+        } else
+            XkbSetRepeatKeys(dev, -1, AutoRepeatModeOff);
     }
 }
 
@@ -716,6 +772,7 @@ seat_handle_capabilities(void *data, struct wl_seat *seat,
                          enum wl_seat_capability caps)
 {
     struct xwl_seat *xwl_seat = data;
+    DeviceIntPtr master;
 
     if (caps & WL_SEAT_CAPABILITY_POINTER && xwl_seat->wl_pointer == NULL) {
         xwl_seat->wl_pointer = wl_seat_get_pointer(seat);
@@ -748,12 +805,18 @@ seat_handle_capabilities(void *data, struct wl_seat *seat,
             ActivateDevice(xwl_seat->keyboard, TRUE);
         }
         EnableDevice(xwl_seat->keyboard, TRUE);
+        xwl_seat->keyboard->key->xkbInfo->checkRepeat = keyboard_check_repeat;
+        master = GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD);
+        if (master)
+            master->key->xkbInfo->checkRepeat = keyboard_check_repeat;
     } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && xwl_seat->wl_keyboard) {
         wl_keyboard_release(xwl_seat->wl_keyboard);
         xwl_seat->wl_keyboard = NULL;
 
-        if (xwl_seat->keyboard)
+        if (xwl_seat->keyboard) {
+            remove_sync_pending(xwl_seat->keyboard);
             DisableDevice(xwl_seat->keyboard, TRUE);
+        }
     }
 
     if (caps & WL_SEAT_CAPABILITY_TOUCH && xwl_seat->wl_touch == NULL) {
@@ -780,7 +843,7 @@ seat_handle_capabilities(void *data, struct wl_seat *seat,
 
 static void
 seat_handle_name(void *data, struct wl_seat *seat,
-		 const char *name)
+                 const char *name)
 {
 
 }
@@ -814,17 +877,24 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
     wl_array_init(&xwl_seat->keys);
 
     xorg_list_init(&xwl_seat->touches);
+    xorg_list_init(&xwl_seat->sync_pending);
 }
 
 void
 xwl_seat_destroy(struct xwl_seat *xwl_seat)
 {
     struct xwl_touch *xwl_touch, *next_xwl_touch;
+    struct sync_pending *p, *npd;
 
     xorg_list_for_each_entry_safe(xwl_touch, next_xwl_touch,
                                   &xwl_seat->touches, link_touch) {
         xorg_list_del(&xwl_touch->link_touch);
         free(xwl_touch);
+    }
+
+    xorg_list_for_each_entry_safe(p, npd, &xwl_seat->sync_pending, l) {
+        xorg_list_del(&xwl_seat->sync_pending);
+        free (p);
     }
 
     wl_seat_destroy(xwl_seat->seat);
@@ -900,7 +970,6 @@ InitInput(int argc, char *argv[])
     wl_registry_add_listener(xwl_screen->input_registry, &input_listener,
                              xwl_screen);
 
-    xwl_screen->expecting_event = 0;
     wl_display_roundtrip(xwl_screen->display);
     while (xwl_screen->expecting_event)
         wl_display_roundtrip(xwl_screen->display);

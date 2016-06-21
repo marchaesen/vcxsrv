@@ -1,3 +1,30 @@
+Release 1.12 (2016-05-18)
+=========================
+* xinput: Various padding-related additions and fixes
+* xinput: Various type fixes
+* xinput: Various mask fixes
+* xinput: Various additions of enums
+* Define new "altmask" attribute
+* Define new switch-case construct
+* xinput: Convert various construct from bitcase to case
+* xinput: Add full support for various requests
+* Define new sumof with nested expressions
+* present: Specify length of RedirectNotify.notifies
+* Define new listelement-ref construct
+* xinput: Support list axisvalues in events
+* Define new paramref construct
+* xfixes: Fix GetCursorImageAndName cursor image support
+* Replace valueparam with other construct in various extensions
+* Remove support for the valueparam construct
+* xprint: Fix some list definitions
+* randr: Add RandR 1.5 requests and data types
+* shm: Mark PutImage.send_event field as boolean
+* glx: Add IsEnabled request
+* Make padding explicit in various places
+* Fix typos in some documentation examples
+* Add an automatic alignment checker
+* Optionally enforce serilization of pads for ABI compatibility
+
 Release 1.11 (2014-08-01)
 =========================
 * Add support for <pad align="n" />

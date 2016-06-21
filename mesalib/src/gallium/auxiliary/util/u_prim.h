@@ -46,8 +46,8 @@ struct u_prim_vertex_count {
  * Decompose a primitive that is a loop, a strip, or a fan.  Return the
  * original primitive if it is already decomposed.
  */
-static inline unsigned
-u_decomposed_prim(unsigned prim)
+static inline enum pipe_prim_type
+u_decomposed_prim(enum pipe_prim_type prim)
 {
    switch (prim) {
    case PIPE_PRIM_LINE_LOOP:
@@ -71,8 +71,8 @@ u_decomposed_prim(unsigned prim)
  * Reduce a primitive to one of PIPE_PRIM_POINTS, PIPE_PRIM_LINES, and
  * PIPE_PRIM_TRIANGLES.
  */
-static inline unsigned
-u_reduced_prim(unsigned prim)
+static inline enum pipe_prim_type
+u_reduced_prim(enum pipe_prim_type prim)
 {
    switch (prim) {
    case PIPE_PRIM_POINTS:
@@ -91,8 +91,8 @@ u_reduced_prim(unsigned prim)
 /**
  * Re-assemble a primitive to remove its adjacency.
  */
-static inline unsigned
-u_assembled_prim(unsigned prim)
+static inline enum pipe_prim_type
+u_assembled_prim(enum pipe_prim_type prim)
 {
    switch (prim) {
    case PIPE_PRIM_LINES_ADJACENCY:
@@ -114,7 +114,7 @@ u_assembled_prim(unsigned prim)
  * expected because of the use of a table.
  */
 static inline const struct u_prim_vertex_count *
-u_prim_vertex_count(unsigned prim)
+u_prim_vertex_count(enum pipe_prim_type prim)
 {
    static const struct u_prim_vertex_count prim_table[PIPE_PRIM_MAX] = {
       { 1, 1 }, /* PIPE_PRIM_POINTS */
@@ -141,7 +141,7 @@ u_prim_vertex_count(unsigned prim)
  * For polygons, return the number of triangles.
  */
 static inline unsigned
-u_prims_for_vertices(unsigned prim, unsigned num)
+u_prims_for_vertices(enum pipe_prim_type prim, unsigned num)
 {
    const struct u_prim_vertex_count *info = u_prim_vertex_count(prim);
 
@@ -154,7 +154,8 @@ u_prims_for_vertices(unsigned prim, unsigned num)
    return 1 + ((num - info->min) / info->incr);
 }
 
-static inline boolean u_validate_pipe_prim( unsigned pipe_prim, unsigned nr )
+static inline boolean
+u_validate_pipe_prim(enum pipe_prim_type pipe_prim, unsigned nr)
 {
    const struct u_prim_vertex_count *count = u_prim_vertex_count(pipe_prim);
 
@@ -162,7 +163,8 @@ static inline boolean u_validate_pipe_prim( unsigned pipe_prim, unsigned nr )
 }
 
 
-static inline boolean u_trim_pipe_prim( unsigned pipe_prim, unsigned *nr )
+static inline boolean
+u_trim_pipe_prim(enum pipe_prim_type pipe_prim, unsigned *nr)
 {
    const struct u_prim_vertex_count *count = u_prim_vertex_count(pipe_prim);
 
@@ -178,7 +180,7 @@ static inline boolean u_trim_pipe_prim( unsigned pipe_prim, unsigned *nr )
 }
 
 static inline unsigned
-u_vertices_per_prim(int primitive)
+u_vertices_per_prim(enum pipe_prim_type primitive)
 {
    switch(primitive) {
    case PIPE_PRIM_POINTS:
@@ -220,7 +222,7 @@ u_vertices_per_prim(int primitive)
  * primitives for a set of vertices.
  */
 static inline unsigned
-u_decomposed_prims_for_vertices(int primitive, int vertices)
+u_decomposed_prims_for_vertices(enum pipe_prim_type primitive, int vertices)
 {
    switch (primitive) {
    case PIPE_PRIM_POINTS:
@@ -267,7 +269,7 @@ u_decomposed_prims_for_vertices(int primitive, int vertices)
  * triangle fans.
  */
 static inline unsigned
-u_reduced_prims_for_vertices(int primitive, int vertices)
+u_reduced_prims_for_vertices(enum pipe_prim_type primitive, int vertices)
 {
    switch (primitive) {
    case PIPE_PRIM_QUADS:
@@ -281,7 +283,7 @@ u_reduced_prims_for_vertices(int primitive, int vertices)
    }
 }
 
-const char *u_prim_name( unsigned pipe_prim );
+const char *u_prim_name(enum pipe_prim_type pipe_prim);
 
 
 #ifdef __cplusplus

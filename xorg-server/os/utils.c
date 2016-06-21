@@ -210,6 +210,10 @@ sig_atomic_t inSignalContext = FALSE;
 #define HAS_SAVED_IDS_AND_SETEUID
 #endif
 
+#ifdef MONOTONIC_CLOCK
+static clockid_t clockid;
+#endif
+
 OsSigHandlerPtr
 OsSignal(int sig, OsSigHandlerPtr handler)
 {
@@ -427,6 +431,24 @@ GiveUp(int sig)
     errno = olderrno;
 }
 
+#ifdef MONOTONIC_CLOCK
+void
+ForceClockId(clockid_t forced_clockid)
+{
+    struct timespec tp;
+
+    BUG_RETURN (clockid);
+
+    clockid = forced_clockid;
+
+    if (clock_gettime(clockid, &tp) != 0) {
+        FatalError("Forced clock id failed to retrieve current time: %s\n",
+                   strerror(errno));
+        return;
+    }
+}
+#endif
+
 #if (defined WIN32 && defined __MINGW32__) || defined(__CYGWIN__)
 CARD32
 GetTimeInMillis(void)
@@ -446,7 +468,6 @@ GetTimeInMillis(void)
 
 #ifdef MONOTONIC_CLOCK
     struct timespec tp;
-    static clockid_t clockid;
 
     if (!clockid) {
 #ifdef CLOCK_MONOTONIC_COARSE
@@ -475,7 +496,6 @@ GetTimeInMicros(void)
     struct timeval tv;
 #ifdef MONOTONIC_CLOCK
     struct timespec tp;
-    static clockid_t clockid;
 
     if (!clockid) {
         if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
@@ -586,7 +606,7 @@ UseMsg(void)
     ErrorF("-xinerama              Disable XINERAMA extension\n");
 #endif
     ErrorF
-        ("-dumbSched             Disable smart scheduling, enable old behavior\n");
+        ("-dumbSched             Disable smart scheduling and threaded input, enable old behavior\n");
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("-sigstop               Enable SIGSTOP based startup\n");
     ErrorF("+extension name        Enable extension\n");
@@ -1004,11 +1024,12 @@ ProcessCommandLine(int argc, char *argv[])
             i = skip - 1;
         }
 #endif
-#if HAVE_SETITIMER
         else if (strcmp(argv[i], "-dumbSched") == 0) {
+            InputThreadEnable = FALSE;
+#if HAVE_SETITIMER
             SmartScheduleSignalEnable = FALSE;
-        }
 #endif
+        }
         else if (strcmp(argv[i], "-schedInterval") == 0) {
             if (++i < argc) {
                 SmartScheduleInterval = atoi(argv[i]);
@@ -1304,9 +1325,6 @@ OsBlockSignals(void)
     if (BlockedSignalCount++ == 0) {
         sigset_t set;
 
-#ifdef SIGIO
-        OsBlockSIGIO();
-#endif
         sigemptyset(&set);
         sigaddset(&set, SIGALRM);
         sigaddset(&set, SIGVTALRM);
@@ -1317,52 +1335,8 @@ OsBlockSignals(void)
         sigaddset(&set, SIGTTIN);
         sigaddset(&set, SIGTTOU);
         sigaddset(&set, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &set, &PreviousSignalMask);
+        xthread_sigmask(SIG_BLOCK, &set, &PreviousSignalMask);
     }
-#endif
-}
-
-#ifdef SIG_BLOCK
-static sig_atomic_t sigio_blocked;
-static sigset_t PreviousSigIOMask;
-#endif
-
-/**
- * returns zero if this call caused SIGIO to be blocked now, non-zero if it
- * was already blocked by a previous call to this function.
- */
-int
-OsBlockSIGIO(void)
-{
-#ifdef SIGIO
-#ifdef SIG_BLOCK
-    if (sigio_blocked++ == 0) {
-        sigset_t set;
-        int ret;
-
-        sigemptyset(&set);
-        sigaddset(&set, SIGIO);
-        sigprocmask(SIG_BLOCK, &set, &PreviousSigIOMask);
-        ret = sigismember(&PreviousSigIOMask, SIGIO);
-        return ret;
-    }
-#endif
-#endif
-    return 1;
-}
-
-void
-OsReleaseSIGIO(void)
-{
-#ifdef SIGIO
-#ifdef SIG_BLOCK
-    if (--sigio_blocked == 0) {
-        sigprocmask(SIG_SETMASK, &PreviousSigIOMask, 0);
-    } else if (sigio_blocked < 0) {
-        BUG_WARN(sigio_blocked < 0);
-        sigio_blocked = 0;
-    }
-#endif
 #endif
 }
 
@@ -1371,8 +1345,7 @@ OsReleaseSignals(void)
 {
 #ifdef SIG_BLOCK
     if (--BlockedSignalCount == 0) {
-        sigprocmask(SIG_SETMASK, &PreviousSignalMask, 0);
-        OsReleaseSIGIO();
+        xthread_sigmask(SIG_SETMASK, &PreviousSignalMask, 0);
     }
 #endif
 }
@@ -1383,10 +1356,7 @@ OsResetSignals(void)
 #ifdef SIG_BLOCK
     while (BlockedSignalCount > 0)
         OsReleaseSignals();
-#ifdef SIGIO
-    while (sigio_blocked > 0)
-        OsReleaseSIGIO();
-#endif
+    input_force_unlock();
 #endif
 }
 
@@ -1425,7 +1395,7 @@ System(const char *command)
     if (!command)
         return 1;
 
-    csig = signal(SIGCHLD, SIG_DFL);
+    csig = OsSignal(SIGCHLD, SIG_DFL);
     if (csig == SIG_ERR) {
         perror("signal");
         return -1;
@@ -1450,7 +1420,7 @@ System(const char *command)
 
     }
 
-    if (signal(SIGCHLD, csig) == SIG_ERR) {
+    if (OsSignal(SIGCHLD, csig) == SIG_ERR) {
         perror("signal");
         return -1;
     }

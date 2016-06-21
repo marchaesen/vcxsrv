@@ -201,5 +201,4 @@ Bool xf86AllowMouseOpenFail = FALSE;
 Bool xf86VidModeDisabled = FALSE;
 Bool xf86VidModeAllowNonLocal = FALSE;
 #endif
-RootWinPropPtr *xf86RegisteredPropertiesTable = NULL;
 Bool xorgHWAccess = FALSE;

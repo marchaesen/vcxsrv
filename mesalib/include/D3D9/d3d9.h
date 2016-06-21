@@ -260,7 +260,7 @@ struct IDirect3DDevice9 : public IUnknown
 	virtual HRESULT WINAPI SetStreamSourceFreq(UINT StreamNumber, UINT Setting) = 0;
 	virtual HRESULT WINAPI GetStreamSourceFreq(UINT StreamNumber, UINT *pSetting) = 0;
 	virtual HRESULT WINAPI SetIndices(IDirect3DIndexBuffer9 *pIndexData) = 0;
-	virtual HRESULT WINAPI GetIndices(IDirect3DIndexBuffer9 **ppIndexData, UINT *pBaseVertexIndex) = 0;
+	virtual HRESULT WINAPI GetIndices(IDirect3DIndexBuffer9 **ppIndexData) = 0;
 	virtual HRESULT WINAPI CreatePixelShader(const DWORD *pFunction, IDirect3DPixelShader9 **ppShader) = 0;
 	virtual HRESULT WINAPI SetPixelShader(IDirect3DPixelShader9 *pShader) = 0;
 	virtual HRESULT WINAPI GetPixelShader(IDirect3DPixelShader9 **ppShader) = 0;
@@ -848,7 +848,7 @@ typedef struct IDirect3DDevice9Vtbl
 	HRESULT (WINAPI *SetStreamSourceFreq)(IDirect3DDevice9 *This, UINT StreamNumber, UINT Setting);
 	HRESULT (WINAPI *GetStreamSourceFreq)(IDirect3DDevice9 *This, UINT StreamNumber, UINT *pSetting);
 	HRESULT (WINAPI *SetIndices)(IDirect3DDevice9 *This, IDirect3DIndexBuffer9 *pIndexData);
-	HRESULT (WINAPI *GetIndices)(IDirect3DDevice9 *This, IDirect3DIndexBuffer9 **ppIndexData, UINT *pBaseVertexIndex);
+	HRESULT (WINAPI *GetIndices)(IDirect3DDevice9 *This, IDirect3DIndexBuffer9 **ppIndexData);
 	HRESULT (WINAPI *CreatePixelShader)(IDirect3DDevice9 *This, const DWORD *pFunction, IDirect3DPixelShader9 **ppShader);
 	HRESULT (WINAPI *SetPixelShader)(IDirect3DDevice9 *This, IDirect3DPixelShader9 *pShader);
 	HRESULT (WINAPI *GetPixelShader)(IDirect3DDevice9 *This, IDirect3DPixelShader9 **ppShader);
@@ -975,7 +975,7 @@ struct IDirect3DDevice9
 #define IDirect3DDevice9_SetStreamSourceFreq(p,a,b) (p)->lpVtbl->SetStreamSourceFreq(p,a,b)
 #define IDirect3DDevice9_GetStreamSourceFreq(p,a,b) (p)->lpVtbl->GetStreamSourceFreq(p,a,b)
 #define IDirect3DDevice9_SetIndices(p,a) (p)->lpVtbl->SetIndices(p,a)
-#define IDirect3DDevice9_GetIndices(p,a,b) (p)->lpVtbl->GetIndices(p,a,b)
+#define IDirect3DDevice9_GetIndices(p,a) (p)->lpVtbl->GetIndices(p,a)
 #define IDirect3DDevice9_CreatePixelShader(p,a,b) (p)->lpVtbl->CreatePixelShader(p,a,b)
 #define IDirect3DDevice9_SetPixelShader(p,a) (p)->lpVtbl->SetPixelShader(p,a)
 #define IDirect3DDevice9_GetPixelShader(p,a) (p)->lpVtbl->GetPixelShader(p,a)
@@ -1099,7 +1099,7 @@ typedef struct IDirect3DDevice9ExVtbl
 	HRESULT (WINAPI *SetStreamSourceFreq)(IDirect3DDevice9Ex *This, UINT StreamNumber, UINT Setting);
 	HRESULT (WINAPI *GetStreamSourceFreq)(IDirect3DDevice9Ex *This, UINT StreamNumber, UINT *pSetting);
 	HRESULT (WINAPI *SetIndices)(IDirect3DDevice9Ex *This, IDirect3DIndexBuffer9 *pIndexData);
-	HRESULT (WINAPI *GetIndices)(IDirect3DDevice9Ex *This, IDirect3DIndexBuffer9 **ppIndexData, UINT *pBaseVertexIndex);
+	HRESULT (WINAPI *GetIndices)(IDirect3DDevice9Ex *This, IDirect3DIndexBuffer9 **ppIndexData);
 	HRESULT (WINAPI *CreatePixelShader)(IDirect3DDevice9Ex *This, const DWORD *pFunction, IDirect3DPixelShader9 **ppShader);
 	HRESULT (WINAPI *SetPixelShader)(IDirect3DDevice9Ex *This, IDirect3DPixelShader9 *pShader);
 	HRESULT (WINAPI *GetPixelShader)(IDirect3DDevice9Ex *This, IDirect3DPixelShader9 **ppShader);
@@ -1242,7 +1242,7 @@ struct IDirect3DDevice9Ex
 #define IDirect3DDevice9Ex_SetStreamSourceFreq(p,a,b) (p)->lpVtbl->SetStreamSourceFreq(p,a,b)
 #define IDirect3DDevice9Ex_GetStreamSourceFreq(p,a,b) (p)->lpVtbl->GetStreamSourceFreq(p,a,b)
 #define IDirect3DDevice9Ex_SetIndices(p,a) (p)->lpVtbl->SetIndices(p,a)
-#define IDirect3DDevice9Ex_GetIndices(p,a,b) (p)->lpVtbl->GetIndices(p,a,b)
+#define IDirect3DDevice9Ex_GetIndices(p,a) (p)->lpVtbl->GetIndices(p,a)
 #define IDirect3DDevice9Ex_CreatePixelShader(p,a,b) (p)->lpVtbl->CreatePixelShader(p,a,b)
 #define IDirect3DDevice9Ex_SetPixelShader(p,a) (p)->lpVtbl->SetPixelShader(p,a)
 #define IDirect3DDevice9Ex_GetPixelShader(p,a) (p)->lpVtbl->GetPixelShader(p,a)

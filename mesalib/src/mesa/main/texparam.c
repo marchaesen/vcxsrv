@@ -1223,6 +1223,26 @@ _mesa_legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return ctx->Extensions.ARB_texture_multisample;
+   case GL_TEXTURE_BUFFER:
+      /* GetTexLevelParameter accepts GL_TEXTURE_BUFFER in GL 3.1+ contexts,
+       * but not in earlier versions that expose ARB_texture_buffer_object.
+       *
+       * From the ARB_texture_buffer_object spec:
+       * "(7) Do buffer textures support texture parameters (TexParameter) or
+       *      queries (GetTexParameter, GetTexLevelParameter, GetTexImage)?
+       *
+       *    RESOLVED:  No. [...] Note that the spec edits above don't add
+       *    explicit error language for any of these cases.  That is because
+       *    each of the functions enumerate the set of valid <target>
+       *    parameters.  Not editing the spec to allow TEXTURE_BUFFER_ARB in
+       *    these cases means that target is not legal, and an INVALID_ENUM
+       *    error should be generated."
+       *
+       * From the OpenGL 3.1 spec:
+       * "target may also be TEXTURE_BUFFER, indicating the texture buffer."
+       */
+      return (ctx->API == API_OPENGL_CORE && ctx->Version >= 31) ||
+         _mesa_has_OES_texture_buffer(ctx);
    }
 
    if (!_mesa_is_desktop_gl(ctx))
@@ -1247,25 +1267,6 @@ _mesa_legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target
    case GL_PROXY_TEXTURE_1D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
       return ctx->Extensions.EXT_texture_array;
-   case GL_TEXTURE_BUFFER:
-      /* GetTexLevelParameter accepts GL_TEXTURE_BUFFER in GL 3.1+ contexts,
-       * but not in earlier versions that expose ARB_texture_buffer_object.
-       *
-       * From the ARB_texture_buffer_object spec:
-       * "(7) Do buffer textures support texture parameters (TexParameter) or
-       *      queries (GetTexParameter, GetTexLevelParameter, GetTexImage)?
-       *
-       *    RESOLVED:  No. [...] Note that the spec edits above don't add
-       *    explicit error language for any of these cases.  That is because
-       *    each of the functions enumerate the set of valid <target>
-       *    parameters.  Not editing the spec to allow TEXTURE_BUFFER_ARB in
-       *    these cases means that target is not legal, and an INVALID_ENUM
-       *    error should be generated."
-       *
-       * From the OpenGL 3.1 spec:
-       * "target may also be TEXTURE_BUFFER, indicating the texture buffer."
-       */
-      return ctx->API == API_OPENGL_CORE && ctx->Version >= 31;
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return ctx->Extensions.ARB_texture_multisample;
@@ -1447,6 +1448,29 @@ get_tex_level_parameter_image(struct gl_context *ctx,
          *params = img->FixedSampleLocations;
          break;
 
+      /* There is never a buffer data store here, but these pnames still have
+       * to work.
+       */
+
+      /* GL_ARB_texture_buffer_object */
+      case GL_TEXTURE_BUFFER_DATA_STORE_BINDING:
+         if (!ctx->Extensions.ARB_texture_buffer_object)
+            goto invalid_pname;
+         *params = 0;
+         break;
+
+      /* GL_ARB_texture_buffer_range */
+      case GL_TEXTURE_BUFFER_OFFSET:
+         if (!ctx->Extensions.ARB_texture_buffer_range)
+            goto invalid_pname;
+         *params = 0;
+         break;
+      case GL_TEXTURE_BUFFER_SIZE:
+         if (!ctx->Extensions.ARB_texture_buffer_range)
+            goto invalid_pname;
+         *params = 0;
+         break;
+
       default:
          goto invalid_pname;
    }
@@ -1468,13 +1492,24 @@ get_tex_level_parameter_buffer(struct gl_context *ctx,
 {
    const struct gl_buffer_object *bo = texObj->BufferObject;
    mesa_format texFormat = texObj->_BufferObjectFormat;
+   int bytes = MAX2(1, _mesa_get_format_bytes(texFormat));
    GLenum internalFormat = texObj->BufferObjectFormat;
    GLenum baseFormat = _mesa_get_format_base_format(texFormat);
    const char *suffix = dsa ? "ture" : "";
 
    if (!bo) {
       /* undefined texture buffer object */
-      *params = pname == GL_TEXTURE_COMPONENTS ? 1 : 0;
+      switch (pname) {
+      case GL_TEXTURE_FIXED_SAMPLE_LOCATIONS:
+         *params = GL_TRUE;
+         break;
+      case GL_TEXTURE_INTERNAL_FORMAT:
+         *params = internalFormat;
+         break;
+      default:
+         *params = 0;
+         break;
+      }
       return;
    }
 
@@ -1483,10 +1518,13 @@ get_tex_level_parameter_buffer(struct gl_context *ctx,
          *params = bo->Name;
          break;
       case GL_TEXTURE_WIDTH:
-         *params = bo->Size;
+         *params = ((texObj->BufferSize == -1) ? bo->Size : texObj->BufferSize)
+            / bytes;
          break;
       case GL_TEXTURE_HEIGHT:
       case GL_TEXTURE_DEPTH:
+         *params = 1;
+         break;
       case GL_TEXTURE_BORDER:
       case GL_TEXTURE_SHARED_SIZE:
       case GL_TEXTURE_COMPRESSED:
@@ -1534,6 +1572,19 @@ get_tex_level_parameter_buffer(struct gl_context *ctx,
          if (!ctx->Extensions.ARB_texture_buffer_range)
             goto invalid_pname;
          *params = (texObj->BufferSize == -1) ? bo->Size : texObj->BufferSize;
+         break;
+
+      /* GL_ARB_texture_multisample */
+      case GL_TEXTURE_SAMPLES:
+         if (!ctx->Extensions.ARB_texture_multisample)
+            goto invalid_pname;
+         *params = 0;
+         break;
+
+      case GL_TEXTURE_FIXED_SAMPLE_LOCATIONS:
+         if (!ctx->Extensions.ARB_texture_multisample)
+            goto invalid_pname;
+         *params = GL_TRUE;
          break;
 
       /* GL_ARB_texture_compression */

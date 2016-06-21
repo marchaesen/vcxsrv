@@ -398,7 +398,7 @@ CheckAllTimers(void)
     OsTimerPtr timer;
     CARD32 now;
 
-    OsBlockSignals();
+    input_lock();
  start:
     now = GetTimeInMillis();
 
@@ -408,7 +408,7 @@ CheckAllTimers(void)
             goto start;
         }
     }
-    OsReleaseSignals();
+    input_unlock();
 }
 
 static void
@@ -416,10 +416,10 @@ DoTimer(OsTimerPtr timer, CARD32 now, volatile OsTimerPtr *prev)
 {
     CARD32 newTime;
 
-    OsBlockSignals();
+    input_lock();
     *prev = timer->next;
     timer->next = NULL;
-    OsReleaseSignals();
+    input_unlock();
 
     newTime = (*timer->callback) (timer, now, timer->arg);
     if (newTime)
@@ -439,7 +439,7 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
             return NULL;
     }
     else {
-        OsBlockSignals();
+        input_lock();
         for (prev = &timers; *prev; prev = &(*prev)->next) {
             if (*prev == timer) {
                 *prev = timer->next;
@@ -448,7 +448,7 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
                 break;
             }
         }
-        OsReleaseSignals();
+        input_unlock();
     }
     if (!millis)
         return timer;
@@ -468,13 +468,13 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
         if (!millis)
             return timer;
     }
-    OsBlockSignals();
+    input_lock();
     for (prev = &timers;
          *prev && (int) ((*prev)->expires - millis) <= 0;
          prev = &(*prev)->next);
     timer->next = *prev;
     *prev = timer;
-    OsReleaseSignals();
+    input_unlock();
     return timer;
 }
 
@@ -484,7 +484,7 @@ TimerForce(OsTimerPtr timer)
     int rc = FALSE;
     volatile OsTimerPtr *prev;
 
-    OsBlockSignals();
+    input_lock();
     for (prev = &timers; *prev; prev = &(*prev)->next) {
         if (*prev == timer) {
             DoTimer(timer, GetTimeInMillis(), prev);
@@ -492,7 +492,7 @@ TimerForce(OsTimerPtr timer)
             break;
         }
     }
-    OsReleaseSignals();
+    input_unlock();
     return rc;
 }
 
@@ -503,14 +503,14 @@ TimerCancel(OsTimerPtr timer)
 
     if (!timer)
         return;
-    OsBlockSignals();
+    input_lock();
     for (prev = &timers; *prev; prev = &(*prev)->next) {
         if (*prev == timer) {
             *prev = timer->next;
             break;
         }
     }
-    OsReleaseSignals();
+    input_unlock();
 }
 
 void
@@ -528,10 +528,10 @@ TimerCheck(void)
     CARD32 now = GetTimeInMillis();
 
     if (timers && (int) (timers->expires - now) <= 0) {
-        OsBlockSignals();
+        input_lock();
         while (timers && (int) (timers->expires - now) <= 0)
             DoTimer(timers, now, &timers);
-        OsReleaseSignals();
+        input_unlock();
     }
 }
 

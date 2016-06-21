@@ -63,7 +63,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <signal.h>
 #include <errno.h>
 
 #if defined(HAVE_SETEUID) && defined(_POSIX_SAVED_IDS) && _POSIX_SAVED_IDS > 0
@@ -73,14 +72,7 @@
 #define HAS_NO_UIDS
 #endif
 
-#ifdef HAS_NO_UIDS
-#define doWriteConfigFile xf86writeConfigFile
-#define Local /**/
-#else
-#define Local static
-#endif
-
-Local int
+static int
 doWriteConfigFile(const char *filename, XF86ConfigPtr cptr)
 {
     FILE *cf;
@@ -134,26 +126,21 @@ doWriteConfigFile(const char *filename, XF86ConfigPtr cptr)
     return 1;
 }
 
-#ifndef HAS_NO_UIDS
-
 int
 xf86writeConfigFile(const char *filename, XF86ConfigPtr cptr)
 {
+#ifndef HAS_NO_UIDS
     int ret;
-
-#if !defined(HAS_SAVED_IDS_AND_SETEUID)
-    int pid, p;
-    int status;
-    void (*csig) (int);
-#else
-    int ruid, euid;
-#endif
 
     if (getuid() != geteuid()) {
 
 #if !defined(HAS_SAVED_IDS_AND_SETEUID)
+        int pid, p;
+        int status;
+        void (*csig) (int);
+
         /* Need to fork to change ruid without loosing euid */
-        csig = signal(SIGCHLD, SIG_DFL);
+        csig = OsSignal(SIGCHLD, SIG_DFL);
         switch ((pid = fork())) {
         case -1:
             ErrorF("xf86writeConfigFile(): fork failed (%s)\n",
@@ -171,13 +158,14 @@ xf86writeConfigFile(const char *filename, XF86ConfigPtr cptr)
                 p = waitpid(pid, &status, 0);
             } while (p == -1 && errno == EINTR);
         }
-        signal(SIGCHLD, csig);
+        OsSignal(SIGCHLD, csig);
         if (p != -1 && WIFEXITED(status) && WEXITSTATUS(status) == 0)
             return 1;           /* success */
         else
             return 0;
 
 #else                           /* HAS_SAVED_IDS_AND_SETEUID */
+        int ruid, euid;
 
         ruid = getuid();
         euid = geteuid();
@@ -198,9 +186,7 @@ xf86writeConfigFile(const char *filename, XF86ConfigPtr cptr)
 #endif                          /* HAS_SAVED_IDS_AND_SETEUID */
 
     }
-    else {
-        return doWriteConfigFile(filename, cptr);
-    }
-}
-
+    else
 #endif                          /* !HAS_NO_UIDS */
+        return doWriteConfigFile(filename, cptr);
+}

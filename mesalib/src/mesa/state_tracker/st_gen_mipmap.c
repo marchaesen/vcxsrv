@@ -40,6 +40,7 @@
 #include "st_context.h"
 #include "st_texture.h"
 #include "st_gen_mipmap.h"
+#include "st_cb_bitmap.h"
 #include "st_cb_texture.h"
 
 
@@ -82,7 +83,6 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
    const uint baseLevel = texObj->BaseLevel;
    enum pipe_format format;
    uint lastLevel, first_layer, last_layer;
-   uint dstLevel;
 
    if (!pt)
       return;
@@ -97,48 +97,42 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
    if (lastLevel == 0)
       return;
 
+   st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
+
    /* The texture isn't in a "complete" state yet so set the expected
     * lastLevel here, since it won't get done in st_finalize_texture().
     */
    stObj->lastLevel = lastLevel;
 
    if (!texObj->Immutable) {
-      if (pt->last_level < lastLevel) {
-         /* The current gallium texture doesn't have space for all the
-         * mipmap levels we need to generate.  So allocate a new texture.
-         */
-         struct pipe_resource *oldTex = stObj->pt;
+      const GLboolean genSave = texObj->GenerateMipmap;
 
-         /* create new texture with space for more levels */
-         stObj->pt = st_texture_create(st,
-                                       oldTex->target,
-                                       oldTex->format,
-                                       lastLevel,
-                                       oldTex->width0,
-                                       oldTex->height0,
-                                       oldTex->depth0,
-                                       oldTex->array_size,
-                                       0,
-                                       oldTex->bind);
+      /* Temporarily set GenerateMipmap to true so that allocate_full_mipmap()
+       * makes the right decision about full mipmap allocation.
+       */
+      texObj->GenerateMipmap = GL_TRUE;
 
-         /* This will copy the old texture's base image into the new texture
-         * which we just allocated.
-         */
-         st_finalize_texture(ctx, st->pipe, texObj);
+      _mesa_prepare_mipmap_levels(ctx, texObj, baseLevel, lastLevel);
 
-         /* release the old tex (will likely be freed too) */
-         pipe_resource_reference(&oldTex, NULL);
-         st_texture_release_all_sampler_views(st, stObj);
-      }
-      else {
-         /* Make sure that the base texture image data is present in the
-         * texture buffer.
-         */
-         st_finalize_texture(ctx, st->pipe, texObj);
-      }
+      texObj->GenerateMipmap = genSave;
+
+      /* At this point, memory for all the texture levels has been
+       * allocated.  However, the base level image may be in one resource
+       * while the subsequent/smaller levels may be in another resource.
+       * Finalizing the texture will copy the base images from the former
+       * resource to the latter.
+       *
+       * After this, we'll have all mipmap levels in one resource.
+       */
+      st_finalize_texture(ctx, st->pipe, texObj);
    }
 
    pt = stObj->pt;
+   if (!pt) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "mipmap generation");
+      return;
+   }
 
    assert(pt->last_level >= lastLevel);
 
@@ -168,49 +162,5 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
                            first_layer, last_layer, PIPE_TEX_FILTER_LINEAR)) {
          _mesa_generate_mipmap(ctx, target, texObj);
       }
-   }
-
-   /* Fill in the Mesa gl_texture_image fields */
-   for (dstLevel = baseLevel + 1; dstLevel <= lastLevel; dstLevel++) {
-      const uint srcLevel = dstLevel - 1;
-      const struct gl_texture_image *srcImage
-         = _mesa_get_tex_image(ctx, texObj, target, srcLevel);
-      struct gl_texture_image *dstImage;
-      struct st_texture_image *stImage;
-      uint border = srcImage->Border;
-      uint dstWidth, dstHeight, dstDepth;
-
-      dstWidth = u_minify(pt->width0, dstLevel);
-      if (texObj->Target == GL_TEXTURE_1D_ARRAY) {
-         dstHeight = pt->array_size;
-      }
-      else {
-         dstHeight = u_minify(pt->height0, dstLevel);
-      }
-      if (texObj->Target == GL_TEXTURE_2D_ARRAY ||
-          texObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY) {
-         dstDepth = pt->array_size;
-      }
-      else {
-         dstDepth = u_minify(pt->depth0, dstLevel);
-      }
-
-      dstImage = _mesa_get_tex_image(ctx, texObj, target, dstLevel);
-      if (!dstImage) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "generating mipmaps");
-         return;
-      }
-
-      /* Free old image data */
-      ctx->Driver.FreeTextureImageBuffer(ctx, dstImage);
-
-      /* initialize new image */
-      _mesa_init_teximage_fields(ctx, dstImage, dstWidth, dstHeight,
-                                 dstDepth, border, srcImage->InternalFormat,
-                                 srcImage->TexFormat);
-
-      stImage = st_texture_image(dstImage);
-
-      pipe_resource_reference(&stImage->pt, pt);
    }
 }

@@ -10,8 +10,8 @@
 
 /* The cipher order given here is the default order. */
 static const struct keyvalwhere ciphernames[] = {
-    { "chacha20",   CIPHER_CHACHA20,        -1, -1 },
     { "aes",        CIPHER_AES,             -1, -1 },
+    { "chacha20",   CIPHER_CHACHA20,        CIPHER_AES, +1 },
     { "blowfish",   CIPHER_BLOWFISH,        -1, -1 },
     { "3des",       CIPHER_3DES,            -1, -1 },
     { "WARN",       CIPHER_WARN,            -1, -1 },
@@ -19,13 +19,25 @@ static const struct keyvalwhere ciphernames[] = {
     { "des",        CIPHER_DES,             -1, -1 }
 };
 
+/* The default order here is sometimes overridden by the backward-
+ * compatibility warts in load_open_settings(), and should be kept
+ * in sync with those. */
 static const struct keyvalwhere kexnames[] = {
     { "ecdh",               KEX_ECDH,       -1, +1 },
+    /* This name is misleading: it covers both SHA-256 and SHA-1 variants */
     { "dh-gex-sha1",        KEX_DHGEX,      -1, -1 },
     { "dh-group14-sha1",    KEX_DHGROUP14,  -1, -1 },
-    { "dh-group1-sha1",     KEX_DHGROUP1,   -1, -1 },
+    { "dh-group1-sha1",     KEX_DHGROUP1,   KEX_WARN, +1 },
     { "rsa",                KEX_RSA,        KEX_WARN, -1 },
     { "WARN",               KEX_WARN,       -1, -1 }
+};
+
+static const struct keyvalwhere hknames[] = {
+    { "ed25519",    HK_ED25519,             -1, +1 },
+    { "ecdsa",      HK_ECDSA,               -1, -1 },
+    { "dsa",        HK_DSA,                 -1, -1 },
+    { "rsa",        HK_RSA,                 -1, -1 },
+    { "WARN",       HK_WARN,                -1, -1 },
 };
 
 /*
@@ -42,11 +54,11 @@ const char *const ttymodes[] = {
     "SWTCH",	"STATUS",   "DISCARD",	"IGNPAR",   "PARMRK",
     "INPCK",	"ISTRIP",   "INLCR",	"IGNCR",    "ICRNL",
     "IUCLC",	"IXON",     "IXANY",	"IXOFF",    "IMAXBEL",
-    "ISIG",	"ICANON",   "XCASE",	"ECHO",     "ECHOE",
-    "ECHOK",	"ECHONL",   "NOFLSH",	"TOSTOP",   "IEXTEN",
-    "ECHOCTL",	"ECHOKE",   "PENDIN",	"OPOST",    "OLCUC",
-    "ONLCR",	"OCRNL",    "ONOCR",	"ONLRET",   "CS7",
-    "CS8",	"PARENB",   "PARODD",	NULL
+    "IUTF8",    "ISIG",     "ICANON",   "XCASE",    "ECHO",
+    "ECHOE",    "ECHOK",    "ECHONL",   "NOFLSH",   "TOSTOP",
+    "IEXTEN",   "ECHOCTL",  "ECHOKE",   "PENDIN",   "OPOST",
+    "OLCUC",    "ONLCR",    "OCRNL",    "ONOCR",    "ONLRET",
+    "CS7",      "CS8",      "PARENB",   "PARODD",   NULL
 };
 
 /*
@@ -301,19 +313,14 @@ static const char *val2key(const struct keyvalwhere *mapping,
  * to the end and duplicates are weeded.
  * XXX: assumes vals in 'mapping' are small +ve integers
  */
-static void gprefs(void *sesskey, const char *name, const char *def,
-		   const struct keyvalwhere *mapping, int nvals,
-		   Conf *conf, int primary)
+static void gprefs_from_str(const char *str,
+			    const struct keyvalwhere *mapping, int nvals,
+			    Conf *conf, int primary)
 {
-    char *commalist;
+    char *commalist = dupstr(str);
     char *p, *q;
     int i, j, n, v, pos;
     unsigned long seen = 0;	       /* bitmap for weeding dups etc */
-
-    /*
-     * Fetch the string which we'll parse as a comma-separated list.
-     */
-    commalist = gpps_raw(sesskey, name, def);
 
     /*
      * Go through that list and convert it into values.
@@ -378,10 +385,26 @@ static void gprefs(void *sesskey, const char *name, const char *def,
                     conf_set_int_int(conf, primary, j+1,
                                      conf_get_int_int(conf, primary, j));
                 conf_set_int_int(conf, primary, pos, mapping[i].v);
+                seen |= (1 << mapping[i].v);
                 n++;
             }
         }
     }
+}
+
+/*
+ * Read a preference list.
+ */
+static void gprefs(void *sesskey, const char *name, const char *def,
+		   const struct keyvalwhere *mapping, int nvals,
+		   Conf *conf, int primary)
+{
+    /*
+     * Fetch the string which we'll parse as a comma-separated list.
+     */
+    char *value = gpps_raw(sesskey, name, def);
+    gprefs_from_str(value, mapping, nvals, conf, primary);
+    sfree(value);
 }
 
 /* 
@@ -493,6 +516,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "ChangeUsername", conf_get_int(conf, CONF_change_username));
     wprefs(sesskey, "Cipher", ciphernames, CIPHER_MAX, conf, CONF_ssh_cipherlist);
     wprefs(sesskey, "KEX", kexnames, KEX_MAX, conf, CONF_ssh_kexlist);
+    wprefs(sesskey, "HostKey", hknames, HK_MAX, conf, CONF_ssh_hklist);
     write_setting_i(sesskey, "RekeyTime", conf_get_int(conf, CONF_ssh_rekey_time));
     write_setting_s(sesskey, "RekeyBytes", conf_get_str(conf, CONF_ssh_rekey_data));
     write_setting_i(sesskey, "SshNoAuth", conf_get_int(conf, CONF_ssh_no_userauth));
@@ -774,25 +798,58 @@ void load_open_settings(void *sesskey, Conf *conf)
     gprefs(sesskey, "Cipher", "\0",
 	   ciphernames, CIPHER_MAX, conf, CONF_ssh_cipherlist);
     {
-	/* Backward-compatibility: we used to have an option to
+	/* Backward-compatibility: before 0.58 (when the "KEX"
+	 * preference was first added), we had an option to
 	 * disable gex under the "bugs" panel after one report of
 	 * a server which offered it then choked, but we never got
 	 * a server version string or any other reports. */
-	const char *default_kexes;
+	const char *default_kexes,
+	           *normal_default = "ecdh,dh-gex-sha1,dh-group14-sha1,rsa,"
+		       "WARN,dh-group1-sha1",
+		   *bugdhgex2_default = "ecdh,dh-group14-sha1,rsa,"
+		       "WARN,dh-group1-sha1,dh-gex-sha1";
+	char *raw;
 	i = 2 - gppi_raw(sesskey, "BugDHGEx2", 0);
 	if (i == FORCE_ON)
-            default_kexes = "ecdh,dh-group14-sha1,dh-group1-sha1,rsa,"
-                "WARN,dh-gex-sha1";
+            default_kexes = bugdhgex2_default;
 	else
-            default_kexes = "ecdh,dh-gex-sha1,dh-group14-sha1,"
-                "dh-group1-sha1,rsa,WARN";
-	gprefs(sesskey, "KEX", default_kexes,
-	       kexnames, KEX_MAX, conf, CONF_ssh_kexlist);
+            default_kexes = normal_default;
+	/* Migration: after 0.67 we decided we didn't like
+	 * dh-group1-sha1. If it looks like the user never changed
+	 * the defaults, quietly upgrade their settings to demote it.
+	 * (If they did, they're on their own.) */
+	raw = gpps_raw(sesskey, "KEX", default_kexes);
+	assert(raw != NULL);
+	/* Lack of 'ecdh' tells us this was saved by 0.58-0.67
+	 * inclusive. If it was saved by a later version, we need
+	 * to leave it alone. */
+	if (strcmp(raw, "dh-group14-sha1,dh-group1-sha1,rsa,"
+		   "WARN,dh-gex-sha1") == 0) {
+	    /* Previously migrated from BugDHGEx2. */
+	    sfree(raw);
+	    raw = dupstr(bugdhgex2_default);
+	} else if (strcmp(raw, "dh-gex-sha1,dh-group14-sha1,"
+			  "dh-group1-sha1,rsa,WARN") == 0) {
+	    /* Untouched old default setting. */
+	    sfree(raw);
+	    raw = dupstr(normal_default);
+	}
+	gprefs_from_str(raw, kexnames, KEX_MAX, conf, CONF_ssh_kexlist);
+	sfree(raw);
     }
+    gprefs(sesskey, "HostKey", "ed25519,ecdsa,rsa,dsa,WARN",
+           hknames, HK_MAX, conf, CONF_ssh_hklist);
     gppi(sesskey, "RekeyTime", 60, conf, CONF_ssh_rekey_time);
     gpps(sesskey, "RekeyBytes", "1G", conf, CONF_ssh_rekey_data);
-    /* SSH-2 only by default */
-    gppi(sesskey, "SshProt", 3, conf, CONF_sshprot);
+    {
+	/* SSH-2 only by default */
+	int sshprot = gppi_raw(sesskey, "SshProt", 3);
+	/* Old sessions may contain the values correponding to the fallbacks
+	 * we used to allow; migrate them */
+	if (sshprot == 1)      sshprot = 0; /* => "SSH-1 only" */
+	else if (sshprot == 2) sshprot = 3; /* => "SSH-2 only" */
+	conf_set_int(conf, CONF_sshprot, sshprot);
+    }
     gpps(sesskey, "LogHost", "", conf, CONF_loghost);
     gppi(sesskey, "SSH2DES", 0, conf, CONF_ssh2_des_cbc);
     gppi(sesskey, "SshNoAuth", 0, conf, CONF_ssh_no_userauth);

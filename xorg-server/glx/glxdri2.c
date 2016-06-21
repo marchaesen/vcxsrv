@@ -75,8 +75,6 @@ struct __GLXDRIscreen {
     const __DRIswapControlExtension *swapControl;
     const __DRItexBufferExtension *texBuffer;
     const __DRIconfig **driConfigs;
-
-    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
 };
 
 struct __GLXDRIcontext {
@@ -100,21 +98,6 @@ struct __GLXDRIdrawable {
 };
 
 static void
-__glXDRIdrawableDestroy(__GLXdrawable * drawable)
-{
-    __GLXDRIdrawable *private = (__GLXDRIdrawable *) drawable;
-    const __DRIcoreExtension *core = private->screen->core;
-
-    FreeResource(private->dri2_id, FALSE);
-
-    (*core->destroyDrawable) (private->driDrawable);
-
-    __glXDrawableRelease(drawable);
-
-    free(private);
-}
-
-static void
 copy_box(__GLXdrawable * drawable,
          int dst, int src,
          int x, int y, int w, int h)
@@ -134,6 +117,24 @@ copy_box(__GLXdrawable * drawable,
         lastGLContext = cx;
         cx->makeCurrent(cx);
     }
+}
+
+/* white lie */
+extern glx_func_ptr glXGetProcAddressARB(const char *);
+
+static void
+__glXDRIdrawableDestroy(__GLXdrawable * drawable)
+{
+    __GLXDRIdrawable *private = (__GLXDRIdrawable *) drawable;
+    const __DRIcoreExtension *core = private->screen->core;
+
+    FreeResource(private->dri2_id, FALSE);
+
+    (*core->destroyDrawable) (private->driDrawable);
+
+    __glXDrawableRelease(drawable);
+
+    free(private);
 }
 
 static void
@@ -340,32 +341,6 @@ static __GLXtextureFromPixmap __glXDRItextureFromPixmap = {
     __glXDRIbindTexImage,
     __glXDRIreleaseTexImage
 };
-
-static void
-__glXDRIscreenDestroy(__GLXscreen * baseScreen)
-{
-    int i;
-
-    ScrnInfoPtr pScrn = xf86ScreenToScrn(baseScreen->pScreen);
-    __GLXDRIscreen *screen = (__GLXDRIscreen *) baseScreen;
-
-    (*screen->core->destroyScreen) (screen->driScreen);
-
-    dlclose(screen->driver);
-
-    __glXScreenDestroy(baseScreen);
-
-    if (screen->driConfigs) {
-        for (i = 0; screen->driConfigs[i] != NULL; i++)
-            free((__DRIconfig **) screen->driConfigs[i]);
-        free(screen->driConfigs);
-    }
-
-    pScrn->EnterVT = screen->enterVT;
-    pScrn->LeaveVT = screen->leaveVT;
-
-    free(screen);
-}
 
 static Bool
 dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
@@ -779,8 +754,11 @@ dri2GetBuffersWithFormat(__DRIdrawable * driDrawable,
 static void
 dri2FlushFrontBuffer(__DRIdrawable * driDrawable, void *loaderPrivate)
 {
+    __GLXDRIdrawable *private = (__GLXDRIdrawable *) loaderPrivate;
     (void) driDrawable;
-    __glXDRIdrawableWaitGL((__GLXdrawable *) loaderPrivate);
+
+    copy_box(loaderPrivate, DRI2BufferFrontLeft, DRI2BufferFakeFrontLeft,
+             0, 0, private->width, private->height);
 }
 
 static const __DRIdri2LoaderExtension loaderExtension = {
@@ -847,18 +825,19 @@ glxDRILeaveVT(ScrnInfoPtr scrn)
  * @param screen The screen where glx_enable_bits are to be set.
  */
 static void
-initializeExtensions(__GLXDRIscreen * screen)
+initializeExtensions(__GLXscreen * screen)
 {
-    ScreenPtr pScreen = screen->base.pScreen;
+    ScreenPtr pScreen = screen->pScreen;
+    __GLXDRIscreen *dri = (__GLXDRIscreen *)screen;
     const __DRIextension **extensions;
     int i;
 
-    extensions = screen->core->getExtensions(screen->driScreen);
+    extensions = dri->core->getExtensions(dri->driScreen);
 
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
     LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
 
-    if (screen->dri2->base.version >= 3) {
+    if (dri->dri2->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context");
         __glXEnableExtension(screen->glx_enable_bits,
@@ -876,10 +855,8 @@ initializeExtensions(__GLXDRIscreen * screen)
     if (DRI2HasSwapControl(pScreen)) {
         __glXEnableExtension(screen->glx_enable_bits, "GLX_INTEL_swap_event");
         __glXEnableExtension(screen->glx_enable_bits, "GLX_SGI_swap_control");
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_swap_control");
         LogMessage(X_INFO, "AIGLX: enabled GLX_INTEL_swap_event\n");
-        LogMessage(X_INFO,
-                   "AIGLX: enabled GLX_SGI_swap_control and GLX_MESA_swap_control\n");
+        LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_swap_control\n");
     }
 
     /* enable EXT_framebuffer_sRGB extension (even if there are no sRGB capable fbconfigs) */
@@ -902,27 +879,21 @@ initializeExtensions(__GLXDRIscreen * screen)
     }
 
     for (i = 0; extensions[i]; i++) {
-        if (strcmp(extensions[i]->name, __DRI_READ_DRAWABLE) == 0) {
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_SGI_make_current_read");
-
-            LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_make_current_read\n");
-        }
-
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
-            screen->texBuffer = (const __DRItexBufferExtension *) extensions[i];
-            /* GLX_EXT_texture_from_pixmap is always enabled. */
+            dri->texBuffer = (const __DRItexBufferExtension *) extensions[i];
+            __glXEnableExtension(screen->glx_enable_bits,
+                                 "GLX_EXT_texture_from_pixmap");
             LogMessage(X_INFO,
                        "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n");
         }
 
         if (strcmp(extensions[i]->name, __DRI2_FLUSH) == 0 &&
             extensions[i]->version >= 3) {
-            screen->flush = (__DRI2flushExtension *) extensions[i];
+            dri->flush = (__DRI2flushExtension *) extensions[i];
         }
 
         if (strcmp(extensions[i]->name, __DRI2_ROBUSTNESS) == 0 &&
-            screen->dri2->base.version >= 3) {
+            dri->dri2->base.version >= 3) {
             __glXEnableExtension(screen->glx_enable_bits,
                                  "GLX_ARB_create_context_robustness");
             LogMessage(X_INFO,
@@ -940,16 +911,49 @@ initializeExtensions(__GLXDRIscreen * screen)
     }
 }
 
-/* white lie */
-extern glx_func_ptr glXGetProcAddressARB(const char *);
+static void
+__glXDRIscreenDestroy(__GLXscreen * baseScreen)
+{
+    int i;
+
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(baseScreen->pScreen);
+    __GLXDRIscreen *screen = (__GLXDRIscreen *) baseScreen;
+
+    (*screen->core->destroyScreen) (screen->driScreen);
+
+    dlclose(screen->driver);
+
+    __glXScreenDestroy(baseScreen);
+
+    if (screen->driConfigs) {
+        for (i = 0; screen->driConfigs[i] != NULL; i++)
+            free((__DRIconfig **) screen->driConfigs[i]);
+        free(screen->driConfigs);
+    }
+
+    pScrn->EnterVT = screen->enterVT;
+    pScrn->LeaveVT = screen->leaveVT;
+
+    free(screen);
+}
+
+enum {
+    GLXOPT_VENDOR_LIBRARY,
+};
+
+static const OptionInfoRec GLXOptions[] = {
+    { GLXOPT_VENDOR_LIBRARY, "GlxVendorLibrary", OPTV_STRING, {0}, FALSE },
+    { -1, NULL, OPTV_NONE, {0}, FALSE },
+};
 
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
     const char *driverName, *deviceName;
     __GLXDRIscreen *screen;
-    size_t buffer_size;
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+    const char *glvnd = NULL;
+    OptionInfoPtr options;
 
     screen = calloc(1, sizeof *screen);
     if (screen == NULL)
@@ -968,7 +972,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     screen->base.swapInterval = __glXDRIdrawableSwapInterval;
     screen->base.pScreen = pScreen;
 
-    __glXInitExtensionEnableBits(screen->glx_enable_bits);
+    __glXInitExtensionEnableBits(screen->base.glx_enable_bits);
 
     screen->driver =
         glxProbeDriver(driverName, (void **) &screen->core, __DRI_CORE, 1,
@@ -988,39 +992,25 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
         goto handle_error;
     }
 
-    initializeExtensions(screen);
+    initializeExtensions(&screen->base);
 
     screen->base.fbconfigs = glxConvertConfigs(screen->core, screen->driConfigs,
                                                GLX_WINDOW_BIT |
                                                GLX_PIXMAP_BIT |
                                                GLX_PBUFFER_BIT);
 
+    options = xnfalloc(sizeof(GLXOptions));
+    memcpy(options, GLXOptions, sizeof(GLXOptions));
+    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, options);
+    glvnd = xf86GetOptValString(options, GLXOPT_VENDOR_LIBRARY);
+    if (glvnd)
+        screen->base.glvnd = xnfstrdup(glvnd);
+    free(options);
+
+    if (!screen->base.glvnd)
+        screen->base.glvnd = strdup("mesa");
+
     __glXScreenInit(&screen->base, pScreen);
-
-    /* The first call simply determines the length of the extension string.
-     * This allows us to allocate some memory to hold the extension string,
-     * but it requires that we call __glXGetExtensionString a second time.
-     */
-    buffer_size = __glXGetExtensionString(screen->glx_enable_bits, NULL);
-    if (buffer_size > 0) {
-        free(screen->base.GLXextensions);
-
-        screen->base.GLXextensions = xnfalloc(buffer_size);
-        (void) __glXGetExtensionString(screen->glx_enable_bits,
-                                       screen->base.GLXextensions);
-    }
-
-    /* We're going to assume (perhaps incorrectly?) that all DRI2-enabled
-     * drivers support the required extensions for GLX 1.4.  The extensions
-     * we're assuming are:
-     *
-     *    - GLX_SGI_make_current_read (1.3)
-     *    - GLX_SGIX_fbconfig (1.3)
-     *    - GLX_SGIX_pbuffer (1.3)
-     *    - GLX_ARB_multisample (1.4)
-     */
-    screen->base.GLXmajor = 1;
-    screen->base.GLXminor = 4;
 
     screen->enterVT = pScrn->EnterVT;
     pScrn->EnterVT = glxDRIEnterVT;

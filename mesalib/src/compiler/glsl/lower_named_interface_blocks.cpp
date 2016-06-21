@@ -169,7 +169,6 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
                   new(mem_ctx) ir_variable(iface_t->fields.structure[i].type,
                                            var_name,
                                            (ir_variable_mode) var->data.mode);
-               new_var->data.from_named_ifc_block_nonarray = 1;
             } else {
                const glsl_type *new_array_type =
                   process_array_type(var->type, i);
@@ -177,10 +176,16 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
                   new(mem_ctx) ir_variable(new_array_type,
                                            var_name,
                                            (ir_variable_mode) var->data.mode);
-               new_var->data.from_named_ifc_block_array = 1;
             }
             new_var->data.location = iface_t->fields.structure[i].location;
             new_var->data.explicit_location = (new_var->data.location >= 0);
+            new_var->data.offset = iface_t->fields.structure[i].offset;
+            new_var->data.explicit_xfb_offset =
+               (iface_t->fields.structure[i].offset >= 0);
+            new_var->data.xfb_buffer =
+               iface_t->fields.structure[i].xfb_buffer;
+            new_var->data.explicit_xfb_buffer =
+               iface_t->fields.structure[i].explicit_xfb_buffer;
             new_var->data.interpolation =
                iface_t->fields.structure[i].interpolation;
             new_var->data.centroid = iface_t->fields.structure[i].centroid;
@@ -188,8 +193,9 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
             new_var->data.patch = iface_t->fields.structure[i].patch;
             new_var->data.stream = var->data.stream;
             new_var->data.how_declared = var->data.how_declared;
+            new_var->data.from_named_ifc_block = 1;
 
-            new_var->init_interface_type(iface_t);
+            new_var->init_interface_type(var->type);
             hash_table_insert(interface_namespace, new_var,
                               iface_field_name);
             insert_pos->insert_after(new_var);
@@ -211,11 +217,22 @@ ir_visitor_status
 flatten_named_interface_blocks_declarations::visit_leave(ir_assignment *ir)
 {
    ir_dereference_record *lhs_rec = ir->lhs->as_dereference_record();
+
+   ir_variable *lhs_var =  ir->lhs->variable_referenced();
+   if (lhs_var && lhs_var->get_interface_type()) {
+      lhs_var->data.assigned = 1;
+   }
+
    if (lhs_rec) {
       ir_rvalue *lhs_rec_tmp = lhs_rec;
       handle_rvalue(&lhs_rec_tmp);
       if (lhs_rec_tmp != lhs_rec) {
          ir->set_lhs(lhs_rec_tmp);
+      }
+
+      ir_variable *lhs_var =  lhs_rec_tmp->variable_referenced();
+      if (lhs_var) {
+         lhs_var->data.assigned = 1;
       }
    }
    return rvalue_visit(ir);

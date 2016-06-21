@@ -80,7 +80,7 @@ extern void
 _mesa_init_shader(struct gl_context *ctx, struct gl_shader *shader);
 
 extern struct gl_shader *
-_mesa_new_shader(struct gl_context *ctx, GLuint name, GLenum type);
+_mesa_new_shader(struct gl_context *ctx, GLuint name, gl_shader_stage type);
 
 extern void
 _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh);

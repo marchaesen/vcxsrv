@@ -35,6 +35,7 @@
  * a dynamic entry, or the corresponding static entry, in glapi.
  */
 
+#include <stdbool.h>
 #include "remap.h"
 #include "imports.h"
 #include "glapi/glapi.h"
@@ -50,24 +51,6 @@ int driDispatchRemapTable[driDispatchRemapTable_size];
 
 
 /**
- * Return the spec string associated with the given function index.
- * The index is available from including remap_helper.h.
- *
- * \param func_index an opaque function index.
- *
- * \return the spec string associated with the function index, or NULL.
- */
-const char *
-_mesa_get_function_spec(GLint func_index)
-{
-   if (func_index < ARRAY_SIZE(_mesa_function_pool))
-      return _mesa_function_pool + func_index;
-   else
-      return NULL;
-}
-
-
-/**
  * Map a function by its spec.  The function will be added to glapi,
  * and the dispatch offset will be returned.
  *
@@ -79,12 +62,12 @@ _mesa_get_function_spec(GLint func_index)
  * \return the offset of the (re-)mapped function in the dispatch
  *         table, or -1.
  */
-GLint
-_mesa_map_function_spec(const char *spec)
+static int
+map_function_spec(const char *spec)
 {
    const char *signature;
    const char *names[MAX_ENTRY_POINTS + 1];
-   GLint num_names = 0;
+   int num_names = 0;
 
    if (!spec)
       return -1;
@@ -111,110 +94,35 @@ _mesa_map_function_spec(const char *spec)
 
 
 /**
- * Map an array of functions.  This is a convenient function for
- * use with arrays available from including remap_helper.h.
- *
- * Note that the dispatch offsets of the functions are not returned.
- * If they are needed, _mesa_map_function_spec() should be used.
- *
- * \param func_array an array of function remaps.
- */
-void
-_mesa_map_function_array(const struct gl_function_remap *func_array)
-{
-   GLint i;
-
-   if (!func_array)
-      return;
-
-   for (i = 0; func_array[i].func_index != -1; i++) {
-      const char *spec;
-      GLint offset;
-
-      spec = _mesa_get_function_spec(func_array[i].func_index);
-      if (!spec) {
-         _mesa_problem(NULL, "invalid function index %d",
-                       func_array[i].func_index);
-         continue;
-      }
-
-      offset = _mesa_map_function_spec(spec);
-      /* error checks */
-      if (offset < 0) {
-         const char *name = spec + strlen(spec) + 1;
-         _mesa_warning(NULL, "failed to remap %s", name);
-      }
-      else if (func_array[i].dispatch_offset >= 0 &&
-               offset != func_array[i].dispatch_offset) {
-         const char *name = spec + strlen(spec) + 1;
-         _mesa_problem(NULL, "%s should be mapped to %d, not %d",
-                       name, func_array[i].dispatch_offset, offset);
-      }
-   }
-}
-
-
-/**
- * Map the functions which are already static.
- *
- * When a extension function are incorporated into the ABI, the
- * extension suffix is usually stripped.  Mapping such functions
- * makes sure the alternative names are available.
- *
- * Note that functions mapped by _mesa_init_remap_table() are
- * excluded.
- */
-void
-_mesa_map_static_functions(void)
-{
-   /* Remap static functions which have alternative names and are in the ABI.
-    * This is to be on the safe side.  glapi should have defined those names.
-    */
-   _mesa_map_function_array(MESA_alt_functions);
-}
-
-
-/**
  * Initialize the remap table.  This is called in one_time_init().
  * The remap table needs to be initialized before calling the
  * CALL/GET/SET macros defined in main/dispatch.h.
  */
-static void
-_mesa_do_init_remap_table(const char *pool,
-			  int size,
-			  const struct gl_function_pool_remap *remap)
+void
+_mesa_init_remap_table(void)
 {
-   static GLboolean initialized = GL_FALSE;
+   static bool initialized = false;
    GLint i;
 
    if (initialized)
       return;
-   initialized = GL_TRUE;
+   initialized = true;
 
-   /* initialize the remap table */
-   for (i = 0; i < size; i++) {
-      GLint offset;
+   /* initialize the MESA_remap_table_functions table */
+   for (i = 0; i < driDispatchRemapTable_size; i++) {
+      int offset;
       const char *spec;
 
       /* sanity check */
-      assert(i == remap[i].remap_index);
-      spec = _mesa_function_pool + remap[i].pool_index;
+      assert(i == MESA_remap_table_functions[i].remap_index);
+      spec = _mesa_function_pool + MESA_remap_table_functions[i].pool_index;
 
-      offset = _mesa_map_function_spec(spec);
-      /* store the dispatch offset in the remap table */
+      offset = map_function_spec(spec);
+      /* store the dispatch offset in the MESA_remap_table_functions table */
       driDispatchRemapTable[i] = offset;
       if (offset < 0) {
          const char *name = spec + strlen(spec) + 1;
          _mesa_warning(NULL, "failed to remap %s", name);
       }
    }
-}
-
-
-void
-_mesa_init_remap_table(void)
-{
-   _mesa_do_init_remap_table(_mesa_function_pool,
-			     driDispatchRemapTable_size,
-			     MESA_remap_table_functions);
 }

@@ -49,6 +49,7 @@
 #include "program/prog_parameter.h"
 #include "program/prog_print.h"
 #include "program/prog_statevars.h"
+#include "util/bitscan.h"
 
 using namespace ir_builder;
 
@@ -398,22 +399,25 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
  */
 static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
 {
-   GLuint i, j;
+   GLuint j;
    GLbitfield inputs_referenced = VARYING_BIT_COL0;
    const GLbitfield inputs_available = get_fp_input_mask( ctx );
+   GLbitfield mask;
    GLuint keySize;
 
    memset(key, 0, sizeof(*key));
 
    /* _NEW_TEXTURE */
-   for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
+   mask = ctx->Texture._EnabledCoordUnits;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
       const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
       const struct gl_texture_object *texObj = texUnit->_Current;
       const struct gl_tex_env_combine_state *comb = texUnit->_CurrentCombine;
       const struct gl_sampler_object *samp;
       GLenum format;
 
-      if (!texUnit->_Current || !texUnit->Enabled)
+      if (!texObj)
          continue;
 
       samp = _mesa_get_samplerobj(ctx, i);
@@ -517,7 +521,7 @@ get_current_attrib(texenv_fragment_program *p, GLuint attrib)
 
    current = p->shader->symbols->get_variable("gl_CurrentAttribFragMESA");
    assert(current);
-   current->data.max_array_access = MAX2(current->data.max_array_access, attrib);
+   current->data.max_array_access = MAX2(current->data.max_array_access, (int)attrib);
    val = new(p->mem_ctx) ir_dereference_variable(current);
    ir_rvalue *index = new(p->mem_ctx) ir_constant(attrib);
    return new(p->mem_ctx) ir_dereference_array(val, index);
@@ -561,7 +565,7 @@ get_source(texenv_fragment_program *p,
       var = p->shader->symbols->get_variable("gl_TextureEnvColor");
       assert(var);
       deref = new(p->mem_ctx) ir_dereference_variable(var);
-      var->data.max_array_access = MAX2(var->data.max_array_access, unit);
+      var->data.max_array_access = MAX2(var->data.max_array_access, (int)unit);
       return new(p->mem_ctx) ir_dereference_array(deref,
 						  new(p->mem_ctx) ir_constant(unit));
 
@@ -893,7 +897,7 @@ static void load_texture( texenv_fragment_program *p, GLuint unit )
       texcoord = new(p->mem_ctx) ir_dereference_variable(tc_array);
       ir_rvalue *index = new(p->mem_ctx) ir_constant(unit);
       texcoord = new(p->mem_ctx) ir_dereference_array(texcoord, index);
-      tc_array->data.max_array_access = MAX2(tc_array->data.max_array_access, unit);
+      tc_array->data.max_array_access = MAX2(tc_array->data.max_array_access, (int)unit);
    }
 
    if (!p->state->unit[unit].enabled) {
@@ -1199,7 +1203,7 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
    _mesa_glsl_parse_state *state;
 
    p.mem_ctx = ralloc_context(NULL);
-   p.shader = ctx->Driver.NewShader(ctx, 0, GL_FRAGMENT_SHADER);
+   p.shader = ctx->Driver.NewShader(ctx, 0, MESA_SHADER_FRAGMENT);
    p.shader->ir = new(p.shader) exec_list;
    state = new(p.shader) _mesa_glsl_parse_state(ctx, MESA_SHADER_FRAGMENT,
 						p.shader);

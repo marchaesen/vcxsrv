@@ -45,8 +45,14 @@ _mesa_bufferobj_mapped(const struct gl_buffer_object *obj,
    return obj->Mappings[index].Pointer != NULL;
 }
 
-/** Can we not use this buffer while mapped? */
-static inline GLboolean
+/**
+ * Check whether the given buffer object is illegally mapped prior to
+ * drawing from (or reading back to) the buffer.
+ * Note that it's legal for a buffer to be mapped at draw/readback time
+ * if it was mapped persistently (See GL_ARB_buffer_storage spec).
+ * \return true if the buffer is illegally mapped, false otherwise
+ */
+static inline bool
 _mesa_check_disallowed_mapping(const struct gl_buffer_object *obj)
 {
    return _mesa_bufferobj_mapped(obj, MAP_USER) &&

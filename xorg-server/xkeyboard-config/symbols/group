@@ -89,8 +89,9 @@ xkb_symbols "shift_caps_switch" {
 partial modifier_keys
 xkb_symbols "win_space_toggle" {
   key <SPCE> {
-    type[Group1]="PC_SUPER_LEVEL2",
-    symbols[Group1]= [ space, ISO_Next_Group ]
+    type="PC_SUPER_LEVEL2",
+    symbols[Group1]= [ space, ISO_Next_Group ],
+    symbols[Group2]= [ space, ISO_Next_Group ]
   };
 };
 
@@ -446,3 +447,13 @@ xkb_symbols "lctrl_lwin_rctrl_menu" {
         symbols[Group1] = [ Menu, ISO_Last_Group ]
     };
 };
+
+// Control_L+Win_L toggles groups.
+partial modifier_keys
+xkb_symbols "lctrl_lwin_toggle" {
+    key <LWIN> {
+        type[ Group1 ]    = "PC_CONTROL_LEVEL2",
+        symbols[ Group1 ] = [ Super_L,    ISO_Next_Group ]
+    };
+};
+

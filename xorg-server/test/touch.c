@@ -58,9 +58,8 @@ touch_grow_queue(void)
         dev.last.touches[i].client_id = i * 2;
     }
 
-    /* no more space, should've scheduled a workproc */
-    assert(TouchBeginDDXTouch(&dev, 1234) == NULL);
-    ProcessWorkQueue();
+    /* no more space, should've reallocated and succeeded */
+    assert(TouchBeginDDXTouch(&dev, 1234) != NULL);
 
     new_size = size + size / 2 + 1;
     assert(dev.last.num_touches == new_size);
@@ -74,8 +73,12 @@ touch_grow_queue(void)
         assert(t->client_id == i * 2);
     }
 
+    assert(dev.last.touches[size].active == TRUE);
+    assert(dev.last.touches[size].ddx_id == 1234);
+    assert(dev.last.touches[size].client_id == 1);
+
     /* make sure those are zero-initialized */
-    for (i = size; i < new_size; i++) {
+    for (i = size + 1; i < new_size; i++) {
         DDXTouchPointInfoPtr t = &dev.last.touches[i];
 
         assert(t->active == FALSE);
@@ -90,7 +93,7 @@ static void
 touch_find_ddxid(void)
 {
     DeviceIntRec dev;
-    DDXTouchPointInfoPtr ti;
+    DDXTouchPointInfoPtr ti, ti2;
     ValuatorClassRec val;
     TouchClassRec touch;
     int size = 5;
@@ -136,22 +139,20 @@ touch_find_ddxid(void)
     for (i = 0; i < size; i++)
         dev.last.touches[i].active = TRUE;
 
-    /* Try to create more, fail */
+    /* Try to create more, succeed */
     ti = TouchFindByDDXID(&dev, 30, TRUE);
-    assert(ti == NULL);
-    ti = TouchFindByDDXID(&dev, 30, TRUE);
-    assert(ti == NULL);
-    /* make sure we haven't resized, we're in the signal handler */
-    assert(dev.last.num_touches == size);
+    assert(ti != NULL);
+    ti2 = TouchFindByDDXID(&dev, 30, TRUE);
+    assert(ti == ti2);
+    /* make sure we have resized */
+    assert(dev.last.num_touches == 8); /* EQ grows from 5 to 8 */
 
     /* stop one touchpoint, try to create, succeed */
     dev.last.touches[2].active = FALSE;
-    ti = TouchFindByDDXID(&dev, 30, TRUE);
+    ti = TouchFindByDDXID(&dev, 35, TRUE);
     assert(ti == &dev.last.touches[2]);
-    /* but still grow anyway */
-    ProcessWorkQueue();
     ti = TouchFindByDDXID(&dev, 40, TRUE);
-    assert(ti == &dev.last.touches[size]);
+    assert(ti == &dev.last.touches[size+1]);
 
     free(dev.name);
 }

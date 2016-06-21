@@ -23,8 +23,6 @@
 
 #include "compiler/nir/nir.h"
 
-struct nir_shader_compiler_options *options;
-
 struct nir_shader *
 tgsi_to_nir(const void *tgsi_tokens,
             const struct nir_shader_compiler_options *options);

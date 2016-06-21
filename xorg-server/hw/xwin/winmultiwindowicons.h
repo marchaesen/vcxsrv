@@ -27,8 +27,10 @@
 #ifndef WINMULTIWINDOWICONS_H
 #define WINMULTIWINDOWICONS_H
 
+#include <xcb/xcb.h>
+
 void
- winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
+ winUpdateIcon(HWND hWnd, xcb_connection_t *conn, Window id, HICON hIconNew);
 
 void
  winInitGlobalIcons(void);

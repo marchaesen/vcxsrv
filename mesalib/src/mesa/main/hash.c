@@ -328,8 +328,8 @@ _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data)
  * While holding the hash table's lock, searches the entry with the matching
  * key and unlinks it.
  */
-void
-_mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
+static inline void
+_mesa_HashRemove_unlocked(struct _mesa_HashTable *table, GLuint key)
 {
    struct hash_entry *entry;
 
@@ -343,17 +343,28 @@ _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
       return;
    }
 
-   mtx_lock(&table->Mutex);
    if (key == DELETED_KEY_VALUE) {
       table->deleted_key_data = NULL;
    } else {
       entry = _mesa_hash_table_search(table->ht, uint_key(key));
       _mesa_hash_table_remove(table->ht, entry);
    }
-   mtx_unlock(&table->Mutex);
 }
 
 
+void
+_mesa_HashRemoveLocked(struct _mesa_HashTable *table, GLuint key)
+{
+   _mesa_HashRemove_unlocked(table, key);
+}
+
+void
+_mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
+{
+   mtx_lock(&table->Mutex);
+   _mesa_HashRemove_unlocked(table, key);
+   mtx_unlock(&table->Mutex);
+}
 
 /**
  * Delete all entries in a hash table, but don't delete the table itself.
@@ -457,10 +468,8 @@ GLuint
 _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys)
 {
    const GLuint maxKey = ~((GLuint) 0) - 1;
-   mtx_lock(&table->Mutex);
    if (maxKey - numKeys > table->MaxKey) {
       /* the quick solution */
-      mtx_unlock(&table->Mutex);
       return table->MaxKey + 1;
    }
    else {
@@ -478,13 +487,11 @@ _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys)
 	    /* this key not in use, check if we've found enough */
 	    freeCount++;
 	    if (freeCount == numKeys) {
-               mtx_unlock(&table->Mutex);
 	       return freeStart;
 	    }
 	 }
       }
       /* cannot allocate a block of numKeys consecutive keys */
-      mtx_unlock(&table->Mutex);
       return 0;
    }
 }

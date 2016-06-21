@@ -172,6 +172,8 @@ _mesa_program_enum_to_shader_stage(GLenum v)
       return MESA_SHADER_VERTEX;
    case GL_FRAGMENT_PROGRAM_ARB:
       return MESA_SHADER_FRAGMENT;
+   case GL_FRAGMENT_SHADER_ATI:
+      return MESA_SHADER_FRAGMENT;
    case GL_GEOMETRY_PROGRAM_NV:
       return MESA_SHADER_GEOMETRY;
    case GL_TESS_CONTROL_PROGRAM_NV:

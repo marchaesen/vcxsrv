@@ -16,17 +16,17 @@ xkb_symbols "grouplock" {
 };
 
 hidden partial modifier_keys
-xkb_symbols "swapescape" {
-    key <CAPS> { [ Escape ] };
-    key <ESC>  { [ Caps_Lock ] };
-};
-
-hidden partial modifier_keys
 xkb_symbols "groupshift" {
     key <CAPS> {
         type[Group1] = "PC_ALT_LEVEL2",
         [ Mode_switch, Caps_Lock ]
     };
+};
+
+hidden partial modifier_keys
+xkb_symbols "swapescape" {
+    key <CAPS> { [ Escape ] };
+    key <ESC>  { [ Caps_Lock ] };
 };
 
 hidden partial modifier_keys
@@ -57,11 +57,6 @@ xkb_symbols "menu" {
 };
 
 hidden partial modifier_keys
-xkb_symbols "none" {
-    key <CAPS> { [ VoidSymbol ] };
-};
-
-hidden partial modifier_keys
 xkb_symbols "numlock" {
     key <CAPS> { [ Num_Lock ] };
 };
@@ -76,4 +71,9 @@ xkb_symbols "ctrl_modifier" {
         actions[Group1] = [ SetMods(modifiers=Control) ]
     };
     modifier_map Control { <CAPS> };
+};
+
+hidden partial modifier_keys
+xkb_symbols "none" {
+    key <CAPS> { [ VoidSymbol ] };
 };

@@ -100,7 +100,7 @@ lower_vertex_id_visitor::visit(ir_dereference_variable *ir)
       if (gl_BaseVertex == NULL) {
          gl_BaseVertex = new(mem_ctx) ir_variable(int_t, "gl_BaseVertex",
                                                   ir_var_system_value);
-         gl_BaseVertex->data.how_declared = ir_var_declared_implicitly;
+         gl_BaseVertex->data.how_declared = ir_var_hidden;
          gl_BaseVertex->data.read_only = true;
          gl_BaseVertex->data.location = SYSTEM_VALUE_BASE_VERTEX;
          gl_BaseVertex->data.explicit_location = true;

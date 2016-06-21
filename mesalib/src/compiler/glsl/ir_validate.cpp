@@ -453,6 +453,14 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type->base_type == GLSL_TYPE_SUBROUTINE);
       assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
+
+   case ir_unop_vote_any:
+   case ir_unop_vote_all:
+   case ir_unop_vote_eq:
+      assert(ir->type == glsl_type::bool_type);
+      assert(ir->operands[0]->type == glsl_type::bool_type);
+      break;
+
    case ir_binop_add:
    case ir_binop_sub:
    case ir_binop_mul:
@@ -727,7 +735,7 @@ ir_validate::visit(ir_variable *ir)
     * to be out of bounds.
     */
    if (ir->type->array_size() > 0) {
-      if (ir->data.max_array_access >= ir->type->length) {
+      if (ir->data.max_array_access >= (int)ir->type->length) {
 	 printf("ir_variable has maximum access out of bounds (%d vs %d)\n",
 		ir->data.max_array_access, ir->type->length - 1);
 	 ir->print();
@@ -743,13 +751,14 @@ ir_validate::visit(ir_variable *ir)
       const glsl_struct_field *fields =
          ir->get_interface_type()->fields.structure;
       for (unsigned i = 0; i < ir->get_interface_type()->length; i++) {
-         if (fields[i].type->array_size() > 0) {
-            const unsigned *const max_ifc_array_access =
+         if (fields[i].type->array_size() > 0 &&
+             !fields[i].implicit_sized_array) {
+            const int *const max_ifc_array_access =
                ir->get_max_ifc_array_access();
 
             assert(max_ifc_array_access != NULL);
 
-            if (max_ifc_array_access[i] >= fields[i].type->length) {
+            if (max_ifc_array_access[i] >= (int)fields[i].type->length) {
                printf("ir_variable has maximum access out of bounds for "
                       "field %s (%d vs %d)\n", fields[i].name,
                       max_ifc_array_access[i], fields[i].type->length);

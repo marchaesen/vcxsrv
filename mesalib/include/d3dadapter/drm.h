@@ -29,7 +29,11 @@
 #define D3DADAPTER9DRM_NAME "drm"
 /* current version */
 #define D3DADAPTER9DRM_MAJOR 0
-#define D3DADAPTER9DRM_MINOR 0
+#define D3DADAPTER9DRM_MINOR 1
+
+/* version 0.0: Initial release
+ *         0.1: All IDirect3D objects can be assumed to have a pointer to the
+ *              internal vtable in second position of the structure */
 
 struct D3DAdapter9DRM
 {

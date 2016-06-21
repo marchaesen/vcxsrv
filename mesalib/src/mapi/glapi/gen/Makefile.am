@@ -89,18 +89,7 @@ EXTRA_DIST= \
 XORG_GLX_DIR = $(XORG_BASE)/glx
 XORG_GLAPI_DIR = $(XORG_BASE)/glx
 
-XORG_GLAPI_OUTPUTS = \
-	$(XORG_GLAPI_DIR)/glprocs.h \
-	$(XORG_GLAPI_DIR)/glapitable.h \
-	$(XORG_GLAPI_DIR)/dispatch.h
-
-if HAVE_APPLEDRI
-XORG_GLAPI_OUTPUTS += \
-	$(XORG_GLAPI_DIR)/glapi_gentable.c
-endif
-
 XORG_OUTPUTS = \
-	$(XORG_GLAPI_OUTPUTS) \
 	$(XORG_GLX_DIR)/indirect_dispatch.c \
 	$(XORG_GLX_DIR)/indirect_dispatch_swap.c \
 	$(XORG_GLX_DIR)/indirect_dispatch.h \
@@ -110,6 +99,8 @@ XORG_OUTPUTS = \
 	$(XORG_GLX_DIR)/indirect_size_get.c \
 	$(XORG_GLX_DIR)/indirect_size_get.h \
 	$(XORG_GLX_DIR)/indirect_table.c
+
+.PHONY: $(XORG_OUTPUTS)
 
 ######################################################################
 
@@ -197,10 +188,13 @@ API_XML = \
 	EXT_texture_array.xml \
 	EXT_texture_integer.xml \
 	EXT_transform_feedback.xml \
+	EXT_window_rectangles.xml \
 	GREMEDY_string_marker.xml \
 	INTEL_performance_query.xml \
 	KHR_debug.xml \
 	KHR_context_flush_control.xml \
+	KHR_robustness.xml \
+	KHR_robustness_es.xml \
 	KHR_texture_compression_astc.xml \
 	NV_conditional_render.xml \
 	NV_primitive_restart.xml \
@@ -209,6 +203,7 @@ API_XML = \
 	OES_EGL_image.xml \
 	OES_fixed_point.xml \
 	OES_single_precision.xml \
+	OES_texture_compression_astc.xml \
 	GL3x.xml \
 	GL4x.xml
 
@@ -330,7 +325,7 @@ $(XORG_GLX_DIR)/indirect_dispatch.h: glX_proto_recv.py gl_and_glX_API.xml $(COMM
 
 $(XORG_GLX_DIR)/indirect_size_get.h: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m size_h \
-           --only-get -h '_INDIRECT_SIZE_GET_H_' \
+           --only-get --header-tag '_INDIRECT_SIZE_GET_H_' \
 	  | $(INDENT) $(XORG_INDENT_FLAGS) > $@
 
 $(XORG_GLX_DIR)/indirect_size_get.c: glX_proto_size.py $(COMMON_GLX)
@@ -339,7 +334,7 @@ $(XORG_GLX_DIR)/indirect_size_get.c: glX_proto_size.py $(COMMON_GLX)
 
 $(XORG_GLX_DIR)/indirect_reqsize.h: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m reqsize_h \
-           --only-get -h '_INDIRECT_SIZE_GET_H_' \
+           --only-get --header-tag '_INDIRECT_SIZE_GET_H_' \
 	  | $(INDENT) $(XORG_INDENT_FLAGS) > $@
 
 $(XORG_GLX_DIR)/indirect_reqsize.c: glX_proto_size.py $(COMMON_GLX)

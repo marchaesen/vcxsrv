@@ -127,9 +127,6 @@
 /* Path to text files containing PCI IDs */
 #undef PCI_TXT_IDS_PATH
 
-/* Use SIGIO handlers for input device events by default */
-#undef USE_SIGIO_BY_DEFAULT
-
 /* Build with libdrm support */
 #undef WITH_LIBDRM
 
@@ -150,5 +147,8 @@
 
 /* Support APM/ACPI power management in the server */
 #undef XF86PM
+
+/* Fallback input driver if the assigned driver fails */
+#undef FALLBACK_INPUT_DRIVER
 
 #endif /* _XORG_CONFIG_H_ */

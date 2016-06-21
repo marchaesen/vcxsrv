@@ -46,6 +46,7 @@
 #include "winprefs.h"
 #include "windisplay.h"
 #include "winmultiwindowclass.h"
+#include "winmultiwindowicons.h"
 
 /* Where will the custom menu commands start counting from? */
 #define STARTMENUID WM_USER

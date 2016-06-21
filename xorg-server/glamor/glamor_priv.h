@@ -573,6 +573,34 @@ void glamor_fini_pixmap_fbo(ScreenPtr screen);
 Bool glamor_pixmap_fbo_fixup(ScreenPtr screen, PixmapPtr pixmap);
 void glamor_fbo_expire(glamor_screen_private *glamor_priv);
 
+/* Return whether 'picture' is alpha-only */
+static inline Bool glamor_picture_is_alpha(PicturePtr picture)
+{
+    return picture->format == PICT_a1 || picture->format == PICT_a8;
+}
+
+/* Return whether 'fbo' is storing alpha bits in the red channel */
+static inline Bool
+glamor_fbo_red_is_alpha(glamor_screen_private *glamor_priv, glamor_pixmap_fbo *fbo)
+{
+    /* True when the format is GL_RED (that can only happen when our one channel format is GL_RED */
+    return fbo->format == GL_RED;
+}
+
+/* Return whether 'picture' is storing alpha bits in the red channel */
+static inline Bool
+glamor_picture_red_is_alpha(PicturePtr picture)
+{
+    /* True when the picture is alpha only and the screen is using GL_RED for alpha pictures */
+    return glamor_picture_is_alpha(picture) &&
+        glamor_get_screen_private(picture->pDrawable->pScreen)->one_channel_format == GL_RED;
+}
+
+void glamor_bind_texture(glamor_screen_private *glamor_priv,
+                         GLenum texture,
+                         glamor_pixmap_fbo *fbo,
+                         Bool destination_red);
+
 glamor_pixmap_fbo *glamor_create_fbo_array(glamor_screen_private *glamor_priv,
                                            int w, int h, GLenum format,
                                            int flag, int block_w, int block_h,

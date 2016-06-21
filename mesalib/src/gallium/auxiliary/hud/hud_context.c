@@ -477,6 +477,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
                         CSO_BIT_VERTEX_SHADER |
                         CSO_BIT_VERTEX_ELEMENTS |
                         CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
+                        CSO_BIT_PAUSE_QUERIES |
                         CSO_BIT_RENDER_CONDITION));
    cso_save_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
 
@@ -690,7 +691,7 @@ hud_pane_add_graph(struct hud_pane *pane, struct hud_graph *gr)
       name++;
    }
 
-   assert(pane->num_graphs < Elements(colors));
+   assert(pane->num_graphs < ARRAY_SIZE(colors));
    gr->vertices = MALLOC(pane->max_num_vertices * sizeof(float) * 2);
    gr->color[0] = colors[pane->num_graphs][0];
    gr->color[1] = colors[pane->num_graphs][1];
@@ -936,10 +937,10 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
                "ds-invocations",
                "cs-invocations"
             };
-            for (i = 0; i < Elements(pipeline_statistics_names); ++i)
+            for (i = 0; i < ARRAY_SIZE(pipeline_statistics_names); ++i)
                if (strcmp(name, pipeline_statistics_names[i]) == 0)
                   break;
-            if (i < Elements(pipeline_statistics_names)) {
+            if (i < ARRAY_SIZE(pipeline_statistics_names)) {
                hud_pipe_query_install(&hud->batch_query, pane, hud->pipe, name,
                                       PIPE_QUERY_PIPELINE_STATISTICS, i,
                                       0, PIPE_DRIVER_QUERY_TYPE_UINT64,
@@ -1191,6 +1192,7 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
          "FRAG\n"
          "DCL IN[0], GENERIC[0], LINEAR\n"
          "DCL SAMP[0]\n"
+         "DCL SVIEW[0], RECT, FLOAT\n"
          "DCL OUT[0], COLOR[0]\n"
          "DCL TEMP[0]\n"
 
@@ -1200,16 +1202,16 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       };
 
       struct tgsi_token tokens[1000];
-      struct pipe_shader_state state = {tokens};
+      struct pipe_shader_state state;
 
-      if (!tgsi_text_translate(fragment_shader_text, tokens, Elements(tokens))) {
+      if (!tgsi_text_translate(fragment_shader_text, tokens, ARRAY_SIZE(tokens))) {
          assert(0);
          pipe_resource_reference(&hud->font.texture, NULL);
          u_upload_destroy(hud->uploader);
          FREE(hud);
          return NULL;
       }
-
+      pipe_shader_state_from_tgsi(&state, tokens);
       hud->fs_text = pipe->create_fs_state(pipe, &state);
    }
 
@@ -1247,16 +1249,15 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       };
 
       struct tgsi_token tokens[1000];
-      struct pipe_shader_state state = {tokens};
-
-      if (!tgsi_text_translate(vertex_shader_text, tokens, Elements(tokens))) {
+      struct pipe_shader_state state;
+      if (!tgsi_text_translate(vertex_shader_text, tokens, ARRAY_SIZE(tokens))) {
          assert(0);
          pipe_resource_reference(&hud->font.texture, NULL);
          u_upload_destroy(hud->uploader);
          FREE(hud);
          return NULL;
       }
-
+      pipe_shader_state_from_tgsi(&state, tokens);
       hud->vs = pipe->create_vs_state(pipe, &state);
    }
 

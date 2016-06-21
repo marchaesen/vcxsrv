@@ -568,24 +568,6 @@ SProcDamageDispatch(ClientPtr client)
     return (*SProcDamageVector[stuff->damageReqType]) (client);
 }
 
-static void
-DamageClientCallback(CallbackListPtr *list, void *closure, void *data)
-{
-    NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
-    ClientPtr pClient = clientinfo->client;
-    DamageClientPtr pDamageClient = GetDamageClient(pClient);
-
-    pDamageClient->critical = 0;
-    pDamageClient->major_version = 0;
-    pDamageClient->minor_version = 0;
-}
-
- /*ARGSUSED*/ static void
-DamageResetProc(ExtensionEntry * extEntry)
-{
-    DeleteCallback(&ClientStateCallback, DamageClientCallback, 0);
-}
-
 static int
 FreeDamageExt(void *value, XID did)
 {
@@ -757,13 +739,10 @@ DamageExtensionInit(void)
         (&DamageClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(DamageClientRec)))
         return;
 
-    if (!AddCallback(&ClientStateCallback, DamageClientCallback, 0))
-        return;
-
     if ((extEntry = AddExtension(DAMAGE_NAME, XDamageNumberEvents,
                                  XDamageNumberErrors,
                                  ProcDamageDispatch, SProcDamageDispatch,
-                                 DamageResetProc, StandardMinorOpcode)) != 0) {
+                                 NULL, StandardMinorOpcode)) != 0) {
         DamageReqCode = (unsigned char) extEntry->base;
         DamageEventBase = extEntry->eventBase;
         EventSwapVector[DamageEventBase + XDamageNotify] =

@@ -1243,11 +1243,11 @@ _mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
       return;
    }
 
-   _mesa_store_compressed_texsubimage(ctx, dims, texImage,
-                                      0, 0, 0,
-                                      texImage->Width, texImage->Height, texImage->Depth,
-                                      texImage->TexFormat,
-                                      imageSize, data);
+   ctx->Driver.CompressedTexSubImage(ctx, dims, texImage,
+                                     0, 0, 0,
+                                     texImage->Width, texImage->Height, texImage->Depth,
+                                     texImage->TexFormat,
+                                     imageSize, data);
 }
 
 
@@ -1267,16 +1267,16 @@ _mesa_compute_compressed_pixelstore(GLuint dims, mesa_format texFormat,
                                     const struct gl_pixelstore_attrib *packing,
                                     struct compressed_pixelstore *store)
 {
-   GLuint bw, bh;
+   GLuint bw, bh, bd;
 
-   _mesa_get_format_block_size(texFormat, &bw, &bh);
+   _mesa_get_format_block_size_3d(texFormat, &bw, &bh, &bd);
 
    store->SkipBytes = 0;
    store->TotalBytesPerRow = store->CopyBytesPerRow =
          _mesa_format_row_stride(texFormat, width);
    store->TotalRowsPerSlice = store->CopyRowsPerSlice =
          (height + bh - 1) / bh;
-   store->CopySlices = depth;
+   store->CopySlices = (depth + bd - 1) / bd;
 
    if (packing->CompressedBlockWidth &&
        packing->CompressedBlockSize) {

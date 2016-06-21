@@ -44,18 +44,6 @@ get_storage(gl_uniform_storage *storage, unsigned num_storage,
    return NULL;
 }
 
-static unsigned
-get_uniform_block_index(const gl_shader_program *shProg,
-                        const char *uniformBlockName)
-{
-   for (unsigned i = 0; i < shProg->NumBufferInterfaceBlocks; i++) {
-      if (!strcmp(shProg->BufferInterfaceBlocks[i].Name, uniformBlockName))
-	 return i;
-   }
-
-   return GL_INVALID_INDEX;
-}
-
 void
 copy_constant_to_storage(union gl_constant_value *storage,
 			 const ir_constant *val,
@@ -157,35 +145,33 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
                     storage->opaque[sh].active) {
                for (unsigned i = 0; i < elements; i++) {
                   const unsigned index = storage->opaque[sh].index + i;
+                  if (index >= ARRAY_SIZE(shader->ImageUnits))
+                     break;
                   shader->ImageUnits[index] = storage->storage[i].i;
                }
             }
          }
       }
-
-      storage->initialized = true;
    }
 }
 
 void
-set_block_binding(gl_shader_program *prog, const char *block_name, int binding)
+set_block_binding(gl_shader_program *prog, const char *block_name,
+                  unsigned mode, int binding)
 {
-   const unsigned block_index = get_uniform_block_index(prog, block_name);
+   unsigned num_blocks = mode == ir_var_uniform ? prog->NumUniformBlocks :
+      prog->NumShaderStorageBlocks;
+   struct gl_uniform_block *blks = mode == ir_var_uniform ?
+      prog->UniformBlocks : prog->ShaderStorageBlocks;
 
-   if (block_index == GL_INVALID_INDEX) {
-      assert(block_index != GL_INVALID_INDEX);
-      return;
+   for (unsigned i = 0; i < num_blocks; i++) {
+      if (!strcmp(blks[i].Name, block_name)) {
+         blks[i].Binding = binding;
+         return;
+      }
    }
 
-      /* This is a field of a UBO.  val is the binding index. */
-      for (int i = 0; i < MESA_SHADER_STAGES; i++) {
-         int stage_index = prog->InterfaceBlockStageIndex[i][block_index];
-
-         if (stage_index != -1) {
-            struct gl_shader *sh = prog->_LinkedShaders[i];
-            sh->BufferInterfaceBlocks[stage_index].Binding = binding;
-         }
-      }
+   unreachable("Failed to initialize block binding");
 }
 
 void
@@ -236,7 +222,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
 	 val->array_elements[0]->type->base_type;
       const unsigned int elements = val->array_elements[0]->type->components();
       unsigned int idx = 0;
-      unsigned dmul = (base_type == GLSL_TYPE_DOUBLE) ? 2 : 1;
+      unsigned dmul = glsl_base_type_is_64bit(base_type) ? 2 : 1;
 
       assert(val->type->length >= storage->array_elements);
       for (unsigned int i = 0; i < storage->array_elements; i++) {
@@ -267,8 +253,6 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
          }
       }
    }
-
-   storage->initialized = true;
 }
 }
 
@@ -332,11 +316,12 @@ link_set_uniform_initializers(struct gl_shader_program *prog,
                       *     each subsequent element takes the next consecutive
                       *     uniform block binding point."
                       */
-                     linker::set_block_binding(prog, name,
+                     linker::set_block_binding(prog, name, var->data.mode,
                                                var->data.binding + i);
                   }
                } else {
                   linker::set_block_binding(prog, iface_type->name,
+                                            var->data.mode,
                                             var->data.binding);
                }
             } else if (type->contains_atomic()) {

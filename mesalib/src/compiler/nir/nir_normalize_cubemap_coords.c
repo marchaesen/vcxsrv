@@ -33,18 +33,12 @@
  * or 1.0.  This is based on the old GLSL IR based pass by Eric.
  */
 
-struct normalize_cubemap_state {
-   nir_builder b;
-   bool progress;
-};
-
 static bool
-normalize_cubemap_coords_block(nir_block *block, void *void_state)
+normalize_cubemap_coords_block(nir_block *block, nir_builder *b)
 {
-   struct normalize_cubemap_state *state = void_state;
-   nir_builder *b = &state->b;
+   bool progress = false;
 
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       if (instr->type != nir_instr_type_tex)
          continue;
 
@@ -84,26 +78,28 @@ normalize_cubemap_coords_block(nir_block *block, void *void_state)
                                &tex->src[i].src,
                                nir_src_for_ssa(normalized));
 
-         state->progress = true;
+         progress = true;
       }
    }
 
-   return true;
+   return progress;
 }
 
 static bool
 normalize_cubemap_coords_impl(nir_function_impl *impl)
 {
-   struct normalize_cubemap_state state;
-   nir_builder_init(&state.b, impl);
-   state.progress = false;
+   nir_builder b;
+   nir_builder_init(&b, impl);
+   bool progress = false;
 
-   nir_foreach_block(impl, normalize_cubemap_coords_block, &state);
+   nir_foreach_block(block, impl) {
+      progress |= normalize_cubemap_coords_block(block, &b);
+   }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
 
-   return state.progress;
+   return progress;
 }
 
 bool
@@ -111,7 +107,7 @@ nir_normalize_cubemap_coords(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          progress = normalize_cubemap_coords_impl(function->impl) || progress;
    }

@@ -32,6 +32,7 @@
 #include <misyncshm.h>
 #include <compositeext.h>
 #include <glx_extinit.h>
+#include <os.h>
 
 #ifdef XF86VIDMODE
 #include <X11/extensions/xf86vmproto.h>
@@ -52,6 +53,7 @@ AbortDDX(enum ExitCode error)
 void
 OsVendorInit(void)
 {
+    ForceClockId(CLOCK_MONOTONIC);
 }
 
 void
@@ -460,14 +462,13 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 static void
-socket_handler(int fd, int ready, void *data)
+xwl_read_events (struct xwl_screen *xwl_screen)
 {
-    struct xwl_screen *xwl_screen = data;
     int ret;
 
     ret = wl_display_read_events(xwl_screen->display);
     if (ret == -1)
-        FatalError("failed to dispatch Wayland events: %s\n", strerror(errno));
+        FatalError("failed to read Wayland events: %s\n", strerror(errno));
 
     xwl_screen->prepare_read = 0;
 
@@ -477,17 +478,9 @@ socket_handler(int fd, int ready, void *data)
 }
 
 static void
-wakeup_handler(void *data, int err, void *pRead)
+xwl_dispatch_events (struct xwl_screen *xwl_screen)
 {
-}
-
-static void
-block_handler(void *data, OSTimePtr pTimeout, void *pRead)
-{
-    struct xwl_screen *xwl_screen = data;
     int ret;
-
-    xwl_screen_post_damage(xwl_screen);
 
     while (xwl_screen->prepare_read == 0 &&
            wl_display_prepare_read(xwl_screen->display) == -1) {
@@ -502,6 +495,35 @@ block_handler(void *data, OSTimePtr pTimeout, void *pRead)
     ret = wl_display_flush(xwl_screen->display);
     if (ret == -1)
         FatalError("failed to write to XWayland fd: %s\n", strerror(errno));
+}
+
+static void
+socket_handler(int fd, int ready, void *data)
+{
+    struct xwl_screen *xwl_screen = data;
+
+    xwl_read_events (xwl_screen);
+}
+
+static void
+wakeup_handler(void *data, int err, void *pRead)
+{
+}
+
+static void
+block_handler(void *data, OSTimePtr pTimeout, void *pRead)
+{
+    struct xwl_screen *xwl_screen = data;
+
+    xwl_screen_post_damage(xwl_screen);
+    xwl_dispatch_events (xwl_screen);
+}
+
+void
+xwl_sync_events (struct xwl_screen *xwl_screen)
+{
+    xwl_dispatch_events (xwl_screen);
+    xwl_read_events (xwl_screen);
 }
 
 static CARD32

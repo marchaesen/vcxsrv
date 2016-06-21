@@ -92,12 +92,12 @@ update_max_array_access(ir_rvalue *ir, int idx, YYLTYPE *loc,
                deref_record->record->type->field_index(deref_record->field);
             assert(field_index < deref_var->var->get_interface_type()->length);
 
-            unsigned *const max_ifc_array_access =
+            int *const max_ifc_array_access =
                deref_var->var->get_max_ifc_array_access();
 
             assert(max_ifc_array_access != NULL);
 
-            if (idx > (int)max_ifc_array_access[field_index]) {
+            if (idx > max_ifc_array_access[field_index]) {
                max_ifc_array_access[field_index] = idx;
 
                /* Check whether this access will, as a side effect, implicitly

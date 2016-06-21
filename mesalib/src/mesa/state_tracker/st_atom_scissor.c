@@ -32,6 +32,7 @@
  
 
 #include "main/macros.h"
+#include "main/framebuffer.h"
 #include "st_context.h"
 #include "pipe/p_context.h"
 #include "st_atom.h"
@@ -46,14 +47,17 @@ update_scissor( struct st_context *st )
    struct pipe_scissor_state scissor[PIPE_MAX_VIEWPORTS];
    const struct gl_context *ctx = st->ctx;
    const struct gl_framebuffer *fb = ctx->DrawBuffer;
+   const unsigned int fb_width = _mesa_geometric_width(fb);
+   const unsigned int fb_height = _mesa_geometric_height(fb);
    GLint miny, maxy;
    unsigned i;
    bool changed = false;
+
    for (i = 0 ; i < ctx->Const.MaxViewports; i++) {
       scissor[i].minx = 0;
       scissor[i].miny = 0;
-      scissor[i].maxx = fb->Width;
-      scissor[i].maxy = fb->Height;
+      scissor[i].maxx = fb_width;
+      scissor[i].maxy = fb_height;
 
       if (ctx->Scissor.EnableFlags & (1 << i)) {
          /* need to be careful here with xmax or ymax < 0 */
@@ -95,6 +99,46 @@ update_scissor( struct st_context *st )
       st->pipe->set_scissor_states(st->pipe, 0, ctx->Const.MaxViewports, scissor); /* activate */
 }
 
+static void
+update_window_rectangles(struct st_context *st)
+{
+   struct pipe_scissor_state new_rects[PIPE_MAX_WINDOW_RECTANGLES];
+   const struct gl_context *ctx = st->ctx;
+   const struct gl_scissor_attrib *scissor = &ctx->Scissor;
+   unsigned i;
+   bool changed = false;
+   unsigned num_rects = scissor->NumWindowRects;
+   bool include = scissor->WindowRectMode == GL_INCLUSIVE_EXT;
+
+   if (ctx->DrawBuffer == ctx->WinSysDrawBuffer) {
+      num_rects = 0;
+      include = false;
+   }
+   for (i = 0; i < num_rects; i++) {
+      const struct gl_scissor_rect *rect = &scissor->WindowRects[i];
+      new_rects[i].minx = MAX2(rect->X, 0);
+      new_rects[i].miny = MAX2(rect->Y, 0);
+      new_rects[i].maxx = MAX2(rect->X + rect->Width, 0);
+      new_rects[i].maxy = MAX2(rect->Y + rect->Height, 0);
+   }
+   if (num_rects > 0 && memcmp(new_rects, st->state.window_rects.rects,
+                               num_rects * sizeof(struct pipe_scissor_state))) {
+      memcpy(st->state.window_rects.rects, new_rects,
+             num_rects * sizeof(struct pipe_scissor_state));
+      changed = true;
+   }
+   if (st->state.window_rects.num != num_rects) {
+      st->state.window_rects.num = num_rects;
+      changed = true;
+   }
+   if (st->state.window_rects.include != include) {
+      st->state.window_rects.include = include;
+      changed = true;
+   }
+   if (changed)
+      st->pipe->set_window_rectangles(
+            st->pipe, include, num_rects, new_rects);
+}
 
 const struct st_tracked_state st_update_scissor = {
    "st_update_scissor",					/* name */
@@ -103,4 +147,13 @@ const struct st_tracked_state st_update_scissor = {
       0,						/* st */
    },
    update_scissor					/* update */
+};
+
+const struct st_tracked_state st_update_window_rectangles = {
+   "st_update_window_rectangles",			/* name */
+   {							/* dirty */
+      (_NEW_SCISSOR | _NEW_BUFFERS),			/* mesa */
+      0,						/* st */
+   },
+   update_window_rectangles				/* update */
 };

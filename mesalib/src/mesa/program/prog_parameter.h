@@ -34,6 +34,7 @@
 #include "main/mtypes.h"
 #include "prog_statevars.h"
 
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,12 +100,6 @@ _mesa_new_parameter_list_sized(unsigned size);
 extern void
 _mesa_free_parameter_list(struct gl_program_parameter_list *paramList);
 
-static inline GLuint
-_mesa_num_parameters(const struct gl_program_parameter_list *list)
-{
-   return list ? list->NumParameters : 0;
-}
-
 extern void
 _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
                                 unsigned reserve_slots);
@@ -121,23 +116,36 @@ _mesa_add_typed_unnamed_constant(struct gl_program_parameter_list *paramList,
                            const gl_constant_value values[4], GLuint size,
                            GLenum datatype, GLuint *swizzleOut);
 
-extern GLint
+static inline GLint
 _mesa_add_unnamed_constant(struct gl_program_parameter_list *paramList,
                            const gl_constant_value values[4], GLuint size,
-                           GLuint *swizzleOut);
+                           GLuint *swizzleOut)
+{
+   return _mesa_add_typed_unnamed_constant(paramList, values, size, GL_NONE,
+                                           swizzleOut);
+}
 
 extern GLint
 _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
                           const gl_state_index stateTokens[STATE_LENGTH]);
 
-extern GLint
-_mesa_lookup_parameter_index(const struct gl_program_parameter_list *paramList,
-                             GLsizei nameLen, const char *name);
 
-extern GLboolean
-_mesa_lookup_parameter_constant(const struct gl_program_parameter_list *list,
-                                const gl_constant_value v[], GLuint vSize,
-                                GLint *posOut, GLuint *swizzleOut);
+static inline GLint
+_mesa_lookup_parameter_index(const struct gl_program_parameter_list *paramList,
+                             const char *name)
+{
+   if (!paramList)
+      return -1;
+
+   /* name must be null-terminated */
+   for (GLint i = 0; i < (GLint) paramList->NumParameters; i++) {
+      if (paramList->Parameters[i].Name &&
+         strcmp(paramList->Parameters[i].Name, name) == 0)
+         return i;
+   }
+
+   return -1;
+}
 
 #ifdef __cplusplus
 }

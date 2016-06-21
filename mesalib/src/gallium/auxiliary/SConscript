@@ -13,15 +13,15 @@ env = env.Clone()
 env.MSVC2013Compat()
 
 env.CodeGenerate(
-    target = 'indices/u_indices_gen.c', 
-    script = 'indices/u_indices_gen.py', 
+    target = 'indices/u_indices_gen.c',
+    script = 'indices/u_indices_gen.py',
     source = [],
     command = python_cmd + ' $SCRIPT > $TARGET'
 )
 
 env.CodeGenerate(
-    target = 'indices/u_unfilled_gen.c', 
-    script = 'indices/u_unfilled_gen.py', 
+    target = 'indices/u_unfilled_gen.c',
+    script = 'indices/u_unfilled_gen.py',
     source = [],
     command = python_cmd + ' $SCRIPT > $TARGET'
 )
@@ -35,7 +35,7 @@ env.CodeGenerate(
 
 env.Depends('util/u_format_table.c', [
     '#src/gallium/auxiliary/util/u_format_parse.py',
-    'util/u_format_pack.py', 
+    'util/u_format_pack.py',
 ])
 
 source = env.ParseSourceList('Makefile.sources', [

@@ -1143,7 +1143,7 @@ ProcScreenSaverSetAttributes(ClientPtr client)
         if ((Mask) stuff->mask & CWColormap) {
             cmap_offset = Ones((Mask) stuff->mask & (CWColormap - 1));
             tmp = *((CARD32 *) &stuff[1] + cmap_offset);
-            if ((tmp != CopyFromParent) && (tmp != None)) {
+            if (tmp != CopyFromParent) {
                 status = dixLookupResourceByType((void **) &cmap, tmp,
                                                  XRT_COLORMAP, client,
                                                  DixReadAccess);

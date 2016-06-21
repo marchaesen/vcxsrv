@@ -131,6 +131,8 @@ public:
       progress = false;
    }
 
+   virtual ir_visitor_status visit_enter(ir_assignment *ir);
+
    void handle_rvalue(ir_rvalue **rvalue);
 
    bool progress;
@@ -145,6 +147,20 @@ struct is_reduction_data {
 };
 
 } /* anonymous namespace */
+
+ir_visitor_status
+ir_rebalance_visitor::visit_enter(ir_assignment *ir)
+{
+   ir_variable *var = ir->lhs->variable_referenced();
+   if (var->data.invariant || var->data.precise) {
+      /* If we're assigning to an invariant variable, just bail.  Tree
+       * rebalancing (reassociation) isn't precision-safe.
+       */
+      return visit_continue_with_parent;
+   } else {
+      return visit_continue;
+   }
+}
 
 static bool
 is_reduction_operation(ir_expression_operation operation)

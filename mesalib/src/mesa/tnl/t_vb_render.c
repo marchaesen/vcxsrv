@@ -46,6 +46,7 @@
 #include "main/imports.h"
 #include "main/mtypes.h"
 #include "math/m_xform.h"
+#include "util/bitscan.h"
 
 #include "t_pipeline.h"
 

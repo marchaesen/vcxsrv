@@ -40,6 +40,7 @@
 #define _WINDOWSWM_SERVER_
 #include <X11/extensions/windowswmstr.h>
 #include "winmultiwindowclass.h"
+#include "winmultiwindowicons.h"
 #include <X11/Xatom.h>
 
 /*

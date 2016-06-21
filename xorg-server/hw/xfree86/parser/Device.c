@@ -61,8 +61,7 @@
 #include "Configint.h"
 
 
-static
-xf86ConfigSymTabRec DeviceTab[] = {
+static const xf86ConfigSymTabRec DeviceTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {VENDOR, "vendorname"},

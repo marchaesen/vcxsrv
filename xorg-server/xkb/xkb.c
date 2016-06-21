@@ -5692,7 +5692,6 @@ ProcXkbListComponents(ClientPtr client)
 }
 
 /***====================================================================***/
-
 int
 ProcXkbGetKbdByName(ClientPtr client)
 {
@@ -6017,6 +6016,8 @@ ProcXkbGetKbdByName(ClientPtr client)
         new = NULL;
     }
     XkbFreeComponentNames(&names, FALSE);
+    XkbUpdateAllDeviceIndicators(NULL, NULL);
+
     return Success;
 }
 

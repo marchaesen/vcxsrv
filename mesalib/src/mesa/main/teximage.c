@@ -69,43 +69,48 @@
  * format needs to be a 32 bit component and in case of GL_HALF_FLOAT_OES it
  * needs to be a 16 bit component.
  *
- * For example, given base format GL_RGBA, type GL_Float return GL_RGBA32F_ARB.
+ * For example, given base format GL_RGBA, type GL_FLOAT return GL_RGBA32F_ARB.
  */
 static GLenum
-adjust_for_oes_float_texture(GLenum format, GLenum type)
+adjust_for_oes_float_texture(const struct gl_context *ctx,
+                             GLenum format, GLenum type)
 {
    switch (type) {
    case GL_FLOAT:
-      switch (format) {
-      case GL_RGBA:
-         return GL_RGBA32F;
-      case GL_RGB:
-         return GL_RGB32F;
-      case GL_ALPHA:
-         return GL_ALPHA32F_ARB;
-      case GL_LUMINANCE:
-         return GL_LUMINANCE32F_ARB;
-      case GL_LUMINANCE_ALPHA:
-         return GL_LUMINANCE_ALPHA32F_ARB;
-      default:
-         break;
+      if (ctx->Extensions.OES_texture_float) {
+         switch (format) {
+         case GL_RGBA:
+            return GL_RGBA32F;
+         case GL_RGB:
+            return GL_RGB32F;
+         case GL_ALPHA:
+            return GL_ALPHA32F_ARB;
+         case GL_LUMINANCE:
+            return GL_LUMINANCE32F_ARB;
+         case GL_LUMINANCE_ALPHA:
+            return GL_LUMINANCE_ALPHA32F_ARB;
+         default:
+            break;
+         }
       }
       break;
 
    case GL_HALF_FLOAT_OES:
-      switch (format) {
-      case GL_RGBA:
-         return GL_RGBA16F;
-      case GL_RGB:
-         return GL_RGB16F;
-      case GL_ALPHA:
-         return GL_ALPHA16F_ARB;
-      case GL_LUMINANCE:
-         return GL_LUMINANCE16F_ARB;
-      case GL_LUMINANCE_ALPHA:
-         return GL_LUMINANCE_ALPHA16F_ARB;
-      default:
-         break;
+      if (ctx->Extensions.OES_texture_half_float) {
+         switch (format) {
+         case GL_RGBA:
+            return GL_RGBA16F;
+         case GL_RGB:
+            return GL_RGB16F;
+         case GL_ALPHA:
+            return GL_ALPHA16F_ARB;
+         case GL_LUMINANCE:
+            return GL_LUMINANCE16F_ARB;
+         case GL_LUMINANCE_ALPHA:
+            return GL_LUMINANCE_ALPHA16F_ARB;
+         default:
+            break;
+         }
       }
       break;
 
@@ -499,8 +504,8 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target)
       return ctx->Extensions.ARB_texture_cube_map_array
          ? ctx->Const.MaxCubeTextureLevels : 0;
    case GL_TEXTURE_BUFFER:
-      return ctx->API == API_OPENGL_CORE &&
-             ctx->Extensions.ARB_texture_buffer_object ? 1 : 0;
+      return (_mesa_has_ARB_texture_buffer_object(ctx) ||
+              _mesa_has_OES_texture_buffer(ctx)) ? 1 : 0;
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
@@ -1097,6 +1102,32 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
    }
 }
 
+static bool
+error_check_subtexture_negative_dimensions(struct gl_context *ctx,
+                                           GLuint dims,
+                                           GLsizei subWidth,
+                                           GLsizei subHeight,
+                                           GLsizei subDepth,
+                                           const char *func)
+{
+   /* Check size */
+   if (subWidth < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(width=%d)", func, subWidth);
+      return true;
+   }
+
+   if (dims > 1 && subHeight < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(height=%d)", func, subHeight);
+      return true;
+   }
+
+   if (dims > 2 && subDepth < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(depth=%d)", func, subDepth);
+      return true;
+   }
+
+   return false;
+}
 
 /**
  * Do error checking of xoffset, yoffset, zoffset, width, height and depth
@@ -1112,26 +1143,7 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
                                   GLsizei subDepth, const char *func)
 {
    const GLenum target = destImage->TexObject->Target;
-   GLuint bw, bh;
-
-   /* Check size */
-   if (subWidth < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(width=%d)", func, subWidth);
-      return GL_TRUE;
-   }
-
-   if (dims > 1 && subHeight < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(height=%d)", func, subHeight);
-      return GL_TRUE;
-   }
-
-   if (dims > 2 && subDepth < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(depth=%d)", func, subDepth);
-      return GL_TRUE;
-   }
+   GLuint bw, bh, bd;
 
    /* check xoffset and width */
    if (xoffset < - (GLint) destImage->Border) {
@@ -1185,14 +1197,14 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
     * compressed formats supported by Mesa allow sub-textures to be updated
     * along compressed block boundaries.
     */
-   _mesa_get_format_block_size(destImage->TexFormat, &bw, &bh);
+   _mesa_get_format_block_size_3d(destImage->TexFormat, &bw, &bh, &bd);
 
-   if (bw != 1 || bh != 1) {
+   if (bw != 1 || bh != 1 || bd != 1) {
       /* offset must be multiple of block size */
-      if ((xoffset % bw != 0) || (yoffset % bh != 0)) {
+      if ((xoffset % bw != 0) || (yoffset % bh != 0) || (zoffset % bd != 0)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(xoffset = %d, yoffset = %d)",
-                     func, xoffset, yoffset);
+                     "%s(xoffset = %d, yoffset = %d, zoffset = %d)",
+                     func, xoffset, yoffset, zoffset);
          return GL_TRUE;
       }
 
@@ -1212,6 +1224,13 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
           (yoffset + subHeight != (GLint) destImage->Height)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(height = %d)", func, subHeight);
+         return GL_TRUE;
+      }
+
+      if ((subDepth % bd != 0) &&
+          (zoffset + subDepth != (GLint) destImage->Depth)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(depth = %d)", func, subDepth);
          return GL_TRUE;
       }
    }
@@ -2092,6 +2111,12 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
+   if (error_check_subtexture_negative_dimensions(ctx, dimensions,
+                                                  width, height, depth,
+                                                  callerName)) {
+      return GL_TRUE;
+   }
+
    texImage = _mesa_select_tex_image(texObj, target, level);
    if (!texImage) {
       /* non-existant texture level */
@@ -2485,6 +2510,11 @@ copytexsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
+   if (error_check_subtexture_negative_dimensions(ctx, dimensions,
+                                                  width, height, 1, caller)) {
+      return GL_TRUE;
+   }
+
    if (error_check_subtexture_dimensions(ctx, dimensions, texImage,
                                          xoffset, yoffset, zoffset,
                                          width, height, 1, caller)) {
@@ -2528,6 +2558,15 @@ copytexsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
                      "%s(integer vs non-integer)", caller);
          return GL_TRUE;
       }
+   }
+
+   /* In the ES 3.2 specification's Table 8.13 (Valid CopyTexImage source
+    * framebuffer/destination texture base internal format combinations),
+    * all the entries for stencil are left blank (unsupported).
+    */
+   if (_mesa_is_gles(ctx) && _mesa_is_stencil_format(texImage->_BaseFormat)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(stencil disallowed)", caller);
+      return GL_TRUE;
    }
 
    /* if we get here, the parameters are OK */
@@ -2888,7 +2927,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
             texObj->_IsHalfFloat = GL_TRUE;
          }
 
-         internalFormat = adjust_for_oes_float_texture(format, type);
+         internalFormat = adjust_for_oes_float_texture(ctx, format, type);
       }
 
       texFormat = _mesa_choose_texture_format(ctx, texObj, target, level,
@@ -3425,8 +3464,9 @@ get_copy_tex_image_source(struct gl_context *ctx, mesa_format texFormat)
    if (_mesa_get_format_bits(texFormat, GL_DEPTH_BITS) > 0) {
       /* reading from depth/stencil buffer */
       return ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
-   }
-   else {
+   } else if (_mesa_get_format_bits(texFormat, GL_STENCIL_BITS) > 0) {
+      return ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
+   } else {
       /* copying from color buffer */
       return ctx->ReadBuffer->_ColorReadBuffer;
    }
@@ -3484,6 +3524,24 @@ formats_differ_in_component_sizes(mesa_format f1, mesa_format f2)
    return GL_FALSE;
 }
 
+static bool
+can_avoid_reallocation(struct gl_texture_image *texImage, GLenum internalFormat,
+                       mesa_format texFormat, GLint x, GLint y, GLsizei width,
+                       GLsizei height, GLint border)
+{
+   if (texImage->InternalFormat != internalFormat)
+      return false;
+   if (texImage->TexFormat != texFormat)
+      return false;
+   if (texImage->Border != border)
+      return false;
+   if (texImage->Width2 != width)
+      return false;
+   if (texImage->Height2 != height)
+      return false;
+   return true;
+}
+
 /**
  * Implement the glCopyTexImage1/2D() functions.
  */
@@ -3526,6 +3584,24 @@ copyteximage(struct gl_context *ctx, GLuint dims,
 
    texFormat = _mesa_choose_texture_format(ctx, texObj, target, level,
                                            internalFormat, GL_NONE, GL_NONE);
+
+   /* First check if reallocating the texture buffer can be avoided.
+    * Without the realloc the copy can be 20x faster.
+    */
+   _mesa_lock_texture(ctx, texObj);
+   {
+      texImage = _mesa_select_tex_image(texObj, target, level);
+      if (texImage && can_avoid_reallocation(texImage, internalFormat, texFormat,
+                                             x, y, width, height, border)) {
+         _mesa_unlock_texture(ctx, texObj);
+         return _mesa_copy_texture_sub_image(ctx, dims, texObj, target, level,
+                                             0, 0, 0, x, y, width, height,
+                                             "CopyTexImage");
+      }
+   }
+   _mesa_unlock_texture(ctx, texObj);
+   _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_LOW, "glCopyTexImage "
+                    "can't avoid reallocating texture storage\n");
 
    rb = _mesa_get_read_renderbuffer_for_format(ctx, internalFormat);
 
@@ -4329,6 +4405,12 @@ compressed_subtexture_error_check(struct gl_context *ctx, GLint dims,
       return GL_TRUE;
    }
 
+   if (error_check_subtexture_negative_dimensions(ctx, dims,
+                                                  width, height, depth,
+                                                  callerName)) {
+      return GL_TRUE;
+   }
+
    if (error_check_subtexture_dimensions(ctx, dims,
                                          texImage, xoffset, yoffset, zoffset,
                                          width, height, depth,
@@ -4681,7 +4763,7 @@ _mesa_CompressedTextureSubImage3D(GLuint texture, GLint level, GLint xoffset,
 static mesa_format
 get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
 {
-   if (ctx->API != API_OPENGL_CORE) {
+   if (ctx->API == API_OPENGL_COMPAT) {
       switch (internalFormat) {
       case GL_ALPHA8:
          return MESA_FORMAT_A_UNORM8;
@@ -4768,8 +4850,8 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
       }
    }
 
-   if (ctx->API == API_OPENGL_CORE &&
-       ctx->Extensions.ARB_texture_buffer_object_rgb32) {
+   if (_mesa_has_ARB_texture_buffer_object_rgb32(ctx) ||
+       _mesa_has_OES_texture_buffer(ctx)) {
       switch (internalFormat) {
       case GL_RGB32F:
          return MESA_FORMAT_RGB_FLOAT32;
@@ -4786,6 +4868,8 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
    case GL_RGBA8:
       return MESA_FORMAT_R8G8B8A8_UNORM;
    case GL_RGBA16:
+      if (_mesa_is_gles(ctx))
+         return MESA_FORMAT_NONE;
       return MESA_FORMAT_RGBA_UNORM16;
    case GL_RGBA16F_ARB:
       return MESA_FORMAT_RGBA_FLOAT16;
@@ -4807,6 +4891,8 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
    case GL_RG8:
       return MESA_FORMAT_R8G8_UNORM;
    case GL_RG16:
+      if (_mesa_is_gles(ctx))
+         return MESA_FORMAT_NONE;
       return MESA_FORMAT_R16G16_UNORM;
    case GL_RG16F:
       return MESA_FORMAT_RG_FLOAT16;
@@ -4828,6 +4914,8 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
    case GL_R8:
       return MESA_FORMAT_R_UNORM8;
    case GL_R16:
+      if (_mesa_is_gles(ctx))
+         return MESA_FORMAT_NONE;
       return MESA_FORMAT_R_UNORM16;
    case GL_R16F:
       return MESA_FORMAT_R_FLOAT16;
@@ -4905,8 +4993,8 @@ _mesa_texture_buffer_range(struct gl_context *ctx,
    /* NOTE: ARB_texture_buffer_object has interactions with
     * the compatibility profile that are not implemented.
     */
-   if (!(ctx->API == API_OPENGL_CORE &&
-         ctx->Extensions.ARB_texture_buffer_object)) {
+   if (!_mesa_has_ARB_texture_buffer_object(ctx) &&
+       !_mesa_has_OES_texture_buffer(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(ARB_texture_buffer_object is not"
                   " implemented for the compatibility profile)", caller);

@@ -28,4 +28,4 @@
 #include "nir.h"
 
 nir_const_value nir_eval_const_opcode(nir_op op, unsigned num_components,
-                                      nir_const_value *src);
+                                      unsigned bit_size, nir_const_value *src);

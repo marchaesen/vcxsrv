@@ -26,8 +26,20 @@ template = """\
 #ifndef _NIR_BUILDER_OPCODES_
 #define _NIR_BUILDER_OPCODES_
 
+<%
+def src_decl_list(num_srcs):
+   return ', '.join('nir_ssa_def *src' + str(i) for i in range(num_srcs))
+
+def src_list(num_srcs):
+   return ', '.join('src' + str(i) if i < num_srcs else 'NULL' for i in range(4))
+%>
+
 % for name, opcode in sorted(opcodes.iteritems()):
-ALU${opcode.num_inputs}(${name});
+static inline nir_ssa_def *
+nir_${name}(nir_builder *build, ${src_decl_list(opcode.num_inputs)})
+{
+   return nir_build_alu(build, nir_op_${name}, ${src_list(opcode.num_inputs)});
+}
 % endfor
 
 #endif /* _NIR_BUILDER_OPCODES_ */"""

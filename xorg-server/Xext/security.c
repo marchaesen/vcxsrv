@@ -63,7 +63,7 @@ typedef struct {
     XID authId;
 } SecurityStateRec;
 
-/* Extensions that untrusted clients shouldn't have access to */
+/* The only extensions that untrusted clients have access to */
 static const char *SecurityTrustedExtensions[] = {
     "XC-MISC",
     "BIG-REQUESTS",

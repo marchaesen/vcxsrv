@@ -47,7 +47,6 @@
 #include "dmxcommon.h"
 #include "dmxcursor.h"
 #include "dmxmotion.h"
-#include "dmxsigio.h"
 #include "dmxmap.h"
 
 #include <X11/keysym.h>
@@ -227,25 +226,25 @@ dmxCoreMotion(DevicePtr pDev, int x, int y, int delta, DMXBlockType block)
             && pScreen->myNum == dmxScreen->index) {
             /* Screen is old screen */
             if (block)
-                OsBlockSIGIO();
+                input_lock();
             if (pDev)
                 enqueueMotion(pDev, localX, localY);
             if (block)
-                OsReleaseSIGIO();
+                input_unlock();
         }
         else {
             /* Screen is new */
             DMXDBG4("   New screen: old=%d new=%d localX=%d localY=%d\n",
                     pScreen->myNum, dmxScreen->index, localX, localY);
             if (block)
-                OsBlockSIGIO();
+                input_lock();
             mieqProcessInputEvents();
             miPointerSetScreen(inputInfo.pointer, dmxScreen->index,
                                localX, localY);
             if (pDev)
                 enqueueMotion(pDev, localX, localY);
             if (block)
-                OsReleaseSIGIO();
+                input_unlock();
         }
 #if 00
         miPointerGetPosition(inputInfo.pointer, &localX, &localY);
@@ -387,12 +386,12 @@ dmxExtMotion(DMXLocalInputInfoPtr dmxLocal,
     }
 
     if (block)
-        OsBlockSIGIO();
+        input_lock();
     valuator_mask_set_range(&mask, firstAxis, axesCount, v);
     QueuePointerEvents(pDevice, MotionNotify, 0, POINTER_ABSOLUTE, &mask);
 
     if (block)
-        OsReleaseSIGIO();
+        input_unlock();
 }
 
 static int
@@ -489,10 +488,10 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
     case XI_DeviceKeyPress:
     case XI_DeviceKeyRelease:
         if (block)
-            OsBlockSIGIO();
+            input_lock();
         QueueKeyboardEvents(pDevice, event, ke->keycode);
         if (block)
-            OsReleaseSIGIO();
+            input_unlock();
         break;
     case XI_DeviceButtonPress:
     case XI_DeviceButtonRelease:
@@ -500,11 +499,11 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
         valuator_mask_set_range(&mask, ke->first_axis, ke->axes_count,
                                 valuators);
         if (block)
-            OsBlockSIGIO();
+            input_lock();
         QueuePointerEvents(pDevice, event, ke->keycode,
                            POINTER_ABSOLUTE, &mask);
         if (block)
-            OsReleaseSIGIO();
+            input_unlock();
         break;
     case XI_ProximityIn:
     case XI_ProximityOut:
@@ -512,10 +511,10 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
         valuator_mask_set_range(&mask, ke->first_axis, ke->axes_count,
                                 valuators);
         if (block)
-            OsBlockSIGIO();
+            input_lock();
         QueueProximityEvents(pDevice, event, &mask);
         if (block)
-            OsReleaseSIGIO();
+            input_unlock();
         break;
 
         break;
@@ -586,7 +585,7 @@ dmxInvalidateGlobalPosition(void)
  * \a DMX_ABSOLUTE_CONFINED (in the latter case, the pointer will not be
  * allowed to move outside the global boundaires).
  *
- * If \a block is set to \a DMX_BLOCK, then the SIGIO handler will be
+ * If \a block is set to \a DMX_BLOCK, then the input thread will be
  * blocked around calls to \a enqueueMotion(). */
 void
 dmxMotion(DevicePtr pDev, int *v, int firstAxes, int axesCount,
@@ -690,7 +689,7 @@ dmxFixup(DevicePtr pDev, int detail, KeySym keySym)
  * KeyRelease event, then the \a keySym is also specified.
  *
  * FIXME: make the code do what the comment says, or remove this comment.
- * If \a block is set to \a DMX_BLOCK, then the SIGIO handler will be
+ * If \a block is set to \a DMX_BLOCK, then the input thread will be
  * blocked around calls to dmxeqEnqueue(). */
 
 void

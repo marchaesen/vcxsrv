@@ -158,14 +158,6 @@ struct i386_segment_regs {
 #define R_FLG spc.FLAGS
 
 /* special registers */
-#define R_SP  spc.SP.I16_reg.x_reg
-#define R_BP  spc.BP.I16_reg.x_reg
-#define R_SI  spc.SI.I16_reg.x_reg
-#define R_DI  spc.DI.I16_reg.x_reg
-#define R_IP  spc.IP.I16_reg.x_reg
-#define R_FLG spc.FLAGS
-
-/* special registers */
 #define R_ESP  spc.SP.I32_reg.e_reg
 #define R_EBP  spc.BP.I32_reg.e_reg
 #define R_ESI  spc.SI.I32_reg.e_reg

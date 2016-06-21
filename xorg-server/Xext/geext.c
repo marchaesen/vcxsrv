@@ -145,28 +145,10 @@ SProcGEDispatch(ClientPtr client)
     return (*SProcGEVector[stuff->ReqType]) (client);
 }
 
-/**
- * Called when a new client inits a connection to the X server.
- *
- * We alloc a simple struct to store the client's major/minor version. Can be
- * used in the furture for versioning support.
- */
-static void
-GEClientCallback(CallbackListPtr *list, void *closure, void *data)
-{
-    NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
-    ClientPtr pClient = clientinfo->client;
-    GEClientInfoPtr pGEClient = GEGetClient(pClient);
-
-    pGEClient->major_version = 0;
-    pGEClient->minor_version = 0;
-}
-
 /* Reset extension. Called on server shutdown. */
 static void
 GEResetProc(ExtensionEntry * extEntry)
 {
-    DeleteCallback(&ClientStateCallback, GEClientCallback, 0);
     EventSwapVector[GenericEvent] = NotImplemented;
 }
 
@@ -204,10 +186,6 @@ GEExtensionInit(void)
     if (!dixRegisterPrivateKey
         (&GEClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(GEClientInfoRec)))
         FatalError("GEExtensionInit: GE private request failed.\n");
-
-    if (!AddCallback(&ClientStateCallback, GEClientCallback, 0)) {
-        FatalError("GEExtensionInit: register client callback failed.\n");
-    }
 
     if ((extEntry = AddExtension(GE_NAME,
                                  0, GENumberErrors,

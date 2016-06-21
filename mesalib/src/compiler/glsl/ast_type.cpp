@@ -74,12 +74,16 @@ ast_type_qualifier::has_layout() const
           || this->flags.q.row_major
           || this->flags.q.packed
           || this->flags.q.explicit_align
+          || this->flags.q.explicit_component
           || this->flags.q.explicit_location
           || this->flags.q.explicit_image_format
           || this->flags.q.explicit_index
           || this->flags.q.explicit_binding
           || this->flags.q.explicit_offset
-          || this->flags.q.explicit_stream;
+          || this->flags.q.explicit_stream
+          || this->flags.q.explicit_xfb_buffer
+          || this->flags.q.explicit_xfb_offset
+          || this->flags.q.explicit_xfb_stride;
 }
 
 bool
@@ -143,6 +147,7 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    input_layout_mask.flags.q.centroid = 1;
    /* Function params can have constant */
    input_layout_mask.flags.q.constant = 1;
+   input_layout_mask.flags.q.explicit_component = 1;
    input_layout_mask.flags.q.explicit_location = 1;
    input_layout_mask.flags.q.flat = 1;
    input_layout_mask.flags.q.in = 1;
@@ -170,9 +175,12 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    /* Geometry shaders can have several layout qualifiers
     * assigning different stream values.
     */
-   if (state->stage == MESA_SHADER_GEOMETRY)
+   if (state->stage == MESA_SHADER_GEOMETRY) {
       allowed_duplicates_mask.flags.i |=
          stream_layout_mask.flags.i;
+      input_layout_mask.flags.i |=
+         stream_layout_mask.flags.i;
+   }
 
    if (is_single_layout_merge && !state->has_enhanced_layouts() &&
        (this->flags.i & q.flags.i & ~allowed_duplicates_mask.flags.i) != 0) {
@@ -225,6 +233,43 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
             /* Assign default global stream value */
             this->flags.q.stream = 1;
             this->stream = state->out_qualifier->stream;
+         }
+      }
+   }
+
+   if (state->has_enhanced_layouts()) {
+      if (!this->flags.q.explicit_xfb_buffer) {
+         if (q.flags.q.xfb_buffer) {
+            this->flags.q.xfb_buffer = 1;
+            this->xfb_buffer = q.xfb_buffer;
+         } else if (!this->flags.q.xfb_buffer && this->flags.q.out) {
+            /* Assign global xfb_buffer value */
+            this->flags.q.xfb_buffer = 1;
+            this->xfb_buffer = state->out_qualifier->xfb_buffer;
+         }
+      }
+
+      if (q.flags.q.explicit_xfb_stride)
+         this->xfb_stride = q.xfb_stride;
+
+      /* Merge all we xfb_stride qualifiers into the global out */
+      if (q.flags.q.explicit_xfb_stride || this->flags.q.xfb_stride) {
+
+         /* Set xfb_stride flag to 0 to avoid adding duplicates every time
+          * there is a merge.
+          */
+         this->flags.q.xfb_stride = 0;
+
+         unsigned buff_idx;
+         if (process_qualifier_constant(state, loc, "xfb_buffer",
+                                        this->xfb_buffer, &buff_idx)) {
+            if (state->out_qualifier->out_xfb_stride[buff_idx]) {
+               state->out_qualifier->out_xfb_stride[buff_idx]->merge_qualifier(
+                  new(state) ast_layout_expression(*loc, this->xfb_stride));
+            } else {
+               state->out_qualifier->out_xfb_stride[buff_idx] =
+                  new(state) ast_layout_expression(*loc, this->xfb_stride);
+            }
          }
       }
    }
@@ -297,10 +342,13 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    if (q.flags.q.explicit_index)
       this->index = q.index;
 
+  if (q.flags.q.explicit_component)
+      this->component = q.component;
+
    if (q.flags.q.explicit_binding)
       this->binding = q.binding;
 
-   if (q.flags.q.explicit_offset)
+   if (q.flags.q.explicit_offset || q.flags.q.explicit_xfb_offset)
       this->offset = q.offset;
 
    if (q.precision != ast_precision_none)
@@ -322,6 +370,8 @@ ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
 {
    void *mem_ctx = state;
    const bool r = this->merge_qualifier(loc, state, q, false);
+   ast_type_qualifier valid_out_mask;
+   valid_out_mask.flags.i = 0;
 
    if (state->stage == MESA_SHADER_GEOMETRY) {
       if (q.flags.q.prim_type) {
@@ -340,13 +390,45 @@ ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
 
       /* Allow future assigments of global out's stream id value */
       this->flags.q.explicit_stream = 0;
+
+      valid_out_mask.flags.q.stream = 1;
+      valid_out_mask.flags.q.explicit_stream = 1;
+      valid_out_mask.flags.q.explicit_xfb_buffer = 1;
+      valid_out_mask.flags.q.xfb_buffer = 1;
+      valid_out_mask.flags.q.explicit_xfb_stride = 1;
+      valid_out_mask.flags.q.xfb_stride = 1;
+      valid_out_mask.flags.q.max_vertices = 1;
+      valid_out_mask.flags.q.prim_type = 1;
    } else if (state->stage == MESA_SHADER_TESS_CTRL) {
       if (create_node) {
          node = new(mem_ctx) ast_tcs_output_layout(*loc);
       }
+      valid_out_mask.flags.q.vertices = 1;
+      valid_out_mask.flags.q.explicit_xfb_buffer = 1;
+      valid_out_mask.flags.q.xfb_buffer = 1;
+      valid_out_mask.flags.q.explicit_xfb_stride = 1;
+      valid_out_mask.flags.q.xfb_stride = 1;
+   } else if (state->stage == MESA_SHADER_TESS_EVAL ||
+              state->stage == MESA_SHADER_VERTEX) {
+      valid_out_mask.flags.q.explicit_xfb_buffer = 1;
+      valid_out_mask.flags.q.xfb_buffer = 1;
+      valid_out_mask.flags.q.explicit_xfb_stride = 1;
+      valid_out_mask.flags.q.xfb_stride = 1;
    } else {
       _mesa_glsl_error(loc, state, "out layout qualifiers only valid in "
-                       "tessellation control or geometry shaders");
+                       "geometry, tessellation and vertex shaders");
+      return false;
+   }
+
+   /* Allow future assigments of global out's */
+   this->flags.q.explicit_xfb_buffer = 0;
+   this->flags.q.explicit_xfb_stride = 0;
+
+   /* Generate an error when invalid input layout qualifiers are used. */
+   if ((q.flags.i & ~valid_out_mask.flags.i) != 0) {
+      _mesa_glsl_error(loc, state,
+		       "invalid output layout qualifiers used");
+      return false;
    }
 
    return r;
@@ -507,11 +589,97 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
    return true;
 }
 
+/**
+ * Check if the current type qualifier has any illegal flags.
+ *
+ * If so, print an error message, followed by a list of illegal flags.
+ *
+ * \param message        The error message to print.
+ * \param allowed_flags  A list of valid flags.
+ */
+bool
+ast_type_qualifier::validate_flags(YYLTYPE *loc,
+                                   _mesa_glsl_parse_state *state,
+                                   const char *message,
+                                   const ast_type_qualifier &allowed_flags)
+{
+   ast_type_qualifier bad;
+   bad.flags.i = this->flags.i & ~allowed_flags.flags.i;
+   if (bad.flags.i == 0)
+      return true;
+
+   _mesa_glsl_error(loc, state,
+                    "%s:"
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    message,
+                    bad.flags.q.invariant ? " invariant" : "",
+                    bad.flags.q.precise ? " precise" : "",
+                    bad.flags.q.constant ? " constant" : "",
+                    bad.flags.q.attribute ? " attribute" : "",
+                    bad.flags.q.varying ? " varying" : "",
+                    bad.flags.q.in ? " in" : "",
+                    bad.flags.q.out ? " out" : "",
+                    bad.flags.q.centroid ? " centroid" : "",
+                    bad.flags.q.sample ? " sample" : "",
+                    bad.flags.q.patch ? " patch" : "",
+                    bad.flags.q.uniform ? " uniform" : "",
+                    bad.flags.q.buffer ? " buffer" : "",
+                    bad.flags.q.shared_storage ? " shared_storage" : "",
+                    bad.flags.q.smooth ? " smooth" : "",
+                    bad.flags.q.flat ? " flat" : "",
+                    bad.flags.q.noperspective ? " noperspective" : "",
+                    bad.flags.q.origin_upper_left ? " origin_upper_left" : "",
+                    bad.flags.q.pixel_center_integer ? " pixel_center_integer" : "",
+                    bad.flags.q.explicit_align ? " align" : "",
+                    bad.flags.q.explicit_location ? " location" : "",
+                    bad.flags.q.explicit_index ? " index" : "",
+                    bad.flags.q.explicit_binding ? " binding" : "",
+                    bad.flags.q.explicit_offset ? " offset" : "",
+                    bad.flags.q.depth_any ? " depth_any" : "",
+                    bad.flags.q.depth_greater ? " depth_greater" : "",
+                    bad.flags.q.depth_less ? " depth_less" : "",
+                    bad.flags.q.depth_unchanged ? " depth_unchanged" : "",
+                    bad.flags.q.std140 ? " std140" : "",
+                    bad.flags.q.std430 ? " std430" : "",
+                    bad.flags.q.shared ? " shared" : "",
+                    bad.flags.q.packed ? " packed" : "",
+                    bad.flags.q.column_major ? " column_major" : "",
+                    bad.flags.q.row_major ? " row_major" : "",
+                    bad.flags.q.prim_type ? " prim_type" : "",
+                    bad.flags.q.max_vertices ? " max_vertices" : "",
+                    bad.flags.q.local_size ? " local_size" : "",
+                    bad.flags.q.early_fragment_tests ? " early_fragment_tests" : "",
+                    bad.flags.q.explicit_image_format ? " image_format" : "",
+                    bad.flags.q.coherent ? " coherent" : "",
+                    bad.flags.q._volatile ? " _volatile" : "",
+                    bad.flags.q.restrict_flag ? " restrict_flag" : "",
+                    bad.flags.q.read_only ? " read_only" : "",
+                    bad.flags.q.write_only ? " write_only" : "",
+                    bad.flags.q.invocations ? " invocations" : "",
+                    bad.flags.q.stream ? " stream" : "",
+                    bad.flags.q.explicit_stream ? " stream" : "",
+                    bad.flags.q.explicit_xfb_offset ? " xfb_offset" : "",
+                    bad.flags.q.xfb_buffer ? " xfb_buffer" : "",
+                    bad.flags.q.explicit_xfb_buffer ? " xfb_buffer" : "",
+                    bad.flags.q.xfb_stride ? " xfb_stride" : "",
+                    bad.flags.q.explicit_xfb_stride ? " xfb_stride" : "",
+                    bad.flags.q.vertex_spacing ? " vertex_spacing" : "",
+                    bad.flags.q.ordering ? " ordering" : "",
+                    bad.flags.q.point_mode ? " point_mode" : "",
+                    bad.flags.q.vertices ? " vertices" : "",
+                    bad.flags.q.subroutine ? " subroutine" : "",
+                    bad.flags.q.subroutine_def ? " subroutine_def" : "");
+   return false;
+}
+
 bool
 ast_layout_expression::process_qualifier_constant(struct _mesa_glsl_parse_state *state,
                                                   const char *qual_indentifier,
                                                   unsigned *value,
-                                                  bool can_be_zero)
+                                                  bool can_be_zero,
+                                                  bool must_match)
 {
    int min_value = 0;
    bool first_pass = true;
@@ -544,12 +712,19 @@ ast_layout_expression::process_qualifier_constant(struct _mesa_glsl_parse_state 
          return false;
       }
 
-      if (!first_pass && *value != const_int->value.u[0]) {
-         YYLTYPE loc = const_expression->get_location();
-         _mesa_glsl_error(&loc, state, "%s layout qualifier does not "
-		          "match previous declaration (%d vs %d)",
-                          qual_indentifier, *value, const_int->value.i[0]);
-         return false;
+      /* From section 4.4 "Layout Qualifiers" of the GLSL 4.50 spec:
+       * "When the same layout-qualifier-name occurs multiple times,
+       *  in a single declaration, the last occurrence overrides the
+       *  former occurrence(s)."
+       */
+      if (!first_pass) {
+         if ((must_match || !state->has_420pack()) && *value != const_int->value.u[0]) {
+            YYLTYPE loc = const_expression->get_location();
+            _mesa_glsl_error(&loc, state, "%s layout qualifier does not "
+                             "match previous declaration (%d vs %d)",
+                             qual_indentifier, *value, const_int->value.i[0]);
+            return false;
+         }
       } else {
          first_pass = false;
          *value = const_int->value.u[0];
@@ -564,5 +739,46 @@ ast_layout_expression::process_qualifier_constant(struct _mesa_glsl_parse_state 
       assert(dummy_instructions.is_empty());
    }
 
+   return true;
+}
+
+bool
+process_qualifier_constant(struct _mesa_glsl_parse_state *state,
+                           YYLTYPE *loc,
+                           const char *qual_indentifier,
+                           ast_expression *const_expression,
+                           unsigned *value)
+{
+   exec_list dummy_instructions;
+
+   if (const_expression == NULL) {
+      *value = 0;
+      return true;
+   }
+
+   ir_rvalue *const ir = const_expression->hir(&dummy_instructions, state);
+
+   ir_constant *const const_int = ir->constant_expression_value();
+   if (const_int == NULL || !const_int->type->is_integer()) {
+      _mesa_glsl_error(loc, state, "%s must be an integral constant "
+                       "expression", qual_indentifier);
+      return false;
+   }
+
+   if (const_int->value.i[0] < 0) {
+      _mesa_glsl_error(loc, state, "%s layout qualifier is invalid (%d < 0)",
+                       qual_indentifier, const_int->value.u[0]);
+      return false;
+   }
+
+   /* If the location is const (and we've verified that
+    * it is) then no instructions should have been emitted
+    * when we converted it to HIR. If they were emitted,
+    * then either the location isn't const after all, or
+    * we are emitting unnecessary instructions.
+    */
+   assert(dummy_instructions.is_empty());
+
+   *value = const_int->value.u[0];
    return true;
 }

@@ -331,7 +331,7 @@ free_query_info(void *ptr)
 
       pipe->end_query(pipe, info->query[info->head]);
 
-      for (i = 0; i < Elements(info->query); i++) {
+      for (i = 0; i < ARRAY_SIZE(info->query); i++) {
          if (info->query[i]) {
             pipe->destroy_query(pipe, info->query[i]);
          }

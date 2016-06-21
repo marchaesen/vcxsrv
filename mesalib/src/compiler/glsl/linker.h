@@ -53,13 +53,16 @@ extern bool
 link_uniform_blocks_are_compatible(const gl_uniform_block *a,
 				   const gl_uniform_block *b);
 
-extern unsigned
+extern void
 link_uniform_blocks(void *mem_ctx,
                     struct gl_context *ctx,
                     struct gl_shader_program *prog,
                     struct gl_shader **shader_list,
                     unsigned num_shaders,
-                    struct gl_uniform_block **blocks_ret);
+                    struct gl_uniform_block **ubo_blocks,
+                    unsigned *num_ubo_blocks,
+                    struct gl_uniform_block **ssbo_blocks,
+                    unsigned *num_ssbo_blocks);
 
 bool
 validate_intrastage_arrays(struct gl_shader_program *prog,
@@ -153,7 +156,7 @@ protected:
     */
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *record_type,
-                            const unsigned packing,
+                            const enum glsl_interface_packing packing,
                             bool last_field);
 
    /**
@@ -177,10 +180,10 @@ protected:
    virtual void visit_field(const glsl_struct_field *field);
 
    virtual void enter_record(const glsl_type *type, const char *name,
-                             bool row_major, const unsigned packing);
+                             bool row_major, const enum glsl_interface_packing packing);
 
    virtual void leave_record(const glsl_type *type, const char *name,
-                             bool row_major, const unsigned packing);
+                             bool row_major, const enum glsl_interface_packing packing);
 
    virtual void set_buffer_offset(unsigned offset);
 
@@ -196,8 +199,9 @@ private:
     */
    void recursion(const glsl_type *t, char **name, size_t name_length,
                   bool row_major, const glsl_type *record_type,
-                  const unsigned packing,
-                  bool last_field, unsigned record_array_count);
+                  const enum glsl_interface_packing packing,
+                  bool last_field, unsigned record_array_count,
+                  const glsl_struct_field *named_ifc_member);
 };
 
 void

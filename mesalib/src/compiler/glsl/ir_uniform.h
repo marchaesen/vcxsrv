@@ -105,11 +105,6 @@ struct gl_uniform_storage {
     */
    unsigned array_elements;
 
-   /**
-    * Has this uniform ever been set?
-    */
-   bool initialized;
-
    struct gl_opaque_uniform_index opaque[MESA_SHADER_STAGES];
 
    /**

@@ -114,7 +114,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
             /* For a row-major matrix, the next column starts at the next
              * element.
              */
-            int size_mul = deref->type->is_double() ? 8 : 4;
+            int size_mul = deref->type->is_64bit() ? 8 : 4;
             emit_access(mem_ctx, is_write, col_deref, base_offset,
                         deref_offset + i * size_mul,
                         row_major, deref->type->matrix_columns, packing,
@@ -125,7 +125,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
             /* std430 doesn't round up vec2 size to a vec4 size */
             if (packing == GLSL_INTERFACE_PACKING_STD430 &&
                 deref->type->vector_elements == 2 &&
-                !deref->type->is_double()) {
+                !deref->type->is_64bit()) {
                size_mul = 8;
             } else {
                /* std140 always rounds the stride of arrays (and matrices) to a
@@ -137,7 +137,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
                 * machine units, the base alignment is 4N. For vec4, base
                 * alignment is 4N.
                 */
-               size_mul = (deref->type->is_double() &&
+               size_mul = (deref->type->is_64bit() &&
                            deref->type->vector_elements > 2) ? 32 : 16;
             }
 
@@ -159,7 +159,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
          is_write ? write_mask : (1 << deref->type->vector_elements) - 1;
       insert_buffer_access(mem_ctx, deref, deref->type, offset, mask, -1);
    } else {
-      unsigned N = deref->type->is_double() ? 8 : 4;
+      unsigned N = deref->type->is_64bit() ? 8 : 4;
 
       /* We're dereffing a column out of a row-major matrix, so we
        * gather the vector from each stored row.
@@ -283,7 +283,7 @@ lower_buffer_access::is_dereferenced_thing_row_major(const ir_rvalue *deref)
              * layouts at HIR generation time, but we don't do that for shared
              * variables, which are always column-major
              */
-            ir_variable *var = deref->variable_referenced();
+            MAYBE_UNUSED ir_variable *var = deref->variable_referenced();
             assert((var->is_in_buffer_block() && !matrix) ||
                    var->data.mode == ir_var_shader_shared);
             return false;
@@ -328,7 +328,7 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
                                          bool *row_major,
                                          int *matrix_columns,
                                          const glsl_struct_field **struct_field,
-                                         unsigned packing)
+                                         enum glsl_interface_packing packing)
 {
    *offset = new(mem_ctx) ir_constant(0u);
    *row_major = is_dereferenced_thing_row_major(deref);
@@ -358,7 +358,7 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
              * thread or SIMD channel is modifying the same vector.
              */
             array_stride = 4;
-            if (deref_array->array->type->is_double())
+            if (deref_array->array->type->is_64bit())
                array_stride *= 2;
          } else if (deref_array->array->type->is_matrix() && *row_major) {
             /* When loading a vector out of a row major matrix, the
@@ -367,7 +367,7 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
              * vector) is handled below in emit_ubo_loads.
              */
             array_stride = 4;
-            if (deref_array->array->type->is_double())
+            if (deref_array->array->type->is_64bit())
                array_stride *= 2;
             *matrix_columns = deref_array->array->type->matrix_columns;
          } else if (deref_array->type->without_array()->is_interface()) {

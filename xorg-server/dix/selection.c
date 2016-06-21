@@ -279,6 +279,9 @@ ProcConvertSelection(ClientPtr client)
         return BadAtom;
     }
 
+    if (stuff->time == CurrentTime)
+        UpdateCurrentTime();
+
     rc = dixLookupSelection(&pSel, stuff->selection, client, DixReadAccess);
 
     memset(&event, 0, sizeof(xEvent));

@@ -43,6 +43,7 @@ struct tgsi_drawpix_transform {
    unsigned drawpix_sampler;
    unsigned pixelmap_sampler;
    unsigned texcoord_const;
+   unsigned tex_target;
 };
 
 static inline struct tgsi_drawpix_transform *
@@ -72,8 +73,8 @@ transform_instr(struct tgsi_transform_context *tctx,
 		struct tgsi_full_instruction *current_inst)
 {
    struct tgsi_drawpix_transform *ctx = tgsi_drawpix_transform(tctx);
-   struct tgsi_full_declaration decl;
-   struct tgsi_full_instruction inst;
+   const unsigned tgsi_tex_target = ctx->tex_target == PIPE_TEXTURE_2D
+      ? TGSI_TEXTURE_2D : TGSI_TEXTURE_RECT;
    unsigned i, sem_texcoord = ctx->use_texcoord ? TGSI_SEMANTIC_TEXCOORD :
                                                   TGSI_SEMANTIC_GENERIC;
    int texcoord_index = -1;
@@ -86,33 +87,21 @@ transform_instr(struct tgsi_transform_context *tctx,
    /* Add scale and bias constants. */
    if (ctx->scale_and_bias) {
       if (ctx->info.const_file_max[0] < (int)ctx->scale_const) {
-         decl = tgsi_default_full_declaration();
-         decl.Declaration.File = TGSI_FILE_CONSTANT;
-         decl.Range.First = decl.Range.Last = ctx->scale_const;
-         tctx->emit_declaration(tctx, &decl);
+         tgsi_transform_const_decl(tctx, ctx->scale_const, ctx->scale_const);
       }
 
       if (ctx->info.const_file_max[0] < (int)ctx->bias_const) {
-         decl = tgsi_default_full_declaration();
-         decl.Declaration.File = TGSI_FILE_CONSTANT;
-         decl.Range.First = decl.Range.Last = ctx->bias_const;
-         tctx->emit_declaration(tctx, &decl);
+         tgsi_transform_const_decl(tctx, ctx->bias_const, ctx->bias_const);
       }
    }
 
    if (ctx->info.const_file_max[0] < (int)ctx->texcoord_const) {
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_CONSTANT;
-      decl.Range.First = decl.Range.Last = ctx->texcoord_const;
-      tctx->emit_declaration(tctx, &decl);
+      tgsi_transform_const_decl(tctx, ctx->texcoord_const, ctx->texcoord_const);
    }
 
    /* Add a new temp. */
    ctx->color_temp = ctx->info.file_max[TGSI_FILE_TEMPORARY] + 1;
-   decl = tgsi_default_full_declaration();
-   decl.Declaration.File = TGSI_FILE_TEMPORARY;
-   decl.Range.First = decl.Range.Last = ctx->color_temp;
-   tctx->emit_declaration(tctx, &decl);
+   tgsi_transform_temp_decl(tctx, ctx->color_temp);
 
    /* Add TEXCOORD[texcoord_slot] if it's missing. */
    for (i = 0; i < ctx->info.num_inputs; i++) {
@@ -124,75 +113,51 @@ transform_instr(struct tgsi_transform_context *tctx,
    }
 
    if (texcoord_index == -1) {
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_INPUT;
-      decl.Declaration.Semantic = 1;
-      decl.Semantic.Name = sem_texcoord;
-      decl.Declaration.Interpolate = 1;
-      decl.Interp.Interpolate = TGSI_INTERPOLATE_PERSPECTIVE;
-      decl.Range.First = decl.Range.Last = ctx->info.num_inputs;
       texcoord_index = ctx->info.num_inputs;
-      tctx->emit_declaration(tctx, &decl);
+      tgsi_transform_input_decl(tctx, texcoord_index, sem_texcoord, 0,
+                                TGSI_INTERPOLATE_PERSPECTIVE);
    }
 
    /* Declare the drawpix sampler if it's missing. */
    if (!(ctx->info.samplers_declared & (1 << ctx->drawpix_sampler))) {
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_SAMPLER;
-      decl.Range.First = decl.Range.Last = ctx->drawpix_sampler;
-      tctx->emit_declaration(tctx, &decl);
+      tgsi_transform_sampler_decl(tctx, ctx->drawpix_sampler);
+
+      /* emit sampler view declaration */
+      tgsi_transform_sampler_view_decl(tctx, ctx->drawpix_sampler,
+                                       tgsi_tex_target, TGSI_RETURN_TYPE_FLOAT);
    }
 
    /* Declare the pixel map sampler if it's missing. */
    if (ctx->pixel_maps &&
        !(ctx->info.samplers_declared & (1 << ctx->pixelmap_sampler))) {
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_SAMPLER;
-      decl.Range.First = decl.Range.Last = ctx->pixelmap_sampler;
-      tctx->emit_declaration(tctx, &decl);
+      tgsi_transform_sampler_decl(tctx, ctx->pixelmap_sampler);
+
+      /* emit sampler view declaration */
+      tgsi_transform_sampler_view_decl(tctx, ctx->pixelmap_sampler,
+                                       TGSI_TEXTURE_2D, TGSI_RETURN_TYPE_FLOAT);
    }
 
    /* Get initial pixel color from the texture.
     * TEX temp, fragment.texcoord[0], texture[0], 2D;
     */
-   inst = tgsi_default_full_instruction();
-   inst.Instruction.Opcode = TGSI_OPCODE_TEX;
-   inst.Instruction.Texture = 1;
-   inst.Texture.Texture = TGSI_TEXTURE_2D;
-
-   inst.Instruction.NumDstRegs = 1;
-   inst.Dst[0].Register.File  = TGSI_FILE_TEMPORARY;
-   inst.Dst[0].Register.Index = ctx->color_temp;
-   inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZW;
-
-   inst.Instruction.NumSrcRegs = 2;
-   SET_SRC(&inst, 0, TGSI_FILE_INPUT, texcoord_index, X, Y, Z, W);
-   inst.Src[1].Register.File  = TGSI_FILE_SAMPLER;
-   inst.Src[1].Register.Index = ctx->drawpix_sampler;
-
-   tctx->emit_instruction(tctx, &inst);
+   tgsi_transform_tex_inst(tctx, TGSI_FILE_TEMPORARY, ctx->color_temp,
+                           TGSI_FILE_INPUT, texcoord_index,
+                           tgsi_tex_target, ctx->drawpix_sampler);
 
    /* Apply the scale and bias. */
    if (ctx->scale_and_bias) {
       /* MAD temp, temp, scale, bias; */
-      inst = tgsi_default_full_instruction();
-      inst.Instruction.Opcode = TGSI_OPCODE_MAD;
-
-      inst.Instruction.NumDstRegs = 1;
-      inst.Dst[0].Register.File  = TGSI_FILE_TEMPORARY;
-      inst.Dst[0].Register.Index = ctx->color_temp;
-      inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZW;
-
-      inst.Instruction.NumSrcRegs = 3;
-      SET_SRC(&inst, 0, TGSI_FILE_TEMPORARY, ctx->color_temp, X, Y, Z, W);
-      SET_SRC(&inst, 1, TGSI_FILE_CONSTANT, ctx->scale_const, X, Y, Z, W);
-      SET_SRC(&inst, 2, TGSI_FILE_CONSTANT, ctx->bias_const, X, Y, Z, W);
-
-      tctx->emit_instruction(tctx, &inst);
+      tgsi_transform_op3_inst(tctx, TGSI_OPCODE_MAD,
+                              TGSI_FILE_TEMPORARY, ctx->color_temp,
+                              TGSI_WRITEMASK_XYZW,
+                              TGSI_FILE_TEMPORARY, ctx->color_temp,
+                              TGSI_FILE_CONSTANT, ctx->scale_const,
+                              TGSI_FILE_CONSTANT, ctx->bias_const);
    }
 
    if (ctx->pixel_maps) {
       /* do four pixel map look-ups with two TEX instructions: */
+      struct tgsi_full_instruction inst;
 
       /* TEX temp.xy, temp.xyyy, texture[1], 2D; */
       inst = tgsi_default_full_instruction();
@@ -250,11 +215,14 @@ st_get_drawpix_shader(const struct tgsi_token *tokens, bool use_texcoord,
                       bool scale_and_bias, unsigned scale_const,
                       unsigned bias_const, bool pixel_maps,
                       unsigned drawpix_sampler, unsigned pixelmap_sampler,
-                      unsigned texcoord_const)
+                      unsigned texcoord_const, unsigned tex_target)
 {
    struct tgsi_drawpix_transform ctx;
    struct tgsi_token *newtoks;
    int newlen;
+
+   assert(tex_target == PIPE_TEXTURE_2D ||
+          tex_target == PIPE_TEXTURE_RECT);
 
    memset(&ctx, 0, sizeof(ctx));
    ctx.base.transform_instruction = transform_instr;
@@ -266,9 +234,10 @@ st_get_drawpix_shader(const struct tgsi_token *tokens, bool use_texcoord,
    ctx.drawpix_sampler = drawpix_sampler;
    ctx.pixelmap_sampler = pixelmap_sampler;
    ctx.texcoord_const = texcoord_const;
+   ctx.tex_target = tex_target;
    tgsi_scan_shader(tokens, &ctx.info);
 
-   newlen = tgsi_num_tokens(tokens) + 30;
+   newlen = tgsi_num_tokens(tokens) + 60;
    newtoks = tgsi_alloc_tokens(newlen);
    if (!newtoks)
       return NULL;

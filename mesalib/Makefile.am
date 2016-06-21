@@ -43,7 +43,8 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--disable-llvm-shared-libs \
 	--with-egl-platforms=x11,wayland,drm,surfaceless \
 	--with-dri-drivers=i915,i965,nouveau,radeon,r200,swrast \
-	--with-gallium-drivers=i915,ilo,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl
+	--with-gallium-drivers=i915,ilo,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl,swr \
+	--with-vulkan-drivers=intel
 
 ACLOCAL_AMFLAGS = -I m4
 

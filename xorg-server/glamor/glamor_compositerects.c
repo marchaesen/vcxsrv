@@ -107,7 +107,6 @@ glamor_composite_rectangles(CARD8 op,
     struct glamor_pixmap_private *priv;
     pixman_region16_t region;
     pixman_box16_t *boxes;
-    int dst_x, dst_y;
     int num_boxes;
     PicturePtr source = NULL;
     Bool need_free_region = FALSE;
@@ -225,17 +224,18 @@ glamor_composite_rectangles(CARD8 op,
            RegionExtents(&region)->x2, RegionExtents(&region)->y2,
            RegionNumRects(&region));
 
-    glamor_get_drawable_deltas(dst->pDrawable, pixmap, &dst_x, &dst_y);
-    pixman_region_translate(&region, dst_x, dst_y);
-
-    DEBUGF("%s: pixmap +(%d, %d) extents (%d, %d),(%d, %d)\n",
-           __FUNCTION__, dst_x, dst_y,
-           RegionExtents(&region)->x1, RegionExtents(&region)->y1,
-           RegionExtents(&region)->x2, RegionExtents(&region)->y2);
-
     boxes = pixman_region_rectangles(&region, &num_boxes);
     if (op == PictOpSrc || op == PictOpClear) {
         CARD32 pixel;
+        int dst_x, dst_y;
+
+        glamor_get_drawable_deltas(dst->pDrawable, pixmap, &dst_x, &dst_y);
+        pixman_region_translate(&region, dst_x, dst_y);
+
+        DEBUGF("%s: pixmap +(%d, %d) extents (%d, %d),(%d, %d)\n",
+               __FUNCTION__, dst_x, dst_y,
+               RegionExtents(&region)->x1, RegionExtents(&region)->y1,
+               RegionExtents(&region)->x2, RegionExtents(&region)->y2);
 
         if (op == PictOpClear)
             pixel = 0;

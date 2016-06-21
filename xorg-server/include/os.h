@@ -51,6 +51,9 @@ SOFTWARE.
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
+#ifdef MONOTONIC_CLOCK
+#include <time.h>
+#endif
 
 #define SCREEN_SAVER_ON   0
 #define SCREEN_SAVER_OFF  1
@@ -179,6 +182,10 @@ extern _X_EXPORT void MakeClientGrabPervious(ClientPtr /*client */ );
 extern _X_EXPORT void ListenOnOpenFD(int /* fd */ , int /* noxauth */ );
 
 extern _X_EXPORT Bool AddClientOnOpenFD(int /* fd */ );
+
+#ifdef MONOTONIC_CLOCK
+extern void ForceClockId(clockid_t /* forced_clockid */);
+#endif
 
 extern _X_EXPORT CARD32 GetTimeInMillis(void);
 extern _X_EXPORT CARD64 GetTimeInMicros(void);
@@ -335,12 +342,6 @@ OsBlockSignals(void);
 
 extern _X_EXPORT void
 OsReleaseSignals(void);
-
-extern _X_EXPORT int
-OsBlockSIGIO(void);
-
-extern _X_EXPORT void
-OsReleaseSIGIO(void);
 
 extern void
 OsResetSignals(void);
@@ -711,5 +712,10 @@ xorg_backtrace(void);
 
 extern _X_EXPORT int
 os_move_fd(int fd);
+
+#include <signal.h>
+
+extern _X_EXPORT int
+xthread_sigmask(int how, const sigset_t *set, sigset_t *oldest);
 
 #endif                          /* OS_H */

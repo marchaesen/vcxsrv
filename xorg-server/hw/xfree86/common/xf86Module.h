@@ -62,7 +62,6 @@ typedef enum {
 #define ABI_CLASS_VIDEODRV	"X.Org Video Driver"
 #define ABI_CLASS_XINPUT	"X.Org XInput driver"
 #define ABI_CLASS_EXTENSION	"X.Org Server Extension"
-#define ABI_CLASS_FONT		"X.Org Font Renderer"
 
 #define ABI_MINOR_MASK		0x0000FFFF
 #define ABI_MAJOR_MASK		0xFFFF0000
@@ -80,10 +79,9 @@ typedef enum {
  * mask is 0xFFFF0000.
  */
 #define ABI_ANSIC_VERSION	SET_ABI_VERSION(0, 4)
-#define ABI_VIDEODRV_VERSION	SET_ABI_VERSION(21, 0)
-#define ABI_XINPUT_VERSION	SET_ABI_VERSION(22, 1)
-#define ABI_EXTENSION_VERSION	SET_ABI_VERSION(9, 0)
-#define ABI_FONT_VERSION	SET_ABI_VERSION(0, 6)
+#define ABI_VIDEODRV_VERSION	SET_ABI_VERSION(22, 0)
+#define ABI_XINPUT_VERSION	SET_ABI_VERSION(23, 1)
+#define ABI_EXTENSION_VERSION	SET_ABI_VERSION(10, 0)
 
 #define MODINFOSTRING1	0xef23fdc5
 #define MODINFOSTRING2	0x10dc023a
@@ -122,7 +120,6 @@ typedef enum {
 #define MOD_CLASS_NONE		NULL
 #define MOD_CLASS_VIDEODRV	"X.Org Video Driver"
 #define MOD_CLASS_XINPUT	"X.Org XInput Driver"
-#define MOD_CLASS_FONT		"X.Org Font Renderer"
 #define MOD_CLASS_EXTENSION	"X.Org Server Extension"
 
 /* This structure is expected to be returned by the initfunc */

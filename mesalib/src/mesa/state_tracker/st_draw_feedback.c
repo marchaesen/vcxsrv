@@ -139,6 +139,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    assert(draw);
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    st_validate_state(st, ST_PIPELINE_RENDER);
 

@@ -594,6 +594,8 @@ typedef struct {
     DeviceIntPtr device;
 } DeviceEventInfoRec;
 
+extern _X_EXPORT CallbackListPtr RootWindowFinalizeCallback;
+
 extern int
 XItoCoreType(int xi_type);
 extern Bool

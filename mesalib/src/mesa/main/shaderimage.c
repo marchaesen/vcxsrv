@@ -583,8 +583,13 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
        *
        * "An INVALID_OPERATION error is generated if texture is not the name
        *  of an immutable texture object."
+       *
+       * However note that issue 7 of the GL_OES_texture_buffer spec
+       * recognizes that there is no way to create immutable buffer textures,
+       * so those are excluded from this requirement.
        */
-      if (_mesa_is_gles(ctx) && !t->Immutable) {
+      if (_mesa_is_gles(ctx) && !t->Immutable &&
+          t->Target != GL_TEXTURE_BUFFER) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glBindImageTexture(!immutable)");
          return;

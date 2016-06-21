@@ -336,7 +336,7 @@ xwl_glamor_xv_add_adaptors(ScreenPtr pScreen)
 
     pa = xnfcalloc(1, sizeof(XvAdaptorRec));
     pa->pScreen = pScreen;
-    pa->type = (unsigned int) (XvWindowMask | XvInputMask | XvImageMask);
+    pa->type = (unsigned char) (XvInputMask | XvImageMask);
     pa->ddStopVideo = xwl_glamor_xv_stop_video;
     pa->ddPutImage = xwl_glamor_xv_put_image;
     pa->ddSetPortAttribute = xwl_glamor_xv_set_port_attribute;

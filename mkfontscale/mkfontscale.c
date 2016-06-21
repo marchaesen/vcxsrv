@@ -579,11 +579,14 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
     }
 
     if(t1info) {
-        if(!family)
+        if(!family && t1info->family_name)
             family = strdup(t1info->family_name);
-        if(!family)
+        if(!family && t1info->full_name)
             family = strdup(t1info->full_name);
-        if(!full_name)
+        /* Hershey fonts miss /FamilyName */
+        if(!family && face->family_name)
+            family = strdup(face->family_name);
+        if(!full_name && t1info->full_name)
             full_name = strdup(t1info->full_name);
         if(!foundry)
             foundry = notice_foundry(t1info->notice);

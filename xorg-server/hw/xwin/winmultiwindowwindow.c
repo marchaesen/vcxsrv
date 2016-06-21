@@ -35,9 +35,11 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
 #include "win.h"
 #include "dixevents.h"
 #include "winmultiwindowclass.h"
+#include "winmultiwindowicons.h"
 
 /*
  * Prototypes for local functions
@@ -795,44 +797,6 @@ winReorderWindowsMultiWindow(void)
     }
 
     fRestacking = FALSE;
-}
-
-/*
- * winMinimizeWindow - Minimize in response to WM_CHANGE_STATE
- */
-
-void
-winMinimizeWindow(Window id)
-{
-    WindowPtr pWin;
-    winPrivWinPtr pWinPriv;
-
-    HWND hWnd;
-    ScreenPtr pScreen = NULL;
-    winPrivScreenPtr pScreenPriv = NULL;
-
-#if CYGWINDOWING_DEBUG
-    ErrorF("winMinimizeWindow\n");
-#endif
-
-    dixLookupResourceByType((void *) &pWin, id, RT_WINDOW, NullClient,
-                            DixUnknownAccess);
-    if (!pWin) {
-        ErrorF("%s: NULL pWin. Leaving\n", __FUNCTION__);
-        return;
-    }
-
-    pScreen = pWin->drawable.pScreen;
-    if (pScreen)
-        pScreenPriv = winGetScreenPriv(pScreen);
-
-    if (pScreenPriv)
-    {
-        pWinPriv = winGetWindowPriv(pWin);
-        hWnd = pWinPriv->hWnd;
-    }
-
-    ShowWindow(hWnd, SW_MINIMIZE);
 }
 
 /*

@@ -1497,6 +1497,17 @@ layout_qualifier_id:
          $$.location = $3;
       }
 
+      if (match_layout_qualifier("component", $1, state) == 0) {
+         if (!state->has_enhanced_layouts()) {
+            _mesa_glsl_error(& @1, state,
+                             "component qualifier requires "
+                             "GLSL 4.40 or ARB_enhanced_layouts");
+         } else {
+            $$.flags.q.explicit_component = 1;
+            $$.component = $3;
+         }
+      }
+
       if (match_layout_qualifier("index", $1, state) == 0) {
          if (state->es_shader && !state->EXT_blend_func_extended_enable) {
             _mesa_glsl_error(& @3, state, "index layout qualifier requires EXT_blend_func_extended");
@@ -1538,6 +1549,25 @@ layout_qualifier_id:
             $$.flags.q.stream = 1;
             $$.flags.q.explicit_stream = 1;
             $$.stream = $3;
+         }
+      }
+
+      if (state->has_enhanced_layouts()) {
+         if (match_layout_qualifier("xfb_buffer", $1, state) == 0) {
+            $$.flags.q.xfb_buffer = 1;
+            $$.flags.q.explicit_xfb_buffer = 1;
+            $$.xfb_buffer = $3;
+         }
+
+         if (match_layout_qualifier("xfb_offset", $1, state) == 0) {
+            $$.flags.q.explicit_xfb_offset = 1;
+            $$.offset = $3;
+         }
+
+         if (match_layout_qualifier("xfb_stride", $1, state) == 0) {
+            $$.flags.q.xfb_stride = 1;
+            $$.flags.q.explicit_xfb_stride = 1;
+            $$.xfb_stride = $3;
          }
       }
 
@@ -1914,6 +1944,12 @@ storage_qualifier:
           $$.flags.q.stream = 1;
           $$.flags.q.explicit_stream = 0;
           $$.stream = state->out_qualifier->stream;
+      }
+
+      if (state->has_enhanced_layouts()) {
+          $$.flags.q.xfb_buffer = 1;
+          $$.flags.q.explicit_xfb_buffer = 0;
+          $$.xfb_buffer = state->out_qualifier->xfb_buffer;
       }
    }
    | UNIFORM
@@ -2823,6 +2859,7 @@ layout_in_defaults:
                 merge_in_qualifier(& @1, state, $1, $$, false)) {
             YYERROR;
          }
+         $$ = $2;
       }
    }
    | layout_qualifier IN_TOK ';'
@@ -2847,6 +2884,7 @@ layout_out_defaults:
                 merge_out_qualifier(& @1, state, $1, $$, false)) {
             YYERROR;
          }
+         $$ = $2;
       }
    }
    | layout_qualifier OUT_TOK ';'

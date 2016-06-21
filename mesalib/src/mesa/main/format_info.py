@@ -185,8 +185,9 @@ for fmat in formats:
 
    print '      {0:d},'.format(fmat.colorspace == 'srgb')
 
-   print '      {0}, {1}, {2},'.format(fmat.block_width, fmat.block_height,
-                                       int(fmat.block_size() / 8))
+   print '      {0}, {1}, {2}, {3},'.format(fmat.block_width, fmat.block_height,
+                                            fmat.block_depth,
+                                            int(fmat.block_size() / 8))
 
    print '      {{ {0} }},'.format(', '.join(map(str, fmat.swizzle)))
    if fmat.is_array():

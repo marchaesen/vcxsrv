@@ -121,48 +121,6 @@ class PrintGlRemap(gl_XML.gl_print_base):
         print '   {    -1, -1 }'
         print '};'
         print ''
-
-        # collect functions by versions/extensions
-        extension_functions = {}
-        abi_extensions = []
-        for f in api.functionIterateAll():
-            for n in f.entry_points:
-                category, num = api.get_category_for_name(n)
-                # consider only GL_VERSION_X_Y or extensions
-                c = gl_XML.real_category_name(category)
-                if c.startswith("GL_"):
-                    if not extension_functions.has_key(c):
-                        extension_functions[c] = []
-                    extension_functions[c].append(f)
-                    # remember the ext names of the ABI
-                    if (f.is_abi() and n == f.name and
-                            c not in abi_extensions):
-                        abi_extensions.append(c)
-        # ignore the ABI itself
-        for ext in abi_extensions:
-            extension_functions.pop(ext)
-
-        extensions = extension_functions.keys()
-        extensions.sort()
-
-        # output ABI functions that have alternative names (with ext suffix)
-        print '/* these functions are in the ABI, but have alternative names */'
-        print 'static const struct gl_function_remap MESA_alt_functions[] = {'
-        for ext in extensions:
-            funcs = []
-            for f in extension_functions[ext]:
-                # test if the function is in the ABI and has alt names
-                if f.is_abi() and len(f.entry_points) > 1:
-                    funcs.append(f)
-            if not funcs:
-                continue
-            print '   /* from %s */' % ext
-            for f in funcs:
-                print '   { %5d, _gloffset_%s },' \
-                                % (pool_indices[f], f.name)
-        print '   {    -1, -1 }'
-        print '};'
-        print ''
         return
 
 

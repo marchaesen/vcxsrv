@@ -76,8 +76,20 @@ static Bool
 xwl_unrealize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
 {
     PixmapPtr pixmap;
+    struct xwl_seat *xwl_seat;
 
     pixmap = dixGetPrivate(&cursor->devPrivates, &xwl_cursor_private_key);
+    if (!pixmap)
+        return TRUE;
+
+    dixSetPrivate(&cursor->devPrivates, &xwl_cursor_private_key, NULL);
+
+    /* When called from FreeCursor(), device is always NULL */
+    if (device) {
+        xwl_seat = device->public.devicePrivate;
+        if (xwl_seat && cursor == xwl_seat->x_cursor)
+            xwl_seat->x_cursor = NULL;
+    }
 
     return xwl_shm_destroy_pixmap(pixmap);
 }
@@ -122,6 +134,9 @@ xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
 
     cursor = xwl_seat->x_cursor;
     pixmap = dixGetPrivate(&cursor->devPrivates, &xwl_cursor_private_key);
+    if (!pixmap)
+        return;
+
     stride = cursor->bits->width * 4;
     if (cursor->bits->argb)
         memcpy(pixmap->devPrivate.ptr,

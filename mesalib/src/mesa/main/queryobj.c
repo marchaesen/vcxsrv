@@ -766,6 +766,11 @@ get_query_object(struct gl_context *ctx, const char *func,
          return;
       }
 
+      if (offset < 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(offset is negative)", func);
+         return;
+      }
+
       switch (pname) {
       case GL_QUERY_RESULT:
       case GL_QUERY_RESULT_NO_WAIT:

@@ -122,7 +122,7 @@ output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
 
 static inline void
 output_get_new_size(struct xwl_output *xwl_output,
-		    int *height, int *width)
+                    int *height, int *width)
 {
     if (*width < xwl_output->x + xwl_output->width)
         *width = xwl_output->x + xwl_output->width;

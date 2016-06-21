@@ -1,7 +1,7 @@
 #######################################################################
 # Top-level SConstruct
 #
-# For example, invoke scons as 
+# For example, invoke scons as
 #
 #   scons build=debug llvm=yes machine=x86
 #
@@ -12,13 +12,13 @@
 #   build='debug'
 #   llvm=True
 #   machine='x86'
-# 
+#
 # Invoke
 #
 #   scons -h
 #
 # to get the full list of options. See scons manpage for more info.
-#  
+#
 
 import os
 import os.path
@@ -36,7 +36,7 @@ common.AddOptions(opts)
 env = Environment(
 	options = opts,
 	tools = ['gallium'],
-	toolpath = ['#scons'],	
+	toolpath = ['#scons'],
 	ENV = os.environ,
 )
 
@@ -53,7 +53,7 @@ else:
     print 'scons: warning: targets option is deprecated; pass the targets on their own such as'
     print
     print '  scons %s' % ' '.join(targets)
-    print 
+    print
     COMMAND_LINE_TARGETS.append(targets)
 
 
@@ -84,9 +84,14 @@ env.Append(CPPPATH = [
 #print env.Dump()
 
 
+# Add a check target for running tests
+check = env.Alias('check')
+env.AlwaysBuild(check)
+
+
 #######################################################################
-# Invoke host SConscripts 
-# 
+# Invoke host SConscripts
+#
 # For things that are meant to be run on the native host build machine, instead
 # of the target machine.
 #

@@ -485,6 +485,9 @@ typedef enum
    /* EXT_polygon_offset_clamp */
    OPCODE_POLYGON_OFFSET_CLAMP,
 
+   /* EXT_window_rectangles */
+   OPCODE_WINDOW_RECTANGLES,
+
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
    OPCODE_CONTINUE,
@@ -1090,7 +1093,10 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             free(get_pointer(&n[3]));
             n += InstSize[n[0].opcode];
             break;
-
+         case OPCODE_WINDOW_RECTANGLES:
+            free(get_pointer(&n[3]));
+            n += InstSize[n[0].opcode];
+            break;
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             free(block);
@@ -7922,6 +7928,27 @@ save_UniformBlockBinding(GLuint prog, GLuint index, GLuint binding)
    }
 }
 
+/** GL_EXT_window_rectangles */
+static void GLAPIENTRY
+save_WindowRectanglesEXT(GLenum mode, GLsizei count, const GLint *box)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_WINDOW_RECTANGLES, 2 + POINTER_DWORDS);
+   if (n) {
+      GLint *box_copy = NULL;
+
+      if (count > 0)
+         box_copy = memdup(box, sizeof(GLint) * 4 * count);
+      n[1].e = mode;
+      n[2].si = count;
+      save_pointer(&n[3], box_copy);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_WindowRectanglesEXT(ctx->Exec, (mode, count, box));
+   }
+}
 
 /**
  * Save an error-generating command into display list.
@@ -9122,6 +9149,12 @@ execute_list(struct gl_context *ctx, GLuint list)
             CALL_UniformBlockBinding(ctx->Exec, (n[1].ui, n[2].ui, n[3].ui));
             break;
 
+         /* GL_EXT_window_rectangles */
+         case OPCODE_WINDOW_RECTANGLES:
+            CALL_WindowRectanglesEXT(
+                  ctx->Exec, (n[1].e, n[2].si, get_pointer(&n[3])));
+            break;
+
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             break;
@@ -9228,15 +9261,15 @@ _mesa_GenLists(GLsizei range)
    /*
     * Make this an atomic operation
     */
-   mtx_lock(&ctx->Shared->Mutex);
+   _mesa_HashLockMutex(ctx->Shared->DisplayList);
 
    base = _mesa_HashFindFreeKeyBlock(ctx->Shared->DisplayList, range);
    if (base) {
       /* reserve the list IDs by with empty/dummy lists */
       GLint i;
       for (i = 0; i < range; i++) {
-         _mesa_HashInsert(ctx->Shared->DisplayList, base + i,
-                          make_list(base + i, 1));
+         _mesa_HashInsertLocked(ctx->Shared->DisplayList, base + i,
+                                make_list(base + i, 1));
       }
    }
 
@@ -9258,7 +9291,7 @@ _mesa_GenLists(GLsizei range)
       }
    }
 
-   mtx_unlock(&ctx->Shared->Mutex);
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 
    return base;
 }
@@ -10018,6 +10051,9 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
 
    /* GL_EXT_polygon_offset_clamp */
    SET_PolygonOffsetClampEXT(table, save_PolygonOffsetClampEXT);
+
+   /* GL_EXT_window_rectangles */
+   SET_WindowRectanglesEXT(table, save_WindowRectanglesEXT);
 }
 
 
@@ -10054,8 +10090,12 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
    }
 
    dlist = _mesa_lookup_list(ctx, list);
-   if (!dlist)
+   if (!dlist) {
+      if (fname) {
+         fclose(f);
+      }
       return;
+   }
 
    n = dlist->Head;
 

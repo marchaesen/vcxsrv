@@ -72,7 +72,6 @@ __glXDispSwap_FeedbackBuffer(__GLXclientState * cl, GLbyte * pc)
         cx->feedbackBufSize = size;
     }
     glFeedbackBuffer(size, type, cx->feedbackBuf);
-    cx->hasUnflushedCommands = GL_TRUE;
     return Success;
 }
 
@@ -107,7 +106,6 @@ __glXDispSwap_SelectBuffer(__GLXclientState * cl, GLbyte * pc)
         cx->selectBufSize = size;
     }
     glSelectBuffer(size, cx->selectBuf);
-    cx->hasUnflushedCommands = GL_TRUE;
     return Success;
 }
 
@@ -245,7 +243,6 @@ __glXDispSwap_Flush(__GLXclientState * cl, GLbyte * pc)
     }
 
     glFlush();
-    cx->hasUnflushedCommands = GL_FALSE;
     return Success;
 }
 
@@ -268,7 +265,6 @@ __glXDispSwap_Finish(__GLXclientState * cl, GLbyte * pc)
 
     /* Do a local glFinish */
     glFinish();
-    cx->hasUnflushedCommands = GL_FALSE;
 
     /* Send empty reply packet to indicate finish is finished */
     __GLX_BEGIN_REPLY(0);

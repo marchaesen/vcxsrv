@@ -88,7 +88,7 @@ load_clipdist_input(nir_builder *b, nir_variable *in, nir_ssa_def **val)
    load->num_components = 4;
    nir_intrinsic_set_base(load, in->data.driver_location);
    load->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
-   nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
+   nir_ssa_dest_init(&load->instr, &load->dest, 4, 32, NULL);
    nir_builder_instr_insert(b, &load->instr);
 
    val[0] = nir_channel(b, &load->dest.ssa, 0);
@@ -97,40 +97,23 @@ load_clipdist_input(nir_builder *b, nir_variable *in, nir_ssa_def **val)
    val[3] = nir_channel(b, &load->dest.ssa, 3);
 }
 
-struct find_output_state
+static nir_ssa_def *
+find_output_in_block(nir_block *block, unsigned drvloc)
 {
-   unsigned drvloc;
-   nir_ssa_def *def;
-};
-
-static bool
-find_output_in_block(nir_block *block, void *void_state)
-{
-   struct find_output_state *state = void_state;
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
 
       if (instr->type == nir_instr_type_intrinsic) {
          nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
          if ((intr->intrinsic == nir_intrinsic_store_output) &&
-             nir_intrinsic_base(intr) == state->drvloc) {
-            assert(state->def == NULL);
+             nir_intrinsic_base(intr) == drvloc) {
             assert(intr->src[0].is_ssa);
             assert(nir_src_as_const_value(intr->src[1]));
-            state->def = intr->src[0].ssa;
-
-#if !defined(DEBUG)
-            /* for debug builds, scan entire shader to assert
-             * if output is written multiple times.  For release
-             * builds just assume all is well and bail when we
-             * find first:
-             */
-            return false;
-#endif
+            return intr->src[0].ssa;
          }
       }
    }
 
-   return true;
+   return NULL;
 }
 
 /* TODO: maybe this would be a useful helper?
@@ -140,18 +123,27 @@ find_output_in_block(nir_block *block, void *void_state)
 static nir_ssa_def *
 find_output(nir_shader *shader, unsigned drvloc)
 {
-   struct find_output_state state = {
-      .drvloc = drvloc,
-   };
-
-   nir_foreach_function(shader, function) {
+   nir_ssa_def *def = NULL;
+   nir_foreach_function(function, shader) {
       if (function->impl) {
-         nir_foreach_block_reverse(function->impl,
-                                   find_output_in_block, &state);
+         nir_foreach_block_reverse(block, function->impl) {
+            nir_ssa_def *new_def = find_output_in_block(block, drvloc);
+            assert(!(new_def && def));
+            def = new_def;
+#if !defined(DEBUG)
+            /* for debug builds, scan entire shader to assert
+             * if output is written multiple times.  For release
+             * builds just assume all is well and bail when we
+             * find first:
+             */
+            if (def)
+               break;
+#endif
+         }
       }
    }
 
-   return state.def;
+   return def;
 }
 
 /*
@@ -258,7 +250,7 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables)
       out[1] =
          create_clipdist_var(shader, ++maxloc, true, VARYING_SLOT_CLIP_DIST1);
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (!strcmp(function->name, "main"))
          lower_clip_vs(function->impl, ucp_enables, cv, out);
    }
@@ -332,7 +324,7 @@ nir_lower_clip_fs(nir_shader *shader, unsigned ucp_enables)
          create_clipdist_var(shader, ++maxloc, false,
                              VARYING_SLOT_CLIP_DIST1);
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (!strcmp(function->name, "main"))
          lower_clip_fs(function->impl, ucp_enables, in);
    }

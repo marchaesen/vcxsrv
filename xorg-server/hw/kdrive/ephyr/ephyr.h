@@ -27,7 +27,6 @@
 #define _EPHYR_H_
 #include <stdio.h>
 #include <unistd.h>
-#include <signal.h>
 #include <libgen.h>
 #include <xcb/xcb_image.h>
 
@@ -84,6 +83,8 @@ typedef struct _ephyrScrPriv {
     KdScreenInfo *screen;
     int mynum;                  /* Screen number */
     unsigned long cmap[256];
+
+    ScreenBlockHandlerProcPtr   BlockHandler;
 
     /**
      * Per-screen Xlib-using state for glamor (private to

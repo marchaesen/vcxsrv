@@ -32,6 +32,9 @@
 
 #include "pipe/p_compiler.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum util_format_dxtn {
   UTIL_FORMAT_DXT1_RGB = 0x83F0,
@@ -214,5 +217,8 @@ util_format_dxt5_srgba_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride, co
 void
 util_format_dxt5_srgba_fetch_rgba_float(float *dst, const uint8_t *src, unsigned i, unsigned j);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* U_FORMAT_S3TC_H_ */

@@ -43,11 +43,11 @@
  */
 
 static bool
-remove_phis_block(nir_block *block, void *state)
+remove_phis_block(nir_block *block)
 {
-   bool *progress = state;
+   bool progress = false;
 
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_phi)
          break;
 
@@ -56,7 +56,7 @@ remove_phis_block(nir_block *block, void *state)
       nir_ssa_def *def = NULL;
       bool srcs_same = true;
 
-      nir_foreach_phi_src(phi, src) {
+      nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
 
          /* For phi nodes at the beginning of loops, we may encounter some
@@ -95,10 +95,10 @@ remove_phis_block(nir_block *block, void *state)
       nir_ssa_def_rewrite_uses(&phi->dest.ssa, nir_src_for_ssa(def));
       nir_instr_remove(instr);
 
-      *progress = true;
+      progress = true;
    }
 
-   return true;
+   return progress;
 }
 
 static bool
@@ -106,7 +106,9 @@ remove_phis_impl(nir_function_impl *impl)
 {
    bool progress = false;
 
-   nir_foreach_block(impl, remove_phis_block, &progress);
+   nir_foreach_block(block, impl) {
+      progress |= remove_phis_block(block);
+   }
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -121,7 +123,7 @@ nir_opt_remove_phis(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function)
+   nir_foreach_function(function, shader)
       if (function->impl)
          progress = remove_phis_impl(function->impl) || progress;
 

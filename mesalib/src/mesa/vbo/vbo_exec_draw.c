@@ -214,6 +214,8 @@ vbo_exec_bind_arrays( struct gl_context *ctx )
          exec->vtx.attrsz[VERT_ATTRIB_GENERIC0] = exec->vtx.attrsz[0];
          exec->vtx.attrptr[VERT_ATTRIB_GENERIC0] = exec->vtx.attrptr[0];
          exec->vtx.attrsz[0] = 0;
+         exec->vtx.enabled &= (~BITFIELD64_BIT(VBO_ATTRIB_POS));
+         exec->vtx.enabled |= BITFIELD64_BIT(VBO_ATTRIB_GENERIC0);
       }
       break;
    default:

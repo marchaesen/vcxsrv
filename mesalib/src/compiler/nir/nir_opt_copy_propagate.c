@@ -241,32 +241,20 @@ copy_prop_if(nir_if *if_stmt)
 }
 
 static bool
-copy_prop_block(nir_block *block, void *_state)
-{
-   bool *progress = (bool *) _state;
-
-   nir_foreach_instr(block, instr) {
-      if (copy_prop_instr(instr))
-         *progress = true;
-   }
-
-   if (block->cf_node.node.next != NULL && /* check that we aren't the end node */
-       !nir_cf_node_is_last(&block->cf_node) &&
-       nir_cf_node_next(&block->cf_node)->type == nir_cf_node_if) {
-      nir_if *if_stmt = nir_cf_node_as_if(nir_cf_node_next(&block->cf_node));
-      if (copy_prop_if(if_stmt))
-         *progress = true;
-   }
-
-   return true;
-}
-
-static bool
 nir_copy_prop_impl(nir_function_impl *impl)
 {
    bool progress = false;
 
-   nir_foreach_block(impl, copy_prop_block, &progress);
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (copy_prop_instr(instr))
+            progress = true;
+      }
+
+      nir_if *if_stmt = nir_block_get_following_if(block);
+      if (if_stmt && copy_prop_if(if_stmt))
+         progress = true;
+      }
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -281,7 +269,7 @@ nir_copy_prop(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl && nir_copy_prop_impl(function->impl))
          progress = true;
    }

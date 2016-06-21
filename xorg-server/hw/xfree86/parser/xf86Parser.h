@@ -326,6 +326,7 @@ typedef struct {
     xf86TriState is_pointer;
     xf86TriState is_joystick;
     xf86TriState is_tablet;
+    xf86TriState is_tablet_pad;
     xf86TriState is_touchpad;
     xf86TriState is_touchscreen;
     XF86OptionPtr option_lst;

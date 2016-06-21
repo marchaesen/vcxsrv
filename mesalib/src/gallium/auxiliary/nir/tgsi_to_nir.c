@@ -338,7 +338,7 @@ ttn_emit_declaration(struct ttn_compile *c)
             var->data.mode = nir_var_shader_in;
             var->name = ralloc_asprintf(var, "in_%d", idx);
 
-            if (c->scan->processor == TGSI_PROCESSOR_FRAGMENT) {
+            if (c->scan->processor == PIPE_SHADER_FRAGMENT) {
                var->data.location =
                   tgsi_varying_semantic_to_slot(decl->Semantic.Name,
                                                 decl->Semantic.Index);
@@ -381,7 +381,7 @@ ttn_emit_declaration(struct ttn_compile *c)
             var->name = ralloc_asprintf(var, "out_%d", idx);
             var->data.index = 0;
 
-            if (c->scan->processor == TGSI_PROCESSOR_FRAGMENT) {
+            if (c->scan->processor == PIPE_SHADER_FRAGMENT) {
                switch (semantic_name) {
                case TGSI_SEMANTIC_COLOR: {
                   /* TODO tgsi loses some information, so we cannot
@@ -454,12 +454,12 @@ ttn_emit_immediate(struct ttn_compile *c)
    nir_load_const_instr *load_const;
    int i;
 
-   load_const = nir_load_const_instr_create(b->shader, 4);
+   load_const = nir_load_const_instr_create(b->shader, 4, 32);
    c->imm_defs[c->next_imm] = &load_const->def;
    c->next_imm++;
 
    for (i = 0; i < 4; i++)
-      load_const->value.u[i] = tgsi_imm->u[i].Uint;
+      load_const->value.u32[i] = tgsi_imm->u[i].Uint;
 
    nir_builder_instr_insert(b, &load_const->instr);
 }
@@ -515,8 +515,8 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
                                            nir_intrinsic_load_var);
          load->num_components = 4;
          load->variables[0] = ttn_array_deref(c, load, var, offset, indirect);
-
-         nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
+         nir_ssa_dest_init(&load->instr, &load->dest,
+                           4, 32, NULL);
          nir_builder_instr_insert(b, &load->instr);
 
          src = nir_src_for_ssa(&load->dest.ssa);
@@ -567,7 +567,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
       load = nir_intrinsic_instr_create(b->shader, op);
       load->num_components = ncomp;
 
-      nir_ssa_dest_init(&load->instr, &load->dest, ncomp, NULL);
+      nir_ssa_dest_init(&load->instr, &load->dest, ncomp, 32, NULL);
       nir_builder_instr_insert(b, &load->instr);
 
       src = nir_src_for_ssa(&load->dest.ssa);
@@ -632,7 +632,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
       }
       load->src[srcn++] = nir_src_for_ssa(offset);
 
-      nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
+      nir_ssa_dest_init(&load->instr, &load->dest, 4, 32, NULL);
       nir_builder_instr_insert(b, &load->instr);
 
       src = nir_src_for_ssa(&load->dest.ssa);
@@ -1425,7 +1425,7 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
 
    assert(src_number == num_srcs);
 
-   nir_ssa_dest_init(&instr->instr, &instr->dest, 4, NULL);
+   nir_ssa_dest_init(&instr->instr, &instr->dest, 4, 32, NULL);
    nir_builder_instr_insert(b, &instr->instr);
 
    /* Resolve the writemask on the texture op. */
@@ -1464,10 +1464,10 @@ ttn_txq(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
    txs->src[0].src = nir_src_for_ssa(ttn_channel(b, src[0], X));
    txs->src[0].src_type = nir_tex_src_lod;
 
-   nir_ssa_dest_init(&txs->instr, &txs->dest, 3, NULL);
+   nir_ssa_dest_init(&txs->instr, &txs->dest, 3, 32, NULL);
    nir_builder_instr_insert(b, &txs->instr);
 
-   nir_ssa_dest_init(&qlv->instr, &qlv->dest, 1, NULL);
+   nir_ssa_dest_init(&qlv->instr, &qlv->dest, 1, 32, NULL);
    nir_builder_instr_insert(b, &qlv->instr);
 
    ttn_move_dest_masked(b, dest, &txs->dest.ssa, TGSI_WRITEMASK_XYZ);
@@ -1920,12 +1920,12 @@ static gl_shader_stage
 tgsi_processor_to_shader_stage(unsigned processor)
 {
    switch (processor) {
-   case TGSI_PROCESSOR_FRAGMENT:  return MESA_SHADER_FRAGMENT;
-   case TGSI_PROCESSOR_VERTEX:    return MESA_SHADER_VERTEX;
-   case TGSI_PROCESSOR_GEOMETRY:  return MESA_SHADER_GEOMETRY;
-   case TGSI_PROCESSOR_TESS_CTRL: return MESA_SHADER_TESS_CTRL;
-   case TGSI_PROCESSOR_TESS_EVAL: return MESA_SHADER_TESS_EVAL;
-   case TGSI_PROCESSOR_COMPUTE:   return MESA_SHADER_COMPUTE;
+   case PIPE_SHADER_FRAGMENT:  return MESA_SHADER_FRAGMENT;
+   case PIPE_SHADER_VERTEX:    return MESA_SHADER_VERTEX;
+   case PIPE_SHADER_GEOMETRY:  return MESA_SHADER_GEOMETRY;
+   case PIPE_SHADER_TESS_CTRL: return MESA_SHADER_TESS_CTRL;
+   case PIPE_SHADER_TESS_EVAL: return MESA_SHADER_TESS_EVAL;
+   case PIPE_SHADER_COMPUTE:   return MESA_SHADER_COMPUTE;
    default:
       unreachable("invalid TGSI processor");
    }

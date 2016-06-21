@@ -61,13 +61,13 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec SubModuleTab[] = {
+static const xf86ConfigSymTabRec SubModuleTab[] = {
     {ENDSUBSECTION, "endsubsection"},
     {OPTION, "option"},
     {-1, ""},
 };
 
-static xf86ConfigSymTabRec ModuleTab[] = {
+static const xf86ConfigSymTabRec ModuleTab[] = {
     {ENDSECTION, "endsection"},
     {LOAD, "load"},
     {DISABLE, "disable"},

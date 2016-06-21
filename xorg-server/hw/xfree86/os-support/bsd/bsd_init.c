@@ -269,7 +269,7 @@ xf86OpenConsole()
                             "xf86OpenConsole: VT_WAITACTIVE failed\n");
                 }
 
-                signal(SIGUSR1, xf86VTRequest);
+                OsSignal(SIGUSR1, xf86VTRequest);
 
                 vtmode.mode = VT_PROCESS;
                 vtmode.relsig = SIGUSR1;

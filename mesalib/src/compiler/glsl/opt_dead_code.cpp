@@ -144,7 +144,7 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
              * layouts, do not eliminate it.
              */
             if (entry->var->is_in_buffer_block()) {
-               if (entry->var->get_interface_type()->interface_packing !=
+               if (entry->var->get_interface_type_packing() !=
                    GLSL_INTERFACE_PACKING_PACKED)
                   continue;
             }

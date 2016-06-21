@@ -120,7 +120,6 @@
 #include "shared.h"
 #include "shaderobj.h"
 #include "shaderimage.h"
-#include "util/simple_list.h"
 #include "util/strtod.h"
 #include "state.h"
 #include "stencil.h"
@@ -407,8 +406,6 @@ one_time_init( struct gl_context *ctx )
 
    /* per-API one-time init */
    if (!(api_init_mask & (1 << ctx->API))) {
-      _mesa_init_get_hash(ctx);
-
       _mesa_init_remap_table();
    }
 
@@ -708,7 +705,8 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxComputeWorkGroupSize[0] = 1024;
    consts->MaxComputeWorkGroupSize[1] = 1024;
    consts->MaxComputeWorkGroupSize[2] = 64;
-   consts->MaxComputeWorkGroupInvocations = 1024;
+   /* Enables compute support for GLES 3.1 if >= 128 */
+   consts->MaxComputeWorkGroupInvocations = 0;
 
    /** GL_ARB_gpu_shader5 */
    consts->MinFragmentInterpolationOffset = MIN_FRAGMENT_INTERPOLATION_OFFSET;
@@ -724,6 +722,7 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->Program[MESA_SHADER_TESS_EVAL].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    consts->MaxTessPatchComponents = MAX_TESS_PATCH_COMPONENTS;
    consts->MaxTessControlTotalOutputComponents = MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS;
+   consts->PrimitiveRestartForPatches = false;
 }
 
 
@@ -1267,44 +1266,6 @@ fail:
 
 
 /**
- * Allocate and initialize a struct gl_context structure.
- * Note that the driver needs to pass in its dd_function_table here since
- * we need to at least call driverFunctions->NewTextureObject to initialize
- * the rendering context.
- *
- * \param api the GL API type to create the context for
- * \param visual a struct gl_config pointer (we copy the struct contents) or
- *               NULL to create a configless context
- * \param share_list another context to share display lists with or NULL
- * \param driverFunctions points to the dd_function_table into which the
- *        driver has plugged in all its special functions.
- * 
- * \return pointer to a new __struct gl_contextRec or NULL if error.
- */
-struct gl_context *
-_mesa_create_context(gl_api api,
-                     const struct gl_config *visual,
-                     struct gl_context *share_list,
-                     const struct dd_function_table *driverFunctions)
-{
-   struct gl_context *ctx;
-
-   ctx = calloc(1, sizeof(struct gl_context));
-   if (!ctx)
-      return NULL;
-
-   if (_mesa_initialize_context(ctx, api, visual, share_list,
-                                driverFunctions)) {
-      return ctx;
-   }
-   else {
-      free(ctx);
-      return NULL;
-   }
-}
-
-
-/**
  * Free the data associated with the given context.
  * 
  * But doesn't free the struct gl_context struct itself.
@@ -1365,6 +1326,7 @@ _mesa_free_context_data( struct gl_context *ctx )
    free(ctx->BeginEnd);
    free(ctx->OutsideBeginEnd);
    free(ctx->Save);
+   free(ctx->ContextLost);
 
    /* Shared context state (display lists, textures, etc) */
    _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
@@ -1450,16 +1412,8 @@ _mesa_copy_context( const struct gl_context *src, struct gl_context *dst,
       dst->Hint = src->Hint;
    }
    if (mask & GL_LIGHTING_BIT) {
-      GLuint i;
-      /* begin with memcpy */
+      /* OK to memcpy */
       dst->Light = src->Light;
-      /* fixup linked lists to prevent pointer insanity */
-      make_empty_list( &(dst->Light.EnabledList) );
-      for (i = 0; i < MAX_LIGHTS; i++) {
-         if (dst->Light.Light[i].Enabled) {
-            insert_at_tail(&(dst->Light.EnabledList), &(dst->Light.Light[i]));
-         }
-      }
    }
    if (mask & GL_LINE_BIT) {
       /* OK to memcpy */
@@ -1525,10 +1479,6 @@ _mesa_copy_context( const struct gl_context *src, struct gl_context *dst,
  * Check if the given context can render into the given framebuffer
  * by checking visual attributes.
  *
- * Most of these tests could go away because Mesa is now pretty flexible
- * in terms of mixing rendering contexts with framebuffers.  As long
- * as RGB vs. CI mode agree, we're probably good.
- *
  * \return GL_TRUE if compatible, GL_FALSE otherwise.
  */
 static GLboolean 
@@ -1541,32 +1491,18 @@ check_compatible(const struct gl_context *ctx,
    if (buffer == _mesa_get_incomplete_framebuffer())
       return GL_TRUE;
 
-#if 0
-   /* disabling this fixes the fgl_glxgears pbuffer demo */
-   if (ctxvis->doubleBufferMode && !bufvis->doubleBufferMode)
-      return GL_FALSE;
-#endif
-   if (ctxvis->stereoMode && !bufvis->stereoMode)
-      return GL_FALSE;
-   if (ctxvis->haveAccumBuffer && !bufvis->haveAccumBuffer)
-      return GL_FALSE;
-   if (ctxvis->haveDepthBuffer && !bufvis->haveDepthBuffer)
-      return GL_FALSE;
-   if (ctxvis->haveStencilBuffer && !bufvis->haveStencilBuffer)
-      return GL_FALSE;
-   if (ctxvis->redMask && ctxvis->redMask != bufvis->redMask)
-      return GL_FALSE;
-   if (ctxvis->greenMask && ctxvis->greenMask != bufvis->greenMask)
-      return GL_FALSE;
-   if (ctxvis->blueMask && ctxvis->blueMask != bufvis->blueMask)
-      return GL_FALSE;
-#if 0
-   /* disabled (see bug 11161) */
-   if (ctxvis->depthBits && ctxvis->depthBits != bufvis->depthBits)
-      return GL_FALSE;
-#endif
-   if (ctxvis->stencilBits && ctxvis->stencilBits != bufvis->stencilBits)
-      return GL_FALSE;
+#define check_component(foo)           \
+   if (ctxvis->foo && bufvis->foo &&   \
+       ctxvis->foo != bufvis->foo)     \
+      return GL_FALSE
+
+   check_component(redMask);
+   check_component(greenMask);
+   check_component(blueMask);
+   check_component(depthBits);
+   check_component(stencilBits);
+
+#undef check_component
 
    return GL_TRUE;
 }

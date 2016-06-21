@@ -177,6 +177,8 @@ device_added(LibHalContext * hal_ctx, const char *udi)
         attrs.flags |= ATTR_JOYSTICK;
     if (libhal_device_query_capability(hal_ctx, udi, "input.tablet", NULL))
         attrs.flags |= ATTR_TABLET;
+    if (libhal_device_query_capability(hal_ctx, udi, "input.tablet_pad", NULL))
+        attrs.flags |= ATTR_TABLET_PAD;
     if (libhal_device_query_capability(hal_ctx, udi, "input.touchpad", NULL))
         attrs.flags |= ATTR_TOUCHPAD;
     if (libhal_device_query_capability(hal_ctx, udi, "input.touchscreen", NULL))

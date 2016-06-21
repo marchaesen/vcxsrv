@@ -68,6 +68,7 @@
 #include "st_draw.h"
 #include "st_extensions.h"
 #include "st_gen_mipmap.h"
+#include "st_pbo.h"
 #include "st_program.h"
 #include "st_vdpau.h"
 #include "st_texture.h"
@@ -162,18 +163,13 @@ st_destroy_context_priv(struct st_context *st)
    st_destroy_drawpix(st);
    st_destroy_drawtex(st);
    st_destroy_perfmon(st);
-   st_destroy_pbo_upload(st);
+   st_destroy_pbo_helpers(st);
 
    for (shader = 0; shader < ARRAY_SIZE(st->state.sampler_views); shader++) {
       for (i = 0; i < ARRAY_SIZE(st->state.sampler_views[0]); i++) {
          pipe_sampler_view_release(st->pipe,
                                    &st->state.sampler_views[shader][i]);
       }
-   }
-
-   if (st->default_texture) {
-      st->ctx->Driver.DeleteTexture(st->ctx, st->default_texture);
-      st->default_texture = NULL;
    }
 
    u_upload_destroy(st->uploader);
@@ -187,6 +183,9 @@ st_destroy_context_priv(struct st_context *st)
    /* free glDrawPixels cache data */
    free(st->drawpix_cache.image);
    pipe_resource_reference(&st->drawpix_cache.texture, NULL);
+
+   /* free glReadPixels cache data */
+   st_invalidate_readpix_cache(st);
 
    cso_destroy_context(st->cso_context);
    free( st );
@@ -242,7 +241,7 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st_init_atoms( st );
    st_init_clear(st);
    st_init_draw( st );
-   st_init_pbo_upload(st);
+   st_init_pbo_helpers(st);
 
    /* Choose texture target for glDrawPixels, glBitmap, renderbuffers */
    if (pipe->screen->get_param(pipe->screen, PIPE_CAP_NPOT_TEXTURES))
@@ -374,6 +373,7 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st->shader_has_one_variant[MESA_SHADER_TESS_CTRL] = st->has_shareable_shaders;
    st->shader_has_one_variant[MESA_SHADER_TESS_EVAL] = st->has_shareable_shaders;
    st->shader_has_one_variant[MESA_SHADER_GEOMETRY] = st->has_shareable_shaders;
+   st->shader_has_one_variant[MESA_SHADER_COMPUTE] = st->has_shareable_shaders;
 
    _mesa_compute_version(ctx);
 
@@ -416,8 +416,12 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
    memset(&funcs, 0, sizeof(funcs));
    st_init_driver_functions(pipe->screen, &funcs);
 
-   ctx = _mesa_create_context(api, visual, shareCtx, &funcs);
-   if (!ctx) {
+   ctx = calloc(1, sizeof(struct gl_context));
+   if (!ctx)
+      return NULL;
+
+   if (!_mesa_initialize_context(ctx, api, visual, shareCtx, &funcs)) {
+      free(ctx);
       return NULL;
    }
 

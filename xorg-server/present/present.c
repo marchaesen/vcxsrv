@@ -145,7 +145,7 @@ present_check_flip(RRCrtcPtr    crtc,
         return FALSE;
 
     /* Fail to flip if we have slave outputs */
-    if (!xorg_list_is_empty(&screen->output_slave_list))
+    if (screen->output_slaves)
         return FALSE;
 
     /* Make sure the window hasn't been redirected with Composite */
@@ -353,10 +353,10 @@ present_re_execute(present_vblank_ptr vblank)
 static void
 present_flip_try_ready(ScreenPtr screen)
 {
-    present_vblank_ptr  vblank, tmp;
+    present_vblank_ptr  vblank;
 
-    xorg_list_for_each_entry_safe(vblank, tmp, &present_exec_queue, event_queue) {
-        if (vblank->flip_ready) {
+    xorg_list_for_each_entry(vblank, &present_flip_queue, event_queue) {
+        if (vblank->queued) {
             present_re_execute(vblank);
             return;
         }
@@ -517,19 +517,22 @@ present_flip_notify(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 void
 present_event_notify(uint64_t event_id, uint64_t ust, uint64_t msc)
 {
-    present_vblank_ptr  vblank, tmp;
+    present_vblank_ptr  vblank;
     int                 s;
 
     if (!event_id)
         return;
     DebugPresent(("\te %lld ust %lld msc %lld\n", event_id, ust, msc));
-    xorg_list_for_each_entry_safe(vblank, tmp, &present_exec_queue, event_queue) {
-        if (vblank->event_id == event_id) {
+    xorg_list_for_each_entry(vblank, &present_exec_queue, event_queue) {
+        int64_t match = event_id - vblank->event_id;
+        if (match == 0) {
             present_execute(vblank, ust, msc);
             return;
         }
+        if (match < 0)
+            break;
     }
-    xorg_list_for_each_entry_safe(vblank, tmp, &present_flip_queue, event_queue) {
+    xorg_list_for_each_entry(vblank, &present_flip_queue, event_queue) {
         if (vblank->event_id == event_id) {
             present_flip_notify(vblank, ust, msc);
             return;
@@ -653,6 +656,8 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
             DebugPresent(("\tr %lld %p (pending %p unflip %lld)\n",
                           vblank->event_id, vblank,
                           screen_priv->flip_pending, screen_priv->unflip_event_id));
+            xorg_list_del(&vblank->event_queue);
+            xorg_list_append(&vblank->event_queue, &present_flip_queue);
             vblank->flip_ready = TRUE;
             return;
         }
@@ -726,7 +731,7 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
         }
 
         /* If present_flip failed, we may have to requeue for the target MSC */
-        if (msc_is_after(vblank->target_msc, crtc_msc) &&
+        if (vblank->target_msc == crtc_msc + 1 &&
             Success == present_queue_vblank(screen,
                                             vblank->crtc,
                                             vblank->event_id,
@@ -943,7 +948,7 @@ present_pixmap(WindowPtr window,
                       vblank->pixmap->drawable.id, vblank->window->drawable.id,
                       target_crtc, vblank->flip, vblank->sync_flip, vblank->serial));
 
-    xorg_list_add(&vblank->event_queue, &present_exec_queue);
+    xorg_list_append(&vblank->event_queue, &present_exec_queue);
     vblank->queued = TRUE;
     if (msc_is_after(target_msc, crtc_msc)) {
         ret = present_queue_vblank(screen, target_crtc, vblank->event_id, target_msc);
@@ -967,7 +972,7 @@ no_mem:
 void
 present_abort_vblank(ScreenPtr screen, RRCrtcPtr crtc, uint64_t event_id, uint64_t msc)
 {
-    present_vblank_ptr  vblank, tmp;
+    present_vblank_ptr  vblank;
 
     if (crtc == NULL)
         present_fake_abort_vblank(screen, event_id, msc);
@@ -978,16 +983,20 @@ present_abort_vblank(ScreenPtr screen, RRCrtcPtr crtc, uint64_t event_id, uint64
         (*screen_priv->info->abort_vblank) (crtc, event_id, msc);
     }
 
-    xorg_list_for_each_entry_safe(vblank, tmp, &present_exec_queue, event_queue) {
-        if (vblank->event_id == event_id) {
+    xorg_list_for_each_entry(vblank, &present_exec_queue, event_queue) {
+        int64_t match = event_id - vblank->event_id;
+        if (match == 0) {
             xorg_list_del(&vblank->event_queue);
             vblank->queued = FALSE;
             return;
         }
+        if (match < 0)
+            break;
     }
-    xorg_list_for_each_entry_safe(vblank, tmp, &present_flip_queue, event_queue) {
+    xorg_list_for_each_entry(vblank, &present_flip_queue, event_queue) {
         if (vblank->event_id == event_id) {
             xorg_list_del(&vblank->event_queue);
+            vblank->queued = FALSE;
             return;
         }
     }

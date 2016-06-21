@@ -208,15 +208,26 @@ xwlVidModeDeleteModeline(ScreenPtr pScreen, DisplayModePtr mode)
 static Bool
 xwlVidModeZoomViewport(ScreenPtr pScreen, int zoom)
 {
-    /* Unsupported for now */
-    return FALSE;
+    /* Support only no zoom */
+    return (zoom == 1);
 }
 
 static Bool
 xwlVidModeSetViewPort(ScreenPtr pScreen, int x, int y)
 {
-    /* Unsupported for now */
-    return FALSE;
+    RROutputPtr output;
+    RRCrtcPtr crtc;
+
+    output = RRFirstOutput(pScreen);
+    if (output == NULL)
+        return FALSE;
+
+    crtc = output->crtc;
+    if (crtc == NULL)
+        return FALSE;
+
+    /* Support only default viewport */
+    return (x == crtc->x && y == crtc->y);
 }
 
 static Bool

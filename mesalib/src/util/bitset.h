@@ -98,7 +98,7 @@ __bitset_ffs(const BITSET_WORD *x, int n)
 
 static inline unsigned
 __bitset_next_set(unsigned i, BITSET_WORD *tmp,
-                  BITSET_WORD *set, unsigned size)
+                  const BITSET_WORD *set, unsigned size)
 {
    unsigned bit, word;
 

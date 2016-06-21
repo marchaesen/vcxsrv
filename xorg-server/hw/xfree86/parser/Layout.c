@@ -66,7 +66,7 @@
 extern int xf86CheckBoolOption(void *optlist, const char *name, int deflt);
 
 
-static xf86ConfigSymTabRec LayoutTab[] = {
+static const xf86ConfigSymTabRec LayoutTab[] = {
     {ENDSECTION, "endsection"},
     {SCREEN, "screen"},
     {IDENTIFIER, "identifier"},
@@ -77,7 +77,7 @@ static xf86ConfigSymTabRec LayoutTab[] = {
     {-1, ""},
 };
 
-static xf86ConfigSymTabRec AdjTab[] = {
+static const xf86ConfigSymTabRec AdjTab[] = {
     {RIGHTOF, "rightof"},
     {LEFTOF, "leftof"},
     {ABOVE, "above"},

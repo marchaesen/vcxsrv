@@ -444,16 +444,6 @@ TRANS(Open) (int type, const char *address)
 	ciptr = thistrans->OpenCOTSServer(thistrans, protocol, host, port);
 #endif /* TRANS_SERVER */
 	break;
-    case XTRANS_OPEN_CLTS_CLIENT:
-#ifdef TRANS_CLIENT
-	ciptr = thistrans->OpenCLTSClient(thistrans, protocol, host, port);
-#endif /* TRANS_CLIENT */
-	break;
-    case XTRANS_OPEN_CLTS_SERVER:
-#ifdef TRANS_SERVER
-	ciptr = thistrans->OpenCLTSServer(thistrans, protocol, host, port);
-#endif /* TRANS_SERVER */
-	break;
     default:
 	prmsg (1,"Open: Unknown Open type %d\n", type);
     }
@@ -531,9 +521,6 @@ TRANS(Reopen) (int type, int trans_id, int fd, const char *port)
     case XTRANS_OPEN_COTS_SERVER:
 	ciptr = thistrans->ReopenCOTSServer(thistrans, fd, port);
 	break;
-    case XTRANS_OPEN_CLTS_SERVER:
-	ciptr = thistrans->ReopenCLTSServer(thistrans, fd, port);
-	break;
     default:
 	prmsg (1,"Reopen: Bad Open type %d\n", type);
     }
@@ -587,32 +574,6 @@ TRANS(OpenCOTSServer) (const char *address)
 #endif /* TRANS_SERVER */
 
 
-#ifdef TRANS_CLIENT
-
-XtransConnInfo
-TRANS(OpenCLTSClient) (const char *address)
-
-{
-    prmsg (2,"OpenCLTSClient(%s)\n", address);
-    return TRANS(Open) (XTRANS_OPEN_CLTS_CLIENT, address);
-}
-
-#endif /* TRANS_CLIENT */
-
-
-#ifdef TRANS_SERVER
-
-XtransConnInfo
-TRANS(OpenCLTSServer) (const char *address)
-
-{
-    prmsg (2,"OpenCLTSServer(%s)\n", address);
-    return TRANS(Open) (XTRANS_OPEN_CLTS_SERVER, address);
-}
-
-#endif /* TRANS_SERVER */
-
-
 #ifdef TRANS_REOPEN
 
 XtransConnInfo
@@ -622,15 +583,6 @@ TRANS(ReopenCOTSServer) (int trans_id, int fd, const char *port)
     prmsg (2,"ReopenCOTSServer(%d, %d, %s)\n", trans_id, fd, port);
     return TRANS(Reopen) (XTRANS_OPEN_COTS_SERVER, trans_id, fd, port);
 }
-
-XtransConnInfo
-TRANS(ReopenCLTSServer) (int trans_id, int fd, const char *port)
-
-{
-    prmsg (2,"ReopenCLTSServer(%d, %d, %s)\n", trans_id, fd, port);
-    return TRANS(Reopen) (XTRANS_OPEN_CLTS_SERVER, trans_id, fd, port);
-}
-
 
 int
 TRANS(GetReopenInfo) (XtransConnInfo ciptr,
@@ -1012,27 +964,6 @@ TRANS(IsLocal) (XtransConnInfo ciptr)
     return (ciptr->family == AF_UNIX);
 }
 
-
-int
-TRANS(GetMyAddr) (XtransConnInfo ciptr, int *familyp, int *addrlenp,
-		  Xtransaddr **addrp)
-
-{
-    prmsg (2,"GetMyAddr(%d)\n", ciptr->fd);
-
-    *familyp = ciptr->family;
-    *addrlenp = ciptr->addrlen;
-
-    if ((*addrp = malloc (ciptr->addrlen)) == NULL)
-    {
-	prmsg (1,"GetMyAddr: malloc failed\n");
-	return -1;
-    }
-    memcpy(*addrp, ciptr->addr, ciptr->addrlen);
-
-    return 0;
-}
-
 int
 TRANS(GetPeerAddr) (XtransConnInfo ciptr, int *familyp, int *addrlenp,
 		    Xtransaddr **addrp)
@@ -1286,104 +1217,6 @@ TRANS(MakeAllCOTSServerListeners) (const char *port, int *partial,
 
     prmsg (5,
      "MakeAllCOTSServerListeners: partial=%d, actual=%d, complete=%d \n",
-	*partial, *count_ret, complete_network_count());
-
-    if (*count_ret > 0)
-    {
-	if ((*ciptrs_ret = malloc (
-	    *count_ret * sizeof (XtransConnInfo))) == NULL)
-	{
-	    return -1;
-	}
-
-	for (i = 0; i < *count_ret; i++)
-	{
-	    (*ciptrs_ret)[i] = temp_ciptrs[i];
-	}
-    }
-    else
-	*ciptrs_ret = NULL;
-
-    return 0;
-}
-
-int
-TRANS(MakeAllCLTSServerListeners) (const char *port, int *partial,
-                                   int *count_ret, XtransConnInfo **ciptrs_ret)
-
-{
-    char		buffer[256]; /* ??? What size ?? */
-    XtransConnInfo	ciptr, temp_ciptrs[NUMTRANS];
-    int			status, i, j;
-
-    prmsg (2,"MakeAllCLTSServerListeners(%s,%p)\n",
-	port ? port : "NULL", ciptrs_ret);
-
-    *count_ret = 0;
-
-    for (i = 0; i < NUMTRANS; i++)
-    {
-	Xtransport *trans = Xtransports[i].transport;
-
-	if (trans->flags&TRANS_ALIAS || trans->flags&TRANS_NOLISTEN)
-	    continue;
-
-	snprintf(buffer, sizeof(buffer), "%s/:%s",
-		 trans->TransName, port ? port : "");
-
-	prmsg (5,"MakeAllCLTSServerListeners: opening %s\n",
-	    buffer);
-
-	if ((ciptr = TRANS(OpenCLTSServer (buffer))) == NULL)
-	{
-	    prmsg (1,
-	"MakeAllCLTSServerListeners: failed to open listener for %s\n",
-		  trans->TransName);
-	    continue;
-	}
-
-	if ((status = TRANS(CreateListener (ciptr, port, 0))) < 0)
-	{
-	    if (status == TRANS_ADDR_IN_USE)
-	    {
-		/*
-		 * We failed to bind to the specified address because the
-		 * address is in use.  It must be that a server is already
-		 * running at this address, and this function should fail.
-		 */
-
-		prmsg (1,
-		"MakeAllCLTSServerListeners: server already running\n");
-
-		for (j = 0; j < *count_ret; j++)
-		    TRANS(Close) (temp_ciptrs[j]);
-
-		*count_ret = 0;
-		*ciptrs_ret = NULL;
-		*partial = 0;
-		return -1;
-	    }
-	    else
-	    {
-		prmsg (1,
-	"MakeAllCLTSServerListeners: failed to create listener for %s\n",
-		  trans->TransName);
-
-		continue;
-	    }
-	}
-
-	prmsg (5,
-	"MakeAllCLTSServerListeners: opened listener for %s, %d\n",
-	      trans->TransName, ciptr->fd);
-	temp_ciptrs[*count_ret] = ciptr;
-	(*count_ret)++;
-    }
-
-    *partial = (*count_ret < complete_network_count());
-
-    prmsg (5,
-     "MakeAllCLTSServerListeners: partial=%d, actual=%d, complete=%d \n",
 	*partial, *count_ret, complete_network_count());
 
     if (*count_ret > 0)

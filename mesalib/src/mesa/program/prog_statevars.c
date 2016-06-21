@@ -55,8 +55,10 @@
  */
 static void
 _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
-                  GLfloat *value)
+                  gl_constant_value *val)
 {
+   GLfloat *value = &val->f;
+
    switch (state[0]) {
    case STATE_MATERIAL:
       {
@@ -353,7 +355,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
       }
       return;
    case STATE_NUM_SAMPLES:
-      ((int *)value)[0] = MAX2(1, _mesa_geometric_samples(ctx->DrawBuffer));
+      val[0].i = MAX2(1, _mesa_geometric_samples(ctx->DrawBuffer));
       return;
    case STATE_DEPTH_RANGE:
       value[0] = ctx->ViewportArray[0].Near;                /* near       */
@@ -502,7 +504,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
                minImplSize = ctx->Const.MinPointSizeAA;
                maxImplSize = ctx->Const.MaxPointSize;
             }
-            else if (ctx->Point.SmoothFlag || ctx->Multisample._Enabled) {
+            else if (ctx->Point.SmoothFlag || _mesa_is_multisample_enabled(ctx)) {
                minImplSize = ctx->Const.MinPointSizeAA;
                maxImplSize = ctx->Const.MaxPointSizeAA;
             }
@@ -594,6 +596,17 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
             value[2] = 1.0F;
             value[3] = 0.0F;
          }
+         return;
+
+      case STATE_TCS_PATCH_VERTICES_IN:
+         val[0].i = ctx->TessCtrlProgram.patch_vertices;
+         return;
+
+      case STATE_TES_PATCH_VERTICES_IN:
+         if (ctx->TessCtrlProgram._Current)
+            val[0].i = ctx->TessCtrlProgram._Current->VerticesOut;
+         else
+            val[0].i = ctx->TessCtrlProgram.patch_vertices;
          return;
 
       /* XXX: make sure new tokens added here are also handled in the 
@@ -1071,7 +1084,7 @@ _mesa_load_state_parameters(struct gl_context *ctx,
       if (paramList->Parameters[i].Type == PROGRAM_STATE_VAR) {
          _mesa_fetch_state(ctx,
 			   paramList->Parameters[i].StateIndexes,
-                           &paramList->ParameterValues[i][0].f);
+                           &paramList->ParameterValues[i][0]);
       }
    }
 }

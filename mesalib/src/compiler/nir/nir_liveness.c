@@ -62,23 +62,13 @@ index_ssa_def(nir_ssa_def *def, void *void_state)
    return true;
 }
 
-static bool
-index_ssa_definitions_block(nir_block *block, void *state)
-{
-   nir_foreach_instr(block, instr)
-      nir_foreach_ssa_def(instr, index_ssa_def, state);
-
-   return true;
-}
-
 /* Initialize the liveness data to zero and add the given block to the
  * worklist.
  */
 static bool
-init_liveness_block(nir_block *block, void *void_state)
+init_liveness_block(nir_block *block,
+                    struct live_ssa_defs_state *state)
 {
-   struct live_ssa_defs_state *state = void_state;
-
    block->live_in = reralloc(block, block->live_in, BITSET_WORD,
                              state->bitset_words);
    memset(block->live_in, 0, state->bitset_words * sizeof(BITSET_WORD));
@@ -134,7 +124,7 @@ propagate_across_edge(nir_block *pred, nir_block *succ,
    NIR_VLA(BITSET_WORD, live, state->bitset_words);
    memcpy(live, succ->live_in, state->bitset_words * sizeof *live);
 
-   nir_foreach_instr(succ, instr) {
+   nir_foreach_instr(instr, succ) {
       if (instr->type != nir_instr_type_phi)
          break;
       nir_phi_instr *phi = nir_instr_as_phi(instr);
@@ -143,12 +133,12 @@ propagate_across_edge(nir_block *pred, nir_block *succ,
       set_ssa_def_dead(&phi->dest.ssa, live);
    }
 
-   nir_foreach_instr(succ, instr) {
+   nir_foreach_instr(instr, succ) {
       if (instr->type != nir_instr_type_phi)
          break;
       nir_phi_instr *phi = nir_instr_as_phi(instr);
 
-      nir_foreach_phi_src(phi, src) {
+      nir_foreach_phi_src(src, phi) {
          if (src->pred == pred) {
             set_src_live(&src->src, live);
             break;
@@ -174,7 +164,10 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
     * can be compacted into a single bit.
     */
    state.num_ssa_defs = 1;
-   nir_foreach_block(impl, index_ssa_definitions_block, &state);
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block)
+         nir_foreach_ssa_def(instr, index_ssa_def, &state);
+   }
 
    nir_block_worklist_init(&state.worklist, impl->num_blocks, NULL);
 
@@ -183,7 +176,10 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
     * blocks to the worklist.
     */
    state.bitset_words = BITSET_WORDS(state.num_ssa_defs);
-   nir_foreach_block(impl, init_liveness_block, &state);
+   nir_foreach_block(block, impl) {
+      init_liveness_block(block, &state);
+   }
+
 
    /* We're now ready to work through the worklist and update the liveness
     * sets of each of the blocks.  By the time we get to this point, every
@@ -205,7 +201,7 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
       if (following_if)
          set_src_live(&following_if->condition, block->live_in);
 
-      nir_foreach_instr_reverse(block, instr) {
+      nir_foreach_instr_reverse(instr, block) {
          /* Phi nodes are handled seperately so we want to skip them.  Since
           * we are going backwards and they are at the beginning, we can just
           * break as soon as we see one.

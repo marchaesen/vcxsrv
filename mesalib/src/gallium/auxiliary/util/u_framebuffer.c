@@ -55,14 +55,18 @@ util_framebuffer_state_equal(const struct pipe_framebuffer_state *dst,
        dst->height != src->height)
       return FALSE;
 
-   for (i = 0; i < Elements(src->cbufs); i++) {
-      if (dst->cbufs[i] != src->cbufs[i]) {
-         return FALSE;
-      }
-   }
+   if (dst->samples != src->samples ||
+       dst->layers  != src->layers)
+      return FALSE;
 
    if (dst->nr_cbufs != src->nr_cbufs) {
       return FALSE;
+   }
+
+   for (i = 0; i < src->nr_cbufs; i++) {
+      if (dst->cbufs[i] != src->cbufs[i]) {
+         return FALSE;
+      }
    }
 
    if (dst->zsbuf != src->zsbuf) {
@@ -85,11 +89,14 @@ util_copy_framebuffer_state(struct pipe_framebuffer_state *dst,
    dst->width = src->width;
    dst->height = src->height;
 
+   dst->samples = src->samples;
+   dst->layers  = src->layers;
+
    for (i = 0; i < src->nr_cbufs; i++)
       pipe_surface_reference(&dst->cbufs[i], src->cbufs[i]);
 
    /* Set remaining dest cbuf pointers to NULL */
-   for ( ; i < Elements(dst->cbufs); i++)
+   for ( ; i < ARRAY_SIZE(dst->cbufs); i++)
       pipe_surface_reference(&dst->cbufs[i], NULL);
 
    dst->nr_cbufs = src->nr_cbufs;
@@ -109,6 +116,7 @@ util_unreference_framebuffer_state(struct pipe_framebuffer_state *fb)
 
    pipe_surface_reference(&fb->zsbuf, NULL);
 
+   fb->samples = fb->layers = 0;
    fb->width = fb->height = 0;
    fb->nr_cbufs = 0;
 }
@@ -139,7 +147,7 @@ util_framebuffer_min_size(const struct pipe_framebuffer_state *fb,
       h = MIN2(h, fb->zsbuf->height);
    }
 
-   if (w == ~0) {
+   if (w == ~0u) {
       *width = 0;
       *height = 0;
       return FALSE;
@@ -159,6 +167,14 @@ unsigned
 util_framebuffer_get_num_layers(const struct pipe_framebuffer_state *fb)
 {
 	unsigned i, num_layers = 0;
+
+	/**
+	 * In the case of ARB_framebuffer_no_attachment
+	 * we obtain the number of layers directly from
+	 * the framebuffer state.
+	 */
+	if (!(fb->nr_cbufs || fb->zsbuf))
+		return fb->layers;
 
 	for (i = 0; i < fb->nr_cbufs; i++) {
 		if (fb->cbufs[i]) {
@@ -183,6 +199,20 @@ unsigned
 util_framebuffer_get_num_samples(const struct pipe_framebuffer_state *fb)
 {
    unsigned i;
+
+   /**
+    * In the case of ARB_framebuffer_no_attachment
+    * we obtain the number of samples directly from
+    * the framebuffer state.
+    *
+    * NOTE: fb->samples may wind up as zero due to memset()'s on internal
+    *       driver structures on their initialization and so we take the
+    *       MAX here to ensure we have a valid number of samples. However,
+    *       if samples is legitimately not getting set somewhere
+    *       multi-sampling will evidently break.
+    */
+   if (!(fb->nr_cbufs || fb->zsbuf))
+      return MAX2(fb->samples, 1);
 
    for (i = 0; i < fb->nr_cbufs; i++) {
       if (fb->cbufs[i]) {

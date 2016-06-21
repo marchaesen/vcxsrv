@@ -240,6 +240,11 @@ util_fill_box(ubyte * dst,
 
 /**
  * Fallback function for pipe->resource_copy_region().
+ * We support copying between different formats (including compressed/
+ * uncompressed) if the bytes per block or pixel matches.  If copying
+ * compressed -> uncompressed, the dst region is reduced by the block
+ * width, height.  If copying uncompressed -> compressed, the dest region
+ * is expanded by the block width, height.  See GL_ARB_copy_image.
  * Note: (X,Y)=(0,0) is always the upper-left corner.
  */
 void
@@ -249,13 +254,15 @@ util_resource_copy_region(struct pipe_context *pipe,
                           unsigned dst_x, unsigned dst_y, unsigned dst_z,
                           struct pipe_resource *src,
                           unsigned src_level,
-                          const struct pipe_box *src_box)
+                          const struct pipe_box *src_box_in)
 {
    struct pipe_transfer *src_trans, *dst_trans;
    uint8_t *dst_map;
    const uint8_t *src_map;
-   enum pipe_format src_format, dst_format;
-   struct pipe_box dst_box;
+   MAYBE_UNUSED enum pipe_format src_format;
+   enum pipe_format dst_format;
+   struct pipe_box src_box, dst_box;
+   unsigned src_bs, dst_bs, src_bw, dst_bw, src_bh, dst_bh;
 
    assert(src && dst);
    if (!src || !dst)
@@ -267,47 +274,108 @@ util_resource_copy_region(struct pipe_context *pipe,
    src_format = src->format;
    dst_format = dst->format;
 
-   assert(util_format_get_blocksize(dst_format) == util_format_get_blocksize(src_format));
-   assert(util_format_get_blockwidth(dst_format) == util_format_get_blockwidth(src_format));
-   assert(util_format_get_blockheight(dst_format) == util_format_get_blockheight(src_format));
+   /* init src box */
+   src_box = *src_box_in;
+
+   /* init dst box */
+   dst_box.x = dst_x;
+   dst_box.y = dst_y;
+   dst_box.z = dst_z;
+   dst_box.width  = src_box.width;
+   dst_box.height = src_box.height;
+   dst_box.depth  = src_box.depth;
+
+   src_bs = util_format_get_blocksize(src_format);
+   src_bw = util_format_get_blockwidth(src_format);
+   src_bh = util_format_get_blockheight(src_format);
+   dst_bs = util_format_get_blocksize(dst_format);
+   dst_bw = util_format_get_blockwidth(dst_format);
+   dst_bh = util_format_get_blockheight(dst_format);
+
+   /* Note: all box positions and sizes are in pixels */
+   if (src_bw > 1 && dst_bw == 1) {
+      /* Copy from compressed to uncompressed.
+       * Shrink dest box by the src block size.
+       */
+      dst_box.width /= src_bw;
+      dst_box.height /= src_bh;
+   }
+   else if (src_bw == 1 && dst_bw > 1) {
+      /* Copy from uncompressed to compressed.
+       * Expand dest box by the dest block size.
+       */
+      dst_box.width *= dst_bw;
+      dst_box.height *= dst_bh;
+   }
+   else {
+      /* compressed -> compressed or uncompressed -> uncompressed copy */
+      assert(src_bw == dst_bw);
+      assert(src_bh == dst_bh);
+   }
+
+   assert(src_bs == dst_bs);
+   if (src_bs != dst_bs) {
+      /* This can happen if we fail to do format checking before hand.
+       * Don't crash below.
+       */
+      return;
+   }
+
+   /* check that region boxes are block aligned */
+   assert(src_box.x % src_bw == 0);
+   assert(src_box.y % src_bh == 0);
+   assert(src_box.width % src_bw == 0 ||
+          src_box.x + src_box.width == u_minify(src->width0, src_level));
+   assert(src_box.height % src_bh == 0 ||
+          src_box.y + src_box.height == u_minify(src->height0, src_level));
+   assert(dst_box.x % dst_bw == 0);
+   assert(dst_box.y % dst_bh == 0);
+   assert(dst_box.width % dst_bw == 0 ||
+          dst_box.x + dst_box.width == u_minify(dst->width0, dst_level));
+   assert(dst_box.height % dst_bh == 0 ||
+          dst_box.y + dst_box.height == u_minify(dst->height0, dst_level));
+
+   /* check that region boxes are not out of bounds */
+   assert(src_box.x + src_box.width <= u_minify(src->width0, src_level));
+   assert(src_box.y + src_box.height <= u_minify(src->height0, src_level));
+   assert(dst_box.x + dst_box.width <= u_minify(dst->width0, dst_level));
+   assert(dst_box.y + dst_box.height <= u_minify(dst->height0, dst_level));
+
+   /* check that total number of src, dest bytes match */
+   assert((src_box.width / src_bw) * (src_box.height / src_bh) * src_bs ==
+          (dst_box.width / dst_bw) * (dst_box.height / dst_bh) * dst_bs);
 
    src_map = pipe->transfer_map(pipe,
                                 src,
                                 src_level,
                                 PIPE_TRANSFER_READ,
-                                src_box, &src_trans);
+                                &src_box, &src_trans);
    assert(src_map);
    if (!src_map) {
       goto no_src_map;
    }
 
-   dst_box.x = dst_x;
-   dst_box.y = dst_y;
-   dst_box.z = dst_z;
-   dst_box.width  = src_box->width;
-   dst_box.height = src_box->height;
-   dst_box.depth  = src_box->depth;
-
    dst_map = pipe->transfer_map(pipe,
                                 dst,
                                 dst_level,
-                                PIPE_TRANSFER_WRITE | PIPE_TRANSFER_DISCARD_RANGE,
-                                &dst_box, &dst_trans);
+                                PIPE_TRANSFER_WRITE |
+                                PIPE_TRANSFER_DISCARD_RANGE, &dst_box,
+                                &dst_trans);
    assert(dst_map);
    if (!dst_map) {
       goto no_dst_map;
    }
 
    if (dst->target == PIPE_BUFFER && src->target == PIPE_BUFFER) {
-      assert(src_box->height == 1);
-      assert(src_box->depth == 1);
-      memcpy(dst_map, src_map, src_box->width);
+      assert(src_box.height == 1);
+      assert(src_box.depth == 1);
+      memcpy(dst_map, src_map, src_box.width);
    } else {
       util_copy_box(dst_map,
-                    dst_format,
+                    src_format,
                     dst_trans->stride, dst_trans->layer_stride,
                     0, 0, 0,
-                    src_box->width, src_box->height, src_box->depth,
+                    src_box.width, src_box.height, src_box.depth,
                     src_map,
                     src_trans->stride, src_trans->layer_stride,
                     0, 0, 0);

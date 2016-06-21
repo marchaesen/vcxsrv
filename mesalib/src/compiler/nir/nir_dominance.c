@@ -33,16 +33,10 @@
  * Harvey, and Kennedy.
  */
 
-typedef struct {
-   nir_function_impl *impl;
-   bool progress;
-} dom_state;
-
 static bool
-init_block_cb(nir_block *block, void *_state)
+init_block(nir_block *block, nir_function_impl *impl)
 {
-   dom_state *state = (dom_state *) _state;
-   if (block == nir_start_block(state->impl))
+   if (block == nir_start_block(impl))
       block->imm_dom = block;
    else
       block->imm_dom = NULL;
@@ -75,12 +69,8 @@ intersect(nir_block *b1, nir_block *b2)
 }
 
 static bool
-calc_dominance_cb(nir_block *block, void *_state)
+calc_dominance(nir_block *block)
 {
-   dom_state *state = (dom_state *) _state;
-   if (block == nir_start_block(state->impl))
-      return true;
-
    nir_block *new_idom = NULL;
    struct set_entry *entry;
    set_foreach(block->predecessors, entry) {
@@ -94,24 +84,26 @@ calc_dominance_cb(nir_block *block, void *_state)
       }
    }
 
-   assert(new_idom);
    if (block->imm_dom != new_idom) {
       block->imm_dom = new_idom;
-      state->progress = true;
+      return true;
    }
 
-   return true;
+   return false;
 }
 
 static bool
-calc_dom_frontier_cb(nir_block *block, void *state)
+calc_dom_frontier(nir_block *block)
 {
-   (void) state;
-
    if (block->predecessors->entries > 1) {
       struct set_entry *entry;
       set_foreach(block->predecessors, entry) {
          nir_block *runner = (nir_block *) entry->key;
+
+         /* Skip unreachable predecessors */
+         if (runner->imm_dom == NULL)
+            continue;
+
          while (runner != block->imm_dom) {
             _mesa_set_add(runner->dom_frontier, block);
             runner = runner->imm_dom;
@@ -133,48 +125,28 @@ calc_dom_frontier_cb(nir_block *block, void *state)
  *    for each node will be the same as it was at the end of step #1.
  */
 
-static bool
-block_count_children(nir_block *block, void *state)
-{
-   (void) state;
-
-   if (block->imm_dom)
-      block->imm_dom->num_dom_children++;
-
-   return true;
-}
-
-static bool
-block_alloc_children(nir_block *block, void *state)
-{
-   void *mem_ctx = state;
-
-   block->dom_children = ralloc_array(mem_ctx, nir_block *,
-                                      block->num_dom_children);
-   block->num_dom_children = 0;
-
-   return true;
-}
-
-static bool
-block_add_child(nir_block *block, void *state)
-{
-   (void) state;
-
-   if (block->imm_dom)
-      block->imm_dom->dom_children[block->imm_dom->num_dom_children++] = block;
-
-   return true;
-}
-
 static void
 calc_dom_children(nir_function_impl* impl)
 {
    void *mem_ctx = ralloc_parent(impl);
 
-   nir_foreach_block(impl, block_count_children, NULL);
-   nir_foreach_block(impl, block_alloc_children, mem_ctx);
-   nir_foreach_block(impl, block_add_child, NULL);
+   nir_foreach_block(block, impl) {
+      if (block->imm_dom)
+         block->imm_dom->num_dom_children++;
+   }
+
+   nir_foreach_block(block, impl) {
+      block->dom_children = ralloc_array(mem_ctx, nir_block *,
+                                         block->num_dom_children);
+      block->num_dom_children = 0;
+   }
+
+   nir_foreach_block(block, impl) {
+      if (block->imm_dom) {
+         block->imm_dom->dom_children[block->imm_dom->num_dom_children++]
+            = block;
+      }
+   }
 }
 
 static void
@@ -196,18 +168,23 @@ nir_calc_dominance_impl(nir_function_impl *impl)
 
    nir_metadata_require(impl, nir_metadata_block_index);
 
-   dom_state state;
-   state.impl = impl;
-   state.progress = true;
 
-   nir_foreach_block(impl, init_block_cb, &state);
-
-   while (state.progress) {
-      state.progress = false;
-      nir_foreach_block(impl, calc_dominance_cb, &state);
+   nir_foreach_block(block, impl) {
+      init_block(block, impl);
    }
 
-   nir_foreach_block(impl, calc_dom_frontier_cb, &state);
+   bool progress = true;
+   while (progress) {
+      progress = false;
+      nir_foreach_block(block, impl) {
+         if (block != nir_start_block(impl))
+            progress |= calc_dominance(block);
+      }
+   }
+
+   nir_foreach_block(block, impl) {
+      calc_dom_frontier(block);
+   }
 
    nir_block *start_block = nir_start_block(impl);
    start_block->imm_dom = NULL;
@@ -221,7 +198,7 @@ nir_calc_dominance_impl(nir_function_impl *impl)
 void
 nir_calc_dominance(nir_shader *shader)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          nir_calc_dominance_impl(function->impl);
    }
@@ -265,85 +242,70 @@ nir_block_dominates(nir_block *parent, nir_block *child)
           child->dom_post_index <= parent->dom_post_index;
 }
 
-static bool
-dump_block_dom(nir_block *block, void *state)
-{
-   FILE *fp = state;
-   if (block->imm_dom)
-      fprintf(fp, "\t%u -> %u\n", block->imm_dom->index, block->index);
-   return true;
-}
-
 void
 nir_dump_dom_tree_impl(nir_function_impl *impl, FILE *fp)
 {
    fprintf(fp, "digraph doms_%s {\n", impl->function->name);
-   nir_foreach_block(impl, dump_block_dom, fp);
+
+   nir_foreach_block(block, impl) {
+      if (block->imm_dom)
+         fprintf(fp, "\t%u -> %u\n", block->imm_dom->index, block->index);
+   }
+
    fprintf(fp, "}\n\n");
 }
 
 void
 nir_dump_dom_tree(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          nir_dump_dom_tree_impl(function->impl, fp);
    }
 }
 
-static bool
-dump_block_dom_frontier(nir_block *block, void *state)
-{
-   FILE *fp = state;
-
-   fprintf(fp, "DF(%u) = {", block->index);
-   struct set_entry *entry;
-   set_foreach(block->dom_frontier, entry) {
-      nir_block *df = (nir_block *) entry->key;
-      fprintf(fp, "%u, ", df->index);
-   }
-   fprintf(fp, "}\n");
-   return true;
-}
-
 void
 nir_dump_dom_frontier_impl(nir_function_impl *impl, FILE *fp)
 {
-   nir_foreach_block(impl, dump_block_dom_frontier, fp);
+   nir_foreach_block(block, impl) {
+      fprintf(fp, "DF(%u) = {", block->index);
+      struct set_entry *entry;
+      set_foreach(block->dom_frontier, entry) {
+         nir_block *df = (nir_block *) entry->key;
+         fprintf(fp, "%u, ", df->index);
+      }
+      fprintf(fp, "}\n");
+   }
 }
 
 void
 nir_dump_dom_frontier(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          nir_dump_dom_frontier_impl(function->impl, fp);
    }
-}
-
-static bool
-dump_block_succs(nir_block *block, void *state)
-{
-   FILE *fp = state;
-   if (block->successors[0])
-      fprintf(fp, "\t%u -> %u\n", block->index, block->successors[0]->index);
-   if (block->successors[1])
-      fprintf(fp, "\t%u -> %u\n", block->index, block->successors[1]->index);
-   return true;
 }
 
 void
 nir_dump_cfg_impl(nir_function_impl *impl, FILE *fp)
 {
    fprintf(fp, "digraph cfg_%s {\n", impl->function->name);
-   nir_foreach_block(impl, dump_block_succs, fp);
+
+   nir_foreach_block(block, impl) {
+      if (block->successors[0])
+         fprintf(fp, "\t%u -> %u\n", block->index, block->successors[0]->index);
+      if (block->successors[1])
+         fprintf(fp, "\t%u -> %u\n", block->index, block->successors[1]->index);
+   }
+
    fprintf(fp, "}\n\n");
 }
 
 void
 nir_dump_cfg(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          nir_dump_cfg_impl(function->impl, fp);
    }

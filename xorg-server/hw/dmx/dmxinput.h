@@ -47,9 +47,6 @@
 #ifndef DMXINPUT_H
 #define DMXINPUT_H
 
-/** Maximum number of file descriptors for SIGIO handling */
-#define DMX_MAX_SIGIO_FDS 4
-
 struct _DMXInputInfo;
 
 /** Reason why window layout was updated. */
@@ -68,15 +65,6 @@ typedef void (*UpdateWindowInfoProc) (struct _DMXInputInfo *,
 
 /** An opaque structure that is only exposed in the dmx/input layer. */
 typedef struct _DMXLocalInputInfo *DMXLocalInputInfoPtr;
-
-/** State of the SIGIO engine */
-typedef enum {
-    DMX_NOSIGIO = 0,            /**< Device does not use SIGIO at all. */
-    DMX_USESIGIO,               /**< Device can use SIGIO, but is not
-                                 * (e.g., because the VT is switch
-                                 * away). */
-    DMX_ACTIVESIGIO             /**< Device is currently using SIGIO. */
-} dmxSigioState;
 
 /** DMXInputInfo is typedef'd in \a dmx.h so that all routines can have
  * access to the global pointers.  However, the elements are only
@@ -101,12 +89,6 @@ struct _DMXInputInfo {
 
     ProcessInputEventsProc processInputEvents;
     UpdateWindowInfoProc updateWindowInfo;
-
-    /* Local input information */
-    dmxSigioState sigioState;              /**< Current stat */
-    int sigioFdCount;                      /**< Number of fds in use */
-    int sigioFd[DMX_MAX_SIGIO_FDS];                        /**< List of fds */
-    Bool sigioAdded[DMX_MAX_SIGIO_FDS];                    /**< Active fds */
 
     /** True if a VT switch is pending, but has not yet happened. */
     int vt_switch_pending;
