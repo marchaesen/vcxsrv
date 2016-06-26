@@ -406,6 +406,25 @@ if test "$enable_libxml2" = "yes"; then
 fi
 
 #
+# Set default hinting
+#
+
+AC_ARG_WITH(default-hinting,
+	[AC_HELP_STRING([--with-default-hinting=NAME],
+			[Enable your preferred hinting configuration (none/slight/medium/full) [default=slight]])],
+	preferred_hinting="$withval", preferred_hinting=slight)
+
+case "$preferred_hinting" in
+none|slight|medium|full)
+	PREFERRED_HINTING="$preferred_hinting"
+	AC_SUBST(PREFERRED_HINTING)
+	;;
+*)
+	AC_MSG_ERROR([Invalid hinting. please choose one of none, slight, medium, or full])
+	;;
+esac
+
+#
 # Set default font directory
 #
 

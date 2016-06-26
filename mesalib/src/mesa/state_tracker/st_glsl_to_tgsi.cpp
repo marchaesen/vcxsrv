@@ -3877,7 +3877,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       ir->coordinate->accept(this);
 
       /* Put our coords in a temp.  We'll need to modify them for shadow,
-       * projection, or LOD, so the only case we'd use it as is is if
+       * projection, or LOD, so the only case we'd use it as-is is if
        * we're doing plain old texturing.  The optimization passes on
        * glsl_to_tgsi_visitor should handle cleaning up our mess in that case.
        */
@@ -5832,7 +5832,7 @@ emit_wpos(struct st_context *st,
     *
     * The bias of the y-coordinate depends on whether y-inversion takes place
     * (adjY[1]) or not (adjY[0]), which is in turn dependent on whether we are
-    * drawing to an FBO (causes additional inversion), and whether the the pipe
+    * drawing to an FBO (causes additional inversion), and whether the pipe
     * driver origin and the requested origin differ (the latter condition is
     * stored in the 'invert' variable).
     *

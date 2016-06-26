@@ -73,7 +73,7 @@ extern "C" {
 
 /**
  * Sometimes we treat GLfloats as GLints.  On x86 systems, moving a float
- * as a int (thereby using integer registers instead of FP registers) is
+ * as an int (thereby using integer registers instead of FP registers) is
  * a performance win.  Typically, this can be done with ordinary casts.
  * But with gcc's -fstrict-aliasing flag (which defaults to on in gcc 3.0)
  * these casts generate warnings.

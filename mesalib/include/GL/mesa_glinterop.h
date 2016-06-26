@@ -97,7 +97,7 @@ struct mesa_glinterop_device_info {
    /* The callee will overwrite it if it supports a lower version.
     *
     * The caller should check the value and access up-to the version supported
-    * by the the callee.
+    * by the callee.
     */
    /* NOTE: Do not use the MESA_GLINTEROP_DEVICE_INFO_VERSION macro */
    uint32_t version;
@@ -125,7 +125,7 @@ struct mesa_glinterop_export_in {
    /* The callee will overwrite it if it supports a lower version.
     *
     * The caller should check the value and access up-to the version supported
-    * by the the callee.
+    * by the callee.
     */
    /* NOTE: Do not use the MESA_GLINTEROP_EXPORT_IN_VERSION macro */
    uint32_t version;
@@ -190,7 +190,7 @@ struct mesa_glinterop_export_out {
    /* The callee will overwrite it if it supports a lower version.
     *
     * The caller should check the value and access up-to the version supported
-    * by the the callee.
+    * by the callee.
     */
    /* NOTE: Do not use the MESA_GLINTEROP_EXPORT_OUT_VERSION macro */
    uint32_t version;

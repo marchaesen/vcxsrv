@@ -30,7 +30,7 @@
 
 /*
  * This file implements an optimization that deletes statically
- * unreachable/dead code. In NIR, one way this can happen if if an if
+ * unreachable/dead code. In NIR, one way this can happen is when an if
  * statement has a constant condition:
  *
  * if (true) {

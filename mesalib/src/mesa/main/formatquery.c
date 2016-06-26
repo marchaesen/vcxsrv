@@ -559,7 +559,7 @@ _is_internalformat_supported(struct gl_context *ctx, GLenum target,
     */
    GLint buffer[1];
 
-   /* At this point a internalformat is valid if it is valid as a texture or
+   /* At this point an internalformat is valid if it is valid as a texture or
     * as a renderbuffer format. The checks are different because those methods
     * return different values when passing non supported internalformats */
    if (_mesa_base_tex_format(ctx, internalformat) < 0 &&

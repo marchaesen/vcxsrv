@@ -2458,7 +2458,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       b->shader->info.cs.local_size[2] = mode->literals[2];
       break;
    case SpvExecutionModeLocalSizeHint:
-      break; /* Nothing do do with this */
+      break; /* Nothing to do with this */
 
    case SpvExecutionModeOutputVertices:
       assert(b->shader->stage == MESA_SHADER_GEOMETRY);

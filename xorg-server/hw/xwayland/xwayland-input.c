@@ -944,6 +944,34 @@ DDXRingBell(int volume, int pitch, int duration)
 {
 }
 
+static WindowPtr
+xwl_xy_to_window(ScreenPtr screen, SpritePtr sprite, int x, int y)
+{
+    struct xwl_seat *xwl_seat = NULL;
+    DeviceIntPtr device;
+    WindowPtr ret;
+
+    for (device = inputInfo.devices; device; device = device->next) {
+        if (device->deviceProc == xwl_pointer_proc &&
+            device->spriteInfo->sprite == sprite) {
+            xwl_seat = device->public.devicePrivate;
+            break;
+        }
+    }
+
+    if (xwl_seat == NULL || !xwl_seat->focus_window) {
+        sprite->spriteTraceGood = 1;
+        return sprite->spriteTrace[0];
+    }
+
+    screen->XYToWindow = xwl_seat->xwl_screen->XYToWindow;
+    ret = screen->XYToWindow(screen, sprite, x, y);
+    xwl_seat->xwl_screen->XYToWindow = screen->XYToWindow;
+    screen->XYToWindow = xwl_xy_to_window;
+
+    return ret;
+}
+
 void
 xwl_seat_clear_touch(struct xwl_seat *xwl_seat, WindowPtr window)
 {
@@ -969,6 +997,9 @@ InitInput(int argc, char *argv[])
     xwl_screen->input_registry = wl_display_get_registry(xwl_screen->display);
     wl_registry_add_listener(xwl_screen->input_registry, &input_listener,
                              xwl_screen);
+
+    xwl_screen->XYToWindow = pScreen->XYToWindow;
+    pScreen->XYToWindow = xwl_xy_to_window;
 
     wl_display_roundtrip(xwl_screen->display);
     while (xwl_screen->expecting_event)

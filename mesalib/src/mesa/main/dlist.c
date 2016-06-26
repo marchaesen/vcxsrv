@@ -6026,7 +6026,7 @@ save_MultiTexCoord4fv(GLenum target, const GLfloat * v)
 
 
 /**
- * Record a GL_INVALID_VALUE error when a invalid vertex attribute
+ * Record a GL_INVALID_VALUE error when an invalid vertex attribute
  * index is found.
  */
 static void

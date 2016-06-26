@@ -1975,7 +1975,7 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
       ir->coordinate->accept(this);
 
    /* Put our coords in a temp.  We'll need to modify them for shadow,
-    * projection, or LOD, so the only case we'd use it as is is if
+    * projection, or LOD, so the only case we'd use it as-is is if
     * we're doing plain old texturing.  Mesa IR optimization should
     * handle cleaning up our mess in that case.
     */

@@ -406,7 +406,7 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
    unsigned bind = PIPE_BIND_TRANSFER_READ;
    struct pipe_transfer *tex_xfer;
    ubyte *map = NULL;
-   bool window;
+   int dst_x, dst_y;
 
    /* Validate state (to be sure we have up-to-date framebuffer surfaces)
     * and flush the bitmap cache prior to reading. */
@@ -483,7 +483,8 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
                                st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP,
                                width, height, format, src_format, dst_format);
    if (dst) {
-      window = false;
+      dst_x = x;
+      dst_y = y;
    } else {
       /* See if the texture format already matches the format and type,
        * in which case the memcpy-based fast path will likely be used and
@@ -500,34 +501,39 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
       if (!dst)
          goto fallback;
 
-      window = true;
+      dst_x = 0;
+      dst_y = 0;
    }
 
    /* map resources */
    pixels = _mesa_map_pbo_dest(ctx, pack, pixels);
 
    map = pipe_transfer_map_3d(pipe, dst, 0, PIPE_TRANSFER_READ,
-                              0, 0, 0, width, height, 1, &tex_xfer);
+                              dst_x, dst_y, 0, width, height, 1, &tex_xfer);
    if (!map) {
       _mesa_unmap_pbo_dest(ctx, pack);
       pipe_resource_reference(&dst, NULL);
       goto fallback;
    }
 
-   if (!window)
-      map += y * tex_xfer->stride + x * util_format_get_blocksize(dst_format);
-
    /* memcpy data into a user buffer */
    {
       const uint bytesPerRow = width * util_format_get_blocksize(dst_format);
-      GLuint row;
+      const int destStride = _mesa_image_row_stride(pack, width, format, type);
+      char *dest = _mesa_image_address2d(pack, pixels,
+                                         width, height, format,
+                                         type, 0, 0);
 
-      for (row = 0; row < (unsigned) height; row++) {
-         void *dest = _mesa_image_address2d(pack, pixels,
-                                              width, height, format,
-                                              type, row, 0);
-         memcpy(dest, map, bytesPerRow);
-         map += tex_xfer->stride;
+      if (tex_xfer->stride == bytesPerRow && destStride == bytesPerRow) {
+         memcpy(dest, map, bytesPerRow * height);
+      } else {
+         GLuint row;
+
+         for (row = 0; row < (unsigned) height; row++) {
+            memcpy(dest, map, bytesPerRow);
+            map += tex_xfer->stride;
+            dest += destStride;
+         }
       }
    }
 

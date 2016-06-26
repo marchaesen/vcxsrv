@@ -514,7 +514,7 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
       nir_instr *match = (nir_instr *) entry->key;
       nir_ssa_def *new_def = nir_instr_get_dest_ssa_def(match);
 
-      /* It's safe to replace a exact instruction with an inexact one as
+      /* It's safe to replace an exact instruction with an inexact one as
        * long as we make it exact.  If we got here, the two instructions are
        * exactly identical in every other way so, once we've set the exact
        * bit, they are the same.

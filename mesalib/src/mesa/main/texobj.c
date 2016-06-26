@@ -1196,7 +1196,7 @@ invalidate_tex_image_error_check(struct gl_context *ctx, GLuint texture,
  * glCreateTextures should throw errors if target = 0. This is not exposed to
  * the rest of Mesa to encourage Mesa internals to use nameless textures,
  * which do not require expensive hash lookups.
- * \param target  either 0 or a a valid / error-checked texture target enum
+ * \param target  either 0 or a valid / error-checked texture target enum
  */
 static void
 create_textures(struct gl_context *ctx, GLenum target,

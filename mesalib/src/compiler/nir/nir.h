@@ -804,7 +804,7 @@ typedef struct {
 } nir_deref_var;
 
 /* This enum describes how the array is referenced.  If the deref is
- * direct then the base_offset is used.  If the deref is indirect then then
+ * direct then the base_offset is used.  If the deref is indirect then
  * offset is given by base_offset + indirect.  If the deref is a wildcard
  * then the deref refers to all of the elements of the array at the same
  * time.  Wildcard dereferences are only ever allowed in copy_var

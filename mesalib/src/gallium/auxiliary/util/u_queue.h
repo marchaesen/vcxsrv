@@ -39,42 +39,59 @@
  * Put this into your job structure.
  */
 struct util_queue_fence {
-   pipe_semaphore done;
+   pipe_mutex mutex;
+   pipe_condvar cond;
+   int signalled;
 };
+
+typedef void (*util_queue_execute_func)(void *job, int thread_index);
 
 struct util_queue_job {
    void *job;
    struct util_queue_fence *fence;
+   util_queue_execute_func execute;
 };
 
 /* Put this into your context. */
 struct util_queue {
+   const char *name;
    pipe_mutex lock;
-   pipe_semaphore has_space;
-   pipe_semaphore queued;
-   pipe_thread thread;
-   int kill_thread;
-   int num_jobs;
-   struct util_queue_job jobs[8];
-   void (*execute_job)(void *job);
+   pipe_condvar has_queued_cond;
+   pipe_condvar has_space_cond;
+   pipe_thread *threads;
+   int num_queued;
+   unsigned num_threads;
+   int kill_threads;
+   int max_jobs;
+   int write_idx, read_idx; /* ring buffer pointers */
+   struct util_queue_job *jobs;
 };
 
-void util_queue_init(struct util_queue *queue,
-                     void (*execute_job)(void *));
+bool util_queue_init(struct util_queue *queue,
+                     const char *name,
+                     unsigned max_jobs,
+                     unsigned num_threads);
 void util_queue_destroy(struct util_queue *queue);
 void util_queue_fence_init(struct util_queue_fence *fence);
 void util_queue_fence_destroy(struct util_queue_fence *fence);
 
 void util_queue_add_job(struct util_queue *queue,
                         void *job,
-                        struct util_queue_fence *fence);
+                        struct util_queue_fence *fence,
+                        util_queue_execute_func execute);
 void util_queue_job_wait(struct util_queue_fence *fence);
 
 /* util_queue needs to be cleared to zeroes for this to work */
 static inline bool
 util_queue_is_initialized(struct util_queue *queue)
 {
-   return queue->thread != 0;
+   return queue->threads != NULL;
+}
+
+static inline bool
+util_queue_fence_is_signalled(struct util_queue_fence *fence)
+{
+   return fence->signalled != 0;
 }
 
 #endif

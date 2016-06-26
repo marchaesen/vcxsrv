@@ -70,17 +70,13 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
    if (!*rvalue)
       return;
 
-   ir_dereference_array *dra = (*rvalue)->as_dereference_array();
-   if (!dra)
-      return;
-
-   ir_constant *con = dra->array->as_constant();
+   ir_constant *con = (*rvalue)->as_constant();
    if (!con || !con->type->is_array())
       return;
 
    void *mem_ctx = ralloc_parent(con);
 
-   char *uniform_name = ralloc_asprintf(mem_ctx, "constarray__%p", dra);
+   char *uniform_name = ralloc_asprintf(mem_ctx, "constarray__%p", con);
 
    ir_variable *uni =
       new(mem_ctx) ir_variable(con->type, uniform_name, ir_var_uniform);
@@ -93,8 +89,7 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
    uni->data.max_array_access = uni->type->length - 1;
    instructions->push_head(uni);
 
-   ir_dereference_variable *varref = new(mem_ctx) ir_dereference_variable(uni);
-   *rvalue = new(mem_ctx) ir_dereference_array(varref, dra->array_index);
+   *rvalue = new(mem_ctx) ir_dereference_variable(uni);
 
    progress = true;
 }

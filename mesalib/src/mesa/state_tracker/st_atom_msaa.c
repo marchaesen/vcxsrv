@@ -54,7 +54,7 @@ static void update_sample_mask( struct st_context *st )
          /* there's lot of ways how to do this. We just use first few bits,
             since we have no knowledge of sample positions here. When
             app-supplied mask though is used too might need to be smarter.
-            Also, there's a interface restriction here in theory it is
+            Also, there's an interface restriction here in theory it is
             encouraged this mask not be the same at each pixel. */
          sample_mask = (1 << nr_bits) - 1;
          if (st->ctx->Multisample.SampleCoverageInvert)

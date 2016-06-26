@@ -1332,9 +1332,9 @@ void util_blitter_custom_clear_depth(struct blitter_context *blitter,
                                      unsigned width, unsigned height,
                                      double depth, void *custom_dsa)
 {
-    static const union pipe_color_union color;
-    util_blitter_clear_custom(blitter, width, height, 0, 0, &color, depth, 0,
-                              NULL, custom_dsa);
+   static const union pipe_color_union color;
+   util_blitter_clear_custom(blitter, width, height, 0, 0, &color, depth, 0,
+                             NULL, custom_dsa);
 }
 
 void util_blitter_default_dst_texture(struct pipe_surface *dst_templ,
@@ -1342,11 +1342,11 @@ void util_blitter_default_dst_texture(struct pipe_surface *dst_templ,
                                       unsigned dstlevel,
                                       unsigned dstz)
 {
-    memset(dst_templ, 0, sizeof(*dst_templ));
-    dst_templ->format = util_format_linear(dst->format);
-    dst_templ->u.tex.level = dstlevel;
-    dst_templ->u.tex.first_layer = dstz;
-    dst_templ->u.tex.last_layer = dstz;
+   memset(dst_templ, 0, sizeof(*dst_templ));
+   dst_templ->format = util_format_linear(dst->format);
+   dst_templ->u.tex.level = dstlevel;
+   dst_templ->u.tex.first_layer = dstz;
+   dst_templ->u.tex.last_layer = dstz;
 }
 
 static struct pipe_surface *
@@ -1368,19 +1368,19 @@ void util_blitter_default_src_texture(struct pipe_sampler_view *src_templ,
                                       struct pipe_resource *src,
                                       unsigned srclevel)
 {
-    memset(src_templ, 0, sizeof(*src_templ));
-    src_templ->target = src->target;
-    src_templ->format = util_format_linear(src->format);
-    src_templ->u.tex.first_level = srclevel;
-    src_templ->u.tex.last_level = srclevel;
-    src_templ->u.tex.first_layer = 0;
-    src_templ->u.tex.last_layer =
-        src->target == PIPE_TEXTURE_3D ? u_minify(src->depth0, srclevel) - 1
-                                       : src->array_size - 1;
-    src_templ->swizzle_r = PIPE_SWIZZLE_X;
-    src_templ->swizzle_g = PIPE_SWIZZLE_Y;
-    src_templ->swizzle_b = PIPE_SWIZZLE_Z;
-    src_templ->swizzle_a = PIPE_SWIZZLE_W;
+   memset(src_templ, 0, sizeof(*src_templ));
+   src_templ->target = src->target;
+   src_templ->format = util_format_linear(src->format);
+   src_templ->u.tex.first_level = srclevel;
+   src_templ->u.tex.last_level = srclevel;
+   src_templ->u.tex.first_layer = 0;
+   src_templ->u.tex.last_layer =
+      src->target == PIPE_TEXTURE_3D ? u_minify(src->depth0, srclevel) - 1
+                                     : src->array_size - 1;
+   src_templ->swizzle_r = PIPE_SWIZZLE_X;
+   src_templ->swizzle_g = PIPE_SWIZZLE_Y;
+   src_templ->swizzle_b = PIPE_SWIZZLE_Z;
+   src_templ->swizzle_a = PIPE_SWIZZLE_W;
 }
 
 static boolean is_blit_generic_supported(struct blitter_context *blitter,
