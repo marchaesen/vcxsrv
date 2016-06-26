@@ -34,8 +34,7 @@
 #include "Configint.h"
 
 
-static
-xf86ConfigSymTabRec InputClassTab[] = {
+static const xf86ConfigSymTabRec InputClassTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {OPTION, "option"},
@@ -53,6 +52,7 @@ xf86ConfigSymTabRec InputClassTab[] = {
     {MATCH_IS_POINTER, "matchispointer"},
     {MATCH_IS_JOYSTICK, "matchisjoystick"},
     {MATCH_IS_TABLET, "matchistablet"},
+    {MATCH_IS_TABLET_PAD, "matchistabletpad"},
     {MATCH_IS_TOUCHPAD, "matchistouchpad"},
     {MATCH_IS_TOUCHSCREEN, "matchistouchscreen"},
     {NOMATCH_PRODUCT, "nomatchproduct"},
@@ -347,6 +347,14 @@ xf86parseInputClassSection(void)
             if (!ptr->is_tablet.set)
                 Error(BOOL_MSG, "MatchIsTablet");
             break;
+        case MATCH_IS_TABLET_PAD:
+            if (xf86getSubToken(&(ptr->comment)) != STRING)
+                Error(QUOTE_MSG, "MatchIsTabletPad");
+            ptr->is_tablet_pad.set = xf86getBoolValue(&ptr->is_tablet_pad.val, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            if (!ptr->is_tablet_pad.set)
+                Error(BOOL_MSG, "MatchIsTabletPad");
+            break;
         case MATCH_IS_TOUCHPAD:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsTouchpad");
@@ -475,6 +483,9 @@ xf86printInputClassSection(FILE * cf, XF86ConfInputClassPtr ptr)
         if (ptr->is_tablet.set)
             fprintf(cf, "\tIsTablet        \"%s\"\n",
                     ptr->is_tablet.val ? "yes" : "no");
+        if (ptr->is_tablet_pad.set)
+            fprintf(cf, "\tIsTabletPad     \"%s\"\n",
+                    ptr->is_tablet_pad.val ? "yes" : "no");
         if (ptr->is_touchpad.set)
             fprintf(cf, "\tIsTouchpad      \"%s\"\n",
                     ptr->is_touchpad.val ? "yes" : "no");

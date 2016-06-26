@@ -35,6 +35,7 @@
 #define ST_PROGRAM_H
 
 #include "main/mtypes.h"
+#include "main/atifragshader.h"
 #include "program/program.h"
 #include "pipe/p_state.h"
 #include "st_context.h"
@@ -65,6 +66,12 @@ struct st_fp_variant_key
 
    /** for ARB_sample_shading */
    GLuint persample_shading:1;
+
+   /** needed for ATI_fragment_shader */
+   GLuint fog:2;
+
+   /** needed for ATI_fragment_shader */
+   char texture_targets[MAX_NUM_FRAGMENT_REGISTERS_ATI];
 };
 
 
@@ -99,6 +106,10 @@ struct st_fragment_program
    struct gl_fragment_program Base;
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+   struct ati_fragment_shader *ati_fs;
+
+   /* used when bypassing glsl_to_tgsi: */
+   struct gl_shader_program *shader_program;
 
    struct st_fp_variant *variants;
 };
@@ -155,6 +166,9 @@ struct st_vertex_program
    struct gl_vertex_program Base;  /**< The Mesa vertex program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+
+   /* used when bypassing glsl_to_tgsi: */
+   struct gl_shader_program *shader_program;
 
    /** maps a Mesa VERT_ATTRIB_x to a packed TGSI input index */
    /** maps a TGSI input index back to a Mesa VERT_ATTRIB_x */

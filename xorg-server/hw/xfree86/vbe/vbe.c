@@ -325,7 +325,7 @@ vbeDoEDID(vbeInfoPtr pVbe, void *unused)
 
     if (!pVbe)
         return NULL;
-    if (pVbe->version < 0x200)
+    if (pVbe->version < 0x102)
         return NULL;
 
     DDC_data = vbeReadEDID(pVbe);

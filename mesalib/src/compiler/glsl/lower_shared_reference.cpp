@@ -138,7 +138,7 @@ lower_shared_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    bool row_major;
    int matrix_columns;
    assert(var->get_interface_type() == NULL);
-   const unsigned packing = GLSL_INTERFACE_PACKING_STD430;
+   const enum glsl_interface_packing packing = GLSL_INTERFACE_PACKING_STD430;
 
    setup_buffer_access(mem_ctx, var, deref,
                        &offset, &const_offset,
@@ -206,7 +206,7 @@ lower_shared_reference_visitor::handle_assignment(ir_assignment *ir)
    bool row_major;
    int matrix_columns;
    assert(var->get_interface_type() == NULL);
-   const unsigned packing = GLSL_INTERFACE_PACKING_STD430;
+   const enum glsl_interface_packing packing = GLSL_INTERFACE_PACKING_STD430;
 
    setup_buffer_access(mem_ctx, var, deref,
                        &offset, &const_offset,
@@ -365,7 +365,7 @@ lower_shared_reference_visitor::lower_shared_atomic_intrinsic(ir_call *ir)
    bool row_major;
    int matrix_columns;
    assert(var->get_interface_type() == NULL);
-   const unsigned packing = GLSL_INTERFACE_PACKING_STD430;
+   const enum glsl_interface_packing packing = GLSL_INTERFACE_PACKING_STD430;
    buffer_access_type = shared_atomic_access;
 
    setup_buffer_access(mem_ctx, var, deref,

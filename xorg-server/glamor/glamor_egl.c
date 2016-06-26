@@ -770,17 +770,18 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
 
     glamor_egl->has_gem = glamor_egl_check_has_gem(fd);
 
-#ifndef GLAMOR_GLES2
-    eglBindAPI(EGL_OPENGL_API);
-#else
-    eglBindAPI(EGL_OPENGL_ES_API);
-#endif
     if (!eglInitialize
         (glamor_egl->display, &glamor_egl->major, &glamor_egl->minor)) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR, "eglInitialize() failed\n");
         glamor_egl->display = EGL_NO_DISPLAY;
         goto error;
     }
+
+#ifndef GLAMOR_GLES2
+    eglBindAPI(EGL_OPENGL_API);
+#else
+    eglBindAPI(EGL_OPENGL_ES_API);
+#endif
 
     version = eglQueryString(glamor_egl->display, EGL_VERSION);
     xf86Msg(X_INFO, "%s: EGL version %s:\n", glamor_name, version);

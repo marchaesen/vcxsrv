@@ -82,6 +82,39 @@
     |                       | COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT              |
     ---------------------------------------------------------------------------
  */
+
+#define VIEW_CLASS_GLES(x)             (GL_VIEW_CLASS_BPTC_FLOAT + 1 + x)
+#define VIEW_CLASS_EAC_R11             VIEW_CLASS_GLES(0)
+#define VIEW_CLASS_EAC_RG11            VIEW_CLASS_GLES(1)
+#define VIEW_CLASS_ETC2_RGB            VIEW_CLASS_GLES(2)
+#define VIEW_CLASS_ETC2_RGBA           VIEW_CLASS_GLES(3)
+#define VIEW_CLASS_ETC2_EAC_RGBA       VIEW_CLASS_GLES(4)
+#define VIEW_CLASS_ASTC_4x4_RGBA       VIEW_CLASS_GLES(5)
+#define VIEW_CLASS_ASTC_5x4_RGBA       VIEW_CLASS_GLES(6)
+#define VIEW_CLASS_ASTC_5x5_RGBA       VIEW_CLASS_GLES(7)
+#define VIEW_CLASS_ASTC_6x5_RGBA       VIEW_CLASS_GLES(8)
+#define VIEW_CLASS_ASTC_6x6_RGBA       VIEW_CLASS_GLES(9)
+#define VIEW_CLASS_ASTC_8x5_RGBA       VIEW_CLASS_GLES(10)
+#define VIEW_CLASS_ASTC_8x6_RGBA       VIEW_CLASS_GLES(11)
+#define VIEW_CLASS_ASTC_8x8_RGBA       VIEW_CLASS_GLES(12)
+#define VIEW_CLASS_ASTC_10x5_RGBA      VIEW_CLASS_GLES(13)
+#define VIEW_CLASS_ASTC_10x6_RGBA      VIEW_CLASS_GLES(14)
+#define VIEW_CLASS_ASTC_10x8_RGBA      VIEW_CLASS_GLES(15)
+#define VIEW_CLASS_ASTC_10x10_RGBA     VIEW_CLASS_GLES(16)
+#define VIEW_CLASS_ASTC_12x10_RGBA     VIEW_CLASS_GLES(17)
+#define VIEW_CLASS_ASTC_12x12_RGBA     VIEW_CLASS_GLES(18)
+#define VIEW_CLASS_ASTC_3x3x3_RGBA     VIEW_CLASS_GLES(19)
+#define VIEW_CLASS_ASTC_4x3x3_RGBA     VIEW_CLASS_GLES(20)
+#define VIEW_CLASS_ASTC_4x4x3_RGBA     VIEW_CLASS_GLES(21)
+#define VIEW_CLASS_ASTC_4x4x4_RGBA     VIEW_CLASS_GLES(22)
+#define VIEW_CLASS_ASTC_5x4x4_RGBA     VIEW_CLASS_GLES(23)
+#define VIEW_CLASS_ASTC_5x5x4_RGBA     VIEW_CLASS_GLES(24)
+#define VIEW_CLASS_ASTC_5x5x5_RGBA     VIEW_CLASS_GLES(25)
+#define VIEW_CLASS_ASTC_6x5x5_RGBA     VIEW_CLASS_GLES(26)
+#define VIEW_CLASS_ASTC_6x6x5_RGBA     VIEW_CLASS_GLES(27)
+#define VIEW_CLASS_ASTC_6x6x6_RGBA     VIEW_CLASS_GLES(28)
+
+
 struct internal_format_class_info {
    GLenum view_class;
    GLenum internal_format;
@@ -162,6 +195,59 @@ static const struct internal_format_class_info s3tc_compatible_internal_formats[
    {GL_VIEW_CLASS_S3TC_DXT5_RGBA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT},
 };
 
+static const struct internal_format_class_info gles_etc2_compatible_internal_formats[] = {
+   {VIEW_CLASS_EAC_R11, GL_COMPRESSED_R11_EAC},
+   {VIEW_CLASS_EAC_R11, GL_COMPRESSED_SIGNED_R11_EAC},
+   {VIEW_CLASS_EAC_RG11, GL_COMPRESSED_RG11_EAC},
+   {VIEW_CLASS_EAC_RG11, GL_COMPRESSED_SIGNED_RG11_EAC},
+   {VIEW_CLASS_ETC2_RGB, GL_COMPRESSED_RGB8_ETC2},
+   {VIEW_CLASS_ETC2_RGB, GL_COMPRESSED_SRGB8_ETC2},
+   {VIEW_CLASS_ETC2_RGBA, GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2},
+   {VIEW_CLASS_ETC2_RGBA, GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2},
+   {VIEW_CLASS_ETC2_EAC_RGBA, GL_COMPRESSED_RGBA8_ETC2_EAC},
+   {VIEW_CLASS_ETC2_EAC_RGBA, GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC},
+};
+
+static const struct internal_format_class_info gles_astc_compatible_internal_formats[] = {
+#define ASTC_FMT(size) \
+   {VIEW_CLASS_ASTC_##size##_RGBA, GL_COMPRESSED_RGBA_ASTC_##size##_KHR}, \
+   {VIEW_CLASS_ASTC_##size##_RGBA, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_##size##_KHR}
+
+   ASTC_FMT(4x4),
+   ASTC_FMT(5x4),
+   ASTC_FMT(5x5),
+   ASTC_FMT(6x5),
+   ASTC_FMT(6x6),
+   ASTC_FMT(8x5),
+   ASTC_FMT(8x6),
+   ASTC_FMT(8x8),
+   ASTC_FMT(10x5),
+   ASTC_FMT(10x6),
+   ASTC_FMT(10x8),
+   ASTC_FMT(10x10),
+   ASTC_FMT(12x10),
+   ASTC_FMT(12x12),
+#undef ASTC_FMT
+};
+
+static const struct internal_format_class_info gles_astc_3d_compatible_internal_formats[] = {
+#define ASTC_FMT(size) \
+   {VIEW_CLASS_ASTC_##size##_RGBA, GL_COMPRESSED_RGBA_ASTC_##size##_OES}, \
+   {VIEW_CLASS_ASTC_##size##_RGBA, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_##size##_OES}
+
+   ASTC_FMT(3x3x3),
+   ASTC_FMT(4x3x3),
+   ASTC_FMT(4x4x3),
+   ASTC_FMT(4x4x4),
+   ASTC_FMT(5x4x4),
+   ASTC_FMT(5x5x4),
+   ASTC_FMT(5x5x5),
+   ASTC_FMT(6x5x5),
+   ASTC_FMT(6x6x5),
+   ASTC_FMT(6x6x6),
+#undef ASTC_FMT
+};
+
 GLenum
 _mesa_texture_view_lookup_view_class(const struct gl_context *ctx, GLenum internalformat)
 {
@@ -178,6 +264,30 @@ _mesa_texture_view_lookup_view_class(const struct gl_context *ctx, GLenum intern
          if (s3tc_compatible_internal_formats[i].internal_format
              == internalformat)
             return s3tc_compatible_internal_formats[i].view_class;
+      }
+   }
+
+   if (_mesa_is_gles3(ctx)) {
+      for (i = 0; i < ARRAY_SIZE(gles_etc2_compatible_internal_formats); i++) {
+         if (gles_etc2_compatible_internal_formats[i].internal_format
+             == internalformat)
+            return gles_etc2_compatible_internal_formats[i].view_class;
+      }
+
+      if (ctx->Extensions.KHR_texture_compression_astc_ldr) {
+         for (i = 0; i < ARRAY_SIZE(gles_astc_compatible_internal_formats); i++) {
+            if (gles_astc_compatible_internal_formats[i].internal_format
+                == internalformat)
+               return gles_astc_compatible_internal_formats[i].view_class;
+         }
+      }
+
+      if (ctx->Extensions.OES_texture_compression_astc) {
+         for (i = 0; i < ARRAY_SIZE(gles_astc_3d_compatible_internal_formats); i++) {
+            if (gles_astc_3d_compatible_internal_formats[i].internal_format
+                == internalformat)
+               return gles_astc_3d_compatible_internal_formats[i].view_class;
+         }
       }
    }
    return GL_FALSE;
@@ -553,13 +663,38 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
    case GL_TEXTURE_2D:
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_RECTANGLE:
+      depth = 1;
+      break;
    case GL_TEXTURE_CUBE_MAP:
+      /* If the new texture's target is TEXTURE_CUBE_MAP, the clamped
+       * <numlayers> must be equal to 6.
+       */
+      if (newViewNumLayers != 6) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glTextureView(clamped numlayers %d != 6)",
+                     newViewNumLayers);
+         return;
+      }
       depth = 1;
       break;
 
    case GL_TEXTURE_2D_ARRAY:
-   case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      depth = newViewNumLayers;
+      break;
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      /* If the new texture's target is TEXTURE_CUBE_MAP_ARRAY,
+       * then <numlayers> counts layer-faces rather than layers,
+       * and the clamped <numlayers> must be a multiple of 6.
+       * Otherwise, the error INVALID_VALUE is generated.
+       */
+      if ((newViewNumLayers % 6) != 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glTextureView(clamped numlayers %d is not"
+                     " a multiple of 6)",
+                     newViewNumLayers);
+         return;
+      }
       depth = newViewNumLayers;
       break;
    }
@@ -603,32 +738,9 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
          return;
       }
       break;
-
    case GL_TEXTURE_CUBE_MAP:
-      /* If the new texture's target is TEXTURE_CUBE_MAP, the clamped
-       * <numlayers> must be equal to 6.
-       */
-      if (newViewNumLayers != 6) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glTextureView(clamped numlayers %d != 6)",
-                     newViewNumLayers);
-         return;
-      }
       break;
-
    case GL_TEXTURE_CUBE_MAP_ARRAY:
-      /* If the new texture's target is TEXTURE_CUBE_MAP_ARRAY,
-       * then <numlayers> counts layer-faces rather than layers,
-       * and the clamped <numlayers> must be a multiple of 6.
-       * Otherwise, the error INVALID_VALUE is generated.
-       */
-      if ((newViewNumLayers % 6) != 0) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glTextureView(clamped numlayers %d is not"
-                     " a multiple of 6)",
-                     newViewNumLayers);
-         return;
-      }
       break;
    }
 

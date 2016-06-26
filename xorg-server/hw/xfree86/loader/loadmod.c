@@ -86,7 +86,6 @@ const ModuleVersions LoaderVersionInfo = {
     ABI_VIDEODRV_VERSION,
     ABI_XINPUT_VERSION,
     ABI_EXTENSION_VERSION,
-    ABI_FONT_VERSION
 };
 
 static int ModuleDuplicated[] = { };
@@ -613,8 +612,6 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
             ver = LoaderVersionInfo.xinputVersion;
         else if (!strcmp(data->abiclass, ABI_CLASS_EXTENSION))
             ver = LoaderVersionInfo.extensionVersion;
-        else if (!strcmp(data->abiclass, ABI_CLASS_FONT))
-            ver = LoaderVersionInfo.fontVersion;
 
         abimaj = GET_ABI_MAJOR(data->abiversion);
         abimin = GET_ABI_MINOR(data->abiversion);

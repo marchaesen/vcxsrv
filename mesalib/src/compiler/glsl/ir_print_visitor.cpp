@@ -173,6 +173,7 @@ void ir_print_visitor::visit(ir_variable *ir)
    const char *const samp = (ir->data.sample) ? "sample " : "";
    const char *const patc = (ir->data.patch) ? "patch " : "";
    const char *const inv = (ir->data.invariant) ? "invariant " : "";
+   const char *const prec = (ir->data.precise) ? "precise " : "";
    const char *const mode[] = { "", "uniform ", "shader_storage ",
                                 "shader_shared ", "shader_in ", "shader_out ",
                                 "in ", "out ", "inout ",
@@ -182,8 +183,8 @@ void ir_print_visitor::visit(ir_variable *ir)
    const char *const interp[] = { "", "smooth", "flat", "noperspective" };
    STATIC_ASSERT(ARRAY_SIZE(interp) == INTERP_QUALIFIER_COUNT);
 
-   fprintf(f, "(%s%s%s%s%s%s%s%s) ",
-           loc, cent, samp, patc, inv, mode[ir->data.mode],
+   fprintf(f, "(%s%s%s%s%s%s%s%s%s) ",
+           loc, cent, samp, patc, inv, prec, mode[ir->data.mode],
            stream[ir->data.stream],
            interp[ir->data.interpolation]);
 

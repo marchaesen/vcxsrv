@@ -33,11 +33,6 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	$(LOADER_C_FILES)
 
-ifneq ($(filter-out swrast,$(MESA_GPU_DRIVERS)),)
-LOCAL_CFLAGS += -DHAVE_LIBDRM
-LOCAL_SHARED_LIBRARIES := libdrm
-endif
-
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
 LOCAL_MODULE := libmesa_loader

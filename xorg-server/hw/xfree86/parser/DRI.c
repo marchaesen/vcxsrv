@@ -37,7 +37,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec DRITab[] = {
+static const xf86ConfigSymTabRec DRITab[] = {
     {ENDSECTION, "endsection"},
     {GROUP, "group"},
     {MODE, "mode"},

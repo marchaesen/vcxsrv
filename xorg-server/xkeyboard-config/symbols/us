@@ -69,6 +69,19 @@ xkb_symbols "euro" {
 
 
 partial alphanumeric_keys
+xkb_symbols "ibm238l" {
+
+    include "us(basic)"
+    name[Group1]= "English (US, IBM Arabic 238_L)";
+
+    key <AB08> {        [     comma,    comma      ]       };
+    key <AB09> {        [    period,    period     ]       };
+    key <BKSL> {        [ quoteleft,    asciitilde ]       };
+    key <LSGT> {        [ backslash,    bar        ]       };
+    key <TLDE> {        [ leftcaret,    rightcaret ]       };
+};
+
+partial alphanumeric_keys
 xkb_symbols "intl" {
 
     include "us(basic)"
@@ -1365,6 +1378,84 @@ xkb_symbols "norman" {
     key <CAPS> { [ BackSpace ] };
 
     include "level3(ralt_switch)"
+};
+
+// Carpalx layout created by Martin Krzywinski
+// http://mkweb.bcgsc.ca/carpalx/
+
+partial alphanumeric_keys
+xkb_symbols "carpalx" {
+
+    name[Group1]= "English (Carpalx)";
+
+    key <TLDE> {	[     grave,	asciitilde	]	};
+    key <AE01> {	[	  1,	exclam 		]	};
+    key <AE02> {	[	  2,	at		]	};
+    key <AE03> {	[	  3,	numbersign	]	};
+    key <AE04> {	[	  4,	dollar		]	};
+    key <AE05> {	[	  5,	percent		]	};
+    key <AE06> {	[	  6,	asciicircum	]	};
+    key <AE07> {	[	  7,	ampersand	]	};
+    key <AE08> {	[	  8,	asterisk	]	};
+    key <AE09> {	[	  9,	parenleft	]	};
+    key <AE10> {	[	  0,	parenright	]	};
+    key <AE11> {	[     minus,	underscore	]	};
+    key <AE12> {	[     equal,	plus		]	};
+
+    key <AD01> {	[	  q,	Q 		]	};
+    key <AD02> {	[	  g,	G		]	};
+    key <AD03> {	[	  m,	M		]	};
+    key <AD04> {	[	  l,	L		]	};
+    key <AD05> {	[	  w,	W		]	};
+    key <AD06> {	[	  y,	Y		]	};
+    key <AD07> {	[	  f,	F		]	};
+    key <AD08> {	[	  u,	U		]	};
+    key <AD09> {	[	  b,	B		]	};
+    key <AD10> {	[ semicolon,	colon		]	};
+    key <AD11> {	[ bracketleft,	braceleft	]	};
+    key <AD12> {	[ bracketright,	braceright	]	};
+
+    key <AC01> {	[	  d,	D 		]	};
+    key <AC02> {	[	  s,	S		]	};
+    key <AC03> {	[	  t,	T		]	};
+    key <AC04> {	[	  n,	N		]	};
+    key <AC05> {	[	  r,	R		]	};
+    key <AC06> {	[	  i,	I		]	};
+    key <AC07> {	[	  a,	A		]	};
+    key <AC08> {	[	  e,	E		]	};
+    key <AC09> {	[	  o,	O		]	};
+    key <AC10> {	[	  h,	H		]	};
+    key <AC11> {	[ apostrophe,	quotedbl	]	};
+
+    key <AB01> {	[	  z,	Z 		]	};
+    key <AB02> {	[	  x,	X		]	};
+    key <AB03> {	[	  c,	C		]	};
+    key <AB04> {	[	  v,	V		]	};
+    key <AB05> {	[	  j,	J		]	};
+    key <AB06> {	[	  k,	K		]	};
+    key <AB07> {	[	  p,	P		]	};
+    key <AB08> {	[     comma,	less		]	};
+    key <AB09> {	[    period,	greater		]	};
+    key <AB10> {	[     slash,	question	]	};
+
+    key <BKSL> {	[ backslash,         bar	]	};
+};
+
+// Carpalx layout created by Martin Krzywinski
+// Full optimization variant without fixed QWERTY-like ZXCV keys
+// http://mkweb.bcgsc.ca/carpalx/
+
+partial alphanumeric_keys
+xkb_symbols "carpalx-full" {
+
+    include "us(carpalx)"
+    name[Group1]= "English (Carpalx, full optimization)";
+
+    key <AD06> {	[	  b,	B		]	};
+    key <AD07> {	[	  y,	Y		]	};
+    key <AD09> {	[	  v,	V		]	};
+
+    key <AB04> {	[	  f,	F		]	};
 };
 
 // EXTRAS:

@@ -175,21 +175,25 @@ _mesa_sha1_final(struct mesa_sha1 *ctx, unsigned char result[20])
 #elif defined(HAVE_SHA1_IN_LIBGCRYPT)   /* Use libgcrypt for SHA1 */
 
 #include <gcrypt.h>
+#include "c11/threads.h"
+
+static void _mesa_libgcrypt_init(void)
+{
+   if (!gcry_check_version(NULL))
+      return;
+
+   gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
+   gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+}
 
 struct mesa_sha1 *
 _mesa_sha1_init(void)
 {
-   static int init;
+   static once_flag flag = ONCE_FLAG_INIT;
    gcry_md_hd_t h;
    gcry_error_t err;
 
-   if (!init) {
-      if (!gcry_check_version(NULL))
-         return NULL;
-      gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
-      gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-      init = 1;
-   }
+   call_once(&flag, _mesa_libgcrypt_init);
 
    err = gcry_md_open(&h, GCRY_MD_SHA1, 0);
    if (err)

@@ -32,11 +32,6 @@
  * moves with partial writes.
  */
 
-struct vec_to_movs_state {
-   nir_function_impl *impl;
-   bool progress;
-};
-
 static bool
 src_matches_dest_reg(nir_dest *dest, nir_src *src)
 {
@@ -123,7 +118,7 @@ has_replicated_dest(nir_alu_instr *alu)
  * can then call insert_mov as normal.
  */
 static unsigned
-try_coalesce(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
+try_coalesce(nir_alu_instr *vec, unsigned start_idx)
 {
    assert(start_idx < nir_op_infos[vec->op].num_inputs);
 
@@ -136,7 +131,7 @@ try_coalesce(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
    /* If we are going to do a reswizzle, then the vecN operation must be the
     * only use of the source value.  We also can't have any source modifiers.
     */
-   nir_foreach_use(vec->src[start_idx].src.ssa, src) {
+   nir_foreach_use(src, vec->src[start_idx].src.ssa) {
       if (src->parent_instr != &vec->instr)
          return 0;
 
@@ -215,13 +210,12 @@ try_coalesce(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
 }
 
 static bool
-lower_vec_to_movs_block(nir_block *block, void *void_state)
+lower_vec_to_movs_block(nir_block *block, nir_function_impl *impl)
 {
-   struct vec_to_movs_state *state = void_state;
-   nir_function_impl *impl = state->impl;
+   bool progress = false;
    nir_shader *shader = impl->function->shader;
 
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_alu)
          continue;
 
@@ -240,6 +234,7 @@ lower_vec_to_movs_block(nir_block *block, void *void_state)
          /* Since we insert multiple MOVs, we have a register destination. */
          nir_register *reg = nir_local_reg_create(impl);
          reg->num_components = vec->dest.dest.ssa.num_components;
+         reg->bit_size = vec->dest.dest.ssa.bit_size;
 
          nir_ssa_def_rewrite_uses(&vec->dest.dest.ssa, nir_src_for_reg(reg));
 
@@ -269,7 +264,7 @@ lower_vec_to_movs_block(nir_block *block, void *void_state)
             continue;
 
          if (!(finished_write_mask & (1 << i)))
-            finished_write_mask |= try_coalesce(vec, i, shader);
+            finished_write_mask |= try_coalesce(vec, i);
 
          if (!(finished_write_mask & (1 << i)))
             finished_write_mask |= insert_mov(vec, i, shader);
@@ -277,25 +272,27 @@ lower_vec_to_movs_block(nir_block *block, void *void_state)
 
       nir_instr_remove(&vec->instr);
       ralloc_free(vec);
-      state->progress = true;
+      progress = true;
    }
 
-   return true;
+   return progress;
 }
 
 static bool
 nir_lower_vec_to_movs_impl(nir_function_impl *impl)
 {
-   struct vec_to_movs_state state = { impl, false };
+   bool progress = false;
 
-   nir_foreach_block(impl, lower_vec_to_movs_block, &state);
+   nir_foreach_block(block, impl) {
+      progress |= lower_vec_to_movs_block(block, impl);
+   }
 
-   if (state.progress) {
+   if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
    }
 
-   return state.progress;
+   return progress;
 }
 
 bool
@@ -303,7 +300,7 @@ nir_lower_vec_to_movs(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          progress = nir_lower_vec_to_movs_impl(function->impl) || progress;
    }

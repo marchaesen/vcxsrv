@@ -35,6 +35,8 @@
  * Silicon Graphics, Inc.
  */
 
+#include "extension_string.h"
+
 typedef struct __GLXconfig __GLXconfig;
 struct __GLXconfig {
     __GLXconfig *next;
@@ -140,19 +142,9 @@ struct __GLXscreen {
     GLint numVisuals;
 
     char *GLextensions;
-
     char *GLXextensions;
-
-    /**
-     * \name GLX version supported by this screen.
-     *
-     * Since the GLX version advertised by the server is for the whole server,
-     * the GLX protocol code uses the minimum version supported on all screens.
-     */
-    /*@{ */
-    unsigned GLXmajor;
-    unsigned GLXminor;
-    /*@} */
+    char *glvnd;
+    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
 
     Bool (*CloseScreen) (ScreenPtr pScreen);
 };

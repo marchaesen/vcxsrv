@@ -43,6 +43,7 @@
 #include "matrix.h"
 #include "mtypes.h"
 #include "math/m_matrix.h"
+#include "util/bitscan.h"
 
 
 /**
@@ -554,20 +555,20 @@ _mesa_MultTransposeMatrixd( const GLdouble *m )
 static void
 update_projection( struct gl_context *ctx )
 {
+   GLbitfield mask;
+
    _math_matrix_analyse( ctx->ProjectionMatrixStack.Top );
 
    /* Recompute clip plane positions in clipspace.  This is also done
     * in _mesa_ClipPlane().
     */
-   if (ctx->Transform.ClipPlanesEnabled) {
-      GLuint p;
-      for (p = 0; p < ctx->Const.MaxClipPlanes; p++) {
-	 if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
-	    _mesa_transform_vector( ctx->Transform._ClipUserPlane[p],
-				 ctx->Transform.EyeUserPlane[p],
-				 ctx->ProjectionMatrixStack.Top->inv );
-	 }
-      }
+   mask = ctx->Transform.ClipPlanesEnabled;
+   while (mask) {
+      const int p = u_bit_scan(&mask);
+
+      _mesa_transform_vector( ctx->Transform._ClipUserPlane[p],
+                              ctx->Transform.EyeUserPlane[p],
+                              ctx->ProjectionMatrixStack.Top->inv );
    }
 }
 

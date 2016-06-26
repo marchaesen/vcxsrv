@@ -61,10 +61,6 @@ extern _X_EXPORT DevPrivateKeyRec xf86ScreenKeyRec;
 
 #define xf86ScreenKey (&xf86ScreenKeyRec)
 
-extern _X_EXPORT DevPrivateKeyRec xf86CreateRootWindowKeyRec;
-
-#define xf86CreateRootWindowKey (&xf86CreateRootWindowKeyRec)
-
 extern _X_EXPORT ScrnInfoPtr *xf86Screens;      /* List of pointers to ScrnInfoRecs */
 extern _X_EXPORT const unsigned char byte_reversed[256];
 extern _X_EXPORT Bool fbSlotClaimed;
@@ -96,6 +92,10 @@ extern _X_EXPORT Bool VTSwitchEnabled;  /* kbd driver */
 
 #define PIX24TOBPP(p) (((p) == Pix24Use24) ? 24 : \
 			(((p) == Pix24Use32) ? 32 : 0))
+
+/* Compatibility functions for pre-input-thread drivers */
+static inline _X_DEPRECATED int xf86BlockSIGIO(void) { input_lock(); return 0; }
+static inline _X_DEPRECATED void xf86UnblockSIGIO(int wasset) { input_unlock(); }
 
 /* Function Prototypes */
 #ifndef _NO_XF86_PROTOTYPES
@@ -306,8 +306,6 @@ xf86ServerIsExiting(void);
 extern _X_EXPORT Bool
 xf86ServerIsResetting(void);
 extern _X_EXPORT Bool
-xf86ServerIsInitialising(void);
-extern _X_EXPORT Bool
 xf86ServerIsOnlyDetecting(void);
 extern _X_EXPORT Bool
 xf86CaughtSignal(void);
@@ -353,9 +351,6 @@ xf86ConfigFbEntity(ScrnInfoPtr pScrn, int scrnFlag,
 
 extern _X_EXPORT Bool
 xf86IsScreenPrimary(ScrnInfoPtr pScrn);
-extern _X_EXPORT int
-xf86RegisterRootWindowProperty(int ScrnIndex, Atom property, Atom type,
-                               int format, unsigned long len, void *value);
 extern _X_EXPORT Bool
 xf86IsUnblank(int mode);
 

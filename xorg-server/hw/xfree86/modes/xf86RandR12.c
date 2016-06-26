@@ -1836,10 +1836,7 @@ xf86RandR14ProviderSetOutputSource(ScreenPtr pScreen,
 {
     if (!source_provider) {
         if (provider->output_source) {
-            ScreenPtr cmScreen = pScreen->current_master;
-
             xf86DetachOutputGPU(pScreen);
-            AttachUnboundGPU(cmScreen, pScreen);
         }
         provider->output_source = NULL;
         return TRUE;
@@ -1850,7 +1847,6 @@ xf86RandR14ProviderSetOutputSource(ScreenPtr pScreen,
 
     SetRootClip(source_provider->pScreen, ROOT_CLIP_NONE);
 
-    DetachUnboundGPU(pScreen);
     AttachOutputGPU(source_provider->pScreen, pScreen);
 
     provider->output_source = source_provider;
@@ -1865,9 +1861,7 @@ xf86RandR14ProviderSetOffloadSink(ScreenPtr pScreen,
 {
     if (!sink_provider) {
         if (provider->offload_sink) {
-            ScreenPtr cmScreen = pScreen->current_master;
             xf86DetachOutputGPU(pScreen);
-            AttachUnboundGPU(cmScreen, pScreen);
         }
 
         provider->offload_sink = NULL;
@@ -1877,7 +1871,6 @@ xf86RandR14ProviderSetOffloadSink(ScreenPtr pScreen,
     if (provider->offload_sink == sink_provider)
         return TRUE;
 
-    DetachUnboundGPU(pScreen);
     AttachOffloadGPU(sink_provider->pScreen, pScreen);
 
     provider->offload_sink = sink_provider;
@@ -1956,12 +1949,12 @@ xf86RandR14ProviderDestroy(ScreenPtr screen, RRProviderPtr provider)
             config->randr_provider->offload_sink = NULL;
             RRSetChanged(screen);
         }
-        else if (config->randr_provider->output_source) {
+        if (config->randr_provider->output_source) {
             xf86DetachOutputGPU(screen);
             config->randr_provider->output_source = NULL;
             RRSetChanged(screen);
         }
-        else if (screen->current_master)
+        if (screen->current_master)
             DetachUnboundGPU(screen);
     }
     config->randr_provider = NULL;

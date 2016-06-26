@@ -381,7 +381,6 @@ AM_CONDITIONAL(PPC_VIDEO, [test "x$PPC_VIDEO" = xyes])
 AM_CONDITIONAL(SPARC64_VIDEO, [test "x$SPARC64_VIDEO" = xyes])
 
 DRI=no
-USE_SIGIO_BY_DEFAULT="yes"
 dnl it would be nice to autodetect these *CONS_SUPPORTs
 case $host_os in
   *freebsd* | *dragonfly*)
@@ -411,9 +410,6 @@ case $host_os in
 	;;
   *solaris*)
 	PKG_CHECK_EXISTS(libdrm, DRI=yes, DRI=no)
-	# Disable use of SIGIO by default until some system bugs are
-	# fixed - see Sun/OpenSolaris bug id 6879897
-	USE_SIGIO_BY_DEFAULT="no"
 	;;
   darwin*)
 	AC_DEFINE(CSRG_BASED, 1, [System is BSD-like])
@@ -446,9 +442,6 @@ AC_ARG_ENABLE(werror,        AS_HELP_STRING([--enable-werror],
 AC_ARG_ENABLE(debug,         AS_HELP_STRING([--enable-debug],
 				  [Enable debugging (default: disabled)]),
 			        [DEBUGGING=$enableval], [DEBUGGING=no])
-AC_ARG_ENABLE(use-sigio-by-default, AS_HELP_STRING([--enable-use-sigio-by-default]
-  [Enable SIGIO input handlers by default (default: $USE_SIGIO_BY_DEFAULT)]),
-                                [USE_SIGIO_BY_DEFAULT=$enableval], [])
 AC_ARG_WITH(int10,           AS_HELP_STRING([--with-int10=BACKEND], [int10 backend: vm86, x86emu or stub]),
 				[INT10="$withval"],
 				[INT10="$DEFAULT_INT10"])
@@ -492,6 +485,25 @@ AC_ARG_ENABLE(listen-unix,   AS_HELP_STRING([--disable-listen-unix],
 AC_ARG_ENABLE(listen-local,  AS_HELP_STRING([--disable-listen-local],
                                             [Listen on local by default (default:enabled)]),
                                 [LISTEN_LOCAL=$enableval], [LISTEN_LOCAL=yes])
+
+case $host_os in
+    linux*)
+        FALLBACK_INPUT_DRIVER="libinput"
+        ;;
+    *)
+        FALLBACK_INPUT_DRIVER=""
+        ;;
+esac
+AC_ARG_WITH(fallback-input-driver,
+            AC_HELP_STRING([--with-fallback-input-driver=$FALLBACK_INPUT_DRIVER],
+                           [Input driver fallback if the requested driver for a device is unavailable]),
+                           [ FALLBACK_INPUT_DRIVER=$withval ], [])
+if test "x$FALLBACK_INPUT_DRIVER" = "xno"; then
+    FALLBACK_INPUT_DRIVER=""
+fi
+AC_MSG_CHECKING([for fallback input driver])
+AC_MSG_RESULT([$FALLBACK_INPUT_DRIVER])
+AC_DEFINE_UNQUOTED(FALLBACK_INPUT_DRIVER, ["$FALLBACK_INPUT_DRIVER"], [ Fallback input driver ])
 
 dnl Determine font path
 XORG_FONTROOTDIR
@@ -555,17 +567,27 @@ AC_ARG_WITH(apple-application-name,AS_HELP_STRING([--with-apple-application-name
 				[ APPLE_APPLICATION_NAME="${withval}" ],
 				[ APPLE_APPLICATION_NAME="X11" ])
 AC_SUBST([APPLE_APPLICATION_NAME])
-AC_ARG_WITH(launchd-id-prefix,  AS_HELP_STRING([--with-launchd-id-prefix=PATH], [Deprecated: Use --with-bundle-id-prefix.]),
-                                [ BUNDLE_ID_PREFIX="${withval}" ],
-                                [ BUNDLE_ID_PREFIX="org.x" ])
-AC_ARG_WITH(bundle-id-prefix,  AS_HELP_STRING([--with-bundle-id-prefix=PATH], [Prefix to use for bundle identifiers (default: org.x)]),
+AC_ARG_WITH(bundle-id-prefix,  AS_HELP_STRING([--with-bundle-id-prefix=RDNS_PREFIX], [Prefix to use for bundle identifiers (default: org.x)]),
                                [ BUNDLE_ID_PREFIX="${withval}" ])
 AC_SUBST([BUNDLE_ID_PREFIX])
 AC_DEFINE_UNQUOTED(BUNDLE_ID_PREFIX, "$BUNDLE_ID_PREFIX", [Prefix to use for bundle identifiers])
+m4_define(DEFAULT_BUNDLE_VERSION, m4_esyscmd([echo ]AC_PACKAGE_VERSION[ | cut -f1-3 -d. | tr -d '\n']))
+AC_ARG_WITH(bundle-version,    AS_HELP_STRING([--with-bundle-version=VERSION], [Version to use for X11.app's CFBundleVersion (default: ]DEFAULT_BUNDLE_VERSION[)]),
+                               [ BUNDLE_VERSION="${withval}" ],
+                               [ BUNDLE_VERSION="DEFAULT_BUNDLE_VERSION" ])
+AC_SUBST([BUNDLE_VERSION])
+AC_ARG_WITH(bundle-version-string, AS_HELP_STRING([--with-bundle-version-string=VERSION], [Version to use for X11.app's CFBundleShortVersionString (default: ]AC_PACKAGE_VERSION[)]),
+                               [ BUNDLE_VERSION_STRING="${withval}" ],
+                               [ BUNDLE_VERSION_STRING="${PACKAGE_VERSION}" ])
+AC_SUBST([BUNDLE_VERSION_STRING])
 AC_ARG_ENABLE(sparkle,AS_HELP_STRING([--enable-sparkle], [Enable updating of X11.app using the Sparkle Framework (default: disabled)]),
 				[ XQUARTZ_SPARKLE="${enableval}" ],
 				[ XQUARTZ_SPARKLE="no" ])
 AC_SUBST([XQUARTZ_SPARKLE])
+AC_ARG_WITH(sparkle-feed-url,  AS_HELP_STRING([--with-sparkle-feed-url=URL], [URL for the Sparkle feed (default: https://www.xquartz.org/releases/sparkle/release.xml)]),
+                               [ XQUARTZ_SPARKLE_FEED_URL="${withval}" ],
+                               [ XQUARTZ_SPARKLE_FEED_URL="https://www.xquartz.org/releases/sparkle/release.xml" ])
+AC_SUBST([XQUARTZ_SPARKLE_FEED_URL])
 AC_ARG_ENABLE(visibility,     AS_HELP_STRING([--enable-visibility], [Enable symbol visibility (default: auto)]),
 				[SYMBOL_VISIBILITY=$enableval],
 				[SYMBOL_VISIBILITY=auto])
@@ -829,6 +851,25 @@ SDK_REQUIRED_MODULES="$XPROTO $RANDRPROTO $RENDERPROTO $XEXTPROTO $INPUTPROTO $K
 # Make SDK_REQUIRED_MODULES available for inclusion in xorg-server.pc
 AC_SUBST(SDK_REQUIRED_MODULES)
 
+AC_CHECK_DECL([PTHREAD_MUTEX_RECURSIVE], [HAVE_RECURSIVE_MUTEX=yes], [HAVE_RECURSIVE_MUTEX=no], [[#include <pthread.h>]])
+
+THREAD_DEFAULT=no
+
+if test "x$HAVE_RECURSIVE_MUTEX" = "xyes" ; then
+	THREAD_DEFAULT=yes
+fi
+
+AC_ARG_ENABLE(input-thread, AS_HELP_STRING([--enable-input-thread],
+	     [Enable input threads]),
+	     [INPUTTHREAD=$enableval], [INPUTTHREAD=$THREAD_DEFAULT])
+
+if test "x$INPUTTHREAD" = "xyes" ; then
+    AX_PTHREAD(,AC_MSG_ERROR([threaded input requested but no pthread support has been found]))
+    SYS_LIBS="$SYS_LIBS $PTHREAD_LIBS"
+    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+    AC_DEFINE(INPUTTHREAD, 1, [Use a separate input thread])
+fi
+
 REQUIRED_MODULES="$FIXESPROTO $DAMAGEPROTO $XCMISCPROTO $XTRANS $BIGREQSPROTO $SDK_REQUIRED_MODULES"
 
 dnl systemd socket activation
@@ -880,7 +921,7 @@ if test "x$CONFIG_UDEV" = xyes; then
 	fi
 	SAVE_LIBS=$LIBS
 	SAVE_CFLAGS=$CFLAGS
-	CFLAGS=$UDEV_CFLAGS
+	CFLAGS="$CFLAGS $UDEV_CFLAGS"
 	LIBS=$UDEV_LIBS
 	AC_CHECK_FUNCS([udev_monitor_filter_add_match_tag])
 	AC_CHECK_FUNCS([udev_enumerate_add_match_tag])
@@ -957,13 +998,6 @@ if test "x$CONFIG_WSCONS" = xyes; then
 	AC_DEFINE(CONFIG_WSCONS, 1, [Use wscons for input auto configuration])
 fi
 
-if test "x$USE_SIGIO_BY_DEFAULT" = xyes; then
-	USE_SIGIO_BY_DEFAULT_VALUE=TRUE
-else
-	USE_SIGIO_BY_DEFAULT_VALUE=FALSE
-fi
-AC_DEFINE_UNQUOTED([USE_SIGIO_BY_DEFAULT], [$USE_SIGIO_BY_DEFAULT_VALUE],
-		   [Use SIGIO handlers for input device events by default])
 
 AC_MSG_CHECKING([for glibc...])
 AC_PREPROC_IFELSE([AC_LANG_SOURCE([
@@ -1293,7 +1327,7 @@ fi
 
 if test "x$DRI2" = xyes; then
 	save_CFLAGS=$CFLAGS
-	CFLAGS="$GL_CFLAGS $LIBDRM_CFLAGS"
+	CFLAGS="$CFLAGS $GL_CFLAGS $LIBDRM_CFLAGS"
 	AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <GL/gl.h>
 #include <GL/internal/dri_interface.h>
 #ifndef __DRI_DRI2
@@ -2150,7 +2184,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes x11-xcb xcb-aux xcb-image xcb-ewmh xcb-icccm])
 
 	if test "x$WINDOWSWM" = xauto; then
 		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
@@ -2476,6 +2510,10 @@ if test "x$XWAYLAND" = xyes; then
 	XWAYLAND_SYS_LIBS="$XWAYLANDMODULES_LIBS $GLX_SYS_LIBS"
 	AC_SUBST([XWAYLAND_LIBS])
 	AC_SUBST([XWAYLAND_SYS_LIBS])
+
+	if test "x$MONOTONIC_CLOCK" != xyes; then
+		AC_MSG_ERROR([Xwayland requires CLOCK_MONOTONIC support.])
+	fi
 
 	WAYLAND_PREFIX=`$PKG_CONFIG --variable=prefix wayland-client`
 	AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner],,

@@ -94,11 +94,6 @@ struct __GLXcontext {
     GLboolean isDirect;
 
     /*
-     ** This flag keeps track of whether there are unflushed GL commands.
-     */
-    GLboolean hasUnflushedCommands;
-
-    /*
      ** Current rendering mode for this context.
      */
     GLenum renderMode;

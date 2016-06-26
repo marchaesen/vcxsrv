@@ -291,7 +291,7 @@ class glx_server_enum_function(glx_enum_function):
         print ''
         print '    compsize = __gl%s_size(%s);' % (f.name, string.join(f.count_parameter_list, ","))
         p = f.variable_length_parameter()
-        print '    return safe_pad(%s);' % (p.size_arg_string())
+        print '    return safe_pad(%s);' % (p.size_string())
 
         print '}'
         print ''
@@ -615,7 +615,6 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         offset = 0
         fixup = []
         params = []
-        plus = ''
         size = ''
         param_offsets = {}
         plusAdded=0
@@ -634,11 +633,10 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
                 if s == 0: s = 1
 
                 sig += "(%u,%u)" % (f.offset_of(p.counter), s)
-                if len(plus)!=0:
-                    plusAdded=1
-                size += '%s%s' % (plus, p.size_arg_string())
-                plus = ', '
-
+		if size == '':
+		    size = p.size_string()
+		else:
+		    size = "safe_add(%s, %s)" % (size, p.size_string())
 
         # If the calculated signature matches a function that has
         # already be emitted, don't emit this function.  Instead, add
@@ -661,10 +659,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
             self.common_emit_fixups(fixup)
             print ''
 
-            if plusAdded:
-                print '    return safe_pad(safe_add(%s));' % (size)
-            else:
-                print '    return safe_pad(%s);' % (size)
+            print '    return safe_pad(%s);' % (size)
             print '}'
             print ''
 

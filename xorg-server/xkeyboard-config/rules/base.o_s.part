@@ -52,6 +52,7 @@
   grp:ralt_rshift_toggle	=	+group(ralt_rshift_toggle)
   grp:alt_shift_toggle	=	+group(alt_shift_toggle)
   grp:alt_shift_toggle_bidir	=	+group(alt_shift_toggle_bidir)
+  grp:lctrl_lwin_toggle	=	+group(lctrl_lwin_toggle)
   lv3:switch		=	+level3(switch)
   lv3:ralt_switch	=	+level3(ralt_switch)
   lv3:ralt_switch_multikey	=	+level3(ralt_switch_multikey)

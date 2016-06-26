@@ -3,18 +3,18 @@
 /*
  * (C) Copyright IBM Corporation 2004
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sub license,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the next
  * paragraph) shall be included in all copies or substantial portions of the
  * Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
@@ -40,7 +40,7 @@
 #include "indirect_util.h"
 #include "indirect_size.h"
 
-#  if defined(__GNUC__)
+#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
 #    define PURE __attribute__((pure))
 #  else
 #    define PURE
@@ -381,6 +381,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_AUX_BUFFERS:
         case GL_DRAW_BUFFER:
         case GL_READ_BUFFER:
+        case GL_SCISSOR_TEST:
         case GL_INDEX_CLEAR_VALUE:
         case GL_INDEX_WRITEMASK:
         case GL_INDEX_MODE:
@@ -601,6 +602,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH_ARB:
 /*      case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:*/
         case GL_RESET_NOTIFICATION_STRATEGY_ARB:
+/*      case GL_RESET_NOTIFICATION_STRATEGY:*/
         case GL_MAX_DEBUG_GROUP_STACK_DEPTH:
         case GL_DEBUG_GROUP_STACK_DEPTH:
         case GL_MAX_UNIFORM_LOCATIONS:
@@ -760,6 +762,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_SMOOTH_POINT_SIZE_RANGE:
         case GL_LINE_WIDTH_RANGE:
         case GL_POLYGON_MODE:
+        case GL_DEPTH_RANGE:
         case GL_MAX_VIEWPORT_DIMS:
         case GL_MAP1_GRID_DOMAIN:
         case GL_MAP2_GRID_SEGMENTS:
@@ -778,12 +781,15 @@ __glGetBooleanv_size( GLenum e )
         case GL_LIGHT_MODEL_AMBIENT:
         case GL_FOG_COLOR:
         case GL_ACCUM_CLEAR_VALUE:
+        case GL_VIEWPORT:
+        case GL_SCISSOR_BOX:
         case GL_COLOR_CLEAR_VALUE:
         case GL_COLOR_WRITEMASK:
         case GL_MAP2_GRID_DOMAIN:
         case GL_BLEND_COLOR:
 /*      case GL_BLEND_COLOR_EXT:*/
         case GL_CURRENT_SECONDARY_COLOR:
+        case GL_WINDOW_RECTANGLE_EXT:
             return 4;
         case GL_MODELVIEW_MATRIX:
         case GL_PROJECTION_MATRIX:
@@ -830,6 +836,9 @@ __glGetBooleanv_size( GLenum e )
         case GL_MAX_PROGRAM_TEXEL_OFFSET:
         case GL_RGBA_INTEGER_MODE_EXT:
         case GL_POLYGON_OFFSET_CLAMP_EXT:
+        case GL_WINDOW_RECTANGLE_MODE_EXT:
+        case GL_MAX_WINDOW_RECTANGLES_EXT:
+        case GL_NUM_WINDOW_RECTANGLES_EXT:
             return __glGetBooleanv_variable_size( e );
         default: return 0;
     }

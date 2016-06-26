@@ -308,10 +308,6 @@ struct timespec {
 #endif /* _TIMESPEC_DEFINED */
 #endif /* HAVE_STRUCT_TIMESPEC */
 
-#if !defined(SIG_BLOCK)
-#define SIG_BLOCK 0
-#endif /* SIG_BLOCK */
-
 #if !defined(SIG_UNBLOCK)
 #define SIG_UNBLOCK 1
 #endif /* SIG_UNBLOCK */

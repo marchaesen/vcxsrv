@@ -967,24 +967,6 @@ _mesa_execute_program(struct gl_context * ctx,
             store_vector4(inst, machine, result);
          }
          break;
-      case OPCODE_SEQ:         /* set on equal */
-         {
-            GLfloat a[4], b[4], result[4];
-            fetch_vector4(&inst->SrcReg[0], machine, a);
-            fetch_vector4(&inst->SrcReg[1], machine, b);
-            result[0] = (a[0] == b[0]) ? 1.0F : 0.0F;
-            result[1] = (a[1] == b[1]) ? 1.0F : 0.0F;
-            result[2] = (a[2] == b[2]) ? 1.0F : 0.0F;
-            result[3] = (a[3] == b[3]) ? 1.0F : 0.0F;
-            store_vector4(inst, machine, result);
-            if (DEBUG_PROG) {
-               printf("SEQ (%g %g %g %g) = (%g %g %g %g) == (%g %g %g %g)\n",
-                      result[0], result[1], result[2], result[3],
-                      a[0], a[1], a[2], a[3],
-                      b[0], b[1], b[2], b[3]);
-            }
-         }
-         break;
       case OPCODE_SGE:         /* set on greater or equal */
          {
             GLfloat a[4], b[4], result[4];
@@ -1003,24 +985,6 @@ _mesa_execute_program(struct gl_context * ctx,
             }
          }
          break;
-      case OPCODE_SGT:         /* set on greater */
-         {
-            GLfloat a[4], b[4], result[4];
-            fetch_vector4(&inst->SrcReg[0], machine, a);
-            fetch_vector4(&inst->SrcReg[1], machine, b);
-            result[0] = (a[0] > b[0]) ? 1.0F : 0.0F;
-            result[1] = (a[1] > b[1]) ? 1.0F : 0.0F;
-            result[2] = (a[2] > b[2]) ? 1.0F : 0.0F;
-            result[3] = (a[3] > b[3]) ? 1.0F : 0.0F;
-            store_vector4(inst, machine, result);
-            if (DEBUG_PROG) {
-               printf("SGT (%g %g %g %g) = (%g %g %g %g) > (%g %g %g %g)\n",
-                      result[0], result[1], result[2], result[3],
-                      a[0], a[1], a[2], a[3],
-                      b[0], b[1], b[2], b[3]);
-            }
-         }
-         break;
       case OPCODE_SIN:
          {
             GLfloat a[4], result[4];
@@ -1028,24 +992,6 @@ _mesa_execute_program(struct gl_context * ctx,
             result[0] = result[1] = result[2] = result[3]
                = sinf(a[0]);
             store_vector4(inst, machine, result);
-         }
-         break;
-      case OPCODE_SLE:         /* set on less or equal */
-         {
-            GLfloat a[4], b[4], result[4];
-            fetch_vector4(&inst->SrcReg[0], machine, a);
-            fetch_vector4(&inst->SrcReg[1], machine, b);
-            result[0] = (a[0] <= b[0]) ? 1.0F : 0.0F;
-            result[1] = (a[1] <= b[1]) ? 1.0F : 0.0F;
-            result[2] = (a[2] <= b[2]) ? 1.0F : 0.0F;
-            result[3] = (a[3] <= b[3]) ? 1.0F : 0.0F;
-            store_vector4(inst, machine, result);
-            if (DEBUG_PROG) {
-               printf("SLE (%g %g %g %g) = (%g %g %g %g) <= (%g %g %g %g)\n",
-                      result[0], result[1], result[2], result[3],
-                      a[0], a[1], a[2], a[3],
-                      b[0], b[1], b[2], b[3]);
-            }
          }
          break;
       case OPCODE_SLT:         /* set on less */
@@ -1060,24 +1006,6 @@ _mesa_execute_program(struct gl_context * ctx,
             store_vector4(inst, machine, result);
             if (DEBUG_PROG) {
                printf("SLT (%g %g %g %g) = (%g %g %g %g) < (%g %g %g %g)\n",
-                      result[0], result[1], result[2], result[3],
-                      a[0], a[1], a[2], a[3],
-                      b[0], b[1], b[2], b[3]);
-            }
-         }
-         break;
-      case OPCODE_SNE:         /* set on not equal */
-         {
-            GLfloat a[4], b[4], result[4];
-            fetch_vector4(&inst->SrcReg[0], machine, a);
-            fetch_vector4(&inst->SrcReg[1], machine, b);
-            result[0] = (a[0] != b[0]) ? 1.0F : 0.0F;
-            result[1] = (a[1] != b[1]) ? 1.0F : 0.0F;
-            result[2] = (a[2] != b[2]) ? 1.0F : 0.0F;
-            result[3] = (a[3] != b[3]) ? 1.0F : 0.0F;
-            store_vector4(inst, machine, result);
-            if (DEBUG_PROG) {
-               printf("SNE (%g %g %g %g) = (%g %g %g %g) != (%g %g %g %g)\n",
                       result[0], result[1], result[2], result[3],
                       a[0], a[1], a[2], a[3],
                       b[0], b[1], b[2], b[3]);

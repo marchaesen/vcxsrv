@@ -2007,10 +2007,6 @@ static const FT_Encoding fcFontEncodings[] = {
 
 #define NUM_DECODE  (int) (sizeof (fcFontEncodings) / sizeof (fcFontEncodings[0]))
 
-static const FcChar32	prefer_unicode[] = {
-    0x20ac,	/* EURO SIGN */
-};
-
 #include "../fc-glyphname/fcglyphname.h"
 
 static FcChar32

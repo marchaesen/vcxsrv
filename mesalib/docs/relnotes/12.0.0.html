@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 12.0.0 Release Notes / TBD</h1>
+
+<p>
+Mesa 12.0.0 is a new development release.
+People who are concerned with stability and reliability should stick
+with a previous release or wait for Mesa 12.0.1.
+</p>
+<p>
+Mesa 12.0.0 implements the OpenGL 4.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.3.  OpenGL
+4.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+TBD.
+</pre>
+
+
+<h2>New features</h2>
+
+<p>
+Note: some of the new features are only available with certain drivers.
+</p>
+
+<ul>
+<li>OpenGL 4.3 on nvc0, radeonsi, i965 (Gen8+)</li>
+<li>OpenGL ES 3.1 on nvc0, radeonsi</li>
+<li>GL_ARB_ES3_1_compatibility on nvc0, radeonsi</li>
+<li>GL_ARB_compute_shader on nvc0, radeonsi, softpipe</li>
+<li>GL_ARB_cull_distance on i965/gen6+, nv50, nvc0, llvmpipe, softpipe</li>
+<li>GL_ARB_framebuffer_no_attachments on nvc0, r600, radeonsi, softpipe</li>
+<li>GL_ARB_internalformat_query2 on all drivers</li>
+<li>GL_ARB_query_buffer_object on i965/hsw+</li>
+<li>GL_ARB_robust_buffer_access_behavior on i965, nvc0, radeonsi</li>
+<li>GL_ARB_shader_atomic_counters on radeonsi, softpipe</li>
+<li>GL_ARB_shader_atomic_counter_ops on nvc0, radeonsi, softpipe</li>
+<li>GL_ARB_shader_image_load_store on nvc0, radeonsi, softpipe</li>
+<li>GL_ARB_shader_image_size on nvc0, radeonsi, softpipe</li>
+<li>GL_ARB_shader_storage_buffer_objects on radeonsi, softpipe</li>
+<li>GL_ATI_fragment_shader on all Gallium drivers</li>
+<li>GL_EXT_base_instance on all drivers that support GL_ARB_base_instance</li>
+<li>GL_EXT_clip_cull_distance on all drivers that support GL_ARB_cull_distance</li>
+<li>GL_KHR_robustness on i965</li>
+<li>GL_OES_copy_image on i965 (Baytrail and Gen8+)</li>
+<li>GL_OES_draw_buffers_indexed and GL_EXT_draw_buffers_indexed on all drivers that support GL_ARB_draw_buffers_blend</li>
+<li>GL_OES_gpu_shader5 and GL_EXT_gpu_shader5 on all drivers that support GL_ARB_gpu_shader5</li>
+<li>GL_OES_sample_shading on i965, nvc0, r600, radeonsi</li>
+<li>GL_OES_sample_variables on i965, nvc0, r600, radeonsi</li>
+<li>GL_OES_shader_image_atomic on all drivers that support GL_ARB_shader_image_load_store</li>
+<li>GL_OES_shader_io_blocks on i965, nvc0, radeonsi</li>
+<li>GL_OES_shader_multisample_interpolation on i965, nvc0, r600, radeonsi</li>
+<li>GL_OES_texture_border_clamp and GL_EXT_texture_border_clamp on all drivers that support GL_ARB_texture_border_clamp</li>
+<li>GL_OES_texture_buffer and GL_EXT_texture_buffer on i965, nvc0, radeonsi</li>
+<li>EGL_KHR_reusable_sync on all drivers</li>
+<li>GL_ARB_stencil_texture8 and GL_OES_stencil_texture8 on i965/gen8+</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+TBD.
+
+<h2>Changes</h2>
+
+TBD.
+
+</div>
+</body>
+</html>

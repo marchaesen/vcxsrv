@@ -258,6 +258,10 @@ device_added(struct udev_device *udev_device)
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_TABLET;
         }
+        else if (!strcmp(key, "ID_INPUT_TABLET_PAD")) {
+            LOG_PROPERTY(path, key, value);
+            attrs.flags |= ATTR_TABLET_PAD;
+        }
         else if (!strcmp(key, "ID_INPUT_TOUCHPAD")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_TOUCHPAD;

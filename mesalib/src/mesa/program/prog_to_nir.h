@@ -24,6 +24,9 @@
 #pragma once
 #ifndef PROG_TO_NIR_H
 #define PROG_TO_NIR_H
+
+#include "compiler/nir/nir.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

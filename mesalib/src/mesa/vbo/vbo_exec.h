@@ -101,6 +101,7 @@ struct vbo_exec_context
       GLuint max_vert;     /**< Max number of vertices allowed in buffer */
       struct vbo_exec_copied_vtx copied;
 
+      GLbitfield64 enabled;             /**< mask of enabled vbo arrays. */
       GLubyte attrsz[VBO_ATTRIB_MAX];   /**< nr. of attrib components (1..4) */
       GLenum attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_DOUBLE, GL_INT, etc */
       GLubyte active_sz[VBO_ATTRIB_MAX];  /**< attrib size (nr. 32-bit words) */

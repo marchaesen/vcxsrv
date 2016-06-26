@@ -2,7 +2,8 @@ SHAREDLIB=libxcb
 
 CSRCS = \
 		xcb_conn.c xcb_out.c xcb_in.c xcb_ext.c xcb_xid.c \
-		xcb_list.c xcb_util.c xcb_auth.c
+		xcb_list.c xcb_util.c xcb_auth.c \
+		icccm.c xcb_aux.c ewmh.c xcb_image.c
 
 DEFINES += PTW32_STATIC_LIB HAVE_GETADDRINFO LIBXCB_DLL
 

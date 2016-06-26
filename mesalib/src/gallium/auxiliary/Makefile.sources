@@ -274,6 +274,8 @@ C_SOURCES := \
 	util/u_pstipple.c \
 	util/u_pstipple.h \
 	util/u_pwr8.h \
+	util/u_queue.c \
+	util/u_queue.h \
 	util/u_range.h \
 	util/u_rect.h \
 	util/u_resource.c \
@@ -288,8 +290,6 @@ C_SOURCES := \
 	util/u_slab.h \
 	util/u_split_prim.h \
 	util/u_sse.h \
-	util/u_staging.c \
-	util/u_staging.h \
 	util/u_string.h \
 	util/u_suballoc.c \
 	util/u_suballoc.h \
@@ -353,6 +353,9 @@ VL_SOURCES := \
 VL_WINSYS_SOURCES := \
 	vl/vl_winsys_dri.c \
 	vl/vl_winsys_drm.c
+
+VL_WINSYS_DRI3_SOURCES := \
+	vl/vl_winsys_dri3.c
 
 VL_STUB_SOURCES := \
 	vl/vl_stubs.c

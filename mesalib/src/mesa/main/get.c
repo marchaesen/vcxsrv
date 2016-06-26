@@ -384,6 +384,13 @@ static const int extra_ARB_shader_storage_buffer_object_and_geometry_shader[] = 
    EXTRA_END
 };
 
+static const int extra_ARB_shader_image_load_store_shader_storage_buffer_object_es31[] = {
+   EXT(ARB_shader_image_load_store),
+   EXT(ARB_shader_storage_buffer_object),
+   EXTRA_API_ES31,
+   EXTRA_END
+};
+
 static const int extra_ARB_framebuffer_no_attachments_and_geometry_shader[] = {
    EXTRA_EXT_FB_NO_ATTACH_GS,
    EXTRA_END
@@ -399,6 +406,11 @@ static const int extra_ARB_gpu_shader5_or_oes_geometry_shader[] = {
    EXT(ARB_gpu_shader5),
    EXTRA_EXT_ES_GS,
    EXTRA_END
+};
+
+static const int extra_ARB_gpu_shader5_or_OES_sample_variables[] = {
+   EXT(ARB_gpu_shader5),
+   EXT(OES_sample_variables),
 };
 
 EXTRA_EXT(ARB_texture_cube_map);
@@ -438,8 +450,6 @@ EXTRA_EXT(ARB_shader_atomic_counters);
 EXTRA_EXT(ARB_draw_indirect);
 EXTRA_EXT(ARB_shader_image_load_store);
 EXTRA_EXT(ARB_viewport_array);
-EXTRA_EXT(ARB_compute_shader);
-EXTRA_EXT(ARB_gpu_shader5);
 EXTRA_EXT(ARB_query_buffer_object);
 EXTRA_EXT2(ARB_transform_feedback3, ARB_gpu_shader5);
 EXTRA_EXT(INTEL_performance_query);
@@ -453,6 +463,8 @@ EXTRA_EXT(ARB_shader_storage_buffer_object);
 EXTRA_EXT(ARB_indirect_parameters);
 EXTRA_EXT(ATI_meminfo);
 EXTRA_EXT(NVX_gpu_memory_info);
+EXTRA_EXT(ARB_cull_distance);
+EXTRA_EXT(EXT_window_rectangles);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -470,7 +482,6 @@ extra_NV_primitive_restart[] = {
 static const int extra_version_30[] = { EXTRA_VERSION_30, EXTRA_END };
 static const int extra_version_31[] = { EXTRA_VERSION_31, EXTRA_END };
 static const int extra_version_32[] = { EXTRA_VERSION_32, EXTRA_END };
-static const int extra_version_40[] = { EXTRA_VERSION_40, EXTRA_END };
 
 static const int extra_gl30_es3[] = {
     EXTRA_VERSION_30,
@@ -542,71 +553,6 @@ static const int extra_core_ARB_color_buffer_float_and_new_buffers[] = {
  * for 80% of the enums, 1 collision for 10% and never more than 5
  * collisions for any enum (typical numbers).  And the code is very
  * simple, even though it feels a little magic. */
-
-#ifdef GET_DEBUG
-static void
-print_table_stats(int api)
-{
-   int i, j, collisions[11], count, hash, mask;
-   const struct value_desc *d;
-   const char *api_names[] = {
-      [API_OPENGL_COMPAT] = "GL",
-      [API_OPENGL_CORE] = "GL_CORE",
-      [API_OPENGLES] = "GLES",
-      [API_OPENGLES2] = "GLES2",
-   };
-   const char *api_name;
-
-   api_name = api < ARRAY_SIZE(api_names) ? api_names[api] : "N/A";
-   count = 0;
-   mask = ARRAY_SIZE(table(api)) - 1;
-   memset(collisions, 0, sizeof collisions);
-
-   for (i = 0; i < ARRAY_SIZE(table(api)); i++) {
-      if (!table(api)[i])
-         continue;
-      count++;
-      d = &values[table(api)[i]];
-      hash = (d->pname * prime_factor);
-      j = 0;
-      while (1) {
-         if (values[table(api)[hash & mask]].pname == d->pname)
-            break;
-         hash += prime_step;
-         j++;
-      }
-
-      if (j < 10)
-         collisions[j]++;
-      else
-         collisions[10]++;
-   }
-
-   printf("number of enums for %s: %d (total %ld)\n",
-         api_name, count, ARRAY_SIZE(values));
-   for (i = 0; i < ARRAY_SIZE(collisions) - 1; i++)
-      if (collisions[i] > 0)
-         printf("  %d enums with %d %scollisions\n",
-               collisions[i], i, i == 10 ? "or more " : "");
-}
-#endif
-
-/**
- * Initialize the enum hash for a given API 
- *
- * This is called from one_time_init() to insert the enum values that
- * are valid for the API in question into the enum hash table.
- *
- * \param the current context, for determining the API in question
- */
-void _mesa_init_get_hash(struct gl_context *ctx)
-{
-#ifdef GET_DEBUG
-   print_table_stats(ctx->API);
-#else
-   (void) ctx;
-#endif
-}
 
 /**
  * Handle irregular enums
@@ -1900,8 +1846,8 @@ tex_binding_to_index(const struct gl_context *ctx, GLenum binding)
          || _mesa_is_gles3(ctx)
          ? TEXTURE_2D_ARRAY_INDEX : -1;
    case GL_TEXTURE_BINDING_BUFFER:
-      return ctx->API == API_OPENGL_CORE &&
-             ctx->Extensions.ARB_texture_buffer_object ?
+      return (_mesa_has_ARB_texture_buffer_object(ctx) ||
+              _mesa_has_OES_texture_buffer(ctx)) ?
              TEXTURE_BUFFER_INDEX : -1;
    case GL_TEXTURE_BINDING_CUBE_MAP_ARRAY:
       return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_cube_map_array
@@ -1997,6 +1943,17 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
       v->value_int_4[1] = ctx->Scissor.ScissorArray[index].Y;
       v->value_int_4[2] = ctx->Scissor.ScissorArray[index].Width;
       v->value_int_4[3] = ctx->Scissor.ScissorArray[index].Height;
+      return TYPE_INT_4;
+
+   case GL_WINDOW_RECTANGLE_EXT:
+      if (!ctx->Extensions.EXT_window_rectangles)
+         goto invalid_enum;
+      if (index >= ctx->Const.MaxWindowRectangles)
+         goto invalid_value;
+      v->value_int_4[0] = ctx->Scissor.WindowRects[index].X;
+      v->value_int_4[1] = ctx->Scissor.WindowRects[index].Y;
+      v->value_int_4[2] = ctx->Scissor.WindowRects[index].Width;
+      v->value_int_4[3] = ctx->Scissor.WindowRects[index].Height;
       return TYPE_INT_4;
 
    case GL_VIEWPORT:

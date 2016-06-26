@@ -173,6 +173,10 @@ SOFTWARE.
 
 #endif                          /* WIN32 */
 
+#if !defined(WIN32) || defined(__CYGWIN__)
+#include <libgen.h>
+#endif
+
 #define X_INCLUDE_NETDB_H
 #include <X11/Xos_r.h>
 
@@ -1255,9 +1259,8 @@ ResetHosts(const char *display)
     }
 }
 
-/* Is client on the local host */
-Bool
-ComputeLocalClient(ClientPtr client)
+static Bool
+xtransLocalClient(ClientPtr client)
 {
     int alen, family, notused;
     Xtransaddr *from = NULL;
@@ -1288,6 +1291,41 @@ ComputeLocalClient(ClientPtr client)
         free(from);
     }
     return FALSE;
+}
+
+/* Is client on the local host */
+Bool
+ComputeLocalClient(ClientPtr client)
+{
+    const char *cmdname = GetClientCmdName(client);
+
+    if (!xtransLocalClient(client))
+        return FALSE;
+
+    /* If the executable name is "ssh", assume that this client connection
+     * is forwarded from another host via SSH
+     */
+    if (cmdname) {
+        char *cmd = strdup(cmdname);
+        Bool ret;
+
+        /* Cut off any colon and whatever comes after it, see
+         * https://lists.freedesktop.org/archives/xorg-devel/2015-December/048164.html
+         */
+        cmd = strtok(cmd, ":");
+
+#if !defined(WIN32) || defined(__CYGWIN__)
+        ret = strcmp(basename(cmd), "ssh") != 0;
+#else
+        ret = strcmp(cmd, "ssh") != 0;
+#endif
+
+        free(cmd);
+
+        return ret;
+    }
+
+    return TRUE;
 }
 
 /*

@@ -46,6 +46,7 @@
 #include "st_mesa_to_tgsi.h"
 #include "st_cb_program.h"
 #include "st_glsl_to_tgsi.h"
+#include "st_atifs_to_tgsi.h"
 
 
 
@@ -302,6 +303,22 @@ st_program_string_notify( struct gl_context *ctx,
       if (st->cp == stcp)
          st->dirty_cp.st |= ST_NEW_COMPUTE_PROGRAM;
    }
+   else if (target == GL_FRAGMENT_SHADER_ATI) {
+      assert(prog);
+
+      struct st_fragment_program *stfp = (struct st_fragment_program *) prog;
+      assert(stfp->ati_fs);
+      assert(stfp->ati_fs->Program == prog);
+
+      st_init_atifs_prog(ctx, prog);
+
+      st_release_fp_variants(st, stfp);
+      if (!st_translate_fragment_program(st, stfp))
+         return false;
+
+      if (st->fp == stfp)
+         st->dirty.st |= ST_NEW_FRAGMENT_PROGRAM;
+   }
 
    if (ST_DEBUG & DEBUG_PRECOMPILE ||
        st->shader_has_one_variant[stage])
@@ -310,6 +327,19 @@ st_program_string_notify( struct gl_context *ctx,
    return GL_TRUE;
 }
 
+/**
+ * Called via ctx->Driver.NewATIfs()
+ * Called in glEndFragmentShaderATI()
+ */
+static struct gl_program *
+st_new_ati_fs(struct gl_context *ctx, struct ati_fragment_shader *curProg)
+{
+   struct gl_program *prog = ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB,
+         curProg->Id);
+   struct st_fragment_program *stfp = (struct st_fragment_program *)prog;
+   stfp->ati_fs = curProg;
+   return prog;
+}
 
 /**
  * Plug in the program and shader-related device driver functions.
@@ -322,6 +352,7 @@ st_init_program_functions(struct dd_function_table *functions)
    functions->NewProgram = st_new_program;
    functions->DeleteProgram = st_delete_program;
    functions->ProgramStringNotify = st_program_string_notify;
+   functions->NewATIfs = st_new_ati_fs;
    
    functions->LinkShader = st_link_shader;
 }

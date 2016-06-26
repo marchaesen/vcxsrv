@@ -944,14 +944,9 @@ are missing.
 <title>devReadInput()</title>
 
 <para>Each device will have some function that gets called to read its
-physical input.  These may be called in a number of different ways.  In
-the case of synchronous I/O, they will be called from a DDX
-wakeup-handler that gets called after the server detects that new input is
-available.  In the case of asynchronous I/O, they will be called from a
-(SIGIO) signal handler triggered when new input is available.  This
-function should do at least two things: make sure that input events get
-enqueued, and make sure that the cursor gets moved for motion events
-(except if these are handled later by the driver's own event queue
+physical input. This function should do at least two things: make sure that
+input events get enqueued, and make sure that the cursor gets moved for motion
+events (except if these are handled later by the driver's own event queue
 processing function, which cannot be done when using the MI event queue
 handling).
 </para>

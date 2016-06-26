@@ -19,9 +19,9 @@
 	<key>CFBundlePackageType</key>
 		<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-		<string>2.7.7</string>
+		<string>BUNDLE_VERSION_STRING</string>
 	<key>CFBundleVersion</key>
-		<string>2.7.7</string>
+		<string>BUNDLE_VERSION</string>
 	<key>CFBundleSignature</key>
 		<string>x11a</string>
 	<key>CSResourcesFileMapped</key>
@@ -34,27 +34,14 @@
 	<key>SUPublicDSAKeyFile</key>
 		<string>sparkle.pem</string>
         <key>SUFeedURL</key>
-                <string>http://xquartz.macosforge.org/downloads/sparkle/release.xml</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>macosforge.org</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
+                <string>XQUARTZ_SPARKLE_FEED_URL</string>
 #endif
 	<key>LSApplicationCategoryType</key>
 		<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
-		<string>© 2003-2013 Apple Inc.
+		<string>© 2003-2016 Apple Inc.
 © 2003 XFree86 Project, Inc.
-© 2003-2013 X.org Foundation, Inc.
+© 2003-2016 X.org Foundation, Inc.
 </string>
 	<key>NSMainNibFile</key>
 		<string>main</string>

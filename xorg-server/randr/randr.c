@@ -484,7 +484,10 @@ TellChanged(WindowPtr pWin, void *value)
                     RRDeliverCrtcEvent(client, pWin, crtc);
             }
 
-            xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+            xorg_list_for_each_entry(iter, &pScreen->slave_list, slave_head) {
+                if (!iter->is_output_slave)
+                    continue;
+
                 pSlaveScrPriv = rrGetScrPriv(iter);
                 for (i = 0; i < pSlaveScrPriv->numCrtcs; i++) {
                     RRCrtcPtr crtc = pSlaveScrPriv->crtcs[i];
@@ -503,7 +506,10 @@ TellChanged(WindowPtr pWin, void *value)
                     RRDeliverOutputEvent(client, pWin, output);
             }
 
-            xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+            xorg_list_for_each_entry(iter, &pScreen->slave_list, slave_head) {
+                if (!iter->is_output_slave)
+                    continue;
+
                 pSlaveScrPriv = rrGetScrPriv(iter);
                 for (i = 0; i < pSlaveScrPriv->numOutputs; i++) {
                     RROutputPtr output = pSlaveScrPriv->outputs[i];
@@ -515,17 +521,7 @@ TellChanged(WindowPtr pWin, void *value)
         }
 
         if (pRREvent->mask & RRProviderChangeNotifyMask) {
-            xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
-                pSlaveScrPriv = rrGetScrPriv(iter);
-                if (pSlaveScrPriv->provider->changed)
-                    RRDeliverProviderEvent(client, pWin, pSlaveScrPriv->provider);
-            }
-            xorg_list_for_each_entry(iter, &pScreen->offload_slave_list, offload_head) {
-                pSlaveScrPriv = rrGetScrPriv(iter);
-                if (pSlaveScrPriv->provider->changed)
-                    RRDeliverProviderEvent(client, pWin, pSlaveScrPriv->provider);
-            }
-            xorg_list_for_each_entry(iter, &pScreen->unattached_list, unattached_head) {
+            xorg_list_for_each_entry(iter, &pScreen->slave_list, slave_head) {
                 pSlaveScrPriv = rrGetScrPriv(iter);
                 if (pSlaveScrPriv->provider->changed)
                     RRDeliverProviderEvent(client, pWin, pSlaveScrPriv->provider);
@@ -585,6 +581,18 @@ RRTellChanged(ScreenPtr pScreen)
         mastersp = pScrPriv;
     }
 
+    xorg_list_for_each_entry(iter, &master->slave_list, slave_head) {
+        pSlaveScrPriv = rrGetScrPriv(iter);
+
+        if (!iter->is_output_slave)
+            continue;
+
+        if (CompareTimeStamps(mastersp->lastSetTime,
+                              pSlaveScrPriv->lastSetTime) == EARLIER) {
+            mastersp->lastSetTime = pSlaveScrPriv->lastSetTime;
+        }
+    }
+
     if (mastersp->changed) {
         UpdateCurrentTimeIf();
         if (mastersp->configChanged) {
@@ -603,21 +611,15 @@ RRTellChanged(ScreenPtr pScreen)
         for (i = 0; i < pScrPriv->numCrtcs; i++)
             pScrPriv->crtcs[i]->changed = FALSE;
 
-        xorg_list_for_each_entry(iter, &master->output_slave_list, output_head) {
+        xorg_list_for_each_entry(iter, &master->slave_list, slave_head) {
             pSlaveScrPriv = rrGetScrPriv(iter);
             pSlaveScrPriv->provider->changed = FALSE;
-            for (i = 0; i < pSlaveScrPriv->numOutputs; i++)
-                pSlaveScrPriv->outputs[i]->changed = FALSE;
-            for (i = 0; i < pSlaveScrPriv->numCrtcs; i++)
-                pSlaveScrPriv->crtcs[i]->changed = FALSE;
-        }
-        xorg_list_for_each_entry(iter, &master->offload_slave_list, offload_head) {
-            pSlaveScrPriv = rrGetScrPriv(iter);
-            pSlaveScrPriv->provider->changed = FALSE;
-        }
-        xorg_list_for_each_entry(iter, &master->unattached_list, unattached_head) {
-            pSlaveScrPriv = rrGetScrPriv(iter);
-            pSlaveScrPriv->provider->changed = FALSE;
+            if (iter->is_output_slave) {
+                for (i = 0; i < pSlaveScrPriv->numOutputs; i++)
+                    pSlaveScrPriv->outputs[i]->changed = FALSE;
+                for (i = 0; i < pSlaveScrPriv->numCrtcs; i++)
+                    pSlaveScrPriv->crtcs[i]->changed = FALSE;
+            }
         }
 
         if (mastersp->layoutChanged) {
@@ -677,6 +679,7 @@ ProcRRDispatch(ClientPtr client)
     REQUEST(xReq);
     if (stuff->data >= RRNumberRequests || !ProcRandrVector[stuff->data])
         return BadRequest;
+    UpdateCurrentTimeIf();
     return (*ProcRandrVector[stuff->data]) (client);
 }
 
@@ -686,5 +689,6 @@ SProcRRDispatch(ClientPtr client)
     REQUEST(xReq);
     if (stuff->data >= RRNumberRequests || !SProcRandrVector[stuff->data])
         return BadRequest;
+    UpdateCurrentTimeIf();
     return (*SProcRandrVector[stuff->data]) (client);
 }

@@ -83,8 +83,7 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
         BoxPtr                  boxes = in_boxes;
         int                     nbox = in_nbox;
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fbo->tex);
+        glamor_bind_texture(glamor_priv, GL_TEXTURE0, fbo, TRUE);
 
         while (nbox--) {
 

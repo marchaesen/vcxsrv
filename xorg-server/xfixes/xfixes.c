@@ -212,23 +212,6 @@ SProcXFixesDispatch(ClientPtr client)
     return (*SProcXFixesVector[stuff->xfixesReqType]) (client);
 }
 
-static void
-XFixesClientCallback(CallbackListPtr *list, void *closure, void *data)
-{
-    NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
-    ClientPtr pClient = clientinfo->client;
-    XFixesClientPtr pXFixesClient = GetXFixesClient(pClient);
-
-    pXFixesClient->major_version = 0;
-    pXFixesClient->minor_version = 0;
-}
-
- /*ARGSUSED*/ static void
-XFixesResetProc(ExtensionEntry * extEntry)
-{
-    DeleteCallback(&ClientStateCallback, XFixesClientCallback, 0);
-}
-
 void
 XFixesExtensionInit(void)
 {
@@ -237,14 +220,12 @@ XFixesExtensionInit(void)
     if (!dixRegisterPrivateKey
         (&XFixesClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(XFixesClientRec)))
         return;
-    if (!AddCallback(&ClientStateCallback, XFixesClientCallback, 0))
-        return;
 
     if (XFixesSelectionInit() && XFixesCursorInit() && XFixesRegionInit() &&
         (extEntry = AddExtension(XFIXES_NAME, XFixesNumberEvents,
                                  XFixesNumberErrors,
                                  ProcXFixesDispatch, SProcXFixesDispatch,
-                                 XFixesResetProc, StandardMinorOpcode)) != 0) {
+                                 NULL, StandardMinorOpcode)) != 0) {
         XFixesReqCode = (unsigned char) extEntry->base;
         XFixesEventBase = extEntry->eventBase;
         XFixesErrorBase = extEntry->errorBase;

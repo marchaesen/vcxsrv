@@ -169,10 +169,6 @@ extern _X_EXPORT Bool xf86GARTCloseScreen(int screenNum);
 extern _X_EXPORT int xf86InstallSIGIOHandler(int fd, void (*f) (int, void *),
                                              void *);
 extern _X_EXPORT int xf86RemoveSIGIOHandler(int fd);
-extern _X_EXPORT int xf86BlockSIGIO(void);
-extern _X_EXPORT void xf86UnblockSIGIO(int);
-extern _X_EXPORT void xf86AssertBlockedSIGIO(char *);
-extern _X_EXPORT Bool xf86SIGIOSupported(void);
 
 #ifdef XF86_OS_PRIVS
 typedef void (*PMClose) (void);

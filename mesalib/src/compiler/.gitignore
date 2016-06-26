@@ -1,1 +1,5 @@
 glsl_compiler
+subtest-cr
+subtest-cr-lf
+subtest-lf
+subtest-lf-cr

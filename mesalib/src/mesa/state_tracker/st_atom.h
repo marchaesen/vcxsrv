@@ -63,6 +63,7 @@ extern const struct st_tracked_state st_update_rasterizer;
 extern const struct st_tracked_state st_update_polygon_stipple;
 extern const struct st_tracked_state st_update_viewport;
 extern const struct st_tracked_state st_update_scissor;
+extern const struct st_tracked_state st_update_window_rectangles;
 extern const struct st_tracked_state st_update_blend;
 extern const struct st_tracked_state st_update_msaa;
 extern const struct st_tracked_state st_update_sample_shading;

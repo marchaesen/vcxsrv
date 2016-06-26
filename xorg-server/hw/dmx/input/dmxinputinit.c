@@ -63,7 +63,6 @@
 #include "usb-other.h"
 #include "usb-common.h"
 
-#include "dmxsigio.h"
 #include "dmxarg.h"
 
 #include "inputstr.h"
@@ -434,7 +433,6 @@ static int
 dmxDeviceOnOff(DeviceIntPtr pDevice, int what)
 {
     GETDMXINPUTFROMPDEVICE;
-    int fd;
     DMXLocalInitInfo info;
     int i;
     Atom btn_labels[MAX_BUTTONS] = { 0 };       /* FIXME */
@@ -523,8 +521,8 @@ dmxDeviceOnOff(DeviceIntPtr pDevice, int what)
         break;
     case DEVICE_ON:
         if (!pDev->on) {
-            if (dmxLocal->on && (fd = dmxLocal->on(pDev)) >= 0)
-                dmxSigioRegister(dmxInput, fd);
+            if (dmxLocal->on)
+		dmxLocal->on(pDev);
             pDev->on = TRUE;
         }
         break;
@@ -534,7 +532,6 @@ dmxDeviceOnOff(DeviceIntPtr pDevice, int what)
          * detached screen (DEVICE_OFF), and then again at server
          * generation time (DEVICE_CLOSE). */
         if (pDev->on) {
-            dmxSigioUnregister(dmxInput);
             if (dmxLocal->off)
                 dmxLocal->off(pDev);
             pDev->on = FALSE;
@@ -654,7 +651,6 @@ dmxSwitchReturn(void *p)
 
     if (!dmxInput->vt_switched)
         dmxLog(dmxFatal, "dmxSwitchReturn called, but not switched\n");
-    dmxSigioEnableInput();
     for (i = 0; i < dmxInput->numDevs; i++)
         if (dmxInput->devs[i]->vt_post_switch)
             dmxInput->devs[i]->vt_post_switch(dmxInput->devs[i]->private);
@@ -676,7 +672,6 @@ dmxWakeupHandler(void *blockData, int result, void *pReadMask)
         dmxInput->vt_switch_pending = 0;
         for (i = 0; i < dmxInput->numDevs; i++) {
             if (dmxInput->devs[i]->vt_switch) {
-                dmxSigioDisableInput();
                 if (!dmxInput->devs[i]->vt_switch(dmxInput->devs[i]->private,
                                                   dmxInput->vt_switched,
                                                   dmxSwitchReturn, dmxInput))

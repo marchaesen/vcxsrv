@@ -227,7 +227,7 @@ class Swizzle:
 class Format:
    """Describes a pixel format."""
 
-   def __init__(self, name, layout, block_width, block_height, channels, swizzle, colorspace):
+   def __init__(self, name, layout, block_width, block_height, block_depth, channels, swizzle, colorspace):
       """Constructs a Format from some metadata and a list of channels.
 
       The channel objects must be unique to this Format and should not be
@@ -241,6 +241,7 @@ class Format:
       layout -- One of 'array', 'packed' 'other', or a compressed layout
       block_width -- The block width if the format is compressed, 1 otherwise
       block_height -- The block height if the format is compressed, 1 otherwise
+      block_depth -- The block depth if the format is compressed, 1 otherwise
       channels -- A list of Channel objects
       swizzle -- A Swizzle from this format to rgba
       colorspace -- one of 'rgb', 'srgb', 'yuv', or 'zs'
@@ -249,6 +250,7 @@ class Format:
       self.layout = layout
       self.block_width = block_width
       self.block_height = block_height
+      self.block_depth = block_depth
       self.channels = channels
       assert isinstance(swizzle, Swizzle)
       self.swizzle = swizzle
@@ -361,7 +363,7 @@ class Format:
 
    def is_compressed(self):
       """Returns true if this is a compressed format."""
-      return self.block_width != 1 or self.block_height != 1
+      return self.block_width != 1 or self.block_height != 1 or self.block_depth != 1
 
    def is_int(self):
       """Returns true if this format is an integer format.
@@ -555,12 +557,13 @@ def parse(filename):
          layout = fields[1]
          block_width = int(fields[2])
          block_height = int(fields[3])
-         colorspace = fields[9]
+         block_depth = int(fields[4])
+         colorspace = fields[10]
 
          try:
-            swizzle = Swizzle(fields[8])
+            swizzle = Swizzle(fields[9])
          except:
             sys.exit("error parsing swizzle for format " + name)
-         channels = _parse_channels(fields[4:8], layout, colorspace, swizzle)
+         channels = _parse_channels(fields[5:9], layout, colorspace, swizzle)
 
-         yield Format(name, layout, block_width, block_height, channels, swizzle, colorspace)
+         yield Format(name, layout, block_width, block_height, block_depth, channels, swizzle, colorspace)

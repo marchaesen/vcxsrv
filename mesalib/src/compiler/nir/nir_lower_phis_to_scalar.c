@@ -146,7 +146,7 @@ should_lower_phi(nir_phi_instr *phi, struct lower_phis_to_scalar_state *state)
 
    bool scalarizable = true;
 
-   nir_foreach_phi_src(phi, src) {
+   nir_foreach_phi_src(src, phi) {
       scalarizable = is_phi_src_scalarizable(src, state);
       if (!scalarizable)
          break;
@@ -163,13 +163,12 @@ should_lower_phi(nir_phi_instr *phi, struct lower_phis_to_scalar_state *state)
 }
 
 static bool
-lower_phis_to_scalar_block(nir_block *block, void *void_state)
+lower_phis_to_scalar_block(nir_block *block,
+                           struct lower_phis_to_scalar_state *state)
 {
-   struct lower_phis_to_scalar_state *state = void_state;
-
    /* Find the last phi node in the block */
    nir_phi_instr *last_phi = NULL;
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       if (instr->type != nir_instr_type_phi)
          break;
 
@@ -179,7 +178,7 @@ lower_phis_to_scalar_block(nir_block *block, void *void_state)
    /* We have to handle the phi nodes in their own pass due to the way
     * we're modifying the linked list of instructions.
     */
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_phi)
          break;
 
@@ -187,6 +186,8 @@ lower_phis_to_scalar_block(nir_block *block, void *void_state)
 
       if (!should_lower_phi(phi, state))
          continue;
+
+      unsigned bit_size = phi->dest.ssa.bit_size;
 
       /* Create a vecN operation to combine the results.  Most of these
        * will be redundant, but copy propagation should clean them up for
@@ -202,20 +203,22 @@ lower_phis_to_scalar_block(nir_block *block, void *void_state)
 
       nir_alu_instr *vec = nir_alu_instr_create(state->mem_ctx, vec_op);
       nir_ssa_dest_init(&vec->instr, &vec->dest.dest,
-                        phi->dest.ssa.num_components, NULL);
+                        phi->dest.ssa.num_components,
+                        bit_size, NULL);
       vec->dest.write_mask = (1 << phi->dest.ssa.num_components) - 1;
 
       for (unsigned i = 0; i < phi->dest.ssa.num_components; i++) {
          nir_phi_instr *new_phi = nir_phi_instr_create(state->mem_ctx);
-         nir_ssa_dest_init(&new_phi->instr, &new_phi->dest, 1, NULL);
+         nir_ssa_dest_init(&new_phi->instr, &new_phi->dest, 1,
+                           phi->dest.ssa.bit_size, NULL);
 
          vec->src[i].src = nir_src_for_ssa(&new_phi->dest.ssa);
 
-         nir_foreach_phi_src(phi, src) {
+         nir_foreach_phi_src(src, phi) {
             /* We need to insert a mov to grab the i'th component of src */
             nir_alu_instr *mov = nir_alu_instr_create(state->mem_ctx,
                                                       nir_op_imov);
-            nir_ssa_dest_init(&mov->instr, &mov->dest.dest, 1, NULL);
+            nir_ssa_dest_init(&mov->instr, &mov->dest.dest, 1, bit_size, NULL);
             mov->dest.write_mask = 1;
             nir_src_copy(&mov->src[0].src, &src->src, state->mem_ctx);
             mov->src[0].swizzle[0] = i;
@@ -268,7 +271,9 @@ lower_phis_to_scalar_impl(nir_function_impl *impl)
    state.phi_table = _mesa_hash_table_create(state.dead_ctx, _mesa_hash_pointer,
                                              _mesa_key_pointer_equal);
 
-   nir_foreach_block(impl, lower_phis_to_scalar_block, &state);
+   nir_foreach_block(block, impl) {
+      lower_phis_to_scalar_block(block, &state);
+   }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
@@ -286,7 +291,7 @@ lower_phis_to_scalar_impl(nir_function_impl *impl)
 void
 nir_lower_phis_to_scalar(nir_shader *shader)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          lower_phis_to_scalar_impl(function->impl);
    }

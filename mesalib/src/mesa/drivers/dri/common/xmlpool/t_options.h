@@ -158,6 +158,11 @@ DRI_CONF_OPT_BEGIN_B(force_s3tc_enable, def) \
         DRI_CONF_DESC(en,gettext("Enable S3TC texture compression even if software support is not available")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_PRECISE_TRIG(def) \
+DRI_CONF_OPT_BEGIN_B(precise_trig, def) \
+        DRI_CONF_DESC(en,gettext("Prefer accuracy over performance in trig functions")) \
+DRI_CONF_OPT_END
+
 #define DRI_CONF_COLOR_REDUCTION_ROUND 0
 #define DRI_CONF_COLOR_REDUCTION_DITHER 1
 #define DRI_CONF_COLOR_REDUCTION(def) \

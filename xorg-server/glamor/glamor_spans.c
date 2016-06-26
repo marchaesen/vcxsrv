@@ -294,8 +294,7 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
         BoxPtr              box = glamor_pixmap_box_at(pixmap_priv, box_index);
         glamor_pixmap_fbo  *fbo = glamor_pixmap_fbo_at(pixmap_priv, box_index);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fbo->tex);
+        glamor_bind_texture(glamor_priv, GL_TEXTURE0, fbo, TRUE);
 
         s = src;
         for (n = 0; n < numPoints; n++) {

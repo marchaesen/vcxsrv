@@ -61,11 +61,11 @@ public:
 
 } /* unnamed namespace */
 
-void
-ir_constant_folding_visitor::handle_rvalue(ir_rvalue **rvalue)
+bool
+ir_constant_fold(ir_rvalue **rvalue)
 {
    if (*rvalue == NULL || (*rvalue)->ir_type == ir_type_constant)
-      return;
+      return false;
 
    /* Note that we do rvalue visitoring on leaving.  So if an
     * expression has a non-constant operand, no need to go looking
@@ -76,22 +76,43 @@ ir_constant_folding_visitor::handle_rvalue(ir_rvalue **rvalue)
    if (expr) {
       for (unsigned int i = 0; i < expr->get_num_operands(); i++) {
 	 if (!expr->operands[i]->as_constant())
-	    return;
+	    return false;
       }
    }
 
    /* Ditto for swizzles. */
    ir_swizzle *swiz = (*rvalue)->as_swizzle();
    if (swiz && !swiz->val->as_constant())
-      return;
+      return false;
+
+   /* Ditto for array dereferences */
+   ir_dereference_array *array_ref = (*rvalue)->as_dereference_array();
+   if (array_ref && (!array_ref->array->as_constant() ||
+                     !array_ref->array_index->as_constant()))
+      return false;
+
+   /* No constant folding can be performed on variable dereferences.  We need
+    * to explicitly avoid them, as calling constant_expression_value() on a
+    * variable dereference will return a clone of var->constant_value.  This
+    * would make us propagate the value into the tree, which isn't our job.
+    */
+   ir_dereference_variable *var_ref = (*rvalue)->as_dereference_variable();
+   if (var_ref)
+      return false;
 
    ir_constant *constant = (*rvalue)->constant_expression_value();
    if (constant) {
       *rvalue = constant;
-      this->progress = true;
-   } else {
-      (*rvalue)->accept(this);
+      return true;
    }
+   return false;
+}
+
+void
+ir_constant_folding_visitor::handle_rvalue(ir_rvalue **rvalue)
+{
+   if (ir_constant_fold(rvalue))
+      this->progress = true;
 }
 
 ir_visitor_status

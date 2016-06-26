@@ -524,4 +524,7 @@
 /* Have posix_fallocate() */
 #undef HAVE_POSIX_FALLOCATE
 
+/* Use input thread */
+#undef INPUTTHREAD
+
 #endif /* _DIX_CONFIG_H_ */

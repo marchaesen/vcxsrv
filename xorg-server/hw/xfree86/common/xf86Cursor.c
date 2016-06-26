@@ -221,7 +221,7 @@ xf86SwitchMode(ScreenPtr pScreen, DisplayModePtr mode)
     if (pScreen == pCursorScreen)
         miPointerGetPosition(dev, &px, &py);
 
-    OsBlockSIGIO();
+    input_lock();
     Switched = (*pScr->SwitchMode) (pScr, mode);
     if (Switched) {
         pScr->currentMode = mode;
@@ -260,7 +260,7 @@ xf86SwitchMode(ScreenPtr pScreen, DisplayModePtr mode)
             pScr->frameY1 = pScr->virtualY - 1;
         }
     }
-    OsReleaseSIGIO();
+    input_unlock();
 
     if (pScr->AdjustFrame)
         (*pScr->AdjustFrame) (pScr, pScr->frameX0, pScr->frameY0);
@@ -452,11 +452,11 @@ xf86CrossScreen(ScreenPtr pScreen, Bool entering)
 static void
 xf86WarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
-    OsBlockSIGIO();
+    input_lock();
     miPointerWarpCursor(pDev, pScreen, x, y);
 
     xf86Info.currentScreen = pScreen;
-    OsReleaseSIGIO();
+    input_unlock();
 }
 
 void *

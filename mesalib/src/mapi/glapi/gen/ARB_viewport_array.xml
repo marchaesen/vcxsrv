@@ -12,10 +12,18 @@
     <enum name="VIEWPORT_BOUNDS_RANGE" value="0x825D"/>
     <enum name="LAYER_PROVOKING_VERTEX" value="0x825E"/>
     <enum name="VIEWPORT_INDEX_PROVOKING_VERTEX" value="0x825F"/>
-    <enum name="SCISSOR_BOX" value="0x0C10"/>
-    <enum name="VIEWPORT" value="0x0BA2"/>
-    <enum name="DEPTH_RANGE" value="0x0B70"/>
-    <enum name="SCISSOR_TEST" value="0x0C11"/>
+    <enum name="SCISSOR_BOX" count="4" value="0x0C10">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="VIEWPORT" count="4" value="0x0BA2">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="DEPTH_RANGE" count="2" value="0x0B70">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="SCISSOR_TEST" count="1" value="0x0C11">
+        <size name="Get" mode="get"/>
+    </enum>
     <enum name="FIRST_VERTEX_CONVENTION" value="0x8E4D"/>
     <enum name="LAST_VERTEX_CONVENTION" value="0x8E4E"/>
     <enum name="PROVOKING_VERTEX" value="0x8E4F"/>

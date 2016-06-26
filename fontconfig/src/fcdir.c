@@ -233,8 +233,7 @@ FcDirScanConfig (FcFontSet	*set,
 		 FcBlanks	*blanks,
 		 const FcChar8	*dir,
 		 FcBool		force, /* XXX unused */
-		 FcConfig	*config,
-		 FcBool		scanOnly)
+		 FcConfig	*config)
 {
     DIR			*d;
     struct dirent	*e;
@@ -250,7 +249,7 @@ FcDirScanConfig (FcFontSet	*set,
     if (!set && !dirs)
 	return FcTrue;
 
-    if (!blanks && !scanOnly)
+    if (!blanks)
 	blanks = FcConfigGetBlanks (config);
 
     /* freed below */
@@ -303,17 +302,7 @@ FcDirScanConfig (FcFontSet	*set,
      * Scan file files to build font patterns
      */
     for (i = 0; i < files->num; i++)
-    {
-	if (scanOnly)
-	{
-	    if (FcFileIsDir (files->strs[i]))
-		FcFileScanConfig (NULL, dirs, NULL, files->strs[i], config);
-	}
-	else
-	{
-	    FcFileScanConfig (set, dirs, blanks, files->strs[i], config);
-	}
-    }
+	FcFileScanConfig (set, dirs, blanks, files->strs[i], config);
 
 bail2:
     FcStrSetDestroy (files);
@@ -337,15 +326,7 @@ FcDirScan (FcFontSet	    *set,
     if (cache || !force)
 	return FcFalse;
 
-    return FcDirScanConfig (set, dirs, blanks, dir, force, FcConfigGetCurrent (), FcFalse);
-}
-
-FcBool
-FcDirScanOnly (FcStrSet		*dirs,
-	       const FcChar8	*dir,
-	       FcConfig		*config)
-{
-    return FcDirScanConfig (NULL, dirs, NULL, dir, FcTrue, config, FcTrue);
+    return FcDirScanConfig (set, dirs, blanks, dir, force, FcConfigGetCurrent ());
 }
 
 /*
@@ -385,7 +366,7 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     /*
      * Scan the dir
      */
-    if (!FcDirScanConfig (set, dirs, NULL, d, FcTrue, config, FcFalse))
+    if (!FcDirScanConfig (set, dirs, NULL, d, FcTrue, config))
 	goto bail2;
 
     /*
@@ -440,7 +421,7 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
     /*
      * Scan the dir
      */
-    if (!FcDirScanConfig (NULL, dirs, NULL, d, FcTrue, config, FcFalse))
+    if (!FcDirScanConfig (NULL, dirs, NULL, d, FcTrue, config))
 	goto bail1;
     /*
      * Rebuild the cache object

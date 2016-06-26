@@ -36,6 +36,7 @@
 #include "enums.h"
 #include "fbobject.h"
 #include "mtypes.h"
+#include "util/bitscan.h"
 
 
 #define BAD_MASK ~0u
@@ -222,6 +223,12 @@ read_buffer_enum_to_index(GLenum buffer)
    }
 }
 
+static bool
+is_legal_es3_readbuffer_enum(GLenum buf)
+{
+   return buf == GL_BACK || buf == GL_NONE ||
+          (buf >= GL_COLOR_ATTACHMENT0 && buf <= GL_COLOR_ATTACHMENT31);
+}
 
 /**
  * Called by glDrawBuffer() and glNamedFramebufferDrawBuffer().
@@ -589,13 +596,12 @@ _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
    if (n > 0 && _mesa_bitcount(destMask[0]) > 1) {
       GLuint count = 0, destMask0 = destMask[0];
       while (destMask0) {
-         GLint bufIndex = ffs(destMask0) - 1;
+         const int bufIndex = u_bit_scan(&destMask0);
          if (fb->_ColorDrawBufferIndexes[count] != bufIndex) {
             updated_drawbuffers(ctx, fb);
             fb->_ColorDrawBufferIndexes[count] = bufIndex;
          }
          count++;
-         destMask0 &= ~(1 << bufIndex);
       }
       fb->ColorDrawBuffer[0] = buffers[0];
       fb->_NumColorDrawBuffers = count;
@@ -715,7 +721,11 @@ read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    }
    else {
       /* general case / window-system framebuffer */
-      srcBuffer = read_buffer_enum_to_index(buffer);
+      if (_mesa_is_gles3(ctx) && !is_legal_es3_readbuffer_enum(buffer))
+         srcBuffer = -1;
+      else
+         srcBuffer = read_buffer_enum_to_index(buffer);
+
       if (srcBuffer == -1) {
          _mesa_error(ctx, GL_INVALID_ENUM,
                      "%s(invalid buffer %s)", caller,

@@ -79,12 +79,6 @@ struct st_texture_object
     */
    GLuint lastLevel;
 
-   /** The size of the level=0 mipmap image.
-    * Note that the number of 1D array layers will be in height0 and the
-    * number of 2D array layers will be in depth0, as in GL.
-    */
-   GLuint width0, height0, depth0;
-
    /* On validation any active images held in main memory or in other
     * textures will be copied to this texture and the old storage freed.
     */

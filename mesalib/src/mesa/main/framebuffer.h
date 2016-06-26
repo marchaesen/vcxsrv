@@ -146,4 +146,7 @@ _mesa_is_front_buffer_reading(const struct gl_framebuffer *fb);
 extern bool
 _mesa_is_front_buffer_drawing(const struct gl_framebuffer *fb);
 
+extern bool
+_mesa_is_multisample_enabled(const struct gl_context *ctx);
+
 #endif /* FRAMEBUFFER_H */

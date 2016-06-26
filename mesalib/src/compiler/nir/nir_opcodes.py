@@ -90,8 +90,13 @@ class Opcode(object):
 # helper variables for strings
 tfloat = "float"
 tint = "int"
-tbool = "bool"
+tbool = "bool32"
 tuint = "uint"
+tfloat32 = "float32"
+tint32 = "int32"
+tuint32 = "uint32"
+tuint64 = "uint64"
+tfloat64 = "float64"
 
 commutative = "commutative "
 associative = "associative "
@@ -144,67 +149,81 @@ unop("imov", tint, "src0")
 unop("ineg", tint, "-src0")
 unop("fneg", tfloat, "-src0")
 unop("inot", tint, "~src0") # invert every bit of the integer
-unop("fnot", tfloat, "(src0 == 0.0f) ? 1.0f : 0.0f")
-unop("fsign", tfloat, "(src0 == 0.0f) ? 0.0f : ((src0 > 0.0f) ? 1.0f : -1.0f)")
+unop("fnot", tfloat, ("bit_size == 64 ? ((src0 == 0.0) ? 1.0 : 0.0f) : " +
+                      "((src0 == 0.0f) ? 1.0f : 0.0f)"))
+unop("fsign", tfloat, ("bit_size == 64 ? " +
+                       "((src0 == 0.0) ? 0.0 : ((src0 > 0.0) ? 1.0 : -1.0)) : " +
+                       "((src0 == 0.0f) ? 0.0f : ((src0 > 0.0f) ? 1.0f : -1.0f))"))
 unop("isign", tint, "(src0 == 0) ? 0 : ((src0 > 0) ? 1 : -1)")
 unop("iabs", tint, "(src0 < 0) ? -src0 : src0")
-unop("fabs", tfloat, "fabsf(src0)")
-unop("fsat", tfloat, "(src0 > 1.0f) ? 1.0f : ((src0 <= 0.0f) ? 0.0f : src0)")
-unop("frcp", tfloat, "1.0f / src0")
-unop("frsq", tfloat, "1.0f / sqrtf(src0)")
-unop("fsqrt", tfloat, "sqrtf(src0)")
+unop("fabs", tfloat, "bit_size == 64 ? fabs(src0) : fabsf(src0)")
+unop("fsat", tfloat, ("bit_size == 64 ? " +
+                      "((src0 > 1.0) ? 1.0 : ((src0 <= 0.0) ? 0.0 : src0)) : " +
+                      "((src0 > 1.0f) ? 1.0f : ((src0 <= 0.0f) ? 0.0f : src0))"))
+unop("frcp", tfloat, "bit_size == 64 ? 1.0 / src0 : 1.0f / src0")
+unop("frsq", tfloat, "bit_size == 64 ? 1.0 / sqrt(src0) : 1.0f / sqrtf(src0)")
+unop("fsqrt", tfloat, "bit_size == 64 ? sqrt(src0) : sqrtf(src0)")
 unop("fexp2", tfloat, "exp2f(src0)")
 unop("flog2", tfloat, "log2f(src0)")
-unop_convert("f2i", tint, tfloat, "src0") # Float-to-integer conversion.
-unop_convert("f2u", tuint, tfloat, "src0") # Float-to-unsigned conversion
-unop_convert("i2f", tfloat, tint, "src0") # Integer-to-float conversion.
+unop_convert("f2i", tint32, tfloat32, "src0") # Float-to-integer conversion.
+unop_convert("f2u", tuint32, tfloat32, "src0") # Float-to-unsigned conversion
+unop_convert("d2i", tint32, tfloat64, "src0") # Double-to-integer conversion.
+unop_convert("d2u", tuint32, tfloat64, "src0") # Double-to-unsigned conversion.
+unop_convert("i2f", tfloat32, tint32, "src0") # Integer-to-float conversion.
+unop_convert("i2d", tfloat64, tint32, "src0") # Integer-to-double conversion.
 # Float-to-boolean conversion
-unop_convert("f2b", tbool, tfloat, "src0 != 0.0f")
+unop_convert("f2b", tbool, tfloat32, "src0 != 0.0f")
+unop_convert("d2b", tbool, tfloat64, "src0 != 0.0")
 # Boolean-to-float conversion
-unop_convert("b2f", tfloat, tbool, "src0 ? 1.0f : 0.0f")
+unop_convert("b2f", tfloat32, tbool, "src0 ? 1.0f : 0.0f")
 # Int-to-boolean conversion
-unop_convert("i2b", tbool, tint, "src0 != 0")
-unop_convert("b2i", tint, tbool, "src0 ? 1 : 0") # Boolean-to-int conversion
-unop_convert("u2f", tfloat, tuint, "src0") # Unsigned-to-float conversion.
+unop_convert("i2b", tbool, tint32, "src0 != 0")
+unop_convert("b2i", tint32, tbool, "src0 ? 1 : 0") # Boolean-to-int conversion
+unop_convert("u2f", tfloat32, tuint32, "src0") # Unsigned-to-float conversion.
+unop_convert("u2d", tfloat64, tuint32, "src0") # Unsigned-to-double conversion.
+# double-to-float conversion
+unop_convert("d2f", tfloat32, tfloat64, "src0") # Double to single precision
+unop_convert("f2d", tfloat64, tfloat32, "src0") # Single to double precision
 
 # Unary floating-point rounding operations.
 
 
-unop("ftrunc", tfloat, "truncf(src0)")
-unop("fceil", tfloat, "ceilf(src0)")
-unop("ffloor", tfloat, "floorf(src0)")
-unop("ffract", tfloat, "src0 - floorf(src0)")
-unop("fround_even", tfloat, "_mesa_roundevenf(src0)")
+unop("ftrunc", tfloat, "bit_size == 64 ? trunc(src0) : truncf(src0)")
+unop("fceil", tfloat, "bit_size == 64 ? ceil(src0) : ceilf(src0)")
+unop("ffloor", tfloat, "bit_size == 64 ? floor(src0) : floorf(src0)")
+unop("ffract", tfloat, "src0 - (bit_size == 64 ? floor(src0) : floorf(src0))")
+unop("fround_even", tfloat, "bit_size == 64 ? _mesa_roundeven(src0) : _mesa_roundevenf(src0)")
 
+unop("fquantize2f16", tfloat, "(fabs(src0) < ldexpf(1.0, -14)) ? copysignf(0.0f, src0) : _mesa_half_to_float(_mesa_float_to_half(src0))")
 
 # Trigonometric operations.
 
 
-unop("fsin", tfloat, "sinf(src0)")
-unop("fcos", tfloat, "cosf(src0)")
+unop("fsin", tfloat, "bit_size == 64 ? sin(src0) : sinf(src0)")
+unop("fcos", tfloat, "bit_size == 64 ? cos(src0) : cosf(src0)")
 
 
 # Partial derivatives.
 
 
-unop("fddx", tfloat, "0.0f") # the derivative of a constant is 0.
-unop("fddy", tfloat, "0.0f")
-unop("fddx_fine", tfloat, "0.0f")
-unop("fddy_fine", tfloat, "0.0f")
-unop("fddx_coarse", tfloat, "0.0f")
-unop("fddy_coarse", tfloat, "0.0f")
+unop("fddx", tfloat, "0.0") # the derivative of a constant is 0.
+unop("fddy", tfloat, "0.0")
+unop("fddx_fine", tfloat, "0.0")
+unop("fddy_fine", tfloat, "0.0")
+unop("fddx_coarse", tfloat, "0.0")
+unop("fddy_coarse", tfloat, "0.0")
 
 
 # Floating point pack and unpack operations.
 
 def pack_2x16(fmt):
-   unop_horiz("pack_" + fmt + "_2x16", 1, tuint, 2, tfloat, """
+   unop_horiz("pack_" + fmt + "_2x16", 1, tuint32, 2, tfloat32, """
 dst.x = (uint32_t) pack_fmt_1x16(src0.x);
 dst.x |= ((uint32_t) pack_fmt_1x16(src0.y)) << 16;
 """.replace("fmt", fmt))
 
 def pack_4x8(fmt):
-   unop_horiz("pack_" + fmt + "_4x8", 1, tuint, 4, tfloat, """
+   unop_horiz("pack_" + fmt + "_4x8", 1, tuint32, 4, tfloat32, """
 dst.x = (uint32_t) pack_fmt_1x8(src0.x);
 dst.x |= ((uint32_t) pack_fmt_1x8(src0.y)) << 8;
 dst.x |= ((uint32_t) pack_fmt_1x8(src0.z)) << 16;
@@ -212,13 +231,13 @@ dst.x |= ((uint32_t) pack_fmt_1x8(src0.w)) << 24;
 """.replace("fmt", fmt))
 
 def unpack_2x16(fmt):
-   unop_horiz("unpack_" + fmt + "_2x16", 2, tfloat, 1, tuint, """
+   unop_horiz("unpack_" + fmt + "_2x16", 2, tfloat32, 1, tuint32, """
 dst.x = unpack_fmt_1x16((uint16_t)(src0.x & 0xffff));
 dst.y = unpack_fmt_1x16((uint16_t)(src0.x << 16));
 """.replace("fmt", fmt))
 
 def unpack_4x8(fmt):
-   unop_horiz("unpack_" + fmt + "_4x8", 4, tfloat, 1, tuint, """
+   unop_horiz("unpack_" + fmt + "_4x8", 4, tfloat32, 1, tuint32, """
 dst.x = unpack_fmt_1x8((uint8_t)(src0.x & 0xff));
 dst.y = unpack_fmt_1x8((uint8_t)((src0.x >> 8) & 0xff));
 dst.z = unpack_fmt_1x8((uint8_t)((src0.x >> 16) & 0xff));
@@ -237,36 +256,44 @@ unpack_2x16("unorm")
 unpack_4x8("unorm")
 unpack_2x16("half")
 
-unop_horiz("pack_uvec2_to_uint", 1, tuint, 2, tuint, """
+unop_horiz("pack_uvec2_to_uint", 1, tuint32, 2, tuint32, """
 dst.x = (src0.x & 0xffff) | (src0.y >> 16);
 """)
 
-unop_horiz("pack_uvec4_to_uint", 1, tuint, 4, tuint, """
+unop_horiz("pack_uvec4_to_uint", 1, tuint32, 4, tuint32, """
 dst.x = (src0.x <<  0) |
         (src0.y <<  8) |
         (src0.z << 16) |
         (src0.w << 24);
 """)
 
+unop_horiz("pack_double_2x32", 1, tuint64, 2, tuint32,
+           "dst.x = src0.x | ((uint64_t)src0.y << 32);")
+
+unop_horiz("unpack_double_2x32", 2, tuint32, 1, tuint64,
+           "dst.x = src0.x; dst.y = src0.x >> 32;")
+
 # Lowered floating point unpacking operations.
 
 
-unop_horiz("unpack_half_2x16_split_x", 1, tfloat, 1, tuint,
+unop_horiz("unpack_half_2x16_split_x", 1, tfloat32, 1, tuint32,
            "unpack_half_1x16((uint16_t)(src0.x & 0xffff))")
-unop_horiz("unpack_half_2x16_split_y", 1, tfloat, 1, tuint,
+unop_horiz("unpack_half_2x16_split_y", 1, tfloat32, 1, tuint32,
            "unpack_half_1x16((uint16_t)(src0.x >> 16))")
 
+unop_convert("unpack_double_2x32_split_x", tuint32, tuint64, "src0")
+unop_convert("unpack_double_2x32_split_y", tuint32, tuint64, "src0 >> 32")
 
 # Bit operations, part of ARB_gpu_shader5.
 
 
-unop("bitfield_reverse", tuint, """
+unop("bitfield_reverse", tuint32, """
 /* we're not winning any awards for speed here, but that's ok */
 dst = 0;
 for (unsigned bit = 0; bit < 32; bit++)
    dst |= ((src0 >> bit) & 1) << (31 - bit);
 """)
-unop("bit_count", tuint, """
+unop("bit_count", tuint32, """
 dst = 0;
 for (unsigned bit = 0; bit < 32; bit++) {
    if ((src0 >> bit) & 1)
@@ -274,7 +301,7 @@ for (unsigned bit = 0; bit < 32; bit++) {
 }
 """)
 
-unop_convert("ufind_msb", tint, tuint, """
+unop_convert("ufind_msb", tint32, tuint32, """
 dst = -1;
 for (int bit = 31; bit > 0; bit--) {
    if ((src0 >> bit) & 1) {
@@ -284,7 +311,7 @@ for (int bit = 31; bit > 0; bit--) {
 }
 """)
 
-unop("ifind_msb", tint, """
+unop("ifind_msb", tint32, """
 dst = -1;
 for (int bit = 31; bit >= 0; bit--) {
    /* If src0 < 0, we're looking for the first 0 bit.
@@ -298,7 +325,7 @@ for (int bit = 31; bit >= 0; bit--) {
 }
 """)
 
-unop("find_lsb", tint, """
+unop("find_lsb", tint32, """
 dst = -1;
 for (unsigned bit = 0; bit < 32; bit++) {
    if ((src0 >> bit) & 1) {
@@ -358,10 +385,10 @@ binop("fmul", tfloat, commutative + associative, "src0 * src1")
 # low 32-bits of signed/unsigned integer multiply
 binop("imul", tint, commutative + associative, "src0 * src1")
 # high 32-bits of signed integer multiply
-binop("imul_high", tint, commutative,
+binop("imul_high", tint32, commutative,
       "(int32_t)(((int64_t) src0 * (int64_t) src1) >> 32)")
 # high 32-bits of unsigned integer multiply
-binop("umul_high", tuint, commutative,
+binop("umul_high", tuint32, commutative,
       "(uint32_t)(((uint64_t) src0 * (uint64_t) src1) >> 32)")
 
 binop("fdiv", tfloat, "", "src0 / src1")
@@ -378,8 +405,22 @@ binop_convert("uadd_carry", tuint, tuint, commutative, "src0 + src1 < src0")
 
 binop_convert("usub_borrow", tuint, tuint, "", "src0 < src1")
 
-binop("fmod", tfloat, "", "src0 - src1 * floorf(src0 / src1)")
 binop("umod", tuint, "", "src1 == 0 ? 0 : src0 % src1")
+
+# For signed integers, there are several different possible definitions of
+# "modulus" or "remainder".  We follow the conventions used by LLVM and
+# SPIR-V.  The irem opcode implements the standard C/C++ signed "%"
+# operation while the imod opcode implements the more mathematical
+# "modulus" operation.  For details on the difference, see
+#
+# http://mathforum.org/library/drmath/view/52343.html
+
+binop("irem", tint, "", "src1 == 0 ? 0 : src0 % src1")
+binop("imod", tint, "",
+      "src1 == 0 ? 0 : ((src0 % src1 == 0 || (src0 >= 0) == (src1 >= 0)) ?"
+      "                 src0 % src1 : src0 % src1 + src1)")
+binop("fmod", tfloat, "", "src0 - src1 * floorf(src0 / src1)")
+binop("frem", tfloat, "", "src0 - src1 * truncf(src0 / src1)")
 
 #
 # Comparisons
@@ -412,18 +453,18 @@ binop_reduce("bany_inequal", 1, tbool, tint, "{src0} != {src1}",
 
 # non-integer-aware GLSL-style comparisons that return 0.0 or 1.0
 
-binop_reduce("fall_equal",  1, tfloat, tfloat, "{src0} == {src1}",
+binop_reduce("fall_equal",  1, tfloat32, tfloat32, "{src0} == {src1}",
              "{src0} && {src1}", "{src} ? 1.0f : 0.0f")
-binop_reduce("fany_nequal", 1, tfloat, tfloat, "{src0} != {src1}",
+binop_reduce("fany_nequal", 1, tfloat32, tfloat32, "{src0} != {src1}",
              "{src0} || {src1}", "{src} ? 1.0f : 0.0f")
 
 # These comparisons for integer-less hardware return 1.0 and 0.0 for true
 # and false respectively
 
-binop("slt", tfloat, "", "(src0 < src1) ? 1.0f : 0.0f") # Set on Less Than
-binop("sge", tfloat, "", "(src0 >= src1) ? 1.0f : 0.0f") # Set on Greater or Equal
-binop("seq", tfloat, commutative, "(src0 == src1) ? 1.0f : 0.0f") # Set on Equal
-binop("sne", tfloat, commutative, "(src0 != src1) ? 1.0f : 0.0f") # Set on Not Equal
+binop("slt", tfloat32, "", "(src0 < src1) ? 1.0f : 0.0f") # Set on Less Than
+binop("sge", tfloat32, "", "(src0 >= src1) ? 1.0f : 0.0f") # Set on Greater or Equal
+binop("seq", tfloat32, commutative, "(src0 == src1) ? 1.0f : 0.0f") # Set on Equal
+binop("sne", tfloat32, commutative, "(src0 != src1) ? 1.0f : 0.0f") # Set on Not Equal
 
 
 binop("ishl", tint, "", "src0 << src1")
@@ -446,11 +487,11 @@ binop("ixor", tuint, commutative + associative, "src0 ^ src1")
 # These use (src != 0.0) for testing the truth of the input, and output 1.0
 # for true and 0.0 for false
 
-binop("fand", tfloat, commutative,
+binop("fand", tfloat32, commutative,
       "((src0 != 0.0f) && (src1 != 0.0f)) ? 1.0f : 0.0f")
-binop("for", tfloat, commutative,
+binop("for", tfloat32, commutative,
       "((src0 != 0.0f) || (src1 != 0.0f)) ? 1.0f : 0.0f")
-binop("fxor", tfloat, commutative,
+binop("fxor", tfloat32, commutative,
       "(src0 != 0.0f && src1 == 0.0f) || (src0 == 0.0f && src1 != 0.0f) ? 1.0f : 0.0f")
 
 binop_reduce("fdot", 1, tfloat, tfloat, "{src0} * {src1}", "{src0} + {src1}",
@@ -472,7 +513,7 @@ binop("imax", tint, commutative + associative, "src1 > src0 ? src1 : src0")
 binop("umax", tuint, commutative + associative, "src1 > src0 ? src1 : src0")
 
 # Saturated vector add for 4 8bit ints.
-binop("usadd_4x8", tint, commutative + associative, """
+binop("usadd_4x8", tint32, commutative + associative, """
 dst = 0;
 for (int i = 0; i < 32; i += 8) {
    dst |= MIN2(((src0 >> i) & 0xff) + ((src1 >> i) & 0xff), 0xff) << i;
@@ -480,7 +521,7 @@ for (int i = 0; i < 32; i += 8) {
 """)
 
 # Saturated vector subtract for 4 8bit ints.
-binop("ussub_4x8", tint, "", """
+binop("ussub_4x8", tint32, "", """
 dst = 0;
 for (int i = 0; i < 32; i += 8) {
    int src0_chan = (src0 >> i) & 0xff;
@@ -491,7 +532,7 @@ for (int i = 0; i < 32; i += 8) {
 """)
 
 # vector min for 4 8bit ints.
-binop("umin_4x8", tint, commutative + associative, """
+binop("umin_4x8", tint32, commutative + associative, """
 dst = 0;
 for (int i = 0; i < 32; i += 8) {
    dst |= MIN2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
@@ -499,7 +540,7 @@ for (int i = 0; i < 32; i += 8) {
 """)
 
 # vector max for 4 8bit ints.
-binop("umax_4x8", tint, commutative + associative, """
+binop("umax_4x8", tint32, commutative + associative, """
 dst = 0;
 for (int i = 0; i < 32; i += 8) {
    dst |= MAX2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
@@ -507,7 +548,7 @@ for (int i = 0; i < 32; i += 8) {
 """)
 
 # unorm multiply: (a * b) / 255.
-binop("umul_unorm_4x8", tint, commutative + associative, """
+binop("umul_unorm_4x8", tint32, commutative + associative, """
 dst = 0;
 for (int i = 0; i < 32; i += 8) {
    int src0_chan = (src0 >> i) & 0xff;
@@ -516,15 +557,18 @@ for (int i = 0; i < 32; i += 8) {
 }
 """)
 
-binop("fpow", tfloat, "", "powf(src0, src1)")
+binop("fpow", tfloat, "", "bit_size == 64 ? powf(src0, src1) : pow(src0, src1)")
 
-binop_horiz("pack_half_2x16_split", 1, tuint, 1, tfloat, 1, tfloat,
+binop_horiz("pack_half_2x16_split", 1, tuint32, 1, tfloat32, 1, tfloat32,
             "pack_half_1x16(src0.x) | (pack_half_1x16(src1.x) << 16)")
+
+binop_convert("pack_double_2x32_split", tuint64, tuint32, "",
+              "src0 | ((uint64_t)src1 << 32)")
 
 # bfm implements the behavior of the first operation of the SM5 "bfi" assembly
 # and that of the "bfi1" i965 instruction. That is, it has undefined behavior
 # if either of its arguments are 32.
-binop_convert("bfm", tuint, tint, "", """
+binop_convert("bfm", tuint32, tint32, "", """
 int bits = src0, offset = src1;
 if (offset < 0 || bits < 0 || offset > 31 || bits > 31 || offset + bits > 32)
    dst = 0; /* undefined */
@@ -532,8 +576,8 @@ else
    dst = ((1u << bits) - 1) << offset;
 """)
 
-opcode("ldexp", 0, tfloat, [0, 0], [tfloat, tint], "", """
-dst = ldexpf(src0, src1);
+opcode("ldexp", 0, tfloat, [0, 0], [tfloat, tint32], "", """
+dst = (bit_size == 64) ? ldexp(src0, src1) : ldexpf(src0, src1);
 /* flush denormals to zero. */
 if (!isnormal(dst))
    dst = copysignf(0.0f, src0);
@@ -573,12 +617,12 @@ triop("flrp", tfloat, "src0 * (1 - src2) + src1 * src2")
 # bools (0.0 vs 1.0) and one for integer bools (0 vs ~0).
 
 
-triop("fcsel", tfloat, "(src0 != 0.0f) ? src1 : src2")
+triop("fcsel", tfloat32, "(src0 != 0.0f) ? src1 : src2")
 opcode("bcsel", 0, tuint, [0, 0, 0],
       [tbool, tuint, tuint], "", "src0 ? src1 : src2")
 
 # SM5 bfi assembly
-triop("bfi", tuint, """
+triop("bfi", tuint32, """
 unsigned mask = src0, insert = src1, base = src2;
 if (mask == 0) {
    dst = base;
@@ -593,8 +637,8 @@ if (mask == 0) {
 """)
 
 # SM5 ubfe/ibfe assembly
-opcode("ubfe", 0, tuint,
-       [0, 0, 0], [tuint, tint, tint], "", """
+opcode("ubfe", 0, tuint32,
+       [0, 0, 0], [tuint32, tint32, tint32], "", """
 unsigned base = src0;
 int offset = src1, bits = src2;
 if (bits == 0) {
@@ -607,8 +651,8 @@ if (bits == 0) {
    dst = base >> offset;
 }
 """)
-opcode("ibfe", 0, tint,
-       [0, 0, 0], [tint, tint, tint], "", """
+opcode("ibfe", 0, tint32,
+       [0, 0, 0], [tint32, tint32, tint32], "", """
 int base = src0;
 int offset = src1, bits = src2;
 if (bits == 0) {
@@ -623,8 +667,8 @@ if (bits == 0) {
 """)
 
 # GLSL bitfieldExtract()
-opcode("ubitfield_extract", 0, tuint,
-       [0, 0, 0], [tuint, tint, tint], "", """
+opcode("ubitfield_extract", 0, tuint32,
+       [0, 0, 0], [tuint32, tint32, tint32], "", """
 unsigned base = src0;
 int offset = src1, bits = src2;
 if (bits == 0) {
@@ -635,8 +679,8 @@ if (bits == 0) {
    dst = (base >> offset) & ((1ull << bits) - 1);
 }
 """)
-opcode("ibitfield_extract", 0, tint,
-       [0, 0, 0], [tint, tint, tint], "", """
+opcode("ibitfield_extract", 0, tint32,
+       [0, 0, 0], [tint32, tint32, tint32], "", """
 int base = src0;
 int offset = src1, bits = src2;
 if (bits == 0) {
@@ -663,8 +707,8 @@ def quadop_horiz(name, output_size, src1_size, src2_size, src3_size,
           [tuint, tuint, tuint, tuint],
           "", const_expr)
 
-opcode("bitfield_insert", 0, tuint, [0, 0, 0, 0],
-       [tuint, tuint, tint, tint], "", """
+opcode("bitfield_insert", 0, tuint32, [0, 0, 0, 0],
+       [tuint32, tuint32, tint32, tint32], "", """
 unsigned base = src0, insert = src1;
 int offset = src2, bits = src3;
 if (bits == 0) {

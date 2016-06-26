@@ -313,7 +313,7 @@ util_cpu_detect(void)
    }
 #elif defined(PIPE_OS_UNIX) && defined(_SC_NPROCESSORS_ONLN)
    util_cpu_caps.nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-   if (util_cpu_caps.nr_cpus == -1)
+   if (util_cpu_caps.nr_cpus == ~0u)
       util_cpu_caps.nr_cpus = 1;
 #elif defined(PIPE_OS_BSD)
    {
@@ -369,6 +369,7 @@ util_cpu_detect(void)
                                     ((regs2[2] >> 27) & 1) && // OSXSAVE
                                     ((xgetbv() & 6) == 6);    // XMM & YMM
          util_cpu_caps.has_f16c   = ((regs2[2] >> 29) & 1) && util_cpu_caps.has_avx;
+         util_cpu_caps.has_fma    = ((regs2[2] >> 12) & 1) && util_cpu_caps.has_avx;
          util_cpu_caps.has_mmx2   = util_cpu_caps.has_sse; /* SSE cpus supports mmxext too */
 #if defined(PIPE_ARCH_X86_64)
          util_cpu_caps.has_daz = 1;

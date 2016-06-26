@@ -55,7 +55,15 @@ authorization from the authors.
         <field type="ClientIdSpec" name="spec" />
         <field type="CARD32" name="length" />
         <list type="CARD32" name="value">
-            <fieldref>length</fieldref>
+            <!-- The specification says that the length is in units of CARD32,
+                 but the specification also says that the length is 4 when a
+                 single LocalClientPid is present (ie. the length is in bytes).
+                 The current server implementation sets the length to 4 when a
+                 single CARD32 is present on the wire (length is in bytes). -->
+            <op op="/">
+                <fieldref>length</fieldref>
+                <value>4</value>
+            </op>
         </list>
     </struct>
 

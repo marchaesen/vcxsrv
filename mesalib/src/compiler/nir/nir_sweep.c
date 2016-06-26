@@ -63,7 +63,7 @@ sweep_block(nir_shader *nir, nir_block *block)
 {
    ralloc_steal(nir, block);
 
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       ralloc_steal(nir, instr);
 
       nir_foreach_src(instr, sweep_src_indirect, nir);
@@ -119,6 +119,8 @@ sweep_impl(nir_shader *nir, nir_function_impl *impl)
    ralloc_steal(nir, impl);
 
    ralloc_steal(nir, impl->params);
+   for (unsigned i = 0; i < impl->num_params; i++)
+      ralloc_steal(nir, impl->params[i]);
    ralloc_steal(nir, impl->return_var);
    steal_list(nir, nir_variable, &impl->locals);
    steal_list(nir, nir_register, &impl->registers);
@@ -159,6 +161,7 @@ nir_sweep(nir_shader *nir)
    steal_list(nir, nir_variable, &nir->uniforms);
    steal_list(nir, nir_variable, &nir->inputs);
    steal_list(nir, nir_variable, &nir->outputs);
+   steal_list(nir, nir_variable, &nir->shared);
    steal_list(nir, nir_variable, &nir->globals);
    steal_list(nir, nir_variable, &nir->system_values);
    steal_list(nir, nir_register, &nir->registers);

@@ -9,6 +9,9 @@ cd $srcdir
 autoreconf -v --install || exit 1
 cd $ORIGDIR || exit $?
 
+git config --local --get format.subjectPrefix ||
+        git config --local format.subjectPrefix "PATCH libxtrans"
+
 if test -z "$NOCONFIGURE"; then
     $srcdir/configure "$@"
 fi

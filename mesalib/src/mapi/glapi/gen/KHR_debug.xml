@@ -73,7 +73,7 @@
   <!-- Compatibility Profile -->
   <enum name="DISPLAY_LIST"                               value="0x82E7"/>
 
-  <function name="DebugMessageControl">
+  <function name="DebugMessageControl" es2="3.2">
     <param name="source" type="GLenum"/>
     <param name="type" type="GLenum"/>
     <param name="severity" type="GLenum"/>
@@ -82,7 +82,7 @@
     <param name="enabled" type="GLboolean"/>
   </function>
 
-  <function name="DebugMessageInsert">
+  <function name="DebugMessageInsert" es2="3.2">
     <param name="source" type="GLenum"/>
     <param name="type" type="GLenum"/>
     <param name="id" type="GLuint"/>
@@ -91,12 +91,12 @@
     <param name="buf" type="const GLchar *"/>
   </function>
 
-  <function name="DebugMessageCallback">
+  <function name="DebugMessageCallback" es2="3.2">
     <param name="callback" type="GLDEBUGPROC"/>
     <param name="userParam" type="const GLvoid *"/>
   </function>
 
-  <function name="GetDebugMessageLog">
+  <function name="GetDebugMessageLog" es2="3.2">
     <return type="GLuint"/>
     <param name="count" type="GLuint"/>
     <param name="bufsize" type="GLsizei"/>
@@ -108,23 +108,23 @@
     <param name="messageLog" type="GLchar *" output="true"/>
   </function>
 
-  <function name="PushDebugGroup">
+  <function name="PushDebugGroup" es2="3.2">
     <param name="source" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="length" type="GLsizei"/>
     <param name="message" type="const GLchar *"/>
   </function>
 
-  <function name="PopDebugGroup" />
+  <function name="PopDebugGroup" es2="3.2" />
 
-  <function name="ObjectLabel">
+  <function name="ObjectLabel" es2="3.2">
     <param name="identifier" type="GLenum"/>
     <param name="name" type="GLuint"/>
     <param name="length" type="GLsizei"/>
     <param name="label" type="const GLchar *"/>
   </function>
 
-  <function name="GetObjectLabel">
+  <function name="GetObjectLabel" es2="3.2">
     <param name="identifier" type="GLenum"/>
     <param name="name" type="GLuint"/>
     <param name="bufSize" type="GLsizei"/>
@@ -132,13 +132,13 @@
     <param name="label" type="GLchar *"/>
   </function>
 
-  <function name="ObjectPtrLabel">
+  <function name="ObjectPtrLabel" es2="3.2">
     <param name="ptr" type="const GLvoid *"/>
     <param name="length" type="GLsizei"/>
     <param name="label" type="const GLchar *"/>
   </function>
 
-  <function name="GetObjectPtrLabel">
+  <function name="GetObjectPtrLabel" es2="3.2">
     <param name="ptr" type="const GLvoid *"/>
     <param name="bufSize" type="GLsizei"/>
     <param name="length" type="GLsizei *"/>

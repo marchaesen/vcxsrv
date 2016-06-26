@@ -484,7 +484,10 @@ public:
       this->interface_type = type;
       if (this->is_interface_instance()) {
          this->u.max_ifc_array_access =
-            rzalloc_array(this, unsigned, type->length);
+            ralloc_array(this, int, type->length);
+         for (unsigned i = 0; i < type->length; i++) {
+            this->u.max_ifc_array_access[i] = -1;
+         }
       }
    }
 
@@ -520,7 +523,7 @@ public:
           * zero.
           */
          for (unsigned i = 0; i < this->interface_type->length; i++)
-            assert(this->u.max_ifc_array_access[i] == 0);
+            assert(this->u.max_ifc_array_access[i] == -1);
 #endif
          ralloc_free(this->u.max_ifc_array_access);
          this->u.max_ifc_array_access = NULL;
@@ -534,13 +537,17 @@ public:
       return this->interface_type;
    }
 
+   enum glsl_interface_packing get_interface_type_packing() const
+   {
+     return this->interface_type->get_interface_packing();
+   }
    /**
     * Get the max_ifc_array_access pointer
     *
     * A "set" function is not needed because the array is dynmically allocated
     * as necessary.
     */
-   inline unsigned *get_max_ifc_array_access()
+   inline int *get_max_ifc_array_access()
    {
       assert(this->data._num_state_slots == 0);
       return this->u.max_ifc_array_access;
@@ -672,7 +679,7 @@ public:
       /**
        * Interpolation mode for shader inputs / outputs
        *
-       * \sa ir_variable_interpolation
+       * \sa glsl_interp_qualifier
        */
       unsigned interpolation:2;
 
@@ -703,6 +710,11 @@ public:
       unsigned explicit_binding:1;
 
       /**
+       * Was an initial component explicitly set in the shader?
+       */
+      unsigned explicit_component:1;
+
+      /**
        * Does this variable have an initializer?
        *
        * This is used by the linker to cross-validiate initializers of global
@@ -720,6 +732,28 @@ public:
       unsigned is_unmatched_generic_inout:1;
 
       /**
+       * Is this varying used only by transform feedback?
+       *
+       * This is used by the linker to decide if its safe to pack the varying.
+       */
+      unsigned is_xfb_only:1;
+
+      /**
+       * Was a transfor feedback buffer set in the shader?
+       */
+      unsigned explicit_xfb_buffer:1;
+
+      /**
+       * Was a transfor feedback offset set in the shader?
+       */
+      unsigned explicit_xfb_offset:1;
+
+      /**
+       * Was a transfor feedback stride set in the shader?
+       */
+      unsigned explicit_xfb_stride:1;
+
+      /**
        * If non-zero, then this variable may be packed along with other variables
        * into a single varying slot, so this offset should be applied when
        * accessing components.  For example, an offset of 1 means that the x
@@ -735,21 +769,9 @@ public:
 
       /**
        * Non-zero if this variable was created by lowering a named interface
-       * block which was not an array.
-       *
-       * Note that this variable and \c from_named_ifc_block_array will never
-       * both be non-zero.
+       * block.
        */
-      unsigned from_named_ifc_block_nonarray:1;
-
-      /**
-       * Non-zero if this variable was created by lowering a named interface
-       * block which was an array.
-       *
-       * Note that this variable and \c from_named_ifc_block_nonarray will never
-       * both be non-zero.
-       */
-      unsigned from_named_ifc_block_array:1;
+      unsigned from_named_ifc_block:1;
 
       /**
        * Non-zero if the variable must be a shader input. This is useful for
@@ -801,6 +823,7 @@ public:
        */
       unsigned from_ssbo_unsized_array:1; /**< unsized array buffer variable. */
 
+      unsigned implicit_sized_array:1;
       /**
        * Emit a warning if this variable is accessed.
        */
@@ -866,16 +889,26 @@ public:
       unsigned stream;
 
       /**
-       * Atomic or block member offset.
+       * Atomic, transform feedback or block member offset.
        */
       unsigned offset;
 
       /**
        * Highest element accessed with a constant expression array index
        *
-       * Not used for non-array variables.
+       * Not used for non-array variables. -1 is never accessed.
        */
-      unsigned max_array_access;
+      int max_array_access;
+
+      /**
+       * Transform feedback buffer.
+       */
+      unsigned xfb_buffer;
+
+      /**
+       * Transform feedback stride.
+       */
+      unsigned xfb_stride;
 
       /**
        * Allow (only) ir_variable direct access private members.
@@ -913,7 +946,7 @@ private:
        * For variables whose type is not an interface block, this pointer is
        * NULL.
        */
-      unsigned *max_ifc_array_access;
+      int *max_ifc_array_access;
 
       /**
        * Built-in state that backs this uniform
@@ -1449,9 +1482,16 @@ enum ir_expression_operation {
    ir_unop_ssbo_unsized_array_length,
 
    /**
+    * Vote among threads on the value of the boolean argument.
+    */
+   ir_unop_vote_any,
+   ir_unop_vote_all,
+   ir_unop_vote_eq,
+
+   /**
     * A sentinel marking the last of the unary operations.
     */
-   ir_last_unop = ir_unop_ssbo_unsized_array_length,
+   ir_last_unop = ir_unop_vote_eq,
 
    ir_binop_add,
    ir_binop_sub,
@@ -2533,7 +2573,8 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
 				struct _mesa_glsl_parse_state *state);
 
 extern void
-_mesa_glsl_initialize_derived_variables(gl_shader *shader);
+_mesa_glsl_initialize_derived_variables(struct gl_context *ctx,
+                                        gl_shader *shader);
 
 extern void
 _mesa_glsl_initialize_functions(_mesa_glsl_parse_state *state);
@@ -2600,6 +2641,9 @@ extern void _mesa_print_ir(FILE *f, struct exec_list *instructions,
 
 extern void
 fprint_ir(FILE *f, const void *instruction);
+
+extern const struct gl_builtin_uniform_desc *
+_mesa_glsl_get_builtin_uniform_desc(const char *name);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -823,10 +823,10 @@ _mesa_is_enum_format_signed_int(GLenum format)
 }
 
 /**
- * Test if the given format is an ASTC format.
+ * Test if the given format is an ASTC 2D format.
  */
-GLboolean
-_mesa_is_astc_format(GLenum internalFormat)
+static bool
+is_astc_2d_format(GLenum internalFormat)
 {
    switch (internalFormat) {
    case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
@@ -863,6 +863,48 @@ _mesa_is_astc_format(GLenum internalFormat)
    }
 }
 
+/**
+ * Test if the given format is an ASTC 3D format.
+ */
+static bool
+is_astc_3d_format(GLenum internalFormat)
+{
+   switch (internalFormat) {
+   case GL_COMPRESSED_RGBA_ASTC_3x3x3_OES:
+   case GL_COMPRESSED_RGBA_ASTC_4x3x3_OES:
+   case GL_COMPRESSED_RGBA_ASTC_4x4x3_OES:
+   case GL_COMPRESSED_RGBA_ASTC_4x4x4_OES:
+   case GL_COMPRESSED_RGBA_ASTC_5x4x4_OES:
+   case GL_COMPRESSED_RGBA_ASTC_5x5x4_OES:
+   case GL_COMPRESSED_RGBA_ASTC_5x5x5_OES:
+   case GL_COMPRESSED_RGBA_ASTC_6x5x5_OES:
+   case GL_COMPRESSED_RGBA_ASTC_6x6x5_OES:
+   case GL_COMPRESSED_RGBA_ASTC_6x6x6_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES:
+      return true;
+   default:
+      return false;
+   }
+}
+
+/**
+ * Test if the given format is an ASTC format.
+ */
+GLboolean
+_mesa_is_astc_format(GLenum internalFormat)
+{
+   return is_astc_2d_format(internalFormat) ||
+          is_astc_3d_format(internalFormat);
+}
 
 /**
  * Test if the given format is an integer (non-normalized) format.
@@ -1569,6 +1611,7 @@ GLint
 _mesa_base_format_component_count(GLenum base_format)
 {
    switch (base_format) {
+   case GL_LUMINANCE:
    case GL_RED:
    case GL_ALPHA:
    case GL_INTENSITY:
@@ -2345,8 +2388,10 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
             return base_compressed;
    }
 
-   if (ctx->Extensions.KHR_texture_compression_astc_ldr &&
-      _mesa_is_astc_format(internalFormat))
+   if ((ctx->Extensions.KHR_texture_compression_astc_ldr &&
+        is_astc_2d_format(internalFormat)) ||
+       (ctx->Extensions.OES_texture_compression_astc &&
+        is_astc_3d_format(internalFormat)))
         return GL_RGBA;
 
    if (ctx->Extensions.MESA_ycbcr_texture) {
@@ -3555,4 +3600,87 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
     * format in that case.
     */
    unreachable("Unsupported format");
+}
+
+/**
+ * Returns true if \p internal_format is a sized internal format that
+ * is marked "Color Renderable" in Table 8.10 of the ES 3.2 specification.
+ */
+bool
+_mesa_is_es3_color_renderable(GLenum internal_format)
+{
+   switch (internal_format) {
+   case GL_R8:
+   case GL_RG8:
+   case GL_RGB8:
+   case GL_RGB565:
+   case GL_RGBA4:
+   case GL_RGB5_A1:
+   case GL_RGBA8:
+   case GL_RGB10_A2:
+   case GL_RGB10_A2UI:
+   case GL_SRGB8_ALPHA8:
+   case GL_R16F:
+   case GL_RG16F:
+   case GL_RGBA16F:
+   case GL_R32F:
+   case GL_RG32F:
+   case GL_RGBA32F:
+   case GL_R11F_G11F_B10F:
+   case GL_R8I:
+   case GL_R8UI:
+   case GL_R16I:
+   case GL_R16UI:
+   case GL_R32I:
+   case GL_R32UI:
+   case GL_RG8I:
+   case GL_RG8UI:
+   case GL_RG16I:
+   case GL_RG16UI:
+   case GL_RG32I:
+   case GL_RG32UI:
+   case GL_RGBA8I:
+   case GL_RGBA8UI:
+   case GL_RGBA16I:
+   case GL_RGBA16UI:
+   case GL_RGBA32I:
+   case GL_RGBA32UI:
+      return true;
+   default:
+      return false;
+   }
+}
+
+/**
+ * Returns true if \p internal_format is a sized internal format that
+ * is marked "Texture Filterable" in Table 8.10 of the ES 3.2 specification.
+ */
+bool
+_mesa_is_es3_texture_filterable(GLenum internal_format)
+{
+   switch (internal_format) {
+   case GL_R8:
+   case GL_R8_SNORM:
+   case GL_RG8:
+   case GL_RG8_SNORM:
+   case GL_RGB8:
+   case GL_RGB8_SNORM:
+   case GL_RGB565:
+   case GL_RGBA4:
+   case GL_RGB5_A1:
+   case GL_RGBA8:
+   case GL_RGBA8_SNORM:
+   case GL_RGB10_A2:
+   case GL_SRGB8:
+   case GL_SRGB8_ALPHA8:
+   case GL_R16F:
+   case GL_RG16F:
+   case GL_RGB16F:
+   case GL_RGBA16F:
+   case GL_R11F_G11F_B10F:
+   case GL_RGB9_E5:
+      return true;
+   default:
+      return false;
+   }
 }

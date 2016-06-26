@@ -43,25 +43,6 @@ LOCAL_MODULE := libmesa_compiler
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
 
-# ---------------------------------------
-# Build libmesa_nir
-# ---------------------------------------
+include $(LOCAL_PATH)/Android.glsl.mk
 
-include $(CLEAR_VARS)
-
-LOCAL_SRC_FILES := \
-	$(NIR_FILES)
-
-LOCAL_C_INCLUDES := \
-	$(MESA_TOP)/src/mapi \
-	$(MESA_TOP)/src/mesa \
-	$(MESA_TOP)/src/gallium/include \
-	$(MESA_TOP)/src/gallium/auxiliary
-
-LOCAL_STATIC_LIBRARIES := libmesa_compiler
-
-LOCAL_MODULE := libmesa_nir
-
-include $(LOCAL_PATH)/Android.gen.mk
-include $(MESA_COMMON_MK)
-include $(BUILD_STATIC_LIBRARY)
+include $(LOCAL_PATH)/Android.nir.mk

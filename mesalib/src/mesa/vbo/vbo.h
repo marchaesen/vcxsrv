@@ -197,9 +197,7 @@ void vbo_set_draw_func(struct gl_context *ctx, vbo_draw_func func);
 void vbo_set_indirect_draw_func(struct gl_context *ctx,
                                 vbo_indirect_draw_func func);
 
-void vbo_check_buffers_are_unmapped(struct gl_context *ctx);
-
-void vbo_bind_arrays(struct gl_context *ctx);
+bool vbo_bind_arrays(struct gl_context *ctx);
 
 size_t
 vbo_count_tessellated_primitives(GLenum mode, GLuint count,

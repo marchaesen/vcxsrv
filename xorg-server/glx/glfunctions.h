@@ -3,18 +3,18 @@
 /*
  * (C) Copyright IBM Corporation 2005
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sub license,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the next
  * paragraph) shall be included in all copies or substantial portions of the
  * Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
@@ -954,7 +954,7 @@
 #define glCheckNamedFramebufferStatus(a1, a2) CALL_CheckNamedFramebufferStatus(GET_DISPATCH(), (a1, a2))
 #define glClearNamedBufferData(a1, a2, a3, a4, a5) CALL_ClearNamedBufferData(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glClearNamedBufferSubData(a1, a2, a3, a4, a5, a6, a7) CALL_ClearNamedBufferSubData(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
-#define glClearNamedFramebufferfi(a1, a2, a3, a4) CALL_ClearNamedFramebufferfi(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glClearNamedFramebufferfi(a1, a2, a3, a4, a5) CALL_ClearNamedFramebufferfi(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glClearNamedFramebufferfv(a1, a2, a3, a4) CALL_ClearNamedFramebufferfv(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glClearNamedFramebufferiv(a1, a2, a3, a4) CALL_ClearNamedFramebufferiv(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glClearNamedFramebufferuiv(a1, a2, a3, a4) CALL_ClearNamedFramebufferuiv(GET_DISPATCH(), (a1, a2, a3, a4))
@@ -1310,6 +1310,7 @@
 #define glGetPerfQueryIdByNameINTEL(a1, a2) CALL_GetPerfQueryIdByNameINTEL(GET_DISPATCH(), (a1, a2))
 #define glGetPerfQueryInfoINTEL(a1, a2, a3, a4, a5, a6, a7) CALL_GetPerfQueryInfoINTEL(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 #define glPolygonOffsetClampEXT(a1, a2, a3) CALL_PolygonOffsetClampEXT(GET_DISPATCH(), (a1, a2, a3))
+#define glWindowRectanglesEXT(a1, a2, a3) CALL_WindowRectanglesEXT(GET_DISPATCH(), (a1, a2, a3))
 #define glStencilFuncSeparateATI(a1, a2, a3, a4) CALL_StencilFuncSeparateATI(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glProgramEnvParameters4fvEXT(a1, a2, a3, a4) CALL_ProgramEnvParameters4fvEXT(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glProgramLocalParameters4fvEXT(a1, a2, a3, a4) CALL_ProgramLocalParameters4fvEXT(GET_DISPATCH(), (a1, a2, a3, a4))

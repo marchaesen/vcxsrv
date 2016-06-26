@@ -6,6 +6,13 @@ MEGADRIVERS_DEPS =
 
 SUBDIRS+=common
 
+# On Android, we need to explicitly link to libglapi.so.
+if HAVE_ANDROID
+if HAVE_SHARED_GLAPI
+SHARED_GLAPI_LIB = $(top_builddir)/src/mapi/shared-glapi/libglapi.la
+endif
+endif
+
 if HAVE_I915_DRI
 SUBDIRS += i915
 MEGADRIVERS_DEPS += i915/libi915_dri.la
@@ -61,6 +68,7 @@ mesa_dri_drivers_la_LIBADD = \
         common/libmegadriver_stub.la \
         common/libdricommon.la \
         common/libxmlconfig.la \
+        $(SHARED_GLAPI_LIB) \
         $(MEGADRIVERS_DEPS) \
         $(DRI_LIB_DEPS) \
         $()

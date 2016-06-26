@@ -320,9 +320,9 @@ util_bitmask_get_first_index(struct util_bitmask *bm)
 void
 util_bitmask_destroy(struct util_bitmask *bm)
 {
-   assert(bm);
-
-   FREE(bm->words);
-   FREE(bm);
+   if (bm) {
+      FREE(bm->words);
+      FREE(bm);
+   }
 }
 

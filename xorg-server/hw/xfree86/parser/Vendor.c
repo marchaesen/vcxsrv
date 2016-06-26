@@ -61,7 +61,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec VendorSubTab[] = {
+static const xf86ConfigSymTabRec VendorSubTab[] = {
     {ENDSUBSECTION, "endsubsection"},
     {IDENTIFIER, "identifier"},
     {OPTION, "option"},
@@ -129,7 +129,7 @@ xf86parseVendorSubSection(void)
 
 #undef CLEANUP
 
-static xf86ConfigSymTabRec VendorTab[] = {
+static const xf86ConfigSymTabRec VendorTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {OPTION, "option"},

@@ -132,6 +132,13 @@ FreePixmap(PixmapPtr pPixmap)
     free(pPixmap);
 }
 
+void PixmapUnshareSlavePixmap(PixmapPtr slave_pixmap)
+{
+     int ihandle = -1;
+     ScreenPtr pScreen = slave_pixmap->drawable.pScreen;
+     pScreen->SetSharedPixmapBacking(slave_pixmap, ((void *)(long)ihandle));
+}
+
 PixmapPtr PixmapShareToSlave(PixmapPtr pixmap, ScreenPtr slave)
 {
     PixmapPtr spix;

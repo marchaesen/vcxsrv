@@ -55,15 +55,15 @@ class PrintGlxDispatch_h(gl_XML.gl_print_base):
             if not func.ignore and not func.vectorequiv:
                 if func.glx_rop:
                     print 'extern _X_HIDDEN void __glXDisp_%s(GLbyte * pc);' % (func.name)
-                    print 'extern _X_HIDDEN void __glXDispSwap_%s(GLbyte * pc);' % (func.name)
+                    print 'extern _X_HIDDEN _X_COLD void __glXDispSwap_%s(GLbyte * pc);' % (func.name)
                 elif func.glx_sop or func.glx_vendorpriv:
                     print 'extern _X_HIDDEN int __glXDisp_%s(struct __GLXclientStateRec *, GLbyte *);' % (func.name)
-                    print 'extern _X_HIDDEN int __glXDispSwap_%s(struct __GLXclientStateRec *, GLbyte *);' % (func.name)
+                    print 'extern _X_HIDDEN _X_COLD int __glXDispSwap_%s(struct __GLXclientStateRec *, GLbyte *);' % (func.name)
 
                     if func.glx_sop and func.glx_vendorpriv:
                         n = func.glx_vendorpriv_names[0]
                         print 'extern _X_HIDDEN int __glXDisp_%s(struct __GLXclientStateRec *, GLbyte *);' % (n)
-                        print 'extern _X_HIDDEN int __glXDispSwap_%s(struct __GLXclientStateRec *, GLbyte *);' % (n)
+                        print 'extern _X_HIDDEN _X_COLD int __glXDispSwap_%s(struct __GLXclientStateRec *, GLbyte *);' % (n)
 
         return
 
@@ -90,10 +90,10 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
         print '#include <GL/glxproto.h>'
 
         print '#include <inttypes.h>'
+        print '#include "glxserver.h"'
         print '#include "indirect_size.h"'
         print '#include "indirect_size_get.h"'
         print '#include "indirect_dispatch.h"'
-        print '#include "glxserver.h"'
         print '#include "glxbyteorder.h"'
         print '#include "indirect_util.h"'
         print '#include "singlesize.h"'
@@ -129,6 +129,9 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
 
         return
 
+    def fptrType(self, name):
+	fptr = "pfngl" + name + "proc"
+	return fptr.upper()
 
     def printFunction(self, f, name):
         if (f.glx_sop or f.glx_vendorpriv) and (len(f.get_images()) != 0):
@@ -145,6 +148,9 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
             print 'int %s_%s(__GLXclientState *cl, GLbyte *pc)' % (base, name)
 
         print '{'
+
+        if not f.is_abi():
+            print '    %s %s = __glGetProcAddress("gl%s");' % (self.fptrType(name), name, name)
 
         if f.glx_rop or f.vectorequiv:
             self.printRenderFunction(f)
@@ -179,11 +185,11 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
                 if t.glx_name not in already_done:
                     real_name = self.real_types[t_size]
 
-                    print 'static %s' % (t_name)
-                    print 'bswap_%s( const void * src )' % (t.glx_name)
+                    print 'static _X_UNUSED %s' % (t_name)
+                    print 'bswap_%s(const void * src)' % (t.glx_name)
                     print '{'
                     print '    union { %s dst; %s ret; } x;' % (real_name, t_name)
-                    print '    x.dst = bswap_%u( *(%s *) src );' % (t_size * 8, real_name)
+                    print '    x.dst = bswap_%u(*(%s *) src);' % (t_size * 8, real_name)
                     print '    return x.ret;'
                     print '}'
                     print ''
@@ -191,12 +197,12 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
 
         for bits in [16, 32, 64]:
             print 'static void *'
-            print 'bswap_%u_array( uint%u_t * src, unsigned count )' % (bits, bits)
+            print 'bswap_%u_array(uint%u_t * src, unsigned count)' % (bits, bits)
             print '{'
             print '    unsigned  i;'
             print ''
-            print '    for ( i = 0 ; i < count ; i++ ) {'
-            print '        uint%u_t temp = bswap_%u( src[i] );' % (bits, bits)
+            print '    for (i = 0 ; i < count ; i++) {'
+            print '        uint%u_t temp = bswap_%u(src[i]);' % (bits, bits)
             print '        src[i] = temp;'
             print '    }'
             print ''
@@ -230,6 +236,7 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
 
     def emit_function_call(self, f, retval_assign, indent):
         list = []
+        prefix = "gl" if f.is_abi() else ""
 
         for param in f.parameterIterator():
             if param.is_padding:
@@ -455,6 +462,10 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
                 print '            return BadAlloc;'
                 answer_string = param.name
                 answer_count = param.counter
+                print ''
+                print '        if (%s == NULL) return BadAlloc;' % (param.name)
+                print '        __glXClearErrorOccured();'
+                print ''
             elif c >= 1:
                 print '        %s %s[%u];' % (answer_type, param.name, c)
                 answer_string = param.name

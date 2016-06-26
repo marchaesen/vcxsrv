@@ -85,7 +85,7 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
 
    if (src_arr_parent || dest_arr_parent) {
       /* Wildcards had better come in matched pairs */
-      assert(dest_arr_parent && dest_arr_parent);
+      assert(src_arr_parent && dest_arr_parent);
 
       nir_deref_array *src_arr = nir_deref_as_array(src_arr_parent->child);
       nir_deref_array *dest_arr = nir_deref_as_array(dest_arr_parent->child);
@@ -116,12 +116,14 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
       assert(src_tail->type == dest_tail->type);
 
       unsigned num_components = glsl_get_vector_elements(src_tail->type);
+      unsigned bit_size = glsl_get_bit_size(src_tail->type);
 
       nir_intrinsic_instr *load =
          nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_load_var);
       load->num_components = num_components;
       load->variables[0] = nir_deref_as_var(nir_copy_deref(load, &src_head->deref));
-      nir_ssa_dest_init(&load->instr, &load->dest, num_components, NULL);
+      nir_ssa_dest_init(&load->instr, &load->dest, num_components, bit_size,
+                        NULL);
 
       nir_instr_insert_before(&copy_instr->instr, &load->instr);
 
@@ -151,30 +153,26 @@ nir_lower_var_copy_instr(nir_intrinsic_instr *copy, void *mem_ctx)
                         &copy->variables[1]->deref, mem_ctx);
 }
 
-static bool
-lower_var_copies_block(nir_block *block, void *mem_ctx)
-{
-   nir_foreach_instr_safe(block, instr) {
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
-
-      nir_intrinsic_instr *copy = nir_instr_as_intrinsic(instr);
-      if (copy->intrinsic != nir_intrinsic_copy_var)
-         continue;
-
-      nir_lower_var_copy_instr(copy, mem_ctx);
-
-      nir_instr_remove(&copy->instr);
-      ralloc_free(copy);
-   }
-
-   return true;
-}
-
 static void
 lower_var_copies_impl(nir_function_impl *impl)
 {
-   nir_foreach_block(impl, lower_var_copies_block, ralloc_parent(impl));
+   void *mem_ctx = ralloc_parent(impl);
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+
+         nir_intrinsic_instr *copy = nir_instr_as_intrinsic(instr);
+         if (copy->intrinsic != nir_intrinsic_copy_var)
+            continue;
+
+         nir_lower_var_copy_instr(copy, mem_ctx);
+
+         nir_instr_remove(&copy->instr);
+         ralloc_free(copy);
+      }
+   }
 }
 
 /* Lowers every copy_var instruction in the program to a sequence of
@@ -183,7 +181,7 @@ lower_var_copies_impl(nir_function_impl *impl)
 void
 nir_lower_var_copies(nir_shader *shader)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          lower_var_copies_impl(function->impl);
    }

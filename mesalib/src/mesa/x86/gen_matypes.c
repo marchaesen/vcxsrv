@@ -125,7 +125,7 @@ int main( int argc, char **argv )
    OFFSET( "CTX_LIGHT_COLOR_MAT_MODE    ", struct gl_context, Light.ColorMaterialMode );
    OFFSET( "CTX_LIGHT_COLOR_MAT_MASK    ", struct gl_context, Light._ColorMaterialBitmask );
    OFFSET( "CTX_LIGHT_COLOR_MAT_ENABLED ", struct gl_context, Light.ColorMaterialEnabled );
-   OFFSET( "CTX_LIGHT_ENABLED_LIST      ", struct gl_context, Light.EnabledList );
+   OFFSET( "CTX_LIGHT_ENABLED_LIGHTS    ", struct gl_context, Light._EnabledLights );
    OFFSET( "CTX_LIGHT_NEED_VERTS        ", struct gl_context, Light._NeedVertices );
    OFFSET( "CTX_LIGHT_BASE_COLOR        ", struct gl_context, Light._BaseColor );
 
@@ -208,8 +208,6 @@ int main( int argc, char **argv )
     */
    OFFSET_HEADER( "struct gl_light" );
 
-   OFFSET( "LIGHT_NEXT              ", struct gl_light, next );
-   OFFSET( "LIGHT_PREV              ", struct gl_light, prev );
    printf( "\n" );
    OFFSET( "LIGHT_AMBIENT           ", struct gl_light, Ambient );
    OFFSET( "LIGHT_DIFFUSE           ", struct gl_light, Diffuse );

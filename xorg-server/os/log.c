@@ -600,9 +600,7 @@ pnprintf(char *string, int size, const char *f, ...)
     return rc;
 }
 
-/* This function does the actual log message writes. It must be signal safe.
- * When attempting to call non-signal-safe functions, guard them with a check
- * of the inSignalContext global variable. */
+/* This function does the actual log message writes. */
 static void
 LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 {
@@ -613,14 +611,7 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
         ret = write(2, buf, len);
 
     if (verb < 0 || logFileVerbosity >= verb) {
-        if (inSignalContext && logFileFd >= 0) {
-            ret = write(logFileFd, buf, len);
-#ifndef WIN32
-            if (logFlush && logSync)
-                fsync(logFileFd);
-#endif
-        }
-        else if (!inSignalContext && logFile) {
+        if (logFile) {
 //            if (newline)
 //                fprintf(logFile, "[%10.3f] ", GetTimeInMillis() / 1000.0);
             newline = end_line;
@@ -633,7 +624,7 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 #endif
             }
         }
-        else if (!inSignalContext && needBuffer) {
+        else if (needBuffer) {
             if (len > bufferUnused) {
                 bufferSize += 1024;
                 bufferUnused += 1024;
@@ -718,11 +709,6 @@ LogVMessageVerb(MessageType type, int verb, const char *format, va_list args)
     const size_t size = sizeof(buf);
     Bool newline;
     size_t len = 0;
-
-    if (inSignalContext) {
-        LogVMessageVerbSigSafe(type, verb, format, args);
-        return;
-    }
 
     type_str = LogMessageTypeVerbString(type, verb);
     if (!type_str)
@@ -821,13 +807,8 @@ LogVHdrMessageVerb(MessageType type, int verb, const char *msg_format,
     if (!type_str)
         return;
 
-    if (inSignalContext) {
-        vprintf_func = vpnprintf;
-        printf_func = pnprintf;
-    } else {
-        vprintf_func = Xvscnprintf;
-        printf_func = Xscnprintf;
-    }
+    vprintf_func = Xvscnprintf;
+    printf_func = Xscnprintf;
 
     /* if type_str is not "", prepend it and ' ', to message */
     if (type_str[0] != '\0')

@@ -341,6 +341,12 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = glsl_type::int_type;
       break;
 
+   case ir_unop_vote_any:
+   case ir_unop_vote_all:
+   case ir_unop_vote_eq:
+      this->type = glsl_type::bool_type;
+      break;
+
    default:
       assert(!"not reached: missing automatic type setup for ir_expression");
       this->type = op0->type;
@@ -563,6 +569,9 @@ static const char *const operator_strs[] = {
    "interpolate_at_centroid",
    "get_buffer_size",
    "ssbo_unsized_array_length",
+   "vote_any",
+   "vote_all",
+   "vote_eq",
    "+",
    "-",
    "*",
@@ -663,12 +672,15 @@ ir_expression::variable_referenced() const
 ir_constant::ir_constant()
    : ir_rvalue(ir_type_constant)
 {
+   this->array_elements = NULL;
 }
 
 ir_constant::ir_constant(const struct glsl_type *type,
 			 const ir_constant_data *data)
    : ir_rvalue(ir_type_constant)
 {
+   this->array_elements = NULL;
+
    assert((type->base_type >= GLSL_TYPE_UINT)
 	  && (type->base_type <= GLSL_TYPE_BOOL));
 
@@ -744,6 +756,7 @@ ir_constant::ir_constant(bool b, unsigned vector_elements)
 ir_constant::ir_constant(const ir_constant *c, unsigned i)
    : ir_rvalue(ir_type_constant)
 {
+   this->array_elements = NULL;
    this->type = c->type->get_base_type();
 
    switch (this->type->base_type) {
@@ -759,6 +772,7 @@ ir_constant::ir_constant(const ir_constant *c, unsigned i)
 ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
    : ir_rvalue(ir_type_constant)
 {
+   this->array_elements = NULL;
    this->type = type;
 
    assert(type->is_scalar() || type->is_vector() || type->is_matrix()
@@ -869,7 +883,8 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
    /* Use each component from each entry in the value_list to initialize one
     * component of the constant being constructed.
     */
-   for (unsigned i = 0; i < type->components(); /* empty */) {
+   unsigned i = 0;
+   for (;;) {
       assert(value->as_constant() != NULL);
       assert(!value->is_tail_sentinel());
 
@@ -901,6 +916,8 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
 	    break;
       }
 
+      if (i >= type->components())
+	 break; /* avoid downcasting a list sentinel */
       value = (ir_constant *) value->next;
    }
 }
@@ -1660,7 +1677,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.how_declared = ir_var_declared_normally;
    this->data.mode = mode;
    this->data.interpolation = INTERP_QUALIFIER_NONE;
-   this->data.max_array_access = 0;
+   this->data.max_array_access = -1;
    this->data.offset = 0;
    this->data.precision = GLSL_PRECISION_NONE;
    this->data.image_read_only = false;

@@ -63,7 +63,7 @@ util_pstipple_update_stipple_texture(struct pipe_context *pipe,
                                      struct pipe_resource *tex,
                                      const uint32_t pattern[32])
 {
-   static const uint bit31 = 1 << 31;
+   static const uint bit31 = 1u << 31;
    struct pipe_transfer *transfer;
    ubyte *data;
    int i, j;
@@ -204,7 +204,7 @@ pstip_transform_decl(struct tgsi_transform_context *ctx,
    if (decl->Declaration.File == TGSI_FILE_SAMPLER) {
       uint i;
       for (i = decl->Range.First; i <= decl->Range.Last; i++) {
-         pctx->samplersUsed |= 1 << i;
+         pctx->samplersUsed |= 1u << i;
       }
    }
    else if (decl->Declaration.File == pctx->wincoordFile) {
@@ -266,9 +266,11 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
    int texTemp;
    int sampIdx;
 
+   STATIC_ASSERT(sizeof(pctx->samplersUsed) * 8 >= PIPE_MAX_SAMPLERS);
+
    /* find free texture sampler */
    pctx->freeSampler = free_bit(pctx->samplersUsed);
-   if (pctx->freeSampler >= PIPE_MAX_SAMPLERS)
+   if (pctx->freeSampler < 0 || pctx->freeSampler >= PIPE_MAX_SAMPLERS)
       pctx->freeSampler = PIPE_MAX_SAMPLERS - 1;
 
    if (pctx->wincoordInput < 0)
@@ -344,11 +346,11 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
                            pctx->wincoordFile, wincoordInput,
                            TGSI_FILE_IMMEDIATE, pctx->numImmed);
 
-   /* TEX texTemp, texTemp, sampler; */
-   tgsi_transform_tex_2d_inst(ctx,
-                              TGSI_FILE_TEMPORARY, texTemp,
-                              TGSI_FILE_TEMPORARY, texTemp,
-                              sampIdx);
+   /* TEX texTemp, texTemp, sampler, 2D; */
+   tgsi_transform_tex_inst(ctx,
+                           TGSI_FILE_TEMPORARY, texTemp,
+                           TGSI_FILE_TEMPORARY, texTemp,
+                           TGSI_TEXTURE_2D, sampIdx);
 
    /* KILL_IF -texTemp;   # if -texTemp < 0, kill fragment */
    tgsi_transform_kill_inst(ctx,

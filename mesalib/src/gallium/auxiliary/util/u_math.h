@@ -46,10 +46,7 @@
 #include <float.h>
 #include <stdarg.h>
 
-#ifdef PIPE_OS_UNIX
-#include <strings.h> /* for ffs */
-#endif
-
+#include "util/bitscan.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -350,82 +347,6 @@ util_half_inf_sign(int16_t x)
 
 
 /**
- * Find first bit set in word.  Least significant bit is 1.
- * Return 0 if no bits set.
- */
-#ifndef FFS_DEFINED
-#define FFS_DEFINED 1
-
-#if defined(_MSC_VER) && (_M_IX86 || _M_AMD64 || _M_IA64)
-unsigned char _BitScanForward(unsigned long* Index, unsigned long Mask);
-#pragma intrinsic(_BitScanForward)
-static inline
-unsigned long ffs( unsigned long u )
-{
-   unsigned long i;
-   if (_BitScanForward(&i, u))
-      return i + 1;
-   else
-      return 0;
-}
-#elif defined(PIPE_CC_MSVC) && defined(PIPE_ARCH_X86)
-static inline
-unsigned ffs( unsigned u )
-{
-   unsigned i;
-
-   if (u == 0) {
-      return 0;
-   }
-
-   __asm bsf eax, [u]
-   __asm inc eax
-   __asm mov [i], eax
-
-   return i;
-}
-#elif defined(__MINGW32__) || defined(PIPE_OS_ANDROID) || \
-    defined(HAVE___BUILTIN_FFS)
-#define ffs __builtin_ffs
-#endif
-
-#ifdef HAVE___BUILTIN_FFSLL
-#define ffsll __builtin_ffsll
-#else
-static inline int
-ffsll(long long int val)
-{
-   int bit;
-
-   bit = ffs((unsigned) (val & 0xffffffff));
-   if (bit != 0)
-      return bit;
-
-   bit = ffs((unsigned) (val >> 32));
-   if (bit != 0)
-      return 32 + bit;
-
-   return 0;
-}
-#endif
-
-#endif /* FFS_DEFINED */
-
-/**
- * Find first bit set in long long.  Least significant bit is 1.
- * Return 0 if no bits set.
- */
-#ifndef FFSLL_DEFINED
-#define FFSLL_DEFINED 1
-
-#if defined(__MINGW32__) || defined(PIPE_OS_ANDROID) || \
-    defined(HAVE___BUILTIN_FFSLL)
-#define ffsll __builtin_ffsll
-#endif
-
-#endif /* FFSLL_DEFINED */
-
-/**
  * Find last bit set in a word.  The least significant bit is 1.
  * Return 0 if no bits are set.
  */
@@ -477,50 +398,16 @@ util_last_bit_signed(int i)
       return util_last_bit(~(unsigned)i);
 }
 
-/* Destructively loop over all of the bits in a mask as in:
- *
- * while (mymask) {
- *   int i = u_bit_scan(&mymask);
- *   ... process element i
- * }
- *
+/* Returns a bitfield in which the first count bits starting at start are
+ * set.
  */
-static inline int
-u_bit_scan(unsigned *mask)
+static inline unsigned
+u_bit_consecutive(unsigned start, unsigned count)
 {
-   int i = ffs(*mask) - 1;
-   *mask &= ~(1 << i);
-   return i;
-}
-
-#ifndef _MSC_VER
-static inline int
-u_bit_scan64(uint64_t *mask)
-{
-   int i = ffsll(*mask) - 1;
-   *mask &= ~(1llu << i);
-   return i;
-}
-#endif
-
-/* For looping over a bitmask when you want to loop over consecutive bits
- * manually, for example:
- *
- * while (mask) {
- *    int start, count, i;
- *
- *    u_bit_scan_consecutive_range(&mask, &start, &count);
- *
- *    for (i = 0; i < count; i++)
- *       ... process element (start+i)
- * }
- */
-static inline void
-u_bit_scan_consecutive_range(unsigned *mask, int *start, int *count)
-{
-   *start = ffs(*mask) - 1;
-   *count = ffs(~(*mask >> *start)) - 1;
-   *mask &= ~(((1 << *count) - 1) << *start);
+   assert(start + count <= 32);
+   if (count == 32)
+      return ~0;
+   return ((1u << count) - 1) << start;
 }
 
 /**
@@ -788,6 +675,12 @@ util_memcpy_cpu_to_le32(void * restrict dest, const void * restrict src, size_t 
  */
 static inline int
 align(int value, int alignment)
+{
+   return (value + alignment - 1) & ~(alignment - 1);
+}
+
+static inline uint64_t
+align64(uint64_t value, unsigned alignment)
 {
    return (value + alignment - 1) & ~(alignment - 1);
 }

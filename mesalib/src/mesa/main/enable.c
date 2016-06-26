@@ -35,7 +35,6 @@
 #include "enable.h"
 #include "errors.h"
 #include "light.h"
-#include "util/simple_list.h"
 #include "mtypes.h"
 #include "enums.h"
 #include "api_arrayelt.h"
@@ -105,6 +104,8 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_POINT_SIZE_ARRAY_OES:
          var = &vao->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled;
          flag = VERT_BIT_POINT_SIZE;
+         FLUSH_VERTICES(ctx, _NEW_PROGRAM);
+         ctx->VertexProgram.PointSizeEnabled = state;
          break;
 
       /* GL_NV_primitive_restart */
@@ -400,11 +401,10 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          FLUSH_VERTICES(ctx, _NEW_LIGHT);
          ctx->Light.Light[cap-GL_LIGHT0].Enabled = state;
          if (state) {
-            insert_at_tail(&ctx->Light.EnabledList,
-                           &ctx->Light.Light[cap-GL_LIGHT0]);
+            ctx->Light._EnabledLights |= 1u << (cap - GL_LIGHT0);
          }
          else {
-            remove_from_list(&ctx->Light.Light[cap-GL_LIGHT0]);
+            ctx->Light._EnabledLights &= ~(1u << (cap - GL_LIGHT0));
          }
          break;
       case GL_LIGHTING:
@@ -739,12 +739,22 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_VERTEX_ARRAY:
       case GL_NORMAL_ARRAY:
       case GL_COLOR_ARRAY:
-      case GL_INDEX_ARRAY:
       case GL_TEXTURE_COORD_ARRAY:
+         if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
+            goto invalid_enum_error;
+         client_state( ctx, cap, state );
+         return;
+      case GL_INDEX_ARRAY:
       case GL_EDGE_FLAG_ARRAY:
       case GL_FOG_COORDINATE_ARRAY_EXT:
       case GL_SECONDARY_COLOR_ARRAY_EXT:
+         if (ctx->API != API_OPENGL_COMPAT)
+            goto invalid_enum_error;
+         client_state( ctx, cap, state );
+         return;
       case GL_POINT_SIZE_ARRAY_OES:
+         if (ctx->API != API_OPENGLES)
+            goto invalid_enum_error;
          client_state( ctx, cap, state );
          return;
 
@@ -805,7 +815,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL_ARB_sample_shading */
       case GL_SAMPLE_SHADING:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
          CHECK_EXTENSION(ARB_sample_shading, cap);
          if (ctx->Multisample.SampleShading == state)
@@ -1604,7 +1614,7 @@ _mesa_IsEnabled( GLenum cap )
 
       /* ARB_sample_shading */
       case GL_SAMPLE_SHADING:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
          CHECK_EXTENSION(ARB_sample_shading);
          return ctx->Multisample.SampleShading;

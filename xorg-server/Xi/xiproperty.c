@@ -622,6 +622,7 @@ XIDeleteAllDeviceProperties(DeviceIntPtr device)
     XIPropertyPtr prop, next;
     XIPropertyHandlerPtr curr_handler, next_handler;
 
+    UpdateCurrentTimeIf();
     for (prop = device->properties.properties; prop; prop = next) {
         next = prop->next;
         send_property_event(device, prop->propertyName, XIPropertyDeleted);
@@ -672,6 +673,7 @@ XIDeleteDeviceProperty(DeviceIntPtr device, Atom property, Bool fromClient)
     }
 
     if (prop) {
+        UpdateCurrentTimeIf();
         *prev = prop->next;
         send_property_event(device, prop->propertyName, XIPropertyDeleted);
         XIDestroyDeviceProperty(prop);
@@ -793,9 +795,11 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
         dev->properties.properties = prop;
     }
 
-    if (sendevent)
+    if (sendevent) {
+        UpdateCurrentTimeIf();
         send_property_event(dev, prop->propertyName,
                             (add) ? XIPropertyCreated : XIPropertyModified);
+    }
 
     return Success;
 }

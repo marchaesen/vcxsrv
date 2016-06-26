@@ -80,8 +80,7 @@ typedef struct {
     Bool miscModInDevEnabled;   /* Allow input devices to be
                                  * changed */
     Bool miscModInDevAllowNonLocal;
-    Bool useSIGIO;              /* Use SIGIO for handling
-                                   input device events */
+    Bool useSIGIO;              /* Use SIGIO for handling DRI1 swaps */
     Pix24Flags pixmap24;
     MessageType pix24From;
     Bool pmFlag;
@@ -89,6 +88,7 @@ typedef struct {
     MessageType randRFrom;
     Bool aiglx;
     MessageType aiglxFrom;
+    MessageType iglxFrom;
     XF86_GlxVisuals glxVisuals;
     MessageType glxVisualsFrom;
 
@@ -114,16 +114,6 @@ typedef struct {
     int Flags;
 } DPMSRec, *DPMSPtr;
 #endif
-
-/* Information for root window properties. */
-typedef struct _RootWinProp {
-    struct _RootWinProp *next;
-    const char *name;
-    Atom type;
-    short format;
-    long size;
-    void *data;
-} RootWinProp, *RootWinPropPtr;
 
 /* ISC's cc can't handle ~ of UL constants, so explicitly type cast them. */
 #define XLED1   ((unsigned long) 0x00000001)

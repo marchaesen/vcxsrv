@@ -97,6 +97,7 @@ def AddOptions(opts):
     opts.Add(BoolOption('embedded', 'embedded build', 'no'))
     opts.Add(BoolOption('analyze',
                         'enable static code analysis where available', 'no'))
+    opts.Add(BoolOption('asan', 'enable Address Sanitizer', 'no'))
     opts.Add('toolchain', 'compiler toolchain', default_toolchain)
     opts.Add(BoolOption('gles', 'EXPERIMENTAL: enable OpenGL ES support',
                         'no'))

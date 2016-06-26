@@ -204,20 +204,6 @@ typedef struct _Xtransport {
      const char *             /* port */
     );
 
-    XtransConnInfo (*OpenCLTSClient)(
-     struct _Xtransport *,    /* transport */
-     const char *,            /* protocol */
-     const char *,            /* host */
-     const char *             /* port */
-    );
-
-    XtransConnInfo (*OpenCLTSServer)(
-     struct _Xtransport *,    /* transport */
-     const char *,            /* protocol */
-     const char *,            /* host */
-     const char *             /* port */
-    );
-
     int     (*SetOption)(
      XtransConnInfo,          /* connection */
      int,               /* option */
@@ -420,36 +406,6 @@ on failure.
     </para>
   </listitem>
   <listitem>
-    <funcsynopsis id='TRANSOpenCLTSClient'>
-      <funcprototype>
-        <funcdef>XtransConnInfo <function>TRANS(OpenCLTSClient)</function></funcdef>
-        <paramdef>const char *<parameter>address</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-    <para>
-This function creates a Connection-Less Transport that is suitable for
-use by a client. The parameter <parameter>address</parameter> contains the
-full address of the server to which this endpoint will be connected. This
-function returns an opaque transport connection object on success, or
-<constant>NULL</constant> on failure.
-    </para>
-  </listitem>
-  <listitem>
-    <funcsynopsis id='TRANSOpenCLTSServer'>
-      <funcprototype>
-        <funcdef>XtransConnInfo <function>TRANS(OpenCLTSServer)</function></funcdef>
-        <paramdef>const char *<parameter>address</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-    <para>
-This function creates a Connection-Less Transport that is suitable for
-use by a server. The parameter <parameter>address</parameter> contains the
-full address to which this server will be bound. This function returns an
-opaque transport connection object on success, or <constant>NULL</constant>
-on failure.
-    </para>
-  </listitem>
-  <listitem>
     <funcsynopsis id='TRANSSetOption'>
       <funcprototype>
         <funcdef>int <function>TRANS(SetOption)</function></funcdef>
@@ -487,8 +443,7 @@ Based on current usage, the complimentary function
     <para>
 This function sets up the server endpoint for listening. The parameter
 <parameter>connection</parameter> is an endpoint that was obtained from
-<function>TRANS(OpenCOTSServer)()</function> or
-<function>TRANS(OpenCLTSServer)()</function>. The parameter
+<function>TRANS(OpenCOTSServer)()</function>. The parameter
 <parameter>port</parameter> specifies the port to which this endpoint
 should be bound for listening. If port is <constant>NULL</constant>,
 then the transport may attempt to allocate any available TSAP for this
@@ -578,8 +533,7 @@ This function provides the same functionality as the
     </funcsynopsis>
     <para>
 This function will return the number of bytes requested on a COTS
-connection, and will return the minimum of the number bytes requested or
-the size of the incoming packet on a CLTS connection.
+connection, and will return the minimum of the number bytes requested.
     </para>
   </listitem>
   <listitem>
@@ -593,7 +547,7 @@ the size of the incoming packet on a CLTS connection.
     </funcsynopsis>
     <para>
 This function will write the requested number of bytes on a COTS
-connection, and will send a packet of the requested size on a CLTS connection.
+connection.
     </para>
   </listitem>
   <listitem>
@@ -727,25 +681,6 @@ the number of transports returned, and <parameter>connections_ret</parameter>
 is the list of transports.
     </para>
   </listitem>
-  <listitem>
-    <funcsynopsis id='TRANSMakeAllCLTSServerListeners'>
-      <funcprototype>
-        <funcdef>int <function>TRANS(MakeAllCLTSServerListeners)</function></funcdef>
-        <paramdef>const char *<parameter>port</parameter></paramdef>
-        <paramdef>int *<parameter>partial_ret</parameter></paramdef>
-        <paramdef>int *<parameter>count_ret</parameter></paramdef>
-        <paramdef>XtransConnInfo **<parameter>connections_ret</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-    <para>
-This function should be used by most servers. It will try to establish a
-CLTS server endpoint for each transport listed in the transport table.
-<parameter>partial_ret</parameter> will be set to <symbol>True</symbol> if
-only a partial network could be created. <parameter>count_ret</parameter> is
-the number of transports returned, and <parameter>connections_ret</parameter>
-is the list of transports.
-    </para>
-  </listitem>
 </itemizedlist>
 </sect1>
 
@@ -865,52 +800,6 @@ strings containing the corresponding parts of the address that was passed into
 This function must allocate and initialize the contents of the
 XtransConnInfo structure that is returned by this function. This function
 will open the transport.
-    </para>
-  </listitem>
-  <listitem>
-    <funcsynopsis id='OpenCLTSClient'>
-      <funcprototype>
-        <funcdef>XtransConnInfo *<function>OpenCLTSClient</function></funcdef>
-        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>const char *<parameter>protocol</parameter></paramdef>
-        <paramdef>const char *<parameter>host</parameter></paramdef>
-        <paramdef>const char *<parameter>port</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-    <para>
-This function creates a Connection-Less Transport. The parameter
-<parameter>thistrans</parameter> points to an Xtransport entry in the
-transport table. The parameters <parameter>protocol</parameter>,
-<parameter>host</parameter>, and <parameter>port</parameter> point to strings
-containing the corresponding parts of the address that was passed into
-<link linkend='TRANSOpenCLTSClient'><function>TRANS(OpenCLTSClient)()</function></link>.
-This function must allocate and initialize the contents of the XtransConnInfo
-structure that is returned by this function. This function will open the
-transport, and bind it into the transport namespace if applicable. The
-local address portion of the XtransConnInfo structure will also be filled
-in by this function.
-    </para>
-  </listitem>
-  <listitem>
-    <funcsynopsis id='OpenCLTSServer'>
-      <funcprototype>
-        <funcdef>XtransConnInfo *<function>OpenCLTSServer</function></funcdef>
-        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>const char *<parameter>protocol</parameter></paramdef>
-        <paramdef>const char *<parameter>host</parameter></paramdef>
-        <paramdef>const char *<parameter>port</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-    <para>
-This function creates a Connection-Less Transport. The parameter
-<parameter>thistrans</parameter> points to an Xtransport entry in the
-transport table. The parameters <parameter>protocol</parameter>,
-<parameter>host</parameter>, and <parameter>port</parameter> point to strings
-containing the corresponding parts of the address that was passed into
-<link linkend='TRANSOpenCLTSServer'><function>TRANS(OpenCLTSServer)()</function></link>.
-This function must allocate and initialize the contents of the
-XtransConnInfo structure that is returned by this function. This
-function will open the transport.
     </para>
   </listitem>
   <listitem>

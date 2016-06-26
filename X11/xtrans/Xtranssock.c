@@ -219,14 +219,6 @@ static int TRANS(SocketINETClose) (XtransConnInfo ciptr);
 #define UNIX_PATH "/tmp/.ICE-unix/"
 #define UNIX_DIR "/tmp/.ICE-unix"
 #endif /* ICE_t */
-#if defined(TEST_t)
-#define UNIX_PATH "/tmp/.Test-unix/test"
-#define UNIX_DIR "/tmp/.Test-unix"
-#endif
-#if defined(LBXPROXY_t)
-#define UNIX_PATH "/tmp/.X11-unix/X"
-#define UNIX_DIR  "/tmp/.X11-unix"
-#endif
 
 
 #endif /* UNIXCONN */
@@ -677,91 +669,6 @@ TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, const char *protocol,
 #endif /* TRANS_SERVER */
 
 
-#ifdef TRANS_CLIENT
-
-static XtransConnInfo
-TRANS(SocketOpenCLTSClient) (Xtransport *thistrans, const char *protocol,
-			     const char *host, const char *port)
-
-{
-    XtransConnInfo	ciptr;
-    int			i = -1;
-
-    prmsg (2,"SocketOpenCLTSClient(%s,%s,%s)\n", protocol, host, port);
-
-    SocketInitOnce();
-
-    while ((i = TRANS(SocketSelectFamily) (i, thistrans->TransName)) >= 0) {
-	if ((ciptr = TRANS(SocketOpen) (
-		 i, Sockettrans2devtab[i].devcotsname)) != NULL)
-	    break;
-    }
-    if (i < 0) {
-	if (i == -1)
-	    prmsg (1,"SocketOpenCLTSClient: Unable to open socket for %s\n",
-		   thistrans->TransName);
-	else
-	    prmsg (1,"SocketOpenCLTSClient: Unable to determine socket type for %s\n",
-		   thistrans->TransName);
-	return NULL;
-    }
-
-    /* Save the index for later use */
-
-    ciptr->index = i;
-
-    return ciptr;
-}
-
-#endif /* TRANS_CLIENT */
-
-
-#ifdef TRANS_SERVER
-
-static XtransConnInfo
-TRANS(SocketOpenCLTSServer) (Xtransport *thistrans, const char *protocol,
-			     const char *host, const char *port)
-
-{
-    XtransConnInfo	ciptr;
-    int	i = -1;
-
-    prmsg (2,"SocketOpenCLTSServer(%s,%s,%s)\n", protocol, host, port);
-
-    SocketInitOnce();
-
-    while ((i = TRANS(SocketSelectFamily) (i, thistrans->TransName)) >= 0) {
-	if ((ciptr = TRANS(SocketOpen) (
-		 i, Sockettrans2devtab[i].devcotsname)) != NULL)
-	    break;
-    }
-    if (i < 0) {
-	if (i == -1)
-	    prmsg (1,"SocketOpenCLTSServer: Unable to open socket for %s\n",
-		   thistrans->TransName);
-	else
-	    prmsg (1,"SocketOpenCLTSServer: Unable to determine socket type for %s\n",
-		   thistrans->TransName);
-	return NULL;
-    }
-
-#ifdef IPV6_V6ONLY
-    if (Sockettrans2devtab[i].family == AF_INET6)
-    {
-	int one = 1;
-	setsockopt(ciptr->fd, IPPROTO_IPV6, IPV6_V6ONLY, (const char *)&one, sizeof(int));
-    }
-#endif
-    /* Save the index for later use */
-
-    ciptr->index = i;
-
-    return ciptr;
-}
-
-#endif /* TRANS_SERVER */
-
-
 #ifdef TRANS_REOPEN
 
 static XtransConnInfo
@@ -787,40 +694,6 @@ TRANS(SocketReopenCOTSServer) (Xtransport *thistrans, int fd, const char *port)
 		   thistrans->TransName);
 	else
 	    prmsg (1,"SocketReopenCOTSServer: Unable to determine socket type for %s\n",
-		   thistrans->TransName);
-	return NULL;
-    }
-
-    /* Save the index for later use */
-
-    ciptr->index = i;
-
-    return ciptr;
-}
-
-static XtransConnInfo
-TRANS(SocketReopenCLTSServer) (Xtransport *thistrans, int fd, const char *port)
-
-{
-    XtransConnInfo	ciptr;
-    int			i = -1;
-
-    prmsg (2,
-	"SocketReopenCLTSServer(%d, %s)\n", fd, port);
-
-    SocketInitOnce();
-
-    while ((i = TRANS(SocketSelectFamily) (i, thistrans->TransName)) >= 0) {
-	if ((ciptr = TRANS(SocketReopen) (
-		 i, Sockettrans2devtab[i].devcotsname, fd, port)) != NULL)
-	    break;
-    }
-    if (i < 0) {
-	if (i == -1)
-	    prmsg (1,"SocketReopenCLTSServer: Unable to open socket for %s\n",
-		   thistrans->TransName);
-	else
-	    prmsg (1,"SocketReopenCLTSServer: Unable to determine socket type for %s\n",
 		   thistrans->TransName);
 	return NULL;
     }
@@ -2521,15 +2394,8 @@ Xtransport	TRANS(SocketTCPFuncs) = {
 	tcp_nolisten,
 	TRANS(SocketOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(SocketOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(SocketOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(SocketReopenCOTSServer),
-	TRANS(SocketReopenCLTSServer),
 #endif
 	TRANS(SocketSetOption),
 #ifdef TRANS_SERVER
@@ -2563,15 +2429,8 @@ Xtransport	TRANS(SocketINETFuncs) = {
 	NULL,
 	TRANS(SocketOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(SocketOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(SocketOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(SocketReopenCOTSServer),
-	TRANS(SocketReopenCLTSServer),
 #endif
 	TRANS(SocketSetOption),
 #ifdef TRANS_SERVER
@@ -2606,15 +2465,8 @@ Xtransport     TRANS(SocketINET6Funcs) = {
 	NULL,
 	TRANS(SocketOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(SocketOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(SocketOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(SocketReopenCOTSServer),
-	TRANS(SocketReopenCLTSServer),
 #endif
 	TRANS(SocketSetOption),
 #ifdef TRANS_SERVER
@@ -2656,15 +2508,8 @@ Xtransport	TRANS(SocketLocalFuncs) = {
 	NULL,
 	TRANS(SocketOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(SocketOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(SocketOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(SocketReopenCOTSServer),
-	TRANS(SocketReopenCLTSServer),
 #endif
 	TRANS(SocketSetOption),
 #ifdef TRANS_SERVER
@@ -2714,15 +2559,8 @@ Xtransport	TRANS(SocketUNIXFuncs) = {
 #endif
 	TRANS(SocketOpenCOTSServer),
 #endif /* TRANS_SERVER */
-#ifdef TRANS_CLIENT
-	TRANS(SocketOpenCLTSClient),
-#endif /* TRANS_CLIENT */
-#ifdef TRANS_SERVER
-	TRANS(SocketOpenCLTSServer),
-#endif /* TRANS_SERVER */
 #ifdef TRANS_REOPEN
 	TRANS(SocketReopenCOTSServer),
-	TRANS(SocketReopenCLTSServer),
 #endif
 	TRANS(SocketSetOption),
 #ifdef TRANS_SERVER

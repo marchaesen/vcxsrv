@@ -1,0 +1,71 @@
+// Modified from Arabic (buckwalter)
+default partial alphanumeric_keys
+xkb_symbols "jawi" {
+    name[Group1]= "Indonesian (Jawi)";
+
+    // `
+    key <TLDE> { [ Arabic_superscript_alef, Arabic_shadda, grave, asciitilde ] }; // ـٰ supercript alef
+
+    // 1..=
+    key <AE01> { [ Arabic_1,     exclam             ] };
+    key <AE02> { [ Arabic_2,     at                 ] };
+    key <AE03> { [ Arabic_3,     numbersign         ] };
+    key <AE04> { [ Arabic_4,     0x1000657          , dollar, 0x10006e9 ] }; // ـٗ inverted damma, ۩
+    key <AE05> { [ Arabic_5,     Arabic_percent     ] };
+    key <AE06> { [ Arabic_6,     asciicircum        ] };
+    key <AE07> { [ Arabic_7,     ampersand          ] };
+    key <AE08> { [ Arabic_8,     asterisk           , 0x100066d, 0x10006de ] }; // ٭, ۞
+    key <AE09> { [ Arabic_9,     parenright         , 0x100fd3e, 0x100fd3e ] }; // ornate left
+    key <AE10> { [ Arabic_0,     parenleft          , 0x100fd3f, 0x100fd3f ] }; // ornate right
+    key <AE11> { [ minus,        Arabic_tatweel     , underscore, underscore ] };
+    key <AE12> { [ equal,        plus               ] };
+
+    // Q..]
+    key <AD01> { [ Arabic_qaf,   Arabic_hamza       ] };
+    key <AD02> { [ Arabic_waw,   Arabic_hamzaonwaw  ] };
+    key <AD03> { [ Arabic_ain,   0x10006ce          ] }; // yeh with small v
+    key <AD04> { [ Arabic_ra,    0x1000656          ] }; // ـٖ subscript alef
+    key <AD05> { [ Arabic_teh,   Arabic_tah         ] };
+    key <AD06> { [ Arabic_yeh,   Arabic_alefmaksura ] };
+    key <AD07> { [ Arabic_damma, Arabic_hamzaonalef ] };
+    key <AD08> { [ Arabic_kasra, Arabic_hamzaunderalef ] };
+    key <AD09> { [ Arabic_sukun, 0x10006c6          ] }; // oe
+    key <AD10> { [ Arabic_veh,   Arabic_tehmarbuta  ] }; // ڤ p
+    key <AD11> { [ Arabic_fathatan, 0x1000671       , bracketright,	braceright ] }; // ٱ alef wasla
+    key <AD12> { [ Arabic_kasratan, Arabic_hamzaonyeh, bracketleft,	braceleft ] };
+
+    // A..'
+    key <AC01> { [ Arabic_fatha, Arabic_alef        ] };
+    key <AC02> { [ Arabic_seen,  Arabic_sad         ] };
+    key <AC03> { [ Arabic_dal,   Arabic_dad         ] };
+    key <AC04> { [ Arabic_feh,   0x10006a0          ] }; // ڠ ng
+    key <AC05> { [ 0x1000762,    Arabic_ghain       ] }; // ݢ g (prefered)
+    key <AC06> { [ Arabic_ha,    Arabic_hah         ] };
+    key <AC07> { [ Arabic_jeem,  0x10006ac          ] }; // ڬ g
+    key <AC08> { [ Arabic_kaf,   Arabic_keheh       ] }; // ک k (prefered)
+    key <AC09> { [ Arabic_lam,   Arabic_madda_above ] }; // ـٓ maddah above
+    key <AC10> { [ Arabic_semicolon, colon          ] };
+    key <AC11> { [ apostrophe,	 quotedbl           , 0x100066c, 0x100066c ] }; // thousand sep
+
+    // \ 
+    key <BKSL> { [ Arabic_dammatan, Arabic_maddaonalef, backslash, bar ] };
+
+    // not exist in US keyboard
+    key <LSGT> { [ bar,          brokenbar	        ] };
+
+    // Z../
+    key <AB01> { [ Arabic_zain,  Arabic_zah         ] };
+    key <AB02> { [ Arabic_khah,  Arabic_sheen       ] };
+    key <AB03> { [ Arabic_tcheh, Arabic_thal        ] }; // چ c/ch
+    key <AB04> { [ 0x10006cf,    Arabic_theh        ] }; // ۏ v
+    key <AB05> { [ Arabic_beh,   0x10000bb          ] }; // »
+    key <AB06> { [ Arabic_noon,  0x10006bd          ] }; // ڽ ny
+    key <AB07> { [ Arabic_meem,  0x10000ab          ] }; // «
+    key <AB08> { [ Arabic_comma, less               , 0x100066b, 0x100060d ] }; // decimal sep, date sep
+    key <AB09> { [ period,       greater,           Arabic_fullstop, 0x10006dd ] }; // ۔ full stop, ۝
+    key <AB10> { [ slash,        Arabic_question_mark ] };
+    
+    
+    include "level3(ralt_switch)"
+};
+

@@ -33,6 +33,7 @@
 #define U_UPLOAD_MGR_H
 
 #include "pipe/p_compiler.h"
+#include "pipe/p_defines.h"
 
 struct pipe_context;
 struct pipe_resource;
@@ -48,7 +49,7 @@ struct pipe_resource;
  */
 struct u_upload_mgr *
 u_upload_create(struct pipe_context *pipe, unsigned default_size,
-                unsigned bind, unsigned usage);
+                unsigned bind, enum pipe_resource_usage usage);
 
 /**
  * Destroy the upload manager.

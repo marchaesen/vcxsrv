@@ -261,10 +261,10 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_const_arrays_to_uniforms.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard_flow.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_distance.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_if_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_instructions.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_jumps.cpp" />
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_clip_distance.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_mat_op_to_vec.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_named_interface_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_noise.cpp" />
@@ -306,6 +306,7 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_swizzle_swizzle.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_tree_grafting.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_vectorize.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\propagate_invariance.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\s_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl_types.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\shader_enums.c" />
@@ -340,6 +341,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\program_resource.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\querymatrix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\remap.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\robustness.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderapi.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderimage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderobj.c" />

@@ -765,6 +765,11 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
       RETURN_IF_SUPPORTED(MESA_FORMAT_B8G8R8A8_UNORM);
       break;
 
+   case GL_STENCIL_INDEX:
+   case GL_STENCIL_INDEX8:
+      RETURN_IF_SUPPORTED(MESA_FORMAT_S_UINT8);
+      break;
+
    default:
       /* For non-generic compressed format we assert two things:
        *

@@ -69,17 +69,17 @@ typedef void *GLeglImageOES;
 
 
 #ifndef GL_OES_draw_texture
-#define GL_TEXTURE_CROP_RECT_OES  0x8B9D
+#define GL_TEXTURE_CROP_RECT_OES                                0x8B9D
 #endif
 
 
 #ifndef GL_PROGRAM_BINARY_LENGTH_OES
-#define GL_PROGRAM_BINARY_LENGTH_OES 0x8741
+#define GL_PROGRAM_BINARY_LENGTH_OES                            0x8741
 #endif
 
 /* GLES 2.0 tokens */
 #ifndef GL_RGB565
-#define GL_RGB565 0x8D62
+#define GL_RGB565                                               0x8D62
 #endif
 
 #ifndef GL_TEXTURE_GEN_STR_OES
@@ -99,18 +99,41 @@ typedef void *GLeglImageOES;
 #define GL_PALETTE8_RGB5_A1_OES                                 0x8B99
 #endif
 
+#ifndef GL_OES_texture_compression_astc
+#define GL_COMPRESSED_RGBA_ASTC_3x3x3_OES                       0x93C0
+#define GL_COMPRESSED_RGBA_ASTC_4x3x3_OES                       0x93C1
+#define GL_COMPRESSED_RGBA_ASTC_4x4x3_OES                       0x93C2
+#define GL_COMPRESSED_RGBA_ASTC_4x4x4_OES                       0x93C3
+#define GL_COMPRESSED_RGBA_ASTC_5x4x4_OES                       0x93C4
+#define GL_COMPRESSED_RGBA_ASTC_5x5x4_OES                       0x93C5
+#define GL_COMPRESSED_RGBA_ASTC_5x5x5_OES                       0x93C6
+#define GL_COMPRESSED_RGBA_ASTC_6x5x5_OES                       0x93C7
+#define GL_COMPRESSED_RGBA_ASTC_6x6x5_OES                       0x93C8
+#define GL_COMPRESSED_RGBA_ASTC_6x6x6_OES                       0x93C9
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES               0x93E0
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES               0x93E1
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES               0x93E2
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES               0x93E3
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES               0x93E4
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES               0x93E5
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES               0x93E6
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES               0x93E7
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES               0x93E8
+#define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES               0x93E9
+#endif
+
 #ifndef GL_ES_VERSION_2_0
-#define GL_SHADER_BINARY_FORMATS            0x8DF8
-#define GL_NUM_SHADER_BINARY_FORMATS        0x8DF9
-#define GL_SHADER_COMPILER                  0x8DFA
-#define GL_MAX_VERTEX_UNIFORM_VECTORS       0x8DFB
-#define GL_MAX_VARYING_VECTORS              0x8DFC
-#define GL_MAX_FRAGMENT_UNIFORM_VECTORS     0x8DFD
+#define GL_SHADER_BINARY_FORMATS                                0x8DF8
+#define GL_NUM_SHADER_BINARY_FORMATS                            0x8DF9
+#define GL_SHADER_COMPILER                                      0x8DFA
+#define GL_MAX_VERTEX_UNIFORM_VECTORS                           0x8DFB
+#define GL_MAX_VARYING_VECTORS                                  0x8DFC
+#define GL_MAX_FRAGMENT_UNIFORM_VECTORS                         0x8DFD
 #endif
 
 #ifndef GL_ATI_texture_compression_3dc
-#define GL_ATI_texture_compression_3dc 1
-#define GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI 0x8837
+#define GL_ATI_texture_compression_3dc                          1
+#define GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI                   0x8837
 #endif
 
 #ifndef GL_OES_compressed_ETC1_RGB8_texture
@@ -121,7 +144,7 @@ typedef void *GLeglImageOES;
 /* Inexplicably, GL_HALF_FLOAT_OES has a different value than GL_HALF_FLOAT.
  */
 #ifndef GL_HALF_FLOAT_OES
-#define GL_HALF_FLOAT_OES 0x8D61
+#define GL_HALF_FLOAT_OES                                       0x8D61
 #endif
 
 
@@ -132,29 +155,29 @@ typedef void *GLeglImageOES;
  * so we need a value that's different from any of the
  * GL_VERTEX/FRAGMENT/GEOMETRY_PROGRAM tokens.
  */
-#define GL_SHADER_PROGRAM_MESA 0x9999
+#define GL_SHADER_PROGRAM_MESA                                  0x9999
 
 
 /* Several fields of struct gl_config can take these as values.  Since
  * GLX header files may not be available everywhere they need to be used,
  * redefine them here.
  */
-#define GLX_NONE                           0x8000
-#define GLX_SLOW_CONFIG                    0x8001
-#define GLX_TRUE_COLOR                     0x8002
-#define GLX_DIRECT_COLOR                   0x8003
-#define GLX_PSEUDO_COLOR                   0x8004
-#define GLX_STATIC_COLOR                   0x8005
-#define GLX_GRAY_SCALE                     0x8006
-#define GLX_STATIC_GRAY                    0x8007
-#define GLX_TRANSPARENT_RGB                0x8008
-#define GLX_TRANSPARENT_INDEX              0x8009
-#define GLX_NON_CONFORMANT_CONFIG          0x800D
-#define GLX_SWAP_EXCHANGE_OML              0x8061
-#define GLX_SWAP_COPY_OML                  0x8062
-#define GLX_SWAP_UNDEFINED_OML             0x8063
+#define GLX_NONE                                                0x8000
+#define GLX_SLOW_CONFIG                                         0x8001
+#define GLX_TRUE_COLOR                                          0x8002
+#define GLX_DIRECT_COLOR                                        0x8003
+#define GLX_PSEUDO_COLOR                                        0x8004
+#define GLX_STATIC_COLOR                                        0x8005
+#define GLX_GRAY_SCALE                                          0x8006
+#define GLX_STATIC_GRAY                                         0x8007
+#define GLX_TRANSPARENT_RGB                                     0x8008
+#define GLX_TRANSPARENT_INDEX                                   0x8009
+#define GLX_NON_CONFORMANT_CONFIG                               0x800D
+#define GLX_SWAP_EXCHANGE_OML                                   0x8061
+#define GLX_SWAP_COPY_OML                                       0x8062
+#define GLX_SWAP_UNDEFINED_OML                                  0x8063
 
-#define GLX_DONT_CARE                      0xFFFFFFFF
+#define GLX_DONT_CARE                                           0xFFFFFFFF
 
 
 #ifdef __cplusplus

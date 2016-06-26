@@ -42,9 +42,6 @@
 
 #define TOUCH_HISTORY_SIZE 100
 
-/* If a touch queue resize is needed, the device id's bit is set. */
-static unsigned char resize_waiting[(MAXDEVICES + 7) / 8];
-
 /**
  * Some documentation about touch points:
  * The driver submits touch events with it's own (unique) touch point ID.
@@ -74,47 +71,27 @@ static unsigned char resize_waiting[(MAXDEVICES + 7) / 8];
  * @return Always True. If we fail to grow we probably will topple over soon
  * anyway and re-executing this won't help.
  */
+
 static Bool
-TouchResizeQueue(ClientPtr client, void *closure)
+TouchResizeQueue(DeviceIntPtr dev)
 {
-    int i;
+    DDXTouchPointInfoPtr tmp;
+    size_t size;
 
-    OsBlockSignals();
+    /* Grow sufficiently so we don't need to do it often */
+    size = dev->last.num_touches + dev->last.num_touches / 2 + 1;
 
-    /* first two ids are reserved */
-    for (i = 2; i < MAXDEVICES; i++) {
-        DeviceIntPtr dev;
-        DDXTouchPointInfoPtr tmp;
-        size_t size;
+    tmp = reallocarray(dev->last.touches, size, sizeof(*dev->last.touches));
+    if (tmp) {
+        int j;
 
-        if (!BitIsOn(resize_waiting, i))
-            continue;
-
-        ClearBit(resize_waiting, i);
-
-        /* device may have disappeared by now */
-        dixLookupDevice(&dev, i, serverClient, DixWriteAccess);
-        if (!dev)
-            continue;
-
-        /* Need to grow the queue means dropping events. Grow sufficiently so we
-         * don't need to do it often */
-        size = dev->last.num_touches + dev->last.num_touches / 2 + 1;
-
-        tmp = reallocarray(dev->last.touches, size, sizeof(*dev->last.touches));
-        if (tmp) {
-            int j;
-
-            dev->last.touches = tmp;
-            for (j = dev->last.num_touches; j < size; j++)
-                TouchInitDDXTouchPoint(dev, &dev->last.touches[j]);
-            dev->last.num_touches = size;
-        }
-
+        dev->last.touches = tmp;
+        for (j = dev->last.num_touches; j < size; j++)
+            TouchInitDDXTouchPoint(dev, &dev->last.touches[j]);
+        dev->last.num_touches = size;
+        return TRUE;
     }
-    OsReleaseSignals();
-
-    return TRUE;
+    return FALSE;
 }
 
 /**
@@ -172,14 +149,20 @@ TouchBeginDDXTouch(DeviceIntPtr dev, uint32_t ddx_id)
     if (TouchFindByDDXID(dev, ddx_id, FALSE))
         return NULL;
 
-    for (i = 0; i < dev->last.num_touches; i++) {
-        /* Only emulate pointer events on the first touch */
-        if (dev->last.touches[i].active)
-            emulate_pointer = FALSE;
-        else if (!ti)           /* ti is now first non-active touch rec */
-            ti = &dev->last.touches[i];
+    for (;;) {
+        for (i = 0; i < dev->last.num_touches; i++) {
+            /* Only emulate pointer events on the first touch */
+            if (dev->last.touches[i].active)
+                emulate_pointer = FALSE;
+            else if (!ti)           /* ti is now first non-active touch rec */
+                ti = &dev->last.touches[i];
 
-        if (!emulate_pointer && ti)
+            if (!emulate_pointer && ti)
+                break;
+        }
+        if (ti)
+            break;
+        if (!TouchResizeQueue(dev))
             break;
     }
 
@@ -194,21 +177,8 @@ TouchBeginDDXTouch(DeviceIntPtr dev, uint32_t ddx_id)
             next_client_id = 1;
         ti->client_id = client_id;
         ti->emulate_pointer = emulate_pointer;
-        return ti;
     }
-
-    /* If we get here, then we've run out of touches and we need to drop the
-     * event (we're inside the SIGIO handler here) schedule a WorkProc to
-     * grow the queue for us for next time. */
-    ErrorFSigSafe("%s: not enough space for touch events (max %u touchpoints). "
-                  "Dropping this event.\n", dev->name, dev->last.num_touches);
-
-    if (!BitIsOn(resize_waiting, dev->id)) {
-        SetBit(resize_waiting, dev->id);
-        QueueWorkProc(TouchResizeQueue, serverClient, NULL);
-    }
-
-    return NULL;
+    return ti;
 }
 
 void
@@ -1077,7 +1047,7 @@ TouchEndPhysicallyActiveTouches(DeviceIntPtr dev)
     InternalEvent *eventlist = InitEventList(GetMaximumEventsNum());
     int i;
 
-    OsBlockSignals();
+    input_lock();
     mieqProcessInputEvents();
     for (i = 0; i < dev->last.num_touches; i++) {
         DDXTouchPointInfoPtr ddxti = dev->last.touches + i;
@@ -1091,7 +1061,7 @@ TouchEndPhysicallyActiveTouches(DeviceIntPtr dev)
                 mieqProcessDeviceEvent(dev, eventlist + j, NULL);
         }
     }
-    OsReleaseSignals();
+    input_unlock();
 
     FreeEventList(eventlist, GetMaximumEventsNum());
 }

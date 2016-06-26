@@ -36,6 +36,7 @@ struct tgsi_bitmap_transform {
    struct tgsi_transform_context base;
    struct tgsi_shader_info info;
    unsigned sampler_index;
+   unsigned tex_target;
    bool use_texcoord;
    bool swizzle_xxxx;
    bool first_instruction_emitted;
@@ -52,8 +53,9 @@ transform_instr(struct tgsi_transform_context *tctx,
 		struct tgsi_full_instruction *current_inst)
 {
    struct tgsi_bitmap_transform *ctx = tgsi_bitmap_transform(tctx);
-   struct tgsi_full_declaration decl;
    struct tgsi_full_instruction inst;
+   unsigned tgsi_tex_target = ctx->tex_target == PIPE_TEXTURE_2D
+      ? TGSI_TEXTURE_2D : TGSI_TEXTURE_RECT;
    unsigned i, semantic;
    int texcoord_index = -1;
 
@@ -66,9 +68,7 @@ transform_instr(struct tgsi_transform_context *tctx,
 
    /* Add TEMP[0] if it's missing. */
    if (ctx->info.file_max[TGSI_FILE_TEMPORARY] == -1) {
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_TEMPORARY;
-      tctx->emit_declaration(tctx, &decl);
+      tgsi_transform_temp_decl(tctx, 0);
    }
 
    /* Add TEXCOORD[0] if it's missing. */
@@ -83,45 +83,23 @@ transform_instr(struct tgsi_transform_context *tctx,
    }
 
    if (texcoord_index == -1) {
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_INPUT;
-      decl.Declaration.Semantic = 1;
-      decl.Semantic.Name = semantic;
-      decl.Declaration.Interpolate = 1;
-      decl.Interp.Interpolate = TGSI_INTERPOLATE_PERSPECTIVE;
-      decl.Range.First = decl.Range.Last = ctx->info.num_inputs;
       texcoord_index = ctx->info.num_inputs;
-      tctx->emit_declaration(tctx, &decl);
+      tgsi_transform_input_decl(tctx, texcoord_index,
+                                semantic, 0, TGSI_INTERPOLATE_PERSPECTIVE);
    }
 
    /* Declare the sampler. */
-   decl = tgsi_default_full_declaration();
-   decl.Declaration.File = TGSI_FILE_SAMPLER;
-   decl.Range.First = decl.Range.Last = ctx->sampler_index;
-   tctx->emit_declaration(tctx, &decl);
+   tgsi_transform_sampler_decl(tctx, ctx->sampler_index);
+
+   /* Declare the sampler view. */
+   tgsi_transform_sampler_view_decl(tctx, ctx->sampler_index,
+                                    tgsi_tex_target, TGSI_RETURN_TYPE_FLOAT);
 
    /* TEX tmp0, fragment.texcoord[0], texture[0], 2D; */
-   inst = tgsi_default_full_instruction();
-   inst.Instruction.Opcode = TGSI_OPCODE_TEX;
-   inst.Instruction.Texture = 1;
-   inst.Texture.Texture = TGSI_TEXTURE_2D;
-
-   inst.Instruction.NumDstRegs = 1;
-   inst.Dst[0].Register.File  = TGSI_FILE_TEMPORARY;
-   inst.Dst[0].Register.Index = 0;
-   inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZW;
-
-   inst.Instruction.NumSrcRegs = 2;
-   inst.Src[0].Register.File  = TGSI_FILE_INPUT;
-   inst.Src[0].Register.Index = texcoord_index;
-   inst.Src[0].Register.SwizzleX = TGSI_SWIZZLE_X;
-   inst.Src[0].Register.SwizzleY = TGSI_SWIZZLE_Y;
-   inst.Src[0].Register.SwizzleZ = TGSI_SWIZZLE_Z;
-   inst.Src[0].Register.SwizzleW = TGSI_SWIZZLE_W;
-   inst.Src[1].Register.File  = TGSI_FILE_SAMPLER;
-   inst.Src[1].Register.Index = ctx->sampler_index;
-
-   tctx->emit_instruction(tctx, &inst);
+   tgsi_transform_tex_inst(tctx,
+                           TGSI_FILE_TEMPORARY, 0,
+                           TGSI_FILE_INPUT, texcoord_index,
+                           tgsi_tex_target, ctx->sampler_index);
 
    /* KIL if -tmp0 < 0 # texel=0 -> keep / texel=0 -> discard */
    inst = tgsi_default_full_instruction();
@@ -150,15 +128,19 @@ transform_instr(struct tgsi_transform_context *tctx,
 
 const struct tgsi_token *
 st_get_bitmap_shader(const struct tgsi_token *tokens,
-                     unsigned sampler_index,
+                     unsigned tex_target, unsigned sampler_index,
                      bool use_texcoord, bool swizzle_xxxx)
 {
    struct tgsi_bitmap_transform ctx;
    struct tgsi_token *newtoks;
    int newlen;
 
+   assert(tex_target == PIPE_TEXTURE_2D ||
+          tex_target == PIPE_TEXTURE_RECT);
+
    memset(&ctx, 0, sizeof(ctx));
    ctx.base.transform_instruction = transform_instr;
+   ctx.tex_target = tex_target;
    ctx.sampler_index = sampler_index;
    ctx.use_texcoord = use_texcoord;
    ctx.swizzle_xxxx = swizzle_xxxx;

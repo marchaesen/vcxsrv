@@ -91,7 +91,7 @@ struct st_translate {
    unsigned insn_size;
    unsigned insn_count;
 
-   unsigned procType;  /**< TGSI_PROCESSOR_VERTEX/FRAGMENT */
+   unsigned procType;  /**< PIPE_SHADER_VERTEX/FRAGMENT */
 
    boolean error;
 };
@@ -165,9 +165,9 @@ dst_register( struct st_translate *t,
       return t->temps[index];
 
    case PROGRAM_OUTPUT:
-      if (t->procType == TGSI_PROCESSOR_VERTEX)
+      if (t->procType == PIPE_SHADER_VERTEX)
          assert(index < VARYING_SLOT_MAX);
-      else if (t->procType == TGSI_PROCESSOR_FRAGMENT)
+      else if (t->procType == PIPE_SHADER_FRAGMENT)
          assert(index < FRAG_RESULT_MAX);
       else
          assert(index < VARYING_SLOT_MAX);
@@ -241,39 +241,71 @@ src_register( struct st_translate *t,
  * Map mesa texture target to TGSI texture target.
  */
 unsigned
-st_translate_texture_target( GLuint textarget,
-                          GLboolean shadow )
+st_translate_texture_target(GLuint textarget, GLboolean shadow)
 {
    if (shadow) {
-      switch( textarget ) {
-      case TEXTURE_1D_INDEX:   return TGSI_TEXTURE_SHADOW1D;
-      case TEXTURE_2D_INDEX:   return TGSI_TEXTURE_SHADOW2D;
-      case TEXTURE_RECT_INDEX: return TGSI_TEXTURE_SHADOWRECT;
-      case TEXTURE_1D_ARRAY_INDEX: return TGSI_TEXTURE_SHADOW1D_ARRAY;
-      case TEXTURE_2D_ARRAY_INDEX: return TGSI_TEXTURE_SHADOW2D_ARRAY;
-      case TEXTURE_CUBE_INDEX: return TGSI_TEXTURE_SHADOWCUBE;
-      case TEXTURE_CUBE_ARRAY_INDEX: return TGSI_TEXTURE_SHADOWCUBE_ARRAY;
-      default: break;
+      switch (textarget) {
+      case TEXTURE_1D_INDEX:
+         return TGSI_TEXTURE_SHADOW1D;
+      case TEXTURE_2D_INDEX:
+         return TGSI_TEXTURE_SHADOW2D;
+      case TEXTURE_RECT_INDEX:
+         return TGSI_TEXTURE_SHADOWRECT;
+      case TEXTURE_1D_ARRAY_INDEX:
+         return TGSI_TEXTURE_SHADOW1D_ARRAY;
+      case TEXTURE_2D_ARRAY_INDEX:
+         return TGSI_TEXTURE_SHADOW2D_ARRAY;
+      case TEXTURE_CUBE_INDEX:
+         return TGSI_TEXTURE_SHADOWCUBE;
+      case TEXTURE_CUBE_ARRAY_INDEX:
+         return TGSI_TEXTURE_SHADOWCUBE_ARRAY;
+      default:
+         break;
       }
    }
 
-   switch( textarget ) {
-   case TEXTURE_2D_MULTISAMPLE_INDEX: return TGSI_TEXTURE_2D_MSAA;
-   case TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX: return TGSI_TEXTURE_2D_ARRAY_MSAA;
-   case TEXTURE_BUFFER_INDEX: return TGSI_TEXTURE_BUFFER;
-   case TEXTURE_1D_INDEX:   return TGSI_TEXTURE_1D;
-   case TEXTURE_2D_INDEX:   return TGSI_TEXTURE_2D;
-   case TEXTURE_3D_INDEX:   return TGSI_TEXTURE_3D;
-   case TEXTURE_CUBE_INDEX: return TGSI_TEXTURE_CUBE;
-   case TEXTURE_CUBE_ARRAY_INDEX: return TGSI_TEXTURE_CUBE_ARRAY;
-   case TEXTURE_RECT_INDEX: return TGSI_TEXTURE_RECT;
-   case TEXTURE_1D_ARRAY_INDEX:   return TGSI_TEXTURE_1D_ARRAY;
-   case TEXTURE_2D_ARRAY_INDEX:   return TGSI_TEXTURE_2D_ARRAY;
-   case TEXTURE_EXTERNAL_INDEX:   return TGSI_TEXTURE_2D;
+   switch (textarget) {
+   case TEXTURE_2D_MULTISAMPLE_INDEX:
+      return TGSI_TEXTURE_2D_MSAA;
+   case TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX:
+      return TGSI_TEXTURE_2D_ARRAY_MSAA;
+   case TEXTURE_BUFFER_INDEX:
+      return TGSI_TEXTURE_BUFFER;
+   case TEXTURE_1D_INDEX:
+      return TGSI_TEXTURE_1D;
+   case TEXTURE_2D_INDEX:
+      return TGSI_TEXTURE_2D;
+   case TEXTURE_3D_INDEX:
+      return TGSI_TEXTURE_3D;
+   case TEXTURE_CUBE_INDEX:
+      return TGSI_TEXTURE_CUBE;
+   case TEXTURE_CUBE_ARRAY_INDEX:
+      return TGSI_TEXTURE_CUBE_ARRAY;
+   case TEXTURE_RECT_INDEX:
+      return TGSI_TEXTURE_RECT;
+   case TEXTURE_1D_ARRAY_INDEX:
+      return TGSI_TEXTURE_1D_ARRAY;
+   case TEXTURE_2D_ARRAY_INDEX:
+      return TGSI_TEXTURE_2D_ARRAY;
+   case TEXTURE_EXTERNAL_INDEX:
+      return TGSI_TEXTURE_2D;
    default:
-      debug_assert( 0 );
+      debug_assert(!"unexpected texture target index");
       return TGSI_TEXTURE_1D;
    }
+}
+
+
+/**
+ * Translate a (1 << TEXTURE_x_INDEX) bit into a TGSI_TEXTURE_x enum.
+ */
+static unsigned
+translate_texture_index(GLbitfield texBit, bool shadow)
+{
+   int index = ffs(texBit);
+   assert(index > 0);
+   assert(index - 1 < NUM_TEXTURE_TARGETS);
+   return st_translate_texture_target(index - 1, shadow);
 }
 
 
@@ -551,20 +583,12 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_RET;
    case OPCODE_SCS:
       return TGSI_OPCODE_SCS;
-   case OPCODE_SEQ:
-      return TGSI_OPCODE_SEQ;
    case OPCODE_SGE:
       return TGSI_OPCODE_SGE;
-   case OPCODE_SGT:
-      return TGSI_OPCODE_SGT;
    case OPCODE_SIN:
       return TGSI_OPCODE_SIN;
-   case OPCODE_SLE:
-      return TGSI_OPCODE_SLE;
    case OPCODE_SLT:
       return TGSI_OPCODE_SLT;
-   case OPCODE_SNE:
-      return TGSI_OPCODE_SNE;
    case OPCODE_SSG:
       return TGSI_OPCODE_SSG;
    case OPCODE_SUB:
@@ -948,7 +972,7 @@ st_translate_mesa_program(
    /*
     * Declare input attributes.
     */
-   if (procType == TGSI_PROCESSOR_FRAGMENT) {
+   if (procType == PIPE_SHADER_FRAGMENT) {
       for (i = 0; i < numInputs; i++) {
          t->inputs[i] = ureg_DECL_fs_input(ureg,
                                            inputSemanticName[i],
@@ -994,7 +1018,7 @@ st_translate_mesa_program(
          }
       }
    }
-   else if (procType == TGSI_PROCESSOR_GEOMETRY) {
+   else if (procType == PIPE_SHADER_GEOMETRY) {
       for (i = 0; i < numInputs; i++) {
          t->inputs[i] = ureg_DECL_input(ureg,
                                         inputSemanticName[i],
@@ -1008,7 +1032,7 @@ st_translate_mesa_program(
       }
    }
    else {
-      assert(procType == TGSI_PROCESSOR_VERTEX);
+      assert(procType == PIPE_SHADER_VERTEX);
 
       for (i = 0; i < numInputs; i++) {
          t->inputs[i] = ureg_DECL_vs_input(ureg, i);
@@ -1042,7 +1066,7 @@ st_translate_mesa_program(
 
       for (i = 0; sysInputs; i++) {
          if (sysInputs & (1 << i)) {
-            unsigned semName = _mesa_sysval_to_semantic[i];
+            unsigned semName = _mesa_sysval_to_semantic(i);
 
             t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
 
@@ -1057,7 +1081,7 @@ st_translate_mesa_program(
                 */
                struct st_context *st = st_context(ctx);
                struct pipe_screen *pscreen = st->pipe->screen;
-               assert(procType == TGSI_PROCESSOR_VERTEX);
+               assert(procType == PIPE_SHADER_VERTEX);
                assert(pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_INTEGERS));
                (void) pscreen;  /* silence non-debug build warnings */
                if (!ctx->Const.NativeIntegers) {
@@ -1067,7 +1091,7 @@ st_translate_mesa_program(
                }
             }
 
-            if (procType == TGSI_PROCESSOR_FRAGMENT &&
+            if (procType == PIPE_SHADER_FRAGMENT &&
                 semName == TGSI_SEMANTIC_POSITION)
                emit_wpos(st_context(ctx), t, program, ureg);
 
@@ -1127,8 +1151,17 @@ st_translate_mesa_program(
 
    /* texture samplers */
    for (i = 0; i < ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits; i++) {
-      if (program->SamplersUsed & (1 << i)) {
+      if (program->SamplersUsed & (1u << i)) {
+         unsigned target =
+            translate_texture_index(program->TexturesUsed[i],
+                                    !!(program->ShadowSamplers & (1 << i)));
          t->samplers[i] = ureg_DECL_sampler( ureg, i );
+         ureg_DECL_sampler_view(ureg, i, target,
+                                TGSI_RETURN_TYPE_FLOAT,
+                                TGSI_RETURN_TYPE_FLOAT,
+                                TGSI_RETURN_TYPE_FLOAT,
+                                TGSI_RETURN_TYPE_FLOAT);
+
       }
    }
 

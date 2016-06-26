@@ -17,8 +17,5 @@ mesa_dri_common_INCLUDES := \
 	src/mesa \
 	src/mesa/drivers/dri/common
 
-test_stubs_FILES := \
-	dri_test.c
-
 megadriver_stub_FILES := \
 	megadriver_stub.c

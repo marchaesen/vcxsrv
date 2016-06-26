@@ -83,6 +83,7 @@ public:
    }
 
    virtual ir_visitor_status visit(class ir_dereference_variable *);
+   void handle_loop(class ir_loop *, bool keep_acp);
    virtual ir_visitor_status visit_enter(class ir_loop *);
    virtual ir_visitor_status visit_enter(class ir_function_signature *);
    virtual ir_visitor_status visit_enter(class ir_function *);
@@ -252,20 +253,23 @@ ir_copy_propagation_visitor::visit_enter(ir_if *ir)
    return visit_continue_with_parent;
 }
 
-ir_visitor_status
-ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
+void
+ir_copy_propagation_visitor::handle_loop(ir_loop *ir, bool keep_acp)
 {
    exec_list *orig_acp = this->acp;
    exec_list *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
 
-   /* FINISHME: For now, the initial acp for loops is totally empty.
-    * We could go through once, then go through again with the acp
-    * cloned minus the killed entries after the first run through.
-    */
    this->acp = new(mem_ctx) exec_list;
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
+
+   if (keep_acp) {
+      /* Populate the initial acp with a copy of the original */
+      foreach_in_list(acp_entry, a, orig_acp) {
+         this->acp->push_tail(new(this->acp) acp_entry(a->lhs, a->rhs));
+      }
+   }
 
    visit_list_elements(this, &ir->body_instructions);
 
@@ -284,6 +288,20 @@ ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
    }
 
    ralloc_free(new_kills);
+}
+
+ir_visitor_status
+ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
+{
+   /* Make a conservative first pass over the loop with an empty ACP set.
+    * This also removes any killed entries from the original ACP set.
+    */
+   handle_loop(ir, false);
+
+   /* Then, run it again with the real ACP set, minus any killed entries.
+    * This takes care of propagating values from before the loop into it.
+    */
+   handle_loop(ir, true);
 
    /* already descended into the children. */
    return visit_continue_with_parent;
@@ -331,7 +349,8 @@ ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
 	 ir->condition = new(ralloc_parent(ir)) ir_constant(false);
 	 this->progress = true;
       } else if (lhs_var->data.mode != ir_var_shader_storage &&
-                 lhs_var->data.mode != ir_var_shader_shared) {
+                 lhs_var->data.mode != ir_var_shader_shared &&
+                 lhs_var->data.precise == rhs_var->data.precise) {
 	 entry = new(this->acp) acp_entry(lhs_var, rhs_var);
 	 this->acp->push_tail(entry);
       }

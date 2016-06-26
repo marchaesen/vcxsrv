@@ -1247,7 +1247,7 @@ _mesa_PopAttrib(void)
                   GLuint u;
                   for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
                      _mesa_TexEnvi(GL_POINT_SPRITE_NV, GL_COORD_REPLACE_NV,
-                                   (GLint) point->CoordReplace[u]);
+                                   !!(point->CoordReplace & (1u << u)));
                   }
                   _mesa_set_enable(ctx, GL_POINT_SPRITE_NV,point->PointSprite);
                   if (ctx->Extensions.NV_point_sprite)
@@ -1304,6 +1304,13 @@ _mesa_PopAttrib(void)
                                     scissor->ScissorArray[i].Height);
                   _mesa_set_enablei(ctx, GL_SCISSOR_TEST, i,
                                     (scissor->EnableFlags >> i) & 1);
+               }
+               if (ctx->Extensions.EXT_window_rectangles) {
+                  STATIC_ASSERT(sizeof(struct gl_scissor_rect) ==
+                                4 * sizeof(GLint));
+                  _mesa_WindowRectanglesEXT(
+                        scissor->WindowRectMode, scissor->NumWindowRects,
+                        (const GLint *)scissor->WindowRects);
                }
             }
             break;

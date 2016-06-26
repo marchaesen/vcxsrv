@@ -46,6 +46,6 @@ st_get_drawpix_shader(const struct tgsi_token *tokens, bool use_texcoord,
                       bool scale_and_bias, unsigned scale_const,
                       unsigned bias_const, bool pixel_maps,
                       unsigned drawpix_sampler, unsigned pixelmap_sampler,
-                      unsigned texcoord_const);
+                      unsigned texcoord_const, unsigned tex_target);
 
 #endif /* ST_CB_DRAWPIXELS_H */

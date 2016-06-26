@@ -298,11 +298,12 @@ xwl_drm_init_egl(struct xwl_screen *xwl_screen)
         return;
     }
 
-    eglBindAPI(EGL_OPENGL_API);
     if (!eglInitialize(xwl_screen->egl_display, &major, &minor)) {
         ErrorF("eglInitialize() failed\n");
         return;
     }
+
+    eglBindAPI(EGL_OPENGL_API);
 
     version = eglQueryString(xwl_screen->egl_display, EGL_VERSION);
     ErrorF("glamor: EGL version %s:\n", version);
@@ -346,7 +347,7 @@ xwl_drm_handle_device(void *data, struct wl_drm *drm, const char *device)
    xwl_screen->drm_fd = open(xwl_screen->device_name, O_RDWR | O_CLOEXEC);
    if (xwl_screen->drm_fd == -1) {
        ErrorF("wayland-egl: could not open %s (%s)\n",
-	      xwl_screen->device_name, strerror(errno));
+              xwl_screen->device_name, strerror(errno));
        return;
    }
 

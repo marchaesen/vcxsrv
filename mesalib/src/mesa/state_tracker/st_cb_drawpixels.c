@@ -60,6 +60,7 @@
 #include "st_draw.h"
 #include "st_format.h"
 #include "st_program.h"
+#include "st_scissor.h"
 #include "st_texture.h"
 
 #include "pipe/p_context.h"
@@ -130,7 +131,7 @@ get_drawpix_z_stencil_program(struct st_context *st,
       return st->drawpix.zs_shaders[shaderIndex];
    }
 
-   ureg = ureg_create(TGSI_PROCESSOR_FRAGMENT);
+   ureg = ureg_create(PIPE_SHADER_FRAGMENT);
    if (ureg == NULL)
       return NULL;
 
@@ -142,11 +143,21 @@ get_drawpix_z_stencil_program(struct st_context *st,
       out_color = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
 
       depth_sampler = ureg_DECL_sampler(ureg, 0);
+      ureg_DECL_sampler_view(ureg, 0, TGSI_TEXTURE_2D,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT);
       out_depth = ureg_DECL_output(ureg, TGSI_SEMANTIC_POSITION, 0);
    }
 
    if (write_stencil) {
       stencil_sampler = ureg_DECL_sampler(ureg, 1);
+      ureg_DECL_sampler_view(ureg, 1, TGSI_TEXTURE_2D,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT);
       out_stencil = ureg_DECL_output(ureg, TGSI_SEMANTIC_STENCIL, 0);
    }
 
@@ -187,7 +198,7 @@ make_passthrough_vertex_shader(struct st_context *st,
       TGSI_SEMANTIC_TEXCOORD : TGSI_SEMANTIC_GENERIC;
 
    if (!st->drawpix.vert_shaders[passColor]) {
-      struct ureg_program *ureg = ureg_create( TGSI_PROCESSOR_VERTEX );
+      struct ureg_program *ureg = ureg_create( PIPE_SHADER_VERTEX );
 
       if (ureg == NULL)
          return NULL;
@@ -369,12 +380,12 @@ static struct pipe_resource *
 make_texture(struct st_context *st,
 	     GLsizei width, GLsizei height, GLenum format, GLenum type,
 	     const struct gl_pixelstore_attrib *unpack,
-	     const GLvoid *pixels)
+	     const void *pixels)
 {
    struct gl_context *ctx = st->ctx;
    struct pipe_context *pipe = st->pipe;
    mesa_format mformat;
-   struct pipe_resource *pt;
+   struct pipe_resource *pt = NULL;
    enum pipe_format pipeFormat;
    GLenum baseInternalFormat;
 
@@ -393,10 +404,18 @@ make_texture(struct st_context *st,
        unpack->SkipRows == 0 &&
        unpack->SwapBytes == GL_FALSE &&
        st->drawpix_cache.image) {
+      assert(st->drawpix_cache.texture);
+
       /* check if the pixel data is the same */
       if (memcmp(pixels, st->drawpix_cache.image, width * height * bpp) == 0) {
          /* OK, re-use the cached texture */
-         return st->drawpix_cache.texture;
+         pipe_resource_reference(&pt, st->drawpix_cache.texture);
+         /* refcount of returned texture should be at least two here.  One
+          * reference for the cache to hold on to, one for the caller (which
+          * it will release), and possibly more held by the driver.
+          */
+         assert(pt->reference.count >= 2);
+         return pt;
       }
    }
 
@@ -515,8 +534,14 @@ make_texture(struct st_context *st,
       st->drawpix_cache.image = malloc(width * height * bpp);
       if (st->drawpix_cache.image) {
          memcpy(st->drawpix_cache.image, pixels, width * height * bpp);
+         pipe_resource_reference(&st->drawpix_cache.texture, pt);
       }
-      st->drawpix_cache.texture = pt;
+      else {
+         /* out of memory, free/disable cached texture */
+         st->drawpix_cache.width = 0;
+         st->drawpix_cache.height = 0;
+         pipe_resource_reference(&st->drawpix_cache.texture, NULL);
+      }
    }
 #endif
 
@@ -734,7 +759,7 @@ static void
 draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
                     GLsizei width, GLsizei height, GLenum format, GLenum type,
                     const struct gl_pixelstore_attrib *unpack,
-                    const GLvoid *pixels)
+                    const void *pixels)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -788,7 +813,7 @@ draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
       for (row = 0; row < height; row++) {
          GLfloat *zValuesFloat = (GLfloat*)zValues;
          GLenum destType = GL_UNSIGNED_BYTE;
-         const GLvoid *source = _mesa_image_address2d(&clippedUnpack, pixels,
+         const void *source = _mesa_image_address2d(&clippedUnpack, pixels,
                                                       width, height,
                                                       format, type,
                                                       row, 0);
@@ -1001,17 +1026,17 @@ setup_sampler_swizzle(struct pipe_sampler_view *sv, GLenum format, GLenum type)
 
       /* invert the format's swizzle to setup the sampler's swizzle */
       if (format == GL_RGBA) {
-         c0 = UTIL_FORMAT_SWIZZLE_X;
-         c1 = UTIL_FORMAT_SWIZZLE_Y;
-         c2 = UTIL_FORMAT_SWIZZLE_Z;
-         c3 = UTIL_FORMAT_SWIZZLE_W;
+         c0 = PIPE_SWIZZLE_X;
+         c1 = PIPE_SWIZZLE_Y;
+         c2 = PIPE_SWIZZLE_Z;
+         c3 = PIPE_SWIZZLE_W;
       }
       else {
          assert(format == GL_BGRA);
-         c0 = UTIL_FORMAT_SWIZZLE_Z;
-         c1 = UTIL_FORMAT_SWIZZLE_Y;
-         c2 = UTIL_FORMAT_SWIZZLE_X;
-         c3 = UTIL_FORMAT_SWIZZLE_W;
+         c0 = PIPE_SWIZZLE_Z;
+         c1 = PIPE_SWIZZLE_Y;
+         c2 = PIPE_SWIZZLE_X;
+         c3 = PIPE_SWIZZLE_W;
       }
       sv->swizzle_r = search_swizzle(desc->swizzle, c0);
       sv->swizzle_g = search_swizzle(desc->swizzle, c1);
@@ -1031,7 +1056,7 @@ static void
 st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
               GLsizei width, GLsizei height,
               GLenum format, GLenum type,
-              const struct gl_pixelstore_attrib *unpack, const GLvoid *pixels)
+              const struct gl_pixelstore_attrib *unpack, const void *pixels)
 {
    void *driver_vp, *driver_fp;
    struct st_context *st = st_context(ctx);
@@ -1047,6 +1072,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
    assert(ctx->NewState == 0x0);
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    st_validate_state(st, ST_PIPELINE_RENDER);
 
@@ -1150,9 +1176,8 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
    if (num_sampler_view > 1)
       pipe_sampler_view_reference(&sv[1], NULL);
 
-#if !USE_DRAWPIXELS_CACHE
+   /* free the texture (but may persist in the cache) */
    pipe_resource_reference(&pt, NULL);
-#endif
 }
 
 
@@ -1292,6 +1317,7 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
        !ctx->FragmentProgram.Enabled &&
        !ctx->VertexProgram.Enabled &&
        !ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT] &&
+       !ctx->ATIFragmentShader._Enabled &&
        ctx->DrawBuffer->_NumColorDrawBuffers == 1 &&
        !ctx->Query.CondRenderQuery &&
        !ctx->Query.CurrentOcclusionObject) {
@@ -1370,6 +1396,9 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          blit.mask = PIPE_MASK_RGBA;
          blit.filter = PIPE_TEX_FILTER_NEAREST;
 
+         if (ctx->DrawBuffer != ctx->WinSysDrawBuffer)
+            st_window_rectangles_to_blit(ctx, &blit);
+
          if (screen->is_format_supported(screen, blit.src.format,
                                          blit.src.resource->target,
                                          blit.src.resource->nr_samples,
@@ -1409,6 +1438,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    struct gl_pixelstore_attrib pack = ctx->DefaultPacking;
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    st_validate_state(st, ST_PIPELINE_RENDER);
 

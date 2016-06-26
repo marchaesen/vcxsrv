@@ -230,7 +230,7 @@ typedef struct xcb_auth_info_t {
 
 /**
  * @brief Forces any buffered output to be written to the server.
- * @param c: The connection to the X server.
+ * @param c The connection to the X server.
  * @return > @c 0 on success, <= @c 0 otherwise.
  *
  * Forces any buffered output to be written to the server. Blocks
@@ -240,7 +240,7 @@ int xcb_flush(xcb_connection_t *c);
 
 /**
  * @brief Returns the maximum request length that this server accepts.
- * @param c: The connection to the X server.
+ * @param c The connection to the X server.
  * @return The maximum request length field.
  *
  * In the absence of the BIG-REQUESTS extension, returns the
@@ -257,7 +257,7 @@ uint32_t xcb_get_maximum_request_length(xcb_connection_t *c);
 
 /**
  * @brief Prefetch the maximum request length without blocking.
- * @param c: The connection to the X server.
+ * @param c The connection to the X server.
  *
  * Without blocking, does as much work as possible toward computing
  * the maximum request length accepted by the X server.
@@ -279,7 +279,7 @@ void xcb_prefetch_maximum_request_length(xcb_connection_t *c);
 
 /**
  * @brief Returns the next event or error from the server.
- * @param c: The connection to the X server.
+ * @param c The connection to the X server.
  * @return The next event from the server.
  *
  * Returns the next event or error from the server, or returns null in
@@ -290,7 +290,7 @@ xcb_generic_event_t *xcb_wait_for_event(xcb_connection_t *c);
 
 /**
  * @brief Returns the next event or error from the server.
- * @param c: The connection to the X server.
+ * @param c The connection to the X server.
  * @return The next event from the server.
  *
  * Returns the next event or error from the server, if one is
@@ -303,7 +303,7 @@ xcb_generic_event_t *xcb_poll_for_event(xcb_connection_t *c);
 
 /**
  * @brief Returns the next event without reading from the connection.
- * @param c: The connection to the X server.
+ * @param c The connection to the X server.
  * @return The next already queued event from the server.
  *
  * This is a version of xcb_poll_for_event that only examines the
@@ -351,8 +351,8 @@ void xcb_unregister_for_special_event(xcb_connection_t *c,
 
 /**
  * @brief Return the error for a request, or NULL if none can ever arrive.
- * @param c: The connection to the X server.
- * @param cookie: The request cookie.
+ * @param c The connection to the X server.
+ * @param cookie The request cookie.
  * @return The error for the request, or NULL if none can ever arrive.
  *
  * The xcb_void_cookie_t cookie supplied to this function must have resulted
@@ -369,8 +369,8 @@ xcb_generic_error_t *xcb_request_check(xcb_connection_t *c, xcb_void_cookie_t co
 
 /**
  * @brief Discards the reply for a request.
- * @param c: The connection to the X server.
- * @param sequence: The request sequence number from a cookie.
+ * @param c The connection to the X server.
+ * @param sequence The request sequence number from a cookie.
  *
  * Discards the reply for a request. Additionally, any error generated
  * by the request is also discarded (unless it was an _unchecked request
@@ -385,8 +385,8 @@ void xcb_discard_reply(xcb_connection_t *c, unsigned int sequence);
 
 /**
  * @brief Discards the reply for a request, given by a 64bit sequence number
- * @param c: The connection to the X server.
- * @param sequence: 64-bit sequence number as returned by xcb_send_request64().
+ * @param c The connection to the X server.
+ * @param sequence 64-bit sequence number as returned by xcb_send_request64().
  *
  * Discards the reply for a request. Additionally, any error generated
  * by the request is also discarded (unless it was an _unchecked request
@@ -408,8 +408,8 @@ void xcb_discard_reply64(xcb_connection_t *c, uint64_t sequence);
 
 /**
  * @brief Caches reply information from QueryExtension requests.
- * @param c: The connection.
- * @param ext: The extension data.
+ * @param c The connection.
+ * @param ext The extension data.
  * @return A pointer to the xcb_query_extension_reply_t for the extension.
  *
  * This function is the primary interface to the "extension cache",
@@ -426,8 +426,8 @@ const struct xcb_query_extension_reply_t *xcb_get_extension_data(xcb_connection_
 
 /**
  * @brief Prefetch of extension data into the extension cache
- * @param c: The connection.
- * @param ext: The extension data.
+ * @param c The connection.
+ * @param ext The extension data.
  *
  * This function allows a "prefetch" of extension data into the
  * extension cache. Invoking the function may cause a call to
@@ -442,7 +442,7 @@ void xcb_prefetch_extension_data(xcb_connection_t *c, xcb_extension_t *ext);
 
 /**
  * @brief Access the data returned by the server.
- * @param c: The connection.
+ * @param c The connection.
  * @return A pointer to an xcb_setup_t structure.
  *
  * Accessor for the data returned by the server when the xcb_connection_t
@@ -462,7 +462,7 @@ const struct xcb_setup_t *xcb_get_setup(xcb_connection_t *c);
 
 /**
  * @brief Access the file descriptor of the connection.
- * @param c: The connection.
+ * @param c The connection.
  * @return The file descriptor.
  *
  * Accessor for the file descriptor that was passed to the
@@ -472,7 +472,7 @@ int xcb_get_file_descriptor(xcb_connection_t *c);
 
 /**
  * @brief Test whether the connection has shut down due to a fatal error.
- * @param c: The connection.
+ * @param c The connection.
  * @return > 0 if the connection is in an error state; 0 otherwise.
  *
  * Some errors that occur in the context of an xcb_connection_t
@@ -492,8 +492,8 @@ int xcb_connection_has_error(xcb_connection_t *c);
 
 /**
  * @brief Connects to the X server.
- * @param fd: The file descriptor.
- * @param auth_info: Authentication data.
+ * @param fd The file descriptor.
+ * @param auth_info Authentication data.
  * @return A newly allocated xcb_connection_t structure.
  *
  * Connects to an X server, given the open socket @p fd and the
@@ -511,7 +511,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info);
 
 /**
  * @brief Closes the connection.
- * @param c: The connection.
+ * @param c The connection.
  *
  * Closes the file descriptor and frees all memory associated with the
  * connection @c c. If @p c is @c NULL, nothing is done.
@@ -523,10 +523,10 @@ void xcb_disconnect(xcb_connection_t *c);
 
 /**
  * @brief Parses a display string name in the form documented by X(7x).
- * @param name: The name of the display.
- * @param host: A pointer to a malloc'd copy of the hostname.
- * @param display: A pointer to the display number.
- * @param screen: A pointer to the screen number.
+ * @param name The name of the display.
+ * @param host A pointer to a malloc'd copy of the hostname.
+ * @param display A pointer to the display number.
+ * @param screen A pointer to the screen number.
  * @return 0 on failure, non 0 otherwise.
  *
  * Parses the display string name @p display_name in the form
@@ -542,8 +542,8 @@ int xcb_parse_display(const char *name, char **host, int *display, int *screen);
 
 /**
  * @brief Connects to the X server.
- * @param displayname: The name of the display.
- * @param screenp: A pointer to a preferred screen number.
+ * @param displayname The name of the display.
+ * @param screenp A pointer to a preferred screen number.
  * @return A newly allocated xcb_connection_t structure.
  *
  * Connects to the X server specified by @p displayname. If @p
@@ -561,9 +561,9 @@ xcb_connection_t *xcb_connect(const char *displayname, int *screenp);
 
 /**
  * @brief Connects to the X server, using an authorization information.
- * @param display: The name of the display.
- * @param auth: The authorization information.
- * @param screen: A pointer to a preferred screen number.
+ * @param display The name of the display.
+ * @param auth The authorization information.
+ * @param screen A pointer to a preferred screen number.
  * @return A newly allocated xcb_connection_t structure.
  *
  * Connects to the X server specified by @p displayname, using the
@@ -583,7 +583,7 @@ xcb_connection_t *xcb_connect_to_display_with_auth_info(const char *display, xcb
 
 /**
  * @brief Allocates an XID for a new object.
- * @param c: The connection.
+ * @param c The connection.
  * @return A newly allocated XID.
  *
  * Allocates an XID for a new object. Typically used just prior to

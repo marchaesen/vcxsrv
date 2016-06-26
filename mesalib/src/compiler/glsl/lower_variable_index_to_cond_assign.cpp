@@ -385,6 +385,26 @@ public:
       case ir_var_const_in:
          return this->lower_temps;
 
+      case ir_var_system_value:
+         /* There are only a few system values that have array types:
+          *
+          *    gl_TessLevelInner[]
+          *    gl_TessLevelOuter[]
+          *    gl_SampleMaskIn[]
+          *
+          * The tessellation factor arrays are lowered to vec4/vec2s
+          * by lower_tess_level() before this pass occurs, so we'll
+          * never see them here.
+          *
+          * The only remaining case is gl_SampleMaskIn[], which has
+          * a length of ceil(ctx->Const.MaxSamples / 32).  Most hardware
+          * supports no more than 32 samples, in which case our lowering
+          * produces a single read of gl_SampleMaskIn[0].  Even with 64x
+          * MSAA, the array length is only 2, so the lowering is fairly
+          * efficient.  Therefore, lower unconditionally.
+          */
+         return true;
+
       case ir_var_shader_in:
          /* The input array size is unknown at compiler time for non-patch
           * inputs in TCS and TES. The arrays are sized to

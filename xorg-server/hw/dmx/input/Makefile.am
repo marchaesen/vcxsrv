@@ -34,8 +34,6 @@ DMXSRCS = dmxinputinit.c \
           dmxinputinit.h \
           dmxarg.c \
           dmxarg.h \
-          dmxsigio.c \
-          dmxsigio.h \
           dmxevents.c \
           dmxevents.h \
 	  dmxxinput.c \

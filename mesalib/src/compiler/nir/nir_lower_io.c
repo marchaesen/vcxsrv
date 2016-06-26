@@ -38,7 +38,7 @@ struct lower_io_state {
    nir_builder builder;
    void *mem_ctx;
    int (*type_size)(const struct glsl_type *type);
-   nir_variable_mode mode;
+   nir_variable_mode modes;
 };
 
 void
@@ -144,8 +144,7 @@ get_io_offset(nir_builder *b, nir_deref_var *deref,
 }
 
 static nir_intrinsic_op
-load_op(struct lower_io_state *state,
-        nir_variable_mode mode, bool per_vertex)
+load_op(nir_variable_mode mode, bool per_vertex)
 {
    nir_intrinsic_op op;
    switch (mode) {
@@ -160,36 +159,96 @@ load_op(struct lower_io_state *state,
    case nir_var_uniform:
       op = nir_intrinsic_load_uniform;
       break;
+   case nir_var_shared:
+      op = nir_intrinsic_load_shared;
+      break;
    default:
       unreachable("Unknown variable mode");
    }
    return op;
 }
 
-static bool
-nir_lower_io_block(nir_block *block, void *void_state)
+static nir_intrinsic_op
+store_op(struct lower_io_state *state,
+         nir_variable_mode mode, bool per_vertex)
 {
-   struct lower_io_state *state = void_state;
+   nir_intrinsic_op op;
+   switch (mode) {
+   case nir_var_shader_in:
+   case nir_var_shader_out:
+      op = per_vertex ? nir_intrinsic_store_per_vertex_output :
+                        nir_intrinsic_store_output;
+      break;
+   case nir_var_shared:
+      op = nir_intrinsic_store_shared;
+      break;
+   default:
+      unreachable("Unknown variable mode");
+   }
+   return op;
+}
 
+static nir_intrinsic_op
+atomic_op(nir_intrinsic_op opcode)
+{
+   switch (opcode) {
+#define OP(O) case nir_intrinsic_var_##O: return nir_intrinsic_shared_##O;
+   OP(atomic_exchange)
+   OP(atomic_comp_swap)
+   OP(atomic_add)
+   OP(atomic_imin)
+   OP(atomic_umin)
+   OP(atomic_imax)
+   OP(atomic_umax)
+   OP(atomic_and)
+   OP(atomic_or)
+   OP(atomic_xor)
+#undef OP
+   default:
+      unreachable("Invalid atomic");
+   }
+}
+
+static bool
+nir_lower_io_block(nir_block *block,
+                   struct lower_io_state *state)
+{
    nir_builder *b = &state->builder;
 
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
-      if (intrin->intrinsic != nir_intrinsic_load_var &&
-          intrin->intrinsic != nir_intrinsic_store_var)
+      switch (intrin->intrinsic) {
+      case nir_intrinsic_load_var:
+      case nir_intrinsic_store_var:
+      case nir_intrinsic_var_atomic_add:
+      case nir_intrinsic_var_atomic_imin:
+      case nir_intrinsic_var_atomic_umin:
+      case nir_intrinsic_var_atomic_imax:
+      case nir_intrinsic_var_atomic_umax:
+      case nir_intrinsic_var_atomic_and:
+      case nir_intrinsic_var_atomic_or:
+      case nir_intrinsic_var_atomic_xor:
+      case nir_intrinsic_var_atomic_exchange:
+      case nir_intrinsic_var_atomic_comp_swap:
+         /* We can lower the io for this nir instrinsic */
+         break;
+      default:
+         /* We can't lower the io for this nir instrinsic, so skip it */
          continue;
+      }
 
       nir_variable_mode mode = intrin->variables[0]->var->data.mode;
 
-      if (state->mode != nir_var_all && state->mode != mode)
+      if ((state->modes & mode) == 0)
          continue;
 
       if (mode != nir_var_shader_in &&
           mode != nir_var_shader_out &&
+          mode != nir_var_shared &&
           mode != nir_var_uniform)
          continue;
 
@@ -210,11 +269,16 @@ nir_lower_io_block(nir_block *block, void *void_state)
 
          nir_intrinsic_instr *load =
             nir_intrinsic_instr_create(state->mem_ctx,
-                                       load_op(state, mode, per_vertex));
+                                       load_op(mode, per_vertex));
          load->num_components = intrin->num_components;
 
          nir_intrinsic_set_base(load,
             intrin->variables[0]->var->data.driver_location);
+
+         if (load->intrinsic == nir_intrinsic_load_uniform) {
+            nir_intrinsic_set_range(load,
+               state->type_size(intrin->variables[0]->var->type));
+         }
 
          if (per_vertex)
             load->src[0] = nir_src_for_ssa(vertex_index);
@@ -223,7 +287,8 @@ nir_lower_io_block(nir_block *block, void *void_state)
 
          if (intrin->dest.is_ssa) {
             nir_ssa_dest_init(&load->instr, &load->dest,
-                              intrin->num_components, NULL);
+                              intrin->num_components,
+                              intrin->dest.ssa.bit_size, NULL);
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                      nir_src_for_ssa(&load->dest.ssa));
          } else {
@@ -236,7 +301,7 @@ nir_lower_io_block(nir_block *block, void *void_state)
       }
 
       case nir_intrinsic_store_var: {
-         assert(mode == nir_var_shader_out);
+         assert(mode == nir_var_shader_out || mode == nir_var_shared);
 
          nir_ssa_def *offset;
          nir_ssa_def *vertex_index;
@@ -248,12 +313,9 @@ nir_lower_io_block(nir_block *block, void *void_state)
                                 per_vertex ? &vertex_index : NULL,
                                 state->type_size);
 
-         nir_intrinsic_op store_op =
-            per_vertex ? nir_intrinsic_store_per_vertex_output :
-                         nir_intrinsic_store_output;
-
-         nir_intrinsic_instr *store = nir_intrinsic_instr_create(state->mem_ctx,
-                                                                 store_op);
+         nir_intrinsic_instr *store =
+            nir_intrinsic_instr_create(state->mem_ctx,
+                                       store_op(state, mode, per_vertex));
          store->num_components = intrin->num_components;
 
          nir_src_copy(&store->src[0], &intrin->src[0], store);
@@ -272,6 +334,53 @@ nir_lower_io_block(nir_block *block, void *void_state)
          break;
       }
 
+      case nir_intrinsic_var_atomic_add:
+      case nir_intrinsic_var_atomic_imin:
+      case nir_intrinsic_var_atomic_umin:
+      case nir_intrinsic_var_atomic_imax:
+      case nir_intrinsic_var_atomic_umax:
+      case nir_intrinsic_var_atomic_and:
+      case nir_intrinsic_var_atomic_or:
+      case nir_intrinsic_var_atomic_xor:
+      case nir_intrinsic_var_atomic_exchange:
+      case nir_intrinsic_var_atomic_comp_swap: {
+         assert(mode == nir_var_shared);
+
+         nir_ssa_def *offset;
+
+         offset = get_io_offset(b, intrin->variables[0],
+                                NULL, state->type_size);
+
+         nir_intrinsic_instr *atomic =
+            nir_intrinsic_instr_create(state->mem_ctx,
+                                       atomic_op(intrin->intrinsic));
+
+         atomic->src[0] = nir_src_for_ssa(offset);
+
+         atomic->const_index[0] =
+            intrin->variables[0]->var->data.driver_location;
+
+         for (unsigned i = 0;
+              i < nir_op_infos[intrin->intrinsic].num_inputs;
+              i++) {
+            nir_src_copy(&atomic->src[i+1], &intrin->src[i], atomic);
+         }
+
+         if (intrin->dest.is_ssa) {
+            nir_ssa_dest_init(&atomic->instr, &atomic->dest,
+                              intrin->dest.ssa.num_components,
+                              intrin->dest.ssa.bit_size, NULL);
+            nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
+                                     nir_src_for_ssa(&atomic->dest.ssa));
+         } else {
+            nir_dest_copy(&atomic->dest, &intrin->dest, state->mem_ctx);
+         }
+
+         nir_instr_insert_before(&intrin->instr, &atomic->instr);
+         nir_instr_remove(&intrin->instr);
+         break;
+      }
+
       default:
          break;
       }
@@ -282,29 +391,31 @@ nir_lower_io_block(nir_block *block, void *void_state)
 
 static void
 nir_lower_io_impl(nir_function_impl *impl,
-                  nir_variable_mode mode,
+                  nir_variable_mode modes,
                   int (*type_size)(const struct glsl_type *))
 {
    struct lower_io_state state;
 
    nir_builder_init(&state.builder, impl);
    state.mem_ctx = ralloc_parent(impl);
-   state.mode = mode;
+   state.modes = modes;
    state.type_size = type_size;
 
-   nir_foreach_block(impl, nir_lower_io_block, &state);
+   nir_foreach_block(block, impl) {
+      nir_lower_io_block(block, &state);
+   }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
 }
 
 void
-nir_lower_io(nir_shader *shader, nir_variable_mode mode,
+nir_lower_io(nir_shader *shader, nir_variable_mode modes,
              int (*type_size)(const struct glsl_type *))
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
-         nir_lower_io_impl(function->impl, mode, type_size);
+         nir_lower_io_impl(function->impl, modes, type_size);
    }
 }
 
@@ -319,10 +430,13 @@ nir_get_io_offset_src(nir_intrinsic_instr *instr)
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_uniform:
       return &instr->src[0];
+   case nir_intrinsic_load_ubo:
+   case nir_intrinsic_load_ssbo:
    case nir_intrinsic_load_per_vertex_input:
    case nir_intrinsic_load_per_vertex_output:
    case nir_intrinsic_store_output:
       return &instr->src[1];
+   case nir_intrinsic_store_ssbo:
    case nir_intrinsic_store_per_vertex_output:
       return &instr->src[2];
    default:

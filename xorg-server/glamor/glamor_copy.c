@@ -38,8 +38,8 @@ use_copyarea(PixmapPtr dst, GCPtr gc, glamor_program *prog, void *arg)
     struct copy_args *args = arg;
     glamor_pixmap_fbo *src = args->src;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, src->tex);
+    glamor_bind_texture(glamor_get_screen_private(dst->drawable.pScreen),
+                        GL_TEXTURE0, src, TRUE);
 
     glUniform2f(prog->fill_offset_uniform, args->dx, args->dy);
     glUniform2f(prog->fill_size_inv_uniform, 1.0f/src->width, 1.0f/src->height);
@@ -67,8 +67,8 @@ use_copyplane(PixmapPtr dst, GCPtr gc, glamor_program *prog, void *arg)
     struct copy_args *args = arg;
     glamor_pixmap_fbo *src = args->src;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, src->tex);
+    glamor_bind_texture(glamor_get_screen_private(dst->drawable.pScreen),
+                        GL_TEXTURE0, src, TRUE);
 
     glUniform2f(prog->fill_offset_uniform, args->dx, args->dy);
     glUniform2f(prog->fill_size_inv_uniform, 1.0f/src->width, 1.0f/src->height);

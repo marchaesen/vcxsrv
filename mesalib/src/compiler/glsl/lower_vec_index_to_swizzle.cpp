@@ -30,18 +30,14 @@
  */
 
 #include "ir.h"
-#include "ir_visitor.h"
+#include "ir_rvalue_visitor.h"
 #include "ir_optimization.h"
 #include "compiler/glsl_types.h"
 #include "main/macros.h"
 
-/**
- * Visitor class for replacing expressions with ir_constant values.
- */
-
 namespace {
 
-class ir_vec_index_to_swizzle_visitor : public ir_hierarchical_visitor {
+class ir_vec_index_to_swizzle_visitor : public ir_rvalue_visitor {
 public:
    ir_vec_index_to_swizzle_visitor()
    {
@@ -50,30 +46,28 @@ public:
 
    ir_rvalue *convert_vector_extract_to_swizzle(ir_rvalue *val);
 
-   virtual ir_visitor_status visit_enter(ir_expression *);
-   virtual ir_visitor_status visit_enter(ir_swizzle *);
-   virtual ir_visitor_status visit_enter(ir_assignment *);
-   virtual ir_visitor_status visit_enter(ir_return *);
-   virtual ir_visitor_status visit_enter(ir_call *);
-   virtual ir_visitor_status visit_enter(ir_if *);
+   virtual void handle_rvalue(ir_rvalue **);
 
    bool progress;
 };
 
 } /* anonymous namespace */
 
-ir_rvalue *
-ir_vec_index_to_swizzle_visitor::convert_vector_extract_to_swizzle(ir_rvalue *ir)
+void
+ir_vec_index_to_swizzle_visitor::handle_rvalue(ir_rvalue **rv)
 {
-   ir_expression *const expr = ir->as_expression();
+   if (*rv == NULL)
+      return;
+
+   ir_expression *const expr = (*rv)->as_expression();
    if (expr == NULL || expr->operation != ir_binop_vector_extract)
-      return ir;
+      return;
 
    ir_constant *const idx = expr->operands[1]->constant_expression_value();
    if (idx == NULL)
-      return ir;
+      return;
 
-   void *ctx = ralloc_parent(ir);
+   void *ctx = ralloc_parent(expr);
    this->progress = true;
 
    /* Page 40 of the GLSL 1.20 spec says:
@@ -93,71 +87,7 @@ ir_vec_index_to_swizzle_visitor::convert_vector_extract_to_swizzle(ir_rvalue *ir
    const int i = CLAMP(idx->value.i[0], 0,
                        (int) expr->operands[0]->type->vector_elements - 1);
 
-   return new(ctx) ir_swizzle(expr->operands[0], i, 0, 0, 0, 1);
-}
-
-ir_visitor_status
-ir_vec_index_to_swizzle_visitor::visit_enter(ir_expression *ir)
-{
-   unsigned int i;
-
-   for (i = 0; i < ir->get_num_operands(); i++) {
-      ir->operands[i] = convert_vector_extract_to_swizzle(ir->operands[i]);
-   }
-
-   return visit_continue;
-}
-
-ir_visitor_status
-ir_vec_index_to_swizzle_visitor::visit_enter(ir_swizzle *ir)
-{
-   /* Can't be hit from normal GLSL, since you can't swizzle a scalar (which
-    * the result of indexing a vector is.  But maybe at some point we'll end up
-    * using swizzling of scalars for vector construction.
-    */
-   ir->val = convert_vector_extract_to_swizzle(ir->val);
-
-   return visit_continue;
-}
-
-ir_visitor_status
-ir_vec_index_to_swizzle_visitor::visit_enter(ir_assignment *ir)
-{
-   ir->rhs = convert_vector_extract_to_swizzle(ir->rhs);
-
-   return visit_continue;
-}
-
-ir_visitor_status
-ir_vec_index_to_swizzle_visitor::visit_enter(ir_call *ir)
-{
-   foreach_in_list_safe(ir_rvalue, param, &ir->actual_parameters) {
-      ir_rvalue *new_param = convert_vector_extract_to_swizzle(param);
-
-      if (new_param != param) {
-	 param->replace_with(new_param);
-      }
-   }
-
-   return visit_continue;
-}
-
-ir_visitor_status
-ir_vec_index_to_swizzle_visitor::visit_enter(ir_return *ir)
-{
-   if (ir->value) {
-      ir->value = convert_vector_extract_to_swizzle(ir->value);
-   }
-
-   return visit_continue;
-}
-
-ir_visitor_status
-ir_vec_index_to_swizzle_visitor::visit_enter(ir_if *ir)
-{
-   ir->condition = convert_vector_extract_to_swizzle(ir->condition);
-
-   return visit_continue;
+   *rv = new(ctx) ir_swizzle(expr->operands[0], i, 0, 0, 0, 1);
 }
 
 bool

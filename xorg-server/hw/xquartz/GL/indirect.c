@@ -112,12 +112,6 @@ typedef struct __GLXAquaDrawable __GLXAquaDrawable;
  */
 struct __GLXAquaScreen {
     __GLXscreen base;
-
-    /* Supported GLX extensions */
-    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
-
-    int index;
-    int num_vis;
 };
 
 struct __GLXAquaContext {
@@ -387,6 +381,9 @@ __glXAquaContextMakeCurrent(__GLXcontext *baseContext)
 
     GLAQUA_DEBUG_MSG("glAquaMakeCurrent (ctx 0x%p)\n", baseContext);
 
+    if (context->base.drawPriv != context->base.readPriv)
+        return 0;
+
     if (attach(context, drawPriv))
         return /*error*/ 0;
 
@@ -542,37 +539,8 @@ __glXAquaScreenProbe(ScreenPtr pScreen)
     screen->base.fbconfigs = __glXAquaCreateVisualConfigs(
         &screen->base.numFBConfigs, pScreen->myNum);
 
+    __glXInitExtensionEnableBits(screen->base.glx_enable_bits);
     __glXScreenInit(&screen->base, pScreen);
-
-    screen->base.GLXmajor = 1;
-    screen->base.GLXminor = 4;
-
-    memset(screen->glx_enable_bits, 0, __GLX_EXT_BYTES);
-
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_info");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_rating");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_import_context");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_OML_swap_method");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_fbconfig");
-
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIS_multisample");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_multisample");
-
-    //__glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context");
-    //__glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_profile");
-
-    // Generate the GLX extensions string (overrides that set by __glXScreenInit())
-    {
-        unsigned int buffer_size =
-            __glXGetExtensionString(screen->glx_enable_bits, NULL);
-        if (buffer_size > 0) {
-            free(screen->base.GLXextensions);
-
-            screen->base.GLXextensions = xnfalloc(buffer_size);
-            __glXGetExtensionString(screen->glx_enable_bits,
-                                    screen->base.GLXextensions);
-        }
-    }
 
     return &screen->base;
 }

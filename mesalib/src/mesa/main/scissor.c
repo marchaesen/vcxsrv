@@ -25,6 +25,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
+#include "main/enums.h"
 #include "main/mtypes.h"
 #include "main/scissor.h"
 
@@ -210,6 +211,59 @@ _mesa_ScissorIndexedv(GLuint index, const GLint *v)
    ScissorIndexed(index, v[0], v[1], v[2], v[3], "glScissorIndexedv");
 }
 
+void GLAPIENTRY
+_mesa_WindowRectanglesEXT(GLenum mode, GLsizei count, const GLint *box)
+{
+   int i;
+   struct gl_scissor_rect newval[MAX_WINDOW_RECTANGLES];
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glWindowRectanglesEXT(%s, %d, %p)\n",
+                  _mesa_enum_to_string(mode), count, box);
+
+   if (mode != GL_INCLUSIVE_EXT && mode != GL_EXCLUSIVE_EXT) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glWindowRectanglesEXT(invalid mode 0x%x)", mode);
+      return;
+   }
+
+   if (count < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glWindowRectanglesEXT(count < 0)");
+      return;
+   }
+
+   if (count > ctx->Const.MaxWindowRectangles) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glWindowRectanglesEXT(count >= MaxWindowRectangles (%d)",
+                  ctx->Const.MaxWindowRectangles);
+      return;
+   }
+
+   for (i = 0; i < count; i++) {
+      if (box[2] < 0 || box[3] < 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glWindowRectanglesEXT(box %d: w < 0 || h < 0)", i);
+         return;
+      }
+      newval[i].X = box[0];
+      newval[i].Y = box[1];
+      newval[i].Width = box[2];
+      newval[i].Height = box[3];
+      box += 4;
+   }
+
+   FLUSH_VERTICES(ctx, _NEW_SCISSOR);
+   memcpy(ctx->Scissor.WindowRects, newval,
+          sizeof(struct gl_scissor_rect) * count);
+   ctx->Scissor.NumWindowRects = count;
+   ctx->Scissor.WindowRectMode = mode;
+
+   if (ctx->Driver.Scissor)
+      ctx->Driver.Scissor(ctx);
+}
+
+
 /**
  * Initialize the context's scissor state.
  * \param ctx  the GL context.
@@ -221,6 +275,7 @@ _mesa_init_scissor(struct gl_context *ctx)
 
    /* Scissor group */
    ctx->Scissor.EnableFlags = 0;
+   ctx->Scissor.WindowRectMode = GL_EXCLUSIVE_EXT;
 
    /* Note: ctx->Const.MaxViewports may not have been set by the driver yet,
     * so just initialize all of them.

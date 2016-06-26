@@ -124,7 +124,6 @@ TAG(clip_line)( struct gl_context *ctx, GLuint v0, GLuint v1, GLubyte mask )
    GLuint newvert = VB->Count;
    GLfloat t0 = 0;
    GLfloat t1 = 0;
-   GLuint p;
    const GLuint v0_orig = v0;
 
    if (mask & CLIP_FRUSTUM_BITS) {
@@ -137,14 +136,14 @@ TAG(clip_line)( struct gl_context *ctx, GLuint v0, GLuint v1, GLubyte mask )
    }
 
    if (mask & CLIP_USER_BIT) {
-      for (p = 0; p < ctx->Const.MaxClipPlanes; p++) {
-	 if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
-            const GLfloat a = ctx->Transform._ClipUserPlane[p][0];
-            const GLfloat b = ctx->Transform._ClipUserPlane[p][1];
-            const GLfloat c = ctx->Transform._ClipUserPlane[p][2];
-            const GLfloat d = ctx->Transform._ClipUserPlane[p][3];
-	    LINE_CLIP( CLIP_USER_BIT, a, b, c, d );
-	 }
+      GLbitfield enabled = ctx->Transform.ClipPlanesEnabled;
+      while (enabled) {
+         const int p = u_bit_scan(&enabled);
+         const GLfloat a = ctx->Transform._ClipUserPlane[p][0];
+         const GLfloat b = ctx->Transform._ClipUserPlane[p][1];
+         const GLfloat c = ctx->Transform._ClipUserPlane[p][2];
+         const GLfloat d = ctx->Transform._ClipUserPlane[p][3];
+         LINE_CLIP( CLIP_USER_BIT, a, b, c, d );
       }
    }
 
@@ -194,7 +193,6 @@ TAG(clip_tri)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLubyte 
    GLuint pv = v2;
    GLuint vlist[2][MAX_CLIPPED_VERTICES];
    GLuint *inlist = vlist[0], *outlist = vlist[1];
-   GLuint p;
    GLuint n = 3;
 
    ASSIGN_3V(inlist, v2, v0, v1 ); /* pv rotated to slot zero */
@@ -226,14 +224,14 @@ TAG(clip_tri)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLubyte 
    }
 
    if (mask & CLIP_USER_BIT) {
-      for (p = 0; p < ctx->Const.MaxClipPlanes; p++) {
-         if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
-            const GLfloat a = ctx->Transform._ClipUserPlane[p][0];
-            const GLfloat b = ctx->Transform._ClipUserPlane[p][1];
-            const GLfloat c = ctx->Transform._ClipUserPlane[p][2];
-            const GLfloat d = ctx->Transform._ClipUserPlane[p][3];
-            POLY_CLIP( CLIP_USER_BIT, a, b, c, d );
-         }
+      GLbitfield enabled = ctx->Transform.ClipPlanesEnabled;
+      while (enabled) {
+         const int p = u_bit_scan(&enabled);
+         const GLfloat a = ctx->Transform._ClipUserPlane[p][0];
+         const GLfloat b = ctx->Transform._ClipUserPlane[p][1];
+         const GLfloat c = ctx->Transform._ClipUserPlane[p][2];
+         const GLfloat d = ctx->Transform._ClipUserPlane[p][3];
+         POLY_CLIP( CLIP_USER_BIT, a, b, c, d );
       }
    }
 
@@ -274,7 +272,6 @@ TAG(clip_quad)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLuint 
    GLuint pv = v3;
    GLuint vlist[2][MAX_CLIPPED_VERTICES];
    GLuint *inlist = vlist[0], *outlist = vlist[1];
-   GLuint p;
    GLuint n = 4;
 
    ASSIGN_4V(inlist, v3, v0, v1, v2 ); /* pv rotated to slot zero */
@@ -289,14 +286,14 @@ TAG(clip_quad)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLuint 
    }
 
    if (mask & CLIP_USER_BIT) {
-      for (p = 0; p < ctx->Const.MaxClipPlanes; p++) {
-	 if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
-            const GLfloat a = ctx->Transform._ClipUserPlane[p][0];
-            const GLfloat b = ctx->Transform._ClipUserPlane[p][1];
-            const GLfloat c = ctx->Transform._ClipUserPlane[p][2];
-            const GLfloat d = ctx->Transform._ClipUserPlane[p][3];
-	    POLY_CLIP( CLIP_USER_BIT, a, b, c, d );
-	 }
+      GLbitfield enabled = ctx->Transform.ClipPlanesEnabled;
+      while (enabled) {
+         const int p = u_bit_scan(&enabled);
+         const GLfloat a = ctx->Transform._ClipUserPlane[p][0];
+         const GLfloat b = ctx->Transform._ClipUserPlane[p][1];
+         const GLfloat c = ctx->Transform._ClipUserPlane[p][2];
+         const GLfloat d = ctx->Transform._ClipUserPlane[p][3];
+         POLY_CLIP( CLIP_USER_BIT, a, b, c, d );
       }
    }
 

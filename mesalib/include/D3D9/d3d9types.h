@@ -173,16 +173,16 @@ typedef struct _RGNDATA {
 #define D3DPRESENTFLAG_RESTRICTED_CONTENT              0x00000400
 #define D3DPRESENTFLAG_RESTRICT_SHARED_RESOURCE_DRIVER 0x00000800
 
-
-#ifdef WINAPI
-#undef WINAPI
-#endif /* WINAPI*/
-
-#if defined(__x86_64__) || defined(_M_X64)
-#define WINAPI __attribute__((ms_abi))
-#else /* x86_64 */
-#define WINAPI __attribute__((__stdcall__))
-#endif /* x86_64 */
+/* Windows calling convention */
+#ifndef WINAPI
+  #if defined(__x86_64__) && !defined(__ILP32__)
+    #define WINAPI __attribute__((ms_abi))
+  #elif defined(__i386__)
+    #define WINAPI __attribute__((__stdcall__))
+  #else /* neither amd64 nor i386 */
+    #define WINAPI
+  #endif
+#endif /* WINAPI */
 
 /* Implementation caps */
 #define D3DPRESENT_BACK_BUFFERS_MAX    3

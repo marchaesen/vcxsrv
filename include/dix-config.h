@@ -564,6 +564,12 @@
 /* Have setitimer support */
 #define HAVE_SETITIMER 1
 
+/* Have posix_fallocate() */
+#undef HAVE_POSIX_FALLOCATE
+
+/* Use input thread */
+#undef INPUTTHREAD
+
 #include <X11/Xwinsock.h>
 #include <X11/Xwindows.h>
 #if NTDDI_VERSION < NTDDI_VISTA

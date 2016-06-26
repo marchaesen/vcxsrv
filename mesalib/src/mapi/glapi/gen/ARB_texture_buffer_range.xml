@@ -9,7 +9,7 @@
     <enum name="TEXTURE_BUFFER_SIZE"                    value="0x919E"/>
     <enum name="TEXTURE_BUFFER_OFFSET_ALIGNMENT"        value="0x919F"/>
 
-    <function name="TexBufferRange">
+    <function name="TexBufferRange" es2="3.2">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="buffer" type="GLuint"/>

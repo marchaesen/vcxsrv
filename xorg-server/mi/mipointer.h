@@ -109,6 +109,12 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *x, double *y,
 extern _X_EXPORT void
 miPointerUpdateSprite(DeviceIntPtr pDev);
 
+/* Invalidate current sprite, forcing reload on next
+ * sprite setting (window crossing, grab action, etc)
+ */
+extern _X_EXPORT void
+miPointerInvalidateSprite(DeviceIntPtr pDev);
+
 /* Sets whether the sprite should be updated immediately on pointer moves */
 extern _X_EXPORT Bool
 miPointerSetWaitForUpdate(ScreenPtr pScreen, Bool wait);

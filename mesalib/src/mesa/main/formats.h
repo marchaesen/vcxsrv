@@ -635,6 +635,27 @@ typedef enum
    MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x10,
    MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x10,
    MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x12,
+
+   MESA_FORMAT_RGBA_ASTC_3x3x3,
+   MESA_FORMAT_RGBA_ASTC_4x3x3,
+   MESA_FORMAT_RGBA_ASTC_4x4x3,
+   MESA_FORMAT_RGBA_ASTC_4x4x4,
+   MESA_FORMAT_RGBA_ASTC_5x4x4,
+   MESA_FORMAT_RGBA_ASTC_5x5x4,
+   MESA_FORMAT_RGBA_ASTC_5x5x5,
+   MESA_FORMAT_RGBA_ASTC_6x5x5,
+   MESA_FORMAT_RGBA_ASTC_6x6x5,
+   MESA_FORMAT_RGBA_ASTC_6x6x6,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_3x3x3,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x3x3,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4x3,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4x4,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x4x4,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5x4,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x5x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6x5,
+   MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6x6,
    MESA_FORMAT_COUNT
 } mesa_format;
 
@@ -662,6 +683,10 @@ _mesa_get_format_base_format(uint32_t format);
 
 extern void
 _mesa_get_format_block_size(mesa_format format, GLuint *bw, GLuint *bh);
+
+extern void
+_mesa_get_format_block_size_3d(mesa_format format, GLuint *bw,
+                               GLuint *bh, GLuint *bd);
 
 extern mesa_array_format
 _mesa_array_format_flip_channels(mesa_array_format format);

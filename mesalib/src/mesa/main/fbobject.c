@@ -389,7 +389,8 @@ driver_RenderTexture_is_safe(const struct gl_renderbuffer_attachment *att)
    const struct gl_texture_image *const texImage =
       att->Texture->Image[att->CubeMapFace][att->TextureLevel];
 
-   if (texImage->Width == 0 || texImage->Height == 0 || texImage->Depth == 0)
+   if (!texImage ||
+       texImage->Width == 0 || texImage->Height == 0 || texImage->Depth == 0)
       return false;
 
    if ((texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY
@@ -1287,8 +1288,8 @@ _mesa_IsRenderbuffer(GLuint renderbuffer)
 
 
 static struct gl_renderbuffer *
-allocate_renderbuffer(struct gl_context *ctx, GLuint renderbuffer,
-                      const char *func)
+allocate_renderbuffer_locked(struct gl_context *ctx, GLuint renderbuffer,
+                             const char *func)
 {
    struct gl_renderbuffer *newRb;
 
@@ -1299,10 +1300,8 @@ allocate_renderbuffer(struct gl_context *ctx, GLuint renderbuffer,
       return NULL;
    }
    assert(newRb->AllocStorage);
-   mtx_lock(&ctx->Shared->Mutex);
-   _mesa_HashInsert(ctx->Shared->RenderBuffers, renderbuffer, newRb);
+   _mesa_HashInsertLocked(ctx->Shared->RenderBuffers, renderbuffer, newRb);
    newRb->RefCount = 1; /* referenced by hash table */
-   mtx_unlock(&ctx->Shared->Mutex);
 
    return newRb;
 }
@@ -1336,7 +1335,10 @@ bind_renderbuffer(GLenum target, GLuint renderbuffer, bool allow_user_names)
       }
 
       if (!newRb) {
-         newRb = allocate_renderbuffer(ctx, renderbuffer, "glBindRenderbufferEXT");
+         _mesa_HashLockMutex(ctx->Shared->RenderBuffers);
+         newRb = allocate_renderbuffer_locked(ctx, renderbuffer,
+                                              "glBindRenderbufferEXT");
+         _mesa_HashUnlockMutex(ctx->Shared->RenderBuffers);
       }
    }
    else {
@@ -1369,6 +1371,11 @@ _mesa_BindRenderbufferEXT(GLenum target, GLuint renderbuffer)
    bind_renderbuffer(target, renderbuffer, true);
 }
 
+/**
+ * ARB_framebuffer_no_attachment - Application passes requested param's
+ * here. NOTE: NumSamples requested need not be _NumSamples which is
+ * what the hw supports.
+ */
 static void
 framebuffer_parameteri(struct gl_context *ctx, struct gl_framebuffer *fb,
                        GLenum pname, GLint param, const char *func)
@@ -1391,7 +1398,7 @@ framebuffer_parameteri(struct gl_context *ctx, struct gl_framebuffer *fb,
       * According to the OpenGL ES 3.1 specification section 9.2.1, the
       * GL_FRAMEBUFFER_DEFAULT_LAYERS parameter name is not supported.
       */
-      if (_mesa_is_gles31(ctx)) {
+      if (_mesa_is_gles31(ctx) && !ctx->Extensions.OES_geometry_shader) {
          _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
          break;
       }
@@ -1464,7 +1471,7 @@ get_framebuffer_parameteriv(struct gl_context *ctx, struct gl_framebuffer *fb,
        * According to the OpenGL ES 3.1 specification section 9.2.3, the
        * GL_FRAMEBUFFER_LAYERS parameter name is not supported.
        */
-      if (_mesa_is_gles31(ctx)) {
+      if (_mesa_is_gles31(ctx) && !ctx->Extensions.OES_geometry_shader) {
          _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
          break;
       }
@@ -1638,6 +1645,8 @@ create_render_buffers(struct gl_context *ctx, GLsizei n, GLuint *renderbuffers,
    if (!renderbuffers)
       return;
 
+   _mesa_HashLockMutex(ctx->Shared->RenderBuffers);
+
    first = _mesa_HashFindFreeKeyBlock(ctx->Shared->RenderBuffers, n);
 
    for (i = 0; i < n; i++) {
@@ -1645,14 +1654,15 @@ create_render_buffers(struct gl_context *ctx, GLsizei n, GLuint *renderbuffers,
       renderbuffers[i] = name;
 
       if (dsa) {
-         allocate_renderbuffer(ctx, name, func);
+         allocate_renderbuffer_locked(ctx, name, func);
       } else {
          /* insert a dummy renderbuffer into the hash table */
-         mtx_lock(&ctx->Shared->Mutex);
-         _mesa_HashInsert(ctx->Shared->RenderBuffers, name, &DummyRenderbuffer);
-         mtx_unlock(&ctx->Shared->Mutex);
+         _mesa_HashInsertLocked(ctx->Shared->RenderBuffers, name,
+                                &DummyRenderbuffer);
       }
    }
+
+   _mesa_HashUnlockMutex(ctx->Shared->RenderBuffers);
 }
 
 
@@ -2679,6 +2689,8 @@ create_framebuffers(GLsizei n, GLuint *framebuffers, bool dsa)
    if (!framebuffers)
       return;
 
+   _mesa_HashLockMutex(ctx->Shared->FrameBuffers);
+
    first = _mesa_HashFindFreeKeyBlock(ctx->Shared->FrameBuffers, n);
 
    for (i = 0; i < n; i++) {
@@ -2688,6 +2700,7 @@ create_framebuffers(GLsizei n, GLuint *framebuffers, bool dsa)
       if (dsa) {
          fb = ctx->Driver.NewFramebuffer(ctx, framebuffers[i]);
          if (!fb) {
+            _mesa_HashUnlockMutex(ctx->Shared->FrameBuffers);
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
             return;
          }
@@ -2695,10 +2708,10 @@ create_framebuffers(GLsizei n, GLuint *framebuffers, bool dsa)
       else
          fb = &DummyFramebuffer;
 
-      mtx_lock(&ctx->Shared->Mutex);
-      _mesa_HashInsert(ctx->Shared->FrameBuffers, name, fb);
-      mtx_unlock(&ctx->Shared->Mutex);
+      _mesa_HashInsertLocked(ctx->Shared->FrameBuffers, name, fb);
    }
+
+   _mesa_HashUnlockMutex(ctx->Shared->FrameBuffers);
 }
 
 
@@ -3228,10 +3241,10 @@ framebuffer_texture_with_dims(int dims, GLenum target,
 
       if ((dims == 3) && !check_layer(ctx, texObj->Target, layer, caller))
          return;
-   }
 
-   if (!check_level(ctx, textarget, level, caller))
-      return;
+      if (!check_level(ctx, textarget, level, caller))
+         return;
+   }
 
    _mesa_framebuffer_texture(ctx, fb, attachment, texObj, textarget, level,
                              layer, GL_FALSE, caller);
@@ -3623,6 +3636,23 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
                      _mesa_enum_to_string(attachment));
          return;
       }
+
+      /* The specs are not clear about how to handle
+       * GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME with the default framebuffer,
+       * but dEQP-GLES3 expects an INVALID_ENUM error. This has also been
+       * discussed in:
+       *
+       * https://cvs.khronos.org/bugzilla/show_bug.cgi?id=12928#c1
+       * and https://bugs.freedesktop.org/show_bug.cgi?id=31947
+       */
+      if (pname == GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME) {
+         _mesa_error(ctx, GL_INVALID_ENUM,
+                     "%s(requesting GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME "
+                     "when GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is "
+                     "GL_FRAMEBUFFER_DEFAULT is not allowed)", caller);
+         return;
+      }
+
       /* the default / window-system FBO */
       att = _mesa_get_fb0_attachment(ctx, buffer, attachment);
    }

@@ -37,6 +37,7 @@
 #endif
 
 #include <X11/Xwindows.h>
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <glx/glheader.h>

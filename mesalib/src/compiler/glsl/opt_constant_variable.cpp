@@ -102,6 +102,13 @@ ir_constant_variable_visitor::visit_enter(ir_assignment *ir)
    assert(entry);
    entry->assignment_count++;
 
+   /* If there's more than one assignment, don't bother - we won't do anything
+    * with this variable anyway, and continuing just wastes memory cloning
+    * constant expressions.
+    */
+   if (entry->assignment_count > 1)
+      return visit_continue;
+
    /* If it's already constant, don't do the work. */
    if (entry->var->constant_value)
       return visit_continue;

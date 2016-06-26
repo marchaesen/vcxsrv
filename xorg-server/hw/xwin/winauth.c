@@ -42,6 +42,16 @@
 #include "securitysrv.h"
 #include "os/osdep.h"
 
+#include <xcb/xcb.h>
+
+/* Need to get this from Xlib.h */
+extern void XSetAuthorization(
+    const char *                /* name */,
+    int                         /* namelen */,
+    const char *                /* data */,
+    int                         /* datalen */
+);
+
 /*
  * Constants
  */
@@ -55,6 +65,7 @@
 static XID g_authId = 0;
 static unsigned int g_uiAuthDataLen = 0;
 static char *g_pAuthData = NULL;
+static xcb_auth_info_t auth_info;
 
 /*
  * Code to generate a MIT-MAGIC-COOKIE-1, copied from under XCSECURITY
@@ -149,6 +160,11 @@ winGenerateAuthorization(void)
     }
 #endif
 
+    auth_info.name = AUTH_NAME;
+    auth_info.namelen = strlen(AUTH_NAME);
+    auth_info.data = g_pAuthData;
+    auth_info.datalen = g_uiAuthDataLen;
+
 #ifdef XCSECURITY
     /* Allocate structure for additional auth information */
     pAuth = (SecurityAuthorizationPtr)
@@ -186,4 +202,13 @@ winSetAuthorization(void)
   if (g_pAuthData)
     XSetAuthorization(AUTH_NAME,
                       strlen(AUTH_NAME), g_pAuthData, g_uiAuthDataLen);
+}
+
+xcb_auth_info_t *
+winGetXcbAuthInfo(void)
+{
+    if (g_pAuthData)
+        return &auth_info;
+
+    return NULL;
 }

@@ -1,8 +1,6 @@
 api_exec.c
 dispatch.h
 enums.c
-git_sha1.h
-git_sha1.h.tmp
 remap_helper.h
 get_hash.h
 get_hash.h.tmp

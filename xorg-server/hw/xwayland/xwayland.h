@@ -47,7 +47,6 @@ struct xwl_screen {
     int height;
     int depth;
     ScreenPtr screen;
-    WindowPtr pointer_limbo_window;
     int expecting_event;
     enum RootClipMode root_clip_mode;
 
@@ -138,6 +137,8 @@ struct xwl_seat {
     size_t keymap_size;
     char *keymap;
     struct wl_surface *keyboard_focus;
+
+    struct xorg_list sync_pending;
 };
 
 struct xwl_output {
@@ -152,6 +153,8 @@ struct xwl_output {
 };
 
 struct xwl_pixmap;
+
+void xwl_sync_events (struct xwl_screen *xwl_screen);
 
 Bool xwl_screen_init_cursor(struct xwl_screen *xwl_screen);
 

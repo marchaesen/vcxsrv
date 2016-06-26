@@ -109,8 +109,8 @@ remap_var(clone_state *state, const nir_variable *var)
    return _lookup_ptr(state, var, nir_variable_is_global(var));
 }
 
-static nir_constant *
-clone_constant(clone_state *state, const nir_constant *c, nir_variable *nvar)
+nir_constant *
+nir_constant_clone(const nir_constant *c, nir_variable *nvar)
 {
    nir_constant *nc = ralloc(nvar, nir_constant);
 
@@ -118,7 +118,7 @@ clone_constant(clone_state *state, const nir_constant *c, nir_variable *nvar)
    nc->num_elements = c->num_elements;
    nc->elements = ralloc_array(nvar, nir_constant *, c->num_elements);
    for (unsigned i = 0; i < c->num_elements; i++) {
-      nc->elements[i] = clone_constant(state, c->elements[i], nvar);
+      nc->elements[i] = nir_constant_clone(c->elements[i], nvar);
    }
 
    return nc;
@@ -127,11 +127,10 @@ clone_constant(clone_state *state, const nir_constant *c, nir_variable *nvar)
 /* NOTE: for cloning nir_variable's, bypass nir_variable_create to avoid
  * having to deal with locals and globals separately:
  */
-static nir_variable *
-clone_variable(clone_state *state, const nir_variable *var)
+nir_variable *
+nir_variable_clone(const nir_variable *var, nir_shader *shader)
 {
-   nir_variable *nvar = rzalloc(state->ns, nir_variable);
-   add_remap(state, nvar, var);
+   nir_variable *nvar = rzalloc(shader, nir_variable);
 
    nvar->type = var->type;
    nvar->name = ralloc_strdup(nvar, var->name);
@@ -142,9 +141,18 @@ clone_variable(clone_state *state, const nir_variable *var)
           var->num_state_slots * sizeof(nir_state_slot));
    if (var->constant_initializer) {
       nvar->constant_initializer =
-         clone_constant(state, var->constant_initializer, nvar);
+         nir_constant_clone(var->constant_initializer, nvar);
    }
    nvar->interface_type = var->interface_type;
+
+   return nvar;
+}
+
+static nir_variable *
+clone_variable(clone_state *state, const nir_variable *var)
+{
+   nir_variable *nvar = nir_variable_clone(var, state->ns);
+   add_remap(state, nvar, var);
 
    return nvar;
 }
@@ -171,6 +179,7 @@ clone_register(clone_state *state, const nir_register *reg)
    add_remap(state, nreg, reg);
 
    nreg->num_components = reg->num_components;
+   nreg->bit_size = reg->bit_size;
    nreg->num_array_elems = reg->num_array_elems;
    nreg->index = reg->index;
    nreg->name = ralloc_strdup(nreg, reg->name);
@@ -220,7 +229,8 @@ __clone_dst(clone_state *state, nir_instr *ninstr,
 {
    ndst->is_ssa = dst->is_ssa;
    if (dst->is_ssa) {
-      nir_ssa_dest_init(ninstr, ndst, dst->ssa.num_components, dst->ssa.name);
+      nir_ssa_dest_init(ninstr, ndst, dst->ssa.num_components,
+                        dst->ssa.bit_size, dst->ssa.name);
       add_remap(state, &ndst->ssa, &dst->ssa);
    } else {
       ndst->reg.reg = remap_reg(state, dst->reg.reg);
@@ -303,6 +313,7 @@ static nir_alu_instr *
 clone_alu(clone_state *state, const nir_alu_instr *alu)
 {
    nir_alu_instr *nalu = nir_alu_instr_create(state->ns, alu->op);
+   nalu->exact = alu->exact;
 
    __clone_dst(state, &nalu->instr, &nalu->dest.dest, &alu->dest.dest);
    nalu->dest.saturate = alu->dest.saturate;
@@ -349,7 +360,8 @@ static nir_load_const_instr *
 clone_load_const(clone_state *state, const nir_load_const_instr *lc)
 {
    nir_load_const_instr *nlc =
-      nir_load_const_instr_create(state->ns, lc->def.num_components);
+      nir_load_const_instr_create(state->ns, lc->def.num_components,
+                                  lc->def.bit_size);
 
    memcpy(&nlc->value, &lc->value, sizeof(nlc->value));
 
@@ -362,7 +374,8 @@ static nir_ssa_undef_instr *
 clone_ssa_undef(clone_state *state, const nir_ssa_undef_instr *sa)
 {
    nir_ssa_undef_instr *nsa =
-      nir_ssa_undef_instr_create(state->ns, sa->def.num_components);
+      nir_ssa_undef_instr_create(state->ns, sa->def.num_components,
+                                 sa->def.bit_size);
 
    add_remap(state, &nsa->def, &sa->def);
 
@@ -510,7 +523,7 @@ clone_block(clone_state *state, struct exec_list *cf_list, const nir_block *blk)
    /* We need this for phi sources */
    add_remap(state, nblk, blk);
 
-   nir_foreach_instr(blk, instr) {
+   nir_foreach_instr(instr, blk) {
       if (instr->type == nir_instr_type_phi) {
          /* Phi instructions are a bit of a special case when cloning because
           * we don't want inserting the instruction to automatically handle
@@ -675,6 +688,7 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
    clone_var_list(&state, &ns->uniforms, &s->uniforms);
    clone_var_list(&state, &ns->inputs,   &s->inputs);
    clone_var_list(&state, &ns->outputs,  &s->outputs);
+   clone_var_list(&state, &ns->shared,   &s->shared);
    clone_var_list(&state, &ns->globals,  &s->globals);
    clone_var_list(&state, &ns->system_values, &s->system_values);
 
@@ -687,7 +701,7 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
     * functions of other functions and we don't know what order the functions
     * will have in the list.
     */
-   nir_foreach_function(s, fxn) {
+   nir_foreach_function(fxn, s) {
       nir_function *nfxn = remap_global(&state, fxn);
       nfxn->impl = clone_function_impl(&state, fxn->impl);
       nfxn->impl->function = nfxn;
@@ -704,6 +718,7 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
    ns->num_inputs = s->num_inputs;
    ns->num_uniforms = s->num_uniforms;
    ns->num_outputs = s->num_outputs;
+   ns->num_shared = s->num_shared;
 
    free_clone_state(&state);
 

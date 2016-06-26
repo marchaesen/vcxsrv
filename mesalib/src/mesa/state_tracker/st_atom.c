@@ -55,6 +55,7 @@ static const struct st_tracked_state *render_atoms[] =
    &st_update_polygon_stipple,
    &st_update_viewport,
    &st_update_scissor,
+   &st_update_window_rectangles,
    &st_update_blend,
    &st_update_vertex_texture,
    &st_update_fragment_texture,

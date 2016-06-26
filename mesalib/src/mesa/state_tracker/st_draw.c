@@ -127,35 +127,6 @@ setup_index_buffer(struct st_context *st,
 
 
 /**
- * Prior to drawing, check that any uniforms referenced by the
- * current shader have been set.  If a uniform has not been set,
- * issue a warning.
- */
-static void
-check_uniforms(struct gl_context *ctx)
-{
-   struct gl_shader_program **shProg = ctx->_Shader->CurrentProgram;
-   unsigned j;
-
-   for (j = 0; j < 3; j++) {
-      unsigned i;
-
-      if (shProg[j] == NULL || !shProg[j]->LinkStatus)
-	 continue;
-
-      for (i = 0; i < shProg[j]->NumUniformStorage; i++) {
-         const struct gl_uniform_storage *u = &shProg[j]->UniformStorage[i];
-         if (!u->initialized) {
-            _mesa_warning(ctx,
-                          "Using shader with uninitialized uniform: %s",
-                          u->name);
-         }
-      }
-   }
-}
-
-
-/**
  * Translate OpenGL primtive type (GL_POINTS, GL_TRIANGLE_STRIP, etc) to
  * the corresponding Gallium type.
  */
@@ -199,18 +170,11 @@ st_draw_vbo(struct gl_context *ctx,
    assert(ctx->NewState == 0x0);
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    /* Validate state. */
    if (st->dirty.st || st->dirty.mesa || ctx->NewDriverState) {
       st_validate_state(st, ST_PIPELINE_RENDER);
-
-#if 0
-      if (MESA_VERBOSE & VERBOSE_GLSL) {
-         check_uniforms(ctx);
-      }
-#else
-      (void) check_uniforms;
-#endif
    }
 
    if (st->vertex_array_out_of_memory) {

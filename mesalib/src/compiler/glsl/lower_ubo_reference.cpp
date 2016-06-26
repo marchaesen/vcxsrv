@@ -44,8 +44,10 @@ namespace {
 class lower_ubo_reference_visitor :
       public lower_buffer_access::lower_buffer_access {
 public:
-   lower_ubo_reference_visitor(struct gl_shader *shader)
-   : shader(shader), struct_field(NULL), variable(NULL)
+   lower_ubo_reference_visitor(struct gl_shader *shader,
+                               bool clamp_block_indices)
+   : shader(shader), clamp_block_indices(clamp_block_indices),
+     struct_field(NULL), variable(NULL)
    {
    }
 
@@ -59,7 +61,7 @@ public:
                                 unsigned *const_offset,
                                 bool *row_major,
                                 int *matrix_columns,
-                                unsigned packing);
+                                enum glsl_interface_packing packing);
    uint32_t ssbo_access_params();
    ir_expression *ubo_load(void *mem_ctx, const struct glsl_type *type,
 			   ir_rvalue *offset);
@@ -97,13 +99,14 @@ public:
    ir_expression *emit_ssbo_get_buffer_size(void *mem_ctx);
 
    unsigned calculate_unsized_array_stride(ir_dereference *deref,
-                                           unsigned packing);
+                                           enum glsl_interface_packing packing);
 
    ir_call *lower_ssbo_atomic_intrinsic(ir_call *ir);
    ir_call *check_for_ssbo_atomic_intrinsic(ir_call *ir);
    ir_visitor_status visit_enter(ir_call *ir);
 
    struct gl_shader *shader;
+   bool clamp_block_indices;
    struct gl_uniform_buffer_variable *ubo_var;
    const struct glsl_struct_field *struct_field;
    ir_variable *variable;
@@ -242,6 +245,26 @@ interface_field_name(void *mem_ctx, char *base_name, ir_rvalue *d,
    return NULL;
 }
 
+static ir_rvalue *
+clamp_to_array_bounds(void *mem_ctx, ir_rvalue *index, const glsl_type *type)
+{
+   assert(type->is_array());
+
+   const unsigned array_size = type->arrays_of_arrays_size();
+
+   ir_constant *max_index = new(mem_ctx) ir_constant(array_size - 1);
+   max_index->type = index->type;
+
+   ir_constant *zero = new(mem_ctx) ir_constant(0);
+   zero->type = index->type;
+
+   if (index->type->base_type == GLSL_TYPE_INT)
+      index = max2(index, zero);
+   index = min2(index, max_index);
+
+   return index;
+}
+
 void
 lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
                                                      ir_variable *var,
@@ -250,13 +273,18 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
                                                      unsigned *const_offset,
                                                      bool *row_major,
                                                      int *matrix_columns,
-                                                     unsigned packing)
+                                                     enum glsl_interface_packing packing)
 {
    /* Determine the name of the interface block */
    ir_rvalue *nonconst_block_index;
    const char *const field_name =
       interface_field_name(mem_ctx, (char *) var->get_interface_type()->name,
                            deref, &nonconst_block_index);
+
+   if (nonconst_block_index && clamp_block_indices) {
+      nonconst_block_index =
+         clamp_to_array_bounds(mem_ctx, nonconst_block_index, var->type);
+   }
 
    /* Locate the block by interface name */
    unsigned num_blocks;
@@ -316,7 +344,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   unsigned packing = var->get_interface_type()->interface_packing;
+   enum glsl_interface_packing packing = var->get_interface_type_packing();
 
    this->buffer_access_type =
       var->is_in_shader_storage_block() ?
@@ -372,7 +400,7 @@ lower_ubo_reference_visitor::ubo_load(void *mem_ctx,
 static bool
 shader_storage_buffer_object(const _mesa_glsl_parse_state *state)
 {
-   return state->ARB_shader_storage_buffer_object_enable;
+   return state->has_shader_storage_buffer_objects();
 }
 
 uint32_t
@@ -529,7 +557,7 @@ lower_ubo_reference_visitor::write_to_memory(void *mem_ctx,
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   unsigned packing = var->get_interface_type()->interface_packing;
+   enum glsl_interface_packing packing = var->get_interface_type_packing();
 
    this->buffer_access_type = ssbo_store_access;
    this->variable = var;
@@ -638,7 +666,7 @@ lower_ubo_reference_visitor::emit_ssbo_get_buffer_size(void *mem_ctx)
 
 unsigned
 lower_ubo_reference_visitor::calculate_unsized_array_stride(ir_dereference *deref,
-                                                            unsigned packing)
+                                                            enum glsl_interface_packing packing)
 {
    unsigned array_stride = 0;
 
@@ -708,7 +736,7 @@ lower_ubo_reference_visitor::process_ssbo_unsized_array_length(ir_rvalue **rvalu
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   unsigned packing = var->get_interface_type()->interface_packing;
+   enum glsl_interface_packing packing = var->get_interface_type_packing();
    int unsized_array_stride = calculate_unsized_array_stride(deref, packing);
 
    this->buffer_access_type = ssbo_unsized_array_length_access;
@@ -942,7 +970,7 @@ lower_ubo_reference_visitor::lower_ssbo_atomic_intrinsic(ir_call *ir)
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   unsigned packing = var->get_interface_type()->interface_packing;
+   enum glsl_interface_packing packing = var->get_interface_type_packing();
 
    this->buffer_access_type = ssbo_atomic_access;
    this->variable = var;
@@ -1062,9 +1090,9 @@ lower_ubo_reference_visitor::visit_enter(ir_call *ir)
 } /* unnamed namespace */
 
 void
-lower_ubo_reference(struct gl_shader *shader)
+lower_ubo_reference(struct gl_shader *shader, bool clamp_block_indices)
 {
-   lower_ubo_reference_visitor v(shader);
+   lower_ubo_reference_visitor v(shader, clamp_block_indices);
 
    /* Loop over the instructions lowering references, because we take
     * a deref of a UBO array using a UBO dereference as the index will

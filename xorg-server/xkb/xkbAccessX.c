@@ -89,6 +89,7 @@ AccessXInit(DeviceIntPtr keybd)
     xkbi->repeatKeyTimer = NULL;
     xkbi->krgTimer = NULL;
     xkbi->beepTimer = NULL;
+    xkbi->checkRepeat = NULL;
     ctrls->repeat_delay = XkbDfltRepeatDelay;
     ctrls->repeat_interval = XkbDfltRepeatInterval;
     ctrls->debounce_delay = 300;
@@ -317,7 +318,8 @@ AccessXRepeatKeyExpire(OsTimerPtr timer, CARD32 now, void *arg)
     if (xkbi->repeatKey == 0)
         return 0;
 
-    AccessXKeyboardEvent(dev, ET_KeyPress, xkbi->repeatKey, TRUE);
+    if (xkbi->checkRepeat == NULL || xkbi->checkRepeat (dev, xkbi, xkbi->repeatKey))
+        AccessXKeyboardEvent(dev, ET_KeyPress, xkbi->repeatKey, TRUE);
 
     return xkbi->desc->ctrls->repeat_interval;
 }
@@ -618,6 +620,7 @@ AccessXFilterReleaseEvent(DeviceEvent *event, DeviceIntPtr keybd)
     if (ctrls->enabled_ctrls & XkbSlowKeysMask) {
         xkbAccessXNotify ev;
         unsigned beep_type;
+        unsigned mask;
 
         ev.keycode = key;
         ev.slowKeysDelay = ctrls->slow_keys_delay;
@@ -625,14 +628,16 @@ AccessXFilterReleaseEvent(DeviceEvent *event, DeviceIntPtr keybd)
         if (BitIsOn(keybd->key->down, key) || (xkbi->mouseKey == key)) {
             ev.detail = XkbAXN_SKRelease;
             beep_type = _BEEP_SLOW_RELEASE;
+            mask = XkbAX_SKReleaseFBMask;
         }
         else {
             ev.detail = XkbAXN_SKReject;
             beep_type = _BEEP_SLOW_REJECT;
+            mask = XkbAX_SKRejectFBMask;
             ignoreKeyEvent = TRUE;
         }
         XkbSendAccessXNotify(keybd, &ev);
-        if (XkbAX_NeedFeedback(ctrls, XkbAX_SKRejectFBMask)) {
+        if (XkbAX_NeedFeedback(ctrls, mask)) {
             XkbDDXAccessXBeep(keybd, beep_type, XkbSlowKeysMask);
         }
         if (xkbi->slowKey == key)

@@ -97,7 +97,7 @@ typedef struct _modesettingRec {
 
     Bool noAccel;
     CloseScreenProcPtr CloseScreen;
-
+    CreateWindowProcPtr CreateWindow;
     unsigned int SaveGeneration;
 
     CreateScreenResourcesProcPtr createScreenResources;

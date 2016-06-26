@@ -60,7 +60,7 @@ _swrast_delete_texture_image(struct gl_context *ctx,
 }
 
 static unsigned int
-texture_slices(struct gl_texture_image *texImage)
+texture_slices(const struct gl_texture_image *texImage)
 {
    if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY)
       return texImage->Height;
@@ -188,6 +188,7 @@ check_map_teximage(const struct gl_texture_image *texImage,
    assert(y < texImage->Height || texImage->Height == 0);
    assert(x + w <= texImage->Width);
    assert(y + h <= texImage->Height);
+   assert(slice < texture_slices(texImage));
 }
 
 /**
@@ -240,7 +241,6 @@ _swrast_map_teximage(struct gl_context *ctx,
    assert(swImage->Buffer);
    assert(swImage->Buffer == swImage->ImageSlices[0]);
 
-   assert(slice < texture_slices(texImage));
    map = swImage->ImageSlices[slice];
 
    /* apply x/y offset to map address */

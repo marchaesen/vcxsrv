@@ -25,7 +25,6 @@
 #endif
 #include "kdrive.h"
 #include <errno.h>
-#include <signal.h>
 #include <linux/vt.h>
 #include <linux/kd.h>
 #include <sys/stat.h>

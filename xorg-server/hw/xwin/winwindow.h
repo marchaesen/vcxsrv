@@ -1,5 +1,3 @@
-#if !defined(_WINWINDOW_H_)
-#define _WINWINDOW_H_
 /*
  *Copyright (C) 1994-2000 The XFree86 Project, Inc. All Rights Reserved.
  *Copyright (C) Colin Harrison 2005-2009
@@ -31,6 +29,8 @@
  * Authors:	Kensuke Matsuzaki
  *              Colin Harrison
  */
+#if !defined(_WINWINDOW_H_)
+#define _WINWINDOW_H_
 
 #include <pthread.h>
 
@@ -119,10 +119,16 @@ typedef struct _winWMMessageRec {
 #define		MwmDecorMinimize	(1L << 5)
 #define		MwmDecorMaximize	(1L << 6)
 
-/* This structure only contains 3 elements... the Motif 2.0 structure
-contains 5... we only need the first 3... so that is all we will define */
+/*
+  This structure only contains 3 elements.  The Motif 2.0 structure contains 5,
+  but we only need the first 3, so that is all we will define
+
+  This structure represents xcb_get_property()'s view of the property as a
+  sequence of ints, rather than XGetWindowProperty()'s view of the property as a
+  sequence of arch-dependent longs.
+*/
 typedef struct MwmHints {
-    unsigned long flags, functions, decorations;
+    unsigned int flags, functions, decorations;
 } MwmHints;
 
 #define		PropMwmHintsElements	3
@@ -140,9 +146,6 @@ winInitWM(void **ppWMInfo,
 
 void
  winDeinitMultiWindowWM(void);
-
-void
- winMinimizeWindow(Window id);
 
 void
 winTaskbarInit (void);

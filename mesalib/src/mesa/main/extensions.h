@@ -38,6 +38,10 @@
 
 #include "glheader.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct gl_context;
 struct gl_extensions;
 
@@ -101,5 +105,9 @@ _mesa_has_##name_str(const struct gl_context *ctx) \
 
 extern struct gl_extensions _mesa_extension_override_enables;
 extern struct gl_extensions _mesa_extension_override_disables;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

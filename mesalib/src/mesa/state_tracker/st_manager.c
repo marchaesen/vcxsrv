@@ -587,9 +587,6 @@ st_context_teximage(struct st_context_iface *stctxi,
    }
 
    pipe_resource_reference(&stImage->pt, tex);
-   stObj->width0 = width;
-   stObj->height0 = height;
-   stObj->depth0 = depth;
    stObj->surface_format = pipe_format;
 
    _mesa_dirty_texobj(ctx, texObj);
@@ -657,7 +654,6 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    default:
       *error = ST_CONTEXT_ERROR_BAD_API;
       return NULL;
-      break;
    }
 
    if (attribs->flags & ST_CONTEXT_FLAG_ROBUST_ACCESS)
@@ -803,12 +799,6 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
    }
 
    return ret;
-}
-
-static st_proc_t
-st_api_get_proc_address(struct st_api *stapi, const char *procname)
-{
-   return (st_proc_t) _glapi_get_proc_address(procname);
 }
 
 static void
@@ -961,20 +951,19 @@ st_api_query_versions(struct st_api *stapi, struct st_manager *sm,
 }
 
 static const struct st_api st_gl_api = {
-   "Mesa " PACKAGE_VERSION,
-   ST_API_OPENGL,
-   ST_PROFILE_DEFAULT_MASK |
-   ST_PROFILE_OPENGL_CORE_MASK |
-   ST_PROFILE_OPENGL_ES1_MASK |
-   ST_PROFILE_OPENGL_ES2_MASK |
-   0,
-   ST_API_FEATURE_MS_VISUALS_MASK,
-   st_api_destroy,
-   st_api_query_versions,
-   st_api_get_proc_address,
-   st_api_create_context,
-   st_api_make_current,
-   st_api_get_current,
+   .name = "Mesa " PACKAGE_VERSION,
+   .api = ST_API_OPENGL,
+   .profile_mask = ST_PROFILE_DEFAULT_MASK |
+                   ST_PROFILE_OPENGL_CORE_MASK |
+                   ST_PROFILE_OPENGL_ES1_MASK |
+                   ST_PROFILE_OPENGL_ES2_MASK |
+                   0,
+   .feature_mask = ST_API_FEATURE_MS_VISUALS_MASK,
+   .destroy = st_api_destroy,
+   .query_versions = st_api_query_versions,
+   .create_context = st_api_create_context,
+   .make_current = st_api_make_current,
+   .get_current = st_api_get_current,
 };
 
 struct st_api *

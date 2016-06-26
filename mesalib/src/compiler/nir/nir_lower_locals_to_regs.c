@@ -119,6 +119,7 @@ get_reg_for_deref(nir_deref_var *deref, struct locals_to_regs_state *state)
    nir_register *reg = nir_local_reg_create(state->impl);
    reg->num_components = glsl_get_vector_elements(tail->type);
    reg->num_array_elems = array_size > 1 ? array_size : 0;
+   reg->bit_size = glsl_get_bit_size(tail->type);
 
    _mesa_hash_table_insert_pre_hashed(state->regs_table, hash, deref, reg);
    nir_array_add(&state->derefs_array, nir_deref_var *, deref);
@@ -160,8 +161,8 @@ get_deref_reg_src(nir_deref_var *deref, nir_instr *instr,
 
       if (src.reg.indirect) {
          nir_load_const_instr *load_const =
-            nir_load_const_instr_create(state->shader, 1);
-         load_const->value.u[0] = glsl_get_length(parent_type);
+            nir_load_const_instr_create(state->shader, 1, 32);
+         load_const->value.u32[0] = glsl_get_length(parent_type);
          nir_instr_insert_before(instr, &load_const->instr);
 
          nir_alu_instr *mul = nir_alu_instr_create(state->shader, nir_op_imul);
@@ -169,7 +170,7 @@ get_deref_reg_src(nir_deref_var *deref, nir_instr *instr,
          mul->src[1].src.is_ssa = true;
          mul->src[1].src.ssa = &load_const->def;
          mul->dest.write_mask = 1;
-         nir_ssa_dest_init(&mul->instr, &mul->dest.dest, 1, NULL);
+         nir_ssa_dest_init(&mul->instr, &mul->dest.dest, 1, 32, NULL);
          nir_instr_insert_before(instr, &mul->instr);
 
          src.reg.indirect->is_ssa = true;
@@ -187,7 +188,7 @@ get_deref_reg_src(nir_deref_var *deref, nir_instr *instr,
             add->src[0].src = *src.reg.indirect;
             nir_src_copy(&add->src[1].src, &deref_array->indirect, add);
             add->dest.write_mask = 1;
-            nir_ssa_dest_init(&add->instr, &add->dest.dest, 1, NULL);
+            nir_ssa_dest_init(&add->instr, &add->dest.dest, 1, 32, NULL);
             nir_instr_insert_before(instr, &add->instr);
 
             src.reg.indirect->is_ssa = true;
@@ -200,11 +201,10 @@ get_deref_reg_src(nir_deref_var *deref, nir_instr *instr,
 }
 
 static bool
-lower_locals_to_regs_block(nir_block *block, void *void_state)
+lower_locals_to_regs_block(nir_block *block,
+                           struct locals_to_regs_state *state)
 {
-   struct locals_to_regs_state *state = void_state;
-
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
@@ -221,7 +221,8 @@ lower_locals_to_regs_block(nir_block *block, void *void_state)
          mov->dest.write_mask = (1 << intrin->num_components) - 1;
          if (intrin->dest.is_ssa) {
             nir_ssa_dest_init(&mov->instr, &mov->dest.dest,
-                              intrin->num_components, NULL);
+                              intrin->num_components,
+                              intrin->dest.ssa.bit_size, NULL);
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                      nir_src_for_ssa(&mov->dest.dest.ssa));
          } else {
@@ -356,7 +357,9 @@ nir_lower_locals_to_regs_impl(nir_function_impl *impl)
 
    nir_metadata_require(impl, nir_metadata_dominance);
 
-   nir_foreach_block(impl, lower_locals_to_regs_block, &state);
+   nir_foreach_block(block, impl) {
+      lower_locals_to_regs_block(block, &state);
+   }
 
    nir_array_foreach(&state.derefs_array, nir_deref_var *, deref_ptr) {
       nir_deref_var *deref = *deref_ptr;
@@ -387,7 +390,7 @@ nir_lower_locals_to_regs(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          progress = nir_lower_locals_to_regs_impl(function->impl) || progress;
    }

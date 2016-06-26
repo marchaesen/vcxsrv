@@ -445,7 +445,7 @@ int loader_get_user_preferred_fd(int default_fd, int *different_device)
 }
 #endif
 
-#if defined(HAVE_SYSFS)
+#if defined(HAVE_SYSFS) || defined(HAVE_LIBDRM)
 static int
 dev_node_from_fd(int fd, unsigned int *maj, unsigned int *min)
 {
@@ -466,7 +466,9 @@ dev_node_from_fd(int fd, unsigned int *maj, unsigned int *min)
 
    return 0;
 }
+#endif
 
+#if defined(HAVE_SYSFS)
 static int
 sysfs_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id)
 {
@@ -671,6 +673,24 @@ sysfs_get_device_name_for_fd(int fd)
 }
 #endif
 
+#if defined(HAVE_LIBDRM)
+static char *
+drm_get_device_name_for_fd(int fd)
+{
+   unsigned int maj, min;
+   char buf[0x40];
+   int n;
+
+   if (dev_node_from_fd(fd, &maj, &min) < 0)
+      return NULL;
+
+   n = snprintf(buf, sizeof(buf), DRM_DEV_NAME, DRM_DIR_NAME, min);
+   if (n == -1 || n >= sizeof(buf))
+      return NULL;
+
+   return strdup(buf);
+}
+#endif
 
 char *
 loader_get_device_name_for_fd(int fd)
@@ -683,6 +703,10 @@ loader_get_device_name_for_fd(int fd)
 #endif
 #if HAVE_SYSFS
    if ((result = sysfs_get_device_name_for_fd(fd)))
+      return result;
+#endif
+#if HAVE_LIBDRM
+   if ((result = drm_get_device_name_for_fd(fd)))
       return result;
 #endif
    return result;

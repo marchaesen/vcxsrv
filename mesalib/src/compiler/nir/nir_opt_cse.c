@@ -43,7 +43,7 @@ cse_block(nir_block *block, struct set *instr_set)
 {
    bool progress = false;
 
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (nir_instr_set_add_or_rewrite(instr_set, instr)) {
          progress = true;
          nir_instr_remove(instr);
@@ -55,7 +55,7 @@ cse_block(nir_block *block, struct set *instr_set)
       progress |= cse_block(child, instr_set);
    }
 
-   nir_foreach_instr(block, instr)
+   nir_foreach_instr(instr, block)
      nir_instr_set_remove(instr_set, instr);
 
    return progress;
@@ -83,7 +83,7 @@ nir_opt_cse(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          progress |= nir_opt_cse_impl(function->impl);
    }

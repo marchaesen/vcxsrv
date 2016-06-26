@@ -169,6 +169,32 @@ mtx_destroy(mtx_t *mtx)
     pthread_mutex_destroy(mtx);
 }
 
+/*
+ * XXX: Workaround when building with -O0 and without pthreads link.
+ *
+ * In such cases constant folding and dead code elimination won't be
+ * available, thus the compiler will always add the pthread_mutexattr*
+ * functions into the binary. As we try to link, we'll fail as the
+ * symbols are unresolved.
+ *
+ * Ideally we'll enable the optimisations locally, yet that does not
+ * seem to work.
+ *
+ * So the alternative workaround is to annotate the symbols as weak.
+ * Thus the linker will be happy and things don't clash when building
+ * with -O1 or greater.
+ */
+#ifdef HAVE_FUNC_ATTRIBUTE_WEAK
+__attribute__((weak))
+int pthread_mutexattr_init(pthread_mutexattr_t *attr);
+
+__attribute__((weak))
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
+
+__attribute__((weak))
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
+#endif
+
 // 7.25.4.2
 static inline int
 mtx_init(mtx_t *mtx, int type)
@@ -180,9 +206,14 @@ mtx_init(mtx_t *mtx, int type)
       && type != (mtx_timed|mtx_recursive)
       && type != (mtx_try|mtx_recursive))
         return thrd_error;
+
+    if ((type & mtx_recursive) == 0) {
+        pthread_mutex_init(mtx, NULL);
+        return thrd_success;
+    }
+
     pthread_mutexattr_init(&attr);
-    if ((type & mtx_recursive) != 0)
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(mtx, &attr);
     pthread_mutexattr_destroy(&attr);
     return thrd_success;

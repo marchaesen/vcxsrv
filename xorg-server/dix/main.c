@@ -125,13 +125,12 @@ Equipment Corporation.
 extern void Dispatch(void);
 
 #ifdef XQUARTZ
-#include <pthread.h>
-
-BOOL serverRunning = FALSE;
+BOOL serverRunning;
 pthread_mutex_t serverRunningMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t serverRunningCond = PTHREAD_COND_INITIALIZER;
-
 #endif
+
+CallbackListPtr RootWindowFinalizeCallback = NULL;
 
 int
 dix_main(int argc, char *argv[], char *envp[])
@@ -275,6 +274,7 @@ dix_main(int argc, char *argv[], char *envp[])
                 FatalError("failed to create default stipple");
             if (!CreateRootWindow(pScreen))
                 FatalError("failed to create root window");
+            CallCallbacks(&RootWindowFinalizeCallback, pScreen);
         }
 
         if (SetDefaultFontPath(defaultFontPath) != Success) {
@@ -346,6 +346,8 @@ dix_main(int argc, char *argv[], char *envp[])
         winInitializeModeKeyStates ();
         #endif
 
+        InputThreadInit();
+
         Dispatch();
 
 #ifdef XQUARTZ
@@ -377,6 +379,8 @@ dix_main(int argc, char *argv[], char *envp[])
 #endif
 
         CloseInput();
+
+        InputThreadFini();
 
         for (i = 0; i < screenInfo.numScreens; i++)
             screenInfo.screens[i]->root = NullWindow;

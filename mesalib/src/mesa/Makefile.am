@@ -21,7 +21,7 @@
 
 SUBDIRS = . main/tests
 
-if HAVE_X11_DRIVER
+if HAVE_XLIB_GLX
 SUBDIRS += drivers/x11
 endif
 
@@ -35,28 +35,6 @@ endif
 
 gldir = $(includedir)/GL
 gl_HEADERS = $(top_srcdir)/include/GL/*.h
-
-.PHONY: main/git_sha1.h.tmp
-main/git_sha1.h.tmp:
-	@# Don't assume that $(top_srcdir)/.git is a directory. It may be
-	@# a gitlink file if $(top_srcdir) is a submodule checkout or a linked
-	@# worktree.
-	@touch main/git_sha1.h.tmp
-	@if test -e $(top_srcdir)/.git; then \
-		if which git > /dev/null; then \
-		    git --git-dir=$(top_srcdir)/.git log -n 1 --oneline | \
-			sed 's/^\([^ ]*\) .*/#define MESA_GIT_SHA1 "git-\1"/' \
-			> main/git_sha1.h.tmp ; \
-		fi \
-	fi
-
-main/git_sha1.h: main/git_sha1.h.tmp
-	@echo "updating main/git_sha1.h"
-	@if ! cmp -s main/git_sha1.h.tmp main/git_sha1.h; then \
-		mv main/git_sha1.h.tmp main/git_sha1.h ;\
-	else \
-		rm main/git_sha1.h.tmp ;\
-	fi
 
 include Makefile.sources
 
@@ -80,15 +58,13 @@ EXTRA_DIST = \
 BUILT_SOURCES = \
 	main/get_hash.h \
 	main/format_info.h \
-	main/git_sha1.h \
 	main/format_pack.c \
 	main/format_unpack.c \
 	program/program_parse.tab.c \
 	program/lex.yy.c
 CLEANFILES = \
 	$(BUILT_SOURCES) \
-	program/program_parse.tab.h \
-	main/git_sha1.h.tmp
+	program/program_parse.tab.h
 
 PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
@@ -179,10 +155,8 @@ libmesagallium_la_LIBADD = \
 	$(ARCH_LIBS)
 
 libmesa_sse41_la_SOURCES = \
-	main/streaming-load-memcpy.c \
-	main/streaming-load-memcpy.h \
-	main/sse_minmax.c \
-	main/sse_minmax.h
+	$(X86_SSE41_FILES)
+
 libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) $(SSE41_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig

@@ -72,6 +72,7 @@
 #include "ir.h"
 #include "program.h"
 #include "program/hash_table.h"
+#include "program/prog_instruction.h"
 #include "linker.h"
 #include "link_varyings.h"
 #include "ir_optimization.h"
@@ -205,7 +206,8 @@ public:
       /* Generate a link error if the shader has declared this array with an
        * incorrect size.
        */
-      if (size && size != this->num_vertices) {
+      if (!var->data.implicit_sized_array &&
+          size && size != this->num_vertices) {
          linker_error(this->prog, "size of array %s declared as %u, "
                       "but number of input vertices is %u\n",
                       var->name, size, this->num_vertices);
@@ -216,7 +218,7 @@ public:
        * array using an index too large for its actual size assigned at link
        * time.
        */
-      if (var->data.max_array_access >= this->num_vertices) {
+      if (var->data.max_array_access >= (int)this->num_vertices) {
          linker_error(this->prog, "geometry shader accesses element %i of "
                       "%s, but only %i input vertices\n",
                       var->data.max_array_access, var->name, this->num_vertices);
@@ -641,21 +643,27 @@ link_invalidate_variable_locations(exec_list *ir)
 
 
 /**
- * Set clip_distance_array_size based on the given shader.
+ * Set clip_distance_array_size based and cull_distance_array_size on the given
+ * shader.
  *
  * Also check for errors based on incorrect usage of gl_ClipVertex and
- * gl_ClipDistance.
+ * gl_ClipDistance and gl_CullDistance.
+ * Additionally test whether the arrays gl_ClipDistance and gl_CullDistance
+ * exceed the maximum size defined by gl_MaxCombinedClipAndCullDistances.
  *
  * Return false if an error was reported.
  */
 static void
-analyze_clip_usage(struct gl_shader_program *prog,
-                   struct gl_shader *shader,
-                   GLuint *clip_distance_array_size)
+analyze_clip_cull_usage(struct gl_shader_program *prog,
+                        struct gl_shader *shader,
+                        struct gl_context *ctx,
+                        GLuint *clip_distance_array_size,
+                        GLuint *cull_distance_array_size)
 {
    *clip_distance_array_size = 0;
+   *cull_distance_array_size = 0;
 
-   if (!prog->IsES && prog->Version >= 130) {
+   if (prog->Version >= (prog->IsES ? 300 : 130)) {
       /* From section 7.1 (Vertex Shader Special Variables) of the
        * GLSL 1.30 spec:
        *
@@ -663,26 +671,70 @@ analyze_clip_usage(struct gl_shader_program *prog,
        *   gl_ClipVertex and gl_ClipDistance."
        *
        * This does not apply to GLSL ES shaders, since GLSL ES defines neither
-       * gl_ClipVertex nor gl_ClipDistance.
+       * gl_ClipVertex nor gl_ClipDistance. However with
+       * GL_EXT_clip_cull_distance, this functionality is exposed in ES 3.0.
        */
-      find_assignment_visitor clip_vertex("gl_ClipVertex");
       find_assignment_visitor clip_distance("gl_ClipDistance");
+      find_assignment_visitor cull_distance("gl_CullDistance");
 
-      clip_vertex.run(shader->ir);
       clip_distance.run(shader->ir);
-      if (clip_vertex.variable_found() && clip_distance.variable_found()) {
-         linker_error(prog, "%s shader writes to both `gl_ClipVertex' "
-                      "and `gl_ClipDistance'\n",
-                      _mesa_shader_stage_to_string(shader->Stage));
-         return;
+      cull_distance.run(shader->ir);
+
+      /* From the ARB_cull_distance spec:
+       *
+       * It is a compile-time or link-time error for the set of shaders forming
+       * a program to statically read or write both gl_ClipVertex and either
+       * gl_ClipDistance or gl_CullDistance.
+       *
+       * This does not apply to GLSL ES shaders, since GLSL ES doesn't define
+       * gl_ClipVertex.
+       */
+      if (!prog->IsES) {
+         find_assignment_visitor clip_vertex("gl_ClipVertex");
+
+         clip_vertex.run(shader->ir);
+
+         if (clip_vertex.variable_found() && clip_distance.variable_found()) {
+            linker_error(prog, "%s shader writes to both `gl_ClipVertex' "
+                         "and `gl_ClipDistance'\n",
+                         _mesa_shader_stage_to_string(shader->Stage));
+            return;
+         }
+         if (clip_vertex.variable_found() && cull_distance.variable_found()) {
+            linker_error(prog, "%s shader writes to both `gl_ClipVertex' "
+                         "and `gl_CullDistance'\n",
+                         _mesa_shader_stage_to_string(shader->Stage));
+            return;
+         }
       }
 
       if (clip_distance.variable_found()) {
          ir_variable *clip_distance_var =
-               shader->symbols->get_variable("gl_ClipDistance");
-
+                shader->symbols->get_variable("gl_ClipDistance");
          assert(clip_distance_var);
          *clip_distance_array_size = clip_distance_var->type->length;
+      }
+      if (cull_distance.variable_found()) {
+         ir_variable *cull_distance_var =
+                shader->symbols->get_variable("gl_CullDistance");
+         assert(cull_distance_var);
+         *cull_distance_array_size = cull_distance_var->type->length;
+      }
+      /* From the ARB_cull_distance spec:
+       *
+       * It is a compile-time or link-time error for the set of shaders forming
+       * a program to have the sum of the sizes of the gl_ClipDistance and
+       * gl_CullDistance arrays to be larger than
+       * gl_MaxCombinedClipAndCullDistances.
+       */
+      if ((*clip_distance_array_size + *cull_distance_array_size) >
+          ctx->Const.MaxClipPlanes) {
+          linker_error(prog, "%s shader: the combined size of "
+                       "'gl_ClipDistance' and 'gl_CullDistance' size cannot "
+                       "be larger than "
+                       "gl_MaxCombinedClipAndCullDistances (%u)",
+                       _mesa_shader_stage_to_string(shader->Stage),
+                       ctx->Const.MaxClipPlanes);
       }
    }
 }
@@ -691,13 +743,15 @@ analyze_clip_usage(struct gl_shader_program *prog,
 /**
  * Verify that a vertex shader executable meets all semantic requirements.
  *
- * Also sets prog->Vert.ClipDistanceArraySize as a side effect.
+ * Also sets prog->Vert.ClipDistanceArraySize and
+ * prog->Vert.CullDistanceArraySize as a side effect.
  *
  * \param shader  Vertex shader executable to be verified
  */
 void
 validate_vertex_shader_executable(struct gl_shader_program *prog,
-				  struct gl_shader *shader)
+                                  struct gl_shader *shader,
+                                  struct gl_context *ctx)
 {
    if (shader == NULL)
       return;
@@ -744,17 +798,22 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
       }
    }
 
-   analyze_clip_usage(prog, shader, &prog->Vert.ClipDistanceArraySize);
+   analyze_clip_cull_usage(prog, shader, ctx,
+                           &prog->Vert.ClipDistanceArraySize,
+                           &prog->Vert.CullDistanceArraySize);
 }
 
 void
 validate_tess_eval_shader_executable(struct gl_shader_program *prog,
-                                     struct gl_shader *shader)
+                                     struct gl_shader *shader,
+                                     struct gl_context *ctx)
 {
    if (shader == NULL)
       return;
 
-   analyze_clip_usage(prog, shader, &prog->TessEval.ClipDistanceArraySize);
+   analyze_clip_cull_usage(prog, shader, ctx,
+                           &prog->TessEval.ClipDistanceArraySize,
+                           &prog->TessEval.CullDistanceArraySize);
 }
 
 
@@ -765,7 +824,7 @@ validate_tess_eval_shader_executable(struct gl_shader_program *prog,
  */
 void
 validate_fragment_shader_executable(struct gl_shader_program *prog,
-				    struct gl_shader *shader)
+                                    struct gl_shader *shader)
 {
    if (shader == NULL)
       return;
@@ -785,14 +844,15 @@ validate_fragment_shader_executable(struct gl_shader_program *prog,
 /**
  * Verify that a geometry shader executable meets all semantic requirements
  *
- * Also sets prog->Geom.VerticesIn, and prog->Geom.ClipDistanceArraySize as
- * a side effect.
+ * Also sets prog->Geom.VerticesIn, and prog->Geom.ClipDistanceArraySize and
+ * prog->Geom.CullDistanceArraySize as a side effect.
  *
  * \param shader Geometry shader executable to be verified
  */
 void
 validate_geometry_shader_executable(struct gl_shader_program *prog,
-				    struct gl_shader *shader)
+                                    struct gl_shader *shader,
+                                    struct gl_context *ctx)
 {
    if (shader == NULL)
       return;
@@ -800,7 +860,9 @@ validate_geometry_shader_executable(struct gl_shader_program *prog,
    unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
    prog->Geom.VerticesIn = num_vertices;
 
-   analyze_clip_usage(prog, shader, &prog->Geom.ClipDistanceArraySize);
+   analyze_clip_cull_usage(prog, shader, ctx,
+                           &prog->Geom.ClipDistanceArraySize,
+                           &prog->Geom.CullDistanceArraySize);
 }
 
 /**
@@ -869,7 +931,7 @@ validate_intrastage_arrays(struct gl_shader_program *prog,
       if ((var->type->fields.array == existing->type->fields.array) &&
           ((var->type->length == 0)|| (existing->type->length == 0))) {
          if (var->type->length != 0) {
-            if (var->type->length <= existing->data.max_array_access) {
+            if ((int)var->type->length <= existing->data.max_array_access) {
                linker_error(prog, "%s `%s' declared as type "
                            "`%s' but outermost dimension has an index"
                            " of `%i'\n",
@@ -880,7 +942,7 @@ validate_intrastage_arrays(struct gl_shader_program *prog,
             existing->type = var->type;
             return true;
          } else if (existing->type->length != 0) {
-            if(existing->type->length <= var->data.max_array_access &&
+            if((int)existing->type->length <= var->data.max_array_access &&
                !existing->data.from_ssbo_unsized_array) {
                linker_error(prog, "%s `%s' declared as type "
                            "`%s' but outermost dimension has an index"
@@ -988,6 +1050,13 @@ cross_validate_globals(struct gl_shader_program *prog,
 		     return;
 	       }
 
+	       if (var->data.location_frac != existing->data.location_frac) {
+		     linker_error(prog, "explicit components for %s "
+				  "`%s' have differing values\n",
+				  mode_string(var), var->name);
+		     return;
+	       }
+
 	       existing->data.location = var->data.location;
 	       existing->data.explicit_location = true;
 	    } else {
@@ -1086,21 +1155,11 @@ cross_validate_globals(struct gl_shader_program *prog,
 		     return;
 		  }
 	       } else {
-		  /* If the first-seen instance of a particular uniform did not
-		   * have an initializer but a later instance does, copy the
-		   * initializer to the version stored in the symbol table.
-		   */
-		  /* FINISHME: This is wrong.  The constant_value field should
-		   * FINISHME: not be modified!  Imagine a case where a shader
-		   * FINISHME: without an initializer is linked in two different
-		   * FINISHME: programs with shaders that have differing
-		   * FINISHME: initializers.  Linking with the first will
-		   * FINISHME: modify the shader, and linking with the second
-		   * FINISHME: will fail.
-		   */
-		  existing->constant_initializer =
-		     var->constant_initializer->clone(ralloc_parent(existing),
-						      NULL);
+                  /* If the first-seen instance of a particular uniform did
+                   * not have an initializer but a later instance does,
+                   * replace the former with the later.
+                   */
+                  variables.replace_variable(existing->name, var);
 	       }
 	    }
 
@@ -1114,13 +1173,6 @@ cross_validate_globals(struct gl_shader_program *prog,
 			       var->name);
 		  return;
 	       }
-
-	       /* Some instance had an initializer, so keep track of that.  In
-		* this location, all sorts of initializers (constant or
-		* otherwise) will propagate the existence to the variable
-		* stored in the symbol table.
-		*/
-	       existing->data.has_initializer = true;
 	    }
 
 	    if (existing->data.invariant != var->data.invariant) {
@@ -1165,44 +1217,97 @@ cross_validate_uniforms(struct gl_shader_program *prog)
 }
 
 /**
- * Accumulates the array of prog->BufferInterfaceBlocks and checks that all
- * definitons of blocks agree on their contents.
+ * Accumulates the array of buffer blocks and checks that all definitions of
+ * blocks agree on their contents.
  */
 static bool
-interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog)
+interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
+                                         bool validate_ssbo)
 {
-   unsigned max_num_uniform_blocks = 0;
+   int *InterfaceBlockStageIndex[MESA_SHADER_STAGES];
+   struct gl_uniform_block *blks = NULL;
+   unsigned *num_blks = validate_ssbo ? &prog->NumShaderStorageBlocks :
+      &prog->NumUniformBlocks;
+
+   unsigned max_num_buffer_blocks = 0;
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (prog->_LinkedShaders[i])
-	 max_num_uniform_blocks += prog->_LinkedShaders[i]->NumBufferInterfaceBlocks;
+      if (prog->_LinkedShaders[i]) {
+         if (validate_ssbo) {
+            max_num_buffer_blocks +=
+               prog->_LinkedShaders[i]->NumShaderStorageBlocks;
+         } else {
+            max_num_buffer_blocks +=
+               prog->_LinkedShaders[i]->NumUniformBlocks;
+         }
+      }
    }
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_shader *sh = prog->_LinkedShaders[i];
 
-      prog->InterfaceBlockStageIndex[i] = ralloc_array(prog, int,
-                                                       max_num_uniform_blocks);
-      for (unsigned int j = 0; j < max_num_uniform_blocks; j++)
-	 prog->InterfaceBlockStageIndex[i][j] = -1;
+      InterfaceBlockStageIndex[i] = new int[max_num_buffer_blocks];
+      for (unsigned int j = 0; j < max_num_buffer_blocks; j++)
+         InterfaceBlockStageIndex[i][j] = -1;
 
       if (sh == NULL)
 	 continue;
 
-      for (unsigned int j = 0; j < sh->NumBufferInterfaceBlocks; j++) {
-	 int index = link_cross_validate_uniform_block(prog,
-						       &prog->BufferInterfaceBlocks,
-						       &prog->NumBufferInterfaceBlocks,
-						       &sh->BufferInterfaceBlocks[j]);
+      unsigned sh_num_blocks;
+      struct gl_uniform_block **sh_blks;
+      if (validate_ssbo) {
+         sh_num_blocks = prog->_LinkedShaders[i]->NumShaderStorageBlocks;
+         sh_blks = sh->ShaderStorageBlocks;
+      } else {
+         sh_num_blocks = prog->_LinkedShaders[i]->NumUniformBlocks;
+         sh_blks = sh->UniformBlocks;
+      }
 
-	 if (index == -1) {
-	    linker_error(prog, "uniform block `%s' has mismatching definitions\n",
-			 sh->BufferInterfaceBlocks[j].Name);
-	    return false;
-	 }
+      for (unsigned int j = 0; j < sh_num_blocks; j++) {
+         int index = link_cross_validate_uniform_block(prog, &blks, num_blks,
+                                                       sh_blks[j]);
 
-	 prog->InterfaceBlockStageIndex[i][index] = j;
+         if (index == -1) {
+            linker_error(prog, "buffer block `%s' has mismatching "
+                         "definitions\n", sh_blks[j]->Name);
+
+            for (unsigned k = 0; k <= i; k++) {
+               delete[] InterfaceBlockStageIndex[k];
+            }
+            return false;
+         }
+
+         InterfaceBlockStageIndex[i][index] = j;
       }
    }
+
+   /* Update per stage block pointers to point to the program list.
+    * FIXME: We should be able to free the per stage blocks here.
+    */
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      for (unsigned j = 0; j < *num_blks; j++) {
+         int stage_index = InterfaceBlockStageIndex[i][j];
+
+	 if (stage_index != -1) {
+	    struct gl_shader *sh = prog->_LinkedShaders[i];
+
+            blks[j].stageref |= (1 << i);
+
+            struct gl_uniform_block **sh_blks = validate_ssbo ?
+               sh->ShaderStorageBlocks : sh->UniformBlocks;
+
+            sh_blks[stage_index] = &blks[j];
+	 }
+      }
+   }
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      delete[] InterfaceBlockStageIndex[i];
+   }
+
+   if (validate_ssbo)
+      prog->ShaderStorageBlocks = blks;
+   else
+      prog->UniformBlocks = blks;
 
    return true;
 }
@@ -1391,8 +1496,11 @@ public:
    virtual ir_visitor_status visit(ir_variable *var)
    {
       const glsl_type *type_without_array;
+      bool implicit_sized_array = var->data.implicit_sized_array;
       fixup_type(&var->type, var->data.max_array_access,
-                 var->data.from_ssbo_unsized_array);
+                 var->data.from_ssbo_unsized_array,
+                 &implicit_sized_array);
+      var->data.implicit_sized_array = implicit_sized_array;
       type_without_array = var->type->without_array();
       if (var->type->is_interface()) {
          if (interface_contains_unsized_arrays(var->type)) {
@@ -1450,11 +1558,12 @@ private:
     * it with a sized array whose size is determined by max_array_access.
     */
    static void fixup_type(const glsl_type **type, unsigned max_array_access,
-                          bool from_ssbo_unsized_array)
+                          bool from_ssbo_unsized_array, bool *implicit_sized)
    {
       if (!from_ssbo_unsized_array && (*type)->is_unsized_array()) {
          *type = glsl_type::get_array_instance((*type)->fields.array,
                                                max_array_access + 1);
+         *implicit_sized = true;
          assert(*type != NULL);
       }
    }
@@ -1495,7 +1604,7 @@ private:
     */
    static const glsl_type *
    resize_interface_members(const glsl_type *type,
-                            const unsigned *max_ifc_array_access,
+                            const int *max_ifc_array_access,
                             bool is_ssbo)
    {
       unsigned num_fields = type->length;
@@ -1503,15 +1612,17 @@ private:
       memcpy(fields, type->fields.structure,
              num_fields * sizeof(*fields));
       for (unsigned i = 0; i < num_fields; i++) {
+         bool implicit_sized_array = fields[i].implicit_sized_array;
          /* If SSBO last member is unsized array, we don't replace it by a sized
           * array.
           */
          if (is_ssbo && i == (num_fields - 1))
             fixup_type(&fields[i].type, max_ifc_array_access[i],
-                       true);
+                       true, &implicit_sized_array);
          else
             fixup_type(&fields[i].type, max_ifc_array_access[i],
-                       false);
+                       false, &implicit_sized_array);
+         fields[i].implicit_sized_array = implicit_sized_array;
       }
       glsl_interface_packing packing =
          (glsl_interface_packing) type->interface_packing;
@@ -1567,6 +1678,69 @@ private:
    hash_table *unnamed_interfaces;
 };
 
+/**
+ * Check for conflicting xfb_stride default qualifiers and store buffer stride
+ * for later use.
+ */
+static void
+link_xfb_stride_layout_qualifiers(struct gl_context *ctx,
+                                  struct gl_shader_program *prog,
+			          struct gl_shader *linked_shader,
+			          struct gl_shader **shader_list,
+			          unsigned num_shaders)
+{
+   for (unsigned i = 0; i < MAX_FEEDBACK_BUFFERS; i++) {
+      linked_shader->TransformFeedback.BufferStride[i] = 0;
+   }
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      for (unsigned j = 0; j < MAX_FEEDBACK_BUFFERS; j++) {
+         if (shader->TransformFeedback.BufferStride[j]) {
+	    if (linked_shader->TransformFeedback.BufferStride[j] != 0 &&
+                shader->TransformFeedback.BufferStride[j] != 0 &&
+	        linked_shader->TransformFeedback.BufferStride[j] !=
+                   shader->TransformFeedback.BufferStride[j]) {
+	       linker_error(prog,
+                            "intrastage shaders defined with conflicting "
+                            "xfb_stride for buffer %d (%d and %d)\n", j,
+                            linked_shader->TransformFeedback.BufferStride[j],
+			    shader->TransformFeedback.BufferStride[j]);
+	       return;
+	    }
+
+            if (shader->TransformFeedback.BufferStride[j])
+	       linked_shader->TransformFeedback.BufferStride[j] =
+                  shader->TransformFeedback.BufferStride[j];
+         }
+      }
+   }
+
+   for (unsigned j = 0; j < MAX_FEEDBACK_BUFFERS; j++) {
+      if (linked_shader->TransformFeedback.BufferStride[j]) {
+         prog->TransformFeedback.BufferStride[j] =
+            linked_shader->TransformFeedback.BufferStride[j];
+
+         /* We will validate doubles at a later stage */
+         if (prog->TransformFeedback.BufferStride[j] % 4) {
+            linker_error(prog, "invalid qualifier xfb_stride=%d must be a "
+                         "multiple of 4 or if its applied to a type that is "
+                         "or contains a double a multiple of 8.",
+                         prog->TransformFeedback.BufferStride[j]);
+            return;
+         }
+
+         if (prog->TransformFeedback.BufferStride[j] / 4 >
+             ctx->Const.MaxTransformFeedbackInterleavedComponents) {
+            linker_error(prog,
+                         "The MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS "
+                         "limit has been exceeded.");
+                  return;
+         }
+      }
+   }
+}
 
 /**
  * Performs the cross-validation of tessellation control shader vertices and
@@ -1807,7 +1981,7 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
 				struct gl_shader **shader_list,
 				unsigned num_shaders)
 {
-   linked_shader->Geom.VerticesOut = 0;
+   linked_shader->Geom.VerticesOut = -1;
    linked_shader->Geom.Invocations = 0;
    linked_shader->Geom.InputType = PRIM_UNKNOWN;
    linked_shader->Geom.OutputType = PRIM_UNKNOWN;
@@ -1851,8 +2025,8 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
 	 linked_shader->Geom.OutputType = shader->Geom.OutputType;
       }
 
-      if (shader->Geom.VerticesOut != 0) {
-	 if (linked_shader->Geom.VerticesOut != 0 &&
+      if (shader->Geom.VerticesOut != -1) {
+	 if (linked_shader->Geom.VerticesOut != -1 &&
 	     linked_shader->Geom.VerticesOut != shader->Geom.VerticesOut) {
 	    linker_error(prog, "geometry shader defined with conflicting "
 			 "output vertex count (%d and %d)\n",
@@ -1894,7 +2068,7 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
    }
    prog->Geom.OutputType = linked_shader->Geom.OutputType;
 
-   if (linked_shader->Geom.VerticesOut == 0) {
+   if (linked_shader->Geom.VerticesOut == -1) {
       linker_error(prog,
 		   "geometry shader didn't declare max_vertices\n");
       return;
@@ -1984,7 +2158,10 @@ link_intrastage_shaders(void *mem_ctx,
 			struct gl_shader **shader_list,
 			unsigned num_shaders)
 {
-   struct gl_uniform_block *uniform_blocks = NULL;
+   struct gl_uniform_block *ubo_blocks = NULL;
+   struct gl_uniform_block *ssbo_blocks = NULL;
+   unsigned num_ubo_blocks = 0;
+   unsigned num_ssbo_blocks = 0;
 
    /* Check that global variables defined in multiple shaders are consistent.
     */
@@ -1996,13 +2173,6 @@ link_intrastage_shaders(void *mem_ctx,
     */
    validate_intrastage_interface_blocks(prog, (const gl_shader **)shader_list,
                                         num_shaders);
-   if (!prog->LinkStatus)
-      return NULL;
-
-   /* Link up uniform blocks defined within this stage. */
-   const unsigned num_uniform_blocks =
-      link_uniform_blocks(mem_ctx, ctx, prog, shader_list, num_shaders,
-                          &uniform_blocks);
    if (!prog->LinkStatus)
       return NULL;
 
@@ -2065,19 +2235,17 @@ link_intrastage_shaders(void *mem_ctx,
       return NULL;
    }
 
-   gl_shader *linked = ctx->Driver.NewShader(NULL, 0, main->Type);
+   gl_shader *linked = ctx->Driver.NewShader(NULL, 0, shader_list[0]->Stage);
    linked->ir = new(linked) exec_list;
    clone_ir_list(mem_ctx, linked->ir, main->ir);
-
-   linked->BufferInterfaceBlocks = uniform_blocks;
-   linked->NumBufferInterfaceBlocks = num_uniform_blocks;
-   ralloc_steal(linked, linked->BufferInterfaceBlocks);
 
    link_fs_input_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_tcs_out_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_tes_in_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_gs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_cs_input_layout_qualifiers(prog, linked, shader_list, num_shaders);
+   link_xfb_stride_layout_qualifiers(ctx, prog, linked, shader_list,
+                                     num_shaders);
 
    populate_symbol_table(linked);
 
@@ -2142,6 +2310,42 @@ link_intrastage_shaders(void *mem_ctx,
       return NULL;
    }
 
+   /* Make a pass over all variable declarations to ensure that arrays with
+    * unspecified sizes have a size specified.  The size is inferred from the
+    * max_array_access field.
+    */
+   array_sizing_visitor v;
+   v.run(linked->ir);
+   v.fixup_unnamed_interface_types();
+
+   /* Link up uniform blocks defined within this stage. */
+   link_uniform_blocks(mem_ctx, ctx, prog, &linked, 1,
+                       &ubo_blocks, &num_ubo_blocks, &ssbo_blocks,
+                       &num_ssbo_blocks);
+
+   if (!prog->LinkStatus) {
+      _mesa_delete_shader(ctx, linked);
+      return NULL;
+   }
+
+   /* Copy ubo blocks to linked shader list */
+   linked->UniformBlocks =
+      ralloc_array(linked, gl_uniform_block *, num_ubo_blocks);
+   ralloc_steal(linked, ubo_blocks);
+   for (unsigned i = 0; i < num_ubo_blocks; i++) {
+      linked->UniformBlocks[i] = &ubo_blocks[i];
+   }
+   linked->NumUniformBlocks = num_ubo_blocks;
+
+   /* Copy ssbo blocks to linked shader list */
+   linked->ShaderStorageBlocks =
+      ralloc_array(linked, gl_uniform_block *, num_ssbo_blocks);
+   ralloc_steal(linked, ssbo_blocks);
+   for (unsigned i = 0; i < num_ssbo_blocks; i++) {
+      linked->ShaderStorageBlocks[i] = &ssbo_blocks[i];
+   }
+   linked->NumShaderStorageBlocks = num_ssbo_blocks;
+
    /* At this point linked should contain all of the linked IR, so
     * validate it to make sure nothing went wrong.
     */
@@ -2166,14 +2370,6 @@ link_intrastage_shaders(void *mem_ctx,
          ir->accept(&visitor);
       }
    }
-
-   /* Make a pass over all variable declarations to ensure that arrays with
-    * unspecified sizes have a size specified.  The size is inferred from the
-    * max_array_access field.
-    */
-   array_sizing_visitor v;
-   v.run(linked->ir);
-   v.fixup_unnamed_interface_types();
 
    return linked;
 }
@@ -2218,10 +2414,10 @@ update_array_sizes(struct gl_shader_program *prog)
           * Subroutine uniforms are not removed.
 	  */
 	 if (var->is_in_buffer_block() || var->type->contains_atomic() ||
-	     var->type->contains_subroutine())
+	     var->type->contains_subroutine() || var->constant_initializer)
 	    continue;
 
-	 unsigned int size = var->data.max_array_access;
+	 int size = var->data.max_array_access;
 	 for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
 	       if (prog->_LinkedShaders[j] == NULL)
 		  continue;
@@ -2238,7 +2434,7 @@ update_array_sizes(struct gl_shader_program *prog)
 	    }
 	 }
 
-	 if (size + 1 != var->type->length) {
+	 if (size + 1 != (int)var->type->length) {
 	    /* If this is a built-in uniform (i.e., it's backed by some
 	     * fixed-function state), adjust the number of state slots to
 	     * match the new array size.  The number of slots per array entry
@@ -2290,7 +2486,7 @@ resize_tes_inputs(struct gl_context *ctx,
       ir->accept(&input_resize_visitor);
    }
 
-   if (tcs) {
+   if (tcs || ctx->Const.LowerTESPatchVerticesIn) {
       /* Convert the gl_PatchVerticesIn system value into a constant, since
        * the value is known at this point.
        */
@@ -2299,9 +2495,22 @@ resize_tes_inputs(struct gl_context *ctx,
          if (var && var->data.mode == ir_var_system_value &&
              var->data.location == SYSTEM_VALUE_VERTICES_IN) {
             void *mem_ctx = ralloc_parent(var);
-            var->data.mode = ir_var_auto;
             var->data.location = 0;
-            var->constant_value = new(mem_ctx) ir_constant(num_vertices);
+            var->data.explicit_location = false;
+            if (tcs) {
+               var->data.mode = ir_var_auto;
+               var->constant_value = new(mem_ctx) ir_constant(num_vertices);
+            } else {
+               var->data.mode = ir_var_uniform;
+               var->data.how_declared = ir_var_hidden;
+               var->allocate_state_slots(1);
+               ir_state_slot *slot0 = &var->get_state_slots()[0];
+               slot0->swizzle = SWIZZLE_XXXX;
+               slot0->tokens[0] = STATE_INTERNAL;
+               slot0->tokens[1] = STATE_TES_PATCH_VERTICES_IN;
+               for (int i = 2; i < STATE_LENGTH; i++)
+                  slot0->tokens[i] = 0;
+            }
          }
       }
    }
@@ -2420,7 +2629,12 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
    } to_assign[32];
    assert(max_index <= 32);
 
+   /* Temporary array for the set of attributes that have locations assigned.
+    */
+   ir_variable *assigned[16];
+
    unsigned num_attr = 0;
+   unsigned assigned_attr = 0;
 
    foreach_in_list(ir_instruction, node, sh->ir) {
       ir_variable *const var = node->as_variable();
@@ -2482,7 +2696,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
          return false;
       }
 
-      const unsigned slots = var->type->count_attribute_slots(target_index == MESA_SHADER_VERTEX ? true : false);
+      const unsigned slots = var->type->count_attribute_slots(target_index == MESA_SHADER_VERTEX);
 
       /* If the variable is not a built-in and has a location statically
        * assigned in the shader (presumably via a layout qualifier), make sure
@@ -2582,18 +2796,62 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
 	     * attribute overlaps any previously allocated bits.
 	     */
 	    if ((~(use_mask << attr) & used_locations) != used_locations) {
-               if (target_index == MESA_SHADER_FRAGMENT ||
-                   (prog->IsES && prog->Version >= 300)) {
-                  linker_error(prog,
-                               "overlapping location is assigned "
-                               "to %s `%s' %d %d %d\n", string,
-                               var->name, used_locations, use_mask, attr);
+               if (target_index == MESA_SHADER_FRAGMENT && !prog->IsES) {
+                  /* From section 4.4.2 (Output Layout Qualifiers) of the GLSL
+                   * 4.40 spec:
+                   *
+                   *    "Additionally, for fragment shader outputs, if two
+                   *    variables are placed within the same location, they
+                   *    must have the same underlying type (floating-point or
+                   *    integer). No component aliasing of output variables or
+                   *    members is allowed.
+                   */
+                  for (unsigned i = 0; i < assigned_attr; i++) {
+                     unsigned assigned_slots =
+                        assigned[i]->type->count_attribute_slots(false);
+	             unsigned assig_attr =
+                        assigned[i]->data.location - generic_base;
+	             unsigned assigned_use_mask = (1 << assigned_slots) - 1;
+
+                     if ((assigned_use_mask << assig_attr) &
+                         (use_mask << attr)) {
+
+                        const glsl_type *assigned_type =
+                           assigned[i]->type->without_array();
+                        const glsl_type *type = var->type->without_array();
+                        if (assigned_type->base_type != type->base_type) {
+                           linker_error(prog, "types do not match for aliased"
+                                        " %ss %s and %s\n", string,
+                                        assigned[i]->name, var->name);
+                           return false;
+                        }
+
+                        unsigned assigned_component_mask =
+                           ((1 << assigned_type->vector_elements) - 1) <<
+                           assigned[i]->data.location_frac;
+                        unsigned component_mask =
+                           ((1 << type->vector_elements) - 1) <<
+                           var->data.location_frac;
+                        if (assigned_component_mask & component_mask) {
+                           linker_error(prog, "overlapping component is "
+                                        "assigned to %ss %s and %s "
+                                        "(component=%d)\n",
+                                        string, assigned[i]->name, var->name,
+                                        var->data.location_frac);
+                           return false;
+                        }
+                     }
+                  }
+               } else if (target_index == MESA_SHADER_FRAGMENT ||
+                          (prog->IsES && prog->Version >= 300)) {
+                  linker_error(prog, "overlapping location is assigned "
+                               "to %s `%s' %d %d %d\n", string, var->name,
+                               used_locations, use_mask, attr);
                   return false;
                } else {
-                  linker_warning(prog,
-                                 "overlapping location is assigned "
-                                 "to %s `%s' %d %d %d\n", string,
-                                 var->name, used_locations, use_mask, attr);
+                  linker_warning(prog, "overlapping location is assigned "
+                                 "to %s `%s' %d %d %d\n", string, var->name,
+                                 used_locations, use_mask, attr);
                }
 	    }
 
@@ -2619,9 +2877,12 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
              * issue (3) of the GL_ARB_vertex_attrib_64bit behavior, this
              * is optional behavior, but it seems preferable.
              */
-            if (var->type->without_array()->is_dual_slot_double())
+            if (var->type->without_array()->is_dual_slot())
                double_storage_locations |= (use_mask << attr);
 	 }
+
+         assigned[assigned_attr] = var;
+         assigned_attr++;
 
 	 continue;
       }
@@ -2692,6 +2953,26 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
       to_assign[i].var->data.location = generic_base + location;
       to_assign[i].var->data.is_unmatched_generic_inout = 0;
       used_locations |= (use_mask << location);
+
+      if (to_assign[i].var->type->without_array()->is_dual_slot())
+         double_storage_locations |= (use_mask << location);
+   }
+
+   /* Now that we have all the locations, from the GL 4.5 core spec, section
+    * 11.1.1 (Vertex Attributes), dvec3, dvec4, dmat2x3, dmat2x4, dmat3,
+    * dmat3x4, dmat4x3, and dmat4 count as consuming twice as many attributes
+    * as equivalent single-precision types.
+    */
+   if (target_index == MESA_SHADER_VERTEX) {
+      unsigned total_attribs_size =
+         _mesa_bitcount(used_locations & ((1 << max_index) - 1)) +
+         _mesa_bitcount(double_storage_locations);
+      if (total_attribs_size > max_index) {
+	 linker_error(prog,
+		      "attempt to use %d vertex attribute slots only %d available ",
+		      total_attribs_size, max_index);
+	 return false;
+      }
    }
 
    return true;
@@ -2702,12 +2983,12 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
  * unmatch flag if found so we don't optimise them away.
  */
 static void
-match_explicit_outputs_to_inputs(struct gl_shader_program *prog,
-                                 gl_shader *producer,
+match_explicit_outputs_to_inputs(gl_shader *producer,
                                  gl_shader *consumer)
 {
    glsl_symbol_table parameters;
-   ir_variable *explicit_locations[MAX_VARYING] = { NULL };
+   ir_variable *explicit_locations[MAX_VARYINGS_INCL_PATCH][4] =
+      { {NULL, NULL} };
 
    /* Find all shader outputs in the "producer" stage.
     */
@@ -2720,8 +3001,8 @@ match_explicit_outputs_to_inputs(struct gl_shader_program *prog,
       if (var->data.explicit_location &&
           var->data.location >= VARYING_SLOT_VAR0) {
          const unsigned idx = var->data.location - VARYING_SLOT_VAR0;
-         if (explicit_locations[idx] == NULL)
-            explicit_locations[idx] = var;
+         if (explicit_locations[idx][var->data.location_frac] == NULL)
+            explicit_locations[idx][var->data.location_frac] = var;
       }
    }
 
@@ -2735,7 +3016,8 @@ match_explicit_outputs_to_inputs(struct gl_shader_program *prog,
       ir_variable *output = NULL;
       if (input->data.explicit_location
           && input->data.location >= VARYING_SLOT_VAR0) {
-         output = explicit_locations[input->data.location - VARYING_SLOT_VAR0];
+         output = explicit_locations[input->data.location - VARYING_SLOT_VAR0]
+            [input->data.location_frac];
 
          if (output != NULL){
             input->data.is_unmatched_generic_inout = 0;
@@ -2802,6 +3084,9 @@ store_fragdepth_layout(struct gl_shader_program *prog)
 static void
 check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
 {
+   unsigned total_uniform_blocks = 0;
+   unsigned total_shader_storage_blocks = 0;
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_shader *sh = prog->_LinkedShaders[i];
 
@@ -2840,79 +3125,55 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
                          _mesa_shader_stage_to_string(i));
          }
       }
+
+      total_shader_storage_blocks += sh->NumShaderStorageBlocks;
+      total_uniform_blocks += sh->NumUniformBlocks;
+
+      const unsigned max_uniform_blocks =
+         ctx->Const.Program[i].MaxUniformBlocks;
+      if (max_uniform_blocks < sh->NumUniformBlocks) {
+         linker_error(prog, "Too many %s uniform blocks (%d/%d)\n",
+                      _mesa_shader_stage_to_string(i), sh->NumUniformBlocks,
+                      max_uniform_blocks);
+      }
+
+      const unsigned max_shader_storage_blocks =
+         ctx->Const.Program[i].MaxShaderStorageBlocks;
+      if (max_shader_storage_blocks < sh->NumShaderStorageBlocks) {
+         linker_error(prog, "Too many %s shader storage blocks (%d/%d)\n",
+                      _mesa_shader_stage_to_string(i),
+                      sh->NumShaderStorageBlocks, max_shader_storage_blocks);
+      }
    }
 
-   unsigned blocks[MESA_SHADER_STAGES] = {0};
-   unsigned total_uniform_blocks = 0;
-   unsigned shader_blocks[MESA_SHADER_STAGES] = {0};
-   unsigned total_shader_storage_blocks = 0;
+   if (total_uniform_blocks > ctx->Const.MaxCombinedUniformBlocks) {
+      linker_error(prog, "Too many combined uniform blocks (%d/%d)\n",
+                   total_uniform_blocks, ctx->Const.MaxCombinedUniformBlocks);
+   }
 
-   for (unsigned i = 0; i < prog->NumBufferInterfaceBlocks; i++) {
-      /* Don't check SSBOs for Uniform Block Size */
-      if (!prog->BufferInterfaceBlocks[i].IsShaderStorage &&
-          prog->BufferInterfaceBlocks[i].UniformBufferSize > ctx->Const.MaxUniformBlockSize) {
+   if (total_shader_storage_blocks > ctx->Const.MaxCombinedShaderStorageBlocks) {
+      linker_error(prog, "Too many combined shader storage blocks (%d/%d)\n",
+                   total_shader_storage_blocks,
+                   ctx->Const.MaxCombinedShaderStorageBlocks);
+   }
+
+   for (unsigned i = 0; i < prog->NumUniformBlocks; i++) {
+      if (prog->UniformBlocks[i].UniformBufferSize >
+          ctx->Const.MaxUniformBlockSize) {
          linker_error(prog, "Uniform block %s too big (%d/%d)\n",
-                      prog->BufferInterfaceBlocks[i].Name,
-                      prog->BufferInterfaceBlocks[i].UniformBufferSize,
+                      prog->UniformBlocks[i].Name,
+                      prog->UniformBlocks[i].UniformBufferSize,
                       ctx->Const.MaxUniformBlockSize);
       }
+   }
 
-      if (prog->BufferInterfaceBlocks[i].IsShaderStorage &&
-          prog->BufferInterfaceBlocks[i].UniformBufferSize > ctx->Const.MaxShaderStorageBlockSize) {
+   for (unsigned i = 0; i < prog->NumShaderStorageBlocks; i++) {
+      if (prog->ShaderStorageBlocks[i].UniformBufferSize >
+          ctx->Const.MaxShaderStorageBlockSize) {
          linker_error(prog, "Shader storage block %s too big (%d/%d)\n",
-                      prog->BufferInterfaceBlocks[i].Name,
-                      prog->BufferInterfaceBlocks[i].UniformBufferSize,
+                      prog->ShaderStorageBlocks[i].Name,
+                      prog->ShaderStorageBlocks[i].UniformBufferSize,
                       ctx->Const.MaxShaderStorageBlockSize);
-      }
-
-      for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
-	 if (prog->InterfaceBlockStageIndex[j][i] != -1) {
-            struct gl_shader *sh = prog->_LinkedShaders[j];
-            int stage_index = prog->InterfaceBlockStageIndex[j][i];
-            if (sh && sh->BufferInterfaceBlocks[stage_index].IsShaderStorage) {
-               shader_blocks[j]++;
-               total_shader_storage_blocks++;
-            } else {
-               blocks[j]++;
-               total_uniform_blocks++;
-            }
-	 }
-      }
-
-      if (total_uniform_blocks > ctx->Const.MaxCombinedUniformBlocks) {
-	 linker_error(prog, "Too many combined uniform blocks (%d/%d)\n",
-		      total_uniform_blocks,
-		      ctx->Const.MaxCombinedUniformBlocks);
-      } else {
-	 for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-            const unsigned max_uniform_blocks =
-               ctx->Const.Program[i].MaxUniformBlocks;
-	    if (blocks[i] > max_uniform_blocks) {
-	       linker_error(prog, "Too many %s uniform blocks (%d/%d)\n",
-			    _mesa_shader_stage_to_string(i),
-			    blocks[i],
-			    max_uniform_blocks);
-	       break;
-	    }
-	 }
-      }
-
-      if (total_shader_storage_blocks > ctx->Const.MaxCombinedShaderStorageBlocks) {
-         linker_error(prog, "Too many combined shader storage blocks (%d/%d)\n",
-                      total_shader_storage_blocks,
-                      ctx->Const.MaxCombinedShaderStorageBlocks);
-      } else {
-         for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-            const unsigned max_shader_storage_blocks =
-               ctx->Const.Program[i].MaxShaderStorageBlocks;
-            if (shader_blocks[i] > max_shader_storage_blocks) {
-               linker_error(prog, "Too many %s shader storage blocks (%d/%d)\n",
-                            _mesa_shader_stage_to_string(i),
-                            shader_blocks[i],
-                            max_shader_storage_blocks);
-               break;
-            }
-         }
       }
    }
 }
@@ -2927,12 +3188,20 @@ link_calculate_subroutine_compat(struct gl_shader_program *prog)
          continue;
 
       for (unsigned j = 0; j < sh->NumSubroutineUniformRemapTable; j++) {
+         if (sh->SubroutineUniformRemapTable[j] == INACTIVE_UNIFORM_EXPLICIT_LOCATION)
+            continue;
+
          struct gl_uniform_storage *uni = sh->SubroutineUniformRemapTable[j];
 
          if (!uni)
             continue;
 
+         sh->NumSubroutineUniforms++;
          count = 0;
+         if (sh->NumSubroutineFunctions == 0) {
+            linker_error(prog, "subroutine uniform %s defined but no valid functions found\n", uni->type->name);
+            continue;
+         }
          for (unsigned f = 0; f < sh->NumSubroutineFunctions; f++) {
             struct gl_subroutine_function *fn = &sh->SubroutineFunctions[f];
             for (int k = 0; k < fn->num_compat_types; k++) {
@@ -2983,12 +3252,7 @@ check_image_resources(struct gl_context *ctx, struct gl_shader_program *prog)
                          ctx->Const.Program[i].MaxImageUniforms);
 
          total_image_units += sh->NumImages;
-
-         for (unsigned j = 0; j < prog->NumBufferInterfaceBlocks; j++) {
-            int stage_index = prog->InterfaceBlockStageIndex[i][j];
-            if (stage_index != -1 && sh->BufferInterfaceBlocks[stage_index].IsShaderStorage)
-               total_shader_storage_blocks++;
-         }
+         total_shader_storage_blocks += sh->NumShaderStorageBlocks;
 
          if (i == MESA_SHADER_FRAGMENT) {
             foreach_in_list(ir_instruction, node, sh->ir) {
@@ -3139,12 +3403,12 @@ reserve_subroutine_explicit_locations(struct gl_shader_program *prog,
  * any optimizations happen to handle also inactive uniforms and
  * inactive array elements that may get trimmed away.
  */
-static int
+static unsigned
 check_explicit_uniform_locations(struct gl_context *ctx,
                                  struct gl_shader_program *prog)
 {
    if (!ctx->Extensions.ARB_explicit_uniform_location)
-      return -1;
+      return 0;
 
    /* This map is used to detect if overlapping explicit locations
     * occur with the same uniform (from different stage) or a different one.
@@ -3153,7 +3417,7 @@ check_explicit_uniform_locations(struct gl_context *ctx,
 
    if (!uniform_map) {
       linker_error(prog, "Out of memory during linking.\n");
-      return -1;
+      return 0;
    }
 
    unsigned entries_total = 0;
@@ -3182,7 +3446,7 @@ check_explicit_uniform_locations(struct gl_context *ctx,
             }
             if (!ret) {
                delete uniform_map;
-               return -1;
+               return 0;
             }
          }
       }
@@ -3224,8 +3488,8 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
    if (type != GL_BUFFER_VARIABLE)
       return true;
 
-   for (unsigned i = 0; i < shProg->NumBufferInterfaceBlocks; i++) {
-      const char *block_name = shProg->BufferInterfaceBlocks[i].Name;
+   for (unsigned i = 0; i < shProg->NumShaderStorageBlocks; i++) {
+      const char *block_name = shProg->ShaderStorageBlocks[i].Name;
       block_name_len = strlen(block_name);
 
       const char *block_square_bracket = strchr(block_name, '[');
@@ -3258,12 +3522,12 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
    if (found_interface)
       name = name + block_name_len + 1;
 
-   /* From: ARB_program_interface_query extension:
+   /* The ARB_program_interface_query spec says:
     *
-    *  "For an active shader storage block member declared as an array, an
-    *   entry will be generated only for the first array element, regardless
-    *   of its type.  For arrays of aggregate types, the enumeration rules are
-    *   applied recursively for the single enumerated array element.
+    *     "For an active shader storage block member declared as an array, an
+    *     entry will be generated only for the first array element, regardless
+    *     of its type.  For arrays of aggregate types, the enumeration rules
+    *     are applied recursively for the single enumerated array element."
     */
    const char *struct_first_dot = strchr(name, '.');
    const char *first_square_bracket = strchr(name, '[');
@@ -3407,60 +3671,169 @@ build_stageref(struct gl_shader_program *shProg, const char *name,
  * Create gl_shader_variable from ir_variable class.
  */
 static gl_shader_variable *
-create_shader_variable(struct gl_shader_program *shProg, const ir_variable *in)
+create_shader_variable(struct gl_shader_program *shProg,
+                       const ir_variable *in,
+                       const char *name, const glsl_type *type,
+                       bool use_implicit_location, int location,
+                       const glsl_type *outermost_struct_type)
 {
    gl_shader_variable *out = ralloc(shProg, struct gl_shader_variable);
    if (!out)
       return NULL;
 
-   out->type = in->type;
-   out->name = ralloc_strdup(shProg, in->name);
+   /* Since gl_VertexID may be lowered to gl_VertexIDMESA, but applications
+    * expect to see gl_VertexID in the program resource list.  Pretend.
+    */
+   if (in->data.mode == ir_var_system_value &&
+       in->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
+      out->name = ralloc_strdup(shProg, "gl_VertexID");
+   } else {
+      out->name = ralloc_strdup(shProg, name);
+   }
 
    if (!out->name)
       return NULL;
 
-   out->location = in->data.location;
+   /* The ARB_program_interface_query spec says:
+    *
+    *     "Not all active variables are assigned valid locations; the
+    *     following variables will have an effective location of -1:
+    *
+    *      * uniforms declared as atomic counters;
+    *
+    *      * members of a uniform block;
+    *
+    *      * built-in inputs, outputs, and uniforms (starting with "gl_"); and
+    *
+    *      * inputs or outputs not declared with a "location" layout
+    *        qualifier, except for vertex shader inputs and fragment shader
+    *        outputs."
+    */
+   if (in->type->base_type == GLSL_TYPE_ATOMIC_UINT ||
+       is_gl_identifier(in->name) ||
+       !(in->data.explicit_location || use_implicit_location)) {
+      out->location = -1;
+   } else {
+      out->location = location;
+   }
+
+   out->type = type;
+   out->outermost_struct_type = outermost_struct_type;
+   out->interface_type = in->get_interface_type();
+   out->component = in->data.location_frac;
    out->index = in->data.index;
    out->patch = in->data.patch;
    out->mode = in->data.mode;
+   out->interpolation = in->data.interpolation;
+   out->explicit_location = in->data.explicit_location;
+   out->precision = in->data.precision;
 
    return out;
 }
 
 static bool
-add_interface_variables(struct gl_shader_program *shProg,
-                        exec_list *ir, GLenum programInterface)
+add_shader_variable(struct gl_shader_program *shProg, unsigned stage_mask,
+                    GLenum programInterface, ir_variable *var,
+                    const char *name, const glsl_type *type,
+                    bool use_implicit_location, int location,
+                    const glsl_type *outermost_struct_type = NULL)
 {
+   const bool is_vertex_input =
+      programInterface == GL_PROGRAM_INPUT &&
+      stage_mask == MESA_SHADER_VERTEX;
+
+   switch (type->base_type) {
+   case GLSL_TYPE_STRUCT: {
+      /* The ARB_program_interface_query spec says:
+       *
+       *     "For an active variable declared as a structure, a separate entry
+       *     will be generated for each active structure member.  The name of
+       *     each entry is formed by concatenating the name of the structure,
+       *     the "."  character, and the name of the structure member.  If a
+       *     structure member to enumerate is itself a structure or array,
+       *     these enumeration rules are applied recursively."
+       */
+      if (outermost_struct_type == NULL)
+         outermost_struct_type = type;
+
+      unsigned field_location = location;
+      for (unsigned i = 0; i < type->length; i++) {
+         const struct glsl_struct_field *field = &type->fields.structure[i];
+         char *field_name = ralloc_asprintf(shProg, "%s.%s", name, field->name);
+         if (!add_shader_variable(shProg, stage_mask, programInterface,
+                                  var, field_name, field->type,
+                                  use_implicit_location, field_location,
+                                  outermost_struct_type))
+            return false;
+
+         field_location +=
+            field->type->count_attribute_slots(is_vertex_input);
+      }
+      return true;
+   }
+
+   default: {
+      /* Issue #16 of the ARB_program_interface_query spec says:
+       *
+       * "* If a variable is a member of an interface block without an
+       *    instance name, it is enumerated using just the variable name.
+       *
+       *  * If a variable is a member of an interface block with an instance
+       *    name, it is enumerated as "BlockName.Member", where "BlockName" is
+       *    the name of the interface block (not the instance name) and
+       *    "Member" is the name of the variable."
+       */
+      const char *prefixed_name = (var->data.from_named_ifc_block &&
+                                   !is_gl_identifier(var->name))
+         ? ralloc_asprintf(shProg, "%s.%s", var->get_interface_type()->name,
+                           name)
+         : name;
+
+      /* The ARB_program_interface_query spec says:
+       *
+       *     "For an active variable declared as a single instance of a basic
+       *     type, a single entry will be generated, using the variable name
+       *     from the shader source."
+       */
+      gl_shader_variable *sha_v =
+         create_shader_variable(shProg, var, prefixed_name, type,
+                                use_implicit_location, location,
+                                outermost_struct_type);
+      if (!sha_v)
+         return false;
+
+      return add_program_resource(shProg, programInterface, sha_v, stage_mask);
+   }
+   }
+}
+
+static bool
+add_interface_variables(struct gl_shader_program *shProg,
+                        unsigned stage, GLenum programInterface)
+{
+   exec_list *ir = shProg->_LinkedShaders[stage]->ir;
+
    foreach_in_list(ir_instruction, node, ir) {
       ir_variable *var = node->as_variable();
-      uint8_t mask = 0;
 
-      if (!var)
+      if (!var || var->data.how_declared == ir_var_hidden)
          continue;
 
+      int loc_bias;
+
       switch (var->data.mode) {
-      /* From GL 4.3 core spec, section 11.1.1 (Vertex Attributes):
-       * "For GetActiveAttrib, all active vertex shader input variables
-       * are enumerated, including the special built-in inputs gl_VertexID
-       * and gl_InstanceID."
-       */
       case ir_var_system_value:
-         if (var->data.location != SYSTEM_VALUE_VERTEX_ID &&
-             var->data.location != SYSTEM_VALUE_VERTEX_ID_ZERO_BASE &&
-             var->data.location != SYSTEM_VALUE_INSTANCE_ID)
-            continue;
-         /* Mark special built-in inputs referenced by the vertex stage so
-          * that they are considered active by the shader queries.
-          */
-         mask = (1 << (MESA_SHADER_VERTEX));
-         /* FALLTHROUGH */
       case ir_var_shader_in:
          if (programInterface != GL_PROGRAM_INPUT)
             continue;
+         loc_bias = (stage == MESA_SHADER_VERTEX) ? int(VERT_ATTRIB_GENERIC0)
+                                                  : int(VARYING_SLOT_VAR0);
          break;
       case ir_var_shader_out:
          if (programInterface != GL_PROGRAM_OUTPUT)
             continue;
+         loc_bias = (stage == MESA_SHADER_FRAGMENT) ? int(FRAG_RESULT_DATA0)
+                                                    : int(VARYING_SLOT_VAR0);
          break;
       default:
          continue;
@@ -3478,13 +3851,13 @@ add_interface_variables(struct gl_shader_program *shProg,
       if (strncmp(var->name, "gl_out_FragData", 15) == 0)
          continue;
 
-      gl_shader_variable *sha_v = create_shader_variable(shProg, var);
-      if (!sha_v)
-         return false;
+      const bool vs_input_or_fs_output =
+         (stage == MESA_SHADER_VERTEX && var->data.mode == ir_var_shader_in) ||
+         (stage == MESA_SHADER_FRAGMENT && var->data.mode == ir_var_shader_out);
 
-      if (!add_program_resource(shProg, programInterface, sha_v,
-                                build_stageref(shProg, sha_v->name,
-                                               sha_v->mode) | mask))
+      if (!add_shader_variable(shProg, 1 << stage, programInterface,
+                               var, var->name, var->type, vs_input_or_fs_output,
+                               var->data.location - loc_bias))
          return false;
    }
    return true;
@@ -3514,12 +3887,11 @@ add_packed_varyings(struct gl_shader_program *shProg, int stage, GLenum type)
          }
 
          if (type == iface) {
-            gl_shader_variable *sha_v = create_shader_variable(shProg, var);
-            if (!sha_v)
-               return false;
-            if (!add_program_resource(shProg, iface, sha_v,
-                                      build_stageref(shProg, sha_v->name,
-                                                     sha_v->mode)))
+            const int stage_mask =
+               build_stageref(shProg, var->name, var->data.mode);
+            if (!add_shader_variable(shProg, stage_mask,
+                                     iface, var, var->name, var->type, false,
+                                     var->data.location - VARYING_SLOT_VAR0))
                return false;
          }
       }
@@ -3539,11 +3911,11 @@ add_fragdata_arrays(struct gl_shader_program *shProg)
       ir_variable *var = node->as_variable();
       if (var) {
          assert(var->data.mode == ir_var_shader_out);
-         gl_shader_variable *sha_v = create_shader_variable(shProg, var);
-         if (!sha_v)
-            return false;
-         if (!add_program_resource(shProg, GL_PROGRAM_OUTPUT, sha_v,
-                                   1 << MESA_SHADER_FRAGMENT))
+
+         if (!add_shader_variable(shProg,
+                                  1 << MESA_SHADER_FRAGMENT,
+                                  GL_PROGRAM_OUTPUT, var, var->name, var->type,
+                                  true, var->data.location - FRAG_RESULT_DATA0))
             return false;
       }
    }
@@ -3556,14 +3928,16 @@ get_top_level_name(const char *name)
    const char *first_dot = strchr(name, '.');
    const char *first_square_bracket = strchr(name, '[');
    int name_size = 0;
-   /* From ARB_program_interface_query spec:
+
+   /* The ARB_program_interface_query spec says:
     *
-    * "For the property TOP_LEVEL_ARRAY_SIZE, a single integer identifying the
-    *  number of active array elements of the top-level shader storage block
-    *  member containing to the active variable is written to <params>.  If the
-    *  top-level block member is not declared as an array, the value one is
-    *  written to <params>.  If the top-level block member is an array with no
-    *  declared size, the value zero is written to <params>.
+    *     "For the property TOP_LEVEL_ARRAY_SIZE, a single integer identifying
+    *     the number of active array elements of the top-level shader storage
+    *     block member containing to the active variable is written to
+    *     <params>.  If the top-level block member is not declared as an
+    *     array, the value one is written to <params>.  If the top-level block
+    *     member is an array with no declared size, the value zero is written
+    *     to <params>."
     */
 
    /* The buffer variable is on top level.*/
@@ -3633,15 +4007,15 @@ static int
 get_array_size(struct gl_uniform_storage *uni, const glsl_struct_field *field,
                char *interface_name, char *var_name)
 {
-   /* From GL_ARB_program_interface_query spec:
+   /* The ARB_program_interface_query spec says:
     *
-    * "For the property TOP_LEVEL_ARRAY_SIZE, a single integer
-    * identifying the number of active array elements of the top-level
-    * shader storage block member containing to the active variable is
-    * written to <params>.  If the top-level block member is not
-    * declared as an array, the value one is written to <params>.  If
-    * the top-level block member is an array with no declared size,
-    * the value zero is written to <params>.
+    *     "For the property TOP_LEVEL_ARRAY_SIZE, a single integer identifying
+    *     the number of active array elements of the top-level shader storage
+    *     block member containing to the active variable is written to
+    *     <params>.  If the top-level block member is not declared as an
+    *     array, the value one is written to <params>.  If the top-level block
+    *     member is an array with no declared size, the value zero is written
+    *     to <params>."
     */
    if (is_top_level_shader_storage_block_member(uni->name,
                                                 interface_name,
@@ -3660,17 +4034,16 @@ get_array_stride(struct gl_uniform_storage *uni, const glsl_type *interface,
                  const glsl_struct_field *field, char *interface_name,
                  char *var_name)
 {
-   /* From GL_ARB_program_interface_query:
+   /* The ARB_program_interface_query spec says:
     *
-    * "For the property TOP_LEVEL_ARRAY_STRIDE, a single integer
-    *  identifying the stride between array elements of the top-level
-    *  shader storage block member containing the active variable is
-    *  written to <params>.  For top-level block members declared as
-    *  arrays, the value written is the difference, in basic machine
-    *  units, between the offsets of the active variable for
-    *  consecutive elements in the top-level array.  For top-level
-    *  block members not declared as an array, zero is written to
-    *  <params>."
+    *     "For the property TOP_LEVEL_ARRAY_STRIDE, a single integer
+    *     identifying the stride between array elements of the top-level
+    *     shader storage block member containing the active variable is
+    *     written to <params>.  For top-level block members declared as
+    *     arrays, the value written is the difference, in basic machine units,
+    *     between the offsets of the active variable for consecutive elements
+    *     in the top-level array.  For top-level block members not declared as
+    *     an array, zero is written to <params>."
     */
    if (field->type->is_array()) {
       const enum glsl_matrix_layout matrix_layout =
@@ -3704,7 +4077,9 @@ calculate_array_size_and_stride(struct gl_shader_program *shProg,
    int array_stride = -1;
    char *var_name = get_top_level_name(uni->name);
    char *interface_name =
-      get_top_level_name(shProg->BufferInterfaceBlocks[block_index].Name);
+      get_top_level_name(uni->is_shader_storage ?
+                         shProg->ShaderStorageBlocks[block_index].Name :
+                         shProg->UniformBlocks[block_index].Name);
 
    if (strcmp(var_name, interface_name) == 0) {
       /* Deal with instanced array of SSBOs */
@@ -3762,7 +4137,8 @@ write_top_level_array_size_and_stride:
  * resource data.
  */
 void
-build_program_resource_list(struct gl_shader_program *shProg)
+build_program_resource_list(struct gl_context *ctx,
+                            struct gl_shader_program *shProg)
 {
    /* Rebuild resource list. */
    if (shProg->ProgramResourceList) {
@@ -3802,12 +4178,10 @@ build_program_resource_list(struct gl_shader_program *shProg)
       return;
 
    /* Add inputs and outputs to the resource list. */
-   if (!add_interface_variables(shProg, shProg->_LinkedShaders[input_stage]->ir,
-                                GL_PROGRAM_INPUT))
+   if (!add_interface_variables(shProg, input_stage, GL_PROGRAM_INPUT))
       return;
 
-   if (!add_interface_variables(shProg, shProg->_LinkedShaders[output_stage]->ir,
-                                GL_PROGRAM_OUTPUT))
+   if (!add_interface_variables(shProg, output_stage, GL_PROGRAM_OUTPUT))
       return;
 
    /* Add transform feedback varyings. */
@@ -3815,6 +4189,17 @@ build_program_resource_list(struct gl_shader_program *shProg)
       for (int i = 0; i < shProg->LinkedTransformFeedback.NumVarying; i++) {
          if (!add_program_resource(shProg, GL_TRANSFORM_FEEDBACK_VARYING,
                                    &shProg->LinkedTransformFeedback.Varyings[i],
+                                   0))
+         return;
+      }
+   }
+
+   /* Add transform feedback buffers. */
+   for (unsigned i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
+      if ((shProg->LinkedTransformFeedback.ActiveBuffers >> i) & 1) {
+         shProg->LinkedTransformFeedback.Buffers[i].Binding = i;
+         if (!add_program_resource(shProg, GL_TRANSFORM_FEEDBACK_BUFFER,
+                                   &shProg->LinkedTransformFeedback.Buffers[i],
                                    0))
          return;
       }
@@ -3831,15 +4216,14 @@ build_program_resource_list(struct gl_shader_program *shProg)
                         ir_var_uniform);
 
       /* Add stagereferences for uniforms in a uniform block. */
+      bool is_shader_storage =  shProg->UniformStorage[i].is_shader_storage;
       int block_index = shProg->UniformStorage[i].block_index;
       if (block_index != -1) {
-         for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
-             if (shProg->InterfaceBlockStageIndex[j][block_index] != -1)
-                stageref |= (1 << j);
-         }
+         stageref |= is_shader_storage ?
+            shProg->ShaderStorageBlocks[block_index].stageref :
+            shProg->UniformBlocks[block_index].stageref;
       }
 
-      bool is_shader_storage =  shProg->UniformStorage[i].is_shader_storage;
       GLenum type = is_shader_storage ? GL_BUFFER_VARIABLE : GL_UNIFORM;
       if (!should_add_buffer_variable(shProg, type,
                                       shProg->UniformStorage[i].name))
@@ -3854,12 +4238,17 @@ build_program_resource_list(struct gl_shader_program *shProg)
          return;
    }
 
-   /* Add program uniform blocks and shader storage blocks. */
-   for (unsigned i = 0; i < shProg->NumBufferInterfaceBlocks; i++) {
-      bool is_shader_storage = shProg->BufferInterfaceBlocks[i].IsShaderStorage;
-      GLenum type = is_shader_storage ? GL_SHADER_STORAGE_BLOCK : GL_UNIFORM_BLOCK;
-      if (!add_program_resource(shProg, type,
-          &shProg->BufferInterfaceBlocks[i], 0))
+   /* Add program uniform blocks. */
+   for (unsigned i = 0; i < shProg->NumUniformBlocks; i++) {
+      if (!add_program_resource(shProg, GL_UNIFORM_BLOCK,
+          &shProg->UniformBlocks[i], 0))
+         return;
+   }
+
+   /* Add program shader storage blocks. */
+   for (unsigned i = 0; i < shProg->NumShaderStorageBlocks; i++) {
+      if (!add_program_resource(shProg, GL_SHADER_STORAGE_BLOCK,
+          &shProg->ShaderStorageBlocks[i], 0))
          return;
    }
 
@@ -3945,6 +4334,7 @@ link_assign_subroutine_types(struct gl_shader_program *prog)
       if (sh == NULL)
          continue;
 
+      sh->MaxSubroutineFunctionIndex = 0;
       foreach_in_list(ir_instruction, node, sh->ir) {
          ir_function *fn = node->as_function();
          if (!fn)
@@ -3956,6 +4346,12 @@ link_assign_subroutine_types(struct gl_shader_program *prog)
          if (!fn->num_subroutine_types)
             continue;
 
+	 /* these should have been calculated earlier. */
+	 assert(fn->subroutine_index != -1);
+         if (sh->NumSubroutineFunctions + 1 > MAX_SUBROUTINES) {
+            linker_error(prog, "Too many subroutine functions declared.\n");
+            return;
+         }
          sh->SubroutineFunctions = reralloc(sh, sh->SubroutineFunctions,
                                             struct gl_subroutine_function,
                                             sh->NumSubroutineFunctions + 1);
@@ -3983,77 +4379,14 @@ link_assign_subroutine_types(struct gl_shader_program *prog)
          sh->SubroutineFunctions[sh->NumSubroutineFunctions].index =
             fn->subroutine_index;
 
+         if (fn->subroutine_index > (int)sh->MaxSubroutineFunctionIndex)
+            sh->MaxSubroutineFunctionIndex = fn->subroutine_index;
+
          for (int j = 0; j < fn->num_subroutine_types; j++)
             sh->SubroutineFunctions[sh->NumSubroutineFunctions].types[j] = fn->subroutine_types[j];
          sh->NumSubroutineFunctions++;
       }
-
-      /* Assign index for subroutines without an explicit index*/
-      int index = 0;
-      for (unsigned j = 0; j < sh->NumSubroutineFunctions; j++) {
-         while (sh->SubroutineFunctions[j].index == -1) {
-            for (unsigned k = 0; k < sh->NumSubroutineFunctions; k++) {
-               if (sh->SubroutineFunctions[k].index == index)
-                  break;
-               else if (k == sh->NumSubroutineFunctions - 1)
-                  sh->SubroutineFunctions[j].index = index;
-            }
-            index++;
-         }
-      }
    }
-}
-
-static void
-split_ubos_and_ssbos(void *mem_ctx,
-                     struct gl_uniform_block *blocks,
-                     unsigned num_blocks,
-                     struct gl_uniform_block ***ubos,
-                     unsigned *num_ubos,
-                     unsigned **ubo_interface_block_indices,
-                     struct gl_uniform_block ***ssbos,
-                     unsigned *num_ssbos,
-                     unsigned **ssbo_interface_block_indices)
-{
-   unsigned num_ubo_blocks = 0;
-   unsigned num_ssbo_blocks = 0;
-
-   for (unsigned i = 0; i < num_blocks; i++) {
-      if (blocks[i].IsShaderStorage)
-         num_ssbo_blocks++;
-      else
-         num_ubo_blocks++;
-   }
-
-   *ubos = ralloc_array(mem_ctx, gl_uniform_block *, num_ubo_blocks);
-   *num_ubos = 0;
-
-   *ssbos = ralloc_array(mem_ctx, gl_uniform_block *, num_ssbo_blocks);
-   *num_ssbos = 0;
-
-   if (ubo_interface_block_indices)
-      *ubo_interface_block_indices =
-         ralloc_array(mem_ctx, unsigned, num_ubo_blocks);
-
-   if (ssbo_interface_block_indices)
-      *ssbo_interface_block_indices =
-         ralloc_array(mem_ctx, unsigned, num_ssbo_blocks);
-
-   for (unsigned i = 0; i < num_blocks; i++) {
-      if (blocks[i].IsShaderStorage) {
-         (*ssbos)[*num_ssbos] = &blocks[i];
-         if (ssbo_interface_block_indices)
-            (*ssbo_interface_block_indices)[*num_ssbos] = i;
-         (*num_ssbos)++;
-      } else {
-         (*ubos)[*num_ubos] = &blocks[i];
-         if (ubo_interface_block_indices)
-            (*ubo_interface_block_indices)[*num_ubos] = i;
-         (*num_ubos)++;
-      }
-   }
-
-   assert(*num_ubos + *num_ssbos == num_blocks);
 }
 
 static void
@@ -4153,9 +4486,11 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       return;
    }
 
-   tfeedback_decl *tfeedback_decls = NULL;
-   unsigned num_tfeedback_decls = prog->TransformFeedback.NumVarying;
+   unsigned num_tfeedback_decls = 0;
    unsigned int num_explicit_uniform_locs = 0;
+   bool has_xfb_qualifiers = false;
+   char **varying_names = NULL;
+   tfeedback_decl *tfeedback_decls = NULL;
 
    void *mem_ctx = ralloc_context(NULL); // temporary linker context
 
@@ -4281,16 +4616,16 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
          switch (stage) {
          case MESA_SHADER_VERTEX:
-            validate_vertex_shader_executable(prog, sh);
+            validate_vertex_shader_executable(prog, sh, ctx);
             break;
          case MESA_SHADER_TESS_CTRL:
             /* nothing to be done */
             break;
          case MESA_SHADER_TESS_EVAL:
-            validate_tess_eval_shader_executable(prog, sh);
+            validate_tess_eval_shader_executable(prog, sh, ctx);
             break;
          case MESA_SHADER_GEOMETRY:
-            validate_geometry_shader_executable(prog, sh);
+            validate_geometry_shader_executable(prog, sh, ctx);
             break;
          case MESA_SHADER_FRAGMENT:
             validate_fragment_shader_executable(prog, sh);
@@ -4306,14 +4641,19 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   if (num_shaders[MESA_SHADER_GEOMETRY] > 0)
+   if (num_shaders[MESA_SHADER_GEOMETRY] > 0) {
       prog->LastClipDistanceArraySize = prog->Geom.ClipDistanceArraySize;
-   else if (num_shaders[MESA_SHADER_TESS_EVAL] > 0)
+      prog->LastCullDistanceArraySize = prog->Geom.CullDistanceArraySize;
+   } else if (num_shaders[MESA_SHADER_TESS_EVAL] > 0) {
       prog->LastClipDistanceArraySize = prog->TessEval.ClipDistanceArraySize;
-   else if (num_shaders[MESA_SHADER_VERTEX] > 0)
+      prog->LastCullDistanceArraySize = prog->TessEval.CullDistanceArraySize;
+   } else if (num_shaders[MESA_SHADER_VERTEX] > 0) {
       prog->LastClipDistanceArraySize = prog->Vert.ClipDistanceArraySize;
-   else
+      prog->LastCullDistanceArraySize = prog->Vert.CullDistanceArraySize;
+   } else {
       prog->LastClipDistanceArraySize = 0; /* Not used */
+      prog->LastCullDistanceArraySize = 0; /* Not used */
+   }
 
    /* Here begins the inter-stage linking phase.  Some initial validation is
     * performed, then locations are assigned for uniforms, attributes, and
@@ -4394,7 +4734,12 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    if (prog->SeparateShader)
       disable_varying_optimizations_for_sso(prog);
 
-   if (!interstage_cross_validate_uniform_blocks(prog))
+   /* Process UBOs */
+   if (!interstage_cross_validate_uniform_blocks(prog, false))
+      goto done;
+
+   /* Process SSBOs */
+   if (!interstage_cross_validate_uniform_blocks(prog, true))
       goto done;
 
    /* Do common optimization before assigning storage for attributes,
@@ -4409,8 +4754,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       if (!prog->LinkStatus)
 	 goto done;
 
-      if (ctx->Const.ShaderCompilerOptions[i].LowerClipDistance) {
-         lower_clip_distance(prog->_LinkedShaders[i]);
+      if (ctx->Const.ShaderCompilerOptions[i].LowerCombinedClipCullDistance) {
+         lower_clip_cull_distance(prog, prog->_LinkedShaders[i]);
       }
 
       if (ctx->Const.LowerTessLevel) {
@@ -4450,7 +4795,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       if (prog->_LinkedShaders[i] == NULL)
          continue;
 
-      match_explicit_outputs_to_inputs(prog, prog->_LinkedShaders[prev],
+      match_explicit_outputs_to_inputs(prog->_LinkedShaders[prev],
                                        prog->_LinkedShaders[i]);
       prev = i;
    }
@@ -4463,6 +4808,30 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    if (!assign_attribute_or_color_locations(prog, &ctx->Const,
                                             MESA_SHADER_FRAGMENT)) {
       goto done;
+   }
+
+   /* From the ARB_enhanced_layouts spec:
+    *
+    *    "If the shader used to record output variables for transform feedback
+    *    varyings uses the "xfb_buffer", "xfb_offset", or "xfb_stride" layout
+    *    qualifiers, the values specified by TransformFeedbackVaryings are
+    *    ignored, and the set of variables captured for transform feedback is
+    *    instead derived from the specified layout qualifiers."
+    */
+   for (int i = MESA_SHADER_FRAGMENT - 1; i >= 0; i--) {
+      /* Find last stage before fragment shader */
+      if (prog->_LinkedShaders[i]) {
+         has_xfb_qualifiers =
+            process_xfb_layout_qualifiers(mem_ctx, prog->_LinkedShaders[i],
+                                          &num_tfeedback_decls,
+                                          &varying_names);
+         break;
+      }
+   }
+
+   if (!has_xfb_qualifiers) {
+      num_tfeedback_decls = prog->TransformFeedback.NumVarying;
+      varying_names = prog->TransformFeedback.VaryingNames;
    }
 
    if (num_tfeedback_decls != 0) {
@@ -4481,24 +4850,26 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
 
       tfeedback_decls = ralloc_array(mem_ctx, tfeedback_decl,
-                                     prog->TransformFeedback.NumVarying);
+                                     num_tfeedback_decls);
       if (!parse_tfeedback_decls(ctx, prog, mem_ctx, num_tfeedback_decls,
-                                 prog->TransformFeedback.VaryingNames,
-                                 tfeedback_decls))
+                                 varying_names, tfeedback_decls))
          goto done;
    }
 
    /* If there is no fragment shader we need to set transform feedback.
     *
-    * For SSO we need also need to assign output locations, we assign them
-    * here because we need to do it for both single stage programs and multi
-    * stage programs.
+    * For SSO we also need to assign output locations.  We assign them here
+    * because we need to do it for both single stage programs and multi stage
+    * programs.
     */
    if (last < MESA_SHADER_FRAGMENT &&
        (num_tfeedback_decls != 0 || prog->SeparateShader)) {
+      const uint64_t reserved_out_slots =
+         reserved_varying_slot(prog->_LinkedShaders[last], ir_var_shader_out);
       if (!assign_varying_locations(ctx, mem_ctx, prog,
                                     prog->_LinkedShaders[last], NULL,
-                                    num_tfeedback_decls, tfeedback_decls))
+                                    num_tfeedback_decls, tfeedback_decls,
+                                    reserved_out_slots))
          goto done;
    }
 
@@ -4516,6 +4887,9 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
          gl_shader *const sh = prog->_LinkedShaders[last];
          if (prog->SeparateShader) {
+            const uint64_t reserved_slots =
+               reserved_varying_slot(sh, ir_var_shader_in);
+
             /* Assign input locations for SSO, output locations are already
              * assigned.
              */
@@ -4523,7 +4897,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
                                           NULL /* producer */,
                                           sh /* consumer */,
                                           0 /* num_tfeedback_decls */,
-                                          NULL /* tfeedback_decls */))
+                                          NULL /* tfeedback_decls */,
+                                          reserved_slots))
                goto done;
          }
 
@@ -4538,15 +4913,21 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
           */
          int next = last;
          for (int i = next - 1; i >= 0; i--) {
-            if (prog->_LinkedShaders[i] == NULL)
+            if (prog->_LinkedShaders[i] == NULL && i != 0)
                continue;
 
             gl_shader *const sh_i = prog->_LinkedShaders[i];
             gl_shader *const sh_next = prog->_LinkedShaders[next];
 
+            const uint64_t reserved_out_slots =
+               reserved_varying_slot(sh_i, ir_var_shader_out);
+            const uint64_t reserved_in_slots =
+               reserved_varying_slot(sh_next, ir_var_shader_in);
+
             if (!assign_varying_locations(ctx, mem_ctx, prog, sh_i, sh_next,
                       next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
-                      tfeedback_decls))
+                      tfeedback_decls,
+                      reserved_out_slots | reserved_in_slots))
                goto done;
 
             do_dead_builtin_varyings(ctx, sh_i, sh_next,
@@ -4554,9 +4935,15 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
                       tfeedback_decls);
 
             /* This must be done after all dead varyings are eliminated. */
-            if (!check_against_output_limit(ctx, prog, sh_i))
-               goto done;
-            if (!check_against_input_limit(ctx, prog, sh_next))
+            if (sh_i != NULL) {
+               unsigned slots_used = _mesa_bitcount_64(reserved_out_slots);
+               if (!check_against_output_limit(ctx, prog, sh_i, slots_used)) {
+                  goto done;
+               }
+            }
+
+            unsigned slots_used = _mesa_bitcount_64(reserved_in_slots);
+            if (!check_against_input_limit(ctx, prog, sh_next, slots_used))
                goto done;
 
             next = i;
@@ -4564,7 +4951,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   if (!store_tfeedback_info(ctx, prog, num_tfeedback_decls, tfeedback_decls))
+   if (!store_tfeedback_info(ctx, prog, num_tfeedback_decls, tfeedback_decls,
+                             has_xfb_qualifiers))
       goto done;
 
    update_array_sizes(prog);
@@ -4618,47 +5006,23 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   /* Split BufferInterfaceBlocks into UniformBlocks and ShaderStorageBlocks
-    * for gl_shader_program and gl_shader, so that drivers that need separate
-    * index spaces for each set can have that.
-    */
-   for (unsigned i = MESA_SHADER_VERTEX; i < MESA_SHADER_STAGES; i++) {
-      if (prog->_LinkedShaders[i] != NULL) {
-         gl_shader *sh = prog->_LinkedShaders[i];
-         split_ubos_and_ssbos(sh,
-                              sh->BufferInterfaceBlocks,
-                              sh->NumBufferInterfaceBlocks,
-                              &sh->UniformBlocks,
-                              &sh->NumUniformBlocks,
-                              NULL,
-                              &sh->ShaderStorageBlocks,
-                              &sh->NumShaderStorageBlocks,
-                              NULL);
-      }
-   }
-
-   split_ubos_and_ssbos(prog,
-                        prog->BufferInterfaceBlocks,
-                        prog->NumBufferInterfaceBlocks,
-                        &prog->UniformBlocks,
-                        &prog->NumUniformBlocks,
-                        &prog->UboInterfaceBlockIndex,
-                        &prog->ShaderStorageBlocks,
-                        &prog->NumShaderStorageBlocks,
-                        &prog->SsboInterfaceBlockIndex);
-
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
 	 continue;
 
-      if (ctx->Const.ShaderCompilerOptions[i].LowerBufferInterfaceBlocks)
-         lower_ubo_reference(prog->_LinkedShaders[i]);
+      const struct gl_shader_compiler_options *options =
+         &ctx->Const.ShaderCompilerOptions[i];
 
-      if (ctx->Const.ShaderCompilerOptions[i].LowerShaderSharedVariables)
+      if (options->LowerBufferInterfaceBlocks)
+         lower_ubo_reference(prog->_LinkedShaders[i],
+                             options->ClampBlockIndicesToArrayBounds);
+
+      if (options->LowerShaderSharedVariables)
          lower_shared_reference(prog->_LinkedShaders[i],
                                 &prog->Comp.SharedSize);
 
       lower_vector_derefs(prog->_LinkedShaders[i]);
+      do_vec_index_to_swizzle(prog->_LinkedShaders[i]->ir);
    }
 
 done:

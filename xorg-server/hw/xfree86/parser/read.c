@@ -61,7 +61,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec TopLevelTab[] = {
+static const xf86ConfigSymTabRec TopLevelTab[] = {
     {SECTION, "section"},
     {-1, ""},
 };

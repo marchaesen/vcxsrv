@@ -170,7 +170,7 @@ vbo_draw_indirect_prims(struct gl_context *ctx,
    }
 
    vbo->draw_prims(ctx, prim, draw_count,
-                   ib, GL_TRUE, 0, ~0,
+                   ib, false, ~0, ~0,
                    NULL, 0,
                    ctx->DrawIndirectBuffer);
 

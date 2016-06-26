@@ -388,7 +388,7 @@ util_font_create_fixed_8x13(struct pipe_context *pipe,
    enum pipe_format tex_format = PIPE_FORMAT_NONE;
    int i;
 
-   for (i = 0; i < Elements(formats); i++) {
+   for (i = 0; i < ARRAY_SIZE(formats); i++) {
       if (screen->is_format_supported(screen, formats[i],
                                    PIPE_TEXTURE_RECT, 0,
                                    PIPE_BIND_SAMPLER_VIEW)) {

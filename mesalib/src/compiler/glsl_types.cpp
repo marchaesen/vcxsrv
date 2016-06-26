@@ -132,6 +132,10 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].image_volatile = fields[i].image_volatile;
       this->fields.structure[i].image_restrict = fields[i].image_restrict;
       this->fields.structure[i].precision = fields[i].precision;
+      this->fields.structure[i].explicit_xfb_buffer =
+         fields[i].explicit_xfb_buffer;
+      this->fields.structure[i].xfb_buffer = fields[i].xfb_buffer;
+      this->fields.structure[i].xfb_stride = fields[i].xfb_stride;
    }
 
    mtx_unlock(&glsl_type::mutex);
@@ -172,6 +176,10 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].image_volatile = fields[i].image_volatile;
       this->fields.structure[i].image_restrict = fields[i].image_restrict;
       this->fields.structure[i].precision = fields[i].precision;
+      this->fields.structure[i].explicit_xfb_buffer =
+         fields[i].explicit_xfb_buffer;
+      this->fields.structure[i].xfb_buffer = fields[i].xfb_buffer;
+      this->fields.structure[i].xfb_stride = fields[i].xfb_stride;
    }
 
    mtx_unlock(&glsl_type::mutex);
@@ -848,7 +856,7 @@ glsl_type::get_array_instance(const glsl_type *base, unsigned array_size)
 
 
 bool
-glsl_type::record_compare(const glsl_type *b) const
+glsl_type::record_compare(const glsl_type *b, bool match_locations) const
 {
    if (this->length != b->length)
       return false;
@@ -879,7 +887,7 @@ glsl_type::record_compare(const glsl_type *b) const
       if (this->fields.structure[i].matrix_layout
          != b->fields.structure[i].matrix_layout)
         return false;
-      if (this->fields.structure[i].location
+      if (match_locations && this->fields.structure[i].location
           != b->fields.structure[i].location)
          return false;
       if (this->fields.structure[i].offset
@@ -914,6 +922,15 @@ glsl_type::record_compare(const glsl_type *b) const
          return false;
       if (this->fields.structure[i].precision
           != b->fields.structure[i].precision)
+         return false;
+      if (this->fields.structure[i].explicit_xfb_buffer
+          != b->fields.structure[i].explicit_xfb_buffer)
+         return false;
+      if (this->fields.structure[i].xfb_buffer
+          != b->fields.structure[i].xfb_buffer)
+         return false;
+      if (this->fields.structure[i].xfb_stride
+          != b->fields.structure[i].xfb_stride)
          return false;
    }
 
@@ -1333,6 +1350,38 @@ glsl_type::uniform_locations() const
    }
 }
 
+unsigned
+glsl_type::varying_count() const
+{
+   unsigned size = 0;
+
+   switch (this->base_type) {
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_BOOL:
+      return 1;
+
+   case GLSL_TYPE_STRUCT:
+   case GLSL_TYPE_INTERFACE:
+      for (unsigned i = 0; i < this->length; i++)
+         size += this->fields.structure[i].type->varying_count();
+      return size;
+   case GLSL_TYPE_ARRAY:
+      /* Don't count innermost array elements */
+      if (this->without_array()->is_record() ||
+          this->without_array()->is_interface() ||
+          this->fields.array->is_array())
+         return this->length * this->fields.array->varying_count();
+      else
+         return this->fields.array->varying_count();
+   default:
+      assert(!"unsupported varying type");
+      return 0;
+   }
+}
+
 bool
 glsl_type::can_implicitly_convert_to(const glsl_type *desired,
                                      _mesa_glsl_parse_state *state) const
@@ -1385,7 +1434,7 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
 unsigned
 glsl_type::std140_base_alignment(bool row_major) const
 {
-   unsigned N = is_double() ? 8 : 4;
+   unsigned N = is_64bit() ? 8 : 4;
 
    /* (1) If the member is a scalar consuming <N> basic machine units, the
     *     base alignment is <N>.
@@ -1503,7 +1552,7 @@ glsl_type::std140_base_alignment(bool row_major) const
 unsigned
 glsl_type::std140_size(bool row_major) const
 {
-   unsigned N = is_double() ? 8 : 4;
+   unsigned N = is_64bit() ? 8 : 4;
 
    /* (1) If the member is a scalar consuming <N> basic machine units, the
     *     base alignment is <N>.
@@ -1640,7 +1689,7 @@ unsigned
 glsl_type::std430_base_alignment(bool row_major) const
 {
 
-   unsigned N = is_double() ? 8 : 4;
+   unsigned N = is_64bit() ? 8 : 4;
 
    /* (1) If the member is a scalar consuming <N> basic machine units, the
     *     base alignment is <N>.
@@ -1749,7 +1798,7 @@ glsl_type::std430_base_alignment(bool row_major) const
 unsigned
 glsl_type::std430_array_stride(bool row_major) const
 {
-   unsigned N = is_double() ? 8 : 4;
+   unsigned N = is_64bit() ? 8 : 4;
 
    /* Notice that the array stride of a vec3 is not 3 * N but 4 * N.
     * See OpenGL 4.30 spec, section 7.6.2.2 "Standard Uniform Block Layout"
@@ -1767,7 +1816,7 @@ glsl_type::std430_array_stride(bool row_major) const
 unsigned
 glsl_type::std430_size(bool row_major) const
 {
-   unsigned N = is_double() ? 8 : 4;
+   unsigned N = is_64bit() ? 8 : 4;
 
    /* OpenGL 4.30 spec, section 7.6.2.2 "Standard Uniform Block Layout":
     *
@@ -1848,7 +1897,7 @@ glsl_type::std430_size(bool row_major) const
 }
 
 unsigned
-glsl_type::count_attribute_slots(bool vertex_input_slots) const
+glsl_type::count_attribute_slots(bool is_vertex_input) const
 {
    /* From page 31 (page 37 of the PDF) of the GLSL 1.50 spec:
     *
@@ -1882,7 +1931,7 @@ glsl_type::count_attribute_slots(bool vertex_input_slots) const
    case GLSL_TYPE_BOOL:
       return this->matrix_columns;
    case GLSL_TYPE_DOUBLE:
-      if (this->vector_elements > 2 && !vertex_input_slots)
+      if (this->vector_elements > 2 && !is_vertex_input)
          return this->matrix_columns * 2;
       else
          return this->matrix_columns;
@@ -1891,13 +1940,13 @@ glsl_type::count_attribute_slots(bool vertex_input_slots) const
       unsigned size = 0;
 
       for (unsigned i = 0; i < this->length; i++)
-         size += this->fields.structure[i].type->count_attribute_slots(vertex_input_slots);
+         size += this->fields.structure[i].type->count_attribute_slots(is_vertex_input);
 
       return size;
    }
 
    case GLSL_TYPE_ARRAY:
-      return this->length * this->fields.array->count_attribute_slots(vertex_input_slots);
+      return this->length * this->fields.array->count_attribute_slots(is_vertex_input);
 
    case GLSL_TYPE_FUNCTION:
    case GLSL_TYPE_SAMPLER:

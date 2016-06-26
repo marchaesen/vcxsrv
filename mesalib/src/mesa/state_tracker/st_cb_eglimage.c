@@ -128,9 +128,6 @@ st_bind_surface(struct gl_context *ctx, GLenum target,
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, stObj->pt);
 
-   stObj->width0 = ps->width;
-   stObj->height0 = ps->height;
-   stObj->depth0 = 1;
    stObj->surface_format = ps->format;
 
    _mesa_dirty_texobj(ctx, texObj);

@@ -22,21 +22,21 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 
 /** @file nir_opt_undef.c
  *
- * Handles optimization of operations involving ssa_undef.  For now, we just
- * make sure that csels between undef and some other value just give the other
- * value (on the assumption that the condition's going to be choosing the
- * defined value).  This reduces work after if flattening when each side of
- * the if is defining a variable.
- *
- * Some day, we may find some use for making other operations consuming an
- * undef arg output undef, but I don't know of any cases currently.
+ * Handles optimization of operations involving ssa_undef.
  */
 
+/**
+ * Turn conditional selects between an undef and some other value into a move
+ * of that other value (on the assumption that the condition's going to be
+ * choosing the defined value).  This reduces work after if flattening when
+ * each side of the if is defining a variable.
+ */
 static bool
-opt_undef_alu(nir_alu_instr *instr)
+opt_undef_csel(nir_alu_instr *instr)
 {
    if (instr->op != nir_op_bcsel && instr->op != nir_op_fcsel)
       return false;
@@ -71,16 +71,58 @@ opt_undef_alu(nir_alu_instr *instr)
    return false;
 }
 
+/**
+ * Replace vecN(undef, undef, ...) with a single undef.
+ */
 static bool
-opt_undef_block(nir_block *block, void *data)
+opt_undef_vecN(nir_builder *b, nir_alu_instr *alu)
 {
-   bool *progress = data;
+   if (alu->op != nir_op_vec2 &&
+       alu->op != nir_op_vec3 &&
+       alu->op != nir_op_vec4)
+      return false;
 
-   nir_foreach_instr_safe(block, instr) {
-      if (instr->type == nir_instr_type_alu)
-         if (opt_undef_alu(nir_instr_as_alu(instr)))
-             (*progress) = true;
+   assert(alu->dest.dest.is_ssa);
+
+   unsigned num_components = nir_op_infos[alu->op].num_inputs;
+
+   for (unsigned i = 0; i < num_components; i++) {
+      if (!alu->src[i].src.is_ssa ||
+          alu->src[i].src.ssa->parent_instr->type != nir_instr_type_ssa_undef)
+         return false;
    }
+
+   b->cursor = nir_before_instr(&alu->instr);
+   nir_ssa_def *undef =
+      nir_ssa_undef(b, num_components, nir_dest_bit_size(alu->dest.dest));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(undef));
+
+   return true;
+}
+
+/**
+ * Remove any store intrinsics whose value is undefined (the existing
+ * value is a fine representation of "undefined").
+ */
+static bool
+opt_undef_store(nir_intrinsic_instr *intrin)
+{
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_store_var:
+   case nir_intrinsic_store_output:
+   case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_ssbo:
+   case nir_intrinsic_store_shared:
+      break;
+   default:
+      return false;
+   }
+
+   if (!intrin->src[0].is_ssa ||
+       intrin->src[0].ssa->parent_instr->type != nir_instr_type_ssa_undef)
+      return false;
+
+   nir_instr_remove(&intrin->instr);
 
    return true;
 }
@@ -88,11 +130,26 @@ opt_undef_block(nir_block *block, void *data)
 bool
 nir_opt_undef(nir_shader *shader)
 {
+   nir_builder b;
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl) {
-         nir_foreach_block(function->impl, opt_undef_block, &progress);
+         nir_builder_init(&b, function->impl);
+         nir_foreach_block(block, function->impl) {
+            nir_foreach_instr_safe(instr, block) {
+               if (instr->type == nir_instr_type_alu) {
+                  nir_alu_instr *alu = nir_instr_as_alu(instr);
+
+                  progress = opt_undef_csel(alu) || progress;
+                  progress = opt_undef_vecN(&b, alu) || progress;
+               } else if (instr->type == nir_instr_type_intrinsic) {
+                  nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+                  progress = opt_undef_store(intrin) || progress;
+               }
+            }
+         }
+
          if (progress)
             nir_metadata_preserve(function->impl,
                                   nir_metadata_block_index |

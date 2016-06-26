@@ -38,16 +38,67 @@
 #include "main/imports.h"
 #include "main/mtypes.h"
 #include "main/framebuffer.h"
+#include "main/texobj.h"
+#include "main/texstate.h"
 #include "program/program.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_shader_tokens.h"
 #include "util/u_simple_shaders.h"
 #include "cso_cache/cso_context.h"
+#include "util/u_debug.h"
 
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_program.h"
+
+
+/** Compress the fog function enums into a 2-bit value */
+static GLuint
+translate_fog_mode(GLenum mode)
+{
+   switch (mode) {
+   case GL_LINEAR: return 1;
+   case GL_EXP:    return 2;
+   case GL_EXP2:   return 3;
+   default:
+      return 0;
+   }
+}
+
+static unsigned
+get_texture_target(struct gl_context *ctx, const unsigned unit)
+{
+   struct gl_texture_object *texObj = _mesa_get_tex_unit(ctx, unit)->_Current;
+   gl_texture_index index;
+
+   if (texObj) {
+      index = _mesa_tex_target_to_index(ctx, texObj->Target);
+   } else {
+      /* fallback for missing texture */
+      index = TEXTURE_2D_INDEX;
+   }
+
+   /* Map mesa texture target to TGSI texture target.
+    * Copied from st_mesa_to_tgsi.c, the shadow part is omitted */
+   switch(index) {
+   case TEXTURE_2D_MULTISAMPLE_INDEX: return TGSI_TEXTURE_2D_MSAA;
+   case TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX: return TGSI_TEXTURE_2D_ARRAY_MSAA;
+   case TEXTURE_BUFFER_INDEX: return TGSI_TEXTURE_BUFFER;
+   case TEXTURE_1D_INDEX:   return TGSI_TEXTURE_1D;
+   case TEXTURE_2D_INDEX:   return TGSI_TEXTURE_2D;
+   case TEXTURE_3D_INDEX:   return TGSI_TEXTURE_3D;
+   case TEXTURE_CUBE_INDEX: return TGSI_TEXTURE_CUBE;
+   case TEXTURE_CUBE_ARRAY_INDEX: return TGSI_TEXTURE_CUBE_ARRAY;
+   case TEXTURE_RECT_INDEX: return TGSI_TEXTURE_RECT;
+   case TEXTURE_1D_ARRAY_INDEX:   return TGSI_TEXTURE_1D_ARRAY;
+   case TEXTURE_2D_ARRAY_INDEX:   return TGSI_TEXTURE_2D_ARRAY;
+   case TEXTURE_EXTERNAL_INDEX:   return TGSI_TEXTURE_2D;
+   default:
+      debug_assert(0);
+      return TGSI_TEXTURE_1D;
+   }
+}
 
 
 /**
@@ -74,10 +125,22 @@ update_fp( struct st_context *st )
    /* _NEW_MULTISAMPLE | _NEW_BUFFERS */
    key.persample_shading =
       st->force_persample_in_shader &&
-      st->ctx->Multisample._Enabled &&
+      _mesa_is_multisample_enabled(st->ctx) &&
       st->ctx->Multisample.SampleShading &&
       st->ctx->Multisample.MinSampleShadingValue *
       _mesa_geometric_samples(st->ctx->DrawBuffer) > 1;
+
+   if (stfp->ati_fs) {
+      unsigned u;
+
+      if (st->ctx->Fog.Enabled) {
+         key.fog = translate_fog_mode(st->ctx->Fog.Mode);
+      }
+
+      for (u = 0; u < MAX_NUM_FRAGMENT_REGISTERS_ATI; u++) {
+         key.texture_targets[u] = get_texture_target(st->ctx, u);
+      }
+   }
 
    st->fp_variant = st_get_fp_variant(st, stfp, &key);
 
@@ -91,7 +154,7 @@ update_fp( struct st_context *st )
 const struct st_tracked_state st_update_fp = {
    "st_update_fp",					/* name */
    {							/* dirty */
-      _NEW_BUFFERS | _NEW_MULTISAMPLE,			/* mesa */
+      _NEW_BUFFERS | _NEW_MULTISAMPLE | _NEW_FOG,	/* mesa */
       ST_NEW_FRAGMENT_PROGRAM                           /* st */
    },
    update_fp  					/* update */

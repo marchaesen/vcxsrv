@@ -37,7 +37,7 @@
 #include "state.h"
 #include "main/dispatch.h"
 #include "main/viewport.h"
-#include "util/simple_list.h"
+#include "util/bitscan.h"
 
 
 
@@ -91,17 +91,16 @@ viewclip_point_z( const GLfloat v[] )
 static GLuint
 userclip_point( struct gl_context *ctx, const GLfloat v[] )
 {
-   GLuint p;
+   GLbitfield mask = ctx->Transform.ClipPlanesEnabled;
+   while (mask) {
+      const int p = u_bit_scan(&mask);
+      GLfloat dot = v[0] * ctx->Transform._ClipUserPlane[p][0]
+         + v[1] * ctx->Transform._ClipUserPlane[p][1]
+         + v[2] * ctx->Transform._ClipUserPlane[p][2]
+         + v[3] * ctx->Transform._ClipUserPlane[p][3];
 
-   for (p = 0; p < ctx->Const.MaxClipPlanes; p++) {
-      if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
-	 GLfloat dot = v[0] * ctx->Transform._ClipUserPlane[p][0]
-		     + v[1] * ctx->Transform._ClipUserPlane[p][1]
-		     + v[2] * ctx->Transform._ClipUserPlane[p][2]
-		     + v[3] * ctx->Transform._ClipUserPlane[p][3];
-         if (dot < 0.0F) {
-            return 0;
-         }
+      if (dot < 0.0F) {
+         return 0;
       }
    }
 
@@ -125,7 +124,7 @@ shade_rastpos(struct gl_context *ctx,
               GLfloat Rspec[4])
 {
    /*const*/ GLfloat (*base)[3] = ctx->Light._BaseColor;
-   const struct gl_light *light;
+   GLbitfield mask;
    GLfloat diffuseColor[4], specularColor[4];  /* for RGB mode only */
 
    COPY_3V(diffuseColor, base[0]);
@@ -133,7 +132,10 @@ shade_rastpos(struct gl_context *ctx,
       ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE][3], 0.0F, 1.0F );
    ASSIGN_4V(specularColor, 0.0, 0.0, 0.0, 1.0);
 
-   foreach (light, &ctx->Light.EnabledList) {
+   mask = ctx->Light._EnabledLights;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
+      struct gl_light *light = &ctx->Light.Light[i];
       GLfloat attenuation = 1.0;
       GLfloat VP[3]; /* vector from vertex to light pos */
       GLfloat n_dot_VP;

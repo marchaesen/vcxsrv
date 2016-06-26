@@ -71,6 +71,10 @@ typedef struct ID3DPresentVtbl
     HRESULT (WINAPI *GetWindowInfo)(ID3DPresent *This,  HWND hWnd, int *width, int *height, int *depth);
     /* Available since version 1.1 */
     BOOL (WINAPI *GetWindowOccluded)(ID3DPresent *This);
+    /* Available since version 1.2 */
+    BOOL (WINAPI *ResolutionMismatch)(ID3DPresent *This);
+    HANDLE (WINAPI *CreateThread)(ID3DPresent *This, void *pThreadfunc, void *pParam);
+    BOOL (WINAPI *WaitForThread)(ID3DPresent *This, HANDLE thread);
 } ID3DPresentVtbl;
 
 struct ID3DPresent
@@ -99,6 +103,9 @@ struct ID3DPresent
 #define ID3DPresent_SetGammaRamp(p,a,b) (p)->lpVtbl->SetGammaRamp(p,a,b)
 #define ID3DPresent_GetWindowInfo(p,a,b,c,d) (p)->lpVtbl->GetWindowSize(p,a,b,c,d)
 #define ID3DPresent_GetWindowOccluded(p) (p)->lpVtbl->GetWindowOccluded(p)
+#define ID3DPresent_ResolutionMismatch(p) (p)->lpVtbl->ResolutionMismatch(p)
+#define ID3DPresent_CreateThread(p,a,b) (p)->lpVtbl->CreateThread(p,a,b)
+#define ID3DPresent_WaitForThread(p,a) (p)->lpVtbl->WaitForThread(p,a)
 
 typedef struct ID3DPresentGroupVtbl
 {

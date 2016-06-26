@@ -115,6 +115,9 @@ extern _X_EXPORT void FreePixmap(PixmapPtr /*pPixmap */ );
 extern _X_EXPORT PixmapPtr
 PixmapShareToSlave(PixmapPtr pixmap, ScreenPtr slave);
 
+extern _X_EXPORT void
+PixmapUnshareSlavePixmap(PixmapPtr slave_pixmap);
+
 #define HAS_DIRTYTRACKING_ROTATION 1
 extern _X_EXPORT Bool
 PixmapStartDirtyTracking(PixmapPtr src,

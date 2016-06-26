@@ -58,7 +58,7 @@ public:
                             ir_rvalue **offset, unsigned *const_offset,
                             bool *row_major, int *matrix_columns,
                             const glsl_struct_field **struct_field,
-                            unsigned packing);
+                            enum glsl_interface_packing packing);
 };
 
 } /* namespace lower_buffer_access */

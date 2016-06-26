@@ -67,9 +67,9 @@ util_dump_enum_continuous(unsigned value,
    util_dump_##_name(unsigned value, boolean shortened) \
    { \
       if(shortened) \
-         return util_dump_enum_continuous(value, Elements(util_dump_##_name##_short_names), util_dump_##_name##_short_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_short_names), util_dump_##_name##_short_names); \
       else \
-         return util_dump_enum_continuous(value, Elements(util_dump_##_name##_names), util_dump_##_name##_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_names), util_dump_##_name##_names); \
    }
 
 
@@ -81,12 +81,12 @@ util_dump_enum_continuous(unsigned value,
    const char * \
    util_dump_##_name(unsigned value, boolean shortened) \
    { \
-      STATIC_ASSERT(Elements(util_dump_##_name##_names) == _count); \
-      STATIC_ASSERT(Elements(util_dump_##_name##_short_names) == _count); \
+      STATIC_ASSERT(ARRAY_SIZE(util_dump_##_name##_names) == _count); \
+      STATIC_ASSERT(ARRAY_SIZE(util_dump_##_name##_short_names) == _count); \
       if(shortened) \
-         return util_dump_enum_continuous(value, Elements(util_dump_##_name##_short_names), util_dump_##_name##_short_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_short_names), util_dump_##_name##_short_names); \
       else \
-         return util_dump_enum_continuous(value, Elements(util_dump_##_name##_names), util_dump_##_name##_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_names), util_dump_##_name##_names); \
    }
 
 

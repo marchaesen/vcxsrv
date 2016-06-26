@@ -39,6 +39,7 @@ nir_shader_create(void *mem_ctx,
    exec_list_make_empty(&shader->uniforms);
    exec_list_make_empty(&shader->inputs);
    exec_list_make_empty(&shader->outputs);
+   exec_list_make_empty(&shader->shared);
 
    shader->options = options;
    memset(&shader->info, 0, sizeof(shader->info));
@@ -52,6 +53,7 @@ nir_shader_create(void *mem_ctx,
    shader->num_inputs = 0;
    shader->num_outputs = 0;
    shader->num_uniforms = 0;
+   shader->num_shared = 0;
 
    shader->stage = stage;
 
@@ -68,6 +70,7 @@ reg_create(void *mem_ctx, struct exec_list *list)
    list_inithead(&reg->if_uses);
 
    reg->num_components = 0;
+   reg->bit_size = 32;
    reg->num_array_elems = 0;
    reg->is_packed = false;
    reg->name = NULL;
@@ -134,6 +137,11 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
    case nir_var_uniform:
    case nir_var_shader_storage:
       exec_list_push_tail(&shader->uniforms, &var->node);
+      break;
+
+   case nir_var_shared:
+      assert(shader->stage == MESA_SHADER_COMPUTE);
+      exec_list_push_tail(&shader->shared, &var->node);
       break;
 
    case nir_var_system_value:
@@ -461,12 +469,13 @@ nir_jump_instr_create(nir_shader *shader, nir_jump_type type)
 }
 
 nir_load_const_instr *
-nir_load_const_instr_create(nir_shader *shader, unsigned num_components)
+nir_load_const_instr_create(nir_shader *shader, unsigned num_components,
+                            unsigned bit_size)
 {
    nir_load_const_instr *instr = ralloc(shader, nir_load_const_instr);
    instr_init(&instr->instr, nir_instr_type_load_const);
 
-   nir_ssa_def_init(&instr->instr, &instr->def, num_components, NULL);
+   nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size, NULL);
 
    return instr;
 }
@@ -550,12 +559,14 @@ nir_parallel_copy_instr_create(nir_shader *shader)
 }
 
 nir_ssa_undef_instr *
-nir_ssa_undef_instr_create(nir_shader *shader, unsigned num_components)
+nir_ssa_undef_instr_create(nir_shader *shader,
+                           unsigned num_components,
+                           unsigned bit_size)
 {
    nir_ssa_undef_instr *instr = ralloc(shader, nir_ssa_undef_instr);
    instr_init(&instr->instr, nir_instr_type_ssa_undef);
 
-   nir_ssa_def_init(&instr->instr, &instr->def, num_components, NULL);
+   nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size, NULL);
 
    return instr;
 }
@@ -631,6 +642,9 @@ copy_deref_struct(void *mem_ctx, nir_deref_struct *deref)
 nir_deref *
 nir_copy_deref(void *mem_ctx, nir_deref *deref)
 {
+   if (deref == NULL)
+      return NULL;
+
    switch (deref->deref_type) {
    case nir_deref_type_var:
       return &copy_deref_var(mem_ctx, nir_deref_as_var(deref))->deref;
@@ -683,8 +697,10 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
       tail = tail->child;
    }
 
+   unsigned bit_size = glsl_get_bit_size(tail->type);
    nir_load_const_instr *load =
-      nir_load_const_instr_create(shader, glsl_get_vector_elements(tail->type));
+      nir_load_const_instr_create(shader, glsl_get_vector_elements(tail->type),
+                                  bit_size);
 
    matrix_offset *= load->def.num_components;
    for (unsigned i = 0; i < load->def.num_components; i++) {
@@ -692,10 +708,13 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
       case GLSL_TYPE_FLOAT:
       case GLSL_TYPE_INT:
       case GLSL_TYPE_UINT:
-         load->value.u[i] = constant->value.u[matrix_offset + i];
+         load->value.u32[i] = constant->value.u[matrix_offset + i];
+         break;
+      case GLSL_TYPE_DOUBLE:
+         load->value.f64[i] = constant->value.d[matrix_offset + i];
          break;
       case GLSL_TYPE_BOOL:
-         load->value.u[i] = constant->value.b[matrix_offset + i] ?
+         load->value.u32[i] = constant->value.b[matrix_offset + i] ?
                              NIR_TRUE : NIR_FALSE;
          break;
       default:
@@ -714,6 +733,62 @@ nir_cf_node_get_function(nir_cf_node *node)
    }
 
    return nir_cf_node_as_function(node);
+}
+
+/* Reduces a cursor by trying to convert everything to after and trying to
+ * go up to block granularity when possible.
+ */
+static nir_cursor
+reduce_cursor(nir_cursor cursor)
+{
+   switch (cursor.option) {
+   case nir_cursor_before_block:
+      assert(nir_cf_node_prev(&cursor.block->cf_node) == NULL ||
+             nir_cf_node_prev(&cursor.block->cf_node)->type != nir_cf_node_block);
+      if (exec_list_is_empty(&cursor.block->instr_list)) {
+         /* Empty block.  After is as good as before. */
+         cursor.option = nir_cursor_after_block;
+      }
+      return cursor;
+
+   case nir_cursor_after_block:
+      return cursor;
+
+   case nir_cursor_before_instr: {
+      nir_instr *prev_instr = nir_instr_prev(cursor.instr);
+      if (prev_instr) {
+         /* Before this instruction is after the previous */
+         cursor.instr = prev_instr;
+         cursor.option = nir_cursor_after_instr;
+      } else {
+         /* No previous instruction.  Switch to before block */
+         cursor.block = cursor.instr->block;
+         cursor.option = nir_cursor_before_block;
+      }
+      return reduce_cursor(cursor);
+   }
+
+   case nir_cursor_after_instr:
+      if (nir_instr_next(cursor.instr) == NULL) {
+         /* This is the last instruction, switch to after block */
+         cursor.option = nir_cursor_after_block;
+         cursor.block = cursor.instr->block;
+      }
+      return cursor;
+
+   default:
+      unreachable("Inavlid cursor option");
+   }
+}
+
+bool
+nir_cursors_equal(nir_cursor a, nir_cursor b)
+{
+   /* Reduced cursors should be unique */
+   a = reduce_cursor(a);
+   b = reduce_cursor(b);
+
+   return a.block == b.block && a.option == b.option;
 }
 
 static bool
@@ -821,6 +896,8 @@ src_is_valid(const nir_src *src)
 static bool
 remove_use_cb(nir_src *src, void *state)
 {
+   (void) state;
+
    if (src_is_valid(src))
       list_del(&src->use_link);
 
@@ -830,6 +907,8 @@ remove_use_cb(nir_src *src, void *state)
 static bool
 remove_def_cb(nir_dest *dest, void *state)
 {
+   (void) state;
+
    if (!dest->is_ssa)
       list_del(&dest->reg.def_link);
 
@@ -909,7 +988,7 @@ static bool
 visit_parallel_copy_dest(nir_parallel_copy_instr *instr,
                          nir_foreach_dest_cb cb, void *state)
 {
-   nir_foreach_parallel_copy_entry(instr, entry) {
+   nir_foreach_parallel_copy_entry(entry, instr) {
       if (!cb(&entry->dest, state))
          return false;
    }
@@ -1075,22 +1154,9 @@ visit_intrinsic_src(nir_intrinsic_instr *instr, nir_foreach_src_cb cb,
 }
 
 static bool
-visit_call_src(nir_call_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   return true;
-}
-
-static bool
-visit_load_const_src(nir_load_const_instr *instr, nir_foreach_src_cb cb,
-                     void *state)
-{
-   return true;
-}
-
-static bool
 visit_phi_src(nir_phi_instr *instr, nir_foreach_src_cb cb, void *state)
 {
-   nir_foreach_phi_src(instr, src) {
+   nir_foreach_phi_src(src, instr) {
       if (!visit_src(&src->src, cb, state))
          return false;
    }
@@ -1102,7 +1168,7 @@ static bool
 visit_parallel_copy_src(nir_parallel_copy_instr *instr,
                         nir_foreach_src_cb cb, void *state)
 {
-   nir_foreach_parallel_copy_entry(instr, entry) {
+   nir_foreach_parallel_copy_entry(entry, instr) {
       if (!visit_src(&entry->src, cb, state))
          return false;
    }
@@ -1143,12 +1209,10 @@ nir_foreach_src(nir_instr *instr, nir_foreach_src_cb cb, void *state)
          return false;
       break;
    case nir_instr_type_call:
-      if (!visit_call_src(nir_instr_as_call(instr), cb, state))
-         return false;
+      /* Call instructions have no regular sources */
       break;
    case nir_instr_type_load_const:
-      if (!visit_load_const_src(nir_instr_as_load_const(instr), cb, state))
-         return false;
+      /* Constant load instructions have no regular sources */
       break;
    case nir_instr_type_phi:
       if (!visit_phi_src(nir_instr_as_phi(instr), cb, state))
@@ -1309,15 +1373,18 @@ nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest, nir_dest new_dest)
       src_add_all_uses(dest->reg.indirect, instr, NULL);
 }
 
+/* note: does *not* take ownership of 'name' */
 void
 nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
-                 unsigned num_components, const char *name)
+                 unsigned num_components,
+                 unsigned bit_size, const char *name)
 {
-   def->name = name;
+   def->name = ralloc_strdup(instr, name);
    def->parent_instr = instr;
    list_inithead(&def->uses);
    list_inithead(&def->if_uses);
    def->num_components = num_components;
+   def->bit_size = bit_size;
 
    if (instr->block) {
       nir_function_impl *impl =
@@ -1329,12 +1396,14 @@ nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
    }
 }
 
+/* note: does *not* take ownership of 'name' */
 void
 nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
-                 unsigned num_components, const char *name)
+                 unsigned num_components, unsigned bit_size,
+                 const char *name)
 {
    dest->is_ssa = true;
-   nir_ssa_def_init(instr, &dest->ssa, num_components, name);
+   nir_ssa_def_init(instr, &dest->ssa, num_components, bit_size, name);
 }
 
 void
@@ -1342,10 +1411,10 @@ nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src)
 {
    assert(!new_src.is_ssa || def != new_src.ssa);
 
-   nir_foreach_use_safe(def, use_src)
+   nir_foreach_use_safe(use_src, def)
       nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
 
-   nir_foreach_if_use_safe(def, use_src)
+   nir_foreach_if_use_safe(use_src, def)
       nir_if_rewrite_condition(use_src->parent_if, new_src);
 }
 
@@ -1385,7 +1454,7 @@ nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
 {
    assert(!new_src.is_ssa || def != new_src.ssa);
 
-   nir_foreach_use_safe(def, use_src) {
+   nir_foreach_use_safe(use_src, def) {
       assert(use_src->parent_instr != def->parent_instr);
       /* Since def already dominates all of its uses, the only way a use can
        * not be dominated by after_me is if it is between def and after_me in
@@ -1395,113 +1464,172 @@ nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
          nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
    }
 
-   nir_foreach_if_use_safe(def, use_src)
+   nir_foreach_if_use_safe(use_src, def)
       nir_if_rewrite_condition(use_src->parent_if, new_src);
 }
 
-static bool foreach_cf_node(nir_cf_node *node, nir_foreach_block_cb cb,
-                            bool reverse, void *state);
-
-static inline bool
-foreach_if(nir_if *if_stmt, nir_foreach_block_cb cb, bool reverse, void *state)
+uint8_t
+nir_ssa_def_components_read(nir_ssa_def *def)
 {
-   if (reverse) {
-      foreach_list_typed_reverse_safe(nir_cf_node, node, node,
-                                      &if_stmt->else_list) {
-         if (!foreach_cf_node(node, cb, reverse, state))
-            return false;
-      }
+   uint8_t read_mask = 0;
+   nir_foreach_use(use, def) {
+      if (use->parent_instr->type == nir_instr_type_alu) {
+         nir_alu_instr *alu = nir_instr_as_alu(use->parent_instr);
+         nir_alu_src *alu_src = exec_node_data(nir_alu_src, use, src);
+         int src_idx = alu_src - &alu->src[0];
+         assert(src_idx >= 0 && src_idx < nir_op_infos[alu->op].num_inputs);
 
-      foreach_list_typed_reverse_safe(nir_cf_node, node, node,
-                                      &if_stmt->then_list) {
-         if (!foreach_cf_node(node, cb, reverse, state))
-            return false;
-      }
-   } else {
-      foreach_list_typed_safe(nir_cf_node, node, node, &if_stmt->then_list) {
-         if (!foreach_cf_node(node, cb, reverse, state))
-            return false;
-      }
+         for (unsigned c = 0; c < 4; c++) {
+            if (!nir_alu_instr_channel_used(alu, src_idx, c))
+               continue;
 
-      foreach_list_typed_safe(nir_cf_node, node, node, &if_stmt->else_list) {
-         if (!foreach_cf_node(node, cb, reverse, state))
-            return false;
+            read_mask |= (1 << alu_src->swizzle[c]);
+         }
+      } else {
+         return (1 << def->num_components) - 1;
       }
    }
 
-   return true;
+   return read_mask;
 }
 
-static inline bool
-foreach_loop(nir_loop *loop, nir_foreach_block_cb cb, bool reverse, void *state)
+nir_block *
+nir_block_cf_tree_next(nir_block *block)
 {
-   if (reverse) {
-      foreach_list_typed_reverse_safe(nir_cf_node, node, node, &loop->body) {
-         if (!foreach_cf_node(node, cb, reverse, state))
-            return false;
-      }
-   } else {
-      foreach_list_typed_safe(nir_cf_node, node, node, &loop->body) {
-         if (!foreach_cf_node(node, cb, reverse, state))
-            return false;
-      }
+   if (block == NULL) {
+      /* nir_foreach_block_safe() will call this function on a NULL block
+       * after the last iteration, but it won't use the result so just return
+       * NULL here.
+       */
+      return NULL;
    }
 
-   return true;
-}
+   nir_cf_node *cf_next = nir_cf_node_next(&block->cf_node);
+   if (cf_next)
+      return nir_cf_node_cf_tree_first(cf_next);
 
-static bool
-foreach_cf_node(nir_cf_node *node, nir_foreach_block_cb cb,
-                bool reverse, void *state)
-{
-   switch (node->type) {
-   case nir_cf_node_block:
-      return cb(nir_cf_node_as_block(node), state);
-   case nir_cf_node_if:
-      return foreach_if(nir_cf_node_as_if(node), cb, reverse, state);
+   nir_cf_node *parent = block->cf_node.parent;
+
+   switch (parent->type) {
+   case nir_cf_node_if: {
+      /* Are we at the end of the if? Go to the beginning of the else */
+      nir_if *if_stmt = nir_cf_node_as_if(parent);
+      if (&block->cf_node == nir_if_last_then_node(if_stmt))
+         return nir_cf_node_as_block(nir_if_first_else_node(if_stmt));
+
+      assert(&block->cf_node == nir_if_last_else_node(if_stmt));
+      /* fall through */
+   }
+
    case nir_cf_node_loop:
-      return foreach_loop(nir_cf_node_as_loop(node), cb, reverse, state);
-      break;
+      return nir_cf_node_as_block(nir_cf_node_next(parent));
+
+   case nir_cf_node_function:
+      return NULL;
 
    default:
-      unreachable("Invalid CFG node type");
-      break;
+      unreachable("unknown cf node type");
    }
-
-   return false;
 }
 
-bool
-nir_foreach_block_in_cf_node(nir_cf_node *node, nir_foreach_block_cb cb,
-                             void *state)
+nir_block *
+nir_block_cf_tree_prev(nir_block *block)
 {
-   return foreach_cf_node(node, cb, false, state);
-}
-
-bool
-nir_foreach_block(nir_function_impl *impl, nir_foreach_block_cb cb, void *state)
-{
-   foreach_list_typed_safe(nir_cf_node, node, node, &impl->body) {
-      if (!foreach_cf_node(node, cb, false, state))
-         return false;
+   if (block == NULL) {
+      /* do this for consistency with nir_block_cf_tree_next() */
+      return NULL;
    }
 
-   return cb(impl->end_block, state);
-}
+   nir_cf_node *cf_prev = nir_cf_node_prev(&block->cf_node);
+   if (cf_prev)
+      return nir_cf_node_cf_tree_last(cf_prev);
 
-bool
-nir_foreach_block_reverse(nir_function_impl *impl, nir_foreach_block_cb cb,
-                          void *state)
-{
-   if (!cb(impl->end_block, state))
-      return false;
+   nir_cf_node *parent = block->cf_node.parent;
 
-   foreach_list_typed_reverse_safe(nir_cf_node, node, node, &impl->body) {
-      if (!foreach_cf_node(node, cb, true, state))
-         return false;
+   switch (parent->type) {
+   case nir_cf_node_if: {
+      /* Are we at the beginning of the else? Go to the end of the if */
+      nir_if *if_stmt = nir_cf_node_as_if(parent);
+      if (&block->cf_node == nir_if_first_else_node(if_stmt))
+         return nir_cf_node_as_block(nir_if_last_then_node(if_stmt));
+
+      assert(&block->cf_node == nir_if_first_then_node(if_stmt));
+      /* fall through */
    }
 
-   return true;
+   case nir_cf_node_loop:
+      return nir_cf_node_as_block(nir_cf_node_prev(parent));
+
+   case nir_cf_node_function:
+      return NULL;
+
+   default:
+      unreachable("unknown cf node type");
+   }
+}
+
+nir_block *nir_cf_node_cf_tree_first(nir_cf_node *node)
+{
+   switch (node->type) {
+   case nir_cf_node_function: {
+      nir_function_impl *impl = nir_cf_node_as_function(node);
+      return nir_start_block(impl);
+   }
+
+   case nir_cf_node_if: {
+      nir_if *if_stmt = nir_cf_node_as_if(node);
+      return nir_cf_node_as_block(nir_if_first_then_node(if_stmt));
+   }
+
+   case nir_cf_node_loop: {
+      nir_loop *loop = nir_cf_node_as_loop(node);
+      return nir_cf_node_as_block(nir_loop_first_cf_node(loop));
+   }
+
+   case nir_cf_node_block: {
+      return nir_cf_node_as_block(node);
+   }
+
+   default:
+      unreachable("unknown node type");
+   }
+}
+
+nir_block *nir_cf_node_cf_tree_last(nir_cf_node *node)
+{
+   switch (node->type) {
+   case nir_cf_node_function: {
+      nir_function_impl *impl = nir_cf_node_as_function(node);
+      return nir_impl_last_block(impl);
+   }
+
+   case nir_cf_node_if: {
+      nir_if *if_stmt = nir_cf_node_as_if(node);
+      return nir_cf_node_as_block(nir_if_last_else_node(if_stmt));
+   }
+
+   case nir_cf_node_loop: {
+      nir_loop *loop = nir_cf_node_as_loop(node);
+      return nir_cf_node_as_block(nir_loop_last_cf_node(loop));
+   }
+
+   case nir_cf_node_block: {
+      return nir_cf_node_as_block(node);
+   }
+
+   default:
+      unreachable("unknown node type");
+   }
+}
+
+nir_block *nir_cf_node_cf_tree_next(nir_cf_node *node)
+{
+   if (node->type == nir_cf_node_block)
+      return nir_cf_node_cf_tree_first(nir_cf_node_next(node));
+   else if (node->type == nir_cf_node_function)
+      return NULL;
+   else
+      return nir_cf_node_as_block(nir_cf_node_next(node));
 }
 
 nir_if *
@@ -1537,13 +1665,6 @@ nir_block_get_following_loop(nir_block *block)
 
    return nir_cf_node_as_loop(next_node);
 }
-static bool
-index_block(nir_block *block, void *state)
-{
-   unsigned *index = state;
-   block->index = (*index)++;
-   return true;
-}
 
 void
 nir_index_blocks(nir_function_impl *impl)
@@ -1553,7 +1674,9 @@ nir_index_blocks(nir_function_impl *impl)
    if (impl->valid_metadata & nir_metadata_block_index)
       return;
 
-   nir_foreach_block(impl, index_block, &index);
+   nir_foreach_block(block, impl) {
+      block->index = index++;
+   }
 
    impl->num_blocks = index;
 }
@@ -1567,15 +1690,6 @@ index_ssa_def_cb(nir_ssa_def *def, void *state)
    return true;
 }
 
-static bool
-index_ssa_block(nir_block *block, void *state)
-{
-   nir_foreach_instr(block, instr)
-      nir_foreach_ssa_def(instr, index_ssa_def_cb, state);
-
-   return true;
-}
-
 /**
  * The indices are applied top-to-bottom which has the very nice property
  * that, if A dominates B, then A->index <= B->index.
@@ -1584,18 +1698,13 @@ void
 nir_index_ssa_defs(nir_function_impl *impl)
 {
    unsigned index = 0;
-   nir_foreach_block(impl, index_ssa_block, &index);
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block)
+         nir_foreach_ssa_def(instr, index_ssa_def_cb, &index);
+   }
+
    impl->ssa_alloc = index;
-}
-
-static bool
-index_instrs_block(nir_block *block, void *state)
-{
-   unsigned *index = state;
-   nir_foreach_instr(block, instr)
-      instr->index = (*index)++;
-
-   return true;
 }
 
 /**
@@ -1606,7 +1715,12 @@ unsigned
 nir_index_instrs(nir_function_impl *impl)
 {
    unsigned index = 0;
-   nir_foreach_block(impl, index_instrs_block, &index);
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block)
+         instr->index = index++;
+   }
+
    return index;
 }
 
@@ -1638,6 +1752,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_sample_mask_in;
    case SYSTEM_VALUE_LOCAL_INVOCATION_ID:
       return nir_intrinsic_load_local_invocation_id;
+   case SYSTEM_VALUE_LOCAL_INVOCATION_INDEX:
+      return nir_intrinsic_load_local_invocation_index;
    case SYSTEM_VALUE_WORK_GROUP_ID:
       return nir_intrinsic_load_work_group_id;
    case SYSTEM_VALUE_NUM_WORK_GROUPS:
@@ -1687,6 +1803,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_SAMPLE_MASK_IN;
    case nir_intrinsic_load_local_invocation_id:
       return SYSTEM_VALUE_LOCAL_INVOCATION_ID;
+   case nir_intrinsic_load_local_invocation_index:
+      return SYSTEM_VALUE_LOCAL_INVOCATION_INDEX;
    case nir_intrinsic_load_num_work_groups:
       return SYSTEM_VALUE_NUM_WORK_GROUPS;
    case nir_intrinsic_load_work_group_id:

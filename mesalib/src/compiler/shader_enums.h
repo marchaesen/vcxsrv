@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /**
- * Shader stages. Note that these will become 5 with tessellation.
+ * Shader stages.
  *
  * The order must match how shaders are ordered in the pipeline.
  * The GLSL linker assumes that if i<j, then the j-th shader is
@@ -205,6 +205,8 @@ typedef enum
    VARYING_SLOT_CLIP_VERTEX, /* Does not appear in FS */
    VARYING_SLOT_CLIP_DIST0,
    VARYING_SLOT_CLIP_DIST1,
+   VARYING_SLOT_CULL_DIST0,
+   VARYING_SLOT_CULL_DIST1,
    VARYING_SLOT_PRIMITIVE_ID, /* Does not appear in VS */
    VARYING_SLOT_LAYER, /* Appears as VS or GS output */
    VARYING_SLOT_VIEWPORT, /* Appears as VS or GS output */
@@ -253,6 +255,7 @@ typedef enum
 #define VARYING_SLOT_MAX	(VARYING_SLOT_VAR0 + MAX_VARYING)
 #define VARYING_SLOT_PATCH0	(VARYING_SLOT_MAX)
 #define VARYING_SLOT_TESS_MAX	(VARYING_SLOT_PATCH0 + MAX_VARYING)
+#define MAX_VARYINGS_INCL_PATCH (VARYING_SLOT_TESS_MAX - VARYING_SLOT_VAR0)
 
 const char *gl_varying_slot_name(gl_varying_slot slot);
 
@@ -282,6 +285,8 @@ const char *gl_varying_slot_name(gl_varying_slot slot);
 #define VARYING_BIT_CLIP_VERTEX BITFIELD64_BIT(VARYING_SLOT_CLIP_VERTEX)
 #define VARYING_BIT_CLIP_DIST0 BITFIELD64_BIT(VARYING_SLOT_CLIP_DIST0)
 #define VARYING_BIT_CLIP_DIST1 BITFIELD64_BIT(VARYING_SLOT_CLIP_DIST1)
+#define VARYING_BIT_CULL_DIST0 BITFIELD64_BIT(VARYING_SLOT_CULL_DIST0)
+#define VARYING_BIT_CULL_DIST1 BITFIELD64_BIT(VARYING_SLOT_CULL_DIST1)
 #define VARYING_BIT_PRIMITIVE_ID BITFIELD64_BIT(VARYING_SLOT_PRIMITIVE_ID)
 #define VARYING_BIT_LAYER BITFIELD64_BIT(VARYING_SLOT_LAYER)
 #define VARYING_BIT_VIEWPORT BITFIELD64_BIT(VARYING_SLOT_VIEWPORT)
@@ -379,6 +384,13 @@ typedef enum
    SYSTEM_VALUE_INSTANCE_ID,
 
    /**
+    * Vulkan InstanceIndex.
+    *
+    * InstanceIndex = gl_InstanceID + gl_BaseInstance
+    */
+   SYSTEM_VALUE_INSTANCE_INDEX,
+
+   /**
     * DirectX-style vertex ID.
     *
     * Unlike \c SYSTEM_VALUE_VERTEX_ID, this system value does \b not include
@@ -452,6 +464,8 @@ typedef enum
     */
    /*@{*/
    SYSTEM_VALUE_LOCAL_INVOCATION_ID,
+   SYSTEM_VALUE_LOCAL_INVOCATION_INDEX,
+   SYSTEM_VALUE_GLOBAL_INVOCATION_ID,
    SYSTEM_VALUE_WORK_GROUP_ID,
    SYSTEM_VALUE_NUM_WORK_GROUPS,
    /*@}*/

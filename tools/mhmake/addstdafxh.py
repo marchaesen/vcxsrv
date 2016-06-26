@@ -3,7 +3,7 @@ import sys,re,os
 try:
   InputFile=sys.argv[1]
 except:
-  print "No input file specified"
+  print("No input file specified")
   sys.exit(1)
 
 try:
@@ -12,13 +12,13 @@ try:
   data=pIN.read()
   pIN.close()
 except:
-  print "Error reading input file",InputFile
+  print("Error reading input file",InputFile)
   sys.exit(1)
 
 try:
   pOUT=open(InputFile,"w")
 except:
-  print "Error opening",InputFile,"for writing"
+  print("Error opening",InputFile,"for writing")
   sys.exit(1)
 
 pOUT.write("""#include "stdafx.h"\n""")

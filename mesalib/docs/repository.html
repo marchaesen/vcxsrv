@@ -68,21 +68,39 @@ To get the Mesa sources anonymously (read-only):
 <h2 id="developer">Developer git Access</h2>
 
 <p>
-Mesa developers need to first have an account on
-<a href="http://www.freedesktop.org">freedesktop.org</a>.
-To get an account, please ask Brian or the other Mesa developers for
-permission.
-Then, if there are no objections, follow this
-<a href="http://www.freedesktop.org/wiki/AccountRequests">
-procedure</a>.
+If you wish to become a Mesa developer with git-write privilege, please
+follow this procedure:
 </p>
+<ol>
+<li>Subscribe to the
+<a href="http://lists.freedesktop.org/mailman/listinfo/mesa-dev">mesa-dev</a>
+mailing list.
+<li>Start contributing to the project by posting patches / review requests to
+the mesa-dev list.  Specifically,
+<ul>
+<li>Use <code>git send-mail</code> to post your patches to mesa-dev.
+<li>Wait for someone to review the code and give you a <code>Reviewed-by</code>
+statement.
+<li>You'll have to rely on another Mesa developer to push your initial patches
+after they've been reviewed.
+</ul>
+<li>After you've demonstrated the ability to write good code and have had
+a dozen or so patches accepted you can apply for an account.
+<li>Occasionally, but rarely, someone may be given a git account sooner, but
+only if they're being supervised by another Mesa developer at the same
+organization and planning to work in a limited area of the code or on a
+separate branch.
+<li>To apply for an account, follow
+<a href="http://www.freedesktop.org/wiki/AccountRequests">these directions</a>.
+It's also appreciated if you briefly describe what you intend to do (work
+on a particular driver, add a new extension, etc.) in the bugzilla record.
+</ol>
 
 <p>
 Once your account is established:
 </p>
 
 <ol>
-<li>Install the git software on your computer if needed.<br><br>
 <li>Get an initial, local copy of the repository with:
     <pre>
     git clone git+ssh://username@git.freedesktop.org/git/mesa/mesa

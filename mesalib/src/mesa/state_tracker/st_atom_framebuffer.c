@@ -43,6 +43,7 @@
 #include "util/u_math.h"
 #include "util/u_inlines.h"
 #include "util/u_format.h"
+#include "main/framebuffer.h"
 
 
 /**
@@ -64,6 +65,41 @@ update_framebuffer_size(struct pipe_framebuffer_state *framebuffer,
    framebuffer->height = MIN2(framebuffer->height, surface->height);
 }
 
+/**
+ * Round up the requested multisample count to the next supported sample size.
+ */
+static unsigned
+framebuffer_quantize_num_samples(struct st_context *st, unsigned num_samples)
+{
+   struct pipe_screen *screen = st->pipe->screen;
+   int quantized_samples = 0;
+   unsigned msaa_mode;
+
+   if (!num_samples)
+      return 0;
+
+   /* Assumes the highest supported MSAA is a power of 2 */
+   msaa_mode = util_next_power_of_two(st->ctx->Const.MaxFramebufferSamples);
+   assert(!(num_samples > msaa_mode)); /* be safe from infinite loops */
+
+   /**
+    * Check if the MSAA mode that is higher than the requested
+    * num_samples is supported, and if so returning it.
+    */
+   for (; msaa_mode >= num_samples; msaa_mode = msaa_mode / 2) {
+      /**
+       * For ARB_framebuffer_no_attachment, A format of
+       * PIPE_FORMAT_NONE implies what number of samples is
+       * supported for a framebuffer with no attachment. Thus the
+       * drivers callback must be adjusted for this.
+       */
+      if (screen->is_format_supported(screen, PIPE_FORMAT_NONE,
+                                      PIPE_TEXTURE_2D, msaa_mode,
+                                      PIPE_BIND_RENDER_TARGET))
+         quantized_samples = msaa_mode;
+   }
+   return quantized_samples;
+}
 
 /**
  * Update framebuffer state (color, depth, stencil, etc. buffers)
@@ -77,12 +113,25 @@ update_framebuffer_state( struct st_context *st )
    GLuint i;
 
    st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    st->state.fb_orientation = st_fb_orientation(fb);
-   framebuffer->width  = UINT_MAX;
-   framebuffer->height = UINT_MAX;
 
-   /*printf("------ fb size %d x %d\n", fb->Width, fb->Height);*/
+   /**
+    * Quantize the derived default number of samples:
+    *
+    * A query to the driver of supported MSAA values the
+    * hardware supports is done as to legalize the number
+    * of application requested samples, NumSamples.
+    * See commit eb9cf3c for more information.
+    */
+   fb->DefaultGeometry._NumSamples =
+      framebuffer_quantize_num_samples(st, fb->DefaultGeometry.NumSamples);
+
+   framebuffer->width  = _mesa_geometric_width(fb);
+   framebuffer->height = _mesa_geometric_height(fb);
+   framebuffer->samples = _mesa_geometric_samples(fb);
+   framebuffer->layers = _mesa_geometric_layers(fb);
 
    /* Examine Mesa's ctx->DrawBuffer->_ColorDrawBuffers state
     * to determine which surfaces to draw to

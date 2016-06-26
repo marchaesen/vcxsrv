@@ -7,13 +7,13 @@
 #include <xorg-config.h>
 #endif
 
-#include <x86emu.h>
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "xf86Pci.h"
 #define _INT10_PRIVATE
 #include "xf86int10.h"
 #include "int10Defines.h"
+#include <x86emu.h>
 
 #define M _X86EMU_env
 

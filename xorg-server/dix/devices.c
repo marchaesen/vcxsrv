@@ -281,6 +281,7 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
     dev->startup = autoStart;
 
     /* device grab defaults */
+    UpdateCurrentTimeIf();
     dev->deviceGrab.grabTime = currentTime;
     dev->deviceGrab.ActivateGrab = ActivateKeyboardGrab;
     dev->deviceGrab.DeactivateGrab = DeactivateKeyboardGrab;
@@ -338,11 +339,13 @@ SendDevicePresenceEvent(int deviceid, int type)
     DeviceIntRec dummyDev;
     devicePresenceNotify ev;
 
-    memset(&dummyDev, 0, sizeof(DeviceIntRec));
+    UpdateCurrentTimeIf();
     ev.type = DevicePresenceNotify;
     ev.time = currentTime.milliseconds;
     ev.devchange = type;
     ev.deviceid = deviceid;
+
+    memset(&dummyDev, 0, sizeof(DeviceIntRec));
     dummyDev.id = XIAllDevices;
     SendEventToAllWindows(&dummyDev, DevicePresenceNotifyMask,
                           (xEvent *) &ev, 1);
@@ -492,14 +495,14 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
 
     FreeSprite(dev);
 
-    /* now that the device is disabled, we can reset the signal handler's
+    /* now that the device is disabled, we can reset the event reader's
      * last.slave */
-    OsBlockSignals();
+    input_lock();
     for (other = inputInfo.devices; other; other = other->next) {
         if (other->last.slave == dev)
             other->last.slave = NULL;
     }
-    OsReleaseSignals();
+    input_unlock();
 
     LeaveWindow(dev);
     SetFocusOut(dev);
@@ -1032,7 +1035,7 @@ CloseDownDevices(void)
 {
     DeviceIntPtr dev;
 
-    OsBlockSignals();
+    input_lock();
 
     /* Float all SDs before closing them. Note that at this point resources
      * (e.g. cursors) have been freed already, so we can't just call
@@ -1063,7 +1066,7 @@ CloseDownDevices(void)
     XkbDeleteRulesDflts();
     XkbDeleteRulesUsed();
 
-    OsReleaseSignals();
+    input_unlock();
 }
 
 /**
@@ -1408,6 +1411,7 @@ InitFocusClassDeviceStruct(DeviceIntPtr dev)
     focc = malloc(sizeof(FocusClassRec));
     if (!focc)
         return FALSE;
+    UpdateCurrentTimeIf();
     focc->win = PointerRootWin;
     focc->revert = None;
     focc->time = currentTime;
@@ -1686,8 +1690,7 @@ ProcSetModifierMapping(ClientPtr client)
                        stuff->numKeyPerModifier);
     if (rc == MappingFailed || rc == -1)
         return BadValue;
-    if (rc != Success && rc != MappingSuccess && rc != MappingFailed &&
-        rc != MappingBusy)
+    if (rc != MappingSuccess && rc != MappingFailed && rc != MappingBusy)
         return rc;
 
     rep.success = rc;
@@ -2358,6 +2361,7 @@ ProcGetMotionEvents(ClientPtr client)
     if (rc != Success)
         return rc;
 
+    UpdateCurrentTimeIf();
     if (mouse->valuator->motionHintWindow)
         MaybeStopHint(mouse, client);
 

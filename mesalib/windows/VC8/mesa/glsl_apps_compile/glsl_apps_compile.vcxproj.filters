@@ -207,9 +207,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_jumps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_clip_distance.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_constant_propagation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -349,6 +346,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\shader_enums.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\propagate_invariance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_distance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\standalone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

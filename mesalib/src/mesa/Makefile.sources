@@ -171,6 +171,7 @@ MAIN_FILES = \
 	main/remap.h \
 	main/renderbuffer.c \
 	main/renderbuffer.h \
+	main/robustness.c \
 	main/samplerobj.c \
 	main/samplerobj.h \
 	main/scissor.c \
@@ -395,6 +396,8 @@ VBO_FILES = \
 	vbo/vbo_split_inplace.c
 
 STATETRACKER_FILES = \
+	state_tracker/st_atifs_to_tgsi.c \
+	state_tracker/st_atifs_to_tgsi.h \
 	state_tracker/st_atom_array.c \
 	state_tracker/st_atom_atomicbuf.c \
 	state_tracker/st_atom_blend.c \
@@ -487,14 +490,23 @@ STATETRACKER_FILES = \
 	state_tracker/st_gen_mipmap.c \
 	state_tracker/st_gen_mipmap.h \
 	state_tracker/st_gl_api.h \
+	state_tracker/st_glsl_to_nir.cpp \
 	state_tracker/st_glsl_to_tgsi.cpp \
 	state_tracker/st_glsl_to_tgsi.h \
+	state_tracker/st_glsl_types.cpp \
+	state_tracker/st_glsl_types.h \
 	state_tracker/st_manager.c \
 	state_tracker/st_manager.h \
 	state_tracker/st_mesa_to_tgsi.c \
 	state_tracker/st_mesa_to_tgsi.h \
+	state_tracker/st_nir.h \
+	state_tracker/st_nir_lower_builtin.c \
+	state_tracker/st_pbo.c \
+	state_tracker/st_pbo.h \
 	state_tracker/st_program.c \
 	state_tracker/st_program.h \
+	state_tracker/st_scissor.c \
+	state_tracker/st_scissor.h \
 	state_tracker/st_texture.c \
 	state_tracker/st_texture.h \
 	state_tracker/st_vdpau.c \
@@ -586,6 +598,12 @@ X86_64_FILES =		\
 	x86-64/x86-64.h	\
 	x86-64/xform4.S
 
+X86_SSE41_FILES = \
+	main/streaming-load-memcpy.c \
+	main/streaming-load-memcpy.h \
+	main/sse_minmax.c \
+	main/sse_minmax.h
+
 SPARC_FILES =			\
 	sparc/sparc.h		\
 	sparc/sparc_clip.S	\
@@ -628,6 +646,7 @@ MESA_GALLIUM_FILES = \
 
 INCLUDE_DIRS = \
 	-I$(top_srcdir)/include \
+	-I$(top_builddir)/src \
 	-I$(top_srcdir)/src \
 	-I$(top_builddir)/src/compiler/nir \
 	-I$(top_srcdir)/src/mesa \

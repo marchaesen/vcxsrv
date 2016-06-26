@@ -174,13 +174,35 @@ class PrintGlxProtoStubs(glX_proto_common.glx_print_proto):
         print '#include <X11/Xlib-xcb.h>'
         print '#include <xcb/xcb.h>'
         print '#include <xcb/glx.h>'
+        print '#include <limits.h>'
 
-        print ''
-        print '#define __GLX_PAD(n) (((n) + 3) & ~3)'
         print ''
         self.printFastcall()
         self.printNoinline()
         print ''
+
+        print 'static _X_INLINE int safe_add(int a, int b)'
+        print '{'
+        print '    if (a < 0 || b < 0) return -1;'
+        print '    if (INT_MAX - a < b) return -1;'
+        print '    return a + b;'
+        print '}'
+        print 'static _X_INLINE int safe_mul(int a, int b)'
+        print '{'
+        print '    if (a < 0 || b < 0) return -1;'
+        print '    if (a == 0 || b == 0) return 0;'
+        print '    if (a > INT_MAX / b) return -1;'
+        print '    return a * b;'
+        print '}'
+        print 'static _X_INLINE int safe_pad(int a)'
+        print '{'
+        print '    int ret;'
+        print '    if (a < 0) return -1;'
+        print '    if ((ret = safe_add(a, 3)) < 0) return -1;'
+        print '    return ret & (GLuint)~3;'
+        print '}'
+        print ''
+
         print '#ifndef __GNUC__'
         print '#  define __builtin_expect(x, y) x'
         print '#endif'
@@ -612,6 +634,15 @@ generic_%u_byte( GLint rop, const void * ptr )
         self.emit_packet_size_calculation(f, 0)
         if name != None and name not in f.glx_vendorpriv_names:
             print '#endif'
+
+        if f.command_variable_length() != "":
+            print "    if (0%s < 0) {" % f.command_variable_length()
+            print "        __glXSetError(gc, GL_INVALID_VALUE);"
+            if f.return_type != 'void':
+                print "        return 0;"
+            else:
+                print "        return;"
+            print "    }"
 
         condition_list = []
         for p in f.parameterIterateCounters():

@@ -1,4 +1,6 @@
 MESA_UTIL_FILES :=	\
+	bitscan.c \
+	bitscan.h \
 	bitset.h \
 	debug.c \
 	debug.h \

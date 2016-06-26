@@ -34,5 +34,7 @@ main (void)
 	FcConfigAppFontAddFile (config, (const FcChar8 *)"/dev/null"))
 	return 1;
 
+    FcConfigDestroy (config);
+
     return 0;
 }

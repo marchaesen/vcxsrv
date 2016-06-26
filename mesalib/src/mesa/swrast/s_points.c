@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
+#include "main/framebuffer.h"
 #include "main/glheader.h"
 #include "main/macros.h"
 #include "s_context.h"
@@ -139,8 +139,8 @@ sprite_point(struct gl_context *ctx, const SWvertex *vert)
          if (attr >= VARYING_SLOT_TEX0 && attr <= VARYING_SLOT_TEX7) {
             /* a texcoord attribute */
             const GLuint u = attr - VARYING_SLOT_TEX0;
-            assert(u < ARRAY_SIZE(ctx->Point.CoordReplace));
-            if (ctx->Point.CoordReplace[u]) {
+            assert(u < MAX_TEXTURE_COORD_UNITS);
+            if (ctx->Point.CoordReplace & (1u << u)) {
                tCoords[numTcoords++] = attr;
 
                if (ctx->Point.SpriteRMode == GL_ZERO)
@@ -257,7 +257,7 @@ smooth_point(struct gl_context *ctx, const SWvertex *vert)
    size = get_size(ctx, vert, GL_TRUE);
 
    /* alpha attenuation / fade factor */
-   if (ctx->Multisample._Enabled) {
+   if (_mesa_is_multisample_enabled(ctx)) {
       if (vert->pointSize >= ctx->Point.Threshold) {
          alphaAtten = 1.0F;
       }

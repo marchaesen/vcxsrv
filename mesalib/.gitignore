@@ -34,6 +34,7 @@ aclocal.m4
 config.log
 config.status
 cscope*
+tags
 .scon*
 config.py
 build
@@ -47,3 +48,4 @@ Makefile
 Makefile.in
 .install-mesa-links
 .install-gallium-links
+/src/git_sha1.h

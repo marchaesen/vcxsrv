@@ -58,6 +58,8 @@ struct st_renderbuffer
    boolean software;
    void *data;
 
+   bool use_readpix_cache;
+
    /* Inputs from Driver.RenderTexture, don't use directly. */
    boolean is_rtt; /**< whether Driver.RenderTexture was called */
    unsigned rtt_face, rtt_slice;

@@ -188,8 +188,7 @@ glamor_dash_setup(DrawablePtr drawable, GCPtr gc)
 
     /* Set the dash pattern as texture 1 */
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, dash_priv->fbo->tex);
+    glamor_bind_texture(glamor_priv, GL_TEXTURE1, dash_priv->fbo, FALSE);
     glUniform1i(prog->dash_uniform, 1);
     glUniform1f(prog->dash_length_uniform, dash_pixmap->drawable.width);
 

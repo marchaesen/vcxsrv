@@ -351,7 +351,7 @@ do_structure_splitting(exec_list *instructions)
 	 entry->components[i] =
 	    new(entry->mem_ctx) ir_variable(type->fields.structure[i].type,
 					    name,
-					    ir_var_temporary);
+					    (ir_variable_mode) entry->var->data.mode);
 	 entry->var->insert_before(entry->components[i]);
       }
 

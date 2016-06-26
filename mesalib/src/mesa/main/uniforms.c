@@ -46,6 +46,7 @@
 #include "compiler/glsl/ir_uniform.h"
 #include "compiler/glsl_types.h"
 #include "program/program.h"
+#include "util/bitscan.h"
 
 /**
  * Update the vertex/fragment program's TexturesUsed array.
@@ -66,7 +67,7 @@ void
 _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
 				  struct gl_program *prog)
 {
-   GLuint s;
+   GLbitfield mask = prog->SamplersUsed;
    struct gl_shader *shader =
       shProg->_LinkedShaders[_mesa_program_enum_to_shader_stage(prog->Target)];
 
@@ -77,26 +78,25 @@ _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
 
    shProg->SamplersValidated = GL_TRUE;
 
-   for (s = 0; s < MAX_SAMPLERS; s++) {
-      if (prog->SamplersUsed & (1 << s)) {
-         GLuint unit = shader->SamplerUnits[s];
-         GLuint tgt = shader->SamplerTargets[s];
-         assert(unit < ARRAY_SIZE(prog->TexturesUsed));
-         assert(tgt < NUM_TEXTURE_TARGETS);
+   while (mask) {
+      const int s = u_bit_scan(&mask);
+      GLuint unit = shader->SamplerUnits[s];
+      GLuint tgt = shader->SamplerTargets[s];
+      assert(unit < ARRAY_SIZE(prog->TexturesUsed));
+      assert(tgt < NUM_TEXTURE_TARGETS);
 
-         /* The types of the samplers associated with a particular texture
-          * unit must be an exact match.  Page 74 (page 89 of the PDF) of the
-          * OpenGL 3.3 core spec says:
-          *
-          *     "It is not allowed to have variables of different sampler
-          *     types pointing to the same texture image unit within a program
-          *     object."
-          */
-         if (prog->TexturesUsed[unit] & ~(1 << tgt))
-            shProg->SamplersValidated = GL_FALSE;
+      /* The types of the samplers associated with a particular texture
+       * unit must be an exact match.  Page 74 (page 89 of the PDF) of the
+       * OpenGL 3.3 core spec says:
+       *
+       *     "It is not allowed to have variables of different sampler
+       *     types pointing to the same texture image unit within a program
+       *     object."
+       */
+      if (prog->TexturesUsed[unit] & ~(1 << tgt))
+         shProg->SamplersValidated = GL_FALSE;
 
-         prog->TexturesUsed[unit] |= (1 << tgt);
-      }
+      prog->TexturesUsed[unit] |= (1 << tgt);
    }
 }
 
@@ -1016,28 +1016,13 @@ _mesa_UniformBlockBinding(GLuint program,
       return;
    }
 
-   if (shProg->UniformBlocks[uniformBlockIndex]->Binding !=
+   if (shProg->UniformBlocks[uniformBlockIndex].Binding !=
        uniformBlockBinding) {
-      int i;
 
       FLUSH_VERTICES(ctx, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
 
-      const int interface_block_index =
-         shProg->UboInterfaceBlockIndex[uniformBlockIndex];
-
-      shProg->BufferInterfaceBlocks[interface_block_index].Binding =
-         uniformBlockBinding;
-
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 int stage_index =
-            shProg->InterfaceBlockStageIndex[i][interface_block_index];
-
-	 if (stage_index != -1) {
-	    struct gl_shader *sh = shProg->_LinkedShaders[i];
-	    sh->BufferInterfaceBlocks[stage_index].Binding = uniformBlockBinding;
-	 }
-      }
+      shProg->UniformBlocks[uniformBlockIndex].Binding = uniformBlockBinding;
    }
 }
 
@@ -1074,28 +1059,14 @@ _mesa_ShaderStorageBlockBinding(GLuint program,
       return;
    }
 
-   if (shProg->ShaderStorageBlocks[shaderStorageBlockIndex]->Binding !=
+   if (shProg->ShaderStorageBlocks[shaderStorageBlockIndex].Binding !=
        shaderStorageBlockBinding) {
-      int i;
 
       FLUSH_VERTICES(ctx, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewShaderStorageBuffer;
 
-      const int interface_block_index =
-         shProg->SsboInterfaceBlockIndex[shaderStorageBlockIndex];
-
-      shProg->BufferInterfaceBlocks[interface_block_index].Binding =
+      shProg->ShaderStorageBlocks[shaderStorageBlockIndex].Binding =
          shaderStorageBlockBinding;
-
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 int stage_index =
-            shProg->InterfaceBlockStageIndex[i][interface_block_index];
-
-	 if (stage_index != -1) {
-	    struct gl_shader *sh = shProg->_LinkedShaders[i];
-	    sh->BufferInterfaceBlocks[stage_index].Binding = shaderStorageBlockBinding;
-	 }
-      }
    }
 }
 
@@ -1171,6 +1142,12 @@ mesa_bufferiv(struct gl_shader_program *shProg, GLenum type,
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_FRAGMENT_SHADER, params,
+                                  caller);
+      return;
+   case GL_UNIFORM_BLOCK_REFERENCED_BY_COMPUTE_SHADER:
+   case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER:
+      _mesa_program_resource_prop(shProg, res, index,
+                                  GL_REFERENCED_BY_COMPUTE_SHADER, params,
                                   caller);
       return;
    default:

@@ -245,9 +245,9 @@ public:
                /* Similarly, we need implicit sizes of arrays within interface
                 * blocks to be sized by the maximal access in *any* shader.
                 */
-               unsigned *const linked_max_ifc_array_access =
+               int *const linked_max_ifc_array_access =
                   var->get_max_ifc_array_access();
-               unsigned *const ir_max_ifc_array_access =
+               int *const ir_max_ifc_array_access =
                   ir->var->get_max_ifc_array_access();
 
                assert(linked_max_ifc_array_access != NULL);

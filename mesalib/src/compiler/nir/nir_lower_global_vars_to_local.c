@@ -32,21 +32,11 @@
 
 #include "nir.h"
 
-struct global_to_local_state {
-   nir_function_impl *impl;
-   /* A hash table keyed on variable pointers that stores the unique
-    * nir_function_impl that uses the given variable.  If a variable is
-    * used in multiple functions, the data for the given key will be NULL.
-    */
-   struct hash_table *var_func_table;
-};
-
 static bool
-mark_global_var_uses_block(nir_block *block, void *void_state)
+mark_global_var_uses_block(nir_block *block, nir_function_impl *impl,
+                           struct hash_table *var_func_table)
 {
-   struct global_to_local_state *state = void_state;
-
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
@@ -59,13 +49,13 @@ mark_global_var_uses_block(nir_block *block, void *void_state)
             continue;
 
          struct hash_entry *entry =
-            _mesa_hash_table_search(state->var_func_table, var);
+            _mesa_hash_table_search(var_func_table, var);
 
          if (entry) {
-            if (entry->data != state->impl)
+            if (entry->data != impl)
                entry->data = NULL;
          } else {
-            _mesa_hash_table_insert(state->var_func_table, var, state->impl);
+            _mesa_hash_table_insert(var_func_table, var, impl);
          }
       }
    }
@@ -76,21 +66,25 @@ mark_global_var_uses_block(nir_block *block, void *void_state)
 bool
 nir_lower_global_vars_to_local(nir_shader *shader)
 {
-   struct global_to_local_state state;
    bool progress = false;
 
-   state.var_func_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                  _mesa_key_pointer_equal);
+   /* A hash table keyed on variable pointers that stores the unique
+    * nir_function_impl that uses the given variable.  If a variable is
+    * used in multiple functions, the data for the given key will be NULL.
+    */
+   struct hash_table *var_func_table =
+      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                              _mesa_key_pointer_equal);
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl) {
-         state.impl = function->impl;
-         nir_foreach_block(function->impl, mark_global_var_uses_block, &state);
+         nir_foreach_block(block, function->impl)
+            mark_global_var_uses_block(block, function->impl, var_func_table);
       }
    }
 
    struct hash_entry *entry;
-   hash_table_foreach(state.var_func_table, entry) {
+   hash_table_foreach(var_func_table, entry) {
       nir_variable *var = (void *)entry->key;
       nir_function_impl *impl = entry->data;
 
@@ -107,7 +101,7 @@ nir_lower_global_vars_to_local(nir_shader *shader)
       }
    }
 
-   _mesa_hash_table_destroy(state.var_func_table, NULL);
+   _mesa_hash_table_destroy(var_func_table, NULL);
 
    return progress;
 }

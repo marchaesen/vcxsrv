@@ -23,6 +23,7 @@
  */
 
 #include "state_tracker/st_context.h"
+#include "state_tracker/st_cb_bitmap.h"
 #include "state_tracker/st_cb_copyimage.h"
 #include "state_tracker/st_cb_fbo.h"
 #include "state_tracker/st_texture.h"
@@ -67,34 +68,34 @@ get_canonical_format(enum pipe_format format)
        desc->channel[1].size == 10 &&
        desc->channel[2].size == 10 &&
        desc->channel[3].size == 2) {
-      if (desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_X &&
-          desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_Y &&
-          desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_Z)
+      if (desc->swizzle[0] == PIPE_SWIZZLE_X &&
+          desc->swizzle[1] == PIPE_SWIZZLE_Y &&
+          desc->swizzle[2] == PIPE_SWIZZLE_Z)
          return get_canonical_format(PIPE_FORMAT_R8G8B8A8_UINT);
 
       return PIPE_FORMAT_NONE;
    }
 
 #define RETURN_FOR_SWIZZLE1(x, format) \
-   if (desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_##x) \
+   if (desc->swizzle[0] == PIPE_SWIZZLE_##x) \
       return format
 
 #define RETURN_FOR_SWIZZLE2(x, y, format) \
-   if (desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_##x && \
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_##y) \
+   if (desc->swizzle[0] == PIPE_SWIZZLE_##x && \
+       desc->swizzle[1] == PIPE_SWIZZLE_##y) \
       return format
 
 #define RETURN_FOR_SWIZZLE3(x, y, z, format) \
-   if (desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_##x && \
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_##y && \
-       desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_##z) \
+   if (desc->swizzle[0] == PIPE_SWIZZLE_##x && \
+       desc->swizzle[1] == PIPE_SWIZZLE_##y && \
+       desc->swizzle[2] == PIPE_SWIZZLE_##z) \
       return format
 
 #define RETURN_FOR_SWIZZLE4(x, y, z, w, format) \
-   if (desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_##x && \
-       desc->swizzle[1] == UTIL_FORMAT_SWIZZLE_##y && \
-       desc->swizzle[2] == UTIL_FORMAT_SWIZZLE_##z && \
-       desc->swizzle[3] == UTIL_FORMAT_SWIZZLE_##w) \
+   if (desc->swizzle[0] == PIPE_SWIZZLE_##x && \
+       desc->swizzle[1] == PIPE_SWIZZLE_##y && \
+       desc->swizzle[2] == PIPE_SWIZZLE_##z && \
+       desc->swizzle[3] == PIPE_SWIZZLE_##w) \
       return format
 
    /* Array formats. */
@@ -161,9 +162,9 @@ get_canonical_format(enum pipe_format format)
             RETURN_FOR_SWIZZLE4(Z, Y, X, W, PIPE_FORMAT_B8G8R8A8_UNORM);
             RETURN_FOR_SWIZZLE4(Z, Y, X, 1, PIPE_FORMAT_B8G8R8A8_UNORM);
             RETURN_FOR_SWIZZLE4(W, Z, Y, X, PIPE_FORMAT_A8B8G8R8_UNORM);
-            RETURN_FOR_SWIZZLE4(1, Z, Y, X, PIPE_FORMAT_A8B8G8R8_UNORM);
-            RETURN_FOR_SWIZZLE4(W, X, Y, Z, PIPE_FORMAT_A8R8G8B8_UNORM);
-            RETURN_FOR_SWIZZLE4(1, X, Y, Z, PIPE_FORMAT_A8R8G8B8_UNORM);
+            RETURN_FOR_SWIZZLE4(W, Z, Y, 1, PIPE_FORMAT_A8B8G8R8_UNORM);
+            RETURN_FOR_SWIZZLE4(Y, Z, W, X, PIPE_FORMAT_A8R8G8B8_UNORM);
+            RETURN_FOR_SWIZZLE4(Y, Z, W, 1, PIPE_FORMAT_A8R8G8B8_UNORM);
             break;
 
          case 16:
@@ -196,7 +197,7 @@ has_identity_swizzle(const struct util_format_description *desc)
    int i;
 
    for (i = 0; i < desc->nr_channels; i++)
-      if (desc->swizzle[i] != UTIL_FORMAT_SWIZZLE_X + i)
+      if (desc->swizzle[i] != PIPE_SWIZZLE_X + i)
          return false;
 
    return true;
@@ -348,8 +349,8 @@ same_size_and_swizzle(const struct util_format_description *d1,
       if (d1->channel[i].size != d2->channel[i].size)
          return false;
 
-      if (d1->swizzle[i] <= UTIL_FORMAT_SWIZZLE_W &&
-          d2->swizzle[i] <= UTIL_FORMAT_SWIZZLE_W &&
+      if (d1->swizzle[i] <= PIPE_SWIZZLE_W &&
+          d2->swizzle[i] <= PIPE_SWIZZLE_W &&
           d1->swizzle[i] != d2->swizzle[i])
          return false;
    }
@@ -546,6 +547,9 @@ st_CopyImageSubData(struct gl_context *ctx,
    struct pipe_resource *src_res, *dst_res;
    struct pipe_box box;
    int src_level, dst_level;
+
+   st_flush_bitmap_cache(st);
+   st_invalidate_readpix_cache(st);
 
    if (src_image) {
       struct st_texture_image *src = st_texture_image(src_image);

@@ -62,7 +62,7 @@
 #include "Xprintf.h"
 
 
-static xf86ConfigSymTabRec PointerTab[] = {
+static const xf86ConfigSymTabRec PointerTab[] = {
     {PROTOCOL, "protocol"},
     {EMULATE3, "emulate3buttons"},
     {EM3TIMEOUT, "emulate3timeout"},
@@ -83,7 +83,7 @@ static xf86ConfigSymTabRec PointerTab[] = {
     {-1, ""},
 };
 
-static xf86ConfigSymTabRec ZMapTab[] = {
+static const xf86ConfigSymTabRec ZMapTab[] = {
     {XAXIS, "x"},
     {YAXIS, "y"},
     {-1, ""},

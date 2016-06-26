@@ -3,18 +3,18 @@
 /*
  * (C) Copyright IBM Corporation 2005
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sub license,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the next
  * paragraph) shall be included in all copies or substantial portions of the
  * Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
@@ -68,7 +68,7 @@ GLenum type        = * (GLenum *)(pc + 4);
     }
 
     compsize = __glCallLists_size(type);
-    return safe_pad(safe_mul(compsize , n));
+    return safe_pad(safe_mul(compsize, n));
 }
 
 int
@@ -106,7 +106,7 @@ GLenum pname       = * (GLenum *)(pc + 0);
     }
 
     compsize = __glFogfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -120,7 +120,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glLightfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -134,7 +134,7 @@ GLenum pname       = * (GLenum *)(pc + 0);
     }
 
     compsize = __glLightModelfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -148,7 +148,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glMaterialfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -182,7 +182,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -254,7 +254,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexEnvfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -268,7 +268,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexGendv_size(pname);
-    return safe_pad(safe_mul(compsize , 8));
+    return safe_pad(safe_mul(compsize, 8));
 }
 
 int
@@ -282,7 +282,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexGenfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -294,7 +294,7 @@ GLsizei mapsize    = *(GLsizei *)(pc + 4);
         mapsize = bswap_32(mapsize);
     }
 
-    return safe_pad(safe_mul(mapsize , 4));
+    return safe_pad(safe_mul(mapsize, 4));
 }
 
 int
@@ -306,7 +306,7 @@ GLsizei mapsize    = *(GLsizei *)(pc + 4);
         mapsize = bswap_32(mapsize);
     }
 
-    return safe_pad(safe_mul(mapsize , 2));
+    return safe_pad(safe_mul(mapsize, 2));
 }
 
 int
@@ -346,7 +346,7 @@ GLsizei n          = *(GLsizei *)(pc + 0);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_add(safe_mul(n , 4), safe_mul(n , 4)));
+    return safe_pad(safe_add(safe_mul(n, 4), safe_mul(n, 4)));
 }
 
 int
@@ -446,7 +446,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glColorTableParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -546,7 +546,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glConvolutionParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -679,7 +679,7 @@ GLenum pname       = * (GLenum *)(pc + 0);
     }
 
     compsize = __glPointParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize , 4));
+    return safe_pad(safe_mul(compsize, 4));
 }
 
 int
@@ -691,7 +691,7 @@ GLsizei n          = *(GLsizei *)(pc + 0);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 4));
+    return safe_pad(safe_mul(n, 4));
 }
 
 int
@@ -715,7 +715,7 @@ GLsizei num        = *(GLsizei *)(pc + 8);
         num = bswap_32(num);
     }
 
-    return safe_pad(safe_mul(num , 32));
+    return safe_pad(safe_mul(num, 32));
 }
 
 int
@@ -727,7 +727,7 @@ GLsizei num        = *(GLsizei *)(pc + 8);
         num = bswap_32(num);
     }
 
-    return safe_pad(safe_mul(num , 16));
+    return safe_pad(safe_mul(num, 16));
 }
 
 int
@@ -739,7 +739,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 8));
+    return safe_pad(safe_mul(n, 8));
 }
 
 int
@@ -751,7 +751,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 16));
+    return safe_pad(safe_mul(n, 16));
 }
 
 int
@@ -763,7 +763,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 24));
+    return safe_pad(safe_mul(n, 24));
 }
 
 int
@@ -775,7 +775,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 12));
+    return safe_pad(safe_mul(n, 12));
 }
 
 int
@@ -787,7 +787,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 6));
+    return safe_pad(safe_mul(n, 6));
 }
 
 int
@@ -799,7 +799,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n , 32));
+    return safe_pad(safe_mul(n, 32));
 }
 
 int

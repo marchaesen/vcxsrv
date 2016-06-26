@@ -678,7 +678,7 @@ typedef struct _ScrnInfoRec {
     /* Allow screens to be enabled/disabled individually */
     Bool vtSema;
 
-    /* hw cursor moves at SIGIO time */
+    /* hw cursor moves from input thread */
     Bool silkenMouse;
 
     /* Storage for clockRanges and adjustFlags for use with the VidMode ext */

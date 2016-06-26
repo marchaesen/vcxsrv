@@ -168,7 +168,7 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
    GLuint src_view_texture = 0;
    struct gl_texture_image *src_view_tex_image;
    struct gl_framebuffer *readFb;
-   struct gl_framebuffer *drawFb;
+   struct gl_framebuffer *drawFb = NULL;
    bool success = false;
    GLbitfield mask;
    GLenum status, attachment;
@@ -268,6 +268,9 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
    status = _mesa_check_framebuffer_status(ctx, ctx->DrawBuffer);
    if (status != GL_FRAMEBUFFER_COMPLETE)
       goto meta_end;
+
+   /* Explicitly disable sRGB encoding */
+   ctx->DrawBuffer->Visual.sRGBCapable = false;
 
    /* Since we've bound a new draw framebuffer, we need to update its
     * derived state -- _Xmin, etc -- for BlitFramebuffer's clipping to

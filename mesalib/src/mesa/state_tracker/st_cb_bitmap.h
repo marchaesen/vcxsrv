@@ -49,7 +49,7 @@ st_flush_bitmap_cache(struct st_context *st);
 
 extern const struct tgsi_token *
 st_get_bitmap_shader(const struct tgsi_token *tokens,
-                     unsigned sampler_index,
+                     unsigned tex_target, unsigned sampler_index,
                      bool use_texcoord, bool swizzle_xxxx);
 
 #endif /* ST_CB_BITMAP_H */

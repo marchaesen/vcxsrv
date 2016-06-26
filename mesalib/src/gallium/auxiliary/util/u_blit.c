@@ -140,9 +140,9 @@ util_destroy_blit(struct blit_state *ctx)
    if (ctx->vs)
       pipe->delete_vs_state(pipe, ctx->vs);
 
-   for (i = 0; i < Elements(ctx->fs); i++) {
-      for (j = 0; j < Elements(ctx->fs[i]); j++) {
-         for (k = 0; k < Elements(ctx->fs[i][j]); k++) {
+   for (i = 0; i < ARRAY_SIZE(ctx->fs); i++) {
+      for (j = 0; j < ARRAY_SIZE(ctx->fs[i]); j++) {
+         for (k = 0; k < ARRAY_SIZE(ctx->fs[i][j]); k++) {
             if (ctx->fs[i][j][k])
                pipe->delete_fs_state(pipe, ctx->fs[i][j][k]);
          }
@@ -314,16 +314,16 @@ regions_overlap(int srcX0, int srcY0,
                 int dstX0, int dstY0,
                 int dstX1, int dstY1)
 {
-   if (MAX2(srcX0, srcX1) < MIN2(dstX0, dstX1))
+   if (MAX2(srcX0, srcX1) <= MIN2(dstX0, dstX1))
       return FALSE; /* src completely left of dst */
 
-   if (MAX2(dstX0, dstX1) < MIN2(srcX0, srcX1))
+   if (MAX2(dstX0, dstX1) <= MIN2(srcX0, srcX1))
       return FALSE; /* dst completely left of src */
 
-   if (MAX2(srcY0, srcY1) < MIN2(dstY0, dstY1))
+   if (MAX2(srcY0, srcY1) <= MIN2(dstY0, dstY1))
       return FALSE; /* src completely above dst */
 
-   if (MAX2(dstY0, dstY1) < MIN2(srcY0, srcY1))
+   if (MAX2(dstY0, dstY1) <= MIN2(srcY0, srcY1))
       return FALSE; /* dst completely above src */
 
    return TRUE; /* some overlap */
@@ -551,6 +551,7 @@ util_blit_pixels_tex(struct blit_state *ctx,
                              CSO_BIT_STREAM_OUTPUTS |
                              CSO_BIT_VIEWPORT |
                              CSO_BIT_FRAMEBUFFER |
+                             CSO_BIT_PAUSE_QUERIES |
                              CSO_BIT_FRAGMENT_SHADER |
                              CSO_BIT_VERTEX_SHADER |
                              CSO_BIT_TESSCTRL_SHADER |

@@ -41,7 +41,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec ExtensionsTab[] = {
+static const xf86ConfigSymTabRec ExtensionsTab[] = {
     {ENDSECTION, "endsection"},
     {OPTION, "option"},
     {-1, ""},

@@ -140,6 +140,42 @@ glamor_get_pixmap_texture(PixmapPtr pixmap)
     return pixmap_priv->fbo->tex;
 }
 
+void
+glamor_bind_texture(glamor_screen_private *glamor_priv, GLenum texture,
+                    glamor_pixmap_fbo *fbo, Bool destination_red)
+{
+    glActiveTexture(texture);
+    glBindTexture(GL_TEXTURE_2D, fbo->tex);
+
+    /* If we're pulling data from a GL_RED texture, then whether we
+     * want to make it an A,0,0,0 result or a 0,0,0,R result depends
+     * on whether the destination is also a GL_RED texture.
+     *
+     * For GL_RED destinations, we need to leave the bits in the R
+     * channel. For all other destinations, we need to clear out the R
+     * channel so that it returns zero for R, G and B.
+     *
+     * Note that we're leaving the SWIZZLE_A value alone; for GL_RED
+     * destinations, that means we'll actually be returning R,0,0,R,
+     * but it doesn't matter as the bits in the alpha channel aren't
+     * going anywhere.
+     */
+
+    /* Is the operand a GL_RED fbo?
+     */
+
+    if (glamor_fbo_red_is_alpha(glamor_priv, fbo)) {
+
+        /* If destination is also GL_RED, then preserve the bits in
+         * the R channel */
+
+        if (destination_red)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
+        else
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
+    }
+}
+
 PixmapPtr
 glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
                      unsigned int usage)
@@ -228,13 +264,13 @@ _glamor_block_handler(ScreenPtr screen, void *timeout, void *readmask)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
+    glamor_make_current(glamor_priv);
+    glFlush();
+
     screen->BlockHandler = glamor_priv->saved_procs.block_handler;
     screen->BlockHandler(screen, timeout, readmask);
     glamor_priv->saved_procs.block_handler = screen->BlockHandler;
     screen->BlockHandler = _glamor_block_handler;
-
-    glamor_make_current(glamor_priv);
-    glFlush();
 }
 
 static void
@@ -812,4 +848,13 @@ glamor_name_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
         break;
     }
     return -1;
+}
+
+void
+glamor_finish(ScreenPtr screen)
+{
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+
+    glamor_make_current(glamor_priv);
+    glFinish();
 }

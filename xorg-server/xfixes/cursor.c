@@ -155,6 +155,7 @@ CursorDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
     if (pCursor != CursorCurrent[pDev->id]) {
         CursorEventPtr e;
 
+        UpdateCurrentTimeIf();
         CursorCurrent[pDev->id] = pCursor;
         for (e = cursorEvents; e; e = e->next) {
             if ((e->eventMask & XFixesDisplayCursorNotifyMask)) {

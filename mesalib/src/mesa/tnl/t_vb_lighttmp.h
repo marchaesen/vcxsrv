@@ -87,7 +87,7 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 
    for (j = 0; j < nr; j++,STRIDE_F(vertex,vstride),STRIDE_F(normal,nstride)) {
       GLfloat sum[2][3], spec[2][3];
-      struct gl_light *light;
+      GLbitfield mask;
 
 #if IDX & LIGHT_MATERIAL
       update_materials( ctx, store );
@@ -106,7 +106,10 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 #endif
 
       /* Add contribution from each enabled light source */
-      foreach (light, &ctx->Light.EnabledList) {
+      mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int l = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[l];
 	 GLfloat n_dot_h;
 	 GLfloat correction;
 	 GLint side;
@@ -265,7 +268,7 @@ static void TAG(light_rgba)( struct gl_context *ctx,
 
    for (j = 0; j < nr; j++,STRIDE_F(vertex,vstride),STRIDE_F(normal,nstride)) {
       GLfloat sum[2][3];
-      struct gl_light *light;
+      GLbitfield mask;
 
 #if IDX & LIGHT_MATERIAL
       update_materials( ctx, store );
@@ -282,7 +285,10 @@ static void TAG(light_rgba)( struct gl_context *ctx,
 #endif
 
       /* Add contribution from each enabled light source */
-      foreach (light, &ctx->Light.EnabledList) {
+      mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int l = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[l];
 	 GLfloat n_dot_h;
 	 GLfloat correction;
 	 GLint side;
@@ -417,7 +423,8 @@ static void TAG(light_fast_rgba_single)( struct gl_context *ctx,
 #if IDX & LIGHT_TWOSIDE
    GLfloat (*Bcolor)[4] = (GLfloat (*)[4]) store->LitColor[1].data;
 #endif
-   const struct gl_light *light = ctx->Light.EnabledList.next;
+   const struct gl_light *light =
+      &ctx->Light.Light[ffs(ctx->Light._EnabledLights) - 1];
    GLuint j = 0;
    GLfloat base[2][4];
 #if IDX & LIGHT_MATERIAL
@@ -528,7 +535,6 @@ static void TAG(light_fast_rgba)( struct gl_context *ctx,
 #else
    const GLuint nr = VB->AttribPtr[_TNL_ATTRIB_NORMAL]->count;
 #endif
-   const struct gl_light *light;
 
 #ifdef TRACE
    fprintf(stderr, "%s %d\n", __func__, nr );
@@ -556,6 +562,7 @@ static void TAG(light_fast_rgba)( struct gl_context *ctx,
    for (j = 0; j < nr; j++, STRIDE_F(normal,nstride)) {
 
       GLfloat sum[2][3];
+      GLbitfield mask;
 
 #if IDX & LIGHT_MATERIAL
       update_materials( ctx, store );
@@ -572,7 +579,10 @@ static void TAG(light_fast_rgba)( struct gl_context *ctx,
       COPY_3V(sum[1], ctx->Light._BaseColor[1]);
 #endif
 
-      foreach (light, &ctx->Light.EnabledList) {
+      mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int l = u_bit_scan(&mask);
+         const struct gl_light *light = &ctx->Light.Light[l];
 	 GLfloat n_dot_h, n_dot_VP, spec;
 
 	 ACC_3V(sum[0], light->_MatAmbient[0]);

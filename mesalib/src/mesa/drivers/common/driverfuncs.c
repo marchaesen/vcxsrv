@@ -117,6 +117,9 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->NewProgram = _mesa_new_program;
    driver->DeleteProgram = _mesa_delete_program;
 
+   /* ATI_fragment_shader */
+   driver->NewATIfs = NULL;
+
    /* simple state commands */
    driver->AlphaFunc = NULL;
    driver->BlendColor = NULL;

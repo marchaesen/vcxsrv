@@ -240,38 +240,6 @@ _mesa_constant_fold(struct gl_program *prog)
 	 }
 	 break;
 
-      case OPCODE_SEQ:
-	 if (src_regs_are_constant(inst, 2)) {
-	    float a[4];
-	    float b[4];
-	    float result[4];
-
-	    get_value(prog, &inst->SrcReg[0], a);
-	    get_value(prog, &inst->SrcReg[1], b);
-
-	    result[0] = (a[0] == b[0]) ? 1.0f : 0.0f;
-	    result[1] = (a[1] == b[1]) ? 1.0f : 0.0f;
-	    result[2] = (a[2] == b[2]) ? 1.0f : 0.0f;
-	    result[3] = (a[3] == b[3]) ? 1.0f : 0.0f;
-
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_vec4(prog, result);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 } else if (src_regs_are_same(&inst->SrcReg[0], &inst->SrcReg[1])) {
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_float(prog, 1.0f);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 }
-	 break;
-
       case OPCODE_SGE:
 	 if (src_regs_are_constant(inst, 2)) {
 	    float a[4];
@@ -304,70 +272,6 @@ _mesa_constant_fold(struct gl_program *prog)
 	 }
 	 break;
 
-      case OPCODE_SGT:
-	 if (src_regs_are_constant(inst, 2)) {
-	    float a[4];
-	    float b[4];
-	    float result[4];
-
-	    get_value(prog, &inst->SrcReg[0], a);
-	    get_value(prog, &inst->SrcReg[1], b);
-
-	    result[0] = (a[0] > b[0]) ? 1.0f : 0.0f;
-	    result[1] = (a[1] > b[1]) ? 1.0f : 0.0f;
-	    result[2] = (a[2] > b[2]) ? 1.0f : 0.0f;
-	    result[3] = (a[3] > b[3]) ? 1.0f : 0.0f;
-
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_vec4(prog, result);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 } else if (src_regs_are_same(&inst->SrcReg[0], &inst->SrcReg[1])) {
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_float(prog, 0.0f);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 }
-	 break;
-
-      case OPCODE_SLE:
-	 if (src_regs_are_constant(inst, 2)) {
-	    float a[4];
-	    float b[4];
-	    float result[4];
-
-	    get_value(prog, &inst->SrcReg[0], a);
-	    get_value(prog, &inst->SrcReg[1], b);
-
-	    result[0] = (a[0] <= b[0]) ? 1.0f : 0.0f;
-	    result[1] = (a[1] <= b[1]) ? 1.0f : 0.0f;
-	    result[2] = (a[2] <= b[2]) ? 1.0f : 0.0f;
-	    result[3] = (a[3] <= b[3]) ? 1.0f : 0.0f;
-
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_vec4(prog, result);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 } else if (src_regs_are_same(&inst->SrcReg[0], &inst->SrcReg[1])) {
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_float(prog, 1.0f);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 }
-	 break;
-
       case OPCODE_SLT:
 	 if (src_regs_are_constant(inst, 2)) {
 	    float a[4];
@@ -381,38 +285,6 @@ _mesa_constant_fold(struct gl_program *prog)
 	    result[1] = (a[1] < b[1]) ? 1.0f : 0.0f;
 	    result[2] = (a[2] < b[2]) ? 1.0f : 0.0f;
 	    result[3] = (a[3] < b[3]) ? 1.0f : 0.0f;
-
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_vec4(prog, result);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 } else if (src_regs_are_same(&inst->SrcReg[0], &inst->SrcReg[1])) {
-	    inst->Opcode = OPCODE_MOV;
-	    inst->SrcReg[0] = src_reg_for_float(prog, 0.0f);
-
-	    inst->SrcReg[1].File = PROGRAM_UNDEFINED;
-	    inst->SrcReg[1].Swizzle = SWIZZLE_NOOP;
-
-	    progress = true;
-	 }
-	 break;
-
-      case OPCODE_SNE:
-	 if (src_regs_are_constant(inst, 2)) {
-	    float a[4];
-	    float b[4];
-	    float result[4];
-
-	    get_value(prog, &inst->SrcReg[0], a);
-	    get_value(prog, &inst->SrcReg[1], b);
-
-	    result[0] = (a[0] != b[0]) ? 1.0f : 0.0f;
-	    result[1] = (a[1] != b[1]) ? 1.0f : 0.0f;
-	    result[2] = (a[2] != b[2]) ? 1.0f : 0.0f;
-	    result[3] = (a[3] != b[3]) ? 1.0f : 0.0f;
 
 	    inst->Opcode = OPCODE_MOV;
 	    inst->SrcReg[0] = src_reg_for_vec4(prog, result);

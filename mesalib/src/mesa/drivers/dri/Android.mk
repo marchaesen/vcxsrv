@@ -49,7 +49,6 @@ MESA_DRI_WHOLE_STATIC_LIBRARIES := \
 MESA_DRI_SHARED_LIBRARIES := \
 	libcutils \
 	libdl \
-	libdrm \
 	libexpat \
 	libglapi \
 	liblog

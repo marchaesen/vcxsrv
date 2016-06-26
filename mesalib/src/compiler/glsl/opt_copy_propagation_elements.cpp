@@ -106,6 +106,7 @@ public:
       ralloc_free(mem_ctx);
    }
 
+   void handle_loop(ir_loop *, bool keep_acp);
    virtual ir_visitor_status visit_enter(class ir_loop *);
    virtual ir_visitor_status visit_enter(class ir_function_signature *);
    virtual ir_visitor_status visit_leave(class ir_assignment *);
@@ -374,8 +375,8 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_if *ir)
    return visit_continue_with_parent;
 }
 
-ir_visitor_status
-ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
+void
+ir_copy_propagation_elements_visitor::handle_loop(ir_loop *ir, bool keep_acp)
 {
    exec_list *orig_acp = this->acp;
    exec_list *orig_kills = this->kills;
@@ -388,6 +389,13 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
    this->acp = new(mem_ctx) exec_list;
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
+
+   if (keep_acp) {
+      /* Populate the initial acp with a copy of the original */
+      foreach_in_list(acp_entry, a, orig_acp) {
+         this->acp->push_tail(new(this->acp) acp_entry(a));
+      }
+   }
 
    visit_list_elements(this, &ir->body_instructions);
 
@@ -406,6 +414,13 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
    }
 
    ralloc_free(new_kills);
+}
+
+ir_visitor_status
+ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
+{
+   handle_loop(ir, false);
+   handle_loop(ir, true);
 
    /* already descended into the children. */
    return visit_continue_with_parent;
@@ -492,6 +507,9 @@ ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
 	    write_mask &= ~(1 << i);
       }
    }
+
+   if (lhs->var->data.precise != rhs->var->data.precise)
+      return;
 
    entry = new(this->mem_ctx) acp_entry(lhs->var, rhs->var, write_mask,
 					swizzle);

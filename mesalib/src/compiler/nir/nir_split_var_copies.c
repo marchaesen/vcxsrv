@@ -149,6 +149,7 @@ split_var_copy_instr(nir_intrinsic_instr *old_copy,
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
       if (glsl_type_is_matrix(src_tail->type)) {
          nir_deref_array *deref = nir_deref_array_create(state->dead_ctx);
@@ -205,11 +206,9 @@ split_var_copy_instr(nir_intrinsic_instr *old_copy,
 }
 
 static bool
-split_var_copies_block(nir_block *block, void *void_state)
+split_var_copies_block(nir_block *block, struct split_var_copies_state *state)
 {
-   struct split_var_copies_state *state = void_state;
-
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
@@ -231,6 +230,7 @@ split_var_copies_block(nir_block *block, void *void_state)
          ralloc_steal(state->dead_ctx, instr);
          break;
       case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_DOUBLE:
       case GLSL_TYPE_INT:
       case GLSL_TYPE_UINT:
       case GLSL_TYPE_BOOL:
@@ -259,7 +259,9 @@ split_var_copies_impl(nir_function_impl *impl)
    state.dead_ctx = ralloc_context(NULL);
    state.progress = false;
 
-   nir_foreach_block(impl, split_var_copies_block, &state);
+   nir_foreach_block(block, impl) {
+      split_var_copies_block(block, &state);
+   }
 
    ralloc_free(state.dead_ctx);
 
@@ -276,7 +278,7 @@ nir_split_var_copies(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          progress = split_var_copies_impl(function->impl) || progress;
    }

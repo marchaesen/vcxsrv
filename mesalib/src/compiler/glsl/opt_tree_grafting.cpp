@@ -368,6 +368,9 @@ tree_grafting_basic_block(ir_instruction *bb_first,
           lhs_var->data.mode == ir_var_shader_shared)
          continue;
 
+      if (lhs_var->data.precise)
+         continue;
+
       ir_variable_refcount_entry *entry = info->refs->get_variable_entry(lhs_var);
 
       if (!entry->declaration ||

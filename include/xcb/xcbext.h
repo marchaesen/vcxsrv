@@ -60,10 +60,10 @@ enum xcb_send_request_flags_t {
 
 /**
  * @brief Send a request to the server.
- * @param c: The connection to the X server.
- * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
- * @param vector: Data to send; must have two iovecs before start for internal use.
- * @param request: Information about the request to be sent.
+ * @param c The connection to the X server.
+ * @param flags A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param vector Data to send; must have two iovecs before start for internal use.
+ * @param request Information about the request to be sent.
  * @return The request's sequence number on success, 0 otherwise.
  *
  * This function sends a new request to the X server. The data of the request is
@@ -84,12 +84,12 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
 
 /**
  * @brief Send a request to the server.
- * @param c: The connection to the X server.
- * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
- * @param vector: Data to send; must have two iovecs before start for internal use.
- * @param request: Information about the request to be sent.
- * @param num_fds: Number of additional file descriptors to send to the server
- * @param fds: Additional file descriptors that should be send to the server.
+ * @param c The connection to the X server.
+ * @param flags A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param vector Data to send; must have two iovecs before start for internal use.
+ * @param request Information about the request to be sent.
+ * @param num_fds Number of additional file descriptors to send to the server
+ * @param fds Additional file descriptors that should be send to the server.
  * @return The request's sequence number on success, 0 otherwise.
  *
  * This function sends a new request to the X server. The data of the request is
@@ -115,10 +115,10 @@ unsigned int xcb_send_request_with_fds(xcb_connection_t *c, int flags, struct io
 
 /**
  * @brief Send a request to the server, with 64-bit sequence number returned.
- * @param c: The connection to the X server.
- * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
- * @param vector: Data to send; must have two iovecs before start for internal use.
- * @param request: Information about the request to be sent.
+ * @param c The connection to the X server.
+ * @param flags A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param vector Data to send; must have two iovecs before start for internal use.
+ * @param request Information about the request to be sent.
  * @return The request's sequence number on success, 0 otherwise.
  *
  * This function sends a new request to the X server. The data of the request is
@@ -139,12 +139,12 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
 
 /**
  * @brief Send a request to the server, with 64-bit sequence number returned.
- * @param c: The connection to the X server.
- * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
- * @param vector: Data to send; must have two iovecs before start for internal use.
- * @param request: Information about the request to be sent.
- * @param num_fds: Number of additional file descriptors to send to the server
- * @param fds: Additional file descriptors that should be send to the server.
+ * @param c The connection to the X server.
+ * @param flags A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param vector Data to send; must have two iovecs before start for internal use.
+ * @param request Information about the request to be sent.
+ * @param num_fds Number of additional file descriptors to send to the server
+ * @param fds Additional file descriptors that should be send to the server.
  * @return The request's sequence number on success, 0 otherwise.
  *
  * This function sends a new request to the X server. The data of the request is
@@ -171,8 +171,8 @@ uint64_t xcb_send_request_with_fds64(xcb_connection_t *c, int flags, struct iove
 
 /**
  * @brief Send a file descriptor to the server in the next call to xcb_send_request.
- * @param c: The connection to the X server.
- * @param fd: The file descriptor to send.
+ * @param c The connection to the X server.
+ * @param fd The file descriptor to send.
  *
  * After this function returns, the file descriptor given is owned by xcb and
  * will be closed eventually.
@@ -185,12 +185,12 @@ void xcb_send_fd(xcb_connection_t *c, int fd);
 
 /**
  * @brief Take over the write side of the socket
- * @param c: The connection to the X server.
- * @param return_socket: Callback function that will be called when xcb wants
+ * @param c The connection to the X server.
+ * @param return_socket Callback function that will be called when xcb wants
  *                        to use the socket again.
- * @param closure: Argument to the callback function.
- * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
- * @param sent: Location to the sequence number of the last sequence request.
+ * @param closure Argument to the callback function.
+ * @param flags A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param sent Location to the sequence number of the last sequence request.
  *              Must not be NULL.
  * @return 1 on success, else 0.
  *
@@ -214,10 +214,10 @@ int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), v
 
 /**
  * @brief Send raw data to the X server.
- * @param c: The connection to the X server.
- * @param vector: Array of data to be sent.
- * @param count: Number of entries in @p vector.
- * @param requests: Number of requests that are being sent.
+ * @param c The connection to the X server.
+ * @param vector Array of data to be sent.
+ * @param count Number of entries in @p vector.
+ * @param requests Number of requests that are being sent.
  * @return 1 on success, else 0.
  *
  * You must own the write-side of the socket (you've called
@@ -238,9 +238,9 @@ int xcb_writev(xcb_connection_t *c, struct iovec *vector, int count, uint64_t re
 
 /**
  * @brief Wait for the reply of a given request.
- * @param c: The connection to the X server.
- * @param request: Sequence number of the request as returned by xcb_send_request().
- * @param e: Location to store errors in, or NULL. Ignored for unchecked requests.
+ * @param c The connection to the X server.
+ * @param request Sequence number of the request as returned by xcb_send_request().
+ * @param e Location to store errors in, or NULL. Ignored for unchecked requests.
  *
  * Returns the reply to the given request or returns null in the event of
  * errors. Blocks until the reply or error for the request arrives, or an I/O
@@ -250,9 +250,9 @@ void *xcb_wait_for_reply(xcb_connection_t *c, unsigned int request, xcb_generic_
 
 /**
  * @brief Wait for the reply of a given request, with 64-bit sequence number
- * @param c: The connection to the X server.
- * @param request: 64-bit sequence number of the request as returned by xcb_send_request64().
- * @param e: Location to store errors in, or NULL. Ignored for unchecked requests.
+ * @param c The connection to the X server.
+ * @param request 64-bit sequence number of the request as returned by xcb_send_request64().
+ * @param e Location to store errors in, or NULL. Ignored for unchecked requests.
  *
  * Returns the reply to the given request or returns null in the event of
  * errors. Blocks until the reply or error for the request arrives, or an I/O
@@ -265,10 +265,10 @@ void *xcb_wait_for_reply64(xcb_connection_t *c, uint64_t request, xcb_generic_er
 
 /**
  * @brief Poll for the reply of a given request.
- * @param c: The connection to the X server.
- * @param request: Sequence number of the request as returned by xcb_send_request().
- * @param reply: Location to store the reply in, must not be NULL.
- * @param e: Location to store errors in, or NULL. Ignored for unchecked requests.
+ * @param c The connection to the X server.
+ * @param request Sequence number of the request as returned by xcb_send_request().
+ * @param reply Location to store the reply in, must not be NULL.
+ * @param error Location to store errors in, or NULL. Ignored for unchecked requests.
  * @return 1 when the reply to the request was returned, else 0.
  *
  * Checks if the reply to the given request already received. Does not block.
@@ -277,10 +277,10 @@ int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, 
 
 /**
  * @brief Poll for the reply of a given request, with 64-bit sequence number.
- * @param c: The connection to the X server.
- * @param request: 64-bit sequence number of the request as returned by xcb_send_request().
- * @param reply: Location to store the reply in, must not be NULL.
- * @param e: Location to store errors in, or NULL. Ignored for unchecked requests.
+ * @param c The connection to the X server.
+ * @param request 64-bit sequence number of the request as returned by xcb_send_request().
+ * @param reply Location to store the reply in, must not be NULL.
+ * @param error Location to store errors in, or NULL. Ignored for unchecked requests.
  * @return 1 when the reply to the request was returned, else 0.
  *
  * Checks if the reply to the given request already received. Does not block.
@@ -292,9 +292,9 @@ int xcb_poll_for_reply64(xcb_connection_t *c, uint64_t request, void **reply, xc
 
 /**
  * @brief Don't use this, only needed by the generated code.
- * @param c: The connection to the X server.
- * @param reply: A reply that was received from the server
- * @param replylen: The size of the reply.
+ * @param c The connection to the X server.
+ * @param reply A reply that was received from the server
+ * @param replylen The size of the reply.
  * @return Pointer to the location where received file descriptors are stored.
  */
 int *xcb_get_reply_fds(xcb_connection_t *c, void *reply, size_t replylen);
@@ -303,14 +303,14 @@ int *xcb_get_reply_fds(xcb_connection_t *c, void *reply, size_t replylen);
 /* xcb_util.c */
 
 /**
- * @param mask: The mask to check
+ * @param mask The mask to check
  * @return The number of set bits in the mask
  */
 int xcb_popcount(uint32_t mask);
 
 /**
- * @param list: The base of an array
- * @param len: The length of the array
+ * @param list The base of an array
+ * @param len The length of the array
  * @return The sum of all entries in the array.
  */
 int xcb_sumof(uint8_t *list, int len);

@@ -91,13 +91,13 @@ opt_constant_if(nir_if *if_stmt, bool condition)
       nir_cf_node_as_block(condition ? nir_if_last_then_node(if_stmt)
                                      : nir_if_last_else_node(if_stmt));
 
-   nir_foreach_instr_safe(after, instr) {
+   nir_foreach_instr_safe(instr, after) {
       if (instr->type != nir_instr_type_phi)
          break;
 
       nir_phi_instr *phi = nir_instr_as_phi(instr);
       nir_ssa_def *def = NULL;
-      nir_foreach_phi_src(phi, phi_src) {
+      nir_foreach_phi_src(phi_src, phi) {
          if (phi_src->pred != last_block)
             continue;
 
@@ -135,33 +135,33 @@ opt_constant_if(nir_if *if_stmt, bool condition)
 }
 
 static bool
-block_has_no_side_effects(nir_block *block, void *state)
+cf_node_has_side_effects(nir_cf_node *node)
 {
-   (void) state;
+   nir_foreach_block_in_cf_node(block, node) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type == nir_instr_type_call)
+            return true;
 
-   nir_foreach_instr(block, instr) {
-      if (instr->type == nir_instr_type_call)
-         return false;
+         /* Return instructions can cause us to skip over other side-effecting
+          * instructions after the loop, so consider them to have side effects
+          * here.
+          */
 
-      /* Return instructions can cause us to skip over other side-effecting
-       * instructions after the loop, so consider them to have side effects
-       * here.
-       */
+         if (instr->type == nir_instr_type_jump &&
+             nir_instr_as_jump(instr)->type == nir_jump_return)
+            return true;
 
-      if (instr->type == nir_instr_type_jump &&
-          nir_instr_as_jump(instr)->type == nir_jump_return)
-         return false;
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
 
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
-
-      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-      if (!nir_intrinsic_infos[intrin->intrinsic].flags &
-          NIR_INTRINSIC_CAN_ELIMINATE)
-         return false;
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+         if (!(nir_intrinsic_infos[intrin->intrinsic].flags &
+             NIR_INTRINSIC_CAN_ELIMINATE))
+            return true;
+      }
    }
 
-   return true;
+   return false;
 }
 
 static bool
@@ -199,8 +199,7 @@ loop_is_dead(nir_loop *loop)
        nir_block_first_instr(after)->type == nir_instr_type_phi)
       return false;
 
-   if (!nir_foreach_block_in_cf_node(&loop->cf_node, block_has_no_side_effects,
-                                     NULL))
+   if (cf_node_has_side_effects(&loop->cf_node))
       return false;
 
    nir_function_impl *impl = nir_cf_node_get_function(&loop->cf_node);
@@ -208,7 +207,7 @@ loop_is_dead(nir_loop *loop)
                               nir_metadata_dominance);
 
    for (nir_block *cur = after->imm_dom; cur != before; cur = cur->imm_dom) {
-      nir_foreach_instr(cur, instr) {
+      nir_foreach_instr(instr, cur) {
          if (!nir_foreach_ssa_def(instr, def_not_live_out, after))
             return false;
       }
@@ -222,13 +221,13 @@ dead_cf_block(nir_block *block)
 {
    nir_if *following_if = nir_block_get_following_if(block);
    if (following_if) {
-     nir_const_value *const_value =
-        nir_src_as_const_value(following_if->condition);
+      nir_const_value *const_value =
+         nir_src_as_const_value(following_if->condition);
 
-     if (!const_value)
-        return false;
+      if (!const_value)
+         return false;
 
-      opt_constant_if(following_if, const_value->u[0] != 0);
+      opt_constant_if(following_if, const_value->u32[0] != 0);
       return true;
    }
 
@@ -350,7 +349,7 @@ nir_opt_dead_cf(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function)
+   nir_foreach_function(function, shader)
       if (function->impl)
          progress |= opt_dead_cf_impl(function->impl);
 

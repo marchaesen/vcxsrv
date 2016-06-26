@@ -105,11 +105,9 @@ gcm_build_block_info(struct exec_list *cf_list, struct gcm_state *state,
  * to either GCM_INSTR_PINNED or 0.
  */
 static bool
-gcm_pin_instructions_block(nir_block *block, void *void_state)
+gcm_pin_instructions_block(nir_block *block, struct gcm_state *state)
 {
-   struct gcm_state *state = void_state;
-
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       switch (instr->type) {
       case nir_instr_type_alu:
          switch (nir_instr_as_alu(instr)->op) {
@@ -279,7 +277,7 @@ gcm_schedule_late_def(nir_ssa_def *def, void *void_state)
 
    nir_block *lca = NULL;
 
-   nir_foreach_use(def, use_src) {
+   nir_foreach_use(use_src, def) {
       nir_instr *use_instr = use_src->parent_instr;
 
       gcm_schedule_late_instr(use_instr, state);
@@ -294,7 +292,7 @@ gcm_schedule_late_def(nir_ssa_def *def, void *void_state)
       if (use_instr->type == nir_instr_type_phi) {
          nir_phi_instr *phi = nir_instr_as_phi(use_instr);
 
-         nir_foreach_phi_src(phi, phi_src) {
+         nir_foreach_phi_src(phi_src, phi) {
             if (phi_src->src.ssa == def)
                lca = nir_dominance_lca(lca, phi_src->pred);
          }
@@ -303,7 +301,7 @@ gcm_schedule_late_def(nir_ssa_def *def, void *void_state)
       }
    }
 
-   nir_foreach_if_use(def, use_src) {
+   nir_foreach_if_use(use_src, def) {
       nir_if *if_stmt = use_src->parent_if;
 
       /* For if statements, we consider the block to be the one immediately
@@ -376,7 +374,7 @@ gcm_place_instr(nir_instr *instr, struct gcm_state *state);
 static bool
 gcm_place_instr_def(nir_ssa_def *def, void *state)
 {
-   nir_foreach_use(def, use_src)
+   nir_foreach_use(use_src, def)
       gcm_place_instr(use_src->parent_instr, state);
 
    return false;
@@ -467,7 +465,10 @@ opt_gcm_impl(nir_function_impl *impl)
                               nir_metadata_dominance);
 
    gcm_build_block_info(&impl->body, &state, 0);
-   nir_foreach_block(impl, gcm_pin_instructions_block, &state);
+
+   nir_foreach_block(block, impl) {
+      gcm_pin_instructions_block(block, &state);
+   }
 
    foreach_list_typed(nir_instr, instr, node, &state.instrs)
       gcm_schedule_early_instr(instr, &state);
@@ -487,7 +488,7 @@ opt_gcm_impl(nir_function_impl *impl)
 void
 nir_opt_gcm(nir_shader *shader)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          opt_gcm_impl(function->impl);
    }

@@ -379,7 +379,7 @@ kbdUSBConvert(DevicePtr pDev,
  * event, enqueue it with the \a motion function.  Otherwise, check for
  * special keys with the \a checkspecial function and enqueue the event
  * with the \a enqueue function.  The \a block type is passed to the
- * functions so that they may block SIGIO handling as appropriate to the
+ * functions so that they may block the input thread as appropriate to the
  * caller of this function. */
 void
 kbdUSBRead(DevicePtr pDev,

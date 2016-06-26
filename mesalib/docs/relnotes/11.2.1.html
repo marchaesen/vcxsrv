@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 11.2.1 Release Notes / April 17, 2016</h1>
+
+<p>
+Mesa 11.2.1 is a bug fix release which fixes bugs found since the 11.2.0 release.
+</p>
+<p>
+Mesa 11.2.1 implements the OpenGL 4.1 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.1.  OpenGL
+4.1 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+cc2a024204564a71acc95cf262bf618fe49b1d77d351e5755eea705cadac5167  mesa-11.2.1.tar.gz
+a65207e9ae5c5f1c29f863c6a2cc98a7ab99762a24b82a248337f0ea9cfce01b  mesa-11.2.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=93962">Bug 93962</a> - [HSW, regression, bisected, CTS] ES2-CTS.gtf.GL2FixedTests.scissor.scissor - segfault/asserts</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Brian Paul (2):</p>
+<ul>
+  <li>st/mesa: fix glReadBuffer() assertion failure</li>
+  <li>st/mesa: fix memleak in glDrawPixels cache code</li>
+</ul>
+
+<p>Christian Schmidbauer (1):</p>
+<ul>
+  <li>st/nine: specify WINAPI only for i386 and amd64</li>
+</ul>
+
+<p>Emil Velikov (3):</p>
+<ul>
+  <li>docs: add sha256 checksums for 11.2.0</li>
+  <li>configure.ac: update the path of the generated files</li>
+  <li>Update version to 11.2.1</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>glsl: allow usage of the keyword buffer before GLSL 430 / ESSL 310</li>
+</ul>
+
+<p>Iurie Salomov (1):</p>
+<ul>
+  <li>va: check null context in vlVaDestroyContext</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>i965/tiled_memcopy: Add aligned mem_copy parameters to the [de]tiling functions</li>
+  <li>i965/tiled_memcpy: Rework the RGBA -&gt; BGRA mem_copy functions</li>
+</ul>
+
+<p>Kenneth Graunke (3):</p>
+<ul>
+  <li>i965: Fix textureSize() depth value for 1 layer surfaces on Gen4-6.</li>
+  <li>i965: Use brw-&gt;urb.min_vs_urb_entries instead of 32 for BLORP.</li>
+  <li>glsl: Lower variable indexing of system value arrays unconditionally.</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>drirc: add a workaround for blackness in Warsow</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>radeonsi: fix bounds check in si_create_vertex_elements</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>nv50/ir: do not try to attach JOIN ops to ATOM</li>
+</ul>
+
+<p>Thomas Hindoe Paaboel Andersen (1):</p>
+<ul>
+  <li>st/va: avoid dereference after free in vlVaDestroyImage</li>
+</ul>
+
+
+</div>
+</body>
+</html>

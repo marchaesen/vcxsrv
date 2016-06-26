@@ -26,6 +26,8 @@
 
 #include <assert.h>
 
+#include "c99_compat.h"
+
 /* Compute the size of an array */
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
@@ -152,6 +154,12 @@ do {                       \
 #define ATTRIBUTE_PURE
 #endif
 
+#ifdef HAVE_FUNC_ATTRIBUTE_RETURNS_NONNULL
+#define ATTRIBUTE_RETURNS_NONNULL __attribute__((__returns_nonnull__))
+#else
+#define ATTRIBUTE_RETURNS_NONNULL
+#endif
+
 #ifdef __cplusplus
 /**
  * Macro function that evaluates to true if T is a trivially
@@ -204,10 +212,18 @@ do {                       \
 #define UNUSED
 #endif
 
+#define MAYBE_UNUSED UNUSED
+
 #ifdef HAVE_FUNC_ATTRIBUTE_WARN_UNUSED_RESULT
 #define MUST_CHECK __attribute__((warn_unused_result))
 #else
 #define MUST_CHECK
+#endif
+
+#if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
+#define ATTRIBUTE_NOINLINE __attribute__((noinline))
+#else
+#define ATTRIBUTE_NOINLINE
 #endif
 
 /** Compute ceiling of integer quotient of A divided by B. */

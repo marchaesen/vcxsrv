@@ -48,8 +48,9 @@
     <enum value="0x8E88" name="TESS_CONTROL_SHADER"/>
     <enum value="0x8E89" name="MAX_TESS_CONTROL_UNIFORM_BLOCKS"/>
     <enum value="0x8E8A" name="MAX_TESS_EVALUATION_UNIFORM_BLOCKS"/>
+    <enum value="0x8221" name="PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED"/>
 
-    <function name="PatchParameteri">
+    <function name="PatchParameteri" es2="3.2">
         <param name="pname" type="GLenum"/>
         <param name="value" type="GLint"/>
     </function>

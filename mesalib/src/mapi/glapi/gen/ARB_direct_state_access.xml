@@ -242,6 +242,7 @@
    <function name="ClearNamedFramebufferfi">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
+      <param name="drawbuffer" type="GLint" />
       <param name="depth" type="GLfloat" />
       <param name="stencil" type="GLint" />
    </function>

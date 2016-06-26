@@ -218,7 +218,7 @@ struct blit_shader {
    const char *type;
    const char *func;
    const char *texcoords;
-   GLuint shader_prog;
+   struct gl_shader_program *shader_prog;
 };
 
 /**
@@ -302,7 +302,7 @@ struct blit_state
    struct gl_buffer_object *buf_obj;
    struct blit_shader_table shaders_with_depth;
    struct blit_shader_table shaders_without_depth;
-   GLuint msaa_shaders[BLIT_MSAA_SHADER_COUNT];
+   struct gl_shader_program *msaa_shaders[BLIT_MSAA_SHADER_COUNT];
    struct temp_texture depthTex;
    bool no_ctsi_fallback;
 };
@@ -324,8 +324,8 @@ struct clear_state
 {
    GLuint VAO;
    struct gl_buffer_object *buf_obj;
-   GLuint ShaderProg;
-   GLuint IntegerShaderProg;
+   struct gl_shader_program *ShaderProg;
+   struct gl_shader_program *IntegerShaderProg;
 };
 
 
@@ -577,20 +577,20 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
 void
 _mesa_meta_drawbuffers_from_bitfield(GLbitfield bits);
 
-GLuint
-_mesa_meta_compile_shader_with_debug(struct gl_context *ctx, GLenum target,
-                                     const GLcharARB *source);
-
-
-GLuint
-_mesa_meta_link_program_with_debug(struct gl_context *ctx, GLuint program);
+void
+_mesa_meta_link_program_with_debug(struct gl_context *ctx,
+                                   struct gl_shader_program *sh_prog);
 
 void
 _mesa_meta_compile_and_link_program(struct gl_context *ctx,
                                     const char *vs_source,
                                     const char *fs_source,
                                     const char *name,
-                                    GLuint *program);
+                                    struct gl_shader_program **sh_prog_ptr);
+
+extern void
+_mesa_meta_use_program(struct gl_context *ctx,
+                       struct gl_shader_program *sh_prog);
 
 GLboolean
 _mesa_meta_alloc_texture(struct temp_texture *tex,
@@ -655,7 +655,8 @@ void
 _mesa_meta_glsl_blit_cleanup(struct gl_context *ctx, struct blit_state *blit);
 
 void
-_mesa_meta_blit_shader_table_cleanup(struct blit_shader_table *table);
+_mesa_meta_blit_shader_table_cleanup(struct gl_context *ctx,
+                                     struct blit_shader_table *table);
 
 void
 _mesa_meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,

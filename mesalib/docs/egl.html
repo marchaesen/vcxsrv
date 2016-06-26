@@ -89,9 +89,11 @@ types such as <code>EGLNativeDisplayType</code> or
 
 <p>The available platforms are <code>x11</code>, <code>drm</code>,
 <code>wayland</code>, <code>surfaceless</code>, <code>android</code>,
-and <code>haiku</code>.  The <code>android</code> platform
-can only be built as a system component, part of AOSP, while the
-<code>haiku</code> platform can only be built with SCons.
+and <code>haiku</code>.
+The <code>android</code> platform can either be built as a system
+component, part of AOSP, using <code>Android.mk</code> files, or
+cross-compiled using appropriate <code>configure</code> options.
+The <code>haiku</code> platform can only be built with SCons.
 Unless for special needs, the build system should
 select the right platforms automatically.</p>
 

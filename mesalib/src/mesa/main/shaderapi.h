@@ -43,6 +43,9 @@ struct gl_shader_program;
 extern GLbitfield
 _mesa_get_shader_flags(void);
 
+extern const char *
+_mesa_get_shader_capture_path(void);
+
 extern void
 _mesa_copy_string(GLchar *dst, GLsizei maxLength,
                   GLsizei *length, const GLchar *src);
@@ -53,6 +56,12 @@ _mesa_use_program(struct gl_context *ctx, struct gl_shader_program *shProg);
 extern void
 _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
 		     const char *caller);
+
+extern void
+_mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh);
+
+extern void
+_mesa_link_program(struct gl_context *ctx, struct gl_shader_program *sh_prog);
 
 extern unsigned
 _mesa_count_active_attribs(struct gl_shader_program *shProg);

@@ -1008,4 +1008,4 @@ util_format_test_cases[] =
 };
 
 
-const unsigned util_format_nr_test_cases = Elements(util_format_test_cases);
+const unsigned util_format_nr_test_cases = ARRAY_SIZE(util_format_test_cases);

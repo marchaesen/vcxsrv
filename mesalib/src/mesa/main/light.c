@@ -31,9 +31,9 @@
 #include "enums.h"
 #include "light.h"
 #include "macros.h"
-#include "util/simple_list.h"
 #include "mtypes.h"
 #include "math/m_matrix.h"
+#include "util/bitscan.h"
 
 
 void GLAPIENTRY
@@ -250,17 +250,7 @@ _mesa_Lightfv( GLenum light, GLenum pname, const GLfloat *params )
       }
       break;
    case GL_CONSTANT_ATTENUATION:
-      if (params[0] < 0.0F) {
-	 _mesa_error(ctx, GL_INVALID_VALUE, "glLight");
-	 return;
-      }
-      break;
    case GL_LINEAR_ATTENUATION:
-      if (params[0] < 0.0F) {
-	 _mesa_error(ctx, GL_INVALID_VALUE, "glLight");
-	 return;
-      }
-      break;
    case GL_QUADRATIC_ATTENUATION:
       if (params[0] < 0.0F) {
 	 _mesa_error(ctx, GL_INVALID_VALUE, "glLight");
@@ -622,7 +612,6 @@ _mesa_material_bitmask( struct gl_context *ctx, GLenum face, GLenum pname,
 void
 _mesa_update_material( struct gl_context *ctx, GLuint bitmask )
 {
-   struct gl_light *light, *list = &ctx->Light.EnabledList;
    GLfloat (*mat)[4] = ctx->Light.Material.Attrib;
 
    if (MESA_VERBOSE & VERBOSE_MATERIAL) 
@@ -633,14 +622,20 @@ _mesa_update_material( struct gl_context *ctx, GLuint bitmask )
 
    /* update material ambience */
    if (bitmask & MAT_BIT_FRONT_AMBIENT) {
-      foreach (light, list) {
+      GLbitfield mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int i = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[i];
          SCALE_3V( light->_MatAmbient[0], light->Ambient, 
 		   mat[MAT_ATTRIB_FRONT_AMBIENT]);
       }
    }
 
    if (bitmask & MAT_BIT_BACK_AMBIENT) {
-      foreach (light, list) {
+      GLbitfield mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int i = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[i];
          SCALE_3V( light->_MatAmbient[1], light->Ambient, 
 		   mat[MAT_ATTRIB_BACK_AMBIENT]);
       }
@@ -661,14 +656,20 @@ _mesa_update_material( struct gl_context *ctx, GLuint bitmask )
 
    /* update material diffuse values */
    if (bitmask & MAT_BIT_FRONT_DIFFUSE) {
-      foreach (light, list) {
+      GLbitfield mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int i = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[i];
 	 SCALE_3V( light->_MatDiffuse[0], light->Diffuse, 
 		   mat[MAT_ATTRIB_FRONT_DIFFUSE] );
       }
    }
 
    if (bitmask & MAT_BIT_BACK_DIFFUSE) {
-      foreach (light, list) {
+      GLbitfield mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int i = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[i];
 	 SCALE_3V( light->_MatDiffuse[1], light->Diffuse, 
 		   mat[MAT_ATTRIB_BACK_DIFFUSE] );
       }
@@ -676,14 +677,20 @@ _mesa_update_material( struct gl_context *ctx, GLuint bitmask )
 
    /* update material specular values */
    if (bitmask & MAT_BIT_FRONT_SPECULAR) {
-      foreach (light, list) {
+      GLbitfield mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int i = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[i];
 	 SCALE_3V( light->_MatSpecular[0], light->Specular, 
 		   mat[MAT_ATTRIB_FRONT_SPECULAR]);
       }
    }
 
    if (bitmask & MAT_BIT_BACK_SPECULAR) {
-      foreach (light, list) {
+      GLbitfield mask = ctx->Light._EnabledLights;
+      while (mask) {
+         const int i = u_bit_scan(&mask);
+         struct gl_light *light = &ctx->Light.Light[i];
 	 SCALE_3V( light->_MatSpecular[1], light->Specular,
 		   mat[MAT_ATTRIB_BACK_SPECULAR]);
       }
@@ -699,13 +706,14 @@ _mesa_update_material( struct gl_context *ctx, GLuint bitmask )
 void
 _mesa_update_color_material( struct gl_context *ctx, const GLfloat color[4] )
 {
-   const GLbitfield bitmask = ctx->Light._ColorMaterialBitmask;
+   GLbitfield bitmask = ctx->Light._ColorMaterialBitmask;
    struct gl_material *mat = &ctx->Light.Material;
-   int i;
 
-   for (i = 0 ; i < MAT_ATTRIB_MAX ; i++) 
-      if (bitmask & (1<<i))
-	 COPY_4FV( mat->Attrib[i], color );
+   while (bitmask) {
+      const int i = u_bit_scan(&bitmask);
+
+      COPY_4FV( mat->Attrib[i], color );
+   }
 
    _mesa_update_material( ctx, bitmask );
 }
@@ -874,13 +882,15 @@ void
 _mesa_update_lighting( struct gl_context *ctx )
 {
    GLbitfield flags = 0;
-   struct gl_light *light;
    ctx->Light._NeedEyeCoords = GL_FALSE;
 
    if (!ctx->Light.Enabled)
       return;
 
-   foreach(light, &ctx->Light.EnabledList) {
+   GLbitfield mask = ctx->Light._EnabledLights;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
+      struct gl_light *light = &ctx->Light.Light[i];
       flags |= light->_Flags;
    }
 
@@ -936,7 +946,6 @@ _mesa_update_lighting( struct gl_context *ctx )
 static void
 compute_light_positions( struct gl_context *ctx )
 {
-   struct gl_light *light;
    static const GLfloat eye_z[3] = { 0, 0, 1 };
 
    if (!ctx->Light.Enabled)
@@ -949,7 +958,10 @@ compute_light_positions( struct gl_context *ctx )
       TRANSFORM_NORMAL( ctx->_EyeZDir, eye_z, ctx->ModelviewMatrixStack.Top->m );
    }
 
-   foreach (light, &ctx->Light.EnabledList) {
+   GLbitfield mask = ctx->Light._EnabledLights;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
+      struct gl_light *light = &ctx->Light.Light[i];
 
       if (ctx->_NeedEyeCoords) {
          /* _Position is in eye coordinate space */
@@ -1110,8 +1122,6 @@ _mesa_allow_light_in_model( struct gl_context *ctx, GLboolean flag )
 static void
 init_light( struct gl_light *l, GLuint n )
 {
-   make_empty_list( l );
-
    ASSIGN_4V( l->Ambient, 0.0, 0.0, 0.0, 1.0 );
    if (n==0) {
       ASSIGN_4V( l->Diffuse, 1.0, 1.0, 1.0, 1.0 );
@@ -1181,10 +1191,10 @@ _mesa_init_lighting( struct gl_context *ctx )
    GLuint i;
 
    /* Lighting group */
+   ctx->Light._EnabledLights = 0;
    for (i = 0; i < MAX_LIGHTS; i++) {
       init_light( &ctx->Light.Light[i], i );
    }
-   make_empty_list( &ctx->Light.EnabledList );
 
    init_lightmodel( &ctx->Light.Model );
    init_material( &ctx->Light.Material );

@@ -113,12 +113,6 @@ _mesa_initialize_context( struct gl_context *ctx,
                           struct gl_context *share_list,
                           const struct dd_function_table *driverFunctions);
 
-extern struct gl_context *
-_mesa_create_context(gl_api api,
-                     const struct gl_config *visual,
-                     struct gl_context *share_list,
-                     const struct dd_function_table *driverFunctions);
-
 extern void
 _mesa_free_context_data( struct gl_context *ctx );
 
@@ -149,15 +143,14 @@ extern void
 _mesa_init_constants(struct gl_constants *consts, gl_api api);
 
 extern void
-_mesa_init_get_hash(struct gl_context *ctx);
-
-extern void
 _mesa_notifySwapBuffers(struct gl_context *gc);
 
 
 extern struct _glapi_table *
 _mesa_get_dispatch(struct gl_context *ctx);
 
+extern void
+_mesa_set_context_lost_dispatch(struct gl_context *ctx);
 
 extern GLboolean
 _mesa_valid_to_render(struct gl_context *ctx, const char *where);
@@ -341,7 +334,7 @@ _mesa_has_geometry_shaders(const struct gl_context *ctx)
 static inline bool
 _mesa_has_compute_shaders(const struct gl_context *ctx)
 {
-   return (ctx->API == API_OPENGL_CORE && ctx->Extensions.ARB_compute_shader) ||
+   return _mesa_has_ARB_compute_shader(ctx) ||
       (ctx->API == API_OPENGLES2 && ctx->Version >= 31);
 }
 

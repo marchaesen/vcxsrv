@@ -154,12 +154,6 @@ static bool
 interstage_match(struct gl_shader_program *prog, ir_variable *producer,
                  ir_variable *consumer, bool extra_array_level)
 {
-   /* Unsized arrays should not occur during interstage linking.  They
-    * should have all been assigned a size by link_intrastage_shaders.
-    */
-   assert(!consumer->type->is_unsized_array());
-   assert(!producer->type->is_unsized_array());
-
    /* Types must match. */
    if (consumer->get_interface_type() != producer->get_interface_type()) {
       /* Exception: if both the interface blocks are implicitly declared,
@@ -242,7 +236,8 @@ public:
          return entry ? (ir_variable *) entry->data : NULL;
       } else {
          const struct hash_entry *entry =
-            _mesa_hash_table_search(ht, var->get_interface_type()->name);
+            _mesa_hash_table_search(ht,
+               var->get_interface_type()->without_array()->name);
          return entry ? (ir_variable *) entry->data : NULL;
       }
    }
@@ -263,7 +258,8 @@ public:
          snprintf(location_str, 11, "%d", var->data.location);
          _mesa_hash_table_insert(ht, ralloc_strdup(mem_ctx, location_str), var);
       } else {
-         _mesa_hash_table_insert(ht, var->get_interface_type()->name, var);
+         _mesa_hash_table_insert(ht,
+            var->get_interface_type()->without_array()->name, var);
       }
    }
 
@@ -413,7 +409,7 @@ validate_interstage_uniform_blocks(struct gl_shader_program *prog,
              * shaders are in the same shader stage).
              */
             if (!intrastage_match(old_def, var, prog)) {
-               linker_error(prog, "definitions of interface block `%s' do not "
+               linker_error(prog, "definitions of uniform block `%s' do not "
                             "match\n", var->get_interface_type()->name);
                return;
             }

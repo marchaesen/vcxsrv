@@ -49,7 +49,10 @@ util_draw_init_info(struct pipe_draw_info *info)
 
 
 static inline void
-util_draw_arrays(struct pipe_context *pipe, uint mode, uint start, uint count)
+util_draw_arrays(struct pipe_context *pipe,
+                 enum pipe_prim_type mode,
+                 uint start,
+                 uint count)
 {
    struct pipe_draw_info info;
 
@@ -65,7 +68,9 @@ util_draw_arrays(struct pipe_context *pipe, uint mode, uint start, uint count)
 
 static inline void
 util_draw_elements(struct pipe_context *pipe, int index_bias,
-                   uint mode, uint start, uint count)
+                   enum pipe_prim_type mode,
+                   uint start,
+                   uint count)
 {
    struct pipe_draw_info info;
 
@@ -81,7 +86,9 @@ util_draw_elements(struct pipe_context *pipe, int index_bias,
 
 static inline void
 util_draw_arrays_instanced(struct pipe_context *pipe,
-                           uint mode, uint start, uint count,
+                           enum pipe_prim_type mode,
+                           uint start,
+                           uint count,
                            uint start_instance,
                            uint instance_count)
 {
@@ -102,7 +109,9 @@ util_draw_arrays_instanced(struct pipe_context *pipe,
 static inline void
 util_draw_elements_instanced(struct pipe_context *pipe,
                              int index_bias,
-                             uint mode, uint start, uint count,
+                             enum pipe_prim_type mode,
+                             uint start,
+                             uint count,
                              uint start_instance,
                              uint instance_count)
 {
@@ -125,7 +134,9 @@ util_draw_range_elements(struct pipe_context *pipe,
                          int index_bias,
                          uint min_index,
                          uint max_index,
-                         uint mode, uint start, uint count)
+                         enum pipe_prim_type mode,
+                         uint start,
+                         uint count)
 {
    struct pipe_draw_info info;
 

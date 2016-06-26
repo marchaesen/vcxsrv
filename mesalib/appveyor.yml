@@ -65,6 +65,9 @@ install:
 build_script:
 - scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=12.0 llvm=1
 
+after_build:
+- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=12.0 llvm=1 check
+
 
 # It's possible to setup notification here, as described in
 # http://www.appveyor.com/docs/notifications#appveyor-yml-configuration , but

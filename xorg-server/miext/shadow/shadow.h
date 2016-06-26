@@ -54,6 +54,7 @@ typedef struct _shadowBuf {
     /* screen wrappers */
     GetImageProcPtr GetImage;
     CloseScreenProcPtr CloseScreen;
+    ScreenBlockHandlerProcPtr BlockHandler;
 } shadowBufRec;
 
 /* Match defines from randr extension */

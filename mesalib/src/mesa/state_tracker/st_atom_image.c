@@ -34,6 +34,7 @@
 #include "pipe/p_defines.h"
 #include "util/u_inlines.h"
 #include "util/u_surface.h"
+#include "cso_cache/cso_context.h"
 
 #include "st_cb_texture.h"
 #include "st_debug.h"
@@ -70,6 +71,21 @@ st_bind_images(struct st_context *st, struct gl_shader *shader,
 
       img->resource = stObj->pt;
       img->format = st_mesa_format_to_pipe_format(st, u->_ActualFormat);
+
+      switch (u->Access) {
+      case GL_READ_ONLY:
+         img->access = PIPE_IMAGE_ACCESS_READ;
+         break;
+      case GL_WRITE_ONLY:
+         img->access = PIPE_IMAGE_ACCESS_WRITE;
+         break;
+      case GL_READ_WRITE:
+         img->access = PIPE_IMAGE_ACCESS_READ_WRITE;
+         break;
+      default:
+         unreachable("bad gl_image_unit::Access");
+      }
+
       if (stObj->pt->target == PIPE_BUFFER) {
          unsigned base, size;
          unsigned f, n;
@@ -107,12 +123,12 @@ st_bind_images(struct st_context *st, struct gl_shader *shader,
          }
       }
    }
-   st->pipe->set_shader_images(st->pipe, shader_type, 0, shader->NumImages,
-                               images);
+   cso_set_shader_images(st->cso_context, shader_type, 0, shader->NumImages,
+                         images);
    /* clear out any stale shader images */
    if (shader->NumImages < c->MaxImageUniforms)
-      st->pipe->set_shader_images(
-            st->pipe, shader_type,
+      cso_set_shader_images(
+            st->cso_context, shader_type,
             shader->NumImages,
             c->MaxImageUniforms - shader->NumImages,
             NULL);
@@ -132,7 +148,7 @@ static void bind_vs_images(struct st_context *st)
 const struct st_tracked_state st_bind_vs_images = {
    "st_bind_vs_images",
    {
-      0,
+      _NEW_TEXTURE,
       ST_NEW_VERTEX_PROGRAM | ST_NEW_IMAGE_UNITS,
    },
    bind_vs_images
@@ -152,7 +168,7 @@ static void bind_fs_images(struct st_context *st)
 const struct st_tracked_state st_bind_fs_images = {
    "st_bind_fs_images",
    {
-      0,
+      _NEW_TEXTURE,
       ST_NEW_FRAGMENT_PROGRAM | ST_NEW_IMAGE_UNITS,
    },
    bind_fs_images
@@ -172,7 +188,7 @@ static void bind_gs_images(struct st_context *st)
 const struct st_tracked_state st_bind_gs_images = {
    "st_bind_gs_images",
    {
-      0,
+      _NEW_TEXTURE,
       ST_NEW_GEOMETRY_PROGRAM | ST_NEW_IMAGE_UNITS,
    },
    bind_gs_images
@@ -192,7 +208,7 @@ static void bind_tcs_images(struct st_context *st)
 const struct st_tracked_state st_bind_tcs_images = {
    "st_bind_tcs_images",
    {
-      0,
+      _NEW_TEXTURE,
       ST_NEW_TESSCTRL_PROGRAM | ST_NEW_IMAGE_UNITS,
    },
    bind_tcs_images
@@ -212,7 +228,7 @@ static void bind_tes_images(struct st_context *st)
 const struct st_tracked_state st_bind_tes_images = {
    "st_bind_tes_images",
    {
-      0,
+      _NEW_TEXTURE,
       ST_NEW_TESSEVAL_PROGRAM | ST_NEW_IMAGE_UNITS,
    },
    bind_tes_images
@@ -232,7 +248,7 @@ static void bind_cs_images(struct st_context *st)
 const struct st_tracked_state st_bind_cs_images = {
    "st_bind_cs_images",
    {
-      0,
+      _NEW_TEXTURE,
       ST_NEW_COMPUTE_PROGRAM | ST_NEW_IMAGE_UNITS,
    },
    bind_cs_images

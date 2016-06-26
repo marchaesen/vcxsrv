@@ -247,7 +247,7 @@ xf86OpenConsole(void)
                 FatalError("xf86OpenConsole: VT_GETMODE failed %s\n",
                            strerror(errno));
 
-            signal(SIGUSR1, xf86VTRequest);
+            OsSignal(SIGUSR1, xf86VTRequest);
 
             VT.mode = VT_PROCESS;
             VT.relsig = SIGUSR1;

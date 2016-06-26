@@ -253,6 +253,13 @@ void st_init_limits(struct pipe_screen *screen,
       pc->MaxLocalParams = MIN2(pc->MaxParameters, MAX_PROGRAM_LOCAL_PARAMS);
       pc->MaxEnvParams = MIN2(pc->MaxParameters, MAX_PROGRAM_ENV_PARAMS);
 
+      if (screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_INTEGERS)) {
+         pc->LowInt.RangeMin = 31;
+         pc->LowInt.RangeMax = 30;
+         pc->LowInt.Precision = 0;
+         pc->MediumInt = pc->HighInt = pc->LowInt;
+      }
+
       options->EmitNoNoise = TRUE;
 
       /* TODO: make these more fine-grained if anyone needs it */
@@ -299,7 +306,7 @@ void st_init_limits(struct pipe_screen *screen,
             screen->get_shader_param(screen, sh,
                                   PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT);
 
-      options->LowerClipDistance = true;
+      options->LowerCombinedClipCullDistance = true;
       options->LowerBufferInterfaceBlocks = true;
 
       if (sh == PIPE_SHADER_COMPUTE)
@@ -307,6 +314,9 @@ void st_init_limits(struct pipe_screen *screen,
    }
 
    c->LowerTessLevel = true;
+   c->LowerCsDerivedVariables = true;
+   c->PrimitiveRestartForPatches =
+      screen->get_param(screen, PIPE_CAP_PRIMITIVE_RESTART_FOR_PATCHES);
 
    c->MaxCombinedTextureImageUnits =
          _min(c->Program[MESA_SHADER_VERTEX].MaxTextureImageUnits +
@@ -438,6 +448,21 @@ void st_init_limits(struct pipe_screen *screen,
       extensions->ARB_shader_image_load_store = GL_TRUE;
       extensions->ARB_shader_image_size = GL_TRUE;
    }
+
+   /* ARB_framebuffer_no_attachments */
+   c->MaxFramebufferWidth   = c->MaxViewportWidth;
+   c->MaxFramebufferHeight  = c->MaxViewportHeight;
+   /* NOTE: we cheat here a little by assuming that
+    * PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS has the same
+    * number of layers as we need, although we technically
+    * could have more the generality is not really useful
+    * in practicality.
+    */
+   c->MaxFramebufferLayers =
+      screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS);
+
+   c->MaxWindowRectangles =
+      screen->get_param(screen, PIPE_CAP_MAX_WINDOW_RECTANGLES);
 }
 
 
@@ -545,7 +570,6 @@ void st_init_extensions(struct pipe_screen *screen,
                         boolean has_lib_dxtc)
 {
    unsigned i;
-   int glsl_feature_level;
    GLboolean *extension_table = (GLboolean *) extensions;
 
    static const struct st_extension_cap_mapping cap_mapping[] = {
@@ -556,6 +580,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_color_buffer_float),           PIPE_CAP_VERTEX_COLOR_UNCLAMPED           },
       { o(ARB_conditional_render_inverted),  PIPE_CAP_CONDITIONAL_RENDER_INVERTED      },
       { o(ARB_copy_image),                   PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS },
+      { o(ARB_cull_distance),                PIPE_CAP_CULL_DISTANCE                    },
       { o(ARB_depth_clamp),                  PIPE_CAP_DEPTH_CLIP_DISABLE               },
       { o(ARB_depth_texture),                PIPE_CAP_TEXTURE_SHADOW_MAP               },
       { o(ARB_derivative_control),           PIPE_CAP_TGSI_FS_FINE_DERIVATIVE          },
@@ -571,9 +596,11 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS        },
       { o(ARB_point_sprite),                 PIPE_CAP_POINT_SPRITE                     },
       { o(ARB_query_buffer_object),          PIPE_CAP_QUERY_BUFFER_OBJECT              },
+      { o(ARB_robust_buffer_access_behavior), PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR   },
       { o(ARB_sample_shading),               PIPE_CAP_SAMPLE_SHADING                   },
       { o(ARB_seamless_cube_map),            PIPE_CAP_SEAMLESS_CUBE_MAP                },
       { o(ARB_shader_draw_parameters),       PIPE_CAP_DRAW_PARAMETERS                  },
+      { o(ARB_shader_group_vote),            PIPE_CAP_TGSI_VOTE                        },
       { o(ARB_shader_stencil_export),        PIPE_CAP_SHADER_STENCIL_EXPORT            },
       { o(ARB_shader_texture_image_samples), PIPE_CAP_TGSI_TXQS                        },
       { o(ARB_shader_texture_lod),           PIPE_CAP_SM3                              },
@@ -600,6 +627,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_texture_mirror_clamp),         PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
       { o(EXT_texture_swizzle),              PIPE_CAP_TEXTURE_SWIZZLE                  },
       { o(EXT_transform_feedback),           PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS        },
+      { o(EXT_window_rectangles),            PIPE_CAP_MAX_WINDOW_RECTANGLES            },
 
       { o(AMD_pinned_memory),                PIPE_CAP_RESOURCE_FROM_USER_MEMORY        },
       { o(ATI_meminfo),                      PIPE_CAP_QUERY_MEMORY_INFO                },
@@ -783,6 +811,7 @@ void st_init_extensions(struct pipe_screen *screen,
    extensions->ARB_fragment_shader = GL_TRUE;
    extensions->ARB_half_float_vertex = GL_TRUE;
    extensions->ARB_internalformat_query = GL_TRUE;
+   extensions->ARB_internalformat_query2 = GL_TRUE;
    extensions->ARB_map_buffer_range = GL_TRUE;
    extensions->ARB_texture_border_clamp = GL_TRUE; /* XXX temp */
    extensions->ARB_texture_cube_map = GL_TRUE;
@@ -803,6 +832,7 @@ void st_init_extensions(struct pipe_screen *screen,
    extensions->EXT_texture_env_dot3 = GL_TRUE;
    extensions->EXT_vertex_array_bgra = GL_TRUE;
 
+   extensions->ATI_fragment_shader = GL_TRUE;
    extensions->ATI_texture_env_combine3 = GL_TRUE;
 
    extensions->MESA_pack_invert = GL_TRUE;
@@ -836,12 +866,8 @@ void st_init_extensions(struct pipe_screen *screen,
                           ARRAY_SIZE(vertex_mapping), PIPE_BUFFER,
                           PIPE_BIND_VERTEX_BUFFER);
 
-   /* Figure out GLSL support. */
-   glsl_feature_level = screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL);
-
-   consts->GLSLVersion = glsl_feature_level;
-   if (glsl_feature_level >= 410)
-      consts->GLSLVersion = 410;
+   /* Figure out GLSL support and set GLSLVersion to it. */
+   consts->GLSLVersion = screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL);
 
    _mesa_override_glsl_version(consts);
 
@@ -850,9 +876,9 @@ void st_init_extensions(struct pipe_screen *screen,
       consts->ForceGLSLVersion = options->force_glsl_version;
    }
 
-   if (glsl_feature_level >= 400)
+   if (consts->GLSLVersion >= 400)
       extensions->ARB_gpu_shader5 = GL_TRUE;
-   if (glsl_feature_level >= 410)
+   if (consts->GLSLVersion >= 410)
       extensions->ARB_shader_precision = GL_TRUE;
 
    /* This extension needs full OpenGL 3.2, but we don't know if that's
@@ -917,6 +943,23 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->ARB_sync = GL_TRUE;
    }
 
+   /* Needs PIPE_CAP_SAMPLE_SHADING + all the sample-related bits of
+    * ARB_gpu_shader5. This enables all the per-sample shading ES extensions.
+    */
+   extensions->OES_sample_variables = extensions->ARB_sample_shading &&
+      extensions->ARB_gpu_shader5;
+
+   /* If we don't have native ETC2 support, we don't keep track of the
+    * original ETC2 data. This is necessary to be able to copy images between
+    * compatible view classes.
+    */
+   if (extensions->ARB_copy_image && screen->is_format_supported(
+             screen, PIPE_FORMAT_ETC2_RGB8,
+             PIPE_TEXTURE_2D, 0,
+             PIPE_BIND_SAMPLER_VIEW)) {
+      extensions->OES_copy_image = GL_TRUE;
+   }
+
    /* Maximum sample count. */
    {
       enum pipe_format color_formats[] = {
@@ -934,6 +977,9 @@ void st_init_extensions(struct pipe_screen *screen,
       };
       enum pipe_format int_formats[] = {
          PIPE_FORMAT_R8G8B8A8_SINT
+      };
+      enum pipe_format void_formats[] = {
+         PIPE_FORMAT_NONE
       };
 
       consts->MaxSamples =
@@ -955,6 +1001,12 @@ void st_init_extensions(struct pipe_screen *screen,
          get_max_samples_for_formats(screen, ARRAY_SIZE(int_formats),
                                      int_formats, consts->MaxSamples,
                                      PIPE_BIND_SAMPLER_VIEW);
+
+      /* ARB_framebuffer_no_attachments, assume max no. of samples 32 */
+      consts->MaxFramebufferSamples =
+         get_max_samples_for_formats(screen, ARRAY_SIZE(void_formats),
+                                     void_formats, 32,
+                                     PIPE_BIND_RENDER_TARGET);
    }
    if (consts->MaxSamples == 1) {
       /* one sample doesn't really make sense */
@@ -1012,6 +1064,12 @@ void st_init_extensions(struct pipe_screen *screen,
                              PIPE_BIND_SAMPLER_VIEW);
    }
 
+   extensions->OES_texture_buffer =
+      extensions->ARB_texture_buffer_object &&
+      extensions->ARB_texture_buffer_range &&
+      extensions->ARB_texture_buffer_object_rgb32 &&
+      extensions->ARB_shader_image_load_store;
+
    /* Unpacking a varying in the fragment shader costs 1 texture indirection.
     * If the number of available texture indirections is very limited, then we
     * prefer to disable varying packing rather than run the risk of varying
@@ -1028,7 +1086,7 @@ void st_init_extensions(struct pipe_screen *screen,
 
    consts->MaxViewports = screen->get_param(screen, PIPE_CAP_MAX_VIEWPORTS);
    if (consts->MaxViewports >= 16) {
-      if (glsl_feature_level >= 400) {
+      if (consts->GLSLVersion >= 400) {
          consts->ViewportBounds.Min = -32768.0;
          consts->ViewportBounds.Max = 32767.0;
       } else {
@@ -1040,6 +1098,13 @@ void st_init_extensions(struct pipe_screen *screen,
       if (extensions->AMD_vertex_shader_layer)
          extensions->AMD_vertex_shader_viewport_index = GL_TRUE;
    }
+
+   /* ARB_framebuffer_no_attachments */
+   if (screen->get_param(screen, PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT) &&
+       ((consts->MaxSamples >= 4 && consts->MaxFramebufferLayers >= 2048) ||
+        (consts->MaxFramebufferSamples >= consts->MaxSamples &&
+         consts->MaxFramebufferLayers >= consts->MaxArrayTextureLayers)))
+      extensions->ARB_framebuffer_no_attachments = GL_TRUE;
 
    /* GL_ARB_ES3_compatibility.
     *
@@ -1096,24 +1161,58 @@ void st_init_extensions(struct pipe_screen *screen,
                                   PIPE_SHADER_CAP_SUPPORTED_IRS);
       if (compute_supported_irs & (1 << PIPE_SHADER_IR_TGSI)) {
          uint64_t grid_size[3], block_size[3];
+         uint64_t max_local_size, max_threads_per_block;
 
-         screen->get_compute_param(screen, PIPE_COMPUTE_CAP_MAX_GRID_SIZE,
-                                   grid_size);
-         screen->get_compute_param(screen, PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE,
-                                   block_size);
-         screen->get_compute_param(screen,
+         screen->get_compute_param(screen, PIPE_SHADER_IR_TGSI,
+                                   PIPE_COMPUTE_CAP_MAX_GRID_SIZE, grid_size);
+         screen->get_compute_param(screen, PIPE_SHADER_IR_TGSI,
+                                   PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE, block_size);
+         screen->get_compute_param(screen, PIPE_SHADER_IR_TGSI,
                                    PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK,
-                                   &consts->MaxComputeWorkGroupInvocations);
-         screen->get_compute_param(screen, PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE,
-                                   &consts->MaxComputeSharedMemorySize);
+                                   &max_threads_per_block);
+         screen->get_compute_param(screen, PIPE_SHADER_IR_TGSI,
+                                   PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE,
+                                   &max_local_size);
+
+         consts->MaxComputeWorkGroupInvocations = max_threads_per_block;
+         consts->MaxComputeSharedMemorySize = max_local_size;
 
          for (i = 0; i < 3; i++) {
             consts->MaxComputeWorkGroupCount[i] = grid_size[i];
             consts->MaxComputeWorkGroupSize[i] = block_size[i];
          }
-         /* XXX: ARB_compute_shader is not enabled by default because images
-          * support is still not implemented yet. */
-         /* extensions->ARB_compute_shader = true; */
+
+         extensions->ARB_compute_shader =
+                                      extensions->ARB_shader_image_load_store &&
+                                      extensions->ARB_shader_atomic_counters;
       }
    }
+
+   /* If we support ES 3.1, we support the ES3_1_compatibility ext. However
+    * there's no clean way of telling whether we would support ES 3.1 from
+    * here, so copy the condition from compute_version_es2 here. A lot of
+    * these are redunant, but simpler to just have a (near-)exact copy here.
+    */
+   extensions->ARB_ES3_1_compatibility =
+      extensions->ARB_ES3_compatibility &&
+      extensions->ARB_arrays_of_arrays &&
+      extensions->ARB_compute_shader &&
+      extensions->ARB_draw_indirect &&
+      extensions->ARB_explicit_uniform_location &&
+      extensions->ARB_framebuffer_no_attachments &&
+      extensions->ARB_shader_atomic_counters &&
+      extensions->ARB_shader_image_load_store &&
+      extensions->ARB_shader_image_size &&
+      extensions->ARB_shader_storage_buffer_object &&
+      extensions->ARB_shading_language_packing &&
+      extensions->ARB_stencil_texturing &&
+      extensions->ARB_texture_multisample &&
+      extensions->ARB_gpu_shader5 &&
+      extensions->EXT_shader_integer_mix;
+
+   /* And if we have enough for ES 3.1, we can also expose
+    * OES_shader_io_blocks, which is only hidden due to the compiler not being
+    * able to version-restrict things.
+    */
+   extensions->OES_shader_io_blocks = extensions->ARB_ES3_1_compatibility;
 }

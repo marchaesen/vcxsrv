@@ -158,13 +158,9 @@ enum prog_opcode {
    OPCODE_RET,       /*                    2       2        opt  */
    OPCODE_RSQ,       /*   X        X       X       X         X   */
    OPCODE_SCS,       /*            X                         X   */
-   OPCODE_SEQ,       /*                    2       X         X   */
    OPCODE_SGE,       /*   X        X       X       X         X   */
-   OPCODE_SGT,       /*                    2       X         X   */
    OPCODE_SIN,       /*            X       2       X         X   */
-   OPCODE_SLE,       /*                    2       X         X   */
    OPCODE_SLT,       /*   X        X       X       X         X   */
-   OPCODE_SNE,       /*                    2       X         X   */
    OPCODE_SSG,       /*                    2                 X   */
    OPCODE_SUB,       /*   X        X       1.1     X         X   */
    OPCODE_SWZ,       /*   X        X                         X   */

@@ -62,8 +62,7 @@
 #include "Configint.h"
 
 
-static
-xf86ConfigSymTabRec InputTab[] = {
+static const xf86ConfigSymTabRec InputTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {OPTION, "option"},

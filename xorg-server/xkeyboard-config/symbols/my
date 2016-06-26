@@ -1,0 +1,7 @@
+default partial alphanumeric_keys
+xkb_symbols "jawi" {
+    include "id(jawi)"
+
+    name[Group1]= "Malay (Jawi)";
+};
+

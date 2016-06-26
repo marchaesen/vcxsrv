@@ -122,7 +122,7 @@ public:
    exec_list *acp;
 
    /**
-    * List of kill_entry: The masks of variables whose values were
+    * Hash table of kill_entry: The masks of variables whose values were
     * killed in this block.
     */
    hash_table *kills;
@@ -136,32 +136,21 @@ public:
 
 
 void
-ir_constant_propagation_visitor::constant_folding(ir_rvalue **rvalue) {
-
-   if (*rvalue == NULL || (*rvalue)->ir_type == ir_type_constant)
+ir_constant_propagation_visitor::constant_folding(ir_rvalue **rvalue)
+{
+   if (*rvalue == NULL)
       return;
 
-   /* Note that we visit rvalues one leaving.  So if an expression has a
-    * non-constant operand, no need to go looking down it to find if it's
-    * constant.  This cuts the time of this pass down drastically.
-    */
-   ir_expression *expr = (*rvalue)->as_expression();
-   if (expr) {
-      for (unsigned int i = 0; i < expr->get_num_operands(); i++) {
-	 if (!expr->operands[i]->as_constant())
-	    return;
-      }
-   }
-
-   /* Ditto for swizzles. */
-   ir_swizzle *swiz = (*rvalue)->as_swizzle();
-   if (swiz && !swiz->val->as_constant())
-      return;
-
-   ir_constant *constant = (*rvalue)->constant_expression_value();
-   if (constant) {
-      *rvalue = constant;
+   if (ir_constant_fold(rvalue))
       this->progress = true;
+
+   ir_dereference_variable *var_ref = (*rvalue)->as_dereference_variable();
+   if (var_ref) {
+      ir_constant *constant = var_ref->constant_expression_value();
+      if (constant) {
+         *rvalue = constant;
+         this->progress = true;
+      }
    }
 }
 
@@ -454,7 +443,7 @@ ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
       }
    }
 
-   /* Add this writemask of the variable to the list of killed
+   /* Add this writemask of the variable to the hash table of killed
     * variables in this block.
     */
    hash_entry *kill_hash_entry = _mesa_hash_table_search(this->kills, var);
@@ -463,7 +452,7 @@ ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
       entry->write_mask |= write_mask;
       return;
    }
-   /* Not already in the list.  Make new entry. */
+   /* Not already in the hash table.  Make new entry. */
    _mesa_hash_table_insert(this->kills, var,
                            new(this->mem_ctx) kill_entry(var, write_mask));
 }

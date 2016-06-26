@@ -151,9 +151,6 @@ struct _XtransConnInfo {
 
 #define XTRANS_OPEN_COTS_CLIENT       1
 #define XTRANS_OPEN_COTS_SERVER       2
-#define XTRANS_OPEN_CLTS_CLIENT       3
-#define XTRANS_OPEN_CLTS_SERVER       4
-
 
 typedef struct _Xtransport {
     const char	*TransName;
@@ -181,38 +178,9 @@ typedef struct _Xtransport {
 
 #endif /* TRANS_SERVER */
 
-#ifdef TRANS_CLIENT
-
-    XtransConnInfo (*OpenCLTSClient)(
-	struct _Xtransport *,	/* transport */
-	const char *,		/* protocol */
-	const char *,		/* host */
-	const char *		/* port */
-    );
-
-#endif /* TRANS_CLIENT */
-
-#ifdef TRANS_SERVER
-
-    XtransConnInfo (*OpenCLTSServer)(
-	struct _Xtransport *,	/* transport */
-	const char *,		/* protocol */
-	const char *,		/* host */
-	const char *		/* port */
-    );
-
-#endif /* TRANS_SERVER */
-
-
 #ifdef TRANS_REOPEN
 
     XtransConnInfo (*ReopenCOTSServer)(
-	struct _Xtransport *,	/* transport */
-        int,			/* fd */
-        const char *		/* port */
-    );
-
-    XtransConnInfo (*ReopenCLTSServer)(
 	struct _Xtransport *,	/* transport */
         int,			/* fd */
         const char *		/* port */
@@ -347,6 +315,10 @@ typedef struct _Xtransport_table {
  * readv() and writev() don't exist or don't work correctly on some
  * systems, so they may be emulated.
  */
+
+static void TRANS(FreeConnInfo) (
+    XtransConnInfo 	/* ciptr */
+);
 
 #ifdef WIN32
 

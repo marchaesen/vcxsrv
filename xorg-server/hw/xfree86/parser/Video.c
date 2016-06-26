@@ -61,7 +61,7 @@
 #include "Configint.h"
 
 
-static xf86ConfigSymTabRec VideoPortTab[] = {
+static const xf86ConfigSymTabRec VideoPortTab[] = {
     {ENDSUBSECTION, "endsubsection"},
     {IDENTIFIER, "identifier"},
     {OPTION, "option"},
@@ -128,7 +128,7 @@ xf86parseVideoPortSubSection(void)
 
 #undef CLEANUP
 
-static xf86ConfigSymTabRec VideoAdaptorTab[] = {
+static const xf86ConfigSymTabRec VideoAdaptorTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {VENDOR, "vendorname"},

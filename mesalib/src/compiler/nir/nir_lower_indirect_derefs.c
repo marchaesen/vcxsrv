@@ -50,7 +50,7 @@ emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
       direct.indirect = NIR_SRC_INIT;
 
       arr_parent->child = &direct.deref;
-      emit_load_store(b, orig_instr, deref, &arr->deref, dest, src);
+      emit_load_store(b, orig_instr, deref, &direct.deref, dest, src);
       arr_parent->child = &arr->deref;
    } else {
       int mid = start + (end - start) / 2;
@@ -75,8 +75,9 @@ emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
       if (src == NULL) {
          /* We're a load.  We need to insert a phi node */
          nir_phi_instr *phi = nir_phi_instr_create(b->shader);
+         unsigned bit_size = then_dest->bit_size;
          nir_ssa_dest_init(&phi->instr, &phi->dest,
-                           then_dest->num_components, NULL);
+                           then_dest->num_components, bit_size, NULL);
 
          nir_phi_src *src0 = ralloc(phi, nir_phi_src);
          src0->pred = nir_cf_node_as_block(nir_if_last_then_node(if_stmt));
@@ -125,8 +126,9 @@ emit_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
       load->num_components = orig_instr->num_components;
       load->variables[0] =
          nir_deref_as_var(nir_copy_deref(load, &deref->deref));
+      unsigned bit_size = orig_instr->dest.ssa.bit_size;
       nir_ssa_dest_init(&load->instr, &load->dest,
-                        load->num_components, NULL);
+                        load->num_components, bit_size, NULL);
       nir_builder_instr_insert(b, &load->instr);
       *dest = &load->dest.ssa;
    } else {
@@ -157,18 +159,13 @@ deref_has_indirect(nir_deref_var *deref)
    return false;
 }
 
-struct lower_indirect_state {
-   nir_builder builder;
-   uint32_t mode_mask;
-   bool progress;
-};
-
 static bool
-lower_indirect_block(nir_block *block, void *void_state)
+lower_indirect_block(nir_block *block, nir_builder *b,
+                     nir_variable_mode modes)
 {
-   struct lower_indirect_state *state = void_state;
+   bool progress = false;
 
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
@@ -181,43 +178,43 @@ lower_indirect_block(nir_block *block, void *void_state)
          continue;
 
       /* Only lower variables whose mode is in the mask */
-      if (!(state->mode_mask & (1 << intrin->variables[0]->var->data.mode)))
+      if (!(modes & intrin->variables[0]->var->data.mode))
          continue;
 
-      state->builder.cursor = nir_before_instr(&intrin->instr);
+      b->cursor = nir_before_instr(&intrin->instr);
 
       if (intrin->intrinsic == nir_intrinsic_load_var) {
          nir_ssa_def *result;
-         emit_load_store(&state->builder, intrin, intrin->variables[0],
+         emit_load_store(b, intrin, intrin->variables[0],
                          &intrin->variables[0]->deref, &result, NULL);
          nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(result));
       } else {
          assert(intrin->src[0].is_ssa);
-         emit_load_store(&state->builder, intrin, intrin->variables[0],
+         emit_load_store(b, intrin, intrin->variables[0],
                          &intrin->variables[0]->deref, NULL, intrin->src[0].ssa);
       }
       nir_instr_remove(&intrin->instr);
-      state->progress = true;
+      progress = true;
    }
 
-   return true;
+   return progress;
 }
 
 static bool
-lower_indirects_impl(nir_function_impl *impl, uint32_t mode_mask)
+lower_indirects_impl(nir_function_impl *impl, nir_variable_mode modes)
 {
-   struct lower_indirect_state state;
+   nir_builder builder;
+   nir_builder_init(&builder, impl);
+   bool progress = false;
 
-   state.progress = false;
-   state.mode_mask = mode_mask;
-   nir_builder_init(&state.builder, impl);
+   nir_foreach_block_safe(block, impl) {
+      progress |= lower_indirect_block(block, &builder, modes);
+   }
 
-   nir_foreach_block(impl, lower_indirect_block, &state);
-
-   if (state.progress)
+   if (progress)
       nir_metadata_preserve(impl, nir_metadata_none);
 
-   return state.progress;
+   return progress;
 }
 
 /** Lowers indirect variable loads/stores to direct loads/stores.
@@ -226,13 +223,13 @@ lower_indirects_impl(nir_function_impl *impl, uint32_t mode_mask)
  * that does a binary search on the array index.
  */
 bool
-nir_lower_indirect_derefs(nir_shader *shader, uint32_t mode_mask)
+nir_lower_indirect_derefs(nir_shader *shader, nir_variable_mode modes)
 {
    bool progress = false;
 
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
-         progress = lower_indirects_impl(function->impl, mode_mask) || progress;
+         progress = lower_indirects_impl(function->impl, modes) || progress;
    }
 
    return progress;

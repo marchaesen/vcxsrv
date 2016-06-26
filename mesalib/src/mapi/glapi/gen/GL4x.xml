@@ -9,17 +9,17 @@
   <enum name="SAMPLE_SHADING"                          value="0x8C36"/>
   <enum name="MIN_SAMPLE_SHADING_VALUE"                value="0x8C37"/>
 
-  <function name="MinSampleShading">
+  <function name="MinSampleShading" es2="3.2">
     <param name="value" type="GLfloat"/>
   </function>
 
-  <function name="BlendFunci" alias="BlendFunciARB">
+  <function name="BlendFunci" alias="BlendFunciARB" es2="3.2">
     <param name="buf" type="GLuint"/>
     <param name="sfactor" type="GLenum"/>
     <param name="dfactor" type="GLenum"/>
   </function>
 
-  <function name="BlendFuncSeparatei" alias="BlendFuncSeparateiARB">
+  <function name="BlendFuncSeparatei" alias="BlendFuncSeparateiARB" es2="3.2">
     <param name="buf" type="GLuint"/>
     <param name="sfactorRGB" type="GLenum"/>
     <param name="dfactorRGB" type="GLenum"/>
@@ -27,12 +27,12 @@
     <param name="dfactorAlpha" type="GLenum"/>
   </function>
 
-  <function name="BlendEquationi" alias="BlendEquationiARB">
+  <function name="BlendEquationi" alias="BlendEquationiARB" es2="3.2">
     <param name="buf" type="GLuint"/>
     <param name="mode" type="GLenum"/>
   </function>
 
-  <function name="BlendEquationSeparatei" alias="BlendEquationSeparateiARB" >
+  <function name="BlendEquationSeparatei" alias="BlendEquationSeparateiARB" es2="3.2">
     <param name="buf" type="GLuint"/>
     <param name="modeRGB" type="GLenum"/>
     <param name="modeA" type="GLenum"/>

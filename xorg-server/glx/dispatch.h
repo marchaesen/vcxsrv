@@ -3,18 +3,18 @@
 /*
  * (C) Copyright IBM Corporation 2005
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sub license,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the next
  * paragraph) shall be included in all copies or substantial portions of the
  * Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1324
+#define _gloffset_COUNT 1325
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 916
+#define driDispatchRemapTable_size 917
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1344,54 +1344,55 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define GetPerfQueryIdByNameINTEL_remap_index 865
 #define GetPerfQueryInfoINTEL_remap_index 866
 #define PolygonOffsetClampEXT_remap_index 867
-#define StencilFuncSeparateATI_remap_index 868
-#define ProgramEnvParameters4fvEXT_remap_index 869
-#define ProgramLocalParameters4fvEXT_remap_index 870
-#define EGLImageTargetRenderbufferStorageOES_remap_index 871
-#define EGLImageTargetTexture2DOES_remap_index 872
-#define AlphaFuncx_remap_index 873
-#define ClearColorx_remap_index 874
-#define ClearDepthx_remap_index 875
-#define Color4x_remap_index 876
-#define DepthRangex_remap_index 877
-#define Fogx_remap_index 878
-#define Fogxv_remap_index 879
-#define Frustumf_remap_index 880
-#define Frustumx_remap_index 881
-#define LightModelx_remap_index 882
-#define LightModelxv_remap_index 883
-#define Lightx_remap_index 884
-#define Lightxv_remap_index 885
-#define LineWidthx_remap_index 886
-#define LoadMatrixx_remap_index 887
-#define Materialx_remap_index 888
-#define Materialxv_remap_index 889
-#define MultMatrixx_remap_index 890
-#define MultiTexCoord4x_remap_index 891
-#define Normal3x_remap_index 892
-#define Orthof_remap_index 893
-#define Orthox_remap_index 894
-#define PointSizex_remap_index 895
-#define PolygonOffsetx_remap_index 896
-#define Rotatex_remap_index 897
-#define SampleCoveragex_remap_index 898
-#define Scalex_remap_index 899
-#define TexEnvx_remap_index 900
-#define TexEnvxv_remap_index 901
-#define TexParameterx_remap_index 902
-#define Translatex_remap_index 903
-#define ClipPlanef_remap_index 904
-#define ClipPlanex_remap_index 905
-#define GetClipPlanef_remap_index 906
-#define GetClipPlanex_remap_index 907
-#define GetFixedv_remap_index 908
-#define GetLightxv_remap_index 909
-#define GetMaterialxv_remap_index 910
-#define GetTexEnvxv_remap_index 911
-#define GetTexParameterxv_remap_index 912
-#define PointParameterx_remap_index 913
-#define PointParameterxv_remap_index 914
-#define TexParameterxv_remap_index 915
+#define WindowRectanglesEXT_remap_index 868
+#define StencilFuncSeparateATI_remap_index 869
+#define ProgramEnvParameters4fvEXT_remap_index 870
+#define ProgramLocalParameters4fvEXT_remap_index 871
+#define EGLImageTargetRenderbufferStorageOES_remap_index 872
+#define EGLImageTargetTexture2DOES_remap_index 873
+#define AlphaFuncx_remap_index 874
+#define ClearColorx_remap_index 875
+#define ClearDepthx_remap_index 876
+#define Color4x_remap_index 877
+#define DepthRangex_remap_index 878
+#define Fogx_remap_index 879
+#define Fogxv_remap_index 880
+#define Frustumf_remap_index 881
+#define Frustumx_remap_index 882
+#define LightModelx_remap_index 883
+#define LightModelxv_remap_index 884
+#define Lightx_remap_index 885
+#define Lightxv_remap_index 886
+#define LineWidthx_remap_index 887
+#define LoadMatrixx_remap_index 888
+#define Materialx_remap_index 889
+#define Materialxv_remap_index 890
+#define MultMatrixx_remap_index 891
+#define MultiTexCoord4x_remap_index 892
+#define Normal3x_remap_index 893
+#define Orthof_remap_index 894
+#define Orthox_remap_index 895
+#define PointSizex_remap_index 896
+#define PolygonOffsetx_remap_index 897
+#define Rotatex_remap_index 898
+#define SampleCoveragex_remap_index 899
+#define Scalex_remap_index 900
+#define TexEnvx_remap_index 901
+#define TexEnvxv_remap_index 902
+#define TexParameterx_remap_index 903
+#define Translatex_remap_index 904
+#define ClipPlanef_remap_index 905
+#define ClipPlanex_remap_index 906
+#define GetClipPlanef_remap_index 907
+#define GetClipPlanex_remap_index 908
+#define GetFixedv_remap_index 909
+#define GetLightxv_remap_index 910
+#define GetMaterialxv_remap_index 911
+#define GetTexEnvxv_remap_index 912
+#define GetTexParameterxv_remap_index 913
+#define PointParameterx_remap_index 914
+#define PointParameterxv_remap_index 915
+#define TexParameterxv_remap_index 916
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2261,6 +2262,7 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_GetPerfQueryIdByNameINTEL driDispatchRemapTable[GetPerfQueryIdByNameINTEL_remap_index]
 #define _gloffset_GetPerfQueryInfoINTEL driDispatchRemapTable[GetPerfQueryInfoINTEL_remap_index]
 #define _gloffset_PolygonOffsetClampEXT driDispatchRemapTable[PolygonOffsetClampEXT_remap_index]
+#define _gloffset_WindowRectanglesEXT driDispatchRemapTable[WindowRectanglesEXT_remap_index]
 #define _gloffset_StencilFuncSeparateATI driDispatchRemapTable[StencilFuncSeparateATI_remap_index]
 #define _gloffset_ProgramEnvParameters4fvEXT driDispatchRemapTable[ProgramEnvParameters4fvEXT_remap_index]
 #define _gloffset_ProgramLocalParameters4fvEXT driDispatchRemapTable[ProgramLocalParameters4fvEXT_remap_index]
@@ -12430,14 +12432,14 @@ static INLINE void SET_ClearNamedBufferSubData(struct _glapi_table *disp, void (
    SET_by_offset(disp, _gloffset_ClearNamedBufferSubData, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_ClearNamedFramebufferfi)(GLuint, GLenum, GLfloat, GLint);
+typedef void (GLAPIENTRYP _glptr_ClearNamedFramebufferfi)(GLuint, GLenum, GLint, GLfloat, GLint);
 #define CALL_ClearNamedFramebufferfi(disp, parameters) \
     (* GET_ClearNamedFramebufferfi(disp)) parameters
 static INLINE _glptr_ClearNamedFramebufferfi GET_ClearNamedFramebufferfi(struct _glapi_table *disp) {
    return (_glptr_ClearNamedFramebufferfi) (GET_by_offset(disp, _gloffset_ClearNamedFramebufferfi));
 }
 
-static INLINE void SET_ClearNamedFramebufferfi(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLfloat, GLint)) {
+static INLINE void SET_ClearNamedFramebufferfi(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLfloat, GLint)) {
    SET_by_offset(disp, _gloffset_ClearNamedFramebufferfi, fn);
 }
 
@@ -16344,6 +16346,17 @@ static INLINE _glptr_PolygonOffsetClampEXT GET_PolygonOffsetClampEXT(struct _gla
 
 static INLINE void SET_PolygonOffsetClampEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLfloat, GLfloat, GLfloat)) {
    SET_by_offset(disp, _gloffset_PolygonOffsetClampEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_WindowRectanglesEXT)(GLenum, GLsizei, const GLint *);
+#define CALL_WindowRectanglesEXT(disp, parameters) \
+    (* GET_WindowRectanglesEXT(disp)) parameters
+static INLINE _glptr_WindowRectanglesEXT GET_WindowRectanglesEXT(struct _glapi_table *disp) {
+   return (_glptr_WindowRectanglesEXT) (GET_by_offset(disp, _gloffset_WindowRectanglesEXT));
+}
+
+static INLINE void SET_WindowRectanglesEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, const GLint *)) {
+   SET_by_offset(disp, _gloffset_WindowRectanglesEXT, fn);
 }
 
 typedef void (GLAPIENTRYP _glptr_StencilFuncSeparateATI)(GLenum, GLenum, GLint, GLuint);

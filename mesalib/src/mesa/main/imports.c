@@ -219,64 +219,6 @@ _mesa_align_realloc(void *oldBuffer, size_t oldSize, size_t newSize,
 /*@{*/
 
 
-#ifndef HAVE___BUILTIN_FFS
-/**
- * Find the first bit set in a word.
- */
-int
-ffs(int i)
-{
-   register int bit = 0;
-   if (i != 0) {
-      if ((i & 0xffff) == 0) {
-         bit += 16;
-         i >>= 16;
-      }
-      if ((i & 0xff) == 0) {
-         bit += 8;
-         i >>= 8;
-      }
-      if ((i & 0xf) == 0) {
-         bit += 4;
-         i >>= 4;
-      }
-      while ((i & 1) == 0) {
-         bit++;
-         i >>= 1;
-      }
-      bit++;
-   }
-   return bit;
-}
-#endif
-
-#ifndef HAVE___BUILTIN_FFSLL
-/**
- * Find position of first bit set in given value.
- * XXX Warning: this function can only be used on 64-bit systems!
- * \return  position of least-significant bit set, starting at 1, return zero
- *          if no bits set.
- */
-int
-ffsll(long long int val)
-{
-   int bit;
-
-   assert(sizeof(val) == 8);
-
-   bit = ffs((int) val);
-   if (bit != 0)
-      return bit;
-
-   bit = ffs((int) (val >> 32));
-   if (bit != 0)
-      return 32 + bit;
-
-   return 0;
-}
-#endif
-
-
 #ifndef HAVE___BUILTIN_POPCOUNT
 /**
  * Return number of bits set in given GLuint.

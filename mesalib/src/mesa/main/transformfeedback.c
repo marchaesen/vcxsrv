@@ -347,23 +347,25 @@ compute_transform_feedback_buffer_sizes(
  * enabled transform feedback buffers without overflowing any of them.
  */
 unsigned
-_mesa_compute_max_transform_feedback_vertices(
+_mesa_compute_max_transform_feedback_vertices(struct gl_context *ctx,
       const struct gl_transform_feedback_object *obj,
       const struct gl_transform_feedback_info *info)
 {
    unsigned max_index = 0xffffffff;
    unsigned i;
 
-   for (i = 0; i < info->NumBuffers; ++i) {
-      unsigned stride = info->BufferStride[i];
-      unsigned max_for_this_buffer;
+   for (i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
+      if ((info->ActiveBuffers >> i) & 1) {
+         unsigned stride = info->Buffers[i].Stride;
+         unsigned max_for_this_buffer;
 
-      /* Skip any inactive buffers, which have a stride of 0. */
-      if (stride == 0)
-	 continue;
+         /* Skip any inactive buffers, which have a stride of 0. */
+         if (stride == 0)
+	    continue;
 
-      max_for_this_buffer = obj->Size[i] / (4 * stride);
-      max_index = MIN2(max_index, max_for_this_buffer);
+         max_for_this_buffer = obj->Size[i] / (4 * stride);
+         max_index = MIN2(max_index, max_for_this_buffer);
+      }
    }
 
    return max_index;
@@ -445,12 +447,14 @@ _mesa_BeginTransformFeedback(GLenum mode)
       return;
    }
 
-   for (i = 0; i < info->NumBuffers; ++i) {
-      if (obj->BufferNames[i] == 0) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glBeginTransformFeedback(binding point %d does not have "
-                     "a buffer object bound)", i);
-         return;
+   for (i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
+      if ((info->ActiveBuffers >> i) & 1) {
+         if (obj->BufferNames[i] == 0) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glBeginTransformFeedback(binding point %d does not "
+                        "have a buffer object bound)", i);
+            return;
+         }
       }
    }
 
@@ -470,7 +474,7 @@ _mesa_BeginTransformFeedback(GLenum mode)
        * feedback.
        */
       unsigned max_vertices
-         = _mesa_compute_max_transform_feedback_vertices(obj, info);
+         = _mesa_compute_max_transform_feedback_vertices(ctx, obj, info);
       obj->GlesRemainingPrims = max_vertices / vertices_per_prim;
    }
 
@@ -501,12 +505,12 @@ _mesa_EndTransformFeedback(void)
    FLUSH_VERTICES(ctx, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
 
+   assert(ctx->Driver.EndTransformFeedback);
+   ctx->Driver.EndTransformFeedback(ctx, obj);
+
    ctx->TransformFeedback.CurrentObject->Active = GL_FALSE;
    ctx->TransformFeedback.CurrentObject->Paused = GL_FALSE;
    ctx->TransformFeedback.CurrentObject->EndedAnytime = GL_TRUE;
-
-   assert(ctx->Driver.EndTransformFeedback);
-   ctx->Driver.EndTransformFeedback(ctx, obj);
 }
 
 
@@ -1169,10 +1173,10 @@ _mesa_PauseTransformFeedback(void)
    FLUSH_VERTICES(ctx, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
 
-   obj->Paused = GL_TRUE;
-
    assert(ctx->Driver.PauseTransformFeedback);
    ctx->Driver.PauseTransformFeedback(ctx, obj);
+
+   obj->Paused = GL_TRUE;
 }
 
 
@@ -1287,12 +1291,13 @@ _mesa_GetTransformFeedbacki64_v(GLuint xfb, GLenum pname, GLuint index,
       return;
    }
 
+   compute_transform_feedback_buffer_sizes(obj);
    switch(pname) {
    case GL_TRANSFORM_FEEDBACK_BUFFER_START:
       *param = obj->Offset[index];
       break;
    case GL_TRANSFORM_FEEDBACK_BUFFER_SIZE:
-      *param = obj->RequestedSize[index];
+      *param = obj->Size[index];
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,

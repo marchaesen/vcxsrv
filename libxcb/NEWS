@@ -1,3 +1,35 @@
+Release 1.12 (2016-05-18)
+=========================
+* configure: Various fixes for dri3 and FD passing support
+* configure: Don't report all the warning CFLAGS
+* configure: Disable Xevie and Xprint by default
+* Add support for various new constructs in the XML schema
+* Make some functions also accept connections in an error state
+* Never return NULL from xcb_get_setup()
+* Use Requires.private in .pc files to avoid overlinking
+* Fix align-pads for switches which start at unaligned positions
+* Use anonymous structs for some nested structs
+* Also generate accessors for variable-sized events and requests
+* Improved python3 compatibility
+* Generate C99 initializers instead of comments
+* Various simplifications to the python code
+* Fix line breaks in xcb-requests manual page
+* Always close FDs in xcb_send_fd()
+* Fix thread-safety issues with FD passing
+* Add xcb_send_request_with_fds() and xcb_send_request_with_fds64()
+* Fix endless loop with too many outstanding FDs to send
+* Link with winsock library on MinGW
+* Disable some unfinished API for some server-side code by default
+* Use align-offsets computed by xcb-proto instead of low bits of pointers
+* Fix iterator interaction with align padding
+* Stop serializing padding by default
+* Increase unix socket send buffer to at least 64KiB
+
+Release 1.11.1 (2015-09-06)
+===========================
+* Expose 64-bit sequence numbers for XLib
+* Fix some hangs related to xcb_wait_for_special_event()
+
 Release 1.11 (2014-08-01)
 =========================
 * Force structures with 64-bit fields to be packed

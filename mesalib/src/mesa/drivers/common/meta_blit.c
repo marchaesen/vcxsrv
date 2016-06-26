@@ -105,12 +105,12 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
    }
 
    if (blit->msaa_shaders[shader_index]) {
-      _mesa_UseProgram(blit->msaa_shaders[shader_index]);
+      _mesa_meta_use_program(ctx, blit->msaa_shaders[shader_index]);
       /* Update the uniform values. */
       loc_src_width =
-         _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_width");
+         _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_width");
       loc_src_height =
-         _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_height");
+         _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_height");
       _mesa_Uniform1f(loc_src_width, src_rb->Width);
       _mesa_Uniform1f(loc_src_height, src_rb->Height);
       return;
@@ -168,8 +168,9 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
 
    static const char vs_source[] =
                                "#version 130\n"
-                               "in vec2 position;\n"
-                               "in vec3 textureCoords;\n"
+                               "#extension GL_ARB_explicit_attrib_location: enable\n"
+                               "layout(location = 0) in vec2 position;\n"
+                               "layout(location = 1) in vec3 textureCoords;\n"
                                "out vec2 texCoords;\n"
                                "flat out int layer;\n"
                                "void main()\n"
@@ -222,8 +223,8 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
                                "#undef TEXEL_FETCH\n"
                                "\n"
                                "   /* Do bilinear filtering on sample colors. */\n"
-                               "   x_0_color =  mix(s_0_color, s_1_color, interp.x);\n"
-                               "   x_1_color =  mix(s_2_color, s_3_color, interp.x);\n"
+                               "   x_0_color = mix(s_0_color, s_1_color, interp.x);\n"
+                               "   x_1_color = mix(s_2_color, s_3_color, interp.x);\n"
                                "   out_color = mix(x_0_color, x_1_color, interp.y);\n"
                                "}\n",
                                sampler_array_suffix,
@@ -236,9 +237,9 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
    _mesa_meta_compile_and_link_program(ctx, vs_source, fs_source, name,
                                        &blit->msaa_shaders[shader_index]);
    loc_src_width =
-      _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_width");
+      _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_width");
    loc_src_height =
-      _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_height");
+      _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_height");
    _mesa_Uniform1f(loc_src_width, src_rb->Width);
    _mesa_Uniform1f(loc_src_height, src_rb->Height);
 
@@ -346,7 +347,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
    }
 
    if (blit->msaa_shaders[shader_index]) {
-      _mesa_UseProgram(blit->msaa_shaders[shader_index]);
+      _mesa_meta_use_program(ctx, blit->msaa_shaders[shader_index]);
       return;
    }
 
@@ -384,8 +385,9 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
 
       vs_source = ralloc_asprintf(mem_ctx,
                                   "#version 130\n"
-                                  "in vec2 position;\n"
-                                  "in %s textureCoords;\n"
+                                  "#extension GL_ARB_explicit_attrib_location: enable\n"
+                                  "layout(location = 0) in vec2 position;\n"
+                                  "layout(location = 1) in %s textureCoords;\n"
                                   "out %s texCoords;\n"
                                   "void main()\n"
                                   "{\n"
@@ -456,8 +458,17 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
          int step;
 
          if (src_datatype == GL_INT || src_datatype == GL_UNSIGNED_INT) {
-            merge_function =
-               "gvec4 merge(gvec4 a, gvec4 b) { return (a >> gvec4(1)) + (b >> gvec4(1)) + (a & b & gvec4(1)); }\n";
+            /* From the OpenGL ES 3.2 spec section 16.2.1:
+             *
+             *    "If the source formats are integer types or stencil values,
+             *    a single sample's value is selected for each pixel."
+             *
+             * The OpenGL 4.4 spec contains exactly the same language.
+             *
+             * We can accomplish this by making the merge function return just
+             * one of the two samples.  The compiler should do the rest.
+             */
+            merge_function = "gvec4 merge(gvec4 a, gvec4 b) { return a; }\n";
          } else {
             /* The divide will happen at the end for floats. */
             merge_function =
@@ -506,8 +517,9 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
 
       vs_source = ralloc_asprintf(mem_ctx,
                                   "#version 130\n"
-                                  "in vec2 position;\n"
-                                  "in %s textureCoords;\n"
+                                  "#extension GL_ARB_explicit_attrib_location: enable\n"
+                                  "layout(location = 0) in vec2 position;\n"
+                                  "layout(location = 1) in %s textureCoords;\n"
                                   "out %s texCoords;\n"
                                   "void main()\n"
                                   "{\n"
@@ -594,6 +606,7 @@ blitframebuffer_texture(struct gl_context *ctx,
                         GLenum filter, GLint flipX, GLint flipY,
                         GLboolean glsl_version, GLboolean do_depth)
 {
+   struct save_state *save = &ctx->Meta->Save[ctx->Meta->SaveStackDepth - 1];
    int att_index = do_depth ? BUFFER_DEPTH : readFb->_ColorReadBufferIndex;
    const struct gl_renderbuffer_attachment *readAtt =
       &readFb->Attachment[att_index];
@@ -706,7 +719,7 @@ blitframebuffer_texture(struct gl_context *ctx,
    fb_tex_blit.samp_obj = _mesa_meta_setup_sampler(ctx, texObj, target, filter,
                                                    srcLevel);
 
-   /* Always do our blits with no net sRGB decode or encode.
+   /* For desktop GL, we do our blits with no net sRGB decode or encode.
     *
     * However, if both the src and dst can be srgb decode/encoded, enable them
     * so that we do any blending (from scaling or from MSAA resolves) in the
@@ -720,18 +733,42 @@ blitframebuffer_texture(struct gl_context *ctx,
     *      scissor test."
     *
     * The GL 4.4 specification disagrees and says that the sRGB part of the
-    * fragment pipeline applies, but this was found to break applications.
+    * fragment pipeline applies, but this was found to break applications
+    * (such as Left 4 Dead 2).
+    *
+    * However, for ES 3.0, we follow the specification and perform sRGB
+    * decoding and encoding.  The specification has always been clear in
+    * the ES world, and hasn't changed over time.
     */
    if (ctx->Extensions.EXT_texture_sRGB_decode) {
-      if (_mesa_get_format_color_encoding(rb->Format) == GL_SRGB &&
-          drawFb->Visual.sRGBCapable) {
+      bool src_srgb = _mesa_get_format_color_encoding(rb->Format) == GL_SRGB;
+      if (save->API == API_OPENGLES2 && ctx->Version >= 30) {
+         /* From the ES 3.0.4 specification, page 198:
+          * "When values are taken from the read buffer, if the value of
+          *  FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING for the framebuffer
+          *  attachment corresponding to the read buffer is SRGB (see section
+          *  6.1.13), the red, green, and blue components are converted from
+          *  the non-linear sRGB color space according to equation 3.24.
+          *
+          *  When values are written to the draw buffers, blit operations
+          *  bypass the fragment pipeline. The only fragment operations which
+          *  affect a blit are the pixel ownership test, the scissor test,
+          *  and sRGB conversion (see section 4.1.8)."
+          */
          _mesa_set_sampler_srgb_decode(ctx, fb_tex_blit.samp_obj,
-                                       GL_DECODE_EXT);
-         _mesa_set_framebuffer_srgb(ctx, GL_TRUE);
+                                       src_srgb ? GL_DECODE_EXT
+                                                : GL_SKIP_DECODE_EXT);
+         _mesa_set_framebuffer_srgb(ctx, drawFb->Visual.sRGBCapable);
       } else {
-         _mesa_set_sampler_srgb_decode(ctx, fb_tex_blit.samp_obj,
-                                       GL_SKIP_DECODE_EXT);
-         /* set_framebuffer_srgb was set by _mesa_meta_begin(). */
+         if (src_srgb && drawFb->Visual.sRGBCapable) {
+            _mesa_set_sampler_srgb_decode(ctx, fb_tex_blit.samp_obj,
+                                          GL_DECODE_EXT);
+            _mesa_set_framebuffer_srgb(ctx, GL_TRUE);
+         } else {
+            _mesa_set_sampler_srgb_decode(ctx, fb_tex_blit.samp_obj,
+                                          GL_SKIP_DECODE_EXT);
+            /* set_framebuffer_srgb was set by _mesa_meta_begin(). */
+         }
       }
    }
 
@@ -1034,8 +1071,8 @@ _mesa_meta_glsl_blit_cleanup(struct gl_context *ctx, struct blit_state *blit)
       _mesa_reference_buffer_object(ctx, &blit->buf_obj, NULL);
    }
 
-   _mesa_meta_blit_shader_table_cleanup(&blit->shaders_with_depth);
-   _mesa_meta_blit_shader_table_cleanup(&blit->shaders_without_depth);
+   _mesa_meta_blit_shader_table_cleanup(ctx, &blit->shaders_with_depth);
+   _mesa_meta_blit_shader_table_cleanup(ctx, &blit->shaders_without_depth);
 
    _mesa_DeleteTextures(1, &blit->depthTex.TexObj);
    blit->depthTex.TexObj = 0;

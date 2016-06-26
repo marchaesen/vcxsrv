@@ -1141,7 +1141,8 @@ exaTrapezoids(CARD8 op, PicturePtr pSrc, PicturePtr pDst,
 
         exaPrepareAccess(pPicture->pDrawable, EXA_PREPARE_DEST);
         for (; ntrap; ntrap--, traps++)
-            (*ps->RasterizeTrapezoid) (pPicture, traps, -bounds.x1, -bounds.y1);
+            if (xTrapezoidValid(traps))
+                (*ps->RasterizeTrapezoid) (pPicture, traps, -bounds.x1, -bounds.y1);
         exaFinishAccess(pPicture->pDrawable, EXA_PREPARE_DEST);
 
         xRel = bounds.x1 + xSrc - xDst;

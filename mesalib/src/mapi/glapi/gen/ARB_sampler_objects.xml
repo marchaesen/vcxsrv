@@ -51,13 +51,13 @@
       <param name="params" type="const GLfloat *"/>
     </function>
 
-    <function name="SamplerParameterIiv">
+    <function name="SamplerParameterIiv" es2="3.2">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
       <param name="params" type="const GLint *"/>
     </function>
 
-    <function name="SamplerParameterIuiv">
+    <function name="SamplerParameterIuiv" es2="3.2">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
       <param name="params" type="const GLuint *"/>
@@ -75,13 +75,13 @@
       <param name="params" type="GLfloat *"/>
     </function>
 
-    <function name="GetSamplerParameterIiv">
+    <function name="GetSamplerParameterIiv" es2="3.2">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
       <param name="params" type="GLint *"/>
     </function>
 
-    <function name="GetSamplerParameterIuiv">
+    <function name="GetSamplerParameterIuiv" es2="3.2">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
       <param name="params" type="GLuint *"/>

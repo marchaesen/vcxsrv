@@ -347,7 +347,7 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
     *    extracted_biased_exp = rshift(bitcast_f2i(abs(x)), exp_shift);
     *    resulting_biased_exp = extracted_biased_exp + exp;
     *
-    *    if (resulting_biased_exp < 1) {
+    *    if (resulting_biased_exp < 1 || x == 0.0f) {
     *       return copysign(0.0, x);
     *    }
     *
@@ -361,7 +361,8 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
     *    extracted_biased_exp = rshift(bitcast_f2i(abs(x)), exp_shift);
     *    resulting_biased_exp = extracted_biased_exp + exp;
     *
-    *    is_not_zero_or_underflow = gequal(resulting_biased_exp, 1);
+    *    is_not_zero_or_underflow = logic_and(nequal(x, 0.0f),
+    *                                         gequal(resulting_biased_exp, 1);
     *    x = csel(is_not_zero_or_underflow, x, copysign(0.0f, x));
     *    resulting_biased_exp = csel(is_not_zero_or_underflow,
     *                                resulting_biased_exp, 0);
@@ -427,8 +428,9 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
 
    i.insert_before(is_not_zero_or_underflow);
    i.insert_before(assign(is_not_zero_or_underflow,
-                          gequal(resulting_biased_exp,
-                                  new(ir) ir_constant(0x1, vec_elem))));
+                          logic_and(nequal(x, new(ir) ir_constant(0.0f, vec_elem)),
+                                    gequal(resulting_biased_exp,
+                                           new(ir) ir_constant(0x1, vec_elem)))));
    i.insert_before(assign(x, csel(is_not_zero_or_underflow,
                                   x, zero_sign_x)));
    i.insert_before(assign(resulting_biased_exp,

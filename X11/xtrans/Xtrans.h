@@ -111,21 +111,6 @@ static const char *__xtransname = "_IceTrans";
 #endif
 #endif /* ICE_t */
 
-#ifdef TEST_t
-#define TRANS(func) _TESTTrans##func
-#ifdef XTRANSDEBUG
-static const char *__xtransname = "_TESTTrans";
-#endif
-#endif /* TEST_t */
-
-#ifdef LBXPROXY_t
-#define TRANS(func) _LBXPROXYTrans##func
-#define X11_t		/* The server defines this - so should the LBX proxy */
-#ifdef XTRANSDEBUG
-static const char *__xtransname = "_LBXPROXYTrans";
-#endif
-#endif /* LBXPROXY_t */
-
 #if !defined(TRANS)
 #define TRANS(func) _XTrans##func
 #ifdef XTRANSDEBUG
@@ -230,10 +215,6 @@ typedef struct _XtransConnInfo *XtransConnInfo;
  * Function prototypes for the exposed interface
  */
 
-void TRANS(FreeConnInfo) (
-    XtransConnInfo 	/* ciptr */
-);
-
 #ifdef TRANS_CLIENT
 
 XtransConnInfo TRANS(OpenCOTSClient)(
@@ -250,31 +231,9 @@ XtransConnInfo TRANS(OpenCOTSServer)(
 
 #endif /* TRANS_SERVER */
 
-#ifdef TRANS_CLIENT
-
-XtransConnInfo TRANS(OpenCLTSClient)(
-    const char *	/* address */
-);
-
-#endif /* TRANS_CLIENT */
-
-#ifdef TRANS_SERVER
-
-XtransConnInfo TRANS(OpenCLTSServer)(
-    const char *	/* address */
-);
-
-#endif /* TRANS_SERVER */
-
 #ifdef TRANS_REOPEN
 
 XtransConnInfo TRANS(ReopenCOTSServer)(
-    int,		/* trans_id */
-    int,		/* fd */
-    const char *	/* port */
-);
-
-XtransConnInfo TRANS(ReopenCLTSServer)(
     int,		/* trans_id */
     int,		/* fd */
     const char *	/* port */
@@ -389,13 +348,6 @@ int TRANS(IsLocal)(
     XtransConnInfo	/* ciptr */
 );
 
-int TRANS(GetMyAddr)(
-    XtransConnInfo,	/* ciptr */
-    int *,		/* familyp */
-    int *,		/* addrlenp */
-    Xtransaddr **	/* addrp */
-);
-
 int TRANS(GetPeerAddr)(
     XtransConnInfo,	/* ciptr */
     int *,		/* familyp */
@@ -410,13 +362,6 @@ int TRANS(GetConnectionNumber)(
 #ifdef TRANS_SERVER
 
 int TRANS(MakeAllCOTSServerListeners)(
-    const char *,	/* port */
-    int *,		/* partial */
-    int *,		/* count_ret */
-    XtransConnInfo **	/* ciptrs_ret */
-);
-
-int TRANS(MakeAllCLTSServerListeners)(
     const char *,	/* port */
     int *,		/* partial */
     int *,		/* count_ret */

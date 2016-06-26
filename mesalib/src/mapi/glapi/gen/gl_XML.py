@@ -130,7 +130,7 @@ class gl_print_base(object):
                 % (self.name)
         print ''
         print '/*'
-        print ' * ' + self.license.replace('\n', '\n * ')
+        print (' * ' + self.license.replace('\n', '\n * ')).replace(' \n', '\n')
         print ' */'
         print ''
         if self.header_tag:
@@ -183,7 +183,7 @@ class gl_print_base(object):
         The name is also added to the file's undef_list.
         """
         self.undef_list.append("PURE")
-        print """#  if defined(__GNUC__)
+        print """#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
 #    define PURE __attribute__((pure))
 #  else
 #    define PURE
@@ -576,7 +576,7 @@ class gl_parameter(object):
                 list.append( str(s) )
 
             if len(list) > 1 and use_parens :
-                return "(%s)" % (string.join(list, " * "))
+                return "safe_mul(%s)" % (string.join(list, ", "))
             else:
                 return string.join(list, " * ")
 

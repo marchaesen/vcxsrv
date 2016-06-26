@@ -105,7 +105,7 @@ glamor_create_composite_fs(struct shader_key *key)
     /* The texture and the pixmap size is not match eaxctly, so can't sample it directly.
      * rel_sampler will recalculate the texture coords.*/
     const char *rel_sampler =
-        " vec4 rel_sampler(sampler2D tex_image, vec2 tex, vec4 wh, int repeat)\n"
+        " vec4 rel_sampler_rgba(sampler2D tex_image, vec2 tex, vec4 wh, int repeat)\n"
         "{\n"
         "	if (repeat >= RepeatFix) {\n"
         "		tex = rel_tex_coord(tex, wh, repeat);\n"
@@ -117,6 +117,19 @@ glamor_create_composite_fs(struct shader_key *key)
         "		}\n"
         "	}\n"
         "	return texture2D(tex_image, tex);\n"
+        "}\n"
+        " vec4 rel_sampler_rgbx(sampler2D tex_image, vec2 tex, vec4 wh, int repeat)\n"
+        "{\n"
+        "	if (repeat >= RepeatFix) {\n"
+        "		tex = rel_tex_coord(tex, wh, repeat);\n"
+        "		if (repeat == RepeatFix + RepeatNone) {\n"
+        "			if (tex.x < 0.0 || tex.x >= 1.0 || \n"
+        "			    tex.y < 0.0 || tex.y >= 1.0)\n"
+        "				return vec4(0.0, 0.0, 0.0, 0.0);\n"
+        "			tex = (fract(tex) / wh.xy);\n"
+        "		}\n"
+        "	}\n"
+        "	return vec4(texture2D(tex_image, tex).rgb, 1.0);\n"
         "}\n";
 
     const char *source_solid_fetch =
@@ -131,8 +144,8 @@ glamor_create_composite_fs(struct shader_key *key)
         "uniform vec4 source_wh;"
         "vec4 get_source()\n"
         "{\n"
-        "	return rel_sampler(source_sampler, source_texture,\n"
-        "			   source_wh, source_repeat_mode);\n"
+        "	return rel_sampler_rgba(source_sampler, source_texture,\n"
+        "			        source_wh, source_repeat_mode);\n"
         "}\n";
     const char *source_pixmap_fetch =
         "varying vec2 source_texture;\n"
@@ -140,9 +153,8 @@ glamor_create_composite_fs(struct shader_key *key)
         "uniform vec4 source_wh;\n"
         "vec4 get_source()\n"
         "{\n"
-        "	return vec4(rel_sampler(source_sampler, source_texture,\n"
-        "				source_wh, source_repeat_mode).rgb,\n"
-        "				1.0);\n"
+        "	return rel_sampler_rgbx(source_sampler, source_texture,\n"
+        "				source_wh, source_repeat_mode);\n"
         "}\n";
     const char *mask_none =
         "vec4 get_mask()\n"
@@ -161,8 +173,8 @@ glamor_create_composite_fs(struct shader_key *key)
         "uniform vec4 mask_wh;\n"
         "vec4 get_mask()\n"
         "{\n"
-        "	return rel_sampler(mask_sampler, mask_texture,\n"
-        "			   mask_wh, mask_repeat_mode);\n"
+        "	return rel_sampler_rgba(mask_sampler, mask_texture,\n"
+        "			        mask_wh, mask_repeat_mode);\n"
         "}\n";
     const char *mask_pixmap_fetch =
         "varying vec2 mask_texture;\n"
@@ -170,8 +182,8 @@ glamor_create_composite_fs(struct shader_key *key)
         "uniform vec4 mask_wh;\n"
         "vec4 get_mask()\n"
         "{\n"
-        "	return vec4(rel_sampler(mask_sampler, mask_texture,\n"
-        "				mask_wh, mask_repeat_mode).rgb, 1.0);\n"
+        "	return rel_sampler_rgbx(mask_sampler, mask_texture,\n"
+        "				mask_wh, mask_repeat_mode);\n"
         "}\n";
 
     const char *dest_swizzle_default =
@@ -500,15 +512,24 @@ static void
 glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
                              PicturePtr picture,
                              PixmapPtr pixmap,
-                             GLuint wh_location, GLuint repeat_location)
+                             GLuint wh_location, GLuint repeat_location,
+                             glamor_pixmap_private *dest_priv)
 {
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
+    glamor_pixmap_fbo *fbo = pixmap_priv->fbo;
     float wh[4];
     int repeat_type;
 
     glamor_make_current(glamor_priv);
-    glActiveTexture(GL_TEXTURE0 + unit);
-    glBindTexture(GL_TEXTURE_2D, pixmap_priv->fbo->tex);
+
+    /* The red channel swizzling doesn't depend on whether we're using
+     * 'fbo' as source or mask as we must have the same answer in case
+     * the same fbo is being used for both. That means the mask
+     * channel will sometimes get red bits in the R channel, and
+     * sometimes get zero bits in the R channel, which is harmless.
+     */
+    glamor_bind_texture(glamor_priv, GL_TEXTURE0 + unit, fbo,
+                        glamor_fbo_red_is_alpha(glamor_priv, dest_priv->fbo));
     repeat_type = picture->repeatType;
     switch (picture->repeatType) {
     case RepeatNone:
@@ -557,8 +578,8 @@ glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
      *
      **/
     if (glamor_pixmap_priv_is_large(pixmap_priv) ||
-        (glamor_priv->gl_flavor == GLAMOR_GL_ES2 && repeat_type == RepeatNone &&
-         picture->transform)) {
+        ((!PICT_FORMAT_A(picture->format) || glamor_priv->gl_flavor == GLAMOR_GL_ES2) &&
+         repeat_type == RepeatNone && picture->transform)) {
         glamor_pixmap_fbo_fix_wh_ratio(wh, pixmap, pixmap_priv);
         glUniform4fv(wh_location, 1, wh);
 
@@ -1063,7 +1084,8 @@ glamor_composite_set_shader_blend(glamor_screen_private *glamor_priv,
         glamor_set_composite_texture(glamor_priv, 0,
                                      shader->source,
                                      shader->source_pixmap, shader->source_wh,
-                                     shader->source_repeat_mode);
+                                     shader->source_repeat_mode,
+                                     dest_priv);
     }
 
     if (key->mask != SHADER_MASK_NONE) {
@@ -1075,9 +1097,13 @@ glamor_composite_set_shader_blend(glamor_screen_private *glamor_priv,
             glamor_set_composite_texture(glamor_priv, 1,
                                          shader->mask,
                                          shader->mask_pixmap, shader->mask_wh,
-                                         shader->mask_repeat_mode);
+                                         shader->mask_repeat_mode,
+                                         dest_priv);
         }
     }
+
+    if (glamor_priv->gl_flavor != GLAMOR_GL_ES2)
+        glDisable(GL_COLOR_LOGIC_OP);
 
     if (op_info->source_blend == GL_ONE && op_info->dest_blend == GL_ZERO) {
         glDisable(GL_BLEND);
@@ -1139,11 +1165,11 @@ glamor_composite_with_shader(CARD8 op,
         }
     }
 
+    glamor_make_current(glamor_priv);
+
     glamor_set_destination_pixmap_priv_nc(glamor_priv, dest_pixmap, dest_pixmap_priv);
     glamor_composite_set_shader_blend(glamor_priv, dest_pixmap_priv, &key, shader, &op_info);
     glamor_set_alu(screen, GXcopy);
-
-    glamor_make_current(glamor_priv);
 
     glamor_priv->has_source_coords = key.source != SHADER_SOURCE_SOLID;
     glamor_priv->has_mask_coords = (key.mask != SHADER_MASK_NONE &&
@@ -1393,6 +1419,36 @@ glamor_composite_clipped_region(CARD8 op,
 
     DEBUGF("clipped (%d %d) (%d %d) (%d %d) width %d height %d \n",
            x_source, y_source, x_mask, y_mask, x_dest, y_dest, width, height);
+
+    /* Is the composite operation equivalent to a copy? */
+    if (!mask && !source->alphaMap && !dest->alphaMap
+        && source->pDrawable && !source->transform
+        && ((op == PictOpSrc
+             && (source->format == dest->format
+                 || (PICT_FORMAT_COLOR(dest->format)
+                     && PICT_FORMAT_COLOR(source->format)
+                     && dest->format == PICT_FORMAT(PICT_FORMAT_BPP(source->format),
+                                                    PICT_FORMAT_TYPE(source->format),
+                                                    0,
+                                                    PICT_FORMAT_R(source->format),
+                                                    PICT_FORMAT_G(source->format),
+                                                    PICT_FORMAT_B(source->format)))))
+            || (op == PictOpOver
+                && source->format == dest->format
+                && !PICT_FORMAT_A(source->format)))
+        && x_source >= 0 && y_source >= 0
+        && (x_source + width) <= source->pDrawable->width
+        && (y_source + height) <= source->pDrawable->height) {
+        x_source += source->pDrawable->x;
+        y_source += source->pDrawable->y;
+        x_dest += dest->pDrawable->x;
+        y_dest += dest->pDrawable->y;
+        glamor_copy(source->pDrawable, dest->pDrawable, NULL,
+                    box, nbox, x_source - x_dest,
+                    y_source - y_dest, FALSE, FALSE, 0, NULL);
+        ok = TRUE;
+        goto out;
+    }
 
     /* XXX is it possible source mask have non-zero drawable.x/y? */
     if (source

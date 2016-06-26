@@ -224,9 +224,8 @@ merge_sets_interfere(merge_set *a, merge_set *b)
 }
 
 static bool
-add_parallel_copy_to_end_of_block(nir_block *block, void *void_state)
+add_parallel_copy_to_end_of_block(nir_block *block, void *dead_ctx)
 {
-   struct from_ssa_state *state = void_state;
 
    bool need_end_copy = false;
    if (block->successors[0]) {
@@ -247,7 +246,7 @@ add_parallel_copy_to_end_of_block(nir_block *block, void *void_state)
        * (if there is one).
        */
       nir_parallel_copy_instr *pcopy =
-         nir_parallel_copy_instr_create(state->dead_ctx);
+         nir_parallel_copy_instr_create(dead_ctx);
 
       nir_instr_insert(nir_after_block_before_jump(block), &pcopy->instr);
    }
@@ -303,12 +302,10 @@ get_parallel_copy_at_end_of_block(nir_block *block)
  * time because of potential back-edges in the CFG.
  */
 static bool
-isolate_phi_nodes_block(nir_block *block, void *void_state)
+isolate_phi_nodes_block(nir_block *block, void *dead_ctx)
 {
-   struct from_ssa_state *state = void_state;
-
    nir_instr *last_phi_instr = NULL;
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       /* Phi nodes only ever come at the start of a block */
       if (instr->type != nir_instr_type_phi)
          break;
@@ -324,25 +321,26 @@ isolate_phi_nodes_block(nir_block *block, void *void_state)
     * start of this block but after the phi nodes.
     */
    nir_parallel_copy_instr *block_pcopy =
-      nir_parallel_copy_instr_create(state->dead_ctx);
+      nir_parallel_copy_instr_create(dead_ctx);
    nir_instr_insert_after(last_phi_instr, &block_pcopy->instr);
 
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       /* Phi nodes only ever come at the start of a block */
       if (instr->type != nir_instr_type_phi)
          break;
 
       nir_phi_instr *phi = nir_instr_as_phi(instr);
       assert(phi->dest.is_ssa);
-      nir_foreach_phi_src(phi, src) {
+      nir_foreach_phi_src(src, phi) {
          nir_parallel_copy_instr *pcopy =
             get_parallel_copy_at_end_of_block(src->pred);
          assert(pcopy);
 
-         nir_parallel_copy_entry *entry = rzalloc(state->dead_ctx,
+         nir_parallel_copy_entry *entry = rzalloc(dead_ctx,
                                                   nir_parallel_copy_entry);
          nir_ssa_dest_init(&pcopy->instr, &entry->dest,
-                           phi->dest.ssa.num_components, src->src.ssa->name);
+                           phi->dest.ssa.num_components,
+                           phi->dest.ssa.bit_size, src->src.ssa->name);
          exec_list_push_tail(&pcopy->entries, &entry->node);
 
          assert(src->src.is_ssa);
@@ -352,10 +350,11 @@ isolate_phi_nodes_block(nir_block *block, void *void_state)
                                nir_src_for_ssa(&entry->dest.ssa));
       }
 
-      nir_parallel_copy_entry *entry = rzalloc(state->dead_ctx,
+      nir_parallel_copy_entry *entry = rzalloc(dead_ctx,
                                                nir_parallel_copy_entry);
       nir_ssa_dest_init(&block_pcopy->instr, &entry->dest,
-                        phi->dest.ssa.num_components, phi->dest.ssa.name);
+                        phi->dest.ssa.num_components, phi->dest.ssa.bit_size,
+                        phi->dest.ssa.name);
       exec_list_push_tail(&block_pcopy->entries, &entry->node);
 
       nir_ssa_def_rewrite_uses(&phi->dest.ssa,
@@ -369,11 +368,9 @@ isolate_phi_nodes_block(nir_block *block, void *void_state)
 }
 
 static bool
-coalesce_phi_nodes_block(nir_block *block, void *void_state)
+coalesce_phi_nodes_block(nir_block *block, struct from_ssa_state *state)
 {
-   struct from_ssa_state *state = void_state;
-
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       /* Phi nodes only ever come at the start of a block */
       if (instr->type != nir_instr_type_phi)
          break;
@@ -383,7 +380,7 @@ coalesce_phi_nodes_block(nir_block *block, void *void_state)
       assert(phi->dest.is_ssa);
       merge_node *dest_node = get_merge_node(&phi->dest.ssa, state);
 
-      nir_foreach_phi_src(phi, src) {
+      nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
          merge_node *src_node = get_merge_node(src->src.ssa, state);
          if (src_node->set != dest_node->set)
@@ -398,7 +395,7 @@ static void
 aggressive_coalesce_parallel_copy(nir_parallel_copy_instr *pcopy,
                                  struct from_ssa_state *state)
 {
-   nir_foreach_parallel_copy_entry(pcopy, entry) {
+   nir_foreach_parallel_copy_entry(entry, pcopy) {
       if (!entry->src.is_ssa)
          continue;
 
@@ -424,12 +421,10 @@ aggressive_coalesce_parallel_copy(nir_parallel_copy_instr *pcopy,
 }
 
 static bool
-aggressive_coalesce_block(nir_block *block, void *void_state)
+aggressive_coalesce_block(nir_block *block, struct from_ssa_state *state)
 {
-   struct from_ssa_state *state = void_state;
-
    nir_parallel_copy_instr *start_pcopy = NULL;
-   nir_foreach_instr(block, instr) {
+   nir_foreach_instr(instr, block) {
       /* Phi nodes only ever come at the start of a block */
       if (instr->type != nir_instr_type_phi) {
          if (instr->type != nir_instr_type_parallel_copy)
@@ -472,6 +467,7 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
          node->set->reg = nir_local_reg_create(state->impl);
          node->set->reg->name = def->name;
          node->set->reg->num_components = def->num_components;
+         node->set->reg->bit_size = def->bit_size;
          node->set->reg->num_array_elems = 0;
       }
 
@@ -489,6 +485,7 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
       reg = nir_local_reg_create(state->impl);
       reg->name = def->name;
       reg->num_components = def->num_components;
+      reg->bit_size = def->bit_size;
       reg->num_array_elems = 0;
    }
 
@@ -521,11 +518,9 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
  * remove phi nodes.
  */
 static bool
-resolve_registers_block(nir_block *block, void *void_state)
+resolve_registers_block(nir_block *block, struct from_ssa_state *state)
 {
-   struct from_ssa_state *state = void_state;
-
-   nir_foreach_instr_safe(block, instr) {
+   nir_foreach_instr_safe(instr, block) {
       state->instr = instr;
       nir_foreach_ssa_def(instr, rewrite_ssa_def, state);
 
@@ -587,7 +582,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
                       struct from_ssa_state *state)
 {
    unsigned num_copies = 0;
-   nir_foreach_parallel_copy_entry(pcopy, entry) {
+   nir_foreach_parallel_copy_entry(entry, pcopy) {
       /* Sources may be SSA */
       if (!entry->src.is_ssa && entry->src.reg.reg == entry->dest.reg.reg)
          continue;
@@ -620,7 +615,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
     *  - Predicessors are recorded from sources and destinations
     */
    int num_vals = 0;
-   nir_foreach_parallel_copy_entry(pcopy, entry) {
+   nir_foreach_parallel_copy_entry(entry, pcopy) {
       /* Sources may be SSA */
       if (!entry->src.is_ssa && entry->src.reg.reg == entry->dest.reg.reg)
          continue;
@@ -727,10 +722,8 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
  * the end (or right before the final jump if it exists).
  */
 static bool
-resolve_parallel_copies_block(nir_block *block, void *void_state)
+resolve_parallel_copies_block(nir_block *block, struct from_ssa_state *state)
 {
-   struct from_ssa_state *state = void_state;
-
    /* At this point, we have removed all of the phi nodes.  If a parallel
     * copy existed right after the phi nodes in this block, it is now the
     * first instruction.
@@ -770,8 +763,13 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
    state.merge_node_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                                     _mesa_key_pointer_equal);
 
-   nir_foreach_block(impl, add_parallel_copy_to_end_of_block, &state);
-   nir_foreach_block(impl, isolate_phi_nodes_block, &state);
+   nir_foreach_block(block, impl) {
+      add_parallel_copy_to_end_of_block(block, state.dead_ctx);
+   }
+
+   nir_foreach_block(block, impl) {
+      isolate_phi_nodes_block(block, state.dead_ctx);
+   }
 
    /* Mark metadata as dirty before we ask for liveness analysis */
    nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -780,12 +778,21 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
    nir_metadata_require(impl, nir_metadata_live_ssa_defs |
                               nir_metadata_dominance);
 
-   nir_foreach_block(impl, coalesce_phi_nodes_block, &state);
-   nir_foreach_block(impl, aggressive_coalesce_block, &state);
+   nir_foreach_block(block, impl) {
+      coalesce_phi_nodes_block(block, &state);
+   }
 
-   nir_foreach_block(impl, resolve_registers_block, &state);
+   nir_foreach_block(block, impl) {
+      aggressive_coalesce_block(block, &state);
+   }
 
-   nir_foreach_block(impl, resolve_parallel_copies_block, &state);
+   nir_foreach_block(block, impl) {
+      resolve_registers_block(block, &state);
+   }
+
+   nir_foreach_block(block, impl) {
+      resolve_parallel_copies_block(block, &state);
+   }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
@@ -798,7 +805,7 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
 void
 nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only)
 {
-   nir_foreach_function(shader, function) {
+   nir_foreach_function(function, shader) {
       if (function->impl)
          nir_convert_from_ssa_impl(function->impl, phi_webs_only);
    }

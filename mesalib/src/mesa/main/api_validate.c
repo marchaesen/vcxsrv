@@ -54,7 +54,7 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
       /* For OpenGL ES, only draw if we have vertex positions
        */
       if (!ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled)
-	 return false;
+         return false;
       break;
 
    case API_OPENGL_CORE:
@@ -346,10 +346,10 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
       }
       if (!pass) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-	                 "%s(mode=%s vs transform feedback %s)",
-	                 name,
-	                 _mesa_lookup_prim_by_nr(mode),
-	                 _mesa_lookup_prim_by_nr(ctx->TransformFeedback.Mode));
+                         "%s(mode=%s vs transform feedback %s)",
+                         name,
+                         _mesa_lookup_prim_by_nr(mode),
+                         _mesa_lookup_prim_by_nr(ctx->TransformFeedback.Mode));
          return GL_FALSE;
       }
    }
@@ -391,7 +391,8 @@ validate_DrawElements_common(struct gl_context *ctx,
     *   DrawElementsInstanced, and DrawRangeElements while transform feedback
     *   is active and not paused, regardless of mode.
     */
-   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
+   if (_mesa_is_gles3(ctx) && !ctx->Extensions.OES_geometry_shader &&
+       _mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(transform feedback active)", caller);
       return false;
@@ -430,8 +431,8 @@ validate_DrawElements_common(struct gl_context *ctx,
  */
 GLboolean
 _mesa_validate_DrawElements(struct gl_context *ctx,
-			    GLenum mode, GLsizei count, GLenum type,
-			    const GLvoid *indices)
+                            GLenum mode, GLsizei count, GLenum type,
+                            const GLvoid *indices)
 {
    FLUSH_CURRENT(ctx, 0);
 
@@ -493,9 +494,9 @@ _mesa_validate_MultiDrawElements(struct gl_context *ctx,
  */
 GLboolean
 _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
-				 GLuint start, GLuint end,
-				 GLsizei count, GLenum type,
-				 const GLvoid *indices)
+                                 GLuint start, GLuint end,
+                                 GLsizei count, GLenum type,
+                                 const GLvoid *indices)
 {
    FLUSH_CURRENT(ctx, 0);
 
@@ -579,7 +580,7 @@ _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint fi
 
    if (first < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-		  "glDrawArraysInstanced(start=%d)", first);
+                  "glDrawArraysInstanced(start=%d)", first);
       return GL_FALSE;
    }
 
@@ -665,6 +666,15 @@ _mesa_validate_DrawTransformFeedback(struct gl_context *ctx,
       return GL_FALSE;
    }
 
+   /* From the GL 4.5 specification, page 429:
+    * "An INVALID_VALUE error is generated if id is not the name of a
+    *  transform feedback object."
+    */
+   if (!obj->EverBound) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDrawTransformFeedback*(name)");
+      return GL_FALSE;
+   }
+
    if (stream >= ctx->Const.MaxVertexStreams) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glDrawTransformFeedbackStream*(index>=MaxVertexStream)");
@@ -696,7 +706,7 @@ valid_draw_indirect(struct gl_context *ctx,
                     GLenum mode, const GLvoid *indirect,
                     GLsizei size, const char *name)
 {
-   const GLsizeiptr end = (GLsizeiptr)indirect + size;
+   const uint64_t end = (uint64_t) (uintptr_t) indirect + size;
 
    /* OpenGL ES 3.1 spec. section 10.5:
     *
@@ -732,7 +742,8 @@ valid_draw_indirect(struct gl_context *ctx,
     *      "An INVALID_OPERATION error is generated if
     *      transform feedback is active and not paused."
     */
-   if (_mesa_is_gles31(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
+   if (_mesa_is_gles31(ctx) && !ctx->Extensions.OES_geometry_shader &&
+       _mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(TransformFeedback is active and not paused)", name);
    }
@@ -1107,7 +1118,7 @@ valid_dispatch_indirect(struct gl_context *ctx,
                         GLintptr indirect,
                         GLsizei size, const char *name)
 {
-   GLintptr end = (GLintptr)indirect + size;
+   const uint64_t end = (uint64_t) indirect + size;
 
    if (!check_valid_to_compute(ctx, name))
       return GL_FALSE;
@@ -1117,13 +1128,13 @@ valid_dispatch_indirect(struct gl_context *ctx,
     * "An INVALID_VALUE error is generated if indirect is negative or is not a
     *  multiple of four."
     */
-   if ((GLintptr)indirect & (sizeof(GLuint) - 1)) {
+   if (indirect & (sizeof(GLuint) - 1)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(indirect is not aligned)", name);
       return GL_FALSE;
    }
 
-   if ((GLintptr)indirect < 0) {
+   if (indirect < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(indirect is less than zero)", name);
       return GL_FALSE;

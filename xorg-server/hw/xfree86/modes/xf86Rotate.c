@@ -57,7 +57,7 @@ xf86RotateCrtcRedisplay(xf86CrtcPtr crtc, RegionPtr region)
     BoxPtr b = RegionRects(region);
     XID include_inferiors = IncludeInferiors;
 
-    if (crtc->driverIsPerformingTransform)
+    if (crtc->driverIsPerformingTransform & XF86DriverTransformOutput)
         return;
 
     src = CreatePicture(None,
@@ -387,7 +387,7 @@ xf86CrtcRotate(xf86CrtcPtr crtc)
         new_height = 0;
     }
     else {
-        if (crtc->driverIsPerformingTransform) {
+        if (crtc->driverIsPerformingTransform & XF86DriverTransformOutput) {
             xf86RotateDestroy(crtc);
         }
         else {

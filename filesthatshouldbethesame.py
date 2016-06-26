@@ -78,6 +78,9 @@ include/xcb/bigreq.h                              libxcb/src/bigreq.h
 include/xcb/xproto.h                              libxcb/src/xproto.h
 include/xcb/xcb_windefs.h                         libxcb/src/xcb_windefs.h
 include/xcb/shape.h                               libxcb/src/shape.h
+include/xcb/xcb_icccm.h                           libxcb/src/xcb_icccm.h
+include/xcb/xcb_aux.h                             libxcb/src/xcb_aux.h
+include/xcb/xcb_ewmh.h                            libxcb/src/xcb_ewmh.h
 
 gl/glext.h                                        mesalib/include/gl/glext.h
 gl/glx.h                                          mesalib/include/gl/glx.h
@@ -85,6 +88,9 @@ gl/glxext.h                                       mesalib/include/gl/glxext.h
 gl/glx_mangle.h                                   mesalib/include/gl/glx_mangle.h
 gl/gl_mangle.h                                    mesalib/include/gl/gl_mangle.h
 gl/internal/dri_interface.h                       mesalib/include/gl/internal/dri_interface.h
+
+mesalib/include/c99_compat.h                      include/c99_compat.h
+mesalib/include/no_extern_c.h                     include/no_extern_c.h
 
 xorg-server/hw/xwin/glx/wglext.h                  mesalib/include/GL/wglext.h
 
