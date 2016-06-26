@@ -621,7 +621,7 @@ rename_variables_block(nir_block *block, struct lower_variables_state *state)
  *     fully-direct references we see and store them in the
  *     direct_deref_nodes hash table.
  *
- *  2) Walk over the the list of fully-qualified direct derefs generated in
+ *  2) Walk over the list of fully-qualified direct derefs generated in
  *     the previous pass.  For each deref, we determine if it can ever be
  *     aliased, i.e. if there is an indirect reference anywhere that may
  *     refer to it.  If it cannot be aliased, we mark it for lowering to an

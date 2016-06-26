@@ -1276,7 +1276,7 @@ void
 ast_expression::set_is_lhs(bool new_value)
 {
    /* is_lhs is tracked only to print "variable used uninitialized" warnings,
-    * if we lack a identifier we can just skip it.
+    * if we lack an identifier we can just skip it.
     */
    if (this->primary_expression.identifier == NULL)
       return;

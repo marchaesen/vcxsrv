@@ -88,7 +88,9 @@ public:
       if (!var || var->data.mode != this->mode || !var->type->is_array())
          return visit_continue;
 
-      if (this->find_frag_outputs && var->data.location == FRAG_RESULT_DATA0) {
+      /* Only match gl_FragData[], not gl_SecondaryFragDataEXT[] */
+      if (this->find_frag_outputs && var->data.location == FRAG_RESULT_DATA0 &&
+          var->data.index == 0) {
          this->fragdata_array = var;
 
          ir_constant *index = ir->array_index->as_constant();
@@ -143,7 +145,8 @@ public:
       if (var->data.mode != this->mode || !var->type->is_array())
          return visit_continue;
 
-      if (this->find_frag_outputs && var->data.location == FRAG_RESULT_DATA0) {
+      if (this->find_frag_outputs && var->data.location == FRAG_RESULT_DATA0 &&
+          var->data.index == 0) {
          /* This is a whole array dereference. */
          this->fragdata_usage |= (1 << var->type->array_size()) - 1;
          this->lower_fragdata_array = false;

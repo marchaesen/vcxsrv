@@ -93,6 +93,7 @@ public:
    {
       this->mem_ctx = ralloc_context(NULL);
       this->variable_list.make_empty();
+      this->in_whole_array_copy = false;
    }
 
    ~ir_array_reference_visitor(void)
@@ -104,6 +105,8 @@ public:
 
    virtual ir_visitor_status visit(ir_variable *);
    virtual ir_visitor_status visit(ir_dereference_variable *);
+   virtual ir_visitor_status visit_enter(ir_assignment *);
+   virtual ir_visitor_status visit_leave(ir_assignment *);
    virtual ir_visitor_status visit_enter(ir_dereference_array *);
    virtual ir_visitor_status visit_enter(ir_function_signature *);
 
@@ -113,6 +116,8 @@ public:
    exec_list variable_list;
 
    void *mem_ctx;
+
+   bool in_whole_array_copy;
 };
 
 } /* namespace */
@@ -158,9 +163,32 @@ ir_array_reference_visitor::visit(ir_variable *ir)
 }
 
 ir_visitor_status
+ir_array_reference_visitor::visit_enter(ir_assignment *ir)
+{
+   in_whole_array_copy =
+      ir->lhs->type->is_array() && ir->whole_variable_written();
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_array_reference_visitor::visit_leave(ir_assignment *ir)
+{
+   in_whole_array_copy = false;
+
+   return visit_continue;
+}
+
+ir_visitor_status
 ir_array_reference_visitor::visit(ir_dereference_variable *ir)
 {
    variable_entry *entry = this->get_variable_entry(ir->var);
+
+   /* Allow whole-array assignments on the LHS.  We can split those
+    * by "unrolling" the assignment into component-wise assignments.
+    */
+   if (in_assignee && in_whole_array_copy)
+      return visit_continue;
 
    /* If we made it to here without seeing an ir_dereference_array,
     * then the dereference of this array didn't have a constant index
@@ -349,6 +377,33 @@ ir_array_splitting_visitor::visit_leave(ir_assignment *ir)
     * need to process those just the same.
     */
    ir_rvalue *lhs = ir->lhs;
+
+   /* "Unroll" any whole array assignments, creating assignments for
+    * each array element.  Then, do splitting on each new assignment.
+    */
+   if (lhs->type->is_array() && ir->whole_variable_written() &&
+       get_splitting_entry(ir->whole_variable_written())) {
+      void *mem_ctx = ralloc_parent(ir);
+
+      for (unsigned i = 0; i < lhs->type->length; i++) {
+         ir_rvalue *lhs_i =
+            new(mem_ctx) ir_dereference_array(ir->lhs->clone(mem_ctx, NULL),
+                                              new(mem_ctx) ir_constant(i));
+         ir_rvalue *rhs_i =
+            new(mem_ctx) ir_dereference_array(ir->rhs->clone(mem_ctx, NULL),
+                                              new(mem_ctx) ir_constant(i));
+         ir_rvalue *condition_i =
+            ir->condition ? ir->condition->clone(mem_ctx, NULL) : NULL;
+
+         ir_assignment *assign_i =
+            new(mem_ctx) ir_assignment(lhs_i, rhs_i, condition_i);
+
+         ir->insert_before(assign_i);
+         assign_i->accept(this);
+      }
+      ir->remove();
+      return visit_continue;
+   }
 
    handle_rvalue(&lhs);
    ir->lhs = lhs->as_dereference();

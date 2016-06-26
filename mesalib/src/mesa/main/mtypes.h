@@ -2712,27 +2712,9 @@ struct gl_shader_program
    enum gl_frag_depth_layout FragDepthLayout;
 
    /**
-    * Tessellation Control shader state from layout qualifiers.
-    */
-   struct {
-      /**
-       * 0 - vertices not declared in shader, or
-       * 1 .. GL_MAX_PATCH_VERTICES
-       */
-      GLint VerticesOut;
-   } TessCtrl;
-
-   /**
     * Tessellation Evaluation shader state from layout qualifiers.
     */
    struct {
-      /** GL_TRIANGLES, GL_QUADS or GL_ISOLINES */
-      GLenum PrimitiveMode;
-      /** GL_EQUAL, GL_FRACTIONAL_ODD or GL_FRACTIONAL_EVEN */
-      GLenum Spacing;
-      /** GL_CW or GL_CCW */
-      GLenum VertexOrder;
-      bool PointMode;
       /**
        * True if gl_ClipDistance is written to.  Copied into
        * gl_tess_eval_program by _mesa_copy_linked_program_data().
@@ -2749,14 +2731,7 @@ struct gl_shader_program
     */
    struct {
       GLint VerticesIn;
-      GLint VerticesOut;
-      /**
-       * 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS
-       */
-      GLint Invocations;
-      GLenum InputType;  /**< GL_POINTS, GL_LINES, GL_LINES_ADJACENCY_ARB,
-                              GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
-      GLenum OutputType; /**< GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP */
+
       /**
        * True if gl_ClipDistance is written to.  Copied into
        * gl_geometry_program by _mesa_copy_linked_program_data().

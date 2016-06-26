@@ -92,6 +92,9 @@ void
 _mesa_init_shader(struct gl_context *ctx, struct gl_shader *shader)
 {
    shader->RefCount = 1;
+   shader->Geom.VerticesOut = -1;
+   shader->Geom.InputType = GL_TRIANGLES;
+   shader->Geom.OutputType = GL_TRIANGLE_STRIP;
 }
 
 /**
@@ -230,9 +233,6 @@ init_shader_program(struct gl_shader_program *prog)
    prog->FragDataBindings = string_to_uint_map_ctor();
    prog->FragDataIndexBindings = string_to_uint_map_ctor();
 
-   prog->Geom.VerticesOut = -1;
-   prog->Geom.InputType = GL_TRIANGLES;
-   prog->Geom.OutputType = GL_TRIANGLE_STRIP;
    prog->Geom.UsesEndPrimitive = false;
    prog->Geom.UsesStreams = false;
 

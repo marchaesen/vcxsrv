@@ -857,7 +857,7 @@ validate_geometry_shader_executable(struct gl_shader_program *prog,
    if (shader == NULL)
       return;
 
-   unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
+   unsigned num_vertices = vertices_per_prim(shader->Geom.InputType);
    prog->Geom.VerticesIn = num_vertices;
 
    analyze_clip_cull_usage(prog, shader, ctx,
@@ -873,9 +873,11 @@ static void
 validate_geometry_shader_emissions(struct gl_context *ctx,
                                    struct gl_shader_program *prog)
 {
-   if (prog->_LinkedShaders[MESA_SHADER_GEOMETRY] != NULL) {
+   struct gl_shader *sh = prog->_LinkedShaders[MESA_SHADER_GEOMETRY];
+
+   if (sh != NULL) {
       find_emit_vertex_visitor emit_vertex(ctx->Const.MaxVertexStreams - 1);
-      emit_vertex.run(prog->_LinkedShaders[MESA_SHADER_GEOMETRY]->ir);
+      emit_vertex.run(sh->ir);
       if (emit_vertex.error()) {
          linker_error(prog, "Invalid call %s(%d). Accepted values for the "
                       "stream parameter are in the range [0, %d].\n",
@@ -910,7 +912,7 @@ validate_geometry_shader_emissions(struct gl_context *ctx,
        * EmitStreamVertex() or EmitEndPrimitive() are called with a non-zero
        * stream.
        */
-      if (prog->Geom.UsesStreams && prog->Geom.OutputType != GL_POINTS) {
+      if (prog->Geom.UsesStreams && sh->Geom.OutputType != GL_POINTS) {
          linker_error(prog, "EmitStreamVertex(n) and EndStreamPrimitive(n) "
                       "with n>0 requires point output\n");
       }
@@ -1793,7 +1795,6 @@ link_tcs_out_layout_qualifiers(struct gl_shader_program *prog,
 		   "vertices out layout qualifier\n");
       return;
    }
-   prog->TessCtrl.VerticesOut = linked_shader->TessCtrl.VerticesOut;
 }
 
 
@@ -1886,19 +1887,15 @@ link_tes_in_layout_qualifiers(struct gl_shader_program *prog,
 		   "primitive modes.\n");
       return;
    }
-   prog->TessEval.PrimitiveMode = linked_shader->TessEval.PrimitiveMode;
 
    if (linked_shader->TessEval.Spacing == 0)
       linked_shader->TessEval.Spacing = GL_EQUAL;
-   prog->TessEval.Spacing = linked_shader->TessEval.Spacing;
 
    if (linked_shader->TessEval.VertexOrder == 0)
       linked_shader->TessEval.VertexOrder = GL_CCW;
-   prog->TessEval.VertexOrder = linked_shader->TessEval.VertexOrder;
 
    if (linked_shader->TessEval.PointMode == -1)
       linked_shader->TessEval.PointMode = GL_FALSE;
-   prog->TessEval.PointMode = linked_shader->TessEval.PointMode;
 }
 
 
@@ -2059,26 +2056,21 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
 		   "geometry shader didn't declare primitive input type\n");
       return;
    }
-   prog->Geom.InputType = linked_shader->Geom.InputType;
 
    if (linked_shader->Geom.OutputType == PRIM_UNKNOWN) {
       linker_error(prog,
 		   "geometry shader didn't declare primitive output type\n");
       return;
    }
-   prog->Geom.OutputType = linked_shader->Geom.OutputType;
 
    if (linked_shader->Geom.VerticesOut == -1) {
       linker_error(prog,
 		   "geometry shader didn't declare max_vertices\n");
       return;
    }
-   prog->Geom.VerticesOut = linked_shader->Geom.VerticesOut;
 
    if (linked_shader->Geom.Invocations == 0)
       linked_shader->Geom.Invocations = 1;
-
-   prog->Geom.Invocations = linked_shader->Geom.Invocations;
 }
 
 
@@ -2353,7 +2345,7 @@ link_intrastage_shaders(void *mem_ctx,
 
    /* Set the size of geometry shader input arrays */
    if (linked->Stage == MESA_SHADER_GEOMETRY) {
-      unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
+      unsigned num_vertices = vertices_per_prim(linked->Geom.InputType);
       geom_array_resize_visitor input_resize_visitor(num_vertices, prog);
       foreach_in_list(ir_instruction, ir, linked->ir) {
          ir->accept(&input_resize_visitor);
@@ -4768,6 +4760,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 ;
 
       lower_const_arrays_to_uniforms(prog->_LinkedShaders[i]->ir);
+      propagate_invariance(prog->_LinkedShaders[i]->ir);
    }
 
    /* Validation for special cases where we allow sampler array indexing

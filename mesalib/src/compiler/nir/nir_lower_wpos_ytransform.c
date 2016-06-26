@@ -159,7 +159,7 @@ lower_fragcoord(lower_wpos_ytransform_state *state, nir_intrinsic_instr *intr)
     *
     * The bias of the y-coordinate depends on whether y-inversion takes place
     * (adjY[1]) or not (adjY[0]), which is in turn dependent on whether we are
-    * drawing to an FBO (causes additional inversion), and whether the the pipe
+    * drawing to an FBO (causes additional inversion), and whether the pipe
     * driver origin and the requested origin differ (the latter condition is
     * stored in the 'invert' variable).
     *

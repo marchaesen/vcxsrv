@@ -778,6 +778,8 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Required: vertex fetch support. */
    static const struct st_extension_format_mapping vertex_mapping[] = {
+      { { o(EXT_vertex_array_bgra) },
+        { PIPE_FORMAT_B8G8R8A8_UNORM } },
       { { o(ARB_vertex_type_2_10_10_10_rev) },
         { PIPE_FORMAT_R10G10B10A2_UNORM,
           PIPE_FORMAT_B10G10R10A2_UNORM,
@@ -830,7 +832,6 @@ void st_init_extensions(struct pipe_screen *screen,
    extensions->EXT_provoking_vertex = GL_TRUE;
 
    extensions->EXT_texture_env_dot3 = GL_TRUE;
-   extensions->EXT_vertex_array_bgra = GL_TRUE;
 
    extensions->ATI_fragment_shader = GL_TRUE;
    extensions->ATI_texture_env_combine3 = GL_TRUE;

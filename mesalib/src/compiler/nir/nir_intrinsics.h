@@ -48,9 +48,9 @@ INTRINSIC(copy_var, 0, ARR(0), false, 0, 2, 0, xx, xx, xx, 0)
 
 /*
  * Interpolation of input.  The interp_var_at* intrinsics are similar to the
- * load_var intrinsic acting an a shader input except that they interpolate
+ * load_var intrinsic acting on a shader input except that they interpolate
  * the input differently.  The at_sample and at_offset intrinsics take an
- * aditional source that is a integer sample id or a vec2 position offset
+ * additional source that is an integer sample id or a vec2 position offset
  * respectively.
  */
 

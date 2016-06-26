@@ -731,26 +731,34 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    case GL_GEOMETRY_VERTICES_OUT:
       if (!has_core_gs)
          break;
-      if (check_gs_query(ctx, shProg))
-         *params = shProg->Geom.VerticesOut;
+      if (check_gs_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
+            Geom.VerticesOut;
+      }
       return;
    case GL_GEOMETRY_SHADER_INVOCATIONS:
       if (!has_core_gs || !ctx->Extensions.ARB_gpu_shader5)
          break;
-      if (check_gs_query(ctx, shProg))
-         *params = shProg->Geom.Invocations;
+      if (check_gs_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
+            Geom.Invocations;
+      }
       return;
    case GL_GEOMETRY_INPUT_TYPE:
       if (!has_core_gs)
          break;
-      if (check_gs_query(ctx, shProg))
-         *params = shProg->Geom.InputType;
+      if (check_gs_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
+            Geom.InputType;
+      }
       return;
    case GL_GEOMETRY_OUTPUT_TYPE:
       if (!has_core_gs)
          break;
-      if (check_gs_query(ctx, shProg))
-         *params = shProg->Geom.OutputType;
+      if (check_gs_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
+            Geom.OutputType;
+      }
       return;
    case GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH: {
       unsigned i;
@@ -825,32 +833,42 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    case GL_TESS_CONTROL_OUTPUT_VERTICES:
       if (!has_tess)
          break;
-      if (check_tcs_query(ctx, shProg))
-         *params = shProg->TessCtrl.VerticesOut;
+      if (check_tcs_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_TESS_CTRL]->
+            TessCtrl.VerticesOut;
+      }
       return;
    case GL_TESS_GEN_MODE:
       if (!has_tess)
          break;
-      if (check_tes_query(ctx, shProg))
-         *params = shProg->TessEval.PrimitiveMode;
+      if (check_tes_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->
+            TessEval.PrimitiveMode;
+      }
       return;
    case GL_TESS_GEN_SPACING:
       if (!has_tess)
          break;
-      if (check_tes_query(ctx, shProg))
-         *params = shProg->TessEval.Spacing;
+      if (check_tes_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->
+            TessEval.Spacing;
+      }
       return;
    case GL_TESS_GEN_VERTEX_ORDER:
       if (!has_tess)
          break;
-      if (check_tes_query(ctx, shProg))
-         *params = shProg->TessEval.VertexOrder;
+      if (check_tes_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->
+            TessEval.VertexOrder;
+         }
       return;
    case GL_TESS_GEN_POINT_MODE:
       if (!has_tess)
          break;
-      if (check_tes_query(ctx, shProg))
-         *params = shProg->TessEval.PointMode;
+      if (check_tes_query(ctx, shProg)) {
+         *params = shProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->
+            TessEval.PointMode;
+      }
       return;
    default:
       break;
@@ -2151,27 +2169,32 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
    case MESA_SHADER_TESS_CTRL: {
       struct gl_tess_ctrl_program *dst_tcp =
          (struct gl_tess_ctrl_program *) dst;
-      dst_tcp->VerticesOut = src->TessCtrl.VerticesOut;
+      dst_tcp->VerticesOut =
+         src->_LinkedShaders[MESA_SHADER_TESS_CTRL]->TessCtrl.VerticesOut;
       break;
    }
    case MESA_SHADER_TESS_EVAL: {
       struct gl_tess_eval_program *dst_tep =
          (struct gl_tess_eval_program *) dst;
-      dst_tep->PrimitiveMode = src->TessEval.PrimitiveMode;
-      dst_tep->Spacing = src->TessEval.Spacing;
-      dst_tep->VertexOrder = src->TessEval.VertexOrder;
-      dst_tep->PointMode = src->TessEval.PointMode;
+      struct gl_shader *tes_sh = src->_LinkedShaders[MESA_SHADER_TESS_EVAL];
+
+      dst_tep->PrimitiveMode = tes_sh->TessEval.PrimitiveMode;
+      dst_tep->Spacing = tes_sh->TessEval.Spacing;
+      dst_tep->VertexOrder = tes_sh->TessEval.VertexOrder;
+      dst_tep->PointMode = tes_sh->TessEval.PointMode;
       dst->ClipDistanceArraySize = src->TessEval.ClipDistanceArraySize;
       dst->CullDistanceArraySize = src->TessEval.CullDistanceArraySize;
       break;
    }
    case MESA_SHADER_GEOMETRY: {
       struct gl_geometry_program *dst_gp = (struct gl_geometry_program *) dst;
+      struct gl_shader *geom_sh = src->_LinkedShaders[MESA_SHADER_GEOMETRY];
+
       dst_gp->VerticesIn = src->Geom.VerticesIn;
-      dst_gp->VerticesOut = src->Geom.VerticesOut;
-      dst_gp->Invocations = src->Geom.Invocations;
-      dst_gp->InputType = src->Geom.InputType;
-      dst_gp->OutputType = src->Geom.OutputType;
+      dst_gp->VerticesOut = geom_sh->Geom.VerticesOut;
+      dst_gp->Invocations = geom_sh->Geom.Invocations;
+      dst_gp->InputType = geom_sh->Geom.InputType;
+      dst_gp->OutputType = geom_sh->Geom.OutputType;
       dst->ClipDistanceArraySize = src->Geom.ClipDistanceArraySize;
       dst->CullDistanceArraySize = src->Geom.CullDistanceArraySize;
       dst_gp->UsesEndPrimitive = src->Geom.UsesEndPrimitive;

@@ -1124,6 +1124,12 @@ dump_errors(validate_state *state)
 void
 nir_validate_shader(nir_shader *shader)
 {
+   static int should_validate = -1;
+   if (should_validate < 0)
+      should_validate = env_var_as_boolean("NIR_VALIDATE", true);
+   if (!should_validate)
+      return;
+
    validate_state state;
    init_validate_state(&state);
 
