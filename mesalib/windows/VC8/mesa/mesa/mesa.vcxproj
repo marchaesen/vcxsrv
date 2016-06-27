@@ -487,6 +487,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\version.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\viewport.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\vtxfmt.c" />
+    <ClCompile Include="..\..\..\..\src\util\bitscan.c" />
     <ClCompile Include="..\..\..\..\src\util\format_srgb.c" />
     <ClCompile Include="..\..\..\..\src\util\half_float.c" />
     <ClCompile Include="..\..\..\..\src\util\hash_table.c" />
