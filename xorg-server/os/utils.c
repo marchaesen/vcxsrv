@@ -559,6 +559,7 @@ UseMsg(void)
     ErrorF(":display-number\n\tVcxsrv runs as the given display-number, which defaults to 0.\n");
     ErrorF("\tTo run multiple instances, use unique display-numbers.\n\n");
 
+    ErrorF("-silent-dup-error      Do not show fatal exit error mesage box\n");
     ErrorF("-a #                   default pointer acceleration (factor)\n");
     ErrorF("-ac                    disable access control restrictions\n");
     ErrorF("-audit int             set audit trail level\n");

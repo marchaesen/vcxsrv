@@ -277,6 +277,12 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
+    if (IS_OPTION("-silent-dup-error"))
+    {
+        g_fSilentFatalError = TRUE;
+        return 1;
+    }
+
     /*
      * Look for the '-screen scr_num [width height]' argument
      */
