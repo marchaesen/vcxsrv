@@ -56,6 +56,7 @@ libXdmcp git version
 libXext git version
 libXfixes-5.0
 libXfont-1.5.0
+libXfont2-2.0.1
 libXft git version
 libXinerama git version
 libXmu git version
