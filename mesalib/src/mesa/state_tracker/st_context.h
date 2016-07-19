@@ -70,7 +70,7 @@ struct u_upload_mgr;
 
 struct st_state_flags {
    GLbitfield mesa;  /**< Mask of _NEW_x flags */
-   uint64_t st;      /**< Mask of ST_NEW_x flags */
+   uint32_t st;      /**< Mask of ST_NEW_x flags */
 };
 
 struct st_tracked_state {

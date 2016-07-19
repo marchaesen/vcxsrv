@@ -347,14 +347,14 @@ ephyrEventWorkProc(ClientPtr client, void *closure)
 }
 
 static void
-ephyrScreenBlockHandler(ScreenPtr pScreen, void *timeout, void *pRead)
+ephyrScreenBlockHandler(ScreenPtr pScreen, void *timeout)
 {
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
 
     pScreen->BlockHandler = scrpriv->BlockHandler;
-    (*pScreen->BlockHandler)(pScreen, timeout, pRead);
+    (*pScreen->BlockHandler)(pScreen, timeout);
     scrpriv->BlockHandler = pScreen->BlockHandler;
     pScreen->BlockHandler = ephyrScreenBlockHandler;
 

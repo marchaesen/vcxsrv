@@ -968,10 +968,10 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
    case SpvDecorationRelaxedPrecision:
       break; /* FIXME: Do nothing with this for now. */
    case SpvDecorationNoPerspective:
-      nir_var->data.interpolation = INTERP_QUALIFIER_NOPERSPECTIVE;
+      nir_var->data.interpolation = INTERP_MODE_NOPERSPECTIVE;
       break;
    case SpvDecorationFlat:
-      nir_var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      nir_var->data.interpolation = INTERP_MODE_FLAT;
       break;
    case SpvDecorationCentroid:
       nir_var->data.centroid = true;
@@ -1173,7 +1173,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       case SpvStorageClassPushConstant:
          var->mode = vtn_variable_mode_push_constant;
          assert(b->shader->num_uniforms == 0);
-         b->shader->num_uniforms = vtn_type_block_size(var->type) * 4;
+         b->shader->num_uniforms = vtn_type_block_size(var->type);
          break;
       case SpvStorageClassInput:
          var->mode = vtn_variable_mode_input;

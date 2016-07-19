@@ -330,7 +330,7 @@ per_vertex_accumulator::add_field(int slot, const glsl_type *type,
    this->fields[this->num_fields].matrix_layout = GLSL_MATRIX_LAYOUT_INHERITED;
    this->fields[this->num_fields].location = slot;
    this->fields[this->num_fields].offset = -1;
-   this->fields[this->num_fields].interpolation = INTERP_QUALIFIER_NONE;
+   this->fields[this->num_fields].interpolation = INTERP_MODE_NONE;
    this->fields[this->num_fields].centroid = 0;
    this->fields[this->num_fields].sample = 0;
    this->fields[this->num_fields].patch = 0;
@@ -1004,11 +1004,11 @@ builtin_variable_generator::generate_vs_special_vars()
    }
    if (state->AMD_vertex_shader_layer_enable) {
       var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_MODE_FLAT;
    }
    if (state->AMD_vertex_shader_viewport_index_enable) {
       var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
-      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_MODE_FLAT;
    }
    if (compatibility) {
       add_input(VERT_ATTRIB_POS, vec4_t, "gl_Vertex");
@@ -1075,10 +1075,10 @@ builtin_variable_generator::generate_gs_special_vars()
    ir_variable *var;
 
    var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-   var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   var->data.interpolation = INTERP_MODE_FLAT;
    if (state->is_version(410, 0) || state->ARB_viewport_array_enable) {
       var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
-      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_MODE_FLAT;
    }
    if (state->is_version(400, 0) || state->ARB_gpu_shader5_enable)
       add_system_value(SYSTEM_VALUE_INVOCATION_ID, int_t, "gl_InvocationID");
@@ -1094,9 +1094,9 @@ builtin_variable_generator::generate_gs_special_vars()
     * gl_PrimitiveIDIn as an {ARB,EXT}_geometry_shader4-only variable.
     */
    var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveIDIn");
-   var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   var->data.interpolation = INTERP_MODE_FLAT;
    var = add_output(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
-   var->data.interpolation = INTERP_QUALIFIER_FLAT;
+   var->data.interpolation = INTERP_MODE_FLAT;
 }
 
 
@@ -1123,7 +1123,7 @@ builtin_variable_generator::generate_fs_special_vars()
 
    if (state->has_geometry_shader()) {
       var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
-      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_MODE_FLAT;
    }
 
    /* gl_FragColor and gl_FragData were deprecated starting in desktop GLSL
@@ -1192,9 +1192,9 @@ builtin_variable_generator::generate_fs_special_vars()
 
    if (state->is_version(430, 0) || state->ARB_fragment_layer_viewport_enable) {
       var = add_input(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_MODE_FLAT;
       var = add_input(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
-      var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_MODE_FLAT;
    }
 
    if (state->is_version(450, 310) || state->ARB_ES3_1_compatibility_enable)
@@ -1456,7 +1456,7 @@ _mesa_glsl_initialize_derived_variables(struct gl_context *ctx,
    if (shader->Stage == MESA_SHADER_COMPUTE &&
        ctx->Const.LowerCsDerivedVariables) {
       ir_function_signature *const main_sig =
-         _mesa_get_main_function_signature(shader);
+         _mesa_get_main_function_signature(shader->symbols);
 
       if (main_sig != NULL)
          initialize_cs_derived_variables(shader, main_sig);

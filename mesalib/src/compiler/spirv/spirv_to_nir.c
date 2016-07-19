@@ -478,10 +478,10 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationUniform:
       break; /* FIXME: Do nothing with this for now. */
    case SpvDecorationNoPerspective:
-      ctx->fields[member].interpolation = INTERP_QUALIFIER_NOPERSPECTIVE;
+      ctx->fields[member].interpolation = INTERP_MODE_NOPERSPECTIVE;
       break;
    case SpvDecorationFlat:
-      ctx->fields[member].interpolation = INTERP_QUALIFIER_FLAT;
+      ctx->fields[member].interpolation = INTERP_MODE_FLAT;
       break;
    case SpvDecorationCentroid:
       ctx->fields[member].centroid = true;

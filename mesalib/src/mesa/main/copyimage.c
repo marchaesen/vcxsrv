@@ -138,6 +138,12 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
       struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, name);
 
       if (!texObj) {
+         /*
+          * From GL_ARB_copy_image specification:
+          * "INVALID_VALUE is generated if either <srcName> or <dstName> does
+          * not correspond to a valid renderbuffer or texture object according
+          * to the corresponding target parameter."
+          */
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyImageSubData(%sName = %u)", dbg_prefix, name);
          return false;
@@ -154,12 +160,11 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
       /* Note that target will not be a cube face name */
       if (texObj->Target != target) {
          /*
-          * From GL_ARB_copy_image specification:
-          * "INVALID_VALUE is generated if either <srcName> or <dstName> does
-          * not correspond to a valid renderbuffer or texture object according
-          * to the corresponding target parameter."
+          * From GL_ARB_copy_image_specification:
+          * "INVALID_ENUM is generated if the target does not match the type
+          * of the object."
           */
-         _mesa_error(ctx, GL_INVALID_VALUE,
+         _mesa_error(ctx, GL_INVALID_ENUM,
                      "glCopyImageSubData(%sTarget = %s)", dbg_prefix,
                      _mesa_enum_to_string(target));
          return false;

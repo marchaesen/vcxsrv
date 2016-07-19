@@ -5706,6 +5706,7 @@ ProcXkbGetKbdByName(ClientPtr client)
     xkbGetGeometryReply grep = { 0 };
     XkbComponentNamesRec names = { 0 };
     XkbDescPtr xkb, new;
+    XkbEventCauseRec cause;
     unsigned char *str;
     char mapFile[PATH_MAX];
     unsigned len;
@@ -6016,7 +6017,8 @@ ProcXkbGetKbdByName(ClientPtr client)
         new = NULL;
     }
     XkbFreeComponentNames(&names, FALSE);
-    XkbUpdateAllDeviceIndicators(NULL, NULL);
+    XkbSetCauseXkbReq(&cause, X_kbGetKbdByName, client);
+    XkbUpdateAllDeviceIndicators(NULL, &cause);
 
     return Success;
 }

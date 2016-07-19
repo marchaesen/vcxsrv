@@ -107,7 +107,7 @@ create_xfb_varying_names(void *mem_ctx, const glsl_type *t, char **name,
 }
 
 bool
-process_xfb_layout_qualifiers(void *mem_ctx, const gl_shader *sh,
+process_xfb_layout_qualifiers(void *mem_ctx, const gl_linked_shader *sh,
                               unsigned *num_tfeedback_decls,
                               char ***varying_names)
 {
@@ -118,7 +118,7 @@ process_xfb_layout_qualifiers(void *mem_ctx, const gl_shader *sh,
     * xfb_stride to interface block members so this will catch that case also.
     */
    for (unsigned j = 0; j < MAX_FEEDBACK_BUFFERS; j++) {
-      if (sh->TransformFeedback.BufferStride[j]) {
+      if (sh->info.TransformFeedback.BufferStride[j]) {
          has_xfb_qualifiers = true;
       }
    }
@@ -370,7 +370,8 @@ cross_validate_front_and_back_color(struct gl_shader_program *prog,
  */
 void
 cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
-                                 gl_shader *producer, gl_shader *consumer)
+                                 gl_linked_shader *producer,
+                                 gl_linked_shader *consumer)
 {
    glsl_symbol_table parameters;
    ir_variable *explicit_locations[MAX_VARYINGS_INCL_PATCH][4] =
@@ -556,7 +557,7 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
  */
 void
 remove_unused_shader_inputs_and_outputs(bool is_separate_shader_object,
-                                        gl_shader *sh,
+                                        gl_linked_shader *sh,
                                         enum ir_variable_mode mode)
 {
    if (is_separate_shader_object)
@@ -1387,13 +1388,13 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
       if (producer_var) {
          producer_var->data.centroid = false;
          producer_var->data.sample = false;
-         producer_var->data.interpolation = INTERP_QUALIFIER_FLAT;
+         producer_var->data.interpolation = INTERP_MODE_FLAT;
       }
 
       if (consumer_var) {
          consumer_var->data.centroid = false;
          consumer_var->data.sample = false;
-         consumer_var->data.interpolation = INTERP_QUALIFIER_FLAT;
+         consumer_var->data.interpolation = INTERP_MODE_FLAT;
       }
    }
 
@@ -1610,7 +1611,8 @@ varying_matches::compute_packing_class(const ir_variable *var)
    unsigned packing_class = var->data.centroid | (var->data.sample << 1) |
                             (var->data.patch << 2);
    packing_class *= 4;
-   packing_class += var->data.interpolation;
+   packing_class += var->is_interpolation_flat()
+      ? unsigned(INTERP_MODE_FLAT) : var->data.interpolation;
    return packing_class;
 }
 
@@ -1938,7 +1940,8 @@ canonicalize_shader_io(exec_list *ir, enum ir_variable_mode io_mode)
  * with a max of MAX_VARYING.
  */
 uint64_t
-reserved_varying_slot(struct gl_shader *stage, ir_variable_mode io_mode)
+reserved_varying_slot(struct gl_linked_shader *stage,
+                      ir_variable_mode io_mode)
 {
    assert(io_mode == ir_var_shader_in || io_mode == ir_var_shader_out);
    /* Avoid an overflow of the returned value */
@@ -1997,7 +2000,8 @@ bool
 assign_varying_locations(struct gl_context *ctx,
                          void *mem_ctx,
                          struct gl_shader_program *prog,
-                         gl_shader *producer, gl_shader *consumer,
+                         gl_linked_shader *producer,
+                         gl_linked_shader *consumer,
                          unsigned num_tfeedback_decls,
                          tfeedback_decl *tfeedback_decls,
                          const uint64_t reserved_slots)
@@ -2260,7 +2264,7 @@ assign_varying_locations(struct gl_context *ctx,
 bool
 check_against_output_limit(struct gl_context *ctx,
                            struct gl_shader_program *prog,
-                           gl_shader *producer,
+                           gl_linked_shader *producer,
                            unsigned num_explicit_locations)
 {
    unsigned output_vectors = num_explicit_locations;
@@ -2304,7 +2308,7 @@ check_against_output_limit(struct gl_context *ctx,
 bool
 check_against_input_limit(struct gl_context *ctx,
                           struct gl_shader_program *prog,
-                          gl_shader *consumer,
+                          gl_linked_shader *consumer,
                           unsigned num_explicit_locations)
 {
    unsigned input_vectors = num_explicit_locations;

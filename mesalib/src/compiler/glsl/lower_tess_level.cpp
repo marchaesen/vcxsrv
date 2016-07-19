@@ -440,7 +440,7 @@ lower_tess_level_visitor::visit_leave(ir_call *ir)
 
 
 bool
-lower_tess_level(gl_shader *shader)
+lower_tess_level(gl_linked_shader *shader)
 {
    if ((shader->Stage != MESA_SHADER_TESS_CTRL) &&
        (shader->Stage != MESA_SHADER_TESS_EVAL))

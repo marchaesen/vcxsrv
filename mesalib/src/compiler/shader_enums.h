@@ -485,19 +485,19 @@ const char *gl_system_value_name(gl_system_value sysval);
  * The possible interpolation qualifiers that can be applied to a fragment
  * shader input in GLSL.
  *
- * Note: INTERP_QUALIFIER_NONE must be 0 so that memsetting the
+ * Note: INTERP_MODE_NONE must be 0 so that memsetting the
  * gl_fragment_program data structure to 0 causes the default behavior.
  */
-enum glsl_interp_qualifier
+enum glsl_interp_mode
 {
-   INTERP_QUALIFIER_NONE = 0,
-   INTERP_QUALIFIER_SMOOTH,
-   INTERP_QUALIFIER_FLAT,
-   INTERP_QUALIFIER_NOPERSPECTIVE,
-   INTERP_QUALIFIER_COUNT /**< Number of interpolation qualifiers */
+   INTERP_MODE_NONE = 0,
+   INTERP_MODE_SMOOTH,
+   INTERP_MODE_FLAT,
+   INTERP_MODE_NOPERSPECTIVE,
+   INTERP_MODE_COUNT /**< Number of interpolation qualifiers */
 };
 
-const char *glsl_interp_qualifier_name(enum glsl_interp_qualifier qual);
+const char *glsl_interp_mode_name(enum glsl_interp_mode qual);
 
 /**
  * Fragment program results

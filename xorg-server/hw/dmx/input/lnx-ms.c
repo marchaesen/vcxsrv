@@ -76,6 +76,7 @@
 #include <X11/Xos.h>
 #include <errno.h>
 #include <termios.h>
+#include <poll.h>
 
 /*****************************************************************************/
 /* Define some macros to make it easier to move this file to another
@@ -120,10 +121,11 @@ static int
 msLinuxReadBytes(int fd, unsigned char *buf, int len, int min)
 {
     int n, tot;
-    fd_set set;
-    struct timeval tv;
+    struct pollfd poll_fd;
 
     tot = 0;
+    poll_fd.fd = fd;
+    poll_fd.events = POLLIN;
     while (len) {
         n = read(fd, buf, len);
         if (n > 0) {
@@ -133,11 +135,7 @@ msLinuxReadBytes(int fd, unsigned char *buf, int len, int min)
         }
         if (tot % min == 0)
             break;
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        tv.tv_sec = 0;
-        tv.tv_usec = 100 * 1000;
-        n = select(fd + 1, &set, 0, 0, &tv);
+        n = poll(&poll_fd, 1, 100);
         if (n <= 0)
             break;
     }
@@ -246,7 +244,8 @@ msLinuxInit(DevicePtr pDev)
     if (tcgetattr(priv->fd, &priv->tty) < 0)
         FATAL1("msLinuxInit: tcgetattr failed (%s)\n", strerror(errno));
 
-    write(priv->fd, "*n", 2);   /* 1200 baud */
+    i = write(priv->fd, "*n", 2);   /* 1200 baud */
+    (void) i;
     usleep(100000);
 }
 
@@ -256,6 +255,7 @@ msLinuxOn(DevicePtr pDev)
 {
     GETPRIV;
     struct termios nTty;
+    int i;
 
     if (priv->fd < 0)
         msLinuxInit(pDev);
@@ -273,7 +273,8 @@ msLinuxOn(DevicePtr pDev)
     cfsetospeed(&nTty, B1200);
     if (tcsetattr(priv->fd, TCSANOW, &nTty) < 0)
         FATAL1("msLinuxInit: tcsetattr failed (%s)\n", strerror(errno));
-    write(priv->fd, "*V", 2);   /* 2 button 3 byte protocol */
+    i = write(priv->fd, "*V", 2);   /* 2 button 3 byte protocol */
+    (void) i;
     return priv->fd;
 }
 

@@ -471,7 +471,7 @@ vfbSaveScreen(ScreenPtr pScreen, int on)
 
 /* this flushes any changes to the screens out to the mmapped file */
 static void
-vfbBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadmask)
+vfbBlockHandler(void *blockData, void *timeout)
 {
     int i;
 
@@ -492,7 +492,7 @@ vfbBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadmask)
 }
 
 static void
-vfbWakeupHandler(void *blockData, int result, void *pReadmask)
+vfbWakeupHandler(void *blockData, int result)
 {
 }
 

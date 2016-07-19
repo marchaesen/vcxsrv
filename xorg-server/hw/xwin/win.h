@@ -335,7 +335,8 @@ typedef struct {
  * Resize modes
  */
 typedef enum {
-    notAllowed,
+    resizeDefault = -1,
+    resizeNotAllowed,
     resizeWithScrollbars,
     resizeWithRandr
 } winResizeMode;
@@ -716,8 +717,7 @@ void winSetAuthorization(void);
 
 void
 
-winBlockHandler(ScreenPtr pScreen,
-                void *pTimeout, void *pReadMask);
+winBlockHandler(ScreenPtr pScreen, void *pTimeout);
 
 #ifdef XWIN_CLIPBOARD
 /*
@@ -901,9 +901,7 @@ Bool
  */
 
 void
-
-winWakeupHandler(ScreenPtr pScreen,
-                 unsigned long ulResult, void *pReadmask);
+winWakeupHandler(ScreenPtr pScreen, int iResult);
 
 /*
  * winwindow.c

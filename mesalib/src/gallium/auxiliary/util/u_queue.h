@@ -50,6 +50,7 @@ struct util_queue_job {
    void *job;
    struct util_queue_fence *fence;
    util_queue_execute_func execute;
+   util_queue_execute_func cleanup;
 };
 
 /* Put this into your context. */
@@ -75,10 +76,13 @@ void util_queue_destroy(struct util_queue *queue);
 void util_queue_fence_init(struct util_queue_fence *fence);
 void util_queue_fence_destroy(struct util_queue_fence *fence);
 
+/* optional cleanup callback is called after fence is signaled: */
 void util_queue_add_job(struct util_queue *queue,
                         void *job,
                         struct util_queue_fence *fence,
-                        util_queue_execute_func execute);
+                        util_queue_execute_func execute,
+                        util_queue_execute_func cleanup);
+
 void util_queue_job_wait(struct util_queue_fence *fence);
 
 /* util_queue needs to be cleared to zeroes for this to work */

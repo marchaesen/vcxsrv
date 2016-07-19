@@ -635,7 +635,7 @@ InputClassMatches(const XF86ConfInputClassPtr iclass, const InputInfoPtr idev,
 
     /* MatchIs* booleans */
     if (iclass->is_keyboard.set &&
-        iclass->is_keyboard.val != ! !(attrs->flags & ATTR_KEY))
+        iclass->is_keyboard.val != ! !(attrs->flags & (ATTR_KEY|ATTR_KEYBOARD)))
         return FALSE;
     if (iclass->is_pointer.set &&
         iclass->is_pointer.val != ! !(attrs->flags & ATTR_POINTER))

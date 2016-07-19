@@ -206,18 +206,21 @@ ReloadEnumWindowsProc(HWND hwnd, LPARAM lParam)
  * Set custom icons and menus again.
  */
 static void
-ReloadPrefs(void)
+ReloadPrefs(winPrivScreenPtr pScreenPriv)
 {
     int i;
 
 #ifdef XWIN_MULTIWINDOW
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+
     /* First, iterate over all windows, deleting their icons and custom menus.
      * This is really only needed because winDestroyIcon() will try to
      * destroy the old global icons, which will have changed.
      * It is probably better to set a windows USER_DATA to flag locally defined
      * icons, and use that to accurately know when to destroy old icons.
      */
-    EnumThreadWindows(g_dwCurrentThreadID, ReloadEnumWindowsProc, FALSE);
+    if (pScreenInfo->fMultiWindow)
+        EnumThreadWindows(g_dwCurrentThreadID, ReloadEnumWindowsProc, FALSE);
 #endif
 
     /* Now, free/clear all info from our prefs structure */
@@ -262,12 +265,12 @@ ReloadPrefs(void)
     g_hSmallIconX = NULL;
 
 #ifdef XWIN_MULTIWINDOW
-    winInitGlobalIcons();
-#endif
+    if (pScreenInfo->fMultiWindow) {
+        winInitGlobalIcons();
 
-#ifdef XWIN_MULTIWINDOW
-    /* Rebuild the icons and menus */
-    EnumThreadWindows(g_dwCurrentThreadID, ReloadEnumWindowsProc, TRUE);
+        /* Rebuild the icons and menus */
+        EnumThreadWindows(g_dwCurrentThreadID, ReloadEnumWindowsProc, TRUE);
+    }
 #endif
 
     /* Whew, done */
@@ -303,7 +306,7 @@ HandleCustomWM_INITMENU(HWND hwnd, HMENU hmenu)
  * Return TRUE if command is proccessed, FALSE otherwise.
  */
 Bool
-HandleCustomWM_COMMAND(HWND hwnd, int command)
+HandleCustomWM_COMMAND(HWND hwnd, WORD command, winPrivScreenPtr pScreenPriv)
 {
     int i, j;
     MENUPARSED *m;
@@ -383,13 +386,17 @@ HandleCustomWM_COMMAND(HWND hwnd, int command)
                                      HWND_TOPMOST,
                                      0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 #if XWIN_MULTIWINDOW
-                    /* Reflect the changed Z order */
-                    winReorderWindowsMultiWindow();
+                    {
+                        winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+                        if (pScreenInfo->fMultiWindow)
+                            /* Reflect the changed Z order */
+                            winReorderWindowsMultiWindow();
+                    }
 #endif
                     return TRUE;
 
                 case CMD_RELOAD:
-                    ReloadPrefs();
+                    ReloadPrefs(pScreenPriv);
                     return TRUE;
 
                 default:

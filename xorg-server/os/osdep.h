@@ -100,6 +100,20 @@ SOFTWARE.
 
 #include <stddef.h>
 
+/* If EAGAIN and EWOULDBLOCK are distinct errno values, then we check errno
+ * for both EAGAIN and EWOULDBLOCK, because some supposedly POSIX
+ * systems are broken and return EWOULDBLOCK when they should return EAGAIN
+ */
+#ifndef WIN32
+# if (EAGAIN != EWOULDBLOCK)
+#  define ETEST(err) (err == EAGAIN || err == EWOULDBLOCK)
+# else
+#  define ETEST(err) (err == EAGAIN)
+# endif
+#else   /* WIN32 The socket errorcodes differ from the normal errors */
+#define ETEST(err) (err == EAGAIN || err == WSAEWOULDBLOCK)
+#endif
+
 #if defined(XDMCP) || defined(HASXDMAUTH)
 typedef Bool (*ValidatorFunc) (ARRAY8Ptr Auth, ARRAY8Ptr Data, int packet_type);
 typedef Bool (*GeneratorFunc) (ARRAY8Ptr Auth, ARRAY8Ptr Data, int packet_type);

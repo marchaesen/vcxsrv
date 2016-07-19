@@ -428,7 +428,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /*
          * Any window menu items go through here
          */
-        if (HandleCustomWM_COMMAND(hwnd, LOWORD(wParam))) {
+        if (HandleCustomWM_COMMAND(hwnd, LOWORD(wParam), s_pScreenPriv)) {
             /* Don't pass customized menus to DefWindowProc */
             return 0;
         }

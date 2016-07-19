@@ -871,7 +871,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     xf86Resetting = FALSE;
     xf86Initialising = FALSE;
 
-    RegisterBlockAndWakeupHandlers((BlockHandlerProcPtr) NoopDDA, xf86Wakeup,
+    RegisterBlockAndWakeupHandlers((ServerBlockHandlerProcPtr) NoopDDA, xf86Wakeup,
                                    NULL);
 }
 

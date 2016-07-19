@@ -162,7 +162,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          * their own mode when they become active.
          */
         if (s_pScreenInfo->fFullScreen
-            || (s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
+            && (s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
             break;
         }
 
@@ -316,7 +316,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 
         /* Break if we do not allow resizing */
-        if ((s_pScreenInfo->iResizeMode == notAllowed)
+        if ((s_pScreenInfo->iResizeMode == resizeNotAllowed)
             || !s_pScreenInfo->fDecoration
 #ifdef XWIN_MULTIWINDOWEXTWM
             || s_pScreenInfo->fMWExtWM
@@ -1215,7 +1215,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         default:
             /* It's probably one of the custom menus... */
-            if (HandleCustomWM_COMMAND(0, LOWORD(wParam)))
+            if (HandleCustomWM_COMMAND(0, LOWORD(wParam), s_pScreenPriv))
                 return 0;
         }
         break;

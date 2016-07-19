@@ -246,7 +246,7 @@ winRestoreModeKeyStates(void)
     unsigned short internalKeyStates;
 
     /* X server is being initialized */
-    if (!inputInfo.keyboard)
+    if (!inputInfo.keyboard || !inputInfo.keyboard->key)
         return;
 
     /* Only process events if the rootwindow is mapped. The keyboard events

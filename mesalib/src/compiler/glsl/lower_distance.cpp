@@ -654,7 +654,8 @@ lower_distance_visitor_counter::handle_rvalue(ir_rvalue **rv)
 }
 
 bool
-lower_clip_cull_distance(struct gl_shader_program *prog, gl_shader *shader)
+lower_clip_cull_distance(struct gl_shader_program *prog,
+                         struct gl_linked_shader *shader)
 {
    int clip_size, cull_size;
 

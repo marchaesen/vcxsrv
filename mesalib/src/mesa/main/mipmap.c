@@ -1777,7 +1777,8 @@ _mesa_next_mipmap_level_size(GLenum target, GLint border,
    }
 
    if ((srcHeight - 2 * border > 1) && 
-       (target != GL_TEXTURE_1D_ARRAY_EXT)) {
+       target != GL_TEXTURE_1D_ARRAY_EXT &&
+       target != GL_PROXY_TEXTURE_1D_ARRAY_EXT) {
       *dstHeight = (srcHeight - 2 * border) / 2 + 2 * border;
    }
    else {
@@ -1785,8 +1786,10 @@ _mesa_next_mipmap_level_size(GLenum target, GLint border,
    }
 
    if ((srcDepth - 2 * border > 1) &&
-       (target != GL_TEXTURE_2D_ARRAY_EXT &&
-        target != GL_TEXTURE_CUBE_MAP_ARRAY)) {
+       target != GL_TEXTURE_2D_ARRAY_EXT &&
+       target != GL_PROXY_TEXTURE_2D_ARRAY_EXT &&
+       target != GL_TEXTURE_CUBE_MAP_ARRAY &&
+       target != GL_PROXY_TEXTURE_CUBE_MAP_ARRAY) {
       *dstDepth = (srcDepth - 2 * border) / 2 + 2 * border;
    }
    else {

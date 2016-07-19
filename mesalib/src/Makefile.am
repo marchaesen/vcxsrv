@@ -25,15 +25,13 @@ git_sha1.h.tmp:
 	@# a gitlink file if $(top_srcdir) is a submodule checkout or a linked
 	@# worktree.
 	@# If we are building from a release tarball copy the bundled header.
+	@touch git_sha1.h.tmp
 	@if test -e $(top_srcdir)/.git; then \
 		if which git > /dev/null; then \
 		    git --git-dir=$(top_srcdir)/.git log -n 1 --oneline | \
 			sed 's/^\([^ ]*\) .*/#define MESA_GIT_SHA1 "git-\1"/' \
 			> git_sha1.h.tmp ; \
 		fi \
-	else \
-		cp $(srcdir)/git_sha1.h git_sha1.h.tmp ;\
-		chmod u+w git_sha1.h.tmp; \
 	fi
 
 git_sha1.h: git_sha1.h.tmp
@@ -45,12 +43,7 @@ git_sha1.h: git_sha1.h.tmp
 	fi
 
 BUILT_SOURCES = git_sha1.h
-
-# We want to keep the srcdir file since we need it on rebuild from tarball.
-# At the same time `make distclean' gets angry at us if we don't cleanup the
-# builddir one.
-distclean-local:
-	( test $(top_srcdir) != $(top_builddir) && rm $(builddir)/git_sha1.h ) || true
+CLEANFILES = $(BUILT_SOURCES)
 
 SUBDIRS = . gtest util mapi/glapi/gen mapi
 
@@ -100,7 +93,7 @@ SUBDIRS += gallium
 endif
 
 EXTRA_DIST = \
-	getopt hgl SConscript git_sha1.h
+	getopt hgl SConscript
 
 AM_CFLAGS = $(VISIBILITY_CFLAGS)
 AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)

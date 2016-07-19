@@ -1,5 +1,3 @@
-#if !defined(WINPREFS_H)
-#define WINPREFS_H
 /*
  * Copyright (C) 1994-2000 The XFree86 Project, Inc. All Rights Reserved.
  * Copyright (C) Colin Harrison 2005-2008
@@ -32,6 +30,9 @@
  *              Colin Harrison
  */
 
+#if !defined(WINPREFS_H)
+#define WINPREFS_H
+
 /* Need Bool */
 #include <X11/Xdefs.h>
 /* Need TRUE */
@@ -41,6 +42,8 @@
 #include <limits.h>
 /* Xwindows redefines PATH_MAX to at least 1024 */
 #include <X11/Xwindows.h>
+
+#include "winwindow.h"
 
 #ifndef NAME_MAX
 #define NAME_MAX PATH_MAX
@@ -159,7 +162,7 @@ void
  HandleCustomWM_INITMENU(HWND hwnd, HMENU hmenu);
 
 Bool
- HandleCustomWM_COMMAND(HWND hwnd, int command);
+ HandleCustomWM_COMMAND(HWND hwnd, WORD command, winPrivScreenPtr pScreenPriv);
 
 int
  winIconIsOverride(HICON hicon);

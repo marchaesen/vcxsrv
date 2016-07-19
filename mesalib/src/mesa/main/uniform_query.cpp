@@ -824,7 +824,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    if (uni->type->is_sampler()) {
       bool flushed = false;
       for (int i = 0; i < MESA_SHADER_STAGES; i++) {
-	 struct gl_shader *const sh = shProg->_LinkedShaders[i];
+	 struct gl_linked_shader *const sh = shProg->_LinkedShaders[i];
 
 	 /* If the shader stage doesn't use the sampler uniform, skip this.
 	  */
@@ -859,10 +859,6 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	       flushed = true;
 	    }
 
-	    memcpy(prog->SamplerUnits,
-		   sh->SamplerUnits,
-		   sizeof(sh->SamplerUnits));
-
 	    _mesa_update_shader_textures_used(shProg, prog);
             if (ctx->Driver.SamplerUniformChange)
 	       ctx->Driver.SamplerUniformChange(ctx, prog->Target, prog);
@@ -876,7 +872,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    if (uni->type->is_image()) {
       for (int i = 0; i < MESA_SHADER_STAGES; i++) {
 	 if (uni->opaque[i].active) {
-            struct gl_shader *sh = shProg->_LinkedShaders[i];
+            struct gl_linked_shader *sh = shProg->_LinkedShaders[i];
 
             for (int j = 0; j < count; j++)
                sh->ImageUnits[uni->opaque[i].index + offset + j] =
@@ -1068,58 +1064,51 @@ _mesa_sampler_uniforms_pipeline_are_valid(struct gl_pipeline_object *pipeline)
     *         - The number of active samplers in the program exceeds the
     *           maximum number of texture image units allowed."
     */
+
+   GLbitfield mask;
+   GLbitfield TexturesUsed[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+   struct gl_linked_shader *shader;
    unsigned active_samplers = 0;
    const struct gl_shader_program **shProg =
       (const struct gl_shader_program **) pipeline->CurrentProgram;
 
-   const glsl_type *unit_types[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
-   memset(unit_types, 0, sizeof(unit_types));
+
+   memset(TexturesUsed, 0, sizeof(TexturesUsed));
 
    for (unsigned idx = 0; idx < ARRAY_SIZE(pipeline->CurrentProgram); idx++) {
       if (!shProg[idx])
          continue;
 
-      for (unsigned i = 0; i < shProg[idx]->NumUniformStorage; i++) {
-         const struct gl_uniform_storage *const storage =
-            &shProg[idx]->UniformStorage[i];
+      shader = shProg[idx]->_LinkedShaders[idx];
+      if (!shader || !shader->Program)
+         continue;
 
-         if (!storage->type->is_sampler())
+      mask = shader->Program->SamplersUsed;
+      while (mask) {
+         const int s = u_bit_scan(&mask);
+         GLuint unit = shader->SamplerUnits[s];
+         GLuint tgt = shader->SamplerTargets[s];
+
+         /* FIXME: Samplers are initialized to 0 and Mesa doesn't do a
+          * great job of eliminating unused uniforms currently so for now
+          * don't throw an error if two sampler types both point to 0.
+          */
+         if (unit == 0)
             continue;
 
-         active_samplers++;
-
-         const unsigned count = MAX2(1, storage->array_elements);
-         for (unsigned j = 0; j < count; j++) {
-            const unsigned unit = storage->storage[j].i;
-
-            /* FIXME: Samplers are initialized to 0 and Mesa doesn't do a
-             * great job of eliminating unused uniforms currently so for now
-             * don't throw an error if two sampler types both point to 0.
-             */
-            if (unit == 0)
-               continue;
-
-            /* The types of the samplers associated with a particular texture
-             * unit must be an exact match.  Page 74 (page 89 of the PDF) of
-             * the OpenGL 3.3 core spec says:
-             *
-             *     "It is not allowed to have variables of different sampler
-             *     types pointing to the same texture image unit within a
-             *     program object."
-             */
-            if (unit_types[unit] == NULL) {
-               unit_types[unit] = storage->type;
-            } else if (unit_types[unit] != storage->type) {
-               pipeline->InfoLog =
-                  ralloc_asprintf(pipeline,
-                                  "Texture unit %d is accessed both as %s "
-                                  "and %s",
-                                  unit, unit_types[unit]->name,
-                                  storage->type->name);
-               return false;
-            }
+         if (TexturesUsed[unit] & ~(1 << tgt)) {
+            pipeline->InfoLog =
+               ralloc_asprintf(pipeline,
+                     "Program %d: "
+                     "Texture unit %d is accessed with 2 different types",
+                     shProg[idx]->Name, unit);
+            return false;
          }
+
+         TexturesUsed[unit] |= (1 << tgt);
       }
+
+      active_samplers += shader->num_samplers;
    }
 
    if (active_samplers > MAX_COMBINED_TEXTURE_IMAGE_UNITS) {

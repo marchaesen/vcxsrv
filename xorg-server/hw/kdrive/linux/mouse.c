@@ -27,7 +27,7 @@
 #include <termios.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
-#include <X11/Xpoll.h>
+#include <poll.h>
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "kdrive.h"
@@ -47,23 +47,15 @@ typedef struct _kbufio {
 static Bool
 MouseWaitForReadable(int fd, int timeout)
 {
-    fd_set set;
-    struct timeval tv, *tp;
+    struct pollfd poll_fd;
     int n;
     CARD32 done;
 
     done = GetTimeInMillis() + timeout;
+    poll_fd.fd = fd;
+    poll_fd.events = POLLIN;
     for (;;) {
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        if (timeout == -1)
-            tp = 0;
-        else {
-            tv.tv_sec = timeout / 1000;
-            tv.tv_usec = (timeout % 1000) * 1000;
-            tp = &tv;
-        }
-        n = select(fd + 1, &set, 0, 0, tp);
+        n = poll(&poll_fd, 1, timeout);
         if (n > 0)
             return TRUE;
         if (n < 0 && (errno == EAGAIN || errno == EINTR)) {
@@ -139,20 +131,12 @@ MousePeekByte(Kbufio * b, int timeout)
 static Bool
 MouseWaitForWritable(int fd, int timeout)
 {
-    fd_set set;
-    struct timeval tv, *tp;
+    struct pollfd poll_fd;
     int n;
 
-    FD_ZERO(&set);
-    FD_SET(fd, &set);
-    if (timeout == -1)
-        tp = 0;
-    else {
-        tv.tv_sec = timeout / 1000;
-        tv.tv_usec = (timeout % 1000) * 1000;
-        tp = &tv;
-    }
-    n = select(fd + 1, 0, &set, 0, tp);
+    poll_fd.fd = fd;
+    poll_fd.events = POLLOUT;
+    n = poll(&poll_fd, 1, timeout);
     if (n > 0)
         return TRUE;
     return FALSE;

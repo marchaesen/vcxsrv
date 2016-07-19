@@ -73,6 +73,7 @@
 #include <X11/Xos.h>
 #include <errno.h>
 #include <termios.h>
+#include <poll.h>
 
 /*****************************************************************************/
 /* Define some macros to make it easier to move this file to another
@@ -116,9 +117,10 @@ static int
 ps2LinuxReadBytes(int fd, unsigned char *buf, int len, int min)
 {
     int n, tot;
-    fd_set set;
-    struct timeval tv;
+    struct pollfd poll_fd;
 
+    poll_fd.fd = fd;
+    poll_fd.events = POLLIN;
     tot = 0;
     while (len) {
         n = read(fd, buf, len);
@@ -129,11 +131,7 @@ ps2LinuxReadBytes(int fd, unsigned char *buf, int len, int min)
         }
         if (tot % min == 0)
             break;
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        tv.tv_sec = 0;
-        tv.tv_usec = 100 * 1000;
-        n = select(fd + 1, &set, 0, 0, &tv);
+        n = poll(&poll_fd, 1, 100);
         if (n <= 0)
             break;
     }

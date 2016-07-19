@@ -54,7 +54,6 @@
 #endif
 
 #include <X11/X.h>
-#include <X11/Xpoll.h>
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
 #include "misc.h"
@@ -100,8 +99,6 @@ Bool VTSwitchEnabled = TRUE;    /* Allows run-time disabling for
                                  *BSD and for avoiding VT
                                  switches when using the DRI
                                  automatic full screen mode.*/
-
-extern fd_set EnabledDevices;
 
 #ifdef XF86PM
 extern void (*xf86OSPMClose) (void);
@@ -245,19 +242,8 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
 
 /* ARGSUSED */
 void
-xf86Wakeup(void *blockData, int err, void *pReadmask)
+xf86Wakeup(void *blockData, int err)
 {
-    if (err >= 0) {             /* we don't want the handlers called if select() */
-        IHPtr ih, ih_tmp;       /* returned with an error condition, do we?      */
-
-        nt_list_for_each_entry_safe(ih, ih_tmp, InputHandlers, next) {
-            if (ih->enabled && ih->fd >= 0 && ih->ihproc &&
-                (FD_ISSET(ih->fd, ((fd_set *) pReadmask)) != 0)) {
-                ih->ihproc(ih->fd, ih->data);
-            }
-        }
-    }
-
     if (xf86VTSwitchPending())
         xf86VTSwitch();
 }
@@ -602,6 +588,16 @@ xf86VTSwitch(void)
 
 /* Input handler registration */
 
+static void
+xf86InputHandlerNotify(int fd, int ready, void *data)
+{
+    IHPtr       ih = data;
+
+    if (ih->enabled && ih->fd >= 0 && ih->ihproc) {
+        ih->ihproc(ih->fd, ih->data);
+    }
+}
+
 static void *
 addInputHandler(int fd, InputHandlerProc proc, void *data)
 {
@@ -619,6 +615,11 @@ addInputHandler(int fd, InputHandlerProc proc, void *data)
     ih->data = data;
     ih->enabled = TRUE;
 
+    if (!SetNotifyFd(fd, xf86InputHandlerNotify, X_NOTIFY_READ, ih)) {
+        free(ih);
+        return NULL;
+    }
+
     ih->next = InputHandlers;
     InputHandlers = ih;
 
@@ -630,10 +631,8 @@ xf86AddInputHandler(int fd, InputHandlerProc proc, void *data)
 {
     IHPtr ih = addInputHandler(fd, proc, data);
 
-    if (ih) {
-        AddEnabledDevice(fd);
+    if (ih)
         ih->is_input = TRUE;
-    }
     return ih;
 }
 
@@ -642,8 +641,6 @@ xf86AddGeneralHandler(int fd, InputHandlerProc proc, void *data)
 {
     IHPtr ih = addInputHandler(fd, proc, data);
 
-    if (ih)
-        AddGeneralSocket(fd);
     return ih;
 }
 
@@ -673,6 +670,8 @@ removeInputHandler(IHPtr ih)
 {
     IHPtr p;
 
+    if (ih->fd >= 0)
+        RemoveNotifyFd(ih->fd);
     if (ih == InputHandlers)
         InputHandlers = ih->next;
     else {
@@ -697,8 +696,6 @@ xf86RemoveInputHandler(void *handler)
     ih = handler;
     fd = ih->fd;
 
-    if (ih->fd >= 0)
-        RemoveEnabledDevice(ih->fd);
     removeInputHandler(ih);
 
     return fd;
@@ -716,8 +713,6 @@ xf86RemoveGeneralHandler(void *handler)
     ih = handler;
     fd = ih->fd;
 
-    if (ih->fd >= 0)
-        RemoveGeneralSocket(ih->fd);
     removeInputHandler(ih);
 
     return fd;
@@ -734,7 +729,7 @@ xf86DisableInputHandler(void *handler)
     ih = handler;
     ih->enabled = FALSE;
     if (ih->fd >= 0)
-        RemoveEnabledDevice(ih->fd);
+        RemoveNotifyFd(ih->fd);
 }
 
 void
@@ -748,7 +743,7 @@ xf86DisableGeneralHandler(void *handler)
     ih = handler;
     ih->enabled = FALSE;
     if (ih->fd >= 0)
-        RemoveGeneralSocket(ih->fd);
+        RemoveNotifyFd(ih->fd);
 }
 
 void
@@ -762,7 +757,7 @@ xf86EnableInputHandler(void *handler)
     ih = handler;
     ih->enabled = TRUE;
     if (ih->fd >= 0)
-        AddEnabledDevice(ih->fd);
+        SetNotifyFd(ih->fd, xf86InputHandlerNotify, X_NOTIFY_READ, ih);
 }
 
 void
@@ -776,7 +771,7 @@ xf86EnableGeneralHandler(void *handler)
     ih = handler;
     ih->enabled = TRUE;
     if (ih->fd >= 0)
-        AddGeneralSocket(ih->fd);
+        SetNotifyFd(ih->fd, xf86InputHandlerNotify, X_NOTIFY_READ, ih);
 }
 
 /*

@@ -65,14 +65,14 @@ shadowRedisplay(ScreenPtr pScreen)
 }
 
 static void
-shadowBlockHandler(ScreenPtr pScreen, void *timeout, void *pRead)
+shadowBlockHandler(ScreenPtr pScreen, void *timeout)
 {
     shadowBuf(pScreen);
 
     shadowRedisplay(pScreen);
 
     unwrap(pBuf, pScreen, BlockHandler);
-    pScreen->BlockHandler(pScreen, timeout, pRead);
+    pScreen->BlockHandler(pScreen, timeout);
     wrap(pBuf, pScreen, BlockHandler);
 }
 

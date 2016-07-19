@@ -317,6 +317,8 @@ NIR_SOURCES := \
 	nir/tgsi_to_nir.h
 
 VL_SOURCES := \
+	vl/vl_bicubic_filter.c \
+	vl/vl_bicubic_filter.h \
 	vl/vl_compositor.c \
 	vl/vl_compositor.h \
 	vl/vl_csc.c \

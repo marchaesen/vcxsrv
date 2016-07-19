@@ -702,8 +702,7 @@ exaCreateScreenResources(ScreenPtr pScreen)
 }
 
 static void
-ExaBlockHandler(ScreenPtr pScreen, void *pTimeout,
-                void *pReadmask)
+ExaBlockHandler(ScreenPtr pScreen, void *pTimeout)
 {
     ExaScreenPriv(pScreen);
 
@@ -712,7 +711,7 @@ ExaBlockHandler(ScreenPtr pScreen, void *pTimeout,
         exaMoveInPixmap_mixed(pExaScr->deferred_mixed_pixmap);
 
     unwrap(pExaScr, pScreen, BlockHandler);
-    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
+    (*pScreen->BlockHandler) (pScreen, pTimeout);
     wrap(pExaScr, pScreen, BlockHandler, ExaBlockHandler);
 
     /* The rest only applies to classic EXA */
@@ -732,13 +731,12 @@ ExaBlockHandler(ScreenPtr pScreen, void *pTimeout,
 }
 
 static void
-ExaWakeupHandler(ScreenPtr pScreen, unsigned long result,
-                 void *pReadmask)
+ExaWakeupHandler(ScreenPtr pScreen, int result)
 {
     ExaScreenPriv(pScreen);
 
     unwrap(pExaScr, pScreen, WakeupHandler);
-    (*pScreen->WakeupHandler) (pScreen, result, pReadmask);
+    (*pScreen->WakeupHandler) (pScreen, result);
     wrap(pExaScr, pScreen, WakeupHandler, ExaWakeupHandler);
 
     if (result == 0 && pExaScr->numOffscreenAvailable > 1) {

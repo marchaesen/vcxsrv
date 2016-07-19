@@ -46,6 +46,7 @@
 #include "dmxlog.h"
 
 #include <X11/fonts/fontstruct.h>
+#include <X11/fonts/libxfont2.h>
 #include "dixfont.h"
 #include "dixstruct.h"
 
@@ -447,7 +448,7 @@ dmxRealizeFont(ScreenPtr pScreen, FontPtr pFont)
     dmxFontPrivPtr pFontPriv;
 
     if (!(pFontPriv = FontGetPrivate(pFont, dmxFontPrivateIndex))) {
-        FontSetPrivate(pFont, dmxFontPrivateIndex, NULL);
+        xfont2_font_set_private(pFont, dmxFontPrivateIndex, NULL);
         pFontPriv = malloc(sizeof(dmxFontPrivRec));
         if (!pFontPriv)
             return FALSE;
@@ -460,7 +461,7 @@ dmxRealizeFont(ScreenPtr pScreen, FontPtr pFont)
         pFontPriv->refcnt = 0;
     }
 
-    FontSetPrivate(pFont, dmxFontPrivateIndex, (void *) pFontPriv);
+    xfont2_font_set_private(pFont, dmxFontPrivateIndex, (void *) pFontPriv);
 
     if (dmxScreen->beDisplay) {
         if (!dmxBELoadFont(pScreen, pFont))
@@ -504,7 +505,7 @@ dmxUnrealizeFont(ScreenPtr pScreen, FontPtr pFont)
         if (!pFontPriv->refcnt) {
             MAXSCREENSFREE(pFontPriv->font);
             free(pFontPriv);
-            FontSetPrivate(pFont, dmxFontPrivateIndex, NULL);
+            xfont2_font_set_private(pFont, dmxFontPrivateIndex, NULL);
         }
         else if (pFontPriv->font[pScreen->myNum]) {
             if (dmxScreen->beDisplay)
@@ -563,7 +564,7 @@ dmxUnrealizeFont(ScreenPtr pScreen, FontPtr pFont)
                 ) {
                 MAXSCREENSFREE(pFontPriv->font);
                 free(pFontPriv);
-                FontSetPrivate(pFont, dmxFontPrivateIndex, NULL);
+                xfont2_font_set_private(pFont, dmxFontPrivateIndex, NULL);
             }
         }
     }

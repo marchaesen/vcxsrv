@@ -47,6 +47,7 @@ AUTOMAKE=${AUTOMAKE-automake}
 AUTOHEADER=${AUTOHEADER-autoheader}
 AUTOCONF=${AUTOCONF-autoconf}
 GPERF=${GPERF-gperf}
+PYTHON=${PYTHON-python}
 LIBTOOLIZE_FLAGS="--copy --force"
 
 DIE=0
@@ -56,6 +57,14 @@ DIE=0
 	echo "You must have gperf installed to compile $PROJECT."
 	echo "Install the appropriate package for your distribution."
 	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
+	DIE=1
+}
+
+($PYTHON --version) < /dev/null > /dev/null 2>&1 || {
+	echo
+	echo "You must have python installed to compile $PROJECT."
+	echo "Install the appropriate package for your distribution."
+	echo "or get the source tarball at https://www.python.org/downloads/source/"
 	DIE=1
 }
 

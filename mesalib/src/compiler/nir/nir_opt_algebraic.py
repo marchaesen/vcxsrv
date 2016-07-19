@@ -197,6 +197,7 @@ optimizations = [
    (('iand', a, 0), 0),
    (('ior', a, a), a),
    (('ior', a, 0), a),
+   (('ior', a, True), True),
    (('fxor', a, a), 0.0),
    (('ixor', a, a), 0),
    (('ixor', a, 0), a),

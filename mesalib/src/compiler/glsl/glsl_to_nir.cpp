@@ -134,7 +134,7 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
             gl_shader_stage stage,
             const nir_shader_compiler_options *options)
 {
-   struct gl_shader *sh = shader_prog->_LinkedShaders[stage];
+   struct gl_linked_shader *sh = shader_prog->_LinkedShaders[stage];
 
    nir_shader *shader = nir_shader_create(NULL, stage, options);
 
@@ -166,14 +166,14 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
 
    switch (stage) {
    case MESA_SHADER_TESS_CTRL:
-      shader->info.tcs.vertices_out = sh->TessCtrl.VerticesOut;
+      shader->info.tcs.vertices_out = sh->info.TessCtrl.VerticesOut;
       break;
 
    case MESA_SHADER_GEOMETRY:
       shader->info.gs.vertices_in = shader_prog->Geom.VerticesIn;
-      shader->info.gs.output_primitive = sh->Geom.OutputType;
-      shader->info.gs.vertices_out = sh->Geom.VerticesOut;
-      shader->info.gs.invocations = sh->Geom.Invocations;
+      shader->info.gs.output_primitive = sh->info.Geom.OutputType;
+      shader->info.gs.vertices_out = sh->info.Geom.VerticesOut;
+      shader->info.gs.invocations = sh->info.Geom.Invocations;
       shader->info.gs.uses_end_primitive = shader_prog->Geom.UsesEndPrimitive;
       shader->info.gs.uses_streams = shader_prog->Geom.UsesStreams;
       break;
@@ -184,7 +184,7 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
 
       shader->info.fs.uses_discard = fp->UsesKill;
       shader->info.fs.uses_sample_qualifier = fp->IsSample != 0;
-      shader->info.fs.early_fragment_tests = sh->EarlyFragmentTests;
+      shader->info.fs.early_fragment_tests = sh->info.EarlyFragmentTests;
       shader->info.fs.depth_layout = fp->FragDepthLayout;
       break;
    }

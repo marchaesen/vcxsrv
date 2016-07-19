@@ -98,7 +98,6 @@ output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
                    int width, int height, int refresh)
 {
     struct xwl_output *xwl_output = data;
-    RRModePtr randr_mode;
 
     if (!(flags & WL_OUTPUT_MODE_CURRENT))
         return;
@@ -111,13 +110,7 @@ output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
         xwl_output->height = width;
     }
 
-    randr_mode = xwayland_cvt(width, height, refresh / 1000.0, 0, 0);
-
-    RROutputSetModes(xwl_output->randr_output, &randr_mode, 1, 1);
-
-    RRCrtcNotify(xwl_output->randr_crtc, randr_mode,
-                 xwl_output->x, xwl_output->y,
-                 xwl_output->rotation, NULL, 1, &xwl_output->randr_output);
+    xwl_output->refresh = refresh;
 }
 
 static inline void
@@ -198,6 +191,14 @@ output_handle_done(void *data, struct wl_output *wl_output)
     struct xwl_output *it, *xwl_output = data;
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
     int width = 0, height = 0, has_this_output = 0;
+    RRModePtr randr_mode;
+
+    randr_mode = xwayland_cvt(xwl_output->width, xwl_output->height,
+                              xwl_output->refresh / 1000.0, 0, 0);
+    RROutputSetModes(xwl_output->randr_output, &randr_mode, 1, 1);
+    RRCrtcNotify(xwl_output->randr_crtc, randr_mode,
+                 xwl_output->x, xwl_output->y,
+                 xwl_output->rotation, NULL, 1, &xwl_output->randr_output);
 
     xorg_list_for_each_entry(it, &xwl_screen->output_list, link) {
         /* output done event is sent even when some property

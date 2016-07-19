@@ -47,8 +47,8 @@ SOFTWARE.
  *  Stuff to create connections --- OS dependent
  *
  *      EstablishNewConnections, CreateWellKnownSockets, ResetWellKnownSockets,
- *      CloseDownConnection, CheckConnections, AddEnabledDevice,
- *	RemoveEnabledDevice, OnlyListToOneClient,
+ *      CloseDownConnection, CheckConnections
+ *	OnlyListToOneClient,
  *      ListenToAllClients,
  *
  *      (WaitForSomething is in its own file)
@@ -121,7 +121,6 @@ SOFTWARE.
 
 static int lastfdesc;           /* maximum file descriptor */
 
-fd_set EnabledDevices;          /* mask for input devices that are on */
 fd_set NotifyReadFds;           /* mask for other file descriptors */
 fd_set NotifyWriteFds;          /* mask for other write file descriptors */
 fd_set AllSockets;              /* select on this */
@@ -863,7 +862,6 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
 
     if (!AllocNewConnection(new_trans_conn, newconn, connect_time)) {
         ErrorConnMax(new_trans_conn);
-        _XSERVTransClose(new_trans_conn);
     }
     return TRUE;
 }
@@ -881,37 +879,27 @@ QueueNewConnections(int fd, int ready, void *data)
  *     Fail a connection due to lack of client or file descriptor space
  ************/
 
-#define BOTIMEOUT 200           /* in milliseconds */
-
 static void
-ErrorConnMax(XtransConnInfo trans_conn)
+ConnMaxNotify(int fd, int events, void *data)
 {
-    int fd = _XSERVTransGetConnectionNumber(trans_conn);
-    xConnSetupPrefix csp;
-    char pad[3] = { 0, 0, 0 };
-    struct iovec iov[3];
+    XtransConnInfo trans_conn = data;
     char order = 0;
-    int whichbyte = 1;
-    struct timeval waittime;
-    fd_set mask;
 
-    /* if these seems like a lot of trouble to go to, it probably is */
-    waittime.tv_sec = BOTIMEOUT / MILLI_PER_SECOND;
-    waittime.tv_usec = (BOTIMEOUT % MILLI_PER_SECOND) *
-        (1000000 / MILLI_PER_SECOND);
-    FD_ZERO(&mask);
-    FD_SET(fd, &mask);
-    (void) Select(fd + 1, &mask, NULL, NULL, &waittime);
     /* try to read the byte-order of the connection */
     (void) _XSERVTransRead(trans_conn, &order, 1);
     if (order == 'l' || order == 'B' || order == 'r' || order == 'R') {
+        xConnSetupPrefix csp;
+        char pad[3] = { 0, 0, 0 };
+        int whichbyte = 1;
+        struct iovec iov[3];
+
         csp.success = xFalse;
         csp.lengthReason = sizeof(NOROOM) - 1;
         csp.length = (sizeof(NOROOM) + 2) >> 2;
         csp.majorVersion = X_PROTOCOL;
         csp.minorVersion = X_PROTOCOL_REVISION;
-	if (((*(char *) &whichbyte) && (order == 'B' || order == 'R')) ||
-	    (!(*(char *) &whichbyte) && (order == 'l' || order == 'r'))) {
+        if (((*(char *) &whichbyte) && (order == 'B' || order == 'R')) ||
+            (!(*(char *) &whichbyte) && (order == 'l' || order == 'r'))) {
             swaps(&csp.majorVersion);
             swaps(&csp.minorVersion);
             swaps(&csp.length);
@@ -924,6 +912,15 @@ ErrorConnMax(XtransConnInfo trans_conn)
         iov[2].iov_base = pad;
         (void) _XSERVTransWritev(trans_conn, iov, 3);
     }
+    RemoveNotifyFd(trans_conn->fd);
+    _XSERVTransClose(trans_conn);
+}
+
+static void
+ErrorConnMax(XtransConnInfo trans_conn)
+{
+    if (!SetNotifyFd(trans_conn->fd, ConnMaxNotify, X_NOTIFY_READ, trans_conn))
+        _XSERVTransClose(trans_conn);
 }
 
 /************
@@ -1047,36 +1044,6 @@ CloseDownConnection(ClientPtr client)
         AuditF("client %d disconnected\n", client->index);
 }
 
-void
-AddGeneralSocket(int fd)
-{
-    FD_SET(fd, &AllSockets);
-    if (GrabInProgress)
-        FD_SET(fd, &SavedAllSockets);
-}
-
-void
-AddEnabledDevice(int fd)
-{
-    FD_SET(fd, &EnabledDevices);
-    AddGeneralSocket(fd);
-}
-
-void
-RemoveGeneralSocket(int fd)
-{
-    FD_CLR(fd, &AllSockets);
-    if (GrabInProgress)
-        FD_CLR(fd, &SavedAllSockets);
-}
-
-void
-RemoveEnabledDevice(int fd)
-{
-    FD_CLR(fd, &EnabledDevices);
-    RemoveGeneralSocket(fd);
-}
-
 struct notify_fd {
     struct xorg_list list;
     int fd;
@@ -1134,9 +1101,13 @@ SetNotifyFd(int fd, NotifyFdProcPtr notify, int mask, void *data)
     if (changes & X_NOTIFY_READ) {
         if (mask & X_NOTIFY_READ) {
             FD_SET(fd, &NotifyReadFds);
-            AddGeneralSocket(fd);
+            FD_SET(fd, &AllSockets);
+            if (GrabInProgress)
+                FD_SET(fd, &SavedAllSockets);
         } else {
-            RemoveGeneralSocket(fd);
+            FD_CLR(fd, &AllSockets);
+            if (GrabInProgress)
+                FD_CLR(fd, &SavedAllSockets);
             FD_CLR(fd, &NotifyReadFds);
         }
     }
@@ -1426,7 +1397,6 @@ AddClientOnOpenFD(int fd)
 
     if (!AllocNewConnection(ciptr, fd, connect_time)) {
         ErrorConnMax(ciptr);
-        _XSERVTransClose(ciptr);
         return FALSE;
     }
 

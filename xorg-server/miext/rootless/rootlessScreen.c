@@ -603,7 +603,7 @@ RootlessQueueRedisplay(ScreenPtr pScreen)
  *  on select().
  */
 static void
-RootlessBlockHandler(void *pbdata, OSTimePtr pTimeout, void *pReadmask)
+RootlessBlockHandler(void *pbdata, void *ptimeout)
 {
     ScreenPtr pScreen = pbdata;
     RootlessScreenRec *screenRec = SCREENREC(pScreen);
@@ -616,7 +616,7 @@ RootlessBlockHandler(void *pbdata, OSTimePtr pTimeout, void *pReadmask)
 }
 
 static void
-RootlessWakeupHandler(void *data, int i, void *LastSelectMask)
+RootlessWakeupHandler(void *data, int result)
 {
     // nothing here
 }

@@ -1667,6 +1667,16 @@ _mesa_make_current( struct gl_context *newCtx,
          }
          if (!newCtx->ReadBuffer || _mesa_is_winsys_fbo(newCtx->ReadBuffer)) {
             _mesa_reference_framebuffer(&newCtx->ReadBuffer, readBuffer);
+            /* In _mesa_initialize_window_framebuffer, for single-buffered
+             * visuals, the ColorReadBuffer is set to be GL_FRONT, even with
+             * GLES contexts. When calling read_buffer, we verify we are reading
+             * from GL_BACK in is_legal_es3_readbuffer_enum.  But the default is
+             * incorrect, and certain dEQP tests check this.  So fix it here.
+             */
+            if (_mesa_is_gles(newCtx) &&
+               !newCtx->ReadBuffer->Visual.doubleBufferMode)
+               if (newCtx->ReadBuffer->ColorReadBuffer == GL_FRONT)
+                  newCtx->ReadBuffer->ColorReadBuffer = GL_BACK;
          }
 
          /* XXX only set this flag if we're really changing the draw/read

@@ -210,7 +210,7 @@ A sample InitInput implementation is shown below.
 <literallayout class="monospaced">
 InitInput(argc,argv)
     {
-    int i, numdevs, ReadInput();
+    int i, numdevs;
     DeviceIntPtr dev;
     LocalDevice localdevs[LOCAL_MAX_DEVS];
     DeviceProc kbdproc, ptrproc, extproc;
@@ -222,12 +222,6 @@ InitInput(argc,argv)
      ***************************************************************/
 
     open_input_devices (&amp;numdevs, localdevs);
-
-    /**************************************************************
-     * Register a WakeupHandler to handle input when it is generated.
-     ***************************************************************/
-
-    RegisterBlockAndWakeupHandlers (NoopDDA, ReadInput, NULL);
 
     /**************************************************************
      * Register the input devices with DIX.

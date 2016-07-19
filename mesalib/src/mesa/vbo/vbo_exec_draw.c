@@ -213,7 +213,7 @@ vbo_exec_bind_arrays( struct gl_context *ctx )
          exec->vtx.inputs[VERT_ATTRIB_GENERIC0] = exec->vtx.inputs[0];
          exec->vtx.attrsz[VERT_ATTRIB_GENERIC0] = exec->vtx.attrsz[0];
          exec->vtx.attrptr[VERT_ATTRIB_GENERIC0] = exec->vtx.attrptr[0];
-         exec->vtx.attrsz[0] = 0;
+         vbo_reset_attr(exec, VERT_ATTRIB_POS);
          exec->vtx.enabled &= (~BITFIELD64_BIT(VBO_ATTRIB_POS));
          exec->vtx.enabled |= BITFIELD64_BIT(VBO_ATTRIB_GENERIC0);
       }

@@ -172,7 +172,7 @@ public:
                                  bool disable_varying_packing,
                                  bool xfb_enabled);
 
-   void run(struct gl_shader *shader);
+   void run(struct gl_linked_shader *shader);
 
 private:
    void bitwise_assign_pack(ir_rvalue *lhs, ir_rvalue *rhs);
@@ -260,7 +260,7 @@ lower_packed_varyings_visitor::lower_packed_varyings_visitor(
 }
 
 void
-lower_packed_varyings_visitor::run(struct gl_shader *shader)
+lower_packed_varyings_visitor::run(struct gl_linked_shader *shader)
 {
    foreach_in_list(ir_instruction, node, shader->ir) {
       ir_variable *var = node->as_variable();
@@ -273,11 +273,11 @@ lower_packed_varyings_visitor::run(struct gl_shader *shader)
          continue;
 
       /* This lowering pass is only capable of packing floats and ints
-       * together when their interpolation mode is "flat".  Therefore, to be
-       * safe, caller should ensure that integral varyings always use flat
-       * interpolation, even when this is not required by GLSL.
+       * together when their interpolation mode is "flat".  Treat integers as
+       * being flat when the interpolation mode is none.
        */
-      assert(var->data.interpolation == INTERP_QUALIFIER_FLAT ||
+      assert(var->data.interpolation == INTERP_MODE_FLAT ||
+             var->data.interpolation == INTERP_MODE_NONE ||
              !var->type->contains_integer());
 
       /* Clone the variable for program resource list before
@@ -607,7 +607,7 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
    if (this->packed_varyings[slot] == NULL) {
       char *packed_name = ralloc_asprintf(this->mem_ctx, "packed:%s", name);
       const glsl_type *packed_type;
-      if (unpacked_var->data.interpolation == INTERP_QUALIFIER_FLAT)
+      if (unpacked_var->is_interpolation_flat())
          packed_type = glsl_type::ivec4_type;
       else
          packed_type = glsl_type::vec4_type;
@@ -627,7 +627,8 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
       packed_var->data.centroid = unpacked_var->data.centroid;
       packed_var->data.sample = unpacked_var->data.sample;
       packed_var->data.patch = unpacked_var->data.patch;
-      packed_var->data.interpolation = unpacked_var->data.interpolation;
+      packed_var->data.interpolation = packed_type == glsl_type::ivec4_type
+         ? unsigned(INTERP_MODE_FLAT) : unpacked_var->data.interpolation;
       packed_var->data.location = location;
       packed_var->data.precision = unpacked_var->data.precision;
       packed_var->data.always_active_io = unpacked_var->data.always_active_io;
@@ -767,7 +768,7 @@ lower_packed_varyings_return_splicer::visit_leave(ir_return *ret)
 void
 lower_packed_varyings(void *mem_ctx, unsigned locations_used,
                       ir_variable_mode mode, unsigned gs_input_vertices,
-                      gl_shader *shader, bool disable_varying_packing,
+                      gl_linked_shader *shader, bool disable_varying_packing,
                       bool xfb_enabled)
 {
    exec_list *instructions = shader->ir;

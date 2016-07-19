@@ -405,6 +405,10 @@ struct _xf86Crtc {
     /* Added in ABI version 5
      */
     PixmapPtr current_scanout;
+
+    /* Added in ABI version 6
+     */
+    PixmapPtr current_scanout_back;
 };
 
 typedef struct _xf86OutputFuncs {

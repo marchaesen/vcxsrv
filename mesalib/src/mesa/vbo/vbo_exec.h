@@ -152,6 +152,7 @@ void vbo_exec_invalidate_state( struct gl_context *ctx, GLbitfield new_state );
 
 /* Internal functions:
  */
+void vbo_reset_attr(struct vbo_exec_context *exec, GLuint attr);
 
 void vbo_exec_vtx_init( struct vbo_exec_context *exec );
 void vbo_exec_vtx_destroy( struct vbo_exec_context *exec );

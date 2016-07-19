@@ -140,7 +140,7 @@ winInitializeScreenDefaults(void)
 #endif
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
-    defaultScreenInfo.iResizeMode = resizeWithRandr;
+    defaultScreenInfo.iResizeMode = resizeDefault;
     defaultScreenInfo.fNoTrayIcon = FALSE;
     defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
     defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -246,7 +246,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
              * OsVendorInit () gets called, otherwise we will overwrite
              * settings changed by parameters such as -fullscreen, etc.
              */
-            winErrorFVerb(2, "ddxProcessArgument - Initializing default "
+            winErrorFVerb(3, "ddxProcessArgument - Initializing default "
                           "screens\n");
             winInitializeScreenDefaults();
         }
@@ -662,7 +662,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
         if (IS_OPTION("-resize"))
             mode = resizeWithRandr;
         else if (IS_OPTION("-noresize"))
-            mode = notAllowed;
+            mode = resizeNotAllowed;
         else if (strncmp(argv[i], "-resize=", strlen("-resize=")) == 0) {
             char *option = argv[i] + strlen("-resize=");
 
@@ -671,7 +671,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
             else if (strcmp(option, "scrollbars") == 0)
                 mode = resizeWithScrollbars;
             else if (strcmp(option, "none") == 0)
-                mode = notAllowed;
+                mode = resizeNotAllowed;
             else {
                 ErrorF("ddxProcessArgument - resize - Invalid resize mode %s\n",
                        option);

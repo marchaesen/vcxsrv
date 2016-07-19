@@ -58,6 +58,8 @@
 #include "mipointer.h"
 #include "micmap.h"
 
+#include <X11/fonts/libxfont2.h>
+
 extern Bool dmxCloseScreen(ScreenPtr pScreen);
 static Bool dmxSaveScreen(ScreenPtr pScreen, int what);
 
@@ -187,7 +189,7 @@ dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
 
     if (dmxGeneration != serverGeneration) {
         /* Allocate font private index */
-        dmxFontPrivateIndex = AllocateFontPrivateIndex();
+        dmxFontPrivateIndex = xfont2_allocate_font_private_index();
         if (dmxFontPrivateIndex == -1)
             return FALSE;
 

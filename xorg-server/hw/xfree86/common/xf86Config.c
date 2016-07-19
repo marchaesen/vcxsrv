@@ -518,33 +518,54 @@ xf86InputDriverlistFromConfig(void)
     return modulearray;
 }
 
+static int
+is_fallback(const char *s)
+{
+    /* later entries are less preferred */
+    const char *fallback[5] = { "modesetting", "fbdev", "vesa",  "wsfb", NULL };
+    int i;
+
+    for (i = 0; fallback[i]; i++)
+	if (strstr(s, fallback[i]))
+	    return i;
+
+    return -1;
+}
+
+static int
+driver_sort(const void *_l, const void *_r)
+{
+    const char *l = *(const char **)_l;
+    const char *r = *(const char **)_r;
+    int left = is_fallback(l);
+    int right = is_fallback(r);
+
+    /* neither is a fallback, asciibetize */
+    if (left == -1 && right == -1)
+	return strcmp(l, r);
+
+    /* left is a fallback */
+    if (left >= 0)
+	return 1;
+
+    /* right is a fallback */
+    if (right >= 0)
+	return -1;
+
+    /* both are fallbacks, which is worse */
+    return left - right;
+}
+
 static void
 fixup_video_driver_list(const char **drivers)
 {
-    static const char *fallback[5] = { "modesetting", "fbdev", "vesa", "wsfb", NULL };
-    const char **end, **drv;
-    const char *x;
-    int i;
+    const char **end;
 
     /* walk to the end of the list */
     for (end = drivers; *end && **end; end++);
     end--;
 
-    /*
-     * for each of the fallback drivers, if we find it in the list,
-     * swap it with the last available non-fallback driver.
-     */
-    for (i = 0; fallback[i]; i++) {
-        for (drv = drivers; drv != end; drv++) {
-            if (strstr(*drv, fallback[i])) {
-                x = *drv;
-                *drv = *end;
-                *end = x;
-                end--;
-                break;
-            }
-        }
-    }
+    qsort(drivers, end - drivers, sizeof(const char *), driver_sort);
 }
 
 static const char **

@@ -25,7 +25,7 @@
 #endif
 #include <X11/X.h>
 #include <X11/Xproto.h>
-#include <X11/Xpoll.h>
+#include <poll.h>
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "kdrive.h"
@@ -34,10 +34,11 @@ static int
 Ps2ReadBytes(int fd, char *buf, int len, int min)
 {
     int n, tot;
-    fd_set set;
-    struct timeval tv;
+    struct pollfd poll_fd;
 
     tot = 0;
+    poll_fd.fd = fd;
+    poll_fd.events = POLLIN;
     while (len) {
         n = read(fd, buf, len);
         if (n > 0) {
@@ -47,11 +48,7 @@ Ps2ReadBytes(int fd, char *buf, int len, int min)
         }
         if (tot % min == 0)
             break;
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        tv.tv_sec = 0;
-        tv.tv_usec = 100 * 1000;
-        n = select(fd + 1, &set, 0, 0, &tv);
+        n = poll(&poll_fd, 1, 100);
         if (n <= 0)
             break;
     }

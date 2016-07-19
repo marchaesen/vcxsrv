@@ -96,7 +96,7 @@ Equipment Corporation.
 #include "selection.h"
 #include <X11/fonts/font.h>
 #include <X11/fonts/fontstruct.h>
-#include <X11/fonts/fontutil.h>
+#include <X11/fonts/libxfont2.h>
 #include "opaque.h"
 #include "servermd.h"
 #include "hotplug.h"
@@ -196,7 +196,7 @@ dix_main(int argc, char *argv[], char *envp[])
 
         InitAtoms();
         InitEvents();
-        InitGlyphCaching();
+        xfont2_init_glyph_caching();
         dixResetRegistry();
         InitFonts();
         InitCallbackManager();

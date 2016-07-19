@@ -25,6 +25,8 @@
 #include "swaprep.h"
 #include "mipointer.h"
 
+#include <X11/Xatom.h>
+
 RESTYPE RRCrtcType;
 
 /*
@@ -366,9 +368,6 @@ rrDestroySharedPixmap(RRCrtcPtr crtc, PixmapPtr pPixmap) {
     ScreenPtr master = crtc->pScreen->current_master;
 
     if (master && pPixmap->master_pixmap) {
-        PixmapPtr mscreenpix = master->GetScreenPixmap(master);
-
-        master->StopPixmapTracking(mscreenpix, pPixmap);
         /*
          * Unref the pixmap twice: once for the original reference, and once
          * for the reference implicitly added by PixmapShareToSlave.
@@ -387,11 +386,29 @@ RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
 {
     rrScrPriv(crtc->pScreen);
 
-    pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);
     if (crtc->scanout_pixmap) {
+        ScreenPtr master = crtc->pScreen->current_master;
+        PixmapPtr mscreenpix = master->GetScreenPixmap(master);
+
+        if (crtc->scanout_pixmap_back) {
+            pScrPriv->rrDisableSharedPixmapFlipping(crtc);
+
+            master->StopFlippingPixmapTracking(mscreenpix,
+                                               crtc->scanout_pixmap,
+                                               crtc->scanout_pixmap_back);
+
+            rrDestroySharedPixmap(crtc, crtc->scanout_pixmap_back);
+            crtc->scanout_pixmap_back = NULL;
+        }
+        else {
+            pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);
+            master->StopPixmapTracking(mscreenpix, crtc->scanout_pixmap);
+        }
+
         rrDestroySharedPixmap(crtc, crtc->scanout_pixmap);
+        crtc->scanout_pixmap = NULL;
     }
-    crtc->scanout_pixmap = NULL;
+
     RRCrtcChanged(crtc, TRUE);
 }
 
@@ -400,9 +417,7 @@ rrCreateSharedPixmap(RRCrtcPtr crtc, ScreenPtr master,
                      int width, int height, int depth,
                      int x, int y, Rotation rotation)
 {
-    Bool ret;
     PixmapPtr mpix, spix;
-    rrScrPriv(crtc->pScreen);
 
     mpix = master->CreatePixmap(master, width, height, depth,
                                 CREATE_PIXMAP_USAGE_SHARED);
@@ -415,31 +430,89 @@ rrCreateSharedPixmap(RRCrtcPtr crtc, ScreenPtr master,
         return NULL;
     }
 
-    ret = pScrPriv->rrCrtcSetScanoutPixmap(crtc, spix);
-    if (ret == FALSE) {
-        rrDestroySharedPixmap(crtc, spix);
-        ErrorF("randr: failed to set shadow slave pixmap\n");
-        return NULL;
-    }
-
     return spix;
 }
 
 static Bool
+rrGetPixmapSharingSyncProp(int numOutputs, RROutputPtr * outputs)
+{
+    /* Determine if the user wants prime syncing */
+    int o;
+    const char *syncStr = PRIME_SYNC_PROP;
+    Atom syncProp = MakeAtom(syncStr, strlen(syncStr), FALSE);
+    if (syncProp == None)
+        return TRUE;
+
+    /* If one output doesn't want sync, no sync */
+    for (o = 0; o < numOutputs; o++) {
+        RRPropertyValuePtr val;
+
+        /* Try pending value first, then current value */
+        if ((val = RRGetOutputProperty(outputs[o], syncProp, TRUE)) &&
+            val->data) {
+            if (!(*(char *) val->data))
+                return FALSE;
+            continue;
+        }
+
+        if ((val = RRGetOutputProperty(outputs[o], syncProp, FALSE)) &&
+            val->data) {
+            if (!(*(char *) val->data))
+                return FALSE;
+            continue;
+        }
+    }
+
+    return TRUE;
+}
+
+static void
+rrSetPixmapSharingSyncProp(char val, int numOutputs, RROutputPtr * outputs)
+{
+    int o;
+    const char *syncStr = PRIME_SYNC_PROP;
+    Atom syncProp = MakeAtom(syncStr, strlen(syncStr), FALSE);
+    if (syncProp == None)
+        return;
+
+    for (o = 0; o < numOutputs; o++) {
+        RRPropertyPtr prop = RRQueryOutputProperty(outputs[o], syncProp);
+        if (prop)
+            RRChangeOutputProperty(outputs[o], syncProp, XA_INTEGER,
+                                   8, PropModeReplace, 1, &val, FALSE, TRUE);
+    }
+}
+
+static Bool
 rrSetupPixmapSharing(RRCrtcPtr crtc, int width, int height,
-                     int x, int y, Rotation rotation)
+                     int x, int y, Rotation rotation, Bool sync,
+                     int numOutputs, RROutputPtr * outputs)
 {
     ScreenPtr master = crtc->pScreen->current_master;
+    rrScrPrivPtr pMasterScrPriv = rrGetScrPriv(master);
+    rrScrPrivPtr pSlaveScrPriv = rrGetScrPriv(crtc->pScreen);
+
     int depth;
     PixmapPtr mscreenpix;
-    PixmapPtr spix;
+    PixmapPtr spix_front;
 
-    /* create a pixmap on the master screen,
-       then get a shared handle for it
-       create a shared pixmap on the slave screen using the handle
-       set the master screen to do dirty updates to the shared pixmap
-       from the screen pixmap.
-       set slave screen to scanout shared linear pixmap
+    /* Create a pixmap on the master screen, then get a shared handle for it.
+       Create a shared pixmap on the slave screen using the handle.
+
+       If sync == FALSE --
+       Set slave screen to scanout shared linear pixmap.
+       Set the master screen to do dirty updates to the shared pixmap
+       from the screen pixmap on its own accord.
+
+       If sync == TRUE --
+       If any of the below steps fail, clean up and fall back to sync == FALSE.
+       Create another shared pixmap on the slave screen using the handle.
+       Set slave screen to prepare for scanout and flipping between shared
+       linear pixmaps.
+       Set the master screen to do dirty updates to the shared pixmaps from the
+       screen pixmap when prompted to by us or the slave.
+       Prompt the master to do a dirty update on the first shared pixmap, then
+       defer to the slave.
     */
 
     mscreenpix = master->GetScreenPixmap(master);
@@ -452,16 +525,71 @@ rrSetupPixmapSharing(RRCrtcPtr crtc, int width, int height,
         return TRUE;
     }
 
-    spix = rrCreateSharedPixmap(crtc, master,
-                                width, height, depth,
-                                x, y, rotation);
-    if (spix == NULL) {
+    spix_front = rrCreateSharedPixmap(crtc, master,
+                                      width, height, depth,
+                                      x, y, rotation);
+    if (spix_front == NULL) {
         return FALSE;
     }
 
-    crtc->scanout_pixmap = spix;
+    /* Both source and sink must support required ABI funcs for flipping */
+    if (sync &&
+        pSlaveScrPriv->rrEnableSharedPixmapFlipping &&
+        pSlaveScrPriv->rrDisableSharedPixmapFlipping &&
+        pMasterScrPriv->rrStartFlippingPixmapTracking &&
+        master->PresentSharedPixmap &&
+        master->StopFlippingPixmapTracking) {
 
-    master->StartPixmapTracking(mscreenpix, spix, x, y, 0, 0, rotation);
+        PixmapPtr spix_back = rrCreateSharedPixmap(crtc, master,
+                                                   width, height, depth,
+                                                   x, y, rotation);
+        if (spix_back == NULL)
+            goto fail;
+
+        if (!pSlaveScrPriv->rrEnableSharedPixmapFlipping(crtc,
+                                                         spix_front, spix_back))
+            goto fail;
+
+        crtc->scanout_pixmap = spix_front;
+        crtc->scanout_pixmap_back = spix_back;
+
+        if (!pMasterScrPriv->rrStartFlippingPixmapTracking(crtc, mscreenpix,
+                                                           spix_front,
+                                                           spix_back,
+                                                           x, y, 0, 0,
+                                                           rotation)) {
+            pSlaveScrPriv->rrDisableSharedPixmapFlipping(crtc);
+            goto fail;
+        }
+
+        master->PresentSharedPixmap(spix_front);
+
+        return TRUE;
+
+fail: /* If flipping funcs fail, just fall back to unsynchronized */
+        if (spix_back)
+            rrDestroySharedPixmap(crtc, spix_back);
+
+        crtc->scanout_pixmap = NULL;
+        crtc->scanout_pixmap_back = NULL;
+    }
+
+    if (sync) { /* Wanted sync, didn't get it */
+        ErrorF("randr: falling back to unsynchronized pixmap sharing\n");
+
+        /* Set output property to 0 to indicate to user */
+        rrSetPixmapSharingSyncProp(0, numOutputs, outputs);
+    }
+
+    if (!pSlaveScrPriv->rrCrtcSetScanoutPixmap(crtc, spix_front)) {
+        rrDestroySharedPixmap(crtc, spix_front);
+        ErrorF("randr: failed to set shadow slave pixmap\n");
+        return FALSE;
+    }
+    crtc->scanout_pixmap = spix_front;
+
+    master->StartPixmapTracking(mscreenpix, spix_front, x, y, 0, 0, rotation);
+
     return TRUE;
 }
 
@@ -623,7 +751,10 @@ RRCrtcSet(RRCrtcPtr crtc,
                 return FALSE;
 
             if (pScreen->current_master) {
-                ret = rrSetupPixmapSharing(crtc, width, height, x, y, rotation);
+                Bool sync = rrGetPixmapSharingSyncProp(numOutputs, outputs);
+                ret = rrSetupPixmapSharing(crtc, width, height,
+                                           x, y, rotation, sync,
+                                           numOutputs, outputs);
             }
         }
 #if RANDR_12_INTERFACE
@@ -1750,6 +1881,12 @@ RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable)
             continue;
         if (!crtc->scanout_pixmap && !enable)
             continue;
+
+        /* not supported with double buffering, needs ABI change for 2 ppix */
+        if (crtc->scanout_pixmap_back) {
+            ret = FALSE;
+            continue;
+        }
 
         size_fits = (crtc->mode &&
                      crtc->x == pDrawable->x &&

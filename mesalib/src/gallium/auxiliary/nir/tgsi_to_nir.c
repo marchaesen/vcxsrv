@@ -353,13 +353,13 @@ ttn_emit_declaration(struct ttn_compile *c)
              */
             switch (decl->Interp.Interpolate) {
             case TGSI_INTERPOLATE_CONSTANT:
-               var->data.interpolation = INTERP_QUALIFIER_FLAT;
+               var->data.interpolation = INTERP_MODE_FLAT;
                break;
             case TGSI_INTERPOLATE_LINEAR:
-               var->data.interpolation = INTERP_QUALIFIER_NOPERSPECTIVE;
+               var->data.interpolation = INTERP_MODE_NOPERSPECTIVE;
                break;
             case TGSI_INTERPOLATE_PERSPECTIVE:
-               var->data.interpolation = INTERP_QUALIFIER_SMOOTH;
+               var->data.interpolation = INTERP_MODE_SMOOTH;
                break;
             }
 

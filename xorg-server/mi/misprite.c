@@ -198,8 +198,7 @@ static void miSpriteSourceValidate(DrawablePtr pDrawable, int x, int y,
                                    unsigned int subWindowMode);
 static void miSpriteCopyWindow(WindowPtr pWindow,
                                DDXPointRec ptOldOrg, RegionPtr prgnSrc);
-static void miSpriteBlockHandler(ScreenPtr pScreen,
-                                 void *pTimeout, void *pReadMask);
+static void miSpriteBlockHandler(ScreenPtr pScreen, void *timeout);
 static void miSpriteInstallColormap(ColormapPtr pMap);
 static void miSpriteStoreColors(ColormapPtr pMap, int ndef, xColorItem * pdef);
 
@@ -512,8 +511,7 @@ miSpriteCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 }
 
 static void
-miSpriteBlockHandler(ScreenPtr pScreen, void *pTimeout,
-                     void *pReadmask)
+miSpriteBlockHandler(ScreenPtr pScreen, void *timeout)
 {
     miSpriteScreenPtr pPriv = GetSpriteScreen(pScreen);
     DeviceIntPtr pDev;
@@ -545,7 +543,7 @@ miSpriteBlockHandler(ScreenPtr pScreen, void *pTimeout,
         }
     }
 
-    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
+    (*pScreen->BlockHandler) (pScreen, timeout);
 
     if (WorkToDo)
         SCREEN_EPILOGUE(pPriv, pScreen, BlockHandler);

@@ -235,7 +235,7 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
    if (drawFb == NULL)
       goto fail;
 
-   _mesa_bind_framebuffers(ctx, drawFb, tex_image ? readFb : ctx->ReadBuffer);
+   _mesa_bind_framebuffers(ctx, drawFb, readFb);
 
    if (tex_image->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
       assert(depth == 1);

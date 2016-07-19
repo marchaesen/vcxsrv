@@ -545,18 +545,18 @@ st_get_vp_variant(struct st_context *st,
 
 
 static unsigned
-st_translate_interp(enum glsl_interp_qualifier glsl_qual, bool is_color)
+st_translate_interp(enum glsl_interp_mode glsl_qual, bool is_color)
 {
    switch (glsl_qual) {
-   case INTERP_QUALIFIER_NONE:
+   case INTERP_MODE_NONE:
       if (is_color)
          return TGSI_INTERPOLATE_COLOR;
       return TGSI_INTERPOLATE_PERSPECTIVE;
-   case INTERP_QUALIFIER_SMOOTH:
+   case INTERP_MODE_SMOOTH:
       return TGSI_INTERPOLATE_PERSPECTIVE;
-   case INTERP_QUALIFIER_FLAT:
+   case INTERP_MODE_FLAT:
       return TGSI_INTERPOLATE_CONSTANT;
-   case INTERP_QUALIFIER_NOPERSPECTIVE:
+   case INTERP_MODE_NOPERSPECTIVE:
       return TGSI_INTERPOLATE_LINEAR;
    default:
       assert(0 && "unexpected interp mode in st_translate_interp()");
@@ -1756,10 +1756,6 @@ destroy_shader_program_variants_cb(GLuint key, void *data, void *userData)
          struct gl_shader_program *shProg = (struct gl_shader_program *) data;
          GLuint i;
 
-         for (i = 0; i < shProg->NumShaders; i++) {
-            destroy_program_variants(st, shProg->Shaders[i]->Program);
-         }
-
 	 for (i = 0; i < ARRAY_SIZE(shProg->_LinkedShaders); i++) {
 	    if (shProg->_LinkedShaders[i])
                destroy_program_variants(st, shProg->_LinkedShaders[i]->Program);
@@ -1772,9 +1768,6 @@ destroy_shader_program_variants_cb(GLuint key, void *data, void *userData)
    case GL_TESS_CONTROL_SHADER:
    case GL_TESS_EVALUATION_SHADER:
    case GL_COMPUTE_SHADER:
-      {
-         destroy_program_variants(st, shader->Program);
-      }
       break;
    default:
       assert(0);

@@ -45,7 +45,7 @@
 #include "st_format.h"
 
 static void
-st_bind_images(struct st_context *st, struct gl_shader *shader,
+st_bind_images(struct st_context *st, struct gl_linked_shader *shader,
               unsigned shader_type)
 {
    unsigned i;

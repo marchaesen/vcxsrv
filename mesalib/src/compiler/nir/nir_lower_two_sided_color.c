@@ -114,7 +114,7 @@ setup_inputs(lower_2side_state *state)
    /* if we don't already have one, insert a FACE input: */
    if (!state->face) {
       state->face = create_input(state->shader, ++maxloc, VARYING_SLOT_FACE);
-      state->face->data.interpolation = INTERP_QUALIFIER_FLAT;
+      state->face->data.interpolation = INTERP_MODE_FLAT;
    }
 
    /* add required back-face color inputs: */

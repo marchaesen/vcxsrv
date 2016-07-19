@@ -74,6 +74,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    /* Set default language version and extensions */
    this->language_version = 110;
    this->forced_language_version = ctx->Const.ForceGLSLVersion;
+   this->zero_init = ctx->Const.GLSLZeroInit;
    this->es_shader = false;
    this->ARB_texture_rectangle_enable = true;
 
@@ -1648,14 +1649,14 @@ set_shader_inout_layout(struct gl_shader *shader,
          if (state->out_qualifier->out_xfb_stride[i]->
                 process_qualifier_constant(state, "xfb_stride", &xfb_stride,
                 true)) {
-            shader->TransformFeedback.BufferStride[i] = xfb_stride;
+            shader->info.TransformFeedback.BufferStride[i] = xfb_stride;
          }
       }
    }
 
    switch (shader->Stage) {
    case MESA_SHADER_TESS_CTRL:
-      shader->TessCtrl.VerticesOut = 0;
+      shader->info.TessCtrl.VerticesOut = 0;
       if (state->tcs_output_vertices_specified) {
          unsigned vertices;
          if (state->out_qualifier->vertices->
@@ -1667,29 +1668,29 @@ set_shader_inout_layout(struct gl_shader *shader,
                _mesa_glsl_error(&loc, state, "vertices (%d) exceeds "
                                 "GL_MAX_PATCH_VERTICES", vertices);
             }
-            shader->TessCtrl.VerticesOut = vertices;
+            shader->info.TessCtrl.VerticesOut = vertices;
          }
       }
       break;
    case MESA_SHADER_TESS_EVAL:
-      shader->TessEval.PrimitiveMode = PRIM_UNKNOWN;
+      shader->info.TessEval.PrimitiveMode = PRIM_UNKNOWN;
       if (state->in_qualifier->flags.q.prim_type)
-         shader->TessEval.PrimitiveMode = state->in_qualifier->prim_type;
+         shader->info.TessEval.PrimitiveMode = state->in_qualifier->prim_type;
 
-      shader->TessEval.Spacing = 0;
+      shader->info.TessEval.Spacing = 0;
       if (state->in_qualifier->flags.q.vertex_spacing)
-         shader->TessEval.Spacing = state->in_qualifier->vertex_spacing;
+         shader->info.TessEval.Spacing = state->in_qualifier->vertex_spacing;
 
-      shader->TessEval.VertexOrder = 0;
+      shader->info.TessEval.VertexOrder = 0;
       if (state->in_qualifier->flags.q.ordering)
-         shader->TessEval.VertexOrder = state->in_qualifier->ordering;
+         shader->info.TessEval.VertexOrder = state->in_qualifier->ordering;
 
-      shader->TessEval.PointMode = -1;
+      shader->info.TessEval.PointMode = -1;
       if (state->in_qualifier->flags.q.point_mode)
-         shader->TessEval.PointMode = state->in_qualifier->point_mode;
+         shader->info.TessEval.PointMode = state->in_qualifier->point_mode;
       break;
    case MESA_SHADER_GEOMETRY:
-      shader->Geom.VerticesOut = -1;
+      shader->info.Geom.VerticesOut = -1;
       if (state->out_qualifier->flags.q.max_vertices) {
          unsigned qual_max_vertices;
          if (state->out_qualifier->max_vertices->
@@ -1703,23 +1704,23 @@ set_shader_inout_layout(struct gl_shader *shader,
                                 "GL_MAX_GEOMETRY_OUTPUT_VERTICES",
                                 qual_max_vertices);
             }
-            shader->Geom.VerticesOut = qual_max_vertices;
+            shader->info.Geom.VerticesOut = qual_max_vertices;
          }
       }
 
       if (state->gs_input_prim_type_specified) {
-         shader->Geom.InputType = state->in_qualifier->prim_type;
+         shader->info.Geom.InputType = state->in_qualifier->prim_type;
       } else {
-         shader->Geom.InputType = PRIM_UNKNOWN;
+         shader->info.Geom.InputType = PRIM_UNKNOWN;
       }
 
       if (state->out_qualifier->flags.q.prim_type) {
-         shader->Geom.OutputType = state->out_qualifier->prim_type;
+         shader->info.Geom.OutputType = state->out_qualifier->prim_type;
       } else {
-         shader->Geom.OutputType = PRIM_UNKNOWN;
+         shader->info.Geom.OutputType = PRIM_UNKNOWN;
       }
 
-      shader->Geom.Invocations = 0;
+      shader->info.Geom.Invocations = 0;
       if (state->in_qualifier->flags.q.invocations) {
          unsigned invocations;
          if (state->in_qualifier->invocations->
@@ -1733,7 +1734,7 @@ set_shader_inout_layout(struct gl_shader *shader,
                                 "GL_MAX_GEOMETRY_SHADER_INVOCATIONS",
                                 invocations);
             }
-            shader->Geom.Invocations = invocations;
+            shader->info.Geom.Invocations = invocations;
          }
       }
       break;
@@ -1741,21 +1742,22 @@ set_shader_inout_layout(struct gl_shader *shader,
    case MESA_SHADER_COMPUTE:
       if (state->cs_input_local_size_specified) {
          for (int i = 0; i < 3; i++)
-            shader->Comp.LocalSize[i] = state->cs_input_local_size[i];
+            shader->info.Comp.LocalSize[i] = state->cs_input_local_size[i];
       } else {
          for (int i = 0; i < 3; i++)
-            shader->Comp.LocalSize[i] = 0;
+            shader->info.Comp.LocalSize[i] = 0;
       }
       break;
 
    case MESA_SHADER_FRAGMENT:
-      shader->redeclares_gl_fragcoord = state->fs_redeclares_gl_fragcoord;
-      shader->uses_gl_fragcoord = state->fs_uses_gl_fragcoord;
-      shader->pixel_center_integer = state->fs_pixel_center_integer;
-      shader->origin_upper_left = state->fs_origin_upper_left;
-      shader->ARB_fragment_coord_conventions_enable =
+      shader->info.redeclares_gl_fragcoord =
+         state->fs_redeclares_gl_fragcoord;
+      shader->info.uses_gl_fragcoord = state->fs_uses_gl_fragcoord;
+      shader->info.pixel_center_integer = state->fs_pixel_center_integer;
+      shader->info.origin_upper_left = state->fs_origin_upper_left;
+      shader->info.ARB_fragment_coord_conventions_enable =
          state->ARB_fragment_coord_conventions_enable;
-      shader->EarlyFragmentTests = state->fs_early_fragment_tests;
+      shader->info.EarlyFragmentTests = state->fs_early_fragment_tests;
       break;
 
    default:
@@ -1877,7 +1879,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    shader->InfoLog = state->info_log;
    shader->Version = state->language_version;
    shader->IsES = state->es_shader;
-   shader->uses_builtin_functions = state->uses_builtin_functions;
+   shader->info.uses_builtin_functions = state->uses_builtin_functions;
 
    /* Retain any live IR, but trash the rest. */
    reparent_ir(shader->ir, shader->ir);

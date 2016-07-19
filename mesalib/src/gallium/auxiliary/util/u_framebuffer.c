@@ -86,22 +86,37 @@ util_copy_framebuffer_state(struct pipe_framebuffer_state *dst,
 {
    unsigned i;
 
-   dst->width = src->width;
-   dst->height = src->height;
+   if (src) {
+      dst->width = src->width;
+      dst->height = src->height;
 
-   dst->samples = src->samples;
-   dst->layers  = src->layers;
+      dst->samples = src->samples;
+      dst->layers  = src->layers;
 
-   for (i = 0; i < src->nr_cbufs; i++)
-      pipe_surface_reference(&dst->cbufs[i], src->cbufs[i]);
+      for (i = 0; i < src->nr_cbufs; i++)
+         pipe_surface_reference(&dst->cbufs[i], src->cbufs[i]);
 
-   /* Set remaining dest cbuf pointers to NULL */
-   for ( ; i < ARRAY_SIZE(dst->cbufs); i++)
-      pipe_surface_reference(&dst->cbufs[i], NULL);
+      /* Set remaining dest cbuf pointers to NULL */
+      for ( ; i < ARRAY_SIZE(dst->cbufs); i++)
+         pipe_surface_reference(&dst->cbufs[i], NULL);
 
-   dst->nr_cbufs = src->nr_cbufs;
+      dst->nr_cbufs = src->nr_cbufs;
 
-   pipe_surface_reference(&dst->zsbuf, src->zsbuf);
+      pipe_surface_reference(&dst->zsbuf, src->zsbuf);
+   } else {
+      dst->width = 0;
+      dst->height = 0;
+
+      dst->samples = 0;
+      dst->layers  = 0;
+
+      for (i = 0 ; i < ARRAY_SIZE(dst->cbufs); i++)
+         pipe_surface_reference(&dst->cbufs[i], NULL);
+
+      dst->nr_cbufs = 0;
+
+      pipe_surface_reference(&dst->zsbuf, NULL);
+   }
 }
 
 

@@ -161,7 +161,7 @@ nir_variable_create(nir_shader *shader, nir_variable_mode mode,
 
    if ((mode == nir_var_shader_in && shader->stage != MESA_SHADER_VERTEX) ||
        (mode == nir_var_shader_out && shader->stage != MESA_SHADER_FRAGMENT))
-      var->data.interpolation = INTERP_QUALIFIER_SMOOTH;
+      var->data.interpolation = INTERP_MODE_SMOOTH;
 
    if (mode == nir_var_shader_in || mode == nir_var_uniform)
       var->data.read_only = true;

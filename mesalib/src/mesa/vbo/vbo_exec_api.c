@@ -1275,16 +1275,18 @@ void vbo_exec_FlushVertices( struct gl_context *ctx, GLuint flags )
 #endif
 }
 
+void vbo_reset_attr(struct vbo_exec_context *exec, GLuint attr)
+{
+   exec->vtx.attrsz[attr] = 0;
+   exec->vtx.attrtype[attr] = GL_FLOAT;
+   exec->vtx.active_sz[attr] = 0;
+}
 
 static void reset_attrfv( struct vbo_exec_context *exec )
-{   
+{
    while (exec->vtx.enabled) {
       const int i = u_bit_scan64(&exec->vtx.enabled);
-      assert(exec->vtx.attrsz[i]);
-
-      exec->vtx.attrsz[i] = 0;
-      exec->vtx.attrtype[i] = GL_FLOAT;
-      exec->vtx.active_sz[i] = 0;
+      vbo_reset_attr(exec, i);
    }
 
    exec->vtx.vertex_size = 0;

@@ -57,6 +57,7 @@
 #endif
 
 #include <X11/X.h>
+#include <poll.h>
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_OSlib.h"
@@ -83,8 +84,36 @@ typedef struct _xf86SigIOFunc {
 
 static Xf86SigIOFunc xf86SigIOFuncs[MAX_FUNCS];
 static int xf86SigIOMax;
-static int xf86SigIOMaxFd;
-static fd_set xf86SigIOMask;
+static struct pollfd *xf86SigIOFds;
+static int xf86SigIONum;
+
+static Bool
+xf86SigIOAdd(int fd)
+{
+    struct pollfd *n;
+
+    n = realloc(xf86SigIOFds, (xf86SigIONum + 1) * sizeof (struct pollfd));
+    if (!n)
+        return FALSE;
+
+    n[xf86SigIONum].fd = fd;
+    n[xf86SigIONum].events = POLLIN;
+    xf86SigIONum++;
+    xf86SigIOFds = n;
+    return TRUE;
+}
+
+static void
+xf86SigIORemove(int fd)
+{
+    int i;
+    for (i = 0; i < xf86SigIONum; i++)
+        if (xf86SigIOFds[i].fd == fd) {
+            memmove(&xf86SigIOFds[i], &xf86SigIOFds[i+1], (xf86SigIONum - i - 1) * sizeof (struct pollfd));
+            xf86SigIONum--;
+            break;
+        }
+}
 
 /*
  * SIGIO gives no way of discovering which fd signalled, select
@@ -93,24 +122,22 @@ static fd_set xf86SigIOMask;
 static void
 xf86SIGIO(int sig)
 {
-    int i;
-    fd_set ready;
-    struct timeval to;
+    int i, f;
     int save_errno = errno;     /* do not clobber the global errno */
     int r;
 
     inSignalContext = TRUE;
 
-    ready = xf86SigIOMask;
-    to.tv_sec = 0;
-    to.tv_usec = 0;
-    SYSCALL(r = select(xf86SigIOMaxFd, &ready, 0, 0, &to));
-    for (i = 0; r > 0 && i < xf86SigIOMax; i++)
-        if (xf86SigIOFuncs[i].f && FD_ISSET(xf86SigIOFuncs[i].fd, &ready)) {
-            (*xf86SigIOFuncs[i].f) (xf86SigIOFuncs[i].fd,
-                                    xf86SigIOFuncs[i].closure);
+    SYSCALL(r = poll(xf86SigIOFds, xf86SigIONum, 0));
+    for (f = 0; r > 0 && f < xf86SigIONum; f++) {
+        if (xf86SigIOFds[f].revents & POLLIN) {
+            for (i = 0; i < xf86SigIOMax; i++)
+                if (xf86SigIOFuncs[i].f && xf86SigIOFuncs[i].fd == xf86SigIOFds[f].fd)
+                    (*xf86SigIOFuncs[i].f) (xf86SigIOFuncs[i].fd,
+                                            xf86SigIOFuncs[i].closure);
             r--;
         }
+    }
     if (r > 0) {
         xf86Msg(X_ERROR, "SIGIO %d descriptors not handled\n", r);
     }
@@ -206,9 +233,7 @@ xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
             xf86SigIOFuncs[i].f = f;
             if (i >= xf86SigIOMax)
                 xf86SigIOMax = i + 1;
-            if (fd >= xf86SigIOMaxFd)
-                xf86SigIOMaxFd = fd + 1;
-            FD_SET(fd, &xf86SigIOMask);
+            xf86SigIOAdd(fd);
             release_sigio();
             return 1;
         }
@@ -229,14 +254,12 @@ xf86RemoveSIGIOHandler(int fd)
     struct sigaction osa;
     int i;
     int max;
-    int maxfd;
     int ret;
 
     if (!xf86Info.useSIGIO)
         return 0;
 
     max = 0;
-    maxfd = -1;
     ret = 0;
     for (i = 0; i < MAX_FUNCS; i++) {
         if (xf86SigIOFuncs[i].f) {
@@ -244,13 +267,11 @@ xf86RemoveSIGIOHandler(int fd)
                 xf86SigIOFuncs[i].f = 0;
                 xf86SigIOFuncs[i].fd = 0;
                 xf86SigIOFuncs[i].closure = 0;
-                FD_CLR(fd, &xf86SigIOMask);
+                xf86SigIORemove(fd);
                 ret = 1;
             }
             else {
                 max = i + 1;
-                if (xf86SigIOFuncs[i].fd >= maxfd)
-                    maxfd = xf86SigIOFuncs[i].fd + 1;
             }
         }
     }
@@ -267,7 +288,6 @@ xf86RemoveSIGIOHandler(int fd)
         }
 #endif
         xf86SigIOMax = max;
-        xf86SigIOMaxFd = maxfd;
         if (!max) {
             sigemptyset(&sa.sa_mask);
             sigaddset(&sa.sa_mask, SIGIO);

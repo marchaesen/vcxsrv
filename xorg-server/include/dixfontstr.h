@@ -27,6 +27,7 @@ SOFTWARE.
 #include "servermd.h"
 #include "dixfont.h"
 #include <X11/fonts/fontstruct.h>
+#include <X11/fonts/libxfont2.h>
 #include "closure.h"
 #include <X11/Xproto.h>         /* for xQueryFontReply */
 

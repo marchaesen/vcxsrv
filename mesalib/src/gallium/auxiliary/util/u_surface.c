@@ -686,45 +686,54 @@ get_sample_count(const struct pipe_resource *res)
    return res->nr_samples ? res->nr_samples : 1;
 }
 
+
 /**
- * Try to do a blit using resource_copy_region. The function calls
- * resource_copy_region if the blit description is compatible with it.
- *
- * It returns TRUE if the blit was done using resource_copy_region.
- *
- * It returns FALSE otherwise and the caller must fall back to a more generic
- * codepath for the blit operation. (e.g. by using u_blitter)
+ * Check if a blit() command can be implemented with a resource_copy_region().
+ * If tight_format_check is true, only allow the resource_copy_region() if
+ * the blit src/dst formats are identical, ignoring the resource formats.
+ * Otherwise, check for format casting and compatibility.
  */
 boolean
-util_try_blit_via_copy_region(struct pipe_context *ctx,
-                              const struct pipe_blit_info *blit)
+util_can_blit_via_copy_region(const struct pipe_blit_info *blit,
+                              boolean tight_format_check)
 {
+   const struct util_format_description *src_desc, *dst_desc;
+
+   src_desc = util_format_description(blit->src.resource->format);
+   dst_desc = util_format_description(blit->dst.resource->format);
+
+   if (tight_format_check) {
+      /* no format conversions allowed */
+      if (blit->src.format != blit->dst.format) {
+         return FALSE;
+      }
+   }
+   else {
+      /* do loose format compatibility checking */
+      if (blit->src.resource->format != blit->src.format ||
+          blit->dst.resource->format != blit->dst.format ||
+          !util_is_format_compatible(src_desc, dst_desc)) {
+         return FALSE;
+      }
+   }
+
    unsigned mask = util_format_get_mask(blit->dst.format);
 
-   /* No format conversions. */
-   if (blit->src.resource->format != blit->src.format ||
-       blit->dst.resource->format != blit->dst.format ||
-       !util_is_format_compatible(
-          util_format_description(blit->src.resource->format),
-          util_format_description(blit->dst.resource->format))) {
-      return FALSE;
-   }
-
-   /* No masks, no filtering, no scissor. */
+   /* No masks, no filtering, no scissor, no blending */
    if ((blit->mask & mask) != mask ||
        blit->filter != PIPE_TEX_FILTER_NEAREST ||
-       blit->scissor_enable) {
+       blit->scissor_enable ||
+       blit->num_window_rectangles > 0 ||
+       blit->alpha_blend) {
       return FALSE;
    }
 
-   /* No flipping. */
-   if (blit->src.box.width < 0 ||
-       blit->src.box.height < 0 ||
-       blit->src.box.depth < 0) {
-      return FALSE;
-   }
+   /* Only the src box can have negative dims for flipping */
+   assert(blit->dst.box.width >= 1);
+   assert(blit->dst.box.height >= 1);
+   assert(blit->dst.box.depth >= 1);
 
-   /* No scaling. */
+   /* No scaling or flipping */
    if (blit->src.box.width != blit->dst.box.width ||
        blit->src.box.height != blit->dst.box.height ||
        blit->src.box.depth != blit->dst.box.depth) {
@@ -745,12 +754,32 @@ util_try_blit_via_copy_region(struct pipe_context *ctx,
       return FALSE;
    }
 
-   if (blit->alpha_blend)
-      return FALSE;
-
-   ctx->resource_copy_region(ctx, blit->dst.resource, blit->dst.level,
-                             blit->dst.box.x, blit->dst.box.y, blit->dst.box.z,
-                             blit->src.resource, blit->src.level,
-                             &blit->src.box);
    return TRUE;
+}
+
+
+/**
+ * Try to do a blit using resource_copy_region. The function calls
+ * resource_copy_region if the blit description is compatible with it.
+ *
+ * It returns TRUE if the blit was done using resource_copy_region.
+ *
+ * It returns FALSE otherwise and the caller must fall back to a more generic
+ * codepath for the blit operation. (e.g. by using u_blitter)
+ */
+boolean
+util_try_blit_via_copy_region(struct pipe_context *ctx,
+                              const struct pipe_blit_info *blit)
+{
+   if (util_can_blit_via_copy_region(blit, FALSE)) {
+      ctx->resource_copy_region(ctx, blit->dst.resource, blit->dst.level,
+                                blit->dst.box.x, blit->dst.box.y,
+                                blit->dst.box.z,
+                                blit->src.resource, blit->src.level,
+                                &blit->src.box);
+      return TRUE;
+   }
+   else {
+      return FALSE;
+   }
 }

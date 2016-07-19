@@ -75,7 +75,7 @@ OsVendorFatalError(const char *f, va_list args)
 
     if (!g_fLogInited) {
         g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
     }
     LogClose(EXIT_ERR_ABORT);
 

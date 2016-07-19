@@ -32,7 +32,7 @@
 #include    <X11/fonts/font.h>
 #include    "dixfontstr.h"
 #include    <X11/fonts/fontstruct.h>
-#include    <X11/fonts/fontutil.h>
+#include    <X11/fonts/libxfont2.h>
 #include    "mi.h"
 #include    "regionstr.h"
 #include    "globals.h"
@@ -1249,7 +1249,7 @@ damageDamageChars(DrawablePtr pDrawable,
     ExtentInfoRec extents;
     BoxRec box;
 
-    QueryGlyphExtents(font, charinfo, n, &extents);
+    xfont2_query_glyph_extents(font, charinfo, n, &extents);
     if (imageblt) {
         if (extents.overallWidth > extents.overallRight)
             extents.overallRight = extents.overallWidth;

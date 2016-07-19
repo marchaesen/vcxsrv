@@ -376,7 +376,7 @@ public:
    struct gl_context *ctx;
    struct gl_program *prog;
    struct gl_shader_program *shader_program;
-   struct gl_shader *shader;
+   struct gl_linked_shader *shader;
    struct gl_shader_compiler_options *options;
 
    int next_temp;
@@ -1958,12 +1958,14 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          emit_asm(ir, TGSI_OPCODE_TRUNC, result_dst, op[0]);
       break;
    case ir_unop_bitcast_f2i:
-      result_src = op[0];
-      result_src.type = GLSL_TYPE_INT;
-      break;
    case ir_unop_bitcast_f2u:
-      result_src = op[0];
-      result_src.type = GLSL_TYPE_UINT;
+      /* Make sure we don't propagate the negate modifier to integer opcodes. */
+      if (op[0].negate)
+         emit_asm(ir, TGSI_OPCODE_MOV, result_dst, op[0]);
+      else
+         result_src = op[0];
+      result_src.type = ir->operation == ir_unop_bitcast_f2i ? GLSL_TYPE_INT :
+                                                               GLSL_TYPE_UINT;
       break;
    case ir_unop_bitcast_i2f:
    case ir_unop_bitcast_u2f:
@@ -6133,7 +6135,7 @@ st_translate_program(
    }
 
    if (procType == PIPE_SHADER_FRAGMENT) {
-      if (program->shader->EarlyFragmentTests)
+      if (program->shader->info.EarlyFragmentTests)
          ureg_property(ureg, TGSI_PROPERTY_FS_EARLY_DEPTH_STENCIL, 1);
 
       if (proginfo->InputsRead & VARYING_BIT_POS) {
@@ -6452,7 +6454,7 @@ out:
 static struct gl_program *
 get_mesa_program_tgsi(struct gl_context *ctx,
                       struct gl_shader_program *shader_program,
-                      struct gl_shader *shader)
+                      struct gl_linked_shader *shader)
 {
    glsl_to_tgsi_visitor* v;
    struct gl_program *prog;
@@ -6663,7 +6665,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
 static struct gl_program *
 get_mesa_program(struct gl_context *ctx,
                  struct gl_shader_program *shader_program,
-                 struct gl_shader *shader)
+                 struct gl_linked_shader *shader)
 {
    struct pipe_screen *pscreen = ctx->st->pipe->screen;
    unsigned ptarget = st_shader_stage_to_ptarget(shader->Stage);
@@ -6684,71 +6686,6 @@ get_mesa_program(struct gl_context *ctx,
 
 
 extern "C" {
-
-static void
-st_dump_program_for_shader_db(struct gl_context *ctx,
-                              struct gl_shader_program *prog)
-{
-   /* Dump only successfully compiled and linked shaders to the specified
-    * file. This is for shader-db.
-    *
-    * These options allow some pre-processing of shaders while dumping,
-    * because some apps have ill-formed shaders.
-    */
-   const char *dump_filename = os_get_option("ST_DUMP_SHADERS");
-   const char *insert_directives = os_get_option("ST_DUMP_INSERT");
-
-   if (dump_filename && prog->Name != 0) {
-      FILE *f = fopen(dump_filename, "a");
-
-      if (f) {
-         for (unsigned i = 0; i < prog->NumShaders; i++) {
-            const struct gl_shader *sh = prog->Shaders[i];
-            const char *source;
-            bool skip_version = false;
-
-            if (!sh)
-               continue;
-
-            source = sh->Source;
-
-            /* This string mustn't be changed. shader-db uses it to find
-             * where the shader begins.
-             */
-            fprintf(f, "GLSL %s shader %d source for linked program %d:\n",
-                    _mesa_shader_stage_to_string(sh->Stage),
-                    i, prog->Name);
-
-            /* Dump the forced version if set. */
-            if (ctx->Const.ForceGLSLVersion) {
-               fprintf(f, "#version %i\n", ctx->Const.ForceGLSLVersion);
-               skip_version = true;
-            }
-
-            /* Insert directives (optional). */
-            if (insert_directives) {
-               if (!ctx->Const.ForceGLSLVersion && prog->Version)
-                  fprintf(f, "#version %i\n", prog->Version);
-               fprintf(f, "%s\n", insert_directives);
-               skip_version = true;
-            }
-
-            if (skip_version && strncmp(source, "#version ", 9) == 0) {
-               const char *next_line = strstr(source, "\n");
-
-               if (next_line)
-                  source = next_line + 1;
-               else
-                  continue;
-            }
-
-            fprintf(f, "%s", source);
-            fprintf(f, "\n");
-         }
-         fclose(f);
-      }
-   }
-}
 
 /**
  * Link a shader.
@@ -6876,7 +6813,6 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       _mesa_reference_program(ctx, &linked_prog, NULL);
    }
 
-   st_dump_program_for_shader_db(ctx, prog);
    return GL_TRUE;
 }
 

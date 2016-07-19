@@ -41,9 +41,6 @@ util_queue_fence_signal(struct util_queue_fence *fence)
 void
 util_queue_job_wait(struct util_queue_fence *fence)
 {
-   if (fence->signalled)
-      return;
-
    pipe_mutex_lock(fence->mutex);
    while (!fence->signalled)
       pipe_condvar_wait(fence->cond, fence->mutex);
@@ -94,6 +91,8 @@ static PIPE_THREAD_ROUTINE(util_queue_thread_func, input)
       if (job.job) {
          job.execute(job.job, thread_index);
          util_queue_fence_signal(job.fence);
+         if (job.cleanup)
+            job.cleanup(job.job, thread_index);
       }
    }
 
@@ -207,6 +206,7 @@ util_queue_fence_init(struct util_queue_fence *fence)
 void
 util_queue_fence_destroy(struct util_queue_fence *fence)
 {
+   assert(fence->signalled);
    pipe_condvar_destroy(fence->cond);
    pipe_mutex_destroy(fence->mutex);
 }
@@ -215,7 +215,8 @@ void
 util_queue_add_job(struct util_queue *queue,
                    void *job,
                    struct util_queue_fence *fence,
-                   util_queue_execute_func execute)
+                   util_queue_execute_func execute,
+                   util_queue_execute_func cleanup)
 {
    struct util_queue_job *ptr;
 
@@ -234,6 +235,7 @@ util_queue_add_job(struct util_queue *queue,
    ptr->job = job;
    ptr->fence = fence;
    ptr->execute = execute;
+   ptr->cleanup = cleanup;
    queue->write_idx = (queue->write_idx + 1) % queue->max_jobs;
 
    queue->num_queued++;

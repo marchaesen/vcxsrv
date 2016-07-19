@@ -103,7 +103,7 @@ copy_prop_src(nir_src *src, nir_instr *parent_instr, nir_if *parent_if)
 {
    if (!src->is_ssa) {
       if (src->reg.indirect)
-         return copy_prop_src(src, parent_instr, parent_if);
+         return copy_prop_src(src->reg.indirect, parent_instr, parent_if);
       return false;
    }
 

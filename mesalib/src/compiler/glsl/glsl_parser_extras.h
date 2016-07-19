@@ -306,6 +306,7 @@ struct _mesa_glsl_parse_state {
    bool es_shader;
    unsigned language_version;
    unsigned forced_language_version;
+   bool zero_init;
    gl_shader_stage stage;
 
    /**

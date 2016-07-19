@@ -1676,7 +1676,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.invariant = false;
    this->data.how_declared = ir_var_declared_normally;
    this->data.mode = mode;
-   this->data.interpolation = INTERP_QUALIFIER_NONE;
+   this->data.interpolation = INTERP_MODE_NONE;
    this->data.max_array_access = -1;
    this->data.offset = 0;
    this->data.precision = GLSL_PRECISION_NONE;
@@ -1703,10 +1703,10 @@ const char *
 interpolation_string(unsigned interpolation)
 {
    switch (interpolation) {
-   case INTERP_QUALIFIER_NONE:          return "no";
-   case INTERP_QUALIFIER_SMOOTH:        return "smooth";
-   case INTERP_QUALIFIER_FLAT:          return "flat";
-   case INTERP_QUALIFIER_NOPERSPECTIVE: return "noperspective";
+   case INTERP_MODE_NONE:          return "no";
+   case INTERP_MODE_SMOOTH:        return "smooth";
+   case INTERP_MODE_FLAT:          return "flat";
+   case INTERP_MODE_NOPERSPECTIVE: return "noperspective";
    }
 
    assert(!"Should not get here.");

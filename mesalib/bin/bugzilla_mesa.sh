@@ -40,7 +40,7 @@ else
 	for i in $urls
 	do
 		id=$(echo $i | cut -d'=' -f2)
-		summary=$(wget --quiet -O - $i | grep -e '<title>.*</title>' | sed -e 's/ *<title>Bug [0-9]\+ &ndash; \(.*\)<\/title>/\1/')
+		summary=$(wget --quiet -O - $i | grep -e '<title>.*</title>' | sed -e 's/ *<title>[0-9]\+ &ndash; \(.*\)<\/title>/\1/')
 		echo "<li><a href=\"$i\">Bug $id</a> - $summary</li>"
 		echo ""
 	done

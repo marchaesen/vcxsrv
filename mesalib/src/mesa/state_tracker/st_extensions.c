@@ -443,7 +443,6 @@ void st_init_limits(struct pipe_screen *screen,
          c->Program[MESA_SHADER_COMPUTE].MaxImageUniforms;
    c->MaxCombinedShaderOutputResources += c->MaxCombinedImageUniforms;
    c->MaxImageUnits = MAX_IMAGE_UNITS;
-   c->MaxImageSamples = 0; /* XXX */
    if (c->MaxCombinedImageUniforms) {
       extensions->ARB_shader_image_load_store = GL_TRUE;
       extensions->ARB_shader_image_size = GL_TRUE;
@@ -926,6 +925,8 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->EXT_texture_integer = GL_FALSE;
    }
 
+   consts->GLSLZeroInit = options->glsl_zero_init;
+
    consts->UniformBooleanTrue = consts->NativeIntegers ? ~0U : fui(1.0f);
 
    /* Below are the cases which cannot be moved into tables easily. */
@@ -987,6 +988,11 @@ void st_init_extensions(struct pipe_screen *screen,
          get_max_samples_for_formats(screen, ARRAY_SIZE(color_formats),
                                      color_formats, 16,
                                      PIPE_BIND_RENDER_TARGET);
+
+      consts->MaxImageSamples =
+         get_max_samples_for_formats(screen, ARRAY_SIZE(color_formats),
+                                     color_formats, 16,
+                                     PIPE_BIND_SHADER_IMAGE);
 
       consts->MaxColorTextureSamples =
          get_max_samples_for_formats(screen, ARRAY_SIZE(color_formats),

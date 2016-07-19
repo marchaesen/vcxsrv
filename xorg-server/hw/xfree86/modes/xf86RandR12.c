@@ -1154,7 +1154,8 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
     if (rotation != crtc->rotation)
         changed = TRUE;
 
-    if (crtc->current_scanout != randr_crtc->scanout_pixmap)
+    if (crtc->current_scanout != randr_crtc->scanout_pixmap ||
+        crtc->current_scanout_back != randr_crtc->scanout_pixmap_back)
         changed = TRUE;
 
     transform = RRCrtcGetTransform(randr_crtc);
@@ -1219,6 +1220,7 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
             xf86SaveModeContents(&crtc->desiredMode, &mode);
             crtc->desiredRotation = rotation;
             crtc->current_scanout = randr_crtc->scanout_pixmap;
+            crtc->current_scanout_back = randr_crtc->scanout_pixmap_back;
             if (transform) {
                 crtc->desiredTransform = *transform;
                 crtc->desiredTransformPresent = TRUE;

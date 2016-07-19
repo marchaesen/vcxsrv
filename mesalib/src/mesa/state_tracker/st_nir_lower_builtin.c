@@ -46,12 +46,12 @@
  *
  * with appropriate substitutions in the uniform variables list:
  *
- *    decl_var uniform INTERP_QUALIFIER_NONE gl_FogParameters gl_Fog (0, 0)
+ *    decl_var uniform INTERP_MODE_NONE gl_FogParameters gl_Fog (0, 0)
  *
  * would become:
  *
- *    decl_var uniform INTERP_QUALIFIER_NONE vec4 state.fog.color (0, 0)
- *    decl_var uniform INTERP_QUALIFIER_NONE vec4 state.fog.params (0, 1)
+ *    decl_var uniform INTERP_MODE_NONE vec4 state.fog.color (0, 0)
+ *    decl_var uniform INTERP_MODE_NONE vec4 state.fog.params (0, 1)
  *
  * See in particular 'struct gl_builtin_uniform_element'.
  */

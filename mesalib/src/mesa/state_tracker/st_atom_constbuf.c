@@ -265,7 +265,7 @@ const struct st_tracked_state st_update_cs_constants = {
 };
 
 static void st_bind_ubos(struct st_context *st,
-                           struct gl_shader *shader,
+                           struct gl_linked_shader *shader,
                            unsigned shader_type)
 {
    unsigned i;

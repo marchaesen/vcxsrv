@@ -184,7 +184,7 @@ mtx_destroy(mtx_t *mtx)
  * Thus the linker will be happy and things don't clash when building
  * with -O1 or greater.
  */
-#ifdef HAVE_FUNC_ATTRIBUTE_WEAK
+#if defined(HAVE_FUNC_ATTRIBUTE_WEAK) && !defined(__CYGWIN__)
 __attribute__((weak))
 int pthread_mutexattr_init(pthread_mutexattr_t *attr);
 

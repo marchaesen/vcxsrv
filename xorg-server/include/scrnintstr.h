@@ -258,12 +258,15 @@ typedef void (*ResolveColorProcPtr) (unsigned short * /*pred */ ,
 typedef RegionPtr (*BitmapToRegionProcPtr) (PixmapPtr /*pPix */ );
 
 typedef void (*ScreenBlockHandlerProcPtr) (ScreenPtr pScreen,
-                                           void *pTimeout,
-                                           void *pReadmask);
+                                           void *timeout);
 
+/* result has three possible values:
+ * < 0 - error
+ * = 0 - timeout
+ * > 0 - activity
+ */
 typedef void (*ScreenWakeupHandlerProcPtr) (ScreenPtr pScreen,
-                                            unsigned long result,
-                                            void *pReadMask);
+                                            int result);
 
 typedef Bool (*CreateScreenResourcesProcPtr) (ScreenPtr /*pScreen */ );
 
@@ -349,7 +352,16 @@ typedef Bool (*StartPixmapTrackingProcPtr)(PixmapPtr, PixmapPtr,
                                            int dst_x, int dst_y,
                                            Rotation rotation);
 
+typedef Bool (*PresentSharedPixmapProcPtr)(PixmapPtr);
+
+typedef Bool (*RequestSharedPixmapNotifyDamageProcPtr)(PixmapPtr);
+
 typedef Bool (*StopPixmapTrackingProcPtr)(PixmapPtr, PixmapPtr);
+
+typedef Bool (*StopFlippingPixmapTrackingProcPtr)(PixmapPtr,
+                                                  PixmapPtr, PixmapPtr);
+
+typedef Bool (*SharedPixmapNotifyDamageProcPtr)(PixmapPtr);
 
 typedef Bool (*ReplaceScanoutPixmapProcPtr)(DrawablePtr, PixmapPtr, Bool);
 
@@ -604,6 +616,11 @@ typedef struct _Screen {
 
     StartPixmapTrackingProcPtr StartPixmapTracking;
     StopPixmapTrackingProcPtr StopPixmapTracking;
+
+    SharedPixmapNotifyDamageProcPtr SharedPixmapNotifyDamage;
+    RequestSharedPixmapNotifyDamageProcPtr RequestSharedPixmapNotifyDamage;
+    PresentSharedPixmapProcPtr PresentSharedPixmap;
+    StopFlippingPixmapTrackingProcPtr StopFlippingPixmapTracking;
 
     struct xorg_list pixmap_dirty_list;
 

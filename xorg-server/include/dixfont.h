@@ -29,7 +29,6 @@ SOFTWARE.
 #include "closure.h"
 #include <X11/fonts/fontstruct.h>
 #include <X11/fonts/fontproto.h>
-#include <X11/fonts/fontutil.h>
 
 #define NullDIXFontProp ((DIXFontPropPtr)0)
 
@@ -98,16 +97,11 @@ extern _X_EXPORT void InitFonts(void);
 
 extern _X_EXPORT void FreeFonts(void);
 
-extern _X_EXPORT FontPtr find_old_font(XID /*id */ );
-
-#define GetGlyphs dixGetGlyphs
-extern _X_EXPORT void dixGetGlyphs(FontPtr /*font */ ,
-                                   unsigned long /*count */ ,
-                                   unsigned char * /*chars */ ,
-                                   FontEncoding /*fontEncoding */ ,
-                                   unsigned long * /*glyphcount */ ,
-                                   CharInfoPtr * /*glyphs */ );
-
-extern _X_EXPORT void register_fpe_functions(void);
+extern _X_EXPORT void GetGlyphs(FontPtr /*font */ ,
+                                unsigned long /*count */ ,
+                                unsigned char * /*chars */ ,
+                                FontEncoding /*fontEncoding */ ,
+                                unsigned long * /*glyphcount */ ,
+                                CharInfoPtr * /*glyphs */ );
 
 #endif                          /* DIXFONT_H */

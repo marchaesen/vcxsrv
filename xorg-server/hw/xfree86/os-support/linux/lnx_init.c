@@ -93,7 +93,6 @@ linux_parse_vt_settings(int may_fail)
     struct vt_stat vts;
     struct stat st;
     MessageType from = X_PROBED;
-    const char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
 
     /* Only do this once */
     static int vt_settings_parsed = 0;
@@ -108,14 +107,7 @@ linux_parse_vt_settings(int may_fail)
         from = X_CMDLINE;
     }
     else {
-
-        i = 0;
-        while (tty0[i] != NULL) {
-            if ((fd = open(tty0[i], O_WRONLY, 0)) >= 0)
-                break;
-            i++;
-        }
-
+        fd = open("/dev/tty0", O_WRONLY, 0);
         if (fd < 0) {
             if (may_fail)
                 return 0;

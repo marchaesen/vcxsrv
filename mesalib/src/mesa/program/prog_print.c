@@ -994,16 +994,6 @@ _mesa_write_shader_to_file(const struct gl_shader *shader)
    if (shader->InfoLog) {
       fputs(shader->InfoLog, f);
    }
-   if (shader->CompileStatus && shader->Program) {
-      fprintf(f, "/* GPU code */\n");
-      fprintf(f, "/*\n");
-      _mesa_fprint_program_opt(f, shader->Program, PROG_PRINT_DEBUG, GL_TRUE);
-      fprintf(f, "*/\n");
-      fprintf(f, "/* Parameters / constants */\n");
-      fprintf(f, "/*\n");
-      _mesa_fprint_parameter_list(f, shader->Program->Parameters);
-      fprintf(f, "*/\n");
-   }
 
    fclose(f);
 }
@@ -1015,7 +1005,7 @@ _mesa_write_shader_to_file(const struct gl_shader *shader)
  * _mesa_write_shader_to_file function.
  */
 void
-_mesa_append_uniforms_to_file(const struct gl_shader *shader)
+_mesa_append_uniforms_to_file(const struct gl_linked_shader *shader)
 {
    const struct gl_program *const prog = shader->Program;
    const char *type;
@@ -1027,7 +1017,7 @@ _mesa_append_uniforms_to_file(const struct gl_shader *shader)
    else
       type = "vert";
 
-   _mesa_snprintf(filename, sizeof(filename), "shader_%u.%s", shader->Name, type);
+   _mesa_snprintf(filename, sizeof(filename), "shader.%s", type);
    f = fopen(filename, "a"); /* append */
    if (!f) {
       fprintf(stderr, "Unable to open %s for appending\n", filename);

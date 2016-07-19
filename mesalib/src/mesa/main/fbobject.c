@@ -2128,7 +2128,7 @@ renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
       }
 
       if (sample_count_error != GL_NO_ERROR) {
-         _mesa_error(ctx, sample_count_error, "%s(samples)", func);
+         _mesa_error(ctx, sample_count_error, "%s(samples=%d)", func, samples);
          return;
       }
    }

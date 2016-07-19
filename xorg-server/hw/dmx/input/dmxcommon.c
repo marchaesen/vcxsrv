@@ -480,17 +480,26 @@ dmxCommonXSelect(DMXScreenInfo * dmxScreen, void *closure)
     return NULL;
 }
 
+static void
+dmxCommonFdNotify(int fd, int ready, void *data)
+{
+    /* This should process input on this fd, but instead all
+     * of that is delayed until the block and wakeup handlers are called
+     */
+    ;
+}
+
 static void *
 dmxCommonAddEnabledDevice(DMXScreenInfo * dmxScreen, void *closure)
 {
-    AddEnabledDevice(XConnectionNumber(dmxScreen->beDisplay));
+    SetNotifyFd(XConnectionNumber(dmxScreen->beDisplay), dmxCommonFdNotify, X_NOTIFY_READ, closure);
     return NULL;
 }
 
 static void *
 dmxCommonRemoveEnabledDevice(DMXScreenInfo * dmxScreen, void *closure)
 {
-    RemoveEnabledDevice(XConnectionNumber(dmxScreen->beDisplay));
+    RemoveNotifyFd(XConnectionNumber(dmxScreen->beDisplay));
     return NULL;
 }
 
@@ -504,7 +513,7 @@ dmxCommonMouOn(DevicePtr pDev)
     priv->eventMask |= DMX_POINTER_EVENT_MASK;
     if (!priv->be) {
         XSelectInput(priv->display, priv->window, priv->eventMask);
-        AddEnabledDevice(XConnectionNumber(priv->display));
+        SetNotifyFd(XConnectionNumber(priv->display), dmxCommonFdNotify,X_NOTIFY_READ, pDev);
     }
     else {
         dmxPropertyIterate(priv->be, dmxCommonXSelect, priv);
@@ -523,7 +532,7 @@ dmxCommonMouOff(DevicePtr pDev)
 
     priv->eventMask &= ~DMX_POINTER_EVENT_MASK;
     if (!priv->be) {
-        RemoveEnabledDevice(XConnectionNumber(priv->display));
+        RemoveNotifyFd(XConnectionNumber(priv->display));
         XSelectInput(priv->display, priv->window, priv->eventMask);
     }
     else {
