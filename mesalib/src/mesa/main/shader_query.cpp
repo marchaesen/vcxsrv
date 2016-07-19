@@ -84,7 +84,8 @@ _mesa_BindAttribLocation(GLuint program, GLuint index,
    }
 
    if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glBindAttribLocation(index)");
+      _mesa_error(ctx, GL_INVALID_VALUE, "glBindAttribLocation(%u >= %u)",
+                  index, ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs);
       return;
    }
 
@@ -1264,7 +1265,7 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
       return 1;
    case GL_COMPATIBLE_SUBROUTINES: {
       const struct gl_uniform_storage *uni;
-      struct gl_shader *sh;
+      struct gl_linked_shader *sh;
       unsigned count, i;
       int j;
 
@@ -1385,12 +1386,23 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
 
 static bool
 validate_io(struct gl_shader_program *producer,
-            struct gl_shader_program *consumer)
+            struct gl_shader_program *consumer,
+            gl_shader_stage producer_stage,
+            gl_shader_stage consumer_stage)
 {
    if (producer == consumer)
       return true;
 
+   const bool nonarray_stage_to_array_stage =
+      producer_stage != MESA_SHADER_TESS_CTRL &&
+      (consumer_stage == MESA_SHADER_GEOMETRY ||
+       consumer_stage == MESA_SHADER_TESS_CTRL ||
+       consumer_stage == MESA_SHADER_TESS_EVAL);
+
    bool valid = true;
+
+   void *name_buffer = NULL;
+   size_t name_buffer_size = 0;
 
    gl_shader_variable const **outputs =
       (gl_shader_variable const **) calloc(producer->NumProgramResourceList,
@@ -1463,11 +1475,52 @@ validate_io(struct gl_shader_program *producer,
             }
          }
       } else {
+         char *consumer_name = consumer_var->name;
+
+         if (nonarray_stage_to_array_stage &&
+             consumer_var->interface_type != NULL &&
+             consumer_var->interface_type->is_array() &&
+             !is_gl_identifier(consumer_var->name)) {
+            const size_t name_len = strlen(consumer_var->name);
+
+            if (name_len >= name_buffer_size) {
+               free(name_buffer);
+
+               name_buffer_size = name_len + 1;
+               name_buffer = malloc(name_buffer_size);
+               if (name_buffer == NULL) {
+                  valid = false;
+                  goto out;
+               }
+            }
+
+            consumer_name = (char *) name_buffer;
+
+            char *s = strchr(consumer_var->name, '[');
+            if (s == NULL) {
+               valid = false;
+               goto out;
+            }
+
+            char *t = strchr(s, ']');
+            if (t == NULL) {
+               valid = false;
+               goto out;
+            }
+
+            assert(t[1] == '.' || t[1] == '[');
+
+            const ptrdiff_t base_name_len = s - consumer_var->name;
+
+            memcpy(consumer_name, consumer_var->name, base_name_len);
+            strcpy(consumer_name + base_name_len, t + 1);
+         }
+
          for (unsigned j = 0; j < num_outputs; j++) {
             const gl_shader_variable *const var = outputs[j];
 
             if (!var->explicit_location &&
-                strcmp(consumer_var->name, var->name) == 0) {
+                strcmp(consumer_name, var->name) == 0) {
                producer_var = var;
                match_index = j;
                break;
@@ -1529,9 +1582,41 @@ validate_io(struct gl_shader_program *producer,
        * Note that location mismatches are detected by the loops above that
        * find the producer variable that goes with the consumer variable.
        */
-      if (producer_var->type != consumer_var->type ||
-          producer_var->interpolation != consumer_var->interpolation ||
-          producer_var->precision != consumer_var->precision) {
+      if (nonarray_stage_to_array_stage) {
+         if (!consumer_var->type->is_array() ||
+             consumer_var->type->fields.array != producer_var->type) {
+            valid = false;
+            goto out;
+         }
+
+         if (consumer_var->interface_type != NULL) {
+            if (!consumer_var->interface_type->is_array() ||
+                consumer_var->interface_type->fields.array != producer_var->interface_type) {
+               valid = false;
+               goto out;
+            }
+         } else if (producer_var->interface_type != NULL) {
+            valid = false;
+            goto out;
+         }
+      } else {
+         if (producer_var->type != consumer_var->type) {
+            valid = false;
+            goto out;
+         }
+
+         if (producer_var->interface_type != consumer_var->interface_type) {
+            valid = false;
+            goto out;
+         }
+      }
+
+      if (producer_var->interpolation != consumer_var->interpolation) {
+         valid = false;
+         goto out;
+      }
+
+      if (producer_var->precision != consumer_var->precision) {
          valid = false;
          goto out;
       }
@@ -1540,14 +1625,10 @@ validate_io(struct gl_shader_program *producer,
          valid = false;
          goto out;
       }
-
-      if (producer_var->interface_type != consumer_var->interface_type) {
-         valid = false;
-         goto out;
-      }
    }
 
  out:
+   free(name_buffer);
    free(outputs);
    return valid && num_outputs == 0;
 }
@@ -1579,7 +1660,9 @@ _mesa_validate_pipeline_io(struct gl_pipeline_object *pipeline)
          if (shProg[idx]->_LinkedShaders[idx]->Stage == MESA_SHADER_COMPUTE)
             break;
 
-         if (!validate_io(shProg[prev], shProg[idx]))
+         if (!validate_io(shProg[prev], shProg[idx],
+                          shProg[prev]->_LinkedShaders[prev]->Stage,
+                          shProg[idx]->_LinkedShaders[idx]->Stage))
             return false;
 
          prev = idx;

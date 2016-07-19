@@ -285,6 +285,7 @@ EXT(KHR_robust_buffer_access_behavior       , ARB_robust_buffer_access_behavior 
 EXT(KHR_robustness                          , KHR_robustness                         , GLL, GLC,  x , ES2, 2012)
 EXT(KHR_texture_compression_astc_hdr        , KHR_texture_compression_astc_hdr       , GLL, GLC,  x , ES2, 2012)
 EXT(KHR_texture_compression_astc_ldr        , KHR_texture_compression_astc_ldr       , GLL, GLC,  x , ES2, 2012)
+EXT(KHR_texture_compression_astc_sliced_3d  , KHR_texture_compression_astc_sliced_3d , GLL, GLC,  x , ES2, 2015)
 
 EXT(MESA_pack_invert                        , MESA_pack_invert                       , GLL, GLC,  x ,  x , 2002)
 EXT(MESA_texture_signed_rgba                , EXT_texture_snorm                      , GLL, GLC,  x ,  x , 2009)

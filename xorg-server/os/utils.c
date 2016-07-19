@@ -83,7 +83,7 @@ __stdcall unsigned long GetTickCount(void);
 #include <X11/Xtrans/Xtrans.h>
 #include "input.h"
 #include "dixfont.h"
-#include <X11/fonts/fontutil.h>
+#include <X11/fonts/libxfont2.h>
 #include "osdep.h"
 #include "extension.h"
 #ifdef X_POSIX_C_SOURCE
@@ -532,27 +532,6 @@ GetTimeInMicros(void)
 #endif
 
 void
-AdjustWaitForDelay(void *waitTime, unsigned long newdelay)
-{
-    static struct timeval delay_val;
-    struct timeval **wt = (struct timeval **) waitTime;
-    unsigned long olddelay;
-
-    if (*wt == NULL) {
-        delay_val.tv_sec = newdelay / 1000;
-        delay_val.tv_usec = 1000 * (newdelay % 1000);
-        *wt = &delay_val;
-    }
-    else {
-        olddelay = (*wt)->tv_sec * 1000 + (*wt)->tv_usec / 1000;
-        if (newdelay < olddelay) {
-            (*wt)->tv_sec = newdelay / 1000;
-            (*wt)->tv_usec = 1000 * (newdelay % 1000);
-        }
-    }
-}
-
-void
 UseMsg(void)
 {
     ErrorF("Usage...\nVcxsrv [:<display>] [option]\n\n");
@@ -824,7 +803,7 @@ ProcessCommandLine(int argc, char *argv[])
             DPMSDisabledSwitch = TRUE;
 #endif
         else if (strcmp(argv[i], "-deferglyphs") == 0) {
-            if (++i >= argc || !ParseGlyphCachingMode(argv[i]))
+            if (++i >= argc || !xfont2_parse_glyph_caching_mode(argv[i]))
                 UseMsg();
         }
         else if (strcmp(argv[i], "-f") == 0) {

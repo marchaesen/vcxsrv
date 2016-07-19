@@ -50,8 +50,17 @@ sometimes be useful for debugging end-user issues.
    if the application generates a GL_INVALID_ENUM error, a corresponding error
    message indicating where the error occurred, and possibly why, will be
    printed to stderr.<br>
-   If the value of MESA_DEBUG is 'FP' floating point arithmetic errors will
-   generate exceptions.
+
+   For release builds, MESA_DEBUG defaults to off (no debug output).
+
+   MESA_DEBUG accepts the following comma-separated list of named
+   flags, which adds extra behaviour to just set MESA_DEBUG=1:
+   <ul>
+     <li>silent - turn off debug messages. Only useful for debug builds.</li>
+     <li>flush - flush after each drawing command</li>
+     <li>incomplete_tex - extra debug messages when a texture is incomplete</li>
+     <li>incomplete_fbo - extra debug messages when a fbo is incomplete</li>
+   </ul>
 <li>MESA_LOG_FILE - specifies a file name for logging all errors, warnings,
 etc., rather than stderr
 <li>MESA_TEX_PROG - if set, implement conventional texture env modes with
@@ -144,11 +153,10 @@ See the <a href="xlibdriver.html">Xlib software driver page</a> for details.
    <li>bat - emit batch information</li>
    <li>pix - emit messages about pixel operations</li>
    <li>buf - emit messages about buffer objects</li>
-   <li>reg - emit messages about regions</li>
    <li>fbo - emit messages about framebuffers</li>
    <li>fs - dump shader assembly for fragment shaders</li>
    <li>gs - dump shader assembly for geometry shaders</li>
-   <li>sync - emit messages about synchronization</li>
+   <li>sync - after sending each batch, emit a message and wait for that batch to finish rendering</li>
    <li>prim - emit messages about drawing primitives</li>
    <li>vert - emit messages about vertex assembly</li>
    <li>dri - emit messages about the DRI interface</li>
@@ -163,9 +171,18 @@ See the <a href="xlibdriver.html">Xlib software driver page</a> for details.
    <li>blorp - emit messages about the blorp operations (blits &amp; clears)</li>
    <li>nodualobj - suppress generation of dual-object geometry shader code</li>
    <li>optimizer - dump shader assembly to files at each optimization pass and iteration that make progress</li>
+   <li>ann - annotate IR in assembly dumps</li>
+   <li>no8 - don't generate SIMD8 fragment shader</li>
    <li>vec4 - force vec4 mode in vertex shader</li>
    <li>spill_fs - force spilling of all registers in the scalar backend (useful to debug spilling code)</li>
    <li>spill_vec4 - force spilling of all registers in the vec4 backend (useful to debug spilling code)</li>
+   <li>cs - dump shader assembly for compute shaders</li>
+   <li>hex - print instruction hex dump with the disassembly</li>
+   <li>nocompact - disable instruction compaction</li>
+   <li>tcs - dump shader assembly for tessellation control shaders</li>
+   <li>tes - dump shader assembly for tessellation evaluation shaders</li>
+   <li>l3 - emit messages about the new L3 state during transitions</li>
+   <li>do32 - generate compute shader SIMD32 programs even if workgroup size doesn't exceed the SIMD16 limit</li>
    <li>norbc - disable single sampled render buffer compression</li>
 </ul>
 </ul>

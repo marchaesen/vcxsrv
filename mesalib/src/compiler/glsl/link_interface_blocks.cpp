@@ -343,8 +343,8 @@ validate_intrastage_interface_blocks(struct gl_shader_program *prog,
 
 void
 validate_interstage_inout_blocks(struct gl_shader_program *prog,
-                                 const gl_shader *producer,
-                                 const gl_shader *consumer)
+                                 const gl_linked_shader *producer,
+                                 const gl_linked_shader *consumer)
 {
    interface_block_definitions definitions;
    /* VS -> GS, VS -> TCS, VS -> TES, TES -> GS */
@@ -384,15 +384,15 @@ validate_interstage_inout_blocks(struct gl_shader_program *prog,
 
 void
 validate_interstage_uniform_blocks(struct gl_shader_program *prog,
-                                   gl_shader **stages, int num_stages)
+                                   gl_linked_shader **stages)
 {
    interface_block_definitions definitions;
 
-   for (int i = 0; i < num_stages; i++) {
+   for (int i = 0; i < MESA_SHADER_STAGES; i++) {
       if (stages[i] == NULL)
          continue;
 
-      const gl_shader *stage = stages[i];
+      const gl_linked_shader *stage = stages[i];
       foreach_in_list(ir_instruction, node, stage->ir) {
          ir_variable *var = node->as_variable();
          if (!var || !var->get_interface_type() ||

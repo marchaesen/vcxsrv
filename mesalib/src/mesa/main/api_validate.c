@@ -201,16 +201,17 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
    if (ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]) {
       const GLenum geom_mode =
          ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]->
-            _LinkedShaders[MESA_SHADER_GEOMETRY]->Geom.InputType;
+            _LinkedShaders[MESA_SHADER_GEOMETRY]->info.Geom.InputType;
       struct gl_shader_program *tes =
          ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
       GLenum mode_before_gs = mode;
 
       if (tes) {
-         struct gl_shader *tes_sh = tes->_LinkedShaders[MESA_SHADER_TESS_EVAL];
-         if (tes_sh->TessEval.PointMode)
+         struct gl_linked_shader *tes_sh =
+            tes->_LinkedShaders[MESA_SHADER_TESS_EVAL];
+         if (tes_sh->info.TessEval.PointMode)
             mode_before_gs = GL_POINTS;
-         else if (tes_sh->TessEval.PrimitiveMode == GL_ISOLINES)
+         else if (tes_sh->info.TessEval.PrimitiveMode == GL_ISOLINES)
             mode_before_gs = GL_LINES;
          else
             /* the GL_QUADS mode generates triangles too */
@@ -307,7 +308,8 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
 
       if(ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]) {
          switch (ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]->
-                    _LinkedShaders[MESA_SHADER_GEOMETRY]->Geom.OutputType) {
+                    _LinkedShaders[MESA_SHADER_GEOMETRY]->
+                    info.Geom.OutputType) {
          case GL_POINTS:
             pass = ctx->TransformFeedback.Mode == GL_POINTS;
             break;
@@ -324,10 +326,11 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
       else if (ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL]) {
          struct gl_shader_program *tes =
             ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
-         struct gl_shader *tes_sh = tes->_LinkedShaders[MESA_SHADER_TESS_EVAL];
-         if (tes_sh->TessEval.PointMode)
+         struct gl_linked_shader *tes_sh =
+            tes->_LinkedShaders[MESA_SHADER_TESS_EVAL];
+         if (tes_sh->info.TessEval.PointMode)
             pass = ctx->TransformFeedback.Mode == GL_POINTS;
-         else if (tes_sh->TessEval.PrimitiveMode == GL_ISOLINES)
+         else if (tes_sh->info.TessEval.PrimitiveMode == GL_ISOLINES)
             pass = ctx->TransformFeedback.Mode == GL_LINES;
          else
             pass = ctx->TransformFeedback.Mode == GL_TRIANGLES;

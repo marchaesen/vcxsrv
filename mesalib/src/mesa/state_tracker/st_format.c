@@ -37,6 +37,7 @@
 #include "main/enums.h"
 #include "main/formats.h"
 #include "main/glformats.h"
+#include "main/texcompress.h"
 #include "main/texgetimage.h"
 #include "main/teximage.h"
 #include "main/texstore.h"
@@ -2284,6 +2285,12 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
    }
 
    if (pFormat == PIPE_FORMAT_NONE) {
+      /* lie about using etc1/etc2 natively if we do decoding tricks */
+      mFormat = _mesa_glenum_to_compressed_format(internalFormat);
+      if ((mFormat == MESA_FORMAT_ETC1_RGB8 && !st->has_etc1) ||
+          (_mesa_is_format_etc2(mFormat) && !st->has_etc2))
+          return mFormat;
+
       /* no luck at all */
       return MESA_FORMAT_NONE;
    }

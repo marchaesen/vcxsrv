@@ -33,8 +33,10 @@ if HAVE_OSMESA
 SUBDIRS += drivers/osmesa
 endif
 
+if HAVE_GLX
 gldir = $(includedir)/GL
 gl_HEADERS = $(top_srcdir)/include/GL/*.h
+endif
 
 include Makefile.sources
 
@@ -159,8 +161,10 @@ libmesa_sse41_la_SOURCES = \
 
 libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) $(SSE41_CFLAGS)
 
+if HAVE_GLX
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gl.pc
+endif
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
 YACC_GEN = $(AM_V_GEN)$(YACC) $(YFLAGS)

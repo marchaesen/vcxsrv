@@ -124,7 +124,8 @@ Alternative name for \fB\-resize=scrollbars\fP.
 .SH OPTIONS CONTROLLING RESIZE BEHAVIOUR
 .TP 8
 .B \-resize[=none|scrollbars|randr]
-Select the resize mode of an X screen. The default is randr.
+Select the resize mode of an X screen.
+The default is \fBnone\fP if \fB\-fullscreen\fP is used, \fBrandr\fP otherwise.
 
 .RS
 .IP \fB\-resize=none\fP 8

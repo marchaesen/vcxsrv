@@ -41,7 +41,7 @@
 #include "st_program.h"
 
 static void
-st_bind_ssbos(struct st_context *st, struct gl_shader *shader,
+st_bind_ssbos(struct st_context *st, struct gl_linked_shader *shader,
               unsigned shader_type)
 {
    unsigned i;

@@ -175,7 +175,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
             fForceShowWindow = TRUE;
         }
         dwWindowStyle |= WS_CAPTION;
-        if (pScreenInfo->iResizeMode != notAllowed)
+        if (pScreenInfo->iResizeMode != resizeNotAllowed)
             dwWindowStyle |= WS_THICKFRAME | WS_MAXIMIZEBOX;
     }
     else
@@ -230,7 +230,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
         )
         && (pScreenInfo->iResizeMode == resizeWithScrollbars)) {
         /* We cannot have scrollbars if we do not have a window border */
-        pScreenInfo->iResizeMode = notAllowed;
+        pScreenInfo->iResizeMode = resizeNotAllowed;
     }
 
     /* Did the user specify a height and width? */
@@ -253,7 +253,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
                 ("winCreateBoundingWindowWindowed - Window has decoration\n");
 
             /* Are we resizable */
-            if (pScreenInfo->iResizeMode != notAllowed) {
+            if (pScreenInfo->iResizeMode != resizeNotAllowed) {
                 winDebug
                     ("winCreateBoundingWindowWindowed - Window is resizable\n");
 

@@ -31,19 +31,19 @@
 extern "C" {
 #endif
 
-typedef struct nir_shader nir_shader;
+struct nir_shader;
 
-void st_nir_lower_builtin(nir_shader *shader);
-nir_shader * st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
-                            struct gl_shader_program *shader_program,
-                            gl_shader_stage stage);
+void st_nir_lower_builtin(struct nir_shader *shader);
+struct nir_shader * st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
+                                   struct gl_shader_program *shader_program,
+                                   gl_shader_stage stage);
 
-void st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir);
+void st_finalize_nir(struct st_context *st, struct gl_program *prog, struct nir_shader *nir);
 
 struct gl_program *
 st_nir_get_mesa_program(struct gl_context *ctx,
                         struct gl_shader_program *shader_program,
-                        struct gl_shader *shader);
+                        struct gl_linked_shader *shader);
 
 #ifdef __cplusplus
 }

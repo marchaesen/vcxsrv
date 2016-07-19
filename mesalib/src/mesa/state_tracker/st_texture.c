@@ -226,6 +226,9 @@ st_texture_match_image(struct st_context *st,
        ptLayers != pt->array_size)
       return GL_FALSE;
 
+   if (image->Level > pt->last_level)
+      return GL_FALSE;
+
    return GL_TRUE;
 }
 

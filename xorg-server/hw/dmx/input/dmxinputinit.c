@@ -630,7 +630,7 @@ dmxCollectAll(DMXInputInfo * dmxInput)
 }
 
 static void
-dmxBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadMask)
+dmxBlockHandler(void *blockData, void *timeout)
 {
     DMXInputInfo *dmxInput = &dmxInputs[(uintptr_t) blockData];
     static unsigned long generation = 0;
@@ -658,7 +658,7 @@ dmxSwitchReturn(void *p)
 }
 
 static void
-dmxWakeupHandler(void *blockData, int result, void *pReadMask)
+dmxWakeupHandler(void *blockData, int result)
 {
     DMXInputInfo *dmxInput = &dmxInputs[(uintptr_t) blockData];
     int i;

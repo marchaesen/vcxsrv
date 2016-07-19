@@ -391,8 +391,7 @@ void
 link_uniform_blocks(void *mem_ctx,
                     struct gl_context *ctx,
                     struct gl_shader_program *prog,
-                    struct gl_shader **shader_list,
-                    unsigned num_shaders,
+                    struct gl_linked_shader *shader,
                     struct gl_uniform_block **ubo_blocks,
                     unsigned *num_ubo_blocks,
                     struct gl_uniform_block **ssbo_blocks,
@@ -415,9 +414,7 @@ link_uniform_blocks(void *mem_ctx,
    /* Determine which uniform blocks are active.
     */
    link_uniform_block_active_visitor v(mem_ctx, block_hash, prog);
-   for (unsigned i = 0; i < num_shaders; i++) {
-      visit_list_elements(&v, shader_list[i]->ir);
-   }
+   visit_list_elements(&v, shader->ir);
 
    /* Count the number of active uniform blocks.  Count the total number of
     * active slots in those uniform blocks.
@@ -472,7 +469,7 @@ link_uniform_blocks(void *mem_ctx,
    _mesa_hash_table_destroy(block_hash, NULL);
 }
 
-bool
+static bool
 link_uniform_blocks_are_compatible(const gl_uniform_block *a,
                                    const gl_uniform_block *b)
 {

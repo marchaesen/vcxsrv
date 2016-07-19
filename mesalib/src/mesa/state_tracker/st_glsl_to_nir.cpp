@@ -308,16 +308,19 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
       sort_varyings(&nir->outputs);
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,
+                               VARYING_SLOT_VAR0,
                                st_glsl_type_size);
       st_nir_fixup_varying_slots(st, &nir->outputs);
    } else if (nir->stage == MESA_SHADER_FRAGMENT) {
       sort_varyings(&nir->inputs);
       nir_assign_var_locations(&nir->inputs,
                                &nir->num_inputs,
+                               VARYING_SLOT_VAR0,
                                st_glsl_type_size);
       st_nir_fixup_varying_slots(st, &nir->inputs);
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,
+                               FRAG_RESULT_DATA0,
                                st_glsl_type_size);
    } else {
       unreachable("invalid shader type for tgsi bypass\n");
@@ -347,7 +350,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
 struct gl_program *
 st_nir_get_mesa_program(struct gl_context *ctx,
                         struct gl_shader_program *shader_program,
-                        struct gl_shader *shader)
+                        struct gl_linked_shader *shader)
 {
    struct gl_program *prog;
    GLenum target = _mesa_shader_stage_to_program(shader->Stage);

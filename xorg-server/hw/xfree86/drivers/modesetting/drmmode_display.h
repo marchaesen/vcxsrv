@@ -48,6 +48,7 @@ typedef struct {
     unsigned fb_id;
     drmModeFBPtr mode_fb;
     int cpp;
+    int kbpp;
     ScrnInfoPtr scrn;
 
     struct gbm_device *gbm;
@@ -65,22 +66,12 @@ typedef struct {
 
     Bool glamor;
     Bool shadow_enable;
+    Bool shadow_enable2;
     /** Is Option "PageFlip" enabled? */
     Bool pageflip;
+    Bool force_24_32;
     void *shadow_fb;
-
-    /**
-     * A screen-sized pixmap when we're doing triple-buffered DRI2
-     * pageflipping.
-     *
-     * One is shared between all drawables that flip to the front
-     * buffer, and it only gets reallocated when root pixmap size
-     * changes.
-     */
-    PixmapPtr triple_buffer_pixmap;
-
-    /** The GEM name for triple_buffer_pixmap */
-    uint32_t triple_buffer_name;
+    void *shadow_fb2;
 
     DevPrivateKeyRec pixmapPrivateKeyRec;
 
@@ -99,11 +90,14 @@ typedef struct {
     struct dumb_bo *cursor_bo;
     Bool cursor_up;
     uint16_t lut_r[256], lut_g[256], lut_b[256];
-    DamagePtr slave_damage;
 
     drmmode_bo rotate_bo;
     unsigned rotate_fb_id;
+
+    PixmapPtr prime_pixmap;
+    PixmapPtr prime_pixmap_back;
     unsigned prime_pixmap_x;
+
     /**
      * @{ MSC (vblank count) handling for the PRESENT extension.
      *
@@ -117,6 +111,9 @@ typedef struct {
     /** @} */
 
     Bool need_modeset;
+
+    Bool enable_flipping;
+    Bool flipping_active;
 } drmmode_crtc_private_rec, *drmmode_crtc_private_ptr;
 
 typedef struct {
@@ -143,6 +140,18 @@ typedef struct {
 typedef struct _msPixmapPriv {
     uint32_t fb_id;
     struct dumb_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
+
+    DamagePtr slave_damage;
+
+    /** Sink fields for flipping shared pixmaps */
+    int flip_seq; /* seq of current page flip event handler */
+    Bool wait_for_damage; /* if we have requested damage notification from source */
+
+    /** Source fields for flipping shared pixmaps */
+    Bool defer_dirty_update; /* if we want to manually update */
+    PixmapDirtyUpdatePtr dirty; /* cached dirty ent to avoid searching list */
+    PixmapPtr slave_src; /* if we exported shared pixmap, dirty tracking src */
+    Bool notify_on_damage; /* if sink has requested damage notification */
 } msPixmapPrivRec, *msPixmapPrivPtr;
 
 extern DevPrivateKeyRec msPixmapPrivateKeyRec;
@@ -160,6 +169,14 @@ void *drmmode_map_slave_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv);
 Bool drmmode_SetSlaveBO(PixmapPtr ppix,
                         drmmode_ptr drmmode,
                         int fd_handle, int pitch, int size);
+
+Bool drmmode_EnableSharedPixmapFlipping(xf86CrtcPtr crtc, drmmode_ptr drmmode,
+                                        PixmapPtr front, PixmapPtr back);
+Bool drmmode_SharedPixmapPresentOnVBlank(PixmapPtr frontTarget, xf86CrtcPtr crtc,
+                                         drmmode_ptr drmmode);
+Bool drmmode_SharedPixmapFlip(PixmapPtr frontTarget, xf86CrtcPtr crtc,
+                              drmmode_ptr drmmode);
+void drmmode_DisableSharedPixmapFlipping(xf86CrtcPtr crtc, drmmode_ptr drmmode);
 
 extern Bool drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp);
 void drmmode_adjust_frame(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int x, int y);

@@ -26,6 +26,7 @@ is" without express or implied warranty.
 #include "servermd.h"
 #include "mi.h"
 #include <X11/fonts/fontstruct.h>
+#include "dixfontstr.h"
 
 #include "Xnest.h"
 
@@ -34,6 +35,7 @@ is" without express or implied warranty.
 #include "Pointer.h"
 #include "Keyboard.h"
 #include "Handlers.h"
+#include "Events.h"
 #include "Init.h"
 #include "Args.h"
 #include "Drawable.h"
@@ -72,7 +74,7 @@ InitOutput(ScreenInfo * screen_info, int argc, char *argv[])
                 break;
             }
 
-    xnestFontPrivateIndex = AllocateFontPrivateIndex();
+    xnestFontPrivateIndex = xfont2_allocate_font_private_index();
 
     if (!xnestNumScreens)
         xnestNumScreens = 1;
@@ -83,6 +85,12 @@ InitOutput(ScreenInfo * screen_info, int argc, char *argv[])
     xnestNumScreens = screen_info->numScreens;
 
     xnestDoFullGeneration = xnestFullGeneration;
+}
+
+static void
+xnestNotifyConnection(int fd, int ready, void *data)
+{
+    xnestCollectEvents();
 }
 
 void
@@ -100,7 +108,7 @@ InitInput(int argc, char *argv[])
 
     mieqInit();
 
-    AddEnabledDevice(XConnectionNumber(xnestDisplay));
+    SetNotifyFd(XConnectionNumber(xnestDisplay), xnestNotifyConnection, X_NOTIFY_READ, NULL);
 
     RegisterBlockAndWakeupHandlers(xnestBlockHandler, xnestWakeupHandler, NULL);
 }

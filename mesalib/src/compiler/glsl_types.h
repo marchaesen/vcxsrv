@@ -47,6 +47,9 @@ _mesa_glsl_release_types(void);
 #endif
 
 enum glsl_base_type {
+   /* Note: GLSL_TYPE_UINT, GLSL_TYPE_INT, and GLSL_TYPE_FLOAT must be 0, 1,
+    * and 2 so that they will fit in the 2 bits of glsl_type::sampled_type.
+    */
    GLSL_TYPE_UINT = 0,
    GLSL_TYPE_INT,
    GLSL_TYPE_FLOAT,

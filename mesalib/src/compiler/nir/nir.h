@@ -179,7 +179,7 @@ typedef struct nir_variable {
       /**
        * Interpolation mode for shader inputs / outputs
        *
-       * \sa glsl_interp_qualifier
+       * \sa glsl_interp_mode
        */
       unsigned interpolation:2;
 
@@ -987,6 +987,11 @@ typedef enum {
     */
    NIR_INTRINSIC_BINDING = 7,
 
+   /**
+    * Component offset.
+    */
+   NIR_INTRINSIC_COMPONENT = 8,
+
    NIR_INTRINSIC_NUM_INDEX_FLAGS,
 
 } nir_intrinsic_index_flag;
@@ -1053,6 +1058,7 @@ INTRINSIC_IDX_ACCESSORS(ucp_id, UCP_ID, unsigned)
 INTRINSIC_IDX_ACCESSORS(range, RANGE, unsigned)
 INTRINSIC_IDX_ACCESSORS(desc_set, DESC_SET, unsigned)
 INTRINSIC_IDX_ACCESSORS(binding, BINDING, unsigned)
+INTRINSIC_IDX_ACCESSORS(component, COMPONENT, unsigned)
 
 /**
  * \group texture information
@@ -2306,8 +2312,8 @@ void nir_lower_io_to_temporaries(nir_shader *shader, nir_function *entrypoint,
 
 void nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint);
 
-void nir_assign_var_locations(struct exec_list *var_list,
-                              unsigned *size,
+void nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
+                              unsigned base_offset,
                               int (*type_size)(const struct glsl_type *));
 
 void nir_lower_io(nir_shader *shader,

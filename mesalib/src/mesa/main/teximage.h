@@ -176,9 +176,10 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target);
 
 
 extern GLboolean
-_mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target, GLint level,
-                          mesa_format format,
-                          GLint width, GLint height, GLint depth, GLint border);
+_mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target,
+                          GLuint numLevels, GLint level,
+                          mesa_format format, GLuint numSamples,
+                          GLint width, GLint height, GLint depth);
 
 extern GLboolean
 _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,

@@ -181,7 +181,7 @@ void ir_print_visitor::visit(ir_variable *ir)
    STATIC_ASSERT(ARRAY_SIZE(mode) == ir_var_mode_count);
    const char *const stream [] = {"", "stream1 ", "stream2 ", "stream3 "};
    const char *const interp[] = { "", "smooth", "flat", "noperspective" };
-   STATIC_ASSERT(ARRAY_SIZE(interp) == INTERP_QUALIFIER_COUNT);
+   STATIC_ASSERT(ARRAY_SIZE(interp) == INTERP_MODE_COUNT);
 
    fprintf(f, "(%s%s%s%s%s%s%s%s%s) ",
            loc, cent, samp, patc, inv, prec, mode[ir->data.mode],

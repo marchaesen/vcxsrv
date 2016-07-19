@@ -472,6 +472,9 @@ guess_and_alloc_texture(struct st_context *st,
     */
    firstImage = _mesa_base_tex_image(&stObj->base);
    if (firstImage &&
+       firstImage->Width2 > 0 &&
+       firstImage->Height2 > 0 &&
+       firstImage->Depth2 > 0 &&
        guess_base_level_size(stObj->base.Target,
                              firstImage->Width2,
                              firstImage->Height2,
@@ -2683,9 +2686,9 @@ st_AllocTextureStorage(struct gl_context *ctx,
 
 static GLboolean
 st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
-                     GLint level, mesa_format format,
-                     GLint width, GLint height,
-                     GLint depth, GLint border)
+                     GLuint numLevels, GLint level,
+                     mesa_format format, GLuint numSamples,
+                     GLint width, GLint height, GLint depth)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -2707,14 +2710,19 @@ st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
 
       pt.target = gl_target_to_pipe(target);
       pt.format = st_mesa_format_to_pipe_format(st, format);
+      pt.nr_samples = numSamples;
 
       st_gl_texture_dims_to_pipe_dims(target,
                                       width, height, depth,
                                       &pt.width0, &pt.height0,
                                       &pt.depth0, &pt.array_size);
 
-      if (level == 0 && (texObj->Sampler.MinFilter == GL_LINEAR ||
-                         texObj->Sampler.MinFilter == GL_NEAREST)) {
+      if (numLevels > 0) {
+         /* For immutable textures we know the final number of mip levels */
+         pt.last_level = numLevels - 1;
+      }
+      else if (level == 0 && (texObj->Sampler.MinFilter == GL_LINEAR ||
+                              texObj->Sampler.MinFilter == GL_NEAREST)) {
          /* assume just one mipmap level */
          pt.last_level = 0;
       }
@@ -2727,8 +2735,8 @@ st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
    }
    else {
       /* Use core Mesa fallback */
-      return _mesa_test_proxy_teximage(ctx, target, level, format,
-                                       width, height, depth, border);
+      return _mesa_test_proxy_teximage(ctx, target, numLevels, level, format,
+                                       numSamples, width, height, depth);
    }
 }
 

@@ -90,7 +90,8 @@ static void st_Enable(struct gl_context * ctx, GLenum cap, GLboolean state)
 
    switch (cap) {
    case GL_DEBUG_OUTPUT:
-      st_enable_debug_output(st, state);
+   case GL_DEBUG_OUTPUT_SYNCHRONOUS:
+      st_update_debug_callback(st);
       break;
    default:
       break;

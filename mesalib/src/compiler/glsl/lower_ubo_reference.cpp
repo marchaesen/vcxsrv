@@ -44,7 +44,7 @@ namespace {
 class lower_ubo_reference_visitor :
       public lower_buffer_access::lower_buffer_access {
 public:
-   lower_ubo_reference_visitor(struct gl_shader *shader,
+   lower_ubo_reference_visitor(struct gl_linked_shader *shader,
                                bool clamp_block_indices)
    : shader(shader), clamp_block_indices(clamp_block_indices),
      struct_field(NULL), variable(NULL)
@@ -105,7 +105,7 @@ public:
    ir_call *check_for_ssbo_atomic_intrinsic(ir_call *ir);
    ir_visitor_status visit_enter(ir_call *ir);
 
-   struct gl_shader *shader;
+   struct gl_linked_shader *shader;
    bool clamp_block_indices;
    struct gl_uniform_buffer_variable *ubo_var;
    const struct glsl_struct_field *struct_field;
@@ -1090,7 +1090,7 @@ lower_ubo_reference_visitor::visit_enter(ir_call *ir)
 } /* unnamed namespace */
 
 void
-lower_ubo_reference(struct gl_shader *shader, bool clamp_block_indices)
+lower_ubo_reference(struct gl_linked_shader *shader, bool clamp_block_indices)
 {
    lower_ubo_reference_visitor v(shader, clamp_block_indices);
 

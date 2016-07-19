@@ -129,7 +129,7 @@ meta_compile_shader_with_debug(struct gl_context *ctx, gl_shader_stage stage,
    const GLuint name = ~0;
    struct gl_shader *sh;
 
-   sh = ctx->Driver.NewShader(ctx, name, stage);
+   sh = _mesa_new_shader(name, stage);
    sh->Source = strdup(source);
    sh->CompileStatus = false;
    _mesa_compile_shader(ctx, sh);

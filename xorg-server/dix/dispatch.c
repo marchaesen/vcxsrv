@@ -112,7 +112,7 @@ int ProcInitialConnection();
 
 #include "windowstr.h"
 #include <X11/fonts/fontstruct.h>
-#include <X11/fonts/fontutil.h>
+#include <X11/fonts/libxfont2.h>
 #include "dixfontstr.h"
 #include "gcstruct.h"
 #include "selection.h"
@@ -155,7 +155,6 @@ static ClientPtr grabClient;
 
 #define GrabNone 0
 #define GrabActive 1
-#define GrabKickout 2
 static int grabState = GrabNone;
 static long grabWaiters[mskcnt];
 CallbackListPtr ServerGrabCallback = NULL;
@@ -248,15 +247,13 @@ void Dispatch(void);
 static int
 SmartScheduleClient(int *clientReady, int nready)
 {
-    ClientPtr pClient;
     int i;
     int client;
-    int bestPrio, best = 0;
+    ClientPtr pClient, best = NULL;
     int bestRobin, robin;
     long now = SmartScheduleTime;
     long idle;
 
-    bestPrio = -0x7fffffff;
     bestRobin = 0;
     idle = 2 * SmartScheduleSlice;
     for (i = 0; i < nready; i++) {
@@ -273,11 +270,16 @@ SmartScheduleClient(int *clientReady, int nready)
             (pClient->index -
              SmartLastIndex[pClient->smart_priority -
                             SMART_MIN_PRIORITY]) & 0xff;
-        if (pClient->smart_priority > bestPrio ||
-            (pClient->smart_priority == bestPrio && robin > bestRobin)) {
-            bestPrio = pClient->smart_priority;
+
+        /* pick the best client */
+        if (!best ||
+            pClient->priority > best->priority ||
+            (pClient->priority == best->priority &&
+             (pClient->smart_priority > best->smart_priority ||
+              (pClient->smart_priority == best->smart_priority && robin > bestRobin))))
+        {
+            best = pClient;
             bestRobin = robin;
-            best = client;
         }
 #ifdef SMART_DEBUG
         if ((now - SmartLastPrint) >= 5000)
@@ -290,8 +292,7 @@ SmartScheduleClient(int *clientReady, int nready)
         SmartLastPrint = now;
     }
 #endif
-    pClient = clients[best];
-    SmartLastIndex[bestPrio - SMART_MIN_PRIORITY] = pClient->index;
+    SmartLastIndex[best->smart_priority - SMART_MIN_PRIORITY] = best->index;
     /*
      * Set current client pointer
      */
@@ -316,7 +317,7 @@ SmartScheduleClient(int *clientReady, int nready)
     else {
         SmartScheduleSlice = SmartScheduleInterval;
     }
-    return best;
+    return best->index;
 }
 
 void
@@ -376,11 +377,6 @@ Dispatch(void)
             if (!client) {
                 /* KillClient can cause this to happen */
                 continue;
-            }
-            /* GrabServer activation can cause this to be true */
-            if (grabState == GrabKickout) {
-                grabState = GrabActive;
-                break;
             }
             isItTimeToYield = FALSE;
 
@@ -1104,7 +1100,7 @@ ProcGrabServer(ClientPtr client)
     rc = OnlyListenToOneClient(client);
     if (rc != Success)
         return rc;
-    grabState = GrabKickout;
+    grabState = GrabActive;
     grabClient = client;
 
     if (ServerGrabCallback) {
@@ -1331,7 +1327,7 @@ ProcQueryTextExtents(ClientPtr client)
             return BadLength;
         length--;
     }
-    if (!QueryTextExtents(pFont, length, (unsigned char *) &stuff[1], &info))
+    if (!xfont2_query_text_extents(pFont, length, (unsigned char *) &stuff[1], &info))
         return BadAlloc;
 
     reply.type = X_Reply;

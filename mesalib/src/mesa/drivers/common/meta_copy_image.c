@@ -101,9 +101,9 @@ make_view(struct gl_context *ctx, struct gl_texture_image *tex_image,
                                            0, internal_format,
                                            GL_NONE, GL_NONE);
 
-   if (!ctx->Driver.TestProxyTexImage(ctx, tex_obj->Target, 0, tex_format,
-                                      tex_image->Width, tex_image->Height,
-                                      tex_image->Depth, 0)) {
+   if (!ctx->Driver.TestProxyTexImage(ctx, tex_obj->Target, 1, 0, tex_format,
+                                      1, tex_image->Width, tex_image->Height,
+                                      tex_image->Depth)) {
       _mesa_DeleteTextures(1, view_tex_name);
       *view_tex_name = 0;
       return false;

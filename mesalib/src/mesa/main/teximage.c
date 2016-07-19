@@ -40,6 +40,7 @@
 #include "image.h"
 #include "imports.h"
 #include "macros.h"
+#include "mipmap.h"
 #include "multisample.h"
 #include "pixelstore.h"
 #include "state.h"
@@ -1253,25 +1254,63 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
  * and texturing will effectively be disabled.
  *
  * \param target  any texture target/type
+ * \param numLevels  number of mipmap levels in the texture or 0 if not known
  * \param level  as passed to glTexImage
  * \param format  the MESA_FORMAT_x for the tex image
+ * \param numSamples  number of samples per texel
  * \param width  as passed to glTexImage
  * \param height  as passed to glTexImage
  * \param depth  as passed to glTexImage
- * \param border  as passed to glTexImage
  * \return GL_TRUE if the image is acceptable, GL_FALSE if not acceptable.
  */
 GLboolean
-_mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target, GLint level,
-                          mesa_format format,
-                          GLint width, GLint height, GLint depth, GLint border)
+_mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target,
+                          GLuint numLevels, GLint level,
+                          mesa_format format, GLuint numSamples,
+                          GLint width, GLint height, GLint depth)
 {
+   uint64_t bytes, mbytes;
+
+   if (numLevels > 0) {
+      /* Compute total memory for a whole mipmap.  This is the path
+       * taken for glTexStorage(GL_PROXY_TEXTURE_x).
+       */
+      unsigned l;
+
+      assert(level == 0);
+
+      bytes = 0;
+
+      for (l = 0; l < numLevels; l++) {
+         GLint nextWidth, nextHeight, nextDepth;
+
+         bytes += _mesa_format_image_size64(format, width, height, depth);
+
+         if (_mesa_next_mipmap_level_size(target, 0, width, height, depth,
+                                          &nextWidth, &nextHeight,
+                                          &nextDepth)) {
+            width = nextWidth;
+            height = nextHeight;
+            depth = nextDepth;
+         } else {
+            break;
+         }
+      }
+   } else {
+      /* We just compute the size of one mipmap level.  This is the path
+       * taken for glTexImage(GL_PROXY_TEXTURE_x).
+       */
+      bytes = _mesa_format_image_size64(format, width, height, depth);
+   }
+
+   bytes *= _mesa_num_tex_faces(target);
+   bytes *= MAX2(1, numSamples);
+
+   mbytes = bytes / (1024 * 1024); /* convert to MB */
+
    /* We just check if the image size is less than MaxTextureMbytes.
     * Some drivers may do more specific checks.
     */
-   uint64_t bytes = _mesa_format_image_size64(format, width, height, depth);
-   uint64_t mbytes = bytes / (1024 * 1024); /* convert to MB */
-   mbytes *= _mesa_num_tex_faces(target);
    return mbytes <= (uint64_t) ctx->Const.MaxTextureMbytes;
 }
 
@@ -1307,6 +1346,7 @@ bool
 _mesa_format_no_online_compression(const struct gl_context *ctx, GLenum format)
 {
    return _mesa_is_astc_format(format) ||
+          _mesa_is_etc2_format(format) ||
           compressedteximage_only_format(ctx, format);
 }
 
@@ -1407,11 +1447,12 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
          break;
       case MESA_FORMAT_LAYOUT_ASTC:
          target_can_be_compresed =
-                             ctx->Extensions.KHR_texture_compression_astc_hdr;
+            ctx->Extensions.KHR_texture_compression_astc_hdr ||
+            ctx->Extensions.KHR_texture_compression_astc_sliced_3d;
 
          /* Throw an INVALID_OPERATION error if the target is TEXTURE_3D and
-          * and the hdr extension is not supported.
-          * See comment in switch case GL_TEXTURE_CUBE_MAP_ARRAY for more info.
+          * neither of the above extensions are supported. See comment in
+          * switch case GL_TEXTURE_CUBE_MAP_ARRAY for more info.
           */
          if (!target_can_be_compresed)
             return write_error(error, GL_INVALID_OPERATION);
@@ -2605,10 +2646,16 @@ check_rtt_cb(GLuint key, void *data, void *userData)
              att->Texture == texObj &&
              att->TextureLevel == level &&
              att->CubeMapFace == face) {
-            _mesa_update_texture_renderbuffer(ctx, ctx->DrawBuffer, att);
+            _mesa_update_texture_renderbuffer(ctx, fb, att);
             assert(att->Renderbuffer->TexImage);
             /* Mark fb status as indeterminate to force re-validation */
             fb->_Status = 0;
+
+            /* Make sure that the revalidation actually happens if this is
+             * being done to currently-bound buffers.
+             */
+            if (fb == ctx->DrawBuffer || fb == ctx->ReadBuffer)
+               ctx->NewState |= _NEW_BUFFERS;
          }
       }
    }
@@ -2942,8 +2989,8 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
 
    /* check that the texture won't take too much memory, etc */
    sizeOK = ctx->Driver.TestProxyTexImage(ctx, proxy_target(target),
-                                          level, texFormat,
-                                          width, height, depth, border);
+                                          0, level, texFormat, 1,
+                                          width, height, depth);
 
    if (_mesa_is_proxy_texture(target)) {
       /* Proxy texture: just clear or set state depending on error checking */
@@ -3639,8 +3686,8 @@ copyteximage(struct gl_context *ctx, GLuint dims,
    assert(texFormat != MESA_FORMAT_NONE);
 
    if (!ctx->Driver.TestProxyTexImage(ctx, proxy_target(target),
-                                      level, texFormat,
-                                      width, height, 1, border)) {
+                                      0, level, texFormat, 1,
+                                      width, height, 1)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY,
                   "glCopyTexImage%uD(image too large)", dims);
       return;
@@ -5379,8 +5426,8 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
    dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, 0,
          width, height, depth, 0);
 
-   sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 0, texFormat,
-         width, height, depth, 0);
+   sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 0, 0, texFormat,
+                                          samples, width, height, depth);
 
    if (_mesa_is_proxy_texture(target)) {
       if (samplesOK && dimensionsOK && sizeOK) {

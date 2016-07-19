@@ -68,7 +68,7 @@ _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
 				  struct gl_program *prog)
 {
    GLbitfield mask = prog->SamplersUsed;
-   struct gl_shader *shader =
+   struct gl_linked_shader *shader =
       shProg->_LinkedShaders[_mesa_program_enum_to_shader_stage(prog->Target)];
 
    assert(shader);

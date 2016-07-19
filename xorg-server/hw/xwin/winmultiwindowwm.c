@@ -122,6 +122,7 @@ typedef struct _WMInfo {
     xcb_atom_t atmWmTakeFocus;
     xcb_atom_t atmPrivMap;
     xcb_atom_t atmUtf8String;
+    xcb_atom_t atmNetWmName;
     xcb_ewmh_connection_t ewmh;
 } WMInfoRec, *WMInfoPtr;
 
@@ -382,43 +383,76 @@ static void
 GetWindowName(WMInfoPtr pWMInfo, xcb_window_t iWin, char **ppWindowName)
 {
     xcb_connection_t *conn = pWMInfo->conn;
-    xcb_get_property_cookie_t cookie;
-    xcb_icccm_get_text_property_reply_t reply;
-    char *pszWindowName;
-    char *pszClientMachine;
-    char hostname[HOST_NAME_MAX + 1];
+    char *pszWindowName = NULL;
 
     winDebug ("GetWindowName\n");
 
-    /* Intialize ppWindowName to NULL */
-    *ppWindowName = NULL;
+    /* Try to get window name from _NET_WM_NAME */
+    {
+        xcb_get_property_cookie_t cookie;
+        xcb_get_property_reply_t *reply;
 
-    /* Try to get window name */
-    cookie = xcb_icccm_get_wm_name(conn, iWin);
-    if (!xcb_icccm_get_wm_name_reply(conn, cookie, &reply, NULL)) {
-        ErrorF("GetWindowName - xcb_icccm_get_wm_name_reply failed.  No name.\n");
-        return;
+        cookie = xcb_get_property(pWMInfo->conn, FALSE, iWin,
+                                  pWMInfo->atmNetWmName,
+                                  XCB_GET_PROPERTY_TYPE_ANY, 0, INT_MAX);
+        reply = xcb_get_property_reply(pWMInfo->conn, cookie, NULL);
+        if (reply && (reply->type != XCB_NONE)) {
+            pszWindowName = strndup(xcb_get_property_value(reply),
+                                    xcb_get_property_value_length(reply));
+            free(reply);
+        }
     }
 
-    pszWindowName = Xutf8TextPropertyToString(pWMInfo, &reply);
-    xcb_icccm_get_text_property_reply_wipe(&reply);
+    /* Otherwise, try to get window name from WM_NAME */
+    if (!pszWindowName)
+        {
+            xcb_get_property_cookie_t cookie;
+            xcb_icccm_get_text_property_reply_t reply;
+
+            cookie = xcb_icccm_get_wm_name(conn, iWin);
+            if (!xcb_icccm_get_wm_name_reply(conn, cookie, &reply, NULL)) {
+                ErrorF("GetWindowName - xcb_icccm_get_wm_name_reply failed.  No name.\n");
+                *ppWindowName = NULL;
+                return;
+            }
+
+            pszWindowName = Xutf8TextPropertyToString(pWMInfo, &reply);
+            xcb_icccm_get_text_property_reply_wipe(&reply);
+        }
+
+    /* return the window name, unless... */
+    *ppWindowName = pszWindowName;
 
     if (g_fHostInTitle) {
+        xcb_get_property_cookie_t cookie;
+        xcb_icccm_get_text_property_reply_t reply;
+
         /* Try to get client machine name */
         cookie = xcb_icccm_get_wm_client_machine(conn, iWin);
         if (xcb_icccm_get_wm_client_machine_reply(conn, cookie, &reply, NULL)) {
+            char *pszClientMachine;
+            char *pszClientHostname;
+            char *dot;
+            char hostname[HOST_NAME_MAX + 1];
+
             pszClientMachine = Xutf8TextPropertyToString(pWMInfo, &reply);
             xcb_icccm_get_text_property_reply_wipe(&reply);
 
+            /* If client machine name looks like a FQDN, find the hostname */
+            pszClientHostname = strdup(pszClientMachine);
+            dot = strchr(pszClientHostname, '.');
+            if (dot)
+                *dot = '\0';
+
             /*
-               If we have a client machine name
-               and it's not the local host name
+               If we have a client machine hostname
+               and it's not the local hostname
                and it's not already in the window title...
              */
-            if (strlen(pszClientMachine) &&
+            if (strlen(pszClientHostname) &&
                 !gethostname(hostname, HOST_NAME_MAX + 1) &&
-                strcmp(hostname, pszClientMachine) &&
-                (strstr(pszWindowName, pszClientMachine) == 0)) {
+                strcmp(hostname, pszClientHostname) &&
+                (strstr(pszWindowName, pszClientHostname) == 0)) {
                 /* ... add '@<clientmachine>' to end of window name */
                 *ppWindowName =
                     malloc(strlen(pszWindowName) +
@@ -428,15 +462,12 @@ GetWindowName(WMInfoPtr pWMInfo, xcb_window_t iWin, char **ppWindowName)
                 strcat(*ppWindowName, pszClientMachine);
 
                 free(pszWindowName);
-                free(pszClientMachine);
-
-                return;
             }
+
+            free(pszClientMachine);
+            free(pszClientHostname);
         }
     }
-
-    /* otherwise just return the window name */
-    *ppWindowName = pszWindowName;
 }
 
 /*
@@ -990,6 +1021,7 @@ winMultiWindowXMsgProc(void *pArg)
     char pszDisplay[512];
     int iRetries;
     xcb_atom_t atmWmName;
+    xcb_atom_t atmNetWmName;
     xcb_atom_t atmWmHints;
     xcb_atom_t atmWmChange;
     xcb_atom_t atmNetWmIcon;
@@ -1093,6 +1125,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     atmWmName = intern_atom(pProcArg->conn, "WM_NAME");
+    atmNetWmName = intern_atom(pProcArg->conn, "_NET_WM_NAME");
     atmWmHints = intern_atom(pProcArg->conn, "WM_HINTS");
     atmWmChange = intern_atom(pProcArg->conn, "WM_CHANGE_STATE");
     atmNetWmIcon = intern_atom(pProcArg->conn, "_NET_WM_ICON");
@@ -1235,7 +1268,8 @@ winMultiWindowXMsgProc(void *pArg)
         else if (type ==  XCB_PROPERTY_NOTIFY) {
             xcb_property_notify_event_t *notify = (xcb_property_notify_event_t *)event;
 
-            if (notify->atom == atmWmName) {
+            if ((notify->atom == atmWmName) ||
+                (notify->atom == atmNetWmName)) {
                 memset(&msg, 0, sizeof(msg));
 
                 msg.msg = WM_WM_NAME_EVENT;
@@ -1447,6 +1481,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     pWMInfo->atmWmTakeFocus = intern_atom(pWMInfo->conn, "WM_TAKE_FOCUS");
     pWMInfo->atmPrivMap = intern_atom(pWMInfo->conn, WINDOWSWM_NATIVE_HWND);
     pWMInfo->atmUtf8String = intern_atom(pWMInfo->conn, "UTF8_STRING");
+    pWMInfo->atmNetWmName = intern_atom(pWMInfo->conn, "_NET_WM_NAME");
 
     /* Initialization for the xcb_ewmh and EWMH atoms */
     {
@@ -1465,6 +1500,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                     pWMInfo->ewmh._NET_CLOSE_WINDOW,
                     pWMInfo->ewmh._NET_WM_WINDOW_TYPE,
                     pWMInfo->ewmh._NET_WM_WINDOW_TYPE_DOCK,
+                    pWMInfo->ewmh._NET_WM_WINDOW_TYPE_SPLASH,
                     pWMInfo->ewmh._NET_WM_STATE,
                     pWMInfo->ewmh._NET_WM_STATE_HIDDEN,
                     pWMInfo->ewmh._NET_WM_STATE_ABOVE,
@@ -1619,10 +1655,12 @@ winDeinitMultiWindowWM(void)
 static void
 winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
 {
+
     xcb_connection_t *conn = pWMInfo->conn;
     static xcb_atom_t windowState, motif_wm_hints;
     static xcb_atom_t hiddenState, fullscreenState, belowState, aboveState,
         skiptaskbarState;
+    static xcb_atom_t splashType;
     static int generation;
 
     unsigned long hint = 0, maxmin = 0;
@@ -1642,6 +1680,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         belowState = intern_atom(conn, "_NET_WM_STATE_BELOW");
         aboveState = intern_atom(conn, "_NET_WM_STATE_ABOVE");
         skiptaskbarState = intern_atom(conn, "_NET_WM_STATE_SKIP_TASKBAR");
+        splashType = intern_atom(conn, "_NET_WM_WINDOW_TYPE_SPLASHSCREEN");
     }
 
     {
@@ -1714,6 +1753,11 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
                 hint = (hint & ~HINT_NOFRAME) | HINT_SKIPTASKBAR | HINT_SIZEBOX;
                 *zstyle = HWND_TOPMOST;
             }
+            else if ((type.atoms[i] == pWMInfo->ewmh._NET_WM_WINDOW_TYPE_SPLASH)
+                     || (type.atoms[i] == splashType)) {
+                hint |= (HINT_SKIPTASKBAR | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
+                *zstyle = HWND_TOPMOST;
+            }
         }
       }
     }
@@ -1725,8 +1769,12 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         cookie = xcb_icccm_get_wm_normal_hints(conn, iWindow);
         if (xcb_icccm_get_wm_normal_hints_reply(conn, cookie, &size_hints, NULL)) {
             if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
-                /* Not maximizable if a maximum size is specified */
-                hint |= HINT_NOMAXIMIZE;
+
+                /* Not maximizable if a maximum size is specified, and that size
+                   is smaller (in either dimension) than the screen size */
+                if ((size_hints.max_width < GetSystemMetrics(SM_CXVIRTUALSCREEN))
+                    || (size_hints.max_height < GetSystemMetrics(SM_CYVIRTUALSCREEN)))
+                    hint |= HINT_NOMAXIMIZE;
 
                 if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
                     /*

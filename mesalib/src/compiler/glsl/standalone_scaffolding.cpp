@@ -68,11 +68,9 @@ _mesa_shader_debug(struct gl_context *, GLenum, GLuint *,
 }
 
 struct gl_shader *
-_mesa_new_shader(struct gl_context *ctx, GLuint name, gl_shader_stage stage)
+_mesa_new_shader(GLuint name, gl_shader_stage stage)
 {
    struct gl_shader *shader;
-
-   (void) ctx;
 
    assert(stage == MESA_SHADER_FRAGMENT || stage == MESA_SHADER_VERTEX);
    shader = rzalloc(NULL, struct gl_shader);
@@ -84,11 +82,31 @@ _mesa_new_shader(struct gl_context *ctx, GLuint name, gl_shader_stage stage)
    return shader;
 }
 
+struct gl_linked_shader *
+_mesa_new_linked_shader(gl_shader_stage stage)
+{
+   struct gl_linked_shader *shader;
+
+   assert(stage == MESA_SHADER_FRAGMENT || stage == MESA_SHADER_VERTEX);
+   shader = rzalloc(NULL, struct gl_linked_shader);
+   if (shader) {
+      shader->Stage = stage;
+   }
+   return shader;
+}
+
 void
 _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
 {
    free((void *)sh->Source);
    free(sh->Label);
+   ralloc_free(sh);
+}
+
+void
+_mesa_delete_linked_shader(struct gl_context *ctx,
+                           struct gl_linked_shader *sh)
+{
    ralloc_free(sh);
 }
 

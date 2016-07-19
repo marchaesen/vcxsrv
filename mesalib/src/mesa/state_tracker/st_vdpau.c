@@ -65,6 +65,7 @@ st_vdpau_video_surface_gallium(struct gl_context *ctx, const void *vdpSurface,
 
    struct pipe_video_buffer *buffer;
    struct pipe_sampler_view **samplers;
+   struct pipe_resource *res = NULL;
 
    getProcAddr = (void *)ctx->vdpGetProcAddress;
    if (getProcAddr(device, VDP_FUNC_ID_VIDEO_SURFACE_GALLIUM, (void**)&f))
@@ -82,7 +83,8 @@ st_vdpau_video_surface_gallium(struct gl_context *ctx, const void *vdpSurface,
    if (!sv)
       return NULL;
 
-   return sv->texture;
+   pipe_resource_reference(&res, sv->texture);
+   return res;
 }
 
 static struct pipe_resource *
@@ -90,13 +92,15 @@ st_vdpau_output_surface_gallium(struct gl_context *ctx, const void *vdpSurface)
 {
    int (*getProcAddr)(uint32_t device, uint32_t id, void **ptr);
    uint32_t device = (uintptr_t)ctx->vdpDevice;
+   struct pipe_resource *res = NULL;
    VdpOutputSurfaceGallium *f;
 
    getProcAddr = (void *)ctx->vdpGetProcAddress;
    if (getProcAddr(device, VDP_FUNC_ID_OUTPUT_SURFACE_GALLIUM, (void**)&f))
       return NULL;
 
-   return f((uintptr_t)vdpSurface);
+   pipe_resource_reference(&res, f((uintptr_t)vdpSurface));
+   return res;
 }
 
 static struct pipe_resource *
@@ -208,6 +212,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    /* do we have different screen objects ? */
    if (res->screen != st->pipe->screen) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "VDPAUMapSurfacesNV");
+      pipe_resource_reference(&res, NULL);
       return;
    }
 
@@ -241,6 +246,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    stObj->surface_format = res->format;
 
    _mesa_dirty_texobj(ctx, texObj);
+   pipe_resource_reference(&res, NULL);
 }
 
 static void

@@ -1693,6 +1693,17 @@
     </layout>
     <layout>
       <configItem>
+        <name>au</name>
+        <!-- Keyboard indicator for Australian layouts -->
+        <_shortDescription>en</_shortDescription>
+        <_description>English (Australian)</_description>
+        <languageList>
+          <iso639Id>eng</iso639Id>
+        </languageList>
+      </configItem>
+    </layout>
+    <layout>
+      <configItem>
         <name>az</name>
         <!-- Keyboard indicator for Azerbaijani layouts -->
         <_shortDescription>az</_shortDescription>

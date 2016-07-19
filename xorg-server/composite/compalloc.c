@@ -55,13 +55,13 @@ compScreenUpdate(ScreenPtr pScreen)
 }
 
 static void
-compBlockHandler(ScreenPtr pScreen, void *pTimeout, void *pReadmask)
+compBlockHandler(ScreenPtr pScreen, void *pTimeout)
 {
     CompScreenPtr cs = GetCompScreen(pScreen);
 
     pScreen->BlockHandler = cs->BlockHandler;
     compScreenUpdate(pScreen);
-    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
+    (*pScreen->BlockHandler) (pScreen, pTimeout);
 
     /* Next damage will restore the block handler */
     cs->BlockHandler = NULL;

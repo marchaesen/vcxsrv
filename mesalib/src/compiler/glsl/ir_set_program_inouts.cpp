@@ -125,7 +125,7 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
          if (stage == MESA_SHADER_FRAGMENT) {
             gl_fragment_program *fprog = (gl_fragment_program *) prog;
             fprog->InterpQualifier[idx] =
-               (glsl_interp_qualifier) var->data.interpolation;
+               (glsl_interp_mode) var->data.interpolation;
             if (var->data.centroid)
                fprog->IsCentroid |= bitfield;
             if (var->data.sample)

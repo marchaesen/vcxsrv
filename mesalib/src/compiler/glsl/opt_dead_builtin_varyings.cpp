@@ -85,7 +85,8 @@ public:
    {
       ir_variable *var = ir->variable_referenced();
 
-      if (!var || var->data.mode != this->mode || !var->type->is_array())
+      if (!var || var->data.mode != this->mode || !var->type->is_array() ||
+          !is_gl_identifier(var->name))
          return visit_continue;
 
       /* Only match gl_FragData[], not gl_SecondaryFragDataEXT[] */
@@ -272,7 +273,7 @@ public:
  */
 class replace_varyings_visitor : public ir_rvalue_visitor {
 public:
-   replace_varyings_visitor(struct gl_shader *sha,
+   replace_varyings_visitor(struct gl_linked_shader *sha,
                             const varying_info_visitor *info,
                             unsigned external_texcoord_usage,
                             unsigned external_color_usage,
@@ -499,7 +500,7 @@ public:
    }
 
 private:
-   struct gl_shader *shader;
+   struct gl_linked_shader *shader;
    const varying_info_visitor *info;
    ir_variable *new_fragdata[MAX_DRAW_BUFFERS];
    ir_variable *new_texcoord[MAX_TEXTURE_COORD_UNITS];
@@ -511,7 +512,7 @@ private:
 } /* anonymous namespace */
 
 static void
-lower_texcoord_array(struct gl_shader *shader, const varying_info_visitor *info)
+lower_texcoord_array(struct gl_linked_shader *shader, const varying_info_visitor *info)
 {
    replace_varyings_visitor(shader, info,
                             (1 << MAX_TEXTURE_COORD_UNITS) - 1,
@@ -519,7 +520,7 @@ lower_texcoord_array(struct gl_shader *shader, const varying_info_visitor *info)
 }
 
 static void
-lower_fragdata_array(struct gl_shader *shader)
+lower_fragdata_array(struct gl_linked_shader *shader)
 {
    varying_info_visitor info(ir_var_shader_out, true);
    info.get(shader->ir, 0, NULL);
@@ -530,7 +531,8 @@ lower_fragdata_array(struct gl_shader *shader)
 
 void
 do_dead_builtin_varyings(struct gl_context *ctx,
-                         gl_shader *producer, gl_shader *consumer,
+                         gl_linked_shader *producer,
+                         gl_linked_shader *consumer,
                          unsigned num_tfeedback_decls,
                          tfeedback_decl *tfeedback_decls)
 {

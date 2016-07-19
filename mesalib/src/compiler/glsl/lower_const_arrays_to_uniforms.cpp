@@ -57,12 +57,19 @@ public:
       return progress;
    }
 
+   ir_visitor_status visit_enter(ir_texture *);
    void handle_rvalue(ir_rvalue **rvalue);
 
 private:
    exec_list *instructions;
    bool progress;
 };
+
+ir_visitor_status
+lower_const_array_visitor::visit_enter(ir_texture *)
+{
+   return visit_continue_with_parent;
+}
 
 void
 lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)

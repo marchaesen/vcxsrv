@@ -360,8 +360,8 @@ NoopDDA(void)
 }
 
 typedef struct _BlockHandler {
-    BlockHandlerProcPtr BlockHandler;
-    WakeupHandlerProcPtr WakeupHandler;
+    ServerBlockHandlerProcPtr BlockHandler;
+    ServerWakeupHandlerProcPtr WakeupHandler;
     void *blockData;
     Bool deleted;
 } BlockHandlerRec, *BlockHandlerPtr;
@@ -378,23 +378,20 @@ static Bool handlerDeleted;
  *  \param pReadMask  nor how it represents the det of descriptors
  */
 void
-BlockHandler(void *pTimeout, void *pReadmask)
+BlockHandler(void *pTimeout)
 {
     int i, j;
 
     ++inHandler;
     for (i = 0; i < numHandlers; i++)
         if (!handlers[i].deleted)
-            (*handlers[i].BlockHandler) (handlers[i].blockData,
-                                         pTimeout, pReadmask);
+            (*handlers[i].BlockHandler) (handlers[i].blockData, pTimeout);
 
     for (i = 0; i < screenInfo.numGPUScreens; i++)
-        (*screenInfo.gpuscreens[i]->BlockHandler) (screenInfo.gpuscreens[i],
-                                                   pTimeout, pReadmask);
+        (*screenInfo.gpuscreens[i]->BlockHandler) (screenInfo.gpuscreens[i], pTimeout);
 
     for (i = 0; i < screenInfo.numScreens; i++)
-        (*screenInfo.screens[i]->BlockHandler) (screenInfo.screens[i],
-                                                pTimeout, pReadmask);
+        (*screenInfo.screens[i]->BlockHandler) (screenInfo.screens[i], pTimeout);
 
     if (handlerDeleted) {
         for (i = 0; i < numHandlers;)
@@ -416,21 +413,18 @@ BlockHandler(void *pTimeout, void *pReadmask)
  *  \param pReadmask the resulting descriptor mask
  */
 void
-WakeupHandler(int result, void *pReadmask)
+WakeupHandler(int result)
 {
     int i, j;
 
     ++inHandler;
     for (i = 0; i < screenInfo.numScreens; i++)
-        (*screenInfo.screens[i]->WakeupHandler) (screenInfo.screens[i],
-                                                 result, pReadmask);
+        (*screenInfo.screens[i]->WakeupHandler) (screenInfo.screens[i], result);
     for (i = 0; i < screenInfo.numGPUScreens; i++)
-        (*screenInfo.gpuscreens[i]->WakeupHandler) (screenInfo.gpuscreens[i],
-                                                    result, pReadmask);
+        (*screenInfo.gpuscreens[i]->WakeupHandler) (screenInfo.gpuscreens[i], result);
     for (i = numHandlers - 1; i >= 0; i--)
         if (!handlers[i].deleted)
-            (*handlers[i].WakeupHandler) (handlers[i].blockData,
-                                          result, pReadmask);
+            (*handlers[i].WakeupHandler) (handlers[i].blockData, result);
     if (handlerDeleted) {
         for (i = 0; i < numHandlers;)
             if (handlers[i].deleted) {
@@ -450,8 +444,8 @@ WakeupHandler(int result, void *pReadmask)
  * get called until next time
  */
 Bool
-RegisterBlockAndWakeupHandlers(BlockHandlerProcPtr blockHandler,
-                               WakeupHandlerProcPtr wakeupHandler,
+RegisterBlockAndWakeupHandlers(ServerBlockHandlerProcPtr blockHandler,
+                               ServerWakeupHandlerProcPtr wakeupHandler,
                                void *blockData)
 {
     BlockHandlerPtr new;
@@ -473,8 +467,8 @@ RegisterBlockAndWakeupHandlers(BlockHandlerProcPtr blockHandler,
 }
 
 void
-RemoveBlockAndWakeupHandlers(BlockHandlerProcPtr blockHandler,
-                             WakeupHandlerProcPtr wakeupHandler,
+RemoveBlockAndWakeupHandlers(ServerBlockHandlerProcPtr blockHandler,
+                             ServerWakeupHandlerProcPtr wakeupHandler,
                              void *blockData)
 {
     int i;

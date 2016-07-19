@@ -448,11 +448,11 @@ ir_reader::read_declaration(s_expression *expr)
       } else if (strcmp(qualifier->value(), "stream3") == 0) {
 	 var->data.stream = 3;
       } else if (strcmp(qualifier->value(), "smooth") == 0) {
-	 var->data.interpolation = INTERP_QUALIFIER_SMOOTH;
+	 var->data.interpolation = INTERP_MODE_SMOOTH;
       } else if (strcmp(qualifier->value(), "flat") == 0) {
-	 var->data.interpolation = INTERP_QUALIFIER_FLAT;
+	 var->data.interpolation = INTERP_MODE_FLAT;
       } else if (strcmp(qualifier->value(), "noperspective") == 0) {
-	 var->data.interpolation = INTERP_QUALIFIER_NOPERSPECTIVE;
+	 var->data.interpolation = INTERP_MODE_NOPERSPECTIVE;
       } else {
 	 ir_read_error(expr, "unknown qualifier: %s", qualifier->value());
 	 return NULL;

@@ -127,24 +127,10 @@ InputThreadFillPipe(int writeHead)
 {
     int ret;
     char byte = 0;
-    fd_set writePipe;
 
-    FD_ZERO(&writePipe);
-
-    while (1) {
+    do {
         ret = write(writeHead, &byte, 1);
-        if (!ret)
-            FatalError("input-thread: write() returned 0");
-        if (ret > 0)
-            break;
-
-        if (errno != EAGAIN)
-            FatalError("input-thread: filling pipe");
-
-        DebugF("input-thread: pipe full\n");
-        FD_SET(writeHead, &writePipe);
-        Select(writeHead + 1, NULL, &writePipe, NULL, NULL);
-    }
+    } while (ret < 0 && ETEST(errno));
 }
 
 /**

@@ -102,20 +102,6 @@ typedef struct _connectionOutput {
 static ConnectionInputPtr AllocateInputBuffer(void);
 static ConnectionOutputPtr AllocateOutputBuffer(void);
 
-/* If EAGAIN and EWOULDBLOCK are distinct errno values, then we check errno
- * for both EAGAIN and EWOULDBLOCK, because some supposedly POSIX
- * systems are broken and return EWOULDBLOCK when they should return EAGAIN
- */
-#ifndef WIN32
-# if (EAGAIN != EWOULDBLOCK)
-#  define ETEST(err) (err == EAGAIN || err == EWOULDBLOCK)
-# else
-#  define ETEST(err) (err == EAGAIN)
-# endif
-#else   /* WIN32 The socket errorcodes differ from the normal errors */
-#define ETEST(err) (err == EAGAIN || err == WSAEWOULDBLOCK)
-#endif
-
 static Bool CriticalOutputPending;
 static int timesThisConnection = 0;
 static ConnectionInputPtr FreeInputs = (ConnectionInputPtr) NULL;

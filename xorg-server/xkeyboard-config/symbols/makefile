@@ -10,7 +10,7 @@ DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\$(THISDIR)
 
 dist_symbols_DATA = \
 af al am apl \
-ara at az \
+ara at au az \
 ba bd be \
 bg bn br brai \
 bt bw by \

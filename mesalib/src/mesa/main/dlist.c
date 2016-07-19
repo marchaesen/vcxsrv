@@ -10086,15 +10086,12 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
 
    if (!islist(ctx, list)) {
       fprintf(f, "%u is not a display list ID\n", list);
-      return;
+      goto out;
    }
 
    dlist = _mesa_lookup_list(ctx, list);
    if (!dlist) {
-      if (fname) {
-         fclose(f);
-      }
-      return;
+      goto out;
    }
 
    n = dlist->Head;
@@ -10366,7 +10363,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
                printf
                   ("ERROR IN DISPLAY LIST: opcode = %d, address = %p\n",
                    opcode, (void *) n);
-               return;
+               goto out;
             }
             else {
                fprintf(f, "command %d, %u operands\n", opcode,
@@ -10380,6 +10377,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
       }
    }
 
+ out:
    fflush(f);
    if (fname)
       fclose(f);

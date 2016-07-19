@@ -221,8 +221,7 @@ xf86RotateRedisplay(ScreenPtr pScreen)
 }
 
 static void
-xf86RotateBlockHandler(ScreenPtr pScreen,
-                       void *pTimeout, void *pReadmask)
+xf86RotateBlockHandler(ScreenPtr pScreen, void *pTimeout)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
@@ -235,7 +234,7 @@ xf86RotateBlockHandler(ScreenPtr pScreen,
 
     xf86RotateRedisplay(pScreen);
 
-    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
+    (*pScreen->BlockHandler) (pScreen, pTimeout);
 
     /* Re-wrap if we still need this hook */
     if (xf86_config->rotation_damage != NULL) {

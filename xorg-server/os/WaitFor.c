@@ -147,13 +147,12 @@ WaitForSomething(int *pClientsReady)
 {
     int i;
     struct timeval waittime, *wt;
-    INT32 timeout = 0;
+    int timeout;
     fd_set clientsReadable;
     fd_set clientsWritable;
     int curclient;
     int selecterr;
     static int nready;
-    fd_set devicesReadable;
     CARD32 now = 0;
     Bool someReady = FALSE;
 
@@ -175,17 +174,15 @@ WaitForSomething(int *pClientsReady)
         if (workQueue)
             ProcessWorkQueue();
         if (XFD_ANYSET(&ClientsWithInput)) {
+            timeout = 0;
             someReady = TRUE;
-            waittime.tv_sec = 0;
-            waittime.tv_usec = 0;
-            wt = &waittime;
         }
         if (someReady) {
             XFD_COPYSET(&AllSockets, &LastSelectMask);
             XFD_UNSET(&LastSelectMask, &ClientsWithInput);
         }
         else {
-            wt = NULL;
+            timeout = -1;
             if (timers) {
                 now = GetTimeInMillis();
                 timeout = timers->expires - now;
@@ -198,10 +195,6 @@ WaitForSomething(int *pClientsReady)
                     timeout = timers->expires - now;
                     if (timeout < 0)
                         timeout = 0;
-                    waittime.tv_sec = timeout / MILLI_PER_SECOND;
-                    waittime.tv_usec = (timeout % MILLI_PER_SECOND) *
-                        (1000000 / MILLI_PER_SECOND);
-                    wt = &waittime;
                 }
             }
             if (!wt)
@@ -213,7 +206,15 @@ WaitForSomething(int *pClientsReady)
             XFD_COPYSET(&AllSockets, &LastSelectMask);
         }
 
-        BlockHandler((void *) &wt, (void *) &LastSelectMask);
+        BlockHandler(&timeout);
+        if (timeout < 0)
+            wt = NULL;
+        else {
+            waittime.tv_sec = timeout / MILLI_PER_SECOND;
+            waittime.tv_usec = (timeout % MILLI_PER_SECOND) *
+                (1000000 / MILLI_PER_SECOND);
+            wt = &waittime;
+        }
         if (NewOutputPending)
             FlushAllOutput();
         /* keep this check close to select() call to minimize race */
@@ -227,7 +228,7 @@ WaitForSomething(int *pClientsReady)
             i = Select(MaxClients, &LastSelectMask, NULL, NULL, wt);
         }
         selecterr = GetErrno();
-        WakeupHandler(i, (void *) &LastSelectMask);
+        WakeupHandler(i);
         if (i <= 0) {           /* An error or timeout occurred */
             if (dispatchException)
                 return 0;
@@ -305,14 +306,13 @@ WaitForSomething(int *pClientsReady)
                     AnyClientsWriteBlocked = FALSE;
             }
 
-            XFD_ANDSET(&devicesReadable, &LastSelectMask, &EnabledDevices);
             XFD_ANDSET(&clientsReadable, &LastSelectMask, &AllClients);
             XFD_ANDSET(&tmp_set, &LastSelectMask, &WellKnownConnections);
             if (XFD_ANYSET(&tmp_set))
                 QueueWorkProc(EstablishNewConnections, NULL,
                               (void *) &LastSelectMask);
 
-            if (XFD_ANYSET(&devicesReadable) || XFD_ANYSET(&clientsReadable))
+            if (XFD_ANYSET(&clientsReadable))
                 break;
             /* check here for DDXes that queue events during Block/Wakeup */
             if (*checkForInput[0] != *checkForInput[1])
@@ -324,17 +324,14 @@ WaitForSomething(int *pClientsReady)
     if (XFD_ANYSET(&clientsReadable)) {
 #ifndef WIN32
         for (i = 0; i < howmany(XFD_SETSIZE, NFDBITS); i++) {
-            int highest_priority = 0;
-
             while (clientsReadable.fds_bits[i]) {
-                int client_priority, client_index;
+                int client_index;
 
                 curclient = mffs(clientsReadable.fds_bits[i]) - 1;
                 client_index =  /* raphael: modified */
                     ConnectionTranslation[curclient +
                                           (i * (sizeof(fd_mask) * 8))];
 #else
-        int highest_priority = 0;
         fd_set savedClientsReadable;
 
         XFD_COPYSET(&clientsReadable, &savedClientsReadable);
@@ -344,33 +341,7 @@ WaitForSomething(int *pClientsReady)
             curclient = XFD_FD(&savedClientsReadable, i);
             client_index = GetConnectionTranslation(curclient);
 #endif
-            /*  We implement "strict" priorities.
-             *  Only the highest priority client is returned to
-             *  dix.  If multiple clients at the same priority are
-             *  ready, they are all returned.  This means that an
-             *  aggressive client could take over the server.
-             *  This was not considered a big problem because
-             *  aggressive clients can hose the server in so many
-             *  other ways :)
-             */
-            client_priority = clients[client_index]->priority;
-            if (nready == 0 || client_priority > highest_priority) {
-                /*  Either we found the first client, or we found
-                 *  a client whose priority is greater than all others
-                 *  that have been found so far.  Either way, we want
-                 *  to initialize the list of clients to contain just
-                 *  this client.
-                 */
-                pClientsReady[0] = client_index;
-                highest_priority = client_priority;
-                nready = 1;
-            }
-            /*  the following if makes sure that multiple same-priority
-             *  clients get batched together
-             */
-            else if (client_priority == highest_priority) {
-                pClientsReady[nready++] = client_index;
-            }
+            pClientsReady[nready++] = client_index;
 #ifndef WIN32
             clientsReadable.fds_bits[i] &= ~(((fd_mask) 1L) << curclient);
         }
@@ -384,6 +355,16 @@ WaitForSomething(int *pClientsReady)
         SmartScheduleStartTimer();
 
     return nready;
+}
+
+void
+AdjustWaitForDelay(void *waitTime, int newdelay)
+{
+    int *timeoutp = waitTime;
+    int timeout = *timeoutp;
+
+    if (timeout < 0 || newdelay < timeout)
+        *timeoutp = newdelay;
 }
 
 /* If time has rewound, re-run every affected timer.

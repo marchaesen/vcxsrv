@@ -222,7 +222,11 @@ initialize_context(struct gl_context *ctx, gl_api api)
    ctx->Const.GenerateTemporaryNames = true;
    ctx->Const.MaxPatchVertices = 32;
 
-   ctx->Driver.NewShader = _mesa_new_shader;
+   /* GL_ARB_explicit_uniform_location, GL_MAX_UNIFORM_LOCATIONS */
+   ctx->Const.MaxUserAssignableUniformLocations =
+      4 * MESA_SHADER_STAGES * MAX_UNIFORMS;
+
+   ctx->Driver.NewShader = _mesa_new_linked_shader;
 }
 
 /* Returned string will have 'ctx' as its ralloc owner. */
@@ -412,7 +416,7 @@ standalone_compile_shader(const struct standalone_options *_options,
       }
 
       for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-         struct gl_shader *shader = whole_program->_LinkedShaders[i];
+         struct gl_linked_shader *shader = whole_program->_LinkedShaders[i];
 
          if (!shader)
             continue;

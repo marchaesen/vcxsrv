@@ -99,13 +99,13 @@ dmxSyncCallback(OsTimerPtr timer, CARD32 time, void *arg)
 }
 
 static void
-dmxSyncBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadMask)
+dmxSyncBlockHandler(void *blockData, void *timeout)
 {
     TimerForce(dmxSyncTimer);
 }
 
 static void
-dmxSyncWakeupHandler(void *blockData, int result, void *pReadMask)
+dmxSyncWakeupHandler(void *blockData, int result)
 {
 }
 

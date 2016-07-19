@@ -63,14 +63,11 @@ static void ClientAwaken(ClientPtr /* client */ ,
 static int SertafiedDelete(void *  /* value */ ,
                            XID     /* id */
     );
-static void SertafiedBlockHandler(void *    /* data */ ,
-                                  OSTimePtr /* wt */ ,
-                                  void *    /* LastSelectMask */
-    );
-static void SertafiedWakeupHandler(void *   /* data */ ,
-                                   int      /* i */ ,
-                                   void *   /* LastSelectMask */
-    );
+static void SertafiedBlockHandler(void *data,
+                                  void *timeout);
+
+static void SertafiedWakeupHandler(void *data,
+                                   int i);
 
 int
 ClientSleepUntil(ClientPtr client,
@@ -154,7 +151,7 @@ SertafiedDelete(void *value, XID id)
 }
 
 static void
-SertafiedBlockHandler(void *data, OSTimePtr wt, void *LastSelectMask)
+SertafiedBlockHandler(void *data, void *wt)
 {
     SertafiedPtr pReq, pNext;
     unsigned long delay;
@@ -186,7 +183,7 @@ SertafiedBlockHandler(void *data, OSTimePtr wt, void *LastSelectMask)
 }
 
 static void
-SertafiedWakeupHandler(void *data, int i, void *LastSelectMask)
+SertafiedWakeupHandler(void *data, int i)
 {
     SertafiedPtr pReq, pNext;
     TimeStamp now;

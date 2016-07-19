@@ -51,7 +51,7 @@ class lower_shared_reference_visitor :
       public lower_buffer_access::lower_buffer_access {
 public:
 
-   lower_shared_reference_visitor(struct gl_shader *shader)
+   lower_shared_reference_visitor(struct gl_linked_shader *shader)
       : list_ctx(ralloc_context(NULL)), shader(shader), shared_size(0u)
    {
       list_inithead(&var_offsets);
@@ -88,7 +88,7 @@ public:
                          unsigned write_mask);
 
    void *list_ctx;
-   struct gl_shader *shader;
+   struct gl_linked_shader *shader;
    struct list_head var_offsets;
    unsigned shared_size;
    bool progress;
@@ -475,7 +475,7 @@ lower_shared_reference_visitor::visit_enter(ir_call *ir)
 } /* unnamed namespace */
 
 void
-lower_shared_reference(struct gl_shader *shader, unsigned *shared_size)
+lower_shared_reference(struct gl_linked_shader *shader, unsigned *shared_size)
 {
    if (shader->Stage != MESA_SHADER_COMPUTE)
       return;

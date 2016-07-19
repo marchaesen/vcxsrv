@@ -27,7 +27,6 @@
 #include <linux/input.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
-#include <X11/Xpoll.h>
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "kdrive.h"
@@ -444,6 +443,7 @@ EvdevKbdLeds(KdKeyboardInfo * ki, int leds)
 {
     struct input_event event;
     Kevdev             *ke;
+    int                i;
 
     if (!ki)
         return;
@@ -458,22 +458,26 @@ EvdevKbdLeds(KdKeyboardInfo * ki, int leds)
     event.type = EV_LED;
     event.code = LED_CAPSL;
     event.value = leds & (1 << 0) ? 1 : 0;
-    write(ke->fd, (char *) &event, sizeof(event));
+    i = write(ke->fd, (char *) &event, sizeof(event));
+    (void) i;
 
     event.type = EV_LED;
     event.code = LED_NUML;
     event.value = leds & (1 << 1) ? 1 : 0;
-    write(ke->fd, (char *) &event, sizeof(event));
+    i = write(ke->fd, (char *) &event, sizeof(event));
+    (void) i;
 
     event.type = EV_LED;
     event.code = LED_SCROLLL;
     event.value = leds & (1 << 2) ? 1 : 0;
-    write(ke->fd, (char *) &event, sizeof(event));
+    i = write(ke->fd, (char *) &event, sizeof(event));
+    (void) i;
 
     event.type = EV_LED;
     event.code = LED_COMPOSE;
     event.value = leds & (1 << 3) ? 1 : 0;
-    write(ke->fd, (char *) &event, sizeof(event));
+    i = write(ke->fd, (char *) &event, sizeof(event));
+    (void) i;
 }
 
 static void

@@ -38,6 +38,10 @@ check_PROGRAMS += test-migration
 test_migration_LDADD = $(top_builddir)/src/libfontconfig.la
 endif
 
+check_PROGRAMS += test-bz96676
+test_bz96676_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-bz96676
+
 EXTRA_DIST=$(check_SCRIPTS) $(TESTDATA)
 
 CLEANFILES=

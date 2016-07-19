@@ -527,12 +527,10 @@ void
  KdScreenToPointerCoords(int *x, int *y);
 
 void
-
-KdBlockHandler(ScreenPtr pScreen, void *timeout, void *readmask);
+KdBlockHandler(ScreenPtr pScreen, void *timeout);
 
 void
-
-KdWakeupHandler(ScreenPtr pScreen, unsigned long result, void *readmask);
+KdWakeupHandler(ScreenPtr pScreen, int result);
 
 void
  KdDisableInput(void);

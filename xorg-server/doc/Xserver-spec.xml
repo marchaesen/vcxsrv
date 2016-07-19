@@ -674,30 +674,22 @@ If WaitForSomething() decides it is about to do something that might block
 routine called BlockHandler().
 <blockquote>
 <programlisting>
-	void BlockHandler(pTimeout, pReadmask)
-		pointer pTimeout;
-		pointer pReadmask;
+	void BlockHandler(void *pTimeout)
 </programlisting>
 </blockquote>
 The types of the arguments are for agreement between the OS and DDX
 implementations,  but the pTimeout is a pointer to the information
-determining how long the block is allowed to last,  and the
-pReadmask is a pointer to the information describing the descriptors
-that will be waited on.
+determining how long the block is allowed to last.
 </para>
 <para>
-In the sample server,  pTimeout is a pointer,  and pReadmask is
-the address of the select() mask for reading.
+In the sample server,  pTimeout is a pointer.
 </para>
 <para>
 The DIX BlockHandler() iterates through the Screens,  for each one calling
 its BlockHandler.  A BlockHandler is declared thus:
 <blockquote>
 <programlisting>
-	void xxxBlockHandler(pScreen, pTimeout, pReadmask)
-		ScreenPtr pScreen;
-		pointer pTimeout;
-		pointer pReadmask;
+	void xxxBlockHandler(ScreenPtr pScreen, void *pTimeout)
 </programlisting>
 </blockquote>
 The arguments are a pointer to the Screen, and the arguments to the
@@ -709,27 +701,20 @@ block,  even if it didn't actually block,  it must call the DIX routine
 WakeupHandler().
 <blockquote>
 <programlisting>
-	void WakeupHandler(result, pReadmask)
-		int result;
-		pointer pReadmask;
+	void WakeupHandler(int result)
 </programlisting>
 </blockquote>
 Once again,  the types are not specified by DIX.  The result is the
-success indicator for the thing that (may have) blocked,
-and the pReadmask is a mask of the descriptors that came active.
-In the sample server,  result is the result from select() (or equivalent
-operating system function),  and pReadmask is
-the address of the select() mask for reading.
+success indicator for the thing that (may have) blocked.
+In the sample server, result is the result from select() (or equivalent
+operating system function).
 </para>
 <para>
 The DIX WakeupHandler() calls each Screen's
 WakeupHandler.  A WakeupHandler is declared thus:
 <blockquote>
 <programlisting>
-	void xxxWakeupHandler(pScreen, result, pReadmask)
-		ScreenPtr pScreen;
-		unsigned long result;
-		pointer pReadmask;
+	void xxxWakeupHandler(ScreenPtr pScreen, int result)
 </programlisting>
 </blockquote>
 The arguments are the Screen, of the Screen, and the arguments to
@@ -741,8 +726,8 @@ block and wakeup handlers (only together) using:
 <blockquote>
 <programlisting>
 	Bool RegisterBlockAndWakeupHandlers (blockHandler, wakeupHandler, blockData)
-		BlockHandlerProcPtr    blockHandler;
-		WakeupHandlerProcPtr   wakeupHandler;
+		ServerBlockHandlerProcPtr    blockHandler;
+		ServerWakeupHandlerProcPtr   wakeupHandler;
 		pointer blockData;
 </programlisting>
 </blockquote>
@@ -752,8 +737,8 @@ memory.  To remove a registered Block handler at other than server reset time
 <blockquote>
 <programlisting>
 	RemoveBlockAndWakeupHandlers (blockHandler, wakeupHandler, blockData)
-		BlockHandlerProcPtr   blockHandler;
-		WakeupHandlerProcPtr  wakeupHandler;
+		ServerBlockHandlerProcPtr   blockHandler;
+		ServerWakeupHandlerProcPtr  wakeupHandler;
 		pointer blockData;
 </programlisting>
 </blockquote>
@@ -761,18 +746,15 @@ All three arguments must match the values passed to
 RegisterBlockAndWakeupHandlers.
 </para>
 <para>
-These registered block handlers are called after the per-screen handlers:
+These registered block handlers are called before the per-screen handlers:
 <blockquote>
 <programlisting>
-	void (*BlockHandler) (blockData, pptv, pReadmask)
-		pointer	blockData;
-		OsTimerPtr pptv;
-		pointer	pReadmask;
+	void (*ServerBlockHandler) (void *blockData, void *pTimeout)
 </programlisting>
 </blockquote>
 </para>
 <para>
-Sometimes block handlers need to adjust the time in a OSTimePtr structure,
+Sometimes block handlers need to adjust the time referenced by pTimeout,
 which on UNIX family systems is generally represented by a struct timeval
 consisting of seconds and microseconds in 32 bit values.
 As a convenience to reduce error prone struct timeval computations which
@@ -780,20 +762,17 @@ require modulus arithmetic and correct overflow behavior in the face of
 millisecond wrapping through 32 bits,
 <blockquote><programlisting>
 
-	void AdjustWaitForDelay(pointer /*waitTime*, unsigned long /* newdelay */)
+	void AdjustWaitForDelay(void *pTimeout, unsigned long newdelay)
 
 </programlisting></blockquote>
 has been provided.
 </para>
 <para>
 Any wakeup handlers registered with RegisterBlockAndWakeupHandlers will
-be called before the Screen handlers:
+be called after the Screen handlers:
 <blockquote><programlisting>
 
-	void (*WakeupHandler) (blockData, err, pReadmask)
-		pointer	blockData;
-		int err;
-		pointer pReadmask;
+	void (*ServerWakeupHandler) (void *blockData, int result)
 </programlisting></blockquote>
 </para>
 <para>

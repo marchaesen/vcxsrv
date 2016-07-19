@@ -173,40 +173,38 @@ static Bool LinuxApmRunning;
 static void
 LinuxApmNotify(int fd, int mask, void *blockData)
 {
-    if (LinuxApmFd >= 0) {
-        apm_event_t event;
-        Bool running = LinuxApmRunning;
-        int cmd = APM_IOC_SUSPEND;
+    apm_event_t event;
+    Bool running = LinuxApmRunning;
+    int cmd = APM_IOC_SUSPEND;
 
-        while (read(LinuxApmFd, &event, sizeof(event)) == sizeof(event)) {
-            switch (event) {
-            case APM_SYS_STANDBY:
-            case APM_USER_STANDBY:
-                running = FALSE;
-                cmd = APM_IOC_STANDBY;
-                break;
-            case APM_SYS_SUSPEND:
-            case APM_USER_SUSPEND:
-            case APM_CRITICAL_SUSPEND:
-                running = FALSE;
-                cmd = APM_IOC_SUSPEND;
-                break;
-            case APM_NORMAL_RESUME:
-            case APM_CRITICAL_RESUME:
-            case APM_STANDBY_RESUME:
-                running = TRUE;
-                break;
-            }
+    while (read(fd, &event, sizeof(event)) == sizeof(event)) {
+        switch (event) {
+        case APM_SYS_STANDBY:
+        case APM_USER_STANDBY:
+            running = FALSE;
+            cmd = APM_IOC_STANDBY;
+            break;
+        case APM_SYS_SUSPEND:
+        case APM_USER_SUSPEND:
+        case APM_CRITICAL_SUSPEND:
+            running = FALSE;
+            cmd = APM_IOC_SUSPEND;
+            break;
+        case APM_NORMAL_RESUME:
+        case APM_CRITICAL_RESUME:
+        case APM_STANDBY_RESUME:
+            running = TRUE;
+            break;
         }
-        if (running && !LinuxApmRunning) {
-            KdResume();
-            LinuxApmRunning = TRUE;
-        }
-        else if (!running && LinuxApmRunning) {
-            KdSuspend();
-            LinuxApmRunning = FALSE;
-            ioctl(LinuxApmFd, cmd, 0);
-        }
+    }
+    if (running && !LinuxApmRunning) {
+        KdResume();
+        LinuxApmRunning = TRUE;
+    }
+    else if (!running && LinuxApmRunning) {
+        KdSuspend();
+        LinuxApmRunning = FALSE;
+        ioctl(fd, cmd, 0);
     }
 }
 

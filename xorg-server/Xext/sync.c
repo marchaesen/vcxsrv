@@ -2555,8 +2555,8 @@ static XSyncValue *pnext_time;
 *** Server Block Handler
 *** code inspired by multibuffer extension (now deprecated)
  */
- /*ARGSUSED*/ static void
-ServertimeBlockHandler(void *env, struct timeval **wt, void *LastSelectMask)
+/*ARGSUSED*/ static void
+ServertimeBlockHandler(void *env, void *wt)
 {
     XSyncValue delay;
     unsigned long timeout;
@@ -2581,8 +2581,8 @@ ServertimeBlockHandler(void *env, struct timeval **wt, void *LastSelectMask)
 /*
 *** Wakeup Handler
  */
- /*ARGSUSED*/ static void
-ServertimeWakeupHandler(void *env, int rc, void *LastSelectMask)
+/*ARGSUSED*/ static void
+ServertimeWakeupHandler(void *env, int rc)
 {
     if (pnext_time) {
         GetTime();
@@ -2657,7 +2657,7 @@ IdleTimeQueryValue(void *pCounter, CARD64 * pValue_return)
 }
 
 static void
-IdleTimeBlockHandler(void *pCounter, struct timeval **wt, void *LastSelectMask)
+IdleTimeBlockHandler(void *pCounter, void *wt)
 {
     SyncCounter *counter = pCounter;
     IdleCounterPriv *priv = SysCounterGetPrivate(counter);
@@ -2750,7 +2750,7 @@ IdleTimeCheckBrackets(SyncCounter *counter, XSyncValue idle, XSyncValue *less, X
 }
 
 static void
-IdleTimeWakeupHandler(void *pCounter, int rc, void *LastSelectMask)
+IdleTimeWakeupHandler(void *pCounter, int rc)
 {
     SyncCounter *counter = pCounter;
     IdleCounterPriv *priv = SysCounterGetPrivate(counter);

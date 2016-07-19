@@ -253,7 +253,7 @@ ms_drm_socket_handler(int fd, int ready, void *data)
     if (data == NULL)
         return;
 
-    drmHandleEvent(ms->fd, &ms->event_context);
+    drmHandleEvent(fd, &ms->event_context);
 }
 
 /*

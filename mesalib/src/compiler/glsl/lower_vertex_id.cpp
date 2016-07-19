@@ -122,7 +122,7 @@ lower_vertex_id_visitor::visit(ir_dereference_variable *ir)
 }
 
 bool
-lower_vertex_id(gl_shader *shader)
+lower_vertex_id(gl_linked_shader *shader)
 {
    /* gl_VertexID only exists in the vertex shader.
     */
@@ -130,7 +130,7 @@ lower_vertex_id(gl_shader *shader)
       return false;
 
    ir_function_signature *const main_sig =
-      _mesa_get_main_function_signature(shader);
+      _mesa_get_main_function_signature(shader->symbols);
    if (main_sig == NULL) {
       assert(main_sig != NULL);
       return false;

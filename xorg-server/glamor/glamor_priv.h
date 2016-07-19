@@ -184,16 +184,7 @@ struct glamor_saved_procs {
     ScreenBlockHandlerProcPtr block_handler;
 };
 
-#define CACHE_FORMAT_COUNT 3
-
-#define CACHE_BUCKET_WCOUNT 4
-#define CACHE_BUCKET_HCOUNT 4
-
-#define GLAMOR_TICK_AFTER(t0, t1) 	\
-	(((int)(t1) - (int)(t0)) < 0)
-
 typedef struct glamor_screen_private {
-    unsigned int tick;
     enum glamor_gl_flavor gl_flavor;
     int glsl_version;
     Bool has_pack_invert;
@@ -213,10 +204,6 @@ typedef struct glamor_screen_private {
     int max_fbo_size;
 
     GLuint one_channel_format;
-
-    struct xorg_list
-        fbo_cache[CACHE_FORMAT_COUNT][CACHE_BUCKET_WCOUNT][CACHE_BUCKET_HCOUNT];
-    unsigned long fbo_cache_watermark;
 
     /* glamor point shader */
     glamor_program point_prog;
@@ -326,21 +313,10 @@ enum glamor_fbo_state {
 };
 
 typedef struct glamor_pixmap_fbo {
-    struct xorg_list list; /**< linked list pointers when in the fbo cache */
-    /** glamor_priv->tick number when this FBO will be expired from the cache. */
-    unsigned int expire;
     GLuint tex; /**< GL texture name */
     GLuint fb; /**< GL FBO name */
     int width; /**< width in pixels */
     int height; /**< height in pixels */
-    /**
-     * Flag for when texture contents might be shared with a
-     * non-glamor user.
-     *
-     * This is used to avoid putting textures used by other clients
-     * into the FBO cache.
-     */
-    Bool external;
     GLenum format; /**< GL format used to create the texture. */
     GLenum type; /**< GL type used to create the texture. */
 } glamor_pixmap_fbo;
@@ -568,10 +544,7 @@ glamor_pixmap_fbo *glamor_create_fbo(glamor_screen_private *glamor_priv, int w,
 void glamor_destroy_fbo(glamor_screen_private *glamor_priv,
                         glamor_pixmap_fbo *fbo);
 void glamor_pixmap_destroy_fbo(PixmapPtr pixmap);
-void glamor_init_pixmap_fbo(ScreenPtr screen);
-void glamor_fini_pixmap_fbo(ScreenPtr screen);
 Bool glamor_pixmap_fbo_fixup(ScreenPtr screen, PixmapPtr pixmap);
-void glamor_fbo_expire(glamor_screen_private *glamor_priv);
 
 /* Return whether 'picture' is alpha-only */
 static inline Bool glamor_picture_is_alpha(PicturePtr picture)

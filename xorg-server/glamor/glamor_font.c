@@ -55,7 +55,7 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
         privates = calloc(glamor_font_screen_count, sizeof (glamor_font_t));
         if (!privates)
             return NULL;
-        FontSetPrivate(font, glamor_font_private_index, privates);
+        xfont2_font_set_private(font, glamor_font_private_index, privates);
     }
 
     glamor_font = &privates[screen->myNum];
@@ -201,7 +201,7 @@ glamor_unrealize_font(ScreenPtr screen, FontPtr font)
             return TRUE;
 
     free(privates);
-    FontSetPrivate(font, glamor_font_private_index, NULL);
+    xfont2_font_set_private(font, glamor_font_private_index, NULL);
     return TRUE;
 }
 
@@ -214,7 +214,7 @@ glamor_font_init(ScreenPtr screen)
         return TRUE;
 
     if (glamor_font_generation != serverGeneration) {
-        glamor_font_private_index = AllocateFontPrivateIndex();
+        glamor_font_private_index = xfont2_allocate_font_private_index();
         if (glamor_font_private_index == -1)
             return FALSE;
         glamor_font_screen_count = 0;

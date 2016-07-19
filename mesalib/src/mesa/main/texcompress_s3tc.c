@@ -46,6 +46,8 @@
 #define DXTN_LIBNAME "dxtn.dll"
 #define RTLD_LAZY 0
 #define RTLD_GLOBAL 0
+#elif defined(__CYGWIN__)
+#define DXTN_LIBNAME "cygtxc_dxtn.dll"
 #else
 #define DXTN_LIBNAME "libtxc_dxtn.so"
 #endif

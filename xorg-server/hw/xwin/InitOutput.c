@@ -203,7 +203,7 @@ ddxGiveUp(enum ExitCode error)
 #endif
 
     if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
         g_fLogInited = TRUE;
     }
     LogClose(error);
@@ -642,7 +642,8 @@ OsVendorPreInit(int argc, char *argv[])
          * avoid the second call
          */
         g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
+
     }
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
@@ -704,6 +705,20 @@ OsVendorInit(void)
                     g_ScreenInfo[j].iE3BTimeout = WIN_E3B_OFF;
                 }
             }
+        }
+    }
+
+    /* Work out what the default resize setting should be, and apply it if it
+     was not explicitly specified */
+    {
+        int j;
+        for (j = 0; j < g_iNumScreens; j++) {
+            if (g_ScreenInfo[j].iResizeMode == resizeDefault) {
+                if (g_ScreenInfo[j].fFullScreen)
+                    g_ScreenInfo[j].iResizeMode = resizeNotAllowed;
+                else
+                    g_ScreenInfo[j].iResizeMode = resizeWithRandr;
+                }
         }
     }
 }
@@ -887,7 +902,7 @@ ddxUseMsg(void)
 
     /* Log file will not be opened for UseMsg unless we open it now */
     if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
         g_fLogInited = TRUE;
     }
     LogClose(EXIT_NO_ERROR);

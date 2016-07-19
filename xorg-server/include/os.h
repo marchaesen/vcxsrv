@@ -151,19 +151,12 @@ extern _X_EXPORT void CheckConnections(void);
 
 extern _X_EXPORT void CloseDownConnection(ClientPtr /*client */ );
 
-extern _X_EXPORT void AddGeneralSocket(int /*fd */ );
-
-extern _X_EXPORT void RemoveGeneralSocket(int /*fd */ );
-
-extern _X_EXPORT void AddEnabledDevice(int /*fd */ );
-
-extern _X_EXPORT void RemoveEnabledDevice(int /*fd */ );
-
 typedef void (*NotifyFdProcPtr)(int fd, int ready, void *data);
 
-#define X_NOTIFY_NONE   0
-#define X_NOTIFY_READ   1
-#define X_NOTIFY_WRITE  2
+#define X_NOTIFY_NONE   0x0
+#define X_NOTIFY_READ   0x1
+#define X_NOTIFY_WRITE  0x2
+#define X_NOTIFY_ERROR  0x4     /* don't need to select for, always reported */
 
 extern _X_EXPORT Bool SetNotifyFd(int fd, NotifyFdProcPtr notify_fd, int mask, void *data);
 
@@ -195,8 +188,7 @@ extern void ForceClockId(clockid_t /* forced_clockid */);
 extern _X_EXPORT CARD32 GetTimeInMillis(void);
 extern _X_EXPORT CARD64 GetTimeInMicros(void);
 
-extern _X_EXPORT void AdjustWaitForDelay(void *waitTime,
-                                         unsigned long newdelay);
+extern _X_EXPORT void AdjustWaitForDelay(void *waitTime, int newdelay);
 
 typedef struct _OsTimerRec *OsTimerPtr;
 

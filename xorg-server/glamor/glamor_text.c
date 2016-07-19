@@ -446,16 +446,17 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
         glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
 
         if (width >= 0) {
-            box.x1 = off_x + drawable->x + x;
-            box.x2 = off_x + drawable->x + x + width;
+            box.x1 = drawable->x + x;
+            box.x2 = drawable->x + x + width;
         } else {
-            box.x1 = off_x + drawable->x + x + width;
-            box.x2 = off_x + drawable->x + x;
+            box.x1 = drawable->x + x + width;
+            box.x2 = drawable->x + x;
         }
-        box.y1 = off_y + drawable->y + y - gc->font->info.fontAscent;
-        box.y2 = off_y + drawable->y + y + gc->font->info.fontDescent;
+        box.y1 = drawable->y + y - gc->font->info.fontAscent;
+        box.y2 = drawable->y + y + gc->font->info.fontDescent;
         RegionInit(&region, &box, 1);
         RegionIntersect(&region, &region, gc->pCompositeClip);
+        RegionTranslate(&region, off_x, off_y);
         glamor_solid_boxes(pixmap, RegionRects(&region), RegionNumRects(&region), gc->bgPixel);
         RegionUninit(&region);
     }

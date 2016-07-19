@@ -289,7 +289,7 @@ flatten_named_interface_blocks_declarations::handle_rvalue(ir_rvalue **rvalue)
 }
 
 void
-lower_named_interface_blocks(void *mem_ctx, gl_shader *shader)
+lower_named_interface_blocks(void *mem_ctx, gl_linked_shader *shader)
 {
    flatten_named_interface_blocks_declarations v_decl(mem_ctx);
    v_decl.run(shader->ir);

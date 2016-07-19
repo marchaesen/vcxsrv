@@ -254,14 +254,11 @@ case "$host_os" in
 *-android)
     android=yes
     ;;
-linux*|*-gnu*|gnu*)
+linux*|*-gnu*|gnu*|cygwin*)
     DEFINES="$DEFINES -D_GNU_SOURCE"
     ;;
 solaris*)
     DEFINES="$DEFINES -DSVR4"
-    ;;
-cygwin*)
-    DEFINES="$DEFINES -D_XOPEN_SOURCE=700"
     ;;
 esac
 
@@ -825,9 +822,21 @@ dnl to -pthread, which causes problems if we need -lpthread to appear in
 dnl pkgconfig files.
 test -z "$PTHREAD_LIBS" && PTHREAD_LIBS="-lpthread"
 
-PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs)
-AC_SUBST(PTHREADSTUBS_CFLAGS)
-AC_SUBST(PTHREADSTUBS_LIBS)
+dnl pthread-stubs is mandatory on targets where it exists
+case "$host_os" in
+cygwin* )
+    pthread_stubs_possible="no"
+    ;;
+* )
+    pthread_stubs_possible="yes"
+    ;;
+esac
+
+if test "x$pthread_stubs_possible" = xyes; then
+    PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs)
+    AC_SUBST(PTHREADSTUBS_CFLAGS)
+    AC_SUBST(PTHREADSTUBS_LIBS)
+fi
 
 dnl SELinux awareness.
 AC_ARG_ENABLE([selinux],
@@ -1060,6 +1069,7 @@ xno)
     ;;
 esac
 
+AM_CONDITIONAL(HAVE_GLX, test "x$enable_glx" != xno)
 AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xdri)
 AM_CONDITIONAL(HAVE_XLIB_GLX, test "x$enable_glx" = xxlib)
 AM_CONDITIONAL(HAVE_GALLIUM_XLIB_GLX, test "x$enable_glx" = xgallium-xlib)
@@ -1638,9 +1648,9 @@ esac
 
 AC_ARG_WITH([vulkan-icddir],
     [AS_HELP_STRING([--with-vulkan-icddir=DIR],
-        [directory for the Vulkan driver icd files @<:@${sysconfdir}/vulkan/icd.d@:>@])],
+        [directory for the Vulkan driver icd files @<:@${datarootdir}/vulkan/icd.d@:>@])],
     [VULKAN_ICD_INSTALL_DIR="$withval"],
-    [VULKAN_ICD_INSTALL_DIR='${sysconfdir}/vulkan/icd.d'])
+    [VULKAN_ICD_INSTALL_DIR='${datarootdir}/vulkan/icd.d'])
 AC_SUBST([VULKAN_ICD_INSTALL_DIR])
 
 if test -n "$with_vulkan_drivers"; then
@@ -2182,7 +2192,7 @@ if test "x$enable_gallium_llvm" = xyes; then
         LLVM_COMPONENTS="engine bitwriter mcjit mcdisassembler"
 
         if test "x$enable_opencl" = xyes; then
-            llvm_check_version_for "3" "5" "0" "opencl"
+            llvm_check_version_for "3" "6" "0" "opencl"
 
             LLVM_COMPONENTS="${LLVM_COMPONENTS} all-targets ipo linker instrumentation"
             LLVM_COMPONENTS="${LLVM_COMPONENTS} irreader option objcarcopts profiledata"
@@ -2330,6 +2340,45 @@ swr_llvm_check() {
     fi
 }
 
+swr_require_cxx_feature_flags() {
+    feature_name="$1"
+    preprocessor_test="$2"
+    option_list="$3"
+    output_var="$4"
+
+    AC_MSG_CHECKING([whether $CXX supports $feature_name])
+    AC_LANG_PUSH([C++])
+    save_CXXFLAGS="$CXXFLAGS"
+    save_IFS="$IFS"
+    IFS=","
+    found=0
+    for opts in $option_list
+    do
+        unset IFS
+        CXXFLAGS="$opts $save_CXXFLAGS"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(
+                [   #if !($preprocessor_test)
+                    #error
+                    #endif
+                ])],
+            [found=1; break],
+            [])
+        IFS=","
+    done
+    IFS="$save_IFS"
+    CXXFLAGS="$save_CXXFLAGS"
+    AC_LANG_POP([C++])
+    if test $found -eq 1; then
+        AC_MSG_RESULT([$opts])
+        eval "$output_var=\$opts"
+        return 0
+    fi
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([swr requires $feature_name support])
+    return 1
+}
+
 dnl Duplicates in GALLIUM_DRIVERS_DIRS are removed by sorting it after this block
 if test -n "$with_gallium_drivers"; then
     gallium_drivers=`IFS=', '; echo $with_gallium_drivers`
@@ -2399,31 +2448,19 @@ if test -n "$with_gallium_drivers"; then
         xswr)
             swr_llvm_check "swr"
 
-            AC_MSG_CHECKING([whether $CXX supports c++11/AVX/AVX2])
-            SWR_AVX_CXXFLAGS="-mavx"
-            SWR_AVX2_CXXFLAGS="-mavx2 -mfma -mbmi2 -mf16c"
+            swr_require_cxx_feature_flags "C++11" "__cplusplus >= 201103L" \
+                ",-std=c++11" \
+                SWR_CXX11_CXXFLAGS
+            AC_SUBST([SWR_CXX11_CXXFLAGS])
 
-            AC_LANG_PUSH([C++])
-            save_CXXFLAGS="$CXXFLAGS"
-            CXXFLAGS="-std=c++11 $CXXFLAGS"
-            AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],[],
-                              [AC_MSG_ERROR([c++11 compiler support not detected])])
-            CXXFLAGS="$save_CXXFLAGS"
-
-            save_CXXFLAGS="$CXXFLAGS"
-            CXXFLAGS="$SWR_AVX_CXXFLAGS $CXXFLAGS"
-            AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],[],
-                              [AC_MSG_ERROR([AVX compiler support not detected])])
-            CXXFLAGS="$save_CXXFLAGS"
-
-            save_CFLAGS="$CXXFLAGS"
-            CXXFLAGS="$SWR_AVX2_CXXFLAGS $CXXFLAGS"
-            AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],[],
-                              [AC_MSG_ERROR([AVX2 compiler support not detected])])
-            CXXFLAGS="$save_CXXFLAGS"
-            AC_LANG_POP([C++])
-
+            swr_require_cxx_feature_flags "AVX" "defined(__AVX__)" \
+                ",-mavx,-march=core-avx" \
+                SWR_AVX_CXXFLAGS
             AC_SUBST([SWR_AVX_CXXFLAGS])
+
+            swr_require_cxx_feature_flags "AVX2" "defined(__AVX2__)" \
+                ",-mavx2 -mfma -mbmi2 -mf16c,-march=core-avx2" \
+                SWR_AVX2_CXXFLAGS
             AC_SUBST([SWR_AVX2_CXXFLAGS])
 
             HAVE_GALLIUM_SWR=yes
@@ -2592,6 +2629,8 @@ AC_SUBST([XA_MAJOR], $XA_MAJOR)
 AC_SUBST([XA_MINOR], $XA_MINOR)
 AC_SUBST([XA_TINY], $XA_TINY)
 AC_SUBST([XA_VERSION], "$XA_MAJOR.$XA_MINOR.$XA_TINY")
+
+AC_SUBST([TIMESTAMP_CMD], '`test $(SOURCE_DATE_EPOCH) && echo $(SOURCE_DATE_EPOCH) || date +%s`')
 
 AC_ARG_ENABLE(valgrind,
               [AS_HELP_STRING([--enable-valgrind],

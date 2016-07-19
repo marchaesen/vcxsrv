@@ -94,7 +94,7 @@ vector_deref_visitor::handle_rvalue(ir_rvalue **rv)
 }
 
 bool
-lower_vector_derefs(gl_shader *shader)
+lower_vector_derefs(gl_linked_shader *shader)
 {
    vector_deref_visitor v;
 

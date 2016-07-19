@@ -75,15 +75,18 @@ _mesa_reference_shader_program(struct gl_context *ctx,
       _mesa_reference_shader_program_(ctx, ptr, shProg);
 }
 
-
-extern void
-_mesa_init_shader(struct gl_context *ctx, struct gl_shader *shader);
-
 extern struct gl_shader *
-_mesa_new_shader(struct gl_context *ctx, GLuint name, gl_shader_stage type);
+_mesa_new_shader(GLuint name, gl_shader_stage type);
+
+extern struct gl_linked_shader *
+_mesa_new_linked_shader(gl_shader_stage type);
 
 extern void
 _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh);
+
+extern void
+_mesa_delete_linked_shader(struct gl_context *ctx,
+                           struct gl_linked_shader *sh);
 
 extern struct gl_shader_program *
 _mesa_lookup_shader_program(struct gl_context *ctx, GLuint name);

@@ -359,8 +359,32 @@
         </variant>
         <variant>
           <configItem>
+            <name>carpalx-intl</name>
+            <_description>English (Carpalx, international with dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>carpalx-altgr-intl</name>
+            <_description>English (Carpalx, international AltGr dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>carpalx-full</name>
             <_description>English (Carpalx, full optimization)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>carpalx-full-intl</name>
+            <_description>English (Carpalx, full optimization, international with dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>carpalx-full-altgr-intl</name>
+            <_description>English (Carpalx, full optimization, international AltGr dead keys)</_description>
           </configItem>
         </variant>
       </variantList>

@@ -30,9 +30,9 @@
 
 namespace {
    /*
-    * Atomic counter as seen by the program.
+    * Atomic counter uniform as seen by the program.
     */
-   struct active_atomic_counter {
+   struct active_atomic_counter_uniform {
       unsigned uniform_loc;
       ir_variable *var;
    };
@@ -44,44 +44,44 @@ namespace {
     */
    struct active_atomic_buffer {
       active_atomic_buffer()
-         : counters(0), num_counters(0), stage_references(), size(0)
+         : uniforms(0), num_uniforms(0), stage_counter_references(), size(0)
       {}
 
       ~active_atomic_buffer()
       {
-         free(counters);
+         free(uniforms);
       }
 
       void push_back(unsigned uniform_loc, ir_variable *var)
       {
-         active_atomic_counter *new_counters;
+         active_atomic_counter_uniform *new_uniforms;
 
-         new_counters = (active_atomic_counter *)
-            realloc(counters, sizeof(active_atomic_counter) *
-                    (num_counters + 1));
+         new_uniforms = (active_atomic_counter_uniform *)
+            realloc(uniforms, sizeof(active_atomic_counter_uniform) *
+                    (num_uniforms + 1));
 
-         if (new_counters == NULL) {
+         if (new_uniforms == NULL) {
             _mesa_error_no_memory(__func__);
             return;
          }
 
-         counters = new_counters;
-         counters[num_counters].uniform_loc = uniform_loc;
-         counters[num_counters].var = var;
-         num_counters++;
+         uniforms = new_uniforms;
+         uniforms[num_uniforms].uniform_loc = uniform_loc;
+         uniforms[num_uniforms].var = var;
+         num_uniforms++;
       }
 
-      active_atomic_counter *counters;
-      unsigned num_counters;
-      unsigned stage_references[MESA_SHADER_STAGES];
+      active_atomic_counter_uniform *uniforms;
+      unsigned num_uniforms;
+      unsigned stage_counter_references[MESA_SHADER_STAGES];
       unsigned size;
    };
 
    int
    cmp_actives(const void *a, const void *b)
    {
-      const active_atomic_counter *const first = (active_atomic_counter *) a;
-      const active_atomic_counter *const second = (active_atomic_counter *) b;
+      const active_atomic_counter_uniform *const first = (active_atomic_counter_uniform *) a;
+      const active_atomic_counter_uniform *const second = (active_atomic_counter_uniform *) b;
 
       return int(first->var->data.offset) - int(second->var->data.offset);
    }
@@ -103,9 +103,9 @@ namespace {
                            const unsigned shader_stage)
    {
       /* FIXME: Arrays of arrays get counted separately. For example:
-       * x1[3][3][2] = 9 counters
-       * x2[3][2]    = 3 counters
-       * x3[2]       = 1 counter
+       * x1[3][3][2] = 9 uniforms, 18 atomic counters
+       * x2[3][2]    = 3 uniforms, 6 atomic counters
+       * x3[2]       = 1 uniform, 2 atomic counters
        *
        * However this code marks all the counters as active even when they
        * might not be used.
@@ -129,7 +129,13 @@ namespace {
 
          buf->push_back(*uniform_loc, var);
 
-         buf->stage_references[shader_stage]++;
+         /* When checking for atomic counters we should count every member in
+          * an array as an atomic counter reference.
+          */
+         if (t->is_array())
+            buf->stage_counter_references[shader_stage] += t->length;
+         else
+            buf->stage_counter_references[shader_stage]++;
          buf->size = MAX2(buf->size, *offset + t->atomic_size());
 
          storage->offset = *offset;
@@ -150,7 +156,7 @@ namespace {
       *num_buffers = 0;
 
       for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
-         struct gl_shader *sh = prog->_LinkedShaders[i];
+         struct gl_linked_shader *sh = prog->_LinkedShaders[i];
          if (sh == NULL)
             continue;
 
@@ -170,22 +176,22 @@ namespace {
          if (buffers[i].size == 0)
             continue;
 
-         qsort(buffers[i].counters, buffers[i].num_counters,
-               sizeof(active_atomic_counter),
+         qsort(buffers[i].uniforms, buffers[i].num_uniforms,
+               sizeof(active_atomic_counter_uniform),
                cmp_actives);
 
-         for (unsigned j = 1; j < buffers[i].num_counters; j++) {
+         for (unsigned j = 1; j < buffers[i].num_uniforms; j++) {
             /* If an overlapping counter found, it must be a reference to the
              * same counter from a different shader stage.
              */
-            if (check_atomic_counters_overlap(buffers[i].counters[j-1].var,
-                                              buffers[i].counters[j].var)
-                && strcmp(buffers[i].counters[j-1].var->name,
-                          buffers[i].counters[j].var->name) != 0) {
+            if (check_atomic_counters_overlap(buffers[i].uniforms[j-1].var,
+                                              buffers[i].uniforms[j].var)
+                && strcmp(buffers[i].uniforms[j-1].var->name,
+                          buffers[i].uniforms[j].var->name) != 0) {
                linker_error(prog, "Atomic counter %s declared at offset %d "
                             "which is already in use.",
-                            buffers[i].counters[j].var->name,
-                            buffers[i].counters[j].var->data.offset);
+                            buffers[i].uniforms[j].var->name,
+                            buffers[i].uniforms[j].var->data.offset);
             }
          }
       }
@@ -223,16 +229,16 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
       mab.Binding = binding;
       mab.MinimumSize = ab.size;
       mab.Uniforms = rzalloc_array(prog->AtomicBuffers, GLuint,
-                                   ab.num_counters);
-      mab.NumUniforms = ab.num_counters;
+                                   ab.num_uniforms);
+      mab.NumUniforms = ab.num_uniforms;
 
       /* Assign counter-specific fields. */
-      for (unsigned j = 0; j < ab.num_counters; j++) {
-         ir_variable *const var = ab.counters[j].var;
+      for (unsigned j = 0; j < ab.num_uniforms; j++) {
+         ir_variable *const var = ab.uniforms[j].var;
          gl_uniform_storage *const storage =
-            &prog->UniformStorage[ab.counters[j].uniform_loc];
+            &prog->UniformStorage[ab.uniforms[j].uniform_loc];
 
-         mab.Uniforms[j] = ab.counters[j].uniform_loc;
+         mab.Uniforms[j] = ab.uniforms[j].uniform_loc;
          if (!var->data.explicit_binding)
             var->data.binding = i;
 
@@ -246,7 +252,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
 
       /* Assign stage-specific fields. */
       for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
-         if (ab.stage_references[j]) {
+         if (ab.stage_counter_references[j]) {
             mab.StageReferences[j] = GL_TRUE;
             num_atomic_buffers[j]++;
          } else {
@@ -314,7 +320,7 @@ link_check_atomic_counter_resources(struct gl_context *ctx,
          continue;
 
       for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
-         const unsigned n = abs[i].stage_references[j];
+         const unsigned n = abs[i].stage_counter_references[j];
 
          if (n) {
             atomic_counters[j] += n;

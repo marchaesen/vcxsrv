@@ -956,7 +956,7 @@ builtin_builder::create_shader()
     * GLSL utility code that could be linked against any stage, so just
     * arbitrarily pick GL_VERTEX_SHADER.
     */
-   shader = _mesa_new_shader(NULL, 0, MESA_SHADER_VERTEX);
+   shader = _mesa_new_shader(0, MESA_SHADER_VERTEX);
    shader->symbols = new(mem_ctx) glsl_symbol_table;
 
    gl_ModelViewProjectionMatrix =
@@ -5658,9 +5658,9 @@ _mesa_glsl_get_builtin_function_shader()
  * Get the function signature for main from a shader
  */
 ir_function_signature *
-_mesa_get_main_function_signature(gl_shader *sh)
+_mesa_get_main_function_signature(glsl_symbol_table *symbols)
 {
-   ir_function *const f = sh->symbols->get_function("main");
+   ir_function *const f = symbols->get_function("main");
    if (f != NULL) {
       exec_list void_parameters;
 

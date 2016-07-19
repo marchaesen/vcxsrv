@@ -714,8 +714,9 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
       return;
    }
 
-   sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 0, texFormat,
-                                          width, height, depth, 0);
+   sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 1, 0, texFormat,
+                                          origTexImage->NumSamples,
+                                          width, height, depth);
    if (!sizeOK) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glTextureView(invalid texture size)");

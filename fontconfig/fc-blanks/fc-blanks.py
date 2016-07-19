@@ -2,7 +2,13 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-import urllib2
+try:
+    from urllib2 import urlopen
+    from urllib2 import URLError
+except ImportError:
+    from urllib.request import urlopen
+    from urllib.error import URLError
+
 import sys
 import os
 from lxml import html
@@ -10,13 +16,13 @@ from six.moves import range
 
 datafile = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'list-unicodeset.html')
 try:
-    fp = urllib2.urlopen('http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%3AGC%3DZs%3A][%3ADI%3A]&abb=on&ucd=on&esc=on&g')
+    fp = urlopen('http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%3AGC%3DZs%3A][%3ADI%3A]&abb=on&ucd=on&esc=on&g')
     data = fp.read()
     fp.close()
-    fp = open(datafile, 'w');
+    fp = open(datafile, 'wb');
     fp.write(data);
     fp.close();
-except urllib2.URLError:
+except URLError:
     # fall back reading the static data in repo
     try:
         fp = open(datafile)

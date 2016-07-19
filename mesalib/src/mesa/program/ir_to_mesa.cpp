@@ -2469,7 +2469,7 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 void
 _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 					    *shader_program,
-					    struct gl_shader *sh,
+					    struct gl_linked_shader *sh,
 					    struct gl_program_parameter_list
 					    *params)
 {
@@ -2779,7 +2779,7 @@ ir_to_mesa_visitor::copy_propagate(void)
 static struct gl_program *
 get_mesa_program(struct gl_context *ctx,
                  struct gl_shader_program *shader_program,
-		 struct gl_shader *shader)
+		 struct gl_linked_shader *shader)
 {
    ir_to_mesa_visitor v;
    struct prog_instruction *mesa_instructions, *mesa_inst;

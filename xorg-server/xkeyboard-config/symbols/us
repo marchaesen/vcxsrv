@@ -1442,6 +1442,102 @@ xkb_symbols "carpalx" {
 };
 
 // Carpalx layout created by Martin Krzywinski
+// http://mkweb.bcgsc.ca/carpalx/
+// Merged with us(intl) and modified to move
+// accented vowels closer to the plain vowels
+
+partial alphanumeric_keys
+xkb_symbols "carpalx-intl" {
+
+    include "us(carpalx)"
+    name[Group1]= "English (Carpalx, international with dead keys)";
+
+    key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
+    key <AE01> { [	   1,     exclam,    exclamdown,      onesuperior ] };
+    key <AE02> { [	   2,         at,   twosuperior, dead_doubleacute ] };
+    key <AE03> { [	   3, numbersign, threesuperior,      dead_macron ] };
+    key <AE04> { [	   4,     dollar,      currency,         sterling ] };
+    key <AE05> { [	   5,    percent,      EuroSign,     dead_cedilla ] };
+    key <AE06> { [    6, dead_circumflex,    onequarter,      asciicircum ] };
+    key <AE07> { [	   7,  ampersand,       onehalf,	dead_horn ] };
+    key <AE08> { [	   8,   asterisk, threequarters,      dead_ogonek ] };
+    key <AE09> { [	   9,  parenleft, leftsinglequotemark, dead_breve ] };
+    key <AE10> { [	   0, parenright, rightsinglequotemark, dead_abovering ] };
+    key <AE11> { [     minus, underscore,           yen,    dead_belowdot ] };
+    key <AE12> { [     equal,       plus,      multiply,         division ] };
+
+    key <AD01> { [	   q,          Q,        degree,        paragraph ] };
+    key <AD02> { [	   g,          G,         U011F,            U011E ] };
+    key <AD03> { [	   m,          M,            mu,               mu ] };
+    key <AD04> { [	   l,          L,     copyright,             cent ] };
+    key <AD05> { [	   w,          W,             w,                W ] };
+    key <AD06> { [	   y,          Y,    idiaeresis,       Idiaeresis ] };
+    key <AD07> { [	   f,          F,    adiaeresis,       Adiaeresis ] };
+    key <AD08> { [	   u,          U,    udiaeresis,       Udiaeresis ] };
+    key <AD09> { [	   b,          B,    odiaeresis,       Odiaeresis ] };
+    key <AD10> { [ semicolon,      colon,        oslash,         Ooblique ] };
+    key <AD11> { [ bracketleft,  braceleft,  guillemotleft, leftdoublequotemark ] };
+    key <AD12> { [bracketright, braceright, guillemotright, rightdoublequotemark ] };
+
+    key <AC01> { [	   d,          D,           eth,              ETH ] };
+    key <AC02> { [	   s,          S,        ssharp,          section ] };
+    key <AC03> { [	   t,          T,         thorn,            THORN ] };
+    key <AC04> { [	   n,          N,        ntilde,           Ntilde ] };
+    key <AC05> { [	   r,          R,    registered,       registered ] };
+    key <AC06> { [	   i,          I,        iacute,           Iacute ] };
+    key <AC07> { [	   a,          A,        aacute,           Aacute ] };
+    key <AC08> { [	   e,          E,        eacute,           Eacute ] };
+    key <AC09> { [	   o,          O,        oacute,           Oacute ] };
+    key <AC10> { [	   h,          H,        uacute,           Uacute ] };
+    key <AC11> { [dead_acute, dead_diaeresis, apostrophe,        quotedbl ] };
+
+    key <AB01> { [	   z,          Z,             z,                Z ] };
+    key <AB02> { [	   x,          X,         U015F,            U015E ] };
+    key <AB03> { [	   c,          C,      ccedilla,         Ccedilla ] };
+    key <AB04> { [	   v,          V,            ae,               AE ] };
+    key <AB05> { [	   j,          J,            oe,               OE ] };
+    key <AB06> { [	   k,          K,         U0131,            U0130 ] };
+    key <AB07> { [	   p,          P,         aring,            Aring ] };
+    key <AB08> { [     comma,       less,    ediaeresis,       Ediaeresis ] };
+    key <AB09> { [    period,    greater, dead_abovedot,       dead_caron ] };
+    key <AB10> { [     slash,   question,  questiondown,        dead_hook ] };
+    key <BKSL> { [ backslash,        bar,       notsign,        brokenbar ] };
+
+    key <LSGT> { [ backslash,   bar,            backslash,      bar ] };
+
+    include "level3(ralt_switch)"
+};
+
+// Carpalx layout created by Martin Krzywinski
+// http://mkweb.bcgsc.ca/carpalx/
+// Merged with us(intl) and us(altgr-intl) and modified to move
+// accented vowels closer to the plain vowels
+
+partial alphanumeric_keys
+xkb_symbols "carpalx-altgr-intl" {
+
+   include "us(carpalx-intl)"
+   name[Group1]= "English (Carpalx, international AltGr dead keys)";
+
+// five dead keys moved into level3:
+
+   key <TLDE> { [    grave, asciitilde,  dead_grave,   dead_tilde      ] };
+   key <AC11> { [apostrophe,quotedbl,    dead_acute,   dead_diaeresis  ] };
+
+// diversions from the MS Intl keyboard:
+
+   key <AE01> { [        1, exclam,      onesuperior,  exclamdown      ] };
+
+// onequarter etc (not in iso8859-15) moved to get three unshifted deadkeys:
+
+   key <AE06> { [        6, asciicircum, dead_circumflex, onequarter    ] };
+   key <AE07> { [        7, ampersand,   dead_horn,       onehalf       ] };
+   key <AE08> { [        8, asterisk,    dead_ogonek,     threequarters ] };
+
+   include "level3(ralt_switch)"
+};
+
+// Carpalx layout created by Martin Krzywinski
 // Full optimization variant without fixed QWERTY-like ZXCV keys
 // http://mkweb.bcgsc.ca/carpalx/
 
@@ -1456,6 +1552,44 @@ xkb_symbols "carpalx-full" {
     key <AD09> {	[	  v,	V		]	};
 
     key <AB04> {	[	  f,	F		]	};
+};
+
+// Carpalx layout created by Martin Krzywinski
+// Full optimization variant without fixed QWERTY-like ZXCV keys
+// http://mkweb.bcgsc.ca/carpalx/
+// Merged with us(intl) and modified to move
+// accented vowels closer to the plain vowels
+
+partial alphanumeric_keys
+xkb_symbols "carpalx-full-intl" {
+
+    include "us(carpalx-intl)"
+    name[Group1]= "English (Carpalx, full optimization, international with dead keys)";
+
+    key <AD06> { [	   b,          B,    odiaeresis,       Odiaeresis ] };
+    key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };
+    key <AD09> { [	   v,          V,             v,                V ] };
+
+    key <AB04> { [	   f,          F,    udiaeresis,       Udiaeresis ] };
+};
+
+// Carpalx layout created by Martin Krzywinski
+// Full optimization variant without fixed QWERTY-like ZXCV keys
+// http://mkweb.bcgsc.ca/carpalx/
+// Merged with us(intl) and us(altgr-intl) and modified to move
+// accented vowels closer to the plain vowels
+
+partial alphanumeric_keys
+xkb_symbols "carpalx-full-altgr-intl" {
+
+   include "us(carpalx-altgr-intl)"
+   name[Group1]= "English (Carpalx, full optimization, international AltGr dead keys)";
+
+    key <AD06> { [	   b,          B,    odiaeresis,       Odiaeresis ] };
+    key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };
+    key <AD09> { [	   v,          V,             v,                V ] };
+
+    key <AB04> { [	   f,          F,    udiaeresis,       Udiaeresis ] };
 };
 
 // EXTRAS:

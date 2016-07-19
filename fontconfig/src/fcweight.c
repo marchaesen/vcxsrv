@@ -75,6 +75,7 @@ FcWeightFromOpenType (int ot_weight)
 		case 9: ot_weight = 900; break;
 	    }
 	}
+	ot_weight = FC_MIN (ot_weight, map[(sizeof (map) / sizeof (map[0])) - 1].ot);
 
 	for (i = 1; ot_weight > map[i].ot; i++)
 	  ;

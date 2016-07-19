@@ -110,7 +110,6 @@ glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
         ErrorF("XXX fail to create fbo.\n");
         return;
     }
-    fbo->external = TRUE;
 
     glamor_pixmap_attach_fbo(pixmap, fbo);
 }
@@ -254,13 +253,11 @@ glamor_block_handler(ScreenPtr screen)
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
     glamor_make_current(glamor_priv);
-    glamor_priv->tick++;
     glFlush();
-    glamor_fbo_expire(glamor_priv);
 }
 
 static void
-_glamor_block_handler(ScreenPtr screen, void *timeout, void *readmask)
+_glamor_block_handler(ScreenPtr screen, void *timeout)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
@@ -268,7 +265,7 @@ _glamor_block_handler(ScreenPtr screen, void *timeout, void *readmask)
     glFlush();
 
     screen->BlockHandler = glamor_priv->saved_procs.block_handler;
-    screen->BlockHandler(screen, timeout, readmask);
+    screen->BlockHandler(screen, timeout);
     glamor_priv->saved_procs.block_handler = screen->BlockHandler;
     screen->BlockHandler = _glamor_block_handler;
 }
@@ -709,7 +706,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     ps->Glyphs = glamor_composite_glyphs;
 
     glamor_init_vbo(screen);
-    glamor_init_pixmap_fbo(screen);
 
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_init_gradient_shader(screen);
@@ -734,7 +730,6 @@ glamor_release_screen_priv(ScreenPtr screen)
 
     glamor_priv = glamor_get_screen_private(screen);
     glamor_fini_vbo(screen);
-    glamor_fini_pixmap_fbo(screen);
     glamor_pixmap_fini(screen);
     free(glamor_priv);
 

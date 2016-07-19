@@ -57,6 +57,7 @@
 #endif
 
 #include <X11/X.h>
+#include <poll.h>
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_OSlib.h"
@@ -387,26 +388,19 @@ xf86CloseSerial(int fd)
 int
 xf86WaitForInput(int fd, int timeout)
 {
-    fd_set readfds;
-    struct timeval to;
     int r;
+    struct pollfd poll_fd;
 
-    FD_ZERO(&readfds);
-
-    if (fd >= 0) {
-        FD_SET(fd, &readfds);
-    }
-
-    to.tv_sec = timeout / 1000000;
-    to.tv_usec = timeout % 1000000;
+    poll_fd.fd = fd;
+    poll_fd.events = POLLIN;
 
     if (fd >= 0) {
-        SYSCALL(r = select(FD_SETSIZE, &readfds, NULL, NULL, &to));
+        SYSCALL(r = poll(&poll_fd, 1, timeout));
     }
     else {
-        SYSCALL(r = select(FD_SETSIZE, NULL, NULL, NULL, &to));
+        SYSCALL(r = poll(&poll_fd, 0, timeout));
     }
-    xf86ErrorFVerb(9, "select returned %d\n", r);
+    xf86ErrorFVerb(9, "poll returned %d\n", r);
     return r;
 }
 
@@ -423,8 +417,7 @@ xf86SerialSendBreak(int fd, int duration)
 int
 xf86FlushInput(int fd)
 {
-    fd_set fds;
-    struct timeval timeout;
+    struct pollfd poll_fd;
     /* this needs to be big enough to flush an evdev event. */
     char c[256];
 
@@ -432,15 +425,11 @@ xf86FlushInput(int fd)
     if (tcflush(fd, TCIFLUSH) == 0)
         return 0;
 
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
-    FD_ZERO(&fds);
-    FD_SET(fd, &fds);
-    while (select(FD_SETSIZE, &fds, NULL, NULL, &timeout) > 0) {
+    poll_fd.fd = fd;
+    poll_fd.events = POLLIN;
+    while (poll(&poll_fd, 1, 0) > 0) {
         if (read(fd, &c, sizeof(c)) < 1)
             return 0;
-        FD_ZERO(&fds);
-        FD_SET(fd, &fds);
     }
     return 0;
 }

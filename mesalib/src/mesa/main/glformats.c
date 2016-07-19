@@ -907,6 +907,29 @@ _mesa_is_astc_format(GLenum internalFormat)
 }
 
 /**
+ * Test if the given format is an ETC2 format.
+ */
+GLboolean
+_mesa_is_etc2_format(GLenum internalFormat)
+{
+   switch (internalFormat) {
+   case GL_COMPRESSED_RGB8_ETC2:
+   case GL_COMPRESSED_SRGB8_ETC2:
+   case GL_COMPRESSED_RGBA8_ETC2_EAC:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+   case GL_COMPRESSED_R11_EAC:
+   case GL_COMPRESSED_RG11_EAC:
+   case GL_COMPRESSED_SIGNED_R11_EAC:
+   case GL_COMPRESSED_SIGNED_RG11_EAC:
+   case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+   case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+      return true;
+   default:
+      return false;
+   }
+}
+
+/**
  * Test if the given format is an integer (non-normalized) format.
  */
 GLboolean
@@ -3656,7 +3679,8 @@ _mesa_is_es3_color_renderable(GLenum internal_format)
  * is marked "Texture Filterable" in Table 8.10 of the ES 3.2 specification.
  */
 bool
-_mesa_is_es3_texture_filterable(GLenum internal_format)
+_mesa_is_es3_texture_filterable(const struct gl_context *ctx,
+                                GLenum internal_format)
 {
    switch (internal_format) {
    case GL_R8:
@@ -3680,6 +3704,20 @@ _mesa_is_es3_texture_filterable(GLenum internal_format)
    case GL_R11F_G11F_B10F:
    case GL_RGB9_E5:
       return true;
+   case GL_R32F:
+   case GL_RG32F:
+   case GL_RGB32F:
+   case GL_RGBA32F:
+      /* The OES_texture_float_linear spec says:
+       *
+       *    "When implemented against OpenGL ES 3.0 or later versions, sized
+       *     32-bit floating-point formats become texture-filterable. This
+       *     should be noted by, for example, checking the ``TF'' column of
+       *     table 8.13 in the ES 3.1 Specification (``Correspondence of sized
+       *     internal formats to base internal formats ... and use cases ...'')
+       *     for the R32F, RG32F, RGB32F, and RGBA32F formats."
+       */
+      return ctx->Extensions.OES_texture_float_linear;
    default:
       return false;
    }

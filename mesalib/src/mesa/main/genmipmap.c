@@ -90,7 +90,7 @@ _mesa_is_valid_generate_texture_mipmap_internalformat(struct gl_context *ctx,
              internalformat == GL_LUMINANCE_ALPHA ||
              internalformat == GL_LUMINANCE || internalformat == GL_ALPHA ||
              (_mesa_is_es3_color_renderable(internalformat) &&
-              _mesa_is_es3_texture_filterable(internalformat));
+              _mesa_is_es3_texture_filterable(ctx, internalformat));
    }
 
    return (!_mesa_is_enum_format_integer(internalformat) &&

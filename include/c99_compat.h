@@ -36,8 +36,8 @@
  */
 #if defined(_MSC_VER)
 
-#  if _MSC_VER < 1800
-#    error "Microsoft Visual Studio 2013 or higher required"
+#  if _MSC_VER < 1800 || (_MSC_FULL_VER < 180031101 && !defined(__clang__))
+#    error "Microsoft Visual Studio 2013 Update 4 or higher required"
 #  endif
 
    /*

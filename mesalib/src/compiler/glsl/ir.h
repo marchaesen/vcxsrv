@@ -590,6 +590,13 @@ public:
       return this->u.state_slots;
    }
 
+   inline bool is_interpolation_flat() const
+   {
+      return this->data.interpolation == INTERP_MODE_FLAT ||
+             this->type->contains_integer() ||
+             this->type->contains_double();
+   }
+
    inline bool is_name_ralloced() const
    {
       return this->name != ir_variable::tmp_name;
@@ -679,7 +686,7 @@ public:
       /**
        * Interpolation mode for shader inputs / outputs
        *
-       * \sa glsl_interp_qualifier
+       * \sa glsl_interp_mode
        */
       unsigned interpolation:2;
 
@@ -2593,7 +2600,7 @@ extern gl_shader *
 _mesa_glsl_get_builtin_function_shader(void);
 
 extern ir_function_signature *
-_mesa_get_main_function_signature(gl_shader *sh);
+_mesa_get_main_function_signature(glsl_symbol_table *symbols);
 
 extern void
 _mesa_glsl_release_functions(void);
