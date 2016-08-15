@@ -2,9 +2,8 @@ TTYAPP = bdftopcf
 
 INCLUDELIBFILES = \
  $(MHMAKECONF)\zlib\$(OBJDIR)\zlib1.lib \
- $(MHMAKECONF)\libXfont\src\fontfile\$(OBJDIR)\libfontfile.lib \
- $(MHMAKECONF)\libXfont\src\bitmap\$(OBJDIR)\libbitmap.lib \
- $(MHMAKECONF)\libXfont\src\util\$(OBJDIR)\libutil.lib
+ $(MHMAKECONF)\libXfont2\$(OBJDIR)\libXfont2.lib \
+ $(MHMAKECONF)\libfontenc\src\$(OBJDIR)\libfontenc.lib
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 

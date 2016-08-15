@@ -15,7 +15,7 @@ INCLUDELIBFILES = \
  $(MHMAKECONF)\libXft\src\$(OBJDIR)\libXft.lib \
  $(MHMAKECONF)\libXrender\src\$(OBJDIR)\libXrender.lib \
  $(MHMAKECONF)\fontconfig\src\$(OBJDIR)\libfontconfig.lib \
- $(MHMAKECONF)\libXfont\src\util\$(OBJDIR)\libutil.lib
+ $(MHMAKECONF)\libXfont2\$(OBJDIR)\libXfont2.lib
 
 INCLUDES += $(MHMAKECONF)\libXft\include $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\fontconfig
 

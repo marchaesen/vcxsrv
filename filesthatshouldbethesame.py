@@ -217,9 +217,8 @@ libxkbfile/include/X11/extensions/XKMformat.h     X11/extensions/XKMformat.h
 
 libXfixes/include/X11/extensions/Xfixes.h         X11/extensions/Xfixes.h
 
-libXfont/include/X11/fonts/fntfil.h               X11/fonts/fntfil.h
-libXfont/include/X11/fonts/fontmisc.h             X11/fonts/fontmisc.h
-
+libXfont2/include/X11/fonts/fntfil.h              X11/fonts/fntfil.h
+libXfont2/include/X11/fonts/fontmisc.h            X11/fonts/fontmisc.h
 libXfont2/include/X11/fonts/libxfont2.h           X11/fonts/libxfont2.h
 
 xorg-server/hw/xwin/glx/gl.xml                    mesalib/src/mapi/glapi/registry/gl.xml

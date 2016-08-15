@@ -54,7 +54,7 @@ in this Software without prior written authorization from The Open Group.
 
 extern Atom MakeAtom ( const char *string, unsigned len, int makeit );
 extern int ValidAtom ( Atom atom );
-extern char *NameForAtom (Atom atom);
+extern const char *NameForAtom (Atom atom);
 
 #define lowbit(x) ((x) & (~(x) + 1))
 

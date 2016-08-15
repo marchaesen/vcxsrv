@@ -36,13 +36,7 @@ INCLUDENOSERVLIBFILES =  \
  $(MHMAKECONF)\libXdmcp\$(NOSERVOBJDIR)\libXdmcp.lib \
  $(MHMAKECONF)\libXau\$(NOSERVOBJDIR)\libXau.lib \
  $(MHMAKECONF)\libXfixes\src\$(NOSERVOBJDIR)\libXfixes.lib \
- $(MHMAKECONF)\libXfont\src\util\$(NOSERVOBJDIR)\libutil.lib \
- $(MHMAKECONF)\libXfont\src\fc\$(NOSERVOBJDIR)\libfc.lib \
- $(MHMAKECONF)\libXfont\src\fontfile\$(NOSERVOBJDIR)\libfontfile.lib \
- $(MHMAKECONF)\libXfont\src\builtins\$(NOSERVOBJDIR)\libbuiltins.lib \
- $(MHMAKECONF)\libXfont\src\bitmap\$(NOSERVOBJDIR)\libbitmap.lib \
- $(MHMAKECONF)\libXfont\src\freetype\$(NOSERVOBJDIR)\libft.lib \
- $(MHMAKECONF)\libXfont\src\stubs\$(NOSERVOBJDIR)\libstubs.lib \
+ $(MHMAKECONF)\libXfont2\$(NOSERVOBJDIR)\libXfont2.lib \
  $(MHMAKECONF)\libfontenc\src\$(NOSERVOBJDIR)\libfontenc.lib \
  $(MHMAKECONF)\libXinerama\src\$(NOSERVOBJDIR)\libXinerama.lib \
  $(MHMAKECONF)\zlib\$(NOSERVOBJDIR)\zlib1.lib
