@@ -211,12 +211,6 @@ WaitForSomething(Bool are_ready)
             timeout = 0;
         else
             timeout = check_timers();
-            if (!wt)
-            {
-                wt = &waittime;
-                waittime.tv_sec = 0;
-                waittime.tv_usec = 100;
-            }
 
         BlockHandler(&timeout);
         if (NewOutputPending)

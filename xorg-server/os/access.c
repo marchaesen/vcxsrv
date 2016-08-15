@@ -232,10 +232,6 @@ static int AccessEnabled = DEFAULT_ACCESS_CONTROL;
 static int LocalHostEnabled = FALSE;
 static int LocalHostRequested = FALSE;
 static int UsingXdmcp = FALSE;
-static u_long *pInterfaces = NULL;
-static int ActiveInterfaces = 0;
-
-void match_interface(u_long u_lQuery);
 
 static enum {
     LOCAL_ACCESS_SCOPE_HOST = 0,
@@ -502,7 +498,7 @@ ifioctl(int fd, int cmd, char *arg)
 #endif
 
 /*
- * DefineSelf (fd, protocol):
+ * DefineSelf (fd):
  *
  * Define this host for access control.  Find all the hosts the OS knows about
  * for this fd and add them to the selfhosts list.
@@ -510,11 +506,12 @@ ifioctl(int fd, int cmd, char *arg)
 
 #if !defined(SIOCGIFCONF)
 void
-DefineSelf(int fd, const int protocol)
+DefineSelf(int fd)
 {
 #if !defined(TCPCONN) && !defined(UNIXCONN)
     return;
 #else
+    register int n;
     int len;
     caddr_t addr;
     int family;
@@ -526,10 +523,6 @@ DefineSelf(int fd, const int protocol)
     struct {
         char nodename[512];
     } name;
-    HOST ha;
-    struct addrinfo *addresses;
-    struct addrinfo *a;
-    struct addrinfo hints;
 #endif
 
     register struct hostent *hp;
@@ -549,6 +542,7 @@ DefineSelf(int fd, const int protocol)
 #ifdef XTHREADS_NEEDS_BYNAMEPARAMS
     _Xgethostbynameparams hparams;
 #endif
+
     /* Why not use gethostname()?  Well, at least on my system, I've had to
      * make an ugly kernel patch to get a name longer than 8 characters, and
      * uname() lets me access to the whole string (it smashes release, you
@@ -560,93 +554,16 @@ DefineSelf(int fd, const int protocol)
     gethostname(name.nodename, sizeof(name.nodename));
 #endif
 
-    /* Colin's experiments with using getaddrinfo() instead of the IPv6-useless gethostbyname() */
-    memset( &hints, 0, sizeof(hints) );
-    if (protocol == 4) hints.ai_family = AF_INET;
-    else if (protocol == 6) hints.ai_family = AF_INET6;
-
-    if (getaddrinfo(name.nodename, NULL, &hints, &addresses) != 0) goto CarryOnTheOldWay;
-
-    if (protocol == 6) ErrorF ("DefineSelf - %s has IPv%d addresses...\n",
-                               name.nodename, protocol);
-
-    for (a = addresses; a != NULL; a = a->ai_next) {
-        char ad[INET6_ADDRSTRLEN];
-        ha.family = a->ai_family;
-        if (a->ai_family == AF_INET6) {
-            ha.addr = (unsigned char *)
-              &((struct sockaddr_in6 *) a->ai_addr)->sin6_addr;
-            ha.len = 
-              sizeof (((struct sockaddr_in6 *) a->ai_addr)->sin6_addr);
-        } else {
-            ha.addr = (unsigned char *)
-              &((struct sockaddr_in *) a->ai_addr)->sin_addr;
-            ha.len = 
-              sizeof (((struct sockaddr_in *) a->ai_addr)->sin_addr);
-        }
-        inet_ntop(ha.family, ha.addr, ad, sizeof(ad));
-
-        if (ha.family == AF_INET6) {
-            ErrorF(" %s", ad);
-            saddr.sa.sa_family = AF_INET6;
-            inet6addr = (struct sockaddr_in6 *) (&(saddr.sa));
-            memcpy (&(inet6addr->sin6_addr), ha.addr, ha.len);
-            len = sizeof(saddr.in6);
-            family = ConvertAddr (&(saddr.sa), &len, (pointer *)&addr);
-            if ( family != -1 && family != FamilyLocal ) {
-                for (host = selfhosts;
-                     host && !addrEqual (family, addr, len, host);
-                     host = host->next) ;
-                if (!host) {
-                    /* add this host to the host list.	*/
-                    MakeHost(host,len)
-                    if (host) {
-                        host->family = family;
-                        host->len = len;
-                        memcpy (host->addr, addr, len);
-                        host->next = selfhosts;
-                        selfhosts = host;
-                    }
-                    if (family == FamilyInternet6 &&
-                        !(IN6_IS_ADDR_LOOPBACK((struct in6_addr *)addr))) {
-                        XdmcpRegisterConnection (family, (char *)addr, len);
-                    }
-                }
-            }
-        }
-    }
-    if (protocol == 6) ErrorF ("\n");
-    freeaddrinfo(addresses);
-    /* End of Colin's experiments */
-
-CarryOnTheOldWay:
-
     hp = _XGethostbyname(name.nodename, hparams);
     if (hp != NULL) {
-        int i = 0, j = 0;
-        IN_ADDR Inter;
         saddr.sa.sa_family = hp->h_addrtype;
         switch (hp->h_addrtype) {
         case AF_INET:
-            if (protocol == 6) return; /* We should not be here: gethostbyname() is useless with inet6! */
             inetaddr = (struct sockaddr_in *) (&(saddr.sa));
-            if (!pInterfaces) match_interface(0);
-            if (ActiveInterfaces && pInterfaces && *pInterfaces)
-            {
-                ErrorF ("DefineSelf - %s has %d usable IPv%d interface%s...\n address%s",
-                        name.nodename, ActiveInterfaces, protocol,
-                        ActiveInterfaces==1 ? "" : "s",
-                        ActiveInterfaces==1 ? "" : "es");
-                for (i = 0; hp->h_addr_list[i]; i++)
-                {
-                    Inter.S_un.S_addr = *(u_long *)hp->h_addr_list[i];
-                    ErrorF(" %s", inet_ntoa(Inter));
-                    if (*pInterfaces  == *(u_long *)hp->h_addr_list[i]) j = i;
-                }
-                ErrorF ("\n");
-            }
+            memcpy(&(inetaddr->sin_addr), hp->h_addr, hp->h_length);
+            len = sizeof(saddr.sa);
             break;
-#if 0 /* We never used to get here and AF_INET6 is now processed by getaddrinfo() */
+#if defined(IPv6) && defined(AF_INET6)
         case AF_INET6:
             inet6addr = (struct sockaddr_in6 *) (&(saddr.sa));
             memcpy(&(inet6addr->sin6_addr), hp->h_addr, hp->h_length);
@@ -656,56 +573,48 @@ CarryOnTheOldWay:
         default:
             goto DefineLocalHost;
         }
-
-        for (i = -1; i < 0 || hp->h_addr_list[i]; i++)
-        {
-            if (i < 0) memcpy ( &(inetaddr->sin_addr), hp->h_addr_list[j], hp->h_length);
-            else if (i == j) continue;
-            else memcpy ( &(inetaddr->sin_addr), hp->h_addr_list[i], hp->h_length);
-            len = sizeof(saddr.sa);
-            family = ConvertAddr(&(saddr.sa), &len, (void **) &addr);
-            if ( family != -1 && family != FamilyLocal ) {
-                for (host = selfhosts;
-                     host && !addrEqual (family, addr, len, host);
-                host = host->next) ;
-                if (!host) {
-                    /* add this host to the host list.	*/
-                    MakeHost(host,len)
+        family = ConvertAddr(&(saddr.sa), &len, (void **) &addr);
+        if (family != -1 && family != FamilyLocal) {
+            for (host = selfhosts;
+                 host && !addrEqual(family, addr, len, host);
+                 host = host->next);
+            if (!host) {
+                /* add this host to the host list.      */
+                MakeHost(host, len)
                     if (host) {
-                        host->family = family;
-                        host->len = len;
-                        memcpy ( host->addr, addr, len);
-                        host->next = selfhosts;
-                        selfhosts = host;
-                    }
-                    #ifdef XDMCP
-                    /*
-                     *  If this is an Internet Address, but not the localhost
-                     *  address (127.0.0.1), nor the bogus address (0.0.0.0),
-                     *  register it.
-                     */
-                    if (family == FamilyInternet &&
-                        !(len == 4 &&
-                          ((addr[0] == 127) ||
-                           (addr[0] == 0 && addr[1] == 0 &&
-                            addr[2] == 0 && addr[3] == 0)))
-                        ) {
-                        XdmcpRegisterConnection (family, (char *)addr, len);
-                        broad_addr = *inetaddr;
-                        ((struct sockaddr_in *) &broad_addr)->sin_addr.s_addr =
-                        htonl(INADDR_BROADCAST);
-                        XdmcpRegisterBroadcastAddress ((struct sockaddr_in *)
-                                                  &broad_addr);
-                    }
-                    #if defined(IPv6) && defined(AF_INET6)
-                    else if (family == FamilyInternet6 &&
-                      !(IN6_IS_ADDR_LOOPBACK((struct in6_addr *)addr))) {
-                        XdmcpRegisterConnection (family, (char *)addr, len);
-                    }
-                    #endif
-                    
-                    #endif /* XDMCP */
+                    host->family = family;
+                    host->len = len;
+                    memcpy(host->addr, addr, len);
+                    host->next = selfhosts;
+                    selfhosts = host;
                 }
+#ifdef XDMCP
+                /*
+                 *  If this is an Internet Address, but not the localhost
+                 *  address (127.0.0.1), nor the bogus address (0.0.0.0),
+                 *  register it.
+                 */
+                if (family == FamilyInternet &&
+                    !(len == 4 &&
+                      ((addr[0] == 127) ||
+                       (addr[0] == 0 && addr[1] == 0 &&
+                        addr[2] == 0 && addr[3] == 0)))
+                    ) {
+                    XdmcpRegisterConnection(family, (char *) addr, len);
+                    broad_addr = *inetaddr;
+                    ((struct sockaddr_in *) &broad_addr)->sin_addr.s_addr =
+                        htonl(INADDR_BROADCAST);
+                    XdmcpRegisterBroadcastAddress((struct sockaddr_in *)
+                                                  &broad_addr);
+                }
+#if defined(IPv6) && defined(AF_INET6)
+                else if (family == FamilyInternet6 &&
+                         !(IN6_IS_ADDR_LOOPBACK((struct in6_addr *) addr))) {
+                    XdmcpRegisterConnection(family, (char *) addr, len);
+                }
+#endif
+
+#endif                          /* XDMCP */
             }
         }
     }
@@ -713,7 +622,6 @@ CarryOnTheOldWay:
      * now add a host of family FamilyLocalHost...
      */
  DefineLocalHost:
-    free(pInterfaces);
     for (host = selfhosts;
          host && !addrEqual(FamilyLocalHost, "", 0, host); host = host->next);
     if (!host) {
@@ -1128,19 +1036,18 @@ ResetHosts(const char *display)
         FreeHost(host);
     }
 
+#if defined WIN32 && defined __MINGW32__
+#define ETC_HOST_PREFIX "X"
+#else
 #define ETC_HOST_PREFIX "/etc/X"
+#endif
 #define ETC_HOST_SUFFIX ".hosts"
     fnamelen = strlen(ETC_HOST_PREFIX) + strlen(ETC_HOST_SUFFIX) +
         strlen(display) + 1;
     if (fnamelen > sizeof(fname))
         FatalError("Display name `%s' is too long\n", display);
-#ifdef __MINGW32__
-    snprintf(fname, sizeof(fname), "%s%s" ETC_HOST_SUFFIX, getenv("XHOSTPREFIX"),
-             display);
-#else
     snprintf(fname, sizeof(fname), ETC_HOST_PREFIX "%s" ETC_HOST_SUFFIX,
              display);
-#endif
 
     if ((fd = fopen(fname, "r")) != 0) {
         while (fgets(ohostname, sizeof(ohostname), fd)) {
@@ -1204,13 +1111,9 @@ ResetHosts(const char *display)
                     (family == FamilyWild)) {
                     struct addrinfo *addresses;
                     struct addrinfo *a;
-                    struct addrinfo hints;
                     int f;
 
-                    memset( &hints, 0, sizeof(hints) );
-                    if (family == FamilyInternet) hints.ai_family = AF_INET;
-                    else if (family == FamilyInternet6) hints.ai_family = AF_INET6;
-                    if (getaddrinfo(hostname, NULL, &hints, &addresses) == 0) {
+                    if (getaddrinfo(hostname, NULL, NULL, &addresses) == 0) {
                         for (a = addresses; a != NULL; a = a->ai_next) {
                             len = a->ai_addrlen;
                             f = ConvertAddr(a->ai_addr, &len,
@@ -1530,9 +1433,7 @@ NewHost(int family, const void *addr, int len, int addingLocalHosts)
 {
     register HOST *host;
 
-    if (family == FamilyLocal) return TRUE; /* No FamilyLocal in Vcxsrv */
     for (host = validhosts; host; host = host->next) {
-
         if (addrEqual(family, addr, len, host))
             return TRUE;
     }
@@ -1989,7 +1890,6 @@ siHostnameAddrMatch(int family, void *addr, int len,
         char hostname[SI_HOSTNAME_MAXLEN];
         struct addrinfo *addresses;
         struct addrinfo *a;
-        struct addrinfo hints;
         int f, hostaddrlen;
         void *hostaddr = NULL;
 
@@ -1998,10 +1898,7 @@ siHostnameAddrMatch(int family, void *addr, int len,
 
         strlcpy(hostname, siAddr, siAddrLen + 1);
 
-        memset( &hints, 0, sizeof(hints) );
-        if (family == FamilyInternet) hints.ai_family = AF_INET;
-        else if (family == FamilyInternet6) hints.ai_family = AF_INET6;
-        if (getaddrinfo(hostname, NULL, &hints, &addresses) == 0) {
+        if (getaddrinfo(hostname, NULL, NULL, &addresses) == 0) {
             for (a = addresses; a != NULL; a = a->ai_next) {
                 hostaddrlen = a->ai_addrlen;
                 f = ConvertAddr(a->ai_addr, &hostaddrlen, &hostaddr);
@@ -2330,56 +2227,4 @@ siTypesInitialize(void)
     siTypeAdd("localgroup", siLocalCredAddrMatch, siLocalCredCheckAddr,
               &siLocalGroupPriv);
 #endif
-}
-
-void match_interface(u_long u_lQuery)
-{
-    WSADATA w;
-    SOCKET sd;
-    INTERFACE_INFO InterfaceList[25];
-    PSOCKADDR_IN pAddress, pNetmask;
-    u_long nBytesReturned, tempAddress;
-    u_long u_lAddress, u_lNetmask, u_lFlags;
-    int nNumInterfaces, i, j = 0;
-
-    if (WSAStartup(MAKEWORD(2,2), &w) != 0)
-        return;
-
-    sd = WSASocket(AF_INET, SOCK_DGRAM, 0, 0, 0, 0);
-    if (sd == INVALID_SOCKET)
-    {
-        WSACleanup();
-        return;
-    }
-
-    if (WSAIoctl(sd, SIO_GET_INTERFACE_LIST, 0, 0, &InterfaceList, sizeof(InterfaceList), &nBytesReturned, 0, 0) == SOCKET_ERROR)
-    {
-        closesocket(sd);
-        WSACleanup();
-        return;
-    }
-
-    nNumInterfaces = (int)(nBytesReturned/sizeof(INTERFACE_INFO));
-    pInterfaces = malloc(25*sizeof(u_long));
-    for (i = 0; i < nNumInterfaces; ++i)
-    {
-        pAddress = &InterfaceList[i].iiAddress.AddressIn;
-        u_lAddress = pAddress->sin_addr.S_un.S_addr;
-
-        pNetmask = &InterfaceList[i].iiNetmask.AddressIn;
-        u_lNetmask = pNetmask->sin_addr.S_un.S_addr;
-
-        u_lFlags = InterfaceList[i].iiFlags;
-        if ((u_lFlags & IFF_UP) && !(u_lFlags & IFF_LOOPBACK))
-        {
-            if ((u_lAddress & u_lNetmask) == (u_lQuery & u_lNetmask)) j = i;
-            *(pInterfaces + ActiveInterfaces) = u_lAddress;
-            ActiveInterfaces++;
-        }
-    }
-    tempAddress = *pInterfaces;
-    *pInterfaces = *(pInterfaces + j);
-    *(pInterfaces + j) = tempAddress;
-    closesocket(sd);
-    WSACleanup();
 }

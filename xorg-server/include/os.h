@@ -469,7 +469,7 @@ extern _X_EXPORT void
 AccessUsingXdmcp(void);
 
 extern _X_EXPORT void
-DefineSelf(int /*fd */ , const int /*protocol*/);
+DefineSelf(int /*fd */ );
 
 #if XDMCP
 extern _X_EXPORT void

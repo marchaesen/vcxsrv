@@ -273,6 +273,7 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\s_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl_types.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\shader_enums.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\extensions_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\imports.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />

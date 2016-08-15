@@ -869,6 +869,9 @@
     <ClCompile Include="..\..\..\..\src\util\bitscan.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\extensions_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\mesa\program\program_lexer.l">

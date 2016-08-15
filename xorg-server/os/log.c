@@ -218,6 +218,11 @@ LogFilePrep(const char *fname, const char *backup, const char *idstring)
             }
             free(suffix);
 
+            if (!stat(oldLog, &buf) && S_ISREG(buf.st_mode))
+            {
+                remove(oldLog);
+            }
+
             if (rename(logFileName, oldLog) == -1) {
                 FatalError("Cannot move old log file \"%s\" to \"%s\"\n",
                            logFileName, oldLog);

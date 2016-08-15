@@ -10,8 +10,11 @@ NEED_STRNDUP=1
 
 SECURERPC_SRCS = rpcauth.c
 XDMCP_SRCS = xdmcp.c
-STRLCAT_SRCS = strlcat.c strlcpy.c
 XORG_SRCS = log.c
+BUSFAULT_SRCS = busfault.c
+
+XSERVER_POLL_SRCS=xserver_poll.c
+STRLCAT_SRCS = strlcat.c strlcpy.c
 STRNDUP_SRCS = strndup.c
 
 libos_la_SOURCES = 	\
@@ -27,6 +30,7 @@ libos_la_SOURCES = 	\
 	oscolor.c	\
 	osdep.h		\
 	osinit.c	\
+	ospoll.c	\
 	utils.c		\
 	strcasecmp.c	\
 	strcasestr.c	\
@@ -40,8 +44,18 @@ libos_la_SOURCES = 	\
 if SECURE_RPC
 libos_la_SOURCES += $(SECURERPC_SRCS)
 endif
+
+if POLL
+else
+libos_la_SOURCES += $(XSERVER_POLL_SRCS)
+endif
+
 if XDMCP
 libos_la_SOURCES += $(XDMCP_SRCS)
+endif
+
+if BUSFAULT
+libos_la_SOURCES += $(BUSFAULT_SRCS)
 endif
 
 if NEED_STRLCAT

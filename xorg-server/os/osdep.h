@@ -166,7 +166,6 @@ extern void ClearConnectionTranslation(void);
 #endif
 
 extern Bool NewOutputPending;
-extern Bool AnyClientsWriteBlocked;
 
 extern WorkQueuePtr workQueue;
 

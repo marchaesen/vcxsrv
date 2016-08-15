@@ -127,10 +127,8 @@ typedef int pid_t;
 
 struct ospoll   *server_poll;
 
-fd_set WellKnownConnections;    /* Listener mask */
 int MaxClients = 0;
 Bool NewOutputPending;          /* not yet attempted to write some new output */
-Bool AnyClientsWriteBlocked;    /* true if some client blocked on write */
 Bool NoListenAll;               /* Don't establish any listening sockets */
 
 #if !defined(_MSC_VER)
@@ -386,8 +384,6 @@ CreateWellKnownSockets(void)
     ClearConnectionTranslation();
 #endif
 
-    FD_ZERO(&WellKnownConnections);
-
     /* display is initialized to "0" by main(). It is then set to the display
      * number if specified on the command line. */
 
@@ -426,17 +422,13 @@ CreateWellKnownSockets(void)
         int fd = _XSERVTransGetConnectionNumber (ListenTransConns[i-1]);
 
         ListenTransFds[i-1] = fd;
-        FD_SET(fd, &WellKnownConnections);
+        SetNotifyFd(fd, QueueNewConnections, X_NOTIFY_READ, NULL);
 
-        if (!_XSERVTransIsLocal (ListenTransConns[i-1])) {
-            int protocol = 0;
-            if (!strcmp("inet", ListenTransConns[i-1]->transptr->TransName)) protocol = 4;
-            else if (!strcmp("inet6", ListenTransConns[i-1]->transptr->TransName)) protocol = 6;
-            DefineSelf (fd, protocol);
-        }
+        if (!_XSERVTransIsLocal (ListenTransConns[i-1]))
+            DefineSelf (fd);
     }
 
-    if (!XFD_ANYSET(&WellKnownConnections) && !NoListenAll)
+    if (ListenTransCount == 0 && !NoListenAll)
         FatalError
             ("Cannot establish any listening sockets - Make sure an X server isn't already running");
 
@@ -446,7 +438,6 @@ CreateWellKnownSockets(void)
 #endif
     OsSignal(SIGINT, GiveUp);
     OsSignal(SIGTERM, GiveUp);
-    XFD_COPYSET(&WellKnownConnections, &AllSockets);
     ResetHosts(display);
 
     InitParentProcess();
@@ -473,7 +464,7 @@ ResetWellKnownSockets(void)
                  * Remove it from out list.
                  */
 
-                FD_CLR(ListenTransFds[i], &WellKnownConnections);
+                RemoveNotifyFd(ListenTransFds[i]);
                 ListenTransFds[i] = ListenTransFds[ListenTransCount - 1];
                 ListenTransConns[i] = ListenTransConns[ListenTransCount - 1];
                 ListenTransCount -= 1;
@@ -486,12 +477,12 @@ ResetWellKnownSockets(void)
 
                 int newfd = _XSERVTransGetConnectionNumber(ListenTransConns[i]);
 
-                FD_CLR(ListenTransFds[i], &WellKnownConnections);
                 ListenTransFds[i] = newfd;
-                FD_SET(newfd, &WellKnownConnections);
             }
         }
     }
+    for (i = 0; i < ListenTransCount; i++)
+        SetNotifyFd(ListenTransFds[i], QueueNewConnections, X_NOTIFY_READ, NULL);
 
     ResetAuthorization();
     ResetHosts(display);
@@ -815,20 +806,16 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
  /*ARGSUSED*/ Bool
 EstablishNewConnections(ClientPtr clientUnused, void *closure)
 {
-    fd_set readyconnections;    /* set of listeners that are ready */
-    int curconn;                /* fd of listener that's ready */
-    register int newconn;       /* fd of new client */
+    int curconn = (int) (intptr_t) closure;
+    int newconn;       /* fd of new client */
     CARD32 connect_time;
-    register int i;
-    register ClientPtr client;
-    register OsCommPtr oc;
-    fd_set tmask;
+    int i;
+    ClientPtr client;
+    OsCommPtr oc;
+    XtransConnInfo trans_conn, new_trans_conn;
+    int status;
     int clientid;
 
-    XFD_ANDSET(&tmask, (fd_set *) closure, &WellKnownConnections);
-    XFD_COPYSET(&tmask, &readyconnections);
-    if (!XFD_ANYSET(&readyconnections))
-        return TRUE;
     connect_time = GetTimeInMillis();
     /* kill off stragglers */
     for (i = 1; i < currentMaxClients; i++) {
@@ -844,10 +831,10 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
     if ((trans_conn = lookup_trans_conn(curconn)) == NULL)
         return TRUE;
 
-        if ((new_trans_conn = _XSERVTransAccept(trans_conn, &status)) == NULL)
-            continue;
+    if ((new_trans_conn = _XSERVTransAccept(trans_conn, &status)) == NULL)
+        return TRUE;
 
-        newconn = _XSERVTransGetConnectionNumber(new_trans_conn);
+    newconn = _XSERVTransGetConnectionNumber(new_trans_conn);
 
     clientid = GetConnectionTranslation(newconn);
     if (clientid && (client = clients[clientid]))
@@ -1198,8 +1185,7 @@ ListenOnOpenFD(int fd, int noxauth)
     ListenTransConns[ListenTransCount] = ciptr;
     ListenTransFds[ListenTransCount] = fd;
 
-    FD_SET(fd, &WellKnownConnections);
-    FD_SET(fd, &AllSockets);
+    SetNotifyFd(fd, QueueNewConnections, X_NOTIFY_READ, NULL);
 
     /* Increment the count */
     ListenTransCount++;

@@ -50,16 +50,14 @@ winBlockHandler(ScreenPtr pScreen, void *pTimeout)
         /* If there are still messages to process on the Windows message
            queue, make sure select() just polls rather than blocking.
         */
-        (*tvp)->tv_sec = 0;
-        (*tvp)->tv_usec = 0;
+        *(int*)pTimeout = 0;
       }
       else {
         /* Otherwise, lacking /dev/windows, we must wake up again in
            a reasonable time to check the Windows message queue. without
            noticeable delay.
          */
-        (*tvp)->tv_sec = 0;
-        (*tvp)->tv_usec = 100;
+        *(int*)pTimeout = 1;
       }
     }
 #endif
