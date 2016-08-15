@@ -382,8 +382,8 @@ lower_tess_level_visitor::visit_leave(ir_call *ir)
 {
    void *ctx = ralloc_parent(ir);
 
-   const exec_node *formal_param_node = ir->callee->parameters.head;
-   const exec_node *actual_param_node = ir->actual_parameters.head;
+   const exec_node *formal_param_node = ir->callee->parameters.get_head_raw();
+   const exec_node *actual_param_node = ir->actual_parameters.get_head_raw();
    while (!actual_param_node->is_tail_sentinel()) {
       ir_variable *formal_param = (ir_variable *) formal_param_node;
       ir_rvalue *actual_param = (ir_rvalue *) actual_param_node;

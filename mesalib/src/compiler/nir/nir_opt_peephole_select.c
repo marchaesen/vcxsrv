@@ -127,13 +127,6 @@ block_check_for_allowed_instrs(nir_block *block)
 static bool
 nir_opt_peephole_select_block(nir_block *block, void *mem_ctx)
 {
-   /* If the block is empty, then it certainly doesn't have any phi nodes,
-    * so we can skip it.  This also ensures that we do an early skip on the
-    * end block of the function which isn't actually attached to the CFG.
-    */
-   if (exec_list_is_empty(&block->instr_list))
-      return false;
-
    if (nir_cf_node_is_first(&block->cf_node))
       return false;
 

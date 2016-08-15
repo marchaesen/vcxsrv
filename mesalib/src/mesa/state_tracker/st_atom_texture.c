@@ -565,60 +565,30 @@ update_compute_textures(struct st_context *st)
 
 
 const struct st_tracked_state st_update_fragment_texture = {
-   "st_update_texture",					/* name */
-   {							/* dirty */
-      _NEW_TEXTURE,					/* mesa */
-      ST_NEW_FRAGMENT_PROGRAM | ST_NEW_SAMPLER_VIEWS,	/* st */
-   },
    update_fragment_textures				/* update */
 };
 
 
 const struct st_tracked_state st_update_vertex_texture = {
-   "st_update_vertex_texture",				/* name */
-   {							/* dirty */
-      _NEW_TEXTURE,					/* mesa */
-      ST_NEW_VERTEX_PROGRAM | ST_NEW_SAMPLER_VIEWS,	/* st */
-   },
    update_vertex_textures				/* update */
 };
 
 
 const struct st_tracked_state st_update_geometry_texture = {
-   "st_update_geometry_texture",			/* name */
-   {							/* dirty */
-      _NEW_TEXTURE,					/* mesa */
-      ST_NEW_GEOMETRY_PROGRAM | ST_NEW_SAMPLER_VIEWS,	/* st */
-   },
    update_geometry_textures				/* update */
 };
 
 
 const struct st_tracked_state st_update_tessctrl_texture = {
-   "st_update_tessctrl_texture",			/* name */
-   {							/* dirty */
-      _NEW_TEXTURE,					/* mesa */
-      ST_NEW_TESSCTRL_PROGRAM | ST_NEW_SAMPLER_VIEWS,	/* st */
-   },
    update_tessctrl_textures				/* update */
 };
 
 
 const struct st_tracked_state st_update_tesseval_texture = {
-   "st_update_tesseval_texture",			/* name */
-   {							/* dirty */
-      _NEW_TEXTURE,					/* mesa */
-      ST_NEW_TESSEVAL_PROGRAM | ST_NEW_SAMPLER_VIEWS,	/* st */
-   },
    update_tesseval_textures				/* update */
 };
 
 
 const struct st_tracked_state st_update_compute_texture = {
-   "st_update_compute_texture",			/* name */
-   {							/* dirty */
-      _NEW_TEXTURE,					/* mesa */
-      ST_NEW_COMPUTE_PROGRAM | ST_NEW_SAMPLER_VIEWS,	/* st */
-   },
    update_compute_textures				/* update */
 };

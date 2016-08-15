@@ -178,8 +178,6 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    if (state->stage == MESA_SHADER_GEOMETRY) {
       allowed_duplicates_mask.flags.i |=
          stream_layout_mask.flags.i;
-      input_layout_mask.flags.i |=
-         stream_layout_mask.flags.i;
    }
 
    if (is_single_layout_merge && !state->has_enhanced_layouts() &&
@@ -229,7 +227,8 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
          if (q.flags.q.stream) {
             this->flags.q.stream = 1;
             this->stream = q.stream;
-         } else if (!this->flags.q.stream && this->flags.q.out) {
+         } else if (!this->flags.q.stream && this->flags.q.out &&
+                    !this->flags.q.in) {
             /* Assign default global stream value */
             this->flags.q.stream = 1;
             this->stream = state->out_qualifier->stream;
@@ -242,7 +241,8 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
          if (q.flags.q.xfb_buffer) {
             this->flags.q.xfb_buffer = 1;
             this->xfb_buffer = q.xfb_buffer;
-         } else if (!this->flags.q.xfb_buffer && this->flags.q.out) {
+         } else if (!this->flags.q.xfb_buffer && this->flags.q.out &&
+                    !this->flags.q.in) {
             /* Assign global xfb_buffer value */
             this->flags.q.xfb_buffer = 1;
             this->xfb_buffer = state->out_qualifier->xfb_buffer;
@@ -600,8 +600,8 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
 bool
 ast_type_qualifier::validate_flags(YYLTYPE *loc,
                                    _mesa_glsl_parse_state *state,
-                                   const char *message,
-                                   const ast_type_qualifier &allowed_flags)
+                                   const ast_type_qualifier &allowed_flags,
+                                   const char *message, const char *name)
 {
    ast_type_qualifier bad;
    bad.flags.i = this->flags.i & ~allowed_flags.flags.i;
@@ -609,11 +609,11 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
       return true;
 
    _mesa_glsl_error(loc, state,
-                    "%s:"
+                    "%s '%s':"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
-                    message,
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    message, name,
                     bad.flags.q.invariant ? " invariant" : "",
                     bad.flags.q.precise ? " precise" : "",
                     bad.flags.q.constant ? " constant" : "",
@@ -633,6 +633,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     bad.flags.q.origin_upper_left ? " origin_upper_left" : "",
                     bad.flags.q.pixel_center_integer ? " pixel_center_integer" : "",
                     bad.flags.q.explicit_align ? " align" : "",
+                    bad.flags.q.explicit_component ? " component" : "",
                     bad.flags.q.explicit_location ? " location" : "",
                     bad.flags.q.explicit_index ? " index" : "",
                     bad.flags.q.explicit_binding ? " binding" : "",
@@ -688,8 +689,8 @@ ast_layout_expression::process_qualifier_constant(struct _mesa_glsl_parse_state 
    if (!can_be_zero)
       min_value = 1;
 
-   for (exec_node *node = layout_const_expressions.head;
-           !node->is_tail_sentinel(); node = node->next) {
+   for (exec_node *node = layout_const_expressions.get_head_raw();
+        !node->is_tail_sentinel(); node = node->next) {
 
       exec_list dummy_instructions;
       ast_node *const_expression = exec_node_data(ast_node, node, link);

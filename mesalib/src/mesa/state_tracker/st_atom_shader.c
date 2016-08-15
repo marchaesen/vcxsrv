@@ -152,11 +152,6 @@ update_fp( struct st_context *st )
 
 
 const struct st_tracked_state st_update_fp = {
-   "st_update_fp",					/* name */
-   {							/* dirty */
-      _NEW_BUFFERS | _NEW_MULTISAMPLE | _NEW_FOG,	/* mesa */
-      ST_NEW_FRAGMENT_PROGRAM                           /* st */
-   },
    update_fp  					/* update */
 };
 
@@ -210,11 +205,6 @@ update_vp( struct st_context *st )
 
 
 const struct st_tracked_state st_update_vp = {
-   "st_update_vp",					/* name */
-   {							/* dirty */
-      0,                                                /* mesa */
-      ST_NEW_VERTEX_PROGRAM                             /* st */
-   },
    update_vp						/* update */
 };
 
@@ -227,6 +217,7 @@ update_gp( struct st_context *st )
 
    if (!st->ctx->GeometryProgram._Current) {
       cso_set_geometry_shader_handle(st->cso_context, NULL);
+      st_reference_geomprog(st, &st->gp, NULL);
       return;
    }
 
@@ -243,11 +234,6 @@ update_gp( struct st_context *st )
 }
 
 const struct st_tracked_state st_update_gp = {
-   "st_update_gp",			/* name */
-   {					/* dirty */
-      0,				/* mesa */
-      ST_NEW_GEOMETRY_PROGRAM           /* st */
-   },
    update_gp  				/* update */
 };
 
@@ -260,6 +246,7 @@ update_tcp( struct st_context *st )
 
    if (!st->ctx->TessCtrlProgram._Current) {
       cso_set_tessctrl_shader_handle(st->cso_context, NULL);
+      st_reference_tesscprog(st, &st->tcp, NULL);
       return;
    }
 
@@ -276,11 +263,6 @@ update_tcp( struct st_context *st )
 }
 
 const struct st_tracked_state st_update_tcp = {
-   "st_update_tcp",			/* name */
-   {					/* dirty */
-      0,				/* mesa */
-      ST_NEW_TESSCTRL_PROGRAM           /* st */
-   },
    update_tcp  				/* update */
 };
 
@@ -293,6 +275,7 @@ update_tep( struct st_context *st )
 
    if (!st->ctx->TessEvalProgram._Current) {
       cso_set_tesseval_shader_handle(st->cso_context, NULL);
+      st_reference_tesseprog(st, &st->tep, NULL);
       return;
    }
 
@@ -309,11 +292,6 @@ update_tep( struct st_context *st )
 }
 
 const struct st_tracked_state st_update_tep = {
-   "st_update_tep",			/* name */
-   {					/* dirty */
-      0,				/* mesa */
-      ST_NEW_TESSEVAL_PROGRAM           /* st */
-   },
    update_tep  				/* update */
 };
 
@@ -326,6 +304,7 @@ update_cp( struct st_context *st )
 
    if (!st->ctx->ComputeProgram._Current) {
       cso_set_compute_shader_handle(st->cso_context, NULL);
+      st_reference_compprog(st, &st->cp, NULL);
       return;
    }
 
@@ -341,10 +320,5 @@ update_cp( struct st_context *st )
 }
 
 const struct st_tracked_state st_update_cp = {
-   "st_update_cp",			/* name */
-   {					/* dirty */
-      0,				/* mesa */
-      ST_NEW_COMPUTE_PROGRAM           /* st */
-   },
    update_cp  				/* update */
 };

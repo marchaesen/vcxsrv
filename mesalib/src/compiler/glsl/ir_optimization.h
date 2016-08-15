@@ -42,6 +42,13 @@
 #define SAT_TO_CLAMP       0x400
 #define DOPS_TO_DFRAC      0x800
 #define DFREXP_DLDEXP_TO_ARITH    0x1000
+#define BIT_COUNT_TO_MATH         0x02000
+#define EXTRACT_TO_SHIFTS         0x04000
+#define INSERT_TO_SHIFTS          0x08000
+#define REVERSE_TO_SHIFTS         0x10000
+#define FIND_LSB_TO_FLOAT_CAST    0x20000
+#define FIND_MSB_TO_FLOAT_CAST    0x40000
+#define IMUL_HIGH_TO_MUL          0x80000
 
 /**
  * \see class lower_packing_builtins_visitor

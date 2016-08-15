@@ -42,6 +42,7 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/gallium/auxiliary
 
 LOCAL_SRC_FILES := \
+	main/extensions_table.c \
 	main/imports.c \
 	program/prog_hash_table.c \
 	program/symbol_table.c \
@@ -67,6 +68,7 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/gallium/auxiliary
 
 LOCAL_SRC_FILES := \
+	main/extensions_table.c \
 	main/imports.c \
 	program/prog_hash_table.c \
 	program/symbol_table.c \

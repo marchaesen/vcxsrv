@@ -260,15 +260,19 @@ ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
     * lowering passes (do_vec_index_to_swizzle() gets rid of indexing into
     * vectors, and lower_packed_varyings() gets rid of structs that occur in
     * varyings).
+    *
+    * However, we don't use varying packing in all cases - tessellation
+    * shaders bypass it.  This means we'll see varying structs and arrays
+    * of structs here.  For now, we just give up so the caller marks the
+    * entire variable as used.
     */
    if (!(type->is_matrix() ||
         (type->is_array() &&
          (type->fields.array->is_numeric() ||
           type->fields.array->is_boolean())))) {
-      assert(!"Unexpected indexing in ir_set_program_inouts");
 
-      /* For safety in release builds, in case we ever encounter unexpected
-       * indexing, give up and let the caller mark the whole variable as used.
+      /* If we don't know how to handle this case, give up and let the
+       * caller mark the whole variable as used.
        */
       return false;
    }

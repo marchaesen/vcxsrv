@@ -792,7 +792,7 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
          lower_packed_varyings_gs_splicer splicer(mem_ctx, &new_instructions);
 
          /* Add all the variables in first. */
-         main_func_sig->body.head->insert_before(&new_variables);
+         main_func_sig->body.get_head_raw()->insert_before(&new_variables);
 
          /* Now update all the EmitVertex instances */
          splicer.run(instructions);
@@ -803,7 +803,7 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
 
          lower_packed_varyings_return_splicer splicer(mem_ctx, &new_instructions);
 
-         main_func_sig->body.head->insert_before(&new_variables);
+         main_func_sig->body.get_head_raw()->insert_before(&new_variables);
 
          splicer.run(instructions);
 
@@ -816,7 +816,7 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
       }
    } else {
       /* Shader inputs need to be lowered at the beginning of main() */
-      main_func_sig->body.head->insert_before(&new_instructions);
-      main_func_sig->body.head->insert_before(&new_variables);
+      main_func_sig->body.get_head_raw()->insert_before(&new_instructions);
+      main_func_sig->body.get_head_raw()->insert_before(&new_variables);
    }
 }

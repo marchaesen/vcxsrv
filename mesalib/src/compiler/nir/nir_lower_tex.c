@@ -38,16 +38,39 @@
 #include "nir.h"
 #include "nir_builder.h"
 
+static int
+tex_instr_find_src(nir_tex_instr *tex, nir_tex_src_type src_type)
+{
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == src_type)
+         return i;
+   }
+
+   return -1;
+}
+
+static void
+tex_instr_remove_src(nir_tex_instr *tex, unsigned src_idx)
+{
+   assert(src_idx < tex->num_srcs);
+
+   /* First rewrite the source to NIR_SRC_INIT */
+   nir_instr_rewrite_src(&tex->instr, &tex->src[src_idx].src, NIR_SRC_INIT);
+
+   /* Now, move all of the other sources down */
+   for (unsigned i = src_idx + 1; i < tex->num_srcs; i++) {
+      tex->src[i-1].src_type = tex->src[i].src_type;
+      nir_instr_move_src(&tex->instr, &tex->src[i-1].src, &tex->src[i].src);
+   }
+   tex->num_srcs--;
+}
+
 static void
 project_src(nir_builder *b, nir_tex_instr *tex)
 {
    /* Find the projector in the srcs list, if present. */
-   unsigned proj_index;
-   for (proj_index = 0; proj_index < tex->num_srcs; proj_index++) {
-      if (tex->src[proj_index].src_type == nir_tex_src_projector)
-         break;
-   }
-   if (proj_index == tex->num_srcs)
+   int proj_index = tex_instr_find_src(tex, nir_tex_src_projector);
+   if (proj_index < 0)
       return;
 
    b->cursor = nir_before_instr(&tex->instr);
@@ -102,17 +125,56 @@ project_src(nir_builder *b, nir_tex_instr *tex)
                             nir_src_for_ssa(projected));
    }
 
-   /* Now move the later tex sources down the array so that the projector
-    * disappears.
-    */
-   nir_instr_rewrite_src(&tex->instr, &tex->src[proj_index].src,
-                         NIR_SRC_INIT);
-   for (unsigned i = proj_index + 1; i < tex->num_srcs; i++) {
-      tex->src[i-1].src_type = tex->src[i].src_type;
-      nir_instr_move_src(&tex->instr, &tex->src[i-1].src, &tex->src[i].src);
-   }
-   tex->num_srcs--;
+   tex_instr_remove_src(tex, proj_index);
 }
+
+static bool
+lower_offset(nir_builder *b, nir_tex_instr *tex)
+{
+   int offset_index = tex_instr_find_src(tex, nir_tex_src_offset);
+   if (offset_index < 0)
+      return false;
+
+   int coord_index = tex_instr_find_src(tex, nir_tex_src_coord);
+   assert(coord_index >= 0);
+
+   assert(tex->src[offset_index].src.is_ssa);
+   assert(tex->src[coord_index].src.is_ssa);
+   nir_ssa_def *offset = tex->src[offset_index].src.ssa;
+   nir_ssa_def *coord = tex->src[coord_index].src.ssa;
+
+   b->cursor = nir_before_instr(&tex->instr);
+
+   nir_ssa_def *offset_coord;
+   if (nir_tex_instr_src_type(tex, coord_index) == nir_type_float) {
+      assert(tex->sampler_dim == GLSL_SAMPLER_DIM_RECT);
+      offset_coord = nir_fadd(b, coord, nir_i2f(b, offset));
+   } else {
+      offset_coord = nir_iadd(b, coord, offset);
+   }
+
+   if (tex->is_array) {
+      /* The offset is not applied to the array index */
+      if (tex->coord_components == 2) {
+         offset_coord = nir_vec2(b, nir_channel(b, offset_coord, 0),
+                                    nir_channel(b, coord, 1));
+      } else if (tex->coord_components == 3) {
+         offset_coord = nir_vec3(b, nir_channel(b, offset_coord, 0),
+                                    nir_channel(b, offset_coord, 1),
+                                    nir_channel(b, coord, 2));
+      } else {
+         unreachable("Invalid number of components");
+      }
+   }
+
+   nir_instr_rewrite_src(&tex->instr, &tex->src[coord_index].src,
+                         nir_src_for_ssa(offset_coord));
+
+   tex_instr_remove_src(tex, offset_index);
+
+   return true;
+}
+
 
 static nir_ssa_def *
 get_texture_size(nir_builder *b, nir_tex_instr *tex)
@@ -442,6 +504,12 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       if (lower_txp || sat_mask) {
          project_src(b, tex);
          progress = true;
+      }
+
+      if ((tex->op == nir_texop_txf && options->lower_txf_offset) ||
+          (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT &&
+           options->lower_rect_offset)) {
+         progress = lower_offset(b, tex) || progress;
       }
 
       if ((tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) && options->lower_rect) {

@@ -35,7 +35,6 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include <X11/Xpoll.h>
 #include "inputstr.h"
 #include "opaque.h"
 #include "osdep.h"
@@ -47,11 +46,19 @@ Bool InputThreadEnable = TRUE;
 /**
  * An input device as seen by the threaded input facility
  */
+
+typedef enum _InputDeviceState {
+    device_state_added,
+    device_state_running,
+    device_state_removed
+} InputDeviceState;
+
 typedef struct _InputThreadDevice {
     struct xorg_list node;
     NotifyFdProcPtr readInputProc;
     void *readInputArgs;
     int fd;
+    InputDeviceState state;
 } InputThreadDevice;
 
 /**
@@ -62,9 +69,11 @@ typedef struct _InputThreadDevice {
 typedef struct {
     pthread_t thread;
     struct xorg_list devs;
-    fd_set fds;
+    struct ospoll *fds;
     int readPipe;
     int writePipe;
+    Bool changed;
+    Bool running;
 } InputThreadInfo;
 
 static InputThreadInfo *inputThreadInfo;
@@ -154,6 +163,17 @@ InputThreadReadPipe(int readHead)
     return 1;
 }
 
+static void
+InputReady(int fd, int xevents, void *data)
+{
+    InputThreadDevice *dev = data;
+
+    input_lock();
+    if (dev->state == device_state_running)
+        dev->readInputProc(fd, xevents, dev->readInputArgs);
+    input_unlock();
+}
+
 /**
  * Register an input device in the threaded input facility
  *
@@ -168,29 +188,45 @@ InputThreadRegisterDev(int fd,
                        NotifyFdProcPtr readInputProc,
                        void *readInputArgs)
 {
-    InputThreadDevice *dev;
+    InputThreadDevice *dev, *old;
 
     if (!inputThreadInfo)
         return SetNotifyFd(fd, readInputProc, X_NOTIFY_READ, readInputArgs);
 
-    dev = calloc(1, sizeof(InputThreadDevice));
-    if (dev == NULL) {
-        DebugF("input-thread: could not register device\n");
-        return 0;
+    input_lock();
+
+    dev = NULL;
+    xorg_list_for_each_entry(old, &inputThreadInfo->devs, node) {
+        if (old->fd == fd) {
+            dev = old;
+            break;
+        }
     }
 
-    dev->fd = fd;
-    dev->readInputProc = readInputProc;
-    dev->readInputArgs = readInputArgs;
+    if (dev) {
+        dev->readInputProc = readInputProc;
+        dev->readInputArgs = readInputArgs;
+    } else {
+        dev = calloc(1, sizeof(InputThreadDevice));
+        if (dev == NULL) {
+            DebugF("input-thread: could not register device\n");
+            input_unlock();
+            return 0;
+        }
 
-    input_lock();
-    xorg_list_add(&dev->node, &inputThreadInfo->devs);
+        dev->fd = fd;
+        dev->readInputProc = readInputProc;
+        dev->readInputArgs = readInputArgs;
+        dev->state = device_state_added;
+        xorg_list_append(&dev->node, &inputThreadInfo->devs);
+    }
 
-    FD_SET(fd, &inputThreadInfo->fds);
+    inputThreadInfo->changed = TRUE;
 
-    InputThreadFillPipe(hotplugPipeWrite);
-    DebugF("input-thread: registered device %d\n", fd);
     input_unlock();
+
+    DebugF("input-thread: registered device %d\n", fd);
+    InputThreadFillPipe(hotplugPipeWrite);
 
     return 1;
 }
@@ -229,18 +265,24 @@ InputThreadUnregisterDev(int fd)
         return 0;
     }
 
-    xorg_list_del(&dev->node);
-
-    FD_CLR(fd, &inputThreadInfo->fds);
+    dev->state = device_state_removed;
+    inputThreadInfo->changed = TRUE;
 
     input_unlock();
-
-    free(dev);
 
     InputThreadFillPipe(hotplugPipeWrite);
     DebugF("input-thread: unregistered device: %d\n", fd);
 
     return 1;
+}
+
+static void
+InputThreadPipeNotify(int fd, int revents, void *data)
+{
+    /* Empty pending input, shut down if the pipe has been closed */
+    if (InputThreadReadPipe(hotplugPipeRead) == 0) {
+        inputThreadInfo->running = FALSE;
+    }
 }
 
 /**
@@ -260,8 +302,6 @@ InputThreadUnregisterDev(int fd)
 static void*
 InputThreadDoWork(void *arg)
 {
-    fd_set readyFds;
-    InputThreadDevice *dev, *next;
 #ifdef SIG_BLOCK
     sigset_t set;
 
@@ -270,43 +310,60 @@ InputThreadDoWork(void *arg)
     pthread_sigmask(SIG_BLOCK, &set, NULL);
 #endif
 
-    FD_ZERO(&readyFds);
+    inputThreadInfo->running = TRUE;
 
-    while (1)
+    ospoll_add(inputThreadInfo->fds, hotplugPipeRead,
+               ospoll_trigger_level,
+               InputThreadPipeNotify,
+               NULL);
+    ospoll_listen(inputThreadInfo->fds, hotplugPipeRead, X_NOTIFY_READ);
+
+    while (inputThreadInfo->running)
     {
-        XFD_COPYSET(&inputThreadInfo->fds, &readyFds);
-        FD_SET(hotplugPipeRead, &readyFds);
-
         DebugF("input-thread: %s waiting for devices\n", __FUNCTION__);
 
-        if (Select(MAXSELECT, &readyFds, NULL, NULL, NULL) < 0) {
+        /* Check for hotplug changes and modify the ospoll structure to suit */
+        if (inputThreadInfo->changed) {
+            InputThreadDevice *dev, *tmp;
+
+            input_lock();
+            inputThreadInfo->changed = FALSE;
+            xorg_list_for_each_entry_safe(dev, tmp, &inputThreadInfo->devs, node) {
+                switch (dev->state) {
+                case device_state_added:
+                    ospoll_add(inputThreadInfo->fds, dev->fd,
+                               ospoll_trigger_level,
+                               InputReady,
+                               dev);
+                    ospoll_listen(inputThreadInfo->fds, dev->fd, X_NOTIFY_READ);
+                    dev->state = device_state_running;
+                    break;
+                case device_state_running:
+                    break;
+                case device_state_removed:
+                    ospoll_remove(inputThreadInfo->fds, dev->fd);
+                    xorg_list_del(&dev->node);
+                    free(dev);
+                    break;
+                }
+            }
+            input_unlock();
+        }
+
+        if (ospoll_wait(inputThreadInfo->fds, -1) < 0) {
             if (errno == EINVAL)
                 FatalError("input-thread: %s (%s)", __FUNCTION__, strerror(errno));
             else if (errno != EINTR)
                 ErrorF("input-thread: %s (%s)\n", __FUNCTION__, strerror(errno));
         }
 
-        DebugF("input-thread: %s generating events\n", __FUNCTION__);
-
-        input_lock();
-        /* Call the device drivers to generate input events for us */
-        xorg_list_for_each_entry_safe(dev, next, &inputThreadInfo->devs, node) {
-            if (FD_ISSET(dev->fd, &readyFds) && dev->readInputProc) {
-                dev->readInputProc(dev->fd, X_NOTIFY_READ, dev->readInputArgs);
-            }
-        }
-        input_unlock();
-
         /* Kick main thread to process the generated input events and drain
          * events from hotplug pipe */
         InputThreadFillPipe(inputThreadInfo->writePipe);
-
-        /* Empty pending input, shut down if the pipe has been closed */
-        if (FD_ISSET(hotplugPipeRead, &readyFds)) {
-            if (InputThreadReadPipe(hotplugPipeRead) == 0)
-                break;
-        }
     }
+
+    ospoll_remove(inputThreadInfo->fds, hotplugPipeRead);
+
     return NULL;
 }
 
@@ -340,7 +397,7 @@ InputThreadPreInit(void)
 
     inputThreadInfo->thread.p = 0;
     xorg_list_init(&inputThreadInfo->devs);
-    FD_ZERO(&inputThreadInfo->fds);
+    inputThreadInfo->fds = ospoll_create();
 
     /* By making read head non-blocking, we ensure that while the main thread
      * is busy servicing client requests, the dedicated input thread can work
@@ -355,6 +412,7 @@ InputThreadPreInit(void)
     hotplugPipeRead = hotplugPipe[0];
     fcntl(hotplugPipeRead, F_SETFL, O_NONBLOCK | O_CLOEXEC);
     hotplugPipeWrite = hotplugPipe[1];
+
 }
 
 /**
@@ -409,11 +467,11 @@ InputThreadFini(void)
     pthread_join(inputThreadInfo->thread, NULL);
 
     xorg_list_for_each_entry_safe(dev, next, &inputThreadInfo->devs, node) {
-        FD_CLR(dev->fd, &inputThreadInfo->fds);
+        ospoll_remove(inputThreadInfo->fds, dev->fd);
         free(dev);
     }
     xorg_list_init(&inputThreadInfo->devs);
-    FD_ZERO(&inputThreadInfo->fds);
+    ospoll_destroy(inputThreadInfo->fds);
 
     RemoveNotifyFd(inputThreadInfo->readPipe);
     close(inputThreadInfo->readPipe);

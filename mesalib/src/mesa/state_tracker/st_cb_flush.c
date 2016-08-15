@@ -98,7 +98,7 @@ void st_finish( struct st_context *st )
    st_flush(st, &fence, 0);
 
    if(fence) {
-      st->pipe->screen->fence_finish(st->pipe->screen, fence,
+      st->pipe->screen->fence_finish(st->pipe->screen, NULL, fence,
                                      PIPE_TIMEOUT_INFINITE);
       st->pipe->screen->fence_reference(st->pipe->screen, &fence, NULL);
    }

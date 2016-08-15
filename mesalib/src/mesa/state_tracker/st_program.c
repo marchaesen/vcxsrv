@@ -364,8 +364,22 @@ st_translate_vertex_program(struct st_context *st,
    output_semantic_name[num_outputs] = TGSI_SEMANTIC_EDGEFLAG;
    output_semantic_index[num_outputs] = 0;
 
-   if (!stvp->glsl_to_tgsi && !stvp->shader_program)
+   /* ARB_vp: */
+   if (!stvp->glsl_to_tgsi && !stvp->shader_program) {
       _mesa_remove_output_reads(&stvp->Base.Base, PROGRAM_OUTPUT);
+
+      /* This determines which states will be updated when the assembly
+       * shader is bound.
+       */
+      stvp->affected_states = ST_NEW_VS_STATE |
+                              ST_NEW_RASTERIZER |
+                              ST_NEW_VERTEX_ARRAYS;
+
+      if (stvp->Base.Base.Parameters->NumParameters)
+         stvp->affected_states |= ST_NEW_VS_CONSTANTS;
+
+      /* No samplers are allowed in ARB_vp. */
+   }
 
    if (stvp->shader_program) {
       nir_shader *nir = st_glsl_to_nir(st, &stvp->Base.Base,
@@ -593,10 +607,31 @@ st_translate_fragment_program(struct st_context *st,
 
    memset(inputSlotToAttr, ~0, sizeof(inputSlotToAttr));
 
+   /* Non-GLSL programs: */
    if (!stfp->glsl_to_tgsi && !stfp->shader_program) {
       _mesa_remove_output_reads(&stfp->Base.Base, PROGRAM_OUTPUT);
       if (st->ctx->Const.GLSLFragCoordIsSysVal)
          _mesa_program_fragment_position_to_sysval(&stfp->Base.Base);
+
+      /* This determines which states will be updated when the assembly
+       * shader is bound.
+       *
+       * fragment.position and glDrawPixels always use constants.
+       */
+      stfp->affected_states = ST_NEW_FS_STATE |
+                              ST_NEW_SAMPLE_SHADING |
+                              ST_NEW_FS_CONSTANTS;
+
+      if (stfp->ati_fs) {
+         /* Just set them for ATI_fs unconditionally. */
+         stfp->affected_states |= ST_NEW_FS_SAMPLER_VIEWS |
+                                  ST_NEW_RENDER_SAMPLERS;
+      } else {
+         /* ARB_fp */
+         if (stfp->Base.Base.SamplersUsed)
+            stfp->affected_states |= ST_NEW_FS_SAMPLER_VIEWS |
+                                     ST_NEW_RENDER_SAMPLERS;
+      }
    }
 
    /*
@@ -954,7 +989,7 @@ st_create_fp_variant(struct st_context *st,
 
       /* glDrawPixels (color only) */
       if (key->drawpixels) {
-         nir_lower_drawpixels_options options = {0};
+         nir_lower_drawpixels_options options = {{0}};
          unsigned samplers_used = stfp->Base.Base.SamplersUsed;
 
          /* Find the first unused slot. */

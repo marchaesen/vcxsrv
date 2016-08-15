@@ -46,8 +46,8 @@ string = """/*
 #include "format_pack.h"
 #include "format_utils.h"
 #include "macros.h"
-#include "../../gallium/auxiliary/util/u_format_rgb9e5.h"
-#include "../../gallium/auxiliary/util/u_format_r11g11b10f.h"
+#include "util/format_rgb9e5.h"
+#include "util/format_r11g11b10f.h"
 #include "util/format_srgb.h"
 
 #define UNPACK(SRC, OFFSET, BITS) (((SRC) >> (OFFSET)) & MAX_UINT(BITS))

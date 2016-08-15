@@ -86,19 +86,9 @@ static void update_sample_shading( struct st_context *st )
 }
 
 const struct st_tracked_state st_update_msaa = {
-   "st_update_msaa",					/* name */
-   {							/* dirty */
-      (_NEW_MULTISAMPLE | _NEW_BUFFERS),		/* mesa */
-      ST_NEW_FRAMEBUFFER,				/* st */
-   },
    update_sample_mask					/* update */
 };
 
 const struct st_tracked_state st_update_sample_shading = {
-   "st_update_sample_shading",				/* name */
-   {							/* dirty */
-      (_NEW_MULTISAMPLE | _NEW_PROGRAM | _NEW_BUFFERS),	/* mesa */
-      ST_NEW_FRAGMENT_PROGRAM | ST_NEW_FRAMEBUFFER,	/* st */
-   },
    update_sample_shading				/* update */
 };

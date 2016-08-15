@@ -103,7 +103,6 @@ struct state_key {
    GLuint nr_enabled_units:8;
    GLuint enabled_units:8;
    GLuint separate_specular:1;
-   GLuint fog_enabled:1;
    GLuint fog_mode:2;          /**< FOG_x */
    GLuint inputs_available:12;
    GLuint num_draw_buffers:4;
@@ -127,10 +126,10 @@ struct state_key {
    } unit[MAX_TEXTURE_UNITS];
 };
 
-#define FOG_LINEAR  0
-#define FOG_EXP     1
-#define FOG_EXP2    2
-#define FOG_UNKNOWN 3
+#define FOG_NONE    0
+#define FOG_LINEAR  1
+#define FOG_EXP     2
+#define FOG_EXP2    3
 
 static GLuint translate_fog_mode( GLenum mode )
 {
@@ -138,7 +137,7 @@ static GLuint translate_fog_mode( GLenum mode )
    case GL_LINEAR: return FOG_LINEAR;
    case GL_EXP: return FOG_EXP;
    case GL_EXP2: return FOG_EXP2;
-   default: return FOG_UNKNOWN;
+   default: return FOG_NONE;
    }
 }
 
@@ -463,7 +462,6 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
 
    /* _NEW_FOG */
    if (ctx->Fog.Enabled) {
-      key->fog_enabled = 1;
       key->fog_mode = translate_fog_mode(ctx->Fog.Mode);
       inputs_referenced |= VARYING_BIT_FOGC; /* maybe */
    }
@@ -1182,7 +1180,7 @@ emit_instructions(texenv_fragment_program *p)
       cf = new(p->mem_ctx) ir_dereference_variable(spec_result);
    }
 
-   if (key->fog_enabled) {
+   if (key->fog_mode) {
       cf = emit_fog_instructions(p, cf);
    }
 

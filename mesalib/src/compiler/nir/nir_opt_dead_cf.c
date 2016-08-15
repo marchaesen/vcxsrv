@@ -128,8 +128,7 @@ opt_constant_if(nir_if *if_stmt, bool condition)
                                          : &if_stmt->else_list;
 
    nir_cf_list list;
-   nir_cf_extract(&list, nir_before_cf_list(cf_list),
-                  nir_after_cf_list(cf_list));
+   nir_cf_list_extract(&list, cf_list);
    nir_cf_reinsert(&list, nir_after_cf_node(&if_stmt->cf_node));
    nir_cf_node_remove(&if_stmt->cf_node);
 }

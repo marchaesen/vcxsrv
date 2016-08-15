@@ -80,8 +80,11 @@
 #include "xmlpool.h"
 #endif
 #endif
-#ifdef HAVE_SYSFS
-#include <sys/types.h>
+#ifdef MAJOR_IN_MKDEV
+#include <sys/mkdev.h>
+#endif
+#ifdef MAJOR_IN_SYSMACROS
+#include <sys/sysmacros.h>
 #endif
 #include "loader.h"
 

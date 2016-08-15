@@ -47,6 +47,8 @@ void st_init_draw( struct st_context *st );
 
 void st_destroy_draw( struct st_context *st );
 
+struct draw_context *st_get_draw_context(struct st_context *st);
+
 extern void
 st_draw_vbo(struct gl_context *ctx,
             const struct _mesa_prim *prims,

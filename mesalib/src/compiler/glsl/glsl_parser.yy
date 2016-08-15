@@ -220,8 +220,6 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <type_qualifier> subroutine_qualifier
 %type <subroutine_list> subroutine_type_list
 %type <type_qualifier> interface_qualifier
-%type <type_qualifier> uniform_interface_qualifier
-%type <type_qualifier> buffer_interface_qualifier
 %type <type_specifier> type_specifier
 %type <type_specifier> type_specifier_nonarray
 %type <array_specifier> array_specifier
@@ -1277,7 +1275,8 @@ layout_qualifier_id:
             }
          }
 
-         if ($$.flags.i && !state->has_geometry_shader()) {
+         if ($$.flags.i && !state->has_geometry_shader() &&
+             !state->has_tessellation_shader()) {
             _mesa_glsl_error(& @1, state, "#version 150 layout "
                              "qualifier `%s' used", $1);
          }
@@ -1391,9 +1390,7 @@ layout_qualifier_id:
             }
          }
 
-         if ($$.flags.i &&
-             !state->ARB_tessellation_shader_enable &&
-             !state->is_version(400, 0)) {
+         if ($$.flags.i && !state->has_tessellation_shader()) {
             _mesa_glsl_error(& @1, state,
                              "primitive mode qualifier `%s' requires "
                              "GLSL 4.00 or ARB_tessellation_shader", $1);
@@ -1416,9 +1413,7 @@ layout_qualifier_id:
             }
          }
 
-         if ($$.flags.i &&
-             !state->ARB_tessellation_shader_enable &&
-             !state->is_version(400, 0)) {
+         if ($$.flags.i && !state->has_tessellation_shader()) {
             _mesa_glsl_error(& @1, state,
                              "vertex spacing qualifier `%s' requires "
                              "GLSL 4.00 or ARB_tessellation_shader", $1);
@@ -1433,9 +1428,7 @@ layout_qualifier_id:
             $$.ordering = GL_CCW;
          }
 
-         if ($$.flags.i &&
-             !state->ARB_tessellation_shader_enable &&
-             !state->is_version(400, 0)) {
+         if ($$.flags.i && !state->has_tessellation_shader()) {
             _mesa_glsl_error(& @1, state,
                              "ordering qualifier `%s' requires "
                              "GLSL 4.00 or ARB_tessellation_shader", $1);
@@ -1447,9 +1440,7 @@ layout_qualifier_id:
             $$.point_mode = true;
          }
 
-         if ($$.flags.i &&
-             !state->ARB_tessellation_shader_enable &&
-             !state->is_version(400, 0)) {
+         if ($$.flags.i && !state->has_tessellation_shader()) {
             _mesa_glsl_error(& @1, state,
                              "qualifier `point_mode' requires "
                              "GLSL 4.00 or ARB_tessellation_shader");
@@ -1609,8 +1600,7 @@ layout_qualifier_id:
       if (match_layout_qualifier("vertices", $1, state) == 0) {
          $$.flags.q.vertices = 1;
          $$.vertices = new(ctx) ast_layout_expression(@1, $3);
-         if (!state->ARB_tessellation_shader_enable &&
-             !state->is_version(400, 0)) {
+         if (!state->has_tessellation_shader()) {
             _mesa_glsl_error(& @1, state,
                              "vertices qualifier requires GLSL 4.00 or "
                              "ARB_tessellation_shader");
@@ -1785,8 +1775,10 @@ type_qualifier:
        * variables. As only outputs can be declared as invariant, an invariant
        * output from one shader stage will still match an input of a subsequent
        * stage without the input being declared as invariant."
+       *
+       * On the desktop side, this text first appears in GLSL 4.30.
        */
-      if (state->es_shader && state->language_version >= 300 && $$.flags.q.in)
+      if (state->is_version(430, 300) && $$.flags.q.in)
          _mesa_glsl_error(&@1, state, "invariant qualifiers cannot be used with shader inputs");
    }
    | interpolation_qualifier type_qualifier
@@ -2673,30 +2665,11 @@ basic_interface_block:
    {
       ast_interface_block *const block = $6;
 
-      block->block_name = $2;
-      block->declarations.push_degenerate_list_at_head(& $4->link);
-
-      _mesa_ast_process_interface_block(& @1, state, block, $1);
-
-      $$ = block;
-   }
-   | uniform_interface_qualifier NEW_IDENTIFIER '{' member_list '}' instance_name_opt ';'
-   {
-      ast_interface_block *const block = $6;
-
-      block->layout = *state->default_uniform_qualifier;
-      block->block_name = $2;
-      block->declarations.push_degenerate_list_at_head(& $4->link);
-
-      _mesa_ast_process_interface_block(& @1, state, block, $1);
-
-      $$ = block;
-   }
-   | buffer_interface_qualifier NEW_IDENTIFIER '{' member_list '}' instance_name_opt ';'
-   {
-      ast_interface_block *const block = $6;
-
-      block->layout = *state->default_shader_storage_qualifier;
+      if ($1.flags.q.uniform) {
+         block->layout = *state->default_uniform_qualifier;
+      } else if ($1.flags.q.buffer) {
+         block->layout = *state->default_shader_storage_qualifier;
+      }
       block->block_name = $2;
       block->declarations.push_degenerate_list_at_head(& $4->link);
 
@@ -2717,18 +2690,12 @@ interface_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.out = 1;
    }
-   ;
-
-uniform_interface_qualifier:
-   UNIFORM
+   | UNIFORM
    {
       memset(& $$, 0, sizeof($$));
       $$.flags.q.uniform = 1;
    }
-   ;
-
-buffer_interface_qualifier:
-   BUFFER
+   | BUFFER
    {
       memset(& $$, 0, sizeof($$));
       $$.flags.q.buffer = 1;

@@ -807,7 +807,7 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
       this->value.u[i] = 0;
    }
 
-   ir_constant *value = (ir_constant *) (value_list->head);
+   ir_constant *value = (ir_constant *) (value_list->get_head_raw());
 
    /* Constructors with exactly one scalar argument are special for vectors
     * and matrices.  For vectors, the scalar value is replicated to fill all
@@ -1073,7 +1073,7 @@ ir_constant::get_record_field(const char *name)
    if (this->components.is_empty())
       return NULL;
 
-   exec_node *node = this->components.head;
+   exec_node *node = this->components.get_head_raw();
    for (int i = 0; i < idx; i++) {
       node = node->next;
 
@@ -1197,8 +1197,8 @@ ir_constant::has_value(const ir_constant *c) const
    }
 
    if (this->type->base_type == GLSL_TYPE_STRUCT) {
-      const exec_node *a_node = this->components.head;
-      const exec_node *b_node = c->components.head;
+      const exec_node *a_node = this->components.get_head_raw();
+      const exec_node *b_node = c->components.get_head_raw();
 
       while (!a_node->is_tail_sentinel()) {
 	 assert(!b_node->is_tail_sentinel());

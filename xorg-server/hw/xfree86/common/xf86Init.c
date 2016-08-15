@@ -360,6 +360,15 @@ AddVTAtoms(CallbackListPtr *pcbl, void *data, void *screen)
                    "Failed to register VT properties\n");
 }
 
+static Bool
+xf86ScreenInit(ScreenPtr pScreen, int argc, char **argv)
+{
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+
+    pScrn->pScreen = pScreen;
+    return pScrn->ScreenInit (pScreen, argc, argv);
+}
+
 /*
  * InitOutput --
  *	Initialize screenInfo for all actually accessible framebuffers.
@@ -791,7 +800,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         pScrn->SetOverscan = NULL;
         pScrn->DriverFunc = NULL;
         pScrn->pScreen = NULL;
-        scr_index = AddGPUScreen(pScrn->ScreenInit, argc, argv);
+        scr_index = AddGPUScreen(xf86ScreenInit, argc, argv);
         xf86VGAarbiterUnlock(pScrn);
         if (scr_index == i) {
             dixSetPrivate(&screenInfo.gpuscreens[scr_index]->devPrivates,
@@ -819,7 +828,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         xf86Screens[i]->SetOverscan = NULL;
         xf86Screens[i]->DriverFunc = NULL;
         xf86Screens[i]->pScreen = NULL;
-        scr_index = AddScreen(xf86Screens[i]->ScreenInit, argc, argv);
+        scr_index = AddScreen(xf86ScreenInit, argc, argv);
         xf86VGAarbiterUnlock(xf86Screens[i]);
         if (scr_index == i) {
             /*

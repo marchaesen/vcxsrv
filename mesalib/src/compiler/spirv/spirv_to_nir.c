@@ -1335,54 +1335,9 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    } else {
       image_type = sampled.sampler->var->var->interface_type;
    }
-
-   nir_tex_src srcs[8]; /* 8 should be enough */
-   nir_tex_src *p = srcs;
-
-   unsigned idx = 4;
-
-   bool has_coord = false;
-   switch (opcode) {
-   case SpvOpImageSampleImplicitLod:
-   case SpvOpImageSampleExplicitLod:
-   case SpvOpImageSampleDrefImplicitLod:
-   case SpvOpImageSampleDrefExplicitLod:
-   case SpvOpImageSampleProjImplicitLod:
-   case SpvOpImageSampleProjExplicitLod:
-   case SpvOpImageSampleProjDrefImplicitLod:
-   case SpvOpImageSampleProjDrefExplicitLod:
-   case SpvOpImageFetch:
-   case SpvOpImageGather:
-   case SpvOpImageDrefGather:
-   case SpvOpImageQueryLod: {
-      /* All these types have the coordinate as their first real argument */
-      struct vtn_ssa_value *coord = vtn_ssa_value(b, w[idx++]);
-      has_coord = true;
-      p->src = nir_src_for_ssa(coord->def);
-      p->src_type = nir_tex_src_coord;
-      p++;
-      break;
-   }
-
-   default:
-      break;
-   }
-
-   /* These all have an explicit depth value as their next source */
-   switch (opcode) {
-   case SpvOpImageSampleDrefImplicitLod:
-   case SpvOpImageSampleDrefExplicitLod:
-   case SpvOpImageSampleProjDrefImplicitLod:
-   case SpvOpImageSampleProjDrefExplicitLod:
-      (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_comparitor);
-      break;
-   default:
-      break;
-   }
-
-   /* For OpImageQuerySizeLod, we always have an LOD */
-   if (opcode == SpvOpImageQuerySizeLod)
-      (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_lod);
+   const enum glsl_sampler_dim sampler_dim = glsl_get_sampler_dim(image_type);
+   const bool is_array = glsl_sampler_type_is_array(image_type);
+   const bool is_shadow = glsl_sampler_type_is_shadow(image_type);
 
    /* Figure out the base texture operation */
    nir_texop texop;
@@ -1428,9 +1383,107 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpImageQuerySamples:
+      texop = nir_texop_texture_samples;
+      break;
+
    default:
       unreachable("Unhandled opcode");
    }
+
+   nir_tex_src srcs[8]; /* 8 should be enough */
+   nir_tex_src *p = srcs;
+
+   unsigned idx = 4;
+
+   struct nir_ssa_def *coord;
+   unsigned coord_components;
+   switch (opcode) {
+   case SpvOpImageSampleImplicitLod:
+   case SpvOpImageSampleExplicitLod:
+   case SpvOpImageSampleDrefImplicitLod:
+   case SpvOpImageSampleDrefExplicitLod:
+   case SpvOpImageSampleProjImplicitLod:
+   case SpvOpImageSampleProjExplicitLod:
+   case SpvOpImageSampleProjDrefImplicitLod:
+   case SpvOpImageSampleProjDrefExplicitLod:
+   case SpvOpImageFetch:
+   case SpvOpImageGather:
+   case SpvOpImageDrefGather:
+   case SpvOpImageQueryLod: {
+      /* All these types have the coordinate as their first real argument */
+      switch (sampler_dim) {
+      case GLSL_SAMPLER_DIM_1D:
+      case GLSL_SAMPLER_DIM_BUF:
+         coord_components = 1;
+         break;
+      case GLSL_SAMPLER_DIM_2D:
+      case GLSL_SAMPLER_DIM_RECT:
+      case GLSL_SAMPLER_DIM_MS:
+         coord_components = 2;
+         break;
+      case GLSL_SAMPLER_DIM_3D:
+      case GLSL_SAMPLER_DIM_CUBE:
+         coord_components = 3;
+         break;
+      default:
+         assert("Invalid sampler type");
+      }
+
+      if (is_array && texop != nir_texop_lod)
+         coord_components++;
+
+      coord = vtn_ssa_value(b, w[idx++])->def;
+      p->src = nir_src_for_ssa(coord);
+      p->src_type = nir_tex_src_coord;
+      p++;
+      break;
+   }
+
+   default:
+      coord = NULL;
+      coord_components = 0;
+      break;
+   }
+
+   switch (opcode) {
+   case SpvOpImageSampleProjImplicitLod:
+   case SpvOpImageSampleProjExplicitLod:
+   case SpvOpImageSampleProjDrefImplicitLod:
+   case SpvOpImageSampleProjDrefExplicitLod:
+      /* These have the projector as the last coordinate component */
+      p->src = nir_src_for_ssa(nir_channel(&b->nb, coord, coord_components));
+      p->src_type = nir_tex_src_projector;
+      p++;
+      break;
+
+   default:
+      break;
+   }
+
+   unsigned gather_component = 0;
+   switch (opcode) {
+   case SpvOpImageSampleDrefImplicitLod:
+   case SpvOpImageSampleDrefExplicitLod:
+   case SpvOpImageSampleProjDrefImplicitLod:
+   case SpvOpImageSampleProjDrefExplicitLod:
+   case SpvOpImageDrefGather:
+      /* These all have an explicit depth value as their next source */
+      (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_comparitor);
+      break;
+
+   case SpvOpImageGather:
+      /* This has a component as its next source */
+      gather_component =
+         vtn_value(b, w[idx++], vtn_value_type_constant)->constant->value.u[0];
+      break;
+
+   default:
+      break;
+   }
+
+   /* For OpImageQuerySizeLod, we always have an LOD */
+   if (opcode == SpvOpImageQuerySizeLod)
+      (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_lod);
 
    /* Now we need to handle some number of optional arguments */
    if (idx < count) {
@@ -1444,12 +1497,12 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
 
       if (operands & SpvImageOperandsLodMask) {
          assert(texop == nir_texop_txl || texop == nir_texop_txf ||
-                texop == nir_texop_txf_ms || texop == nir_texop_txs);
+                texop == nir_texop_txs);
          (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_lod);
       }
 
       if (operands & SpvImageOperandsGradMask) {
-         assert(texop == nir_texop_tex);
+         assert(texop == nir_texop_txl);
          texop = nir_texop_txd;
          (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_ddx);
          (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_ddy);
@@ -1476,35 +1529,13 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
 
    memcpy(instr->src, srcs, instr->num_srcs * sizeof(*instr->src));
 
-   instr->sampler_dim = glsl_get_sampler_dim(image_type);
-   instr->is_array = glsl_sampler_type_is_array(image_type);
-   instr->is_shadow = glsl_sampler_type_is_shadow(image_type);
-   instr->is_new_style_shadow = instr->is_shadow;
-
-   if (has_coord) {
-      switch (instr->sampler_dim) {
-      case GLSL_SAMPLER_DIM_1D:
-      case GLSL_SAMPLER_DIM_BUF:
-         instr->coord_components = 1;
-         break;
-      case GLSL_SAMPLER_DIM_2D:
-      case GLSL_SAMPLER_DIM_RECT:
-      case GLSL_SAMPLER_DIM_MS:
-         instr->coord_components = 2;
-         break;
-      case GLSL_SAMPLER_DIM_3D:
-      case GLSL_SAMPLER_DIM_CUBE:
-         instr->coord_components = 3;
-         break;
-      default:
-         assert("Invalid sampler type");
-      }
-
-      if (instr->is_array)
-         instr->coord_components++;
-   } else {
-      instr->coord_components = 0;
-   }
+   instr->coord_components = coord_components;
+   instr->sampler_dim = sampler_dim;
+   instr->is_array = is_array;
+   instr->is_shadow = is_shadow;
+   instr->is_new_style_shadow =
+      is_shadow && glsl_get_components(ret_type->type) == 1;
+   instr->component = gather_component;
 
    switch (glsl_get_sampler_result_type(image_type)) {
    case GLSL_TYPE_FLOAT:   instr->dest_type = nir_type_float;     break;

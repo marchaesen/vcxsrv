@@ -74,7 +74,8 @@ LIBDRM_AMDGPU_REQUIRED=2.4.63
 LIBDRM_INTEL_REQUIRED=2.4.61
 LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
-LIBDRM_FREEDRENO_REQUIRED=2.4.67
+LIBDRM_FREEDRENO_REQUIRED=2.4.68
+LIBDRM_VC4_REQUIRED=2.4.69
 DRI2PROTO_REQUIRED=2.6
 DRI3PROTO_REQUIRED=1.0
 PRESENTPROTO_REQUIRED=1.0
@@ -225,6 +226,7 @@ AX_GCC_FUNC_ATTRIBUTE([packed])
 AX_GCC_FUNC_ATTRIBUTE([pure])
 AX_GCC_FUNC_ATTRIBUTE([returns_nonnull])
 AX_GCC_FUNC_ATTRIBUTE([unused])
+AX_GCC_FUNC_ATTRIBUTE([visibility])
 AX_GCC_FUNC_ATTRIBUTE([warn_unused_result])
 AX_GCC_FUNC_ATTRIBUTE([weak])
 
@@ -298,15 +300,8 @@ if test "x$GCC" = xyes; then
     # Restore CFLAGS; VISIBILITY_CFLAGS are added to it where needed.
     CFLAGS=$save_CFLAGS
 
-    # Work around aliasing bugs - developers should comment this out
-    CFLAGS="$CFLAGS -fno-strict-aliasing"
-
     # We don't want floating-point math functions to set errno or trap
     CFLAGS="$CFLAGS -fno-math-errno -fno-trapping-math"
-
-    # gcc's builtin memcmp is slower than glibc's
-    # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43052
-    CFLAGS="$CFLAGS -fno-builtin-memcmp"
 
     # Flags to help ensure that certain portions of the code -- and only those
     # portions -- can be built with MSVC:
@@ -344,12 +339,8 @@ if test "x$GXX" = xyes; then
     # Restore CXXFLAGS; VISIBILITY_CXXFLAGS are added to it where needed.
     CXXFLAGS=$save_CXXFLAGS
 
-    # Work around aliasing bugs - developers should comment this out
-    CXXFLAGS="$CXXFLAGS -fno-strict-aliasing"
-
-    # gcc's builtin memcmp is slower than glibc's
-    # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43052
-    CXXFLAGS="$CXXFLAGS -fno-builtin-memcmp"
+    # We don't want floating-point math functions to set errno or trap
+    CXXFLAGS="$CXXFLAGS -fno-math-errno -fno-trapping-math"
 fi
 
 AC_SUBST([MSVC2013_COMPAT_CFLAGS])
@@ -780,6 +771,7 @@ if test "x$enable_asm" = xyes; then
     esac
 fi
 
+AC_HEADER_MAJOR
 AC_CHECK_HEADER([xlocale.h], [DEFINES="$DEFINES -DHAVE_XLOCALE_H"])
 AC_CHECK_HEADER([sys/sysctl.h], [DEFINES="$DEFINES -DHAVE_SYS_SYSCTL_H"])
 AC_CHECK_FUNC([strtof], [DEFINES="$DEFINES -DHAVE_STRTOF"])
@@ -2467,6 +2459,7 @@ if test -n "$with_gallium_drivers"; then
             ;;
         xvc4)
             HAVE_GALLIUM_VC4=yes
+            PKG_CHECK_MODULES([VC4], [libdrm_vc4 >= $LIBDRM_VC4_REQUIRED])
             gallium_require_drm "vc4"
             gallium_require_drm_loader
 
@@ -2536,7 +2529,7 @@ if test "x$MESA_LLVM" != x0; then
         AC_MSG_WARN([Building mesa with statically linked LLVM may cause compilation issues])
         dnl We need to link to llvm system libs when using static libs
         dnl However, only llvm 3.5+ provides --system-libs
-        if test $LLVM_VERSION_MAJOR -eq 3 -a $LLVM_VERSION_MINOR -ge 5; then
+        if test $LLVM_VERSION_MAJOR -ge 4 -o $LLVM_VERSION_MAJOR -eq 3 -a $LLVM_VERSION_MINOR -ge 5; then
             LLVM_LIBS="$LLVM_LIBS `$LLVM_CONFIG --system-libs`"
         fi
     fi

@@ -107,6 +107,7 @@ struct st_fragment_program
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    struct ati_fragment_shader *ati_fs;
+   uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    /* used when bypassing glsl_to_tgsi: */
    struct gl_shader_program *shader_program;
@@ -166,6 +167,7 @@ struct st_vertex_program
    struct gl_vertex_program Base;  /**< The Mesa vertex program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+   uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    /* used when bypassing glsl_to_tgsi: */
    struct gl_shader_program *shader_program;
@@ -214,6 +216,7 @@ struct st_geometry_program
    struct gl_geometry_program Base;  /**< The Mesa geometry program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+   uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    struct st_basic_variant *variants;
 };
@@ -227,6 +230,7 @@ struct st_tessctrl_program
    struct gl_tess_ctrl_program Base;  /**< The Mesa tess ctrl program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+   uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    struct st_basic_variant *variants;
 };
@@ -240,6 +244,7 @@ struct st_tesseval_program
    struct gl_tess_eval_program Base;  /**< The Mesa tess eval program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+   uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    struct st_basic_variant *variants;
 };
@@ -253,6 +258,7 @@ struct st_compute_program
    struct gl_compute_program Base;  /**< The Mesa compute program */
    struct pipe_compute_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+   uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    struct st_basic_variant *variants;
 };

@@ -1176,8 +1176,8 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
  * then emitting an indexed prim at runtime.
  */
 static void GLAPIENTRY
-_save_OBE_DrawElements(GLenum mode, GLsizei count, GLenum type,
-                       const GLvoid * indices)
+_save_OBE_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
+                                 const GLvoid * indices, GLint basevertex)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_save_context *save = &vbo_context(ctx)->save;
@@ -1214,15 +1214,15 @@ _save_OBE_DrawElements(GLenum mode, GLsizei count, GLenum type,
    switch (type) {
    case GL_UNSIGNED_BYTE:
       for (i = 0; i < count; i++)
-         CALL_ArrayElement(GET_DISPATCH(), (((GLubyte *) indices)[i]));
+         CALL_ArrayElement(GET_DISPATCH(), (basevertex + ((GLubyte *) indices)[i]));
       break;
    case GL_UNSIGNED_SHORT:
       for (i = 0; i < count; i++)
-         CALL_ArrayElement(GET_DISPATCH(), (((GLushort *) indices)[i]));
+         CALL_ArrayElement(GET_DISPATCH(), (basevertex + ((GLushort *) indices)[i]));
       break;
    case GL_UNSIGNED_INT:
       for (i = 0; i < count; i++)
-         CALL_ArrayElement(GET_DISPATCH(), (((GLuint *) indices)[i]));
+         CALL_ArrayElement(GET_DISPATCH(), (basevertex + ((GLuint *) indices)[i]));
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glDrawElements(type)");
@@ -1232,6 +1232,13 @@ _save_OBE_DrawElements(GLenum mode, GLsizei count, GLenum type,
    CALL_End(GET_DISPATCH(), ());
 
    _ae_unmap_vbos(ctx);
+}
+
+static void GLAPIENTRY
+_save_OBE_DrawElements(GLenum mode, GLsizei count, GLenum type,
+                       const GLvoid * indices)
+{
+   _save_OBE_DrawElementsBaseVertex(mode, count, type, indices, 0);
 }
 
 
@@ -1471,6 +1478,7 @@ vbo_initialize_save_dispatch(const struct gl_context *ctx,
 {
    SET_DrawArrays(exec, _save_OBE_DrawArrays);
    SET_DrawElements(exec, _save_OBE_DrawElements);
+   SET_DrawElementsBaseVertex(exec, _save_OBE_DrawElementsBaseVertex);
    SET_DrawRangeElements(exec, _save_OBE_DrawRangeElements);
    SET_MultiDrawElementsEXT(exec, _save_OBE_MultiDrawElements);
    SET_MultiDrawElementsBaseVertex(exec, _save_OBE_MultiDrawElementsBaseVertex);

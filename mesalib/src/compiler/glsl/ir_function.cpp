@@ -43,8 +43,8 @@ static parameter_list_match_t
 parameter_lists_match(_mesa_glsl_parse_state *state,
                       const exec_list *list_a, const exec_list *list_b)
 {
-   const exec_node *node_a = list_a->head;
-   const exec_node *node_b = list_b->head;
+   const exec_node *node_a = list_a->get_head_raw();
+   const exec_node *node_b = list_b->get_head_raw();
 
    /* This is set to true if there is an inexact match requiring an implicit
     * conversion. */
@@ -222,9 +222,9 @@ is_best_inexact_overload(const exec_list *actual_parameters,
       if (*other == sig)
          continue;
 
-      const exec_node *node_a = sig->parameters.head;
-      const exec_node *node_b = (*other)->parameters.head;
-      const exec_node *node_p = actual_parameters->head;
+      const exec_node *node_a = sig->parameters.get_head_raw();
+      const exec_node *node_b = (*other)->parameters.get_head_raw();
+      const exec_node *node_p = actual_parameters->get_head_raw();
 
       bool better_for_some_parameter = false;
 
@@ -268,11 +268,13 @@ choose_best_inexact_overload(_mesa_glsl_parse_state *state,
    if (num_matches == 1)
       return *matches;
 
-   /* Without GLSL 4.0 / ARB_gpu_shader5, there is no overload resolution
-    * among multiple inexact matches. Note that state may be NULL here if
-    * called from the linker; in that case we assume everything supported in
-    * any GLSL version is available. */
-   if (!state || state->is_version(400, 0) || state->ARB_gpu_shader5_enable) {
+   /* Without GLSL 4.0, ARB_gpu_shader5, or MESA_shader_integer_functions,
+    * there is no overload resolution among multiple inexact matches. Note
+    * that state may be NULL here if called from the linker; in that case we
+    * assume everything supported in any GLSL version is available.
+    */
+   if (!state || state->is_version(400, 0) || state->ARB_gpu_shader5_enable ||
+       state->MESA_shader_integer_functions_enable) {
       for (ir_function_signature **sig = matches; sig < matches + num_matches; sig++) {
          if (is_best_inexact_overload(actual_parameters, matches, num_matches, *sig))
             return *sig;
@@ -366,8 +368,8 @@ ir_function::matching_signature(_mesa_glsl_parse_state *state,
 static bool
 parameter_lists_match_exact(const exec_list *list_a, const exec_list *list_b)
 {
-   const exec_node *node_a = list_a->head;
-   const exec_node *node_b = list_b->head;
+   const exec_node *node_a = list_a->get_head_raw();
+   const exec_node *node_b = list_b->get_head_raw();
 
    for (/* empty */
 	; !node_a->is_tail_sentinel() && !node_b->is_tail_sentinel()

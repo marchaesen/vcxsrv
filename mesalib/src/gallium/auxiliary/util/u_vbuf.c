@@ -627,6 +627,7 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
    for (i = 0; i < mgr->ve->count; i++) {
       struct translate_key *k;
       struct translate_element *te;
+      enum pipe_format output_format = mgr->ve->native_format[i];
       unsigned bit, vb_index = mgr->ve->ve[i].vertex_buffer_index;
       bit = 1 << vb_index;
 
@@ -644,7 +645,8 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
          }
       }
       assert(type < VB_NUM);
-      assert(translate_is_output_format_supported(mgr->ve->native_format[i]));
+      if (mgr->ve->ve[i].src_format != output_format)
+         assert(translate_is_output_format_supported(output_format));
       /*printf("velem=%i type=%i\n", i, type);*/
 
       /* Add the vertex element. */
@@ -657,7 +659,7 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
       te->input_buffer = vb_index;
       te->input_format = mgr->ve->ve[i].src_format;
       te->input_offset = mgr->ve->ve[i].src_offset;
-      te->output_format = mgr->ve->native_format[i];
+      te->output_format = output_format;
       te->output_offset = k->output_stride;
 
       k->output_stride += mgr->ve->native_format_size[i];

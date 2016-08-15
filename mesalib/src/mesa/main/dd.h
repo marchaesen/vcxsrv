@@ -785,7 +785,6 @@ struct dd_function_table {
     */
    /*@{*/
    struct gl_linked_shader *(*NewShader)(gl_shader_stage stage);
-   void (*UseProgram)(struct gl_context *ctx, struct gl_shader_program *shProg);
    /*@}*/
 
    /**

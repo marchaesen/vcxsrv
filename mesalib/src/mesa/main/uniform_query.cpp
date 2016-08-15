@@ -382,9 +382,12 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 	       case GLSL_TYPE_BOOL:
 		  dst[didx].f = src[sidx].i ? 1.0f : 0.0f;
 		  break;
-	       case GLSL_TYPE_DOUBLE:
-		  dst[didx].f = *(double *)&src[sidx].f;
+               case GLSL_TYPE_DOUBLE: {
+                  double tmp;
+                  memcpy(&tmp, &src[sidx].f, sizeof(tmp));
+                  dst[didx].f = tmp;
 		  break;
+               }
 	       default:
 		  assert(!"Should not get here.");
 		  break;
@@ -392,20 +395,28 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 	       break;
 	    case GLSL_TYPE_DOUBLE:
 	       switch (uni->type->base_type) {
-	       case GLSL_TYPE_UINT:
-		  *(double *)&dst[didx].f = (double) src[sidx].u;
+               case GLSL_TYPE_UINT: {
+                  double tmp = src[sidx].u;
+                  memcpy(&dst[didx].f, &tmp, sizeof(tmp));
 		  break;
+               }
 	       case GLSL_TYPE_INT:
 	       case GLSL_TYPE_SAMPLER:
-	       case GLSL_TYPE_IMAGE:
-		  *(double *)&dst[didx].f = (double) src[sidx].i;
+               case GLSL_TYPE_IMAGE: {
+                  double tmp = src[sidx].i;
+                  memcpy(&dst[didx].f, &tmp, sizeof(tmp));
 		  break;
-	       case GLSL_TYPE_BOOL:
-		  *(double *)&dst[didx].f = src[sidx].i ? 1.0f : 0.0f;
+               }
+               case GLSL_TYPE_BOOL: {
+                  double tmp = src[sidx].i ? 1.0 : 0.0;
+                  memcpy(&dst[didx].f, &tmp, sizeof(tmp));
 		  break;
-	       case GLSL_TYPE_FLOAT:
-		  *(double *)&dst[didx].f = (double) src[sidx].f;
+               }
+               case GLSL_TYPE_FLOAT: {
+                  double tmp = src[sidx].f;
+                  memcpy(&dst[didx].f, &tmp, sizeof(tmp));
 		  break;
+               }
 	       default:
 		  assert(!"Should not get here.");
 		  break;
@@ -437,9 +448,12 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 	       case GLSL_TYPE_BOOL:
 		  dst[didx].i = src[sidx].i ? 1 : 0;
 		  break;
-	       case GLSL_TYPE_DOUBLE:
-		  dst[didx].i = IROUNDD(*(double *)&src[sidx].f);
+               case GLSL_TYPE_DOUBLE: {
+                  double tmp;
+                  memcpy(&tmp, &src[sidx].f, sizeof(tmp));
+                  dst[didx].i = IROUNDD(tmp);
 		  break;
+               }
 	       default:
 		  assert(!"Should not get here.");
 		  break;
@@ -486,9 +500,12 @@ log_uniform(const void *values, enum glsl_base_type basicType,
       case GLSL_TYPE_FLOAT:
 	 printf("%g ", v[i].f);
 	 break;
-      case GLSL_TYPE_DOUBLE:
-         printf("%g ", *(double* )&v[i * 2].f);
+      case GLSL_TYPE_DOUBLE: {
+         double tmp;
+         memcpy(&tmp, &v[i * 2].f, sizeof(tmp));
+         printf("%g ", tmp);
          break;
+      }
       default:
 	 assert(!"Should not get here.");
 	 break;
@@ -578,14 +595,31 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 	 unsigned j;
 	 unsigned v;
 
-	 for (j = 0; j < count; j++) {
-	    for (v = 0; v < vectors; v++) {
-	       memcpy(dst, src, src_vector_byte_stride);
-	       src += src_vector_byte_stride;
-	       dst += store->vector_stride;
-	    }
+	 if (src_vector_byte_stride == store->vector_stride) {
+	    if (extra_stride) {
+	       for (j = 0; j < count; j++) {
+	          memcpy(dst, src, src_vector_byte_stride * vectors);
+	          src += src_vector_byte_stride * vectors;
+	          dst += store->vector_stride * vectors;
 
-	    dst += extra_stride;
+	          dst += extra_stride;
+	       }
+	    } else {
+	       /* Unigine Heaven benchmark gets here */
+	       memcpy(dst, src, src_vector_byte_stride * vectors * count);
+	       src += src_vector_byte_stride * vectors * count;
+	       dst += store->vector_stride * vectors * count;
+	    }
+	 } else {
+	    for (j = 0; j < count; j++) {
+	       for (v = 0; v < vectors; v++) {
+	          memcpy(dst, src, src_vector_byte_stride);
+	          src += src_vector_byte_stride;
+	          dst += store->vector_stride;
+	       }
+
+	       dst += extra_stride;
+	    }
 	 }
 	 break;
       }

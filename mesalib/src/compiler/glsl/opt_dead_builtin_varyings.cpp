@@ -379,7 +379,7 @@ public:
                new_var[i]->data.explicit_index = 0;
             }
 
-            ir->head->insert_before(new_var[i]);
+            ir->get_head_raw()->insert_before(new_var[i]);
          }
       }
    }

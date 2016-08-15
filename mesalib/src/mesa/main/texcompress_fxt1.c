@@ -177,8 +177,8 @@ _mesa_texstore_rgba_fxt1(TEXSTORE_PARAMS)
 #define LL_RMS_D 10 /* fault tolerance (maximum delta) */
 #define LL_RMS_E 255 /* fault tolerance (maximum error) */
 #define ALPHA_TS 2 /* alpha threshold: (255 - ALPHA_TS) deemed opaque */
-#define ISTBLACK(v) (*((GLuint *)(v)) == 0)
-
+static const GLuint zero = 0;
+#define ISTBLACK(v) (memcmp(&(v), &zero, sizeof(zero)) == 0)
 
 /*
  * Define a 64-bit unsigned integer type and macros

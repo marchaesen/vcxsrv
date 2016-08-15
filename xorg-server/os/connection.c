@@ -47,7 +47,7 @@ SOFTWARE.
  *  Stuff to create connections --- OS dependent
  *
  *      EstablishNewConnections, CreateWellKnownSockets, ResetWellKnownSockets,
- *      CloseDownConnection, CheckConnections
+ *      CloseDownConnection,
  *	OnlyListToOneClient,
  *      ListenToAllClients,
  *
@@ -106,7 +106,6 @@ SOFTWARE.
 #endif                          /* WIN32 */
 #include "misc.h"               /* for typedef of pointer */
 #include "osdep.h"
-#include <X11/Xpoll.h>
 #include "opaque.h"
 #include "dixstruct.h"
 #include "xace.h"
@@ -126,23 +125,12 @@ typedef int pid_t;
 
 #include "probes.h"
 
-static int lastfdesc;           /* maximum file descriptor */
+struct ospoll   *server_poll;
 
 fd_set WellKnownConnections;    /* Listener mask */
-fd_set NotifyReadFds;           /* mask for other file descriptors */
-fd_set NotifyWriteFds;          /* mask for other write file descriptors */
-fd_set AllSockets;              /* select on this */
-fd_set AllClients;              /* available clients */
-fd_set LastSelectMask;          /* mask returned from last select call */
-fd_set LastSelectWriteMask;     /* mask returned from last select call */
-fd_set ClientsWithInput;        /* clients with FULL requests in buffer */
-fd_set ClientsWriteBlocked;     /* clients who cannot receive output */
-fd_set OutputPending;           /* clients with reply/event data ready to go */
 int MaxClients = 0;
-int NumNotifyWriteFd;           /* Number of NotifyFd members with write set */
 Bool NewOutputPending;          /* not yet attempted to write some new output */
 Bool AnyClientsWriteBlocked;    /* true if some client blocked on write */
-Bool AnyWritesPending;          /* true if some client blocked on write or NotifyFd with write */
 Bool NoListenAll;               /* Don't establish any listening sockets */
 
 #if !defined(_MSC_VER)
@@ -155,32 +143,27 @@ static char dynamic_display[7]; /* display name */
 static int dynamic_display_id;
 Bool PartialNetwork;            /* continue even if unable to bind all addrs */
 
-static Bool debug_conns = FALSE;
-
-fd_set IgnoredClientsWithInput;
-static fd_set GrabImperviousClients;
-static fd_set SavedAllClients;
-static fd_set SavedAllSockets;
-static fd_set SavedClientsWithInput;
 int GrabInProgress = 0;
 
 static void
 QueueNewConnections(int curconn, int ready, void *data);
 
+static void
+set_poll_client(ClientPtr client);
+
+static void
+set_poll_clients(void);
+
 #if !defined(WIN32)
 int *ConnectionTranslation = NULL;
+int ConnectionTranslationSize = 0;
 #else
 /*
- * On NT fds are not between 0 and MAXSOCKS, they are unrelated, and there is
+ * On NT fds are not small integers, they are unrelated, and there is
  * not even a known maximum value, so use something quite arbitrary for now.
  * Do storage is a hash table of size 256. Collisions are handled in a linked
  * list.
  */
-
-#undef MAXSOCKS
-#define MAXSOCKS FD_SETSIZE
-#undef MAXSELECT
-#define MAXSELECT FD_SETSIZE
 
 struct _ct_node {
     struct _ct_node *next;
@@ -303,47 +286,17 @@ TransIsListening(char *protocol)
 void
 InitConnectionLimits(void)
 {
-    lastfdesc = -1;
-
-#ifndef __CYGWIN__
-
-#if !defined(XNO_SYSCONF) && defined(_SC_OPEN_MAX)
-    lastfdesc = sysconf(_SC_OPEN_MAX) - 1;
-#endif
-
-#ifdef HAVE_GETDTABLESIZE
-    if (lastfdesc < 0)
-        lastfdesc = getdtablesize() - 1;
-#endif
-
-#ifdef _NFILE
-    if (lastfdesc < 0)
-        lastfdesc = _NFILE - 1;
-#endif
-
-#endif                          /* __CYGWIN__ */
-
-    /* This is the fallback */
-    if (lastfdesc < 0)
-        lastfdesc = MAXSOCKS;
-
-    if (lastfdesc > MAXSELECT)
-        lastfdesc = MAXSELECT;
-
-    if (lastfdesc > MAXCLIENTS) {
-        lastfdesc = MAXCLIENTS;
-        if (debug_conns)
-            ErrorF("REACHED MAXIMUM CLIENTS LIMIT %d\n", LimitClients);
-    }
-    MaxClients = lastfdesc;
+    MaxClients = MAXCLIENTS;
 
 #ifdef DEBUG
     ErrorF("InitConnectionLimits: MaxClients = %d\n", MaxClients);
 #endif
 
 #if !defined(WIN32)
-    if (!ConnectionTranslation)
-        ConnectionTranslation = xnfallocarray(lastfdesc + 1, sizeof(int));
+    if (!ConnectionTranslation) {
+        ConnectionTranslation = xnfallocarray(MaxClients, sizeof(int));
+        ConnectionTranslationSize = MaxClients;
+    }
 #else
     InitConnectionTranslation();
 #endif
@@ -426,13 +379,8 @@ CreateWellKnownSockets(void)
     int i;
     int partial;
 
-    FD_ZERO(&AllSockets);
-    FD_ZERO(&AllClients);
-    FD_ZERO(&LastSelectMask);
-    FD_ZERO(&ClientsWithInput);
-
 #if !defined(WIN32)
-    for (i = 0; i < MaxClients; i++)
+    for (i = 0; i < ConnectionTranslationSize; i++)
         ConnectionTranslation[i] = 0;
 #else
     ClearConnectionTranslation();
@@ -793,20 +741,29 @@ ClientAuthorized(ClientPtr client,
     return ((char *) NULL);
 }
 
+static void
+ClientReady(int fd, int xevents, void *data)
+{
+    ClientPtr client = data;
+
+    if (xevents & X_NOTIFY_ERROR) {
+        CloseDownClient(client);
+        return;
+    }
+    if (xevents & X_NOTIFY_READ)
+        mark_client_ready(client);
+    if (xevents & X_NOTIFY_WRITE) {
+        ospoll_mute(server_poll, fd, X_NOTIFY_WRITE);
+        NewOutputPending = TRUE;
+    }
+}
+
 static ClientPtr
 AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
 {
     OsCommPtr oc;
     ClientPtr client;
 
-    if (
-#ifndef WIN32
-           fd >= lastfdesc
-#else
-           XFD_SETCOUNT(&AllClients) >= MaxClients
-#endif
-        )
-        return NullClient;
     oc = malloc(sizeof(OsCommRec));
     if (!oc)
         return NullClient;
@@ -816,24 +773,26 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
     oc->output = (ConnectionOutputPtr) NULL;
     oc->auth_id = None;
     oc->conn_time = conn_time;
+    oc->flags = 0;
     if (!(client = NextAvailableClient((void *) oc))) {
         free(oc);
         return NullClient;
     }
     client->local = ComputeLocalClient(client);
 #if !defined(WIN32)
+    if (fd >= ConnectionTranslationSize) {
+        ConnectionTranslationSize *= 2;
+        ConnectionTranslation = xnfreallocarray(ConnectionTranslation, ConnectionTranslationSize, sizeof (int));
+    }
     ConnectionTranslation[fd] = client->index;
 #else
     SetConnectionTranslation(fd, client->index);
 #endif
-    if (GrabInProgress) {
-        FD_SET(fd, &SavedAllClients);
-        FD_SET(fd, &SavedAllSockets);
-    }
-    else {
-        FD_SET(fd, &AllClients);
-        FD_SET(fd, &AllSockets);
-    }
+    ospoll_add(server_poll, fd,
+               ospoll_trigger_edge,
+               ClientReady,
+               client);
+    set_poll_client(client);
 
 #ifdef DEBUG
     ErrorF("AllocNewConnection: client index = %d, socket fd = %d\n",
@@ -864,6 +823,7 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
     register ClientPtr client;
     register OsCommPtr oc;
     fd_set tmask;
+    int clientid;
 
     XFD_ANDSET(&tmask, (fd_set *) closure, &WellKnownConnections);
     XFD_COPYSET(&tmask, &readyconnections);
@@ -880,57 +840,34 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
                 CloseDownClient(client);
         }
     }
-#ifndef WIN32
-    for (i = 0; i < howmany(XFD_SETSIZE, NFDBITS); i++) {
-        while (readyconnections.fds_bits[i])
-#else
-    for (i = 0; i < XFD_SETCOUNT(&readyconnections); i++)
-#endif
-    {
-        XtransConnInfo trans_conn, new_trans_conn;
-        int status;
 
-#ifndef WIN32
-        curconn = mffs(readyconnections.fds_bits[i]) - 1;
-        readyconnections.fds_bits[i] &= ~((fd_mask) 1 << curconn);
-        curconn += (i * (sizeof(fd_mask) * 8));
-#else
-        curconn = XFD_FD(&readyconnections, i);
-#endif
-
-        if ((trans_conn = lookup_trans_conn(curconn)) == NULL)
-            continue;
+    if ((trans_conn = lookup_trans_conn(curconn)) == NULL)
+        return TRUE;
 
         if ((new_trans_conn = _XSERVTransAccept(trans_conn, &status)) == NULL)
             continue;
 
         newconn = _XSERVTransGetConnectionNumber(new_trans_conn);
 
-        if (newconn < lastfdesc) {
-            int clientid;
+    clientid = GetConnectionTranslation(newconn);
+    if (clientid && (client = clients[clientid]))
+        CloseDownClient(client);
 
-#if !defined(WIN32)
-            clientid = ConnectionTranslation[newconn];
-#else
-            clientid = GetConnectionTranslation(newconn);
-#endif
-            if (clientid && (client = clients[clientid]))
-                CloseDownClient(client);
-        }
+    _XSERVTransSetOption(new_trans_conn, TRANS_NONBLOCKING, 1);
 
-        _XSERVTransSetOption(new_trans_conn, TRANS_NONBLOCKING, 1);
+    if (trans_conn->flags & TRANS_NOXAUTH)
+        new_trans_conn->flags = new_trans_conn->flags | TRANS_NOXAUTH;
 
-        if (trans_conn->flags & TRANS_NOXAUTH)
-            new_trans_conn->flags = new_trans_conn->flags | TRANS_NOXAUTH;
-
-        if (!AllocNewConnection(new_trans_conn, newconn, connect_time)) {
-            ErrorConnMax(new_trans_conn);
-        }
+    if (!AllocNewConnection(new_trans_conn, newconn, connect_time)) {
+        ErrorConnMax(new_trans_conn);
     }
-#ifndef WIN32
+    return TRUE;
 }
-#endif
-return TRUE;
+
+static void
+QueueNewConnections(int fd, int ready, void *data)
+{
+    QueueWorkProc(EstablishNewConnections, NULL, (void *) (intptr_t) fd);
 }
 
 #define NOROOM "Maximum number of clients reached"
@@ -1003,86 +940,7 @@ CloseDownFileDescriptor(OsCommPtr oc)
 #else
     SetConnectionTranslation(connection, 0);
 #endif
-    FD_CLR(connection, &AllSockets);
-    FD_CLR(connection, &AllClients);
-    FD_CLR(connection, &ClientsWithInput);
-    FD_CLR(connection, &GrabImperviousClients);
-    if (GrabInProgress) {
-        FD_CLR(connection, &SavedAllSockets);
-        FD_CLR(connection, &SavedAllClients);
-        FD_CLR(connection, &SavedClientsWithInput);
-    }
-    FD_CLR(connection, &ClientsWriteBlocked);
-    if (!XFD_ANYSET(&ClientsWriteBlocked))
-        AnyClientsWriteBlocked = FALSE;
-    FD_CLR(connection, &OutputPending);
-}
-
-/*****************
- * CheckConnections
- *    Some connection has died, go find which one and shut it down
- *    The file descriptor has been closed, but is still in AllClients.
- *    If would truly be wonderful if select() would put the bogus
- *    file descriptors in the exception mask, but nooooo.  So we have
- *    to check each and every socket individually.
- *****************/
-
-void
-CheckConnections(void)
-{
-#ifndef WIN32
-    fd_mask mask;
-    int curoff;
-#endif
-    fd_set tmask;
-    int curclient;
-    int i;
-    struct timeval notime;
-    int r;
-
-#ifdef WIN32
-    fd_set savedAllSockets;
-    unsigned j;
-#endif
-
-    notime.tv_sec = 0;
-    notime.tv_usec = 0;
-
-#ifndef WIN32
-    for (i = 0; i < howmany(XFD_SETSIZE, NFDBITS); i++) {
-        mask = AllClients.fds_bits[i];
-        while (mask) {
-            curoff = mffs(mask) - 1;
-            curclient = curoff + (i * (sizeof(fd_mask) * 8));
-            FD_ZERO(&tmask);
-            FD_SET(curclient, &tmask);
-            do {
-                r = Select(curclient + 1, &tmask, NULL, NULL, &notime);
-            } while (r < 0 && (errno == EINTR || errno == EAGAIN));
-            if (r < 0)
-                if (ConnectionTranslation[curclient] > 0)
-                    CloseDownClient(clients[ConnectionTranslation[curclient]]);
-            mask &= ~((fd_mask) 1 << curoff);
-        }
-    }
-#else
-    /* First test AllSockets and then AllClients are valid sockets */
-    XFD_COPYSET(&AllSockets, &savedAllSockets);
-    for (j=0; j<2; j++) {
-        for (i = 0; i < XFD_SETCOUNT(&savedAllSockets); i++) {
-            curclient = XFD_FD(&savedAllSockets, i);
-            FD_ZERO(&tmask);
-            FD_SET(curclient, &tmask);
-            do {
-                r = Select (curclient + 1, &tmask, NULL, NULL, &notime);
-            } while (r == SOCKET_ERROR && (WSAGetLastError() == WSAEINTR || WSAGetLastError() == WSAEWOULDBLOCK));
-            if (r < 0)
-                if (GetConnectionTranslation(curclient) > 0)
-            CloseDownClient(clients[GetConnectionTranslation(curclient)]);
-        }
-      XFD_COPYSET(&AllClients, &savedAllSockets);
-    }
-#endif
+    ospoll_remove(server_poll, connection);
 }
 
 /*****************
@@ -1116,28 +974,22 @@ CloseDownConnection(ClientPtr client)
 }
 
 struct notify_fd {
-    struct xorg_list list;
-    int fd;
     int mask;
     NotifyFdProcPtr notify;
     void *data;
 };
 
-static struct xorg_list notify_fds;
+/*****************
+ * HandleNotifyFd
+ *    A poll callback to be called when the registered
+ *    file descriptor is ready.
+ *****************/
 
-void
-InitNotifyFds(void)
+static void
+HandleNotifyFd(int fd, int xevents, void *data)
 {
-    struct notify_fd *s, *next;
-    static int been_here;
-
-    if (been_here)
-        xorg_list_for_each_entry_safe(s, next, &notify_fds, list)
-            RemoveNotifyFd(s->fd);
-
-    xorg_list_init(&notify_fds);
-    NumNotifyWriteFd = 0;
-    been_here = 1;
+    struct notify_fd *n = data;
+    n->notify(fd, xevents, n->data);
 }
 
 /*****************
@@ -1150,84 +1002,38 @@ Bool
 SetNotifyFd(int fd, NotifyFdProcPtr notify, int mask, void *data)
 {
     struct notify_fd *n;
-    int changes;
 
-    xorg_list_for_each_entry(n, &notify_fds, list)
-        if (n->fd == fd)
-            break;
-
-    if (&n->list == &notify_fds) {
+    n = ospoll_data(server_poll, fd);
+    if (!n) {
         if (mask == 0)
             return TRUE;
 
         n = calloc(1, sizeof (struct notify_fd));
         if (!n)
             return FALSE;
-        n->fd = fd;
-        xorg_list_add(&n->list, &notify_fds);
-    }
-
-    changes = n->mask ^ mask;
-
-    if (changes & X_NOTIFY_READ) {
-        if (mask & X_NOTIFY_READ) {
-            FD_SET(fd, &NotifyReadFds);
-            FD_SET(fd, &AllSockets);
-            if (GrabInProgress)
-                FD_SET(fd, &SavedAllSockets);
-        } else {
-            FD_CLR(fd, &AllSockets);
-            if (GrabInProgress)
-                FD_CLR(fd, &SavedAllSockets);
-            FD_CLR(fd, &NotifyReadFds);
-        }
-    }
-
-    if (changes & X_NOTIFY_WRITE) {
-        if (mask & X_NOTIFY_WRITE) {
-            FD_SET(fd, &NotifyWriteFds);
-            if (!NumNotifyWriteFd++)
-                AnyWritesPending = TRUE;
-        } else {
-            FD_CLR(fd, &NotifyWriteFds);
-            if (!--NumNotifyWriteFd)
-                if (!XFD_ANYSET(&ClientsWriteBlocked))
-                    AnyWritesPending = FALSE;
-        }
+        ospoll_add(server_poll, fd,
+                   ospoll_trigger_level,
+                   HandleNotifyFd,
+                   n);
     }
 
     if (mask == 0) {
-        xorg_list_del(&n->list);
+        ospoll_remove(server_poll, fd);
         free(n);
     } else {
+        int listen = mask & ~n->mask;
+        int mute = n->mask & ~mask;
+
+        if (listen)
+            ospoll_listen(server_poll, fd, listen);
+        if (mute)
+            ospoll_mute(server_poll, fd, mute);
         n->mask = mask;
         n->data = data;
         n->notify = notify;
     }
 
     return TRUE;
-}
-
-/*****************
- * HandlNotifyFds
- *    A WorkProc to be called when any of the registered
- *    file descriptors are readable.
- *****************/
-
-void
-HandleNotifyFds(void)
-{
-    struct notify_fd *n, *next;
-
-    xorg_list_for_each_entry_safe(n, next, &notify_fds, list) {
-        int ready = 0;
-        if ((n->mask & X_NOTIFY_READ) && FD_ISSET(n->fd, &LastSelectMask))
-            ready |= X_NOTIFY_READ;
-        if ((n->mask & X_NOTIFY_WRITE) & FD_ISSET(n->fd, &LastSelectWriteMask))
-            ready |= X_NOTIFY_WRITE;
-        if (ready != 0)
-            n->notify(n->fd, ready, n->data);
-    }
 }
 
 /*****************
@@ -1243,30 +1049,17 @@ HandleNotifyFds(void)
 int
 OnlyListenToOneClient(ClientPtr client)
 {
-    OsCommPtr oc = (OsCommPtr) client->osPrivate;
-    int rc, connection = oc->fd;
+    int rc;
 
     rc = XaceHook(XACE_SERVER_ACCESS, client, DixGrabAccess);
     if (rc != Success)
         return rc;
 
     if (!GrabInProgress) {
-        XFD_COPYSET(&ClientsWithInput, &SavedClientsWithInput);
-        XFD_ANDSET(&ClientsWithInput,
-                   &ClientsWithInput, &GrabImperviousClients);
-        if (FD_ISSET(connection, &SavedClientsWithInput)) {
-            FD_CLR(connection, &SavedClientsWithInput);
-            FD_SET(connection, &ClientsWithInput);
-        }
-        XFD_UNSET(&SavedClientsWithInput, &GrabImperviousClients);
-        XFD_COPYSET(&AllSockets, &SavedAllSockets);
-        XFD_COPYSET(&AllClients, &SavedAllClients);
-        XFD_UNSET(&AllSockets, &AllClients);
-        XFD_ANDSET(&AllClients, &AllClients, &GrabImperviousClients);
-        FD_SET(connection, &AllClients);
-        XFD_ORSET(&AllSockets, &AllSockets, &AllClients);
         GrabInProgress = client->index;
+        set_poll_clients();
     }
+
     return rc;
 }
 
@@ -1279,10 +1072,8 @@ void
 ListenToAllClients(void)
 {
     if (GrabInProgress) {
-        XFD_ORSET(&AllSockets, &AllSockets, &SavedAllSockets);
-        XFD_ORSET(&AllClients, &AllClients, &SavedAllClients);
-        XFD_ORSET(&ClientsWithInput, &ClientsWithInput, &SavedClientsWithInput);
         GrabInProgress = 0;
+        set_poll_clients();
     }
 }
 
@@ -1296,32 +1087,16 @@ void
 IgnoreClient(ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
-    int connection = oc->fd;
 
     client->ignoreCount++;
     if (client->ignoreCount > 1)
         return;
 
     isItTimeToYield = TRUE;
-    if (!GrabInProgress || FD_ISSET(connection, &AllClients)) {
-        if (FD_ISSET(connection, &ClientsWithInput))
-            FD_SET(connection, &IgnoredClientsWithInput);
-        else
-            FD_CLR(connection, &IgnoredClientsWithInput);
-        FD_CLR(connection, &ClientsWithInput);
-        FD_CLR(connection, &AllSockets);
-        FD_CLR(connection, &AllClients);
-        FD_CLR(connection, &LastSelectMask);
-    }
-    else {
-        if (FD_ISSET(connection, &SavedClientsWithInput))
-            FD_SET(connection, &IgnoredClientsWithInput);
-        else
-            FD_CLR(connection, &IgnoredClientsWithInput);
-        FD_CLR(connection, &SavedClientsWithInput);
-        FD_CLR(connection, &SavedAllSockets);
-        FD_CLR(connection, &SavedAllClients);
-    }
+    mark_client_not_ready(client);
+
+    oc->flags |= OS_COMM_IGNORED;
+    set_poll_client(client);
 }
 
 /****************
@@ -1333,26 +1108,15 @@ void
 AttendClient(ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
-    int connection = oc->fd;
 
     client->ignoreCount--;
     if (client->ignoreCount)
         return;
 
-    if (!GrabInProgress || GrabInProgress == client->index ||
-        FD_ISSET(connection, &GrabImperviousClients)) {
-        FD_SET(connection, &AllClients);
-        FD_SET(connection, &AllSockets);
-        FD_SET(connection, &LastSelectMask);
-        if (FD_ISSET(connection, &IgnoredClientsWithInput))
-            FD_SET(connection, &ClientsWithInput);
-    }
-    else {
-        FD_SET(connection, &SavedAllClients);
-        FD_SET(connection, &SavedAllSockets);
-        if (FD_ISSET(connection, &IgnoredClientsWithInput))
-            FD_SET(connection, &SavedClientsWithInput);
-    }
+    oc->flags &= ~OS_COMM_IGNORED;
+    set_poll_client(client);
+    if (listen_to_client(client))
+        mark_client_ready(client);
 }
 
 /* make client impervious to grabs; assume only executing client calls this */
@@ -1361,9 +1125,9 @@ void
 MakeClientGrabImpervious(ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
-    int connection = oc->fd;
 
-    FD_SET(connection, &GrabImperviousClients);
+    oc->flags |= OS_COMM_GRAB_IMPERVIOUS;
+    set_poll_client(client);
 
     if (ServerGrabCallback) {
         ServerGrabInfoRec grabinfo;
@@ -1380,18 +1144,10 @@ void
 MakeClientGrabPervious(ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
-    int connection = oc->fd;
 
-    FD_CLR(connection, &GrabImperviousClients);
-    if (GrabInProgress && (GrabInProgress != client->index)) {
-        if (FD_ISSET(connection, &ClientsWithInput)) {
-            FD_SET(connection, &SavedClientsWithInput);
-            FD_CLR(connection, &ClientsWithInput);
-        }
-        FD_CLR(connection, &AllSockets);
-        FD_CLR(connection, &AllClients);
-        isItTimeToYield = TRUE;
-    }
+    oc->flags &= ~OS_COMM_GRAB_IMPERVIOUS;
+    set_poll_client(client);
+    isItTimeToYield = TRUE;
 
     if (ServerGrabCallback) {
         ServerGrabInfoRec grabinfo;
@@ -1473,4 +1229,47 @@ AddClientOnOpenFD(int fd)
     }
 
     return TRUE;
+}
+
+Bool
+listen_to_client(ClientPtr client)
+{
+    OsCommPtr oc = (OsCommPtr) client->osPrivate;
+
+    if (oc->flags & OS_COMM_IGNORED)
+        return FALSE;
+
+    if (!GrabInProgress)
+        return TRUE;
+
+    if (client->index == GrabInProgress)
+        return TRUE;
+
+    if (oc->flags & OS_COMM_GRAB_IMPERVIOUS)
+        return TRUE;
+
+    return FALSE;
+}
+
+static void
+set_poll_client(ClientPtr client)
+{
+    OsCommPtr oc = (OsCommPtr) client->osPrivate;
+
+    if (listen_to_client(client))
+        ospoll_listen(server_poll, oc->fd, X_NOTIFY_READ);
+    else
+        ospoll_mute(server_poll, oc->fd, X_NOTIFY_READ);
+}
+
+static void
+set_poll_clients(void)
+{
+    int i;
+
+    for (i = 1; i < currentMaxClients; i++) {
+        ClientPtr client = clients[i];
+        if (client && !client->clientGone)
+            set_poll_client(client);
+    }
 }

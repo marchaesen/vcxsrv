@@ -271,14 +271,33 @@ struct _mesa_glsl_parse_state {
 
    bool has_shader_io_blocks() const
    {
+      /* The OES_geometry_shader_specification says:
+       *
+       *    "If the OES_geometry_shader extension is enabled, the
+       *     OES_shader_io_blocks extension is also implicitly enabled."
+       *
+       * The OES_tessellation_shader extension has similar wording.
+       */
       return OES_shader_io_blocks_enable ||
              EXT_shader_io_blocks_enable ||
+             OES_geometry_shader_enable ||
+             OES_tessellation_shader_enable ||
+             EXT_tessellation_shader_enable ||
+
              is_version(150, 320);
    }
 
    bool has_geometry_shader() const
    {
       return OES_geometry_shader_enable || is_version(150, 320);
+   }
+
+   bool has_tessellation_shader() const
+   {
+      return ARB_tessellation_shader_enable ||
+             OES_tessellation_shader_enable ||
+             EXT_tessellation_shader_enable ||
+             is_version(400, 320);
    }
 
    bool has_clip_distance() const
@@ -304,13 +323,15 @@ struct _mesa_glsl_parse_state {
    unsigned num_supported_versions;
    struct {
       unsigned ver;
+      uint8_t gl_ver;
       bool es;
-   } supported_versions[15];
+   } supported_versions[16];
 
    bool es_shader;
    unsigned language_version;
    unsigned forced_language_version;
    bool zero_init;
+   unsigned gl_version;
    gl_shader_stage stage;
 
    /**
@@ -646,6 +667,10 @@ struct _mesa_glsl_parse_state {
    bool OES_shader_multisample_interpolation_warn;
    bool OES_standard_derivatives_enable;
    bool OES_standard_derivatives_warn;
+   bool OES_tessellation_point_size_enable;
+   bool OES_tessellation_point_size_warn;
+   bool OES_tessellation_shader_enable;
+   bool OES_tessellation_shader_warn;
    bool OES_texture_3D_enable;
    bool OES_texture_3D_warn;
    bool OES_texture_buffer_enable;
@@ -681,10 +706,16 @@ struct _mesa_glsl_parse_state {
    bool EXT_shader_io_blocks_warn;
    bool EXT_shader_samples_identical_enable;
    bool EXT_shader_samples_identical_warn;
+   bool EXT_tessellation_point_size_enable;
+   bool EXT_tessellation_point_size_warn;
+   bool EXT_tessellation_shader_enable;
+   bool EXT_tessellation_shader_warn;
    bool EXT_texture_array_enable;
    bool EXT_texture_array_warn;
    bool EXT_texture_buffer_enable;
    bool EXT_texture_buffer_warn;
+   bool MESA_shader_integer_functions_enable;
+   bool MESA_shader_integer_functions_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */
@@ -805,8 +836,19 @@ extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
 extern "C" {
 #endif
 
+struct glcpp_parser;
+
+typedef void (*glcpp_extension_iterator)(
+		struct _mesa_glsl_parse_state *state,
+		void (*add_builtin_define)(struct glcpp_parser *, const char *, int),
+		struct glcpp_parser *data,
+		unsigned version,
+		bool es);
+
 extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
-                      const struct gl_extensions *extensions, struct gl_context *gl_ctx);
+                            glcpp_extension_iterator extensions,
+                            struct _mesa_glsl_parse_state *state,
+                            struct gl_context *gl_ctx);
 
 extern void _mesa_destroy_shader_compiler(void);
 extern void _mesa_destroy_shader_compiler_caches(void);

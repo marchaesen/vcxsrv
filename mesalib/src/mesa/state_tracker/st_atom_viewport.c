@@ -83,10 +83,5 @@ update_viewport( struct st_context *st )
 
 
 const struct st_tracked_state st_update_viewport = {
-   "st_update_viewport",				/* name */
-   {							/* dirty */
-      _NEW_BUFFERS | _NEW_VIEWPORT,			/* mesa */
-      0,						/* st */
-   },
    update_viewport					/* update */
 };

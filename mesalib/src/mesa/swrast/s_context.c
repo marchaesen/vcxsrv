@@ -504,7 +504,8 @@ _swrast_update_active_attribs(struct gl_context *ctx)
       attribsMask &= ~VARYING_BIT_POS; /* WPOS is always handled specially */
    }
    else if (ctx->ATIFragmentShader._Enabled) {
-      attribsMask = ~0;  /* XXX fix me */
+      attribsMask = VARYING_BIT_COL0 | VARYING_BIT_COL1 |
+                    VARYING_BIT_FOGC | VARYING_BITS_TEX_ANY;
    }
    else {
       /* fixed function */

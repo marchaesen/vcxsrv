@@ -83,7 +83,12 @@ static int compar_nr( const int *a, enum_elt *b )
 
 static char token_tmp[20];
 
-const char *_mesa_enum_to_string( int nr )
+/**
+ * This function always returns a string. If the number is a valid enum, it
+ * returns the enum name. Otherwise, it returns a numeric string.
+ */
+const char *
+_mesa_enum_to_string(int nr)
 {
    enum_elt *elt;
 

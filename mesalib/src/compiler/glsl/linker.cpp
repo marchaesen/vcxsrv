@@ -73,6 +73,7 @@
 #include "program.h"
 #include "program/hash_table.h"
 #include "program/prog_instruction.h"
+#include "util/set.h"
 #include "linker.h"
 #include "link_varyings.h"
 #include "ir_optimization.h"
@@ -180,97 +181,58 @@ private:
 };
 
 
-class geom_array_resize_visitor : public ir_hierarchical_visitor {
+class array_resize_visitor : public ir_hierarchical_visitor {
 public:
    unsigned num_vertices;
    gl_shader_program *prog;
+   gl_shader_stage stage;
 
-   geom_array_resize_visitor(unsigned num_vertices, gl_shader_program *prog)
+   array_resize_visitor(unsigned num_vertices,
+                        gl_shader_program *prog,
+                        gl_shader_stage stage)
    {
       this->num_vertices = num_vertices;
       this->prog = prog;
+      this->stage = stage;
    }
 
-   virtual ~geom_array_resize_visitor()
+   virtual ~array_resize_visitor()
    {
       /* empty */
    }
 
    virtual ir_visitor_status visit(ir_variable *var)
    {
-      if (!var->type->is_array() || var->data.mode != ir_var_shader_in)
+      if (!var->type->is_array() || var->data.mode != ir_var_shader_in ||
+          var->data.patch)
          return visit_continue;
 
       unsigned size = var->type->length;
 
-      /* Generate a link error if the shader has declared this array with an
-       * incorrect size.
-       */
-      if (!var->data.implicit_sized_array &&
-          size && size != this->num_vertices) {
-         linker_error(this->prog, "size of array %s declared as %u, "
-                      "but number of input vertices is %u\n",
-                      var->name, size, this->num_vertices);
-         return visit_continue;
+      if (stage == MESA_SHADER_GEOMETRY) {
+         /* Generate a link error if the shader has declared this array with
+          * an incorrect size.
+          */
+         if (!var->data.implicit_sized_array &&
+             size && size != this->num_vertices) {
+            linker_error(this->prog, "size of array %s declared as %u, "
+                         "but number of input vertices is %u\n",
+                         var->name, size, this->num_vertices);
+            return visit_continue;
+         }
+
+         /* Generate a link error if the shader attempts to access an input
+          * array using an index too large for its actual size assigned at
+          * link time.
+          */
+         if (var->data.max_array_access >= (int)this->num_vertices) {
+            linker_error(this->prog, "%s shader accesses element %i of "
+                         "%s, but only %i input vertices\n",
+                         _mesa_shader_stage_to_string(this->stage),
+                         var->data.max_array_access, var->name, this->num_vertices);
+            return visit_continue;
+         }
       }
-
-      /* Generate a link error if the shader attempts to access an input
-       * array using an index too large for its actual size assigned at link
-       * time.
-       */
-      if (var->data.max_array_access >= (int)this->num_vertices) {
-         linker_error(this->prog, "geometry shader accesses element %i of "
-                      "%s, but only %i input vertices\n",
-                      var->data.max_array_access, var->name, this->num_vertices);
-         return visit_continue;
-      }
-
-      var->type = glsl_type::get_array_instance(var->type->fields.array,
-                                                this->num_vertices);
-      var->data.max_array_access = this->num_vertices - 1;
-
-      return visit_continue;
-   }
-
-   /* Dereferences of input variables need to be updated so that their type
-    * matches the newly assigned type of the variable they are accessing. */
-   virtual ir_visitor_status visit(ir_dereference_variable *ir)
-   {
-      ir->type = ir->var->type;
-      return visit_continue;
-   }
-
-   /* Dereferences of 2D input arrays need to be updated so that their type
-    * matches the newly assigned type of the array they are accessing. */
-   virtual ir_visitor_status visit_leave(ir_dereference_array *ir)
-   {
-      const glsl_type *const vt = ir->array->type;
-      if (vt->is_array())
-         ir->type = vt->fields.array;
-      return visit_continue;
-   }
-};
-
-class tess_eval_array_resize_visitor : public ir_hierarchical_visitor {
-public:
-   unsigned num_vertices;
-   gl_shader_program *prog;
-
-   tess_eval_array_resize_visitor(unsigned num_vertices, gl_shader_program *prog)
-   {
-      this->num_vertices = num_vertices;
-      this->prog = prog;
-   }
-
-   virtual ~tess_eval_array_resize_visitor()
-   {
-      /* empty */
-   }
-
-   virtual ir_visitor_status visit(ir_variable *var)
-   {
-      if (!var->type->is_array() || var->data.mode != ir_var_shader_in || var->data.patch)
-         return visit_continue;
 
       var->type = glsl_type::get_array_instance(var->type->fields.array,
                                                 this->num_vertices);
@@ -2369,7 +2331,8 @@ link_intrastage_shaders(void *mem_ctx,
    /* Set the size of geometry shader input arrays */
    if (linked->Stage == MESA_SHADER_GEOMETRY) {
       unsigned num_vertices = vertices_per_prim(linked->info.Geom.InputType);
-      geom_array_resize_visitor input_resize_visitor(num_vertices, prog);
+      array_resize_visitor input_resize_visitor(num_vertices, prog,
+                                                MESA_SHADER_GEOMETRY);
       foreach_in_list(ir_instruction, ir, linked->ir) {
          ir->accept(&input_resize_visitor);
       }
@@ -2496,7 +2459,8 @@ resize_tes_inputs(struct gl_context *ctx,
       ? tcs->info.TessCtrl.VerticesOut
       : ctx->Const.MaxPatchVertices;
 
-   tess_eval_array_resize_visitor input_resize_visitor(num_vertices, prog);
+   array_resize_visitor input_resize_visitor(num_vertices, prog,
+                                             MESA_SHADER_TESS_EVAL);
    foreach_in_list(ir_instruction, ir, tes->ir) {
       ir->accept(&input_resize_visitor);
    }
@@ -2566,6 +2530,7 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
 /**
  * Assign locations for either VS inputs or FS outputs
  *
+ * \param mem_ctx       Temporary ralloc context used for linking
  * \param prog          Shader program whose variables need locations assigned
  * \param constants     Driver specific constant values for the program.
  * \param target_index  Selector for the program target to receive location
@@ -2577,7 +2542,8 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
  * error is emitted to the shader link log and false is returned.
  */
 bool
-assign_attribute_or_color_locations(gl_shader_program *prog,
+assign_attribute_or_color_locations(void *mem_ctx,
+                                    gl_shader_program *prog,
                                     struct gl_constants *constants,
                                     unsigned target_index)
 {
@@ -2680,16 +2646,31 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
       } else if (target_index == MESA_SHADER_FRAGMENT) {
 	 unsigned binding;
 	 unsigned index;
+         const char *name = var->name;
+         const glsl_type *type = var->type;
 
-	 if (prog->FragDataBindings->get(binding, var->name)) {
-	    assert(binding >= FRAG_RESULT_DATA0);
-	    var->data.location = binding;
-            var->data.is_unmatched_generic_inout = 0;
+         while (type) {
+            /* Check if there's a binding for the variable name */
+            if (prog->FragDataBindings->get(binding, name)) {
+               assert(binding >= FRAG_RESULT_DATA0);
+               var->data.location = binding;
+               var->data.is_unmatched_generic_inout = 0;
 
-	    if (prog->FragDataIndexBindings->get(index, var->name)) {
-	       var->data.index = index;
-	    }
-	 }
+               if (prog->FragDataIndexBindings->get(index, name)) {
+                  var->data.index = index;
+               }
+               break;
+            }
+
+            /* If not, but it's an array type, look for name[0] */
+            if (type->is_array()) {
+               name = ralloc_asprintf(mem_ctx, "%s[0]", name);
+               type = type->fields.array;
+               continue;
+            }
+
+            break;
+         }
       }
 
       /* From GL4.5 core spec, section 15.2 (Shader Execution):
@@ -3565,15 +3546,15 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
 }
 
 static bool
-add_program_resource(struct gl_shader_program *prog, GLenum type,
-                     const void *data, uint8_t stages)
+add_program_resource(struct gl_shader_program *prog,
+                     struct set *resource_set,
+                     GLenum type, const void *data, uint8_t stages)
 {
    assert(data);
 
    /* If resource already exists, do not add it again. */
-   for (unsigned i = 0; i < prog->NumProgramResourceList; i++)
-      if (prog->ProgramResourceList[i].Data == data)
-         return true;
+   if (_mesa_set_search(resource_set, data))
+      return true;
 
    prog->ProgramResourceList =
       reralloc(prog,
@@ -3594,6 +3575,8 @@ add_program_resource(struct gl_shader_program *prog, GLenum type,
    res->StageReferences = stages;
 
    prog->NumProgramResourceList++;
+
+   _mesa_set_add(resource_set, data);
 
    return true;
 }
@@ -3702,6 +3685,18 @@ create_shader_variable(struct gl_shader_program *shProg,
    if (in->data.mode == ir_var_system_value &&
        in->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
       out->name = ralloc_strdup(shProg, "gl_VertexID");
+   } else if ((in->data.mode == ir_var_shader_out &&
+               in->data.location == VARYING_SLOT_TESS_LEVEL_OUTER) ||
+              (in->data.mode == ir_var_system_value &&
+               in->data.location == SYSTEM_VALUE_TESS_LEVEL_OUTER)) {
+      out->name = ralloc_strdup(shProg, "gl_TessLevelOuter");
+      type = glsl_type::get_array_instance(glsl_type::float_type, 4);
+   } else if ((in->data.mode == ir_var_shader_out &&
+               in->data.location == VARYING_SLOT_TESS_LEVEL_INNER) ||
+              (in->data.mode == ir_var_system_value &&
+               in->data.location == SYSTEM_VALUE_TESS_LEVEL_INNER)) {
+      out->name = ralloc_strdup(shProg, "gl_TessLevelInner");
+      type = glsl_type::get_array_instance(glsl_type::float_type, 2);
    } else {
       out->name = ralloc_strdup(shProg, name);
    }
@@ -3747,7 +3742,8 @@ create_shader_variable(struct gl_shader_program *shProg,
 }
 
 static bool
-add_shader_variable(struct gl_shader_program *shProg, unsigned stage_mask,
+add_shader_variable(struct gl_shader_program *shProg, struct set *resource_set,
+                    unsigned stage_mask,
                     GLenum programInterface, ir_variable *var,
                     const char *name, const glsl_type *type,
                     bool use_implicit_location, int location,
@@ -3775,7 +3771,8 @@ add_shader_variable(struct gl_shader_program *shProg, unsigned stage_mask,
       for (unsigned i = 0; i < type->length; i++) {
          const struct glsl_struct_field *field = &type->fields.structure[i];
          char *field_name = ralloc_asprintf(shProg, "%s.%s", name, field->name);
-         if (!add_shader_variable(shProg, stage_mask, programInterface,
+         if (!add_shader_variable(shProg, resource_set,
+                                  stage_mask, programInterface,
                                   var, field_name, field->type,
                                   use_implicit_location, field_location,
                                   outermost_struct_type))
@@ -3817,13 +3814,15 @@ add_shader_variable(struct gl_shader_program *shProg, unsigned stage_mask,
       if (!sha_v)
          return false;
 
-      return add_program_resource(shProg, programInterface, sha_v, stage_mask);
+      return add_program_resource(shProg, resource_set,
+                                  programInterface, sha_v, stage_mask);
    }
    }
 }
 
 static bool
 add_interface_variables(struct gl_shader_program *shProg,
+                        struct set *resource_set,
                         unsigned stage, GLenum programInterface)
 {
    exec_list *ir = shProg->_LinkedShaders[stage]->ir;
@@ -3854,6 +3853,9 @@ add_interface_variables(struct gl_shader_program *shProg,
          continue;
       };
 
+      if (var->data.patch)
+         loc_bias = int(VARYING_SLOT_PATCH0);
+
       /* Skip packed varyings, packed varyings are handled separately
        * by add_packed_varyings.
        */
@@ -3870,7 +3872,8 @@ add_interface_variables(struct gl_shader_program *shProg,
          (stage == MESA_SHADER_VERTEX && var->data.mode == ir_var_shader_in) ||
          (stage == MESA_SHADER_FRAGMENT && var->data.mode == ir_var_shader_out);
 
-      if (!add_shader_variable(shProg, 1 << stage, programInterface,
+      if (!add_shader_variable(shProg, resource_set,
+                               1 << stage, programInterface,
                                var, var->name, var->type, vs_input_or_fs_output,
                                var->data.location - loc_bias))
          return false;
@@ -3879,7 +3882,8 @@ add_interface_variables(struct gl_shader_program *shProg,
 }
 
 static bool
-add_packed_varyings(struct gl_shader_program *shProg, int stage, GLenum type)
+add_packed_varyings(struct gl_shader_program *shProg, struct set *resource_set,
+                    int stage, GLenum type)
 {
    struct gl_linked_shader *sh = shProg->_LinkedShaders[stage];
    GLenum iface;
@@ -3904,7 +3908,8 @@ add_packed_varyings(struct gl_shader_program *shProg, int stage, GLenum type)
          if (type == iface) {
             const int stage_mask =
                build_stageref(shProg, var->name, var->data.mode);
-            if (!add_shader_variable(shProg, stage_mask,
+            if (!add_shader_variable(shProg, resource_set,
+                                     stage_mask,
                                      iface, var, var->name, var->type, false,
                                      var->data.location - VARYING_SLOT_VAR0))
                return false;
@@ -3915,7 +3920,7 @@ add_packed_varyings(struct gl_shader_program *shProg, int stage, GLenum type)
 }
 
 static bool
-add_fragdata_arrays(struct gl_shader_program *shProg)
+add_fragdata_arrays(struct gl_shader_program *shProg, struct set *resource_set)
 {
    struct gl_linked_shader *sh = shProg->_LinkedShaders[MESA_SHADER_FRAGMENT];
 
@@ -3927,7 +3932,7 @@ add_fragdata_arrays(struct gl_shader_program *shProg)
       if (var) {
          assert(var->data.mode == ir_var_shader_out);
 
-         if (!add_shader_variable(shProg,
+         if (!add_shader_variable(shProg, resource_set,
                                   1 << MESA_SHADER_FRAGMENT,
                                   GL_PROGRAM_OUTPUT, var, var->name, var->type,
                                   true, var->data.location - FRAG_RESULT_DATA0))
@@ -4180,29 +4185,38 @@ build_program_resource_list(struct gl_context *ctx,
    if (input_stage == MESA_SHADER_STAGES && output_stage == 0)
       return;
 
+   struct set *resource_set = _mesa_set_create(NULL,
+                                               _mesa_hash_pointer,
+                                               _mesa_key_pointer_equal);
+
    /* Program interface needs to expose varyings in case of SSO. */
    if (shProg->SeparateShader) {
-      if (!add_packed_varyings(shProg, input_stage, GL_PROGRAM_INPUT))
+      if (!add_packed_varyings(shProg, resource_set,
+                               input_stage, GL_PROGRAM_INPUT))
          return;
 
-      if (!add_packed_varyings(shProg, output_stage, GL_PROGRAM_OUTPUT))
+      if (!add_packed_varyings(shProg, resource_set,
+                               output_stage, GL_PROGRAM_OUTPUT))
          return;
    }
 
-   if (!add_fragdata_arrays(shProg))
+   if (!add_fragdata_arrays(shProg, resource_set))
       return;
 
    /* Add inputs and outputs to the resource list. */
-   if (!add_interface_variables(shProg, input_stage, GL_PROGRAM_INPUT))
+   if (!add_interface_variables(shProg, resource_set,
+                                input_stage, GL_PROGRAM_INPUT))
       return;
 
-   if (!add_interface_variables(shProg, output_stage, GL_PROGRAM_OUTPUT))
+   if (!add_interface_variables(shProg, resource_set,
+                                output_stage, GL_PROGRAM_OUTPUT))
       return;
 
    /* Add transform feedback varyings. */
    if (shProg->LinkedTransformFeedback.NumVarying > 0) {
       for (int i = 0; i < shProg->LinkedTransformFeedback.NumVarying; i++) {
-         if (!add_program_resource(shProg, GL_TRANSFORM_FEEDBACK_VARYING,
+         if (!add_program_resource(shProg, resource_set,
+                                   GL_TRANSFORM_FEEDBACK_VARYING,
                                    &shProg->LinkedTransformFeedback.Varyings[i],
                                    0))
          return;
@@ -4213,7 +4227,8 @@ build_program_resource_list(struct gl_context *ctx,
    for (unsigned i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
       if ((shProg->LinkedTransformFeedback.ActiveBuffers >> i) & 1) {
          shProg->LinkedTransformFeedback.Buffers[i].Binding = i;
-         if (!add_program_resource(shProg, GL_TRANSFORM_FEEDBACK_BUFFER,
+         if (!add_program_resource(shProg, resource_set,
+                                   GL_TRANSFORM_FEEDBACK_BUFFER,
                                    &shProg->LinkedTransformFeedback.Buffers[i],
                                    0))
          return;
@@ -4248,28 +4263,28 @@ build_program_resource_list(struct gl_context *ctx,
          calculate_array_size_and_stride(shProg, &shProg->UniformStorage[i]);
       }
 
-      if (!add_program_resource(shProg, type,
+      if (!add_program_resource(shProg, resource_set, type,
                                 &shProg->UniformStorage[i], stageref))
          return;
    }
 
    /* Add program uniform blocks. */
    for (unsigned i = 0; i < shProg->NumUniformBlocks; i++) {
-      if (!add_program_resource(shProg, GL_UNIFORM_BLOCK,
+      if (!add_program_resource(shProg, resource_set, GL_UNIFORM_BLOCK,
           &shProg->UniformBlocks[i], 0))
          return;
    }
 
    /* Add program shader storage blocks. */
    for (unsigned i = 0; i < shProg->NumShaderStorageBlocks; i++) {
-      if (!add_program_resource(shProg, GL_SHADER_STORAGE_BLOCK,
+      if (!add_program_resource(shProg, resource_set, GL_SHADER_STORAGE_BLOCK,
           &shProg->ShaderStorageBlocks[i], 0))
          return;
    }
 
    /* Add atomic counter buffers. */
    for (unsigned i = 0; i < shProg->NumAtomicBuffers; i++) {
-      if (!add_program_resource(shProg, GL_ATOMIC_COUNTER_BUFFER,
+      if (!add_program_resource(shProg, resource_set, GL_ATOMIC_COUNTER_BUFFER,
                                 &shProg->AtomicBuffers[i], 0))
          return;
    }
@@ -4286,7 +4301,8 @@ build_program_resource_list(struct gl_context *ctx,
 
          type = _mesa_shader_stage_to_subroutine_uniform((gl_shader_stage)j);
          /* add shader subroutines */
-         if (!add_program_resource(shProg, type, &shProg->UniformStorage[i], 0))
+         if (!add_program_resource(shProg, resource_set,
+                                   type, &shProg->UniformStorage[i], 0))
             return;
       }
    }
@@ -4300,10 +4316,13 @@ build_program_resource_list(struct gl_context *ctx,
 
       type = _mesa_shader_stage_to_subroutine((gl_shader_stage)i);
       for (unsigned j = 0; j < sh->NumSubroutineFunctions; j++) {
-         if (!add_program_resource(shProg, type, &sh->SubroutineFunctions[j], 0))
+         if (!add_program_resource(shProg, resource_set,
+                                   type, &sh->SubroutineFunctions[j], 0))
             return;
       }
    }
+
+   _mesa_set_destroy(resource_set, NULL);
 }
 
 /**
@@ -4475,6 +4494,226 @@ disable_varying_optimizations_for_sso(struct gl_shader_program *prog)
    }
 }
 
+static bool
+link_varyings_and_uniforms(unsigned first, unsigned last,
+                           unsigned num_explicit_uniform_locs,
+                           struct gl_context *ctx,
+                           struct gl_shader_program *prog, void *mem_ctx)
+{
+   bool has_xfb_qualifiers = false;
+   unsigned num_tfeedback_decls = 0;
+   char **varying_names = NULL;
+   tfeedback_decl *tfeedback_decls = NULL;
+
+   /* Mark all generic shader inputs and outputs as unpaired. */
+   for (unsigned i = MESA_SHADER_VERTEX; i <= MESA_SHADER_FRAGMENT; i++) {
+      if (prog->_LinkedShaders[i] != NULL) {
+         link_invalidate_variable_locations(prog->_LinkedShaders[i]->ir);
+      }
+   }
+
+   unsigned prev = first;
+   for (unsigned i = prev + 1; i <= MESA_SHADER_FRAGMENT; i++) {
+      if (prog->_LinkedShaders[i] == NULL)
+         continue;
+
+      match_explicit_outputs_to_inputs(prog->_LinkedShaders[prev],
+                                       prog->_LinkedShaders[i]);
+      prev = i;
+   }
+
+   if (!assign_attribute_or_color_locations(mem_ctx, prog, &ctx->Const,
+                                            MESA_SHADER_VERTEX)) {
+      return false;
+   }
+
+   if (!assign_attribute_or_color_locations(mem_ctx, prog, &ctx->Const,
+                                            MESA_SHADER_FRAGMENT)) {
+      return false;
+   }
+
+   /* From the ARB_enhanced_layouts spec:
+    *
+    *    "If the shader used to record output variables for transform feedback
+    *    varyings uses the "xfb_buffer", "xfb_offset", or "xfb_stride" layout
+    *    qualifiers, the values specified by TransformFeedbackVaryings are
+    *    ignored, and the set of variables captured for transform feedback is
+    *    instead derived from the specified layout qualifiers."
+    */
+   for (int i = MESA_SHADER_FRAGMENT - 1; i >= 0; i--) {
+      /* Find last stage before fragment shader */
+      if (prog->_LinkedShaders[i]) {
+         has_xfb_qualifiers =
+            process_xfb_layout_qualifiers(mem_ctx, prog->_LinkedShaders[i],
+                                          &num_tfeedback_decls,
+                                          &varying_names);
+         break;
+      }
+   }
+
+   if (!has_xfb_qualifiers) {
+      num_tfeedback_decls = prog->TransformFeedback.NumVarying;
+      varying_names = prog->TransformFeedback.VaryingNames;
+   }
+
+   if (num_tfeedback_decls != 0) {
+      /* From GL_EXT_transform_feedback:
+       *   A program will fail to link if:
+       *
+       *   * the <count> specified by TransformFeedbackVaryingsEXT is
+       *     non-zero, but the program object has no vertex or geometry
+       *     shader;
+       */
+      if (first >= MESA_SHADER_FRAGMENT) {
+         linker_error(prog, "Transform feedback varyings specified, but "
+                      "no vertex, tessellation, or geometry shader is "
+                      "present.\n");
+         return false;
+      }
+
+      tfeedback_decls = ralloc_array(mem_ctx, tfeedback_decl,
+                                     num_tfeedback_decls);
+      if (!parse_tfeedback_decls(ctx, prog, mem_ctx, num_tfeedback_decls,
+                                 varying_names, tfeedback_decls))
+         return false;
+   }
+
+   /* If there is no fragment shader we need to set transform feedback.
+    *
+    * For SSO we also need to assign output locations.  We assign them here
+    * because we need to do it for both single stage programs and multi stage
+    * programs.
+    */
+   if (last < MESA_SHADER_FRAGMENT &&
+       (num_tfeedback_decls != 0 || prog->SeparateShader)) {
+      const uint64_t reserved_out_slots =
+         reserved_varying_slot(prog->_LinkedShaders[last], ir_var_shader_out);
+      if (!assign_varying_locations(ctx, mem_ctx, prog,
+                                    prog->_LinkedShaders[last], NULL,
+                                    num_tfeedback_decls, tfeedback_decls,
+                                    reserved_out_slots))
+         return false;
+   }
+
+   if (last <= MESA_SHADER_FRAGMENT) {
+      /* Remove unused varyings from the first/last stage unless SSO */
+      remove_unused_shader_inputs_and_outputs(prog->SeparateShader,
+                                              prog->_LinkedShaders[first],
+                                              ir_var_shader_in);
+      remove_unused_shader_inputs_and_outputs(prog->SeparateShader,
+                                              prog->_LinkedShaders[last],
+                                              ir_var_shader_out);
+
+      /* If the program is made up of only a single stage */
+      if (first == last) {
+         gl_linked_shader *const sh = prog->_LinkedShaders[last];
+
+         do_dead_builtin_varyings(ctx, NULL, sh, 0, NULL);
+         do_dead_builtin_varyings(ctx, sh, NULL, num_tfeedback_decls,
+                                  tfeedback_decls);
+
+         if (prog->SeparateShader) {
+            const uint64_t reserved_slots =
+               reserved_varying_slot(sh, ir_var_shader_in);
+
+            /* Assign input locations for SSO, output locations are already
+             * assigned.
+             */
+            if (!assign_varying_locations(ctx, mem_ctx, prog,
+                                          NULL /* producer */,
+                                          sh /* consumer */,
+                                          0 /* num_tfeedback_decls */,
+                                          NULL /* tfeedback_decls */,
+                                          reserved_slots))
+               return false;
+         }
+      } else {
+         /* Linking the stages in the opposite order (from fragment to vertex)
+          * ensures that inter-shader outputs written to in an earlier stage
+          * are eliminated if they are (transitively) not used in a later
+          * stage.
+          */
+         int next = last;
+         for (int i = next - 1; i >= 0; i--) {
+            if (prog->_LinkedShaders[i] == NULL && i != 0)
+               continue;
+
+            gl_linked_shader *const sh_i = prog->_LinkedShaders[i];
+            gl_linked_shader *const sh_next = prog->_LinkedShaders[next];
+
+            const uint64_t reserved_out_slots =
+               reserved_varying_slot(sh_i, ir_var_shader_out);
+            const uint64_t reserved_in_slots =
+               reserved_varying_slot(sh_next, ir_var_shader_in);
+
+            do_dead_builtin_varyings(ctx, sh_i, sh_next,
+                      next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
+                      tfeedback_decls);
+
+            if (!assign_varying_locations(ctx, mem_ctx, prog, sh_i, sh_next,
+                      next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
+                      tfeedback_decls,
+                      reserved_out_slots | reserved_in_slots))
+               return false;
+
+            /* This must be done after all dead varyings are eliminated. */
+            if (sh_i != NULL) {
+               unsigned slots_used = _mesa_bitcount_64(reserved_out_slots);
+               if (!check_against_output_limit(ctx, prog, sh_i, slots_used)) {
+                  return false;
+               }
+            }
+
+            unsigned slots_used = _mesa_bitcount_64(reserved_in_slots);
+            if (!check_against_input_limit(ctx, prog, sh_next, slots_used))
+               return false;
+
+            next = i;
+         }
+      }
+   }
+
+   if (!store_tfeedback_info(ctx, prog, num_tfeedback_decls, tfeedback_decls,
+                             has_xfb_qualifiers))
+      return false;
+
+   update_array_sizes(prog);
+   link_assign_uniform_locations(prog, ctx->Const.UniformBooleanTrue,
+                                 num_explicit_uniform_locs,
+                                 ctx->Const.MaxUserAssignableUniformLocations);
+   link_assign_atomic_counter_resources(ctx, prog);
+
+   link_calculate_subroutine_compat(prog);
+   check_resources(ctx, prog);
+   check_subroutine_resources(prog);
+   check_image_resources(ctx, prog);
+   link_check_atomic_counter_resources(ctx, prog);
+
+   if (!prog->LinkStatus)
+      return false;
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (prog->_LinkedShaders[i] == NULL)
+         continue;
+
+      const struct gl_shader_compiler_options *options =
+         &ctx->Const.ShaderCompilerOptions[i];
+
+      if (options->LowerBufferInterfaceBlocks)
+         lower_ubo_reference(prog->_LinkedShaders[i],
+                             options->ClampBlockIndicesToArrayBounds);
+
+      if (options->LowerShaderSharedVariables)
+         lower_shared_reference(prog->_LinkedShaders[i],
+                                &prog->Comp.SharedSize);
+
+      lower_vector_derefs(prog->_LinkedShaders[i]);
+      do_vec_index_to_swizzle(prog->_LinkedShaders[i]->ir);
+   }
+
+   return true;
+}
+
 void
 link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 {
@@ -4501,11 +4740,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       return;
    }
 
-   unsigned num_tfeedback_decls = 0;
    unsigned int num_explicit_uniform_locs = 0;
-   bool has_xfb_qualifiers = false;
-   char **varying_names = NULL;
-   tfeedback_decl *tfeedback_decls = NULL;
 
    void *mem_ctx = ralloc_context(NULL); // temporary linker context
 
@@ -4799,192 +5034,10 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    /* Check and validate stream emissions in geometry shaders */
    validate_geometry_shader_emissions(ctx, prog);
 
-   /* Mark all generic shader inputs and outputs as unpaired. */
-   for (unsigned i = MESA_SHADER_VERTEX; i <= MESA_SHADER_FRAGMENT; i++) {
-      if (prog->_LinkedShaders[i] != NULL) {
-         link_invalidate_variable_locations(prog->_LinkedShaders[i]->ir);
-      }
-   }
-
-   prev = first;
-   for (unsigned i = prev + 1; i <= MESA_SHADER_FRAGMENT; i++) {
-      if (prog->_LinkedShaders[i] == NULL)
-         continue;
-
-      match_explicit_outputs_to_inputs(prog->_LinkedShaders[prev],
-                                       prog->_LinkedShaders[i]);
-      prev = i;
-   }
-
-   if (!assign_attribute_or_color_locations(prog, &ctx->Const,
-                                            MESA_SHADER_VERTEX)) {
-      goto done;
-   }
-
-   if (!assign_attribute_or_color_locations(prog, &ctx->Const,
-                                            MESA_SHADER_FRAGMENT)) {
-      goto done;
-   }
-
-   /* From the ARB_enhanced_layouts spec:
-    *
-    *    "If the shader used to record output variables for transform feedback
-    *    varyings uses the "xfb_buffer", "xfb_offset", or "xfb_stride" layout
-    *    qualifiers, the values specified by TransformFeedbackVaryings are
-    *    ignored, and the set of variables captured for transform feedback is
-    *    instead derived from the specified layout qualifiers."
-    */
-   for (int i = MESA_SHADER_FRAGMENT - 1; i >= 0; i--) {
-      /* Find last stage before fragment shader */
-      if (prog->_LinkedShaders[i]) {
-         has_xfb_qualifiers =
-            process_xfb_layout_qualifiers(mem_ctx, prog->_LinkedShaders[i],
-                                          &num_tfeedback_decls,
-                                          &varying_names);
-         break;
-      }
-   }
-
-   if (!has_xfb_qualifiers) {
-      num_tfeedback_decls = prog->TransformFeedback.NumVarying;
-      varying_names = prog->TransformFeedback.VaryingNames;
-   }
-
-   if (num_tfeedback_decls != 0) {
-      /* From GL_EXT_transform_feedback:
-       *   A program will fail to link if:
-       *
-       *   * the <count> specified by TransformFeedbackVaryingsEXT is
-       *     non-zero, but the program object has no vertex or geometry
-       *     shader;
-       */
-      if (first >= MESA_SHADER_FRAGMENT) {
-         linker_error(prog, "Transform feedback varyings specified, but "
-                      "no vertex, tessellation, or geometry shader is "
-                      "present.\n");
-         goto done;
-      }
-
-      tfeedback_decls = ralloc_array(mem_ctx, tfeedback_decl,
-                                     num_tfeedback_decls);
-      if (!parse_tfeedback_decls(ctx, prog, mem_ctx, num_tfeedback_decls,
-                                 varying_names, tfeedback_decls))
-         goto done;
-   }
-
-   /* If there is no fragment shader we need to set transform feedback.
-    *
-    * For SSO we also need to assign output locations.  We assign them here
-    * because we need to do it for both single stage programs and multi stage
-    * programs.
-    */
-   if (last < MESA_SHADER_FRAGMENT &&
-       (num_tfeedback_decls != 0 || prog->SeparateShader)) {
-      const uint64_t reserved_out_slots =
-         reserved_varying_slot(prog->_LinkedShaders[last], ir_var_shader_out);
-      if (!assign_varying_locations(ctx, mem_ctx, prog,
-                                    prog->_LinkedShaders[last], NULL,
-                                    num_tfeedback_decls, tfeedback_decls,
-                                    reserved_out_slots))
-         goto done;
-   }
-
-   if (last <= MESA_SHADER_FRAGMENT) {
-      /* Remove unused varyings from the first/last stage unless SSO */
-      remove_unused_shader_inputs_and_outputs(prog->SeparateShader,
-                                              prog->_LinkedShaders[first],
-                                              ir_var_shader_in);
-      remove_unused_shader_inputs_and_outputs(prog->SeparateShader,
-                                              prog->_LinkedShaders[last],
-                                              ir_var_shader_out);
-
-      /* If the program is made up of only a single stage */
-      if (first == last) {
-
-         gl_linked_shader *const sh = prog->_LinkedShaders[last];
-         if (prog->SeparateShader) {
-            const uint64_t reserved_slots =
-               reserved_varying_slot(sh, ir_var_shader_in);
-
-            /* Assign input locations for SSO, output locations are already
-             * assigned.
-             */
-            if (!assign_varying_locations(ctx, mem_ctx, prog,
-                                          NULL /* producer */,
-                                          sh /* consumer */,
-                                          0 /* num_tfeedback_decls */,
-                                          NULL /* tfeedback_decls */,
-                                          reserved_slots))
-               goto done;
-         }
-
-         do_dead_builtin_varyings(ctx, NULL, sh, 0, NULL);
-         do_dead_builtin_varyings(ctx, sh, NULL, num_tfeedback_decls,
-                                  tfeedback_decls);
-      } else {
-         /* Linking the stages in the opposite order (from fragment to vertex)
-          * ensures that inter-shader outputs written to in an earlier stage
-          * are eliminated if they are (transitively) not used in a later
-          * stage.
-          */
-         int next = last;
-         for (int i = next - 1; i >= 0; i--) {
-            if (prog->_LinkedShaders[i] == NULL && i != 0)
-               continue;
-
-            gl_linked_shader *const sh_i = prog->_LinkedShaders[i];
-            gl_linked_shader *const sh_next = prog->_LinkedShaders[next];
-
-            const uint64_t reserved_out_slots =
-               reserved_varying_slot(sh_i, ir_var_shader_out);
-            const uint64_t reserved_in_slots =
-               reserved_varying_slot(sh_next, ir_var_shader_in);
-
-            if (!assign_varying_locations(ctx, mem_ctx, prog, sh_i, sh_next,
-                      next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
-                      tfeedback_decls,
-                      reserved_out_slots | reserved_in_slots))
-               goto done;
-
-            do_dead_builtin_varyings(ctx, sh_i, sh_next,
-                      next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
-                      tfeedback_decls);
-
-            /* This must be done after all dead varyings are eliminated. */
-            if (sh_i != NULL) {
-               unsigned slots_used = _mesa_bitcount_64(reserved_out_slots);
-               if (!check_against_output_limit(ctx, prog, sh_i, slots_used)) {
-                  goto done;
-               }
-            }
-
-            unsigned slots_used = _mesa_bitcount_64(reserved_in_slots);
-            if (!check_against_input_limit(ctx, prog, sh_next, slots_used))
-               goto done;
-
-            next = i;
-         }
-      }
-   }
-
-   if (!store_tfeedback_info(ctx, prog, num_tfeedback_decls, tfeedback_decls,
-                             has_xfb_qualifiers))
-      goto done;
-
-   update_array_sizes(prog);
-   link_assign_uniform_locations(prog, ctx->Const.UniformBooleanTrue,
-                                 num_explicit_uniform_locs,
-                                 ctx->Const.MaxUserAssignableUniformLocations);
-   link_assign_atomic_counter_resources(ctx, prog);
    store_fragdepth_layout(prog);
 
-   link_calculate_subroutine_compat(prog);
-   check_resources(ctx, prog);
-   check_subroutine_resources(prog);
-   check_image_resources(ctx, prog);
-   link_check_atomic_counter_resources(ctx, prog);
-
-   if (!prog->LinkStatus)
+   if(!link_varyings_and_uniforms(first, last, num_explicit_uniform_locs, ctx,
+                                  prog, mem_ctx))
       goto done;
 
    /* OpenGL ES < 3.1 requires that a vertex shader and a fragment shader both
@@ -5020,25 +5073,6 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       } else if (prog->_LinkedShaders[MESA_SHADER_FRAGMENT] == NULL) {
 	 linker_error(prog, "program lacks a fragment shader\n");
       }
-   }
-
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (prog->_LinkedShaders[i] == NULL)
-	 continue;
-
-      const struct gl_shader_compiler_options *options =
-         &ctx->Const.ShaderCompilerOptions[i];
-
-      if (options->LowerBufferInterfaceBlocks)
-         lower_ubo_reference(prog->_LinkedShaders[i],
-                             options->ClampBlockIndicesToArrayBounds);
-
-      if (options->LowerShaderSharedVariables)
-         lower_shared_reference(prog->_LinkedShaders[i],
-                                &prog->Comp.SharedSize);
-
-      lower_vector_derefs(prog->_LinkedShaders[i]);
-      do_vec_index_to_swizzle(prog->_LinkedShaders[i]->ir);
    }
 
 done:

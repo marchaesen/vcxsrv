@@ -71,10 +71,5 @@ static void update_clip( struct st_context *st )
 
 
 const struct st_tracked_state st_update_clip = {
-   "st_update_clip",					/* name */
-   {							/* dirty */
-      _NEW_TRANSFORM | _NEW_PROJECTION,                 /* mesa */
-      ST_NEW_VERTEX_PROGRAM,				/* st */
-   },
    update_clip						/* update */
 };

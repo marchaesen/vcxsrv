@@ -359,6 +359,69 @@ _mesa_update_vao_client_arrays(struct gl_context *ctx,
 }
 
 
+bool
+_mesa_all_varyings_in_vbos(const struct gl_vertex_array_object *vao)
+{
+   /* Walk those enabled arrays that have the default vbo attached */
+   GLbitfield64 mask = vao->_Enabled & ~vao->VertexAttribBufferMask;
+
+   while (mask) {
+      /* Do not use u_bit_scan64 as we can walk multiple
+       * attrib arrays at once
+       */
+      const int i = ffsll(mask) - 1;
+      const struct gl_vertex_attrib_array *attrib_array =
+         &vao->VertexAttrib[i];
+      const struct gl_vertex_buffer_binding *buffer_binding =
+         &vao->VertexBinding[attrib_array->VertexBinding];
+
+      /* Only enabled arrays shall appear in the _Enabled bitmask */
+      assert(attrib_array->Enabled);
+      /* We have already masked out vao->VertexAttribBufferMask  */
+      assert(!_mesa_is_bufferobj(buffer_binding->BufferObj));
+
+      /* Bail out once we find the first non vbo with a non zero stride */
+      if (buffer_binding->Stride != 0)
+         return false;
+
+      /* Note that we cannot use the xor variant since the _BoundArray mask
+       * may contain array attributes that are bound but not enabled.
+       */
+      mask &= ~buffer_binding->_BoundArrays;
+   }
+
+   return true;
+}
+
+bool
+_mesa_all_buffers_are_unmapped(const struct gl_vertex_array_object *vao)
+{
+   /* Walk the enabled arrays that have a vbo attached */
+   GLbitfield64 mask = vao->_Enabled & vao->VertexAttribBufferMask;
+
+   while (mask) {
+      const int i = ffsll(mask) - 1;
+      const struct gl_vertex_attrib_array *attrib_array =
+         &vao->VertexAttrib[i];
+      const struct gl_vertex_buffer_binding *buffer_binding =
+         &vao->VertexBinding[attrib_array->VertexBinding];
+
+      /* Only enabled arrays shall appear in the _Enabled bitmask */
+      assert(attrib_array->Enabled);
+      /* We have already masked with vao->VertexAttribBufferMask  */
+      assert(_mesa_is_bufferobj(buffer_binding->BufferObj));
+
+      /* Bail out once we find the first disallowed mapping */
+      if (_mesa_check_disallowed_mapping(buffer_binding->BufferObj))
+         return false;
+
+      /* We have handled everything that is bound to this buffer_binding. */
+      mask &= ~buffer_binding->_BoundArrays;
+   }
+
+   return true;
+}
+
 /**********************************************************************/
 /* API Functions                                                      */
 /**********************************************************************/

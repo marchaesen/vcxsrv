@@ -27,6 +27,7 @@
  **************************************************************************/
 
 #include <stdio.h>
+#include "main/arrayobj.h"
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/state.h"
@@ -42,68 +43,35 @@
 
 
 /**
- * All vertex buffers should be in an unmapped state when we're about
- * to draw.
- */
-static bool
-check_input_buffers_are_unmapped(const struct gl_client_array **inputs)
-{
-   GLuint i;
-
-   for (i = 0; i < VERT_ATTRIB_MAX; i++) {
-      if (inputs[i]) {
-         struct gl_buffer_object *obj = inputs[i]->BufferObj;
-         if (_mesa_check_disallowed_mapping(obj))
-            return false;
-      }
-   }
-
-   return true;
-}
-
-
-/**
- * A debug function that may be called from other parts of Mesa as
- * needed during debugging.
- */
-static bool
-check_buffers_are_unmapped(struct gl_context *ctx)
-{
-   struct vbo_context *vbo = vbo_context(ctx);
-   struct vbo_exec_context *exec = &vbo->exec;
-
-   /* check the current vertex arrays */
-   return !_mesa_check_disallowed_mapping(exec->vtx.bufferobj) &&
-      check_input_buffers_are_unmapped(exec->array.inputs);
-}
-
-
-/**
  * Check that element 'j' of the array has reasonable data.
  * Map VBO if needed.
  * For debugging purposes; not normally used.
  */
 static void
-check_array_data(struct gl_context *ctx, struct gl_client_array *array,
+check_array_data(struct gl_context *ctx, struct gl_vertex_array_object *vao,
                  GLuint attrib, GLuint j)
 {
+   const struct gl_vertex_attrib_array *array = &vao->VertexAttrib[attrib];
    if (array->Enabled) {
+      const struct gl_vertex_buffer_binding *binding =
+         &vao->VertexBinding[array->VertexBinding];
+      struct gl_buffer_object *bo = binding->BufferObj;
       const void *data = array->Ptr;
-      if (_mesa_is_bufferobj(array->BufferObj)) {
-         if (!array->BufferObj->Mappings[MAP_INTERNAL].Pointer) {
+      if (_mesa_is_bufferobj(bo)) {
+         if (!bo->Mappings[MAP_INTERNAL].Pointer) {
             /* need to map now */
-            array->BufferObj->Mappings[MAP_INTERNAL].Pointer =
-               ctx->Driver.MapBufferRange(ctx, 0, array->BufferObj->Size,
-					  GL_MAP_READ_BIT, array->BufferObj,
+            bo->Mappings[MAP_INTERNAL].Pointer =
+               ctx->Driver.MapBufferRange(ctx, 0, bo->Size,
+					  GL_MAP_READ_BIT, bo,
                                           MAP_INTERNAL);
          }
-         data = ADD_POINTERS(data,
-                             array->BufferObj->Mappings[MAP_INTERNAL].Pointer);
+         data = ADD_POINTERS(_mesa_vertex_attrib_address(array, binding),
+                             bo->Mappings[MAP_INTERNAL].Pointer);
       }
       switch (array->Type) {
       case GL_FLOAT:
          {
-            GLfloat *f = (GLfloat *) ((GLubyte *) data + array->StrideB * j);
+            GLfloat *f = (GLfloat *) ((GLubyte *) data + binding->Stride * j);
             GLint k;
             for (k = 0; k < array->Size; k++) {
                if (IS_INF_OR_NAN(f[k]) ||
@@ -112,9 +80,9 @@ check_array_data(struct gl_context *ctx, struct gl_client_array *array,
                   printf("  Element[%u].%u = %f\n", j, k, f[k]);
                   printf("  Array %u at %p\n", attrib, (void* ) array);
                   printf("  Type 0x%x, Size %d, Stride %d\n",
-			 array->Type, array->Size, array->Stride);
+			 array->Type, array->Size, binding->Stride);
                   printf("  Address/offset %p in Buffer Object %u\n",
-			 array->Ptr, array->BufferObj->Name);
+			 array->Ptr, bo->Name);
                   f[k] = 1.0F; /* XXX replace the bad value! */
                }
                /*assert(!IS_INF_OR_NAN(f[k]));*/
@@ -132,12 +100,17 @@ check_array_data(struct gl_context *ctx, struct gl_client_array *array,
  * Unmap the buffer object referenced by given array, if mapped.
  */
 static void
-unmap_array_buffer(struct gl_context *ctx, struct gl_client_array *array)
+unmap_array_buffer(struct gl_context *ctx, struct gl_vertex_array_object *vao,
+                   GLuint attrib)
 {
-   if (array->Enabled &&
-       _mesa_is_bufferobj(array->BufferObj) &&
-       _mesa_bufferobj_mapped(array->BufferObj, MAP_INTERNAL)) {
-      ctx->Driver.UnmapBuffer(ctx, array->BufferObj, MAP_INTERNAL);
+   const struct gl_vertex_attrib_array *array = &vao->VertexAttrib[attrib];
+   if (array->Enabled) {
+      const struct gl_vertex_buffer_binding *binding =
+         &vao->VertexBinding[array->VertexBinding];
+      struct gl_buffer_object *bo = binding->BufferObj;
+      if (_mesa_is_bufferobj(bo) && _mesa_bufferobj_mapped(bo, MAP_INTERNAL)) {
+         ctx->Driver.UnmapBuffer(ctx, bo, MAP_INTERNAL);
+      }
    }
 }
 
@@ -183,8 +156,8 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
       }
 
       /* check element j of each enabled array */
-      for (k = 0; k < ARRAY_SIZE(vao->_VertexAttrib); k++) {
-         check_array_data(ctx, &vao->_VertexAttrib[k], k, j);
+      for (k = 0; k < VERT_ATTRIB_MAX; k++) {
+         check_array_data(ctx, vao, k, j);
       }
    }
 
@@ -193,8 +166,8 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
                               MAP_INTERNAL);
    }
 
-   for (k = 0; k < ARRAY_SIZE(vao->_VertexAttrib); k++) {
-      unmap_array_buffer(ctx, &vao->_VertexAttrib[k]);
+   for (k = 0; k < VERT_ATTRIB_MAX; k++) {
+      unmap_array_buffer(ctx, vao, k);
    }
 }
 
@@ -216,37 +189,37 @@ static void
 print_draw_arrays(struct gl_context *ctx,
                   GLenum mode, GLint start, GLsizei count)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
-   struct vbo_exec_context *exec = &vbo->exec;
-   struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   int i;
+   const struct gl_vertex_array_object *vao = ctx->Array.VAO;
 
    printf("vbo_exec_DrawArrays(mode 0x%x, start %d, count %d):\n",
 	  mode, start, count);
 
-   for (i = 0; i < 32; i++) {
-      struct gl_buffer_object *bufObj = exec->array.inputs[i]->BufferObj;
-      GLuint bufName = bufObj->Name;
-      GLint stride = exec->array.inputs[i]->Stride;
-      printf("attr %2d: size %d stride %d  enabled %d  "
-	     "ptr %p  Bufobj %u\n",
-	     i,
-	     exec->array.inputs[i]->Size,
-	     stride,
-	     /*exec->array.inputs[i]->Enabled,*/
-	     vao->_VertexAttrib[VERT_ATTRIB_FF(i)].Enabled,
-	     exec->array.inputs[i]->Ptr,
-	     bufName);
+   unsigned i;
+   for (i = 0; i < VERT_ATTRIB_MAX; ++i) {
+      const struct gl_vertex_attrib_array *array = &vao->VertexAttrib[i];
+      if (!array->Enabled)
+         continue;
 
-      if (bufName) {
+      const struct gl_vertex_buffer_binding *binding =
+         &vao->VertexBinding[array->VertexBinding];
+      struct gl_buffer_object *bufObj = binding->BufferObj;
+
+      printf("attr %s: size %d stride %d  enabled %d  "
+	     "ptr %p  Bufobj %u\n",
+             gl_vert_attrib_name((gl_vert_attrib)i),
+	     array->Size, binding->Stride, array->Enabled,
+             array->Ptr, bufObj->Name);
+
+      if (_mesa_is_bufferobj(bufObj)) {
          GLubyte *p = ctx->Driver.MapBufferRange(ctx, 0, bufObj->Size,
 						 GL_MAP_READ_BIT, bufObj,
                                                  MAP_INTERNAL);
-         int offset = (int) (GLintptr) exec->array.inputs[i]->Ptr;
+         int offset = (int) (GLintptr)
+            _mesa_vertex_attrib_address(array, binding);
          float *f = (float *) (p + offset);
          int *k = (int *) f;
          int i;
-         int n = (count * stride) / 4;
+         int n = (count * binding->Stride) / 4;
          if (n > 32)
             n = 32;
          printf("  Data at offset %d:\n", offset);
@@ -272,6 +245,7 @@ recalculate_input_bindings(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
+   const struct gl_vertex_attrib_array *array = ctx->Array.VAO->VertexAttrib;
    struct gl_client_array *vertexAttrib = ctx->Array.VAO->_VertexAttrib;
    const struct gl_client_array **inputs = &exec->array.inputs[0];
    GLbitfield64 const_inputs = 0x0;
@@ -285,7 +259,7 @@ recalculate_input_bindings(struct gl_context *ctx)
        * are available as per-vertex attributes.
        */
       for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-	 if (vertexAttrib[VERT_ATTRIB_FF(i)].Enabled)
+	 if (array[VERT_ATTRIB_FF(i)].Enabled)
 	    inputs[i] = &vertexAttrib[VERT_ATTRIB_FF(i)];
 	 else {
 	    inputs[i] = &vbo->currval[VBO_ATTRIB_POS+i];
@@ -325,9 +299,9 @@ recalculate_input_bindings(struct gl_context *ctx)
        * slots are considered "magic."
        */
       if (ctx->API == API_OPENGL_COMPAT) {
-         if (vertexAttrib[VERT_ATTRIB_GENERIC0].Enabled)
+         if (array[VERT_ATTRIB_GENERIC0].Enabled)
             inputs[0] = &vertexAttrib[VERT_ATTRIB_GENERIC0];
-         else if (vertexAttrib[VERT_ATTRIB_POS].Enabled)
+         else if (array[VERT_ATTRIB_POS].Enabled)
             inputs[0] = &vertexAttrib[VERT_ATTRIB_POS];
          else {
             inputs[0] = &vbo->currval[VBO_ATTRIB_POS];
@@ -335,7 +309,7 @@ recalculate_input_bindings(struct gl_context *ctx)
          }
 
          for (i = 1; i < VERT_ATTRIB_FF_MAX; i++) {
-            if (vertexAttrib[VERT_ATTRIB_FF(i)].Enabled)
+            if (array[VERT_ATTRIB_FF(i)].Enabled)
                inputs[i] = &vertexAttrib[VERT_ATTRIB_FF(i)];
             else {
                inputs[i] = &vbo->currval[VBO_ATTRIB_POS+i];
@@ -344,7 +318,7 @@ recalculate_input_bindings(struct gl_context *ctx)
          }
 
          for (i = 1; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-            if (vertexAttrib[VERT_ATTRIB_GENERIC(i)].Enabled)
+            if (array[VERT_ATTRIB_GENERIC(i)].Enabled)
                inputs[VERT_ATTRIB_GENERIC(i)] =
                   &vertexAttrib[VERT_ATTRIB_GENERIC(i)];
             else {
@@ -362,14 +336,14 @@ recalculate_input_bindings(struct gl_context *ctx)
           * be enabled.
           */
          for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-            assert(!vertexAttrib[VERT_ATTRIB_FF(i)].Enabled);
+            assert(!array[VERT_ATTRIB_FF(i)].Enabled);
 
             inputs[i] = &vbo->currval[VBO_ATTRIB_POS+i];
             const_inputs |= VERT_BIT_FF(i);
          }
 
          for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-            if (vertexAttrib[VERT_ATTRIB_GENERIC(i)].Enabled)
+            if (array[VERT_ATTRIB_GENERIC(i)].Enabled)
                inputs[VERT_ATTRIB_GENERIC(i)] =
                   &vertexAttrib[VERT_ATTRIB_GENERIC(i)];
             else {
@@ -395,7 +369,7 @@ recalculate_input_bindings(struct gl_context *ctx)
  * Note that this might set the _NEW_VARYING_VP_INPUTS dirty flag so state
  * validation must be done after this call.
  */
-bool
+void
 vbo_bind_arrays(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
@@ -421,14 +395,6 @@ vbo_bind_arrays(struct gl_context *ctx)
          exec->validating = GL_FALSE;
       }
    }
-
-   if (!check_buffers_are_unmapped(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "draw call (vertex buffers are mapped)");
-      return false;
-   } else {
-      return true;
-   }
 }
 
 /**
@@ -444,8 +410,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_prim prim[2];
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    /* init most fields to zero */
    memset(prim, 0, sizeof(prim));
@@ -794,8 +759,7 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
    struct _mesa_index_buffer ib;
    struct _mesa_prim prim[1];
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    ib.count = count;
    ib.type = type;
@@ -1138,10 +1102,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
       return;
    }
 
-   if (!vbo_bind_arrays(ctx)) {
-      free(prim);
-      return;
-   }
+   vbo_bind_arrays(ctx);
 
    min_index_ptr = (uintptr_t)indices[0];
    max_index_ptr = 0;
@@ -1290,7 +1251,6 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
                             GLuint stream, GLuint numInstances)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   struct vbo_exec_context *exec = &vbo->exec;
    struct _mesa_prim prim[2];
 
    if (!_mesa_validate_DrawTransformFeedback(ctx, mode, obj, stream,
@@ -1300,14 +1260,13 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
 
    if (ctx->Driver.GetTransformFeedbackVertexCount &&
        (ctx->Const.AlwaysUseGetTransformFeedbackVertexCount ||
-        !vbo_all_varyings_in_vbos(exec->array.inputs))) {
+        !_mesa_all_varyings_in_vbos(ctx->Array.VAO))) {
       GLsizei n = ctx->Driver.GetTransformFeedbackVertexCount(ctx, obj, stream);
       vbo_draw_arrays(ctx, mode, 0, n, numInstances, 0);
       return;
    }
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    /* init most fields to zero */
    memset(prim, 0, sizeof(prim));
@@ -1403,8 +1362,7 @@ vbo_validated_drawarraysindirect(struct gl_context *ctx,
 {
    struct vbo_context *vbo = vbo_context(ctx);
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    vbo->draw_indirect_prims(ctx, mode,
                             ctx->DrawIndirectBuffer, (GLsizeiptr)indirect,
@@ -1427,8 +1385,7 @@ vbo_validated_multidrawarraysindirect(struct gl_context *ctx,
    if (primcount == 0)
       return;
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    vbo->draw_indirect_prims(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
@@ -1447,8 +1404,7 @@ vbo_validated_drawelementsindirect(struct gl_context *ctx,
    struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    ib.count = 0; /* unknown */
    ib.type = type;
@@ -1478,8 +1434,7 @@ vbo_validated_multidrawelementsindirect(struct gl_context *ctx,
    if (primcount == 0)
       return;
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 
@@ -1599,8 +1554,7 @@ vbo_validated_multidrawarraysindirectcount(struct gl_context *ctx,
    if (maxdrawcount == 0)
       return;
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    vbo->draw_indirect_prims(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
@@ -1627,8 +1581,7 @@ vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
    if (maxdrawcount == 0)
       return;
 
-   if (!vbo_bind_arrays(ctx))
-      return;
+   vbo_bind_arrays(ctx);
 
    /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 

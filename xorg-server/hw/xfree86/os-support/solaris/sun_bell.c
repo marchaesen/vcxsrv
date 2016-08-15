@@ -28,7 +28,7 @@
 #include <sys/uio.h>
 #include <limits.h>
 #include <math.h>
-#include <poll.h>
+#include <xserver_poll.h>
 
 #include "xf86.h"
 #include "xf86Priv.h"
@@ -163,7 +163,7 @@ xf86OSRingBell(int loudness, int pitch, int duration)
 
                 /* sleep a little to allow audio buffer to drain */
                 naptime = BELL_MS * i;
-                poll(NULL, 0, naptime);
+                xserver_poll(NULL, 0, naptime);
 
                 i = ((sizeof(samples) * iovcnt) - written) % sizeof(samples);
                 iovcnt = 0;

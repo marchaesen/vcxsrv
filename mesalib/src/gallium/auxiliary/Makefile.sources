@@ -175,6 +175,7 @@ C_SOURCES := \
 	translate/translate_generic.c \
 	translate/translate_sse.c \
 	util/dbghelp.h \
+	util/u_bitcast.h \
 	util/u_bitmask.c \
 	util/u_bitmask.h \
 	util/u_blend.h \
@@ -227,8 +228,6 @@ C_SOURCES := \
 	util/u_format_latc.h \
 	util/u_format_other.c \
 	util/u_format_other.h \
-	util/u_format_r11g11b10f.h \
-	util/u_format_rgb9e5.h \
 	util/u_format_rgtc.c \
 	util/u_format_rgtc.h \
 	util/u_format_s3tc.c \
@@ -310,7 +309,8 @@ C_SOURCES := \
 	util/u_upload_mgr.h \
 	util/u_vbuf.c \
 	util/u_vbuf.h \
-	util/u_video.h
+	util/u_video.h \
+	util/u_viewport.h
 
 NIR_SOURCES := \
 	nir/tgsi_to_nir.c \

@@ -49,7 +49,8 @@ util_clear(struct pipe_context *pipe,
          struct pipe_surface *ps = framebuffer->cbufs[i];
 
          if (ps) {
-            pipe->clear_render_target(pipe, ps, color, 0, 0, ps->width, ps->height);
+            pipe->clear_render_target(pipe, ps, color, 0, 0, ps->width,
+                                      ps->height, true);
          }
       }
    }
@@ -58,6 +59,6 @@ util_clear(struct pipe_context *pipe,
       struct pipe_surface *ps = framebuffer->zsbuf;
       pipe->clear_depth_stencil(pipe, ps, buffers & PIPE_CLEAR_DEPTHSTENCIL,
                                 depth, stencil,
-                                0, 0, ps->width, ps->height);
+                                0, 0, ps->width, ps->height, true);
    }
 }

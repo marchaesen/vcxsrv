@@ -63,42 +63,8 @@ SOFTWARE.
 #undef _POSIX_SOURCE
 #endif
 
-#ifndef OPEN_MAX
-#ifdef SVR4
-#define OPEN_MAX 512
-#else
-#include <sys/param.h>
-#ifndef OPEN_MAX
-#if defined(NOFILE) && !defined(NOFILES_MAX)
-#define OPEN_MAX NOFILE
-#else
-#if !defined(WIN32) || defined(__CYGWIN__)
-#define OPEN_MAX NOFILES_MAX
-#else
-#define OPEN_MAX 512
-#endif
-#endif
-#endif
-#endif
-#endif
-
-#include <X11/Xpoll.h>
-
-/*
- * MAXSOCKS is used only for initialising MaxClients when no other method
- * like sysconf(_SC_OPEN_MAX) is not supported.
- */
-
-#if OPEN_MAX <= 512
-#define MAXSOCKS (OPEN_MAX - 1)
-#else
-#define MAXSOCKS 512
-#endif
-
-/* MAXSELECT is the number of fds that select() can handle */
-#define MAXSELECT (sizeof(fd_set) * NBBY)
-
 #include <stddef.h>
+#include <X11/Xos.h>
 
 /* If EAGAIN and EWOULDBLOCK are distinct errno values, then we check errno
  * for both EAGAIN and EWOULDBLOCK, because some supposedly POSIX
@@ -162,7 +128,11 @@ typedef struct _osComm {
     XID auth_id;                /* authorization id */
     CARD32 conn_time;           /* timestamp if not established, else 0  */
     struct _XtransConnInfo *trans_conn; /* transport connection object */
+    int flags;
 } OsCommRec, *OsCommPtr;
+
+#define OS_COMM_GRAB_IMPERVIOUS 1
+#define OS_COMM_IGNORED         2
 
 extern int FlushClient(ClientPtr /*who */ ,
                        OsCommPtr /*oc */ ,
@@ -173,27 +143,22 @@ extern int FlushClient(ClientPtr /*who */ ,
 extern void FreeOsBuffers(OsCommPtr     /*oc */
     );
 
-extern void InitNotifyFds(void);
-
-extern void HandleNotifyFds(void);
-
 #include "dix.h"
+#include "ospoll.h"
 
-extern fd_set AllSockets;
-extern fd_set AllClients;
-extern fd_set LastSelectMask;
-extern fd_set LastSelectWriteMask;
-extern fd_set WellKnownConnections;
-extern fd_set EnabledDevices;
-extern fd_set NotifyReadFds;
-extern fd_set NotifyWriteFds;
-extern fd_set ClientsWithInput;
-extern fd_set ClientsWriteBlocked;
-extern fd_set OutputPending;
-extern fd_set IgnoredClientsWithInput;
+extern struct ospoll    *server_poll;
+
+Bool
+listen_to_client(ClientPtr client);
 
 #if !defined(WIN32) || defined(__CYGWIN__)
 extern int *ConnectionTranslation;
+extern int ConnectionTranslationSize;
+static inline int GetConnectionTranslation(int conn) {
+    if (conn >= ConnectionTranslationSize)
+        return 0;
+    return ConnectionTranslation[conn];
+}
 #else
 extern int GetConnectionTranslation(int conn);
 extern void SetConnectionTranslation(int conn, int client);
@@ -202,8 +167,6 @@ extern void ClearConnectionTranslation(void);
 
 extern Bool NewOutputPending;
 extern Bool AnyClientsWriteBlocked;
-extern Bool AnyWritesPending;
-extern Bool NumNotifyWriteFd;
 
 extern WorkQueuePtr workQueue;
 

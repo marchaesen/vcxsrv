@@ -25,6 +25,11 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
+#ifdef HAVE_FUNC_ATTRIBUTE_VISIBILITY
+#define HIDDEN __attribute__((visibility("hidden")))
+#else
+#define HIDDEN
+#endif
 
 __asm__(".text\n"
         ".balign 32\n"
@@ -54,8 +59,8 @@ entry_patch_public(void)
 {
 }
 
-static char
-x86_64_entry_start[];
+extern char
+x86_64_entry_start[] HIDDEN;
 
 mapi_func
 entry_get_public(int slot)

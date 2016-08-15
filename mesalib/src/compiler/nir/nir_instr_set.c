@@ -228,7 +228,7 @@ nir_srcs_equal(nir_src src1, nir_src src2)
    }
 }
 
-static bool
+bool
 nir_alu_srcs_equal(const nir_alu_instr *alu1, const nir_alu_instr *alu2,
                    unsigned src1, unsigned src2)
 {

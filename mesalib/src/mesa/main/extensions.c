@@ -48,26 +48,7 @@ static char *extra_extensions = NULL;
  */
 #define o(x) offsetof(struct gl_extensions, x)
 
-
-/**
- * \brief Table of supported OpenGL extensions for all API's.
- */
-const struct mesa_extension _mesa_extension_table[] = {
-#define EXT(name_str, driver_cap, gll_ver, glc_ver, gles_ver, gles2_ver, yyyy) \
-        { .name = "GL_" #name_str, .offset = o(driver_cap), \
-          .version = { \
-            [API_OPENGL_COMPAT] = gll_ver, \
-            [API_OPENGL_CORE]   = glc_ver, \
-            [API_OPENGLES]      = gles_ver, \
-            [API_OPENGLES2]     = gles2_ver, \
-           }, \
-           .year = yyyy \
-        },
-#include "extensions_table.h"
-#undef EXT
-};
-
-static bool disabled_extensions[ARRAY_SIZE(_mesa_extension_table)];
+static bool disabled_extensions[MESA_EXTENSION_COUNT];
 
 /**
  * Given an extension name, lookup up the corresponding member of struct
@@ -85,7 +66,7 @@ name_to_index(const char* name)
    if (name == 0)
       return -1;
 
-   for (i = 0; i < ARRAY_SIZE(_mesa_extension_table); ++i) {
+   for (i = 0; i < MESA_EXTENSION_COUNT; ++i) {
       if (strcmp(name, _mesa_extension_table[i].name) == 0)
 	 return i;
    }
@@ -107,7 +88,7 @@ override_extensions_in_context(struct gl_context *ctx)
       (GLboolean*) &_mesa_extension_override_disables;
    GLboolean *ctx_ext = (GLboolean*)&ctx->Extensions;
 
-   for (i = 0; i < ARRAY_SIZE(_mesa_extension_table); ++i) {
+   for (i = 0; i < MESA_EXTENSION_COUNT; ++i) {
       size_t offset = _mesa_extension_table[i].offset;
 
       assert(!enables[offset] || !disables[offset]);
@@ -447,7 +428,7 @@ _mesa_make_extension_string(struct gl_context *ctx)
 
    /* Compute length of the extension string. */
    count = 0;
-   for (k = 0; k < ARRAY_SIZE(_mesa_extension_table); ++k) {
+   for (k = 0; k < MESA_EXTENSION_COUNT; ++k) {
       const struct mesa_extension *i = _mesa_extension_table + k;
 
       if (i->year <= maxYear &&
@@ -478,7 +459,7 @@ _mesa_make_extension_string(struct gl_context *ctx)
     * expect will fit into that buffer.
     */
    j = 0;
-   for (k = 0; k < ARRAY_SIZE(_mesa_extension_table); ++k) {
+   for (k = 0; k < MESA_EXTENSION_COUNT; ++k) {
       if (_mesa_extension_table[k].year <= maxYear &&
          _mesa_extension_supported(ctx, k)) {
          extension_indices[j++] = k;
@@ -516,7 +497,7 @@ _mesa_get_extension_count(struct gl_context *ctx)
    if (ctx->Extensions.Count != 0)
       return ctx->Extensions.Count;
 
-   for (k = 0; k < ARRAY_SIZE(_mesa_extension_table); ++k) {
+   for (k = 0; k < MESA_EXTENSION_COUNT; ++k) {
       if (_mesa_extension_supported(ctx, k))
 	 ctx->Extensions.Count++;
    }
@@ -532,7 +513,7 @@ _mesa_get_enabled_extension(struct gl_context *ctx, GLuint index)
    size_t n = 0;
    unsigned i;
 
-   for (i = 0; i < ARRAY_SIZE(_mesa_extension_table); ++i) {
+   for (i = 0; i < MESA_EXTENSION_COUNT; ++i) {
       if (_mesa_extension_supported(ctx, i)) {
          if (n == index)
             return (const GLubyte*) _mesa_extension_table[i].name;

@@ -2315,10 +2315,8 @@ _mesa_copy_client_array(struct gl_context *ctx,
    dst->Size = src->Size;
    dst->Type = src->Type;
    dst->Format = src->Format;
-   dst->Stride = src->Stride;
    dst->StrideB = src->StrideB;
    dst->Ptr = src->Ptr;
-   dst->Enabled = src->Enabled;
    dst->Normalized = src->Normalized;
    dst->Integer = src->Integer;
    dst->Doubles = src->Doubles;
@@ -2360,44 +2358,32 @@ _mesa_copy_vertex_buffer_binding(struct gl_context *ctx,
 }
 
 /**
- * Print vertex array's fields.
- */
-static void
-print_array(const char *name, GLint index, const struct gl_client_array *array)
-{
-   if (index >= 0)
-      fprintf(stderr, "  %s[%d]: ", name, index);
-   else
-      fprintf(stderr, "  %s: ", name);
-   fprintf(stderr, "Ptr=%p, Type=%s, Size=%d, ElemSize=%u, Stride=%d, Buffer=%u(Size %lu)\n",
-           array->Ptr, _mesa_enum_to_string(array->Type), array->Size,
-           array->_ElementSize, array->StrideB, array->BufferObj->Name,
-           (unsigned long) array->BufferObj->Size);
-}
-
-
-/**
  * Print current vertex object/array info.  For debug.
  */
 void
 _mesa_print_arrays(struct gl_context *ctx)
 {
-   struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   GLuint i;
+   const struct gl_vertex_array_object *vao = ctx->Array.VAO;
 
-   printf("Array Object %u\n", vao->Name);
-   if (vao->_VertexAttrib[VERT_ATTRIB_POS].Enabled)
-      print_array("Vertex", -1, &vao->_VertexAttrib[VERT_ATTRIB_POS]);
-   if (vao->_VertexAttrib[VERT_ATTRIB_NORMAL].Enabled)
-      print_array("Normal", -1, &vao->_VertexAttrib[VERT_ATTRIB_NORMAL]);
-   if (vao->_VertexAttrib[VERT_ATTRIB_COLOR0].Enabled)
-      print_array("Color", -1, &vao->_VertexAttrib[VERT_ATTRIB_COLOR0]);
-   for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++)
-      if (vao->_VertexAttrib[VERT_ATTRIB_TEX(i)].Enabled)
-         print_array("TexCoord", i, &vao->_VertexAttrib[VERT_ATTRIB_TEX(i)]);
-   for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; i++)
-      if (vao->_VertexAttrib[VERT_ATTRIB_GENERIC(i)].Enabled)
-         print_array("Attrib", i, &vao->_VertexAttrib[VERT_ATTRIB_GENERIC(i)]);
+   fprintf(stderr, "Array Object %u\n", vao->Name);
+
+   unsigned i;
+   for (i = 0; i < VERT_ATTRIB_MAX; ++i) {
+      const struct gl_vertex_attrib_array *array = &vao->VertexAttrib[i];
+      if (!array->Enabled)
+         continue;
+
+      const struct gl_vertex_buffer_binding *binding =
+         &vao->VertexBinding[array->VertexBinding];
+      const struct gl_buffer_object *bo = binding->BufferObj;
+
+      fprintf(stderr, "  %s: Ptr=%p, Type=%s, Size=%d, ElemSize=%u, "
+              "Stride=%d, Buffer=%u(Size %lu)\n",
+              gl_vert_attrib_name((gl_vert_attrib)i),
+              array->Ptr, _mesa_enum_to_string(array->Type), array->Size,
+              array->_ElementSize, binding->Stride, bo->Name,
+              (unsigned long) bo->Size);
+   }
 }
 
 

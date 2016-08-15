@@ -111,7 +111,7 @@ exit:
 }
 
 /**
- * Builds the MESA version string.
+ * Builds the Mesa version string.
  */
 static void
 create_version_string(struct gl_context *ctx, const char *prefix)

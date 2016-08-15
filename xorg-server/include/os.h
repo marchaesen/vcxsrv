@@ -96,8 +96,7 @@ extern _X_EXPORT void (*OsVendorVErrorFProc) (const char *,
 _X_ATTRIBUTE_PRINTF(1, 0);
 #endif
 
-extern _X_EXPORT int WaitForSomething(int *     /*pClientsReady */
-    );
+extern _X_EXPORT Bool WaitForSomething(Bool clients_are_ready);
 
 extern _X_EXPORT int ReadRequestFromClient(ClientPtr /*client */ );
 
@@ -146,8 +145,6 @@ extern _X_EXPORT const char *ClientAuthorized(ClientPtr /*client */ ,
 
 extern _X_EXPORT Bool EstablishNewConnections(ClientPtr clientUnused,
                                               void *closure);
-
-extern _X_EXPORT void CheckConnections(void);
 
 extern _X_EXPORT void CloseDownConnection(ClientPtr /*client */ );
 

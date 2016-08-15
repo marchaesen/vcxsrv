@@ -58,6 +58,16 @@
         <param name="pname" type="GLenum"/>
         <param name="values" type="const GLfloat *"/>
     </function>
+
+    <function name="PatchParameteriEXT" es2="3.1" alias="PatchParameteri">
+        <param name="pname" type="GLenum"/>
+        <param name="value" type="GLint"/>
+    </function>
+
+    <function name="PatchParameteriOES" es2="3.1" alias="PatchParameteri">
+        <param name="pname" type="GLenum"/>
+        <param name="value" type="GLint"/>
+    </function>
 </category>
 
 </OpenGLAPI>
