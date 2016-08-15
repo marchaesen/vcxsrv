@@ -75,6 +75,7 @@ optimizations = [
    (('ineg', ('ineg', a)), a),
    (('fabs', ('fabs', a)), ('fabs', a)),
    (('fabs', ('fneg', a)), ('fabs', a)),
+   (('fabs', ('u2f', a)), ('u2f', a)),
    (('iabs', ('iabs', a)), ('iabs', a)),
    (('iabs', ('ineg', a)), ('iabs', a)),
    (('~fadd', a, 0.0), a),

@@ -25,6 +25,20 @@
 #include "nir_builder.h"
 #include "nir_control_flow.h"
 
+static bool
+deref_apply_constant_initializer(nir_deref_var *deref, void *state)
+{
+   struct nir_builder *b = state;
+
+   nir_load_const_instr *initializer =
+      nir_deref_get_const_initializer_load(b->shader, deref);
+   nir_builder_instr_insert(b, &initializer->instr);
+
+   nir_store_deref_var(b, deref, &initializer->def, 0xf);
+
+   return true;
+}
+
 static bool inline_function_impl(nir_function_impl *impl, struct set *inlined);
 
 static void
@@ -174,10 +188,34 @@ inline_functions_block(nir_block *block, nir_builder *b,
       /* Add copies of all in parameters */
       assert(call->num_params == callee_copy->num_params);
 
+      b->cursor = nir_before_instr(&call->instr);
+
+      /* Before we insert the copy of the function, we need to lower away
+       * constant initializers on local variables.  This is because constant
+       * initializers happen (effectively) at the top of the function and,
+       * since these are about to become locals of the calling function,
+       * initialization will happen at the top of the caller rather than at
+       * the top of the callee.  This isn't usually a problem, but if we are
+       * being inlined inside of a loop, it can result in the variable not
+       * getting re-initialized properly for all loop iterations.
+       */
+      nir_foreach_variable(local, &callee_copy->locals) {
+         if (!local->constant_initializer)
+            continue;
+
+         nir_deref_var deref;
+         deref.deref.deref_type = nir_deref_type_var,
+         deref.deref.child = NULL;
+         deref.deref.type = local->type,
+         deref.var = local;
+
+         nir_deref_foreach_leaf(&deref, deref_apply_constant_initializer, b);
+
+         local->constant_initializer = NULL;
+      }
+
       exec_list_append(&b->impl->locals, &callee_copy->locals);
       exec_list_append(&b->impl->registers, &callee_copy->registers);
-
-      b->cursor = nir_before_instr(&call->instr);
 
       /* We now need to tie the two functions together using the
        * parameters.  There are two ways we do this: One is to turn the

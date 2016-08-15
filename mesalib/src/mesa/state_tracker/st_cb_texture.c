@@ -187,8 +187,39 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
    free(stImage->transfer);
    stImage->transfer = NULL;
    stImage->num_transfers = 0;
+
+   if (stImage->etc_data) {
+      free(stImage->etc_data);
+      stImage->etc_data = NULL;
+   }
 }
 
+bool
+st_etc_fallback(struct st_context *st, struct gl_texture_image *texImage)
+{
+   return (_mesa_is_format_etc2(texImage->TexFormat) && !st->has_etc2) ||
+          (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8 && !st->has_etc1);
+}
+
+static void
+etc_fallback_allocate(struct st_context *st, struct st_texture_image *stImage)
+{
+   struct gl_texture_image *texImage = &stImage->base;
+
+   if (!st_etc_fallback(st, texImage))
+      return;
+
+   if (stImage->etc_data)
+      free(stImage->etc_data);
+
+   unsigned data_size = _mesa_format_image_size(texImage->TexFormat,
+                                                texImage->Width2,
+                                                texImage->Height2,
+                                                texImage->Depth2);
+
+   stImage->etc_data =
+      malloc(data_size * _mesa_num_tex_faces(texImage->TexObject->Target));
+}
 
 /** called via ctx->Driver.MapTextureImage() */
 static void
@@ -215,26 +246,24 @@ st_MapTextureImage(struct gl_context *ctx,
    map = st_texture_image_map(st, stImage, pipeMode, x, y, slice, w, h, 1,
                               &transfer);
    if (map) {
-      if ((_mesa_is_format_etc2(texImage->TexFormat) && !st->has_etc2) ||
-          (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8 && !st->has_etc1)) {
-         /* ETC isn't supported by gallium and it's represented
-          * by uncompressed formats. Only write transfers with precompressed
-          * data are supported by ES3, which makes this really simple.
+      if (st_etc_fallback(st, texImage)) {
+         /* ETC isn't supported by all gallium drivers, where it's represented
+          * by uncompressed formats. We store the compressed data (as it's
+          * needed for image copies in OES_copy_image), and decompress as
+          * necessary in Unmap.
           *
-          * Just create a temporary storage where the ETC texture will
-          * be stored. It will be decompressed in the Unmap function.
+          * Note: all ETC1/ETC2 formats have 4x4 block sizes.
           */
          unsigned z = transfer->box.z;
          struct st_texture_image_transfer *itransfer = &stImage->transfer[z];
 
-         itransfer->temp_data =
-            malloc(_mesa_format_image_size(texImage->TexFormat, w, h, 1));
-         itransfer->temp_stride =
-            _mesa_format_row_stride(texImage->TexFormat, w);
+         unsigned bytes = _mesa_get_format_bytes(texImage->TexFormat);
+         unsigned stride = *rowStrideOut = itransfer->temp_stride =
+            _mesa_format_row_stride(texImage->TexFormat, texImage->Width2);
+         *mapOut = itransfer->temp_data =
+            stImage->etc_data + ((x / 4) * bytes + (y / 4) * stride) +
+            z * stride * texImage->Height2 / 4;
          itransfer->map = map;
-
-         *mapOut = itransfer->temp_data;
-         *rowStrideOut = itransfer->temp_stride;
       }
       else {
          /* supported mapping */
@@ -258,8 +287,7 @@ st_UnmapTextureImage(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct st_texture_image *stImage  = st_texture_image(texImage);
 
-   if ((_mesa_is_format_etc2(texImage->TexFormat) && !st->has_etc2) ||
-       (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8 && !st->has_etc1)) {
+   if (st_etc_fallback(st, texImage)) {
       /* Decompress the ETC texture to the mapped one. */
       unsigned z = slice + stImage->base.Face;
       struct st_texture_image_transfer *itransfer = &stImage->transfer[z];
@@ -267,20 +295,21 @@ st_UnmapTextureImage(struct gl_context *ctx,
 
       assert(z == transfer->box.z);
 
-      if (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8) {
-         _mesa_etc1_unpack_rgba8888(itransfer->map, transfer->stride,
-                                    itransfer->temp_data,
-                                    itransfer->temp_stride,
-                                    transfer->box.width, transfer->box.height);
-      }
-      else {
-         _mesa_unpack_etc2_format(itransfer->map, transfer->stride,
-                                  itransfer->temp_data, itransfer->temp_stride,
-                                  transfer->box.width, transfer->box.height,
-                                  texImage->TexFormat);
+      if (transfer->usage & PIPE_TRANSFER_WRITE) {
+         if (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8) {
+            _mesa_etc1_unpack_rgba8888(itransfer->map, transfer->stride,
+                                       itransfer->temp_data,
+                                       itransfer->temp_stride,
+                                       transfer->box.width, transfer->box.height);
+         }
+         else {
+            _mesa_unpack_etc2_format(itransfer->map, transfer->stride,
+                                     itransfer->temp_data, itransfer->temp_stride,
+                                     transfer->box.width, transfer->box.height,
+                                     texImage->TexFormat);
+         }
       }
 
-      free(itransfer->temp_data);
       itransfer->temp_data = NULL;
       itransfer->temp_stride = 0;
       itransfer->map = 0;
@@ -567,6 +596,8 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
    DBG("%s\n", __func__);
 
    assert(!stImage->pt); /* xxx this might be wrong */
+
+   etc_fallback_allocate(st, stImage);
 
    /* Look if the parent texture object has space for this image */
    if (stObj->pt &&
@@ -1339,7 +1370,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
    if (!dst)
       goto fallback;
 
-   /* Try transfer_inline_write, which should be the fastest memcpy path. */
+   /* Try texture_subdata, which should be the fastest memcpy path. */
    if (pixels &&
        !_mesa_is_bufferobj(unpack->BufferObj) &&
        _mesa_texstore_can_use_memcpy(ctx, texImage->_BaseFormat,
@@ -1365,8 +1396,8 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
       }
 
       u_box_3d(xoffset, yoffset, zoffset + dstz, width, height, depth, &box);
-      pipe->transfer_inline_write(pipe, dst, dst_level, 0,
-                                  &box, data, stride, layer_stride);
+      pipe->texture_subdata(pipe, dst, dst_level, 0,
+                            &box, data, stride, layer_stride);
       return;
    }
 
@@ -1618,8 +1649,7 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
    if (!_mesa_is_bufferobj(ctx->Unpack.BufferObj))
       goto fallback;
 
-   if ((_mesa_is_format_etc2(texImage->TexFormat) && !st->has_etc2) ||
-       (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8 && !st->has_etc1)) {
+   if (st_etc_fallback(st, texImage)) {
       /* ETC isn't supported and is represented by uncompressed formats. */
       goto fallback;
    }
@@ -2540,7 +2570,7 @@ st_finalize_texture(struct gl_context *ctx,
           */
          pipe_resource_reference(&stObj->pt, NULL);
          st_texture_release_all_sampler_views(st, stObj);
-         st->dirty.st |= ST_NEW_FRAMEBUFFER;
+         st->dirty |= ST_NEW_FRAMEBUFFER;
       }
    }
 
@@ -2677,6 +2707,8 @@ st_AllocTextureStorage(struct gl_context *ctx,
          struct st_texture_image *stImage =
             st_texture_image(texObj->Image[face][level]);
          pipe_resource_reference(&stImage->pt, stObj->pt);
+
+         etc_fallback_allocate(st, stImage);
       }
    }
 

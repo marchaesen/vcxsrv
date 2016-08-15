@@ -76,6 +76,7 @@ public:
       mem_ctx = ralloc_context(0);
       this->acp = new(mem_ctx) exec_list;
       this->kills = new(mem_ctx) exec_list;
+      killed_all = false;
    }
    ~ir_copy_propagation_visitor()
    {

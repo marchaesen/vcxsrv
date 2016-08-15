@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <assert.h>
+#include "util/hash_table.h"
 
 struct string_to_uint_map;
 
@@ -44,10 +45,8 @@ struct string_to_uint_map;
 extern "C" {
 #endif
 
-struct hash_table;
-
 typedef unsigned (*hash_func_t)(const void *key);
-typedef int (*hash_compare_func_t)(const void *key1, const void *key2);
+typedef bool (*hash_compare_func_t)(const void *key1, const void *key2);
 
 /**
  * Hash table constructor
@@ -60,26 +59,32 @@ typedef int (*hash_compare_func_t)(const void *key1, const void *key2);
  * \param hash         Function used to compute hash value of input keys.
  * \param compare      Function used to compare keys.
  */
-extern struct hash_table *hash_table_ctor(unsigned num_buckets,
-    hash_func_t hash, hash_compare_func_t compare);
-
+static inline struct hash_table *hash_table_ctor(UNUSED unsigned num_buckets,
+    hash_func_t hash, hash_compare_func_t compare)
+{
+   return _mesa_hash_table_create(NULL, hash, compare);
+}
 
 /**
  * Release all memory associated with a hash table
  *
  * \warning
- * This function cannot release memory occupied either by keys or data.
+ * This function does not release memory occupied either by keys or data.
  */
-extern void hash_table_dtor(struct hash_table *ht);
-
+static inline void hash_table_dtor(struct hash_table *ht)
+{
+   return _mesa_hash_table_destroy(ht, NULL);
+}
 
 /**
  * Flush all entries from a hash table
  *
  * \param ht  Table to be cleared of its entries.
  */
-extern void hash_table_clear(struct hash_table *ht);
-
+static inline void hash_table_clear(struct hash_table *ht)
+{
+   return _mesa_hash_table_clear(ht, NULL);
+}
 
 /**
  * Search a hash table for a specific element
@@ -92,16 +97,16 @@ extern void hash_table_clear(struct hash_table *ht);
  * the matching key was added.  If no matching key exists in the table,
  * \c NULL is returned.
  */
-extern void *hash_table_find(struct hash_table *ht, const void *key);
-
+static inline void *hash_table_find(struct hash_table *ht, const void *key)
+{
+   struct hash_entry *entry = _mesa_hash_table_search(ht, key);
+   if (!entry)
+      return NULL;
+   return entry->data;
+}
 
 /**
  * Add an element to a hash table
- *
- * \warning
- * If \c key is already in the hash table, it will be added again.  Future
- * calls to \c hash_table_find and \c hash_table_remove will return or remove,
- * repsectively, the most recently added instance of \c key.
  *
  * \warning
  * The value passed by \c key is kept in the hash table and is used by later
@@ -109,8 +114,11 @@ extern void *hash_table_find(struct hash_table *ht, const void *key);
  *
  * \sa hash_table_replace
  */
-extern void hash_table_insert(struct hash_table *ht, void *data,
-    const void *key);
+static inline void hash_table_insert(struct hash_table *ht, void *data,
+                                     const void *key)
+{
+   _mesa_hash_table_insert(ht, key, data);
+}
 
 /**
  * Add an element to a hash table with replacement
@@ -126,13 +134,29 @@ extern void hash_table_insert(struct hash_table *ht, void *data,
  *
  * \sa hash_table_insert
  */
-extern bool hash_table_replace(struct hash_table *ht, void *data,
-    const void *key);
+static inline bool hash_table_replace(struct hash_table *ht, void *data,
+                                      const void *key)
+{
+   struct hash_entry *entry = _mesa_hash_table_search(ht, key);
+   if (entry) {
+      entry->data = data;
+      return true;
+   } else {
+      _mesa_hash_table_insert(ht, key, data);
+      return false;
+   }
+}
 
 /**
  * Remove a specific element from a hash table.
  */
-extern void hash_table_remove(struct hash_table *ht, const void *key);
+static inline void hash_table_remove(struct hash_table *ht, const void *key)
+{
+   struct hash_entry *entry = _mesa_hash_table_search(ht, key);
+
+   if (entry)
+      _mesa_hash_table_remove(ht, entry);
+}
 
 /**
  * Compute hash value of a string
@@ -151,12 +175,11 @@ extern unsigned hash_table_string_hash(const void *key);
 /**
  * Compare two strings used as keys
  *
- * This is just a macro wrapper around \c strcmp.
+ * This is just a wrapper around \c strcmp.
  *
  * \sa hash_table_string_hash
  */
-#define hash_table_string_compare ((hash_compare_func_t) strcmp)
-
+bool hash_table_string_compare(const void *a, const void *b);
 
 /**
  * Compute hash value of a pointer
@@ -178,15 +201,21 @@ hash_table_pointer_hash(const void *key);
  *
  * \sa hash_table_pointer_hash
  */
-int
+bool
 hash_table_pointer_compare(const void *key1, const void *key2);
 
-void
+static inline void
 hash_table_call_foreach(struct hash_table *ht,
 			void (*callback)(const void *key,
 					 void *data,
 					 void *closure),
-			void *closure);
+			void *closure)
+{
+   struct hash_entry *entry;
+
+   hash_table_foreach(ht, entry)
+      callback(entry->key, entry->data, closure);
+}
 
 struct string_to_uint_map *
 string_to_uint_map_ctor();

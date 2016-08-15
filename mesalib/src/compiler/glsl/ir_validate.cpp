@@ -840,8 +840,8 @@ ir_validate::visit_enter(ir_call *ir)
       abort();
    }
 
-   const exec_node *formal_param_node = callee->parameters.head;
-   const exec_node *actual_param_node = ir->actual_parameters.head;
+   const exec_node *formal_param_node = callee->parameters.get_head_raw();
+   const exec_node *actual_param_node = ir->actual_parameters.get_head_raw();
    while (true) {
       if (formal_param_node->is_tail_sentinel()
           != actual_param_node->is_tail_sentinel()) {

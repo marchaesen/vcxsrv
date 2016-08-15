@@ -49,6 +49,7 @@
 #include "xf86_OSproc.h"
 #include "xf86str.h"
 #include "micmap.h"
+#include "xf86RandR12.h"
 #include "xf86Crtc.h"
 
 #ifdef XFreeXDGA
@@ -132,9 +133,6 @@ static void CMapUnwrapScreen(ScreenPtr pScreen);
 Bool
 xf86ColormapAllocatePrivates(ScrnInfoPtr pScrn)
 {
-    /* If we support a better colormap system, then pretend we succeeded. */
-    if (xf86_crtc_supports_gamma(pScrn))
-        return TRUE;
     if (!dixRegisterPrivateKey(&CMapScreenKeyRec, PRIVATE_SCREEN, 0))
         return FALSE;
 
@@ -157,11 +155,8 @@ xf86HandleColormaps(ScreenPtr pScreen,
     int *indices;
     int elements;
 
-    /* If we support a better colormap system, then pretend we succeeded. */
-    if (xf86_crtc_supports_gamma(pScrn))
-        return TRUE;
-
-    if (!maxColors || !sigRGBbits || !loadPalette)
+    if (!maxColors || !sigRGBbits ||
+        (!loadPalette && !xf86_crtc_supports_gamma(pScrn)))
         return FALSE;
 
     elements = 1 << sigRGBbits;
@@ -228,6 +223,15 @@ xf86HandleColormaps(ScreenPtr pScreen,
     if (!CMapAllocateColormapPrivate(pDefMap)) {
         CMapUnwrapScreen(pScreen);
         return FALSE;
+    }
+
+    if (xf86_crtc_supports_gamma(pScrn)) {
+        pScrn->LoadPalette = xf86RandR12LoadPalette;
+
+        if (!xf86RandR12InitGamma(pScrn, elements)) {
+            CMapUnwrapScreen(pScreen);
+            return FALSE;
+        }
     }
 
     /* Force the initial map to be loaded */
@@ -1005,19 +1009,6 @@ xf86ChangeGammaRamp(ScreenPtr pScreen,
     CMapScreenPtr pScreenPriv;
     CMapLinkPtr pLink;
 
-    if (xf86_crtc_supports_gamma(pScrn)) {
-        RRCrtcPtr crtc = xf86CompatRRCrtc(pScrn);
-
-        if (crtc) {
-            if (crtc->gammaSize != size)
-                return BadValue;
-
-            RRCrtcGammaSet(crtc, red, green, blue);
-
-            return Success;
-        }
-    }
-
     if (!CMapScreenKeyRegistered)
         return BadImplementation;
 
@@ -1077,15 +1068,7 @@ xf86ChangeGammaRamp(ScreenPtr pScreen,
 int
 xf86GetGammaRampSize(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     CMapScreenPtr pScreenPriv;
-
-    if (xf86_crtc_supports_gamma(pScrn)) {
-        RRCrtcPtr crtc = xf86CompatRRCrtc(pScrn);
-
-        if (crtc)
-            return crtc->gammaSize;
-    }
 
     if (!CMapScreenKeyRegistered)
         return 0;
@@ -1104,28 +1087,9 @@ xf86GetGammaRamp(ScreenPtr pScreen,
                  unsigned short *red,
                  unsigned short *green, unsigned short *blue)
 {
-    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     CMapScreenPtr pScreenPriv;
     LOCO *entry;
     int shift, sigbits;
-
-    if (xf86_crtc_supports_gamma(pScrn)) {
-        RRCrtcPtr crtc = xf86CompatRRCrtc(pScrn);
-
-        if (crtc) {
-            if (crtc->gammaSize < size)
-                return BadValue;
-
-            if (!RRCrtcGammaGet(crtc))
-                return BadImplementation;
-
-            memcpy(red, crtc->gammaRed, size * sizeof(*red));
-            memcpy(green, crtc->gammaGreen, size * sizeof(*green));
-            memcpy(blue, crtc->gammaBlue, size * sizeof(*blue));
-
-            return Success;
-        }
-    }
 
     if (!CMapScreenKeyRegistered)
         return BadImplementation;

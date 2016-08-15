@@ -89,6 +89,7 @@ enum {
 #define EXT(name_str, ...) MESA_EXTENSION_##name_str,
 #include "extensions_table.h"
 #undef EXT
+MESA_EXTENSION_COUNT
 };
 
 

@@ -179,36 +179,6 @@ drmmode_create_bo(drmmode_ptr drmmode, drmmode_bo *bo,
 }
 
 Bool
-drmmode_bo_for_pixmap(drmmode_ptr drmmode, drmmode_bo *bo, PixmapPtr pixmap)
-{
-#ifdef GLAMOR
-    ScreenPtr screen = xf86ScrnToScreen(drmmode->scrn);
-    CARD16 pitch;
-    CARD32 size;
-    int fd;
-
-#ifdef GLAMOR_HAS_GBM
-    if (drmmode->glamor) {
-        bo->gbm = glamor_gbm_bo_from_pixmap(screen, pixmap);
-        bo->dumb = NULL;
-        return bo->gbm != NULL;
-    }
-#endif
-
-    fd = glamor_fd_from_pixmap(screen, pixmap, &pitch, &size);
-    if (fd < 0) {
-        xf86DrvMsg(drmmode->scrn->scrnIndex, X_ERROR,
-                   "Failed to get fd for flip to new front.\n");
-        return FALSE;
-    }
-    bo->dumb = dumb_get_bo_from_fd(drmmode->fd, fd, pitch, size);
-    close(fd);
-#endif
-
-    return bo->dumb != NULL;
-}
-
-Bool
 drmmode_SetSlaveBO(PixmapPtr ppix,
                    drmmode_ptr drmmode, int fd_handle, int pitch, int size)
 {

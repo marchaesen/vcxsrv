@@ -173,7 +173,8 @@ st_draw_vbo(struct gl_context *ctx,
    st_invalidate_readpix_cache(st);
 
    /* Validate state. */
-   if (st->dirty.st || st->dirty.mesa || ctx->NewDriverState) {
+   if ((st->dirty | ctx->NewDriverState) & ST_PIPELINE_RENDER_STATE_MASK ||
+       st->gfx_shaders_may_be_dirty) {
       st_validate_state(st, ST_PIPELINE_RENDER);
    }
 
@@ -278,7 +279,8 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    assert(stride);
 
    /* Validate state. */
-   if (st->dirty.st || st->dirty.mesa || ctx->NewDriverState) {
+   if ((st->dirty | ctx->NewDriverState) & ST_PIPELINE_RENDER_STATE_MASK ||
+       st->gfx_shaders_may_be_dirty) {
       st_validate_state(st, ST_PIPELINE_RENDER);
    }
 
@@ -344,16 +346,6 @@ st_init_draw(struct st_context *st)
 
    vbo_set_draw_func(ctx, st_draw_vbo);
    vbo_set_indirect_draw_func(ctx, st_indirect_draw_vbo);
-
-   st->draw = draw_create(st->pipe); /* for selection/feedback */
-
-   /* Disable draw options that might convert points/lines to tris, etc.
-    * as that would foul-up feedback/selection mode.
-    */
-   draw_wide_line_threshold(st->draw, 1000.0f);
-   draw_wide_point_threshold(st->draw, 1000.0f);
-   draw_enable_line_stipple(st->draw, FALSE);
-   draw_enable_point_sprites(st->draw, FALSE);
 }
 
 
@@ -363,6 +355,31 @@ st_destroy_draw(struct st_context *st)
    draw_destroy(st->draw);
 }
 
+/**
+ * Getter for the draw_context, so that initialization of it can happen only
+ * when needed (the TGSI exec machines take up quite a bit of memory).
+ */
+struct draw_context *
+st_get_draw_context(struct st_context *st)
+{
+   if (!st->draw) {
+      st->draw = draw_create(st->pipe);
+      if (!st->draw) {
+         _mesa_error(st->ctx, GL_OUT_OF_MEMORY, "feedback fallback allocation");
+         return NULL;
+      }
+   }
+
+   /* Disable draw options that might convert points/lines to tris, etc.
+    * as that would foul-up feedback/selection mode.
+    */
+   draw_wide_line_threshold(st->draw, 1000.0f);
+   draw_wide_point_threshold(st->draw, 1000.0f);
+   draw_enable_line_stipple(st->draw, FALSE);
+   draw_enable_point_sprites(st->draw, FALSE);
+
+   return st->draw;
+}
 
 /**
  * Draw a quad with given position, texcoords and color.

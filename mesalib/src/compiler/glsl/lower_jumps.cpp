@@ -777,7 +777,7 @@ lower_continue:
                 * analysis.
                 */
                exec_list list;
-               list.head = next;
+               list.head_sentinel.next = next;
                block_records[move_into] = visit_block(&list);
 
                /*

@@ -1131,8 +1131,7 @@ glsl_to_tgsi_visitor::st_src_reg_for_double(double val)
    st_src_reg src(PROGRAM_IMMEDIATE, -1, GLSL_TYPE_DOUBLE);
    union gl_constant_value uval[2];
 
-   uval[0].u = *(uint32_t *)&val;
-   uval[1].u = *(((uint32_t *)&val) + 1);
+   memcpy(uval, &val, sizeof(uval));
    src.index = add_constant(src.file, uval, 1, GL_DOUBLE, &src.swizzle);
 
    return src;
@@ -3066,8 +3065,7 @@ glsl_to_tgsi_visitor::visit(ir_constant *ir)
    case GLSL_TYPE_DOUBLE:
       gl_type = GL_DOUBLE;
       for (i = 0; i < ir->type->vector_elements; i++) {
-         values[i * 2].i = *(uint32_t *)&ir->value.d[i];
-         values[i * 2 + 1].i = *(((uint32_t *)&ir->value.d[i]) + 1);
+         memcpy(&values[i * 2], &ir->value.d[i], sizeof(double));
       }
       break;
    case GLSL_TYPE_UINT:
@@ -6058,7 +6056,11 @@ st_translate_program(
                               inputSemanticName[i], inputSemanticIndex[i],
                               interpMode[i], 0, interpLocation[i],
                               array_id, array_size);
-            i += array_size - 1;
+
+            GLuint base_attr = inputSlotToAttr[i];
+            while (i + 1 < numInputs &&
+                   inputSlotToAttr[i + 1] < base_attr + array_size)
+               ++i;
          }
          else {
             t->inputs[i] = ureg_DECL_fs_input_cyl_centroid(ureg,
@@ -6662,6 +6664,37 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    return prog;
 }
 
+static void
+set_affected_state_flags(uint64_t *states,
+                         struct gl_program *prog,
+                         struct gl_linked_shader *shader,
+                         uint64_t new_constants,
+                         uint64_t new_sampler_views,
+                         uint64_t new_samplers,
+                         uint64_t new_images,
+                         uint64_t new_ubos,
+                         uint64_t new_ssbos,
+                         uint64_t new_atomics)
+{
+   if (prog->Parameters->NumParameters)
+      *states |= new_constants;
+
+   if (shader->num_samplers)
+      *states |= new_sampler_views | new_samplers;
+
+   if (shader->NumImages)
+      *states |= new_images;
+
+   if (shader->NumUniformBlocks)
+      *states |= new_ubos;
+
+   if (shader->NumShaderStorageBlocks)
+      *states |= new_ssbos;
+
+   if (shader->NumAtomicBuffers)
+      *states |= new_atomics;
+}
+
 static struct gl_program *
 get_mesa_program(struct gl_context *ctx,
                  struct gl_shader_program *shader_program,
@@ -6671,17 +6704,131 @@ get_mesa_program(struct gl_context *ctx,
    unsigned ptarget = st_shader_stage_to_ptarget(shader->Stage);
    enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
       pscreen->get_shader_param(pscreen, ptarget, PIPE_SHADER_CAP_PREFERRED_IR);
+   struct gl_program *prog = NULL;
+
    if (preferred_ir == PIPE_SHADER_IR_NIR) {
       /* TODO only for GLSL VS/FS for now: */
       switch (shader->Stage) {
       case MESA_SHADER_VERTEX:
       case MESA_SHADER_FRAGMENT:
-         return st_nir_get_mesa_program(ctx, shader_program, shader);
+         prog = st_nir_get_mesa_program(ctx, shader_program, shader);
       default:
          break;
       }
+   } else {
+      prog = get_mesa_program_tgsi(ctx, shader_program, shader);
    }
-   return get_mesa_program_tgsi(ctx, shader_program, shader);
+
+   if (prog) {
+      uint64_t *states;
+
+      /* This determines which states will be updated when the shader is
+       * bound.
+       */
+      switch (shader->Stage) {
+      case MESA_SHADER_VERTEX:
+         states = &((struct st_vertex_program*)prog)->affected_states;
+
+         *states = ST_NEW_VS_STATE |
+                   ST_NEW_RASTERIZER |
+                   ST_NEW_VERTEX_ARRAYS;
+
+         set_affected_state_flags(states, prog, shader,
+                                  ST_NEW_VS_CONSTANTS,
+                                  ST_NEW_VS_SAMPLER_VIEWS,
+                                  ST_NEW_RENDER_SAMPLERS,
+                                  ST_NEW_VS_IMAGES,
+                                  ST_NEW_VS_UBOS,
+                                  ST_NEW_VS_SSBOS,
+                                  ST_NEW_VS_ATOMICS);
+         break;
+
+      case MESA_SHADER_TESS_CTRL:
+         states = &((struct st_tessctrl_program*)prog)->affected_states;
+
+         *states = ST_NEW_TCS_STATE;
+
+         set_affected_state_flags(states, prog, shader,
+                                  ST_NEW_TCS_CONSTANTS,
+                                  ST_NEW_TCS_SAMPLER_VIEWS,
+                                  ST_NEW_RENDER_SAMPLERS,
+                                  ST_NEW_TCS_IMAGES,
+                                  ST_NEW_TCS_UBOS,
+                                  ST_NEW_TCS_SSBOS,
+                                  ST_NEW_TCS_ATOMICS);
+         break;
+
+      case MESA_SHADER_TESS_EVAL:
+         states = &((struct st_tesseval_program*)prog)->affected_states;
+
+         *states = ST_NEW_TES_STATE |
+                   ST_NEW_RASTERIZER;
+
+         set_affected_state_flags(states, prog, shader,
+                                  ST_NEW_TES_CONSTANTS,
+                                  ST_NEW_TES_SAMPLER_VIEWS,
+                                  ST_NEW_RENDER_SAMPLERS,
+                                  ST_NEW_TES_IMAGES,
+                                  ST_NEW_TES_UBOS,
+                                  ST_NEW_TES_SSBOS,
+                                  ST_NEW_TES_ATOMICS);
+         break;
+
+      case MESA_SHADER_GEOMETRY:
+         states = &((struct st_geometry_program*)prog)->affected_states;
+
+         *states = ST_NEW_GS_STATE |
+                   ST_NEW_RASTERIZER;
+
+         set_affected_state_flags(states, prog, shader,
+                                  ST_NEW_GS_CONSTANTS,
+                                  ST_NEW_GS_SAMPLER_VIEWS,
+                                  ST_NEW_RENDER_SAMPLERS,
+                                  ST_NEW_GS_IMAGES,
+                                  ST_NEW_GS_UBOS,
+                                  ST_NEW_GS_SSBOS,
+                                  ST_NEW_GS_ATOMICS);
+         break;
+
+      case MESA_SHADER_FRAGMENT:
+         states = &((struct st_fragment_program*)prog)->affected_states;
+
+         /* gl_FragCoord and glDrawPixels always use constants. */
+         *states = ST_NEW_FS_STATE |
+                   ST_NEW_SAMPLE_SHADING |
+                   ST_NEW_FS_CONSTANTS;
+
+         set_affected_state_flags(states, prog, shader,
+                                  ST_NEW_FS_CONSTANTS,
+                                  ST_NEW_FS_SAMPLER_VIEWS,
+                                  ST_NEW_RENDER_SAMPLERS,
+                                  ST_NEW_FS_IMAGES,
+                                  ST_NEW_FS_UBOS,
+                                  ST_NEW_FS_SSBOS,
+                                  ST_NEW_FS_ATOMICS);
+         break;
+
+      case MESA_SHADER_COMPUTE:
+         states = &((struct st_compute_program*)prog)->affected_states;
+
+         *states = ST_NEW_CS_STATE;
+
+         set_affected_state_flags(states, prog, shader,
+                                  ST_NEW_CS_CONSTANTS,
+                                  ST_NEW_CS_SAMPLER_VIEWS,
+                                  ST_NEW_CS_SAMPLERS,
+                                  ST_NEW_CS_IMAGES,
+                                  ST_NEW_CS_UBOS,
+                                  ST_NEW_CS_SSBOS,
+                                  ST_NEW_CS_ATOMICS);
+         break;
+
+      default:
+         unreachable("unhandled shader stage");
+      }
+   }
+
+   return prog;
 }
 
 
@@ -6761,7 +6908,21 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          (have_dround ? 0 : DOPS_TO_DFRAC) |
                          (options->EmitNoPow ? POW_TO_EXP2 : 0) |
                          (!ctx->Const.NativeIntegers ? INT_DIV_TO_MUL_RCP : 0) |
-                         (options->EmitNoSat ? SAT_TO_CLAMP : 0));
+                         (options->EmitNoSat ? SAT_TO_CLAMP : 0) |
+                         /* Assume that if ARB_gpu_shader5 is not supported
+                          * then all of the extended integer functions need
+                          * lowering.  It may be necessary to add some caps
+                          * for individual instructions.
+                          */
+                         (!ctx->Extensions.ARB_gpu_shader5
+                          ? BIT_COUNT_TO_MATH |
+                            EXTRACT_TO_SHIFTS |
+                            INSERT_TO_SHIFTS |
+                            REVERSE_TO_SHIFTS |
+                            FIND_LSB_TO_FLOAT_CAST |
+                            FIND_MSB_TO_FLOAT_CAST |
+                            IMUL_HIGH_TO_MUL
+                          : 0));
 
       do_vec_index_to_cond_assign(ir);
       lower_vector_insert(ir, true);

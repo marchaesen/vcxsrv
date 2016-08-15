@@ -22,11 +22,11 @@ People who are concerned with stability and reliability should stick
 with a previous release or wait for Mesa 12.1.1.
 </p>
 <p>
-Mesa 12.1.0 implements the OpenGL 4.3 API, but the version reported by
+Mesa 12.1.0 implements the OpenGL 4.4 API, but the version reported by
 glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
 glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
-Some drivers don't support all the features required in OpenGL 4.3.  OpenGL
-4.3 is <strong>only</strong> available if requested at context creation
+Some drivers don't support all the features required in OpenGL 4.4.  OpenGL
+4.4 is <strong>only</strong> available if requested at context creation
 because compatibility contexts are not supported.
 </p>
 
@@ -44,10 +44,15 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
+<li>GL_ARB_clear_texture on r600, radeonsi</li>
+<li>GL_ARB_enhanced_layouts on i965</li>
+<li>GL_ARB_indirect_parameters on radeonsi</li>
+<li>GL_ARB_shader_draw_parameters on radeonsi</li>
 <li>GL_ARB_shader_group_vote on nvc0</li>
 <li>GL_ARB_ES3_1_compatibility on i965</li>
 <li>GL_EXT_window_rectangles on nv50, nvc0</li>
 <li>GL_KHR_texture_compression_astc_sliced_3d on i965</li>
+<li>GL_OES_copy_image on nv50, nvc0, r600, radeonsi, softpipe, llvmpipe</li>
 </ul>
 
 <h2>Bug fixes</h2>

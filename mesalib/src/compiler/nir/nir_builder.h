@@ -458,6 +458,17 @@ nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
    return &load->dest.ssa;
 }
 
+static inline nir_ssa_def *
+nir_load_barycentric(nir_builder *build, nir_intrinsic_op op,
+                     unsigned interp_mode)
+{
+   nir_intrinsic_instr *bary = nir_intrinsic_instr_create(build->shader, op);
+   nir_ssa_dest_init(&bary->instr, &bary->dest, 2, 32, NULL);
+   nir_intrinsic_set_interp_mode(bary, interp_mode);
+   nir_builder_instr_insert(build, &bary->instr);
+   return &bary->dest.ssa;
+}
+
 static inline void
 nir_jump(nir_builder *build, nir_jump_type jump_type)
 {

@@ -861,8 +861,7 @@ builtin_variable_generator::generate_constants()
                    state->Const.MaxImageSamples);
       }
 
-      if (state->is_version(400, 0) ||
-          state->ARB_tessellation_shader_enable) {
+      if (state->has_tessellation_shader()) {
          add_const("gl_MaxTessControlImageUniforms",
                    state->Const.MaxTessControlImageUniforms);
          add_const("gl_MaxTessEvaluationImageUniforms",
@@ -880,8 +879,7 @@ builtin_variable_generator::generate_constants()
        state->ARB_viewport_array_enable)
       add_const("gl_MaxViewports", state->Const.MaxViewports);
 
-   if (state->is_version(400, 0) ||
-       state->ARB_tessellation_shader_enable) {
+   if (state->has_tessellation_shader()) {
       add_const("gl_MaxPatchVertices", state->Const.MaxPatchVertices);
       add_const("gl_MaxTessGenLevel", state->Const.MaxTessGenLevel);
       add_const("gl_MaxTessControlInputComponents", state->Const.MaxTessControlInputComponents);
@@ -1265,7 +1263,11 @@ builtin_variable_generator::generate_varyings()
       if (!state->es_shader ||
           state->stage == MESA_SHADER_VERTEX ||
           (state->stage == MESA_SHADER_GEOMETRY &&
-           state->OES_geometry_point_size_enable)) {
+           state->OES_geometry_point_size_enable) ||
+          ((state->stage == MESA_SHADER_TESS_CTRL ||
+            state->stage == MESA_SHADER_TESS_EVAL) &&
+           (state->OES_tessellation_point_size_enable ||
+            state->EXT_tessellation_point_size_enable))) {
          add_varying(VARYING_SLOT_PSIZ, float_t, "gl_PointSize");
       }
    }

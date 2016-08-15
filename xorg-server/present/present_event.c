@@ -208,14 +208,37 @@ present_send_idle_notify(WindowPtr window, CARD32 serial, PixmapPtr pixmap, stru
 int
 present_select_input(ClientPtr client, XID eid, WindowPtr window, CARD32 mask)
 {
-    present_window_priv_ptr window_priv = present_get_window_priv(window, mask != 0);
+    present_window_priv_ptr window_priv;
     present_event_ptr event;
+    int ret;
 
-    if (!window_priv) {
+    /* Check to see if we're modifying an existing event selection */
+    ret = dixLookupResourceByType((void **) &event, eid, present_event_type,
+                                 client, DixWriteAccess);
+    if (ret == Success) {
+        /* Match error for the wrong window; also don't modify some other
+         * client's event selection
+         */
+        if (event->window != window || event->client != client)
+            return BadMatch;
+
         if (mask)
-            return BadAlloc;
+            event->mask = mask;
+        else
+            FreeResource(eid, RT_NONE);
         return Success;
     }
+    if (ret != BadValue)
+        return ret;
+
+    if (mask == 0)
+        return Success;
+
+    LEGAL_NEW_RESOURCE(eid, client);
+
+    window_priv = present_get_window_priv(window, TRUE);
+    if (!window_priv)
+        return BadAlloc;
 
     event = calloc (1, sizeof (present_event_rec));
     if (!event)

@@ -354,8 +354,11 @@ _mesa_has_shader_subroutine(const struct gl_context *ctx)
 static inline GLboolean
 _mesa_has_tessellation(const struct gl_context *ctx)
 {
-   return ctx->API == API_OPENGL_CORE &&
-          ctx->Extensions.ARB_tessellation_shader;
+   /* _mesa_has_EXT_tessellation_shader(ctx) is redundant with the OES
+    * check, so don't bother calling it.
+    */
+   return _mesa_has_OES_tessellation_shader(ctx) ||
+          _mesa_has_ARB_tessellation_shader(ctx);
 }
 
 

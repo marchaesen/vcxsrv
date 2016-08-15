@@ -198,6 +198,15 @@ enum ast_operators {
 
    ast_sequence,
    ast_aggregate
+
+   /**
+    * Number of possible operators for an ast_expression
+    *
+    * This is done as a define instead of as an additional value in the enum so
+    * that the compiler won't generate spurious messages like "warning:
+    * enumeration value ‘ast_num_operators’ not handled in switch"
+    */
+   #define AST_NUM_OPERATORS (ast_aggregate + 1)
 };
 
 /**
@@ -346,8 +355,8 @@ public:
 
    bool is_single_dimension() const
    {
-      return this->array_dimensions.tail_pred->prev != NULL &&
-             this->array_dimensions.tail_pred->prev->is_head_sentinel();
+      return this->array_dimensions.get_tail_raw()->prev != NULL &&
+             this->array_dimensions.get_tail_raw()->prev->is_head_sentinel();
    }
 
    virtual void print(void) const;
@@ -415,15 +424,6 @@ public:
    virtual void hir_no_rvalue(exec_list *instructions,
                               struct _mesa_glsl_parse_state *state);
 };
-
-/**
- * Number of possible operators for an ast_expression
- *
- * This is done as a define instead of as an additional value in the enum so
- * that the compiler won't generate spurious messages like "warning:
- * enumeration value ‘ast_num_operators’ not handled in switch"
- */
-#define AST_NUM_OPERATORS (ast_sequence + 1)
 
 
 class ast_compound_statement : public ast_node {
@@ -755,8 +755,8 @@ struct ast_type_qualifier {
 
    bool validate_flags(YYLTYPE *loc,
                        _mesa_glsl_parse_state *state,
-                       const char *message,
-                       const ast_type_qualifier &allowed_flags);
+                       const ast_type_qualifier &allowed_flags,
+                       const char *message, const char *name);
 
    ast_subroutine_list *subroutine_list;
 };

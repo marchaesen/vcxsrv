@@ -22,6 +22,7 @@
  */
 
 #include "main/core.h"
+#include "program/hash_table.h"
 #include "ir.h"
 #include "linker.h"
 #include "ir_uniform.h"
@@ -33,44 +34,42 @@
 namespace linker {
 
 gl_uniform_storage *
-get_storage(gl_uniform_storage *storage, unsigned num_storage,
-	    const char *name)
+get_storage(struct gl_shader_program *prog, const char *name)
 {
-   for (unsigned int i = 0; i < num_storage; i++) {
-      if (strcmp(name, storage[i].name) == 0)
-	 return &storage[i];
-   }
+   unsigned id;
+   if (prog->UniformHash->get(id, name))
+      return &prog->UniformStorage[id];
 
+   assert(!"No uniform storage found!");
    return NULL;
 }
 
 void
 copy_constant_to_storage(union gl_constant_value *storage,
-			 const ir_constant *val,
-			 const enum glsl_base_type base_type,
+                         const ir_constant *val,
+                         const enum glsl_base_type base_type,
                          const unsigned int elements,
                          unsigned int boolean_true)
 {
    for (unsigned int i = 0; i < elements; i++) {
       switch (base_type) {
       case GLSL_TYPE_UINT:
-	 storage[i].u = val->value.u[i];
-	 break;
+         storage[i].u = val->value.u[i];
+         break;
       case GLSL_TYPE_INT:
       case GLSL_TYPE_SAMPLER:
-	 storage[i].i = val->value.i[i];
-	 break;
+         storage[i].i = val->value.i[i];
+         break;
       case GLSL_TYPE_FLOAT:
-	 storage[i].f = val->value.f[i];
-	 break;
+         storage[i].f = val->value.f[i];
+         break;
       case GLSL_TYPE_DOUBLE:
          /* XXX need to check on big-endian */
-         storage[i * 2].u = *(uint32_t *)&val->value.d[i];
-         storage[i * 2 + 1].u = *(((uint32_t *)&val->value.d[i]) + 1);
+         memcpy(&storage[i * 2].u, &val->value.d[i], sizeof(double));
          break;
       case GLSL_TYPE_BOOL:
-	 storage[i].b = val->value.b[i] ? boolean_true : 0;
-	 break;
+         storage[i].b = val->value.b[i] ? boolean_true : 0;
+         break;
       case GLSL_TYPE_ARRAY:
       case GLSL_TYPE_STRUCT:
       case GLSL_TYPE_IMAGE:
@@ -80,11 +79,11 @@ copy_constant_to_storage(union gl_constant_value *storage,
       case GLSL_TYPE_SUBROUTINE:
       case GLSL_TYPE_FUNCTION:
       case GLSL_TYPE_ERROR:
-	 /* All other types should have already been filtered by other
-	  * paths in the caller.
-	  */
-	 assert(!"Should not get here.");
-	 break;
+         /* All other types should have already been filtered by other
+          * paths in the caller.
+          */
+         assert(!"Should not get here.");
+         break;
       }
    }
 }
@@ -103,19 +102,16 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
       const glsl_type *const element_type = type->fields.array;
 
       for (unsigned int i = 0; i < type->length; i++) {
-	 const char *element_name = ralloc_asprintf(mem_ctx, "%s[%d]", name, i);
+         const char *element_name = ralloc_asprintf(mem_ctx, "%s[%d]", name, i);
 
-	 set_opaque_binding(mem_ctx, prog, element_type,
+         set_opaque_binding(mem_ctx, prog, element_type,
                             element_name, binding);
       }
    } else {
-      struct gl_uniform_storage *const storage =
-         get_storage(prog->UniformStorage, prog->NumUniformStorage, name);
+      struct gl_uniform_storage *const storage = get_storage(prog, name);
 
-      if (storage == NULL) {
-         assert(storage != NULL);
+      if (!storage)
          return;
-      }
 
       const unsigned elements = MAX2(storage->array_elements, 1);
 
@@ -176,7 +172,7 @@ set_block_binding(gl_shader_program *prog, const char *block_name,
 
 void
 set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
-			const char *name, const glsl_type *type,
+                        const char *name, const glsl_type *type,
                         ir_constant *val, unsigned int boolean_true)
 {
    const glsl_type *t_without_array = type->without_array();
@@ -186,12 +182,12 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
       field_constant = (ir_constant *)val->components.get_head();
 
       for (unsigned int i = 0; i < type->length; i++) {
-	 const glsl_type *field_type = type->fields.structure[i].type;
-	 const char *field_name = ralloc_asprintf(mem_ctx, "%s.%s", name,
-					    type->fields.structure[i].name);
-	 set_uniform_initializer(mem_ctx, prog, field_name,
+         const glsl_type *field_type = type->fields.structure[i].type;
+         const char *field_name = ralloc_asprintf(mem_ctx, "%s.%s", name,
+                                            type->fields.structure[i].name);
+         set_uniform_initializer(mem_ctx, prog, field_name,
                                  field_type, field_constant, boolean_true);
-	 field_constant = (ir_constant *)field_constant->next;
+         field_constant = (ir_constant *)field_constant->next;
       }
       return;
    } else if (t_without_array->is_record() ||
@@ -199,45 +195,41 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
       const glsl_type *const element_type = type->fields.array;
 
       for (unsigned int i = 0; i < type->length; i++) {
-	 const char *element_name = ralloc_asprintf(mem_ctx, "%s[%d]", name, i);
+         const char *element_name = ralloc_asprintf(mem_ctx, "%s[%d]", name, i);
 
-	 set_uniform_initializer(mem_ctx, prog, element_name,
+         set_uniform_initializer(mem_ctx, prog, element_name,
                                  element_type, val->array_elements[i],
                                  boolean_true);
       }
       return;
    }
 
-   struct gl_uniform_storage *const storage =
-      get_storage(prog->UniformStorage,
-                  prog->NumUniformStorage,
-		  name);
-   if (storage == NULL) {
-      assert(storage != NULL);
+   struct gl_uniform_storage *const storage = get_storage(prog, name);
+
+   if (!storage)
       return;
-   }
 
    if (val->type->is_array()) {
       const enum glsl_base_type base_type =
-	 val->array_elements[0]->type->base_type;
+         val->array_elements[0]->type->base_type;
       const unsigned int elements = val->array_elements[0]->type->components();
       unsigned int idx = 0;
       unsigned dmul = glsl_base_type_is_64bit(base_type) ? 2 : 1;
 
       assert(val->type->length >= storage->array_elements);
       for (unsigned int i = 0; i < storage->array_elements; i++) {
-	 copy_constant_to_storage(& storage->storage[idx],
-				  val->array_elements[i],
-				  base_type,
+         copy_constant_to_storage(& storage->storage[idx],
+                                  val->array_elements[i],
+                                  base_type,
                                   elements,
                                   boolean_true);
 
-	 idx += elements * dmul;
+         idx += elements * dmul;
       }
    } else {
       copy_constant_to_storage(storage->storage,
-			       val,
-			       val->type->base_type,
+                               val,
+                               val->type->base_type,
                                val->type->components(),
                                boolean_true);
 
@@ -266,17 +258,17 @@ link_set_uniform_initializers(struct gl_shader_program *prog,
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
 
       if (shader == NULL)
-	 continue;
+         continue;
 
       foreach_in_list(ir_instruction, node, shader->ir) {
-	 ir_variable *const var = node->as_variable();
+         ir_variable *const var = node->as_variable();
 
-	 if (!var || (var->data.mode != ir_var_uniform &&
-	     var->data.mode != ir_var_shader_storage))
-	    continue;
+         if (!var || (var->data.mode != ir_var_uniform &&
+             var->data.mode != ir_var_shader_storage))
+            continue;
 
-	 if (!mem_ctx)
-	    mem_ctx = ralloc_context(NULL);
+         if (!mem_ctx)
+            mem_ctx = ralloc_context(NULL);
 
          if (var->data.explicit_binding) {
             const glsl_type *const type = var->type;

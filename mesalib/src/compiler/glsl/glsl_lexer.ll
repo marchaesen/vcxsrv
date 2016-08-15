@@ -311,7 +311,7 @@ invariant	KEYWORD(120, 100, 120, 100, INVARIANT);
 flat		KEYWORD(130, 100, 130, 300, FLAT);
 smooth		KEYWORD(130, 300, 130, 300, SMOOTH);
 noperspective	KEYWORD(130, 300, 130, 0, NOPERSPECTIVE);
-patch		KEYWORD_WITH_ALT(0, 300, 400, 0, yyextra->ARB_tessellation_shader_enable, PATCH);
+patch		KEYWORD_WITH_ALT(0, 300, 400, 320, yyextra->has_tessellation_shader(), PATCH);
 
 sampler1D	DEPRECATED_ES_KEYWORD(SAMPLER1D);
 sampler2D	return SAMPLER2D;

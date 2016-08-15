@@ -27,6 +27,26 @@
 
 #include "nir.h"
 
+static nir_alu_instr *
+get_parent_mov(nir_ssa_def *ssa)
+{
+   if (ssa->parent_instr->type != nir_instr_type_alu)
+      return NULL;
+
+   nir_alu_instr *alu = nir_instr_as_alu(ssa->parent_instr);
+   return (alu->op == nir_op_imov || alu->op == nir_op_fmov) ? alu : NULL;
+}
+
+static bool
+matching_mov(nir_alu_instr *mov1, nir_ssa_def *ssa)
+{
+   if (!mov1)
+      return false;
+
+   nir_alu_instr *mov2 = get_parent_mov(ssa);
+   return mov2 && nir_alu_srcs_equal(mov1, mov2, 0, 0);
+}
+
 /*
  * This is a pass for removing phi nodes that look like:
  * a = phi(b, b, b, ...)
@@ -54,6 +74,7 @@ remove_phis_block(nir_block *block)
       nir_phi_instr *phi = nir_instr_as_phi(instr);
 
       nir_ssa_def *def = NULL;
+      nir_alu_instr *mov = NULL;
       bool srcs_same = true;
 
       nir_foreach_phi_src(src, phi) {
@@ -75,8 +96,9 @@ remove_phis_block(nir_block *block)
          
          if (def == NULL) {
             def  = src->src.ssa;
+            mov = get_parent_mov(def);
          } else {
-            if (src->src.ssa != def) {
+            if (src->src.ssa != def && !matching_mov(mov, src->src.ssa)) {
                srcs_same = false;
                break;
             }

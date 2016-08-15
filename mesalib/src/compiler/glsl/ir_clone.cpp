@@ -344,7 +344,7 @@ ir_constant::clone(void *mem_ctx, struct hash_table *ht) const
       ir_constant *c = new(mem_ctx) ir_constant;
 
       c->type = this->type;
-      for (exec_node *node = this->components.head
+      for (const exec_node *node = this->components.get_head_raw()
 	      ; !node->is_tail_sentinel()
 	      ; node = node->next) {
 	 ir_constant *const orig = (ir_constant *) node;

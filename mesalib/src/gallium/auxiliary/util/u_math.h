@@ -347,70 +347,6 @@ util_half_inf_sign(int16_t x)
 
 
 /**
- * Find last bit set in a word.  The least significant bit is 1.
- * Return 0 if no bits are set.
- */
-static inline unsigned
-util_last_bit(unsigned u)
-{
-#if defined(HAVE___BUILTIN_CLZ)
-   return u == 0 ? 0 : 32 - __builtin_clz(u);
-#else
-   unsigned r = 0;
-   while (u) {
-       r++;
-       u >>= 1;
-   }
-   return r;
-#endif
-}
-
-/**
- * Find last bit set in a word.  The least significant bit is 1.
- * Return 0 if no bits are set.
- */
-static inline unsigned
-util_last_bit64(uint64_t u)
-{
-#if defined(HAVE___BUILTIN_CLZLL)
-   return u == 0 ? 0 : 64 - __builtin_clzll(u);
-#else
-   unsigned r = 0;
-   while (u) {
-       r++;
-       u >>= 1;
-   }
-   return r;
-#endif
-}
-
-/**
- * Find last bit in a word that does not match the sign bit. The least
- * significant bit is 1.
- * Return 0 if no bits are set.
- */
-static inline unsigned
-util_last_bit_signed(int i)
-{
-   if (i >= 0)
-      return util_last_bit(i);
-   else
-      return util_last_bit(~(unsigned)i);
-}
-
-/* Returns a bitfield in which the first count bits starting at start are
- * set.
- */
-static inline unsigned
-u_bit_consecutive(unsigned start, unsigned count)
-{
-   assert(start + count <= 32);
-   if (count == 32)
-      return ~0;
-   return ((1u << count) - 1) << start;
-}
-
-/**
  * Return float bits.
  */
 static inline unsigned
@@ -682,7 +618,7 @@ align(int value, int alignment)
 static inline uint64_t
 align64(uint64_t value, unsigned alignment)
 {
-   return (value + alignment - 1) & ~(alignment - 1);
+   return (value + alignment - 1) & ~((uint64_t)alignment - 1);
 }
 
 /**

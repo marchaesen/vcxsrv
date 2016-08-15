@@ -970,7 +970,7 @@ postvalidate_ssa_def(nir_ssa_def *def, void *void_state)
    }
 
    if (def_state->uses->entries != 0) {
-      printf("extra entries in register uses:\n");
+      printf("extra entries in SSA def uses:\n");
       struct set_entry *entry;
       set_foreach(def_state->uses, entry)
          printf("%p\n", entry->key);
@@ -985,7 +985,7 @@ postvalidate_ssa_def(nir_ssa_def *def, void *void_state)
    }
 
    if (def_state->if_uses->entries != 0) {
-      printf("extra entries in register uses:\n");
+      printf("extra entries in SSA def uses:\n");
       struct set_entry *entry;
       set_foreach(def_state->if_uses, entry)
          printf("%p\n", entry->key);

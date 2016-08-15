@@ -867,8 +867,10 @@ ProcessCommandLine(int argc, char *argv[])
 		if (LimitClients != 64 &&
 		    LimitClients != 128 &&
 		    LimitClients != 256 &&
-		    LimitClients != 512) {
-		    FatalError("maxclients must be one of 64, 128, 256 or 512\n");
+		    LimitClients != 512 &&
+                    LimitClients != 1024 &&
+                    LimitClients != 2048) {
+		    FatalError("maxclients must be one of 64, 128, 256, 512, 1024 or 2048\n");
 		}
 	    } else
 		UseMsg();

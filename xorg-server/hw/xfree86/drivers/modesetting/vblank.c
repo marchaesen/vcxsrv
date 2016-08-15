@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include <xf86.h>
 #include <xf86Crtc.h>
-#include <poll.h>
 #include "driver.h"
 #include "drmmode_display.h"
 

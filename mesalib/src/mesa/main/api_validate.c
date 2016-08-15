@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include "glheader.h"
 #include "api_validate.h"
+#include "arrayobj.h"
 #include "bufferobj.h"
 #include "context.h"
 #include "imports.h"
@@ -32,7 +33,6 @@
 #include "enums.h"
 #include "vbo/vbo.h"
 #include "transformfeedback.h"
-#include <stdbool.h>
 
 
 /**
@@ -117,6 +117,12 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
 
    default:
       unreachable("Invalid API value in check_valid_to_render()");
+   }
+
+   if (!_mesa_all_buffers_are_unmapped(ctx->Array.VAO)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(vertex buffers are mapped)", function);
+      return false;
    }
 
    return true;
@@ -515,30 +521,24 @@ _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
                                        "glDrawRangeElements");
 }
 
-
-/**
- * Called from the tnl module to error check the function parameters and
- * verify that we really can draw something.
- * \return GL_TRUE if OK to render, GL_FALSE if error found
- */
-GLboolean
-_mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count)
+static bool
+validate_draw_arrays(struct gl_context *ctx, const char *func,
+                     GLenum mode, GLsizei count, GLsizei numInstances)
 {
    struct gl_transform_feedback_object *xfb_obj
       = ctx->TransformFeedback.CurrentObject;
    FLUSH_CURRENT(ctx, 0);
 
    if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDrawArrays(count)" );
-      return GL_FALSE;
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(count)", func);
+      return false;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawArrays")) {
-      return GL_FALSE;
-   }
+   if (!_mesa_valid_prim_mode(ctx, mode, func))
+      return false;
 
-   if (!check_valid_to_render(ctx, "glDrawArrays"))
-      return GL_FALSE;
+   if (!check_valid_to_render(ctx, func))
+      return false;
 
    /* From the GLES3 specification, section 2.14.2 (Transform Feedback
     * Primitive Capture):
@@ -552,21 +552,48 @@ _mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count)
     *
     * This is in contrast to the behaviour of desktop GL, where the extra
     * primitives are silently dropped from the transform feedback buffer.
+    *
+    * This text is removed in ES 3.2, presumably because it's not really
+    * implementable with geometry and tessellation shaders.  In fact,
+    * the OES_geometry_shader spec says:
+    *
+    *    "(13) Does this extension change how transform feedback operates
+    *     compared to unextended OpenGL ES 3.0 or 3.1?
+    *
+    *     RESOLVED: Yes. Because dynamic geometry amplification in a geometry
+    *     shader can make it difficult if not impossible to predict the amount
+    *     of geometry that may be generated in advance of executing the shader,
+    *     the draw-time error for transform feedback buffer overflow conditions
+    *     is removed and replaced with the GL behavior (primitives are not
+    *     written and the corresponding counter is not updated)..."
     */
-   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
+   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx) &&
+       !_mesa_has_OES_geometry_shader(ctx) &&
+       !_mesa_has_OES_tessellation_shader(ctx)) {
       size_t prim_count = vbo_count_tessellated_primitives(mode, count, 1);
       if (xfb_obj->GlesRemainingPrims < prim_count) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glDrawArrays(exceeds transform feedback size)");
-         return GL_FALSE;
+                     "%s(exceeds transform feedback size)", func);
+         return false;
       }
       xfb_obj->GlesRemainingPrims -= prim_count;
    }
 
    if (count == 0)
-      return GL_FALSE;
+      return false;
 
-   return GL_TRUE;
+   return true;
+}
+
+/**
+ * Called from the tnl module to error check the function parameters and
+ * verify that we really can draw something.
+ * \return GL_TRUE if OK to render, GL_FALSE if error found
+ */
+GLboolean
+_mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count)
+{
+   return validate_draw_arrays(ctx, "glDrawArrays", mode, count, 1);
 }
 
 
@@ -574,23 +601,9 @@ GLboolean
 _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint first,
                                    GLsizei count, GLsizei numInstances)
 {
-   struct gl_transform_feedback_object *xfb_obj
-      = ctx->TransformFeedback.CurrentObject;
-   FLUSH_CURRENT(ctx, 0);
-
-   if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glDrawArraysInstanced(count=%d)", count);
-      return GL_FALSE;
-   }
-
    if (first < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glDrawArraysInstanced(start=%d)", first);
-      return GL_FALSE;
-   }
-
-   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawArraysInstanced")) {
       return GL_FALSE;
    }
 
@@ -601,37 +614,7 @@ _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint fi
       return GL_FALSE;
    }
 
-   if (!check_valid_to_render(ctx, "glDrawArraysInstanced(invalid to render)"))
-      return GL_FALSE;
-
-   /* From the GLES3 specification, section 2.14.2 (Transform Feedback
-    * Primitive Capture):
-    *
-    *   The error INVALID_OPERATION is generated by DrawArrays and
-    *   DrawArraysInstanced if recording the vertices of a primitive to the
-    *   buffer objects being used for transform feedback purposes would result
-    *   in either exceeding the limits of any buffer object’s size, or in
-    *   exceeding the end position offset + size − 1, as set by
-    *   BindBufferRange.
-    *
-    * This is in contrast to the behaviour of desktop GL, where the extra
-    * primitives are silently dropped from the transform feedback buffer.
-    */
-   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
-      size_t prim_count
-         = vbo_count_tessellated_primitives(mode, count, numInstances);
-      if (xfb_obj->GlesRemainingPrims < prim_count) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glDrawArraysInstanced(exceeds transform feedback size)");
-         return GL_FALSE;
-      }
-      xfb_obj->GlesRemainingPrims -= prim_count;
-   }
-
-   if (count == 0)
-      return GL_FALSE;
-
-   return GL_TRUE;
+   return validate_draw_arrays(ctx, "glDrawArraysInstanced", mode, count, 1);
 }
 
 

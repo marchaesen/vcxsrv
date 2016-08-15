@@ -691,6 +691,7 @@ transform_inst:
       struct tgsi_full_instruction inst;
       unsigned i;
       int fogc_index = -1;
+      int reg0_index = current_inst->Src[0].Register.Index;
 
       /* find FOGC input */
       for (i = 0; i < ctx->info.num_inputs; i++) {
@@ -804,11 +805,11 @@ transform_inst:
       inst.Instruction.Opcode = TGSI_OPCODE_LRP;
       inst.Instruction.NumDstRegs = 1;
       inst.Dst[0].Register.File  = TGSI_FILE_TEMPORARY;
-      inst.Dst[0].Register.Index = 0;
+      inst.Dst[0].Register.Index = reg0_index;
       inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZW;
       inst.Instruction.NumSrcRegs = 3;
       SET_SRC(&inst, 0, TGSI_FILE_TEMPORARY, ctx->fog_factor_temp, X, X, X, Y);
-      SET_SRC(&inst, 1, TGSI_FILE_TEMPORARY, 0, X, Y, Z, W);
+      SET_SRC(&inst, 1, TGSI_FILE_TEMPORARY, reg0_index, X, Y, Z, W);
       SET_SRC(&inst, 2, TGSI_FILE_CONSTANT, MAX_NUM_FRAGMENT_CONSTANTS_ATI + 1, X, Y, Z, W);
       tctx->emit_instruction(tctx, &inst);
    }

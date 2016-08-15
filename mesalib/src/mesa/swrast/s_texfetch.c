@@ -43,8 +43,8 @@
 #include "main/samplerobj.h"
 #include "s_context.h"
 #include "s_texfetch.h"
-#include "../../gallium/auxiliary/util/u_format_rgb9e5.h"
-#include "../../gallium/auxiliary/util/u_format_r11g11b10f.h"
+#include "util/format_rgb9e5.h"
+#include "util/format_r11g11b10f.h"
 #include "util/format_srgb.h"
 
 

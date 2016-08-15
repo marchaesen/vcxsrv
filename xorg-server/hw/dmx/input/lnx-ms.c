@@ -76,7 +76,7 @@
 #include <X11/Xos.h>
 #include <errno.h>
 #include <termios.h>
-#include <poll.h>
+#include <xserver_poll.h>
 
 /*****************************************************************************/
 /* Define some macros to make it easier to move this file to another
@@ -135,7 +135,7 @@ msLinuxReadBytes(int fd, unsigned char *buf, int len, int min)
         }
         if (tot % min == 0)
             break;
-        n = poll(&poll_fd, 1, 100);
+        n = xserver_poll(&poll_fd, 1, 100);
         if (n <= 0)
             break;
     }

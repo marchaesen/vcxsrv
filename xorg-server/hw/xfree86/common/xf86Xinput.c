@@ -926,7 +926,9 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
 
     xf86AddInput(drv, pInfo);
 
+    input_lock();
     rval = drv->PreInit(drv, pInfo, 0);
+    input_unlock();
 
     if (rval != Success) {
         xf86Msg(X_ERROR, "PreInit returned %d for \"%s\"\n", rval, pInfo->name);
@@ -957,10 +959,10 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         input_lock();
         EnableDevice(dev, TRUE);
         if (!dev->enabled) {
-            OsReleaseSignals();
             xf86Msg(X_ERROR, "Couldn't init device \"%s\"\n", pInfo->name);
             RemoveDevice(dev, TRUE);
             rval = BadMatch;
+            input_unlock();
             goto unwind;
         }
         /* send enter/leave event, update sprite window */

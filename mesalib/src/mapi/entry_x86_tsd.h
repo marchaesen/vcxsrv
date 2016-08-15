@@ -25,6 +25,11 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
+#ifdef HAVE_FUNC_ATTRIBUTE_VISIBILITY
+#define HIDDEN __attribute__((visibility("hidden")))
+#else
+#define HIDDEN
+#endif
 
 #define X86_ENTRY_SIZE 32
 
@@ -58,8 +63,8 @@ __asm__(".balign 32\n"
 #include <string.h>
 #include "u_execmem.h"
 
-static const char x86_entry_start[];
-static const char x86_entry_end[];
+extern const char x86_entry_start[] HIDDEN;
+extern const char x86_entry_end[] HIDDEN;
 
 void
 entry_patch_public(void)

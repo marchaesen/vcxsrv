@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <assert.h>
@@ -587,6 +588,82 @@ FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
     return cache->checksum == (int) dir_stat->st_mtime && fnano;
 }
 
+static FcBool
+FcCacheOffsetsValid (FcCache *cache)
+{
+    char		*base = (char *)cache;
+    char		*end = base + cache->size;
+    intptr_t		*dirs;
+    FcFontSet		*fs;
+    int			 i, j;
+
+    if (cache->dir < 0 || cache->dir > cache->size - sizeof (intptr_t) ||
+        memchr (base + cache->dir, '\0', cache->size - cache->dir) == NULL)
+        return FcFalse;
+
+    if (cache->dirs < 0 || cache->dirs >= cache->size ||
+        cache->dirs_count < 0 ||
+        cache->dirs_count > (cache->size - cache->dirs) / sizeof (intptr_t))
+        return FcFalse;
+
+    dirs = FcCacheDirs (cache);
+    if (dirs)
+    {
+        for (i = 0; i < cache->dirs_count; i++)
+        {
+            FcChar8	*dir;
+
+            if (dirs[i] < 0 ||
+                dirs[i] > end - (char *) dirs - sizeof (intptr_t))
+                return FcFalse;
+
+            dir = FcOffsetToPtr (dirs, dirs[i], FcChar8);
+            if (memchr (dir, '\0', end - (char *) dir) == NULL)
+                return FcFalse;
+         }
+    }
+
+    if (cache->set < 0 || cache->set > cache->size - sizeof (FcFontSet))
+        return FcFalse;
+
+    fs = FcCacheSet (cache);
+    if (fs)
+    {
+        if (fs->nfont > (end - (char *) fs) / sizeof (FcPattern))
+            return FcFalse;
+
+        if (fs->fonts != 0 && !FcIsEncodedOffset(fs->fonts))
+            return FcFalse;
+
+        for (i = 0; i < fs->nfont; i++)
+        {
+            FcPattern		*font = FcFontSetFont (fs, i);
+            FcPatternElt	*e;
+            FcValueListPtr	 l;
+
+            if ((char *) font < base ||
+                (char *) font > end - sizeof (FcFontSet) ||
+                font->elts_offset < 0 ||
+                font->elts_offset > end - (char *) font ||
+                font->num > (end - (char *) font - font->elts_offset) / sizeof (FcPatternElt))
+                return FcFalse;
+
+
+            e = FcPatternElts(font);
+            if (e->values != 0 && !FcIsEncodedOffset(e->values))
+                return FcFalse;
+
+            for (j = font->num, l = FcPatternEltValues(e); j >= 0 && l; j--, l = FcValueListNext(l))
+                if (l->next != NULL && !FcIsEncodedOffset(l->next))
+                    break;
+            if (j < 0)
+                return FcFalse;
+        }
+    }
+
+    return FcTrue;
+}
+
 /*
  * Map a cache file into memory
  */
@@ -596,7 +673,8 @@ FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *di
     FcCache	*cache;
     FcBool	allocated = FcFalse;
 
-    if (fd_stat->st_size < (int) sizeof (FcCache))
+    if (fd_stat->st_size > INTPTR_MAX ||
+        fd_stat->st_size < (int) sizeof (FcCache))
 	return NULL;
     cache = FcCacheFindByStat (fd_stat);
     if (cache)
@@ -652,6 +730,7 @@ FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *di
     if (cache->magic != FC_CACHE_MAGIC_MMAP ||
 	cache->version < FC_CACHE_VERSION_NUMBER ||
 	cache->size != (intptr_t) fd_stat->st_size ||
+        !FcCacheOffsetsValid (cache) ||
 	!FcCacheTimeValid (config, cache, dir_stat) ||
 	!FcCacheInsert (cache, fd_stat))
     {

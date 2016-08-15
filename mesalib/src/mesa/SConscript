@@ -12,15 +12,14 @@ env.MSVC2013Compat()
 env.Append(CPPPATH = [
     '../compiler/nir',  # for generated nir_opcodes.h, etc
     '#/src',
+    Dir('../mapi'), # src/mapi build path
     '#/src/mapi',
-    '#/src/glsl',
+    Dir('.'), # src/mesa build path
     '#/src/mesa',
+    Dir('main'),  # src/mesa/main/ build path
     '#/src/mesa/main',
     '#/src/gallium/include',
     '#/src/gallium/auxiliary',
-    Dir('../mapi'), # src/mapi build path
-    Dir('.'), # src/mesa build path
-    Dir('main'),  # src/mesa/main/ build path
 ])
 
 if env['platform'] == 'windows':
@@ -115,7 +114,7 @@ if env['platform'] not in ('cygwin', 'darwin', 'windows', 'haiku'):
         )
         # Add the dir containing the generated header (somewhere inside  the
         # build dir) to the include path
-        env.Append(CPPPATH = [matypes[0].dir])
+        env.Prepend(CPPPATH = [matypes[0].dir])
 
 
 #

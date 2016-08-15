@@ -25,7 +25,7 @@
 #endif
 #include <X11/X.h>
 #include <X11/Xproto.h>
-#include <poll.h>
+#include <xserver_poll.h>
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "kdrive.h"
@@ -48,7 +48,7 @@ Ps2ReadBytes(int fd, char *buf, int len, int min)
         }
         if (tot % min == 0)
             break;
-        n = poll(&poll_fd, 1, 100);
+        n = xserver_poll(&poll_fd, 1, 100);
         if (n <= 0)
             break;
     }

@@ -532,6 +532,90 @@ copy_image(struct pipe_context *pipe,
                  src_box);
 }
 
+/* Note, the only allowable compressed format for this function is ETC */
+static void
+fallback_copy_image(struct st_context *st,
+                    struct gl_texture_image *dst_image,
+                    struct pipe_resource *dst_res,
+                    int dst_x, int dst_y, int dst_z,
+                    struct gl_texture_image *src_image,
+                    struct pipe_resource *src_res,
+                    int src_x, int src_y, int src_z,
+                    int src_w, int src_h)
+{
+   uint8_t *dst, *src;
+   int dst_stride, src_stride;
+   struct pipe_transfer *dst_transfer, *src_transfer;
+   unsigned line_bytes;
+
+   bool dst_is_compressed = dst_image && _mesa_is_format_compressed(dst_image->TexFormat);
+   bool src_is_compressed = src_image && _mesa_is_format_compressed(src_image->TexFormat);
+
+   unsigned dst_w = src_w;
+   unsigned dst_h = src_h;
+   unsigned lines = src_h;
+
+   if (src_is_compressed && !dst_is_compressed) {
+      dst_w = DIV_ROUND_UP(dst_w, 4);
+      dst_h = DIV_ROUND_UP(dst_h, 4);
+   } else if (!src_is_compressed && dst_is_compressed) {
+      dst_w *= 4;
+      dst_h *= 4;
+   }
+   if (src_is_compressed) {
+      lines = DIV_ROUND_UP(lines, 4);
+   }
+
+   if (src_image)
+      line_bytes = _mesa_format_row_stride(src_image->TexFormat, src_w);
+   else
+      line_bytes = _mesa_format_row_stride(dst_image->TexFormat, dst_w);
+
+   if (dst_image) {
+      st->ctx->Driver.MapTextureImage(
+            st->ctx, dst_image, dst_z,
+            dst_x, dst_y, dst_w, dst_h,
+            GL_MAP_WRITE_BIT, &dst, &dst_stride);
+   } else {
+      dst = pipe_transfer_map(st->pipe, dst_res, 0, dst_z,
+                              PIPE_TRANSFER_WRITE,
+                              dst_x, dst_y, dst_w, dst_h,
+                              &dst_transfer);
+      dst_stride = dst_transfer->stride;
+   }
+
+   if (src_image) {
+      st->ctx->Driver.MapTextureImage(
+            st->ctx, src_image, src_z,
+            src_x, src_y, src_w, src_h,
+            GL_MAP_READ_BIT, &src, &src_stride);
+   } else {
+      src = pipe_transfer_map(st->pipe, src_res, 0, src_z,
+                              PIPE_TRANSFER_READ,
+                              src_x, src_y, src_w, src_h,
+                              &src_transfer);
+      src_stride = src_transfer->stride;
+   }
+
+   for (int y = 0; y < lines; y++) {
+      memcpy(dst, src, line_bytes);
+      dst += dst_stride;
+      src += src_stride;
+   }
+
+   if (dst_image) {
+      st->ctx->Driver.UnmapTextureImage(st->ctx, dst_image, dst_z);
+   } else {
+      pipe_transfer_unmap(st->pipe, dst_transfer);
+   }
+
+   if (src_image) {
+      st->ctx->Driver.UnmapTextureImage(st->ctx, src_image, src_z);
+   } else {
+      pipe_transfer_unmap(st->pipe, src_transfer);
+   }
+}
+
 static void
 st_CopyImageSubData(struct gl_context *ctx,
                     struct gl_texture_image *src_image,
@@ -547,6 +631,7 @@ st_CopyImageSubData(struct gl_context *ctx,
    struct pipe_resource *src_res, *dst_res;
    struct pipe_box box;
    int src_level, dst_level;
+   int orig_src_z = src_z, orig_dst_z = dst_z;
 
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
@@ -583,8 +668,15 @@ st_CopyImageSubData(struct gl_context *ctx,
 
    u_box_2d_zslice(src_x, src_y, src_z, src_width, src_height, &box);
 
-   copy_image(pipe, dst_res, dst_level, dst_x, dst_y, dst_z,
-              src_res, src_level, &box);
+   if ((src_image && st_etc_fallback(st, src_image)) ||
+       (dst_image && st_etc_fallback(st, dst_image))) {
+      fallback_copy_image(st, dst_image, dst_res, dst_x, dst_y, orig_dst_z,
+                          src_image, src_res, src_x, src_y, orig_src_z,
+                          src_width, src_height);
+   } else {
+      copy_image(pipe, dst_res, dst_level, dst_x, dst_y, dst_z,
+                 src_res, src_level, &box);
+   }
 }
 
 void

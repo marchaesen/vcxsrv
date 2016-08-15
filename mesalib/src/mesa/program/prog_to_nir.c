@@ -887,7 +887,7 @@ setup_registers_and_variables(struct ptn_compile *c)
    struct nir_shader *shader = b->shader;
 
    /* Create input variables. */
-   const int num_inputs = _mesa_flsll(c->prog->InputsRead);
+   const int num_inputs = util_last_bit64(c->prog->InputsRead);
    for (int i = 0; i < num_inputs; i++) {
       if (!(c->prog->InputsRead & BITFIELD64_BIT(i)))
          continue;
@@ -948,7 +948,7 @@ setup_registers_and_variables(struct ptn_compile *c)
    }
 
    /* Create output registers and variables. */
-   int max_outputs = _mesa_fls(c->prog->OutputsWritten);
+   int max_outputs = util_last_bit(c->prog->OutputsWritten);
    c->output_regs = rzalloc_array(c, nir_register *, max_outputs);
 
    for (int i = 0; i < max_outputs; i++) {
@@ -1043,7 +1043,7 @@ prog_to_nir(const struct gl_program *prog,
    ptn_add_output_stores(c);
 
    s->info.name = ralloc_asprintf(s, "ARB%d", prog->Id);
-   s->info.num_textures = _mesa_fls(prog->SamplersUsed);
+   s->info.num_textures = util_last_bit(prog->SamplersUsed);
    s->info.num_ubos = 0;
    s->info.num_abos = 0;
    s->info.num_ssbos = 0;

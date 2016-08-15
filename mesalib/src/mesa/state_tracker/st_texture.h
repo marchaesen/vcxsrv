@@ -65,7 +65,12 @@ struct st_texture_image
     */
    struct st_texture_image_transfer *transfer;
    unsigned num_transfers;
-};
+
+   /* For ETC images, keep track of the original data. This is necessary for
+    * mapping/unmapping, as well as image copies.
+    */
+   GLubyte *etc_data;
+ };
 
 
 /**
@@ -244,5 +249,8 @@ st_texture_release_all_sampler_views(struct st_context *st,
 
 void
 st_texture_free_sampler_views(struct st_texture_object *stObj);
+
+bool
+st_etc_fallback(struct st_context *st, struct gl_texture_image *texImage);
 
 #endif

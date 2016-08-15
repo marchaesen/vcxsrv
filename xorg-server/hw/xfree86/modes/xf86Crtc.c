@@ -2451,108 +2451,6 @@ xf86TargetUserpref(ScrnInfoPtr scrn, xf86CrtcConfigPtr config,
     return FALSE;
 }
 
-static Bool
-xf86CrtcSetInitialGamma(xf86CrtcPtr crtc, float gamma_red, float gamma_green,
-                        float gamma_blue)
-{
-    int i, size = 256;
-    CARD16 *red, *green, *blue;
-
-    red = xallocarray(size, 3 * sizeof(CARD16));
-    green = red + size;
-    blue = green + size;
-
-    /* Only cause warning if user wanted gamma to be set. */
-    if (!crtc->funcs->gamma_set &&
-        (gamma_red != 1.0 || gamma_green != 1.0 || gamma_blue != 1.0)) {
-        free(red);
-        return FALSE;
-    }
-    else if (!crtc->funcs->gamma_set) {
-        free(red);
-        return TRUE;
-    }
-
-    /* At this early stage none of the randr-interface stuff is up.
-     * So take the default gamma size for lack of something better.
-     */
-    for (i = 0; i < size; i++) {
-        if (gamma_red == 1.0)
-            red[i] = i << 8;
-        else
-            red[i] = (CARD16) (pow((double) i / (double) (size - 1),
-                                   1. / (double) gamma_red) * (double) (size -
-                                                                        1) *
-                               256);
-
-        if (gamma_green == 1.0)
-            green[i] = i << 8;
-        else
-            green[i] = (CARD16) (pow((double) i / (double) (size - 1),
-                                     1. / (double) gamma_green) *
-                                 (double) (size - 1) * 256);
-
-        if (gamma_blue == 1.0)
-            blue[i] = i << 8;
-        else
-            blue[i] = (CARD16) (pow((double) i / (double) (size - 1),
-                                    1. / (double) gamma_blue) * (double) (size -
-                                                                          1) *
-                                256);
-    }
-
-    /* Default size is 256, so anything else is failure. */
-    if (size != crtc->gamma_size) {
-        free(red);
-        return FALSE;
-    }
-
-    crtc->gamma_size = size;
-    memcpy(crtc->gamma_red, red, crtc->gamma_size * sizeof(CARD16));
-    memcpy(crtc->gamma_green, green, crtc->gamma_size * sizeof(CARD16));
-    memcpy(crtc->gamma_blue, blue, crtc->gamma_size * sizeof(CARD16));
-
-    /* Do not set gamma now, delay until the crtc is activated. */
-
-    free(red);
-
-    return TRUE;
-}
-
-static Bool
-xf86OutputSetInitialGamma(xf86OutputPtr output)
-{
-    XF86ConfMonitorPtr mon = output->conf_monitor;
-    float gamma_red = 1.0, gamma_green = 1.0, gamma_blue = 1.0;
-
-    if (!mon)
-        return TRUE;
-
-    if (!output->crtc)
-        return FALSE;
-
-    /* Get configured values, where they exist. */
-    if (mon->mon_gamma_red >= GAMMA_MIN && mon->mon_gamma_red <= GAMMA_MAX)
-        gamma_red = mon->mon_gamma_red;
-
-    if (mon->mon_gamma_green >= GAMMA_MIN && mon->mon_gamma_green <= GAMMA_MAX)
-        gamma_green = mon->mon_gamma_green;
-
-    if (mon->mon_gamma_blue >= GAMMA_MIN && mon->mon_gamma_blue <= GAMMA_MAX)
-        gamma_blue = mon->mon_gamma_blue;
-
-    /* This avoids setting gamma 1.0 in case another cloned output on this crtc has a specific gamma. */
-    if (gamma_red != 1.0 || gamma_green != 1.0 || gamma_blue != 1.0) {
-        xf86DrvMsg(output->scrn->scrnIndex, X_INFO,
-                   "Output %s wants gamma correction (%.1f, %.1f, %.1f)\n",
-                   output->name, gamma_red, gamma_green, gamma_blue);
-        return xf86CrtcSetInitialGamma(output->crtc, gamma_red, gamma_green,
-                                       gamma_blue);
-    }
-    else
-        return TRUE;
-}
-
 /**
  * Construct default screen configuration
  *
@@ -2672,14 +2570,7 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
 
         crtc->enabled = FALSE;
         memset(&crtc->desiredMode, '\0', sizeof(crtc->desiredMode));
-        /* Set default gamma for all crtc's. */
-        /* This is done to avoid problems later on with cloned outputs. */
-        xf86CrtcSetInitialGamma(crtc, 1.0, 1.0, 1.0);
     }
-
-    if (xf86_crtc_supports_gamma(scrn))
-        xf86DrvMsg(scrn->scrnIndex, X_INFO,
-                   "Using default gamma of (1.0, 1.0, 1.0) unless otherwise stated.\n");
 
     /*
      * Set initial configuration
@@ -2703,10 +2594,6 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
             memcpy(crtc->panningBorder, output->initialBorder,
                    4 * sizeof(INT16));
             output->crtc = crtc;
-            if (!xf86OutputSetInitialGamma(output))
-                xf86DrvMsg(scrn->scrnIndex, X_WARNING,
-                           "Initial gamma correction for output %s: failed.\n",
-                           output->name);
         }
         else {
             output->crtc = NULL;

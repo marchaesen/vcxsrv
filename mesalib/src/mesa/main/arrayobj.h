@@ -81,6 +81,14 @@ extern void
 _mesa_update_vao_client_arrays(struct gl_context *ctx,
                                struct gl_vertex_array_object *vao);
 
+/* Returns true if all varying arrays reside in vbos */
+extern bool
+_mesa_all_varyings_in_vbos(const struct gl_vertex_array_object *vao);
+
+/* Returns true if all vbos are unmapped */
+extern bool
+_mesa_all_buffers_are_unmapped(const struct gl_vertex_array_object *vao);
+
 /*
  * API functions
  */

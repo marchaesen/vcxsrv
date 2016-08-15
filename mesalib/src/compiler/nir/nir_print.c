@@ -186,9 +186,13 @@ print_alu_src(nir_alu_instr *instr, unsigned src, print_state *state)
    print_src(&instr->src[src].src, state);
 
    bool print_swizzle = false;
+   unsigned used_channels = 0;
+
    for (unsigned i = 0; i < 4; i++) {
       if (!nir_alu_instr_channel_used(instr, src, i))
          continue;
+
+      used_channels++;
 
       if (instr->src[src].swizzle[i] != i) {
          print_swizzle = true;
@@ -196,7 +200,11 @@ print_alu_src(nir_alu_instr *instr, unsigned src, print_state *state)
       }
    }
 
-   if (print_swizzle) {
+   unsigned live_channels = instr->src[src].src.is_ssa
+      ? instr->src[src].src.ssa->num_components
+      : instr->src[src].src.reg.reg->num_components;
+
+   if (print_swizzle || used_channels != live_channels) {
       fprintf(fp, ".");
       for (unsigned i = 0; i < 4; i++) {
          if (!nir_alu_instr_channel_used(instr, src, i))
@@ -571,6 +579,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_DESC_SET] = "desc-set",
       [NIR_INTRINSIC_BINDING] = "binding",
       [NIR_INTRINSIC_COMPONENT] = "component",
+      [NIR_INTRINSIC_INTERP_MODE] = "interp_mode",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])

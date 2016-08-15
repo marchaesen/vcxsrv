@@ -184,8 +184,6 @@ proc_present_select_input (ClientPtr client)
 
     REQUEST_SIZE_MATCH(xPresentSelectInputReq);
 
-    LEGAL_NEW_RESOURCE(stuff->eid, client);
-
     rc = dixLookupWindow(&window, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
         return rc;

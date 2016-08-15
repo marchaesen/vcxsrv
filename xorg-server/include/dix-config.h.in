@@ -527,4 +527,10 @@
 /* Use input thread */
 #undef INPUTTHREAD
 
+/* Have poll() */
+#undef HAVE_POLL
+
+/* Have epoll_create1() */
+#undef HAVE_EPOLL_CREATE1
+
 #endif /* _DIX_CONFIG_H_ */

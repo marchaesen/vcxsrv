@@ -62,10 +62,8 @@ _mesa_update_client_array(struct gl_context *ctx,
    dst->Size = src->Size;
    dst->Type = src->Type;
    dst->Format = src->Format;
-   dst->Stride = src->Stride;
    dst->StrideB = binding->Stride;
    dst->Ptr = _mesa_vertex_attrib_address(src, binding);
-   dst->Enabled = src->Enabled;
    dst->Normalized = src->Normalized;
    dst->Integer = src->Integer;
    dst->Doubles = src->Doubles;

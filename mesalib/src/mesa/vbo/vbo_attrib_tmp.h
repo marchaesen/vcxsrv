@@ -25,7 +25,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
-#include "util/u_format_r11g11b10f.h"
+#include "util/format_r11g11b10f.h"
 #include "main/varray.h"
 
 

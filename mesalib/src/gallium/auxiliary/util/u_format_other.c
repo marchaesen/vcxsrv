@@ -28,8 +28,8 @@
 
 #include "u_math.h"
 #include "u_format_other.h"
-#include "u_format_rgb9e5.h"
-#include "u_format_r11g11b10f.h"
+#include "util/format_rgb9e5.h"
+#include "util/format_r11g11b10f.h"
 
 
 void

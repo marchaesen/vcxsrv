@@ -1,11 +1,24 @@
                               Fontconfig
              Font configuration and customization library
-                             Version 2.12
-                              2016-06-15
+                            Version 2.12.1
+                              2016-08-05
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.1
+
+Akira TAGOH (6):
+      Add --with-default-hinting to configure
+      Update CaseFolding.txt to Unicode 9.0
+      Check python installed in autogen.sh
+      Fix some errors related to python3
+      Bug 96676 - Check range of FcWeightFromOpenType argument
+      Update libtool revision
+
+Tobias Stoeckmann (1):
+      Properly validate offsets in cache files.
 
 2.12
 

@@ -196,10 +196,8 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
       rs->array[i].Size = 4;
       rs->array[i].Type = GL_FLOAT;
       rs->array[i].Format = GL_RGBA;
-      rs->array[i].Stride = 0;
       rs->array[i].StrideB = 0;
       rs->array[i].Ptr = (GLubyte *) ctx->Current.Attrib[i];
-      rs->array[i].Enabled = GL_TRUE;
       rs->array[i].Normalized = GL_TRUE;
       rs->array[i].BufferObj = NULL;
       rs->arrays[i] = &rs->array[i];
@@ -221,9 +219,12 @@ static void
 st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
 {
    struct st_context *st = st_context(ctx);
-   struct draw_context *draw = st->draw;
+   struct draw_context *draw = st_get_draw_context(st);
    struct rastpos_stage *rs;
    const struct gl_client_array **saved_arrays = ctx->Array._DrawArrays;
+
+   if (!st->draw)
+      return;
 
    if (ctx->VertexProgram._Current == NULL ||
        ctx->VertexProgram._Current == ctx->VertexProgram._TnlProgram) {

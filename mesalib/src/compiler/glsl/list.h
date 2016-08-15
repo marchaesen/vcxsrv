@@ -32,36 +32,12 @@
  *
  * A list is empty if either the head sentinel's \c next pointer points to the
  * tail sentinel or the tail sentinel's \c prev poiner points to the head
- * sentinel.
- *
- * Instead of tracking two separate \c node structures and a \c list structure
- * that points to them, the sentinel nodes are in a single structure.  Noting
- * that each sentinel node always has one \c NULL pointer, the \c NULL
- * pointers occupy the same memory location.  In the \c list structure
- * contains a the following:
- *
- *   - A \c head pointer that represents the \c next pointer of the
- *     head sentinel node.
- *   - A \c tail pointer that represents the \c prev pointer of the head
- *     sentinel node and the \c next pointer of the tail sentinel node.  This
- *     pointer is \b always \c NULL.
- *   - A \c tail_prev pointer that represents the \c prev pointer of the
- *     tail sentinel node.
- *
- * Therefore, if \c head->next is \c NULL or \c tail_prev->prev is \c NULL,
- * the list is empty.
+ * sentinel. The head sentinel and tail sentinel nodes are allocated within the
+ * list structure.
  *
  * Do note that this means that the list nodes will contain pointers into the
  * list structure itself and as a result you may not \c realloc() an  \c
  * exec_list or any structure in which an \c exec_list is embedded.
- *
- * To anyone familiar with "exec lists" on the Amiga, this structure should
- * be immediately recognizable.  See the following link for the original Amiga
- * operating system documentation on the subject.
- *
- * http://www.natami.net/dev/Libraries_Manual_guide/node02D7.html
- *
- * \author Ian Romanick <ian.d.romanick@intel.com>
  */
 
 #pragma once
@@ -307,9 +283,8 @@ struct exec_node;
 #endif
 
 struct exec_list {
-   struct exec_node *head;
-   struct exec_node *tail;
-   struct exec_node *tail_pred;
+   struct exec_node head_sentinel;
+   struct exec_node tail_sentinel;
 
 #ifdef __cplusplus
    DECLARE_RALLOC_CXX_OPERATORS(exec_list)
@@ -325,9 +300,13 @@ struct exec_list {
 
    const exec_node *get_head() const;
    exec_node *get_head();
+   const exec_node *get_head_raw() const;
+   exec_node *get_head_raw();
 
    const exec_node *get_tail() const;
    exec_node *get_tail();
+   const exec_node *get_tail_raw() const;
+   exec_node *get_tail_raw();
 
    unsigned length() const;
 
@@ -366,9 +345,10 @@ struct exec_list {
 static inline void
 exec_list_make_empty(struct exec_list *list)
 {
-   list->head = (struct exec_node *) & list->tail;
-   list->tail = NULL;
-   list->tail_pred = (struct exec_node *) & list->head;
+   list->head_sentinel.next = &list->tail_sentinel;
+   list->head_sentinel.prev = NULL;
+   list->tail_sentinel.next = NULL;
+   list->tail_sentinel.prev = &list->head_sentinel;
 }
 
 static inline bool
@@ -376,39 +356,63 @@ exec_list_is_empty(const struct exec_list *list)
 {
    /* There are three ways to test whether a list is empty or not.
     *
-    * - Check to see if the \c head points to the \c tail.
-    * - Check to see if the \c tail_pred points to the \c head.
-    * - Check to see if the \c head is the sentinel node by test whether its
+    * - Check to see if the head sentinel's \c next is the tail sentinel.
+    * - Check to see if the tail sentinel's \c prev is the head sentinel.
+    * - Check to see if the head is the sentinel node by test whether its
     *   \c next pointer is \c NULL.
     *
     * The first two methods tend to generate better code on modern systems
     * because they save a pointer dereference.
     */
-   return list->head == (struct exec_node *) &list->tail;
+   return list->head_sentinel.next == &list->tail_sentinel;
 }
 
 static inline const struct exec_node *
 exec_list_get_head_const(const struct exec_list *list)
 {
-   return !exec_list_is_empty(list) ? list->head : NULL;
+   return !exec_list_is_empty(list) ? list->head_sentinel.next : NULL;
 }
 
 static inline struct exec_node *
 exec_list_get_head(struct exec_list *list)
 {
-   return !exec_list_is_empty(list) ? list->head : NULL;
+   return !exec_list_is_empty(list) ? list->head_sentinel.next : NULL;
+}
+
+static inline const struct exec_node *
+exec_list_get_head_raw_const(const struct exec_list *list)
+{
+   return list->head_sentinel.next;
+}
+
+static inline struct exec_node *
+exec_list_get_head_raw(struct exec_list *list)
+{
+   return list->head_sentinel.next;
 }
 
 static inline const struct exec_node *
 exec_list_get_tail_const(const struct exec_list *list)
 {
-   return !exec_list_is_empty(list) ? list->tail_pred : NULL;
+   return !exec_list_is_empty(list) ? list->tail_sentinel.prev : NULL;
 }
 
 static inline struct exec_node *
 exec_list_get_tail(struct exec_list *list)
 {
-   return !exec_list_is_empty(list) ? list->tail_pred : NULL;
+   return !exec_list_is_empty(list) ? list->tail_sentinel.prev : NULL;
+}
+
+static inline const struct exec_node *
+exec_list_get_tail_raw_const(const struct exec_list *list)
+{
+   return list->tail_sentinel.prev;
+}
+
+static inline struct exec_node *
+exec_list_get_tail_raw(struct exec_list *list)
+{
+   return list->tail_sentinel.prev;
 }
 
 static inline unsigned
@@ -417,7 +421,7 @@ exec_list_length(const struct exec_list *list)
    unsigned size = 0;
    struct exec_node *node;
 
-   for (node = list->head; node->next != NULL; node = node->next) {
+   for (node = list->head_sentinel.next; node->next != NULL; node = node->next) {
       size++;
    }
 
@@ -427,21 +431,21 @@ exec_list_length(const struct exec_list *list)
 static inline void
 exec_list_push_head(struct exec_list *list, struct exec_node *n)
 {
-   n->next = list->head;
-   n->prev = (struct exec_node *) &list->head;
+   n->next = list->head_sentinel.next;
+   n->prev = &list->head_sentinel;
 
    n->next->prev = n;
-   list->head = n;
+   list->head_sentinel.next = n;
 }
 
 static inline void
 exec_list_push_tail(struct exec_list *list, struct exec_node *n)
 {
-   n->next = (struct exec_node *) &list->tail;
-   n->prev = list->tail_pred;
+   n->next = &list->tail_sentinel;
+   n->prev = list->tail_sentinel.prev;
 
    n->prev->next = n;
-   list->tail_pred = n;
+   list->tail_sentinel.prev = n;
 }
 
 static inline void
@@ -449,10 +453,10 @@ exec_list_push_degenerate_list_at_head(struct exec_list *list, struct exec_node 
 {
    assert(n->prev->next == n);
 
-   n->prev->next = list->head;
-   list->head->prev = n->prev;
-   n->prev = (struct exec_node *) &list->head;
-   list->head = n;
+   n->prev->next = list->head_sentinel.next;
+   list->head_sentinel.next->prev = n->prev;
+   n->prev = &list->head_sentinel;
+   list->head_sentinel.next = n;
 }
 
 static inline struct exec_node *
@@ -471,12 +475,13 @@ exec_list_move_nodes_to(struct exec_list *list, struct exec_list *target)
    if (exec_list_is_empty(list)) {
       exec_list_make_empty(target);
    } else {
-      target->head = list->head;
-      target->tail = NULL;
-      target->tail_pred = list->tail_pred;
+      target->head_sentinel.next = list->head_sentinel.next;
+      target->head_sentinel.prev = NULL;
+      target->tail_sentinel.next = NULL;
+      target->tail_sentinel.prev = list->tail_sentinel.prev;
 
-      target->head->prev = (struct exec_node *) &target->head;
-      target->tail_pred->next = (struct exec_node *) &target->tail;
+      target->head_sentinel.next->prev = &target->head_sentinel;
+      target->tail_sentinel.prev->next = &target->tail_sentinel;
 
       exec_list_make_empty(list);
    }
@@ -490,13 +495,13 @@ exec_list_append(struct exec_list *list, struct exec_list *source)
 
    /* Link the first node of the source with the last node of the target list.
     */
-   list->tail_pred->next = source->head;
-   source->head->prev = list->tail_pred;
+   list->tail_sentinel.prev->next = source->head_sentinel.next;
+   source->head_sentinel.next->prev = list->tail_sentinel.prev;
 
    /* Make the tail of the source list be the tail of the target list.
     */
-   list->tail_pred = source->tail_pred;
-   list->tail_pred->next = (struct exec_node *) &list->tail;
+   list->tail_sentinel.prev = source->tail_sentinel.prev;
+   list->tail_sentinel.prev->next = &list->tail_sentinel;
 
    /* Make the source list empty for good measure.
     */
@@ -516,11 +521,11 @@ exec_node_insert_list_before(struct exec_node *n, struct exec_list *before)
    if (exec_list_is_empty(before))
       return;
 
-   before->tail_pred->next = n;
-   before->head->prev = n->prev;
+   before->tail_sentinel.prev->next = n;
+   before->head_sentinel.next->prev = n->prev;
 
-   n->prev->next = before->head;
-   n->prev = before->tail_pred;
+   n->prev->next = before->head_sentinel.next;
+   n->prev = before->tail_sentinel.prev;
 
    exec_list_make_empty(before);
 }
@@ -530,15 +535,16 @@ exec_list_validate(const struct exec_list *list)
 {
    const struct exec_node *node;
 
-   assert(list->head->prev == (const struct exec_node *) &list->head);
-   assert(list->tail == NULL);
-   assert(list->tail_pred->next == (const struct exec_node *) &list->tail);
+   assert(list->head_sentinel.next->prev == &list->head_sentinel);
+   assert(list->head_sentinel.prev == NULL);
+   assert(list->tail_sentinel.next == NULL);
+   assert(list->tail_sentinel.prev->next == &list->tail_sentinel);
 
    /* We could try to use one of the interators below for this but they all
     * either require C++ or assume the exec_node is embedded in a structure
     * which is not the case for this function.
     */
-   for (node = list->head; node->next != NULL; node = node->next) {
+   for (node = list->head_sentinel.next; node->next != NULL; node = node->next) {
       assert(node->next->prev == node);
       assert(node->prev->next == node);
    }
@@ -565,6 +571,16 @@ inline exec_node *exec_list::get_head()
    return exec_list_get_head(this);
 }
 
+inline const exec_node *exec_list::get_head_raw() const
+{
+   return exec_list_get_head_raw_const(this);
+}
+
+inline exec_node *exec_list::get_head_raw()
+{
+   return exec_list_get_head_raw(this);
+}
+
 inline const exec_node *exec_list::get_tail() const
 {
    return exec_list_get_tail_const(this);
@@ -573,6 +589,16 @@ inline const exec_node *exec_list::get_tail() const
 inline exec_node *exec_list::get_tail()
 {
    return exec_list_get_tail(this);
+}
+
+inline const exec_node *exec_list::get_tail_raw() const
+{
+   return exec_list_get_tail_raw_const(this);
+}
+
+inline exec_node *exec_list::get_tail_raw()
+{
+   return exec_list_get_tail_raw(this);
 }
 
 inline unsigned exec_list::length() const
@@ -622,12 +648,12 @@ inline void exec_node::insert_before(exec_list *before)
 #endif
 
 #define foreach_in_list(__type, __inst, __list)      \
-   for (__type *(__inst) = (__type *)(__list)->head; \
+   for (__type *(__inst) = (__type *)(__list)->head_sentinel.next; \
         !(__inst)->is_tail_sentinel();               \
         (__inst) = (__type *)(__inst)->next)
 
 #define foreach_in_list_reverse(__type, __inst, __list)   \
-   for (__type *(__inst) = (__type *)(__list)->tail_pred; \
+   for (__type *(__inst) = (__type *)(__list)->tail_sentinel.prev; \
         !(__inst)->is_head_sentinel();                    \
         (__inst) = (__type *)(__inst)->prev)
 
@@ -635,20 +661,20 @@ inline void exec_node::insert_before(exec_list *before)
  * This version is safe even if the current node is removed.
  */ 
 #define foreach_in_list_safe(__type, __node, __list) \
-   for (__type *__node = (__type *)(__list)->head,   \
+   for (__type *__node = (__type *)(__list)->head_sentinel.next,   \
                *__next = (__type *)__node->next;     \
         __next != NULL;                              \
         __node = __next, __next = (__type *)__next->next)
 
 #define foreach_in_list_reverse_safe(__type, __node, __list) \
-   for (__type *__node = (__type *)(__list)->tail_pred,      \
+   for (__type *__node = (__type *)(__list)->tail_sentinel.prev,      \
                *__prev = (__type *)__node->prev;             \
         __prev != NULL;                                      \
         __node = __prev, __prev = (__type *)__prev->prev)
 
 #define foreach_in_list_use_after(__type, __inst, __list) \
    __type *(__inst);                                      \
-   for ((__inst) = (__type *)(__list)->head;              \
+   for ((__inst) = (__type *)(__list)->head_sentinel.next; \
         !(__inst)->is_tail_sentinel();                    \
         (__inst) = (__type *)(__inst)->next)
 /**
@@ -657,8 +683,8 @@ inline void exec_node::insert_before(exec_list *before)
  * This is safe against either current node being removed or replaced.
  */
 #define foreach_two_lists(__node1, __list1, __node2, __list2) \
-   for (struct exec_node * __node1 = (__list1)->head,         \
-                         * __node2 = (__list2)->head,         \
+   for (struct exec_node * __node1 = (__list1)->head_sentinel.next, \
+                         * __node2 = (__list2)->head_sentinel.next, \
                          * __next1 = __node1->next,           \
                          * __next2 = __node2->next            \
 	; __next1 != NULL && __next2 != NULL                  \
@@ -669,19 +695,19 @@ inline void exec_node::insert_before(exec_list *before)
 
 #define foreach_list_typed(__type, __node, __field, __list)		\
    for (__type * __node =						\
-	   exec_node_data(__type, (__list)->head, __field);		\
+         exec_node_data(__type, (__list)->head_sentinel.next, __field); \
 	(__node)->__field.next != NULL; 				\
 	(__node) = exec_node_data(__type, (__node)->__field.next, __field))
 
 #define foreach_list_typed_reverse(__type, __node, __field, __list)        \
    for (__type * __node =                                                \
-           exec_node_data(__type, (__list)->tail_pred, __field);        \
+           exec_node_data(__type, (__list)->tail_sentinel.prev, __field);  \
         (__node)->__field.prev != NULL;                                 \
         (__node) = exec_node_data(__type, (__node)->__field.prev, __field))
 
 #define foreach_list_typed_safe(__type, __node, __field, __list)           \
    for (__type * __node =                                                  \
-           exec_node_data(__type, (__list)->head, __field),                \
+           exec_node_data(__type, (__list)->head_sentinel.next, __field),  \
                * __next =                                                  \
            exec_node_data(__type, (__node)->__field.next, __field);        \
         (__node)->__field.next != NULL;                                    \
@@ -690,7 +716,7 @@ inline void exec_node::insert_before(exec_list *before)
 
 #define foreach_list_typed_reverse_safe(__type, __node, __field, __list)   \
    for (__type * __node =                                                  \
-           exec_node_data(__type, (__list)->tail_pred, __field),           \
+           exec_node_data(__type, (__list)->tail_sentinel.prev, __field),  \
                * __prev =                                                  \
            exec_node_data(__type, (__node)->__field.prev, __field);        \
         (__node)->__field.prev != NULL;                                    \

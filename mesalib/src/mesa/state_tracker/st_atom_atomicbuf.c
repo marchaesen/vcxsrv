@@ -79,11 +79,6 @@ bind_vs_atomics(struct st_context *st)
 }
 
 const struct st_tracked_state st_bind_vs_atomics = {
-   "st_bind_vs_atomics",
-   {
-      0,
-      ST_NEW_VERTEX_PROGRAM | ST_NEW_ATOMIC_BUFFER,
-   },
    bind_vs_atomics
 };
 
@@ -97,11 +92,6 @@ bind_fs_atomics(struct st_context *st)
 }
 
 const struct st_tracked_state st_bind_fs_atomics = {
-   "st_bind_fs_atomics",
-   {
-      0,
-      ST_NEW_FRAGMENT_PROGRAM | ST_NEW_ATOMIC_BUFFER,
-   },
    bind_fs_atomics
 };
 
@@ -115,11 +105,6 @@ bind_gs_atomics(struct st_context *st)
 }
 
 const struct st_tracked_state st_bind_gs_atomics = {
-   "st_bind_gs_atomics",
-   {
-      0,
-      ST_NEW_GEOMETRY_PROGRAM | ST_NEW_ATOMIC_BUFFER,
-   },
    bind_gs_atomics
 };
 
@@ -133,11 +118,6 @@ bind_tcs_atomics(struct st_context *st)
 }
 
 const struct st_tracked_state st_bind_tcs_atomics = {
-   "st_bind_tcs_atomics",
-   {
-      0,
-      ST_NEW_TESSCTRL_PROGRAM | ST_NEW_ATOMIC_BUFFER,
-   },
    bind_tcs_atomics
 };
 
@@ -151,11 +131,6 @@ bind_tes_atomics(struct st_context *st)
 }
 
 const struct st_tracked_state st_bind_tes_atomics = {
-   "st_bind_tes_atomics",
-   {
-      0,
-      ST_NEW_TESSEVAL_PROGRAM | ST_NEW_ATOMIC_BUFFER,
-   },
    bind_tes_atomics
 };
 
@@ -169,10 +144,5 @@ bind_cs_atomics(struct st_context *st)
 }
 
 const struct st_tracked_state st_bind_cs_atomics = {
-   "st_bind_cs_atomics",
-   {
-      0,
-      ST_NEW_COMPUTE_PROGRAM | ST_NEW_ATOMIC_BUFFER,
-   },
    bind_cs_atomics
 };

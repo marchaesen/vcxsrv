@@ -470,9 +470,6 @@ _mesa_bind_pipeline(struct gl_context *ctx,
 
       for (i = 0; i < MESA_SHADER_STAGES; i++)
          _mesa_shader_program_init_subroutine_defaults(ctx->_Shader->CurrentProgram[i]);
-
-      if (ctx->Driver.UseProgram)
-         ctx->Driver.UseProgram(ctx, NULL);
    }
 }
 

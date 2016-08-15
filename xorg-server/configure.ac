@@ -219,9 +219,10 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS([backtrace ffs geteuid getuid issetugid getresuid \
 	getdtablesize getifaddrs getpeereid getpeerucred getprogname getzoneid \
 	mmap posix_fallocate seteuid shmctl64 strncasecmp vasprintf vsnprintf \
-	walkcontext setitimer])
+	walkcontext setitimer poll epoll_create1])
 AC_CONFIG_LIBOBJ_DIR([os])
 AC_REPLACE_FUNCS([reallocarray strcasecmp strcasestr strlcat strlcpy strndup])
+AM_CONDITIONAL(POLL, [test "x$ac_cv_func_poll" = "xyes"])
 
 AC_CHECK_DECLS([program_invocation_short_name], [], [], [[#include <errno.h>]])
 
@@ -653,7 +654,7 @@ AC_ARG_ENABLE(xquartz,        AS_HELP_STRING([--enable-xquartz], [Build Xquartz 
 AC_ARG_ENABLE(xwayland,       AS_HELP_STRING([--enable-xwayland], [Build Xwayland server (default: auto)]), [XWAYLAND=$enableval], [XWAYLAND=auto])
 AC_ARG_ENABLE(standalone-xpbproxy, AS_HELP_STRING([--enable-standalone-xpbproxy], [Build a standalone xpbproxy (in addition to the one integrated into Xquartz as a separate thread) (default: no)]), [STANDALONE_XPBPROXY=$enableval], [STANDALONE_XPBPROXY=no])
 AC_ARG_ENABLE(xwin,    	      AS_HELP_STRING([--enable-xwin], [Build XWin server (default: auto)]), [XWIN=$enableval], [XWIN=auto])
-AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor dix module (default: no)]), [GLAMOR=$enableval], [GLAMOR=no])
+AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor dix module (default: auto)]), [GLAMOR=$enableval], [GLAMOR=auto])
 dnl kdrive and its subsystems
 AC_ARG_ENABLE(kdrive,         AS_HELP_STRING([--enable-kdrive], [Build kdrive servers (default: no)]), [KDRIVE=$enableval], [KDRIVE=no])
 AC_ARG_ENABLE(xephyr,         AS_HELP_STRING([--enable-xephyr], [Build the kdrive Xephyr server (default: auto)]), [XEPHYR=$enableval], [XEPHYR=auto])
@@ -2149,7 +2150,17 @@ AM_CONDITIONAL([XORG_BUS_PLATFORM], [test "x$CONFIG_UDEV_KMS" = xyes])
 AM_CONDITIONAL([XORG_DRIVER_MODESETTING], [test "x$XORG_DRIVER_MODESETTING" = xyes])
 
 dnl glamor
+if test "x$GLAMOR" = xauto; then
+	if test "x$XORG" = xyes; then
+		GLAMOR=yes
+	fi
+	if test "x$XEPHYR" = xyes; then
+		GLAMOR=yes
+	fi
+fi
+
 AM_CONDITIONAL([GLAMOR], [test "x$GLAMOR" = xyes])
+
 if test "x$GLAMOR" = xyes; then
 	AC_DEFINE(GLAMOR, 1, [Build glamor])
 	PKG_CHECK_MODULES([GLAMOR], [epoxy])
@@ -2162,8 +2173,11 @@ if test "x$GLAMOR" = xyes; then
 			[AC_DEFINE(GLAMOR_HAS_GBM_LINEAR, 1, [Have GBM_BO_USE_LINEAR])], [],
 			[#include <stdlib.h>
 			 #include <gbm.h>])
+	else
+		if test "x$XORG" = xyes; then
+			AC_MSG_ERROR([Glamor for Xorg requires $LIBGBM])
+		fi
 	fi
-
 fi
 AM_CONDITIONAL([GLAMOR_EGL], [test "x$GBM" = xyes])
 

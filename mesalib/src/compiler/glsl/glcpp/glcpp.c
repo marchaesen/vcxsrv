@@ -171,7 +171,7 @@ main (int argc, char *argv[])
 
 	_mesa_locale_init();
 
-	ret = glcpp_preprocess(ctx, &shader, &info_log, NULL, &gl_ctx);
+	ret = glcpp_preprocess(ctx, &shader, &info_log, NULL, NULL, &gl_ctx);
 
 	printf("%s", shader);
 	fprintf(stderr, "%s", info_log);

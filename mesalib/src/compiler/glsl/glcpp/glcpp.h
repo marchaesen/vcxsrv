@@ -171,6 +171,15 @@ typedef struct active_list {
 	struct active_list *next;
 } active_list_t;
 
+struct _mesa_glsl_parse_state;
+
+typedef void (*glcpp_extension_iterator)(
+		struct _mesa_glsl_parse_state *state,
+		void (*add_builtin_define)(glcpp_parser_t *, const char *, int),
+		glcpp_parser_t *data,
+		unsigned version,
+		bool es);
+
 struct glcpp_parser {
 	yyscan_t scanner;
 	struct hash_table *defines;
@@ -194,9 +203,10 @@ struct glcpp_parser {
 	size_t output_length;
 	size_t info_log_length;
 	int error;
-	const struct gl_extensions *extensions;
+	glcpp_extension_iterator extensions;
+	void *state;
 	gl_api api;
-	bool version_resolved;
+	unsigned version;
 	bool has_new_line_number;
 	int new_line_number;
 	bool has_new_source_number;
@@ -204,10 +214,8 @@ struct glcpp_parser {
 	bool is_gles;
 };
 
-struct gl_extensions;
-
 glcpp_parser_t *
-glcpp_parser_create (const struct gl_extensions *extensions, gl_api api);
+glcpp_parser_create (glcpp_extension_iterator extensions, void *state, gl_api api);
 
 int
 glcpp_parser_parse (glcpp_parser_t *parser);
@@ -220,7 +228,8 @@ glcpp_parser_resolve_implicit_version(glcpp_parser_t *parser);
 
 int
 glcpp_preprocess(void *ralloc_ctx, const char **shader, char **info_log,
-	   const struct gl_extensions *extensions, struct gl_context *g_ctx);
+		 glcpp_extension_iterator extensions, void *state,
+		 struct gl_context *g_ctx);
 
 /* Functions for writing to the info log */
 

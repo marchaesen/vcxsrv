@@ -243,6 +243,24 @@ _mesa_PushMatrix( void )
       }
       return;
    }
+   if (stack->Depth + 1 >= stack->StackSize) {
+      unsigned new_stack_size = stack->StackSize * 2;
+      unsigned i;
+      GLmatrix *new_stack = realloc(stack->Stack,
+                                    sizeof(*new_stack) * new_stack_size);
+
+      if (!new_stack) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushMatrix()");
+         return;
+      }
+
+      for (i = stack->StackSize; i < new_stack_size; i++)
+         _math_matrix_ctr(&new_stack[i]);
+
+      stack->Stack = new_stack;
+      stack->StackSize = new_stack_size;
+   }
+
    _math_matrix_copy( &stack->Stack[stack->Depth + 1],
                       &stack->Stack[stack->Depth] );
    stack->Depth++;
@@ -645,9 +663,10 @@ init_matrix_stack( struct gl_matrix_stack *stack,
    stack->Depth = 0;
    stack->MaxDepth = maxDepth;
    stack->DirtyFlag = dirtyFlag;
-   /* The stack */
-   stack->Stack = calloc(maxDepth, sizeof(GLmatrix));
-   for (i = 0; i < maxDepth; i++) {
+   /* The stack will be dynamically resized at glPushMatrix() time */
+   stack->Stack = calloc(1, sizeof(GLmatrix));
+   stack->StackSize = 1;
+   for (i = 0; i < stack->StackSize; i++) {
       _math_matrix_ctr(&stack->Stack[i]);
    }
    stack->Top = stack->Stack;
@@ -665,11 +684,12 @@ static void
 free_matrix_stack( struct gl_matrix_stack *stack )
 {
    GLuint i;
-   for (i = 0; i < stack->MaxDepth; i++) {
+   for (i = 0; i < stack->StackSize; i++) {
       _math_matrix_dtr(&stack->Stack[i]);
    }
    free(stack->Stack);
    stack->Stack = stack->Top = NULL;
+   stack->StackSize = 0;
 }
 
 /*@}*/

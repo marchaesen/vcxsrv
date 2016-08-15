@@ -478,7 +478,7 @@ opt_gcm_impl(nir_function_impl *impl)
 
    while (!exec_list_is_empty(&state.instrs)) {
       nir_instr *instr = exec_node_data(nir_instr,
-                                        state.instrs.tail_pred, node);
+                                        state.instrs.tail_sentinel.prev, node);
       gcm_place_instr(instr, &state);
    }
 

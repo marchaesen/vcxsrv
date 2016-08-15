@@ -101,7 +101,7 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
             while (!entry->assign_list.is_empty()) {
                struct assignment_entry *assignment_entry =
                   exec_node_data(struct assignment_entry,
-                                 entry->assign_list.head, link);
+                                 entry->assign_list.get_head_raw(), link);
 
 	       assignment_entry->assign->remove();
 

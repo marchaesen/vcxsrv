@@ -29,6 +29,7 @@
 #ifndef BITSCAN_H
 #define BITSCAN_H
 
+#include <assert.h>
 #include <stdint.h>
 
 #if defined(_MSC_VER)
@@ -143,6 +144,85 @@ u_bit_scan_consecutive_range64(uint64_t *mask, int *start, int *count)
    *start = ffsll(*mask) - 1;
    *count = ffsll(~(*mask >> *start)) - 1;
    *mask &= ~(((((uint64_t)1) << *count) - 1) << *start);
+}
+
+
+/**
+ * Find last bit set in a word.  The least significant bit is 1.
+ * Return 0 if no bits are set.
+ * Essentially ffs() in the reverse direction.
+ */
+static inline unsigned
+util_last_bit(unsigned u)
+{
+#if defined(HAVE___BUILTIN_CLZ)
+   return u == 0 ? 0 : 32 - __builtin_clz(u);
+#elif defined(_MSC_VER) && (_M_IX86 || _M_ARM || _M_AMD64 || _M_IA64)
+   unsigned long index;
+   if (_BitScanReverse(&index, u))
+      return index + 1;
+   else
+      return 0;
+#else
+   unsigned r = 0;
+   while (u) {
+      r++;
+      u >>= 1;
+   }
+   return r;
+#endif
+}
+
+/**
+ * Find last bit set in a word.  The least significant bit is 1.
+ * Return 0 if no bits are set.
+ * Essentially ffsll() in the reverse direction.
+ */
+static inline unsigned
+util_last_bit64(uint64_t u)
+{
+#if defined(HAVE___BUILTIN_CLZLL)
+   return u == 0 ? 0 : 64 - __builtin_clzll(u);
+#elif defined(_MSC_VER) && (_M_AMD64 || _M_ARM || _M_IA64)
+   unsigned long index;
+   if (_BitScanReverse64(&index, u))
+      return index + 1;
+   else
+      return 0;
+#else
+   unsigned r = 0;
+   while (u) {
+      r++;
+      u >>= 1;
+   }
+   return r;
+#endif
+}
+
+/**
+ * Find last bit in a word that does not match the sign bit. The least
+ * significant bit is 1.
+ * Return 0 if no bits are set.
+ */
+static inline unsigned
+util_last_bit_signed(int i)
+{
+   if (i >= 0)
+      return util_last_bit(i);
+   else
+      return util_last_bit(~(unsigned)i);
+}
+
+/* Returns a bitfield in which the first count bits starting at start are
+ * set.
+ */
+static inline unsigned
+u_bit_consecutive(unsigned start, unsigned count)
+{
+   assert(start + count <= 32);
+   if (count == 32)
+      return ~0;
+   return ((1u << count) - 1) << start;
 }
 
 

@@ -57,7 +57,7 @@
 #endif
 
 #include <X11/X.h>
-#include <poll.h>
+#include <xserver_poll.h>
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_OSlib.h"
@@ -395,10 +395,10 @@ xf86WaitForInput(int fd, int timeout)
     poll_fd.events = POLLIN;
 
     if (fd >= 0) {
-        SYSCALL(r = poll(&poll_fd, 1, timeout));
+        SYSCALL(r = xserver_poll(&poll_fd, 1, timeout));
     }
     else {
-        SYSCALL(r = poll(&poll_fd, 0, timeout));
+        SYSCALL(r = xserver_poll(&poll_fd, 0, timeout));
     }
     xf86ErrorFVerb(9, "poll returned %d\n", r);
     return r;
@@ -427,7 +427,7 @@ xf86FlushInput(int fd)
 
     poll_fd.fd = fd;
     poll_fd.events = POLLIN;
-    while (poll(&poll_fd, 1, 0) > 0) {
+    while (xserver_poll(&poll_fd, 1, 0) > 0) {
         if (read(fd, &c, sizeof(c)) < 1)
             return 0;
     }

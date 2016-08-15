@@ -308,7 +308,25 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
       return;
    }
 
-   if (!prog->IsES && input->data.invariant != output->data.invariant) {
+   /* The GLSL 4.30 and GLSL ES 3.00 specifications say:
+    *
+    *    "As only outputs need be declared with invariant, an output from
+    *     one shader stage will still match an input of a subsequent stage
+    *     without the input being declared as invariant."
+    *
+    * while GLSL 4.20 says:
+    *
+    *    "For variables leaving one shader and coming into another shader,
+    *     the invariant keyword has to be used in both shaders, or a link
+    *     error will result."
+    *
+    * and GLSL ES 1.00 section 4.6.4 "Invariance and Linking" says:
+    *
+    *    "The invariance of varyings that are declared in both the vertex
+    *     and fragment shaders must match."
+    */
+   if (input->data.invariant != output->data.invariant &&
+       prog->Version < (prog->IsES ? 300 : 430)) {
       linker_error(prog,
                    "%s shader output `%s' %s invariant qualifier, "
                    "but %s shader input %s invariant qualifier\n",
@@ -1405,10 +1423,26 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
                  sizeof(*this->matches) * this->matches_capacity);
    }
 
-   const ir_variable *const var = (producer_var != NULL)
-      ? producer_var : consumer_var;
-   const gl_shader_stage stage = (producer_var != NULL)
-      ? producer_stage : consumer_stage;
+   /* We must use the consumer to compute the packing class because in GL4.4+
+    * there is no guarantee interpolation qualifiers will match across stages.
+    *
+    * From Section 4.5 (Interpolation Qualifiers) of the GLSL 4.30 spec:
+    *
+    *    "The type and presence of interpolation qualifiers of variables with
+    *    the same name declared in all linked shaders for the same cross-stage
+    *    interface must match, otherwise the link command will fail.
+    *
+    *    When comparing an output from one stage to an input of a subsequent
+    *    stage, the input and output don't match if their interpolation
+    *    qualifiers (or lack thereof) are not the same."
+    *
+    * This text was also in at least revison 7 of the 4.40 spec but is no
+    * longer in revision 9 and not in the 4.50 spec.
+    */
+   const ir_variable *const var = (consumer_var != NULL)
+      ? consumer_var : producer_var;
+   const gl_shader_stage stage = (consumer_var != NULL)
+      ? consumer_stage : producer_stage;
    const glsl_type *type = get_varying_type(var, stage);
 
    this->matches[this->num_matches].packing_class
@@ -2023,40 +2057,18 @@ assign_varying_locations(struct gl_context *ctx,
    bool xfb_enabled =
       ctx->Extensions.EXT_transform_feedback && !unpackable_tess;
 
-   /* Disable varying packing for GL 4.4+ as there is no guarantee
-    * that interpolation qualifiers will match between shaders in these
-    * versions. We also disable packing on outward facing interfaces for
-    * SSO because in ES we need to retain the unpacked varying information
-    * for draw time validation. For desktop GL we could allow packing for
-    * versions < 4.4 but it's just safer not to do packing.
+   /* Disable packing on outward facing interfaces for SSO because in ES we
+    * need to retain the unpacked varying information for draw time
+    * validation.
     *
     * Packing is still enabled on individual arrays, structs, and matrices as
     * these are required by the transform feedback code and it is still safe
     * to do so. We also enable packing when a varying is only used for
     * transform feedback and its not a SSO.
-    *
-    * Varying packing currently only packs together varyings with matching
-    * interpolation qualifiers as the backends assume all packed components
-    * are to be processed in the same way. Therefore we cannot do packing in
-    * these versions of GL without the risk of mismatching interfaces.
-    *
-    * From Section 4.5 (Interpolation Qualifiers) of the GLSL 4.30 spec:
-    *
-    *    "The type and presence of interpolation qualifiers of variables with
-    *    the same name declared in all linked shaders for the same cross-stage
-    *    interface must match, otherwise the link command will fail.
-    *
-    *    When comparing an output from one stage to an input of a subsequent
-    *    stage, the input and output don't match if their interpolation
-    *    qualifiers (or lack thereof) are not the same."
-    *
-    * This text was also in at least revison 7 of the 4.40 spec but is no
-    * longer in revision 9 and not in the 4.50 spec.
     */
    bool disable_varying_packing =
       ctx->Const.DisableVaryingPacking || unpackable_tess;
-   if ((ctx->API == API_OPENGL_CORE && ctx->Version >= 44) ||
-       (prog->SeparateShader && (producer == NULL || consumer == NULL)))
+   if (prog->SeparateShader && (producer == NULL || consumer == NULL))
       disable_varying_packing = true;
 
    varying_matches matches(disable_varying_packing, xfb_enabled,
@@ -2162,6 +2174,9 @@ assign_varying_locations(struct gl_context *ctx,
       }
    }
 
+   hash_table_dtor(consumer_inputs);
+   hash_table_dtor(consumer_interface_inputs);
+
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
       if (!tfeedback_decls[i].is_varying())
          continue;
@@ -2171,8 +2186,6 @@ assign_varying_locations(struct gl_context *ctx,
 
       if (matched_candidate == NULL) {
          hash_table_dtor(tfeedback_candidates);
-         hash_table_dtor(consumer_inputs);
-         hash_table_dtor(consumer_interface_inputs);
          return false;
       }
 
@@ -2191,15 +2204,10 @@ assign_varying_locations(struct gl_context *ctx,
 
       if (!tfeedback_decls[i].assign_location(ctx, prog)) {
          hash_table_dtor(tfeedback_candidates);
-         hash_table_dtor(consumer_inputs);
-         hash_table_dtor(consumer_interface_inputs);
          return false;
       }
    }
-
    hash_table_dtor(tfeedback_candidates);
-   hash_table_dtor(consumer_inputs);
-   hash_table_dtor(consumer_interface_inputs);
 
    if (consumer && producer) {
       foreach_in_list(ir_instruction, node, consumer->ir) {

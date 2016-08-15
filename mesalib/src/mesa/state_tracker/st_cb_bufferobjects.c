@@ -196,12 +196,9 @@ st_bufferobj_data(struct gl_context *ctx,
           * This should be the same as creating a new buffer, but we avoid
           * a lot of validation in Mesa.
           */
-         struct pipe_box box;
-
-         u_box_1d(0, size, &box);
-         pipe->transfer_inline_write(pipe, st_obj->buffer, 0,
-                                    PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE,
-                                    &box, data, 0, 0);
+         pipe->buffer_subdata(pipe, st_obj->buffer,
+                              PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE,
+                              0, size, data);
          return GL_TRUE;
       } else if (screen->get_param(screen, PIPE_CAP_INVALIDATE_BUFFER)) {
          pipe->invalidate_resource(pipe, st_obj->buffer);
@@ -251,10 +248,14 @@ st_bufferobj_data(struct gl_context *ctx,
    /* Set usage. */
    if (st_obj->Base.Immutable) {
       /* BufferStorage */
-      if (storageFlags & GL_CLIENT_STORAGE_BIT)
-         pipe_usage = PIPE_USAGE_STAGING;
-      else
+      if (storageFlags & GL_CLIENT_STORAGE_BIT) {
+         if (storageFlags & GL_MAP_READ_BIT)
+            pipe_usage = PIPE_USAGE_STAGING;
+         else
+            pipe_usage = PIPE_USAGE_STREAM;
+      } else {
          pipe_usage = PIPE_USAGE_DEFAULT;
+      }
    }
    else {
       /* BufferData */
@@ -336,15 +337,15 @@ st_bufferobj_data(struct gl_context *ctx,
     * might be using it.
     */
    /* TODO: Add arrays to usage history */
-   st->dirty.st |= ST_NEW_VERTEX_ARRAYS;
+   ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
    if (st_obj->Base.UsageHistory & USAGE_UNIFORM_BUFFER)
-      st->dirty.st |= ST_NEW_UNIFORM_BUFFER;
+      ctx->NewDriverState |= ST_NEW_UNIFORM_BUFFER;
    if (st_obj->Base.UsageHistory & USAGE_SHADER_STORAGE_BUFFER)
-      st->dirty.st |= ST_NEW_STORAGE_BUFFER;
+      ctx->NewDriverState |= ST_NEW_STORAGE_BUFFER;
    if (st_obj->Base.UsageHistory & USAGE_TEXTURE_BUFFER)
-      st->dirty.st |= ST_NEW_SAMPLER_VIEWS | ST_NEW_IMAGE_UNITS;
+      ctx->NewDriverState |= ST_NEW_SAMPLER_VIEWS | ST_NEW_IMAGE_UNITS;
    if (st_obj->Base.UsageHistory & USAGE_ATOMIC_COUNTER_BUFFER)
-      st->dirty.st |= ST_NEW_ATOMIC_BUFFER;
+      ctx->NewDriverState |= ST_NEW_ATOMIC_BUFFER;
 
    return GL_TRUE;
 }

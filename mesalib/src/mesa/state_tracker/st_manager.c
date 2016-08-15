@@ -153,7 +153,7 @@ st_context_validate(struct st_context *st,
                     struct st_framebuffer *stread)
 {
     if (stdraw && stdraw->stamp != st->draw_stamp) {
-       st->dirty.st |= ST_NEW_FRAMEBUFFER;
+       st->dirty |= ST_NEW_FRAMEBUFFER;
        _mesa_resize_framebuffer(st->ctx, &stdraw->Base,
                                 stdraw->Base.Width,
                                 stdraw->Base.Height);
@@ -162,7 +162,7 @@ st_context_validate(struct st_context *st,
 
     if (stread && stread->stamp != st->read_stamp) {
        if (stread != stdraw) {
-          st->dirty.st |= ST_NEW_FRAMEBUFFER;
+          st->dirty |= ST_NEW_FRAMEBUFFER;
           _mesa_resize_framebuffer(st->ctx, &stread->Base,
                                    stread->Base.Width,
                                    stread->Base.Height);

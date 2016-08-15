@@ -339,51 +339,6 @@ extern unsigned int
 _mesa_bitcount_64(uint64_t n);
 #endif
 
-/**
- * Find the last (most significant) bit set in a word.
- *
- * Essentially ffs() in the reverse direction.
- */
-static inline unsigned int
-_mesa_fls(unsigned int n)
-{
-#ifdef HAVE___BUILTIN_CLZ
-   return n == 0 ? 0 : 32 - __builtin_clz(n);
-#else
-   unsigned int v = 1;
-
-   if (n == 0)
-      return 0;
-
-   while (n >>= 1)
-       v++;
-
-   return v;
-#endif
-}
-
-/**
- * Find the last (most significant) bit set in a uint64_t value.
- *
- * Essentially ffsll() in the reverse direction.
- */
-static inline unsigned int
-_mesa_flsll(uint64_t n)
-{
-#ifdef HAVE___BUILTIN_CLZLL
-   return n == 0 ? 0 : 64 - __builtin_clzll(n);
-#else
-   unsigned int v = 1;
-
-   if (n == 0)
-      return 0;
-
-   while (n >>= 1)
-       v++;
-
-   return v;
-#endif
-}
 
 static inline bool
 _mesa_half_is_negative(GLhalfARB h)

@@ -857,7 +857,7 @@ _mesa_get_color_read_format(struct gl_context *ctx)
       if (format == MESA_FORMAT_B8G8R8A8_UNORM)
          return GL_BGRA;
       else if (format == MESA_FORMAT_B5G6R5_UNORM)
-         return GL_BGR;
+         return GL_RGB;
       else if (format == MESA_FORMAT_R_UNORM8)
          return GL_RED;
 
@@ -892,7 +892,7 @@ _mesa_get_color_read_type(struct gl_context *ctx)
       const GLenum data_type = _mesa_get_format_datatype(format);
 
       if (format == MESA_FORMAT_B5G6R5_UNORM)
-         return GL_UNSIGNED_SHORT_5_6_5_REV;
+         return GL_UNSIGNED_SHORT_5_6_5;
 
       switch (data_type) {
       case GL_SIGNED_NORMALIZED:

@@ -25,7 +25,6 @@
 
 #include "nir.h"
 #include "nir_builder.h"
-#include "program/hash_table.h"
 #include "compiler/glsl/ir_uniform.h"
 
 #include "main/compiler.h"

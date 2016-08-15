@@ -27,6 +27,12 @@
 
 #include <string.h>
 
+#ifdef HAVE_FUNC_ATTRIBUTE_VISIBILITY
+#define HIDDEN __attribute__((visibility("hidden")))
+#else
+#define HIDDEN
+#endif
+
 __asm__(".text");
 
 __asm__("x86_current_tls:\n\t"
@@ -71,8 +77,8 @@ __asm__(".text");
 extern unsigned long
 x86_current_tls();
 
-static char x86_entry_start[];
-static char x86_entry_end[];
+extern char x86_entry_start[] HIDDEN;
+extern char x86_entry_end[] HIDDEN;
 
 void
 entry_patch_public(void)

@@ -118,8 +118,14 @@ loader_dri3_drawable_fini(struct loader_dri3_drawable *draw)
          dri3_free_render_buffer(draw, draw->buffers[i]);
    }
 
-   if (draw->special_event)
+   if (draw->special_event) {
+      xcb_void_cookie_t cookie =
+         xcb_present_select_input_checked(draw->conn, draw->eid, draw->drawable,
+                                          XCB_PRESENT_EVENT_MASK_NO_EVENT);
+
+      xcb_discard_reply(draw->conn, cookie.sequence);
       xcb_unregister_for_special_event(draw->conn, draw->special_event);
+   }
 }
 
 int
@@ -785,6 +791,7 @@ loader_dri3_open(xcb_connection_t *conn,
    }
 
    fd = xcb_dri3_open_reply_fds(conn, reply)[0];
+   free(reply);
    fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
 
    return fd;

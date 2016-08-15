@@ -455,9 +455,10 @@ present_set_abort_flip(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    present_restore_screen_pixmap(screen);
-
-    screen_priv->flip_pending->abort_flip = TRUE;
+    if (!screen_priv->flip_pending->abort_flip) {
+        present_restore_screen_pixmap(screen);
+        screen_priv->flip_pending->abort_flip = TRUE;
+    }
 }
 
 static void

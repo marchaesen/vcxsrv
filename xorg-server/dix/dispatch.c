@@ -240,21 +240,78 @@ long SmartLastPrint;
 
 void Dispatch(void);
 
-static int
-SmartScheduleClient(int *clientReady, int nready)
+static struct xorg_list ready_clients;
+static struct xorg_list saved_ready_clients;
+struct xorg_list output_pending_clients;
+
+static void
+init_client_ready(void)
 {
-    int i;
-    int client;
+    xorg_list_init(&ready_clients);
+    xorg_list_init(&saved_ready_clients);
+    xorg_list_init(&output_pending_clients);
+}
+
+Bool
+clients_are_ready(void)
+{
+    return !xorg_list_is_empty(&ready_clients);
+}
+
+/* Client has requests queued or data on the network */
+void
+mark_client_ready(ClientPtr client)
+{
+    if (xorg_list_is_empty(&client->ready))
+        xorg_list_append(&client->ready, &ready_clients);
+}
+
+/* Client has no requests queued and no data on network */
+void
+mark_client_not_ready(ClientPtr client)
+{
+    xorg_list_del(&client->ready);
+}
+
+static void
+mark_client_grab(ClientPtr grab)
+{
+    ClientPtr   client, tmp;
+
+    xorg_list_for_each_entry_safe(client, tmp, &ready_clients, ready) {
+        if (client != grab) {
+            xorg_list_del(&client->ready);
+            xorg_list_append(&client->ready, &saved_ready_clients);
+        }
+    }
+}
+
+static void
+mark_client_ungrab(void)
+{
+    ClientPtr   client, tmp;
+
+    xorg_list_for_each_entry_safe(client, tmp, &saved_ready_clients, ready) {
+        xorg_list_del(&client->ready);
+        xorg_list_append(&client->ready, &ready_clients);
+    }
+}
+
+static ClientPtr
+SmartScheduleClient(void)
+{
     ClientPtr pClient, best = NULL;
     int bestRobin, robin;
     long now = SmartScheduleTime;
     long idle;
+    int nready = 0;
 
     bestRobin = 0;
     idle = 2 * SmartScheduleSlice;
-    for (i = 0; i < nready; i++) {
-        client = clientReady[i];
-        pClient = clients[client];
+
+    xorg_list_for_each_entry(pClient, &ready_clients, ready) {
+        nready++;
+
         /* Praise clients which haven't run in a while */
         if ((now - pClient->smart_stop_tick) >= idle) {
             if (pClient->smart_priority < 0)
@@ -279,12 +336,12 @@ SmartScheduleClient(int *clientReady, int nready)
         }
 #ifdef SMART_DEBUG
         if ((now - SmartLastPrint) >= 5000)
-            fprintf(stderr, " %2d: %3d", client, pClient->smart_priority);
+            fprintf(stderr, " %2d: %3d", pClient->index, pClient->smart_priority);
 #endif
     }
 #ifdef SMART_DEBUG
     if ((now - SmartLastPrint) >= 5000) {
-        fprintf(stderr, " use %2d\n", best);
+        fprintf(stderr, " use %2d\n", best->index);
         SmartLastPrint = now;
     }
 #endif
@@ -292,9 +349,9 @@ SmartScheduleClient(int *clientReady, int nready)
     /*
      * Set current client pointer
      */
-    if (SmartLastClient != pClient) {
-        pClient->smart_start_tick = now;
-        SmartLastClient = pClient;
+    if (SmartLastClient != best) {
+        best->smart_start_tick = now;
+        SmartLastClient = best;
     }
     /*
      * Adjust slice
@@ -313,7 +370,7 @@ SmartScheduleClient(int *clientReady, int nready)
     else {
         SmartScheduleSlice = SmartScheduleInterval;
     }
-    return best->index;
+    return best;
 }
 
 void
@@ -336,44 +393,34 @@ DisableLimitedSchedulingLatency(void)
 void
 Dispatch(void)
 {
-    int *clientReady;           /* array of request ready clients */
     int result;
     ClientPtr client;
-    int nready;
     HWEventQueuePtr *icheck = checkForInput;
     long start_tick;
 
     nextFreeClientID = 1;
     nClients = 0;
 
-    clientReady = xallocarray(MaxClients, sizeof(int));
-    if (!clientReady)
-        return;
-
     SmartScheduleSlice = SmartScheduleInterval;
+    init_client_ready();
+
     while (!dispatchException) {
         if (*icheck[0] != *icheck[1]) {
             ProcessInputEvents();
             FlushIfCriticalOutputPending();
         }
 
-        nready = WaitForSomething(clientReady);
+        if (!WaitForSomething(clients_are_ready()))
+            continue;
 
-        if (nready) {
-            clientReady[0] = SmartScheduleClient(clientReady, nready);
-            nready = 1;
-        }
        /*****************
 	*  Handle events in round robin fashion, doing input between
 	*  each round
 	*****************/
 
-        while (!dispatchException && (--nready >= 0)) {
-            client = clients[clientReady[nready]];
-            if (!client) {
-                /* KillClient can cause this to happen */
-                continue;
-            }
+        if (!dispatchException && clients_are_ready()) {
+            client = SmartScheduleClient();
+
             isItTimeToYield = FALSE;
 
             start_tick = SmartScheduleTime;
@@ -445,8 +492,7 @@ Dispatch(void)
                 }
             }
             FlushAllOutput();
-            client = clients[clientReady[nready]];
-            if (client)
+            if (client == SmartLastClient)
                 client->smart_stop_tick = SmartScheduleTime;
         }
         dispatchException &= ~DE_PRIORITYCHANGE;
@@ -455,7 +501,6 @@ Dispatch(void)
     ddxBeforeReset();
 #endif
     KillAllClients();
-    free(clientReady);
     dispatchException &= ~DE_RESET;
     SmartScheduleLatencyLimited = 0;
     ResetOsBuffers();
@@ -1055,6 +1100,7 @@ ProcGrabServer(ClientPtr client)
         return rc;
     grabState = GrabActive;
     grabClient = client;
+    mark_client_grab(client);
 
     if (ServerGrabCallback) {
         ServerGrabInfoRec grabinfo;
@@ -1074,6 +1120,7 @@ UngrabServer(ClientPtr client)
 
     grabState = GrabNone;
     ListenToAllClients();
+    mark_client_ungrab();
     for (i = mskcnt; --i >= 0 && !grabWaiters[i];);
     if (i >= 0) {
         i <<= 5;
@@ -3365,6 +3412,8 @@ CloseDownClient(ClientPtr client)
         if (grabState != GrabNone && grabClient == client) {
             UngrabServer(client);
         }
+        mark_client_not_ready(client);
+        xorg_list_del(&client->output_pending);
         BITCLEAR(grabWaiters, client->index);
         DeleteClientFromAnySelections(client);
         ReleaseActiveGrabs(client);
@@ -3454,6 +3503,8 @@ void
 InitClient(ClientPtr client, int i, void *ospriv)
 {
     client->index = i;
+    xorg_list_init(&client->ready);
+    xorg_list_init(&client->output_pending);
     client->clientAsMask = ((Mask) i) << CLIENTOFFSET;
     client->closeDownMode = i ? DestroyAll : RetainPermanent;
     client->requestVector = InitialVector;
