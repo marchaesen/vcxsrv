@@ -227,6 +227,13 @@ typedef struct nir_variable {
       unsigned location_frac:2;
 
       /**
+       * Whether this is a fragment shader output implicitly initialized with
+       * the previous contents of the specified render target at the
+       * framebuffer location corresponding to this shader invocation.
+       */
+      unsigned fb_fetch_output:1;
+
+      /**
        * \brief Layout qualifier for gl_FragDepth.
        *
        * This is not equal to \c ir_depth_layout_none if and only if this
@@ -867,9 +874,6 @@ typedef enum {
 #include "nir_intrinsics.h"
    nir_num_intrinsics = nir_last_intrinsic + 1
 } nir_intrinsic_op;
-
-#undef INTRINSIC
-#undef LAST_INTRINSIC
 
 #define NIR_INTRINSIC_MAX_CONST_INDEX 3
 
@@ -1779,6 +1783,8 @@ typedef struct nir_shader_info {
    uint64_t double_inputs_read;
    /* Which outputs are actually written */
    uint64_t outputs_written;
+   /* Which outputs are actually read */
+   uint64_t outputs_read;
    /* Which system values are actually read */
    uint64_t system_values_read;
 
@@ -1896,7 +1902,7 @@ typedef struct nir_shader {
    gl_shader_stage stage;
 } nir_shader;
 
-static inline nir_function *
+static inline nir_function_impl *
 nir_shader_get_entrypoint(nir_shader *shader)
 {
    assert(exec_list_length(&shader->functions) == 1);
@@ -1904,7 +1910,8 @@ nir_shader_get_entrypoint(nir_shader *shader)
    nir_function *func = exec_node_data(nir_function, func_node, node);
    assert(func->return_type == glsl_void_type());
    assert(func->num_params == 0);
-   return func;
+   assert(func->impl);
+   return func->impl;
 }
 
 #define nir_foreach_function(func, shader) \
@@ -2101,6 +2108,16 @@ nir_after_cf_node(nir_cf_node *node)
 }
 
 static inline nir_cursor
+nir_after_phis(nir_block *block)
+{
+   nir_foreach_instr(instr, block) {
+      if (instr->type != nir_instr_type_phi)
+         return nir_before_instr(instr);
+   }
+   return nir_after_block(block);
+}
+
+static inline nir_cursor
 nir_after_cf_node_and_phis(nir_cf_node *node)
 {
    if (node->type == nir_cf_node_block)
@@ -2109,11 +2126,7 @@ nir_after_cf_node_and_phis(nir_cf_node *node)
    nir_block *block = nir_cf_node_as_block(nir_cf_node_next(node));
    assert(block->cf_node.type == nir_cf_node_block);
 
-   nir_foreach_instr(instr, block) {
-      if (instr->type != nir_instr_type_phi)
-         return nir_before_instr(instr);
-   }
-   return nir_after_block(block);
+   return nir_after_phis(block);
 }
 
 static inline nir_cursor
@@ -2372,7 +2385,8 @@ bool nir_lower_indirect_derefs(nir_shader *shader, nir_variable_mode modes);
 
 bool nir_lower_locals_to_regs(nir_shader *shader);
 
-void nir_lower_io_to_temporaries(nir_shader *shader, nir_function *entrypoint,
+void nir_lower_io_to_temporaries(nir_shader *shader,
+                                 nir_function_impl *entrypoint,
                                  bool outputs, bool inputs);
 
 void nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint);
@@ -2398,6 +2412,7 @@ void nir_lower_alu_to_scalar(nir_shader *shader);
 void nir_lower_load_const_to_scalar(nir_shader *shader);
 
 void nir_lower_phis_to_scalar(nir_shader *shader);
+void nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask);
 
 void nir_lower_samplers(nir_shader *shader,
                         const struct gl_shader_program *shader_program);
@@ -2572,7 +2587,7 @@ bool nir_opt_dce(nir_shader *shader);
 
 bool nir_opt_dead_cf(nir_shader *shader);
 
-void nir_opt_gcm(nir_shader *shader);
+bool nir_opt_gcm(nir_shader *shader, bool value_number);
 
 bool nir_opt_peephole_select(nir_shader *shader);
 

@@ -1,0 +1,403 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 12.0.2 Release Notes / September 2, 2016</h1>
+
+<p>
+Mesa 12.0.2 is a bug fix release which fixes bugs found since the 12.0.1 release.
+</p>
+<p>
+Mesa 12.0.2 implements the OpenGL 4.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.3.  OpenGL
+4.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+a08565ab1273751ebe2ffa928cbf785056594c803077c9719d0763da780f2918  mesa-12.0.2.tar.gz
+d957a5cc371dcd7ff2aa0d87492f263aece46f79352f4520039b58b1f32552cb  mesa-12.0.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=69622">Bug 69622</a> - eglTerminate then eglMakeCurrent crahes</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89599">Bug 89599</a> - symbol 'x86_64_entry_start' is already defined when building with LLVM/clang</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91342">Bug 91342</a> - Very dark textures on some objects in indoors environments in Postal 2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92306">Bug 92306</a> - GL Excess demo renders incorrectly on nv43</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=94148">Bug 94148</a> - Framebuffer considered invalid when a draw call is done before glCheckFramebufferStatus</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96274">Bug 96274</a> - [NVC0] Failure when compiling compute shader: Assertion `bb-&gt;getFirst()-&gt;serial &lt;= bb-&gt;getExit()-&gt;serial' failed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96358">Bug 96358</a> - SSO: wrong interface validation between GS and VS (regresion due to latest gles 3.1)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96381">Bug 96381</a> - Texture artifacts with immutable texture storage and mipmaps</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96762">Bug 96762</a> - [radeonsi,apitrace] Firewatch: nothing rendered in scrollable (text) areas</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96835">Bug 96835</a> - &quot;gallium: Force blend color to 16-byte alignment&quot; crash with &quot;-march=native -O3&quot; causes some 32bit games to crash</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96850">Bug 96850</a> - Crucible tests fail for 32bit mesa</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96908">Bug 96908</a> - [radeonsi] MSAA causes graphical artifacts</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96911">Bug 96911</a> - webgl2 conformance2/textures/misc/tex-mipmap-levels.html crashes 12.1 Intel driver</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=96971">Bug 96971</a> - invariant qualifier is not valid for shader inputs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97039">Bug 97039</a> - The Talos Principle and Serious Sam 3 GPU faults</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97207">Bug 97207</a> - [IVY BRIDGE] Fragment shader discard writing to depth</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97214">Bug 97214</a> - X not running with error &quot;Failed to make EGL context current&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97225">Bug 97225</a> - [i965 on HD4600 Haswell] xcom switch to ingame cinematics cause segmentation fault</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97231">Bug 97231</a> - GL_DEPTH_CLAMP doesn't clamp to the far plane</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97307">Bug 97307</a> - glsl/glcpp/tests/glcpp-test regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97331">Bug 97331</a> - glDrawElementsBaseVertex doesn't work in display list on i915</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97351">Bug 97351</a> - DrawElementsBaseVertex with VBO ignores base vertex on Intel GMA 9xx in some cases</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97426">Bug 97426</a> - glScissor gives vertically inverted result</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97476">Bug 97476</a> - Shader binaries should not be stored in the PipelineCache</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97567">Bug 97567</a> - [SNB, ILK] ctl, piglit regressions in mesa 12.0.2rc1</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andreas Boll (1):</p>
+<ul>
+  <li>configure.ac: Use ${datarootdir} for --with-vulkan-icddir help string too</li>
+</ul>
+
+<p>Bernard Kilarski (1):</p>
+<ul>
+  <li>glx: fix error code when there is no context bound</li>
+</ul>
+
+<p>Brian Paul (4):</p>
+<ul>
+  <li>svga: handle mismatched number of samplers, sampler views</li>
+  <li>mesa: use _mesa_clear_texture_image() in clear_texture_fields()</li>
+  <li>swrast: fix incorrectly positioned putImage() in swrast driver</li>
+  <li>mesa: fix format conversion bug in get_tex_rgba_uncompressed()</li>
+</ul>
+
+<p>Chad Versace (2):</p>
+<ul>
+  <li>i965: Fix miptree layout for EGLImage-based renderbuffers</li>
+  <li>i965: Respect miptree offsets in intel_readpixels_tiled_memcpy()</li>
+</ul>
+
+<p>Christian König (1):</p>
+<ul>
+  <li>st/mesa: fix reference counting bug in st_vdpau</li>
+</ul>
+
+<p>Chuck Atkins (1):</p>
+<ul>
+  <li>swr: Refactor checks for compiler feature flags</li>
+</ul>
+
+<p>Daniel Scharrer (1):</p>
+<ul>
+  <li>mesa: Fix fixed function spot lighting on newer hardware (again)</li>
+</ul>
+
+<p>Dave Airlie (2):</p>
+<ul>
+  <li>anv: fix writemask on blit fragment shader.</li>
+  <li>st/glsl_to_tgsi: fix st_src_reg_for_double constant.</li>
+</ul>
+
+<p>Emil Velikov (15):</p>
+<ul>
+  <li>docs: add sha256 checksums for 12.0.1</li>
+  <li>mesa: automake: list builddir before srcdir</li>
+  <li>mesa: scons: list builddir before srcdir</li>
+  <li>i965: store reference to the context within struct brw_fence (v2)</li>
+  <li>anv: remove internal 'validate' layer</li>
+  <li>anv: automake: use VISIBILITY_CFLAGS to restrict symbol visibility</li>
+  <li>anv: automake: build with -Bsymbolic</li>
+  <li>anv: do not export the Vulkan API</li>
+  <li>anv: remove dummy VK_DEBUG_MARKER_EXT entry points</li>
+  <li>isl: automake: use VISIBILITY_CFLAGS to restrict symbol visibility</li>
+  <li>cherry-ignore: temporary(?) drop "a4xx: make sure to actually clamp depth"</li>
+  <li>i915: Check return value of screen-&gt;image.loader-&gt;getBuffers</li>
+  <li>Revert "i965/miptree: Set logical_depth0 == 6 for cube maps"</li>
+  <li>glx/glvnd: list the strcmp arguments in correct order</li>
+  <li>Update version to 12.0.2</li>
+</ul>
+
+<p>Eric Anholt (4):</p>
+<ul>
+  <li>vc4: Close our screen's fd on screen close.</li>
+  <li>vc4: Disable early Z with computed depth.</li>
+  <li>vc4: Fix a leak of the src[] array of VPM reads in optimization.</li>
+  <li>vc4: Fix leak of the bo_handles table.</li>
+</ul>
+
+<p>Francisco Jerez (3):</p>
+<ul>
+  <li>i965: Emit SKL VF cache invalidation W/A from brw_emit_pipe_control_flush.</li>
+  <li>i965: Make room in the batch epilogue for three more pipe controls.</li>
+  <li>i965: Fix remaining flush vs invalidate race conditions in brw_emit_pipe_control_flush.</li>
+</ul>
+
+<p>Haixia Shi (1):</p>
+<ul>
+  <li>platform_android: prevent deadlock in droid_swap_buffers</li>
+</ul>
+
+<p>Ian Romanick (5):</p>
+<ul>
+  <li>mesa: Strip arrayness from interface block names in some IO validation</li>
+  <li>glsl: Pack integer and double varyings as flat even if interpolation mode is none</li>
+  <li>glcpp: Track the actual version instead of just the version_resolved flag</li>
+  <li>glcpp: Only disallow #undef of pre-defined macros on GLSL ES &gt;= 3.00 shaders</li>
+  <li>glsl: Mark cube map array sampler types as reserved in GLSL ES 3.10</li>
+</ul>
+
+<p>Ilia Mirkin (16):</p>
+<ul>
+  <li>mesa: etc2 online compression is unsupported, don't attempt it</li>
+  <li>st/mesa: return appropriate mesa format for ETC texture formats</li>
+  <li>mesa: set _NEW_BUFFERS when updating texture bound to current buffers</li>
+  <li>nv50,nvc0: srgb rendering is only available for rgba/bgra</li>
+  <li>vbo: allow DrawElementsBaseVertex in display lists</li>
+  <li>gallium/util: add helper to compute zmin/zmax for a viewport state</li>
+  <li>nv50,nvc0: fix depth range when halfz is enabled</li>
+  <li>nv50/ir: fix bb positions after exit instructions</li>
+  <li>vbo: add basevertex when looking up elements for vbo splitting</li>
+  <li>a4xx: only disable depth clipping, not all clipping, when requested</li>
+  <li>nv50/ir: make sure cfg iterator always hits all blocks</li>
+  <li>main: add missing EXTRA_END in OES_sample_variables get check</li>
+  <li>nouveau: always enable at least one RC</li>
+  <li>nv30: only bail on color/depth bpp mismatch when surfaces are swizzled</li>
+  <li>a4xx: make sure to actually clamp depth as requested</li>
+  <li>gk110/ir: fix quadop dall emission</li>
+</ul>
+
+<p>Jan Ziak (2):</p>
+<ul>
+  <li>egl/x11: avoid using freed memory if dri2 init fails</li>
+  <li>loader: fix memory leak in loader_dri3_open</li>
+</ul>
+
+<p>Jason Ekstrand (31):</p>
+<ul>
+  <li>nir/spirv: Don't multiply the push constant block size by 4</li>
+  <li>anv: Add a stub for CmdCopyQueryPoolResults on Ivy Bridge</li>
+  <li>glsl/types: Fix function type comparison function</li>
+  <li>glsl/types: Use _mesa_hash_data for hashing function types</li>
+  <li>genxml: Make gen6-7 blending look more like gen8</li>
+  <li>anv/pipeline: Unify blend state setup between gen7 and gen8</li>
+  <li>anv: Enable independentBlend on gen7</li>
+  <li>anv: Add an align_down_npot_u32 helper</li>
+  <li>anv: Handle VK_WHOLE_SIZE properly for buffer views</li>
+  <li>i965/miptree: Enforce that height == 1 for 1-D array textures</li>
+  <li>i965/miptree: Set logical_depth0 == 6 for cube maps</li>
+  <li>nir: Add a nir_deref_foreach_leaf helper</li>
+  <li>nir/inline: Constant-initialize local variables in the callee if needed</li>
+  <li>anv/pipeline: Set up point coord enables</li>
+  <li>i965/miptree: Stop multiplying cube depth by 6 in HiZ calculations</li>
+  <li>i965/vec4: Make opt_vector_float reset at the top of each block</li>
+  <li>anv/blit2d: Add a format parameter to bind_dst and create_iview</li>
+  <li>anv/blit2d: Add support for RGB destinations</li>
+  <li>anv/clear: Make cmd_clear_image take an actual VkClearValue</li>
+  <li>anv/clear: Clear E5B9G9R9 images as R32_UINT</li>
+  <li>anv: Include the pipeline layout in the shader hash</li>
+  <li>isl: Allow multisampled array textures</li>
+  <li>anv/descriptor_set: memset anv_descriptor_set_layout</li>
+  <li>anv/pipeline: Fix bind maps for fragment output arrays</li>
+  <li>anv/allocator: Correctly set the number of buckets</li>
+  <li>anv/pipeline: Properly handle OOM during shader compilation</li>
+  <li>anv: Remove unused fields from anv_pipeline_bind_map</li>
+  <li>anv: Add pipeline_has_stage guards a few places</li>
+  <li>anv: Add a struct for storing a compiled shader</li>
+  <li>anv/pipeline: Add support for caching the push constant map</li>
+  <li>anv: Rework pipeline caching</li>
+</ul>
+
+<p>José Fonseca (2):</p>
+<ul>
+  <li>appveyor: Install pywin32 extensions.</li>
+  <li>appveyor: Force Visual Studio 2013 image.</li>
+</ul>
+
+<p>Kenneth Graunke (21):</p>
+<ul>
+  <li>genxml: Add CLIPMODE_* prefix to 3DSTATE_CLIP's "Clip Mode" enum values.</li>
+  <li>genxml: Add APIMODE_D3D missing enum values and improve consistency.</li>
+  <li>anv: Fix near plane clipping on Gen7/7.5.</li>
+  <li>anv: Enable early culling on Gen7.</li>
+  <li>anv: Unify 3DSTATE_CLIP code across generations.</li>
+  <li>genxml: Rename "API Rendering Disable" to "Rendering Disable".</li>
+  <li>anv: Properly call gen75_emit_state_base_address on Haswell.</li>
+  <li>i965: Include VUE handles for GS with invocations &gt; 1.</li>
+  <li>nir: Add a base const_index to shared atomic intrinsics.</li>
+  <li>i965: Fix shared atomic intrinsics to pay attention to base.</li>
+  <li>mesa: Add GL_BGRA_EXT to the list of GenerateMipmap internal formats.</li>
+  <li>mesa: Don't call GenerateMipmap if Width or Height == 0.</li>
+  <li>glsl: Delete bogus ir_set_program_inouts assert.</li>
+  <li>glsl: Fix the program resource names of gl_TessLevelOuter/Inner[].</li>
+  <li>glsl: Fix location bias for patch variables.</li>
+  <li>glsl: Fix invariant matching in GLSL 4.30 and GLSL ES 1.00.</li>
+  <li>mesa: Fix uf10_to_f32() scale factor in the E == 0 and M != 0 case.</li>
+  <li>nir/builder: Add bany_inequal and bany helpers.</li>
+  <li>i965: Implement the WaPreventHSTessLevelsInterference workaround.</li>
+  <li>i965: Fix execution size of scalar TCS barrier setup code.</li>
+  <li>i965: Fix barrier count shift in scalar TCS backend.</li>
+</ul>
+
+<p>Leo Liu (2):</p>
+<ul>
+  <li>st/omx/enc: check uninitialized list from task release</li>
+  <li>vl/dri3: fix a memory leak from front buffer</li>
+</ul>
+
+<p>Marek Olšák (7):</p>
+<ul>
+  <li>glsl_to_tgsi: don't use the negate modifier in integer ops after bitcast</li>
+  <li>radeonsi: add a workaround for a compute VGPR-usage LLVM bug</li>
+  <li>winsys/amdgpu: disallow DCC with mipmaps</li>
+  <li>gallium/util: fix align64</li>
+  <li>radeonsi: only set dual source blending for MRT0</li>
+  <li>radeonsi: fix VM faults due NULL internal const buffers on CIK</li>
+  <li>radeonsi: disable SDMA texture copying on Carrizo</li>
+</ul>
+
+<p>Matt Turner (4):</p>
+<ul>
+  <li>mapi: Massage code to allow clang to compile.</li>
+  <li>i965/vec4: Ignore swizzle of VGRF for use by var_range_end().</li>
+  <li>mesa: Use AC_HEADER_MAJOR to include correct header for major().</li>
+  <li>nir: Walk blocks in source code order in lower_vars_to_ssa.</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>glx: Don't use current context in __glXSendError</li>
+</ul>
+
+<p>Miklós Máté (1):</p>
+<ul>
+  <li>vbo: set draw_id</li>
+</ul>
+
+<p>Nanley Chery (5):</p>
+<ul>
+  <li>anv/descriptor_set: Fix binding partly undefined descriptor sets</li>
+  <li>isl: Fix assert on raw buffer surface state size</li>
+  <li>anv/device: Fix max buffer range limits</li>
+  <li>isl: Fix isl_tiling_is_any_y()</li>
+  <li>anv/gen7_pipeline: Set PixelShaderKillPixel for discards</li>
+</ul>
+
+<p>Nicolai Hähnle (7):</p>
+<ul>
+  <li>radeonsi: explicitly choose center locations for 1xAA on Polaris</li>
+  <li>radeonsi: fix Polaris MSAA regression</li>
+  <li>radeonsi: ensure sample locations are set for line and polygon smoothing</li>
+  <li>st_glsl_to_tgsi: only skip over slots of an input array that are present</li>
+  <li>glsl: fix optimization of discard nested multiple levels</li>
+  <li>radeonsi: flush TC L2 cache for indirect draw data</li>
+  <li>radeonsi: add si_set_rw_buffer to be used for internal descriptors</li>
+</ul>
+
+<p>Nicolas Boichat (6):</p>
+<ul>
+  <li>egl/dri2: dri2_make_current: Set EGL error if bindContext fails</li>
+  <li>egl/wayland: Set disp-&gt;DriverData to NULL on error</li>
+  <li>egl/surfaceless: Set disp-&gt;DriverData to NULL on error</li>
+  <li>egl/drm: Set disp-&gt;DriverData to NULL on error</li>
+  <li>egl/android: Set dpy-&gt;DriverData to NULL on error</li>
+  <li>egl/dri2: Add reference count for dri2_egl_display</li>
+</ul>
+
+<p>Rob Herring (3):</p>
+<ul>
+  <li>Android: add missing u_math.h include path for libmesa_isl</li>
+  <li>vc4: fix vc4_resource_from_handle() stride calculation</li>
+  <li>vc4: add hash table look-up for exported dmabufs</li>
+</ul>
+
+<p>Samuel Pitoiset (7):</p>
+<ul>
+  <li>nvc0/ir: fix images indirect access on Fermi</li>
+  <li>nvc0: fix the driver cb size when draw parameters are used</li>
+  <li>gm107/ir: add missing NEG modifier for IADD32I</li>
+  <li>gm107/ir: make use of ADD32I for all immediates</li>
+  <li>nvc0: upload sample locations on GM20x</li>
+  <li>nvc0: invalidate textures/samplers on GK104+</li>
+  <li>nv50/ir: always emit the NDV bit for OP_QUADOP</li>
+</ul>
+
+<p>Stefan Dirsch (1):</p>
+<ul>
+  <li>Avoid overflow in 'last' variable of FindGLXFunction(...)</li>
+</ul>
+
+<p>Stencel, Joanna (1):</p>
+<ul>
+  <li>egl/wayland-egl: Fix for segfault in dri2_wl_destroy_surface.</li>
+</ul>
+
+<p>Tim Rowley (2):</p>
+<ul>
+  <li>Revert "gallium: Force blend color to 16-byte alignment"</li>
+  <li>swr: switch from overriding -march to selecting features</li>
+</ul>
+
+<p>Tomasz Figa (8):</p>
+<ul>
+  <li>gallium/dri: Add shared glapi to LIBADD on Android</li>
+  <li>egl/android: Remove unused variables</li>
+  <li>egl/android: Check return value of dri2_get_dri_config()</li>
+  <li>egl/android: Stop leaking DRI images</li>
+  <li>gallium/winsys/kms: Fix double refcount when importing from prime FD (v2)</li>
+  <li>gallium/winsys/kms: Fully initialize kms_sw_dt at prime import time (v2)</li>
+  <li>gallium/winsys/kms: Move display target handle lookup to separate function</li>
+  <li>gallium/winsys/kms: Look up the GEM handle after importing a prime FD</li>
+</ul>
+
+
+</div>
+</body>
+</html>

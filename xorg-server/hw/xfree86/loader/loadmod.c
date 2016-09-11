@@ -626,9 +626,9 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
                 else
                     errtype = X_ERROR;
                 xf86MsgVerb(errtype, 0,
-                            "module ABI major version (%d) doesn't"
+                            "%s: module ABI major version (%d) doesn't"
                             " match the server's version (%d)\n",
-                            abimaj, vermaj);
+                            module, abimaj, vermaj);
                 if (!(LoaderOptions & LDR_OPT_ABI_MISMATCH_NONFATAL))
                     return FALSE;
             }
@@ -638,9 +638,9 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
                 else
                     errtype = X_ERROR;
                 xf86MsgVerb(errtype, 0,
-                            "module ABI minor version (%d) is "
+                            "%s: module ABI minor version (%d) is "
                             "newer than the server's version "
-                            "(%d)\n", abimin, vermin);
+                            "(%d)\n", module, abimin, vermin);
                 if (!(LoaderOptions & LDR_OPT_ABI_MISMATCH_NONFATAL))
                     return FALSE;
             }
@@ -651,24 +651,24 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
     if (req) {
         if (req->majorversion != MAJOR_UNSPEC) {
             if (data->majorversion != req->majorversion) {
-                xf86MsgVerb(X_WARNING, 2, "module major version (%d) "
+                xf86MsgVerb(X_WARNING, 2, "%s: module major version (%d) "
                             "doesn't match required major version (%d)\n",
-                            data->majorversion, req->majorversion);
+                            module, data->majorversion, req->majorversion);
                 return FALSE;
             }
             else if (req->minorversion != MINOR_UNSPEC) {
                 if (data->minorversion < req->minorversion) {
-                    xf86MsgVerb(X_WARNING, 2, "module minor version (%d) "
+                    xf86MsgVerb(X_WARNING, 2, "%s: module minor version (%d) "
                                 "is less than the required minor version (%d)\n",
-                                data->minorversion, req->minorversion);
+                                module, data->minorversion, req->minorversion);
                     return FALSE;
                 }
                 else if (data->minorversion == req->minorversion &&
                          req->patchlevel != PATCH_UNSPEC) {
                     if (data->patchlevel < req->patchlevel) {
-                        xf86MsgVerb(X_WARNING, 2, "module patch level (%d) "
+                        xf86MsgVerb(X_WARNING, 2, "%s: module patch level (%d) "
                                     "is less than the required patch level (%d)\n",
-                                    data->patchlevel, req->patchlevel);
+                                    module, data->patchlevel, req->patchlevel);
                         return FALSE;
                     }
                 }
@@ -677,8 +677,9 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
         if (req->moduleclass) {
             if (!data->moduleclass ||
                 strcmp(req->moduleclass, data->moduleclass)) {
-                xf86MsgVerb(X_WARNING, 2, "Module class (%s) doesn't match "
+                xf86MsgVerb(X_WARNING, 2, "%s: Module class (%s) doesn't match "
                             "the required class (%s)\n",
+                            module,
                             data->moduleclass ? data->moduleclass : "<NONE>",
                             req->moduleclass);
                 return FALSE;
@@ -686,8 +687,9 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
         }
         else if (req->abiclass != ABI_CLASS_NONE) {
             if (!data->abiclass || strcmp(req->abiclass, data->abiclass)) {
-                xf86MsgVerb(X_WARNING, 2, "ABI class (%s) doesn't match the "
+                xf86MsgVerb(X_WARNING, 2, "%s: ABI class (%s) doesn't match the "
                             "required ABI class (%s)\n",
+                            module,
                             data->abiclass ? data->abiclass : "<NONE>",
                             req->abiclass);
                 return FALSE;
@@ -702,15 +704,16 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
             maj = GET_ABI_MAJOR(data->abiversion);
             min = GET_ABI_MINOR(data->abiversion);
             if (maj != reqmaj) {
-                xf86MsgVerb(X_WARNING, 2, "ABI major version (%d) doesn't "
+                xf86MsgVerb(X_WARNING, 2, "%s: ABI major version (%d) doesn't "
                             "match the required ABI major version (%d)\n",
-                            maj, reqmaj);
+                            module, maj, reqmaj);
                 return FALSE;
             }
             /* XXX Maybe this should be the other way around? */
             if (min > reqmin) {
-                xf86MsgVerb(X_WARNING, 2, "module ABI minor version (%d) "
-                            "is newer than that available (%d)\n", min, reqmin);
+                xf86MsgVerb(X_WARNING, 2, "%s: module ABI minor version (%d) "
+                            "is newer than that available (%d)\n",
+                            module, min, reqmin);
                 return FALSE;
             }
         }

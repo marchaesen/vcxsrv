@@ -92,11 +92,13 @@ present_clear_window_flip(WindowPtr window)
     present_vblank_ptr          flip_pending = screen_priv->flip_pending;
 
     if (flip_pending && flip_pending->window == window) {
-        assert (flip_pending->abort_flip);
+        present_set_abort_flip(screen);
         flip_pending->window = NULL;
     }
-    if (screen_priv->flip_window == window)
+    if (screen_priv->flip_window == window) {
+        present_restore_screen_pixmap(screen);
         screen_priv->flip_window = NULL;
+    }
 }
 
 /*

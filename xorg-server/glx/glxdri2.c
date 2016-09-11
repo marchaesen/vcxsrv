@@ -297,7 +297,7 @@ __glXDRIcontextWait(__GLXcontext * baseContext,
     }
 
     if (ret) {
-        *error = cl->client->noClientException;
+        *error = -1;
         return TRUE;
     }
 
@@ -994,10 +994,8 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     initializeExtensions(&screen->base);
 
-    screen->base.fbconfigs = glxConvertConfigs(screen->core, screen->driConfigs,
-                                               GLX_WINDOW_BIT |
-                                               GLX_PIXMAP_BIT |
-                                               GLX_PBUFFER_BIT);
+    screen->base.fbconfigs = glxConvertConfigs(screen->core,
+                                               screen->driConfigs);
 
     options = xnfalloc(sizeof(GLXOptions));
     memcpy(options, GLXOptions, sizeof(GLXOptions));

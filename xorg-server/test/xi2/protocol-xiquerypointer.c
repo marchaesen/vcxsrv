@@ -140,6 +140,7 @@ request_XIQueryPointer(ClientPtr client, xXIQueryPointerReq * req, int error)
 
     client_request.swapped = TRUE;
     swaps(&req->deviceid);
+    swapl(&req->win);
     swaps(&req->length);
     rc = SProcXIQueryPointer(&client_request);
     assert(rc == error);

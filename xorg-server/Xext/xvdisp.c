@@ -949,7 +949,6 @@ ProcXvShmPutImage(ClientPtr client)
 static int
 ProcXvShmPutImage(ClientPtr client)
 {
-    SendErrorToClient(client, XvReqCode, xv_ShmPutImage, 0, BadImplementation);
     return BadImplementation;
 }
 #endif
@@ -1108,7 +1107,6 @@ ProcXvDispatch(ClientPtr client)
     UpdateCurrentTime();
 
     if (stuff->data >= xvNumRequests) {
-        SendErrorToClient(client, XvReqCode, stuff->data, 0, BadRequest);
         return BadRequest;
     }
 
@@ -1429,7 +1427,6 @@ SProcXvDispatch(ClientPtr client)
     UpdateCurrentTime();
 
     if (stuff->data >= xvNumRequests) {
-        SendErrorToClient(client, XvReqCode, stuff->data, 0, BadRequest);
         return BadRequest;
     }
 

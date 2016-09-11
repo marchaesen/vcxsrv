@@ -22,7 +22,8 @@
 
 LOCAL_PATH := $(call my-dir)
 
-include $(LOCAL_PATH)/Makefile.sources
+include $(LOCAL_PATH)/Android.glsl.mk
+include $(LOCAL_PATH)/Android.nir.mk
 
 # ---------------------------------------
 # Build libmesa_compiler
@@ -30,19 +31,22 @@ include $(LOCAL_PATH)/Makefile.sources
 
 include $(CLEAR_VARS)
 
+include $(LOCAL_PATH)/Makefile.sources
 LOCAL_SRC_FILES := $(LIBCOMPILER_FILES)
 
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \
 	$(MESA_TOP)/src/mesa \
 	$(MESA_TOP)/src/gallium/include \
-	$(MESA_TOP)/src/gallium/auxiliary
+	$(MESA_TOP)/src/gallium/auxiliary \
+	$(dir $(MESA_GEN_GLSL_H))
+
+LOCAL_GENERATED_SOURCES += \
+	$(MESA_GEN_GLSL_H)
 
 LOCAL_MODULE := libmesa_compiler
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
 
-include $(LOCAL_PATH)/Android.glsl.mk
 
-include $(LOCAL_PATH)/Android.nir.mk

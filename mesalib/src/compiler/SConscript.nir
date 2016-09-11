@@ -19,6 +19,7 @@ env.Prepend(CPPPATH = [
 ])
 
 # Make generated headers reachable from the include path.
+env.Prepend(CPPPATH = [Dir('.').abspath, Dir('glsl').abspath])
 env.Prepend(CPPPATH = [Dir('.').abspath, Dir('nir').abspath])
 
 # nir generated sources

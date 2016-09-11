@@ -191,7 +191,7 @@ static inline float uf10_to_f32(uint16_t val)
 
    if (exponent == 0) {
       if (mantissa != 0) {
-         const float scale = 1.0 / (1 << 20);
+         const float scale = 1.0 / (1 << 19);
          f32.f = scale * mantissa;
       }
    } else if (exponent == 31) {

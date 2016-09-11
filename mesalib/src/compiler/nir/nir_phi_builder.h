@@ -44,7 +44,8 @@
  *         var.pb_val = nir_phi_builder_add_value(pb, var.defs)
  *
  *     // Visit each block.  This needs to visit dominators first;
- *     // nir_for_each_block() will be ok.
+ *     // nir_foreach_block() will be ok.
+ *
  *     foreach block:
  *         foreach instruction:
  *             foreach use of variable var:

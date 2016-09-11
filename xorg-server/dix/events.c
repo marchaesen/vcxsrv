@@ -2892,7 +2892,7 @@ ActivateFocusInGrab(DeviceIntPtr dev, WindowPtr old, WindowPtr win)
 
     if (dev->deviceGrab.grab) {
         if (!dev->deviceGrab.fromPassiveGrab ||
-            dev->deviceGrab.grab->type != XI_Enter ||
+            dev->deviceGrab.grab->type != XI_FocusIn ||
             dev->deviceGrab.grab->window == win ||
             IsParent(dev->deviceGrab.grab->window, win))
             return FALSE;
@@ -2915,7 +2915,7 @@ ActivateFocusInGrab(DeviceIntPtr dev, WindowPtr old, WindowPtr win)
     rc = (CheckPassiveGrabsOnWindow(win, dev, (InternalEvent *) &event, FALSE,
                                     TRUE) != NULL);
     if (rc)
-        DoEnterLeaveEvents(dev, dev->id, old, win, XINotifyPassiveUngrab);
+        DoEnterLeaveEvents(dev, dev->id, old, win, XINotifyPassiveGrab);
     return rc;
 }
 

@@ -140,7 +140,7 @@ lower_shared_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    assert(var->get_interface_type() == NULL);
    const enum glsl_interface_packing packing = GLSL_INTERFACE_PACKING_STD430;
 
-   setup_buffer_access(mem_ctx, var, deref,
+   setup_buffer_access(mem_ctx, deref,
                        &offset, &const_offset,
                        &row_major, &matrix_columns, NULL, packing);
 
@@ -208,7 +208,7 @@ lower_shared_reference_visitor::handle_assignment(ir_assignment *ir)
    assert(var->get_interface_type() == NULL);
    const enum glsl_interface_packing packing = GLSL_INTERFACE_PACKING_STD430;
 
-   setup_buffer_access(mem_ctx, var, deref,
+   setup_buffer_access(mem_ctx, deref,
                        &offset, &const_offset,
                        &row_major, &matrix_columns, NULL, packing);
 
@@ -368,7 +368,7 @@ lower_shared_reference_visitor::lower_shared_atomic_intrinsic(ir_call *ir)
    const enum glsl_interface_packing packing = GLSL_INTERFACE_PACKING_STD430;
    buffer_access_type = shared_atomic_access;
 
-   setup_buffer_access(mem_ctx, var, deref,
+   setup_buffer_access(mem_ctx, deref,
                        &offset, &const_offset,
                        &row_major, &matrix_columns, NULL, packing);
 

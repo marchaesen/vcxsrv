@@ -318,6 +318,25 @@ nir_fdot(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1)
 }
 
 static inline nir_ssa_def *
+nir_bany_inequal(nir_builder *b, nir_ssa_def *src0, nir_ssa_def *src1)
+{
+   switch (src0->num_components) {
+   case 1: return nir_ine(b, src0, src1);
+   case 2: return nir_bany_inequal2(b, src0, src1);
+   case 3: return nir_bany_inequal3(b, src0, src1);
+   case 4: return nir_bany_inequal4(b, src0, src1);
+   default:
+      unreachable("bad component size");
+   }
+}
+
+static inline nir_ssa_def *
+nir_bany(nir_builder *b, nir_ssa_def *src)
+{
+   return nir_bany_inequal(b, src, nir_imm_int(b, 0));
+}
+
+static inline nir_ssa_def *
 nir_channel(nir_builder *b, nir_ssa_def *def, unsigned c)
 {
    unsigned swizzle[4] = {c, c, c, c};
@@ -446,6 +465,7 @@ nir_copy_var(nir_builder *build, nir_variable *dest, nir_variable *src)
    nir_builder_instr_insert(build, &copy->instr);
 }
 
+/* Generic builder for system values. */
 static inline nir_ssa_def *
 nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
 {
@@ -457,6 +477,20 @@ nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
    nir_builder_instr_insert(build, &load->instr);
    return &load->dest.ssa;
 }
+
+/* Generate custom builders for system values. */
+#define INTRINSIC(name, num_srcs, src_components, has_dest, dest_components, \
+                  num_variables, num_indices, idx0, idx1, idx2, flags)
+#define LAST_INTRINSIC(name)
+
+#define DEFINE_SYSTEM_VALUE(name)                                        \
+   static inline nir_ssa_def *                                           \
+   nir_load_##name(nir_builder *build)                                   \
+   {                                                                     \
+      return nir_load_system_value(build, nir_intrinsic_load_##name, 0); \
+   }                                                                     \
+
+#include "nir_intrinsics.h"
 
 static inline nir_ssa_def *
 nir_load_barycentric(nir_builder *build, nir_intrinsic_op op,

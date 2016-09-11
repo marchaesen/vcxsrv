@@ -61,6 +61,7 @@ struct hud_pane {
    unsigned inner_height;
    float yscale;
    unsigned max_num_vertices;
+   unsigned last_line; /* index of the last describing line in the graph */
    uint64_t max_value;
    uint64_t initial_max_value;
    uint64_t ceiling;

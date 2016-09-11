@@ -324,7 +324,8 @@ xwl_unrealize_window(WindowPtr window)
     xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
         if (xwl_seat->focus_window && xwl_seat->focus_window->window == window)
             xwl_seat->focus_window = NULL;
-
+        if (xwl_seat->last_xwindow == window)
+            xwl_seat->last_xwindow = NullWindow;
         xwl_seat_clear_touch(xwl_seat, window);
     }
 
@@ -364,6 +365,8 @@ frame_callback(void *data,
                uint32_t time)
 {
     struct xwl_window *xwl_window = data;
+
+    wl_callback_destroy (xwl_window->frame_callback);
     xwl_window->frame_callback = NULL;
 }
 
@@ -451,7 +454,7 @@ global_remove(void *data, struct wl_registry *registry, uint32_t name)
     xorg_list_for_each_entry_safe(xwl_output, tmp_xwl_output,
                                   &xwl_screen->output_list, link) {
         if (xwl_output->server_output_id == name) {
-            xwl_output_destroy(xwl_output);
+            xwl_output_remove(xwl_output);
             break;
         }
     }

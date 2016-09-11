@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_instr_set.h"
 
 /*
  * Implements Global Code Motion.  A description of GCM can be found in
@@ -451,8 +452,8 @@ gcm_place_instr(nir_instr *instr, struct gcm_state *state)
    block_info->last_instr = instr;
 }
 
-static void
-opt_gcm_impl(nir_function_impl *impl)
+static bool
+opt_gcm_impl(nir_function_impl *impl, bool value_number)
 {
    struct gcm_state state;
 
@@ -470,6 +471,18 @@ opt_gcm_impl(nir_function_impl *impl)
       gcm_pin_instructions_block(block, &state);
    }
 
+   bool progress = false;
+   if (value_number) {
+      struct set *gvn_set = nir_instr_set_create(NULL);
+      foreach_list_typed_safe(nir_instr, instr, node, &state.instrs) {
+         if (nir_instr_set_add_or_rewrite(gvn_set, instr)) {
+            nir_instr_remove(instr);
+            progress = true;
+         }
+      }
+      nir_instr_set_destroy(gvn_set);
+   }
+
    foreach_list_typed(nir_instr, instr, node, &state.instrs)
       gcm_schedule_early_instr(instr, &state);
 
@@ -483,13 +496,22 @@ opt_gcm_impl(nir_function_impl *impl)
    }
 
    ralloc_free(state.blocks);
+
+   nir_metadata_preserve(impl, nir_metadata_block_index |
+                               nir_metadata_dominance);
+
+   return progress;
 }
 
-void
-nir_opt_gcm(nir_shader *shader)
+bool
+nir_opt_gcm(nir_shader *shader, bool value_number)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl)
-         opt_gcm_impl(function->impl);
+         progress |= opt_gcm_impl(function->impl, value_number);
    }
+
+   return progress;
 }

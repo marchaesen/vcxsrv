@@ -596,6 +596,11 @@ struct ast_type_qualifier {
          unsigned subroutine:1;  /**< Is this marked 'subroutine' */
          unsigned subroutine_def:1; /**< Is this marked 'subroutine' with a list of types */
 	 /** \} */
+
+         /** \name Qualifiers for GL_KHR_blend_equation_advanced */
+         /** \{ */
+         unsigned blend_support:1; /**< Are there any blend_support_ qualifiers */
+         /** \} */
       }
       /** \brief Set of flags, accessed by name. */
       q;

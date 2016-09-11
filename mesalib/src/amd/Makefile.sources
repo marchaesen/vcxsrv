@@ -1,0 +1,26 @@
+COMMON_HEADER_FILES = \
+	common/sid.h \
+	common/r600d_common.h \
+	common/amd_family.h \
+	common/amdgpu_id.h
+
+ADDRLIB_FILES = \
+	addrlib/addrinterface.cpp \
+	addrlib/addrinterface.h \
+	addrlib/addrtypes.h \
+	addrlib/core/addrcommon.h \
+	addrlib/core/addrelemlib.cpp \
+	addrlib/core/addrelemlib.h \
+	addrlib/core/addrlib.cpp \
+	addrlib/core/addrlib.h \
+	addrlib/core/addrobject.cpp \
+	addrlib/core/addrobject.h \
+	addrlib/inc/chip/r800/si_gb_reg.h \
+	addrlib/inc/lnx_common_defs.h \
+	addrlib/r800/chip/si_ci_vi_merged_enum.h \
+	addrlib/r800/ciaddrlib.cpp \
+	addrlib/r800/ciaddrlib.h \
+	addrlib/r800/egbaddrlib.cpp \
+	addrlib/r800/egbaddrlib.h \
+	addrlib/r800/siaddrlib.cpp \
+	addrlib/r800/siaddrlib.h

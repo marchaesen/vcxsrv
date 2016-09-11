@@ -389,8 +389,7 @@ autoConfigDevice(GDevPtr preconf_device)
 
             /* for each other driver found, copy the first screen, insert it
              * into the list of screens and set the driver */
-            i = 0;
-            while (i++ < num_matches) {
+            for (i = 1; i < num_matches; i++) {
                 if (!copyScreen(slp[0].screen, ptr, i, matches[i]))
                     return NULL;
             }

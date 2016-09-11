@@ -363,7 +363,7 @@ is_interleaved_arrays(const struct st_vertex_program *vp,
          if (bufObj != firstBufObj)
             return GL_FALSE; /* arrays in different VBOs */
 
-         if (abs(array->Ptr - firstPtr) > firstStride)
+         if (llabs(array->Ptr - firstPtr) > firstStride)
             return GL_FALSE; /* arrays start too far apart */
 
          if ((!_mesa_is_bufferobj(bufObj)) != userSpaceBuffer)

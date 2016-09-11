@@ -25,6 +25,7 @@ int is_nouveau_vieux(int fd);
 
 #ifdef HAVE_LIBDRM
 
+#include <stdlib.h>
 #include <xf86drm.h>
 #include <nouveau_drm.h>
 
@@ -45,7 +46,8 @@ int
 is_nouveau_vieux(int fd)
 {
    int chipset = nouveau_chipset(fd);
-   return chipset > 0 && chipset < 0x30;
+   return (chipset > 0 && chipset < 0x30) ||
+      (chipset < 0x40 && getenv("NOUVEAU_VIEUX") != NULL);
 }
 
 #else

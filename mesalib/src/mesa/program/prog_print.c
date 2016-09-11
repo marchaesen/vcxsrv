@@ -151,6 +151,8 @@ arb_input_attrib_string(GLuint index, GLenum progType)
       "fragment.(twenty-five)", /* VARYING_SLOT_TESS_LEVEL_INNER */
       "fragment.(twenty-six)", /* VARYING_SLOT_CULL_DIST0 */
       "fragment.(twenty-seven)", /* VARYING_SLOT_CULL_DIST1 */
+      "fragment.(twenty-eight)", /* VARYING_SLOT_BOUNDING_BOX0 */
+      "fragment.(twenty-nine)", /* VARYING_SLOT_BOUNDING_BOX1 */
       "fragment.varying[0]",
       "fragment.varying[1]",
       "fragment.varying[2]",
@@ -280,6 +282,8 @@ arb_output_attrib_string(GLuint index, GLenum progType)
       "result.(twenty-five)", /* VARYING_SLOT_TESS_LEVEL_INNER */
       "result.(twenty-six)", /* VARYING_SLOT_CULL_DIST0 */
       "result.(twenty-seven)", /* VARYING_SLOT_CULL_DIST1 */
+      "result.(twenty-eight)", /* VARYING_SLOT_BOUNDING_BOX0 */
+      "result.(twenty-nine)", /* VARYING_SLOT_BOUNDING_BOX1 */
       "result.varying[0]",
       "result.varying[1]",
       "result.varying[2]",

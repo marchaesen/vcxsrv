@@ -1,0 +1,34 @@
+# To use this config on you editor, follow the instructions at:
+# http://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+
+[*.{c,h,cpp,hpp,cc,hh}]
+indent_style = space
+indent_size = 3
+
+[{Makefile*,*.mk}]
+indent_style = tab
+
+[{*.py,SCons*}]
+indent_style = space
+indent_size = 4
+
+[*.pl]
+indent_style = space
+indent_size = 4
+
+[*.m4]
+indent_style = space
+indent_size = 2
+
+[*.yml]
+indent_style = space
+indent_size = 2
+
+[*.patch]
+trim_trailing_whitespace = false

@@ -494,6 +494,8 @@ keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
     xkbStateNotify sn;
     CARD16 changed;
 
+    mieqProcessInputEvents();
+
     for (dev = inputInfo.devices; dev; dev = dev->next) {
         if (dev != xwl_seat->keyboard &&
             dev != GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD))
@@ -502,12 +504,11 @@ keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
         old_state = dev->key->xkbInfo->state;
         new_state = &dev->key->xkbInfo->state;
 
-        if (!xwl_seat->keyboard_focus) {
-            new_state->locked_mods = mods_locked & XkbAllModifiersMask;
-            XkbLatchModifiers(dev, XkbAllModifiersMask,
-                              mods_latched & XkbAllModifiersMask);
-        }
         new_state->locked_group = group & XkbAllGroupsMask;
+        new_state->base_mods = mods_depressed & XkbAllModifiersMask;
+        new_state->locked_mods = mods_locked & XkbAllModifiersMask;
+        XkbLatchModifiers(dev, XkbAllModifiersMask,
+                          mods_latched & XkbAllModifiersMask);
 
         XkbComputeDerivedState(dev->key->xkbInfo);
 
@@ -959,7 +960,7 @@ xwl_xy_to_window(ScreenPtr screen, SpritePtr sprite, int x, int y)
         }
     }
 
-    if (xwl_seat == NULL || !xwl_seat->focus_window) {
+    if (xwl_seat == NULL) {
         sprite->spriteTraceGood = 1;
         return sprite->spriteTrace[0];
     }
@@ -968,6 +969,19 @@ xwl_xy_to_window(ScreenPtr screen, SpritePtr sprite, int x, int y)
     ret = screen->XYToWindow(screen, sprite, x, y);
     xwl_seat->xwl_screen->XYToWindow = screen->XYToWindow;
     screen->XYToWindow = xwl_xy_to_window;
+
+    /* If the pointer has left the Wayland surface but the DIX still
+     * finds the pointer within the previous X11 window, it means that
+     * the pointer has crossed to another native Wayland window, in this
+     * case, pretend we entered the root window so that a LeaveNotify
+     * event is emitted.
+     */
+    if (xwl_seat->focus_window == NULL && xwl_seat->last_xwindow == ret) {
+        sprite->spriteTraceGood = 1;
+        return sprite->spriteTrace[0];
+    }
+
+    xwl_seat->last_xwindow = ret;
 
     return ret;
 }

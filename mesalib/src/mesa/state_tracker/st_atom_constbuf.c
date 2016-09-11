@@ -34,7 +34,7 @@
 #include "main/imports.h"
 #include "program/prog_parameter.h"
 #include "program/prog_print.h"
-
+#include "main/shaderapi.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "util/u_inlines.h"
@@ -55,8 +55,10 @@
  */
 void st_upload_constants( struct st_context *st,
                           struct gl_program_parameter_list *params,
-                          unsigned shader_type)
+                          gl_shader_stage stage)
 {
+   enum pipe_shader_type shader_type = st_shader_stage_to_ptarget(stage);
+
    assert(shader_type == PIPE_SHADER_VERTEX ||
           shader_type == PIPE_SHADER_FRAGMENT ||
           shader_type == PIPE_SHADER_GEOMETRY ||
@@ -91,6 +93,8 @@ void st_upload_constants( struct st_context *st,
        */
       if (params->StateFlags)
          _mesa_load_state_parameters(st->ctx, params);
+
+      _mesa_shader_write_subroutine_indices(st->ctx, stage);
 
       /* We always need to get a new buffer, to keep the drivers simple and
        * avoid gratuitous rendering synchronization.
@@ -140,7 +144,7 @@ static void update_vs_constants(struct st_context *st )
    struct st_vertex_program *vp = st->vp;
    struct gl_program_parameter_list *params = vp->Base.Base.Parameters;
 
-   st_upload_constants( st, params, PIPE_SHADER_VERTEX );
+   st_upload_constants( st, params, MESA_SHADER_VERTEX );
 }
 
 
@@ -158,7 +162,7 @@ static void update_fs_constants(struct st_context *st )
    struct st_fragment_program *fp = st->fp;
    struct gl_program_parameter_list *params = fp->Base.Base.Parameters;
 
-   st_upload_constants( st, params, PIPE_SHADER_FRAGMENT );
+   st_upload_constants( st, params, MESA_SHADER_FRAGMENT );
 }
 
 
@@ -175,7 +179,7 @@ static void update_gs_constants(struct st_context *st )
 
    if (gp) {
       params = gp->Base.Base.Parameters;
-      st_upload_constants( st, params, PIPE_SHADER_GEOMETRY );
+      st_upload_constants( st, params, MESA_SHADER_GEOMETRY );
    }
 }
 
@@ -192,7 +196,7 @@ static void update_tcs_constants(struct st_context *st )
 
    if (tcp) {
       params = tcp->Base.Base.Parameters;
-      st_upload_constants( st, params, PIPE_SHADER_TESS_CTRL );
+      st_upload_constants( st, params, MESA_SHADER_TESS_CTRL );
    }
 }
 
@@ -209,7 +213,7 @@ static void update_tes_constants(struct st_context *st )
 
    if (tep) {
       params = tep->Base.Base.Parameters;
-      st_upload_constants( st, params, PIPE_SHADER_TESS_EVAL );
+      st_upload_constants( st, params, MESA_SHADER_TESS_EVAL );
    }
 }
 
@@ -226,7 +230,7 @@ static void update_cs_constants(struct st_context *st )
 
    if (cp) {
       params = cp->Base.Base.Parameters;
-      st_upload_constants( st, params, PIPE_SHADER_COMPUTE );
+      st_upload_constants( st, params, MESA_SHADER_COMPUTE );
    }
 }
 

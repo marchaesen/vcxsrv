@@ -790,6 +790,11 @@
     </function>
 </category>
 
+<!-- 122. GL_EXT_shader_framebuffer_fetch -->
+<category name="GL_EXT_shader_framebuffer_fetch" number="122">
+    <enum name="FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT" value="0x8A52"/>
+</category>
+
 <!-- 151. GL_EXT_draw_buffers -->
 <category name="GL_EXT_draw_buffers" number="151">
     <function name="DrawBuffersEXT" alias="DrawBuffers" es2="2.0">
@@ -876,6 +881,16 @@
 
 </category>
 
+<category name="GL_EXT_geometry_shader" number="177">
+    <!-- The rest of the bits for this are below in OES_geometry_shader. -->
+    <function name="FramebufferTextureEXT" alias="FramebufferTexture" es2="3.1">
+        <param name="target" type="GLenum"/>
+        <param name="attachment" type="GLenum"/>
+        <param name="texture" type="GLuint"/>
+        <param name="level" type="GLint"/>
+    </function>
+</category>
+
 <category name="GL_EXT_texture_border_clamp" number="182">
 
     <!-- The *TexParameter* functions are added in EXT_texture_integer -->
@@ -920,6 +935,21 @@
         <param name="buffer" type="GLuint"/>
         <param name="offset" type="GLintptr"/>
         <param name="size" type="GLsizeiptr"/>
+    </function>
+
+</category>
+
+<category name="GL_EXT_primitive_bounding_box" number="187">
+
+    <function name="PrimitiveBoundingBoxEXT" es2="3.1" alias="PrimitiveBoundingBox">
+        <param name="minX" type="GLfloat"/>
+        <param name="minY" type="GLfloat"/>
+        <param name="minZ" type="GLfloat"/>
+        <param name="minW" type="GLfloat"/>
+        <param name="maxX" type="GLfloat"/>
+        <param name="maxY" type="GLfloat"/>
+        <param name="maxZ" type="GLfloat"/>
+        <param name="maxW" type="GLfloat"/>
     </function>
 
 </category>
@@ -1076,6 +1106,21 @@
     <param name="index" type="GLuint"/>
     <return type="GLboolean"/>
   </function>
+
+</category>
+
+<category name="GL_EXT_primitive_bounding_box" number="212">
+
+    <function name="PrimitiveBoundingBoxOES" es2="3.1" alias="PrimitiveBoundingBox">
+        <param name="minX" type="GLfloat"/>
+        <param name="minY" type="GLfloat"/>
+        <param name="minZ" type="GLfloat"/>
+        <param name="minW" type="GLfloat"/>
+        <param name="maxX" type="GLfloat"/>
+        <param name="maxY" type="GLfloat"/>
+        <param name="maxZ" type="GLfloat"/>
+        <param name="maxW" type="GLfloat"/>
+    </function>
 
 </category>
 
@@ -1293,6 +1338,25 @@
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
       <param name="params" type="GLuint *"/>
+    </function>
+
+</category>
+
+<category name="ES3.2">
+
+    <!-- TODO: Move to GL 4.x when it is added to a GL version -->
+    <enum name="PRIMITIVE_BOUNDING_BOX_ARB" count="8" value="0x92BE">
+        <size name="Get" mode="get"/>
+    </enum>
+    <function name="PrimitiveBoundingBox" es2="3.2" desktop="false">
+        <param name="minX" type="GLfloat"/>
+        <param name="minY" type="GLfloat"/>
+        <param name="minZ" type="GLfloat"/>
+        <param name="minW" type="GLfloat"/>
+        <param name="maxX" type="GLfloat"/>
+        <param name="maxY" type="GLfloat"/>
+        <param name="maxZ" type="GLfloat"/>
+        <param name="maxW" type="GLfloat"/>
     </function>
 
 </category>

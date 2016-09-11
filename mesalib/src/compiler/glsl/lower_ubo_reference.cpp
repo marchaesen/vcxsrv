@@ -320,7 +320,7 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
    *const_offset = ubo_var->Offset;
 
    this->struct_field = NULL;
-   setup_buffer_access(mem_ctx, var, deref, offset, const_offset, row_major,
+   setup_buffer_access(mem_ctx, deref, offset, const_offset, row_major,
                        matrix_columns, &this->struct_field, packing);
 }
 

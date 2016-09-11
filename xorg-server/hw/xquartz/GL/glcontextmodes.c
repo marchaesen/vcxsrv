@@ -136,7 +136,6 @@ _gl_copy_visual_to_context_mode(__GLcontextModes * mode,
 
     mode->visualID = config->vid;
     mode->visualType = _gl_convert_from_x_visual_type(config->class);
-    mode->xRenderable = GL_TRUE;
     mode->fbconfigID = config->vid;
     mode->drawableType = GLX_WINDOW_BIT | GLX_PIXMAP_BIT;
 

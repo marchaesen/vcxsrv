@@ -1903,7 +1903,6 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
             c->base.renderType = GLX_RGBA_BIT;
         }
 
-        c->base.xRenderable = GL_TRUE;
         c->base.fbconfigID = -1;        // will be set by __glXScreenInit()
 
         /* SGIX_pbuffer / GLX 1.3 */
@@ -2263,7 +2262,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
             c->base.renderType = GLX_RGBA_BIT;
         }
 
-        c->base.xRenderable = GL_TRUE;
         c->base.fbconfigID = -1;        // will be set by __glXScreenInit()
 
         /* SGIX_pbuffer / GLX 1.3 */

@@ -52,7 +52,5 @@ lower_impl(nir_function_impl *impl)
 
 void nir_lower_passthrough_edgeflags(nir_shader *shader)
 {
-   nir_function *function = nir_shader_get_entrypoint(shader);
-   if (function->impl)
-      lower_impl(function->impl);
+   lower_impl(nir_shader_get_entrypoint(shader));
 }

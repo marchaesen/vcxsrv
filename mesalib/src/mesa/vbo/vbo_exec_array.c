@@ -778,6 +778,7 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
    prim[0].basevertex = basevertex;
    prim[0].num_instances = numInstances;
    prim[0].base_instance = baseInstance;
+   prim[0].draw_id = 0;
 
    /* Need to give special consideration to rendering a range of
     * indices starting somewhere above zero.  Typically the
@@ -899,7 +900,7 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
       index_bounds_valid = GL_FALSE;
 
 #if 0
-   check_draw_elements_data(ctx, count, type, indices);
+   check_draw_elements_data(ctx, count, type, indices, basevertex);
 #else
    (void) check_draw_elements_data;
 #endif
@@ -1611,8 +1612,9 @@ vbo_exec_MultiDrawArraysIndirectCount(GLenum mode,
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glMultiDrawArraysIndirectCountARB"
                   "(%s, %lx, %lx, %i, %i)\n",
-                  _mesa_enum_to_string(mode), indirect,
-                  drawcount, maxdrawcount, stride);
+                  _mesa_enum_to_string(mode),
+                  (unsigned long)indirect, (unsigned long)drawcount,
+                  maxdrawcount, stride);
 
    /* If <stride> is zero, the array elements are treated as tightly packed. */
    if (stride == 0)
@@ -1639,9 +1641,9 @@ vbo_exec_MultiDrawElementsIndirectCount(GLenum mode, GLenum type,
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx, "glMultiDrawElementsIndirectCountARB"
                   "(%s, %s, %lx, %lx, %i, %i)\n",
-                  _mesa_enum_to_string(mode),
-                  _mesa_enum_to_string(type), indirect,
-                  drawcount, maxdrawcount, stride);
+                  _mesa_enum_to_string(mode), _mesa_enum_to_string(type),
+                  (unsigned long)indirect, (unsigned long)drawcount,
+                  maxdrawcount, stride);
 
    /* If <stride> is zero, the array elements are treated as tightly packed. */
    if (stride == 0)

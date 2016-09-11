@@ -86,7 +86,7 @@ def AddOptions(opts):
         from SCons.Options.EnumOption import EnumOption
     opts.Add(EnumOption('build', 'build type', 'debug',
                         allowed_values=('debug', 'checked', 'profile',
-                                        'release')))
+                                        'release', 'opt')))
     opts.Add(BoolOption('verbose', 'verbose output', 'no'))
     opts.Add(EnumOption('machine', 'use machine-specific assembly code',
                         default_machine,

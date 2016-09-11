@@ -172,31 +172,27 @@ nir_ssa_def *
 nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
                                     nir_block *block)
 {
-   /* For each block, we have one of three types of values */
-   if (val->defs[block->index] == NULL) {
-      /* NULL indicates that we have no SSA def for this block. */
-      if (block->imm_dom) {
-         /* Grab it from our immediate dominator.  We'll stash it here for
-          * easy access later.
-          */
-         val->defs[block->index] =
-            nir_phi_builder_value_get_block_def(val, block->imm_dom);
-         return val->defs[block->index];
-      } else {
-         /* No immediate dominator means that this block is either the
-          * start block or unreachable.  In either case, the value is
-          * undefined so we need an SSA undef.
-          */
-         nir_ssa_undef_instr *undef =
-            nir_ssa_undef_instr_create(val->builder->shader,
-                                       val->num_components,
-                                       val->bit_size);
-         nir_instr_insert(nir_before_cf_list(&val->builder->impl->body),
-                          &undef->instr);
-         val->defs[block->index] = &undef->def;
-         return &undef->def;
-      }
-   } else if (val->defs[block->index] == NEEDS_PHI) {
+   /* Crawl up the dominance tree and find the closest dominator for which we
+    * have a valid ssa_def, if any.
+    */
+   nir_block *dom = block;
+   while (dom && val->defs[dom->index] == NULL)
+      dom = dom->imm_dom;
+
+   nir_ssa_def *def;
+   if (dom == NULL) {
+      /* No dominator means either that we crawled to the top without ever
+       * finding a definition or that this block is unreachable.  In either
+       * case, the value is undefined so we need an SSA undef.
+       */
+      nir_ssa_undef_instr *undef =
+         nir_ssa_undef_instr_create(val->builder->shader,
+                                    val->num_components,
+                                    val->bit_size);
+      nir_instr_insert(nir_before_cf_list(&val->builder->impl->body),
+                       &undef->instr);
+      def = &undef->def;
+   } else if (val->defs[dom->index] == NEEDS_PHI) {
       /* The magic value NEEDS_PHI indicates that the block needs a phi node
        * but none has been created.  We need to create one now so we can
        * return it to the caller.
@@ -218,17 +214,28 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
       nir_phi_instr *phi = nir_phi_instr_create(val->builder->shader);
       nir_ssa_dest_init(&phi->instr, &phi->dest, val->num_components,
                         val->bit_size, NULL);
-      phi->instr.block = block;
+      phi->instr.block = dom;
       exec_list_push_tail(&val->phis, &phi->instr.node);
-      val->defs[block->index] = &phi->dest.ssa;
-      return &phi->dest.ssa;
+      def = &phi->dest.ssa;
    } else {
       /* In this case, we have an actual SSA def.  It's either the result of a
        * phi node created by the case above or one passed to us through
        * nir_phi_builder_value_set_block_def().
        */
-      return val->defs[block->index];
+      def = val->defs[dom->index];
    }
+
+   /* Walk the chain and stash the def in all of the applicable blocks.  We do
+    * this for two reasons:
+    *
+    *  1) To speed up lookup next time even if the next time is called from a
+    *     block that is not dominated by this one.
+    *  2) To avoid unneeded recreation of phi nodes and undefs.
+    */
+   for (dom = block; dom && val->defs[dom->index] == NULL; dom = dom->imm_dom)
+      val->defs[dom->index] = def;
+
+   return def;
 }
 
 static int

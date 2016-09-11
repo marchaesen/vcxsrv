@@ -417,7 +417,7 @@ present_set_tree_pixmap(WindowPtr window,
     TraverseTree(window, present_set_tree_pixmap_visit, &visit);
 }
 
-static void
+void
 present_restore_screen_pixmap(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
@@ -439,7 +439,7 @@ present_restore_screen_pixmap(ScreenPtr screen)
      * Only do this the first time for a particular unflip operation, or
      * we'll probably scribble over other windows
      */
-    if (screen->GetWindowPixmap(screen->root) == flip_pixmap)
+    if (screen->root && screen->GetWindowPixmap(screen->root) == flip_pixmap)
         present_copy_region(&screen_pixmap->drawable, flip_pixmap, NULL, 0, 0);
 
     /* Switch back to using the screen pixmap now to avoid
@@ -447,10 +447,11 @@ present_restore_screen_pixmap(ScreenPtr screen)
      */
     if (flip_window)
         present_set_tree_pixmap(flip_window, flip_pixmap, screen_pixmap);
-    present_set_tree_pixmap(screen->root, NULL, screen_pixmap);
+    if (screen->root)
+        present_set_tree_pixmap(screen->root, NULL, screen_pixmap);
 }
 
-static void
+void
 present_set_abort_flip(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);

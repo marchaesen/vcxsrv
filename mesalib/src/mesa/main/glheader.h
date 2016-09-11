@@ -140,6 +140,9 @@ typedef void *GLeglImageOES;
 #define GL_ETC1_RGB8_OES                                        0x8D64
 #endif
 
+#ifndef GL_EXT_shader_framebuffer_fetch
+#define GL_FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT                 0x8A52
+#endif
 
 /* Inexplicably, GL_HALF_FLOAT_OES has a different value than GL_HALF_FLOAT.
  */

@@ -25,6 +25,7 @@ EXTRA_DIST += glsl/tests glsl/glcpp/tests glsl/README	\
 	glsl/TODO glsl/glcpp/README			\
 	glsl/glsl_lexer.ll				\
 	glsl/glsl_parser.yy				\
+	glsl/ir_expression_operation.py			\
 	glsl/glcpp/glcpp-lex.l				\
 	glsl/glcpp/glcpp-parse.y			\
 	SConscript.glsl
@@ -116,9 +117,7 @@ glsl_libglsl_la_LIBADD = \
 	glsl/libglcpp.la
 
 glsl_libglsl_la_SOURCES =				\
-	glsl/glsl_lexer.cpp				\
-	glsl/glsl_parser.cpp				\
-	glsl/glsl_parser.h				\
+	$(LIBGLSL_GENERATED_FILES)			\
 	$(LIBGLSL_FILES)
 
 
@@ -180,6 +179,7 @@ am__v_YACC_1 =
 
 YACC_GEN = $(AM_V_YACC)$(YACC) $(YFLAGS)
 LEX_GEN = $(AM_V_LEX)$(LEX) $(LFLAGS)
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 glsl/glsl_parser.cpp glsl/glsl_parser.h: glsl/glsl_parser.yy
 	$(MKDIR_GEN)
@@ -197,6 +197,18 @@ glsl/glcpp/glcpp-lex.c: glsl/glcpp/glcpp-lex.l
 	$(MKDIR_GEN)
 	$(LEX_GEN) -o $@ $(srcdir)/glsl/glcpp/glcpp-lex.l
 
+glsl/ir_expression_operation.h: glsl/ir_expression_operation.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py enum > $@ || ($(RM) $@; false)
+
+glsl/ir_expression_operation_constant.h: glsl/ir_expression_operation.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py constant > $@ || ($(RM) $@; false)
+
+glsl/ir_expression_operation_strings.h: glsl/ir_expression_operation.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py strings > $@ || ($(RM) $@; false)
+
 # Only the parsers (specifically the header files generated at the same time)
 # need to be in BUILT_SOURCES. Though if we list the parser headers YACC is
 # called for the .c/.cpp file and the .h files. By listing the .c/.cpp files
@@ -206,6 +218,9 @@ glsl/glcpp/glcpp-lex.c: glsl/glcpp/glcpp-lex.l
 BUILT_SOURCES +=					\
 	glsl/glsl_parser.cpp				\
 	glsl/glsl_lexer.cpp				\
+	glsl/ir_expression_operation.h			\
+	glsl/ir_expression_operation_constant.h		\
+	glsl/ir_expression_operation_strings.h		\
 	glsl/glcpp/glcpp-parse.c			\
 	glsl/glcpp/glcpp-lex.c
 CLEANFILES +=						\
@@ -213,6 +228,9 @@ CLEANFILES +=						\
 	glsl/glsl_parser.h				\
 	glsl/glsl_parser.cpp				\
 	glsl/glsl_lexer.cpp				\
+	glsl/ir_expression_operation.h			\
+	glsl/ir_expression_operation_constant.h		\
+	glsl/ir_expression_operation_strings.h		\
 	glsl/glcpp/glcpp-parse.c			\
 	glsl/glcpp/glcpp-lex.c
 

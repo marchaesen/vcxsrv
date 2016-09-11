@@ -80,6 +80,9 @@ typedef struct {
     Bool is_secondary;
 
     PixmapPtr fbcon_pixmap;
+
+    Bool dri2_flipping;
+    Bool present_flipping;
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {
@@ -89,6 +92,8 @@ typedef struct {
     int dpms_mode;
     struct dumb_bo *cursor_bo;
     Bool cursor_up;
+    Bool set_cursor2_failed;
+    Bool first_cursor_load_done;
     uint16_t lut_r[256], lut_g[256], lut_b[256];
 
     drmmode_bo rotate_bo;

@@ -110,6 +110,8 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
    case VARYING_SLOT_LAYER:
    case VARYING_SLOT_TESS_LEVEL_OUTER:
    case VARYING_SLOT_TESS_LEVEL_INNER:
+   case VARYING_SLOT_BOUNDING_BOX0:
+   case VARYING_SLOT_BOUNDING_BOX1:
       return GL_FALSE;
    default:
       return GL_TRUE;
@@ -452,6 +454,18 @@ struct gl_colorbuffer_attrib
    GLboolean _BlendFuncPerBuffer;
    /** Are the blend equations currently different for each buffer/target? */
    GLboolean _BlendEquationPerBuffer;
+
+   /**
+    * Which advanced blending mode is in use (or BLEND_NONE).
+    *
+    * KHR_blend_equation_advanced only allows advanced blending with a single
+    * draw buffer, and NVX_blend_equation_advanced_multi_draw_buffer still
+    * requires all draw buffers to match, so we only need a single value.
+    */
+   enum gl_advanced_blend_mode _AdvancedBlendMode;
+
+   /** Coherency requested via glEnable(GL_BLEND_ADVANCED_COHERENT_KHR)? */
+   bool BlendCoherent;
    /*@}*/
 
    /** 
@@ -1907,6 +1921,8 @@ struct gl_program
    GLbitfield64 InputsRead;     /**< Bitmask of which input regs are read */
    GLbitfield64 DoubleInputsRead;     /**< Bitmask of which input regs are read  and are doubles */
    GLbitfield64 OutputsWritten; /**< Bitmask of which output regs are written */
+   GLbitfield64 SecondaryOutputsWritten; /**< Subset of OutputsWritten outputs written with non-zero index. */
+   GLbitfield64 OutputsRead; /**< Bitmask of which output regs are read */
    GLbitfield PatchInputsRead;  /**< VAR[0..31] usage for patch inputs (user-defined only) */
    GLbitfield PatchOutputsWritten; /**< VAR[0..31] usage for patch outputs (user-defined only) */
    GLbitfield SystemValuesRead;   /**< Bitmask of SYSTEM_VALUE_x inputs used */
@@ -2316,6 +2332,11 @@ struct gl_shader_info
     * ARB_shader_image_load_store.
     */
    bool EarlyFragmentTests;
+
+   /**
+    * A bitmask of gl_advanced_blend_mode values
+    */
+   GLbitfield BlendSupport;
 
    /**
     * Compute shader state from ARB_compute_shader layout qualifiers.
@@ -3770,6 +3791,9 @@ struct gl_constants
    bool LowerCsDerivedVariables;    /**< Lower gl_GlobalInvocationID and
                                      *   gl_LocalInvocationIndex based on
                                      *   other builtin variables. */
+
+   /** GL_OES_primitive_bounding_box */
+   bool NoPrimitiveBoundingBoxOutput;
 };
 
 
@@ -3922,10 +3946,11 @@ struct gl_extensions
    GLboolean EXT_vertex_array_bgra;
    GLboolean EXT_window_rectangles;
    GLboolean OES_copy_image;
+   GLboolean OES_primitive_bounding_box;
    GLboolean OES_sample_variables;
-   GLboolean OES_shader_io_blocks;
    GLboolean OES_standard_derivatives;
    GLboolean OES_texture_buffer;
+   GLboolean OES_texture_cube_map_array;
    /* vendor extensions */
    GLboolean AMD_performance_monitor;
    GLboolean AMD_pinned_memory;
@@ -3941,11 +3966,15 @@ struct gl_extensions
    GLboolean ATI_separate_stencil;
    GLboolean GREMEDY_string_marker;
    GLboolean INTEL_performance_query;
+   GLboolean KHR_blend_equation_advanced;
+   GLboolean KHR_blend_equation_advanced_coherent;
    GLboolean KHR_robustness;
    GLboolean KHR_texture_compression_astc_hdr;
    GLboolean KHR_texture_compression_astc_ldr;
    GLboolean KHR_texture_compression_astc_sliced_3d;
    GLboolean MESA_pack_invert;
+   GLboolean MESA_shader_framebuffer_fetch;
+   GLboolean MESA_shader_framebuffer_fetch_non_coherent;
    GLboolean MESA_shader_integer_functions;
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_conditional_render;
@@ -4315,6 +4344,15 @@ struct gl_atomic_buffer_binding
 };
 
 /**
+ * Shader subroutines storage
+ */
+struct gl_subroutine_index_binding
+{
+   GLuint NumIndex;
+   GLuint *IndexPtr;
+};
+
+/**
  * Mesa rendering context.
  *
  * This is the central context data structure for Mesa.  Almost all
@@ -4552,6 +4590,7 @@ struct gl_context
     */
    struct gl_image_unit ImageUnits[MAX_IMAGE_UNITS];
 
+   struct gl_subroutine_index_binding SubroutineIndex[MESA_SHADER_STAGES];
    /*@}*/
 
    struct gl_meta_state *Meta;  /**< for "meta" operations */
@@ -4639,6 +4678,13 @@ struct gl_context
     * Once this field becomes true, it is never reset to false.
     */
    GLboolean ShareGroupReset;
+
+   /**
+    * \name OES_primitive_bounding_box
+    *
+    * Stores the arguments to glPrimitiveBoundingBox
+    */
+   GLfloat PrimitiveBoundingBox[8];
 };
 
 /**

@@ -68,15 +68,10 @@ dri3_fence_await(xcb_connection_t *c, struct loader_dri3_buffer *buffer)
 static void
 dri3_update_num_back(struct loader_dri3_drawable *draw)
 {
-   draw->num_back = 1;
-   if (draw->flipping) {
-      if (!draw->is_pixmap &&
-          !(draw->present_capabilities & XCB_PRESENT_CAPABILITY_ASYNC))
-         draw->num_back++;
-      draw->num_back++;
-   }
-   if (draw->vtable->get_swap_interval(draw) == 0)
-      draw->num_back++;
+   if (draw->flipping)
+      draw->num_back = 3;
+   else
+      draw->num_back = 2;
 }
 
 void

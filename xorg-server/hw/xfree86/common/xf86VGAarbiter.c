@@ -105,7 +105,7 @@ Bool
 xf86VGAarbiterAllowDRI(ScreenPtr pScreen)
 {
     int vga_count;
-    int rsrc_decodes;
+    int rsrc_decodes = 0;
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     if (vga_no_arb)

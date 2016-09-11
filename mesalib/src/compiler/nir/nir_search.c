@@ -42,32 +42,53 @@ match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
 
 static const uint8_t identity_swizzle[] = { 0, 1, 2, 3 };
 
-static bool alu_instr_is_bool(nir_alu_instr *instr);
-
+/**
+ * Check if a source produces a value of the given type.
+ *
+ * Used for satisfying 'a@type' constraints.
+ */
 static bool
-src_is_bool(nir_src src)
+src_is_type(nir_src src, nir_alu_type type)
 {
+   assert(type != nir_type_invalid);
+
    if (!src.is_ssa)
       return false;
-   if (src.ssa->parent_instr->type != nir_instr_type_alu)
-      return false;
-   return alu_instr_is_bool(nir_instr_as_alu(src.ssa->parent_instr));
-}
 
-static bool
-alu_instr_is_bool(nir_alu_instr *instr)
-{
-   switch (instr->op) {
-   case nir_op_iand:
-   case nir_op_ior:
-   case nir_op_ixor:
-      return src_is_bool(instr->src[0].src) && src_is_bool(instr->src[1].src);
-   case nir_op_inot:
-      return src_is_bool(instr->src[0].src);
-   default:
-      return (nir_alu_type_get_base_type(nir_op_infos[instr->op].output_type)
-             == nir_type_bool);
+   /* Turn nir_type_bool32 into nir_type_bool...they're the same thing. */
+   if (nir_alu_type_get_base_type(type) == nir_type_bool)
+      type = nir_type_bool;
+
+   if (src.ssa->parent_instr->type == nir_instr_type_alu) {
+      nir_alu_instr *src_alu = nir_instr_as_alu(src.ssa->parent_instr);
+      nir_alu_type output_type = nir_op_infos[src_alu->op].output_type;
+
+      if (type == nir_type_bool) {
+         switch (src_alu->op) {
+         case nir_op_iand:
+         case nir_op_ior:
+         case nir_op_ixor:
+            return src_is_type(src_alu->src[0].src, nir_type_bool) &&
+                   src_is_type(src_alu->src[1].src, nir_type_bool);
+         case nir_op_inot:
+            return src_is_type(src_alu->src[0].src, nir_type_bool);
+         default:
+            break;
+         }
+      }
+
+      return nir_alu_type_get_base_type(output_type) == type;
+   } else if (src.ssa->parent_instr->type == nir_instr_type_intrinsic) {
+      nir_intrinsic_instr *intr = nir_instr_as_intrinsic(src.ssa->parent_instr);
+
+      if (type == nir_type_bool) {
+         return intr->intrinsic == nir_intrinsic_load_front_face ||
+                intr->intrinsic == nir_intrinsic_load_helper_invocation;
+      }
    }
+
+   /* don't know */
+   return false;
 }
 
 static bool
@@ -130,19 +151,9 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
          if (var->cond && !var->cond(instr, src, num_components, new_swizzle))
             return false;
 
-         if (var->type != nir_type_invalid) {
-            if (instr->src[src].src.ssa->parent_instr->type != nir_instr_type_alu)
-               return false;
-
-            nir_alu_instr *src_alu =
-               nir_instr_as_alu(instr->src[src].src.ssa->parent_instr);
-
-            if (nir_alu_type_get_base_type(nir_op_infos[src_alu->op].output_type) !=
-                var->type &&
-                !(nir_alu_type_get_base_type(var->type) == nir_type_bool &&
-                  alu_instr_is_bool(src_alu)))
-               return false;
-         }
+         if (var->type != nir_type_invalid &&
+             !src_is_type(instr->src[src].src, var->type))
+            return false;
 
          state->variables_seen |= (1 << var->variable);
          state->variables[var->variable].src = instr->src[src].src;

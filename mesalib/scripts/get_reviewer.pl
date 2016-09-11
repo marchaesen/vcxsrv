@@ -865,7 +865,7 @@ sub top_of_mesa_tree {
 	$lk_path .= "/";
     }
     if (   (-f "${lk_path}docs/mesa.css")
-	&& (-f "${lk_path}docs/GL3.txt")
+	&& (-f "${lk_path}docs/features.txt")
 	&& (-f "${lk_path}src/mesa/main/version.c")
 	&& (-f "${lk_path}REVIEWERS")
 	&& (-d "${lk_path}scripts")) {

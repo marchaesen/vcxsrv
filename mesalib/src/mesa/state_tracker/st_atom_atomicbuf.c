@@ -43,7 +43,7 @@
 static void
 st_bind_atomics(struct st_context *st,
                 struct gl_shader_program *prog,
-                unsigned shader_type)
+                enum pipe_shader_type shader_type)
 {
    unsigned i;
 

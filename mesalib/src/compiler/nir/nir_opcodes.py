@@ -257,7 +257,7 @@ unpack_4x8("unorm")
 unpack_2x16("half")
 
 unop_horiz("pack_uvec2_to_uint", 1, tuint32, 2, tuint32, """
-dst.x = (src0.x & 0xffff) | (src0.y >> 16);
+dst.x = (src0.x & 0xffff) | (src0.y << 16);
 """)
 
 unop_horiz("pack_uvec4_to_uint", 1, tuint32, 4, tuint32, """

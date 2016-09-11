@@ -229,7 +229,6 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
                                         /* SGIX_fbconfig / GLX 1.3 */
                                         c->drawableType = GLX_WINDOW_BIT | GLX_PIXMAP_BIT | GLX_PBUFFER_BIT;
                                         c->renderType = GLX_RGBA_BIT;
-                                        c->xRenderable = GL_TRUE;
                                         c->fbconfigID = -1;
 
                                         /* SGIX_pbuffer / GLX 1.3 */

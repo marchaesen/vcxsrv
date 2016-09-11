@@ -32,7 +32,6 @@
 typedef struct {
    nir_builder   b;
    nir_shader   *shader;
-   nir_variable *face;
    struct {
       nir_variable *front;        /* COLn */
       nir_variable *back;         /* BFCn */
@@ -85,12 +84,12 @@ setup_inputs(lower_2side_state *state)
 {
    int maxloc = -1;
 
-   /* find color/face inputs: */
+   /* find color inputs: */
    nir_foreach_variable(var, &state->shader->inputs) {
       int loc = var->data.driver_location;
 
       /* keep track of last used driver-location.. we'll be
-       * appending BCLr/FACE after last existing input:
+       * appending BCLr after last existing input:
        */
       maxloc = MAX2(maxloc, loc);
 
@@ -101,21 +100,12 @@ setup_inputs(lower_2side_state *state)
          state->colors[state->colors_count].front = var;
          state->colors_count++;
          break;
-      case VARYING_SLOT_FACE:
-         state->face = var;
-         break;
       }
    }
 
    /* if we don't have any color inputs, nothing to do: */
    if (state->colors_count == 0)
       return -1;
-
-   /* if we don't already have one, insert a FACE input: */
-   if (!state->face) {
-      state->face = create_input(state->shader, ++maxloc, VARYING_SLOT_FACE);
-      state->face->data.interpolation = INTERP_MODE_FLAT;
-   }
 
    /* add required back-face color inputs: */
    for (int i = 0; i < state->colors_count; i++) {
@@ -161,14 +151,13 @@ nir_lower_two_sided_color_block(nir_block *block,
          continue;
 
       /* replace load_input(COLn) with
-       * bcsel(load_input(FACE), load_input(COLn), load_input(BFCn))
+       * bcsel(load_system_value(FACE), load_input(COLn), load_input(BFCn))
        */
       b->cursor = nir_before_instr(&intr->instr);
-      nir_ssa_def *face  = nir_channel(b, load_input(b, state->face), 0);
+      nir_ssa_def *face  = nir_load_front_face(b);
       nir_ssa_def *front = load_input(b, state->colors[idx].front);
       nir_ssa_def *back  = load_input(b, state->colors[idx].back);
-      nir_ssa_def *cond  = nir_flt(b, face, nir_imm_float(b, 0.0));
-      nir_ssa_def *color = nir_bcsel(b, cond, back, front);
+      nir_ssa_def *color = nir_bcsel(b, face, front, back);
 
       assert(intr->dest.is_ssa);
       nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(color));

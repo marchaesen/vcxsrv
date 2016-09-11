@@ -3185,7 +3185,7 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="GetPointerv" es1="1.1">
+    <function name="GetPointerv" es1="1.1" es2="3.2">
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLvoid **" output="true"/>
         <glx handcode="true"/>
@@ -8293,6 +8293,30 @@
 
 <!-- ARB extension 171 -->
 <xi:include href="ARB_pipeline_statistics_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<category name="KHR_blend_equation_advanced" number="174">
+    <enum name="BLEND_ADVANCED_COHERENT_KHR"              value="0x9285"/>
+
+    <enum name="MULTIPLY_KHR"                             value="0x9294"/>
+    <enum name="SCREEN_KHR"                               value="0x9295"/>
+    <enum name="OVERLAY_KHR"                              value="0x9296"/>
+    <enum name="DARKEN_KHR"                               value="0x9297"/>
+    <enum name="LIGHTEN_KHR"                              value="0x9298"/>
+    <enum name="COLORDODGE_KHR"                           value="0x9299"/>
+    <enum name="COLORBURN_KHR"                            value="0x929A"/>
+    <enum name="HARDLIGHT_KHR"                            value="0x929B"/>
+    <enum name="SOFTLIGHT_KHR"                            value="0x929C"/>
+    <enum name="DIFFERENCE_KHR"                           value="0x929E"/>
+    <enum name="EXCLUSION_KHR"                            value="0x92A0"/>
+
+    <enum name="HSL_HUE_KHR"                              value="0x92AD"/>
+    <enum name="HSL_SATURATION_KHR"                       value="0x92AE"/>
+    <enum name="HSL_COLOR_KHR"                            value="0x92AF"/>
+    <enum name="HSL_LUMINOSITY_KHR"                       value="0x92B0"/>
+
+    <function name="BlendBarrier" es2="3.2"/>
+    <function name="BlendBarrierKHR" alias="BlendBarrier" es2="2.0"/>
+</category>
 
 <!-- Non-ARB extensions sorted by extension number. -->
 

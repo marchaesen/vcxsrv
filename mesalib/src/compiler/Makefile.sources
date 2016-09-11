@@ -77,6 +77,7 @@ LIBGLSL_FILES = \
 	glsl/loop_analysis.h \
 	glsl/loop_controls.cpp \
 	glsl/loop_unroll.cpp \
+	glsl/lower_blend_equation_advanced.cpp \
 	glsl/lower_buffer_access.cpp \
 	glsl/lower_buffer_access.h \
 	glsl/lower_const_arrays_to_uniforms.cpp \
@@ -144,9 +145,13 @@ GLSL_COMPILER_CXX_FILES = \
 	glsl/standalone.h
 
 # libglsl generated sources
-LIBGLSL_GENERATED_CXX_FILES = \
+LIBGLSL_GENERATED_FILES = \
+	glsl/ir_expression_operation.h \
+	glsl/ir_expression_operation_constant.h \
+	glsl/ir_expression_operation_strings.h \
 	glsl/glsl_lexer.cpp \
-	glsl/glsl_parser.cpp
+	glsl/glsl_parser.cpp \
+	glsl/glsl_parser.h
 
 # libglcpp
 
@@ -201,6 +206,7 @@ NIR_FILES = \
 	nir/nir_lower_indirect_derefs.c \
 	nir/nir_lower_io.c \
 	nir/nir_lower_io_to_temporaries.c \
+	nir/nir_lower_io_to_scalar.c \
 	nir/nir_lower_io_types.c \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_phis_to_scalar.c \

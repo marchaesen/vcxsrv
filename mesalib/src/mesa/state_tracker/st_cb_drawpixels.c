@@ -1123,7 +1123,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
        * into the constant buffer, we need to update them
        */
       st_upload_constants(st, st->fp->Base.Base.Parameters,
-                          PIPE_SHADER_FRAGMENT);
+                          MESA_SHADER_FRAGMENT);
    }
 
    /* Put glDrawPixels image into a texture */
@@ -1487,7 +1487,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
        * into the constant buffer, we need to update them
        */
       st_upload_constants(st, st->fp->Base.Base.Parameters,
-                          PIPE_SHADER_FRAGMENT);
+                          MESA_SHADER_FRAGMENT);
    }
    else {
       assert(type == GL_DEPTH);

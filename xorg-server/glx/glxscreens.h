@@ -78,7 +78,6 @@ struct __GLXconfig {
     /* SGIX_fbconfig / GLX 1.3 */
     GLint drawableType;
     GLint renderType;
-    GLint xRenderable;
     GLint fbconfigID;
 
     /* SGIX_pbuffer / GLX 1.3 */

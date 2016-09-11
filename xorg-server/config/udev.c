@@ -345,9 +345,12 @@ socket_handler(int fd, int ready, void *data)
     struct udev_device *udev_device;
     const char *action;
 
+    input_lock();
     udev_device = udev_monitor_receive_device(udev_monitor);
-    if (!udev_device)
+    if (!udev_device) {
+        input_unlock();
         return;
+    }
     action = udev_device_get_action(udev_device);
     if (action) {
         if (!strcmp(action, "add")) {
@@ -364,6 +367,7 @@ socket_handler(int fd, int ready, void *data)
             device_removed(udev_device);
     }
     udev_device_unref(udev_device);
+    input_unlock();
 }
 
 int

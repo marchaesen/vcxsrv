@@ -111,6 +111,7 @@ enum value_type {
    TYPE_FLOAT_2,
    TYPE_FLOAT_3,
    TYPE_FLOAT_4,
+   TYPE_FLOAT_8,
    TYPE_FLOATN,
    TYPE_FLOATN_2,
    TYPE_FLOATN_3,
@@ -218,6 +219,7 @@ union value {
 #define CONTEXT_FLOAT2(field) CONTEXT_FIELD(field, TYPE_FLOAT_2)
 #define CONTEXT_FLOAT3(field) CONTEXT_FIELD(field, TYPE_FLOAT_3)
 #define CONTEXT_FLOAT4(field) CONTEXT_FIELD(field, TYPE_FLOAT_4)
+#define CONTEXT_FLOAT8(field) CONTEXT_FIELD(field, TYPE_FLOAT_8)
 #define CONTEXT_MATRIX(field) CONTEXT_FIELD(field, TYPE_MATRIX)
 #define CONTEXT_MATRIX_T(field) CONTEXT_FIELD(field, TYPE_MATRIX_T)
 
@@ -411,6 +413,7 @@ static const int extra_ARB_gpu_shader5_or_oes_geometry_shader[] = {
 static const int extra_ARB_gpu_shader5_or_OES_sample_variables[] = {
    EXT(ARB_gpu_shader5),
    EXT(OES_sample_variables),
+   EXTRA_END
 };
 
 EXTRA_EXT(ARB_texture_cube_map);
@@ -442,7 +445,7 @@ EXTRA_EXT(OES_EGL_image_external);
 EXTRA_EXT(ARB_blend_func_extended);
 EXTRA_EXT(ARB_uniform_buffer_object);
 EXTRA_EXT(ARB_timer_query);
-EXTRA_EXT(ARB_texture_cube_map_array);
+EXTRA_EXT2(ARB_texture_cube_map_array, OES_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);
 EXTRA_EXT(ARB_texture_gather);
@@ -465,6 +468,8 @@ EXTRA_EXT(ATI_meminfo);
 EXTRA_EXT(NVX_gpu_memory_info);
 EXTRA_EXT(ARB_cull_distance);
 EXTRA_EXT(EXT_window_rectangles);
+EXTRA_EXT(KHR_blend_equation_advanced_coherent);
+EXTRA_EXT(OES_primitive_bounding_box);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -527,6 +532,13 @@ static const int extra_core_ARB_color_buffer_float_and_new_buffers[] = {
    EXTRA_API_GL_CORE,
    EXT(ARB_color_buffer_float),
    EXTRA_NEW_BUFFERS,
+   EXTRA_END
+};
+
+static const int extra_EXT_shader_framebuffer_fetch[] = {
+   EXTRA_API_ES2,
+   EXTRA_API_ES3,
+   EXT(MESA_shader_framebuffer_fetch),
    EXTRA_END
 };
 
@@ -1382,6 +1394,11 @@ _mesa_GetBooleanv(GLenum pname, GLboolean *params)
       params[0] = INT_TO_BOOLEAN(d->offset);
       break;
 
+   case TYPE_FLOAT_8:
+      params[7] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[7]);
+      params[6] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[6]);
+      params[5] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[5]);
+      params[4] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[4]);
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[3]);
@@ -1470,6 +1487,11 @@ _mesa_GetFloatv(GLenum pname, GLfloat *params)
       params[0] = (GLfloat) d->offset;
       break;
 
+   case TYPE_FLOAT_8:
+      params[7] = ((GLfloat *) p)[7];
+      params[6] = ((GLfloat *) p)[6];
+      params[5] = ((GLfloat *) p)[5];
+      params[4] = ((GLfloat *) p)[4];
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = ((GLfloat *) p)[3];
@@ -1558,6 +1580,11 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
       params[0] = d->offset;
       break;
 
+   case TYPE_FLOAT_8:
+      params[7] = IROUND(((GLfloat *) p)[7]);
+      params[6] = IROUND(((GLfloat *) p)[6]);
+      params[5] = IROUND(((GLfloat *) p)[5]);
+      params[4] = IROUND(((GLfloat *) p)[4]);
    case TYPE_FLOAT_4:
       params[3] = IROUND(((GLfloat *) p)[3]);
    case TYPE_FLOAT_3:
@@ -1652,6 +1679,11 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
       params[0] = d->offset;
       break;
 
+   case TYPE_FLOAT_8:
+      params[7] = IROUND64(((GLfloat *) p)[7]);
+      params[6] = IROUND64(((GLfloat *) p)[6]);
+      params[5] = IROUND64(((GLfloat *) p)[5]);
+      params[4] = IROUND64(((GLfloat *) p)[4]);
    case TYPE_FLOAT_4:
       params[3] = IROUND64(((GLfloat *) p)[3]);
    case TYPE_FLOAT_3:
@@ -1746,6 +1778,11 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
       params[0] = d->offset;
       break;
 
+   case TYPE_FLOAT_8:
+      params[7] = ((GLfloat *) p)[7];
+      params[6] = ((GLfloat *) p)[6];
+      params[5] = ((GLfloat *) p)[5];
+      params[4] = ((GLfloat *) p)[4];
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = ((GLfloat *) p)[3];
@@ -1850,7 +1887,7 @@ tex_binding_to_index(const struct gl_context *ctx, GLenum binding)
               _mesa_has_OES_texture_buffer(ctx)) ?
              TEXTURE_BUFFER_INDEX : -1;
    case GL_TEXTURE_BINDING_CUBE_MAP_ARRAY:
-      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_cube_map_array
+      return _mesa_has_texture_cube_map_array(ctx)
          ? TEXTURE_CUBE_ARRAY_INDEX : -1;
    case GL_TEXTURE_BINDING_2D_MULTISAMPLE:
       return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_multisample

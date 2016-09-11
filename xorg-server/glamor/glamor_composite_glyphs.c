@@ -199,7 +199,8 @@ static const glamor_facet glamor_facet_composite_glyphs_120 = {
     .vs_vars = ("attribute vec2 primitive;\n"
                 "attribute vec2 source;\n"
                 "varying vec2 glyph_pos;\n"),
-    .vs_exec = (GLAMOR_POS(gl_Position, primitive)
+    .vs_exec = ("       vec2 pos = vec2(0,0);\n"
+                GLAMOR_POS(gl_Position, primitive.xy)
                 "       glyph_pos = source.xy * ATLAS_DIM_INV;\n"),
     .fs_vars = ("varying vec2 glyph_pos;\n"),
     .fs_exec = ("       vec4 mask = texture2D(atlas, glyph_pos);\n"),

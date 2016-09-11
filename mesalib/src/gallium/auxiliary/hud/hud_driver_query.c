@@ -379,9 +379,10 @@ hud_pipe_query_install(struct hud_batch_query_context **pbq,
    }
 
    hud_pane_add_graph(pane, gr);
+   pane->type = type; /* must be set before updating the max_value */
+
    if (pane->max_value < max_value)
       hud_pane_set_max_value(pane, max_value);
-   pane->type = type;
    return;
 
 fail_info:

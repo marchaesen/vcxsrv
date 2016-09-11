@@ -645,7 +645,7 @@ sysfs_get_device_name_for_fd(int fd)
    unsigned int maj, min;
    FILE *f;
    char buf[0x40];
-   static const char match[9] = "\0DEVNAME=";
+   static const char match[9] = "\nDEVNAME=";
    int expected = 1;
 
    if (dev_node_from_fd(fd, &maj, &min) < 0)
@@ -668,8 +668,10 @@ sysfs_get_device_name_for_fd(int fd)
    }
 
    strcpy(buf, "/dev/");
-   if (fgets(buf + 5, sizeof(buf) - 5, f))
+   if (fgets(buf + 5, sizeof(buf) - 5, f)) {
+      buf[strcspn(buf, "\n")] = '\0';
       device_name = strdup(buf);
+   }
 
    fclose(f);
    return device_name;

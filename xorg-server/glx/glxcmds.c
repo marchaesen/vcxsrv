@@ -1104,7 +1104,10 @@ DoGetFBConfigs(__GLXclientState * cl, unsigned screen)
 
         WRITE_PAIR(GLX_VISUAL_ID, modes->visualID);
         WRITE_PAIR(GLX_FBCONFIG_ID, modes->fbconfigID);
-        WRITE_PAIR(GLX_X_RENDERABLE, GL_TRUE);
+        WRITE_PAIR(GLX_X_RENDERABLE,
+                   (modes->drawableType & (GLX_WINDOW_BIT | GLX_PIXMAP_BIT)
+                    ? GL_TRUE
+                    : GL_FALSE));
 
         WRITE_PAIR(GLX_RGBA,
                    (modes->renderType & GLX_RGBA_BIT) ? GL_TRUE : GL_FALSE);

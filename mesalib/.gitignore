@@ -49,3 +49,4 @@ Makefile.in
 .install-mesa-links
 .install-gallium-links
 /src/git_sha1.h
+TAGS

@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 
 static nir_alu_instr *
 get_parent_mov(nir_ssa_def *ssa)
@@ -63,7 +64,7 @@ matching_mov(nir_alu_instr *mov1, nir_ssa_def *ssa)
  */
 
 static bool
-remove_phis_block(nir_block *block)
+remove_phis_block(nir_block *block, nir_builder *b)
 {
    bool progress = false;
 
@@ -113,6 +114,21 @@ remove_phis_block(nir_block *block)
        */
       assert(def != NULL);
 
+      if (mov) {
+         /* If the sources were all mov's from the same source with the same
+          * swizzle, then we can't just pick a random move because it may not
+          * dominate the phi node. Instead, we need to emit our own move after
+          * the phi which uses the shared source, and rewrite uses of the phi
+          * to use the move instead. This is ok, because while the mov's may
+          * not all dominate the phi node, their shared source does.
+          */
+
+         b->cursor = nir_after_phis(block);
+         def = mov->op == nir_op_imov ?
+            nir_imov_alu(b, mov->src[0], def->num_components) :
+            nir_fmov_alu(b, mov->src[0], def->num_components);
+      }
+
       assert(phi->dest.is_ssa);
       nir_ssa_def_rewrite_uses(&phi->dest.ssa, nir_src_for_ssa(def));
       nir_instr_remove(instr);
@@ -127,9 +143,11 @@ static bool
 remove_phis_impl(nir_function_impl *impl)
 {
    bool progress = false;
+   nir_builder bld;
+   nir_builder_init(&bld, impl);
 
    nir_foreach_block(block, impl) {
-      progress |= remove_phis_block(block);
+      progress |= remove_phis_block(block, &bld);
    }
 
    if (progress) {

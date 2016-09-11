@@ -92,6 +92,7 @@ The
 function is a general-purpose Xlib routine that frees the specified data.
 You must use it to free any objects that were allocated by Xlib,
 unless an alternate function is explicitly specified for the object.
-A NULL pointer cannot be passed to this function.
+
+If data is NULL, no operation is performed.
 .SH "SEE ALSO"
 \fI\*(xL\fP

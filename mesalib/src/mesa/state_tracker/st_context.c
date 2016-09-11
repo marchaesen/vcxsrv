@@ -337,11 +337,11 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    /* Create upload manager for vertex data for glBitmap, glDrawPixels,
     * glClear, etc.
     */
-   st->uploader = u_upload_create(st->pipe, 65536, PIPE_BIND_VERTEX_BUFFER,
+   st->uploader = u_upload_create(pipe, 65536, PIPE_BIND_VERTEX_BUFFER,
                                   PIPE_USAGE_STREAM);
 
    if (!screen->get_param(screen, PIPE_CAP_USER_INDEX_BUFFERS)) {
-      st->indexbuf_uploader = u_upload_create(st->pipe, 128 * 1024,
+      st->indexbuf_uploader = u_upload_create(pipe, 128 * 1024,
                                               PIPE_BIND_INDEX_BUFFER,
                                               PIPE_USAGE_STREAM);
    }
@@ -433,8 +433,8 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
       screen->get_param(screen, PIPE_CAP_MULTI_DRAW_INDIRECT);
 
    /* GL limits and extensions */
-   st_init_limits(st->pipe->screen, &ctx->Const, &ctx->Extensions);
-   st_init_extensions(st->pipe->screen, &ctx->Const,
+   st_init_limits(pipe->screen, &ctx->Const, &ctx->Extensions);
+   st_init_extensions(pipe->screen, &ctx->Const,
                       &ctx->Extensions, &st->options, ctx->Mesa_DXTn);
 
    if (st_have_perfmon(st)) {

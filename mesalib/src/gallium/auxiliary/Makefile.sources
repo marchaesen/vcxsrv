@@ -188,7 +188,6 @@ C_SOURCES := \
 	util/u_cache.h \
 	util/u_caps.c \
 	util/u_caps.h \
-	util/u_clear.h \
 	util/u_cpu_detect.c \
 	util/u_cpu_detect.h \
 	util/u_debug.c \
@@ -285,8 +284,6 @@ C_SOURCES := \
 	util/u_sampler.h \
 	util/u_simple_shaders.c \
 	util/u_simple_shaders.h \
-	util/u_slab.c \
-	util/u_slab.h \
 	util/u_split_prim.h \
 	util/u_sse.h \
 	util/u_string.h \

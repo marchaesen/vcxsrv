@@ -482,10 +482,8 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     initializeExtensions(&screen->base);
 
-    screen->base.fbconfigs = glxConvertConfigs(screen->core, screen->driConfigs,
-                                               GLX_WINDOW_BIT |
-                                               GLX_PIXMAP_BIT |
-                                               GLX_PBUFFER_BIT);
+    screen->base.fbconfigs = glxConvertConfigs(screen->core,
+                                               screen->driConfigs);
 
 #if !defined(XQUARTZ) && !defined(WIN32)
     screen->base.glvnd = strdup("mesa");

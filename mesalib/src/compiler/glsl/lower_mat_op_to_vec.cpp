@@ -428,7 +428,7 @@ ir_mat_op_to_vec_visitor::visit_leave(ir_assignment *orig_assign)
 
    default:
       printf("FINISHME: Handle matrix operation for %s\n",
-	     orig_expr->operator_string());
+	     ir_expression_operation_strings[orig_expr->operation]);
       abort();
    }
    orig_assign->remove();
