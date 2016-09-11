@@ -3713,7 +3713,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
     */
    assert(var->data.mode != ir_var_temporary);
    if (qual->flags.q.in && qual->flags.q.out)
-      var->data.mode = ir_var_function_inout;
+      var->data.mode = is_parameter ? ir_var_function_inout : ir_var_shader_out;
    else if (qual->flags.q.in)
       var->data.mode = is_parameter ? ir_var_function_in : ir_var_shader_in;
    else if (qual->flags.q.attribute
@@ -3729,6 +3729,9 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       var->data.mode = ir_var_shader_storage;
    else if (qual->flags.q.shared_storage)
       var->data.mode = ir_var_shader_shared;
+
+   var->data.fb_fetch_output = state->stage == MESA_SHADER_FRAGMENT &&
+                               qual->flags.q.in && qual->flags.q.out;
 
    if (!is_parameter && is_varying_var(var, state->stage)) {
       /* User-defined ins/outs are not permitted in compute shaders. */
@@ -3975,6 +3978,18 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
       }
 
       earlier->data.depth_layout = var->data.depth_layout;
+
+   } else if (state->has_framebuffer_fetch() &&
+              strcmp(var->name, "gl_LastFragData") == 0 &&
+              var->type == earlier->type &&
+              var->data.mode == ir_var_auto) {
+      /* According to the EXT_shader_framebuffer_fetch spec:
+       *
+       *   "By default, gl_LastFragData is declared with the mediump precision
+       *    qualifier. This can be changed by redeclaring the corresponding
+       *    variables with the desired precision qualifier."
+       */
+      earlier->data.precision = var->data.precision;
 
    } else if (allow_all_redeclarations) {
       if (earlier->data.mode != var->data.mode) {
@@ -4329,10 +4344,23 @@ handle_tess_shader_input_decl(struct _mesa_glsl_parse_state *state,
    if (var->data.patch)
       return;
 
-   /* Unsized arrays are implicitly sized to gl_MaxPatchVertices. */
+   /* The ARB_tessellation_shader spec says:
+    *
+    *    "Declaring an array size is optional.  If no size is specified, it
+    *     will be taken from the implementation-dependent maximum patch size
+    *     (gl_MaxPatchVertices).  If a size is specified, it must match the
+    *     maximum patch size; otherwise, a compile or link error will occur."
+    *
+    * This text appears twice, once for TCS inputs, and again for TES inputs.
+    */
    if (var->type->is_unsized_array()) {
       var->type = glsl_type::get_array_instance(var->type->fields.array,
             state->Const.MaxPatchVertices);
+   } else if (var->type->length != state->Const.MaxPatchVertices) {
+      _mesa_glsl_error(&loc, state,
+                       "per-vertex tessellation shader input arrays must be "
+                       "sized to gl_MaxPatchVertices (%d).",
+                       state->Const.MaxPatchVertices);
    }
 }
 
@@ -5893,6 +5921,26 @@ ast_selection_statement::hir(exec_list *instructions,
 }
 
 
+/* Used for detection of duplicate case values, compare
+ * given contents directly.
+ */
+static bool
+compare_case_value(const void *a, const void *b)
+{
+   return *(unsigned *) a == *(unsigned *) b;
+}
+
+
+/* Used for detection of duplicate case values, just
+ * returns key contents as is.
+ */
+static unsigned
+key_contents(const void *key)
+{
+   return *(unsigned *) key;
+}
+
+
 ir_rvalue *
 ast_switch_statement::hir(exec_list *instructions,
                           struct _mesa_glsl_parse_state *state)
@@ -5923,8 +5971,8 @@ ast_switch_statement::hir(exec_list *instructions,
 
    state->switch_state.is_switch_innermost = true;
    state->switch_state.switch_nesting_ast = this;
-   state->switch_state.labels_ht = hash_table_ctor(0, hash_table_pointer_hash,
-						   hash_table_pointer_compare);
+   state->switch_state.labels_ht = hash_table_ctor(0, key_contents,
+                                                   compare_case_value);
    state->switch_state.previous_default = NULL;
 
    /* Initalize is_fallthru state to false.
@@ -6182,7 +6230,7 @@ ast_case_label::hir(exec_list *instructions,
       } else {
          ast_expression *previous_label = (ast_expression *)
          hash_table_find(state->switch_state.labels_ht,
-                         (void *)(uintptr_t)label_const->value.u[0]);
+                         (void *)(uintptr_t)&label_const->value.u[0]);
 
          if (previous_label) {
             YYLTYPE loc = this->test_value->get_location();
@@ -6193,7 +6241,7 @@ ast_case_label::hir(exec_list *instructions,
          } else {
             hash_table_insert(state->switch_state.labels_ht,
                               this->test_value,
-                              (void *)(uintptr_t)label_const->value.u[0]);
+                              (void *)(uintptr_t)&label_const->value.u[0]);
          }
       }
 
@@ -6771,7 +6819,8 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
             unsigned qual_location;
             if (process_qualifier_constant(state, &loc, "location",
                                            qual->location, &qual_location)) {
-               fields[i].location = VARYING_SLOT_VAR0 + qual_location;
+               fields[i].location = qual_location +
+                  (fields[i].patch ? VARYING_SLOT_PATCH0 : VARYING_SLOT_VAR0);
                expl_location = fields[i].location +
                   fields[i].type->count_attribute_slots(false);
             }
@@ -7251,7 +7300,8 @@ ast_interface_block::hir(exec_list *instructions,
                                       layout.location, &expl_location)) {
          return NULL;
       } else {
-         expl_location = VARYING_SLOT_VAR0 + expl_location;
+         expl_location += this->layout.flags.q.patch ? VARYING_SLOT_PATCH0
+                                                     : VARYING_SLOT_VAR0;
       }
    }
 
@@ -7463,10 +7513,12 @@ ast_interface_block::hir(exec_list *instructions,
       _mesa_glsl_error(&loc, state, "geometry shader inputs must be arrays");
    } else if ((state->stage == MESA_SHADER_TESS_CTRL ||
                state->stage == MESA_SHADER_TESS_EVAL) &&
+              !this->layout.flags.q.patch &&
               this->array_specifier == NULL &&
               var_mode == ir_var_shader_in) {
       _mesa_glsl_error(&loc, state, "per-vertex tessellation shader inputs must be arrays");
    } else if (state->stage == MESA_SHADER_TESS_CTRL &&
+              !this->layout.flags.q.patch &&
               this->array_specifier == NULL &&
               var_mode == ir_var_shader_out) {
       _mesa_glsl_error(&loc, state, "tessellation control shader outputs must be arrays");
@@ -7581,6 +7633,8 @@ ast_interface_block::hir(exec_list *instructions,
 
       if (var_mode == ir_var_shader_in || var_mode == ir_var_uniform)
          var->data.read_only = true;
+
+      var->data.patch = this->layout.flags.q.patch;
 
       if (state->stage == MESA_SHADER_GEOMETRY && var_mode == ir_var_shader_in)
          handle_geometry_shader_input_decl(state, loc, var);

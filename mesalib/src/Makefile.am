@@ -50,6 +50,10 @@ SUBDIRS = . gtest util mapi/glapi/gen mapi
 # include only conditionally ?
 SUBDIRS += compiler
 
+if HAVE_GALLIUM_RADEON_COMMON
+SUBDIRS += amd
+endif
+
 if HAVE_INTEL_DRIVERS
 SUBDIRS += intel
 endif
@@ -81,6 +85,10 @@ endif
 
 if HAVE_EGL
 SUBDIRS += egl
+endif
+
+if HAVE_INTEL_DRIVERS
+SUBDIRS += intel/tools
 endif
 
 ## Requires the i965 compiler (part of mesa) and wayland-drm

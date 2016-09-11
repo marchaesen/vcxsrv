@@ -160,6 +160,7 @@ which means the contents of the matrix corresponding to (frac) should
 contain width samplings of the function, with the first sample at:
 
        floor (frac - (width - 1) / 2.0 - e) + 0.5 - frac
+     = ceil (frac - width / 2.0 - 0.5) + 0.5 - frac
 
 This filter is called separable because each of the k x k convolution
 matrices is specified with two k-wide vectors, one for each dimension,

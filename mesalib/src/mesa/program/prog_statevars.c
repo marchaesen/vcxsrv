@@ -609,6 +609,10 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
             val[0].i = ctx->TessCtrlProgram.patch_vertices;
          return;
 
+      case STATE_ADVANCED_BLENDING_MODE:
+         val[0].i = ctx->Color.BlendEnabled ? ctx->Color._AdvancedBlendMode : 0;
+         return;
+
       /* XXX: make sure new tokens added here are also handled in the 
        * _mesa_program_state_flags() switch, below.
        */
@@ -718,6 +722,9 @@ _mesa_program_state_flags(const gl_state_index state[STATE_LENGTH])
       case STATE_FB_SIZE:
       case STATE_FB_WPOS_Y_TRANSFORM:
          return _NEW_BUFFERS;
+
+      case STATE_ADVANCED_BLENDING_MODE:
+         return _NEW_COLOR;
 
       default:
          /* unknown state indexes are silently ignored and
@@ -924,6 +931,9 @@ append_token(char *dst, gl_state_index k)
       break;
    case STATE_FB_WPOS_Y_TRANSFORM:
       append(dst, "FbWposYTransform");
+      break;
+   case STATE_ADVANCED_BLENDING_MODE:
+      append(dst, "AdvancedBlendingMode");
       break;
    default:
       /* probably STATE_INTERNAL_DRIVER+i (driver private state) */

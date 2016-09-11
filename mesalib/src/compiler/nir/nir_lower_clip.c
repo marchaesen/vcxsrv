@@ -286,6 +286,8 @@ lower_clip_fs(nir_function_impl *impl, unsigned ucp_enables,
                                               nir_intrinsic_discard_if);
          discard->src[0] = nir_src_for_ssa(cond);
          nir_builder_instr_insert(&b, &discard->instr);
+
+         b.shader->info.fs.uses_discard = true;
       }
    }
 }

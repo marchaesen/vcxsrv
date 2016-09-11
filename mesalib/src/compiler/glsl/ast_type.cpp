@@ -414,6 +414,8 @@ ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
       valid_out_mask.flags.q.xfb_buffer = 1;
       valid_out_mask.flags.q.explicit_xfb_stride = 1;
       valid_out_mask.flags.q.xfb_stride = 1;
+   } else if (state->stage == MESA_SHADER_FRAGMENT) {
+      valid_out_mask.flags.q.blend_support = 1;
    } else {
       _mesa_glsl_error(loc, state, "out layout qualifiers only valid in "
                        "geometry, tessellation and vertex shaders");

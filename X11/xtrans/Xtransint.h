@@ -316,10 +316,6 @@ typedef struct _Xtransport_table {
  * systems, so they may be emulated.
  */
 
-static void TRANS(FreeConnInfo) (
-    XtransConnInfo 	/* ciptr */
-);
-
 #ifdef WIN32
 
 #define READV(ciptr, iov, iovcnt)	TRANS(ReadV)(ciptr, iov, iovcnt)

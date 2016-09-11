@@ -215,8 +215,10 @@ Mesa EGL supports different sets of environment variables.  See the
 <li>GALLIUM_HUD_TOGGLE_SIGNAL - toggle visibility via user specified signal.
     Especially useful to toggle hud at specific points of application and
     disable for unencumbered viewing the rest of the time. For example, set
-    GALLIUM_HUD_VISIBLE to false and GALLIUM_HUD_SIGNAL_TOGGLE to 10 (SIGUSR1).
+    GALLIUM_HUD_VISIBLE to false and GALLIUM_HUD_TOGGLE_SIGNAL to 10 (SIGUSR1).
     Use kill -10 <pid> to toggle the hud as desired.
+<li>GALLIUM_DRIVER - useful in combination with LIBGL_ALWAYS_SOFTWARE=1 for
+    choosing one of the software renderers "softpipe", "llvmpipe" or "swr".
 <li>GALLIUM_LOG_FILE - specifies a file for logging all errors, warnings, etc.
     rather than stderr.
 <li>GALLIUM_PRINT_OPTIONS - if non-zero, print all the Gallium environment

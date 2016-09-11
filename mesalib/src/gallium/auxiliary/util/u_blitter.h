@@ -111,6 +111,9 @@ struct blitter_context
    unsigned saved_num_sampler_views;
    struct pipe_sampler_view *saved_sampler_views[PIPE_MAX_SAMPLERS];
 
+   unsigned cb_slot;
+   struct pipe_constant_buffer saved_fs_constant_buffer;
+
    unsigned vb_slot;
    struct pipe_vertex_buffer saved_vertex_buffer;
 
@@ -486,6 +489,17 @@ util_blitter_save_fragment_sampler_views(struct blitter_context *blitter,
 }
 
 static inline void
+util_blitter_save_fragment_constant_buffer_slot(
+                  struct blitter_context *blitter,
+                  struct pipe_constant_buffer *constant_buffers)
+{
+   pipe_resource_reference(&blitter->saved_fs_constant_buffer.buffer,
+                           constant_buffers[blitter->cb_slot].buffer);
+   memcpy(&blitter->saved_fs_constant_buffer, &constant_buffers[blitter->cb_slot],
+          sizeof(struct pipe_constant_buffer));
+}
+
+static inline void
 util_blitter_save_vertex_buffer_slot(struct blitter_context *blitter,
                                      struct pipe_vertex_buffer *vertex_buffers)
 {
@@ -527,6 +541,21 @@ util_blitter_save_render_condition(struct blitter_context *blitter,
    blitter->saved_render_cond_mode = mode;
    blitter->saved_render_cond_cond = condition;
 }
+
+void util_blitter_common_clear_setup(struct blitter_context *blitter,
+                                     unsigned width, unsigned height,
+                                     unsigned clear_buffers,
+                                     void *custom_blend, void *custom_dsa);
+
+void util_blitter_set_running_flag(struct blitter_context *blitter);
+void util_blitter_unset_running_flag(struct blitter_context *blitter);
+
+void util_blitter_restore_vertex_states(struct blitter_context *blitter);
+void util_blitter_restore_fragment_states(struct blitter_context *blitter);
+void util_blitter_restore_render_cond(struct blitter_context *blitter);
+void util_blitter_restore_fb_state(struct blitter_context *blitter);
+void util_blitter_restore_textures(struct blitter_context *blitter);
+void util_blitter_restore_constant_buffer_state(struct blitter_context *blitter);
 
 #ifdef __cplusplus
 }

@@ -11,6 +11,7 @@ env.MSVC2013Compat()
 
 env.Append(CPPPATH = [
     '../compiler/nir',  # for generated nir_opcodes.h, etc
+    '../compiler/glsl',  # for generated headers
     '#/src',
     Dir('../mapi'), # src/mapi build path
     '#/src/mapi',
@@ -53,7 +54,7 @@ GLAPI = '#src/mapi/glapi/'
 get_hash_header = env.CodeGenerate(
       target = 'main/get_hash.h',
       script = 'main/get_hash_generator.py',
-      source = GLAPI + 'gen/gl_and_es_API.xml',
+      source = [GLAPI + 'gen/gl_and_es_API.xml'] + env.Glob(GLAPI + 'gen/*.xml'),
       command = python_cmd + ' $SCRIPT ' + ' -f $SOURCE > $TARGET'
 )
 

@@ -39,7 +39,16 @@ LOCAL_C_INCLUDES += \
 
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
 	$(LIBGLCPP_GENERATED_FILES) \
-	$(LIBGLSL_GENERATED_CXX_FILES))
+	$(LIBGLSL_GENERATED_FILES))
+
+LOCAL_EXPORT_C_INCLUDE_DIRS += \
+	$(intermediates)/glsl \
+
+# Modules using libmesa_nir must set LOCAL_GENERATED_SOURCES to this
+MESA_GEN_GLSL_H := $(addprefix $(call local-generated-sources-dir)/, \
+	glsl/ir_expression_operation.h \
+	glsl/ir_expression_operation_constant.h \
+	glsl/ir_expression_operation_strings.h)
 
 define local-l-or-ll-to-c-or-cpp
 	@mkdir -p $(dir $@)
@@ -73,8 +82,24 @@ $(intermediates)/glsl/glsl_lexer.cpp: $(LOCAL_PATH)/glsl/glsl_lexer.ll
 $(intermediates)/glsl/glsl_parser.cpp: $(LOCAL_PATH)/glsl/glsl_parser.yy
 	$(call local-yy-to-cpp-and-h,.cpp)
 
+$(intermediates)/glsl/glsl_parser.h: $(intermediates)/glsl/glsl_parser.cpp
+
 $(intermediates)/glsl/glcpp/glcpp-lex.c: $(LOCAL_PATH)/glsl/glcpp/glcpp-lex.l
 	$(call local-l-or-ll-to-c-or-cpp)
 
 $(intermediates)/glsl/glcpp/glcpp-parse.c: $(LOCAL_PATH)/glsl/glcpp/glcpp-parse.y
 	$(call glsl_local-y-to-c-and-h)
+
+$(LOCAL_PATH)/glsl/ir.h: $(intermediates)/glsl/ir_expression_operation.h
+
+$(intermediates)/glsl/ir_expression_operation.h: $(LOCAL_PATH)/glsl/ir_expression_operation.py
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $< enum > $@
+
+$(intermediates)/glsl/ir_expression_operation_constant.h: $(LOCAL_PATH)/glsl/ir_expression_operation.py
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $< constant > $@
+
+$(intermediates)/glsl/ir_expression_operation_strings.h: $(LOCAL_PATH)/glsl/ir_expression_operation.py
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $< strings > $@

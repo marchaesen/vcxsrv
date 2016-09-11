@@ -34,7 +34,7 @@
 
 struct lower_io_state {
    nir_shader *shader;
-   nir_function *entrypoint;
+   nir_function_impl *entrypoint;
    struct exec_list old_outputs;
    struct exec_list old_inputs;
 };
@@ -48,6 +48,21 @@ emit_copies(nir_cursor cursor, nir_shader *shader, struct exec_list *new_vars,
    foreach_two_lists(new_node, new_vars, old_node, old_vars) {
       nir_variable *newv = exec_node_data(nir_variable, new_node, node);
       nir_variable *temp = exec_node_data(nir_variable, old_node, node);
+
+      /* No need to copy the contents of a non-fb_fetch_output output variable
+       * to the temporary allocated for it, since its initial value is
+       * undefined.
+       */
+      if (temp->data.mode == nir_var_shader_out &&
+          !temp->data.fb_fetch_output)
+         continue;
+
+      /* Can't copy the contents of the temporary back to a read-only
+       * interface variable.  The value of the temporary won't have been
+       * modified by the shader anyway.
+       */
+      if (newv->data.read_only)
+         continue;
 
       nir_intrinsic_instr *copy =
          nir_intrinsic_instr_create(shader, nir_intrinsic_copy_var);
@@ -78,7 +93,11 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
             }
          }
       }
-   } else if (impl->function == state->entrypoint) {
+   } else if (impl == state->entrypoint) {
+      nir_cursor cursor = nir_before_block(nir_start_block(impl));
+      emit_copies(cursor, state->shader, &state->old_outputs,
+                  &state->shader->outputs);
+
       /* For all other shader types, we need to do the copies right before
        * the jumps to the end block.
        */
@@ -95,7 +114,7 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 static void
 emit_input_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 {
-   if (impl->function == state->entrypoint) {
+   if (impl == state->entrypoint) {
       nir_cursor cursor = nir_before_block(nir_start_block(impl));
       emit_copies(cursor, state->shader, &state->old_inputs,
                   &state->shader->inputs);
@@ -121,13 +140,15 @@ create_shadow_temp(struct lower_io_state *state, nir_variable *var)
    const char *mode = (temp->data.mode == nir_var_shader_in) ? "in" : "out";
    temp->name = ralloc_asprintf(var, "%s@%s-temp", mode, nvar->name);
    temp->data.mode = nir_var_global;
+   temp->data.read_only = false;
+   temp->data.fb_fetch_output = false;
    temp->constant_initializer = NULL;
 
    return nvar;
 }
 
 void
-nir_lower_io_to_temporaries(nir_shader *shader, nir_function *entrypoint,
+nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
                             bool outputs, bool inputs)
 {
    struct lower_io_state state;

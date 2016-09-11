@@ -941,7 +941,7 @@ CloseDownConnection(ClientPtr client)
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
 
     if (FlushCallback)
-        CallCallbacks(&FlushCallback, NULL);
+        CallCallbacks(&FlushCallback, client);
 
 #ifdef DEBUG
     ErrorF("CloseDownConnection: client index = %d, socket fd = %d\n",

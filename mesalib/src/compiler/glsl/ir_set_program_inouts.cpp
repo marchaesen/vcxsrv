@@ -96,10 +96,12 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
    for (int i = 0; i < len; i++) {
       assert(var->data.location != -1);
 
-      int idx = var->data.location + var->data.index + offset + i;
+      int idx = var->data.location + offset + i;
       bool is_patch_generic = var->data.patch &&
                               idx != VARYING_SLOT_TESS_LEVEL_INNER &&
-                              idx != VARYING_SLOT_TESS_LEVEL_OUTER;
+                              idx != VARYING_SLOT_TESS_LEVEL_OUTER &&
+                              idx != VARYING_SLOT_BOUNDING_BOX0 &&
+                              idx != VARYING_SLOT_BOUNDING_BOX1;
       GLbitfield64 bitfield;
 
       if (is_patch_generic) {
@@ -135,10 +137,16 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
          prog->SystemValuesRead |= bitfield;
       } else {
          assert(var->data.mode == ir_var_shader_out);
-         if (is_patch_generic)
+         if (is_patch_generic) {
             prog->PatchOutputsWritten |= bitfield;
-         else
+         } else if (!var->data.read_only) {
             prog->OutputsWritten |= bitfield;
+            if (var->data.index > 0)
+               prog->SecondaryOutputsWritten |= bitfield;
+         }
+
+         if (var->data.fb_fetch_output)
+            prog->OutputsRead |= bitfield;
       }
    }
 }
@@ -444,6 +452,8 @@ do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
 
    prog->InputsRead = 0;
    prog->OutputsWritten = 0;
+   prog->SecondaryOutputsWritten = 0;
+   prog->OutputsRead = 0;
    prog->PatchInputsRead = 0;
    prog->PatchOutputsWritten = 0;
    prog->SystemValuesRead = 0;

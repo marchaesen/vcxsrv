@@ -292,6 +292,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->in_qualifier = new(this) ast_type_qualifier();
    this->out_qualifier = new(this) ast_type_qualifier();
    this->fs_early_fragment_tests = false;
+   this->fs_blend_support = 0;
    memset(this->atomic_counter_offsets, 0,
           sizeof(this->atomic_counter_offsets));
    this->allow_extension_directive_midshader =
@@ -622,6 +623,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
 
    /* KHR extensions go here, sorted alphabetically.
     */
+   EXT(KHR_blend_equation_advanced),
 
    /* OES extensions go here, sorted alphabetically.
     */
@@ -629,6 +631,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(OES_geometry_point_size),
    EXT(OES_geometry_shader),
    EXT(OES_gpu_shader5),
+   EXT(OES_primitive_bounding_box),
    EXT(OES_sample_variables),
    EXT(OES_shader_image_atomic),
    EXT(OES_shader_io_blocks),
@@ -638,6 +641,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(OES_tessellation_shader),
    EXT(OES_texture_3D),
    EXT(OES_texture_buffer),
+   EXT(OES_texture_cube_map_array),
    EXT(OES_texture_storage_multisample_2d_array),
 
    /* All other extensions go here, sorted alphabetically.
@@ -650,8 +654,12 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(EXT_blend_func_extended),
    EXT(EXT_draw_buffers),
    EXT(EXT_clip_cull_distance),
+   EXT(EXT_geometry_point_size),
+   EXT(EXT_geometry_shader),
    EXT(EXT_gpu_shader5),
+   EXT(EXT_primitive_bounding_box),
    EXT(EXT_separate_shader_objects),
+   EXT(EXT_shader_framebuffer_fetch),
    EXT(EXT_shader_integer_mix),
    EXT(EXT_shader_io_blocks),
    EXT(EXT_shader_samples_identical),
@@ -659,6 +667,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(EXT_tessellation_shader),
    EXT(EXT_texture_array),
    EXT(EXT_texture_buffer),
+   EXT(EXT_texture_cube_map_array),
    EXT(MESA_shader_integer_functions),
 };
 
@@ -950,6 +959,7 @@ _mesa_ast_process_interface_block(YYLTYPE *locp,
    temp_type_qualifier.flags.q.in = true;
    temp_type_qualifier.flags.q.out = true;
    temp_type_qualifier.flags.q.buffer = true;
+   temp_type_qualifier.flags.q.patch = true;
    interface_type_mask = temp_type_qualifier.flags.i;
 
    /* Get the block's interface qualifier.  The interface_qualifier
@@ -1763,6 +1773,7 @@ set_shader_inout_layout(struct gl_shader *shader,
       shader->info.ARB_fragment_coord_conventions_enable =
          state->ARB_fragment_coord_conventions_enable;
       shader->info.EarlyFragmentTests = state->fs_early_fragment_tests;
+      shader->info.BlendSupport = state->fs_blend_support;
       break;
 
    default:

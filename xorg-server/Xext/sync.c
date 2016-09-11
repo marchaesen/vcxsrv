@@ -1899,7 +1899,7 @@ ProcSyncCreateFence(ClientPtr client)
     if (!AddResource(stuff->fid, RTFence, (void *) pFence))
         return BadAlloc;
 
-    return client->noClientException;
+    return Success;
 }
 
 static int
@@ -1940,7 +1940,7 @@ ProcSyncTriggerFence(ClientPtr client)
 
     miSyncTriggerFence(pFence);
 
-    return client->noClientException;
+    return Success;
 }
 
 static int
@@ -1962,7 +1962,7 @@ ProcSyncResetFence(ClientPtr client)
 
     pFence->funcs.Reset(pFence);
 
-    return client->noClientException;
+    return Success;
 }
 
 static int
@@ -1980,7 +1980,7 @@ ProcSyncDestroyFence(ClientPtr client)
         return rc;
 
     FreeResource(stuff->fid, RT_NONE);
-    return client->noClientException;
+    return Success;
 }
 
 static int
@@ -2011,7 +2011,7 @@ ProcSyncQueryFence(ClientPtr client)
     }
 
     WriteToClient(client, sizeof(xSyncQueryFenceReply), &rep);
-    return client->noClientException;
+    return Success;
 }
 
 static int
@@ -2089,7 +2089,7 @@ ProcSyncAwaitFence(ClientPtr client)
 
     SyncAwaitEpilogue(client, items, pAwaitUnion);
 
-    return client->noClientException;
+    return Success;
 }
 
 /*

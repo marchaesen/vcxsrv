@@ -42,6 +42,7 @@
 
 #include "cso_cache/cso_context.h"
 #include "util/u_draw_quad.h"
+#include "util/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_math.h"
@@ -64,10 +65,10 @@ struct hud_context {
    struct list_head pane_list;
 
    /* states */
-   struct pipe_blend_state alpha_blend;
+   struct pipe_blend_state no_blend, alpha_blend;
    struct pipe_depth_stencil_alpha_state dsa;
    void *fs_color, *fs_text;
-   struct pipe_rasterizer_state rasterizer;
+   struct pipe_rasterizer_state rasterizer, rasterizer_aa_lines;
    void *vs;
    struct pipe_vertex_element velems[2];
 
@@ -97,6 +98,8 @@ struct hud_context {
       unsigned max_num_vertices;
       unsigned num_vertices;
    } text, bg, whitelines;
+
+   bool has_srgb;
 };
 
 #ifdef PIPE_OS_UNIX
@@ -293,12 +296,19 @@ number_to_human_readable(uint64_t num, uint64_t max_value,
       unit++;
    }
 
-   if (d >= 100 || d == (int)d)
+   /* Round to 3 decimal places so as not to print trailing zeros. */
+   if (d*1000 != (int)(d*1000))
+      d = round(d * 1000) / 1000;
+
+   /* Show at least 4 digits with at most 3 decimal places, but not zeros. */
+   if (d >= 1000 || d == (int)d)
       sprintf(out, "%.0f%s", d, units[unit]);
-   else if (d >= 10 || d*10 == (int)(d*10))
+   else if (d >= 100 || d*10 == (int)(d*10))
       sprintf(out, "%.1f%s", d, units[unit]);
-   else
+   else if (d >= 10 || d*100 == (int)(d*100))
       sprintf(out, "%.2f%s", d, units[unit]);
+   else
+      sprintf(out, "%.3f%s", d, units[unit]);
 }
 
 static void
@@ -334,6 +344,7 @@ hud_pane_accumulate_vertices(struct hud_context *hud,
    float *line_verts = hud->whitelines.vertices + hud->whitelines.num_vertices*2;
    unsigned i, num = 0;
    char str[32];
+   const unsigned last_line = pane->last_line;
 
    /* draw background */
    hud_draw_background_quad(hud,
@@ -341,12 +352,13 @@ hud_pane_accumulate_vertices(struct hud_context *hud,
                             pane->x2, pane->y2);
 
    /* draw numbers on the right-hand side */
-   for (i = 0; i < 6; i++) {
+   for (i = 0; i <= last_line; i++) {
       unsigned x = pane->x2 + 2;
-      unsigned y = pane->inner_y1 + pane->inner_height * (5 - i) / 5 -
+      unsigned y = pane->inner_y1 +
+                   pane->inner_height * (last_line - i) / last_line -
                    hud->font.glyph_height / 2;
 
-      number_to_human_readable(pane->max_value * i / 5, pane->max_value,
+      number_to_human_readable(pane->max_value * i / last_line, pane->max_value,
                                pane->type, str);
       hud_draw_string(hud, x, y, "%s", str);
    }
@@ -386,8 +398,9 @@ hud_pane_accumulate_vertices(struct hud_context *hud,
    line_verts[num++] = (float) pane->y2;
 
    /* draw horizontal lines inside the graph */
-   for (i = 0; i <= 5; i++) {
-      float y = round((pane->max_value * i / 5.0) * pane->yscale + pane->inner_y2);
+   for (i = 0; i <= last_line; i++) {
+      float y = round((pane->max_value * i / (double)last_line) *
+                      pane->yscale + pane->inner_y2);
 
       assert(hud->whitelines.num_vertices + num/2 + 2 <= hud->whitelines.max_num_vertices);
       line_verts[num++] = pane->x1;
@@ -484,6 +497,18 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    /* set states */
    memset(&surf_templ, 0, sizeof(surf_templ));
    surf_templ.format = tex->format;
+
+   /* Without this, AA lines look thinner if they are between 2 pixels
+    * because the alpha is 0.5 on both pixels. (it's ugly)
+    *
+    * sRGB makes the width of all AA lines look the same.
+    */
+   if (hud->has_srgb) {
+      enum pipe_format srgb_format = util_format_srgb(tex->format);
+
+      if (srgb_format != PIPE_FORMAT_NONE)
+         surf_templ.format = srgb_format;
+   }
    surf = pipe->create_surface(pipe, tex, &surf_templ);
 
    memset(&fb, 0, sizeof(fb));
@@ -503,7 +528,6 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_framebuffer(cso, &fb);
    cso_set_sample_mask(cso, ~0);
    cso_set_min_samples(cso, 1);
-   cso_set_blend(cso, &hud->alpha_blend);
    cso_set_depth_stencil_alpha(cso, &hud->dsa);
    cso_set_rasterizer(cso, &hud->rasterizer);
    cso_set_viewport(cso, &viewport);
@@ -520,9 +544,9 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
    /* prepare vertex buffers */
-   hud_alloc_vertices(hud, &hud->bg, 4 * 128, 2 * sizeof(float));
+   hud_alloc_vertices(hud, &hud->bg, 4 * 256, 2 * sizeof(float));
    hud_alloc_vertices(hud, &hud->whitelines, 4 * 256, 2 * sizeof(float));
-   hud_alloc_vertices(hud, &hud->text, 4 * 512, 4 * sizeof(float));
+   hud_alloc_vertices(hud, &hud->text, 4 * 1024, 4 * sizeof(float));
 
    /* prepare all graphs */
    hud_batch_query_update(hud->batch_query);
@@ -539,6 +563,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    u_upload_unmap(hud->uploader);
 
    /* draw accumulated vertices for background quads */
+   cso_set_blend(cso, &hud->alpha_blend);
    cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
 
    if (hud->bg.num_vertices) {
@@ -559,6 +584,8 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    pipe_resource_reference(&hud->bg.vbuf.buffer, NULL);
 
    /* draw accumulated vertices for white lines */
+   cso_set_blend(cso, &hud->no_blend);
+
    hud->constants.color[0] = 1;
    hud->constants.color[1] = 1;
    hud->constants.color[2] = 1;
@@ -578,6 +605,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    pipe_resource_reference(&hud->whitelines.vbuf.buffer, NULL);
 
    /* draw accumulated vertices for text */
+   cso_set_blend(cso, &hud->alpha_blend);
    if (hud->text.num_vertices) {
       cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1,
                              &hud->text.vbuf);
@@ -587,6 +615,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    pipe_resource_reference(&hud->text.vbuf.buffer, NULL);
 
    /* draw the rest */
+   cso_set_rasterizer(cso, &hud->rasterizer_aa_lines);
    LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
       if (pane)
          hud_pane_draw_colored_objects(hud, pane);
@@ -598,6 +627,13 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    pipe_surface_reference(&surf, NULL);
 }
 
+static void
+fixup_bytes(enum pipe_driver_query_type type, int position, uint64_t *exp10)
+{
+   if (type == PIPE_DRIVER_QUERY_TYPE_BYTES && position % 3 == 0)
+      *exp10 = (*exp10 / 1000) * 1024;
+}
+
 /**
  * Set the maximum value for the Y axis of the graph.
  * This scales the graph accordingly.
@@ -605,7 +641,74 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
 void
 hud_pane_set_max_value(struct hud_pane *pane, uint64_t value)
 {
-   pane->max_value = value;
+   double leftmost_digit;
+   uint64_t exp10;
+   int i;
+
+   /* The following code determines the max_value in the graph as well as
+    * how many describing lines are drawn. The max_value is rounded up,
+    * so that all drawn numbers are rounded for readability.
+    * We want to print multiples of a simple number instead of multiples of
+    * hard-to-read numbers like 1.753.
+    */
+
+   /* Find the left-most digit. */
+   exp10 = 1;
+   for (i = 0; value > 9 * exp10; i++) {
+      exp10 *= 10;
+      fixup_bytes(pane->type, i + 1, &exp10);
+   }
+
+   leftmost_digit = DIV_ROUND_UP(value, exp10);
+
+   /* Round 9 to 10. */
+   if (leftmost_digit == 9) {
+      leftmost_digit = 1;
+      exp10 *= 10;
+      fixup_bytes(pane->type, i + 1, &exp10);
+   }
+
+   switch ((unsigned)leftmost_digit) {
+   case 1:
+      pane->last_line = 5; /* lines in +1/5 increments */
+      break;
+   case 2:
+      pane->last_line = 8; /* lines in +1/4 increments. */
+      break;
+   case 3:
+   case 4:
+      pane->last_line = leftmost_digit * 2; /* lines in +1/2 increments */
+      break;
+   case 5:
+   case 6:
+   case 7:
+   case 8:
+      pane->last_line = leftmost_digit; /* lines in +1 increments */
+      break;
+   default:
+      assert(0);
+   }
+
+   /* Truncate {3,4} to {2.5, 3.5} if possible. */
+   for (i = 3; i <= 4; i++) {
+      if (leftmost_digit == i && value <= (i - 0.5) * exp10) {
+         leftmost_digit = i - 0.5;
+         pane->last_line = leftmost_digit * 2; /* lines in +1/2 increments. */
+      }
+   }
+
+   /* Truncate 2 to a multiple of 0.2 in (1, 1.6] if possible. */
+   if (leftmost_digit == 2) {
+      for (i = 1; i <= 3; i++) {
+         if (value <= (1 + i*0.2) * exp10) {
+            leftmost_digit = 1 + i*0.2;
+            pane->last_line = 5 + i; /* lines in +1/5 increments. */
+            break;
+         }
+      }
+   }
+
+   pane->max_value = leftmost_digit * exp10;
    pane->yscale = -(int)pane->inner_height / (float)pane->max_value;
 }
 
@@ -1007,7 +1110,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       case ';':
          env++;
          y = 10;
-         x += column_width + hud->font.glyph_width * 7;
+         x += column_width + hud->font.glyph_width * 9;
          height = 100;
 
          if (pane && pane->num_graphs) {
@@ -1134,12 +1237,13 @@ print_help(struct pipe_screen *screen)
 struct hud_context *
 hud_create(struct pipe_context *pipe, struct cso_context *cso)
 {
+   struct pipe_screen *screen = pipe->screen;
    struct hud_context *hud;
    struct pipe_sampler_view view_templ;
    unsigned i;
    const char *env = debug_get_option("GALLIUM_HUD", NULL);
-   unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
 #ifdef PIPE_OS_UNIX
+   unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
    static boolean sig_handled = FALSE;
    struct sigaction action = {};
 #endif
@@ -1169,7 +1273,14 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       return NULL;
    }
 
+   hud->has_srgb = screen->is_format_supported(screen,
+                                               PIPE_FORMAT_B8G8R8A8_SRGB,
+                                               PIPE_TEXTURE_2D, 0,
+                                               PIPE_BIND_RENDER_TARGET) != 0;
+
    /* blend state */
+   hud->no_blend.rt[0].colormask = PIPE_MASK_RGBA;
+
    hud->alpha_blend.rt[0].colormask = PIPE_MASK_RGBA;
    hud->alpha_blend.rt[0].blend_enable = 1;
    hud->alpha_blend.rt[0].rgb_func = PIPE_BLEND_ADD;
@@ -1221,6 +1332,9 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
    hud->rasterizer.depth_clip = 1;
    hud->rasterizer.line_width = 1;
    hud->rasterizer.line_last_pixel = 1;
+
+   hud->rasterizer_aa_lines = hud->rasterizer;
+   hud->rasterizer_aa_lines.line_smooth = 1;
 
    /* vertex shader */
    {

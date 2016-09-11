@@ -132,6 +132,7 @@ struct xwl_seat {
     struct wl_surface *cursor;
     struct wl_callback *cursor_frame_cb;
     Bool cursor_needs_update;
+    WindowPtr last_xwindow;
 
     struct xorg_list touches;
 
@@ -173,6 +174,8 @@ struct xwl_output *xwl_output_create(struct xwl_screen *xwl_screen,
                                      uint32_t id);
 
 void xwl_output_destroy(struct xwl_output *xwl_output);
+
+void xwl_output_remove(struct xwl_output *xwl_output);
 
 RRModePtr xwayland_cvt(int HDisplay, int VDisplay,
                        float VRefresh, Bool Reduced, Bool Interlaced);

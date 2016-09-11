@@ -153,3 +153,24 @@ Bool ms_vblank_screen_init(ScreenPtr screen);
 void ms_vblank_close_screen(ScreenPtr screen);
 
 Bool ms_present_screen_init(ScreenPtr screen);
+
+#ifdef GLAMOR
+
+typedef void (*ms_pageflip_handler_proc)(modesettingPtr ms,
+                                         uint64_t frame,
+                                         uint64_t usec,
+                                         void *data);
+
+typedef void (*ms_pageflip_abort_proc)(modesettingPtr ms, void *data);
+
+int ms_flush_drm_events(ScreenPtr screen);
+
+Bool ms_do_pageflip(ScreenPtr screen,
+                    PixmapPtr new_front,
+                    void *event,
+                    int ref_crtc_vblank_pipe,
+                    Bool async,
+                    ms_pageflip_handler_proc pageflip_handler,
+                    ms_pageflip_abort_proc pageflip_abort);
+
+#endif

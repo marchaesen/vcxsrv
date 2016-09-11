@@ -177,6 +177,7 @@
 			  id="lock_checkbutton">
 		    <property name="label" translatable="yes">Lock X and Y Dimensions</property>
 		    <property name="xalign">0.0</property>
+		    <property name="active">True</property>
 		  </object>
                   <packing>
                     <property name="expand">False</property>
@@ -301,6 +302,7 @@
                       <object class="GtkSpinButton" id="subsample_spin_button">
                         <property name="visible">True</property>
 			<property name="adjustment">subsample_adjustment</property>
+			<property name="value">4</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>

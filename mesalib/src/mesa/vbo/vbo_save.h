@@ -96,7 +96,7 @@ struct vbo_save_vertex_list {
  * likelyhood as it occurs.  No reason we couldn't change usage
  * internally even though this probably isn't allowed for client VBOs?
  */
-#define VBO_SAVE_BUFFER_SIZE (8*1024) /* dwords */
+#define VBO_SAVE_BUFFER_SIZE (256*1024) /* dwords */
 #define VBO_SAVE_PRIM_SIZE   128
 #define VBO_SAVE_PRIM_MODE_MASK         0x3f
 #define VBO_SAVE_PRIM_WEAK              0x40

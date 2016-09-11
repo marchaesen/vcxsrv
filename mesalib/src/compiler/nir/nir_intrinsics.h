@@ -41,7 +41,6 @@
 
 #define ARR(...) { __VA_ARGS__ }
 
-
 INTRINSIC(load_var, 0, ARR(0), true, 0, 1, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 INTRINSIC(store_var, 1, ARR(0), false, 0, 1, 1, WRMASK, xx, xx, 0)
 INTRINSIC(copy_var, 0, ARR(0), false, 0, 2, 0, xx, xx, xx, 0)
@@ -277,7 +276,13 @@ INTRINSIC(shared_atomic_xor, 2, ARR(1, 1), true, 1, 0, 1, BASE, xx, xx, 0)
 INTRINSIC(shared_atomic_exchange, 2, ARR(1, 1), true, 1, 0, 1, BASE, xx, xx, 0)
 INTRINSIC(shared_atomic_comp_swap, 3, ARR(1, 1, 1), true, 1, 0, 1, BASE, xx, xx, 0)
 
+/* Used by nir_builder.h to generate loader helpers for the system values. */
+#ifndef DEFINE_SYSTEM_VALUE
+#define DEFINE_SYSTEM_VALUE(name)
+#endif
+
 #define SYSTEM_VALUE(name, components, num_indices, idx0, idx1, idx2) \
+   DEFINE_SYSTEM_VALUE(name) \
    INTRINSIC(load_##name, 0, ARR(0), true, components, 0, num_indices, \
    idx0, idx1, idx2, \
    NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
@@ -305,6 +310,15 @@ SYSTEM_VALUE(user_clip_plane, 4, 1, UCP_ID, xx, xx)
 SYSTEM_VALUE(num_work_groups, 3, 0, xx, xx, xx)
 SYSTEM_VALUE(helper_invocation, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(channel_num, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(alpha_ref_float, 1, 0, xx, xx, xx)
+
+/* Blend constant color values.  Float values are clamped. */
+SYSTEM_VALUE(blend_const_color_r_float, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(blend_const_color_g_float, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(blend_const_color_b_float, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(blend_const_color_a_float, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(blend_const_color_rgba8888_unorm, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(blend_const_color_aaaa8888_unorm, 1, 0, xx, xx, xx)
 
 /**
  * Barycentric coordinate intrinsics.
@@ -405,3 +419,7 @@ STORE(ssbo, 3, 1, WRMASK, xx, xx, 0)
 STORE(shared, 2, 2, BASE, WRMASK, xx, 0)
 
 LAST_INTRINSIC(store_shared)
+
+#undef DEFINE_SYSTEM_VALUE
+#undef INTRINSIC
+#undef LAST_INTRINSIC

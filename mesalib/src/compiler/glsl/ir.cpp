@@ -498,133 +498,7 @@ ir_expression::get_num_operands(ir_expression_operation op)
    return 0;
 }
 
-static const char *const operator_strs[] = {
-   "~",
-   "!",
-   "neg",
-   "abs",
-   "sign",
-   "rcp",
-   "rsq",
-   "sqrt",
-   "exp",
-   "log",
-   "exp2",
-   "log2",
-   "f2i",
-   "f2u",
-   "i2f",
-   "f2b",
-   "b2f",
-   "i2b",
-   "b2i",
-   "u2f",
-   "i2u",
-   "u2i",
-   "d2f",
-   "f2d",
-   "d2i",
-   "i2d",
-   "d2u",
-   "u2d",
-   "d2b",
-   "bitcast_i2f",
-   "bitcast_f2i",
-   "bitcast_u2f",
-   "bitcast_f2u",
-   "trunc",
-   "ceil",
-   "floor",
-   "fract",
-   "round_even",
-   "sin",
-   "cos",
-   "dFdx",
-   "dFdxCoarse",
-   "dFdxFine",
-   "dFdy",
-   "dFdyCoarse",
-   "dFdyFine",
-   "packSnorm2x16",
-   "packSnorm4x8",
-   "packUnorm2x16",
-   "packUnorm4x8",
-   "packHalf2x16",
-   "unpackSnorm2x16",
-   "unpackSnorm4x8",
-   "unpackUnorm2x16",
-   "unpackUnorm4x8",
-   "unpackHalf2x16",
-   "bitfield_reverse",
-   "bit_count",
-   "find_msb",
-   "find_lsb",
-   "sat",
-   "packDouble2x32",
-   "unpackDouble2x32",
-   "frexp_sig",
-   "frexp_exp",
-   "noise",
-   "subroutine_to_int",
-   "interpolate_at_centroid",
-   "get_buffer_size",
-   "ssbo_unsized_array_length",
-   "vote_any",
-   "vote_all",
-   "vote_eq",
-   "+",
-   "-",
-   "*",
-   "imul_high",
-   "/",
-   "carry",
-   "borrow",
-   "%",
-   "<",
-   ">",
-   "<=",
-   ">=",
-   "==",
-   "!=",
-   "all_equal",
-   "any_nequal",
-   "<<",
-   ">>",
-   "&",
-   "^",
-   "|",
-   "&&",
-   "^^",
-   "||",
-   "dot",
-   "min",
-   "max",
-   "pow",
-   "ubo_load",
-   "ldexp",
-   "vector_extract",
-   "interpolate_at_offset",
-   "interpolate_at_sample",
-   "fma_mesa",
-   "lrp",
-   "csel",
-   "bitfield_extract",
-   "vector_insert",
-   "bitfield_insert",
-   "vector",
-};
-
-const char *ir_expression::operator_string(ir_expression_operation op)
-{
-   assert((unsigned int) op < ARRAY_SIZE(operator_strs));
-   assert(ARRAY_SIZE(operator_strs) == (ir_quadop_vector + 1));
-   return operator_strs[op];
-}
-
-const char *ir_expression::operator_string()
-{
-   return operator_string(this->operation);
-}
+#include "ir_expression_operation_strings.h"
 
 const char*
 depth_layout_string(ir_depth_layout layout)
@@ -645,9 +519,8 @@ depth_layout_string(ir_depth_layout layout)
 ir_expression_operation
 ir_expression::get_operator(const char *str)
 {
-   const int operator_count = sizeof(operator_strs) / sizeof(operator_strs[0]);
-   for (int op = 0; op < operator_count; op++) {
-      if (strcmp(str, operator_strs[op]) == 0)
+   for (int op = 0; op <= int(ir_last_opcode); op++) {
+      if (strcmp(str, ir_expression_operation_strings[op]) == 0)
 	 return (ir_expression_operation) op;
    }
    return (ir_expression_operation) -1;
@@ -1686,6 +1559,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.image_volatile = false;
    this->data.image_restrict = false;
    this->data.from_ssbo_unsized_array = false;
+   this->data.fb_fetch_output = false;
 
    if (type != NULL) {
       if (type->base_type == GLSL_TYPE_SAMPLER)

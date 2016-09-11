@@ -281,6 +281,7 @@ struct _mesa_glsl_parse_state {
       return OES_shader_io_blocks_enable ||
              EXT_shader_io_blocks_enable ||
              OES_geometry_shader_enable ||
+             EXT_geometry_shader_enable ||
              OES_tessellation_shader_enable ||
              EXT_tessellation_shader_enable ||
 
@@ -289,7 +290,8 @@ struct _mesa_glsl_parse_state {
 
    bool has_geometry_shader() const
    {
-      return OES_geometry_shader_enable || is_version(150, 320);
+      return OES_geometry_shader_enable || EXT_geometry_shader_enable ||
+             is_version(150, 320);
    }
 
    bool has_tessellation_shader() const
@@ -310,6 +312,21 @@ struct _mesa_glsl_parse_state {
       return EXT_clip_cull_distance_enable ||
              ARB_cull_distance_enable ||
              is_version(450, 0);
+   }
+
+   bool has_framebuffer_fetch() const
+   {
+      return EXT_shader_framebuffer_fetch_enable ||
+             MESA_shader_framebuffer_fetch_enable ||
+             MESA_shader_framebuffer_fetch_non_coherent_enable;
+   }
+
+   bool has_texture_cube_map_array() const
+   {
+      return ARB_texture_cube_map_array_enable ||
+             EXT_texture_cube_map_array_enable ||
+             OES_texture_cube_map_array_enable ||
+             is_version(400, 320);
    }
 
    void process_version_directive(YYLTYPE *locp, int version,
@@ -646,6 +663,8 @@ struct _mesa_glsl_parse_state {
 
    /* KHR extensions go here, sorted alphabetically.
     */
+   bool KHR_blend_equation_advanced_enable;
+   bool KHR_blend_equation_advanced_warn;
 
    /* OES extensions go here, sorted alphabetically.
     */
@@ -657,6 +676,8 @@ struct _mesa_glsl_parse_state {
    bool OES_geometry_shader_warn;
    bool OES_gpu_shader5_enable;
    bool OES_gpu_shader5_warn;
+   bool OES_primitive_bounding_box_enable;
+   bool OES_primitive_bounding_box_warn;
    bool OES_sample_variables_enable;
    bool OES_sample_variables_warn;
    bool OES_shader_image_atomic_enable;
@@ -675,6 +696,8 @@ struct _mesa_glsl_parse_state {
    bool OES_texture_3D_warn;
    bool OES_texture_buffer_enable;
    bool OES_texture_buffer_warn;
+   bool OES_texture_cube_map_array_enable;
+   bool OES_texture_cube_map_array_warn;
    bool OES_texture_storage_multisample_2d_array_enable;
    bool OES_texture_storage_multisample_2d_array_warn;
 
@@ -696,10 +719,18 @@ struct _mesa_glsl_parse_state {
    bool EXT_clip_cull_distance_warn;
    bool EXT_draw_buffers_enable;
    bool EXT_draw_buffers_warn;
+   bool EXT_geometry_point_size_enable;
+   bool EXT_geometry_point_size_warn;
+   bool EXT_geometry_shader_enable;
+   bool EXT_geometry_shader_warn;
    bool EXT_gpu_shader5_enable;
    bool EXT_gpu_shader5_warn;
+   bool EXT_primitive_bounding_box_enable;
+   bool EXT_primitive_bounding_box_warn;
    bool EXT_separate_shader_objects_enable;
    bool EXT_separate_shader_objects_warn;
+   bool EXT_shader_framebuffer_fetch_enable;
+   bool EXT_shader_framebuffer_fetch_warn;
    bool EXT_shader_integer_mix_enable;
    bool EXT_shader_integer_mix_warn;
    bool EXT_shader_io_blocks_enable;
@@ -714,6 +745,12 @@ struct _mesa_glsl_parse_state {
    bool EXT_texture_array_warn;
    bool EXT_texture_buffer_enable;
    bool EXT_texture_buffer_warn;
+   bool EXT_texture_cube_map_array_enable;
+   bool EXT_texture_cube_map_array_warn;
+   bool MESA_shader_framebuffer_fetch_enable;
+   bool MESA_shader_framebuffer_fetch_warn;
+   bool MESA_shader_framebuffer_fetch_non_coherent_enable;
+   bool MESA_shader_framebuffer_fetch_non_coherent_warn;
    bool MESA_shader_integer_functions_enable;
    bool MESA_shader_integer_functions_warn;
    /*@}*/
@@ -734,6 +771,8 @@ struct _mesa_glsl_parse_state {
    unsigned gs_input_size;
 
    bool fs_early_fragment_tests;
+
+   unsigned fs_blend_support;
 
    /**
     * For tessellation control shaders, size of the most recently seen output

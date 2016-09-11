@@ -246,11 +246,22 @@ ir_validate::visit_leave(ir_expression *ir)
       break;
 
    case ir_unop_neg:
+      assert(ir->type == ir->operands[0]->type);
+      break;
+
    case ir_unop_abs:
    case ir_unop_sign:
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_INT ||
+             ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT ||
+             ir->operands[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(ir->type == ir->operands[0]->type);
+      break;
+
    case ir_unop_rcp:
    case ir_unop_rsq:
    case ir_unop_sqrt:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT ||
+             ir->type->base_type == GLSL_TYPE_DOUBLE);
       assert(ir->type == ir->operands[0]->type);
       break;
 

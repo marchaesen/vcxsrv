@@ -184,10 +184,10 @@ _mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
          return ctx->Extensions.ARB_texture_cube_map
                 ? ctx->Texture.ProxyTex[TEXTURE_CUBE_INDEX] : NULL;
       case GL_TEXTURE_CUBE_MAP_ARRAY:
-         return ctx->Extensions.ARB_texture_cube_map_array
+         return _mesa_has_texture_cube_map_array(ctx)
                 ? texUnit->CurrentTex[TEXTURE_CUBE_ARRAY_INDEX] : NULL;
       case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
-         return ctx->Extensions.ARB_texture_cube_map_array
+         return _mesa_has_texture_cube_map_array(ctx)
                 ? ctx->Texture.ProxyTex[TEXTURE_CUBE_ARRAY_INDEX] : NULL;
       case GL_TEXTURE_RECTANGLE_NV:
          return ctx->Extensions.NV_texture_rectangle
@@ -1579,7 +1579,7 @@ _mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
       return _mesa_is_gles(ctx) && ctx->Extensions.OES_EGL_image_external
          ? TEXTURE_EXTERNAL_INDEX : -1;
    case GL_TEXTURE_CUBE_MAP_ARRAY:
-      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_cube_map_array
+      return _mesa_has_texture_cube_map_array(ctx)
          ? TEXTURE_CUBE_ARRAY_INDEX : -1;
    case GL_TEXTURE_2D_MULTISAMPLE:
       return ((_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_multisample) ||

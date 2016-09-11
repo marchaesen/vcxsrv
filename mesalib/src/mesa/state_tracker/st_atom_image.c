@@ -46,7 +46,7 @@
 
 static void
 st_bind_images(struct st_context *st, struct gl_linked_shader *shader,
-              unsigned shader_type)
+              enum pipe_shader_type shader_type)
 {
    unsigned i;
    struct pipe_image_view images[MAX_IMAGE_UNIFORMS];
@@ -88,19 +88,13 @@ st_bind_images(struct st_context *st, struct gl_linked_shader *shader,
 
       if (stObj->pt->target == PIPE_BUFFER) {
          unsigned base, size;
-         unsigned f, n;
-         const struct util_format_description *desc
-            = util_format_description(img->format);
 
          base = stObj->base.BufferOffset;
          assert(base < stObj->pt->width0);
          size = MIN2(stObj->pt->width0 - base, (unsigned)stObj->base.BufferSize);
 
-         f = (base / (desc->block.bits / 8)) * desc->block.width;
-         n = (size / (desc->block.bits / 8)) * desc->block.width;
-         assert(n > 0);
-         img->u.buf.first_element = f;
-         img->u.buf.last_element  = f + (n - 1);
+         img->u.buf.offset = base;
+         img->u.buf.size = size;
       } else {
          img->u.tex.level = u->Level + stObj->base.MinLevel;
          if (stObj->pt->target == PIPE_TEXTURE_3D) {

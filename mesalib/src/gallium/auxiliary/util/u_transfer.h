@@ -73,6 +73,7 @@ struct u_resource {
 
 
 boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
+                                   struct pipe_context *ctx,
                                    struct pipe_resource *resource,
                                    struct winsys_handle *handle,
                                    unsigned usage);

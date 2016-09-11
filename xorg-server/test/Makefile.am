@@ -12,8 +12,23 @@ endif
 endif
 check_LTLIBRARIES = libxservertest.la
 
-TESTS=$(noinst_PROGRAMS)
-TESTS_ENVIRONMENT = $(XORG_MALLOC_DEBUG_ENV)
+if XVFB
+XVFB_TESTS = scripts/xvfb-piglit.sh
+endif
+
+SCRIPT_TESTS = \
+	$(XVFB_TESTS) \
+	$(NULL)
+
+TESTS = \
+	$(noinst_PROGRAMS) \
+	$(SCRIPT_TESTS) \
+	$(NULL)
+
+TESTS_ENVIRONMENT = \
+	XSERVER_DIR=$(abs_top_builddir) \
+	$(XORG_MALLOC_DEBUG_ENV) \
+	$(NULL)
 
 AM_CFLAGS = $(DIX_CFLAGS) @XORG_CFLAGS@
 AM_CPPFLAGS = $(XORG_INCS)
@@ -139,5 +154,9 @@ endif
 libxservertest_la_DEPENDENCIES = $(libxservertest_la_LIBADD)
 endif
 
-EXTRA_DIST = ddxstubs.c
+EXTRA_DIST = \
+	$(SCRIPT_TESTS) \
+	scripts/xinit-piglit-session.sh \
+	ddxstubs.c \
+	$(NULL)
 

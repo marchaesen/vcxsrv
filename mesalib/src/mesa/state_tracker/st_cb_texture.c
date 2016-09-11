@@ -1163,8 +1163,9 @@ try_pbo_upload_common(struct gl_context *ctx,
       memset(&templ, 0, sizeof(templ));
       templ.target = PIPE_BUFFER;
       templ.format = src_format;
-      templ.u.buf.first_element = addr->first_element;
-      templ.u.buf.last_element = addr->last_element;
+      templ.u.buf.offset = addr->first_element * addr->bytes_per_pixel;
+      templ.u.buf.size = (addr->last_element - addr->first_element + 1) *
+                         addr->bytes_per_pixel;
       templ.swizzle_r = PIPE_SWIZZLE_X;
       templ.swizzle_g = PIPE_SWIZZLE_Y;
       templ.swizzle_b = PIPE_SWIZZLE_Z;
@@ -1820,7 +1821,7 @@ st_GetTexSubImage(struct gl_context * ctx,
    GLenum gl_target = texImage->TexObject->Target;
    enum pipe_texture_target pipe_target;
    struct pipe_blit_info blit;
-   unsigned bind = PIPE_BIND_TRANSFER_READ;
+   unsigned bind;
    struct pipe_transfer *tex_xfer;
    ubyte *map = NULL;
    boolean done = FALSE;
@@ -1884,9 +1885,9 @@ st_GetTexSubImage(struct gl_context * ctx,
    }
 
    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL)
-      bind |= PIPE_BIND_DEPTH_STENCIL;
+      bind = PIPE_BIND_DEPTH_STENCIL;
    else
-      bind |= PIPE_BIND_RENDER_TARGET;
+      bind = PIPE_BIND_RENDER_TARGET;
 
    /* GetTexImage only returns a single face for cubemaps. */
    if (gl_target == GL_TEXTURE_CUBE_MAP) {

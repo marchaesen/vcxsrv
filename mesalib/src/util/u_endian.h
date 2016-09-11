@@ -1,6 +1,7 @@
 /**************************************************************************
  * 
- * Copyright 2009 VMware, Inc.  All Rights Reserved.
+ * Copyright 2007-2008 VMware, Inc.
+ * All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
@@ -23,42 +24,46 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * 
  **************************************************************************/
+#ifndef U_ENDIAN_H
+#define U_ENDIAN_H
 
-/* Authors:
- *    Michel Dänzer
- */
+#ifdef __GLIBC__
+#include <endian.h>
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+# define PIPE_ARCH_LITTLE_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
+# define PIPE_ARCH_BIG_ENDIAN
+#endif
 
-#include "pipe/p_context.h"
-#include "pipe/p_state.h"
+#elif defined(__APPLE__)
+#include <machine/endian.h>
 
+#if __DARWIN_BYTE_ORDER == __DARWIN_LITTLE_ENDIAN
+# define PIPE_ARCH_LITTLE_ENDIAN
+#elif __DARWIN_BYTE_ORDER == __DARWIN_BIG_ENDIAN
+# define PIPE_ARCH_BIG_ENDIAN
+#endif
 
-/**
- * Clear the given buffers to the specified values.
- * No masking, no scissor (clear entire buffer).
- */
-static inline void
-util_clear(struct pipe_context *pipe,
-           struct pipe_framebuffer_state *framebuffer, unsigned buffers,
-           const union pipe_color_union *color, double depth, unsigned stencil)
-{
-   unsigned i;
+#elif defined(__sun)
+#include <sys/isa_defs.h>
 
-   for (i = 0; i < framebuffer->nr_cbufs; i++) {
-      if (buffers & (PIPE_CLEAR_COLOR0 << i)) {
-         struct pipe_surface *ps = framebuffer->cbufs[i];
+#if defined(_LITTLE_ENDIAN)
+# define PIPE_ARCH_LITTLE_ENDIAN
+#elif defined(_BIG_ENDIAN)
+# define PIPE_ARCH_BIG_ENDIAN
+#endif
 
-         if (ps) {
-            pipe->clear_render_target(pipe, ps, color, 0, 0, ps->width,
-                                      ps->height, true);
-         }
-      }
-   }
+#elif defined(__OpenBSD__) || defined(__NetBSD__)
+#include <sys/types.h>
+#include <machine/endian.h>
 
-   if (buffers & PIPE_CLEAR_DEPTHSTENCIL) {
-      struct pipe_surface *ps = framebuffer->zsbuf;
-      pipe->clear_depth_stencil(pipe, ps, buffers & PIPE_CLEAR_DEPTHSTENCIL,
-                                depth, stencil,
-                                0, 0, ps->width, ps->height, true);
-   }
-}
+#if _BYTE_ORDER == _LITTLE_ENDIAN
+# define PIPE_ARCH_LITTLE_ENDIAN
+#elif _BYTE_ORDER == _BIG_ENDIAN
+# define PIPE_ARCH_BIG_ENDIAN
+#endif
+
+#endif
+
+#endif

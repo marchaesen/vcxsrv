@@ -338,6 +338,9 @@ descriptor=[
 
 # blend_func_extended
   [ "MAX_DUAL_SOURCE_DRAW_BUFFERS", "CONTEXT_INT(Const.MaxDualSourceDrawBuffers), extra_ARB_blend_func_extended" ],
+
+# GL_KHR_blend_equation_advanced_coherent
+  [ "BLEND_ADVANCED_COHERENT_KHR", "CONTEXT_BOOL(Color.BlendCoherent), extra_KHR_blend_equation_advanced_coherent" ],
 ]},
 
 # GLES3 is not a typo.
@@ -424,6 +427,10 @@ descriptor=[
 ]},
 
 { "apis": ["GLES", "GLES2"], "params": [
+# GL_EXT_shader_framebuffer_fetch.  Should be true if the MESA framebuffer
+# fetch extension is supported since the latter imposes no restrictions on
+# non-uniform per-sample discard.
+  [ "FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT", "CONTEXT_BOOL(Extensions.MESA_shader_framebuffer_fetch), extra_EXT_shader_framebuffer_fetch" ],
 # GL_OES_EGL_image_external
   [ "TEXTURE_BINDING_EXTERNAL_OES", "LOC_CUSTOM, TYPE_INT, TEXTURE_EXTERNAL_INDEX, extra_OES_EGL_image_external" ],
   [ "TEXTURE_EXTERNAL_OES", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_OES_EGL_image_external" ],
@@ -509,6 +516,9 @@ descriptor=[
   # GL_ARB_shader_image_load_store / GL_ARB_shader_storage_buffer_object / GLES 3.1
   # (MAX_COMBINED_IMAGE_UNITS_AND_FRAGMENT_OUTPUTS in GL_ARB_shader_image_load_store)
   [ "MAX_COMBINED_SHADER_OUTPUT_RESOURCES", "CONTEXT_INT(Const.MaxCombinedShaderOutputResources), extra_ARB_shader_image_load_store_shader_storage_buffer_object_es31" ],
+
+  # GL_ARB_texture_cube_map_array
+  [ "TEXTURE_BINDING_CUBE_MAP_ARRAY_ARB", "LOC_CUSTOM, TYPE_INT, TEXTURE_CUBE_ARRAY_INDEX, extra_ARB_texture_cube_map_array_OES_texture_cube_map_array" ],
 ]},
 
 # Enums in OpenGL Core profile and ES 3.0
@@ -597,6 +607,9 @@ descriptor=[
 
 # GL_ARB_texture_buffer_range
   [ "TEXTURE_BUFFER_OFFSET_ALIGNMENT", "CONTEXT_INT(Const.TextureBufferOffsetAlignment), extra_ARB_texture_buffer_range" ],
+
+# GL_OES_primitive_bounding_box
+  [ "PRIMITIVE_BOUNDING_BOX_ARB", "CONTEXT_FLOAT8(PrimitiveBoundingBox), extra_OES_primitive_bounding_box" ],
 ]},
 
 # Remaining enums are only in OpenGL
@@ -891,9 +904,6 @@ descriptor=[
 
 # GL_ARB_map_buffer_alignment
   [ "MIN_MAP_BUFFER_ALIGNMENT", "CONTEXT_INT(Const.MinMapBufferAlignment), NO_EXTRA" ],
-
-# GL_ARB_texture_cube_map_array
-  [ "TEXTURE_BINDING_CUBE_MAP_ARRAY_ARB", "LOC_CUSTOM, TYPE_INT, TEXTURE_CUBE_ARRAY_INDEX, extra_ARB_texture_cube_map_array" ],
 
 # GL_ARB_texture_gather
   [ "MAX_PROGRAM_TEXTURE_GATHER_COMPONENTS_ARB", "CONTEXT_INT(Const.MaxProgramTextureGatherComponents), extra_ARB_texture_gather"],

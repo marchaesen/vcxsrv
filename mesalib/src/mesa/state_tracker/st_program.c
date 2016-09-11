@@ -586,7 +586,7 @@ bool
 st_translate_fragment_program(struct st_context *st,
                               struct st_fragment_program *stfp)
 {
-   GLuint outputMapping[FRAG_RESULT_MAX];
+   GLuint outputMapping[2 * FRAG_RESULT_MAX];
    GLuint inputMapping[VARYING_SLOT_MAX];
    GLuint inputSlotToAttr[VARYING_SLOT_MAX];
    GLuint interpMode[PIPE_MAX_SHADER_INPUTS];  /* XXX size? */
@@ -810,9 +810,13 @@ st_translate_fragment_program(struct st_context *st,
       }
 
       /* handle remaining outputs (color) */
-      for (attr = 0; attr < FRAG_RESULT_MAX; attr++) {
-         if (outputsWritten & BITFIELD64_BIT(attr)) {
-            switch (attr) {
+      for (attr = 0; attr < ARRAY_SIZE(outputMapping); attr++) {
+         const GLbitfield64 written = attr < FRAG_RESULT_MAX ? outputsWritten :
+            stfp->Base.Base.SecondaryOutputsWritten;
+         const unsigned loc = attr % FRAG_RESULT_MAX;
+
+         if (written & BITFIELD64_BIT(loc)) {
+            switch (loc) {
             case FRAG_RESULT_DEPTH:
             case FRAG_RESULT_STENCIL:
             case FRAG_RESULT_SAMPLE_MASK:
@@ -822,8 +826,8 @@ st_translate_fragment_program(struct st_context *st,
             case FRAG_RESULT_COLOR:
                write_all = GL_TRUE; /* fallthrough */
             default:
-               assert(attr == FRAG_RESULT_COLOR ||
-                      (FRAG_RESULT_DATA0 <= attr && attr < FRAG_RESULT_MAX));
+               assert(loc == FRAG_RESULT_COLOR ||
+                      (FRAG_RESULT_DATA0 <= loc && loc < FRAG_RESULT_MAX));
                fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_COLOR;
                fs_output_semantic_index[fs_num_outputs] = numColors;
                outputMapping[attr] = fs_num_outputs;

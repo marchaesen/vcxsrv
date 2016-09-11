@@ -237,7 +237,7 @@ convert_sampler(struct st_context *st,
  */
 static void
 update_shader_samplers(struct st_context *st,
-                       unsigned shader_stage,
+                       enum pipe_shader_type shader_stage,
                        const struct gl_program *prog,
                        unsigned max_units,
                        struct pipe_sampler_state *samplers,

@@ -55,50 +55,70 @@ get_widget (app_t *app, const char *name)
     return widget;
 }
 
-static double
-min4 (double a, double b, double c, double d)
-{
-    double m1, m2;
-
-    m1 = MIN (a, b);
-    m2 = MIN (c, d);
-    return MIN (m1, m2);
-}
-
-static double
-max4 (double a, double b, double c, double d)
-{
-    double m1, m2;
-
-    m1 = MAX (a, b);
-    m2 = MAX (c, d);
-    return MAX (m1, m2);
-}
-
+/* Figure out the boundary of a diameter=1 circle transformed into an ellipse
+ * by trans. Proof that this is the correct calculation:
+ *
+ * Transform x,y to u,v by this matrix calculation:
+ *
+ *  |u|   |a c| |x|
+ *  |v| = |b d|*|y|
+ *
+ * Horizontal component:
+ *
+ *  u = ax+cy (1)
+ *
+ * For each x,y on a radius-1 circle (p is angle to the point):
+ *
+ *  x^2+y^2 = 1
+ *  x = cos(p)
+ *  y = sin(p)
+ *  dx/dp = -sin(p) = -y
+ *  dy/dp = cos(p) = x
+ *
+ * Figure out derivative of (1) relative to p:
+ *
+ *  du/dp = a(dx/dp) + c(dy/dp)
+ *        = -ay + cx
+ *
+ * The min and max u are when du/dp is zero:
+ *
+ *  -ay + cx = 0
+ *  cx = ay
+ *  c = ay/x  (2)
+ *  y = cx/a  (3)
+ *
+ * Substitute (2) into (1) and simplify:
+ *
+ *  u = ax + ay^2/x
+ *    = a(x^2+y^2)/x
+ *    = a/x (because x^2+y^2 = 1)
+ *  x = a/u (4)
+ *
+ * Substitute (4) into (3) and simplify:
+ *
+ *  y = c(a/u)/a
+ *  y = c/u (5)
+ *
+ * Square (4) and (5) and add:
+ *
+ *  x^2+y^2 = (a^2+c^2)/u^2
+ *
+ * But x^2+y^2 is 1:
+ *
+ *  1 = (a^2+c^2)/u^2
+ *  u^2 = a^2+c^2
+ *  u = hypot(a,c)
+ *
+ * Similarily the max/min of v is at:
+ *
+ *  v = hypot(b,d)
+ *
+ */
 static void
 compute_extents (pixman_f_transform_t *trans, double *sx, double *sy)
 {
-    double min_x, max_x, min_y, max_y;
-    pixman_f_vector_t v[4] =
-    {
-	{ { 1, 1, 1 } },
-	{ { -1, 1, 1 } },
-	{ { -1, -1, 1 } },
-	{ { 1, -1, 1 } },
-    };
-
-    pixman_f_transform_point (trans, &v[0]);
-    pixman_f_transform_point (trans, &v[1]);
-    pixman_f_transform_point (trans, &v[2]);
-    pixman_f_transform_point (trans, &v[3]);
-
-    min_x = min4 (v[0].v[0], v[1].v[0], v[2].v[0], v[3].v[0]);
-    max_x = max4 (v[0].v[0], v[1].v[0], v[2].v[0], v[3].v[0]);
-    min_y = min4 (v[0].v[1], v[1].v[1], v[2].v[1], v[3].v[1]);
-    max_y = max4 (v[0].v[1], v[1].v[1], v[2].v[1], v[3].v[1]);
-
-    *sx = (max_x - min_x) / 2.0;
-    *sy = (max_y - min_y) / 2.0;
+    *sx = hypot (trans->m[0][0], trans->m[0][1]) / trans->m[2][2];
+    *sy = hypot (trans->m[1][0], trans->m[1][1]) / trans->m[2][2];
 }
 
 typedef struct

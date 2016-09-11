@@ -109,6 +109,9 @@ _mesa_ClearStencil( GLint s )
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glClearStencil(%d)\n", s);
+
    ctx->Stencil.Clear = (GLuint) s;
 }
 

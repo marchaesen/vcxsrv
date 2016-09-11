@@ -292,20 +292,26 @@ err:
 void
 xwl_output_destroy(struct xwl_output *xwl_output)
 {
+    wl_output_destroy(xwl_output->output);
+    free(xwl_output);
+}
+
+void
+xwl_output_remove(struct xwl_output *xwl_output)
+{
     struct xwl_output *it;
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
     int width = 0, height = 0;
 
-    wl_output_destroy(xwl_output->output);
-    xorg_list_del(&xwl_output->link);
     RRCrtcDestroy(xwl_output->randr_crtc);
     RROutputDestroy(xwl_output->randr_output);
+    xorg_list_del(&xwl_output->link);
 
     xorg_list_for_each_entry(it, &xwl_screen->output_list, link)
         output_get_new_size(it, &height, &width);
     update_screen_size(xwl_output, width, height);
 
-    free(xwl_output);
+    xwl_output_destroy(xwl_output);
 }
 
 static Bool

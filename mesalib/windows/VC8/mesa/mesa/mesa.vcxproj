@@ -319,6 +319,8 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\api_validate.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\arbprogram.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\atifragshader.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\barrier.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\bbox.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\blit.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\compute.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\copyimage.c" />
@@ -378,7 +380,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\eval.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\execmem.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\extensions.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\texturebarrier.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\fbobject.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\feedback.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\ffvertex_prog.c" />

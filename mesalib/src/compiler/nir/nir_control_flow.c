@@ -39,8 +39,6 @@
  * 3. Two basic blocks cannot be directly next to each other.
  * 4. If a basic block has a jump instruction, there must be only one and it
  *    must be at the end of the block.
- * 5. The CFG must always be connected - this means that we must insert a fake
- *    CFG edge for loops with no break statement.
  *
  * The purpose of the second one is so that we have places to insert code during
  * GCM, as well as eliminating the possibility of critical edges.
@@ -135,25 +133,6 @@ link_non_block_to_block(nir_cf_node *node, nir_block *block)
       }
    } else {
       assert(node->type == nir_cf_node_loop);
-
-      /*
-       * We can only get to this codepath if we're inserting a new loop, or
-       * at least a loop with no break statements; we can't insert break
-       * statements into a loop when we haven't inserted it into the CFG
-       * because we wouldn't know which block comes after the loop
-       * and therefore, which block should be the successor of the block with
-       * the break). Therefore, we need to insert a fake edge (see invariant
-       * #5).
-       */
-
-      nir_loop *loop = nir_cf_node_as_loop(node);
-
-      nir_cf_node *last = nir_loop_last_cf_node(loop);
-      assert(last->type == nir_cf_node_block);
-      nir_block *last_block =  nir_cf_node_as_block(last);
-
-      last_block->successors[1] = block;
-      block_add_pred(block, last_block);
    }
 }
 
@@ -520,13 +499,6 @@ nir_handle_add_jump(nir_block *block)
          assert(after->type == nir_cf_node_block);
          nir_block *after_block = nir_cf_node_as_block(after);
          link_blocks(block, after_block, NULL);
-
-         /* If we inserted a fake link, remove it */
-         nir_cf_node *last = nir_loop_last_cf_node(loop);
-         assert(last->type == nir_cf_node_block);
-         nir_block *last_block =  nir_cf_node_as_block(last);
-         if (last_block->successors[1] != NULL)
-            unlink_blocks(last_block, after_block);
       }
    } else {
       assert(jump_instr->type == nir_jump_return);
@@ -551,15 +523,13 @@ remove_phi_src(nir_block *block, nir_block *pred)
    }
 }
 
-/* Removes the successor of a block with a jump, and inserts a fake edge for
- * infinite loops. Note that the jump to be eliminated may be free-floating.
+/* Removes the successor of a block with a jump. Note that the jump to be
+ * eliminated may be free-floating.
  */
 
 static void
 unlink_jump(nir_block *block, nir_jump_type type, bool add_normal_successors)
 {
-   nir_block *next = block->successors[0];
-
    if (block->successors[0])
       remove_phi_src(block->successors[0], block);
    if (block->successors[1])
@@ -568,33 +538,6 @@ unlink_jump(nir_block *block, nir_jump_type type, bool add_normal_successors)
    unlink_block_successors(block);
    if (add_normal_successors)
       block_add_normal_succs(block);
-
-   /* If we've just removed a break, and the block we were jumping to (after
-    * the loop) now has zero predecessors, we've created a new infinite loop.
-    *
-    * NIR doesn't allow blocks (other than the start block) to have zero
-    * predecessors.  In particular, dominance assumes all blocks are reachable.
-    * So, we insert a "fake link" by making successors[1] point after the loop.
-    *
-    * Note that we have to do this after unlinking/recreating the block's
-    * successors.  If we removed a "break" at the end of the loop, then
-    * block == last_block, so block->successors[0] would already be "next",
-    * and adding a fake link would create two identical successors.  Doing
-    * this afterward works, as we'll have changed block->successors[0] to
-    * be the top of the loop.
-    */
-   if (type == nir_jump_break && next->predecessors->entries == 0) {
-      nir_loop *loop =
-         nir_cf_node_as_loop(nir_cf_node_prev(&next->cf_node));
-
-      /* insert fake link */
-      nir_cf_node *last = nir_loop_last_cf_node(loop);
-      assert(last->type == nir_cf_node_block);
-      nir_block *last_block = nir_cf_node_as_block(last);
-
-      last_block->successors[1] = next;
-      block_add_pred(next, last_block);
-   }
 }
 
 void

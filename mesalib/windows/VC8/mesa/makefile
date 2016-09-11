@@ -36,11 +36,11 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       $(wildcard ..\..\..\src\mesa\tnl\*.h) \
       $(wildcard ..\..\..\src\mesa\vbo\*.c) \
       $(wildcard ..\..\..\src\mesa\vbo\*.h) \
-      $(wildcard ..\..\..\src\glsl\glcpp\*.c) \
-      $(wildcard ..\..\..\src\glsl\glcpp\*.h) \
-      $(wildcard ..\..\..\src\glsl\*.c) \
-      $(wildcard ..\..\..\src\glsl\*.h) \
-      $(wildcard ..\..\..\src\glsl\*.cpp) \
+      $(wildcard ..\..\..\src\compiler\glsl\glcpp\*.c) \
+      $(wildcard ..\..\..\src\compiler\glsl\glcpp\*.h) \
+      $(wildcard ..\..\..\src\compiler\glsl\*.c) \
+      $(wildcard ..\..\..\src\compiler\glsl\*.h) \
+      $(wildcard ..\..\..\src\compiler\glsl\*.cpp) \
       $(wildcard ..\..\..\src\mesa\drivers\dri\swrast\*.c) \
       $(wildcard ..\..\..\src\mesa\drivers\dri\swrast\*.h) \
       $(wildcard ..\..\..\src\mesa\drivers\dri\common\*.c) \
@@ -58,7 +58,11 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\util\format_srgb.c \
       ..\..\..\src\mapi\glapi\gen\glapiTemp.h \
       ..\..\..\src\mesa\main\remap_helper.h \
-      ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h
+      ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h \
+      ..\..\..\src\compiler\glsl\ir_expression_operation.h \
+      ..\..\..\src\compiler\glsl\ir_expression_operation_constant.h \
+      ..\..\..\src\compiler\glsl\expression_operation_strings.h \
+      ..\..\..\src\compiler\glsl\ir_expression_operation_strings.h
 
 all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
 
@@ -100,6 +104,18 @@ REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
 
 ..\..\..\src\mapi\glapi\gen\glapiTemp.h: ../../../src/mapi/glapi/gen/gl_apitemp.py
 	cd  ..\..\..\src\mapi\glapi\gen & python gl_apitemp.py -f gl_and_es_API.xml > glapiTemp.h
+
+..\..\..\src\compiler\glsl\ir_expression_operation.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
+	python $< enum > $@
+
+..\..\..\src\compiler\glsl\ir_expression_operation_constant.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
+	python $< constant > $@
+
+..\..\..\src\compiler\glsl\expression_operation_strings.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
+	python $< strings > $@
+
+..\..\..\src\compiler\glsl\ir_expression_operation_strings.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
+	python $< strings > $@
 
 $(TARGETDIR)\Debug\swrast_dri.dll: $(DEPS)
 	$(DBGBUILDCMD)

@@ -173,6 +173,9 @@ validate_ssa_src(nir_src *src, validate_state *state)
 
    validate_assert(state, entry);
 
+   if (!entry)
+      return;
+
    ssa_def_validate_state *def_state = (ssa_def_validate_state *)entry->data;
 
    validate_assert(state, def_state->where_defined == state->impl &&

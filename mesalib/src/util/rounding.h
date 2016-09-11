@@ -29,7 +29,8 @@
 #include <limits.h>
 #include <stdint.h>
 
-#ifdef __x86_64__
+#if defined(__SSE__) || defined(_MSC_VER)
+/* MSVC always has SSE nowadays */
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #endif
@@ -38,6 +39,9 @@
 #include <smmintrin.h>
 #endif
 
+#ifndef INT32_MAX
+#define INT32_MAX              (2147483647)
+#endif
 /* The C standard library has functions round()/rint()/nearbyint() that round
  * their arguments according to the rounding mode set in the floating-point
  * control register. While there are trunc()/ceil()/floor() functions that do
@@ -95,7 +99,7 @@ _mesa_roundeven(double x)
 static inline long
 _mesa_lroundevenf(float x)
 {
-#ifdef __x86_64__
+#if defined(__SSE__) || defined(_MSC_VER)
 #if LONG_MAX == INT64_MAX
    return _mm_cvtss_si64(_mm_load_ss(&x));
 #elif LONG_MAX == INT32_MAX
@@ -115,7 +119,7 @@ _mesa_lroundevenf(float x)
 static inline long
 _mesa_lroundeven(double x)
 {
-#ifdef __x86_64__
+#if defined(__SSE__) || defined(_MSC_VER)
 #if LONG_MAX == INT64_MAX
    return _mm_cvtsd_si64(_mm_load_sd(&x));
 #elif LONG_MAX == INT32_MAX

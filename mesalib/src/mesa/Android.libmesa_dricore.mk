@@ -60,7 +60,11 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mesa/main \
 	$(MESA_TOP)/src/compiler/nir \
 	$(MESA_TOP)/src/gallium/include \
-	$(MESA_TOP)/src/gallium/auxiliary
+	$(MESA_TOP)/src/gallium/auxiliary \
+	$(dir $(MESA_GEN_GLSL_H))
+
+LOCAL_GENERATED_SOURCES += \
+	$(MESA_GEN_GLSL_H)
 
 LOCAL_WHOLE_STATIC_LIBRARIES += \
 	libmesa_program

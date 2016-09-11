@@ -25,12 +25,15 @@ MESA_UTIL_FILES :=	\
 	set.c \
 	set.h \
 	simple_list.h \
+	slab.c \
+	slab.h \
 	strndup.c \
 	strndup.h \
 	strtod.c \
 	strtod.h \
 	texcompress_rgtc_tmp.h \
-	u_atomic.h
+	u_atomic.h \
+	u_endian.h
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c

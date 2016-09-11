@@ -54,6 +54,7 @@ modesetting_drv_la_SOURCES = \
 	 sh3224.c \
 	 sh3224.h \
 	 vblank.c \
+	 pageflip.c \
 	 $(NULL)
 
 drivermandir = $(DRIVER_MAN_DIR)

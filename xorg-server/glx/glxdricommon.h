@@ -33,8 +33,7 @@ struct __GLXDRIconfig {
 };
 
 __GLXconfig *glxConvertConfigs(const __DRIcoreExtension * core,
-                               const __DRIconfig ** configs,
-                               unsigned int drawableType);
+                               const __DRIconfig ** configs);
 
 extern const __DRIsystemTimeExtension systemTimeExtension;
 

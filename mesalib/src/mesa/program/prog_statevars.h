@@ -130,6 +130,11 @@ typedef enum gl_state_index_ {
    STATE_FB_WPOS_Y_TRANSFORM,   /**< (1, 0, -1, height) if a FBO is bound, (-1, height, 1, 0) otherwise */
    STATE_TCS_PATCH_VERTICES_IN, /**< gl_PatchVerticesIn for TCS (integer) */
    STATE_TES_PATCH_VERTICES_IN, /**< gl_PatchVerticesIn for TES (integer) */
+   /**
+    * A single enum gl_blend_support_qualifier value representing the
+    * currently active advanced blending equation, or zero if disabled.
+    */
+   STATE_ADVANCED_BLENDING_MODE,
    STATE_INTERNAL_DRIVER	/* first available state index for drivers (must be last) */
 } gl_state_index;
 

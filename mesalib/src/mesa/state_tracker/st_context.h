@@ -317,7 +317,7 @@ st_fb_orientation(const struct gl_framebuffer *fb)
 }
 
 
-static inline unsigned
+static inline enum pipe_shader_type
 st_shader_stage_to_ptarget(gl_shader_stage stage)
 {
    switch (stage) {

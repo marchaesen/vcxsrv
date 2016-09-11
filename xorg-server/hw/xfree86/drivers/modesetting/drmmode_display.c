@@ -756,10 +756,9 @@ drmmode_set_cursor(xf86CrtcPtr crtc)
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
     uint32_t handle = drmmode_crtc->cursor_bo->handle;
     modesettingPtr ms = modesettingPTR(crtc->scrn);
-    static Bool use_set_cursor2 = TRUE;
     int ret;
 
-    if (use_set_cursor2) {
+    if (!drmmode_crtc->set_cursor2_failed) {
         CursorPtr cursor = xf86CurrentCursor(crtc->scrn->pScreen);
 
         ret =
@@ -769,7 +768,7 @@ drmmode_set_cursor(xf86CrtcPtr crtc)
         if (!ret)
             return TRUE;
 
-        use_set_cursor2 = FALSE;
+        drmmode_crtc->set_cursor2_failed = TRUE;
     }
 
     ret = drmModeSetCursor(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id, handle,
@@ -803,7 +802,6 @@ drmmode_load_cursor_argb_check(xf86CrtcPtr crtc, CARD32 *image)
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
     int i;
     uint32_t *ptr;
-    static Bool first_time = TRUE;
 
     /* cursor should be mapped already */
     ptr = (uint32_t *) (drmmode_crtc->cursor_bo->ptr);
@@ -811,11 +809,11 @@ drmmode_load_cursor_argb_check(xf86CrtcPtr crtc, CARD32 *image)
     for (i = 0; i < ms->cursor_width * ms->cursor_height; i++)
         ptr[i] = image[i];      // cpu_to_le32(image[i]);
 
-    if (drmmode_crtc->cursor_up || first_time) {
+    if (drmmode_crtc->cursor_up || !drmmode_crtc->first_cursor_load_done) {
         Bool ret = drmmode_set_cursor(crtc);
         if (!drmmode_crtc->cursor_up)
             drmmode_hide_cursor(crtc);
-        first_time = FALSE;
+        drmmode_crtc->first_cursor_load_done = TRUE;
         return ret;
     }
     return TRUE;
@@ -1146,6 +1144,9 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
     drmmode_crtc->drmmode = drmmode;
     drmmode_crtc->vblank_pipe = drmmode_crtc_vblank_pipe(num);
     crtc->driver_private = drmmode_crtc;
+
+    /* Hide any cursors which may be active from previous users */
+    drmModeSetCursor(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id, 0, 0, 0);
 
     /* Mark num'th crtc as in use on this device. */
     ms_ent->assigned_crtcs |= (1 << num);

@@ -119,6 +119,17 @@ optimizations = [
    (('~fadd@64', a, ('fmul',         c , ('fadd', b, ('fneg', a)))), ('flrp', a, b, c), '!options->lower_flrp64'),
    (('ffma', a, b, c), ('fadd', ('fmul', a, b), c), 'options->lower_ffma'),
    (('~fadd', ('fmul', a, b), c), ('ffma', a, b, c), 'options->fuse_ffma'),
+
+   # (a * #b + #c) << #d
+   # ((a * #b) << #d) + (#c << #d)
+   # (a * (#b << #d)) + (#c << #d)
+   (('ishl', ('iadd', ('imul', a, '#b'), '#c'), '#d'),
+    ('iadd', ('imul', a, ('ishl', b, d)), ('ishl', c, d))),
+
+   # (a * #b) << #c
+   # a * (#b << #c)
+   (('ishl', ('imul', a, '#b'), '#c'), ('imul', a, ('ishl', b, c))),
+
    # Comparison simplifications
    (('~inot', ('flt', a, b)), ('fge', a, b)),
    (('~inot', ('fge', a, b)), ('flt', a, b)),
@@ -144,7 +155,7 @@ optimizations = [
    (('fge', ('fneg', ('fabs', a)), 0.0), ('feq', a, 0.0)),
    (('bcsel', ('flt', b, a), b, a), ('fmin', a, b)),
    (('bcsel', ('flt', a, b), b, a), ('fmax', a, b)),
-   (('bcsel', ('inot', 'a@bool'), b, c), ('bcsel', a, c, b)),
+   (('bcsel', ('inot', a), b, c), ('bcsel', a, c, b)),
    (('bcsel', a, ('bcsel', a, b, c), d), ('bcsel', a, b, d)),
    (('bcsel', a, True, 'b@bool'), ('ior', a, b)),
    (('fmin', a, a), a),
@@ -248,8 +259,8 @@ optimizations = [
    (('ine', 'a@bool', True), ('inot', a)),
    (('ine', 'a@bool', False), a),
    (('ieq', 'a@bool', False), ('inot', 'a')),
-   (('bcsel', a, True, False), ('ine', a, 0)),
-   (('bcsel', a, False, True), ('ieq', a, 0)),
+   (('bcsel', a, True, False), a),
+   (('bcsel', a, False, True), ('inot', a)),
    (('bcsel', True, b, c), b),
    (('bcsel', False, b, c), c),
    # The result of this should be hit by constant propagation and, in the

@@ -215,6 +215,10 @@ typedef struct _XtransConnInfo *XtransConnInfo;
  * Function prototypes for the exposed interface
  */
 
+void TRANS(FreeConnInfo) (
+    XtransConnInfo 	/* ciptr */
+);
+
 #ifdef TRANS_CLIENT
 
 XtransConnInfo TRANS(OpenCOTSClient)(

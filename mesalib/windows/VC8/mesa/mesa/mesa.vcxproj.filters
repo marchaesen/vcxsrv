@@ -89,9 +89,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\extensions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\main\texturebarrier.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\fbobject.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -870,6 +867,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\extensions_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\barrier.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\bbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -187,6 +187,12 @@ void
 present_flip_destroy(ScreenPtr screen);
 
 void
+present_restore_screen_pixmap(ScreenPtr screen);
+
+void
+present_set_abort_flip(ScreenPtr screen);
+
+void
 present_check_flip_window(WindowPtr window);
 
 RRCrtcPtr

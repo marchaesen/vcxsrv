@@ -24,6 +24,10 @@ MAIN_FILES = \
 	main/atifragshader.h \
 	main/attrib.c \
 	main/attrib.h \
+	main/barrier.c \
+	main/barrier.h \
+	main/bbox.c \
+	main/bbox.h \
 	main/blend.c \
 	main/blend.h \
 	main/blit.c \
@@ -230,8 +234,6 @@ MAIN_FILES = \
 	main/texstore.h \
 	main/textureview.c \
 	main/textureview.h \
-	main/texturebarrier.c \
-	main/texturebarrier.h \
 	main/transformfeedback.c \
 	main/transformfeedback.h \
 	main/uniform_query.cpp \
@@ -650,6 +652,7 @@ INCLUDE_DIRS = \
 	-I$(top_srcdir)/include \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src/compiler/glsl \
 	-I$(top_builddir)/src/compiler/nir \
 	-I$(top_builddir)/src/mesa \
 	-I$(top_srcdir)/src/mesa \

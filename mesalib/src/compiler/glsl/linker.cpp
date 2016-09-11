@@ -1153,6 +1153,13 @@ cross_validate_globals(struct gl_shader_program *prog,
                          mode_string(var), var->name);
             return;
          }
+
+         if (prog->IsES && existing->data.precision != var->data.precision) {
+            linker_error(prog, "declarations for %s `%s` have "
+                         "mismatching precision qualifiers\n",
+                         mode_string(var), var->name);
+            return;
+         }
       } else
          variables->add_variable(var);
    }
@@ -1871,7 +1878,7 @@ link_tes_in_layout_qualifiers(struct gl_shader_program *prog,
  * and propagates them to the linked FS and linked shader program.
  */
 static void
-link_fs_input_layout_qualifiers(struct gl_shader_program *prog,
+link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
 	                        struct gl_linked_shader *linked_shader,
 	                        struct gl_shader **shader_list,
 	                        unsigned num_shaders)
@@ -1880,6 +1887,7 @@ link_fs_input_layout_qualifiers(struct gl_shader_program *prog,
    linked_shader->info.uses_gl_fragcoord = false;
    linked_shader->info.origin_upper_left = false;
    linked_shader->info.pixel_center_integer = false;
+   linked_shader->info.BlendSupport = 0;
 
    if (linked_shader->Stage != MESA_SHADER_FRAGMENT ||
        (prog->Version < 150 && !prog->ARB_fragment_coord_conventions_enable))
@@ -1938,6 +1946,7 @@ link_fs_input_layout_qualifiers(struct gl_shader_program *prog,
 
       linked_shader->info.EarlyFragmentTests |=
          shader->info.EarlyFragmentTests;
+      linked_shader->info.BlendSupport |= shader->info.BlendSupport;
    }
 }
 
@@ -2217,7 +2226,7 @@ link_intrastage_shaders(void *mem_ctx,
    linked->ir = new(linked) exec_list;
    clone_ir_list(mem_ctx, linked->ir, main->ir);
 
-   link_fs_input_layout_qualifiers(prog, linked, shader_list, num_shaders);
+   link_fs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_tcs_out_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_tes_in_layout_qualifiers(prog, linked, shader_list, num_shaders);
    link_gs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders);
@@ -2672,6 +2681,9 @@ assign_attribute_or_color_locations(void *mem_ctx,
             break;
          }
       }
+
+      if (strcmp(var->name, "gl_LastFragData") == 0)
+         continue;
 
       /* From GL4.5 core spec, section 15.2 (Shader Execution):
        *

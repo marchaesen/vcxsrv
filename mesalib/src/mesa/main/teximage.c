@@ -502,7 +502,7 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target)
          ? ctx->Const.MaxTextureLevels : 0;
    case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
-      return ctx->Extensions.ARB_texture_cube_map_array
+      return _mesa_has_texture_cube_map_array(ctx)
          ? ctx->Const.MaxCubeTextureLevels : 0;
    case GL_TEXTURE_BUFFER:
       return (_mesa_has_ARB_texture_buffer_object(ctx) ||
@@ -1433,7 +1433,7 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
        */
       if (layout == MESA_FORMAT_LAYOUT_ETC2 && _mesa_is_gles3(ctx))
             return write_error(error, GL_INVALID_OPERATION);
-      target_can_be_compresed = ctx->Extensions.ARB_texture_cube_map_array;
+      target_can_be_compresed = _mesa_has_texture_cube_map_array(ctx);
       break;
    case GL_TEXTURE_3D:
       switch (layout) {
@@ -1523,7 +1523,7 @@ legal_teximage_target(struct gl_context *ctx, GLuint dims, GLenum target)
          return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array;
       case GL_TEXTURE_CUBE_MAP_ARRAY:
       case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
-         return ctx->Extensions.ARB_texture_cube_map_array;
+         return _mesa_has_texture_cube_map_array(ctx);
       default:
          return GL_FALSE;
       }
@@ -1575,7 +1575,7 @@ legal_texsubimage_target(struct gl_context *ctx, GLuint dims, GLenum target,
             || _mesa_is_gles3(ctx);
       case GL_TEXTURE_CUBE_MAP_ARRAY:
       case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
-         return ctx->Extensions.ARB_texture_cube_map_array;
+         return _mesa_has_texture_cube_map_array(ctx);
 
       /* Table 8.15 of the OpenGL 4.5 core profile spec
        * (20141030) says that TEXTURE_CUBE_MAP is valid for TextureSubImage3D
@@ -1673,7 +1673,7 @@ _mesa_legal_texture_base_format_for_target(struct gl_context *ctx,
             || (ctx->API == API_OPENGLES2 && ctx->Extensions.OES_depth_texture_cube_map))) &&
           !((target == GL_TEXTURE_CUBE_MAP_ARRAY ||
              target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY) &&
-            ctx->Extensions.ARB_texture_cube_map_array)) {
+            _mesa_has_texture_cube_map_array(ctx))) {
          return false;
       }
    }
@@ -4317,7 +4317,7 @@ compressed_subtexture_target_check(struct gl_context *ctx, GLenum target,
             (_mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array);
          break;
       case GL_TEXTURE_CUBE_MAP_ARRAY:
-         targetOK = ctx->Extensions.ARB_texture_cube_map_array;
+         targetOK = _mesa_has_texture_cube_map_array(ctx);
          break;
       case GL_TEXTURE_3D:
          targetOK = GL_TRUE;
@@ -5340,6 +5340,11 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
    mesa_format texFormat;
    GLenum sample_count_error;
    bool dsa = strstr(func, "ture") ? true : false;
+
+   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE)) {
+      _mesa_debug(ctx, "%s(target=%s, samples=%d)\n", func,
+                  _mesa_enum_to_string(target), samples);
+   }
 
    if (!((ctx->Extensions.ARB_texture_multisample
          && _mesa_is_desktop_gl(ctx))) && !_mesa_is_gles31(ctx)) {

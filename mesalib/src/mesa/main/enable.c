@@ -1017,6 +1017,14 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          ctx->Multisample.SampleMask = state;
          break;
 
+      case GL_BLEND_ADVANCED_COHERENT_KHR:
+         CHECK_EXTENSION(KHR_blend_equation_advanced_coherent, cap);
+         if (ctx->Color.BlendCoherent == state)
+            return;
+         FLUSH_VERTICES(ctx, _NEW_COLOR);
+         ctx->Color.BlendCoherent = state;
+         break;
+
       default:
          goto invalid_enum_error;
    }
@@ -1618,6 +1626,10 @@ _mesa_IsEnabled( GLenum cap )
             goto invalid_enum_error;
          CHECK_EXTENSION(ARB_sample_shading);
          return ctx->Multisample.SampleShading;
+
+      case GL_BLEND_ADVANCED_COHERENT_KHR:
+         CHECK_EXTENSION(KHR_blend_equation_advanced_coherent);
+         return ctx->Color.BlendCoherent;
 
       default:
          goto invalid_enum_error;

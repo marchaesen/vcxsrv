@@ -230,7 +230,7 @@ proc_dri3_buffer_from_pixmap(ClientPtr client)
 
     WriteToClient(client, sizeof(rep), &rep);
 
-    return client->noClientException;
+    return Success;
 }
 
 static int
@@ -296,7 +296,7 @@ proc_dri3_fd_from_fence(ClientPtr client)
 
     WriteToClient(client, sizeof(rep), &rep);
 
-    return client->noClientException;
+    return Success;
 }
 
 int (*proc_dri3_vector[DRI3NumberRequests]) (ClientPtr) = {

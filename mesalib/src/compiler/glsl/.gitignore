@@ -3,6 +3,9 @@ glsl_parser.cpp
 glsl_parser.h
 glsl_parser.output
 glsl_test
+ir_expression_operation.h
+ir_expression_operation_strings.h
+ir_expression_operation_constant.h
 subtest-cr/
 subtest-lf/
 subtest-cr-lf/

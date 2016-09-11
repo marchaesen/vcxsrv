@@ -49,18 +49,91 @@ supported_interface_enum(struct gl_context *ctx, GLenum iface)
    case GL_FRAGMENT_SUBROUTINE:
    case GL_VERTEX_SUBROUTINE_UNIFORM:
    case GL_FRAGMENT_SUBROUTINE_UNIFORM:
-      return _mesa_has_shader_subroutine(ctx);
+      return _mesa_has_ARB_shader_subroutine(ctx);
    case GL_GEOMETRY_SUBROUTINE:
    case GL_GEOMETRY_SUBROUTINE_UNIFORM:
-      return _mesa_has_geometry_shaders(ctx) && _mesa_has_shader_subroutine(ctx);
+      return _mesa_has_geometry_shaders(ctx) && _mesa_has_ARB_shader_subroutine(ctx);
    case GL_COMPUTE_SUBROUTINE:
    case GL_COMPUTE_SUBROUTINE_UNIFORM:
-      return _mesa_has_compute_shaders(ctx) && _mesa_has_shader_subroutine(ctx);
+      return _mesa_has_compute_shaders(ctx) && _mesa_has_ARB_shader_subroutine(ctx);
    case GL_TESS_CONTROL_SUBROUTINE:
    case GL_TESS_EVALUATION_SUBROUTINE:
    case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
    case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
-      return _mesa_has_tessellation(ctx) && _mesa_has_shader_subroutine(ctx);
+      return _mesa_has_tessellation(ctx) && _mesa_has_ARB_shader_subroutine(ctx);
+   default:
+      return false;
+   }
+}
+
+static struct gl_shader_program *
+lookup_linked_program(GLuint program,
+                      const char *caller,
+                      bool raise_link_error)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *prog =
+      _mesa_lookup_shader_program_err(ctx, program, caller);
+
+   if (!prog)
+      return NULL;
+
+   if (prog->LinkStatus == GL_FALSE) {
+      if (raise_link_error)
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
+                     caller);
+      return NULL;
+   }
+   return prog;
+}
+
+static GLenum
+stage_from_program_interface(GLenum programInterface)
+{
+   switch(programInterface) {
+   case GL_VERTEX_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_VERTEX;
+   case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_TESS_CTRL;
+   case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_TESS_EVAL;
+   case GL_GEOMETRY_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_GEOMETRY;
+   case GL_FRAGMENT_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_FRAGMENT;
+   case GL_COMPUTE_SUBROUTINE_UNIFORM:
+      return MESA_SHADER_COMPUTE;
+   default:
+      unreachable("unexpected programInterface value");
+   }
+}
+
+static struct gl_linked_shader *
+lookup_linked_shader(GLuint program,
+                     GLenum programInterface,
+                     const char *caller)
+{
+   struct gl_shader_program *shLinkedProg =
+      lookup_linked_program(program, caller, false);
+   gl_shader_stage stage = stage_from_program_interface(programInterface);
+
+   if (!shLinkedProg)
+      return NULL;
+
+   return shLinkedProg->_LinkedShaders[stage];
+}
+
+static bool
+is_subroutine_uniform_program_interface(GLenum programInterface)
+{
+   switch(programInterface) {
+   case GL_VERTEX_SUBROUTINE_UNIFORM:
+   case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
+   case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
+   case GL_GEOMETRY_SUBROUTINE_UNIFORM:
+   case GL_FRAGMENT_SUBROUTINE_UNIFORM:
+   case GL_COMPUTE_SUBROUTINE_UNIFORM:
+      return true;
    default:
       return false;
    }
@@ -101,9 +174,49 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
    /* Validate pname against interface. */
    switch(pname) {
    case GL_ACTIVE_RESOURCES:
-      for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++)
-         if (shProg->ProgramResourceList[i].Type == programInterface)
-            (*params)++;
+      if (is_subroutine_uniform_program_interface(programInterface)) {
+         /* ARB_program_interface_query doesn't explicitly says that those
+          * uniforms would need a linked shader, or that should fail if it is
+          * not the case, but Section 7.6 (Uniform Variables) of the OpenGL
+          * 4.4 Core Profile says:
+          *
+          *    "A uniform is considered an active uniform if the compiler and
+          *     linker determine that the uniform will actually be accessed
+          *     when the executable code is executed. In cases where the
+          *     compiler and linker cannot make a conclusive determination,
+          *     the uniform will be considered active."
+          *
+          * So in order to know the real number of active subroutine uniforms
+          * we would need a linked shader .
+          *
+          * At the same time, Section 7.3 (Program Objects) of the OpenGL 4.4
+          * Core Profile says:
+          *
+          *    "The GL provides various commands allowing applications to
+          *     enumerate and query properties of active variables and in-
+          *     terface blocks for a specified program. If one of these
+          *     commands is called with a program for which LinkProgram
+          *     succeeded, the information recorded when the program was
+          *     linked is returned. If one of these commands is called with a
+          *     program for which LinkProgram failed, no error is generated
+          *     unless otherwise noted."
+          *     <skip>
+          *    "If one of these commands is called with a program for which
+          *     LinkProgram had never been called, no error is generated
+          *     unless otherwise noted, and the program object is considered
+          *     to have no active variables or interface blocks."
+          *
+          * So if the program is not linked we will return 0.
+          */
+         struct gl_linked_shader *sh =
+            lookup_linked_shader(program, programInterface, "glGetProgramInterfaceiv");
+
+         *params = sh ? sh->NumSubroutineUniforms : 0;
+      } else {
+         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++)
+            if (shProg->ProgramResourceList[i].Type == programInterface)
+               (*params)++;
+      }
       break;
    case GL_MAX_NAME_LENGTH:
       if (programInterface == GL_ATOMIC_COUNTER_BUFFER ||
@@ -375,24 +488,6 @@ _mesa_GetProgramResourceiv(GLuint program, GLenum programInterface,
                                 propCount, props, bufSize, length, params);
 }
 
-static struct gl_shader_program *
-lookup_linked_program(GLuint program, const char *caller)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   struct gl_shader_program *prog =
-      _mesa_lookup_shader_program_err(ctx, program, caller);
-
-   if (!prog)
-      return NULL;
-
-   if (prog->LinkStatus == GL_FALSE) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
-                  caller);
-      return NULL;
-   }
-   return prog;
-}
-
 GLint GLAPIENTRY
 _mesa_GetProgramResourceLocation(GLuint program, GLenum programInterface,
                                  const GLchar *name)
@@ -405,7 +500,7 @@ _mesa_GetProgramResourceLocation(GLuint program, GLenum programInterface,
    }
 
    struct gl_shader_program *shProg =
-      lookup_linked_program(program, "glGetProgramResourceLocation");
+      lookup_linked_program(program, "glGetProgramResourceLocation", true);
 
    if (!shProg || !name)
       return -1;
@@ -419,20 +514,20 @@ _mesa_GetProgramResourceLocation(GLuint program, GLenum programInterface,
 
    case GL_VERTEX_SUBROUTINE_UNIFORM:
    case GL_FRAGMENT_SUBROUTINE_UNIFORM:
-      if (!_mesa_has_shader_subroutine(ctx))
+      if (!_mesa_has_ARB_shader_subroutine(ctx))
          goto fail;
       break;
    case GL_GEOMETRY_SUBROUTINE_UNIFORM:
-      if (!_mesa_has_geometry_shaders(ctx) || !_mesa_has_shader_subroutine(ctx))
+      if (!_mesa_has_geometry_shaders(ctx) || !_mesa_has_ARB_shader_subroutine(ctx))
          goto fail;
       break;
    case GL_COMPUTE_SUBROUTINE_UNIFORM:
-      if (!_mesa_has_compute_shaders(ctx) || !_mesa_has_shader_subroutine(ctx))
+      if (!_mesa_has_compute_shaders(ctx) || !_mesa_has_ARB_shader_subroutine(ctx))
          goto fail;
       break;
    case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
    case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
-      if (!_mesa_has_tessellation(ctx) || !_mesa_has_shader_subroutine(ctx))
+      if (!_mesa_has_tessellation(ctx) || !_mesa_has_ARB_shader_subroutine(ctx))
          goto fail;
       break;
    default:
@@ -461,7 +556,7 @@ _mesa_GetProgramResourceLocationIndex(GLuint program, GLenum programInterface,
    }
 
    struct gl_shader_program *shProg =
-      lookup_linked_program(program, "glGetProgramResourceLocationIndex");
+      lookup_linked_program(program, "glGetProgramResourceLocationIndex", true);
 
    if (!shProg || !name)
       return -1;

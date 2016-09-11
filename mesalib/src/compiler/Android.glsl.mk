@@ -44,7 +44,6 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/gallium/auxiliary
 
 LOCAL_STATIC_LIBRARIES := \
-	libmesa_compiler \
 	libmesa_nir
 
 LOCAL_MODULE := libmesa_glsl

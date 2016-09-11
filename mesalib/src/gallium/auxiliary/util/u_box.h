@@ -4,10 +4,8 @@
 #include "pipe/p_state.h"
 #include "util/u_math.h"
 
-static inline
-void u_box_1d( unsigned x,
-	       unsigned w,
-	       struct pipe_box *box )
+static inline void
+u_box_1d(unsigned x, unsigned w, struct pipe_box *box)
 {
    box->x = x;
    box->y = 0;
@@ -17,12 +15,8 @@ void u_box_1d( unsigned x,
    box->depth = 1;
 }
 
-static inline
-void u_box_2d( unsigned x,
-	       unsigned y,
-	       unsigned w,
-	       unsigned h,
-	       struct pipe_box *box )
+static inline void
+u_box_2d(unsigned x,unsigned y, unsigned w, unsigned h, struct pipe_box *box)
 {
    box->x = x;
    box->y = y;
@@ -32,10 +26,8 @@ void u_box_2d( unsigned x,
    box->depth = 1;
 }
 
-static inline
-void u_box_origin_2d( unsigned w,
-		      unsigned h,
-		      struct pipe_box *box )
+static inline void
+u_box_origin_2d(unsigned w, unsigned h, struct pipe_box *box)
 {
    box->x = 0;
    box->y = 0;
@@ -45,13 +37,9 @@ void u_box_origin_2d( unsigned w,
    box->depth = 1;
 }
 
-static inline
-void u_box_2d_zslice( unsigned x,
-		      unsigned y,
-		      unsigned z,
-		      unsigned w,
-		      unsigned h,
-		      struct pipe_box *box )
+static inline void
+u_box_2d_zslice(unsigned x, unsigned y, unsigned z,
+                unsigned w, unsigned h, struct pipe_box *box)
 {
    box->x = x;
    box->y = y;
@@ -61,14 +49,10 @@ void u_box_2d_zslice( unsigned x,
    box->depth = 1;
 }
 
-static inline
-void u_box_3d( unsigned x,
-	       unsigned y,
-	       unsigned z,
-	       unsigned w,
-	       unsigned h,
-	       unsigned d,
-	       struct pipe_box *box )
+static inline void
+u_box_3d(unsigned x, unsigned y, unsigned z,
+         unsigned w, unsigned h, unsigned d,
+         struct pipe_box *box)
 {
    box->x = x;
    box->y = y;

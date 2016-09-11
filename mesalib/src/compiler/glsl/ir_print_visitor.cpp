@@ -255,7 +255,7 @@ void ir_print_visitor::visit(ir_expression *ir)
 
    print_type(f, ir->type);
 
-   fprintf(f, " %s ", ir->operator_string());
+   fprintf(f, " %s ", ir_expression_operation_strings[ir->operation]);
 
    for (unsigned i = 0; i < ir->get_num_operands(); i++) {
       ir->operands[i]->accept(this);
@@ -344,7 +344,7 @@ void ir_print_visitor::visit(ir_texture *ir)
       ir->lod_info.component->accept(this);
       break;
    case ir_samples_identical:
-      unreachable(!"ir_samples_identical was already handled");
+      unreachable("ir_samples_identical was already handled");
    };
    fprintf(f, ")");
 }

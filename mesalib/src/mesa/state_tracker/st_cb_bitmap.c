@@ -212,7 +212,7 @@ setup_render_state(struct gl_context *ctx,
       COPY_4V(colorSave, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], color);
       st_upload_constants(st, st->fp->Base.Base.Parameters,
-                          PIPE_SHADER_FRAGMENT);
+                          MESA_SHADER_FRAGMENT);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], colorSave);
    }
 

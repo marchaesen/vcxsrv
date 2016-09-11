@@ -47,7 +47,7 @@
 #include "main/fbobject.h"
 #include "main/samplerobj.h"
 #include "main/syncobj.h"
-#include "main/texturebarrier.h"
+#include "main/barrier.h"
 #include "main/transformfeedback.h"
 
 #include "program/program.h"
@@ -179,7 +179,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->BlitFramebuffer = _swrast_BlitFramebuffer;
    driver->DiscardFramebuffer = NULL;
 
-   _mesa_init_texture_barrier_functions(driver);
+   _mesa_init_barrier_functions(driver);
    _mesa_init_shader_object_functions(driver);
    _mesa_init_transform_feedback_functions(driver);
    _mesa_init_sampler_object_functions(driver);

@@ -243,7 +243,7 @@ begin( struct copy_context *copy, GLenum mode, GLboolean begin_flag )
 static GLuint
 elt(struct copy_context *copy, GLuint elt_idx)
 {
-   GLuint elt = copy->srcelt[elt_idx];
+   GLuint elt = copy->srcelt[elt_idx] + copy->prim->basevertex;
    GLuint slot = elt & (ELT_TABLE_SIZE-1);
 
 /*    printf("elt %d\n", elt); */

@@ -73,8 +73,7 @@ st_nir_fixup_varying_slots(struct st_context *st, struct exec_list *var_list)
  * on varying-slot w/ the VS outputs)
  */
 static void
-st_nir_assign_vs_in_locations(struct gl_program *prog,
-                              struct exec_list *var_list, unsigned *size)
+st_nir_assign_vs_in_locations(struct gl_program *prog, nir_shader *nir)
 {
    unsigned attr, num_inputs = 0;
    unsigned input_to_index[VERT_ATTRIB_MAX] = {0};
@@ -88,15 +87,29 @@ st_nir_assign_vs_in_locations(struct gl_program *prog,
             /* add placeholder for second part of a double attribute */
             num_inputs++;
          }
+      } else {
+         input_to_index[attr] = ~0;
       }
    }
 
-   *size = 0;
-   nir_foreach_variable(var, var_list) {
+   nir->num_inputs = 0;
+   nir_foreach_variable_safe(var, &nir->inputs) {
       attr = var->data.location;
       assert(attr < ARRAY_SIZE(input_to_index));
-      var->data.driver_location = input_to_index[attr];
-      (*size)++;
+
+      if (input_to_index[attr] != ~0u) {
+         var->data.driver_location = input_to_index[attr];
+         nir->num_inputs++;
+      } else {
+         /* Move unused input variables to the globals list (with no
+          * initialization), to avoid confusing drivers looking through the
+          * inputs array and expecting to find inputs with a driver_location
+          * set.
+          */
+         exec_node_remove(&var->node);
+         var->data.mode = nir_var_global;
+         exec_list_push_tail(&nir->globals, &var->node);
+      }
    }
 }
 
@@ -205,7 +218,7 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
                gl_shader_stage stage)
 {
    struct pipe_screen *pscreen = st->pipe->screen;
-   unsigned ptarget = st_shader_stage_to_ptarget(stage);
+   enum pipe_shader_type ptarget = st_shader_stage_to_ptarget(stage);
    const nir_shader_compiler_options *options;
    nir_shader *nir;
 
@@ -304,7 +317,10 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
 
    if (nir->stage == MESA_SHADER_VERTEX) {
       /* Needs special handling so drvloc matches the vbo state: */
-      st_nir_assign_vs_in_locations(prog, &nir->inputs, &nir->num_inputs);
+      st_nir_assign_vs_in_locations(prog, nir);
+      /* Re-lower global vars, to deal with any dead VS inputs. */
+      NIR_PASS_V(nir, nir_lower_global_vars_to_local);
+
       sort_varyings(&nir->outputs);
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,

@@ -387,13 +387,13 @@ _is_target_supported(struct gl_context *ctx, GLenum target)
     *     "if a particular type of <target> is not supported by the
     *     implementation the "unsupported" answer should be given.
     *     This is not an error."
+    *
+    * For OpenGL ES, queries can only be used with GL_RENDERBUFFER or MS.
     */
    switch(target){
+   case GL_TEXTURE_1D:
    case GL_TEXTURE_2D:
    case GL_TEXTURE_3D:
-      break;
-
-   case GL_TEXTURE_1D:
       if (!_mesa_is_desktop_gl(ctx))
          return false;
       break;
@@ -404,12 +404,12 @@ _is_target_supported(struct gl_context *ctx, GLenum target)
       break;
 
    case GL_TEXTURE_2D_ARRAY:
-      if (!(_mesa_has_EXT_texture_array(ctx) || _mesa_is_gles3(ctx)))
+      if (!_mesa_has_EXT_texture_array(ctx))
          return false;
       break;
 
    case GL_TEXTURE_CUBE_MAP:
-      if (!_mesa_has_ARB_texture_cube_map(ctx))
+      if (ctx->API != API_OPENGL_CORE && !_mesa_has_ARB_texture_cube_map(ctx))
          return false;
       break;
 
@@ -419,7 +419,7 @@ _is_target_supported(struct gl_context *ctx, GLenum target)
       break;
 
    case GL_TEXTURE_RECTANGLE:
-      if (!_mesa_has_NV_texture_rectangle(ctx))
+      if (!_mesa_has_ARB_texture_rectangle(ctx))
           return false;
       break;
 
@@ -968,7 +968,8 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
 
       switch (pname) {
       case GL_INTERNALFORMAT_DEPTH_SIZE:
-         if (!_mesa_has_ARB_depth_texture(ctx) &&
+         if (ctx->API != API_OPENGL_CORE &&
+             !_mesa_has_ARB_depth_texture(ctx) &&
              target != GL_RENDERBUFFER &&
              target != GL_TEXTURE_BUFFER)
             goto end;

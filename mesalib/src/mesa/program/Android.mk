@@ -44,7 +44,8 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libmesa_program
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
-LOCAL_STATIC_LIBRARIES := libmesa_nir
+LOCAL_STATIC_LIBRARIES := libmesa_nir \
+	libmesa_glsl
 
 intermediates := $(call local-generated-sources-dir)
 
@@ -80,7 +81,8 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(intermediates)
 
-LOCAL_GENERATED_SOURCES += $(MESA_GEN_NIR_H)
+LOCAL_GENERATED_SOURCES += $(MESA_GEN_NIR_H) \
+	$(MESA_GEN_GLSL_H)
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

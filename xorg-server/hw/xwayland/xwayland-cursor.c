@@ -100,6 +100,8 @@ frame_callback(void *data,
                uint32_t time)
 {
     struct xwl_seat *xwl_seat = data;
+
+    wl_callback_destroy (xwl_seat->cursor_frame_cb);
     xwl_seat->cursor_frame_cb = NULL;
     if (xwl_seat->cursor_needs_update) {
         xwl_seat->cursor_needs_update = FALSE;

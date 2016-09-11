@@ -205,7 +205,8 @@ loop_is_dead(nir_loop *loop)
    nir_metadata_require(impl, nir_metadata_live_ssa_defs |
                               nir_metadata_dominance);
 
-   for (nir_block *cur = after->imm_dom; cur != before; cur = cur->imm_dom) {
+   for (nir_block *cur = after->imm_dom; cur && cur != before;
+        cur = cur->imm_dom) {
       nir_foreach_instr(instr, cur) {
          if (!nir_foreach_ssa_def(instr, def_not_live_out, after))
             return false;

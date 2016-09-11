@@ -78,7 +78,8 @@ xf86CallDriverProbe(DriverPtr drv, Bool detect_only)
     Bool foundScreen = FALSE;
 
 #ifdef XSERVER_PLATFORM_BUS
-    if (drv->platformProbe != NULL) {
+    /* xf86platformBus.c does not support Xorg -configure */
+    if (!xf86DoConfigure && drv->platformProbe != NULL) {
         foundScreen = xf86platformProbeDev(drv);
     }
     if (ServerIsNotSeat0() && foundScreen)

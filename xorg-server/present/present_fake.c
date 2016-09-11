@@ -64,6 +64,7 @@ present_fake_do_timer(OsTimerPtr timer,
 
     present_fake_notify(fake_vblank->screen, fake_vblank->event_id);
     xorg_list_del(&fake_vblank->list);
+    TimerFree(fake_vblank->timer);
     free(fake_vblank);
     return 0;
 }
@@ -75,7 +76,7 @@ present_fake_abort_vblank(ScreenPtr screen, uint64_t event_id, uint64_t msc)
 
     xorg_list_for_each_entry_safe(fake_vblank, tmp, &fake_vblank_queue, list) {
         if (fake_vblank->event_id == event_id) {
-            TimerCancel(fake_vblank->timer);
+            TimerFree(fake_vblank->timer); /* TimerFree will call TimerCancel() */
             xorg_list_del(&fake_vblank->list);
             free (fake_vblank);
             break;

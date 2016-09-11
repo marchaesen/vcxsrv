@@ -13,6 +13,10 @@ env.Prepend(CPPPATH = [
     '#src/gallium/auxiliary',
 ])
 
+# Make generated headers reachable from the include path.
+env.Prepend(CPPPATH = [Dir('.').abspath, Dir('glsl').abspath])
+env.Prepend(CPPPATH = [Dir('.').abspath, Dir('nir').abspath])
+
 sources = env.ParseSourceList('Makefile.sources', 'LIBCOMPILER_FILES')
 
 compiler = env.ConvenienceLibrary(

@@ -335,37 +335,47 @@ compute_image_info (pixman_image_t *image)
 	{
 	    flags |= FAST_PATH_NEAREST_FILTER;
 	}
-	else if (
-	    /* affine and integer translation components in matrix ... */
-	    ((flags & FAST_PATH_AFFINE_TRANSFORM) &&
-	     !pixman_fixed_frac (image->common.transform->matrix[0][2] |
-				 image->common.transform->matrix[1][2])) &&
-	    (
-		/* ... combined with a simple rotation */
-		(flags & (FAST_PATH_ROTATE_90_TRANSFORM |
-			  FAST_PATH_ROTATE_180_TRANSFORM |
-			  FAST_PATH_ROTATE_270_TRANSFORM)) ||
-		/* ... or combined with a simple non-rotated translation */
-		(image->common.transform->matrix[0][0] == pixman_fixed_1 &&
-		 image->common.transform->matrix[1][1] == pixman_fixed_1 &&
-		 image->common.transform->matrix[0][1] == 0 &&
-		 image->common.transform->matrix[1][0] == 0)
-		)
-	    )
+	else if (flags & FAST_PATH_AFFINE_TRANSFORM)
 	{
-	    /* FIXME: there are some affine-test failures, showing that
-	     * handling of BILINEAR and NEAREST filter is not quite
-	     * equivalent when getting close to 32K for the translation
-	     * components of the matrix. That's likely some bug, but for
-	     * now just skip BILINEAR->NEAREST optimization in this case.
+	    /* Suppose the transform is
+	     *
+	     *    [ t00, t01, t02 ]
+	     *    [ t10, t11, t12 ]
+	     *    [   0,   0,   1 ]
+	     *
+	     * and the destination coordinates are (n + 0.5, m + 0.5). Then
+	     * the transformed x coordinate is:
+	     *
+	     *     tx = t00 * (n + 0.5) + t01 * (m + 0.5) + t02
+	     *        = t00 * n + t01 * m + t02 + (t00 + t01) * 0.5
+	     *
+	     * which implies that if t00, t01 and t02 are all integers
+	     * and (t00 + t01) is odd, then tx will be an integer plus 0.5,
+	     * which means a BILINEAR filter will reduce to NEAREST. The same
+	     * applies in the y direction
 	     */
-	    pixman_fixed_t magic_limit = pixman_int_to_fixed (30000);
-	    if (image->common.transform->matrix[0][2] <= magic_limit  &&
-	        image->common.transform->matrix[1][2] <= magic_limit  &&
-	        image->common.transform->matrix[0][2] >= -magic_limit &&
-	        image->common.transform->matrix[1][2] >= -magic_limit)
+	    pixman_fixed_t (*t)[3] = image->common.transform->matrix;
+
+	    if ((pixman_fixed_frac (
+		     t[0][0] | t[0][1] | t[0][2] |
+		     t[1][0] | t[1][1] | t[1][2]) == 0)			&&
+		(pixman_fixed_to_int (
+		    (t[0][0] + t[0][1]) & (t[1][0] + t[1][1])) % 2) == 1)
 	    {
-		flags |= FAST_PATH_NEAREST_FILTER;
+		/* FIXME: there are some affine-test failures, showing that
+		 * handling of BILINEAR and NEAREST filter is not quite
+		 * equivalent when getting close to 32K for the translation
+		 * components of the matrix. That's likely some bug, but for
+		 * now just skip BILINEAR->NEAREST optimization in this case.
+		 */
+		pixman_fixed_t magic_limit = pixman_int_to_fixed (30000);
+		if (image->common.transform->matrix[0][2] <= magic_limit  &&
+		    image->common.transform->matrix[1][2] <= magic_limit  &&
+		    image->common.transform->matrix[0][2] >= -magic_limit &&
+		    image->common.transform->matrix[1][2] >= -magic_limit)
+		{
+		    flags |= FAST_PATH_NEAREST_FILTER;
+		}
 	    }
 	}
 	break;

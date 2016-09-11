@@ -45,15 +45,6 @@
 #include "util/u_format.h"
 
 static void
-st_adjust_blit_for_srgb(struct pipe_blit_info *blit, bool framebuffer_srgb)
-{
-   if (!framebuffer_srgb) {
-      blit->dst.format = util_format_linear(blit->dst.format);
-      blit->src.format = util_format_linear(blit->src.format);
-   }
-}
-
-static void
 st_BlitFramebuffer(struct gl_context *ctx,
                    struct gl_framebuffer *readFB,
                    struct gl_framebuffer *drawFB,
@@ -199,7 +190,11 @@ st_BlitFramebuffer(struct gl_context *ctx,
                st_renderbuffer(drawFB->_ColorDrawBuffers[i]);
 
             if (dstRb) {
-               struct pipe_surface *dstSurf = dstRb->surface;
+               struct pipe_surface *dstSurf;
+
+               st_update_renderbuffer_surface(st, dstRb);
+
+               dstSurf = dstRb->surface;
 
                if (dstSurf) {
                   blit.dst.resource = dstSurf->texture;
@@ -212,7 +207,8 @@ st_BlitFramebuffer(struct gl_context *ctx,
                   blit.src.box.z = srcAtt->Zoffset + srcAtt->CubeMapFace;
                   blit.src.format = srcObj->pt->format;
 
-                  st_adjust_blit_for_srgb(&blit, ctx->Color.sRGBEnabled);
+                  if (!ctx->Color.sRGBEnabled)
+                     blit.src.format = util_format_linear(blit.src.format);
 
                   st->pipe->blit(st->pipe, &blit);
                   dstRb->defined = true; /* front buffer tracking */
@@ -226,9 +222,13 @@ st_BlitFramebuffer(struct gl_context *ctx,
          struct pipe_surface *srcSurf;
          GLuint i;
 
-         if (!srcRb || !srcRb->surface) {
+         if (!srcRb)
             return;
-         }
+
+         st_update_renderbuffer_surface(st, srcRb);
+
+         if (!srcRb->surface)
+            return;
 
          srcSurf = srcRb->surface;
 
@@ -237,7 +237,11 @@ st_BlitFramebuffer(struct gl_context *ctx,
                st_renderbuffer(drawFB->_ColorDrawBuffers[i]);
 
             if (dstRb) {
-               struct pipe_surface *dstSurf = dstRb->surface;
+               struct pipe_surface *dstSurf;
+
+               st_update_renderbuffer_surface(st, dstRb);
+
+               dstSurf = dstRb->surface;
 
                if (dstSurf) {
                   blit.dst.resource = dstSurf->texture;
@@ -249,8 +253,6 @@ st_BlitFramebuffer(struct gl_context *ctx,
                   blit.src.level = srcSurf->u.tex.level;
                   blit.src.box.z = srcSurf->u.tex.first_layer;
                   blit.src.format = srcSurf->format;
-
-                  st_adjust_blit_for_srgb(&blit, ctx->Color.sRGBEnabled);
 
                   st->pipe->blit(st->pipe, &blit);
                   dstRb->defined = true; /* front buffer tracking */

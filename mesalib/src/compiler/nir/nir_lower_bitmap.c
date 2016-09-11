@@ -107,6 +107,8 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
    discard = nir_intrinsic_instr_create(shader, nir_intrinsic_discard_if);
    discard->src[0] = nir_src_for_ssa(cond);
    nir_builder_instr_insert(b, &discard->instr);
+
+   shader->info.fs.uses_discard = true;
 }
 
 static void
@@ -128,12 +130,7 @@ void
 nir_lower_bitmap(nir_shader *shader,
                  const nir_lower_bitmap_options *options)
 {
-   nir_function *function;
-
    assert(shader->stage == MESA_SHADER_FRAGMENT);
 
-   function = nir_shader_get_entrypoint(shader);
-
-   if (function->impl)
-      lower_bitmap_impl(function->impl, options);
+   lower_bitmap_impl(nir_shader_get_entrypoint(shader), options);
 }

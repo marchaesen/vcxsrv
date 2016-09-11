@@ -578,7 +578,7 @@ static void
 Apply(const char *src, char **dst)
 {
     if (src) {
-        if (*src == '+' || *src == '!') {
+        if (*src == '+' || *src == '|') {
             *dst = _Concat(*dst, src);
         }
         else {

@@ -1208,7 +1208,7 @@ use_shader_program(struct gl_context *ctx, gl_shader_stage stage,
       shProg = NULL;
 
    if (shProg)
-      _mesa_shader_program_init_subroutine_defaults(shProg);
+      _mesa_shader_program_init_subroutine_defaults(ctx, shProg);
 
    if (*target != shProg) {
       /* Program is current, flush it */
@@ -2344,7 +2344,7 @@ _mesa_GetSubroutineUniformLocation(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return -1;
    }
@@ -2379,7 +2379,7 @@ _mesa_GetSubroutineIndex(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return -1;
    }
@@ -2423,7 +2423,7 @@ _mesa_GetActiveSubroutineUniformiv(GLuint program, GLenum shadertype,
    GLenum resource_type;
    int count, i, j;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
    }
@@ -2509,7 +2509,7 @@ _mesa_GetActiveSubroutineUniformName(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
    }
@@ -2548,7 +2548,7 @@ _mesa_GetActiveSubroutineName(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
    }
@@ -2573,7 +2573,6 @@ _mesa_GetActiveSubroutineName(GLuint program, GLenum shadertype,
                                    length, name, api_name);
 }
 
-
 GLvoid GLAPIENTRY
 _mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
                             const GLuint *indices)
@@ -2585,7 +2584,7 @@ _mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
    gl_shader_stage stage;
    int i;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
    }
@@ -2648,27 +2647,13 @@ _mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
             _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
             return;
          }
+
+         ctx->SubroutineIndex[sh->Stage].IndexPtr[j] = indices[j];
       }
       i += uni_count;
    } while(i < count);
 
    FLUSH_VERTICES(ctx, _NEW_PROGRAM_CONSTANTS);
-   i = 0;
-   do {
-      struct gl_uniform_storage *uni = sh->SubroutineUniformRemapTable[i];
-      if (uni == NULL) {
-         i++;
-         continue;
-      }
-
-      int uni_count = uni->array_elements ? uni->array_elements : 1;
-
-      memcpy(&uni->storage[0], &indices[i],
-             sizeof(GLuint) * uni_count);
-
-      _mesa_propagate_uniforms_to_driver_storage(uni, 0, uni_count);
-      i += uni_count;
-   } while(i < count);
 }
 
 
@@ -2682,7 +2667,7 @@ _mesa_GetUniformSubroutineuiv(GLenum shadertype, GLint location,
    struct gl_linked_shader *sh;
    gl_shader_stage stage;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
    }
@@ -2710,12 +2695,7 @@ _mesa_GetUniformSubroutineuiv(GLenum shadertype, GLint location,
       return;
    }
 
-   {
-      struct gl_uniform_storage *uni = sh->SubroutineUniformRemapTable[location];
-      int offset = location - uni->opaque[stage].index;
-      memcpy(params, &uni->storage[offset],
-	     sizeof(GLuint));
-   }
+   *params = ctx->SubroutineIndex[sh->Stage].IndexPtr[location];
 }
 
 
@@ -2729,7 +2709,7 @@ _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
    struct gl_linked_shader *sh;
    gl_shader_stage stage;
 
-   if (!_mesa_has_shader_subroutine(ctx)) {
+   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
    }
@@ -2745,8 +2725,25 @@ _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
 
    stage = _mesa_shader_enum_to_shader_stage(shadertype);
    sh = shProg->_LinkedShaders[stage];
+
+   /* ARB_shader_subroutine doesn't ask the program to be linked, or list any
+    * INVALID_OPERATION in the case of not be linked.
+    *
+    * And for some pnames, like GL_ACTIVE_SUBROUTINE_UNIFORMS, you can ask the
+    * same info using other specs (ARB_program_interface_query), without the
+    * need of the program to be linked, being the value for that case 0.
+    *
+    * But at the same time, some other methods require the program to be
+    * linked for pname related to locations, so it would be inconsistent to
+    * not do the same here. So we are:
+    *   * Return GL_INVALID_OPERATION if not linked only for locations.
+    *   * Setting a default value of 0, to be returned if not linked.
+    */
    if (!sh) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
+      values[0] = 0;
+      if (pname == GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
+      }
       return;
    }
 
@@ -2824,29 +2821,71 @@ find_compat_subroutine(struct gl_linked_shader *sh,
 }
 
 static void
-_mesa_shader_init_subroutine_defaults(struct gl_linked_shader *sh)
+_mesa_shader_write_subroutine_index(struct gl_context *ctx,
+                                    struct gl_linked_shader *sh)
 {
    int i, j;
 
-   for (i = 0; i < sh->NumSubroutineUniformRemapTable; i++) {
+   if (sh->NumSubroutineUniformRemapTable == 0)
+      return;
+
+   i = 0;
+   do {
       struct gl_uniform_storage *uni = sh->SubroutineUniformRemapTable[i];
       int uni_count;
       int val;
 
-      if (!uni)
+      if (!uni) {
+         i++;
          continue;
-      uni_count = uni->array_elements ? uni->array_elements : 1;
-      val = find_compat_subroutine(sh, uni->type);
+      }
 
-      for (j = 0; j < uni_count; j++)
+      uni_count = uni->array_elements ? uni->array_elements : 1;
+      for (j = 0; j < uni_count; j++) {
+         val = ctx->SubroutineIndex[sh->Stage].IndexPtr[i + j];
          memcpy(&uni->storage[j], &val, sizeof(int));
+      }
 
       _mesa_propagate_uniforms_to_driver_storage(uni, 0, uni_count);
+      i += uni_count;
+   } while(i < sh->NumSubroutineUniformRemapTable);
+}
+
+void
+_mesa_shader_write_subroutine_indices(struct gl_context *ctx,
+                                      gl_shader_stage stage)
+{
+   if (ctx->_Shader->CurrentProgram[stage] &&
+       ctx->_Shader->CurrentProgram[stage]->_LinkedShaders[stage])
+      _mesa_shader_write_subroutine_index(ctx,
+                                          ctx->_Shader->CurrentProgram[stage]->_LinkedShaders[stage]);
+}
+
+static void
+_mesa_shader_init_subroutine_defaults(struct gl_context *ctx,
+                                      struct gl_linked_shader *sh)
+{
+   int i;
+   struct gl_subroutine_index_binding *binding = &ctx->SubroutineIndex[sh->Stage];
+   if (binding->NumIndex != sh->NumSubroutineUniformRemapTable) {
+      binding->IndexPtr = realloc(binding->IndexPtr,
+                                  sh->NumSubroutineUniformRemapTable * (sizeof(GLuint)));
+      binding->NumIndex = sh->NumSubroutineUniformRemapTable;
+   }
+
+   for (i = 0; i < sh->NumSubroutineUniformRemapTable; i++) {
+      struct gl_uniform_storage *uni = sh->SubroutineUniformRemapTable[i];
+
+      if (!uni)
+         continue;
+
+      binding->IndexPtr[i] = find_compat_subroutine(sh, uni->type);
    }
 }
 
 void
-_mesa_shader_program_init_subroutine_defaults(struct gl_shader_program *shProg)
+_mesa_shader_program_init_subroutine_defaults(struct gl_context *ctx,
+                                              struct gl_shader_program *shProg)
 {
    int i;
 
@@ -2857,6 +2896,6 @@ _mesa_shader_program_init_subroutine_defaults(struct gl_shader_program *shProg)
       if (!shProg->_LinkedShaders[i])
          continue;
 
-      _mesa_shader_init_subroutine_defaults(shProg->_LinkedShaders[i]);
+      _mesa_shader_init_subroutine_defaults(ctx, shProg->_LinkedShaders[i]);
    }
 }
