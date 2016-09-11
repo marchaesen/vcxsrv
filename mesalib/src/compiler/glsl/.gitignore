@@ -7,6 +7,7 @@ expression_operation_strings.h
 ir_expression_operation.h
 ir_expression_operation_strings.h
 ir_expression_operation_constant.h
+expression_operation_strings.h
 subtest-cr/
 subtest-lf/
 subtest-cr-lf/
