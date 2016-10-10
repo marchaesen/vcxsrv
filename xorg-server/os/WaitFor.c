@@ -226,9 +226,13 @@ WaitForSomething(Bool are_ready)
             if (dispatchException)
                 return FALSE;
             if (i < 0) {
-                if (pollerr != EINTR && !ETEST(pollerr)) {
-                    ErrorF("WaitForSomething(): poll: %s\n",
-                           strerror(pollerr));
+                char szMessage[1024];
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, pollerr, 0, szMessage, 1024, NULL );
+                ErrorF("WaitForSomething(): poll: %d %s\n", pollerr, szMessage);
+                if (pollerr == WSAENOTSOCK)
+                {
+                  CheckServerConnections(server_poll);
+                  continue; // try again
                 }
             }
         } else

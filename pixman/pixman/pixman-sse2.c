@@ -4419,10 +4419,10 @@ sse2_composite_add_n_8 (pixman_implementation_t *imp,
 
 	while (w && ((uintptr_t)dst & 15))
 	{
-	    *dst = (uint8_t)_mm_cvtsi128_si32 (
+	    *dst = (uint8_t)(0xff&_mm_cvtsi128_si32 (
 		_mm_adds_epu8 (
 		    xmm_src,
-		    _mm_cvtsi32_si128 (*dst)));
+		    _mm_cvtsi32_si128 (*dst))));
 
 	    w--;
 	    dst++;
@@ -4439,10 +4439,10 @@ sse2_composite_add_n_8 (pixman_implementation_t *imp,
 
 	while (w)
 	{
-	    *dst = (uint8_t)_mm_cvtsi128_si32 (
+	    *dst = (uint8_t)(0xff&_mm_cvtsi128_si32 (
 		_mm_adds_epu8 (
 		    xmm_src,
-		    _mm_cvtsi32_si128 (*dst)));
+		    _mm_cvtsi32_si128 (*dst))));
 
 	    w--;
 	    dst++;
