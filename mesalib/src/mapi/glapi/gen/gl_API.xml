@@ -8254,7 +8254,9 @@
     <enum name="QUERY_BUFFER_BARRIER_BIT"           value="0x00008000"/>
 </category>
 
-<!-- ARB extensions 149 - 153 -->
+<!-- ARB extensions 149 - 152 -->
+
+<xi:include href="ARB_compute_variable_group_size.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="ARB_indirect_parameters.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8316,6 +8318,43 @@
 
     <function name="BlendBarrier" es2="3.2"/>
     <function name="BlendBarrierKHR" alias="BlendBarrier" es2="2.0"/>
+</category>
+
+<category name="ARB_ES3_2_compatibility" number="177">
+
+    <enum name="PRIMITIVE_BOUNDING_BOX_ARB" count="8"       value="0x92BE">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="MULTISAMPLE_LINE_WIDTH_RANGE_ARB" count="2" value="0x9381">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="MULTISAMPLE_LINE_WIDTH_GRANULARITY_ARB"     value="0x9382">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <!-- This should be in es_EXT, but this file is included first and
+         the alias doesn't work otherwise. -->
+    <function name="PrimitiveBoundingBox" es2="3.2" desktop="false">
+        <param name="minX" type="GLfloat"/>
+        <param name="minY" type="GLfloat"/>
+        <param name="minZ" type="GLfloat"/>
+        <param name="minW" type="GLfloat"/>
+        <param name="maxX" type="GLfloat"/>
+        <param name="maxY" type="GLfloat"/>
+        <param name="maxZ" type="GLfloat"/>
+        <param name="maxW" type="GLfloat"/>
+    </function>
+    <function name="PrimitiveBoundingBoxARB" alias="PrimitiveBoundingBox">
+        <param name="minX" type="GLfloat"/>
+        <param name="minY" type="GLfloat"/>
+        <param name="minZ" type="GLfloat"/>
+        <param name="minW" type="GLfloat"/>
+        <param name="maxX" type="GLfloat"/>
+        <param name="maxY" type="GLfloat"/>
+        <param name="maxZ" type="GLfloat"/>
+        <param name="maxW" type="GLfloat"/>
+    </function>
+
 </category>
 
 <!-- Non-ARB extensions sorted by extension number. -->

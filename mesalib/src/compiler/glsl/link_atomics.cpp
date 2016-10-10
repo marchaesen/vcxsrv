@@ -25,7 +25,6 @@
 #include "ir.h"
 #include "ir_uniform.h"
 #include "linker.h"
-#include "program/hash_table.h"
 #include "main/macros.h"
 
 namespace {

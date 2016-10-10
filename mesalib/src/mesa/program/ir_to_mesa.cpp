@@ -46,12 +46,12 @@
 #include "compiler/glsl_types.h"
 #include "compiler/glsl/linker.h"
 #include "compiler/glsl/program.h"
-#include "program/hash_table.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
+#include "util/string_to_uint_map.h"
 
 
 static int swizzle_for_size(int size);
@@ -2921,6 +2921,7 @@ get_mesa_program(struct gl_context *ctx,
 
    prog->SamplersUsed = shader->active_samplers;
    prog->ShadowSamplers = shader->shadow_samplers;
+   prog->ExternalSamplersUsed = gl_external_samplers(shader);
    _mesa_update_shader_textures_used(shader_program, prog);
 
    /* Set the gl_FragDepth layout. */

@@ -30,6 +30,7 @@ Xwayland_LDADD =				\
 	$(XSERVER_SYS_LIBS)
 Xwayland_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
 
+Xwayland_built_sources =
 
 if GLAMOR_EGL
 Xwayland_SOURCES += 				\
@@ -39,13 +40,11 @@ Xwayland_SOURCES += 				\
 	xwayland-glamor-xv.c
 endif
 
-nodist_Xwayland_SOURCES =			\
+glamor_built_sources =				\
 	drm-client-protocol.h			\
 	drm-protocol.c
 
-CLEANFILES = $(nodist_Xwayland_SOURCES)
-
-xwayland-glamor.c : $(nodist_Xwayland_SOURCES)
+Xwayland_built_sources += $(glamor_built_sources)
 
 glamor_lib = $(top_builddir)/glamor/libglamor.la
 
@@ -53,11 +52,32 @@ Xwayland_LDADD += $(GLAMOR_LIBS) $(GBM_LIBS) -lEGL -lGL
 Xwayland_DEPENDENCIES = $(glamor_lib) $(XWAYLAND_LIBS)
 endif
 
+Xwayland_built_sources +=					\
+	relative-pointer-unstable-v1-client-protocol.h		\
+	relative-pointer-unstable-v1-protocol.c			\
+	pointer-constraints-unstable-v1-client-protocol.h	\
+	pointer-constraints-unstable-v1-protocol.c
+
+nodist_Xwayland_SOURCES = $(Xwayland_built_sources)
+CLEANFILES = $(Xwayland_built_sources)
+
 EXTRA_DIST = drm.xml
 
 
+$(Xwayland_SOURCES): $(Xwayland_built_sources)
+
 relink:
 	$(AM_V_at)rm -f Xwayland$(EXEEXT) && $(MAKE) Xwayland$(EXEEXT)
+
+relative-pointer-unstable-v1-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/relative-pointer/relative-pointer-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
+relative-pointer-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/relative-pointer/relative-pointer-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
+
+pointer-constraints-unstable-v1-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
+pointer-constraints-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
 
 %-protocol.c : %.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@

@@ -1342,23 +1342,54 @@
 
 </category>
 
-<category name="ES3.2">
-
-    <!-- TODO: Move to GL 4.x when it is added to a GL version -->
-    <enum name="PRIMITIVE_BOUNDING_BOX_ARB" count="8" value="0x92BE">
-        <size name="Get" mode="get"/>
-    </enum>
-    <function name="PrimitiveBoundingBox" es2="3.2" desktop="false">
-        <param name="minX" type="GLfloat"/>
-        <param name="minY" type="GLfloat"/>
-        <param name="minZ" type="GLfloat"/>
-        <param name="minW" type="GLfloat"/>
-        <param name="maxX" type="GLfloat"/>
-        <param name="maxY" type="GLfloat"/>
-        <param name="maxZ" type="GLfloat"/>
-        <param name="maxW" type="GLfloat"/>
+<category name="GL_OES_viewport_array" number="267">
+    <function name="ViewportArrayvOES" es2="3.1" alias="ViewportArrayv">
+        <param name="first" type="GLuint"/>
+        <param name="count" type="GLsizei"/>
+        <param name="v" type="const GLfloat *"/>
     </function>
-
+    <function name="ViewportIndexedfOES" es2="3.1" alias="ViewportIndexedf">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLfloat"/>
+        <param name="y" type="GLfloat"/>
+        <param name="w" type="GLfloat"/>
+        <param name="h" type="GLfloat"/>
+    </function>
+    <function name="ViewportIndexedfvOES" es2="3.1" alias="ViewportIndexedfv">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLfloat *"/>
+    </function>
+    <function name="ScissorArrayvOES" es2="3.1" alias="ScissorArrayv">
+        <param name="first" type="GLuint"/>
+        <param name="count" type="GLsizei"/>
+        <param name="v" type="const int *"/>
+    </function>
+    <function name="ScissorIndexedOES" es2="3.1" alias="ScissorIndexed">
+        <param name="index" type="GLuint"/>
+        <param name="left" type="GLint"/>
+        <param name="bottom" type="GLint"/>
+        <param name="width" type="GLsizei"/>
+        <param name="height" type="GLsizei"/>
+    </function>
+    <function name="ScissorIndexedvOES" es2="3.1" alias="ScissorIndexedv">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLint *"/>
+    </function>
+    <function name="DepthRangeArrayfvOES" es2="3.1" desktop="false">
+        <param name="first" type="GLuint"/>
+        <param name="count" type="GLsizei"/>
+        <param name="v" type="const GLfloat *"/>
+    </function>
+    <function name="DepthRangeIndexedfOES" es2="3.1" desktop="false">
+        <param name="index" type="GLuint"/>
+        <param name="n" type="GLfloat"/>
+        <param name="f" type="GLfloat"/>
+    </function>
+    <function name="GetFloati_vOES" es2="3.1" alias="GetFloati_v">
+        <param name="target" type="GLenum"/>
+        <param name="index" type="GLuint"/>
+        <param name="data" type="GLfloat *"/>
+    </function>
 </category>
 
 </OpenGLAPI>

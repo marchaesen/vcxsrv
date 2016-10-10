@@ -48,22 +48,6 @@ BOOL xpbproxy_is_standalone = NO;
 
 x_selection *_selection_object;
 
-extern BOOL serverRunning;
-extern pthread_mutex_t serverRunningMutex;
-extern pthread_cond_t serverRunningCond;
-
-static inline void
-wait_for_server_init(void)
-{
-    /* If the server hasn't finished initializing, wait for it... */
-    if (!serverRunning) {
-        pthread_mutex_lock(&serverRunningMutex);
-        while (!serverRunning)
-            pthread_cond_wait(&serverRunningCond, &serverRunningMutex);
-        pthread_mutex_unlock(&serverRunningMutex);
-    }
-}
-
 static int
 x_io_error_handler(Display *dpy)
 {
@@ -96,8 +80,6 @@ xpbproxy_run(void)
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     size_t i;
-
-    wait_for_server_init();
 
     for (i = 0, xpbproxy_dpy = NULL; !xpbproxy_dpy && i < 5; i++) {
         xpbproxy_dpy = XOpenDisplay(NULL);

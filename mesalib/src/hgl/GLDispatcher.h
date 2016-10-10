@@ -34,8 +34,6 @@ class BGLDispatcher
 		void*					CurrentContext();
 
 		struct _glapi_table* 	Table();
-		status_t				CheckTable(
-									const struct _glapi_table* dispatch = NULL);
 		status_t				SetTable(struct _glapi_table* dispatch);
 		uint32					TableSize();
 

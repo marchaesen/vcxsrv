@@ -58,7 +58,13 @@ extern void GLAPIENTRY
 _mesa_DepthRangeArrayv(GLuint first, GLsizei count, const GLclampd * v);
 
 extern void GLAPIENTRY
+_mesa_DepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat * v);
+
+extern void GLAPIENTRY
 _mesa_DepthRangeIndexed(GLuint index, GLclampd n, GLclampd f);
+
+extern void GLAPIENTRY
+_mesa_DepthRangeIndexedfOES(GLuint index, GLfloat n, GLfloat f);
 
 extern void
 _mesa_set_depth_range(struct gl_context *ctx, unsigned idx,

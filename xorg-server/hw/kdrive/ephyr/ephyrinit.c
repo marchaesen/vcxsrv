@@ -36,7 +36,7 @@ extern Bool EphyrWantResize;
 extern Bool EphyrWantNoHostGrab;
 extern Bool kdHasPointer;
 extern Bool kdHasKbd;
-extern Bool ephyr_glamor, ephyr_glamor_gles2;
+extern Bool ephyr_glamor, ephyr_glamor_gles2, ephyr_glamor_skip_present;
 
 extern Bool ephyrNoXV;
 
@@ -148,6 +148,7 @@ ddxUseMsg(void)
 #ifdef GLAMOR
     ErrorF("-glamor              Enable 2D acceleration using glamor\n");
     ErrorF("-glamor_gles2        Enable 2D acceleration using glamor (with GLES2 only)\n");
+    ErrorF("-glamor-skip-present Skip presenting the output when using glamor (for internal testing optimization)\n");
 #endif
     ErrorF
         ("-fakexa              Simulate acceleration using software rendering\n");
@@ -286,6 +287,10 @@ ddxProcessArgument(int argc, char **argv, int i)
         ephyrFuncs.enableAccel = ephyr_glamor_enable;
         ephyrFuncs.disableAccel = ephyr_glamor_disable;
         ephyrFuncs.finiAccel = ephyr_glamor_fini;
+        return 1;
+    }
+    else if (!strcmp (argv[i], "-glamor-skip-present")) {
+        ephyr_glamor_skip_present = TRUE;
         return 1;
     }
 #endif

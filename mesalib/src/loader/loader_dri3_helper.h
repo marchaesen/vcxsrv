@@ -103,6 +103,7 @@ struct loader_dri3_vtable {
    void (*set_drawable_size)(struct loader_dri3_drawable *, int, int);
    bool (*in_current_context)(struct loader_dri3_drawable *);
    __DRIcontext *(*get_dri_context)(struct loader_dri3_drawable *);
+   __DRIscreen *(*get_dri_screen)(struct loader_dri3_drawable *);
    void (*flush_drawable)(struct loader_dri3_drawable *, unsigned);
    void (*show_fps)(struct loader_dri3_drawable *, uint64_t);
 };

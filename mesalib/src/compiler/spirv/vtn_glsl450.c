@@ -634,6 +634,57 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    }
 }
 
+static void
+handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
+                             const uint32_t *w, unsigned count)
+{
+   const struct glsl_type *dest_type =
+      vtn_value(b, w[1], vtn_value_type_type)->type->type;
+
+   struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
+   val->ssa = vtn_create_ssa_value(b, dest_type);
+
+   nir_intrinsic_op op;
+   switch (opcode) {
+   case GLSLstd450InterpolateAtCentroid:
+      op = nir_intrinsic_interp_var_at_centroid;
+      break;
+   case GLSLstd450InterpolateAtSample:
+      op = nir_intrinsic_interp_var_at_sample;
+      break;
+   case GLSLstd450InterpolateAtOffset:
+      op = nir_intrinsic_interp_var_at_offset;
+      break;
+   default:
+      unreachable("Invalid opcode");
+   }
+
+   nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader, op);
+
+   nir_deref_var *deref = vtn_nir_deref(b, w[5]);
+   intrin->variables[0] =
+      nir_deref_as_var(nir_copy_deref(intrin, &deref->deref));
+
+   switch (opcode) {
+   case GLSLstd450InterpolateAtCentroid:
+      break;
+   case GLSLstd450InterpolateAtSample:
+   case GLSLstd450InterpolateAtOffset:
+      intrin->src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[6])->def);
+      break;
+   default:
+      unreachable("Invalid opcode");
+   }
+
+   intrin->num_components = glsl_get_vector_elements(dest_type);
+   nir_ssa_dest_init(&intrin->instr, &intrin->dest,
+                     glsl_get_vector_elements(dest_type),
+                     glsl_get_bit_size(dest_type), NULL);
+   val->ssa->def = &intrin->dest.ssa;
+
+   nir_builder_instr_insert(&b->nb, &intrin->instr);
+}
+
 bool
 vtn_handle_glsl450_instruction(struct vtn_builder *b, uint32_t ext_opcode,
                                const uint32_t *w, unsigned count)
@@ -656,7 +707,8 @@ vtn_handle_glsl450_instruction(struct vtn_builder *b, uint32_t ext_opcode,
    case GLSLstd450InterpolateAtCentroid:
    case GLSLstd450InterpolateAtSample:
    case GLSLstd450InterpolateAtOffset:
-      unreachable("Unhandled opcode");
+      handle_glsl450_interpolation(b, ext_opcode, w, count);
+      break;
 
    default:
       handle_glsl450_alu(b, (enum GLSLstd450)ext_opcode, w, count);

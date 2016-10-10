@@ -36,6 +36,20 @@
 
 #define PIPE_ATOMIC "GCC Sync Intrinsics"
 
+#if defined(USE_GCC_ATOMIC_BUILTINS)
+
+/* The builtins with explicit memory model are available since GCC 4.7. */
+#define p_atomic_set(_v, _i) __atomic_store_n((_v), (_i), __ATOMIC_RELEASE)
+#define p_atomic_read(_v) __atomic_load_n((_v), __ATOMIC_ACQUIRE)
+#define p_atomic_dec_zero(v) (__atomic_sub_fetch((v), 1, __ATOMIC_ACQ_REL) == 0)
+#define p_atomic_inc(v) (void) __atomic_add_fetch((v), 1, __ATOMIC_ACQ_REL)
+#define p_atomic_dec(v) (void) __atomic_sub_fetch((v), 1, __ATOMIC_ACQ_REL)
+#define p_atomic_add(v, i) (void) __atomic_add_fetch((v), (i), __ATOMIC_ACQ_REL)
+#define p_atomic_inc_return(v) __atomic_add_fetch((v), 1, __ATOMIC_ACQ_REL)
+#define p_atomic_dec_return(v) __atomic_sub_fetch((v), 1, __ATOMIC_ACQ_REL)
+
+#else
+
 #define p_atomic_set(_v, _i) (*(_v) = (_i))
 #define p_atomic_read(_v) (*(_v))
 #define p_atomic_dec_zero(v) (__sync_sub_and_fetch((v), 1) == 0)
@@ -44,6 +58,13 @@
 #define p_atomic_add(v, i) (void) __sync_add_and_fetch((v), (i))
 #define p_atomic_inc_return(v) __sync_add_and_fetch((v), 1)
 #define p_atomic_dec_return(v) __sync_sub_and_fetch((v), 1)
+
+#endif
+
+/* There is no __atomic_* compare and exchange that returns the current value.
+ * Also, GCC 5.4 seems unable to optimize a compound statement expression that
+ * uses an additional stack variable with __atomic_compare_exchange[_n].
+ */
 #define p_atomic_cmpxchg(v, old, _new) \
    __sync_val_compare_and_swap((v), (old), (_new))
 

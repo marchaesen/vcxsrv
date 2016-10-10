@@ -29,6 +29,8 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /* The blob functions implement a simple, low-level API for serializing and

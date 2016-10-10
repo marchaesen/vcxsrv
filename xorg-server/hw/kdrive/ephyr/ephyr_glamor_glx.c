@@ -57,6 +57,7 @@ static Display *dpy;
 static XVisualInfo *visual_info;
 static GLXFBConfig fb_config;
 Bool ephyr_glamor_gles2;
+Bool ephyr_glamor_skip_present;
 /** @} */
 
 /**
@@ -219,6 +220,13 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
                               struct pixman_region16 *damage)
 {
     GLint old_vao;
+
+    /* Skip presenting the output in this mode.  Presentation is
+     * expensive, and if we're just running the X Test suite headless,
+     * nobody's watching.
+     */
+    if (ephyr_glamor_skip_present)
+        return;
 
     glXMakeCurrent(dpy, glamor->glx_win, glamor->ctx);
 

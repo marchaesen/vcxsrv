@@ -1259,7 +1259,7 @@ glamor_composite_largepixmap_region(CARD8 op,
                         is_normal_mask_fbo = 1;
                     }
                     else {
-                        /* This mask region has transform or repeatpad, we need clip it agains the previous
+                        /* This mask region has transform or repeatpad, we need clip it against the previous
                          * valid region rather than the mask region. */
                         if (!is_normal_source_fbo)
                             clipped_mask_regions =

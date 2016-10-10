@@ -783,7 +783,7 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = VARYING_SLOT_CLIP_DIST0; /* XXX CLIP_DIST1? */
       break;
    case SpvBuiltInCullDistance:
-      /* XXX figure this out */
+      *location = VARYING_SLOT_CULL_DIST0;
       break;
    case SpvBuiltInVertexIndex:
       *location = SYSTEM_VALUE_VERTEX_ID;
@@ -1054,7 +1054,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
          is_vertex_input = false;
          location += VARYING_SLOT_VAR0;
       } else {
-         assert(!"Location must be on input or output variable");
+         unreachable("Location must be on input or output variable");
       }
 
       if (vtn_var->var) {

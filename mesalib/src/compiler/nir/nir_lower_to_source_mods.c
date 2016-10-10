@@ -164,9 +164,7 @@ nir_lower_to_source_mods_block(nir_block *block)
 
       nir_foreach_use(child_src, &alu->dest.dest.ssa) {
          assert(child_src->is_ssa);
-         nir_instr *child = child_src->parent_instr;
-         assert(child->type == nir_instr_type_alu);
-         nir_alu_instr *child_alu = nir_instr_as_alu(child);
+         nir_alu_instr *child_alu = nir_instr_as_alu(child_src->parent_instr);
 
          child_alu->op = nir_op_fmov;
          child_alu->dest.saturate = false;

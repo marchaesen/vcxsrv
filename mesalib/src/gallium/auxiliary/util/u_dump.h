@@ -159,6 +159,9 @@ void
 util_dump_image_view(FILE *stream, const struct pipe_image_view *state);
 
 void
+util_dump_shader_buffer(FILE *stream, const struct pipe_shader_buffer *state);
+
+void
 util_dump_sampler_view(FILE *stream, const struct pipe_sampler_view *state);
 
 void

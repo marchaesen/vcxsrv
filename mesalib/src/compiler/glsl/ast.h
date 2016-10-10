@@ -553,6 +553,11 @@ struct ast_type_qualifier {
           */
          unsigned local_size:3;
 
+	 /** \name Layout qualifiers for ARB_compute_variable_group_size. */
+	 /** \{ */
+	 unsigned local_size_variable:1;
+	 /** \} */
+
 	 /** \name Layout and memory qualifiers for ARB_shader_image_load_store. */
 	 /** \{ */
 	 unsigned early_fragment_tests:1;

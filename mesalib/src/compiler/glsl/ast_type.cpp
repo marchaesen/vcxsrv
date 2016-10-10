@@ -114,7 +114,7 @@ ast_type_qualifier::has_auxiliary_storage() const
  */
 bool
 ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
-				    _mesa_glsl_parse_state *state,
+                                    _mesa_glsl_parse_state *state,
                                     const ast_type_qualifier &q,
                                     bool is_single_layout_merge)
 {
@@ -182,16 +182,15 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 
    if (is_single_layout_merge && !state->has_enhanced_layouts() &&
        (this->flags.i & q.flags.i & ~allowed_duplicates_mask.flags.i) != 0) {
-      _mesa_glsl_error(loc, state,
-		       "duplicate layout qualifiers used");
+      _mesa_glsl_error(loc, state, "duplicate layout qualifiers used");
       return false;
    }
 
    if (q.flags.q.prim_type) {
       if (this->flags.q.prim_type && this->prim_type != q.prim_type) {
-	 _mesa_glsl_error(loc, state,
-			  "conflicting primitive type qualifiers used");
-	 return false;
+         _mesa_glsl_error(loc, state,
+                          "conflicting primitive type qualifiers used");
+         return false;
       }
       this->prim_type = q.prim_type;
    }
@@ -206,8 +205,8 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 
    if (q.flags.q.subroutine_def) {
       if (this->flags.q.subroutine_def) {
-	 _mesa_glsl_error(loc, state,
-			  "conflicting subroutine qualifiers used");
+         _mesa_glsl_error(loc, state,
+                          "conflicting subroutine qualifiers used");
       } else {
          this->subroutine_list = q.subroutine_list;
       }
@@ -284,27 +283,24 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 
    if (q.flags.q.vertex_spacing) {
       if (this->flags.q.vertex_spacing && this->vertex_spacing != q.vertex_spacing) {
-	 _mesa_glsl_error(loc, state,
-			  "conflicting vertex spacing used");
-	 return false;
+         _mesa_glsl_error(loc, state, "conflicting vertex spacing used");
+         return false;
       }
       this->vertex_spacing = q.vertex_spacing;
    }
 
    if (q.flags.q.ordering) {
       if (this->flags.q.ordering && this->ordering != q.ordering) {
-	 _mesa_glsl_error(loc, state,
-			  "conflicting ordering used");
-	 return false;
+         _mesa_glsl_error(loc, state, "conflicting ordering used");
+         return false;
       }
       this->ordering = q.ordering;
    }
 
    if (q.flags.q.point_mode) {
       if (this->flags.q.point_mode && this->point_mode != q.point_mode) {
-	 _mesa_glsl_error(loc, state,
-			  "conflicting point mode used");
-	 return false;
+         _mesa_glsl_error(loc, state, "conflicting point mode used");
+         return false;
       }
       this->point_mode = q.point_mode;
    }
@@ -328,8 +324,7 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
 
    if (this->flags.q.in &&
        (this->flags.i & ~input_layout_mask.flags.i) != 0) {
-      _mesa_glsl_error(loc, state,
-		       "invalid input layout qualifier used");
+      _mesa_glsl_error(loc, state, "invalid input layout qualifier used");
       return false;
    }
 
@@ -428,8 +423,7 @@ ast_type_qualifier::merge_out_qualifier(YYLTYPE *loc,
 
    /* Generate an error when invalid input layout qualifiers are used. */
    if ((q.flags.i & ~valid_out_mask.flags.i) != 0) {
-      _mesa_glsl_error(loc, state,
-		       "invalid output layout qualifiers used");
+      _mesa_glsl_error(loc, state, "invalid output layout qualifiers used");
       return false;
    }
 
@@ -503,6 +497,7 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
          state->in_qualifier->flags.q.local_size == 0;
 
       valid_in_mask.flags.q.local_size = 7;
+      valid_in_mask.flags.q.local_size_variable = 1;
       break;
    default:
       _mesa_glsl_error(loc, state,
@@ -513,8 +508,7 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
 
    /* Generate an error when invalid input layout qualifiers are used. */
    if ((q.flags.i & ~valid_in_mask.flags.i) != 0) {
-      _mesa_glsl_error(loc, state,
-		       "invalid input layout qualifiers used");
+      _mesa_glsl_error(loc, state, "invalid input layout qualifiers used");
       return false;
    }
 
@@ -580,6 +574,10 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
       this->point_mode = q.point_mode;
    }
 
+   if (q.flags.q.local_size_variable) {
+      state->cs_input_local_size_variable_specified = true;
+   }
+
    if (create_node) {
       if (create_gs_ast) {
          node = new(mem_ctx) ast_gs_input_layout(*loc, q.prim_type);
@@ -614,7 +612,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     "%s '%s':"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
                     message, name,
                     bad.flags.q.invariant ? " invariant" : "",
                     bad.flags.q.precise ? " precise" : "",
@@ -653,6 +651,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     bad.flags.q.prim_type ? " prim_type" : "",
                     bad.flags.q.max_vertices ? " max_vertices" : "",
                     bad.flags.q.local_size ? " local_size" : "",
+                    bad.flags.q.local_size_variable ? " local_size_variable" : "",
                     bad.flags.q.early_fragment_tests ? " early_fragment_tests" : "",
                     bad.flags.q.explicit_image_format ? " image_format" : "",
                     bad.flags.q.coherent ? " coherent" : "",

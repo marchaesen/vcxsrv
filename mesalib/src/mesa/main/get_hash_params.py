@@ -341,6 +341,9 @@ descriptor=[
 
 # GL_KHR_blend_equation_advanced_coherent
   [ "BLEND_ADVANCED_COHERENT_KHR", "CONTEXT_BOOL(Color.BlendCoherent), extra_KHR_blend_equation_advanced_coherent" ],
+
+# GL_ARB_robustness / GL_KHR_robustness
+  [ "RESET_NOTIFICATION_STRATEGY_ARB", "CONTEXT_ENUM(Const.ResetStrategy), extra_KHR_robustness_or_GL" ],
 ]},
 
 # GLES3 is not a typo.
@@ -610,6 +613,22 @@ descriptor=[
 
 # GL_OES_primitive_bounding_box
   [ "PRIMITIVE_BOUNDING_BOX_ARB", "CONTEXT_FLOAT8(PrimitiveBoundingBox), extra_OES_primitive_bounding_box" ],
+
+# GL_ARB_viewport_array / GL_OES_viewport_array
+  [ "MAX_VIEWPORTS", "CONTEXT_INT(Const.MaxViewports), extra_ARB_viewport_array_or_oes_viewport_array" ],
+  [ "VIEWPORT_SUBPIXEL_BITS", "CONTEXT_INT(Const.ViewportSubpixelBits), extra_ARB_viewport_array_or_oes_viewport_array" ],
+  [ "VIEWPORT_BOUNDS_RANGE", "CONTEXT_FLOAT2(Const.ViewportBounds), extra_ARB_viewport_array_or_oes_viewport_array" ],
+  [ "VIEWPORT_INDEX_PROVOKING_VERTEX", "CONTEXT_ENUM(Const.LayerAndVPIndexProvokingVertex), extra_ARB_viewport_array_or_oes_viewport_array" ],
+]},
+
+{ "apis": ["GL_CORE", "GLES32"], "params": [
+  [ "MULTISAMPLE_LINE_WIDTH_RANGE_ARB", "CONTEXT_FLOAT2(Const.MinLineWidthAA), extra_ES32" ],
+  [ "MULTISAMPLE_LINE_WIDTH_GRANULARITY_ARB", "CONTEXT_FLOAT(Const.LineWidthGranularity), extra_ES32" ],
+]},
+
+{ "apis": ["GL", "GL_CORE", "GLES32"], "params": [
+# GL 3.0 or ES 3.2
+  [ "CONTEXT_FLAGS", "CONTEXT_INT(Const.ContextFlags), extra_version_30" ],
 ]},
 
 # Remaining enums are only in OpenGL
@@ -880,9 +899,6 @@ descriptor=[
 # GL_ARB_color_buffer_float
   [ "RGBA_FLOAT_MODE_ARB", "BUFFER_FIELD(Visual.floatMode, TYPE_BOOLEAN), extra_core_ARB_color_buffer_float_and_new_buffers" ],
 
-# GL 3.0
-  [ "CONTEXT_FLAGS", "CONTEXT_INT(Const.ContextFlags), extra_version_30" ],
-
 # GL3.0 / GL_EXT_framebuffer_sRGB
   [ "FRAMEBUFFER_SRGB_EXT", "CONTEXT_BOOL(Color.sRGBEnabled), extra_EXT_framebuffer_sRGB" ],
   [ "FRAMEBUFFER_SRGB_CAPABLE_EXT", "BUFFER_INT(Visual.sRGBCapable), extra_EXT_framebuffer_sRGB_and_new_buffers" ],
@@ -895,9 +911,6 @@ descriptor=[
 
 # GL 3.2
   [ "CONTEXT_PROFILE_MASK", "CONTEXT_INT(Const.ProfileMask), extra_version_32" ],
-
-# GL_ARB_robustness
-  [ "RESET_NOTIFICATION_STRATEGY_ARB", "CONTEXT_ENUM(Const.ResetStrategy), NO_EXTRA" ],
 
 # GL_ARB_timer_query
   [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query" ],
@@ -929,16 +942,13 @@ descriptor=[
 # GL_ARB_cull_distance
   [ "MAX_CULL_DISTANCES", "CONTEXT_INT(Const.MaxClipPlanes), extra_ARB_cull_distance" ],
   [ "MAX_COMBINED_CLIP_AND_CULL_DISTANCES", "CONTEXT_INT(Const.MaxClipPlanes), extra_ARB_cull_distance" ],
+
+# GL_ARB_compute_variable_group_size
+  [ "MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB", "CONTEXT_INT(Const.MaxComputeVariableGroupInvocations), extra_ARB_compute_variable_group_size" ],
 ]},
 
 # Enums restricted to OpenGL Core profile
 { "apis": ["GL_CORE"], "params": [
-# GL_ARB_viewport_array
-  [ "MAX_VIEWPORTS", "CONTEXT_INT(Const.MaxViewports), extra_ARB_viewport_array" ],
-  [ "VIEWPORT_SUBPIXEL_BITS", "CONTEXT_INT(Const.ViewportSubpixelBits), extra_ARB_viewport_array" ],
-  [ "VIEWPORT_BOUNDS_RANGE", "CONTEXT_FLOAT2(Const.ViewportBounds), extra_ARB_viewport_array" ],
-  [ "VIEWPORT_INDEX_PROVOKING_VERTEX", "CONTEXT_ENUM(Const.LayerAndVPIndexProvokingVertex), extra_ARB_viewport_array" ],
-
 # GL_ARB_shader_subroutine
   [ "MAX_SUBROUTINES", "CONST(MAX_SUBROUTINES), extra_ARB_shader_subroutine" ],
   [ "MAX_SUBROUTINE_UNIFORM_LOCATIONS", "CONST(MAX_SUBROUTINE_UNIFORM_LOCATIONS), extra_ARB_shader_subroutine" ],

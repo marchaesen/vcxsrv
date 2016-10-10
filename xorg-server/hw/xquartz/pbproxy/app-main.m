@@ -40,9 +40,6 @@ CFStringRef app_prefs_domain_cfstr;
 
 /* Stubs */
 char *display = NULL;
-BOOL serverRunning = YES;
-pthread_mutex_t serverRunningMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t serverRunningCond = PTHREAD_COND_INITIALIZER;
 
 static void
 signal_handler(int sig)

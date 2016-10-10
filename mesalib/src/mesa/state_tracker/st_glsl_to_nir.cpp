@@ -31,11 +31,11 @@
 #include "program/prog_statevars.h"
 #include "program/prog_parameter.h"
 #include "program/ir_to_mesa.h"
-#include "program/hash_table.h"
 #include "main/mtypes.h"
 #include "main/errors.h"
 #include "main/shaderapi.h"
 #include "main/uniforms.h"
+#include "util/string_to_uint_map.h"
 
 #include "st_context.h"
 #include "st_program.h"
@@ -359,7 +359,8 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
                                    &nir->uniforms, &nir->num_uniforms);
 
    NIR_PASS_V(nir, nir_lower_system_values);
-   NIR_PASS_V(nir, nir_lower_io, nir_var_all, st_glsl_type_size);
+   NIR_PASS_V(nir, nir_lower_io, nir_var_all, st_glsl_type_size,
+              (nir_lower_io_options)0);
    NIR_PASS_V(nir, nir_lower_samplers, shader_program);
 }
 
@@ -422,6 +423,7 @@ st_nir_get_mesa_program(struct gl_context *ctx,
 
    prog->SamplersUsed = shader->active_samplers;
    prog->ShadowSamplers = shader->shadow_samplers;
+   prog->ExternalSamplersUsed = gl_external_samplers(shader);
    _mesa_update_shader_textures_used(shader_program, prog);
 
    _mesa_reference_program(ctx, &shader->Program, prog);

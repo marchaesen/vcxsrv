@@ -45,6 +45,7 @@
 #include "compiler/shader_enums.h"
 #include "main/formats.h"       /* MESA_FORMAT_COUNT */
 #include "compiler/glsl/list.h"
+#include "util/bitscan.h"
 
 
 #ifdef __cplusplus
@@ -1642,40 +1643,40 @@ struct gl_transform_feedback_varying_info
  */
 struct gl_transform_feedback_output
 {
-   unsigned OutputRegister;
-   unsigned OutputBuffer;
-   unsigned NumComponents;
-   unsigned StreamId;
+   uint32_t OutputRegister;
+   uint32_t OutputBuffer;
+   uint32_t NumComponents;
+   uint32_t StreamId;
 
    /** offset (in DWORDs) of this output within the interleaved structure */
-   unsigned DstOffset;
+   uint32_t DstOffset;
 
    /**
     * Offset into the output register of the data to output.  For example,
     * if NumComponents is 2 and ComponentOffset is 1, then the data to
     * offset is in the y and z components of the output register.
     */
-   unsigned ComponentOffset;
+   uint32_t ComponentOffset;
 };
 
 
 struct gl_transform_feedback_buffer
 {
-   unsigned Binding;
+   uint32_t Binding;
 
-   unsigned NumVaryings;
+   uint32_t NumVaryings;
 
    /**
     * Total number of components stored in each buffer.  This may be used by
     * hardware back-ends to determine the correct stride when interleaving
     * multiple transform feedback outputs in the same buffer.
     */
-   unsigned Stride;
+   uint32_t Stride;
 
    /**
     * Which transform feedback stream this buffer binding is associated with.
     */
-   unsigned Stream;
+   uint32_t Stream;
 };
 
 
@@ -1929,6 +1930,7 @@ struct gl_program
    GLbitfield TexturesUsed[MAX_COMBINED_TEXTURE_IMAGE_UNITS];  /**< TEXTURE_x_BIT bitmask */
    GLbitfield SamplersUsed;   /**< Bitfield of which samplers are used */
    GLbitfield ShadowSamplers; /**< Texture units used for shadow sampling. */
+   GLbitfield ExternalSamplersUsed; /**< Texture units used for samplerExternalOES */
 
    GLboolean UsesGather; /**< Does this program use gather4 at all? */
 
@@ -2037,7 +2039,6 @@ struct gl_fragment_program
 {
    struct gl_program Base;   /**< base class */
    GLboolean UsesKill;          /**< shader uses KIL instruction */
-   GLboolean UsesDFdy;          /**< shader uses DDY instruction */
    GLboolean OriginUpperLeft;
    GLboolean PixelCenterInteger;
    enum gl_frag_depth_layout FragDepthLayout;
@@ -2077,6 +2078,11 @@ struct gl_compute_program
     * Size of shared variables accessed by the compute shader.
     */
    unsigned SharedSize;
+
+   /**
+    * Whether a variable work group size has been specified.
+    */
+   bool LocalSizeVariable;
 };
 
 
@@ -2339,7 +2345,8 @@ struct gl_shader_info
    GLbitfield BlendSupport;
 
    /**
-    * Compute shader state from ARB_compute_shader layout qualifiers.
+    * Compute shader state from ARB_compute_shader and
+    * ARB_compute_variable_group_size layout qualifiers.
     */
    struct {
       /**
@@ -2347,6 +2354,12 @@ struct gl_shader_info
        * it's not set in this shader.
        */
       unsigned LocalSize[3];
+
+      /**
+       * Whether a variable work group size has been specified as defined by
+       * ARB_compute_variable_group_size.
+       */
+      bool LocalSizeVariable;
    } Comp;
 };
 
@@ -2459,6 +2472,20 @@ struct gl_linked_shader
 
    struct gl_shader_info info;
 };
+
+static inline GLbitfield gl_external_samplers(struct gl_linked_shader *shader)
+{
+   GLbitfield external_samplers = 0;
+   GLbitfield mask = shader->active_samplers;
+
+   while (mask) {
+      int idx = u_bit_scan(&mask);
+      if (shader->SamplerTargets[idx] == TEXTURE_EXTERNAL_INDEX)
+         external_samplers |= (1 << idx);
+   }
+
+   return external_samplers;
+}
 
 /**
  * A GLSL shader object.
@@ -2811,6 +2838,11 @@ struct gl_shader_program
        * Size of shared variables accessed by the compute shader.
        */
       unsigned SharedSize;
+
+      /**
+       * Whether a variable work group size has been specified.
+       */
+      bool LocalSizeVariable;
    } Comp;
 
    /* post-link info: */
@@ -3768,6 +3800,10 @@ struct gl_constants
    GLuint MaxComputeWorkGroupInvocations;
    GLuint MaxComputeSharedMemorySize;
 
+   /** GL_ARB_compute_variable_group_size */
+   GLuint MaxComputeVariableGroupSize[3]; /* Array of x, y, z dimensions */
+   GLuint MaxComputeVariableGroupInvocations;
+
    /** GL_ARB_gpu_shader5 */
    GLfloat MinFragmentInterpolationOffset;
    GLfloat MaxFragmentInterpolationOffset;
@@ -3819,6 +3855,7 @@ struct gl_extensions
    GLboolean ARB_clip_control;
    GLboolean ARB_color_buffer_float;
    GLboolean ARB_compute_shader;
+   GLboolean ARB_compute_variable_group_size;
    GLboolean ARB_conditional_render_inverted;
    GLboolean ARB_conservative_depth;
    GLboolean ARB_copy_image;
@@ -3871,6 +3908,7 @@ struct gl_extensions
    GLboolean ARB_shader_subroutine;
    GLboolean ARB_shader_texture_image_samples;
    GLboolean ARB_shader_texture_lod;
+   GLboolean ARB_shader_viewport_layer_array;
    GLboolean ARB_shading_language_packing;
    GLboolean ARB_shading_language_420pack;
    GLboolean ARB_shadow;
@@ -3951,12 +3989,14 @@ struct gl_extensions
    GLboolean OES_standard_derivatives;
    GLboolean OES_texture_buffer;
    GLboolean OES_texture_cube_map_array;
+   GLboolean OES_viewport_array;
    /* vendor extensions */
    GLboolean AMD_performance_monitor;
    GLboolean AMD_pinned_memory;
    GLboolean AMD_seamless_cubemap_per_texture;
    GLboolean AMD_vertex_shader_layer;
    GLboolean AMD_vertex_shader_viewport_index;
+   GLboolean ANDROID_extension_pack_es31a;
    GLboolean APPLE_object_purgeable;
    GLboolean ATI_meminfo;
    GLboolean ATI_texture_compression_3dc;

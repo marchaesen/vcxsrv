@@ -39,8 +39,8 @@
 #include "main/uniforms.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
-#include "program/hash_table.h"
 #include "util/ralloc.h"
+#include "util/string_to_uint_map.h"
 
 /**********************************************************************/
 /*** Shader object functions                                        ***/
@@ -261,6 +261,8 @@ init_shader_program(struct gl_shader_program *prog)
 
    prog->Geom.UsesEndPrimitive = false;
    prog->Geom.UsesStreams = false;
+
+   prog->Comp.LocalSizeVariable = false;
 
    prog->TransformFeedback.BufferMode = GL_INTERLEAVED_ATTRIBS;
 

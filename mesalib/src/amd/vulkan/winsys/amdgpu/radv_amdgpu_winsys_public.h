@@ -1,5 +1,10 @@
 /*
- * Copyright © 2008 Intel Corporation
+ * Copyright © 2016 Red Hat.
+ * Copyright © 2016 Bas Nieuwenhuizen
+ *
+ * based on amdgpu winsys.
+ * Copyright © 2011 Marek Olšák <maraeo@gmail.com>
+ * Copyright © 2015 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -17,51 +22,13 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
  * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
-/**
- * \file hash_table.c
- * \brief Implementation of a generic, opaque hash table data type.
- *
- * \author Ian Romanick <ian.d.romanick@intel.com>
- */
+#ifndef RADV_AMDGPU_WINSYS_PUBLIC_H
+#define RADV_AMDGPU_WINSYS_PUBLIC_H
 
-#include "main/imports.h"
-#include "util/simple_list.h"
-#include "hash_table.h"
+struct radeon_winsys *radv_amdgpu_winsys_create(int fd);
 
-unsigned
-hash_table_string_hash(const void *key)
-{
-    const char *str = (const char *) key;
-    unsigned hash = 5381;
-
-
-    while (*str != '\0') {
-        hash = (hash * 33) + *str;
-        str++;
-    }
-
-    return hash;
-}
-
-bool hash_table_string_compare(const void *a, const void *b)
-{
-   return strcmp(a, b) == 0;
-}
-
-
-unsigned
-hash_table_pointer_hash(const void *key)
-{
-   return (unsigned)((uintptr_t) key / sizeof(void *));
-}
-
-
-bool
-hash_table_pointer_compare(const void *key1, const void *key2)
-{
-   return key1 == key2;
-}
+#endif /* RADV_AMDGPU_WINSYS_PUBLIC_H */

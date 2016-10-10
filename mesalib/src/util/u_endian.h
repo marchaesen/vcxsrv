@@ -27,7 +27,7 @@
 #ifndef U_ENDIAN_H
 #define U_ENDIAN_H
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) || defined(ANDROID)
 #include <endian.h>
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN

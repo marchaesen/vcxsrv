@@ -674,6 +674,8 @@ glsl_type::get_sampler_instance(enum glsl_sampler_dim dim,
             return error_type;
          else
             return samplerExternalOES_type;
+      case GLSL_SAMPLER_DIM_SUBPASS:
+         return error_type;
       }
    case GLSL_TYPE_INT:
       if (shadow)
@@ -700,6 +702,8 @@ glsl_type::get_sampler_instance(enum glsl_sampler_dim dim,
       case GLSL_SAMPLER_DIM_MS:
          return (array ? isampler2DMSArray_type : isampler2DMS_type);
       case GLSL_SAMPLER_DIM_EXTERNAL:
+         return error_type;
+      case GLSL_SAMPLER_DIM_SUBPASS:
          return error_type;
       }
    case GLSL_TYPE_UINT:
@@ -728,6 +732,8 @@ glsl_type::get_sampler_instance(enum glsl_sampler_dim dim,
          return (array ? usampler2DMSArray_type : usampler2DMS_type);
       case GLSL_SAMPLER_DIM_EXTERNAL:
          return error_type;
+      case GLSL_SAMPLER_DIM_SUBPASS:
+         return error_type;
       }
    default:
       return error_type;
@@ -740,6 +746,8 @@ const glsl_type *
 glsl_type::get_image_instance(enum glsl_sampler_dim dim,
                               bool array, glsl_base_type type)
 {
+   if (dim == GLSL_SAMPLER_DIM_SUBPASS)
+      return subpassInput_type;
    switch (type) {
    case GLSL_TYPE_FLOAT:
       switch (dim) {
@@ -764,6 +772,7 @@ glsl_type::get_image_instance(enum glsl_sampler_dim dim,
       case GLSL_SAMPLER_DIM_MS:
          return (array ? image2DMSArray_type : image2DMS_type);
       case GLSL_SAMPLER_DIM_EXTERNAL:
+      case GLSL_SAMPLER_DIM_SUBPASS:
          return error_type;
       }
    case GLSL_TYPE_INT:
@@ -789,6 +798,7 @@ glsl_type::get_image_instance(enum glsl_sampler_dim dim,
       case GLSL_SAMPLER_DIM_MS:
          return (array ? iimage2DMSArray_type : iimage2DMS_type);
       case GLSL_SAMPLER_DIM_EXTERNAL:
+      case GLSL_SAMPLER_DIM_SUBPASS:
          return error_type;
       }
    case GLSL_TYPE_UINT:
@@ -814,6 +824,7 @@ glsl_type::get_image_instance(enum glsl_sampler_dim dim,
       case GLSL_SAMPLER_DIM_MS:
          return (array ? uimage2DMSArray_type : uimage2DMS_type);
       case GLSL_SAMPLER_DIM_EXTERNAL:
+      case GLSL_SAMPLER_DIM_SUBPASS:
          return error_type;
       }
    default:
@@ -1975,6 +1986,7 @@ glsl_type::coordinate_components() const
    case GLSL_SAMPLER_DIM_RECT:
    case GLSL_SAMPLER_DIM_MS:
    case GLSL_SAMPLER_DIM_EXTERNAL:
+   case GLSL_SAMPLER_DIM_SUBPASS:
       size = 2;
       break;
    case GLSL_SAMPLER_DIM_3D:

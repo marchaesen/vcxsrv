@@ -58,6 +58,7 @@
 #include "state_tracker/st_texture.h"
 #include "state_tracker/st_gen_mipmap.h"
 #include "state_tracker/st_atom.h"
+#include "state_tracker/st_sampler_view.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -176,6 +177,8 @@ static void
 st_FreeTextureImageBuffer(struct gl_context *ctx,
                           struct gl_texture_image *texImage)
 {
+   struct st_context *st = st_context(ctx);
+   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    struct st_texture_image *stImage = st_texture_image(texImage);
 
    DBG("%s\n", __func__);
@@ -192,6 +195,11 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
       free(stImage->etc_data);
       stImage->etc_data = NULL;
    }
+
+   /* if the texture image is being deallocated, the structure of the
+    * texture is changing so we'll likely need a new sampler view.
+    */
+   st_texture_release_all_sampler_views(st, stObj);
 }
 
 bool
@@ -2778,6 +2786,7 @@ st_TextureView(struct gl_context *ctx,
                struct gl_texture_object *texObj,
                struct gl_texture_object *origTexObj)
 {
+   struct st_context *st = st_context(ctx);
    struct st_texture_object *orig = st_texture_object(origTexObj);
    struct st_texture_object *tex = st_texture_object(texObj);
    struct gl_texture_image *image = texObj->Image[0][0];
@@ -2804,6 +2813,11 @@ st_TextureView(struct gl_context *ctx,
       st_mesa_format_to_pipe_format(st_context(ctx), image->TexFormat);
 
    tex->lastLevel = numLevels - 1;
+
+   /* free texture sampler views.  They need to be recreated when we
+    * change the texture view parameters.
+    */
+   st_texture_release_all_sampler_views(st, tex);
 
    return GL_TRUE;
 }
@@ -2839,6 +2853,43 @@ st_ClearTexSubImage(struct gl_context *ctx,
    pipe->clear_texture(pipe, pt, level, &box, clearValue ? clearValue : zeros);
 }
 
+
+/**
+ * Called via the glTexParam*() function, but only when some texture object
+ * state has actually changed.
+ */
+static void
+st_TexParameter(struct gl_context *ctx,
+                struct gl_texture_object *texObj,
+                GLenum pname, const GLfloat *params)
+{
+   struct st_context *st = st_context(ctx);
+   struct st_texture_object *stObj = st_texture_object(texObj);
+
+   switch (pname) {
+   case GL_TEXTURE_BASE_LEVEL:
+   case GL_TEXTURE_MAX_LEVEL:
+   case GL_DEPTH_TEXTURE_MODE:
+   case GL_DEPTH_STENCIL_TEXTURE_MODE:
+   case GL_TEXTURE_SRGB_DECODE_EXT:
+   case GL_TEXTURE_SWIZZLE_R:
+   case GL_TEXTURE_SWIZZLE_G:
+   case GL_TEXTURE_SWIZZLE_B:
+   case GL_TEXTURE_SWIZZLE_A:
+   case GL_TEXTURE_SWIZZLE_RGBA:
+   case GL_TEXTURE_BUFFER_SIZE:
+   case GL_TEXTURE_BUFFER_OFFSET:
+      /* changing any of these texture parameters means we must create
+       * new sampler views.
+       */
+      st_texture_release_all_sampler_views(st, stObj);
+      break;
+   default:
+      ; /* nothing */
+   }
+}
+
+
 void
 st_init_texture_functions(struct dd_function_table *functions)
 {
@@ -2871,4 +2922,6 @@ st_init_texture_functions(struct dd_function_table *functions)
    functions->AllocTextureStorage = st_AllocTextureStorage;
    functions->TextureView = st_TextureView;
    functions->ClearTexSubImage = st_ClearTexSubImage;
+
+   functions->TexParameter = st_TexParameter;
 }

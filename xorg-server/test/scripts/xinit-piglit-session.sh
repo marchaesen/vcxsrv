@@ -40,8 +40,5 @@ PIGLIT_ARGS="$PIGLIT_ARGS -x xlistfontswithinfo@4"
 PIGLIT_ARGS="$PIGLIT_ARGS -x xloadqueryfont@1"
 PIGLIT_ARGS="$PIGLIT_ARGS -x xqueryfont@1"
 PIGLIT_ARGS="$PIGLIT_ARGS -x xqueryfont@2"
-#    "REPORT: Incorrect pixel on inside of area at point (0, 0): 0x0 != 0x1"
-PIGLIT_ARGS="$PIGLIT_ARGS -x xgetimage@7"
-PIGLIT_ARGS="$PIGLIT_ARGS -x xgetsubimage@7"
 
 exec ./piglit-run.py xts-render -f $PIGLITCONF $PIGLIT_ARGS $PIGLIT_RESULTS_DIR

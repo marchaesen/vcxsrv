@@ -43,7 +43,7 @@ struct dbus_core_info {
     OsTimerPtr timer;
     struct dbus_core_hook *hooks;
 };
-static struct dbus_core_info bus_info;
+static struct dbus_core_info bus_info = { .fd = -1 };
 
 static CARD32 reconnect_timer(OsTimerPtr timer, CARD32 time, void *arg);
 

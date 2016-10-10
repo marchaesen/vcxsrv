@@ -391,9 +391,8 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const wonly = (var->data.image.write_only) ? "writeonly " : "";
    fprintf(fp, "%s%s%s%s%s", coher, volat, restr, ronly, wonly);
 
-   glsl_print_type(var->type, fp);
-
-   fprintf(fp, " %s", get_var_name(var, state));
+   fprintf(fp, "%s %s", glsl_get_type_name(var->type),
+           get_var_name(var, state));
 
    if (var->data.mode == nir_var_shader_in ||
        var->data.mode == nir_var_shader_out ||
@@ -457,8 +456,8 @@ static void
 print_arg(nir_variable *var, print_state *state)
 {
    FILE *fp = state->fp;
-   glsl_print_type(var->type, fp);
-   fprintf(fp, " %s", get_var_name(var, state));
+   fprintf(fp, "%s %s", glsl_get_type_name(var->type),
+           get_var_name(var, state));
 }
 
 static void
@@ -1097,14 +1096,13 @@ print_function(nir_function *function, print_state *state)
          unreachable("Invalid parameter type");
       }
 
-      glsl_print_type(function->params[i].type, fp);
+      fprintf(fp, "%s", glsl_get_type_name(function->params[i].type));
    }
 
    if (function->return_type != NULL) {
       if (function->num_params != 0)
          fprintf(fp, ", ");
-      fprintf(fp, "returning ");
-      glsl_print_type(function->return_type, fp);
+      fprintf(fp, "returning %s", glsl_get_type_name(function->return_type));
    }
 
    fprintf(fp, "\n");

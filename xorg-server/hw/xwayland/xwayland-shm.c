@@ -40,7 +40,6 @@
 
 struct xwl_pixmap {
     struct wl_buffer *buffer;
-    int fd;
     void *data;
     size_t size;
 };
@@ -184,9 +183,13 @@ PixmapPtr
 xwl_shm_create_pixmap(ScreenPtr screen,
                       int width, int height, int depth, unsigned int hint)
 {
-    PixmapPtr pixmap;
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_pixmap *xwl_pixmap;
+    struct wl_shm_pool *pool;
+    PixmapPtr pixmap;
     size_t size, stride;
+    uint32_t format;
+    int fd;
 
     if (hint == CREATE_PIXMAP_USAGE_GLYPH_PICTURE ||
         (width == 0 && height == 0) || depth < 15)
@@ -204,12 +207,12 @@ xwl_shm_create_pixmap(ScreenPtr screen,
     size = stride * height;
     xwl_pixmap->buffer = NULL;
     xwl_pixmap->size = size;
-    xwl_pixmap->fd = os_create_anonymous_file(size);
-    if (xwl_pixmap->fd < 0)
+    fd = os_create_anonymous_file(size);
+    if (fd < 0)
         goto err_free_xwl_pixmap;
 
     xwl_pixmap->data = mmap(NULL, size, PROT_READ | PROT_WRITE,
-                                  MAP_SHARED, xwl_pixmap->fd, 0);
+                                  MAP_SHARED, fd, 0);
     if (xwl_pixmap->data == MAP_FAILED)
         goto err_close_fd;
 
@@ -218,6 +221,15 @@ xwl_shm_create_pixmap(ScreenPtr screen,
                                         stride, xwl_pixmap->data))
         goto err_munmap;
 
+    format = shm_format_for_depth(pixmap->drawable.depth);
+    pool = wl_shm_create_pool(xwl_screen->shm, fd, xwl_pixmap->size);
+    xwl_pixmap->buffer = wl_shm_pool_create_buffer(pool, 0,
+                                                   pixmap->drawable.width,
+                                                   pixmap->drawable.height,
+                                                   pixmap->devKind, format);
+    wl_shm_pool_destroy(pool);
+    close(fd);
+
     xwl_pixmap_set_private(pixmap, xwl_pixmap);
 
     return pixmap;
@@ -225,7 +237,7 @@ xwl_shm_create_pixmap(ScreenPtr screen,
  err_munmap:
     munmap(xwl_pixmap->data, size);
  err_close_fd:
-    close(xwl_pixmap->fd);
+    close(fd);
  err_free_xwl_pixmap:
     free(xwl_pixmap);
  err_destroy_pixmap:
@@ -243,7 +255,6 @@ xwl_shm_destroy_pixmap(PixmapPtr pixmap)
         if (xwl_pixmap->buffer)
             wl_buffer_destroy(xwl_pixmap->buffer);
         munmap(xwl_pixmap->data, xwl_pixmap->size);
-        close(xwl_pixmap->fd);
         free(xwl_pixmap);
     }
 
@@ -253,26 +264,7 @@ xwl_shm_destroy_pixmap(PixmapPtr pixmap)
 struct wl_buffer *
 xwl_shm_pixmap_get_wl_buffer(PixmapPtr pixmap)
 {
-    struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
-    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
-    struct wl_shm_pool *pool;
-    uint32_t format;
-
-    if (xwl_pixmap->buffer)
-        return xwl_pixmap->buffer;
-
-    pool = wl_shm_create_pool(xwl_screen->shm,
-                              xwl_pixmap->fd, xwl_pixmap->size);
-
-    format = shm_format_for_depth(pixmap->drawable.depth);
-    xwl_pixmap->buffer = wl_shm_pool_create_buffer(pool, 0,
-                                                   pixmap->drawable.width,
-                                                   pixmap->drawable.height,
-                                                   pixmap->devKind, format);
-
-    wl_shm_pool_destroy(pool);
-
-    return xwl_pixmap->buffer;
+    return xwl_pixmap_get(pixmap)->buffer;
 }
 
 Bool

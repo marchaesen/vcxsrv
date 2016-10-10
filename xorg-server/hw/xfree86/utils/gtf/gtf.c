@@ -692,6 +692,8 @@ main(int argc, char *argv[])
     if (o->fbmode)
         print_fb_mode(m);
 
+    free(m);
+
     return 0;
 
 }

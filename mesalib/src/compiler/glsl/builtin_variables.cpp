@@ -876,7 +876,8 @@ builtin_variable_generator::generate_constants()
    }
 
    if (state->is_version(410, 0) ||
-       state->ARB_viewport_array_enable)
+       state->ARB_viewport_array_enable ||
+       state->OES_viewport_array_enable)
       add_const("gl_MaxViewports", state->Const.MaxViewports);
 
    if (state->has_tessellation_shader()) {
@@ -1000,11 +1001,13 @@ builtin_variable_generator::generate_vs_special_vars()
       add_system_value(SYSTEM_VALUE_BASE_INSTANCE, int_t, "gl_BaseInstanceARB");
       add_system_value(SYSTEM_VALUE_DRAW_ID, int_t, "gl_DrawIDARB");
    }
-   if (state->AMD_vertex_shader_layer_enable) {
+   if (state->AMD_vertex_shader_layer_enable ||
+       state->ARB_shader_viewport_layer_array_enable) {
       var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
-   if (state->AMD_vertex_shader_viewport_index_enable) {
+   if (state->AMD_vertex_shader_viewport_index_enable ||
+       state->ARB_shader_viewport_layer_array_enable) {
       var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
@@ -1066,6 +1069,8 @@ builtin_variable_generator::generate_tcs_special_vars()
 void
 builtin_variable_generator::generate_tes_special_vars()
 {
+   ir_variable *var;
+
    add_system_value(SYSTEM_VALUE_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
    add_system_value(SYSTEM_VALUE_VERTICES_IN, int_t, "gl_PatchVerticesIn");
    add_system_value(SYSTEM_VALUE_TESS_COORD, vec3_t, "gl_TessCoord");
@@ -1073,6 +1078,12 @@ builtin_variable_generator::generate_tes_special_vars()
                     "gl_TessLevelOuter");
    add_system_value(SYSTEM_VALUE_TESS_LEVEL_INNER, array(float_t, 2),
                     "gl_TessLevelInner");
+   if (state->ARB_shader_viewport_layer_array_enable) {
+      var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
+      var->data.interpolation = INTERP_MODE_FLAT;
+      var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+      var->data.interpolation = INTERP_MODE_FLAT;
+   }
 }
 
 
@@ -1086,7 +1097,8 @@ builtin_variable_generator::generate_gs_special_vars()
 
    var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
    var->data.interpolation = INTERP_MODE_FLAT;
-   if (state->is_version(410, 0) || state->ARB_viewport_array_enable) {
+   if (state->is_version(410, 0) || state->ARB_viewport_array_enable ||
+       state->OES_viewport_array_enable) {
       var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
@@ -1216,7 +1228,8 @@ builtin_variable_generator::generate_fs_special_vars()
    }
 
    if (state->is_version(430, 0) ||
-       state->ARB_fragment_layer_viewport_enable) {
+       state->ARB_fragment_layer_viewport_enable ||
+       state->OES_viewport_array_enable) {
       var = add_input(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
@@ -1236,6 +1249,12 @@ builtin_variable_generator::generate_cs_special_vars()
                     "gl_LocalInvocationID");
    add_system_value(SYSTEM_VALUE_WORK_GROUP_ID, uvec3_t, "gl_WorkGroupID");
    add_system_value(SYSTEM_VALUE_NUM_WORK_GROUPS, uvec3_t, "gl_NumWorkGroups");
+
+   if (state->ARB_compute_variable_group_size_enable) {
+      add_system_value(SYSTEM_VALUE_LOCAL_GROUP_SIZE,
+                       uvec3_t, "gl_LocalGroupSizeARB");
+   }
+
    if (state->ctx->Const.LowerCsDerivedVariables) {
       add_variable("gl_GlobalInvocationID", uvec3_t, ir_var_auto, 0);
       add_variable("gl_LocalInvocationIndex", uint_t, ir_var_auto, 0);

@@ -961,6 +961,16 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
 	 return ir->operands[2];
       break;
 
+   /* Remove interpolateAt* instructions for demoted inputs. They are
+    * assigned a constant expression to facilitate this.
+    */
+   case ir_unop_interpolate_at_centroid:
+   case ir_binop_interpolate_at_offset:
+   case ir_binop_interpolate_at_sample:
+      if (op_const[0])
+         return ir->operands[0];
+      break;
+
    default:
       break;
    }

@@ -38,38 +38,11 @@
 #include "nir.h"
 #include "nir_builder.h"
 
-static int
-tex_instr_find_src(nir_tex_instr *tex, nir_tex_src_type src_type)
-{
-   for (unsigned i = 0; i < tex->num_srcs; i++) {
-      if (tex->src[i].src_type == src_type)
-         return i;
-   }
-
-   return -1;
-}
-
-static void
-tex_instr_remove_src(nir_tex_instr *tex, unsigned src_idx)
-{
-   assert(src_idx < tex->num_srcs);
-
-   /* First rewrite the source to NIR_SRC_INIT */
-   nir_instr_rewrite_src(&tex->instr, &tex->src[src_idx].src, NIR_SRC_INIT);
-
-   /* Now, move all of the other sources down */
-   for (unsigned i = src_idx + 1; i < tex->num_srcs; i++) {
-      tex->src[i-1].src_type = tex->src[i].src_type;
-      nir_instr_move_src(&tex->instr, &tex->src[i-1].src, &tex->src[i].src);
-   }
-   tex->num_srcs--;
-}
-
 static void
 project_src(nir_builder *b, nir_tex_instr *tex)
 {
    /* Find the projector in the srcs list, if present. */
-   int proj_index = tex_instr_find_src(tex, nir_tex_src_projector);
+   int proj_index = nir_tex_instr_src_index(tex, nir_tex_src_projector);
    if (proj_index < 0)
       return;
 
@@ -125,17 +98,17 @@ project_src(nir_builder *b, nir_tex_instr *tex)
                             nir_src_for_ssa(projected));
    }
 
-   tex_instr_remove_src(tex, proj_index);
+   nir_tex_instr_remove_src(tex, proj_index);
 }
 
 static bool
 lower_offset(nir_builder *b, nir_tex_instr *tex)
 {
-   int offset_index = tex_instr_find_src(tex, nir_tex_src_offset);
+   int offset_index = nir_tex_instr_src_index(tex, nir_tex_src_offset);
    if (offset_index < 0)
       return false;
 
-   int coord_index = tex_instr_find_src(tex, nir_tex_src_coord);
+   int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
    assert(coord_index >= 0);
 
    assert(tex->src[offset_index].src.is_ssa);
@@ -170,7 +143,7 @@ lower_offset(nir_builder *b, nir_tex_instr *tex)
    nir_instr_rewrite_src(&tex->instr, &tex->src[coord_index].src,
                          nir_src_for_ssa(offset_coord));
 
-   tex_instr_remove_src(tex, offset_index);
+   nir_tex_instr_remove_src(tex, offset_index);
 
    return true;
 }
@@ -238,7 +211,7 @@ sample_plane(nir_builder *b, nir_tex_instr *tex, int plane)
    plane_tex->src[1].src = nir_src_for_ssa(nir_imm_int(b, plane));
    plane_tex->src[1].src_type = nir_tex_src_plane;
    plane_tex->op = nir_texop_tex;
-   plane_tex->sampler_dim = 2;
+   plane_tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    plane_tex->dest_type = nir_type_float;
    plane_tex->coord_components = 2;
 

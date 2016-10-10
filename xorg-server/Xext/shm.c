@@ -991,7 +991,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
                               RT_PIXMAP, pMap, RT_NONE, NULL, DixCreateAccess);
             if (result != Success) {
                 pDraw->pScreen->DestroyPixmap(pMap);
-                return result;
+                break;
             }
             dixSetPrivate(&pMap->devPrivates, shmPixmapPrivateKey, shmdesc);
             shmdesc->refcnt++;
@@ -1008,7 +1008,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
         }
     }
 
-    if (result == BadAlloc) {
+    if (result != Success) {
         while (j--)
             FreeResource(newPix->info[j].id, RT_NONE);
         free(newPix);
@@ -1213,7 +1213,8 @@ shm_tmpfile(void)
 	if (fd < 0)
 		return -1;
 	unlink(template);
-	if (fcntl(fd, F_GETFD, &flags) >= 0) {
+	flags = fcntl(fd, F_GETFD);
+	if (flags != -1) {
 		flags |= FD_CLOEXEC;
 		(void) fcntl(fd, F_SETFD, &flags);
 	}

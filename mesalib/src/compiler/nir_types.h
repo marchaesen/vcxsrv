@@ -40,8 +40,7 @@ extern "C" {
 struct glsl_type;
 #endif
 
-void glsl_print_type(const struct glsl_type *type, FILE *fp);
-void glsl_print_struct(const struct glsl_type *type, FILE *fp);
+const char *glsl_get_type_name(const struct glsl_type *type);
 
 const struct glsl_type *glsl_get_struct_field(const struct glsl_type *type,
                                               unsigned index);

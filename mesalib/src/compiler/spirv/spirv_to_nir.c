@@ -828,6 +828,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       case SpvDimCube:     dim = GLSL_SAMPLER_DIM_CUBE;  break;
       case SpvDimRect:     dim = GLSL_SAMPLER_DIM_RECT;  break;
       case SpvDimBuffer:   dim = GLSL_SAMPLER_DIM_BUF;   break;
+      case SpvDimSubpassData: dim = GLSL_SAMPLER_DIM_SUBPASS; break;
       default:
          unreachable("Invalid SPIR-V Sampler dimension");
       }
@@ -854,7 +855,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          val->type->type = glsl_sampler_type(dim, is_shadow, is_array,
                                              glsl_get_base_type(sampled_type));
       } else if (sampled == 2) {
-         assert(format);
+         assert((dim == GLSL_SAMPLER_DIM_SUBPASS) || format);
          assert(!is_shadow);
          val->type->type = glsl_image_type(dim, is_array,
                                            glsl_get_base_type(sampled_type));
@@ -1670,6 +1671,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicIDecrement:
    case SpvOpAtomicIAdd:
    case SpvOpAtomicISub:
+   case SpvOpAtomicLoad:
    case SpvOpAtomicSMin:
    case SpvOpAtomicUMin:
    case SpvOpAtomicSMax:
@@ -1680,17 +1682,9 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       image = *vtn_value(b, w[3], vtn_value_type_image_pointer)->image;
       break;
 
-   case SpvOpAtomicLoad: {
-      image.image =
-         vtn_value(b, w[3], vtn_value_type_access_chain)->access_chain;
+   case SpvOpAtomicStore:
+      image = *vtn_value(b, w[1], vtn_value_type_image_pointer)->image;
       break;
-   }
-
-   case SpvOpAtomicStore: {
-      image.image =
-         vtn_value(b, w[1], vtn_value_type_access_chain)->access_chain;
-      break;
-   }
 
    case SpvOpImageQuerySize:
       image.image =
@@ -2448,6 +2442,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityDerivativeControl:
       case SpvCapabilityInterpolationFunction:
       case SpvCapabilityMultiViewport:
+      case SpvCapabilitySampleRateShading:
          break;
 
       case SpvCapabilityClipDistance:
@@ -2467,7 +2462,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityImageGatherExtended:
       case SpvCapabilityStorageImageMultisample:
       case SpvCapabilityImageCubeArray:
-      case SpvCapabilitySampleRateShading:
       case SpvCapabilityInt8:
       case SpvCapabilityInputAttachment:
       case SpvCapabilitySparseResidency:

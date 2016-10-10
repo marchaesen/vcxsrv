@@ -95,6 +95,15 @@ QuartzInitServer(int argc, char **argv, char **envp)
     if (!create_thread(server_thread, args)) {
         FatalError("can't create secondary thread\n");
     }
+
+    /* Block signals on the AppKit thread that the X11 expects to handle on its thread */
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGALRM);
+#ifdef BUSFAULT
+    sigaddset(&set, SIGBUS);
+#endif
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
 }
 
 int

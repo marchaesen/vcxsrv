@@ -27,6 +27,8 @@ MESA_UTIL_FILES :=	\
 	simple_list.h \
 	slab.c \
 	slab.h \
+	string_to_uint_map.h \
+	string_to_uint_map.cpp \
 	strndup.c \
 	strndup.h \
 	strtod.c \

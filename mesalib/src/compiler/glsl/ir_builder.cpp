@@ -417,6 +417,12 @@ bit_or(operand a, operand b)
 }
 
 ir_expression*
+bit_xor(operand a, operand b)
+{
+   return expr(ir_binop_bit_xor, a, b);
+}
+
+ir_expression*
 lshift(operand a, operand b)
 {
    return expr(ir_binop_lshift, a, b);

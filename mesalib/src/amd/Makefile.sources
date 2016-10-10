@@ -2,6 +2,7 @@ COMMON_HEADER_FILES = \
 	common/sid.h \
 	common/r600d_common.h \
 	common/amd_family.h \
+	common/amd_kernel_code_t.h \
 	common/amdgpu_id.h
 
 ADDRLIB_FILES = \

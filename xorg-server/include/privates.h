@@ -252,6 +252,9 @@ dixFreeScreenSpecificPrivates(ScreenPtr pScreen);
 extern void
 dixInitScreenSpecificPrivates(ScreenPtr pScreen);
 
+/* is this private created - so hotplug can avoid crashing */
+Bool dixPrivatesCreated(DevPrivateType type);
+
 extern _X_EXPORT void *
 _dixAllocateScreenObjectWithPrivates(ScreenPtr pScreen,
                                      unsigned size,

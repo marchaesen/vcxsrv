@@ -234,7 +234,7 @@ WaitForSomething(Bool are_ready)
         } else
             are_ready = clients_are_ready();
 
-        if (*checkForInput[0] != *checkForInput[1])
+        if (InputCheckPending())
             return FALSE;
 
         if (are_ready) {

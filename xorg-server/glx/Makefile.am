@@ -1,8 +1,4 @@
-if AIGLX_DRI_LOADER
-GLXDRI_LIBRARY = libglxdri.la
-endif
-
-noinst_LTLIBRARIES = libglx.la $(GLXDRI_LIBRARY)
+noinst_LTLIBRARIES = libglx.la libglxdri.la
 
 AM_CFLAGS = \
 	@DIX_CFLAGS@ \
@@ -23,9 +19,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/mi \
 	-I$(top_srcdir)/present
 
-if DRI2_AIGLX
 AM_CPPFLAGS += -I$(top_srcdir)/hw/xfree86/dri2
-endif
 
 indirect_sources =				\
 	indirect_dispatch.c			\
@@ -39,10 +33,7 @@ indirect_sources =				\
 	indirect_table.c
 
 libglxdri_la_SOURCES =
-
-if DRI2_AIGLX
 libglxdri_la_SOURCES += glxdri2.c
-endif
 
 libglxdri_la_LIBADD = $(DLOPEN_LIBS)
 

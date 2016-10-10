@@ -80,7 +80,8 @@ enum glsl_sampler_dim {
    GLSL_SAMPLER_DIM_RECT,
    GLSL_SAMPLER_DIM_BUF,
    GLSL_SAMPLER_DIM_EXTERNAL,
-   GLSL_SAMPLER_DIM_MS
+   GLSL_SAMPLER_DIM_MS,
+   GLSL_SAMPLER_DIM_SUBPASS, /* for vulkan input attachments */
 };
 
 enum glsl_interface_packing {
@@ -127,7 +128,7 @@ struct glsl_type {
    GLenum gl_type;
    glsl_base_type base_type;
 
-   unsigned sampler_dimensionality:3; /**< \see glsl_sampler_dim */
+   unsigned sampler_dimensionality:4; /**< \see glsl_sampler_dim */
    unsigned sampler_shadow:1;
    unsigned sampler_array:1;
    unsigned sampled_type:2;    /**< Type of data returned using this

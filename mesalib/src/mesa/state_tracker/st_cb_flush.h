@@ -48,6 +48,9 @@ st_flush(struct st_context *st,
 extern void
 st_finish(struct st_context *st);
 
+extern void
+st_install_device_reset_callback(struct st_context *st);
+
 
 #endif /* ST_CB_FLUSH_H */
 

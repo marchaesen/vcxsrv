@@ -155,6 +155,14 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
       progress |= constant_fold_deref(&instr->instr, instr->variables[i]);
    }
 
+   if (instr->intrinsic == nir_intrinsic_discard_if) {
+      nir_const_value *src_val = nir_src_as_const_value(instr->src[0]);
+      if (src_val && src_val->u32[0] == 0) {
+         nir_instr_remove(&instr->instr);
+         progress = true;
+      }
+   }
+
    return progress;
 }
 

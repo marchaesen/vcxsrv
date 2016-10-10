@@ -137,8 +137,6 @@ void ms_drm_abort_seq(ScrnInfoPtr scrn, uint32_t seq);
 Bool ms_crtc_on(xf86CrtcPtr crtc);
 
 xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
-xf86CrtcPtr ms_covering_crtc(ScrnInfoPtr scrn, BoxPtr box,
-                             xf86CrtcPtr desired, BoxPtr crtc_box_ret);
 
 int ms_get_crtc_ust_msc(xf86CrtcPtr crtc, CARD64 *ust, CARD64 *msc);
 
@@ -163,8 +161,6 @@ typedef void (*ms_pageflip_handler_proc)(modesettingPtr ms,
 
 typedef void (*ms_pageflip_abort_proc)(modesettingPtr ms, void *data);
 
-int ms_flush_drm_events(ScreenPtr screen);
-
 Bool ms_do_pageflip(ScreenPtr screen,
                     PixmapPtr new_front,
                     void *event,
@@ -174,3 +170,5 @@ Bool ms_do_pageflip(ScreenPtr screen,
                     ms_pageflip_abort_proc pageflip_abort);
 
 #endif
+
+int ms_flush_drm_events(ScreenPtr screen);

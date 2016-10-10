@@ -18,6 +18,8 @@ EXT(AMD_shader_trinary_minmax               , dummy_true                        
 EXT(AMD_vertex_shader_layer                 , AMD_vertex_shader_layer                ,  x , GLC,  x ,  x , 2012)
 EXT(AMD_vertex_shader_viewport_index        , AMD_vertex_shader_viewport_index       ,  x , GLC,  x ,  x , 2012)
 
+EXT(ANDROID_extension_pack_es31a            , ANDROID_extension_pack_es31a           ,  x ,  x ,  x ,  31, 2014)
+
 EXT(ANGLE_texture_compression_dxt3          , ANGLE_texture_compression_dxt          , GLL, GLC, ES1, ES2, 2011)
 EXT(ANGLE_texture_compression_dxt5          , ANGLE_texture_compression_dxt          , GLL, GLC, ES1, ES2, 2011)
 
@@ -40,6 +42,7 @@ EXT(ARB_clip_control                        , ARB_clip_control                  
 EXT(ARB_color_buffer_float                  , ARB_color_buffer_float                 , GLL, GLC,  x ,  x , 2004)
 EXT(ARB_compressed_texture_pixel_storage    , dummy_true                             , GLL, GLC,  x ,  x , 2011)
 EXT(ARB_compute_shader                      , ARB_compute_shader                     , GLL, GLC,  x ,  x , 2012)
+EXT(ARB_compute_variable_group_size         , ARB_compute_variable_group_size        , GLL, GLC,  x ,  x , 2013)
 EXT(ARB_conditional_render_inverted         , ARB_conditional_render_inverted        , GLL, GLC,  x ,  x , 2014)
 EXT(ARB_conservative_depth                  , ARB_conservative_depth                 , GLL, GLC,  x ,  x , 2011)
 EXT(ARB_copy_buffer                         , dummy_true                             , GLL, GLC,  x ,  x , 2008)
@@ -115,6 +118,7 @@ EXT(ARB_shader_storage_buffer_object        , ARB_shader_storage_buffer_object  
 EXT(ARB_shader_subroutine                   , ARB_shader_subroutine                  ,  x , GLC,  x ,  x , 2010)
 EXT(ARB_shader_texture_image_samples        , ARB_shader_texture_image_samples       , GLL, GLC,  x ,  x , 2014)
 EXT(ARB_shader_texture_lod                  , ARB_shader_texture_lod                 , GLL, GLC,  x ,  x , 2009)
+EXT(ARB_shader_viewport_layer_array         , ARB_shader_viewport_layer_array        ,  x , GLC,  x ,  x , 2015)
 EXT(ARB_shading_language_100                , dummy_true                             , GLL,  x ,  x ,  x , 2003)
 EXT(ARB_shading_language_420pack            , ARB_shading_language_420pack           , GLL, GLC,  x ,  x , 2011)
 EXT(ARB_shading_language_packing            , ARB_shading_language_packing           , GLL, GLC,  x ,  x , 2011)
@@ -238,8 +242,8 @@ EXT(EXT_shadow_funcs                        , ARB_shadow                        
 EXT(EXT_stencil_two_side                    , EXT_stencil_two_side                   , GLL,  x ,  x ,  x , 2001)
 EXT(EXT_stencil_wrap                        , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 EXT(EXT_subtexture                          , dummy_true                             , GLL,  x ,  x ,  x , 1995)
-EXT(EXT_tessellation_point_size             , dummy_false                            ,  x ,  x ,  x ,  31, 2013)
-EXT(EXT_tessellation_shader                 , dummy_false                            ,  x ,  x ,  x ,  31, 2013)
+EXT(EXT_tessellation_point_size             , ARB_tessellation_shader                ,  x ,  x ,  x ,  31, 2013)
+EXT(EXT_tessellation_shader                 , ARB_tessellation_shader                ,  x ,  x ,  x ,  31, 2013)
 EXT(EXT_texture                             , dummy_true                             , GLL,  x ,  x ,  x , 1996)
 EXT(EXT_texture3D                           , dummy_true                             , GLL,  x ,  x ,  x , 1996)
 EXT(EXT_texture_array                       , EXT_texture_array                      , GLL, GLC,  x ,  x , 2006)
@@ -369,8 +373,8 @@ EXT(OES_stencil4                            , dummy_false                       
 EXT(OES_stencil8                            , dummy_true                             ,  x ,  x , ES1, ES2, 2005)
 EXT(OES_stencil_wrap                        , dummy_true                             ,  x ,  x , ES1,  x , 2002)
 EXT(OES_surfaceless_context                 , dummy_true                             ,  x ,  x , ES1, ES2, 2012)
-EXT(OES_tessellation_point_size             , dummy_false                            ,  x ,  x ,  x ,  31, 2014)
-EXT(OES_tessellation_shader                 , dummy_false                            ,  x ,  x ,  x ,  31, 2014)
+EXT(OES_tessellation_point_size             , ARB_tessellation_shader                ,  x ,  x ,  x ,  31, 2014)
+EXT(OES_tessellation_shader                 , ARB_tessellation_shader                ,  x ,  x ,  x ,  31, 2014)
 EXT(OES_texture_3D                          , dummy_true                             ,  x ,  x ,  x , ES2, 2005)
 EXT(OES_texture_border_clamp                , ARB_texture_border_clamp               ,  x ,  x ,  x , ES2, 2014)
 EXT(OES_texture_buffer                      , OES_texture_buffer                     ,  x ,  x ,  x ,  31, 2014)
@@ -387,6 +391,7 @@ EXT(OES_texture_npot                        , ARB_texture_non_power_of_two      
 EXT(OES_texture_stencil8                    , ARB_texture_stencil8                   ,  x ,  x ,  x ,  30, 2014)
 EXT(OES_texture_storage_multisample_2d_array, ARB_texture_multisample                ,  x ,  x ,  x ,  31, 2014)
 EXT(OES_vertex_array_object                 , dummy_true                             ,  x ,  x , ES1, ES2, 2010)
+EXT(OES_viewport_array                      , OES_viewport_array                     ,  x ,  x ,  x ,  31, 2010)
 
 EXT(S3_s3tc                                 , ANGLE_texture_compression_dxt          , GLL, GLC,  x ,  x , 1999)
 

@@ -46,15 +46,32 @@
 #include "ir_basic_block.h"
 #include "ir_optimization.h"
 #include "compiler/glsl_types.h"
+#include "util/hash_table.h"
 
 static bool debug = false;
 
 namespace {
 
+class acp_entry;
+
+/* Class that refers to acp_entry in another exec_list. Used
+ * when making removals based on rhs.
+ */
+class acp_ref : public exec_node
+{
+public:
+   acp_ref(acp_entry *e)
+   {
+      entry = e;
+   }
+   acp_entry *entry;
+};
+
 class acp_entry : public exec_node
 {
 public:
    acp_entry(ir_variable *lhs, ir_variable *rhs, int write_mask, int swizzle[4])
+      : rhs_node(this)
    {
       this->lhs = lhs;
       this->rhs = rhs;
@@ -62,18 +79,11 @@ public:
       memcpy(this->swizzle, swizzle, sizeof(this->swizzle));
    }
 
-   acp_entry(acp_entry *a)
-   {
-      this->lhs = a->lhs;
-      this->rhs = a->rhs;
-      this->write_mask = a->write_mask;
-      memcpy(this->swizzle, a->swizzle, sizeof(this->swizzle));
-   }
-
    ir_variable *lhs;
    ir_variable *rhs;
    unsigned int write_mask;
    int swizzle[4];
+   acp_ref rhs_node;
 };
 
 
@@ -98,12 +108,40 @@ public:
       this->killed_all = false;
       this->mem_ctx = ralloc_context(NULL);
       this->shader_mem_ctx = NULL;
-      this->acp = new(mem_ctx) exec_list;
       this->kills = new(mem_ctx) exec_list;
+
+      create_acp();
    }
    ~ir_copy_propagation_elements_visitor()
    {
       ralloc_free(mem_ctx);
+   }
+
+   void create_acp()
+   {
+      lhs_ht = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                       _mesa_key_pointer_equal);
+      rhs_ht = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                       _mesa_key_pointer_equal);
+   }
+
+   void destroy_acp()
+   {
+      _mesa_hash_table_destroy(lhs_ht, NULL);
+      _mesa_hash_table_destroy(rhs_ht, NULL);
+   }
+
+   void populate_acp(hash_table *lhs, hash_table *rhs)
+   {
+      struct hash_entry *entry;
+
+      hash_table_foreach(lhs, entry) {
+         _mesa_hash_table_insert(lhs_ht, entry->key, entry->data);
+      }
+
+      hash_table_foreach(rhs, entry) {
+         _mesa_hash_table_insert(rhs_ht, entry->key, entry->data);
+      }
    }
 
    void handle_loop(ir_loop *, bool keep_acp);
@@ -120,8 +158,10 @@ public:
    void kill(kill_entry *k);
    void handle_if_block(exec_list *instructions);
 
-   /** List of acp_entry: The available copies to propagate */
-   exec_list *acp;
+   /** Hash of acp_entry: The available copies to propagate */
+   hash_table *lhs_ht;
+   hash_table *rhs_ht;
+
    /**
     * List of kill_entry: The variables whose values were killed in this
     * block.
@@ -147,22 +187,28 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_function_signature *ir)
     * block.  Any instructions at global scope will be shuffled into
     * main() at link time, so they're irrelevant to us.
     */
-   exec_list *orig_acp = this->acp;
    exec_list *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
 
-   this->acp = new(mem_ctx) exec_list;
+   hash_table *orig_lhs_ht = lhs_ht;
+   hash_table *orig_rhs_ht = rhs_ht;
+
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
 
+   create_acp();
+
    visit_list_elements(this, &ir->body);
 
-   ralloc_free(this->acp);
    ralloc_free(this->kills);
 
+   destroy_acp();
+
    this->kills = orig_kills;
-   this->acp = orig_acp;
    this->killed_all = orig_killed_all;
+
+   lhs_ht = orig_lhs_ht;
+   rhs_ht = orig_rhs_ht;
 
    return visit_continue_with_parent;
 }
@@ -249,17 +295,19 @@ ir_copy_propagation_elements_visitor::handle_rvalue(ir_rvalue **ir)
    /* Try to find ACP entries covering swizzle_chan[], hoping they're
     * the same source variable.
     */
-   foreach_in_list(acp_entry, entry, this->acp) {
-      if (var == entry->lhs) {
-	 for (int c = 0; c < chans; c++) {
-	    if (entry->write_mask & (1 << swizzle_chan[c])) {
-	       source[c] = entry->rhs;
-	       source_chan[c] = entry->swizzle[swizzle_chan[c]];
+   hash_entry *ht_entry = _mesa_hash_table_search(lhs_ht, var);
+   if (ht_entry) {
+      exec_list *ht_list = (exec_list *) ht_entry->data;
+      foreach_in_list(acp_entry, entry, ht_list) {
+         for (int c = 0; c < chans; c++) {
+            if (entry->write_mask & (1 << swizzle_chan[c])) {
+               source[c] = entry->rhs;
+               source_chan[c] = entry->swizzle[swizzle_chan[c]];
 
                if (source_chan[c] != swizzle_chan[c])
                   noop_swizzle = false;
-	    }
-	 }
+            }
+         }
       }
    }
 
@@ -319,7 +367,9 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_call *ir)
    /* Since we're unlinked, we don't (necessarily) know the side effects of
     * this call.  So kill all copies.
     */
-   acp->make_empty();
+   _mesa_hash_table_clear(lhs_ht, NULL);
+   _mesa_hash_table_clear(rhs_ht, NULL);
+
    this->killed_all = true;
 
    return visit_continue_with_parent;
@@ -328,30 +378,35 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_call *ir)
 void
 ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions)
 {
-   exec_list *orig_acp = this->acp;
    exec_list *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
 
-   this->acp = new(mem_ctx) exec_list;
+   hash_table *orig_lhs_ht = lhs_ht;
+   hash_table *orig_rhs_ht = rhs_ht;
+
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
 
+   create_acp();
+
    /* Populate the initial acp with a copy of the original */
-   foreach_in_list(acp_entry, a, orig_acp) {
-      this->acp->push_tail(new(this->acp) acp_entry(a));
-   }
+   populate_acp(orig_lhs_ht, orig_rhs_ht);
 
    visit_list_elements(this, instructions);
 
    if (this->killed_all) {
-      orig_acp->make_empty();
+      _mesa_hash_table_clear(orig_lhs_ht, NULL);
+      _mesa_hash_table_clear(orig_rhs_ht, NULL);
    }
 
    exec_list *new_kills = this->kills;
    this->kills = orig_kills;
-   ralloc_free(this->acp);
-   this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
+
+   destroy_acp();
+
+   lhs_ht = orig_lhs_ht;
+   rhs_ht = orig_rhs_ht;
 
    /* Move the new kills into the parent block's list, removing them
     * from the parent's ACP list in the process.
@@ -378,36 +433,41 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_if *ir)
 void
 ir_copy_propagation_elements_visitor::handle_loop(ir_loop *ir, bool keep_acp)
 {
-   exec_list *orig_acp = this->acp;
    exec_list *orig_kills = this->kills;
    bool orig_killed_all = this->killed_all;
+
+   hash_table *orig_lhs_ht = lhs_ht;
+   hash_table *orig_rhs_ht = rhs_ht;
 
    /* FINISHME: For now, the initial acp for loops is totally empty.
     * We could go through once, then go through again with the acp
     * cloned minus the killed entries after the first run through.
     */
-   this->acp = new(mem_ctx) exec_list;
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
 
+   create_acp();
+
    if (keep_acp) {
       /* Populate the initial acp with a copy of the original */
-      foreach_in_list(acp_entry, a, orig_acp) {
-         this->acp->push_tail(new(this->acp) acp_entry(a));
-      }
+      populate_acp(orig_lhs_ht, orig_rhs_ht);
    }
 
    visit_list_elements(this, &ir->body_instructions);
 
    if (this->killed_all) {
-      orig_acp->make_empty();
+      _mesa_hash_table_clear(orig_lhs_ht, NULL);
+      _mesa_hash_table_clear(orig_rhs_ht, NULL);
    }
 
    exec_list *new_kills = this->kills;
    this->kills = orig_kills;
-   ralloc_free(this->acp);
-   this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
+
+   destroy_acp();
+
+   lhs_ht = orig_lhs_ht;
+   rhs_ht = orig_rhs_ht;
 
    foreach_in_list_safe(kill_entry, k, new_kills) {
       kill(k);
@@ -430,16 +490,33 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
 void
 ir_copy_propagation_elements_visitor::kill(kill_entry *k)
 {
-   foreach_in_list_safe(acp_entry, entry, acp) {
-      if (entry->lhs == k->var) {
-	 entry->write_mask = entry->write_mask & ~k->write_mask;
-	 if (entry->write_mask == 0) {
-	    entry->remove();
-	    continue;
-	 }
+   /* removal of lhs entries */
+   hash_entry *ht_entry = _mesa_hash_table_search(lhs_ht, k->var);
+   if (ht_entry) {
+      exec_list *lhs_list = (exec_list *) ht_entry->data;
+      foreach_in_list_safe(acp_entry, entry, lhs_list) {
+         entry->write_mask = entry->write_mask & ~k->write_mask;
+         if (entry->write_mask == 0) {
+            entry->remove();
+            continue;
+         }
       }
-      if (entry->rhs == k->var) {
-	 entry->remove();
+   }
+
+   /* removal of rhs entries */
+   ht_entry = _mesa_hash_table_search(rhs_ht, k->var);
+   if (ht_entry) {
+      exec_list *rhs_list = (exec_list *) ht_entry->data;
+      acp_ref *ref;
+
+      while ((ref = (acp_ref *) rhs_list->pop_head()) != NULL) {
+         acp_entry *entry = ref->entry;
+
+         /* If entry is still in a list (not already removed by lhs entry
+          * removal above), remove it.
+          */
+         if (entry->prev || entry->next)
+            entry->remove();
       }
    }
 
@@ -513,7 +590,28 @@ ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
 
    entry = new(this->mem_ctx) acp_entry(lhs->var, rhs->var, write_mask,
 					swizzle);
-   this->acp->push_tail(entry);
+
+   /* lhs hash, hash of lhs -> acp_entry lists */
+   hash_entry *ht_entry = _mesa_hash_table_search(lhs_ht, lhs->var);
+   if (ht_entry) {
+      exec_list *lhs_list = (exec_list *) ht_entry->data;
+      lhs_list->push_tail(entry);
+   } else {
+      exec_list *lhs_list = new(mem_ctx) exec_list;
+      lhs_list->push_tail(entry);
+      _mesa_hash_table_insert(lhs_ht, lhs->var, lhs_list);
+   }
+
+   /* rhs hash, hash of rhs -> acp_entry pointers to lhs lists */
+   ht_entry = _mesa_hash_table_search(rhs_ht, rhs->var);
+   if (ht_entry) {
+      exec_list *rhs_list = (exec_list *) ht_entry->data;
+      rhs_list->push_tail(&entry->rhs_node);
+   } else {
+      exec_list *rhs_list = new(mem_ctx) exec_list;
+      rhs_list->push_tail(&entry->rhs_node);
+      _mesa_hash_table_insert(rhs_ht, rhs->var, rhs_list);
+   }
 }
 
 bool

@@ -43,6 +43,7 @@
 
 #include "st_vdpau.h"
 #include "st_context.h"
+#include "st_sampler_view.h"
 #include "st_texture.h"
 #include "st_format.h"
 #include "st_cb_flush.h"

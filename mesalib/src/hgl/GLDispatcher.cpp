@@ -58,14 +58,6 @@ BGLDispatcher::~BGLDispatcher()
 
 
 status_t
-BGLDispatcher::CheckTable(const struct _glapi_table* table)
-{
-	_glapi_check_table(table ? table : _glapi_get_dispatch());
-	return B_OK;
-}
-
-
-status_t
 BGLDispatcher::SetTable(struct _glapi_table* table)
 {
 	_glapi_set_dispatch(table);

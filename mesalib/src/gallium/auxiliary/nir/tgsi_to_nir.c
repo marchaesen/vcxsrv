@@ -1340,6 +1340,8 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
    case GLSL_SAMPLER_DIM_CUBE:
       instr->coord_components = 3;
       break;
+   case GLSL_SAMPLER_DIM_SUBPASS:
+      unreachable("invalid sampler_dim");
    }
 
    if (instr->is_array)

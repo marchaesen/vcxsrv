@@ -769,8 +769,10 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
                 handler = dev->properties.handlers;
                 while (handler) {
                     if (handler->SetProperty) {
+                        input_lock();
                         rc = handler->SetProperty(dev, prop->propertyName,
                                                   &new_value, checkonly);
+                        input_unlock();
                         if (checkonly && rc != Success) {
                             free(new_value.data);
                             if (add)

@@ -62,6 +62,10 @@ C_SOURCES := \
 	hud/hud_context.c \
 	hud/hud_context.h \
 	hud/hud_cpu.c \
+	hud/hud_nic.c \
+	hud/hud_cpufreq.c \
+	hud/hud_diskstat.c \
+	hud/hud_sensors_temp.c \
 	hud/hud_driver_query.c \
 	hud/hud_fps.c \
 	hud/hud_private.h \
@@ -95,6 +99,8 @@ C_SOURCES := \
 	pipebuffer/pb_bufmgr_slab.c \
 	pipebuffer/pb_cache.c \
 	pipebuffer/pb_cache.h \
+	pipebuffer/pb_slab.c \
+	pipebuffer/pb_slab.h \
 	pipebuffer/pb_validate.c \
 	pipebuffer/pb_validate.h \
 	postprocess/filters.h \

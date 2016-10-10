@@ -1094,7 +1094,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 12
+#define __DRI_IMAGE_VERSION 13
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1207,6 +1207,8 @@ struct __DRIdri2ExtensionRec {
                                                 * new fd. */
 #define __DRI_IMAGE_ATTRIB_FOURCC       0x2008 /* available in versions 11 */
 #define __DRI_IMAGE_ATTRIB_NUM_PLANES   0x2009 /* available in versions 11 */
+
+#define __DRI_IMAGE_ATTRIB_OFFSET 0x200A /* available in versions 13 */
 
 enum __DRIYUVColorSpace {
    __DRI_YUV_COLOR_SPACE_UNDEFINED = 0,

@@ -710,7 +710,6 @@ typedef enum {
     FLAG_LOG,
     FLAG_RENDER_COLORMAP_MODE,
     FLAG_RANDR,
-    FLAG_AIGLX,
     FLAG_IGNORE_ABI,
     FLAG_ALLOW_EMPTY_INPUT,
     FLAG_USE_DEFAULT_FONT_PATH,
@@ -762,8 +761,6 @@ static OptionInfoRec FlagOptions[] = {
     {FLAG_RENDER_COLORMAP_MODE, "RenderColormapMode", OPTV_STRING,
      {0}, FALSE},
     {FLAG_RANDR, "RandR", OPTV_BOOLEAN,
-     {0}, FALSE},
-    {FLAG_AIGLX, "AIGLX", OPTV_BOOLEAN,
      {0}, FALSE},
     {FLAG_IGNORE_ABI, "IgnoreABI", OPTV_BOOLEAN,
      {0}, FALSE},
@@ -917,8 +914,6 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     }
 #endif
 
-    xf86Info.aiglx = TRUE;
-    xf86Info.aiglxFrom = X_DEFAULT;
 #ifdef GLXEXT
     xf86Info.glxVisuals = XF86_GlxVisualsTypical;
     xf86Info.glxVisualsFrom = X_DEFAULT;
@@ -937,10 +932,6 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
         }
     }
 
-    if (xf86GetOptValBool(FlagOptions, FLAG_AIGLX, &value)) {
-        xf86Info.aiglx = value;
-        xf86Info.aiglxFrom = X_CONFIG;
-    }
     if (xf86Info.iglxFrom != X_CMDLINE) {
         if (xf86GetOptValBool(FlagOptions, FLAG_IGLX, &value)) {
             enableIndirectGLX = value;

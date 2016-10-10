@@ -87,24 +87,6 @@ typedef struct _EventQueue {
 
 static EventQueueRec miEventQueue;
 
-#ifdef XQUARTZ
-extern BOOL serverRunning;
-extern pthread_mutex_t serverRunningMutex;
-extern pthread_cond_t serverRunningCond;
-
-static inline void
-wait_for_server_init(void)
-{
-    /* If the server hasn't finished initializing, wait for it... */
-    if (!serverRunning) {
-        pthread_mutex_lock(&serverRunningMutex);
-        while (!serverRunning)
-            pthread_cond_wait(&serverRunningCond, &serverRunningMutex);
-        pthread_mutex_unlock(&serverRunningMutex);
-    }
-}
-#endif
-
 static size_t
 mieqNumEnqueued(EventQueuePtr eventQueue)
 {
@@ -218,10 +200,6 @@ mieqEnqueue(DeviceIntPtr pDev, InternalEvent *e)
     int evlen;
     Time time;
     size_t n_enqueued;
-
-#ifdef XQUARTZ
-    wait_for_server_init();
-#endif
 
     verify_internal_event(e);
 

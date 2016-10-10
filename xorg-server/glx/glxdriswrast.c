@@ -379,7 +379,7 @@ initializeExtensions(__GLXscreen * screen)
     int i;
 
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
-    LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
+    LogMessage(X_INFO, "IGLX: enabled GLX_MESA_copy_sub_buffer\n");
 
     if (dri->swrast->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,
@@ -396,6 +396,7 @@ initializeExtensions(__GLXscreen * screen)
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_framebuffer_sRGB");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap");
 
     extensions = dri->core->getExtensions(dri->driScreen);
 
@@ -407,8 +408,6 @@ initializeExtensions(__GLXscreen * screen)
 
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
             dri->texBuffer = (const __DRItexBufferExtension *) extensions[i];
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_EXT_texture_from_pixmap\n");
         }
 
 #ifdef __DRI2_FLUSH_CONTROL
@@ -476,7 +475,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
                                             &screen->driConfigs, screen);
 
     if (screen->driScreen == NULL) {
-        LogMessage(X_ERROR, "AIGLX error: Calling driver entry point failed\n");
+        LogMessage(X_ERROR, "IGLX error: Calling driver entry point failed\n");
         goto handle_error;
     }
 
@@ -492,7 +491,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     __glXsetGetProcAddress(glXGetProcAddressARB);
 
-    LogMessage(X_INFO, "AIGLX: Loaded and initialized %s\n", driverName);
+    LogMessage(X_INFO, "IGLX: Loaded and initialized %s\n", driverName);
 
     return &screen->base;
 

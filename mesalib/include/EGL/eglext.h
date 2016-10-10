@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 /*
-** Copyright (c) 2013-2014 The Khronos Group Inc.
+** Copyright (c) 2013-2016 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and/or associated documentation files (the
@@ -38,7 +38,7 @@ extern "C" {
 
 #include <EGL/eglplatform.h>
 
-#define EGL_EGLEXT_VERSION 20150508
+#define EGL_EGLEXT_VERSION 20160809
 
 /* Generated C header for:
  * API: egl
@@ -98,6 +98,33 @@ EGLAPI EGLSyncKHR EGLAPIENTRY eglCreateSync64KHR (EGLDisplay dpy, EGLenum type, 
 #define EGL_KHR_create_context_no_error 1
 #define EGL_CONTEXT_OPENGL_NO_ERROR_KHR   0x31B3
 #endif /* EGL_KHR_create_context_no_error */
+
+#ifndef EGL_KHR_debug
+#define EGL_KHR_debug 1
+typedef void *EGLLabelKHR;
+typedef void *EGLObjectKHR;
+typedef void (EGLAPIENTRY  *EGLDEBUGPROCKHR)(EGLenum error,const char *command,EGLint messageType,EGLLabelKHR threadLabel,EGLLabelKHR objectLabel,const char* message);
+#define EGL_OBJECT_THREAD_KHR             0x33B0
+#define EGL_OBJECT_DISPLAY_KHR            0x33B1
+#define EGL_OBJECT_CONTEXT_KHR            0x33B2
+#define EGL_OBJECT_SURFACE_KHR            0x33B3
+#define EGL_OBJECT_IMAGE_KHR              0x33B4
+#define EGL_OBJECT_SYNC_KHR               0x33B5
+#define EGL_OBJECT_STREAM_KHR             0x33B6
+#define EGL_DEBUG_MSG_CRITICAL_KHR        0x33B9
+#define EGL_DEBUG_MSG_ERROR_KHR           0x33BA
+#define EGL_DEBUG_MSG_WARN_KHR            0x33BB
+#define EGL_DEBUG_MSG_INFO_KHR            0x33BC
+#define EGL_DEBUG_CALLBACK_KHR            0x33B8
+typedef EGLint (EGLAPIENTRYP PFNEGLDEBUGMESSAGECONTROLKHRPROC) (EGLDEBUGPROCKHR callback, const EGLAttrib *attrib_list);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYDEBUGKHRPROC) (EGLint attribute, EGLAttrib *value);
+typedef EGLint (EGLAPIENTRYP PFNEGLLABELOBJECTKHRPROC) (EGLDisplay display, EGLenum objectType, EGLObjectKHR object, EGLLabelKHR label);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLint EGLAPIENTRY eglDebugMessageControlKHR (EGLDEBUGPROCKHR callback, const EGLAttrib *attrib_list);
+EGLAPI EGLBoolean EGLAPIENTRY eglQueryDebugKHR (EGLint attribute, EGLAttrib *value);
+EGLAPI EGLint EGLAPIENTRY eglLabelObjectKHR (EGLDisplay display, EGLenum objectType, EGLObjectKHR object, EGLLabelKHR label);
+#endif
+#endif /* EGL_KHR_debug */
 
 #ifndef EGL_KHR_fence_sync
 #define EGL_KHR_fence_sync 1
@@ -222,6 +249,16 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYSURFACE64KHRPROC) (EGLDisplay dpy, E
 EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface64KHR (EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLAttribKHR *value);
 #endif
 #endif /* EGL_KHR_lock_surface3 */
+
+#ifndef EGL_KHR_mutable_render_buffer
+#define EGL_KHR_mutable_render_buffer 1
+#define EGL_MUTABLE_RENDER_BUFFER_BIT_KHR 0x1000
+#endif /* EGL_KHR_mutable_render_buffer */
+
+#ifndef EGL_KHR_no_config_context
+#define EGL_KHR_no_config_context 1
+#define EGL_NO_CONFIG_KHR                 ((EGLConfig)0)
+#endif /* EGL_KHR_no_config_context */
 
 #ifndef EGL_KHR_partial_update
 #define EGL_KHR_partial_update 1
@@ -402,10 +439,27 @@ EGLAPI void EGLAPIENTRY eglSetBlobCacheFuncsANDROID (EGLDisplay dpy, EGLSetBlobF
 #endif
 #endif /* EGL_ANDROID_blob_cache */
 
+#ifndef EGL_ANDROID_create_native_client_buffer
+#define EGL_ANDROID_create_native_client_buffer 1
+#define EGL_NATIVE_BUFFER_USAGE_ANDROID   0x3143
+#define EGL_NATIVE_BUFFER_USAGE_PROTECTED_BIT_ANDROID 0x00000001
+#define EGL_NATIVE_BUFFER_USAGE_RENDERBUFFER_BIT_ANDROID 0x00000002
+#define EGL_NATIVE_BUFFER_USAGE_TEXTURE_BIT_ANDROID 0x00000004
+typedef EGLClientBuffer (EGLAPIENTRYP PFNEGLCREATENATIVECLIENTBUFFERANDROIDPROC) (const EGLint *attrib_list);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLClientBuffer EGLAPIENTRY eglCreateNativeClientBufferANDROID (const EGLint *attrib_list);
+#endif
+#endif /* EGL_ANDROID_create_native_client_buffer */
+
 #ifndef EGL_ANDROID_framebuffer_target
 #define EGL_ANDROID_framebuffer_target 1
 #define EGL_FRAMEBUFFER_TARGET_ANDROID    0x3147
 #endif /* EGL_ANDROID_framebuffer_target */
+
+#ifndef EGL_ANDROID_front_buffer_auto_refresh
+#define EGL_ANDROID_front_buffer_auto_refresh 1
+#define EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID 0x314C
+#endif /* EGL_ANDROID_front_buffer_auto_refresh */
 
 #ifndef EGL_ANDROID_image_native_buffer
 #define EGL_ANDROID_image_native_buffer 1
@@ -423,6 +477,15 @@ typedef EGLint (EGLAPIENTRYP PFNEGLDUPNATIVEFENCEFDANDROIDPROC) (EGLDisplay dpy,
 EGLAPI EGLint EGLAPIENTRY eglDupNativeFenceFDANDROID (EGLDisplay dpy, EGLSyncKHR sync);
 #endif
 #endif /* EGL_ANDROID_native_fence_sync */
+
+#ifndef EGL_ANDROID_presentation_time
+#define EGL_ANDROID_presentation_time 1
+typedef khronos_stime_nanoseconds_t EGLnsecsANDROID;
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLPRESENTATIONTIMEANDROIDPROC) (EGLDisplay dpy, EGLSurface surface, EGLnsecsANDROID time);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglPresentationTimeANDROID (EGLDisplay dpy, EGLSurface surface, EGLnsecsANDROID time);
+#endif
+#endif /* EGL_ANDROID_presentation_time */
 
 #ifndef EGL_ANDROID_recordable
 #define EGL_ANDROID_recordable 1
@@ -616,9 +679,13 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy,
 #define EGL_PLATFORM_X11_SCREEN_EXT       0x31D6
 #endif /* EGL_EXT_platform_x11 */
 
+#ifndef EGL_EXT_protected_content
+#define EGL_EXT_protected_content 1
+#define EGL_PROTECTED_CONTENT_EXT         0x32C0
+#endif /* EGL_EXT_protected_content */
+
 #ifndef EGL_EXT_protected_surface
 #define EGL_EXT_protected_surface 1
-#define EGL_PROTECTED_CONTENT_EXT         0x32C0
 #endif /* EGL_EXT_protected_surface */
 
 #ifndef EGL_EXT_stream_consumer_egloutput
@@ -696,6 +763,12 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePixmapSurfaceHI (EGLDisplay dpy, EGLConfi
 #define EGL_CONTEXT_PRIORITY_MEDIUM_IMG   0x3102
 #define EGL_CONTEXT_PRIORITY_LOW_IMG      0x3103
 #endif /* EGL_IMG_context_priority */
+
+#ifndef EGL_IMG_image_plane_attribs
+#define EGL_IMG_image_plane_attribs 1
+#define EGL_NATIVE_BUFFER_MULTIPLANE_SEPARATE_IMG 0x3105
+#define EGL_NATIVE_BUFFER_PLANE_OFFSET_IMG 0x3106
+#endif /* EGL_IMG_image_plane_attribs */
 
 #ifndef EGL_MESA_drm_image
 #define EGL_MESA_drm_image 1
@@ -811,6 +884,48 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLPOSTSUBBUFFERNVPROC) (EGLDisplay dpy, EGL
 EGLAPI EGLBoolean EGLAPIENTRY eglPostSubBufferNV (EGLDisplay dpy, EGLSurface surface, EGLint x, EGLint y, EGLint width, EGLint height);
 #endif
 #endif /* EGL_NV_post_sub_buffer */
+
+#ifndef EGL_NV_robustness_video_memory_purge
+#define EGL_NV_robustness_video_memory_purge 1
+#define EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV 0x334C
+#endif /* EGL_NV_robustness_video_memory_purge */
+
+#ifndef EGL_NV_stream_consumer_gltexture_yuv
+#define EGL_NV_stream_consumer_gltexture_yuv 1
+#define EGL_YUV_PLANE0_TEXTURE_UNIT_NV    0x332C
+#define EGL_YUV_PLANE1_TEXTURE_UNIT_NV    0x332D
+#define EGL_YUV_PLANE2_TEXTURE_UNIT_NV    0x332E
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLSTREAMCONSUMERGLTEXTUREEXTERNALATTRIBSNVPROC) (EGLDisplay dpy, EGLStreamKHR stream, EGLAttrib *attrib_list);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglStreamConsumerGLTextureExternalAttribsNV (EGLDisplay dpy, EGLStreamKHR stream, EGLAttrib *attrib_list);
+#endif
+#endif /* EGL_NV_stream_consumer_gltexture_yuv */
+
+#ifndef EGL_NV_stream_metadata
+#define EGL_NV_stream_metadata 1
+#define EGL_MAX_STREAM_METADATA_BLOCKS_NV 0x3250
+#define EGL_MAX_STREAM_METADATA_BLOCK_SIZE_NV 0x3251
+#define EGL_MAX_STREAM_METADATA_TOTAL_SIZE_NV 0x3252
+#define EGL_PRODUCER_METADATA_NV          0x3253
+#define EGL_CONSUMER_METADATA_NV          0x3254
+#define EGL_PENDING_METADATA_NV           0x3328
+#define EGL_METADATA0_SIZE_NV             0x3255
+#define EGL_METADATA1_SIZE_NV             0x3256
+#define EGL_METADATA2_SIZE_NV             0x3257
+#define EGL_METADATA3_SIZE_NV             0x3258
+#define EGL_METADATA0_TYPE_NV             0x3259
+#define EGL_METADATA1_TYPE_NV             0x325A
+#define EGL_METADATA2_TYPE_NV             0x325B
+#define EGL_METADATA3_TYPE_NV             0x325C
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYDISPLAYATTRIBNVPROC) (EGLDisplay dpy, EGLint attribute, EGLAttrib *value);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLSETSTREAMMETADATANVPROC) (EGLDisplay dpy, EGLStreamKHR stream, EGLint n, EGLint offset, EGLint size, const void *data);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYSTREAMMETADATANVPROC) (EGLDisplay dpy, EGLStreamKHR stream, EGLenum name, EGLint n, EGLint offset, EGLint size, void *data);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglQueryDisplayAttribNV (EGLDisplay dpy, EGLint attribute, EGLAttrib *value);
+EGLAPI EGLBoolean EGLAPIENTRY eglSetStreamMetadataNV (EGLDisplay dpy, EGLStreamKHR stream, EGLint n, EGLint offset, EGLint size, const void *data);
+EGLAPI EGLBoolean EGLAPIENTRY eglQueryStreamMetadataNV (EGLDisplay dpy, EGLStreamKHR stream, EGLenum name, EGLint n, EGLint offset, EGLint size, void *data);
+#endif
+#endif /* EGL_NV_stream_metadata */
 
 #ifndef EGL_NV_stream_sync
 #define EGL_NV_stream_sync 1

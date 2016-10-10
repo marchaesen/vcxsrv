@@ -303,6 +303,11 @@ DarwinScreenInit(ScreenPtr pScreen, int argc, char **argv)
    =============================================================================
  */
 
+static void
+DarwinInputHandlerNotify(int fd __unused, int ready __unused, void *data __unused)
+{
+}
+
 /*
  * DarwinMouseProc: Handle the initialization, etc. of a mouse
  */
@@ -362,13 +367,13 @@ DarwinMouseProc(DeviceIntPtr pPointer, int what)
 
     case DEVICE_ON:
         pPointer->public.on = TRUE;
-        AddEnabledDevice(darwinEventReadFD);
+        SetNotifyFd(darwinEventReadFD, DarwinInputHandlerNotify, X_NOTIFY_READ, NULL);
         return Success;
 
     case DEVICE_CLOSE:
     case DEVICE_OFF:
         pPointer->public.on = FALSE;
-        RemoveEnabledDevice(darwinEventReadFD);
+        RemoveNotifyFd(darwinEventReadFD);
         return Success;
     }
 
@@ -431,13 +436,13 @@ DarwinTabletProc(DeviceIntPtr pPointer, int what)
 
     case DEVICE_ON:
         pPointer->public.on = TRUE;
-        AddEnabledDevice(darwinEventReadFD);
+        SetNotifyFd(darwinEventReadFD, DarwinInputHandlerNotify, X_NOTIFY_READ, NULL);
         return Success;
 
     case DEVICE_CLOSE:
     case DEVICE_OFF:
         pPointer->public.on = FALSE;
-        RemoveEnabledDevice(darwinEventReadFD);
+        RemoveNotifyFd(darwinEventReadFD);
         return Success;
     }
     return Success;
@@ -459,12 +464,12 @@ DarwinKeybdProc(DeviceIntPtr pDev, int onoff)
 
     case DEVICE_ON:
         pDev->public.on = TRUE;
-        AddEnabledDevice(darwinEventReadFD);
+        SetNotifyFd(darwinEventReadFD, DarwinInputHandlerNotify, X_NOTIFY_READ, NULL);
         break;
 
     case DEVICE_OFF:
         pDev->public.on = FALSE;
-        RemoveEnabledDevice(darwinEventReadFD);
+        RemoveNotifyFd(darwinEventReadFD);
         break;
 
     case DEVICE_CLOSE:
@@ -675,7 +680,6 @@ InitOutput(ScreenInfo *pScreenInfo, int argc, char **argv)
 void
 OsVendorFatalError(const char *f, va_list args)
 {
-    X11ApplicationFatalError(f, args);
 }
 
 /*

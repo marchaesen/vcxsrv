@@ -213,7 +213,6 @@ struct asm_parser_state {
 
    struct {
       unsigned UsesKill:1;
-      unsigned UsesDFdy:1;
    } fragment;
 };
 

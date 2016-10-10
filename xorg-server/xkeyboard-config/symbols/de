@@ -51,11 +51,11 @@ xkb_symbols "basic" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "legacy" {
+xkb_symbols "deadtilde" {
     // previous standard German layout with tilde as dead key
 
     include "de(basic)"
-    name[Group1]="German (legacy)";
+    name[Group1]="German (dead tilde)";
 
     key <AD12>	{ [      plus,   asterisk,   dead_tilde,  dead_macron ]	};
 };
@@ -597,8 +597,6 @@ xkb_symbols "ru" {
     include "de(basic)"
 
     name[Group1]= "Russian (Germany, phonetic)";
-
-    key.type[group1]="FOUR_LEVEL_ALPHABETIC";
 
     key <LatA> { [        Cyrillic_a,        Cyrillic_A ] };
     key <LatB> { [       Cyrillic_be,       Cyrillic_BE ] };

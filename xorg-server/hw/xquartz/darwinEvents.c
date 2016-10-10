@@ -92,10 +92,32 @@ static pthread_mutex_t fd_add_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t fd_add_ready_cond = PTHREAD_COND_INITIALIZER;
 static pthread_t fd_add_tid = NULL;
 
-static InternalEvent* darwinEvents = NULL;
+static BOOL mieqInitialized;
+static pthread_mutex_t mieqInitializedMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t mieqInitializedCond = PTHREAD_COND_INITIALIZER;
 
-static pthread_mutex_t mieq_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t mieq_ready_cond = PTHREAD_COND_INITIALIZER;
+_X_NOTSAN
+extern inline void
+wait_for_mieq_init(void)
+{
+    if (!mieqInitialized) {
+        pthread_mutex_lock(&mieqInitializedMutex);
+        while (!mieqInitialized) {
+            pthread_cond_wait(&mieqInitializedCond, &mieqInitializedMutex);
+        }
+        pthread_mutex_unlock(&mieqInitializedMutex);
+    }
+}
+
+_X_NOTSAN
+static inline void
+signal_mieq_init(void)
+{
+    pthread_mutex_lock(&mieqInitializedMutex);
+    mieqInitialized = TRUE;
+    pthread_cond_broadcast(&mieqInitializedCond);
+    pthread_mutex_unlock(&mieqInitializedMutex);
+}
 
 /*** Pthread Magics ***/
 static pthread_t
@@ -111,35 +133,6 @@ create_thread(void *(*func)(void *), void *arg)
     pthread_attr_destroy(&attr);
 
     return tid;
-}
-
-void
-darwinEvents_lock(void);
-void
-darwinEvents_lock(void)
-{
-    int err;
-    if ((err = pthread_mutex_lock(&mieq_lock))) {
-        ErrorF("%s:%s:%d: Failed to lock mieq_lock: %d\n",
-               __FILE__, __FUNCTION__, __LINE__, err);
-        xorg_backtrace();
-    }
-    if (darwinEvents == NULL) {
-        pthread_cond_wait(&mieq_ready_cond, &mieq_lock);
-    }
-}
-
-void
-darwinEvents_unlock(void);
-void
-darwinEvents_unlock(void)
-{
-    int err;
-    if ((err = pthread_mutex_unlock(&mieq_lock))) {
-        ErrorF("%s:%s:%d: Failed to unlock mieq_lock: %d\n",
-               __FILE__, __FUNCTION__, __LINE__, err);
-        xorg_backtrace();
-    }
 }
 
 /*
@@ -379,23 +372,10 @@ DarwinEQInit(void)
     mieqInit();
     mieqSetHandler(ET_XQuartz, DarwinEventHandler);
 
-    /* Note that this *could* cause a potential async issue, since we're checking
-     * darwinEvents without holding the lock, but darwinEvents is only ever set
-     * here, so I don't bother.
-     */
-    if (!darwinEvents) {
-        darwinEvents = InitEventList(GetMaximumEventsNum());
-
-        if (!darwinEvents)
-            FatalError("Couldn't allocate event buffer\n");
-
-        darwinEvents_lock();
-        pthread_cond_broadcast(&mieq_ready_cond);
-        darwinEvents_unlock();
-    }
-
     if (!fd_add_tid)
         fd_add_tid = create_thread(DarwinProcessFDAdditionQueue_thread, NULL);
+
+    signal_mieq_init();
 
     return TRUE;
 }
@@ -437,7 +417,7 @@ DarwinPokeEQ(void)
 void
 DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
 {
-    darwinEvents_lock();
+    input_lock();
     {
         int i;
         if (pDev->button) {
@@ -458,7 +438,7 @@ DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
             }
         }
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } input_unlock();
 }
 
 void
@@ -469,12 +449,6 @@ DarwinSendTabletEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
 {
     ScreenPtr screen;
     ValuatorMask valuators;
-
-    if (!darwinEvents) {
-        DEBUG_LOG("%s called before darwinEvents was initialized\n",
-                  __FUNCTION__);
-        return;
-    }
 
     screen = miPointerGetScreen(pDev);
     if (!screen) {
@@ -498,7 +472,7 @@ DarwinSendTabletEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
     valuator_mask_set_double(&valuators, 3, XQUARTZ_VALUATOR_LIMIT * tilt_x);
     valuator_mask_set_double(&valuators, 4, XQUARTZ_VALUATOR_LIMIT * tilt_y);
 
-    darwinEvents_lock();
+    input_lock();
     {
         if (ev_type == ProximityIn || ev_type == ProximityOut) {
             QueueProximityEvents(pDev, ev_type, &valuators);
@@ -507,7 +481,7 @@ DarwinSendTabletEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
                                &valuators);
         }
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } input_unlock();
 }
 
 void
@@ -518,12 +492,6 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
     static int darwinFakeMouseButtonDown = 0;
     ScreenPtr screen;
     ValuatorMask valuators;
-
-    if (!darwinEvents) {
-        DEBUG_LOG("%s called before darwinEvents was initialized\n",
-                  __FUNCTION__);
-        return;
-    }
 
     screen = miPointerGetScreen(pDev);
     if (!screen) {
@@ -587,29 +555,22 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
             valuator_mask_set_double(&valuators, 3, pointer_dy);
     }
 
-    darwinEvents_lock();
+    input_lock();
     {
         QueuePointerEvents(pDev, ev_type, ev_button, POINTER_ABSOLUTE,
                            &valuators);
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } input_unlock();
 }
 
 void
 DarwinSendKeyboardEvents(int ev_type, int keycode)
 {
-
-    if (!darwinEvents) {
-        DEBUG_LOG(
-            "DarwinSendKeyboardEvents called before darwinEvents was initialized\n");
-        return;
-    }
-
-    darwinEvents_lock();
+    input_lock();
     {
         QueueKeyboardEvents(darwinKeyboard, ev_type, keycode + MIN_KEYCODE);
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } input_unlock();
 }
 
 /* Send the appropriate number of button clicks to emulate scroll wheel */
@@ -617,12 +578,6 @@ void
 DarwinSendScrollEvents(double scroll_x, double scroll_y) {
     ScreenPtr screen;
     ValuatorMask valuators;
-
-    if (!darwinEvents) {
-        DEBUG_LOG(
-            "DarwinSendScrollEvents called before darwinEvents was initialized\n");
-        return;
-    }
 
     screen = miPointerGetScreen(darwinPointer);
     if (!screen) {
@@ -635,12 +590,12 @@ DarwinSendScrollEvents(double scroll_x, double scroll_y) {
     valuator_mask_set_double(&valuators, 4, scroll_y);
     valuator_mask_set_double(&valuators, 5, scroll_x);
 
-    darwinEvents_lock();
+    input_lock();
     {
         QueuePointerEvents(darwinPointer, MotionNotify, 0,
                            POINTER_RELATIVE, &valuators);
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } input_unlock();
 }
 
 /* Send the appropriate KeyPress/KeyRelease events to GetKeyboardEvents to
@@ -682,9 +637,11 @@ DarwinSendDDXEvent(int type, int argc, ...)
         va_end(args);
     }
 
-    darwinEvents_lock();
+    wait_for_mieq_init();
+
+    input_lock();
     {
         mieqEnqueue(NULL, (InternalEvent *)&e);
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } input_unlock();
 }

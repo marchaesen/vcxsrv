@@ -164,16 +164,16 @@ xkb_symbols "us" {
   key <AD11> { [   bracketleft,     braceleft,    VoidSymbol ] };
   key <AD12> { [  bracketright,    braceright,    VoidSymbol ] };
 
-  key <AE01> { [           one,        exclam,   dead_macron ] };
-  key <AE02> { [           two,            at, dead_belowdot ] };
-  key <AE03> { [         three,    numbersign, dead_abovedot ] };
-  key <AE04> { [          four,        dollar,      currency ] };
-  key <AE05> { [          five,       percent,           UB0 ] };
-  key <AE06> { [           six,   asciicircum,    onequarter ] };
-  key <AE07> { [         seven,     ampersand,       onehalf ] };
-  key <AE08> { [         eight,      asterisk, threequarters ] };
-  key <AE09> { [          nine,     parenleft,    VoidSymbol ] };
-  key <AE10> { [          zero,    parenright,    VoidSymbol ] };
+  key <AE01> { [             1,        exclam,   dead_macron ] };
+  key <AE02> { [             2,            at, dead_belowdot ] };
+  key <AE03> { [             3,    numbersign, dead_abovedot ] };
+  key <AE04> { [             4,        dollar,      currency ] };
+  key <AE05> { [             5,       percent,           UB0 ] };
+  key <AE06> { [             6,   asciicircum,    onequarter ] };
+  key <AE07> { [             7,     ampersand,       onehalf ] };
+  key <AE08> { [             8,      asterisk, threequarters ] };
+  key <AE09> { [             9,     parenleft,    VoidSymbol ] };
+  key <AE10> { [             0,    parenright,    VoidSymbol ] };
   key <AE11> { [         minus,    underscore,         U2014 ] };
   key <AE12> { [         equal,          plus,    VoidSymbol ] };
 

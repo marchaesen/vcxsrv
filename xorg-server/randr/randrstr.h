@@ -726,6 +726,12 @@ extern _X_EXPORT Bool
  RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable);
 
 /*
+ * Return if the screen has any scanout_pixmap's attached
+ */
+extern _X_EXPORT Bool
+ RRHasScanoutPixmap(ScreenPtr pScreen);
+
+/*
  * Crtc dispatch
  */
 

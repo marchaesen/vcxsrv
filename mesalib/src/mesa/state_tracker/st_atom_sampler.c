@@ -243,12 +243,12 @@ update_shader_samplers(struct st_context *st,
                        struct pipe_sampler_state *samplers,
                        unsigned *num_samplers)
 {
+   GLbitfield samplers_used = prog->SamplersUsed;
+   GLbitfield free_slots = ~prog->SamplersUsed;
+   GLbitfield external_samplers_used = prog->ExternalSamplersUsed;
    GLuint unit;
-   GLbitfield samplers_used;
    const GLuint old_max = *num_samplers;
    const struct pipe_sampler_state *states[PIPE_MAX_SAMPLERS];
-
-   samplers_used = prog->SamplersUsed;
 
    if (*num_samplers == 0 && samplers_used == 0x0)
       return;
@@ -273,6 +273,41 @@ update_shader_samplers(struct st_context *st,
          /* if we've reset all the old samplers and we have no more new ones */
          break;
       }
+   }
+
+   /* For any external samplers with multiplaner YUV, stuff the additional
+    * sampler states we need at the end.
+    *
+    * Just re-use the existing sampler-state from the primary slot.
+    */
+   while (unlikely(external_samplers_used)) {
+      GLuint unit = u_bit_scan(&external_samplers_used);
+      GLuint extra = 0;
+      struct st_texture_object *stObj =
+            st_get_texture_object(st->ctx, prog, unit);
+      struct pipe_sampler_state *sampler = samplers + unit;
+
+      if (!stObj)
+         continue;
+
+      switch (st_get_view_format(stObj)) {
+      case PIPE_FORMAT_NV12:
+         /* we need one additional sampler: */
+         extra = u_bit_scan(&free_slots);
+         states[extra] = sampler;
+         break;
+      case PIPE_FORMAT_IYUV:
+         /* we need two additional samplers: */
+         extra = u_bit_scan(&free_slots);
+         states[extra] = sampler;
+         extra = u_bit_scan(&free_slots);
+         states[extra] = sampler;
+         break;
+      default:
+         break;
+      }
+
+      *num_samplers = MAX2(*num_samplers, extra + 1);
    }
 
    cso_set_samplers(st->cso_context, shader_stage, *num_samplers, states);

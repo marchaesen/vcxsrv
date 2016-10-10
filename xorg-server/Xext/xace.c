@@ -236,16 +236,15 @@ XaceCensorImage(ClientPtr client,
     BoxRec imageBox;
     int nRects;
 
-    imageBox.x1 = x;
-    imageBox.y1 = y;
-    imageBox.x2 = x + w;
-    imageBox.y2 = y + h;
+    imageBox.x1 = pDraw->x + x;
+    imageBox.y1 = pDraw->y + y;
+    imageBox.x2 = pDraw->x + x + w;
+    imageBox.y2 = pDraw->y + y + h;
     RegionInit(&imageRegion, &imageBox, 1);
     RegionNull(&censorRegion);
 
     /* censorRegion = imageRegion - visibleRegion */
     RegionSubtract(&censorRegion, &imageRegion, pVisibleRegion);
-    RegionTranslate(&censorRegion, -x, -y);
     nRects = RegionNumRects(&censorRegion);
     if (nRects > 0) {           /* we have something to censor */
         GCPtr pScratchGC = NULL;
@@ -265,8 +264,8 @@ XaceCensorImage(ClientPtr client,
             goto failSafe;
         }
         for (pBox = RegionRects(&censorRegion), i = 0; i < nRects; i++, pBox++) {
-            pRects[i].x = pBox->x1;
-            pRects[i].y = pBox->y1;
+            pRects[i].x = pBox->x1 - imageBox.x1;
+            pRects[i].y = pBox->y1 - imageBox.y1;
             pRects[i].width = pBox->x2 - pBox->x1;
             pRects[i].height = pBox->y2 - pBox->y1;
         }

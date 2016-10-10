@@ -143,6 +143,12 @@
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
+/* Define to 1 if you have the function pthread_setname_np(const char*) */
+#undef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
+
+/* Define to 1 if you have the function pthread_setname_np(pthread_t, const char*) */
+#undef HAVE_PTHREAD_SETNAME_NP_WITH_TID
+
 /* Define to 1 if you have the <ndbm.h> header file. */
 #undef HAVE_NDBM_H
 

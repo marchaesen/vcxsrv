@@ -60,6 +60,7 @@
 #include "st_draw.h"
 #include "st_format.h"
 #include "st_program.h"
+#include "st_sampler_view.h"
 #include "st_scissor.h"
 #include "st_texture.h"
 

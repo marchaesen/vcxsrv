@@ -120,7 +120,6 @@ _mesa_parse_arb_fragment_program(struct gl_context* ctx, GLenum target,
    program->PixelCenterInteger = state.option.PixelCenterInteger;
 
    program->UsesKill            = state.fragment.UsesKill;
-   program->UsesDFdy            = state.fragment.UsesDFdy;
 
    free(program->Base.Instructions);
    program->Base.Instructions = prog.Instructions;

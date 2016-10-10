@@ -83,7 +83,7 @@ static inline void *
 fontFileOpen(fontFile *ff, const char *filename) {
     int n = strlen(filename);
 
-    if (strcmp(filename + n - 4, ".bz2") == 0) {
+    if (n > 4 && strcmp(filename + n - 4, ".bz2") == 0) {
 	ff->type = bz2FontFile;
 	ff->f.bz2 = BZ2_bzopen(filename, "rb");
 	ff->pos = 0;

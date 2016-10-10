@@ -146,7 +146,7 @@ validGlxContext(ClientPtr client, XID id, int access_mode,
     return TRUE;
 }
 
-static int
+int
 validGlxDrawable(ClientPtr client, XID id, int type, int access_mode,
                  __GLXdrawable ** drawable, int *err)
 {

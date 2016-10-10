@@ -141,19 +141,9 @@ static void st_glFinish(struct gl_context *ctx)
 }
 
 
-/**
- * Query information about GPU resets observed by this context
- *
- * Called via \c dd_function_table::GetGraphicsResetStatus.
- */
 static GLenum
-st_get_graphics_reset_status(struct gl_context *ctx)
+gl_reset_status_from_pipe_reset_status(enum pipe_reset_status status)
 {
-   struct st_context *st = st_context(ctx);
-   enum pipe_reset_status status;
-
-   status = st->pipe->get_device_reset_status(st->pipe);
-
    switch (status) {
    case PIPE_NO_RESET:
       return GL_NO_ERROR;
@@ -166,6 +156,52 @@ st_get_graphics_reset_status(struct gl_context *ctx)
    default:
       assert(0);
       return GL_NO_ERROR;
+   }
+}
+
+
+/**
+ * Query information about GPU resets observed by this context
+ *
+ * Called via \c dd_function_table::GetGraphicsResetStatus.
+ */
+static GLenum
+st_get_graphics_reset_status(struct gl_context *ctx)
+{
+   struct st_context *st = st_context(ctx);
+   enum pipe_reset_status status;
+
+   if (st->reset_status != PIPE_NO_RESET) {
+      status = st->reset_status;
+      st->reset_status = PIPE_NO_RESET;
+   } else {
+      status = st->pipe->get_device_reset_status(st->pipe);
+   }
+
+   return gl_reset_status_from_pipe_reset_status(status);
+}
+
+
+static void
+st_device_reset_callback(void *data, enum pipe_reset_status status)
+{
+   struct st_context *st = data;
+
+   assert(status != PIPE_NO_RESET);
+
+   st->reset_status = status;
+   _mesa_set_context_lost_dispatch(st->ctx);
+}
+
+
+void
+st_install_device_reset_callback(struct st_context *st)
+{
+   if (st->pipe->set_device_reset_callback) {
+      struct pipe_device_reset_callback cb;
+      cb.reset = st_device_reset_callback;
+      cb.data = st;
+      st->pipe->set_device_reset_callback(st->pipe, &cb);
    }
 }
 

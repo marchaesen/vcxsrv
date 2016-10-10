@@ -1196,8 +1196,32 @@ void st_init_extensions(struct pipe_screen *screen,
          extensions->ARB_compute_shader =
                                       extensions->ARB_shader_image_load_store &&
                                       extensions->ARB_shader_atomic_counters;
+
+         if (extensions->ARB_compute_shader) {
+            uint64_t max_variable_threads_per_block = 0;
+
+            screen->get_compute_param(screen, PIPE_SHADER_IR_TGSI,
+                                      PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK,
+                                      &max_variable_threads_per_block);
+
+            for (i = 0; i < 3; i++) {
+               /* Clamp the values to avoid having a local work group size
+                * greater than the maximum number of invocations.
+                */
+               consts->MaxComputeVariableGroupSize[i] =
+                  MIN2(consts->MaxComputeWorkGroupSize[i],
+                       max_variable_threads_per_block);
+            }
+            consts->MaxComputeVariableGroupInvocations =
+               max_variable_threads_per_block;
+
+            extensions->ARB_compute_variable_group_size =
+               max_variable_threads_per_block > 0;
+         }
       }
    }
+
+   extensions->KHR_robustness = extensions->ARB_robust_buffer_access_behavior;
 
    /* If we support ES 3.1, we support the ES3_1_compatibility ext. However
     * there's no clean way of telling whether we would support ES 3.1 from
@@ -1226,6 +1250,49 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->OES_geometry_shader &&
       extensions->ARB_texture_cube_map_array;
 
+   extensions->OES_viewport_array =
+      extensions->ARB_ES3_1_compatibility &&
+      extensions->OES_geometry_shader &&
+      extensions->ARB_viewport_array;
+
    extensions->OES_primitive_bounding_box = extensions->ARB_ES3_1_compatibility;
    consts->NoPrimitiveBoundingBoxOutput = true;
+
+   extensions->ANDROID_extension_pack_es31a =
+      extensions->KHR_texture_compression_astc_ldr &&
+      extensions->KHR_blend_equation_advanced &&
+      extensions->OES_sample_variables &&
+      extensions->ARB_shader_image_load_store &&
+      extensions->ARB_texture_stencil8 &&
+      extensions->ARB_texture_multisample &&
+      extensions->OES_copy_image &&
+      extensions->ARB_draw_buffers_blend &&
+      extensions->OES_geometry_shader &&
+      extensions->ARB_gpu_shader5 &&
+      extensions->OES_primitive_bounding_box &&
+      extensions->ARB_tessellation_shader &&
+      extensions->ARB_texture_border_clamp &&
+      extensions->OES_texture_buffer &&
+      extensions->OES_texture_cube_map_array &&
+      extensions->EXT_texture_sRGB_decode;
+
+   /* Same deal as for ARB_ES3_1_compatibility - this has to be computed
+    * before overall versions are selected. Also it's actually a subset of ES
+    * 3.2, since it doesn't require ASTC or advanced blending.
+    */
+   extensions->ARB_ES3_2_compatibility =
+      extensions->ARB_ES3_1_compatibility &&
+      extensions->KHR_robustness &&
+      extensions->ARB_copy_image &&
+      extensions->ARB_draw_buffers_blend &&
+      extensions->ARB_draw_elements_base_vertex &&
+      extensions->OES_geometry_shader &&
+      extensions->ARB_gpu_shader5 &&
+      extensions->ARB_sample_shading &&
+      extensions->ARB_tessellation_shader &&
+      extensions->ARB_texture_border_clamp &&
+      extensions->OES_texture_buffer &&
+      extensions->ARB_texture_cube_map_array &&
+      extensions->ARB_texture_stencil8 &&
+      extensions->ARB_texture_multisample;
 }

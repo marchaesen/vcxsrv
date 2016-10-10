@@ -1491,6 +1491,19 @@ layout_qualifier_id:
          }
       }
 
+      /* Layout qualifiers for ARB_compute_variable_group_size. */
+      if (!$$.flags.i) {
+         if (match_layout_qualifier($1, "local_size_variable", state) == 0) {
+            $$.flags.q.local_size_variable = 1;
+         }
+
+         if ($$.flags.i && !state->ARB_compute_variable_group_size_enable) {
+            _mesa_glsl_error(& @1, state,
+                             "qualifier `local_size_variable` requires "
+                             "ARB_compute_variable_group_size");
+         }
+      }
+
       if (!$$.flags.i) {
          _mesa_glsl_error(& @1, state, "unrecognized layout identifier "
                           "`%s'", $1);

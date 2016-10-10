@@ -147,7 +147,7 @@ ir_expression::accept(ir_hierarchical_visitor *v)
 	 goto done;
 
       case visit_stop:
-	 return s;
+	 return visit_stop;
       }
    }
 

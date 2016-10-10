@@ -59,6 +59,7 @@ XImage *XGetImage (
 	char *data;
 	unsigned long nbytes;
 	XImage *image;
+	int planes;
 	LockDisplay(dpy);
 	GetReq (GetImage, req);
 	/*
@@ -91,18 +92,28 @@ XImage *XGetImage (
 	    return (XImage *) NULL;
 	}
         _XReadPad (dpy, data, nbytes);
-        if (format == XYPixmap)
-	   image = XCreateImage(dpy, _XVIDtoVisual(dpy, rep.visual),
-		  Ones (plane_mask &
-			(((unsigned long)0xFFFFFFFF) >> (32 - rep.depth))),
-		  format, 0, data, width, height, dpy->bitmap_pad, 0);
-	else /* format == ZPixmap */
-           image = XCreateImage (dpy, _XVIDtoVisual(dpy, rep.visual),
-		 rep.depth, ZPixmap, 0, data, width, height,
-		  _XGetScanlinePad(dpy, (int) rep.depth), 0);
+        if (format == XYPixmap) {
+	    image = XCreateImage(dpy, _XVIDtoVisual(dpy, rep.visual),
+		Ones (plane_mask &
+		    (((unsigned long)0xFFFFFFFF) >> (32 - rep.depth))),
+		format, 0, data, width, height, dpy->bitmap_pad, 0);
+	    planes = image->depth;
+	} else { /* format == ZPixmap */
+            image = XCreateImage (dpy, _XVIDtoVisual(dpy, rep.visual),
+		rep.depth, ZPixmap, 0, data, width, height,
+		    _XGetScanlinePad(dpy, (int) rep.depth), 0);
+	    planes = 1;
+	}
 
 	if (!image)
 	    Xfree(data);
+	if (planes < 1 || image->height < 1 || image->bytes_per_line < 1 ||
+	    INT_MAX / image->height <= image->bytes_per_line ||
+	    INT_MAX / planes <= image->height * image->bytes_per_line ||
+	    nbytes < planes * image->height * image->bytes_per_line) {
+	    XDestroyImage(image);
+	    image = NULL;
+	}
 	UnlockDisplay(dpy);
 	SyncHandle();
 	return (image);

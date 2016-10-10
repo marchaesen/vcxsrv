@@ -79,7 +79,7 @@ ast_expression::operator_string(enum ast_operators op)
 
 
 ast_expression_bin::ast_expression_bin(int oper, ast_expression *ex0,
-				       ast_expression *ex1) :
+                                       ast_expression *ex1) :
    ast_expression(oper, ex0, ex1, NULL)
 {
    assert((oper >= ast_plus) && (oper <= ast_logic_not));

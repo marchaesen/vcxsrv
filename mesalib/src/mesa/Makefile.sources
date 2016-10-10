@@ -505,21 +505,25 @@ STATETRACKER_FILES = \
 	state_tracker/st_mesa_to_tgsi.h \
 	state_tracker/st_nir.h \
 	state_tracker/st_nir_lower_builtin.c \
+	state_tracker/st_nir_lower_tex_src_plane.c \
 	state_tracker/st_pbo.c \
 	state_tracker/st_pbo.h \
 	state_tracker/st_program.c \
 	state_tracker/st_program.h \
+	state_tracker/st_sampler_view.c \
+	state_tracker/st_sampler_view.h \
 	state_tracker/st_scissor.c \
 	state_tracker/st_scissor.h \
 	state_tracker/st_texture.c \
 	state_tracker/st_texture.h \
+	state_tracker/st_tgsi_lower_yuv.c \
+	state_tracker/st_tgsi_lower_yuv.h \
 	state_tracker/st_vdpau.c \
 	state_tracker/st_vdpau.h
 
 PROGRAM_FILES = \
 	program/arbprogparse.c \
 	program/arbprogparse.h \
-	program/hash_table.h \
 	program/ir_to_mesa.cpp \
 	program/ir_to_mesa.h \
 	program/lex.yy.c \
@@ -527,7 +531,6 @@ PROGRAM_FILES = \
 	program/prog_cache.h \
 	program/prog_execute.c \
 	program/prog_execute.h \
-	program/prog_hash_table.c \
 	program/prog_instruction.c \
 	program/prog_instruction.h \
 	program/prog_noise.c \
@@ -551,7 +554,6 @@ PROGRAM_FILES = \
 	program/program_parser.h \
 	program/prog_statevars.c \
 	program/prog_statevars.h \
-	program/string_to_uint_map.cpp \
 	program/symbol_table.c \
 	program/symbol_table.h
 

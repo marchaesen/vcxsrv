@@ -203,25 +203,16 @@ debug_get_num_option(const char *name, long dfault)
    const char *str;
 
    str = os_get_option(name);
-   if (!str)
+   if (!str) {
       result = dfault;
-   else {
-      long sign;
-      char c;
-      c = *str++;
-      if (c == '-') {
-	 sign = -1;
-	 c = *str++;
+   } else {
+      char *endptr;
+
+      result = strtol(str, &endptr, 0);
+      if (str == endptr) {
+         /* Restore the default value when no digits were found. */
+         result = dfault;
       }
-      else {
-	 sign = 1;
-      }
-      result = 0;
-      while ('0' <= c && c <= '9') {
-	 result = result*10 + (c - '0');
-	 c = *str++;
-      }
-      result *= sign;
    }
 
    if (debug_get_option_should_print())

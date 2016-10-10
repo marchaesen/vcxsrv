@@ -119,3 +119,10 @@ winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
 
     return FALSE;
 }
+
+void
+winSetScreenAiglxIsActive(ScreenPtr pScreen)
+{
+    winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
+    pWinScreen->fNativeGlActive = TRUE;
+}

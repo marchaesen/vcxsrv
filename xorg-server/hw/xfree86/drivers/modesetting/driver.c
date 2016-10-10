@@ -584,21 +584,35 @@ dispatch_slave_dirty(ScreenPtr pScreen)
 }
 
 static void
-redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty)
+redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty, int *timeout)
 {
-
+    modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(screen));
     RegionRec pixregion;
 
     PixmapRegionInit(&pixregion, dirty->slave_dst);
     DamageRegionAppend(&dirty->slave_dst->drawable, &pixregion);
     PixmapSyncDirtyHelper(dirty);
 
+    if (!screen->isGPU) {
+        /*
+         * When copying from the master framebuffer to the shared pixmap,
+         * we must ensure the copy is complete before the slave starts a
+         * copy to its own framebuffer (some slaves scanout directly from
+         * the shared pixmap, but not all).
+         */
+        if (ms->drmmode.glamor)
+            glamor_finish(screen);
+        /* Ensure the slave processes the damage immediately */
+        if (timeout)
+            *timeout = 0;
+    }
+
     DamageRegionProcessPending(&dirty->slave_dst->drawable);
     RegionUninit(&pixregion);
 }
 
 static void
-ms_dirty_update(ScreenPtr screen)
+ms_dirty_update(ScreenPtr screen, int *timeout)
 {
     modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(screen));
 
@@ -625,7 +639,7 @@ ms_dirty_update(ScreenPtr screen)
             if (ppriv->defer_dirty_update)
                 continue;
 
-            redisplay_dirty(screen, ent);
+            redisplay_dirty(screen, ent, timeout);
             DamageEmpty(ent->damage);
         }
     }
@@ -661,7 +675,7 @@ msBlockHandler(ScreenPtr pScreen, void *timeout)
     else if (ms->dirty_enabled)
         dispatch_dirty(pScreen);
 
-    ms_dirty_update(pScreen);
+    ms_dirty_update(pScreen, timeout);
 }
 
 static void
@@ -833,7 +847,7 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
     if (pEnt->location.type == BUS_PCI) {
         ms->PciInfo = xf86GetPciInfoForEntity(ms->pEnt->index);
         if (ms->PciInfo) {
-            BusID = malloc(64);
+            BusID = XNFalloc(64);
             sprintf(BusID, "PCI:%d:%d:%d",
 #if XSERVER_LIBPCIACCESS
                     ((ms->PciInfo->domain << 8) | ms->PciInfo->bus),
@@ -846,6 +860,7 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
                 );
         }
         ms->fd = drmOpen(NULL, BusID);
+        free(BusID);
     }
     else {
         const char *devicename;
@@ -1250,7 +1265,7 @@ msPresentSharedPixmap(PixmapPtr slave_dst)
     RegionPtr region = DamageRegion(ppriv->dirty->damage);
 
     if (RegionNotEmpty(region)) {
-        redisplay_dirty(ppriv->slave_src->drawable.pScreen, ppriv->dirty);
+        redisplay_dirty(ppriv->slave_src->drawable.pScreen, ppriv->dirty, NULL);
         DamageEmpty(ppriv->dirty->damage);
 
         return TRUE;
@@ -1382,7 +1397,8 @@ msSharePixmapBacking(PixmapPtr ppix, ScreenPtr screen, void **handle)
     int ret;
     CARD16 stride;
     CARD32 size;
-    ret = glamor_fd_from_pixmap(ppix->drawable.pScreen, ppix, &stride, &size);
+    ret = glamor_shareable_fd_from_pixmap(ppix->drawable.pScreen, ppix,
+                                          &stride, &size);
     if (ret == -1)
         return FALSE;
 

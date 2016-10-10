@@ -53,7 +53,7 @@
 #include "glsl_parser_extras.h"
 #include "ast.h"
 #include "compiler/glsl_types.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 #include "main/macros.h"
 #include "main/shaderobj.h"
 #include "ir.h"
@@ -63,7 +63,7 @@ using namespace ir_builder;
 
 static void
 detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
-			       exec_list *instructions);
+                               exec_list *instructions);
 static void
 remove_per_vertex_blocks(exec_list *instructions,
                          _mesa_glsl_parse_state *state, ir_variable_mode mode);
@@ -883,7 +883,7 @@ validate_assignment(struct _mesa_glsl_parse_state *state,
    /* Check for implicit conversion in GLSL 1.20 */
    if (apply_implicit_conversion(lhs->type, rhs, state)) {
       if (rhs->type == lhs->type)
-	 return rhs;
+         return rhs;
    }
 
    _mesa_glsl_error(&loc, state,
@@ -1029,11 +1029,11 @@ get_lvalue_copy(exec_list *instructions, ir_rvalue *lvalue)
    ir_variable *var;
 
    var = new(ctx) ir_variable(lvalue->type, "_post_incdec_tmp",
-			      ir_var_temporary);
+                              ir_var_temporary);
    instructions->push_tail(var);
 
    instructions->push_tail(new(ctx) ir_assignment(new(ctx) ir_dereference_variable(var),
-						  lvalue));
+                                                  lvalue));
 
    return new(ctx) ir_dereference_variable(var);
 }
@@ -1160,11 +1160,11 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
  */
 ir_rvalue *
 get_scalar_boolean_operand(exec_list *instructions,
-			   struct _mesa_glsl_parse_state *state,
-			   ast_expression *parent_expr,
-			   int operand,
-			   const char *operand_name,
-			   bool *error_emitted)
+                           struct _mesa_glsl_parse_state *state,
+                           ast_expression *parent_expr,
+                           int operand,
+                           const char *operand_name,
+                           bool *error_emitted)
 {
    ast_expression *expr = parent_expr->subexpressions[operand];
    void *ctx = state;
@@ -1457,8 +1457,8 @@ ast_expression::do_hir(exec_list *instructions,
        * in a scalar boolean.  See page 57 of the GLSL 1.50 spec.
        */
       assert(type->is_error()
-	     || ((type->base_type == GLSL_TYPE_BOOL)
-		 && type->is_scalar()));
+             || ((type->base_type == GLSL_TYPE_BOOL)
+                 && type->is_scalar()));
 
       result = new(ctx) ir_expression(operations[this->oper], type,
                                       op[0], op[1]);
@@ -2585,6 +2585,20 @@ select_gles_precision(unsigned qual_precision,
                           type->name);
       }
    }
+
+
+   /* Section 4.1.7.3 (Atomic Counters) of the GLSL ES 3.10 spec says:
+    *
+    *    "The default precision of all atomic types is highp. It is an error to
+    *    declare an atomic type with a different precision or to specify the
+    *    default precision for an atomic type to be lowp or mediump."
+    */
+   if (type->base_type == GLSL_TYPE_ATOMIC_UINT &&
+       precision != ast_precision_high) {
+      _mesa_glsl_error(loc, state,
+                       "atomic_uint can only have highp precision qualifier");
+   }
+
    return precision;
 }
 
@@ -3401,9 +3415,9 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
          ? "origin_upper_left" : "pixel_center_integer";
 
       _mesa_glsl_error(loc, state,
-		       "layout qualifier `%s' can only be applied to "
-		       "fragment shader input `gl_FragCoord'",
-		       qual_string);
+                       "layout qualifier `%s' can only be applied to "
+                       "fragment shader input `gl_FragCoord'",
+                       qual_string);
    }
 
    if (qual->flags.q.explicit_location) {
@@ -3717,7 +3731,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    else if (qual->flags.q.in)
       var->data.mode = is_parameter ? ir_var_function_in : ir_var_shader_in;
    else if (qual->flags.q.attribute
-	    || (qual->flags.q.varying && (state->stage == MESA_SHADER_FRAGMENT)))
+            || (qual->flags.q.varying && (state->stage == MESA_SHADER_FRAGMENT)))
       var->data.mode = ir_var_shader_in;
    else if (qual->flags.q.out)
       var->data.mode = is_parameter ? ir_var_function_out : ir_var_shader_out;
@@ -4013,9 +4027,9 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
  */
 ir_rvalue *
 process_initializer(ir_variable *var, ast_declaration *decl,
-		    ast_fully_specified_type *type,
-		    exec_list *initializer_instructions,
-		    struct _mesa_glsl_parse_state *state)
+                    ast_fully_specified_type *type,
+                    exec_list *initializer_instructions,
+                    struct _mesa_glsl_parse_state *state)
 {
    ir_rvalue *result = NULL;
 
@@ -4600,7 +4614,7 @@ ast_declarator_list::hir(exec_list *instructions,
        * confusing error.
        */
       assert(this->type->specifier->structure == NULL || decl_type != NULL
-	     || state->error);
+             || state->error);
 
       if (decl_type == NULL) {
          _mesa_glsl_error(&loc, state,
@@ -4752,7 +4766,7 @@ ast_declarator_list::hir(exec_list *instructions,
       }
 
       apply_type_qualifier_to_variable(& this->type->qualifier, var, state,
-				       & loc, false);
+                                       & loc, false);
       apply_layout_qualifier_to_variable(&this->type->qualifier, var, state,
                                          &loc);
 
@@ -5127,7 +5141,33 @@ ast_declarator_list::hir(exec_list *instructions,
          const glsl_type *const t = (earlier == NULL)
             ? var->type : earlier->type;
 
-         if (t->is_unsized_array())
+         /* Skip the unsized array check for TCS/TES/GS inputs & TCS outputs.
+          *
+          * The GL_OES_tessellation_shader spec says about inputs:
+          *
+          *    "Declaring an array size is optional. If no size is specified,
+          *     it will be taken from the implementation-dependent maximum
+          *     patch size (gl_MaxPatchVertices)."
+          *
+          * and about TCS outputs:
+          *
+          *    "If no size is specified, it will be taken from output patch
+          *     size declared in the shader."
+          *
+          * The GL_OES_geometry_shader spec says:
+          *
+          *    "All geometry shader input unsized array declarations will be
+          *     sized by an earlier input primitive layout qualifier, when
+          *     present, as per the following table."
+          */
+         const bool implicitly_sized =
+            (var->data.mode == ir_var_shader_in &&
+             state->stage >= MESA_SHADER_TESS_CTRL &&
+             state->stage <= MESA_SHADER_GEOMETRY) ||
+            (var->data.mode == ir_var_shader_out &&
+             state->stage == MESA_SHADER_TESS_CTRL);
+
+         if (t->is_unsized_array() && !implicitly_sized)
             /* Section 10.17 of the GLSL ES 1.00 specification states that
              * unsized array declarations have been removed from the language.
              * Arrays that are sized using an initializer are still explicitly
@@ -5392,8 +5432,8 @@ ast_function::hir(exec_list *instructions,
        state->is_version(120, 100)) {
       YYLTYPE loc = this->get_location();
       _mesa_glsl_error(&loc, state,
-		       "declaration of function `%s' not allowed within "
-		       "function body", name);
+                       "declaration of function `%s' not allowed within "
+                       "function body", name);
    }
 
    validate_identifier(name, this->get_location(), state);
@@ -5971,8 +6011,9 @@ ast_switch_statement::hir(exec_list *instructions,
 
    state->switch_state.is_switch_innermost = true;
    state->switch_state.switch_nesting_ast = this;
-   state->switch_state.labels_ht = hash_table_ctor(0, key_contents,
-                                                   compare_case_value);
+   state->switch_state.labels_ht =
+         _mesa_hash_table_create(NULL, key_contents,
+                                 compare_case_value);
    state->switch_state.previous_default = NULL;
 
    /* Initalize is_fallthru state to false.
@@ -6046,7 +6087,7 @@ ast_switch_statement::hir(exec_list *instructions,
       instructions->push_tail(irif);
    }
 
-   hash_table_dtor(state->switch_state.labels_ht);
+   _mesa_hash_table_destroy(state->switch_state.labels_ht, NULL);
 
    state->switch_state = saved;
 
@@ -6067,9 +6108,7 @@ ast_switch_statement::test_to_hir(exec_list *instructions,
     */
    test_expression->set_is_lhs(true);
    /* Cache value of test expression. */
-   ir_rvalue *const test_val =
-      test_expression->hir(instructions,
-			   state);
+   ir_rvalue *const test_val = test_expression->hir(instructions, state);
 
    state->switch_state.test_var = new(ctx) ir_variable(test_val->type,
                                                        "switch_test_tmp",
@@ -6228,20 +6267,21 @@ ast_case_label::hir(exec_list *instructions,
          /* Stuff a dummy value in to allow processing to continue. */
          label_const = new(ctx) ir_constant(0);
       } else {
-         ast_expression *previous_label = (ast_expression *)
-         hash_table_find(state->switch_state.labels_ht,
-                         (void *)(uintptr_t)&label_const->value.u[0]);
+         hash_entry *entry =
+               _mesa_hash_table_search(state->switch_state.labels_ht,
+                     (void *)(uintptr_t)&label_const->value.u[0]);
 
-         if (previous_label) {
+         if (entry) {
+            ast_expression *previous_label = (ast_expression *) entry->data;
             YYLTYPE loc = this->test_value->get_location();
             _mesa_glsl_error(& loc, state, "duplicate case value");
 
             loc = previous_label->get_location();
             _mesa_glsl_error(& loc, state, "this is the previous case label");
          } else {
-            hash_table_insert(state->switch_state.labels_ht,
-                              this->test_value,
-                              (void *)(uintptr_t)&label_const->value.u[0]);
+            _mesa_hash_table_insert(state->switch_state.labels_ht,
+                                    (void *)(uintptr_t)&label_const->value.u[0],
+                                    this->test_value);
          }
       }
 
@@ -7830,7 +7870,7 @@ ast_interface_block::hir(exec_list *instructions,
 
 ir_rvalue *
 ast_tcs_output_layout::hir(exec_list *instructions,
-			  struct _mesa_glsl_parse_state *state)
+                           struct _mesa_glsl_parse_state *state)
 {
    YYLTYPE loc = this->get_location();
 
@@ -7848,10 +7888,10 @@ ast_tcs_output_layout::hir(exec_list *instructions,
     */
    if (state->tcs_output_size != 0 && state->tcs_output_size != num_vertices) {
       _mesa_glsl_error(&loc, state,
-		       "this tessellation control shader output layout "
-		       "specifies %u vertices, but a previous output "
-		       "is declared with size %u",
-		       num_vertices, state->tcs_output_size);
+                       "this tessellation control shader output layout "
+                       "specifies %u vertices, but a previous output "
+                       "is declared with size %u",
+                       num_vertices, state->tcs_output_size);
       return NULL;
    }
 
@@ -7863,21 +7903,21 @@ ast_tcs_output_layout::hir(exec_list *instructions,
    foreach_in_list (ir_instruction, node, instructions) {
       ir_variable *var = node->as_variable();
       if (var == NULL || var->data.mode != ir_var_shader_out)
-	 continue;
+         continue;
 
       /* Note: Not all tessellation control shader output are arrays. */
       if (!var->type->is_unsized_array() || var->data.patch)
          continue;
 
       if (var->data.max_array_access >= (int)num_vertices) {
-	 _mesa_glsl_error(&loc, state,
-			  "this tessellation control shader output layout "
-			  "specifies %u vertices, but an access to element "
-			  "%u of output `%s' already exists", num_vertices,
-			  var->data.max_array_access, var->name);
+         _mesa_glsl_error(&loc, state,
+                          "this tessellation control shader output layout "
+                          "specifies %u vertices, but an access to element "
+                          "%u of output `%s' already exists", num_vertices,
+                          var->data.max_array_access, var->name);
       } else {
-	 var->type = glsl_type::get_array_instance(var->type->fields.array,
-						   num_vertices);
+         var->type = glsl_type::get_array_instance(var->type->fields.array,
+                                                   num_vertices);
       }
    }
 
@@ -8013,6 +8053,20 @@ ast_cs_input_layout::hir(exec_list *instructions,
       }
    }
 
+   /* The ARB_compute_variable_group_size spec says:
+    *
+    *     If a compute shader including a *local_size_variable* qualifier also
+    *     declares a fixed local group size using the *local_size_x*,
+    *     *local_size_y*, or *local_size_z* qualifiers, a compile-time error
+    *     results
+    */
+   if (state->cs_input_local_size_variable_specified) {
+      _mesa_glsl_error(&loc, state,
+                       "compute shader can't include both a variable and a "
+                       "fixed local group size");
+      return NULL;
+   }
+
    state->cs_input_local_size_specified = true;
    for (int i = 0; i < 3; i++)
       state->cs_input_local_size[i] = qual_local_size[i];
@@ -8065,9 +8119,9 @@ detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
          gl_FragColor_assigned = true;
       else if (strcmp(var->name, "gl_FragData") == 0)
          gl_FragData_assigned = true;
-	else if (strcmp(var->name, "gl_SecondaryFragColorEXT") == 0)
+        else if (strcmp(var->name, "gl_SecondaryFragColorEXT") == 0)
          gl_FragSecondaryColor_assigned = true;
-	else if (strcmp(var->name, "gl_SecondaryFragDataEXT") == 0)
+        else if (strcmp(var->name, "gl_SecondaryFragDataEXT") == 0)
          gl_FragSecondaryData_assigned = true;
       else if (!is_gl_identifier(var->name)) {
          if (state->stage == MESA_SHADER_FRAGMENT &&

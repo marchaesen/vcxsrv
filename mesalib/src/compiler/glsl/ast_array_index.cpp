@@ -141,24 +141,24 @@ get_implicit_array_size(struct _mesa_glsl_parse_state *state,
 
 ir_rvalue *
 _mesa_ast_array_index_to_hir(void *mem_ctx,
-			     struct _mesa_glsl_parse_state *state,
-			     ir_rvalue *array, ir_rvalue *idx,
-			     YYLTYPE &loc, YYLTYPE &idx_loc)
+                             struct _mesa_glsl_parse_state *state,
+                             ir_rvalue *array, ir_rvalue *idx,
+                             YYLTYPE &loc, YYLTYPE &idx_loc)
 {
    if (!array->type->is_error()
        && !array->type->is_array()
        && !array->type->is_matrix()
        && !array->type->is_vector()) {
       _mesa_glsl_error(& idx_loc, state,
-		       "cannot dereference non-array / non-matrix / "
-		       "non-vector");
+                       "cannot dereference non-array / non-matrix / "
+                       "non-vector");
    }
 
    if (!idx->type->is_error()) {
       if (!idx->type->is_integer()) {
-	 _mesa_glsl_error(& idx_loc, state, "array index must be integer type");
+         _mesa_glsl_error(& idx_loc, state, "array index must be integer type");
       } else if (!idx->type->is_scalar()) {
-	 _mesa_glsl_error(& idx_loc, state, "array index must be scalar");
+         _mesa_glsl_error(& idx_loc, state, "array index must be scalar");
       }
    }
 
@@ -182,33 +182,32 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
        *    negative constant expression."
        */
       if (array->type->is_matrix()) {
-	 if (array->type->row_type()->vector_elements <= idx) {
-	    type_name = "matrix";
-	    bound = array->type->row_type()->vector_elements;
-	 }
+         if (array->type->row_type()->vector_elements <= idx) {
+            type_name = "matrix";
+            bound = array->type->row_type()->vector_elements;
+         }
       } else if (array->type->is_vector()) {
-	 if (array->type->vector_elements <= idx) {
-	    type_name = "vector";
-	    bound = array->type->vector_elements;
-	 }
+         if (array->type->vector_elements <= idx) {
+            type_name = "vector";
+            bound = array->type->vector_elements;
+         }
       } else {
-	 /* glsl_type::array_size() returns -1 for non-array types.  This means
-	  * that we don't need to verify that the type is an array before
-	  * doing the bounds checking.
-	  */
-	 if ((array->type->array_size() > 0)
-	     && (array->type->array_size() <= idx)) {
-	    type_name = "array";
-	    bound = array->type->array_size();
-	 }
+         /* glsl_type::array_size() returns -1 for non-array types.  This means
+          * that we don't need to verify that the type is an array before
+          * doing the bounds checking.
+          */
+         if ((array->type->array_size() > 0)
+             && (array->type->array_size() <= idx)) {
+            type_name = "array";
+            bound = array->type->array_size();
+         }
       }
 
       if (bound > 0) {
-	 _mesa_glsl_error(& loc, state, "%s index must be < %u",
-			  type_name, bound);
+         _mesa_glsl_error(& loc, state, "%s index must be < %u",
+                          type_name, bound);
       } else if (idx < 0) {
-	 _mesa_glsl_error(& loc, state, "%s index must be >= 0",
-			  type_name);
+         _mesa_glsl_error(& loc, state, "%s index must be >= 0", type_name);
       }
 
       if (array->type->is_array())
@@ -253,18 +252,18 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
           * on uniform blocks but not shader storage blocks.
           *
           */
-	 _mesa_glsl_error(&loc, state, "%s block array index must be constant",
+         _mesa_glsl_error(&loc, state, "%s block array index must be constant",
                           array->variable_referenced()->data.mode
                           == ir_var_uniform ? "uniform" : "shader storage");
       } else {
-	 /* whole_variable_referenced can return NULL if the array is a
-	  * member of a structure.  In this case it is safe to not update
-	  * the max_array_access field because it is never used for fields
-	  * of structures.
-	  */
-	 ir_variable *v = array->whole_variable_referenced();
-	 if (v != NULL)
-	    v->data.max_array_access = array->type->array_size() - 1;
+         /* whole_variable_referenced can return NULL if the array is a
+          * member of a structure.  In this case it is safe to not update
+          * the max_array_access field because it is never used for fields
+          * of structures.
+          */
+         ir_variable *v = array->whole_variable_referenced();
+         if (v != NULL)
+            v->data.max_array_access = array->type->array_size() - 1;
       }
 
       /* From page 23 (29 of the PDF) of the GLSL 1.30 spec:

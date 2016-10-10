@@ -1039,8 +1039,13 @@ _mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh)
 
       if (ctx->_Shader->Flags & GLSL_DUMP) {
          if (sh->CompileStatus) {
-            _mesa_log("GLSL IR for shader %d:\n", sh->Name);
-            _mesa_print_ir(_mesa_get_log_file(), sh->ir, NULL);
+            if (sh->ir) {
+               _mesa_log("GLSL IR for shader %d:\n", sh->Name);
+               _mesa_print_ir(_mesa_get_log_file(), sh->ir, NULL);
+            } else {
+               _mesa_log("No GLSL IR for shader %d (shader may be from "
+                         "cache)\n", sh->Name);
+            }
             _mesa_log("\n\n");
          } else {
             _mesa_log("GLSL shader %d failed to compile.\n", sh->Name);
@@ -2207,6 +2212,7 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
       for (i = 0; i < 3; i++)
          dst_cp->LocalSize[i] = src->Comp.LocalSize[i];
       dst_cp->SharedSize = src->Comp.SharedSize;
+      dst_cp->LocalSizeVariable = src->Comp.LocalSizeVariable;
       break;
    }
    default:

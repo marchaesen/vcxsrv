@@ -253,6 +253,8 @@ struct st_context
    struct st_config_options options;
 
    struct st_perf_monitor_group *perfmon;
+
+   enum pipe_reset_status reset_status;
 };
 
 

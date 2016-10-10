@@ -181,6 +181,26 @@ extern _X_EXPORT int glamor_fd_from_pixmap(ScreenPtr screen,
                                            PixmapPtr pixmap,
                                            CARD16 *stride, CARD32 *size);
 
+/* @glamor_shareable_fd_from_pixmap: Get a dma-buf fd suitable for sharing
+ *				     with other GPUs from a pixmap.
+ *
+ * @screen: Current screen pointer.
+ * @pixmap: The pixmap from which we want the fd.
+ * @stride, @size: Pointers to fill the stride and size of the
+ * 		   buffer associated to the fd.
+ *
+ * The returned fd will point to a buffer which is suitable for sharing
+ * across GPUs (not using GPU specific tiling).
+ * The pixmap and the buffer associated by the fd will share the same
+ * content.
+ * The pixmap's stride may be modified by this function.
+ * Returns the fd on success, -1 on error.
+ * */
+extern _X_EXPORT int glamor_shareable_fd_from_pixmap(ScreenPtr screen,
+                                                     PixmapPtr pixmap,
+                                                     CARD16 *stride,
+                                                     CARD32 *size);
+
 /**
  * @glamor_name_from_pixmap: Gets a gem name from a pixmap.
  *

@@ -23,70 +23,256 @@
 
 #include "slab.h"
 #include "macros.h"
-#include "simple_list.h"
+#include "u_atomic.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 
 #define ALIGN(value, align) (((value) + (align) - 1) & ~((align) - 1))
 
+#define SLAB_MAGIC_ALLOCATED 0xcafe4321
+#define SLAB_MAGIC_FREE 0x7ee01234
+
 #ifdef DEBUG
-#define SLAB_MAGIC 0xcafe4321
-#define SET_MAGIC(element)   (element)->magic = SLAB_MAGIC
-#define CHECK_MAGIC(element) assert((element)->magic == SLAB_MAGIC)
+#define SET_MAGIC(element, value)   (element)->magic = (value)
+#define CHECK_MAGIC(element, value) assert((element)->magic == (value))
 #else
-#define SET_MAGIC(element)
-#define CHECK_MAGIC(element)
+#define SET_MAGIC(element, value)
+#define CHECK_MAGIC(element, value)
 #endif
 
 /* One array element within a big buffer. */
 struct slab_element_header {
-   /* The next free element. */
-   struct slab_element_header *next_free;
+   /* The next element in the free or migrated list. */
+   struct slab_element_header *next;
+
+   /* This is either
+    * - a pointer to the child pool to which this element belongs, or
+    * - a pointer to the orphaned page of the element, with the least
+    *   significant bit set to 1.
+    */
+   intptr_t owner;
 
 #ifdef DEBUG
-   /* Use intptr_t to keep the header aligned to a pointer size. */
    intptr_t magic;
 #endif
 };
 
+/* The page is an array of allocations in one block. */
+struct slab_page_header {
+   union {
+      /* Next page in the same child pool. */
+      struct slab_page_header *next;
+
+      /* Number of remaining, non-freed elements (for orphaned pages). */
+      unsigned num_remaining;
+   } u;
+   /* Memory after the last member is dedicated to the page itself.
+    * The allocated size is always larger than this structure.
+    */
+};
+
+
 static struct slab_element_header *
-slab_get_element(struct slab_mempool *pool,
+slab_get_element(struct slab_parent_pool *parent,
                  struct slab_page_header *page, unsigned index)
 {
    return (struct slab_element_header*)
-          ((uint8_t*)&page[1] + (pool->element_size * index));
+          ((uint8_t*)&page[1] + (parent->element_size * index));
+}
+
+/* The given object/element belongs to an orphaned page (i.e. the owning child
+ * pool has been destroyed). Mark the element as freed and free the whole page
+ * when no elements are left in it.
+ */
+static void
+slab_free_orphaned(struct slab_element_header *elt)
+{
+   struct slab_page_header *page;
+
+   assert(elt->owner & 1);
+
+   page = (struct slab_page_header *)(elt->owner & ~(intptr_t)1);
+   if (!p_atomic_dec_return(&page->u.num_remaining))
+      free(page);
+}
+
+/**
+ * Create a parent pool for the allocation of same-sized objects.
+ *
+ * \param item_size     Size of one object.
+ * \param num_items     Number of objects to allocate at once.
+ */
+void
+slab_create_parent(struct slab_parent_pool *parent,
+                   unsigned item_size,
+                   unsigned num_items)
+{
+   mtx_init(&parent->mutex, mtx_plain);
+   parent->element_size = ALIGN(sizeof(struct slab_element_header) + item_size,
+                                sizeof(intptr_t));
+   parent->num_elements = num_items;
+}
+
+void
+slab_destroy_parent(struct slab_parent_pool *parent)
+{
+   mtx_destroy(&parent->mutex);
+}
+
+/**
+ * Create a child pool linked to the given parent.
+ */
+void slab_create_child(struct slab_child_pool *pool,
+                       struct slab_parent_pool *parent)
+{
+   pool->parent = parent;
+   pool->pages = NULL;
+   pool->free = NULL;
+   pool->migrated = NULL;
+}
+
+/**
+ * Destroy the child pool.
+ *
+ * Pages associated to the pool will be orphaned. They are eventually freed
+ * when all objects in them are freed.
+ */
+void slab_destroy_child(struct slab_child_pool *pool)
+{
+   mtx_lock(&pool->parent->mutex);
+
+   while (pool->pages) {
+      struct slab_page_header *page = pool->pages;
+      pool->pages = page->u.next;
+      p_atomic_set(&page->u.num_remaining, pool->parent->num_elements);
+
+      for (unsigned i = 0; i < pool->parent->num_elements; ++i) {
+         struct slab_element_header *elt = slab_get_element(pool->parent, page, i);
+         p_atomic_set(&elt->owner, (intptr_t)page | 1);
+      }
+   }
+
+   while (pool->migrated) {
+      struct slab_element_header *elt = pool->migrated;
+      pool->migrated = elt->next;
+      slab_free_orphaned(elt);
+   }
+
+   mtx_unlock(&pool->parent->mutex);
+
+   while (pool->free) {
+      struct slab_element_header *elt = pool->free;
+      pool->free = elt->next;
+      slab_free_orphaned(elt);
+   }
+
+   /* Guard against use-after-free. */
+   pool->parent = NULL;
 }
 
 static bool
-slab_add_new_page(struct slab_mempool *pool)
+slab_add_new_page(struct slab_child_pool *pool)
 {
-   struct slab_page_header *page;
-   struct slab_element_header *element;
-   unsigned i;
+   struct slab_page_header *page = malloc(sizeof(struct slab_page_header) +
+      pool->parent->num_elements * pool->parent->element_size);
 
-   page = malloc(sizeof(struct slab_page_header) +
-                 pool->num_elements * pool->element_size);
    if (!page)
       return false;
 
-   if (!pool->list.prev)
-      make_empty_list(&pool->list);
+   for (unsigned i = 0; i < pool->parent->num_elements; ++i) {
+      struct slab_element_header *elt = slab_get_element(pool->parent, page, i);
+      elt->owner = (intptr_t)pool;
+      assert(!(elt->owner & 1));
 
-   insert_at_tail(&pool->list, page);
-
-   /* Mark all elements as free. */
-   for (i = 0; i < pool->num_elements-1; i++) {
-      element = slab_get_element(pool, page, i);
-      element->next_free = slab_get_element(pool, page, i + 1);
-      SET_MAGIC(element);
+      elt->next = pool->free;
+      pool->free = elt;
+      SET_MAGIC(elt, SLAB_MAGIC_FREE);
    }
 
-   element = slab_get_element(pool, page, pool->num_elements - 1);
-   element->next_free = pool->first_free;
-   SET_MAGIC(element);
-   pool->first_free = slab_get_element(pool, page, 0);
+   page->u.next = pool->pages;
+   pool->pages = page;
+
    return true;
+}
+
+/**
+ * Allocate an object from the child pool. Single-threaded (i.e. the caller
+ * must ensure that no operation happens on the same child pool in another
+ * thread).
+ */
+void *
+slab_alloc(struct slab_child_pool *pool)
+{
+   struct slab_element_header *elt;
+
+   if (!pool->free) {
+      /* First, collect elements that belong to us but were freed from a
+       * different child pool.
+       */
+      mtx_lock(&pool->parent->mutex);
+      pool->free = pool->migrated;
+      pool->migrated = NULL;
+      mtx_unlock(&pool->parent->mutex);
+
+      /* Now allocate a new page. */
+      if (!pool->free && !slab_add_new_page(pool))
+         return NULL;
+   }
+
+   elt = pool->free;
+   pool->free = elt->next;
+
+   CHECK_MAGIC(elt, SLAB_MAGIC_FREE);
+   SET_MAGIC(elt, SLAB_MAGIC_ALLOCATED);
+
+   return &elt[1];
+}
+
+/**
+ * Free an object allocated from the slab. Single-threaded (i.e. the caller
+ * must ensure that no operation happens on the same child pool in another
+ * thread).
+ *
+ * Freeing an object in a different child pool from the one where it was
+ * allocated is allowed, as long the pool belong to the same parent. No
+ * additional locking is required in this case.
+ */
+void slab_free(struct slab_child_pool *pool, void *ptr)
+{
+   struct slab_element_header *elt = ((struct slab_element_header*)ptr - 1);
+   intptr_t owner_int;
+
+   CHECK_MAGIC(elt, SLAB_MAGIC_ALLOCATED);
+   SET_MAGIC(elt, SLAB_MAGIC_FREE);
+
+   if (p_atomic_read(&elt->owner) == (intptr_t)pool) {
+      /* This is the simple case: The caller guarantees that we can safely
+       * access the free list.
+       */
+      elt->next = pool->free;
+      pool->free = elt;
+      return;
+   }
+
+   /* The slow case: migration or an orphaned page. */
+   mtx_lock(&pool->parent->mutex);
+
+   /* Note: we _must_ re-read elt->owner here because the owning child pool
+    * may have been destroyed by another thread in the meantime.
+    */
+   owner_int = p_atomic_read(&elt->owner);
+
+   if (!(owner_int & 1)) {
+      struct slab_child_pool *owner = (struct slab_child_pool *)owner_int;
+      elt->next = owner->migrated;
+      owner->migrated = elt;
+      mtx_unlock(&pool->parent->mutex);
+   } else {
+      mtx_unlock(&pool->parent->mutex);
+
+      slab_free_orphaned(elt);
+   }
 }
 
 /**
@@ -95,17 +281,7 @@ slab_add_new_page(struct slab_mempool *pool)
 void *
 slab_alloc_st(struct slab_mempool *pool)
 {
-   struct slab_element_header *element;
-
-   /* Allocate a new page. */
-   if (!pool->first_free &&
-       !slab_add_new_page(pool))
-      return NULL;
-
-   element = pool->first_free;
-   CHECK_MAGIC(element);
-   pool->first_free = element->next_free;
-   return &element[1];
+   return slab_alloc(&pool->child);
 }
 
 /**
@@ -114,52 +290,14 @@ slab_alloc_st(struct slab_mempool *pool)
 void
 slab_free_st(struct slab_mempool *pool, void *ptr)
 {
-   struct slab_element_header *element =
-      ((struct slab_element_header*)ptr - 1);
-
-   CHECK_MAGIC(element);
-   element->next_free = pool->first_free;
-   pool->first_free = element;
-}
-
-/**
- * Allocate an object from the slab. Thread-safe.
- */
-void *
-slab_alloc_mt(struct slab_mempool *pool)
-{
-   void *mem;
-
-   mtx_lock(&pool->mutex);
-   mem = slab_alloc_st(pool);
-   mtx_unlock(&pool->mutex);
-   return mem;
-}
-
-/**
- * Free an object allocated from the slab. Thread-safe.
- */
-void
-slab_free_mt(struct slab_mempool *pool, void *ptr)
-{
-   mtx_lock(&pool->mutex);
-   slab_free_st(pool, ptr);
-   mtx_unlock(&pool->mutex);
+   slab_free(&pool->child, ptr);
 }
 
 void
 slab_destroy(struct slab_mempool *pool)
 {
-   struct slab_page_header *page, *temp;
-
-   if (pool->list.next) {
-      foreach_s(page, temp, &pool->list) {
-         remove_from_list(page);
-         free(page);
-      }
-   }
-
-   mtx_destroy(&pool->mutex);
+   slab_destroy_child(&pool->child);
+   slab_destroy_parent(&pool->parent);
 }
 
 /**
@@ -173,9 +311,6 @@ slab_create(struct slab_mempool *pool,
             unsigned item_size,
             unsigned num_items)
 {
-   mtx_init(&pool->mutex, mtx_plain);
-   pool->element_size = ALIGN(sizeof(struct slab_element_header) + item_size,
-                              sizeof(intptr_t));
-   pool->num_elements = num_items;
-   pool->first_free = NULL;
+   slab_create_parent(&pool->parent, item_size, num_items);
+   slab_create_child(&pool->child, &pool->parent);
 }

@@ -124,7 +124,7 @@
 #include "ir.h"
 #include "glsl_parser_extras.h"
 #include "linker.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 #include "program.h"
 
 namespace {
@@ -159,22 +159,25 @@ public:
    {
       progress = false;
       this->mem_ctx = ralloc_context(NULL);
-      this->function_hash = hash_table_ctor(0, hash_table_pointer_hash,
-					    hash_table_pointer_compare);
+      this->function_hash = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                                    _mesa_key_pointer_equal);
    }
 
    ~has_recursion_visitor()
    {
-      hash_table_dtor(this->function_hash);
+      _mesa_hash_table_destroy(this->function_hash, NULL);
       ralloc_free(this->mem_ctx);
    }
 
    function *get_function(ir_function_signature *sig)
    {
-      function *f = (function *) hash_table_find(this->function_hash, sig);
-      if (f == NULL) {
-	 f = new(mem_ctx) function(sig);
-	 hash_table_insert(this->function_hash, f, sig);
+      function *f;
+      hash_entry *entry = _mesa_hash_table_search(this->function_hash, sig);
+      if (entry == NULL) {
+         f = new(mem_ctx) function(sig);
+         _mesa_hash_table_insert(this->function_hash, sig, f);
+      } else {
+         f = (function *) entry->data;
       }
 
       return f;
@@ -251,16 +254,17 @@ remove_unlinked_functions(const void *key, void *data, void *closure)
 
    if (f->callers.is_empty() || f->callees.is_empty()) {
       while (!f->callers.is_empty()) {
-	 struct call_node *n = (struct call_node *) f->callers.pop_head();
-	 destroy_links(& n->func->callees, f);
+         struct call_node *n = (struct call_node *) f->callers.pop_head();
+         destroy_links(& n->func->callees, f);
       }
 
       while (!f->callees.is_empty()) {
-	 struct call_node *n = (struct call_node *) f->callees.pop_head();
-	 destroy_links(& n->func->callers, f);
+         struct call_node *n = (struct call_node *) f->callees.pop_head();
+         destroy_links(& n->func->callers, f);
       }
 
-      hash_table_remove(visitor->function_hash, key);
+      hash_entry *entry = _mesa_hash_table_search(visitor->function_hash, key);
+      _mesa_hash_table_remove(visitor->function_hash, entry);
       visitor->progress = true;
    }
 }

@@ -75,8 +75,8 @@ loop_variable::record_reference(bool in_assignee,
 
 loop_state::loop_state()
 {
-   this->ht = hash_table_ctor(0, hash_table_pointer_hash,
-			      hash_table_pointer_compare);
+   this->ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                      _mesa_key_pointer_equal);
    this->mem_ctx = ralloc_context(NULL);
    this->loop_found = false;
 }
@@ -84,7 +84,7 @@ loop_state::loop_state()
 
 loop_state::~loop_state()
 {
-   hash_table_dtor(this->ht);
+   _mesa_hash_table_destroy(this->ht, NULL);
    ralloc_free(this->mem_ctx);
 }
 
@@ -94,7 +94,7 @@ loop_state::insert(ir_loop *ir)
 {
    loop_variable_state *ls = new(this->mem_ctx) loop_variable_state;
 
-   hash_table_insert(this->ht, ls, ir);
+   _mesa_hash_table_insert(this->ht, ir, ls);
    this->loop_found = true;
 
    return ls;
@@ -104,14 +104,16 @@ loop_state::insert(ir_loop *ir)
 loop_variable_state *
 loop_state::get(const ir_loop *ir)
 {
-   return (loop_variable_state *) hash_table_find(this->ht, ir);
+   hash_entry *entry = _mesa_hash_table_search(this->ht, ir);
+   return entry ? (loop_variable_state *) entry->data : NULL;
 }
 
 
 loop_variable *
 loop_variable_state::get(const ir_variable *ir)
 {
-   return (loop_variable *) hash_table_find(this->var_hash, ir);
+   hash_entry *entry = _mesa_hash_table_search(this->var_hash, ir);
+   return entry ? (loop_variable *) entry->data : NULL;
 }
 
 
@@ -123,7 +125,7 @@ loop_variable_state::insert(ir_variable *var)
 
    lv->var = var;
 
-   hash_table_insert(this->var_hash, lv, lv->var);
+   _mesa_hash_table_insert(this->var_hash, lv->var, lv);
    this->variables.push_tail(lv);
 
    return lv;
@@ -518,8 +520,9 @@ public:
 
    virtual ir_visitor_status visit(ir_dereference_variable *ir)
    {
-      loop_variable *lv =
-	 (loop_variable *) hash_table_find(this->loop_variables, ir->var);
+      hash_entry *entry = _mesa_hash_table_search(this->loop_variables,
+                                                  ir->var);
+      loop_variable *lv = entry ? (loop_variable *) entry->data : NULL;
 
       assert(lv != NULL);
 
@@ -576,8 +579,8 @@ get_basic_induction_increment(ir_assignment *ir, hash_table *var_hash)
    if (inc->as_constant() == NULL) {
       ir_variable *const inc_var = inc->variable_referenced();
       if (inc_var != NULL) {
-	 loop_variable *lv =
-	    (loop_variable *) hash_table_find(var_hash, inc_var);
+         hash_entry *entry = _mesa_hash_table_search(var_hash, inc_var);
+         loop_variable *lv = entry ? (loop_variable *) entry->data : NULL;
 
          if (lv == NULL || !lv->is_loop_constant()) {
             assert(lv != NULL);

@@ -35,7 +35,6 @@
 #include "compiler/glsl/ir_uniform.h"
 #include "compiler/glsl/glsl_parser_extras.h"
 #include "compiler/glsl/program.h"
-#include "program/hash_table.h"
 #include "util/bitscan.h"
 
 

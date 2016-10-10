@@ -39,7 +39,7 @@
 #include "util/half_float.h"
 #include "ir.h"
 #include "compiler/glsl_types.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 static float
 dot_f(ir_constant *op0, ir_constant *op1)
@@ -457,7 +457,9 @@ constant_referenced(const ir_dereference *deref,
       const ir_dereference_variable *const dv =
          (const ir_dereference_variable *) deref;
 
-      store = (ir_constant *) hash_table_find(variable_context, dv->var);
+      hash_entry *entry = _mesa_hash_table_search(variable_context, dv->var);
+      if (entry)
+         store = (ir_constant *) entry->data;
       break;
    }
 
@@ -705,9 +707,10 @@ ir_dereference_variable::constant_expression_value(struct hash_table *variable_c
 
    /* Give priority to the context hashtable, if it exists */
    if (variable_context) {
-      ir_constant *value = (ir_constant *)hash_table_find(variable_context, var);
-      if(value)
-         return value;
+      hash_entry *entry = _mesa_hash_table_search(variable_context, var);
+
+      if(entry)
+         return (ir_constant *) entry->data;
    }
 
    /* The constant_value of a uniform variable is its initializer,
@@ -825,7 +828,7 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
          /* (declare () type symbol) */
       case ir_type_variable: {
          ir_variable *var = inst->as_variable();
-         hash_table_insert(variable_context, ir_constant::zero(this, var->type), var);
+         _mesa_hash_table_insert(variable_context, var, ir_constant::zero(this, var->type));
          break;
       }
 
@@ -949,8 +952,8 @@ ir_function_signature::constant_expression_value(exec_list *actual_parameters, s
     * We expect the correctness of the number of parameters to have
     * been checked earlier.
     */
-   hash_table *deref_hash = hash_table_ctor(8, hash_table_pointer_hash,
-                                            hash_table_pointer_compare);
+   hash_table *deref_hash = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                                    _mesa_key_pointer_equal);
 
    /* If "origin" is non-NULL, then the function body is there.  So we
     * have to use the variable objects from the object with the body,
@@ -961,13 +964,13 @@ ir_function_signature::constant_expression_value(exec_list *actual_parameters, s
    foreach_in_list(ir_rvalue, n, actual_parameters) {
       ir_constant *constant = n->constant_expression_value(variable_context);
       if (constant == NULL) {
-         hash_table_dtor(deref_hash);
+         _mesa_hash_table_destroy(deref_hash, NULL);
          return NULL;
       }
 
 
       ir_variable *var = (ir_variable *)parameter_info;
-      hash_table_insert(deref_hash, constant, var);
+      _mesa_hash_table_insert(deref_hash, var, constant);
 
       parameter_info = parameter_info->next;
    }
@@ -980,7 +983,7 @@ ir_function_signature::constant_expression_value(exec_list *actual_parameters, s
    if (constant_expression_evaluate_expression_list(origin ? origin->body : body, deref_hash, &result) && result)
       result = result->clone(ralloc_parent(this), NULL);
 
-   hash_table_dtor(deref_hash);
+   _mesa_hash_table_destroy(deref_hash, NULL);
 
    return result;
 }

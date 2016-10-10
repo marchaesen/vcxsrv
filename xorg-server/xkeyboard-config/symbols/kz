@@ -18,7 +18,7 @@ xkb_symbols "basic" {
 key.type[group1] = "FOUR_LEVEL";
 
     key <TLDE> { [ parenleft,               parenright,              Cyrillic_io, Cyrillic_IO ] };
-    key <AE01> { [ doublelowquotemark,      exclam ] };
+    key <AE01> { [ quotedbl,      exclam ] };
     key <AE06> { [ comma,                   semicolon ] };
     key <AE07> { [ period,                  colon ] };
     key <BKSL> { [ backslash,               slash ] };
@@ -208,4 +208,29 @@ xkb_symbols "olpc" {
    key <BKSL> { [ Cyrillic_io,             Cyrillic_IO ] };
 
    include "group(olpc)"
+};
+
+partial alphanumeric_keys
+xkb_symbols "ext" {
+
+// Levels 3 and 4 represent main keyboard's numeric part of US layout,
+// parens are duplicated for consistency.
+
+    include "kz(basic)"
+    name[Group1] = "Kazakh (extended)";
+
+key.type[group1] = "FOUR_LEVEL_ALPHABETIC";
+
+    key <AE01> { [ quotedbl,                exclam,                  1,      exclam ] };
+    key <AE02> { [ Cyrillic_schwa,          Cyrillic_SCHWA,          2,      at ] };
+    key <AE03> { [ Ukrainian_i,             Ukrainian_I,             3,      numbersign ] };
+    key <AE04> { [ Cyrillic_en_descender,   Cyrillic_EN_descender,   4,      dollar ] };
+    key <AE05> { [ Cyrillic_ghe_bar,        Cyrillic_GHE_bar,        5,      percent ] };
+    key <AE06> { [ comma,                   semicolon,               6,      asciicircum ] };
+    key <AE07> { [ period,                  colon,                   7,      ampersand ] };
+    key <AE08> { [ Cyrillic_u_straight,     Cyrillic_U_straight,     8,      asterisk ] };
+    key <AE09> { [ Cyrillic_u_straight_bar, Cyrillic_U_straight_bar, 9,      parenleft ] };
+    key <AE10> { [ Cyrillic_ka_descender,   Cyrillic_KA_descender,   0,      parenright ] };
+    key <AE11> { [ Cyrillic_o_bar,          Cyrillic_O_bar,          minus,  underscore  ] };
+    key <AE12> { [ Cyrillic_shha,           Cyrillic_SHHA,           equal,  plus ] };
 };

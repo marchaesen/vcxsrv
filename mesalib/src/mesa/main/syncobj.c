@@ -425,6 +425,14 @@ _mesa_GetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length,
       return;
    }
 
+   /* Section 4.1.3 (Sync Object Queries) of the OpenGL ES 3.10 spec says:
+    *
+    *    "An INVALID_VALUE error is generated if bufSize is negative."
+    */
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetSynciv(pname=0x%x)\n", pname);
+   }
+
    if (size > 0 && bufSize > 0) {
       const GLsizei copy_count = MIN2(size, bufSize);
 

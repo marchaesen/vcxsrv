@@ -114,10 +114,14 @@ OsSigHandler(int signo)
 #endif
 {
 #ifdef RTLD_DI_SETSIGNAL
-    const char *dlerr = dlerror();
+# define SIGNAL_FOR_RTLD_ERROR SIGQUIT
+    if (signo == SIGNAL_FOR_RTLD_ERROR) {
+        const char *dlerr = dlerror();
 
-    if (dlerr) {
-        LogMessageVerbSigSafe(X_ERROR, 1, "Dynamic loader error: %s\n", dlerr);
+        if (dlerr) {
+            LogMessageVerbSigSafe(X_ERROR, 1,
+                                  "Dynamic loader error: %s\n", dlerr);
+        }
     }
 #endif                          /* RTLD_DI_SETSIGNAL */
 
@@ -217,7 +221,7 @@ OsInit(void)
          * after ourselves.
          */
         {
-            int failure_signal = SIGQUIT;
+            int failure_signal = SIGNAL_FOR_RTLD_ERROR;
 
             dlinfo(RTLD_SELF, RTLD_DI_SETSIGNAL, &failure_signal);
         }

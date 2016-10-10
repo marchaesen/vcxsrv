@@ -297,6 +297,8 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
           sizeof(this->atomic_counter_offsets));
    this->allow_extension_directive_midshader =
       ctx->Const.AllowGLSLExtensionDirectiveMidShader;
+
+   this->cs_input_local_size_variable_specified = false;
 }
 
 /**
@@ -523,6 +525,11 @@ struct _mesa_glsl_extension {
    const char *name;
 
    /**
+    * Whether this extension is a part of AEP
+    */
+   bool aep;
+
+   /**
     * Predicate that checks whether the relevant extension is available for
     * this context.
     */
@@ -565,9 +572,14 @@ has_##name_str(const struct gl_context *ctx, gl_api api, uint8_t version) \
 #undef EXT
 
 #define EXT(NAME)                                           \
-   { "GL_" #NAME, has_##NAME,                         \
-         &_mesa_glsl_parse_state::NAME##_enable,            \
-         &_mesa_glsl_parse_state::NAME##_warn }
+   { "GL_" #NAME, false, has_##NAME,                        \
+     &_mesa_glsl_parse_state::NAME##_enable,                \
+     &_mesa_glsl_parse_state::NAME##_warn }
+
+#define EXT_AEP(NAME)                                       \
+   { "GL_" #NAME, true, has_##NAME,                         \
+     &_mesa_glsl_parse_state::NAME##_enable,                \
+     &_mesa_glsl_parse_state::NAME##_warn }
 
 /**
  * Table of extensions that can be enabled/disabled within a shader,
@@ -580,6 +592,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_ES3_2_compatibility),
    EXT(ARB_arrays_of_arrays),
    EXT(ARB_compute_shader),
+   EXT(ARB_compute_variable_group_size),
    EXT(ARB_conservative_depth),
    EXT(ARB_cull_distance),
    EXT(ARB_derivative_control),
@@ -608,6 +621,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_shader_subroutine),
    EXT(ARB_shader_texture_image_samples),
    EXT(ARB_shader_texture_lod),
+   EXT(ARB_shader_viewport_layer_array),
    EXT(ARB_shading_language_420pack),
    EXT(ARB_shading_language_packing),
    EXT(ARB_tessellation_shader),
@@ -623,7 +637,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
 
    /* KHR extensions go here, sorted alphabetically.
     */
-   EXT(KHR_blend_equation_advanced),
+   EXT_AEP(KHR_blend_equation_advanced),
 
    /* OES extensions go here, sorted alphabetically.
     */
@@ -632,17 +646,18 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(OES_geometry_shader),
    EXT(OES_gpu_shader5),
    EXT(OES_primitive_bounding_box),
-   EXT(OES_sample_variables),
-   EXT(OES_shader_image_atomic),
+   EXT_AEP(OES_sample_variables),
+   EXT_AEP(OES_shader_image_atomic),
    EXT(OES_shader_io_blocks),
-   EXT(OES_shader_multisample_interpolation),
+   EXT_AEP(OES_shader_multisample_interpolation),
    EXT(OES_standard_derivatives),
    EXT(OES_tessellation_point_size),
    EXT(OES_tessellation_shader),
    EXT(OES_texture_3D),
    EXT(OES_texture_buffer),
    EXT(OES_texture_cube_map_array),
-   EXT(OES_texture_storage_multisample_2d_array),
+   EXT_AEP(OES_texture_storage_multisample_2d_array),
+   EXT(OES_viewport_array),
 
    /* All other extensions go here, sorted alphabetically.
     */
@@ -651,23 +666,24 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_shader_trinary_minmax),
    EXT(AMD_vertex_shader_layer),
    EXT(AMD_vertex_shader_viewport_index),
+   EXT(ANDROID_extension_pack_es31a),
    EXT(EXT_blend_func_extended),
    EXT(EXT_draw_buffers),
    EXT(EXT_clip_cull_distance),
    EXT(EXT_geometry_point_size),
-   EXT(EXT_geometry_shader),
-   EXT(EXT_gpu_shader5),
-   EXT(EXT_primitive_bounding_box),
+   EXT_AEP(EXT_geometry_shader),
+   EXT_AEP(EXT_gpu_shader5),
+   EXT_AEP(EXT_primitive_bounding_box),
    EXT(EXT_separate_shader_objects),
    EXT(EXT_shader_framebuffer_fetch),
    EXT(EXT_shader_integer_mix),
-   EXT(EXT_shader_io_blocks),
+   EXT_AEP(EXT_shader_io_blocks),
    EXT(EXT_shader_samples_identical),
    EXT(EXT_tessellation_point_size),
-   EXT(EXT_tessellation_shader),
+   EXT_AEP(EXT_tessellation_shader),
    EXT(EXT_texture_array),
-   EXT(EXT_texture_buffer),
-   EXT(EXT_texture_cube_map_array),
+   EXT_AEP(EXT_texture_buffer),
+   EXT_AEP(EXT_texture_cube_map_array),
    EXT(MESA_shader_integer_functions),
 };
 
@@ -712,7 +728,6 @@ static const _mesa_glsl_extension *find_extension(const char *name)
    }
    return NULL;
 }
-
 
 bool
 _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
@@ -768,6 +783,22 @@ _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
       const _mesa_glsl_extension *extension = find_extension(name);
       if (extension && extension->compatible_with_state(state, api, gl_version)) {
          extension->set_flags(state, behavior);
+         if (extension->available_pred == has_ANDROID_extension_pack_es31a) {
+            for (unsigned i = 0;
+                 i < ARRAY_SIZE(_mesa_glsl_supported_extensions); ++i) {
+               const _mesa_glsl_extension *extension =
+                  &_mesa_glsl_supported_extensions[i];
+
+               if (!extension->aep)
+                  continue;
+               /* AEP should not be enabled if all of the sub-extensions can't
+                * also be enabled. This is not the proper layer to do such
+                * error-checking though.
+                */
+               assert(extension->compatible_with_state(state, api, gl_version));
+               extension->set_flags(state, behavior);
+            }
+         }
       } else {
          static const char fmt[] = "extension `%s' unsupported in %s shader";
 
@@ -1647,6 +1678,7 @@ set_shader_inout_layout(struct gl_shader *shader,
    if (shader->Stage != MESA_SHADER_COMPUTE) {
       /* Should have been prevented by the parser. */
       assert(!state->cs_input_local_size_specified);
+      assert(!state->cs_input_local_size_variable_specified);
    }
 
    if (shader->Stage != MESA_SHADER_FRAGMENT) {
@@ -1762,6 +1794,9 @@ set_shader_inout_layout(struct gl_shader *shader,
          for (int i = 0; i < 3; i++)
             shader->info.Comp.LocalSize[i] = 0;
       }
+
+      shader->info.Comp.LocalSizeVariable =
+         state->cs_input_local_size_variable_specified;
       break;
 
    case MESA_SHADER_FRAGMENT:
@@ -1984,10 +2019,11 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
  *                                    of unused uniforms from being removed.
  *                                    The setting of this flag only matters if
  *                                    \c linked is \c true.
- * \param max_unroll_iterations       Maximum number of loop iterations to be
- *                                    unrolled.  Setting to 0 disables loop
- *                                    unrolling.
  * \param options                     The driver's preferred shader options.
+ * \param native_integers             Selects optimizations that depend on the
+ *                                    implementations supporting integers
+ *                                    natively (as opposed to supporting
+ *                                    integers in floating point registers).
  */
 bool
 do_common_optimization(exec_list *ir, bool linked,

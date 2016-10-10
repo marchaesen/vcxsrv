@@ -1,4 +1,5 @@
 glsl_compiler
+spirv2nir
 subtest-cr
 subtest-cr-lf
 subtest-lf

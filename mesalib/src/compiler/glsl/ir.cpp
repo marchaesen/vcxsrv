@@ -1617,8 +1617,8 @@ ir_variable::get_extension_warning() const
 ir_function_signature::ir_function_signature(const glsl_type *return_type,
                                              builtin_available_predicate b)
    : ir_instruction(ir_type_function_signature),
-     return_type(return_type), is_defined(false), is_intrinsic(false),
-     builtin_avail(b), _function(NULL)
+     return_type(return_type), is_defined(false),
+     intrinsic_id(ir_intrinsic_invalid), builtin_avail(b), _function(NULL)
 {
    this->origin = NULL;
 }
