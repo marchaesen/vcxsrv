@@ -66,7 +66,7 @@ int *actualCount)	/* RETURN */
 
     if (rep.nFonts) {
 	flist = Xmalloc (rep.nFonts * sizeof(char *));
-	if (rep.length < (INT_MAX >> 2)) {
+	if (rep.length > 0 && rep.length < (INT_MAX >> 2)) {
 	    rlen = rep.length << 2;
 	    ch = Xmalloc(rlen + 1);
 	    /* +1 to leave room for last null-terminator */
@@ -93,11 +93,22 @@ int *actualCount)	/* RETURN */
 	    if (ch + length < chend) {
 		flist[i] = ch + 1;  /* skip over length */
 		ch += length + 1;  /* find next length ... */
-		length = *(unsigned char *)ch;
-		*ch = '\0';  /* and replace with null-termination */
-		count++;
-	    } else
-		flist[i] = NULL;
+		if (ch <= chend) {
+		    length = *(unsigned char *)ch;
+		    *ch = '\0';  /* and replace with null-termination */
+		    count++;
+		} else {
+                    Xfree(flist);
+                    flist = NULL;
+                    count = 0;
+                    break;
+		}
+	    } else {
+                Xfree(flist);
+                flist = NULL;
+                count = 0;
+                break;
+            }
 	}
     }
     *actualCount = count;

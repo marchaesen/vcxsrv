@@ -23,6 +23,7 @@ libos_la_SOURCES = 	\
 	osdep.h		\
 	osinit.c	\
 	ospoll.c	\
+	ospoll.h	\
 	utils.c		\
 	xdmauth.c	\
 	xsha1.c		\

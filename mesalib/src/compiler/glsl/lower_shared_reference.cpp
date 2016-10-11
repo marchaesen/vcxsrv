@@ -284,7 +284,7 @@ lower_shared_reference_visitor::shared_store(void *mem_ctx,
       ir_function_signature(glsl_type::void_type, compute_shader_enabled);
    assert(sig);
    sig->replace_parameters(&sig_params);
-   sig->is_intrinsic = true;
+   sig->intrinsic_id = ir_intrinsic_shared_store;
 
    ir_function *f = new(mem_ctx) ir_function("__intrinsic_store_shared");
    f->add_signature(sig);
@@ -311,7 +311,7 @@ lower_shared_reference_visitor::shared_load(void *mem_ctx,
       new(mem_ctx) ir_function_signature(type, compute_shader_enabled);
    assert(sig);
    sig->replace_parameters(&sig_params);
-   sig->is_intrinsic = true;
+   sig->intrinsic_id = ir_intrinsic_shared_load;
 
    ir_function *f = new(mem_ctx) ir_function("__intrinsic_load_shared");
    f->add_signature(sig);
@@ -404,7 +404,10 @@ lower_shared_reference_visitor::lower_shared_atomic_intrinsic(ir_call *ir)
                                          compute_shader_enabled);
    assert(sig);
    sig->replace_parameters(&sig_params);
-   sig->is_intrinsic = true;
+
+   assert(ir->callee->intrinsic_id >= ir_intrinsic_generic_load);
+   assert(ir->callee->intrinsic_id <= ir_intrinsic_generic_atomic_comp_swap);
+   sig->intrinsic_id = MAP_INTRINSIC_TO_TYPE(ir->callee->intrinsic_id, shared);
 
    char func_name[64];
    sprintf(func_name, "%s_shared", ir->callee_name());
@@ -444,15 +447,15 @@ lower_shared_reference_visitor::check_for_shared_atomic_intrinsic(ir_call *ir)
    if (!var || var->data.mode != ir_var_shader_shared)
       return ir;
 
-   const char *callee = ir->callee_name();
-   if (!strcmp("__intrinsic_atomic_add", callee) ||
-       !strcmp("__intrinsic_atomic_min", callee) ||
-       !strcmp("__intrinsic_atomic_max", callee) ||
-       !strcmp("__intrinsic_atomic_and", callee) ||
-       !strcmp("__intrinsic_atomic_or", callee) ||
-       !strcmp("__intrinsic_atomic_xor", callee) ||
-       !strcmp("__intrinsic_atomic_exchange", callee) ||
-       !strcmp("__intrinsic_atomic_comp_swap", callee)) {
+   const enum ir_intrinsic_id id = ir->callee->intrinsic_id;
+   if (id == ir_intrinsic_generic_atomic_add ||
+       id == ir_intrinsic_generic_atomic_min ||
+       id == ir_intrinsic_generic_atomic_max ||
+       id == ir_intrinsic_generic_atomic_and ||
+       id == ir_intrinsic_generic_atomic_or ||
+       id == ir_intrinsic_generic_atomic_xor ||
+       id == ir_intrinsic_generic_atomic_exchange ||
+       id == ir_intrinsic_generic_atomic_comp_swap) {
       return lower_shared_atomic_intrinsic(ir);
    }
 

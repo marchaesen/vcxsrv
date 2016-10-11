@@ -32,7 +32,7 @@
 #include "ir_function_inlining.h"
 #include "ir_expression_flattening.h"
 #include "compiler/glsl_types.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 static void
 do_variable_replacement(exec_list *instructions,
@@ -104,7 +104,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
    int i;
    struct hash_table *ht;
 
-   ht = hash_table_ctor(0, hash_table_pointer_hash, hash_table_pointer_compare);
+   ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
 
    num_parameters = this->callee->parameters.length();
    parameters = new ir_variable *[num_parameters];
@@ -207,7 +207,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 
    delete [] parameters;
 
-   hash_table_dtor(ht);
+   _mesa_hash_table_destroy(ht, NULL);
 }
 
 

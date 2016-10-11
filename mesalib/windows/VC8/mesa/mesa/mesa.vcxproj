@@ -391,8 +391,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\hash.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\ir_to_mesa.cpp" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\string_to_uint_map.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\program\lex.yy.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\program.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\programopt.c" />
@@ -496,6 +494,7 @@
     <ClCompile Include="..\..\..\..\src\util\ralloc.c" />
     <ClCompile Include="..\..\..\..\src\util\rgtc.c" />
     <ClCompile Include="..\..\..\..\src\util\set.c" />
+    <ClCompile Include="..\..\..\..\src\util\string_to_uint_map.cpp" />
     <ClCompile Include="..\..\..\..\src\util\strndup.c" />
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>

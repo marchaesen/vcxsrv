@@ -23,8 +23,20 @@
 
 /**
  * Slab allocator for equally sized memory allocations.
- * The thread-safe path ("*_mt" functions) is usually slower than malloc/free.
- * The single-threaded path ("*_st" functions) is faster than malloc/free.
+ *
+ * Objects are allocated from "child" pools that are connected to a "parent"
+ * pool.
+ *
+ * Calls to slab_alloc/slab_free for the same child pool must not occur from
+ * multiple threads simultaneously.
+ *
+ * Allocations obtained from one child pool should usually be freed in the
+ * same child pool. Freeing an allocation in a different child pool associated
+ * to the same parent is allowed (and requires no locking by the caller), but
+ * it is discouraged because it implies a performance penalty.
+ *
+ * For convenience and to ease the transition, there is also a set of wrapper
+ * functions around a single parent-child pair.
  */
 
 #ifndef SLAB_H
@@ -32,22 +44,44 @@
 
 #include "c11/threads.h"
 
-/* The page is an array of allocations in one block. */
-struct slab_page_header {
-   /* The header (linked-list pointers). */
-   struct slab_page_header *prev, *next;
+struct slab_element_header;
+struct slab_page_header;
 
-   /* Memory after the last member is dedicated to the page itself.
-    * The allocated size is always larger than this structure.
-    */
-};
-
-struct slab_mempool {
+struct slab_parent_pool {
    mtx_t mutex;
    unsigned element_size;
    unsigned num_elements;
-   struct slab_element_header *first_free;
-   struct slab_page_header list;
+};
+
+struct slab_child_pool {
+   struct slab_parent_pool *parent;
+
+   struct slab_page_header *pages;
+
+   /* Free elements. */
+   struct slab_element_header *free;
+
+   /* Elements that are owned by this pool but were freed with a different
+    * pool as the argument to slab_free.
+    *
+    * This list is protected by the parent mutex.
+    */
+   struct slab_element_header *migrated;
+};
+
+void slab_create_parent(struct slab_parent_pool *parent,
+                        unsigned item_size,
+                        unsigned num_items);
+void slab_destroy_parent(struct slab_parent_pool *parent);
+void slab_create_child(struct slab_child_pool *pool,
+                       struct slab_parent_pool *parent);
+void slab_destroy_child(struct slab_child_pool *pool);
+void *slab_alloc(struct slab_child_pool *pool);
+void slab_free(struct slab_child_pool *pool, void *ptr);
+
+struct slab_mempool {
+   struct slab_parent_pool parent;
+   struct slab_child_pool child;
 };
 
 void slab_create(struct slab_mempool *pool,
@@ -56,7 +90,5 @@ void slab_create(struct slab_mempool *pool,
 void slab_destroy(struct slab_mempool *pool);
 void *slab_alloc_st(struct slab_mempool *pool);
 void slab_free_st(struct slab_mempool *pool, void *ptr);
-void *slab_alloc_mt(struct slab_mempool *pool);
-void slab_free_mt(struct slab_mempool *pool, void *ptr);
 
 #endif

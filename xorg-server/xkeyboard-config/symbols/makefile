@@ -33,7 +33,7 @@ ma mao md me \
 mk ml mm \
 mn mt mv my \
 ng nl no np \
-pc ph pk pl pt \
+parens pc ph pk pl pt \
 ro rs ru \
 se si sk sn \
 sy th \

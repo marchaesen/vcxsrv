@@ -705,8 +705,7 @@ validate_block(nir_block *block, validate_state *state)
       }
 
       case nir_jump_continue: {
-         nir_block *first =
-            nir_cf_node_as_block(nir_loop_first_cf_node(state->loop));
+         nir_block *first = nir_loop_first_block(state->loop);
          validate_assert(state, block->successors[0] == first);
          break;
       }
@@ -723,8 +722,7 @@ validate_block(nir_block *block, validate_state *state)
       if (next == NULL) {
          switch (state->parent_node->type) {
          case nir_cf_node_loop: {
-            nir_block *first =
-               nir_cf_node_as_block(nir_loop_first_cf_node(state->loop));
+            nir_block *first = nir_loop_first_block(state->loop);
             validate_assert(state, block->successors[0] == first);
             /* due to the hack for infinite loops, block->successors[1] may
              * point to the block after the loop.
@@ -751,15 +749,15 @@ validate_block(nir_block *block, validate_state *state)
       } else {
          if (next->type == nir_cf_node_if) {
             nir_if *if_stmt = nir_cf_node_as_if(next);
-            validate_assert(state, &block->successors[0]->cf_node ==
-                   nir_if_first_then_node(if_stmt));
-            validate_assert(state, &block->successors[1]->cf_node ==
-                   nir_if_first_else_node(if_stmt));
+            validate_assert(state, block->successors[0] ==
+                   nir_if_first_then_block(if_stmt));
+            validate_assert(state, block->successors[1] ==
+                   nir_if_first_else_block(if_stmt));
          } else {
             validate_assert(state, next->type == nir_cf_node_loop);
             nir_loop *loop = nir_cf_node_as_loop(next);
-            validate_assert(state, &block->successors[0]->cf_node ==
-                   nir_loop_first_cf_node(loop));
+            validate_assert(state, block->successors[0] ==
+                   nir_loop_first_block(loop));
             validate_assert(state, block->successors[1] == NULL);
          }
       }

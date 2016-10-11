@@ -70,6 +70,7 @@
 #include "st_gen_mipmap.h"
 #include "st_pbo.h"
 #include "st_program.h"
+#include "st_sampler_view.h"
 #include "st_vdpau.h"
 #include "st_texture.h"
 #include "pipe/p_context.h"
@@ -166,7 +167,8 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
    struct st_context *st = st_context(ctx);
 
    if (new_state & _NEW_BUFFERS) {
-      st->dirty |= ST_NEW_DSA |
+      st->dirty |= ST_NEW_BLEND |
+                   ST_NEW_DSA |
                    ST_NEW_FB_STATE |
                    ST_NEW_SAMPLE_MASK |
                    ST_NEW_SAMPLE_SHADING |
@@ -254,11 +256,16 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
       st->active_states = st_get_active_states(ctx);
    }
 
-   if (new_state & _NEW_TEXTURE)
+   if (new_state & _NEW_TEXTURE) {
       st->dirty |= st->active_states &
                    (ST_NEW_SAMPLER_VIEWS |
                     ST_NEW_SAMPLERS |
                     ST_NEW_IMAGE_UNITS);
+      if (ctx->FragmentProgram._Current &&
+          ctx->FragmentProgram._Current->Base.ExternalSamplersUsed) {
+         st->dirty |= ST_NEW_FS_STATE;
+      }
+   }
 
    if (new_state & _NEW_PROGRAM_CONSTANTS)
       st->dirty |= st->active_states & ST_NEW_CONSTANTS;

@@ -52,7 +52,9 @@ set_viewport_no_notify(struct gl_context *ctx, unsigned idx,
     *     determined by calling GetFloatv with the symbolic constant
     *     VIEWPORT_BOUNDS_RANGE (see section 6.1)."
     */
-   if (ctx->Extensions.ARB_viewport_array) {
+   if (ctx->Extensions.ARB_viewport_array ||
+       (ctx->Extensions.OES_viewport_array &&
+        _mesa_is_gles31(ctx))) {
       x = CLAMP(x,
                 ctx->Const.ViewportBounds.Min, ctx->Const.ViewportBounds.Max);
       y = CLAMP(y,
@@ -330,6 +332,29 @@ _mesa_DepthRangeArrayv(GLuint first, GLsizei count, const GLclampd *v)
       ctx->Driver.DepthRange(ctx);
 }
 
+void GLAPIENTRY
+_mesa_DepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat *v)
+{
+   int i;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glDepthRangeArrayfv %d %d\n", first, count);
+
+   if ((first + count) > ctx->Const.MaxViewports) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glDepthRangeArrayfv: first (%d) + count (%d) >= MaxViewports (%d)",
+                  first, count, ctx->Const.MaxViewports);
+      return;
+   }
+
+   for (i = 0; i < count; i++)
+      set_depth_range_no_notify(ctx, i + first, v[i * 2], v[i * 2 + 1]);
+
+   if (ctx->Driver.DepthRange)
+      ctx->Driver.DepthRange(ctx);
+}
+
 /**
  * Update a single DepthRange
  *
@@ -356,6 +381,12 @@ _mesa_DepthRangeIndexed(GLuint index, GLclampd nearval, GLclampd farval)
    }
 
    _mesa_set_depth_range(ctx, index, nearval, farval);
+}
+
+void GLAPIENTRY
+_mesa_DepthRangeIndexedfOES(GLuint index, GLfloat nearval, GLfloat farval)
+{
+   _mesa_DepthRangeIndexed(index, nearval, farval);
 }
 
 /** 

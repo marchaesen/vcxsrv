@@ -636,6 +636,19 @@ valuator_mask_drop_unaccelerated(ValuatorMask *mask)
     mask->has_unaccelerated = FALSE;
 }
 
+void
+valuator_mask_set_absolute_unaccelerated(ValuatorMask *mask,
+                                         int valuator,
+                                         int absolute,
+                                         double unaccel)
+{
+    BUG_WARN_MSG(mask->last_bit != -1 && !mask->has_unaccelerated,
+                 "Do not mix valuator types, zero mask first\n");
+    _valuator_mask_set_double(mask, valuator, absolute);
+    mask->has_unaccelerated = TRUE;
+    mask->unaccelerated[valuator] = unaccel;
+}
+
 /**
  * Set both accelerated and unaccelerated value for this mask.
  */

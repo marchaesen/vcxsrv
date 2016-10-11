@@ -596,6 +596,8 @@ ptn_tex(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src,
    case GLSL_SAMPLER_DIM_CUBE:
       instr->coord_components = 3;
       break;
+   case GLSL_SAMPLER_DIM_SUBPASS:
+      unreachable("can't reach");
    }
 
    unsigned src_number = 0;

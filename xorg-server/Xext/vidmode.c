@@ -1364,7 +1364,7 @@ ProcVidModeGetDotClocks(ClientPtr client)
     WriteToClient(client, sizeof(xXF86VidModeGetDotClocksReply), &rep);
     if (!ClockProg) {
         for (n = 0; n < numClocks; n++) {
-            dotclock = *Clocks++;
+            dotclock = Clocks[n];
             if (client->swapped) {
                 WriteSwappedDataToClient(client, 4, (char *) &dotclock);
             }

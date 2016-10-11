@@ -149,7 +149,7 @@ GetEDID_DDC1(unsigned int *s_ptr)
         return NULL;
     s_end = s_ptr + NUM;
     s_pos = s_ptr + s_start;
-    d_block = malloc(EDID1_LEN);
+    d_block = calloc(1, EDID1_LEN);
     if (!d_block)
         return NULL;
     d_pos = d_block;

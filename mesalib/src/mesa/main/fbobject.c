@@ -303,9 +303,21 @@ _mesa_get_fb0_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
 
    switch (attachment) {
    case GL_FRONT_LEFT:
-      return &fb->Attachment[BUFFER_FRONT_LEFT];
+      /* Front buffers can be allocated on the first use, but
+       * glGetFramebufferAttachmentParameteriv must work even if that
+       * allocation hasn't happened yet. In such case, use the back buffer,
+       * which should be the same.
+       */
+      if (fb->Attachment[BUFFER_FRONT_LEFT].Type == GL_NONE)
+         return &fb->Attachment[BUFFER_BACK_LEFT];
+      else
+         return &fb->Attachment[BUFFER_FRONT_LEFT];
    case GL_FRONT_RIGHT:
-      return &fb->Attachment[BUFFER_FRONT_RIGHT];
+      /* Same as above. */
+      if (fb->Attachment[BUFFER_FRONT_RIGHT].Type == GL_NONE)
+         return &fb->Attachment[BUFFER_BACK_RIGHT];
+      else
+         return &fb->Attachment[BUFFER_FRONT_RIGHT];
    case GL_BACK_LEFT:
       return &fb->Attachment[BUFFER_BACK_LEFT];
    case GL_BACK_RIGHT:
@@ -2979,54 +2991,49 @@ check_textarget(struct gl_context *ctx, int dims, GLenum target,
 {
    bool err = false;
 
-   switch (dims) {
-   case 1:
-      switch (textarget) {
-      case GL_TEXTURE_1D:
-         break;
-      case GL_TEXTURE_1D_ARRAY:
-         err = !ctx->Extensions.EXT_texture_array;
-         break;
-      default:
-         err = true;
-      }
+   switch (textarget) {
+   case GL_TEXTURE_1D:
+      err = dims != 1;
       break;
-   case 2:
-      switch (textarget) {
-      case GL_TEXTURE_2D:
-         break;
-      case GL_TEXTURE_RECTANGLE:
-         err = _mesa_is_gles(ctx)
-            || !ctx->Extensions.NV_texture_rectangle;
-         break;
-      case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-      case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-      case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-      case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-         err = !ctx->Extensions.ARB_texture_cube_map;
-         break;
-      case GL_TEXTURE_2D_ARRAY:
-         err = (_mesa_is_gles(ctx) && ctx->Version < 30)
-               || !ctx->Extensions.EXT_texture_array;
-         break;
-      case GL_TEXTURE_2D_MULTISAMPLE:
-      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-         err = (_mesa_is_gles(ctx) ||
-                !ctx->Extensions.ARB_texture_multisample) &&
-               !_mesa_is_gles31(ctx);
-         break;
-      default:
-         err = true;
-      }
+   case GL_TEXTURE_1D_ARRAY:
+      err = dims != 1 || !ctx->Extensions.EXT_texture_array;
       break;
-   case 3:
-      if (textarget != GL_TEXTURE_3D)
-         err = true;
+   case GL_TEXTURE_2D:
+      err = dims != 2;
+      break;
+   case GL_TEXTURE_2D_ARRAY:
+      err = dims != 2 || !ctx->Extensions.EXT_texture_array ||
+            (_mesa_is_gles(ctx) && ctx->Version < 30);
+      break;
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      err = dims != 2 ||
+            !ctx->Extensions.ARB_texture_multisample ||
+            (_mesa_is_gles(ctx) && ctx->Version < 31);
+      break;
+   case GL_TEXTURE_RECTANGLE:
+      err = dims != 2 || _mesa_is_gles(ctx) ||
+            !ctx->Extensions.NV_texture_rectangle;
+      break;
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      err = true;
+      break;
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+      err = dims != 2 || !ctx->Extensions.ARB_texture_cube_map;
+      break;
+   case GL_TEXTURE_3D:
+      err = dims != 3;
       break;
    default:
-      err = true;
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "%s(unknown textarget 0x%x)", caller, textarget);
+      return false;
    }
 
    if (err) {

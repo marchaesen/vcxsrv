@@ -86,8 +86,6 @@ typedef struct {
     Bool pmFlag;
     Bool disableRandR;
     MessageType randRFrom;
-    Bool aiglx;
-    MessageType aiglxFrom;
     MessageType iglxFrom;
     XF86_GlxVisuals glxVisuals;
     MessageType glxVisualsFrom;

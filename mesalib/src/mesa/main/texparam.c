@@ -1486,6 +1486,9 @@ invalid_pname:
 }
 
 
+/**
+ * Handle a glGetTexLevelParamteriv() call for a texture buffer.
+ */
 static void
 get_tex_level_parameter_buffer(struct gl_context *ctx,
                                const struct gl_texture_object *texObj,
@@ -1497,6 +1500,8 @@ get_tex_level_parameter_buffer(struct gl_context *ctx,
    GLenum internalFormat = texObj->BufferObjectFormat;
    GLenum baseFormat = _mesa_get_format_base_format(texFormat);
    const char *suffix = dsa ? "ture" : "";
+
+   assert(texObj->Target == GL_TEXTURE_BUFFER);
 
    if (!bo) {
       /* undefined texture buffer object */

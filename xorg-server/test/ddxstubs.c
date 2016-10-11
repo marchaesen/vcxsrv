@@ -83,26 +83,10 @@ LegalModifier(unsigned int key, DeviceIntPtr pDev)
 }
 
 #ifdef XQUARTZ
-#include <pthread.h>
-
-BOOL serverRunning = TRUE;
-pthread_mutex_t serverRunningMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t serverRunningCond = PTHREAD_COND_INITIALIZER;
-
 int darwinMainScreenX = 0;
 int darwinMainScreenY = 0;
 
 BOOL no_configure_window = FALSE;
-
-void
-darwinEvents_lock(void)
-{
-}
-
-void
-darwinEvents_unlock(void)
-{
-}
 #endif
 
 #ifdef DDXBEFORERESET

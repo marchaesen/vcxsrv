@@ -276,7 +276,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\extensions_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\imports.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\symbol_table.c" />
     <ClCompile Include="..\..\..\..\src\util\half_float.c" />
     <ClCompile Include="..\..\..\..\src\util\hash_table.c" />

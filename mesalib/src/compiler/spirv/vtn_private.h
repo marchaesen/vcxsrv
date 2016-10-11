@@ -149,8 +149,8 @@ struct vtn_block {
    /** Points to the switch case started by this block (if any) */
    struct vtn_case *switch_case;
 
-   /** The last block in this SPIR-V block. */
-   nir_block *end_block;
+   /** Every block ends in a nop intrinsic so that we can find it again */
+   nir_intrinsic_instr *end_nop;
 };
 
 struct vtn_function {

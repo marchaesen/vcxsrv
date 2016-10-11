@@ -805,3 +805,12 @@ dixResetPrivates(void)
         global_keys[t].allocated = 0;
     }
 }
+
+Bool
+dixPrivatesCreated(DevPrivateType type)
+{
+    if (global_keys[type].created)
+        return TRUE;
+    else
+        return FALSE;
+}

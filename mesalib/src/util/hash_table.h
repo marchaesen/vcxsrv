@@ -139,6 +139,19 @@ _mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)
         entry != NULL;                                  \
         entry = _mesa_hash_table_next_entry(ht, entry))
 
+static inline void
+hash_table_call_foreach(struct hash_table *ht,
+                        void (*callback)(const void *key,
+                                         void *data,
+                                         void *closure),
+                        void *closure)
+{
+   struct hash_entry *entry;
+
+   hash_table_foreach(ht, entry)
+      callback(entry->key, entry->data, closure);
+}
+
 #ifdef __cplusplus
 } /* extern C */
 #endif

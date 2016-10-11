@@ -87,9 +87,8 @@ opt_constant_if(nir_if *if_stmt, bool condition)
     * point to the correct source.
     */
    nir_block *after = nir_cf_node_as_block(nir_cf_node_next(&if_stmt->cf_node));
-   nir_block *last_block =
-      nir_cf_node_as_block(condition ? nir_if_last_then_node(if_stmt)
-                                     : nir_if_last_else_node(if_stmt));
+   nir_block *last_block = condition ? nir_if_last_then_block(if_stmt)
+                                     : nir_if_last_else_block(if_stmt);
 
    nir_foreach_instr_safe(instr, after) {
       if (instr->type != nir_instr_type_phi)

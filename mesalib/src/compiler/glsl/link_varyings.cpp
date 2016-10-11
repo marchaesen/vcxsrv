@@ -36,7 +36,7 @@
 #include "linker.h"
 #include "link_varyings.h"
 #include "main/macros.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 #include "program.h"
 
 /**
@@ -592,6 +592,11 @@ remove_unused_shader_inputs_and_outputs(bool is_separate_shader_object,
        */
       if (var->data.is_unmatched_generic_inout && !var->data.is_xfb_only) {
          assert(var->data.mode != ir_var_temporary);
+
+         /* Assign zeros to demoted inputs to allow more optimizations. */
+         if (var->data.mode == ir_var_shader_in && !var->constant_value)
+            var->constant_value = ir_constant::zero(var, var->type);
+
          var->data.mode = ir_var_auto;
       }
    }
@@ -980,8 +985,11 @@ tfeedback_decl::find_candidate(gl_shader_program *prog,
       name = "gl_TessLevelInnerMESA";
       break;
    }
-   this->matched_candidate = (const tfeedback_candidate *)
-      hash_table_find(tfeedback_candidates, name);
+   hash_entry *entry = _mesa_hash_table_search(tfeedback_candidates, name);
+
+   this->matched_candidate = entry ?
+         (const tfeedback_candidate *) entry->data : NULL;
+
    if (!this->matched_candidate) {
       /* From GL_EXT_transform_feedback:
        *   A program will fail to link if:
@@ -993,6 +1001,7 @@ tfeedback_decl::find_candidate(gl_shader_program *prog,
       linker_error(prog, "Transform feedback varying %s undeclared.",
                    this->orig_name);
    }
+
    return this->matched_candidate;
 }
 
@@ -1788,8 +1797,9 @@ private:
       candidate->toplevel_var = this->toplevel_var;
       candidate->type = type;
       candidate->offset = this->varying_floats;
-      hash_table_insert(this->tfeedback_candidates, candidate,
-                        ralloc_strdup(this->mem_ctx, name));
+      _mesa_hash_table_insert(this->tfeedback_candidates,
+                              ralloc_strdup(this->mem_ctx, name),
+                              candidate);
       this->varying_floats += type->component_slots();
    }
 
@@ -1860,11 +1870,12 @@ populate_consumer_input_sets(void *mem_ctx, exec_list *ir,
                ralloc_asprintf(mem_ctx, "%s.%s",
                   input_var->get_interface_type()->without_array()->name,
                   input_var->name);
-            hash_table_insert(consumer_interface_inputs, input_var,
-                              iface_field_name);
+            _mesa_hash_table_insert(consumer_interface_inputs,
+                                    iface_field_name, input_var);
          } else {
-            hash_table_insert(consumer_inputs, input_var,
-                              ralloc_strdup(mem_ctx, input_var->name));
+            _mesa_hash_table_insert(consumer_inputs,
+                                    ralloc_strdup(mem_ctx, input_var->name),
+                                    input_var);
          }
       }
    }
@@ -1892,12 +1903,11 @@ get_matching_input(void *mem_ctx,
          ralloc_asprintf(mem_ctx, "%s.%s",
             output_var->get_interface_type()->without_array()->name,
             output_var->name);
-      input_var =
-         (ir_variable *) hash_table_find(consumer_interface_inputs,
-                                         iface_field_name);
+      hash_entry *entry = _mesa_hash_table_search(consumer_interface_inputs, iface_field_name);
+      input_var = entry ? (ir_variable *) entry->data : NULL;
    } else {
-      input_var =
-         (ir_variable *) hash_table_find(consumer_inputs, output_var->name);
+      hash_entry *entry = _mesa_hash_table_search(consumer_inputs, output_var->name);
+      input_var = entry ? (ir_variable *) entry->data : NULL;
    }
 
    return (input_var == NULL || input_var->data.mode != ir_var_shader_in)
@@ -2074,12 +2084,15 @@ assign_varying_locations(struct gl_context *ctx,
    varying_matches matches(disable_varying_packing, xfb_enabled,
                            producer ? producer->Stage : (gl_shader_stage)-1,
                            consumer ? consumer->Stage : (gl_shader_stage)-1);
-   hash_table *tfeedback_candidates
-      = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
-   hash_table *consumer_inputs
-      = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
-   hash_table *consumer_interface_inputs
-      = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
+   hash_table *tfeedback_candidates =
+         _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                 _mesa_key_string_equal);
+   hash_table *consumer_inputs =
+         _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                 _mesa_key_string_equal);
+   hash_table *consumer_interface_inputs =
+         _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                 _mesa_key_string_equal);
    ir_variable *consumer_inputs_with_locations[VARYING_SLOT_TESS_MAX] = {
       NULL,
    };
@@ -2174,8 +2187,8 @@ assign_varying_locations(struct gl_context *ctx,
       }
    }
 
-   hash_table_dtor(consumer_inputs);
-   hash_table_dtor(consumer_interface_inputs);
+   _mesa_hash_table_destroy(consumer_inputs, NULL);
+   _mesa_hash_table_destroy(consumer_interface_inputs, NULL);
 
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
       if (!tfeedback_decls[i].is_varying())
@@ -2185,7 +2198,7 @@ assign_varying_locations(struct gl_context *ctx,
          = tfeedback_decls[i].find_candidate(prog, tfeedback_candidates);
 
       if (matched_candidate == NULL) {
-         hash_table_dtor(tfeedback_candidates);
+         _mesa_hash_table_destroy(tfeedback_candidates, NULL);
          return false;
       }
 
@@ -2203,11 +2216,11 @@ assign_varying_locations(struct gl_context *ctx,
          continue;
 
       if (!tfeedback_decls[i].assign_location(ctx, prog)) {
-         hash_table_dtor(tfeedback_candidates);
+         _mesa_hash_table_destroy(tfeedback_candidates, NULL);
          return false;
       }
    }
-   hash_table_dtor(tfeedback_candidates);
+   _mesa_hash_table_destroy(tfeedback_candidates, NULL);
 
    if (consumer && producer) {
       foreach_in_list(ir_instruction, node, consumer->ir) {

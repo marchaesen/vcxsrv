@@ -7,8 +7,15 @@ libXwinGLX_la_SOURCES = \
 	glwindows.h \
 	glshim.c \
 	indirect.c \
+	indirect.h \
 	wgl_ext_api.c \
 	wgl_ext_api.h
+
+if XWIN_WINDOWS_DRI
+libXwinGLX_la_SOURCES += \
+	dri_helpers.c \
+	dri_helpers.h
+endif
 
 libnativeGLthunk_la_SOURCES = \
 	glthunk.c

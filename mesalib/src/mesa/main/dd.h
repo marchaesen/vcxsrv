@@ -978,6 +978,15 @@ struct dd_function_table {
    /*@}*/
 
    /**
+    * \name GL_ARB_compute_variable_group_size interface
+    */
+   /*@{*/
+   void (*DispatchComputeGroupSize)(struct gl_context *ctx,
+                                    const GLuint *num_groups,
+                                    const GLuint *group_size);
+   /*@}*/
+
+   /**
     * Query information about memory. Device memory is e.g. VRAM. Staging
     * memory is e.g. GART. All sizes are in kilobytes.
     */

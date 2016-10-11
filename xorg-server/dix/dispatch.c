@@ -199,7 +199,7 @@ UpdateCurrentTime(void)
     systime.milliseconds = GetTimeInMillis();
     if (systime.milliseconds < currentTime.milliseconds)
         systime.months++;
-    if (*checkForInput[0] != *checkForInput[1])
+    if (InputCheckPending())
         ProcessInputEvents();
     if (CompareTimeStamps(systime, currentTime) == LATER)
         currentTime = systime;
@@ -366,7 +366,7 @@ SmartScheduleClient(void)
          * has run, bump the slice up to get maximal
          * performance from a single client
          */
-        if ((now - pClient->smart_start_tick) > 1000 &&
+        if ((now - best->smart_start_tick) > 1000 &&
             SmartScheduleSlice < SmartScheduleMaxSlice) {
             SmartScheduleSlice += SmartScheduleInterval;
         }
@@ -399,7 +399,6 @@ Dispatch(void)
 {
     int result;
     ClientPtr client;
-    HWEventQueuePtr *icheck = checkForInput;
     long start_tick;
 
     nextFreeClientID = 1;
@@ -409,7 +408,7 @@ Dispatch(void)
     init_client_ready();
 
     while (!dispatchException) {
-        if (*icheck[0] != *icheck[1]) {
+        if (InputCheckPending()) {
             ProcessInputEvents();
             FlushIfCriticalOutputPending();
         }
@@ -432,7 +431,7 @@ Dispatch(void)
 #ifdef XSERVER_DTRACE
                 CARD8 StartMajorOp;
 #endif
-                if (*icheck[0] != *icheck[1])
+                if (InputCheckPending())
                     ProcessInputEvents();
 
                 FlushIfCriticalOutputPending();
@@ -2234,12 +2233,8 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
         return BadAlloc;
     WriteReplyToClient(client, sizeof(xGetImageReply), &xgi);
 
-    if (pDraw->type == DRAWABLE_WINDOW) {
-        pVisibleRegion = NotClippedByChildren((WindowPtr) pDraw);
-        if (pVisibleRegion) {
-            RegionTranslate(pVisibleRegion, -pDraw->x, -pDraw->y);
-        }
-    }
+    if (pDraw->type == DRAWABLE_WINDOW)
+        pVisibleRegion = &((WindowPtr) pDraw)->borderClip;
 
     if (linesPerBuf == 0) {
         /* nothing to do */
@@ -2298,8 +2293,6 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
             }
         }
     }
-    if (pVisibleRegion)
-        RegionDestroy(pVisibleRegion);
     free(pBuf);
     return Success;
 }
@@ -4006,6 +3999,16 @@ AddGPUScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
     }
 
     update_desktop_dimensions();
+
+    /*
+     * We cannot register the Screen PRIVATE_CURSOR key if cursors are already
+     * created, because dix/privates.c does not have relocation code for
+     * PRIVATE_CURSOR. Once this is fixed the if() can be removed and we can
+     * register the Screen PRIVATE_CURSOR key unconditionally.
+     */
+    if (!dixPrivatesCreated(PRIVATE_CURSOR))
+        dixRegisterScreenPrivateKey(&cursorScreenDevPriv, pScreen,
+                                    PRIVATE_CURSOR, 0);
 
     return i;
 }

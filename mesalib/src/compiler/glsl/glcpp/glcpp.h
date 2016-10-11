@@ -31,7 +31,7 @@
 
 #include "util/ralloc.h"
 
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 #define yyscan_t void*
 

@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.18.99.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2015-11-09"
-RELEASE_NAME="Ouzo"
+AC_INIT([xorg-server], 1.18.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2016-09-19"
+RELEASE_NAME="Brown Turkey Fig"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -411,7 +411,7 @@ case $host_os in
 	DRI=yes
 	;;
   *solaris*)
-	PKG_CHECK_EXISTS(libdrm, DRI=yes, DRI=no)
+	DRI=yes
 	;;
   darwin*)
 	AC_DEFINE(CSRG_BASED, 1, [System is BSD-like])
@@ -595,10 +595,6 @@ AC_ARG_ENABLE(visibility,     AS_HELP_STRING([--enable-visibility], [Enable symb
 				[SYMBOL_VISIBILITY=auto])
 
 dnl GLX build options
-AC_ARG_ENABLE(aiglx,          AS_HELP_STRING([--enable-aiglx], [Build accelerated indirect GLX (default: enabled)]),
-                                [AIGLX=$enableval],
-                                [AIGLX=yes])
-
 AC_ARG_WITH(khronos-spec-dir, AS_HELP_STRING([--with-khronos-spec-dir=PATH], [Path to Khronos OpenGL registry database files (default: auto)]),
 				[KHRONOS_SPEC_DIR="${withval}"],
 				[KHRONOS_SPEC_DIR=auto])
@@ -637,6 +633,7 @@ AC_ARG_ENABLE(vgahw,          AS_HELP_STRING([--enable-vgahw], [Build Xorg with 
 AC_ARG_ENABLE(vbe,            AS_HELP_STRING([--enable-vbe], [Build Xorg with VBE module (default: enabled)]), [VBE=$enableval], [VBE=yes])
 AC_ARG_ENABLE(int10-module,     AS_HELP_STRING([--enable-int10-module], [Build Xorg with int10 module (default: enabled)]), [INT10MODULE=$enableval], [INT10MODULE=yes])
 AC_ARG_ENABLE(windowswm,      AS_HELP_STRING([--enable-windowswm], [Build XWin with WindowsWM extension (default: no)]), [WINDOWSWM=$enableval], [WINDOWSWM=no])
+AC_ARG_ENABLE(windowsdri,     AS_HELP_STRING([--enable-windowsdri], [Build XWin with WindowsDRI extension (default: auto)]), [WINDOWSDRI=$enableval], [WINDOWSDRI=auto])
 AC_ARG_ENABLE(libdrm,         AS_HELP_STRING([--enable-libdrm], [Build Xorg with libdrm support (default: enabled)]), [DRM=$enableval],[DRM=yes])
 AC_ARG_ENABLE(clientids,      AS_HELP_STRING([--disable-clientids], [Build Xorg with client ID tracking (default: enabled)]), [CLIENTIDS=$enableval], [CLIENTIDS=yes])
 AC_ARG_ENABLE(pciaccess, AS_HELP_STRING([--enable-pciaccess], [Build Xorg with pciaccess library (default: enabled)]), [PCI=$enableval], [PCI=yes])
@@ -811,7 +808,7 @@ APPLEWMPROTO="applewmproto >= 1.4"
 LIBXSHMFENCE="xshmfence >= 1.1"
 
 dnl Required modules
-XPROTO="xproto >= 7.0.28"
+XPROTO="xproto >= 7.0.31"
 RANDRPROTO="randrproto >= 1.5.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.2.99.901"
@@ -829,7 +826,7 @@ dnl List of libraries that require a specific version
 LIBAPPLEWM="applewm >= 1.4"
 LIBDMX="dmx >= 1.0.99.1"
 LIBDRI="dri >= 7.8.0"
-LIBDRM="libdrm >= 2.3.0"
+LIBDRM="libdrm >= 2.3.1"
 LIBEGL="egl"
 LIBGBM="gbm >= 10.2.0"
 LIBGL="gl >= 7.1.0"
@@ -870,6 +867,26 @@ if test "x$INPUTTHREAD" = "xyes" ; then
     SYS_LIBS="$SYS_LIBS $PTHREAD_LIBS"
     CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
     AC_DEFINE(INPUTTHREAD, 1, [Use a separate input thread])
+
+    save_LIBS="$LIBS"
+    LIBS="$LIBS $SYS_LIBS"
+    dnl MacOS X 10.6 & higher
+    AC_MSG_CHECKING(for pthread_setname_np(const char*))
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <pthread.h>],
+	                            [pthread_setname_np("example")])],
+                   [AC_MSG_RESULT(yes)
+		    AC_DEFINE(HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID,1,
+		              [Have function pthread_setname_np(const char*)])],
+                   [AC_MSG_RESULT(no)])
+    dnl GNU libc 2.12 & higher, Solaris 11.3 & higher
+    AC_MSG_CHECKING(for pthread_setname_np(pthread_t, const char*))
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <pthread.h>],
+                             [pthread_setname_np(pthread_self(), "example")])],
+                   [AC_MSG_RESULT(yes)
+		    AC_DEFINE(HAVE_PTHREAD_SETNAME_NP_WITH_TID,1,
+	                      [Have function pthread_setname_np(pthread_t, const char*)])],
+		   [AC_MSG_RESULT(no)])
+    LIBS="$save_LIBS"
 fi
 
 REQUIRED_MODULES="$FIXESPROTO $DAMAGEPROTO $XCMISCPROTO $XTRANS $BIGREQSPROTO $SDK_REQUIRED_MODULES"
@@ -1210,7 +1227,7 @@ AC_ARG_ENABLE(xtrans-send-fds,	AS_HELP_STRING([--disable-xtrans-send-fds], [Use 
 case "x$XTRANS_SEND_FDS" in
 xauto)
 	case "$host_os" in
-	linux*|solaris*)
+	linux*|solaris*|freebsd*|dragonfly*|openbsd*)
 		XTRANS_SEND_FDS=yes
 		;;
 	*)
@@ -1327,27 +1344,6 @@ if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$DRI3" = xyes || test "
 	fi
 fi
 
-if test "x$DRI2" = xyes; then
-	save_CFLAGS=$CFLAGS
-	CFLAGS="$CFLAGS $GL_CFLAGS $LIBDRM_CFLAGS"
-	AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <GL/gl.h>
-#include <GL/internal/dri_interface.h>
-#ifndef __DRI_DRI2
-#error DRI2 extension not available.
-#endif]])],
-			  [HAVE_DRI2EXTENSION=yes],
-			  [HAVE_DRI2EXTENSION=no])
-	CFLAGS=$save_CFLAGS
-	if test "x$HAVE_DRI2EXTENSION" = xyes; then
-		AC_DEFINE(DRI2_AIGLX, 1, [Build DRI2 AIGLX loader])
-		DRI2_AIGLX=yes
-	else
-		AC_MSG_NOTICE([DRI2 AIGLX disabled, __DRI_DRI2 not defined in dri_interface.h.])
-		DRI2_AIGLX=no
-	fi
-fi
-AM_CONDITIONAL(DRI2_AIGLX, test "x$DRI2_AIGLX" = xyes)
-
 if test "x$GLX" = xyes; then
 	PKG_CHECK_MODULES([XLIB], [x11])
 	PKG_CHECK_MODULES([GL], $GLPROTO $LIBGL)
@@ -1359,15 +1355,6 @@ else
         GLX=no
 fi
 AM_CONDITIONAL(GLX, test "x$GLX" = xyes)
-
-if test "x$GLX" = xno; then
-        AIGLX=no
-fi
-
-if test "x$AIGLX" = xyes -a \( "x$DRI2" = xyes \); then
-	AC_DEFINE(AIGLX, 1, [Build AIGLX loader])
-fi
-AM_CONDITIONAL(AIGLX_DRI_LOADER, { test "x$DRI2" = xyes; } && test "x$AIGLX" = xyes)
 
 AC_SUBST([GLX_DEFINES])
 AC_SUBST([GLX_SYS_LIBS])
@@ -2210,6 +2197,13 @@ if test "x$XWIN" = xyes; then
 		AC_DEFINE(ROOTLESS,1,[Build Rootless code])
 	fi
 
+	if test "x$WINDOWSDRI" = xauto; then
+		PKG_CHECK_EXISTS([windowsdriproto], [WINDOWSDRI=yes], [WINDOWSDRI=no])
+	fi
+	if test "x$WINDOWSDRI" = xyes ; then
+		PKG_CHECK_MODULES(WINDOWSDRI, [windowsdriproto])
+	fi
+
 	case $host_os in
 		cygwin*)
 			XWIN_SERVER_NAME=XWin
@@ -2238,8 +2232,8 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE(DDXOSVERRORF, 1, [Use OsVendorVErrorF])
 	AC_DEFINE(DDXBEFORERESET, 1, [Use ddxBeforeReset ])
 
-dnl XWin with AIGLX requires OpenGL spec files in order to generate wrapper code for native GL functions
-	if [test "x$XWIN" = xyes && test "x$AIGLX" = xyes] ; then
+dnl XWin requires OpenGL spec files in order to generate wrapper code for native GL functions
+	if [test "x$XWIN" = xyes] ; then
            AC_CHECK_PROG(PYTHON3, python3, python3)
            if test -z "$PYTHON3"; then
                 AC_MSG_ERROR([python3 not found])
@@ -2262,7 +2256,8 @@ AM_CONDITIONAL(XWIN, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes && test "x$WINDOWSWM" = xyes])
 AM_CONDITIONAL(XWIN_CLIPBOARD, [test "x$XWIN" = xyes])
-AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes && test "x$AIGLX" = xyes])
+AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes])
+AM_CONDITIONAL(XWIN_WINDOWS_DRI, [test "x$XWIN" = xyes && test "x$WINDOWSDRI" = xyes])
 AM_CONDITIONAL(XWIN_RANDR, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_XV, [test "x$XWIN" = xyes && test "x$XV" = xyes])
 
@@ -2450,7 +2445,7 @@ if test "$KDRIVE" = yes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xcb-xv"
     fi
     if test "x$DRI" = xyes && test "x$GLX" = xyes; then
-        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS libdrm xcb-glx xcb-xf86dri > 1.6"
+        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS $LIBDRM xcb-glx xcb-xf86dri > 1.6"
     fi
     if test "x$GLAMOR" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS x11-xcb"
@@ -2504,7 +2499,7 @@ AM_CONDITIONAL(XFAKESERVER, [test "x$KDRIVE" = xyes && test "x$XFAKE" = xyes])
 
 dnl Xwayland DDX
 
-XWAYLANDMODULES="wayland-client >= 1.3.0 libdrm epoxy"
+XWAYLANDMODULES="wayland-client >= 1.3.0 wayland-protocols >= 1.1 $LIBDRM epoxy"
 if test "x$XF86VIDMODE" = xyes; then
 	XWAYLANDMODULES="$XWAYLANDMODULES $VIDMODEPROTO"
 fi
@@ -2533,6 +2528,8 @@ if test "x$XWAYLAND" = xyes; then
 	WAYLAND_PREFIX=`$PKG_CONFIG --variable=prefix wayland-client`
 	AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner],,
 		     [${WAYLAND_PREFIX}/bin$PATH_SEPARATOR$PATH])
+
+	AC_SUBST(WAYLAND_PROTOCOLS_DATADIR, `$PKG_CONFIG --variable=pkgdatadir wayland-protocols`)
 fi
 
 
@@ -2665,6 +2662,7 @@ hw/vfb/man/Makefile
 hw/xnest/Makefile
 hw/xnest/man/Makefile
 hw/xwin/Makefile
+hw/xwin/dri/Makefile
 hw/xwin/glx/Makefile
 hw/xwin/man/Makefile
 hw/xwin/winclipboard/Makefile

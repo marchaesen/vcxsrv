@@ -428,9 +428,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\program\ir_to_mesa.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\string_to_uint_map.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -668,9 +665,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\drawtex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_packed_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -873,6 +867,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\bbox.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\string_to_uint_map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

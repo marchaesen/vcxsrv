@@ -61,6 +61,7 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
 #include "glx_extinit.h"
 #ifdef XWIN_GLX_WINDOWS
 #include "glx/glwindows.h"
+#include "dri/windowsdri.h"
 #endif
 
 /*
@@ -112,6 +113,9 @@ const int NUMFORMATS = sizeof(g_PixmapFormats) / sizeof(g_PixmapFormats[0]);
 static const ExtensionModule xwinExtensions[] = {
 #ifdef GLXEXT
   { GlxExtensionInit, "GLX", &noGlxExtension },
+#ifdef XWIN_WINDOWS_DRI
+  { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
+#endif
 #endif
 };
 

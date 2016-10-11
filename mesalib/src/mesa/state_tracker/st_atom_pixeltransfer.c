@@ -30,6 +30,7 @@
  */
 
 #include "st_context.h"
+#include "st_sampler_view.h"
 #include "st_texture.h"
 
 #include "util/u_inlines.h"

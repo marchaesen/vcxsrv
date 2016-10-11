@@ -37,7 +37,7 @@
 #include "compiler/glsl/glsl_symbol_table.h"
 #include "compiler/glsl/ir.h"
 #include "compiler/glsl/program.h"
-#include "program/hash_table.h"
+#include "util/string_to_uint_map.h"
 #include "util/strndup.h"
 
 

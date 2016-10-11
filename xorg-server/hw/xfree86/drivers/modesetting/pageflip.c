@@ -29,6 +29,40 @@
 
 #include "driver.h"
 
+/*
+ * Flush the DRM event queue when full; makes space for new events.
+ *
+ * Returns a negative value on error, 0 if there was nothing to process,
+ * or 1 if we handled any events.
+ */
+int
+ms_flush_drm_events(ScreenPtr screen)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
+
+    struct pollfd p = { .fd = ms->fd, .events = POLLIN };
+    int r;
+
+    do {
+            r = xserver_poll(&p, 1, 0);
+    } while (r == -1 && (errno == EINTR || errno == EAGAIN));
+
+    /* If there was an error, r will be < 0.  Return that.  If there was
+     * nothing to process, r == 0.  Return that.
+     */
+    if (r <= 0)
+        return r;
+
+    /* Try to handle the event.  If there was an error, return it. */
+    r = drmHandleEvent(ms->fd, &ms->event_context);
+    if (r < 0)
+        return r;
+
+    /* Otherwise return 1 to indicate that we handled an event. */
+    return 1;
+}
+
 #ifdef GLAMOR
 
 /*
@@ -123,40 +157,6 @@ ms_pageflip_abort(void *data)
         flipdata->abort_handler(ms, flipdata->event);
 
     ms_pageflip_free(flip);
-}
-
-/*
- * Flush the DRM event queue when full; makes space for new events.
- *
- * Returns a negative value on error, 0 if there was nothing to process,
- * or 1 if we handled any events.
- */
-int
-ms_flush_drm_events(ScreenPtr screen)
-{
-    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-    modesettingPtr ms = modesettingPTR(scrn);
-
-    struct pollfd p = { .fd = ms->fd, .events = POLLIN };
-    int r;
-
-    do {
-            r = xserver_poll(&p, 1, 0);
-    } while (r == -1 && (errno == EINTR || errno == EAGAIN));
-
-    /* If there was an error, r will be < 0.  Return that.  If there was
-     * nothing to process, r == 0.  Return that.
-     */
-    if (r <= 0)
-        return r;
-
-    /* Try to handle the event.  If there was an error, return it. */
-    r = drmHandleEvent(ms->fd, &ms->event_context);
-    if (r < 0)
-        return r;
-
-    /* Otherwise return 1 to indicate that we handled an event. */
-    return 1;
 }
 
 static Bool

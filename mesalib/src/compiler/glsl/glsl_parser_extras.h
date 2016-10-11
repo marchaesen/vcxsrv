@@ -69,12 +69,12 @@ typedef struct YYLTYPE {
 # define YYLTYPE_IS_TRIVIAL 1
 
 extern void _mesa_glsl_error(YYLTYPE *locp, _mesa_glsl_parse_state *state,
-			     const char *fmt, ...);
+                             const char *fmt, ...);
 
 
 struct _mesa_glsl_parse_state {
    _mesa_glsl_parse_state(struct gl_context *_ctx, gl_shader_stage stage,
-			  void *mem_ctx);
+                          void *mem_ctx);
 
    DECLARE_RALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
    static void operator delete(void *mem, void *ctx)
@@ -409,6 +409,12 @@ struct _mesa_glsl_parse_state {
    unsigned cs_input_local_size[3];
 
    /**
+    * True if a compute shader input local variable size was specified using
+    * a layout directive as specified by ARB_compute_variable_group_size.
+    */
+   bool cs_input_local_size_variable_specified;
+
+   /**
     * Output layout qualifiers from GLSL 1.50 (geometry shader controls),
     * and GLSL 4.00 (tessellation control shader).
     */
@@ -580,6 +586,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_arrays_of_arrays_warn;
    bool ARB_compute_shader_enable;
    bool ARB_compute_shader_warn;
+   bool ARB_compute_variable_group_size_enable;
+   bool ARB_compute_variable_group_size_warn;
    bool ARB_conservative_depth_enable;
    bool ARB_conservative_depth_warn;
    bool ARB_cull_distance_enable;
@@ -636,6 +644,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_texture_image_samples_warn;
    bool ARB_shader_texture_lod_enable;
    bool ARB_shader_texture_lod_warn;
+   bool ARB_shader_viewport_layer_array_enable;
+   bool ARB_shader_viewport_layer_array_warn;
    bool ARB_shading_language_420pack_enable;
    bool ARB_shading_language_420pack_warn;
    bool ARB_shading_language_packing_enable;
@@ -700,6 +710,8 @@ struct _mesa_glsl_parse_state {
    bool OES_texture_cube_map_array_warn;
    bool OES_texture_storage_multisample_2d_array_enable;
    bool OES_texture_storage_multisample_2d_array_warn;
+   bool OES_viewport_array_enable;
+   bool OES_viewport_array_warn;
 
    /* All other extensions go here, sorted alphabetically.
     */
@@ -713,6 +725,8 @@ struct _mesa_glsl_parse_state {
    bool AMD_vertex_shader_layer_warn;
    bool AMD_vertex_shader_viewport_index_enable;
    bool AMD_vertex_shader_viewport_index_warn;
+   bool ANDROID_extension_pack_es31a_enable;
+   bool ANDROID_extension_pack_es31a_warn;
    bool EXT_blend_func_extended_enable;
    bool EXT_blend_func_extended_warn;
    bool EXT_clip_cull_distance_enable;
@@ -814,23 +828,23 @@ struct _mesa_glsl_parse_state {
    unsigned clip_dist_size, cull_dist_size;
 };
 
-# define YYLLOC_DEFAULT(Current, Rhs, N)			\
-do {								\
-   if (N)							\
-   {								\
-      (Current).first_line   = YYRHSLOC(Rhs, 1).first_line;	\
-      (Current).first_column = YYRHSLOC(Rhs, 1).first_column;	\
-      (Current).last_line    = YYRHSLOC(Rhs, N).last_line;	\
-      (Current).last_column  = YYRHSLOC(Rhs, N).last_column;	\
-   }								\
-   else								\
-   {								\
-      (Current).first_line   = (Current).last_line =		\
-	 YYRHSLOC(Rhs, 0).last_line;				\
-      (Current).first_column = (Current).last_column =		\
-	 YYRHSLOC(Rhs, 0).last_column;				\
-   }								\
-   (Current).source = 0;					\
+# define YYLLOC_DEFAULT(Current, Rhs, N)                        \
+do {                                                            \
+   if (N)                                                       \
+   {                                                            \
+      (Current).first_line   = YYRHSLOC(Rhs, 1).first_line;     \
+      (Current).first_column = YYRHSLOC(Rhs, 1).first_column;   \
+      (Current).last_line    = YYRHSLOC(Rhs, N).last_line;      \
+      (Current).last_column  = YYRHSLOC(Rhs, N).last_column;    \
+   }                                                            \
+   else                                                         \
+   {                                                            \
+      (Current).first_line   = (Current).last_line =            \
+         YYRHSLOC(Rhs, 0).last_line;                            \
+      (Current).first_column = (Current).last_column =          \
+         YYRHSLOC(Rhs, 0).last_column;                          \
+   }                                                            \
+   (Current).source = 0;                                        \
 } while (0)
 
 /**
@@ -839,11 +853,11 @@ do {								\
  * \sa _mesa_glsl_error
  */
 extern void _mesa_glsl_warning(const YYLTYPE *locp,
-			       _mesa_glsl_parse_state *state,
-			       const char *fmt, ...);
+                               _mesa_glsl_parse_state *state,
+                               const char *fmt, ...);
 
 extern void _mesa_glsl_lexer_ctor(struct _mesa_glsl_parse_state *state,
-				  const char *string);
+                                  const char *string);
 
 extern void _mesa_glsl_lexer_dtor(struct _mesa_glsl_parse_state *state);
 
@@ -861,9 +875,9 @@ extern int _mesa_glsl_parse(struct _mesa_glsl_parse_state *);
  * \c false is returned.
  */
 extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
-					 const char *behavior,
-					 YYLTYPE *behavior_locp,
-					 _mesa_glsl_parse_state *state);
+                                         const char *behavior,
+                                         YYLTYPE *behavior_locp,
+                                         _mesa_glsl_parse_state *state);
 
 #endif /* __cplusplus */
 
@@ -878,11 +892,11 @@ extern "C" {
 struct glcpp_parser;
 
 typedef void (*glcpp_extension_iterator)(
-		struct _mesa_glsl_parse_state *state,
-		void (*add_builtin_define)(struct glcpp_parser *, const char *, int),
-		struct glcpp_parser *data,
-		unsigned version,
-		bool es);
+              struct _mesa_glsl_parse_state *state,
+              void (*add_builtin_define)(struct glcpp_parser *, const char *, int),
+              struct glcpp_parser *data,
+              unsigned version,
+              bool es);
 
 extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
                             glcpp_extension_iterator extensions,

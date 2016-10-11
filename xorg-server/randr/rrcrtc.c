@@ -282,7 +282,7 @@ crtc_bounds(RRCrtcPtr crtc, int *left, int *right, int *top, int *bottom)
     *left = crtc->x;
     *top = crtc->y;
 
-    switch (crtc->rotation) {
+    switch (crtc->rotation & 0xf) {
     case RR_Rotate_0:
     case RR_Rotate_180:
     default:
@@ -1942,4 +1942,23 @@ RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable)
     free(saved_scanout_pixmap);
 
     return ret;
+}
+
+Bool
+RRHasScanoutPixmap(ScreenPtr pScreen)
+{
+    rrScrPriv(pScreen);
+    int i;
+
+    if (!pScreen->is_output_slave)
+        return FALSE;
+
+    for (i = 0; i < pScrPriv->numCrtcs; i++) {
+        RRCrtcPtr crtc = pScrPriv->crtcs[i];
+
+        if (crtc->scanout_pixmap)
+            return TRUE;
+    }
+    
+    return FALSE;
 }

@@ -46,7 +46,6 @@
 
 #include "compiler/glsl_types.h"
 #include "ir.h"
-#include "program/hash_table.h"
 
 namespace {
 

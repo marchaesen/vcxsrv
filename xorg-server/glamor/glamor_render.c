@@ -533,16 +533,8 @@ glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
     repeat_type = picture->repeatType;
     switch (picture->repeatType) {
     case RepeatNone:
-        if (glamor_priv->gl_flavor != GLAMOR_GL_ES2) {
-            /* XXX  GLES2 doesn't support GL_CLAMP_TO_BORDER. */
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                            GL_CLAMP_TO_BORDER);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                            GL_CLAMP_TO_BORDER);
-        } else {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         break;
     case RepeatNormal:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -573,12 +565,12 @@ glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
         break;
     }
 
-    /*
-     *  GLES2 doesn't support RepeatNone. We need to fix it anyway.
-     *
-     **/
+    /* Handle RepeatNone in the shader when the source is missing the
+     * alpha channel, as GL will return an alpha for 1 if the texture
+     * is RGB (no alpha), which we use for 16bpp textures.
+     */
     if (glamor_pixmap_priv_is_large(pixmap_priv) ||
-        ((!PICT_FORMAT_A(picture->format) || glamor_priv->gl_flavor == GLAMOR_GL_ES2) &&
+        (!PICT_FORMAT_A(picture->format) &&
          repeat_type == RepeatNone && picture->transform)) {
         glamor_pixmap_fbo_fix_wh_ratio(wh, pixmap, pixmap_priv);
         glUniform4fv(wh_location, 1, wh);
@@ -868,7 +860,10 @@ glamor_composite_choose_shader(CARD8 op,
                 goto fail;
         }
         else {
-            key.mask = SHADER_MASK_TEXTURE_ALPHA;
+            if (PICT_FORMAT_A(mask->format))
+                key.mask = SHADER_MASK_TEXTURE_ALPHA;
+            else
+                key.mask = SHADER_MASK_TEXTURE;
         }
 
         if (!mask->componentAlpha) {
@@ -1339,11 +1334,6 @@ glamor_convert_gradient_picture(ScreenPtr screen,
         }
 
         if (dst) {
-#if 0                           /* Debug to compare it to pixman, Enable it if needed. */
-            glamor_compare_pictures(screen, source,
-                                    dst, x_source, y_source, width, height,
-                                    0, 3);
-#endif
             return dst;
         }
     }
@@ -1423,6 +1413,8 @@ glamor_composite_clipped_region(CARD8 op,
     /* Is the composite operation equivalent to a copy? */
     if (!mask && !source->alphaMap && !dest->alphaMap
         && source->pDrawable && !source->transform
+        /* CopyArea is only defined with matching depths. */
+        && dest->pDrawable->depth == source->pDrawable->depth
         && ((op == PictOpSrc
              && (source->format == dest->format
                  || (PICT_FORMAT_COLOR(dest->format)
@@ -1481,7 +1473,7 @@ glamor_composite_clipped_region(CARD8 op,
              && (mask_pixmap->drawable.width != width
                  || mask_pixmap->drawable.height != height)))) {
         /* XXX if mask->pDrawable is the same as source->pDrawable, we have an opportunity
-         * to do reduce one convertion. */
+         * to do reduce one conversion. */
         temp_mask =
             glamor_convert_gradient_picture(screen, mask,
                                             extent->x1 + x_mask - x_dest - dest->pDrawable->x,
@@ -1712,12 +1704,12 @@ glamor_composite(CARD8 op,
          source, source->pDrawable,
          source->pDrawable ? source->pDrawable->width : 0,
          source->pDrawable ? source->pDrawable->height : 0, mask,
-         (!mask) ? NULL : mask->pDrawable, (!mask
-                                            || !mask->pDrawable) ? 0 :
-         mask->pDrawable->width, (!mask
-                                  || !mask->pDrawable) ? 0 : mask->
-         pDrawable->height, glamor_get_picture_location(source),
-         glamor_get_picture_location(mask), dest, dest->pDrawable,
+         (!mask) ? NULL : mask->pDrawable,
+         (!mask || !mask->pDrawable) ? 0 : mask->pDrawable->width,
+         (!mask || !mask->pDrawable) ? 0 : mask->pDrawable->height,
+         glamor_get_picture_location(source),
+         glamor_get_picture_location(mask),
+         dest, dest->pDrawable,
          dest->pDrawable->width, dest->pDrawable->height,
          glamor_get_picture_location(dest));
 

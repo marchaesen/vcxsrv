@@ -11,3 +11,4 @@
 
 HWND winGetWindowInfo(WindowPtr pWin);
 Bool winCheckScreenAiglxIsSupported(ScreenPtr pScreen);
+void winSetScreenAiglxIsActive(ScreenPtr pScreen);

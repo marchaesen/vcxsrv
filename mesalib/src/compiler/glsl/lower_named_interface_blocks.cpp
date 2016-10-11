@@ -63,7 +63,7 @@
 #include "ir.h"
 #include "ir_optimization.h"
 #include "ir_rvalue_visitor.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 static const glsl_type *
 process_array_type(const glsl_type *type, unsigned idx)
@@ -123,8 +123,8 @@ public:
 void
 flatten_named_interface_blocks_declarations::run(exec_list *instructions)
 {
-   interface_namespace = hash_table_ctor(0, hash_table_string_hash,
-                                         hash_table_string_compare);
+   interface_namespace = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                                 _mesa_key_string_equal);
 
    /* First pass: adjust instance block variables with an instance name
     * to not have an instance name.
@@ -157,9 +157,9 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
                             var->data.mode == ir_var_shader_in ? "in" : "out",
                             iface_t->name, var->name, field_name);
 
-         ir_variable *found_var =
-            (ir_variable *) hash_table_find(interface_namespace,
-                                            iface_field_name);
+         hash_entry *entry = _mesa_hash_table_search(interface_namespace,
+                                                     iface_field_name);
+         ir_variable *found_var = entry ? (ir_variable *) entry->data : NULL;
          if (!found_var) {
             ir_variable *new_var;
             char *var_name =
@@ -196,8 +196,8 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
             new_var->data.from_named_ifc_block = 1;
 
             new_var->init_interface_type(var->type);
-            hash_table_insert(interface_namespace, new_var,
-                              iface_field_name);
+            _mesa_hash_table_insert(interface_namespace, iface_field_name,
+                                    new_var);
             insert_pos->insert_after(new_var);
             insert_pos = new_var;
          }
@@ -209,7 +209,7 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
     * reference an interface block, then flatten the refererence out.
     */
    visit_list_elements(this, instructions);
-   hash_table_dtor(interface_namespace);
+   _mesa_hash_table_destroy(interface_namespace, NULL);
    interface_namespace = NULL;
 }
 
@@ -268,11 +268,12 @@ flatten_named_interface_blocks_declarations::handle_rvalue(ir_rvalue **rvalue)
                          var->data.mode == ir_var_shader_in ? "in" : "out",
                          var->get_interface_type()->name,
                          var->name, ir->field);
+
       /* Find the variable in the set of flattened interface blocks */
-      ir_variable *found_var =
-         (ir_variable *) hash_table_find(interface_namespace,
-                                         iface_field_name);
-      assert(found_var);
+      hash_entry *entry = _mesa_hash_table_search(interface_namespace,
+                                                  iface_field_name);
+      assert(entry);
+      ir_variable *found_var = (ir_variable *) entry->data;
 
       ir_dereference_variable *deref_var =
          new(mem_ctx) ir_dereference_variable(found_var);

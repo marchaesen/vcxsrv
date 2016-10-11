@@ -33,6 +33,7 @@
 #include <compositeext.h>
 #include <glx_extinit.h>
 #include <os.h>
+#include <xserver_poll.h>
 
 #ifdef XF86VIDMODE
 #include <X11/extensions/xf86vmproto.h>
@@ -102,6 +103,12 @@ static DevPrivateKeyRec xwl_window_private_key;
 static DevPrivateKeyRec xwl_screen_private_key;
 static DevPrivateKeyRec xwl_pixmap_private_key;
 
+static struct xwl_window *
+xwl_window_get(WindowPtr window)
+{
+    return dixLookupPrivate(&window->devPrivates, &xwl_window_private_key);
+}
+
 struct xwl_screen *
 xwl_screen_get(ScreenPtr screen)
 {
@@ -131,6 +138,76 @@ xwl_close_screen(ScreenPtr screen)
     free(xwl_screen);
 
     return screen->CloseScreen(screen);
+}
+
+static struct xwl_window *
+xwl_window_from_window(WindowPtr window)
+{
+    struct xwl_window *xwl_window;
+
+    while (window) {
+        xwl_window = xwl_window_get(window);
+        if (xwl_window)
+            return xwl_window;
+
+        window = window->parent;
+    }
+
+    return NULL;
+}
+
+static struct xwl_seat *
+xwl_screen_get_default_seat(struct xwl_screen *xwl_screen)
+{
+    return container_of(xwl_screen->seat_list.prev,
+                        struct xwl_seat,
+                        link);
+}
+
+static void
+xwl_cursor_warped_to(DeviceIntPtr device,
+                     ScreenPtr screen,
+                     ClientPtr client,
+                     WindowPtr window,
+                     SpritePtr sprite,
+                     int x, int y)
+{
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    struct xwl_seat *xwl_seat = device->public.devicePrivate;
+    struct xwl_window *xwl_window;
+
+    if (!xwl_seat)
+        xwl_seat = xwl_screen_get_default_seat(xwl_screen);
+
+    xwl_window = xwl_window_from_window(window);
+    if (!xwl_window)
+        return;
+
+    xwl_seat_emulate_pointer_warp(xwl_seat, xwl_window, sprite, x, y);
+}
+
+static void
+xwl_cursor_confined_to(DeviceIntPtr device,
+                       ScreenPtr screen,
+                       WindowPtr window)
+{
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    struct xwl_seat *xwl_seat = device->public.devicePrivate;
+    struct xwl_window *xwl_window;
+
+    if (!xwl_seat)
+        xwl_seat = xwl_screen_get_default_seat(xwl_screen);
+
+    if (window == screen->root) {
+        xwl_seat_unconfine_pointer(xwl_seat);
+        return;
+    }
+
+    xwl_window = xwl_window_from_window(window);
+    if (!xwl_window)
+        return;
+
+    xwl_seat_confine_pointer(xwl_seat, xwl_window);
 }
 
 static void
@@ -326,6 +403,13 @@ xwl_unrealize_window(WindowPtr window)
             xwl_seat->focus_window = NULL;
         if (xwl_seat->last_xwindow == window)
             xwl_seat->last_xwindow = NullWindow;
+        if (xwl_seat->cursor_confinement_window &&
+            xwl_seat->cursor_confinement_window->window == window)
+            xwl_seat_unconfine_pointer(xwl_seat);
+        if (xwl_seat->pointer_warp_emulator &&
+            xwl_seat->pointer_warp_emulator->locked_window &&
+            xwl_seat->pointer_warp_emulator->locked_window->window == window)
+            xwl_seat_destroy_pointer_warp_emulator(xwl_seat);
         xwl_seat_clear_touch(xwl_seat, window);
     }
 
@@ -334,8 +418,7 @@ xwl_unrealize_window(WindowPtr window)
     xwl_screen->UnrealizeWindow = screen->UnrealizeWindow;
     screen->UnrealizeWindow = xwl_unrealize_window;
 
-    xwl_window =
-        dixLookupPrivate(&window->devPrivates, &xwl_window_private_key);
+    xwl_window = xwl_window_get(window);
     if (!xwl_window)
         return ret;
 
@@ -470,6 +553,9 @@ xwl_read_events (struct xwl_screen *xwl_screen)
 {
     int ret;
 
+    if (xwl_screen->wait_flush)
+        return;
+
     ret = wl_display_read_events(xwl_screen->display);
     if (ret == -1)
         FatalError("failed to read Wayland events: %s\n", strerror(errno));
@@ -481,10 +567,25 @@ xwl_read_events (struct xwl_screen *xwl_screen)
         FatalError("failed to dispatch Wayland events: %s\n", strerror(errno));
 }
 
+static int
+xwl_display_pollout (struct xwl_screen *xwl_screen, int timeout)
+{
+    struct pollfd poll_fd;
+
+    poll_fd.fd = wl_display_get_fd(xwl_screen->display);
+    poll_fd.events = POLLOUT;
+
+    return xserver_poll(&poll_fd, 1, timeout);
+}
+
 static void
 xwl_dispatch_events (struct xwl_screen *xwl_screen)
 {
-    int ret;
+    int ret = 0;
+    int ready;
+
+    if (xwl_screen->wait_flush)
+        goto pollout;
 
     while (xwl_screen->prepare_read == 0 &&
            wl_display_prepare_read(xwl_screen->display) == -1) {
@@ -496,9 +597,18 @@ xwl_dispatch_events (struct xwl_screen *xwl_screen)
 
     xwl_screen->prepare_read = 1;
 
-    ret = wl_display_flush(xwl_screen->display);
-    if (ret == -1)
+pollout:
+    ready = xwl_display_pollout(xwl_screen, 5);
+    if (ready == -1 && errno != EINTR)
+        FatalError("error polling on XWayland fd: %s\n", strerror(errno));
+
+    if (ready > 0)
+        ret = wl_display_flush(xwl_screen->display);
+
+    if (ret == -1 && errno != EAGAIN)
         FatalError("failed to write to XWayland fd: %s\n", strerror(errno));
+
+    xwl_screen->wait_flush = (ready == 0 || ready == -1 || ret == -1);
 }
 
 static void
@@ -725,6 +835,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     xwl_screen->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = xwl_close_screen;
+
+    pScreen->CursorWarpedTo = xwl_cursor_warped_to;
+    pScreen->CursorConfinedTo = xwl_cursor_confined_to;
 
     return ret;
 }

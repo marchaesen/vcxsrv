@@ -63,8 +63,8 @@ fbPutImage(DrawablePtr pDrawable,
                              fbReplicatePixel(i, pDrawable->bitsPerPixel),
                              pGC->alu,
                              TRUE, x, y, w, h, src, srcStride, leftPad);
-                src += srcStride * h;
             }
+            src += srcStride * h;
         }
         break;
     case ZPixmap:

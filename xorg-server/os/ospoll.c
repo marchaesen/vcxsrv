@@ -352,10 +352,14 @@ ospoll_listen(struct ospoll *ospoll, int fd, int xevents)
         epoll_mod(ospoll, osfd);
 #endif
 #if POLL
-        if (xevents & X_NOTIFY_READ)
+        if (xevents & X_NOTIFY_READ) {
             ospoll->fds[pos].events |= POLLIN;
-        if (xevents & X_NOTIFY_WRITE)
+            ospoll->osfds[pos].revents &= ~POLLIN;
+        }
+        if (xevents & X_NOTIFY_WRITE) {
             ospoll->fds[pos].events |= POLLOUT;
+            ospoll->osfds[pos].revents &= ~POLLOUT;
+        }
 #endif
     }
 }

@@ -39,6 +39,7 @@ struct lower_io_state {
    void *mem_ctx;
    int (*type_size)(const struct glsl_type *type);
    nir_variable_mode modes;
+   nir_lower_io_options options;
 };
 
 void
@@ -142,7 +143,6 @@ get_io_offset(nir_builder *b, nir_deref_var *deref,
     */
    if (vertex_index != NULL) {
       tail = tail->child;
-      assert(tail->deref_type == nir_deref_type_array);
       nir_deref_array *deref_array = nir_deref_as_array(tail);
 
       nir_ssa_def *vtx = nir_imm_int(b, deref_array->base_offset);
@@ -205,7 +205,8 @@ lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
          assert(vertex_index == NULL);
 
          nir_intrinsic_op bary_op;
-         if (var->data.sample)
+         if (var->data.sample ||
+             (state->options & nir_lower_io_force_sample_interpolation))
             bary_op = nir_intrinsic_load_barycentric_sample;
          else if (var->data.centroid)
             bary_op = nir_intrinsic_load_barycentric_centroid;
@@ -325,7 +326,7 @@ lower_atomic(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    nir_intrinsic_set_base(atomic, var->data.driver_location);
 
    atomic->src[0] = nir_src_for_ssa(offset);
-   for (unsigned i = 0; i < nir_op_infos[intrin->intrinsic].num_inputs; i++) {
+   for (unsigned i = 0; i < nir_intrinsic_infos[intrin->intrinsic].num_srcs; i++) {
       nir_src_copy(&atomic->src[i+1], &intrin->src[i], atomic);
    }
 
@@ -347,7 +348,9 @@ lower_interpolate_at(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    nir_intrinsic_op bary_op;
    switch (intrin->intrinsic) {
    case nir_intrinsic_interp_var_at_centroid:
-      bary_op = nir_intrinsic_load_barycentric_centroid;
+      bary_op = (state->options & nir_lower_io_force_sample_interpolation) ?
+                nir_intrinsic_load_barycentric_sample :
+                nir_intrinsic_load_barycentric_centroid;
       break;
    case nir_intrinsic_interp_var_at_sample:
       bary_op = nir_intrinsic_load_barycentric_at_sample;
@@ -505,7 +508,8 @@ nir_lower_io_block(nir_block *block,
 static void
 nir_lower_io_impl(nir_function_impl *impl,
                   nir_variable_mode modes,
-                  int (*type_size)(const struct glsl_type *))
+                  int (*type_size)(const struct glsl_type *),
+                  nir_lower_io_options options)
 {
    struct lower_io_state state;
 
@@ -513,6 +517,7 @@ nir_lower_io_impl(nir_function_impl *impl,
    state.mem_ctx = ralloc_parent(impl);
    state.modes = modes;
    state.type_size = type_size;
+   state.options = options;
 
    nir_foreach_block(block, impl) {
       nir_lower_io_block(block, &state);
@@ -524,11 +529,13 @@ nir_lower_io_impl(nir_function_impl *impl,
 
 void
 nir_lower_io(nir_shader *shader, nir_variable_mode modes,
-             int (*type_size)(const struct glsl_type *))
+             int (*type_size)(const struct glsl_type *),
+             nir_lower_io_options options)
 {
    nir_foreach_function(function, shader) {
-      if (function->impl)
-         nir_lower_io_impl(function->impl, modes, type_size);
+      if (function->impl) {
+         nir_lower_io_impl(function->impl, modes, type_size, options);
+      }
    }
 }
 

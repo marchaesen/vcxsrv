@@ -33,6 +33,7 @@ EXTRA_DIST += glsl/tests glsl/glcpp/tests glsl/README	\
 TESTS += glsl/glcpp/tests/glcpp-test			\
 	glsl/glcpp/tests/glcpp-test-cr-lf		\
 	glsl/tests/blob-test				\
+	glsl/tests/cache-test				\
 	glsl/tests/general-ir-test			\
 	glsl/tests/optimization-test			\
 	glsl/tests/sampler-types-test			\
@@ -47,6 +48,7 @@ check_PROGRAMS +=					\
 	glsl/glcpp/glcpp				\
 	glsl/glsl_test					\
 	glsl/tests/blob-test				\
+	glsl/tests/cache-test				\
 	glsl/tests/general-ir-test			\
 	glsl/tests/sampler-types-test			\
 	glsl/tests/uniform-initializer-test
@@ -56,6 +58,11 @@ noinst_PROGRAMS = glsl_compiler
 glsl_tests_blob_test_SOURCES =				\
 	glsl/tests/blob_test.c
 glsl_tests_blob_test_LDADD =				\
+	glsl/libglsl.la
+
+glsl_tests_cache_test_SOURCES =				\
+	glsl/tests/cache_test.c
+glsl_tests_cache_test_LDADD =				\
 	glsl/libglsl.la
 
 glsl_tests_general_ir_test_SOURCES =			\
@@ -120,6 +127,9 @@ glsl_libglsl_la_SOURCES =				\
 	$(LIBGLSL_GENERATED_FILES)			\
 	$(LIBGLSL_FILES)
 
+if ENABLE_SHADER_CACHE
+glsl_libglsl_la_SOURCES += $(LIBGLSL_SHADER_CACHE_FILES)
+endif
 
 glsl_libstandalone_la_SOURCES = \
 	$(GLSL_COMPILER_CXX_FILES)

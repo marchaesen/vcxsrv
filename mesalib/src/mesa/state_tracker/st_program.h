@@ -39,6 +39,7 @@
 #include "program/program.h"
 #include "pipe/p_state.h"
 #include "st_context.h"
+#include "st_texture.h"
 #include "st_glsl_to_tgsi.h"
 
 
@@ -47,6 +48,40 @@ extern "C" {
 #endif
 
 #define ST_DOUBLE_ATTRIB_PLACEHOLDER 0xffffffff
+
+struct st_external_sampler_key
+{
+   GLuint lower_nv12;             /**< bitmask of 2 plane YUV samplers */
+   GLuint lower_iyuv;             /**< bitmask of 3 plane YUV samplers */
+};
+
+static inline struct st_external_sampler_key
+st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
+{
+   unsigned mask = prog->ExternalSamplersUsed;
+   struct st_external_sampler_key key;
+
+   memset(&key, 0, sizeof(key));
+
+   while (unlikely(mask)) {
+      unsigned unit = u_bit_scan(&mask);
+      struct st_texture_object *stObj =
+            st_get_texture_object(st->ctx, prog, unit);
+
+      switch (st_get_view_format(stObj)) {
+      case PIPE_FORMAT_NV12:
+         key.lower_nv12 |= (1 << unit);
+         break;
+      case PIPE_FORMAT_IYUV:
+         key.lower_iyuv |= (1 << unit);
+         break;
+      default:
+         break;
+      }
+   }
+
+   return key;
+}
 
 /** Fragment program variant key */
 struct st_fp_variant_key
@@ -72,6 +107,8 @@ struct st_fp_variant_key
 
    /** needed for ATI_fragment_shader */
    char texture_targets[MAX_NUM_FRAGMENT_REGISTERS_ATI];
+
+   struct st_external_sampler_key external;
 };
 
 

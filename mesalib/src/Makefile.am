@@ -47,10 +47,34 @@ CLEANFILES = $(BUILT_SOURCES)
 
 SUBDIRS = . gtest util mapi/glapi/gen mapi
 
+if HAVE_OPENGL
+gldir = $(includedir)/GL
+gl_HEADERS = \
+  $(top_srcdir)/include/GL/gl.h \
+  $(top_srcdir)/include/GL/glext.h \
+  $(top_srcdir)/include/GL/glcorearb.h \
+  $(top_srcdir)/include/GL/gl_mangle.h
+endif
+
+if HAVE_GLX
+glxdir = $(includedir)/GL
+glx_HEADERS = \
+  $(top_srcdir)/include/GL/glx.h \
+  $(top_srcdir)/include/GL/glxext.h \
+  $(top_srcdir)/include/GL/glx_mangle.h
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = mesa/gl.pc
+endif
+
+if HAVE_COMMON_OSMESA
+osmesadir = $(includedir)/GL
+osmesa_HEADERS = $(top_srcdir)/include/GL/osmesa.h
+endif
+
 # include only conditionally ?
 SUBDIRS += compiler
 
-if HAVE_GALLIUM_RADEON_COMMON
+if HAVE_AMD_DRIVERS
 SUBDIRS += amd
 endif
 
@@ -96,6 +120,12 @@ if HAVE_INTEL_VULKAN
 SUBDIRS += intel/vulkan
 endif
 
+# Requires wayland-drm
+if HAVE_RADEON_VULKAN
+SUBDIRS += amd/common
+SUBDIRS += amd/vulkan
+endif
+
 if HAVE_GALLIUM
 SUBDIRS += gallium
 endif
@@ -110,6 +140,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/include/ \
 	-I$(top_srcdir)/src/mapi/ \
 	-I$(top_srcdir)/src/mesa/ \
+	-I$(top_srcdir)/src/gallium/include \
+	-I$(top_srcdir)/src/gallium/auxiliary \
 	$(DEFINES)
 
 noinst_LTLIBRARIES = libglsl_util.la
@@ -117,6 +149,6 @@ noinst_LTLIBRARIES = libglsl_util.la
 libglsl_util_la_SOURCES = \
 	mesa/main/extensions_table.c \
 	mesa/main/imports.c \
-	mesa/program/prog_hash_table.c \
+	mesa/program/prog_parameter.c \
 	mesa/program/symbol_table.c \
 	mesa/program/dummy_errors.c

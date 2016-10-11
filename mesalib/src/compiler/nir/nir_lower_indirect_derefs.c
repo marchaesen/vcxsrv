@@ -35,8 +35,6 @@ emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
                          int start, int end,
                          nir_ssa_def **dest, nir_ssa_def *src)
 {
-   assert(arr_parent->child &&
-          arr_parent->child->deref_type == nir_deref_type_array);
    nir_deref_array *arr = nir_deref_as_array(arr_parent->child);
    assert(arr->deref_array_type == nir_deref_array_type_indirect);
    assert(arr->indirect.is_ssa);
@@ -80,12 +78,12 @@ emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
                            then_dest->num_components, bit_size, NULL);
 
          nir_phi_src *src0 = ralloc(phi, nir_phi_src);
-         src0->pred = nir_cf_node_as_block(nir_if_last_then_node(if_stmt));
+         src0->pred = nir_if_last_then_block(if_stmt);
          src0->src = nir_src_for_ssa(then_dest);
          exec_list_push_tail(&phi->srcs, &src0->node);
 
          nir_phi_src *src1 = ralloc(phi, nir_phi_src);
-         src1->pred = nir_cf_node_as_block(nir_if_last_else_node(if_stmt));
+         src1->pred = nir_if_last_else_block(if_stmt);
          src1->src = nir_src_for_ssa(else_dest);
          exec_list_push_tail(&phi->srcs, &src1->node);
 

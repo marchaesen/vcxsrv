@@ -497,6 +497,8 @@ typedef struct _winPrivScreenRec {
     SetShapeProcPtr SetShape;
 
     winCursorRec cursor;
+
+    Bool fNativeGlActive;
 } winPrivScreenRec;
 
 #ifdef XWIN_MULTIWINDOWEXTWM

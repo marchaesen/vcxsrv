@@ -45,9 +45,11 @@
 namespace {
 class lower_const_array_visitor : public ir_rvalue_visitor {
 public:
-   lower_const_array_visitor(exec_list *insts)
+   lower_const_array_visitor(exec_list *insts, unsigned s)
    {
       instructions = insts;
+      stage = s;
+      const_count = 0;
       progress = false;
    }
 
@@ -62,6 +64,8 @@ public:
 
 private:
    exec_list *instructions;
+   unsigned stage;
+   unsigned const_count;
    bool progress;
 };
 
@@ -83,7 +87,16 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
 
    void *mem_ctx = ralloc_parent(con);
 
-   char *uniform_name = ralloc_asprintf(mem_ctx, "constarray__%p", con);
+   /* In the very unlikely event of 4294967295 constant arrays in a single
+    * shader, don't promote this to a uniform.
+    */
+   unsigned limit = ~0;
+   if (const_count == limit)
+      return;
+
+   char *uniform_name = ralloc_asprintf(mem_ctx, "constarray_%x_%u",
+                                        const_count, stage);
+   const_count++;
 
    ir_variable *uni =
       new(mem_ctx) ir_variable(con->type, uniform_name, ir_var_uniform);
@@ -104,8 +117,8 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
 } /* anonymous namespace */
 
 bool
-lower_const_arrays_to_uniforms(exec_list *instructions)
+lower_const_arrays_to_uniforms(exec_list *instructions, unsigned stage)
 {
-   lower_const_array_visitor v(instructions);
+   lower_const_array_visitor v(instructions, stage);
    return v.run();
 }

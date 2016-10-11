@@ -401,9 +401,11 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
         }
     }
 
+    input_lock();
     if ((*prev != dev) || !dev->inited ||
         ((ret = (*dev->deviceProc) (dev, DEVICE_ON)) != Success)) {
         ErrorF("[dix] couldn't enable device %d\n", dev->id);
+        input_unlock();
         return FALSE;
     }
     dev->enabled = TRUE;
@@ -412,6 +414,7 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
     for (prev = &inputInfo.devices; *prev; prev = &(*prev)->next);
     *prev = dev;
     dev->next = NULL;
+    input_unlock();
 
     enabled = TRUE;
     XIChangeDeviceProperty(dev, XIGetKnownProperty(XI_PROP_ENABLED),
@@ -490,19 +493,19 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     if (dev->spriteInfo->paired)
         dev->spriteInfo->paired = NULL;
 
+    input_lock();
     (void) (*dev->deviceProc) (dev, DEVICE_OFF);
     dev->enabled = FALSE;
 
-    FreeSprite(dev);
-
     /* now that the device is disabled, we can reset the event reader's
      * last.slave */
-    input_lock();
     for (other = inputInfo.devices; other; other = other->next) {
         if (other->last.slave == dev)
             other->last.slave = NULL;
     }
     input_unlock();
+
+    FreeSprite(dev);
 
     LeaveWindow(dev);
     SetFocusOut(dev);
@@ -571,7 +574,9 @@ ActivateDevice(DeviceIntPtr dev, BOOL sendevent)
     if (!dev || !dev->deviceProc)
         return BadImplementation;
 
+    input_lock();
     ret = (*dev->deviceProc) (dev, DEVICE_INIT);
+    input_unlock();
     dev->inited = (ret == Success);
     if (!dev->inited)
         return ret;
@@ -706,17 +711,32 @@ CorePointerProc(DeviceIntPtr pDev, int what)
 void
 InitCoreDevices(void)
 {
-    if (AllocDevicePair(serverClient, "Virtual core",
-                        &inputInfo.pointer, &inputInfo.keyboard,
-                        CorePointerProc, CoreKeyboardProc, TRUE) != Success)
-         FatalError("Failed to allocate core devices");
+    int result;
 
-    if (ActivateDevice(inputInfo.pointer, TRUE) != Success ||
-        ActivateDevice(inputInfo.keyboard, TRUE) != Success)
-         FatalError("Failed to activate core devices.");
-    if (!EnableDevice(inputInfo.pointer, TRUE) ||
-        !EnableDevice(inputInfo.keyboard, TRUE))
-         FatalError("Failed to enable core devices.");
+    result = AllocDevicePair(serverClient, "Virtual core",
+                             &inputInfo.pointer, &inputInfo.keyboard,
+                             CorePointerProc, CoreKeyboardProc, TRUE);
+    if (result != Success) {
+        FatalError("Failed to allocate virtual core devices: %d", result);
+    }
+
+    result = ActivateDevice(inputInfo.pointer, TRUE);
+    if (result != Success) {
+        FatalError("Failed to activate virtual core pointer: %d", result);
+    }
+
+    result = ActivateDevice(inputInfo.keyboard, TRUE);
+    if (result != Success) {
+        FatalError("Failed to activate virtual core keyboard: %d", result);
+    }
+
+    if (!EnableDevice(inputInfo.pointer, TRUE)) {
+         FatalError("Failed to enable virtual core pointer.");
+    }
+
+    if (!EnableDevice(inputInfo.keyboard, TRUE)) {
+         FatalError("Failed to enable virtual core keyboard.");
+    }
 
     InitXTestDevices();
 }
@@ -937,6 +957,8 @@ FreeAllDeviceClasses(ClassesPtr classes)
  * enable it again and free associated structs. If you want the device to just
  * be disabled, DisableDevice().
  * Don't call this function directly, use RemoveDevice() instead.
+ *
+ * Called with input lock held.
  */
 static void
 CloseDevice(DeviceIntPtr dev)
@@ -1077,6 +1099,11 @@ void
 AbortDevices(void)
 {
     DeviceIntPtr dev;
+
+    /* Do not call input_lock as we don't know what
+     * state the input thread might be in, and that could
+     * cause a dead-lock.
+     */
     nt_list_for_each_entry(dev, inputInfo.devices, next) {
         if (!IsMaster(dev))
             (*dev->deviceProc) (dev, DEVICE_ABORT);
@@ -1141,6 +1168,8 @@ RemoveDevice(DeviceIntPtr dev, BOOL sendevent)
         flags[dev->id] = XIDeviceDisabled;
     }
 
+    input_lock();
+
     prev = NULL;
     for (tmp = inputInfo.devices; tmp; (prev = tmp), (tmp = next)) {
         next = tmp->next;
@@ -1172,6 +1201,8 @@ RemoveDevice(DeviceIntPtr dev, BOOL sendevent)
             ret = Success;
         }
     }
+
+    input_unlock();
 
     if (ret == Success && initialized) {
         inputInfo.numDevices--;

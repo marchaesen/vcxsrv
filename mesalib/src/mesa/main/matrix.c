@@ -356,9 +356,11 @@ _mesa_LoadMatrixf( const GLfloat *m )
           m[2], m[6], m[10], m[14],
           m[3], m[7], m[11], m[15]);
 
-   FLUSH_VERTICES(ctx, 0);
-   _math_matrix_loadf( ctx->CurrentStack->Top, m );
-   ctx->NewState |= ctx->CurrentStack->DirtyFlag;
+   if (memcmp(m, ctx->CurrentStack->Top->m, 16 * sizeof(GLfloat)) != 0) {
+      FLUSH_VERTICES(ctx, 0);
+      _math_matrix_loadf( ctx->CurrentStack->Top, m );
+      ctx->NewState |= ctx->CurrentStack->DirtyFlag;
+   }
 }
 
 

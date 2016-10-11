@@ -55,7 +55,7 @@ install:
 - python -m pip install --egg scons==2.4.1
 - scons --version
 # Install flex/bison
-- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "http://downloads.sourceforge.net/project/winflexbison/%WINFLEXBISON_ARCHIVE%"
+- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "https://downloads.sourceforge.net/project/winflexbison/old_versions/%WINFLEXBISON_ARCHIVE%"
 - 7z x -y -owinflexbison\ "%WINFLEXBISON_ARCHIVE%" > nul
 - set Path=%CD%\winflexbison;%Path%
 - win_flex --version

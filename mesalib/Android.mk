@@ -95,6 +95,7 @@ SUBDIRS := \
 	src/mesa \
 	src/util \
 	src/egl \
+	src/amd \
 	src/intel \
 	src/mesa/drivers/dri
 

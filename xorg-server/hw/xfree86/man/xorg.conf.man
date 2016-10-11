@@ -632,9 +632,6 @@ Default: PM enabled on platforms that support it.
 enable or disable XINERAMA extension.
 Default is disabled.
 .TP 7
-.BI "Option \*qAIGLX\*q \*q" boolean \*q
-enable or disable AIGLX. AIGLX is enabled by default.
-.TP 7
 .BI "Option \*qIndirectGLX\*q \*q" boolean \*q
 enable or disable indirect GLX contexts. Indirect GLX contexts are disabled by
 default.

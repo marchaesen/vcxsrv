@@ -41,6 +41,9 @@
 
 #define ARR(...) { __VA_ARGS__ }
 
+INTRINSIC(nop, 0, ARR(0), false, 0, 0, 0, xx, xx, xx,
+          NIR_INTRINSIC_CAN_ELIMINATE)
+
 INTRINSIC(load_var, 0, ARR(0), true, 0, 1, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 INTRINSIC(store_var, 1, ARR(0), false, 0, 1, 1, WRMASK, xx, xx, 0)
 INTRINSIC(copy_var, 0, ARR(0), false, 0, 2, 0, xx, xx, xx, 0)
@@ -136,12 +139,26 @@ INTRINSIC(set_vertex_count, 1, ARR(1), false, 0, 0, 0, xx, xx, xx, 0)
  */
 
 #define ATOMIC(name, flags) \
-   INTRINSIC(atomic_counter_##name##_var, 0, ARR(0), true, 1, 1, 0, xx, xx, xx, flags) \
-   INTRINSIC(atomic_counter_##name, 1, ARR(1), true, 1, 0, 1, BASE, xx, xx, flags)
+   INTRINSIC(name##_var, 0, ARR(0), true, 1, 1, 0, xx, xx, xx, flags) \
+   INTRINSIC(name, 1, ARR(1), true, 1, 0, 1, BASE, xx, xx, flags)
+#define ATOMIC2(name) \
+   INTRINSIC(name##_var, 1, ARR(1), true, 1, 1, 0, xx, xx, xx, 0) \
+   INTRINSIC(name, 2, ARR(1, 1), true, 1, 0, 1, BASE, xx, xx, 0)
+#define ATOMIC3(name) \
+   INTRINSIC(name##_var, 2, ARR(1, 1), true, 1, 1, 0, xx, xx, xx, 0) \
+   INTRINSIC(name, 3, ARR(1, 1, 1), true, 1, 0, 1, BASE, xx, xx, 0)
 
-ATOMIC(inc, 0)
-ATOMIC(dec, 0)
-ATOMIC(read, NIR_INTRINSIC_CAN_ELIMINATE)
+ATOMIC(atomic_counter_inc, 0)
+ATOMIC(atomic_counter_dec, 0)
+ATOMIC(atomic_counter_read, NIR_INTRINSIC_CAN_ELIMINATE)
+ATOMIC2(atomic_counter_add)
+ATOMIC2(atomic_counter_min)
+ATOMIC2(atomic_counter_max)
+ATOMIC2(atomic_counter_and)
+ATOMIC2(atomic_counter_or)
+ATOMIC2(atomic_counter_xor)
+ATOMIC2(atomic_counter_exchange)
+ATOMIC3(atomic_counter_comp_swap)
 
 /*
  * Image load, store and atomic intrinsics.

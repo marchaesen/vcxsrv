@@ -118,22 +118,10 @@ get_drawable_pixmap(DrawablePtr drawable)
         return screen->GetWindowPixmap((WindowPtr) drawable);
 }
 
-static PixmapPtr
-get_front_buffer(DrawablePtr drawable)
-{
-    PixmapPtr pixmap;
-
-    pixmap = get_drawable_pixmap(drawable);
-    pixmap->refcnt++;
-
-    return pixmap;
-}
-
 static DRI2Buffer2Ptr
-ms_dri2_create_buffer(DrawablePtr drawable, unsigned int attachment,
-                      unsigned int format)
+ms_dri2_create_buffer2(ScreenPtr screen, DrawablePtr drawable,
+                       unsigned int attachment, unsigned int format)
 {
-    ScreenPtr screen = drawable->pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     DRI2Buffer2Ptr buffer;
     PixmapPtr pixmap;
@@ -152,8 +140,13 @@ ms_dri2_create_buffer(DrawablePtr drawable, unsigned int attachment,
     }
 
     pixmap = NULL;
-    if (attachment == DRI2BufferFrontLeft)
-        pixmap = get_front_buffer(drawable);
+    if (attachment == DRI2BufferFrontLeft) {
+        pixmap = get_drawable_pixmap(drawable);
+        if (pixmap && pixmap->drawable.pScreen != screen)
+            pixmap = NULL;
+        if (pixmap)
+            pixmap->refcnt++;
+    }
 
     if (pixmap == NULL) {
         int pixmap_width = drawable->width;
@@ -193,8 +186,6 @@ ms_dri2_create_buffer(DrawablePtr drawable, unsigned int attachment,
                                       pixmap_cpp,
                                       0);
         if (pixmap == NULL) {
-            if (pixmap)
-                screen->DestroyPixmap(pixmap);
             free(private);
             free(buffer);
             return NULL;
@@ -227,6 +218,14 @@ ms_dri2_create_buffer(DrawablePtr drawable, unsigned int attachment,
     return buffer;
 }
 
+static DRI2Buffer2Ptr
+ms_dri2_create_buffer(DrawablePtr drawable, unsigned int attachment,
+                      unsigned int format)
+{
+    return ms_dri2_create_buffer2(drawable->pScreen, drawable, attachment,
+                                  format);
+}
+
 static void
 ms_dri2_reference_buffer(DRI2Buffer2Ptr buffer)
 {
@@ -236,7 +235,8 @@ ms_dri2_reference_buffer(DRI2Buffer2Ptr buffer)
     }
 }
 
-static void ms_dri2_destroy_buffer(DrawablePtr drawable, DRI2Buffer2Ptr buffer)
+static void ms_dri2_destroy_buffer2(ScreenPtr unused, DrawablePtr unused2,
+                                    DRI2Buffer2Ptr buffer)
 {
     if (!buffer)
         return;
@@ -254,21 +254,46 @@ static void ms_dri2_destroy_buffer(DrawablePtr drawable, DRI2Buffer2Ptr buffer)
     }
 }
 
+static void ms_dri2_destroy_buffer(DrawablePtr drawable, DRI2Buffer2Ptr buffer)
+{
+    ms_dri2_destroy_buffer2(NULL, drawable, buffer);
+}
+
 static void
-ms_dri2_copy_region(DrawablePtr drawable, RegionPtr pRegion,
-                    DRI2BufferPtr destBuffer, DRI2BufferPtr sourceBuffer)
+ms_dri2_copy_region2(ScreenPtr screen, DrawablePtr drawable, RegionPtr pRegion,
+                     DRI2BufferPtr destBuffer, DRI2BufferPtr sourceBuffer)
 {
     ms_dri2_buffer_private_ptr src_priv = sourceBuffer->driverPrivate;
     ms_dri2_buffer_private_ptr dst_priv = destBuffer->driverPrivate;
     PixmapPtr src_pixmap = src_priv->pixmap;
     PixmapPtr dst_pixmap = dst_priv->pixmap;
-    ScreenPtr screen = drawable->pScreen;
     DrawablePtr src = (sourceBuffer->attachment == DRI2BufferFrontLeft)
         ? drawable : &src_pixmap->drawable;
     DrawablePtr dst = (destBuffer->attachment == DRI2BufferFrontLeft)
         ? drawable : &dst_pixmap->drawable;
+    int off_x = 0, off_y = 0;
+    Bool translate = FALSE;
     RegionPtr pCopyClip;
     GCPtr gc;
+
+    if (destBuffer->attachment == DRI2BufferFrontLeft &&
+             drawable->pScreen != screen) {
+        dst = DRI2UpdatePrime(drawable, destBuffer);
+        if (!dst)
+            return;
+        if (dst != drawable)
+            translate = TRUE;
+    }
+
+    if (translate && drawable->type == DRAWABLE_WINDOW) {
+#ifdef COMPOSITE
+        PixmapPtr pixmap = get_drawable_pixmap(drawable);
+        off_x = -pixmap->screen_x;
+        off_y = -pixmap->screen_y;
+#endif
+        off_x += drawable->x;
+        off_y += drawable->y;
+    }
 
     gc = GetScratchGC(dst->depth, screen);
     if (!gc)
@@ -276,6 +301,8 @@ ms_dri2_copy_region(DrawablePtr drawable, RegionPtr pRegion,
 
     pCopyClip = REGION_CREATE(screen, NULL, 0);
     REGION_COPY(screen, pCopyClip, pRegion);
+    if (translate)
+        REGION_TRANSLATE(screen, pCopyClip, off_x, off_y);
     (*gc->funcs->ChangeClip) (gc, CT_REGION, pCopyClip, 0);
     ValidateGC(dst, gc);
 
@@ -291,9 +318,17 @@ ms_dri2_copy_region(DrawablePtr drawable, RegionPtr pRegion,
     gc->ops->CopyArea(src, dst, gc,
                       0, 0,
                       drawable->width, drawable->height,
-                      0, 0);
+                      off_x, off_y);
 
     FreeScratchGC(gc);
+}
+
+static void
+ms_dri2_copy_region(DrawablePtr drawable, RegionPtr pRegion,
+                    DRI2BufferPtr destBuffer, DRI2BufferPtr sourceBuffer)
+{
+    ms_dri2_copy_region2(drawable->pScreen, drawable, pRegion, destBuffer,
+                         sourceBuffer);
 }
 
 static uint64_t
@@ -1054,13 +1089,16 @@ ms_dri2_screen_init(ScreenPtr screen)
     info.driverName = NULL; /* Compat field, unused. */
     info.deviceName = drmGetDeviceNameFromFd(ms->fd);
 
-    info.version = 4;
+    info.version = 9;
     info.CreateBuffer = ms_dri2_create_buffer;
     info.DestroyBuffer = ms_dri2_destroy_buffer;
     info.CopyRegion = ms_dri2_copy_region;
     info.ScheduleSwap = ms_dri2_schedule_swap;
     info.GetMSC = ms_dri2_get_msc;
     info.ScheduleWaitMSC = ms_dri2_schedule_wait_msc;
+    info.CreateBuffer2 = ms_dri2_create_buffer2;
+    info.DestroyBuffer2 = ms_dri2_destroy_buffer2;
+    info.CopyRegion2 = ms_dri2_copy_region2;
 
     /* These two will be filled in by dri2.c */
     info.numDrivers = 0;

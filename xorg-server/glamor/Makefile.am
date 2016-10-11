@@ -54,6 +54,8 @@ libglamor_la_SOURCES += \
 	glamor_xv.c
 endif
 
-libglamor_egl_stubs_la_SOURCES = glamor_egl_stubs.c
+libglamor_egl_stubs_la_SOURCES = \
+	glamor_egl_stubs.c \
+	glamor_egl.h
 
 sdk_HEADERS = glamor.h

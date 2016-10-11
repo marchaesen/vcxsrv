@@ -32,6 +32,9 @@ MESA_GLAPI_OUTPUTS = \
 if HAVE_APPLEDRI
 MESA_GLAPI_OUTPUTS += $(MESA_GLAPI_DIR)/glapi_gentable.c
 endif
+if HAVE_WINDOWSDRI
+MESA_GLAPI_OUTPUTS += $(MESA_GLAPI_DIR)/glapi_gentable.c
+endif
 
 MESA_GLAPI_ASM_OUTPUTS =
 if HAVE_X86_ASM
@@ -117,6 +120,7 @@ API_XML = \
 	ARB_color_buffer_float.xml \
 	ARB_compressed_texture_pixel_storage.xml \
 	ARB_compute_shader.xml \
+	ARB_compute_variable_group_size.xml \
 	ARB_copy_buffer.xml \
 	ARB_copy_image.xml \
 	ARB_debug_output.xml \

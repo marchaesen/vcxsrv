@@ -615,7 +615,8 @@ FlushAllOutput(void)
         if (!client_is_ready(client)) {
             oc = (OsCommPtr) client->osPrivate;
             (void) FlushClient(client, oc, (char *) NULL, 0);
-        }
+        } else
+            NewOutputPending = TRUE;
     }
 }
 

@@ -152,9 +152,6 @@ _mesa_get_dispatch(struct gl_context *ctx);
 extern void
 _mesa_set_context_lost_dispatch(struct gl_context *ctx);
 
-extern GLboolean
-_mesa_valid_to_render(struct gl_context *ctx, const char *where);
-
 
 
 /** \name Miscellaneous */
@@ -314,6 +311,16 @@ static inline bool
 _mesa_is_gles31(const struct gl_context *ctx)
 {
    return ctx->API == API_OPENGLES2 && ctx->Version >= 31;
+}
+
+
+/**
+ * Checks if the context is for GLES 3.2 or later
+ */
+static inline bool
+_mesa_is_gles32(const struct gl_context *ctx)
+{
+   return ctx->API == API_OPENGLES2 && ctx->Version >= 32;
 }
 
 

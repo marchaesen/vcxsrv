@@ -27,7 +27,7 @@
 #define LOOP_ANALYSIS_H
 
 #include "ir.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
 
 /**
  * Analyze and classify all variables used in all loops in the instruction list
@@ -130,14 +130,14 @@ public:
    {
       this->num_loop_jumps = 0;
       this->contains_calls = false;
-      this->var_hash = hash_table_ctor(0, hash_table_pointer_hash,
-				       hash_table_pointer_compare);
+      this->var_hash = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                               _mesa_key_pointer_equal);
       this->limiting_terminator = NULL;
    }
 
    ~loop_variable_state()
    {
-      hash_table_dtor(this->var_hash);
+      _mesa_hash_table_destroy(this->var_hash, NULL);
    }
 
    DECLARE_RALLOC_CXX_OPERATORS(loop_variable_state)

@@ -282,7 +282,6 @@ compute_reg_usedef_lca(nir_register *reg)
 
    list_for_each_entry(nir_src, use_src, &reg->if_uses, use_link) {
       nir_cf_node *prev_node = nir_cf_node_prev(&use_src->parent_if->cf_node);
-      assert(prev_node->type == nir_cf_node_block);
       lca = nir_dominance_lca(lca, nir_cf_node_as_block(prev_node));
    }
 

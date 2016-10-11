@@ -135,7 +135,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
             if (glamor_priv->glsl_version >= 130)
                 glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, n);
             else {
-                glamor_glDrawArrays_GL_QUADS(glamor_priv, nbox);
+                glamor_glDrawArrays_GL_QUADS(glamor_priv, n);
             }
         }
     }

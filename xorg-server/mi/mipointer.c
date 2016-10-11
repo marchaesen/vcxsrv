@@ -709,12 +709,6 @@ miPointerGetPosition(DeviceIntPtr pDev, int *x, int *y)
     *y = MIPOINTER(pDev)->y;
 }
 
-#ifdef XQUARTZ
-#include <pthread.h>
-void darwinEvents_lock(void);
-void darwinEvents_unlock(void);
-#endif
-
 /**
  * Move the device's pointer to the x/y coordinates on the given screen.
  * This function generates and enqueues pointer events.
@@ -752,13 +746,7 @@ miPointerMove(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
                                POINTER_NORAW, &mask);
 
     input_lock();
-#ifdef XQUARTZ
-    darwinEvents_lock();
-#endif
     for (i = 0; i < nevents; i++)
         mieqEnqueue(pDev, &mipointermove_events[i]);
-#ifdef XQUARTZ
-    darwinEvents_unlock();
-#endif
     input_unlock();
 }

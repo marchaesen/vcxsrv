@@ -53,6 +53,7 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_drawpixels.h"
 #include "st_context.h"
+#include "st_tgsi_lower_yuv.h"
 #include "st_program.h"
 #include "st_mesa_to_tgsi.h"
 #include "st_atifs_to_tgsi.h"
@@ -1024,7 +1025,22 @@ st_create_fp_variant(struct st_context *st,
          NIR_PASS_V(tgsi.ir.nir, nir_lower_drawpixels, &options);
       }
 
+      if (unlikely(key->external.lower_nv12 || key->external.lower_iyuv)) {
+         nir_lower_tex_options options = {0};
+         options.lower_y_uv_external = key->external.lower_nv12;
+         options.lower_y_u_v_external = key->external.lower_iyuv;
+         NIR_PASS_V(tgsi.ir.nir, nir_lower_tex, &options);
+      }
+
       st_finalize_nir(st, &stfp->Base.Base, tgsi.ir.nir);
+
+      if (unlikely(key->external.lower_nv12 || key->external.lower_iyuv)) {
+         /* This pass needs to happen *after* nir_lower_sampler */
+         NIR_PASS_V(tgsi.ir.nir, st_nir_lower_tex_src_plane,
+                    ~stfp->Base.Base.SamplersUsed,
+                    key->external.lower_nv12,
+                    key->external.lower_iyuv);
+      }
 
       variant->driver_shader = pipe->create_fs_state(pipe, &tgsi);
       variant->key = *key;
@@ -1120,6 +1136,25 @@ st_create_fp_variant(struct st_context *st,
          tgsi.tokens = tokens;
       } else
          fprintf(stderr, "mesa: cannot create a shader for glDrawPixels\n");
+   }
+
+   if (unlikely(key->external.lower_nv12 || key->external.lower_iyuv)) {
+      const struct tgsi_token *tokens;
+
+      /* samplers inserted would conflict, but this should be unpossible: */
+      assert(!(key->bitmap || key->drawpixels));
+
+      tokens = st_tgsi_lower_yuv(tgsi.tokens,
+                                 ~stfp->Base.Base.SamplersUsed,
+                                 key->external.lower_nv12,
+                                 key->external.lower_iyuv);
+      if (tokens) {
+         if (tgsi.tokens != stfp->tgsi.tokens)
+            tgsi_free_tokens(tgsi.tokens);
+         tgsi.tokens = tokens;
+      } else {
+         fprintf(stderr, "mesa: cannot create a shader for samplerExternalOES\n");
+      }
    }
 
    if (ST_DEBUG & DEBUG_TGSI) {

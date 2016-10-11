@@ -92,46 +92,68 @@ ms_crtc_on(xf86CrtcPtr crtc)
 
 /*
  * Return the crtc covering 'box'. If two crtcs cover a portion of
- * 'box', then prefer 'desired'. If 'desired' is NULL, then prefer the crtc
- * with greater coverage
+ * 'box', then prefer the crtc with greater coverage.
  */
 
-xf86CrtcPtr
-ms_covering_crtc(ScrnInfoPtr scrn,
-                 BoxPtr box, xf86CrtcPtr desired, BoxPtr crtc_box_ret)
+static xf86CrtcPtr
+ms_covering_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
 {
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     xf86CrtcPtr crtc, best_crtc;
     int coverage, best_coverage;
     int c;
     BoxRec crtc_box, cover_box;
+    Bool crtc_on;
 
     best_crtc = NULL;
     best_coverage = 0;
-    crtc_box_ret->x1 = 0;
-    crtc_box_ret->x2 = 0;
-    crtc_box_ret->y1 = 0;
-    crtc_box_ret->y2 = 0;
     for (c = 0; c < xf86_config->num_crtc; c++) {
         crtc = xf86_config->crtc[c];
 
+        if (screen_is_ms)
+            crtc_on = ms_crtc_on(crtc);
+        else
+            crtc_on = crtc->enabled;
+
         /* If the CRTC is off, treat it as not covering */
-        if (!ms_crtc_on(crtc))
+        if (!crtc_on)
             continue;
 
         ms_crtc_box(crtc, &crtc_box);
         ms_box_intersect(&cover_box, &crtc_box, box);
         coverage = ms_box_area(&cover_box);
-        if (coverage && crtc == desired) {
-            *crtc_box_ret = crtc_box;
-            return crtc;
-        }
         if (coverage > best_coverage) {
-            *crtc_box_ret = crtc_box;
             best_crtc = crtc;
             best_coverage = coverage;
         }
     }
+
+    /* Fallback to primary crtc for drawable's on slave outputs */
+    if (best_crtc == NULL && !pScreen->isGPU) {
+        RROutputPtr primary_output = NULL;
+        ScreenPtr slave;
+
+        if (dixPrivateKeyRegistered(rrPrivKey))
+            primary_output = RRFirstOutput(scrn->pScreen);
+        if (!primary_output || !primary_output->crtc)
+            return NULL;
+
+        crtc = primary_output->crtc->devPrivate;
+        if (!ms_crtc_on(crtc))
+            return NULL;
+
+        xorg_list_for_each_entry(slave, &pScreen->slave_list, slave_head) {
+            if (!slave->is_output_slave)
+                continue;
+
+            if (ms_covering_crtc(slave, box, FALSE)) {
+                /* The drawable is on a slave output, return primary crtc */
+                return crtc;
+            }
+        }
+    }
+
     return best_crtc;
 }
 
@@ -139,15 +161,14 @@ xf86CrtcPtr
 ms_dri2_crtc_covering_drawable(DrawablePtr pDraw)
 {
     ScreenPtr pScreen = pDraw->pScreen;
-    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
-    BoxRec box, crtcbox;
+    BoxRec box;
 
     box.x1 = pDraw->x;
     box.y1 = pDraw->y;
     box.x2 = box.x1 + pDraw->width;
     box.y2 = box.y1 + pDraw->height;
 
-    return ms_covering_crtc(pScrn, &box, NULL, &crtcbox);
+    return ms_covering_crtc(pScreen, &box, TRUE);
 }
 
 static Bool

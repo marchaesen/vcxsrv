@@ -80,13 +80,9 @@ glxSetup(void *module, void *opts, int *errmaj, int *errmin)
 
     setupDone = TRUE;
 
-    xf86Msg(xf86Info.aiglxFrom, "AIGLX %s\n",
-            xf86Info.aiglx ? "enabled" : "disabled");
-    if (xf86Info.aiglx) {
-        provider = LoaderSymbol("__glXDRI2Provider");
-        if (provider)
-            GlxPushProvider(provider);
-    }
+    provider = LoaderSymbol("__glXDRI2Provider");
+    if (provider)
+        GlxPushProvider(provider);
 
     LoadExtensionList(GLXExt, ARRAY_SIZE(GLXExt), FALSE);
 

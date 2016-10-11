@@ -239,12 +239,12 @@ vtn_get_branch_type(struct vtn_block *block,
              swcase->fallthrough == block->switch_case);
       swcase->fallthrough = block->switch_case;
       return vtn_branch_type_switch_fallthrough;
-   } else if (block == switch_break) {
-      return vtn_branch_type_switch_break;
    } else if (block == loop_break) {
       return vtn_branch_type_loop_break;
    } else if (block == loop_cont) {
       return vtn_branch_type_loop_continue;
+   } else if (block == switch_break) {
+      return vtn_branch_type_switch_break;
    } else {
       return vtn_branch_type_none;
    }
@@ -443,6 +443,19 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
             vtn_order_case(swtch, case_block->switch_case);
          }
 
+         enum vtn_branch_type branch_type =
+            vtn_get_branch_type(break_block, switch_case, NULL,
+                                loop_break, loop_cont);
+
+         if (branch_type != vtn_branch_type_none) {
+            /* It is possible that the break is actually the continue block
+             * for the containing loop.  In this case, we need to bail and let
+             * the loop parsing code handle the continue properly.
+             */
+            assert(branch_type == vtn_branch_type_loop_continue);
+            return;
+         }
+
          block = break_block;
          continue;
       }
@@ -518,7 +531,7 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
       struct vtn_block *pred =
          vtn_value(b, w[i + 1], vtn_value_type_block)->block;
 
-      b->nb.cursor = nir_after_block_before_jump(pred->end_block);
+      b->nb.cursor = nir_after_instr(&pred->end_nop->instr);
 
       vtn_local_store(b, src, nir_deref_var_create(b, phi_var));
    }
@@ -576,7 +589,9 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
 
          vtn_foreach_instruction(b, block_start, block_end, handler);
 
-         block->end_block = nir_cursor_current_block(b->nb.cursor);
+         block->end_nop = nir_intrinsic_instr_create(b->nb.shader,
+                                                     nir_intrinsic_nop);
+         nir_builder_instr_insert(&b->nb, &block->end_nop->instr);
 
          if ((*block->branch & SpvOpCodeMask) == SpvOpReturnValue) {
             struct vtn_ssa_value *src = vtn_ssa_value(b, block->branch[1]);

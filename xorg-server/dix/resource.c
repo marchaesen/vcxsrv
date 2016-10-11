@@ -1220,11 +1220,13 @@ dixLookupResourceByType(void **result, XID id, RESTYPE rtype,
             if (res->id == id && res->type == rtype)
                 break;
     }
+    if (client) {
+        client->errorValue = id;
+    }
     if (!res)
         return resourceTypes[rtype & TypeMask].errorValue;
 
     if (client) {
-        client->errorValue = id;
         cid = XaceHook(XACE_RESOURCE_ACCESS, client, id, res->type,
                        res->value, RT_NONE, NULL, mode);
         if (cid == BadValue)
@@ -1253,11 +1255,13 @@ dixLookupResourceByClass(void **result, XID id, RESTYPE rclass,
             if (res->id == id && (res->type & rclass))
                 break;
     }
+    if (client) {
+        client->errorValue = id;
+    }
     if (!res)
         return BadValue;
 
     if (client) {
-        client->errorValue = id;
         cid = XaceHook(XACE_RESOURCE_ACCESS, client, id, res->type,
                        res->value, RT_NONE, NULL, mode);
         if (cid != Success)

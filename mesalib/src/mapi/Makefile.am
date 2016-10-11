@@ -116,6 +116,9 @@ glapi_libglapi_la_CPPFLAGS = \
 if HAVE_APPLEDRI
 glapi_libglapi_la_SOURCES += glapi/glapi_gentable.c
 endif
+if HAVE_WINDOWSDRI
+glapi_libglapi_la_SOURCES += glapi/glapi_gentable.c
+endif
 
 if HAVE_SHARED_GLAPI
 glapi_libglapi_la_SOURCES += $(MAPI_BRIDGE_FILES) glapi/glapi_mapi_tmp.h

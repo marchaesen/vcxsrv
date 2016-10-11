@@ -337,16 +337,9 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
             return;
         }
 
-        if (infoPtr->pScrn->vtSema && xorg_list_is_empty(&pScreen->pixmap_dirty_list) &&
+        if (infoPtr->pScrn->vtSema &&
             (ScreenPriv->ForceHWCursorCount ||
-             ((
-               cursor->bits->argb &&
-               infoPtr->UseHWCursorARGB &&
-               (*infoPtr->UseHWCursorARGB)(pScreen, cursor)) ||
-              (cursor->bits->argb == 0 &&
-               (cursor->bits->height <= infoPtr->MaxHeight) &&
-               (cursor->bits->width <= infoPtr->MaxWidth) &&
-               (!infoPtr->UseHWCursor || (*infoPtr->UseHWCursor) (pScreen, cursor)))))) {
+             xf86CheckHWCursor(pScreen, cursor, infoPtr))) {
 
             if (ScreenPriv->SWCursor)   /* remove the SW cursor */
                 (*ScreenPriv->spriteFuncs->SetCursor) (pDev, pScreen,
@@ -465,9 +458,12 @@ xf86ForceHWCursor(ScreenPtr pScreen, Bool on)
 CursorPtr
 xf86CurrentCursor(ScreenPtr pScreen)
 {
-    xf86CursorScreenPtr ScreenPriv =
-        (xf86CursorScreenPtr) dixLookupPrivate(&pScreen->devPrivates,
-                                               xf86CursorScreenKey);
+    xf86CursorScreenPtr ScreenPriv;
+
+    if (pScreen->is_output_slave)
+        pScreen = pScreen->current_master;
+
+    ScreenPriv = dixLookupPrivate(&pScreen->devPrivates, xf86CursorScreenKey);
     return ScreenPriv->CurrentCursor;
 }
 

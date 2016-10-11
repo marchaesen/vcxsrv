@@ -9,9 +9,17 @@ CLIPBOARD_LIBS = $(top_builddir)/hw/xwin/winclipboard/libXWinclipboard.la
 endif
 
 if XWIN_GLX_WINDOWS
-GLX_DIR = glx
-DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
-XWIN_GLX_LIBS = $(top_builddir)/hw/xwin/glx/libXwinGLX.la
+GLX_DIR =
+DEFS_GLX_WINDOWS =
+XWIN_GLX_LIBS =
+if XWIN_WINDOWS_DRI
+GLX_DIR += dri
+DEFS_GLX_WINDOWS += -DXWIN_WINDOWS_DRI
+XWIN_GLX_LIBS += $(top_builddir)/hw/xwin/dri/libWindowsDRI.la
+endif
+GLX_DIR += glx
+DEFS_GLX_WINDOWS += -DXWIN_GLX_WINDOWS
+XWIN_GLX_LIBS += $(top_builddir)/hw/xwin/glx/libXwinGLX.la
 XWIN_GLX_SYS_LIBS = -lopengl32
 endif
 
@@ -189,4 +197,4 @@ relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
 SUBDIRS = man $(GLX_DIR) winclipboard .
-DIST_SUBDIRS = man glx winclipboard .
+DIST_SUBDIRS = man dri glx winclipboard .

@@ -158,9 +158,6 @@ DRIOpenDRMMaster(ScrnInfoPtr pScrn,
     Bool drmWasAvailable;
     DRIEntPrivPtr pDRIEntPriv;
     DRIEntPrivRec tmp;
-    drmVersionPtr drmlibv;
-    int drmlibmajor, drmlibminor;
-    const char *openBusID;
     int count;
     int err;
 
@@ -176,23 +173,6 @@ DRIOpenDRMMaster(ScrnInfoPtr pScrn,
 
     memset(&tmp, 0, sizeof(tmp));
 
-    /* Check the DRM lib version.
-     */
-
-    drmlibmajor = 1;
-    drmlibminor = 0;
-    drmlibv = drmGetLibVersion(-1);
-    if (drmlibv != NULL) {
-        drmlibmajor = drmlibv->version_major;
-        drmlibminor = drmlibv->version_minor;
-        drmFreeVersion(drmlibv);
-    }
-
-    /* Check if the libdrm can handle falling back to loading based on name
-     * if a busid string is passed.
-     */
-    openBusID = (drmlibmajor == 1 && drmlibminor >= 2) ? busID : NULL;
-
     tmp.drmFD = -1;
     sv.drm_di_major = 1;
     sv.drm_di_minor = 1;
@@ -201,7 +181,7 @@ DRIOpenDRMMaster(ScrnInfoPtr pScrn,
     saveSv = sv;
     count = 10;
     while (count--) {
-        tmp.drmFD = drmOpen(drmDriverName, openBusID);
+        tmp.drmFD = drmOpen(drmDriverName, busID);
 
         if (tmp.drmFD < 0) {
             DRIDrvMsg(-1, X_ERROR, "[drm] drmOpen failed.\n");

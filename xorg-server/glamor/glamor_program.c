@@ -122,8 +122,7 @@ static glamor_location_var location_vars[] = {
         .vs_vars = ("uniform vec2 fill_offset;\n"
                     "uniform vec2 fill_size_inv;\n"
                     "varying vec2 fill_pos;\n"),
-        .fs_vars = ("uniform vec2 fill_size_inv;\n"
-                    "varying vec2 fill_pos;\n")
+        .fs_vars = ("varying vec2 fill_pos;\n")
     },
     {
         .location = glamor_program_location_font,

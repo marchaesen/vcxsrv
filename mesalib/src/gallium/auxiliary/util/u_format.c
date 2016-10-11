@@ -457,6 +457,30 @@ util_format_write_4i(enum pipe_format format,
    format_desc->pack_rgba_sint(dst_row, dst_stride, src_row, src_stride, w, h);
 }
 
+/**
+ * Check if we can safely memcopy from the source format to the dest format.
+ * This basically covers the cases of a "used" channel copied to a typeless
+ * channel, plus some 1-channel cases.
+ * Examples of compatible copy formats include:
+ *    b8g8r8a8_unorm -> b8g8r8x8_unorm
+ *    a8r8g8b8_unorm -> x8r8g8b8_unorm
+ *    b5g5r5a1_unorm -> b5g5r5x1_unorm
+ *    b4g4r4a4_unorm -> b4g4r4x4_unorm
+ *    l8_unorm -> r8_unorm
+ *    i8_unorm -> l8_unorm
+ *    i8_unorm -> a8_unorm
+ *    i8_unorm -> r8_unorm
+ *    l16_unorm -> r16_unorm
+ *    z24_unorm_s8_uint -> z24x8_unorm
+ *    s8_uint_z24_unorm -> x8z24_unorm
+ *    r8g8b8a8_unorm -> r8g8b8x8_unorm
+ *    a8b8g8r8_srgb -> x8b8g8r8_srgb
+ *    b8g8r8a8_srgb -> b8g8r8x8_srgb
+ *    a8r8g8b8_srgb -> x8r8g8b8_srgb
+ *    a8b8g8r8_unorm -> x8b8g8r8_unorm
+ *    r10g10b10a2_uscaled -> r10g10b10x2_uscaled
+ *    r10sg10sb10sa2u_norm -> r10g10b10x2_snorm
+ */
 boolean
 util_is_format_compatible(const struct util_format_description *src_desc,
                           const struct util_format_description *dst_desc)

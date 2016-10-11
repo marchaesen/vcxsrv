@@ -97,6 +97,9 @@ glamor_sync_init(ScreenPtr screen)
 #ifdef HAVE_XSHMFENCE
 	if (!miSyncShmScreenInit(screen))
 		return FALSE;
+#else
+	if (!miSyncSetup(screen))
+		return FALSE;
 #endif
 
 	screen_funcs = miSyncGetScreenFuncs(screen);

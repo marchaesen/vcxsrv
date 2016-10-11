@@ -53,6 +53,24 @@ nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/nir/nir_opt_algebraic.py > $@ || ($(RM) $@; false)
 
+noinst_PROGRAMS += spirv2nir
+
+spirv2nir_SOURCES = \
+	spirv/spirv2nir.c
+
+spirv2nir_CPPFLAGS =					\
+	$(AM_CPPFLAGS)					\
+	-I$(top_builddir)/src/compiler/nir		\
+	-I$(top_srcdir)/src/compiler/nir		\
+	-I$(top_srcdir)/src/compiler/spirv
+
+spirv2nir_LDADD =					\
+	nir/libnir.la					\
+	$(top_builddir)/src/util/libmesautil.la		\
+	-lm						\
+	$(PTHREAD_LIBS)
+
+nodist_EXTRA_spirv2nir_SOURCES = dummy.cpp
 
 check_PROGRAMS += nir/tests/control_flow_tests
 

@@ -1117,6 +1117,7 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int format,
    xcb_sync_fence_t                     sync_fence;
    struct xshmfence                     *shm_fence;
    int                                  fence_fd;
+   __DRIscreen                          *cur_screen;
 
    if (buffer)
       return buffer;
@@ -1147,8 +1148,17 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int format,
    if (!bp_reply)
       goto no_image;
 
+   /* Get the currently-bound screen or revert to using the drawable's screen if
+    * no contexts are currently bound. The latter case is at least necessary for
+    * obs-studio, when using Window Capture (Xcomposite) as a Source.
+    */
+   cur_screen = draw->vtable->get_dri_screen(draw);
+   if (!cur_screen) {
+       cur_screen = draw->dri_screen;
+   }
+
    buffer->image = loader_dri3_create_image(draw->conn, bp_reply, format,
-                                            draw->dri_screen, draw->ext->image,
+                                            cur_screen, draw->ext->image,
                                             buffer);
    if (!buffer->image)
       goto no_image;

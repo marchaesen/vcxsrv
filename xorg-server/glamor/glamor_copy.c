@@ -230,20 +230,22 @@ glamor_copy_cpu_fbo(DrawablePtr src,
             goto bail;
         }
 
+        src_pix->drawable.x = -dst->x;
+        src_pix->drawable.y = -dst->y;
+
         fbGetDrawable(&src_pix->drawable, src_bits, src_stride, src_bpp, src_xoff,
                       src_yoff);
 
         if (src->bitsPerPixel > 1)
-            fbCopyNto1(src, &src_pix->drawable, gc, box, nbox,
-                       dst_xoff + dx, dst_yoff + dy, reverse, upsidedown,
-                       bitplane, closure);
+            fbCopyNto1(src, &src_pix->drawable, gc, box, nbox, dx, dy,
+                       reverse, upsidedown, bitplane, closure);
         else
-            fbCopy1toN(src, &src_pix->drawable, gc, box, nbox,
-                       dst_xoff + dx, dst_yoff + dy, reverse, upsidedown,
-                       bitplane, closure);
+            fbCopy1toN(src, &src_pix->drawable, gc, box, nbox, dx, dy,
+                       reverse, upsidedown, bitplane, closure);
 
-        glamor_upload_boxes(dst_pixmap, box, nbox, 0, 0, 0, 0,
-                            (uint8_t *) src_bits, src_stride * sizeof(FbBits));
+        glamor_upload_boxes(dst_pixmap, box, nbox, src_xoff, src_yoff,
+                            dst_xoff, dst_yoff, (uint8_t *) src_bits,
+                            src_stride * sizeof(FbBits));
         fbDestroyPixmap(src_pix);
     } else {
         fbGetDrawable(src, src_bits, src_stride, src_bpp, src_xoff, src_yoff);
@@ -349,6 +351,9 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
         goto bail_ctx;
 
     if (!glamor_set_alu(screen, gc ? gc->alu : GXcopy))
+        goto bail_ctx;
+
+    if (bitplane && !glamor_priv->can_copyplane)
         goto bail_ctx;
 
     if (bitplane) {

@@ -278,6 +278,7 @@ control_line_success:
 	HASH_TOKEN DEFINE_TOKEN define
 |	HASH_TOKEN UNDEF IDENTIFIER NEWLINE {
 		macro_t *macro;
+		struct hash_entry *entry;
 
                 /* Section 3.4 (Preprocessor) of the GLSL ES 3.00 spec says:
                  *
@@ -309,9 +310,10 @@ control_line_success:
 			glcpp_error(& @1, parser, "Built-in (pre-defined)"
 				    " macro names cannot be undefined.");
 
-		macro = hash_table_find (parser->defines, $3);
-		if (macro) {
-			hash_table_remove (parser->defines, $3);
+		entry = _mesa_hash_table_search (parser->defines, $3);
+		if (entry) {
+			macro = entry->data;
+			_mesa_hash_table_remove (parser->defines, entry);
 			ralloc_free (macro);
 		}
 		ralloc_free ($3);
@@ -348,13 +350,16 @@ control_line_success:
 		_glcpp_parser_skip_stack_push_if (parser, & @1, 0);
 	}
 |	HASH_TOKEN IFDEF IDENTIFIER junk NEWLINE {
-		macro_t *macro = hash_table_find (parser->defines, $3);
+		struct hash_entry *entry =
+				_mesa_hash_table_search(parser->defines, $3);
+		macro_t *macro = entry ? entry->data : NULL;
 		ralloc_free ($3);
 		_glcpp_parser_skip_stack_push_if (parser, & @1, macro != NULL);
 	}
 |	HASH_TOKEN IFNDEF IDENTIFIER junk NEWLINE {
-		macro_t *macro = hash_table_find (parser->defines, $3);
-		ralloc_free ($3);
+		struct hash_entry *entry =
+				_mesa_hash_table_search(parser->defines, $3);
+		macro_t *macro = entry ? entry->data : NULL;
 		_glcpp_parser_skip_stack_push_if (parser, & @3, macro == NULL);
 	}
 |	HASH_TOKEN ELIF pp_tokens NEWLINE {
@@ -1342,8 +1347,8 @@ glcpp_parser_create(glcpp_extension_iterator extensions, void *state, gl_api api
    parser = ralloc (NULL, glcpp_parser_t);
 
    glcpp_lex_init_extra (parser, &parser->scanner);
-   parser->defines = hash_table_ctor(32, hash_table_string_hash,
-                                     hash_table_string_compare);
+   parser->defines = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                             _mesa_key_string_equal);
    parser->active = NULL;
    parser->lexing_directive = 0;
    parser->space_tokens = 1;
@@ -1384,7 +1389,7 @@ void
 glcpp_parser_destroy(glcpp_parser_t *parser)
 {
    glcpp_lex_destroy (parser->scanner);
-   hash_table_dtor (parser->defines);
+   _mesa_hash_table_destroy(parser->defines, NULL);
    ralloc_free (parser);
 }
 
@@ -1563,8 +1568,8 @@ _glcpp_parser_evaluate_defined(glcpp_parser_t *parser, token_node_t *node,
 
    *last = node;
 
-   return hash_table_find(parser->defines,
-                          argument->token->value.str) ? 1 : 0;
+   return _mesa_hash_table_search(parser->defines,
+                                  argument->token->value.str) ? 1 : 0;
 
 FAIL:
    glcpp_error (&defined->token->location, parser,
@@ -1705,6 +1710,7 @@ static token_list_t *
 _glcpp_parser_expand_function(glcpp_parser_t *parser, token_node_t *node,
                               token_node_t **last, expansion_mode_t mode)
 {
+   struct hash_entry *entry;
    macro_t *macro;
    const char *identifier;
    argument_list_t *arguments;
@@ -1714,7 +1720,8 @@ _glcpp_parser_expand_function(glcpp_parser_t *parser, token_node_t *node,
 
    identifier = node->token->value.str;
 
-   macro = hash_table_find(parser->defines, identifier);
+   entry = _mesa_hash_table_search(parser->defines, identifier);
+   macro = entry ? entry->data : NULL;
 
    assert(macro->is_function);
 
@@ -1811,6 +1818,7 @@ _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
 {
    token_t *token = node->token;
    const char *identifier;
+   struct hash_entry *entry;
    macro_t *macro;
 
    /* We only expand identifiers */
@@ -1830,7 +1838,8 @@ _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
       return _token_list_create_with_one_integer(parser, node->token->location.source);
 
    /* Look up this identifier in the hash table. */
-   macro = hash_table_find(parser->defines, identifier);
+   entry = _mesa_hash_table_search(parser->defines, identifier);
+   macro = entry ? entry->data : NULL;
 
    /* Not a macro, so no expansion needed. */
    if (macro == NULL)
@@ -2080,6 +2089,7 @@ _define_object_macro(glcpp_parser_t *parser, YYLTYPE *loc,
                      const char *identifier, token_list_t *replacements)
 {
    macro_t *macro, *previous;
+   struct hash_entry *entry;
 
    /* We define pre-defined macros before we've started parsing the actual
     * file. So if there's no location defined yet, that's what were doing and
@@ -2095,7 +2105,8 @@ _define_object_macro(glcpp_parser_t *parser, YYLTYPE *loc,
    macro->replacements = replacements;
    ralloc_steal (macro, replacements);
 
-   previous = hash_table_find (parser->defines, identifier);
+   entry = _mesa_hash_table_search(parser->defines, identifier);
+   previous = entry ? entry->data : NULL;
    if (previous) {
       if (_macro_equal (macro, previous)) {
          ralloc_free (macro);
@@ -2104,7 +2115,7 @@ _define_object_macro(glcpp_parser_t *parser, YYLTYPE *loc,
       glcpp_error (loc, parser, "Redefinition of macro %s\n",  identifier);
    }
 
-   hash_table_insert (parser->defines, macro, identifier);
+   _mesa_hash_table_insert (parser->defines, identifier, macro);
 }
 
 void
@@ -2113,6 +2124,7 @@ _define_function_macro(glcpp_parser_t *parser, YYLTYPE *loc,
                        token_list_t *replacements)
 {
    macro_t *macro, *previous;
+   struct hash_entry *entry;
    const char *dup;
 
    _check_for_reserved_macro_name(parser, loc, identifier);
@@ -2130,7 +2142,9 @@ _define_function_macro(glcpp_parser_t *parser, YYLTYPE *loc,
    macro->parameters = parameters;
    macro->identifier = ralloc_strdup (macro, identifier);
    macro->replacements = replacements;
-   previous = hash_table_find (parser->defines, identifier);
+
+   entry = _mesa_hash_table_search(parser->defines, identifier);
+   previous = entry ? entry->data : NULL;
    if (previous) {
       if (_macro_equal (macro, previous)) {
          ralloc_free (macro);
@@ -2139,7 +2153,7 @@ _define_function_macro(glcpp_parser_t *parser, YYLTYPE *loc,
       glcpp_error (loc, parser, "Redefinition of macro %s\n", identifier);
    }
 
-   hash_table_insert(parser->defines, macro, identifier);
+   _mesa_hash_table_insert(parser->defines, identifier, macro);
 }
 
 static int
@@ -2185,9 +2199,9 @@ glcpp_parser_lex(YYSTYPE *yylval, YYLTYPE *yylloc, glcpp_parser_t *parser)
                ret == ENDIF || ret == HASH_TOKEN) {
          parser->in_control_line = 1;
       } else if (ret == IDENTIFIER) {
-         macro_t *macro;
-         macro = hash_table_find (parser->defines,
-                   yylval->str);
+         struct hash_entry *entry = _mesa_hash_table_search(parser->defines,
+                                                            yylval->str);
+         macro_t *macro = entry ? entry->data : NULL;
          if (macro && macro->is_function) {
             parser->newline_as_space = 1;
             parser->paren_count = 0;

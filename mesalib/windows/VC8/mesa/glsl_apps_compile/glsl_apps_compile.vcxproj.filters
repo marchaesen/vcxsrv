@@ -231,9 +231,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_initializers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_packed_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

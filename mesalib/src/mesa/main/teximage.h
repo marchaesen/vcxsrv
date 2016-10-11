@@ -250,14 +250,6 @@ _mesa_copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
                              GLsizei width, GLsizei height,
                              const char *caller);
 
-extern void
-_mesa_texture_buffer_range(struct gl_context *ctx,
-                           struct gl_texture_object *texObj,
-                           GLenum internalFormat,
-                           struct gl_buffer_object *bufObj,
-                           GLintptr offset, GLsizeiptr size,
-                           const char *caller);
-
 bool
 _mesa_is_cube_map_texture(GLenum target);
 

@@ -28,32 +28,10 @@
 #include "nir_types.h"
 #include "compiler/glsl/ir.h"
 
-void
-glsl_print_type(const glsl_type *type, FILE *fp)
+const char *
+glsl_get_type_name(const glsl_type *type)
 {
-   if (type->base_type == GLSL_TYPE_ARRAY) {
-      glsl_print_type(type->fields.array, fp);
-      fprintf(fp, "[%u]", type->length);
-   } else if ((type->base_type == GLSL_TYPE_STRUCT)
-              && !is_gl_identifier(type->name)) {
-      fprintf(fp, "%s@%p", type->name, (void *) type);
-   } else {
-      fprintf(fp, "%s", type->name);
-   }
-}
-
-void
-glsl_print_struct(const glsl_type *type, FILE *fp)
-{
-   assert(type->base_type == GLSL_TYPE_STRUCT);
-
-   fprintf(fp, "struct {\n");
-   for (unsigned i = 0; i < type->length; i++) {
-      fprintf(fp, "\t");
-      glsl_print_type(type->fields.structure[i].type, fp);
-      fprintf(fp, " %s;\n", type->fields.structure[i].name);
-   }
-   fprintf(fp, "}\n");
+   return type->name;
 }
 
 const glsl_type *

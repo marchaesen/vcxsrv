@@ -1337,7 +1337,8 @@ XkbHandleActions(DeviceIntPtr dev, DeviceIntPtr kbd, DeviceEvent *event)
         }
 
         sendEvent = _XkbApplyFilters(xkbi, key, &act);
-        XkbActionGetFilter(dev, event, key, &act, &sendEvent);
+        if (sendEvent)
+            XkbActionGetFilter(dev, event, key, &act, &sendEvent);
     }
     else {
         if (!keyEvent)

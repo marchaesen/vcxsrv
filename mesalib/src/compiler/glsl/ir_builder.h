@@ -168,6 +168,7 @@ ir_expression *logic_or(operand a, operand b);
 ir_expression *bit_not(operand a);
 ir_expression *bit_or(operand a, operand b);
 ir_expression *bit_and(operand a, operand b);
+ir_expression *bit_xor(operand a, operand b);
 ir_expression *lshift(operand a, operand b);
 ir_expression *rshift(operand a, operand b);
 

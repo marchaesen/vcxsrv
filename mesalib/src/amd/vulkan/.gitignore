@@ -1,0 +1,6 @@
+# Generated source files
+/radv_entrypoints.c
+/radv_entrypoints.h
+/radv_timestamp.h
+/dev_icd.json
+/vk_format_table.c

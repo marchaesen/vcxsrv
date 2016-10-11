@@ -36,7 +36,7 @@
 #include "util/u_framebuffer.h"
 
 
-/* Second state atom for user clip planes:
+/* Update the sample mask for MSAA.
  */
 static void update_sample_mask( struct st_context *st )
 {
@@ -46,7 +46,7 @@ static void update_sample_mask( struct st_context *st )
    unsigned sample_count = util_framebuffer_get_num_samples(framebuffer);
 
    if (st->ctx->Multisample.Enabled && sample_count > 1) {
-   /* unlike in gallium/d3d10 the mask is only active if msaa is enabled */
+      /* unlike in gallium/d3d10 the mask is only active if msaa is enabled */
       if (st->ctx->Multisample.SampleCoverage) {
          unsigned nr_bits;
          nr_bits = (unsigned)

@@ -148,7 +148,7 @@ u_copy_yv12_img_to_nv12_surf(ubyte *const *src,
    } else if (field == 1) {
       const ubyte *src_1 = src[field];
       const ubyte *src_2 = src[field+1];
-      bool odd = false;
+      bool odd = true;
       for (unsigned i = 0; i < height ; i++) {
          for (unsigned j = 0; j < width*2 ; j++) {
             if (odd == false) {

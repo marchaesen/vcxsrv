@@ -91,6 +91,7 @@ XCBGLX_REQUIRED=1.8.1
 XSHMFENCE_REQUIRED=1.1
 XVMC_REQUIRED=1.0.6
 PYTHON_MAKO_REQUIRED=0.8.0
+LIBSENSORS_REQUIRED=4.0.0
 
 dnl Check for progs
 AC_PROG_CPP
@@ -109,6 +110,7 @@ LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
 AC_CHECK_PROG(RM, rm, [rm -f])
+AC_CHECK_PROG(XXD, xxd, [xxd])
 
 AX_PROG_BISON([],
               AS_IF([test ! -f "$srcdir/src/compiler/glsl/glcpp/glcpp-parse.c"],
@@ -385,6 +387,17 @@ if test "x$SSE41_SUPPORTED" = x1; then
 fi
 AM_CONDITIONAL([SSE41_SUPPORTED], [test x$SSE41_SUPPORTED = x1])
 AC_SUBST([SSE41_CFLAGS], $SSE41_CFLAGS)
+
+dnl Check for new-style atomic builtins
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+int main() {
+    int n;
+    return __atomic_load_n(&n, __ATOMIC_ACQUIRE);
+}]])], GCC_ATOMIC_BUILTINS_SUPPORTED=1)
+if test "x$GCC_ATOMIC_BUILTINS_SUPPORTED" = x1; then
+    DEFINES="$DEFINES -DUSE_GCC_ATOMIC_BUILTINS"
+fi
+AM_CONDITIONAL([GCC_ATOMIC_BUILTINS_SUPPORTED], [test x$GCC_ATOMIC_BUILTINS_SUPPORTED = x1])
 
 dnl Check for Endianness
 AC_C_BIGENDIAN(
@@ -871,6 +884,32 @@ AC_ARG_ENABLE([dri],
     [enable_dri="$enableval"],
     [enable_dri=yes])
 
+AC_ARG_ENABLE([gallium-extra-hud],
+    [AS_HELP_STRING([--enable-gallium-extra-hud],
+        [enable HUD block/NIC I/O HUD stats support @<:@default=disabled@:>@])],
+    [enable_gallium_extra_hud="$enableval"],
+    [enable_gallium_extra_hud=no])
+AM_CONDITIONAL(HAVE_GALLIUM_EXTRA_HUD, test "x$enable_gallium_extra_hud" = xyes)
+if test "x$enable_gallium_extra_hud" = xyes ; then
+    DEFINES="${DEFINES} -DHAVE_GALLIUM_EXTRA_HUD=1"
+fi
+
+#TODO: no pkgconfig .pc available for libsensors.
+#PKG_CHECK_MODULES([LIBSENSORS], [libsensors >= $LIBSENSORS_REQUIRED], [enable_lmsensors=yes], [enable_lmsensors=no])
+AC_ARG_ENABLE([lmsensors],
+    [AS_HELP_STRING([--enable-lmsensors],
+        [enable HUD lmsensor support @<:@default=disabled@:>@])],
+    [enable_lmsensors="$enableval"],
+    [enable_lmsensors=no])
+AM_CONDITIONAL(HAVE_LIBSENSORS, test "x$enable_lmsensors" = xyes)
+if test "x$enable_lmsensors" = xyes ; then
+    DEFINES="${DEFINES} -DHAVE_LIBSENSORS=1"
+    LIBSENSORS_LDFLAGS="-lsensors"
+else
+    LIBSENSORS_LDFLAGS=""
+fi
+AC_SUBST(LIBSENSORS_LDFLAGS)
+
 case "$host_os" in
 linux*)
     dri3_default=yes
@@ -1106,7 +1145,9 @@ fi
 case "$host_os" in
 darwin*)
     dri_platform='apple' ;;
-gnu*|cygwin*)
+cygwin*)
+    dri_platform='windows' ;;
+gnu*)
     dri_platform='none' ;;
 *)
     dri_platform='drm' ;;
@@ -1122,6 +1163,9 @@ AM_CONDITIONAL(HAVE_DRISW_KMS, test "x$have_drisw_kms" = xyes )
 AM_CONDITIONAL(HAVE_DRI2, test "x$enable_dri" = xyes -a "x$dri_platform" = xdrm -a "x$have_libdrm" = xyes )
 AM_CONDITIONAL(HAVE_DRI3, test "x$enable_dri3" = xyes -a "x$dri_platform" = xdrm -a "x$have_libdrm" = xyes )
 AM_CONDITIONAL(HAVE_APPLEDRI, test "x$enable_dri" = xyes -a "x$dri_platform" = xapple )
+AM_CONDITIONAL(HAVE_LMSENSORS, test "x$enable_lmsensors" = xyes )
+AM_CONDITIONAL(HAVE_GALLIUM_EXTRA_HUD, test "x$enable_gallium_extra_hud" = xyes )
+AM_CONDITIONAL(HAVE_WINDOWSDRI, test "x$enable_dri" = xyes -a "x$dri_platform" = xwindows )
 
 AC_ARG_ENABLE([shared-glapi],
     [AS_HELP_STRING([--enable-shared-glapi],
@@ -1302,6 +1346,9 @@ if test "x$with_sha1" = "x"; then
     fi
 fi
 AM_CONDITIONAL([ENABLE_SHADER_CACHE], [test x$enable_shader_cache = xyes])
+if test "x$enable_shader_cache" = "xyes"; then
+   AC_DEFINE([ENABLE_SHADER_CACHE], [1], [Enable shader cache])
+fi
 
 case "$host_os" in
 linux*)
@@ -1385,6 +1432,9 @@ xdri)
         fi
         if test x"$dri_platform" = xapple ; then
             DEFINES="$DEFINES -DGLX_USE_APPLEGL"
+        fi
+        if test x"$dri_platform" = xwindows ; then
+            DEFINES="$DEFINES -DGLX_USE_WINDOWSGL"
         fi
     fi
 
@@ -1666,6 +1716,13 @@ if test -n "$with_vulkan_drivers"; then
             HAVE_INTEL_VULKAN=yes;
 
             ;;
+        xradeon)
+            PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
+            HAVE_RADEON_VULKAN=yes;
+            if test "x$with_sha1" == "x"; then
+                AC_MSG_ERROR([radv vulkan driver requires SHA1])
+            fi
+	    ;;
         *)
             AC_MSG_ERROR([Vulkan driver '$driver' does not exist])
             ;;
@@ -2005,8 +2062,8 @@ if test "x$with_egl_platforms" != "x" -a "x$enable_egl" != xyes; then
     AC_MSG_ERROR([cannot build egl state tracker without EGL library])
 fi
 
-PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland_scanner],
-        WAYLAND_SCANNER=`$PKG_CONFIG --variable=wayland_scanner wayland_scanner`,
+PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland-scanner],
+        WAYLAND_SCANNER=`$PKG_CONFIG --variable=wayland_scanner wayland-scanner`,
         WAYLAND_SCANNER='')
 if test "x$WAYLAND_SCANNER" = x; then
     AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner])
@@ -2149,7 +2206,7 @@ if test "x$enable_gallium_llvm" = xauto; then
     i*86|x86_64|amd64) enable_gallium_llvm=yes;;
     esac
 fi
-if test "x$enable_gallium_llvm" = xyes; then
+if test "x$enable_gallium_llvm" = xyes || test "x$HAVE_RADEON_VULKAN" = xyes; then
     if test -n "$llvm_prefix"; then
         AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no], ["$llvm_prefix/bin"])
     else
@@ -2189,6 +2246,10 @@ if test "x$enable_gallium_llvm" = xyes; then
         fi
 
         LLVM_COMPONENTS="engine bitwriter mcjit mcdisassembler"
+
+        if $LLVM_CONFIG --components | grep -q inteljitevents ; then
+            LLVM_COMPONENTS="${LLVM_COMPONENTS} inteljitevents"
+        fi
 
         if test "x$enable_opencl" = xyes; then
             llvm_check_version_for "3" "6" "0" "opencl"
@@ -2315,10 +2376,7 @@ radeon_llvm_check() {
     else
         amdgpu_llvm_target_name='amdgpu'
     fi
-    if test "x$enable_gallium_llvm" != "xyes"; then
-        AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
-    fi
-    llvm_check_version_for "3" "6" "0" $1
+    llvm_check_version_for $2 $3 $4 $1
     if test true && $LLVM_CONFIG --targets-built | grep -iqvw $amdgpu_llvm_target_name ; then
         AC_MSG_ERROR([LLVM $amdgpu_llvm_target_name not enabled in your LLVM build.])
     fi
@@ -2327,6 +2385,13 @@ radeon_llvm_check() {
     if test "x$have_libelf" != xyes; then
        AC_MSG_ERROR([$1 requires libelf when using llvm])
     fi
+}
+
+radeon_gallium_llvm_check() {
+    if test "x$enable_gallium_llvm" != "xyes"; then
+        AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
+    fi
+    radeon_llvm_check $*
 }
 
 swr_llvm_check() {
@@ -2413,7 +2478,7 @@ if test -n "$with_gallium_drivers"; then
             gallium_require_drm "Gallium R600"
             gallium_require_drm_loader
             if test "x$enable_opencl" = xyes; then
-                radeon_llvm_check "r600g"
+                radeon_gallium_llvm_check "r600g" "3" "6" "0"
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
             ;;
@@ -2423,7 +2488,7 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             gallium_require_drm "radeonsi"
             gallium_require_drm_loader
-            radeon_llvm_check "radeonsi"
+            radeon_gallium_llvm_check "radeonsi" "3" "6" "0"
             require_egl_drm "radeonsi"
             ;;
         xnouveau)
@@ -2486,6 +2551,10 @@ if test -n "$with_gallium_drivers"; then
             ;;
         esac
     done
+fi
+
+if test "x$HAVE_RADEON_VULKAN" = "xyes"; then
+    radeon_llvm_check "radv" "3" "9" "0"
 fi
 
 dnl Set LLVM_LIBS - This is done after the driver configuration so
@@ -2579,7 +2648,12 @@ AM_CONDITIONAL(HAVE_R200_DRI, test x$HAVE_R200_DRI = xyes)
 AM_CONDITIONAL(HAVE_RADEON_DRI, test x$HAVE_RADEON_DRI = xyes)
 AM_CONDITIONAL(HAVE_SWRAST_DRI, test x$HAVE_SWRAST_DRI = xyes)
 
+AM_CONDITIONAL(HAVE_RADEON_VULKAN, test "x$HAVE_RADEON_VULKAN" = xyes)
 AM_CONDITIONAL(HAVE_INTEL_VULKAN, test "x$HAVE_INTEL_VULKAN" = xyes)
+
+AM_CONDITIONAL(HAVE_AMD_DRIVERS, test "x$HAVE_GALLIUM_R600" = xyes -o \
+                                      "x$HAVE_GALLIUM_RADEONSI" = xyes -o \
+                                      "x$HAVE_RADEON_VULKAN" = xyes)
 
 AM_CONDITIONAL(HAVE_INTEL_DRIVERS, test "x$HAVE_INTEL_VULKAN" = xyes -o \
                                         "x$HAVE_I965_DRI" = xyes)
@@ -2599,6 +2673,8 @@ fi
 AM_CONDITIONAL(HAVE_LIBDRM, test "x$have_libdrm" = xyes)
 AM_CONDITIONAL(HAVE_OSMESA, test "x$enable_osmesa" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_OSMESA, test "x$enable_gallium_osmesa" = xyes)
+AM_CONDITIONAL(HAVE_COMMON_OSMESA, test "x$enable_osmesa" = xyes -o \
+                                        "x$enable_gallium_osmesa" = xyes)
 
 AM_CONDITIONAL(HAVE_X86_ASM, test "x$asm_arch" = xx86 -o "x$asm_arch" = xx86_64)
 AM_CONDITIONAL(HAVE_X86_64_ASM, test "x$asm_arch" = xx86_64)
@@ -2671,6 +2747,8 @@ dnl Substitute the config
 AC_CONFIG_FILES([Makefile
 		src/Makefile
 		src/amd/Makefile
+		src/amd/common/Makefile
+		src/amd/vulkan/Makefile
 		src/compiler/Makefile
 		src/egl/Makefile
 		src/egl/main/egl.pc
@@ -2745,6 +2823,8 @@ AC_CONFIG_FILES([Makefile
 		src/glx/Makefile
 		src/glx/apple/Makefile
 		src/glx/tests/Makefile
+		src/glx/windows/Makefile
+		src/glx/windows/windowsdriproto.pc
 		src/gtest/Makefile
 		src/intel/Makefile
 		src/intel/tools/Makefile
@@ -2874,6 +2954,19 @@ if test -n "$with_gallium_drivers"; then
     echo "        Gallium st:      $gallium_st"
 else
     echo "        Gallium:         no"
+fi
+
+echo ""
+if test "x$enable_gallium_extra_hud" != xyes; then
+    echo "        HUD extra stats: no"
+else
+    echo "        HUD extra stats: yes"
+fi
+
+if test "x$enable_lmsensors" != xyes; then
+    echo "        HUD lmsensors:   no"
+else
+    echo "        HUD lmsensors:   yes"
 fi
 
 dnl Shader cache

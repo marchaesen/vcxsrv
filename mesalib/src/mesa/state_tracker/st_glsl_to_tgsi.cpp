@@ -3144,7 +3144,6 @@ glsl_to_tgsi_visitor::get_function_signature(ir_function_signature *sig)
 void
 glsl_to_tgsi_visitor::visit_atomic_counter_intrinsic(ir_call *ir)
 {
-   const char *callee = ir->callee->function_name();
    exec_node *param = ir->actual_parameters.get_head();
    ir_dereference *deref = static_cast<ir_dereference *>(param);
    ir_variable *location = deref->variable_referenced();
@@ -3173,12 +3172,12 @@ glsl_to_tgsi_visitor::visit_atomic_counter_intrinsic(ir_call *ir)
 
    glsl_to_tgsi_instruction *inst;
 
-   if (!strcmp("__intrinsic_atomic_read", callee)) {
+   if (ir->callee->intrinsic_id == ir_intrinsic_atomic_counter_read) {
       inst = emit_asm(ir, TGSI_OPCODE_LOAD, dst, offset);
-   } else if (!strcmp("__intrinsic_atomic_increment", callee)) {
+   } else if (ir->callee->intrinsic_id == ir_intrinsic_atomic_counter_increment) {
       inst = emit_asm(ir, TGSI_OPCODE_ATOMUADD, dst, offset,
                       st_src_reg_for_int(1));
-   } else if (!strcmp("__intrinsic_atomic_predecrement", callee)) {
+   } else if (ir->callee->intrinsic_id == ir_intrinsic_atomic_counter_predecrement) {
       inst = emit_asm(ir, TGSI_OPCODE_ATOMUADD, dst, offset,
                       st_src_reg_for_int(-1));
       emit_asm(ir, TGSI_OPCODE_ADD, dst, this->result, st_src_reg_for_int(-1));
@@ -3189,34 +3188,37 @@ glsl_to_tgsi_visitor::visit_atomic_counter_intrinsic(ir_call *ir)
 
       st_src_reg data = this->result, data2 = undef_src;
       unsigned opcode;
-      if (!strcmp("__intrinsic_atomic_add", callee))
+      switch (ir->callee->intrinsic_id) {
+      case ir_intrinsic_atomic_counter_add:
          opcode = TGSI_OPCODE_ATOMUADD;
-      else if (!strcmp("__intrinsic_atomic_min", callee))
+         break;
+      case ir_intrinsic_atomic_counter_min:
          opcode = TGSI_OPCODE_ATOMIMIN;
-      else if (!strcmp("__intrinsic_atomic_max", callee))
+         break;
+      case ir_intrinsic_atomic_counter_max:
          opcode = TGSI_OPCODE_ATOMIMAX;
-      else if (!strcmp("__intrinsic_atomic_and", callee))
+         break;
+      case ir_intrinsic_atomic_counter_and:
          opcode = TGSI_OPCODE_ATOMAND;
-      else if (!strcmp("__intrinsic_atomic_or", callee))
+         break;
+      case ir_intrinsic_atomic_counter_or:
          opcode = TGSI_OPCODE_ATOMOR;
-      else if (!strcmp("__intrinsic_atomic_xor", callee))
+         break;
+      case ir_intrinsic_atomic_counter_xor:
          opcode = TGSI_OPCODE_ATOMXOR;
-      else if (!strcmp("__intrinsic_atomic_exchange", callee))
+         break;
+      case ir_intrinsic_atomic_counter_exchange:
          opcode = TGSI_OPCODE_ATOMXCHG;
-      else if (!strcmp("__intrinsic_atomic_comp_swap", callee)) {
+         break;
+      case ir_intrinsic_atomic_counter_comp_swap: {
          opcode = TGSI_OPCODE_ATOMCAS;
          param = param->get_next();
          val = ((ir_instruction *)param)->as_rvalue();
          val->accept(this);
          data2 = this->result;
-      } else if (!strcmp("__intrinsic_atomic_sub", callee)) {
-         opcode = TGSI_OPCODE_ATOMUADD;
-         st_src_reg res = get_temp(glsl_type::uvec4_type);
-         st_dst_reg dstres = st_dst_reg(res);
-         dstres.writemask = dst.writemask;
-         emit_asm(ir, TGSI_OPCODE_INEG, dstres, data);
-         data = res;
-      } else {
+         break;
+      }
+      default:
          assert(!"Unexpected intrinsic");
          return;
       }
@@ -3230,7 +3232,6 @@ glsl_to_tgsi_visitor::visit_atomic_counter_intrinsic(ir_call *ir)
 void
 glsl_to_tgsi_visitor::visit_ssbo_intrinsic(ir_call *ir)
 {
-   const char *callee = ir->callee->function_name();
    exec_node *param = ir->actual_parameters.get_head();
 
    ir_rvalue *block = ((ir_instruction *)param)->as_rvalue();
@@ -3266,11 +3267,11 @@ glsl_to_tgsi_visitor::visit_ssbo_intrinsic(ir_call *ir)
 
    glsl_to_tgsi_instruction *inst;
 
-   if (!strcmp("__intrinsic_load_ssbo", callee)) {
+   if (ir->callee->intrinsic_id == ir_intrinsic_ssbo_load) {
       inst = emit_asm(ir, TGSI_OPCODE_LOAD, dst, off);
       if (dst.type == GLSL_TYPE_BOOL)
          emit_asm(ir, TGSI_OPCODE_USNE, dst, st_src_reg(dst), st_src_reg_for_int(0));
-   } else if (!strcmp("__intrinsic_store_ssbo", callee)) {
+   } else if (ir->callee->intrinsic_id == ir_intrinsic_ssbo_store) {
       param = param->get_next();
       ir_rvalue *val = ((ir_instruction *)param)->as_rvalue();
       val->accept(this);
@@ -3289,27 +3290,36 @@ glsl_to_tgsi_visitor::visit_ssbo_intrinsic(ir_call *ir)
 
       st_src_reg data = this->result, data2 = undef_src;
       unsigned opcode;
-      if (!strcmp("__intrinsic_atomic_add_ssbo", callee))
+      switch (ir->callee->intrinsic_id) {
+      case ir_intrinsic_ssbo_atomic_add:
          opcode = TGSI_OPCODE_ATOMUADD;
-      else if (!strcmp("__intrinsic_atomic_min_ssbo", callee))
+         break;
+      case ir_intrinsic_ssbo_atomic_min:
          opcode = TGSI_OPCODE_ATOMIMIN;
-      else if (!strcmp("__intrinsic_atomic_max_ssbo", callee))
+         break;
+      case ir_intrinsic_ssbo_atomic_max:
          opcode = TGSI_OPCODE_ATOMIMAX;
-      else if (!strcmp("__intrinsic_atomic_and_ssbo", callee))
+         break;
+      case ir_intrinsic_ssbo_atomic_and:
          opcode = TGSI_OPCODE_ATOMAND;
-      else if (!strcmp("__intrinsic_atomic_or_ssbo", callee))
+         break;
+      case ir_intrinsic_ssbo_atomic_or:
          opcode = TGSI_OPCODE_ATOMOR;
-      else if (!strcmp("__intrinsic_atomic_xor_ssbo", callee))
+         break;
+      case ir_intrinsic_ssbo_atomic_xor:
          opcode = TGSI_OPCODE_ATOMXOR;
-      else if (!strcmp("__intrinsic_atomic_exchange_ssbo", callee))
+         break;
+      case ir_intrinsic_ssbo_atomic_exchange:
          opcode = TGSI_OPCODE_ATOMXCHG;
-      else if (!strcmp("__intrinsic_atomic_comp_swap_ssbo", callee)) {
+         break;
+      case ir_intrinsic_ssbo_atomic_comp_swap:
          opcode = TGSI_OPCODE_ATOMCAS;
          param = param->get_next();
          val = ((ir_instruction *)param)->as_rvalue();
          val->accept(this);
          data2 = this->result;
-      } else {
+         break;
+      default:
          assert(!"Unexpected intrinsic");
          return;
       }
@@ -3341,41 +3351,46 @@ glsl_to_tgsi_visitor::visit_ssbo_intrinsic(ir_call *ir)
 void
 glsl_to_tgsi_visitor::visit_membar_intrinsic(ir_call *ir)
 {
-   const char *callee = ir->callee->function_name();
-
-   if (!strcmp("__intrinsic_memory_barrier", callee))
+   switch (ir->callee->intrinsic_id) {
+   case ir_intrinsic_memory_barrier:
       emit_asm(ir, TGSI_OPCODE_MEMBAR, undef_dst,
                st_src_reg_for_int(TGSI_MEMBAR_SHADER_BUFFER |
                                   TGSI_MEMBAR_ATOMIC_BUFFER |
                                   TGSI_MEMBAR_SHADER_IMAGE |
                                   TGSI_MEMBAR_SHARED));
-   else if (!strcmp("__intrinsic_memory_barrier_atomic_counter", callee))
+      break;
+   case ir_intrinsic_memory_barrier_atomic_counter:
       emit_asm(ir, TGSI_OPCODE_MEMBAR, undef_dst,
                st_src_reg_for_int(TGSI_MEMBAR_ATOMIC_BUFFER));
-   else if (!strcmp("__intrinsic_memory_barrier_buffer", callee))
+      break;
+   case ir_intrinsic_memory_barrier_buffer:
       emit_asm(ir, TGSI_OPCODE_MEMBAR, undef_dst,
                st_src_reg_for_int(TGSI_MEMBAR_SHADER_BUFFER));
-   else if (!strcmp("__intrinsic_memory_barrier_image", callee))
+      break;
+   case ir_intrinsic_memory_barrier_image:
       emit_asm(ir, TGSI_OPCODE_MEMBAR, undef_dst,
                st_src_reg_for_int(TGSI_MEMBAR_SHADER_IMAGE));
-   else if (!strcmp("__intrinsic_memory_barrier_shared", callee))
+      break;
+   case ir_intrinsic_memory_barrier_shared:
       emit_asm(ir, TGSI_OPCODE_MEMBAR, undef_dst,
                st_src_reg_for_int(TGSI_MEMBAR_SHARED));
-   else if (!strcmp("__intrinsic_group_memory_barrier", callee))
+      break;
+   case ir_intrinsic_group_memory_barrier:
       emit_asm(ir, TGSI_OPCODE_MEMBAR, undef_dst,
                st_src_reg_for_int(TGSI_MEMBAR_SHADER_BUFFER |
                                   TGSI_MEMBAR_ATOMIC_BUFFER |
                                   TGSI_MEMBAR_SHADER_IMAGE |
                                   TGSI_MEMBAR_SHARED |
                                   TGSI_MEMBAR_THREAD_GROUP));
-   else
+      break;
+   default:
       assert(!"Unexpected memory barrier intrinsic");
+   }
 }
 
 void
 glsl_to_tgsi_visitor::visit_shared_intrinsic(ir_call *ir)
 {
-   const char *callee = ir->callee->function_name();
    exec_node *param = ir->actual_parameters.get_head();
 
    ir_rvalue *offset = ((ir_instruction *)param)->as_rvalue();
@@ -3395,10 +3410,10 @@ glsl_to_tgsi_visitor::visit_shared_intrinsic(ir_call *ir)
 
    glsl_to_tgsi_instruction *inst;
 
-   if (!strcmp("__intrinsic_load_shared", callee)) {
+   if (ir->callee->intrinsic_id == ir_intrinsic_shared_load) {
       inst = emit_asm(ir, TGSI_OPCODE_LOAD, dst, off);
       inst->buffer = buffer;
-   } else if (!strcmp("__intrinsic_store_shared", callee)) {
+   } else if (ir->callee->intrinsic_id == ir_intrinsic_shared_store) {
       param = param->get_next();
       ir_rvalue *val = ((ir_instruction *)param)->as_rvalue();
       val->accept(this);
@@ -3418,27 +3433,36 @@ glsl_to_tgsi_visitor::visit_shared_intrinsic(ir_call *ir)
 
       st_src_reg data = this->result, data2 = undef_src;
       unsigned opcode;
-      if (!strcmp("__intrinsic_atomic_add_shared", callee))
+      switch (ir->callee->intrinsic_id) {
+      case ir_intrinsic_shared_atomic_add:
          opcode = TGSI_OPCODE_ATOMUADD;
-      else if (!strcmp("__intrinsic_atomic_min_shared", callee))
+         break;
+      case ir_intrinsic_shared_atomic_min:
          opcode = TGSI_OPCODE_ATOMIMIN;
-      else if (!strcmp("__intrinsic_atomic_max_shared", callee))
+         break;
+      case ir_intrinsic_shared_atomic_max:
          opcode = TGSI_OPCODE_ATOMIMAX;
-      else if (!strcmp("__intrinsic_atomic_and_shared", callee))
+         break;
+      case ir_intrinsic_shared_atomic_and:
          opcode = TGSI_OPCODE_ATOMAND;
-      else if (!strcmp("__intrinsic_atomic_or_shared", callee))
+         break;
+      case ir_intrinsic_shared_atomic_or:
          opcode = TGSI_OPCODE_ATOMOR;
-      else if (!strcmp("__intrinsic_atomic_xor_shared", callee))
+         break;
+      case ir_intrinsic_shared_atomic_xor:
          opcode = TGSI_OPCODE_ATOMXOR;
-      else if (!strcmp("__intrinsic_atomic_exchange_shared", callee))
+         break;
+      case ir_intrinsic_shared_atomic_exchange:
          opcode = TGSI_OPCODE_ATOMXCHG;
-      else if (!strcmp("__intrinsic_atomic_comp_swap_shared", callee)) {
+         break;
+      case ir_intrinsic_shared_atomic_comp_swap:
          opcode = TGSI_OPCODE_ATOMCAS;
          param = param->get_next();
          val = ((ir_instruction *)param)->as_rvalue();
          val->accept(this);
          data2 = this->result;
-      } else {
+         break;
+      default:
          assert(!"Unexpected intrinsic");
          return;
       }
@@ -3451,7 +3475,6 @@ glsl_to_tgsi_visitor::visit_shared_intrinsic(ir_call *ir)
 void
 glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
 {
-   const char *callee = ir->callee->function_name();
    exec_node *param = ir->actual_parameters.get_head();
 
    ir_dereference *img = (ir_dereference *)param;
@@ -3479,10 +3502,10 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
 
    glsl_to_tgsi_instruction *inst;
 
-   if (!strcmp("__intrinsic_image_size", callee)) {
+   if (ir->callee->intrinsic_id == ir_intrinsic_image_size) {
       dst.writemask = WRITEMASK_XYZ;
       inst = emit_asm(ir, TGSI_OPCODE_RESQ, dst);
-   } else if (!strcmp("__intrinsic_image_samples", callee)) {
+   } else if (ir->callee->intrinsic_id == ir_intrinsic_image_samples) {
       st_src_reg res = get_temp(glsl_type::ivec4_type);
       st_dst_reg dstres = st_dst_reg(res);
       dstres.writemask = WRITEMASK_W;
@@ -3534,27 +3557,38 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
       assert(param->is_tail_sentinel());
 
       unsigned opcode;
-      if (!strcmp("__intrinsic_image_load", callee))
+      switch (ir->callee->intrinsic_id) {
+      case ir_intrinsic_image_load:
          opcode = TGSI_OPCODE_LOAD;
-      else if (!strcmp("__intrinsic_image_store", callee))
+         break;
+      case ir_intrinsic_image_store:
          opcode = TGSI_OPCODE_STORE;
-      else if (!strcmp("__intrinsic_image_atomic_add", callee))
+         break;
+      case ir_intrinsic_image_atomic_add:
          opcode = TGSI_OPCODE_ATOMUADD;
-      else if (!strcmp("__intrinsic_image_atomic_min", callee))
+         break;
+      case ir_intrinsic_image_atomic_min:
          opcode = TGSI_OPCODE_ATOMIMIN;
-      else if (!strcmp("__intrinsic_image_atomic_max", callee))
+         break;
+      case ir_intrinsic_image_atomic_max:
          opcode = TGSI_OPCODE_ATOMIMAX;
-      else if (!strcmp("__intrinsic_image_atomic_and", callee))
+         break;
+      case ir_intrinsic_image_atomic_and:
          opcode = TGSI_OPCODE_ATOMAND;
-      else if (!strcmp("__intrinsic_image_atomic_or", callee))
+         break;
+      case ir_intrinsic_image_atomic_or:
          opcode = TGSI_OPCODE_ATOMOR;
-      else if (!strcmp("__intrinsic_image_atomic_xor", callee))
+         break;
+      case ir_intrinsic_image_atomic_xor:
          opcode = TGSI_OPCODE_ATOMXOR;
-      else if (!strcmp("__intrinsic_image_atomic_exchange", callee))
+         break;
+      case ir_intrinsic_image_atomic_exchange:
          opcode = TGSI_OPCODE_ATOMXCHG;
-      else if (!strcmp("__intrinsic_image_atomic_comp_swap", callee))
+         break;
+      case ir_intrinsic_image_atomic_comp_swap:
          opcode = TGSI_OPCODE_ATOMCAS;
-      else {
+         break;
+      default:
          assert(!"Unexpected intrinsic");
          return;
       }
@@ -3617,79 +3651,90 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
 {
    glsl_to_tgsi_instruction *call_inst;
    ir_function_signature *sig = ir->callee;
-   const char *callee = sig->function_name();
    function_entry *entry;
    int i;
 
    /* Filter out intrinsics */
-   if (!strcmp("__intrinsic_atomic_read", callee) ||
-       !strcmp("__intrinsic_atomic_increment", callee) ||
-       !strcmp("__intrinsic_atomic_predecrement", callee) ||
-       !strcmp("__intrinsic_atomic_add", callee) ||
-       !strcmp("__intrinsic_atomic_sub", callee) ||
-       !strcmp("__intrinsic_atomic_min", callee) ||
-       !strcmp("__intrinsic_atomic_max", callee) ||
-       !strcmp("__intrinsic_atomic_and", callee) ||
-       !strcmp("__intrinsic_atomic_or", callee) ||
-       !strcmp("__intrinsic_atomic_xor", callee) ||
-       !strcmp("__intrinsic_atomic_exchange", callee) ||
-       !strcmp("__intrinsic_atomic_comp_swap", callee)) {
+   switch (sig->intrinsic_id) {
+   case ir_intrinsic_invalid:
+      break;
+
+   case ir_intrinsic_atomic_counter_read:
+   case ir_intrinsic_atomic_counter_increment:
+   case ir_intrinsic_atomic_counter_predecrement:
+   case ir_intrinsic_atomic_counter_add:
+   case ir_intrinsic_atomic_counter_min:
+   case ir_intrinsic_atomic_counter_max:
+   case ir_intrinsic_atomic_counter_and:
+   case ir_intrinsic_atomic_counter_or:
+   case ir_intrinsic_atomic_counter_xor:
+   case ir_intrinsic_atomic_counter_exchange:
+   case ir_intrinsic_atomic_counter_comp_swap:
       visit_atomic_counter_intrinsic(ir);
       return;
-   }
 
-   if (!strcmp("__intrinsic_load_ssbo", callee) ||
-       !strcmp("__intrinsic_store_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_add_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_min_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_max_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_and_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_or_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_xor_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_exchange_ssbo", callee) ||
-       !strcmp("__intrinsic_atomic_comp_swap_ssbo", callee)) {
+   case ir_intrinsic_ssbo_load:
+   case ir_intrinsic_ssbo_store:
+   case ir_intrinsic_ssbo_atomic_add:
+   case ir_intrinsic_ssbo_atomic_min:
+   case ir_intrinsic_ssbo_atomic_max:
+   case ir_intrinsic_ssbo_atomic_and:
+   case ir_intrinsic_ssbo_atomic_or:
+   case ir_intrinsic_ssbo_atomic_xor:
+   case ir_intrinsic_ssbo_atomic_exchange:
+   case ir_intrinsic_ssbo_atomic_comp_swap:
       visit_ssbo_intrinsic(ir);
       return;
-   }
 
-   if (!strcmp("__intrinsic_memory_barrier", callee) ||
-       !strcmp("__intrinsic_memory_barrier_atomic_counter", callee) ||
-       !strcmp("__intrinsic_memory_barrier_buffer", callee) ||
-       !strcmp("__intrinsic_memory_barrier_image", callee) ||
-       !strcmp("__intrinsic_memory_barrier_shared", callee) ||
-       !strcmp("__intrinsic_group_memory_barrier", callee)) {
+   case ir_intrinsic_memory_barrier:
+   case ir_intrinsic_memory_barrier_atomic_counter:
+   case ir_intrinsic_memory_barrier_buffer:
+   case ir_intrinsic_memory_barrier_image:
+   case ir_intrinsic_memory_barrier_shared:
+   case ir_intrinsic_group_memory_barrier:
       visit_membar_intrinsic(ir);
       return;
-   }
 
-   if (!strcmp("__intrinsic_load_shared", callee) ||
-       !strcmp("__intrinsic_store_shared", callee) ||
-       !strcmp("__intrinsic_atomic_add_shared", callee) ||
-       !strcmp("__intrinsic_atomic_min_shared", callee) ||
-       !strcmp("__intrinsic_atomic_max_shared", callee) ||
-       !strcmp("__intrinsic_atomic_and_shared", callee) ||
-       !strcmp("__intrinsic_atomic_or_shared", callee) ||
-       !strcmp("__intrinsic_atomic_xor_shared", callee) ||
-       !strcmp("__intrinsic_atomic_exchange_shared", callee) ||
-       !strcmp("__intrinsic_atomic_comp_swap_shared", callee)) {
+   case ir_intrinsic_shared_load:
+   case ir_intrinsic_shared_store:
+   case ir_intrinsic_shared_atomic_add:
+   case ir_intrinsic_shared_atomic_min:
+   case ir_intrinsic_shared_atomic_max:
+   case ir_intrinsic_shared_atomic_and:
+   case ir_intrinsic_shared_atomic_or:
+   case ir_intrinsic_shared_atomic_xor:
+   case ir_intrinsic_shared_atomic_exchange:
+   case ir_intrinsic_shared_atomic_comp_swap:
       visit_shared_intrinsic(ir);
       return;
-   }
 
-   if (!strcmp("__intrinsic_image_load", callee) ||
-       !strcmp("__intrinsic_image_store", callee) ||
-       !strcmp("__intrinsic_image_atomic_add", callee) ||
-       !strcmp("__intrinsic_image_atomic_min", callee) ||
-       !strcmp("__intrinsic_image_atomic_max", callee) ||
-       !strcmp("__intrinsic_image_atomic_and", callee) ||
-       !strcmp("__intrinsic_image_atomic_or", callee) ||
-       !strcmp("__intrinsic_image_atomic_xor", callee) ||
-       !strcmp("__intrinsic_image_atomic_exchange", callee) ||
-       !strcmp("__intrinsic_image_atomic_comp_swap", callee) ||
-       !strcmp("__intrinsic_image_size", callee) ||
-       !strcmp("__intrinsic_image_samples", callee)) {
+   case ir_intrinsic_image_load:
+   case ir_intrinsic_image_store:
+   case ir_intrinsic_image_atomic_add:
+   case ir_intrinsic_image_atomic_min:
+   case ir_intrinsic_image_atomic_max:
+   case ir_intrinsic_image_atomic_and:
+   case ir_intrinsic_image_atomic_or:
+   case ir_intrinsic_image_atomic_xor:
+   case ir_intrinsic_image_atomic_exchange:
+   case ir_intrinsic_image_atomic_comp_swap:
+   case ir_intrinsic_image_size:
+   case ir_intrinsic_image_samples:
       visit_image_intrinsic(ir);
       return;
+
+   case ir_intrinsic_generic_load:
+   case ir_intrinsic_generic_store:
+   case ir_intrinsic_generic_atomic_add:
+   case ir_intrinsic_generic_atomic_and:
+   case ir_intrinsic_generic_atomic_or:
+   case ir_intrinsic_generic_atomic_xor:
+   case ir_intrinsic_generic_atomic_min:
+   case ir_intrinsic_generic_atomic_max:
+   case ir_intrinsic_generic_atomic_exchange:
+   case ir_intrinsic_generic_atomic_comp_swap:
+   case ir_intrinsic_shader_clock:
+      unreachable("Invalid intrinsic");
    }
 
    entry = get_function_signature(sig);
@@ -4347,6 +4392,10 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
             }
          }
       }
+
+      if (inst->tex_target == TEXTURE_EXTERNAL_INDEX)
+         prog->ExternalSamplersUsed |= 1 << inst->sampler.index;
+
       if (inst->buffer.file != PROGRAM_UNDEFINED && (
                 is_resource_instruction(inst->op) ||
                 inst->op == TGSI_OPCODE_STORE)) {
@@ -5235,6 +5284,8 @@ _mesa_sysval_to_semantic(unsigned sysval)
       return TGSI_SEMANTIC_BLOCK_ID;
    case SYSTEM_VALUE_NUM_WORK_GROUPS:
       return TGSI_SEMANTIC_GRID_SIZE;
+   case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
+      return TGSI_SEMANTIC_BLOCK_SIZE;
 
    /* Unhandled */
    case SYSTEM_VALUE_LOCAL_INVOCATION_INDEX:

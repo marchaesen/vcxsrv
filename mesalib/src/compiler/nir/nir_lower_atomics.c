@@ -54,6 +54,38 @@ lower_instr(nir_intrinsic_instr *instr,
       op = nir_intrinsic_atomic_counter_dec;
       break;
 
+   case nir_intrinsic_atomic_counter_add_var:
+      op = nir_intrinsic_atomic_counter_add;
+      break;
+
+   case nir_intrinsic_atomic_counter_min_var:
+      op = nir_intrinsic_atomic_counter_min;
+      break;
+
+   case nir_intrinsic_atomic_counter_max_var:
+      op = nir_intrinsic_atomic_counter_max;
+      break;
+
+   case nir_intrinsic_atomic_counter_and_var:
+      op = nir_intrinsic_atomic_counter_and;
+      break;
+
+   case nir_intrinsic_atomic_counter_or_var:
+      op = nir_intrinsic_atomic_counter_or;
+      break;
+
+   case nir_intrinsic_atomic_counter_xor_var:
+      op = nir_intrinsic_atomic_counter_xor;
+      break;
+
+   case nir_intrinsic_atomic_counter_exchange_var:
+      op = nir_intrinsic_atomic_counter_exchange;
+      break;
+
+   case nir_intrinsic_atomic_counter_comp_swap_var:
+      op = nir_intrinsic_atomic_counter_comp_swap;
+      break;
+
    default:
       return;
    }
@@ -80,7 +112,6 @@ lower_instr(nir_intrinsic_instr *instr,
 
    nir_deref *tail = &instr->variables[0]->deref;
    while (tail->child != NULL) {
-      assert(tail->child->deref_type == nir_deref_type_array);
       nir_deref_array *deref_array = nir_deref_as_array(tail->child);
       tail = tail->child;
 
@@ -119,6 +150,12 @@ lower_instr(nir_intrinsic_instr *instr,
 
    new_instr->src[0].is_ssa = true;
    new_instr->src[0].ssa = offset_def;
+
+   /* Copy the other sources, if any, from the original instruction to the new
+    * instruction.
+    */
+   for (unsigned i = 0; i < nir_intrinsic_infos[instr->intrinsic].num_srcs; i++)
+      new_instr->src[i + 1] = instr->src[i];
 
    if (instr->dest.is_ssa) {
       nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,

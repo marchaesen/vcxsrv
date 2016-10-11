@@ -55,7 +55,7 @@ char **XListExtensions(
 
 	if (rep.nExtensions) {
 	    list = Xmalloc (rep.nExtensions * sizeof (char *));
-	    if (rep.length < (INT_MAX >> 2)) {
+	    if (rep.length > 0 && rep.length < (INT_MAX >> 2)) {
 		rlen = rep.length << 2;
 		ch = Xmalloc (rlen + 1);
                 /* +1 to leave room for last null-terminator */
@@ -80,9 +80,13 @@ char **XListExtensions(
 		if (ch + length < chend) {
 		    list[i] = ch+1;  /* skip over length */
 		    ch += length + 1; /* find next length ... */
-		    length = *ch;
-		    *ch = '\0'; /* and replace with null-termination */
-		    count++;
+		    if (ch <= chend) {
+			length = *ch;
+			*ch = '\0'; /* and replace with null-termination */
+			count++;
+		    } else {
+			list[i] = NULL;
+		    }
 		} else
 		    list[i] = NULL;
 	    }

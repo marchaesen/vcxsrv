@@ -603,7 +603,7 @@ _glamor_gradient_convert_trans_matrix(PictTransform *from, float to[3][3],
      * So, to get the correct v_s, we need to cacula1 the matrix: (A*T*inv(A)), and
      * we name this matrix T_s.
      *
-     * Firstly, because A is for the scale convertion, we find
+     * Firstly, because A is for the scale conversion, we find
      *      --         --
      *      |1/w  0   0 |
      * A =  | 0  1/h  0 |
@@ -884,7 +884,7 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
 
     stops_count = src_picture->pSourcePict->radial.nstops + 2;
 
-    /* Because the max value of nstops is unkown, so create a program
+    /* Because the max value of nstops is unknown, so create a program
        when nstops > LINEAR_LARGE_STOPS. */
     if (stops_count <= RADIAL_SMALL_STOPS) {
         gradient_prog = glamor_priv->gradient_prog[SHADER_GRADIENT_RADIAL][0];
@@ -1193,7 +1193,7 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
 
     stops_count = src_picture->pSourcePict->linear.nstops + 2;
 
-    /* Because the max value of nstops is unkown, so create a program
+    /* Because the max value of nstops is unknown, so create a program
        when nstops > LINEAR_LARGE_STOPS. */
     if (stops_count <= LINEAR_SMALL_STOPS) {
         gradient_prog = glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][0];
@@ -1403,7 +1403,7 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     }
     else {
         /* The slope need to compute here. In shader, the viewport set will change
-           the orginal slope and the slope which is vertical to it will not be correct. */
+           the original slope and the slope which is vertical to it will not be correct. */
         slope = -(float) (src_picture->pSourcePict->linear.p2.x
                           - src_picture->pSourcePict->linear.p1.x) /
             (float) (src_picture->pSourcePict->linear.p2.y

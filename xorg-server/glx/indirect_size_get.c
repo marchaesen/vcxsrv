@@ -769,6 +769,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_ALIASED_POINT_SIZE_RANGE:
         case GL_ALIASED_LINE_WIDTH_RANGE:
         case GL_DEPTH_BOUNDS_EXT:
+        case GL_MULTISAMPLE_LINE_WIDTH_RANGE_ARB:
             return 2;
         case GL_CURRENT_NORMAL:
         case GL_POINT_DISTANCE_ATTENUATION:
@@ -791,6 +792,8 @@ __glGetBooleanv_size( GLenum e )
         case GL_CURRENT_SECONDARY_COLOR:
         case GL_WINDOW_RECTANGLE_EXT:
             return 4;
+        case GL_PRIMITIVE_BOUNDING_BOX_ARB:
+            return 8;
         case GL_MODELVIEW_MATRIX:
         case GL_PROJECTION_MATRIX:
         case GL_TEXTURE_MATRIX:
@@ -839,6 +842,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_WINDOW_RECTANGLE_MODE_EXT:
         case GL_MAX_WINDOW_RECTANGLES_EXT:
         case GL_NUM_WINDOW_RECTANGLES_EXT:
+        case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY_ARB:
             return __glGetBooleanv_variable_size( e );
         default: return 0;
     }

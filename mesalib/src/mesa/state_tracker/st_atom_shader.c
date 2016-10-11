@@ -51,6 +51,7 @@
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_program.h"
+#include "st_texture.h"
 
 
 /** Compress the fog function enums into a 2-bit value */
@@ -141,6 +142,8 @@ update_fp( struct st_context *st )
          key.texture_targets[u] = get_texture_target(st->ctx, u);
       }
    }
+
+   key.external = st_get_external_sampler_key(st, &stfp->Base.Base);
 
    st->fp_variant = st_get_fp_variant(st, stfp, &key);
 

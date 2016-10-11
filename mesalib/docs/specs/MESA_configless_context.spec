@@ -12,11 +12,12 @@ Contact
 
 Status
 
-    Proposal
+    Superseded by the functionally identical EGL_KHR_no_config_context
+    extension.
 
 Version
 
-    Version 1, February 28, 2014
+    Version 2, September 9, 2016
 
 Number
 
@@ -120,6 +121,9 @@ Issues
         Future extensions may specify required behavior in this case.
 
 Revision History
+
+    Version 2, September 9, 2016
+        Defer to EGL_KHR_no_config_context (Adam Jackson)
 
     Version 1, February 28, 2014
         Initial draft (Neil Roberts)

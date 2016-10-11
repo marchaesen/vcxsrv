@@ -1566,11 +1566,11 @@ xkb_symbols "carpalx-full-intl" {
     include "us(carpalx-intl)"
     name[Group1]= "English (Carpalx, full optimization, international with dead keys)";
 
-    key <AD06> { [	   b,          B,    odiaeresis,       Odiaeresis ] };
+    key <AD06> { [	   b,          B,    idiaeresis,       Idiaeresis ] };
     key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };
-    key <AD09> { [	   v,          V,             v,                V ] };
+    key <AD09> { [	   v,          V,    odiaeresis,       Odiaeresis ] };
 
-    key <AB04> { [	   f,          F,    udiaeresis,       Udiaeresis ] };
+    key <AB04> { [	   f,          F,            ae,               AE ] };
 };
 
 // Carpalx layout created by Martin Krzywinski
@@ -1585,11 +1585,11 @@ xkb_symbols "carpalx-full-altgr-intl" {
    include "us(carpalx-altgr-intl)"
    name[Group1]= "English (Carpalx, full optimization, international AltGr dead keys)";
 
-    key <AD06> { [	   b,          B,    odiaeresis,       Odiaeresis ] };
+    key <AD06> { [	   b,          B,    idiaeresis,       Idiaeresis ] };
     key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };
-    key <AD09> { [	   v,          V,             v,                V ] };
+    key <AD09> { [	   v,          V,    odiaeresis,       Odiaeresis ] };
 
-    key <AB04> { [	   f,          F,    udiaeresis,       Udiaeresis ] };
+    key <AB04> { [	   f,          F,            ae,               AE ] };
 };
 
 // EXTRAS:

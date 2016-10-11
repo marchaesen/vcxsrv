@@ -1013,6 +1013,90 @@ public:
  */
 typedef bool (*builtin_available_predicate)(const _mesa_glsl_parse_state *);
 
+#define MAKE_INTRINSIC_FOR_TYPE(op, t) \
+   ir_intrinsic_generic_ ## op - ir_intrinsic_generic_load + ir_intrinsic_ ## t ## _ ## load
+
+#define MAP_INTRINSIC_TO_TYPE(i, t) \
+   ir_intrinsic_id(int(i) - int(ir_intrinsic_generic_load) + int(ir_intrinsic_ ## t ## _ ## load))
+
+enum ir_intrinsic_id {
+   ir_intrinsic_invalid = 0,
+
+   /**
+    * \name Generic intrinsics
+    *
+    * Each of these intrinsics has a specific version for shared variables and
+    * SSBOs.
+    */
+   /*@{*/
+   ir_intrinsic_generic_load,
+   ir_intrinsic_generic_store,
+   ir_intrinsic_generic_atomic_add,
+   ir_intrinsic_generic_atomic_and,
+   ir_intrinsic_generic_atomic_or,
+   ir_intrinsic_generic_atomic_xor,
+   ir_intrinsic_generic_atomic_min,
+   ir_intrinsic_generic_atomic_max,
+   ir_intrinsic_generic_atomic_exchange,
+   ir_intrinsic_generic_atomic_comp_swap,
+   /*@}*/
+
+   ir_intrinsic_atomic_counter_read,
+   ir_intrinsic_atomic_counter_increment,
+   ir_intrinsic_atomic_counter_predecrement,
+   ir_intrinsic_atomic_counter_add,
+   ir_intrinsic_atomic_counter_and,
+   ir_intrinsic_atomic_counter_or,
+   ir_intrinsic_atomic_counter_xor,
+   ir_intrinsic_atomic_counter_min,
+   ir_intrinsic_atomic_counter_max,
+   ir_intrinsic_atomic_counter_exchange,
+   ir_intrinsic_atomic_counter_comp_swap,
+
+   ir_intrinsic_image_load,
+   ir_intrinsic_image_store,
+   ir_intrinsic_image_atomic_add,
+   ir_intrinsic_image_atomic_and,
+   ir_intrinsic_image_atomic_or,
+   ir_intrinsic_image_atomic_xor,
+   ir_intrinsic_image_atomic_min,
+   ir_intrinsic_image_atomic_max,
+   ir_intrinsic_image_atomic_exchange,
+   ir_intrinsic_image_atomic_comp_swap,
+   ir_intrinsic_image_size,
+   ir_intrinsic_image_samples,
+
+   ir_intrinsic_ssbo_load,
+   ir_intrinsic_ssbo_store = MAKE_INTRINSIC_FOR_TYPE(store, ssbo),
+   ir_intrinsic_ssbo_atomic_add = MAKE_INTRINSIC_FOR_TYPE(atomic_add, ssbo),
+   ir_intrinsic_ssbo_atomic_and = MAKE_INTRINSIC_FOR_TYPE(atomic_and, ssbo),
+   ir_intrinsic_ssbo_atomic_or = MAKE_INTRINSIC_FOR_TYPE(atomic_or, ssbo),
+   ir_intrinsic_ssbo_atomic_xor = MAKE_INTRINSIC_FOR_TYPE(atomic_xor, ssbo),
+   ir_intrinsic_ssbo_atomic_min = MAKE_INTRINSIC_FOR_TYPE(atomic_min, ssbo),
+   ir_intrinsic_ssbo_atomic_max = MAKE_INTRINSIC_FOR_TYPE(atomic_max, ssbo),
+   ir_intrinsic_ssbo_atomic_exchange = MAKE_INTRINSIC_FOR_TYPE(atomic_exchange, ssbo),
+   ir_intrinsic_ssbo_atomic_comp_swap = MAKE_INTRINSIC_FOR_TYPE(atomic_comp_swap, ssbo),
+
+   ir_intrinsic_memory_barrier,
+   ir_intrinsic_shader_clock,
+   ir_intrinsic_group_memory_barrier,
+   ir_intrinsic_memory_barrier_atomic_counter,
+   ir_intrinsic_memory_barrier_buffer,
+   ir_intrinsic_memory_barrier_image,
+   ir_intrinsic_memory_barrier_shared,
+
+   ir_intrinsic_shared_load,
+   ir_intrinsic_shared_store = MAKE_INTRINSIC_FOR_TYPE(store, shared),
+   ir_intrinsic_shared_atomic_add = MAKE_INTRINSIC_FOR_TYPE(atomic_add, shared),
+   ir_intrinsic_shared_atomic_and = MAKE_INTRINSIC_FOR_TYPE(atomic_and, shared),
+   ir_intrinsic_shared_atomic_or = MAKE_INTRINSIC_FOR_TYPE(atomic_or, shared),
+   ir_intrinsic_shared_atomic_xor = MAKE_INTRINSIC_FOR_TYPE(atomic_xor, shared),
+   ir_intrinsic_shared_atomic_min = MAKE_INTRINSIC_FOR_TYPE(atomic_min, shared),
+   ir_intrinsic_shared_atomic_max = MAKE_INTRINSIC_FOR_TYPE(atomic_max, shared),
+   ir_intrinsic_shared_atomic_exchange = MAKE_INTRINSIC_FOR_TYPE(atomic_exchange, shared),
+   ir_intrinsic_shared_atomic_comp_swap = MAKE_INTRINSIC_FOR_TYPE(atomic_comp_swap, shared),
+};
+
 /*@{*/
 /**
  * The representation of a function instance; may be the full definition or
@@ -1106,7 +1190,13 @@ public:
     * Whether or not this function is an intrinsic to be implemented
     * by the driver.
     */
-   bool is_intrinsic;
+   inline bool is_intrinsic() const
+   {
+      return intrinsic_id != ir_intrinsic_invalid;
+   }
+
+   /** Indentifier for this intrinsic. */
+   enum ir_intrinsic_id intrinsic_id;
 
    /** Whether or not a built-in is available for this shader. */
    bool is_builtin_available(const _mesa_glsl_parse_state *state) const;

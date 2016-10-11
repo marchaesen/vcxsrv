@@ -23,7 +23,7 @@
 
 #include "main/imports.h"
 #include "symbol_table.h"
-#include "hash_table.h"
+#include "../../util/hash_table.h"
 
 struct symbol {
     /**
@@ -186,7 +186,8 @@ _mesa_symbol_table_push_scope(struct _mesa_symbol_table *table)
 static struct symbol_header *
 find_symbol(struct _mesa_symbol_table *table, const char *name)
 {
-    return (struct symbol_header *) hash_table_find(table->ht, name);
+   struct hash_entry *entry = _mesa_hash_table_search(table->ht, name);
+   return entry ? (struct symbol_header *) entry->data : NULL;
 }
 
 
@@ -271,7 +272,7 @@ _mesa_symbol_table_add_symbol(struct _mesa_symbol_table *table,
           return -1;
        }
 
-       hash_table_insert(table->ht, hdr, hdr->name);
+       _mesa_hash_table_insert(table->ht, hdr->name, hdr);
        hdr->next = table->hdr;
        table->hdr = hdr;
     }
@@ -338,7 +339,7 @@ _mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
 
         hdr->name = strdup(name);
 
-        hash_table_insert(table->ht, hdr, hdr->name);
+        _mesa_hash_table_insert(table->ht, hdr->name, hdr);
         hdr->next = table->hdr;
         table->hdr = hdr;
     }
@@ -404,8 +405,8 @@ _mesa_symbol_table_ctor(void)
     struct _mesa_symbol_table *table = calloc(1, sizeof(*table));
 
     if (table != NULL) {
-       table->ht = hash_table_ctor(32, hash_table_string_hash,
-				   hash_table_string_compare);
+       table->ht = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+                                           _mesa_key_string_equal);
 
        _mesa_symbol_table_push_scope(table);
     }
@@ -430,6 +431,6 @@ _mesa_symbol_table_dtor(struct _mesa_symbol_table *table)
        free(hdr);
    }
 
-   hash_table_dtor(table->ht);
+   _mesa_hash_table_destroy(table->ht, NULL);
    free(table);
 }

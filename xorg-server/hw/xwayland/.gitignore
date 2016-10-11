@@ -1,3 +1,7 @@
 Xwayland
 drm-client-protocol.h
 drm-protocol.c
+pointer-constraints-unstable-v1-client-protocol.h
+pointer-constraints-unstable-v1-protocol.c
+relative-pointer-unstable-v1-client-protocol.h
+relative-pointer-unstable-v1-protocol.c

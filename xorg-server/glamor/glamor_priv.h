@@ -201,6 +201,7 @@ typedef struct glamor_screen_private {
     Bool has_dual_blend;
     Bool has_texture_swizzle;
     Bool is_core_profile;
+    Bool can_copyplane;
     int max_fbo_size;
 
     GLuint one_channel_format;

@@ -429,6 +429,18 @@ util_logbase2(unsigned n)
 #endif
 }
 
+/**
+ * Returns the ceiling of log n base 2, and 0 when n == 0. Equivalently,
+ * returns the smallest x such that n <= 2**x.
+ */
+static inline unsigned
+util_logbase2_ceil(unsigned n)
+{
+   if (n <= 1)
+      return 0;
+
+   return 1 + util_logbase2(n - 1);
+}
 
 /**
  * Returns the smallest power of two >= x

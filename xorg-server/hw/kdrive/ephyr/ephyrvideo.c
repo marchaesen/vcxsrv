@@ -462,7 +462,7 @@ ephyrXVPrivQueryHostAdaptors(EphyrXVPriv * a_this)
 
     if (a_this->host_adaptors)
         a_this->num_adaptors = a_this->host_adaptors->num_adaptors;
-    if (a_this->num_adaptors < 0) {
+    if (a_this->num_adaptors <= 0) {
         EPHYR_LOG_ERROR("failed to get number of host adaptors\n");
         goto out;
     }
