@@ -125,6 +125,7 @@ Section "VcXsrv (required)"
   File "..\..\libX11\obj64\release\libX11.dll"
   File "..\..\libXext\src\obj64\release\libXext.dll"
   File "..\..\libXmu\src\obj64\release\libXmu.dll"
+  File "..\..\openssl\release64\libcrypto-1_1-x64.dll"
   File "vcruntime140.dll"
   File "msvcp140.dll"
   SetOutPath $INSTDIR\xkbdata

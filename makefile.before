@@ -58,6 +58,7 @@ NOSERVOBJDIR ?= obj$(OBJDIREXTRA)\debug
 SERVOBJDIR ?= obj$(OBJDIREXTRA)\servdebug
 DEFINES += _DEBUG DEBUG
 RCFLAGS += -d "_DEBUG"
+OPENSSLOBJDIR:=debug$(SSLSUFFIX)
 else
 CCFLAGS   += -MD -O2 -Ob2 -Oi -Ox -Oy -Ot -Zi -GL
 DEFINES   +=  NDEBUG
@@ -67,6 +68,7 @@ NOSERVOBJDIR ?= obj$(OBJDIREXTRA)\release
 SERVOBJDIR ?= obj$(OBJDIREXTRA)\servrelease
 RCFLAGS += -d "NDEBUG"
 AR += /LTCG
+OPENSSLOBJDIR:=release$(SSLSUFFIX)
 endif
 
 
@@ -76,7 +78,7 @@ DEFINES += FAKEIT HAVE_CONFIG_H _BSD_SOURCE _WIN32_WINNT=_WIN32_WINNT_WINXP
 
 TOPSRCDIR=$(MHMAKECONF)\xorg-server
 
-INCLUDES += . $(MHMAKECONF)\openssl\inc32 $(MHMAKECONF) $(MHMAKECONF)\pixman-1 $(MHMAKECONF)\pthreads
+INCLUDES += . $(MHMAKECONF)\openssl\include $(MHMAKECONF)\openssl\$(OPENSSLOBJDIR)\include $(MHMAKECONF) $(MHMAKECONF)\pixman-1 $(MHMAKECONF)\pthreads
 INCLUDES += $(TOPSRCDIR)\include $(TOPSRCDIR)\mi $(TOPSRCDIR)\mfb $(TOPSRCDIR)\hw\xfree86\common $(TOPSRCDIR)\render $(TOPSRCDIR)\miext\damage
 INCLUDES += $(TOPSRCDIR)\damageext $(TOPSRCDIR)\randr $(TOPSRCDIR)\xfixes $(TOPSRCDIR)\Xi $(TOPSRCDIR)\fb $(TOPSRCDIR)\miext\cw
 INCLUDES += $(TOPSRCDIR)\miext\shadow $(TOPSRCDIR)\miext\sync $(MHMAKECONF)\zlib
@@ -95,10 +97,10 @@ all: $(OBJDIR)
 ifeq ($(DEBUG),1)
 PTHREADLIB:=$(MHMAKECONF)\pthreads\pthreadVC2d$(OBJDIREXTRA).lib
 FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype263MT_D.lib
-OPENSSLLIB:=$(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libssl.lib
+OPENSSLLIB:=$(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libssl.lib $(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libcrypto.lib
 else
 PTHREADLIB:=$(MHMAKECONF)\pthreads\pthreadVC2$(OBJDIREXTRA).lib
 FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype263MT.lib
-OPENSSLLIB:=$(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libssl.lib
+OPENSSLLIB:=$(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libssl.lib $(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libcrypto.lib
 endif
 LIBXMLLIB:=$(MHMAKECONF)\libxml2\lib$(OBJDIREXTRA)\libxml2-2.lib

@@ -72,9 +72,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hv_accept.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_import_prototypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_print_visitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

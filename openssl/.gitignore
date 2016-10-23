@@ -1,3 +1,7 @@
+debug64
+debug32
+release64
+debug64
 MINFO
 Makefile
 inc32

@@ -197,7 +197,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_function_detect_recursion.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hierarchical_visitor.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_hv_accept.cpp" />
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_import_prototypes.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_print_visitor.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_reader.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_rvalue_visitor.cpp" />

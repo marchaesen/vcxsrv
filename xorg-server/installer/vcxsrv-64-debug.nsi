@@ -104,6 +104,7 @@ Section "VcXsrv debug exe and dlls"
   File "..\..\libX11\obj64\debug\libX11.dll"
   File "..\..\libXext\src\obj64\debug\libXext.dll"
   File "..\..\libXmu\src\obj64\debug\libXmu.dll"
+  File "..\..\openssl\debug64\libcrypto-1_1-x64.dll"
   File "vcruntime140d.dll"
   File "msvcp140d.dll"
 

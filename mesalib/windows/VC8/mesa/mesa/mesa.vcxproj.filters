@@ -485,9 +485,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_expression_flattening.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_import_prototypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\link_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
