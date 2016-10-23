@@ -47,20 +47,20 @@ fontconfig git version
 fontsproto-2.1.3
 freetype-2.7
 glproto git version
-inputproto-2.3.1
+inputproto-2.3.2
 kbproto-1.0.7
 libX11 git version
 libXau git version
 libXaw-1.0.13
 libXdmcp git version
 libXext git version
-libXfixes-5.0
+libXfixes-5.0.3
 libXfont2-2.0.1
 libXft git version
 libXinerama git version
 libXmu git version
 libXpm-3.5.11
-libXrender-0.9.9
+libXrender-0.9.10
 libXt-1.1.5
 libfontenc git version
 libxcb git version
@@ -91,7 +91,7 @@ xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
 xrdb git version
-xproto-7.0.28
+xproto-7.0.31
 xserver git version
 xtrans git version
 xwininfo git version

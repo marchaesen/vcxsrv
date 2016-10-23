@@ -1,3 +1,172 @@
+commit 84df9cb81cc31bbed27ba241a23ae04f61da57db
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Tue Oct 4 21:11:55 2016 +0200
+
+    libXfixes 5.0.3
+    
+    Signed-off-by: Matthieu Herrb <matthieu.herrb@laas.fr>
+
+commit 61c1039ee23a2d1de712843bed3480654d7ef42e
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Sun Sep 25 22:38:44 2016 +0200
+
+    Integer overflow on illegal server response
+    
+    The 32 bit field "rep.length" is not checked for validity, which allows
+    an integer overflow on 32 bit systems.
+    
+    A malicious server could send INT_MAX as length, which gets multiplied
+    by the size of XRectangle. In that case the client won't read the whole
+    data from server, getting out of sync.
+    
+    Signed-off-by: Tobias Stoeckmann <tobias@stoeckmann.org>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+
+commit b2406ed9031991b7ddc5b76b308623afc8a590c5
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Wed May 25 18:53:28 2016 -0700
+
+    libXfixes 5.0.2
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit 1702cdfe45c9bdd7dacfc8f27a49f89fcd1d02c3
+Author: Michael Joost <mehl@michael-joost.de>
+Date:   Mon Nov 18 16:11:26 2013 +0100
+
+    Remove fallback for _XEatDataWords, require libX11 1.6 for it
+    
+    _XEatDataWords was orignally introduced with the May 2013 security
+    patches, and in order to ease the process of delivering those,
+    fallback versions of _XEatDataWords were included in the X extension
+    library patches so they could be applied to older versions that didn't
+    have libX11 1.6 yet.   Now that we're past that hurdle, we can drop
+    the fallbacks and just require libX11 1.6 for building new versions
+    of the extension libraries.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0cb446962381f750e05d97bfb974ca1e32481d5d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue May 28 21:11:10 2013 -0700
+
+    libXfixes 5.0.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c480fe3271873ec7471b0cbd680f4dac18ca8904
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Apr 13 10:24:08 2013 -0700
+
+    integer overflow in XFixesGetCursorImage() [CVE-2013-1983]
+    
+    If the reported cursor dimensions or name length are too large, the
+    calculations to allocate memory for them may overflow, leaving us
+    writing beyond the bounds of the allocation.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b031e3b60fa1af9e49449f23d4a84395868be3ab
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Apr 13 10:20:59 2013 -0700
+
+    Use _XEatDataWords to avoid overflow of _XEatData calculations
+    
+    rep.length is a CARD32, so rep.length << 2 could overflow in 32-bit builds
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f870dfb47da9d43d1750ea5e5fc9288c4158f7ad
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 9 09:26:05 2013 -0800
+
+    XFixesFetchRegionAndBounds: use nread in call to XReadPad
+    
+    We already went through the trouble of calculating a variable with the
+    amount to read, might as well use it instead of recalculating it.
+    
+    Also move initialization of the variable to the point it's needed/used
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit ad2a06d4d3c60198bc40116623153f71a208a240
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 9 09:18:14 2013 -0800
+
+    Remove duplicate declaration of XFixesExtensionName in Xfixesint.h
+    
+    Silences gcc warnings:
+    In file included from Region.c:26:0:
+    Xfixesint.h:52:13: warning: redundant redeclaration of 'XFixesExtensionName' [-Wredundant-decls]
+    Xfixesint.h:34:13: note: previous declaration of 'XFixesExtensionName' was here
+    
+    In file included from Cursor.c:49:0:
+    Xfixesint.h:52:13: warning: redundant redeclaration of 'XFixesExtensionName' [-Wredundant-decls]
+    Xfixesint.h:34:13: note: previous declaration of 'XFixesExtensionName' was here
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 73a0fbb479f5b7806a3dd0741be55c9abda76220
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 18 23:10:01 2013 -0800
+
+    Replace deprecated Automake INCLUDES variable with AM_CPPFLAGS
+    
+    Excerpt https://lists.gnu.org/archive/html/automake/2012-12/msg00038.html
+    
+      - Support for the long-deprecated INCLUDES variable will be removed
+        altogether in Automake 1.14.  The AM_CPPFLAGS variable should be
+        used instead.
+    
+    This variable was deprecated in Automake releases prior to 1.10, which is
+    the current minimum level required to build X.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d6931eda2fe86566823437507b5d818458cfd002
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 945803cdf3442f60ea25763a84b940e11653a205
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:28:48 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 991eb6dad335f4915de8bb2d36d82f0346ae88fb
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Fri Feb 11 15:36:33 2011 +1000
+
+    man: remove "current", we're way past 1.0.
+    
+    Claiming "the current 1.0 release" when the library is already past version
+    4 is a tad confusing.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit ca7b0066fe6f315d2499338cd133e5b1e9d11236
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 16 22:19:59 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 54926675a9bbb732d3317316db4958e22922ea3f
 Author: Adam Jackson <ajax@redhat.com>
 Date:   Mon Nov 22 14:50:13 2010 -0500

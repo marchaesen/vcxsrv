@@ -23,6 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits.h>
 #include "Xfixesint.h"
 
 XserverRegion
@@ -303,8 +304,8 @@ XFixesFetchRegion (Display *dpy, XserverRegion region, int *nrectanglesRet)
 }
 
 XRectangle *
-XFixesFetchRegionAndBounds (Display	    *dpy, 
-			    XserverRegion   region, 
+XFixesFetchRegionAndBounds (Display	    *dpy,
+			    XserverRegion   region,
 			    int		    *nrectanglesRet,
 			    XRectangle	    *bounds)
 {
@@ -333,18 +334,26 @@ XFixesFetchRegionAndBounds (Display	    *dpy,
     bounds->y = rep.y;
     bounds->width = rep.width;
     bounds->height = rep.height;
-    nbytes = (long) rep.length << 2;
-    nrects = rep.length >> 1;
-    nread = nrects << 3;
-    rects = Xmalloc (nrects * sizeof (XRectangle));
+
+    if (rep.length < (INT_MAX >> 2)) {
+	nbytes = (long) rep.length << 2;
+	nrects = rep.length >> 1;
+	rects = Xmalloc (nrects * sizeof (XRectangle));
+    } else {
+	nbytes = 0;
+	nrects = 0;
+	rects = NULL;
+    }
+
     if (!rects)
     {
-	_XEatData (dpy, nbytes);
+	_XEatDataWords(dpy, rep.length);
 	UnlockDisplay (dpy);
 	SyncHandle ();
 	return NULL;
     }
-    _XRead16 (dpy, (short *) rects, nrects << 3);
+    nread = nrects << 3;
+    _XRead16 (dpy, (short *) rects, nread);
     /* skip any padding */
     if(nbytes > nread)
     {
@@ -357,7 +366,7 @@ XFixesFetchRegionAndBounds (Display	    *dpy,
 }
 
 void
-XFixesSetGCClipRegion (Display *dpy, GC gc, 
+XFixesSetGCClipRegion (Display *dpy, GC gc,
 		       int clip_x_origin, int clip_y_origin,
 		       XserverRegion region)
 {

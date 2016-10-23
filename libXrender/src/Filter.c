@@ -38,7 +38,7 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
     char			*name;
     char			len;
     int				i;
-    unsigned long		nbytes, nbytesAlias, nbytesName;
+    unsigned long		nbytes, nbytesAlias, nbytesName, reply_left;
 
     if (!RenderHasExtension (info))
 	return NULL;
@@ -114,6 +114,7 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
      * Read the filter aliases
      */
     _XRead16Pad (dpy, filters->alias, 2 * rep.numAliases);
+    reply_left = 8 + rep.length - 2 * rep.numAliases;;
 
     /*
      * Read the filter names
@@ -122,9 +123,19 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
     {
 	int	l;
 	_XRead (dpy, &len, 1);
+	reply_left--;
 	l = len & 0xff;
+	if ((unsigned long)l + 1 > nbytesName) {
+            _XEatDataWords(dpy, reply_left);
+	    Xfree(filters);
+	    UnlockDisplay (dpy);
+	    SyncHandle ();
+	    return NULL;
+	}
+	nbytesName -= l + 1;
 	filters->filter[i] = name;
 	_XRead (dpy, name, l);
+        reply_left -= l;
 	name[l] = '\0';
 	name += l + 1;
     }

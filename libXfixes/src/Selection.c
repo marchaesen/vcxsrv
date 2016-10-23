@@ -29,7 +29,7 @@
 void
 XFixesSelectSelectionInput (Display	    *dpy,
 			    Window	    win,
-			    Atom	    selection, 
+			    Atom	    selection,
 			    unsigned long   eventMask)
 {
     XFixesExtDisplayInfo	    *info = XFixesFindDisplay (dpy);

@@ -31,9 +31,9 @@
 XFixes \- Augmented versions of core protocol requests
 .SH SYNTAX
 \&#include <X11/extensions/Xfixes.h>
-.nf    
+.nf
 .sp
-Bool XFixesQueryExtension \^(\^Display *\fIdpy\fP, 
+Bool XFixesQueryExtension \^(\^Display *\fIdpy\fP,
 	int *\fIevent_base_return\fP, int *\fIerror_base_return\fP\^);
 .sp
 Status XFixesQueryVersion \^(\^Display *\fIdpy\fP,
@@ -69,7 +69,7 @@ Extension.  This extension provides application with work arounds for
 various limitations in the core protocol.
 .SH RESTRICTIONS
 .B Xfixes
-will remain upward compatible after the current 1.0 release.
+will remain upward compatible after the 1.0 release.
 .SH AUTHORS
 Keith Packard, member of the XFree86 Project, Inc. and
 HP, Owen Taylor, member of the Gnome Foundation and Redhat, Inc.

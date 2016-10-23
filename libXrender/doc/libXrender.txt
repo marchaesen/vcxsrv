@@ -84,7 +84,8 @@ as a separate argument which marks the valid entries.
 2.4 Colors
 
 The core protocol XColor type doesn't include an alpha component, so Xrender
-has a separate type.
+has a separate type. Note that XRender expects premultiplied alpha in all
+cases except with the gradient operations.
 
 	typedef struct {
 	    unsigned short   red;
@@ -526,6 +527,8 @@ conceptually built.
 7.1 Composite
 
 XRenderComposite exposes the RenderComposite protocol request directly.
+If a format with alpha is used, make sure it is premultiplied into the
+color channels.
 
 	void
 	XRenderComposite (Display   *dpy,

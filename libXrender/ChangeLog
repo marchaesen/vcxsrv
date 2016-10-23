@@ -1,3 +1,59 @@
+commit 845716f8f14963d338e5a8d5d2424baafc90fb30
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Tue Oct 4 21:24:55 2016 +0200
+
+    libXrender 0.9.10
+    
+    Signed-off-by: Matthieu Herrb <matthieu.herrb@laas.fr>
+
+commit 9362c7ddd1af3b168953d0737877bc52d79c94f4
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Sun Sep 25 21:43:09 2016 +0200
+
+    Validate lengths while parsing server data.
+    
+    Individual lengths inside received server data can overflow
+    the previously reserved memory.
+    
+    It is therefore important to validate every single length
+    field to not overflow the previously agreed sum of all invidual
+    length fields.
+    
+    v2: consume remaining bytes in the reply buffer on error.
+    
+    Signed-off-by: Tobias Stoeckmann <tobias@stoeckmann.org>
+    Reviewed-by: Matthieu Herrb@laas.fr
+
+commit 8fad00b0b647ee662ce4737ca15be033b7a21714
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Sun Sep 25 21:42:09 2016 +0200
+
+    Avoid OOB write in XRenderQueryFilters
+    
+    The memory for filter names is reserved right after receiving the reply.
+    After that, filters are iterated and each individual filter name is
+    stored in that reserved memory.
+    
+    The individual name lengths are not checked for validity, which means
+    that a malicious server can reserve less memory than it will write to
+    during each iteration.
+    
+    v2: consume remaining bytes in reply buffer on error.
+    
+    Signed-off-by: Tobias Stoeckmann <tobias@stoeckmann.org>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+
+commit b2df5bc42f64b45e44dbad61f3386bcb5ec1383d
+Author: Lauri Kasanen <cand@gmx.com>
+Date:   Mon May 18 19:41:03 2015 +0300
+
+    Fix documentation to explicitly mention premultiplied alpha
+    
+    Before this patch, it wasn't mentioned in this file at all, which
+    is a monumental oversight.
+    
+    Signed-off-by: Lauri Kasanen <cand@gmx.com>
+
 commit bb890936bcc6053cb7a46cd9225c257ff1be389f
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Apr 30 22:29:55 2015 -0700

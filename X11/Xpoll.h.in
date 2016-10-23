@@ -67,10 +67,13 @@ typedef long fd_mask;
 # endif
 #endif
 
-#define XFD_SETSIZE	512
-
-#ifndef FD_SETSIZE
-#define FD_SETSIZE	XFD_SETSIZE
+#if defined(FD_SETSIZE) && FD_SETSIZE < 512
+# define XFD_SETSIZE	FD_SETSIZE
+#else
+# define XFD_SETSIZE	512
+# ifndef FD_SETSIZE
+#  define FD_SETSIZE	XFD_SETSIZE
+# endif
 #endif
 
 #ifndef NBBY
@@ -165,7 +168,7 @@ typedef struct fd_set {
 
 #else /* WIN32 */
 
-#define XFD_SETSIZE	256
+#define XFD_SETSIZE	512
 #ifndef FD_SETSIZE
 #define FD_SETSIZE	XFD_SETSIZE
 #endif

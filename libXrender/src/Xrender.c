@@ -533,12 +533,30 @@ XRenderQueryFormats (Display *dpy)
 	screen->fallback = _XRenderFindFormat (xri, xScreen->fallback);
 	screen->subpixel = SubPixelUnknown;
 	xDepth = (xPictDepth *) (xScreen + 1);
+	if (screen->ndepths > rep.numDepths) {
+	    Xfree (xri);
+	    Xfree (xData);
+	    _XEatDataWords (dpy, rep.length);
+	    UnlockDisplay (dpy);
+	    SyncHandle ();
+	    return 0;
+	}
+	rep.numDepths -= screen->ndepths;
 	for (nd = 0; nd < screen->ndepths; nd++)
 	{
 	    depth->depth = xDepth->depth;
 	    depth->nvisuals = xDepth->nPictVisuals;
 	    depth->visuals = visual;
 	    xVisual = (xPictVisual *) (xDepth + 1);
+	    if (depth->nvisuals > rep.numVisuals) {
+		Xfree (xri);
+		Xfree (xData);
+		_XEatDataWords (dpy, rep.length);
+		UnlockDisplay (dpy);
+		SyncHandle ();
+		return 0;
+	    }
+	    rep.numVisuals -= depth->nvisuals;
 	    for (nv = 0; nv < depth->nvisuals; nv++)
 	    {
 		visual->visual = _XRenderFindVisual (dpy, xVisual->visual);

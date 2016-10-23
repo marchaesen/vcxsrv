@@ -31,8 +31,6 @@
 #include "Xfixes.h"
 #include <X11/extensions/xfixesproto.h>
 
-extern char XFixesExtensionName[];
-
 typedef struct _XFixesExtDisplayInfo {
     struct _XFixesExtDisplayInfo  *next;    /* keep a linked list */
     Display                 *display;	    /* which display this is */
