@@ -33,24 +33,54 @@ fi
 cd openssl
 
 if [[ "$IS64" == "" ]]; then
-perl Configure VC-WIN32
+
+if [[ ! -d "release32" ]]; then
+  mkdir release32
+fi
+cd release32
+
+PERL=perl perl Configure VC-WIN32 --release
 check-error 'Error executing perl'
-ms/do_nasm.bat
-check-error 'Error configuring openssl for nasm'
 else
-perl Configure VC-WIN64A
+
+if [[ ! -d "release64" ]]; then
+  mkdir release64
+fi
+cd release64
+
+PERL=perl perl Configure VC-WIN64A --release
 check-error 'Error executing perl'
-ms/do_win64a.bat
-check-error 'Error configuring openssl for nasm'
 fi
 
-nmake -f ms/nt.mak
+nmake
 check-error 'Error compiling openssl for release'
 
-nmake DEBUG=1 -f ms/nt.mak
+cd ..
+
+if [[ "$IS64" == "" ]]; then
+
+if [[ ! -d "debug32" ]]; then
+  mkdir debug32
+fi
+cd debug32
+
+PERL=perl perl Configure VC-WIN32 --debug
+check-error 'Error executing perl'
+else
+
+if [[ ! -d "debug64" ]]; then
+  mkdir debug64
+fi
+cd debug64
+
+PERL=perl perl Configure VC-WIN64A --debug
+check-error 'Error executing perl'
+fi
+
+nmake
 check-error 'Error compiling openssl for debug'
 
-cd ../pthreads
+cd ../../pthreads
 nmake VC-static
 check-error 'Error compiling pthreads for release'
 
