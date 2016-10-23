@@ -123,6 +123,12 @@ v130(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+v130_desktop(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(130, 0);
+}
+
+static bool
 v130_fs_only(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(130, 300) &&
@@ -1808,7 +1814,7 @@ builtin_builder::create_builtins()
                  * that it was intended to be included previously, so allow it
                  * in 1.30.
                  */
-                _texture(ir_tex, v130, glsl_type::float_type, glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type, TEX_OFFSET),
+                _texture(ir_tex, v130_desktop, glsl_type::float_type, glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type, TEX_OFFSET),
 
                 _texture(ir_txb, v130_fs_only, glsl_type::vec4_type,  glsl_type::sampler1D_type,  glsl_type::float_type, TEX_OFFSET),
                 _texture(ir_txb, v130_fs_only, glsl_type::ivec4_type, glsl_type::isampler1D_type, glsl_type::float_type, TEX_OFFSET),

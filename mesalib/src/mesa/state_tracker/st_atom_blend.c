@@ -266,7 +266,8 @@ update_blend( struct st_context *st )
    blend->dither = ctx->Color.DitherFlag;
 
    if (ctx->Multisample.Enabled &&
-       ctx->DrawBuffer->Visual.sampleBuffers > 0) {
+       ctx->DrawBuffer->Visual.sampleBuffers > 0 &&
+       !(ctx->DrawBuffer->_IntegerBuffers & 0x1)) {
       /* Unlike in gallium/d3d10 these operations are only performed
        * if both msaa is enabled and we have a multisample buffer.
        */

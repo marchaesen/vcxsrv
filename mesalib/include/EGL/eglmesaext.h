@@ -84,6 +84,11 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLSWAPBUFFERSREGIONNOK) (EGLDisplay dpy, EG
 #define EGL_NO_CONFIG_MESA			((EGLConfig)0)
 #endif
 
+#ifndef EGL_MESA_platform_surfaceless
+#define EGL_MESA_platform_surfaceless 1
+#define EGL_PLATFORM_SURFACELESS_MESA           0x31DD
+#endif /* EGL_MESA_platform_surfaceless */
+
 #ifdef __cplusplus
 }
 #endif

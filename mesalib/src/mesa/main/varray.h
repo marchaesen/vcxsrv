@@ -40,7 +40,7 @@ struct gl_context;
  * a vertex buffer.
  */
 static inline const GLubyte *
-_mesa_vertex_attrib_address(const struct gl_vertex_attrib_array *array,
+_mesa_vertex_attrib_address(const struct gl_array_attributes *array,
                             const struct gl_vertex_buffer_binding *binding)
 {
    if (_mesa_is_bufferobj(binding->BufferObj))
@@ -56,7 +56,7 @@ _mesa_vertex_attrib_address(const struct gl_vertex_attrib_array *array,
 static inline void
 _mesa_update_client_array(struct gl_context *ctx,
                           struct gl_client_array *dst,
-                          const struct gl_vertex_attrib_array *src,
+                          const struct gl_array_attributes *src,
                           const struct gl_vertex_buffer_binding *binding)
 {
    dst->Size = src->Size;
@@ -378,8 +378,8 @@ _mesa_copy_client_array(struct gl_context *ctx,
 
 extern void
 _mesa_copy_vertex_attrib_array(struct gl_context *ctx,
-                               struct gl_vertex_attrib_array *dst,
-                               const struct gl_vertex_attrib_array *src);
+                               struct gl_array_attributes *dst,
+                               const struct gl_array_attributes *src);
 
 extern void
 _mesa_copy_vertex_buffer_binding(struct gl_context *ctx,

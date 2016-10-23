@@ -607,7 +607,7 @@ static void
 find_custom_value(struct gl_context *ctx, const struct value_desc *d, union value *v)
 {
    struct gl_buffer_object **buffer_obj;
-   struct gl_vertex_attrib_array *array;
+   struct gl_array_attributes *array;
    GLuint unit, *p;
 
    switch (d->pname) {
@@ -1075,6 +1075,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    case GL_SAMPLE_BUFFERS:
       v->value_int = _mesa_geometric_samples(ctx->DrawBuffer) > 0;
+      break;
+   /* GL_EXT_textrue_integer */
+   case GL_RGBA_INTEGER_MODE_EXT:
+      v->value_int = (ctx->DrawBuffer->_IntegerBuffers != 0);
       break;
    /* GL_ATI_meminfo & GL_NVX_gpu_memory_info */
    case GL_VBO_FREE_MEMORY_ATI:

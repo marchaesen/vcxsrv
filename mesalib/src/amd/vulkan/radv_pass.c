@@ -44,7 +44,7 @@ VkResult radv_CreateRenderPass(
 	attachments_offset = size;
 	size += pCreateInfo->attachmentCount * sizeof(pass->attachments[0]);
 
-	pass = radv_alloc2(&device->alloc, pAllocator, size, 8,
+	pass = vk_alloc2(&device->alloc, pAllocator, size, 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pass == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -80,11 +80,11 @@ VkResult radv_CreateRenderPass(
 
 	if (subpass_attachment_count) {
 		pass->subpass_attachments =
-			radv_alloc2(&device->alloc, pAllocator,
+			vk_alloc2(&device->alloc, pAllocator,
 				    subpass_attachment_count * sizeof(VkAttachmentReference), 8,
 				    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 		if (pass->subpass_attachments == NULL) {
-			radv_free2(&device->alloc, pAllocator, pass);
+			vk_free2(&device->alloc, pAllocator, pass);
 			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 	} else
@@ -168,8 +168,8 @@ void radv_DestroyRenderPass(
 
 	if (!_pass)
 		return;
-	radv_free2(&device->alloc, pAllocator, pass->subpass_attachments);
-	radv_free2(&device->alloc, pAllocator, pass);
+	vk_free2(&device->alloc, pAllocator, pass->subpass_attachments);
+	vk_free2(&device->alloc, pAllocator, pass);
 }
 
 void radv_GetRenderAreaGranularity(

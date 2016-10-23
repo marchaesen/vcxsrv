@@ -32,6 +32,7 @@ extern "C" {
 
 #include <assert.h>
 #include <vulkan/vulkan.h>
+#include <util/macros.h>
 enum vk_format_layout {
 	/**
 	 * Formats with vk_format_block::width == vk_format_block::height == 1
@@ -257,12 +258,13 @@ vk_format_aspects(VkFormat format)
 }
 
 static inline enum vk_swizzle
-radv_swizzle_conv(int idx, const unsigned char chan[4], VkComponentSwizzle vk_swiz)
+radv_swizzle_conv(VkComponentSwizzle component, const unsigned char chan[4], VkComponentSwizzle vk_swiz)
 {
 	int x;
+
+	if (vk_swiz == VK_COMPONENT_SWIZZLE_IDENTITY)
+		vk_swiz = component;
 	switch (vk_swiz) {
-	case VK_COMPONENT_SWIZZLE_IDENTITY:
-		return chan[idx];
 	case VK_COMPONENT_SWIZZLE_ZERO:
 		return VK_SWIZZLE_0;
 	case VK_COMPONENT_SWIZZLE_ONE:
@@ -288,7 +290,7 @@ radv_swizzle_conv(int idx, const unsigned char chan[4], VkComponentSwizzle vk_sw
 				return x;
 		return VK_SWIZZLE_1;
 	default:
-		return chan[idx];
+		unreachable("Illegal swizzle");
 	}
 }
 
@@ -296,10 +298,10 @@ static inline void vk_format_compose_swizzles(const VkComponentMapping *mapping,
 					      const unsigned char swz[4],
 					      enum vk_swizzle dst[4])
 {
-	dst[0] = radv_swizzle_conv(0, swz, mapping->r);
-	dst[1] = radv_swizzle_conv(1, swz, mapping->g);
-	dst[2] = radv_swizzle_conv(2, swz, mapping->b);
-	dst[3] = radv_swizzle_conv(3, swz, mapping->a);
+	dst[0] = radv_swizzle_conv(VK_COMPONENT_SWIZZLE_R, swz, mapping->r);
+	dst[1] = radv_swizzle_conv(VK_COMPONENT_SWIZZLE_G, swz, mapping->g);
+	dst[2] = radv_swizzle_conv(VK_COMPONENT_SWIZZLE_B, swz, mapping->b);
+	dst[3] = radv_swizzle_conv(VK_COMPONENT_SWIZZLE_A, swz, mapping->a);
 }
 
 static inline bool

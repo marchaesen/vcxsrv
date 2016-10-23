@@ -318,8 +318,8 @@ is_scissor_enabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
    return (ctx->Scissor.EnableFlags & 1) &&
           (scissor->X > 0 ||
            scissor->Y > 0 ||
-           scissor->X + scissor->Width < rb->Width ||
-           scissor->Y + scissor->Height < rb->Height);
+           scissor->X + scissor->Width < (int)rb->Width ||
+           scissor->Y + scissor->Height < (int)rb->Height);
 }
 
 /**

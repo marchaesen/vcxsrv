@@ -61,7 +61,7 @@ invert_stipple(GLuint dest[32], const GLuint src[32], GLuint winHeight)
 
 
 
-static void 
+static void
 update_stipple( struct st_context *st )
 {
    const struct gl_context *ctx = st->ctx;
@@ -74,8 +74,12 @@ update_stipple( struct st_context *st )
 
       memcpy(st->state.poly_stipple, ctx->PolygonStipple, sz);
 
-      invert_stipple(newStipple.stipple, ctx->PolygonStipple,
-                     ctx->DrawBuffer->Height);
+      if (_mesa_is_user_fbo(ctx->DrawBuffer)) {
+         memcpy(newStipple.stipple, ctx->PolygonStipple, sizeof(newStipple.stipple));
+      } else {
+         invert_stipple(newStipple.stipple, ctx->PolygonStipple,
+                        ctx->DrawBuffer->Height);
+      }
 
       st->pipe->set_polygon_stipple(st->pipe, &newStipple);
    }

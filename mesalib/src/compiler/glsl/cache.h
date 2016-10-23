@@ -139,6 +139,11 @@ cache_create(void)
 }
 
 static inline void
+cache_destroy(struct program_cache *cache) {
+   return;
+}
+
+static inline void
 cache_put(struct program_cache *cache, cache_key key,
           const void *data, size_t size)
 {

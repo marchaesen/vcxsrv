@@ -46,7 +46,6 @@ LIBGLSL_FILES = \
 	glsl/ir_hierarchical_visitor.cpp \
 	glsl/ir_hierarchical_visitor.h \
 	glsl/ir_hv_accept.cpp \
-	glsl/ir_import_prototypes.cpp \
 	glsl/ir_optimization.h \
 	glsl/ir_print_visitor.cpp \
 	glsl/ir_print_visitor.h \

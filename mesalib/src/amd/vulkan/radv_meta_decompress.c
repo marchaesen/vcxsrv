@@ -258,16 +258,16 @@ radv_device_finish_meta_depth_decomp_state(struct radv_device *device)
 	const VkAllocationCallbacks *alloc = &device->meta_state.alloc;
 
 	if (pass_h)
-		RADV_CALL(DestroyRenderPass)(device_h, pass_h,
+		radv_DestroyRenderPass(device_h, pass_h,
 					     &device->meta_state.alloc);
 
 	VkPipeline pipeline_h = state->depth_decomp.decompress_pipeline;
 	if (pipeline_h) {
-		RADV_CALL(DestroyPipeline)(device_h, pipeline_h, alloc);
+		radv_DestroyPipeline(device_h, pipeline_h, alloc);
 	}
 	pipeline_h = state->depth_decomp.resummarize_pipeline;
 	if (pipeline_h) {
-		RADV_CALL(DestroyPipeline)(device_h, pipeline_h, alloc);
+		radv_DestroyPipeline(device_h, pipeline_h, alloc);
 	}
 }
 
@@ -358,7 +358,7 @@ emit_depth_decomp(struct radv_cmd_buffer *cmd_buffer,
 				     pipeline_h);
 	}
 
-	RADV_CALL(CmdDraw)(cmd_buffer_h, 3, 1, 0, 0);
+	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
 }
 
 
@@ -416,7 +416,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 				       &cmd_buffer->pool->alloc,
 				       &fb_h);
 
-		RADV_CALL(CmdBeginRenderPass)(cmd_buffer_h,
+		radv_CmdBeginRenderPass(cmd_buffer_h,
 					      &(VkRenderPassBeginInfo) {
 						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 							      .renderPass = cmd_buffer->device->meta_state.depth_decomp.pass,
@@ -437,7 +437,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					   VK_SUBPASS_CONTENTS_INLINE);
 
 		emit_depth_decomp(cmd_buffer, &(VkOffset2D){0, 0 }, &(VkExtent2D){width, height}, pipeline_h);
-		RADV_CALL(CmdEndRenderPass)(cmd_buffer_h);
+		radv_CmdEndRenderPass(cmd_buffer_h);
 
 		radv_DestroyFramebuffer(device_h, fb_h,
 					&cmd_buffer->pool->alloc);

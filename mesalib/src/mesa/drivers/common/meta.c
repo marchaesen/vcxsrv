@@ -1750,7 +1750,7 @@ meta_clear(struct gl_context *ctx, GLbitfield buffers, bool glsl)
       z = invert_z(ctx->Depth.Clear);
    }
 
-   if (fb->_IntegerColor) {
+   if (fb->_IntegerBuffers) {
       assert(glsl);
       _mesa_meta_use_program(ctx, clear->IntegerShaderProg);
       _mesa_Uniform4iv(0, 1, ctx->Color.ClearColor.i);

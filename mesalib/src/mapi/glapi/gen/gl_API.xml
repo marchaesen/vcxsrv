@@ -8296,6 +8296,23 @@
 <!-- ARB extension 171 -->
 <xi:include href="ARB_pipeline_statistics_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<category name="es3.2">
+    <!-- This should be in es_EXT, but this file is included first and
+         the alias doesn't work otherwise. -->
+    <function name="PrimitiveBoundingBox" es2="3.2" desktop="false">
+        <param name="minX" type="GLfloat"/>
+        <param name="minY" type="GLfloat"/>
+        <param name="minZ" type="GLfloat"/>
+        <param name="minW" type="GLfloat"/>
+        <param name="maxX" type="GLfloat"/>
+        <param name="maxY" type="GLfloat"/>
+        <param name="maxZ" type="GLfloat"/>
+        <param name="maxW" type="GLfloat"/>
+    </function>
+
+    <function name="BlendBarrier" es2="3.2"/>
+</category>
+
 <category name="KHR_blend_equation_advanced" number="174">
     <enum name="BLEND_ADVANCED_COHERENT_KHR"              value="0x9285"/>
 
@@ -8316,7 +8333,6 @@
     <enum name="HSL_COLOR_KHR"                            value="0x92AF"/>
     <enum name="HSL_LUMINOSITY_KHR"                       value="0x92B0"/>
 
-    <function name="BlendBarrier" es2="3.2"/>
     <function name="BlendBarrierKHR" alias="BlendBarrier" es2="2.0"/>
 </category>
 
@@ -8332,18 +8348,6 @@
         <size name="Get" mode="get"/>
     </enum>
 
-    <!-- This should be in es_EXT, but this file is included first and
-         the alias doesn't work otherwise. -->
-    <function name="PrimitiveBoundingBox" es2="3.2" desktop="false">
-        <param name="minX" type="GLfloat"/>
-        <param name="minY" type="GLfloat"/>
-        <param name="minZ" type="GLfloat"/>
-        <param name="minW" type="GLfloat"/>
-        <param name="maxX" type="GLfloat"/>
-        <param name="maxY" type="GLfloat"/>
-        <param name="maxZ" type="GLfloat"/>
-        <param name="maxW" type="GLfloat"/>
-    </function>
     <function name="PrimitiveBoundingBoxARB" alias="PrimitiveBoundingBox">
         <param name="minX" type="GLfloat"/>
         <param name="minY" type="GLfloat"/>

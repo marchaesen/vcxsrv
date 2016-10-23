@@ -133,7 +133,7 @@ GL 4.0, GLSL 4.00 --- all DONE: i965/gen8+, nvc0, r600, radeonsi
   GL_ARB_texture_gather                                 DONE (i965/gen6+, nv50, llvmpipe, softpipe, swr)
   GL_ARB_texture_query_lod                              DONE (i965, nv50, softpipe)
   GL_ARB_transform_feedback2                            DONE (i965/gen7+, nv50, llvmpipe, softpipe, swr)
-  GL_ARB_transform_feedback3                            DONE (i965/gen7+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_transform_feedback3                            DONE (i965/gen7+, llvmpipe, softpipe, swr)
 
 
 GL 4.1, GLSL 4.10 --- all DONE: i965/gen8+, nvc0, r600, radeonsi
@@ -188,37 +188,37 @@ GL 4.3, GLSL 4.30 -- all DONE: i965/gen8+, nvc0, radeonsi
   GL_ARB_vertex_attrib_binding                          DONE (all drivers)
 
 
-GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+
+GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, radeonsi
 
   GL_MAX_VERTEX_ATTRIB_STRIDE                           DONE (all drivers)
-  GL_ARB_buffer_storage                                 DONE (i965, nv50, nvc0, r600, radeonsi)
-  GL_ARB_clear_texture                                  DONE (i965, nv50, nvc0, r600, radeonsi)
-  GL_ARB_enhanced_layouts                               DONE (i965)
+  GL_ARB_buffer_storage                                 DONE (i965, nv50, r600)
+  GL_ARB_clear_texture                                  DONE (i965, nv50, r600)
+  GL_ARB_enhanced_layouts                               DONE (i965, nv50, llvmpipe, softpipe)
   - compile-time constant expressions                   DONE
   - explicit byte offsets for blocks                    DONE
   - forced alignment within blocks                      DONE
-  - specified vec4-slot component numbers               DONE (i965)
+  - specified vec4-slot component numbers               DONE (i965, nv50, llvmpipe, softpipe)
   - specified transform/feedback layout                 DONE
   - input/output block locations                        DONE
   GL_ARB_multi_bind                                     DONE (all drivers)
-  GL_ARB_query_buffer_object                            DONE (i965/hsw+, nvc0, radeonsi)
-  GL_ARB_texture_mirror_clamp_to_edge                   DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
-  GL_ARB_texture_stencil8                               DONE (i965/hsw+, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
-  GL_ARB_vertex_type_10f_11f_11f_rev                    DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
+  GL_ARB_query_buffer_object                            DONE (i965/hsw+)
+  GL_ARB_texture_mirror_clamp_to_edge                   DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_texture_stencil8                               DONE (i965/hsw+, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_vertex_type_10f_11f_11f_rev                    DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
 
-GL 4.5, GLSL 4.50:
+GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi
 
-  GL_ARB_ES3_1_compatibility                            DONE (i965/hsw+, nvc0, radeonsi)
-  GL_ARB_clip_control                                   DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
-  GL_ARB_conditional_render_inverted                    DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
-  GL_ARB_cull_distance                                  DONE (i965, nv50, nvc0, radeonsi, llvmpipe, softpipe, swr)
-  GL_ARB_derivative_control                             DONE (i965, nv50, nvc0, r600, radeonsi)
+  GL_ARB_ES3_1_compatibility                            DONE (i965/hsw+)
+  GL_ARB_clip_control                                   DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_conditional_render_inverted                    DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_cull_distance                                  DONE (i965, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_derivative_control                             DONE (i965, nv50, r600)
   GL_ARB_direct_state_access                            DONE (all drivers)
   GL_ARB_get_texture_sub_image                          DONE (all drivers)
-  GL_ARB_shader_texture_image_samples                   DONE (i965, nv50, nvc0, r600, radeonsi)
-  GL_ARB_texture_barrier                                DONE (i965, nv50, nvc0, r600, radeonsi)
+  GL_ARB_shader_texture_image_samples                   DONE (i965, nv50, r600)
+  GL_ARB_texture_barrier                                DONE (i965, nv50, r600)
   GL_KHR_context_flush_control                          DONE (all - but needs GLX/EGL extension to be useful)
-  GL_KHR_robustness                                     DONE (i965, nvc0, radeonsi)
+  GL_KHR_robustness                                     DONE (i965)
   GL_EXT_shader_integer_mix                             DONE (all drivers that support GLSL)
 
 These are the extensions cherry-picked to make GLES 3.1
@@ -319,7 +319,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_OES_texture_half_float                             DONE (i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
   GL_OES_texture_half_float_linear                      DONE (i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
   GL_OES_texture_view                                   not started - based on GL_ARB_texture_view
-  GL_OES_viewport_array                                 DONE (nvc0, radeonsi)
+  GL_OES_viewport_array                                 DONE (i965, nvc0, radeonsi)
   GLX_ARB_context_flush_control                         not started
   GLX_ARB_robustness_application_isolation              not started
   GLX_ARB_robustness_share_group_isolation              not started

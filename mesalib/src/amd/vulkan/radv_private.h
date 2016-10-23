@@ -39,17 +39,17 @@
 #include <valgrind.h>
 #include <memcheck.h>
 #define VG(x) x
-#define __gen_validate_value(x) VALGRIND_CHECK_MEM_IS_DEFINED(&(x), sizeof(x))
 #else
 #define VG(x)
 #endif
 
 #include <amdgpu.h>
-#include "radv_device_info.h"
 #include "compiler/shader_enums.h"
 #include "util/macros.h"
 #include "util/list.h"
+#include "util/vk_alloc.h"
 #include "main/macros.h"
+
 #include "radv_radeon_winsys.h"
 #include "ac_binary.h"
 #include "ac_nir_to_llvm.h"
@@ -70,6 +70,7 @@ typedef uint32_t xcb_window_t;
 
 #include "radv_entrypoints.h"
 
+#include "wsi_common.h"
 
 #define MAX_VBS         32
 #define MAX_VERTEX_ATTRIBS 32
@@ -86,9 +87,6 @@ typedef uint32_t xcb_window_t;
 
 #define radv_noreturn __attribute__((__noreturn__))
 #define radv_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 static inline uint32_t
 align_u32(uint32_t v, uint32_t a)
@@ -143,7 +141,7 @@ radv_minify(uint32_t n, uint32_t levels)
 	if (unlikely(n == 0))
 		return 0;
 	else
-		return MAX(n >> levels, 1);
+		return MAX2(n >> levels, 1);
 }
 static inline float
 radv_clamp_f(float f, float min, float max)
@@ -225,16 +223,6 @@ void radv_loge_v(const char *format, va_list va);
 #define radv_assert(x)
 #endif
 
-/**
- * If a block of code is annotated with radv_validate, then the block runs only
- * in debug builds.
- */
-#ifdef DEBUG
-#define radv_validate if (1)
-#else
-#define radv_validate if (0)
-#endif
-
 void radv_abortf(const char *format, ...) radv_noreturn radv_printflike(1, 2);
 void radv_abortfv(const char *format, va_list va) radv_noreturn;
 
@@ -250,120 +238,10 @@ void radv_abortfv(const char *format, va_list va) radv_noreturn;
 		return;					\
 	} while (0)
 
-/**
- * A dynamically growable, circular buffer.  Elements are added at head and
- * removed from tail. head and tail are free-running uint32_t indices and we
- * only compute the modulo with size when accessing the array.  This way,
- * number of bytes in the queue is always head - tail, even in case of
- * wraparound.
- */
-
-struct radv_vector {
-   uint32_t head;
-   uint32_t tail;
-   uint32_t element_size;
-   uint32_t size;
-   void *data;
-};
-
-int radv_vector_init(struct radv_vector *queue, uint32_t element_size, uint32_t size);
-void *radv_vector_add(struct radv_vector *queue);
-void *radv_vector_remove(struct radv_vector *queue);
-
-static inline int
-radv_vector_length(struct radv_vector *queue)
-{
-   return (queue->head - queue->tail) / queue->element_size;
-}
-
-static inline void *
-radv_vector_head(struct radv_vector *vector)
-{
-   assert(vector->tail < vector->head);
-   return (void *)((char *)vector->data +
-                   ((vector->head - vector->element_size) &
-                    (vector->size - 1)));
-}
-
-static inline void *
-radv_vector_tail(struct radv_vector *vector)
-{
-   return (void *)((char *)vector->data + (vector->tail & (vector->size - 1)));
-}
-
-static inline void
-radv_vector_finish(struct radv_vector *queue)
-{
-   free(queue->data);
-}
-
-#define radv_vector_foreach(elem, queue)                                  \
-   static_assert(__builtin_types_compatible_p(__typeof__(queue), struct radv_vector *), ""); \
-   for (uint32_t __radv_vector_offset = (queue)->tail;                                \
-        elem = (queue)->data + (__radv_vector_offset & ((queue)->size - 1)), __radv_vector_offset < (queue)->head; \
-        __radv_vector_offset += (queue)->element_size)
-
 void *radv_resolve_entrypoint(uint32_t index);
 void *radv_lookup_entrypoint(const char *name);
 
 extern struct radv_dispatch_table dtable;
-
-#define RADV_CALL(func) ({						\
-			if (dtable.func == NULL) {			\
-				size_t idx = offsetof(struct radv_dispatch_table, func) / sizeof(void *); \
-				dtable.entrypoints[idx] = radv_resolve_entrypoint(idx); \
-			}						\
-			dtable.func;					\
-		})
-
-static inline void *
-radv_alloc(const VkAllocationCallbacks *alloc,
-	   size_t size, size_t align,
-	   VkSystemAllocationScope scope)
-{
-	return alloc->pfnAllocation(alloc->pUserData, size, align, scope);
-}
-
-static inline void *
-radv_realloc(const VkAllocationCallbacks *alloc,
-	     void *ptr, size_t size, size_t align,
-	     VkSystemAllocationScope scope)
-{
-	return alloc->pfnReallocation(alloc->pUserData, ptr, size, align, scope);
-}
-
-static inline void
-radv_free(const VkAllocationCallbacks *alloc, void *data)
-{
-	alloc->pfnFree(alloc->pUserData, data);
-}
-
-static inline void *
-radv_alloc2(const VkAllocationCallbacks *parent_alloc,
-	    const VkAllocationCallbacks *alloc,
-	    size_t size, size_t align,
-	    VkSystemAllocationScope scope)
-{
-	if (alloc)
-		return radv_alloc(alloc, size, align, scope);
-	else
-		return radv_alloc(parent_alloc, size, align, scope);
-}
-
-static inline void
-radv_free2(const VkAllocationCallbacks *parent_alloc,
-	   const VkAllocationCallbacks *alloc,
-	   void *data)
-{
-	if (alloc)
-		radv_free(alloc, data);
-	else
-		radv_free(parent_alloc, data);
-}
-
-struct radv_wsi_interaface;
-
-#define VK_ICD_WSI_PLATFORM_MAX 5
 
 struct radv_physical_device {
 	VK_LOADER_DATA                              _loader_data;
@@ -380,7 +258,7 @@ struct radv_physical_device {
 	uint32_t                    pci_vendor_id;
 	uint32_t                    pci_device_id;
 
-	struct radv_wsi_interface *                  wsi[VK_ICD_WSI_PLATFORM_MAX];
+	struct wsi_device                       wsi_device;
 };
 
 struct radv_instance {

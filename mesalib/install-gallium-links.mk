@@ -13,8 +13,8 @@ all-local : .install-gallium-links
 	fi;							\
 	$(MKDIR_P) $$link_dir;					\
 	file_list="$(dri_LTLIBRARIES:%.la=.libs/%.so)";		\
-	file_list+="$(egl_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)";	\
-	file_list+="$(lib_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)";	\
+	file_list="$$file_list$(egl_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)";	\
+	file_list="$$file_list$(lib_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)";	\
 	for f in $$file_list; do 				\
 		if test -h .libs/$$f; then			\
 			cp -d $$f $$link_dir;			\

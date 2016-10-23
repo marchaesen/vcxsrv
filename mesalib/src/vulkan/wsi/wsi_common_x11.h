@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016 Red Hat.
+ * Copyright © 2015 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -20,17 +20,23 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+#ifndef WSI_COMMON_X11_H
+#define WSI_COMMON_X11_H
 
-#ifndef RADV_DEVICE_INFO_H
-#define RADV_DEVICE_INFO_H
+#include "wsi_common.h"
 
-#include <amdgpu.h>
+VkBool32 wsi_get_physical_device_xcb_presentation_support(
+    struct wsi_device *wsi_device,
+    VkAllocationCallbacks *alloc,
+    uint32_t                                    queueFamilyIndex,
+    xcb_connection_t*                           connection,
+    xcb_visualid_t                              visual_id);
 
-#include "radv_radeon_winsys.h"
+VkResult wsi_create_xcb_surface(const VkAllocationCallbacks *pAllocator,
+				const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
+				VkSurfaceKHR *pSurface);
 
-struct radv_device_info {
-	uint32_t pci_id;
-	enum chip_class chip_class;
-};
-
-#endif /* RADV_DEVICE_INFO_H */
+VkResult wsi_create_xlib_surface(const VkAllocationCallbacks *pAllocator,
+				 const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
+				 VkSurfaceKHR *pSurface);
+#endif

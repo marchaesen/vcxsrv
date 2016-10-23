@@ -2212,7 +2212,6 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
       for (i = 0; i < 3; i++)
          dst_cp->LocalSize[i] = src->Comp.LocalSize[i];
       dst_cp->SharedSize = src->Comp.SharedSize;
-      dst_cp->LocalSizeVariable = src->Comp.LocalSizeVariable;
       break;
    }
    default:

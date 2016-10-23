@@ -28,7 +28,10 @@
 #include "ac_nir_to_llvm.h"
 
 struct cache_entry {
-	unsigned char sha1[20];
+	union {
+		unsigned char sha1[20];
+		uint32_t sha1_dw[5];
+	};
 	uint32_t code_size;
 	struct ac_shader_variant_info variant_info;
 	struct ac_shader_config config;
@@ -68,7 +71,7 @@ radv_pipeline_cache_finish(struct radv_pipeline_cache *cache)
 			if (cache->hash_table[i]->variant)
 				radv_shader_variant_destroy(cache->device,
 							    cache->hash_table[i]->variant);
-			radv_free(&cache->alloc, cache->hash_table[i]);
+			vk_free(&cache->alloc, cache->hash_table[i]);
 		}
 	pthread_mutex_destroy(&cache->mutex);
 	free(cache->hash_table);
@@ -185,7 +188,7 @@ radv_pipeline_cache_set_entry(struct radv_pipeline_cache *cache,
 			      struct cache_entry *entry)
 {
 	const uint32_t mask = cache->table_size - 1;
-	const uint32_t start = (*(uint32_t *) entry->sha1);
+	const uint32_t start = entry->sha1_dw[0];
 
 	/* We'll always be able to insert when we get here. */
 	assert(cache->kernel_count < cache->table_size / 2);
@@ -269,7 +272,7 @@ radv_pipeline_cache_insert_shader(struct radv_pipeline_cache *cache,
 		return variant;
 	}
 
-	entry = radv_alloc(&cache->alloc, sizeof(*entry) + code_size, 8,
+	entry = vk_alloc(&cache->alloc, sizeof(*entry) + code_size, 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_CACHE);
 	if (!entry) {
 		pthread_mutex_unlock(&cache->mutex);
@@ -332,7 +335,7 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 		if(end - p < sizeof(*entry) + entry->code_size)
 			break;
 
-		dest_entry = radv_alloc(&cache->alloc, sizeof(*entry) + entry->code_size,
+		dest_entry = vk_alloc(&cache->alloc, sizeof(*entry) + entry->code_size,
 					8, VK_SYSTEM_ALLOCATION_SCOPE_CACHE);
 		if (dest_entry) {
 			memcpy(dest_entry, entry, sizeof(*entry) + entry->code_size);
@@ -355,7 +358,7 @@ VkResult radv_CreatePipelineCache(
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
 	assert(pCreateInfo->flags == 0);
 
-	cache = radv_alloc2(&device->alloc, pAllocator,
+	cache = vk_alloc2(&device->alloc, pAllocator,
 			    sizeof(*cache), 8,
 			    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (cache == NULL)
@@ -391,7 +394,7 @@ void radv_DestroyPipelineCache(
 		return;
 	radv_pipeline_cache_finish(cache);
 
-	radv_free2(&device->alloc, pAllocator, cache);
+	vk_free2(&device->alloc, pAllocator, cache);
 }
 
 VkResult radv_GetPipelineCacheData(

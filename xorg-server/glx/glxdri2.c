@@ -31,7 +31,6 @@
 #include <errno.h>
 #include <dlfcn.h>
 
-#include <drm.h>
 #include <GL/gl.h>
 #include <GL/internal/dri_interface.h>
 #include <GL/glxtokens.h>
@@ -40,7 +39,6 @@
 #include <os.h>
 
 #define _XF86DRI_SERVER_
-#include <xf86drm.h>
 #include <xf86.h>
 #include <dri2.h>
 

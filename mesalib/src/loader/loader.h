@@ -33,9 +33,6 @@ extern "C" {
 
 /* Helpers to figure out driver and device name, eg. from pci-id, etc. */
 
-#define _LOADER_DRI          (1 << 0)
-#define _LOADER_GALLIUM      (1 << 1)
-
 int
 loader_open_device(const char *);
 
@@ -43,7 +40,7 @@ int
 loader_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id);
 
 char *
-loader_get_driver_for_fd(int fd, unsigned driver_types);
+loader_get_driver_for_fd(int fd);
 
 char *
 loader_get_device_name_for_fd(int fd);

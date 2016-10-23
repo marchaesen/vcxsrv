@@ -31,8 +31,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src \
 	$(VISIBILITY_CFLAGS) \
 	$(XCB_DRI3_CFLAGS) \
-	$(LIBDRM_CFLAGS) \
-	$(LIBUDEV_CFLAGS)
+	$(LIBDRM_CFLAGS)
 
 libloader_la_CPPFLAGS = $(AM_CPPFLAGS)
 libloader_la_SOURCES = $(LOADER_C_FILES)

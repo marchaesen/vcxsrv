@@ -38,6 +38,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/vulkan/wsi \
 	-I$(top_srcdir)/src/amd \
 	-I$(top_srcdir)/src/amd/common \
 	-I$(top_builddir)/src/compiler \
@@ -49,7 +50,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gallium/auxiliary \
 	-I$(top_srcdir)/src/gallium/include
 
-AM_CFLAGS = $(VISIBILITY_FLAGS) \
+AM_CFLAGS = \
+	$(VISIBILITY_CFLAGS) \
 	$(PTHREAD_CFLAGS) \
 	$(LLVM_CFLAGS)
 
@@ -57,7 +59,7 @@ VULKAN_SOURCES = \
 	$(VULKAN_GENERATED_FILES) \
 	$(VULKAN_FILES)
 
-VULKAN_LIB_DEPS = $(AMDGPU_LIBS)
+VULKAN_LIB_DEPS =
 
 
 if HAVE_PLATFORM_X11
@@ -92,12 +94,15 @@ libvulkan_common_la_SOURCES = $(VULKAN_SOURCES)
 
 VULKAN_LIB_DEPS += \
 	libvulkan_common.la \
+	$(top_builddir)/src/vulkan/wsi/libvulkan_wsi.la \
 	$(top_builddir)/src/amd/common/libamd_common.la \
+	$(top_builddir)/src/amd/addrlib/libamdgpu_addrlib.la \
 	$(top_builddir)/src/compiler/nir/libnir.la \
 	$(top_builddir)/src/util/libmesautil.la \
 	$(LLVM_LIBS) \
 	$(LIBELF_LIBS) \
 	$(PTHREAD_LIBS) \
+	$(AMDGPU_LIBS) \
 	$(LIBDRM_LIBS) \
 	$(PTHREAD_LIBS) \
 	$(DLOPEN_LIBS) \
@@ -129,11 +134,14 @@ BUILT_SOURCES = $(VULKAN_GENERATED_FILES)
 CLEANFILES = $(BUILT_SOURCES) dev_icd.json radv_timestamp.h
 EXTRA_DIST = \
 	$(top_srcdir)/include/vulkan/vk_icd.h \
-	radv_entrypoints_gen.py \
 	dev_icd.json.in \
-	radeon_icd.json
+	radeon_icd.json \
+	radv_entrypoints_gen.py \
+	vk_format_layout.csv \
+	vk_format_parse.py \
+	vk_format_table.py
 
-libvulkan_radeon_la_LIBADD = $(VULKAN_LIB_DEPS) $(top_builddir)/src/amd/addrlib/libamdgpu_addrlib.la
+libvulkan_radeon_la_LIBADD = $(VULKAN_LIB_DEPS)
 
 libvulkan_radeon_la_LDFLAGS = \
 	-shared \
@@ -157,9 +165,3 @@ dev_icd.json : dev_icd.json.in
 		< $(srcdir)/dev_icd.json.in > $@
 
 include $(top_srcdir)/install-lib-links.mk
-
-noinst_HEADERS =
-
-LDADD = \
-	$(PTHREAD_LIBS) -lm -lstdc++
-

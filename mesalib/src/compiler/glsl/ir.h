@@ -2357,9 +2357,6 @@ _mesa_glsl_initialize_derived_variables(struct gl_context *ctx,
                                         gl_shader *shader);
 
 extern void
-_mesa_glsl_initialize_functions(_mesa_glsl_parse_state *state);
-
-extern void
 _mesa_glsl_initialize_builtin_functions();
 
 extern ir_function_signature *
@@ -2376,22 +2373,10 @@ extern ir_function_signature *
 _mesa_get_main_function_signature(glsl_symbol_table *symbols);
 
 extern void
-_mesa_glsl_release_functions(void);
-
-extern void
 _mesa_glsl_release_builtin_functions(void);
 
 extern void
 reparent_ir(exec_list *list, void *mem_ctx);
-
-struct glsl_symbol_table;
-
-extern void
-import_prototypes(const exec_list *source, exec_list *dest,
-		  struct glsl_symbol_table *symbols, void *mem_ctx);
-
-extern bool
-ir_has_call(ir_instruction *ir);
 
 extern void
 do_set_program_inouts(exec_list *instructions, struct gl_program *prog,

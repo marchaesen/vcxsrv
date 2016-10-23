@@ -30,6 +30,9 @@ addrlib_libamdgpu_addrlib_la_CPPFLAGS = \
 	-I$(srcdir)/addrlib/r800/chip \
 	-DBRAHMA_BUILD=1
 
+addrlib_libamdgpu_addrlib_la_CXXFLAGS = \
+	$(VISIBILITY_CXXFLAGS)
+
 noinst_LTLIBRARIES += $(ADDRLIB_LIBS)
 
 addrlib_libamdgpu_addrlib_la_SOURCES = $(ADDRLIB_FILES)

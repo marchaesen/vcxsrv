@@ -35,7 +35,10 @@ MESA_UTIL_FILES :=	\
 	strtod.h \
 	texcompress_rgtc_tmp.h \
 	u_atomic.h \
-	u_endian.h
+	u_endian.h \
+	u_vector.c \
+	u_vector.h \
+	vk_alloc.h
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c

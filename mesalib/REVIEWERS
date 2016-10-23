@@ -104,3 +104,7 @@ F: src/egl/drivers/dri2/platform_wayland.c
 FREEDRENO
 R:	Rob Clark <robclark@freedesktop.org>
 F:	src/gallium/drivers/freedreno/
+
+GLX
+R: Adam Jackson <ajax@redhat.com>
+F: src/glx/

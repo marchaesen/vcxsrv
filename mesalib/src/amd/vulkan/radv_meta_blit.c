@@ -297,7 +297,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 						  });
 
 	VkSampler sampler;
-	RADV_CALL(CreateSampler)(radv_device_to_handle(device),
+	radv_CreateSampler(radv_device_to_handle(device),
 				 &(VkSamplerCreateInfo) {
 					 .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 						 .magFilter = blit_filter,
@@ -349,7 +349,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	case VK_IMAGE_ASPECT_COLOR_BIT: {
 		unsigned fs_key = radv_format_meta_fs_key(dest_image->vk_format);
 
-		RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+		radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 					      &(VkRenderPassBeginInfo) {
 						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 							      .renderPass = device->meta_state.blit.render_pass[fs_key],
@@ -377,7 +377,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 		break;
 	}
 	case VK_IMAGE_ASPECT_DEPTH_BIT:
-		RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+		radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 					      &(VkRenderPassBeginInfo) {
 						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 							      .renderPass = device->meta_state.blit.depth_only_rp,
@@ -404,7 +404,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 		}
 		break;
 	case VK_IMAGE_ASPECT_STENCIL_BIT:
-		RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+		radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 					      &(VkRenderPassBeginInfo) {
 						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 							      .renderPass = device->meta_state.blit.stencil_only_rp,
@@ -444,9 +444,9 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 				   device->meta_state.blit.pipeline_layout, 0, 1,
 				   &set, 0, NULL);
 
-	RADV_CALL(CmdDraw)(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
+	radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 
-	RADV_CALL(CmdEndRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer));
+	radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
 
 	/* At the point where we emit the draw call, all data from the
 	 * descriptor sets, etc. has been used.  We are free to delete it.

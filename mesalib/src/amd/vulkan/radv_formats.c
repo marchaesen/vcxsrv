@@ -804,7 +804,7 @@ bool radv_format_pack_clear_color(VkFormat format,
 				  uint32_t clear_vals[2],
 				  VkClearColorValue *value)
 {
-	uint8_t r, g, b, a;
+	uint8_t r = 0, g = 0, b = 0, a = 0;
 	const struct vk_format_description *desc = vk_format_description(format);
 
 	if (vk_format_get_component_bits(format, VK_FORMAT_COLORSPACE_RGB, 0) <= 8) {

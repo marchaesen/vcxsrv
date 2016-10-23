@@ -288,12 +288,12 @@ radv_device_finish_meta_resolve_state(struct radv_device *device)
 	const VkAllocationCallbacks *alloc = &device->meta_state.alloc;
 
 	if (pass_h)
-		RADV_CALL(DestroyRenderPass)(device_h, pass_h,
+		radv_DestroyRenderPass(device_h, pass_h,
 					     &device->meta_state.alloc);
 
 	VkPipeline pipeline_h = state->resolve.pipeline;
 	if (pipeline_h) {
-		RADV_CALL(DestroyPipeline)(device_h, pipeline_h, alloc);
+		radv_DestroyPipeline(device_h, pipeline_h, alloc);
 	}
 }
 
@@ -398,7 +398,7 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 				     pipeline_h);
 	}
 
-	RADV_CALL(CmdDraw)(cmd_buffer_h, 3, 1, 0, 0);
+	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
 	si_emit_cache_flush(cmd_buffer);
 }
@@ -439,6 +439,8 @@ void radv_CmdResolveImage(
 		use_compute_resolve = true;
 
 	if (use_compute_resolve) {
+
+		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image);
 		radv_meta_resolve_compute_image(cmd_buffer,
 						src_image,
 						src_image_layout,
@@ -564,7 +566,7 @@ void radv_CmdResolveImage(
 					       &cmd_buffer->pool->alloc,
 					       &fb_h);
 
-			RADV_CALL(CmdBeginRenderPass)(cmd_buffer_h,
+			radv_CmdBeginRenderPass(cmd_buffer_h,
 						      &(VkRenderPassBeginInfo) {
 							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 								      .renderPass = device->meta_state.resolve.pass,
@@ -598,7 +600,7 @@ void radv_CmdResolveImage(
 					     .height = extent.height,
 				     });
 
-			RADV_CALL(CmdEndRenderPass)(cmd_buffer_h);
+			radv_CmdEndRenderPass(cmd_buffer_h);
 
 			radv_DestroyFramebuffer(device_h, fb_h,
 						&cmd_buffer->pool->alloc);

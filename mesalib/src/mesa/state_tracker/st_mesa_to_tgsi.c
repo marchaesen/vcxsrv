@@ -51,13 +51,6 @@
                            (1 << PROGRAM_CONSTANT) |     \
                            (1 << PROGRAM_UNIFORM))
 
-
-struct label {
-   unsigned branch_target;
-   unsigned token;
-};
-
-
 /**
  * Intermediate state used during shader translation.
  */
@@ -75,75 +68,8 @@ struct st_translate {
    const GLuint *inputMapping;
    const GLuint *outputMapping;
 
-   /* For every instruction that contains a label (eg CALL), keep
-    * details so that we can go back afterwards and emit the correct
-    * tgsi instruction number for each label.
-    */
-   struct label *labels;
-   unsigned labels_size;
-   unsigned labels_count;
-
-   /* Keep a record of the tgsi instruction number that each mesa
-    * instruction starts at, will be used to fix up labels after
-    * translation.
-    */
-   unsigned *insn;
-   unsigned insn_size;
-   unsigned insn_count;
-
    unsigned procType;  /**< PIPE_SHADER_VERTEX/FRAGMENT */
-
-   boolean error;
 };
-
-
-/**
- * Make note of a branch to a label in the TGSI code.
- * After we've emitted all instructions, we'll go over the list
- * of labels built here and patch the TGSI code with the actual
- * location of each label.
- */
-static unsigned *get_label( struct st_translate *t,
-                            unsigned branch_target )
-{
-   unsigned i;
-
-   if (t->labels_count + 1 >= t->labels_size) {
-      t->labels_size = 1 << (util_logbase2(t->labels_size) + 1);
-      t->labels = realloc(t->labels, t->labels_size * sizeof t->labels[0]);
-      if (t->labels == NULL) {
-         static unsigned dummy;
-         t->error = TRUE;
-         return &dummy;
-      }
-   }
-
-   i = t->labels_count++;
-   t->labels[i].branch_target = branch_target;
-   return &t->labels[i].token;
-}
-
-
-/**
- * Called prior to emitting the TGSI code for each Mesa instruction.
- * Allocate additional space for instructions if needed.
- * Update the insn[] array so the next Mesa instruction points to
- * the next TGSI instruction.
- */
-static void set_insn_start( struct st_translate *t,
-                            unsigned start )
-{
-   if (t->insn_count + 1 >= t->insn_size) {
-      t->insn_size = 1 << (util_logbase2(t->insn_size) + 1);
-      t->insn = realloc(t->insn, t->insn_size * sizeof t->insn[0]);
-      if (t->insn == NULL) {
-         t->error = TRUE;
-         return;
-      }
-   }
-
-   t->insn[t->insn_count++] = start;
-}
 
 
 /**
@@ -505,26 +431,10 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_ABS;
    case OPCODE_ADD:
       return TGSI_OPCODE_ADD;
-   case OPCODE_BGNLOOP:
-      return TGSI_OPCODE_BGNLOOP;
-   case OPCODE_BGNSUB:
-      return TGSI_OPCODE_BGNSUB;
-   case OPCODE_BRK:
-      return TGSI_OPCODE_BRK;
-   case OPCODE_CAL:
-      return TGSI_OPCODE_CAL;
    case OPCODE_CMP:
       return TGSI_OPCODE_CMP;
-   case OPCODE_CONT:
-      return TGSI_OPCODE_CONT;
    case OPCODE_COS:
       return TGSI_OPCODE_COS;
-   case OPCODE_DDX:
-      return TGSI_OPCODE_DDX;
-   case OPCODE_DDY:
-      return TGSI_OPCODE_DDY;
-   case OPCODE_DP2:
-      return TGSI_OPCODE_DP2;
    case OPCODE_DP3:
       return TGSI_OPCODE_DP3;
    case OPCODE_DP4:
@@ -533,14 +443,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_DPH;
    case OPCODE_DST:
       return TGSI_OPCODE_DST;
-   case OPCODE_ELSE:
-      return TGSI_OPCODE_ELSE;
-   case OPCODE_ENDIF:
-      return TGSI_OPCODE_ENDIF;
-   case OPCODE_ENDLOOP:
-      return TGSI_OPCODE_ENDLOOP;
-   case OPCODE_ENDSUB:
-      return TGSI_OPCODE_ENDSUB;
    case OPCODE_EX2:
       return TGSI_OPCODE_EX2;
    case OPCODE_EXP:
@@ -549,10 +451,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_FLR;
    case OPCODE_FRC:
       return TGSI_OPCODE_FRC;
-   case OPCODE_IF:
-      return TGSI_OPCODE_IF;
-   case OPCODE_TRUNC:
-      return TGSI_OPCODE_TRUNC;
    case OPCODE_KIL:
       return TGSI_OPCODE_KILL_IF;
    case OPCODE_LG2:
@@ -573,14 +471,10 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_MOV;
    case OPCODE_MUL:
       return TGSI_OPCODE_MUL;
-   case OPCODE_NOP:
-      return TGSI_OPCODE_NOP;
    case OPCODE_POW:
       return TGSI_OPCODE_POW;
    case OPCODE_RCP:
       return TGSI_OPCODE_RCP;
-   case OPCODE_RET:
-      return TGSI_OPCODE_RET;
    case OPCODE_SCS:
       return TGSI_OPCODE_SCS;
    case OPCODE_SGE:
@@ -589,18 +483,12 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_SIN;
    case OPCODE_SLT:
       return TGSI_OPCODE_SLT;
-   case OPCODE_SSG:
-      return TGSI_OPCODE_SSG;
    case OPCODE_SUB:
       return TGSI_OPCODE_SUB;
    case OPCODE_TEX:
       return TGSI_OPCODE_TEX;
    case OPCODE_TXB:
       return TGSI_OPCODE_TXB;
-   case OPCODE_TXD:
-      return TGSI_OPCODE_TXD;
-   case OPCODE_TXL:
-      return TGSI_OPCODE_TXL;
    case OPCODE_TXP:
       return TGSI_OPCODE_TXP;
    case OPCODE_XPD:
@@ -643,29 +531,8 @@ compile_instruction(
       emit_swz( t, dst[0], &inst->SrcReg[0] );
       return;
 
-   case OPCODE_BGNLOOP:
-   case OPCODE_CAL:
-   case OPCODE_ELSE:
-   case OPCODE_ENDLOOP:
-      debug_assert(num_dst == 0);
-      ureg_label_insn( ureg,
-                       translate_opcode( inst->Opcode ),
-                       src, num_src,
-                       get_label( t, inst->BranchTarget ));
-      return;
-
-   case OPCODE_IF:
-      debug_assert(num_dst == 0);
-      ureg_label_insn( ureg,
-                       ctx->Const.NativeIntegers ? TGSI_OPCODE_UIF : TGSI_OPCODE_IF,
-                       src, num_src,
-                       get_label( t, inst->BranchTarget ));
-      return;
-
    case OPCODE_TEX:
    case OPCODE_TXB:
-   case OPCODE_TXD:
-   case OPCODE_TXL:
    case OPCODE_TXP:
       src[num_src++] = t->samplers[inst->TexSrcUnit];
       ureg_tex_insn( ureg,
@@ -691,19 +558,6 @@ compile_instruction(
                  translate_opcode( inst->Opcode ), 
                  dst, num_dst, 
                  src, num_src );
-      break;
-
-   case OPCODE_NOISE1:
-   case OPCODE_NOISE2:
-   case OPCODE_NOISE3:
-   case OPCODE_NOISE4:
-      /* At some point, a motivated person could add a better
-       * implementation of noise.  Currently not even the nvidia
-       * binary drivers do anything more than this.  In any case, the
-       * place to do this is in the GL state tracker, not the poor
-       * driver.
-       */
-      ureg_MOV( ureg, dst[0], ureg_imm1f(ureg, 0.5) );
       break;
 
    case OPCODE_RSQ:
@@ -1167,27 +1021,10 @@ st_translate_mesa_program(
 
    /* Emit each instruction in turn:
     */
-   for (i = 0; i < program->NumInstructions; i++) {
-      set_insn_start( t, ureg_get_instruction_number( ureg ));
+   for (i = 0; i < program->NumInstructions; i++)
       compile_instruction(ctx, t, &program->Instructions[i]);
-   }
-
-   /* Fix up all emitted labels:
-    */
-   for (i = 0; i < t->labels_count; i++) {
-      ureg_fixup_label( ureg,
-                        t->labels[i].token,
-                        t->insn[t->labels[i].branch_target] );
-   }
 
 out:
-   free(t->insn);
-   free(t->labels);
    free(t->constants);
-
-   if (t->error) {
-      debug_printf("%s: translate error flag set\n", __func__);
-   }
-
    return ret;
 }

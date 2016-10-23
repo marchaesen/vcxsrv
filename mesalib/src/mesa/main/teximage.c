@@ -5082,12 +5082,10 @@ texture_buffer_range(struct gl_context *ctx,
 
    if (ctx->Driver.TexParameter) {
       if (offset != oldOffset) {
-         ctx->Driver.TexParameter(ctx, texObj, GL_TEXTURE_BUFFER_OFFSET,
-                                  (const GLfloat *) &offset);
+         ctx->Driver.TexParameter(ctx, texObj, GL_TEXTURE_BUFFER_OFFSET);
       }
       if (size != oldSize) {
-         ctx->Driver.TexParameter(ctx, texObj, GL_TEXTURE_BUFFER_SIZE,
-                                  (const GLfloat *) &size);
+         ctx->Driver.TexParameter(ctx, texObj, GL_TEXTURE_BUFFER_SIZE);
       }
    }
 

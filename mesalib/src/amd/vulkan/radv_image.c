@@ -698,7 +698,7 @@ radv_image_create(VkDevice _device,
 	radv_assert(pCreateInfo->extent.height > 0);
 	radv_assert(pCreateInfo->extent.depth > 0);
 
-	image = radv_alloc2(&device->alloc, alloc, sizeof(*image), 8,
+	image = vk_alloc2(&device->alloc, alloc, sizeof(*image), 8,
 			    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!image)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -758,8 +758,6 @@ radv_image_view_init(struct radv_image_view *iview,
 	const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
 	bool is_stencil = false;
 	switch (image->type) {
-	default:
-		unreachable("bad VkImageType");
 	case VK_IMAGE_TYPE_1D:
 	case VK_IMAGE_TYPE_2D:
 		assert(range->baseArrayLayer + radv_get_layerCount(image, range) - 1 <= image->array_size);
@@ -768,6 +766,8 @@ radv_image_view_init(struct radv_image_view *iview,
 		assert(range->baseArrayLayer + radv_get_layerCount(image, range) - 1
 		       <= radv_minify(image->extent.depth, range->baseMipLevel));
 		break;
+	default:
+		unreachable("bad VkImageType");
 	}
 	iview->image = image;
 	iview->bo = image->bo;
@@ -842,7 +842,7 @@ void radv_image_set_optimal_micro_tile_mode(struct radv_device *device,
 			case 16:
                             image->surface.tiling_index[0] = 11;
                             break;
-		default: /* 32, 64 */
+			default: /* 32, 64 */
                             image->surface.tiling_index[0] = 12;
                             break;
 			}
@@ -923,7 +923,7 @@ radv_DestroyImage(VkDevice _device, VkImage _image,
 	if (!_image)
 		return;
 
-	radv_free2(&device->alloc, pAllocator, radv_image_from_handle(_image));
+	vk_free2(&device->alloc, pAllocator, radv_image_from_handle(_image));
 }
 
 void radv_GetImageSubresourceLayout(
@@ -955,7 +955,7 @@ radv_CreateImageView(VkDevice _device,
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_image_view *view;
 
-	view = radv_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
+	view = vk_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (view == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -976,7 +976,7 @@ radv_DestroyImageView(VkDevice _device, VkImageView _iview,
 
 	if (!iview)
 		return;
-	radv_free2(&device->alloc, pAllocator, iview);
+	vk_free2(&device->alloc, pAllocator, iview);
 }
 
 void radv_buffer_view_init(struct radv_buffer_view *view,
@@ -1004,7 +1004,7 @@ radv_CreateBufferView(VkDevice _device,
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_buffer_view *view;
 
-	view = radv_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
+	view = vk_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!view)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1026,5 +1026,5 @@ radv_DestroyBufferView(VkDevice _device, VkBufferView bufferView,
 	if (!view)
 		return;
 
-	radv_free2(&device->alloc, pAllocator, view);
+	vk_free2(&device->alloc, pAllocator, view);
 }

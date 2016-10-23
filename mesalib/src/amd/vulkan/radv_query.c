@@ -57,7 +57,7 @@ VkResult radv_CreateQueryPool(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	uint64_t size;
-	struct radv_query_pool *pool = radv_alloc2(&device->alloc, pAllocator,
+	struct radv_query_pool *pool = vk_alloc2(&device->alloc, pAllocator,
 					       sizeof(*pool), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
@@ -89,7 +89,7 @@ VkResult radv_CreateQueryPool(
 					     64, RADEON_DOMAIN_GTT, 0);
 
 	if (!pool->bo) {
-		radv_free2(&device->alloc, pAllocator, pool);
+		vk_free2(&device->alloc, pAllocator, pool);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
 
@@ -97,7 +97,7 @@ VkResult radv_CreateQueryPool(
 
 	if (!pool->ptr) {
 		device->ws->buffer_destroy(pool->bo);
-		radv_free2(&device->alloc, pAllocator, pool);
+		vk_free2(&device->alloc, pAllocator, pool);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
 	memset(pool->ptr, 0, size);
@@ -118,7 +118,7 @@ void radv_DestroyQueryPool(
 		return;
 
 	device->ws->buffer_destroy(pool->bo);
-	radv_free2(&device->alloc, pAllocator, pool);
+	vk_free2(&device->alloc, pAllocator, pool);
 }
 
 VkResult radv_GetQueryPoolResults(

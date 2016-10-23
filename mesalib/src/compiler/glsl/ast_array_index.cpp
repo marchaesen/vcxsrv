@@ -233,6 +233,20 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
          else if (array->variable_referenced()->data.mode !=
                   ir_var_shader_storage) {
             _mesa_glsl_error(&loc, state, "unsized array index must be constant");
+         } else {
+            /* Unsized array non-constant indexing on SSBO is allowed only for
+             * the last member of the SSBO definition.
+             */
+            ir_variable *var = array->variable_referenced();
+            const glsl_type *iface_type = var->get_interface_type();
+            int field_index = iface_type->field_index(var->name);
+            /* Field index can be < 0 for instance arrays */
+            if (field_index >= 0 &&
+                field_index != (int) iface_type->length - 1) {
+               _mesa_glsl_error(&loc, state, "Indirect access on unsized "
+                                "array is limited to the last member of "
+                                "SSBO.");
+            }
          }
       } else if (array->type->without_array()->is_interface()
                  && ((array->variable_referenced()->data.mode == ir_var_uniform

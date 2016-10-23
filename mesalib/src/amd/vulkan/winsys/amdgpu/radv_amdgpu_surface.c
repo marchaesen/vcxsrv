@@ -27,12 +27,14 @@
  */
 
 #include <errno.h>
+
 #include "radv_private.h"
 #include "addrlib/addrinterface.h"
 #include "util/bitset.h"
 #include "radv_amdgpu_winsys.h"
 #include "radv_amdgpu_surface.h"
 #include "sid.h"
+
 #ifndef NO_ENTRIES
 #define NO_ENTRIES 32
 #endif
@@ -194,9 +196,8 @@ static int radv_compute_level(ADDR_HANDLE addrlib,
 	ret = AddrComputeSurfaceInfo(addrlib,
 				     AddrSurfInfoIn,
 				     AddrSurfInfoOut);
-	if (ret != ADDR_OK) {
+	if (ret != ADDR_OK)
 		return ret;
-	}
 
 	surf_level = is_stencil ? &surf->stencil_level[level] : &surf->level[level];
 	surf_level->offset = align64(surf->bo_size, AddrSurfInfoOut->baseAlign);
@@ -255,7 +256,7 @@ static int radv_compute_level(ADDR_HANDLE addrlib,
 			surf_level->dcc_fast_clear_size = AddrDccOut->dccFastClearSize;
 			surf_level->dcc_enabled = true;
 			surf->dcc_size = surf_level->dcc_offset + AddrDccOut->dccRamSize;
-			surf->dcc_alignment = MAX(surf->dcc_alignment, AddrDccOut->dccRamBaseAlign);
+			surf->dcc_alignment = MAX2(surf->dcc_alignment, AddrDccOut->dccRamBaseAlign);
 		}
 	}
 
@@ -340,8 +341,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 		default:
 			assert(0);
 		}
-	}
-	else {
+	} else {
 		AddrDccIn.bpp = AddrSurfInfoIn.bpp = surf->bpe * 8;
 	}
 

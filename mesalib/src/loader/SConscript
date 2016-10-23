@@ -8,9 +8,9 @@ env.Prepend(CPPPATH = [
     '#include'
 ])
 
-if env['udev']:
-    env.PkgUseModules('UDEV')
-    env.Append(CPPDEFINES = ['HAVE_LIBUDEV'])
+if env['drm']:
+    env.PkgUseModules('DRM')
+    env.Append(CPPDEFINES = ['HAVE_LIBDRM'])
 
 # parse Makefile.sources
 sources = env.ParseSourceList('Makefile.sources', 'LOADER_C_FILES')
