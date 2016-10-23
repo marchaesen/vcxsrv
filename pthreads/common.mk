@@ -9,23 +9,26 @@ DLL_OBJS	= \
 
 # Separate modules for minimising the size of statically linked images
 STATIC_OBJS	= \
-		autostatic.$(OBJEXT) \
 		cleanup.$(OBJEXT) \
 		create.$(OBJEXT) \
 		dll.$(OBJEXT) \
 		errno.$(OBJEXT) \
 		global.$(OBJEXT) \
 		pthread_attr_destroy.$(OBJEXT) \
+		pthread_attr_getaffinity_np.$(OBJEXT) \
 		pthread_attr_getdetachstate.$(OBJEXT) \
 		pthread_attr_getinheritsched.$(OBJEXT) \
+		pthread_attr_getname_np.$(OBJEXT) \
 		pthread_attr_getschedparam.$(OBJEXT) \
 		pthread_attr_getschedpolicy.$(OBJEXT) \
 		pthread_attr_getscope.$(OBJEXT) \
 		pthread_attr_getstackaddr.$(OBJEXT) \
 		pthread_attr_getstacksize.$(OBJEXT) \
 		pthread_attr_init.$(OBJEXT) \
+		pthread_attr_setaffinity_np.$(OBJEXT) \
 		pthread_attr_setdetachstate.$(OBJEXT) \
 		pthread_attr_setinheritsched.$(OBJEXT) \
+		pthread_attr_setname_np.$(OBJEXT) \
 		pthread_attr_setschedparam.$(OBJEXT) \
 		pthread_attr_setschedpolicy.$(OBJEXT) \
 		pthread_attr_setscope.$(OBJEXT) \
@@ -52,6 +55,7 @@ STATIC_OBJS	= \
 		pthread_equal.$(OBJEXT) \
 		pthread_exit.$(OBJEXT) \
 		pthread_getconcurrency.$(OBJEXT) \
+		pthread_getname_np.$(OBJEXT) \
 		pthread_getschedparam.$(OBJEXT) \
 		pthread_getspecific.$(OBJEXT) \
 		pthread_getunique_np.$(OBJEXT) \
@@ -99,6 +103,7 @@ STATIC_OBJS	= \
 		pthread_setcancelstate.$(OBJEXT) \
 		pthread_setcanceltype.$(OBJEXT) \
 		pthread_setconcurrency.$(OBJEXT) \
+		pthread_setname_np.$(OBJEXT) \
 		pthread_setschedparam.$(OBJEXT) \
 		pthread_setspecific.$(OBJEXT) \
 		pthread_spin_destroy.$(OBJEXT) \
@@ -148,7 +153,6 @@ STATIC_OBJS	= \
 		sem_trywait.$(OBJEXT) \
 		sem_unlink.$(OBJEXT) \
 		sem_wait.$(OBJEXT) \
-		signal.$(OBJEXT) \
 		w32_CancelableWait.$(OBJEXT)
 
 PTHREAD_SRCS	= \
@@ -176,8 +180,12 @@ PTHREAD_SRCS	= \
 		ptw32_spinlock_check_need_init.c \
 		pthread_attr_init.c \
 		pthread_attr_destroy.c \
+		pthread_attr_getaffinity_np.c \
+		pthread_attr_setaffinity_np.c \
 		pthread_attr_getdetachstate.c \
 		pthread_attr_setdetachstate.c \
+		pthread_attr_getname_np.c \
+		pthread_attr_setname_np.c \
 		pthread_attr_getscope.c \
 		pthread_attr_setscope.c \
 		pthread_attr_getstackaddr.c \
@@ -206,7 +214,6 @@ PTHREAD_SRCS	= \
 		create.c \
 		cleanup.c \
 		dll.c \
-		autostatic.c \
 		errno.c \
 		pthread_exit.c \
 		global.c \
@@ -260,6 +267,8 @@ PTHREAD_SRCS	= \
 		pthread_attr_getschedparam.c \
 		pthread_attr_setinheritsched.c \
 		pthread_attr_getinheritsched.c \
+		pthread_getname_np.c \
+		pthread_setname_np.c \
 		pthread_setschedparam.c \
 		pthread_getschedparam.c \
 		sched_get_priority_max.c \

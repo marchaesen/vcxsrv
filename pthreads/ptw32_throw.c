@@ -50,24 +50,13 @@
 /*
  * ptw32_throw
  *
- * All canceled and explicitly exited POSIX threads go through
+ * All cancelled and explicitly exited POSIX threads go through
  * here. This routine knows how to exit both POSIX initiated threads and
  * 'implicit' POSIX threads for each of the possible language modes (C,
  * C++, and SEH).
  */
-#if defined(_MSC_VER)
-/*
- * Ignore the warning:
- * "C++ exception specification ignored except to indicate that
- * the function is not __declspec(nothrow)."
- */
-#pragma warning(disable:4290)
-#endif
 void
 ptw32_throw (DWORD exception)
-#if defined(__CLEANUP_CXX)
-  throw(ptw32_exception_cancel,ptw32_exception_exit)
-#endif
 {
   /*
    * Don't use pthread_self() to avoid creating an implicit POSIX thread handle
@@ -95,7 +84,7 @@ ptw32_throw (DWORD exception)
        * explicit thread exit here after cleaning up POSIX
        * residue (i.e. cleanup handlers, POSIX thread handle etc).
        */
-#if ! defined (PTW32_CONFIG_MINGW) || defined (__MSVCRT__) || defined (__DMC__)
+#if ! defined (__MINGW32__) || defined (__MSVCRT__) || defined (__DMC__)
       unsigned exitCode = 0;
 
       switch (exception)
@@ -118,7 +107,7 @@ ptw32_throw (DWORD exception)
 
 #endif
 
-#if ! defined (PTW32_CONFIG_MINGW) || defined (__MSVCRT__) || defined (__DMC__)
+#if ! defined (__MINGW32__) || defined (__MSVCRT__) || defined (__DMC__)
       _endthreadex (exitCode);
 #else
       _endthread ();

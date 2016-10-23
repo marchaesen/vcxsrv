@@ -50,10 +50,8 @@ int
 main(int argc, char * argv[])
 {
         pthread_t id;
-        struct timespec abstime;
+        struct timespec abstime, reltime = { 1, 0 };
         void* result = (void*)-1;
-        PTW32_STRUCT_TIMEB currSysTime;
-        const DWORD NANOSEC_PER_MILLISEC = 1000000;
 
         assert(pthread_create(&id, NULL, func, (void *)(size_t)999) == 0);
 
@@ -62,13 +60,9 @@ main(int argc, char * argv[])
          */
         Sleep(100);
 
-        PTW32_FTIME(&currSysTime);
-
-        abstime.tv_sec = (long)currSysTime.time;
-        abstime.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
+        (void) pthread_win32_getabstime_np(&abstime, &reltime);
 
         /* Test for pthread_timedjoin_np timeout */
-        abstime.tv_sec += 1;
         assert(pthread_timedjoin_np(id, &result, &abstime) == ETIMEDOUT);
         assert((int)(size_t)result == -1);
 

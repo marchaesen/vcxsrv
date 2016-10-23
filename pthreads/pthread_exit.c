@@ -93,7 +93,7 @@ pthread_exit (void *value_ptr)
        * Implicit POSIX handles are cleaned up in ptw32_throw() now.
        */
 
-#if ! defined (PTW32_CONFIG_MINGW) || defined (__MSVCRT__)  || defined (__DMC__)
+#if ! defined (__MINGW32__) || defined (__MSVCRT__)  || defined (__DMC__)
       _endthreadex ((unsigned) (size_t) value_ptr);
 #else
       _endthread ();

@@ -65,7 +65,6 @@ pthread_self (void)
       */
 {
   pthread_t self;
-  DWORD_PTR vThreadMask, vProcessMask, vSystemMask;
   pthread_t nil = {NULL, 0};
   ptw32_thread_t * sp;
 
@@ -123,34 +122,41 @@ pthread_self (void)
     		  fail = PTW32_TRUE;
     	    }
 #endif
-    	  /*
-    	   * Get this threads CPU affinity by temporarily setting the threads
-    	   * affinity to that of the process to get the old thread affinity,
-    	   * then reset to the old affinity.
-    	   */
+
     	  if (!fail)
     	    {
-    		  if (GetProcessAffinityMask(GetCurrentProcess(), &vProcessMask, &vSystemMask))
-    		    {
-    			  vThreadMask = SetThreadAffinityMask(sp->threadH, vProcessMask);
-    			  if (vThreadMask)
-    			    {
-    				  if (SetThreadAffinityMask(sp->threadH, vThreadMask))
-    				    {
-    					  sp->cpuset = (size_t) vThreadMask;
-    				    }
-    				  else fail = PTW32_TRUE;
-    			    }
-    			  else fail = PTW32_TRUE;
-    		    }
-    		  else fail = PTW32_TRUE;
 
-    		  /*
-    		   * No need to explicitly serialise access to sched_priority
-    		   * because the new handle is not yet public.
-    		   */
-    		  sp->sched_priority = GetThreadPriority (sp->threadH);
-    		  pthread_setspecific (ptw32_selfThreadKey, (void *) sp);
+#if defined(HAVE_CPU_AFFINITY)
+
+    	      /*
+    	       * Get this threads CPU affinity by temporarily setting the threads
+    	       * affinity to that of the process to get the old thread affinity,
+    	       * then reset to the old affinity.
+    	       */
+	      DWORD_PTR vThreadMask, vProcessMask, vSystemMask;
+    	      if (GetProcessAffinityMask(GetCurrentProcess(), &vProcessMask, &vSystemMask))
+    	        {
+    	          vThreadMask = SetThreadAffinityMask(sp->threadH, vProcessMask);
+    	          if (vThreadMask)
+    	            {
+    	              if (SetThreadAffinityMask(sp->threadH, vThreadMask))
+    	                {
+    	                  sp->cpuset = (size_t) vThreadMask;
+    	                }
+    	              else fail = PTW32_TRUE;
+    	            }
+    	          else fail = PTW32_TRUE;
+    	        }
+    	      else fail = PTW32_TRUE;
+
+#endif
+
+    	      /*
+    	       * No need to explicitly serialise access to sched_priority
+    	       * because the new handle is not yet public.
+    	       */
+    	      sp->sched_priority = GetThreadPriority (sp->threadH);
+    	      pthread_setspecific (ptw32_selfThreadKey, (void *) sp);
     	    }
         }
 

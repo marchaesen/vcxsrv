@@ -42,7 +42,7 @@ TOUCH	= $(ECHO) touched >
 # The next path is relative to $BUILD_DIR
 QAPC	= # ..\QueueUserAPCEx\User\quserex.dll
 
-CPHDR	= pthread.h semaphore.h sched.h
+CPHDR	= _ptw32.h pthread.h semaphore.h sched.h
 
 OPTIM	= /O2 /Ob0
 
@@ -205,6 +205,7 @@ VCX-static-debug VCX-small-static-debug:
 clean:
 	if exist *.dll $(RM) *.dll
 	if exist *.lib $(RM) *.lib
+	if exist _ptw32.h $(RM) _ptw32.h
 	if exist pthread.h $(RM) pthread.h
 	if exist semaphore.h $(RM) semaphore.h
 	if exist sched.h $(RM) sched.h

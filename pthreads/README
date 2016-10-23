@@ -50,7 +50,7 @@ QueueUserAPCEx by Panagiotis E. Hadjidoukas
 	are runnable. The simulated async cancellation cannot cancel blocked
 	threads.
 
-        [FOR SECURITY] To be found Quserex.dll MUST be installed in the
+    [FOR SECURITY] To be found Quserex.dll MUST be installed in the
 	Windows System Folder. This is not an unreasonable constraint given a
 	driver must also be installed and loaded at system startup.
 
@@ -145,6 +145,9 @@ not been the case with recent releases. Binary compatibility and
 consequently library file naming has not changed over this time either
 so it should not cause any problems.
 
+NOTE: Changes to the platform ABI can cause the library ABI to change
+and the current version numbering system does not account for this.
+
 The fourth is commonly used for the build number, but will be reserved
 for future use.
 
@@ -203,7 +206,7 @@ of the library that use exceptions as part of the thread
 cancellation and exit implementation. The default version uses
 setjmp/longjmp.
 
-If you use either pthreadVCE or pthreadGCE:
+If you use either pthreadVCE[2] or pthreadGCE[2]:
 
 1. [See also the discussion in the FAQ file - Q2, Q4, and Q5]
 
@@ -224,6 +227,13 @@ threads then you will need to replace the "catch(...)" with the macro
 Otherwise neither pthreads cancellation nor pthread_exit() will work
 reliably when using versions of the library that use C++ exceptions
 for cancellation and thread exit.
+
+NB: [lib]pthreadGCE[2] does not support asynchronous cancellation. Any
+attempt to cancel a thread set for asynchronous cancellation using
+this version of the library will cause the applicaton to terminate.
+We believe this is due to the "unmanaged" context switch that is
+disrupting the stack unwinding mechanism and which is used
+to cancel blocked threads. See pthread_cancel.c
 
 
 Other name changes
@@ -304,25 +314,31 @@ Development Build Toolchains and Configurations
 As of Release 2.10 all build configurations pass the full test suite
 for the following toolchains and configurations:
 
-DLL and static library (full inlined and small) builds:
-VC, VCE, VSE
-GC, GCE
+All DLL and static library build targets enabled in the makefiles:
+VC, VCE, VSE (DLL, inlined statics only)
+GC, GCE (DLL, inlined and small statics)
 
 MSVS:
 Intel Core i7 (6 Core HT)
 Windows 7 64 bit
-MSVS 2010 Express with SDK 7.1 (using the SDK command shell)
-TARGET_CPU = x64 and x86
+MSVS 2010 Express with SDK 7.1 (using the SDK command shell TARGET_CPU = x64 or x86)
+MSVS 2013 Express Cross Tools for x64 Command Prompt
+MSVS 2013 Express Native Tools for x32 Command Prompt
 
 GNU:
 Intel Core i7 (6 Core HT)
 Windows 7 64 bit
-MinGW64 multilib enabled
-ARCH = -m32 and -m64
+MinGW64 multilib enabled (ARCH = -m64 or -m32)
+MinGW64 multilib disabled
 
 
 Building with MS Visual Studio (C, VC++ using C++ EH, or Structured EH)
 -----------------------------------------------------------------------
+
+NOTE: A VS project/solution/whatever file is included as a contributed
+work and is not used of maintained in development. All building and
+testing is done using makefiles. We use the native make system for each
+toolchain, which is 'nmake' in this case.
 
 From the source directory run nmake without any arguments to list
 help information. E.g.
@@ -330,10 +346,12 @@ help information. E.g.
 $ nmake
 
 As examples, as at Release 2.10 the pre-built DLLs and static libraries
-are built from the following command-lines:
+can be built using one of the following command-lines:
 
-[Note: "setenv" comes with the SDK. "/2003" is used to override my build
-system which is Win7 (at the time of writing) for backwards compatibility.]
+[Note: "setenv" comes with the SDK which is not required to build the library.
+I use it to build and test both 64 and 32 bit versions of the library.
+"/2003" is used to override my build system which is Win7 (at the time of
+writing) for backwards compatibility.]
 
 $ setenv /x64 /2003 /Release
 $ nmake realclean VC
@@ -350,7 +368,7 @@ $ nmake realclean VC-static
 $ nmake realclean VCE-static
 $ nmake realclean VSE-static
 
-If you want to differentiate between libraries by their names you can use,
+If you want to differentiate or customise library naming you can use,
 e.g.:
 
 $ nmake realclean VC EXTRAVERSION="-w64"
@@ -364,11 +382,6 @@ pthreadVC2-w64.lib
 To build and test all DLLs and static lib compatibility versions
 (VC, VCE, VSE):
 
-[Note that the EXTRAVERSION="..." option is passed to the tests Makefile
-when you target "all-tests". If you change to the tests directory and
-run the tests you will need to repeat the option explicitly to the test
-"nmake" command-line.]
-
 $ setenv /x64 /2003 /release
 $ nmake all-tests
 
@@ -377,6 +390,11 @@ running nmake. E.g.:
 
 $ cd tests
 $ nmake VC
+
+Note: the EXTRAVERSION="..." option is passed to the tests Makefile
+when you target "all-tests". If you build the library then change to the
+tests directory to run the tests you will need to repeat the option
+explicitly to the test "nmake" command-line.
 
 For failure analysis etc. individual tests can be built
 and run, e.g:
@@ -387,8 +405,7 @@ $ nmake VC TESTS="foo bar"
 This builds and runs all prerequisite tests as well as the individual
 tests listed. Prerequisite tests are defined in tests\runorder.mk.
 
-To build and run only those tests listed use, i.e. without the
-additional prerequistite dependency tests:
+To build and run only the tests listed use:
 
 $ cd tests
 $ nmake VC NO_DEPS=1 TESTS="foo bar"
@@ -397,11 +414,17 @@ $ nmake VC NO_DEPS=1 TESTS="foo bar"
 Building with MinGW
 -------------------
 
-Please use Mingw64 to build either 64 or 32 bit variants of the DLL that will
-run on 64 bit systems. We have found that Mingw32 builds of the GCE library
-variants fail when run on 64 bit systems.
+NOTE: All building and testing is done using makefiles. We use the native
+make system for each toolchain, which is 'make' in this case.
 
-From the source directory, run 'make' without arguments for help information.
+We have found that Mingw32 builds of the GCE library variants fail when run
+on 64 bit systems. The GC variants are fine.
+
+From the source directory:
+
+run 'autoheader' to rewrite the config.h file
+run 'autoconf' to rewrite the GNUmakefiles (library and tests)
+run 'make' without arguments to list possible targets.
 
 $ make
 
@@ -438,11 +461,6 @@ libpthreadGC2-w64.a
 
 To build and test all DLLs and static lib compatibility variants (GC, GCE):
 
-Note that the ARCH="..." and/or EXTRAVERSION="..." options are passed to the
-tests GNUmakefile when you target "all-tests". If you change to the tests
-directory and run the tests you will need to repeat those options explicitly
-to the test "make" command-line.
-
 $ make all-tests
 or, with MinGW64 (multilib enabled):
 $ make all-tests ARCH=-m64
@@ -454,6 +472,11 @@ running make. E.g.:
 $ cd tests
 $ make GC
 
+Note that the ARCH="..." and/or EXTRAVERSION="..." options are passed to the
+tests GNUmakefile when you target "all-tests". If you change to the tests
+directory and run the tests you will need to repeat those options explicitly
+to the test "make" command-line.
+
 For failure analysis etc. individual tests can be built and run, e.g:
 
 $ cd tests
@@ -462,8 +485,7 @@ $ make GC TESTS="foo bar"
 This builds and runs all prerequisite tests as well as the individual
 tests listed. Prerequisite tests are defined in tests\runorder.mk.
 
-To build and run only those tests listed use, i.e. without the additional
-prerequistite dependency tests:
+To build and run only those tests listed use:
 
 $ cd tests
 $ make GC NO_DEPS=1 TESTS="foo bar"
@@ -507,99 +529,27 @@ Building the library under Cygwin
 Cygwin implements it's own POSIX threads routines and these
 will be the ones to use if you develop using Cygwin.
 
-
-Ready to run binaries
+Building applications
 ---------------------
 
-For convenience, the following ready-to-run files can be downloaded
-from the FTP site (see under "Availability" below):
+The files you will need for your application build are:
 
+The four header files:
+	_ptw32.h
 	pthread.h
 	semaphore.h
 	sched.h
-	pthreadVC2.dll		- built with MSVC compiler using C setjmp/longjmp
-	pthreadVC2.lib
-	pthreadVCE2.dll		- built with MSVC++ compiler using C++ EH
-	pthreadVCE2.lib
-	pthreadVSE2.dll		- built with MSVC compiler using SEH
-	pthreadVSE2.lib
-	pthreadGC2.dll		- built with Mingw32 GCC
-	libpthreadGC2.a		- derived from pthreadGC.dll
-	pthreadGCE2.dll		- built with Mingw32 G++
-	libpthreadGCE2.a	- derived from pthreadGCE.dll
 
-You may also need to include runtime DLLs from your SDK when
-distributing your applications.
+The DLL library files that you built:
+	pthread*.dll
+	plus the matching *.lib (MSVS) or *.a file (GNU)
 
-Building applications with GNU compilers
-----------------------------------------
+or, the static link library that you built:
+	pthread*.lib (MSVS) or libpthread*.a (GNU)
 
-If you're using pthreadGC2.dll:
-
-With the three header files, pthreadGC2.dll and libpthreadGC2.a in the
-same directory as your application myapp.c, you could compile, link
-and run myapp.c under MinGW as follows:
-
-	gcc -o myapp.exe myapp.c -I. -L. -lpthreadGC2
-	myapp
-
-Or put pthreadGC2.dll in an appropriate directory in your PATH,
-put libpthreadGC2.a in your system lib directory, and
-put the three header files in your system include directory,
-then use:
-
-	gcc -o myapp.exe myapp.c -lpthreadGC
-	myapp
-
-
-If you're using pthreadGCE2.dll:
-
-With the three header files, pthreadGCE2.dll and libpthreadGCE2.a
-in the same directory as your application myapp.c, you could compile,
-link and run myapp.c under Mingw32 as follows:
-
-	gcc -x c++ -o myapp.exe myapp.c -I. -L. -lpthreadGCE2
-	myapp
-
-Or put pthreadGCE.dll and gcc.dll in an appropriate directory in
-your PATH, put libpthreadGCE.a in your system lib directory, and
-put the three header files in your system include directory,
-then use:
-
-	gcc -x c++ -o myapp.exe myapp.c -lpthreadGCE
-	myapp
-
-
-Availability
-------------
-
-The complete source code in either unbundled, self-extracting
-Zip file, or tar/gzipped format can be found at:
-
-	ftp://sources.redhat.com/pub/pthreads-win32
-
-The pre-built DLL, export libraries and matching pthread.h can
-be found at:
-
-	ftp://sources.redhat.com/pub/pthreads-win32/dll-latest
-
-Home page:
-
-	http://sources.redhat.com/pthreads-win32/
-
-
-Mailing list
-------------
-
-There is a mailing list for discussing pthreads on Win32.
-To join, send email to:
-
-	pthreads-win32-subscribe@sources.redhat.com
-
-Unsubscribe by sending mail to:
-
-	pthreads-win32-unsubscribe@sources.redhat.com
-
+Place them in the appropriate directories for your build, which may be the
+standard compiler locations or, locations specific to your project (you
+might have a separate third-party dependency tree for example).
 
 Acknowledgements
 ----------------
@@ -617,12 +567,4 @@ industry can be measured by it's open standards.
 
 ----
 Ross Johnson
-<rpj@callisto.canberra.edu.au>
-
-
-
-
-
-
-
-
+<ross.johnson@loungebythelake.net>

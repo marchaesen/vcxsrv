@@ -77,6 +77,7 @@ Pthreads-win32 copyrights and exception files
             COPYING
 	    COPYING.LIB
             tests/rwlock7.c
+            tests/threestage.c
 
     This file, COPYING, is distributed under the Copyright found at the
     top of this file.  It is important to note that you may distribute

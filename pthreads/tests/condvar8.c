@@ -107,7 +107,7 @@ static cvthing_t cvthing = {
 
 static pthread_mutex_t start_flag = PTHREAD_MUTEX_INITIALIZER;
 
-static struct timespec abstime = { 0, 0 };
+static struct timespec abstime, reltime = { 10, 0 };
 
 static int awoken;
 
@@ -156,21 +156,13 @@ main()
   int first, last;
   pthread_t t[NUMTHREADS + 1];
 
-  PTW32_STRUCT_TIMEB currSysTime;
-  const DWORD NANOSEC_PER_MILLISEC = 1000000;
-
   assert((t[0] = pthread_self()).p != NULL);
 
   assert(cvthing.notbusy == PTHREAD_COND_INITIALIZER);
 
   assert(cvthing.lock == PTHREAD_MUTEX_INITIALIZER);
 
-  PTW32_FTIME(&currSysTime);
-
-  abstime.tv_sec = (long)currSysTime.time;
-  abstime.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
-
-  abstime.tv_sec += 10;
+  (void) pthread_win32_getabstime_np(&abstime, &reltime);
 
   assert((t[0] = pthread_self()).p != NULL);
 

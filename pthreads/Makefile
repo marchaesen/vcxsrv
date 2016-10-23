@@ -58,24 +58,26 @@ STATIC_OBJS	= $(STATIC_OBJS) $(RESOURCE_OBJS)
 
 help:
 	@ echo Run one of the following command lines:
+	@ echo nmake clean all-tests
+	@ echo nmake -DEXHAUSTIVE clean all-tests 
 	@ echo nmake clean VC
 	@ echo nmake clean VC-debug
 	@ echo nmake clean VC-static
 	@ echo nmake clean VC-static-debug
-	@ echo nmake clean VC-small-static
-	@ echo nmake clean VC-small-static-debug
+#	@ echo nmake clean VC-small-static
+#	@ echo nmake clean VC-small-static-debug
 	@ echo nmake clean VCE
 	@ echo nmake clean VCE-debug
 	@ echo nmake clean VCE-static
 	@ echo nmake clean VCE-static-debug
-	@ echo nmake clean VCE-small-static
-	@ echo nmake clean VCE-small-static-debug
+#	@ echo nmake clean VCE-small-static
+#	@ echo nmake clean VCE-small-static-debug
 	@ echo nmake clean VSE
 	@ echo nmake clean VSE-debug
 	@ echo nmake clean VSE-static
 	@ echo nmake clean VSE-static-debug
-	@ echo nmake clean VSE-small-static
-	@ echo nmake clean VSE-small-static-debug
+#	@ echo nmake clean VSE-small-static
+#	@ echo nmake clean VSE-small-static-debug
 
 all:
 	$(MAKE) /E clean VCE
@@ -88,26 +90,26 @@ all:
 TEST_ENV = CFLAGS="$(CFLAGS) /DNO_ERROR_DIALOGS"
 
 all-tests:
-	$(MAKE) /E realclean VC-small-static$(XDBG)
-	cd tests && $(MAKE) /E clean VC-small-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-small-static$(XDBG) $(TEST_ENV)
-	$(MAKE) /E realclean VCE-small-static$(XDBG)
-	cd tests && $(MAKE) /E clean VCE-small-static$(XDBG) $(TEST_ENV)
-	$(MAKE) /E realclean VSE-small-static$(XDBG)
-	cd tests && $(MAKE) /E clean VSE-small-static$(XDBG) $(TEST_ENV)
+#	$(MAKE) /E realclean VC-small-static$(XDBG)
+#	cd tests && $(MAKE) /E clean VC-small-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-small-static$(XDBG) $(TEST_ENV)
+#	$(MAKE) /E realclean VCE-small-static$(XDBG)
+#	cd tests && $(MAKE) /E clean VCE-small-static$(XDBG) $(TEST_ENV)
+#	$(MAKE) /E realclean VSE-small-static$(XDBG)
+#	cd tests && $(MAKE) /E clean VSE-small-static$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VC$(XDBG)
 	cd tests && $(MAKE) /E clean VC$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VCE$(XDBG)
 	cd tests && $(MAKE) /E clean VCE$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VSE$(XDBG)
 	cd tests && $(MAKE) /E clean VSE$(XDBG) $(TEST_ENV)
-!IF DEFINED(EXHAUSTIVE)
+#!IF DEFINED(EXHAUSTIVE)
 	$(MAKE) /E realclean VC-static$(XDBG)
 	cd tests && $(MAKE) /E clean VC-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-static$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VCE-static$(XDBG)
 	cd tests && $(MAKE) /E clean VCE-static$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VSE-static$(XDBG)
 	cd tests && $(MAKE) /E clean VSE-static$(XDBG) $(TEST_ENV)
-!ENDIF
+#!ENDIF
 	$(MAKE) realclean
 	@ echo $@ completed successfully.
 
@@ -142,23 +144,23 @@ VC-debug:
 #
 # Static builds
 #
-VCE-small-static:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VER).small_static_stamp
+#VCE-small-static:
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VER).small_static_stamp
 
-VCE-small-static-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VERD).small_static_stamp
+#VCE-small-static-debug:
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VERD).small_static_stamp
 
-VSE-small-static:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VER).small_static_stamp
+#VSE-small-static:
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VER).small_static_stamp
 
-VSE-small-static-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VERD).small_static_stamp
+#VSE-small-static-debug:
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VERD).small_static_stamp
 
-VC-small-static:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VER).small_static_stamp
+#VC-small-static:
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VER).small_static_stamp
 
-VC-small-static-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VERD).small_static_stamp
+#VC-small-static-debug:
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VERD).small_static_stamp
 
 VCE-static:
 	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VER).inlined_static_stamp
@@ -185,6 +187,7 @@ realclean: clean
 	if exist *.a del *.a
 	if exist *.manifest del *.manifest
 	if exist *_stamp del *_stamp
+	if exist make.log.txt del make.log.txt
 	cd tests && $(MAKE) clean
 
 clean:
@@ -206,6 +209,7 @@ install:
 	if not exist $(HDRDEST) mkdir $(HDRDEST)
 	if exist pthreadV*.dll copy pthreadV*.dll $(DLLDEST)
 	copy pthreadV*.lib $(LIBDEST)
+	copy _pth32.h $(HDRDEST)
 	copy pthread.h $(HDRDEST)
 	copy sched.h $(HDRDEST)
 	copy semaphore.h $(HDRDEST)
@@ -233,9 +237,23 @@ $(SMALL_STATIC_STAMPS): $(STATIC_OBJS)
 	$(CC) $(EHFLAGS) /D$(CLEANUP) -c $<
 
 # TARGET_CPU is an environment variable set by Visual Studio Command Prompt
-# as provided by the SDK
+# as provided by the SDK (VS 2010 Express plus SDK 7.1)
+# PLATFORM is an environment variable that may be set in the VS 2013 Express x64 cross
+# development environment
+# On my HP Compaq PC running VS 10, PLATFORM was defined as "HPD" but PROCESSOR_ARCHITECTURE
+# was defined as "x86"
 .rc.res:
+!IF DEFINED(PLATFORM)
+!  IF DEFINED(PROCESSOR_ARCHITECTURE)
+	  rc /dPTW32_ARCH$(PROCESSOR_ARCHITECTURE) /dPTW32_RC_MSC /d$(CLEANUP) $<
+!  ELSE
+	  rc /dPTW32_ARCH$(PLATFORM) /dPTW32_RC_MSC /d$(CLEANUP) $<
+!  ENDIF
+!ELSE IF DEFINED(TARGET_CPU)
 	rc /dPTW32_ARCH$(TARGET_CPU) /dPTW32_RC_MSC /d$(CLEANUP) $<
+!ELSE
+	rc /dPTW32_ARCHx86 /dPTW32_RC_MSC /d$(CLEANUP) $<
+!ENDIF
 
 .c.i:
 	$(CC) /P /O2 /Ob1 $(VCFLAGS) $<

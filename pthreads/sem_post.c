@@ -25,17 +25,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -53,78 +53,60 @@
 
 int
 sem_post (sem_t * sem)
-     /*
-      * ------------------------------------------------------
-      * DOCPUBLIC
-      *      This function posts a wakeup to a semaphore.
-      *
-      * PARAMETERS
-      *      sem
-      *              pointer to an instance of sem_t
-      *
-      * DESCRIPTION
-      *      This function posts a wakeup to a semaphore. If there
-      *      are waiting threads (or processes), one is awakened;
-      *      otherwise, the semaphore value is incremented by one.
-      *
-      * RESULTS
-      *              0               successfully posted semaphore,
-      *              -1              failed, error in errno
-      * ERRNO
-      *              EINVAL          'sem' is not a valid semaphore,
-      *              ENOSYS          semaphores are not supported,
-      *              ERANGE          semaphore count is too big
-      *
-      * ------------------------------------------------------
-      */
+/*
+ * ------------------------------------------------------
+ * DOCPUBLIC
+ *      This function posts a wakeup to a semaphore.
+ *
+ * PARAMETERS
+ *      sem
+ *              pointer to an instance of sem_t
+ *
+ * DESCRIPTION
+ *      This function posts a wakeup to a semaphore. If there
+ *      are waiting threads (or processes), one is awakened;
+ *      otherwise, the semaphore value is incremented by one.
+ *
+ * RESULTS
+ *              0               successfully posted semaphore,
+ *              -1              failed, error in errno
+ * ERRNO
+ *              EINVAL          'sem' is not a valid semaphore,
+ *              ENOSYS          semaphores are not supported,
+ *              ERANGE          semaphore count is too big
+ *
+ * ------------------------------------------------------
+ */
 {
   int result = 0;
 
-  if (NULL == sem || NULL == *sem)
+  ptw32_mcs_local_node_t node;
+  sem_t s = *sem;
+
+  ptw32_mcs_lock_acquire(&s->lock, &node);
+  if (s->value < SEM_VALUE_MAX)
     {
-      result = EINVAL;
+#if defined(NEED_SEM)
+      if (++s->value <= 0
+          && !SetEvent(s->sem))
+        {
+          s->value--;
+          result = EINVAL;
+        }
+#else
+      if (++s->value <= 0
+          && !ReleaseSemaphore (s->sem, 1, NULL))
+        {
+          s->value--;
+          result = EINVAL;
+        }
+#endif /* NEED_SEM */
     }
   else
-	{
-	  sem_t s = *sem;
-
-	  if ((result = pthread_mutex_lock (&s->lock)) == 0)
-	    {
-		  /*
-		   *  See sem_destroy.c
-		   */
-		  if (NULL == *sem /* don't test 's' here */)
-		    {
-			  result = EINVAL;
-		    }
-		  else
-		    {
-			  if (s->value < SEM_VALUE_MAX)
-			    {
-#if defined(NEED_SEM)
-				  if (++s->value <= 0
-						  && !SetEvent(s->sem))
-				    {
-					  s->value--;
-					  result = EINVAL;
-				    }
-#else
-				  if (++s->value <= 0
-						  && !ReleaseSemaphore (s->sem, 1, NULL))
-				    {
-					  s->value--;
-					  result = EINVAL;
-				    }
-#endif /* NEED_SEM */
-			    }
-			  else
-			    {
-				  result = ERANGE;
-			    }
-		    }
-		  (void) pthread_mutex_unlock (&s->lock);
-	    }
-	}
+    {
+      result = ERANGE;
+    }
+  ptw32_mcs_lock_release(&node);
 
   if (result != 0)
     {

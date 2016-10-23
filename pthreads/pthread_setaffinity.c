@@ -80,10 +80,17 @@ pthread_setaffinity_np (pthread_t thread, size_t cpusetsize,
       * 				ESRCH	Thread does not exist
       * 				EFAULT	pcuset is NULL
       * 				EAGAIN	The thread affinity could not be set
+      * 				ENOSYS  The platform does not support this function
       *
       * ------------------------------------------------------
       */
 {
+#if ! defined(HAVE_CPU_AFFINITY)
+
+  return ENOSYS;
+
+#else
+
   int result = 0;
   ptw32_thread_t * tp;
   ptw32_mcs_local_node_t node;
@@ -146,6 +153,8 @@ pthread_setaffinity_np (pthread_t thread, size_t cpusetsize,
   ptw32_mcs_lock_release (&node);
 
   return result;
+
+#endif
 }
 
 int
@@ -177,10 +186,17 @@ pthread_getaffinity_np (pthread_t thread, size_t cpusetsize, cpu_set_t *cpuset)
       * 				0		Success
       * 				ESRCH	thread does not exist
       * 				EFAULT	cpuset is NULL
+      *                                 ENOSYS  The platform does not support this function
       *
       * ------------------------------------------------------
       */
 {
+#if ! defined(HAVE_CPU_AFFINITY)
+
+  return ENOSYS;
+
+#else
+
   int result = 0;
   ptw32_thread_t * tp;
   ptw32_mcs_local_node_t node;
@@ -222,4 +238,6 @@ pthread_getaffinity_np (pthread_t thread, size_t cpusetsize, cpu_set_t *cpuset)
   ptw32_mcs_lock_release(&node);
 
   return result;
+
+#endif
 }

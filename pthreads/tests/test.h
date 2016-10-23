@@ -1,4 +1,4 @@
-/* 
+/*
  * test.h
  *
  * Useful definitions and declarations for tests.
@@ -18,17 +18,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -46,16 +46,22 @@
 #include <windows.h>
 #include <stdio.h>
 #include <sys/timeb.h>
+/*
+ * FIXME: May not be available on all platforms.
+ */
+#include <errno.h>
 
 #define PTW32_THREAD_NULL_ID {NULL,0}
 
 /*
  * Some non-thread POSIX API substitutes
  */
-#define rand_r( _seed ) \
+#if !defined(__MINGW64_VERSION_MAJOR)
+#  define rand_r( _seed ) \
         ( _seed == _seed? rand() : rand() )
+#endif
 
-#if defined(PTW32_CONFIG_MINGW)
+#if defined(__MINGW32__)
 # include <stdint.h>
 #elif defined(__BORLANDC__)
 # define int64_t ULONGLONG
@@ -67,7 +73,7 @@
 #  define PTW32_FTIME(x) _ftime64_s(x)
 #  define PTW32_STRUCT_TIMEB struct __timeb64
 #elif ( defined(_MSC_VER) && _MSC_VER >= 1300 ) || \
-      ( defined(PTW32_CONFIG_MINGW) && __MSVCRT_VERSION__ >= 0x0601 )
+      ( defined(__MINGW32__) && __MSVCRT_VERSION__ >= 0x0601 )
 #  define PTW32_FTIME(x) _ftime64(x)
 #  define PTW32_STRUCT_TIMEB struct __timeb64
 #else
@@ -119,9 +125,12 @@ const char * error_string[] = {
   "ENOLCK",
   "ENOSYS",
   "ENOTEMPTY",
+#if PTW32_VERSION_MAJOR > 2
   "EILSEQ",
-  "EOWNERDEAD",
+#else
+  "EILSEQ_or_EOWNERDEAD",
   "ENOTRECOVERABLE"
+#endif
 };
 
 /*
@@ -156,8 +165,12 @@ int assertE;
 			            #e, __FILE__, (int) __LINE__), \
 	                            fflush(stderr) : \
                              0) : \
-          (fprintf(stderr, "Assertion failed: (%s %s %s), file %s, line %d, error %s\n", \
-                   #e,#o,#r, __FILE__, (int) __LINE__, error_string[assertE]), exit(1), 0))
+       (assertE <= (int) (sizeof(error_string)/sizeof(error_string[0]))) ? \
+	   (fprintf(stderr, "Assertion failed: (%s %s %s), file %s, line %d, error %s\n", \
+			    #e,#o,#r, __FILE__, (int) __LINE__, error_string[assertE]), exit(1), 0) :\
+		   (fprintf(stderr, \
+			    "Assertion failed: (%s %s %s), file %s, line %d, error %d\n", \
+		            #e,#o,#r, __FILE__, (int) __LINE__, assertE), exit(1), 0))
 
 #endif
 

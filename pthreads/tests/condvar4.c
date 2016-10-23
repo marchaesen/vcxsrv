@@ -112,9 +112,7 @@ int
 main()
 {
   pthread_t t[NUMTHREADS];
-  struct timespec abstime = { 0, 0 };
-  PTW32_STRUCT_TIMEB currSysTime;
-  const DWORD NANOSEC_PER_MILLISEC = 1000000;
+  struct timespec abstime, reltime = { 5, 0 };
 
   cvthing.shared = 0;
 
@@ -128,13 +126,7 @@ main()
 
   assert(cvthing.lock != PTHREAD_MUTEX_INITIALIZER);
 
-  /* get current system time */
-  PTW32_FTIME(&currSysTime);
-
-  abstime.tv_sec = (long)currSysTime.time;
-  abstime.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
-
-  abstime.tv_sec += 5;
+  (void) pthread_win32_getabstime_np(&abstime, &reltime);
 
   assert(pthread_cond_timedwait(&cvthing.notbusy, &cvthing.lock, &abstime) == ETIMEDOUT);
   
@@ -142,12 +134,7 @@ main()
 
   assert(pthread_create(&t[1], NULL, mythread, (void *) 1) == 0);
 
-  PTW32_FTIME(&currSysTime);
-
-  abstime.tv_sec = (long)currSysTime.time;
-  abstime.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
-
-  abstime.tv_sec += 5;
+  (void) pthread_win32_getabstime_np(&abstime, &reltime);
 
   while (! (cvthing.shared > 0))
     assert(pthread_cond_timedwait(&cvthing.notbusy, &cvthing.lock, &abstime) == 0);

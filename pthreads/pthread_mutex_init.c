@@ -18,17 +18,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -108,25 +108,43 @@ pthread_mutex_init (pthread_mutex_t * mutex, const pthread_mutexattr_t * attr)
               mx->kind = -mx->kind - 1;
 
               mx->robustNode = (ptw32_robust_node_t*) malloc(sizeof(ptw32_robust_node_t));
-              mx->robustNode->stateInconsistent = PTW32_ROBUST_CONSISTENT;
-              mx->robustNode->mx = mx;
-              mx->robustNode->next = NULL;
-              mx->robustNode->prev = NULL;
+              if (NULL == mx->robustNode)
+        	{
+        	  result = ENOMEM;
+        	}
+              else
+        	{
+        	  mx->robustNode->stateInconsistent = PTW32_ROBUST_CONSISTENT;
+        	  mx->robustNode->mx = mx;
+        	  mx->robustNode->next = NULL;
+        	  mx->robustNode->prev = NULL;
+        	}
             }
         }
 
-      mx->ownerThread.p = NULL;
+      if (0 == result)
+	{
+	  mx->ownerThread.p = NULL;
 
-      mx->event = CreateEvent (NULL, PTW32_FALSE,    /* manual reset = No */
-                              PTW32_FALSE,           /* initial state = not signaled */
-                              NULL);                 /* event name */
+	  mx->event = CreateEvent (NULL, PTW32_FALSE,    /* manual reset = No */
+				   PTW32_FALSE,           /* initial state = not signalled */
+				   NULL);                 /* event name */
 
-      if (0 == mx->event)
-        {
-          result = ENOSPC;
-          free (mx);
-          mx = NULL;
-        }
+	  if (0 == mx->event)
+	    {
+	      result = ENOSPC;
+	    }
+	}
+    }
+
+  if (0 != result)
+    {
+      if (NULL != mx->robustNode)
+	{
+	  free (mx->robustNode);
+	}
+      free (mx);
+      mx = NULL;
     }
 
   *mutex = mx;

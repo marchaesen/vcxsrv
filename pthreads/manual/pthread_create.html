@@ -3,9 +3,10 @@
 <HEAD>
 	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=windows-1252">
 	<TITLE>PTHREAD_CREATE(3) manual page</TITLE>
-	<META NAME="GENERATOR" CONTENT="OpenOffice.org 3.4  (Win32)">
-	<META NAME="CREATED" CONTENT="20050504;19394700">
-	<META NAME="CHANGED" CONTENT="20120921;10335710">
+	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
+	<META NAME="CREATED" CONTENT="0;0">
+	<META NAME="CHANGEDBY" CONTENT="Ross Johnson">
+	<META NAME="CHANGED" CONTENT="20160229;20085251">
 	<STYLE TYPE="text/css">
 	<!--
 		H4.cjk { font-family: "SimSun" }
@@ -64,14 +65,15 @@ returned. On error, a non-zero error code is returned.
 </P>
 <H2 CLASS="western"><A HREF="#toc4" NAME="sect4">Errors</A></H2>
 <DL>
-	<DT><B>EAGAIN</B> 
-	</DT><DL>
-		<DL>
-			<DT STYLE="margin-bottom: 0.5cm">
-			Not enough system resources to create a process for the new
-			thread, or<BR>more than <B>PTHREAD_THREADS_MAX</B> threads are
-			already active. 
-			</DT></DL>
+	<DL>
+		<DT STYLE="margin-left: 0.25cm"><B>EAGAIN</B></DT><DL>
+			<DL>
+				<DT STYLE="margin-left: -0.5cm; margin-bottom: 0.5cm">
+				Not enough system resources to create a process for the new
+				thread, or<BR>more than <B>PTHREAD_THREADS_MAX</B> threads are
+				already active. 
+				</DT></DL>
+		</DL>
 	</DL>
 </DL>
 <H2 CLASS="western">

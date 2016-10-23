@@ -18,17 +18,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -45,30 +45,32 @@
 
 /*
  * How it works:
- * A pthread_t is a struct (2x32 bit scalar types on IA-32, 2x64 bit on IA-64)
+ * A pthread_t is a struct (2x32 bit scalar types on x86, 2x64 bit on x86_64)
+ * [FIXME: This is not true, x86_64 is 64 bit pointer and 32 bit counter. This
+ * should be fixed in version 3.0.0]
  * which is normally passed/returned by value to/from pthreads routines.
  * Applications are therefore storing a copy of the struct as it is at that
  * time.
  *
  * The original pthread_t struct plus all copies of it contain the address of
  * the thread state struct ptw32_thread_t_ (p), plus a reuse counter (x). Each
- * ptw32_thread_t contains the original copy of it's pthread_t.
+ * ptw32_thread_t contains the original copy of it's pthread_t (ptHandle).
  * Once malloced, a ptw32_thread_t_ struct is not freed until the process exits.
- * 
+ *
  * The thread reuse stack is a simple LILO stack managed through a singly
  * linked list element in the ptw32_thread_t.
  *
  * Each time a thread is destroyed, the ptw32_thread_t address is pushed onto the
  * reuse stack after it's ptHandle's reuse counter has been incremented.
- * 
+ *
  * The following can now be said from this:
- * - two pthread_t's are identical if their ptw32_thread_t reference pointers
- * are equal and their reuse counters are equal. That is,
+ * - two pthread_t's refer to the same thread iff their ptw32_thread_t reference
+ * pointers are equal and their reuse counters are equal. That is,
  *
  *   equal = (a.p == b.p && a.x == b.x)
  *
  * - a pthread_t copy refers to a destroyed thread if the reuse counter in
- * the copy is not equal to the reuse counter in the original.
+ * the copy is not equal to (i.e less than) the reuse counter in the original.
  *
  *   threadDestroyed = (copy.x != ((ptw32_thread_t *)copy.p)->ptHandle.x)
  *
@@ -113,7 +115,7 @@ ptw32_threadReusePop (void)
  * Push a clean pthread_t struct onto the reuse stack.
  * Must be re-initialised when reused.
  * All object elements (mutexes, events etc) must have been either
- * detroyed before this, or never initialised.
+ * destroyed before this, or never initialised.
  */
 void
 ptw32_threadReusePush (pthread_t thread)

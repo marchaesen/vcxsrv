@@ -75,6 +75,8 @@
 #define _WIN32_WINNT 0x400
 
 #include "test.h"
+/* Cheating here - sneaking a peek at library internals */
+#include "../config.h"
 #include "../implement.h"
 #include "../context.h"
 
@@ -104,6 +106,9 @@ main()
 {
   pthread_t t;
   HANDLE hThread;
+
+  DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+  SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
 
   assert(pthread_create(&t, NULL, func, NULL) == 0);
 

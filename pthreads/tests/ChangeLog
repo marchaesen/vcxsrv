@@ -1,3 +1,112 @@
+2016-04-30  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* semaphore4t.c: No longer need to include ptw32_timespec.c and the
+	defines that tried to make it work (but failed). There is now an
+	exported routine that this test uses that can also be used by
+	applications. It's a general routine that keeps all the platform
+	conditional stuff inside the library.
+	* Makefile: Remove _ptw32.h copied from parent directory.
+
+2016-03-31  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* Makefile (_ptw32.h): Copy header to tests directory required to
+	build tests, and apps.
+
+2016-03-31  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* test.h: source errno.h
+
+2016-03-31  Keith Marshall <MinGW32 project>
+
+	* test.h: Patch for MinGW32 autoconf.
+	* GNUmakefile.in: New for autoconf.
+
+2016-03-28  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* condvar2.c: Use platform-aware pthread_win32_getabstime_np.
+	* condvar2_1.c: Likewise.
+	* condvar3.c: Likewise.
+	* condvar3_1.c: Likewise.
+	* condvar3_2.c: Likewise.
+	* condvar3_3.c: Likewise.
+	* condvar4.c: Likewise.
+	* condvar5.c: Likewise.
+	* condvar6.c: Likewise.
+	* condvar7.c: Likewise.
+	* condvar8.c: Likewise.
+	* condvar9.c: Likewise.
+	* join4.c: Likewise.
+	* mutex8.c: Likewise.
+	* mutex8e.c: Likewise.
+	* mutex8n.c: Likewise.
+	* mutex8r.c: Likewise.
+	* reinit1.c: Likewise.
+	* rwlock2_t.c: Likewise.
+	* rwlock3_t.c: Likewise.
+	* rwlock4_t.c: Likewise.
+	* rwlock5_t.c: Likewise.
+	* rwlock6_t.c: Likewise.
+	* rwlock6_t2.c: Likewise.
+	* semaphore4t.c: Likewise.
+	* stress1.c: Likewise.
+	* reinit1.c: Remove unused variable declarations.
+
+2015-11-01	Mark Smith <masmith at fb dot com>
+
+	* semaphore4t.c: Enhanced and additional testing of sub-millisecond
+	timeouts.
+
+2014-07-22  Scott Libert  <scott underscore libert at dell dot com>
+
+	* semaphore3.c: Wait for threads to complete before exiting main().
+	This test would sometimes fail because, behaviourally, it was not
+	standard-compliant.
+
+2013-12-10  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* cancel9.c (bytes, dwEvent): Removed to eliminate warning "set but
+	not used".
+
+2013-11-13  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* reinit1.c: New test - reinitialising the library.
+	* common.mk: Add new test.
+	* reorder.mk: Likewise.
+
+2013-07-23  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* affinity*.c: Skipped under WINCE.
+
+2013-07-02  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* threestage.c: New test/example code; not written specifically as
+	a test; independently written and essentially unmodified pthreads
+	example.
+
+2013-06-19  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* exit6.c: New test (added some time ago but not committed).
+	* name_np1.c: New test for pthread_[sg]etname_np().
+	* name_np2.c: New test for pthread_attr_[sg]etname_np().
+	* common.mk: Add new tests.
+	* reorder.mk: Likewise.
+
+2013-06-06  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* affinity6.c: New test for pthread_attr_[gs]etaffinity_np()
+	* common.mk: Add new tests.
+	* reorder.mk: Likewise.
+
+2012-10-24  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* tsd3.c: New regression test for Stephane Clairet bug fix/report;
+	this test confirms that keys are deleted correctly prior to threads
+	exiting.
+	* tsd2.c: Modified comments and indentation.
+	* tsd1.c: Likewise.
+	* common.mk (tsd3): New test added.
+	* reorder.mk (tsd3): Likewise.
+
 2012-10-16  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* GNUmakefile (EXTRAVERSION): Naming option for libraries to be

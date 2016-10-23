@@ -48,7 +48,7 @@
 static pthread_rwlock_t rwlock1 = PTHREAD_RWLOCK_INITIALIZER;
 
 static int bankAccount = 0;
-struct timespec abstime = { 0, 0 };
+struct timespec abstime, reltime = { 1, 0 };
 
 void * wrfunc(void * arg)
 {
@@ -90,15 +90,8 @@ main()
   void* wr1Result = (void*)0;
   void* wr2Result = (void*)0;
   void* rdResult = (void*)0;
-  PTW32_STRUCT_TIMEB currSysTime;
-  const DWORD NANOSEC_PER_MILLISEC = 1000000;
 
-  PTW32_FTIME(&currSysTime);
-
-  abstime.tv_sec = (long)currSysTime.time;
-  abstime.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
-
-  abstime.tv_sec += 1;
+  (void) pthread_win32_getabstime_np(&abstime, &reltime);
 
   bankAccount = 0;
 
