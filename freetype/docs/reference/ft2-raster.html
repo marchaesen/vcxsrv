@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6.3 API Reference</title>
+<title>FreeType-2.7 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6.3 API Reference</h1>
+<h1>FreeType-2.7 API Reference</h1>
 
 <h1 id="raster">Scanline Converter</h1>
 <h2>Synopsis</h2>
@@ -197,8 +197,6 @@
 <h4>note</h4>
 <p>This callback allows client applications to directly render the gray spans of the anti-aliased bitmap to any kind of surfaces.</p>
 <p>This can be used to write anti-aliased outlines directly to a given background bitmap, and even perform translucency.</p>
-<p>Note that the &lsquo;count&rsquo; field cannot be greater than a fixed value defined by the &lsquo;FT_MAX_GRAY_SPANS&rsquo; configuration macro in &lsquo;ftoption.h&rsquo;. By default, this value is set to&nbsp;32, which means that if there are more than 32&nbsp;spans on a given scanline, the callback is called several times with the same &lsquo;y&rsquo; parameter in order to draw all callbacks.</p>
-<p>Otherwise, the callback is only called once per scan-line, and only for those scanlines that do have &lsquo;gray&rsquo; pixels on them.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>

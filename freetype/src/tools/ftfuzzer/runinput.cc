@@ -1,6 +1,6 @@
 // runinput.cc
 //
-//   A `main' function for `ftfuzzer.cc'.
+//   A `main' function for fuzzers like `ftfuzzer.cc'.
 //
 // Copyright 2015-2016 by
 // David Turner, Robert Wilhelm, and Werner Lemberg.

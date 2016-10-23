@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype263.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype27.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Debug"
 
@@ -78,7 +78,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype263_D.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype27_D.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Debug Multithreaded"
 
@@ -102,8 +102,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"lib\freetype263_D.lib"
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype263MT_D.lib"
+# ADD BASE LIB32 /nologo /out:"lib\freetype27_D.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype27MT_D.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Release Multithreaded"
 
@@ -126,8 +126,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"lib\freetype263.lib"
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype263MT.lib"
+# ADD BASE LIB32 /nologo /out:"lib\freetype27.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype27MT.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Release Singlethreaded"
 
@@ -151,8 +151,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype263.lib"
-# ADD LIB32 /out:"..\..\..\objs\freetype263ST.lib"
+# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype27.lib"
+# ADD LIB32 /out:"..\..\..\objs\freetype27ST.lib"
 # SUBTRACT LIB32 /nologo
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Debug Singlethreaded"
@@ -177,8 +177,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype263_D.lib"
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype263ST_D.lib"
+# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype27_D.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype27ST_D.lib"
 
 !ENDIF
 

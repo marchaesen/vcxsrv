@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6.3 API Reference</title>
+<title>FreeType-2.7 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6.3 API Reference</h1>
+<h1>FreeType-2.7 API Reference</h1>
 
 <h1 id="basic_types">Basic Data Types</h1>
 <h2>Synopsis</h2>
@@ -483,8 +483,8 @@
 
 <p>A simple structure used to store a 2x2 matrix. Coefficients are in 16.16 fixed-point format. The computation performed is:</p>
 <pre class="colored">
-   x' = x*xx + y*xy                                             
-   y' = x*yx + y*yy                                             
+   x' = x*xx + y*xy
+   y' = x*yx + y*yy
 </pre>
 
 <h4>fields</h4>
@@ -855,7 +855,7 @@
 <h4>note</h4>
 <p>Since many 16-bit compilers don't like 32-bit enumerations, you should redefine this macro in case of problems to something like this:</p>
 <pre class="colored">
-  #define FT_IMAGE_TAG( value, _x1, _x2, _x3, _x4 )  value         
+  #define FT_IMAGE_TAG( value, _x1, _x2, _x3, _x4 )  value
 </pre>
 <p>to get a simple enumeration without assigning special numbers.</p>
 

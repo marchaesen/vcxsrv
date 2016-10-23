@@ -161,7 +161,7 @@
                     variations->axis[i].def     ) / 2;
 
     if ( FT_Set_Var_Design_Coordinates( face,
-                                        coords.size(),
+                                        FT_UInt( coords.size() ),
                                         coords.data() ) )
       return;
   }
@@ -248,7 +248,7 @@
 
         // loop over all bitmap stroke sizes
         // and an arbitrary size for outlines
-        for ( long  fixed_sizes_index = 0;
+        for ( int  fixed_sizes_index = 0;
               fixed_sizes_index < face->num_fixed_sizes + 1;
               fixed_sizes_index++ )
         {

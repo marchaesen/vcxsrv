@@ -1,4 +1,154 @@
 
+CHANGES BETWEEN 2.6.5 and 2.7
+
+  I. IMPORTANT CHANGES
+
+    - As announced earlier, the 2.7.x series now uses the new subpixel
+      hinting  mode as  the  default, emulating  a  modern version  of
+      ClearType.
+
+      This change inevitably leads to different rendering results, and
+      you   might   change   the   `TT_CONFIG_OPTION_SUBPIXEL_HINTING'
+      configuration option to  adapt it to your taste (or  use the new
+      `FREETYPE_PROPERTIES'    environment    variable).    See    the
+      corresponding entry  below for  version 2.6.4, which  gives more
+      information.
+
+    - A new option  `FT_CONFIG_OPTION_ENVIRONMENT_PROPERTIES' has been
+      introduced.   If  set (which  is  the  default), an  environment
+      variable  `FREETYPE_PROPERTIES' can  be used  to control  driver
+      properties.  Example:
+
+        FREETYPE_PROPERTIES=truetype:interpreter-version=35 \
+                            cff:no-stem-darkening=1 \
+                            autofitter:warping=1
+
+      This allows to select, say, the subpixel hinting mode at runtime
+      for a given application.  See file `ftoption.h' for more.
+
+
+  II. IMPORTANT BUG FIXES
+
+    - After  loading a  named instance  of  a GX  variation font,  the
+      `face_index'  value  in  the returned  `FT_Face'  structure  now
+      correctly holds the named instance  index in the upper 16bits as
+      documented.
+
+
+  III. MISCELLANEOUS
+
+    - A new macro `FT_IS_NAMED_INSTANCE' to  test whether a given face
+      is a named instance.
+
+    - More fixes to GX font handling.
+
+    - Apple's   `GETVARIATION'  bytecode   operator  (needed   for  GX
+      variation font support) has been implemented.
+
+    - Another round  of fuzzer fixes,  mainly to reject  invalid fonts
+      faster.
+
+    - Handling of raw CID fonts  was broken (bug introduced in version
+      2.6.4).
+
+    - The smooth rasterizer has been streamlined  to make it faster by
+      approx. 20%.
+
+    - The `ftgrid'  demo program now  understands command  line option
+      `-d' to give start-up design coordinates.
+
+    - The `ftdump' demo program has  a new command line option `-p' to
+      dump TrueType bytecode instructions.
+
+
+======================================================================
+
+CHANGES BETWEEN 2.6.4 and 2.6.5
+
+  I. IMPORTANT BUG FIXES
+
+    - Compilation works again  on Mac OS X (bug introduced  in version
+      2.6.4).
+
+
+  II. IMPORTANT CHANGES
+
+    - The new  subpixel hinting  mode is now  disabled by  default; it
+      will  be enabled  by default  in the  forthcoming 2.7.x  series.
+      Main reason for reverting this feature is the principle of least
+      surprise: a  sudden change in  appearance of all fonts  (even if
+      the rendering improves  for almost all recent  fonts) should not
+      be expected in a new micro version of a series.
+
+
+======================================================================
+
+CHANGES BETWEEN 2.6.3 and 2.6.4
+
+  I. IMPORTANT CHANGES
+
+    - A new  subpixel hinting  mode has  been contributed  by Nikolaus
+      Waxweiler, which is now the  default rendering mode for TrueType
+      fonts.  It implements  (almost everything of) version  40 of the
+      bytecode engine.
+
+      The existing code  base in FreeType (the  `Infinality code') was
+      stripped to the bare minimum  and all configurability removed in
+      the  name  of speed  and  simplicity.   The configurability  was
+      mainly aimed  at legacy  fonts like Arial,  Times New  Roman, or
+      Courier.  [Legacy fonts are fonts  that modify vertical stems to
+      achieve clean black-and-white bitmaps.]  The new mode focuses on
+      applying a minimal set of rules to all fonts indiscriminately so
+      that modern and web fonts  render well while legacy fonts render
+      okay.
+
+      Activation  of the  subpixel hinting  support can  be controlled
+      with   the   `TT_CONFIG_OPTION_SUBPIXEL_HINTING'   configuration
+      option  at compile  time: If  set to  value 1,  you get  the old
+      Infinality  mode  (which  was  never  the  default  due  to  its
+      slowness).  Value 2 activates the new subpixel hinting mode, and
+      value 3 activates both.  The default is value 2.
+
+      At run time,  you can select the subpixel hinting  mode with the
+      `interpreter-version'  property (provided  you have  compiled in
+      the corresponding hinting mode); see `ftttdrv.h' for more.
+
+    - Support  for  the  following  scripts  has  been  added  to  the
+      auto-hinter.
+
+        Armenian, Cherokee, Ethiopic, Georgian, Gujarati, Gurmukhi,
+        Malayalam, Sinhala, Tamil
+
+
+  II. MISCELLANEOUS
+
+    - Type 42 fonts as created by LilyPond are now supported.
+
+    - Minor rendering improvments in the auto-hinter.
+
+    - For experimental  reasons, the old  CFF engine now  supports all
+      CFF operators except `random', including the deprecated Multiple
+      Masters  instructions.  This  allows the  display of  fonts like
+      `ITCGaramondMM-It.otf' (without font variations, though).
+
+    - Another round of fixes to improve handling of invalid fonts.
+
+    - The `ftgrid' demo program now displays the rendered pixels also;
+      this can be switched off with the `b' key.  Selection of various
+      LCD filtering modes can be done with the `L' key.
+
+    - The demo programs  have been extended to allow  selection of all
+      available TrueType bytecode engines.
+
+    - A very early beta version of a new, Qt based demo program called
+      `ftinspect'  is  part  of  the   source  code  bundle;  it  will
+      eventually supersede  the other  demo programs.   Currently, you
+      have to compile  it manually with `qmake; make';  note that many
+      features are still missing.
+
+
+======================================================================
+
 CHANGES BETWEEN 2.6.2 and 2.6.3
 
   I. IMPORTANT CHANGES
@@ -42,8 +192,8 @@ CHANGES BETWEEN 2.6.2 and 2.6.3
     - The `ftgamma' demo  program has been modernized;  the gamma grid
       display has been moved from `ftview' to this program.
 
-    - It is now possible to  cycle through the available LCD fitlering
-      modes.
+    - In `ftview',  it is now possible to cycle through  the available
+      LCD filtering modes.
 
 
 ======================================================================
@@ -3754,7 +3904,7 @@ BETA-8 (RELEASE CANDIDATE) CHANGES
         automatically when needed.
 
   - Reformatted all  modules source  code in order  to get rid  of the
-    basic data types redifinitions (i.e. `TT_Int' instead of `FT_Int',
+    basic data types redefinitions (i.e. `TT_Int' instead of `FT_Int',
     `T1_Fixed'  instead  of  `FT_Fixed').  Hence  the  format-specific
     prefixes like  `TT_', `T1_',  `T2_' and `CID_'  are only  used for
     relevant structures.

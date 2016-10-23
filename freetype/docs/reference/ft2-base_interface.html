@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6.3 API Reference</title>
+<title>FreeType-2.7 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,57 +100,58 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6.3 API Reference</h1>
+<h1>FreeType-2.7 API Reference</h1>
 
 <h1 id="base_interface">Base Interface</h1>
 <h2>Synopsis</h2>
 <table class="synopsis">
-<tr><td><a href="#FT_Library">FT_Library</a></td><td><a href="#FT_Glyph_Metrics">FT_Glyph_Metrics</a></td><td><a href="#FT_LOAD_NO_AUTOHINT">FT_LOAD_NO_AUTOHINT</a></td></tr>
-<tr><td><a href="#FT_Face">FT_Face</a></td><td><a href="#FT_SubGlyph">FT_SubGlyph</a></td><td><a href="#FT_LOAD_COLOR">FT_LOAD_COLOR</a></td></tr>
-<tr><td><a href="#FT_Size">FT_Size</a></td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_GlyphSlot">FT_GlyphSlot</a></td><td><a href="#FT_Bitmap_Size">FT_Bitmap_Size</a></td><td><a href="#FT_LOAD_VERTICAL_LAYOUT">FT_LOAD_VERTICAL_LAYOUT</a></td></tr>
-<tr><td><a href="#FT_CharMap">FT_CharMap</a></td><td>&nbsp;</td><td><a href="#FT_LOAD_IGNORE_TRANSFORM">FT_LOAD_IGNORE_TRANSFORM</a></td></tr>
-<tr><td><a href="#FT_Encoding">FT_Encoding</a></td><td><a href="#FT_Init_FreeType">FT_Init_FreeType</a></td><td><a href="#FT_LOAD_FORCE_AUTOHINT">FT_LOAD_FORCE_AUTOHINT</a></td></tr>
-<tr><td><a href="#FT_ENC_TAG">FT_ENC_TAG</a></td><td><a href="#FT_Done_FreeType">FT_Done_FreeType</a></td><td><a href="#FT_LOAD_NO_RECURSE">FT_LOAD_NO_RECURSE</a></td></tr>
-<tr><td>&nbsp;</td><td>&nbsp;</td><td><a href="#FT_LOAD_PEDANTIC">FT_LOAD_PEDANTIC</a></td></tr>
-<tr><td><a href="#FT_FaceRec">FT_FaceRec</a></td><td><a href="#FT_New_Face">FT_New_Face</a></td><td>&nbsp;</td></tr>
-<tr><td>&nbsp;</td><td><a href="#FT_Done_Face">FT_Done_Face</a></td><td><a href="#FT_LOAD_TARGET_NORMAL">FT_LOAD_TARGET_NORMAL</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_SCALABLE">FT_FACE_FLAG_SCALABLE</a></td><td><a href="#FT_Reference_Face">FT_Reference_Face</a></td><td><a href="#FT_LOAD_TARGET_LIGHT">FT_LOAD_TARGET_LIGHT</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_FIXED_SIZES">FT_FACE_FLAG_FIXED_SIZES</a></td><td><a href="#FT_New_Memory_Face">FT_New_Memory_Face</a></td><td><a href="#FT_LOAD_TARGET_MONO">FT_LOAD_TARGET_MONO</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_FIXED_WIDTH">FT_FACE_FLAG_FIXED_WIDTH</a></td><td><a href="#FT_Open_Face">FT_Open_Face</a></td><td><a href="#FT_LOAD_TARGET_LCD">FT_LOAD_TARGET_LCD</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_HORIZONTAL">FT_FACE_FLAG_HORIZONTAL</a></td><td><a href="#FT_Open_Args">FT_Open_Args</a></td><td><a href="#FT_LOAD_TARGET_LCD_V">FT_LOAD_TARGET_LCD_V</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_VERTICAL">FT_FACE_FLAG_VERTICAL</a></td><td><a href="#FT_Parameter">FT_Parameter</a></td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_FACE_FLAG_COLOR">FT_FACE_FLAG_COLOR</a></td><td><a href="#FT_Attach_File">FT_Attach_File</a></td><td><a href="#FT_LOAD_TARGET_MODE">FT_LOAD_TARGET_MODE</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_SFNT">FT_FACE_FLAG_SFNT</a></td><td><a href="#FT_Attach_Stream">FT_Attach_Stream</a></td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_FACE_FLAG_CID_KEYED">FT_FACE_FLAG_CID_KEYED</a></td><td>&nbsp;</td><td><a href="#FT_Render_Glyph">FT_Render_Glyph</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_TRICKY">FT_FACE_FLAG_TRICKY</a></td><td><a href="#FT_Set_Char_Size">FT_Set_Char_Size</a></td><td><a href="#FT_Render_Mode">FT_Render_Mode</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_KERNING">FT_FACE_FLAG_KERNING</a></td><td><a href="#FT_Set_Pixel_Sizes">FT_Set_Pixel_Sizes</a></td><td><a href="#FT_Get_Kerning">FT_Get_Kerning</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_MULTIPLE_MASTERS">FT_FACE_FLAG_MULTIPLE_MASTERS</a></td><td><a href="#FT_Request_Size">FT_Request_Size</a></td><td><a href="#FT_Kerning_Mode">FT_Kerning_Mode</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_GLYPH_NAMES">FT_FACE_FLAG_GLYPH_NAMES</a></td><td><a href="#FT_Select_Size">FT_Select_Size</a></td><td><a href="#FT_Get_Track_Kerning">FT_Get_Track_Kerning</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_EXTERNAL_STREAM">FT_FACE_FLAG_EXTERNAL_STREAM</a></td><td><a href="#FT_Size_Request_Type">FT_Size_Request_Type</a></td><td><a href="#FT_Get_Glyph_Name">FT_Get_Glyph_Name</a></td></tr>
-<tr><td><a href="#FT_FACE_FLAG_HINTER">FT_FACE_FLAG_HINTER</a></td><td><a href="#FT_Size_RequestRec">FT_Size_RequestRec</a></td><td><a href="#FT_Get_Postscript_Name">FT_Get_Postscript_Name</a></td></tr>
-<tr><td>&nbsp;</td><td><a href="#FT_Size_Request">FT_Size_Request</a></td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_HAS_HORIZONTAL">FT_HAS_HORIZONTAL</a></td><td><a href="#FT_Set_Transform">FT_Set_Transform</a></td><td><a href="#FT_CharMapRec">FT_CharMapRec</a></td></tr>
-<tr><td><a href="#FT_HAS_VERTICAL">FT_HAS_VERTICAL</a></td><td><a href="#FT_Load_Glyph">FT_Load_Glyph</a></td><td><a href="#FT_Select_Charmap">FT_Select_Charmap</a></td></tr>
-<tr><td><a href="#FT_HAS_KERNING">FT_HAS_KERNING</a></td><td><a href="#FT_Get_Char_Index">FT_Get_Char_Index</a></td><td><a href="#FT_Set_Charmap">FT_Set_Charmap</a></td></tr>
-<tr><td><a href="#FT_HAS_FIXED_SIZES">FT_HAS_FIXED_SIZES</a></td><td><a href="#FT_Get_First_Char">FT_Get_First_Char</a></td><td><a href="#FT_Get_Charmap_Index">FT_Get_Charmap_Index</a></td></tr>
-<tr><td><a href="#FT_HAS_GLYPH_NAMES">FT_HAS_GLYPH_NAMES</a></td><td><a href="#FT_Get_Next_Char">FT_Get_Next_Char</a></td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_HAS_MULTIPLE_MASTERS">FT_HAS_MULTIPLE_MASTERS</a></td><td><a href="#FT_Get_Name_Index">FT_Get_Name_Index</a></td><td><a href="#FT_Get_FSType_Flags">FT_Get_FSType_Flags</a></td></tr>
-<tr><td><a href="#FT_HAS_COLOR">FT_HAS_COLOR</a></td><td><a href="#FT_Load_Char">FT_Load_Char</a></td><td><a href="#FT_Get_SubGlyph_Info">FT_Get_SubGlyph_Info</a></td></tr>
-<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_IS_SFNT">FT_IS_SFNT</a></td><td><a href="#FT_OPEN_MEMORY">FT_OPEN_MEMORY</a></td><td><a href="#FT_Face_Internal">FT_Face_Internal</a></td></tr>
-<tr><td><a href="#FT_IS_SCALABLE">FT_IS_SCALABLE</a></td><td><a href="#FT_OPEN_STREAM">FT_OPEN_STREAM</a></td><td><a href="#FT_Size_Internal">FT_Size_Internal</a></td></tr>
-<tr><td><a href="#FT_IS_FIXED_WIDTH">FT_IS_FIXED_WIDTH</a></td><td><a href="#FT_OPEN_PATHNAME">FT_OPEN_PATHNAME</a></td><td><a href="#FT_Slot_Internal">FT_Slot_Internal</a></td></tr>
-<tr><td><a href="#FT_IS_CID_KEYED">FT_IS_CID_KEYED</a></td><td><a href="#FT_OPEN_DRIVER">FT_OPEN_DRIVER</a></td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_IS_TRICKY">FT_IS_TRICKY</a></td><td><a href="#FT_OPEN_PARAMS">FT_OPEN_PARAMS</a></td><td><a href="#FT_FACE_FLAG_XXX">FT_FACE_FLAG_XXX</a></td></tr>
-<tr><td>&nbsp;</td><td>&nbsp;</td><td><a href="#FT_STYLE_FLAG_XXX">FT_STYLE_FLAG_XXX</a></td></tr>
-<tr><td><a href="#FT_STYLE_FLAG_BOLD">FT_STYLE_FLAG_BOLD</a></td><td><a href="#FT_LOAD_DEFAULT">FT_LOAD_DEFAULT</a></td><td><a href="#FT_OPEN_XXX">FT_OPEN_XXX</a></td></tr>
-<tr><td><a href="#FT_STYLE_FLAG_ITALIC">FT_STYLE_FLAG_ITALIC</a></td><td><a href="#FT_LOAD_RENDER">FT_LOAD_RENDER</a></td><td><a href="#FT_LOAD_XXX">FT_LOAD_XXX</a></td></tr>
-<tr><td>&nbsp;</td><td><a href="#FT_LOAD_MONOCHROME">FT_LOAD_MONOCHROME</a></td><td><a href="#FT_LOAD_TARGET_XXX">FT_LOAD_TARGET_XXX</a></td></tr>
-<tr><td><a href="#FT_SizeRec">FT_SizeRec</a></td><td><a href="#FT_LOAD_LINEAR_DESIGN">FT_LOAD_LINEAR_DESIGN</a></td><td><a href="#FT_SUBGLYPH_FLAG_XXX">FT_SUBGLYPH_FLAG_XXX</a></td></tr>
-<tr><td><a href="#FT_Size_Metrics">FT_Size_Metrics</a></td><td><a href="#FT_LOAD_NO_SCALE">FT_LOAD_NO_SCALE</a></td><td><a href="#FT_FSTYPE_XXX">FT_FSTYPE_XXX</a></td></tr>
-<tr><td>&nbsp;</td><td><a href="#FT_LOAD_NO_HINTING">FT_LOAD_NO_HINTING</a></td><td>&nbsp;</td></tr>
-<tr><td><a href="#FT_GlyphSlotRec">FT_GlyphSlotRec</a></td><td><a href="#FT_LOAD_NO_BITMAP">FT_LOAD_NO_BITMAP</a></td><td><a href="#FT_HAS_FAST_GLYPHS">FT_HAS_FAST_GLYPHS</a></td></tr>
+<tr><td><a href="#FT_Library">FT_Library</a></td><td><a href="#FT_SubGlyph">FT_SubGlyph</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_Face">FT_Face</a></td><td>&nbsp;</td><td><a href="#FT_LOAD_VERTICAL_LAYOUT">FT_LOAD_VERTICAL_LAYOUT</a></td></tr>
+<tr><td><a href="#FT_Size">FT_Size</a></td><td><a href="#FT_Bitmap_Size">FT_Bitmap_Size</a></td><td><a href="#FT_LOAD_IGNORE_TRANSFORM">FT_LOAD_IGNORE_TRANSFORM</a></td></tr>
+<tr><td><a href="#FT_GlyphSlot">FT_GlyphSlot</a></td><td>&nbsp;</td><td><a href="#FT_LOAD_FORCE_AUTOHINT">FT_LOAD_FORCE_AUTOHINT</a></td></tr>
+<tr><td><a href="#FT_CharMap">FT_CharMap</a></td><td><a href="#FT_Init_FreeType">FT_Init_FreeType</a></td><td><a href="#FT_LOAD_NO_RECURSE">FT_LOAD_NO_RECURSE</a></td></tr>
+<tr><td><a href="#FT_Encoding">FT_Encoding</a></td><td><a href="#FT_Done_FreeType">FT_Done_FreeType</a></td><td><a href="#FT_LOAD_PEDANTIC">FT_LOAD_PEDANTIC</a></td></tr>
+<tr><td><a href="#FT_ENC_TAG">FT_ENC_TAG</a></td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_New_Face">FT_New_Face</a></td><td><a href="#FT_LOAD_TARGET_NORMAL">FT_LOAD_TARGET_NORMAL</a></td></tr>
+<tr><td><a href="#FT_FaceRec">FT_FaceRec</a></td><td><a href="#FT_Done_Face">FT_Done_Face</a></td><td><a href="#FT_LOAD_TARGET_LIGHT">FT_LOAD_TARGET_LIGHT</a></td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_Reference_Face">FT_Reference_Face</a></td><td><a href="#FT_LOAD_TARGET_MONO">FT_LOAD_TARGET_MONO</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_SCALABLE">FT_FACE_FLAG_SCALABLE</a></td><td><a href="#FT_New_Memory_Face">FT_New_Memory_Face</a></td><td><a href="#FT_LOAD_TARGET_LCD">FT_LOAD_TARGET_LCD</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_FIXED_SIZES">FT_FACE_FLAG_FIXED_SIZES</a></td><td><a href="#FT_Open_Face">FT_Open_Face</a></td><td><a href="#FT_LOAD_TARGET_LCD_V">FT_LOAD_TARGET_LCD_V</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_FIXED_WIDTH">FT_FACE_FLAG_FIXED_WIDTH</a></td><td><a href="#FT_Open_Args">FT_Open_Args</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_FACE_FLAG_HORIZONTAL">FT_FACE_FLAG_HORIZONTAL</a></td><td><a href="#FT_Parameter">FT_Parameter</a></td><td><a href="#FT_LOAD_TARGET_MODE">FT_LOAD_TARGET_MODE</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_VERTICAL">FT_FACE_FLAG_VERTICAL</a></td><td><a href="#FT_Attach_File">FT_Attach_File</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_FACE_FLAG_COLOR">FT_FACE_FLAG_COLOR</a></td><td><a href="#FT_Attach_Stream">FT_Attach_Stream</a></td><td><a href="#FT_Render_Glyph">FT_Render_Glyph</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_SFNT">FT_FACE_FLAG_SFNT</a></td><td>&nbsp;</td><td><a href="#FT_Render_Mode">FT_Render_Mode</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_CID_KEYED">FT_FACE_FLAG_CID_KEYED</a></td><td><a href="#FT_Set_Char_Size">FT_Set_Char_Size</a></td><td><a href="#FT_Get_Kerning">FT_Get_Kerning</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_TRICKY">FT_FACE_FLAG_TRICKY</a></td><td><a href="#FT_Set_Pixel_Sizes">FT_Set_Pixel_Sizes</a></td><td><a href="#FT_Kerning_Mode">FT_Kerning_Mode</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_KERNING">FT_FACE_FLAG_KERNING</a></td><td><a href="#FT_Request_Size">FT_Request_Size</a></td><td><a href="#FT_Get_Track_Kerning">FT_Get_Track_Kerning</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_MULTIPLE_MASTERS">FT_FACE_FLAG_MULTIPLE_MASTERS</a></td><td><a href="#FT_Select_Size">FT_Select_Size</a></td><td><a href="#FT_Get_Glyph_Name">FT_Get_Glyph_Name</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_GLYPH_NAMES">FT_FACE_FLAG_GLYPH_NAMES</a></td><td><a href="#FT_Size_Request_Type">FT_Size_Request_Type</a></td><td><a href="#FT_Get_Postscript_Name">FT_Get_Postscript_Name</a></td></tr>
+<tr><td><a href="#FT_FACE_FLAG_EXTERNAL_STREAM">FT_FACE_FLAG_EXTERNAL_STREAM</a></td><td><a href="#FT_Size_RequestRec">FT_Size_RequestRec</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_FACE_FLAG_HINTER">FT_FACE_FLAG_HINTER</a></td><td><a href="#FT_Size_Request">FT_Size_Request</a></td><td><a href="#FT_CharMapRec">FT_CharMapRec</a></td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_Set_Transform">FT_Set_Transform</a></td><td><a href="#FT_Select_Charmap">FT_Select_Charmap</a></td></tr>
+<tr><td><a href="#FT_HAS_HORIZONTAL">FT_HAS_HORIZONTAL</a></td><td><a href="#FT_Load_Glyph">FT_Load_Glyph</a></td><td><a href="#FT_Set_Charmap">FT_Set_Charmap</a></td></tr>
+<tr><td><a href="#FT_HAS_VERTICAL">FT_HAS_VERTICAL</a></td><td><a href="#FT_Get_Char_Index">FT_Get_Char_Index</a></td><td><a href="#FT_Get_Charmap_Index">FT_Get_Charmap_Index</a></td></tr>
+<tr><td><a href="#FT_HAS_KERNING">FT_HAS_KERNING</a></td><td><a href="#FT_Get_First_Char">FT_Get_First_Char</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_HAS_FIXED_SIZES">FT_HAS_FIXED_SIZES</a></td><td><a href="#FT_Get_Next_Char">FT_Get_Next_Char</a></td><td><a href="#FT_Get_FSType_Flags">FT_Get_FSType_Flags</a></td></tr>
+<tr><td><a href="#FT_HAS_GLYPH_NAMES">FT_HAS_GLYPH_NAMES</a></td><td><a href="#FT_Get_Name_Index">FT_Get_Name_Index</a></td><td><a href="#FT_Get_SubGlyph_Info">FT_Get_SubGlyph_Info</a></td></tr>
+<tr><td><a href="#FT_HAS_MULTIPLE_MASTERS">FT_HAS_MULTIPLE_MASTERS</a></td><td><a href="#FT_Load_Char">FT_Load_Char</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_HAS_COLOR">FT_HAS_COLOR</a></td><td>&nbsp;</td><td><a href="#FT_Face_Internal">FT_Face_Internal</a></td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_OPEN_MEMORY">FT_OPEN_MEMORY</a></td><td><a href="#FT_Size_Internal">FT_Size_Internal</a></td></tr>
+<tr><td><a href="#FT_IS_SFNT">FT_IS_SFNT</a></td><td><a href="#FT_OPEN_STREAM">FT_OPEN_STREAM</a></td><td><a href="#FT_Slot_Internal">FT_Slot_Internal</a></td></tr>
+<tr><td><a href="#FT_IS_SCALABLE">FT_IS_SCALABLE</a></td><td><a href="#FT_OPEN_PATHNAME">FT_OPEN_PATHNAME</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_IS_FIXED_WIDTH">FT_IS_FIXED_WIDTH</a></td><td><a href="#FT_OPEN_DRIVER">FT_OPEN_DRIVER</a></td><td><a href="#FT_FACE_FLAG_XXX">FT_FACE_FLAG_XXX</a></td></tr>
+<tr><td><a href="#FT_IS_CID_KEYED">FT_IS_CID_KEYED</a></td><td><a href="#FT_OPEN_PARAMS">FT_OPEN_PARAMS</a></td><td><a href="#FT_STYLE_FLAG_XXX">FT_STYLE_FLAG_XXX</a></td></tr>
+<tr><td><a href="#FT_IS_TRICKY">FT_IS_TRICKY</a></td><td>&nbsp;</td><td><a href="#FT_OPEN_XXX">FT_OPEN_XXX</a></td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_LOAD_DEFAULT">FT_LOAD_DEFAULT</a></td><td><a href="#FT_LOAD_XXX">FT_LOAD_XXX</a></td></tr>
+<tr><td><a href="#FT_STYLE_FLAG_BOLD">FT_STYLE_FLAG_BOLD</a></td><td><a href="#FT_LOAD_RENDER">FT_LOAD_RENDER</a></td><td><a href="#FT_LOAD_TARGET_XXX">FT_LOAD_TARGET_XXX</a></td></tr>
+<tr><td><a href="#FT_STYLE_FLAG_ITALIC">FT_STYLE_FLAG_ITALIC</a></td><td><a href="#FT_LOAD_MONOCHROME">FT_LOAD_MONOCHROME</a></td><td><a href="#FT_SUBGLYPH_FLAG_XXX">FT_SUBGLYPH_FLAG_XXX</a></td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_LOAD_LINEAR_DESIGN">FT_LOAD_LINEAR_DESIGN</a></td><td><a href="#FT_FSTYPE_XXX">FT_FSTYPE_XXX</a></td></tr>
+<tr><td><a href="#FT_SizeRec">FT_SizeRec</a></td><td><a href="#FT_LOAD_NO_SCALE">FT_LOAD_NO_SCALE</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_Size_Metrics">FT_Size_Metrics</a></td><td><a href="#FT_LOAD_NO_HINTING">FT_LOAD_NO_HINTING</a></td><td><a href="#FT_HAS_FAST_GLYPHS">FT_HAS_FAST_GLYPHS</a></td></tr>
+<tr><td>&nbsp;</td><td><a href="#FT_LOAD_NO_BITMAP">FT_LOAD_NO_BITMAP</a></td><td>&nbsp;</td></tr>
+<tr><td><a href="#FT_GlyphSlotRec">FT_GlyphSlotRec</a></td><td><a href="#FT_LOAD_NO_AUTOHINT">FT_LOAD_NO_AUTOHINT</a></td><td><a href="#FT_IS_NAMED_INSTANCE">FT_IS_NAMED_INSTANCE</a></td></tr>
+<tr><td><a href="#FT_Glyph_Metrics">FT_Glyph_Metrics</a></td><td><a href="#FT_LOAD_COLOR">FT_LOAD_COLOR</a></td><td></td></tr>
 </table>
 
 
@@ -326,10 +327,10 @@
 <p>This encoding uses character codes from the PUA (Private Unicode Area) in the range U+F020-U+F0FF.</p>
 </td></tr>
 <tr><td class="val" id="FT_ENCODING_SJIS">FT_ENCODING_SJIS</td><td class="desc">
-<p>Corresponds to Japanese SJIS encoding. More info at at &lsquo;<a href="http://en.wikipedia.org/wiki/Shift_JIS">http://en.wikipedia.org/wiki/Shift_JIS</a>&rsquo;. See note on multi-byte encodings below.</p>
+<p>Corresponds to Japanese SJIS encoding. More info at &lsquo;<a href="http://en.wikipedia.org/wiki/Shift_JIS">http://en.wikipedia.org/wiki/Shift_JIS</a>&rsquo;. See note on multi-byte encodings below.</p>
 </td></tr>
 <tr><td class="val" id="FT_ENCODING_GB2312">FT_ENCODING_GB2312</td><td class="desc">
-<p>Corresponds to an encoding system for Simplified Chinese as used used in mainland China.</p>
+<p>Corresponds to an encoding system for Simplified Chinese as used in mainland China.</p>
 </td></tr>
 <tr><td class="val" id="FT_ENCODING_BIG5">FT_ENCODING_BIG5</td><td class="desc">
 <p>Corresponds to an encoding system for Traditional Chinese as used in Taiwan and Hong Kong.</p>
@@ -406,7 +407,7 @@
 <h4>note</h4>
 <p>Since many 16-bit compilers don't like 32-bit enumerations, you should redefine this macro in case of problems to something like this:</p>
 <pre class="colored">
-  #define FT_ENC_TAG( value, a, b, c, d )  value                   
+  #define FT_ENC_TAG( value, a, b, c, d )  value
 </pre>
 <p>to get a simple enumeration without assigning special numbers.</p>
 
@@ -571,7 +572,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_HORIZONTAL</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_HORIZONTAL">FT_FACE_FLAG_HORIZONTAL</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_HORIZONTAL">FT_FACE_FLAG_HORIZONTAL</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains horizontal metrics (this is true for all font formats though).</p>
@@ -587,7 +588,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_VERTICAL</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_VERTICAL">FT_FACE_FLAG_VERTICAL</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_VERTICAL">FT_FACE_FLAG_VERTICAL</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains real vertical metrics (and not only synthesized ones).</p>
@@ -600,7 +601,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_KERNING</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_KERNING">FT_FACE_FLAG_KERNING</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_KERNING">FT_FACE_FLAG_KERNING</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains kerning data that can be accessed with <a href="ft2-base_interface.html#FT_Get_Kerning">FT_Get_Kerning</a>.</p>
@@ -613,7 +614,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_FIXED_SIZES</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_FIXED_SIZES">FT_FACE_FLAG_FIXED_SIZES</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_FIXED_SIZES">FT_FACE_FLAG_FIXED_SIZES</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains some embedded bitmaps. See the &lsquo;available_sizes&rsquo; field of the <a href="ft2-base_interface.html#FT_FaceRec">FT_FaceRec</a> structure.</p>
@@ -626,7 +627,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_GLYPH_NAMES</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_GLYPH_NAMES">FT_FACE_FLAG_GLYPH_NAMES</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_GLYPH_NAMES">FT_FACE_FLAG_GLYPH_NAMES</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains some glyph names that can be accessed through <a href="ft2-base_interface.html#FT_Get_Glyph_Name">FT_Get_Glyph_Name</a>.</p>
@@ -639,7 +640,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_MULTIPLE_MASTERS</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_MULTIPLE_MASTERS">FT_FACE_FLAG_MULTIPLE_MASTERS</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_MULTIPLE_MASTERS">FT_FACE_FLAG_MULTIPLE_MASTERS</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains some multiple masters. The functions provided by <a href="ft2-header_file_macros.html#FT_MULTIPLE_MASTERS_H">FT_MULTIPLE_MASTERS_H</a> are then available to choose the exact design you want.</p>
@@ -652,7 +653,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_HAS_COLOR</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_COLOR">FT_FACE_FLAG_COLOR</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_COLOR">FT_FACE_FLAG_COLOR</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains tables for color glyphs.</p>
@@ -665,7 +666,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_IS_SFNT</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_SFNT">FT_FACE_FLAG_SFNT</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_SFNT">FT_FACE_FLAG_SFNT</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains a font whose format is based on the SFNT storage scheme. This usually means: TrueType fonts, OpenType fonts, as well as SFNT-based embedded bitmap fonts.</p>
@@ -679,7 +680,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_IS_SCALABLE</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_SCALABLE">FT_FACE_FLAG_SCALABLE</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_SCALABLE">FT_FACE_FLAG_SCALABLE</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains a scalable font face (true for TrueType, Type&nbsp;1, Type&nbsp;42, CID, OpenType/CFF, and PFR font formats.</p>
@@ -692,7 +693,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_IS_FIXED_WIDTH</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_FIXED_WIDTH">FT_FACE_FLAG_FIXED_WIDTH</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_FIXED_WIDTH">FT_FACE_FLAG_FIXED_WIDTH</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains a font face that contains fixed-width (or &lsquo;monospace&rsquo;, &lsquo;fixed-pitch&rsquo;, etc.) glyphs.</p>
@@ -705,7 +706,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_IS_CID_KEYED</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_CID_KEYED">FT_FACE_FLAG_CID_KEYED</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_CID_KEYED">FT_FACE_FLAG_CID_KEYED</a> )
 </pre>
 
 <p>A macro that returns true whenever a face object contains a CID-keyed font. See the discussion of <a href="ft2-base_interface.html#FT_FACE_FLAG_XXX">FT_FACE_FLAG_CID_KEYED</a> for more details.</p>
@@ -719,7 +720,7 @@
 <p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
 <pre>
 #define <b>FT_IS_TRICKY</b>( face ) \
-          ( face-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_TRICKY">FT_FACE_FLAG_TRICKY</a> )
+          ( (face)-&gt;face_flags &amp; <a href="ft2-base_interface.html#FT_FACE_FLAG_TRICKY">FT_FACE_FLAG_TRICKY</a> )
 </pre>
 
 <p>A macro that returns true whenever a face represents a &lsquo;tricky&rsquo; font. See the discussion of <a href="ft2-base_interface.html#FT_FACE_FLAG_XXX">FT_FACE_FLAG_TRICKY</a> for more details.</p>
@@ -935,27 +936,27 @@
 <h4>note</h4>
 <p>Here is a small pseudo code fragment that shows how to use &lsquo;lsb_delta&rsquo; and &lsquo;rsb_delta&rsquo;:</p>
 <pre class="colored">
-  FT_Pos  origin_x       = 0;                                      
-  FT_Pos  prev_rsb_delta = 0;                                      
-                                                                   
-                                                                   
-  for all glyphs do                                                
-    &lt;compute kern between current and previous glyph and add it to 
-     `origin_x'&gt;                                                   
-                                                                   
-    &lt;load glyph with `FT_Load_Glyph'&gt;                              
-                                                                   
-    if ( prev_rsb_delta - face-&gt;glyph-&gt;lsb_delta &gt;= 32 )           
-      origin_x -= 64;                                              
-    else if ( prev_rsb_delta - face-&gt;glyph-&gt;lsb_delta &lt; -32 )      
-      origin_x += 64;                                              
-                                                                   
-    prev_rsb_delta = face-&gt;glyph-&gt;rsb_delta;                       
-                                                                   
-    &lt;save glyph image, or render glyph, or ...&gt;                    
-                                                                   
-    origin_x += face-&gt;glyph-&gt;advance.x;                            
-  endfor                                                           
+  FT_Pos  origin_x       = 0;
+  FT_Pos  prev_rsb_delta = 0;
+
+
+  for all glyphs do
+    &lt;compute kern between current and previous glyph and add it to
+     `origin_x'&gt;
+
+    &lt;load glyph with `FT_Load_Glyph'&gt;
+
+    if ( prev_rsb_delta - face-&gt;glyph-&gt;lsb_delta &gt;= 32 )
+      origin_x -= 64;
+    else if ( prev_rsb_delta - face-&gt;glyph-&gt;lsb_delta &lt; -32 )
+      origin_x += 64;
+
+    prev_rsb_delta = face-&gt;glyph-&gt;rsb_delta;
+
+    &lt;save glyph image, or render glyph, or ...&gt;
+
+    origin_x += face-&gt;glyph-&gt;advance.x;
+  endfor
 </pre>
 
 <hr>
@@ -1328,62 +1329,62 @@
 <p>See the discussion of reference counters in the description of <a href="ft2-base_interface.html#FT_Reference_Face">FT_Reference_Face</a>.</p>
 <p>To loop over all faces, use code similar to the following snippet (omitting the error handling).</p>
 <pre class="colored">
-  ...                                                              
-  FT_Face  face;                                                   
-  FT_Long  i, num_faces;                                           
-                                                                   
-                                                                   
-  error = FT_Open_Face( library, args, -1, &amp;face );                
-  if ( error ) { ... }                                             
-                                                                   
-  num_faces = face-&gt;num_faces;                                     
-  FT_Done_Face( face );                                            
-                                                                   
-  for ( i = 0; i &lt; num_faces; i++ )                                
-  {                                                                
-    ...                                                            
-    error = FT_Open_Face( library, args, i, &amp;face );               
-    ...                                                            
-    FT_Done_Face( face );                                          
-    ...                                                            
-  }                                                                
+  ...
+  FT_Face  face;
+  FT_Long  i, num_faces;
+
+
+  error = FT_Open_Face( library, args, -1, &amp;face );
+  if ( error ) { ... }
+
+  num_faces = face-&gt;num_faces;
+  FT_Done_Face( face );
+
+  for ( i = 0; i &lt; num_faces; i++ )
+  {
+    ...
+    error = FT_Open_Face( library, args, i, &amp;face );
+    ...
+    FT_Done_Face( face );
+    ...
+  }
 </pre>
 <p>To loop over all valid values for &lsquo;face_index&rsquo;, use something similar to the following snippet, again without error handling. The code accesses all faces immediately (thus only a single call of &lsquo;FT_Open_Face&rsquo; within the do-loop), with and without named instances.</p>
 <pre class="colored">
-  ...                                                              
-  FT_Face  face;                                                   
-                                                                   
-  FT_Long  num_faces     = 0;                                      
-  FT_Long  num_instances = 0;                                      
-                                                                   
-  FT_Long  face_idx     = 0;                                       
-  FT_Long  instance_idx = 0;                                       
-                                                                   
-                                                                   
-  do                                                               
-  {                                                                
-    FT_Long  id = ( instance_idx &lt;&lt; 16 ) + face_idx;               
-                                                                   
-                                                                   
-    error = FT_Open_Face( library, args, id, &amp;face );              
-    if ( error ) { ... }                                           
-                                                                   
-    num_faces     = face-&gt;num_faces;                               
-    num_instances = face-&gt;style_flags &gt;&gt; 16;                       
-                                                                   
-    ...                                                            
-                                                                   
-    FT_Done_Face( face );                                          
-                                                                   
-    if ( instance_idx &lt; num_instances )                            
-      instance_idx++;                                              
-    else                                                           
-    {                                                              
-      face_idx++;                                                  
-      instance_idx = 0;                                            
-    }                                                              
-                                                                   
-  } while ( face_idx &lt; num_faces )                                 
+  ...
+  FT_Face  face;
+
+  FT_Long  num_faces     = 0;
+  FT_Long  num_instances = 0;
+
+  FT_Long  face_idx     = 0;
+  FT_Long  instance_idx = 0;
+
+
+  do
+  {
+    FT_Long  id = ( instance_idx &lt;&lt; 16 ) + face_idx;
+
+
+    error = FT_Open_Face( library, args, id, &amp;face );
+    if ( error ) { ... }
+
+    num_faces     = face-&gt;num_faces;
+    num_instances = face-&gt;style_flags &gt;&gt; 16;
+
+    ...
+
+    FT_Done_Face( face );
+
+    if ( instance_idx &lt; num_instances )
+      instance_idx++;
+    else
+    {
+      face_idx++;
+      instance_idx = 0;
+    }
+
+  } while ( face_idx &lt; num_faces )
 </pre>
 
 <hr>
@@ -1439,7 +1440,7 @@
 
 <h4>note</h4>
 <p>The stream type is determined by the contents of &lsquo;flags&rsquo; that are tested in the following order by <a href="ft2-base_interface.html#FT_Open_Face">FT_Open_Face</a>:</p>
-<p>If the <a href="ft2-base_interface.html#FT_OPEN_XXX">FT_OPEN_MEMORY</a> bit is set, assume that this is a memory file of &lsquo;memory_size&rsquo; bytes, located at &lsquo;memory_address&rsquo;. The data are are not copied, and the client is responsible for releasing and destroying them <i>after</i> the corresponding call to <a href="ft2-base_interface.html#FT_Done_Face">FT_Done_Face</a>.</p>
+<p>If the <a href="ft2-base_interface.html#FT_OPEN_XXX">FT_OPEN_MEMORY</a> bit is set, assume that this is a memory file of &lsquo;memory_size&rsquo; bytes, located at &lsquo;memory_address&rsquo;. The data are not copied, and the client is responsible for releasing and destroying them <i>after</i> the corresponding call to <a href="ft2-base_interface.html#FT_Done_Face">FT_Done_Face</a>.</p>
 <p>Otherwise, if the <a href="ft2-base_interface.html#FT_OPEN_XXX">FT_OPEN_STREAM</a> bit is set, assume that a custom input stream &lsquo;stream&rsquo; is used.</p>
 <p>Otherwise, if the <a href="ft2-base_interface.html#FT_OPEN_XXX">FT_OPEN_PATHNAME</a> bit is set, assume that this is a normal file and use &lsquo;pathname&rsquo; to open it.</p>
 <p>If the <a href="ft2-base_interface.html#FT_OPEN_XXX">FT_OPEN_DRIVER</a> bit is set, <a href="ft2-base_interface.html#FT_Open_Face">FT_Open_Face</a> only tries to open the file with the driver whose handler is in &lsquo;driver&rsquo;.</p>
@@ -1717,15 +1718,16 @@
   } <b>FT_Size_Request_Type</b>;
 </pre>
 
-<p>An enumeration type that lists the supported size request types.</p>
+<p>An enumeration type that lists the supported size request types, i.e., what input size (in font units) maps to the requested output size (in pixels, as computed from the arguments of <a href="ft2-base_interface.html#FT_Size_Request">FT_Size_Request</a>).</p>
 
 <h4>values</h4>
 <table class="fields">
 <tr><td class="val" id="FT_SIZE_REQUEST_TYPE_NOMINAL">FT_SIZE_REQUEST_TYPE_NOMINAL</td><td class="desc">
 <p>The nominal size. The &lsquo;units_per_EM&rsquo; field of <a href="ft2-base_interface.html#FT_FaceRec">FT_FaceRec</a> is used to determine both scaling values.</p>
+<p>This is the standard scaling found in most applications. In particular, use this size request type for TrueType fonts if they provide optical scaling or something similar. Note, however, that &lsquo;units_per_EM&rsquo; is a rather abstract value which bears no relation to the actual size of the glyphs in a font.</p>
 </td></tr>
 <tr><td class="val" id="FT_SIZE_REQUEST_TYPE_REAL_DIM">FT_SIZE_REQUEST_TYPE_REAL_DIM</td><td class="desc">
-<p>The real dimension. The sum of the the &lsquo;ascender&rsquo; and (minus of) the &lsquo;descender&rsquo; fields of <a href="ft2-base_interface.html#FT_FaceRec">FT_FaceRec</a> are used to determine both scaling values.</p>
+<p>The real dimension. The sum of the &lsquo;ascender&rsquo; and (minus of) the &lsquo;descender&rsquo; fields of <a href="ft2-base_interface.html#FT_FaceRec">FT_FaceRec</a> are used to determine both scaling values.</p>
 </td></tr>
 <tr><td class="val" id="FT_SIZE_REQUEST_TYPE_BBOX">FT_SIZE_REQUEST_TYPE_BBOX</td><td class="desc">
 <p>The font bounding box. The width and height of the &lsquo;bbox&rsquo; field of <a href="ft2-base_interface.html#FT_FaceRec">FT_FaceRec</a> are used to determine the horizontal and vertical scaling value, respectively.</p>
@@ -1768,21 +1770,22 @@
 <p>See <a href="ft2-base_interface.html#FT_Size_Request_Type">FT_Size_Request_Type</a>.</p>
 </td></tr>
 <tr><td class="val" id="width">width</td><td class="desc">
-<p>The desired width.</p>
+<p>The desired width, given as a 26.6 fractional point value (with 72pt = 1in).</p>
 </td></tr>
 <tr><td class="val" id="height">height</td><td class="desc">
-<p>The desired height.</p>
+<p>The desired height, given as a 26.6 fractional point value (with 72pt = 1in).</p>
 </td></tr>
 <tr><td class="val" id="horiResolution">horiResolution</td><td class="desc">
-<p>The horizontal resolution. If set to zero, &lsquo;width&rsquo; is treated as a 26.6 fractional pixel value.</p>
+<p>The horizontal resolution (dpi, i.e., pixels per inch). If set to zero, &lsquo;width&rsquo; is treated as a 26.6 fractional <b>pixel</b> value.</p>
 </td></tr>
 <tr><td class="val" id="vertResolution">vertResolution</td><td class="desc">
-<p>The vertical resolution. If set to zero, &lsquo;height&rsquo; is treated as a 26.6 fractional pixel value.</p>
+<p>The vertical resolution (dpi, i.e., pixels per inch). If set to zero, &lsquo;height&rsquo; is treated as a 26.6 fractional <b>pixel</b> value.</p>
 </td></tr>
 </table>
 
 <h4>note</h4>
 <p>If &lsquo;width&rsquo; is zero, then the horizontal scaling value is set equal to the vertical scaling value, and vice versa.</p>
+<p>If &lsquo;type&rsquo; is FT_SIZE_REQUEST_TYPE_SCALES, &lsquo;width&rsquo; and &lsquo;height&rsquo; are interpreted directly as 16.16 fractional scaling values, without any further modification, and both &lsquo;horiResolution&rsquo; and &lsquo;vertResolution&rsquo; are ignored.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
@@ -1870,6 +1873,7 @@
 <h4>note</h4>
 <p>The loaded glyph may be transformed. See <a href="ft2-base_interface.html#FT_Set_Transform">FT_Set_Transform</a> for the details.</p>
 <p>For subsetted CID-keyed fonts, &lsquo;FT_Err_Invalid_Argument&rsquo; is returned for invalid CID values (this is, for CID values that don't have a corresponding glyph in the font). See the discussion of the <a href="ft2-base_interface.html#FT_FACE_FLAG_XXX">FT_FACE_FLAG_CID_KEYED</a> flag for more details.</p>
+<p>If you receive &lsquo;FT_Err_Glyph_Too_Big&rsquo;, try getting the glyph outline at EM size, then scale it manually and fill it as a graphics operation.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
@@ -1935,17 +1939,17 @@
 <h4>note</h4>
 <p>You should use this function with <a href="ft2-base_interface.html#FT_Get_Next_Char">FT_Get_Next_Char</a> to be able to parse all character codes available in a given charmap. The code should look like this:</p>
 <pre class="colored">
-  FT_ULong  charcode;                                              
-  FT_UInt   gindex;                                                
-                                                                   
-                                                                   
-  charcode = FT_Get_First_Char( face, &amp;gindex );                   
-  while ( gindex != 0 )                                            
-  {                                                                
-    ... do something with (charcode,gindex) pair ...               
-                                                                   
-    charcode = FT_Get_Next_Char( face, charcode, &amp;gindex );        
-  }                                                                
+  FT_ULong  charcode;
+  FT_UInt   gindex;
+
+
+  charcode = FT_Get_First_Char( face, &amp;gindex );
+  while ( gindex != 0 )
+  {
+    ... do something with (charcode,gindex) pair ...
+
+    charcode = FT_Get_Next_Char( face, charcode, &amp;gindex );
+  }
 </pre>
 <p>Be aware that character codes can have values up to 0xFFFFFFFF; this might happen for non-Unicode or malformed cmaps. However, even with regular Unicode encoding, so-called &lsquo;last resort fonts&rsquo; (using SFNT cmap format 13, see function <a href="ft2-truetype_tables.html#FT_Get_CMap_Format">FT_Get_CMap_Format</a>) normally have entries for all Unicode characters up to 0x1FFFFF, which can cause *a lot* of iterations.</p>
 <p>Note that &lsquo;*agindex&rsquo; is set to&nbsp;0 if the charmap is empty. The result itself can be&nbsp;0 in two cases: if the charmap is empty or if the value&nbsp;0 is the first valid character code.</p>
@@ -2104,7 +2108,7 @@
 <p>This is relevant because all our screens have a second problem: they are not linear. 1&nbsp;+&nbsp;1 is not&nbsp;2. Twice the value does not result in twice the brightness. When a pixel is only 50% covered, the coverage map says 50% black, and this translates to a pixel value of 128 when you use 8&nbsp;bits per channel (0-255). However, this does not translate to 50% brightness for that pixel on our sRGB and gamma&nbsp;2.2 screens. Due to their non-linearity, they dwell longer in the darks and only a pixel value of about 186 results in 50% brightness – 128 ends up too dark on both bright and dark backgrounds. The net result is that dark text looks burnt-out, pixely and blotchy on bright background, bright text too frail on dark backgrounds, and colored text on colored background (for example, red on green) seems to have dark halos or &lsquo;dirt&rsquo; around it. The situation is especially ugly for diagonal stems like in &lsquo;w&rsquo; glyph shapes where the quality of FreeType's anti-aliasing depends on the correct display of grays. On high-DPI screens where smaller, fully black pixels reign supreme, this doesn't matter, but on our low-DPI screens with all the gray shades, it does. 0% and 100% brightness are the same things in linear and non-linear space, just all the shades in-between aren't.</p>
 <p>The blending function for placing text over a background is</p>
 <pre class="colored">
-  dst = alpha * src + (1 - alpha) * dst    ,                       
+  dst = alpha * src + (1 - alpha) * dst    ,
 </pre>
 <p>which is known as the OVER operator.</p>
 <p>To correctly composite an antialiased pixel of a glyph onto a surface,</p>
@@ -2341,7 +2345,7 @@
 <p>An error is returned if the face doesn't provide glyph names or if the glyph index is invalid. In all cases of failure, the first byte of &lsquo;buffer&rsquo; is set to&nbsp;0 to indicate an empty name.</p>
 <p>The glyph name is truncated to fit within the buffer if it is too long. The returned string is always zero-terminated.</p>
 <p>Be aware that FreeType reorders glyph indices internally so that glyph index&nbsp;0 always corresponds to the &lsquo;missing glyph&rsquo; (called &lsquo;.notdef&rsquo;).</p>
-<p>This function always returns an error if the config macro &lsquo;FT_CONFIG_OPTION_NO_GLYPH_NAMES&rsquo; is not defined in &lsquo;ftoptions.h&rsquo;.</p>
+<p>This function always returns an error if the config macro &lsquo;FT_CONFIG_OPTION_NO_GLYPH_NAMES&rsquo; is not defined in &lsquo;ftoption.h&rsquo;.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
@@ -2646,7 +2650,7 @@
 <h4>values</h4>
 <table class="fields">
 <tr><td class="val" id="FT_FACE_FLAG_SCALABLE">FT_FACE_FLAG_SCALABLE</td><td class="desc">
-<p>Indicates that the face contains outline glyphs. This doesn't prevent bitmap strikes, i.e., a face can have both this and and <a href="ft2-base_interface.html#FT_FACE_FLAG_XXX">FT_FACE_FLAG_FIXED_SIZES</a> set.</p>
+<p>Indicates that the face contains outline glyphs. This doesn't prevent bitmap strikes, i.e., a face can have both this and <a href="ft2-base_interface.html#FT_FACE_FLAG_XXX">FT_FACE_FLAG_FIXED_SIZES</a> set.</p>
 </td></tr>
 <tr><td class="val" id="FT_FACE_FLAG_FIXED_SIZES">FT_FACE_FLAG_FIXED_SIZES</td><td class="desc">
 <p>Indicates that the face contains bitmap strikes. See also the &lsquo;num_fixed_sizes&rsquo; and &lsquo;available_sizes&rsquo; fields of <a href="ft2-base_interface.html#FT_FaceRec">FT_FaceRec</a>.</p>
@@ -2911,7 +2915,7 @@
 
 <h4>note</h4>
 <p>You should use only <i>one</i> of the FT_LOAD_TARGET_XXX values in your &lsquo;load_flags&rsquo;. They can't be ORed.</p>
-<p>If <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_RENDER</a> is also set, the glyph is rendered in the corresponding mode (i.e., the mode that matches the used algorithm best). An exeption is FT_LOAD_TARGET_MONO since it implies <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_MONOCHROME</a>.</p>
+<p>If <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_RENDER</a> is also set, the glyph is rendered in the corresponding mode (i.e., the mode that matches the used algorithm best). An exception is FT_LOAD_TARGET_MONO since it implies <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_MONOCHROME</a>.</p>
 <p>You can use a hinting algorithm that doesn't correspond to the same rendering mode. As an example, it is possible to use the &lsquo;light&rsquo; hinting algorithm and have the results rendered in horizontal LCD pixel mode, with code like</p>
 <pre class="colored">
   FT_Load_Glyph( face, glyph_index,
@@ -3018,6 +3022,19 @@
 </pre>
 
 <p>Deprecated.</p>
+
+<hr>
+<table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
+
+<div class="section">
+<h3 id="FT_IS_NAMED_INSTANCE">FT_IS_NAMED_INSTANCE</h3>
+<p>Defined in FT_FREETYPE_H (freetype/freetype.h).</p>
+<pre>
+#define <b>FT_IS_NAMED_INSTANCE</b>( face ) \
+          ( (face)-&gt;face_index &amp; 0x7FFF0000L )
+</pre>
+
+<p>A macro that returns true whenever a face object is a named instance of a GX variation font.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>

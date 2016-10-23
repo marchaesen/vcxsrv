@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6.3 API Reference</title>
+<title>FreeType-2.7 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6.3 API Reference</h1>
+<h1>FreeType-2.7 API Reference</h1>
 
 <h1 id="truetype_tables">TrueType Tables</h1>
 <h2>Synopsis</h2>
@@ -610,7 +610,7 @@
 <p>To access the font's <a href="ft2-truetype_tables.html#TT_HoriHeader">TT_HoriHeader</a> structure.</p>
 </td></tr>
 <tr><td class="val" id="FT_SFNT_VHEA">FT_SFNT_VHEA</td><td class="desc">
-<p>To access the font's <a href="ft2-truetype_tables.html#TT_VertHeader">TT_VertHeader</a> struture.</p>
+<p>To access the font's <a href="ft2-truetype_tables.html#TT_VertHeader">TT_VertHeader</a> structure.</p>
 </td></tr>
 <tr><td class="val" id="FT_SFNT_POST">FT_SFNT_POST</td><td class="desc">
 <p>To access the font's <a href="ft2-truetype_tables.html#TT_Postscript">TT_Postscript</a> structure.</p>
@@ -653,11 +653,11 @@
 <p>This function is only useful to access SFNT tables that are loaded by the sfnt, truetype, and opentype drivers. See <a href="ft2-truetype_tables.html#FT_Sfnt_Tag">FT_Sfnt_Tag</a> for a list.</p>
 <p>Here an example how to access the &lsquo;vhea&rsquo; table:</p>
 <pre class="colored">
-  TT_VertHeader*  vert_header;                                     
-                                                                   
-                                                                   
-  vert_header =                                                    
-    (TT_VertHeader*)FT_Get_Sfnt_Table( face, FT_SFNT_VHEA );       
+  TT_VertHeader*  vert_header;
+
+
+  vert_header =
+    (TT_VertHeader*)FT_Get_Sfnt_Table( face, FT_SFNT_VHEA );
 </pre>
 
 <hr>

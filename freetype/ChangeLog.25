@@ -34,7 +34,7 @@
 
 	* builds/toplevel.mk (dist): Fix typos.
 
-2014-12-24  Alexei Podtelezhnikov <apodtele@gmail.com>
+2014-12-24  Alexei Podtelezhnikov  <apodtele@gmail.com>
 
 	[base] Formatting and nanooptimizations.
 
@@ -245,7 +245,7 @@
 	All public FreeType enumeration and flag values are uppercase...
 
 	* include/tttables.h (FT_Sfnt_Tag): Implement it.  For backwards
-	compatilibity, retain the old values as macros.
+	compatibility, retain the old values as macros.
 
 	* src/base/ftfstype.c (FT_Get_FSType_Flags), src/sfnt/sfdriver.c
 	(get_sfnt_table): Updated.
@@ -380,7 +380,7 @@
 	elements, use CSS descendants (of class `section') to format the
 	data.
 
-	Also remove reduntant <p> and <br> elements, replacing them with
+	Also remove redundant <p> and <br> elements, replacing them with
 	proper CSS.
 
 	Globally reduce page width to 75%.
@@ -549,7 +549,7 @@
 
 	* src/base/ftobjs.c (FT_Get_Glyph_Name): Fix compiler warning.
 
-	Introdruced in previous change.  Reported by Alexei.
+	Introduced in previous change.  Reported by Alexei.
 
 2014-11-26  Werner Lemberg  <wl@gnu.org>
 
@@ -579,7 +579,7 @@
 
 2014-11-26  suzuki toshiya  <mpsuzuki@hiroshima-u.ac.jp>
 
-	* src/base/ftobj.c (Mac_Read_POST_Resource): Additional
+	* src/base/ftobjs.c (Mac_Read_POST_Resource): Additional
 	overflow check in the summation of POST fragment lengths,
 	suggested by Mateusz Jurczyk <mjurczyk@google.com>.
 
@@ -945,7 +945,7 @@
 
 	The scaling between the hypotenuse and its CORDIC approximation is
 	based on regression analysis. The smaller padding for `theta' is
-	justifed by its maximum error of less than 6.
+	justified by its maximum error of less than 6.
 
 	* src/base/fttrigon.c (ft_trig_downscale): Borrow code from
 	./ftcalc.c (ft_multo64), change linear intercept.
@@ -1430,7 +1430,7 @@
 	[base] Avoid undefined FT_MSB in `BBox_Cubic_Check'.
 
 	* src/base/ftbbox.c (BBox_Cubic_Check): Update.
-	(update_cubic_max): Repalce with...
+	(update_cubic_max): Replace with...
 	(cubic_peak): ... this, which now handles upscaling.
 
 2014-08-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
@@ -1780,7 +1780,7 @@
 	appearing in the GPOS table if we are processing the default
 	coverage.
 
-2014-04-13  David Weber <weber.aulendorf@googlemail.com>
+2014-04-13  David Weber  <weber.aulendorf@googlemail.com>
 
 	[smooth] Fix stand-alone compilation.
 
@@ -2444,7 +2444,7 @@
 	that the covered ranges are the same: Bengali, Devanagari, Gujarati,
 	Gurmukhi, Kannada, Limbu, Malayalam, Oriya, Sinhala, Sundanese,
 	Syloti Nagri, Tamil, Telugu, and Tibetan.  At the same time, remove
-	entries for Meetai Mayak and Sharada – the Unicode ranges were
+	entries for Meetei Mayek and Sharada – the Unicode ranges were
 	incorrect (and nobody has complained about that), fonts are scarce
 	for those scripts, and the Indic auto-hinter support is rudimentary
 	anyways.
@@ -2697,7 +2697,7 @@
 
 	[autofit] Introduce `coverages'.
 
-	Coverages are the interface to the HarfBuzz library to acces
+	Coverages are the interface to the HarfBuzz library to access
 	OpenType features for handling glyphs not addressable by the cmap.
 
 	Right now, compilation of HarfBuzz is only added to the development
@@ -2896,11 +2896,11 @@
 	* src/autofit/afdummy.c, src/autofit/afdummy.h: Updated.
 	* src/autofit/afindic.c, src/autofit/afindic.h: Updated.
 	* src/autofit/aflatin.c, src/autofit/aflatin.h: Updated.
-	* src/autofit/aflatn2.c, src/autofit/aflatn2.h: Updated.
+	* src/autofit/aflatin2.c, src/autofit/aflatin2.h: Updated.
 
 	* src/autofit/afpic.c: Updated.
 
-	* src/autofir/autofit.c: Include `afranges.c'.
+	* src/autofit/autofit.c: Include `afranges.c'.
 	* src/autofit/rules.mk (AUTOF_DRV_SRC): Add `afranges.c'.
 
 2013-12-18  Werner Lemberg  <wl@gnu.org>
@@ -3240,7 +3240,7 @@
 
 	*/*: Essentially do `s@/freetype/@/@' where appropriate.
 
-	* CMakeList.txt: Simplify.
+	* CMakeLists.txt: Simplify.
 	* builds/unix/freetype-config.in, builds/unix/freetype2.in: For
 	`--cflags', return a single directory.
 	* builds/unix/install.mk (install): No longer try to remove `cache'
@@ -3418,7 +3418,7 @@
 	* src/autofit/afblue.c, src/autofit/afblue.h: Regenerated.
 
 	* src/autofit/aflatin.c, src/autofit/aflatin.h,
-	src/autofit/atlatin2.c: Updated.
+	src/autofit/aflatin2.c: Updated.
 
 2013-10-19  Werner Lemberg  <wl@gnu.org>
 
@@ -3999,7 +3999,7 @@
 
 	* builds/vms/ftconfig.h: Ditto.
 	Make the differences to the master `ftconfig.h' file as small as
-	possible for easier maintainance.
+	possible for easier maintenance.
 
 2013-08-05  Werner Lemberg  <wl@gnu.org>
 
@@ -4319,7 +4319,7 @@
 
 	* include/freetype/internal/tttypes.h (TT_SBit_MetricsRec): Widen
 	fields to FT_Short and FT_UShort, respectively.
-	(TT_SBitTableType): New enumeration.
+	(TT_SbitTableType): New enumeration.
 	(TT_FaceRec): Add `sbit_table_type' field.
 
 	* include/freetype/tttags.h (TTAG_sbix): New macro.
@@ -4332,7 +4332,7 @@
 	* src/sfnt/ttsbit.c: Include `ttmtx.h'.
 	(tt_face_load_eblc): Renamed to...
 	(tt_face_load_sbit): This.
-	Handlic `sbix' bitmaps.
+	Handle `sbix' bitmaps.
 	(tt_face_free_eblc): Renamed to...
 	(tt_face_load_sbit): This.
 	Updated.
@@ -4615,7 +4615,7 @@
 	Fix Savannah bug #39269.
 
 	* src/base/ftgloadr.c (FT_GlyphLoader_CheckPoints): Free memory in
-	case of reacollocation failures.
+	case of reallocation failures.
 
 2013-06-18  Andrew Church  <achurch+savannah@achurch.org>
 
@@ -5098,7 +5098,7 @@
 
 	[truetype] Add framework for TrueType properties.
 
-	* src/truetype/ttdrivr.c: Include FT_SERVICE_PROPERTIES_H.
+	* src/truetype/ttdriver.c: Include FT_SERVICE_PROPERTIES_H.
 	(tt_property_set, tt_property_get): New functions, still empty.
 	Define `tt_service_properties' service.
 	Update `tt_services'.

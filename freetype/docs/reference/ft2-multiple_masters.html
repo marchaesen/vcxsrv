@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6.3 API Reference</title>
+<title>FreeType-2.7 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6.3 API Reference</h1>
+<h1>FreeType-2.7 API Reference</h1>
 
 <h1 id="multiple_masters">Multiple Masters</h1>
 <h2>Synopsis</h2>
@@ -281,7 +281,8 @@
 <p>The number of designs; should be normally 2^num_axis for MM fonts. Not meaningful for GX (where every glyph could have a different number of designs).</p>
 </td></tr>
 <tr><td class="val" id="num_namedstyles">num_namedstyles</td><td class="desc">
-<p>The number of named styles; only meaningful for GX that allows certain design coordinates to have a string ID (in the &lsquo;name&rsquo; table) associated with them. The font can tell the user that, for example, Weight=1.5 is &lsquo;Bold&rsquo;.</p>
+<p>The number of named styles; a &lsquo;named style&rsquo; is a tuple of design coordinates that has a string ID (in the &lsquo;name&rsquo; table) associated with it. The font can tell the user that, for example, [Weight=1.5,Width=1.1] is &lsquo;Bold&rsquo;.</p>
+<p>For Type 1 Multiple Masters fonts, this value is always zero because the format does not support named styles.</p>
 </td></tr>
 <tr><td class="val" id="axis">axis</td><td class="desc">
 <p>An axis descriptor table. GX fonts contain slightly more data than MM. Memory management of this pointer is done internally by FreeType.</p>

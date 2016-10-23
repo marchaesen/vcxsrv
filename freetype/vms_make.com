@@ -1090,13 +1090,13 @@ $   type/out=vmslib.dat sys$input
 !          might look like. They are site specific and the locations of the
 !          library and include files need almost certainly to be changed.
 !
-! Location: All of the libaries can be found at the following addresses
+! Location: All of the libraries can be found at the following addresses
 !
 !   ZLIB:     http://zinser.no-ip.info/vms/sw/zlib.htmlx
 !
 ZLIB # sys$library:libz.olb # sys$library: # zlib.h # FT_CONFIG_OPTION_SYSTEM_ZLIB
 $   write sys$output "New driver file vmslib.dat created."
-$   write sys$output "Please customize libary locations for your site"
+$   write sys$output "Please customize library locations for your site"
 $   write sys$output "and afterwards re-execute ''myproc'"
 $   goto err_exit
 $ endif
