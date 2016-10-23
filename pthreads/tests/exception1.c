@@ -16,17 +16,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -37,22 +37,22 @@
  * Test Synopsis: Test passing of exceptions back to the application.
  *
  * Test Method (Validation or Falsification):
- * - 
+ * -
  *
  * Requirements Tested:
  * -
  *
  * Features Tested:
- * - 
+ * -
  *
  * Cases Tested:
- * - 
+ * -
  *
  * Description:
- * - 
+ * -
  *
  * Environment:
- * - 
+ * -
  *
  * Input:
  * - None.
@@ -197,6 +197,9 @@ main()
   pthread_t et[NUMTHREADS];
   pthread_t ct[NUMTHREADS];
 
+  DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+  SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+
   assert((mt = pthread_self()).p != NULL);
 
   for (i = 0; i < NUMTHREADS; i++)
@@ -208,7 +211,7 @@ main()
   /*
    * Code to control or manipulate child threads should probably go here.
    */
-  Sleep(1000);
+  Sleep(100);
 
   for (i = 0; i < NUMTHREADS; i++)
     {
@@ -218,7 +221,7 @@ main()
   /*
    * Give threads time to run.
    */
-  Sleep(NUMTHREADS * 1000);
+  Sleep(NUMTHREADS * 100);
 
   /*
    * Check any results here. Set "failed" and only print output on failure.

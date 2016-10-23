@@ -157,6 +157,9 @@ main()
   int i;
   pthread_t t[NUMTHREADS + 1];
 
+  DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+  SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+
   memset(&pop_count, 0, sizeof(sharedInt_t));
 
   InitializeCriticalSection(&pop_count.cs);

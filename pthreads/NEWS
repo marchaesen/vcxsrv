@@ -1,13 +1,13 @@
 RELEASE 2.10.0
 --------------
-(2099-99-99)
+(2016-09-18)
 
 General
 -------
 New bug fixes in all releases since 2.8.0 have NOT been applied to the
 1.x.x series.
 
-Some changes in CVS from 2011-02-26 onward may not be compatible with
+Some changes from 2011-02-26 onward may not be compatible with
 pre Windows 2000 systems.
 
 Testing and verification
@@ -16,12 +16,13 @@ This version has been tested on SMP architecture (Intel x64 Hex Core)
 by completing the included test suite, as well as the stress and bench
 tests.
 
-Be sure to run your builds against the test suite. As of this release
-we are successfully passing the full test suite with all build
-configurations. If you see failures then please consider how your
-toolchains might be contributing to the failure. See the README file
-for more detailed descriptions of the toolchains and test systems that
-we have used to get the tests to pass successfully.
+Be sure to run your builds against the test suite. If you see failures
+then please consider how your toolchains might be contributing to the
+failure. See the README file for more detailed descriptions of the
+toolchains and test systems that we have used to get the tests to pass
+successfully. We recommend MinGW64 over MinGW32 for both 64 and 32 bit
+GNU CC builds. MinGW64 also includes its own independent pthreads
+implementation, which you may prefer to use.
 
 New Features
 ------------
@@ -32,24 +33,67 @@ pthread_tryjoin_np()
 sched_getaffinity()
 sched_setaffinity()
 pthread_getaffinity_np()
-pthread_getaffinity_np()
+pthread_setaffinity_np()
+pthread_attr_getaffinity_np()
+pthread_attr_setaffinity_np()
  - added for compatibility with Linux and other libgcc-based systems.
    The macros to manipulate cpu_set_t objects (the cpu affinity mask
    vector) are also defined: CPU_ZERO, CPU_CLR, CPU_SET, CPU_EQUAL,
    CPU_AND, CPU_OR, CPU_XOR, CPU_COUNT, CPU_ISSET.
+pthread_getname_np()
+pthread_setname_np()
+pthread_attr_getname_np()
+pthread_attr_setname_np()
+ - added for compatibility with other POSIX implementations. Because
+   some implementations use different *_setname_np() prototypes
+   you can define one of the following macros when building the library:
+     PTW32_COMPATIBILITY_BSD (compatibility with NetBSD, FreeBSD)
+     PTW32_COMPATIBILITY_TRU64
+   If not defined then compatibility is with Linux and other equivalents.
+   We don't impose a strict limit on the length of the thread name for the
+   default compatibility case. Unlike Linux, no default thread name is set.
+   For MSVC builds, the thread name if set is made available for use by the
+   MSVS debugger, i.e. it should be displayed within the debugger to
+   identify the thread in place of/as well as a threadID.
+pthread_win32_getabstime_np()
+ - Return the current time plus an optional offset in a platform-aware way
+   that is compatible with POSIX timed calls (returns the struct timespec
+   address which is the first argument). Intended primarily to make it
+   easier to write tests but may be useful for applications generally. 
+GNU compiler environments (MinGW32 and MinGW64) now have the option of using
+autoconf to automatically configure the build.
 
 Builds:
 New makefile targets have been added and existing targets modified or
 removed. For example, targets to build and test all of the possible
 configurations of both dll and static libs.
 
-The makefiles now know how to build both 32 and 64 bit versions if
-the toolchain (MSVS or Mingw) allow it.
+GNU compiler builds are now explicitly using ISO C and C++ 2011 standards
+compatibility. If your GNU compiler doesn't support this please consider
+updating. Auto configuration is now possible via 'configure' script. The
+script must be generated using autoconf - see the README file. Thanks to
+Keith Marshall from the MinGW project.
+
+Static linking:
+The autostatic functionality has been moved to dll.c, and extended so
+that builds using MSVC8 and later no longer require apps to call
+pthread_win32_thread_detach_np(). That is, all of the DllMain
+functionality is now automatic for static linking for these builds.
+
+Some nmake static linking targets have been disabled:
+Due to an issue with TLS behaviour, the V*-small-static* nmake targets
+in Makefile have been disabled. The issue is exposed by tests/semaphore3.c
+where the pthread_self() call inside the thread fails to return the
+correct POSIX thread handle but returns a new "implicit" POSIX thread
+handle instead. Implicit pthread handles have detached thread status, which
+causes the pthread_detach() call inside the thread to return EINVAL. The
+V*-static* targets appear to be not affected. The primary difference is
+that the latter are generated from a single compilation unit.
 
 Bug Fixes
 ---------
-Small object file static linking now works. The autostatic.c code is
-required but nothing explicitly references this code so was getting
+Small object file static linking now works (MinGW). The autostatic code
+is required but nothing explicitly referenced this code so was getting
 optimised out.
 - Daniel Richard G.
 
@@ -69,9 +113,39 @@ Identified the cause of significant failures around cancelation
 and pthread_exit() for the GCE (GNU C++) build configuration as
 coming from Mingw32. Not sure if this is general or just when
 building 32 bit libraries and apps that run on 64 bit systems.
-These failures do not arise with Mingw64 32 bit builds running on
-64 bit systems.
+These failures do not arise with Mingw64 32 bit builds (GCC built
+with multilib enabled) running on 64 bit systems.
 - Daniel Richard G. and Ross Johnson
+
+pthread_key_delete() bug introduced in release 2.9.x caused this
+routine to fail in a way that the test suite was not detecting. A
+new test has been added to confirm that this routine behaves
+correctly, particularly when keys with destructors are deleted
+before threads exit.
+- Stephane Clairet
+
+pthread_win32_process_attach_np() fix potential failure/security around
+finding and loading of QUSEREX.DLL.
+- Jason Baker
+
+_POSIX_THREAD_ATTR_STACKADDR is now set equal to -1 in pthread.h. As a
+consequence pthread_attr_setstackaddr() now returns ENOSYS. Previously
+the value was stored and could be retrieved but was otherwise unused.
+pthread_attr_getstackaddr() returns ENOSYS correspondingly.
+- Ross Johnson
+
+Fixed a potential memory leak in pthread_mutex_init(). The leak would
+only occur if the mutex initialisation failed (extremely rare if ever).
+- Jaeeun Choi
+
+Fixed sub-millisecond timeouts, which caused the library to busy wait.
+- Mark Smith
+
+Fix a race condition and crash in MCS locks. The waiter queue management
+code in ptw32_mcs_lock_acquire was racing with the queue management code
+in ptw32_mcs_lock_release and causing a segmentation fault.
+- Anurag Sharma
+- Jonathan Brown (also reported this bug and provided a fix)
 
 RELEASE 2.9.1
 -------------

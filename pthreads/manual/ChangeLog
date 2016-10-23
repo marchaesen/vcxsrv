@@ -1,3 +1,10 @@
+2015-02-03  Ross Johnson  <ross at homemail dot com dot au>
+
+	* *.html: Fix HEAD section inconsistencies and remove editor meta tags.
+	* pthread_equal.html (pthread_self): Fix HREF URL.
+	* pthread_exit.html (several): Likewise.
+	* pthread_setaffinity_np.html: New.
+
 2012-10-04  Ross Johnson  <ross at homemail dot com dot au>
 
 	* pthread_join.html (pthread_tryjoin_np): Added description.

@@ -64,17 +64,9 @@ main()
 {
   pthread_t t;
   struct timespec abstime = { 0, 0 };
-  PTW32_STRUCT_TIMEB currSysTime;
-  const DWORD NANOSEC_PER_MILLISEC = 1000000;
+  struct timespec reltime = { 1, 0 };
 
-  PTW32_FTIME(&currSysTime);
-
-  abstime.tv_sec = (long)currSysTime.time;
-  abstime.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
-
-  abstime.tv_sec += 1;
-
-  assert(pthread_rwlock_timedrdlock(&rwlock1, &abstime) == 0);
+  assert(pthread_rwlock_timedrdlock(&rwlock1, pthread_win32_getabstime_np(&abstime, &reltime)) == 0);
 
   assert(pthread_create(&t, NULL, func, NULL) == 0);
 

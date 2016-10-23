@@ -74,6 +74,8 @@
 #define _WIN32_WINNT 0x400
 
 #include "test.h"
+/* Cheating here - sneaking a peek at library internals */
+#include "../config.h"
 #include "../implement.h"
 #include "../context.h"
 

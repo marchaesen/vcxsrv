@@ -38,6 +38,8 @@
  *
  */
 
+#if ! defined(WINCE)
+
 #include "test.h"
 
 int
@@ -48,6 +50,12 @@ main()
   DWORD_PTR vThreadMask;
   cpu_set_t keepCpus;
   pthread_t self = pthread_self();
+
+  if (pthread_getaffinity_np(self, sizeof(cpu_set_t), &threadCpus) == ENOSYS)
+    {
+      printf("pthread_get/set_affinity_np API not supported for this platform: skipping test.");
+      return 0;
+    }
 
   CPU_ZERO(&keepCpus);
   for (cpu = 1; cpu < sizeof(cpu_set_t)*8; cpu += 2)
@@ -68,3 +76,16 @@ main()
 
   return 0;
 }
+
+#else
+
+#include <stdio.h>
+
+int
+main()
+{
+  fprintf(stderr, "Test N/A for this target environment.\n");
+  return 0;
+}
+
+#endif

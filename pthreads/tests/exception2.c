@@ -120,6 +120,9 @@ main(int argc, char* argv[])
   pthread_t mt;
   pthread_t et[NUMTHREADS];
 
+  DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+  SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+
   if (argc <= 1)
     {
       int result;

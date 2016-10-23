@@ -1,3 +1,194 @@
+2016-04-01  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* _ptw32.h: Move more header stuff into here.
+	* pthread.h: Move stuff from here into _ptw32.h.
+	* implement.h: Likewise.
+	* sched.h (struct timespec): Wrap with extra condition check.
+	* pthread_win32_attach_detach.c: Source stdlib.h to define
+	_countof et. al.
+
+2016-03-31  Keith Marshall <MinGW32 project>
+
+	* aclocal.m4: New from MinGW32 patches for autoconf.
+	* configure.ac: Likewise.
+	* GNUmakefile.in: Likewise.
+	* install-sh: Likewise.
+	* _ptw32.h: Likewise.
+	* implement.h: Patched.
+	* pthread.h: Patched.
+	* sched.h: Patched.
+	* sem_open.c: Patched.
+	* semaphore.h: Patched.
+	* pthread_self.c: Patched.
+
+2016-03-28  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* ptw32_relmillisecs.c (pthread_win32_getabstime_np): New
+	platform-aware function to return the current time plus optional
+	offset.
+	* pthread.h (pthread_win32_getabstime_np): New exported function.
+	* ptw32_timespec.c: COnditionally compile only if NEED_FTIME config
+	flagged.
+	* sched.h: Update platform config flags for applications.
+	* semaphore.h: Likewise.
+	* pthread.h: Likewise.
+
+2016-03-25  Bill Parker <wp02855 at gmail dot com>
+
+	* pthread_mutex_init.c: Memory allocation of robust mutex element
+	was not being checked.
+	
+2016-02-29  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* GNUmakefile (MINGW_HAVE_SECURE_API): Moved to config.h. Undefined
+	for __MINGW32__; remove (make optional) forcing a specific C std.
+	* implement.h (uint64_t): Define for Visual Studio.
+
+2016-02-29	Keith Marshall <keithmarshall at users dot sourceforge dot net>
+
+	* ptw32_timespec.c: Fix C90 warnings from GCC; int64_t -> uint64_t
+
+2016-02-18	Carey Gister <careygister at outlook dot com>
+
+	* dll.c (DllMain): Should not be defined for static library builds.
+	Doing so prevents static linking with a dll library.
+
+2015-11-01	Anurag Sharma <anurags at fb dot com>
+
+	* ptw32_MCS_lock.c: Fix a race condition causing crashes.
+	This race condition was also analysed and reported with a slightly
+	different fix independently by Jonathan Brown at VMware.
+
+2015-11-01	Mark Smith <masmith at fb dot com>
+
+	* ptw32_relnillisecs.c: Fix erroneous 0-time waits, symptomizing as
+	busy-spinning eating CPU. When the time to wait is specified to be less
+	than 1 millisecond were erroneously rounded down to 0; Modify WinCE
+	dependency.
+	* ptw32_timespec.c: Remove NEED_FTIME conditionality.
+
+2015-06-31  Dimitry <>
+
+	* sem_init.c: Remove double free() when NEED_SEM defined (for
+	early versions of WinCE).
+
+2014-05-29  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* autostatic.c: Move content to dll.c so autostatic no longer required.
+	* dll.c: Include content from autostatic.c.
+	* pthread.c (autostatic.c): Remove #include.
+	* common.mk (autostatic.*): remove from builds.
+	* Makefile (realclean): delete make.log.txt if present.
+	* GNUMakefile (realclean): Likewise.
+
+2014-05-28  Jaeeun Choi <jaeeun at mdstec dot com>
+
+	* pthread_mutex_init.c: Check and free malloced robustNode element if
+	init is returning an ENOSPC error.
+
+2013-12-10  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* Makefile (*-small-static): Removed all small-static targets in the MS
+	toolchain builds due to	failures of TLS in apps linked with these
+	library builds, specifically fails tests/semaphore3.c. The other static
+	builds pass this test.
+	* dll.c: Remove unused MinGW static linking hooks; See autostatic.c.
+	Hope to incorporate a working set of hooks here for gcc that supports
+	PIMAGE_TLS_CALLBACK later at which point autostatic.c will be required
+	only for older compilers.
+
+2013-12-09  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* Makefile (.rc.res): Add logic to extract target CPU from different
+	environments.
+
+2013-07-23  Keith Clanton <keith dot clanton at cloudcar dot com>
+
+	* create.c: Don't apply cpu affinity from thread attributes for WINCE;
+	bug fix.
+	
+2013-07-23  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* config.h (HAVE_CPU_AFFINITY): Defined.
+	* several (WINCE): Substitute HAVE_CPU_AFFINITY where appropriate.
+
+2013-07-17  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* pthread_getname_np.c: Replace strncpy_s with strncpy to support older
+	MSVCRT.DLLs.
+	* pthread_attr_getname_np.c: Likewise.
+
+2013-06-19  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* pthread_attr_init.c: Initialise thread name element.
+	* create.c: Initialise thread name from attributes.
+
+2013-06-13  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* pthread_setname_np.c: Initial version.
+	* pthread_getname_np.c: Initial version.
+	* pthread_attr_setname_np.c: Initial version.
+	* pthread_attr_getname_np.c: Initial version.
+	* pthread.h: Add new prototypes.
+	* implement.h (pthread_attr_t_): Add "thrname" element.
+	* (ptw32_thread_t): Add "name" element.
+
+2013-06-06  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* pthread.h (_POSIX_THREAD_ATTR_STACKADDR): Now set to -1. The API
+	prototypes are defined but return ENOSYS; previously the addr value was
+	stored in the attribute struct and retreivable but unused.
+	* pthread_attr_setstackaddr.c: Should return ENOSYS rather than silently
+	ignore the setting.
+	* pthread_attr_getstackaddr.c: Likewise.
+	* pthread_attr_getaffinity_np.c: Initial version.
+	* pthread_attr_setaffinity_np.c: Initial version.
+
+2013-05-01  Andrew Chernow <achernow at gmail dot com>
+
+	* dll.c: Add invocation of thread detach logic for static linked
+	applications for MSVC8.0 or later builds.
+
+2012-12-19  Jason Baker <jason underscore baker at symantec dot com>
+
+	* pthread_win32_attach_detach_np.c (pthread_win32_process_attach_np):
+	Fix function calls involving TCHAR.
+
+2012-10-29  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* sem_destroy.c: Remove NULL argument checks. These are only useful
+	to guard against some uninitialised arguments, not an invalid sem_t.
+	* sem_wait.c: Likewise.
+	* sem_post.c: Likewise.
+	* sem_post_multiple.c: Likewise.
+	* sem_timedwait.c: Likewise.
+	* sem_trywait.c: Likewise.
+	* ptw32_semwait.c: Likewise.
+
+2012-10-28  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* implement.h: sem_t_ replace internal state mutex with MCS lock.
+	* sem_init.c: Rewrite to use MCS lock rather than mutex.
+	* sem_destroy.c: Likewise.
+	* sem_wait.c: Likewise.
+	* sem_post.c: Likewise.
+	* sem_post_multiple.c: Likewise.
+	* sem_timedwait.c: Likewise.
+	* sem_trywait.c: Likewise.
+	* ptw32_semwait.c: Likewise.
+
+2012-10-26	sicaf-- at hanmail dot net
+
+	* error.c: For WinCE use a more specific cast.
+	* implement.h: For WinCE don't include process.h.
+	* pthread_win32_attach_detach_np.c: For WinCE don't restrict QUserEx.dll
+	search to system path.
+
+2012-10-24  Stephane Clairet <Stephane dot Clairet at 4d dot com>
+
+	* pthread_key_delete.c: Bug fix - move keylock release to after the
+	while loop. (This bug first was introduced at release 2.9.1) 
+
 2012-10-16  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* Makefile: Remove SDK environment setting; now needs to be done
@@ -3122,7 +3313,7 @@
 	rather than Makefile. Makefile will become the MSC nmake compatible
 	version
 
-1999-11-13  John Bossom (John.Bossom@cognos.com>
+1999-11-13  John Bossom (John.Bossom@gmail.com>
 
 	* misc.c (pthread_self): Add a note about GetCurrentThread
 	returning a pseudo-handle
@@ -3252,7 +3443,7 @@ Thu Sep 16 1999  Ross Johnson  <rpj at swan.canberra.edu.au>
 	the application thread startup routine.
 	- Milan Gardian <mg at tatramed.sk>
 
-1999-08-18  John Bossom <john.Bossom at cognos.com>
+1999-08-18  John Bossom <john.Bossom at gmail.com>
 
 	* exit.c (pthread_exit): Put status into pthread_t->exitStatus
 	* private.c (ptw32_threadStart): Set pthread->exitStatus
@@ -3414,7 +3605,7 @@ Fri Apr  2 11:08:50 1999  Ross Johnson  <rpj at ixobrychus.canberra.edu.au>
 
 	* pthread.h (pthread_t_): Add per-thread errno element.
 
-Fri Apr  2 11:08:50 1999  John Bossom <jebossom at cognos.com>
+Fri Apr  2 11:08:50 1999  John Bossom <john.bossom at gmail.com>
 
 	* semaphore.c (ptw32_sem_*): Change to sem_*; these functions
 	will be exported from the library; set errno on error.
@@ -3426,7 +3617,7 @@ Fri Mar 26 14:11:45 1999  Tor Lillqvist <tml at iki.fi>
 	* semaphore.c (ptw32_sem_timedwait): Check for negative
 	milliseconds.
 
-Wed Mar 24 11:32:07 1999  John Bossom <jebossom at cognos.com>
+Wed Mar 24 11:32:07 1999  John Bossom <john.bossom at gmail.com>
 
 	* misc.c (CancelableWait): Initialise exceptionInformation[2].
 	(pthread_self): Get a real Win32 thread handle for implicit threads.

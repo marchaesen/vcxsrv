@@ -151,6 +151,9 @@ main()
   int i;
   DWORD et[NUMTHREADS];
 
+  DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+  SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+
   InitializeCriticalSection(&caughtLock);
 
   for (i = 0; i < NUMTHREADS; i++)

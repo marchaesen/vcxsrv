@@ -16,17 +16,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -35,16 +35,16 @@
  * --------------------------------------------------------------------------
  *
  * Test Synopsis: Verify sem_getvalue returns the correct number of waiters.
- * - 
+ * -
  *
  * Test Method (Validation or Falsification):
  * - Validation
  *
  * Requirements Tested:
- * - 
+ * -
  *
  * Features Tested:
- * - 
+ * -
  *
  * Cases Tested:
  * -
@@ -81,7 +81,6 @@ sem_t s;
 void *
 thr (void * arg)
 {
-  assert(pthread_detach(pthread_self()) == 0);
   assert(sem_wait(&s) == 0);
   return NULL;
 }
@@ -106,7 +105,7 @@ main()
           sched_yield();
           assert(sem_getvalue(&s, &value) == 0);
         }
-      while (value != -i);
+      while (-value != i);
       //printf("1:Value = %d\n", value); fflush(stdout);
       assert(-value == i);
     }
@@ -119,6 +118,9 @@ main()
       assert(-value == i);
     }
 
+  for (i = MAX_COUNT; i > 0; i--)
+    {
+      pthread_join(t[i], NULL);
+    }
   return 0;
 }
-

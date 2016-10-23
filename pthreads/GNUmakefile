@@ -62,27 +62,33 @@ AND	= &&
 # make CROSS=x86_64-w64-mingw32- clean GC-inlined
 CROSS	= 
 
+# Override the builtin default C and C++ standards
+#CSTD	= -std=c90
+#CXXSTD	= -std=c++90
+
 AR		= $(CROSS)ar
 DLLTOOL = $(CROSS)dlltool
-CC      = $(CROSS)gcc
-CXX     = $(CROSS)g++
+CC      = $(CROSS)gcc $(CSTD)
+CXX     = $(CROSS)g++ $(CXXSTD)
 RANLIB  = $(CROSS)ranlib
 RC		= $(CROSS)windres
+OD_PRIVATE	= $(CROSS)objdump -p
 
 # Build for non-native architecture. E.g. "-m64" "-m32" etc.
-# Not fully tested fully, needs gcc built with "--enable-multilib"
+# Not tested fully, needs gcc built with "--enable-multilib"
 # Check your "gcc -v" output for the options used to build your gcc.
 # You can set this as a shell variable or on the make comand line.
 # You don't need to uncomment it here unless you want to hardwire
 # a value.
 #ARCH	= 
 
-ifeq ($(ARCH),-m32)
-RES_TARGET	= --target pe-i386
-endif
-ifeq ($(ARCH),-m64)
-RES_TARGET	= --target pe-x86-64
-endif
+#
+# Look for targets that $(RC) (usually windres) supports then look at any object
+# file just built to see which target the compiler used and set the $(RC) target
+# to match it.
+#
+SUPPORTED_TARGETS	= $(filter pe-% pei-% elf32-% elf64-% srec symbolsrec verilog tekhex binary ihex,$(shell $(RC) --help))
+RC_TARGET			= --target $(firstword $(filter $(SUPPORTED_TARGETS),$(shell $(OD_PRIVATE) *.$(OBJEXT))))
 
 OPT		=  $(CLEANUP) -O3 # -finline-functions -findirect-inlining
 XOPT	= 
@@ -170,6 +176,8 @@ PTHREAD_DEF	= pthread.def
 
 help:
 	@ echo "Run one of the following command lines:"
+	@ echo "$(MAKE) clean all                      (build targets GC, GCE, GC-static, GCE-static)"
+	@ echo "$(MAKE) clean all-tests                (build and test all non-debug targets below)"
 	@ echo "$(MAKE) clean GC                       (to build the GNU C dll with C cleanup code)"
 	@ echo "$(MAKE) clean GC-debug                 (to build the GNU C debug dll with C cleanup code)"
 	@ echo "$(MAKE) clean GCE                      (to build the GNU C dll with C++ exception handling)"
@@ -218,10 +226,10 @@ GC-debug:
 		$(MAKE) XOPT="-DPTW32_BUILD_INLINED" CLEANUP=-D__CLEANUP_C XC_FLAGS="$(GC_CFLAGS)" OBJ="$(DLL_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_C -g -O0" $(GCD_DLL)
 
 GCE:
-		$(MAKE) XOPT="-DPTW32_BUILD_INLINED" CC=$(CXX) CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" $(GCE_DLL)
+		$(MAKE) XOPT="-DPTW32_BUILD_INLINED" CC="$(CXX)" CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" $(GCE_DLL)
 
 GCE-debug:
-		$(MAKE) XOPT="-DPTW32_BUILD_INLINED" CC=$(CXX) CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_CXX -g -O0" $(GCED_DLL)
+		$(MAKE) XOPT="-DPTW32_BUILD_INLINED" CC="$(CXX)" CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_CXX -g -O0" $(GCED_DLL)
 
 GC-static:
 		$(MAKE) XOPT="-DPTW32_BUILD_INLINED -DPTW32_STATIC_LIB" CLEANUP=-D__CLEANUP_C XC_FLAGS="$(GC_CFLAGS)" OBJ="$(DLL_OBJS)" $(GC_INLINED_STATIC_STAMP)
@@ -236,16 +244,16 @@ GC-small-static-debug:
 		$(MAKE) XOPT="-DPTW32_STATIC_LIB" CLEANUP=-D__CLEANUP_C XC_FLAGS="$(GC_CFLAGS)" OBJ="$(STATIC_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_C -g -O0" $(GCD_SMALL_STATIC_STAMP)
 
 GCE-static:
-		$(MAKE) XOPT="-DPTW32_BUILD_INLINED -DPTW32_STATIC_LIB" CC=$(CXX) CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" $(GCE_INLINED_STATIC_STAMP)
+		$(MAKE) XOPT="-DPTW32_BUILD_INLINED -DPTW32_STATIC_LIB" CC="$(CXX)" CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" $(GCE_INLINED_STATIC_STAMP)
 
 GCE-static-debug:
-		$(MAKE) XOPT="-DPTW32_BUILD_INLINED -DPTW32_STATIC_LIB" CC=$(CXX) CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_C -g -O0" $(GCED_INLINED_STATIC_STAMP)
+		$(MAKE) XOPT="-DPTW32_BUILD_INLINED -DPTW32_STATIC_LIB" CC="$(CXX)" CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(DLL_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_C -g -O0" $(GCED_INLINED_STATIC_STAMP)
 
 GCE-small-static:
-		$(MAKE) XOPT="-DPTW32_STATIC_LIB" CC=$(CXX) CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(STATIC_OBJS)" $(GCE_SMALL_STATIC_STAMP)
+		$(MAKE) XOPT="-DPTW32_STATIC_LIB" CC="$(CXX)" CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(STATIC_OBJS)" $(GCE_SMALL_STATIC_STAMP)
 
 GCE-small-static-debug:
-		$(MAKE) XOPT="-DPTW32_STATIC_LIB" CC=$(CXX) CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(STATIC_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_C -g -O0" $(GCED_SMALL_STATIC_STAMP)
+		$(MAKE) XOPT="-DPTW32_STATIC_LIB" CC="$(CXX)" CLEANUP=-D__CLEANUP_CXX XC_FLAGS="$(GCE_CFLAGS)" OBJ="$(STATIC_OBJS)" DLL_VER=$(DLL_VERD) OPT="-D__CLEANUP_C -g -O0" $(GCED_SMALL_STATIC_STAMP)
 
 tests:
 	@ cd tests
@@ -259,6 +267,7 @@ install:
 	-$(TESTNDIR) $(HDRDEST) $(AND) $(MKDIR) $(HDRDEST)
 	$(CP) pthreadGC*.dll $(DLLDEST)
 	$(CP) libpthreadGC*.a $(LIBDEST)
+	$(CP) _pthw32.h $(HDRDEST)
 	$(CP) pthread.h $(HDRDEST)
 	$(CP) sched.h $(HDRDEST)
 	$(CP) semaphore.h $(HDRDEST)
@@ -274,7 +283,7 @@ install:
 	$(CC) -c $(CFLAGS) -DPTW32_BUILD_INLINED -Wa,-ahl $^ > $@
 
 %.o: %.rc
-	$(RC) $(RES_TARGET) $(RCFLAGS) $(CLEANUP) -o $@ -i $<
+	$(RC) $(RC_TARGET) $(RCFLAGS) $(CLEANUP) -o $@ -i $<
 
 .SUFFIXES: .dll .rc .c .o
 
@@ -316,6 +325,7 @@ realclean: clean
 	-$(RM) *.lib
 	-$(RM) pthread*.dll
 	-$(RM) *_stamp
+	-$(RM) make.log.txt
 	-cd tests && $(MAKE) clean
 
 var_check_list =

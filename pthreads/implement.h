@@ -38,16 +38,20 @@
 #if !defined(_IMPLEMENT_H)
 #define _IMPLEMENT_H
 
-#if !defined(PTW32_CONFIG_H) && !defined(_PTHREAD_TEST_H_)
+#if !defined(PTW32_CONFIG_H)
 # error "config.h was not #included"
 #endif
+
+#include <_ptw32.h>
 
 #if !defined(_WIN32_WINNT)
 # define _WIN32_WINNT 0x0400
 #endif
 
-#include <windows.h>
+#define WIN32_LEAN_AND_MEAN
 
+#include <windows.h>
+#include <sys/types.h>
 /*
  * In case windows.h doesn't define it (e.g. WinCE perhaps)
  */
@@ -59,15 +63,16 @@ typedef VOID (APIENTRY *PAPCFUNC)(DWORD dwParam);
  * Designed to allow error values to be set and retrieved in builds where
  * MSCRT libraries are statically linked to DLLs.
  */
-#if ( defined(PTW32_CONFIG_MINGW) && __MSVCRT_VERSION__ >= 0x0800 ) || \
-    ( defined(_MSC_VER) && _MSC_VER >= 1400 )  /* MSVC8+ */
-#  if defined(PTW32_CONFIG_MINGW)
+#if ! defined(WINCE) && \
+    (( defined(__MINGW32__) && __MSVCRT_VERSION__ >= 0x0800 ) || \
+    ( defined(_MSC_VER) && _MSC_VER >= 1400 ))  /* MSVC8+ */
+#  if defined(__MINGW32__)
 __attribute__((unused))
 #  endif
 static int ptw32_get_errno(void) { int err = 0; _get_errno(&err); return err; }
 #  define PTW32_GET_ERRNO() ptw32_get_errno()
 #  if defined(PTW32_USES_SEPARATE_CRT)
-#    if defined(PTW32_CONFIG_MINGW)
+#    if defined(__MINGW32__)
 __attribute__((unused))
 #    endif
 static void ptw32_set_errno(int err) { _set_errno(err); SetLastError(err); }
@@ -78,7 +83,7 @@ static void ptw32_set_errno(int err) { _set_errno(err); SetLastError(err); }
 #else
 #  define PTW32_GET_ERRNO() (errno)
 #  if defined(PTW32_USES_SEPARATE_CRT)
-#    if defined(PTW32_CONFIG_MINGW)
+#    if defined(__MINGW32__)
 __attribute__((unused))
 #    endif
 static void ptw32_set_errno(int err) { errno = err; SetLastError(err); }
@@ -86,18 +91,6 @@ static void ptw32_set_errno(int err) { errno = err; SetLastError(err); }
 #  else
 #    define PTW32_SET_ERRNO(err) (errno = (err))
 #  endif
-#endif
-
-/*
- * note: ETIMEDOUT is correctly defined in winsock.h
- */
-#include <winsock.h>
-
-/*
- * In case ETIMEDOUT hasn't been defined above somehow.
- */
-#if !defined(ETIMEDOUT)
-# define ETIMEDOUT 10060	/* This is the value in winsock.h. */
 #endif
 
 #if !defined(malloc)
@@ -143,23 +136,12 @@ static void ptw32_set_errno(int err) { errno = err; SetLastError(err); }
 #  define PTW32_INTERLOCKED_SIZEPTR PTW32_INTERLOCKED_VOLATILE long*
 #endif
 
-#if defined(PTW32_CONFIG_MINGW)
-#  include <stdint.h>
-#elif defined(__BORLANDC__)
-#  define int64_t ULONGLONG
-#else
-#  define int64_t _int64
-#  if defined(PTW32_CONFIG_MSVC6)
-     typedef long intptr_t;
-#  endif
-#endif
-
 /*
  * Don't allow the linker to optimize away autostatic.obj in static builds.
  */
 #if defined(PTW32_STATIC_LIB) && defined(PTW32_BUILD)
   void ptw32_autostatic_anchor(void);
-# if defined(PTW32_CONFIG_MINGW)
+# if defined(__GNUC__)
     __attribute__((unused, used))
 # endif
   static void (*local_autostatic_anchor)(void) = ptw32_autostatic_anchor;
@@ -176,7 +158,7 @@ typedef enum
   PThreadStateRunning,		/* Thread alive & kicking               */
   PThreadStateSuspended,	/* Thread alive but suspended           */
   PThreadStateCancelPending,	/* Thread alive but                     */
-                                /* has cancellation pending.             */
+                                /* has cancellation pending.            */
   PThreadStateCanceling,	/* Thread alive but is                  */
                                 /* in the process of terminating        */
                                 /* due to a cancellation request        */
@@ -224,7 +206,10 @@ struct ptw32_thread_t_
   int cancelType;
   int implicit:1;
   DWORD thread;			/* Windows thread ID */
+#if defined(HAVE_CPU_AFFINITY)
   size_t cpuset;		/* Thread CPU affinity set */
+#endif
+  char * name;                  /* Thread name */
 #if defined(_UWIN)
   DWORD dummy[5];
 #endif
@@ -246,6 +231,8 @@ struct pthread_attr_t_
   struct sched_param param;
   int inheritsched;
   int contentionscope;
+  size_t cpuset;
+  char * thrname;
 #if defined(HAVE_SIGSET_T)
   sigset_t sigmask;
 #endif				/* HAVE_SIGSET_T */
@@ -263,7 +250,7 @@ struct pthread_attr_t_
 struct sem_t_
 {
   int value;
-  pthread_mutex_t lock;
+  ptw32_mcs_lock_t lock;
   HANDLE sem;
 #if defined(NEED_SEM)
   int leftToUnblock;
@@ -649,10 +636,7 @@ extern ptw32_mcs_lock_t ptw32_spinlock_test_init_lock;
 extern int pthread_count;
 #endif
 
-#if defined(__cplusplus)
-extern "C"
-{
-#endif				/* __cplusplus */
+__PTW32_BEGIN_C_DECLS
 
 /*
  * =====================
@@ -697,7 +681,7 @@ extern "C"
 
   void ptw32_rwlock_cancelwrwait (void *arg);
 
-#if ! defined (PTW32_CONFIG_MINGW) || (defined (__MSVCRT__) && ! defined (__DMC__))
+#if ! defined (__MINGW32__) || (defined (__MSVCRT__) && ! defined (__DMC__))
   unsigned __stdcall
 #else
   void
@@ -727,38 +711,22 @@ extern "C"
   void ptw32_filetime_to_timespec (const FILETIME * ft, struct timespec *ts);
 #endif
 
-/* Declared in misc.c */
+/* Declared in pthw32_calloc.c */
 #if defined(NEED_CALLOC)
 #define calloc(n, s) ptw32_calloc(n, s)
   void *ptw32_calloc (size_t n, size_t s);
 #endif
 
-/* Declared in private.c */
-#if defined(_MSC_VER)
-/*
- * Ignore the warning:
- * "C++ exception specification ignored except to indicate that
- * the function is not __declspec(nothrow)."
- */
-#pragma warning(disable:4290)
-#endif
-  void ptw32_throw (DWORD exception)
-#if defined(__CLEANUP_CXX)
-    throw(ptw32_exception_cancel,ptw32_exception_exit)
-#endif
-;
+/* Declared in ptw32_throw.c */
+void ptw32_throw (DWORD exception);
 
-#if defined(__cplusplus)
-}
-#endif				/* __cplusplus */
-
+__PTW32_END_C_DECLS
 
 #if defined(_UWIN_)
 #   if defined(_MT)
-#       if defined(__cplusplus)
-extern "C"
-{
-#       endif
+
+__PTW32_BEGIN_C_DECLS
+
   _CRTIMP unsigned long __cdecl _beginthread (void (__cdecl *) (void *),
 					      unsigned, void *);
   _CRTIMP void __cdecl _endthread (void);
@@ -766,13 +734,15 @@ extern "C"
 						unsigned (__stdcall *) (void *),
 						void *, unsigned, unsigned *);
   _CRTIMP void __cdecl _endthreadex (unsigned);
-#       if defined(__cplusplus)
-}
-#       endif
+
+__PTW32_END_C_DECLS
+
 #   endif
 #else
-#       include <process.h>
+#   if ! defined(WINCE)
+#     include <process.h>
 #   endif
+#endif
 
 
 /*

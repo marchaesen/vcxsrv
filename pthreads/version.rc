@@ -44,22 +44,28 @@
  */
 
 #if defined(PTW32_RC_MSC)
-#  if defined(PTW32_ARCHx64)
-#    define PTW32_ARCH "x64"
-#  elif defined(PTW32_ARCHx86)
-#    define PTW32_ARCH "x86"
-#  endif
-#  if defined(__CLEANUP_C)
-#    define PTW32_VERSIONINFO_NAME "pthreadVC2.DLL\0"
-#    define PTW32_VERSIONINFO_DESCRIPTION "MS C " PTW32_ARCH "\0"
-#  elif defined(__CLEANUP_CXX)
-#    define PTW32_VERSIONINFO_NAME "pthreadVCE2.DLL\0"
-#    define PTW32_VERSIONINFO_DESCRIPTION "MS C++ " PTW32_ARCH "\0"
-#  elif defined(__CLEANUP_SEH)
-#    define PTW32_VERSIONINFO_NAME "pthreadVSE2.DLL\0"
-#    define PTW32_VERSIONINFO_DESCRIPTION "MS C SEH " PTW32_ARCH "\0"
-#  else
-#    error Resource compiler doesn't know which cleanup style you're using - see version.rc
+#  if defined(PTW32_ARCHx64) || defined(PTW32_ARCHX64) || defined(PTW32_ARCHAMD64)
+#    if defined(__CLEANUP_C)
+#      define PTW32_VERSIONINFO_NAME "pthreadVC2.DLL\0"
+#      define PTW32_VERSIONINFO_DESCRIPTION "MS C x64\0"
+#    elif defined(__CLEANUP_CXX)
+#      define PTW32_VERSIONINFO_NAME "pthreadVCE2.DLL\0"
+#      define PTW32_VERSIONINFO_DESCRIPTION "MS C++ x64\0"
+#    elif defined(__CLEANUP_SEH)
+#      define PTW32_VERSIONINFO_NAME "pthreadVSE2.DLL\0"
+#      define PTW32_VERSIONINFO_DESCRIPTION "MS C SEH x64\0"
+#    endif
+#  elif defined(PTW32_ARCHx86) || defined(PTW32_ARCHX86)
+#    if defined(__CLEANUP_C)
+#      define PTW32_VERSIONINFO_NAME "pthreadVC2.DLL\0"
+#      define PTW32_VERSIONINFO_DESCRIPTION "MS C x86\0"
+#    elif defined(__CLEANUP_CXX)
+#      define PTW32_VERSIONINFO_NAME "pthreadVCE2.DLL\0"
+#      define PTW32_VERSIONINFO_DESCRIPTION "MS C++ x86\0"
+#    elif defined(__CLEANUP_SEH)
+#      define PTW32_VERSIONINFO_NAME "pthreadVSE2.DLL\0"
+#      define PTW32_VERSIONINFO_DESCRIPTION "MS C SEH x86\0"
+#    endif
 #  endif
 #elif defined(__GNUC__)
 #  if defined(_M_X64)

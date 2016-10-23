@@ -16,17 +16,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -37,23 +37,23 @@
  * Test Synopsis: Test true asynchronous cancellation with Alert driver.
  *
  * Test Method (Validation or Falsification):
- * - 
+ * -
  *
  * Requirements Tested:
  * - Cancel threads, including those blocked on system recources
  *   such as network I/O.
  *
  * Features Tested:
- * - 
+ * -
  *
  * Cases Tested:
- * - 
+ * -
  *
  * Description:
- * - 
+ * -
  *
  * Environment:
- * - 
+ * -
  *
  * Input:
  * - None.
@@ -84,7 +84,7 @@ test_udp (void *arg)
   struct sockaddr_in clientAddress;
   SOCKET UDPSocket;
   int addr_len;
-  int nbyte, bytes;
+  int nbyte;
   char buffer[4096];
   WORD wsaVersion = MAKEWORD (2, 2);
   WSADATA wsaData;
@@ -120,9 +120,8 @@ test_udp (void *arg)
 
   nbyte = 512;
 
-  bytes =
-    recvfrom (UDPSocket, (char *) buffer, nbyte, 0,
-	      (struct sockaddr *) &clientAddress, &addr_len);
+  (void) recvfrom (UDPSocket, (char *) buffer, nbyte, 0,
+	           (struct sockaddr *) &clientAddress, &addr_len);
 
   closesocket (UDPSocket);
   WSACleanup ();
@@ -146,14 +145,13 @@ void *
 test_wait (void *arg)
 {
   HANDLE hEvent;
-  DWORD dwEvent;
 
   pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
 
-  dwEvent = WaitForSingleObject (hEvent, 1000);	/* WAIT_IO_COMPLETION */
+  (void) WaitForSingleObject (hEvent, 1000);	/* WAIT_IO_COMPLETION */
 
   return NULL;
 }

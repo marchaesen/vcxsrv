@@ -44,12 +44,17 @@
 void *
 func(void * arg)
 {
-	pthread_exit(arg);
+  int failed = (int) arg;
 
-	/* Never reached. */
-	assert(0);
+  pthread_exit(arg);
 
-	return NULL;
+  /* Never reached. */
+  /*
+   * Trick gcc compiler into not issuing a warning here
+   */
+  assert(failed - (int)arg);
+
+  return NULL;
 }
 
 int

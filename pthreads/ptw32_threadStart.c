@@ -19,17 +19,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -119,7 +119,7 @@ using
 # pragma warning( disable : 4748 )
 #endif
 
-#if ! defined (PTW32_CONFIG_MINGW) || (defined (__MSVCRT__) && ! defined (__DMC__))
+#if ! defined (__MINGW32__) || (defined (__MSVCRT__) && ! defined (__DMC__))
 unsigned
   __stdcall
 #else
@@ -152,24 +152,22 @@ ptw32_threadStart (void *vthreadParms)
 
   free (threadParms);
 
-#if defined (PTW32_CONFIG_MINGW) && ! defined (__MSVCRT__)
+#if ! defined (__MINGW32__) || defined (__MSVCRT__) || defined (__DMC__)
+#else
   /*
-   * beginthread does not return the thread id and is running
+   * _beginthread does not return the thread id and is running
    * before it returns us the thread handle, and so we do it here.
    */
   sp->thread = GetCurrentThreadId ();
+#endif
+
+  pthread_setspecific (ptw32_selfThreadKey, sp);
   /*
    * Here we're using stateLock as a general-purpose lock
    * to make the new thread wait until the creating thread
    * has the new handle.
    */
   ptw32_mcs_lock_acquire (&sp->stateLock, &stateLock);
-  pthread_setspecific (ptw32_selfThreadKey, sp);
-#else
-  pthread_setspecific (ptw32_selfThreadKey, sp);
-  ptw32_mcs_lock_acquire (&sp->stateLock, &stateLock);
-#endif
-
   sp->state = PThreadStateRunning;
   ptw32_mcs_lock_release (&stateLock);
 
@@ -298,7 +296,7 @@ ptw32_threadStart (void *vthreadParms)
   (void) pthread_win32_thread_detach_np ();
 #endif
 
-#if ! defined (PTW32_CONFIG_MINGW) || defined (__MSVCRT__) || defined (__DMC__)
+#if ! defined (__MINGW32__) || defined (__MSVCRT__) || defined (__DMC__)
   _endthreadex ((unsigned)(size_t) status);
 #else
   _endthread ();
@@ -308,7 +306,7 @@ ptw32_threadStart (void *vthreadParms)
    * Never reached.
    */
 
-#if ! defined (PTW32_CONFIG_MINGW) || defined (__MSVCRT__) || defined (__DMC__)
+#if ! defined (__MINGW32__) || defined (__MSVCRT__) || defined (__DMC__)
   return (unsigned)(size_t) status;
 #endif
 

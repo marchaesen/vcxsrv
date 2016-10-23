@@ -83,8 +83,8 @@
 
 static pthread_cond_t cv;
 static pthread_mutex_t mutex;
-static struct timespec abstime = { 0, 0 };
-static struct timespec abstime2 = { 0, 0 };
+static struct timespec abstime, abstime2;
+static struct timespec reltime = { 5, 0 };
 static int timedout = 0;
 static int awoken = 0;
 
@@ -117,10 +117,11 @@ mythread(void * arg)
       InterlockedIncrement((LPLONG)&awoken);
     }
 
-
   return arg;
 }
 
+/* Cheating here - sneaking a peek at library internals */
+#include "../config.h"
 #include "../implement.h"
 
 int
@@ -129,18 +130,14 @@ main()
   int i;
   pthread_t t[NUMTHREADS + 1];
   void* result = (void*)0;
-  PTW32_STRUCT_TIMEB currSysTime;
-  const DWORD NANOSEC_PER_MILLISEC = 1000000;
 
   assert(pthread_cond_init(&cv, NULL) == 0);
 
   assert(pthread_mutex_init(&mutex, NULL) == 0);
 
-  /* get current system time */
-  PTW32_FTIME(&currSysTime);
-
-  abstime.tv_sec = abstime2.tv_sec = (long)currSysTime.time + 5;
-  abstime.tv_nsec = abstime2.tv_nsec = NANOSEC_PER_MILLISEC * currSysTime.millitm;
+  (void) pthread_win32_getabstime_np(&abstime, &reltime);
+  abstime2.tv_sec = abstime.tv_sec;
+  abstime2.tv_nsec = abstime.tv_nsec;
 
   assert(pthread_mutex_lock(&mutex) == 0);
 

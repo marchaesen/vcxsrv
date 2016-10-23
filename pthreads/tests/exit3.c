@@ -42,10 +42,15 @@
 void *
 func(void * arg)
 {
+	int failed = (int) arg;
+
 	pthread_exit(arg);
 
 	/* Never reached. */
-	assert(0);
+        /*
+         * assert(0) in a way to prevent warning or optimising away.
+         */
+	assert(failed - (int) arg);
 
 	return NULL;
 }

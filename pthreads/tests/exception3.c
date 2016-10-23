@@ -115,7 +115,7 @@ terminateFunction ()
      fclose(fp);
   }
 #endif
-  assert(pthread_mutex_unlock(&caughtLock) == 0);
+  assert_e(pthread_mutex_unlock(&caughtLock), ==, 0);
 
   /*
    * Notes from the MSVC++ manual:
@@ -129,6 +129,14 @@ terminateFunction ()
    *          exception-using version of pthreads-win32 library
    *          is being used (i.e. either pthreadVCE or pthreadVSE).
    */
+  /*
+   * Allow time for all threads to reach here before exit, otherwise
+   * threads will be terminated while holding the lock and cause
+   * the next unlock to return EPERM (we're using ERRORCHECK mutexes).
+   * Perhaps this would be a good test for robust mutexes.
+   */
+  Sleep(20);
+
   exit(0);
 }
 
@@ -145,6 +153,7 @@ exceptionedThread(void * arg)
   int dummy = 0x1;
 
 #if defined(PTW32_USES_SEPARATE_CRT) && (defined(__CLEANUP_CXX) || defined(__CLEANUP_SEH))
+  printf("PTW32_USES_SEPARATE_CRT is defined\n");
   pthread_win32_set_terminate_np(&terminateFunction);
   set_terminate(&wrongTerminateFunction);
 #else
@@ -164,6 +173,9 @@ main()
   pthread_t et[NUMTHREADS];
   pthread_mutexattr_t ma;
 
+  DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+  SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+
   assert((mt = pthread_self()).p != NULL);
 
   printf("See the notes inside of exception3.c re term_funcs.\n");
@@ -178,10 +190,10 @@ main()
       assert(pthread_create(&et[i], NULL, exceptionedThread, NULL) == 0);
     }
 
-  Sleep(NUMTHREADS * 10);
+  while (true);
 
   /*
-   * Fail. Should never be reached.
+   * Should never be reached.
    */
   return 1;
 }

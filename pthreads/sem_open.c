@@ -55,9 +55,14 @@
 #pragma warning( disable : 4100 )
 #endif
 
-int
-sem_open (const char *name, int oflag, mode_t mode, unsigned int value)
+sem_t
+*sem_open (const char *name, int oflag, ...)
 {
+  /* Note: this is a POSIX.1b-1993 conforming stub; POSIX.1-2001 removed
+   * the requirement to provide this stub, and also removed the validity
+   * of ENOSYS as a resultant errno state; nevertheless, it makes sense
+   * to retain the POSIX.1b-1993 conforming behaviour here.
+   */
   PTW32_SET_ERRNO(ENOSYS);
-  return -1;
+  return SEM_FAILED;
 }				/* sem_open */

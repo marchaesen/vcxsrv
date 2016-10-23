@@ -18,17 +18,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -71,6 +71,7 @@ pthread_attr_init (pthread_attr_t * attr)
       */
 {
   pthread_attr_t attr_result;
+  cpu_set_t cpuset;
 
   if (attr == NULL)
     {
@@ -113,6 +114,9 @@ pthread_attr_init (pthread_attr_t * attr)
   attr_result->param.sched_priority = THREAD_PRIORITY_NORMAL;
   attr_result->inheritsched = PTHREAD_EXPLICIT_SCHED;
   attr_result->contentionscope = PTHREAD_SCOPE_SYSTEM;
+  CPU_ZERO(&cpuset);
+  attr_result->cpuset = ((_sched_cpu_set_vector_*)&cpuset)->_cpuset;
+  attr_result->thrname = NULL;
 
   attr_result->valid = PTW32_ATTR_VALID;
 

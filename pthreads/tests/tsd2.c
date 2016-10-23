@@ -18,17 +18,17 @@
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -38,7 +38,7 @@
  * --------------------------------------------------------------------------
  *
  * Description:
- * - 
+ * -
  *
  * Test Method (validation or falsification):
  * - validation
@@ -50,13 +50,13 @@
  * - destroy routine is called on each thread exit including the main thread
  *
  * Features Tested:
- * - 
+ * -
  *
  * Cases Tested:
- * - 
+ * -
  *
  * Environment:
- * - 
+ * -
  *
  * Input:
  * - none
@@ -70,11 +70,8 @@
  * - main thread also has a POSIX thread identity
  *
  * Pass Criteria:
- * - stdout matches file reference/tsd1.out
  *
  * Fail Criteria:
- * - fails to match file reference/tsd1.out
- * - output identifies failed component
  */
 
 #include <sched.h>
@@ -97,7 +94,13 @@ destroy_key(void * arg)
 
   (*j)++;
 
-  /* Set TSD key from the destructor to test destructor iteration */
+  /*
+   * Set TSD key from the destructor to test destructor iteration.
+   * The key value will have been set to NULL by the library before
+   * calling the destructor (with the value that the key had). We
+   * reset the key value here which should cause the destructor to be
+   * called a second time.
+   */
   if (*j == 2)
     assert(pthread_setspecific(key, arg) == 0);
   else
@@ -193,19 +196,19 @@ main()
 
   for (i = 1; i < NUM_THREADS; i++)
     {
-	/*
-	 * The counter is incremented once when the key is set to
-	 * a value, and again when the key is destroyed. If the key
-	 * doesn't get set for some reason then it will still be
-	 * NULL and the destroy function will not be called, and
-	 * hence accesscount will not equal 2.
-	 */
-	if (accesscount[i] != 3)
-	  {
-	    fail++;
-	    fprintf(stderr, "Thread %d key, set = %d, destroyed = %d\n",
-			i, thread_set[i], thread_destroyed[i]);
-	  }
+      /*
+       * The counter is incremented once when the key is set to
+       * a value, and again when the key is destroyed. If the key
+       * doesn't get set for some reason then it will still be
+       * NULL and the destroy function will not be called, and
+       * hence accesscount will not equal 2.
+       */
+      if (accesscount[i] != 3)
+        {
+          fail++;
+          fprintf(stderr, "Thread %d key, set = %d, destroyed = %d\n",
+              i, thread_set[i], thread_destroyed[i]);
+        }
     }
 
   fflush(stderr);

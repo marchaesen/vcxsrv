@@ -99,45 +99,11 @@ static int signalsTakenCount = 0;
 static int signalsSent = 0;
 static int bias = 0;
 static int timeout = 10; // Must be > 0
+static const long NANOSEC_PER_MILLISEC = 1000000;
 
 enum {
   CTL_STOP     = -1
 };
-
-/*
- * Returns abstime 'milliseconds' from 'now'.
- *
- * Works for: -INT_MAX <= millisecs <= INT_MAX
- */
-struct timespec *
-millisecondsFromNow (struct timespec * time, int millisecs)
-{
-  PTW32_STRUCT_TIMEB currSysTime;
-  int64_t nanosecs, secs;
-  const int64_t NANOSEC_PER_MILLISEC = 1000000;
-  const int64_t NANOSEC_PER_SEC = 1000000000;
-
-  /* get current system time and add millisecs */
-  PTW32_FTIME(&currSysTime);
-
-  secs = (int64_t)(currSysTime.time) + (millisecs / 1000);
-  nanosecs = ((int64_t) (millisecs%1000 + currSysTime.millitm)) * NANOSEC_PER_MILLISEC;
-  if (nanosecs >= NANOSEC_PER_SEC)
-    {
-      secs++;
-      nanosecs -= NANOSEC_PER_SEC;
-    }
-  else if (nanosecs < 0)
-    {
-      secs--;
-      nanosecs += NANOSEC_PER_SEC;
-    }
-
-  time->tv_nsec = (long)nanosecs;
-  time->tv_sec = (long)secs;
-
-  return time;
-}
 
 void *
 masterThread (void * arg)
@@ -204,16 +170,20 @@ masterThread (void * arg)
 void *
 slaveThread (void * arg)
 {
-  struct timespec time;
+  struct timespec abstime, reltime;
 
   pthread_barrier_wait(&startBarrier);
 
   do
     {
       assert(pthread_mutex_lock(&control.mx) == 0);
+
+      reltime.tv_sec = (control.value / 1000);
+      reltime.tv_nsec = (control.value % 1000) * NANOSEC_PER_MILLISEC;
+
       if (pthread_cond_timedwait(&control.cv,
 				 &control.mx,
-				 millisecondsFromNow(&time, control.value)) == ETIMEDOUT)
+				 pthread_win32_getabstime_np(&abstime, &reltime)) == ETIMEDOUT)
 	{
 	  timeoutCount++;
 	}
