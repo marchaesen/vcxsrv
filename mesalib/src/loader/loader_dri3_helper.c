@@ -130,7 +130,7 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
                           bool is_different_gpu,
                           const __DRIconfig *dri_config,
                           struct loader_dri3_extensions *ext,
-                          struct loader_dri3_vtable *vtable,
+                          const struct loader_dri3_vtable *vtable,
                           struct loader_dri3_drawable *draw)
 {
    xcb_get_geometry_cookie_t cookie;

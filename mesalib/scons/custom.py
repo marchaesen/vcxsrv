@@ -103,8 +103,14 @@ def python_scan(node, env, path):
     # http://www.scons.org/doc/0.98.5/HTML/scons-user/c2781.html#AEN2789
     # https://docs.python.org/2/library/modulefinder.html
     contents = node.get_contents()
-    source_dir = node.get_dir()
-    finder = modulefinder.ModuleFinder()
+
+    # Tell ModuleFinder to search dependencies in the script dir, and the glapi
+    # dirs
+    source_dir = node.get_dir().abspath
+    GLAPI = env.Dir('#src/mapi/glapi/gen').abspath
+    path = [source_dir, GLAPI] + sys.path
+
+    finder = modulefinder.ModuleFinder(path=path)
     finder.run_script(node.abspath)
     results = []
     for name, mod in finder.modules.iteritems():

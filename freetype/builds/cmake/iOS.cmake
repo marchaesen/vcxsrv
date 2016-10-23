@@ -85,11 +85,6 @@ if (CMAKE_UNAME)
     DARWIN_MAJOR_VERSION "${CMAKE_HOST_SYSTEM_VERSION}")
 endif (CMAKE_UNAME)
 
-# force the compilers to gcc for iOS
-include(CMakeForceCompiler)
-CMAKE_FORCE_C_COMPILER(gcc gcc)
-CMAKE_FORCE_CXX_COMPILER(g++ g++)
-
 # skip the platform compiler checks for cross compiling
 set(CMAKE_CXX_COMPILER_WORKS TRUE)
 set(CMAKE_C_COMPILER_WORKS TRUE)

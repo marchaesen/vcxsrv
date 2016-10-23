@@ -356,7 +356,7 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 		if (dst->aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT) {
 			unsigned fs_key = radv_format_meta_fs_key(dst_temps.iview.vk_format);
 
-			RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 						      &(VkRenderPassBeginInfo) {
 							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 								      .renderPass = device->meta_state.blit2d.render_passes[fs_key],
@@ -372,7 +372,7 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 			bind_pipeline(cmd_buffer, src_type, fs_key);
 		} else if (dst->aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT) {
-			RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 						      &(VkRenderPassBeginInfo) {
 							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 								      .renderPass = device->meta_state.blit2d.depth_only_rp,
@@ -389,7 +389,7 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 			bind_depth_pipeline(cmd_buffer, src_type);
 
 		} else if (dst->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
-			RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 						      &(VkRenderPassBeginInfo) {
 							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 								      .renderPass = device->meta_state.blit2d.stencil_only_rp,
@@ -406,8 +406,8 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 			bind_stencil_pipeline(cmd_buffer, src_type);
 		}
 
-		RADV_CALL(CmdDraw)(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
-		RADV_CALL(CmdEndRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer));
+		radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
+		radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
 
 		/* At the point where we emit the draw call, all data from the
 		 * descriptor sets, etc. has been used.  We are free to delete it.

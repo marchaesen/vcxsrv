@@ -11,13 +11,13 @@
 # indicate that you have read the license and understand and accept it
 # fully.
 
-AC_INIT([FreeType], [2.6.3], [freetype@nongnu.org], [freetype])
+AC_INIT([FreeType], [2.7], [freetype@nongnu.org], [freetype])
 AC_CONFIG_SRCDIR([ftconfig.in])
 
 
-# Don't forget to update docs/VERSION.DLL!
+# Don't forget to update `docs/VERSIONS.TXT'!
 
-version_info='18:3:12'
+version_info='18:6:12'
 AC_SUBST([version_info])
 ft_version=`echo $version_info | tr : .`
 AC_SUBST([ft_version])
@@ -180,6 +180,8 @@ CPPFLAGS="${orig_CPPFLAGS}"
 
 # checks for library functions
 
+AC_SYS_LARGEFILE
+
 # Here we check whether we can use our mmap file component.
 
 AC_ARG_ENABLE([mmap],
@@ -233,6 +235,9 @@ if test "x$GCC" = xyes; then
   XX_CFLAGS="-Wall"
   case "$host" in
   *-*-mingw*)
+    XX_ANSIFLAGS="-pedantic"
+    ;;
+  *-*-aix*)
     XX_ANSIFLAGS="-pedantic"
     ;;
   *)

@@ -1,3 +1,112 @@
+commit f3b7b856777500113cee524dbd295fcbbce11fab
+Author: Keith Packard <keithp@keithp.com>
+Date:   Fri Sep 23 09:49:36 2016 +0300
+
+    xproto 7.0.31
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+
+commit d59bd3ade1a8430282c3395d5f5b22ebaa339976
+Author: Keith Packard <keithp@keithp.com>
+Date:   Fri Sep 23 02:35:36 2016 +0300
+
+    Fix typo __has_extenstion -> __has_extension
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit bd3832a988c34304b54ba3bbab5befb3dbcae90d
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Thu Sep 22 14:31:11 2016 -0700
+
+    xproto 7.0.30
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit ad959de4f4fd821cf95522994395ad668eb6756f
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon Sep 19 13:17:39 2016 -0700
+
+    Xfuncproto: Add support for _X_NOTSAN macro
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Keith Packard <keithp@keithp.com>
+
+commit 9a9382de9036fc0f3b5555ee4d340c7dd234c424
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon Sep 19 13:14:34 2016 -0700
+
+    Xfuncproto: Add support for _X_DEPRECATED_MSG() macro
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Keith Packard <keithp@keithp.com>
+
+commit 34a95f725c200b9aedc8c634851474d9bcce712e
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon Sep 19 13:12:35 2016 -0700
+
+    Xfuncproto.h: Define __has_extension() if it isn't already
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Keith Packard <keithp@keithp.com>
+
+commit 4855c9229f00927a343f563db58e261db8a187fa
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon Sep 19 13:10:34 2016 -0700
+
+    Xfuncproto.h: Define __has_feature() if it isn't already
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Keith Packard <keithp@keithp.com>
+
+commit 3e975a39b002070d245d21838f837aaf6e5c41d0
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Fri May 13 10:28:12 2016 +0200
+
+    xproto 7.0.29
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit de30673937e2d36b84cf50c3eb05bbf9836fabfb
+Author: James Clarke <jrtc27@jrtc27.com>
+Date:   Mon Apr 25 17:12:08 2016 +0100
+
+    Don't let XFD_SETSIZE exceed FD_SETSIZE
+    
+    This fixes 2c94cdb453bc641246cc8b9a876da9799bee1ce7 on the Hurd, as
+    FD_SETSIZE is only 256, and so anyone using XFD_SETSIZE to iterate over
+    the contents of an fd_set will overrun the array.
+    
+    Signed-off-by: James Clarke <jrtc27@jrtc27.com>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+
+commit edc04f87c74abacb57782dc947f81a2810a72537
+Author: Olivier Fourdan <ofourdan@redhat.com>
+Date:   Wed Aug 26 10:11:11 2015 +0200
+
+    Raise the number of FD on WIN32 as well
+    
+    Commit 2c94cdb raised the number of file descriptors from 256 to 512
+    but only for non-WIN32 platforms.
+    
+    The definition of XFD_SETSIZE being duplicated, we need to do the same
+    for WIN32 builds as well otherwise a newer X server trying to
+    use more than 256 clients would fail on that platform.
+    
+    Signed-off-by: Olivier Fourdan <ofourdan@redhat.com>
+    Reviewed-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+
+commit 446ee4b7f7ce1bb75f0f6b23bbb33d4bfe8d7ad3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 26 08:38:54 2015 -0700
+
+    Incorrect guard block in HPkeysym.h
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=91469
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Thomas Klausner <wiz@NetBSD.org>
+
 commit d5524e2b8d811aa03ed19c6e8fb2ee4162ca2b23
 Author: Adam Jackson <ajax@redhat.com>
 Date:   Wed Jul 1 11:35:13 2015 -0400
@@ -1228,7 +1337,7 @@ Date:   Sat Mar 27 16:38:27 2010 -0400
 
     config: remove execute permission on configuration file
     
-    Introduced in commit 	c879dab58f82f4789f27933c22706c84015f8684
+    Introduced in commit    c879dab58f82f4789f27933c22706c84015f8684
     "avoid checking for fds_bits on mingw"
     
     Signed-off-by: Gaetan Nadon <memsize@videotron.ca>

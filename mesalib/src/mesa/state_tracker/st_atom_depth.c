@@ -149,7 +149,8 @@ update_depth_stencil_alpha(struct st_context *st)
       }
    }
 
-   if (ctx->Color.AlphaEnabled) {
+   if (ctx->Color.AlphaEnabled &&
+       !(ctx->DrawBuffer->_IntegerBuffers & 0x1)) {
       dsa->alpha.enabled = 1;
       dsa->alpha.func = st_compare_func_to_pipe(ctx->Color.AlphaFunc);
       dsa->alpha.ref_value = ctx->Color.AlphaRefUnclamped;

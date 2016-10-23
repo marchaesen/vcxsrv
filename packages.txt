@@ -45,29 +45,29 @@ font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
 fontsproto-2.1.3
-freetype-2.6.3
+freetype-2.7
 glproto git version
-inputproto-2.3.1
+inputproto-2.3.2
 kbproto-1.0.7
 libX11 git version
 libXau git version
 libXaw-1.0.13
 libXdmcp git version
 libXext git version
-libXfixes-5.0
+libXfixes-5.0.3
 libXfont2-2.0.1
 libXft git version
 libXinerama git version
 libXmu git version
 libXpm-3.5.11
-libXrender-0.9.9
+libXrender-0.9.10
 libXt-1.1.5
 libfontenc git version
 libxcb git version
 libxkbfile-1.0.8
 mesa git version
 mkfontscale git version
-openssl-1.0.2g
+openssl-1.1.0b
 pixman git version
 presentproto-1.0
 pthreads-w32 cvs version
@@ -91,7 +91,7 @@ xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
 xrdb git version
-xproto-7.0.28
+xproto-7.0.31
 xserver git version
 xtrans git version
 xwininfo git version

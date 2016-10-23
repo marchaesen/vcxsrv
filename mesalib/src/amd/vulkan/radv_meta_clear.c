@@ -320,7 +320,7 @@ destroy_pipeline(struct radv_device *device, struct radv_pipeline *pipeline)
 	if (!pipeline)
 		return;
 
-	RADV_CALL(DestroyPipeline)(radv_device_to_handle(device),
+	radv_DestroyPipeline(radv_device_to_handle(device),
 				   radv_pipeline_to_handle(pipeline),
 				   &device->meta_state.alloc);
 
@@ -329,7 +329,7 @@ destroy_pipeline(struct radv_device *device, struct radv_pipeline *pipeline)
 static void
 destroy_render_pass(struct radv_device *device, VkRenderPass renderpass)
 {
-	RADV_CALL(DestroyRenderPass)(radv_device_to_handle(device), renderpass,
+	radv_DestroyRenderPass(radv_device_to_handle(device), renderpass,
 				     &device->meta_state.alloc);
 }
 
@@ -435,16 +435,16 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	};
 
 
-	RADV_CALL(CmdBindVertexBuffers)(cmd_buffer_h, 0, 1,
+	radv_CmdBindVertexBuffers(cmd_buffer_h, 0, 1,
 					(VkBuffer[]) { radv_buffer_to_handle(&vertex_buffer) },
 					(VkDeviceSize[]) { 0 });
 
 	if (cmd_buffer->state.pipeline != pipeline) {
-		RADV_CALL(CmdBindPipeline)(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
+		radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					   pipeline_h);
 	}
 
-	RADV_CALL(CmdDraw)(cmd_buffer_h, 3, 1, 0, 0);
+	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
 
 	radv_cmd_buffer_set_subpass(cmd_buffer, subpass, false);
 }
@@ -686,11 +686,11 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 	};
 
 	if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
-		RADV_CALL(CmdSetStencilReference)(cmd_buffer_h, VK_STENCIL_FACE_FRONT_BIT,
+		radv_CmdSetStencilReference(cmd_buffer_h, VK_STENCIL_FACE_FRONT_BIT,
 						  clear_value.stencil);
 	}
 
-	RADV_CALL(CmdBindVertexBuffers)(cmd_buffer_h, 0, 1,
+	radv_CmdBindVertexBuffers(cmd_buffer_h, 0, 1,
 					(VkBuffer[]) { radv_buffer_to_handle(&vertex_buffer) },
 					(VkDeviceSize[]) { 0 });
 
@@ -702,14 +702,14 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 								    clear_rect,
 								    clear_value);
 	if (cmd_buffer->state.pipeline != pipeline) {
-		RADV_CALL(CmdBindPipeline)(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
+		radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					   radv_pipeline_to_handle(pipeline));
 	}
 
 	if (depth_view_can_fast_clear(iview, subpass->depth_stencil_attachment.layout, clear_rect))
 		radv_set_depth_clear_regs(cmd_buffer, iview->image, clear_value, aspects);
 
-	RADV_CALL(CmdDraw)(cmd_buffer_h, 3, 1, 0, 0);
+	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
 }
 
 
@@ -1078,7 +1078,7 @@ radv_cmd_clear_image(struct radv_cmd_buffer *cmd_buffer,
 						      &cmd_buffer->pool->alloc,
 						      &pass);
 
-				RADV_CALL(CmdBeginRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer),
+				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 							      &(VkRenderPassBeginInfo) {
 								      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 									      .renderArea = {
@@ -1112,10 +1112,10 @@ radv_cmd_clear_image(struct radv_cmd_buffer *cmd_buffer,
 
 				emit_clear(cmd_buffer, &clear_att, &clear_rect);
 
-				RADV_CALL(CmdEndRenderPass)(radv_cmd_buffer_to_handle(cmd_buffer));
-				RADV_CALL(DestroyRenderPass)(device_h, pass,
+				radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+				radv_DestroyRenderPass(device_h, pass,
 							     &cmd_buffer->pool->alloc);
-				RADV_CALL(DestroyFramebuffer)(device_h, fb,
+				radv_DestroyFramebuffer(device_h, fb,
 							      &cmd_buffer->pool->alloc);
 			}
 		}

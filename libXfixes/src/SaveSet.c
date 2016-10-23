@@ -26,7 +26,7 @@
 #endif
 #include "Xfixesint.h"
 
-void 
+void
 XFixesChangeSaveSet (Display *dpy, Window win, int mode, int target, int map)
 {
     XFixesExtDisplayInfo	*info = XFixesFindDisplay (dpy);

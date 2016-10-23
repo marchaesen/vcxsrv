@@ -124,11 +124,15 @@ static inline void
 u_box_union_2d(struct pipe_box *dst,
                const struct pipe_box *a, const struct pipe_box *b)
 {
-   dst->x = MIN2(a->x, b->x);
-   dst->y = MIN2(a->y, b->y);
+   int x, y;
 
-   dst->width = MAX2(a->x + a->width, b->x + b->width) - dst->x;
-   dst->height = MAX2(a->y + a->height, b->y + b->height) - dst->y;
+   x = MIN2(a->x, b->x);
+   y = MIN2(a->y, b->y);
+
+   dst->width = MAX2(a->x + a->width, b->x + b->width) - x;
+   dst->height = MAX2(a->y + a->height, b->y + b->height) - y;
+   dst->x = x;
+   dst->y = y;
 }
 
 /* Aliasing of @dst permitted. */
@@ -136,13 +140,18 @@ static inline void
 u_box_union_3d(struct pipe_box *dst,
                const struct pipe_box *a, const struct pipe_box *b)
 {
-   dst->x = MIN2(a->x, b->x);
-   dst->y = MIN2(a->y, b->y);
-   dst->z = MIN2(a->z, b->z);
+   int x, y, z;
 
-   dst->width = MAX2(a->x + a->width, b->x + b->width) - dst->x;
-   dst->height = MAX2(a->y + a->height, b->y + b->height) - dst->y;
-   dst->depth = MAX2(a->z + a->depth, b->z + b->depth) - dst->z;
+   x = MIN2(a->x, b->x);
+   y = MIN2(a->y, b->y);
+   z = MIN2(a->z, b->z);
+
+   dst->width = MAX2(a->x + a->width, b->x + b->width) - x;
+   dst->height = MAX2(a->y + a->height, b->y + b->height) - y;
+   dst->depth = MAX2(a->z + a->depth, b->z + b->depth) - z;
+   dst->x = x;
+   dst->y = y;
+   dst->z = z;
 }
 
 static inline boolean

@@ -846,12 +846,10 @@ _mesa_TransformFeedbackVaryings(GLuint program, GLsizei count,
       return;
    }
 
-   shProg = _mesa_lookup_shader_program(ctx, program);
-   if (!shProg) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glTransformFeedbackVaryings(program=%u)", program);
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+                                            "glTransformFeedbackVaryings");
+   if (!shProg)
       return;
-   }
 
    if (ctx->Extensions.ARB_transform_feedback3) {
       if (bufferMode == GL_INTERLEAVED_ATTRIBS) {
@@ -927,12 +925,10 @@ _mesa_GetTransformFeedbackVarying(GLuint program, GLuint index,
    struct gl_program_resource *res;
    GET_CURRENT_CONTEXT(ctx);
 
-   shProg = _mesa_lookup_shader_program(ctx, program);
-   if (!shProg) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glGetTransformFeedbackVarying(program=%u)", program);
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+                                            "glGetTransformFeedbackVarying");
+   if (!shProg)
       return;
-   }
 
    res = _mesa_program_resource_find_index((struct gl_shader_program *) shProg,
                                            GL_TRANSFORM_FEEDBACK_VARYING,

@@ -31,6 +31,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <string.h>
 
 #if defined(_MSC_VER)
 #include <intrin.h>

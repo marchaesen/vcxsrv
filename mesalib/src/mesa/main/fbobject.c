@@ -970,6 +970,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    fb->_AllColorBuffersFixedPoint = GL_TRUE;
    fb->_HasSNormOrFloatColorBuffer = GL_FALSE;
    fb->_HasAttachments = true;
+   fb->_IntegerBuffers = 0;
 
    /* Start at -2 to more easily loop over all attachment points.
     *  -2: depth buffer
@@ -1090,12 +1091,13 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          continue;
       }
 
-      /* check if integer color */
-      fb->_IntegerColor = _mesa_is_format_integer_color(attFormat);
-
-      /* Update _AllColorBuffersFixedPoint and _HasSNormOrFloatColorBuffer. */
+      /* Update flags describing color buffer datatypes */
       if (i >= 0) {
          GLenum type = _mesa_get_format_datatype(attFormat);
+
+         /* check if integer color */
+         if (_mesa_is_format_integer_color(attFormat))
+            fb->_IntegerBuffers |= (1 << i);
 
          fb->_AllColorBuffersFixedPoint =
             fb->_AllColorBuffersFixedPoint &&

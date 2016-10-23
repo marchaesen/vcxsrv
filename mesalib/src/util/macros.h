@@ -229,4 +229,17 @@ do {                       \
 /** Compute ceiling of integer quotient of A divided by B. */
 #define DIV_ROUND_UP( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
 
+/** Clamp X to [MIN,MAX] */
+#define CLAMP( X, MIN, MAX )  ( (X)<(MIN) ? (MIN) : ((X)>(MAX) ? (MAX) : (X)) )
+
+/** Minimum of two values: */
+#define MIN2( A, B )   ( (A)<(B) ? (A) : (B) )
+
+/** Maximum of two values: */
+#define MAX2( A, B )   ( (A)>(B) ? (A) : (B) )
+
+/** Minimum and maximum of three values: */
+#define MIN3( A, B, C ) ((A) < (B) ? MIN2(A, C) : MIN2(B, C))
+#define MAX3( A, B, C ) ((A) > (B) ? MAX2(A, C) : MAX2(B, C))
+
 #endif /* UTIL_MACROS_H */

@@ -945,7 +945,7 @@ _mesa_update_clamp_fragment_color(struct gl_context *ctx,
     * - there is an integer colorbuffer
     */
    if (!drawFb || !drawFb->_HasSNormOrFloatColorBuffer ||
-       drawFb->_IntegerColor)
+       drawFb->_IntegerBuffers)
       ctx->Color._ClampFragmentColor = GL_FALSE;
    else
       ctx->Color._ClampFragmentColor =

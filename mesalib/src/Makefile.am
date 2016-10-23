@@ -115,6 +115,10 @@ if HAVE_INTEL_DRIVERS
 SUBDIRS += intel/tools
 endif
 
+if HAVE_VULKAN_COMMON
+SUBDIRS += vulkan/wsi
+endif
+
 ## Requires the i965 compiler (part of mesa) and wayland-drm
 if HAVE_INTEL_VULKAN
 SUBDIRS += intel/vulkan
@@ -131,7 +135,8 @@ SUBDIRS += gallium
 endif
 
 EXTRA_DIST = \
-	getopt hgl SConscript
+	getopt hgl SConscript \
+	$(top_srcdir)/include/GL/mesa_glinterop.h
 
 AM_CFLAGS = $(VISIBILITY_CFLAGS)
 AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)

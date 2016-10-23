@@ -13,7 +13,7 @@ How to prepare a new release
 
 . README: Update.
 
-. docs/VERSION.DLL: Document changed `version_info'.
+. docs/VERSIONS.TXT: Document changed `version_info'.
 
 . ChangeLog:   Announce  new  release   (both  in  the  freetype2  and
   freetype2-demos modules).

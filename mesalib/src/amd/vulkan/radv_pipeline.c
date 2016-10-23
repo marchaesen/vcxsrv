@@ -73,7 +73,7 @@ VkResult radv_CreateShaderModule(
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
 	assert(pCreateInfo->flags == 0);
 
-	module = radv_alloc2(&device->alloc, pAllocator,
+	module = vk_alloc2(&device->alloc, pAllocator,
 			     sizeof(*module) + pCreateInfo->codeSize, 8,
 			     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (module == NULL)
@@ -101,7 +101,7 @@ void radv_DestroyShaderModule(
 	if (!module)
 		return;
 
-	radv_free2(&device->alloc, pAllocator, module);
+	vk_free2(&device->alloc, pAllocator, module);
 }
 
 void radv_DestroyPipeline(
@@ -119,7 +119,7 @@ void radv_DestroyPipeline(
 		if (pipeline->shaders[i])
 			radv_shader_variant_destroy(device, pipeline->shaders[i]);
 
-	radv_free2(&device->alloc, pAllocator, pipeline);
+	vk_free2(&device->alloc, pAllocator, pipeline);
 }
 
 
@@ -367,7 +367,7 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 	struct radv_shader_variant *variant;
 	nir_shader *nir;
 	void *code = NULL;
-	unsigned code_size;
+	unsigned code_size = 0;
 
 	if (module->nir)
 		_mesa_sha1_compute(module->nir->info.name,
@@ -1302,7 +1302,7 @@ radv_graphics_pipeline_create(
 	struct radv_pipeline *pipeline;
 	VkResult result;
 
-	pipeline = radv_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
+	pipeline = vk_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
 			       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pipeline == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1311,7 +1311,7 @@ radv_graphics_pipeline_create(
 	result = radv_pipeline_init(pipeline, device, cache,
 				    pCreateInfo, extra, pAllocator);
 	if (result != VK_SUCCESS) {
-		radv_free2(&device->alloc, pAllocator, pipeline);
+		vk_free2(&device->alloc, pAllocator, pipeline);
 		return result;
 	}
 
@@ -1361,7 +1361,7 @@ static VkResult radv_compute_pipeline_create(
 	struct radv_pipeline *pipeline;
 	bool dump = getenv("RADV_DUMP_SHADERS");
 
-	pipeline = radv_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
+	pipeline = vk_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
 			       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pipeline == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);

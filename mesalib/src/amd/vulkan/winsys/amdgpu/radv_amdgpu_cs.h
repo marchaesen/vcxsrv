@@ -36,8 +36,8 @@
 #include <amdgpu.h>
 
 #include "radv_radeon_winsys.h"
-
 #include "radv_amdgpu_winsys.h"
+
 struct radv_amdgpu_ctx {
 	struct radv_amdgpu_winsys *ws;
 	amdgpu_context_handle ctx;

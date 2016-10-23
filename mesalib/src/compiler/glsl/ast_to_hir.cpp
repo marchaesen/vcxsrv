@@ -2986,14 +2986,10 @@ validate_interpolation_qualifier(struct _mesa_glsl_parse_state *state,
    if (state->is_version(130, 300)
        && var_type->contains_integer()
        && interpolation != INTERP_MODE_FLAT
-       && ((state->stage == MESA_SHADER_FRAGMENT && mode == ir_var_shader_in)
-           || (state->stage == MESA_SHADER_VERTEX && mode == ir_var_shader_out
-               && state->es_shader))) {
-      const char *shader_var_type = (state->stage == MESA_SHADER_VERTEX) ?
-         "vertex output" : "fragment input";
-      _mesa_glsl_error(loc, state, "if a %s is (or contains) "
-                       "an integer, then it must be qualified with 'flat'",
-                       shader_var_type);
+       && state->stage == MESA_SHADER_FRAGMENT
+       && mode == ir_var_shader_in) {
+      _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
+                       "an integer, then it must be qualified with 'flat'");
    }
 
    /* Double fragment inputs must be qualified with 'flat'.

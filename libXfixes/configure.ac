@@ -32,14 +32,13 @@ AC_PREREQ([2.60])
 # that 'revision' number appears in Xfixes.h and has to be manually
 # synchronized.
 #
-AC_INIT(libXfixes, [5.0],
+AC_INIT(libXfixes, [5.0.3],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXfixes])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
-AM_MAINTAINER_MODE
 
 # Initialize libtool
 AC_PROG_LIBTOOL
@@ -56,7 +55,8 @@ FIXESEXT_VERSION=[`echo $VERSION | sed 's/^\([0-9][0-9]*\.[0-9][0-9]*\).*$/\1/'`
 AC_SUBST(FIXESEXT_VERSION)
 
 # Obtain compiler/linker options for depedencies
-PKG_CHECK_MODULES(FIXESEXT, xproto [fixesproto >= $FIXESEXT_VERSION] xextproto x11)
+PKG_CHECK_MODULES(FIXESEXT, xproto [fixesproto >= $FIXESEXT_VERSION] xextproto [x11 >= 1.6])
+
 
 AC_CONFIG_FILES([Makefile
 		src/Makefile

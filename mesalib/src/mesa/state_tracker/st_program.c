@@ -782,7 +782,6 @@ st_translate_fragment_program(struct st_context *st,
     * Semantics and mapping for outputs
     */
    {
-      uint numColors = 0;
       GLbitfield64 outputsWritten = stfp->Base.Base.OutputsWritten;
 
       /* if z is written, emit that first */
@@ -826,14 +825,24 @@ st_translate_fragment_program(struct st_context *st,
                break;
             case FRAG_RESULT_COLOR:
                write_all = GL_TRUE; /* fallthrough */
-            default:
+            default: {
+               int index;
                assert(loc == FRAG_RESULT_COLOR ||
                       (FRAG_RESULT_DATA0 <= loc && loc < FRAG_RESULT_MAX));
+
+               index = (loc == FRAG_RESULT_COLOR) ? 0 : (loc - FRAG_RESULT_DATA0);
+
+               if (attr >= FRAG_RESULT_MAX) {
+                  /* Secondary color for dual source blending. */
+                  assert(index == 0);
+                  index++;
+               }
+
                fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_COLOR;
-               fs_output_semantic_index[fs_num_outputs] = numColors;
+               fs_output_semantic_index[fs_num_outputs] = index;
                outputMapping[attr] = fs_num_outputs;
-               numColors++;
                break;
+            }
             }
 
             fs_num_outputs++;

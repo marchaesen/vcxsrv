@@ -152,7 +152,7 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
          /* If drawing to integer-valued color buffers, there must be an
           * active fragment shader (GL_EXT_texture_integer).
           */
-         if (ctx->DrawBuffer && ctx->DrawBuffer->_IntegerColor) {
+         if (ctx->DrawBuffer && ctx->DrawBuffer->_IntegerBuffers) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(integer format but no fragment shader)", where);
             return GL_FALSE;

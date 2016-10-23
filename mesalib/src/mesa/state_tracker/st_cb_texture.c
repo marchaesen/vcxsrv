@@ -2860,8 +2860,7 @@ st_ClearTexSubImage(struct gl_context *ctx,
  */
 static void
 st_TexParameter(struct gl_context *ctx,
-                struct gl_texture_object *texObj,
-                GLenum pname, const GLfloat *params)
+                struct gl_texture_object *texObj, GLenum pname)
 {
    struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj = st_texture_object(texObj);

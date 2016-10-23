@@ -32,6 +32,7 @@
 #include "radv_private.h"
 #include "util/strtod.h"
 
+#include <xf86drm.h>
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
 #include "amdgpu_id.h"
@@ -55,12 +56,27 @@ radv_physical_device_init(struct radv_physical_device *device,
 			  const char *path)
 {
 	VkResult result;
+	drmVersionPtr version;
 	int fd;
 
 	fd = open(path, O_RDWR | O_CLOEXEC);
 	if (fd < 0)
 		return vk_errorf(VK_ERROR_INCOMPATIBLE_DRIVER,
 				 "failed to open %s: %m", path);
+
+	version = drmGetVersion(fd);
+	if (!version) {
+		close(fd);
+		return vk_errorf(VK_ERROR_INCOMPATIBLE_DRIVER,
+				 "failed to get version %s: %m", path);
+	}
+
+	if (strcmp(version->name, "amdgpu")) {
+		drmFreeVersion(version);
+		close(fd);
+		return VK_ERROR_INCOMPATIBLE_DRIVER;
+	}
+	drmFreeVersion(version);
 
 	device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	device->instance = instance;
@@ -74,8 +90,10 @@ radv_physical_device_init(struct radv_physical_device *device,
 	}
 	device->ws->query_info(device->ws, &device->rad_info);
 	result = radv_init_wsi(device);
-	if (result != VK_SUCCESS)
+	if (result != VK_SUCCESS) {
+		device->ws->destroy(device->ws);
 		goto fail;
+	}
 
 	fprintf(stderr, "WARNING: radv is not a conformant vulkan implementation, testing use only.\n");
 	device->name = device->rad_info.name;
@@ -185,7 +203,7 @@ VkResult radv_CreateInstance(
 			return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
 	}
 
-	instance = radv_alloc2(&default_alloc, pAllocator, sizeof(*instance), 8,
+	instance = vk_alloc2(&default_alloc, pAllocator, sizeof(*instance), 8,
 			       VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
 	if (!instance)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -225,7 +243,7 @@ void radv_DestroyInstance(
 
 	_mesa_locale_fini();
 
-	radv_free(&instance->alloc, instance);
+	vk_free(&instance->alloc, instance);
 }
 
 VkResult radv_EnumeratePhysicalDevices(
@@ -277,6 +295,8 @@ VkResult radv_EnumeratePhysicalDevices(
 	} else if (*pPhysicalDeviceCount >= 1) {
 		pPhysicalDevices[0] = radv_physical_device_to_handle(&instance->physicalDevice);
 		*pPhysicalDeviceCount = 1;
+	} else if (*pPhysicalDeviceCount < instance->physicalDeviceCount) {
+		return VK_INCOMPLETE;
 	} else {
 		*pPhysicalDeviceCount = 0;
 	}
@@ -574,7 +594,7 @@ VkResult radv_CreateDevice(
 			return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
 	}
 
-	device = radv_alloc2(&physical_device->instance->alloc, pAllocator,
+	device = vk_alloc2(&physical_device->instance->alloc, pAllocator,
 			     sizeof(*device), 8,
 			     VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 	if (!device)
@@ -617,7 +637,7 @@ VkResult radv_CreateDevice(
 	*pDevice = radv_device_to_handle(device);
 	return VK_SUCCESS;
 fail_free:
-	radv_free(&device->alloc, device);
+	vk_free(&device->alloc, device);
 	return result;
 }
 
@@ -631,7 +651,7 @@ void radv_DestroyDevice(
 	radv_queue_finish(&device->queue);
 	radv_device_finish_meta(device);
 
-	radv_free(&device->alloc, device);
+	vk_free(&device->alloc, device);
 }
 
 VkResult radv_EnumerateInstanceExtensionProperties(
@@ -834,7 +854,7 @@ VkResult radv_AllocateMemory(
 		return VK_SUCCESS;
 	}
 
-	mem = radv_alloc2(&device->alloc, pAllocator, sizeof(*mem), 8,
+	mem = vk_alloc2(&device->alloc, pAllocator, sizeof(*mem), 8,
 			  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (mem == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -863,7 +883,7 @@ VkResult radv_AllocateMemory(
 	return VK_SUCCESS;
 
 fail:
-	radv_free2(&device->alloc, pAllocator, mem);
+	vk_free2(&device->alloc, pAllocator, mem);
 
 	return result;
 }
@@ -882,7 +902,7 @@ void radv_FreeMemory(
 	device->ws->buffer_destroy(mem->bo);
 	mem->bo = NULL;
 
-	radv_free2(&device->alloc, pAllocator, mem);
+	vk_free2(&device->alloc, pAllocator, mem);
 }
 
 VkResult radv_MapMemory(
@@ -1056,7 +1076,7 @@ VkResult radv_CreateFence(
 	VkFence*                                    pFence)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	struct radv_fence *fence = radv_alloc2(&device->alloc, pAllocator,
+	struct radv_fence *fence = vk_alloc2(&device->alloc, pAllocator,
 					       sizeof(*fence), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
@@ -1085,7 +1105,7 @@ void radv_DestroyFence(
 	if (!fence)
 		return;
 	device->ws->destroy_fence(fence->fence);
-	radv_free2(&device->alloc, pAllocator, fence);
+	vk_free2(&device->alloc, pAllocator, fence);
 }
 
 static uint64_t radv_get_absolute_timeout(uint64_t timeout)
@@ -1193,7 +1213,7 @@ VkResult radv_CreateEvent(
 	VkEvent*                                    pEvent)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	struct radv_event *event = radv_alloc2(&device->alloc, pAllocator,
+	struct radv_event *event = vk_alloc2(&device->alloc, pAllocator,
 					       sizeof(*event), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
@@ -1204,7 +1224,7 @@ VkResult radv_CreateEvent(
 					      RADEON_DOMAIN_GTT,
 					      RADEON_FLAG_CPU_ACCESS);
 	if (!event->bo) {
-		radv_free2(&device->alloc, pAllocator, event);
+		vk_free2(&device->alloc, pAllocator, event);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
 
@@ -1226,7 +1246,7 @@ void radv_DestroyEvent(
 	if (!event)
 		return;
 	device->ws->buffer_destroy(event->bo);
-	radv_free2(&device->alloc, pAllocator, event);
+	vk_free2(&device->alloc, pAllocator, event);
 }
 
 VkResult radv_GetEventStatus(
@@ -1271,7 +1291,7 @@ VkResult radv_CreateBuffer(
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
 
-	buffer = radv_alloc2(&device->alloc, pAllocator, sizeof(*buffer), 8,
+	buffer = vk_alloc2(&device->alloc, pAllocator, sizeof(*buffer), 8,
 			     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (buffer == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1297,7 +1317,7 @@ void radv_DestroyBuffer(
 	if (!buffer)
 		return;
 
-	radv_free2(&device->alloc, pAllocator, buffer);
+	vk_free2(&device->alloc, pAllocator, buffer);
 }
 
 static inline unsigned
@@ -1582,7 +1602,7 @@ VkResult radv_CreateFramebuffer(
 
 	size_t size = sizeof(*framebuffer) +
 		sizeof(struct radv_attachment_info) * pCreateInfo->attachmentCount;
-	framebuffer = radv_alloc2(&device->alloc, pAllocator, size, 8,
+	framebuffer = vk_alloc2(&device->alloc, pAllocator, size, 8,
 				  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (framebuffer == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1617,7 +1637,7 @@ void radv_DestroyFramebuffer(
 
 	if (!fb)
 		return;
-	radv_free2(&device->alloc, pAllocator, fb);
+	vk_free2(&device->alloc, pAllocator, fb);
 }
 
 static unsigned radv_tex_wrap(VkSamplerAddressMode address_mode)
@@ -1757,7 +1777,7 @@ VkResult radv_CreateSampler(
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
 
-	sampler = radv_alloc2(&device->alloc, pAllocator, sizeof(*sampler), 8,
+	sampler = vk_alloc2(&device->alloc, pAllocator, sizeof(*sampler), 8,
 			      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!sampler)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1778,5 +1798,5 @@ void radv_DestroySampler(
 
 	if (!sampler)
 		return;
-	radv_free2(&device->alloc, pAllocator, sampler);
+	vk_free2(&device->alloc, pAllocator, sampler);
 }

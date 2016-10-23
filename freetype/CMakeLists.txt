@@ -36,11 +36,11 @@
 #
 # For an iOS static library, use
 #
-#   cmake <path-to-freetype2-src-dir> -D IOS_PLATFORM=OS -G Xcode
+#   cmake -D IOS_PLATFORM=OS -G Xcode <path-to-freetype2-src-dir>
 #
 # or
 #
-#   cmake <path-to-freetype2-src-dir> -D IOS_PLATFORM=SIMULATOR -G Xcode
+#   cmake -D IOS_PLATFORM=SIMULATOR -G Xcode <path-to-freetype2-src-dir>
 #
 # Please refer to the cmake manual for further options, in particular, how
 # to modify compilation and linking parameters.
@@ -68,6 +68,11 @@
 #   only if it is available.  Example:
 #
 #     cmake ... -DWITH_ZLIB=ON -DWITH_HarfBuzz=OFF ...
+#
+# . Installation of FreeType can be controlled with the CMake variables
+#   `SKIP_INSTALL_HEADERS', `SKIP_INSTALL_LIBRARIES', and `SKIP_INSTALL_ALL'
+#   (this is compatible with the same CMake variables in zlib's CMake
+#   support).
 
 
 cmake_minimum_required(VERSION 2.6)
@@ -102,7 +107,7 @@ if (APPLE)
     set(BUILD_SHARED_LIBS OFF)
 
     set(CMAKE_TOOLCHAIN_FILE
-      ${PROJECT_SOURCE_DIR}/builds/cmake/iOS.cmake)
+      ${CMAKE_SOURCE_DIR}/builds/cmake/iOS.cmake)
   endif ()
 else ()
   if (DEFINED IOS_PLATFORM)
@@ -148,8 +153,8 @@ endif ()
 
 
 set(VERSION_MAJOR "2")
-set(VERSION_MINOR "6")
-set(VERSION_PATCH "3")
+set(VERSION_MINOR "7")
+set(VERSION_PATCH "0")
 
 set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set(SHARED_LIBRARY_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
@@ -173,7 +178,7 @@ foreach (d ZLIB BZip2 PNG HarfBuzz)
 
   if (${d}_FOUND OR ${D}_FOUND)
     message(STATUS "Building with ${d}")
-  endif()
+  endif ()
 endforeach ()
 
 
@@ -210,14 +215,17 @@ if (UNIX)
   endif ()
   string(REPLACE "/undef " "#undef "
     FTCONFIG_H "${FTCONFIG_H}")
-  file(WRITE "${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h"
+  file(WRITE "${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h-new"
     "${FTCONFIG_H}")
 else ()
   file(READ "${PROJECT_SOURCE_DIR}/include/freetype/config/ftconfig.h"
     FTCONFIG_H)
-  file(WRITE "${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h"
+  file(WRITE "${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h-new"
     "${FTCONFIG_H}")
 endif ()
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  "${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h-new"
+  "${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h")
 
 
 # Create the options file
@@ -246,8 +254,11 @@ if (HARFBUZZ_FOUND)
     "/\\* +(#define +FT_CONFIG_OPTION_USE_HARFBUZZ) +\\*/" "\\1"
     FTOPTION_H "${FTOPTION_H}")
 endif ()
-file(WRITE "${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h"
+file(WRITE "${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h-new"
   "${FTOPTION_H}")
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  "${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h-new"
+  "${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h")
 
 
 # Specify library include directories
@@ -383,28 +394,33 @@ endif ()
 
 # Installations
 # Note the trailing slash in the argument to the `DIRECTORY' directive
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-  DESTINATION include/freetype2
-  PATTERN "internal" EXCLUDE
-  PATTERN "ftconfig.h" EXCLUDE
-  PATTERN "ftoption.h" EXCLUDE
-)
-install(FILES
-  ${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h
-  ${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h
-  DESTINATION include/freetype2/freetype/config
-)
-install(TARGETS freetype
-  EXPORT freetype-targets
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  FRAMEWORK DESTINATION Library/Frameworks
-)
-install(EXPORT freetype-targets
-  DESTINATION lib/cmake/freetype
-  FILE freetype-config.cmake
-)
+if (NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+    DESTINATION include/freetype2
+    PATTERN "internal" EXCLUDE
+    PATTERN "ftconfig.h" EXCLUDE
+    PATTERN "ftoption.h" EXCLUDE
+    )
+  install(FILES
+    ${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h
+    ${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h
+    DESTINATION include/freetype2/freetype/config
+    )
+endif ()
+
+if (NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
+  install(TARGETS freetype
+    EXPORT freetype-targets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    FRAMEWORK DESTINATION Library/Frameworks
+    )
+  install(EXPORT freetype-targets
+    DESTINATION lib/cmake/freetype
+    FILE freetype-config.cmake
+    )
+endif ()
 
 
 # Packaging

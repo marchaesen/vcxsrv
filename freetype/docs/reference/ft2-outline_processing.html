@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.6.3 API Reference</title>
+<title>FreeType-2.7 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.6.3 API Reference</h1>
+<h1>FreeType-2.7 API Reference</h1>
 
 <h1 id="outline_processing">Outline Processing</h1>
 <h2>Synopsis</h2>
@@ -389,9 +389,9 @@
 <p>If you need &lsquo;better&rsquo; metrics values you should call <a href="ft2-outline_processing.html#FT_Outline_Get_CBox">FT_Outline_Get_CBox</a> or <a href="ft2-outline_processing.html#FT_Outline_Get_BBox">FT_Outline_Get_BBox</a>.</p>
 <p>Example call:</p>
 <pre class="colored">
-  FT_Load_Glyph( face, index, FT_LOAD_DEFAULT );                   
-  if ( face-&gt;glyph-&gt;format == FT_GLYPH_FORMAT_OUTLINE )            
-    FT_Outline_Embolden( &amp;face-&gt;glyph-&gt;outline, strength );        
+  FT_Load_Glyph( face, index, FT_LOAD_DEFAULT );
+  if ( face-&gt;glyph-&gt;format == FT_GLYPH_FORMAT_OUTLINE )
+    FT_Outline_Embolden( &amp;face-&gt;glyph-&gt;outline, strength );
 </pre>
 <p>To get meaningful results, font scaling values must be set with functions like <a href="ft2-base_interface.html#FT_Set_Char_Size">FT_Set_Char_Size</a> before calling FT_Render_Glyph.</p>
 
@@ -456,6 +456,9 @@
 
 <h4>return</h4>
 <p>FreeType error code. 0&nbsp;means success.</p>
+
+<h4>note</h4>
+<p>An empty outline, or an outline with a single point only is also valid.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
@@ -640,6 +643,7 @@
 
 <h4>note</h4>
 <p>A contour that contains a single point only is represented by a &lsquo;move to&rsquo; operation followed by &lsquo;line to&rsquo; to the same point. In most cases, it is best to filter this out before using the outline for stroking purposes (otherwise it would result in a visible dot when round caps are used).</p>
+<p>Similarly, the function returns success for an empty outline also (doing nothing, this is, not calling any emitter); if necessary, you should filter this out, too.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
@@ -688,8 +692,8 @@
 <h4>note</h4>
 <p>The point coordinates sent to the emitters are the transformed version of the original coordinates (this is important for high accuracy during scan-conversion). The transformation is simple:</p>
 <pre class="colored">
-  x' = (x &lt;&lt; shift) - delta                                        
-  y' = (x &lt;&lt; shift) - delta                                        
+  x' = (x &lt;&lt; shift) - delta
+  y' = (x &lt;&lt; shift) - delta
 </pre>
 <p>Set the values of &lsquo;shift&rsquo; and &lsquo;delta&rsquo; to&nbsp;0 to get the original point coordinates.</p>
 

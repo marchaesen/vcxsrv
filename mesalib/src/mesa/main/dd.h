@@ -610,10 +610,9 @@ struct dd_function_table {
    /** Set texture environment parameters */
    void (*TexEnv)(struct gl_context *ctx, GLenum target, GLenum pname,
                   const GLfloat *param);
-   /** Set texture parameters */
+   /** Set texture parameter (callee gets param value from the texObj) */
    void (*TexParameter)(struct gl_context *ctx,
-                        struct gl_texture_object *texObj,
-                        GLenum pname, const GLfloat *params);
+                        struct gl_texture_object *texObj, GLenum pname);
    /** Set the viewport */
    void (*Viewport)(struct gl_context *ctx);
    /*@}*/

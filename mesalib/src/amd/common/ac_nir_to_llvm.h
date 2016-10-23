@@ -96,6 +96,23 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
                            const struct ac_nir_compiler_options *options,
 			   bool dump_shader);
 
+/* SHADER ABI defines */
+
+/* offset in dwords */
+#define AC_USERDATA_DESCRIPTOR_SET_0 0
+#define AC_USERDATA_DESCRIPTOR_SET_1 2
+#define AC_USERDATA_DESCRIPTOR_SET_2 4
+#define AC_USERDATA_DESCRIPTOR_SET_3 6
+#define AC_USERDATA_PUSH_CONST_DYN 8
+
+#define AC_USERDATA_VS_VERTEX_BUFFERS 10
+#define AC_USERDATA_VS_BASE_VERTEX 12
+#define AC_USERDATA_VS_START_INSTANCE 13
+
+#define AC_USERDATA_PS_SAMPLE_POS 10
+
+#define AC_USERDATA_CS_GRID_SIZE 10
+
 #ifdef __cplusplus
 extern "C"
 #endif

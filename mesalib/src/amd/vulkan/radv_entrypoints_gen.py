@@ -125,15 +125,9 @@ if opt_header:
     print "   };\n"
     print "};\n"
 
-    print "void radv_set_dispatch_devinfo(const struct radv_device_info *info);\n"
-
     for type, name, args, num, h in entrypoints:
         print_guard_start(name)
         print "%s radv_%s%s;" % (type, name, args)
-        print "%s vi_%s%s;" % (type, name, args)
-        print "%s cik_%s%s;" % (type, name, args)
-        print "%s si_%s%s;" % (type, name, args)
-        print "%s radv_validate_%s%s;" % (type, name, args)
         print_guard_end(name)
     exit()
 
@@ -186,7 +180,7 @@ for type, name, args, num, h in entrypoints:
     i += 2 + len(name) + 1
 print "   ;"
 
-# Now generate the table of all entry points and their validation functions
+# Now generate the table of all entry points
 
 print "\nstatic const struct radv_entrypoint entrypoints[] = {"
 for type, name, args, num, h in entrypoints:
@@ -201,7 +195,7 @@ print """
  */
 """
 
-for layer in [ "radv", "validate", "si", "cik", "vi" ]:
+for layer in [ "radv" ]:
     for type, name, args, num, h in entrypoints:
         print_guard_start(name)
         print "%s %s_%s%s __attribute__ ((weak));" % (type, layer, name, args)
@@ -214,63 +208,11 @@ for layer in [ "radv", "validate", "si", "cik", "vi" ]:
     print "};\n"
 
 print """
-#ifdef DEBUG
-static bool enable_validate = true;
-#else
-static bool enable_validate = false;
-#endif
-
-/* We can't use symbols that need resolving (like, oh, getenv) in the resolve
- * function. This means that we have to determine whether or not to use the
- * validation layer sometime before that. The constructor function attribute asks
- * the dynamic linker to invoke determine_validate() at dlopen() time which
- * works.
- */
-static void __attribute__ ((constructor))
-determine_validate(void)
-{
-   const char *s = getenv("ANV_VALIDATE");
-
-   if (s)
-      enable_validate = atoi(s);
-}
-
-static const struct radv_device_info *dispatch_devinfo;
-
-void
-radv_set_dispatch_devinfo(const struct radv_device_info *devinfo)
-{
-   dispatch_devinfo = devinfo;
-}
 
 void * __attribute__ ((noinline))
 radv_resolve_entrypoint(uint32_t index)
 {
-   if (enable_validate && validate_layer.entrypoints[index])
-      return validate_layer.entrypoints[index];
-
-   if (dispatch_devinfo == NULL) {
-      return radv_layer.entrypoints[index];
-   }
-
-   switch (dispatch_devinfo->chip_class) {
-   case VI:
-      if (vi_layer.entrypoints[index])
-         return vi_layer.entrypoints[index];
-      /* fall through */
-   case CIK:
-      if (cik_layer.entrypoints[index])
-         return cik_layer.entrypoints[index];
-      /* fall through */
-   case SI:
-      if (si_layer.entrypoints[index])
-         return si_layer.entrypoints[index];
-      /* fall through */
-   case 0:
-      return radv_layer.entrypoints[index];
-   default:
-      unreachable("unsupported gen\\n");
-   }
+   return radv_layer.entrypoints[index];
 }
 """
 

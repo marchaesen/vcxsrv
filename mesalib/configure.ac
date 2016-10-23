@@ -79,7 +79,6 @@ LIBDRM_VC4_REQUIRED=2.4.69
 DRI2PROTO_REQUIRED=2.6
 DRI3PROTO_REQUIRED=1.0
 PRESENTPROTO_REQUIRED=1.0
-LIBUDEV_REQUIRED=151
 GLPROTO_REQUIRED=1.4.14
 LIBOMXIL_BELLAGIO_REQUIRED=0.0
 LIBVA_REQUIRED=0.38.0
@@ -956,9 +955,16 @@ AC_ARG_ENABLE([xa],
     [enable_xa=no])
 AC_ARG_ENABLE([gbm],
    [AS_HELP_STRING([--enable-gbm],
-         [enable gbm library @<:@default=auto@:>@])],
+         [enable gbm library @<:@default=yes except cygwin@:>@])],
    [enable_gbm="$enableval"],
-   [enable_gbm=auto])
+   [case "$host_os" in
+       cygwin*)
+          enable_gbm=no
+          ;;
+       *)
+          enable_gbm=yes
+          ;;
+    esac])
 AC_ARG_ENABLE([nine],
     [AS_HELP_STRING([--enable-nine],
         [enable build of the nine Direct3D9 API @<:@default=no@:>@])],
@@ -1140,6 +1146,13 @@ PKG_CHECK_MODULES([LIBDRM], [libdrm >= $LIBDRM_REQUIRED],
 if test "x$have_libdrm" = xyes; then
 	DEFINES="$DEFINES -DHAVE_LIBDRM"
 fi
+
+require_libdrm() {
+    if test "x$have_libdrm" != xyes; then
+       AC_MSG_ERROR([$1 requires libdrm >= $LIBDRM_REQUIRED])
+    fi
+}
+
 
 # Select which platform-dependent DRI code gets built
 case "$host_os" in
@@ -1350,23 +1363,6 @@ if test "x$enable_shader_cache" = "xyes"; then
    AC_DEFINE([ENABLE_SHADER_CACHE], [1], [Enable shader cache])
 fi
 
-case "$host_os" in
-linux*)
-    need_pci_id=yes ;;
-*)
-    need_pci_id=no ;;
-esac
-
-PKG_CHECK_MODULES([LIBUDEV], [libudev >= $LIBUDEV_REQUIRED],
-                  have_libudev=yes, have_libudev=no)
-
-AC_ARG_ENABLE([sysfs],
-    [AS_HELP_STRING([--enable-sysfs],
-        [enable /sys PCI identification @<:@default=disabled@:>@])],
-    [have_sysfs="$enableval"],
-    [have_sysfs=no]
-)
-
 if test "x$enable_dri" = xyes; then
     if test "$enable_static" = yes; then
         AC_MSG_ERROR([Cannot use static libraries for DRI drivers])
@@ -1409,9 +1405,7 @@ xdri)
     if test x"$driglx_direct" = xyes; then
         if test x"$dri_platform" = xdrm ; then
             DEFINES="$DEFINES -DGLX_USE_DRM"
-            if test "x$have_libdrm" != xyes; then
-               AC_MSG_ERROR([Direct rendering requires libdrm >= $LIBDRM_REQUIRED])
-            fi
+            require_libdrm "Direct rendering"
 
             PKG_CHECK_MODULES([DRI2PROTO], [dri2proto >= $DRI2PROTO_REQUIRED])
             GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV libdrm >= $LIBDRM_REQUIRED"
@@ -1454,17 +1448,6 @@ xdri)
     GL_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
     ;;
 esac
-
-have_pci_id=no
-if test "$have_libudev" = yes; then
-    DEFINES="$DEFINES -DHAVE_LIBUDEV"
-    have_pci_id=yes
-fi
-
-if test "$have_sysfs" = yes; then
-    DEFINES="$DEFINES -DHAVE_SYSFS"
-    have_pci_id=yes
-fi
 
 # This is outside the case (above) so that it is invoked even for non-GLX
 # builds.
@@ -1572,10 +1555,6 @@ if test "x$enable_dri" = xyes; then
         DEFINES="$DEFINES -DHAVE_ALIAS"
         if test "x$enable_dri3" = xyes; then
             DEFINES="$DEFINES -DHAVE_DRI3"
-        fi
-
-        if test "x$have_pci_id" != xyes; then
-            AC_MSG_ERROR([libudev-dev or sysfs required for building DRI])
         fi
 
         case "$host_cpu" in
@@ -1695,13 +1674,6 @@ AC_ARG_WITH([vulkan-icddir],
     [VULKAN_ICD_INSTALL_DIR='${datarootdir}/vulkan/icd.d'])
 AC_SUBST([VULKAN_ICD_INSTALL_DIR])
 
-AC_ARG_ENABLE([vulkan-icd-full-driver-path],
-   [AS_HELP_STRING([--disable-vulkan-icd-full-driver-path],
-                   [create Vulkan ICD files with just a .so name and no path])],
-   [vulkan_icd_driver_path="$enableval"],
-   [vulkan_icd_driver_path="yes"])
-AM_CONDITIONAL(VULKAN_ICD_DRIVER_PATH, test "x$vulkan_icd_driver_path" = xyes)
-
 if test -n "$with_vulkan_drivers"; then
     VULKAN_DRIVERS=`IFS=', '; echo $with_vulkan_drivers`
     for driver in $VULKAN_DRIVERS; do
@@ -1783,19 +1755,7 @@ AC_SUBST([OSMESA_PC_LIB_PRIV])
 dnl
 dnl gbm configuration
 dnl
-if test "x$enable_gbm" = xauto; then
-    case "$with_egl_platforms" in
-        *drm*)
-            enable_gbm=yes ;;
-         *)
-            enable_gbm=no ;;
-    esac
-fi
 if test "x$enable_gbm" = xyes; then
-    if test "x$need_pci_id$have_pci_id" = xyesno; then
-        AC_MSG_ERROR([gbm requires udev >= $LIBUDEV_REQUIRED or sysfs])
-    fi
-
     if test "x$enable_dri" = xyes; then
         if test "x$enable_shared_glapi" = xno; then
             AC_MSG_ERROR([gbm_dri requires --enable-shared-glapi])
@@ -1810,11 +1770,8 @@ if test "x$enable_gbm" = xyes; then
     fi
 fi
 AM_CONDITIONAL(HAVE_GBM, test "x$enable_gbm" = xyes)
-if test "x$need_pci_id$have_libudev" = xyesyes; then
-    GBM_PC_REQ_PRIV="libudev >= $LIBUDEV_REQUIRED"
-else
-    GBM_PC_REQ_PRIV=""
-fi
+# FINISHME: GBM has a number of dependencies which we should add below
+GBM_PC_REQ_PRIV=""
 GBM_PC_LIB_PRIV="$DLOPEN_LIBS"
 AC_SUBST([GBM_PC_REQ_PRIV])
 AC_SUBST([GBM_PC_LIB_PRIV])
@@ -2053,9 +2010,13 @@ AC_ARG_WITH([egl-platforms],
         "x11,drm" @<:@default=auto@:>@])],
     [with_egl_platforms="$withval"],
     [if test "x$enable_egl" = xyes; then
-	with_egl_platforms="x11"
+        if test "x$enable_gbm" = xyes; then
+           with_egl_platforms="x11,drm"
+        else
+           with_egl_platforms="x11"
+        fi
     else
-	with_egl_platforms=""
+        with_egl_platforms=""
     fi])
 
 if test "x$with_egl_platforms" != "x" -a "x$enable_egl" != xyes; then
@@ -2074,8 +2035,6 @@ egl_platforms=`IFS=', '; echo $with_egl_platforms`
 for plat in $egl_platforms; do
 	case "$plat" in
 	wayland)
-		test "x$have_libdrm" != xyes &&
-			AC_MSG_ERROR([EGL platform wayland requires libdrm >= $LIBDRM_REQUIRED])
 
 		PKG_CHECK_MODULES([WAYLAND], [wayland-client >= $WAYLAND_REQUIRED wayland-server >= $WAYLAND_REQUIRED])
 
@@ -2091,13 +2050,9 @@ for plat in $egl_platforms; do
 	drm)
 		test "x$enable_gbm" = "xno" &&
 			AC_MSG_ERROR([EGL platform drm needs gbm])
-		test "x$have_libdrm" != xyes &&
-			AC_MSG_ERROR([EGL platform drm requires libdrm >= $LIBDRM_REQUIRED])
 		;;
 
 	surfaceless)
-		test "x$have_libdrm" != xyes &&
-			AC_MSG_ERROR([EGL platform surfaceless requires libdrm >= $LIBDRM_REQUIRED])
 		;;
 
 	android)
@@ -2108,10 +2063,11 @@ for plat in $egl_platforms; do
 		;;
 	esac
 
-        case "$plat$need_pci_id$have_pci_id" in
-                waylandyesno|drmyesno)
-                    AC_MSG_ERROR([cannot build $plat platform without udev >= $LIBUDEV_REQUIRED or sysfs]) ;;
-        esac
+	case "$plat" in
+	wayland|drm|surfaceless)
+		require_libdrm "Platform $plat"
+		;;
+	esac
 done
 
 # libEGL wants to default to the first platform specified in
@@ -2331,24 +2287,12 @@ AC_SUBST([D3D_DRIVER_INSTALL_DIR])
 dnl
 dnl Gallium helper functions
 dnl
-gallium_require_drm() {
-    if test "x$have_libdrm" != xyes; then
-       AC_MSG_ERROR([$1 requires libdrm >= $LIBDRM_REQUIRED])
-    fi
-}
-
 gallium_require_llvm() {
     if test "x$MESA_LLVM" = x0; then
         case "$host" in *gnux32) return;; esac
         case "$host_cpu" in
         i*86|x86_64|amd64) AC_MSG_ERROR([LLVM is required to build $1 on x86 and x86_64]);;
         esac
-    fi
-}
-
-gallium_require_drm_loader() {
-    if test "x$need_pci_id$have_pci_id" = xyesno; then
-        AC_MSG_ERROR([Gallium drm loader requires libudev >= $LIBUDEV_REQUIRED or sysfs])
     fi
 }
 
@@ -2450,33 +2394,28 @@ if test -n "$with_gallium_drivers"; then
         case "x$driver" in
         xsvga)
             HAVE_GALLIUM_SVGA=yes
-            gallium_require_drm "svga"
-            gallium_require_drm_loader
+            require_libdrm "svga"
             ;;
         xi915)
             HAVE_GALLIUM_I915=yes
             PKG_CHECK_MODULES([INTEL], [libdrm_intel >= $LIBDRM_INTEL_REQUIRED])
-            gallium_require_drm "Gallium i915"
-            gallium_require_drm_loader
+            require_libdrm "Gallium i915"
             ;;
         xilo)
             HAVE_GALLIUM_ILO=yes
             PKG_CHECK_MODULES([INTEL], [libdrm_intel >= $LIBDRM_INTEL_REQUIRED])
-            gallium_require_drm "Gallium i965/ilo"
-            gallium_require_drm_loader
+            require_libdrm "Gallium i965/ilo"
             ;;
         xr300)
             HAVE_GALLIUM_R300=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
-            gallium_require_drm "Gallium R300"
-            gallium_require_drm_loader
+            require_libdrm "Gallium R300"
             gallium_require_llvm "Gallium R300"
             ;;
         xr600)
             HAVE_GALLIUM_R600=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
-            gallium_require_drm "Gallium R600"
-            gallium_require_drm_loader
+            require_libdrm "Gallium R600"
             if test "x$enable_opencl" = xyes; then
                 radeon_gallium_llvm_check "r600g" "3" "6" "0"
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
@@ -2486,22 +2425,19 @@ if test -n "$with_gallium_drivers"; then
             HAVE_GALLIUM_RADEONSI=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
-            gallium_require_drm "radeonsi"
-            gallium_require_drm_loader
+            require_libdrm "radeonsi"
             radeon_gallium_llvm_check "radeonsi" "3" "6" "0"
             require_egl_drm "radeonsi"
             ;;
         xnouveau)
             HAVE_GALLIUM_NOUVEAU=yes
             PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])
-            gallium_require_drm "nouveau"
-            gallium_require_drm_loader
+            require_libdrm "nouveau"
             ;;
         xfreedreno)
             HAVE_GALLIUM_FREEDRENO=yes
             PKG_CHECK_MODULES([FREEDRENO], [libdrm_freedreno >= $LIBDRM_FREEDRENO_REQUIRED])
-            gallium_require_drm "freedreno"
-            gallium_require_drm_loader
+            require_libdrm "freedreno"
             ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
@@ -2532,8 +2468,7 @@ if test -n "$with_gallium_drivers"; then
         xvc4)
             HAVE_GALLIUM_VC4=yes
             PKG_CHECK_MODULES([VC4], [libdrm_vc4 >= $LIBDRM_VC4_REQUIRED])
-            gallium_require_drm "vc4"
-            gallium_require_drm_loader
+            require_libdrm "vc4"
 
             PKG_CHECK_MODULES([SIMPENROSE], [simpenrose],
                               [USE_VC4_SIMULATOR=yes;
@@ -2542,8 +2477,7 @@ if test -n "$with_gallium_drivers"; then
             ;;
         xvirgl)
             HAVE_GALLIUM_VIRGL=yes
-            gallium_require_drm "virgl"
-            gallium_require_drm_loader
+            require_libdrm "virgl"
             require_egl_drm "virgl"
             ;;
         *)
@@ -2692,6 +2626,8 @@ VA_MAJOR=`$PKG_CONFIG --modversion libva | $SED -n 's/\([[^\.]]*\)\..*$/\1/p'`
 VA_MINOR=`$PKG_CONFIG --modversion libva | $SED -n 's/.*\.\(.*\)\..*$/\1/p'`
 AC_SUBST([VA_MAJOR], $VA_MAJOR)
 AC_SUBST([VA_MINOR], $VA_MINOR)
+
+AM_CONDITIONAL(HAVE_VULKAN_COMMON, test "x$VULKAN_DRIVERS" != "x")
 
 AC_SUBST([XVMC_MAJOR], 1)
 AC_SUBST([XVMC_MINOR], 0)
@@ -2851,7 +2787,8 @@ AC_CONFIG_FILES([Makefile
 		src/mesa/drivers/x11/Makefile
 		src/mesa/main/tests/Makefile
 		src/util/Makefile
-		src/util/tests/hash_table/Makefile])
+		src/util/tests/hash_table/Makefile
+		src/vulkan/wsi/Makefile])
 
 AC_OUTPUT
 
@@ -2928,6 +2865,11 @@ if test "$enable_egl" = yes; then
     fi
 
     echo "        EGL drivers:    $egl_drivers"
+fi
+if test "x$enable_gbm" = xyes; then
+    echo "        GBM:             yes"
+else
+    echo "        GBM:             no"
 fi
 
 # Vulkan

@@ -205,8 +205,19 @@ st_draw_vbo(struct gl_context *ctx,
       /* The VBO module handles restart for the non-indexed GLDrawArrays
        * so we only set these fields for indexed drawing:
        */
-      info.primitive_restart = ctx->Array._PrimitiveRestart;
-      info.restart_index = _mesa_primitive_restart_index(ctx, ib->type);
+      if (ctx->Array._PrimitiveRestart) {
+         info.restart_index = _mesa_primitive_restart_index(ctx, ib->type);
+
+         /* Enable primitive restart only when the restart index can have an
+          * effect. This is required for correctness in radeonsi VI support,
+          * though other hardware may also benefit from taking a faster,
+          * non-restart path when possible.
+          */
+         if ((ibuffer.index_size >= 4) ||
+             (ibuffer.index_size >= 2 && info.restart_index <= 0xffff) ||
+             (info.restart_index <= 0xff))
+            info.primitive_restart = true;
+      }
    }
    else {
       /* Transform feedback drawing is always non-indexed. */

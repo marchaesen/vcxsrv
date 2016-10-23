@@ -45,7 +45,7 @@ VkResult radv_CreateDescriptorSetLayout(
 	uint32_t max_binding = 0;
 	uint32_t immutable_sampler_count = 0;
 	for (uint32_t j = 0; j < pCreateInfo->bindingCount; j++) {
-		max_binding = MAX(max_binding, pCreateInfo->pBindings[j].binding);
+		max_binding = MAX2(max_binding, pCreateInfo->pBindings[j].binding);
 		if (pCreateInfo->pBindings[j].pImmutableSamplers)
 			immutable_sampler_count += pCreateInfo->pBindings[j].descriptorCount;
 	}
@@ -54,7 +54,7 @@ VkResult radv_CreateDescriptorSetLayout(
 		(max_binding + 1) * sizeof(set_layout->binding[0]) +
 		immutable_sampler_count * sizeof(struct radv_sampler *);
 
-	set_layout = radv_alloc2(&device->alloc, pAllocator, size, 8,
+	set_layout = vk_alloc2(&device->alloc, pAllocator, size, 8,
 				 VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!set_layout)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -113,6 +113,7 @@ VkResult radv_CreateDescriptorSetLayout(
 			alignment = 16;
 			break;
 		default:
+			unreachable("unknown descriptor type\n");
 			break;
 		}
 
@@ -163,7 +164,7 @@ void radv_DestroyDescriptorSetLayout(
 	if (!set_layout)
 		return;
 
-	radv_free2(&device->alloc, pAllocator, set_layout);
+	vk_free2(&device->alloc, pAllocator, set_layout);
 }
 
 /*
@@ -183,7 +184,7 @@ VkResult radv_CreatePipelineLayout(
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
 
-	layout = radv_alloc2(&device->alloc, pAllocator, sizeof(*layout), 8,
+	layout = vk_alloc2(&device->alloc, pAllocator, sizeof(*layout), 8,
 			     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (layout == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -234,7 +235,7 @@ void radv_DestroyPipelineLayout(
 
 	if (!pipeline_layout)
 		return;
-	radv_free2(&device->alloc, pAllocator, pipeline_layout);
+	vk_free2(&device->alloc, pAllocator, pipeline_layout);
 }
 
 #define EMPTY 1
@@ -249,7 +250,7 @@ radv_descriptor_set_create(struct radv_device *device,
 	struct radv_descriptor_set *set;
 	unsigned mem_size = sizeof(struct radv_descriptor_set) +
 		sizeof(struct radeon_winsys_bo *) * layout->buffer_count;
-	set = radv_alloc2(&device->alloc, NULL, mem_size, 8,
+	set = vk_alloc2(&device->alloc, NULL, mem_size, 8,
 			  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
 	if (!set)
@@ -260,11 +261,11 @@ radv_descriptor_set_create(struct radv_device *device,
 	if (layout->dynamic_offset_count) {
 		unsigned size = sizeof(struct radv_descriptor_range) *
 		                layout->dynamic_offset_count;
-		set->dynamic_descriptors = radv_alloc2(&device->alloc, NULL, size, 8,
+		set->dynamic_descriptors = vk_alloc2(&device->alloc, NULL, size, 8,
 			                               VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
 		if (!set->dynamic_descriptors) {
-			radv_free2(&device->alloc, NULL, set);
+			vk_free2(&device->alloc, NULL, set);
 			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 	}
@@ -296,7 +297,7 @@ radv_descriptor_set_create(struct radv_device *device,
 				}
 
 				if (entry < 0) {
-					radv_free2(&device->alloc, NULL, set);
+					vk_free2(&device->alloc, NULL, set);
 					return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 				}
 				offset = pool->free_nodes[entry].offset;
@@ -312,8 +313,8 @@ radv_descriptor_set_create(struct radv_device *device,
 			if (!radv_cmd_buffer_upload_alloc(cmd_buffer, set->size, 32,
 							  &bo_offset,
 							  (void**)&set->mapped_ptr)) {
-				radv_free2(&device->alloc, NULL, set->dynamic_descriptors);
-				radv_free2(&device->alloc, NULL, set);
+				vk_free2(&device->alloc, NULL, set->dynamic_descriptors);
+				vk_free2(&device->alloc, NULL, set);
 				return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 			}
 
@@ -363,10 +364,10 @@ radv_descriptor_set_destroy(struct radv_device *device,
 		pool->full_list = next;
 	}
 	if (set->dynamic_descriptors)
-		radv_free2(&device->alloc, NULL, set->dynamic_descriptors);
+		vk_free2(&device->alloc, NULL, set->dynamic_descriptors);
 	if (!list_empty(&set->descriptor_pool))
 		list_del(&set->descriptor_pool);
-	radv_free2(&device->alloc, NULL, set);
+	vk_free2(&device->alloc, NULL, set);
 }
 
 VkResult
@@ -405,7 +406,7 @@ VkResult radv_CreateDescriptorPool(
 	int size = sizeof(struct radv_descriptor_pool) +
 	           max_sets * sizeof(struct radv_descriptor_pool_free_node);
 	uint64_t bo_size = 0;
-	pool = radv_alloc2(&device->alloc, pAllocator, size, 8,
+	pool = vk_alloc2(&device->alloc, pAllocator, size, 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!pool)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -477,7 +478,7 @@ void radv_DestroyDescriptorPool(
 
 	if (pool->bo)
 		device->ws->buffer_destroy(pool->bo);
-	radv_free2(&device->alloc, pAllocator, pool);
+	vk_free2(&device->alloc, pAllocator, pool);
 }
 
 VkResult radv_ResetDescriptorPool(
