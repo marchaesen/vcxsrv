@@ -39,7 +39,7 @@ if [[ ! -d "release32" ]]; then
 fi
 cd release32
 
-PERL=perl perl Configure VC-WIN32 --release
+PERL=perl perl ../Configure VC-WIN32 --release
 check-error 'Error executing perl'
 else
 
@@ -48,7 +48,7 @@ if [[ ! -d "release64" ]]; then
 fi
 cd release64
 
-PERL=perl perl Configure VC-WIN64A --release
+PERL=perl perl ../Configure VC-WIN64A --release
 check-error 'Error executing perl'
 fi
 
@@ -64,7 +64,7 @@ if [[ ! -d "debug32" ]]; then
 fi
 cd debug32
 
-PERL=perl perl Configure VC-WIN32 --debug
+PERL=perl perl ../Configure VC-WIN32 --debug
 check-error 'Error executing perl'
 else
 
@@ -73,7 +73,7 @@ if [[ ! -d "debug64" ]]; then
 fi
 cd debug64
 
-PERL=perl perl Configure VC-WIN64A --debug
+PERL=perl perl ../Configure VC-WIN64A --debug
 check-error 'Error executing perl'
 fi
 
