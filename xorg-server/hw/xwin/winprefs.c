@@ -695,8 +695,8 @@ LoadPreferences(void)
     home = getenv("HOME");
     if (home) {
         strcpy(fname, home);
-        if (fname[strlen(fname) - 1] != '/')
-            strcat(fname, "/");
+        if (fname[strlen(fname) - 1] != '\\')
+            strcat(fname, "\\");
         strcat(fname, ".XWinrc");
         parsed = winPrefsLoadPreferences(fname);
     }
