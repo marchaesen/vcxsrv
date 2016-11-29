@@ -14,10 +14,10 @@ build_nir_itob_compute_shader(struct radv_device *dev)
 							     false,
 							     GLSL_TYPE_FLOAT);
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_itob_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
-	b.shader->info.cs.local_size[2] = 1;
+	b.shader->info->name = ralloc_strdup(b.shader, "meta_itob_cs");
+	b.shader->info->cs.local_size[0] = 16;
+	b.shader->info->cs.local_size[1] = 16;
+	b.shader->info->cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      sampler_type, "s_tex");
 	input_img->data.descriptor_set = 0;
@@ -31,9 +31,9 @@ build_nir_itob_compute_shader(struct radv_device *dev)
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info.cs.local_size[0],
-						b.shader->info.cs.local_size[1],
-						b.shader->info.cs.local_size[2], 0);
+						b.shader->info->cs.local_size[0],
+						b.shader->info->cs.local_size[1],
+						b.shader->info->cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 

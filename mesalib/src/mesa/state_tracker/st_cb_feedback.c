@@ -292,7 +292,7 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
       vbo_set_draw_func(ctx, st_feedback_draw_vbo);
    }
    else {
-      struct gl_vertex_program *vp = st->ctx->VertexProgram._Current;
+      struct gl_program *vp = st->ctx->VertexProgram._Current;
 
       if (!st->feedback_stage)
          st->feedback_stage = draw_glfeedback_stage(ctx, draw);

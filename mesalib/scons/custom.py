@@ -281,7 +281,7 @@ def parse_source_list(env, filename, names=None):
                     # cause duplicate actions.
                     f = f[len(cur_srcdir + '/'):]
                 # do not include any headers
-                if f.endswith('.h'):
+                if f.endswith(tuple(['.h','.hpp'])):
                     continue
                 srcs.append(f)
 

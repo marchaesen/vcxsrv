@@ -1,6 +1,7 @@
 
 VULKAN_WSI_FILES := \
-	wsi_common.h
+	wsi_common.h \
+	wsi_common_queue.h
 
 VULKAN_WSI_WAYLAND_FILES := \
 	wsi_common_wayland.c \

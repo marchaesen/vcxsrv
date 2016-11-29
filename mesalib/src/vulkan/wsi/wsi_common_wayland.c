@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "wsi_common_wayland.h"
 
@@ -40,8 +41,6 @@
    static_assert(sizeof(*src) == sizeof(*dest), ""); \
    memcpy((dest), (src), (count) * sizeof(*(src))); \
 })
-
-#define MIN_NUM_IMAGES 2
 
 struct wsi_wayland;
 
@@ -321,6 +320,8 @@ wsi_wl_get_display(struct wsi_device *wsi_device,
       pthread_mutex_unlock(&wsi->mutex);
 
       struct wsi_wl_display *display = wsi_wl_display_create(wsi, wl_display);
+      if (!display)
+         return NULL;
 
       pthread_mutex_lock(&wsi->mutex);
 
@@ -366,8 +367,16 @@ static VkResult
 wsi_wl_surface_get_capabilities(VkIcdSurfaceBase *surface,
                                 VkSurfaceCapabilitiesKHR* caps)
 {
-   caps->minImageCount = MIN_NUM_IMAGES;
-   caps->maxImageCount = 4;
+   /* For true mailbox mode, we need at least 4 images:
+    *  1) One to scan out from
+    *  2) One to have queued for scan-out
+    *  3) One to be currently held by the Wayland compositor
+    *  4) One to render to
+    */
+   caps->minImageCount = 4;
+   /* There is no real maximum */
+   caps->maxImageCount = 0;
+
    caps->currentExtent = (VkExtent2D) { -1, -1 };
    caps->minImageExtent = (VkExtent2D) { 1, 1 };
    caps->maxImageExtent = (VkExtent2D) { INT16_MAX, INT16_MAX };
@@ -397,6 +406,8 @@ wsi_wl_surface_get_formats(VkIcdSurfaceBase *icd_surface,
    VkIcdSurfaceWayland *surface = (VkIcdSurfaceWayland *)icd_surface;
    struct wsi_wl_display *display =
       wsi_wl_get_display(wsi_device, surface->display);
+   if (!display)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    uint32_t count = u_vector_length(&display->formats);
 
@@ -487,19 +498,25 @@ wsi_wl_swapchain_get_images(struct wsi_swapchain *wsi_chain,
                             uint32_t *pCount, VkImage *pSwapchainImages)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
+   uint32_t ret_count;
+   VkResult result;
 
    if (pSwapchainImages == NULL) {
       *pCount = chain->image_count;
       return VK_SUCCESS;
    }
 
-   assert(chain->image_count <= *pCount);
-   for (uint32_t i = 0; i < chain->image_count; i++)
+   result = VK_SUCCESS;
+   ret_count = chain->image_count;
+   if (chain->image_count > *pCount) {
+     ret_count = *pCount;
+     result = VK_INCOMPLETE;
+   }
+
+   for (uint32_t i = 0; i < ret_count; i++)
       pSwapchainImages[i] = chain->images[i].image;
 
-   *pCount = chain->image_count;
-
-   return VK_SUCCESS;
+   return result;
 }
 
 static VkResult
@@ -559,7 +576,7 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
 
-   if (chain->present_mode == VK_PRESENT_MODE_FIFO_KHR) {
+   if (chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR) {
       while (!chain->fifo_ready) {
          int ret = wl_display_dispatch_queue(chain->display->display,
                                              chain->queue);
@@ -572,7 +589,7 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
    wl_surface_attach(chain->surface, chain->images[image_index].buffer, 0, 0);
    wl_surface_damage(chain->surface, 0, 0, INT32_MAX, INT32_MAX);
 
-   if (chain->present_mode == VK_PRESENT_MODE_FIFO_KHR) {
+   if (chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR) {
       struct wl_callback *frame = wl_surface_frame(chain->surface);
       wl_proxy_set_queue((struct wl_proxy *)frame, chain->queue);
       wl_callback_add_listener(frame, &frame_listener, chain);
@@ -685,22 +702,14 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 
    int num_images = pCreateInfo->minImageCount;
 
-   assert(num_images >= MIN_NUM_IMAGES);
-
-   /* For true mailbox mode, we need at least 4 images:
-    *  1) One to scan out from
-    *  2) One to have queued for scan-out
-    *  3) One to be currently held by the Wayland compositor
-    *  4) One to render to
-    */
-   if (pCreateInfo->presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-      num_images = MAX2(num_images, 4);
-
    size_t size = sizeof(*chain) + num_images * sizeof(chain->images[0]);
    chain = vk_alloc(pAllocator, size, 8,
                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (chain == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   bool alpha = pCreateInfo->compositeAlpha ==
+                      VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
 
    chain->base.device = device;
    chain->base.destroy = wsi_wl_swapchain_destroy;
@@ -708,12 +717,12 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->base.acquire_next_image = wsi_wl_swapchain_acquire_next_image;
    chain->base.queue_present = wsi_wl_swapchain_queue_present;
    chain->base.image_fns = image_fns;
+   chain->base.present_mode = pCreateInfo->presentMode;
    chain->surface = surface->surface;
    chain->extent = pCreateInfo->imageExtent;
    chain->vk_format = pCreateInfo->imageFormat;
-   chain->drm_format = wl_drm_format_for_vk_format(chain->vk_format, false);
+   chain->drm_format = wl_drm_format_for_vk_format(chain->vk_format, alpha);
 
-   chain->present_mode = pCreateInfo->presentMode;
    chain->fifo_ready = true;
 
    chain->image_count = num_images;
@@ -823,6 +832,10 @@ wsi_wl_finish_wsi(struct wsi_device *wsi_device,
       (struct wsi_wayland *)wsi_device->wsi[VK_ICD_WSI_PLATFORM_WAYLAND];
 
    if (wsi) {
+      struct hash_entry *entry;
+      hash_table_foreach(wsi->displays, entry)
+         wsi_wl_display_destroy(wsi, entry->data);
+
       _mesa_hash_table_destroy(wsi->displays, NULL);
 
       pthread_mutex_destroy(&wsi->mutex);

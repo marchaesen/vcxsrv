@@ -163,7 +163,7 @@ do_ndc_cliptest(struct gl_context *ctx, struct vp_stage_data *store)
     */
    /** XXX NEW_SLANG _Enabled ??? */
    if (ctx->Transform.ClipPlanesEnabled && (!ctx->VertexProgram._Enabled ||
-      ctx->VertexProgram.Current->IsPositionInvariant)) {
+      ctx->VertexProgram.Current->arb.IsPositionInvariant)) {
       userclip( ctx,
 		VB->ClipPtr,
 		store->clipmask,
@@ -237,7 +237,7 @@ init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
    machine->FetchTexelLod = vp_fetch_texel;
    machine->FetchTexelDeriv = NULL; /* not used by vertex programs */
 
-   machine->Samplers = ctx->VertexProgram._Current->Base.SamplerUnits;
+   machine->Samplers = ctx->VertexProgram._Current->SamplerUnits;
 
    machine->SystemValues[SYSTEM_VALUE_INSTANCE_ID][0] = (GLfloat) instID;
 }
@@ -247,12 +247,12 @@ init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
  * Map the texture images which the vertex program will access (if any).
  */
 static void
-map_textures(struct gl_context *ctx, const struct gl_vertex_program *vp)
+map_textures(struct gl_context *ctx, const struct gl_program *vp)
 {
    GLuint u;
 
    for (u = 0; u < ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits; u++) {
-      if (vp->Base.TexturesUsed[u]) {
+      if (vp->TexturesUsed[u]) {
          /* Note: _Current *should* correspond to the target indicated
           * in TexturesUsed[u].
           */
@@ -266,12 +266,12 @@ map_textures(struct gl_context *ctx, const struct gl_vertex_program *vp)
  * Unmap the texture images which were used by the vertex program (if any).
  */
 static void
-unmap_textures(struct gl_context *ctx, const struct gl_vertex_program *vp)
+unmap_textures(struct gl_context *ctx, const struct gl_program *vp)
 {
    GLuint u;
 
    for (u = 0; u < ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits; u++) {
-      if (vp->Base.TexturesUsed[u]) {
+      if (vp->TexturesUsed[u]) {
          /* Note: _Current *should* correspond to the target indicated
           * in TexturesUsed[u].
           */
@@ -290,7 +290,7 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vp_stage_data *store = VP_STAGE_DATA(stage);
    struct vertex_buffer *VB = &tnl->vb;
-   struct gl_vertex_program *program = ctx->VertexProgram._Current;
+   struct gl_program *program = ctx->VertexProgram._Current;
    struct gl_program_machine *machine = &store->machine;
    GLuint outputs[VARYING_SLOT_MAX], numOutputs;
    GLuint i, j;
@@ -299,12 +299,12 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
       return GL_TRUE;
 
    /* ARB program or vertex shader */
-   _mesa_load_state_parameters(ctx, program->Base.Parameters);
+   _mesa_load_state_parameters(ctx, program->Parameters);
 
    /* make list of outputs to save some time below */
    numOutputs = 0;
    for (i = 0; i < VARYING_SLOT_MAX; i++) {
-      if (program->Base.OutputsWritten & BITFIELD64_BIT(i)) {
+      if (program->info.outputs_written & BITFIELD64_BIT(i)) {
          outputs[numOutputs++] = i;
       }
    }
@@ -347,7 +347,7 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
 
       /* the vertex array case */
       for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
-	 if (program->Base.InputsRead & BITFIELD64_BIT(attr)) {
+	 if (program->info.inputs_read & BITFIELD64_BIT(attr)) {
 	    const GLubyte *ptr = (const GLubyte*) VB->AttribPtr[attr]->data;
 	    const GLuint size = VB->AttribPtr[attr]->size;
 	    const GLuint stride = VB->AttribPtr[attr]->stride;
@@ -363,7 +363,7 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
       }
 
       /* execute the program */
-      _mesa_execute_program(ctx, &program->Base, machine);
+      _mesa_execute_program(ctx, program, machine);
 
       /* copy the output registers into the VB->attribs arrays */
       for (j = 0; j < numOutputs; j++) {
@@ -378,7 +378,7 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
       }
 
       /* FOGC is a special case.  Fragment shader expects (f,0,0,1) */
-      if (program->Base.OutputsWritten & BITFIELD64_BIT(VARYING_SLOT_FOGC)) {
+      if (program->info.outputs_written & BITFIELD64_BIT(VARYING_SLOT_FOGC)) {
          store->results[VARYING_SLOT_FOGC].data[i][1] = 0.0;
          store->results[VARYING_SLOT_FOGC].data[i][2] = 0.0;
          store->results[VARYING_SLOT_FOGC].data[i][3] = 1.0;
@@ -397,7 +397,7 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
 
    unmap_textures(ctx, program);
 
-   if (program->IsPositionInvariant) {
+   if (program->arb.IsPositionInvariant) {
       /* We need the exact same transform as in the fixed function path here
        * to guarantee invariance, depending on compiler optimization flags
        * results could be different otherwise.
@@ -443,7 +443,8 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
    }
 
    for (i = 0; i < ctx->Const.MaxVarying; i++) {
-      if (program->Base.OutputsWritten & BITFIELD64_BIT(VARYING_SLOT_VAR0 + i)) {
+      if (program->info.outputs_written &
+          BITFIELD64_BIT(VARYING_SLOT_VAR0 + i)) {
          /* Note: varying results get put into the generic attributes */
 	 VB->AttribPtr[VERT_ATTRIB_GENERIC0+i]
             = &store->results[VARYING_SLOT_VAR0 + i];

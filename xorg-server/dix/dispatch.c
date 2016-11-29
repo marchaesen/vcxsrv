@@ -3449,7 +3449,6 @@ CloseDownClient(ClientPtr client)
             UngrabServer(client);
         }
         mark_client_not_ready(client);
-        xorg_list_del(&client->output_pending);
         BITCLEAR(grabWaiters, client->index);
         DeleteClientFromAnySelections(client);
         ReleaseActiveGrabs(client);
@@ -3478,6 +3477,7 @@ CloseDownClient(ClientPtr client)
         if (ClientIsAsleep(client))
             ClientSignal(client);
         ProcessWorkQueueZombies();
+        output_pending_clear(client);
         CloseDownConnection(client);
 
         /* If the client made it to the Running stage, nClients has

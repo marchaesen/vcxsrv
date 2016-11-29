@@ -476,7 +476,7 @@ init_rewrite_state(nir_function_impl *impl, rewrite_state *state)
    state->mem_ctx = ralloc_parent(impl);
    state->ssa_map = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                             _mesa_key_pointer_equal);
-   state->states = ralloc_array(NULL, reg_state, impl->reg_alloc);
+   state->states = rzalloc_array(NULL, reg_state, impl->reg_alloc);
 
    foreach_list_typed(nir_register, reg, node, &impl->registers) {
       assert(reg->index < impl->reg_alloc);

@@ -319,7 +319,7 @@ xwl_realize_window(WindowPtr window)
             return ret;
     }
 
-    xwl_window = calloc(sizeof *xwl_window, 1);
+    xwl_window = calloc(1, sizeof *xwl_window);
     if (xwl_window == NULL)
         return FALSE;
 
@@ -688,7 +688,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     Pixel red_mask, blue_mask, green_mask;
     int ret, bpc, green_bpc, i;
 
-    xwl_screen = calloc(sizeof *xwl_screen, 1);
+    xwl_screen = calloc(1, sizeof *xwl_screen);
     if (xwl_screen == NULL)
         return FALSE;
     xwl_screen->wm_fd = -1;

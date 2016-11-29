@@ -12,6 +12,9 @@
     <enum name="INNOCENT_CONTEXT_RESET"               value="0x8254"/>
     <enum name="UNKNOWN_CONTEXT_RESET"                value="0x8255"/>
 
+    <enum name="CONTEXT_ROBUST_ACCESS" count="1" value="0x90F3">
+        <size name="Get" mode="get"/>
+    </enum>
     <enum name="RESET_NOTIFICATION_STRATEGY" count="1" value="0x8256">
         <size name="Get" mode="get"/>
     </enum>

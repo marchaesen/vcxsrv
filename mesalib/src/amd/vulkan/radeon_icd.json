@@ -1,7 +1,0 @@
-{
-    "file_format_version": "1.0.0",
-    "ICD": {
-        "library_path": "libvulkan_radeon.so",
-        "abi_versions": "1.0.3"
-    }
-}

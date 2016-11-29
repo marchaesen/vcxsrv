@@ -1182,13 +1182,13 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec)
    }
 
    {
-      struct gl_client_array *arrays = exec->vtx.arrays;
+      struct gl_vertex_array *arrays = exec->vtx.arrays;
       unsigned i;
 
       memcpy(arrays, &vbo->currval[VBO_ATTRIB_POS],
              VERT_ATTRIB_FF_MAX * sizeof(arrays[0]));
       for (i = 0; i < VERT_ATTRIB_FF_MAX; ++i) {
-         struct gl_client_array *array;
+         struct gl_vertex_array *array;
          array = &arrays[VERT_ATTRIB_FF(i)];
          array->BufferObj = NULL;
          _mesa_reference_buffer_object(ctx, &array->BufferObj,
@@ -1200,7 +1200,7 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec)
              VERT_ATTRIB_GENERIC_MAX * sizeof(arrays[0]));
 
       for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; ++i) {
-         struct gl_client_array *array;
+         struct gl_vertex_array *array;
          array = &arrays[VERT_ATTRIB_GENERIC(i)];
          array->BufferObj = NULL;
          _mesa_reference_buffer_object(ctx, &array->BufferObj,

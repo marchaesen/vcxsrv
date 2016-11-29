@@ -107,6 +107,8 @@ remove_devices(const char *backend, const char *config_info)
         if (dev->config_info && strcmp(dev->config_info, config_info) == 0)
             remove_device(backend, dev);
     }
+
+    RemoveInputDeviceTraces(config_info);
 }
 
 BOOL

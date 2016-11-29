@@ -113,7 +113,3 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
 
 #define AC_USERDATA_CS_GRID_SIZE 10
 
-#ifdef __cplusplus
-extern "C"
-#endif
-void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes);

@@ -60,6 +60,8 @@ sometimes be useful for debugging end-user issues.
      <li>flush - flush after each drawing command</li>
      <li>incomplete_tex - extra debug messages when a texture is incomplete</li>
      <li>incomplete_fbo - extra debug messages when a fbo is incomplete</li>
+     <li>context - create a debug context (see GLX_CONTEXT_DEBUG_BIT_ARB) and
+         print error and performance messages to stderr (or MESA_LOG_FILE).</li>
    </ul>
 <li>MESA_LOG_FILE - specifies a file name for logging all errors, warnings,
 etc., rather than stderr
@@ -234,6 +236,21 @@ Mesa EGL supports different sets of environment variables.  See the
 Setting to "tgsi", for example, will print all the TGSI shaders.
 See src/mesa/state_tracker/st_debug.c for other options.
 </ul>
+
+<h3>Clover state tracker environment variables</h3>
+
+<ul>
+<li>CLOVER_EXTRA_BUILD_OPTIONS - allows specifying additional compiler and linker
+    options. Specified options are appended after the options set by the OpenCL
+    program in clBuildProgram.
+<li>CLOVER_EXTRA_COMPILE_OPTIONS - allows specifying additional compiler
+    options. Specified options are appended after the options set by the OpenCL
+    program in clCompileProgram.
+<li>CLOVER_EXTRA_LINK_OPTIONS - allows specifying additional linker
+    options. Specified options are appended after the options set by the OpenCL
+    program in clLinkProgram.
+</ul>
+
 
 <h3>Softpipe driver environment variables</h3>
 <ul>

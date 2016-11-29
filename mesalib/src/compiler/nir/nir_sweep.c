@@ -150,12 +150,20 @@ nir_sweep(nir_shader *nir)
 {
    void *rubbish = ralloc_context(NULL);
 
+   /* The shader may not own shader_info so check first */
+   bool steal_info = false;
+   if (nir == ralloc_parent(nir->info))
+      steal_info = true;
+
    /* First, move ownership of all the memory to a temporary context; assume dead. */
    ralloc_adopt(rubbish, nir);
 
-   ralloc_steal(nir, (char *)nir->info.name);
-   if (nir->info.label)
-      ralloc_steal(nir, (char *)nir->info.label);
+   if (steal_info)
+      ralloc_steal(nir, nir->info);
+
+   ralloc_steal(nir, (char *)nir->info->name);
+   if (nir->info->label)
+      ralloc_steal(nir, (char *)nir->info->label);
 
    /* Variables and registers are not dead.  Steal them back. */
    steal_list(nir, nir_variable, &nir->uniforms);

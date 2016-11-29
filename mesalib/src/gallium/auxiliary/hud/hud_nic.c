@@ -35,6 +35,7 @@
 #include "hud/hud_private.h"
 #include "util/list.h"
 #include "os/os_time.h"
+#include "os/os_thread.h"
 #include "util/u_memory.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -66,6 +67,7 @@ struct nic_info
  */
 static int gnic_count = 0;
 static struct list_head gnic_list;
+pipe_static_mutex(gnic_mutex);
 
 static struct nic_info *
 find_nic_by_name(const char *n, int mode)
@@ -234,14 +236,6 @@ query_nic_load(struct hud_graph *gr)
    }
 }
 
-static void
-free_query_data(void *p)
-{
-   struct nic_info *nic = (struct nic_info *) p;
-   list_del(&nic->list);
-   FREE(nic);
-}
-
 /**
   * Create and initialize a new object for a specific network interface dev.
   * \param  pane  parent context.
@@ -283,11 +277,6 @@ hud_nic_graph_install(struct hud_pane *pane, const char *nic_name,
 
    gr->query_data = nic;
    gr->query_new_value = query_nic_load;
-
-   /* Don't use free() as our callback as that messes up Gallium's
-    * memory debugger.  Use simple free_query_data() wrapper.
-    */
-   gr->free_query_data = free_query_data;
 
    hud_pane_add_graph(pane, gr);
    hud_pane_set_max_value(pane, 100);
@@ -342,16 +331,21 @@ hud_get_num_nics(bool displayhelp)
    char name[64];
 
    /* Return the number if network interfaces. */
-   if (gnic_count)
+   pipe_mutex_lock(gnic_mutex);
+   if (gnic_count) {
+      pipe_mutex_unlock(gnic_mutex);
       return gnic_count;
+   }
 
    /* Scan /sys/block, for every object type we support, create and
     * persist an object to represent its different statistics.
     */
    list_inithead(&gnic_list);
    DIR *dir = opendir("/sys/class/net/");
-   if (!dir)
+   if (!dir) {
+      pipe_mutex_unlock(gnic_mutex);
       return 0;
+   }
 
    while ((dp = readdir(dir)) != NULL) {
 
@@ -412,6 +406,7 @@ hud_get_num_nics(bool displayhelp)
       }
 
    }
+   closedir(dir);
 
    list_for_each_entry(struct nic_info, nic, &gnic_list, list) {
       char line[64];
@@ -424,6 +419,7 @@ hud_get_num_nics(bool displayhelp)
 
    }
 
+   pipe_mutex_unlock(gnic_mutex);
    return gnic_count;
 }
 

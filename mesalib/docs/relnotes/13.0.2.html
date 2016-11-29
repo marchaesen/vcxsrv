@@ -1,0 +1,189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 13.0.2 Release Notes / November 28, 2016</h1>
+
+<p>
+Mesa 13.0.2 is a bug fix release which fixes bugs found since the 13.0.1 release.
+</p>
+<p>
+Mesa 13.0.2 implements the OpenGL 4.4 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.4.  OpenGL
+4.4 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+6014233a5db6032ab8de4881384871bbe029de684502707794ce7b3e6beec308  mesa-13.0.2.tar.gz
+a6ed622645f4ed61da418bf65adde5bcc4bb79023c36ba7d6b45b389da4416d5  mesa-13.0.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97321">Bug 97321</a> - Query INFO_LOG_LENGTH for empty info log should return 0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97420">Bug 97420</a> - &quot;#version 0&quot; crashes glsl_compiler</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98632">Bug 98632</a> - Fix build on Hurd without PATH_MAX</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Ben Widawsky (3):</p>
+<ul>
+  <li>i965: Add some APL and KBL SKU strings</li>
+  <li>i965: Reorder PCI ID list to match release order</li>
+  <li>i965/glk: Add basic Geminilake support</li>
+</ul>
+
+<p>Dave Airlie (14):</p>
+<ul>
+  <li>radv: fix texturesamples to handle single sample case</li>
+  <li>wsi: fix VK_INCOMPLETE for vkGetSwapchainImagesKHR</li>
+  <li>radv: don't crash on null swapchain destroy.</li>
+  <li>ac/nir/llvm: fix channel in texture gather lowering code.</li>
+  <li>radv: make sure to flush input attachments correctly.</li>
+  <li>radv: fix image view creation for depth and stencil only</li>
+  <li>radv: spir-v allows texture size query with and without lod.</li>
+  <li>vulkan/wsi/x11: handle timeouts properly in next image acquire (v1.1)</li>
+  <li>vulkan/wsi: store present mode in swapchain base class</li>
+  <li>vulkan/wsi/x11: add support for IMMEDIATE present mode</li>
+  <li>radv: fix texel fetch offset with 2d arrays.</li>
+  <li>radv/si: fix optimal micro tile selection</li>
+  <li>radv/ac/llvm: shadow samplers only return one value.</li>
+  <li>radv: fix 3D clears with baseMiplevel</li>
+</ul>
+
+<p>Eduardo Lima Mitev (2):</p>
+<ul>
+  <li>vulkan/wsi/x11: Fix behavior of vkGetPhysicalDeviceSurfaceFormatsKHR</li>
+  <li>vulkan/wsi/x11: Fix behavior of vkGetPhysicalDeviceSurfacePresentModesKHR</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>docs: add sha256 checksums for 13.0.1</li>
+  <li>cherry-ignore: add reverted LLVM_LIBDIR patch</li>
+  <li>anv: fix enumeration of properties</li>
+  <li>radv: honour the number of properties available</li>
+  <li>Update version to 13.0.2</li>
+</ul>
+
+<p>Eric Anholt (3):</p>
+<ul>
+  <li>vc4: Don't abort when a shader compile fails.</li>
+  <li>vc4: Clamp the shadow comparison value.</li>
+  <li>vc4: Fix register class handling of DDX/DDY arguments.</li>
+</ul>
+
+<p>Gwan-gyeong Mun (2):</p>
+<ul>
+  <li>util/disk_cache: close a previously opened handle in disk_cache_put (v2)</li>
+  <li>anv: Fix unintentional integer overflow in anv_CreateDmaBufImageINTEL</li>
+</ul>
+
+<p>Iago Toral Quiroga (1):</p>
+<ul>
+  <li>anv/format: handle unsupported formats properly</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>glcpp: Handle '#version 0' and other invalid values</li>
+  <li>glsl: Parse 0 as a preprocessor INTCONSTANT</li>
+</ul>
+
+<p>Jason Ekstrand (15):</p>
+<ul>
+  <li>anv/gen8: Stall when needed in Cmd(Set|Reset)Event</li>
+  <li>anv/wsi: Set the fence to signaled in AcquireNextImageKHR</li>
+  <li>anv: Rework fences</li>
+  <li>vulkan/wsi/wayland: Include pthread.h</li>
+  <li>vulkan/wsi/wayland: Clean up some error handling paths</li>
+  <li>vulkan/wsi: Report the correct min/maxImageCount</li>
+  <li>i965/gs: Allow primitive id to be a system value</li>
+  <li>anv: Handle null in all destructors</li>
+  <li>anv/fence: Handle ANV_FENCE_CREATE_SIGNALED_BIT</li>
+  <li>nir/spirv: Fix handling of gl_PrimitiveId</li>
+  <li>anv/blorp: Ignore clears for attachments first used as resolve destinations</li>
+  <li>anv: Implement a depth stall restriction on gen7</li>
+  <li>anv/cmd_buffer: Handle running out of binding tables in compute shaders</li>
+  <li>anv/cmd_buffer: Emit a CS stall before setting a CS pipeline</li>
+  <li>vulkan/wsi/x11: Implement FIFO mode.</li>
+</ul>
+
+<p>Jordan Justen (2):</p>
+<ul>
+  <li>isl: Fix height calculation in isl_msaa_interleaved_scale_px_to_sa</li>
+  <li>i965/hsw: Set integer mode in sampling state for stencil texturing</li>
+</ul>
+
+<p>Kenneth Graunke (4):</p>
+<ul>
+  <li>intel: Set min_ds_entries on Broxton.</li>
+  <li>i965: Fix compute shader crash.</li>
+  <li>mesa: Drop PATH_MAX usage.</li>
+  <li>i965: Fix GS push inputs with enhanced layouts.</li>
+</ul>
+
+<p>Kevin Strasser (1):</p>
+<ul>
+  <li>vulkan/wsi: Add a thread-safe queue implementation</li>
+</ul>
+
+<p>Lionel Landwerlin (1):</p>
+<ul>
+  <li>anv: fix multi level clears with VK_REMAINING_MIP_LEVELS</li>
+</ul>
+
+<p>Lucas Stach (1):</p>
+<ul>
+  <li>gbm: request correct version of the DRI2_FENCE extension</li>
+</ul>
+
+<p>Nicolai Hähnle (2):</p>
+<ul>
+  <li>radeonsi: store group_size_variable in struct si_compute</li>
+  <li>glsl/lower_output_reads: fix geometry shader output handling with conditional emit</li>
+</ul>
+
+<p>Steinar H. Gunderson (1):</p>
+<ul>
+  <li>Fix races during _mesa_HashWalk().</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>mesa: fix empty program log length</li>
+</ul>
+
+
+</div>
+</body>
+</html>

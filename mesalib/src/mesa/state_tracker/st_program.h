@@ -136,11 +136,11 @@ struct st_fp_variant
 
 
 /**
- * Derived from Mesa gl_fragment_program:
+ * Derived from Mesa gl_program:
  */
 struct st_fragment_program
 {
-   struct gl_fragment_program Base;
+   struct gl_program Base;
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    struct ati_fragment_shader *ati_fs;
@@ -197,11 +197,11 @@ struct st_vp_variant
 
 
 /**
- * Derived from Mesa gl_fragment_program:
+ * Derived from Mesa gl_program:
  */
 struct st_vertex_program
 {
-   struct gl_vertex_program Base;  /**< The Mesa vertex program */
+   struct gl_program Base;  /**< The Mesa vertex program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
@@ -246,11 +246,11 @@ struct st_basic_variant
 
 
 /**
- * Derived from Mesa gl_geometry_program:
+ * Derived from Mesa gl_program:
  */
 struct st_geometry_program
 {
-   struct gl_geometry_program Base;  /**< The Mesa geometry program */
+   struct gl_program Base;  /**< The Mesa geometry program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
@@ -260,11 +260,11 @@ struct st_geometry_program
 
 
 /**
- * Derived from Mesa gl_tess_ctrl_program:
+ * Derived from Mesa gl_program:
  */
 struct st_tessctrl_program
 {
-   struct gl_tess_ctrl_program Base;  /**< The Mesa tess ctrl program */
+   struct gl_program Base;  /**< The Mesa tess ctrl program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
@@ -274,11 +274,11 @@ struct st_tessctrl_program
 
 
 /**
- * Derived from Mesa gl_tess_eval_program:
+ * Derived from Mesa gl_program:
  */
 struct st_tesseval_program
 {
-   struct gl_tess_eval_program Base;  /**< The Mesa tess eval program */
+   struct gl_program Base;  /**< The Mesa tess eval program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
@@ -288,11 +288,11 @@ struct st_tesseval_program
 
 
 /**
- * Derived from Mesa gl_compute_program:
+ * Derived from Mesa gl_program:
  */
 struct st_compute_program
 {
-   struct gl_compute_program Base;  /**< The Mesa compute program */
+   struct gl_program Base;  /**< The Mesa compute program */
    struct pipe_compute_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
@@ -302,38 +302,38 @@ struct st_compute_program
 
 
 static inline struct st_fragment_program *
-st_fragment_program( struct gl_fragment_program *fp )
+st_fragment_program( struct gl_program *fp )
 {
    return (struct st_fragment_program *)fp;
 }
 
 
 static inline struct st_vertex_program *
-st_vertex_program( struct gl_vertex_program *vp )
+st_vertex_program( struct gl_program *vp )
 {
    return (struct st_vertex_program *)vp;
 }
 
 static inline struct st_geometry_program *
-st_geometry_program( struct gl_geometry_program *gp )
+st_geometry_program( struct gl_program *gp )
 {
    return (struct st_geometry_program *)gp;
 }
 
 static inline struct st_tessctrl_program *
-st_tessctrl_program( struct gl_tess_ctrl_program *tcp )
+st_tessctrl_program( struct gl_program *tcp )
 {
    return (struct st_tessctrl_program *)tcp;
 }
 
 static inline struct st_tesseval_program *
-st_tesseval_program( struct gl_tess_eval_program *tep )
+st_tesseval_program( struct gl_program *tep )
 {
    return (struct st_tesseval_program *)tep;
 }
 
 static inline struct st_compute_program *
-st_compute_program( struct gl_compute_program *cp )
+st_compute_program( struct gl_program *cp )
 {
    return (struct st_compute_program *)cp;
 }

@@ -599,7 +599,7 @@ update_program_texture_state(struct gl_context *ctx, struct gl_program **prog,
    if (prog[MESA_SHADER_FRAGMENT]) {
       const GLuint coordMask = (1 << MAX_TEXTURE_COORD_UNITS) - 1;
       ctx->Texture._EnabledCoordUnits |=
-         (prog[MESA_SHADER_FRAGMENT]->InputsRead >> VARYING_SLOT_TEX0) &
+         (prog[MESA_SHADER_FRAGMENT]->info.inputs_read >> VARYING_SLOT_TEX0) &
          coordMask;
    }
 }
@@ -701,11 +701,11 @@ update_texture_state( struct gl_context *ctx )
 
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
       if (ctx->_Shader->CurrentProgram[i] &&
-          ctx->_Shader->CurrentProgram[i]->LinkStatus) {
+          ctx->_Shader->CurrentProgram[i]->data->LinkStatus) {
          prog[i] = ctx->_Shader->CurrentProgram[i]->_LinkedShaders[i]->Program;
       } else {
          if (i == MESA_SHADER_FRAGMENT && ctx->FragmentProgram._Enabled)
-            prog[i] = &ctx->FragmentProgram.Current->Base;
+            prog[i] = ctx->FragmentProgram.Current;
          else
             prog[i] = NULL;
       }

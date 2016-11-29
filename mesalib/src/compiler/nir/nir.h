@@ -37,6 +37,7 @@
 #include "util/macros.h"
 #include "compiler/nir_types.h"
 #include "compiler/shader_enums.h"
+#include "compiler/shader_info.h"
 #include <stdio.h>
 
 #include "nir_opcodes.h"
@@ -227,6 +228,13 @@ typedef struct nir_variable {
        * location specified by \c location.
        */
       unsigned location_frac:2;
+
+      /**
+       * If true, this variable represents an array of scalars that should
+       * be tightly packed.  In other words, consecutive array elements
+       * should be stored one component apart, rather than one slot apart.
+       */
+      bool compact:1;
 
       /**
        * Whether this is a fragment shader output implicitly initialized with
@@ -1783,101 +1791,6 @@ typedef struct nir_shader_compiler_options {
    bool use_interpolated_input_intrinsics;
 } nir_shader_compiler_options;
 
-typedef struct nir_shader_info {
-   const char *name;
-
-   /* Descriptive name provided by the client; may be NULL */
-   const char *label;
-
-   /* Number of textures used by this shader */
-   unsigned num_textures;
-   /* Number of uniform buffers used by this shader */
-   unsigned num_ubos;
-   /* Number of atomic buffers used by this shader */
-   unsigned num_abos;
-   /* Number of shader storage buffers used by this shader */
-   unsigned num_ssbos;
-   /* Number of images used by this shader */
-   unsigned num_images;
-
-   /* Which inputs are actually read */
-   uint64_t inputs_read;
-   /* Which inputs are actually read and are double */
-   uint64_t double_inputs_read;
-   /* Which outputs are actually written */
-   uint64_t outputs_written;
-   /* Which outputs are actually read */
-   uint64_t outputs_read;
-   /* Which system values are actually read */
-   uint64_t system_values_read;
-
-   /* Which patch inputs are actually read */
-   uint32_t patch_inputs_read;
-   /* Which patch outputs are actually written */
-   uint32_t patch_outputs_written;
-
-   /* Whether or not this shader ever uses textureGather() */
-   bool uses_texture_gather;
-
-   /* Whether or not this shader uses the gl_ClipDistance output */
-   bool uses_clip_distance_out;
-
-   /* Whether or not separate shader objects were used */
-   bool separate_shader;
-
-   /** Was this shader linked with any transform feedback varyings? */
-   bool has_transform_feedback_varyings;
-
-   union {
-      struct {
-         /** The number of vertices recieves per input primitive */
-         unsigned vertices_in;
-
-         /** The output primitive type (GL enum value) */
-         unsigned output_primitive;
-
-         /** The maximum number of vertices the geometry shader might write. */
-         unsigned vertices_out;
-
-         /** 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS */
-         unsigned invocations;
-
-         /** Whether or not this shader uses EndPrimitive */
-         bool uses_end_primitive;
-
-         /** Whether or not this shader uses non-zero streams */
-         bool uses_streams;
-      } gs;
-
-      struct {
-         bool uses_discard;
-
-         /**
-          * Whether any inputs are declared with the "sample" qualifier.
-          */
-         bool uses_sample_qualifier;
-
-         /**
-          * Whether early fragment tests are enabled as defined by
-          * ARB_shader_image_load_store.
-          */
-         bool early_fragment_tests;
-
-         /** gl_FragDepth layout for ARB_conservative_depth. */
-         enum gl_frag_depth_layout depth_layout;
-      } fs;
-
-      struct {
-         unsigned local_size[3];
-      } cs;
-
-      struct {
-         /** The number of vertices in the TCS output patch. */
-         unsigned vertices_out;
-      } tcs;
-   };
-} nir_shader_info;
-
 typedef struct nir_shader {
    /** list of uniforms (nir_variable) */
    struct exec_list uniforms;
@@ -1899,7 +1812,7 @@ typedef struct nir_shader {
    const struct nir_shader_compiler_options *options;
 
    /** Various bits of compile-time information about a given shader */
-   struct nir_shader_info info;
+   struct shader_info *info;
 
    /** list of global variables in the shader (nir_variable) */
    struct exec_list globals;
@@ -1942,7 +1855,8 @@ nir_shader_get_entrypoint(nir_shader *shader)
 
 nir_shader *nir_shader_create(void *mem_ctx,
                               gl_shader_stage stage,
-                              const nir_shader_compiler_options *options);
+                              const nir_shader_compiler_options *options,
+                              shader_info *si);
 
 /** creates a register, including assigning it an index and adding it to the list */
 nir_register *nir_global_reg_create(nir_shader *shader);
@@ -2414,7 +2328,6 @@ void nir_lower_io_to_temporaries(nir_shader *shader,
 void nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint);
 
 void nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
-                              unsigned base_offset,
                               int (*type_size)(const struct glsl_type *));
 
 typedef enum {
@@ -2430,6 +2343,8 @@ void nir_lower_io(nir_shader *shader,
                   nir_lower_io_options);
 nir_src *nir_get_io_offset_src(nir_intrinsic_instr *instr);
 nir_src *nir_get_io_vertex_index_src(nir_intrinsic_instr *instr);
+
+bool nir_is_per_vertex_io(nir_variable *var, gl_shader_stage stage);
 
 void nir_lower_io_types(nir_shader *shader);
 void nir_lower_vars_to_ssa(nir_shader *shader);
@@ -2526,6 +2441,7 @@ bool nir_lower_idiv(nir_shader *shader);
 
 void nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables);
 void nir_lower_clip_fs(nir_shader *shader, unsigned ucp_enables);
+void nir_lower_clip_cull_distance_arrays(nir_shader *nir);
 
 void nir_lower_two_sided_color(nir_shader *shader);
 
@@ -2624,6 +2540,8 @@ bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
 bool nir_opt_remove_phis(nir_shader *shader);
 
 bool nir_opt_undef(nir_shader *shader);
+
+bool nir_opt_conditional_discard(nir_shader *shader);
 
 void nir_sweep(nir_shader *shader);
 

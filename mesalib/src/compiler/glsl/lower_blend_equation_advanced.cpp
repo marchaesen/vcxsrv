@@ -308,12 +308,18 @@ calc_blend_result(ir_factory f,
    f.emit(assign(dst_alpha, swizzle_w(fb)));
    f.emit(if_tree(equal(dst_alpha, imm1(0)),
                      assign(dst_rgb, imm3(0)),
-                     assign(dst_rgb, div(swizzle_xyz(fb), dst_alpha))));
+                     assign(dst_rgb, csel(equal(swizzle_xyz(fb),
+                                                swizzle(fb, SWIZZLE_WWWW, 3)),
+                                          imm3(1),
+                                          div(swizzle_xyz(fb), dst_alpha)))));
 
    f.emit(assign(src_alpha, swizzle_w(src)));
    f.emit(if_tree(equal(src_alpha, imm1(0)),
                      assign(src_rgb, imm3(0)),
-                     assign(src_rgb, div(swizzle_xyz(src), src_alpha))));
+                     assign(src_rgb, csel(equal(swizzle_xyz(src),
+                                                swizzle(src, SWIZZLE_WWWW, 3)),
+                                          imm3(1),
+                                          div(swizzle_xyz(src), src_alpha)))));
 
    ir_variable *factor = f.make_temp(glsl_type::vec3_type, "__blend_factor");
 

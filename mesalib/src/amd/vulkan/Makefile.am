@@ -119,23 +119,17 @@ radv_entrypoints.c : radv_entrypoints_gen.py $(vulkan_include_HEADERS)
 	$(AM_V_GEN) cat $(vulkan_include_HEADERS) |\
 	$(PYTHON2) $(srcdir)/radv_entrypoints_gen.py code > $@
 
-.PHONY: radv_timestamp.h
-
-radv_timestamp.h:
-	@echo "Updating radv_timestamp.h"
-	$(AM_V_GEN) echo "#define RADV_TIMESTAMP \"$(TIMESTAMP_CMD)\"" > $@
-
 vk_format_table.c: vk_format_table.py \
 		   vk_format_parse.py \
                    vk_format_layout.csv
 	$(PYTHON2) $(srcdir)/vk_format_table.py $(srcdir)/vk_format_layout.csv > $@
 
 BUILT_SOURCES = $(VULKAN_GENERATED_FILES)
-CLEANFILES = $(BUILT_SOURCES) dev_icd.json radv_timestamp.h
+CLEANFILES = $(BUILT_SOURCES) dev_icd.json radeon_icd.@host_cpu@.json
 EXTRA_DIST = \
 	$(top_srcdir)/include/vulkan/vk_icd.h \
 	dev_icd.json.in \
-	radeon_icd.json \
+	radeon_icd.json.in \
 	radv_entrypoints_gen.py \
 	vk_format_layout.csv \
 	vk_format_parse.py \
@@ -155,7 +149,7 @@ libvulkan_radeon_la_LDFLAGS = \
 
 
 icdconfdir = @VULKAN_ICD_INSTALL_DIR@
-icdconf_DATA = radeon_icd.json
+icdconf_DATA = radeon_icd.@host_cpu@.json
 # The following is used for development purposes, by setting VK_ICD_FILENAMES.
 noinst_DATA = dev_icd.json
 
@@ -163,5 +157,10 @@ dev_icd.json : dev_icd.json.in
 	$(AM_V_GEN) $(SED) \
 		-e "s#@build_libdir@#${abs_top_builddir}/${LIB_DIR}#" \
 		< $(srcdir)/dev_icd.json.in > $@
+
+radeon_icd.@host_cpu@.json : radeon_icd.json.in
+	$(AM_V_GEN) $(SED) \
+		-e "s#@install_libdir@#${libdir}#" \
+		< $(srcdir)/radeon_icd.json.in > $@
 
 include $(top_srcdir)/install-lib-links.mk

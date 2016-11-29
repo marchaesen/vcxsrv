@@ -60,15 +60,6 @@ public:
    struct gl_shader_program *prog;
 
 private:
-   virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major)
-   {
-      (void) type;
-      (void) name;
-      (void) row_major;
-      assert(!"Should not get here.");
-   }
-
    virtual void enter_record(const glsl_type *type, const char *,
                              bool row_major, const enum glsl_interface_packing packing) {
       assert(type->is_record());
@@ -191,12 +182,13 @@ public:
    unsigned num_active_uniforms;
 
 private:
-   virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major)
+   virtual void visit_field(const glsl_type * /* type */,
+                            const char * /* name */,
+                            bool /* row_major */,
+                            const glsl_type * /* record_type */,
+                            const enum glsl_interface_packing,
+                            bool /* last_field */)
    {
-      (void) type;
-      (void) name;
-      (void) row_major;
       this->num_active_uniforms++;
    }
 };
@@ -247,6 +239,7 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
 
       blocks[i].UniformBufferSize = 0;
       blocks[i]._Packing = gl_uniform_block_packing(type->interface_packing);
+      blocks[i]._RowMajor = type->get_interface_row_major();
 
       parcel->process(type, blocks[i].Name);
 
@@ -309,7 +302,7 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
    /* Allocate storage to hold all of the information related to uniform
     * blocks that can be queried through the API.
     */
-   struct gl_uniform_block *blocks = ralloc_array(mem_ctx, gl_uniform_block, num_blocks);
+   struct gl_uniform_block *blocks = rzalloc_array(mem_ctx, gl_uniform_block, num_blocks);
    gl_uniform_buffer_variable *variables =
       ralloc_array(blocks, gl_uniform_buffer_variable, num_variables);
 
@@ -354,6 +347,7 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
             blocks[i].UniformBufferSize = 0;
             blocks[i]._Packing =
                gl_uniform_block_packing(block_type->interface_packing);
+            blocks[i]._RowMajor = block_type->get_interface_row_major();
 
             parcel.process(block_type,
                            b->has_instance_name ? block_type->name : "");
@@ -484,6 +478,9 @@ link_uniform_blocks_are_compatible(const gl_uniform_block *a,
       return false;
 
    if (a->_Packing != b->_Packing)
+      return false;
+
+   if (a->_RowMajor != b->_RowMajor)
       return false;
 
    for (unsigned i = 0; i < a->NumUniforms; i++) {

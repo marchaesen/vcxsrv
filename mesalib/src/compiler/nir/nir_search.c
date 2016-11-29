@@ -340,7 +340,7 @@ static bitsize_tree *
 build_bitsize_tree(void *mem_ctx, struct match_state *state,
                    const nir_search_value *value)
 {
-   bitsize_tree *tree = ralloc(mem_ctx, bitsize_tree);
+   bitsize_tree *tree = rzalloc(mem_ctx, bitsize_tree);
 
    switch (value->type) {
    case nir_search_value_expression: {

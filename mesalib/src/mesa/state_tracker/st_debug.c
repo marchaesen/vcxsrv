@@ -98,12 +98,12 @@ st_print_current(void)
 
    if (st->vp->variants)
       tgsi_dump( st->vp->variants[0].tgsi.tokens, 0 );
-   if (st->vp->Base.Base.Parameters)
-      _mesa_print_parameter_list(st->vp->Base.Base.Parameters);
+   if (st->vp->Base.Parameters)
+      _mesa_print_parameter_list(st->vp->Base.Parameters);
 
    tgsi_dump(st->fp->tgsi.tokens, 0);
-   if (st->fp->Base.Base.Parameters)
-      _mesa_print_parameter_list(st->fp->Base.Base.Parameters);
+   if (st->fp->Base.Parameters)
+      _mesa_print_parameter_list(st->fp->Base.Parameters);
 }
 
 

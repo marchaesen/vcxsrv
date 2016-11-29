@@ -62,6 +62,7 @@ noinst_HEADERS = \
 	include/c99_math.h \
 	include/c11 \
 	include/D3D9 \
+	include/GL/wglext.h \
 	include/HaikuGL \
 	include/no_extern_c.h \
 	include/pci_ids

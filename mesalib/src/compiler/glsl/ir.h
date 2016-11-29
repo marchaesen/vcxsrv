@@ -599,7 +599,8 @@ public:
 
    inline bool is_name_ralloced() const
    {
-      return this->name != ir_variable::tmp_name;
+      return this->name != ir_variable::tmp_name &&
+             this->name != this->name_storage;
    }
 
    /**
@@ -624,6 +625,16 @@ public:
     */
    const char *name;
 
+private:
+   /**
+    * If the name length fits into name_storage, it's used, otherwise
+    * the name is ralloc'd. shader-db mining showed that 70% of variables
+    * fit here. This is a win over ralloc where only ralloc_header has
+    * 20 bytes on 64-bit (28 bytes with DEBUG), and we can also skip malloc.
+    */
+   char name_storage[16];
+
+public:
    struct ir_variable_data {
 
       /**
@@ -831,6 +842,12 @@ public:
       unsigned from_ssbo_unsized_array:1; /**< unsized array buffer variable. */
 
       unsigned implicit_sized_array:1;
+
+      /**
+       * Is this a non-patch TCS output / TES input array that was implicitly
+       * sized to gl_MaxPatchVertices?
+       */
+      unsigned tess_varying_implicit_sized_array:1;
 
       /**
        * Whether this is a fragment shader output implicitly initialized with
@@ -1454,6 +1471,7 @@ public:
 #include "ir_expression_operation.h"
 
 extern const char *const ir_expression_operation_strings[ir_last_opcode + 1];
+extern const char *const ir_expression_operation_enum_strings[ir_last_opcode + 1];
 
 class ir_expression : public ir_rvalue {
 public:

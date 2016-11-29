@@ -32,9 +32,10 @@
 nir_shader *
 nir_shader_create(void *mem_ctx,
                   gl_shader_stage stage,
-                  const nir_shader_compiler_options *options)
+                  const nir_shader_compiler_options *options,
+                  shader_info *si)
 {
-   nir_shader *shader = ralloc(mem_ctx, nir_shader);
+   nir_shader *shader = rzalloc(mem_ctx, nir_shader);
 
    exec_list_make_empty(&shader->uniforms);
    exec_list_make_empty(&shader->inputs);
@@ -42,7 +43,8 @@ nir_shader_create(void *mem_ctx,
    exec_list_make_empty(&shader->shared);
 
    shader->options = options;
-   memset(&shader->info, 0, sizeof(shader->info));
+
+   shader->info = si ? si : rzalloc(shader, shader_info);
 
    exec_list_make_empty(&shader->functions);
    exec_list_make_empty(&shader->registers);
@@ -334,7 +336,7 @@ nir_function_impl_create(nir_function *function)
 nir_block *
 nir_block_create(nir_shader *shader)
 {
-   nir_block *block = ralloc(shader, nir_block);
+   nir_block *block = rzalloc(shader, nir_block);
 
    cf_init(&block->cf_node, nir_cf_node_block);
 
@@ -446,9 +448,10 @@ nir_alu_instr *
 nir_alu_instr_create(nir_shader *shader, nir_op op)
 {
    unsigned num_srcs = nir_op_infos[op].num_inputs;
+   /* TODO: don't use rzalloc */
    nir_alu_instr *instr =
-      ralloc_size(shader,
-                  sizeof(nir_alu_instr) + num_srcs * sizeof(nir_alu_src));
+      rzalloc_size(shader,
+                   sizeof(nir_alu_instr) + num_srcs * sizeof(nir_alu_src));
 
    instr_init(&instr->instr, nir_instr_type_alu);
    instr->op = op;
@@ -484,8 +487,9 @@ nir_intrinsic_instr *
 nir_intrinsic_instr_create(nir_shader *shader, nir_intrinsic_op op)
 {
    unsigned num_srcs = nir_intrinsic_infos[op].num_srcs;
+   /* TODO: don't use rzalloc */
    nir_intrinsic_instr *instr =
-      ralloc_size(shader,
+      rzalloc_size(shader,
                   sizeof(nir_intrinsic_instr) + num_srcs * sizeof(nir_src));
 
    instr_init(&instr->instr, nir_instr_type_intrinsic);

@@ -707,6 +707,12 @@ const char *const ir_expression_operation_strings[] = {
 % for item in values:
    "${item.printable_name}",
 % endfor
+};
+
+const char *const ir_expression_operation_enum_strings[] = {
+% for item in values:
+   "${item.name}",
+% endfor
 };""")
 
    constant_template = mako.template.Template("""\

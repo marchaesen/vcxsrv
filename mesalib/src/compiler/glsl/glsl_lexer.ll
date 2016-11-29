@@ -80,8 +80,8 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
 			  "illegal use of reserved word `%s'", yytext);	\
 	 return ERROR_TOK;						\
       } else {								\
-	 void *mem_ctx = yyextra;					\
-	 yylval->identifier = ralloc_strdup(mem_ctx, yytext);		\
+	 void *mem_ctx = yyextra->linalloc;					\
+	 yylval->identifier = linear_strdup(mem_ctx, yytext);		\
 	 return classify_identifier(yyextra, yytext);			\
       }									\
    } while (0)
@@ -245,12 +245,16 @@ HASH		^{SPC}#{SPC}
 <PP>[ \t\r]*			{ }
 <PP>:				return COLON;
 <PP>[_a-zA-Z][_a-zA-Z0-9]*	{
-				   void *mem_ctx = yyextra;
-				   yylval->identifier = ralloc_strdup(mem_ctx, yytext);
+				   void *mem_ctx = yyextra->linalloc;
+				   yylval->identifier = linear_strdup(mem_ctx, yytext);
 				   return IDENTIFIER;
 				}
 <PP>[1-9][0-9]*			{
 				    yylval->n = strtol(yytext, NULL, 10);
+				    return INTCONSTANT;
+				}
+<PP>0				{
+				    yylval->n = 0;
 				    return INTCONSTANT;
 				}
 <PP>\n				{ BEGIN 0; yylineno++; yycolumn = 0; return EOL; }
@@ -429,8 +433,8 @@ layout		{
                       || yyextra->ARB_tessellation_shader_enable) {
 		      return LAYOUT_TOK;
 		   } else {
-		      void *mem_ctx = yyextra;
-		      yylval->identifier = ralloc_strdup(mem_ctx, yytext);
+		      void *mem_ctx = yyextra->linalloc;
+		      yylval->identifier = linear_strdup(mem_ctx, yytext);
 		      return classify_identifier(yyextra, yytext);
 		   }
 		}
@@ -590,13 +594,13 @@ subroutine	KEYWORD_WITH_ALT(400, 300, 400, 0, yyextra->ARB_shader_subroutine_ena
 
 [_a-zA-Z][_a-zA-Z0-9]*	{
 			    struct _mesa_glsl_parse_state *state = yyextra;
-			    void *ctx = state;	
+			    void *ctx = state->linalloc;
 			    if (state->es_shader && strlen(yytext) > 1024) {
 			       _mesa_glsl_error(yylloc, state,
 			                        "Identifier `%s' exceeds 1024 characters",
 			                        yytext);
 			    } else {
-			      yylval->identifier = ralloc_strdup(ctx, yytext);
+			      yylval->identifier = linear_strdup(ctx, yytext);
 			    }
 			    return classify_identifier(state, yytext);
 			}

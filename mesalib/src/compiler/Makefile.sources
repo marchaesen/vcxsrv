@@ -5,7 +5,8 @@ LIBCOMPILER_FILES = \
 	nir_types.cpp \
 	nir_types.h \
 	shader_enums.c \
-	shader_enums.h
+	shader_enums.h \
+	shader_info.h
 
 # libglsl
 
@@ -135,13 +136,12 @@ LIBGLSL_FILES = \
 	glsl/s_expression.cpp \
 	glsl/s_expression.h
 
-LIBGLSL_SHADER_CACHE_FILES = \
-	glsl/cache.c \
-	glsl/cache.h
-
 # glsl_compiler
 
 GLSL_COMPILER_CXX_FILES = \
+	glsl/ir_builder_print_visitor.cpp \
+	glsl/ir_builder_print_visitor.h \
+	glsl/opt_add_neg_to_sub.h \
 	glsl/standalone_scaffolding.cpp \
 	glsl/standalone_scaffolding.h \
 	glsl/standalone.cpp \
@@ -198,6 +198,7 @@ NIR_FILES = \
 	nir/nir_lower_bitmap.c \
 	nir/nir_lower_clamp_color_outputs.c \
 	nir/nir_lower_clip.c \
+	nir/nir_lower_clip_cull_distance_arrays.c \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_double_packing.c \
 	nir/nir_lower_drawpixels.c \
@@ -227,6 +228,7 @@ NIR_FILES = \
 	nir/nir_metadata.c \
 	nir/nir_move_vec_src_uses_to_dest.c \
 	nir/nir_normalize_cubemap_coords.c \
+	nir/nir_opt_conditional_discard.c \
 	nir/nir_opt_constant_folding.c \
 	nir/nir_opt_copy_propagate.c \
 	nir/nir_opt_cse.c \

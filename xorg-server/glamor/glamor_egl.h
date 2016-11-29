@@ -49,23 +49,20 @@
  * have yet. So you have to query for extensions no matter what. Fortunately
  * epoxy_has_egl_extension _does_ let you query for client extensions, so
  * we don't have to write our own extension string parsing.
+ *
+ * 4. There is no EGL_KHR_platform_base to complement the EXT one, thus one
+ * needs to know EGL 1.5 is supported in order to use the eglGetPlatformDisplay
+ * function pointer.
+ * We can workaround this (circular dependency) by probing for the EGL 1.5
+ * platform extensions (EGL_KHR_platform_gbm and friends) yet it doesn't seem
+ * like mesa will be able to adverise these (even though it can do EGL 1.5).
  */
 static inline EGLDisplay
 glamor_egl_get_display(EGLint type, void *native)
 {
     EGLDisplay dpy = NULL;
 
-    /* If we're EGL 1.5, the KHR extension will be there, try that */
-    if (epoxy_has_egl_extension(NULL, "EGL_KHR_platform_base")) {
-        PFNEGLGETPLATFORMDISPLAYPROC getPlatformDisplay =
-            (void *) eglGetProcAddress("eglGetPlatformDisplay");
-        if (getPlatformDisplay)
-            dpy = getPlatformDisplay(type, native, NULL);
-        if (dpy)
-            return dpy;
-    }
-
-    /* Okay, maybe the EXT extension works */
+    /* In practise any EGL 1.5 implementation would support the EXT extension */
     if (epoxy_has_egl_extension(NULL, "EGL_EXT_platform_base")) {
         PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplayEXT =
             (void *) eglGetProcAddress("eglGetPlatformDisplayEXT");

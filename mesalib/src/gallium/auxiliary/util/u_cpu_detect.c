@@ -388,6 +388,23 @@ util_cpu_detect(void)
          util_cpu_caps.has_avx2 = (regs7[1] >> 5) & 1;
       }
 
+      // check for avx512
+      if (((regs2[2] >> 27) & 1) && // OSXSAVE
+          (xgetbv() & (0x7 << 5)) && // OPMASK: upper-256 enabled by OS
+          ((xgetbv() & 6) == 6)) { // XMM/YMM enabled by OS
+         uint32_t regs3[4];
+         cpuid(0x00000007, regs3);
+         util_cpu_caps.has_avx512f    = (regs3[1] >> 16) & 1;
+         util_cpu_caps.has_avx512dq   = (regs3[1] >> 17) & 1;
+         util_cpu_caps.has_avx512ifma = (regs3[1] >> 21) & 1;
+         util_cpu_caps.has_avx512pf   = (regs3[1] >> 26) & 1;
+         util_cpu_caps.has_avx512er   = (regs3[1] >> 27) & 1;
+         util_cpu_caps.has_avx512cd   = (regs3[1] >> 28) & 1;
+         util_cpu_caps.has_avx512bw   = (regs3[1] >> 30) & 1;
+         util_cpu_caps.has_avx512vl   = (regs3[1] >> 31) & 1;
+         util_cpu_caps.has_avx512vbmi = (regs3[2] >>  1) & 1;
+      }
+
       if (regs[1] == 0x756e6547 && regs[2] == 0x6c65746e && regs[3] == 0x49656e69) {
          /* GenuineIntel */
          util_cpu_caps.has_intel = 1;
@@ -455,6 +472,15 @@ util_cpu_detect(void)
       debug_printf("util_cpu_caps.has_xop = %u\n", util_cpu_caps.has_xop);
       debug_printf("util_cpu_caps.has_altivec = %u\n", util_cpu_caps.has_altivec);
       debug_printf("util_cpu_caps.has_daz = %u\n", util_cpu_caps.has_daz);
+      debug_printf("util_cpu_caps.has_avx512f = %u\n", util_cpu_caps.has_avx512f);
+      debug_printf("util_cpu_caps.has_avx512dq = %u\n", util_cpu_caps.has_avx512dq);
+      debug_printf("util_cpu_caps.has_avx512ifma = %u\n", util_cpu_caps.has_avx512ifma);
+      debug_printf("util_cpu_caps.has_avx512pf = %u\n", util_cpu_caps.has_avx512pf);
+      debug_printf("util_cpu_caps.has_avx512er = %u\n", util_cpu_caps.has_avx512er);
+      debug_printf("util_cpu_caps.has_avx512cd = %u\n", util_cpu_caps.has_avx512cd);
+      debug_printf("util_cpu_caps.has_avx512bw = %u\n", util_cpu_caps.has_avx512bw);
+      debug_printf("util_cpu_caps.has_avx512vl = %u\n", util_cpu_caps.has_avx512vl);
+      debug_printf("util_cpu_caps.has_avx512vbmi = %u\n", util_cpu_caps.has_avx512vbmi);
    }
 #endif
 

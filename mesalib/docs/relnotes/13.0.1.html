@@ -1,0 +1,188 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 13.0.1 Release Notes / November 14, 2016</h1>
+
+<p>
+Mesa 13.0.1 is a bug fix release which fixes bugs found since the 13.0.0 release.
+</p>
+<p>
+Mesa 13.0.1 implements the OpenGL 4.4 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.4.  OpenGL
+4.4 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+7cbb91dead05cde279ee95f86e8321c8e1c8fc9deb88f12e0f587672a10d88c5  mesa-13.0.1.tar.gz
+71962fb2bf77d33b0ad4a565b490dbbeaf4619099c6d9722f04a73187957a731  mesa-13.0.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97715">Bug 97715</a> - [ILK,G45,G965] piglit.spec.arb_separate_shader_objects.misc api error checks</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98012">Bug 98012</a> - [IVB] Segfault when running Dolphin twice with Vulkan</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98512">Bug 98512</a> - radeon r600 vdpau: Invalid command stream: texture bo too small</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Adam Jackson (2):</p>
+<ul>
+  <li>glx/glvnd: Don't modify the dummy slot in the dispatch table</li>
+  <li>glx/glvnd: Fix dispatch function names and indices</li>
+</ul>
+
+<p>Andreas Boll (1):</p>
+<ul>
+  <li>glx/windows: Add wgl.h to the sources list</li>
+</ul>
+
+<p>Anuj Phogat (1):</p>
+<ul>
+  <li>i965: Fix GPU hang related to multiple render targets and alpha testing</li>
+</ul>
+
+<p>Chih-Wei Huang (1):</p>
+<ul>
+  <li>android: avoid using libdrm with host modules</li>
+</ul>
+
+<p>Darren Salt (1):</p>
+<ul>
+  <li>radv/pipeline: Don't dereference NULL dynamic state pointers</li>
+</ul>
+
+<p>Dave Airlie (8):</p>
+<ul>
+  <li>radv: expose xlib platform extension</li>
+  <li>radv: fix dual source blending</li>
+  <li>Revert "st/vdpau: use linear layout for output surfaces"</li>
+  <li>radv: emit correct last export when Z/stencil export is enabled</li>
+  <li>ac/nir: add support for discard_if intrinsic (v2)</li>
+  <li>nir: add conditional discard optimisation (v4)</li>
+  <li>radv: enable conditional discard optimisation on radv.</li>
+  <li>radv: fix GetFenceStatus for signaled fences</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>docs: add sha256 checksums for 13.0.0</li>
+  <li>amd/addrlib: limit fastcall/regparm to GCC i386</li>
+  <li>anv: use correct .specVersion for extensions</li>
+  <li>radv: use correct .specVersion for extensions</li>
+  <li>radv: Suffix the radeon_icd file with the host CPU</li>
+  <li>Update version to 13.0.1</li>
+</ul>
+
+<p>Eric Anholt (1):</p>
+<ul>
+  <li>vc4: Use Newton-Raphson on the 1/W write to fix glmark2 terrain.</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>nir: Flip gl_SamplePosition in nir_lower_wpos_ytransform().</li>
+</ul>
+
+<p>Fredrik Höglund (1):</p>
+<ul>
+  <li>radv: add support for anisotropic filtering on VI+</li>
+</ul>
+
+<p>Jason Ekstrand (21):</p>
+<ul>
+  <li>anv/device: Return DEVICE_LOST if execbuf2 fails</li>
+  <li>vulkan/wsi/x11: Better handle wsi_x11_connection_create failure</li>
+  <li>vulkan/wsi/x11: Clean up connections in finish_wsi</li>
+  <li>anv: Better handle return codes from anv_physical_device_init</li>
+  <li>intel/blorp: Use wm_prog_data instead of hand-rolling our own</li>
+  <li>intel/blorp: Pass a brw_stage_prog_data to upload_shader</li>
+  <li>anv/pipeline: Put actual pointers in anv_shader_bin</li>
+  <li>anv/pipeline: Properly cache prog_data::param</li>
+  <li>intel/blorp: Emit all the binding tables</li>
+  <li>anv/device: Add an execbuf wrapper</li>
+  <li>anv: Add a cmd_buffer_execbuf helper</li>
+  <li>anv: Don't presume to know what address is in a surface relocation</li>
+  <li>anv: Add a new bo_pool_init helper</li>
+  <li>anv/allocator: Simplify anv_scratch_pool</li>
+  <li>anv: Initialize anv_bo::offset to -1</li>
+  <li>anv/batch_chain: Improve write_reloc</li>
+  <li>anv: Add an anv_execbuf helper struct</li>
+  <li>anv/batch: Move last_ss_pool_bo_offset to the command buffer</li>
+  <li>anv: Move relocation handling from EndCommandBuffer to QueueSubmit</li>
+  <li>anv/cmd_buffer: Take a command buffer instead of a batch in two helpers</li>
+  <li>anv/cmd_buffer: Enable a CS stall workaround for Sky Lake gt4</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>glsl: Update deref types when resizing implicitly sized arrays.</li>
+  <li>mesa: Fix pixel shader scratch space allocation on Gen9+ platforms.</li>
+</ul>
+
+<p>Kristian Høgsberg (1):</p>
+<ul>
+  <li>anv: Do relocations in userspace before execbuf ioctl</li>
+</ul>
+
+<p>Marek Olšák (4):</p>
+<ul>
+  <li>egl: use util/macros.h</li>
+  <li>egl: make interop ABI visible again</li>
+  <li>glx: make interop ABI visible again</li>
+  <li>radeonsi: fix an assertion failure in si_decompress_sampler_color_textures</li>
+</ul>
+
+<p>Nicolai Hähnle (4):</p>
+<ul>
+  <li>radeonsi: fix BFE/BFI lowering for GLSL semantics</li>
+  <li>glsl: fix lowering of UBO references of named blocks</li>
+  <li>st/glsl_to_tgsi: fix dvec[34] loads from SSBO</li>
+  <li>st/mesa: fix the layer of VDPAU surface samplers</li>
+</ul>
+
+<p>Steven Toth (3):</p>
+<ul>
+  <li>gallium/hud: fix a problem where objects are free'd while in use.</li>
+  <li>gallium/hud: close a previously opened handle</li>
+  <li>gallium/hud: protect against and initialization race</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>mesa/glsl: delete previously linked shaders earlier when linking</li>
+</ul>
+
+
+</div>
+</body>
+</html>

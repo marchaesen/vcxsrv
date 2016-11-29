@@ -148,6 +148,10 @@ xf86CheckHWCursor(ScreenPtr pScreen, CursorPtr cursor, xf86CursorInfoPtr infoPtr
             continue;
 
         sPriv = dixLookupPrivate(&pSlave->devPrivates, xf86CursorScreenKey);
+        if (!sPriv) /* NULL if Option "SWCursor", possibly other conditions */
+            return FALSE;
+
+        /* FALSE if HWCursor not supported by slave */
         if (!xf86ScreenCheckHWCursor(pSlave, cursor, sPriv->CursorInfoPtr))
             return FALSE;
     }

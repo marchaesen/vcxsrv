@@ -179,10 +179,10 @@ validate_uniform_parameters(struct gl_context *ctx,
 
    /* Check that the given location is in bounds of uniform remap table.
     * Unlinked programs will have NumUniformRemapTable == 0, so we can take
-    * the shProg->LinkStatus check out of the main path.
+    * the shProg->data->LinkStatus check out of the main path.
     */
    if (unlikely(location >= (GLint) shProg->NumUniformRemapTable)) {
-      if (!shProg->LinkStatus)
+      if (!shProg->data->LinkStatus)
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
                      caller);
       else
@@ -193,7 +193,7 @@ validate_uniform_parameters(struct gl_context *ctx,
    }
 
    if (location == -1) {
-      if (!shProg->LinkStatus)
+      if (!shProg->data->LinkStatus)
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
                      caller);
 
@@ -1068,7 +1068,7 @@ _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
 				 char *errMsg, size_t errMsgLength)
 {
    /* Shader does not have samplers. */
-   if (shProg->NumUniformStorage == 0)
+   if (shProg->data->NumUniformStorage == 0)
       return true;
 
    if (!shProg->SamplersValidated) {

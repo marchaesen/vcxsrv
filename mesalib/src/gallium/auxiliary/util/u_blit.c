@@ -180,11 +180,13 @@ set_fragment_shader(struct blit_state *ctx, uint writemask,
    if (!ctx->fs[pipe_tex][writemask][idx]) {
       unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex, 0);
 
+      /* OpenGL does not allow blits from signed to unsigned integer
+       * or vice versa. */
       ctx->fs[pipe_tex][writemask][idx] =
          util_make_fragment_tex_shader_writemask(ctx->pipe, tgsi_tex,
                                                  TGSI_INTERPOLATE_LINEAR,
                                                  writemask,
-                                                 stype);
+                                                 stype, stype);
    }
 
    cso_set_fragment_shader_handle(ctx->cso, ctx->fs[pipe_tex][writemask][idx]);

@@ -159,7 +159,8 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
 
       switch (file) {
       case PROGRAM_CONSTANT:
-         if ((c->prog->IndirectRegisterFiles & (1 << PROGRAM_CONSTANT)) == 0) {
+         if ((c->prog->arb.IndirectRegisterFiles &
+              (1 << PROGRAM_CONSTANT)) == 0) {
             float *v = (float *) plist->ParameterValues[prog_src->Index];
             src.src = nir_src_for_ssa(nir_imm_vec4(b, v[0], v[1], v[2], v[3]));
             break;
@@ -597,6 +598,7 @@ ptn_tex(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src,
       instr->coord_components = 3;
       break;
    case GLSL_SAMPLER_DIM_SUBPASS:
+   case GLSL_SAMPLER_DIM_SUBPASS_MS:
       unreachable("can't reach");
    }
 
@@ -889,9 +891,9 @@ setup_registers_and_variables(struct ptn_compile *c)
    struct nir_shader *shader = b->shader;
 
    /* Create input variables. */
-   const int num_inputs = util_last_bit64(c->prog->InputsRead);
+   const int num_inputs = util_last_bit64(c->prog->info.inputs_read);
    for (int i = 0; i < num_inputs; i++) {
-      if (!(c->prog->InputsRead & BITFIELD64_BIT(i)))
+      if (!(c->prog->info.inputs_read & BITFIELD64_BIT(i)))
          continue;
 
       nir_variable *var =
@@ -901,14 +903,9 @@ setup_registers_and_variables(struct ptn_compile *c)
       var->data.index = 0;
 
       if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB) {
-         struct gl_fragment_program *fp =
-            (struct gl_fragment_program *) c->prog;
-
-         var->data.interpolation = fp->InterpQualifier[i];
-
          if (i == VARYING_SLOT_POS) {
-            var->data.origin_upper_left = fp->OriginUpperLeft;
-            var->data.pixel_center_integer = fp->PixelCenterInteger;
+            var->data.origin_upper_left = c->prog->OriginUpperLeft;
+            var->data.pixel_center_integer = c->prog->PixelCenterInteger;
          } else if (i == VARYING_SLOT_FOGC) {
             /* fogcoord is defined as <f, 0.0, 0.0, 1.0>.  Make the actual
              * input variable a float, and create a local containing the
@@ -950,11 +947,11 @@ setup_registers_and_variables(struct ptn_compile *c)
    }
 
    /* Create output registers and variables. */
-   int max_outputs = util_last_bit(c->prog->OutputsWritten);
+   int max_outputs = util_last_bit(c->prog->info.outputs_written);
    c->output_regs = rzalloc_array(c, nir_register *, max_outputs);
 
    for (int i = 0; i < max_outputs; i++) {
-      if (!(c->prog->OutputsWritten & BITFIELD64_BIT(i)))
+      if (!(c->prog->info.outputs_written & BITFIELD64_BIT(i)))
          continue;
 
       /* Since we can't load from outputs in the IR, we make temporaries
@@ -982,10 +979,11 @@ setup_registers_and_variables(struct ptn_compile *c)
    }
 
    /* Create temporary registers. */
-   c->temp_regs = rzalloc_array(c, nir_register *, c->prog->NumTemporaries);
+   c->temp_regs = rzalloc_array(c, nir_register *,
+                                c->prog->arb.NumTemporaries);
 
    nir_register *reg;
-   for (unsigned i = 0; i < c->prog->NumTemporaries; i++) {
+   for (unsigned i = 0; i < c->prog->arb.NumTemporaries; i++) {
       reg = nir_local_reg_create(b->impl);
       if (!reg) {
          c->error = true;
@@ -1019,6 +1017,12 @@ prog_to_nir(const struct gl_program *prog,
    c->prog = prog;
 
    nir_builder_init_simple_shader(&c->build, NULL, stage, options);
+
+   /* Use the shader_info from gl_program rather than the one nir_builder
+    * created for us. nir_sweep should clean up the other one for us.
+    */
+   c->build.shader->info = (shader_info *) &prog->info;
+
    s = c->build.shader;
 
    if (prog->Parameters->NumParameters > 0) {
@@ -1035,8 +1039,8 @@ prog_to_nir(const struct gl_program *prog,
    if (unlikely(c->error))
       goto fail;
 
-   for (unsigned int i = 0; i < prog->NumInstructions; i++) {
-      ptn_emit_instruction(c, &prog->Instructions[i]);
+   for (unsigned int i = 0; i < prog->arb.NumInstructions; i++) {
+      ptn_emit_instruction(c, &prog->arb.Instructions[i]);
 
       if (unlikely(c->error))
          break;
@@ -1044,24 +1048,16 @@ prog_to_nir(const struct gl_program *prog,
 
    ptn_add_output_stores(c);
 
-   s->info.name = ralloc_asprintf(s, "ARB%d", prog->Id);
-   s->info.num_textures = util_last_bit(prog->SamplersUsed);
-   s->info.num_ubos = 0;
-   s->info.num_abos = 0;
-   s->info.num_ssbos = 0;
-   s->info.num_images = 0;
-   s->info.inputs_read = prog->InputsRead;
-   s->info.outputs_written = prog->OutputsWritten;
-   s->info.system_values_read = prog->SystemValuesRead;
-   s->info.uses_texture_gather = false;
-   s->info.uses_clip_distance_out = false;
-   s->info.separate_shader = false;
-
-   if (stage == MESA_SHADER_FRAGMENT) {
-      struct gl_fragment_program *fp = (struct gl_fragment_program *)prog;
-
-      s->info.fs.uses_discard = fp->UsesKill;
-   }
+   s->info->name = ralloc_asprintf(s, "ARB%d", prog->Id);
+   s->info->num_textures = util_last_bit(prog->SamplersUsed);
+   s->info->num_ubos = 0;
+   s->info->num_abos = 0;
+   s->info->num_ssbos = 0;
+   s->info->num_images = 0;
+   s->info->uses_texture_gather = false;
+   s->info->clip_distance_array_size = 0;
+   s->info->cull_distance_array_size = 0;
+   s->info->separate_shader = false;
 
 fail:
    if (c->error) {

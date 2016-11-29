@@ -72,8 +72,14 @@ public:
    virtual ir_visitor_status visit_enter(ir_function_signature *);
    virtual ir_visitor_status visit_leave(ir_assignment *);
 
+   /**
+    * Find variable in the hash table, and insert it if not present
+    */
    ir_variable_refcount_entry *get_variable_entry(ir_variable *var);
 
+   /**
+    * Hash table mapping ir_variable to ir_variable_refcount_entry.
+    */
    struct hash_table *ht;
 
    void *mem_ctx;

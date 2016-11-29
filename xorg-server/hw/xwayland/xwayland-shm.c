@@ -28,6 +28,8 @@
 #include <dix-config.h>
 #endif
 
+#include "os.h"
+
 #include "xwayland.h"
 
 #include <sys/mman.h>
@@ -139,9 +141,17 @@ os_create_anonymous_file(off_t size)
         return -1;
 
 #ifdef HAVE_POSIX_FALLOCATE
+    /*
+     * posix_fallocate does an explicit rollback if it gets EINTR.
+     * Temporarily block signals to allow the call to succeed on
+     * slow systems where the smart scheduler's SIGALRM prevents
+     * large allocation attempts from ever succeeding.
+     */
+    OsBlockSignals();
     do {
         ret = posix_fallocate(fd, 0, size);
     } while (ret == EINTR);
+    OsReleaseSignals();
 
     if (ret != 0) {
         close(fd);

@@ -47,8 +47,6 @@ protected:
     */
    hash_table *replacements;
 
-   void *mem_ctx;
-
    unsigned stage;
 public:
    output_read_remover(unsigned stage);
@@ -80,7 +78,6 @@ hash_table_var_hash(const void *key)
 output_read_remover::output_read_remover(unsigned stage)
 {
    this->stage = stage;
-   mem_ctx = ralloc_context(NULL);
    replacements = _mesa_hash_table_create(NULL, hash_table_var_hash,
                                           _mesa_key_pointer_equal);
 }
@@ -88,15 +85,12 @@ output_read_remover::output_read_remover(unsigned stage)
 output_read_remover::~output_read_remover()
 {
    _mesa_hash_table_destroy(replacements, NULL);
-   ralloc_free(mem_ctx);
 }
 
 ir_visitor_status
 output_read_remover::visit(ir_dereference_variable *ir)
 {
    if (ir->var->data.mode != ir_var_shader_out)
-      return visit_continue;
-   if (stage == MESA_SHADER_TESS_CTRL)
       return visit_continue;
 
    hash_entry *entry = _mesa_hash_table_search(replacements, ir->var);
@@ -157,7 +151,6 @@ ir_visitor_status
 output_read_remover::visit_leave(ir_emit_vertex *ir)
 {
    hash_table_call_foreach(replacements, emit_return_copy, ir);
-   _mesa_hash_table_clear(replacements, NULL);
    return visit_continue;
 }
 
@@ -174,6 +167,12 @@ output_read_remover::visit_leave(ir_function_signature *sig)
 void
 lower_output_reads(unsigned stage, exec_list *instructions)
 {
+   /* Due to the possible interactions between multiple tessellation control
+    * shader invocations, we leave output variables as-is.
+    */
+   if (stage == MESA_SHADER_TESS_CTRL)
+      return;
+
    output_read_remover v(stage);
    visit_list_elements(&v, instructions);
 }

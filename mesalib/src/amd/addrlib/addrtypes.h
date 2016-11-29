@@ -88,7 +88,11 @@ typedef int            INT;
 
 #ifndef ADDR_FASTCALL
     #if defined(__GNUC__)
-        #define ADDR_FASTCALL __attribute__((regparm(0)))
+        #if defined(__i386__)
+            #define ADDR_FASTCALL __attribute__((regparm(0)))
+        #else
+            #define ADDR_FASTCALL
+        #endif
     #else
         #define ADDR_FASTCALL __fastcall
     #endif

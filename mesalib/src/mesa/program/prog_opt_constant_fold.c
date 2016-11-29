@@ -127,8 +127,8 @@ _mesa_constant_fold(struct gl_program *prog)
    bool progress = false;
    unsigned i;
 
-   for (i = 0; i < prog->NumInstructions; i++) {
-      struct prog_instruction *const inst = &prog->Instructions[i];
+   for (i = 0; i < prog->arb.NumInstructions; i++) {
+      struct prog_instruction *const inst = &prog->arb.Instructions[i];
 
       switch (inst->Opcode) {
       case OPCODE_ADD:

@@ -254,9 +254,6 @@ struct prog_instruction
     * For ELSE, points to ENDIF.
     */
    GLint BranchTarget;
-
-   /** for debugging purposes */
-   const char *Comment;
 };
 
 
@@ -264,18 +261,14 @@ struct prog_instruction
 extern "C" {
 #endif
 
+struct gl_program;
+
 extern void
 _mesa_init_instructions(struct prog_instruction *inst, GLuint count);
 
 extern struct prog_instruction *
-_mesa_alloc_instructions(GLuint numInst);
-
-extern struct prog_instruction *
 _mesa_copy_instructions(struct prog_instruction *dest,
                         const struct prog_instruction *src, GLuint n);
-
-extern void
-_mesa_free_instructions(struct prog_instruction *inst, GLuint count);
 
 extern GLuint
 _mesa_num_inst_src_regs(enum prog_opcode opcode);

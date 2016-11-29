@@ -159,7 +159,12 @@ DECL_TYPE(uimageCubeArray, GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY,       GLSL_TYPE
 DECL_TYPE(uimage2DMS,      GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE,       GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_MS,     0, 0, GLSL_TYPE_UINT)
 DECL_TYPE(uimage2DMSArray, GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY, GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_MS,     0, 1, GLSL_TYPE_UINT)
 
-DECL_TYPE(subpassInput,    0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS,0, 0, GLSL_TYPE_FLOAT)
+DECL_TYPE(subpassInput,    0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS,    0, 0, GLSL_TYPE_FLOAT)
+DECL_TYPE(subpassInputMS,  0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS_MS, 0, 0, GLSL_TYPE_FLOAT)
+DECL_TYPE(isubpassInput,   0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS,    0, 0, GLSL_TYPE_INT)
+DECL_TYPE(isubpassInputMS, 0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS_MS, 0, 0, GLSL_TYPE_INT)
+DECL_TYPE(usubpassInput,   0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS,    0, 0, GLSL_TYPE_UINT)
+DECL_TYPE(usubpassInputMS, 0,                                          GLSL_TYPE_IMAGE, GLSL_SAMPLER_DIM_SUBPASS_MS, 0, 0, GLSL_TYPE_UINT)
 
 DECL_TYPE(atomic_uint, GL_UNSIGNED_INT_ATOMIC_COUNTER, GLSL_TYPE_ATOMIC_UINT, 1, 1)
 

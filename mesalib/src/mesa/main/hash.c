@@ -59,7 +59,6 @@ struct _mesa_HashTable {
    struct hash_table *ht;
    GLuint MaxKey;                        /**< highest key inserted so far */
    mtx_t Mutex;                /**< mutual exclusion lock */
-   mtx_t WalkMutex;            /**< for _mesa_HashWalk() */
    GLboolean InDeleteAll;                /**< Debug check */
    /** Value that would be in the table for DELETED_KEY_VALUE. */
    void *deleted_key_data;
@@ -129,8 +128,11 @@ _mesa_NewHashTable(void)
       }
 
       _mesa_hash_table_set_deleted_key(table->ht, uint_key(DELETED_KEY_VALUE));
-      mtx_init(&table->Mutex, mtx_plain);
-      mtx_init(&table->WalkMutex, mtx_plain);
+      /*
+       * Needs to be recursive, since the callback in _mesa_HashWalk()
+       * is allowed to call _mesa_HashRemove().
+       */
+      mtx_init(&table->Mutex, mtx_recursive);
    }
    else {
       _mesa_error_no_memory(__func__);
@@ -161,7 +163,6 @@ _mesa_DeleteHashTable(struct _mesa_HashTable *table)
    _mesa_hash_table_destroy(table->ht, NULL);
 
    mtx_destroy(&table->Mutex);
-   mtx_destroy(&table->WalkMutex);
    free(table);
 }
 
@@ -401,11 +402,6 @@ _mesa_HashDeleteAll(struct _mesa_HashTable *table,
 
 /**
  * Walk over all entries in a hash table, calling callback function for each.
- * Note: we use a separate mutex in this function to avoid a recursive
- * locking deadlock (in case the callback calls _mesa_HashRemove()) and to
- * prevent multiple threads/contexts from getting tangled up.
- * A lock-less version of this function could be used when the table will
- * not be modified.
  * \param table  the hash table to walk
  * \param callback  the callback function
  * \param userData  arbitrary pointer to pass along to the callback
@@ -422,13 +418,13 @@ _mesa_HashWalk(const struct _mesa_HashTable *table,
 
    assert(table);
    assert(callback);
-   mtx_lock(&table2->WalkMutex);
+   mtx_lock(&table2->Mutex);
    hash_table_foreach(table->ht, entry) {
       callback((uintptr_t)entry->key, entry->data, userData);
    }
    if (table->deleted_key_data)
       callback(DELETED_KEY_VALUE, table->deleted_key_data, userData);
-   mtx_unlock(&table2->WalkMutex);
+   mtx_unlock(&table2->Mutex);
 }
 
 static void

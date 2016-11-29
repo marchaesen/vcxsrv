@@ -126,7 +126,6 @@ endif
 
 # Requires wayland-drm
 if HAVE_RADEON_VULKAN
-SUBDIRS += amd/common
 SUBDIRS += amd/vulkan
 endif
 

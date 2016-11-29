@@ -21,6 +21,8 @@
  * IN THE SOFTWARE.
  */
 
+#ifdef ENABLE_SHADER_CACHE
+
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -40,7 +42,7 @@
 #include "util/ralloc.h"
 #include "main/errors.h"
 
-#include "cache.h"
+#include "disk_cache.h"
 
 /* Number of bits to mask off from a cache key to get an index. */
 #define CACHE_INDEX_KEY_BITS 16
@@ -51,7 +53,7 @@
 /* The number of keys that can be stored in the index. */
 #define CACHE_INDEX_MAX_KEYS (1 << CACHE_INDEX_KEY_BITS)
 
-struct program_cache {
+struct disk_cache {
    /* The path to the cache directory. */
    char *path;
 
@@ -86,9 +88,8 @@ mkdir_if_needed(char *path)
       if (S_ISDIR(sb.st_mode)) {
          return 0;
       } else {
-         _mesa_warning(NULL,
-                       "Cannot use %s for shader cache (not a directory)"
-                       "---disabling.\n", path);
+         fprintf(stderr, "Cannot use %s for shader cache (not a directory)"
+                         "---disabling.\n", path);
          return -1;
       }
    }
@@ -97,9 +98,8 @@ mkdir_if_needed(char *path)
    if (ret == 0 || (ret == -1 && errno == EEXIST))
      return 0;
 
-   _mesa_warning(NULL,
-                 "Failed to create %s for shader cache (%s)---disabling.\n",
-                 path, strerror(errno));
+   fprintf(stderr, "Failed to create %s for shader cache (%s)---disabling.\n",
+           path, strerror(errno));
 
    return -1;
 }
@@ -131,11 +131,11 @@ concatenate_and_mkdir(void *ctx, char *path, char *name)
       return NULL;
 }
 
-struct program_cache *
-cache_create(void)
+struct disk_cache *
+disk_cache_create(void)
 {
    void *local;
-   struct program_cache *cache = NULL;
+   struct disk_cache *cache = NULL;
    char *path, *max_size_str;
    uint64_t max_size;
    int fd = -1;
@@ -210,7 +210,7 @@ cache_create(void)
          goto fail;
    }
 
-   cache = ralloc(NULL, struct program_cache);
+   cache = ralloc(NULL, struct disk_cache);
    if (cache == NULL)
       goto fail;
 
@@ -313,7 +313,7 @@ cache_create(void)
 }
 
 void
-cache_destroy(struct program_cache *cache)
+disk_cache_destroy(struct disk_cache *cache)
 {
    munmap(cache->index_mmap, cache->index_mmap_size);
 
@@ -326,7 +326,7 @@ cache_destroy(struct program_cache *cache)
  * Returns NULL if out of memory.
  */
 static char *
-get_cache_file(struct program_cache *cache, cache_key key)
+get_cache_file(struct disk_cache *cache, cache_key key)
 {
    char buf[41];
 
@@ -342,7 +342,7 @@ get_cache_file(struct program_cache *cache, cache_key key)
  * _get_cache_file above.
 */
 static void
-make_cache_file_directory(struct program_cache *cache, cache_key key)
+make_cache_file_directory(struct disk_cache *cache, cache_key key)
 {
    char *dir;
    char buf[41];
@@ -416,7 +416,8 @@ choose_random_file_matching(const char *dir_path,
       return NULL;
    }
 
-   asprintf(&filename, "%s/%s", dir_path, entry->d_name);
+   if (asprintf(&filename, "%s/%s", dir_path, entry->d_name) < 0)
+      filename = NULL;
 
    closedir(dir);
 
@@ -483,7 +484,7 @@ is_two_character_sub_directory(struct dirent *entry)
 }
 
 static void
-evict_random_item(struct program_cache *cache)
+evict_random_item(struct disk_cache *cache)
 {
    const char hex[] = "0123456789abcde";
    char *dir_path;
@@ -497,8 +498,7 @@ evict_random_item(struct program_cache *cache)
    a = rand() % 16;
    b = rand() % 16;
 
-   asprintf (&dir_path, "%s/%c%c", cache->path, hex[a], hex[b]);
-   if (dir_path == NULL)
+   if (asprintf(&dir_path, "%s/%c%c", cache->path, hex[a], hex[b]) < 0)
       return;
 
    size = unlink_random_file_from_directory(dir_path);
@@ -531,7 +531,7 @@ evict_random_item(struct program_cache *cache)
 }
 
 void
-cache_put(struct program_cache *cache,
+disk_cache_put(struct disk_cache *cache,
           cache_key key,
           const void *data,
           size_t size)
@@ -612,23 +612,22 @@ cache_put(struct program_cache *cache,
 
    p_atomic_add(cache->size, size);
 
+ done:
+   if (fd_final != -1)
+      close(fd_final);
    /* This close finally releases the flock, (now that the final dile
     * has been renamed into place and the size has been added).
     */
-   close(fd);
-   fd = -1;
-
- done:
+   if (fd != -1)
+      close(fd);
    if (filename_tmp)
       ralloc_free(filename_tmp);
    if (filename)
       ralloc_free(filename);
-   if (fd != -1)
-      close(fd);
 }
 
 void *
-cache_get(struct program_cache *cache, cache_key key, size_t *size)
+disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
 {
    int fd = -1, ret, len;
    struct stat sb;
@@ -679,7 +678,7 @@ cache_get(struct program_cache *cache, cache_key key, size_t *size)
 }
 
 void
-cache_put_key(struct program_cache *cache, cache_key key)
+disk_cache_put_key(struct disk_cache *cache, cache_key key)
 {
    uint32_t *key_chunk = (uint32_t *) key;
    int i = *key_chunk & CACHE_INDEX_KEY_MASK;
@@ -691,14 +690,14 @@ cache_put_key(struct program_cache *cache, cache_key key)
 }
 
 /* This function lets us test whether a given key was previously
- * stored in the cache with cache_put_key(). The implement is
+ * stored in the cache with disk_cache_put_key(). The implement is
  * efficient by not using syscalls or hitting the disk. It's not
  * race-free, but the races are benign. If we race with someone else
- * calling cache_put_key, then that's just an extra cache miss and an
+ * calling disk_cache_put_key, then that's just an extra cache miss and an
  * extra recompile.
  */
 bool
-cache_has_key(struct program_cache *cache, cache_key key)
+disk_cache_has_key(struct disk_cache *cache, cache_key key)
 {
    uint32_t *key_chunk = (uint32_t *) key;
    int i = *key_chunk & CACHE_INDEX_KEY_MASK;
@@ -708,3 +707,5 @@ cache_has_key(struct program_cache *cache, cache_key key)
 
    return memcmp(entry, key, CACHE_KEY_SIZE) == 0;
 }
+
+#endif

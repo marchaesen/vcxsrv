@@ -21,21 +21,22 @@
  * IN THE SOFTWARE.
  */
 
-#pragma once
-#ifndef CACHE_H
-#define CACHE_H
+#ifndef DISK_CACHE_H
+#define DISK_CACHE_H
+
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stdbool.h>
-
 /* Size of cache keys in bytes. */
 #define CACHE_KEY_SIZE 20
 
 typedef uint8_t cache_key[CACHE_KEY_SIZE];
+
+struct disk_cache;
 
 /* Provide inlined stub functions if the shader cache is disabled. */
 
@@ -50,12 +51,12 @@ typedef uint8_t cache_key[CACHE_KEY_SIZE];
  * This cache provides two distinct operations:
  *
  *   o Storage and retrieval of arbitrary objects by cryptographic
- *     name (or "key").  This is provided via cache_put() and
- *     cache_get().
+ *     name (or "key").  This is provided via disk_cache_put() and
+ *     disk_cache_get().
  *
  *   o The ability to store a key alone and check later whether the
- *     key was previously stored. This is provided via cache_put_key()
- *     and cache_has_key().
+ *     key was previously stored. This is provided via disk_cache_put_key()
+ *     and disk_cache_has_key().
  *
  * The put_key()/has_key() operations are conceptually identical to
  * put()/get() with no data, but are provided separately to allow for
@@ -67,32 +68,32 @@ typedef uint8_t cache_key[CACHE_KEY_SIZE];
  * names are computed). See mesa-sha1.h and _mesa_sha1_compute for
  * assistance in computing SHA-1 signatures.
  */
-struct program_cache *
-cache_create(void);
+struct disk_cache *
+disk_cache_create(void);
 
 /**
  * Destroy a cache object, (freeing all associated resources).
  */
 void
-cache_destroy(struct program_cache *cache);
+disk_cache_destroy(struct disk_cache *cache);
 
 /**
  * Store an item in the cache under the name \key.
  *
- * The item can be retrieved later with cache_get(), (unless the item has
+ * The item can be retrieved later with disk_cache_get(), (unless the item has
  * been evicted in the interim).
  *
- * Any call to cache_put() may cause an existing, random item to be
+ * Any call to disk_cache_put() may cause an existing, random item to be
  * evicted from the cache.
  */
 void
-cache_put(struct program_cache *cache, cache_key key,
-          const void *data, size_t size);
+disk_cache_put(struct disk_cache *cache, cache_key key,
+               const void *data, size_t size);
 
 /**
  * Retrieve an item previously stored in the cache with the name <key>.
  *
- * The item must have been previously stored with a call to cache_put().
+ * The item must have been previously stored with a call to disk_cache_put().
  *
  * If \size is non-NULL, then, on successful return, it will be set to the
  * size of the object.
@@ -103,67 +104,67 @@ cache_put(struct program_cache *cache, cache_key key,
  * caller should call free() it when finished.
  */
 void *
-cache_get(struct program_cache *cache, cache_key key, size_t *size);
+disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size);
 
 /**
  * Store the name \key within the cache, (without any associated data).
  *
- * Later this key can be checked with cache_has_key(), (unless the key
+ * Later this key can be checked with disk_cache_has_key(), (unless the key
  * has been evicted in the interim).
  *
  * Any call to cache_record() may cause an existing, random key to be
  * evicted from the cache.
  */
 void
-cache_put_key(struct program_cache *cache, cache_key key);
+disk_cache_put_key(struct disk_cache *cache, cache_key key);
 
 /**
  * Test whether the name \key was previously recorded in the cache.
  *
- * Return value: True if cache_put_key() was previously called with
+ * Return value: True if disk_cache_put_key() was previously called with
  * \key, (and the key was not evicted in the interim).
  *
- * Note: cache_has_key() will only return true for keys passed to
- * cache_put_key(). Specifically, a call to cache_put() will not cause
- * cache_has_key() to return true for the same key.
+ * Note: disk_cache_has_key() will only return true for keys passed to
+ * disk_cache_put_key(). Specifically, a call to disk_cache_put() will not cause
+ * disk_cache_has_key() to return true for the same key.
  */
 bool
-cache_has_key(struct program_cache *cache, cache_key key);
+disk_cache_has_key(struct disk_cache *cache, cache_key key);
 
 #else
 
-static inline struct program_cache *
-cache_create(void)
+static inline struct disk_cache *
+disk_cache_create(void)
 {
    return NULL;
 }
 
 static inline void
-cache_destroy(struct program_cache *cache) {
+disk_cache_destroy(struct disk_cache *cache) {
    return;
 }
 
 static inline void
-cache_put(struct program_cache *cache, cache_key key,
+disk_cache_put(struct disk_cache *cache, cache_key key,
           const void *data, size_t size)
 {
    return;
 }
 
 static inline uint8_t *
-cache_get(struct program_cache *cache, cache_key key, size_t *size)
+disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
 {
    return NULL;
 }
 
 static inline void
-cache_put_key(struct program_cache *cache, cache_key key)
+disk_cache_put_key(struct disk_cache *cache, cache_key key)
 {
    return;
 }
 
 static inline bool
-cache_has_key(struct program_cache *cache, cache_key key)
+disk_cache_has_key(struct disk_cache *cache, cache_key key)
 {
    return false;
 }

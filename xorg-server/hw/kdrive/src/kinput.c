@@ -2327,3 +2327,8 @@ DeleteInputDeviceRequest(DeviceIntPtr pDev)
 {
     RemoveDevice(pDev, TRUE);
 }
+
+void
+RemoveInputDeviceTraces(const char *config_info)
+{
+}

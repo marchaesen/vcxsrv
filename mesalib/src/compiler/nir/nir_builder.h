@@ -52,7 +52,7 @@ nir_builder_init_simple_shader(nir_builder *build, void *mem_ctx,
                                gl_shader_stage stage,
                                const nir_shader_compiler_options *options)
 {
-   build->shader = nir_shader_create(mem_ctx, stage, options);
+   build->shader = nir_shader_create(mem_ctx, stage, options, NULL);
    nir_function *func = nir_function_create(build->shader, "main");
    build->exact = false;
    build->impl = nir_function_impl_create(func);

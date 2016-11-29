@@ -181,6 +181,7 @@ typedef void (*glcpp_extension_iterator)(
 		bool es);
 
 struct glcpp_parser {
+	void *linalloc;
 	yyscan_t scanner;
 	struct hash_table *defines;
 	active_list_t *active;
@@ -207,6 +208,15 @@ struct glcpp_parser {
 	void *state;
 	gl_api api;
 	unsigned version;
+
+	/**
+	 * Has the #version been set?
+	 *
+	 * A separate flag is used because any possible sentinel value in
+	 * \c ::version could also be set by a #version line.
+	 */
+	bool version_set;
+
 	bool has_new_line_number;
 	int new_line_number;
 	bool has_new_source_number;

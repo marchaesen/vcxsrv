@@ -66,6 +66,11 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
                                struct gl_shader_program **ptr,
                                struct gl_shader_program *shProg);
 
+void
+_mesa_reference_shader_program_data(struct gl_context *ctx,
+                                    struct gl_shader_program_data **ptr,
+                                    struct gl_shader_program_data *data);
+
 static inline void
 _mesa_reference_shader_program(struct gl_context *ctx,
                                struct gl_shader_program **ptr,
@@ -99,7 +104,8 @@ extern struct gl_shader_program *
 _mesa_new_shader_program(GLuint name);
 
 extern void
-_mesa_clear_shader_program_data(struct gl_shader_program *shProg);
+_mesa_clear_shader_program_data(struct gl_context *ctx,
+                                struct gl_shader_program *shProg);
 
 extern void
 _mesa_free_shader_program_data(struct gl_context *ctx,

@@ -211,7 +211,13 @@ void radv_loge_v(const char *format, va_list va);
  * Print a FINISHME message, including its source location.
  */
 #define radv_finishme(format, ...)					\
-	__radv_finishme(__FILE__, __LINE__, format, ##__VA_ARGS__);
+	do { \
+		static bool reported = false; \
+		if (!reported) { \
+			__radv_finishme(__FILE__, __LINE__, format, ##__VA_ARGS__); \
+			reported = true; \
+		} \
+	} while (0)
 
 /* A non-fatal assert.  Useful for debugging. */
 #ifdef DEBUG
@@ -257,6 +263,8 @@ struct radv_physical_device {
 	int                                         cmd_parser_version;
 	uint32_t                    pci_vendor_id;
 	uint32_t                    pci_device_id;
+
+	uint8_t                                     uuid[VK_UUID_SIZE];
 
 	struct wsi_device                       wsi_device;
 };
@@ -442,6 +450,7 @@ struct radv_device {
 
 	bool allow_fast_clears;
 	bool allow_dcc;
+	bool shader_stats_dump;
 
 	/* MSAA sample locations.
 	 * The first index is the sample index.
@@ -452,8 +461,6 @@ struct radv_device {
 	float sample_locations_8x[8][2];
 	float sample_locations_16x[16][2];
 };
-
-void radv_device_get_cache_uuid(void *uuid);
 
 struct radv_device_memory {
 	struct radeon_winsys_bo                      *bo;
@@ -794,6 +801,7 @@ struct radv_shader_variant {
 	struct ac_shader_variant_info info;
 	unsigned rsrc1;
 	unsigned rsrc2;
+	uint32_t code_size;
 };
 
 struct radv_depth_stencil_state {
@@ -933,10 +941,6 @@ struct radv_cmask_info {
 	uint64_t offset;
 	uint64_t size;
 	unsigned alignment;
-	unsigned pitch;
-	unsigned height;
-	unsigned xalign;
-	unsigned yalign;
 	unsigned slice_tile_max;
 	unsigned base_address_reg;
 };
@@ -1206,6 +1210,13 @@ void radv_initialise_cmask(struct radv_cmd_buffer *cmd_buffer,
 			   struct radv_image *image, uint32_t value);
 void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
 			 struct radv_image *image, uint32_t value);
+
+struct radv_fence {
+	struct radeon_winsys_fence *fence;
+	bool submitted;
+	bool signalled;
+};
+
 #define RADV_DEFINE_HANDLE_CASTS(__radv_type, __VkType)		\
 								\
 	static inline struct __radv_type *			\

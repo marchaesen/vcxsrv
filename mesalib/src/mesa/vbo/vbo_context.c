@@ -47,7 +47,7 @@ static GLuint check_size( const GLfloat *attr )
  * Helper for initializing a vertex array.
  */
 static void
-init_array(struct gl_context *ctx, struct gl_client_array *cl,
+init_array(struct gl_context *ctx, struct gl_vertex_array *cl,
            unsigned size, const void *pointer)
 {
    memset(cl, 0, sizeof(*cl));
@@ -77,7 +77,7 @@ static void init_legacy_currval(struct gl_context *ctx)
     * attribute:
     */
    for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-      struct gl_client_array *cl = &vbo->currval[VERT_ATTRIB_FF(i)];
+      struct gl_vertex_array *cl = &vbo->currval[VERT_ATTRIB_FF(i)];
 
       init_array(ctx, cl,
                  check_size(ctx->Current.Attrib[i]),
@@ -92,7 +92,7 @@ static void init_generic_currval(struct gl_context *ctx)
    GLuint i;
 
    for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-      struct gl_client_array *cl = &vbo->currval[VBO_ATTRIB_GENERIC0 + i];
+      struct gl_vertex_array *cl = &vbo->currval[VBO_ATTRIB_GENERIC0 + i];
 
       init_array(ctx, cl, 1, ctx->Current.Attrib[VERT_ATTRIB_GENERIC0 + i]);
    }
@@ -108,7 +108,7 @@ static void init_mat_currval(struct gl_context *ctx)
     * attribute:
     */
    for (i = 0; i < MAT_ATTRIB_MAX; i++) {
-      struct gl_client_array *cl =
+      struct gl_vertex_array *cl =
          &vbo->currval[VBO_ATTRIB_MAT_FRONT_AMBIENT + i];
       unsigned size;
 

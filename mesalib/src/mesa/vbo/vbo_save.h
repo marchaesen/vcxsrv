@@ -124,8 +124,8 @@ struct vbo_save_context {
    struct gl_context *ctx;
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;  /**< Used if out_of_memory is true */
-   struct gl_client_array arrays[VBO_ATTRIB_MAX];
-   const struct gl_client_array *inputs[VBO_ATTRIB_MAX];
+   struct gl_vertex_array arrays[VBO_ATTRIB_MAX];
+   const struct gl_vertex_array *inputs[VBO_ATTRIB_MAX];
 
    GLbitfield64 enabled; /**< mask of enabled vbo arrays. */
    GLubyte attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */

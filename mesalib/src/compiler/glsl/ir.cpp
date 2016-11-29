@@ -1523,6 +1523,10 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    if (mode == ir_var_temporary
        && (name == NULL || name == ir_variable::tmp_name)) {
       this->name = ir_variable::tmp_name;
+   } else if (name == NULL ||
+              strlen(name) < ARRAY_SIZE(this->name_storage)) {
+      strcpy(this->name_storage, name ? name : "");
+      this->name = this->name_storage;
    } else {
       this->name = ralloc_strdup(this, name);
    }

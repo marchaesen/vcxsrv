@@ -297,7 +297,7 @@ _mesa_UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
        *     shader stages in the pipeline program pipeline object are not
        *     modified."
        */
-      if (!shProg->LinkStatus) {
+      if (!shProg->data->LinkStatus) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glUseProgramStages(program not linked)");
          return;
@@ -376,7 +376,7 @@ _mesa_ActiveShaderProgram(GLuint pipeline, GLuint program)
     */
    pipe->EverBound = GL_TRUE;
 
-   if ((shProg != NULL) && !shProg->LinkStatus) {
+   if ((shProg != NULL) && !shProg->data->LinkStatus) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
             "glActiveShaderProgram(program %u not linked)", shProg->Name);
       return;
@@ -645,7 +645,8 @@ _mesa_GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
       *params = pipe->ActiveProgram ? pipe->ActiveProgram->Name : 0;
       return;
    case GL_INFO_LOG_LENGTH:
-      *params = pipe->InfoLog ? strlen(pipe->InfoLog) + 1 : 0;
+      *params = (pipe->InfoLog && pipe->InfoLog[0] != '\0') ?
+         strlen(pipe->InfoLog) + 1 : 0;
       return;
    case GL_VALIDATE_STATUS:
       *params = pipe->Validated;

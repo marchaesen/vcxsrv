@@ -142,7 +142,7 @@ void st_upload_constants( struct st_context *st,
 static void update_vs_constants(struct st_context *st )
 {
    struct st_vertex_program *vp = st->vp;
-   struct gl_program_parameter_list *params = vp->Base.Base.Parameters;
+   struct gl_program_parameter_list *params = vp->Base.Parameters;
 
    st_upload_constants( st, params, MESA_SHADER_VERTEX );
 }
@@ -160,7 +160,7 @@ const struct st_tracked_state st_update_vs_constants = {
 static void update_fs_constants(struct st_context *st )
 {
    struct st_fragment_program *fp = st->fp;
-   struct gl_program_parameter_list *params = fp->Base.Base.Parameters;
+   struct gl_program_parameter_list *params = fp->Base.Parameters;
 
    st_upload_constants( st, params, MESA_SHADER_FRAGMENT );
 }
@@ -178,7 +178,7 @@ static void update_gs_constants(struct st_context *st )
    struct gl_program_parameter_list *params;
 
    if (gp) {
-      params = gp->Base.Base.Parameters;
+      params = gp->Base.Parameters;
       st_upload_constants( st, params, MESA_SHADER_GEOMETRY );
    }
 }
@@ -195,7 +195,7 @@ static void update_tcs_constants(struct st_context *st )
    struct gl_program_parameter_list *params;
 
    if (tcp) {
-      params = tcp->Base.Base.Parameters;
+      params = tcp->Base.Parameters;
       st_upload_constants( st, params, MESA_SHADER_TESS_CTRL );
    }
 }
@@ -212,7 +212,7 @@ static void update_tes_constants(struct st_context *st )
    struct gl_program_parameter_list *params;
 
    if (tep) {
-      params = tep->Base.Base.Parameters;
+      params = tep->Base.Parameters;
       st_upload_constants( st, params, MESA_SHADER_TESS_EVAL );
    }
 }
@@ -229,7 +229,7 @@ static void update_cs_constants(struct st_context *st )
    struct gl_program_parameter_list *params;
 
    if (cp) {
-      params = cp->Base.Base.Parameters;
+      params = cp->Base.Parameters;
       st_upload_constants( st, params, MESA_SHADER_COMPUTE );
    }
 }

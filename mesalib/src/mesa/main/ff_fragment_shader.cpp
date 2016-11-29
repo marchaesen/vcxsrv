@@ -301,7 +301,7 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
    /* _NEW_PROGRAM */
    const GLboolean vertexShader =
       (ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] &&
-       ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->LinkStatus &&
+       ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->data->LinkStatus &&
        ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->_LinkedShaders[MESA_SHADER_VERTEX]);
    const GLboolean vertexProgram = ctx->VertexProgram._Enabled;
    GLbitfield fp_inputs = 0x0;
@@ -368,9 +368,9 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
       if (vertexShader)
          vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->_LinkedShaders[MESA_SHADER_VERTEX]->Program;
       else
-         vprog = &ctx->VertexProgram.Current->Base;
+         vprog = ctx->VertexProgram.Current;
 
-      vp_outputs = vprog->OutputsWritten;
+      vp_outputs = vprog->info.outputs_written;
 
       /* These get generated in the setup routine regardless of the
        * vertex program:
@@ -1202,6 +1202,9 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    p.mem_ctx = ralloc_context(NULL);
    p.shader = _mesa_new_shader(0, MESA_SHADER_FRAGMENT);
+#ifdef DEBUG
+   p.shader->SourceChecksum = 0xf18ed; /* fixed */
+#endif
    p.shader->ir = new(p.shader) exec_list;
    state = new(p.shader) _mesa_glsl_parse_state(ctx, MESA_SHADER_FRAGMENT,
 						p.shader);
@@ -1258,7 +1261,6 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    p.shader->CompileStatus = true;
    p.shader->Version = state->language_version;
-   p.shader->info.uses_builtin_functions = state->uses_builtin_functions;
    p.shader_program->Shaders =
       (gl_shader **)malloc(sizeof(*p.shader_program->Shaders));
    p.shader_program->Shaders[0] = p.shader;
@@ -1266,9 +1268,9 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    _mesa_glsl_link_shader(ctx, p.shader_program);
 
-   if (!p.shader_program->LinkStatus)
+   if (!p.shader_program->data->LinkStatus)
       _mesa_problem(ctx, "Failed to link fixed function fragment shader: %s\n",
-		    p.shader_program->InfoLog);
+                    p.shader_program->data->InfoLog);
 
    ralloc_free(p.mem_ctx);
    return p.shader_program;

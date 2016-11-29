@@ -71,7 +71,7 @@
  * only interested in per-vertex data.  See bug 38626.
  */
 static GLboolean
-all_varyings_in_vbos(const struct gl_client_array *arrays[])
+all_varyings_in_vbos(const struct gl_vertex_array *arrays[])
 {
    GLuint i;
 
@@ -127,6 +127,30 @@ setup_index_buffer(struct st_context *st,
 
 
 /**
+ * Set the restart index.
+ */
+static void
+setup_primitive_restart(struct gl_context *ctx,
+                        const struct _mesa_index_buffer *ib,
+                        struct pipe_draw_info *info)
+{
+   if (ctx->Array._PrimitiveRestart) {
+      info->restart_index = _mesa_primitive_restart_index(ctx, ib->type);
+
+      /* Enable primitive restart only when the restart index can have an
+       * effect. This is required for correctness in radeonsi VI support.
+       * Other hardware may also benefit from taking a faster, non-restart path
+       * when possible.
+       */
+      if ((ib->type == GL_UNSIGNED_INT) ||
+          (ib->type == GL_UNSIGNED_SHORT && info->restart_index <= 0xffff) ||
+          (ib->type == GL_UNSIGNED_BYTE && info->restart_index <= 0xff))
+         info->primitive_restart = true;
+   }
+}
+
+
+/**
  * Translate OpenGL primtive type (GL_POINTS, GL_TRIANGLE_STRIP, etc) to
  * the corresponding Gallium type.
  */
@@ -163,7 +187,7 @@ st_draw_vbo(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct pipe_index_buffer ibuffer = {0};
    struct pipe_draw_info info;
-   const struct gl_client_array **arrays = ctx->Array._DrawArrays;
+   const struct gl_vertex_array **arrays = ctx->Array._DrawArrays;
    unsigned i;
 
    /* Mesa core state should have been validated already */
@@ -205,19 +229,7 @@ st_draw_vbo(struct gl_context *ctx,
       /* The VBO module handles restart for the non-indexed GLDrawArrays
        * so we only set these fields for indexed drawing:
        */
-      if (ctx->Array._PrimitiveRestart) {
-         info.restart_index = _mesa_primitive_restart_index(ctx, ib->type);
-
-         /* Enable primitive restart only when the restart index can have an
-          * effect. This is required for correctness in radeonsi VI support,
-          * though other hardware may also benefit from taking a faster,
-          * non-restart path when possible.
-          */
-         if ((ibuffer.index_size >= 4) ||
-             (ibuffer.index_size >= 2 && info.restart_index <= 0xffff) ||
-             (info.restart_index <= 0xff))
-            info.primitive_restart = true;
-      }
+      setup_primitive_restart(ctx, ib, &info);
    }
    else {
       /* Transform feedback drawing is always non-indexed. */
@@ -310,16 +322,15 @@ st_indirect_draw_vbo(struct gl_context *ctx,
       }
 
       info.indexed = TRUE;
+
+      /* Primitive restart is not handled by the VBO module in this case. */
+      setup_primitive_restart(ctx, ib, &info);
    }
 
    info.mode = translate_prim(ctx, mode);
    info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
    info.indirect = st_buffer_object(indirect_data)->buffer;
    info.indirect_offset = indirect_offset;
-
-   /* Primitive restart is not handled by the VBO module in this case. */
-   info.primitive_restart = ctx->Array._PrimitiveRestart;
-   info.restart_index = ctx->Array.RestartIndex;
 
    if (ST_DEBUG & DEBUG_DRAW) {
       debug_printf("st/draw indirect: mode %s drawcount %d indexed %d\n",

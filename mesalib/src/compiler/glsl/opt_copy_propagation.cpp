@@ -44,6 +44,9 @@ namespace {
 class kill_entry : public exec_node
 {
 public:
+   /* override operator new from exec_node */
+   DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(kill_entry)
+
    kill_entry(ir_variable *var)
    {
       assert(var);
@@ -59,6 +62,7 @@ public:
    {
       progress = false;
       mem_ctx = ralloc_context(0);
+      lin_ctx = linear_alloc_parent(mem_ctx, 0);
       acp = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
                                     _mesa_key_pointer_equal);
       this->kills = new(mem_ctx) exec_list;
@@ -95,6 +99,7 @@ public:
    bool killed_all;
 
    void *mem_ctx;
+   void *lin_ctx;
 };
 
 } /* unnamed namespace */
@@ -313,7 +318,7 @@ ir_copy_propagation_visitor::kill(ir_variable *var)
 
    /* Add the LHS variable to the list of killed variables in this block.
     */
-   this->kills->push_tail(new(this->kills) kill_entry(var));
+   this->kills->push_tail(new(this->lin_ctx) kill_entry(var));
 }
 
 /**

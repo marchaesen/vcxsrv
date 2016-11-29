@@ -56,8 +56,8 @@ build_color_shaders(struct nir_shader **out_vs,
 	nir_builder_init_simple_shader(&vs_b, NULL, MESA_SHADER_VERTEX, NULL);
 	nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
 
-	vs_b.shader->info.name = ralloc_strdup(vs_b.shader, "meta_clear_color_vs");
-	fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "meta_clear_color_fs");
+	vs_b.shader->info->name = ralloc_strdup(vs_b.shader, "meta_clear_color_vs");
+	fs_b.shader->info->name = ralloc_strdup(fs_b.shader, "meta_clear_color_fs");
 
 	const struct glsl_type *position_type = glsl_vec4_type();
 	const struct glsl_type *color_type = glsl_vec4_type();
@@ -458,8 +458,8 @@ build_depthstencil_shader(struct nir_shader **out_vs, struct nir_shader **out_fs
 	nir_builder_init_simple_shader(&vs_b, NULL, MESA_SHADER_VERTEX, NULL);
 	nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
 
-	vs_b.shader->info.name = ralloc_strdup(vs_b.shader, "meta_clear_depthstencil_vs");
-	fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "meta_clear_depthstencil_fs");
+	vs_b.shader->info->name = ralloc_strdup(vs_b.shader, "meta_clear_depthstencil_vs");
+	fs_b.shader->info->name = ralloc_strdup(fs_b.shader, "meta_clear_depthstencil_fs");
 	const struct glsl_type *position_type = glsl_vec4_type();
 
 	nir_variable *vs_in_pos =
@@ -998,7 +998,7 @@ radv_cmd_clear_image(struct radv_cmd_buffer *cmd_buffer,
 		const VkImageSubresourceRange *range = &ranges[r];
 		for (uint32_t l = 0; l < radv_get_levelCount(image, range); ++l) {
 			const uint32_t layer_count = image->type == VK_IMAGE_TYPE_3D ?
-				radv_minify(image->extent.depth, l) :
+				radv_minify(image->extent.depth, range->baseMipLevel + l) :
 				radv_get_layerCount(image, range);
 			for (uint32_t s = 0; s < layer_count; ++s) {
 				struct radv_image_view iview;

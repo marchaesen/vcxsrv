@@ -27,16 +27,16 @@
 
 /**
  * @file
- * Hash functions.
+ * CRC32 function.
  * 
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
-#ifndef U_HASH_H_
-#define U_HASH_H_
+#ifndef CRC32_H_
+#define CRC32_H_
 
-
-#include "pipe/p_compiler.h"
+#include <stdlib.h>
+#include <stdint.h>
 
 
 #ifdef __cplusplus
@@ -52,4 +52,4 @@ util_hash_crc32(const void *data, size_t size);
 }
 #endif
 
-#endif /* U_HASH_H_ */
+#endif /* CRC32_H_ */

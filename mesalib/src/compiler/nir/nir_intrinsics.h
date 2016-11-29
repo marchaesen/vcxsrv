@@ -328,6 +328,7 @@ SYSTEM_VALUE(num_work_groups, 3, 0, xx, xx, xx)
 SYSTEM_VALUE(helper_invocation, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(channel_num, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(alpha_ref_float, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(layer_id, 1, 0, xx, xx, xx)
 
 /* Blend constant color values.  Float values are clamped. */
 SYSTEM_VALUE(blend_const_color_r_float, 1, 0, xx, xx, xx)

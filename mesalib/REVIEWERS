@@ -92,9 +92,15 @@ F: */Makefile.sources
 
 ANDROID BUILD
 R: Emil Velikov <emil.l.velikov@gmail.com>
+R: Rob Herring <robh@kernel.org>
 F: CleanSpec.mk
 F: */Android.*mk
 F: */Makefile.sources
+
+ANDROID EGL SUPPORT
+R: Rob Herring <robh@kernel.org>
+R: Tomasz Figa <tfiga@chromium.org>
+F: src/egl/drivers/dri2/platform_android.c
 
 WAYLAND EGL SUPPORT
 R: Daniel Stone <daniels@collabora.com>

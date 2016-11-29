@@ -27,14 +27,18 @@ each directory.
 <li><b>include</b> - Public OpenGL header files
 <li><b>src</b>
   <ul>
+  <li><b>compiler</b> - Common utility sources for different compilers.
+    <ul>
+    <li><b>glsl</b> - the GLSL IR and compiler
+    <li><b>nir</b> - the NIR IR and compiler
+    <li><b>spriv</b> - the SPIR-V compiler
+    </ul>
   <li><b>egl</b> - EGL library sources
     <ul>
-    <li><b>docs</b> - EGL documentation
     <li><b>drivers</b> - EGL drivers
     <li><b>main</b> - main EGL library implementation.  This is where all
         the EGL API functions are implemented, like eglCreateContext().
     </ul>
-  <li><b>glsl</b> - the GLSL compiler
   <li><b>mapi</b> - Mesa APIs
     <li><b>glapi</b> - OpenGL API dispatch layer.  This is where all the
         GL entrypoints like glClear, glBegin, etc. are generated, as well as
@@ -94,7 +98,8 @@ each directory.
       <ul>
       <li><b>i915</b> - Driver for Intel i915/i945.
       <li><b>llvmpipe</b> - Software driver using LLVM for runtime code generation.
-      <li><b>nv*</b> - Drivers for NVIDIA GPUs.
+      <li><b>nouveau</b> - Driver for NVIDIA GPUs.
+      <li><b>radeon</b> - Shared module for the r600 and radeonsi drivers.
       <li><b>radeonsi</b> - Driver for AMD Southern Island.
       <li><b>r300</b> - Driver for ATI R300 - R500.
       <li><b>r600</b> - Driver for ATI/AMD R600 - Northern Island.
@@ -128,16 +133,19 @@ each directory.
           to another.
       <li><b>util</b> - assorted utilities for arithmetic, hashing, surface
           creation, memory management, 2D blitting, simple rendering, etc.
+      <li>XXX more
       </ul>
     <li><b>state_trackers</b> -
        <ul>
        <li><b>clover</b> - OpenCL state tracker
        <li><b>dri</b> - Meta state tracker for DRI drivers
        <li><b>glx</b> - Meta state tracker for GLX
-       <li><b>vdpau</b> - VDPAU state tracker
-       <li><b>wgl</b> -
-       <li><b>xorg</b> - Meta state tracker for Xorg video drivers
+       <li><b>wgl</b> - Windows WGL state tracker
+       <li><b>xa</b> - XA state tracker
        <li><b>xvmc</b> - XvMC state tracker
+       <li><b>vdpau</b> - VDPAU state tracker
+       <li><b>va</b> - VA-API state tracker
+       <li><b>omx</b> - OpenMAX state tracker
        </ul>
     <li><b>winsys</b> -
        <ul>
@@ -148,11 +156,11 @@ each directory.
     </ul>
   </ul>
   <ul>
-  <li><b>glx</b> - The GLX library code for building libGL.  This is used for
-         direct rendering drivers.  It will dynamically load one of the 
-         xxx_dri.so drivers.
+  <li><b>glx</b> - The GLX library code for building libGL using DRI drivers.
   </ul>
-<li><b>lib</b> - where the GL libraries are placed
+<li><b>lib</b> - hardlinks to most binaries as produced by <strong>make</strong>.
+        These (shortcuts) are used for development purposes in conjunction with
+        LD_LIBRARY_PATH and/or LIBGL_DRIVERS_PATH.
 </ul>
 
 </div>

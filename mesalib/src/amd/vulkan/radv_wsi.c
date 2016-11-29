@@ -288,6 +288,9 @@ void radv_DestroySwapchainKHR(
 	RADV_FROM_HANDLE(wsi_swapchain, swapchain, _swapchain);
 	const VkAllocationCallbacks *alloc;
 
+	if (!_swapchain)
+		return;
+
 	if (pAllocator)
 		alloc = pAllocator;
 	else
@@ -318,13 +321,21 @@ VkResult radv_AcquireNextImageKHR(
 	VkSwapchainKHR                               _swapchain,
 	uint64_t                                     timeout,
 	VkSemaphore                                  semaphore,
-	VkFence                                      fence,
+	VkFence                                      _fence,
 	uint32_t*                                    pImageIndex)
 {
 	RADV_FROM_HANDLE(wsi_swapchain, swapchain, _swapchain);
+	RADV_FROM_HANDLE(radv_fence, fence, _fence);
 
-	return swapchain->acquire_next_image(swapchain, timeout, semaphore,
-					     pImageIndex);
+	VkResult result = swapchain->acquire_next_image(swapchain, timeout, semaphore,
+	                                                pImageIndex);
+
+	if (fence && result == VK_SUCCESS) {
+		fence->submitted = true;
+		fence->signalled = true;
+	}
+
+	return result;
 }
 
 VkResult radv_QueuePresentKHR(

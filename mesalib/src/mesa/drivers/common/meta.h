@@ -121,9 +121,9 @@ struct save_state
 
    /** MESA_META_SHADER */
    GLboolean VertexProgramEnabled;
-   struct gl_vertex_program *VertexProgram;
+   struct gl_program *VertexProgram;
    GLboolean FragmentProgramEnabled;
-   struct gl_fragment_program *FragmentProgram;
+   struct gl_program *FragmentProgram;
    GLboolean ATIFragmentShaderEnabled;
    struct gl_shader_program *Shader[MESA_SHADER_STAGES];
    struct gl_shader_program *ActiveShader;

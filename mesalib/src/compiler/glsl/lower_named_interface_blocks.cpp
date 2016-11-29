@@ -193,6 +193,8 @@ flatten_named_interface_blocks_declarations::run(exec_list *instructions)
             new_var->data.patch = iface_t->fields.structure[i].patch;
             new_var->data.stream = var->data.stream;
             new_var->data.how_declared = var->data.how_declared;
+            new_var->data.tess_varying_implicit_sized_array =
+               var->data.tess_varying_implicit_sized_array;
             new_var->data.from_named_ifc_block = 1;
 
             new_var->init_interface_type(var->type);

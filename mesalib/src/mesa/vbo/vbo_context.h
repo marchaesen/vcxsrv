@@ -63,7 +63,7 @@ extern "C" {
 #endif
 
 struct vbo_context {
-   struct gl_client_array currval[VBO_ATTRIB_MAX];
+   struct gl_vertex_array currval[VBO_ATTRIB_MAX];
    
    /** Map VERT_ATTRIB_x to VBO_ATTRIB_y */
    GLuint map_vp_none[VERT_ATTRIB_MAX];

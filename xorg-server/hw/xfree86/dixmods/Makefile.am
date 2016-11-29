@@ -29,9 +29,11 @@ libwfb_la_CFLAGS = $(AM_CFLAGS) -DFB_ACCESS_WRAPPER
 
 libglx_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libglx_la_LIBADD = $(top_builddir)/glx/libglx.la $(GLX_SYS_LIBS)
+if DRI2
 libglx_la_LIBADD += $(top_builddir)/glx/libglxdri.la
 if NO_UNDEFINED
 libglx_la_LIBADD += $(LIBDRM_LIBS) $(PIXMAN_LIBS)
+endif
 endif
 libglx_la_SOURCES = glxmodule.c
 

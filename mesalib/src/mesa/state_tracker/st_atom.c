@@ -69,11 +69,11 @@ static void check_program_state( struct st_context *st )
    struct st_geometry_program *old_gp = st->gp;
    struct st_fragment_program *old_fp = st->fp;
 
-   struct gl_vertex_program *new_vp = ctx->VertexProgram._Current;
-   struct gl_tess_ctrl_program *new_tcp = ctx->TessCtrlProgram._Current;
-   struct gl_tess_eval_program *new_tep = ctx->TessEvalProgram._Current;
-   struct gl_geometry_program *new_gp = ctx->GeometryProgram._Current;
-   struct gl_fragment_program *new_fp = ctx->FragmentProgram._Current;
+   struct gl_program *new_vp = ctx->VertexProgram._Current;
+   struct gl_program *new_tcp = ctx->TessCtrlProgram._Current;
+   struct gl_program *new_tep = ctx->TessEvalProgram._Current;
+   struct gl_program *new_gp = ctx->GeometryProgram._Current;
+   struct gl_program *new_fp = ctx->FragmentProgram._Current;
    uint64_t dirty = 0;
 
    /* Flag states used by both new and old shaders to unbind shader resources
@@ -120,9 +120,9 @@ static void check_program_state( struct st_context *st )
 
 static void check_attrib_edgeflag(struct st_context *st)
 {
-   const struct gl_client_array **arrays = st->ctx->Array._DrawArrays;
+   const struct gl_vertex_array **arrays = st->ctx->Array._DrawArrays;
    GLboolean vertdata_edgeflags, edgeflag_culls_prims, edgeflags_enabled;
-   struct gl_vertex_program *vp = st->ctx->VertexProgram._Current;
+   struct gl_program *vp = st->ctx->VertexProgram._Current;
 
    if (!arrays)
       return;
@@ -178,7 +178,7 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
 
    case ST_PIPELINE_COMPUTE: {
       struct st_compute_program *old_cp = st->cp;
-      struct gl_compute_program *new_cp = ctx->ComputeProgram._Current;
+      struct gl_program *new_cp = ctx->ComputeProgram._Current;
 
       if (new_cp != &old_cp->Base) {
          if (old_cp)

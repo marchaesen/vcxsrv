@@ -546,6 +546,7 @@ _mesa_bytes_per_vertex_attrib(GLint comps, GLenum type)
    case GL_FLOAT:
       return comps * sizeof(GLfloat);
    case GL_HALF_FLOAT_ARB:
+   case GL_HALF_FLOAT_OES:
       return comps * sizeof(GLhalfARB);
    case GL_DOUBLE:
       return comps * sizeof(GLdouble);

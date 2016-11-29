@@ -136,71 +136,25 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
 {
    struct gl_linked_shader *sh = shader_prog->_LinkedShaders[stage];
 
-   nir_shader *shader = nir_shader_create(NULL, stage, options);
+   nir_shader *shader = nir_shader_create(NULL, stage, options,
+                                          &sh->Program->info);
 
    nir_visitor v1(shader);
    nir_function_visitor v2(&v1);
    v2.run(sh->ir);
    visit_exec_list(sh->ir, &v1);
 
-   shader->info.name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
+   shader->info->name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
    if (shader_prog->Label)
-      shader->info.label = ralloc_strdup(shader, shader_prog->Label);
-   shader->info.num_textures = util_last_bit(sh->Program->SamplersUsed);
-   shader->info.num_ubos = sh->NumUniformBlocks;
-   shader->info.num_abos = shader_prog->NumAtomicBuffers;
-   shader->info.num_ssbos = sh->NumShaderStorageBlocks;
-   shader->info.num_images = sh->NumImages;
-   shader->info.inputs_read = sh->Program->InputsRead;
-   shader->info.double_inputs_read = sh->Program->DoubleInputsRead;
-   shader->info.outputs_written = sh->Program->OutputsWritten;
-   shader->info.outputs_read = sh->Program->OutputsRead;
-   shader->info.patch_inputs_read = sh->Program->PatchInputsRead;
-   shader->info.patch_outputs_written = sh->Program->PatchOutputsWritten;
-   shader->info.system_values_read = sh->Program->SystemValuesRead;
-   shader->info.uses_texture_gather = sh->Program->UsesGather;
-   shader->info.uses_clip_distance_out =
-      sh->Program->ClipDistanceArraySize != 0;
-   shader->info.separate_shader = shader_prog->SeparateShader;
-   shader->info.has_transform_feedback_varyings =
+      shader->info->label = ralloc_strdup(shader, shader_prog->Label);
+   shader->info->num_textures = util_last_bit(sh->Program->SamplersUsed);
+   shader->info->num_ubos = sh->NumUniformBlocks;
+   shader->info->num_ssbos = sh->NumShaderStorageBlocks;
+   shader->info->clip_distance_array_size = sh->Program->ClipDistanceArraySize;
+   shader->info->cull_distance_array_size = sh->Program->CullDistanceArraySize;
+   shader->info->separate_shader = shader_prog->SeparateShader;
+   shader->info->has_transform_feedback_varyings =
       shader_prog->TransformFeedback.NumVarying > 0;
-
-   switch (stage) {
-   case MESA_SHADER_TESS_CTRL:
-      shader->info.tcs.vertices_out = sh->info.TessCtrl.VerticesOut;
-      break;
-
-   case MESA_SHADER_GEOMETRY:
-      shader->info.gs.vertices_in = shader_prog->Geom.VerticesIn;
-      shader->info.gs.output_primitive = sh->info.Geom.OutputType;
-      shader->info.gs.vertices_out = sh->info.Geom.VerticesOut;
-      shader->info.gs.invocations = sh->info.Geom.Invocations;
-      shader->info.gs.uses_end_primitive = shader_prog->Geom.UsesEndPrimitive;
-      shader->info.gs.uses_streams = shader_prog->Geom.UsesStreams;
-      break;
-
-   case MESA_SHADER_FRAGMENT: {
-      struct gl_fragment_program *fp =
-         (struct gl_fragment_program *)sh->Program;
-
-      shader->info.fs.uses_discard = fp->UsesKill;
-      shader->info.fs.uses_sample_qualifier = fp->IsSample != 0;
-      shader->info.fs.early_fragment_tests = sh->info.EarlyFragmentTests;
-      shader->info.fs.depth_layout = fp->FragDepthLayout;
-      break;
-   }
-
-   case MESA_SHADER_COMPUTE: {
-      struct gl_compute_program *cp = (struct gl_compute_program *)sh->Program;
-      shader->info.cs.local_size[0] = cp->LocalSize[0];
-      shader->info.cs.local_size[1] = cp->LocalSize[1];
-      shader->info.cs.local_size[2] = cp->LocalSize[2];
-      break;
-   }
-
-   default:
-      break; /* No stage-specific info */
-   }
 
    return shader;
 }
@@ -375,6 +329,7 @@ nir_visitor::visit(ir_variable *ir)
    var->data.explicit_index = ir->data.explicit_index;
    var->data.explicit_binding = ir->data.explicit_binding;
    var->data.has_initializer = ir->data.has_initializer;
+   var->data.compact = false;
    var->data.location_frac = ir->data.location_frac;
 
    switch (ir->data.depth_layout) {

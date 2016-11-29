@@ -82,10 +82,12 @@ LOCAL_CFLAGS += \
 	-D__STDC_LIMIT_MACROS
 endif
 
+ifneq ($(LOCAL_IS_HOST_MODULE),true)
 # add libdrm if there are hardware drivers
 ifneq ($(filter-out swrast,$(MESA_GPU_DRIVERS)),)
 LOCAL_CFLAGS += -DHAVE_LIBDRM
 LOCAL_SHARED_LIBRARIES += libdrm
+endif
 endif
 
 LOCAL_CPPFLAGS += \

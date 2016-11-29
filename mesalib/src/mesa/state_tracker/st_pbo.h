@@ -85,10 +85,14 @@ void *
 st_pbo_create_gs(struct st_context *st);
 
 void *
-st_pbo_create_upload_fs(struct st_context *st);
+st_pbo_get_upload_fs(struct st_context *st,
+                     enum pipe_format src_format,
+                     enum pipe_format dst_format);
 
 void *
-st_pbo_get_download_fs(struct st_context *st, enum pipe_texture_target target);
+st_pbo_get_download_fs(struct st_context *st, enum pipe_texture_target target,
+                       enum pipe_format src_format,
+                       enum pipe_format dst_format);
 
 extern void
 st_init_pbo_helpers(struct st_context *st);

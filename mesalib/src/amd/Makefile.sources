@@ -25,3 +25,14 @@ ADDRLIB_FILES = \
 	addrlib/r800/egbaddrlib.h \
 	addrlib/r800/siaddrlib.cpp \
 	addrlib/r800/siaddrlib.h
+
+AMD_COMPILER_FILES = \
+	common/ac_binary.c \
+	common/ac_binary.h \
+	common/ac_llvm_helper.cpp \
+	common/ac_llvm_util.c \
+	common/ac_llvm_util.h
+
+AMD_NIR_FILES = \
+	common/ac_nir_to_llvm.c \
+	common/ac_nir_to_llvm.h

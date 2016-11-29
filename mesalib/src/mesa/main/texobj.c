@@ -116,9 +116,10 @@ _mesa_lookup_texture(struct gl_context *ctx, GLuint id)
 struct gl_texture_object *
 _mesa_lookup_texture_err(struct gl_context *ctx, GLuint id, const char* func)
 {
-   struct gl_texture_object *texObj;
+   struct gl_texture_object *texObj = NULL;
 
-   texObj = _mesa_lookup_texture(ctx, id); /* Returns NULL if not found. */
+   if (id > 0)
+      texObj = _mesa_lookup_texture(ctx, id); /* Returns NULL if not found. */
 
    if (!texObj)
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(texture)", func);

@@ -35,12 +35,6 @@
 #include <mipointer.h>
 #include <mipointrst.h>
 
-/* Copied from mipointer.c */
-#define MIPOINTER(dev) \
-    (IsFloating(dev) ? \
-        (miPointerPtr)dixLookupPrivate(&(dev)->devPrivates, miPointerPrivKey): \
-        (miPointerPtr)dixLookupPrivate(&(GetMaster(dev, MASTER_POINTER))->devPrivates, miPointerPrivKey))
-
 struct sync_pending {
     struct xorg_list l;
     DeviceIntPtr pending_dev;
@@ -298,6 +292,7 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     int i;
     int sx = wl_fixed_to_int(sx_w);
     int sy = wl_fixed_to_int(sy_w);
+    int dx, dy;
     ScreenPtr pScreen = xwl_seat->xwl_screen->screen;
     ValuatorMask mask;
 
@@ -314,9 +309,11 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     xwl_seat->pointer_enter_serial = serial;
 
     xwl_seat->focus_window = wl_surface_get_user_data(surface);
+    dx = xwl_seat->focus_window->window->drawable.x;
+    dy = xwl_seat->focus_window->window->drawable.y;
 
     master = GetMaster(dev, POINTER_OR_FLOAT);
-    (*pScreen->SetCursorPosition) (dev, pScreen, sx, sy, TRUE);
+    (*pScreen->SetCursorPosition) (dev, pScreen, dx + sx, dy + sy, TRUE);
 
     miPointerInvalidateSprite(master);
 
@@ -850,7 +847,7 @@ touch_handle_down(void *data, struct wl_touch *wl_touch,
     if (surface == NULL)
         return;
 
-    xwl_touch = calloc(sizeof *xwl_touch, 1);
+    xwl_touch = calloc(1, sizeof *xwl_touch);
     if (xwl_touch == NULL) {
         ErrorF("touch_handle_down ENOMEM");
         return;
@@ -1056,12 +1053,13 @@ init_touch(struct xwl_seat *xwl_seat)
     wl_touch_add_listener(xwl_seat->wl_touch,
                           &touch_listener, xwl_seat);
 
-    if (xwl_seat->touch)
-        EnableDevice(xwl_seat->touch, TRUE);
-    else {
+    if (xwl_seat->touch == NULL) {
         xwl_seat->touch =
             add_device(xwl_seat, "xwayland-touch", xwl_touch_proc);
+        ActivateDevice(xwl_seat->touch, TRUE);
     }
+    EnableDevice(xwl_seat->touch, TRUE);
+
 }
 
 static void
@@ -1120,7 +1118,7 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
 {
     struct xwl_seat *xwl_seat;
 
-    xwl_seat = calloc(sizeof *xwl_seat, 1);
+    xwl_seat = calloc(1, sizeof *xwl_seat);
     if (xwl_seat == NULL) {
         ErrorF("create_input ENOMEM\n");
         return;
@@ -1447,7 +1445,7 @@ xwl_pointer_warp_emulator_create(struct xwl_seat *xwl_seat)
 {
     struct xwl_pointer_warp_emulator *warp_emulator;
 
-    warp_emulator = calloc(sizeof *warp_emulator, 1);
+    warp_emulator = calloc(1, sizeof *warp_emulator);
     if (!warp_emulator) {
         ErrorF("%s: ENOMEM", __func__);
         return NULL;

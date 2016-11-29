@@ -29,7 +29,6 @@
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/macros.h"
-#include "util/simple_list.h"
 #include "swrast/s_chan.h"
 #include "t_context.h"
 #include "t_vertex.h"

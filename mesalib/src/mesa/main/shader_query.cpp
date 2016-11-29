@@ -118,7 +118,7 @@ _mesa_GetActiveAttrib(GLuint program, GLuint desired_index,
    if (!shProg)
       return;
 
-   if (!shProg->LinkStatus) {
+   if (!shProg->data->LinkStatus) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glGetActiveAttrib(program not linked)");
       return;
@@ -165,7 +165,7 @@ _mesa_GetAttribLocation(GLuint program, const GLchar * name)
       return -1;
    }
 
-   if (!shProg->LinkStatus) {
+   if (!shProg->data->LinkStatus) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetAttribLocation(program not linked)");
       return -1;
@@ -193,7 +193,7 @@ _mesa_GetAttribLocation(GLuint program, const GLchar * name)
 unsigned
 _mesa_count_active_attribs(struct gl_shader_program *shProg)
 {
-   if (!shProg->LinkStatus
+   if (!shProg->data->LinkStatus
        || shProg->_LinkedShaders[MESA_SHADER_VERTEX] == NULL) {
       return 0;
    }
@@ -212,7 +212,7 @@ _mesa_count_active_attribs(struct gl_shader_program *shProg)
 size_t
 _mesa_longest_attribute_name_length(struct gl_shader_program *shProg)
 {
-   if (!shProg->LinkStatus
+   if (!shProg->data->LinkStatus
        || shProg->_LinkedShaders[MESA_SHADER_VERTEX] == NULL) {
       return 0;
    }
@@ -297,7 +297,7 @@ _mesa_GetFragDataIndex(GLuint program, const GLchar *name)
       return -1;
    }
 
-   if (!shProg->LinkStatus) {
+   if (!shProg->data->LinkStatus) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetFragDataIndex(program not linked)");
       return -1;
@@ -332,7 +332,7 @@ _mesa_GetFragDataLocation(GLuint program, const GLchar *name)
       return -1;
    }
 
-   if (!shProg->LinkStatus) {
+   if (!shProg->data->LinkStatus) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetFragDataLocation(program not linked)");
       return -1;
@@ -591,7 +591,7 @@ _mesa_program_resource_index(struct gl_shader_program *shProg,
 
    switch (res->Type) {
    case GL_ATOMIC_COUNTER_BUFFER:
-      return RESOURCE_ATC(res) - shProg->AtomicBuffers;
+      return RESOURCE_ATC(res) - shProg->data->AtomicBuffers;
    case GL_VERTEX_SUBROUTINE:
    case GL_GEOMETRY_SUBROUTINE:
    case GL_FRAGMENT_SUBROUTINE:
@@ -931,10 +931,10 @@ is_resource_referenced(struct gl_shader_program *shProg,
       return RESOURCE_ATC(res)->StageReferences[stage];
 
    if (res->Type == GL_UNIFORM_BLOCK)
-      return shProg->UniformBlocks[index].stageref & (1 << stage);
+      return shProg->data->UniformBlocks[index].stageref & (1 << stage);
 
    if (res->Type == GL_SHADER_STORAGE_BLOCK)
-      return shProg->ShaderStorageBlocks[index].stageref & (1 << stage);
+      return shProg->data->ShaderStorageBlocks[index].stageref & (1 << stage);
 
    return res->StageReferences & (1 << stage);
 }
@@ -1043,7 +1043,7 @@ get_buffer_property(struct gl_shader_program *shProg,
             unsigned idx = RESOURCE_ATC(res)->Uniforms[i];
             struct gl_program_resource *uni =
                program_resource_find_data(shProg,
-                                          &shProg->UniformStorage[idx]);
+                                          &shProg->data->UniformStorage[idx]);
             assert(uni);
             *val++ = _mesa_program_resource_index(shProg, uni);
          }

@@ -374,7 +374,7 @@ _mesa_execute_program(struct gl_context * ctx,
                       const struct gl_program *program,
                       struct gl_program_machine *machine)
 {
-   const GLuint numInst = program->NumInstructions;
+   const GLuint numInst = program->arb.NumInstructions;
    const GLuint maxExec = 65536;
    GLuint pc, numExec = 0;
 
@@ -392,7 +392,7 @@ _mesa_execute_program(struct gl_context * ctx,
    }
 
    for (pc = 0; pc < numInst; pc++) {
-      const struct prog_instruction *inst = program->Instructions + pc;
+      const struct prog_instruction *inst = program->arb.Instructions + pc;
 
       if (DEBUG_PROG) {
          _mesa_print_instruction(inst);
@@ -439,12 +439,12 @@ _mesa_execute_program(struct gl_context * ctx,
          break;
       case OPCODE_BGNLOOP:
          /* no-op */
-         assert(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->arb.Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
          break;
       case OPCODE_ENDLOOP:
          /* subtract 1 here since pc is incremented by for(pc) loop */
-         assert(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->arb.Instructions[inst->BranchTarget].Opcode
                 == OPCODE_BGNLOOP);
          pc = inst->BranchTarget - 1;   /* go to matching BNGLOOP */
          break;
@@ -453,14 +453,14 @@ _mesa_execute_program(struct gl_context * ctx,
       case OPCODE_ENDSUB:      /* end subroutine */
          break;
       case OPCODE_BRK:         /* break out of loop (conditional) */
-         assert(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->arb.Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
          /* break out of loop */
          /* pc++ at end of for-loop will put us after the ENDLOOP inst */
          pc = inst->BranchTarget;
          break;
       case OPCODE_CONT:        /* continue loop (conditional) */
-         assert(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->arb.Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
          /* continue at ENDLOOP */
          /* Subtract 1 here since we'll do pc++ at end of for-loop */
@@ -645,9 +645,9 @@ _mesa_execute_program(struct gl_context * ctx,
       case OPCODE_IF:
          {
             GLboolean cond;
-            assert(program->Instructions[inst->BranchTarget].Opcode
+            assert(program->arb.Instructions[inst->BranchTarget].Opcode
                    == OPCODE_ELSE ||
-                   program->Instructions[inst->BranchTarget].Opcode
+                   program->arb.Instructions[inst->BranchTarget].Opcode
                    == OPCODE_ENDIF);
             /* eval condition */
             GLfloat a[4];
@@ -669,7 +669,7 @@ _mesa_execute_program(struct gl_context * ctx,
          break;
       case OPCODE_ELSE:
          /* goto ENDIF */
-         assert(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->arb.Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDIF);
          assert(inst->BranchTarget >= 0);
          pc = inst->BranchTarget;

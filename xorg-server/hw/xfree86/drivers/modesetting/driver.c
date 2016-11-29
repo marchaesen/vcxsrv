@@ -594,6 +594,7 @@ redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty, int *timeout)
     PixmapSyncDirtyHelper(dirty);
 
     if (!screen->isGPU) {
+#ifdef GLAMOR
         /*
          * When copying from the master framebuffer to the shared pixmap,
          * we must ensure the copy is complete before the slave starts a
@@ -602,6 +603,7 @@ redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty, int *timeout)
          */
         if (ms->drmmode.glamor)
             glamor_finish(screen);
+#endif
         /* Ensure the slave processes the damage immediately */
         if (timeout)
             *timeout = 0;

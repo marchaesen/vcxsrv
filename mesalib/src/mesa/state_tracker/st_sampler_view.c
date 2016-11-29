@@ -317,7 +317,7 @@ get_texture_format_swizzle(const struct st_context *st,
  *
  * \param stObj  the st texture object,
  */
-static boolean
+MAYBE_UNUSED static boolean
 check_sampler_swizzle(const struct st_context *st,
                       const struct st_texture_object *stObj,
 		      const struct pipe_sampler_view *sv, unsigned glsl_version)
@@ -430,8 +430,12 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
       templ.u.tex.first_level = stObj->base.MinLevel + stObj->base.BaseLevel;
       templ.u.tex.last_level = last_level(stObj);
       assert(templ.u.tex.first_level <= templ.u.tex.last_level);
-      templ.u.tex.first_layer = stObj->base.MinLayer;
-      templ.u.tex.last_layer = last_layer(stObj);
+      if (stObj->layer_override) {
+         templ.u.tex.first_layer = templ.u.tex.last_layer = stObj->layer_override;
+      } else {
+         templ.u.tex.first_layer = stObj->base.MinLayer;
+         templ.u.tex.last_layer = last_layer(stObj);
+      }
       assert(templ.u.tex.first_layer <= templ.u.tex.last_layer);
       templ.target = gl_target_to_pipe(stObj->base.Target);
    }
@@ -469,7 +473,7 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
       assert(gl_target_to_pipe(stObj->base.Target) == view->target);
       if (stObj->base.Target == GL_TEXTURE_BUFFER) {
          unsigned base = stObj->base.BufferOffset;
-         unsigned size = MIN2(stObj->pt->width0 - base,
+         MAYBE_UNUSED unsigned size = MIN2(stObj->pt->width0 - base,
                               (unsigned) stObj->base.BufferSize);
          assert(view->u.buf.offset == base);
          assert(view->u.buf.size == size);
@@ -478,8 +482,11 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
          assert(stObj->base.MinLevel + stObj->base.BaseLevel ==
                 view->u.tex.first_level);
          assert(last_level(stObj) == view->u.tex.last_level);
-         assert(stObj->base.MinLayer == view->u.tex.first_layer);
-         assert(last_layer(stObj) == view->u.tex.last_layer);
+         assert(stObj->layer_override || stObj->base.MinLayer == view->u.tex.first_layer);
+         assert(stObj->layer_override || last_layer(stObj) == view->u.tex.last_layer);
+         assert(!stObj->layer_override ||
+                (stObj->layer_override == view->u.tex.first_layer &&
+                 stObj->layer_override == view->u.tex.last_layer));
       }
    }
    else {

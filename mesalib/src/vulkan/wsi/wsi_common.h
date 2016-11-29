@@ -53,6 +53,7 @@ struct wsi_swapchain {
    VkAllocationCallbacks alloc;
    const struct wsi_image_fns *image_fns;
    VkFence fences[3];
+   VkPresentModeKHR present_mode;
 
    VkResult (*destroy)(struct wsi_swapchain *swapchain,
                        const VkAllocationCallbacks *pAllocator);

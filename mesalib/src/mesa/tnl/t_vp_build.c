@@ -40,7 +40,7 @@
  */
 void _tnl_UpdateFixedFunctionProgram( struct gl_context *ctx )
 {
-   const struct gl_vertex_program *prev = ctx->VertexProgram._Current;
+   const struct gl_program *prev = ctx->VertexProgram._Current;
 
    if (!ctx->VertexProgram._Current ||
        ctx->VertexProgram._Current == ctx->VertexProgram._TnlProgram) {
@@ -54,6 +54,6 @@ void _tnl_UpdateFixedFunctionProgram( struct gl_context *ctx )
     */
    if (ctx->VertexProgram._Current != prev && ctx->Driver.BindProgram) {
       ctx->Driver.BindProgram(ctx, GL_VERTEX_PROGRAM_ARB,
-                            (struct gl_program *) ctx->VertexProgram._Current);
+                              ctx->VertexProgram._Current);
    }
 }
