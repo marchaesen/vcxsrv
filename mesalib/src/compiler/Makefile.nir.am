@@ -31,8 +31,6 @@ nir_libnir_la_SOURCES =					\
 	$(SPIRV_FILES)					\
 	$(NIR_GENERATED_FILES)
 
-PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
-
 nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@ || ($(RM) $@; false)

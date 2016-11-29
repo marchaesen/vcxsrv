@@ -915,7 +915,7 @@ _mesa_GetUniformLocation(GLuint programObj, const GLcharARB *name)
     *     "If program has not been successfully linked, the error
     *     INVALID_OPERATION is generated."
     */
-   if (shProg->LinkStatus == GL_FALSE) {
+   if (shProg->data->LinkStatus == GL_FALSE) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
 		  "glGetUniformLocation(program not linked)");
       return -1;
@@ -1002,10 +1002,10 @@ _mesa_UniformBlockBinding(GLuint program,
    if (!shProg)
       return;
 
-   if (uniformBlockIndex >= shProg->NumUniformBlocks) {
+   if (uniformBlockIndex >= shProg->data->NumUniformBlocks) {
       _mesa_error(ctx, GL_INVALID_VALUE,
 		  "glUniformBlockBinding(block index %u >= %u)",
-		  uniformBlockIndex, shProg->NumUniformBlocks);
+                  uniformBlockIndex, shProg->data->NumUniformBlocks);
       return;
    }
 
@@ -1016,13 +1016,14 @@ _mesa_UniformBlockBinding(GLuint program,
       return;
    }
 
-   if (shProg->UniformBlocks[uniformBlockIndex].Binding !=
+   if (shProg->data->UniformBlocks[uniformBlockIndex].Binding !=
        uniformBlockBinding) {
 
       FLUSH_VERTICES(ctx, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
 
-      shProg->UniformBlocks[uniformBlockIndex].Binding = uniformBlockBinding;
+      shProg->data->UniformBlocks[uniformBlockIndex].Binding =
+         uniformBlockBinding;
    }
 }
 
@@ -1044,10 +1045,11 @@ _mesa_ShaderStorageBlockBinding(GLuint program,
    if (!shProg)
       return;
 
-   if (shaderStorageBlockIndex >= shProg->NumShaderStorageBlocks) {
+   if (shaderStorageBlockIndex >= shProg->data->NumShaderStorageBlocks) {
       _mesa_error(ctx, GL_INVALID_VALUE,
 		  "glShaderStorageBlockBinding(block index %u >= %u)",
-		  shaderStorageBlockIndex, shProg->NumShaderStorageBlocks);
+                  shaderStorageBlockIndex,
+                  shProg->data->NumShaderStorageBlocks);
       return;
    }
 
@@ -1059,13 +1061,13 @@ _mesa_ShaderStorageBlockBinding(GLuint program,
       return;
    }
 
-   if (shProg->ShaderStorageBlocks[shaderStorageBlockIndex].Binding !=
+   if (shProg->data->ShaderStorageBlocks[shaderStorageBlockIndex].Binding !=
        shaderStorageBlockBinding) {
 
       FLUSH_VERTICES(ctx, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewShaderStorageBuffer;
 
-      shProg->ShaderStorageBlocks[shaderStorageBlockIndex].Binding =
+      shProg->data->ShaderStorageBlocks[shaderStorageBlockIndex].Binding =
          shaderStorageBlockBinding;
    }
 }

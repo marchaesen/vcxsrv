@@ -189,8 +189,8 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    struct st_texture_image *stImage = st_texture_image(texImage);
 
    struct pipe_resource *res;
-   struct pipe_sampler_view templ, **sampler_view;
    mesa_format texFormat;
+   uint layer_override = 0;
 
    if (output) {
       res = st_vdpau_output_surface_dma_buf(ctx, vdpSurface);
@@ -201,8 +201,10 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    } else {
       res = st_vdpau_video_surface_dma_buf(ctx, vdpSurface, index);
 
-      if (!res)
+      if (!res) {
          res = st_vdpau_video_surface_gallium(ctx, vdpSurface, index);
+         layer_override = index & 1;
+      }
    }
 
    if (!res) {
@@ -233,18 +235,8 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, res);
 
-   u_sampler_view_default_template(&templ, res, res->format);
-   templ.u.tex.first_layer = index & 1;
-   templ.u.tex.last_layer = index & 1;
-   templ.swizzle_r = GET_SWZ(stObj->base._Swizzle, 0);
-   templ.swizzle_g = GET_SWZ(stObj->base._Swizzle, 1);
-   templ.swizzle_b = GET_SWZ(stObj->base._Swizzle, 2);
-   templ.swizzle_a = GET_SWZ(stObj->base._Swizzle, 3);
-
-   sampler_view = st_texture_get_sampler_view(st, stObj);
-   *sampler_view = st->pipe->create_sampler_view(st->pipe, res, &templ);
-
    stObj->surface_format = res->format;
+   stObj->layer_override = layer_override;
 
    _mesa_dirty_texobj(ctx, texObj);
    pipe_resource_reference(&res, NULL);
@@ -263,6 +255,8 @@ st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
    pipe_resource_reference(&stObj->pt, NULL);
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, NULL);
+
+   stObj->layer_override = 0;
 
    _mesa_dirty_texobj(ctx, texObj);
 

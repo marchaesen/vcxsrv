@@ -942,6 +942,19 @@ validate_var_decl(nir_variable *var, bool is_global, validate_state *state)
    /* Must have exactly one mode set */
    validate_assert(state, util_bitcount(var->data.mode) == 1);
 
+   if (var->data.compact) {
+      /* The "compact" flag is only valid on arrays of scalars. */
+      assert(glsl_type_is_array(var->type));
+
+      const struct glsl_type *type = glsl_get_array_element(var->type);
+      if (nir_is_per_vertex_io(var, state->shader->stage)) {
+         assert(glsl_type_is_array(type));
+         assert(glsl_type_is_scalar(glsl_get_array_element(type)));
+      } else {
+         assert(glsl_type_is_scalar(type));
+      }
+   }
+
    /*
     * TODO validate some things ir_validate.cpp does (requires more GLSL type
     * support)

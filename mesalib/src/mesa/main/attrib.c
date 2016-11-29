@@ -1484,7 +1484,7 @@ copy_array_object(struct gl_context *ctx,
    for (i = 0; i < ARRAY_SIZE(src->VertexAttrib); i++) {
       _mesa_copy_client_array(ctx, &dest->_VertexAttrib[i], &src->_VertexAttrib[i]);
       _mesa_copy_vertex_attrib_array(ctx, &dest->VertexAttrib[i], &src->VertexAttrib[i]);
-      _mesa_copy_vertex_buffer_binding(ctx, &dest->VertexBinding[i], &src->VertexBinding[i]);
+      _mesa_copy_vertex_buffer_binding(ctx, &dest->BufferBinding[i], &src->BufferBinding[i]);
    }
 
    /* _Enabled must be the same than on push */

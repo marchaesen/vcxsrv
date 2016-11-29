@@ -147,3 +147,18 @@ DeleteInputDeviceRequest(DeviceIntPtr dev)
 {
     DEBUG_LOG("DeleteInputDeviceRequest(%p)\n", dev);
 }
+
+/****************************************************************************
+ *
+ * Caller: configRemoveDevice (and others)
+ *
+ * Remove any traces of the input device specified in config_info.
+ * This is only necessary if the ddx keeps information around beyond
+ * the NewInputDeviceRequest/DeleteInputDeviceRequest
+ *
+ */
+void
+RemoveInputDeviceTraces(const char *config_info)
+{
+    DEBUG_LOG("RemoveInputDeviceTraces(%s)\n", config_info);
+}

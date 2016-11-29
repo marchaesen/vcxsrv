@@ -407,10 +407,6 @@ bool ralloc_asprintf_append (char **str, const char *fmt, ...)
 bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 /// @}
 
-#ifdef __cplusplus
-} /* end of extern "C" */
-#endif
-
 /**
  * Declare C++ new and delete operators which use ralloc.
  *
@@ -421,7 +417,7 @@ bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
  *
  * which is more idiomatic in C++ than calling ralloc.
  */
-#define DECLARE_RALLOC_CXX_OPERATORS(TYPE)                               \
+#define DECLARE_ALLOC_CXX_OPERATORS_TEMPLATE(TYPE, ALLOC_FUNC)           \
 private:                                                                 \
    static void _ralloc_destructor(void *p)                               \
    {                                                                     \
@@ -430,7 +426,7 @@ private:                                                                 \
 public:                                                                  \
    static void* operator new(size_t size, void *mem_ctx)                 \
    {                                                                     \
-      void *p = ralloc_size(mem_ctx, size);                              \
+      void *p = ALLOC_FUNC(mem_ctx, size);                               \
       assert(p != NULL);                                                 \
       if (!HAS_TRIVIAL_DESTRUCTOR(TYPE))                                 \
          ralloc_set_destructor(p, _ralloc_destructor);                   \
@@ -448,5 +444,90 @@ public:                                                                  \
       ralloc_free(p);                                                    \
    }
 
+#define DECLARE_RALLOC_CXX_OPERATORS(type) \
+   DECLARE_ALLOC_CXX_OPERATORS_TEMPLATE(type, ralloc_size)
+
+#define DECLARE_RZALLOC_CXX_OPERATORS(type) \
+   DECLARE_ALLOC_CXX_OPERATORS_TEMPLATE(type, rzalloc_size)
+
+#define DECLARE_LINEAR_ALLOC_CXX_OPERATORS(type) \
+   DECLARE_ALLOC_CXX_OPERATORS_TEMPLATE(type, linear_alloc_child)
+
+#define DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(type) \
+   DECLARE_ALLOC_CXX_OPERATORS_TEMPLATE(type, linear_zalloc_child)
+
+
+/**
+ * Do a fast allocation from the linear buffer, also known as the child node
+ * from the allocator's point of view. It can't be freed directly. You have
+ * to free the parent or the ralloc parent.
+ *
+ * \param parent   parent node of the linear allocator
+ * \param size     size to allocate (max 32 bits)
+ */
+void *linear_alloc_child(void *parent, unsigned size);
+
+/**
+ * Allocate a parent node that will hold linear buffers. The returned
+ * allocation is actually the first child node, but it's also the handle
+ * of the parent node. Use it for all child node allocations.
+ *
+ * \param ralloc_ctx  ralloc context, must not be NULL
+ * \param size        size to allocate (max 32 bits)
+ */
+void *linear_alloc_parent(void *ralloc_ctx, unsigned size);
+
+/**
+ * Same as linear_alloc_child, but also clears memory.
+ */
+void *linear_zalloc_child(void *parent, unsigned size);
+
+/**
+ * Same as linear_alloc_parent, but also clears memory.
+ */
+void *linear_zalloc_parent(void *ralloc_ctx, unsigned size);
+
+/**
+ * Free the linear parent node. This will free all child nodes too.
+ * Freeing the ralloc parent will also free this.
+ */
+void linear_free_parent(void *ptr);
+
+/**
+ * Same as ralloc_steal, but steals the linear parent node.
+ */
+void ralloc_steal_linear_parent(void *new_ralloc_ctx, void *ptr);
+
+/**
+ * Return the ralloc parent of the linear parent node.
+ */
+void *ralloc_parent_of_linear_parent(void *ptr);
+
+/**
+ * Same as realloc except that the linear allocator doesn't free child nodes,
+ * so it's reduced to memory duplication. It's used in places where
+ * reallocation is required. Don't use it often. It's much slower than
+ * realloc.
+ */
+void *linear_realloc(void *parent, void *old, unsigned new_size);
+
+/* The functions below have the same semantics as their ralloc counterparts,
+ * except that they always allocate a linear child node.
+ */
+char *linear_strdup(void *parent, const char *str);
+char *linear_asprintf(void *parent, const char *fmt, ...);
+char *linear_vasprintf(void *parent, const char *fmt, va_list args);
+bool linear_asprintf_append(void *parent, char **str, const char *fmt, ...);
+bool linear_vasprintf_append(void *parent, char **str, const char *fmt,
+                             va_list args);
+bool linear_asprintf_rewrite_tail(void *parent, char **str, size_t *start,
+                                  const char *fmt, ...);
+bool linear_vasprintf_rewrite_tail(void *parent, char **str, size_t *start,
+                                   const char *fmt, va_list args);
+bool linear_strcat(void *parent, char **dest, const char *str);
+
+#ifdef __cplusplus
+} /* end of extern "C" */
+#endif
 
 #endif

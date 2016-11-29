@@ -159,7 +159,7 @@ extern struct xorg_list output_pending_clients;
 static inline void
 output_pending_mark(ClientPtr client)
 {
-    if (xorg_list_is_empty(&client->output_pending))
+    if (!client->clientGone && xorg_list_is_empty(&client->output_pending))
         xorg_list_append(&client->output_pending, &output_pending_clients);
 }
 

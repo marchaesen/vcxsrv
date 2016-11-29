@@ -118,7 +118,7 @@ namespace {
       } else {
          active_atomic_buffer *buf = &buffers[var->data.binding];
          gl_uniform_storage *const storage =
-            &prog->UniformStorage[*uniform_loc];
+            &prog->data->UniformStorage[*uniform_loc];
 
          /* If this is the first time the buffer is used, increment
           * the counter of buffers used.
@@ -207,9 +207,9 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
    active_atomic_buffer *abs =
       find_active_atomic_counters(ctx, prog, &num_buffers);
 
-   prog->AtomicBuffers = rzalloc_array(prog, gl_active_atomic_buffer,
-                                       num_buffers);
-   prog->NumAtomicBuffers = num_buffers;
+   prog->data->AtomicBuffers = rzalloc_array(prog, gl_active_atomic_buffer,
+                                             num_buffers);
+   prog->data->NumAtomicBuffers = num_buffers;
 
    unsigned i = 0;
    for (unsigned binding = 0;
@@ -222,12 +222,12 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
          continue;
 
       active_atomic_buffer &ab = abs[binding];
-      gl_active_atomic_buffer &mab = prog->AtomicBuffers[i];
+      gl_active_atomic_buffer &mab = prog->data->AtomicBuffers[i];
 
       /* Assign buffer-specific fields. */
       mab.Binding = binding;
       mab.MinimumSize = ab.size;
-      mab.Uniforms = rzalloc_array(prog->AtomicBuffers, GLuint,
+      mab.Uniforms = rzalloc_array(prog->data->AtomicBuffers, GLuint,
                                    ab.num_uniforms);
       mab.NumUniforms = ab.num_uniforms;
 
@@ -235,7 +235,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
       for (unsigned j = 0; j < ab.num_uniforms; j++) {
          ir_variable *const var = ab.uniforms[j].var;
          gl_uniform_storage *const storage =
-            &prog->UniformStorage[ab.uniforms[j].uniform_loc];
+            &prog->data->UniformStorage[ab.uniforms[j].uniform_loc];
 
          mab.Uniforms[j] = ab.uniforms[j].uniform_loc;
          if (!var->data.explicit_binding)
@@ -267,23 +267,23 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
     */
    for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
       if (prog->_LinkedShaders[j] && num_atomic_buffers[j] > 0) {
-         prog->_LinkedShaders[j]->NumAtomicBuffers = num_atomic_buffers[j];
-         prog->_LinkedShaders[j]->AtomicBuffers =
+         struct gl_program *gl_prog = prog->_LinkedShaders[j]->Program;
+         gl_prog->info.num_abos = num_atomic_buffers[j];
+         gl_prog->sh.AtomicBuffers =
             rzalloc_array(prog, gl_active_atomic_buffer *,
                           num_atomic_buffers[j]);
 
          unsigned intra_stage_idx = 0;
          for (unsigned i = 0; i < num_buffers; i++) {
             struct gl_active_atomic_buffer *atomic_buffer =
-               &prog->AtomicBuffers[i];
+               &prog->data->AtomicBuffers[i];
             if (atomic_buffer->StageReferences[j]) {
-               prog->_LinkedShaders[j]->AtomicBuffers[intra_stage_idx] =
-                  atomic_buffer;
+               gl_prog->sh.AtomicBuffers[intra_stage_idx] = atomic_buffer;
 
                for (unsigned u = 0; u < atomic_buffer->NumUniforms; u++) {
-                  prog->UniformStorage[atomic_buffer->Uniforms[u]].opaque[j].index =
+                  prog->data->UniformStorage[atomic_buffer->Uniforms[u]].opaque[j].index =
                      intra_stage_idx;
-                  prog->UniformStorage[atomic_buffer->Uniforms[u]].opaque[j].active =
+                  prog->data->UniformStorage[atomic_buffer->Uniforms[u]].opaque[j].active =
                      true;
                }
 

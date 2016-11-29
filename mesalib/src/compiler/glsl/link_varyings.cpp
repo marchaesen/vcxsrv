@@ -1217,6 +1217,7 @@ public:
    ~varying_matches();
    void record(ir_variable *producer_var, ir_variable *consumer_var);
    unsigned assign_locations(struct gl_shader_program *prog,
+                             uint8_t *components,
                              uint64_t reserved_slots);
    void store_locations() const;
 
@@ -1482,6 +1483,7 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
  */
 unsigned
 varying_matches::assign_locations(struct gl_shader_program *prog,
+                                  uint8_t *components,
                                   uint64_t reserved_slots)
 {
    /* If packing has been disabled then we cannot safely sort the varyings by
@@ -1546,14 +1548,16 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
 
       previous_var_xfb_only = var->data.is_xfb_only;
 
-      unsigned num_elements =  type->count_attribute_slots(is_vertex_input);
-      unsigned slot_end;
-      if (this->disable_varying_packing &&
-          !is_varying_packing_safe(type, var))
-         slot_end = 4;
-      else
-         slot_end = type->without_array()->vector_elements;
-      slot_end += *location - 1;
+      /* The number of components taken up by this variable. For vertex shader
+       * inputs, we use the number of slots * 4, as they have different
+       * counting rules.
+       */
+      unsigned num_components = is_vertex_input ?
+         type->count_attribute_slots(is_vertex_input) * 4 :
+         this->matches[i].num_components;
+
+      /* The last slot for this variable, inclusive. */
+      unsigned slot_end = *location + num_components - 1;
 
       /* FIXME: We could be smarter in the below code and loop back over
        * trying to fill any locations that we skipped because we couldn't pack
@@ -1561,29 +1565,21 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
        * hit the linking error if we run out of room and suggest they use
        * explicit locations.
        */
-      for (unsigned j = 0; j < num_elements; j++) {
-         while ((slot_end < MAX_VARYING * 4u) &&
-                ((reserved_slots & (UINT64_C(1) << *location / 4u) ||
-                 (reserved_slots & (UINT64_C(1) << slot_end / 4u))))) {
+      while (slot_end < MAX_VARYING * 4u) {
+         const unsigned slots = (slot_end / 4u) - (*location / 4u) + 1;
+         const uint64_t slot_mask = ((1ull << slots) - 1) << (*location / 4u);
 
+         assert(slots > 0);
+         if (reserved_slots & slot_mask) {
             *location = ALIGN(*location + 1, 4);
-            slot_end = *location;
-
-            /* reset the counter and try again */
-            j = 0;
+            slot_end = *location + num_components - 1;
+            continue;
          }
 
-         /* Increase the slot to make sure there is enough room for next
-          * array element.
-          */
-         if (this->disable_varying_packing &&
-             !is_varying_packing_safe(type, var))
-            slot_end += 4;
-         else
-            slot_end += type->without_array()->vector_elements;
+         break;
       }
 
-      if (!var->data.patch && *location >= MAX_VARYING * 4u) {
+      if (!var->data.patch && slot_end >= MAX_VARYING * 4u) {
          linker_error(prog, "insufficient contiguous locations available for "
                       "%s it is possible an array or struct could not be "
                       "packed between varyings with explicit locations. Try "
@@ -1591,9 +1587,15 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
                       var->name);
       }
 
+      if (slot_end < MAX_VARYINGS_INCL_PATCH * 4u) {
+         for (unsigned j = *location / 4u; j < slot_end / 4u; j++)
+            components[j] = 4;
+         components[slot_end / 4u] = (slot_end & 3) + 1;
+      }
+
       this->matches[i].generic_location = *location;
 
-      *location += this->matches[i].num_components;
+      *location = slot_end + 1;
    }
 
    return (generic_location + 3) / 4;
@@ -1786,12 +1788,13 @@ public:
 
 private:
    virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major)
+                            bool /* row_major */,
+                            const glsl_type * /* record_type */,
+                            const enum glsl_interface_packing,
+                            bool /* last_field */)
    {
       assert(!type->without_array()->is_record());
       assert(!type->without_array()->is_interface());
-
-      (void) row_major;
 
       tfeedback_candidate *candidate
          = rzalloc(this->mem_ctx, tfeedback_candidate);
@@ -2209,7 +2212,9 @@ assign_varying_locations(struct gl_context *ctx,
       }
    }
 
-   const unsigned slots_used = matches.assign_locations(prog, reserved_slots);
+   uint8_t components[MAX_VARYINGS_INCL_PATCH] = {0};
+   const unsigned slots_used = matches.assign_locations(
+         prog, components, reserved_slots);
    matches.store_locations();
 
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
@@ -2269,13 +2274,13 @@ assign_varying_locations(struct gl_context *ctx,
    }
 
    if (producer) {
-      lower_packed_varyings(mem_ctx, slots_used, ir_var_shader_out,
+      lower_packed_varyings(mem_ctx, slots_used, components, ir_var_shader_out,
                             0, producer, disable_varying_packing,
                             xfb_enabled);
    }
 
    if (consumer) {
-      lower_packed_varyings(mem_ctx, slots_used, ir_var_shader_in,
+      lower_packed_varyings(mem_ctx, slots_used, components, ir_var_shader_in,
                             consumer_vertices, consumer,
                             disable_varying_packing, xfb_enabled);
    }

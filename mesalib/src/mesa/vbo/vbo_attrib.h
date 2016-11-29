@@ -79,7 +79,7 @@ enum {
 	VBO_ATTRIB_GENERIC14 = 31,
 	VBO_ATTRIB_GENERIC15 = 32,
 
-	/* XXX: in the vertex program InputsRead flag, we alias
+	/* XXX: in the vertex program inputs_read flag, we alias
 	 * materials and generics and use knowledge about the program
 	 * (whether it is a fixed-function emulation) to
 	 * differentiate.  Here we must keep them apart instead.

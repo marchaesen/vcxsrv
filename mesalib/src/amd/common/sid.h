@@ -7761,7 +7761,7 @@
 #define     V_028A90_FLUSH_HS_OUTPUT                                0x11
 #define     V_028A90_FLUSH_LS_OUTPUT                                0x12
 #define     V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT                   0x14
-#define     V_028A90_ZPASS_DONE                                     0x15 /* not on CIK */
+#define     V_028A90_ZPASS_DONE                                     0x15
 #define     V_028A90_CACHE_FLUSH_AND_INV_EVENT                      0x16
 #define     V_028A90_PERFCOUNTER_START                              0x17
 #define     V_028A90_PERFCOUNTER_STOP                               0x18
@@ -7795,7 +7795,7 @@
 /* CIK */
 #define     V_028A90_PIXEL_PIPE_STAT_CONTROL                        0x38
 #define     V_028A90_PIXEL_PIPE_STAT_DUMP                           0x39
-#define     V_028A90_PIXEL_PIPE_STAT_RESET                          0x40
+#define     V_028A90_PIXEL_PIPE_STAT_RESET                          0x3A
 /*     */
 #define   S_028A90_ADDRESS_HI(x)                                      (((unsigned)(x) & 0x1FF) << 18)
 #define   G_028A90_ADDRESS_HI(x)                                      (((x) >> 18) & 0x1FF)

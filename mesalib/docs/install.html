@@ -24,7 +24,7 @@
   </ul>
 <li><a href="#autoconf">Building with autoconf (Linux/Unix/X11)</a>
 <li><a href="#scons">Building with SCons (Windows/Linux)</a>
-<li><a href="#other">Building for other systems</a>
+<li><a href="#android">Building with AOSP (Android)</a>
 <li><a href="#libs">Library Information</a>
 <li><a href="#pkg-config">Building OpenGL programs with pkg-config</a>
 </ol>
@@ -33,60 +33,83 @@
 <h1 id="prereq-general">1. Prerequisites for building</h1>
 
 <h2>1.1 General</h2>
+
+<p>
+Build system.
+</p>
+
+<ul>
+<li>Autoconf is required when building on *nix platforms.
+<li><a href="http://www.scons.org/">SCons</a> is required for building on
+Windows and optional for Linux (it's an alternative to autoconf/automake.)
+</li>
+<li>Android Build system when building as native Android component. Autoconf
+is used when when building ARC.
+</li>
+</ul>
+
+
+<p>
+The following compilers are known to work, if you know of others or you're
+willing to maintain support for other compiler get in touch.
+</p>
+
+<ul>
+<li>GCC 4.2.0 or later (some parts of Mesa may require later versions)
+<li>clang - exact minimum requirement is currently unknown.
+<li>Microsoft Visual Studio 2013 Update 4 or later is required, for building on Windows.
+</ul>
+
+
+<p>
+Third party/extra tools.
+<br>
+<strong>Note</strong>: These should not be required, when building from a release tarball. If
+you think you've spotted a bug let developers know by filing a
+<a href="bugs.html">bug report</a>.
+</p>
+
+
 <ul>
 <li><a href="http://www.python.org/">Python</a> - Python is required.
 Version 2.6.4 or later should work.
 </li>
-<br>
 <li><a href="http://www.makotemplates.org/">Python Mako module</a> -
 Python Mako module is required. Version 0.3.4 or later should work.
 </li>
-</br>
-<li><a href="http://www.scons.org/">SCons</a> is required for building on
-Windows and optional for Linux (it's an alternative to autoconf/automake.)
-</li>
-<br>
-<li>lex / yacc - for building the GLSL compiler.
-<br>
-<br>
-On Linux systems, flex and bison are used.
-Versions 2.5.35 and 2.4.1, respectively, (or later) should work.
-<br>
-<br>
+<li>lex / yacc - for building the Mesa IR and GLSL compiler.
+<div>
+On Linux systems, flex and bison versions 2.5.35 and 2.4.1, respectively,
+(or later) should work.
 On Windows with MinGW, install flex and bison with:
 <pre>mingw-get install msys-flex msys-bison</pre>
 For MSVC on Windows, install
 <a href="http://winflexbison.sourceforge.net/">Win flex-bison</a>.
-</li>
-<br>
-<li>For building on Windows, Microsoft Visual Studio 2013 or later is required.
-</li>
+</div>
 </ul>
+<p><strong>Note</strong>: Some versions can be buggy (eg. flex 2.6.2) so do try others if things fail.</p>
 
 
-<h3 id="prereq-dri">1.2 For DRI and hardware acceleration</h3>
+<h3 id="prereq-dri">1.2 Requirements</h3>
 
 <p>
-The following are required for DRI-based hardware acceleration with Mesa:
+The requirements depends on the features selected at configure stage.
+Check/install the respective -devel package as prompted by the configure error
+message.
 </p>
 
-<ul>
-<li><a href="http://xorg.freedesktop.org/releases/individual/proto/">
-dri2proto</a> version 2.6 or later
-<li><a href="http://dri.freedesktop.org/libdrm/">libDRM</a> latest version
-<li>Xorg server version 1.5 or later
-<li>Linux 2.6.28 or later
-</ul>
 <p>
-If you're using a fedora distro the following command should install all
-the needed dependencies:
+Here are some common ways to retrieve most/all of the dependencies based on
+the packaging tool used by your distro.
 </p>
+
 <pre>
-  sudo yum install flex bison imake libtool xorg-x11-proto-devel libdrm-devel \
-  gcc-c++ xorg-x11-server-devel libXi-devel libXmu-devel libXdamage-devel git \
-  expat-devel llvm-devel python-mako
+  zypper source-install --build-deps-only Mesa # openSUSE/SLED/SLES
+  yum-builddep mesa # yum Fedora, OpenSuse(?)
+  dnf builddep mesa # dnf Fedora
+  apt-get build-dep mesa # Debian and derivatives
+  ... # others
 </pre>
-
 
 
 <h1 id="autoconf">2. Building with autoconf (Linux/Unix/X11)</h1>
@@ -139,22 +162,30 @@ This will create:
 </ul>
 <p>
 Put them all in the same directory to test them.
+
+Additional information is available in <a href="README.WIN32">README.WIN32</a>.
+
 </p>
 
 
 
-<h1 id="other">4. Building for other systems</h1>
+<h1 id="android">4. Building with AOSP (Android)</h1>
 
 <p>
-Documentation for other environments (some may be very out of date):
+Currently one can build Mesa for Android as part of the AOSP project, yet
+your experience might vary.
 </p>
 
-<ul>
-<li><a href="README.VMS">README.VMS</a> - VMS
-<li><a href="README.CYGWIN">README.CYGWIN</a> - Cygwin
-<li><a href="README.WIN32">README.WIN32</a> - Win32
-</ul>
+<p>
+In order to achieve that one should update their local manifest to point to the
+upstream repo, set the approapriate BOARD_GPU_DRIVERS and build the
+libGLES_mesa library.
+</p>
 
+<p>
+FINISHME: Improve on the instructions add references to Rob H repos/Jenkins,
+Android-x86 and/or other resources.
+</p>
 
 
 <h1 id="libs">5. Library Information</h1>

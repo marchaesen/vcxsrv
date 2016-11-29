@@ -198,7 +198,6 @@
 #define MAX_PROGRAM_CALL_DEPTH         8
 #define MAX_PROGRAM_TEMPS              256
 #define MAX_PROGRAM_ADDRESS_REGS       1
-#define MAX_VARYING                    32    /**< number of float[4] vectors */
 #define MAX_SAMPLERS                   MAX_TEXTURE_IMAGE_UNITS
 #define MAX_PROGRAM_INPUTS             32
 #define MAX_PROGRAM_OUTPUTS            64

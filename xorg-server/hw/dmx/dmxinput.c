@@ -123,3 +123,8 @@ void
 DeleteInputDeviceRequest(DeviceIntPtr pDev)
 {
 }
+
+void
+RemoveInputDeviceTraces(const char *config_info)
+{
+}

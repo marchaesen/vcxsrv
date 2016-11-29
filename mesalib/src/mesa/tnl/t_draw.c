@@ -95,7 +95,7 @@ static void free_space(struct gl_context *ctx)
  * \param fptr  output/float array
  */
 static void
-convert_bgra_to_float(const struct gl_client_array *input,
+convert_bgra_to_float(const struct gl_vertex_array *input,
                       const GLubyte *ptr, GLfloat *fptr,
                       GLuint count )
 {
@@ -113,7 +113,7 @@ convert_bgra_to_float(const struct gl_client_array *input,
 }
 
 static void
-convert_half_to_float(const struct gl_client_array *input,
+convert_half_to_float(const struct gl_vertex_array *input,
 		      const GLubyte *ptr, GLfloat *fptr,
 		      GLuint count, GLuint sz)
 {
@@ -140,7 +140,7 @@ convert_half_to_float(const struct gl_client_array *input,
  * is used to map the fixed-point numbers into the range [-1, 1].
  */
 static void
-convert_fixed_to_float(const struct gl_client_array *input,
+convert_fixed_to_float(const struct gl_vertex_array *input,
                        const GLubyte *ptr, GLfloat *fptr,
                        GLuint count)
 {
@@ -173,7 +173,7 @@ convert_fixed_to_float(const struct gl_client_array *input,
 static void _tnl_import_array( struct gl_context *ctx,
 			       GLuint attrib,
 			       GLuint count,
-			       const struct gl_client_array *input,
+			       const struct gl_vertex_array *input,
 			       const GLubyte *ptr )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
@@ -267,7 +267,7 @@ static GLboolean *_tnl_import_edgeflag( struct gl_context *ctx,
 
 
 static void bind_inputs( struct gl_context *ctx, 
-			 const struct gl_client_array *inputs[],
+			 const struct gl_vertex_array *inputs[],
 			 GLint count,
 			 struct gl_buffer_object **bo,
 			 GLuint *nr_bo )
@@ -430,7 +430,7 @@ void _tnl_draw_prims(struct gl_context *ctx,
 			 struct gl_buffer_object *indirect)
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   const struct gl_client_array **arrays = ctx->Array._DrawArrays;
+   const struct gl_vertex_array **arrays = ctx->Array._DrawArrays;
    const GLuint TEST_SPLIT = 0;
    const GLint max = TEST_SPLIT ? 8 : tnl->vb.Size - MAX_CLIPPED_VERTICES;
    GLint max_basevertex = prim->basevertex;

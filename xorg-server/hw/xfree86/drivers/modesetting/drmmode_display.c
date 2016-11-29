@@ -1701,10 +1701,8 @@ drmmode_create_name(ScrnInfoPtr pScrn, drmModeConnectorPtr koutput, char *name,
  fallback:
     if (koutput->connector_type >= MS_ARRAY_SIZE(output_names))
         snprintf(name, 32, "Unknown%d-%d", koutput->connector_type, koutput->connector_type_id);
-#ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
     else if (pScrn->is_gpu)
         snprintf(name, 32, "%s-%d-%d", output_names[koutput->connector_type], pScrn->scrnIndex - GPU_SCREEN_OFFSET + 1, koutput->connector_type_id);
-#endif
     else
         snprintf(name, 32, "%s-%d", output_names[koutput->connector_type], koutput->connector_type_id);
 }

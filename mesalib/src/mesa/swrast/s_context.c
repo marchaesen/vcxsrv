@@ -220,13 +220,13 @@ _swrast_update_deferred_texture(struct gl_context *ctx)
    }
    else {
       GLboolean use_fprog = _swrast_use_fragment_program(ctx);
-      const struct gl_fragment_program *fprog
-         = ctx->FragmentProgram._Current;
-      if (use_fprog && (fprog->Base.OutputsWritten & (1 << FRAG_RESULT_DEPTH))) {
+      const struct gl_program *fprog = ctx->FragmentProgram._Current;
+      if (use_fprog &&
+          (fprog->info.outputs_written & (1 << FRAG_RESULT_DEPTH))) {
          /* Z comes from fragment program/shader */
          swrast->_DeferredTexture = GL_FALSE;
       }
-      else if (use_fprog && fprog->UsesKill) {
+      else if (use_fprog && fprog->info.fs.uses_discard) {
          swrast->_DeferredTexture = GL_FALSE;
       }
       else if (ctx->Query.CurrentOcclusionObject) {
@@ -247,9 +247,9 @@ static void
 _swrast_update_fog_state( struct gl_context *ctx )
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
-   const struct gl_fragment_program *fp = ctx->FragmentProgram._Current;
+   const struct gl_program *fp = ctx->FragmentProgram._Current;
 
-   assert(fp == NULL || fp->Base.Target == GL_FRAGMENT_PROGRAM_ARB);
+   assert(fp == NULL || fp->Target == GL_FRAGMENT_PROGRAM_ARB);
    (void) fp; /* silence unused var warning */
 
    /* determine if fog is needed, and if so, which fog mode */
@@ -269,7 +269,7 @@ _swrast_update_fragment_program(struct gl_context *ctx, GLbitfield newState)
       return;
 
    _mesa_load_state_parameters(ctx,
-                               ctx->FragmentProgram._Current->Base.Parameters);
+                               ctx->FragmentProgram._Current->Parameters);
 }
 
 
@@ -500,7 +500,7 @@ _swrast_update_active_attribs(struct gl_context *ctx)
     */
    if (_swrast_use_fragment_program(ctx)) {
       /* fragment program/shader */
-      attribsMask = ctx->FragmentProgram._Current->Base.InputsRead;
+      attribsMask = ctx->FragmentProgram._Current->info.inputs_read;
       attribsMask &= ~VARYING_BIT_POS; /* WPOS is always handled specially */
    }
    else if (ctx->ATIFragmentShader._Enabled) {

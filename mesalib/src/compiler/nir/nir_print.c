@@ -432,7 +432,8 @@ print_var_decl(nir_variable *var, print_state *state)
          loc = buf;
       }
 
-      fprintf(fp, " (%s, %u)", loc, var->data.driver_location);
+      fprintf(fp, " (%s, %u)%s", loc, var->data.driver_location,
+              var->data.compact ? " compact" : "");
    }
 
    if (var->constant_initializer) {
@@ -1143,11 +1144,11 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
 
    fprintf(fp, "shader: %s\n", gl_shader_stage_name(shader->stage));
 
-   if (shader->info.name)
-      fprintf(fp, "name: %s\n", shader->info.name);
+   if (shader->info->name)
+      fprintf(fp, "name: %s\n", shader->info->name);
 
-   if (shader->info.label)
-      fprintf(fp, "label: %s\n", shader->info.label);
+   if (shader->info->label)
+      fprintf(fp, "label: %s\n", shader->info->label);
 
    fprintf(fp, "inputs: %u\n", shader->num_inputs);
    fprintf(fp, "outputs: %u\n", shader->num_outputs);

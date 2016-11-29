@@ -175,8 +175,12 @@ lower_indirect_block(nir_block *block, nir_builder *b,
       if (!deref_has_indirect(intrin->variables[0]))
          continue;
 
-      /* Only lower variables whose mode is in the mask */
-      if (!(modes & intrin->variables[0]->var->data.mode))
+      /* Only lower variables whose mode is in the mask, or compact
+       * array variables.  (We can't handle indirects on tightly packed
+       * scalar arrays, so we need to lower them regardless.)
+       */
+      if (!(modes & intrin->variables[0]->var->data.mode) &&
+          !intrin->variables[0]->var->data.compact)
          continue;
 
       b->cursor = nir_before_instr(&intrin->instr);

@@ -81,7 +81,7 @@ struct nir_phi_builder_value {
 struct nir_phi_builder *
 nir_phi_builder_create(nir_function_impl *impl)
 {
-   struct nir_phi_builder *pb = ralloc(NULL, struct nir_phi_builder);
+   struct nir_phi_builder *pb = rzalloc(NULL, struct nir_phi_builder);
 
    pb->shader = impl->function->shader;
    pb->impl = impl;

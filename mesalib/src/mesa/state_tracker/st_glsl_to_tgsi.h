@@ -47,7 +47,6 @@ enum pipe_error st_translate_program(
    const ubyte inputSemanticName[],
    const ubyte inputSemanticIndex[],
    const GLuint interpMode[],
-   const GLuint interpLocation[],
    GLuint numOutputs,
    const GLuint outputMapping[],
    const GLuint outputSlotToAttr[],

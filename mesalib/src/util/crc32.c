@@ -27,13 +27,13 @@
 
 /**
  * @file
- * Hash functions implementation.
+ * CRC32 implementation.
  * 
  * @author Jose Fonseca
  */
 
 
-#include "u_hash.h"
+#include "crc32.h"
 
 
 static const uint32_t 

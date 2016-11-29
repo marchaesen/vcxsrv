@@ -98,12 +98,14 @@ int *actualCount)	/* RETURN */
 		    *ch = '\0';  /* and replace with null-termination */
 		    count++;
 		} else {
+                    Xfree(ch);
                     Xfree(flist);
                     flist = NULL;
                     count = 0;
                     break;
 		}
 	    } else {
+                Xfree(ch);
                 Xfree(flist);
                 flist = NULL;
                 count = 0;

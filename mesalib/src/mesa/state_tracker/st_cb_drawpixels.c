@@ -1123,8 +1123,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       /* compiling a new fragment shader variant added new state constants
        * into the constant buffer, we need to update them
        */
-      st_upload_constants(st, st->fp->Base.Base.Parameters,
-                          MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, st->fp->Base.Parameters, MESA_SHADER_FRAGMENT);
    }
 
    /* Put glDrawPixels image into a texture */
@@ -1487,8 +1486,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       /* compiling a new fragment shader variant added new state constants
        * into the constant buffer, we need to update them
        */
-      st_upload_constants(st, st->fp->Base.Base.Parameters,
-                          MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, st->fp->Base.Parameters, MESA_SHADER_FRAGMENT);
    }
    else {
       assert(type == GL_DEPTH);

@@ -130,14 +130,14 @@ ir_print_visitor::unique_name(ir_variable *var)
 
    /* If there's no conflict, just use the original name */
    const char* name = NULL;
-   if (_mesa_symbol_table_find_symbol(this->symbols, -1, var->name) == NULL) {
+   if (_mesa_symbol_table_find_symbol(this->symbols, var->name) == NULL) {
       name = var->name;
    } else {
       static unsigned i = 1;
       name = ralloc_asprintf(this->mem_ctx, "%s@%u", var->name, ++i);
    }
    _mesa_hash_table_insert(this->printable_names, var, (void *) name);
-   _mesa_symbol_table_add_symbol(this->symbols, -1, name, var);
+   _mesa_symbol_table_add_symbol(this->symbols, name, var);
    return name;
 }
 

@@ -18,6 +18,7 @@ SConscript([
     'drivers/softpipe/SConscript',
     'drivers/svga/SConscript',
     'drivers/trace/SConscript',
+    'drivers/swr/SConscript',
 ])
 
 #

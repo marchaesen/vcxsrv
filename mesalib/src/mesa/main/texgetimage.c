@@ -654,7 +654,7 @@ get_tex_memcpy(struct gl_context *ctx,
 
       if (src) {
          if (bytesPerRow == dstRowStride && bytesPerRow == srcRowStride) {
-            memcpy(dst, src, bytesPerRow * texImage->Height);
+            memcpy(dst, src, bytesPerRow * height);
          }
          else {
             GLuint row;
@@ -1426,6 +1426,11 @@ _mesa_GetTextureImage(GLuint texture, GLint level, GLenum format, GLenum type,
       _mesa_lookup_texture_err(ctx, texture, caller);
 
    if (!texObj) {
+      return;
+   }
+
+   if (!legal_getteximage_target(ctx, texObj->Target, true)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
       return;
    }
 

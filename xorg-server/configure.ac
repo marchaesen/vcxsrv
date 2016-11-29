@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.18.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2016-09-19"
-RELEASE_NAME="Brown Turkey Fig"
+AC_INIT([xorg-server], 1.19.99.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2016-11-18"
+RELEASE_NAME="Shrimp-and-grits"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -2233,7 +2233,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE(DDXBEFORERESET, 1, [Use ddxBeforeReset ])
 
 dnl XWin requires OpenGL spec files in order to generate wrapper code for native GL functions
-	if [test "x$XWIN" = xyes] ; then
+	if [test "x$XWIN" = xyes && test "x$GLX" = xyes] ; then
            AC_CHECK_PROG(PYTHON3, python3, python3)
            if test -z "$PYTHON3"; then
                 AC_MSG_ERROR([python3 not found])
@@ -2256,7 +2256,7 @@ AM_CONDITIONAL(XWIN, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes && test "x$WINDOWSWM" = xyes])
 AM_CONDITIONAL(XWIN_CLIPBOARD, [test "x$XWIN" = xyes])
-AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes])
+AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes && test "x$GLX" = xyes])
 AM_CONDITIONAL(XWIN_WINDOWS_DRI, [test "x$XWIN" = xyes && test "x$WINDOWSDRI" = xyes])
 AM_CONDITIONAL(XWIN_RANDR, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_XV, [test "x$XWIN" = xyes && test "x$XV" = xyes])

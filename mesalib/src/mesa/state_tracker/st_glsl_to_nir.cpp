@@ -80,10 +80,10 @@ st_nir_assign_vs_in_locations(struct gl_program *prog, nir_shader *nir)
 
    /* TODO de-duplicate w/ similar code in st_translate_vertex_program()? */
    for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
-      if ((prog->InputsRead & BITFIELD64_BIT(attr)) != 0) {
+      if ((prog->info.inputs_read & BITFIELD64_BIT(attr)) != 0) {
          input_to_index[attr] = num_inputs;
          num_inputs++;
-         if ((prog->DoubleInputsRead & BITFIELD64_BIT(attr)) != 0) {
+         if ((prog->info.double_inputs_read & BITFIELD64_BIT(attr)) != 0) {
             /* add placeholder for second part of a double attribute */
             num_inputs++;
          }
@@ -324,19 +324,16 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
       sort_varyings(&nir->outputs);
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,
-                               VARYING_SLOT_VAR0,
                                st_glsl_type_size);
       st_nir_fixup_varying_slots(st, &nir->outputs);
    } else if (nir->stage == MESA_SHADER_FRAGMENT) {
       sort_varyings(&nir->inputs);
       nir_assign_var_locations(&nir->inputs,
                                &nir->num_inputs,
-                               VARYING_SLOT_VAR0,
                                st_glsl_type_size);
       st_nir_fixup_varying_slots(st, &nir->inputs);
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,
-                               FRAG_RESULT_DATA0,
                                st_glsl_type_size);
    } else {
       unreachable("invalid shader type for tgsi bypass\n");
@@ -370,17 +367,16 @@ st_nir_get_mesa_program(struct gl_context *ctx,
                         struct gl_linked_shader *shader)
 {
    struct gl_program *prog;
-   GLenum target = _mesa_shader_stage_to_program(shader->Stage);
 
    validate_ir_tree(shader->ir);
 
-   prog = ctx->Driver.NewProgram(ctx, target, shader_program->Name);
-   if (!prog)
-      return NULL;
+   prog = shader->Program;
 
    prog->Parameters = _mesa_new_parameter_list();
 
-   _mesa_copy_linked_program_data(shader->Stage, shader_program, prog);
+   do_set_program_inouts(shader->ir, prog, shader->Stage);
+
+   _mesa_copy_linked_program_data(shader_program, shader);
    _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
                                                prog->Parameters);
 
@@ -416,17 +412,10 @@ st_nir_get_mesa_program(struct gl_context *ctx,
       _mesa_log("\n\n");
    }
 
-   prog->Instructions = NULL;
-   prog->NumInstructions = 0;
-
-   do_set_program_inouts(shader->ir, prog, shader->Stage);
-
    prog->SamplersUsed = shader->active_samplers;
    prog->ShadowSamplers = shader->shadow_samplers;
    prog->ExternalSamplersUsed = gl_external_samplers(shader);
    _mesa_update_shader_textures_used(shader_program, prog);
-
-   _mesa_reference_program(ctx, &shader->Program, prog);
 
    /* Avoid reallocation of the program parameter list, because the uniform
     * storage is only associated with the original parameter list.

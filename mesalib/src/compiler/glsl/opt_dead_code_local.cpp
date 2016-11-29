@@ -45,6 +45,9 @@ namespace {
 class assignment_entry : public exec_node
 {
 public:
+   /* override operator new from exec_node */
+   DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(assignment_entry)
+
    assignment_entry(ir_variable *lhs, ir_assignment *ir)
    {
       assert(lhs);
@@ -103,9 +106,12 @@ public:
 
       int used = 0;
       used |= 1 << ir->mask.x;
-      used |= 1 << ir->mask.y;
-      used |= 1 << ir->mask.z;
-      used |= 1 << ir->mask.w;
+      if (ir->mask.num_components > 1)
+         used |= 1 << ir->mask.y;
+      if (ir->mask.num_components > 2)
+         used |= 1 << ir->mask.z;
+      if (ir->mask.num_components > 3)
+         used |= 1 << ir->mask.w;
 
       use_channels(deref->var, used);
 
@@ -161,7 +167,7 @@ public:
  * of a variable to a variable.
  */
 static bool
-process_assignment(void *ctx, ir_assignment *ir, exec_list *assignments)
+process_assignment(void *lin_ctx, ir_assignment *ir, exec_list *assignments)
 {
    ir_variable *var = NULL;
    bool progress = false;
@@ -271,7 +277,7 @@ process_assignment(void *ctx, ir_assignment *ir, exec_list *assignments)
    }
 
    /* Add this instruction to the assignment list available to be removed. */
-   assignment_entry *entry = new(ctx) assignment_entry(var, ir);
+   assignment_entry *entry = new(lin_ctx) assignment_entry(var, ir);
    assignments->push_tail(entry);
 
    if (debug) {
@@ -298,6 +304,8 @@ dead_code_local_basic_block(ir_instruction *first,
    bool progress = false;
 
    void *ctx = ralloc_context(NULL);
+   void *lin_ctx = linear_alloc_parent(ctx, 0);
+
    /* Safe looping, since process_assignment */
    for (ir = first, ir_next = (ir_instruction *)first->next;;
 	ir = ir_next, ir_next = (ir_instruction *)ir->next) {
@@ -309,7 +317,8 @@ dead_code_local_basic_block(ir_instruction *first,
       }
 
       if (ir_assign) {
-	 progress = process_assignment(ctx, ir_assign, &assignments) || progress;
+	 progress = process_assignment(lin_ctx, ir_assign, &assignments) ||
+                    progress;
       } else {
 	 kill_for_derefs_visitor kill(&assignments);
 	 ir->accept(&kill);

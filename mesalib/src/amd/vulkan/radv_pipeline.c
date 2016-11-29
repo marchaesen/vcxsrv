@@ -144,6 +144,7 @@ radv_optimize_nir(struct nir_shader *shader)
                 NIR_PASS(progress, shader, nir_opt_algebraic);
                 NIR_PASS(progress, shader, nir_opt_constant_folding);
                 NIR_PASS(progress, shader, nir_opt_undef);
+                NIR_PASS(progress, shader, nir_opt_conditional_discard);
         } while (progress);
 }
 
@@ -224,7 +225,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	}
 
 	/* Vulkan uses the separate-shader linking model */
-	nir->info.separate_shader = true;
+	nir->info->separate_shader = true;
 
 	//   nir = brw_preprocess_nir(compiler, nir);
 
@@ -254,6 +255,81 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		nir_print_shader(nir, stderr);
 
 	return nir;
+}
+
+static const char *radv_get_shader_name(struct radv_shader_variant *var,
+					gl_shader_stage stage)
+{
+	switch (stage) {
+	case MESA_SHADER_VERTEX: return "Vertex Shader as VS";
+	case MESA_SHADER_FRAGMENT: return "Pixel Shader";
+	case MESA_SHADER_COMPUTE: return "Compute Shader";
+	default:
+		return "Unknown shader";
+	};
+
+}
+static void radv_dump_pipeline_stats(struct radv_device *device, struct radv_pipeline *pipeline)
+{
+	unsigned lds_increment = device->instance->physicalDevice.rad_info.chip_class >= CIK ? 512 : 256;
+	struct radv_shader_variant *var;
+	struct ac_shader_config *conf;
+	int i;
+	FILE *file = stderr;
+	unsigned max_simd_waves = 10;
+	unsigned lds_per_wave = 0;
+
+	for (i = 0; i < MESA_SHADER_STAGES; i++) {
+		if (!pipeline->shaders[i])
+			continue;
+		var = pipeline->shaders[i];
+
+		conf = &var->config;
+
+		if (i == MESA_SHADER_FRAGMENT) {
+			lds_per_wave = conf->lds_size * lds_increment +
+				align(var->info.fs.num_interp * 48, lds_increment);
+		}
+
+		if (conf->num_sgprs) {
+			if (device->instance->physicalDevice.rad_info.chip_class >= VI)
+				max_simd_waves = MIN2(max_simd_waves, 800 / conf->num_sgprs);
+			else
+				max_simd_waves = MIN2(max_simd_waves, 512 / conf->num_sgprs);
+		}
+
+		if (conf->num_vgprs)
+			max_simd_waves = MIN2(max_simd_waves, 256 / conf->num_vgprs);
+
+		/* LDS is 64KB per CU (4 SIMDs), divided into 16KB blocks per SIMD
+		 * that PS can use.
+		 */
+		if (lds_per_wave)
+			max_simd_waves = MIN2(max_simd_waves, 16384 / lds_per_wave);
+
+		fprintf(file, "\n%s:\n",
+			radv_get_shader_name(var, i));
+		if (i == MESA_SHADER_FRAGMENT) {
+			fprintf(file, "*** SHADER CONFIG ***\n"
+				"SPI_PS_INPUT_ADDR = 0x%04x\n"
+				"SPI_PS_INPUT_ENA  = 0x%04x\n",
+				conf->spi_ps_input_addr, conf->spi_ps_input_ena);
+		}
+		fprintf(file, "*** SHADER STATS ***\n"
+			"SGPRS: %d\n"
+			"VGPRS: %d\n"
+		        "Spilled SGPRs: %d\n"
+			"Spilled VGPRs: %d\n"
+			"Code Size: %d bytes\n"
+			"LDS: %d blocks\n"
+			"Scratch: %d bytes per wave\n"
+			"Max Waves: %d\n"
+			"********************\n\n\n",
+			conf->num_sgprs, conf->num_vgprs,
+			conf->spilled_sgprs, conf->spilled_vgprs, var->code_size,
+			conf->lds_size, conf->scratch_bytes_per_wave,
+			max_simd_waves);
+	}
 }
 
 void radv_shader_variant_destroy(struct radv_device *device,
@@ -296,6 +372,7 @@ struct radv_shader_variant *radv_shader_variant_create(struct radv_device *devic
 			      &variant->info, shader, &options, dump);
 	LLVMDisposeTargetMachine(tm);
 
+	variant->code_size = binary.code_size;
 	bool scratch_enabled = variant->config.scratch_bytes_per_wave > 0;
 	unsigned vgpr_comp_cnt = 0;
 
@@ -370,8 +447,8 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 	unsigned code_size = 0;
 
 	if (module->nir)
-		_mesa_sha1_compute(module->nir->info.name,
-				   strlen(module->nir->info.name),
+		_mesa_sha1_compute(module->nir->info->name,
+				   strlen(module->nir->info->name),
 				   module->sha1);
 
 	radv_hash_shader(sha1, module, entrypoint, spec_info, layout, key);
@@ -642,7 +719,8 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 					const VkGraphicsPipelineCreateInfo *pCreateInfo,
 					uint32_t blend_enable,
 					uint32_t blend_need_alpha,
-					bool single_cb_enable)
+					bool single_cb_enable,
+					bool blend_mrt0_is_dual_src)
 {
 	RADV_FROM_HANDLE(radv_render_pass, pass, pCreateInfo->renderPass);
 	struct radv_subpass *subpass = pass->subpasses + pCreateInfo->subpass;
@@ -664,6 +742,8 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 
 	blend->cb_shader_mask = si_get_cb_shader_mask(col_format);
 
+	if (blend_mrt0_is_dual_src)
+		col_format |= (col_format & 0xf) << 4;
 	if (!col_format)
 		col_format |= V_028714_SPI_SHADER_32_R;
 	blend->spi_shader_col_format = col_format;
@@ -715,8 +795,13 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 	struct radv_blend_state *blend = &pipeline->graphics.blend;
 	unsigned mode = V_028808_CB_NORMAL;
 	uint32_t blend_enable = 0, blend_need_alpha = 0;
+	bool blend_mrt0_is_dual_src = false;
 	int i;
 	bool single_cb_enable = false;
+
+	if (!vkblend)
+		return;
+
 	if (extra && extra->custom_blend_mode) {
 		single_cb_enable = true;
 		mode = extra->custom_blend_mode;
@@ -755,7 +840,9 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 		}
 
 		if (is_dual_src(srcRGB) || is_dual_src(dstRGB) || is_dual_src(srcA) || is_dual_src(dstA))
-			radv_finishme("dual source blending");
+			if (i == 0)
+				blend_mrt0_is_dual_src = true;
+
 		if (eqRGB == VK_BLEND_OP_MIN || eqRGB == VK_BLEND_OP_MAX) {
 			srcRGB = VK_BLEND_FACTOR_ONE;
 			dstRGB = VK_BLEND_FACTOR_ONE;
@@ -797,7 +884,7 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 		blend->cb_color_control |= S_028808_MODE(V_028808_CB_DISABLE);
 
 	radv_pipeline_compute_spi_color_formats(pipeline, pCreateInfo,
-						blend_enable, blend_need_alpha, single_cb_enable);
+						blend_enable, blend_need_alpha, single_cb_enable, blend_mrt0_is_dual_src);
 }
 
 static uint32_t si_translate_stencil_op(enum VkStencilOp op)
@@ -1069,18 +1156,27 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 
 	struct radv_dynamic_state *dynamic = &pipeline->dynamic_state;
 
-	dynamic->viewport.count = pCreateInfo->pViewportState->viewportCount;
-	if (states & (1 << VK_DYNAMIC_STATE_VIEWPORT)) {
-		typed_memcpy(dynamic->viewport.viewports,
-			     pCreateInfo->pViewportState->pViewports,
-			     pCreateInfo->pViewportState->viewportCount);
-	}
+	/* Section 9.2 of the Vulkan 1.0.15 spec says:
+	 *
+	 *    pViewportState is [...] NULL if the pipeline
+	 *    has rasterization disabled.
+	 */
+	if (!pCreateInfo->pRasterizationState->rasterizerDiscardEnable) {
+		assert(pCreateInfo->pViewportState);
 
-	dynamic->scissor.count = pCreateInfo->pViewportState->scissorCount;
-	if (states & (1 << VK_DYNAMIC_STATE_SCISSOR)) {
-		typed_memcpy(dynamic->scissor.scissors,
-			     pCreateInfo->pViewportState->pScissors,
-			     pCreateInfo->pViewportState->scissorCount);
+		dynamic->viewport.count = pCreateInfo->pViewportState->viewportCount;
+		if (states & (1 << VK_DYNAMIC_STATE_VIEWPORT)) {
+			typed_memcpy(dynamic->viewport.viewports,
+				     pCreateInfo->pViewportState->pViewports,
+				     pCreateInfo->pViewportState->viewportCount);
+		}
+
+		dynamic->scissor.count = pCreateInfo->pViewportState->scissorCount;
+		if (states & (1 << VK_DYNAMIC_STATE_SCISSOR)) {
+			typed_memcpy(dynamic->scissor.scissors,
+				     pCreateInfo->pViewportState->pScissors,
+				     pCreateInfo->pViewportState->scissorCount);
+		}
 	}
 
 	if (states & (1 << VK_DYNAMIC_STATE_LINE_WIDTH)) {
@@ -1098,7 +1194,21 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 			pCreateInfo->pRasterizationState->depthBiasSlopeFactor;
 	}
 
-	if (states & (1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS)) {
+	/* Section 9.2 of the Vulkan 1.0.15 spec says:
+	 *
+	 *    pColorBlendState is [...] NULL if the pipeline has rasterization
+	 *    disabled or if the subpass of the render pass the pipeline is
+	 *    created against does not use any color attachments.
+	 */
+	bool uses_color_att = false;
+	for (unsigned i = 0; i < subpass->color_count; ++i) {
+		if (subpass->color_attachments[i].attachment != VK_ATTACHMENT_UNUSED) {
+			uses_color_att = true;
+			break;
+		}
+	}
+
+	if (uses_color_att && states & (1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS)) {
 		assert(pCreateInfo->pColorBlendState);
 		typed_memcpy(dynamic->blend_constants,
 			     pCreateInfo->pColorBlendState->blendConstants, 4);
@@ -1110,14 +1220,17 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 	 * no need to override the depthstencil defaults in
 	 * radv_pipeline::dynamic_state when there is no depthstencil attachment.
 	 *
-	 * From the Vulkan spec (20 Oct 2015, git-aa308cb):
+	 * Section 9.2 of the Vulkan 1.0.15 spec says:
 	 *
-	 *    pDepthStencilState [...] may only be NULL if renderPass and subpass
-	 *    specify a subpass that has no depth/stencil attachment.
+	 *    pDepthStencilState is [...] NULL if the pipeline has rasterization
+	 *    disabled or if the subpass of the render pass the pipeline is created
+	 *    against does not use a depth/stencil attachment.
 	 */
-	if (subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
+	if (!pCreateInfo->pRasterizationState->rasterizerDiscardEnable &&
+	    subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
+		assert(pCreateInfo->pDepthStencilState);
+
 		if (states & (1 << VK_DYNAMIC_STATE_DEPTH_BOUNDS)) {
-			assert(pCreateInfo->pDepthStencilState);
 			dynamic->depth_bounds.min =
 				pCreateInfo->pDepthStencilState->minDepthBounds;
 			dynamic->depth_bounds.max =
@@ -1125,7 +1238,6 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 		}
 
 		if (states & (1 << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)) {
-			assert(pCreateInfo->pDepthStencilState);
 			dynamic->stencil_compare_mask.front =
 				pCreateInfo->pDepthStencilState->front.compareMask;
 			dynamic->stencil_compare_mask.back =
@@ -1133,7 +1245,6 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 		}
 
 		if (states & (1 << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)) {
-			assert(pCreateInfo->pDepthStencilState);
 			dynamic->stencil_write_mask.front =
 				pCreateInfo->pDepthStencilState->front.writeMask;
 			dynamic->stencil_write_mask.back =
@@ -1141,7 +1252,6 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 		}
 
 		if (states & (1 << VK_DYNAMIC_STATE_STENCIL_REFERENCE)) {
-			assert(pCreateInfo->pDepthStencilState);
 			dynamic->stencil_reference.front =
 				pCreateInfo->pDepthStencilState->front.reference;
 			dynamic->stencil_reference.back =
@@ -1216,7 +1326,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	if (!modules[MESA_SHADER_FRAGMENT]) {
 		nir_builder fs_b;
 		nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
-		fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "noop_fs");
+		fs_b.shader->info->name = ralloc_strdup(fs_b.shader, "noop_fs");
 		fs_m.nir = fs_b.shader;
 		modules[MESA_SHADER_FRAGMENT] = &fs_m;
 	}
@@ -1283,6 +1393,10 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 			&vi_info->pVertexBindingDescriptions[i];
 
 		pipeline->binding_stride[desc->binding] = desc->stride;
+	}
+
+	if (device->shader_stats_dump) {
+		radv_dump_pipeline_stats(device, pipeline);
 	}
 
 	return VK_SUCCESS;
@@ -1378,6 +1492,10 @@ static VkResult radv_compute_pipeline_create(
 				       pipeline->layout, NULL, dump);
 
 	*pPipeline = radv_pipeline_to_handle(pipeline);
+
+	if (device->shader_stats_dump) {
+		radv_dump_pipeline_stats(device, pipeline);
+	}
 	return VK_SUCCESS;
 }
 VkResult radv_CreateComputePipelines(

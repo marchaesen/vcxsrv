@@ -823,8 +823,11 @@ if test "x$ax_pthread_ok" = xno; then
 fi
 dnl AX_PTHREADS leaves PTHREAD_LIBS empty for gcc and sets PTHREAD_CFLAGS
 dnl to -pthread, which causes problems if we need -lpthread to appear in
-dnl pkgconfig files.
-test -z "$PTHREAD_LIBS" && PTHREAD_LIBS="-lpthread"
+dnl pkgconfig files.  Since Android doesn't have a pthread lib, this check
+dnl is not valid for that platform.
+if test "x$android" = xno; then
+    test -z "$PTHREAD_LIBS" && PTHREAD_LIBS="-lpthread"
+fi
 
 dnl pthread-stubs is mandatory on targets where it exists
 case "$host_os" in
@@ -1358,7 +1361,6 @@ if test "x$with_sha1" = "x"; then
         AC_MSG_ERROR([Cannot enable shader cache (no SHA-1 implementation found)])
     fi
 fi
-AM_CONDITIONAL([ENABLE_SHADER_CACHE], [test x$enable_shader_cache = xyes])
 if test "x$enable_shader_cache" = "xyes"; then
    AC_DEFINE([ENABLE_SHADER_CACHE], [1], [Enable shader cache])
 fi
@@ -2056,6 +2058,7 @@ for plat in $egl_platforms; do
 		;;
 
 	android)
+		PKG_CHECK_MODULES([ANDROID], [cutils hardware sync])
 		;;
 
 	*)
@@ -2296,22 +2299,21 @@ gallium_require_llvm() {
     fi
 }
 
-dnl This is for Glamor. Skip this if OpenGL is disabled.
-require_egl_drm() {
-    if test "x$enable_opengl" = xno; then
-        return 0
-    fi
-
+dnl
+dnl DRM is needed by X, Wayland, and offscreen rendering.
+dnl Surfaceless is an alternative for the last one.
+dnl
+require_basic_egl() {
     case "$with_egl_platforms" in
-        *drm*)
+        *drm*|*surfaceless*)
             ;;
-         *)
-            AC_MSG_ERROR([--with-egl-platforms=drm is required to build the $1 driver.])
+        *)
+            AC_MSG_ERROR([$1 requires one of these:
+                  1) --with-egl-platforms=drm (X, Wayland, offscreen rendering based on DRM)
+                  2) --with-egl-platforms=surfaceless (offscreen only)
+                  Recommended options: drm,x11])
             ;;
     esac
-    if test "x$enable_gbm" != xyes; then
-            AC_MSG_ERROR([--enable-gbm is required to build the $1 driver.])
-    fi
 }
 
 radeon_llvm_check() {
@@ -2427,7 +2429,7 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             require_libdrm "radeonsi"
             radeon_gallium_llvm_check "radeonsi" "3" "6" "0"
-            require_egl_drm "radeonsi"
+            require_basic_egl "radeonsi"
             ;;
         xnouveau)
             HAVE_GALLIUM_NOUVEAU=yes
@@ -2478,7 +2480,7 @@ if test -n "$with_gallium_drivers"; then
         xvirgl)
             HAVE_GALLIUM_VIRGL=yes
             require_libdrm "virgl"
-            require_egl_drm "virgl"
+            require_basic_egl "virgl"
             ;;
         *)
             AC_MSG_ERROR([Unknown Gallium driver: $driver])
@@ -2642,8 +2644,6 @@ AC_SUBST([XA_MINOR], $XA_MINOR)
 AC_SUBST([XA_TINY], $XA_TINY)
 AC_SUBST([XA_VERSION], "$XA_MAJOR.$XA_MINOR.$XA_TINY")
 
-AC_SUBST([TIMESTAMP_CMD], '`test $(SOURCE_DATE_EPOCH) && echo $(SOURCE_DATE_EPOCH) || date +%s`')
-
 AC_ARG_ENABLE(valgrind,
               [AS_HELP_STRING([--enable-valgrind],
                              [Build mesa with valgrind support (default: auto)])],
@@ -2683,7 +2683,6 @@ dnl Substitute the config
 AC_CONFIG_FILES([Makefile
 		src/Makefile
 		src/amd/Makefile
-		src/amd/common/Makefile
 		src/amd/vulkan/Makefile
 		src/compiler/Makefile
 		src/egl/Makefile

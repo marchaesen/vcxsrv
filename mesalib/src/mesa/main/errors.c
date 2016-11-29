@@ -35,12 +35,6 @@
 #include "imports.h"
 #include "context.h"
 #include "debug_output.h"
-#include "dispatch.h"
-#include "hash.h"
-#include "mtypes.h"
-#include "version.h"
-#include "util/hash_table.h"
-#include "util/simple_list.h"
 
 
 static FILE *LogFile = NULL;
@@ -122,7 +116,7 @@ flush_delayed_errors( struct gl_context *ctx )
    char s[MAX_DEBUG_MESSAGE_LENGTH];
 
    if (ctx->ErrorDebugCount) {
-      _mesa_snprintf(s, MAX_DEBUG_MESSAGE_LENGTH, "%d similar %s errors", 
+      _mesa_snprintf(s, MAX_DEBUG_MESSAGE_LENGTH, "%d similar %s errors",
                      ctx->ErrorDebugCount,
                      _mesa_enum_to_string(ctx->ErrorValue));
 
@@ -145,10 +139,10 @@ _mesa_warning( struct gl_context *ctx, const char *fmtString, ... )
 {
    char str[MAX_DEBUG_MESSAGE_LENGTH];
    va_list args;
-   va_start( args, fmtString );  
+   va_start( args, fmtString );
    (void) _mesa_vsnprintf( str, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args );
    va_end( args );
-   
+
    if (ctx)
       flush_delayed_errors( ctx );
 
@@ -175,7 +169,7 @@ _mesa_problem( const struct gl_context *ctx, const char *fmtString, ... )
    if (numCalls < 50) {
       numCalls++;
 
-      va_start( args, fmtString );  
+      va_start( args, fmtString );
       _mesa_vsnprintf( str, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args );
       va_end( args );
       fprintf(stderr, "Mesa %s implementation error: %s\n",
@@ -264,7 +258,7 @@ _mesa_gl_debug(struct gl_context *ctx,
  * If debugging is enabled (either at compile-time via the DEBUG macro, or
  * run-time via the MESA_DEBUG environment variable), report the error with
  * _mesa_debug().
- * 
+ *
  * \param ctx the GL context.
  * \param error the error value.
  * \param fmtString printf() style format string, followed by optional args
@@ -346,7 +340,7 @@ _mesa_error_no_memory(const char *caller)
 /**
  * Report debug information.  Print error message to stderr via fprintf().
  * No-op if DEBUG mode not enabled.
- * 
+ *
  * \param ctx GL context.
  * \param fmtString printf()-style format string, followed by optional args.
  */

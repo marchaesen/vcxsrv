@@ -58,9 +58,9 @@ convert_block(nir_block *block, nir_builder *b)
           */
 
          nir_const_value local_size;
-         local_size.u32[0] = b->shader->info.cs.local_size[0];
-         local_size.u32[1] = b->shader->info.cs.local_size[1];
-         local_size.u32[2] = b->shader->info.cs.local_size[2];
+         local_size.u32[0] = b->shader->info->cs.local_size[0];
+         local_size.u32[1] = b->shader->info->cs.local_size[1];
+         local_size.u32[2] = b->shader->info->cs.local_size[2];
 
          nir_ssa_def *group_id = nir_load_work_group_id(b);
          nir_ssa_def *local_id = nir_load_local_invocation_id(b);
@@ -87,8 +87,10 @@ convert_block(nir_block *block, nir_builder *b)
           */
          nir_ssa_def *local_id = nir_load_local_invocation_id(b);
 
-         nir_ssa_def *size_x = nir_imm_int(b, b->shader->info.cs.local_size[0]);
-         nir_ssa_def *size_y = nir_imm_int(b, b->shader->info.cs.local_size[1]);
+         nir_ssa_def *size_x =
+            nir_imm_int(b, b->shader->info->cs.local_size[0]);
+         nir_ssa_def *size_y =
+            nir_imm_int(b, b->shader->info->cs.local_size[1]);
 
          sysval = nir_imul(b, nir_channel(b, local_id, 2),
                               nir_imul(b, size_x, size_y));

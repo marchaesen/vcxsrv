@@ -62,6 +62,11 @@ public:
    bool progress;
 };
 
+class ir_save_lvalue_visitor : public ir_hierarchical_visitor {
+public:
+   virtual ir_visitor_status visit_enter(ir_dereference_array *);
+};
+
 } /* unnamed namespace */
 
 bool
@@ -93,6 +98,37 @@ replace_return_with_assignment(ir_instruction *ir, void *data)
 	 ret->remove();
       }
    }
+}
+
+/* Save the given lvalue before the given instruction.
+ *
+ * This is done by adding temporary variables into which the current value
+ * of any array indices are saved, and then modifying the dereference chain
+ * in-place to point to those temporary variables.
+ *
+ * The hierarchical visitor is only used to traverse the left-hand-side chain
+ * of derefs.
+ */
+ir_visitor_status
+ir_save_lvalue_visitor::visit_enter(ir_dereference_array *deref)
+{
+   if (deref->array_index->ir_type != ir_type_constant) {
+      void *ctx = ralloc_parent(deref);
+      ir_variable *index;
+      ir_assignment *assignment;
+
+      index = new(ctx) ir_variable(deref->array_index->type, "saved_idx", ir_var_temporary);
+      base_ir->insert_before(index);
+
+      assignment = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(index),
+                                          deref->array_index, 0);
+      base_ir->insert_before(assignment);
+
+      deref->array_index = new(ctx) ir_dereference_variable(index);
+   }
+
+   deref->array->accept(this);
+   return visit_stop;
 }
 
 void
@@ -139,15 +175,50 @@ ir_call::generate_inline(ir_instruction *next_ir)
 	 next_ir->insert_before(parameters[i]);
       }
 
-      /* Move the actual param into our param variable if it's an 'in' type. */
-      if (parameters[i] && (sig_param->data.mode == ir_var_function_in ||
-			    sig_param->data.mode == ir_var_const_in ||
-			    sig_param->data.mode == ir_var_function_inout)) {
-	 ir_assignment *assign;
+      /* Section 6.1.1 (Function Calling Conventions) of the OpenGL Shading
+       * Language 4.5 spec says:
+       *
+       *    "All arguments are evaluated at call time, exactly once, in order,
+       *     from left to right. [...] Evaluation of an out parameter results
+       *     in an l-value that is used to copy out a value when the function
+       *     returns."
+       *
+       * I.e., we have to take temporary copies of any relevant array indices
+       * before the function body is executed.
+       *
+       * This ensures that
+       * (a) if an array index expressions refers to a variable that is
+       *     modified by the execution of the function body, we use the
+       *     original value as intended, and
+       * (b) if an array index expression has side effects, those side effects
+       *     are only executed once and at the right time.
+       */
+      if (parameters[i]) {
+         if (sig_param->data.mode == ir_var_function_in ||
+             sig_param->data.mode == ir_var_const_in) {
+            ir_assignment *assign;
 
-	 assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(parameters[i]),
-					 param, NULL);
-	 next_ir->insert_before(assign);
+            assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(parameters[i]),
+                                            param, NULL);
+            next_ir->insert_before(assign);
+         } else {
+            assert(sig_param->data.mode == ir_var_function_out ||
+                   sig_param->data.mode == ir_var_function_inout);
+            assert(param->is_lvalue());
+
+            ir_save_lvalue_visitor v;
+            v.base_ir = next_ir;
+
+            param->accept(&v);
+
+            if (sig_param->data.mode == ir_var_function_inout) {
+               ir_assignment *assign;
+
+               assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(parameters[i]),
+                                               param->clone(ctx, NULL)->as_rvalue(), NULL);
+               next_ir->insert_before(assign);
+            }
+         }
       }
 
       ++i;
@@ -196,7 +267,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 			    sig_param->data.mode == ir_var_function_inout)) {
 	 ir_assignment *assign;
 
-	 assign = new(ctx) ir_assignment(param->clone(ctx, NULL)->as_rvalue(),
+         assign = new(ctx) ir_assignment(param,
 					 new(ctx) ir_dereference_variable(parameters[i]),
 					 NULL);
 	 next_ir->insert_before(assign);

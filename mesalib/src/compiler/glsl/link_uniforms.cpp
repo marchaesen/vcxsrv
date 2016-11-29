@@ -28,6 +28,7 @@
 #include "glsl_symbol_table.h"
 #include "program.h"
 #include "util/string_to_uint_map.h"
+#include "ir_variable_refcount.h"
 
 /**
  * \file link_uniforms.cpp
@@ -224,20 +225,8 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
 }
 
 void
-program_resource_visitor::visit_field(const glsl_type *type, const char *name,
-                                      bool row_major,
-                                      const glsl_type *,
-                                      const enum glsl_interface_packing,
-                                      bool /* last_field */)
+program_resource_visitor::visit_field(const glsl_struct_field *)
 {
-   visit_field(type, name, row_major);
-}
-
-void
-program_resource_visitor::visit_field(const glsl_struct_field *field)
-{
-   (void) field;
-   /* empty */
 }
 
 void
@@ -346,13 +335,14 @@ public:
 
 private:
    virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major)
+                            bool /* row_major */,
+                            const glsl_type * /* record_type */,
+                            const enum glsl_interface_packing,
+                            bool /* last_field */)
    {
       assert(!type->without_array()->is_record());
       assert(!type->without_array()->is_interface());
       assert(!(type->is_array() && type->fields.array->is_array()));
-
-      (void) row_major;
 
       /* Count the number of samplers regardless of whether the uniform is
        * already in the hash table.  The hash table prevents adding the same
@@ -372,7 +362,7 @@ private:
           * components in the default block.  The spec allows image
           * uniforms to use up no more than one scalar slot.
           */
-         if(!is_shader_storage)
+         if (!is_shader_storage)
             this->num_shader_uniform_components += values;
       } else {
          /* Accumulate the total number of uniform slots used by this shader.
@@ -464,9 +454,9 @@ public:
       buffer_block_index = -1;
       if (var->is_in_buffer_block()) {
          struct gl_uniform_block *blks = var->is_in_shader_storage_block() ?
-            prog->ShaderStorageBlocks : prog->UniformBlocks;
+            prog->data->ShaderStorageBlocks : prog->data->UniformBlocks;
          unsigned num_blks = var->is_in_shader_storage_block() ?
-            prog->NumShaderStorageBlocks : prog->NumUniformBlocks;
+            prog->data->NumShaderStorageBlocks : prog->data->NumUniformBlocks;
 
          if (var->is_interface_instance() && var->type->is_array()) {
             unsigned l = strlen(var->get_interface_type()->name);
@@ -633,6 +623,8 @@ private:
          uniform->opaque[shader_type].index = this->next_subroutine;
          uniform->opaque[shader_type].active = true;
 
+         prog->_LinkedShaders[shader_type]->NumSubroutineUniforms++;
+
          /* Increment the subroutine index by 1 for non-arrays and by the
           * number of array elements for arrays.
           */
@@ -651,17 +643,10 @@ private:
       this->record_array_count = record_array_count;
    }
 
-   virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major)
-   {
-      (void) type;
-      (void) name;
-      (void) row_major;
-      assert(!"Should not get here.");
-   }
-
    virtual void enter_record(const glsl_type *type, const char *,
-                             bool row_major, const enum glsl_interface_packing packing) {
+                             bool row_major,
+                             const enum glsl_interface_packing packing)
+   {
       assert(type->is_record());
       if (this->buffer_block_index == -1)
          return;
@@ -674,7 +659,9 @@ private:
    }
 
    virtual void leave_record(const glsl_type *type, const char *,
-                             bool row_major, const enum glsl_interface_packing packing) {
+                             bool row_major,
+                             const enum glsl_interface_packing packing)
+   {
       assert(type->is_record());
       if (this->buffer_block_index == -1)
          return;
@@ -880,6 +867,15 @@ public:
    unsigned shader_shadow_samplers;
 };
 
+static bool
+variable_is_referenced(ir_variable_refcount_visitor &v, ir_variable *var)
+{
+   ir_variable_refcount_entry *const entry = v.get_variable_entry(var);
+
+   return entry->referenced_count > 0;
+
+}
+
 /**
  * Walks the IR and update the references to uniform blocks in the
  * ir_variables to point at linked shader's list (previously, they
@@ -887,18 +883,60 @@ public:
  * shaders).
  */
 static void
-link_update_uniform_buffer_variables(struct gl_linked_shader *shader)
+link_update_uniform_buffer_variables(struct gl_linked_shader *shader,
+                                     unsigned stage)
 {
+   ir_variable_refcount_visitor v;
+
+   v.run(shader->ir);
+
    foreach_in_list(ir_instruction, node, shader->ir) {
       ir_variable *const var = node->as_variable();
 
-      if ((var == NULL) || !var->is_in_buffer_block())
+      if (var == NULL || !var->is_in_buffer_block())
          continue;
 
       assert(var->data.mode == ir_var_uniform ||
              var->data.mode == ir_var_shader_storage);
 
+      unsigned num_blocks = var->data.mode == ir_var_uniform ?
+         shader->NumUniformBlocks : shader->NumShaderStorageBlocks;
+      struct gl_uniform_block **blks = var->data.mode == ir_var_uniform ?
+         shader->UniformBlocks : shader->ShaderStorageBlocks;
+
       if (var->is_interface_instance()) {
+         if (variable_is_referenced(v, var)) {
+            /* Since this is an interface instance, the instance type will be
+             * same as the array-stripped variable type.  If the variable type
+             * is an array, then the block names will be suffixed with [0]
+             * through [n-1].  Unlike for non-interface instances, there will
+             * not be structure types here, so the only name sentinel that we
+             * have to worry about is [.
+             */
+            assert(var->type->without_array() == var->get_interface_type());
+            const char sentinel = var->type->is_array() ? '[' : '\0';
+
+            const ptrdiff_t len = strlen(var->get_interface_type()->name);
+            for (unsigned i = 0; i < num_blocks; i++) {
+               const char *const begin = blks[i]->Name;
+               const char *const end = strchr(begin, sentinel);
+
+               if (end == NULL)
+                  continue;
+
+               if (len != (end - begin))
+                  continue;
+
+               /* Even when a match is found, do not "break" here.  This could
+                * be an array of instances, and all elements of the array need
+                * to be marked as referenced.
+                */
+               if (strncmp(begin, var->get_interface_type()->name, len) == 0) {
+                  blks[i]->stageref |= 1U << stage;
+               }
+            }
+         }
+
          var->data.location = 0;
          continue;
       }
@@ -913,11 +951,6 @@ link_update_uniform_buffer_variables(struct gl_linked_shader *shader)
          sentinel = '[';
       }
 
-      unsigned num_blocks = var->data.mode == ir_var_uniform ?
-         shader->NumUniformBlocks : shader->NumShaderStorageBlocks;
-      struct gl_uniform_block **blks = var->data.mode == ir_var_uniform ?
-         shader->UniformBlocks : shader->ShaderStorageBlocks;
-
       const unsigned l = strlen(var->name);
       for (unsigned i = 0; i < num_blocks; i++) {
          for (unsigned j = 0; j < blks[i]->NumUniforms; j++) {
@@ -931,17 +964,21 @@ link_update_uniform_buffer_variables(struct gl_linked_shader *shader)
                if ((ptrdiff_t) l != (end - begin))
                   continue;
 
-               if (strncmp(var->name, begin, l) == 0) {
-                  found = true;
-                  var->data.location = j;
-                  break;
-               }
-            } else if (!strcmp(var->name, blks[i]->Uniforms[j].Name)) {
-               found = true;
+               found = strncmp(var->name, begin, l) == 0;
+            } else {
+               found = strcmp(var->name, blks[i]->Uniforms[j].Name) == 0;
+            }
+
+            if (found) {
                var->data.location = j;
+
+               if (variable_is_referenced(v, var))
+                  blks[i]->stageref |= 1U << stage;
+
                break;
             }
          }
+
          if (found)
             break;
       }
@@ -1007,49 +1044,53 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       prog->NumUniformRemapTable - num_explicit_uniform_locs;
 
    /* Reserve all the explicit locations of the active uniforms. */
-   for (unsigned i = 0; i < prog->NumUniformStorage; i++) {
-      if (prog->UniformStorage[i].type->is_subroutine() ||
-          prog->UniformStorage[i].is_shader_storage)
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      if (prog->data->UniformStorage[i].type->is_subroutine() ||
+          prog->data->UniformStorage[i].is_shader_storage)
          continue;
 
-      if (prog->UniformStorage[i].remap_location != UNMAPPED_UNIFORM_LOC) {
+      if (prog->data->UniformStorage[i].remap_location !=
+          UNMAPPED_UNIFORM_LOC) {
          /* How many new entries for this uniform? */
          const unsigned entries =
-            MAX2(1, prog->UniformStorage[i].array_elements);
+            MAX2(1, prog->data->UniformStorage[i].array_elements);
 
          /* Set remap table entries point to correct gl_uniform_storage. */
          for (unsigned j = 0; j < entries; j++) {
-            unsigned element_loc = prog->UniformStorage[i].remap_location + j;
+            unsigned element_loc =
+               prog->data->UniformStorage[i].remap_location + j;
             assert(prog->UniformRemapTable[element_loc] ==
                    INACTIVE_UNIFORM_EXPLICIT_LOCATION);
-            prog->UniformRemapTable[element_loc] = &prog->UniformStorage[i];
+            prog->UniformRemapTable[element_loc] =
+               &prog->data->UniformStorage[i];
          }
       }
    }
 
    /* Reserve locations for rest of the uniforms. */
-   for (unsigned i = 0; i < prog->NumUniformStorage; i++) {
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
 
-      if (prog->UniformStorage[i].type->is_subroutine() ||
-          prog->UniformStorage[i].is_shader_storage)
+      if (prog->data->UniformStorage[i].type->is_subroutine() ||
+          prog->data->UniformStorage[i].is_shader_storage)
          continue;
 
       /* Built-in uniforms should not get any location. */
-      if (prog->UniformStorage[i].builtin)
+      if (prog->data->UniformStorage[i].builtin)
          continue;
 
       /* Explicit ones have been set already. */
-      if (prog->UniformStorage[i].remap_location != UNMAPPED_UNIFORM_LOC)
+      if (prog->data->UniformStorage[i].remap_location != UNMAPPED_UNIFORM_LOC)
          continue;
 
       /* how many new entries for this uniform? */
-      const unsigned entries = MAX2(1, prog->UniformStorage[i].array_elements);
+      const unsigned entries =
+         MAX2(1, prog->data->UniformStorage[i].array_elements);
 
       /* Find UniformRemapTable for empty blocks where we can fit this uniform. */
       int chosen_location = -1;
 
       if (empty_locs)
-         chosen_location = find_empty_block(prog, &prog->UniformStorage[i]);
+         chosen_location = find_empty_block(prog, &prog->data->UniformStorage[i]);
 
       /* Add new entries to the total amount of entries. */
       total_entries += entries;
@@ -1071,10 +1112,10 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       /* set pointers for this uniform */
       for (unsigned j = 0; j < entries; j++)
          prog->UniformRemapTable[chosen_location + j] =
-            &prog->UniformStorage[i];
+            &prog->data->UniformStorage[i];
 
       /* set the base location in remap table for the uniform */
-      prog->UniformStorage[i].remap_location = chosen_location;
+      prog->data->UniformStorage[i].remap_location = chosen_location;
    }
 
    /* Verify that total amount of entries for explicit and implicit locations
@@ -1088,51 +1129,55 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
    }
 
    /* Reserve all the explicit locations of the active subroutine uniforms. */
-   for (unsigned i = 0; i < prog->NumUniformStorage; i++) {
-      if (!prog->UniformStorage[i].type->is_subroutine())
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      if (!prog->data->UniformStorage[i].type->is_subroutine())
          continue;
 
-      if (prog->UniformStorage[i].remap_location == UNMAPPED_UNIFORM_LOC)
+      if (prog->data->UniformStorage[i].remap_location == UNMAPPED_UNIFORM_LOC)
          continue;
+
+      /* How many new entries for this uniform? */
+      const unsigned entries =
+         MAX2(1, prog->data->UniformStorage[i].array_elements);
 
       for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
          struct gl_linked_shader *sh = prog->_LinkedShaders[j];
          if (!sh)
             continue;
 
-         if (!prog->UniformStorage[i].opaque[j].active)
+         if (!prog->data->UniformStorage[i].opaque[j].active)
             continue;
-
-         /* How many new entries for this uniform? */
-         const unsigned entries =
-            MAX2(1, prog->UniformStorage[i].array_elements);
 
          /* Set remap table entries point to correct gl_uniform_storage. */
          for (unsigned k = 0; k < entries; k++) {
-            unsigned element_loc = prog->UniformStorage[i].remap_location + k;
+            unsigned element_loc =
+               prog->data->UniformStorage[i].remap_location + k;
             assert(sh->SubroutineUniformRemapTable[element_loc] ==
                    INACTIVE_UNIFORM_EXPLICIT_LOCATION);
             sh->SubroutineUniformRemapTable[element_loc] =
-               &prog->UniformStorage[i];
+               &prog->data->UniformStorage[i];
          }
       }
    }
 
    /* reserve subroutine locations */
-   for (unsigned i = 0; i < prog->NumUniformStorage; i++) {
-
-      if (!prog->UniformStorage[i].type->is_subroutine())
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      if (!prog->data->UniformStorage[i].type->is_subroutine())
          continue;
-      const unsigned entries = MAX2(1, prog->UniformStorage[i].array_elements);
 
-      if (prog->UniformStorage[i].remap_location != UNMAPPED_UNIFORM_LOC)
+      if (prog->data->UniformStorage[i].remap_location !=
+          UNMAPPED_UNIFORM_LOC)
          continue;
+
+      const unsigned entries =
+         MAX2(1, prog->data->UniformStorage[i].array_elements);
+
       for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
          struct gl_linked_shader *sh = prog->_LinkedShaders[j];
          if (!sh)
             continue;
 
-         if (!prog->UniformStorage[i].opaque[j].active)
+         if (!prog->data->UniformStorage[i].opaque[j].active)
             continue;
 
          sh->SubroutineUniformRemapTable =
@@ -1143,9 +1188,9 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
 
          for (unsigned k = 0; k < entries; k++) {
             sh->SubroutineUniformRemapTable[sh->NumSubroutineUniformRemapTable + k] =
-               &prog->UniformStorage[i];
+               &prog->data->UniformStorage[i];
          }
-         prog->UniformStorage[i].remap_location =
+         prog->data->UniformStorage[i].remap_location =
             sh->NumSubroutineUniformRemapTable;
          sh->NumSubroutineUniformRemapTable += entries;
       }
@@ -1160,14 +1205,14 @@ link_assign_uniform_storage(struct gl_context *ctx,
 {
    /* On the outside chance that there were no uniforms, bail out.
     */
-   if (prog->NumUniformStorage == 0)
+   if (prog->data->NumUniformStorage == 0)
       return;
 
    unsigned int boolean_true = ctx->Const.UniformBooleanTrue;
 
-   prog->UniformStorage = rzalloc_array(prog, struct gl_uniform_storage,
-                                        prog->NumUniformStorage);
-   union gl_constant_value *data = rzalloc_array(prog->UniformStorage,
+   prog->data->UniformStorage = rzalloc_array(prog, struct gl_uniform_storage,
+                                              prog->data->NumUniformStorage);
+   union gl_constant_value *data = rzalloc_array(prog->data->UniformStorage,
                                                  union gl_constant_value,
                                                  num_data_slots);
 #ifndef NDEBUG
@@ -1175,7 +1220,7 @@ link_assign_uniform_storage(struct gl_context *ctx,
 #endif
 
    parcel_out_uniform_storage parcel(prog, prog->UniformHash,
-                                     prog->UniformStorage, data);
+                                     prog->data->UniformStorage, data);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
@@ -1203,11 +1248,11 @@ link_assign_uniform_storage(struct gl_context *ctx,
    }
 
 #ifndef NDEBUG
-   for (unsigned i = 0; i < prog->NumUniformStorage; i++) {
-      assert(prog->UniformStorage[i].storage != NULL ||
-             prog->UniformStorage[i].builtin ||
-             prog->UniformStorage[i].is_shader_storage ||
-             prog->UniformStorage[i].block_index != -1);
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      assert(prog->data->UniformStorage[i].storage != NULL ||
+             prog->data->UniformStorage[i].builtin ||
+             prog->data->UniformStorage[i].is_shader_storage ||
+             prog->data->UniformStorage[i].block_index != -1);
    }
 
    assert(parcel.values == data_end);
@@ -1223,9 +1268,9 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
                               struct gl_context *ctx,
                               unsigned int num_explicit_uniform_locs)
 {
-   ralloc_free(prog->UniformStorage);
-   prog->UniformStorage = NULL;
-   prog->NumUniformStorage = 0;
+   ralloc_free(prog->data->UniformStorage);
+   prog->data->UniformStorage = NULL;
+   prog->data->NumUniformStorage = 0;
 
    if (prog->UniformHash != NULL) {
       prog->UniformHash->clear();
@@ -1260,7 +1305,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       memset(sh->SamplerUnits, 0, sizeof(sh->SamplerUnits));
       memset(sh->ImageUnits, 0, sizeof(sh->ImageUnits));
 
-      link_update_uniform_buffer_variables(sh);
+      link_update_uniform_buffer_variables(sh, i);
 
       /* Reset various per-shader target counts.
        */
@@ -1287,8 +1332,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       }
    }
 
-   prog->NumUniformStorage = uniform_size.num_active_uniforms;
-   prog->NumHiddenUniforms = uniform_size.num_hidden_uniforms;
+   prog->data->NumUniformStorage = uniform_size.num_active_uniforms;
+   prog->data->NumHiddenUniforms = uniform_size.num_hidden_uniforms;
 
    /* assign hidden uniforms a slot id */
    hiddenUniforms->iterate(assign_hidden_uniform_slot_id, &uniform_size);

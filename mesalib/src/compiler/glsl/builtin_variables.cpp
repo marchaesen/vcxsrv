@@ -352,6 +352,7 @@ per_vertex_accumulator::construct_interface_instance() const
 {
    return glsl_type::get_interface_instance(this->fields, this->num_fields,
                                             GLSL_INTERFACE_PACKING_STD140,
+                                            false,
                                             "gl_PerVertex");
 }
 

@@ -28,6 +28,7 @@
 #include "main/core.h" /* for struct gl_context */
 #include "main/context.h"
 #include "main/debug_output.h"
+#include "main/formats.h"
 #include "main/shaderobj.h"
 #include "util/u_atomic.h" /* for p_atomic_cmpxchg */
 #include "util/ralloc.h"
@@ -66,6 +67,8 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->scanner = NULL;
    this->translation_unit.make_empty();
    this->symbols = new(mem_ctx) glsl_symbol_table;
+
+   this->linalloc = linear_alloc_parent(this, 0);
 
    this->info_log = ralloc_strdup(mem_ctx, "");
    this->error = false;
@@ -273,12 +276,10 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->default_uniform_qualifier = new(this) ast_type_qualifier();
    this->default_uniform_qualifier->flags.q.shared = 1;
    this->default_uniform_qualifier->flags.q.column_major = 1;
-   this->default_uniform_qualifier->is_default_qualifier = true;
 
    this->default_shader_storage_qualifier = new(this) ast_type_qualifier();
    this->default_shader_storage_qualifier->flags.q.shared = 1;
    this->default_shader_storage_qualifier->flags.q.column_major = 1;
-   this->default_shader_storage_qualifier->is_default_qualifier = true;
 
    this->fs_uses_gl_fragcoord = false;
    this->fs_redeclares_gl_fragcoord = false;
@@ -685,6 +686,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT_AEP(EXT_texture_buffer),
    EXT_AEP(EXT_texture_cube_map_array),
    EXT(MESA_shader_integer_functions),
+   EXT(NV_image_formats),
 };
 
 #undef EXT
@@ -999,22 +1001,22 @@ _mesa_ast_process_interface_block(YYLTYPE *locp,
     */
    uint64_t block_interface_qualifier = q.flags.i;
 
-   block->layout.flags.i |= block_interface_qualifier;
+   block->default_layout.flags.i |= block_interface_qualifier;
 
    if (state->stage == MESA_SHADER_GEOMETRY &&
        state->has_explicit_attrib_stream() &&
-       block->layout.flags.q.out) {
+       block->default_layout.flags.q.out) {
       /* Assign global layout's stream value. */
-      block->layout.flags.q.stream = 1;
-      block->layout.flags.q.explicit_stream = 0;
-      block->layout.stream = state->out_qualifier->stream;
+      block->default_layout.flags.q.stream = 1;
+      block->default_layout.flags.q.explicit_stream = 0;
+      block->default_layout.stream = state->out_qualifier->stream;
    }
 
-   if (state->has_enhanced_layouts() && block->layout.flags.q.out) {
+   if (state->has_enhanced_layouts() && block->default_layout.flags.q.out) {
       /* Assign global layout's xfb_buffer value. */
-      block->layout.flags.q.xfb_buffer = 1;
-      block->layout.flags.q.explicit_xfb_buffer = 0;
-      block->layout.xfb_buffer = state->out_qualifier->xfb_buffer;
+      block->default_layout.flags.q.xfb_buffer = 1;
+      block->default_layout.flags.q.explicit_xfb_buffer = 0;
+      block->default_layout.xfb_buffer = state->out_qualifier->xfb_buffer;
    }
 
    foreach_list_typed (ast_declarator_list, member, link, &block->declarations) {
@@ -1633,7 +1635,7 @@ ast_struct_specifier::print(void) const
 }
 
 
-ast_struct_specifier::ast_struct_specifier(const char *identifier,
+ast_struct_specifier::ast_struct_specifier(void *lin_ctx, const char *identifier,
 					   ast_declarator_list *declarator_list)
 {
    if (identifier == NULL) {
@@ -1645,7 +1647,7 @@ ast_struct_specifier::ast_struct_specifier(const char *identifier,
       count = anon_count++;
       mtx_unlock(&mutex);
 
-      identifier = ralloc_asprintf(this, "#anon_struct_%04x", count);
+      identifier = linear_asprintf(lin_ctx, "#anon_struct_%04x", count);
    }
    name = identifier;
    this->declarations.push_degenerate_list_at_head(&declarator_list->link);
@@ -1742,7 +1744,7 @@ set_shader_inout_layout(struct gl_shader *shader,
          unsigned qual_max_vertices;
          if (state->out_qualifier->max_vertices->
                process_qualifier_constant(state, "max_vertices",
-                                          &qual_max_vertices, true, true)) {
+                                          &qual_max_vertices, true)) {
 
             if (qual_max_vertices > state->Const.MaxGeometryOutputVertices) {
                YYLTYPE loc = state->out_qualifier->max_vertices->get_location();
@@ -1980,7 +1982,6 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    shader->InfoLog = state->info_log;
    shader->Version = state->language_version;
    shader->IsES = state->es_shader;
-   shader->info.uses_builtin_functions = state->uses_builtin_functions;
 
    /* Retain any live IR, but trash the rest. */
    reparent_ir(shader->ir, shader->ir);
@@ -2106,12 +2107,14 @@ do_common_optimization(exec_list *ir, bool linked,
    OPT(optimize_split_arrays, ir, linked);
    OPT(optimize_redundant_jumps, ir);
 
-   loop_state *ls = analyze_loop_variables(ir);
-   if (ls->loop_found) {
-      OPT(set_loop_controls, ir, ls);
-      OPT(unroll_loops, ir, ls, options);
+   if (options->MaxUnrollIterations) {
+      loop_state *ls = analyze_loop_variables(ir);
+      if (ls->loop_found) {
+         OPT(set_loop_controls, ir, ls);
+         OPT(unroll_loops, ir, ls, options);
+      }
+      delete ls;
    }
-   delete ls;
 
 #undef OPT
 

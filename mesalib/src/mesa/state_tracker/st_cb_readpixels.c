@@ -112,8 +112,7 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
    if (texture->nr_samples > 1)
       return false;
 
-   if (!screen->is_format_supported(screen, dst_format, PIPE_TEXTURE_2D,
-                                    texture->nr_samples,
+   if (!screen->is_format_supported(screen, dst_format, PIPE_BUFFER, 0,
                                     PIPE_BIND_SHADER_IMAGE))
       return false;
 
@@ -220,7 +219,7 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
 
    /* Set up the fragment shader */
    {
-      void *fs = st_pbo_get_download_fs(st, view_target);
+      void *fs = st_pbo_get_download_fs(st, view_target, src_format, dst_format);
       if (!fs)
          goto fail;
 

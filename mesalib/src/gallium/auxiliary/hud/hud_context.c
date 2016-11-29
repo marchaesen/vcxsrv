@@ -875,9 +875,12 @@ parse_string(const char *s, char *out)
 
    *out = 0;
 
-   if (*s && !i)
+   if (*s && !i) {
       fprintf(stderr, "gallium_hud: syntax error: unexpected '%c' (%i) while "
               "parsing a string\n", *s, *s);
+      fflush(stderr);
+   }
+
    return i;
 }
 
@@ -937,6 +940,7 @@ read_pane_settings(char *str, unsigned * const x, unsigned * const y,
 
       default:
          fprintf(stderr, "gallium_hud: syntax error: unexpected '%c'\n", *str);
+         fflush(stderr);
       }
 
    }
@@ -1139,6 +1143,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
             if (!hud_driver_query_install(&hud->batch_query, pane, hud->pipe,
                                           name)) {
                fprintf(stderr, "gallium_hud: unknown driver query '%s'\n", name);
+               fflush(stderr);
             }
          }
       }
@@ -1149,6 +1154,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
          if (!pane) {
             fprintf(stderr, "gallium_hud: syntax error: unexpected ':', "
                     "expected a name\n");
+            fflush(stderr);
             break;
          }
 
@@ -1162,6 +1168,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
          else {
             fprintf(stderr, "gallium_hud: syntax error: unexpected '%c' (%i) "
                     "after ':'\n", *env, *env);
+            fflush(stderr);
          }
       }
 
@@ -1205,6 +1212,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
 
       default:
          fprintf(stderr, "gallium_hud: syntax error: unexpected '%c'\n", *env);
+         fflush(stderr);
       }
 
       /* Reset to defaults for the next pane in case these were modified. */

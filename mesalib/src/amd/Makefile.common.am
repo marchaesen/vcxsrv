@@ -19,11 +19,45 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-AMD_COMPILER_SOURCES := \
-	ac_binary.c \
-	ac_binary.h \
-	ac_llvm_helper.cpp \
-	ac_llvm_util.c \
-	ac_llvm_util.h \
-	ac_nir_to_llvm.c \
-	ac_nir_to_llvm.h
+if NEED_RADEON_LLVM
+
+COMMON_LIBS = common/libamd_common.la
+
+# TODO cleanup these
+common_libamd_common_la_CPPFLAGS = \
+	$(VALGRIND_CFLAGS) \
+	$(DEFINES) \
+	-I$(top_srcdir)/include \
+	-I$(top_builddir)/src \
+	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/amd/common \
+	-I$(top_builddir)/src/compiler \
+	-I$(top_builddir)/src/compiler/nir \
+	-I$(top_srcdir)/src/compiler \
+	-I$(top_srcdir)/src/mapi \
+	-I$(top_srcdir)/src/mesa \
+	-I$(top_srcdir)/src/mesa/drivers/dri/common \
+	-I$(top_srcdir)/src/gallium/auxiliary \
+	-I$(top_srcdir)/src/gallium/include
+
+common_libamd_common_la_CFLAGS = \
+	$(VISIBILITY_CFLAGS) \
+	$(PTHREAD_CFLAGS) \
+	$(LLVM_CFLAGS) \
+	$(LIBELF_CFLAGS)
+
+common_libamd_common_la_CXXFLAGS = \
+	$(VISIBILITY_CXXFLAGS) \
+	$(LLVM_CXXFLAGS)
+
+noinst_LTLIBRARIES += $(COMMON_LIBS)
+
+common_libamd_common_la_SOURCES = $(AMD_COMPILER_FILES)
+
+# nir_to_llvm requires LLVM 3.9, which is only required as a minimum when
+# radv is built.
+if HAVE_RADEON_VULKAN
+common_libamd_common_la_SOURCES += $(AMD_NIR_FILES)
+endif
+
+endif

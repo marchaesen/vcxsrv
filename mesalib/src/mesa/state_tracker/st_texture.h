@@ -108,6 +108,15 @@ struct st_texture_object
     */
    enum pipe_format surface_format;
 
+   /* When non-zero, samplers should use this layer instead of the one
+    * specified by the GL state.
+    *
+    * This is used for VDPAU interop, where imported pipe_resources may be
+    * array textures (containing layers with different fields) even though the
+    * GL state describes one non-array texture per field.
+    */
+   uint layer_override;
+
    /** The glsl version of the shader seen during the previous validation */
    unsigned prev_glsl_version;
    /** The value of the sampler's sRGBDecode state at the previous validation */

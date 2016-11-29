@@ -682,7 +682,7 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
    clone_state state;
    init_clone_state(&state, true);
 
-   nir_shader *ns = nir_shader_create(mem_ctx, s->stage, s->options);
+   nir_shader *ns = nir_shader_create(mem_ctx, s->stage, s->options, NULL);
    state.ns = ns;
 
    clone_var_list(&state, &ns->uniforms, &s->uniforms);
@@ -710,10 +710,10 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
    clone_reg_list(&state, &ns->registers, &s->registers);
    ns->reg_alloc = s->reg_alloc;
 
-   ns->info = s->info;
-   ns->info.name = ralloc_strdup(ns, ns->info.name);
-   if (ns->info.label)
-      ns->info.label = ralloc_strdup(ns, ns->info.label);
+   *ns->info = *s->info;
+   ns->info->name = ralloc_strdup(ns, ns->info->name);
+   if (ns->info->label)
+      ns->info->label = ralloc_strdup(ns, ns->info->label);
 
    ns->num_inputs = s->num_inputs;
    ns->num_uniforms = s->num_uniforms;

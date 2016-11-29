@@ -110,25 +110,24 @@ ralloc_context(const void *ctx)
 void *
 ralloc_size(const void *ctx, size_t size)
 {
-   /* ralloc_size was originally implemented using calloc, which meant some
-    * code accidentally relied on its zero filling behavior.
-    *
-    * TODO: Make ralloc_size not zero fill memory, and cleanup any code that
-    * should instead be using rzalloc.
-    */
-   return rzalloc_size(ctx, size);
-}
-
-void *
-rzalloc_size(const void *ctx, size_t size)
-{
-   void *block = calloc(1, size + sizeof(ralloc_header));
+   void *block = malloc(size + sizeof(ralloc_header));
    ralloc_header *info;
    ralloc_header *parent;
 
    if (unlikely(block == NULL))
       return NULL;
+
    info = (ralloc_header *) block;
+   /* measurements have shown that calloc is slower (because of
+    * the multiplication overflow checking?), so clear things
+    * manually
+    */
+   info->parent = NULL;
+   info->child = NULL;
+   info->prev = NULL;
+   info->next = NULL;
+   info->destructor = NULL;
+
    parent = ctx != NULL ? get_header(ctx) : NULL;
 
    add_child(parent, info);
@@ -138,6 +137,17 @@ rzalloc_size(const void *ctx, size_t size)
 #endif
 
    return PTR_FROM_HEADER(info);
+}
+
+void *
+rzalloc_size(const void *ctx, size_t size)
+{
+   void *ptr = ralloc_size(ctx, size);
+
+   if (likely(ptr))
+      memset(ptr, 0, size);
+
+   return ptr;
 }
 
 /* helper function - assumes ptr != NULL */
@@ -517,4 +527,357 @@ ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
    *str = ptr;
    *start += new_length;
    return true;
+}
+
+/***************************************************************************
+ * Linear allocator for short-lived allocations.
+ ***************************************************************************
+ *
+ * The allocator consists of a parent node (2K buffer), which requires
+ * a ralloc parent, and child nodes (allocations). Child nodes can't be freed
+ * directly, because the parent doesn't track them. You have to release
+ * the parent node in order to release all its children.
+ *
+ * The allocator uses a fixed-sized buffer with a monotonically increasing
+ * offset after each allocation. If the buffer is all used, another buffer
+ * is allocated, sharing the same ralloc parent, so all buffers are at
+ * the same level in the ralloc hierarchy.
+ *
+ * The linear parent node is always the first buffer and keeps track of all
+ * other buffers.
+ */
+
+#define ALIGN_POT(x, y) (((x) + (y) - 1) & ~((y) - 1))
+
+#define MIN_LINEAR_BUFSIZE 2048
+#define SUBALLOC_ALIGNMENT sizeof(uintptr_t)
+#define LMAGIC 0x87b9c7d3
+
+struct linear_header {
+#ifdef DEBUG
+   unsigned magic;   /* for debugging */
+#endif
+   unsigned offset;  /* points to the first unused byte in the buffer */
+   unsigned size;    /* size of the buffer */
+   void *ralloc_parent;          /* new buffers will use this */
+   struct linear_header *next;   /* next buffer if we have more */
+   struct linear_header *latest; /* the only buffer that has free space */
+
+   /* After this structure, the buffer begins.
+    * Each suballocation consists of linear_size_chunk as its header followed
+    * by the suballocation, so it goes:
+    *
+    * - linear_size_chunk
+    * - allocated space
+    * - linear_size_chunk
+    * - allocated space
+    * etc.
+    *
+    * linear_size_chunk is only needed by linear_realloc.
+    */
+};
+
+struct linear_size_chunk {
+   unsigned size; /* for realloc */
+   unsigned _padding;
+};
+
+typedef struct linear_header linear_header;
+typedef struct linear_size_chunk linear_size_chunk;
+
+#define LINEAR_PARENT_TO_HEADER(parent) \
+   (linear_header*) \
+   ((char*)(parent) - sizeof(linear_size_chunk) - sizeof(linear_header))
+
+/* Allocate the linear buffer with its header. */
+static linear_header *
+create_linear_node(void *ralloc_ctx, unsigned min_size)
+{
+   linear_header *node;
+
+   min_size += sizeof(linear_size_chunk);
+
+   if (likely(min_size < MIN_LINEAR_BUFSIZE))
+      min_size = MIN_LINEAR_BUFSIZE;
+
+   node = ralloc_size(ralloc_ctx, sizeof(linear_header) + min_size);
+   if (unlikely(!node))
+      return NULL;
+
+#ifdef DEBUG
+   node->magic = LMAGIC;
+#endif
+   node->offset = 0;
+   node->size = min_size;
+   node->ralloc_parent = ralloc_ctx;
+   node->next = NULL;
+   node->latest = node;
+   return node;
+}
+
+void *
+linear_alloc_child(void *parent, unsigned size)
+{
+   linear_header *first = LINEAR_PARENT_TO_HEADER(parent);
+   linear_header *latest = first->latest;
+   linear_header *new_node;
+   linear_size_chunk *ptr;
+   unsigned full_size;
+
+   assert(first->magic == LMAGIC);
+   assert(!latest->next);
+
+   size = ALIGN_POT(size, SUBALLOC_ALIGNMENT);
+   full_size = sizeof(linear_size_chunk) + size;
+
+   if (unlikely(latest->offset + full_size > latest->size)) {
+      /* allocate a new node */
+      new_node = create_linear_node(latest->ralloc_parent, size);
+      if (unlikely(!new_node))
+         return NULL;
+
+      first->latest = new_node;
+      latest->latest = new_node;
+      latest->next = new_node;
+      latest = new_node;
+   }
+
+   ptr = (linear_size_chunk *)((char*)&latest[1] + latest->offset);
+   ptr->size = size;
+   latest->offset += full_size;
+   return &ptr[1];
+}
+
+void *
+linear_alloc_parent(void *ralloc_ctx, unsigned size)
+{
+   linear_header *node;
+
+   if (unlikely(!ralloc_ctx))
+      return NULL;
+
+   size = ALIGN_POT(size, SUBALLOC_ALIGNMENT);
+
+   node = create_linear_node(ralloc_ctx, size);
+   if (unlikely(!node))
+      return NULL;
+
+   return linear_alloc_child((char*)node +
+                             sizeof(linear_header) +
+                             sizeof(linear_size_chunk), size);
+}
+
+void *
+linear_zalloc_child(void *parent, unsigned size)
+{
+   void *ptr = linear_alloc_child(parent, size);
+
+   if (likely(ptr))
+      memset(ptr, 0, size);
+   return ptr;
+}
+
+void *
+linear_zalloc_parent(void *parent, unsigned size)
+{
+   void *ptr = linear_alloc_parent(parent, size);
+
+   if (likely(ptr))
+      memset(ptr, 0, size);
+   return ptr;
+}
+
+void
+linear_free_parent(void *ptr)
+{
+   linear_header *node;
+
+   if (unlikely(!ptr))
+      return;
+
+   node = LINEAR_PARENT_TO_HEADER(ptr);
+   assert(node->magic == LMAGIC);
+
+   while (node) {
+      void *ptr = node;
+
+      node = node->next;
+      ralloc_free(ptr);
+   }
+}
+
+void
+ralloc_steal_linear_parent(void *new_ralloc_ctx, void *ptr)
+{
+   linear_header *node;
+
+   if (unlikely(!ptr))
+      return;
+
+   node = LINEAR_PARENT_TO_HEADER(ptr);
+   assert(node->magic == LMAGIC);
+
+   while (node) {
+      ralloc_steal(new_ralloc_ctx, node);
+      node->ralloc_parent = new_ralloc_ctx;
+      node = node->next;
+   }
+}
+
+void *
+ralloc_parent_of_linear_parent(void *ptr)
+{
+   linear_header *node = LINEAR_PARENT_TO_HEADER(ptr);
+   assert(node->magic == LMAGIC);
+   return node->ralloc_parent;
+}
+
+void *
+linear_realloc(void *parent, void *old, unsigned new_size)
+{
+   unsigned old_size = 0;
+   ralloc_header *new_ptr;
+
+   new_ptr = linear_alloc_child(parent, new_size);
+
+   if (unlikely(!old))
+      return new_ptr;
+
+   old_size = ((linear_size_chunk*)old)[-1].size;
+
+   if (likely(new_ptr && old_size))
+      memcpy(new_ptr, old, MIN2(old_size, new_size));
+
+   return new_ptr;
+}
+
+/* All code below is pretty much copied from ralloc and only the alloc
+ * calls are different.
+ */
+
+char *
+linear_strdup(void *parent, const char *str)
+{
+   unsigned n;
+   char *ptr;
+
+   if (unlikely(!str))
+      return NULL;
+
+   n = strlen(str);
+   ptr = linear_alloc_child(parent, n + 1);
+   if (unlikely(!ptr))
+      return NULL;
+
+   memcpy(ptr, str, n);
+   ptr[n] = '\0';
+   return ptr;
+}
+
+char *
+linear_asprintf(void *parent, const char *fmt, ...)
+{
+   char *ptr;
+   va_list args;
+   va_start(args, fmt);
+   ptr = linear_vasprintf(parent, fmt, args);
+   va_end(args);
+   return ptr;
+}
+
+char *
+linear_vasprintf(void *parent, const char *fmt, va_list args)
+{
+   unsigned size = printf_length(fmt, args) + 1;
+
+   char *ptr = linear_alloc_child(parent, size);
+   if (ptr != NULL)
+      vsnprintf(ptr, size, fmt, args);
+
+   return ptr;
+}
+
+bool
+linear_asprintf_append(void *parent, char **str, const char *fmt, ...)
+{
+   bool success;
+   va_list args;
+   va_start(args, fmt);
+   success = linear_vasprintf_append(parent, str, fmt, args);
+   va_end(args);
+   return success;
+}
+
+bool
+linear_vasprintf_append(void *parent, char **str, const char *fmt, va_list args)
+{
+   size_t existing_length;
+   assert(str != NULL);
+   existing_length = *str ? strlen(*str) : 0;
+   return linear_vasprintf_rewrite_tail(parent, str, &existing_length, fmt, args);
+}
+
+bool
+linear_asprintf_rewrite_tail(void *parent, char **str, size_t *start,
+                             const char *fmt, ...)
+{
+   bool success;
+   va_list args;
+   va_start(args, fmt);
+   success = linear_vasprintf_rewrite_tail(parent, str, start, fmt, args);
+   va_end(args);
+   return success;
+}
+
+bool
+linear_vasprintf_rewrite_tail(void *parent, char **str, size_t *start,
+                              const char *fmt, va_list args)
+{
+   size_t new_length;
+   char *ptr;
+
+   assert(str != NULL);
+
+   if (unlikely(*str == NULL)) {
+      *str = linear_vasprintf(parent, fmt, args);
+      *start = strlen(*str);
+      return true;
+   }
+
+   new_length = printf_length(fmt, args);
+
+   ptr = linear_realloc(parent, *str, *start + new_length + 1);
+   if (unlikely(ptr == NULL))
+      return false;
+
+   vsnprintf(ptr + *start, new_length + 1, fmt, args);
+   *str = ptr;
+   *start += new_length;
+   return true;
+}
+
+/* helper routine for strcat/strncat - n is the exact amount to copy */
+static bool
+linear_cat(void *parent, char **dest, const char *str, unsigned n)
+{
+   char *both;
+   unsigned existing_length;
+   assert(dest != NULL && *dest != NULL);
+
+   existing_length = strlen(*dest);
+   both = linear_realloc(parent, *dest, existing_length + n + 1);
+   if (unlikely(both == NULL))
+      return false;
+
+   memcpy(both + existing_length, str, n);
+   both[existing_length + n] = '\0';
+
+   *dest = both;
+   return true;
+}
+
+bool
+linear_strcat(void *parent, char **dest, const char *str)
+{
+   return linear_cat(parent, dest, str, strlen(str));
 }

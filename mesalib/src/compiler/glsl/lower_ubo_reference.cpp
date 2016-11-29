@@ -107,7 +107,6 @@ public:
 
    struct gl_linked_shader *shader;
    bool clamp_block_indices;
-   struct gl_uniform_buffer_variable *ubo_var;
    const struct glsl_struct_field *struct_field;
    ir_variable *variable;
    ir_rvalue *uniform_block;
@@ -308,16 +307,17 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
             this->uniform_block = index;
          }
 
-         this->ubo_var = var->is_interface_instance()
-            ? &blocks[i]->Uniforms[0] : &blocks[i]->Uniforms[var->data.location];
+         if (var->is_interface_instance()) {
+            *const_offset = 0;
+         } else {
+            *const_offset = blocks[i]->Uniforms[var->data.location].Offset;
+         }
 
          break;
       }
    }
 
    assert(this->uniform_block);
-
-   *const_offset = ubo_var->Offset;
 
    this->struct_field = NULL;
    setup_buffer_access(mem_ctx, deref, offset, const_offset, row_major,

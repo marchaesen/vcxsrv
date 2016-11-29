@@ -108,9 +108,13 @@ bool glsl_type_is_scalar(const struct glsl_type *type);
 bool glsl_type_is_vector_or_scalar(const struct glsl_type *type);
 bool glsl_type_is_matrix(const struct glsl_type *type);
 bool glsl_type_is_array(const struct glsl_type *type);
+bool glsl_type_is_array_of_arrays(const struct glsl_type *type);
 bool glsl_type_is_struct(const struct glsl_type *type);
 bool glsl_type_is_sampler(const struct glsl_type *type);
 bool glsl_type_is_image(const struct glsl_type *type);
+bool glsl_type_is_dual_slot(const struct glsl_type *type);
+bool glsl_type_is_numeric(const struct glsl_type *type);
+bool glsl_type_is_boolean(const struct glsl_type *type);
 bool glsl_sampler_type_is_shadow(const struct glsl_type *type);
 bool glsl_sampler_type_is_array(const struct glsl_type *type);
 

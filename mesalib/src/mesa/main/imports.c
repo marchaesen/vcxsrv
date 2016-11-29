@@ -252,28 +252,6 @@ _mesa_bitcount_64(uint64_t n)
 /*@}*/
 
 
-/**********************************************************************/
-/** \name String */
-/*@{*/
-
-
-/** Compute simple checksum/hash for a string */
-unsigned int
-_mesa_str_checksum(const char *str)
-{
-   /* This could probably be much better */
-   unsigned int sum, i;
-   const char *c;
-   sum = i = 1;
-   for (c = str; *c; c++, i++)
-      sum += *c * (i % 100);
-   return sum + i;
-}
-
-
-/*@}*/
-
-
 /** Needed due to #ifdef's, above. */
 int
 _mesa_vsnprintf(char *str, size_t size, const char *fmt, va_list args)

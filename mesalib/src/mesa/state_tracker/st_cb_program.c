@@ -58,28 +58,34 @@ st_new_program(struct gl_context *ctx, GLenum target, GLuint id)
 {
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: {
-      struct st_vertex_program *prog = ST_CALLOC_STRUCT(st_vertex_program);
-      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+      struct st_vertex_program *prog = rzalloc(NULL,
+                                               struct st_vertex_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
    }
    case GL_FRAGMENT_PROGRAM_ARB: {
-      struct st_fragment_program *prog = ST_CALLOC_STRUCT(st_fragment_program);
-      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+      struct st_fragment_program *prog = rzalloc(NULL,
+                                                 struct st_fragment_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
    }
    case GL_GEOMETRY_PROGRAM_NV: {
-      struct st_geometry_program *prog = ST_CALLOC_STRUCT(st_geometry_program);
-      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+      struct st_geometry_program *prog = rzalloc(NULL,
+                                                 struct st_geometry_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
    }
    case GL_TESS_CONTROL_PROGRAM_NV: {
-      struct st_tessctrl_program *prog = ST_CALLOC_STRUCT(st_tessctrl_program);
-      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+      struct st_tessctrl_program *prog = rzalloc(NULL,
+                                                 struct st_tessctrl_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
    }
    case GL_TESS_EVALUATION_PROGRAM_NV: {
-      struct st_tesseval_program *prog = ST_CALLOC_STRUCT(st_tesseval_program);
-      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+      struct st_tesseval_program *prog = rzalloc(NULL,
+                                                 struct st_tesseval_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
    }
    case GL_COMPUTE_PROGRAM_NV: {
-      struct st_compute_program *prog = ST_CALLOC_STRUCT(st_compute_program);
-      return _mesa_init_gl_program(&prog->Base.Base, target, id);
+      struct st_compute_program *prog = rzalloc(NULL,
+                                                struct st_compute_program);
+      return _mesa_init_gl_program(&prog->Base, target, id);
    }
    default:
       assert(0);
@@ -111,8 +117,8 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          struct st_geometry_program *stgp =
             (struct st_geometry_program *) prog;
 
-         st_release_basic_variants(st, stgp->Base.Base.Target,
-                                   &stgp->variants, &stgp->tgsi);
+         st_release_basic_variants(st, stgp->Base.Target, &stgp->variants,
+                                   &stgp->tgsi);
          
          if (stgp->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(stgp->glsl_to_tgsi);
@@ -134,8 +140,8 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          struct st_tessctrl_program *sttcp =
             (struct st_tessctrl_program *) prog;
 
-         st_release_basic_variants(st, sttcp->Base.Base.Target,
-                                   &sttcp->variants, &sttcp->tgsi);
+         st_release_basic_variants(st, sttcp->Base.Target, &sttcp->variants,
+                                   &sttcp->tgsi);
 
          if (sttcp->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(sttcp->glsl_to_tgsi);
@@ -146,7 +152,7 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          struct st_tesseval_program *sttep =
             (struct st_tesseval_program *) prog;
 
-         st_release_basic_variants(st, sttep->Base.Base.Target,
+         st_release_basic_variants(st, sttep->Base.Target,
                                    &sttep->variants, &sttep->tgsi);
 
          if (sttep->glsl_to_tgsi)
@@ -199,8 +205,8 @@ st_program_string_notify( struct gl_context *ctx,
    else if (target == GL_GEOMETRY_PROGRAM_NV) {
       struct st_geometry_program *stgp = (struct st_geometry_program *) prog;
 
-      st_release_basic_variants(st, stgp->Base.Base.Target,
-                                &stgp->variants, &stgp->tgsi);
+      st_release_basic_variants(st, stgp->Base.Target, &stgp->variants,
+                                &stgp->tgsi);
       if (!st_translate_geometry_program(st, stgp))
          return false;
 
@@ -221,8 +227,8 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_tessctrl_program *sttcp =
          (struct st_tessctrl_program *) prog;
 
-      st_release_basic_variants(st, sttcp->Base.Base.Target,
-                                &sttcp->variants, &sttcp->tgsi);
+      st_release_basic_variants(st, sttcp->Base.Target, &sttcp->variants,
+                                &sttcp->tgsi);
       if (!st_translate_tessctrl_program(st, sttcp))
          return false;
 
@@ -233,8 +239,8 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_tesseval_program *sttep =
          (struct st_tesseval_program *) prog;
 
-      st_release_basic_variants(st, sttep->Base.Base.Target,
-                                &sttep->variants, &sttep->tgsi);
+      st_release_basic_variants(st, sttep->Base.Target, &sttep->variants,
+                                &sttep->tgsi);
       if (!st_translate_tesseval_program(st, sttep))
          return false;
 

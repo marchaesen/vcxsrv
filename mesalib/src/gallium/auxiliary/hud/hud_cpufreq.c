@@ -36,6 +36,7 @@
 #include "hud/hud_private.h"
 #include "util/list.h"
 #include "os/os_time.h"
+#include "os/os_thread.h"
 #include "util/u_memory.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -61,6 +62,7 @@ struct cpufreq_info
 
 static int gcpufreq_count = 0;
 static struct list_head gcpufreq_list;
+pipe_static_mutex(gcpufreq_mutex);
 
 static struct cpufreq_info *
 find_cfi_by_index(int cpu_index, int mode)
@@ -112,14 +114,6 @@ query_cfi_load(struct hud_graph *gr)
    }
 }
 
-static void
-free_query_data(void *p)
-{
-   struct cpufreq_info *cfi = (struct cpufreq_info *)p;
-   list_del(&cfi->list);
-   FREE(cfi);
-}
-
 /**
   * Create and initialize a new object for a specific CPU.
   * \param  pane  parent context.
@@ -162,11 +156,6 @@ hud_cpufreq_graph_install(struct hud_pane *pane, int cpu_index,
    gr->query_data = cfi;
    gr->query_new_value = query_cfi_load;
 
-   /* Don't use free() as our callback as that messes up Gallium's
-    * memory debugger.  Use simple free_query_data() wrapper.
-    */
-   gr->free_query_data = free_query_data;
-
    hud_pane_add_graph(pane, gr);
    hud_pane_set_max_value(pane, 3000000 /* 3 GHz */);
 }
@@ -199,16 +188,21 @@ hud_get_num_cpufreq(bool displayhelp)
    int cpu_index;
 
    /* Return the number of CPU metrics we support. */
-   if (gcpufreq_count)
+   pipe_mutex_lock(gcpufreq_mutex);
+   if (gcpufreq_count) {
+      pipe_mutex_unlock(gcpufreq_mutex);
       return gcpufreq_count;
+   }
 
    /* Scan /sys/devices.../cpu, for every object type we support, create
     * and persist an object to represent its different metrics.
     */
    list_inithead(&gcpufreq_list);
    DIR *dir = opendir("/sys/devices/system/cpu");
-   if (!dir)
+   if (!dir) {
+      pipe_mutex_unlock(gcpufreq_mutex);
       return 0;
+   }
 
    while ((dp = readdir(dir)) != NULL) {
 
@@ -238,6 +232,7 @@ hud_get_num_cpufreq(bool displayhelp)
       snprintf(fn, sizeof(fn), "%s/cpufreq/scaling_max_freq", basename);
       add_object(dp->d_name, fn, CPUFREQ_MAXIMUM, cpu_index);
    }
+   closedir(dir);
 
    if (displayhelp) {
       list_for_each_entry(struct cpufreq_info, cfi, &gcpufreq_list, list) {
@@ -251,6 +246,7 @@ hud_get_num_cpufreq(bool displayhelp)
       }
    }
 
+   pipe_mutex_unlock(gcpufreq_mutex);
    return gcpufreq_count;
 }
 

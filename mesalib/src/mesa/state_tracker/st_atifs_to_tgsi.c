@@ -547,12 +547,12 @@ st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
    static const gl_state_index fog_color[STATE_LENGTH] =
       {STATE_FOG_COLOR, 0, 0, 0, 0};
 
-   prog->InputsRead = 0;
-   prog->OutputsWritten = BITFIELD64_BIT(FRAG_RESULT_COLOR);
+   prog->info.inputs_read = 0;
+   prog->info.outputs_written = BITFIELD64_BIT(FRAG_RESULT_COLOR);
    prog->SamplersUsed = 0;
    prog->Parameters = _mesa_new_parameter_list();
 
-   /* fill in InputsRead, SamplersUsed, TexturesUsed */
+   /* fill in inputs_read, SamplersUsed, TexturesUsed */
    for (pass = 0; pass < atifs->NumPasses; pass++) {
       for (r = 0; r < MAX_NUM_FRAGMENT_REGISTERS_ATI; r++) {
          struct atifs_setupinst *texinst = &atifs->SetupInst[pass][r];
@@ -560,14 +560,14 @@ st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
 
          if (texinst->Opcode == ATI_FRAGMENT_SHADER_SAMPLE_OP) {
             /* mark which texcoords are used */
-            prog->InputsRead |= BITFIELD64_BIT(VARYING_SLOT_TEX0 + pass_tex - GL_TEXTURE0_ARB);
+            prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_TEX0 + pass_tex - GL_TEXTURE0_ARB);
             /* by default there is 1:1 mapping between samplers and textures */
             prog->SamplersUsed |= (1 << r);
             /* the target is unknown here, it will be fixed in the draw call */
             prog->TexturesUsed[r] = TEXTURE_2D_BIT;
          } else if (texinst->Opcode == ATI_FRAGMENT_SHADER_PASS_OP) {
             if (pass_tex >= GL_TEXTURE0_ARB && pass_tex <= GL_TEXTURE7_ARB) {
-               prog->InputsRead |= BITFIELD64_BIT(VARYING_SLOT_TEX0 + pass_tex - GL_TEXTURE0_ARB);
+               prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_TEX0 + pass_tex - GL_TEXTURE0_ARB);
             }
          }
       }
@@ -581,12 +581,12 @@ st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
                for (arg = 0; arg < inst->ArgCount[optype]; arg++) {
                   GLint index = inst->SrcReg[optype][arg].Index;
                   if (index == GL_PRIMARY_COLOR_EXT) {
-                     prog->InputsRead |= BITFIELD64_BIT(VARYING_SLOT_COL0);
+                     prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_COL0);
                   } else if (index == GL_SECONDARY_INTERPOLATOR_ATI) {
                      /* note: ATI_fragment_shader.txt never specifies what
                       * GL_SECONDARY_INTERPOLATOR_ATI is, swrast uses
                       * VARYING_SLOT_COL1 for this input */
-                     prog->InputsRead |= BITFIELD64_BIT(VARYING_SLOT_COL1);
+                     prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_COL1);
                   }
                }
             }
@@ -594,7 +594,7 @@ st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
       }
    }
    /* we may need fog */
-   prog->InputsRead |= BITFIELD64_BIT(VARYING_SLOT_FOGC);
+   prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_FOGC);
 
    /* we always have the ATI_fs constants, and the fog params */
    for (i = 0; i < MAX_NUM_FRAGMENT_CONSTANTS_ATI; i++) {
@@ -604,9 +604,9 @@ st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
    _mesa_add_state_reference(prog->Parameters, fog_params_state);
    _mesa_add_state_reference(prog->Parameters, fog_color);
 
-   prog->NumInstructions = 0;
-   prog->NumTemporaries = MAX_NUM_FRAGMENT_REGISTERS_ATI + 3; /* 3 input temps for arith ops */
-   prog->NumParameters = MAX_NUM_FRAGMENT_CONSTANTS_ATI + 2; /* 2 state variables for fog */
+   prog->arb.NumInstructions = 0;
+   prog->arb.NumTemporaries = MAX_NUM_FRAGMENT_REGISTERS_ATI + 3; /* 3 input temps for arith ops */
+   prog->arb.NumParameters = MAX_NUM_FRAGMENT_CONSTANTS_ATI + 2; /* 2 state variables for fog */
 }
 
 

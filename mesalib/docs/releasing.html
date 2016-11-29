@@ -1,0 +1,509 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Releasing process</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="contents.html"></iframe>
+<div class="content">
+
+<h1>Releasing process</h1>
+
+<ul>
+<li><a href="#overview">Overview</a>
+<li><a href="#schedule">Release schedule</a>
+<li><a href="#pickntest">Cherry-pick and test</a>
+<li><a href="#branch">Making a branchpoint</a>
+<li><a href="#prerelease">Pre-release announcement</a>
+<li><a href="#release">Making a new release</a>
+<li><a href="#announce">Announce the release</a>
+<li><a href="#website">Update the mesa3d.org website</a>
+<li><a href="#bugzilla">Update Bugzilla</a>
+</ul>
+
+<h1 id="overview">Overview</h1>
+
+<p>
+This document uses the convention X.Y.Z for the release number with X.Y being
+the stable branch name.
+<br>
+Mesa provides feature and bugfix releases. Former use zero as patch version (Z),
+while the latter have a non-zero one.
+</p>
+
+<p>
+For example:
+</p>
+<pre>
+	Mesa 10.1.0 - 10.1 branch, feature
+	Mesa 10.1.4 - 10.1 branch, bugfix
+	Mesa 12.0.0 - 12.0 branch, feature
+	Mesa 12.0.2 - 12.0 branch, bugfix
+</pre>
+
+<h1 id="schedule">Release schedule</h1>
+
+<p>
+Releases should happen on Fridays. Delays can occur although those should be keep
+to a minimum.
+</p>
+
+<h2>Feature releases</h2>
+<ul>
+<li>Available approximatelly every three months.
+<li>Initial timeplan available 2-4 weeks before the planned branchpoint (rc1)
+on the mesa-announce@ mailing list.
+<li>A <a href="#prerelease">pre-release</a> announcement should be available
+approximatelly 24 hours before the final (non-rc) release.
+</ul>
+
+<h2>Stable releases</h2>
+<ul>
+<li>Normally available once every two weeks.
+<li>Only the latest branch has releases. See note below.
+<li>A <a href="#prerelease">pre-release</a> announcement should be available
+approximatelly 48 hours before the actual release.
+</ul>
+
+<p>
+Note: There is one or two releases overlap when changing branches. For example:
+<br>
+The final release from the 12.0 series Mesa 12.0.5 will be out around the same
+time (or shortly after) 13.0.1 is out.
+</p>
+
+<h1 id="pickntest">Cherry-picking and testing</h1>
+
+<p>
+Commits nominated for the active branch are picked as based on the
+<a href="submittingpatches.html#criteria" target="_parent">criteria</a> as
+described in the same section.
+
+<p>
+Maintainer is responsible for testing in various possible permutations of
+the autoconf and scons build.
+</p>
+
+<h2>Cherry-picking and build/check testing</h2>
+
+<p>Done continuously up-to the <a href="#prerelease">pre-release</a> announcement.</p>
+
+<p>
+As an exception, patches can be applied up-to the last ~1h before the actual
+release. This is made <strong>only</strong> with explicit permission/request,
+and the patch <strong>must</strong> be very well contained. Thus it cannot
+affect more than one driver/subsystem.
+</p>
+<p>
+Currently Ilia Mirkin and AMD devs have requested "permanent" exception.
+</p>
+
+
+<ul>
+<li>make distcheck, scons and scons check must pass
+<li>Testing with different version of system components - LLVM and others is also
+performed where possible.
+</ul>
+<p>
+Achieved by combination of local ad-hoc scripts and AppVeyor plus Travis-CI,
+the latter as part of their Github integration.
+</p>
+
+<h2>Regression/functionality testing</h2>
+
+<p>
+Less often (once or twice), shortly before the pre-release announcement.
+Ensure that testing is redone if Intel devs have requested an exception, as per above.
+</p>
+<ul>
+<li><em>no regressions should be observed for Piglit/dEQP/CTS/Vulkan on Intel platforms</em>
+<li><em>no regressions should be observed for Piglit using the swrast, softpipe
+and llvmpipe drivers</em>
+</ul>
+<p>
+Currently testing is performed courtesy of the Intel OTC team and their Jenkins CI setup. Check with the Intel team over IRC how to get things setup.
+</p>
+
+
+<h1 id="branch">Making a branchpoint</h1>
+
+<p>
+A branchpoint is made such that new development can continue in parallel to
+stabilisation and bugfixing.
+</p>
+
+<p>
+Note: Before doing a branch ensure that basic build and <code>make check</code>
+testing is done and there are little to-no issues.
+<br>
+Ideally all of those should be tackled already.
+</p>
+
+<p>
+Check if the version number is going to remain as, alternatively
+<code> git mv docs/relnotes/{current,new}.html </code> as appropriate.
+</p>
+
+<p>
+To setup the branchpoint:
+</p>
+<pre>
+	git checkout master # make sure we're in master first
+	git tag -s X.Y-branchpoint -m "Mesa X.Y branchpoint"
+	git checkout -b X.Y
+	git push origin X.Y-branchpoint X.Y
+</pre>
+
+<p>
+Now go to
+<a href="https://bugs.freedesktop.org/editversions.cgi?action=add&amp;product=Mesa" target="_parent">Bugzilla</a> and add the new Mesa version X.Y.
+</p>
+<p>
+Check for rare that there are no distribution breaking changes and revert them
+if needed. Extremely rare - we had only one case so far (see
+commit 2ced8eb136528914e1bf4e000dea06a9d53c7e04).
+</p>
+<p>
+Proceed to <a href="#release">release</a> -rc1.
+</p>
+
+<h1 id="prerelease">Pre-release announcement</h1>
+
+<p>
+It comes shortly after outstanding patches in the respective branch are pushed.
+Developers can check, in brief, what's the status of their patches. They,
+alongside very early testers, are strongly encouraged to test the branch and
+report any regressions.
+<br>
+It is followed by a brief period (normally 24 or 48 hours) before the actual
+release is made.
+</p>
+
+<h2>Terminology used</h2>
+<ul><li>Nominated</ul>
+<p>
+Patch that is nominated but yet to to merged in the patch queue/branch.
+</p>
+
+<ul><li>Queued</ul>
+<p>
+Patch is in the queue/branch and will feature in the next release.
+Barring reported regressions or objections from developers.
+</p>
+
+<ul><li>Rejected</ul>
+<p>
+Patch does not fit the
+<a href="submittingpatches.html#criteria" target="_parent">criteria</a> and
+is followed by a brief information.
+<br>
+The release maintainer is human so if you believe you've spotted a mistake do
+let them know.
+</p>
+
+<h2>Format/template</h2>
+<pre>
+Subject: [ANNOUNCE] Mesa X.Y.Z release candidate
+To: mesa-announce@...
+Cc: mesa-dev@...
+
+Hello list,
+
+The candidate for the Mesa X.Y.Z is now available. Currently we have:
+ - NUMBER queued
+ - NUMBER nominated (outstanding)
+ - and NUMBER rejected patches
+
+BRIEF SUMMARY OF CHANGES
+
+Take a look at section "Mesa stable queue" for more information.
+
+
+Testing reports/general approval
+--------------------------------
+Any testing reports (or general approval of the state of the branch) will be
+greatly appreciated.
+
+The plan is to have X.Y.Z this DAY (DATE), around or shortly after TIME.
+
+If you have any questions or suggestions - be that about the current patch
+queue or otherwise, please go ahead.
+
+
+Trivial merge conflicts
+-----------------------
+List of commits where manual intervention was required.
+Keep the authors in the CC list.
+
+commit SHA
+Author: AUTHOR
+
+    COMMIT SUMMARY
+
+    CHERRY PICKED FROM
+
+
+For example:
+
+commit 990f395e007c3204639daa34efc3049f350ee819
+Author: Emil Velikov &lt;emil.velikov@collabora.com&gt;
+
+    anv: automake: cleanup the generated json file during make clean
+
+    (cherry picked from commit 8df581520a823564be0ab5af7dbb7d501b1c9670)
+
+
+Cheers,
+Emil
+
+
+Mesa stable queue
+-----------------
+
+Nominated (NUMBER)
+==================
+
+AUTHOR (NUMBER):
+      SHA     COMMIT SUMMARY
+
+For example:
+
+Dave Airlie (1):
+      2de85eb radv: fix texturesamples to handle single sample case
+
+
+Queued (NUMBER)
+===============
+
+AUTHOR (NUMBER):
+      COMMIT SUMMARY
+
+
+Rejected (NUMBER)
+=================
+
+Rejected (11)
+=============
+
+AUTHOR (NUMBER):
+      SHA     COMMIT SUMMARY
+
+Reason: ...
+</pre>
+
+<h1 id="release">Making a new release</h1>
+
+<p>
+These are the instructions for making a new Mesa release.
+</p>
+
+<h3>Get latest source files</h3>
+<p>
+Ensure the latest code is available - both in your local master and the
+relevant branch.
+</p>
+
+<h3>Perform basic testing</h3>
+<p>
+Most of the testing should already be done during the
+<a href="#pickntest">cherry-pick</a> and
+<a href="#prerelease">pre-announce</a> stages.
+
+So we do a quick 'touch test'
+<ul>
+<li>make distcheck (you can omit this if you're not using --dist below)
+<li>scons (from release tarball)
+<li>the produced binaries work
+</ul>
+
+<p>
+Here is one solution that I've been using.
+</p>
+
+<pre>
+	git clean -fXd; git clean -nxd
+	read # quick cross check any outstanding files
+	export __version=`cat VERSION`
+	export __mesa_root=../
+	export __build_root=./foo
+	chmod 755 -fR $__build_root; rm -rf $__build_root
+	mkdir -p $__build_root &amp;&amp; cd $__build_root
+
+	$__mesa_root/autogen.sh --enable-llvm-shared-libs &amp;&amp; make -j2 distcheck
+
+	# Build check the tarballs (scons)
+	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version &amp;&amp; scons &amp;&amp; cd ..
+
+	# Test the automake binaries
+	rm -rf cd mesa-$__version
+	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
+	./configure \
+		--with-dri-drivers=i965,swrast \
+		--with-gallium-drivers=swrast \
+		--with-vulkan-drivers=intel \
+		--enable-llvm-shared-libs \
+		--enable-gallium-llvm \
+		--enable-glx-tls \
+		--enable-gbm \
+		--enable-egl \
+		--with-egl-platforms=x11,drm,wayland
+	make -j2 &amp;&amp; DESTDIR=`pwd`/test make -j6 install
+	export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/
+	export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
+	export LIBGL_DEBUG=verbose
+	glxinfo | egrep -o "Mesa.*"
+	glxgears
+	es2_info | egrep "GL_VERSION|GL_RENDERER"
+	es2gears_x11
+	export LIBGL_ALWAYS_SOFTWARE=1
+	glxinfo | egrep -o "Mesa.*|Gallium.*"
+	glxgears
+	es2_info | egrep "GL_VERSION|GL_RENDERER"
+	es2gears_x11
+	export LIBGL_ALWAYS_SOFTWARE=1
+	export GALLIUM_DRIVER=softpipe
+	glxinfo | egrep -o "Mesa.*|Gallium.*"
+	glxgears
+	es2_info | egrep "GL_VERSION|GL_RENDERER"
+	es2gears_x11
+	# Smoke test DOTA2
+	unset LD_LIBRARY_PATH
+	unset LIBGL_DRIVERS_PATH
+	unset LIBGL_DEBUG
+	unset LIBGL_ALWAYS_SOFTWARE
+	export VK_ICD_FILENAMES=`pwd`/src/intel/vulkan/dev_icd.json
+	steam steam://rungameid/570  -vconsole -vulkan
+</pre>
+
+<h3>Update version in file VERSION</h3>
+
+<p>
+Increment the version contained in the file VERSION at Mesa's top-level, then
+commit this change.
+</p>
+
+<h3>Create release notes for the new release</h3>
+
+<p>
+Create a new file docs/relnotes/X.Y.Z.html, (follow the style of the previous
+release notes). Note that the sha256sums section of the release notes should
+be empty (TBD) at this point.
+</p>
+
+<p>
+Two scripts are available to help generate portions of the release notes:
+
+<pre>
+	./bin/bugzilla_mesa.sh
+	./bin/shortlog_mesa.sh
+</pre>
+
+<p>
+The first script identifies commits that reference bugzilla bugs and obtains
+the descriptions of those bugs from bugzilla. The second script generates a
+log of all commits. In both cases, HTML-formatted lists are printed to stdout
+to be included in the release notes.
+</p>
+
+<p>
+Commit these changes and push the branch.
+</p>
+<pre>
+	git push origin HEAD
+</pre>
+
+
+<h3>Use the release.sh script from xorg util-macros</h3>
+
+<p>
+Ensure that the mesa git tree is clean via <code>git clean -fXd</code> and
+start the release process.
+</p>
+<pre>
+	../relative/path/to/release.sh . # append --dist if you've already done distcheck above
+</pre>
+
+<p>
+Pay close attention to the prompts as you might be required to enter your GPG
+and SSH passphrase(s) to sign and upload the files, respectively.
+</p>
+
+<h3>Add the sha256sums to the release notes</h3>
+
+<p>
+Edit docs/relnotes/X.Y.Z.html to add the sha256sums as availabe in the mesa-X.Y.Z.announce template. Commit this change.
+</p>
+
+<h3>Back on mesa master, add the new release notes into the tree</h3>
+
+<p>
+Something like the following steps will do the trick:
+</p>
+
+<pre>
+	git cherry-pick -x X.Y~1
+	git cherry-pick -x X.Y
+</pre>
+
+<p>
+Also, edit docs/relnotes.html to add a link to the new release notes, and edit
+docs/index.html to add a news entry. Then commit and push:
+</p>
+
+<pre>
+	git commit -as -m "docs: add news item and link release notes for X.Y.Z"
+	git push origin master X.Y
+</pre>
+
+
+<h1 id="announce">Announce the release</h1>
+<p>
+Use the generated template during the releasing process.
+</p>
+
+
+<h1 id="website">Update the mesa3d.org website</h1>
+
+<p>
+NOTE: The recent release managers have not been performing this step
+themselves, but leaving this to Brian Paul, (who has access to the
+sourceforge.net hosting for mesa3d.org). Brian is more than willing to grant
+the permission necessary to future release managers to do this step on their
+own.
+</p>
+
+<p>
+Update the web site by copying the docs/ directory's files to
+/home/users/b/br/brianp/mesa-www/htdocs/ with:
+<br>
+<code>
+sftp USERNAME,mesa3d@web.sourceforge.net
+</code>
+</p>
+
+
+<h1 id="bugzilla">Update Bugzilla</h1>
+
+<p>
+Parse through the bugreports as listed in the docs/relnotes/X.Y.Z.html
+document.
+<br>
+If there's outstanding action, close the bug referencing the commit ID which
+addresses the bug and mention the Mesa version that has the fix.
+</p>
+
+<p>
+Note: the above is not applicable to all the reports, so use common sense.
+</p>
+
+
+</div>
+</body>
+</html>

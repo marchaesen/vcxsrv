@@ -131,7 +131,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    struct pipe_index_buffer ibuffer;
    struct pipe_transfer *vb_transfer[PIPE_MAX_ATTRIBS] = {NULL};
    struct pipe_transfer *ib_transfer = NULL;
-   const struct gl_client_array **arrays = ctx->Array._DrawArrays;
+   const struct gl_vertex_array **arrays = ctx->Array._DrawArrays;
    GLuint attr, i;
    const GLubyte *low_addr = NULL;
    const void *mapped_indices = NULL;
@@ -188,7 +188,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
       if (bufobj && bufobj->Name) {
          /* Attribute data is in a VBO.
-          * Recall that for VBOs, the gl_client_array->Ptr field is
+          * Recall that for VBOs, the gl_vertex_array->Ptr field is
           * really an offset from the start of the VBO, not a pointer.
           */
          struct st_buffer_object *stobj = st_buffer_object(bufobj);

@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 
             memset(&res, 0, sizeof(struct drm_mode_card_res));
             r = ioctl(fd, DRM_IOCTL_MODE_GETRESOURCES, &res);
-            if (r == 0 && res.count_connectors > 0)
+            if (r == 0)
                 kms_cards++;
 
             close(fd);

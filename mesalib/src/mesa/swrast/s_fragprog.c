@@ -41,9 +41,9 @@
 GLboolean
 _swrast_use_fragment_program(struct gl_context *ctx)
 {
-   struct gl_fragment_program *fp = ctx->FragmentProgram._Current;
+   struct gl_program *fp = ctx->FragmentProgram._Current;
    return fp && !(fp == ctx->FragmentProgram._TexEnvProgram
-                  && fp->Base.NumInstructions == 0);
+                  && fp->arb.NumInstructions == 0);
 }
 
 /**
@@ -159,8 +159,7 @@ fetch_texel_deriv( struct gl_context *ctx, const GLfloat texcoord[4],
  */
 static void
 init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
-             const struct gl_fragment_program *program,
-             const SWspan *span, GLuint col)
+             const struct gl_program *program, const SWspan *span, GLuint col)
 {
    GLfloat *wpos = span->array->attribs[VARYING_SLOT_POS][col];
 
@@ -179,7 +178,7 @@ init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
    machine->DerivY = (GLfloat (*)[4]) span->attrStepY;
    machine->NumDeriv = VARYING_SLOT_MAX;
 
-   machine->Samplers = program->Base.SamplerUnits;
+   machine->Samplers = program->SamplerUnits;
 
    /* if running a GLSL program (not ARB_fragment_program) */
    if (ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT]) {
@@ -204,8 +203,8 @@ static void
 run_program(struct gl_context *ctx, SWspan *span, GLuint start, GLuint end)
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
-   const struct gl_fragment_program *program = ctx->FragmentProgram._Current;
-   const GLbitfield64 outputsWritten = program->Base.OutputsWritten;
+   const struct gl_program *program = ctx->FragmentProgram._Current;
+   const GLbitfield64 outputsWritten = program->info.outputs_written;
    struct gl_program_machine *machine = &swrast->FragProgMachine;
    GLuint i;
 
@@ -213,7 +212,7 @@ run_program(struct gl_context *ctx, SWspan *span, GLuint start, GLuint end)
       if (span->array->mask[i]) {
          init_machine(ctx, machine, program, span, i);
 
-         if (_mesa_execute_program(ctx, &program->Base, machine)) {
+         if (_mesa_execute_program(ctx, program, machine)) {
 
             /* Store result color */
 	    if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_COLOR)) {
@@ -263,21 +262,21 @@ run_program(struct gl_context *ctx, SWspan *span, GLuint start, GLuint end)
 void
 _swrast_exec_fragment_program( struct gl_context *ctx, SWspan *span )
 {
-   const struct gl_fragment_program *program = ctx->FragmentProgram._Current;
+   const struct gl_program *program = ctx->FragmentProgram._Current;
 
    /* incoming colors should be floats */
-   if (program->Base.InputsRead & VARYING_BIT_COL0) {
+   if (program->info.inputs_read & VARYING_BIT_COL0) {
       assert(span->array->ChanType == GL_FLOAT);
    }
 
    run_program(ctx, span, 0, span->end);
 
-   if (program->Base.OutputsWritten & BITFIELD64_BIT(FRAG_RESULT_COLOR)) {
+   if (program->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_COLOR)) {
       span->interpMask &= ~SPAN_RGBA;
       span->arrayMask |= SPAN_RGBA;
    }
 
-   if (program->Base.OutputsWritten & BITFIELD64_BIT(FRAG_RESULT_DEPTH)) {
+   if (program->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_DEPTH)) {
       span->interpMask &= ~SPAN_Z;
       span->arrayMask |= SPAN_Z;
    }

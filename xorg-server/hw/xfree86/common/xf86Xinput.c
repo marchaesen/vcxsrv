@@ -110,8 +110,16 @@
 static int
  xf86InputDevicePostInit(DeviceIntPtr dev);
 
-static InputInfoPtr *new_input_devices;
-static int new_input_devices_count;
+typedef struct {
+    struct xorg_list node;
+    InputInfoPtr pInfo;
+} PausedInputDeviceRec;
+typedef PausedInputDeviceRec *PausedInputDevicePtr;
+
+static struct xorg_list new_input_devices_list = {
+    .next = &new_input_devices_list,
+    .prev = &new_input_devices_list,
+};
 
 /**
  * Eval config and modify DeviceVelocityRec accordingly
@@ -907,11 +915,10 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         if (fd != -1) {
             if (paused) {
                 /* Put on new_input_devices list for delayed probe */
-                new_input_devices = xnfreallocarray(new_input_devices,
-                                                    new_input_devices_count + 1,
-                                                    sizeof(pInfo));
-                new_input_devices[new_input_devices_count] = pInfo;
-                new_input_devices_count++;
+                PausedInputDevicePtr new_device = xnfalloc(sizeof *new_device);
+                new_device->pInfo = pInfo;
+
+                xorg_list_append(&new_device->node, &new_input_devices_list);
                 systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);
                 free(path);
                 return BadMatch;
@@ -1110,6 +1117,21 @@ DeleteInputDeviceRequest(DeviceIntPtr pDev)
             xf86DeleteInput(pInfo, 0);
     }
     input_unlock();
+}
+
+void
+RemoveInputDeviceTraces(const char *config_info)
+{
+    PausedInputDevicePtr d, tmp;
+
+    xorg_list_for_each_entry_safe(d, tmp, &new_input_devices_list, node) {
+        const char *ci = xf86findOptionValue(d->pInfo->options, "config_info");
+        if (!ci || strcmp(ci, config_info) != 0)
+            continue;
+
+        xorg_list_del(&d->node);
+        free(d);
+    }
 }
 
 /*
@@ -1540,29 +1562,27 @@ xf86PostTouchEvent(DeviceIntPtr dev, uint32_t touchid, uint16_t type,
 void
 xf86InputEnableVTProbe(void)
 {
-    int i, is_auto = 0;
-    InputOption *option = NULL;
+    int is_auto = 0;
     DeviceIntPtr pdev;
+    PausedInputDevicePtr d, tmp;
 
-    for (i = 0; i < new_input_devices_count; i++) {
-        InputInfoPtr pInfo = new_input_devices[i];
+    xorg_list_for_each_entry_safe(d, tmp, &new_input_devices_list, node) {
+        InputInfoPtr pInfo = d->pInfo;
+        const char *value = xf86findOptionValue(pInfo->options, "_source");
 
         is_auto = 0;
-        nt_list_for_each_entry(option, pInfo->options, list.next) {
-            const char *key = input_option_get_key(option);
-            const char *value = input_option_get_value(option);
+        if (value &&
+            (strcmp(value, "server/hal") == 0 ||
+             strcmp(value, "server/udev") == 0 ||
+             strcmp(value, "server/wscons") == 0))
+            is_auto = 1;
 
-            if (strcmp(key, "_source") == 0 &&
-                (strcmp(value, "server/hal") == 0 ||
-                 strcmp(value, "server/udev") == 0 ||
-                 strcmp(value, "server/wscons") == 0))
-                is_auto = 1;
-        }
         xf86NewInputDevice(pInfo, &pdev,
                                   (!is_auto ||
                                    (is_auto && xf86Info.autoEnableDevices)));
+        xorg_list_del(&d->node);
+        free(d);
     }
-    new_input_devices_count = 0;
 }
 
 /* end of xf86Xinput.c */

@@ -2090,7 +2090,7 @@ ast_function_expression::hir(exec_list *instructions,
       return handle_method(instructions, state);
    } else {
       const ast_expression *id = subexpressions[0];
-      const char *func_name;
+      const char *func_name = NULL;
       YYLTYPE loc = get_location();
       exec_list actual_parameters;
       ir_variable *sub_var = NULL;
@@ -2104,8 +2104,10 @@ ast_function_expression::hir(exec_list *instructions,
                                           id->subexpressions[0],
                                           id->subexpressions[1], &func_name,
                                           &actual_parameters);
-      } else {
+      } else if (id->oper == ast_identifier) {
          func_name = id->primary_expression.identifier;
+      } else {
+         _mesa_glsl_error(&loc, state, "function name is not an identifier");
       }
 
       /* an error was emitted earlier */

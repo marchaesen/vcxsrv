@@ -31,7 +31,8 @@ include $(LOCAL_PATH)/Makefile.sources
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
-	$(NIR_FILES)
+	$(NIR_FILES) \
+	$(SPIRV_FILES) \
 
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \

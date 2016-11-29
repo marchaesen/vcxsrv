@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Coding Style</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="contents.html"></iframe>
+<div class="content">
+
+<h1>Coding Style</h1>
+
+<p>
+Mesa is over 20 years old and the coding style has evolved over time.
+Some old parts use a style that's a bit out of date.
+
+Different sections of mesa can use different coding style as set in the local
+EditorConfig (.editorconfig) and/or Emacs (.dir-locals.el) file.
+
+Alternatively the following is applicable.
+
+If the guidelines below don't cover something, try following the format of
+existing, neighboring code.
+</p>
+
+<p>
+Basic formatting guidelines
+</p>
+
+<ul>
+<li>3-space indentation, no tabs.
+<li>Limit lines to 78 or fewer characters.  The idea is to prevent line
+wrapping in 80-column editors and terminals.  There are exceptions, such
+as if you're defining a large, static table of information.
+<li>Opening braces go on the same line as the if/for/while statement.
+For example:
+<pre>
+   if (condition) {
+      foo;
+   } else {
+      bar;
+   }
+</pre>
+
+<li>Put a space before/after operators.  For example, <tt>a = b + c;</tt>
+and not <tt>a=b+c;</tt>
+
+<li>This GNU indent command generally does the right thing for formatting:
+<pre>
+   indent -br -i3 -npcs --no-tabs infile.c -o outfile.c
+</pre>
+
+<li>Use comments wherever you think it would be helpful for other developers.
+Several specific cases and style examples follow.  Note that we roughly
+follow <a href="http://www.stack.nl/~dimitri/doxygen/">Doxygen</a> conventions.
+<br>
+<br>
+Single-line comments:
+<pre>
+   /* null-out pointer to prevent dangling reference below */
+   bufferObj = NULL;
+</pre>
+Or,
+<pre>
+   bufferObj = NULL;  /* prevent dangling reference below */
+</pre>
+Multi-line comment:
+<pre>
+   /* If this is a new buffer object id, or one which was generated but
+    * never used before, allocate a buffer object now.
+    */
+</pre>
+We try to quote the OpenGL specification where prudent:
+<pre>
+   /* Page 38 of the PDF of the OpenGL ES 3.0 spec says:
+    *
+    *     "An INVALID_OPERATION error is generated for any of the following
+    *     conditions:
+    *
+    *     * <length> is zero."
+    *
+    * Additionally, page 94 of the PDF of the OpenGL 4.5 core spec
+    * (30.10.2014) also says this, so it's no longer allowed for desktop GL,
+    * either.
+    */
+</pre>
+Function comment example:
+<pre>
+   /**
+    * Create and initialize a new buffer object.  Called via the
+    * ctx->Driver.CreateObject() driver callback function.
+    * \param  name  integer name of the object
+    * \param  type  one of GL_FOO, GL_BAR, etc.
+    * \return  pointer to new object or NULL if error
+    */
+   struct gl_object *
+   _mesa_create_object(GLuint name, GLenum type)
+   {
+      /* function body */
+   }
+</pre>
+
+<li>Put the function return type and qualifiers on one line and the function
+name and parameters on the next, as seen above.  This makes it easy to use
+<code>grep ^function_name dir/*</code> to find function definitions.  Also,
+the opening brace goes on the next line by itself (see above.)
+
+<li>Function names follow various conventions depending on the type of function:
+<pre>
+   glFooBar()       - a public GL entry point (in glapi_dispatch.c)
+   _mesa_FooBar()   - the internal immediate mode function
+   save_FooBar()    - retained mode (display list) function in dlist.c
+   foo_bar()        - a static (private) function
+   _mesa_foo_bar()  - an internal non-static Mesa function
+</pre>
+
+<li>Constants, macros and enumerant names are ALL_UPPERCASE, with _ between
+words.
+<li>Mesa usually uses camel case for local variables (Ex: "localVarname")
+while gallium typically uses underscores (Ex: "local_var_name").
+<li>Global variables are almost never used because Mesa should be thread-safe.
+
+<li>Booleans.  Places that are not directly visible to the GL API
+should prefer the use of <tt>bool</tt>, <tt>true</tt>, and
+<tt>false</tt> over <tt>GLboolean</tt>, <tt>GL_TRUE</tt>, and
+<tt>GL_FALSE</tt>.  In C code, this may mean that
+<tt>#include &lt;stdbool.h&gt;</tt> needs to be added.  The
+<tt>try_emit_</tt>* methods in src/mesa/program/ir_to_mesa.cpp and
+src/mesa/state_tracker/st_glsl_to_tgsi.cpp can serve as examples.
+
+</ul>
+</p>
+
+</div>
+</body>
+</html>

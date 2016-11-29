@@ -1,4 +1,5 @@
-# Copyright © 2016 Bas Nieuwenhuizen
+# Copyright Â© 2016 Red Hat.
+# Copyright Â© 2016 Mauro Rossi <issor.oruam@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -13,39 +14,34 @@
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-include Makefile.sources
+# ---------------------------------------
+# Build libmesa_amd_common
+# ---------------------------------------
 
-# TODO cleanup these
-AM_CPPFLAGS = \
-	$(VALGRIND_CFLAGS) \
-	$(DEFINES) \
-	-I$(top_srcdir)/include \
-	-I$(top_builddir)/src \
-	-I$(top_srcdir)/src \
-	-I$(top_builddir)/src/compiler \
-	-I$(top_builddir)/src/compiler/nir \
-	-I$(top_srcdir)/src/compiler \
-	-I$(top_srcdir)/src/mapi \
-	-I$(top_srcdir)/src/mesa \
-	-I$(top_srcdir)/src/mesa/drivers/dri/common \
-	-I$(top_srcdir)/src/gallium/auxiliary \
-	-I$(top_srcdir)/src/gallium/include
+include $(CLEAR_VARS)
 
-AM_CFLAGS = $(VISIBILITY_CFLAGS) \
-	$(PTHREAD_CFLAGS) \
-	$(LLVM_CFLAGS) \
-	$(LIBELF_CFLAGS)
+LOCAL_MODULE := libmesa_amd_common
 
-AM_CXXFLAGS = \
-	$(VISIBILITY_CXXFLAGS) \
-	$(LLVM_CXXFLAGS)
+LOCAL_SRC_FILES := $(AMD_COMPILER_FILES)
 
-noinst_LTLIBRARIES = libamd_common.la
+LOCAL_C_INCLUDES := \
+	$(MESA_TOP)/include \
+	$(MESA_TOP)/src \
+	$(MESA_TOP)/src/amd/common \
+	$(MESA_TOP)/src/gallium/include \
+	$(MESA_TOP)/src/gallium/auxiliary \
+	external/llvm/include \
+	external/llvm/device/include \
+	external/libcxx/include \
+	external/elfutils/$(if $(filter 5,$(MESA_ANDROID_MAJOR_VERSION)),0.153/,$(if $(filter 6,$(MESA_ANDROID_MAJOR_VERSION)),src/))libelf
 
-libamd_common_la_SOURCES = $(AMD_COMPILER_SOURCES)
+LOCAL_STATIC_LIBRARIES := libLLVMCore
+
+include $(MESA_COMMON_MK)
+include $(BUILD_STATIC_LIBRARY)

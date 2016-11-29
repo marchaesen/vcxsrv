@@ -101,7 +101,7 @@ void glcpp_set_column (int  column_no , yyscan_t yyscanner);
 #define RETURN_STRING_TOKEN(token)					\
 	do {								\
 		if (! parser->skipping) {				\
-			yylval->str = ralloc_strdup (yyextra, yytext);	\
+			yylval->str = linear_strdup(yyextra->linalloc, yytext);	\
 			RETURN_TOKEN_NEVER_SKIP (token);		\
 		}							\
 	} while(0)

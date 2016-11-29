@@ -308,8 +308,8 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 			 const void *data, size_t size)
 {
 	struct radv_device *device = cache->device;
+	struct radv_physical_device *pdevice = &device->instance->physicalDevice;
 	struct cache_header header;
-	uint8_t uuid[VK_UUID_SIZE];
 
 	if (size < sizeof(header))
 		return;
@@ -322,8 +322,7 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 		return;
 	if (header.device_id != device->instance->physicalDevice.rad_info.pci_id)
 		return;
-	radv_device_get_cache_uuid(uuid);
-	if (memcmp(header.uuid, uuid, VK_UUID_SIZE) != 0)
+	if (memcmp(header.uuid, pdevice->uuid, VK_UUID_SIZE) != 0)
 		return;
 
 	char *end = (void *) data + size;
@@ -405,6 +404,7 @@ VkResult radv_GetPipelineCacheData(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_pipeline_cache, cache, _cache);
+	struct radv_physical_device *pdevice = &device->instance->physicalDevice;
 	struct cache_header *header;
 	VkResult result = VK_SUCCESS;
 	const size_t size = sizeof(*header) + cache->total_size;
@@ -422,7 +422,7 @@ VkResult radv_GetPipelineCacheData(
 	header->header_version = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
 	header->vendor_id = 0x1002;
 	header->device_id = device->instance->physicalDevice.rad_info.pci_id;
-	radv_device_get_cache_uuid(header->uuid);
+	memcpy(header->uuid, pdevice->uuid, VK_UUID_SIZE);
 	p += header->header_size;
 
 	struct cache_entry *entry;

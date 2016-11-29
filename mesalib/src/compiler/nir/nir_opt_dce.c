@@ -131,7 +131,7 @@ init_block(nir_block *block, struct exec_list *worklist)
 static bool
 nir_opt_dce_impl(nir_function_impl *impl)
 {
-   struct exec_list *worklist = ralloc(NULL, struct exec_list);
+   struct exec_list *worklist = rzalloc(NULL, struct exec_list);
    exec_list_make_empty(worklist);
 
    nir_foreach_block(block, impl) {

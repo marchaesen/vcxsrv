@@ -164,7 +164,9 @@ namespace {
 class lower_packed_varyings_visitor
 {
 public:
-   lower_packed_varyings_visitor(void *mem_ctx, unsigned locations_used,
+   lower_packed_varyings_visitor(void *mem_ctx,
+                                 unsigned locations_used,
+                                 const uint8_t *components,
                                  ir_variable_mode mode,
                                  unsigned gs_input_vertices,
                                  exec_list *out_instructions,
@@ -202,6 +204,8 @@ private:
     * VARYING_SLOT_VAR0 + locations_used, an assertion will fire.
     */
    const unsigned locations_used;
+
+   const uint8_t* components;
 
    /**
     * Array of pointers to the packed varyings that have been created for each
@@ -241,12 +245,14 @@ private:
 } /* anonymous namespace */
 
 lower_packed_varyings_visitor::lower_packed_varyings_visitor(
-      void *mem_ctx, unsigned locations_used, ir_variable_mode mode,
+      void *mem_ctx, unsigned locations_used, const uint8_t *components,
+      ir_variable_mode mode,
       unsigned gs_input_vertices, exec_list *out_instructions,
       exec_list *out_variables, bool disable_varying_packing,
       bool xfb_enabled)
    : mem_ctx(mem_ctx),
      locations_used(locations_used),
+     components(components),
      packed_varyings((ir_variable **)
                      rzalloc_array_size(mem_ctx, sizeof(*packed_varyings),
                                         locations_used)),
@@ -607,10 +613,11 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
    if (this->packed_varyings[slot] == NULL) {
       char *packed_name = ralloc_asprintf(this->mem_ctx, "packed:%s", name);
       const glsl_type *packed_type;
+      assert(components[slot] != 0);
       if (unpacked_var->is_interpolation_flat())
-         packed_type = glsl_type::ivec4_type;
+         packed_type = glsl_type::get_instance(GLSL_TYPE_INT, components[slot], 1);
       else
-         packed_type = glsl_type::vec4_type;
+         packed_type = glsl_type::get_instance(GLSL_TYPE_FLOAT, components[slot], 1);
       if (this->gs_input_vertices != 0) {
          packed_type =
             glsl_type::get_array_instance(packed_type,
@@ -639,8 +646,12 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
        * first time we visit each component.
        */
       if (this->gs_input_vertices == 0 || vertex_index == 0) {
-         ralloc_asprintf_append((char **) &this->packed_varyings[slot]->name,
-                                ",%s", name);
+         ir_variable *var = this->packed_varyings[slot];
+
+         if (var->is_name_ralloced())
+            ralloc_asprintf_append((char **) &var->name, ",%s", name);
+         else
+            var->name = ralloc_asprintf(var, "%s,%s", var->name, name);
       }
    }
 
@@ -767,6 +778,7 @@ lower_packed_varyings_return_splicer::visit_leave(ir_return *ret)
 
 void
 lower_packed_varyings(void *mem_ctx, unsigned locations_used,
+                      const uint8_t *components,
                       ir_variable_mode mode, unsigned gs_input_vertices,
                       gl_linked_shader *shader, bool disable_varying_packing,
                       bool xfb_enabled)
@@ -777,7 +789,10 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
    ir_function_signature *main_func_sig
       = main_func->matching_signature(NULL, &void_parameters, false);
    exec_list new_instructions, new_variables;
-   lower_packed_varyings_visitor visitor(mem_ctx, locations_used, mode,
+   lower_packed_varyings_visitor visitor(mem_ctx,
+                                         locations_used,
+                                         components,
+                                         mode,
                                          gs_input_vertices,
                                          &new_instructions,
                                          &new_variables,

@@ -62,13 +62,17 @@ glsl_tests_blob_test_LDADD =				\
 
 glsl_tests_cache_test_SOURCES =				\
 	glsl/tests/cache_test.c
+glsl_tests_cache_test_CFLAGS =				\
+	$(PTHREAD_CFLAGS)
 glsl_tests_cache_test_LDADD =				\
-	glsl/libglsl.la
+	glsl/libglsl.la					\
+	$(PTHREAD_LIBS)
 
 glsl_tests_general_ir_test_SOURCES =			\
 	glsl/tests/builtin_variable_test.cpp		\
 	glsl/tests/invalidate_locations_test.cpp	\
 	glsl/tests/general_ir_test.cpp			\
+	glsl/tests/opt_add_neg_to_sub_test.cpp		\
 	glsl/tests/varyings_test.cpp
 glsl_tests_general_ir_test_CFLAGS =			\
 	$(PTHREAD_CFLAGS)
@@ -126,10 +130,6 @@ glsl_libglsl_la_LIBADD = \
 glsl_libglsl_la_SOURCES =				\
 	$(LIBGLSL_GENERATED_FILES)			\
 	$(LIBGLSL_FILES)
-
-if ENABLE_SHADER_CACHE
-glsl_libglsl_la_SOURCES += $(LIBGLSL_SHADER_CACHE_FILES)
-endif
 
 glsl_libstandalone_la_SOURCES = \
 	$(GLSL_COMPILER_CXX_FILES)
@@ -189,7 +189,6 @@ am__v_YACC_1 =
 
 YACC_GEN = $(AM_V_YACC)$(YACC) $(YFLAGS)
 LEX_GEN = $(AM_V_LEX)$(LEX) $(LFLAGS)
-PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 glsl/glsl_parser.cpp glsl/glsl_parser.h: glsl/glsl_parser.yy
 	$(MKDIR_GEN)

@@ -47,6 +47,9 @@ namespace {
 class acp_entry : public exec_node
 {
 public:
+   /* override operator new from exec_node */
+   DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(acp_entry)
+
    acp_entry(ir_variable *var, unsigned write_mask, ir_constant *constant)
    {
       assert(var);
@@ -77,6 +80,9 @@ public:
 class kill_entry : public exec_node
 {
 public:
+   /* override operator new from exec_node */
+   DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(kill_entry)
+
    kill_entry(ir_variable *var, unsigned write_mask)
    {
       assert(var);
@@ -95,6 +101,7 @@ public:
       progress = false;
       killed_all = false;
       mem_ctx = ralloc_context(0);
+      this->lin_ctx = linear_alloc_parent(this->mem_ctx, 0);
       this->acp = new(mem_ctx) exec_list;
       this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
                                             _mesa_key_pointer_equal);
@@ -132,6 +139,7 @@ public:
    bool killed_all;
 
    void *mem_ctx;
+   void *lin_ctx;
 };
 
 
@@ -354,7 +362,7 @@ ir_constant_propagation_visitor::handle_if_block(exec_list *instructions)
 
    /* Populate the initial acp with a constant of the original */
    foreach_in_list(acp_entry, a, orig_acp) {
-      this->acp->push_tail(new(this->mem_ctx) acp_entry(a));
+      this->acp->push_tail(new(this->lin_ctx) acp_entry(a));
    }
 
    visit_list_elements(this, instructions);
@@ -454,7 +462,7 @@ ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
    }
    /* Not already in the hash table.  Make new entry. */
    _mesa_hash_table_insert(this->kills, var,
-                           new(this->mem_ctx) kill_entry(var, write_mask));
+                           new(this->lin_ctx) kill_entry(var, write_mask));
 }
 
 /**
@@ -493,7 +501,7 @@ ir_constant_propagation_visitor::add_constant(ir_assignment *ir)
        deref->var->data.mode == ir_var_shader_shared)
       return;
 
-   entry = new(this->mem_ctx) acp_entry(deref->var, ir->write_mask, constant);
+   entry = new(this->lin_ctx) acp_entry(deref->var, ir->write_mask, constant);
    this->acp->push_tail(entry);
 }
 

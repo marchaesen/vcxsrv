@@ -45,7 +45,7 @@ libloader_la_CPPFLAGS += \
 	-I$(top_srcdir)/src/mapi/ \
 	-DUSE_DRICONF
 
- libloader_la_LIBADD += \
+libloader_la_LIBADD += \
 	$(top_builddir)/src/mesa/drivers/dri/common/libxmlconfig.la
 
 endif

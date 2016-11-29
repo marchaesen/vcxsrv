@@ -42,6 +42,7 @@ const struct option compiler_opts[] = {
    { "dump-ast", no_argument, &options.dump_ast, 1 },
    { "dump-hir", no_argument, &options.dump_hir, 1 },
    { "dump-lir", no_argument, &options.dump_lir, 1 },
+   { "dump-builder", no_argument, &options.dump_builder, 1 },
    { "link",     no_argument, &options.do_link,  1 },
    { "just-log", no_argument, &options.just_log, 1 },
    { "version",  required_argument, NULL, 'v' },

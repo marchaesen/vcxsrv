@@ -59,8 +59,8 @@ struct rastpos_stage
    struct gl_context *ctx;            /**< Rendering context */
 
    /* vertex attrib info we can setup once and re-use */
-   struct gl_client_array array[VERT_ATTRIB_MAX];
-   const struct gl_client_array *arrays[VERT_ATTRIB_MAX];
+   struct gl_vertex_array array[VERT_ATTRIB_MAX];
+   const struct gl_vertex_array *arrays[VERT_ATTRIB_MAX];
    struct _mesa_prim prim;
 };
 
@@ -221,7 +221,7 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    struct st_context *st = st_context(ctx);
    struct draw_context *draw = st_get_draw_context(st);
    struct rastpos_stage *rs;
-   const struct gl_client_array **saved_arrays = ctx->Array._DrawArrays;
+   const struct gl_vertex_array **saved_arrays = ctx->Array._DrawArrays;
 
    if (!st->draw)
       return;

@@ -87,14 +87,14 @@ _mesa_init_program(struct gl_context *ctx)
    ctx->VertexProgram.PointSizeEnabled =
       (ctx->API == API_OPENGLES2) ? GL_TRUE : GL_FALSE;
    ctx->VertexProgram.TwoSideEnabled = GL_FALSE;
-   _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current,
-                            ctx->Shared->DefaultVertexProgram);
+   _mesa_reference_program(ctx, &ctx->VertexProgram.Current,
+                           ctx->Shared->DefaultVertexProgram);
    assert(ctx->VertexProgram.Current);
    ctx->VertexProgram.Cache = _mesa_new_program_cache();
 
    ctx->FragmentProgram.Enabled = GL_FALSE;
-   _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current,
-                            ctx->Shared->DefaultFragmentProgram);
+   _mesa_reference_program(ctx, &ctx->FragmentProgram.Current,
+                           ctx->Shared->DefaultFragmentProgram);
    assert(ctx->FragmentProgram.Current);
    ctx->FragmentProgram.Cache = _mesa_new_program_cache();
 
@@ -112,9 +112,9 @@ _mesa_init_program(struct gl_context *ctx)
 void
 _mesa_free_program_data(struct gl_context *ctx)
 {
-   _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current, NULL);
+   _mesa_reference_program(ctx, &ctx->VertexProgram.Current, NULL);
    _mesa_delete_program_cache(ctx, ctx->VertexProgram.Cache);
-   _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current, NULL);
+   _mesa_reference_program(ctx, &ctx->FragmentProgram.Current, NULL);
    _mesa_delete_shader_cache(ctx, ctx->FragmentProgram.Cache);
 
    /* XXX probably move this stuff */
@@ -137,11 +137,11 @@ _mesa_free_program_data(struct gl_context *ctx)
 void
 _mesa_update_default_objects_program(struct gl_context *ctx)
 {
-   _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current,
-                            ctx->Shared->DefaultVertexProgram);
+   _mesa_reference_program(ctx, &ctx->VertexProgram.Current,
+                           ctx->Shared->DefaultVertexProgram);
    assert(ctx->VertexProgram.Current);
 
-   _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current,
+   _mesa_reference_program(ctx, &ctx->FragmentProgram.Current,
                             ctx->Shared->DefaultFragmentProgram);
    assert(ctx->FragmentProgram.Current);
 
@@ -215,29 +215,14 @@ struct gl_program *
 _mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id)
 {
    switch (target) {
-   case GL_VERTEX_PROGRAM_ARB: { /* == GL_VERTEX_PROGRAM_NV */
-      struct gl_vertex_program *prog = CALLOC_STRUCT(gl_vertex_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
-   }
-   case GL_FRAGMENT_PROGRAM_ARB: {
-      struct gl_fragment_program *prog = CALLOC_STRUCT(gl_fragment_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
-   }
-   case GL_GEOMETRY_PROGRAM_NV: {
-      struct gl_geometry_program *prog = CALLOC_STRUCT(gl_geometry_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
-   }
-   case GL_TESS_CONTROL_PROGRAM_NV: {
-      struct gl_tess_ctrl_program *prog = CALLOC_STRUCT(gl_tess_ctrl_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
-   }
-   case GL_TESS_EVALUATION_PROGRAM_NV: {
-      struct gl_tess_eval_program *prog = CALLOC_STRUCT(gl_tess_eval_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
-   }
+   case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
+   case GL_GEOMETRY_PROGRAM_NV:
+   case GL_TESS_CONTROL_PROGRAM_NV:
+   case GL_TESS_EVALUATION_PROGRAM_NV:
+   case GL_FRAGMENT_PROGRAM_ARB:
    case GL_COMPUTE_PROGRAM_NV: {
-      struct gl_compute_program *prog = CALLOC_STRUCT(gl_compute_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      struct gl_program *prog = rzalloc(NULL, struct gl_program);
+      return _mesa_init_gl_program(prog, target, id);
    }
    default:
       _mesa_problem(ctx, "bad target in _mesa_new_program");
@@ -262,12 +247,6 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
    if (prog == &_mesa_DummyProgram)
       return;
 
-   free(prog->String);
-   free(prog->LocalParams);
-
-   if (prog->Instructions) {
-      _mesa_free_instructions(prog->Instructions, prog->NumInstructions);
-   }
    if (prog->Parameters) {
       _mesa_free_parameter_list(prog->Parameters);
    }
@@ -277,7 +256,7 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
    }
 
    mtx_destroy(&prog->Mutex);
-   free(prog);
+   ralloc_free(prog);
 }
 
 
@@ -357,14 +336,14 @@ _mesa_reference_program_(struct gl_context *ctx,
 GLboolean
 _mesa_insert_instructions(struct gl_program *prog, GLuint start, GLuint count)
 {
-   const GLuint origLen = prog->NumInstructions;
+   const GLuint origLen = prog->arb.NumInstructions;
    const GLuint newLen = origLen + count;
    struct prog_instruction *newInst;
    GLuint i;
 
    /* adjust branches */
-   for (i = 0; i < prog->NumInstructions; i++) {
-      struct prog_instruction *inst = prog->Instructions + i;
+   for (i = 0; i < prog->arb.NumInstructions; i++) {
+      struct prog_instruction *inst = prog->arb.Instructions + i;
       if (inst->BranchTarget > 0) {
          if ((GLuint)inst->BranchTarget >= start) {
             inst->BranchTarget += count;
@@ -373,28 +352,28 @@ _mesa_insert_instructions(struct gl_program *prog, GLuint start, GLuint count)
    }
 
    /* Alloc storage for new instructions */
-   newInst = _mesa_alloc_instructions(newLen);
+   newInst = rzalloc_array(prog, struct prog_instruction, newLen);
    if (!newInst) {
       return GL_FALSE;
    }
 
    /* Copy 'start' instructions into new instruction buffer */
-   _mesa_copy_instructions(newInst, prog->Instructions, start);
+   _mesa_copy_instructions(newInst, prog->arb.Instructions, start);
 
    /* init the new instructions */
    _mesa_init_instructions(newInst + start, count);
 
    /* Copy the remaining/tail instructions to new inst buffer */
    _mesa_copy_instructions(newInst + start + count,
-                           prog->Instructions + start,
+                           prog->arb.Instructions + start,
                            origLen - start);
 
    /* free old instructions */
-   _mesa_free_instructions(prog->Instructions, origLen);
+   ralloc_free(prog->arb.Instructions);
 
    /* install new instructions */
-   prog->Instructions = newInst;
-   prog->NumInstructions = newLen;
+   prog->arb.Instructions = newInst;
+   prog->arb.NumInstructions = newLen;
 
    return GL_TRUE;
 }
@@ -404,16 +383,17 @@ _mesa_insert_instructions(struct gl_program *prog, GLuint start, GLuint count)
  * Adjust branch targets accordingly.
  */
 GLboolean
-_mesa_delete_instructions(struct gl_program *prog, GLuint start, GLuint count)
+_mesa_delete_instructions(struct gl_program *prog, GLuint start, GLuint count,
+                          void *mem_ctx)
 {
-   const GLuint origLen = prog->NumInstructions;
+   const GLuint origLen = prog->arb.NumInstructions;
    const GLuint newLen = origLen - count;
    struct prog_instruction *newInst;
    GLuint i;
 
    /* adjust branches */
-   for (i = 0; i < prog->NumInstructions; i++) {
-      struct prog_instruction *inst = prog->Instructions + i;
+   for (i = 0; i < prog->arb.NumInstructions; i++) {
+      struct prog_instruction *inst = prog->arb.Instructions + i;
       if (inst->BranchTarget > 0) {
          if (inst->BranchTarget > (GLint) start) {
             inst->BranchTarget -= count;
@@ -422,25 +402,25 @@ _mesa_delete_instructions(struct gl_program *prog, GLuint start, GLuint count)
    }
 
    /* Alloc storage for new instructions */
-   newInst = _mesa_alloc_instructions(newLen);
+   newInst = rzalloc_array(mem_ctx, struct prog_instruction, newLen);
    if (!newInst) {
       return GL_FALSE;
    }
 
    /* Copy 'start' instructions into new instruction buffer */
-   _mesa_copy_instructions(newInst, prog->Instructions, start);
+   _mesa_copy_instructions(newInst, prog->arb.Instructions, start);
 
    /* Copy the remaining/tail instructions to new inst buffer */
    _mesa_copy_instructions(newInst + start,
-                           prog->Instructions + start + count,
+                           prog->arb.Instructions + start + count,
                            newLen - start);
 
    /* free old instructions */
-   _mesa_free_instructions(prog->Instructions, origLen);
+   ralloc_free(prog->arb.Instructions);
 
    /* install new instructions */
-   prog->Instructions = newInst;
-   prog->NumInstructions = newLen;
+   prog->arb.Instructions = newInst;
+   prog->arb.NumInstructions = newLen;
 
    return GL_TRUE;
 }
@@ -462,8 +442,8 @@ _mesa_find_used_registers(const struct gl_program *prog,
 
    memset(used, 0, usedSize);
 
-   for (i = 0; i < prog->NumInstructions; i++) {
-      const struct prog_instruction *inst = prog->Instructions + i;
+   for (i = 0; i < prog->arb.NumInstructions; i++) {
+      const struct prog_instruction *inst = prog->arb.Instructions + i;
       const GLuint n = _mesa_num_inst_src_regs(inst->Opcode);
 
       if (inst->DstReg.File == file) {
@@ -514,7 +494,7 @@ _mesa_find_free_register(const GLboolean used[],
  */
 GLint
 _mesa_get_min_invocations_per_fragment(struct gl_context *ctx,
-                                       const struct gl_fragment_program *prog,
+                                       const struct gl_program *prog,
                                        bool ignore_sample_qualifier)
 {
    /* From ARB_sample_shading specification:
@@ -533,11 +513,11 @@ _mesa_get_min_invocations_per_fragment(struct gl_context *ctx,
        * "Use of the "sample" qualifier on a fragment shader input
        *  forces per-sample shading"
        */
-      if (prog->IsSample && !ignore_sample_qualifier)
+      if (prog->info.fs.uses_sample_qualifier && !ignore_sample_qualifier)
          return MAX2(_mesa_geometric_samples(ctx->DrawBuffer), 1);
 
-      if (prog->Base.SystemValuesRead & (SYSTEM_BIT_SAMPLE_ID |
-                                         SYSTEM_BIT_SAMPLE_POS))
+      if (prog->info.system_values_read & (SYSTEM_BIT_SAMPLE_ID |
+                                           SYSTEM_BIT_SAMPLE_POS))
          return MAX2(_mesa_geometric_samples(ctx->DrawBuffer), 1);
       else if (ctx->Multisample.SampleShading)
          return MAX2(ceil(ctx->Multisample.MinSampleShadingValue *

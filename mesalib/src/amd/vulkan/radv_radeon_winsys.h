@@ -85,6 +85,7 @@ struct radeon_info {
 	uint32_t                    gart_page_size;
 	uint64_t                    gart_size;
 	uint64_t                    vram_size;
+	uint64_t                    visible_vram_size;
 	bool                        has_dedicated_vram;
 	bool                     has_virtual_memory;
 	bool                        gfx_ib_pad_with_type2;

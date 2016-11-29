@@ -57,6 +57,7 @@ CLEANFILES =
 EXTRA_DIST = SConscript
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 include Makefile.glsl.am
 

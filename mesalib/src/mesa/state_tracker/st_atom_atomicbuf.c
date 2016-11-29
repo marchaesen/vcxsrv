@@ -50,8 +50,8 @@ st_bind_atomics(struct st_context *st,
    if (!prog || !st->pipe->set_shader_buffers)
       return;
 
-   for (i = 0; i < prog->NumAtomicBuffers; i++) {
-      struct gl_active_atomic_buffer *atomic = &prog->AtomicBuffers[i];
+   for (i = 0; i < prog->data->NumAtomicBuffers; i++) {
+      struct gl_active_atomic_buffer *atomic = &prog->data->AtomicBuffers[i];
       struct gl_atomic_buffer_binding *binding =
          &st->ctx->AtomicBufferBindings[atomic->Binding];
       struct st_buffer_object *st_obj =

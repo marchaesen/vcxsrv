@@ -601,10 +601,8 @@ void
 ir_to_mesa_visitor::visit(ir_variable *ir)
 {
    if (strcmp(ir->name, "gl_FragCoord") == 0) {
-      struct gl_fragment_program *fp = (struct gl_fragment_program *)this->prog;
-
-      fp->OriginUpperLeft = ir->data.origin_upper_left;
-      fp->PixelCenterInteger = ir->data.pixel_center_integer;
+      this->prog->OriginUpperLeft = ir->data.origin_upper_left;
+      this->prog->PixelCenterInteger = ir->data.pixel_center_integer;
    }
 
    if (ir->data.mode == ir_var_uniform && strncmp(ir->name, "gl_", 3) == 0) {
@@ -1624,7 +1622,7 @@ calc_sampler_offsets(struct gl_shader_program *prog, ir_dereference *deref,
 	  * all that would work would be an unrolled loop counter that ends
 	  * up being constant above.
 	  */
-	 ralloc_strcat(&prog->InfoLog,
+         ralloc_strcat(&prog->data->InfoLog,
 		       "warning: Variable sampler array index unsupported.\n"
 		       "This feature of the language was removed in GLSL 1.20 "
 		       "and is unlikely to be supported for 1.10 in Mesa.\n");
@@ -1670,8 +1668,8 @@ get_sampler_uniform_value(class ir_dereference *sampler,
    calc_sampler_offsets(shader_program, sampler, &offset, &array_elements,
                         &location);
 
-   assert(shader_program->UniformStorage[location].opaque[shader].active);
-   return shader_program->UniformStorage[location].opaque[shader].index +
+   assert(shader_program->data->UniformStorage[location].opaque[shader].active);
+   return shader_program->data->UniformStorage[location].opaque[shader].index +
           offset;
 }
 
@@ -2383,7 +2381,9 @@ public:
 
 private:
    virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major);
+                            bool row_major, const glsl_type *record_type,
+                            const enum glsl_interface_packing packing,
+                            bool last_field);
 
    struct gl_shader_program *shader_program;
    struct gl_program_parameter_list *params;
@@ -2395,11 +2395,12 @@ private:
 
 void
 add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
-                                   bool row_major)
+                                   bool /* row_major */,
+                                   const glsl_type * /* record_type */,
+                                   const enum glsl_interface_packing,
+                                   bool /* last_field */)
 {
    unsigned int size;
-
-   (void) row_major;
 
    /* atomics don't get real storage */
    if (type->contains_atomic())
@@ -2440,7 +2441,7 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 	    return;
 
 	 struct gl_uniform_storage *storage =
-	    &this->shader_program->UniformStorage[location];
+            &this->shader_program->data->UniformStorage[location];
 
          assert(storage->type->is_sampler() &&
                 storage->opaque[shader_type].active);
@@ -2509,7 +2510,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	 continue;
 
       struct gl_uniform_storage *storage =
-         &shader_program->UniformStorage[location];
+         &shader_program->data->UniformStorage[location];
 
       /* Do not associate any uniform storage to built-in uniforms */
       if (storage->builtin)
@@ -2793,9 +2794,7 @@ get_mesa_program(struct gl_context *ctx,
 
    validate_ir_tree(shader->ir);
 
-   prog = ctx->Driver.NewProgram(ctx, target, shader_program->Name);
-   if (!prog)
-      return NULL;
+   prog = shader->Program;
    prog->Parameters = _mesa_new_parameter_list();
    v.ctx = ctx;
    v.prog = prog;
@@ -2809,13 +2808,12 @@ get_mesa_program(struct gl_context *ctx,
    visit_exec_list(shader->ir, &v);
    v.emit(NULL, OPCODE_END);
 
-   prog->NumTemporaries = v.next_temp;
+   prog->arb.NumTemporaries = v.next_temp;
 
    unsigned num_instructions = v.instructions.length();
 
-   mesa_instructions =
-      (struct prog_instruction *)calloc(num_instructions,
-					sizeof(*mesa_instructions));
+   mesa_instructions = rzalloc_array(prog, struct prog_instruction,
+                                     num_instructions);
    mesa_instruction_annotation = ralloc_array(v.mem_ctx, ir_instruction *,
 					      num_instructions);
 
@@ -2843,12 +2841,12 @@ get_mesa_program(struct gl_context *ctx,
 
       /* Set IndirectRegisterFiles. */
       if (mesa_inst->DstReg.RelAddr)
-         prog->IndirectRegisterFiles |= 1 << mesa_inst->DstReg.File;
+         prog->arb.IndirectRegisterFiles |= 1 << mesa_inst->DstReg.File;
 
       /* Update program's bitmask of indirectly accessed register files */
       for (unsigned src = 0; src < 3; src++)
          if (mesa_inst->SrcReg[src].RelAddr)
-            prog->IndirectRegisterFiles |= 1 << mesa_inst->SrcReg[src].File;
+            prog->arb.IndirectRegisterFiles |= 1 << mesa_inst->SrcReg[src].File;
 
       switch (mesa_inst->Opcode) {
       case OPCODE_IF:
@@ -2876,7 +2874,7 @@ get_mesa_program(struct gl_context *ctx,
 	 }
 	 break;
       case OPCODE_ARL:
-	 prog->NumAddressRegs = 1;
+         prog->arb.NumAddressRegs = 1;
 	 break;
       default:
 	 break;
@@ -2885,11 +2883,11 @@ get_mesa_program(struct gl_context *ctx,
       mesa_inst++;
       i++;
 
-      if (!shader_program->LinkStatus)
+      if (!shader_program->data->LinkStatus)
          break;
    }
 
-   if (!shader_program->LinkStatus) {
+   if (!shader_program->data->LinkStatus) {
       goto fail_exit;
    }
 
@@ -2909,8 +2907,8 @@ get_mesa_program(struct gl_context *ctx,
       fflush(stderr);
    }
 
-   prog->Instructions = mesa_instructions;
-   prog->NumInstructions = num_instructions;
+   prog->arb.Instructions = mesa_instructions;
+   prog->arb.NumInstructions = num_instructions;
 
    /* Setting this to NULL prevents a possible double free in the fail_exit
     * path (far below).
@@ -2926,14 +2924,11 @@ get_mesa_program(struct gl_context *ctx,
 
    /* Set the gl_FragDepth layout. */
    if (target == GL_FRAGMENT_PROGRAM_ARB) {
-      struct gl_fragment_program *fp = (struct gl_fragment_program *)prog;
-      fp->FragDepthLayout = shader_program->FragDepthLayout;
+      prog->info.fs.depth_layout = shader_program->FragDepthLayout;
    }
 
-   _mesa_reference_program(ctx, &shader->Program, prog);
-
    if ((ctx->_Shader->Flags & GLSL_NO_OPT) == 0) {
-      _mesa_optimize_program(ctx, prog);
+      _mesa_optimize_program(ctx, prog, prog);
    }
 
    /* This has to be done last.  Any operation that can cause
@@ -2941,14 +2936,14 @@ get_mesa_program(struct gl_context *ctx,
     * program constant) has to happen before creating this linkage.
     */
    _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters);
-   if (!shader_program->LinkStatus) {
+   if (!shader_program->data->LinkStatus) {
       goto fail_exit;
    }
 
    return prog;
 
 fail_exit:
-   free(mesa_instructions);
+   ralloc_free(mesa_instructions);
    _mesa_reference_program(ctx, &shader->Program, NULL);
    return NULL;
 }
@@ -2964,7 +2959,7 @@ extern "C" {
 GLboolean
 _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
-   assert(prog->LinkStatus);
+   assert(prog->data->LinkStatus);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
@@ -2995,7 +2990,8 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 	 if (options->MaxIfDepth == 0)
 	    progress = lower_discard(ir) || progress;
 
-	 progress = lower_if_to_cond_assign(ir, options->MaxIfDepth) || progress;
+	 progress = lower_if_to_cond_assign((gl_shader_stage)i, ir,
+                                            options->MaxIfDepth) || progress;
 
          progress = lower_noise(ir) || progress;
 
@@ -3028,20 +3024,20 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       linked_prog = get_mesa_program(ctx, prog, prog->_LinkedShaders[i]);
 
       if (linked_prog) {
-         _mesa_copy_linked_program_data((gl_shader_stage) i, prog, linked_prog);
+         _mesa_copy_linked_program_data(prog, prog->_LinkedShaders[i]);
 
          if (!ctx->Driver.ProgramStringNotify(ctx,
                                               _mesa_shader_stage_to_program(i),
                                               linked_prog)) {
+            _mesa_reference_program(ctx, &prog->_LinkedShaders[i]->Program,
+                                    NULL);
             return GL_FALSE;
          }
       }
-
-      _mesa_reference_program(ctx, &linked_prog, NULL);
    }
 
    build_program_resource_list(ctx, prog);
-   return prog->LinkStatus;
+   return prog->data->LinkStatus;
 }
 
 /**
@@ -3052,9 +3048,9 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
    unsigned int i;
 
-   _mesa_clear_shader_program_data(prog);
+   _mesa_clear_shader_program_data(ctx, prog);
 
-   prog->LinkStatus = GL_TRUE;
+   prog->data->LinkStatus = GL_TRUE;
 
    for (i = 0; i < prog->NumShaders; i++) {
       if (!prog->Shaders[i]->CompileStatus) {
@@ -3062,24 +3058,24 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   if (prog->LinkStatus) {
+   if (prog->data->LinkStatus) {
       link_shaders(ctx, prog);
    }
 
-   if (prog->LinkStatus) {
+   if (prog->data->LinkStatus) {
       if (!ctx->Driver.LinkShader(ctx, prog)) {
-	 prog->LinkStatus = GL_FALSE;
+         prog->data->LinkStatus = GL_FALSE;
       }
    }
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {
-      if (!prog->LinkStatus) {
+      if (!prog->data->LinkStatus) {
 	 fprintf(stderr, "GLSL shader program %d failed to link\n", prog->Name);
       }
 
-      if (prog->InfoLog && prog->InfoLog[0] != 0) {
+      if (prog->data->InfoLog && prog->data->InfoLog[0] != 0) {
 	 fprintf(stderr, "GLSL shader program %d info log:\n", prog->Name);
-	 fprintf(stderr, "%s\n", prog->InfoLog);
+         fprintf(stderr, "%s\n", prog->data->InfoLog);
       }
    }
 }

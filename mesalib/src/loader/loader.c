@@ -396,3 +396,28 @@ loader_set_logger(void (*logger)(int level, const char *fmt, ...))
 {
    log_ = logger;
 }
+
+/* XXX: Local definition to avoid pulling the heavyweight GL/gl.h and
+ * GL/internal/dri_interface.h
+ */
+
+#ifndef __DRI_DRIVER_GET_EXTENSIONS
+#define __DRI_DRIVER_GET_EXTENSIONS "__driDriverGetExtensions"
+#endif
+
+char *
+loader_get_extensions_name(const char *driver_name)
+{
+   char *name = NULL;
+
+   if (asprintf(&name, "%s_%s", __DRI_DRIVER_GET_EXTENSIONS, driver_name) < 0)
+      return NULL;
+
+   const size_t len = strlen(name);
+   for (size_t i = 0; i < len; i++) {
+	   if (name[i] == '-')
+		   name[i] = '_';
+   }
+
+   return name;
+}

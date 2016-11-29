@@ -39,7 +39,7 @@
 
 struct _mesa_index_buffer;
 struct _mesa_prim;
-struct gl_client_array;
+struct gl_vertex_array;
 struct gl_context;
 struct st_context;
 

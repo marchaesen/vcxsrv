@@ -257,7 +257,10 @@ vtn_nir_alu_op_for_spirv_opcode(SpvOp opcode, bool *swap)
    case SpvOpBitReverse:            return nir_op_bitfield_reverse;
    case SpvOpBitCount:              return nir_op_bit_count;
 
-   /* Comparisons: (TODO: How do we want to handled ordered/unordered?) */
+   /* The ordered / unordered operators need special implementation besides
+    * the logical operator to use since they also need to check if operands are
+    * ordered.
+    */
    case SpvOpFOrdEqual:                            return nir_op_feq;
    case SpvOpFUnordEqual:                          return nir_op_feq;
    case SpvOpINotEqual:                            return nir_op_ine;
@@ -446,6 +449,54 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       val->ssa->def = nir_feq(&b->nb, nir_fabs(&b->nb, src[0]),
                                       nir_imm_float(&b->nb, INFINITY));
       break;
+
+   case SpvOpFUnordEqual:
+   case SpvOpFUnordNotEqual:
+   case SpvOpFUnordLessThan:
+   case SpvOpFUnordGreaterThan:
+   case SpvOpFUnordLessThanEqual:
+   case SpvOpFUnordGreaterThanEqual: {
+      bool swap;
+      nir_op op = vtn_nir_alu_op_for_spirv_opcode(opcode, &swap);
+
+      if (swap) {
+         nir_ssa_def *tmp = src[0];
+         src[0] = src[1];
+         src[1] = tmp;
+      }
+
+      val->ssa->def =
+         nir_ior(&b->nb,
+                 nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL),
+                 nir_ior(&b->nb,
+                         nir_fne(&b->nb, src[0], src[0]),
+                         nir_fne(&b->nb, src[1], src[1])));
+      break;
+   }
+
+   case SpvOpFOrdEqual:
+   case SpvOpFOrdNotEqual:
+   case SpvOpFOrdLessThan:
+   case SpvOpFOrdGreaterThan:
+   case SpvOpFOrdLessThanEqual:
+   case SpvOpFOrdGreaterThanEqual: {
+      bool swap;
+      nir_op op = vtn_nir_alu_op_for_spirv_opcode(opcode, &swap);
+
+      if (swap) {
+         nir_ssa_def *tmp = src[0];
+         src[0] = src[1];
+         src[1] = tmp;
+      }
+
+      val->ssa->def =
+         nir_iand(&b->nb,
+                  nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL),
+                  nir_iand(&b->nb,
+                          nir_feq(&b->nb, src[0], src[0]),
+                          nir_feq(&b->nb, src[1], src[1])));
+      break;
+   }
 
    default: {
       bool swap;

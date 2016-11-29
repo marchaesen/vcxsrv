@@ -56,7 +56,7 @@ struct exec_node {
    struct exec_node *prev;
 
 #ifdef __cplusplus
-   DECLARE_RALLOC_CXX_OPERATORS(exec_node)
+   DECLARE_RZALLOC_CXX_OPERATORS(exec_node)
 
    exec_node() : next(NULL), prev(NULL)
    {

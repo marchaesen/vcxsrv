@@ -35,6 +35,7 @@
 #include "hud/hud_private.h"
 #include "util/list.h"
 #include "os/os_time.h"
+#include "os/os_thread.h"
 #include "util/u_memory.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -81,6 +82,7 @@ struct diskstat_info
  */
 static int gdiskstat_count = 0;
 static struct list_head gdiskstat_list;
+pipe_static_mutex(gdiskstat_mutex);
 
 static struct diskstat_info *
 find_dsi_by_name(const char *n, int mode)
@@ -162,14 +164,6 @@ query_dsi_load(struct hud_graph *gr)
    }
 }
 
-static void
-free_query_data(void *p)
-{
-   struct diskstat_info *nic = (struct diskstat_info *) p;
-   list_del(&nic->list);
-   FREE(nic);
-}
-
 /**
   * Create and initialize a new object for a specific block I/O device.
   * \param  pane  parent context.
@@ -207,11 +201,6 @@ hud_diskstat_graph_install(struct hud_pane *pane, const char *dev_name,
 
    gr->query_data = dsi;
    gr->query_new_value = query_dsi_load;
-
-   /* Don't use free() as our callback as that messes up Gallium's
-    * memory debugger.  Use simple free_query_data() wrapper.
-    */
-   gr->free_query_data = free_query_data;
 
    hud_pane_add_graph(pane, gr);
    hud_pane_set_max_value(pane, 100);
@@ -257,16 +246,21 @@ hud_get_num_disks(bool displayhelp)
    char name[64];
 
    /* Return the number of block devices and partitions. */
-   if (gdiskstat_count)
+   pipe_mutex_lock(gdiskstat_mutex);
+   if (gdiskstat_count) {
+      pipe_mutex_unlock(gdiskstat_mutex);
       return gdiskstat_count;
+   }
 
    /* Scan /sys/block, for every object type we support, create and
     * persist an object to represent its different statistics.
     */
    list_inithead(&gdiskstat_list);
    DIR *dir = opendir("/sys/block/");
-   if (!dir)
+   if (!dir) {
+      pipe_mutex_unlock(gdiskstat_mutex);
       return 0;
+   }
 
    while ((dp = readdir(dir)) != NULL) {
 
@@ -290,8 +284,11 @@ hud_get_num_disks(bool displayhelp)
       /* Add any partitions */
       struct dirent *dpart;
       DIR *pdir = opendir(basename);
-      if (!pdir)
+      if (!pdir) {
+         pipe_mutex_unlock(gdiskstat_mutex);
+         closedir(dir);
          return 0;
+      }
 
       while ((dpart = readdir(pdir)) != NULL) {
          /* Avoid 'lo' and '..' and '.' */
@@ -311,6 +308,7 @@ hud_get_num_disks(bool displayhelp)
          add_object_part(basename, dpart->d_name, DISKSTAT_WR);
       }
    }
+   closedir(dir);
 
    if (displayhelp) {
       list_for_each_entry(struct diskstat_info, dsi, &gdiskstat_list, list) {
@@ -322,6 +320,7 @@ hud_get_num_disks(bool displayhelp)
          puts(line);
       }
    }
+   pipe_mutex_unlock(gdiskstat_mutex);
 
    return gdiskstat_count;
 }

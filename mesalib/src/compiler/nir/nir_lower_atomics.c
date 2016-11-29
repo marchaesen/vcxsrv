@@ -100,7 +100,7 @@ lower_instr(nir_intrinsic_instr *instr,
 
    nir_intrinsic_instr *new_instr = nir_intrinsic_instr_create(mem_ctx, op);
    nir_intrinsic_set_base(new_instr,
-      shader_program->UniformStorage[uniform_loc].opaque[shader->stage].index);
+      shader_program->data->UniformStorage[uniform_loc].opaque[shader->stage].index);
 
    nir_load_const_instr *offset_const =
       nir_load_const_instr_create(mem_ctx, 1, 32);

@@ -123,7 +123,7 @@ handle_ident(struct asm_parser_state *state, const char *text, YYSTYPE *lval)
 {
    lval->string = strdup(text);
 
-   return (_mesa_symbol_table_find_symbol(state->st, 0, text) == NULL)
+   return (_mesa_symbol_table_find_symbol(state->st, text) == NULL)
       ? IDENTIFIER : USED_IDENTIFIER;
 }
 

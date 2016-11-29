@@ -172,6 +172,7 @@ const char *gl_vert_attrib_name(gl_vert_attrib attrib);
    BITFIELD64_RANGE(VERT_ATTRIB_GENERIC(0), VERT_ATTRIB_GENERIC_MAX)
 /*@}*/
 
+#define MAX_VARYING 32 /**< number of float[4] vectors */
 
 /**
  * Indexes for vertex shader outputs, geometry shader inputs/outputs, and
@@ -491,7 +492,7 @@ const char *gl_system_value_name(gl_system_value sysval);
  * shader input in GLSL.
  *
  * Note: INTERP_MODE_NONE must be 0 so that memsetting the
- * gl_fragment_program data structure to 0 causes the default behavior.
+ * ir_variable data structure to 0 causes the default behavior.
  */
 enum glsl_interp_mode
 {

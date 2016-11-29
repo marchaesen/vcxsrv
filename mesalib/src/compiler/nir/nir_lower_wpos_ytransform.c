@@ -273,6 +273,26 @@ lower_interp_var_at_offset(lower_wpos_ytransform_state *state,
 }
 
 static void
+lower_load_sample_pos(lower_wpos_ytransform_state *state,
+                      nir_intrinsic_instr *intr)
+{
+   nir_builder *b = &state->b;
+   b->cursor = nir_after_instr(&intr->instr);
+
+   nir_ssa_def *pos = &intr->dest.ssa;
+   nir_ssa_def *scale = nir_channel(b, get_transform(state), 0);
+   nir_ssa_def *neg_scale = nir_channel(b, get_transform(state), 2);
+   /* Either y or 1-y for scale equal to 1 or -1 respectively. */
+   nir_ssa_def *flipped_y =
+               nir_fadd(b, nir_fmax(b, neg_scale, nir_imm_float(b, 0.0)),
+                        nir_fmul(b, nir_channel(b, pos, 1), scale));
+   nir_ssa_def *flipped_pos = nir_vec2(b, nir_channel(b, pos, 0), flipped_y);
+
+   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, nir_src_for_ssa(flipped_pos),
+                                  flipped_pos->parent_instr);
+}
+
+static void
 lower_wpos_ytransform_block(lower_wpos_ytransform_state *state, nir_block *block)
 {
    nir_foreach_instr_safe(instr, block) {
@@ -287,6 +307,10 @@ lower_wpos_ytransform_block(lower_wpos_ytransform_state *state, nir_block *block
                /* gl_FragCoord should not have array/struct deref's: */
                assert(dvar->deref.child == NULL);
                lower_fragcoord(state, intr);
+            } else if (var->data.mode == nir_var_system_value &&
+                       var->data.location == SYSTEM_VALUE_SAMPLE_POS) {
+               assert(dvar->deref.child == NULL);
+               lower_load_sample_pos(state, intr);
             }
          } else if (intr->intrinsic == nir_intrinsic_interp_var_at_offset) {
             lower_interp_var_at_offset(state, intr);

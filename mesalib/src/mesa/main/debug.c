@@ -189,7 +189,8 @@ set_debug_flags(const char *str)
       { "silent", DEBUG_SILENT }, /* turn off debug messages */
       { "flush", DEBUG_ALWAYS_FLUSH }, /* flush after each drawing command */
       { "incomplete_tex", DEBUG_INCOMPLETE_TEXTURE },
-      { "incomplete_fbo", DEBUG_INCOMPLETE_FBO }
+      { "incomplete_fbo", DEBUG_INCOMPLETE_FBO },
+      { "context", DEBUG_CONTEXT } /* force set GL_CONTEXT_FLAG_DEBUG_BIT flag */
    };
    GLuint i;
 

@@ -116,7 +116,7 @@ static bool
 do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 {
 	struct amdgpu_buffer_size_alignments alignment_info = {};
-	struct amdgpu_heap_info vram, gtt;
+	struct amdgpu_heap_info vram, visible_vram, gtt;
 	struct drm_amdgpu_info_hw_ip dma = {};
 	drmDevicePtr devinfo;
 	int r;
@@ -149,6 +149,13 @@ do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 	r = amdgpu_query_heap_info(ws->dev, AMDGPU_GEM_DOMAIN_VRAM, 0, &vram);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_heap_info(vram) failed.\n");
+		goto fail;
+	}
+
+	r = amdgpu_query_heap_info(ws->dev, AMDGPU_GEM_DOMAIN_VRAM,
+	                           AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED, &visible_vram);
+	if (r) {
+		fprintf(stderr, "amdgpu: amdgpu_query_heap_info(visible_vram) failed.\n");
 		goto fail;
 	}
 
@@ -270,6 +277,7 @@ do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 	ws->info.name = get_chip_name(ws->info.family);
 	ws->info.gart_size = gtt.heap_size;
 	ws->info.vram_size = vram.heap_size;
+	ws->info.visible_vram_size = visible_vram.heap_size;
 	/* convert the shader clock from KHz to MHz */
 	ws->info.max_shader_clock = ws->amdinfo.max_engine_clk / 1000;
 	ws->info.max_se = ws->amdinfo.num_shader_engines;

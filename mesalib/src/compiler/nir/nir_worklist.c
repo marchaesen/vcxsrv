@@ -37,7 +37,7 @@ nir_block_worklist_init(nir_block_worklist *w, unsigned num_blocks,
 
    w->blocks_present = rzalloc_array(mem_ctx, BITSET_WORD,
                                      BITSET_WORDS(num_blocks));
-   w->blocks = ralloc_array(mem_ctx, nir_block *, num_blocks);
+   w->blocks = rzalloc_array(mem_ctx, nir_block *, num_blocks);
 }
 
 void

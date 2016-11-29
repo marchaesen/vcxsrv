@@ -39,7 +39,7 @@
 extern "C" {
 #endif
 
-struct gl_client_array;
+struct gl_vertex_array;
 struct gl_context;
 struct gl_transform_feedback_object;
 
@@ -139,7 +139,7 @@ struct split_limits {
 
 
 void vbo_split_prims( struct gl_context *ctx,
-		      const struct gl_client_array *arrays[],
+		      const struct gl_vertex_array *arrays[],
 		      const struct _mesa_prim *prim,
 		      GLuint nr_prims,
 		      const struct _mesa_index_buffer *ib,
@@ -151,11 +151,11 @@ void vbo_split_prims( struct gl_context *ctx,
 
 /* Helpers for dealing translating away non-zero min_index.
  */
-GLboolean vbo_all_varyings_in_vbos( const struct gl_client_array *arrays[] );
-GLboolean vbo_any_varyings_in_vbos( const struct gl_client_array *arrays[] );
+GLboolean vbo_all_varyings_in_vbos( const struct gl_vertex_array *arrays[] );
+GLboolean vbo_any_varyings_in_vbos( const struct gl_vertex_array *arrays[] );
 
 void vbo_rebase_prims( struct gl_context *ctx,
-		       const struct gl_client_array *arrays[],
+		       const struct gl_vertex_array *arrays[],
 		       const struct _mesa_prim *prim,
 		       GLuint nr_prims,
 		       const struct _mesa_index_buffer *ib,

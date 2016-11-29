@@ -41,6 +41,7 @@
 #include "util/u_simple_shaders.h"
 #include "util/u_debug.h"
 #include "util/u_memory.h"
+#include "util/u_string.h"
 #include "tgsi/tgsi_dump.h"
 #include "tgsi/tgsi_strings.h"
 #include "tgsi/tgsi_ureg.h"
@@ -207,8 +208,10 @@ void *util_make_layered_clear_geometry_shader(struct pipe_context *pipe)
 /**
  * Make simple fragment texture shader:
  *  IMM {0,0,0,1}                         // (if writemask != 0xf)
- *  MOV OUT[0], IMM[0]                    // (if writemask != 0xf)
- *  TEX OUT[0].writemask, IN[0], SAMP[0], 2D;
+ *  MOV TEMP[0], IMM[0]                   // (if writemask != 0xf)
+ *  TEX TEMP[0].writemask, IN[0], SAMP[0], 2D;
+ *   .. optional SINT <-> UINT clamping ..
+ *  MOV OUT[0], TEMP[0]
  *  END;
  *
  * \param tex_target  one of PIPE_TEXTURE_x
@@ -220,13 +223,16 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
                                         unsigned tex_target,
                                         unsigned interp_mode,
                                         unsigned writemask,
-                                        enum tgsi_return_type stype)
+                                        enum tgsi_return_type stype,
+                                        enum tgsi_return_type dtype)
 {
    struct ureg_program *ureg;
    struct ureg_src sampler;
    struct ureg_src tex;
+   struct ureg_dst temp;
    struct ureg_dst out;
 
+   assert((stype == TGSI_RETURN_TYPE_FLOAT) == (dtype == TGSI_RETURN_TYPE_FLOAT));
    assert(interp_mode == TGSI_INTERPOLATE_LINEAR ||
           interp_mode == TGSI_INTERPOLATE_PERSPECTIVE);
 
@@ -246,6 +252,8 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
                            TGSI_SEMANTIC_COLOR,
                            0 );
 
+   temp = ureg_DECL_temporary(ureg);
+
    if (writemask != TGSI_WRITEMASK_XYZW) {
       struct ureg_src imm = ureg_imm4f( ureg, 0, 0, 0, 1 );
 
@@ -254,12 +262,27 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
 
    if (tex_target == TGSI_TEXTURE_BUFFER)
       ureg_TXF(ureg,
-               ureg_writemask(out, writemask),
+               ureg_writemask(temp, writemask),
                tex_target, tex, sampler);
    else
       ureg_TEX(ureg,
-               ureg_writemask(out, writemask),
+               ureg_writemask(temp, writemask),
                tex_target, tex, sampler);
+
+   if (stype != dtype) {
+      if (stype == TGSI_RETURN_TYPE_SINT) {
+         assert(dtype == TGSI_RETURN_TYPE_UINT);
+
+         ureg_IMAX(ureg, temp, ureg_src(temp), ureg_imm1i(ureg, 0));
+      } else {
+         assert(stype == TGSI_RETURN_TYPE_UINT);
+         assert(dtype == TGSI_RETURN_TYPE_SINT);
+
+         ureg_UMIN(ureg, temp, ureg_src(temp), ureg_imm1u(ureg, (1u << 31) - 1));
+      }
+   }
+
+   ureg_MOV(ureg, out, ureg_src(temp));
 
    ureg_END( ureg );
 
@@ -275,13 +298,14 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
 void *
 util_make_fragment_tex_shader(struct pipe_context *pipe, unsigned tex_target,
                               unsigned interp_mode,
-                              enum tgsi_return_type stype)
+                              enum tgsi_return_type stype,
+                              enum tgsi_return_type dtype)
 {
    return util_make_fragment_tex_shader_writemask( pipe,
                                                    tex_target,
                                                    interp_mode,
                                                    TGSI_WRITEMASK_XYZW,
-                                                   stype );
+                                                   stype, dtype );
 }
 
 
@@ -545,7 +569,9 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
                            unsigned tgsi_tex,
                            const char *samp_type,
                            const char *output_semantic,
-                           const char *output_mask)
+                           const char *output_mask,
+                           const char *conversion_decl,
+                           const char *conversion)
 {
    static const char shader_templ[] =
          "FRAG\n"
@@ -554,9 +580,12 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
          "DCL SVIEW[0], %s, %s\n"
          "DCL OUT[0], %s\n"
          "DCL TEMP[0]\n"
+         "%s"
 
          "F2U TEMP[0], IN[0]\n"
-         "TXF OUT[0]%s, TEMP[0], SAMP[0], %s\n"
+         "TXF TEMP[0], TEMP[0], SAMP[0], %s\n"
+         "%s"
+         "MOV OUT[0]%s, TEMP[0]\n"
          "END\n";
 
    const char *type = tgsi_texture_names[tgsi_tex];
@@ -567,8 +596,8 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
 
-   sprintf(text, shader_templ, type, samp_type,
-           output_semantic, output_mask, type);
+   util_snprintf(text, sizeof(text), shader_templ, type, samp_type,
+                 output_semantic, conversion_decl, type, conversion, output_mask);
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       puts(text);
@@ -592,19 +621,35 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
 void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
                              unsigned tgsi_tex,
-                             enum tgsi_return_type stype)
+                             enum tgsi_return_type stype,
+                             enum tgsi_return_type dtype)
 {
    const char *samp_type;
+   const char *conversion_decl = "";
+   const char *conversion = "";
 
-   if (stype == TGSI_RETURN_TYPE_UINT)
+   if (stype == TGSI_RETURN_TYPE_UINT) {
       samp_type = "UINT";
-   else if (stype == TGSI_RETURN_TYPE_SINT)
+
+      if (dtype == TGSI_RETURN_TYPE_SINT) {
+         conversion_decl = "IMM[0] UINT32 {2147483647, 0, 0, 0}\n";
+         conversion = "UMIN TEMP[0], TEMP[0], IMM[0].xxxx\n";
+      }
+   } else if (stype == TGSI_RETURN_TYPE_SINT) {
       samp_type = "SINT";
-   else
+
+      if (dtype == TGSI_RETURN_TYPE_UINT) {
+         conversion_decl = "IMM[0] INT32 {0, 0, 0, 0}\n";
+         conversion = "IMAX TEMP[0], TEMP[0], IMM[0].xxxx\n";
+      }
+   } else {
+      assert(dtype == TGSI_RETURN_TYPE_FLOAT);
       samp_type = "FLOAT";
+   }
 
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, samp_type,
-                                     "COLOR[0]", "");
+                                     "COLOR[0]", "", conversion_decl,
+                                     conversion);
 }
 
 
@@ -618,7 +663,7 @@ util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
                              unsigned tgsi_tex)
 {
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "FLOAT",
-                                     "POSITION", ".z");
+                                     "POSITION", ".z", "", "");
 }
 
 
@@ -632,7 +677,7 @@ util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
                                unsigned tgsi_tex)
 {
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "UINT",
-                                     "STENCIL", ".y");
+                                     "STENCIL", ".y", "", "");
 }
 
 

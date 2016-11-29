@@ -76,7 +76,7 @@ struct _mesa_glsl_parse_state {
    _mesa_glsl_parse_state(struct gl_context *_ctx, gl_shader_stage stage,
                           void *mem_ctx);
 
-   DECLARE_RALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
+   DECLARE_RZALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
 
    /**
     * Generate a string representing the GLSL version currently being compiled
@@ -332,6 +332,8 @@ struct _mesa_glsl_parse_state {
    void *scanner;
    exec_list translation_unit;
    glsl_symbol_table *symbols;
+
+   void *linalloc;
 
    unsigned num_supported_versions;
    struct {
@@ -763,6 +765,8 @@ struct _mesa_glsl_parse_state {
    bool MESA_shader_framebuffer_fetch_non_coherent_warn;
    bool MESA_shader_integer_functions_enable;
    bool MESA_shader_integer_functions_warn;
+   bool NV_image_formats_enable;
+   bool NV_image_formats_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */

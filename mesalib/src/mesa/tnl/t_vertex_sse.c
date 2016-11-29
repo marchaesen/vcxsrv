@@ -29,7 +29,6 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "util/simple_list.h"
 #include "main/enums.h"
 #include "swrast/s_chan.h"
 #include "t_context.h"

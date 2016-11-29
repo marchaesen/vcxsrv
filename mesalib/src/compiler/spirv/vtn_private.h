@@ -279,6 +279,7 @@ struct vtn_variable {
 
    unsigned descriptor_set;
    unsigned binding;
+   unsigned input_attachment_index;
 
    nir_variable *var;
    nir_variable **members;

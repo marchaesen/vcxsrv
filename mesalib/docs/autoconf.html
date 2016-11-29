@@ -55,7 +55,7 @@ to your preference, type:
 </pre>
 
 <p>
-This will produce libGL.so and several other libraries depending on the
+This will produce libGL.so and/or several other libraries depending on the
 options you have chosen. Later, if you want to rebuild for a different
 configuration run <code>make realclean</code> before rebuilding.
 </p>
@@ -133,9 +133,11 @@ There are also a few general options for altering the Mesa build:
 </p>
 <dl>
 <dt><code>--enable-debug</code></dt>
-<dd><p>This option will enable compiler
-options and macros to aid in debugging the Mesa libraries.</p>
-</dd>
+<dd><p>This option will set the compiler debug/optimisation levels (if the user
+hasn't already set them via the CFLAGS/CXXFLAGS) and macros to aid in
+debugging the Mesa libraries.</p>
+
+<p>Note that enabling this option can lead to noticable loss of performance.</p>
 
 <dt><code>--disable-asm</code></dt>
 <dd><p>There are assembly routines
@@ -174,27 +176,22 @@ architecture, the following should be sufficient to configure multilib Mesa</p>
 </dl>
 
 
-<h2 id="driver">2. Driver Options</h2>
+<h2 id="driver">2. GL Driver Options</h2>
 
 <p>
 There are several different driver modes that Mesa can use. These are
 described in more detail in the <a href="install.html">basic
 installation instructions</a>. The Mesa driver is controlled through the
-configure options <code>--enable-xlib-glx</code>, <code>--enable-osmesa</code>,
-and <code>--enable-dri</code>.
+configure options <code>--enable-glx</code> and <code>--enable-osmesa</code>
 </p>
 
 <h3 id="xlib">Xlib</h3><p>
 It uses Xlib as a software renderer to do all rendering. It corresponds
-to the option <code>--enable-xlib-glx</code>. The libX11 and libXext
-libraries, as well as the X11 development headers, will be need to
-support the Xlib driver.
+to the option <code>--enable-glx=xlib</code> or <code>--enable-glx=gallium-xlib</code>.
 
 <h3 id="dri">DRI</h3><p>This mode uses the DRI hardware drivers for
-accelerated OpenGL rendering. Enable the DRI drivers with the option
-<code>--enable-dri</code>. See the <a href="install.html">basic
-installation instructions</a> for details on prerequisites for the DRI
-drivers.
+accelerated OpenGL rendering. To enable use <code>--enable-glx=dri
+--enable-dri</code>.
 
 <!-- DRI specific options -->
 <dl>
@@ -252,10 +249,8 @@ will create the libOSMesa16 library with a 16-bit color channel.
 <h2 id="library">3. Library Options</h2>
 
 <p>
-The configure script provides more fine grained control over the GL
-libraries that will be built. More details on the specific GL libraries
-can be found in the <a href="install.html">basic installation
-instructions</a>.
+The configure script provides more fine grained control over the libraries
+that will be built.
 
 </div>
 </body>

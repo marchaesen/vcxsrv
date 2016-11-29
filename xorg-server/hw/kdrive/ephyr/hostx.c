@@ -95,6 +95,7 @@ char *ephyrResName = NULL;
 int ephyrResNameFromCmd = 0;
 char *ephyrTitle = NULL;
 Bool ephyr_glamor = FALSE;
+extern Bool ephyr_glamor_skip_present;
 
 Bool
 hostx_has_extension(xcb_extension_t *extension)
@@ -898,7 +899,10 @@ hostx_screen_init(KdScreenInfo *screen,
                                       &size_hints);
     }
 
-    xcb_map_window(HostX.conn, scrpriv->win);
+#ifdef GLAMOR
+    if (!ephyr_glamor_skip_present)
+#endif
+        xcb_map_window(HostX.conn, scrpriv->win);
 
     /* Set explicit window position if it was informed in
      * -screen option (WxH+X or WxH+X+Y). Otherwise, accept the

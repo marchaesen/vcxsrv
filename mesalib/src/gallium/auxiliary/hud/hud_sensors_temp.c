@@ -32,6 +32,7 @@
 #include "hud/hud_private.h"
 #include "util/list.h"
 #include "os/os_time.h"
+#include "os/os_thread.h"
 #include "util/u_memory.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -49,6 +50,7 @@
  */
 static int gsensors_temp_count = 0;
 static struct list_head gsensors_temp_list;
+pipe_static_mutex(gsensor_temp_mutex);
 
 struct sensors_temp_info
 {
@@ -189,17 +191,6 @@ query_sti_load(struct hud_graph *gr)
    }
 }
 
-static void
-free_query_data(void *p)
-{
-   struct sensors_temp_info *sti = (struct sensors_temp_info *) p;
-   list_del(&sti->list);
-   if (sti->chip)
-      sensors_free_chip_name(sti->chip);
-   FREE(sti);
-   sensors_cleanup();
-}
-
 /**
   * Create and initialize a new object for a specific sensor interface dev.
   * \param  pane  parent context.
@@ -236,11 +227,6 @@ hud_sensors_temp_graph_install(struct hud_pane *pane, const char *dev_name,
 
    gr->query_data = sti;
    gr->query_new_value = query_sti_load;
-
-   /* Don't use free() as our callback as that messes up Gallium's
-    * memory debugger.  Use simple free_query_data() wrapper.
-    */
-   gr->free_query_data = free_query_data;
 
    hud_pane_add_graph(pane, gr);
    switch (sti->mode) {
@@ -338,12 +324,17 @@ int
 hud_get_num_sensors(bool displayhelp)
 {
    /* Return the number of sensors detected. */
-   if (gsensors_temp_count)
+   pipe_mutex_lock(gsensor_temp_mutex);
+   if (gsensors_temp_count) {
+      pipe_mutex_unlock(gsensor_temp_mutex);
       return gsensors_temp_count;
+   }
 
    int ret = sensors_init(NULL);
-   if (ret)
+   if (ret) {
+      pipe_mutex_unlock(gsensor_temp_mutex);
       return 0;
+   }
 
    list_inithead(&gsensors_temp_list);
 
@@ -377,6 +368,7 @@ hud_get_num_sensors(bool displayhelp)
       }
    }
 
+   pipe_mutex_unlock(gsensor_temp_mutex);
    return gsensors_temp_count;
 }
 
