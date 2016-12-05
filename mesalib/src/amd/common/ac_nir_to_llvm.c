@@ -1946,15 +1946,15 @@ static LLVMValueRef visit_atomic_ssbo(struct nir_to_llvm_context *ctx,
                                       nir_intrinsic_instr *instr)
 {
 	const char *name;
-	LLVMValueRef params[5];
+	LLVMValueRef params[6];
 	int arg_count = 0;
 	if (ctx->stage == MESA_SHADER_FRAGMENT)
 		ctx->shader_info->fs.writes_memory = true;
 
 	if (instr->intrinsic == nir_intrinsic_ssbo_atomic_comp_swap) {
-		params[arg_count++] = get_src(ctx, instr->src[3]);
+		params[arg_count++] = llvm_extract_elem(ctx, get_src(ctx, instr->src[3]), 0);
 	}
-	params[arg_count++] = get_src(ctx, instr->src[2]);
+	params[arg_count++] = llvm_extract_elem(ctx, get_src(ctx, instr->src[2]), 0);
 	params[arg_count++] = get_src(ctx, instr->src[0]);
 	params[arg_count++] = LLVMConstInt(ctx->i32, 0, false); /* vindex */
 	params[arg_count++] = get_src(ctx, instr->src[1]);      /* voffset */
@@ -2031,6 +2031,34 @@ static LLVMValueRef visit_load_buffer(struct nir_to_llvm_context *ctx,
 	if (instr->num_components == 3)
 		ret = trim_vector(ctx, ret, 3);
 
+	return LLVMBuildBitCast(ctx->builder, ret,
+	                        get_def_type(ctx, &instr->dest.ssa), "");
+}
+
+static LLVMValueRef visit_load_ubo_buffer(struct nir_to_llvm_context *ctx,
+                                          nir_intrinsic_instr *instr)
+{
+	const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
+	const char *load_name;
+	LLVMTypeRef data_type = ctx->f32;
+	LLVMValueRef results[4], ret;
+	LLVMValueRef rsrc = get_src(ctx, instr->src[0]);
+	LLVMValueRef offset = get_src(ctx, instr->src[1]);
+
+	rsrc = LLVMBuildBitCast(ctx->builder, rsrc, LLVMVectorType(ctx->i8, 16), "");
+
+	for (unsigned i = 0; i < instr->num_components; ++i) {
+		LLVMValueRef params[] = {
+			rsrc,
+			LLVMBuildAdd(ctx->builder, LLVMConstInt(ctx->i32, 4 * i, 0),
+				     offset, "")
+		};
+		results[i] = emit_llvm_intrinsic(ctx, "llvm.SI.load.const", ctx->f32,
+						 params, 2, AC_FUNC_ATTR_READNONE);
+	}
+
+
+	ret = build_gather_values(ctx, results, instr->num_components);
 	return LLVMBuildBitCast(ctx->builder, ret,
 	                        get_def_type(ctx, &instr->dest.ssa), "");
 }
@@ -2912,9 +2940,11 @@ static void visit_intrinsic(struct nir_to_llvm_context *ctx,
 		result = ctx->start_instance;
 		break;
 	case nir_intrinsic_load_sample_id:
+		ctx->shader_info->fs.force_persample = true;
 		result = unpack_param(ctx, ctx->ancillary, 8, 4);
 		break;
 	case nir_intrinsic_load_sample_pos:
+		ctx->shader_info->fs.force_persample = true;
 		result = load_sample_pos(ctx);
 		break;
 	case nir_intrinsic_load_front_face:
@@ -2956,7 +2986,7 @@ static void visit_intrinsic(struct nir_to_llvm_context *ctx,
 		result = visit_atomic_ssbo(ctx, instr);
 		break;
 	case nir_intrinsic_load_ubo:
-		result = visit_load_buffer(ctx, instr);
+		result = visit_load_ubo_buffer(ctx, instr);
 		break;
 	case nir_intrinsic_get_buffer_size:
 		result = visit_get_buffer_size(ctx, instr);
@@ -3333,7 +3363,8 @@ static void visit_tex(struct nir_to_llvm_context *ctx, nir_tex_instr *instr)
 	unsigned dmask = 0xf;
 	LLVMValueRef address[16];
 	LLVMValueRef coords[5];
-	LLVMValueRef coord = NULL, lod = NULL, comparitor = NULL, bias, offsets = NULL;
+	LLVMValueRef coord = NULL, lod = NULL, comparitor = NULL;
+	LLVMValueRef bias = NULL, offsets = NULL;
 	LLVMValueRef res_ptr, samp_ptr, fmask_ptr = NULL, sample_index = NULL;
 	LLVMValueRef ddx = NULL, ddy = NULL;
 	LLVMValueRef derivs[6];
@@ -3629,7 +3660,7 @@ static void visit_tex(struct nir_to_llvm_context *ctx, nir_tex_instr *instr)
 
 	if (instr->op == nir_texop_query_levels)
 		result = LLVMBuildExtractElement(ctx->builder, result, LLVMConstInt(ctx->i32, 3, false), "");
-	else if (instr->is_shadow && instr->op != nir_texop_txs && instr->op != nir_texop_lod)
+	else if (instr->is_shadow && instr->op != nir_texop_txs && instr->op != nir_texop_lod && instr->op != nir_texop_tg4)
 		result = LLVMBuildExtractElement(ctx->builder, result, ctx->i32zero, "");
 	else if (instr->op == nir_texop_txs &&
 		 instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE &&
@@ -3930,9 +3961,18 @@ handle_fs_input_decl(struct nir_to_llvm_context *ctx,
 	variable->data.driver_location = idx * 4;
 	ctx->input_mask |= ((1ull << attrib_count) - 1) << variable->data.location;
 
-	if (glsl_get_base_type(glsl_without_array(variable->type)) == GLSL_TYPE_FLOAT)
-		interp = lookup_interp_param(ctx, variable->data.interpolation, INTERP_CENTER);
-	else
+	if (glsl_get_base_type(glsl_without_array(variable->type)) == GLSL_TYPE_FLOAT) {
+		unsigned interp_type;
+		if (variable->data.sample) {
+			interp_type = INTERP_SAMPLE;
+			ctx->shader_info->fs.force_persample = true;
+		} else if (variable->data.centroid)
+			interp_type = INTERP_CENTROID;
+		else
+			interp_type = INTERP_CENTER;
+
+		interp = lookup_interp_param(ctx, variable->data.interpolation, interp_type);
+	} else
 		interp = NULL;
 
 	for (unsigned i = 0; i < attrib_count; ++i)

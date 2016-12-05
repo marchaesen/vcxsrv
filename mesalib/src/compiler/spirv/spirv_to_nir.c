@@ -104,8 +104,7 @@ vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
          nir_load_const_instr *load =
             nir_load_const_instr_create(b->shader, num_components, 32);
 
-         for (unsigned i = 0; i < num_components; i++)
-            load->value.u32[i] = constant->value.u[i];
+         load->value = constant->values[0];
 
          nir_instr_insert_before_cf_list(&b->impl->body, &load->instr);
          val->def = &load->def;
@@ -121,8 +120,7 @@ vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
             nir_load_const_instr *load =
                nir_load_const_instr_create(b->shader, rows, 32);
 
-            for (unsigned j = 0; j < rows; j++)
-               load->value.u32[j] = constant->value.u[rows * i + j];
+            load->value = constant->values[i];
 
             nir_instr_insert_before_cf_list(&b->impl->body, &load->instr);
             col_val->def = &load->def;
@@ -752,7 +750,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          length = 0;
       } else {
          length =
-            vtn_value(b, w[3], vtn_value_type_constant)->constant->value.u[0];
+            vtn_value(b, w[3], vtn_value_type_constant)->constant->values[0].u32[0];
       }
 
       val->type->type = glsl_array_type(array_element->type, length);
@@ -972,9 +970,9 @@ handle_workgroup_size_decoration_cb(struct vtn_builder *b,
 
    assert(val->const_type == glsl_vector_type(GLSL_TYPE_UINT, 3));
 
-   b->shader->info->cs.local_size[0] = val->constant->value.u[0];
-   b->shader->info->cs.local_size[1] = val->constant->value.u[1];
-   b->shader->info->cs.local_size[2] = val->constant->value.u[2];
+   b->shader->info->cs.local_size[0] = val->constant->values[0].u32[0];
+   b->shader->info->cs.local_size[1] = val->constant->values[0].u32[1];
+   b->shader->info->cs.local_size[2] = val->constant->values[0].u32[2];
 }
 
 static void
@@ -987,11 +985,11 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
    switch (opcode) {
    case SpvOpConstantTrue:
       assert(val->const_type == glsl_bool_type());
-      val->constant->value.u[0] = NIR_TRUE;
+      val->constant->values[0].u32[0] = NIR_TRUE;
       break;
    case SpvOpConstantFalse:
       assert(val->const_type == glsl_bool_type());
-      val->constant->value.u[0] = NIR_FALSE;
+      val->constant->values[0].u32[0] = NIR_FALSE;
       break;
 
    case SpvOpSpecConstantTrue:
@@ -999,17 +997,17 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       assert(val->const_type == glsl_bool_type());
       uint32_t int_val =
          get_specialization(b, val, (opcode == SpvOpSpecConstantTrue));
-      val->constant->value.u[0] = int_val ? NIR_TRUE : NIR_FALSE;
+      val->constant->values[0].u32[0] = int_val ? NIR_TRUE : NIR_FALSE;
       break;
    }
 
    case SpvOpConstant:
       assert(glsl_type_is_scalar(val->const_type));
-      val->constant->value.u[0] = w[3];
+      val->constant->values[0].u32[0] = w[3];
       break;
    case SpvOpSpecConstant:
       assert(glsl_type_is_scalar(val->const_type));
-      val->constant->value.u[0] = get_specialization(b, val, w[3]);
+      val->constant->values[0].u32[0] = get_specialization(b, val, w[3]);
       break;
    case SpvOpSpecConstantComposite:
    case SpvOpConstantComposite: {
@@ -1024,16 +1022,14 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       case GLSL_TYPE_FLOAT:
       case GLSL_TYPE_BOOL:
          if (glsl_type_is_matrix(val->const_type)) {
-            unsigned rows = glsl_get_vector_elements(val->const_type);
             assert(glsl_get_matrix_columns(val->const_type) == elem_count);
             for (unsigned i = 0; i < elem_count; i++)
-               for (unsigned j = 0; j < rows; j++)
-                  val->constant->value.u[rows * i + j] = elems[i]->value.u[j];
+               val->constant->values[i] = elems[i]->values[0];
          } else {
             assert(glsl_type_is_vector(val->const_type));
             assert(glsl_get_vector_elements(val->const_type) == elem_count);
             for (unsigned i = 0; i < elem_count; i++)
-               val->constant->value.u[i] = elems[i]->value.u[0];
+               val->constant->values[0].u32[i] = elems[i]->values[0].u32[0];
          }
          ralloc_free(elems);
          break;
@@ -1062,16 +1058,16 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
 
          uint32_t u[8];
          for (unsigned i = 0; i < len0; i++)
-            u[i] = v0->constant->value.u[i];
+            u[i] = v0->constant->values[0].u32[i];
          for (unsigned i = 0; i < len1; i++)
-            u[len0 + i] = v1->constant->value.u[i];
+            u[len0 + i] = v1->constant->values[0].u32[i];
 
          for (unsigned i = 0; i < count - 6; i++) {
             uint32_t comp = w[i + 6];
             if (comp == (uint32_t)-1) {
-               val->constant->value.u[i] = 0xdeadbeef;
+               val->constant->values[0].u32[i] = 0xdeadbeef;
             } else {
-               val->constant->value.u[i] = u[comp];
+               val->constant->values[0].u32[i] = u[comp];
             }
          }
          break;
@@ -1095,6 +1091,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          }
 
          int elem = -1;
+         int col = 0;
          const struct glsl_type *type = comp->const_type;
          for (unsigned i = deref_start; i < count; i++) {
             switch (glsl_get_base_type(type)) {
@@ -1103,15 +1100,14 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             case GLSL_TYPE_FLOAT:
             case GLSL_TYPE_BOOL:
                /* If we hit this granularity, we're picking off an element */
-               if (elem < 0)
-                  elem = 0;
-
                if (glsl_type_is_matrix(type)) {
-                  elem += w[i] * glsl_get_vector_elements(type);
+                  assert(col == 0 && elem == -1);
+                  col = w[i];
+                  elem = 0;
                   type = glsl_get_column_type(type);
                } else {
-                  assert(glsl_type_is_vector(type));
-                  elem += w[i];
+                  assert(elem <= 0 && glsl_type_is_vector(type));
+                  elem = w[i];
                   type = glsl_scalar_type(glsl_get_base_type(type));
                }
                continue;
@@ -1137,7 +1133,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             } else {
                unsigned num_components = glsl_get_vector_elements(type);
                for (unsigned i = 0; i < num_components; i++)
-                  val->constant->value.u[i] = (*c)->value.u[elem + i];
+                  val->constant->values[0].u32[i] = (*c)->values[col].u32[elem + i];
             }
          } else {
             struct vtn_value *insert =
@@ -1148,7 +1144,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             } else {
                unsigned num_components = glsl_get_vector_elements(type);
                for (unsigned i = 0; i < num_components; i++)
-                  (*c)->value.u[elem + i] = insert->constant->value.u[i];
+                  (*c)->values[col].u32[elem + i] = insert->constant->values[0].u32[i];
             }
          }
          break;
@@ -1170,16 +1166,11 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
 
             unsigned j = swap ? 1 - i : i;
             assert(bit_size == 32);
-            for (unsigned k = 0; k < num_components; k++)
-               src[j].u32[k] = c->value.u[k];
+            src[j] = c->values[0];
          }
 
-         nir_const_value res = nir_eval_const_opcode(op, num_components,
-                                                     bit_size, src);
-
-         for (unsigned k = 0; k < num_components; k++)
-            val->constant->value.u[k] = res.u32[k];
-
+         val->constant->values[0] =
+            nir_eval_const_opcode(op, num_components, bit_size, src);
          break;
       } /* default */
       }
@@ -1475,7 +1466,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageGather:
       /* This has a component as its next source */
       gather_component =
-         vtn_value(b, w[idx++], vtn_value_type_constant)->constant->value.u[0];
+         vtn_value(b, w[idx++], vtn_value_type_constant)->constant->values[0].u32[0];
       break;
 
    default:

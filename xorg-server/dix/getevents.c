@@ -1101,9 +1101,12 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
     }
 #endif
 
-    if (type == KeymapNotify) {
+    if (type == EnterNotify) {
         source_type = EVENT_SOURCE_FOCUS;
         type = KeyPress;
+    } else if (type == LeaveNotify) {
+        source_type = EVENT_SOURCE_FOCUS;
+        type = KeyRelease;
     }
 
     /* refuse events from disabled devices */

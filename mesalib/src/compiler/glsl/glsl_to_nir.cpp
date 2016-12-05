@@ -198,34 +198,47 @@ constant_copy(ir_constant *ir, void *mem_ctx)
 
    nir_constant *ret = ralloc(mem_ctx, nir_constant);
 
-   unsigned total_elems = ir->type->components();
+   const unsigned rows = ir->type->vector_elements;
+   const unsigned cols = ir->type->matrix_columns;
    unsigned i;
 
    ret->num_elements = 0;
    switch (ir->type->base_type) {
    case GLSL_TYPE_UINT:
-      for (i = 0; i < total_elems; i++)
-         ret->value.u[i] = ir->value.u[i];
+      for (unsigned c = 0; c < cols; c++) {
+         for (unsigned r = 0; r < rows; r++)
+            ret->values[c].u32[r] = ir->value.u[c * rows + r];
+      }
       break;
 
    case GLSL_TYPE_INT:
-      for (i = 0; i < total_elems; i++)
-         ret->value.i[i] = ir->value.i[i];
+      for (unsigned c = 0; c < cols; c++) {
+         for (unsigned r = 0; r < rows; r++)
+            ret->values[c].i32[r] = ir->value.i[c * rows + r];
+      }
       break;
 
    case GLSL_TYPE_FLOAT:
-      for (i = 0; i < total_elems; i++)
-         ret->value.f[i] = ir->value.f[i];
+      for (unsigned c = 0; c < cols; c++) {
+         for (unsigned r = 0; r < rows; r++)
+            ret->values[c].f32[r] = ir->value.f[c * rows + r];
+      }
       break;
 
    case GLSL_TYPE_DOUBLE:
-      for (i = 0; i < total_elems; i++)
-         ret->value.d[i] = ir->value.d[i];
+      for (unsigned c = 0; c < cols; c++) {
+         for (unsigned r = 0; r < rows; r++)
+            ret->values[c].f64[r] = ir->value.d[c * rows + r];
+      }
       break;
 
    case GLSL_TYPE_BOOL:
-      for (i = 0; i < total_elems; i++)
-         ret->value.b[i] = ir->value.b[i];
+      for (unsigned c = 0; c < cols; c++) {
+         for (unsigned r = 0; r < rows; r++) {
+            ret->values[c].u32[r] = ir->value.b[c * rows + r] ?
+                                    NIR_TRUE : NIR_FALSE;
+         }
+      }
       break;
 
    case GLSL_TYPE_STRUCT:

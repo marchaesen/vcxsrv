@@ -730,30 +730,33 @@ program_stages_all_active(struct gl_pipeline_object *pipe,
 static bool
 program_stages_interleaved_illegally(const struct gl_pipeline_object *pipe)
 {
-   struct gl_shader_program *prev = NULL;
-   unsigned i, j;
+   unsigned prev_linked_stages = 0;
 
    /* Look for programs bound to stages: A -> B -> A, with any intervening
     * sequence of unrelated programs or empty stages.
     */
-   for (i = 0; i < MESA_SHADER_STAGES; i++) {
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_shader_program *cur = pipe->CurrentProgram[i];
 
-      /* Empty stages anywhere in the pipe are OK */
-      if (!cur || cur == prev)
+      /* Empty stages anywhere in the pipe are OK.  Also we can be confident
+       * that if the linked_stages mask matches we are looking at the same
+       * linked program because a previous validation call to
+       * program_stages_all_active() will have already failed if two different
+       * programs with the sames stages linked are not active for all linked
+       * stages.
+       */
+      if (!cur || cur->data->linked_stages == prev_linked_stages)
          continue;
 
-      if (prev) {
+      if (prev_linked_stages) {
          /* We've seen an A -> B transition; look at the rest of the pipe
           * to see if we ever see A again.
           */
-         for (j = i + 1; j < MESA_SHADER_STAGES; j++) {
-            if (pipe->CurrentProgram[j] == prev)
-               return true;
-         }
+         if (prev_linked_stages >> (i + 1))
+            return true;
       }
 
-      prev = cur;
+      prev_linked_stages = cur->data->linked_stages;
    }
 
    return false;

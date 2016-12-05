@@ -151,7 +151,11 @@
 #define PKT3_COND_WRITE                        0x45
 #define PKT3_EVENT_WRITE                       0x46
 #define PKT3_EVENT_WRITE_EOP                   0x47
-#define PKT3_EVENT_WRITE_EOS                   0x48
+/* CP DMA bug: Any use of CP_DMA.DST_SEL=TC must be avoided when EOS packets
+ * are used. Use DST_SEL=MC instead. For prefetch, use SRC_SEL=TC and
+ * DST_SEL=MC. Only CIK chips are affected.
+ */
+/*#define PKT3_EVENT_WRITE_EOS                   0x48*/ /* fix CP DMA before uncommenting */
 #define PKT3_ONE_REG_WRITE                     0x57 /* not on CIK */
 #define PKT3_ACQUIRE_MEM                       0x58 /* new for CIK */
 #define PKT3_SET_CONFIG_REG                    0x68

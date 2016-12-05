@@ -1098,7 +1098,7 @@ _mesa_link_program(struct gl_context *ctx, struct gl_shader_program *shProg)
       if (file) {
          fprintf(file, "[require]\nGLSL%s >= %u.%02u\n",
                  shProg->IsES ? " ES" : "",
-                 shProg->Version / 100, shProg->Version % 100);
+                 shProg->data->Version / 100, shProg->data->Version % 100);
          if (shProg->SeparateShader)
             fprintf(file, "GL_ARB_separate_shader_objects\nSSO ENABLED\n");
          fprintf(file, "\n");

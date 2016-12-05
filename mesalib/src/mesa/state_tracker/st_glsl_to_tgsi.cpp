@@ -5383,8 +5383,18 @@ src_register(struct st_translate *t, const st_src_reg *reg)
 
    case PROGRAM_TEMPORARY:
    case PROGRAM_ARRAY:
-   case PROGRAM_OUTPUT:
       return ureg_src(dst_register(t, reg->file, reg->index, reg->array_id));
+
+   case PROGRAM_OUTPUT: {
+      struct ureg_dst dst = dst_register(t, reg->file, reg->index, reg->array_id);
+      assert(dst.WriteMask != 0);
+      unsigned shift = ffs(dst.WriteMask) - 1;
+      return ureg_swizzle(ureg_src(dst),
+                          shift,
+                          MIN2(shift + 1, 3),
+                          MIN2(shift + 2, 3),
+                          MIN2(shift + 3, 3));
+   }
 
    case PROGRAM_UNIFORM:
       assert(reg->index >= 0);
@@ -6435,7 +6445,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
                                                prog->Parameters);
 
    /* Remove reads from output registers. */
-   lower_output_reads(shader->Stage, shader->ir);
+   if (!pscreen->get_param(pscreen, PIPE_CAP_TGSI_CAN_READ_OUTPUTS))
+      lower_output_reads(shader->Stage, shader->ir);
 
    /* Emit intermediate IR for main(). */
    visit_exec_list(shader->ir, v);

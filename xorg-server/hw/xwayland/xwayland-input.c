@@ -312,6 +312,9 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     dx = xwl_seat->focus_window->window->drawable.x;
     dy = xwl_seat->focus_window->window->drawable.y;
 
+    /* We just entered a new xwindow, forget about the old last xwindow */
+    xwl_seat->last_xwindow = NullWindow;
+
     master = GetMaster(dev, POINTER_OR_FLOAT);
     (*pScreen->SetCursorPosition) (dev, pScreen, dx + sx, dy + sy, TRUE);
 
@@ -360,8 +363,14 @@ pointer_handle_leave(void *data, struct wl_pointer *pointer,
 
     xwl_seat->xwl_screen->serial = serial;
 
-    xwl_seat->focus_window = NULL;
-    CheckMotion(NULL, GetMaster(dev, POINTER_OR_FLOAT));
+    /* The pointer has left a known xwindow, save it for a possible match
+     * in sprite_check_lost_focus()
+     */
+    if (xwl_seat->focus_window) {
+        xwl_seat->last_xwindow = xwl_seat->focus_window->window;
+        xwl_seat->focus_window = NULL;
+        CheckMotion(NULL, GetMaster(dev, POINTER_OR_FLOAT));
+    }
 }
 
 static void
@@ -640,7 +649,7 @@ keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
 
     wl_array_copy(&xwl_seat->keys, keys);
     wl_array_for_each(k, &xwl_seat->keys)
-        QueueKeyboardEvents(xwl_seat->keyboard, KeymapNotify, *k + 8);
+        QueueKeyboardEvents(xwl_seat->keyboard, EnterNotify, *k + 8);
 }
 
 static void
@@ -652,12 +661,8 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 
     xwl_seat->xwl_screen->serial = serial;
 
-    /* Unlike keymap_handle_enter above, this time we _do_ want to trigger
-     * full release, as we don't know how long we'll be out of focus for.
-     * Notify clients that the keys have been released, disable autorepeat,
-     * etc. */
     wl_array_for_each(k, &xwl_seat->keys)
-        QueueKeyboardEvents(xwl_seat->keyboard, KeyRelease, *k + 8);
+        QueueKeyboardEvents(xwl_seat->keyboard, LeaveNotify, *k + 8);
 
     xwl_seat->keyboard_focus = NULL;
 }
@@ -1256,10 +1261,10 @@ sprite_check_lost_focus(SpritePtr sprite, WindowPtr window)
      */
     if (master->lastSlave == xwl_seat->pointer &&
         xwl_seat->focus_window == NULL &&
-        xwl_seat->last_xwindow == window)
+        xwl_seat->last_xwindow != NullWindow &&
+        IsParent(xwl_seat->last_xwindow, window))
         return TRUE;
 
-    xwl_seat->last_xwindow = window;
     return FALSE;
 }
 

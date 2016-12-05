@@ -806,7 +806,7 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
    assert(constant);
 
    const nir_deref *tail = &deref->deref;
-   unsigned matrix_offset = 0;
+   unsigned matrix_col = 0;
    while (tail->child) {
       switch (tail->child->deref_type) {
       case nir_deref_type_array: {
@@ -814,7 +814,7 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
          assert(arr->deref_array_type == nir_deref_array_type_direct);
          if (glsl_type_is_matrix(tail->type)) {
             assert(arr->deref.child == NULL);
-            matrix_offset = arr->base_offset;
+            matrix_col = arr->base_offset;
          } else {
             constant = constant->elements[arr->base_offset];
          }
@@ -838,24 +838,16 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
       nir_load_const_instr_create(shader, glsl_get_vector_elements(tail->type),
                                   bit_size);
 
-   matrix_offset *= load->def.num_components;
-   for (unsigned i = 0; i < load->def.num_components; i++) {
-      switch (glsl_get_base_type(tail->type)) {
-      case GLSL_TYPE_FLOAT:
-      case GLSL_TYPE_INT:
-      case GLSL_TYPE_UINT:
-         load->value.u32[i] = constant->value.u[matrix_offset + i];
-         break;
-      case GLSL_TYPE_DOUBLE:
-         load->value.f64[i] = constant->value.d[matrix_offset + i];
-         break;
-      case GLSL_TYPE_BOOL:
-         load->value.u32[i] = constant->value.b[matrix_offset + i] ?
-                             NIR_TRUE : NIR_FALSE;
-         break;
-      default:
-         unreachable("Invalid immediate type");
-      }
+   switch (glsl_get_base_type(tail->type)) {
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_BOOL:
+      load->value = constant->values[matrix_col];
+      break;
+   default:
+      unreachable("Invalid immediate type");
    }
 
    return load;

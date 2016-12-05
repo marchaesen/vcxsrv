@@ -271,7 +271,7 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
     * OpenGLES 3.0 drivers, so we relax the checking in all cases.
     */
    if (false /* always skip the centroid check */ &&
-       prog->Version < (prog->IsES ? 310 : 430) &&
+       prog->data->Version < (prog->IsES ? 310 : 430) &&
        input->data.centroid != output->data.centroid) {
       linker_error(prog,
                    "%s shader output `%s' %s centroid qualifier, "
@@ -326,7 +326,7 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
     *     and fragment shaders must match."
     */
    if (input->data.invariant != output->data.invariant &&
-       prog->Version < (prog->IsES ? 300 : 430)) {
+       prog->data->Version < (prog->IsES ? 300 : 430)) {
       linker_error(prog,
                    "%s shader output `%s' %s invariant qualifier, "
                    "but %s shader input %s invariant qualifier\n",
@@ -348,7 +348,7 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
     *
     */
    if (input->data.interpolation != output->data.interpolation &&
-       prog->Version < 440) {
+       prog->data->Version < 440) {
       linker_error(prog,
                    "%s shader output `%s' specifies %s "
                    "interpolation qualifier, "
@@ -2234,7 +2234,7 @@ assign_varying_locations(struct gl_context *ctx,
 
          if (var && var->data.mode == ir_var_shader_in &&
              var->data.is_unmatched_generic_inout) {
-            if (!prog->IsES && prog->Version <= 120) {
+            if (!prog->IsES && prog->data->Version <= 120) {
                /* On page 25 (page 31 of the PDF) of the GLSL 1.20 spec:
                 *
                 *     Only those varying variables used (i.e. read) in

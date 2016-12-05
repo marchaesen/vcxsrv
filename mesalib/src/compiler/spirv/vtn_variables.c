@@ -819,7 +819,12 @@ vtn_get_builtin_location(struct vtn_builder *b,
       break;
    case SpvBuiltInLayer:
       *location = VARYING_SLOT_LAYER;
-      *mode = nir_var_shader_out;
+      if (b->shader->stage == MESA_SHADER_FRAGMENT)
+         *mode = nir_var_shader_in;
+      else if (b->shader->stage == MESA_SHADER_GEOMETRY)
+         *mode = nir_var_shader_out;
+      else
+         unreachable("invalid stage for SpvBuiltInLayer");
       break;
    case SpvBuiltInViewportIndex:
       *location = VARYING_SLOT_VIEWPORT;
@@ -938,9 +943,9 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
          nir_var->data.read_only = true;
 
          nir_constant *c = rzalloc(nir_var, nir_constant);
-         c->value.u[0] = b->shader->info->cs.local_size[0];
-         c->value.u[1] = b->shader->info->cs.local_size[1];
-         c->value.u[2] = b->shader->info->cs.local_size[2];
+         c->values[0].u32[0] = b->shader->info->cs.local_size[0];
+         c->values[0].u32[1] = b->shader->info->cs.local_size[1];
+         c->values[0].u32[2] = b->shader->info->cs.local_size[2];
          nir_var->constant_initializer = c;
          break;
       }
@@ -1388,7 +1393,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          struct vtn_value *link_val = vtn_untyped_value(b, w[i]);
          if (link_val->value_type == vtn_value_type_constant) {
             chain->link[idx].mode = vtn_access_mode_literal;
-            chain->link[idx].id = link_val->constant->value.u[0];
+            chain->link[idx].id = link_val->constant->values[0].u32[0];
          } else {
             chain->link[idx].mode = vtn_access_mode_id;
             chain->link[idx].id = w[i];

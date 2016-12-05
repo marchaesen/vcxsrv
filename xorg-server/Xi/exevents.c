@@ -1798,15 +1798,19 @@ ProcessDeviceEvent(InternalEvent *ev, DeviceIntPtr device)
         break;
     }
 
-    if (grab)
-        DeliverGrabbedEvent((InternalEvent *) event, device,
-                            deactivateDeviceGrab);
-    else if (device->focus && !IsPointerEvent(ev))
-        DeliverFocusedEvent(device, (InternalEvent *) event,
-                            GetSpriteWindow(device));
-    else
-        DeliverDeviceEvents(GetSpriteWindow(device), (InternalEvent *) event,
-                            NullGrab, NullWindow, device);
+    /* Don't deliver focus events (e.g. from KeymapNotify when running
+     * nested) to clients. */
+    if (event->source_type != EVENT_SOURCE_FOCUS) {
+        if (grab)
+            DeliverGrabbedEvent((InternalEvent *) event, device,
+                                deactivateDeviceGrab);
+        else if (device->focus && !IsPointerEvent(ev))
+            DeliverFocusedEvent(device, (InternalEvent *) event,
+                                GetSpriteWindow(device));
+        else
+            DeliverDeviceEvents(GetSpriteWindow(device), (InternalEvent *) event,
+                                NullGrab, NullWindow, device);
+    }
 
     if (deactivateDeviceGrab == TRUE) {
         (*device->deviceGrab.DeactivateGrab) (device);

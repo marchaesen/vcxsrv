@@ -2652,6 +2652,11 @@ struct gl_shader_program_data
    GLboolean LinkStatus;   /**< GL_LINK_STATUS */
    GLboolean Validated;
    GLchar *InfoLog;
+
+   unsigned Version;       /**< GLSL version used for linking */
+
+   /* Mask of stages this program was linked against */
+   unsigned linked_stages;
 };
 
 /**
@@ -2824,7 +2829,6 @@ struct gl_shader_program
    GLboolean _Used;        /**< Ever used for drawing? */
    GLboolean SamplersValidated; /**< Samplers validated against texture units? */
 
-   unsigned Version;       /**< GLSL version used for linking */
    bool IsES;              /**< True if this program uses GLSL ES */
 
    /**

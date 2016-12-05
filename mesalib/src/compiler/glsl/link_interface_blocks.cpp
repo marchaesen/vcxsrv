@@ -64,7 +64,7 @@ interstage_member_mismatch(struct gl_shader_program *prog,
        *    interpolation qualifiers of variables of the same name do not
        *    match."
        */
-      if (prog->IsES || prog->Version < 440)
+      if (prog->IsES || prog->data->Version < 440)
          if (c->fields.structure[i].interpolation !=
              p->fields.structure[i].interpolation)
             return true;
@@ -83,7 +83,7 @@ interstage_member_mismatch(struct gl_shader_program *prog,
        * The table in Section 9.2.1 Linked Shaders of the GLSL ES 3.2 spec
        * says that sample need not match for varyings.
        */
-      if (!prog->IsES || prog->Version < 310)
+      if (!prog->IsES || prog->data->Version < 310)
          if (c->fields.structure[i].centroid !=
              p->fields.structure[i].centroid)
             return true;
@@ -114,7 +114,7 @@ intrastage_match(ir_variable *a,
        */
       if ((a->data.how_declared != ir_var_declared_implicitly ||
            b->data.how_declared != ir_var_declared_implicitly) &&
-          (!prog->IsES || prog->Version != 310 ||
+          (!prog->IsES || prog->data->Version != 310 ||
            interstage_member_mismatch(prog, a->get_interface_type(),
                                       b->get_interface_type())))
          return false;
