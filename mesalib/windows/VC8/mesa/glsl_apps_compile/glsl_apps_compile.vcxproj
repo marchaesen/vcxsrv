@@ -84,7 +84,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions);_USE_MATH_DEFINES;__STDC_CONSTANT_MACROS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions);_USE_MATH_DEFINES;__STDC_CONSTANT_MACROS</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -107,7 +107,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;__STDC_CONSTANT_MACROS;INSERVER;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;__STDC_CONSTANT_MACROS;INSERVER;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -188,6 +188,7 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_basic_block.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder_print_visitor.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_clone.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_constant_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_equals.cpp" />

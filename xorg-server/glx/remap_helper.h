@@ -7596,8 +7596,6 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 33476, MultiDrawElementsEXT_remap_index },
    { 12816, FogCoordfEXT_remap_index },
    { 21620, FogCoordfvEXT_remap_index },
-   {  6855, BlendBarrier_remap_index },
-   { 40442, PrimitiveBoundingBox_remap_index },
    {  5001, ResizeBuffersMESA_remap_index },
    { 39762, WindowPos4dMESA_remap_index },
    { 31889, WindowPos4dvMESA_remap_index },
@@ -7808,6 +7806,8 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 34056, PointParameterx_remap_index },
    { 43501, PointParameterxv_remap_index },
    { 22576, TexParameterxv_remap_index },
+   {  6855, BlendBarrier_remap_index },
+   { 40442, PrimitiveBoundingBox_remap_index },
    {    -1, -1 }
 };
 

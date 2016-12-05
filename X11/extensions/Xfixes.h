@@ -133,7 +133,7 @@ XFixesChangeSaveSet (Display	*dpy,
 void
 XFixesSelectSelectionInput (Display	    *dpy,
 			    Window	    win,
-			    Atom	    selection, 
+			    Atom	    selection,
 			    unsigned long   eventMask);
 
 void
@@ -198,12 +198,12 @@ XRectangle *
 XFixesFetchRegion (Display *dpy, XserverRegion region, int *nrectanglesRet);
 
 XRectangle *
-XFixesFetchRegionAndBounds (Display *dpy, XserverRegion region, 
+XFixesFetchRegionAndBounds (Display *dpy, XserverRegion region,
 			    int *nrectanglesRet,
 			    XRectangle *bounds);
 
 void
-XFixesSetGCClipRegion (Display *dpy, GC gc, 
+XFixesSetGCClipRegion (Display *dpy, GC gc,
 		       int clip_x_origin, int clip_y_origin,
 		       XserverRegion region);
 

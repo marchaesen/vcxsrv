@@ -20,7 +20,11 @@ static __inline void __assert(intptr_t Cond)
 #endif
 }
 
+#ifdef _DEBUG
 #define assert(Cond) __assert((intptr_t)(Cond))
+#else
+#define assert(Cond) __assert(0)
+#endif
 
 #endif
  

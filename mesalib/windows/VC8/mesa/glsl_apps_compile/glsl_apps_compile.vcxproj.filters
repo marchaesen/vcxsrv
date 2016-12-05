@@ -354,6 +354,9 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\extensions_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder_print_visitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\compiler\glsl\glsl_lexer.ll">

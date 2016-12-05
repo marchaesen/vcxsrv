@@ -167,12 +167,16 @@ do {                       \
  * performs no action and all member variables and base classes are
  * trivially destructible themselves.
  */
-#   if defined(__GNUC__)
+#   if (defined(__clang__) && defined(__has_feature))
+#      if __has_feature(has_trivial_destructor)
+#         define HAS_TRIVIAL_DESTRUCTOR(T) __has_trivial_destructor(T)
+#      endif
+#   elif defined(__GNUC__)
 #      if ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 3)))
 #         define HAS_TRIVIAL_DESTRUCTOR(T) __has_trivial_destructor(T)
 #      endif
-#   elif (defined(__clang__) && defined(__has_feature))
-#      if __has_feature(has_trivial_destructor)
+#   elif defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#      if _MSC_VER >= 1800
 #         define HAS_TRIVIAL_DESTRUCTOR(T) __has_trivial_destructor(T)
 #      endif
 #   endif
@@ -228,5 +232,18 @@ do {                       \
 
 /** Compute ceiling of integer quotient of A divided by B. */
 #define DIV_ROUND_UP( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
+
+/** Clamp X to [MIN,MAX] */
+#define CLAMP( X, MIN, MAX )  ( (X)<(MIN) ? (MIN) : ((X)>(MAX) ? (MAX) : (X)) )
+
+/** Minimum of two values: */
+#define MIN2( A, B )   ( (A)<(B) ? (A) : (B) )
+
+/** Maximum of two values: */
+#define MAX2( A, B )   ( (A)>(B) ? (A) : (B) )
+
+/** Minimum and maximum of three values: */
+#define MIN3( A, B, C ) ((A) < (B) ? MIN2(A, C) : MIN2(B, C))
+#define MAX3( A, B, C ) ((A) > (B) ? MAX2(A, C) : MAX2(B, C))
 
 #endif /* UTIL_MACROS_H */

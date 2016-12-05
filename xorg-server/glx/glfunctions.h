@@ -1152,8 +1152,6 @@
 #define glMultiDrawElementsEXT(a1, a2, a3, a4, a5) CALL_MultiDrawElementsEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glFogCoordfEXT(a1) CALL_FogCoordfEXT(GET_DISPATCH(), (a1))
 #define glFogCoordfvEXT(a1) CALL_FogCoordfvEXT(GET_DISPATCH(), (a1))
-#define glBlendBarrier() CALL_BlendBarrier(GET_DISPATCH(), ())
-#define glPrimitiveBoundingBox(a1, a2, a3, a4, a5, a6, a7, a8) CALL_PrimitiveBoundingBox(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8))
 #define glResizeBuffersMESA() CALL_ResizeBuffersMESA(GET_DISPATCH(), ())
 #define glWindowPos4dMESA(a1, a2, a3, a4) CALL_WindowPos4dMESA(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glWindowPos4dvMESA(a1) CALL_WindowPos4dvMESA(GET_DISPATCH(), (a1))
@@ -1364,5 +1362,7 @@
 #define glPointParameterx(a1, a2) CALL_PointParameterx(GET_DISPATCH(), (a1, a2))
 #define glPointParameterxv(a1, a2) CALL_PointParameterxv(GET_DISPATCH(), (a1, a2))
 #define glTexParameterxv(a1, a2, a3) CALL_TexParameterxv(GET_DISPATCH(), (a1, a2, a3))
+#define glBlendBarrier() CALL_BlendBarrier(GET_DISPATCH(), ())
+#define glPrimitiveBoundingBox(a1, a2, a3, a4, a5, a6, a7, a8) CALL_PrimitiveBoundingBox(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */
