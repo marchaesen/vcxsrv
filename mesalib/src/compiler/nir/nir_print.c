@@ -295,30 +295,37 @@ static void
 print_constant(nir_constant *c, const struct glsl_type *type, print_state *state)
 {
    FILE *fp = state->fp;
-   unsigned total_elems = glsl_get_components(type);
-   unsigned i;
+   const unsigned rows = glsl_get_vector_elements(type);
+   const unsigned cols = glsl_get_matrix_columns(type);
+   unsigned i, j;
 
    switch (glsl_get_base_type(type)) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_BOOL:
-      for (i = 0; i < total_elems; i++) {
-         if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%08x", c->value.u[i]);
+      for (i = 0; i < cols; i++) {
+         for (j = 0; j < rows; j++) {
+            if (i + j > 0) fprintf(fp, ", ");
+            fprintf(fp, "0x%08x", c->values[i].u32[j]);
+         }
       }
       break;
 
    case GLSL_TYPE_FLOAT:
-      for (i = 0; i < total_elems; i++) {
-         if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "%f", c->value.f[i]);
+      for (i = 0; i < cols; i++) {
+         for (j = 0; j < rows; j++) {
+            if (i + j > 0) fprintf(fp, ", ");
+            fprintf(fp, "%f", c->values[i].f32[j]);
+         }
       }
       break;
 
    case GLSL_TYPE_DOUBLE:
-      for (i = 0; i < total_elems; i++) {
-         if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "%f", c->value.d[i]);
+      for (i = 0; i < cols; i++) {
+         for (j = 0; j < rows; j++) {
+            if (i + j > 0) fprintf(fp, ", ");
+            fprintf(fp, "%f", c->values[i].f64[j]);
+         }
       }
       break;
 
@@ -432,7 +439,7 @@ print_var_decl(nir_variable *var, print_state *state)
          loc = buf;
       }
 
-      fprintf(fp, " (%s, %u)%s", loc, var->data.driver_location,
+      fprintf(fp, " (%s, %u, %u)%s", loc, var->data.driver_location, var->data.binding,
               var->data.compact ? " compact" : "");
    }
 

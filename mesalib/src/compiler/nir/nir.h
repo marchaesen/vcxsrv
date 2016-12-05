@@ -97,16 +97,15 @@ typedef enum {
    nir_var_all             = ~0,
 } nir_variable_mode;
 
-/**
- * Data stored in an nir_constant
- */
-union nir_constant_data {
-   unsigned u[16];
-   int i[16];
-   float f[16];
-   bool b[16];
-   double d[16];
-};
+
+typedef union {
+   float f32[4];
+   double f64[4];
+   int32_t i32[4];
+   uint32_t u32[4];
+   int64_t i64[4];
+   uint64_t u64[4];
+} nir_const_value;
 
 typedef struct nir_constant {
    /**
@@ -116,7 +115,7 @@ typedef struct nir_constant {
     * by the type associated with the \c nir_variable.  Constants may be
     * scalars, vectors, or matrices.
     */
-   union nir_constant_data value;
+   nir_const_value values[4];
 
    /* we could get this from the var->type but makes clone *much* easier to
     * not have to care about the type.
@@ -1344,15 +1343,6 @@ nir_tex_instr_src_index(nir_tex_instr *instr, nir_tex_src_type type)
 }
 
 void nir_tex_instr_remove_src(nir_tex_instr *tex, unsigned src_idx);
-
-typedef union {
-   float f32[4];
-   double f64[4];
-   int32_t i32[4];
-   uint32_t u32[4];
-   int64_t i64[4];
-   uint64_t u64[4];
-} nir_const_value;
 
 typedef struct {
    nir_instr instr;

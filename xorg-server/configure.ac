@@ -2138,10 +2138,7 @@ AM_CONDITIONAL([XORG_DRIVER_MODESETTING], [test "x$XORG_DRIVER_MODESETTING" = xy
 
 dnl glamor
 if test "x$GLAMOR" = xauto; then
-	if test "x$XORG" = xyes; then
-		GLAMOR=yes
-	fi
-	if test "x$XEPHYR" = xyes; then
+	if echo "$XORG" "$XEPHYR" "$XWAYLAND" | grep -q yes ; then
 		GLAMOR=yes
 	fi
 fi

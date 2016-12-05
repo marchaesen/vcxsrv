@@ -553,7 +553,7 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
    *clip_distance_array_size = 0;
    *cull_distance_array_size = 0;
 
-   if (prog->Version >= (prog->IsES ? 300 : 130)) {
+   if (prog->data->Version >= (prog->IsES ? 300 : 130)) {
       /* From section 7.1 (Vertex Shader Special Variables) of the
        * GLSL 1.30 spec:
        *
@@ -672,7 +672,7 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
     * All GLSL ES Versions are similar to GLSL 1.40--failing to write to
     * gl_Position is not an error.
     */
-   if (prog->Version < (prog->IsES ? 300 : 140)) {
+   if (prog->data->Version < (prog->IsES ? 300 : 140)) {
       find_assignment_visitor find("gl_Position");
       find.run(shader->ir);
       if (!find.variable_found()) {
@@ -1089,7 +1089,8 @@ cross_validate_globals(struct gl_shader_program *prog,
           * In GLSL ES 3.00 and ES 3.20, precision qualifier for each block
           * member should match.
           */
-         if (prog->IsES && (prog->Version != 310 || !var->get_interface_type()) &&
+         if (prog->IsES && (prog->data->Version != 310 ||
+                            !var->get_interface_type()) &&
              existing->data.precision != var->data.precision) {
             linker_error(prog, "declarations for %s `%s` have "
                          "mismatching precision qualifiers\n",
@@ -1831,7 +1832,8 @@ link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
    linked_shader->info.BlendSupport = 0;
 
    if (linked_shader->Stage != MESA_SHADER_FRAGMENT ||
-       (prog->Version < 150 && !prog->ARB_fragment_coord_conventions_enable))
+       (prog->data->Version < 150 &&
+        !prog->ARB_fragment_coord_conventions_enable))
       return;
 
    for (unsigned i = 0; i < num_shaders; i++) {
@@ -1910,7 +1912,8 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
    /* No in/out qualifiers defined for anything but GLSL 1.50+
     * geometry shaders so far.
     */
-   if (linked_shader->Stage != MESA_SHADER_GEOMETRY || prog->Version < 150)
+   if (linked_shader->Stage != MESA_SHADER_GEOMETRY ||
+       prog->data->Version < 150)
       return;
 
    /* From the GLSL 1.50 spec, page 46:
@@ -2806,7 +2809,7 @@ assign_attribute_or_color_locations(void *mem_ctx,
                      }
                   }
                } else if (target_index == MESA_SHADER_FRAGMENT ||
-                          (prog->IsES && prog->Version >= 300)) {
+                          (prog->IsES && prog->data->Version >= 300)) {
                   linker_error(prog, "overlapping location is assigned "
                                "to %s `%s' %d %d %d\n", string, var->name,
                                used_locations, use_mask, attr);
@@ -3144,11 +3147,10 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
 static void
 link_calculate_subroutine_compat(struct gl_shader_program *prog)
 {
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+   unsigned mask = prog->data->linked_stages;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
-      int count;
-      if (!sh)
-         continue;
 
       for (unsigned j = 0; j < sh->NumSubroutineUniformRemapTable; j++) {
          if (sh->SubroutineUniformRemapTable[j] == INACTIVE_UNIFORM_EXPLICIT_LOCATION)
@@ -3159,7 +3161,7 @@ link_calculate_subroutine_compat(struct gl_shader_program *prog)
          if (!uni)
             continue;
 
-         count = 0;
+         int count = 0;
          if (sh->NumSubroutineFunctions == 0) {
             linker_error(prog, "subroutine uniform %s defined but no valid functions found\n", uni->type->name);
             continue;
@@ -3181,14 +3183,14 @@ link_calculate_subroutine_compat(struct gl_shader_program *prog)
 static void
 check_subroutine_resources(struct gl_shader_program *prog)
 {
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+   unsigned mask = prog->data->linked_stages;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
 
-      if (sh) {
-         if (sh->NumSubroutineUniformRemapTable > MAX_SUBROUTINE_UNIFORM_LOCATIONS)
-            linker_error(prog, "Too many %s shader subroutine uniforms\n",
-                         _mesa_shader_stage_to_string(i));
-      }
+      if (sh->NumSubroutineUniformRemapTable > MAX_SUBROUTINE_UNIFORM_LOCATIONS)
+         linker_error(prog, "Too many %s shader subroutine uniforms\n",
+                      _mesa_shader_stage_to_string(i));
    }
 }
 /**
@@ -3383,11 +3385,10 @@ check_explicit_uniform_locations(struct gl_context *ctx,
    }
 
    unsigned entries_total = 0;
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+   unsigned mask = prog->data->linked_stages;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
-
-      if (!sh)
-         continue;
 
       foreach_in_list(ir_instruction, node, sh->ir) {
          ir_variable *var = node->as_variable();
@@ -4317,14 +4318,12 @@ build_program_resource_list(struct gl_context *ctx,
       }
    }
 
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+   unsigned mask = shProg->data->linked_stages;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
       struct gl_linked_shader *sh = shProg->_LinkedShaders[i];
-      GLuint type;
 
-      if (!sh)
-         continue;
-
-      type = _mesa_shader_stage_to_subroutine((gl_shader_stage)i);
+      GLuint type = _mesa_shader_stage_to_subroutine((gl_shader_stage)i);
       for (unsigned j = 0; j < sh->NumSubroutineFunctions; j++) {
          if (!add_program_resource(shProg, resource_set,
                                    type, &sh->SubroutineFunctions[j], 0))
@@ -4359,10 +4358,12 @@ validate_sampler_array_indexing(struct gl_context *ctx,
                            "expressions is forbidden in GLSL %s %u";
          /* Backend has indicated that it has no dynamic indexing support. */
          if (no_dynamic_indexing) {
-            linker_error(prog, msg, prog->IsES ? "ES" : "", prog->Version);
+            linker_error(prog, msg, prog->IsES ? "ES" : "",
+                         prog->data->Version);
             return false;
          } else {
-            linker_warning(prog, msg, prog->IsES ? "ES" : "", prog->Version);
+            linker_warning(prog, msg, prog->IsES ? "ES" : "",
+                           prog->data->Version);
          }
       }
    }
@@ -4372,11 +4373,10 @@ validate_sampler_array_indexing(struct gl_context *ctx,
 static void
 link_assign_subroutine_types(struct gl_shader_program *prog)
 {
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+   unsigned mask = prog->data->linked_stages;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
       gl_linked_shader *sh = prog->_LinkedShaders[i];
-
-      if (sh == NULL)
-         continue;
 
       sh->MaxSubroutineFunctionIndex = 0;
       foreach_in_list(ir_instruction, node, sh->ir) {
@@ -4795,7 +4795,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       goto done;
    }
 
-   prog->Version = max_version;
+   prog->data->Version = max_version;
    prog->IsES = prog->Shaders[0]->IsES;
 
    /* Some shaders have to be linked with some other shaders present.
@@ -4889,6 +4889,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
          }
 
          prog->_LinkedShaders[stage] = sh;
+         prog->data->linked_stages |= 1 << stage;
       }
    }
 
@@ -5025,8 +5026,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
     * with loop induction variable. This check emits a warning or error
     * depending if backend can handle dynamic indexing.
     */
-   if ((!prog->IsES && prog->Version < 130) ||
-       (prog->IsES && prog->Version < 300)) {
+   if ((!prog->IsES && prog->data->Version < 130) ||
+       (prog->IsES && prog->data->Version < 300)) {
       if (!validate_sampler_array_indexing(ctx, prog))
          goto done;
    }

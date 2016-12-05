@@ -891,6 +891,8 @@ x11_swapchain_destroy(struct wsi_swapchain *anv_chain,
                       const VkAllocationCallbacks *pAllocator)
 {
    struct x11_swapchain *chain = (struct x11_swapchain *)anv_chain;
+   xcb_void_cookie_t cookie;
+
    for (uint32_t i = 0; i < chain->image_count; i++)
       x11_image_finish(chain, pAllocator, &chain->images[i]);
 
@@ -904,6 +906,10 @@ x11_swapchain_destroy(struct wsi_swapchain *anv_chain,
    }
 
    xcb_unregister_for_special_event(chain->conn, chain->special_event);
+   cookie = xcb_present_select_input_checked(chain->conn, chain->event_id,
+                                             chain->window,
+                                             XCB_PRESENT_EVENT_MASK_NO_EVENT);
+   xcb_discard_reply(chain->conn, cookie.sequence);
 
    vk_free(pAllocator, chain);
 

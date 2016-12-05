@@ -1140,10 +1140,10 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       const unsigned entries =
          MAX2(1, prog->data->UniformStorage[i].array_elements);
 
-      for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
+      unsigned mask = prog->data->linked_stages;
+      while (mask) {
+         const int j = u_bit_scan(&mask);
          struct gl_linked_shader *sh = prog->_LinkedShaders[j];
-         if (!sh)
-            continue;
 
          if (!prog->data->UniformStorage[i].opaque[j].active)
             continue;
@@ -1172,10 +1172,10 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       const unsigned entries =
          MAX2(1, prog->data->UniformStorage[i].array_elements);
 
-      for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
+      unsigned mask = prog->data->linked_stages;
+      while (mask) {
+         const int j = u_bit_scan(&mask);
          struct gl_linked_shader *sh = prog->_LinkedShaders[j];
-         if (!sh)
-            continue;
 
          if (!prog->data->UniformStorage[i].opaque[j].active)
             continue;

@@ -470,7 +470,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         LogMessage(X_WARNING,
                    "glamor%d: Failed to allocate screen private\n",
                    screen->myNum);
-        goto fail;
+        goto free_glamor_private;
     }
 
     glamor_set_screen_private(screen, glamor_priv);
@@ -480,7 +480,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         LogMessage(X_WARNING,
                    "glamor%d: Failed to allocate pixmap private\n",
                    screen->myNum);
-        goto fail;
+        goto free_glamor_private;
     }
 
     if (!dixRegisterPrivateKey(&glamor_gc_private_key, PRIVATE_GC,
@@ -488,7 +488,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         LogMessage(X_WARNING,
                    "glamor%d: Failed to allocate gc private\n",
                    screen->myNum);
-        goto fail;
+        goto free_glamor_private;
     }
 
     glamor_priv->saved_procs.close_screen = screen->CloseScreen;
@@ -731,6 +731,11 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     return TRUE;
 
  fail:
+    /* Restore default CloseScreen and DestroyPixmap handlers */
+    screen->CloseScreen = glamor_priv->saved_procs.close_screen;
+    screen->DestroyPixmap = glamor_priv->saved_procs.destroy_pixmap;
+
+ free_glamor_private:
     free(glamor_priv);
     glamor_set_screen_private(screen, NULL);
     return FALSE;

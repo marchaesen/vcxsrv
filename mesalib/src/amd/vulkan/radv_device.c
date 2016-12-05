@@ -657,6 +657,7 @@ VkResult radv_CreateDevice(
 
 	device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	device->instance = physical_device->instance;
+	device->shader_stats_dump = false;
 
 	device->ws = physical_device->ws;
 	if (pAllocator)

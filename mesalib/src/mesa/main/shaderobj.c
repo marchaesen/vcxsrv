@@ -348,6 +348,8 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
       }
    }
 
+   shProg->data->linked_stages = 0;
+
    if (shProg->data->UniformStorage) {
       for (unsigned i = 0; i < shProg->data->NumUniformStorage; ++i)
          _mesa_uniform_detach_all_driver_storage(&shProg->data->
