@@ -37,8 +37,11 @@
 #include    "shadow.h"
 
 static DevPrivateKeyRec shadowScrPrivateKeyRec;
-
 #define shadowScrPrivateKey (&shadowScrPrivateKeyRec)
+
+#define shadowGetBuf(pScr) ((shadowBufPtr) \
+    dixLookupPrivate(&(pScr)->devPrivates, shadowScrPrivateKey))
+#define shadowBuf(pScr)            shadowBufPtr pBuf = shadowGetBuf(pScr)
 
 #define wrap(priv, real, mem) {\
     priv->mem = real->mem; \

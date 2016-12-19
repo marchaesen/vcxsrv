@@ -85,6 +85,21 @@ typedef uint32_t xcb_window_t;
 
 #define NUM_DEPTH_CLEAR_PIPELINES 3
 
+enum radv_mem_heap {
+	RADV_MEM_HEAP_VRAM,
+	RADV_MEM_HEAP_VRAM_CPU_ACCESS,
+	RADV_MEM_HEAP_GTT,
+	RADV_MEM_HEAP_COUNT
+};
+
+enum radv_mem_type {
+	RADV_MEM_TYPE_VRAM,
+	RADV_MEM_TYPE_GTT_WRITE_COMBINE,
+	RADV_MEM_TYPE_VRAM_CPU_ACCESS,
+	RADV_MEM_TYPE_GTT_CACHED,
+	RADV_MEM_TYPE_COUNT
+};
+
 #define radv_noreturn __attribute__((__noreturn__))
 #define radv_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
 
@@ -173,19 +188,11 @@ radv_clear_mask(uint32_t *inout_mask, uint32_t clear_mask)
 	     __dword &= ~(1 << (b)))
 
 #define typed_memcpy(dest, src, count) ({				\
-			static_assert(sizeof(*src) == sizeof(*dest), ""); \
+			STATIC_ASSERT(sizeof(*src) == sizeof(*dest)); \
 			memcpy((dest), (src), (count) * sizeof(*(src))); \
 		})
 
 #define zero(x) (memset(&(x), 0, sizeof(x)))
-
-/* Define no kernel as 1, since that's an illegal offset for a kernel */
-#define NO_KERNEL 1
-
-struct radv_common {
-	VkStructureType                             sType;
-	const void*                                 pNext;
-};
 
 /* Whenever we generate an error, pass it through this function. Useful for
  * debugging, where we can break on it. Only call at error site, not when
@@ -390,6 +397,16 @@ struct radv_meta_state {
 		VkDescriptorSetLayout                     img_ds_layout;
 		VkPipeline pipeline;
 	} btoi;
+	struct {
+		VkPipelineLayout                          img_p_layout;
+		VkDescriptorSetLayout                     img_ds_layout;
+		VkPipeline pipeline;
+	} itoi;
+	struct {
+		VkPipelineLayout                          img_p_layout;
+		VkDescriptorSetLayout                     img_ds_layout;
+		VkPipeline pipeline;
+	} cleari;
 
 	struct {
 		VkPipeline                                pipeline;
@@ -427,12 +444,20 @@ struct radv_meta_state {
 	} buffer;
 };
 
+/* queue types */
+#define RADV_QUEUE_GENERAL 0
+#define RADV_QUEUE_COMPUTE 1
+#define RADV_QUEUE_TRANSFER 2
+
+#define RADV_MAX_QUEUE_FAMILIES 3
+
+enum ring_type radv_queue_family_to_ring(int f);
+
 struct radv_queue {
 	VK_LOADER_DATA                              _loader_data;
-
 	struct radv_device *                         device;
-
-	struct radv_state_pool *                     pool;
+	int queue_family_index;
+	int queue_idx;
 };
 
 struct radv_device {
@@ -445,8 +470,10 @@ struct radv_device {
 	struct radeon_winsys_ctx *hw_ctx;
 
 	struct radv_meta_state                       meta_state;
-	struct radv_queue                            queue;
-	struct radeon_winsys_cs *empty_cs;
+
+	struct radv_queue *queues[RADV_MAX_QUEUE_FAMILIES];
+	int queue_count[RADV_MAX_QUEUE_FAMILIES];
+	struct radeon_winsys_cs *empty_cs[RADV_MAX_QUEUE_FAMILIES];
 
 	bool allow_fast_clears;
 	bool allow_dcc;
@@ -649,10 +676,13 @@ struct radv_cmd_state {
 	enum radv_cmd_flush_bits                     flush_bits;
 	unsigned                                     active_occlusion_queries;
 	float					     offset_scale;
+	uint32_t                                      descriptors_dirty;
 };
+
 struct radv_cmd_pool {
 	VkAllocationCallbacks                        alloc;
 	struct list_head                             cmd_buffers;
+	uint32_t queue_family_index;
 };
 
 struct radv_cmd_buffer_upload {
@@ -675,6 +705,7 @@ struct radv_cmd_buffer {
 	VkCommandBufferLevel                         level;
 	struct radeon_winsys_cs *cs;
 	struct radv_cmd_state state;
+	uint32_t queue_family_index;
 
 	uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
 	uint32_t dynamic_buffers[16 * MAX_DYNAMIC_BUFFERS];
@@ -687,6 +718,10 @@ struct radv_cmd_buffer {
 
 struct radv_image;
 
+bool radv_cmd_buffer_uses_mec(struct radv_cmd_buffer *cmd_buffer);
+
+void si_init_compute(struct radv_physical_device *physical_device,
+		     struct radv_cmd_buffer *cmd_buffer);
 void si_init_config(struct radv_physical_device *physical_device,
 		    struct radv_cmd_buffer *cmd_buffer);
 void si_write_viewport(struct radeon_winsys_cs *cs, int first_vp,
@@ -971,6 +1006,9 @@ struct radv_image {
 	VkDeviceSize size;
 	uint32_t alignment;
 
+	bool exclusive;
+	unsigned queue_family_mask;
+
 	/* Set when bound */
 	struct radeon_winsys_bo *bo;
 	VkDeviceSize offset;
@@ -992,7 +1030,12 @@ bool radv_layout_is_htile_compressed(const struct radv_image *image,
 bool radv_layout_can_expclear(const struct radv_image *image,
                               VkImageLayout layout);
 bool radv_layout_has_cmask(const struct radv_image *image,
-			   VkImageLayout layout);
+			   VkImageLayout layout,
+			   unsigned queue_mask);
+
+
+unsigned radv_image_queue_family_mask(const struct radv_image *image, int family);
+
 static inline uint32_t
 radv_get_layerCount(const struct radv_image *image,
 		    const VkImageSubresourceRange *range)
@@ -1281,13 +1324,5 @@ RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_shader_module, VkShaderModule)
 	{								\
 		return (const __VkType *) __radv_obj;			\
 	}
-
-#define RADV_COMMON_TO_STRUCT(__VkType, __vk_name, __common_name)	\
-	const __VkType *__vk_name = radv_common_to_ ## __VkType(__common_name)
-
-RADV_DEFINE_STRUCT_CASTS(radv_common, VkMemoryBarrier)
-RADV_DEFINE_STRUCT_CASTS(radv_common, VkBufferMemoryBarrier)
-RADV_DEFINE_STRUCT_CASTS(radv_common, VkImageMemoryBarrier)
-
 
 #endif /* RADV_PRIVATE_H */

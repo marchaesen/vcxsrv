@@ -2055,14 +2055,14 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
 	 emit(ir, OPCODE_RCP, coord_dst, projector);
 
 	 /* In the case where we have to project the coordinates "by hand,"
-	  * the shadow comparitor value must also be projected.
+	  * the shadow comparator value must also be projected.
 	  */
 	 src_reg tmp_src = coord;
-	 if (ir->shadow_comparitor) {
+	 if (ir->shadow_comparator) {
 	    /* Slot the shadow value in as the second to last component of the
 	     * coord.
 	     */
-	    ir->shadow_comparitor->accept(this);
+	    ir->shadow_comparator->accept(this);
 
 	    tmp_src = get_temp(glsl_type::vec4_type);
 	    dst_reg tmp_dst = dst_reg(tmp_src);
@@ -2086,14 +2086,14 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
    }
 
    /* If projection is done and the opcode is not OPCODE_TXP, then the shadow
-    * comparitor was put in the correct place (and projected) by the code,
+    * comparator was put in the correct place (and projected) by the code,
     * above, that handles by-hand projection.
     */
-   if (ir->shadow_comparitor && (!ir->projector || opcode == OPCODE_TXP)) {
+   if (ir->shadow_comparator && (!ir->projector || opcode == OPCODE_TXP)) {
       /* Slot the shadow value in as the second to last component of the
        * coord.
        */
-      ir->shadow_comparitor->accept(this);
+      ir->shadow_comparator->accept(this);
 
       /* XXX This will need to be updated for cubemap array samplers. */
       if (sampler_type->sampler_dimensionality == GLSL_SAMPLER_DIM_2D &&
@@ -2119,7 +2119,7 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
    else
       inst = emit(ir, opcode, result_dst, coord);
 
-   if (ir->shadow_comparitor)
+   if (ir->shadow_comparator)
       inst->tex_shadow = GL_TRUE;
 
    inst->sampler = get_sampler_uniform_value(ir->sampler, shader_program,

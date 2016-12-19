@@ -75,6 +75,7 @@ New Tokens
         EGL_TEXTURE_Y_U_V_WL                    0x31D7
         EGL_TEXTURE_Y_UV_WL                     0x31D8
         EGL_TEXTURE_Y_XUXV_WL                   0x31D9
+        EGL_TEXTURE_EXTERNAL_WL                 0x31DA
 
     Accepted in the <attribute> parameter of eglQueryWaylandBufferWL:
 
@@ -147,6 +148,10 @@ Additions to the EGL 1.4 Specification:
         EGL_TEXTURE_Y_XUXV_WL
                 Two planes, samples Y from the first plane to r in
                 the shader, U and V from the second plane to g and a.
+
+        EGL_TEXTURE_EXTERNAL_WL
+                Treated as a single plane texture, but sampled with
+                samplerExternalOES according to OES_EGL_image_external
 
     After querying the wl_buffer layout, create EGLImages for the
     planes by calling eglCreateImageKHR with wl_buffer as

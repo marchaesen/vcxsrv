@@ -2174,6 +2174,8 @@ struct gl_shader_info
 {
    bool uses_gl_fragcoord;
    bool redeclares_gl_fragcoord;
+   bool PostDepthCoverage;
+   bool InnerCoverage;
    bool ARB_fragment_coord_conventions_enable;
 
    /**
@@ -3819,6 +3821,7 @@ struct gl_extensions
    GLboolean ARB_occlusion_query2;
    GLboolean ARB_pipeline_statistics_query;
    GLboolean ARB_point_sprite;
+   GLboolean ARB_post_depth_coverage;
    GLboolean ARB_query_buffer_object;
    GLboolean ARB_robust_buffer_access_behavior;
    GLboolean ARB_sample_shading;
@@ -3934,6 +3937,7 @@ struct gl_extensions
    GLboolean ATI_fragment_shader;
    GLboolean ATI_separate_stencil;
    GLboolean GREMEDY_string_marker;
+   GLboolean INTEL_conservative_rasterization;
    GLboolean INTEL_performance_query;
    GLboolean KHR_blend_equation_advanced;
    GLboolean KHR_blend_equation_advanced_coherent;
@@ -4218,6 +4222,11 @@ struct gl_driver_flags
     * gl_context::TessCtrlProgram::patch_default_*
     */
    uint64_t NewDefaultTessLevels;
+
+   /**
+    * gl_context::IntelConservativeRasterization
+    */
+   uint64_t NewIntelConservativeRasterization;
 };
 
 struct gl_uniform_buffer_binding
@@ -4617,6 +4626,7 @@ struct gl_context
    GLboolean TextureFormatSupported[MESA_FORMAT_COUNT];
 
    GLboolean RasterDiscard;  /**< GL_RASTERIZER_DISCARD */
+   GLboolean IntelConservativeRasterization; /**< GL_INTEL_CONSERVATIVE_RASTERIZATION */
 
    /**
     * \name Hooks for module contexts.  

@@ -434,7 +434,7 @@ winShadowUpdateGDI(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
-    RegionPtr damage = shadowDamage(pBuf);
+    RegionPtr damage = DamageRegion(pBuf->pDamage);
     DWORD dwBox = RegionNumRects(damage);
     BoxPtr pBox = RegionRects(damage);
     int x, y, w, h;

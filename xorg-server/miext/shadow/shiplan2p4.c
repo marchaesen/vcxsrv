@@ -78,7 +78,7 @@ static inline void store_iplan2p4(void *dst, const CARD32 d[2])
 void
 shadowUpdateIplan2p4(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr damage = shadowDamage(pBuf);
+    RegionPtr damage = DamageRegion(pBuf->pDamage);
     PixmapPtr pShadow = pBuf->pPixmap;
     int nbox = RegionNumRects(damage);
     BoxPtr pbox = RegionRects(damage);

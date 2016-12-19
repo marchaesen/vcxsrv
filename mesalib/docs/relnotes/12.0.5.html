@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 12.0.5 Release Notes / December 5, 2016</h1>
+
+<p>
+Mesa 12.0.5 is a bug fix release which fixes bugs found since the 12.0.5 release.
+</p>
+<p>
+Mesa 12.0.5 implements the OpenGL 4.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.3.  OpenGL
+4.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+44d08a27d98bfeacd864381189e434d98afbf451689d01f80380dc1d66450e5b  mesa-12.0.5.tar.gz
+2b0a972d8282860a11291c09c3ef01ac45171405951eb21a83c45ed2b4321924  mesa-12.0.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=77662">Bug 77662</a> - Fail to render to different faces of depth-stencil cube map</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97779">Bug 97779</a> - [regression, bisected][BDW, GPU hang] stuck on render ring, always reproducible</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98415">Bug 98415</a> - Vulkan Driver JSON file contains incorrect field</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Adam Jackson (2):</p>
+<ul>
+  <li>glx/glvnd: Don't modify the dummy slot in the dispatch table</li>
+  <li>glx/glvnd: Fix dispatch function names and indices</li>
+</ul>
+
+<p>Anuj Phogat (1):</p>
+<ul>
+  <li>i965: Fix GPU hang related to multiple render targets and alpha testing</li>
+</ul>
+
+<p>Emil Velikov (4):</p>
+<ul>
+  <li>docs: add release notes for 12.0.4</li>
+  <li>docs: add sha256 checksums for 12.0.4</li>
+  <li>cherry-ignore: add reverted LLVM_LIBDIR patch</li>
+  <li>Update version to 12.0.5</li>
+</ul>
+
+<p>Haixia Shi (1):</p>
+<ul>
+  <li>mesa: change state query return value for RGB565</li>
+</ul>
+
+<p>Jason Ekstrand (3):</p>
+<ul>
+  <li>i965/fs/generator: Don't use the address immediate for MOV_INDIRECT</li>
+  <li>anv/cmd_buffer: Take a command buffer instead of a batch in two helpers</li>
+  <li>anv/cmd_buffer: Enable a CS stall workaround for Sky Lake gt4</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>intel: Fix pixel shader scratch space allocation on Gen9+ platforms.</li>
+</ul>
+
+<p>Marek Olšák (13):</p>
+<ul>
+  <li>gallium/radeon: fix behavior of GLSL findLSB(0)</li>
+  <li>gallium/radeon: make sure HTILE address is aligned properly</li>
+  <li>radeonsi: fix an assertion failure in si_decompress_sampler_color_textures</li>
+  <li>gallium/radeon: unify viewport emission code</li>
+  <li>gallium/radeon: set VPORT_ZMIN/MAX registers correctly</li>
+  <li>radeonsi: fix gl_PatchVerticesIn for tessellation evaluation shader</li>
+  <li>radeonsi: fix a crash in imageSize for cubemap arrays</li>
+  <li>radeonsi: emit TA_CS_BC_BASE_ADDR on SI only if the kernel allows it</li>
+  <li>gallium/radeon: add support for sharing textures with DCC between processes</li>
+  <li>radeonsi: always set all blend registers</li>
+  <li>radeonsi: set CB_BLEND1_CONTROL.ENABLE for dual source blending</li>
+  <li>radeonsi: disable RB+ blend optimizations for dual source blending</li>
+  <li>radeonsi: silence runtime warnings with LLVM 3.9</li>
+</ul>
+
+<p>Matt Turner (1):</p>
+<ul>
+  <li>anv: Replace "abi_versions" with correct "api_version".</li>
+</ul>
+
+<p>Nanley Chery (1):</p>
+<ul>
+  <li>mesa/fbobject: Update CubeMapFace when reusing textures</li>
+</ul>
+
+<p>Steinar H. Gunderson (1):</p>
+<ul>
+  <li>Fix races during _mesa_HashWalk().</li>
+</ul>
+
+<p>Tim Rowley (3):</p>
+<ul>
+  <li>swr: [rasterizer jitter] cleanup supporting different llvm versions</li>
+  <li>swr: [rasterizer jitter] fix llvm-3.7 compile</li>
+  <li>swr: [rasterizer] add support for llvm-3.9</li>
+</ul>
+
+
+</div>
+</body>
+</html>

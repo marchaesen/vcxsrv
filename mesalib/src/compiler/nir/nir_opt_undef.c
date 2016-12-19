@@ -86,17 +86,15 @@ opt_undef_vecN(nir_builder *b, nir_alu_instr *alu)
 
    assert(alu->dest.dest.is_ssa);
 
-   unsigned num_components = nir_op_infos[alu->op].num_inputs;
-
-   for (unsigned i = 0; i < num_components; i++) {
+   for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
       if (!alu->src[i].src.is_ssa ||
           alu->src[i].src.ssa->parent_instr->type != nir_instr_type_ssa_undef)
          return false;
    }
 
    b->cursor = nir_before_instr(&alu->instr);
-   nir_ssa_def *undef =
-      nir_ssa_undef(b, num_components, nir_dest_bit_size(alu->dest.dest));
+   nir_ssa_def *undef = nir_ssa_undef(b, alu->dest.dest.ssa.num_components,
+                                      nir_dest_bit_size(alu->dest.dest));
    nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(undef));
 
    return true;

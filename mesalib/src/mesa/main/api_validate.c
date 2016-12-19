@@ -555,6 +555,48 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
       }
    }
 
+   /* From GL_INTEL_conservative_rasterization spec:
+    *
+    * The conservative rasterization option applies only to polygons with
+    * PolygonMode state set to FILL. Draw requests for polygons with different
+    * PolygonMode setting or for other primitive types (points/lines) generate
+    * INVALID_OPERATION error.
+    */
+   if (ctx->IntelConservativeRasterization) {
+      GLboolean pass = GL_TRUE;
+
+      switch (mode) {
+      case GL_POINTS:
+      case GL_LINES:
+      case GL_LINE_LOOP:
+      case GL_LINE_STRIP:
+      case GL_LINES_ADJACENCY:
+      case GL_LINE_STRIP_ADJACENCY:
+         pass = GL_FALSE;
+         break;
+      case GL_TRIANGLES:
+      case GL_TRIANGLE_STRIP:
+      case GL_TRIANGLE_FAN:
+      case GL_QUADS:
+      case GL_QUAD_STRIP:
+      case GL_POLYGON:
+      case GL_TRIANGLES_ADJACENCY:
+      case GL_TRIANGLE_STRIP_ADJACENCY:
+         if (ctx->Polygon.FrontMode != GL_FILL ||
+             ctx->Polygon.BackMode != GL_FILL)
+            pass = GL_FALSE;
+         break;
+      default:
+         pass = GL_FALSE;
+      }
+      if (!pass) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "mode=%s invalid with GL_INTEL_conservative_rasterization",
+                     _mesa_lookup_prim_by_nr(mode));
+         return GL_FALSE;
+      }
+   }
+
    return GL_TRUE;
 }
 

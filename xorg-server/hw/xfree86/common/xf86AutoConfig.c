@@ -149,6 +149,15 @@ xf86AutoConfig(void)
     char buf[1024];
     ConfigStatus ret;
 
+    /* Make sure config rec is there */
+    if (xf86allocateConfig() != NULL) {
+        ret = CONFIG_OK;    /* OK so far */
+    }
+    else {
+        xf86Msg(X_ERROR, "Couldn't allocate Config record.\n");
+        return FALSE;
+    }
+
     listPossibleVideoDrivers(deviceList, 20);
 
     for (p = deviceList; *p; p++) {

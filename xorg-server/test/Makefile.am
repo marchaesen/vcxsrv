@@ -166,7 +166,8 @@ libxservertest_la_DEPENDENCIES = $(libxservertest_la_LIBADD)
 endif
 
 EXTRA_DIST = \
-	$(SCRIPT_TESTS) \
+	scripts/xvfb-piglit.sh \
+	scripts/xephyr-glamor-piglit.sh \
 	scripts/xinit-piglit-session.sh \
 	scripts/run-piglit.sh \
 	ddxstubs.c \

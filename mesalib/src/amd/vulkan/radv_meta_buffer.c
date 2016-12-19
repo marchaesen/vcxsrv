@@ -515,6 +515,7 @@ void radv_CmdUpdateBuffer(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_buffer, dst_buffer, dstBuffer);
+	bool mec = radv_cmd_buffer_uses_mec(cmd_buffer);
 	uint64_t words = dataSize / 4;
 	uint64_t va = cmd_buffer->device->ws->buffer_get_va(dst_buffer->bo);
 	va += dstOffset + dst_buffer->offset;
@@ -528,7 +529,8 @@ void radv_CmdUpdateBuffer(
 		radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, words + 4);
 
 		radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 2 + words, 0));
-		radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEMORY_SYNC) |
+		radeon_emit(cmd_buffer->cs, S_370_DST_SEL(mec ?
+		                                V_370_MEM_ASYNC : V_370_MEMORY_SYNC) |
 		                            S_370_WR_CONFIRM(1) |
 		                            S_370_ENGINE_SEL(V_370_ME));
 		radeon_emit(cmd_buffer->cs, va);

@@ -579,6 +579,8 @@ ast_type_qualifier::validate_in_qualifier(YYLTYPE *loc,
       break;
    case MESA_SHADER_FRAGMENT:
       valid_in_mask.flags.q.early_fragment_tests = 1;
+      valid_in_mask.flags.q.inner_coverage = 1;
+      valid_in_mask.flags.q.post_depth_coverage = 1;
       break;
    case MESA_SHADER_COMPUTE:
       valid_in_mask.flags.q.local_size = 7;
@@ -631,6 +633,23 @@ ast_type_qualifier::merge_into_in_qualifier(YYLTYPE *loc,
    if (state->in_qualifier->flags.q.early_fragment_tests) {
       state->fs_early_fragment_tests = true;
       state->in_qualifier->flags.q.early_fragment_tests = false;
+   }
+
+   if (state->in_qualifier->flags.q.inner_coverage) {
+      state->fs_inner_coverage = true;
+      state->in_qualifier->flags.q.inner_coverage = false;
+   }
+
+   if (state->in_qualifier->flags.q.post_depth_coverage) {
+      state->fs_post_depth_coverage = true;
+      state->in_qualifier->flags.q.post_depth_coverage = false;
+   }
+
+   if (state->fs_inner_coverage && state->fs_post_depth_coverage) {
+      _mesa_glsl_error(loc, state,
+                       "inner_coverage & post_depth_coverage layout qualifiers "
+                       "are mutally exclusives");
+      r = false;
    }
 
    /* We allow the creation of multiple cs_input_layout nodes. Coherence among
@@ -701,7 +720,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     "%s '%s':"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
                     message, name,
                     bad.flags.q.invariant ? " invariant" : "",
                     bad.flags.q.precise ? " precise" : "",
@@ -761,7 +780,9 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     bad.flags.q.point_mode ? " point_mode" : "",
                     bad.flags.q.vertices ? " vertices" : "",
                     bad.flags.q.subroutine ? " subroutine" : "",
-                    bad.flags.q.subroutine_def ? " subroutine_def" : "");
+                    bad.flags.q.subroutine_def ? " subroutine_def" : "",
+                    bad.flags.q.inner_coverage ? " inner_coverage" : "",
+                    bad.flags.q.post_depth_coverage ? " post_depth_coverage" : "");
    return false;
 }
 

@@ -342,43 +342,19 @@ void radv_shader_variant_destroy(struct radv_device *device,
 	free(variant);
 }
 
-static
-struct radv_shader_variant *radv_shader_variant_create(struct radv_device *device,
-                                                       struct nir_shader *shader,
-                                                       struct radv_pipeline_layout *layout,
-                                                       const union ac_shader_variant_key *key,
-						       void** code_out,
-						       unsigned *code_size_out,
-						       bool dump)
+static void radv_fill_shader_variant(struct radv_device *device,
+				     struct radv_shader_variant *variant,
+				     struct ac_shader_binary *binary,
+				     gl_shader_stage stage)
 {
-	struct radv_shader_variant *variant = calloc(1, sizeof(struct radv_shader_variant));
-	enum radeon_family chip_family = device->instance->physicalDevice.rad_info.family;
-	LLVMTargetMachineRef tm;
-	if (!variant)
-		return NULL;
-
-	struct ac_nir_compiler_options options = {0};
-	options.layout = layout;
-	if (key)
-		options.key = *key;
-
-	struct ac_shader_binary binary;
-
-	options.unsafe_math = env_var_as_boolean("RADV_UNSAFE_MATH", false);
-	options.family = chip_family;
-	options.chip_class = device->instance->physicalDevice.rad_info.chip_class;
-	tm = ac_create_target_machine(chip_family);
-	ac_compile_nir_shader(tm, &binary, &variant->config,
-			      &variant->info, shader, &options, dump);
-	LLVMDisposeTargetMachine(tm);
-
-	variant->code_size = binary.code_size;
+	variant->code_size = binary->code_size;
 	bool scratch_enabled = variant->config.scratch_bytes_per_wave > 0;
 	unsigned vgpr_comp_cnt = 0;
 
 	if (scratch_enabled)
 		radv_finishme("shader scratch space");
-	switch (shader->stage) {
+
+	switch (stage) {
 	case MESA_SHADER_VERTEX:
 		variant->rsrc2 = S_00B12C_USER_SGPR(variant->info.num_user_sgprs) |
 			S_00B12C_SCRATCH_EN(scratch_enabled);
@@ -407,12 +383,46 @@ struct radv_shader_variant *radv_shader_variant_create(struct radv_device *devic
 		S_00B848_DX10_CLAMP(1) |
 		S_00B848_FLOAT_MODE(variant->config.float_mode);
 
-	variant->bo = device->ws->buffer_create(device->ws, binary.code_size, 256,
+	variant->bo = device->ws->buffer_create(device->ws, binary->code_size, 256,
 						RADEON_DOMAIN_GTT, RADEON_FLAG_CPU_ACCESS);
 
 	void *ptr = device->ws->buffer_map(variant->bo);
-	memcpy(ptr, binary.code, binary.code_size);
+	memcpy(ptr, binary->code, binary->code_size);
 	device->ws->buffer_unmap(variant->bo);
+
+
+}
+
+static struct radv_shader_variant *radv_shader_variant_create(struct radv_device *device,
+							      struct nir_shader *shader,
+							      struct radv_pipeline_layout *layout,
+							      const union ac_shader_variant_key *key,
+							      void** code_out,
+							      unsigned *code_size_out,
+							      bool dump)
+{
+	struct radv_shader_variant *variant = calloc(1, sizeof(struct radv_shader_variant));
+	enum radeon_family chip_family = device->instance->physicalDevice.rad_info.family;
+	LLVMTargetMachineRef tm;
+	if (!variant)
+		return NULL;
+
+	struct ac_nir_compiler_options options = {0};
+	options.layout = layout;
+	if (key)
+		options.key = *key;
+
+	struct ac_shader_binary binary;
+
+	options.unsafe_math = env_var_as_boolean("RADV_UNSAFE_MATH", false);
+	options.family = chip_family;
+	options.chip_class = device->instance->physicalDevice.rad_info.chip_class;
+	tm = ac_create_target_machine(chip_family);
+	ac_compile_nir_shader(tm, &binary, &variant->config,
+			      &variant->info, shader, &options, dump);
+	LLVMDisposeTargetMachine(tm);
+
+	radv_fill_shader_variant(device, variant, &binary, shader->stage);
 
 	if (code_out) {
 		*code_out = binary.code;
@@ -1451,20 +1461,18 @@ VkResult radv_CreateGraphicsPipelines(
 	unsigned i = 0;
 
 	for (; i < count; i++) {
-		result = radv_graphics_pipeline_create(_device,
-						       pipelineCache,
-						       &pCreateInfos[i],
-						       NULL, pAllocator, &pPipelines[i]);
-		if (result != VK_SUCCESS) {
-			for (unsigned j = 0; j < i; j++) {
-				radv_DestroyPipeline(_device, pPipelines[j], pAllocator);
-			}
-
-			return result;
+		VkResult r;
+		r = radv_graphics_pipeline_create(_device,
+						  pipelineCache,
+						  &pCreateInfos[i],
+						  NULL, pAllocator, &pPipelines[i]);
+		if (r != VK_SUCCESS) {
+			result = r;
+			pPipelines[i] = VK_NULL_HANDLE;
 		}
 	}
 
-	return VK_SUCCESS;
+	return result;
 }
 
 static VkResult radv_compute_pipeline_create(
@@ -1515,17 +1523,15 @@ VkResult radv_CreateComputePipelines(
 
 	unsigned i = 0;
 	for (; i < count; i++) {
-		result = radv_compute_pipeline_create(_device, pipelineCache,
-						      &pCreateInfos[i],
-						      pAllocator, &pPipelines[i]);
-		if (result != VK_SUCCESS) {
-			for (unsigned j = 0; j < i; j++) {
-				radv_DestroyPipeline(_device, pPipelines[j], pAllocator);
-			}
-
-			return result;
+		VkResult r;
+		r = radv_compute_pipeline_create(_device, pipelineCache,
+						 &pCreateInfos[i],
+						 pAllocator, &pPipelines[i]);
+		if (r != VK_SUCCESS) {
+			result = r;
+			pPipelines[i] = VK_NULL_HANDLE;
 		}
 	}
 
-	return VK_SUCCESS;
+	return result;
 }

@@ -41,6 +41,8 @@ struct xf86_platform_device {
 #ifdef XSERVER_PLATFORM_BUS
 int xf86platformProbe(void);
 int xf86platformProbeDev(DriverPtr drvp);
+int xf86platformAddGPUDevices(DriverPtr drvp);
+void xf86MergeOutputClassOptions(int entityIndex, void **options);
 
 extern int xf86_num_platform_devices;
 extern struct xf86_platform_device *xf86_platform_devices;
@@ -156,6 +158,12 @@ xf86PlatformMatchDriver(char *matches[], int nmatches);
 
 extern void xf86platformVTProbe(void);
 extern void xf86platformPrimary(void);
+
+#else
+
+static inline int xf86platformAddGPUDevices(DriverPtr drvp) { return FALSE; }
+static inline void xf86MergeOutputClassOptions(int index, void **options) {}
+
 #endif
 
 #endif

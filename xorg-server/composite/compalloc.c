@@ -612,7 +612,7 @@ compAllocPixmap(WindowPtr pWin)
     else
         pWin->redirectDraw = RedirectDrawManual;
 
-    compSetPixmap(pWin, pPixmap);
+    compSetPixmap(pWin, pPixmap, bw);
     cw->oldx = COMP_ORIGIN_INVALID;
     cw->oldy = COMP_ORIGIN_INVALID;
     cw->damageRegistered = FALSE;
@@ -651,7 +651,7 @@ compSetParentPixmap(WindowPtr pWin)
     RegionCopy(&pWin->borderClip, &cw->borderClip);
     pParentPixmap = (*pScreen->GetWindowPixmap) (pWin->parent);
     pWin->redirectDraw = RedirectDrawNone;
-    compSetPixmap(pWin, pParentPixmap);
+    compSetPixmap(pWin, pParentPixmap, pWin->borderWidth);
 }
 
 /*
@@ -682,7 +682,7 @@ compReallocPixmap(WindowPtr pWin, int draw_x, int draw_y,
         if (!pNew)
             return FALSE;
         cw->pOldPixmap = pOld;
-        compSetPixmap(pWin, pNew);
+        compSetPixmap(pWin, pNew, bw);
     }
     else {
         pNew = pOld;

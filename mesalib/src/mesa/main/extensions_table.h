@@ -93,6 +93,7 @@ EXT(ARB_pipeline_statistics_query           , ARB_pipeline_statistics_query     
 EXT(ARB_pixel_buffer_object                 , EXT_pixel_buffer_object                , GLL, GLC,  x ,  x , 2004)
 EXT(ARB_point_parameters                    , EXT_point_parameters                   , GLL,  x ,  x ,  x , 1997)
 EXT(ARB_point_sprite                        , ARB_point_sprite                       , GLL, GLC,  x ,  x , 2003)
+EXT(ARB_post_depth_coverage                 , ARB_post_depth_coverage                ,  x , GLC,  x ,  x,  2015)
 EXT(ARB_program_interface_query             , dummy_true                             , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_provoking_vertex                    , EXT_provoking_vertex                   , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_query_buffer_object                 , ARB_query_buffer_object                , GLL, GLC,  x ,  x , 2013)
@@ -289,6 +290,7 @@ EXT(IBM_texture_mirrored_repeat             , dummy_true                        
 
 EXT(INGR_blend_func_separate                , EXT_blend_func_separate                , GLL,  x ,  x ,  x , 1999)
 
+EXT(INTEL_conservative_rasterization        , INTEL_conservative_rasterization       ,  x , GLC,  x ,  31, 2013)
 EXT(INTEL_performance_query                 , INTEL_performance_query                , GLL, GLC,  x , ES2, 2013)
 
 EXT(KHR_blend_equation_advanced             , KHR_blend_equation_advanced            , GLL, GLC,  x , ES2, 2014)

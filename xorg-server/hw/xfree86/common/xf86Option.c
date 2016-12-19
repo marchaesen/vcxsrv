@@ -44,6 +44,7 @@
 #include "xf86Xinput.h"
 #include "xf86Optrec.h"
 #include "xf86Parser.h"
+#include "xf86platformBus.h" /* For OutputClass functions */
 #include "optionstr.h"
 
 static Bool ParseOptionValue(int scrnIndex, XF86OptionPtr options,
@@ -64,7 +65,7 @@ static Bool ParseOptionValue(int scrnIndex, XF86OptionPtr options,
  *
  * The order of precedence for options is:
  *
- *   extraOpts, display, confScreen, monitor, device
+ *   extraOpts, display, confScreen, monitor, device, outputClassOptions
  */
 
 void
@@ -79,6 +80,8 @@ xf86CollectOptions(ScrnInfoPtr pScrn, XF86OptionPtr extraOpts)
     pScrn->options = NULL;
 
     for (i = pScrn->numEntities - 1; i >= 0; i--) {
+        xf86MergeOutputClassOptions(pScrn->entityList[i], &pScrn->options);
+
         device = xf86GetDevFromEntity(pScrn->entityList[i],
                                       pScrn->entityInstanceList[i]);
         if (device && device->options) {

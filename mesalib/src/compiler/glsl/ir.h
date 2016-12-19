@@ -917,6 +917,9 @@ public:
 
       /**
        * Vertex stream output identifier.
+       *
+       * For packed outputs, bit 31 is set and bits [2*i+1,2*i] indicate the
+       * stream of the i-th component.
        */
       unsigned stream;
 
@@ -1784,7 +1787,7 @@ enum ir_texture_opcode {
  *
  *                                    Texel offset (0 or an expression)
  *                                    | Projection divisor
- *                                    | |  Shadow comparitor
+ *                                    | |  Shadow comparator
  *                                    | |  |
  *                                    v v  v
  * (tex <type> <sampler> <coordinate> 0 1 ( ))
@@ -1805,7 +1808,7 @@ public:
    ir_texture(enum ir_texture_opcode op)
       : ir_rvalue(ir_type_texture),
         op(op), sampler(NULL), coordinate(NULL), projector(NULL),
-        shadow_comparitor(NULL), offset(NULL)
+        shadow_comparator(NULL), offset(NULL)
    {
       memset(&lod_info, 0, sizeof(lod_info));
    }
@@ -1860,7 +1863,7 @@ public:
     * If there is no shadow comparison, this will be \c NULL.  For the
     * \c ir_txf opcode, this *must* be \c NULL.
     */
-   ir_rvalue *shadow_comparitor;
+   ir_rvalue *shadow_comparator;
 
    /** Texel offset. */
    ir_rvalue *offset;

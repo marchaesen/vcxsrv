@@ -1460,7 +1460,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageSampleProjDrefExplicitLod:
    case SpvOpImageDrefGather:
       /* These all have an explicit depth value as their next source */
-      (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_comparitor);
+      (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_comparator);
       break;
 
    case SpvOpImageGather:
@@ -1478,6 +1478,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_lod);
 
    /* Now we need to handle some number of optional arguments */
+   const struct vtn_ssa_value *gather_offsets = NULL;
    if (idx < count) {
       uint32_t operands = w[idx++];
 
@@ -1504,8 +1505,10 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
           operands & SpvImageOperandsConstOffsetMask)
          (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_offset);
 
-      if (operands & SpvImageOperandsConstOffsetsMask)
-         assert(!"Constant offsets to texture gather not yet implemented");
+      if (operands & SpvImageOperandsConstOffsetsMask) {
+         gather_offsets = vtn_ssa_value(b, w[idx++]);
+         (*p++) = (nir_tex_src){};
+      }
 
       if (operands & SpvImageOperandsSampleMask) {
          assert(texop == nir_texop_txf_ms);
@@ -1539,12 +1542,15 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    }
 
    nir_deref_var *sampler = vtn_access_chain_to_deref(b, sampled.sampler);
+   nir_deref *texture;
    if (sampled.image) {
       nir_deref_var *image = vtn_access_chain_to_deref(b, sampled.image);
-      instr->texture = nir_deref_as_var(nir_copy_deref(instr, &image->deref));
+      texture = &image->deref;
    } else {
-      instr->texture = nir_deref_as_var(nir_copy_deref(instr, &sampler->deref));
+      texture = &sampler->deref;
    }
+
+   instr->texture = nir_deref_as_var(nir_copy_deref(instr, texture));
 
    switch (instr->op) {
    case nir_texop_tex:
@@ -1575,10 +1581,66 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    assert(glsl_get_vector_elements(ret_type->type) ==
           nir_tex_instr_dest_size(instr));
 
-   val->ssa = vtn_create_ssa_value(b, ret_type->type);
-   val->ssa->def = &instr->dest.ssa;
+   nir_ssa_def *def;
+   nir_instr *instruction;
+   if (gather_offsets) {
+      assert(glsl_get_base_type(gather_offsets->type) == GLSL_TYPE_ARRAY);
+      assert(glsl_get_length(gather_offsets->type) == 4);
+      nir_tex_instr *instrs[4] = {instr, NULL, NULL, NULL};
 
-   nir_builder_instr_insert(&b->nb, &instr->instr);
+      /* Copy the current instruction 4x */
+      for (uint32_t i = 1; i < 4; i++) {
+         instrs[i] = nir_tex_instr_create(b->shader, instr->num_srcs);
+         instrs[i]->op = instr->op;
+         instrs[i]->coord_components = instr->coord_components;
+         instrs[i]->sampler_dim = instr->sampler_dim;
+         instrs[i]->is_array = instr->is_array;
+         instrs[i]->is_shadow = instr->is_shadow;
+         instrs[i]->is_new_style_shadow = instr->is_new_style_shadow;
+         instrs[i]->component = instr->component;
+         instrs[i]->dest_type = instr->dest_type;
+         instrs[i]->texture =
+            nir_deref_as_var(nir_copy_deref(instrs[i], texture));
+         instrs[i]->sampler = NULL;
+
+         memcpy(instrs[i]->src, srcs, instr->num_srcs * sizeof(*instr->src));
+
+         nir_ssa_dest_init(&instrs[i]->instr, &instrs[i]->dest,
+                           nir_tex_instr_dest_size(instr), 32, NULL);
+      }
+
+      /* Fill in the last argument with the offset from the passed in offsets
+       * and insert the instruction into the stream.
+       */
+      for (uint32_t i = 0; i < 4; i++) {
+         nir_tex_src src;
+         src.src = nir_src_for_ssa(gather_offsets->elems[i]->def);
+         src.src_type = nir_tex_src_offset;
+         instrs[i]->src[instrs[i]->num_srcs - 1] = src;
+         nir_builder_instr_insert(&b->nb, &instrs[i]->instr);
+      }
+
+      /* Combine the results of the 4 instructions by taking their .w
+       * components
+       */
+      nir_alu_instr *vec4 = nir_alu_instr_create(b->shader, nir_op_vec4);
+      nir_ssa_dest_init(&vec4->instr, &vec4->dest.dest, 4, 32, NULL);
+      vec4->dest.write_mask = 0xf;
+      for (uint32_t i = 0; i < 4; i++) {
+         vec4->src[i].src = nir_src_for_ssa(&instrs[i]->dest.ssa);
+         vec4->src[i].swizzle[0] = 3;
+      }
+      def = &vec4->dest.dest.ssa;
+      instruction = &vec4->instr;
+   } else {
+      def = &instr->dest.ssa;
+      instruction = &instr->instr;
+   }
+
+   val->ssa = vtn_create_ssa_value(b, ret_type->type);
+   val->ssa->def = def;
+
+   nir_builder_instr_insert(&b->nb, instruction);
 }
 
 static void
@@ -2437,6 +2499,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityClipDistance:
       case SpvCapabilityCullDistance:
       case SpvCapabilityInputAttachment:
+      case SpvCapabilityImageGatherExtended:
          break;
 
       case SpvCapabilityGeometryStreams:
@@ -2451,7 +2514,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityInt64Atomics:
       case SpvCapabilityAtomicStorage:
       case SpvCapabilityInt16:
-      case SpvCapabilityImageGatherExtended:
       case SpvCapabilityStorageImageMultisample:
       case SpvCapabilityImageCubeArray:
       case SpvCapabilityInt8:

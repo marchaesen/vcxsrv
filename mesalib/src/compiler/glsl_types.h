@@ -752,7 +752,7 @@ struct glsl_type {
     *
     * Note that this is often different than actual coordinate type used in
     * a texturing built-in function, since those pack additional values (such
-    * as the shadow comparitor or projector) into the coordinate type.
+    * as the shadow comparator or projector) into the coordinate type.
     */
    int coordinate_components() const;
 

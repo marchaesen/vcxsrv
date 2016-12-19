@@ -267,7 +267,7 @@ ir_tree_grafting_visitor::visit_enter(ir_texture *ir)
    if (do_graft(&ir->coordinate) ||
        do_graft(&ir->projector) ||
        do_graft(&ir->offset) ||
-       do_graft(&ir->shadow_comparitor))
+       do_graft(&ir->shadow_comparator))
 	 return visit_stop;
 
    switch (ir->op) {

@@ -40,6 +40,7 @@
 #include "hotplug.h"
 #include "systemd-logind.h"
 
+#include "loaderProcs.h"
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "xf86Priv.h"
@@ -114,6 +115,10 @@ xf86_find_platform_device_by_devnum(int major, int minor)
 static Bool
 xf86IsPrimaryPlatform(struct xf86_platform_device *plat)
 {
+    /* Add max. 1 screen for the IgnorePrimary fallback path */
+    if (xf86ProbeIgnorePrimary && xf86NumScreens == 0)
+        return TRUE;
+
     if (primaryBus.type == BUS_PLATFORM)
         return plat == primaryBus.id.plat;
 #ifdef XSERVER_LIBPCIACCESS
@@ -141,16 +146,9 @@ platform_find_pci_info(struct xf86_platform_device *pd, char *busid)
 
     iter = pci_slot_match_iterator_create(&devmatch);
     info = pci_device_next(iter);
-    if (info) {
+    if (info)
         pd->pdev = info;
-        pci_device_probe(info);
-        if (pci_device_is_boot_vga(info)) {
-            primaryBus.type = BUS_PLATFORM;
-            primaryBus.id.plat = pd;
-        }
-    }
     pci_iterator_destroy(iter);
-
 }
 
 static Bool
@@ -210,9 +208,10 @@ MatchToken(const char *value, struct xorg_list *patterns,
 }
 
 static Bool
-OutputClassMatches(const XF86ConfOutputClassPtr oclass, int index)
+OutputClassMatches(const XF86ConfOutputClassPtr oclass,
+                   struct xf86_platform_device *dev)
 {
-    char *driver = xf86_platform_odev_attributes(index)->driver;
+    char *driver = dev->attribs->driver;
 
     if (!MatchToken(driver, &oclass->match_driver, strcmp))
         return FALSE;
@@ -230,7 +229,7 @@ xf86OutputClassDriverList(int index, char *matches[], int nmatches)
         return 0;
 
     for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
-        if (OutputClassMatches(cl, index)) {
+        if (OutputClassMatches(cl, &xf86_platform_devices[index])) {
             char *path = xf86_platform_odev_attributes(index)->path;
 
             xf86Msg(X_INFO, "Applying OutputClass \"%s\" to %s\n",
@@ -288,6 +287,8 @@ xf86platformProbe(void)
 {
     int i;
     Bool pci = TRUE;
+    XF86ConfOutputClassPtr cl;
+    char *old_path, *path = NULL;
 
     config_odev_probe(xf86PlatformDeviceProbe);
 
@@ -301,8 +302,103 @@ xf86platformProbe(void)
         if (pci && (strncmp(busid, "pci:", 4) == 0)) {
             platform_find_pci_info(&xf86_platform_devices[i], busid);
         }
+
+        /*
+         * Deal with OutputClass ModulePath directives, these must be
+         * processed before we do any module loading.
+         */
+        for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
+            if (!OutputClassMatches(cl, &xf86_platform_devices[i]))
+                continue;
+
+            if (cl->modulepath && xf86ModPathFrom != X_CMDLINE) {
+                old_path = path;
+                XNFasprintf(&path, "%s,%s", cl->modulepath,
+                            path ? path : xf86ModulePath);
+                free(old_path);
+                xf86Msg(X_CONFIG, "OutputClass \"%s\" ModulePath extended to \"%s\"\n",
+                        cl->identifier, path);
+                LoaderSetPath(path);
+            }
+        }
     }
+
+    free(path);
+
+    /* First see if there is an OutputClass match marking a device as primary */
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        struct xf86_platform_device *dev = &xf86_platform_devices[i];
+        for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
+            if (!OutputClassMatches(cl, dev))
+                continue;
+
+            if (xf86CheckBoolOption(cl->option_lst, "PrimaryGPU", FALSE)) {
+                xf86Msg(X_CONFIG, "OutputClass \"%s\" setting %s as PrimaryGPU\n",
+                        cl->identifier, dev->attribs->path);
+                primaryBus.type = BUS_PLATFORM;
+                primaryBus.id.plat = dev;
+                return 0;
+            }
+        }
+    }
+
+    /* Then check for pci_device_is_boot_vga() */
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        struct xf86_platform_device *dev = &xf86_platform_devices[i];
+
+        if (!dev->pdev)
+            continue;
+
+        pci_device_probe(dev->pdev);
+        if (pci_device_is_boot_vga(dev->pdev)) {
+            primaryBus.type = BUS_PLATFORM;
+            primaryBus.id.plat = dev;
+        }
+    }
+
     return 0;
+}
+
+void
+xf86MergeOutputClassOptions(int entityIndex, void **options)
+{
+    const EntityPtr entity = xf86Entities[entityIndex];
+    struct xf86_platform_device *dev = NULL;
+    XF86ConfOutputClassPtr cl;
+    XF86OptionPtr classopts;
+    int i = 0;
+
+    switch (entity->bus.type) {
+    case BUS_PLATFORM:
+        dev = entity->bus.id.plat;
+        break;
+    case BUS_PCI:
+        for (i = 0; i < xf86_num_platform_devices; i++) {
+            if (MATCH_PCI_DEVICES(xf86_platform_devices[i].pdev,
+                                  entity->bus.id.pci)) {
+                dev = &xf86_platform_devices[i];
+                break;
+            }
+        }
+        break;
+    default:
+        xf86Msg(X_DEBUG, "xf86MergeOutputClassOptions unsupported bus type %d\n",
+                entity->bus.type);
+    }
+
+    if (!dev)
+        return;
+
+    for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
+        if (!OutputClassMatches(cl, dev) || !cl->option_lst)
+            continue;
+
+        xf86Msg(X_INFO, "Applying OutputClass \"%s\" options to %s\n",
+                cl->identifier, dev->attribs->path);
+
+        classopts = xf86optionListDup(cl->option_lst);
+        *options = xf86optionListMerge(*options, classopts);
+    }
 }
 
 static int
@@ -475,6 +571,23 @@ xf86platformProbeDev(DriverPtr drvp)
                                         isGPUDevice(devList[i]) ? PLATFORM_PROBE_GPU_SCREEN : 0);
     }
 
+    free(devList);
+
+    return foundScreen;
+}
+
+int
+xf86platformAddGPUDevices(DriverPtr drvp)
+{
+    Bool foundScreen = FALSE;
+    GDevPtr *devList;
+    int j;
+
+    if (!drvp->platformProbe)
+        return FALSE;
+
+    xf86MatchDevice(drvp->driverName, &devList);
+
     /* if autoaddgpu devices is enabled then go find any unclaimed platform
      * devices and add them as GPU screens */
     if (xf86Info.autoAddGPU) {
@@ -485,6 +598,8 @@ xf86platformProbeDev(DriverPtr drvp)
                 foundScreen = TRUE;
         }
     }
+
+    free(devList);
 
     return foundScreen;
 }

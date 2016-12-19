@@ -931,7 +931,6 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
       nir_var->data.location_frac = dec->literals[0];
       break;
    case SpvDecorationIndex:
-      nir_var->data.explicit_index = true;
       nir_var->data.index = dec->literals[0];
       break;
    case SpvDecorationBuiltIn: {
@@ -952,7 +951,6 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
 
       nir_variable_mode mode = nir_var->data.mode;
       vtn_get_builtin_location(b, builtin, &nir_var->data.location, &mode);
-      nir_var->data.explicit_location = true;
       nir_var->data.mode = mode;
 
       if (builtin == SpvBuiltInFragCoord || builtin == SpvBuiltInSamplePosition)
@@ -1073,7 +1071,6 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
       if (vtn_var->var) {
          /* This handles the member and lone variable cases */
          vtn_var->var->data.location = location;
-         vtn_var->var->data.explicit_location = true;
       } else {
          /* This handles the structure member case */
          assert(vtn_var->members);
@@ -1081,7 +1078,6 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
             glsl_get_length(glsl_without_array(vtn_var->type->type));
          for (unsigned i = 0; i < length; i++) {
             vtn_var->members[i]->data.location = location;
-            vtn_var->members[i]->data.explicit_location = true;
             location +=
                glsl_count_attribute_slots(vtn_var->members[i]->interface_type,
                                           is_vertex_input);

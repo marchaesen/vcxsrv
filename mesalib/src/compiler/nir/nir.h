@@ -194,32 +194,6 @@ typedef struct nir_variable {
       /*@}*/
 
       /**
-       * Was the location explicitly set in the shader?
-       *
-       * If the location is explicitly set in the shader, it \b cannot be changed
-       * by the linker or by the API (e.g., calls to \c glBindAttribLocation have
-       * no effect).
-       */
-      unsigned explicit_location:1;
-      unsigned explicit_index:1;
-
-      /**
-       * Was an initial binding explicitly set in the shader?
-       *
-       * If so, constant_initializer contains an integer nir_constant
-       * representing the initial binding point.
-       */
-      unsigned explicit_binding:1;
-
-      /**
-       * Does this variable have an initializer?
-       *
-       * This is used by the linker to cross-validiate initializers of global
-       * variables.
-       */
-      unsigned has_initializer:1;
-
-      /**
        * If non-zero, then this variable may be packed along with other variables
        * into a single varying slot, so this offset should be applied when
        * accessing components.  For example, an offset of 1 means that the x
@@ -312,14 +286,6 @@ typedef struct nir_variable {
          /** Image internal format if specified explicitly, otherwise GL_NONE. */
          GLenum format;
       } image;
-
-      /**
-       * Highest element accessed with a constant expression array index
-       *
-       * Not used for non-array variables.
-       */
-      unsigned max_array_access;
-
    } data;
 
    /**
@@ -340,6 +306,10 @@ typedef struct nir_variable {
 
    /**
     * Constant expression assigned in the initializer of the variable
+    *
+    * This field should only be used temporarily by creators of NIR shaders
+    * and then lower_constant_initializers can be used to get rid of them.
+    * Most of the rest of NIR ignores this field or asserts that it's NULL.
     */
    nir_constant *constant_initializer;
 
@@ -1095,7 +1065,7 @@ INTRINSIC_IDX_ACCESSORS(interp_mode, INTERP_MODE, unsigned)
 typedef enum {
    nir_tex_src_coord,
    nir_tex_src_projector,
-   nir_tex_src_comparitor, /* shadow comparitor */
+   nir_tex_src_comparator, /* shadow comparator */
    nir_tex_src_offset,
    nir_tex_src_bias,
    nir_tex_src_lod,
@@ -1293,7 +1263,7 @@ nir_tex_instr_src_type(nir_tex_instr *instr, unsigned src)
       }
 
    case nir_tex_src_projector:
-   case nir_tex_src_comparitor:
+   case nir_tex_src_comparator:
    case nir_tex_src_bias:
    case nir_tex_src_ddx:
    case nir_tex_src_ddy:
@@ -2340,6 +2310,8 @@ void nir_lower_io_types(nir_shader *shader);
 void nir_lower_vars_to_ssa(nir_shader *shader);
 
 bool nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes);
+bool nir_lower_constant_initializers(nir_shader *shader,
+                                     nir_variable_mode modes);
 
 void nir_move_vec_src_uses_to_dest(nir_shader *shader);
 bool nir_lower_vec_to_movs(nir_shader *shader);
@@ -2422,6 +2394,18 @@ typedef struct nir_lower_tex_options {
     * of the texture are lowered to linear.
     */
    unsigned lower_srgb;
+
+   /**
+    * If true, lower nir_texop_txd on cube maps with nir_texop_txl.
+    */
+   bool lower_txd_cube_map;
+
+   /**
+    * If true, lower nir_texop_txd on shadow samplers (except cube maps)
+    * with nir_texop_txl. Notice that cube map shadow samplers are lowered
+    * with lower_txd_cube_map.
+    */
+   bool lower_txd_shadow;
 } nir_lower_tex_options;
 
 bool nir_lower_tex(nir_shader *shader,

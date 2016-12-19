@@ -686,8 +686,14 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
     }
 
     newsize = RegionExtents(&total_region);
-    new_width = newsize->x2 - newsize->x1;
-    new_height = newsize->y2 - newsize->y1;
+    new_width = newsize->x2;
+    new_height = newsize->y2;
+
+    if (new_width < screen_pixmap->drawable.width)
+        new_width = screen_pixmap->drawable.width;
+
+    if (new_height < screen_pixmap->drawable.height)
+        new_height = screen_pixmap->drawable.height;
 
     if (new_width == screen_pixmap->drawable.width &&
         new_height == screen_pixmap->drawable.height) {

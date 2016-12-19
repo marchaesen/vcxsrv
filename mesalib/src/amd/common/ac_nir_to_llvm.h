@@ -56,7 +56,35 @@ struct ac_nir_compiler_options {
 	enum chip_class chip_class;
 };
 
+struct ac_userdata_info {
+	int8_t sgpr_idx;
+	uint8_t num_sgprs;
+	bool indirect;
+	uint32_t indirect_offset;
+};
+
+enum ac_ud_index {
+	AC_UD_PUSH_CONSTANTS = 0,
+	AC_UD_SHADER_START = 1,
+	AC_UD_VS_VERTEX_BUFFERS = AC_UD_SHADER_START,
+	AC_UD_VS_BASE_VERTEX_START_INSTANCE,
+	AC_UD_VS_MAX_UD,
+	AC_UD_PS_SAMPLE_POS = AC_UD_SHADER_START,
+	AC_UD_PS_MAX_UD,
+	AC_UD_CS_GRID_SIZE = AC_UD_SHADER_START,
+	AC_UD_CS_MAX_UD,
+	AC_UD_MAX_UD = AC_UD_VS_MAX_UD,
+};
+
+#define AC_UD_MAX_SETS 4
+
+struct ac_userdata_locations {
+	struct ac_userdata_info descriptor_sets[AC_UD_MAX_SETS];
+	struct ac_userdata_info shader_data[AC_UD_MAX_UD];
+};
+
 struct ac_shader_variant_info {
+	struct ac_userdata_locations user_sgprs_locs;
 	unsigned num_user_sgprs;
 	unsigned num_input_sgprs;
 	unsigned num_input_vgprs;
@@ -97,20 +125,4 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
                            const struct ac_nir_compiler_options *options,
 			   bool dump_shader);
 
-/* SHADER ABI defines */
-
-/* offset in dwords */
-#define AC_USERDATA_DESCRIPTOR_SET_0 0
-#define AC_USERDATA_DESCRIPTOR_SET_1 2
-#define AC_USERDATA_DESCRIPTOR_SET_2 4
-#define AC_USERDATA_DESCRIPTOR_SET_3 6
-#define AC_USERDATA_PUSH_CONST_DYN 8
-
-#define AC_USERDATA_VS_VERTEX_BUFFERS 10
-#define AC_USERDATA_VS_BASE_VERTEX 12
-#define AC_USERDATA_VS_START_INSTANCE 13
-
-#define AC_USERDATA_PS_SAMPLE_POS 10
-
-#define AC_USERDATA_CS_GRID_SIZE 10
 

@@ -144,6 +144,8 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
    v2.run(sh->ir);
    visit_exec_list(sh->ir, &v1);
 
+   nir_lower_constant_initializers(shader, (nir_variable_mode)~0);
+
    shader->info->name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
    if (shader_prog->Label)
       shader->info->label = ralloc_strdup(shader, shader_prog->Label);
@@ -205,17 +207,21 @@ constant_copy(ir_constant *ir, void *mem_ctx)
    ret->num_elements = 0;
    switch (ir->type->base_type) {
    case GLSL_TYPE_UINT:
-      for (unsigned c = 0; c < cols; c++) {
-         for (unsigned r = 0; r < rows; r++)
-            ret->values[c].u32[r] = ir->value.u[c * rows + r];
-      }
+      /* Only float base types can be matrices. */
+      assert(cols == 1);
+
+      for (unsigned r = 0; r < rows; r++)
+         ret->values[0].u32[r] = ir->value.u[r];
+
       break;
 
    case GLSL_TYPE_INT:
-      for (unsigned c = 0; c < cols; c++) {
-         for (unsigned r = 0; r < rows; r++)
-            ret->values[c].i32[r] = ir->value.i[c * rows + r];
-      }
+      /* Only float base types can be matrices. */
+      assert(cols == 1);
+
+      for (unsigned r = 0; r < rows; r++)
+         ret->values[0].i32[r] = ir->value.i[r];
+
       break;
 
    case GLSL_TYPE_FLOAT:
@@ -233,12 +239,12 @@ constant_copy(ir_constant *ir, void *mem_ctx)
       break;
 
    case GLSL_TYPE_BOOL:
-      for (unsigned c = 0; c < cols; c++) {
-         for (unsigned r = 0; r < rows; r++) {
-            ret->values[c].u32[r] = ir->value.b[c * rows + r] ?
-                                    NIR_TRUE : NIR_FALSE;
-         }
-      }
+      /* Only float base types can be matrices. */
+      assert(cols == 1);
+
+      for (unsigned r = 0; r < rows; r++)
+         ret->values[0].u32[r] = ir->value.b[r] ? NIR_TRUE : NIR_FALSE;
+
       break;
 
    case GLSL_TYPE_STRUCT:
@@ -338,10 +344,6 @@ nir_visitor::visit(ir_variable *ir)
    var->data.interpolation = ir->data.interpolation;
    var->data.origin_upper_left = ir->data.origin_upper_left;
    var->data.pixel_center_integer = ir->data.pixel_center_integer;
-   var->data.explicit_location = ir->data.explicit_location;
-   var->data.explicit_index = ir->data.explicit_index;
-   var->data.explicit_binding = ir->data.explicit_binding;
-   var->data.has_initializer = ir->data.has_initializer;
    var->data.compact = false;
    var->data.location_frac = ir->data.location_frac;
 
@@ -374,7 +376,6 @@ nir_visitor::visit(ir_variable *ir)
    var->data.image._volatile = ir->data.image_volatile;
    var->data.image.restrict_flag = ir->data.image_restrict;
    var->data.image.format = ir->data.image_format;
-   var->data.max_array_access = ir->data.max_array_access;
    var->data.fb_fetch_output = ir->data.fb_fetch_output;
 
    var->num_state_slots = ir->get_num_state_slots();
@@ -1897,7 +1898,7 @@ nir_visitor::visit(ir_texture *ir)
 
    if (ir->projector != NULL)
       num_srcs++;
-   if (ir->shadow_comparitor != NULL)
+   if (ir->shadow_comparator != NULL)
       num_srcs++;
    if (ir->offset != NULL)
       num_srcs++;
@@ -1945,10 +1946,10 @@ nir_visitor::visit(ir_texture *ir)
       src_number++;
    }
 
-   if (ir->shadow_comparitor != NULL) {
+   if (ir->shadow_comparator != NULL) {
       instr->src[src_number].src =
-         nir_src_for_ssa(evaluate_rvalue(ir->shadow_comparitor));
-      instr->src[src_number].src_type = nir_tex_src_comparitor;
+         nir_src_for_ssa(evaluate_rvalue(ir->shadow_comparator));
+      instr->src[src_number].src_type = nir_tex_src_comparator;
       src_number++;
    }
 

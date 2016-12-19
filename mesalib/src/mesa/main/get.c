@@ -436,6 +436,11 @@ static const int extra_KHR_robustness_or_GL[] = {
    EXTRA_END
 };
 
+static const int extra_INTEL_conservative_rasterization[] = {
+   EXT(INTEL_conservative_rasterization),
+   EXTRA_END
+};
+
 EXTRA_EXT(ARB_texture_cube_map);
 EXTRA_EXT(EXT_texture_array);
 EXTRA_EXT(NV_fog_distance);

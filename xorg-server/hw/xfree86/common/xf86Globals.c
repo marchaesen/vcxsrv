@@ -152,6 +152,7 @@ XF86ConfigPtr xf86configptr = NULL;
 Bool xf86Resetting = FALSE;
 Bool xf86Initialising = FALSE;
 Bool xf86DoConfigure = FALSE;
+Bool xf86ProbeIgnorePrimary = FALSE;
 Bool xf86DoShowOptions = FALSE;
 DriverPtr *xf86DriverList = NULL;
 int xf86NumDrivers = 0;

@@ -504,14 +504,12 @@ typedef struct _Screen {
     char backingStoreSupport, saveUnderSupport;
     unsigned long whitePixel, blackPixel;
     GCPtr GCperDepth[MAXFORMATS + 1];
-    /* next field is a stipple to use as default in
-       a GC.  we don't build default tiles of all depths
-       because they are likely to be of a color
-       different from the default fg pixel, so
-       we don't win anything by building
-       a standard one.
+    /* next field is a stipple to use as default in a GC.  we don't build
+     * default tiles of all depths because they are likely to be of a color
+     * different from the default fg pixel, so we don't win anything by
+     * building a standard one.
      */
-    PixmapPtr PixmapPerDepth[1];
+    PixmapPtr defaultStipple;
     void *devPrivate;
     short numVisuals;
     VisualPtr visuals;

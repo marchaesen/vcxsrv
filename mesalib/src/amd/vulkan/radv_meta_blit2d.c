@@ -112,7 +112,6 @@ static void
 blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer,
                 struct radv_meta_blit2d_surf *src_img,
                 struct radv_meta_blit2d_buffer *src_buf,
-                struct radv_meta_blit2d_rect *rect,
                 struct blit2d_src_temps *tmp,
                 enum blit2d_src_type src_type, VkFormat depth_format)
 {
@@ -164,7 +163,7 @@ blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer,
 								  .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 								  .pImageInfo = (VkDescriptorImageInfo[]) {
 								  {
-									  .sampler = NULL,
+									  .sampler = VK_NULL_HANDLE,
 									  .imageView = radv_image_view_to_handle(&tmp->iview),
 									  .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 								  },
@@ -287,7 +286,7 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 		if (dst->aspect_mask != VK_IMAGE_ASPECT_COLOR_BIT)
 			depth_format = dst->image->vk_format;
 		struct blit2d_src_temps src_temps;
-		blit2d_bind_src(cmd_buffer, src_img, src_buf, &rects[r], &src_temps, src_type, depth_format);
+		blit2d_bind_src(cmd_buffer, src_img, src_buf, &src_temps, src_type, depth_format);
 
 		uint32_t offset = 0;
 		struct blit2d_dst_temps dst_temps;

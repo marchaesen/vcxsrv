@@ -439,6 +439,16 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          FLUSH_VERTICES(ctx, _NEW_COLOR);
          ctx->Color.IndexLogicOpEnabled = state;
          break;
+      case GL_CONSERVATIVE_RASTERIZATION_INTEL:
+         if (!_mesa_has_INTEL_conservative_rasterization(ctx))
+            goto invalid_enum_error;
+         if (ctx->IntelConservativeRasterization == state)
+            return;
+         FLUSH_VERTICES(ctx, 0);
+         ctx->NewDriverState |=
+            ctx->DriverFlags.NewIntelConservativeRasterization;
+         ctx->IntelConservativeRasterization = state;
+         break;
       case GL_COLOR_LOGIC_OP:
          if (!_mesa_is_desktop_gl(ctx) && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
@@ -1630,6 +1640,10 @@ _mesa_IsEnabled( GLenum cap )
       case GL_BLEND_ADVANCED_COHERENT_KHR:
          CHECK_EXTENSION(KHR_blend_equation_advanced_coherent);
          return ctx->Color.BlendCoherent;
+
+      case GL_CONSERVATIVE_RASTERIZATION_INTEL:
+         CHECK_EXTENSION(INTEL_conservative_rasterization);
+         return ctx->IntelConservativeRasterization;
 
       default:
          goto invalid_enum_error;

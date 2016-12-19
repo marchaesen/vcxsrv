@@ -143,7 +143,7 @@ ir_texture::equals(const ir_instruction *ir, enum ir_node_type ignore) const
    if (!possibly_null_equals(projector, other->projector, ignore))
       return false;
 
-   if (!possibly_null_equals(shadow_comparitor, other->shadow_comparitor, ignore))
+   if (!possibly_null_equals(shadow_comparator, other->shadow_comparator, ignore))
       return false;
 
    if (!possibly_null_equals(offset, other->offset, ignore))

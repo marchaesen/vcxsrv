@@ -92,6 +92,14 @@ XVMC_REQUIRED=1.0.6
 PYTHON_MAKO_REQUIRED=0.8.0
 LIBSENSORS_REQUIRED=4.0.0
 
+dnl LLVM versions
+LLVM_REQUIRED_GALLIUM=3.3.0
+LLVM_REQUIRED_OPENCL=3.6.0
+LLVM_REQUIRED_R600=3.6.0
+LLVM_REQUIRED_RADEONSI=3.6.0
+LLVM_REQUIRED_RADV=3.9.0
+LLVM_REQUIRED_SWR=3.6.0
+
 dnl Check for progs
 AC_PROG_CPP
 AC_PROG_CC
@@ -863,6 +871,211 @@ fi
 AC_SUBST([SELINUX_CFLAGS])
 AC_SUBST([SELINUX_LIBS])
 
+dnl
+dnl LLVM
+dnl
+AC_ARG_ENABLE([llvm-shared-libs],
+    [AS_HELP_STRING([--enable-llvm-shared-libs],
+        [link with LLVM shared libraries @<:@default=enabled@:>@])],
+    [enable_llvm_shared_libs="$enableval"],
+    [enable_llvm_shared_libs=yes])
+
+AC_ARG_WITH([llvm-prefix],
+    [AS_HELP_STRING([--with-llvm-prefix],
+        [Prefix for LLVM installations in non-standard locations])],
+    [llvm_prefix="$withval"],
+    [llvm_prefix=''])
+
+PKG_CHECK_MODULES([LIBELF], [libelf], [have_libelf=yes], [have_libelf=no])
+if test "x$have_libelf" = xno; then
+   LIBELF_LIBS=''
+   LIBELF_CFLAGS=''
+   AC_CHECK_LIB([elf], [elf_memory], [have_libelf=yes;LIBELF_LIBS=-lelf], [have_libelf=no])
+   AC_SUBST([LIBELF_LIBS])
+   AC_SUBST([LIBELF_CFLAGS])
+fi
+
+if test -z "$LLVM_CONFIG"; then
+    if test -n "$llvm_prefix"; then
+        AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no], ["$llvm_prefix/bin"])
+    else
+        AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no])
+    fi
+fi
+
+llvm_add_component() {
+    new_llvm_component=$1
+    driver_name=$2
+
+    if $LLVM_CONFIG --components | grep -iqw $new_llvm_component ; then
+        LLVM_COMPONENTS="${LLVM_COMPONENTS} ${new_llvm_component}"
+    else
+        AC_MSG_ERROR([LLVM component '$new_llvm_component' not enabled in your LLVM build. Required by $driver_name.])
+    fi
+}
+
+llvm_add_default_components() {
+    driver_name=$1
+
+    # Required default components
+    llvm_add_component "bitwriter" $driver_name
+    llvm_add_component "engine" $driver_name
+    llvm_add_component "mcdisassembler" $driver_name
+    llvm_add_component "mcjit" $driver_name
+
+    # Optional default components
+    if $LLVM_CONFIG --components | grep -iqw inteljitevents ; then
+        LLVM_COMPONENTS="$LLVM_COMPONENTS inteljitevents"
+    fi
+}
+
+llvm_add_target() {
+    new_llvm_target=$1
+    driver_name=$2
+
+    if $LLVM_CONFIG --targets-built | grep -iqw $new_llvm_target ; then
+        llvm_add_component $new_llvm_target $driver_name
+    else
+        AC_MSG_ERROR([LLVM target '$new_llvm_target' not enabled in your LLVM build. Required by $driver_name.])
+    fi
+}
+
+# Call this inside ` ` to get the return value.
+# $1 is the llvm-config command with arguments.
+strip_unwanted_llvm_flags() {
+    # Use \> (marks the end of the word)
+    echo `$1` | sed \
+        -e 's/-march=\S*//g' \
+        -e 's/-mtune=\S*//g' \
+        -e 's/-mcpu=\S*//g' \
+        -e 's/-DNDEBUG\>//g' \
+        -e 's/-D_GNU_SOURCE\>//g' \
+        -e 's/-pedantic\>//g' \
+        -e 's/-Wcovered-switch-default\>//g' \
+        -e 's/-O.\>//g' \
+        -e 's/-g\>//g' \
+        -e 's/-Wall\>//g' \
+        -e 's/-Wcast-qual\>//g' \
+        -e 's/-Woverloaded-virtual\>//g' \
+        -e 's/-fcolor-diagnostics\>//g' \
+        -e 's/-fdata-sections\>//g' \
+        -e 's/-ffunction-sections\>//g' \
+        -e 's/-fno-exceptions\>//g' \
+        -e 's/-fomit-frame-pointer\>//g' \
+        -e 's/-fvisibility-inlines-hidden\>//g' \
+        -e 's/-fPIC\>//g' \
+        -e 's/-fstack-protector-strong\>//g'
+}
+
+llvm_set_environment_variables() {
+    if test "x$LLVM_CONFIG" != xno; then
+        LLVM_VERSION=`$LLVM_CONFIG --version | egrep -o '^[[0-9.]]+'`
+        LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
+        LLVM_BINDIR=`$LLVM_CONFIG --bindir`
+        LLVM_CPPFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cppflags"`
+        LLVM_CFLAGS=$LLVM_CPPFLAGS   # CPPFLAGS seem to be sufficient
+        LLVM_CXXFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cxxflags"`
+        LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
+        LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
+
+        AC_COMPUTE_INT([LLVM_VERSION_MAJOR], [LLVM_VERSION_MAJOR],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
+        AC_COMPUTE_INT([LLVM_VERSION_MINOR], [LLVM_VERSION_MINOR],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
+        AC_COMPUTE_INT([LLVM_VERSION_PATCH], [LLVM_VERSION_PATCH],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
+
+        # Only needed for LLVM < 3.6.0
+        if test -z "$LLVM_VERSION_PATCH"; then
+            LLVM_VERSION_PATCH=0
+        fi
+
+        if test "$LLVM_VERSION_MINOR" -lt 10; then
+            LLVM_VERSION_INT="${LLVM_VERSION_MAJOR}0${LLVM_VERSION_MINOR}"
+        else
+            LLVM_VERSION_INT="${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR}"
+        fi
+
+        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT -DMESA_LLVM_VERSION_PATCH=$LLVM_VERSION_PATCH"
+        MESA_LLVM=1
+    else
+        MESA_LLVM=0
+        LLVM_VERSION_INT=0
+    fi
+}
+
+llvm_check_version_for() {
+    if test "x$MESA_LLVM" = x0; then
+        AC_MSG_ERROR([LLVM $1 or newer is required for $2])
+        return
+    fi
+
+    llvm_target_version_major=`echo $1 | cut -d. -f1 | egrep -o '^[[0-9]]+'`
+    llvm_target_version_minor=`echo $1 | cut -d. -f2 | egrep -o '^[[0-9]]+'`
+    llvm_target_version_patch=`echo $1 | cut -d. -f3 | egrep -o '^[[0-9]]+'`
+
+    if test "$LLVM_VERSION_MAJOR" -gt "$llvm_target_version_major"; then
+        # major > required major
+        #  --> OK
+        return
+    fi
+
+    if test "$LLVM_VERSION_MAJOR" -eq "$llvm_target_version_major"; then
+        if test "$LLVM_VERSION_MINOR" -gt "$llvm_target_version_minor"; then
+            # major = required major and
+            # minor > required minor
+            #  --> OK
+            return
+        else
+            if test "$LLVM_VERSION_MINOR" -eq "$llvm_target_version_minor"; then
+                if test "$LLVM_VERSION_PATCH" -ge "$llvm_target_version_patch"; then
+                    # major = required major and
+                    # minor = required minor and
+                    # patch >= required patch
+                    #  --> OK
+                    return
+                fi
+            fi
+        fi
+    fi
+
+    AC_MSG_ERROR([LLVM $1 or newer is required for $2])
+}
+
+radeon_llvm_check() {
+    if test ${LLVM_VERSION_INT} -lt 307; then
+        amdgpu_llvm_target_name='r600'
+    else
+        amdgpu_llvm_target_name='amdgpu'
+    fi
+
+    llvm_check_version_for $*
+
+    llvm_add_target $amdgpu_llvm_target_name $2
+
+    llvm_add_default_components $2
+    llvm_add_component "bitreader" $2
+    llvm_add_component "ipo" $2
+
+    NEED_RADEON_LLVM=yes
+    if test "x$have_libelf" != xyes; then
+       AC_MSG_ERROR([$1 requires libelf when using llvm])
+    fi
+}
+
+llvm_set_environment_variables
+
+AC_SUBST([MESA_LLVM])
+AC_SUBST([LLVM_BINDIR])
+AC_SUBST([LLVM_CFLAGS])
+AC_SUBST([LLVM_CPPFLAGS])
+AC_SUBST([LLVM_CXXFLAGS])
+AC_SUBST([LLVM_LIBDIR])
+AC_SUBST([LLVM_LIBS])
+AC_SUBST([LLVM_LDFLAGS])
+AC_SUBST([LLVM_INCLUDEDIR])
+AC_SUBST([LLVM_VERSION])
+
 dnl Options for APIs
 AC_ARG_ENABLE([opengl],
     [AS_HELP_STRING([--disable-opengl],
@@ -1218,8 +1431,6 @@ if test "x$enable_gallium_osmesa" = xyes; then
     fi
 fi
 
-AC_SUBST([MESA_LLVM])
-
 # SHA1 hashing
 AC_ARG_WITH([sha1],
         [AS_HELP_STRING([--with-sha1=libc|libmd|libnettle|libgcrypt|libcrypto|libsha1|CommonCrypto|CryptoAPI],
@@ -1494,13 +1705,14 @@ dnl
 
 AC_ARG_ENABLE([glx-tls],
     [AS_HELP_STRING([--enable-glx-tls],
-        [enable TLS support in GLX @<:@default=disabled@:>@])],
+        [enable TLS support in GLX @<:@default=enabled@:>@])],
     [GLX_USE_TLS="$enableval"],
-    [GLX_USE_TLS=no])
+    [GLX_USE_TLS=yes])
 AC_SUBST(GLX_TLS, ${GLX_USE_TLS})
 
-AS_IF([test "x$GLX_USE_TLS" = xyes -a "x$ax_pthread_ok" = xyes],
-      [DEFINES="${DEFINES} -DGLX_USE_TLS"])
+if test "x$GLX_USE_TLS" = xyes; then
+    DEFINES="$DEFINES -DGLX_USE_TLS"
+fi
 
 dnl Read-only text section on x86 hardened platforms
 AC_ARG_ENABLE([glx-read-only-text],
@@ -1692,6 +1904,7 @@ if test -n "$with_vulkan_drivers"; then
             ;;
         xradeon)
             PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
+            radeon_llvm_check $LLVM_REQUIRED_RADV "radv"
             HAVE_RADEON_VULKAN=yes;
             if test "x$with_sha1" == "x"; then
                 AC_MSG_ERROR([radv vulkan driver requires SHA1])
@@ -1931,15 +2144,6 @@ AC_ARG_WITH([clang-libdir],
    [CLANG_LIBDIR=''])
 
 PKG_CHECK_EXISTS([libclc], [have_libclc=yes], [have_libclc=no])
-PKG_CHECK_MODULES([LIBELF], [libelf], [have_libelf=yes], [have_libelf=no])
-
-if test "x$have_libelf" = xno; then
-   LIBELF_LIBS=''
-   LIBELF_CFLAGS=''
-   AC_CHECK_LIB([elf], [elf_memory], [have_libelf=yes;LIBELF_LIBS=-lelf], [have_libelf=no])
-   AC_SUBST([LIBELF_LIBS])
-   AC_SUBST([LIBELF_CFLAGS])
-fi
 
 if test "x$enable_opencl" = xyes; then
     if test -z "$with_gallium_drivers"; then
@@ -1973,26 +2177,36 @@ if test "x$enable_opencl" = xyes; then
     if test "x$have_libelf" != xyes; then
        AC_MSG_ERROR([Clover requires libelf])
     fi
+
+    llvm_check_version_for $LLVM_REQUIRED_OPENCL "opencl"
+
+    llvm_add_default_components "opencl"
+    llvm_add_component "all-targets" "opencl"
+    llvm_add_component "linker" "opencl"
+    llvm_add_component "instrumentation" "opencl"
+    llvm_add_component "ipo" "opencl"
+    llvm_add_component "irreader" "opencl"
+    llvm_add_component "option" "opencl"
+    llvm_add_component "objcarcopts" "opencl"
+    llvm_add_component "profiledata" "opencl"
+
+    dnl Check for Clang internal headers
+    if test -z "$CLANG_LIBDIR"; then
+        CLANG_LIBDIR=${LLVM_LIBDIR}
+    fi
+    CLANG_RESOURCE_DIR=$CLANG_LIBDIR/clang/${LLVM_VERSION}
+    AS_IF([test ! -f "$CLANG_RESOURCE_DIR/include/stddef.h"],
+        [AC_MSG_ERROR([Could not find clang internal header stddef.h in $CLANG_RESOURCE_DIR Use --with-clang-libdir to specify the correct path to the clang libraries.])])
 fi
 AM_CONDITIONAL(HAVE_CLOVER, test "x$enable_opencl" = xyes)
 AM_CONDITIONAL(HAVE_CLOVER_ICD, test "x$enable_opencl_icd" = xyes)
 AC_SUBST([OPENCL_LIBNAME])
+AC_SUBST([CLANG_RESOURCE_DIR])
 
 dnl
 dnl Gallium configuration
 dnl
 AM_CONDITIONAL(HAVE_GALLIUM, test -n "$with_gallium_drivers")
-
-AC_SUBST([LLVM_BINDIR])
-AC_SUBST([LLVM_CFLAGS])
-AC_SUBST([LLVM_CPPFLAGS])
-AC_SUBST([LLVM_CXXFLAGS])
-AC_SUBST([LLVM_LIBDIR])
-AC_SUBST([LLVM_LIBS])
-AC_SUBST([LLVM_LDFLAGS])
-AC_SUBST([LLVM_INCLUDEDIR])
-AC_SUBST([LLVM_VERSION])
-AC_SUBST([CLANG_RESOURCE_DIR])
 
 case "x$enable_opengl$enable_gles1$enable_gles2" in
 x*yes*)
@@ -2109,54 +2323,6 @@ AC_ARG_ENABLE([gallium-llvm],
     [enable_gallium_llvm="$enableval"],
     [enable_gallium_llvm=auto])
 
-AC_ARG_ENABLE([llvm-shared-libs],
-    [AS_HELP_STRING([--enable-llvm-shared-libs],
-        [link with LLVM shared libraries @<:@default=enabled@:>@])],
-    [enable_llvm_shared_libs="$enableval"],
-    [enable_llvm_shared_libs=yes])
-
-AC_ARG_WITH([llvm-prefix],
-    [AS_HELP_STRING([--with-llvm-prefix],
-        [Prefix for LLVM installations in non-standard locations])],
-    [llvm_prefix="$withval"],
-    [llvm_prefix=''])
-
-
-# Call this inside ` ` to get the return value.
-# $1 is the llvm-config command with arguments.
-strip_unwanted_llvm_flags() {
-    # Use \> (marks the end of the word)
-    echo `$1` | sed \
-	-e 's/-march=\S*//g' \
-	-e 's/-mtune=\S*//g' \
-	-e 's/-mcpu=\S*//g' \
-	-e 's/-DNDEBUG\>//g' \
-	-e 's/-D_GNU_SOURCE\>//g' \
-	-e 's/-pedantic\>//g' \
-	-e 's/-Wcovered-switch-default\>//g' \
-	-e 's/-O.\>//g' \
-	-e 's/-g\>//g' \
-	-e 's/-Wall\>//g' \
-	-e 's/-Wcast-qual\>//g' \
-	-e 's/-Woverloaded-virtual\>//g' \
-	-e 's/-fcolor-diagnostics\>//g' \
-	-e 's/-fdata-sections\>//g' \
-	-e 's/-ffunction-sections\>//g' \
-	-e 's/-fno-exceptions\>//g' \
-	-e 's/-fomit-frame-pointer\>//g' \
-	-e 's/-fvisibility-inlines-hidden\>//g' \
-	-e 's/-fPIC\>//g' \
-	-e 's/-fstack-protector-strong\>//g'
-}
-
-llvm_check_version_for() {
-    if test "${LLVM_VERSION_INT}${LLVM_VERSION_PATCH}" -lt "${1}0${2}${3}"; then
-        AC_MSG_ERROR([LLVM $1.$2.$3 or newer is required for $4])
-    fi
-}
-
-
-
 if test -z "$with_gallium_drivers"; then
     enable_gallium_llvm=no
 fi
@@ -2164,81 +2330,6 @@ if test "x$enable_gallium_llvm" = xauto; then
     case "$host_cpu" in
     i*86|x86_64|amd64) enable_gallium_llvm=yes;;
     esac
-fi
-if test "x$enable_gallium_llvm" = xyes || test "x$HAVE_RADEON_VULKAN" = xyes; then
-    if test -n "$llvm_prefix"; then
-        AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no], ["$llvm_prefix/bin"])
-    else
-        AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no])
-    fi
-
-    if test "x$LLVM_CONFIG" != xno; then
-        LLVM_VERSION=`$LLVM_CONFIG --version | egrep -o '^[[0-9.]]+'`
-        LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
-        LLVM_BINDIR=`$LLVM_CONFIG --bindir`
-        LLVM_CPPFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cppflags"`
-        LLVM_CFLAGS=$LLVM_CPPFLAGS   # CPPFLAGS seem to be sufficient
-        LLVM_CXXFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cxxflags"`
-        LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
-        LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
-
-        AC_COMPUTE_INT([LLVM_VERSION_MAJOR], [LLVM_VERSION_MAJOR],
-            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
-        AC_COMPUTE_INT([LLVM_VERSION_MINOR], [LLVM_VERSION_MINOR],
-            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
-
-        LLVM_VERSION_PATCH=`echo $LLVM_VERSION | cut -d. -f3 | egrep -o '^[[0-9]]+'`
-        if test -z "$LLVM_VERSION_PATCH"; then
-            LLVM_VERSION_PATCH=0
-        fi
-
-        if test -n "${LLVM_VERSION_MAJOR}"; then
-            LLVM_VERSION_INT="${LLVM_VERSION_MAJOR}0${LLVM_VERSION_MINOR}"
-        else
-            LLVM_VERSION_INT=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/\10\2/g'`
-        fi
-
-        LLVM_REQUIRED_VERSION_MAJOR="3"
-        LLVM_REQUIRED_VERSION_MINOR="3"
-        if test "$LLVM_VERSION_INT" -lt "${LLVM_REQUIRED_VERSION_MAJOR}0${LLVM_REQUIRED_VERSION_MINOR}"; then
-            AC_MSG_ERROR([LLVM $LLVM_REQUIRED_VERSION_MAJOR.$LLVM_REQUIRED_VERSION_MINOR or newer is required])
-        fi
-
-        LLVM_COMPONENTS="engine bitwriter mcjit mcdisassembler"
-
-        if $LLVM_CONFIG --components | grep -q inteljitevents ; then
-            LLVM_COMPONENTS="${LLVM_COMPONENTS} inteljitevents"
-        fi
-
-        if test "x$enable_opencl" = xyes; then
-            llvm_check_version_for "3" "6" "0" "opencl"
-
-            LLVM_COMPONENTS="${LLVM_COMPONENTS} all-targets ipo linker instrumentation"
-            LLVM_COMPONENTS="${LLVM_COMPONENTS} irreader option objcarcopts profiledata"
-        fi
-        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT -DMESA_LLVM_VERSION_PATCH=$LLVM_VERSION_PATCH"
-        MESA_LLVM=1
-
-        dnl Check for Clang internal headers
-        if test "x$enable_opencl" = xyes; then
-            if test -z "$CLANG_LIBDIR"; then
-                CLANG_LIBDIR=${LLVM_LIBDIR}
-            fi
-            CLANG_RESOURCE_DIR=$CLANG_LIBDIR/clang/${LLVM_VERSION}
-            AS_IF([test ! -f "$CLANG_RESOURCE_DIR/include/stddef.h"],
-                [AC_MSG_ERROR([Could not find clang internal header stddef.h in $CLANG_RESOURCE_DIR Use --with-clang-libdir to specify the correct path to the clang libraries.])])
-        fi
-    else
-        MESA_LLVM=0
-        LLVM_VERSION_INT=0
-    fi
-else
-    MESA_LLVM=0
-    LLVM_VERSION_INT=0
-
-    if test "x$enable_opencl" = xyes; then
-        AC_MSG_ERROR([cannot enable OpenCL without LLVM])
-    fi
 fi
 
 dnl Directory for XVMC libs
@@ -2291,11 +2382,10 @@ dnl
 dnl Gallium helper functions
 dnl
 gallium_require_llvm() {
-    if test "x$MESA_LLVM" = x0; then
-        case "$host" in *gnux32) return;; esac
-        case "$host_cpu" in
-        i*86|x86_64|amd64) AC_MSG_ERROR([LLVM is required to build $1 on x86 and x86_64]);;
-        esac
+    if test "x$enable_gallium_llvm" == "xyes"; then
+        llvm_check_version_for $LLVM_REQUIRED_GALLIUM "gallium"
+    else
+        AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
     fi
 }
 
@@ -2316,38 +2406,11 @@ require_basic_egl() {
     esac
 }
 
-radeon_llvm_check() {
-    if test ${LLVM_VERSION_INT} -lt 307; then
-        amdgpu_llvm_target_name='r600'
-    else
-        amdgpu_llvm_target_name='amdgpu'
-    fi
-    llvm_check_version_for $2 $3 $4 $1
-    if test true && $LLVM_CONFIG --targets-built | grep -iqvw $amdgpu_llvm_target_name ; then
-        AC_MSG_ERROR([LLVM $amdgpu_llvm_target_name not enabled in your LLVM build.])
-    fi
-    LLVM_COMPONENTS="${LLVM_COMPONENTS} $amdgpu_llvm_target_name bitreader ipo"
-    NEED_RADEON_LLVM=yes
-    if test "x$have_libelf" != xyes; then
-       AC_MSG_ERROR([$1 requires libelf when using llvm])
-    fi
-}
-
 radeon_gallium_llvm_check() {
     if test "x$enable_gallium_llvm" != "xyes"; then
-        AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
+        AC_MSG_ERROR([--enable-gallium-llvm is required when building $2])
     fi
     radeon_llvm_check $*
-}
-
-swr_llvm_check() {
-    gallium_require_llvm $1
-    if test ${LLVM_VERSION_INT} -lt 306; then
-        AC_MSG_ERROR([LLVM version 3.6 or later required when building $1])
-    fi
-    if test "x$enable_gallium_llvm" != "xyes"; then
-        AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
-    fi
 }
 
 swr_require_cxx_feature_flags() {
@@ -2411,16 +2474,18 @@ if test -n "$with_gallium_drivers"; then
         xr300)
             HAVE_GALLIUM_R300=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
-            require_libdrm "Gallium R300"
-            gallium_require_llvm "Gallium R300"
+            require_libdrm "r300"
+            gallium_require_llvm "r300"
             ;;
         xr600)
             HAVE_GALLIUM_R600=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
-            require_libdrm "Gallium R600"
+            require_libdrm "r600"
             if test "x$enable_opencl" = xyes; then
-                radeon_gallium_llvm_check "r600g" "3" "6" "0"
-                LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
+                radeon_gallium_llvm_check $LLVM_REQUIRED_R600 "r600"
+
+                llvm_add_component "asmparser" "r600"
+                llvm_add_component "bitreader" "r600"
             fi
             ;;
         xradeonsi)
@@ -2428,7 +2493,7 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             require_libdrm "radeonsi"
-            radeon_gallium_llvm_check "radeonsi" "3" "6" "0"
+            radeon_gallium_llvm_check $LLVM_REQUIRED_RADEONSI "radeonsi"
             require_basic_egl "radeonsi"
             ;;
         xnouveau)
@@ -2443,12 +2508,13 @@ if test -n "$with_gallium_drivers"; then
             ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
-            if test "x$MESA_LLVM" = x1; then
+            if test "x$MESA_LLVM" = x1 && test "x$enable_gallium_llvm" == "xyes";  then
                 HAVE_GALLIUM_LLVMPIPE=yes
             fi
             ;;
         xswr)
-            swr_llvm_check "swr"
+            llvm_check_version_for $LLVM_REQUIRED_SWR "swr"
+            gallium_require_llvm "swr"
 
             swr_require_cxx_feature_flags "C++11" "__cplusplus >= 201103L" \
                 ",-std=c++11" \
@@ -2489,8 +2555,9 @@ if test -n "$with_gallium_drivers"; then
     done
 fi
 
-if test "x$HAVE_RADEON_VULKAN" = "xyes"; then
-    radeon_llvm_check "radv" "3" "9" "0"
+if test "x$enable_gallium_llvm" == "xyes"; then
+    llvm_check_version_for $LLVM_REQUIRED_GALLIUM "gallium"
+    llvm_add_default_components "gallium"
 fi
 
 dnl Set LLVM_LIBS - This is done after the driver configuration so
@@ -2600,7 +2667,8 @@ AM_CONDITIONAL(NEED_RADEON_DRM_WINSYS, test "x$HAVE_GALLIUM_R300" = xyes -o \
 AM_CONDITIONAL(NEED_WINSYS_XLIB, test "x$enable_glx" = xgallium-xlib)
 AM_CONDITIONAL(NEED_RADEON_LLVM, test x$NEED_RADEON_LLVM = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_COMPUTE, test x$enable_opencl = xyes)
-AM_CONDITIONAL(HAVE_MESA_LLVM, test x$MESA_LLVM = x1)
+AM_CONDITIONAL(HAVE_GALLIUM_LLVM, test "x$MESA_LLVM" = x1 -a \
+                                       "x$enable_gallium_llvm" = xyes)
 AM_CONDITIONAL(USE_VC4_SIMULATOR, test x$USE_VC4_SIMULATOR = xyes)
 if test "x$USE_VC4_SIMULATOR" = xyes -a "x$HAVE_GALLIUM_ILO" = xyes; then
     AC_MSG_ERROR([VC4 simulator on x86 replaces i965 driver build, so ilo must be disabled.])

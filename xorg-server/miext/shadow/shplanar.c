@@ -89,7 +89,7 @@
 void
 shadowUpdatePlanar4(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr damage = shadowDamage(pBuf);
+    RegionPtr damage = DamageRegion(pBuf->pDamage);
     PixmapPtr pShadow = pBuf->pPixmap;
     int nbox = RegionNumRects(damage);
     BoxPtr pbox = RegionRects(damage);
@@ -165,16 +165,4 @@ shadowUpdatePlanar4(ScreenPtr pScreen, shadowBufPtr pBuf)
         }
         pbox++;
     }
-}
-
-shadowUpdateProc
-shadowUpdatePlanar4Weak(void)
-{
-    return shadowUpdatePlanar4;
-}
-
-shadowUpdateProc
-shadowUpdatePlanar4x8Weak(void)
-{
-    return shadowUpdatePlanar4x8;
 }
