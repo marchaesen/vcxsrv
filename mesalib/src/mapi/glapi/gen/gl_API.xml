@@ -12812,6 +12812,10 @@
     <enum name="GPU_MEMORY_INFO_EVICTED_MEMORY_NVX"           value="0x904B" />
 </category>
 
+<category name="GL_INTEL_conservative_rasterization" number="491">
+  <enum name="CONSERVATIVE_RASTERIZATION_INTEL" value="0x83FE"/>
+</category>
+
 <xi:include href="INTEL_performance_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_EXT_polygon_offset_clamp" number="460">

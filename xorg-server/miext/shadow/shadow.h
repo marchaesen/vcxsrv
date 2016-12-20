@@ -68,13 +68,6 @@ typedef struct _shadowBuf {
 #define SHADOW_REFLECT_Y    32
 #define SHADOW_REFLECT_ALL  (SHADOW_REFLECT_X|SHADOW_REFLECT_Y)
 
-extern _X_EXPORT DevPrivateKey shadowScrPrivateKey;
-
-#define shadowGetBuf(pScr) ((shadowBufPtr) \
-    dixLookupPrivate(&(pScr)->devPrivates, shadowScrPrivateKey))
-#define shadowBuf(pScr)            shadowBufPtr pBuf = shadowGetBuf(pScr)
-#define shadowDamage(pBuf)  DamageRegion(pBuf->pDamage)
-
 extern _X_EXPORT Bool
  shadowSetup(ScreenPtr pScreen);
 
@@ -87,8 +80,6 @@ shadowAdd(ScreenPtr pScreen,
 
 extern _X_EXPORT void
  shadowRemove(ScreenPtr pScreen, PixmapPtr pPixmap);
-
-extern _X_EXPORT void *shadowAlloc(int width, int height, int bpp);
 
 extern _X_EXPORT void
  shadowUpdateAfb4(ScreenPtr pScreen, shadowBufPtr pBuf);
@@ -156,11 +147,9 @@ extern _X_EXPORT void
 extern _X_EXPORT void
  shadowUpdateRotate32(ScreenPtr pScreen, shadowBufPtr pBuf);
 
-typedef void (*shadowUpdateProc) (ScreenPtr, shadowBufPtr);
+extern _X_EXPORT void
+ shadowUpdate32to24(ScreenPtr pScreen, shadowBufPtr pBuf);
 
-extern _X_EXPORT shadowUpdateProc shadowUpdatePackedWeak(void);
-extern _X_EXPORT shadowUpdateProc shadowUpdatePlanar4Weak(void);
-extern _X_EXPORT shadowUpdateProc shadowUpdatePlanar4x8Weak(void);
-extern _X_EXPORT shadowUpdateProc shadowUpdateRotatePackedWeak(void);
+typedef void (*shadowUpdateProc) (ScreenPtr, shadowBufPtr);
 
 #endif                          /* _SHADOW_H_ */

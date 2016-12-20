@@ -1280,6 +1280,42 @@ For example:
 Check the case-sensitive string
 .RI \*q matchdriver \*q
 against the kernel driver of the device.
+.PP
+When an output device has been matched to the
+.B OutputClass
+section, any
+.B Option
+entries are applied to the device. One
+.B OutputClass
+specific
+.B Option
+is recognized. See the
+.B Device
+section below for a description of the remaining
+.B Option
+entries.
+.TP 7
+.BI "Option \*qPrimaryGPU\*q \*q" boolean \*q
+This option specifies that the matched device should be treated as the
+primary GPU, replacing the selection of the GPU used as output by the
+firmware. If multiple output devices match an OutputClass section with
+the PrimaryGPU option set, the first one enumerated becomes the primary GPU.
+.PP
+A
+.B OutputClass
+Section may contain
+.B ModulePath
+entries. When an output device matches an
+.B OutputClass
+section, any
+.B ModulePath
+entries in that
+.B OutputClass
+are pre-pended to the search path for loadable Xorg server modules. See
+.B ModulePath
+in the
+.B Files
+section for more info.
 .SH "DEVICE SECTION"
 The config file may have multiple
 .B Device

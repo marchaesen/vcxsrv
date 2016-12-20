@@ -189,32 +189,27 @@ nir_lower_gs_intrinsics(nir_shader *shader)
    struct state state;
    state.progress = false;
 
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+   assert(impl);
+
+   nir_builder b;
+   nir_builder_init(&b, impl);
+   state.builder = &b;
+
    /* Create the counter variable */
-   nir_variable *var = rzalloc(shader, nir_variable);
-   var->data.mode = nir_var_global;
-   var->type = glsl_uint_type();
-   var->name = "vertex_count";
-   var->constant_initializer = rzalloc(shader, nir_constant); /* initialize to 0 */
+   state.vertex_count_var =
+      nir_local_variable_create(impl, glsl_uint_type(), "vertex_count");
+   /* initialize to 0 */
+   b.cursor = nir_before_cf_list(&impl->body);
+   nir_store_var(&b, state.vertex_count_var, nir_imm_int(&b, 0), 0x1);
 
-   exec_list_push_tail(&shader->globals, &var->node);
-   state.vertex_count_var = var;
+   nir_foreach_block_safe(block, impl)
+      rewrite_intrinsics(block, &state);
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_builder b;
-         nir_builder_init(&b, function->impl);
-         state.builder = &b;
+   /* This only works because we have a single main() function. */
+   append_set_vertex_count(impl->end_block, &state);
 
-         nir_foreach_block_safe(block, function->impl) {
-            rewrite_intrinsics(block, &state);
-         }
-
-         /* This only works because we have a single main() function. */
-         append_set_vertex_count(function->impl->end_block, &state);
-
-         nir_metadata_preserve(function->impl, 0);
-      }
-   }
+   nir_metadata_preserve(impl, 0);
 
    return state.progress;
 }

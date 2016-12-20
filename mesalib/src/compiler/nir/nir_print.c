@@ -303,11 +303,12 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_BOOL:
-      for (i = 0; i < cols; i++) {
-         for (j = 0; j < rows; j++) {
-            if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "0x%08x", c->values[i].u32[j]);
-         }
+      /* Only float base types can be matrices. */
+      assert(cols == 1);
+
+      for (i = 0; i < rows; i++) {
+         if (i > 0) fprintf(fp, ", ");
+         fprintf(fp, "0x%08x", c->values[0].u32[i]);
       }
       break;
 
@@ -706,8 +707,8 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       case nir_tex_src_projector:
          fprintf(fp, "(projector)");
          break;
-      case nir_tex_src_comparitor:
-         fprintf(fp, "(comparitor)");
+      case nir_tex_src_comparator:
+         fprintf(fp, "(comparator)");
          break;
       case nir_tex_src_offset:
          fprintf(fp, "(offset)");

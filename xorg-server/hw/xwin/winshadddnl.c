@@ -589,7 +589,7 @@ winShadowUpdateDDNL(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
-    RegionPtr damage = shadowDamage(pBuf);
+    RegionPtr damage = DamageRegion(pBuf->pDamage);
     RECT rcDest, rcSrc;
     POINT ptOrigin;
     DWORD dwBox = RegionNumRects(damage);

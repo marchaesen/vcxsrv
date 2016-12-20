@@ -82,8 +82,6 @@ xf86CallDriverProbe(DriverPtr drv, Bool detect_only)
     if (!xf86DoConfigure && drv->platformProbe != NULL) {
         foundScreen = xf86platformProbeDev(drv);
     }
-    if (ServerIsNotSeat0() && foundScreen)
-        return foundScreen;
 #endif
 
 #ifdef XSERVER_LIBPCIACCESS
@@ -119,12 +117,36 @@ xf86BusConfig(void)
     int i, j;
 
     /*
-     * Now call each of the Probe functions.  Each successful probe will
-     * result in an extra entry added to the xf86Screens[] list for each
-     * instance of the hardware found.
+     * 3 step probe to (hopefully) ensure that we always find at least 1
+     * (non GPU) screen:
+     *
+     * 1. Call each drivers probe function normally,
+     *    Each successful probe will result in an extra entry added to the
+     *    xf86Screens[] list for each instance of the hardware found.
      */
     for (i = 0; i < xf86NumDrivers; i++) {
         xf86CallDriverProbe(xf86DriverList[i], FALSE);
+    }
+
+    /*
+     * 2. If no Screens were found, call each drivers probe function with
+     *    ignorePrimary = TRUE, to ensure that we do actually get a
+     *    Screen if there is atleast one supported video card.
+     */
+    if (xf86NumScreens == 0) {
+        xf86ProbeIgnorePrimary = TRUE;
+        for (i = 0; i < xf86NumDrivers && xf86NumScreens == 0; i++) {
+            xf86CallDriverProbe(xf86DriverList[i], FALSE);
+        }
+        xf86ProbeIgnorePrimary = FALSE;
+    }
+
+    /*
+     * 3. Call xf86platformAddGPUDevices() to add any additional video cards as
+     *    GPUScreens (GPUScreens are only supported by platformBus drivers).
+     */
+    for (i = 0; i < xf86NumDrivers; i++) {
+        xf86platformAddGPUDevices(xf86DriverList[i]);
     }
 
     /* If nothing was detected, return now */

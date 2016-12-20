@@ -36,6 +36,8 @@ static const xf86ConfigSymTabRec OutputClassTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {DRIVER, "driver"},
+    {MODULEPATH, "modulepath"},
+    {OPTION, "option"},
     {MATCH_DRIVER, "matchdriver"},
     {-1, ""},
 };
@@ -52,6 +54,7 @@ xf86freeOutputClassList(XF86ConfOutputClassPtr ptr)
         TestFree(ptr->identifier);
         TestFree(ptr->comment);
         TestFree(ptr->driver);
+        TestFree(ptr->modulepath);
 
         xorg_list_for_each_entry_safe(group, next, &ptr->match_driver, entry) {
             xorg_list_del(&group->entry);
@@ -59,6 +62,8 @@ xf86freeOutputClassList(XF86ConfOutputClassPtr ptr)
                 free(*list);
             free(group);
         }
+
+        xf86optionListFree(ptr->option_lst);
 
         prev = ptr;
         ptr = ptr->list.next;
@@ -111,6 +116,22 @@ xf86parseOutputClassSection(void)
                 Error(QUOTE_MSG, "Driver");
             else
                 ptr->driver = xf86_lex_val.str;
+            break;
+        case MODULEPATH:
+            if (xf86getSubToken(&(ptr->comment)) != STRING)
+                Error(QUOTE_MSG, "ModulePath");
+            if (ptr->modulepath) {
+                char *path;
+                XNFasprintf(&path, "%s,%s", ptr->modulepath, xf86_lex_val.str);
+                free(xf86_lex_val.str);
+                free(ptr->modulepath);
+                ptr->modulepath = path;
+            } else {
+                ptr->modulepath = xf86_lex_val.str;
+            }
+            break;
+        case OPTION:
+            ptr->option_lst = xf86parseOption(ptr->option_lst);
             break;
         case MATCH_DRIVER:
             if (xf86getSubToken(&(ptr->comment)) != STRING)

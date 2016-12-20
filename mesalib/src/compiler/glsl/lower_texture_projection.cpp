@@ -78,11 +78,11 @@ lower_texture_projection_visitor::visit_leave(ir_texture *ir)
 					       ir->coordinate,
 					       deref);
 
-   if (ir->shadow_comparitor) {
+   if (ir->shadow_comparator) {
       deref = new(mem_ctx) ir_dereference_variable(var);
-      ir->shadow_comparitor = new(mem_ctx) ir_expression(ir_binop_mul,
-						  ir->shadow_comparitor->type,
-						  ir->shadow_comparitor,
+      ir->shadow_comparator = new(mem_ctx) ir_expression(ir_binop_mul,
+						  ir->shadow_comparator->type,
+						  ir->shadow_comparator,
 						  deref);
    }
 

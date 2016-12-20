@@ -561,6 +561,11 @@ util_format_fits_8unorm(const struct util_format_description *format_desc)
          return TRUE;
       return FALSE;
 
+   case UTIL_FORMAT_LAYOUT_ETC:
+      if (format_desc->format == PIPE_FORMAT_ETC1_RGB8)
+         return TRUE;
+      return FALSE;
+
    case UTIL_FORMAT_LAYOUT_PLAIN:
       /*
        * For these we can find a generic rule.

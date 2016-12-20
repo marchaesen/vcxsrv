@@ -117,6 +117,13 @@ typedef struct shader_info {
           */
          bool early_fragment_tests;
 
+         /**
+          * Defined by INTEL_conservative_rasterization.
+          */
+         bool inner_coverage;
+
+         bool post_depth_coverage;
+
          /** gl_FragDepth layout for ARB_conservative_depth. */
          enum gl_frag_depth_layout depth_layout;
       } fs;

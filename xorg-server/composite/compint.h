@@ -274,7 +274,7 @@ void
 #endif
 
 void
- compSetPixmap(WindowPtr pWin, PixmapPtr pPixmap);
+ compSetPixmap(WindowPtr pWin, PixmapPtr pPixmap, int bw);
 
 Bool
  compCheckRedirect(WindowPtr pWin);

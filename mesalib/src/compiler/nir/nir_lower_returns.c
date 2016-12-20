@@ -147,17 +147,18 @@ lower_returns_in_block(nir_block *block, struct lower_returns_state *state)
    nir_instr_remove(&jump->instr);
 
    nir_builder *b = &state->builder;
-   b->cursor = nir_after_block(block);
 
    /* Set the return flag */
    if (state->return_flag == NULL) {
       state->return_flag =
          nir_local_variable_create(b->impl, glsl_bool_type(), "return");
 
-      /* Set a default value of false */
-      state->return_flag->constant_initializer =
-         rzalloc(state->return_flag, nir_constant);
+      /* Initialize the variable to 0 */
+      b->cursor = nir_before_cf_list(&b->impl->body);
+      nir_store_var(b, state->return_flag, nir_imm_int(b, NIR_FALSE), 1);
    }
+
+   b->cursor = nir_after_block(block);
    nir_store_var(b, state->return_flag, nir_imm_int(b, NIR_TRUE), 1);
 
    if (state->loop) {

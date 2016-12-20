@@ -392,7 +392,6 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
    ir_constant *sign_mask = new(ir) ir_constant(0x80000000u, vec_elem);
 
    ir_constant *exp_shift = new(ir) ir_constant(23, vec_elem);
-   ir_constant *exp_width = new(ir) ir_constant(8, vec_elem);
 
    /* Temporary variables */
    ir_variable *x = new(ir) ir_variable(ir->type, "x", ir_var_temporary);
@@ -455,10 +454,22 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
     */
 
    ir_constant *exp_shift_clone = exp_shift->clone(ir, NULL);
-   ir->operation = ir_unop_bitcast_i2f;
-   ir->operands[0] = bitfield_insert(bitcast_f2i(x), resulting_biased_exp,
-                                     exp_shift_clone, exp_width);
-   ir->operands[1] = NULL;
+
+   /* Don't generate new IR that would need to be lowered in an additional
+    * pass.
+    */
+   if (!lowering(INSERT_TO_SHIFTS)) {
+      ir_constant *exp_width = new(ir) ir_constant(8, vec_elem);
+      ir->operation = ir_unop_bitcast_i2f;
+      ir->operands[0] = bitfield_insert(bitcast_f2i(x), resulting_biased_exp,
+                                        exp_shift_clone, exp_width);
+      ir->operands[1] = NULL;
+   } else {
+      ir_constant *sign_mantissa_mask = new(ir) ir_constant(0x807fffffu, vec_elem);
+      ir->operation = ir_unop_bitcast_u2f;
+      ir->operands[0] = bit_or(bit_and(bitcast_f2u(x), sign_mantissa_mask),
+                               lshift(i2u(resulting_biased_exp), exp_shift_clone));
+   }
 
    this->progress = true;
 }

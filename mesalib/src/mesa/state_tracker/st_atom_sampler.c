@@ -159,6 +159,12 @@ convert_sampler(struct st_context *st,
       sampler->normalized_coords = 1;
 
    sampler->lod_bias = ctx->Texture.Unit[texUnit].LodBias + msamp->LodBias;
+   /* Reduce the number of states by allowing only the values that AMD GCN
+    * can represent. Apps use lod_bias for smooth transitions to bigger mipmap
+    * levels.
+    */
+   sampler->lod_bias = CLAMP(sampler->lod_bias, -16, 16);
+   sampler->lod_bias = floorf(sampler->lod_bias * 256) / 256;
 
    sampler->min_lod = MAX2(msamp->MinLod, 0.0f);
    sampler->max_lod = msamp->MaxLod;

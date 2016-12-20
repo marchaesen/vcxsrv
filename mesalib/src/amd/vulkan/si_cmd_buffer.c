@@ -170,10 +170,11 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 				       S_030800_INSTANCE_BROADCAST_WRITES(1));
 }
 
-static void
+void
 si_init_compute(struct radv_physical_device *physical_device,
-                struct radeon_winsys_cs *cs)
+                struct radv_cmd_buffer *cmd_buffer)
 {
+	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	radeon_set_sh_reg_seq(cs, R_00B810_COMPUTE_START_X, 3);
 	radeon_emit(cs, 0);
 	radeon_emit(cs, 0);
@@ -419,7 +420,7 @@ void si_init_config(struct radv_physical_device *physical_device,
 	if (physical_device->rad_info.family == CHIP_STONEY)
 		radeon_set_context_reg(cs, R_028C40_PA_SC_SHADER_CONTROL, 0);
 
-	si_init_compute(physical_device, cs);
+	si_init_compute(physical_device, cmd_buffer);
 }
 
 static void
@@ -600,6 +601,16 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 {
 	enum chip_class chip_class = cmd_buffer->device->instance->physicalDevice.rad_info.chip_class;
 	unsigned cp_coher_cntl = 0;
+	bool is_compute = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
+
+	if (is_compute)
+		cmd_buffer->state.flush_bits &= ~(RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+	                                          RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
+	                                          RADV_CMD_FLAG_FLUSH_AND_INV_DB |
+	                                          RADV_CMD_FLAG_FLUSH_AND_INV_DB_META |
+	                                          RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
+	                                          RADV_CMD_FLAG_VS_PARTIAL_FLUSH |
+	                                          RADV_CMD_FLAG_VGT_FLUSH);
 
 	radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 128);
 
@@ -678,7 +689,8 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	/* Make sure ME is idle (it executes most packets) before continuing.
 	 * This prevents read-after-write hazards between PFP and ME.
 	 */
-	if (cp_coher_cntl || (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH)) {
+	if ((cp_coher_cntl || (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH)) &&
+	    !radv_cmd_buffer_uses_mec(cmd_buffer)) {
 		radeon_emit(cmd_buffer->cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
 		radeon_emit(cmd_buffer->cs, 0);
 	}
@@ -687,12 +699,23 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	 * Therefore, it should be last. Done in PFP.
 	 */
 	if (cp_coher_cntl) {
-		/* ACQUIRE_MEM is only required on a compute ring. */
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_SURFACE_SYNC, 3, 0));
-		radeon_emit(cmd_buffer->cs, cp_coher_cntl);   /* CP_COHER_CNTL */
-		radeon_emit(cmd_buffer->cs, 0xffffffff);      /* CP_COHER_SIZE */
-		radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE */
-		radeon_emit(cmd_buffer->cs, 0x0000000A);      /* POLL_INTERVAL */
+		if (radv_cmd_buffer_uses_mec(cmd_buffer)) {
+			radeon_emit(cmd_buffer->cs, PKT3(PKT3_ACQUIRE_MEM, 5, 0) |
+			                            PKT3_SHADER_TYPE_S(1));
+			radeon_emit(cmd_buffer->cs, cp_coher_cntl);   /* CP_COHER_CNTL */
+			radeon_emit(cmd_buffer->cs, 0xffffffff);      /* CP_COHER_SIZE */
+			radeon_emit(cmd_buffer->cs, 0xff);            /* CP_COHER_SIZE_HI */
+			radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE */
+			radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE_HI */
+			radeon_emit(cmd_buffer->cs, 0x0000000A);      /* POLL_INTERVAL */
+		} else {
+			/* ACQUIRE_MEM is only required on a compute ring. */
+			radeon_emit(cmd_buffer->cs, PKT3(PKT3_SURFACE_SYNC, 3, 0));
+			radeon_emit(cmd_buffer->cs, cp_coher_cntl);   /* CP_COHER_CNTL */
+			radeon_emit(cmd_buffer->cs, 0xffffffff);      /* CP_COHER_SIZE */
+			radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE */
+			radeon_emit(cmd_buffer->cs, 0x0000000A);      /* POLL_INTERVAL */
+		}
 	}
 
 	cmd_buffer->state.flush_bits = 0;
@@ -753,7 +776,7 @@ static void si_emit_cp_dma_copy_buffer(struct radv_cmd_buffer *cmd_buffer,
 	 * indices. If we wanted to execute CP DMA in PFP, this packet
 	 * should precede it.
 	 */
-	if (sync_flag) {
+	if (sync_flag && cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
 		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
 		radeon_emit(cs, 0);
 	}
@@ -793,7 +816,7 @@ static void si_emit_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	/* See "copy_buffer" for explanation. */
-	if (sync_flag) {
+	if (sync_flag && cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
 		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
 		radeon_emit(cs, 0);
 	}

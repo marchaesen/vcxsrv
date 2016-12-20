@@ -922,7 +922,7 @@ dmxBECreateResources(void *value, XID id, RESTYPE type, void *n)
                 dmxBECreatePixmap(pGC->tile.pixmap);
                 dmxBERestorePixmap(pGC->tile.pixmap);
             }
-            if (pGC->stipple != pScreen->PixmapPerDepth[0]) {
+            if (pGC->stipple != pScreen->defaultStipple) {
                 dmxBECreatePixmap(pGC->stipple);
                 dmxBERestorePixmap(pGC->stipple);
             }
@@ -1327,8 +1327,8 @@ dmxAttachScreen(int idx, DMXScreenAttributesPtr attr)
      * updated to handle dynamic addition/removal of screens. */
 
     /* Create default stipple */
-    dmxBECreatePixmap(pScreen->PixmapPerDepth[0]);
-    dmxBERestorePixmap(pScreen->PixmapPerDepth[0]);
+    dmxBECreatePixmap(pScreen->defaultStipple);
+    dmxBERestorePixmap(pScreen->defaultStipple);
 
     /* Create the scratch GCs */
     dmxBECreateScratchGCs(idx);
@@ -1692,8 +1692,8 @@ dmxDetachScreen(int idx)
     dmxBEDestroyWindowTree(idx);
 
     /* Free default stipple */
-    dmxBESavePixmap(screenInfo.screens[idx]->PixmapPerDepth[0]);
-    dmxBEFreePixmap(screenInfo.screens[idx]->PixmapPerDepth[0]);
+    dmxBESavePixmap(screenInfo.screens[idx]->defaultStipple);
+    dmxBEFreePixmap(screenInfo.screens[idx]->defaultStipple);
 
     /* Free the remaining screen resources and close the screen */
     dmxBECloseScreen(screenInfo.screens[idx]);

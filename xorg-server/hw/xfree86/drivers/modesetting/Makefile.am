@@ -51,8 +51,6 @@ modesetting_drv_la_SOURCES = \
 	 dumb_bo.c \
 	 dumb_bo.h \
 	 present.c \
-	 sh3224.c \
-	 sh3224.h \
 	 vblank.c \
 	 pageflip.c \
 	 $(NULL)

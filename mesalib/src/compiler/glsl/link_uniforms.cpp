@@ -1254,6 +1254,7 @@ link_assign_uniform_storage(struct gl_context *ctx,
              prog->data->UniformStorage[i].is_shader_storage ||
              prog->data->UniformStorage[i].block_index != -1);
    }
+
    assert(parcel.values == data_end);
 #endif
 

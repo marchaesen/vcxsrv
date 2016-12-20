@@ -55,7 +55,7 @@ project_src(nir_builder *b, nir_tex_instr *tex)
    for (unsigned i = 0; i < tex->num_srcs; i++) {
       switch (tex->src[i].src_type) {
       case nir_tex_src_coord:
-      case nir_tex_src_comparitor:
+      case nir_tex_src_comparator:
          break;
       default:
          continue;
@@ -154,22 +154,27 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
 {
    b->cursor = nir_before_instr(&tex->instr);
 
-   /* RECT textures should not be array: */
-   assert(!tex->is_array);
-
    nir_tex_instr *txs;
 
    txs = nir_tex_instr_create(b->shader, 1);
    txs->op = nir_texop_txs;
-   txs->sampler_dim = GLSL_SAMPLER_DIM_RECT;
+   txs->sampler_dim = tex->sampler_dim;
+   txs->is_array = tex->is_array;
+   txs->is_shadow = tex->is_shadow;
+   txs->is_new_style_shadow = tex->is_new_style_shadow;
    txs->texture_index = tex->texture_index;
+   txs->texture = (nir_deref_var *)
+      nir_copy_deref(txs, &tex->texture->deref);
+   txs->sampler_index = tex->sampler_index;
+   txs->sampler = (nir_deref_var *)
+      nir_copy_deref(txs, &tex->sampler->deref);
    txs->dest_type = nir_type_int;
 
    /* only single src, the lod: */
    txs->src[0].src = nir_src_for_ssa(nir_imm_int(b, 0));
    txs->src[0].src_type = nir_tex_src_lod;
 
-   nir_ssa_dest_init(&txs->instr, &txs->dest, 2, 32, NULL);
+   nir_ssa_dest_init(&txs->instr, &txs->dest, tex->coord_components, 32, NULL);
    nir_builder_instr_insert(b, &txs->instr);
 
    return nir_i2f(b, &txs->dest.ssa);
@@ -297,6 +302,261 @@ lower_yx_xuxv_external(nir_builder *b, nir_tex_instr *tex)
                       nir_channel(b, y, 0),
                       nir_channel(b, xuxv, 1),
                       nir_channel(b, xuxv, 3));
+}
+
+/*
+ * Emits a textureLod operation used to replace an existing
+ * textureGrad instruction.
+ */
+static void
+replace_gradient_with_lod(nir_builder *b, nir_ssa_def *lod, nir_tex_instr *tex)
+{
+   /* We are going to emit a textureLod() with the same parameters except that
+    * we replace ddx/ddy with lod.
+    */
+   int num_srcs = tex->num_srcs - 1;
+   nir_tex_instr *txl = nir_tex_instr_create(b->shader, num_srcs);
+
+   txl->op = nir_texop_txl;
+   txl->sampler_dim = tex->sampler_dim;
+   txl->texture_index = tex->texture_index;
+   txl->dest_type = tex->dest_type;
+   txl->is_array = tex->is_array;
+   txl->is_shadow = tex->is_shadow;
+   txl->is_new_style_shadow = tex->is_new_style_shadow;
+   txl->sampler_index = tex->sampler_index;
+   txl->texture = (nir_deref_var *)
+      nir_copy_deref(txl, &tex->texture->deref);
+   txl->sampler = (nir_deref_var *)
+      nir_copy_deref(txl, &tex->sampler->deref);
+   txl->coord_components = tex->coord_components;
+
+   nir_ssa_dest_init(&txl->instr, &txl->dest, 4, 32, NULL);
+
+   int src_num = 0;
+   for (int i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == nir_tex_src_ddx ||
+          tex->src[i].src_type == nir_tex_src_ddy)
+         continue;
+      nir_src_copy(&txl->src[src_num].src, &tex->src[i].src, txl);
+      txl->src[src_num].src_type = tex->src[i].src_type;
+      src_num++;
+   }
+
+   txl->src[src_num].src = nir_src_for_ssa(lod);
+   txl->src[src_num].src_type = nir_tex_src_lod;
+   src_num++;
+
+   assert(src_num == num_srcs);
+
+   nir_ssa_dest_init(&txl->instr, &txl->dest,
+                     tex->dest.ssa.num_components, 32, NULL);
+   nir_builder_instr_insert(b, &txl->instr);
+
+   nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_src_for_ssa(&txl->dest.ssa));
+
+   nir_instr_remove(&tex->instr);
+}
+
+static void
+lower_gradient_cube_map(nir_builder *b, nir_tex_instr *tex)
+{
+   assert(tex->sampler_dim == GLSL_SAMPLER_DIM_CUBE);
+   assert(tex->op == nir_texop_txd);
+   assert(tex->dest.is_ssa);
+
+   /* Use textureSize() to get the width and height of LOD 0 */
+   nir_ssa_def *size = get_texture_size(b, tex);
+
+   /* Cubemap texture lookups first generate a texture coordinate normalized
+    * to [-1, 1] on the appropiate face. The appropiate face is determined
+    * by which component has largest magnitude and its sign. The texture
+    * coordinate is the quotient of the remaining texture coordinates against
+    * that absolute value of the component of largest magnitude. This
+    * division requires that the computing of the derivative of the texel
+    * coordinate must use the quotient rule. The high level GLSL code is as
+    * follows:
+    *
+    * Step 1: selection
+    *
+    * vec3 abs_p, Q, dQdx, dQdy;
+    * abs_p = abs(ir->coordinate);
+    * if (abs_p.x >= max(abs_p.y, abs_p.z)) {
+    *    Q = ir->coordinate.yzx;
+    *    dQdx = ir->lod_info.grad.dPdx.yzx;
+    *    dQdy = ir->lod_info.grad.dPdy.yzx;
+    * }
+    * if (abs_p.y >= max(abs_p.x, abs_p.z)) {
+    *    Q = ir->coordinate.xzy;
+    *    dQdx = ir->lod_info.grad.dPdx.xzy;
+    *    dQdy = ir->lod_info.grad.dPdy.xzy;
+    * }
+    * if (abs_p.z >= max(abs_p.x, abs_p.y)) {
+    *    Q = ir->coordinate;
+    *    dQdx = ir->lod_info.grad.dPdx;
+    *    dQdy = ir->lod_info.grad.dPdy;
+    * }
+    *
+    * Step 2: use quotient rule to compute derivative. The normalized to
+    * [-1, 1] texel coordinate is given by Q.xy / (sign(Q.z) * Q.z). We are
+    * only concerned with the magnitudes of the derivatives whose values are
+    * not affected by the sign. We drop the sign from the computation.
+    *
+    * vec2 dx, dy;
+    * float recip;
+    *
+    * recip = 1.0 / Q.z;
+    * dx = recip * ( dQdx.xy - Q.xy * (dQdx.z * recip) );
+    * dy = recip * ( dQdy.xy - Q.xy * (dQdy.z * recip) );
+    *
+    * Step 3: compute LOD. At this point we have the derivatives of the
+    * texture coordinates normalized to [-1,1]. We take the LOD to be
+    *  result = log2(max(sqrt(dot(dx, dx)), sqrt(dy, dy)) * 0.5 * L)
+    *         = -1.0 + log2(max(sqrt(dot(dx, dx)), sqrt(dy, dy)) * L)
+    *         = -1.0 + log2(sqrt(max(dot(dx, dx), dot(dy,dy))) * L)
+    *         = -1.0 + log2(sqrt(L * L * max(dot(dx, dx), dot(dy,dy))))
+    *         = -1.0 + 0.5 * log2(L * L * max(dot(dx, dx), dot(dy,dy)))
+    * where L is the dimension of the cubemap. The code is:
+    *
+    * float M, result;
+    * M = max(dot(dx, dx), dot(dy, dy));
+    * L = textureSize(sampler, 0).x;
+    * result = -1.0 + 0.5 * log2(L * L * M);
+    */
+
+   /* coordinate */
+   nir_ssa_def *p =
+      tex->src[nir_tex_instr_src_index(tex, nir_tex_src_coord)].src.ssa;
+
+   /* unmodified dPdx, dPdy values */
+   nir_ssa_def *dPdx =
+      tex->src[nir_tex_instr_src_index(tex, nir_tex_src_ddx)].src.ssa;
+   nir_ssa_def *dPdy =
+      tex->src[nir_tex_instr_src_index(tex, nir_tex_src_ddy)].src.ssa;
+
+   nir_ssa_def *abs_p = nir_fabs(b, p);
+   nir_ssa_def *abs_p_x = nir_channel(b, abs_p, 0);
+   nir_ssa_def *abs_p_y = nir_channel(b, abs_p, 1);
+   nir_ssa_def *abs_p_z = nir_channel(b, abs_p, 2);
+
+   /* 1. compute selector */
+   nir_ssa_def *Q, *dQdx, *dQdy;
+
+   nir_ssa_def *cond_z = nir_fge(b, abs_p_z, nir_fmax(b, abs_p_x, abs_p_y));
+   nir_ssa_def *cond_y = nir_fge(b, abs_p_y, nir_fmax(b, abs_p_x, abs_p_z));
+
+   unsigned yzx[4] = { 1, 2, 0, 0 };
+   unsigned xzy[4] = { 0, 2, 1, 0 };
+
+   Q = nir_bcsel(b, cond_z,
+                 p,
+                 nir_bcsel(b, cond_y,
+                           nir_swizzle(b, p, xzy, 3, false),
+                           nir_swizzle(b, p, yzx, 3, false)));
+
+   dQdx = nir_bcsel(b, cond_z,
+                    dPdx,
+                    nir_bcsel(b, cond_y,
+                              nir_swizzle(b, dPdx, xzy, 3, false),
+                              nir_swizzle(b, dPdx, yzx, 3, false)));
+
+   dQdy = nir_bcsel(b, cond_z,
+                    dPdy,
+                    nir_bcsel(b, cond_y,
+                              nir_swizzle(b, dPdy, xzy, 3, false),
+                              nir_swizzle(b, dPdy, yzx, 3, false)));
+
+   /* 2. quotient rule */
+
+   /* tmp = Q.xy * recip;
+    * dx = recip * ( dQdx.xy - (tmp * dQdx.z) );
+    * dy = recip * ( dQdy.xy - (tmp * dQdy.z) );
+    */
+   nir_ssa_def *rcp_Q_z = nir_frcp(b, nir_channel(b, Q, 2));
+
+   unsigned xy[4] = { 0, 1, 0, 0 };
+   nir_ssa_def *Q_xy = nir_swizzle(b, Q, xy, 2, false);
+   nir_ssa_def *tmp = nir_fmul(b, Q_xy, rcp_Q_z);
+
+   nir_ssa_def *dQdx_xy = nir_swizzle(b, dQdx, xy, 2, false);
+   nir_ssa_def *dQdx_z = nir_channel(b, dQdx, 2);
+   nir_ssa_def *dx =
+      nir_fmul(b, rcp_Q_z, nir_fsub(b, dQdx_xy, nir_fmul(b, tmp, dQdx_z)));
+
+   nir_ssa_def *dQdy_xy = nir_swizzle(b, dQdy, xy, 2, false);
+   nir_ssa_def *dQdy_z = nir_channel(b, dQdy, 2);
+   nir_ssa_def *dy =
+      nir_fmul(b, rcp_Q_z, nir_fsub(b, dQdy_xy, nir_fmul(b, tmp, dQdy_z)));
+
+   /* M = max(dot(dx, dx), dot(dy, dy)); */
+   nir_ssa_def *M = nir_fmax(b, nir_fdot(b, dx, dx), nir_fdot(b, dy, dy));
+
+   /* size has textureSize() of LOD 0 */
+   nir_ssa_def *L = nir_channel(b, size, 0);
+
+   /* lod = -1.0 + 0.5 * log2(L * L * M); */
+   nir_ssa_def *lod =
+      nir_fadd(b,
+               nir_imm_float(b, -1.0f),
+               nir_fmul(b,
+                        nir_imm_float(b, 0.5f),
+                        nir_flog2(b, nir_fmul(b, L, nir_fmul(b, L, M)))));
+
+   /* 3. Replace the gradient instruction with an equivalent lod instruction */
+   replace_gradient_with_lod(b, lod, tex);
+}
+
+static void
+lower_gradient_shadow(nir_builder *b, nir_tex_instr *tex)
+{
+   assert(tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE);
+   assert(tex->is_shadow);
+   assert(tex->op == nir_texop_txd);
+   assert(tex->dest.is_ssa);
+
+   /* Use textureSize() to get the width and height of LOD 0 */
+   unsigned component_mask;
+   switch (tex->sampler_dim) {
+   case GLSL_SAMPLER_DIM_3D:
+      component_mask = 7;
+      break;
+   case GLSL_SAMPLER_DIM_1D:
+      component_mask = 1;
+      break;
+   default:
+      component_mask = 3;
+      break;
+   }
+
+   nir_ssa_def *size =
+      nir_channels(b, get_texture_size(b, tex), component_mask);
+
+   /* Scale the gradients by width and height.  Effectively, the incoming
+    * gradients are s'(x,y), t'(x,y), and r'(x,y) from equation 3.19 in the
+    * GL 3.0 spec; we want u'(x,y), which is w_t * s'(x,y).
+    */
+   nir_ssa_def *ddx =
+      tex->src[nir_tex_instr_src_index(tex, nir_tex_src_ddx)].src.ssa;
+   nir_ssa_def *ddy =
+      tex->src[nir_tex_instr_src_index(tex, nir_tex_src_ddy)].src.ssa;
+
+   nir_ssa_def *dPdx = nir_fmul(b, ddx, size);
+   nir_ssa_def *dPdy = nir_fmul(b, ddy, size);
+
+   nir_ssa_def *rho;
+   if (dPdx->num_components == 1) {
+      rho = nir_fmax(b, nir_fabs(b, dPdx), nir_fabs(b, dPdy));
+   } else {
+      rho = nir_fmax(b,
+                     nir_fsqrt(b, nir_fdot(b, dPdx, dPdx)),
+                     nir_fsqrt(b, nir_fdot(b, dPdy, dPdy)));
+   }
+
+   /* lod = log2(rho).  We're ignoring GL state biases for now. */
+   nir_ssa_def *lod = nir_flog2(b, rho);
+
+   /* Replace the gradient instruction with an equivalent lod instruction */
+   replace_gradient_with_lod(b, lod, tex);
 }
 
 static void
@@ -523,6 +783,22 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
           !nir_tex_instr_is_query(tex) && !tex->is_shadow) {
          linearize_srgb_result(b, tex);
          progress = true;
+      }
+
+      if (tex->op == nir_texop_txd &&
+          tex->sampler_dim == GLSL_SAMPLER_DIM_CUBE &&
+          (options->lower_txd_cube_map ||
+           (tex->is_shadow && options->lower_txd_shadow))) {
+         lower_gradient_cube_map(b, tex);
+         progress = true;
+         continue;
+      }
+
+      if (tex->op == nir_texop_txd && options->lower_txd_shadow &&
+          tex->is_shadow && tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE) {
+         lower_gradient_shadow(b, tex);
+         progress = true;
+         continue;
       }
    }
 

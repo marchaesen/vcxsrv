@@ -620,6 +620,9 @@ descriptor=[
   [ "VIEWPORT_SUBPIXEL_BITS", "CONTEXT_INT(Const.ViewportSubpixelBits), extra_ARB_viewport_array_or_oes_viewport_array" ],
   [ "VIEWPORT_BOUNDS_RANGE", "CONTEXT_FLOAT2(Const.ViewportBounds), extra_ARB_viewport_array_or_oes_viewport_array" ],
   [ "VIEWPORT_INDEX_PROVOKING_VERTEX", "CONTEXT_ENUM(Const.LayerAndVPIndexProvokingVertex), extra_ARB_viewport_array_or_oes_viewport_array" ],
+
+# INTEL_conservative_rasterization
+  [ "CONSERVATIVE_RASTERIZATION_INTEL", "CONTEXT_BOOL(IntelConservativeRasterization), extra_INTEL_conservative_rasterization" ],
 ]},
 
 { "apis": ["GL_CORE", "GLES32"], "params": [

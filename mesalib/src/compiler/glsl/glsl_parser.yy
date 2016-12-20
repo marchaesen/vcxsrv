@@ -1373,9 +1373,10 @@ layout_qualifier_id:
                }
             }
          }
+      }
 
-         if (!$$.flags.i &&
-             match_layout_qualifier($1, "early_fragment_tests", state) == 0) {
+      if (!$$.flags.i) {
+         if (match_layout_qualifier($1, "early_fragment_tests", state) == 0) {
             /* From section 4.4.1.3 of the GLSL 4.50 specification
              * (Fragment Shader Inputs):
              *
@@ -1392,6 +1393,47 @@ layout_qualifier_id:
             }
 
             $$.flags.q.early_fragment_tests = 1;
+         }
+
+         if (match_layout_qualifier($1, "inner_coverage", state) == 0) {
+            if (state->stage != MESA_SHADER_FRAGMENT) {
+               _mesa_glsl_error(& @1, state,
+                                "inner_coverage layout qualifier only "
+                                "valid in fragment shaders");
+            }
+
+	    if (state->INTEL_conservative_rasterization_enable) {
+	       $$.flags.q.inner_coverage = 1;
+	    } else {
+	       _mesa_glsl_error(& @1, state,
+                                "inner_coverage layout qualifier present, "
+                                "but the INTEL_conservative_rasterization extension "
+                                "is not enabled.");
+            }
+         }
+
+         if (match_layout_qualifier($1, "post_depth_coverage", state) == 0) {
+            if (state->stage != MESA_SHADER_FRAGMENT) {
+               _mesa_glsl_error(& @1, state,
+                                "post_depth_coverage layout qualifier only "
+                                "valid in fragment shaders");
+            }
+
+            if (state->ARB_post_depth_coverage_enable ||
+		state->INTEL_conservative_rasterization_enable) {
+               $$.flags.q.post_depth_coverage = 1;
+            } else {
+               _mesa_glsl_error(& @1, state,
+                                "post_depth_coverage layout qualifier present, "
+                                "but the GL_ARB_post_depth_coverage extension "
+                                "is not enabled.");
+            }
+         }
+
+         if ($$.flags.q.post_depth_coverage && $$.flags.q.inner_coverage) {
+            _mesa_glsl_error(& @1, state,
+                             "post_depth_coverage & inner_coverage layout qualifiers "
+                             "are mutually exclusive");
          }
       }
 

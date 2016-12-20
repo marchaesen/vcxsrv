@@ -35,12 +35,6 @@ struct locals_to_regs_state {
    /* A hash table mapping derefs to registers */
    struct hash_table *regs_table;
 
-   /* A growing array of derefs that we have encountered.  There is exactly
-    * one element of this array per element in the hash table.  This is
-    * used to make adding register initialization code deterministic.
-    */
-   nir_array derefs_array;
-
    bool progress;
 };
 
@@ -101,6 +95,8 @@ get_reg_for_deref(nir_deref_var *deref, struct locals_to_regs_state *state)
 {
    uint32_t hash = hash_deref(deref);
 
+   assert(deref->var->constant_initializer == NULL);
+
    struct hash_entry *entry =
       _mesa_hash_table_search_pre_hashed(state->regs_table, hash, deref);
    if (entry)
@@ -122,7 +118,6 @@ get_reg_for_deref(nir_deref_var *deref, struct locals_to_regs_state *state)
    reg->bit_size = glsl_get_bit_size(tail->type);
 
    _mesa_hash_table_insert_pre_hashed(state->regs_table, hash, deref, reg);
-   nir_array_add(&state->derefs_array, nir_deref_var *, deref);
 
    return reg;
 }
@@ -269,80 +264,6 @@ lower_locals_to_regs_block(nir_block *block,
    return true;
 }
 
-static nir_block *
-compute_reg_usedef_lca(nir_register *reg)
-{
-   nir_block *lca = NULL;
-
-   list_for_each_entry(nir_dest, def_dest, &reg->defs, reg.def_link)
-      lca = nir_dominance_lca(lca, def_dest->reg.parent_instr->block);
-
-   list_for_each_entry(nir_src, use_src, &reg->uses, use_link)
-      lca = nir_dominance_lca(lca, use_src->parent_instr->block);
-
-   list_for_each_entry(nir_src, use_src, &reg->if_uses, use_link) {
-      nir_cf_node *prev_node = nir_cf_node_prev(&use_src->parent_if->cf_node);
-      lca = nir_dominance_lca(lca, nir_cf_node_as_block(prev_node));
-   }
-
-   return lca;
-}
-
-static void
-insert_constant_initializer(nir_deref_var *deref_head, nir_deref *deref_tail,
-                            nir_block *block,
-                            struct locals_to_regs_state *state)
-{
-   if (deref_tail->child) {
-      switch (deref_tail->child->deref_type) {
-      case nir_deref_type_array: {
-         unsigned array_elems = glsl_get_length(deref_tail->type);
-
-         nir_deref_array arr_deref;
-         arr_deref.deref = *deref_tail->child;
-         arr_deref.deref_array_type = nir_deref_array_type_direct;
-
-         nir_deref *old_child = deref_tail->child;
-         deref_tail->child = &arr_deref.deref;
-         for (unsigned i = 0; i < array_elems; i++) {
-            arr_deref.base_offset = i;
-            insert_constant_initializer(deref_head, &arr_deref.deref,
-                                        block, state);
-         }
-         deref_tail->child = old_child;
-         return;
-      }
-
-      case nir_deref_type_struct:
-         insert_constant_initializer(deref_head, deref_tail->child,
-                                     block, state);
-         return;
-
-      default:
-         unreachable("Invalid deref child type");
-      }
-   }
-
-   assert(deref_tail->child == NULL);
-
-   nir_load_const_instr *load =
-      nir_deref_get_const_initializer_load(state->shader, deref_head);
-   nir_instr_insert_before_block(block, &load->instr);
-
-   nir_src reg_src = get_deref_reg_src(deref_head, &load->instr, state);
-
-   nir_alu_instr *mov = nir_alu_instr_create(state->shader, nir_op_imov);
-   mov->src[0].src = nir_src_for_ssa(&load->def);
-   mov->dest.write_mask = (1 << load->def.num_components) - 1;
-   mov->dest.dest.is_ssa = false;
-   mov->dest.dest.reg.reg = reg_src.reg.reg;
-   mov->dest.dest.reg.base_offset = reg_src.reg.base_offset;
-   mov->dest.dest.reg.indirect = reg_src.reg.indirect;
-
-   nir_instr_insert_after(&load->instr, &mov->instr);
-   state->progress = true;
-}
-
 static bool
 nir_lower_locals_to_regs_impl(nir_function_impl *impl)
 {
@@ -352,7 +273,6 @@ nir_lower_locals_to_regs_impl(nir_function_impl *impl)
    state.impl = impl;
    state.progress = false;
    state.regs_table = _mesa_hash_table_create(NULL, hash_deref, derefs_equal);
-   nir_array_init(&state.derefs_array, NULL);
 
    nir_metadata_require(impl, nir_metadata_dominance);
 
@@ -360,25 +280,9 @@ nir_lower_locals_to_regs_impl(nir_function_impl *impl)
       lower_locals_to_regs_block(block, &state);
    }
 
-   nir_array_foreach(&state.derefs_array, nir_deref_var *, deref_ptr) {
-      nir_deref_var *deref = *deref_ptr;
-      struct hash_entry *deref_entry =
-         _mesa_hash_table_search(state.regs_table, deref);
-      assert(deref_entry && deref_entry->key == deref);
-      nir_register *reg = (nir_register *)deref_entry->data;
-
-      if (deref->var->constant_initializer == NULL)
-         continue;
-
-      nir_block *usedef_lca = compute_reg_usedef_lca(reg);
-
-      insert_constant_initializer(deref, &deref->deref, usedef_lca, &state);
-   }
-
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
 
-   nir_array_fini(&state.derefs_array);
    _mesa_hash_table_destroy(state.regs_table, NULL);
 
    return state.progress;

@@ -625,9 +625,7 @@ rename_variables(struct lower_variables_state *state)
  *     aliased, i.e. if there is an indirect reference anywhere that may
  *     refer to it.  If it cannot be aliased, we mark it for lowering to an
  *     SSA value.  At this point, we lower any var_copy instructions that
- *     use the given deref to load/store operations and, if the deref has a
- *     constant initializer, we go ahead and add a load_const value at the
- *     beginning of the function with the initialized value.
+ *     use the given deref to load/store operations.
  *
  *  3) Walk over the list of derefs we plan to lower to SSA values and
  *     insert phi nodes as needed.
@@ -709,6 +707,8 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       memset(store_blocks, 0,
              BITSET_WORDS(state.impl->num_blocks) * sizeof(*store_blocks));
 
+      assert(node->deref->var->constant_initializer == NULL);
+
       if (node->stores) {
          struct set_entry *store_entry;
          set_foreach(node->stores, store_entry) {
@@ -718,22 +718,11 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
          }
       }
 
-      if (node->deref->var->constant_initializer)
-         BITSET_SET(store_blocks, 0);
-
       node->pb_value =
          nir_phi_builder_add_value(state.phi_builder,
                                    glsl_get_vector_elements(node->type),
                                    glsl_get_bit_size(node->type),
                                    store_blocks);
-
-      if (node->deref->var->constant_initializer) {
-         nir_load_const_instr *load =
-            nir_deref_get_const_initializer_load(state.shader, node->deref);
-         nir_instr_insert_before_cf_list(&impl->body, &load->instr);
-         nir_phi_builder_value_set_block_def(node->pb_value,
-                                             nir_start_block(impl), &load->def);
-      }
    }
 
    rename_variables(&state);

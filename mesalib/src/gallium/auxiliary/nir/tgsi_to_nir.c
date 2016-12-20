@@ -1433,7 +1433,7 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
       else
          instr->src[src_number].src = nir_src_for_ssa(ttn_channel(b, src[0], Z));
 
-      instr->src[src_number].src_type = nir_tex_src_comparitor;
+      instr->src[src_number].src_type = nir_tex_src_comparator;
       src_number++;
    }
 

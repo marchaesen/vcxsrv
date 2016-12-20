@@ -287,7 +287,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_indirect_parameters                            DONE (nvc0, radeonsi)
   GL_ARB_parallel_shader_compile                        not started, but Chia-I Wu did some related work in 2014
   GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, radeonsi, softpipe, swr)
-  GL_ARB_post_depth_coverage                            not started
+  GL_ARB_post_depth_coverage                            DONE (i965)
   GL_ARB_robustness_isolation                           not started
   GL_ARB_sample_locations                               not started
   GL_ARB_seamless_cubemap_per_texture                   DONE (i965, nvc0, radeonsi, r600, softpipe, swr)

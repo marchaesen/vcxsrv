@@ -475,11 +475,11 @@ void radv_GetPhysicalDeviceProperties(
 		.maxFragmentCombinedOutputResources       = 8,
 		.maxComputeSharedMemorySize               = 32768,
 		.maxComputeWorkGroupCount                 = { 65535, 65535, 65535 },
-		.maxComputeWorkGroupInvocations           = 16 * 1024,
+		.maxComputeWorkGroupInvocations           = 2048,
 		.maxComputeWorkGroupSize = {
-			16 * 1024/*devinfo->max_cs_threads*/,
-			16 * 1024,
-			16 * 1024
+			2048,
+			2048,
+			2048
 		},
 		.subPixelPrecisionBits                    = 4 /* FIXME */,
 		.subTexelPrecisionBits                    = 4 /* FIXME */,
@@ -553,20 +553,50 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 	uint32_t*                                   pCount,
 	VkQueueFamilyProperties*                    pQueueFamilyProperties)
 {
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
+	int num_queue_families = 1;
+	bool all_queues = env_var_as_boolean("RADV_SHOW_QUEUES", true);
+	int idx;
+	if (all_queues && pdevice->rad_info.chip_class >= CIK) {
+		if (pdevice->rad_info.compute_rings > 0)
+			num_queue_families++;
+	}
+
 	if (pQueueFamilyProperties == NULL) {
-		*pCount = 1;
+		*pCount = num_queue_families;
 		return;
 	}
-	assert(*pCount >= 1);
 
-	*pQueueFamilyProperties = (VkQueueFamilyProperties) {
-		.queueFlags = VK_QUEUE_GRAPHICS_BIT |
-		VK_QUEUE_COMPUTE_BIT |
-		VK_QUEUE_TRANSFER_BIT,
-		.queueCount = 1,
-		.timestampValidBits = 64,
-		.minImageTransferGranularity = (VkExtent3D) { 1, 1, 1 },
-	};
+	if (!*pCount)
+		return;
+
+	idx = 0;
+	if (*pCount >= 1) {
+		pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
+			.queueFlags = VK_QUEUE_GRAPHICS_BIT |
+			VK_QUEUE_COMPUTE_BIT |
+			VK_QUEUE_TRANSFER_BIT,
+			.queueCount = 1,
+			.timestampValidBits = 64,
+			.minImageTransferGranularity = (VkExtent3D) { 1, 1, 1 },
+		};
+		idx++;
+	}
+
+	if (!all_queues)
+		return;
+
+	if (pdevice->rad_info.compute_rings > 0 && pdevice->rad_info.chip_class >= CIK) {
+		if (*pCount > idx) {
+			pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
+				.queueFlags = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT,
+				.queueCount = pdevice->rad_info.compute_rings,
+				.timestampValidBits = 64,
+				.minImageTransferGranularity = (VkExtent3D) { 1, 1, 1 },
+			};
+			idx++;
+		}
+	}
 }
 
 void radv_GetPhysicalDeviceMemoryProperties(
@@ -575,50 +605,57 @@ void radv_GetPhysicalDeviceMemoryProperties(
 {
 	RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
 
-	pMemoryProperties->memoryTypeCount = 4;
-	pMemoryProperties->memoryTypes[0] = (VkMemoryType) {
+	STATIC_ASSERT(RADV_MEM_TYPE_COUNT <= VK_MAX_MEMORY_TYPES);
+
+	pMemoryProperties->memoryTypeCount = RADV_MEM_TYPE_COUNT;
+	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_VRAM] = (VkMemoryType) {
 		.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		.heapIndex = 0,
+		.heapIndex = RADV_MEM_HEAP_VRAM,
 	};
-	pMemoryProperties->memoryTypes[1] = (VkMemoryType) {
+	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_GTT_WRITE_COMBINE] = (VkMemoryType) {
 		.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		.heapIndex = 2,
+		.heapIndex = RADV_MEM_HEAP_GTT,
 	};
-	pMemoryProperties->memoryTypes[2] = (VkMemoryType) {
+	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_VRAM_CPU_ACCESS] = (VkMemoryType) {
 		.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		.heapIndex = 1,
+		.heapIndex = RADV_MEM_HEAP_VRAM_CPU_ACCESS,
 	};
-	pMemoryProperties->memoryTypes[3] = (VkMemoryType) {
+	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_GTT_CACHED] = (VkMemoryType) {
 		.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
 		VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-		.heapIndex = 2,
+		.heapIndex = RADV_MEM_HEAP_GTT,
 	};
 
-	pMemoryProperties->memoryHeapCount = 3;
-	pMemoryProperties->memoryHeaps[0] = (VkMemoryHeap) {
+	STATIC_ASSERT(RADV_MEM_HEAP_COUNT <= VK_MAX_MEMORY_HEAPS);
+
+	pMemoryProperties->memoryHeapCount = RADV_MEM_HEAP_COUNT;
+	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_VRAM] = (VkMemoryHeap) {
 		.size = physical_device->rad_info.vram_size -
 				physical_device->rad_info.visible_vram_size,
 		.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 	};
-	pMemoryProperties->memoryHeaps[1] = (VkMemoryHeap) {
+	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_VRAM_CPU_ACCESS] = (VkMemoryHeap) {
 		.size = physical_device->rad_info.visible_vram_size,
 		.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 	};
-	pMemoryProperties->memoryHeaps[2] = (VkMemoryHeap) {
+	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_GTT] = (VkMemoryHeap) {
 		.size = physical_device->rad_info.gart_size,
 		.flags = 0,
 	};
 }
 
 static void
-radv_queue_init(struct radv_device *device, struct radv_queue *queue)
+radv_queue_init(struct radv_device *device, struct radv_queue *queue,
+		int queue_family_index, int idx)
 {
 	queue->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	queue->device = device;
+	queue->queue_family_index = queue_family_index;
+	queue->queue_idx = idx;
 }
 
 static void
@@ -655,6 +692,8 @@ VkResult radv_CreateDevice(
 	if (!device)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
+	memset(device, 0, sizeof(*device));
+
 	device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	device->instance = physical_device->instance;
 	device->shader_stats_dump = false;
@@ -665,18 +704,33 @@ VkResult radv_CreateDevice(
 	else
 		device->alloc = physical_device->instance->alloc;
 
+	for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
+		const VkDeviceQueueCreateInfo *queue_create = &pCreateInfo->pQueueCreateInfos[i];
+		uint32_t qfi = queue_create->queueFamilyIndex;
+
+		device->queues[qfi] = vk_alloc(&device->alloc,
+					       queue_create->queueCount * sizeof(struct radv_queue), 8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+		if (!device->queues[qfi]) {
+			result = VK_ERROR_OUT_OF_HOST_MEMORY;
+			goto fail;
+		}
+
+		device->queue_count[qfi] = queue_create->queueCount;
+
+		for (unsigned q = 0; q < queue_create->queueCount; q++)
+			radv_queue_init(device, &device->queues[qfi][q], qfi, q);
+	}
+
 	device->hw_ctx = device->ws->ctx_create(device->ws);
 	if (!device->hw_ctx) {
 		result = VK_ERROR_OUT_OF_HOST_MEMORY;
-		goto fail_free;
+		goto fail;
 	}
-
-	radv_queue_init(device, &device->queue);
 
 	result = radv_device_init_meta(device);
 	if (result != VK_SUCCESS) {
 		device->ws->ctx_destroy(device->hw_ctx);
-		goto fail_free;
+		goto fail;
 	}
 	device->allow_fast_clears = env_var_as_boolean("RADV_FAST_CLEARS", false);
 	device->allow_dcc = !env_var_as_boolean("RADV_DCC_DISABLE", false);
@@ -686,14 +740,33 @@ VkResult radv_CreateDevice(
 		radv_finishme("DCC fast clears have not been tested\n");
 
 	radv_device_init_msaa(device);
-	device->empty_cs = device->ws->cs_create(device->ws, RING_GFX);
-	radeon_emit(device->empty_cs, PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
-	radeon_emit(device->empty_cs, CONTEXT_CONTROL_LOAD_ENABLE(1));
-	radeon_emit(device->empty_cs, CONTEXT_CONTROL_SHADOW_ENABLE(1));
-	device->ws->cs_finalize(device->empty_cs);
+
+	for (int family = 0; family < RADV_MAX_QUEUE_FAMILIES; ++family) {
+		device->empty_cs[family] = device->ws->cs_create(device->ws, family);
+		switch (family) {
+		case RADV_QUEUE_GENERAL:
+			radeon_emit(device->empty_cs[family], PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
+			radeon_emit(device->empty_cs[family], CONTEXT_CONTROL_LOAD_ENABLE(1));
+			radeon_emit(device->empty_cs[family], CONTEXT_CONTROL_SHADOW_ENABLE(1));
+			break;
+		case RADV_QUEUE_COMPUTE:
+			radeon_emit(device->empty_cs[family], PKT3(PKT3_NOP, 0, 0));
+			radeon_emit(device->empty_cs[family], 0);
+			break;
+		}
+		device->ws->cs_finalize(device->empty_cs[family]);
+	}
+
 	*pDevice = radv_device_to_handle(device);
 	return VK_SUCCESS;
-fail_free:
+
+fail:
+	for (unsigned i = 0; i < RADV_MAX_QUEUE_FAMILIES; i++) {
+		for (unsigned q = 0; q < device->queue_count[i]; q++)
+			radv_queue_finish(&device->queues[i][q]);
+		if (device->queue_count[i])
+			vk_free(&device->alloc, device->queues[i]);
+	}
 	vk_free(&device->alloc, device);
 	return result;
 }
@@ -705,7 +778,12 @@ void radv_DestroyDevice(
 	RADV_FROM_HANDLE(radv_device, device, _device);
 
 	device->ws->ctx_destroy(device->hw_ctx);
-	radv_queue_finish(&device->queue);
+	for (unsigned i = 0; i < RADV_MAX_QUEUE_FAMILIES; i++) {
+		for (unsigned q = 0; q < device->queue_count[i]; q++)
+			radv_queue_finish(&device->queues[i][q]);
+		if (device->queue_count[i])
+			vk_free(&device->alloc, device->queues[i]);
+	}
 	radv_device_finish_meta(device);
 
 	vk_free(&device->alloc, device);
@@ -779,15 +857,13 @@ VkResult radv_EnumerateDeviceLayerProperties(
 
 void radv_GetDeviceQueue(
 	VkDevice                                    _device,
-	uint32_t                                    queueNodeIndex,
+	uint32_t                                    queueFamilyIndex,
 	uint32_t                                    queueIndex,
 	VkQueue*                                    pQueue)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 
-	assert(queueIndex == 0);
-
-	*pQueue = radv_queue_to_handle(&device->queue);
+	*pQueue = radv_queue_to_handle(&device->queues[queueFamilyIndex][queueIndex]);
 }
 
 VkResult radv_QueueSubmit(
@@ -821,8 +897,12 @@ VkResult radv_QueueSubmit(
 			if ((cmd_buffer->usage_flags & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
 				can_patch = false;
 		}
-		ret = queue->device->ws->cs_submit(ctx, cs_array,
+		ret = queue->device->ws->cs_submit(ctx, queue->queue_idx, cs_array,
 						   pSubmits[i].commandBufferCount,
+						   (struct radeon_winsys_sem **)pSubmits[i].pWaitSemaphores,
+						   pSubmits[i].waitSemaphoreCount,
+						   (struct radeon_winsys_sem **)pSubmits[i].pSignalSemaphores,
+						   pSubmits[i].signalSemaphoreCount,
 						   can_patch, base_fence);
 		if (ret)
 			radv_loge("failed to submit CS %d\n", i);
@@ -831,8 +911,9 @@ VkResult radv_QueueSubmit(
 
 	if (fence) {
 		if (!submitCount)
-			ret = queue->device->ws->cs_submit(ctx, &queue->device->empty_cs,
-							   1, false, base_fence);
+			ret = queue->device->ws->cs_submit(ctx, queue->queue_idx,
+							   &queue->device->empty_cs[queue->queue_family_index],
+							   1, NULL, 0, NULL, 0, false, base_fence);
 
 		fence->submitted = true;
 	}
@@ -845,7 +926,9 @@ VkResult radv_QueueWaitIdle(
 {
 	RADV_FROM_HANDLE(radv_queue, queue, _queue);
 
-	queue->device->ws->ctx_wait_idle(queue->device->hw_ctx);
+	queue->device->ws->ctx_wait_idle(queue->device->hw_ctx,
+	                                 radv_queue_family_to_ring(queue->queue_family_index),
+	                                 queue->queue_idx);
 	return VK_SUCCESS;
 }
 
@@ -854,7 +937,11 @@ VkResult radv_DeviceWaitIdle(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 
-	device->ws->ctx_wait_idle(device->hw_ctx);
+	for (unsigned i = 0; i < RADV_MAX_QUEUE_FAMILIES; i++) {
+		for (unsigned q = 0; q < device->queue_count[i]; q++) {
+			radv_QueueWaitIdle(radv_queue_to_handle(&device->queues[i][q]));
+		}
+	}
 	return VK_SUCCESS;
 }
 
@@ -913,17 +1000,18 @@ VkResult radv_AllocateMemory(
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	uint64_t alloc_size = align_u64(pAllocateInfo->allocationSize, 4096);
-	if (pAllocateInfo->memoryTypeIndex == 1 || pAllocateInfo->memoryTypeIndex == 3)
+	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE ||
+	    pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_CACHED)
 		domain = RADEON_DOMAIN_GTT;
 	else
 		domain = RADEON_DOMAIN_VRAM;
 
-	if (pAllocateInfo->memoryTypeIndex == 0)
+	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_VRAM)
 		flags |= RADEON_FLAG_NO_CPU_ACCESS;
 	else
 		flags |= RADEON_FLAG_CPU_ACCESS;
 
-	if (pAllocateInfo->memoryTypeIndex == 1)
+	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
 
 	mem->bo = device->ws->buffer_create(device->ws, alloc_size, 32768,
@@ -1023,16 +1111,7 @@ void radv_GetBufferMemoryRequirements(
 {
 	RADV_FROM_HANDLE(radv_buffer, buffer, _buffer);
 
-	/* The Vulkan spec (git aaed022) says:
-	 *
-	 *    memoryTypeBits is a bitfield and contains one bit set for every
-	 *    supported memory type for the resource. The bit `1<<i` is set if and
-	 *    only if the memory type `i` in the VkPhysicalDeviceMemoryProperties
-	 *    structure for the physical device is supported.
-	 *
-	 * We support exactly one memory type.
-	 */
-	pMemoryRequirements->memoryTypeBits = 0x7;
+	pMemoryRequirements->memoryTypeBits = (1u << RADV_MEM_TYPE_COUNT) - 1;
 
 	pMemoryRequirements->size = buffer->size;
 	pMemoryRequirements->alignment = 16;
@@ -1045,16 +1124,7 @@ void radv_GetImageMemoryRequirements(
 {
 	RADV_FROM_HANDLE(radv_image, image, _image);
 
-	/* The Vulkan spec (git aaed022) says:
-	 *
-	 *    memoryTypeBits is a bitfield and contains one bit set for every
-	 *    supported memory type for the resource. The bit `1<<i` is set if and
-	 *    only if the memory type `i` in the VkPhysicalDeviceMemoryProperties
-	 *    structure for the physical device is supported.
-	 *
-	 * We support exactly one memory type.
-	 */
-	pMemoryRequirements->memoryTypeBits = 0x7;
+	pMemoryRequirements->memoryTypeBits = (1u << RADV_MEM_TYPE_COUNT) - 1;
 
 	pMemoryRequirements->size = image->size;
 	pMemoryRequirements->alignment = image->alignment;
@@ -1144,7 +1214,10 @@ VkResult radv_CreateFence(
 	fence->submitted = false;
 	fence->signalled = !!(pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT);
 	fence->fence = device->ws->create_fence();
-
+	if (!fence->fence) {
+		vk_free2(&device->alloc, pAllocator, fence);
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
+	}
 
 	*pFence = radv_fence_to_handle(fence);
 
@@ -1244,25 +1317,34 @@ VkResult radv_GetFenceStatus(VkDevice _device, VkFence _fence)
 // Queue semaphore functions
 
 VkResult radv_CreateSemaphore(
-	VkDevice                                    device,
+	VkDevice                                    _device,
 	const VkSemaphoreCreateInfo*                pCreateInfo,
 	const VkAllocationCallbacks*                pAllocator,
 	VkSemaphore*                                pSemaphore)
 {
-	/* The DRM execbuffer ioctl always execute in-oder, even between different
-	 * rings. As such, there's nothing to do for the user space semaphore.
-	 */
+	RADV_FROM_HANDLE(radv_device, device, _device);
+	struct radeon_winsys_sem *sem;
 
-	*pSemaphore = (VkSemaphore)1;
+	sem = device->ws->create_sem(device->ws);
+	if (!sem)
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
+	*pSemaphore = (VkSemaphore)sem;
 	return VK_SUCCESS;
 }
 
 void radv_DestroySemaphore(
-	VkDevice                                    device,
-	VkSemaphore                                 semaphore,
+	VkDevice                                    _device,
+	VkSemaphore                                 _semaphore,
 	const VkAllocationCallbacks*                pAllocator)
 {
+	RADV_FROM_HANDLE(radv_device, device, _device);
+	struct radeon_winsys_sem *sem;
+	if (!_semaphore)
+		return;
+
+	sem = (struct radeon_winsys_sem *)_semaphore;
+	device->ws->destroy_sem(sem);
 }
 
 VkResult radv_CreateEvent(

@@ -55,6 +55,7 @@
 extern _X_EXPORT int xf86DoConfigure;
 extern _X_EXPORT int xf86DoShowOptions;
 extern _X_EXPORT Bool xf86DoConfigurePass1;
+extern _X_EXPORT Bool xf86ProbeIgnorePrimary;
 extern _X_EXPORT Bool xorgHWAccess;
 
 extern _X_EXPORT DevPrivateKeyRec xf86ScreenKeyRec;

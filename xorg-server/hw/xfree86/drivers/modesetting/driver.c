@@ -60,7 +60,6 @@
 #endif
 
 #include "driver.h"
-#include "sh3224.h"
 
 static void AdjustFrame(ScrnInfoPtr pScrn, int x, int y);
 static Bool CloseScreen(ScreenPtr pScreen);
@@ -1124,7 +1123,7 @@ msUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     modesettingPtr ms = modesettingPTR(pScrn);
-    Bool use_ms_shadow = ms->drmmode.force_24_32 && pScrn->bitsPerPixel == 32;
+    Bool use_3224 = ms->drmmode.force_24_32 && pScrn->bitsPerPixel == 32;
 
     if (ms->drmmode.shadow_enable2 && ms->drmmode.shadow_fb2) do {
         RegionPtr damage = DamageRegion(pBuf->pDamage), tiles;
@@ -1166,8 +1165,8 @@ msUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
         free(prect);
     } while (0);
 
-    if (use_ms_shadow)
-        ms_shadowUpdate32to24(pScreen, pBuf);
+    if (use_3224)
+        shadowUpdate32to24(pScreen, pBuf);
     else
         shadowUpdatePacked(pScreen, pBuf);
 }

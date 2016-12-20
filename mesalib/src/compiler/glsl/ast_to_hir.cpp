@@ -3632,6 +3632,16 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
       _mesa_glsl_error(loc, state, "early_fragment_tests layout qualifier only "
                        "valid in fragment shader input layout declaration.");
    }
+
+   if (qual->flags.q.inner_coverage) {
+      _mesa_glsl_error(loc, state, "inner_coverage layout qualifier only "
+                       "valid in fragment shader input layout declaration.");
+   }
+
+   if (qual->flags.q.post_depth_coverage) {
+      _mesa_glsl_error(loc, state, "post_depth_coverage layout qualifier only "
+                       "valid in fragment shader input layout declaration.");
+   }
 }
 
 static void

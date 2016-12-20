@@ -3788,8 +3788,13 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
          goto invalid_pname_enum;
       }
       else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
-                     _mesa_enum_to_string(pname));
+         if (_mesa_is_winsys_fbo(buffer) &&
+             (attachment == GL_DEPTH || attachment == GL_STENCIL)) {
+            *params = GL_LINEAR;
+         } else {
+            _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                        _mesa_enum_to_string(pname));
+         }
       }
       else {
          if (ctx->Extensions.EXT_framebuffer_sRGB) {

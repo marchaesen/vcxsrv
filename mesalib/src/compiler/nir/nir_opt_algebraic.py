@@ -175,6 +175,8 @@ optimizations = [
    (('fmin', ('fmax', ('fmin', ('fmax', a, b), c), b), c), ('fmin', ('fmax', a, b), c)),
    (('imin', ('imax', ('imin', ('imax', a, b), c), b), c), ('imin', ('imax', a, b), c)),
    (('umin', ('umax', ('umin', ('umax', a, b), c), b), c), ('umin', ('umax', a, b), c)),
+   (('fmax', ('fsat', a), '#b@32(is_zero_to_one)'), ('fsat', ('fmax', a, b))),
+   (('fmin', ('fsat', a), '#b@32(is_zero_to_one)'), ('fsat', ('fmin', a, b))),
    (('extract_u8', ('imin', ('imax', a, 0), 0xff), 0), ('imin', ('imax', a, 0), 0xff)),
    (('~ior', ('flt', a, b), ('flt', a, c)), ('flt', a, ('fmax', b, c))),
    (('~ior', ('flt', a, c), ('flt', b, c)), ('flt', ('fmin', a, b), c)),

@@ -184,6 +184,7 @@ LoaderSetPath(const char *path)
     if (!path)
         return;
 
+    FreeStringList(defaultPathList);
     defaultPathList = InitPathList(path);
 }
 

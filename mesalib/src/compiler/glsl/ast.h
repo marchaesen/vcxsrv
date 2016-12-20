@@ -609,6 +609,16 @@ struct ast_type_qualifier {
          /** \{ */
          unsigned blend_support:1; /**< Are there any blend_support_ qualifiers */
          /** \} */
+
+         /**
+          * Flag set if GL_ARB_post_depth_coverage layout qualifier is used.
+          */
+         unsigned post_depth_coverage:1;
+         /**
+          * Flag set if GL_INTEL_conservartive_rasterization layout qualifier
+          * is used.
+          */
+         unsigned inner_coverage:1;
       }
       /** \brief Set of flags, accessed by name. */
       q;

@@ -531,6 +531,14 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
       ir_dereference *packed_deref =
          this->get_packed_varying_deref(location, unpacked_var, name,
                                         vertex_index);
+      if (unpacked_var->data.stream != 0) {
+         assert(unpacked_var->data.stream < 4);
+         ir_variable *packed_var = packed_deref->variable_referenced();
+         for (unsigned i = 0; i < components; ++i) {
+            packed_var->data.stream |=
+               unpacked_var->data.stream << (2 * (location_frac + i));
+         }
+      }
       ir_swizzle *swizzle = new(this->mem_ctx)
          ir_swizzle(packed_deref, swizzle_values, components);
       if (this->mode == ir_var_shader_out) {
@@ -639,6 +647,7 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
       packed_var->data.location = location;
       packed_var->data.precision = unpacked_var->data.precision;
       packed_var->data.always_active_io = unpacked_var->data.always_active_io;
+      packed_var->data.stream = 1u << 31;
       unpacked_var->insert_before(packed_var);
       this->packed_varyings[slot] = packed_var;
    } else {

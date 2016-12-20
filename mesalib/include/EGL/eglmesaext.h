@@ -52,6 +52,7 @@ extern "C" {
 #define EGL_TEXTURE_Y_U_V_WL            0x31D7
 #define EGL_TEXTURE_Y_UV_WL             0x31D8
 #define EGL_TEXTURE_Y_XUXV_WL           0x31D9
+#define EGL_TEXTURE_EXTERNAL_WL         0x31DA
 
 struct wl_display;
 struct wl_resource;

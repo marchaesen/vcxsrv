@@ -990,7 +990,7 @@ static void load_texture( texenv_fragment_program *p, GLuint unit )
 
    if (p->state->unit[unit].shadow) {
       texcoord = texcoord->clone(p->mem_ctx, NULL);
-      tex->shadow_comparitor = new(p->mem_ctx) ir_swizzle(texcoord,
+      tex->shadow_comparator = new(p->mem_ctx) ir_swizzle(texcoord,
 							  coords, 0, 0, 0,
 							  1);
       coords++;

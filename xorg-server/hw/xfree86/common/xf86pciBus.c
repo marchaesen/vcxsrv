@@ -352,6 +352,10 @@ xf86ComparePciBusString(const char *busID, int bus, int device, int func)
 Bool
 xf86IsPrimaryPci(struct pci_device *pPci)
 {
+    /* Add max. 1 screen for the IgnorePrimary fallback path */
+    if (xf86ProbeIgnorePrimary && xf86NumScreens == 0)
+        return TRUE;
+
     if (primaryBus.type == BUS_PCI)
         return pPci == primaryBus.id.pci;
 #ifdef XSERVER_PLATFORM_BUS
