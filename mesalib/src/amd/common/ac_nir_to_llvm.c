@@ -2244,13 +2244,15 @@ static LLVMValueRef visit_load_var(struct nir_to_llvm_context *ctx,
 				      &const_index, &indir_index);
 		LLVMValueRef ptr = get_shared_memory_ptr(ctx, idx, ctx->i32);
 		LLVMValueRef derived_ptr;
-		LLVMValueRef index = ctx->i32zero;
-		if (indir_index)
-			index = LLVMBuildAdd(ctx->builder, index, indir_index, "");
-		derived_ptr = LLVMBuildGEP(ctx->builder, ptr, &index, 1, "");
 
-		return to_integer(ctx, LLVMBuildLoad(ctx->builder, derived_ptr, ""));
-		break;
+		for (unsigned chan = 0; chan < ve; chan++) {
+			LLVMValueRef index = LLVMConstInt(ctx->i32, chan, false);
+			if (indir_index)
+				index = LLVMBuildAdd(ctx->builder, index, indir_index, "");
+			derived_ptr = LLVMBuildGEP(ctx->builder, ptr, &index, 1, "");
+			values[chan] = LLVMBuildLoad(ctx->builder, derived_ptr, "");
+		}
+		return to_integer(ctx, build_gather_values(ctx, values, ve));
 	}
 	default:
 		break;
@@ -2345,14 +2347,29 @@ visit_store_var(struct nir_to_llvm_context *ctx,
 				      &const_index, &indir_index);
 
 		ptr = get_shared_memory_ptr(ctx, idx, ctx->i32);
-		LLVMValueRef index = ctx->i32zero;
 		LLVMValueRef derived_ptr;
 
-		if (indir_index)
-			index = LLVMBuildAdd(ctx->builder, index, indir_index, "");
-		derived_ptr = LLVMBuildGEP(ctx->builder, ptr, &index, 1, "");
-		LLVMBuildStore(ctx->builder,
-			       to_integer(ctx, src), derived_ptr);
+		for (unsigned chan = 0; chan < 4; chan++) {
+			if (!(writemask & (1 << chan)))
+				continue;
+
+			LLVMValueRef index = LLVMConstInt(ctx->i32, chan, false);
+
+			if (get_llvm_num_components(src) == 1)
+				value = src;
+			else
+				value = LLVMBuildExtractElement(ctx->builder, src,
+								LLVMConstInt(ctx->i32,
+									     chan, false),
+								"");
+
+			if (indir_index)
+				index = LLVMBuildAdd(ctx->builder, index, indir_index, "");
+
+			derived_ptr = LLVMBuildGEP(ctx->builder, ptr, &index, 1, "");
+			LLVMBuildStore(ctx->builder,
+				       to_integer(ctx, value), derived_ptr);
+		}
 		break;
 	}
 	default:
@@ -4125,7 +4142,7 @@ static void
 handle_shader_output_decl(struct nir_to_llvm_context *ctx,
 			  struct nir_variable *variable)
 {
-	int idx = variable->data.location;
+	int idx = variable->data.location + variable->data.index;
 	unsigned attrib_count = glsl_count_attribute_slots(variable->type, false);
 
 	variable->data.driver_location = idx * 4;
@@ -4155,7 +4172,7 @@ handle_shader_output_decl(struct nir_to_llvm_context *ctx,
 		                       si_build_alloca_undef(ctx, ctx->f32, "");
 		}
 	}
-	ctx->output_mask |= ((1ull << attrib_count) - 1) << variable->data.location;
+	ctx->output_mask |= ((1ull << attrib_count) - 1) << idx;
 }
 
 static void

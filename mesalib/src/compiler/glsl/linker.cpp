@@ -3735,9 +3735,64 @@ add_shader_variable(const struct gl_context *ctx,
                     bool use_implicit_location, int location,
                     const glsl_type *outermost_struct_type = NULL)
 {
-   const bool is_vertex_input =
-      programInterface == GL_PROGRAM_INPUT &&
-      stage_mask == MESA_SHADER_VERTEX;
+   const glsl_type *interface_type = var->get_interface_type();
+
+   if (outermost_struct_type == NULL) {
+      /* Unsized (non-patch) TCS output/TES input arrays are implicitly
+       * sized to gl_MaxPatchVertices.  Internally, we shrink them to a
+       * smaller size.
+       *
+       * This can cause trouble with SSO programs.  Since the TCS declares
+       * the number of output vertices, we can always shrink TCS output
+       * arrays.  However, the TES might not be linked with a TCS, in
+       * which case it won't know the size of the patch.  In other words,
+       * the TCS and TES may disagree on the (smaller) array sizes.  This
+       * can result in the resource names differing across stages, causing
+       * SSO validation failures and other cascading issues.
+       *
+       * Expanding the array size to the full gl_MaxPatchVertices fixes
+       * these issues.  It's also what program interface queries expect,
+       * as that is the official size of the array.
+       */
+      if (var->data.tess_varying_implicit_sized_array) {
+         type = resize_to_max_patch_vertices(ctx, type);
+         interface_type = resize_to_max_patch_vertices(ctx, interface_type);
+      }
+
+      if (var->data.from_named_ifc_block) {
+         const char *interface_name = interface_type->name;
+
+         if (interface_type->is_array()) {
+            /* Issue #16 of the ARB_program_interface_query spec says:
+             *
+             * "* If a variable is a member of an interface block without an
+             *    instance name, it is enumerated using just the variable name.
+             *
+             *  * If a variable is a member of an interface block with an
+             *    instance name, it is enumerated as "BlockName.Member", where
+             *    "BlockName" is the name of the interface block (not the
+             *    instance name) and "Member" is the name of the variable."
+             *
+             * In particular, it indicates that it should be "BlockName",
+             * not "BlockName[array length]".  The conformance suite and
+             * dEQP both require this behavior.
+             *
+             * Here, we unwrap the extra array level added by named interface
+             * block array lowering so we have the correct variable type.  We
+             * also unwrap the interface type when constructing the name.
+             *
+             * We leave interface_type the same so that ES 3.x SSO pipeline
+             * validation can enforce the rules requiring array length to
+             * match on interface blocks.
+             */
+            type = type->fields.array;
+
+            interface_name = interface_type->fields.array->name;
+         }
+
+         name = ralloc_asprintf(shProg, "%s.%s", interface_name, name);
+      }
+   }
 
    switch (type->base_type) {
    case GLSL_TYPE_STRUCT: {
@@ -3764,51 +3819,12 @@ add_shader_variable(const struct gl_context *ctx,
                                   outermost_struct_type))
             return false;
 
-         field_location +=
-            field->type->count_attribute_slots(is_vertex_input);
+         field_location += field->type->count_attribute_slots(false);
       }
       return true;
    }
 
    default: {
-      const glsl_type *interface_type = var->get_interface_type();
-
-      /* Unsized (non-patch) TCS output/TES input arrays are implicitly
-       * sized to gl_MaxPatchVertices.  Internally, we shrink them to a
-       * smaller size.
-       *
-       * This can cause trouble with SSO programs.  Since the TCS declares
-       * the number of output vertices, we can always shrink TCS output
-       * arrays.  However, the TES might not be linked with a TCS, in
-       * which case it won't know the size of the patch.  In other words,
-       * the TCS and TES may disagree on the (smaller) array sizes.  This
-       * can result in the resource names differing across stages, causing
-       * SSO validation failures and other cascading issues.
-       *
-       * Expanding the array size to the full gl_MaxPatchVertices fixes
-       * these issues.  It's also what program interface queries expect,
-       * as that is the official size of the array.
-       */
-      if (var->data.tess_varying_implicit_sized_array) {
-         type = resize_to_max_patch_vertices(ctx, type);
-         interface_type = resize_to_max_patch_vertices(ctx, interface_type);
-      }
-
-      /* Issue #16 of the ARB_program_interface_query spec says:
-       *
-       * "* If a variable is a member of an interface block without an
-       *    instance name, it is enumerated using just the variable name.
-       *
-       *  * If a variable is a member of an interface block with an instance
-       *    name, it is enumerated as "BlockName.Member", where "BlockName" is
-       *    the name of the interface block (not the instance name) and
-       *    "Member" is the name of the variable."
-       */
-      const char *prefixed_name = (var->data.from_named_ifc_block &&
-                                   !is_gl_identifier(var->name))
-         ? ralloc_asprintf(shProg, "%s.%s", interface_type->name, name)
-         : name;
-
       /* The ARB_program_interface_query spec says:
        *
        *     "For an active variable declared as a single instance of a basic
@@ -3816,8 +3832,7 @@ add_shader_variable(const struct gl_context *ctx,
        *     from the shader source."
        */
       gl_shader_variable *sha_v =
-         create_shader_variable(shProg, var, prefixed_name, type,
-                                interface_type,
+         create_shader_variable(shProg, var, name, type, interface_type,
                                 use_implicit_location, location,
                                 outermost_struct_type);
       if (!sha_v)

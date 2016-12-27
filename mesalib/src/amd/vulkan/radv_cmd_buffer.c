@@ -2398,8 +2398,8 @@ static void radv_handle_cmask_image_transition(struct radv_cmd_buffer *cmd_buffe
 			radv_initialise_cmask(cmd_buffer, image, 0xccccccccu);
 		else
 			radv_initialise_cmask(cmd_buffer, image, 0xffffffffu);
-	} else if (radv_layout_has_cmask(image, src_layout, src_queue_mask) &&
-		   !radv_layout_has_cmask(image, dst_layout, dst_queue_mask)) {
+	} else if (radv_layout_can_fast_clear(image, src_layout, src_queue_mask) &&
+		   !radv_layout_can_fast_clear(image, dst_layout, dst_queue_mask)) {
 		radv_fast_clear_flush_image_inplace(cmd_buffer, image);
 	}
 }
@@ -2425,13 +2425,15 @@ static void radv_handle_dcc_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					     struct radv_image *image,
 					     VkImageLayout src_layout,
 					     VkImageLayout dst_layout,
+					     unsigned src_queue_mask,
+					     unsigned dst_queue_mask,
 					     VkImageSubresourceRange range,
 					     VkImageAspectFlags pending_clears)
 {
 	if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
 		radv_initialize_dcc(cmd_buffer, image, 0x20202020u);
-	} else if(src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
-		  dst_layout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+	} else if (radv_layout_can_fast_clear(image, src_layout, src_queue_mask) &&
+		   !radv_layout_can_fast_clear(image, dst_layout, dst_queue_mask)) {
 		radv_fast_clear_flush_image_inplace(cmd_buffer, image);
 	}
 }
@@ -2477,7 +2479,9 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 
 	if (image->surface.dcc_size)
 		radv_handle_dcc_image_transition(cmd_buffer, image, src_layout,
-						 dst_layout, range, pending_clears);
+						 dst_layout, src_queue_mask,
+						 dst_queue_mask, range,
+						 pending_clears);
 }
 
 void radv_CmdPipelineBarrier(
@@ -2550,8 +2554,10 @@ void radv_CmdPipelineBarrier(
 		case VK_ACCESS_INDIRECT_COMMAND_READ_BIT:
 		case VK_ACCESS_INDEX_READ_BIT:
 		case VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT:
-		case VK_ACCESS_UNIFORM_READ_BIT:
 			flush_bits |= RADV_CMD_FLAG_INV_VMEM_L1;
+			break;
+		case VK_ACCESS_UNIFORM_READ_BIT:
+			flush_bits |= RADV_CMD_FLAG_INV_VMEM_L1 | RADV_CMD_FLAG_INV_SMEM_L1;
 			break;
 		case VK_ACCESS_SHADER_READ_BIT:
 			flush_bits |= RADV_CMD_FLAG_INV_GLOBAL_L2;

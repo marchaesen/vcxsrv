@@ -261,6 +261,9 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
    struct wsi_x11_connection *wsi_conn =
       wsi_x11_get_connection(wsi_device, alloc, connection);
 
+   if (!wsi_conn)
+      return false;
+
    if (!wsi_conn->has_dri3) {
       fprintf(stderr, "vulkan: No DRI3 support\n");
       return false;
@@ -348,6 +351,9 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
     */
    xcb_visualtype_t *visual =
       get_visualtype_for_window(conn, window, &visual_depth);
+
+   if (!visual)
+      return VK_ERROR_SURFACE_LOST_KHR;
 
    geom = xcb_get_geometry_reply(conn, geom_cookie, &err);
    if (geom) {

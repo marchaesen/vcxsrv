@@ -128,7 +128,8 @@ typedef int		FcBool;
 #define FC_USER_CACHE_FILE	    ".fonts.cache-" FC_CACHE_VERSION
 
 /* Adjust outline rasterizer */
-#define FC_CHAR_WIDTH	    "charwidth"	/* Int */
+#define FC_CHARWIDTH	    "charwidth"	/* Int */
+#define FC_CHAR_WIDTH	    FC_CHARWIDTH
 #define FC_CHAR_HEIGHT	    "charheight"/* Int */
 #define FC_MATRIX	    "matrix"    /* FcMatrix */
 

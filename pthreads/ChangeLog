@@ -1,3 +1,19 @@
+2016-12-18  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* implement.h (PTW32_TEST_SNEAK_PEEK): Defined in tests/test.h
+	to control what some tests see when sneaking a peek inside this
+	header.
+	* GNUMakefile.in: call tests "make realclean"
+
+2016-12-17  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* _ptw32.h: MINGW(all) include stdint.h to define all specific
+	size integers (int64_t etc).
+	
+2016-12-17  Kyle Schwarz <kyle dot r dot schwarz at gmail dot com>
+
+	* _ptw32.h: MINGW6464 define pid_t as __int64.
+	
 2016-04-01  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* _ptw32.h: Move more header stuff into here.

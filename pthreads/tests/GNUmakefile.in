@@ -199,12 +199,14 @@ all-asm: $(ASM)
 allpassed: $(HDR) $(LIB) $(DLL) $(QAPC) $(TESTS:%=%.pass)
 	@ $(ECHO) "ALL TESTS COMPLETED. Check the logfile: $(LOGFILE)"
 	@ $(ECHO) "FAILURES: $$( $(GREP) FAILED $(LOGFILE) | $(WC) -l ) "
-	@ ! $(GREP) FAILED $(LOGFILE)
+	@ - ! $(GREP) FAILED $(LOGFILE)
+	@ $(MV) $(LOGFILE) ../$(TEST)-$(LOGFILE)
 
 all-bench: $(HDR) $(LIB) $(DLL) $(QAPC) $(XXLIBS) $(BENCHRESULTS)
 	@ $(ECHO) "ALL BENCH TESTS COMPLETED. Check the logfile: $(LOGFILE)"
 	@ $(ECHO) "FAILURES: $$( $(GREP) FAILED $(LOGFILE) | $(WC) -l ) "
-	@ ! $(GREP) FAILED $(LOGFILE)
+	@ - ! $(GREP) FAILED $(LOGFILE)
+	@ $(MV) $(LOGFILE) ../$(TEST)-$(LOGFILE)
 
 cancel9.exe: XLIBS = -lws2_32
 
@@ -260,5 +262,6 @@ clean:
 	- $(RM) *.manifest
 	- $(RM) *.pass
 	- $(RM) *.bench
+
+realclean: clean
 	- $(RM) *.log
-	

@@ -137,9 +137,9 @@ static void ptw32_set_errno(int err) { errno = err; SetLastError(err); }
 #endif
 
 /*
- * Don't allow the linker to optimize away autostatic.obj in static builds.
+ * Don't allow the linker to optimize away dll.obj (dll.o) in static builds.
  */
-#if defined(PTW32_STATIC_LIB) && defined(PTW32_BUILD)
+#if defined(PTW32_STATIC_LIB) && defined(PTW32_BUILD) && !defined(PTW32_TEST_SNEAK_PEEK)
   void ptw32_autostatic_anchor(void);
 # if defined(__GNUC__)
     __attribute__((unused, used))

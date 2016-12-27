@@ -374,5 +374,20 @@ DRI_CONF_OPT_END
 
 #define DRI_CONF_NINE_OVERRIDEVENDOR(def) \
 DRI_CONF_OPT_BEGIN(override_vendorid, int, def) \
-        DRI_CONF_DESC(en,"Define the vendor_id to report. This allows faking another hardware vendor.") \
+        DRI_CONF_DESC(en,gettext("Define the vendor_id to report. This allows faking another hardware vendor.")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_NINE_ALLOWDISCARDDELAYEDRELEASE(def) \
+DRI_CONF_OPT_BEGIN_B(discard_delayed_release, def) \
+        DRI_CONF_DESC(en,gettext("Whether to allow the display server to release buffers with a delay when using d3d's presentation mode DISCARD. Default to true. Set to false if suffering from lag (thread_submit=true can also help in this situation).")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_NINE_TEARFREEDISCARD(def) \
+DRI_CONF_OPT_BEGIN_B(tearfree_discard, def) \
+        DRI_CONF_DESC(en,gettext("Whether to make d3d's presentation mode DISCARD (games usually use that mode) Tear Free. If rendering above screen refresh, some frames will get skipped. false by default.")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_NINE_CSMT(def) \
+DRI_CONF_OPT_BEGIN(csmt_force, int, def) \
+        DRI_CONF_DESC(en,gettext("If set to 1, force gallium nine CSMT. If set to 0, disable it. By default (-1) CSMT is enabled on known thread-safe drivers.")) \
 DRI_CONF_OPT_END

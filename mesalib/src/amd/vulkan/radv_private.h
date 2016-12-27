@@ -1029,9 +1029,9 @@ bool radv_layout_is_htile_compressed(const struct radv_image *image,
                                      VkImageLayout layout);
 bool radv_layout_can_expclear(const struct radv_image *image,
                               VkImageLayout layout);
-bool radv_layout_has_cmask(const struct radv_image *image,
-			   VkImageLayout layout,
-			   unsigned queue_mask);
+bool radv_layout_can_fast_clear(const struct radv_image *image,
+			        VkImageLayout layout,
+			        unsigned queue_mask);
 
 
 unsigned radv_image_queue_family_mask(const struct radv_image *image, int family);

@@ -805,7 +805,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (!cmd_buffer->device->allow_fast_clears)
 		return false;
 
-	if (!radv_layout_has_cmask(iview->image, image_layout, radv_image_queue_family_mask(iview->image, cmd_buffer->queue_family_index)))
+	if (!radv_layout_can_fast_clear(iview->image, image_layout, radv_image_queue_family_mask(iview->image, cmd_buffer->queue_family_index)))
 		goto fail;
 	if (vk_format_get_blocksizebits(iview->image->vk_format) > 64)
 		goto fail;

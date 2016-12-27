@@ -69,6 +69,7 @@ glsl_tests_cache_test_LDADD =				\
 	$(PTHREAD_LIBS)
 
 glsl_tests_general_ir_test_SOURCES =			\
+	glsl/tests/array_refcount_test.cpp 		\
 	glsl/tests/builtin_variable_test.cpp		\
 	glsl/tests/invalidate_locations_test.cpp	\
 	glsl/tests/general_ir_test.cpp			\

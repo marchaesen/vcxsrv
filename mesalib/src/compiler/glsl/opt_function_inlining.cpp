@@ -164,7 +164,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 	 parameters[i] = NULL;
       } else {
 	 parameters[i] = sig_param->clone(ctx, ht);
-	 parameters[i]->data.mode = ir_var_auto;
+	 parameters[i]->data.mode = ir_var_temporary;
 
 	 /* Remove the read-only decoration because we're going to write
 	  * directly to this variable.  If the cloned variable is left
