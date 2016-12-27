@@ -393,7 +393,7 @@ nir_if_create(nir_shader *shader)
 nir_loop *
 nir_loop_create(nir_shader *shader)
 {
-   nir_loop *loop = ralloc(shader, nir_loop);
+   nir_loop *loop = rzalloc(shader, nir_loop);
 
    cf_init(&loop->cf_node, nir_cf_node_loop);
 
@@ -1753,7 +1753,7 @@ nir_block *nir_cf_node_cf_tree_last(nir_cf_node *node)
 nir_block *nir_cf_node_cf_tree_next(nir_cf_node *node)
 {
    if (node->type == nir_cf_node_block)
-      return nir_cf_node_cf_tree_first(nir_cf_node_next(node));
+      return nir_block_cf_tree_next(nir_cf_node_as_block(node));
    else if (node->type == nir_cf_node_function)
       return NULL;
    else

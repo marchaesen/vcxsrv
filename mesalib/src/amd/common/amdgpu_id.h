@@ -142,6 +142,8 @@ enum {
 
 	VI_POLARIS11_M_A0 = 90,
 
+	VI_POLARIS12_V_A0 = 100,
+
 	VI_UNKNOWN        = 0xFF
 };
 
@@ -156,6 +158,8 @@ enum {
 	((eChipRev >= VI_POLARIS10_P_A0) && (eChipRev < VI_POLARIS11_M_A0))
 #define ASICREV_IS_POLARIS11_M(eChipRev)   \
 	(eChipRev >= VI_POLARIS11_M_A0)
+#define ASICREV_IS_POLARIS12_V(eChipRev)\
+	(eChipRev >= VI_POLARIS12_V_A0)
 
 /* CZ specific rev IDs */
 enum {

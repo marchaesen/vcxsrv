@@ -40,7 +40,7 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
     */
    if (existing_block == NULL) {
       link_uniform_block_active *const b =
-	 rzalloc(mem_ctx, struct link_uniform_block_active);
+         rzalloc(mem_ctx, struct link_uniform_block_active);
 
       b->type = block_type;
       b->has_instance_name = var->is_interface_instance();
@@ -58,13 +58,13 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
       return b;
    } else {
       link_uniform_block_active *const b =
-	 (link_uniform_block_active *) existing_block->data;
+         (link_uniform_block_active *) existing_block->data;
 
       if (b->type != block_type
-	  || b->has_instance_name != var->is_interface_instance())
-	 return NULL;
+          || b->has_instance_name != var->is_interface_instance())
+         return NULL;
       else
-	 return b;
+         return b;
    }
 
    assert(!"Should not get here.");
@@ -89,8 +89,8 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
  *   }
  *
  * There are only 2 active blocks above but for the sake of indirect indexing
- * and not over complicating the code we will end up with a count of 8.
- * Here each dimension has 2 different indices counted so we end up with 2*2*2
+ * and not over complicating the code we will end up with a count of 8.  Here
+ * each dimension has 2 different indices counted so we end up with 2*2*2
  */
 static struct uniform_block_array_elements **
 process_arrays(void *mem_ctx, ir_dereference_array *ir,
@@ -107,8 +107,8 @@ process_arrays(void *mem_ctx, ir_dereference_array *ir,
       struct uniform_block_array_elements *ub_array = *ub_array_ptr;
       ir_constant *c = ir->array_index->as_constant();
       if (c) {
-         /* Index is a constant, so mark just that element used,
-          * if not already.
+         /* Index is a constant, so mark just that element used, if not
+          * already.
           */
          const unsigned idx = c->get_uint_component(0);
 
@@ -131,9 +131,7 @@ process_arrays(void *mem_ctx, ir_dereference_array *ir,
             ub_array->num_array_elements++;
          }
       } else {
-         /* The array index is not a constant,
-          * so mark the entire array used.
-          */
+         /* The array index is not a constant, so mark the entire array used. */
          assert(ir->array->type->is_array());
          if (ub_array->num_array_elements < ir->array->type->length) {
             ub_array->num_array_elements = ir->array->type->length;
@@ -147,6 +145,7 @@ process_arrays(void *mem_ctx, ir_dereference_array *ir,
             }
          }
       }
+
       return &ub_array->array;
    } else {
       return &block->array;
@@ -170,8 +169,7 @@ link_uniform_block_active_visitor::visit(ir_variable *var)
    if (var->get_interface_type_packing() == GLSL_INTERFACE_PACKING_PACKED)
       return visit_continue;
 
-   /* Process the block.  Bail if there was an error.
-    */
+   /* Process the block.  Bail if there was an error. */
    link_uniform_block_active *const b =
       process_block(this->mem_ctx, this->ht, var);
    if (b == NULL) {
@@ -236,14 +234,13 @@ link_uniform_block_active_visitor::visit_enter(ir_dereference_array *ir)
        || !var->is_interface_instance())
       return visit_continue;
 
-   /* Process the block.  Bail if there was an error.
-    */
+   /* Process the block.  Bail if there was an error. */
    link_uniform_block_active *const b =
       process_block(this->mem_ctx, this->ht, var);
    if (b == NULL) {
       linker_error(prog,
-		   "uniform block `%s' has mismatching definitions",
-		   var->get_interface_type()->name);
+                   "uniform block `%s' has mismatching definitions",
+                   var->get_interface_type()->name);
       this->success = false;
       return visit_stop;
    }
@@ -253,9 +250,9 @@ link_uniform_block_active_visitor::visit_enter(ir_dereference_array *ir)
    assert(b->has_instance_name);
    assert(b->type != NULL);
 
-   /* If the block array was declared with a shared or
-    * std140 layout qualifier, all its instances have been already marked
-    * as used in link_uniform_block_active_visitor::visit(ir_variable *).
+   /* If the block array was declared with a shared or std140 layout
+    * qualifier, all its instances have been already marked as used in
+    * link_uniform_block_active_visitor::visit(ir_variable *).
     */
    if (var->get_interface_type_packing() == GLSL_INTERFACE_PACKING_PACKED) {
       b->var = var;
@@ -275,14 +272,13 @@ link_uniform_block_active_visitor::visit(ir_dereference_variable *ir)
 
    assert(!var->is_interface_instance() || !var->type->is_array());
 
-   /* Process the block.  Bail if there was an error.
-    */
+   /* Process the block.  Bail if there was an error. */
    link_uniform_block_active *const b =
       process_block(this->mem_ctx, this->ht, var);
    if (b == NULL) {
       linker_error(this->prog,
-		   "uniform block `%s' has mismatching definitions",
-		   var->get_interface_type()->name);
+                   "uniform block `%s' has mismatching definitions",
+                   var->get_interface_type()->name);
       this->success = false;
       return visit_stop;
    }

@@ -490,7 +490,7 @@ enum
  */
 #if PTW32_VERSION_MAJOR > 2
 
-#define PTHREAD_ONCE_INIT       { PTW32_FALSE, 0 }
+#define PTHREAD_ONCE_INIT       { 0, PTW32_FALSE }
 
 struct pthread_once_t_
 {

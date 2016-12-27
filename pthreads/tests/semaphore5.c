@@ -95,7 +95,11 @@ main()
   assert(pthread_create(&t, NULL, thr, (void *)&s) == 0);
 
   assert(sem_wait(&s) == 0);
-  assert(sem_destroy(&s) == 0);
+  /*
+   * Normally we would retry this next, but we're only
+   * interested in unexpected results in this test.
+   */
+  assert(sem_destroy(&s) == 0 || errno == EBUSY);
 
   assert(pthread_join(t, NULL) == 0);
 

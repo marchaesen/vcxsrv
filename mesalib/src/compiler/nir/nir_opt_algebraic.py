@@ -464,6 +464,14 @@ def bitfield_reverse(u):
 
 optimizations += [(bitfield_reverse('x@32'), ('bitfield_reverse', 'x'))]
 
+# For any float comparison operation, "cmp", if you have "a == a && a cmp b"
+# then the "a == a" is redundant because it's equivalent to "a is not NaN"
+# and, if a is a NaN then the second comparison will fail anyway.
+for op in ['flt', 'fge', 'feq']:
+   optimizations += [
+      (('iand', ('feq', a, a), (op, a, b)), (op, a, b)),
+      (('iand', ('feq', a, a), (op, b, a)), (op, b, a)),
+   ]
 
 # Add optimizations to handle the case where the result of a ternary is
 # compared to a constant.  This way we can take things like

@@ -2634,6 +2634,28 @@ is_varying_var(ir_variable *var, gl_shader_stage target)
    }
 }
 
+static bool
+is_allowed_invariant(ir_variable *var, struct _mesa_glsl_parse_state *state)
+{
+   if (is_varying_var(var, state->stage))
+      return true;
+
+   /* From Section 4.6.1 ("The Invariant Qualifier") GLSL 1.20 spec:
+    * "Only variables output from a vertex shader can be candidates
+    * for invariance".
+    */
+   if (!state->is_version(130, 0))
+      return false;
+
+   /*
+    * Later specs remove this language - so allowed invariant
+    * on fragment shader outputs as well.
+    */
+   if (state->stage == MESA_SHADER_FRAGMENT &&
+       var->data.mode == ir_var_shader_out)
+      return true;
+   return false;
+}
 
 /**
  * Matrix layout qualifiers are only allowed on certain types
@@ -4495,7 +4517,7 @@ ast_declarator_list::hir(exec_list *instructions,
             _mesa_glsl_error(& loc, state,
                              "undeclared variable `%s' cannot be marked "
                              "invariant", decl->identifier);
-         } else if (!is_varying_var(earlier, state->stage)) {
+         } else if (!is_allowed_invariant(earlier, state)) {
             _mesa_glsl_error(&loc, state,
                              "`%s' cannot be marked invariant; interfaces between "
                              "shader stages only.", decl->identifier);
@@ -4791,7 +4813,7 @@ ast_declarator_list::hir(exec_list *instructions,
       }
 
       if (this->type->qualifier.flags.q.invariant) {
-         if (!is_varying_var(var, state->stage)) {
+         if (!is_allowed_invariant(var, state)) {
             _mesa_glsl_error(&loc, state,
                              "`%s' cannot be marked invariant; interfaces between "
                              "shader stages only", var->name);

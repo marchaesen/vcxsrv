@@ -88,13 +88,19 @@ main()
 
   assert(pthread_create(&t, NULL, locker, NULL) == 0);
 
-  Sleep(100);
+  while (lockCount < 1)
+    {
+      Sleep(1);
+    }
 
   assert(lockCount == 1);
 
   assert(pthread_mutex_unlock(&mutex) == (IS_ROBUST?EPERM:0));
 
-  Sleep (100);
+  while (lockCount < (IS_ROBUST?1:2))
+    {
+      Sleep(1);
+    }
 
   assert(lockCount == (IS_ROBUST?1:2));
 

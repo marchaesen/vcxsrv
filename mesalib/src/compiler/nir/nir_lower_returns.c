@@ -30,6 +30,13 @@ struct lower_returns_state {
    struct exec_list *cf_list;
    nir_loop *loop;
    nir_variable *return_flag;
+
+   /* This indicates that we have a return which is predicated on some form of
+    * control-flow.  Since whether or not the return happens can only be
+    * determined dynamically at run-time, everything that occurs afterwards
+    * needs to be predicated on the return flag variable.
+    */
+   bool has_predicated_return;
 };
 
 static bool lower_returns_in_cf_list(struct exec_list *cf_list,
@@ -82,8 +89,10 @@ lower_returns_in_loop(nir_loop *loop, struct lower_returns_state *state)
     * flag set to true.  We need to predicate everything following the loop
     * on the return flag.
     */
-   if (progress)
+   if (progress) {
       predicate_following(&loop->cf_node, state);
+      state->has_predicated_return = true;
+   }
 
    return progress;
 }
@@ -91,10 +100,14 @@ lower_returns_in_loop(nir_loop *loop, struct lower_returns_state *state)
 static bool
 lower_returns_in_if(nir_if *if_stmt, struct lower_returns_state *state)
 {
-   bool progress;
+   bool progress, then_progress, else_progress;
 
-   progress = lower_returns_in_cf_list(&if_stmt->then_list, state);
-   progress = lower_returns_in_cf_list(&if_stmt->else_list, state) || progress;
+   bool has_predicated_return = state->has_predicated_return;
+   state->has_predicated_return = false;
+
+   then_progress = lower_returns_in_cf_list(&if_stmt->then_list, state);
+   else_progress = lower_returns_in_cf_list(&if_stmt->else_list, state);
+   progress = then_progress || else_progress;
 
    /* If either of the recursive calls made progress, then there were
     * returns inside of the body of the if.  If we're in a loop, then these
@@ -106,8 +119,29 @@ lower_returns_in_if(nir_if *if_stmt, struct lower_returns_state *state)
     * after a return, we need to predicate everything following on the
     * return flag.
     */
-   if (progress && !state->loop)
-      predicate_following(&if_stmt->cf_node, state);
+   if (progress && !state->loop) {
+      if (state->has_predicated_return) {
+         predicate_following(&if_stmt->cf_node, state);
+      } else {
+         /* If there are no nested returns we can just add the instructions to
+          * the end of the branch that doesn't have the return.
+          */
+         nir_cf_list list;
+         nir_cf_extract(&list, nir_after_cf_node(&if_stmt->cf_node),
+                        nir_after_cf_list(state->cf_list));
+
+         if (then_progress && else_progress) {
+            /* Both branches return so delete instructions following the if */
+            nir_cf_delete(&list);
+         } else if (then_progress) {
+            nir_cf_reinsert(&list, nir_after_cf_list(&if_stmt->else_list));
+         } else {
+            nir_cf_reinsert(&list, nir_after_cf_list(&if_stmt->then_list));
+         }
+      }
+   }
+
+   state->has_predicated_return = progress || has_predicated_return;
 
    return progress;
 }
@@ -221,6 +255,7 @@ nir_lower_returns_impl(nir_function_impl *impl)
    state.cf_list = &impl->body;
    state.loop = NULL;
    state.return_flag = NULL;
+   state.has_predicated_return = false;
    nir_builder_init(&state.builder, impl);
 
    bool progress = lower_returns_in_cf_list(&impl->body, &state);

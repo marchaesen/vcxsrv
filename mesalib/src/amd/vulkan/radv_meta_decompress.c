@@ -450,6 +450,7 @@ void radv_decompress_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
 					 VkImageSubresourceRange *subresourceRange)
 {
+	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
 	radv_process_depth_image_inplace(cmd_buffer, image, subresourceRange,
 					 cmd_buffer->device->meta_state.depth_decomp.decompress_pipeline);
 }
@@ -458,6 +459,7 @@ void radv_resummarize_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
 					 VkImageSubresourceRange *subresourceRange)
 {
+	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
 	radv_process_depth_image_inplace(cmd_buffer, image, subresourceRange,
 					 cmd_buffer->device->meta_state.depth_decomp.resummarize_pipeline);
 }

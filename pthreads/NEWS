@@ -1,3 +1,54 @@
+RELEASE 2.11.0
+--------------
+(Upcoming release)
+
+General
+-------
+New bug fixes in all releases since 2.8.0 have NOT been applied to the
+1.x.x series.
+
+Some changes from 2011-02-26 onward may not be compatible with
+pre Windows 2000 systems.
+
+Testing and verification
+------------------------
+This version has been tested on SMP architecture (Intel x64 Hex Core)
+by completing the included test suite, as well as the stress and bench
+tests.
+
+Be sure to run your builds against the test suite. If you see failures
+then please consider how your toolchains might be contributing to the
+failure. See the README file for more detailed descriptions of the
+toolchains and test systems that we have used to get the tests to pass
+successfully. We recommend MinGW64 over MinGW32 for both 64 and 32 bit
+GNU CC builds. MinGW64 also includes its own independent pthreads
+implementation, which you may prefer to use.
+
+New Features
+------------
+The autoconf configuration added in 2.10.0 should be used for all GNU
+builds (MinGW, MinGW64, etc). The redundant GNUmakefiles have been
+removed.
+
+Bug Fixes
+---------
+Various corrections to GNUmakefile. Although this file has been removed, 
+for completeness the changes have been recorded as commits to the
+repository.
+- Kyle Schwarz
+
+MinGW64-w64 defines pid_t as __int64. sched.h now reflects that.
+- Kyle Schwarz
+
+Several tests have been fixed that were seen to fail on machines under
+load. Other tests that used similar crude mechanisms to synchronise
+threads (these are unit tests) had the same improvements applied:
+semaphore5.c recognises that sem_destroy can legitimately return
+EBUSY; mutex6*.c, mutex7*.c and mutex8*.c all replaced a single
+Sleep() with a polling loop.
+- Ross Johnson
+
+
 RELEASE 2.10.0
 --------------
 (2016-09-18)

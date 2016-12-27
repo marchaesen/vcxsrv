@@ -1,5 +1,5 @@
-PTHREADS-WIN32
-==============
+PTHREADS-WIN32 (A.K.A. PTHREADS4W)
+==================================
 
 Pthreads-win32 is free software, distributed under the GNU Lesser
 General Public License (LGPL). See the file 'COPYING.LIB' for terms
@@ -26,7 +26,7 @@ routines.
 
 Prerequisites
 -------------
-MSVC or GNU C (MinGW32 or MinGW64 MSys development kit)
+MSVC or GNU C (MinGW or MinGW64 with AutoConf Tools)
 	To build from source.
 
 QueueUserAPCEx by Panagiotis E. Hadjidoukas
@@ -417,16 +417,24 @@ Building with MinGW
 NOTE: All building and testing is done using makefiles. We use the native
 make system for each toolchain, which is 'make' in this case.
 
-We have found that Mingw32 builds of the GCE library variants fail when run
-on 64 bit systems. The GC variants are fine.
+We have found that Mingw builds of the GCE library variants can fail when
+run on 64 bit systems, believed to be due to the DWARF2 exception handling
+being a 32 bit mechanism. The GC variants are fine. MinGW64 offers
+SJLJ or SEH exception handling so choose one of those.
 
 From the source directory:
 
 run 'autoheader' to rewrite the config.h file
 run 'autoconf' to rewrite the GNUmakefiles (library and tests)
+run './configure' to create config.h and GNUmakefile.
 run 'make' without arguments to list possible targets.
 
-$ make
+E.g.
+
+$ autoheader
+$ autoconf
+$ ./configure
+$ make realclean all-tests
 
 With MinGW64 multilib installed the following variables can be defined
 either on the make command line or in the shell environment:

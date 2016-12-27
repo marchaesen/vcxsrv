@@ -51,9 +51,13 @@
  * but note that we must do so cautiously, to avoid a typedef
  * conflict if MinGW's <sys/types.h> is also #included:
  */
-#if ! (defined __MINGW32__ && defined __have_typedef_pid_t)
+#if ! defined __MINGW32__ || ! defined __have_typedef_pid_t
 
-typedef int pid_t;
+# if defined __MINGW64__
+    typedef __int64 pid_t;
+# else
+    typedef int pid_t;
+#endif
 
 #if __GNUC__ < 4
 /* GCC v4.0 and later, (as used by MinGW), allows us to repeat a

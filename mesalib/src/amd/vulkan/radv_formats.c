@@ -394,7 +394,7 @@ uint32_t radv_translate_color_numformat(VkFormat format,
 					int first_non_void)
 {
 	unsigned ntype;
-	if (first_non_void == 4 || desc->channel[first_non_void].type == VK_FORMAT_TYPE_FLOAT)
+	if (first_non_void == -1 || desc->channel[first_non_void].type == VK_FORMAT_TYPE_FLOAT)
 		ntype = V_028C70_NUMBER_FLOAT;
 	else {
 		ntype = V_028C70_NUMBER_UNORM;

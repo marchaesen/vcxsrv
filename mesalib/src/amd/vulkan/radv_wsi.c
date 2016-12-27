@@ -362,7 +362,15 @@ VkResult radv_QueuePresentKHR(
 					 1, &swapchain->fences[0]);
 		}
 
-		radv_QueueSubmit(_queue, 0, NULL, swapchain->fences[0]);
+		RADV_FROM_HANDLE(radv_fence, fence, swapchain->fences[0]);
+		struct radeon_winsys_fence *base_fence = fence->fence;
+		struct radeon_winsys_ctx *ctx = queue->device->hw_ctx;
+		queue->device->ws->cs_submit(ctx, queue->queue_idx,
+					     &queue->device->empty_cs[queue->queue_family_index],
+					     1,
+					     (struct radeon_winsys_sem **)pPresentInfo->pWaitSemaphores,
+					     pPresentInfo->waitSemaphoreCount, NULL, 0, false, base_fence);
+		fence->submitted = true;
 
 		result = swapchain->queue_present(swapchain,
 						  pPresentInfo->pImageIndices[i]);

@@ -39,6 +39,13 @@
 #ifndef _PTHREAD_TEST_H_
 #define _PTHREAD_TEST_H_
 
+/*
+ * Some tests sneak a peek at ../implement.h
+ * This is used inside ../implement.h to control
+ * what these test apps see and don't see.
+ */
+#define PTW32_TEST_SNEAK_PEEK
+
 #include "pthread.h"
 #include "sched.h"
 #include "semaphore.h"

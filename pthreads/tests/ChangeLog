@@ -1,3 +1,24 @@
+2016-12-21  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* mutex6.c: fix random failures by using a polling loop to replace
+	a single Sleep().
+	* mutex6n.c: Likewise.
+	* mutex6s.c: Likewise.
+	* mutex7.c: Likewise.
+	* mutex7n.c: Likewise.
+	* mutex8.c: Likewise
+	* mutex8n.c: Likewise.
+	* semaphore5.c: don't fail on expected sem_destroy EBUSY.
+
+2016-124-18  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* test.c (PTW32_TEST_SNEAK_PEEK): #define this to prevent some
+	tests from failing (specifically "make GCX-small-static") with
+	undefined ptw32_autostatic_anchor. Checked in ../implament.h.
+	* GNUMakfile.in: Rename testsuite log to test-specific name and
+	do not remove.
+	* GNUMakfile.in: Add realclean target
+
 2016-04-30  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* semaphore4t.c: No longer need to include ptw32_timespec.c and the

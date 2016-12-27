@@ -395,8 +395,8 @@ void radv_GetPhysicalDeviceFeatures(
 		.vertexPipelineStoresAndAtomics           = true,
 		.fragmentStoresAndAtomics                 = true,
 		.shaderTessellationAndGeometryPointSize   = true,
-		.shaderImageGatherExtended                = false,
-		.shaderStorageImageExtendedFormats        = false,
+		.shaderImageGatherExtended                = true,
+		.shaderStorageImageExtendedFormats        = true,
 		.shaderStorageImageMultisample            = false,
 		.shaderUniformBufferArrayDynamicIndexing  = true,
 		.shaderSampledImageArrayDynamicIndexing   = true,
@@ -496,13 +496,13 @@ void radv_GetPhysicalDeviceProperties(
 		.minTexelBufferOffsetAlignment            = 1,
 		.minUniformBufferOffsetAlignment          = 4,
 		.minStorageBufferOffsetAlignment          = 4,
-		.minTexelOffset                           = -8,
-		.maxTexelOffset                           = 7,
-		.minTexelGatherOffset                     = -8,
-		.maxTexelGatherOffset                     = 7,
-		.minInterpolationOffset                   = 0, /* FIXME */
-		.maxInterpolationOffset                   = 0, /* FIXME */
-		.subPixelInterpolationOffsetBits          = 0, /* FIXME */
+		.minTexelOffset                           = -32,
+		.maxTexelOffset                           = 31,
+		.minTexelGatherOffset                     = -32,
+		.maxTexelGatherOffset                     = 31,
+		.minInterpolationOffset                   = -2,
+		.maxInterpolationOffset                   = 2,
+		.subPixelInterpolationOffsetBits          = 8,
 		.maxFramebufferWidth                      = (1 << 14),
 		.maxFramebufferHeight                     = (1 << 14),
 		.maxFramebufferLayers                     = (1 << 10),
@@ -583,8 +583,10 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 		idx++;
 	}
 
-	if (!all_queues)
+	if (!all_queues) {
+		*pCount = idx;
 		return;
+	}
 
 	if (pdevice->rad_info.compute_rings > 0 && pdevice->rad_info.chip_class >= CIK) {
 		if (*pCount > idx) {
@@ -597,6 +599,7 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 			idx++;
 		}
 	}
+	*pCount = idx;
 }
 
 void radv_GetPhysicalDeviceMemoryProperties(

@@ -64,7 +64,10 @@ main()
 
   assert(pthread_create(&t, NULL, locker, NULL) == 0);
 
-  Sleep(2000);
+  while (lockCount < 1)
+    {
+      Sleep(1);
+    }
 
   assert(lockCount == 1);
 

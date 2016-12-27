@@ -353,6 +353,7 @@ AddrChipFamily CIAddrLib::HwlConvertChipFamily(
             m_settings.isFiji            = ASICREV_IS_FIJI_P(uChipRevision);
             m_settings.isPolaris10       = ASICREV_IS_POLARIS10_P(uChipRevision);
             m_settings.isPolaris11       = ASICREV_IS_POLARIS11_M(uChipRevision);
+            m_settings.isPolaris12       = ASICREV_IS_POLARIS12_V(uChipRevision);
             break;
         case FAMILY_CZ:
             m_settings.isCarrizo         = 1;
@@ -417,7 +418,7 @@ BOOL_32 CIAddrLib::HwlInitGlobalParams(
     {
         m_pipes = 16;
     }
-    else if (m_settings.isPolaris11)
+    else if (m_settings.isPolaris11 || m_settings.isPolaris12)
     {
         m_pipes = 4;
     }

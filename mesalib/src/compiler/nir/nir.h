@@ -1506,9 +1506,41 @@ typedef struct nir_if {
 } nir_if;
 
 typedef struct {
+   nir_if *nif;
+
+   nir_instr *conditional_instr;
+
+   nir_block *break_block;
+   nir_block *continue_from_block;
+
+   bool continue_from_then;
+
+   struct list_head loop_terminator_link;
+} nir_loop_terminator;
+
+typedef struct {
+   /* Number of instructions in the loop */
+   unsigned num_instructions;
+
+   /* How many times the loop is run (if known) */
+   unsigned trip_count;
+   bool is_trip_count_known;
+
+   /* Unroll the loop regardless of its size */
+   bool force_unroll;
+
+   nir_loop_terminator *limiting_terminator;
+
+   /* A list of loop_terminators terminating this loop. */
+   struct list_head loop_terminator_list;
+} nir_loop_info;
+
+typedef struct {
    nir_cf_node cf_node;
 
    struct exec_list body; /** < list of nir_cf_node */
+
+   nir_loop_info *info;
 } nir_loop;
 
 /**
@@ -1521,6 +1553,7 @@ typedef enum {
    nir_metadata_dominance = 0x2,
    nir_metadata_live_ssa_defs = 0x4,
    nir_metadata_not_properly_reset = 0x8,
+   nir_metadata_loop_analysis = 0x10,
 } nir_metadata;
 
 typedef struct {
@@ -1749,6 +1782,8 @@ typedef struct nir_shader_compiler_options {
     * information must be inferred from the list of input nir_variables.
     */
    bool use_interpolated_input_intrinsics;
+
+   unsigned max_unroll_iterations;
 } nir_shader_compiler_options;
 
 typedef struct nir_shader {
@@ -1859,7 +1894,7 @@ nir_loop *nir_loop_create(nir_shader *shader);
 nir_function_impl *nir_cf_node_get_function(nir_cf_node *node);
 
 /** requests that the given pieces of metadata be generated */
-void nir_metadata_require(nir_function_impl *impl, nir_metadata required);
+void nir_metadata_require(nir_function_impl *impl, nir_metadata required, ...);
 /** dirties all but the preserved metadata */
 void nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved);
 
@@ -2479,6 +2514,10 @@ void nir_lower_double_pack(nir_shader *shader);
 bool nir_normalize_cubemap_coords(nir_shader *shader);
 
 void nir_live_ssa_defs_impl(nir_function_impl *impl);
+
+void nir_loop_analyze_impl(nir_function_impl *impl,
+                           nir_variable_mode indirect_mask);
+
 bool nir_ssa_defs_interfere(nir_ssa_def *a, nir_ssa_def *b);
 
 void nir_convert_to_ssa_impl(nir_function_impl *impl);
@@ -2487,11 +2526,16 @@ void nir_convert_to_ssa(nir_shader *shader);
 bool nir_repair_ssa_impl(nir_function_impl *impl);
 bool nir_repair_ssa(nir_shader *shader);
 
+void nir_convert_loop_to_lcssa(nir_loop *loop);
+
 /* If phi_webs_only is true, only convert SSA values involved in phi nodes to
  * registers.  If false, convert all values (even those not involved in a phi
  * node) to registers.
  */
 void nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only);
+
+bool nir_lower_phis_to_regs_block(nir_block *block);
+bool nir_lower_ssa_defs_to_regs_block(nir_block *block);
 
 bool nir_opt_algebraic(nir_shader *shader);
 bool nir_opt_algebraic_late(nir_shader *shader);
@@ -2509,9 +2553,15 @@ bool nir_opt_dead_cf(nir_shader *shader);
 
 bool nir_opt_gcm(nir_shader *shader, bool value_number);
 
+bool nir_opt_if(nir_shader *shader);
+
+bool nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask);
+
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
 
 bool nir_opt_remove_phis(nir_shader *shader);
+
+bool nir_opt_trivial_continues(nir_shader *shader);
 
 bool nir_opt_undef(nir_shader *shader);
 

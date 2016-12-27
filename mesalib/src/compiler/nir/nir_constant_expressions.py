@@ -267,8 +267,8 @@ struct bool32_vec {
 
 % for name, op in sorted(opcodes.iteritems()):
 static nir_const_value
-evaluate_${name}(unsigned num_components, unsigned bit_size,
-                 nir_const_value *_src)
+evaluate_${name}(MAYBE_UNUSED unsigned num_components, unsigned bit_size,
+                 MAYBE_UNUSED nir_const_value *_src)
 {
    nir_const_value _dst_val = { {0, } };
 
@@ -291,13 +291,16 @@ evaluate_${name}(unsigned num_components, unsigned bit_size,
             <% continue %>
          %endif
 
-         struct ${input_types[j]}_vec src${j} = {
+         const struct ${input_types[j]}_vec src${j} = {
          % for k in range(op.input_sizes[j]):
             % if input_types[j] == "bool32":
                _src[${j}].u32[${k}] != 0,
             % else:
                _src[${j}].${get_const_field(input_types[j])}[${k}],
             % endif
+         % endfor
+         % for k in range(op.input_sizes[j], 4):
+            0,
          % endfor
          };
       % endfor
@@ -316,9 +319,9 @@ evaluate_${name}(unsigned num_components, unsigned bit_size,
                   ## Avoid unused variable warnings
                   <% continue %>
                % elif input_types[j] == "bool32":
-                  bool src${j} = _src[${j}].u32[_i] != 0;
+                  const bool src${j} = _src[${j}].u32[_i] != 0;
                % else:
-                  ${input_types[j]}_t src${j} =
+                  const ${input_types[j]}_t src${j} =
                      _src[${j}].${get_const_field(input_types[j])}[_i];
                % endif
             % endfor
@@ -328,6 +331,7 @@ evaluate_${name}(unsigned num_components, unsigned bit_size,
             ## writes to dst, just include const_expr directly.
             % if "dst" in op.const_expr:
                ${output_type}_t dst;
+
                ${op.const_expr}
             % else:
                ${output_type}_t dst = ${op.const_expr};
@@ -389,10 +393,8 @@ nir_eval_const_opcode(nir_op op, unsigned num_components,
 {
    switch (op) {
 % for name in sorted(opcodes.iterkeys()):
-   case nir_op_${name}: {
+   case nir_op_${name}:
       return evaluate_${name}(num_components, bit_width, src);
-      break;
-   }
 % endfor
    default:
       unreachable("shouldn't get here");

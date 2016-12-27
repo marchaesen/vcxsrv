@@ -700,8 +700,10 @@ radv_image_create(VkDevice _device,
 	image->usage = pCreateInfo->usage;
 
 	image->exclusive = pCreateInfo->sharingMode == VK_SHARING_MODE_EXCLUSIVE;
-	for (uint32_t i = 0; i < pCreateInfo->queueFamilyIndexCount; ++i)
-		image->queue_family_mask |= 1u << pCreateInfo->pQueueFamilyIndices[i];
+	if (pCreateInfo->sharingMode == VK_SHARING_MODE_CONCURRENT) {
+		for (uint32_t i = 0; i < pCreateInfo->queueFamilyIndexCount; ++i)
+			image->queue_family_mask |= 1u << pCreateInfo->pQueueFamilyIndices[i];
+	}
 
 	radv_init_surface(device, &image->surface, create_info);
 
@@ -891,9 +893,9 @@ bool radv_layout_can_expclear(const struct radv_image *image,
 		layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
-bool radv_layout_has_cmask(const struct radv_image *image,
-			   VkImageLayout layout,
-			   unsigned queue_mask)
+bool radv_layout_can_fast_clear(const struct radv_image *image,
+			        VkImageLayout layout,
+			        unsigned queue_mask)
 {
 	return (layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ||
 		layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) &&
