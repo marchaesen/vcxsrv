@@ -3,7 +3,12 @@ LIBRARY = libshadow
 #INCLUDES = -I$(top_srcdir)/hw/xfree86/os-support
 
 CSRCS =	shadow.c		\
-	shalloc.c		\
+	shadow.c		\
+	sh3224.c		\
+	shafb4.c		\
+	shafb8.c		\
+	shiplan2p4.c		\
+	shiplan2p8.c		\
 	shpacked.c		\
 	shplanar8.c		\
 	shplanar.c		\

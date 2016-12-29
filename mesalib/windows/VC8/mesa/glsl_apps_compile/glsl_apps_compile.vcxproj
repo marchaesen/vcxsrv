@@ -186,6 +186,7 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\glsl_symbol_table.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\hir_field_selection.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_array_refcount.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_basic_block.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_builder_print_visitor.cpp" />
