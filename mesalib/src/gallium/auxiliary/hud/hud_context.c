@@ -33,6 +33,7 @@
  * Set GALLIUM_HUD=help for more info.
  */
 
+#include <inttypes.h>
 #include <signal.h>
 #include <stdio.h>
 
@@ -829,6 +830,9 @@ hud_graph_add_value(struct hud_graph *gr, uint64_t value)
    gr->current_value = value;
    value = value > gr->pane->ceiling ? gr->pane->ceiling : value;
 
+   if (gr->fd)
+      fprintf(gr->fd, "%" PRIu64 "\n", value);
+
    if (gr->index == gr->pane->max_num_vertices) {
       gr->vertices[0] = 0;
       gr->vertices[1] = gr->vertices[(gr->index-1)*2+1];
@@ -856,7 +860,29 @@ hud_graph_destroy(struct hud_graph *graph)
    FREE(graph->vertices);
    if (graph->free_query_data)
       graph->free_query_data(graph->query_data);
+   if (graph->fd)
+      fclose(graph->fd);
    FREE(graph);
+}
+
+void
+hud_graph_set_dump_file(struct hud_graph *gr)
+{
+#ifndef PIPE_OS_WINDOWS
+   const char *hud_dump_dir = getenv("GALLIUM_HUD_DUMP_DIR");
+   char *dump_file;
+
+   if (hud_dump_dir && access(hud_dump_dir, W_OK) == 0) {
+      dump_file = malloc(strlen(hud_dump_dir) + sizeof("/") + sizeof(gr->name));
+      if (dump_file) {
+         strcpy(dump_file, hud_dump_dir);
+         strcat(dump_file, "/");
+         strcat(dump_file, gr->name);
+         gr->fd = fopen(dump_file, "w+");
+         free(dump_file);
+      }
+   }
+#endif
 }
 
 /**

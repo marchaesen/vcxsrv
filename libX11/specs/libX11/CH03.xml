@@ -1254,18 +1254,18 @@ To create an unmapped window and set its window attributes, use
 <funcsynopsis id='XCreateWindow'>
 <funcprototype>
   <funcdef>Window <function>XCreateWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> parent</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>parent</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter> border_width</parameter></paramdef>
-  <paramdef>int<parameter> depth</parameter></paramdef>
-  <paramdef>unsigned int <parameter> class</parameter></paramdef>
-  <paramdef>Visual<parameter> *visual</parameter></paramdef>
-  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
-  <paramdef>XSetWindowAttributes<parameter> *attributes</parameter></paramdef>
+  <paramdef>unsigned int <parameter>border_width</parameter></paramdef>
+  <paramdef>int <parameter>depth</parameter></paramdef>
+  <paramdef>unsigned int <parameter>class</parameter></paramdef>
+  <paramdef>Visual *<parameter>visual</parameter></paramdef>
+  <paramdef>unsigned long <parameter>valuemask</parameter></paramdef>
+  <paramdef>XSetWindowAttributes *<parameter>attributes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1520,15 +1520,15 @@ subwindow of a given parent window, use
 <funcsynopsis id='XCreateSimpleWindow'>
 <funcprototype>
   <funcdef>Window <function>XCreateSimpleWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> parent</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>parent</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter> border_width</parameter></paramdef>
-  <paramdef>unsigned long <parameter> border</parameter></paramdef>
-  <paramdef>unsigned long <parameter> background</parameter></paramdef>
+  <paramdef>unsigned int <parameter>border_width</parameter></paramdef>
+  <paramdef>unsigned long <parameter>border</parameter></paramdef>
+  <paramdef>unsigned long <parameter>background</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1691,8 +1691,8 @@ To destroy a window and all of its subwindows, use
 <funcsynopsis id='XDestroyWindow'>
 <funcprototype>
   <funcdef><function>XDestroyWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1761,8 +1761,8 @@ To destroy all subwindows of a specified window, use
 <funcsynopsis id='XDestroySubwindows'>
 <funcprototype>
   <funcdef><function>XDestroySubwindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1905,8 +1905,8 @@ To map a given window, use
 <funcsynopsis id='XMapWindow'>
 <funcprototype>
   <funcdef><function>XMapWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2031,8 +2031,8 @@ To map and raise a window, use
 <funcsynopsis id='XMapRaised'>
 <funcprototype>
   <funcdef><function>XMapRaised</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2091,8 +2091,8 @@ To map all subwindows for a specified window, use
 <funcsynopsis id='XMapSubwindows'>
 <funcprototype>
   <funcdef><function>XMapSubwindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2161,8 +2161,8 @@ To unmap a window, use
 <funcsynopsis id='XUnmapWindow'>
 <funcprototype>
   <funcdef><function>XUnmapWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2228,8 +2228,8 @@ To unmap all subwindows for a specified window, use
 <funcsynopsis id='XUnmapSubwindows'>
 <funcprototype>
   <funcdef><function>XUnmapSubwindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2537,10 +2537,10 @@ To configure a window's size, location, stacking, or border, use
 <funcsynopsis id='XConfigureWindow'>
 <funcprototype>
   <funcdef><function>XConfigureWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsigned int <parameter> value_mask</parameter></paramdef>
-  <paramdef>XWindowChanges<parameter> *values</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>unsigned int <parameter>value_mask</parameter></paramdef>
+  <paramdef>XWindowChanges *<parameter>values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2642,8 +2642,8 @@ To move a window without changing its size, use
 <funcsynopsis id='XMoveWindow'>
 <funcprototype>
   <funcdef><function>XMoveWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
@@ -2744,8 +2744,8 @@ To change a window's size without changing the upper-left coordinate, use
 <funcsynopsis id='XResizeWindow'>
 <funcprototype>
   <funcdef><function>XResizeWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
@@ -2847,8 +2847,8 @@ To change the size and location of a window, use
 <funcsynopsis id='XMoveResizeWindow'>
 <funcprototype>
   <funcdef><function>XMoveResizeWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
@@ -2968,9 +2968,9 @@ To change the border width of a given window, use
 <funcsynopsis id='XSetWindowBorderWidth'>
 <funcprototype>
   <funcdef><function>XSetWindowBorderWidth</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsigned int <parameter> width</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3045,8 +3045,8 @@ To raise a window so that no sibling window obscures it, use
 <funcsynopsis id='XRaiseWindow'>
 <funcprototype>
   <funcdef><function>XRaiseWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3118,8 +3118,8 @@ To lower a window so that it does not obscure any sibling windows, use
 <funcsynopsis id='XLowerWindow'>
 <funcprototype>
   <funcdef><function>XLowerWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3192,9 +3192,9 @@ To circulate a subwindow up or down, use
 <funcsynopsis id='XCirculateSubwindows'>
 <funcprototype>
   <funcdef><function>XCirculateSubwindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> direction</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int <parameter>direction</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3284,8 +3284,8 @@ occluded by another child, use
 <funcsynopsis id='XCirculateSubwindowsUp'>
 <funcprototype>
   <funcdef><function>XCirculateSubwindowsUp</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3346,8 +3346,8 @@ completely occludes another child, use
 <funcsynopsis id='XCirculateSubwindowsDown'>
 <funcprototype>
   <funcdef><function>XCirculateSubwindowsDown</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3405,9 +3405,9 @@ To restack a set of windows from top to bottom, use
 <funcsynopsis id='XRestackWindows'>
 <funcprototype>
   <funcdef><function>XRestackWindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> windows[]</parameter></paramdef>
-  <paramdef>int<parameter> nwindows</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>windows[]</parameter></paramdef>
+  <paramdef>int <parameter>nwindows</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3510,10 +3510,10 @@ To change one or more attributes for a given window, use
 <funcsynopsis id='XChangeWindowAttributes'>
 <funcprototype>
   <funcdef><function>XChangeWindowAttributes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
-  <paramdef>XSetWindowAttributes<parameter> *attributes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>unsigned long <parameter>valuemask</parameter></paramdef>
+  <paramdef>XSetWindowAttributes *<parameter>attributes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3668,9 +3668,9 @@ To set the background of a window to a given pixel, use
 <funcsynopsis id='XSetWindowBackground'>
 <funcprototype>
   <funcdef><function>XSetWindowBackground</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsigned long <parameter> background_pixel</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>unsigned long <parameter>background_pixel</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3745,9 +3745,9 @@ To set the background of a window to a given pixmap, use
 <funcsynopsis id='XSetWindowBackgroundPixmap'>
 <funcprototype>
   <funcdef><function>XSetWindowBackgroundPixmap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Pixmap<parameter> background_pixmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Pixmap <parameter>background_pixmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3837,9 +3837,9 @@ To change and repaint a window's border to a given pixel, use
 <funcsynopsis id='XSetWindowBorder'>
 <funcprototype>
   <funcdef><function>XSetWindowBorder</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsigned long <parameter> border_pixel</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>unsigned long <parameter>border_pixel</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3907,9 +3907,9 @@ To change and repaint the border tile of a given window, use
 <funcsynopsis id='XSetWindowBorderPixmap'>
 <funcprototype>
   <funcdef><function>XSetWindowBorderPixmap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Pixmap<parameter> border_pixmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Pixmap <parameter>border_pixmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3986,9 +3986,9 @@ To set the colormap of a given window, use
 <funcsynopsis id='XSetWindowColormap'>
 <funcprototype>
   <funcdef><function>XSetWindowColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4057,9 +4057,9 @@ To define which cursor will be used in a window, use
 <funcsynopsis id='XDefineCursor'>
 <funcprototype>
   <funcdef><function>XDefineCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Cursor<parameter> cursor</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Cursor <parameter>cursor</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4126,8 +4126,8 @@ To undefine the cursor in a given window, use
 <funcsynopsis id='XUndefineCursor'>
 <funcprototype>
   <funcdef><function>XUndefineCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

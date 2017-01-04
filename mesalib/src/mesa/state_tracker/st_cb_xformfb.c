@@ -124,8 +124,8 @@ st_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
       struct st_buffer_object *bo = st_buffer_object(sobj->base.Buffers[i]);
 
       if (bo && bo->buffer) {
-         unsigned stream =
-            obj->shader_program->LinkedTransformFeedback.Buffers[i].Stream;
+         unsigned stream = obj->program->sh.LinkedTransformFeedback->
+            Buffers[i].Stream;
 
          /* Check whether we need to recreate the target. */
          if (!sobj->targets[i] ||
@@ -203,8 +203,8 @@ st_end_transform_feedback(struct gl_context *ctx,
       pipe_so_target_reference(&sobj->draw_count[i], NULL);
 
    for (i = 0; i < ARRAY_SIZE(sobj->targets); i++) {
-      unsigned stream =
-         obj->shader_program->LinkedTransformFeedback.Buffers[i].Stream;
+      unsigned stream = obj->program->sh.LinkedTransformFeedback->
+         Buffers[i].Stream;
 
       /* Is it not bound or already set for this stream? */
       if (!sobj->targets[i] || sobj->draw_count[stream])

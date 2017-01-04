@@ -163,11 +163,9 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
    txs->is_shadow = tex->is_shadow;
    txs->is_new_style_shadow = tex->is_new_style_shadow;
    txs->texture_index = tex->texture_index;
-   txs->texture = (nir_deref_var *)
-      nir_copy_deref(txs, &tex->texture->deref);
+   txs->texture = nir_deref_var_clone(tex->texture, txs);
    txs->sampler_index = tex->sampler_index;
-   txs->sampler = (nir_deref_var *)
-      nir_copy_deref(txs, &tex->sampler->deref);
+   txs->sampler = nir_deref_var_clone(tex->sampler, txs);
    txs->dest_type = nir_type_int;
 
    /* only single src, the lod: */
@@ -221,11 +219,9 @@ sample_plane(nir_builder *b, nir_tex_instr *tex, int plane)
    plane_tex->coord_components = 2;
 
    plane_tex->texture_index = tex->texture_index;
-   plane_tex->texture = (nir_deref_var *)
-      nir_copy_deref(plane_tex, &tex->texture->deref);
+   plane_tex->texture = nir_deref_var_clone(tex->texture, plane_tex);
    plane_tex->sampler_index = tex->sampler_index;
-   plane_tex->sampler = (nir_deref_var *)
-      nir_copy_deref(plane_tex, &tex->sampler->deref);
+   plane_tex->sampler = nir_deref_var_clone(tex->sampler, plane_tex);
 
    nir_ssa_dest_init(&plane_tex->instr, &plane_tex->dest, 4, 32, NULL);
 
@@ -325,10 +321,8 @@ replace_gradient_with_lod(nir_builder *b, nir_ssa_def *lod, nir_tex_instr *tex)
    txl->is_shadow = tex->is_shadow;
    txl->is_new_style_shadow = tex->is_new_style_shadow;
    txl->sampler_index = tex->sampler_index;
-   txl->texture = (nir_deref_var *)
-      nir_copy_deref(txl, &tex->texture->deref);
-   txl->sampler = (nir_deref_var *)
-      nir_copy_deref(txl, &tex->sampler->deref);
+   txl->texture = nir_deref_var_clone(tex->texture, txl);
+   txl->sampler = nir_deref_var_clone(tex->sampler, txl);
    txl->coord_components = tex->coord_components;
 
    nir_ssa_dest_init(&txl->instr, &txl->dest, 4, 32, NULL);

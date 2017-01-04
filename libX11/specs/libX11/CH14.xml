@@ -267,9 +267,9 @@ To request that a top-level window be iconified, use
 <funcsynopsis id='XIconifyWindow'>
 <funcprototype>
   <funcdef>Status <function>XIconifyWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> screen_number</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int <parameter>screen_number</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -342,9 +342,9 @@ To request that a top-level window be withdrawn, use
 <funcsynopsis id='XWithdrawWindow'>
 <funcprototype>
   <funcdef>Status <function>XWithdrawWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> screen_number</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int <parameter>screen_number</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -416,11 +416,11 @@ To request that a top-level window be reconfigured, use
 <funcsynopsis id='XReconfigureWMWindow'>
 <funcprototype>
   <funcdef>Status <function>XReconfigureWMWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> screen_number</parameter></paramdef>
-  <paramdef>unsigned int <parameter> value_mask</parameter></paramdef>
-  <paramdef>XWindowChanges<parameter> *values</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int <parameter>screen_number</parameter></paramdef>
+  <paramdef>unsigned int <parameter>value_mask</parameter></paramdef>
+  <paramdef>XWindowChanges *<parameter>values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -590,22 +590,22 @@ or
 <funcsynopsis id='XmbTextListToTextProperty'>
 <funcprototype>
   <funcdef>int <function>XmbTextListToTextProperty</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> **list</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
-  <paramdef>XICCEncodingStyle<parameter> style</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char **<parameter>list</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
+  <paramdef>XICCEncodingStyle <parameter>style</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
 <funcsynopsis id='XwcTextListToTextProperty'>
 <funcprototype>
   <funcdef>int <function>XwcTextListToTextProperty</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>wchar_t<parameter> **list</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
-  <paramdef>XICCEncodingStyle<parameter> style</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>wchar_t **<parameter>list</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
+  <paramdef>XICCEncodingStyle <parameter>style</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -752,20 +752,20 @@ or
 <funcsynopsis id='XmbTextPropertyToTextList'>
 <funcprototype>
   <funcdef>int <function>XmbTextPropertyToTextList</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
-  <paramdef>char<parameter> ***list_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
+  <paramdef>char ***<parameter>list_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
 <funcsynopsis id='XwcTextPropertyToTextList'>
 <funcprototype>
   <funcdef>int <function>XwcTextPropertyToTextList</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
-  <paramdef>wchar_t<parameter> ***list_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
+  <paramdef>wchar_t ***<parameter>list_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -909,7 +909,7 @@ wide character string list, use
 <funcsynopsis id='XwcFreeStringList'>
 <funcprototype>
   <funcdef>void <function>XwcFreeStringList</function></funcdef>
-  <paramdef>wchar_t<parameter> **list</parameter></paramdef>
+  <paramdef>wchar_t **<parameter>list</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -939,7 +939,12 @@ function frees memory allocated by
 To obtain the default string for text conversion in the current locale,
 use</para>
 
-<para>char *XDefaultString()</para>
+<funcsynopsis id='XDefaultString'>
+<funcprototype>
+  <funcdef>char *<function>XDefaultString</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 
 <para>
 <!-- .LP -->
@@ -993,9 +998,9 @@ structure, use
 <funcsynopsis id='XStringListToTextProperty'>
 <funcprototype>
   <funcdef>Status <function>XStringListToTextProperty</function></funcdef>
-  <paramdef>char<parameter> **list</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
+  <paramdef>char **<parameter>list</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1067,9 +1072,9 @@ structure in the STRING encoding, use
 <funcsynopsis id='XTextPropertyToStringList'>
 <funcprototype>
   <funcdef>Status <function>XTextPropertyToStringList</function></funcdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
-  <paramdef>char<parameter> ***list_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
+  <paramdef>char ***<parameter>list_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1139,7 +1144,7 @@ To free the in-memory data associated with the specified string list, use
 <funcsynopsis id='XFreeStringList'>
 <funcprototype>
   <funcdef>void <function>XFreeStringList</function></funcdef>
-  <paramdef>char<parameter> **list</parameter></paramdef>
+  <paramdef>char **<parameter>list</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1201,10 +1206,10 @@ To set one of a window's text properties, use
 <funcsynopsis id='XSetTextProperty'>
 <funcprototype>
   <funcdef>void <function>XSetTextProperty</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1289,10 +1294,10 @@ To read one of a window's text properties, use
 <funcsynopsis id='XGetTextProperty'>
 <funcprototype>
   <funcdef>Status <function>XGetTextProperty</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1405,9 +1410,9 @@ To set a window's <property>WM_NAME</property> property with the supplied conven
 <funcsynopsis id='XSetWMName'>
 <funcprototype>
   <funcdef>void <function>XSetWMName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1465,9 +1470,9 @@ To read a window's <property>WM_NAME</property> property with the supplied conve
 <funcsynopsis id='XGetWMName'>
 <funcprototype>
   <funcdef>Status <function>XGetWMName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1538,9 +1543,9 @@ To assign a name to a window, use
 <funcsynopsis id='XStoreName'>
 <funcprototype>
   <funcdef><function>XStoreName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> *window_name</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char *<parameter>window_name</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1611,9 +1616,9 @@ To get the name of a window, use
 <funcsynopsis id='XFetchName'>
 <funcprototype>
   <funcdef>Status <function>XFetchName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> **window_name_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char **<parameter>window_name_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1699,9 +1704,9 @@ use
 <funcsynopsis id='XSetWMIconName'>
 <funcprototype>
   <funcdef>void <function>XSetWMIconName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1760,9 +1765,9 @@ use
 <funcsynopsis id='XGetWMIconName'>
 <funcprototype>
   <funcdef>Status <function>XGetWMIconName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1834,9 +1839,9 @@ To set the name to be displayed in a window's icon, use
 <funcsynopsis id='XSetIconName'>
 <funcprototype>
   <funcdef><function>XSetIconName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> *icon_name</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char *<parameter>icon_name</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1896,9 +1901,9 @@ To get the name a window wants displayed in its icon, use
 <funcsynopsis id='XGetIconName'>
 <funcprototype>
   <funcdef>Status <function>XGetIconName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> **icon_name_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char **<parameter>icon_name_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1989,9 +1994,12 @@ structure, use
 <function>XAllocWMHints</function>.
 </para>
 
-<para>
-  XWMHints *XAllocWMHints()
-</para>
+<funcsynopsis id='XAllocWMHints'>
+<funcprototype>
+  <funcdef>XWMHints *<function>XAllocWMHints</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 
 <para>
 <!-- .LP -->
@@ -2134,9 +2142,9 @@ To set a window's <property>WM_HINTS</property> property, use
 <funcsynopsis id='XSetWMHints'>
 <funcprototype>
   <funcdef><function>XSetWMHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XWMHints<parameter> *wmhints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XWMHints *<parameter>wmhints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2203,8 +2211,8 @@ To read a window's <property>WM_HINTS</property> property, use
 <funcsynopsis id='XGetWMHints'>
 <funcprototype>
   <funcdef>XWMHints *<function>XGetWMHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2291,9 +2299,12 @@ structure, use
 <function>XAllocSizeHints</function>.
 </para>
 
-<para>
-XSizeHints *XAllocSizeHints()
-</para>
+<funcsynopsis id='XAllocSizeHints'>
+<funcprototype>
+  <funcdef>XSizeHints *<function>XAllocSizeHints</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 <para>
 <!-- .LP -->
 <!-- .eM -->
@@ -2400,9 +2411,9 @@ To set a window's <property>WM_NORMAL_HINTS</property> property, use
 <funcsynopsis id='XSetWMNormalHints'>
 <funcprototype>
   <funcdef>void <function>XSetWMNormalHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2470,10 +2481,10 @@ To read a window's <property>WM_NORMAL_HINTS</property> property, use
 <funcsynopsis id='XGetWMNormalHints'>
 <funcprototype>
   <funcdef>Status <function>XGetWMNormalHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints_return</parameter></paramdef>
-  <paramdef>long<parameter> *supplied_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints_return</parameter></paramdef>
+  <paramdef>long *<parameter>supplied_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2581,10 +2592,10 @@ To set a window's <property>WM_SIZE_HINTS</property> property, use
 <funcsynopsis id='XSetWMSizeHints'>
 <funcprototype>
   <funcdef>void <function>XSetWMSizeHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2670,11 +2681,11 @@ To read a window's <property>WM_SIZE_HINTS</property> property, use
 <funcsynopsis id='XGetWMSizeHints'>
 <funcprototype>
   <funcdef>Status <function>XGetWMSizeHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints_return</parameter></paramdef>
-  <paramdef>long<parameter> *supplied_return</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints_return</parameter></paramdef>
+  <paramdef>long *<parameter>supplied_return</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2819,10 +2830,13 @@ structure, use
 <indexterm significance="preferred"><primary>XAllocClassHint</primary></indexterm>
 <!-- .sM -->
 </para>
-<para>
 
-  XClassHint *XAllocClassHint()
-</para>
+<funcsynopsis id='XAllocClassHint'>
+<funcprototype>
+  <funcdef>XClassHint *<function>XAllocClassHint</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 
 <para>
 <!-- .LP -->
@@ -2886,9 +2900,9 @@ To set a window's <property>WM_CLASS</property> property, use
 <funcsynopsis id='XSetClassHint'>
 <funcprototype>
   <funcdef><function>XSetClassHint</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XClassHint<parameter> *class_hints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XClassHint *<parameter>class_hints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2955,9 +2969,9 @@ To read a window's <property>WM_CLASS</property> property, use
 <funcsynopsis id='XGetClassHint'>
 <funcprototype>
   <funcdef>Status <function>XGetClassHint</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XClassHint<parameter> *class_hints_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XClassHint *<parameter>class_hints_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3041,9 +3055,9 @@ To set a window's <property>WM_TRANSIENT_FOR</property> property, use
 <funcsynopsis id='XSetTransientForHint'>
 <funcprototype>
   <funcdef><function>XSetTransientForHint</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window<parameter> prop_window</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window <parameter>prop_window</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3107,9 +3121,9 @@ To read a window's <property>WM_TRANSIENT_FOR</property> property, use
 <funcsynopsis id='XGetTransientForHint'>
 <funcprototype>
   <funcdef>Status <function>XGetTransientForHint</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window<parameter> *prop_window_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window *<parameter>prop_window_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3183,10 +3197,10 @@ To set a window's <property>WM_PROTOCOLS</property> property, use
 <funcsynopsis id='XSetWMProtocols'>
 <funcprototype>
   <funcdef>Status <function>XSetWMProtocols</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Atom<parameter> *protocols</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Atom *<parameter>protocols</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3269,10 +3283,10 @@ To read a window's <property>WM_PROTOCOLS</property> property, use
 <funcsynopsis id='XGetWMProtocols'>
 <funcprototype>
   <funcdef>Status <function>XGetWMProtocols</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Atom<parameter> **protocols_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Atom **<parameter>protocols_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3367,10 +3381,10 @@ To set a window's <property>WM_COLORMAP_WINDOWS</property> property, use
 <funcsynopsis id='XSetWMColormapWindows'>
 <funcprototype>
   <funcdef>Status <function>XSetWMColormapWindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window<parameter> *colormap_windows</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window *<parameter>colormap_windows</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3453,10 +3467,10 @@ To read a window's <property>WM_COLORMAP_WINDOWS</property> property, use
 <funcsynopsis id='XGetWMColormapWindows'>
 <funcprototype>
   <funcdef>Status <function>XGetWMColormapWindows</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window<parameter> **colormap_windows_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window **<parameter>colormap_windows_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3558,9 +3572,12 @@ structure, use
 <function>XAllocIconSize</function>.
 </para>
 
-<para>
-  XIconSize *XAllocIconSize()
-</para>
+<funcsynopsis id='XAllocIconSize'>
+<funcprototype>
+  <funcdef>XIconSize *<function>XAllocIconSize</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 
 <para>
 <!-- .LP -->
@@ -3617,10 +3634,10 @@ To set a window's <property>WM_ICON_SIZE</property> property, use
 <funcsynopsis id='XSetIconSizes'>
 <funcprototype>
   <funcdef><function>XSetIconSizes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XIconSize<parameter> *size_list</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XIconSize *<parameter>size_list</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3693,10 +3710,10 @@ To read a window's <property>WM_ICON_SIZE</property> property, use
 <funcsynopsis id='XGetIconSizes'>
 <funcprototype>
   <funcdef>Status <function>XGetIconSizes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XIconSize<parameter> **size_list_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XIconSize **<parameter>size_list_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3790,15 +3807,15 @@ The standard window manager properties for a given window are
 <funcsynopsis id='XmbSetWMProperties'>
 <funcprototype>
   <funcdef>void <function>XmbSetWMProperties</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> *window_name</parameter></paramdef>
-  <paramdef>char<parameter> *icon_name</parameter></paramdef>
-  <paramdef>char<parameter> *argv[]</parameter></paramdef>
-  <paramdef>int<parameter> argc</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *normal_hints</parameter></paramdef>
-  <paramdef>XWMHints<parameter> *wm_hints</parameter></paramdef>
-  <paramdef>XClassHint<parameter> *class_hints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char *<parameter>window_name</parameter></paramdef>
+  <paramdef>char *<parameter>icon_name</parameter></paramdef>
+  <paramdef>char *<parameter>argv[]</parameter></paramdef>
+  <paramdef>int <parameter>argc</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>normal_hints</parameter></paramdef>
+  <paramdef>XWMHints *<parameter>wm_hints</parameter></paramdef>
+  <paramdef>XClassHint *<parameter>class_hints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4010,15 +4027,15 @@ The standard window manager properties for a given window are
 <funcsynopsis id='XSetWMProperties'>
 <funcprototype>
   <funcdef>void <function>XSetWMProperties</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *window_name</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *icon_name</parameter></paramdef>
-  <paramdef>char<parameter> **argv</parameter></paramdef>
-  <paramdef>int<parameter> argc</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *normal_hints</parameter></paramdef>
-  <paramdef>XWMHints<parameter> *wm_hints</parameter></paramdef>
-  <paramdef>XClassHint<parameter> *class_hints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>window_name</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>icon_name</parameter></paramdef>
+  <paramdef>char **<parameter>argv</parameter></paramdef>
+  <paramdef>int <parameter>argc</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>normal_hints</parameter></paramdef>
+  <paramdef>XWMHints *<parameter>wm_hints</parameter></paramdef>
+  <paramdef>XClassHint *<parameter>class_hints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4242,10 +4259,10 @@ To set a window's <property>WM_COMMAND</property> property, use
 <funcsynopsis id='XSetCommand'>
 <funcprototype>
   <funcdef><function>XSetCommand</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> **argv</parameter></paramdef>
-  <paramdef>int<parameter> argc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char **<parameter>argv</parameter></paramdef>
+  <paramdef>int <parameter>argc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4322,10 +4339,10 @@ To read a window's <property>WM_COMMAND</property> property, use
 <funcsynopsis id='XGetCommand'>
 <funcprototype>
   <funcdef>Status <function>XGetCommand</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> ***argv_return</parameter></paramdef>
-  <paramdef>int<parameter> *argc_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char ***<parameter>argv_return</parameter></paramdef>
+  <paramdef>int *<parameter>argc_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4413,9 +4430,9 @@ To set a window's <property>WM_CLIENT_MACHINE</property> property, use
 <funcsynopsis id='XSetWMClientMachine'>
 <funcprototype>
   <funcdef>void <function>XSetWMClientMachine</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4473,9 +4490,9 @@ To read a window's <property>WM_CLIENT_MACHINE</property> property, use
 <funcsynopsis id='XGetWMClientMachine'>
 <funcprototype>
   <funcdef>Status <function>XGetWMClientMachine</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XTextProperty<parameter> *text_prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XTextProperty *<parameter>text_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4636,9 +4653,13 @@ structure, use
 <function>XAllocStandardColormap</function>.
 </para>
 
-<para>
-XStandardColormap *XAllocStandardColormap()
-</para>
+<funcsynopsis id='XAllocStandardColormap'>
+<funcprototype>
+  <funcdef>XStandardColormap *<function>XAllocStandardColormap</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
+
 <para>
 <!-- .LP -->
 <!-- .eM -->
@@ -4935,11 +4956,11 @@ structure, use
 <funcsynopsis id='XSetRGBColormaps'>
 <funcprototype>
   <funcdef>void <function>XSetRGBColormaps</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XStandardColormap<parameter> *std_colormap</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XStandardColormap *<parameter>std_colormap</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5114,11 +5135,11 @@ structure associated with the specified property, use
 <funcsynopsis id='XGetRGBColormaps'>
 <funcprototype>
   <funcdef>Status <function>XGetRGBColormaps</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XStandardColormap<parameter> **std_colormap_return</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XStandardColormap **<parameter>std_colormap_return</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

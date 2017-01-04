@@ -556,7 +556,7 @@ nir_opt_loop_unroll_impl(nir_function_impl *impl,
    }
 
    if (progress)
-      nir_convert_to_ssa_impl(impl);
+      nir_lower_regs_to_ssa_impl(impl);
 
    return progress;
 }

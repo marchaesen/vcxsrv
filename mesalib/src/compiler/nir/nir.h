@@ -373,6 +373,11 @@ typedef struct nir_register {
    struct list_head if_uses;
 } nir_register;
 
+#define nir_foreach_register(reg, reg_list) \
+   foreach_list_typed(nir_register, reg, node, reg_list)
+#define nir_foreach_register_safe(reg, reg_list) \
+   foreach_list_typed_safe(nir_register, reg, node, reg_list)
+
 typedef enum {
    nir_instr_type_alu,
    nir_instr_type_call,
@@ -1927,8 +1932,6 @@ nir_deref_var *nir_deref_var_create(void *mem_ctx, nir_variable *var);
 nir_deref_array *nir_deref_array_create(void *mem_ctx);
 nir_deref_struct *nir_deref_struct_create(void *mem_ctx, unsigned field_index);
 
-nir_deref *nir_copy_deref(void *mem_ctx, nir_deref *deref);
-
 typedef bool (*nir_deref_foreach_leaf_cb)(nir_deref_var *deref, void *state);
 bool nir_deref_foreach_leaf(nir_deref_var *deref,
                             nir_deref_foreach_leaf_cb cb, void *state);
@@ -2236,6 +2239,8 @@ nir_shader *nir_shader_clone(void *mem_ctx, const nir_shader *s);
 nir_function_impl *nir_function_impl_clone(const nir_function_impl *fi);
 nir_constant *nir_constant_clone(const nir_constant *c, nir_variable *var);
 nir_variable *nir_variable_clone(const nir_variable *c, nir_shader *shader);
+nir_deref *nir_deref_clone(const nir_deref *deref, void *mem_ctx);
+nir_deref_var *nir_deref_var_clone(const nir_deref_var *deref, void *mem_ctx);
 
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);
@@ -2307,7 +2312,7 @@ bool nir_inline_functions(nir_shader *shader);
 
 bool nir_propagate_invariant(nir_shader *shader);
 
-void nir_lower_var_copy_instr(nir_intrinsic_instr *copy, void *mem_ctx);
+void nir_lower_var_copy_instr(nir_intrinsic_instr *copy, nir_shader *shader);
 void nir_lower_var_copies(nir_shader *shader);
 
 bool nir_lower_global_vars_to_local(nir_shader *shader);
@@ -2342,6 +2347,8 @@ nir_src *nir_get_io_vertex_index_src(nir_intrinsic_instr *instr);
 bool nir_is_per_vertex_io(nir_variable *var, gl_shader_stage stage);
 
 void nir_lower_io_types(nir_shader *shader);
+void nir_lower_regs_to_ssa_impl(nir_function_impl *impl);
+void nir_lower_regs_to_ssa(nir_shader *shader);
 void nir_lower_vars_to_ssa(nir_shader *shader);
 
 bool nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes);
@@ -2519,9 +2526,6 @@ void nir_loop_analyze_impl(nir_function_impl *impl,
                            nir_variable_mode indirect_mask);
 
 bool nir_ssa_defs_interfere(nir_ssa_def *a, nir_ssa_def *b);
-
-void nir_convert_to_ssa_impl(nir_function_impl *impl);
-void nir_convert_to_ssa(nir_shader *shader);
 
 bool nir_repair_ssa_impl(nir_function_impl *impl);
 bool nir_repair_ssa(nir_shader *shader);

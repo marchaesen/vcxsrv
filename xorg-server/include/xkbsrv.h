@@ -195,6 +195,8 @@ typedef struct _XkbSrvInfo {
     XkbFilterPtr filters;
 
     XkbSrvCheckRepeatPtr checkRepeat;
+
+    char overlay_perkey_state[256/8]; /* bitfield */
 } XkbSrvInfoRec, *XkbSrvInfoPtr;
 
 #define	XkbSLI_IsDefault	(1L<<0)

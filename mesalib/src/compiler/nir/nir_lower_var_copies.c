@@ -77,7 +77,8 @@ deref_next_wildcard_parent(nir_deref *deref)
 static void
 emit_copy_load_store(nir_intrinsic_instr *copy_instr,
                      nir_deref_var *dest_head, nir_deref_var *src_head,
-                     nir_deref *dest_tail, nir_deref *src_tail, void *mem_ctx)
+                     nir_deref *dest_tail, nir_deref *src_tail,
+                     nir_shader *shader)
 {
    /* Find the next pair of wildcards */
    nir_deref *src_arr_parent = deref_next_wildcard_parent(src_tail);
@@ -103,7 +104,7 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
          src_arr->base_offset = i;
          dest_arr->base_offset = i;
          emit_copy_load_store(copy_instr, dest_head, src_head,
-                              &dest_arr->deref, &src_arr->deref, mem_ctx);
+                              &dest_arr->deref, &src_arr->deref, shader);
       }
       src_arr->deref_array_type = nir_deref_array_type_wildcard;
       dest_arr->deref_array_type = nir_deref_array_type_wildcard;
@@ -119,19 +120,19 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
       unsigned bit_size = glsl_get_bit_size(src_tail->type);
 
       nir_intrinsic_instr *load =
-         nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_load_var);
+         nir_intrinsic_instr_create(shader, nir_intrinsic_load_var);
       load->num_components = num_components;
-      load->variables[0] = nir_deref_as_var(nir_copy_deref(load, &src_head->deref));
+      load->variables[0] = nir_deref_var_clone(src_head, load);
       nir_ssa_dest_init(&load->instr, &load->dest, num_components, bit_size,
                         NULL);
 
       nir_instr_insert_before(&copy_instr->instr, &load->instr);
 
       nir_intrinsic_instr *store =
-         nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_store_var);
+         nir_intrinsic_instr_create(shader, nir_intrinsic_store_var);
       store->num_components = num_components;
       nir_intrinsic_set_write_mask(store, (1 << num_components) - 1);
-      store->variables[0] = nir_deref_as_var(nir_copy_deref(store, &dest_head->deref));
+      store->variables[0] = nir_deref_var_clone(dest_head, store);
 
       store->src[0].is_ssa = true;
       store->src[0].ssa = &load->dest.ssa;
@@ -145,18 +146,18 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
  * The new instructions are placed before the copy instruction in the IR.
  */
 void
-nir_lower_var_copy_instr(nir_intrinsic_instr *copy, void *mem_ctx)
+nir_lower_var_copy_instr(nir_intrinsic_instr *copy, nir_shader *shader)
 {
    assert(copy->intrinsic == nir_intrinsic_copy_var);
    emit_copy_load_store(copy, copy->variables[0], copy->variables[1],
                         &copy->variables[0]->deref,
-                        &copy->variables[1]->deref, mem_ctx);
+                        &copy->variables[1]->deref, shader);
 }
 
 static void
 lower_var_copies_impl(nir_function_impl *impl)
 {
-   void *mem_ctx = ralloc_parent(impl);
+   nir_shader *shader = impl->function->shader;
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -167,7 +168,7 @@ lower_var_copies_impl(nir_function_impl *impl)
          if (copy->intrinsic != nir_intrinsic_copy_var)
             continue;
 
-         nir_lower_var_copy_instr(copy, mem_ctx);
+         nir_lower_var_copy_instr(copy, shader);
 
          nir_instr_remove(&copy->instr);
          ralloc_free(copy);

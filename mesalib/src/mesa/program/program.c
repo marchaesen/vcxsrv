@@ -34,6 +34,7 @@
 #include "main/framebuffer.h"
 #include "main/hash.h"
 #include "main/macros.h"
+#include "main/shaderobj.h"
 #include "program.h"
 #include "prog_cache.h"
 #include "prog_parameter.h"
@@ -190,6 +191,7 @@ _mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id)
    prog->Target = target;
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
+   prog->info.stage = _mesa_program_enum_to_shader_stage(target);
 
    /* default mapping from samplers to texture units */
    for (i = 0; i < MAX_SAMPLERS; i++)
@@ -312,6 +314,7 @@ _mesa_reference_program_(struct gl_context *ctx,
 
       if (deleteFlag) {
          assert(ctx);
+         _mesa_reference_shader_program_data(ctx, &oldProg->sh.data, NULL);
          ctx->Driver.DeleteProgram(ctx, oldProg);
       }
 

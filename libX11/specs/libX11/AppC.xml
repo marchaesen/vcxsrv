@@ -51,11 +51,11 @@ and
 <funcsynopsis id='XQueryExtension'>
 <funcprototype>
   <funcdef>Bool <function>XQueryExtension</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *name</parameter></paramdef>
-  <paramdef>int<parameter> *major_opcode_return</parameter></paramdef>
-  <paramdef>int<parameter> *first_event_return</parameter></paramdef>
-  <paramdef>int<parameter> *first_error_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>name</parameter></paramdef>
+  <paramdef>int *<parameter>major_opcode_return</parameter></paramdef>
+  <paramdef>int *<parameter>first_event_return</parameter></paramdef>
+  <paramdef>int *<parameter>first_error_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -137,8 +137,8 @@ are all considered different names.
 <funcsynopsis id='XListExtensions'>
 <funcprototype>
   <funcdef>char **<function>XListExtensions</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> *nextensions_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>nextensions_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -179,7 +179,7 @@ Otherwise, the result is implementation-dependent.
 <funcsynopsis id='XFreeExtensionList'>
 <funcprototype>
   <funcdef><function>XFreeExtensionList</function></funcdef>
-  <paramdef>char<parameter> **list</parameter></paramdef>
+  <paramdef>char **<parameter>list</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -261,8 +261,8 @@ typedef struct _XExtCodes {	/* public to extension, cannot be changed */
 <funcsynopsis id='XInitExtension'>
 <funcprototype>
   <funcdef>XExtCodes *<function>XInitExtension</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *name</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>name</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -325,7 +325,7 @@ This extension number is unique only to a single connection.
 <funcsynopsis id='XAddExtension'>
 <funcprototype>
   <funcdef>XExtCodes *<function>XAddExtension</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -373,9 +373,9 @@ extension.
 <funcsynopsis id='XESetCloseDisplay'>
 <funcprototype>
   <funcdef>int <function>XESetCloseDisplay</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -441,9 +441,9 @@ with these arguments:
 <funcsynopsis id='XESetCreateGC'>
 <funcprototype>
   <funcdef>int *<function>XESetCreateGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -508,9 +508,9 @@ your procedure is called with these arguments:
 <funcsynopsis id='XESetCopyGC'>
 <funcprototype>
   <funcdef>int *<function>XESetCopyGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -571,9 +571,9 @@ your procedure is called with these arguments:
 <funcsynopsis id='XESetFreeGC'>
 <funcprototype>
   <funcdef>int *<function>XESetFreeGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -642,9 +642,9 @@ your procedure is called with these arguments:
 <funcsynopsis id='XESetCreateFont'>
 <funcprototype>
   <funcdef>int *<function>XESetCreateFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -721,9 +721,9 @@ your procedure is called with these arguments:
 <funcsynopsis id='XESetFreeFont'>
 <funcprototype>
   <funcdef>int *<function>XESetFreeFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -833,9 +833,9 @@ in the structure will be fully portable between machines.
 <funcsynopsis id='XESetWireToEvent'>
 <funcprototype>
   <funcdef>int *<function>XESetWireToEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> event_number</parameter></paramdef>
-  <paramdef>Status<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>event_number</parameter></paramdef>
+  <paramdef>Status <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -941,8 +941,8 @@ with the event and use the return value.
 <funcsynopsis id='_XSetLastRequestRead'>
 <funcprototype>
   <funcdef>unsigned long<function>_XSetLastRequestRead</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>xGenericReply<parameter> *rep</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>xGenericReply *<parameter>rep</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -983,9 +983,9 @@ serial number in the event.
 <funcsynopsis id='XESetEventToWire'>
 <funcprototype>
   <funcdef>Status *<function>XESetEventToWire</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> event_number</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>event_number</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1075,9 +1075,9 @@ structure.
 <funcsynopsis id='XESetWireToError'>
 <funcprototype>
   <funcdef>Bool *<function>XESetWireToError</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> error_number</parameter></paramdef>
-  <paramdef>Bool<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>error_number</parameter></paramdef>
+  <paramdef>Bool <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1170,9 +1170,9 @@ otherwise, it should return
 <funcsynopsis id='XESetError'>
 <funcprototype>
   <funcdef>int *<function>XESetError</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1261,9 +1261,9 @@ returns the value of ret_code.
 <funcsynopsis id='XESetErrorString'>
 <funcprototype>
   <funcdef>char *<function>XESetErrorString</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>char<parameter> *(*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>char *<parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1337,9 +1337,9 @@ error message into buffer.
 <funcsynopsis id='XESetPrintErrorValues'>
 <funcprototype>
   <funcdef>void *<function>XESetPrintErrorValues</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>void<parameter> (*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>void <parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1419,9 +1419,9 @@ on a <acronym>POSIX</acronym>-compliant system, fp should be cast to type FILE*.
 <funcsynopsis id='XESetFlushGC'>
 <funcprototype>
   <funcdef>int *<function>XESetFlushGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> *(*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int *<parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1471,9 +1471,9 @@ function, but is called when a GC cache needs to be updated in the server.
 <funcsynopsis>
 <funcprototype>
   <funcdef>int *<function>XESetCopyGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> extension</parameter></paramdef>
-  <paramdef>int<parameter> *(*proc)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>extension</parameter></paramdef>
+  <paramdef>int *<parameter>(*proc)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1608,7 +1608,7 @@ union {	Display *display;
 <funcsynopsis id='XEHeadOfExtensionList'>
 <funcprototype>
   <funcdef>XExtData **<function>XEHeadOfExtensionList</function></funcdef>
-  <paramdef>XEDataObject<parameter> object</parameter></paramdef>
+  <paramdef>XEDataObject <parameter>object</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1644,8 +1644,8 @@ of types contained in
 <funcsynopsis id='XAddToExtensionList'>
 <funcprototype>
   <funcdef><function>XAddToExtensionList</function></funcdef>
-  <paramdef>XExtData<parameter> **structure</parameter></paramdef>
-  <paramdef>XExtData<parameter> *ext_data</parameter></paramdef>
+  <paramdef>XExtData **<parameter>structure</parameter></paramdef>
+  <paramdef>XExtData *<parameter>ext_data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1684,8 +1684,8 @@ before calling this function.
 <funcsynopsis id='XFindOnExtensionList'>
 <funcprototype>
   <funcdef>XExtData *<function>XFindOnExtensionList</function></funcdef>
-  <paramdef>struct_XExtData<parameter> **structure</parameter></paramdef>
-  <paramdef>int<parameter> number</parameter></paramdef>
+  <paramdef>struct_XExtData **<parameter>structure</parameter></paramdef>
+  <paramdef>int <parameter>number</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1735,7 +1735,7 @@ macro, which allocates and returns a resource ID, is defined in
 <funcsynopsis id='XAllocID'>
 <funcprototype>
   <funcdef><function>XAllocID</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1770,9 +1770,9 @@ macro allocates and returns an array of resource ID.
 <funcsynopsis id='XAllocIDs'>
 <funcprototype>
   <funcdef><function>XAllocIDs</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> *ids_return</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID *<parameter>ids_return</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1849,8 +1849,8 @@ macro is defined as follows:
 <funcsynopsis id='FlushGC'>
 <funcprototype>
   <funcdef><function>FlushGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1899,8 +1899,8 @@ is defined as follows:
 <funcsynopsis id='_XFlushGCCache'>
 <funcprototype>
   <funcdef><function>_XFlushGCCache</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2325,7 +2325,7 @@ Two calls, which are generally implemented as macros, have been provided.
 <funcsynopsis id='LockDisplay'>
 <funcprototype>
   <funcdef><function>LockDisplay</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2335,7 +2335,7 @@ Two calls, which are generally implemented as macros, have been provided.
 <funcsynopsis id='UnlockDisplay'>
 <funcprototype>
   <funcdef><function>UnlockDisplay</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2518,10 +2518,23 @@ the display, a pointer to the beginning of the data,
 and the number of bytes to be sent.
 <!-- .sM -->
 <funcsynopsis id='Data'>
-<funcprototype>
+<funcprototype role='macro'>
   <funcdef><function>Data</function></funcdef>
-  <paramdef><parameter> display</parameter></paramdef>
-  <paramdef>(char<parameter> *</parameter></paramdef>
+  <paramdef><parameter>display</parameter></paramdef>
+  <paramdef>(char *) <parameter>data</parameter></paramdef>
+  <paramdef><parameter>nbytes</parameter></paramdef>
+</funcprototype>
+<funcprototype role='macro'>
+  <funcdef><function>Data16</function></funcdef>
+  <paramdef><parameter>display</parameter></paramdef>
+  <paramdef>(short *) <parameter>data</parameter></paramdef>
+  <paramdef><parameter>nbytes</parameter></paramdef>
+</funcprototype>
+<funcprototype role='macro'>
+  <funcdef><function>Data32</function></funcdef>
+  <paramdef><parameter>display</parameter></paramdef>
+  <paramdef>(long *) <parameter>data</parameter></paramdef>
+  <paramdef><parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2529,7 +2542,7 @@ and the number of bytes to be sent.
 <para>
 <!-- .LP -->
 <!-- .eM -->
-<xref linkend='Data' xrefstyle='select: title'/>,
+<function>Data</function>,
 <function>Data16</function>,
 and
 <function>Data32</function>
@@ -2578,10 +2591,10 @@ places them in the queue for later use.
 <funcsynopsis id='_XReply'>
 <funcprototype>
   <funcdef>Status <function>_XReply</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>xReply<parameter> *rep</parameter></paramdef>
-  <paramdef>int<parameter> extra</parameter></paramdef>
-  <paramdef>Bool<parameter> discard</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>xReply *<parameter>rep</parameter></paramdef>
+  <paramdef>int <parameter>extra</parameter></paramdef>
+  <paramdef>Bool <parameter>discard</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2744,9 +2757,9 @@ function to read the variable-length data.
 <funcsynopsis id='_XRead'>
 <funcprototype>
   <funcdef><function>_XRead</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *data_return</parameter></paramdef>
-  <paramdef>long<parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>data_return</parameter></paramdef>
+  <paramdef>long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2794,9 +2807,9 @@ function reads the specified number of bytes into data_return.
 <funcsynopsis id='_XRead16'>
 <funcprototype>
   <funcdef><function>_XRead16</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>short<parameter> *data_return</parameter></paramdef>
-  <paramdef>long<parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>short *<parameter>data_return</parameter></paramdef>
+  <paramdef>long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2846,9 +2859,9 @@ into the specified array as shorts.
 <funcsynopsis id='_XRead32'>
 <funcprototype>
   <funcdef><function>_XRead32</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>long<parameter> *data_return</parameter></paramdef>
-  <paramdef>long<parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>long *<parameter>data_return</parameter></paramdef>
+  <paramdef>long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2898,9 +2911,9 @@ into the specified array as longs.
 <funcsynopsis id='_XRead16Pad'>
 <funcprototype>
   <funcdef><function>_XRead16Pad</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>short<parameter> *data_return</parameter></paramdef>
-  <paramdef>long<parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>short *<parameter>data_return</parameter></paramdef>
+  <paramdef>long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2953,9 +2966,9 @@ reads and discards up to two additional pad bytes.
 <funcsynopsis id='_XReadPad'>
 <funcprototype>
   <funcdef><function>_XReadPad</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *data_return</parameter></paramdef>
-  <paramdef>long<parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>data_return</parameter></paramdef>
+  <paramdef>long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3055,8 +3068,8 @@ critical section:
 <funcsynopsis id='_XAllocScratch'>
 <funcprototype>
   <funcdef>char *<function>_XAllocScratch</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned long <parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3112,8 +3125,8 @@ critical sections:
 <funcsynopsis id='_XAllocTemp'>
 <funcprototype>
   <funcdef>char *<function>_XAllocTemp</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned long <parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3151,9 +3164,9 @@ The following function returns the storage:
 <funcsynopsis id='_XFreeTemp'>
 <funcprototype>
   <funcdef>void <function>_XFreeTemp</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *buf</parameter></paramdef>
-  <paramdef>unsigned long <parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>buf</parameter></paramdef>
+  <paramdef>unsigned long <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3200,9 +3213,8 @@ You must pass back the same pointer and size that were returned by
 <title>Portability Considerations</title>
 <para>
 <!-- .LP -->
-Many machine architectures, 
-including many of the more recent <acronym>RISC</acronym> architectures,
-do not correctly access data at unaligned locations; 
+Many machine architectures
+do not correctly or efficiently access data at unaligned locations;
 their compilers pad out structures to preserve this characteristic.
 Many other machines capable of unaligned references pad inside of structures
 as well to preserve alignment, because accessing aligned data is
@@ -3216,7 +3228,9 @@ All requests <emphasis remap='I'>must</emphasis> be a multiple of 32 bits in len
 the natural alignment in the data stream.
 You must pad structures out to 32-bit boundaries.
 Pad information does not have to be zeroed unless you want to
-preserve such fields for future use in your protocol requests.
+preserve such fields for future use in your protocol requests,
+but it is recommended to zero it to avoid inadvertant data leakage
+and improve compressability.
 Floating point varies radically between machines and should be
 avoided completely if at all possible.
 </para>
@@ -3253,7 +3267,7 @@ take on values larger than the maximum 16-bit
 </para>
 <para>
 <!-- .LP -->
-The library currently assumes that a
+The library has always assumed that a
 <type>char</type>
 is 8 bits, a
 <type>short</type>
@@ -3261,7 +3275,15 @@ is 16 bits, an
 <type>int</type>
 is 16 or 32 bits, and a
 <type>long</type>
-is 32 bits.  
+is 32 bits.
+Unfortunately, this assumption remains on machines where a <type>long</type>
+can hold 64-bits, and many functions and structures require unnecessarily
+large fields to avoid breaking compatibility with existing code.  Special
+care must be taken with arrays of values that are transmitted in the
+protocol as CARD32 or INT32 but have to be converted to arrays of 64-bit
+<type>long</type> when passed to or from client applications.
+</para>
+<para>
 The 
 <function>PackData</function>
 macro is a half-hearted attempt to deal with the possibility of 32 bit shorts. 

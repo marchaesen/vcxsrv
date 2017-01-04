@@ -47,13 +47,13 @@ To clear a rectangular area of a given window, use
 <funcsynopsis id='XClearArea'>
 <funcprototype>
   <funcdef><function>XClearArea</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>Bool<parameter> exposures</parameter></paramdef>
+  <paramdef>Bool <parameter>exposures</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -189,8 +189,8 @@ To clear the entire area in a given window, use
 <funcsynopsis id='XClearWindow'>
 <funcprototype>
   <funcdef><function>XClearWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -273,13 +273,16 @@ root and depth, use
 <funcsynopsis id='XCopyArea'>
 <funcprototype>
   <funcdef><function>XCopyArea</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawablesrc,<parameter> dest</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intsrc_x,<parameter> src_y</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>src</parameter></paramdef>
+  <paramdef>Drawable <parameter>dest</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>src_x</parameter></paramdef>
+  <paramdef>int <parameter>src_y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>intdest_x,<parameter> dest_y</parameter></paramdef>
+  <paramdef>int <parameter>dest_x</parameter></paramdef>
+  <paramdef>int <parameter>dest_y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -467,14 +470,17 @@ To copy a single bit plane of a given drawable, use
 <funcsynopsis id='XCopyPlane'>
 <funcprototype>
   <funcdef><function>XCopyPlane</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawablesrc,<parameter> dest</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intsrc_x,<parameter> src_y</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>src</parameter></paramdef>
+  <paramdef>Drawable <parameter>dest</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>src_x</parameter></paramdef>
+  <paramdef>int <parameter>src_y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>intdest_x,<parameter> dest_y</parameter></paramdef>
-  <paramdef>unsigned long <parameter> plane</parameter></paramdef>
+  <paramdef>int <parameter>dest_x</parameter></paramdef>
+  <paramdef>int <parameter>dest_y</parameter></paramdef>
+  <paramdef>unsigned long <parameter>plane</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -771,9 +777,9 @@ To draw a single point in a given drawable, use
 <funcsynopsis id='XDrawPoint'>
 <funcprototype>
   <funcdef><function>XDrawPoint</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
@@ -844,12 +850,12 @@ To draw multiple points in a given drawable, use
 <funcsynopsis id='XDrawPoints'>
 <funcprototype>
   <funcdef><function>XDrawPoints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XPoint<parameter> *points</parameter></paramdef>
-  <paramdef>int<parameter> npoints</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XPoint *<parameter>points</parameter></paramdef>
+  <paramdef>int <parameter>npoints</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -985,10 +991,13 @@ To draw a single line between two points in a given drawable, use
 <funcsynopsis id='XDrawLine'>
 <funcprototype>
   <funcdef><function>XDrawLine</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx1,y1,x2,<parameter> y2</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>x1</parameter></paramdef>
+  <paramdef>int <parameter>y1</parameter></paramdef>
+  <paramdef>int <parameter>x2</parameter></paramdef>
+  <paramdef>int <parameter>y2</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1079,12 +1088,12 @@ To draw multiple lines in a given drawable, use
 <funcsynopsis id='XDrawLines'>
 <funcprototype>
   <funcdef><function>XDrawLines</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XPoint<parameter> *points</parameter></paramdef>
-  <paramdef>int<parameter> npoints</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XPoint *<parameter>points</parameter></paramdef>
+  <paramdef>int <parameter>npoints</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1167,11 +1176,11 @@ use
 <funcsynopsis id='XDrawSegments'>
 <funcprototype>
   <funcdef><function>XDrawSegments</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XSegment<parameter> *segments</parameter></paramdef>
-  <paramdef>int<parameter> nsegments</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XSegment *<parameter>segments</parameter></paramdef>
+  <paramdef>int <parameter>nsegments</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1337,9 +1346,9 @@ To draw the outline of a single rectangle in a given drawable, use
 <funcsynopsis id='XDrawRectangle'>
 <funcprototype>
   <funcdef><function>XDrawRectangle</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
@@ -1436,11 +1445,11 @@ in a given drawable, use
 <funcsynopsis id='XDrawRectangles'>
 <funcprototype>
   <funcdef><function>XDrawRectangles</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XRectangle<parameter> rectangles[]</parameter></paramdef>
-  <paramdef>int<parameter> nrectangles</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XRectangle <parameter>rectangles[]</parameter></paramdef>
+  <paramdef>int <parameter>nrectangles</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1570,14 +1579,15 @@ To draw a single arc in a given drawable, use
 <funcsynopsis id='XDrawArc'>
 <funcprototype>
   <funcdef><function>XDrawArc</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>intangle1,<parameter> angle2</parameter></paramdef>
+  <paramdef>int <parameter>angle1</parameter></paramdef>
+  <paramdef>int <parameter>angle2</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1691,11 +1701,11 @@ To draw multiple arcs in a given drawable, use
 <funcsynopsis id='XDrawArcs'>
 <funcprototype>
   <funcdef><function>XDrawArcs</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XArc<parameter> *arcs</parameter></paramdef>
-  <paramdef>int<parameter> narcs</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XArc *<parameter>arcs</parameter></paramdef>
+  <paramdef>int <parameter>narcs</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1929,9 +1939,9 @@ To fill a single rectangular area in a given drawable, use
 <funcsynopsis id='XFillRectangle'>
 <funcprototype>
   <funcdef><function>XFillRectangle</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
@@ -2027,11 +2037,11 @@ To fill multiple rectangular areas in a given drawable, use
 <funcsynopsis id='XFillRectangles'>
 <funcprototype>
   <funcdef><function>XFillRectangles</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XRectangle<parameter> *rectangles</parameter></paramdef>
-  <paramdef>int<parameter> nrectangles</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XRectangle *<parameter>rectangles</parameter></paramdef>
+  <paramdef>int <parameter>nrectangles</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2162,13 +2172,13 @@ To fill a polygon area in a given drawable, use
 <funcsynopsis id='XFillPolygon'>
 <funcprototype>
   <funcdef><function>XFillPolygon</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XPoint<parameter> *points</parameter></paramdef>
-  <paramdef>int<parameter> npoints</parameter></paramdef>
-  <paramdef>int<parameter> shape</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XPoint *<parameter>points</parameter></paramdef>
+  <paramdef>int <parameter>npoints</parameter></paramdef>
+  <paramdef>int <parameter>shape</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2361,14 +2371,15 @@ To fill a single arc in a given drawable, use
 <funcsynopsis id='XFillArc'>
 <funcprototype>
   <funcdef><function>XFillArc</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>intangle1,<parameter> angle2</parameter></paramdef>
+  <paramdef>int <parameter>angle1</parameter></paramdef>
+  <paramdef>int <parameter>angle2</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2482,11 +2493,11 @@ To fill multiple arcs in a given drawable, use
 <funcsynopsis id='XFillArcs'>
 <funcprototype>
   <funcdef><function>XFillArcs</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XArc<parameter> *arcs</parameter></paramdef>
-  <paramdef>int<parameter> narcs</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XArc *<parameter>arcs</parameter></paramdef>
+  <paramdef>int <parameter>narcs</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3029,8 +3040,8 @@ To load a given font, use
 <funcsynopsis id='XLoadFont'>
 <funcprototype>
   <funcdef>Font <function>XLoadFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *name</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>name</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3105,8 +3116,8 @@ To return information about an available font, use
 <funcsynopsis id='XQueryFont'>
 <funcprototype>
   <funcdef>XFontStruct *<function>XQueryFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> font_ID</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>font_ID</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3171,8 +3182,8 @@ in a single operation, use
 <funcsynopsis id='XLoadQueryFont'>
 <funcprototype>
   <funcdef>XFontStruct *<function>XLoadQueryFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *name</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>name</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3239,8 +3250,8 @@ use
 <funcsynopsis id='XFreeFont'>
 <funcprototype>
   <funcdef><function>XFreeFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XFontStruct<parameter> *font_struct</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>font_struct</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3296,9 +3307,9 @@ To return a given font property, use
 <funcsynopsis id='XGetFontProperty'>
 <funcprototype>
   <funcdef>Bool <function>XGetFontProperty</function></funcdef>
-  <paramdef>XFontStruct<parameter> *font_struct</parameter></paramdef>
-  <paramdef>Atom<parameter> atom</parameter></paramdef>
-  <paramdef>unsigned long <parameter> *value_return</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>font_struct</parameter></paramdef>
+  <paramdef>Atom <parameter>atom</parameter></paramdef>
+  <paramdef>unsigned long *<parameter>value_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3371,8 +3382,8 @@ use
 <funcsynopsis id='XUnloadFont'>
 <funcprototype>
   <funcdef><function>XUnloadFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Font<parameter> font</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Font <parameter>font</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3436,10 +3447,10 @@ To return a list of the available font names, use
 <funcsynopsis id='XListFonts'>
 <funcprototype>
   <funcdef>char **<function>XListFonts</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *pattern</parameter></paramdef>
-  <paramdef>int<parameter> maxnames</parameter></paramdef>
-  <paramdef>int<parameter> *actual_count_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>pattern</parameter></paramdef>
+  <paramdef>int <parameter>maxnames</parameter></paramdef>
+  <paramdef>int *<parameter>actual_count_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3523,7 +3534,7 @@ To free a font name array, use
 <funcsynopsis id='XFreeFontNames'>
 <funcprototype>
   <funcdef><function>XFreeFontNames</function></funcdef>
-  <paramdef>char<parameter> *list[]</parameter></paramdef>
+  <paramdef>char *<parameter>list[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3560,11 +3571,11 @@ To obtain the names and information about available fonts, use
 <funcsynopsis id='XListFontsWithInfo'>
 <funcprototype>
   <funcdef>char **<function>XListFontsWithInfo</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *pattern</parameter></paramdef>
-  <paramdef>int<parameter> maxnames</parameter></paramdef>
-  <paramdef>int<parameter> *count_return</parameter></paramdef>
-  <paramdef>XFontStruct<parameter> **info_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>pattern</parameter></paramdef>
+  <paramdef>int <parameter>maxnames</parameter></paramdef>
+  <paramdef>int *<parameter>count_return</parameter></paramdef>
+  <paramdef>XFontStruct **<parameter>info_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3667,9 +3678,9 @@ To free font structures and font names, use
 <funcsynopsis id='XFreeFontInfo'>
 <funcprototype>
   <funcdef><function>XFreeFontInfo</function></funcdef>
-  <paramdef>char<parameter> **names</parameter></paramdef>
-  <paramdef>XFontStruct<parameter> *free_info</parameter></paramdef>
-  <paramdef>int<parameter> actual_count</parameter></paramdef>
+  <paramdef>char **<parameter>names</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>free_info</parameter></paramdef>
+  <paramdef>int <parameter>actual_count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3751,9 +3762,9 @@ To determine the width of an 8-bit character string, use
 <funcsynopsis id='XTextWidth'>
 <funcprototype>
   <funcdef>int <function>XTextWidth</function></funcdef>
-  <paramdef>XFontStruct<parameter> *font_struct</parameter></paramdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>font_struct</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3801,9 +3812,9 @@ To determine the width of a 2-byte character string, use
 <funcsynopsis id='XTextWidth16'>
 <funcprototype>
   <funcdef>int <function>XTextWidth16</function></funcdef>
-  <paramdef>XFontStruct<parameter> *font_struct</parameter></paramdef>
-  <paramdef>XChar2b<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>font_struct</parameter></paramdef>
+  <paramdef>XChar2b *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3859,12 +3870,13 @@ To compute the bounding box of an 8-bit character string in a given font, use
 <funcsynopsis id='XTextExtents'>
 <funcprototype>
   <funcdef><function>XTextExtents</function></funcdef>
-  <paramdef>XFontStruct<parameter> *font_struct</parameter></paramdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> nchars</parameter></paramdef>
-  <paramdef>int<parameter> *direction_return</parameter></paramdef>
-  <paramdef>int*font_ascent_return,<parameter> *font_descent_return</parameter></paramdef>
-  <paramdef>XCharStruct<parameter> *overall_return</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>font_struct</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>nchars</parameter></paramdef>
+  <paramdef>int *<parameter>direction_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_ascent_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_descent_return</parameter></paramdef>
+  <paramdef>XCharStruct *<parameter>overall_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3959,12 +3971,13 @@ To compute the bounding box of a 2-byte character string in a given font, use
 <funcsynopsis id='XTextExtents16'>
 <funcprototype>
   <funcdef><function>XTextExtents16</function></funcdef>
-  <paramdef>XFontStruct<parameter> *font_struct</parameter></paramdef>
-  <paramdef>XChar2b<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> nchars</parameter></paramdef>
-  <paramdef>int<parameter> *direction_return</parameter></paramdef>
-  <paramdef>int*font_ascent_return,<parameter> *font_descent_return</parameter></paramdef>
-  <paramdef>XCharStruct<parameter> *overall_return</parameter></paramdef>
+  <paramdef>XFontStruct *<parameter>font_struct</parameter></paramdef>
+  <paramdef>XChar2b *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>nchars</parameter></paramdef>
+  <paramdef>int *<parameter>direction_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_ascent_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_descent_return</parameter></paramdef>
+  <paramdef>XCharStruct *<parameter>overall_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4106,13 +4119,14 @@ given font, use
 <funcsynopsis id='XQueryTextExtents'>
 <funcprototype>
   <funcdef><function>XQueryTextExtents</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> font_ID</parameter></paramdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> nchars</parameter></paramdef>
-  <paramdef>int<parameter> *direction_return</parameter></paramdef>
-  <paramdef>int*font_ascent_return,<parameter> *font_descent_return</parameter></paramdef>
-  <paramdef>XCharStruct<parameter> *overall_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>font_ID</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>nchars</parameter></paramdef>
+  <paramdef>int *<parameter>direction_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_ascent_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_descent_return</parameter></paramdef>
+  <paramdef>XCharStruct *<parameter>overall_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4218,13 +4232,14 @@ in a given font, use
 <funcsynopsis id='XQueryTextExtents16'>
 <funcprototype>
   <funcdef><function>XQueryTextExtents16</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> font_ID</parameter></paramdef>
-  <paramdef>XChar2b<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> nchars</parameter></paramdef>
-  <paramdef>int<parameter> *direction_return</parameter></paramdef>
-  <paramdef>int*font_ascent_return,<parameter> *font_descent_return</parameter></paramdef>
-  <paramdef>XCharStruct<parameter> *overall_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>font_ID</parameter></paramdef>
+  <paramdef>XChar2b *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>nchars</parameter></paramdef>
+  <paramdef>int *<parameter>direction_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_ascent_return</parameter></paramdef>
+  <paramdef>int *<parameter>font_descent_return</parameter></paramdef>
+  <paramdef>XCharStruct *<parameter>overall_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4491,13 +4506,13 @@ To draw 8-bit characters in a given drawable, use
 <funcsynopsis id='XDrawText'>
 <funcprototype>
   <funcdef><function>XDrawText</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
-  <paramdef>XTextItem<parameter> *items</parameter></paramdef>
-  <paramdef>int<parameter> nitems</parameter></paramdef>
+  <paramdef>XTextItem *<parameter>items</parameter></paramdef>
+  <paramdef>int <parameter>nitems</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4587,13 +4602,13 @@ To draw 2-byte characters in a given drawable, use
 <funcsynopsis id='XDrawText16'>
 <funcprototype>
   <funcdef><function>XDrawText16</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
-  <paramdef>XTextItem16<parameter> *items</parameter></paramdef>
-  <paramdef>int<parameter> nitems</parameter></paramdef>
+  <paramdef>XTextItem16 *<parameter>items</parameter></paramdef>
+  <paramdef>int <parameter>nitems</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4747,13 +4762,13 @@ To draw 8-bit characters in a given drawable, use
 <funcsynopsis id='XDrawString'>
 <funcprototype>
   <funcdef><function>XDrawString</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> x</parameter></paramdef>
-  <paramdef>int<parameter> y</parameter></paramdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> length</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4843,13 +4858,13 @@ To draw 2-byte characters in a given drawable, use
 <funcsynopsis id='XDrawString16'>
 <funcprototype>
   <funcdef><function>XDrawString16</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
-  <paramdef>XChar2b<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> length</parameter></paramdef>
+  <paramdef>XChar2b *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4987,13 +5002,13 @@ To draw 8-bit image text characters in a given drawable, use
 <funcsynopsis id='XDrawImageString'>
 <funcprototype>
   <funcdef><function>XDrawImageString</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> length</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5083,13 +5098,13 @@ To draw 2-byte image text characters in a given drawable, use
 <funcsynopsis id='XDrawImageString16'>
 <funcprototype>
   <funcdef><function>XDrawImageString16</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
-  <paramdef>XChar2b<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> length</parameter></paramdef>
+  <paramdef>XChar2b *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5328,7 +5343,7 @@ To initialize the image manipulation routines of an image structure, use
 <funcsynopsis id='XInitImage'>
 <funcprototype>
   <funcdef>Status <function>XInitImage</function></funcdef>
-  <paramdef>XImage<parameter> *image</parameter></paramdef>
+  <paramdef>XImage *<parameter>image</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5386,12 +5401,14 @@ use
 <funcsynopsis id='XPutImage'>
 <funcprototype>
   <funcdef><function>XPutImage</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>XImage<parameter> *image</parameter></paramdef>
-  <paramdef>intsrc_x,<parameter> src_y</parameter></paramdef>
-  <paramdef>intdest_x,<parameter> dest_y</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>XImage *<parameter>image</parameter></paramdef>
+  <paramdef>int <parameter>src_x</parameter></paramdef>
+  <paramdef>int <parameter>src_y</parameter></paramdef>
+  <paramdef>int <parameter>dest_x</parameter></paramdef>
+  <paramdef>int <parameter>dest_y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
@@ -5575,14 +5592,14 @@ This function specifically supports rudimentary screen dumps.
 <funcsynopsis id='XGetImage'>
 <funcprototype>
   <funcdef>XImage *<function>XGetImage</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned long <parameter> plane_mask</parameter></paramdef>
-  <paramdef>int<parameter> format</parameter></paramdef>
+  <paramdef>unsigned long <parameter>plane_mask</parameter></paramdef>
+  <paramdef>int <parameter>format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5763,16 +5780,17 @@ to a location within a preexisting image structure, use
 <funcsynopsis id='XGetSubImage'>
 <funcprototype>
   <funcdef>XImage *<function>XGetSubImage</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned long <parameter> plane_mask</parameter></paramdef>
-  <paramdef>int<parameter> format</parameter></paramdef>
-  <paramdef>XImage<parameter> *dest_image</parameter></paramdef>
-  <paramdef>intdest_x,<parameter> dest_y</parameter></paramdef>
+  <paramdef>unsigned long <parameter>plane_mask</parameter></paramdef>
+  <paramdef>int <parameter>format</parameter></paramdef>
+  <paramdef>XImage *<parameter>dest_image</parameter></paramdef>
+  <paramdef>int <parameter>dest_x</parameter></paramdef>
+  <paramdef>int <parameter>dest_y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

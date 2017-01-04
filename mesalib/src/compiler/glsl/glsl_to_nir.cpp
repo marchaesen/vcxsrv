@@ -154,7 +154,6 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
    shader->info->num_ssbos = sh->NumShaderStorageBlocks;
    shader->info->clip_distance_array_size = sh->Program->ClipDistanceArraySize;
    shader->info->cull_distance_array_size = sh->Program->CullDistanceArraySize;
-   shader->info->separate_shader = shader_prog->SeparateShader;
    shader->info->has_transform_feedback_varyings =
       shader_prog->TransformFeedback.NumVarying > 0;
 
@@ -1179,8 +1178,7 @@ nir_visitor::visit(ir_assignment *ir)
       nir_intrinsic_instr_create(this->shader, nir_intrinsic_store_var);
    store->num_components = ir->lhs->type->vector_elements;
    nir_intrinsic_set_write_mask(store, ir->write_mask);
-   nir_deref *store_deref = nir_copy_deref(store, &lhs_deref->deref);
-   store->variables[0] = nir_deref_as_var(store_deref);
+   store->variables[0] = nir_deref_var_clone(lhs_deref, store);
    store->src[0] = nir_src_for_ssa(src);
 
    if (ir->condition) {

@@ -121,20 +121,33 @@ XkbProcessKeyboardEvent(DeviceEvent *event, DeviceIntPtr keybd)
         case XkbKB_Overlay2:
         {
             unsigned which;
+            unsigned overlay_active_now;
+            unsigned is_keyrelease = (event->type == ET_KeyRelease) ? 1 : 0;
+            /* Remembers whether the key was pressed while overlay was down,
+             * for when overlay is already released, but the key is not. */
+            unsigned key_was_overlaid = 0;
 
             if (behavior.type == XkbKB_Overlay1)
                 which = XkbOverlay1Mask;
             else
                 which = XkbOverlay2Mask;
-            if ((xkbi->desc->ctrls->enabled_ctrls & which) == 0)
-                break;
-            if ((behavior.data >= xkbi->desc->min_key_code) &&
-                (behavior.data <= xkbi->desc->max_key_code)) {
+            overlay_active_now = (xkbi->desc->ctrls->enabled_ctrls & which) ? 1 : 0;
+
+            if ((unsigned char)key == key) {
+                key_was_overlaid = BitIsOn(xkbi->overlay_perkey_state, key);
+                if (!is_keyrelease) {
+                    if (overlay_active_now)
+                        SetBit(xkbi->overlay_perkey_state, key);
+                } else {
+                    if (key_was_overlaid)
+                        ClearBit(xkbi->overlay_perkey_state, key);
+                }
+            }
+
+            if ((overlay_active_now || key_was_overlaid) &&
+                    (behavior.data >= xkbi->desc->min_key_code) &&
+                    (behavior.data <= xkbi->desc->max_key_code)) {
                 event->detail.key = behavior.data;
-                /* 9/11/94 (ef) -- XXX! need to match release with */
-                /*                 press even if the state of the  */
-                /*                 corresponding overlay control   */
-                /*                 changes while the key is down   */
             }
         }
             break;

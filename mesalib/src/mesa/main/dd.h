@@ -780,13 +780,6 @@ struct dd_function_table {
    /*@}*/
 
    /**
-    * \name GLSL-related functions (ARB extensions and OpenGL 2.x)
-    */
-   /*@{*/
-   struct gl_linked_shader *(*NewShader)(gl_shader_stage stage);
-   /*@}*/
-
-   /**
     * \name GREMEDY debug/marker functions
     */
    /*@{*/

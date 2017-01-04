@@ -769,6 +769,10 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
 
     glamor_egl->display = glamor_egl_get_display(EGL_PLATFORM_GBM_MESA,
                                                  glamor_egl->gbm);
+    if (!glamor_egl->display) {
+        xf86DrvMsg(scrn->scrnIndex, X_ERROR, "eglGetDisplay() failed\n");
+        goto error;
+    }
 #else
     glamor_egl->display = eglGetDisplay((EGLNativeDisplayType) (intptr_t) fd);
 #endif

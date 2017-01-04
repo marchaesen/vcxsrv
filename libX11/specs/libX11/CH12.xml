@@ -163,14 +163,15 @@ To grab the pointer, use
 <funcsynopsis id='XGrabPointer'>
 <funcprototype>
   <funcdef>int <function>XGrabPointer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> grab_window</parameter></paramdef>
-  <paramdef>Bool<parameter> owner_events</parameter></paramdef>
-  <paramdef>unsigned int <parameter> event_mask</parameter></paramdef>
-  <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
-  <paramdef>Window<parameter> confine_to</parameter></paramdef>
-  <paramdef>Cursor<parameter> cursor</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>grab_window</parameter></paramdef>
+  <paramdef>Bool <parameter>owner_events</parameter></paramdef>
+  <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
+  <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+  <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
+  <paramdef>Window <parameter>confine_to</parameter></paramdef>
+  <paramdef>Cursor <parameter>cursor</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -429,8 +430,8 @@ To ungrab the pointer, use
 <funcsynopsis id='XUngrabPointer'>
 <funcprototype>
   <funcdef><function>XUngrabPointer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -497,10 +498,10 @@ To change an active pointer grab, use
 <funcsynopsis id='XChangeActivePointerGrab'>
 <funcprototype>
   <funcdef><function>XChangeActivePointerGrab</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned int <parameter> event_mask</parameter></paramdef>
-  <paramdef>Cursor<parameter> cursor</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
+  <paramdef>Cursor <parameter>cursor</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -585,15 +586,16 @@ To grab a pointer button, use
 <funcsynopsis id='XGrabButton'>
 <funcprototype>
   <funcdef><function>XGrabButton</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned int <parameter> button</parameter></paramdef>
-  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
-  <paramdef>Window<parameter> grab_window</parameter></paramdef>
-  <paramdef>Bool<parameter> owner_events</parameter></paramdef>
-  <paramdef>unsigned int <parameter> event_mask</parameter></paramdef>
-  <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
-  <paramdef>Window<parameter> confine_to</parameter></paramdef>
-  <paramdef>Cursor<parameter> cursor</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned int <parameter>button</parameter></paramdef>
+  <paramdef>unsigned int <parameter>modifiers</parameter></paramdef>
+  <paramdef>Window <parameter>grab_window</parameter></paramdef>
+  <paramdef>Bool <parameter>owner_events</parameter></paramdef>
+  <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
+  <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+  <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
+  <paramdef>Window <parameter>confine_to</parameter></paramdef>
+  <paramdef>Cursor <parameter>cursor</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -828,10 +830,10 @@ To ungrab a pointer button, use
 <funcsynopsis id='XUngrabButton'>
 <funcprototype>
   <funcdef><function>XUngrabButton</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned int <parameter> button</parameter></paramdef>
-  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
-  <paramdef>Window<parameter> grab_window</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned int <parameter>button</parameter></paramdef>
+  <paramdef>unsigned int <parameter>modifiers</parameter></paramdef>
+  <paramdef>Window <parameter>grab_window</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -948,11 +950,12 @@ To grab the keyboard, use
 <funcsynopsis id='XGrabKeyboard'>
 <funcprototype>
   <funcdef>int <function>XGrabKeyboard</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> grab_window</parameter></paramdef>
-  <paramdef>Bool<parameter> owner_events</parameter></paramdef>
-  <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>grab_window</parameter></paramdef>
+  <paramdef>Bool <parameter>owner_events</parameter></paramdef>
+  <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+  <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1136,8 +1139,8 @@ To ungrab the keyboard, use
 <funcsynopsis id='XUngrabKeyboard'>
 <funcprototype>
   <funcdef><function>XUngrabKeyboard</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1203,12 +1206,13 @@ To passively grab a single key of the keyboard, use
 <funcsynopsis id='XGrabKey'>
 <funcprototype>
   <funcdef><function>XGrabKey</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> keycode</parameter></paramdef>
-  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
-  <paramdef>Window<parameter> grab_window</parameter></paramdef>
-  <paramdef>Bool<parameter> owner_events</parameter></paramdef>
-  <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>keycode</parameter></paramdef>
+  <paramdef>unsigned int <parameter>modifiers</parameter></paramdef>
+  <paramdef>Window <parameter>grab_window</parameter></paramdef>
+  <paramdef>Bool <parameter>owner_events</parameter></paramdef>
+  <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+  <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1407,10 +1411,10 @@ To ungrab a key, use
 <funcsynopsis id='XUngrabKey'>
 <funcprototype>
   <funcdef><function>XUngrabKey</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> keycode</parameter></paramdef>
-  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
-  <paramdef>Window<parameter> grab_window</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>keycode</parameter></paramdef>
+  <paramdef>unsigned int <parameter>modifiers</parameter></paramdef>
+  <paramdef>Window <parameter>grab_window</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1508,9 +1512,9 @@ To allow further events to be processed when the device has been frozen, use
 <funcsynopsis id='XAllowEvents'>
 <funcprototype>
   <funcdef><function>XAllowEvents</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> event_mode</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>event_mode</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1764,12 +1768,15 @@ To move the pointer to an arbitrary point in a window, use
 <funcsynopsis id='XWarpPointer'>
 <funcprototype>
   <funcdef><function>XWarpPointer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Windowsrc_w,<parameter> dest_w</parameter></paramdef>
-  <paramdef>intsrc_x,<parameter> src_y</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>src_w</parameter></paramdef>
+  <paramdef>Window <parameter>dest_w</parameter></paramdef>
+  <paramdef>int <parameter>src_x</parameter></paramdef>
+  <paramdef>int <parameter>src_y</parameter></paramdef>
   <paramdef>unsigned int <parameter>src_width</parameter></paramdef>
   <paramdef>unsigned int <parameter>src_height</parameter></paramdef>
-  <paramdef>intdest_x,<parameter> dest_y</parameter></paramdef>
+  <paramdef>int <parameter>dest_x</parameter></paramdef>
+  <paramdef>int <parameter>dest_y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1939,10 +1946,10 @@ To set the input focus, use
 <funcsynopsis id='XSetInputFocus'>
 <funcprototype>
   <funcdef><function>XSetInputFocus</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> focus</parameter></paramdef>
-  <paramdef>int<parameter> revert_to</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>focus</parameter></paramdef>
+  <paramdef>int <parameter>revert_to</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2113,9 +2120,9 @@ To obtain the current input focus, use
 <funcsynopsis id='XGetInputFocus'>
 <funcprototype>
   <funcdef><function>XGetInputFocus</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> *focus_return</parameter></paramdef>
-  <paramdef>int<parameter> *revert_to_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window *<parameter>focus_return</parameter></paramdef>
+  <paramdef>int *<parameter>revert_to_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2328,9 +2335,9 @@ If an error is generated, a subset of the controls may have been altered.
 <funcsynopsis id='XChangeKeyboardControl'>
 <funcprototype>
   <funcdef><function>XChangeKeyboardControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned long <parameter> value_mask</parameter></paramdef>
-  <paramdef>XKeyboardControl<parameter> *values</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned long <parameter>value_mask</parameter></paramdef>
+  <paramdef>XKeyboardControl *<parameter>values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2397,8 +2404,8 @@ To obtain the current control values for the keyboard, use
 <funcsynopsis id='XGetKeyboardControl'>
 <funcprototype>
   <funcdef><function>XGetKeyboardControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XKeyboardState<parameter> *values_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XKeyboardState *<parameter>values_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2481,7 +2488,7 @@ To turn on keyboard auto-repeat, use
 <funcsynopsis id='XAutoRepeatOn'>
 <funcprototype>
   <funcdef><function>XAutoRepeatOn</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2515,7 +2522,7 @@ To turn off keyboard auto-repeat, use
 <funcsynopsis id='XAutoRepeatOff'>
 <funcprototype>
   <funcdef><function>XAutoRepeatOff</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2549,8 +2556,8 @@ To ring the bell, use
 <funcsynopsis id='XBell'>
 <funcprototype>
   <funcdef><function>XBell</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> percent</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>percent</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2633,8 +2640,8 @@ To obtain a bit vector that describes the state of the keyboard, use
 <funcsynopsis id='XQueryKeymap'>
 <funcprototype>
   <funcdef><function>XQueryKeymap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> keys_return[32]</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char <parameter>keys_return[32]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2689,9 +2696,9 @@ To set the mapping of the pointer buttons, use
 <funcsynopsis id='XSetPointerMapping'>
 <funcprototype>
   <funcdef>int <function>XSetPointerMapping</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedchar<parameter> map[]</parameter></paramdef>
-  <paramdef>int<parameter> nmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsignedchar <parameter>map[]</parameter></paramdef>
+  <paramdef>int <parameter>nmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2777,9 +2784,9 @@ To get the pointer mapping, use
 <funcsynopsis id='XGetPointerMapping'>
 <funcprototype>
   <funcdef>int <function>XGetPointerMapping</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedchar<parameter> map_return[]</parameter></paramdef>
-  <paramdef>int<parameter> nmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsignedchar <parameter>map_return[]</parameter></paramdef>
+  <paramdef>int <parameter>nmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2840,10 +2847,12 @@ To control the pointer's interactive feel, use
 <funcsynopsis id='XChangePointerControl'>
 <funcprototype>
   <funcdef><function>XChangePointerControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Booldo_accel,<parameter> do_threshold</parameter></paramdef>
-  <paramdef>intaccel_numerator,<parameter> accel_denominator</parameter></paramdef>
-  <paramdef>int<parameter> threshold</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Bool <parameter>do_accel</parameter></paramdef>
+  <paramdef>Bool <parameter>do_threshold</parameter></paramdef>
+  <paramdef>int <parameter>accel_numerator</parameter></paramdef>
+  <paramdef>int <parameter>accel_denominator</parameter></paramdef>
+  <paramdef>int <parameter>threshold</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2953,9 +2962,10 @@ To get the current pointer parameters, use
 <funcsynopsis id='XGetPointerControl'>
 <funcprototype>
   <funcdef><function>XGetPointerControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int*accel_numerator_return,<parameter> *accel_denominator_return</parameter></paramdef>
-  <paramdef>int<parameter> *threshold_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>accel_numerator_return</parameter></paramdef>
+  <paramdef>int *<parameter>accel_denominator_return</parameter></paramdef>
+  <paramdef>int *<parameter>threshold_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3228,8 +3238,9 @@ To obtain the legal KeyCodes for a display, use
 <funcsynopsis id='XDisplayKeycodes'>
 <funcprototype>
   <funcdef><function>XDisplayKeycodes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int*min_keycodes_return,<parameter> *max_keycodes_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>min_keycodes_return</parameter></paramdef>
+  <paramdef>int *<parameter>max_keycodes_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3287,10 +3298,10 @@ To obtain the symbols for the specified KeyCodes, use
 <funcsynopsis id='XGetKeyboardMapping'>
 <funcprototype>
   <funcdef>KeySym *<function>XGetKeyboardMapping</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>KeyCode<parameter> first_keycode</parameter></paramdef>
-  <paramdef>int<parameter> keycode_count</parameter></paramdef>
-  <paramdef>int<parameter> *keysyms_per_keycode_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>KeyCode <parameter>first_keycode</parameter></paramdef>
+  <paramdef>int <parameter>keycode_count</parameter></paramdef>
+  <paramdef>int *<parameter>keysyms_per_keycode_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3411,11 +3422,11 @@ To change the keyboard mapping, use
 <funcsynopsis id='XChangeKeyboardMapping'>
 <funcprototype>
   <funcdef><function>XChangeKeyboardMapping</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> first_keycode</parameter></paramdef>
-  <paramdef>int<parameter> keysyms_per_keycode</parameter></paramdef>
-  <paramdef>KeySym<parameter> *keysyms</parameter></paramdef>
-  <paramdef>int<parameter> num_codes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>first_keycode</parameter></paramdef>
+  <paramdef>int <parameter>keysyms_per_keycode</parameter></paramdef>
+  <paramdef>KeySym *<parameter>keysyms</parameter></paramdef>
+  <paramdef>int <parameter>num_codes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3582,7 +3593,7 @@ structure, use
 <funcsynopsis id='XNewModifiermap'>
 <funcprototype>
   <funcdef>XModifierKeymap *<function>XNewModifiermap</function></funcdef>
-  <paramdef>int<parameter> max_keys_per_mod</parameter></paramdef>
+  <paramdef>int <parameter>max_keys_per_mod</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3621,9 +3632,9 @@ structure, use
 <funcsynopsis id='XInsertModifiermapEntry'>
 <funcprototype>
   <funcdef>XModifierKeymap *<function>XInsertModifiermapEntry</function></funcdef>
-  <paramdef>XModifierKeymap<parameter> *modmap</parameter></paramdef>
-  <paramdef>KeyCode<parameter> keycode_entry</parameter></paramdef>
-  <paramdef>int<parameter> modifier</parameter></paramdef>
+  <paramdef>XModifierKeymap *<parameter>modmap</parameter></paramdef>
+  <paramdef>KeyCode <parameter>keycode_entry</parameter></paramdef>
+  <paramdef>int <parameter>modifier</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3684,9 +3695,9 @@ structure, use
 <funcsynopsis id='XDeleteModifiermapEntry'>
 <funcprototype>
   <funcdef>XModifierKeymap *<function>XDeleteModifiermapEntry</function></funcdef>
-  <paramdef>XModifierKeymap<parameter> *modmap</parameter></paramdef>
-  <paramdef>KeyCode<parameter> keycode_entry</parameter></paramdef>
-  <paramdef>int<parameter> modifier</parameter></paramdef>
+  <paramdef>XModifierKeymap *<parameter>modmap</parameter></paramdef>
+  <paramdef>KeyCode <parameter>keycode_entry</parameter></paramdef>
+  <paramdef>int <parameter>modifier</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3747,7 +3758,7 @@ structure, use
 <funcsynopsis id='XFreeModifiermap'>
 <funcprototype>
   <funcdef><function>XFreeModifiermap</function></funcdef>
-  <paramdef>XModifierKeymap<parameter> *modmap</parameter></paramdef>
+  <paramdef>XModifierKeymap *<parameter>modmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3785,8 +3796,8 @@ To set the KeyCodes to be used as modifiers, use
 <funcsynopsis id='XSetModifierMapping'>
 <funcprototype>
   <funcdef>int <function>XSetModifierMapping</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XModifierKeymap<parameter> *modmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XModifierKeymap *<parameter>modmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3899,7 +3910,7 @@ To obtain the KeyCodes used as modifiers, use
 <funcsynopsis id='XGetModifierMapping'>
 <funcprototype>
   <funcdef>XModifierKeymap *<function>XGetModifierMapping</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

@@ -59,14 +59,14 @@ and <property>WM_NORMAL_HINTS</property> properties.
 <funcsynopsis id='XSetStandardProperties'>
 <funcprototype>
   <funcdef><function>XSetStandardProperties</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>char<parameter> *window_name</parameter></paramdef>
-  <paramdef>char<parameter> *icon_name</parameter></paramdef>
-  <paramdef>Pixmap<parameter> icon_pixmap</parameter></paramdef>
-  <paramdef>char<parameter> **argv</parameter></paramdef>
-  <paramdef>int<parameter> argc</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>char *<parameter>window_name</parameter></paramdef>
+  <paramdef>char *<parameter>icon_name</parameter></paramdef>
+  <paramdef>Pixmap <parameter>icon_pixmap</parameter></paramdef>
+  <paramdef>char **<parameter>argv</parameter></paramdef>
+  <paramdef>int <parameter>argc</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -208,9 +208,9 @@ This function has been superseded by
 <funcsynopsis id='XSetNormalHints'>
 <funcprototype>
   <funcdef><function>XSetNormalHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -297,9 +297,9 @@ This function has been superseded by
 <funcsynopsis id='XGetNormalHints'>
 <funcprototype>
   <funcdef>Status <function>XGetNormalHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -368,9 +368,9 @@ This function is no longer supported by the
 <funcsynopsis id='XSetZoomHints'>
 <funcprototype>
   <funcdef><function>XSetZoomHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *zhints</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>zhints</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -438,9 +438,9 @@ This function is no longer supported by the
 <funcsynopsis id='XGetZoomHints'>
 <funcprototype>
   <funcdef>Status <function>XGetZoomHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *zhints_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>zhints_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -505,10 +505,10 @@ This function has been superseded by
 <funcsynopsis id='XSetSizeHints'>
 <funcprototype>
   <funcdef><function>XSetSizeHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -592,10 +592,10 @@ This function has been superseded by
 <funcsynopsis id='XGetSizeHints'>
 <funcprototype>
   <funcdef>Status <function>XGetSizeHints</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints_return</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints_return</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -685,10 +685,10 @@ This function has been superseded by
 <funcsynopsis id='XGetStandardColormap'>
 <funcprototype>
   <funcdef>Status <function>XGetStandardColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XStandardColormap<parameter> *colormap_return</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XStandardColormap *<parameter>colormap_return</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -778,10 +778,10 @@ This function has been superseded by
 <funcsynopsis id='XSetStandardColormap'>
 <funcprototype>
   <funcdef><function>XSetStandardColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XStandardColormap<parameter> *colormap</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XStandardColormap *<parameter>colormap</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -861,15 +861,19 @@ This function has been superseded by
 <funcsynopsis id='XGeometry'>
 <funcprototype>
   <funcdef>int <function>XGeometry</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> screen</parameter></paramdef>
-  <paramdef>char*position,<parameter> *default_position</parameter></paramdef>
-  <paramdef>unsigned int <parameter> bwidth</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>screen</parameter></paramdef>
+  <paramdef>char *<parameter>position</parameter></paramdef>
+  <paramdef>char *<parameter>default_position</parameter></paramdef>
+  <paramdef>unsigned int <parameter>bwidth</parameter></paramdef>
   <paramdef>unsigned int <parameter>fwidth</parameter></paramdef>
   <paramdef>unsigned int <parameter>fheight</parameter></paramdef>
-  <paramdef>intxadder,<parameter> yadder</parameter></paramdef>
-  <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
-  <paramdef>int*width_return,<parameter> *height_return</parameter></paramdef>
+  <paramdef>int <parameter>xadder</parameter></paramdef>
+  <paramdef>int <parameter>yadder</parameter></paramdef>
+  <paramdef>int *<parameter>x_return</parameter></paramdef>
+  <paramdef>int *<parameter>y_return</parameter></paramdef>
+  <paramdef>int *<parameter>width_return</parameter></paramdef>
+  <paramdef>int *<parameter>height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1062,9 +1066,9 @@ It is only useful in very simple applications.
 <funcsynopsis id='XGetDefault'>
 <funcprototype>
   <funcdef>char *<function>XGetDefault</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *program</parameter></paramdef>
-  <paramdef>char<parameter> *option</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>program</parameter></paramdef>
+  <paramdef>char *<parameter>option</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1256,11 +1260,11 @@ use
 <funcsynopsis id='XDraw'>
 <funcprototype>
   <funcdef>Status <function>XDraw</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Vertex<parameter> *vlist</parameter></paramdef>
-  <paramdef>int<parameter> vcount</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Vertex *<parameter>vlist</parameter></paramdef>
+  <paramdef>int <parameter>vcount</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1463,11 +1467,11 @@ use
 <funcsynopsis id='XDrawFilled'>
 <funcprototype>
   <funcdef>Status <function>XDrawFilled</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Vertex<parameter> *vlist</parameter></paramdef>
-  <paramdef>int<parameter> vcount</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Vertex *<parameter>vlist</parameter></paramdef>
+  <paramdef>int <parameter>vcount</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1619,7 +1623,7 @@ use
 <funcsynopsis id='XCreateAssocTable'>
 <funcprototype>
   <funcdef>XAssocTable *<function>XCreateAssocTable</function></funcdef>
-  <paramdef>int<parameter> size</parameter></paramdef>
+  <paramdef>int <parameter>size</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1665,10 +1669,10 @@ use
 <funcsynopsis id='XMakeAssoc'>
 <funcprototype>
   <funcdef><function>XMakeAssoc</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XAssocTable<parameter> *table</parameter></paramdef>
-  <paramdef>XID<parameter> x_id</parameter></paramdef>
-  <paramdef>char<parameter> *data</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XAssocTable *<parameter>table</parameter></paramdef>
+  <paramdef>XID <parameter>x_id</parameter></paramdef>
+  <paramdef>char *<parameter>data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1740,9 +1744,9 @@ use
 <funcsynopsis id='XLookUpAssoc'>
 <funcprototype>
   <funcdef>char *<function>XLookUpAssoc</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XAssocTable<parameter> *table</parameter></paramdef>
-  <paramdef>XID<parameter> x_id</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XAssocTable *<parameter>table</parameter></paramdef>
+  <paramdef>XID <parameter>x_id</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1805,9 +1809,9 @@ use
 <funcsynopsis id='XDeleteAssoc'>
 <funcprototype>
   <funcdef><function>XDeleteAssoc</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XAssocTable<parameter> *table</parameter></paramdef>
-  <paramdef>XID<parameter> x_id</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XAssocTable *<parameter>table</parameter></paramdef>
+  <paramdef>XID <parameter>x_id</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1868,7 +1872,7 @@ use
 <funcsynopsis id='XDestroyAssocTable'>
 <funcprototype>
   <funcdef><function>XDestroyAssocTable</function></funcdef>
-  <paramdef>XAssocTable<parameter> *table</parameter></paramdef>
+  <paramdef>XAssocTable *<parameter>table</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 

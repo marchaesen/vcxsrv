@@ -65,14 +65,11 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
    }
    if (*ptr) {
       /* Unreference the old shader */
-      GLboolean deleteFlag = GL_FALSE;
       struct gl_shader *old = *ptr;
 
       assert(old->RefCount > 0);
-      old->RefCount--;
-      deleteFlag = (old->RefCount == 0);
 
-      if (deleteFlag) {
+      if (p_atomic_dec_zero(&old->RefCount)) {
 	 if (old->Name != 0)
 	    _mesa_HashRemove(ctx->Shared->ShaderObjects, old->Name);
          _mesa_delete_shader(ctx, old);
@@ -84,7 +81,7 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
 
    if (sh) {
       /* reference new */
-      sh->RefCount++;
+      p_atomic_inc(&sh->RefCount);
       *ptr = sh;
    }
 }
@@ -113,22 +110,6 @@ _mesa_new_shader(GLuint name, gl_shader_stage stage)
       shader->SourceChecksum = 0xa110c; /* alloc */
 #endif
       _mesa_init_shader(shader);
-   }
-   return shader;
-}
-
-
-/**
- * Allocate a new gl_linked_shader object.
- * Called via ctx->Driver.NewShader()
- */
-struct gl_linked_shader *
-_mesa_new_linked_shader(gl_shader_stage stage)
-{
-   struct gl_linked_shader *shader;
-   shader = rzalloc(NULL, struct gl_linked_shader);
-   if (shader) {
-      shader->Stage = stage;
    }
    return shader;
 }
@@ -257,14 +238,11 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
    }
    if (*ptr) {
       /* Unreference the old shader program */
-      GLboolean deleteFlag = GL_FALSE;
       struct gl_shader_program *old = *ptr;
 
       assert(old->RefCount > 0);
-      old->RefCount--;
-      deleteFlag = (old->RefCount == 0);
 
-      if (deleteFlag) {
+      if (p_atomic_dec_zero(&old->RefCount)) {
 	 if (old->Name != 0)
 	    _mesa_HashRemove(ctx->Shared->ShaderObjects, old->Name);
          _mesa_delete_shader_program(ctx, old);
@@ -275,7 +253,7 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
    assert(!*ptr);
 
    if (shProg) {
-      shProg->RefCount++;
+      p_atomic_inc(&shProg->RefCount);
       *ptr = shProg;
    }
 }
@@ -511,6 +489,5 @@ _mesa_lookup_shader_program_err(struct gl_context *ctx, GLuint name,
 void
 _mesa_init_shader_object_functions(struct dd_function_table *driver)
 {
-   driver->NewShader = _mesa_new_linked_shader;
    driver->LinkShader = _mesa_ir_link_shader;
 }

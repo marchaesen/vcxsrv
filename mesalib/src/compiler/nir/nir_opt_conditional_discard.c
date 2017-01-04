@@ -30,10 +30,8 @@
  */
 
 static bool
-nir_opt_conditional_discard_block(nir_block *block, void *mem_ctx)
+nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
 {
-   nir_builder bld;
-
    if (nir_cf_node_is_first(&block->cf_node))
       return false;
 
@@ -88,17 +86,16 @@ nir_opt_conditional_discard_block(nir_block *block, void *mem_ctx)
 
    nir_src cond;
 
-   nir_builder_init(&bld, mem_ctx);
-   bld.cursor = nir_before_cf_node(prev_node);
+   b->cursor = nir_before_cf_node(prev_node);
    if (intrin->intrinsic == nir_intrinsic_discard)
       cond = if_stmt->condition;
    else
-      cond = nir_src_for_ssa(nir_iand(&bld,
-                                      nir_ssa_for_src(&bld, if_stmt->condition, 1),
-                                      nir_ssa_for_src(&bld, intrin->src[0], 1)));
+      cond = nir_src_for_ssa(nir_iand(b,
+                                      nir_ssa_for_src(b, if_stmt->condition, 1),
+                                      nir_ssa_for_src(b, intrin->src[0], 1)));
 
    nir_intrinsic_instr *discard_if =
-      nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_discard_if);
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
    nir_src_copy(&discard_if->src[0], &cond, discard_if);
 
    nir_instr_insert_before_cf(prev_node, &discard_if->instr);
@@ -113,11 +110,13 @@ nir_opt_conditional_discard(nir_shader *shader)
 {
    bool progress = false;
 
+   nir_builder builder;
+
    nir_foreach_function(function, shader) {
       if (function->impl) {
-         void *mem_ctx = ralloc_parent(function->impl);
+         nir_builder_init(&builder, function->impl);
          nir_foreach_block_safe(block, function->impl) {
-            progress |= nir_opt_conditional_discard_block(block, mem_ctx);
+            progress |= nir_opt_conditional_discard_block(&builder, block);
          }
       }
    }

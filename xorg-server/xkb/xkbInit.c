@@ -505,6 +505,13 @@ XkbInitControls(DeviceIntPtr pXDev, XkbSrvInfoPtr xkbi)
     return Success;
 }
 
+static Status
+XkbInitOverlayState(XkbSrvInfoPtr xkbi)
+{
+    memset(xkbi->overlay_perkey_state, 0, sizeof(xkbi->overlay_perkey_state));
+    return Success;
+}
+
 static Bool
 InitKeyboardDeviceStructInternal(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
                                  const char *keymap, int keymap_length,
@@ -607,6 +614,8 @@ InitKeyboardDeviceStructInternal(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     XkbInitControls(dev, xkbi);
 
     XkbInitIndicatorMap(xkbi);
+
+    XkbInitOverlayState(xkbi);
 
     XkbUpdateActions(dev, xkb->min_key_code, XkbNumKeys(xkb), &changes,
                      &check, &cause);

@@ -667,8 +667,7 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader, op);
 
    nir_deref_var *deref = vtn_nir_deref(b, w[5]);
-   intrin->variables[0] =
-      nir_deref_as_var(nir_copy_deref(intrin, &deref->deref));
+   intrin->variables[0] = nir_deref_var_clone(deref, intrin);
 
    switch (opcode) {
    case GLSLstd450InterpolateAtCentroid:

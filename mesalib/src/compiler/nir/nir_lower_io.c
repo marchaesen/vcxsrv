@@ -36,7 +36,6 @@
 
 struct lower_io_state {
    nir_builder builder;
-   void *mem_ctx;
    int (*type_size)(const struct glsl_type *type);
    nir_variable_mode modes;
    nir_lower_io_options options;
@@ -204,7 +203,8 @@ lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
       unreachable("Unknown variable mode");
    }
 
-   nir_intrinsic_instr *load = nir_intrinsic_instr_create(state->mem_ctx, op);
+   nir_intrinsic_instr *load =
+      nir_intrinsic_instr_create(state->builder.shader, op);
    load->num_components = intrin->num_components;
 
    nir_intrinsic_set_base(load, var->data.driver_location);
@@ -244,7 +244,8 @@ lower_store(nir_intrinsic_instr *intrin, struct lower_io_state *state,
                           nir_intrinsic_store_output;
    }
 
-   nir_intrinsic_instr *store = nir_intrinsic_instr_create(state->mem_ctx, op);
+   nir_intrinsic_instr *store =
+      nir_intrinsic_instr_create(state->builder.shader, op);
    store->num_components = intrin->num_components;
 
    nir_src_copy(&store->src[0], &intrin->src[0], store);
@@ -291,7 +292,7 @@ lower_atomic(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    }
 
    nir_intrinsic_instr *atomic =
-      nir_intrinsic_instr_create(state->mem_ctx, op);
+      nir_intrinsic_instr_create(state->builder.shader, op);
 
    nir_intrinsic_set_base(atomic, var->data.driver_location);
 
@@ -333,7 +334,7 @@ lower_interpolate_at(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    }
 
    nir_intrinsic_instr *bary_setup =
-      nir_intrinsic_instr_create(state->mem_ctx, bary_op);
+      nir_intrinsic_instr_create(state->builder.shader, bary_op);
 
    nir_ssa_dest_init(&bary_setup->instr, &bary_setup->dest, 2, 32, NULL);
    nir_intrinsic_set_interp_mode(bary_setup, var->data.interpolation);
@@ -344,7 +345,7 @@ lower_interpolate_at(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    nir_builder_instr_insert(&state->builder, &bary_setup->instr);
 
    nir_intrinsic_instr *load =
-      nir_intrinsic_instr_create(state->mem_ctx,
+      nir_intrinsic_instr_create(state->builder.shader,
                                  nir_intrinsic_load_interpolated_input);
    load->num_components = intrin->num_components;
 
@@ -467,7 +468,7 @@ nir_lower_io_block(nir_block *block,
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                      nir_src_for_ssa(&replacement->dest.ssa));
          } else {
-            nir_dest_copy(&replacement->dest, &intrin->dest, state->mem_ctx);
+            nir_dest_copy(&replacement->dest, &intrin->dest, &intrin->instr);
          }
       }
 
@@ -487,7 +488,6 @@ nir_lower_io_impl(nir_function_impl *impl,
    struct lower_io_state state;
 
    nir_builder_init(&state.builder, impl);
-   state.mem_ctx = ralloc_parent(impl);
    state.modes = modes;
    state.type_size = type_size;
    state.options = options;

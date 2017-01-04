@@ -260,6 +260,13 @@ RRXineramaWriteMonitor(ClientPtr client, RRMonitorPtr monitor)
     scratch.width = monitor->geometry.box.x2 - monitor->geometry.box.x1;
     scratch.height = monitor->geometry.box.y2 - monitor->geometry.box.y1;
 
+    if (client->swapped) {
+        swaps(&scratch.x_org);
+        swaps(&scratch.y_org);
+        swaps(&scratch.width);
+        swaps(&scratch.height);
+    }
+
     WriteToClient(client, sz_XineramaScreenInfo, &scratch);
 }
 

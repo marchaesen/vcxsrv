@@ -330,7 +330,6 @@ initialize_context(struct gl_context *ctx, gl_api api)
    ctx->Const.MaxUserAssignableUniformLocations =
       4 * MESA_SHADER_STAGES * MAX_UNIFORMS;
 
-   ctx->Driver.NewShader = _mesa_new_linked_shader;
    ctx->Driver.NewProgram = new_program;
 }
 

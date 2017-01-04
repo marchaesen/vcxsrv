@@ -314,8 +314,11 @@ ttn_emit_declaration(struct ttn_compile *c)
              file == TGSI_FILE_CONSTANT);
 
       /* nothing to do for UBOs: */
-      if ((file == TGSI_FILE_CONSTANT) && decl->Declaration.Dimension)
+      if ((file == TGSI_FILE_CONSTANT) && decl->Declaration.Dimension) {
+         b->shader->info->num_ubos =
+            MAX2(b->shader->info->num_ubos, decl->Dim.Index2D);
          return;
+      }
 
       if ((file == TGSI_FILE_INPUT) || (file == TGSI_FILE_OUTPUT)) {
          is_array = (is_array && decl->Declaration.Array &&

@@ -143,7 +143,7 @@ check_timers(void)
 {
     OsTimerPtr timer;
 
-    while ((timer = first_timer()) != NULL) {
+    if ((timer = first_timer()) != NULL) {
         CARD32 now = GetTimeInMillis();
         int timeout = timer->expires - now;
 
@@ -157,6 +157,8 @@ check_timers(void)
             /* time has rewound.  reset the timers. */
             CheckAllTimers();
         }
+
+        return 0;
     }
     return -1;
 }

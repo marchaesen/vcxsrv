@@ -49,7 +49,7 @@ convert_deref_to_param_deref(nir_instr *instr, nir_deref_var **deref,
    /* Now we make a new deref by concatenating the deref in the call's
     * parameter with the deref we were given.
     */
-   nir_deref_var *new_deref = nir_deref_as_var(nir_copy_deref(instr, &call_deref->deref));
+   nir_deref_var *new_deref = nir_deref_var_clone(call_deref, instr);
    nir_deref *new_tail = nir_deref_tail(&new_deref->deref);
    new_tail->child = (*deref)->deref.child;
    ralloc_steal(new_tail, new_tail->child);

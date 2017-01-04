@@ -213,6 +213,8 @@ hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index)
    info = gr->query_data;
    info->cpu_index = cpu_index;
 
+   hud_graph_set_dump_file(gr);
+
    hud_pane_add_graph(pane, gr);
    hud_pane_set_max_value(pane, 100);
 }

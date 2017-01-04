@@ -6919,7 +6919,7 @@ st_translate_stream_output_info(glsl_to_tgsi_visitor *glsl_to_tgsi,
                                 struct pipe_stream_output_info *so)
 {
    struct gl_transform_feedback_info *info =
-      &glsl_to_tgsi->shader_program->LinkedTransformFeedback;
+      glsl_to_tgsi->shader_program->xfb_program->sh.LinkedTransformFeedback;
    st_translate_stream_output_info2(info, outputMapping, so);
 }
 

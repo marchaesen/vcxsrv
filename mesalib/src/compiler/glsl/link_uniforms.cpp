@@ -624,7 +624,7 @@ private:
          uniform->opaque[shader_type].index = this->next_subroutine;
          uniform->opaque[shader_type].active = true;
 
-         prog->_LinkedShaders[shader_type]->NumSubroutineUniforms++;
+         prog->_LinkedShaders[shader_type]->Program->sh.NumSubroutineUniforms++;
 
          /* Increment the subroutine index by 1 for non-arrays and by the
           * number of array elements for arrays.
@@ -1148,7 +1148,7 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       unsigned mask = prog->data->linked_stages;
       while (mask) {
          const int j = u_bit_scan(&mask);
-         struct gl_linked_shader *sh = prog->_LinkedShaders[j];
+         struct gl_program *p = prog->_LinkedShaders[j]->Program;
 
          if (!prog->data->UniformStorage[i].opaque[j].active)
             continue;
@@ -1157,9 +1157,9 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
          for (unsigned k = 0; k < entries; k++) {
             unsigned element_loc =
                prog->data->UniformStorage[i].remap_location + k;
-            assert(sh->SubroutineUniformRemapTable[element_loc] ==
+            assert(p->sh.SubroutineUniformRemapTable[element_loc] ==
                    INACTIVE_UNIFORM_EXPLICIT_LOCATION);
-            sh->SubroutineUniformRemapTable[element_loc] =
+            p->sh.SubroutineUniformRemapTable[element_loc] =
                &prog->data->UniformStorage[i];
          }
       }
@@ -1180,24 +1180,24 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       unsigned mask = prog->data->linked_stages;
       while (mask) {
          const int j = u_bit_scan(&mask);
-         struct gl_linked_shader *sh = prog->_LinkedShaders[j];
+         struct gl_program *p = prog->_LinkedShaders[j]->Program;
 
          if (!prog->data->UniformStorage[i].opaque[j].active)
             continue;
 
-         sh->SubroutineUniformRemapTable =
-            reralloc(sh,
-                     sh->SubroutineUniformRemapTable,
+         p->sh.SubroutineUniformRemapTable =
+            reralloc(p,
+                     p->sh.SubroutineUniformRemapTable,
                      gl_uniform_storage *,
-                     sh->NumSubroutineUniformRemapTable + entries);
+                     p->sh.NumSubroutineUniformRemapTable + entries);
 
          for (unsigned k = 0; k < entries; k++) {
-            sh->SubroutineUniformRemapTable[sh->NumSubroutineUniformRemapTable + k] =
+            p->sh.SubroutineUniformRemapTable[p->sh.NumSubroutineUniformRemapTable + k] =
                &prog->data->UniformStorage[i];
          }
          prog->data->UniformStorage[i].remap_location =
-            sh->NumSubroutineUniformRemapTable;
-         sh->NumSubroutineUniformRemapTable += entries;
+            p->sh.NumSubroutineUniformRemapTable;
+         p->sh.NumSubroutineUniformRemapTable += entries;
       }
    }
 }
