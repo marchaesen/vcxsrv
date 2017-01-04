@@ -96,11 +96,11 @@ all: $(OBJDIR)
 
 ifeq ($(DEBUG),1)
 PTHREADLIB:=$(MHMAKECONF)\pthreads\pthreadVC2d$(OBJDIREXTRA).lib
-FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype263MT_D.lib
+FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype271MT_D.lib
 OPENSSLLIB:=$(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libssl.lib $(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libcrypto.lib
 else
 PTHREADLIB:=$(MHMAKECONF)\pthreads\pthreadVC2$(OBJDIREXTRA).lib
-FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype263MT.lib
+FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype271MT.lib
 OPENSSLLIB:=$(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libssl.lib $(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libcrypto.lib
 endif
 LIBXMLLIB:=$(MHMAKECONF)\libxml2\lib$(OBJDIREXTRA)\libxml2-2.lib
