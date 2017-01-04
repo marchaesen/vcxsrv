@@ -1236,6 +1236,7 @@ end_of_options:
     X509_CRL_free(crl);
     NCONF_free(conf);
     NCONF_free(extconf);
+    release_engine(e);
     return (ret);
 }
 
@@ -1916,7 +1917,6 @@ static int certify_spkac(X509 **xret, const char *infile, EVP_PKEY *pkey,
     sk = CONF_get_section(parms, "default");
     if (sk_CONF_VALUE_num(sk) == 0) {
         BIO_printf(bio_err, "no name/value pairs found in %s\n", infile);
-        CONF_free(parms);
         goto end;
     }
 

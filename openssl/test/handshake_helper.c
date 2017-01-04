@@ -583,6 +583,85 @@ static void do_app_data_step(PEER *peer)
     }
 }
 
+static void do_reneg_setup_step(const SSL_TEST_CTX *test_ctx, PEER *peer)
+{
+    int ret;
+    char buf;
+
+    TEST_check(peer->status == PEER_RETRY);
+    TEST_check(test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RENEG_SERVER
+                || test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RENEG_CLIENT);
+
+    /* Check if we are the peer that is going to initiate */
+    if ((test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RENEG_SERVER
+                && SSL_is_server(peer->ssl))
+            || (test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RENEG_CLIENT
+                && !SSL_is_server(peer->ssl))) {
+        /*
+         * If we already asked for a renegotiation then fall through to the
+         * SSL_read() below.
+         */
+        if (!SSL_renegotiate_pending(peer->ssl)) {
+            /*
+             * If we are the client we will always attempt to resume the
+             * session. The server may or may not resume dependant on the
+             * setting of SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
+             */
+            if (SSL_is_server(peer->ssl))
+                ret = SSL_renegotiate(peer->ssl);
+            else
+                ret = SSL_renegotiate_abbreviated(peer->ssl);
+            if (!ret) {
+                peer->status = PEER_ERROR;
+                return;
+            }
+            do_handshake_step(peer);
+            /*
+             * If status is PEER_RETRY it means we're waiting on the peer to
+             * continue the handshake. As far as setting up the renegotiation is
+             * concerned that is a success. The next step will continue the
+             * handshake to its conclusion.
+             *
+             * If status is PEER_SUCCESS then we are the server and we have
+             * successfully sent the HelloRequest. We need to continue to wait
+             * until the handshake arrives from the client.
+             */
+            if (peer->status == PEER_RETRY)
+                peer->status = PEER_SUCCESS;
+            else if (peer->status == PEER_SUCCESS)
+                peer->status = PEER_RETRY;
+            return;
+        }
+    }
+
+    /*
+     * The SSL object is still expecting app data, even though it's going to
+     * get a handshake message. We try to read, and it should fail - after which
+     * we should be in a handshake
+     */
+    ret = SSL_read(peer->ssl, &buf, sizeof(buf));
+    if (ret >= 0) {
+        /*
+         * We're not actually expecting data - we're expecting a reneg to
+         * start
+         */
+        peer->status = PEER_ERROR;
+        return;
+    } else {
+        int error = SSL_get_error(peer->ssl, ret);
+        if (error != SSL_ERROR_WANT_READ) {
+            peer->status = PEER_ERROR;
+            return;
+        }
+        /* If we're no in init yet then we're not done with setup yet */
+        if (!SSL_in_init(peer->ssl))
+            return;
+    }
+
+    peer->status = PEER_SUCCESS;
+}
+
+
 /*
  * RFC 5246 says:
  *
@@ -617,15 +696,28 @@ static void do_shutdown_step(PEER *peer)
 
 typedef enum {
     HANDSHAKE,
+    RENEG_APPLICATION_DATA,
+    RENEG_SETUP,
+    RENEG_HANDSHAKE,
     APPLICATION_DATA,
     SHUTDOWN,
     CONNECTION_DONE
 } connect_phase_t;
 
-static connect_phase_t next_phase(connect_phase_t phase)
+static connect_phase_t next_phase(const SSL_TEST_CTX *test_ctx,
+                                  connect_phase_t phase)
 {
     switch (phase) {
     case HANDSHAKE:
+        if (test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RENEG_SERVER
+                || test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RENEG_CLIENT)
+            return RENEG_APPLICATION_DATA;
+        return APPLICATION_DATA;
+    case RENEG_APPLICATION_DATA:
+        return RENEG_SETUP;
+    case RENEG_SETUP:
+        return RENEG_HANDSHAKE;
+    case RENEG_HANDSHAKE:
         return APPLICATION_DATA;
     case APPLICATION_DATA:
         return SHUTDOWN;
@@ -636,10 +728,20 @@ static connect_phase_t next_phase(connect_phase_t phase)
     }
 }
 
-static void do_connect_step(PEER *peer, connect_phase_t phase)
+static void do_connect_step(const SSL_TEST_CTX *test_ctx, PEER *peer,
+                            connect_phase_t phase)
 {
     switch (phase) {
     case HANDSHAKE:
+        do_handshake_step(peer);
+        break;
+    case RENEG_APPLICATION_DATA:
+        do_app_data_step(peer);
+        break;
+    case RENEG_SETUP:
+        do_reneg_setup_step(test_ctx, peer);
+        break;
+    case RENEG_HANDSHAKE:
         do_handshake_step(peer);
         break;
     case APPLICATION_DATA:
@@ -843,18 +945,18 @@ static HANDSHAKE_RESULT *do_handshake_internal(
      */
     for(;;) {
         if (client_turn) {
-            do_connect_step(&client, phase);
+            do_connect_step(test_ctx, &client, phase);
             status = handshake_status(client.status, server.status,
                                       1 /* client went last */);
         } else {
-            do_connect_step(&server, phase);
+            do_connect_step(test_ctx, &server, phase);
             status = handshake_status(server.status, client.status,
                                       0 /* server went last */);
         }
 
         switch (status) {
         case HANDSHAKE_SUCCESS:
-            phase = next_phase(phase);
+            phase = next_phase(test_ctx, phase);
             if (phase == CONNECTION_DONE) {
                 ret->result = SSL_TEST_SUCCESS;
                 goto err;
@@ -942,10 +1044,8 @@ HANDSHAKE_RESULT *do_handshake(SSL_CTX *server_ctx, SSL_CTX *server2_ctx,
     result = do_handshake_internal(server_ctx, server2_ctx, client_ctx,
                                    test_ctx, &test_ctx->extra,
                                    NULL, &session);
-    if (test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_SIMPLE)
+    if (test_ctx->handshake_mode != SSL_TEST_HANDSHAKE_RESUME)
         goto end;
-
-    TEST_check(test_ctx->handshake_mode == SSL_TEST_HANDSHAKE_RESUME);
 
     if (result->result != SSL_TEST_SUCCESS) {
         result->result = SSL_TEST_FIRST_HANDSHAKE_FAILED;

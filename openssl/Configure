@@ -285,7 +285,7 @@ if (defined $ENV{$local_config_envname}) {
 }
 
 
-print "Configuring OpenSSL version $config{version} (0x$config{version_num})\n";
+print "Configuring OpenSSL version $config{version} ($config{version_num})\n";
 
 $config{prefix}="";
 $config{openssldir}="";
@@ -540,8 +540,9 @@ $config{build_type} = "release";
 
 my %unsupported_options = ();
 my %deprecated_options = ();
-foreach (@argvcopy)
+while (@argvcopy)
 	{
+	$_ = shift @argvcopy;
 	# VMS is a case insensitive environment, and depending on settings
 	# out of our control, we may receive options uppercased.  Let's
 	# downcase at least the part before any equal sign.
@@ -727,6 +728,14 @@ foreach (@argvcopy)
 		elsif (/^-[lL](.*)$/ or /^-Wl,/)
 			{
 			$libs.=$_." ";
+			}
+		elsif (/^-rpath$/ or /^-R$/)
+			# -rpath is the OSF1 rpath flag
+			# -R is the old Solaris rpath flag
+			{
+			my $rpath = shift(@argvcopy) || "";
+			$rpath .= " " if $rpath ne "";
+			$libs.=$_." ".$rpath;
 			}
 		elsif (/^-static$/)
 			{
