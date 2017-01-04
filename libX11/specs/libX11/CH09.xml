@@ -39,11 +39,11 @@ There is no way to move a window between screens.
 <funcsynopsis id='XReparentWindow'>
 <funcprototype>
   <funcdef><function>XReparentWindow</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window<parameter> parent</parameter></paramdef>
-  <paramdef>int<parameter> x</parameter></paramdef>
-  <paramdef>int<parameter> y</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window <parameter>parent</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -223,9 +223,9 @@ To add or remove a window from the client's save-set, use
 <funcsynopsis id='XChangeSaveSet'>
 <funcprototype>
   <funcdef><function>XChangeSaveSet</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> change_mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int <parameter>change_mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -298,8 +298,8 @@ To add a window to the client's save-set, use
 <funcsynopsis id='XAddToSaveSet'>
 <funcprototype>
   <funcdef><function>XAddToSaveSet</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -356,8 +356,8 @@ To remove a window from the client's save-set, use
 <funcsynopsis id='XRemoveFromSaveSet'>
 <funcprototype>
   <funcdef><function>XRemoveFromSaveSet</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -452,8 +452,8 @@ To install a colormap, use
 <funcsynopsis id='XInstallColormap'>
 <funcprototype>
   <funcdef><function>XInstallColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -525,8 +525,8 @@ To uninstall a colormap, use
 <funcsynopsis id='XUninstallColormap'>
 <funcprototype>
   <funcdef><function>XUninstallColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -596,9 +596,9 @@ To obtain a list of the currently installed colormaps for a given screen, use
 <funcsynopsis id='XListInstalledColormaps'>
 <funcprototype>
   <funcdef>Colormap *<function>XListInstalledColormaps</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> *num_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int *<parameter>num_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -677,9 +677,9 @@ To set the font search path, use
 <funcsynopsis id='XSetFontPath'>
 <funcprototype>
   <funcdef><function>XSetFontPath</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> **directories</parameter></paramdef>
-  <paramdef>int<parameter> ndirs</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char **<parameter>directories</parameter></paramdef>
+  <paramdef>int <parameter>ndirs</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -755,8 +755,8 @@ To get the current font search path, use
 <funcsynopsis id='XGetFontPath'>
 <funcprototype>
   <funcdef>char **<function>XGetFontPath</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> *npaths_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>npaths_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -807,7 +807,7 @@ use
 <funcsynopsis id='XFreeFontPath'>
 <funcprototype>
   <funcdef><function>XFreeFontPath</function></funcdef>
-  <paramdef>char<parameter> **list</parameter></paramdef>
+  <paramdef>char **<parameter>list</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -863,7 +863,7 @@ To grab the server, use
 <funcsynopsis id='XGrabServer'>
 <funcprototype>
   <funcdef><function>XGrabServer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -899,7 +899,7 @@ To ungrab the server, use
 <funcsynopsis id='XUngrabServer'>
 <funcprototype>
   <funcdef><function>XUngrabServer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -941,8 +941,8 @@ To destroy a client, use
 <funcsynopsis id='XKillClient'>
 <funcprototype>
   <funcdef><function>XKillClient</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> resource</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>resource</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1028,10 +1028,11 @@ To set the screen saver mode, use
 <funcsynopsis id='XSetScreenSaver'>
 <funcprototype>
   <funcdef><function>XSetScreenSaver</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>inttimeout,<parameter> interval</parameter></paramdef>
-  <paramdef>int<parameter> prefer_blanking</parameter></paramdef>
-  <paramdef>int<parameter> allow_exposures</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>timeout</parameter></paramdef>
+  <paramdef>int <parameter>interval</parameter></paramdef>
+  <paramdef>int <parameter>prefer_blanking</parameter></paramdef>
+  <paramdef>int <parameter>allow_exposures</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1163,8 +1164,8 @@ To force the screen saver on or off, use
 <funcsynopsis id='XForceScreenSaver'>
 <funcprototype>
   <funcdef><function>XForceScreenSaver</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1229,7 +1230,7 @@ To activate the screen saver, use
 <funcsynopsis id='XActivateScreenSaver'>
 <funcprototype>
   <funcdef><function>XActivateScreenSaver</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1257,7 +1258,7 @@ To reset the screen saver, use
 <funcsynopsis id='XResetScreenSaver'>
 <funcprototype>
   <funcdef><function>XResetScreenSaver</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1285,10 +1286,11 @@ To get the current screen saver values, use
 <funcsynopsis id='XGetScreenSaver'>
 <funcprototype>
   <funcdef><function>XGetScreenSaver</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int*timeout_return,<parameter> *interval_return</parameter></paramdef>
-  <paramdef>int<parameter> *prefer_blanking_return</parameter></paramdef>
-  <paramdef>int<parameter> *allow_exposures_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>timeout_return</parameter></paramdef>
+  <paramdef>int *<parameter>interval_return</parameter></paramdef>
+  <paramdef>int *<parameter>prefer_blanking_return</parameter></paramdef>
+  <paramdef>int *<parameter>allow_exposures_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1533,8 +1535,8 @@ To add a single host, use
 <funcsynopsis id='XAddHost'>
 <funcprototype>
   <funcdef><function>XAddHost</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XHostAddress<parameter> *host</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XHostAddress *<parameter>host</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1590,9 +1592,9 @@ To add multiple hosts at one time, use
 <funcsynopsis id='XAddHosts'>
 <funcprototype>
   <funcdef><function>XAddHosts</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XHostAddress<parameter> *hosts</parameter></paramdef>
-  <paramdef>int<parameter> num_hosts</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XHostAddress *<parameter>hosts</parameter></paramdef>
+  <paramdef>int <parameter>num_hosts</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1658,9 +1660,9 @@ To obtain a host list, use
 <funcsynopsis id='XListHosts'>
 <funcprototype>
   <funcdef>XHostAddress *<function>XListHosts</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> *nhosts_return</parameter></paramdef>
-  <paramdef>Bool<parameter> *state_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>nhosts_return</parameter></paramdef>
+  <paramdef>Bool *<parameter>state_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1722,8 +1724,8 @@ To remove a single host, use
 <funcsynopsis id='XRemoveHost'>
 <funcprototype>
   <funcdef><function>XRemoveHost</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XHostAddress<parameter> *host</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XHostAddress *<parameter>host</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1783,9 +1785,9 @@ To remove multiple hosts at one time, use
 <funcsynopsis id='XRemoveHosts'>
 <funcprototype>
   <funcdef><function>XRemoveHosts</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XHostAddress<parameter> *hosts</parameter></paramdef>
-  <paramdef>int<parameter> num_hosts</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XHostAddress *<parameter>hosts</parameter></paramdef>
+  <paramdef>int <parameter>num_hosts</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1873,8 +1875,8 @@ To change access control, use
 <funcsynopsis id='XSetAccessControl'>
 <funcprototype>
   <funcdef><function>XSetAccessControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1932,7 +1934,7 @@ To enable access control, use
 <funcsynopsis id='XEnableAccessControl'>
 <funcprototype>
   <funcdef><function>XEnableAccessControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1973,7 +1975,7 @@ To disable access control, use
 <funcsynopsis id='XDisableAccessControl'>
 <funcprototype>
   <funcdef><function>XDisableAccessControl</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

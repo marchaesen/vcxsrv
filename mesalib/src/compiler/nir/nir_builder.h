@@ -437,7 +437,7 @@ nir_store_deref_var(nir_builder *build, nir_deref_var *deref,
       nir_intrinsic_instr_create(build->shader, nir_intrinsic_store_var);
    store->num_components = num_components;
    store->const_index[0] = writemask & ((1 << num_components) - 1);
-   store->variables[0] = nir_deref_as_var(nir_copy_deref(store, &deref->deref));
+   store->variables[0] = nir_deref_var_clone(deref, store);
    store->src[0] = nir_src_for_ssa(value);
    nir_builder_instr_insert(build, &store->instr);
 }
@@ -450,8 +450,8 @@ nir_copy_deref_var(nir_builder *build, nir_deref_var *dest, nir_deref_var *src)
 
    nir_intrinsic_instr *copy =
       nir_intrinsic_instr_create(build->shader, nir_intrinsic_copy_var);
-   copy->variables[0] = nir_deref_as_var(nir_copy_deref(copy, &dest->deref));
-   copy->variables[1] = nir_deref_as_var(nir_copy_deref(copy, &src->deref));
+   copy->variables[0] = nir_deref_var_clone(dest, copy);
+   copy->variables[1] = nir_deref_var_clone(src, copy);
    nir_builder_instr_insert(build, &copy->instr);
 }
 

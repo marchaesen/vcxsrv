@@ -384,8 +384,8 @@ get_iteration(nir_op cond_op, nir_const_value *initial, nir_const_value *step,
    case nir_op_flt:
    case nir_op_feq:
    case nir_op_fne: {
-      int32_t initial_val = initial->f32[0];
-      int32_t span = limit->f32[0] - initial_val;
+      float initial_val = initial->f32[0];
+      float span = limit->f32[0] - initial_val;
       iter = span / step->f32[0];
       break;
    }

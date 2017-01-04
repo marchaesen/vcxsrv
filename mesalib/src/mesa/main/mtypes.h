@@ -1730,12 +1730,12 @@ struct gl_transform_feedback_object
    unsigned GlesRemainingPrims;
 
    /**
-    * The shader program active when BeginTransformFeedback() was called.
+    * The program active when BeginTransformFeedback() was called.
     * When active and unpaused, this equals ctx->Shader.CurrentProgram[stage],
     * where stage is the pipeline stage that is the source of data for
     * transform feedback.
     */
-   struct gl_shader_program *shader_program;
+   struct gl_program *program;
 
    /** The feedback buffers */
    GLuint BufferNames[MAX_FEEDBACK_BUFFERS];
@@ -1921,6 +1921,8 @@ struct gl_program
    GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB, GL_GEOMETRY_PROGRAM_NV */
    GLenum Format;    /**< String encoding format */
 
+   GLboolean _Used;        /**< Ever used for drawing? Used for debugging */
+
    struct nir_shader *nir;
 
    GLbitfield64 SecondaryOutputsWritten; /**< Subset of OutputsWritten outputs written with non-zero index. */
@@ -1943,10 +1945,49 @@ struct gl_program
    /** Map from sampler unit to texture unit (set by glUniform1i()) */
    GLubyte SamplerUnits[MAX_SAMPLERS];
 
-   union {
+   /* FIXME: We should be able to make this struct a union. However some
+    * drivers (i915/fragment_programs, swrast/prog_execute) mix the use of
+    * these fields, we should fix this.
+    */
+   struct {
       /** Fields used by GLSL programs */
       struct {
+         /** Data shared by gl_program and gl_shader_program */
+         struct gl_shader_program_data *data;
+
          struct gl_active_atomic_buffer **AtomicBuffers;
+
+         /** Post-link transform feedback info. */
+         struct gl_transform_feedback_info *LinkedTransformFeedback;
+
+         /**
+          * Number of types for subroutine uniforms.
+          */
+         GLuint NumSubroutineUniformTypes;
+
+         /**
+          * Subroutine uniform remap table
+          * based on the program level uniform remap table.
+          */
+         GLuint NumSubroutineUniforms; /* non-sparse total */
+         GLuint NumSubroutineUniformRemapTable;
+         struct gl_uniform_storage **SubroutineUniformRemapTable;
+
+         /**
+          * Num of subroutine functions for this stage and storage for them.
+          */
+         GLuint NumSubroutineFunctions;
+         GLuint MaxSubroutineFunctionIndex;
+         struct gl_subroutine_function *SubroutineFunctions;
+
+         union {
+            struct {
+               /**
+                * A bitmask of gl_advanced_blend_mode values
+                */
+               GLbitfield BlendSupport;
+            } fs;
+         };
       } sh;
 
       /** ARB assembly-style program fields */
@@ -2254,11 +2295,6 @@ struct gl_shader_info
    bool EarlyFragmentTests;
 
    /**
-    * A bitmask of gl_advanced_blend_mode values
-    */
-   GLbitfield BlendSupport;
-
-   /**
     * Compute shader state from ARB_compute_shader and
     * ARB_compute_variable_group_size layout qualifiers.
     */
@@ -2364,27 +2400,6 @@ struct gl_linked_shader
     */
    GLuint NumImages;
 
-   /**
-     * Number of types for subroutine uniforms.
-     */
-   GLuint NumSubroutineUniformTypes;
-
-   /**
-     * Subroutine uniform remap table
-     * based on the program level uniform remap table.
-     */
-   GLuint NumSubroutineUniforms; /* non-sparse total */
-   GLuint NumSubroutineUniformRemapTable;
-   struct gl_uniform_storage **SubroutineUniformRemapTable;
-
-   /**
-    * Num of subroutine functions for this stage
-    * and storage for them.
-    */
-   GLuint NumSubroutineFunctions;
-   GLuint MaxSubroutineFunctionIndex;
-   struct gl_subroutine_function *SubroutineFunctions;
-
    struct gl_shader_info info;
 };
 
@@ -2431,6 +2446,11 @@ struct gl_shader
 
    struct exec_list *ir;
    struct glsl_symbol_table *symbols;
+
+   /**
+    * A bitmask of gl_advanced_blend_mode values
+    */
+   GLbitfield BlendSupport;
 
    struct gl_shader_info info;
 };
@@ -2736,8 +2756,7 @@ struct gl_shader_program
       GLchar **VaryingNames;  /**< Array [NumVarying] of char * */
    } TransformFeedback;
 
-   /** Post-link transform feedback info. */
-   struct gl_transform_feedback_info LinkedTransformFeedback;
+   struct gl_program *xfb_program;
 
    /** Post-link gl_FragDepth layout for ARB_conservative_depth. */
    enum gl_frag_depth_layout FragDepthLayout;
@@ -2843,7 +2862,6 @@ struct gl_shader_program
     */
    struct string_to_uint_map *UniformHash;
 
-   GLboolean _Used;        /**< Ever used for drawing? */
    GLboolean SamplersValidated; /**< Samplers validated against texture units? */
 
    bool IsES;              /**< True if this program uses GLSL ES */

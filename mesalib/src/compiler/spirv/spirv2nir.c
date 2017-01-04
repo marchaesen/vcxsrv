@@ -73,7 +73,7 @@ int main(int argc, char **argv)
    }
 
    nir_function *func = spirv_to_nir(map, word_count, NULL, 0,
-                                     MESA_SHADER_FRAGMENT, "main", NULL);
+                                     MESA_SHADER_FRAGMENT, "main", NULL, NULL);
    nir_print_shader(func->shader, stderr);
 
    return 0;

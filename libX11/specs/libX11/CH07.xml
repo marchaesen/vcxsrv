@@ -969,9 +969,9 @@ depth of drawable, use
 <funcsynopsis id='XCreateGC'>
 <funcprototype>
   <funcdef>GC <function>XCreateGC</function></funcdef>
-  <paramdef>Display <parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>unsigned long <parameter>valuemask</parameter></paramdef>
   <paramdef>XGCValues *<parameter>values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1057,9 +1057,10 @@ To copy components from a source GC to a destination GC, use
 <funcsynopsis id='XCopyGC'>
 <funcprototype>
   <funcdef><function>XCopyGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GCsrc,<parameter> dest</parameter></paramdef>
-  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>src</parameter></paramdef>
+  <paramdef>GC <parameter>dest</parameter></paramdef>
+  <paramdef>unsigned long <parameter>valuemask</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1143,10 +1144,10 @@ To change the components in a given GC, use
 <funcsynopsis id='XChangeGC'>
 <funcprototype>
   <funcdef><function>XChangeGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
-  <paramdef>XGCValues<parameter> *values</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned long <parameter>valuemask</parameter></paramdef>
+  <paramdef>XGCValues *<parameter>values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1239,10 +1240,10 @@ To obtain components of a given GC, use
 <funcsynopsis id='XGetGCValues'>
 <funcprototype>
   <funcdef>Status <function>XGetGCValues</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
-  <paramdef>XGCValues<parameter> *values_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned long <parameter>valuemask</parameter></paramdef>
+  <paramdef>XGCValues *<parameter>values_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1351,8 +1352,8 @@ To free a given GC, use
 <funcsynopsis id='XFreeGC'>
 <funcprototype>
   <funcdef><function>XFreeGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1405,7 +1406,7 @@ resource ID for a given GC, use
 <funcsynopsis id='XGContextFromGC'>
 <funcprototype>
   <funcdef>GContext <function>XGContextFromGC</function></funcdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1440,8 +1441,8 @@ To force sending GC component changes, use
 <funcsynopsis id='XFlushGC'>
 <funcprototype>
   <funcdef>void <function>XFlushGC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1534,11 +1535,12 @@ for a given GC, use
 <funcsynopsis id='XSetState'>
 <funcprototype>
   <funcdef><function>XSetState</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned long foreground,<parameter> background</parameter></paramdef>
-  <paramdef>int<parameter> function</parameter></paramdef>
-  <paramdef>unsigned long <parameter> plane_mask</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned long <parameter>foreground</parameter></paramdef>
+  <paramdef>unsigned long <parameter>background</parameter></paramdef>
+  <paramdef>int <parameter>function</parameter></paramdef>
+  <paramdef>unsigned long <parameter>plane_mask</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1627,9 +1629,9 @@ To set the foreground of a given GC, use
 <funcsynopsis id='XSetForeground'>
 <funcprototype>
   <funcdef><function>XSetForeground</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned long <parameter> foreground</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned long <parameter>foreground</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1686,9 +1688,9 @@ To set the background of a given GC, use
 <funcsynopsis id='XSetBackground'>
 <funcprototype>
   <funcdef><function>XSetBackground</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned long <parameter> background</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned long <parameter>background</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1745,9 +1747,9 @@ To set the display function in a given GC, use
 <funcsynopsis id='XSetFunction'>
 <funcprototype>
   <funcdef><function>XSetFunction</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> function</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>function</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1805,9 +1807,9 @@ To set the plane mask of a given GC, use
 <funcsynopsis id='XSetPlaneMask'>
 <funcprototype>
   <funcdef><function>XSetPlaneMask</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned long <parameter> plane_mask</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned long <parameter>plane_mask</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1870,12 +1872,12 @@ To set the line drawing components of a given GC, use
 <funcsynopsis id='XSetLineAttributes'>
 <funcprototype>
   <funcdef><function>XSetLineAttributes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>unsigned int <parameter> line_width</parameter></paramdef>
-  <paramdef>int<parameter> line_style</parameter></paramdef>
-  <paramdef>int<parameter> cap_style</parameter></paramdef>
-  <paramdef>int<parameter> join_style</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>unsigned int <parameter>line_width</parameter></paramdef>
+  <paramdef>int <parameter>line_style</parameter></paramdef>
+  <paramdef>int <parameter>cap_style</parameter></paramdef>
+  <paramdef>int <parameter>join_style</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1979,11 +1981,11 @@ To set the dash-offset and dash-list for dashed line styles of a given GC, use
 <funcsynopsis id='XSetDashes'>
 <funcprototype>
   <funcdef><function>XSetDashes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> dash_offset</parameter></paramdef>
-  <paramdef>char<parameter> dash_list[]</parameter></paramdef>
-  <paramdef>int<parameter> n</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>dash_offset</parameter></paramdef>
+  <paramdef>char <parameter>dash_list[]</parameter></paramdef>
+  <paramdef>int <parameter>n</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2108,9 +2110,9 @@ To set the fill-style of a given GC, use
 <funcsynopsis id='XSetFillStyle'>
 <funcprototype>
   <funcdef><function>XSetFillStyle</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> fill_style</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>fill_style</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2174,9 +2176,9 @@ To set the fill-rule of a given GC, use
 <funcsynopsis id='XSetFillRule'>
 <funcprototype>
   <funcdef><function>XSetFillRule</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> fill_rule</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>fill_rule</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2254,13 +2256,13 @@ To obtain the best size of a tile, stipple, or cursor, use
 <funcsynopsis id='XQueryBestSize'>
 <funcprototype>
   <funcdef>Status <function>XQueryBestSize</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> class</parameter></paramdef>
-  <paramdef>Drawable<parameter> which_screen</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>class</parameter></paramdef>
+  <paramdef>Drawable <parameter>which_screen</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2399,12 +2401,12 @@ To obtain the best fill tile shape, use
 <funcsynopsis id='XQueryBestTile'>
 <funcprototype>
   <funcdef>Status <function>XQueryBestTile</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> which_screen</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>which_screen</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2507,12 +2509,12 @@ To obtain the best stipple shape, use
 <funcsynopsis id='XQueryBestStipple'>
 <funcprototype>
   <funcdef>Status <function>XQueryBestStipple</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> which_screen</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>which_screen</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2615,9 +2617,9 @@ To set the fill tile of a given GC, use
 <funcsynopsis id='XSetTile'>
 <funcprototype>
   <funcdef><function>XSetTile</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Pixmap<parameter> tile</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Pixmap <parameter>tile</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2683,9 +2685,9 @@ To set the stipple of a given GC, use
 <funcsynopsis id='XSetStipple'>
 <funcprototype>
   <funcdef><function>XSetStipple</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Pixmap<parameter> stipple</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Pixmap <parameter>stipple</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2751,9 +2753,10 @@ To set the tile or stipple origin of a given GC, use
 <funcsynopsis id='XSetTSOrigin'>
 <funcprototype>
   <funcdef><function>XSetTSOrigin</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intts_x_origin,<parameter> ts_y_origin</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>ts_x_origin</parameter></paramdef>
+  <paramdef>int <parameter>ts_y_origin</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2832,9 +2835,9 @@ To set the current font of a given GC, use
 <funcsynopsis id='XSetFont'>
 <funcprototype>
   <funcdef><function>XSetFont</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Font<parameter> font</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Font <parameter>font</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2903,9 +2906,10 @@ To set the clip-origin of a given GC, use
 <funcsynopsis id='XSetClipOrigin'>
 <funcprototype>
   <funcdef><function>XSetClipOrigin</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intclip_x_origin,<parameter> clip_y_origin</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>clip_x_origin</parameter></paramdef>
+  <paramdef>int <parameter>clip_y_origin</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2978,9 +2982,9 @@ To set the clip-mask of a given GC to the specified pixmap, use
 <funcsynopsis id='XSetClipMask'>
 <funcprototype>
   <funcdef><function>XSetClipMask</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Pixmap<parameter> pixmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Pixmap <parameter>pixmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3046,12 +3050,13 @@ To set the clip-mask of a given GC to the specified list of rectangles, use
 <funcsynopsis id='XSetClipRectangles'>
 <funcprototype>
   <funcdef><function>XSetClipRectangles</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intclip_x_origin,<parameter> clip_y_origin</parameter></paramdef>
-  <paramdef>XRectangle<parameter> rectangles[]</parameter></paramdef>
-  <paramdef>int<parameter> n</parameter></paramdef>
-  <paramdef>int<parameter> ordering</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>clip_x_origin</parameter></paramdef>
+  <paramdef>int <parameter>clip_y_origin</parameter></paramdef>
+  <paramdef>XRectangle <parameter>rectangles[]</parameter></paramdef>
+  <paramdef>int <parameter>n</parameter></paramdef>
+  <paramdef>int <parameter>ordering</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3220,9 +3225,9 @@ To set the arc mode of a given GC, use
 <funcsynopsis id='XSetArcMode'>
 <funcprototype>
   <funcdef><function>XSetArcMode</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> arc_mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>arc_mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3284,9 +3289,9 @@ To set the subwindow mode of a given GC, use
 <funcsynopsis id='XSetSubwindowMode'>
 <funcprototype>
   <funcdef><function>XSetSubwindowMode</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>int<parameter> subwindow_mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>int <parameter>subwindow_mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3348,9 +3353,9 @@ To set the graphics-exposures flag of a given GC, use
 <funcsynopsis id='XSetGraphicsExposures'>
 <funcprototype>
   <funcdef><function>XSetGraphicsExposures</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Bool<parameter> graphics_exposures</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Bool <parameter>graphics_exposures</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

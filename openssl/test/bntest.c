@@ -83,6 +83,7 @@ int test_gf2m_mod_solve_quad(BIO *bp, BN_CTX *ctx);
 int test_kron(BIO *bp, BN_CTX *ctx);
 int test_sqrt(BIO *bp, BN_CTX *ctx);
 int test_small_prime(BIO *bp, BN_CTX *ctx);
+int test_bn2dec(BIO *bp);
 int rand_neg(void);
 static int results = 0;
 
@@ -257,6 +258,11 @@ int main(int argc, char *argv[])
 
     message(out, "Small prime generation");
     if (!test_small_prime(out, ctx))
+        goto err;
+    (void)BIO_flush(out);
+
+    message(out, "BN_bn2dec");
+    if (!test_bn2dec(out))
         goto err;
     (void)BIO_flush(out);
 
@@ -830,6 +836,32 @@ int test_mont(BIO *bp, BN_CTX *ctx)
             return 0;
         }
     }
+
+    /* Regression test for carry bug in mulx4x_mont */
+    BN_hex2bn(&a,
+        "7878787878787878787878787878787878787878787878787878787878787878"
+        "7878787878787878787878787878787878787878787878787878787878787878"
+        "7878787878787878787878787878787878787878787878787878787878787878"
+        "7878787878787878787878787878787878787878787878787878787878787878");
+    BN_hex2bn(&b,
+        "095D72C08C097BA488C5E439C655A192EAFB6380073D8C2664668EDDB4060744"
+        "E16E57FB4EDB9AE10A0CEFCDC28A894F689A128379DB279D48A2E20849D68593"
+        "9B7803BCF46CEBF5C533FB0DD35B080593DE5472E3FE5DB951B8BFF9B4CB8F03"
+        "9CC638A5EE8CDD703719F8000E6A9F63BEED5F2FCD52FF293EA05A251BB4AB81");
+    BN_hex2bn(&n,
+        "D78AF684E71DB0C39CFF4E64FB9DB567132CB9C50CC98009FEB820B26F2DED9B"
+        "91B9B5E2B83AE0AE4EB4E0523CA726BFBE969B89FD754F674CE99118C3F2D1C5"
+        "D81FDC7C54E02B60262B241D53C040E99E45826ECA37A804668E690E1AFC1CA4"
+        "2C9A15D84D4954425F0B7642FC0BD9D7B24E2618D2DCC9B729D944BADACFDDAF");
+    BN_MONT_CTX_set(mont, n, ctx);
+    BN_mod_mul_montgomery(c, a, b, mont, ctx);
+    BN_mod_mul_montgomery(d, b, a, mont, ctx);
+    if (BN_cmp(c, d)) {
+        fprintf(stderr, "Montgomery multiplication test failed:"
+                        " a*b != b*a.\n");
+        return 0;
+    }
+
     BN_MONT_CTX_free(mont);
     BN_free(a);
     BN_free(b);
@@ -1836,6 +1868,52 @@ int test_small_prime(BIO *bp, BN_CTX *ctx)
 
  err:
     BN_clear_free(r);
+    return ret;
+}
+
+int test_bn2dec(BIO *bp)
+{
+    static const char *bn2dec_tests[] = {
+        "0",
+        "1",
+        "-1",
+        "100",
+        "-100",
+        "123456789012345678901234567890",
+        "-123456789012345678901234567890",
+        "123456789012345678901234567890123456789012345678901234567890",
+        "-123456789012345678901234567890123456789012345678901234567890",
+    };
+    int ret = 0;
+    size_t i;
+    BIGNUM *bn = NULL;
+    char *dec = NULL;
+
+    for (i = 0; i < OSSL_NELEM(bn2dec_tests); i++) {
+        if (!BN_dec2bn(&bn, bn2dec_tests[i]))
+            goto err;
+
+        dec = BN_bn2dec(bn);
+        if (dec == NULL) {
+            fprintf(stderr, "BN_bn2dec failed on %s.\n", bn2dec_tests[i]);
+            goto err;
+        }
+
+        if (strcmp(dec, bn2dec_tests[i]) != 0) {
+            fprintf(stderr, "BN_bn2dec gave %s, wanted %s.\n", dec,
+                    bn2dec_tests[i]);
+            goto err;
+        }
+
+        OPENSSL_free(dec);
+        dec = NULL;
+    }
+
+    ret = 1;
+
+err:
+    BN_free(bn);
+    OPENSSL_free(dec);
     return ret;
 }
 

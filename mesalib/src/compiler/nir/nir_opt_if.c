@@ -120,7 +120,7 @@ opt_peel_loop_initial_if(nir_loop *loop)
    /* We already know we have exactly one continue */
    assert(exec_list_length(&cond_phi->srcs) == 2);
 
-   uint32_t entry_val, continue_val;
+   uint32_t entry_val = 0, continue_val = 0;
    nir_foreach_phi_src(src, cond_phi) {
       assert(src->src.is_ssa);
       nir_const_value *const_src = nir_src_as_const_value(src->src);
@@ -247,7 +247,7 @@ nir_opt_if(nir_shader *shader)
           * need to convert registers back into SSA defs and clean up SSA defs
           * that don't dominate their uses.
           */
-         nir_convert_to_ssa_impl(function->impl);
+         nir_lower_regs_to_ssa_impl(function->impl);
          progress = true;
       }
    }

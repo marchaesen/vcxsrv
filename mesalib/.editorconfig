@@ -6,6 +6,7 @@ root = true
 [*]
 charset = utf-8
 insert_final_newline = true
+tab_width = 8
 
 [*.{c,h,cpp,hpp,cc,hh}]
 indent_style = space

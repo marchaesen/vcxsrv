@@ -1483,6 +1483,9 @@ WORK_STATE tls_post_process_client_hello(SSL *s, WORK_STATE wst)
             if (al != TLS1_AD_UNKNOWN_PSK_IDENTITY)
                 SSLerr(SSL_F_TLS_POST_PROCESS_CLIENT_HELLO,
                        SSL_R_CLIENTHELLO_TLSEXT);
+            else
+                SSLerr(SSL_F_TLS_POST_PROCESS_CLIENT_HELLO,
+                       SSL_R_PSK_IDENTITY_NOT_FOUND);
             goto f_err;
         }
     }
@@ -2982,7 +2985,7 @@ int tls_construct_server_certificate(SSL *s)
 int tls_construct_new_session_ticket(SSL *s)
 {
     unsigned char *senc = NULL;
-    EVP_CIPHER_CTX *ctx;
+    EVP_CIPHER_CTX *ctx = NULL;
     HMAC_CTX *hctx = NULL;
     unsigned char *p, *macstart;
     const unsigned char *const_p;
@@ -3012,6 +3015,10 @@ int tls_construct_new_session_ticket(SSL *s)
 
     ctx = EVP_CIPHER_CTX_new();
     hctx = HMAC_CTX_new();
+    if (ctx == NULL || hctx == NULL) {
+        SSLerr(SSL_F_TLS_CONSTRUCT_NEW_SESSION_TICKET, ERR_R_MALLOC_FAILURE);
+        goto err;
+    }
 
     p = senc;
     if (!i2d_SSL_SESSION(s->session, &p))

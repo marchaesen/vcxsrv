@@ -1041,10 +1041,10 @@ get_buffer_property(struct gl_shader_program *shProg,
          *val = RESOURCE_XFB(res)->NumVaryings;
          return 1;
       case GL_ACTIVE_VARIABLES:
-         int i = 0;
-         for ( ; i < shProg->LinkedTransformFeedback.NumVarying; i++) {
-            unsigned index =
-               shProg->LinkedTransformFeedback.Varyings[i].BufferIndex;
+         struct gl_transform_feedback_info *linked_xfb =
+            shProg->xfb_program->sh.LinkedTransformFeedback;
+         for (int i = 0; i < linked_xfb->NumVarying; i++) {
+            unsigned index = linked_xfb->Varyings[i].BufferIndex;
             struct gl_program_resource *buf_res =
                _mesa_program_resource_find_index(shProg,
                                                  GL_TRANSFORM_FEEDBACK_BUFFER,
@@ -1248,7 +1248,7 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
       return 1;
    case GL_COMPATIBLE_SUBROUTINES: {
       const struct gl_uniform_storage *uni;
-      struct gl_linked_shader *sh;
+      struct gl_program *p;
       unsigned count, i;
       int j;
 
@@ -1261,10 +1261,10 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
          goto invalid_operation;
       uni = RESOURCE_UNI(res);
 
-      sh = shProg->_LinkedShaders[_mesa_shader_stage_from_subroutine_uniform(res->Type)];
+      p = shProg->_LinkedShaders[_mesa_shader_stage_from_subroutine_uniform(res->Type)]->Program;
       count = 0;
-      for (i = 0; i < sh->NumSubroutineFunctions; i++) {
-         struct gl_subroutine_function *fn = &sh->SubroutineFunctions[i];
+      for (i = 0; i < p->sh.NumSubroutineFunctions; i++) {
+         struct gl_subroutine_function *fn = &p->sh.SubroutineFunctions[i];
          for (j = 0; j < fn->num_compat_types; j++) {
             if (fn->types[j] == uni->type) {
                val[count++] = i;

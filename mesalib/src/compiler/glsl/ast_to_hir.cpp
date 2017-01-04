@@ -5039,6 +5039,24 @@ ast_declarator_list::hir(exec_list *instructions,
           *     * A matrix
           *     * A structure
           *     * An array of array
+          *
+          * ES 3.20 updates this to apply to tessellation and geometry shaders
+          * as well.  Because there are per-vertex arrays in the new stages,
+          * it strikes the "array of..." rules and replaces them with these:
+          *
+          *     * For per-vertex-arrayed variables (applies to tessellation
+          *       control, tessellation evaluation and geometry shaders):
+          *
+          *       * Per-vertex-arrayed arrays of arrays
+          *       * Per-vertex-arrayed arrays of structures
+          *
+          *     * For non-per-vertex-arrayed variables:
+          *
+          *       * An array of arrays
+          *       * An array of structures
+          *
+          * which basically says to unwrap the per-vertex aspect and apply
+          * the old rules.
           */
          if (state->es_shader) {
             if (var->type->is_array() &&
@@ -5048,21 +5066,29 @@ ast_declarator_list::hir(exec_list *instructions,
                                 "cannot have an array of arrays",
                                 _mesa_shader_stage_to_string(state->stage));
             }
-            if (state->stage == MESA_SHADER_VERTEX) {
-               if (var->type->is_array() &&
-                   var->type->fields.array->is_record()) {
-                  _mesa_glsl_error(&loc, state,
-                                   "vertex shader output "
-                                   "cannot have an array of structs");
+            if (state->stage <= MESA_SHADER_GEOMETRY) {
+               const glsl_type *type = var->type;
+
+               if (state->stage == MESA_SHADER_TESS_CTRL &&
+                   !var->data.patch && var->type->is_array()) {
+                  type = var->type->fields.array;
                }
-               if (var->type->is_record()) {
-                  for (unsigned i = 0; i < var->type->length; i++) {
-                     if (var->type->fields.structure[i].type->is_array() ||
-                         var->type->fields.structure[i].type->is_record())
+
+               if (type->is_array() && type->fields.array->is_record()) {
+                  _mesa_glsl_error(&loc, state,
+                                   "%s shader output cannot have "
+                                   "an array of structs",
+                                   _mesa_shader_stage_to_string(state->stage));
+               }
+               if (type->is_record()) {
+                  for (unsigned i = 0; i < type->length; i++) {
+                     if (type->fields.structure[i].type->is_array() ||
+                         type->fields.structure[i].type->is_record())
                         _mesa_glsl_error(&loc, state,
-                                         "vertex shader output cannot have a "
+                                         "%s shader output cannot have a "
                                          "struct that contains an "
-                                         "array or struct");
+                                         "array or struct",
+                                         _mesa_shader_stage_to_string(state->stage));
                   }
                }
             }

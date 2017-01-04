@@ -54,6 +54,15 @@ _mesa_warning(struct gl_context *ctx, const char *fmt, ...)
 }
 
 void
+_mesa_reference_shader_program_data(struct gl_context *ctx,
+                                    struct gl_shader_program_data **ptr,
+                                    struct gl_shader_program_data *data)
+{
+   (void) ctx;
+   *ptr = data;
+}
+
+void
 _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
                        struct gl_shader *sh)
 {
@@ -86,19 +95,6 @@ _mesa_new_shader(GLuint name, gl_shader_stage stage)
       shader->Stage = stage;
       shader->Name = name;
       shader->RefCount = 1;
-   }
-   return shader;
-}
-
-struct gl_linked_shader *
-_mesa_new_linked_shader(gl_shader_stage stage)
-{
-   struct gl_linked_shader *shader;
-
-   assert(stage == MESA_SHADER_FRAGMENT || stage == MESA_SHADER_VERTEX);
-   shader = rzalloc(NULL, struct gl_linked_shader);
-   if (shader) {
-      shader->Stage = stage;
    }
    return shader;
 }

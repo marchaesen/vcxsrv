@@ -817,10 +817,10 @@ To create a colormap for a screen, use
 <funcsynopsis id='XCreateColormap'>
 <funcprototype>
   <funcdef>Colormap <function>XCreateColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Visual<parameter> *visual</parameter></paramdef>
-  <paramdef>int<parameter> alloc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Visual *<parameter>visual</parameter></paramdef>
+  <paramdef>int <parameter>alloc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -966,8 +966,8 @@ shared colormap has failed because of resource exhaustion, use
 <funcsynopsis id='XCopyColormapAndFree'>
 <funcprototype>
   <funcdef>Colormap <function>XCopyColormapAndFree</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1042,8 +1042,8 @@ To destroy a colormap, use
 <funcsynopsis id='XFreeColormap'>
 <funcprototype>
   <funcdef><function>XFreeColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1120,10 +1120,11 @@ To map a color name to an <acronym>RGB</acronym> value, use
 <funcsynopsis id='XLookupColor'>
 <funcprototype>
   <funcdef>Status <function>XLookupColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>char<parameter> *color_name</parameter></paramdef>
-  <paramdef>XColor*exact_def_return,<parameter> *screen_def_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>char *<parameter>color_name</parameter></paramdef>
+  <paramdef>XColor *<parameter>exact_def_return</parameter></paramdef>
+  <paramdef>XColor *<parameter>screen_def_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1217,10 +1218,10 @@ To map a color name to the exact <acronym>RGB</acronym> value, use
 <funcsynopsis id='XParseColor'>
 <funcprototype>
   <funcdef>Status <function>XParseColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>char<parameter> *spec</parameter></paramdef>
-  <paramdef>XColor<parameter> *exact_def_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>char *<parameter>spec</parameter></paramdef>
+  <paramdef>XColor *<parameter>exact_def_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1307,11 +1308,12 @@ To map a color name to a value in an arbitrary color space, use
 <funcsynopsis id='XcmsLookupColor'>
 <funcprototype>
   <funcdef>Status <function>XcmsLookupColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>char<parameter> *color_string</parameter></paramdef>
-  <paramdef>XcmsColor*color_exact_return,<parameter> *color_screen_return</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> result_format</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>char *<parameter>color_string</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_exact_return</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_screen_return</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>result_format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1463,9 +1465,9 @@ To allocate a read-only color cell with an <acronym>RGB</acronym> value, use
 <funcsynopsis id='XAllocColor'>
 <funcprototype>
   <funcdef>Status <function>XAllocColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XColor<parameter> *screen_in_out</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XColor *<parameter>screen_in_out</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1553,10 +1555,10 @@ To allocate a read-only color cell with a color in arbitrary format, use
 <funcsynopsis id='XcmsAllocColor'>
 <funcprototype>
   <funcdef>Status <function>XcmsAllocColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_in_out</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> result_format</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_in_out</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>result_format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1658,10 +1660,11 @@ color supported by the hardware in <acronym>RGB</acronym> format, use
 <funcsynopsis id='XAllocNamedColor'>
 <funcprototype>
   <funcdef>Status <function>XAllocNamedColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>char<parameter> *color_name</parameter></paramdef>
-  <paramdef>XColor*screen_def_return,<parameter> *exact_def_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>char *<parameter>color_name</parameter></paramdef>
+  <paramdef>XColor *<parameter>screen_def_return</parameter></paramdef>
+  <paramdef>XColor *<parameter>exact_def_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1763,12 +1766,12 @@ color supported by the hardware in an arbitrary format, use
 <funcsynopsis id='XcmsAllocNamedColor'>
 <funcprototype>
   <funcdef>Status <function>XcmsAllocNamedColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>char<parameter> *color_string</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_screen_return</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_exact_return</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> result_format</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>char *<parameter>color_string</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_screen_return</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_exact_return</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>result_format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1912,13 +1915,13 @@ model, use
 <funcsynopsis id='XAllocColorCells'>
 <funcprototype>
   <funcdef>Status <function>XAllocColorCells</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>Bool<parameter> contig</parameter></paramdef>
-  <paramdef>unsigned long <parameter> plane_masks_return[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> nplanes</parameter></paramdef>
-  <paramdef>unsigned long <parameter> pixels_return[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> npixels</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>Bool <parameter>contig</parameter></paramdef>
+  <paramdef>unsigned long <parameter>plane_masks_return[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>nplanes</parameter></paramdef>
+  <paramdef>unsigned long <parameter>pixels_return[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>npixels</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2066,13 +2069,17 @@ model, use
 <funcsynopsis id='XAllocColorPlanes'>
 <funcprototype>
   <funcdef>Status <function>XAllocColorPlanes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>Bool<parameter> contig</parameter></paramdef>
-  <paramdef>unsigned long <parameter> pixels_return[]</parameter></paramdef>
-  <paramdef>int<parameter> ncolors</parameter></paramdef>
-  <paramdef>intnreds,ngreens,<parameter> nblues</parameter></paramdef>
-  <paramdef>unsigned long *rmask_return,*gmask_return,<parameter> *bmask_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>Bool <parameter>contig</parameter></paramdef>
+  <paramdef>unsigned long <parameter>pixels_return[]</parameter></paramdef>
+  <paramdef>int <parameter>ncolors</parameter></paramdef>
+  <paramdef>int <parameter>nreds</parameter></paramdef>
+  <paramdef>int <parameter>ngreens</parameter></paramdef>
+  <paramdef>int <parameter>nblues</parameter></paramdef>
+  <paramdef>unsigned long *<parameter>rmask_return</parameter></paramdef>
+  <paramdef>unsigned long *<parameter>gmask_return</parameter></paramdef>
+  <paramdef>unsigned long *<parameter>bmask_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2268,11 +2275,11 @@ To free colormap cells, use
 <funcsynopsis id='XFreeColors'>
 <funcprototype>
   <funcdef><function>XFreeColors</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>unsigned long <parameter> pixels[]</parameter></paramdef>
-  <paramdef>int<parameter> npixels</parameter></paramdef>
-  <paramdef>unsigned long <parameter> planes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>unsigned long <parameter>pixels[]</parameter></paramdef>
+  <paramdef>int <parameter>npixels</parameter></paramdef>
+  <paramdef>unsigned long <parameter>planes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2409,9 +2416,9 @@ To store an <acronym>RGB</acronym> value in a single colormap cell, use
 <funcsynopsis id='XStoreColor'>
 <funcprototype>
   <funcdef><function>XStoreColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XColor<parameter> *color</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XColor *<parameter>color</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2501,10 +2508,10 @@ To store multiple <acronym>RGB</acronym> values in multiple colormap cells, use
 <funcsynopsis id='XStoreColors'>
 <funcprototype>
   <funcdef><function>XStoreColors</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XColor<parameter> color[]</parameter></paramdef>
-  <paramdef>int<parameter> ncolors</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XColor <parameter>color[]</parameter></paramdef>
+  <paramdef>int <parameter>ncolors</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2607,9 +2614,9 @@ To store a color of arbitrary format in a single colormap cell, use
 <funcsynopsis id='XcmsStoreColor'>
 <funcprototype>
   <funcdef>Status <function>XcmsStoreColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2718,11 +2725,11 @@ To store multiple colors of arbitrary format in multiple colormap cells, use
 <funcsynopsis id='XcmsStoreColors'>
 <funcprototype>
   <funcdef>Status <function>XcmsStoreColors</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> colors[]</parameter></paramdef>
-  <paramdef>int<parameter> ncolors</parameter></paramdef>
-  <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XcmsColor <parameter>colors[]</parameter></paramdef>
+  <paramdef>int <parameter>ncolors</parameter></paramdef>
+  <paramdef>Bool <parameter>compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2863,11 +2870,11 @@ To store a color specified by name in a single colormap cell, use
 <funcsynopsis id='XStoreNamedColor'>
 <funcprototype>
   <funcdef><function>XStoreNamedColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>char<parameter> *color</parameter></paramdef>
-  <paramdef>unsigned long <parameter> pixel</parameter></paramdef>
-  <paramdef>int<parameter> flags</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>char *<parameter>color</parameter></paramdef>
+  <paramdef>unsigned long <parameter>pixel</parameter></paramdef>
+  <paramdef>int <parameter>flags</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2993,9 +3000,9 @@ To query the <acronym>RGB</acronym> value of a single colormap cell, use
 <funcsynopsis id='XQueryColor'>
 <funcprototype>
   <funcdef><function>XQueryColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XColor<parameter> *def_in_out</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XColor *<parameter>def_in_out</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3067,10 +3074,10 @@ To query the <acronym>RGB</acronym> values of multiple colormap cells, use
 <funcsynopsis id='XQueryColors'>
 <funcprototype>
   <funcdef><function>XQueryColors</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XColor<parameter> defs_in_out[]</parameter></paramdef>
-  <paramdef>int<parameter> ncolors</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XColor <parameter>defs_in_out[]</parameter></paramdef>
+  <paramdef>int <parameter>ncolors</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3157,10 +3164,10 @@ To query the color of a single colormap cell in an arbitrary format, use
 <funcsynopsis id='XcmsQueryColor'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryColor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_in_out</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> result_format</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_in_out</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>result_format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3246,11 +3253,11 @@ To query the color of multiple colormap cells in an arbitrary format, use
 <funcsynopsis id='XcmsQueryColors'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryColors</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> result_format</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XcmsColor <parameter>colors_in_out[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>ncolors</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>result_format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3405,8 +3412,8 @@ To obtain the CCC associated with a colormap, use
 <funcsynopsis id='XcmsCCCOfColormap'>
 <funcprototype>
   <funcdef>XcmsCCC <function>XcmsCCCOfColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3460,9 +3467,9 @@ To change the CCC associated with a colormap, use
 <funcsynopsis id='XcmsSetCCCOfColormap'>
 <funcprototype>
   <funcdef>XcmsCCC <function>XcmsSetCCCOfColormap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Colormap <parameter>colormap</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3540,8 +3547,8 @@ To obtain the default CCC for a screen, use
 <funcsynopsis id='XcmsDefaultCCC'>
 <funcprototype>
   <funcdef>XcmsCCC <function>XcmsDefaultCCC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> screen_number</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>screen_number</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3602,14 +3609,14 @@ can return.
 <funcsynopsis id='DisplayOfCCC'>
 <funcprototype>
   <funcdef><function>DisplayOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
 <funcsynopsis id='XcmsDisplayOfCCC'>
 <funcprototype>
   <funcdef>Display *<function>XcmsDisplayOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3639,14 +3646,14 @@ Both return the display associated with the specified CCC.
 <funcsynopsis id='VisualOfCCC'>
 <funcprototype>
   <funcdef><function>VisualOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
 <funcsynopsis id='XcmsVisualOfCCC'>
 <funcprototype>
   <funcdef>Visual *<function>XcmsVisualOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3676,14 +3683,14 @@ Both return the visual associated with the specified CCC.
 <funcsynopsis id='ScreenNumberOfCCC'>
 <funcprototype>
   <funcdef><function>ScreenNumberOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
 <funcsynopsis id='XcmsScreenNumberOfCCC'>
 <funcprototype>
   <funcdef>int <function>XcmsScreenNumberOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3713,13 +3720,13 @@ Both return the number of the screen associated with the specified CCC.
 <funcsynopsis id='ScreenWhitePointOfCCC'>
 <funcprototype>
   <funcdef><function>ScreenWhitePointOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <funcsynopsis id='XcmsScreenWhitePointOfCCC'>
 <funcprototype>
   <funcdef>XcmsColor <function>XcmsScreenWhitePointOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3749,14 +3756,14 @@ Both return the white point of the screen associated with the specified CCC.
 <funcsynopsis id='ClientWhitePointOfCCC'>
 <funcprototype>
   <funcdef> <function>ClientWhitePointOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
 <funcsynopsis id='XcmsClientWhitePointOfCCC'>
 <funcprototype>
   <funcdef>XcmsColor *<function>XcmsClientWhitePointOfCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3796,8 +3803,8 @@ To set the Client White Point in the CCC, use
 <funcsynopsis id='XcmsSetWhitePoint'>
 <funcprototype>
   <funcdef>Status <function>XcmsSetWhitePoint</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3866,9 +3873,9 @@ in a specified CCC, use
 <funcsynopsis id='XcmsSetCompressionProc'>
 <funcprototype>
   <funcdef>XcmsCompressionProc <function>XcmsSetCompressionProc</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsCompressionProc<parameter> compression_proc</parameter></paramdef>
-  <paramdef>XPointer<parameter> client_data</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsCompressionProc <parameter>compression_proc</parameter></paramdef>
+  <paramdef>XPointer <parameter>client_data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3934,9 +3941,9 @@ in a specified CCC, use
 <funcsynopsis id='XcmsSetWhiteAdjustProc'>
 <funcprototype>
   <funcdef>XcmsWhiteAdjustProc <function>XcmsSetWhiteAdjustProc</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsWhiteAdjustProc<parameter> white_adjust_proc</parameter></paramdef>
-  <paramdef>XPointer<parameter> client_data</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsWhiteAdjustProc <parameter>white_adjust_proc</parameter></paramdef>
+  <paramdef>XPointer <parameter>client_data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4010,14 +4017,14 @@ To create a CCC, use
 <funcsynopsis id='XcmsCreateCCC'>
 <funcprototype>
   <funcdef>XcmsCCC <function>XcmsCreateCCC</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> screen_number</parameter></paramdef>
-  <paramdef>Visual<parameter> *visual</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *client_white_point</parameter></paramdef>
-  <paramdef>XcmsCompressionProc<parameter> compression_proc</parameter></paramdef>
-  <paramdef>XPointer<parameter> compression_client_data</parameter></paramdef>
-  <paramdef>XcmsWhiteAdjustProc<parameter> white_adjust_proc</parameter></paramdef>
-  <paramdef>XPointer<parameter> white_adjust_client_data</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>screen_number</parameter></paramdef>
+  <paramdef>Visual *<parameter>visual</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>client_white_point</parameter></paramdef>
+  <paramdef>XcmsCompressionProc <parameter>compression_proc</parameter></paramdef>
+  <paramdef>XPointer <parameter>compression_client_data</parameter></paramdef>
+  <paramdef>XcmsWhiteAdjustProc <parameter>white_adjust_proc</parameter></paramdef>
+  <paramdef>XPointer <parameter>white_adjust_client_data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4137,7 +4144,7 @@ To free a CCC, use
 <funcsynopsis id='XcmsFreeCCC'>
 <funcprototype>
   <funcdef>void <function>XcmsFreeCCC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4184,11 +4191,11 @@ to a single destination format, use
 <funcsynopsis id='XcmsConvertColors'>
 <funcprototype>
   <funcdef>Status <function>XcmsConvertColors</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColor <parameter>colors_in_out[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>ncolors</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>Bool <parameter>compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4328,11 +4335,11 @@ following:
 <funcsynopsis id='XcmsCompressionProc'>
 <funcprototype>
   <funcdef>typedef Status<function>(*XcmsCompressionProc</function>)</funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
-  <paramdef>unsigned int <parameter> index</parameter></paramdef>
-  <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColor <parameter>colors_in_out[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter>index</parameter></paramdef>
+  <paramdef>Bool <parameter>compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4655,13 +4662,13 @@ The white point adjustment procedure interface must adhere to the following:
 <funcsynopsis id='XcmsWhiteAdjustProc'>
 <funcprototype>
   <funcdef>typedef Status <function>(*XcmsWhiteAdjustProc</function>)</funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *initial_white_point</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *target_white_point</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
-  <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>initial_white_point</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>target_white_point</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>XcmsColor <parameter>colors_in_out[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>ncolors</parameter></paramdef>
+  <paramdef>Bool <parameter>compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5018,9 +5025,9 @@ To obtain the color specification for black
 <funcsynopsis id='XcmsQueryBlack'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryBlack</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5083,9 +5090,9 @@ To obtain the color specification for blue
 <funcsynopsis id='XcmsQueryBlue'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryBlue</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5148,9 +5155,9 @@ To obtain the color specification for green
 <funcsynopsis id='XcmsQueryGreen'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryGreen</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5213,9 +5220,9 @@ To obtain the color specification for red
 <funcsynopsis id='XcmsQueryRed'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryRed</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5278,9 +5285,9 @@ To obtain the color specification for white
 <funcsynopsis id='XcmsQueryWhite'>
 <funcprototype>
   <funcdef>Status <function>XcmsQueryWhite</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>target_format</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5365,10 +5372,10 @@ for a given Psychometric Hue Angle and <acronym>CIE</acronym> metric lightness (
 <funcsynopsis id='XcmsCIELabQueryMaxC'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELabQueryMaxC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> L_star</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>L_star</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5445,10 +5452,10 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 <funcsynopsis id='XcmsCIELabQueryMaxL'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELabQueryMaxL</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> chroma</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>chroma</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5532,9 +5539,9 @@ for a given Psychometric Hue Angle, use
 <funcsynopsis id='XcmsCIELabQueryMaxLC'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELabQueryMaxLC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5601,10 +5608,10 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 <funcsynopsis id='XcmsCIELabQueryMinL'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELabQueryMinL</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> chroma</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>chroma</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5707,10 +5714,10 @@ for a given Psychometric Hue Angle and <acronym>CIE</acronym> metric lightness (
 <funcsynopsis id='XcmsCIELuvQueryMaxC'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELuvQueryMaxC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> L_star</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>L_star</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5787,10 +5794,10 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 <funcsynopsis id='XcmsCIELuvQueryMaxL'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELuvQueryMaxL</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> chroma</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>chroma</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5874,9 +5881,9 @@ for a given Psychometric Hue Angle, use
 <funcsynopsis id='XcmsCIELuvQueryMaxLC'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELuvQueryMaxLC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -5943,10 +5950,10 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 <funcsynopsis id='XcmsCIELuvQueryMinL'>
 <funcprototype>
   <funcdef>Status <function>XcmsCIELuvQueryMinL</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue_angle</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> chroma</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue_angle</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>chroma</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6030,10 +6037,10 @@ To obtain the maximum Chroma for a given Hue and Value, use
 <funcsynopsis id='XcmsTekHVCQueryMaxC'>
 <funcprototype>
   <funcdef>Status <function>XcmsTekHVCQueryMaxC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> value</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>value</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6110,10 +6117,10 @@ To obtain the maximum Value for a given Hue and Chroma, use
 <funcsynopsis id='XcmsTekHVCQueryMaxV'>
 <funcprototype>
   <funcdef>Status <function>XcmsTekHVCQueryMaxV</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> chroma</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>chroma</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6195,9 +6202,9 @@ for a specified Hue, use
 <funcsynopsis id='XcmsTekHVCQueryMaxVC'>
 <funcprototype>
   <funcdef>Status <function>XcmsTekHVCQueryMaxVC</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6270,10 +6277,10 @@ Chroma at which the maximum Values are reached, use
 <funcsynopsis id='XcmsTekHVCQueryMaxVSamples'>
 <funcprototype>
   <funcdef>Status <function>XcmsTekHVCQueryMaxVSamples</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> colors_return[]</parameter></paramdef>
-  <paramdef>unsigned int <parameter> nsamples</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue</parameter></paramdef>
+  <paramdef>XcmsColor <parameter>colors_return[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter>nsamples</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6350,10 +6357,10 @@ To obtain the minimum Value for a given Hue and Chroma, use
 <funcsynopsis id='XcmsTekHVCQueryMinV'>
 <funcprototype>
   <funcdef>Status <function>XcmsTekHVCQueryMinV</function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> hue</parameter></paramdef>
-  <paramdef>XcmsFloat<parameter> chroma</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>hue</parameter></paramdef>
+  <paramdef>XcmsFloat <parameter>chroma</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6506,7 +6513,7 @@ To add a device-independent color space, use
 <funcsynopsis id='XcmsAddColorSpace'>
 <funcprototype>
   <funcdef>Status <function>XcmsAddColorSpace</function></funcdef>
-  <paramdef>XcmsColorSpace<parameter> *color_space</parameter></paramdef>
+  <paramdef>XcmsColorSpace *<parameter>color_space</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6574,7 +6581,7 @@ associated with a specified color string prefix, use
 <funcsynopsis id='XcmsFormatOfPrefix'>
 <funcprototype>
   <funcdef>XcmsColorFormat <function>XcmsFormatOfPrefix</function></funcdef>
-  <paramdef>char<parameter> *prefix</parameter></paramdef>
+  <paramdef>char *<parameter>prefix</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6616,7 +6623,7 @@ specified by a color format, use
 <funcsynopsis id='XcmsPrefixOfFormat'>
 <funcprototype>
   <funcdef>char *<function>XcmsPrefixOfFormat</function></funcdef>
-  <paramdef>XcmsColorFormat<parameter> format</parameter></paramdef>
+  <paramdef>XcmsColorFormat <parameter>format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6760,8 +6767,8 @@ adhere to the following software interface specification:
 <funcsynopsis id='XcmsParseStringProc'>
 <funcprototype>
   <funcdef>Status <function>XcmsParseStringProc</function></funcdef>
-  <paramdef>char<parameter> *color_string</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *color_return</parameter></paramdef>
+  <paramdef>char *<parameter>color_string</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>color_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6810,10 +6817,10 @@ following software interface specification:
 <funcsynopsis id='ConversionProc'>
 <funcprototype>
   <funcdef>Status <function><replaceable>ConversionProc</replaceable></function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *white_point</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *colors_in_out</parameter></paramdef>
-  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>white_point</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>colors_in_out</parameter></paramdef>
+  <paramdef>unsigned int <parameter>ncolors</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6879,10 +6886,10 @@ following software interface specification:
 <funcsynopsis>
 <funcprototype>
   <funcdef>Status <function><replaceable>ConversionProc</replaceable></function></funcdef>
-  <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
-  <paramdef>XcmsColor<parameter> *colors_in_out</parameter></paramdef>
-  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
-  <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
+  <paramdef>XcmsCCC <parameter>ccc</parameter></paramdef>
+  <paramdef>XcmsColor *<parameter>colors_in_out</parameter></paramdef>
+  <paramdef>unsigned int <parameter>ncolors</parameter></paramdef>
+  <paramdef>Bool <parameter>compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -7084,7 +7091,7 @@ To add a function set, use
 <funcsynopsis id='XcmsAddFunctionSet'>
 <funcprototype>
   <funcdef>Status <function>XcmsAddFunctionSet</function></funcdef>
-  <paramdef>XcmsFunctionSet<parameter> *function_set</parameter></paramdef>
+  <paramdef>XcmsFunctionSet *<parameter>function_set</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -7214,9 +7221,9 @@ interface specification:
 <funcsynopsis>
 <funcprototype>
   <funcdef>typedef Status <function>(*XcmsScreenInitProc</function>)</funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> screen_number</parameter></paramdef>
-  <paramdef>ScmsPerScrnInfo<parameter> *screen_info</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>screen_number</parameter></paramdef>
+  <paramdef>ScmsPerScrnInfo *<parameter>screen_info</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -7368,7 +7375,7 @@ interface specification:
 <funcsynopsis>
 <funcprototype>
   <funcdef>typedef void (*XcmsScreenFreeProc)</funcdef>
-  <paramdef>XPointer<parameter> screenData</parameter></paramdef>
+  <paramdef>XPointer <parameter>screenData</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 

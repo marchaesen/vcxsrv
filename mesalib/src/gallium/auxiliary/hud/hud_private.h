@@ -48,6 +48,7 @@ struct hud_graph {
    unsigned num_vertices;
    unsigned index; /* vertex index being updated */
    uint64_t current_value;
+   FILE *fd;
 };
 
 struct hud_pane {
@@ -102,6 +103,8 @@ boolean hud_driver_query_install(struct hud_batch_query_context **pbq,
                                  struct pipe_context *pipe, const char *name);
 void hud_batch_query_update(struct hud_batch_query_context *bq);
 void hud_batch_query_cleanup(struct hud_batch_query_context **pbq);
+
+void hud_graph_set_dump_file(struct hud_graph *gr);
 
 #if HAVE_GALLIUM_EXTRA_HUD
 int hud_get_num_nics(bool displayhelp);

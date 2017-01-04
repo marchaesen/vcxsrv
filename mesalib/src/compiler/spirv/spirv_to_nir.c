@@ -1206,7 +1206,7 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *arg = vtn_untyped_value(b, arg_id);
       if (arg->value_type == vtn_value_type_access_chain) {
          nir_deref_var *d = vtn_access_chain_to_deref(b, arg->access_chain);
-         call->params[i] = nir_deref_as_var(nir_copy_deref(call, &d->deref));
+         call->params[i] = nir_deref_var_clone(d, call);
       } else {
          struct vtn_ssa_value *arg_ssa = vtn_ssa_value(b, arg_id);
 
@@ -1542,15 +1542,15 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    }
 
    nir_deref_var *sampler = vtn_access_chain_to_deref(b, sampled.sampler);
-   nir_deref *texture;
+   nir_deref_var *texture;
    if (sampled.image) {
       nir_deref_var *image = vtn_access_chain_to_deref(b, sampled.image);
-      texture = &image->deref;
+      texture = image;
    } else {
-      texture = &sampler->deref;
+      texture = sampler;
    }
 
-   instr->texture = nir_deref_as_var(nir_copy_deref(instr, texture));
+   instr->texture = nir_deref_var_clone(texture, instr);
 
    switch (instr->op) {
    case nir_texop_tex:
@@ -1558,7 +1558,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case nir_texop_txl:
    case nir_texop_txd:
       /* These operations require a sampler */
-      instr->sampler = nir_deref_as_var(nir_copy_deref(instr, &sampler->deref));
+      instr->sampler = nir_deref_var_clone(sampler, instr);
       break;
    case nir_texop_txf:
    case nir_texop_txf_ms:
@@ -1599,8 +1599,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
          instrs[i]->is_new_style_shadow = instr->is_new_style_shadow;
          instrs[i]->component = instr->component;
          instrs[i]->dest_type = instr->dest_type;
-         instrs[i]->texture =
-            nir_deref_as_var(nir_copy_deref(instrs[i], texture));
+         instrs[i]->texture = nir_deref_var_clone(texture, instrs[i]);
          instrs[i]->sampler = NULL;
 
          memcpy(instrs[i]->src, srcs, instr->num_srcs * sizeof(*instr->src));
@@ -1807,8 +1806,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->shader, op);
 
    nir_deref_var *image_deref = vtn_access_chain_to_deref(b, image.image);
-   intrin->variables[0] =
-      nir_deref_as_var(nir_copy_deref(&intrin->instr, &image_deref->deref));
+   intrin->variables[0] = nir_deref_var_clone(image_deref, intrin);
 
    /* ImageQuerySize doesn't take any extra parameters */
    if (opcode != SpvOpImageQuerySize) {
@@ -1967,10 +1965,10 @@ vtn_handle_ssbo_or_shared_atomic(struct vtn_builder *b, SpvOp opcode,
 
    if (chain->var->mode == vtn_variable_mode_workgroup) {
       struct vtn_type *type = chain->var->type;
-      nir_deref *deref = &vtn_access_chain_to_deref(b, chain)->deref;
+      nir_deref_var *deref = vtn_access_chain_to_deref(b, chain);
       nir_intrinsic_op op = get_shared_nir_atomic_op(opcode);
       atomic = nir_intrinsic_instr_create(b->nb.shader, op);
-      atomic->variables[0] = nir_deref_as_var(nir_copy_deref(atomic, deref));
+      atomic->variables[0] = nir_deref_var_clone(deref, atomic);
 
       switch (opcode) {
       case SpvOpAtomicLoad:
@@ -2461,6 +2459,12 @@ stage_for_execution_model(SpvExecutionModel model)
    }
 }
 
+#define spv_check_supported(name, cap) do {		\
+      if (!(b->ext && b->ext->name))			\
+         vtn_warn("Unsupported SPIR-V capability: %s",  \
+                  spirv_capability_to_string(cap));     \
+   } while(0)
+
 static bool
 vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
                                 const uint32_t *w, unsigned count)
@@ -2500,6 +2504,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityCullDistance:
       case SpvCapabilityInputAttachment:
       case SpvCapabilityImageGatherExtended:
+      case SpvCapabilityStorageImageExtendedFormats:
          break;
 
       case SpvCapabilityGeometryStreams:
@@ -2519,8 +2524,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
       case SpvCapabilityMinLod:
-      case SpvCapabilityImageMSArray:
-      case SpvCapabilityStorageImageExtendedFormats:
       case SpvCapabilityTransformFeedback:
       case SpvCapabilityStorageImageReadWithoutFormat:
       case SpvCapabilityStorageImageWriteWithoutFormat:
@@ -2540,6 +2543,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityGenericPointer:
          vtn_warn("Unsupported OpenCL-style SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
+         break;
+
+      case SpvCapabilityImageMSArray:
+         spv_check_supported(image_ms_array, cap);
          break;
       }
       break;
@@ -3015,6 +3022,7 @@ nir_function *
 spirv_to_nir(const uint32_t *words, size_t word_count,
              struct nir_spirv_specialization *spec, unsigned num_spec,
              gl_shader_stage stage, const char *entry_point_name,
+             const struct nir_spirv_supported_extensions *ext,
              const nir_shader_compiler_options *options)
 {
    const uint32_t *word_end = words + word_count;
@@ -3037,6 +3045,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    exec_list_make_empty(&b->functions);
    b->entry_point_stage = stage;
    b->entry_point_name = entry_point_name;
+   b->ext = ext;
 
    /* Handle all the preamble instructions */
    words = vtn_foreach_instruction(b, words, word_end,

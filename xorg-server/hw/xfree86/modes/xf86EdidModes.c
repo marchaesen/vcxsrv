@@ -153,6 +153,11 @@ quirk_detailed_v_in_cm(int scrnIndex, xf86MonPtr DDC)
 static Bool
 quirk_detailed_use_maximum_size(int scrnIndex, xf86MonPtr DDC)
 {
+    /* ADA 1024x600 7" display */
+    if (memcmp(DDC->vendor.name, "ADA", 4) == 0 &&
+        DDC->vendor.prod_id == 4)
+        return TRUE;
+
     /* Bug #21324: Iiyama Vision Master 450 */
     if (memcmp(DDC->vendor.name, "IVM", 4) == 0 && DDC->vendor.prod_id == 6400)
         return TRUE;

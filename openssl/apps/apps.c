@@ -692,7 +692,10 @@ EVP_PKEY *load_key(const char *file, int format, int maybe_stdin,
             BIO_printf(bio_err, "no engine specified\n");
         else {
 #ifndef OPENSSL_NO_ENGINE
-            pkey = ENGINE_load_private_key(e, file, ui_method, &cb_data);
+            if (ENGINE_init(e)) {
+                pkey = ENGINE_load_private_key(e, file, ui_method, &cb_data);
+                ENGINE_finish(e);
+            }
             if (pkey == NULL) {
                 BIO_printf(bio_err, "cannot load %s from engine\n", key_descrip);
                 ERR_print_errors(bio_err);
@@ -1240,11 +1243,13 @@ static ENGINE *try_load_engine(const char *engine)
     }
     return e;
 }
+#endif
 
 ENGINE *setup_engine(const char *engine, int debug)
 {
     ENGINE *e = NULL;
 
+#ifndef OPENSSL_NO_ENGINE
     if (engine) {
         if (strcmp(engine, "auto") == 0) {
             BIO_printf(bio_err, "enabling auto ENGINE support\n");
@@ -1269,13 +1274,19 @@ ENGINE *setup_engine(const char *engine, int debug)
         }
 
         BIO_printf(bio_err, "engine \"%s\" set.\n", ENGINE_get_id(e));
-
-        /* Free our "structural" reference. */
-        ENGINE_free(e);
     }
+#endif
     return e;
 }
+
+void release_engine(ENGINE *e)
+{
+#ifndef OPENSSL_NO_ENGINE
+    if (e != NULL)
+        /* Free our "structural" reference. */
+        ENGINE_free(e);
 #endif
+}
 
 static unsigned long index_serial_hash(const OPENSSL_CSTRING *a)
 {

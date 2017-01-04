@@ -191,10 +191,11 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				spec_entries[i].data = *(const uint32_t *)data;
 			}
 		}
-
+		const struct nir_spirv_supported_extensions supported_ext = {
+		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
 					   spec_entries, num_spec_entries,
-					   stage, entrypoint_name, &nir_options);
+					   stage, entrypoint_name, &supported_ext, &nir_options);
 		nir = entry_point->shader;
 		assert(nir->stage == stage);
 		nir_validate_shader(nir);

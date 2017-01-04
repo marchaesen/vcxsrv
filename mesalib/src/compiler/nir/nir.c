@@ -624,18 +624,21 @@ nir_deref_struct_create(void *mem_ctx, unsigned field_index)
    return deref;
 }
 
-static nir_deref_var *
-copy_deref_var(void *mem_ctx, nir_deref_var *deref)
+nir_deref_var *
+nir_deref_var_clone(const nir_deref_var *deref, void *mem_ctx)
 {
+   if (deref == NULL)
+      return NULL;
+
    nir_deref_var *ret = nir_deref_var_create(mem_ctx, deref->var);
    ret->deref.type = deref->deref.type;
    if (deref->deref.child)
-      ret->deref.child = nir_copy_deref(ret, deref->deref.child);
+      ret->deref.child = nir_deref_clone(deref->deref.child, ret);
    return ret;
 }
 
 static nir_deref_array *
-copy_deref_array(void *mem_ctx, nir_deref_array *deref)
+deref_array_clone(const nir_deref_array *deref, void *mem_ctx)
 {
    nir_deref_array *ret = nir_deref_array_create(mem_ctx);
    ret->base_offset = deref->base_offset;
@@ -645,33 +648,33 @@ copy_deref_array(void *mem_ctx, nir_deref_array *deref)
    }
    ret->deref.type = deref->deref.type;
    if (deref->deref.child)
-      ret->deref.child = nir_copy_deref(ret, deref->deref.child);
+      ret->deref.child = nir_deref_clone(deref->deref.child, ret);
    return ret;
 }
 
 static nir_deref_struct *
-copy_deref_struct(void *mem_ctx, nir_deref_struct *deref)
+deref_struct_clone(const nir_deref_struct *deref, void *mem_ctx)
 {
    nir_deref_struct *ret = nir_deref_struct_create(mem_ctx, deref->index);
    ret->deref.type = deref->deref.type;
    if (deref->deref.child)
-      ret->deref.child = nir_copy_deref(ret, deref->deref.child);
+      ret->deref.child = nir_deref_clone(deref->deref.child, ret);
    return ret;
 }
 
 nir_deref *
-nir_copy_deref(void *mem_ctx, nir_deref *deref)
+nir_deref_clone(const nir_deref *deref, void *mem_ctx)
 {
    if (deref == NULL)
       return NULL;
 
    switch (deref->deref_type) {
    case nir_deref_type_var:
-      return &copy_deref_var(mem_ctx, nir_deref_as_var(deref))->deref;
+      return &nir_deref_var_clone(nir_deref_as_var(deref), mem_ctx)->deref;
    case nir_deref_type_array:
-      return &copy_deref_array(mem_ctx, nir_deref_as_array(deref))->deref;
+      return &deref_array_clone(nir_deref_as_array(deref), mem_ctx)->deref;
    case nir_deref_type_struct:
-      return &copy_deref_struct(mem_ctx, nir_deref_as_struct(deref))->deref;
+      return &deref_struct_clone(nir_deref_as_struct(deref), mem_ctx)->deref;
    default:
       unreachable("Invalid dereference type");
    }

@@ -44,12 +44,12 @@ a given window, use
 <funcsynopsis id='XQueryTree'>
 <funcprototype>
   <funcdef>Status <function>XQueryTree</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window<parameter> *root_return</parameter></paramdef>
-  <paramdef>Window<parameter> *parent_return</parameter></paramdef>
-  <paramdef>Window<parameter> **children_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter> *nchildren_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window *<parameter>root_return</parameter></paramdef>
+  <paramdef>Window *<parameter>parent_return</parameter></paramdef>
+  <paramdef>Window **<parameter>children_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>nchildren_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -150,9 +150,9 @@ To obtain the current attributes of a given window, use
 <funcsynopsis id='XGetWindowAttributes'>
 <funcprototype>
   <funcdef>Status <function>XGetWindowAttributes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>XWindowAttributes<parameter> *window_attributes_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>XWindowAttributes *<parameter>window_attributes_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -374,14 +374,15 @@ To obtain the current geometry of a given drawable, use
 <funcsynopsis id='XGetGeometry'>
 <funcprototype>
   <funcdef>Status <function>XGetGeometry</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>Window<parameter> *root_return</parameter></paramdef>
-  <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter> *border_width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter> *depth_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>Window *<parameter>root_return</parameter></paramdef>
+  <paramdef>int *<parameter>x_return</parameter></paramdef>
+  <paramdef>int *<parameter>y_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>border_width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>depth_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -535,11 +536,14 @@ space of another window, use
 <funcsynopsis id='XTranslateCoordinates'>
 <funcprototype>
   <funcdef>Bool <function>XTranslateCoordinates</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Windowsrc_w,<parameter> dest_w</parameter></paramdef>
-  <paramdef>intsrc_x,<parameter> src_y</parameter></paramdef>
-  <paramdef>int*dest_x_return,<parameter> *dest_y_return</parameter></paramdef>
-  <paramdef>Window<parameter> *child_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>src_w</parameter></paramdef>
+  <paramdef>Window <parameter>dest_w</parameter></paramdef>
+  <paramdef>int <parameter>src_x</parameter></paramdef>
+  <paramdef>int <parameter>src_y</parameter></paramdef>
+  <paramdef>int *<parameter>dest_x_return</parameter></paramdef>
+  <paramdef>int *<parameter>dest_y_return</parameter></paramdef>
+  <paramdef>Window *<parameter>child_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -669,12 +673,15 @@ or to determine the pointer coordinates relative to a specified window, use
 <funcsynopsis id='XQueryPointer'>
 <funcprototype>
   <funcdef>Bool <function>XQueryPointer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Window*root_return,<parameter> *child_return</parameter></paramdef>
-  <paramdef>int*root_x_return,<parameter> *root_y_return</parameter></paramdef>
-  <paramdef>int*win_x_return,<parameter> *win_y_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter> *mask_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Window *<parameter>root_return</parameter></paramdef>
+  <paramdef>Window *<parameter>child_return</parameter></paramdef>
+  <paramdef>int *<parameter>root_x_return</parameter></paramdef>
+  <paramdef>int *<parameter>root_y_return</parameter></paramdef>
+  <paramdef>int *<parameter>win_x_return</parameter></paramdef>
+  <paramdef>int *<parameter>win_y_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>mask_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1051,9 +1058,9 @@ To return an atom for a given name, use
 <funcsynopsis id='XInternAtom'>
 <funcprototype>
   <funcdef>Atom <function>XInternAtom</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *atom_name</parameter></paramdef>
-  <paramdef>Bool<parameter> only_if_exists</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>atom_name</parameter></paramdef>
+  <paramdef>Bool <parameter>only_if_exists</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1133,11 +1140,11 @@ To return atoms for an array of names, use
 <funcsynopsis id='XInternAtoms'>
 <funcprototype>
   <funcdef>Status <function>XInternAtoms</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> **names</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
-  <paramdef>Bool<parameter> only_if_exists</parameter></paramdef>
-  <paramdef>Atom<parameter> *atoms_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char **<parameter>names</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
+  <paramdef>Bool <parameter>only_if_exists</parameter></paramdef>
+  <paramdef>Atom *<parameter>atoms_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1233,8 +1240,8 @@ To return a name for a given atom identifier, use
 <funcsynopsis id='XGetAtomName'>
 <funcprototype>
   <funcdef>char *<function>XGetAtomName</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Atom<parameter> atom</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Atom <parameter>atom</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1292,10 +1299,10 @@ To return the names for an array of atom identifiers, use
 <funcsynopsis id='XGetAtomNames'>
 <funcprototype>
   <funcdef>Status <function>XGetAtomNames</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Atom<parameter> *atoms</parameter></paramdef>
-  <paramdef>int<parameter> count</parameter></paramdef>
-  <paramdef>char<parameter> **names_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Atom *<parameter>atoms</parameter></paramdef>
+  <paramdef>int <parameter>count</parameter></paramdef>
+  <paramdef>char **<parameter>names_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1408,18 +1415,18 @@ To obtain the type, format, and value of a property of a given window, use
 <funcsynopsis id='XGetWindowProperty'>
 <funcprototype>
   <funcdef>int <function>XGetWindowProperty</function></funcdef>
-  <paramdef><parameter> display</parameter></paramdef>
-  <paramdef><parameter> w</parameter></paramdef>
-  <paramdef><parameter> property</parameter></paramdef>
-  <paramdef><parameter> long_offset</parameter></paramdef>
-  <paramdef><parameter> long_length</parameter></paramdef>
-  <paramdef><parameter> delete</parameter></paramdef>
-  <paramdef><parameter> req_type</parameter></paramdef>
-  <paramdef><parameter> actual_type_return</parameter></paramdef>
-  <paramdef><parameter> actual_format_return</parameter></paramdef>
-  <paramdef><parameter> nitems_return</parameter></paramdef>
-  <paramdef><parameter> bytes_after_return</parameter></paramdef>
-  <paramdef><parameter> prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window  <parameter>w</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
+  <paramdef>long <parameter>long_offset</parameter></paramdef>
+  <paramdef>long <parameter>long_length</parameter></paramdef>
+  <paramdef>Bool <parameter>delete</parameter></paramdef>
+  <paramdef>Atom <parameter>req_type</parameter></paramdef>
+  <paramdef>Atom *<parameter>actual_type_return</parameter></paramdef>
+  <paramdef>int *<parameter>actual_format_return</parameter></paramdef>
+  <paramdef>unsigned long *<parameter>nitems_return</parameter></paramdef>
+  <paramdef>unsigned long *<parameter>bytes_after_return</parameter></paramdef>
+  <paramdef>unsigned char **<parameter>prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1687,9 +1694,9 @@ To obtain a given window's property list, use
 <funcsynopsis id='XListProperties'>
 <funcprototype>
   <funcdef>Atom *<function>XListProperties</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> *num_prop_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int *<parameter>num_prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1759,14 +1766,14 @@ To change a property of a given window, use
 <funcsynopsis id='XChangeProperty'>
 <funcprototype>
   <funcdef><function>XChangeProperty</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
-  <paramdef>Atom<parameter> type</parameter></paramdef>
-  <paramdef>int<parameter> format</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
-  <paramdef>unsignedchar<parameter> *data</parameter></paramdef>
-  <paramdef>int<parameter> nelements</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
+  <paramdef>Atom <parameter>type</parameter></paramdef>
+  <paramdef>int <parameter>format</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
+  <paramdef>unsignedchar *<parameter>data</parameter></paramdef>
+  <paramdef>int <parameter>nelements</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1958,11 +1965,11 @@ To rotate a window's property list, use
 <funcsynopsis id='XRotateWindowProperties'>
 <funcprototype>
   <funcdef><function>XRotateWindowProperties</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Atom<parameter> properties[]</parameter></paramdef>
-  <paramdef>int<parameter> num_prop</parameter></paramdef>
-  <paramdef>int<parameter> npositions</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Atom <parameter>properties[]</parameter></paramdef>
+  <paramdef>int <parameter>num_prop</parameter></paramdef>
+  <paramdef>int <parameter>npositions</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2072,9 +2079,9 @@ To delete a property on a given window, use
 <funcsynopsis id='XDeleteProperty'>
 <funcprototype>
   <funcdef><function>XDeleteProperty</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2194,10 +2201,10 @@ To set the selection owner, use
 <funcsynopsis id='XSetSelectionOwner'>
 <funcprototype>
   <funcdef><function>XSetSelectionOwner</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Atom<parameter> selection</parameter></paramdef>
-  <paramdef>Window<parameter> owner</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Atom <parameter>selection</parameter></paramdef>
+  <paramdef>Window <parameter>owner</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2317,8 +2324,8 @@ To return the selection owner, use
 <funcsynopsis id='XGetSelectionOwner'>
 <funcprototype>
   <funcdef>Window <function>XGetSelectionOwner</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Atom<parameter> selection</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Atom <parameter>selection</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2378,12 +2385,12 @@ To request conversion of a selection, use
 <funcsynopsis id='XConvertSelection'>
 <funcprototype>
   <funcdef><function>XConvertSelection</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Atom<parameter> selection</parameter></paramdef>
-  <paramdef>Atom<parameter> target</parameter></paramdef>
-  <paramdef>Atom<parameter> property</parameter></paramdef>
-  <paramdef>Window<parameter> requestor</parameter></paramdef>
-  <paramdef>Time<parameter> time</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Atom <parameter>selection</parameter></paramdef>
+  <paramdef>Atom <parameter>target</parameter></paramdef>
+  <paramdef>Atom <parameter>property</parameter></paramdef>
+  <paramdef>Window <parameter>requestor</parameter></paramdef>
+  <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

@@ -28,11 +28,11 @@ To create a pixmap of a given size, use
 <funcsynopsis id='XCreatePixmap'>
 <funcprototype>
   <funcdef>Pixmap <function>XCreatePixmap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter> depth</parameter></paramdef>
+  <paramdef>unsigned int <parameter>depth</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -140,8 +140,8 @@ To free all storage associated with a specified pixmap, use
 <funcsynopsis id='XFreePixmap'>
 <funcprototype>
   <funcdef><function>XFreePixmap</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Pixmap<parameter> pixmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Pixmap <parameter>pixmap</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN	 -->
@@ -231,8 +231,8 @@ To create a cursor from the standard cursor font, use
 <funcsynopsis id='XCreateFontCursor'>
 <funcprototype>
   <funcdef>Cursor <function>XCreateFontCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsigned int <parameter> shape</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>unsigned int <parameter>shape</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -299,11 +299,13 @@ To create a cursor from font glyphs, use
 <funcsynopsis id='XCreateGlyphCursor'>
 <funcprototype>
   <funcdef>Cursor <function>XCreateGlyphCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Fontsource_font,<parameter> mask_font</parameter></paramdef>
-  <paramdef>unsigned int source_char,<parameter> mask_char</parameter></paramdef>
-  <paramdef>XColor<parameter> *foreground_color</parameter></paramdef>
-  <paramdef>XColor<parameter> *background_color</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Font <parameter>source_font</parameter></paramdef>
+  <paramdef>Font <parameter>mask_font</parameter></paramdef>
+  <paramdef>unsigned int <parameter>source_char</parameter></paramdef>
+  <paramdef>unsigned int <parameter>mask_char</parameter></paramdef>
+  <paramdef>XColor *<parameter>foreground_color</parameter></paramdef>
+  <paramdef>XColor *<parameter>background_color</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -438,12 +440,13 @@ use
 <funcsynopsis id='XCreatePixmapCursor'>
 <funcprototype>
   <funcdef>Cursor <function>XCreatePixmapCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Pixmap<parameter> source</parameter></paramdef>
-  <paramdef>Pixmap<parameter> mask</parameter></paramdef>
-  <paramdef>XColor<parameter> *foreground_color</parameter></paramdef>
-  <paramdef>XColor<parameter> *background_color</parameter></paramdef>
-  <paramdef>unsigned int x,<parameter> y</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Pixmap <parameter>source</parameter></paramdef>
+  <paramdef>Pixmap <parameter>mask</parameter></paramdef>
+  <paramdef>XColor *<parameter>foreground_color</parameter></paramdef>
+  <paramdef>XColor *<parameter>background_color</parameter></paramdef>
+  <paramdef>unsigned int <parameter>x</parameter></paramdef>
+  <paramdef>unsigned int <parameter>y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -585,12 +588,12 @@ To determine useful cursor sizes, use
 <funcsynopsis id='XQueryBestCursor'>
 <funcprototype>
   <funcdef>Status <function>XQueryBestCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -691,9 +694,10 @@ To change the color of a given cursor, use
 <funcsynopsis id='XRecolorCursor'>
 <funcprototype>
   <funcdef><function>XRecolorCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Cursor<parameter> cursor</parameter></paramdef>
-  <paramdef>XColor*foreground_color,<parameter> *background_color</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Cursor <parameter>cursor</parameter></paramdef>
+  <paramdef>XColor *<parameter>foreground_color</parameter></paramdef>
+  <paramdef>XColor *<parameter>background_color</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -769,8 +773,8 @@ To free (destroy) a given cursor, use
 <funcsynopsis id='XFreeCursor'>
 <funcprototype>
   <funcdef><function>XFreeCursor</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Cursor<parameter> cursor</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Cursor <parameter>cursor</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

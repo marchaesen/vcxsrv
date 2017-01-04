@@ -21,17 +21,19 @@
 static char *cert = NULL;
 static char *privkey = NULL;
 
+#ifndef OPENSSL_NO_OCSP
 static const unsigned char orespder[] = "Dummy OCSP Response";
 static int ocsp_server_called = 0;
 static int ocsp_client_called = 0;
 
 static int cdummyarg = 1;
 static X509 *ocspcert = NULL;
+#endif
 
 #define NUM_EXTRA_CERTS 40
 
 static int execute_test_large_message(const SSL_METHOD *smeth,
-                                      const SSL_METHOD *cmeth)
+                                      const SSL_METHOD *cmeth, int read_ahead)
 {
     SSL_CTX *cctx = NULL, *sctx = NULL;
     SSL *clientssl = NULL, *serverssl = NULL;
@@ -46,14 +48,26 @@ static int execute_test_large_message(const SSL_METHOD *smeth,
         goto end;
     }
     chaincert = PEM_read_bio_X509(certbio, NULL, NULL, NULL);
+    BIO_free(certbio);
+    certbio = NULL;
+    if (chaincert == NULL) {
+        printf("Unable to load certificate for chain\n");
+        goto end;
+    }
 
     if (!create_ssl_ctx_pair(smeth, cmeth, &sctx,
                              &cctx, cert, privkey)) {
         printf("Unable to create SSL_CTX pair\n");
         goto end;
     }
-    BIO_free(certbio);
-    certbio = NULL;
+
+    if(read_ahead) {
+        /*
+         * Test that read_ahead works correctly when dealing with large
+         * records
+         */
+        SSL_CTX_set_read_ahead(cctx, 1);
+    }
 
     /*
      * We assume the supplied certificate is big enough so that if we add
@@ -101,15 +115,29 @@ static int execute_test_large_message(const SSL_METHOD *smeth,
 
 static int test_large_message_tls(void)
 {
-    return execute_test_large_message(TLS_server_method(), TLS_client_method());
+    return execute_test_large_message(TLS_server_method(), TLS_client_method(),
+                                      0);
 }
 
+static int test_large_message_tls_read_ahead(void)
+{
+    return execute_test_large_message(TLS_server_method(), TLS_client_method(),
+                                      1);
+}
+
+#ifndef OPENSSL_NO_DTLS
 static int test_large_message_dtls(void)
 {
+    /*
+     * read_ahead is not relevant to DTLS because DTLS always acts as if
+     * read_ahead is set.
+     */
     return execute_test_large_message(DTLS_server_method(),
-                                      DTLS_client_method());
+                                      DTLS_client_method(), 0);
 }
+#endif
 
+#ifndef OPENSSL_NO_OCSP
 static int ocsp_server_cb(SSL *s, void *arg)
 {
     int *argi = (int *)arg;
@@ -343,6 +371,7 @@ static int test_tlsext_status_type(void)
 
     return testresult;
 }
+#endif  /* ndef OPENSSL_NO_OCSP */
 
 typedef struct ssl_session_test_fixture {
     const char *test_case_name;
@@ -857,8 +886,13 @@ int main(int argc, char *argv[])
     CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
 
     ADD_TEST(test_large_message_tls);
+    ADD_TEST(test_large_message_tls_read_ahead);
+#ifndef OPENSSL_NO_DTLS
     ADD_TEST(test_large_message_dtls);
+#endif
+#ifndef OPENSSL_NO_OCSP
     ADD_TEST(test_tlsext_status_type);
+#endif
     ADD_TEST(test_session_with_only_int_cache);
     ADD_TEST(test_session_with_only_ext_cache);
     ADD_TEST(test_session_with_both_cache);
@@ -869,6 +903,8 @@ int main(int argc, char *argv[])
     ADD_TEST(test_ssl_bio_change_wbio);
 
     testresult = run_tests(argv[0]);
+
+    bio_s_mempacket_test_free();
 
 #ifndef OPENSSL_NO_CRYPTO_MDEBUG
     if (CRYPTO_mem_leaks(err) <= 0)

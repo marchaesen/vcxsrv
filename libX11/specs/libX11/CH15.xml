@@ -360,7 +360,12 @@ To allocate a new quark, use
 </para>
 <indexterm significance="preferred"><primary>XrmUniqueQuark</primary></indexterm>
 <!-- .sM -->
-<para>XrmQuark XrmUniqueQuark()</para>
+<funcsynopsis id='XrmUniqueQuark'>
+<funcprototype>
+  <funcdef>XrmQuark <function>XrmUniqueQuark</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 <!-- .FN -->
 <para>
 <!-- .LP -->
@@ -422,7 +427,7 @@ or
 <funcsynopsis id='XrmStringToQuark'>
 <funcprototype>
   <funcdef>XrmQuark <function>XrmStringToQuark</function></funcdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -480,7 +485,7 @@ To convert a quark to a string, use
 <funcsynopsis id='XrmQuarkToString'>
 <funcprototype>
   <funcdef>char *<function>XrmQuarkToString</function></funcdef>
-  <paramdef>XrmQuark<parameter> quark</parameter></paramdef>
+  <paramdef>XrmQuark <parameter>quark</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -527,8 +532,8 @@ To convert a string with one or more components to a quark list, use
 <funcsynopsis id='XrmStringToQuarkList'>
 <funcprototype>
   <funcdef>void <function>XrmStringToQuarkList</function></funcdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>XrmQuarkList<parameter> quarks_return</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>XrmQuarkList <parameter>quarks_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -601,9 +606,9 @@ and a quark list, use
 <funcsynopsis id='XrmStringToBindingQuarkList'>
 <funcprototype>
   <funcdef><function>XrmStringToBindingQuarkList</function></funcdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
-  <paramdef>XrmBindingList<parameter> bindings_return</parameter></paramdef>
-  <paramdef>XrmQuarkList<parameter> quarks_return</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
+  <paramdef>XrmBindingList <parameter>bindings_return</parameter></paramdef>
+  <paramdef>XrmQuarkList <parameter>quarks_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -710,7 +715,7 @@ To initialize the resource manager, use
 <funcsynopsis id='XrmInitialize'>
 <funcprototype>
   <funcdef>void <function>XrmInitialize</function></funcdef>
-  <paramdef>void<parameter> XrmInitialize(\|)</parameter></paramdef>
+  <paramdef>void <parameter>XrmInitialize(\|)</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -726,7 +731,7 @@ To retrieve a database from disk, use
 <funcsynopsis id='XrmGetFileDatabase'>
 <funcprototype>
   <funcdef>XrmDatabase <function>XrmGetFileDatabase</function></funcdef>
-  <paramdef>char<parameter> *filename</parameter></paramdef>
+  <paramdef>char *<parameter>filename</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -771,8 +776,8 @@ To store a copy of a database to disk, use
 <funcsynopsis id='XrmPutFileDatabase'>
 <funcprototype>
   <funcdef>void <function>XrmPutFileDatabase</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
-  <paramdef>char<parameter> *stored_db</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
+  <paramdef>char *<parameter>stored_db</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -825,7 +830,7 @@ To obtain a pointer to the screen-independent resources of a display, use
 <funcsynopsis id='XResourceManagerString'>
 <funcprototype>
   <funcdef>char *<function>XResourceManagerString</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -869,7 +874,7 @@ To obtain a pointer to the screen-specific resources of a screen, use
 <funcsynopsis id='XScreenResourceString'>
 <funcprototype>
   <funcdef>char *<function>XScreenResourceString</function></funcdef>
-  <paramdef>Screen<parameter> *screen</parameter></paramdef>
+  <paramdef>Screen *<parameter>screen</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -913,7 +918,7 @@ To create a database from a string, use
 <funcsynopsis id='XrmGetStringDatabase'>
 <funcprototype>
   <funcdef>XrmDatabase <function>XrmGetStringDatabase</function></funcdef>
-  <paramdef>char<parameter> *data</parameter></paramdef>
+  <paramdef>char *<parameter>data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -959,7 +964,7 @@ To obtain the locale name of a database, use
 <funcsynopsis id='XrmLocaleOfDatabase'>
 <funcprototype>
   <funcdef>char *<function>XrmLocaleOfDatabase</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -999,7 +1004,7 @@ To destroy a resource database and free its allocated memory, use
 <funcsynopsis id='XrmDestroyDatabase'>
 <funcprototype>
   <funcdef>void <function>XrmDestroyDatabase</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1033,8 +1038,8 @@ To associate a resource database with a display, use
 <funcsynopsis id='XrmSetDatabase'>
 <funcprototype>
   <funcdef>void <function>XrmSetDatabase</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1082,7 +1087,7 @@ To get the resource database associated with a display, use
 <funcsynopsis id='XrmGetDatabase'>
 <funcprototype>
   <funcdef>XrmDatabase <function>XrmGetDatabase</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1122,9 +1127,9 @@ To merge the contents of a resource file into a database, use
 <funcsynopsis id='XrmCombineFileDatabase'>
 <funcprototype>
   <funcdef>Status <function>XrmCombineFileDatabase</function></funcdef>
-  <paramdef>char<parameter> *filename</parameter></paramdef>
-  <paramdef>XrmDatabase<parameter> *target_db</parameter></paramdef>
-  <paramdef>Bool<parameter> override</parameter></paramdef>
+  <paramdef>char *<parameter>filename</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>target_db</parameter></paramdef>
+  <paramdef>Bool <parameter>override</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1196,8 +1201,9 @@ To merge the contents of one database into another database, use
 <funcsynopsis id='XrmCombineDatabase'>
 <funcprototype>
   <funcdef>void <function>XrmCombineDatabase</function></funcdef>
-  <paramdef>XrmDatabasesource_db,<parameter> *target_db</parameter></paramdef>
-  <paramdef>Bool<parameter> override</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>source_db</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>target_db</parameter></paramdef>
+  <paramdef>Bool <parameter>override</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1266,7 +1272,8 @@ semantics, use
 <funcsynopsis id='XrmMergeDatabases'>
 <funcprototype>
   <funcdef>void <function>XrmMergeDatabases</function></funcdef>
-  <paramdef>XrmDatabasesource_db,<parameter> *target_db</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>source_db</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>target_db</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1322,11 +1329,11 @@ or
 <funcsynopsis id='XrmGetResource'>
 <funcprototype>
   <funcdef>Bool <function>XrmGetResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
-  <paramdef>char<parameter> *str_name</parameter></paramdef>
-  <paramdef>char<parameter> *str_class</parameter></paramdef>
-  <paramdef>char<parameter> **str_type_return</parameter></paramdef>
-  <paramdef>XrmValue<parameter> *value_return</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
+  <paramdef>char *<parameter>str_name</parameter></paramdef>
+  <paramdef>char *<parameter>str_class</parameter></paramdef>
+  <paramdef>char **<parameter>str_type_return</parameter></paramdef>
+  <paramdef>XrmValue *<parameter>value_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1387,11 +1394,11 @@ Returns the value in the database.
 <funcsynopsis id='XrmQGetResource'>
 <funcprototype>
   <funcdef>Bool <function>XrmQGetResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
-  <paramdef>XrmNameList<parameter> quark_name</parameter></paramdef>
-  <paramdef>XrmClassList<parameter> quark_class</parameter></paramdef>
-  <paramdef>XrmRepresentation<parameter> *quark_type_return</parameter></paramdef>
-  <paramdef>XrmValue<parameter> *value_return</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
+  <paramdef>XrmNameList <parameter>quark_name</parameter></paramdef>
+  <paramdef>XrmClassList <parameter>quark_class</parameter></paramdef>
+  <paramdef>XrmRepresentation *<parameter>quark_type_return</parameter></paramdef>
+  <paramdef>XrmValue *<parameter>value_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1507,11 +1514,11 @@ To obtain a list of database levels, use
 <funcsynopsis id='XrmQGetSearchResource'>
 <funcprototype>
   <funcdef>Bool <function>XrmQGetSearchResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
-  <paramdef>XrmNameList<parameter> names</parameter></paramdef>
-  <paramdef>XrmClassList<parameter> classes</parameter></paramdef>
-  <paramdef>XrmSearchList<parameter> list_return</parameter></paramdef>
-  <paramdef>int<parameter> list_length</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
+  <paramdef>XrmNameList <parameter>names</parameter></paramdef>
+  <paramdef>XrmClassList <parameter>classes</parameter></paramdef>
+  <paramdef>XrmSearchList <parameter>list_return</parameter></paramdef>
+  <paramdef>int <parameter>list_length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1616,11 +1623,11 @@ To search resource database levels for a given resource, use
 <funcsynopsis id='XrmQGetSearchResource_2'>
 <funcprototype>
   <funcdef>Bool <function>XrmQGetSearchResource</function></funcdef>
-  <paramdef>XrmSearchList<parameter> list</parameter></paramdef>
-  <paramdef>XrmName<parameter> name</parameter></paramdef>
-  <paramdef>XrmClass<parameter> class</parameter></paramdef>
-  <paramdef>XrmRepresentation<parameter> *type_return</parameter></paramdef>
-  <paramdef>XrmValue<parameter> *value_return</parameter></paramdef>
+  <paramdef>XrmSearchList <parameter>list</parameter></paramdef>
+  <paramdef>XrmName <parameter>name</parameter></paramdef>
+  <paramdef>XrmClass <parameter>class</parameter></paramdef>
+  <paramdef>XrmRepresentation *<parameter>type_return</parameter></paramdef>
+  <paramdef>XrmValue *<parameter>value_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1728,10 +1735,10 @@ This value is copied into the specified database.
 <funcsynopsis id='XrmPutResource'>
 <funcprototype>
   <funcdef>void <function>XrmPutResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> *database</parameter></paramdef>
-  <paramdef>char<parameter> *specifier</parameter></paramdef>
-  <paramdef>char<parameter> *type</parameter></paramdef>
-  <paramdef>XrmValue<parameter> *value</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>database</parameter></paramdef>
+  <paramdef>char *<parameter>specifier</parameter></paramdef>
+  <paramdef>char *<parameter>type</parameter></paramdef>
+  <paramdef>XrmValue *<parameter>value</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1804,11 +1811,11 @@ The value is stored in the database without modification.
 <funcsynopsis id='XrmQPutResource'>
 <funcprototype>
   <funcdef>void <function>XrmQPutResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> *database</parameter></paramdef>
-  <paramdef>XrmBindingList<parameter> bindings</parameter></paramdef>
-  <paramdef>XrmQuarkList<parameter> quarks</parameter></paramdef>
-  <paramdef>XrmRepresentation<parameter> type</parameter></paramdef>
-  <paramdef>XrmValue<parameter> *value</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>database</parameter></paramdef>
+  <paramdef>XrmBindingList <parameter>bindings</parameter></paramdef>
+  <paramdef>XrmQuarkList <parameter>quarks</parameter></paramdef>
+  <paramdef>XrmRepresentation <parameter>type</parameter></paramdef>
+  <paramdef>XrmValue *<parameter>value</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1886,9 +1893,9 @@ To add a resource that is specified as a string, use
 <funcsynopsis id='XrmPutStringResource'>
 <funcprototype>
   <funcdef>void <function>XrmPutStringResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> *database</parameter></paramdef>
-  <paramdef>char<parameter> *specifier</parameter></paramdef>
-  <paramdef>char<parameter> *value</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>database</parameter></paramdef>
+  <paramdef>char *<parameter>specifier</parameter></paramdef>
+  <paramdef>char *<parameter>value</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1953,10 +1960,10 @@ To add a string resource using quarks as a specification, use
 <funcsynopsis id='XrmQPutStringResource'>
 <funcprototype>
   <funcdef>void <function>XrmQPutStringResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> *database</parameter></paramdef>
-  <paramdef>XrmBindingList<parameter> bindings</parameter></paramdef>
-  <paramdef>XrmQuarkList<parameter> quarks</parameter></paramdef>
-  <paramdef>char<parameter> *value</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>database</parameter></paramdef>
+  <paramdef>XrmBindingList <parameter>bindings</parameter></paramdef>
+  <paramdef>XrmQuarkList <parameter>quarks</parameter></paramdef>
+  <paramdef>char *<parameter>value</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2031,8 +2038,8 @@ both a name and a value, use
 <funcsynopsis id='XrmPutLineResource'>
 <funcprototype>
   <funcdef>void <function>XrmPutLineResource</function></funcdef>
-  <paramdef>XrmDatabase<parameter> *database</parameter></paramdef>
-  <paramdef>char<parameter> *line</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>database</parameter></paramdef>
+  <paramdef>char *<parameter>line</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2100,12 +2107,12 @@ To enumerate the entries of a database, use
 <funcsynopsis id='XrmEnumerateDatabase'>
 <funcprototype>
   <funcdef>Bool <function>XrmEnumerateDatabase</function></funcdef>
-  <paramdef>XrmDatabase<parameter> database</parameter></paramdef>
-  <paramdef>XrmNameList<parameter> name_prefix</parameter></paramdef>
-  <paramdef>XrmClassList<parameter> class_prefix</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
-  <paramdef>Bool<parameter> (*proc)()</parameter></paramdef>
-  <paramdef>XPointer<parameter> arg</parameter></paramdef>
+  <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
+  <paramdef>XrmNameList <parameter>name_prefix</parameter></paramdef>
+  <paramdef>XrmClassList <parameter>class_prefix</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
+  <paramdef>Bool <parameter>(*proc)()</parameter></paramdef>
+  <paramdef>XPointer <parameter>arg</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2305,12 +2312,12 @@ To load a resource database from a C command line, use
 <funcsynopsis id='XrmParseCommand'>
 <funcprototype>
   <funcdef>void <function>XrmParseCommand</function></funcdef>
-  <paramdef>XrmDatabase<parameter> *database</parameter></paramdef>
-  <paramdef>XrmOptionDescList<parameter> table</parameter></paramdef>
-  <paramdef>int<parameter> table_count</parameter></paramdef>
-  <paramdef>char<parameter> *name</parameter></paramdef>
-  <paramdef>int<parameter> *argc_in_out</parameter></paramdef>
-  <paramdef>char<parameter> **argv_in_out</parameter></paramdef>
+  <paramdef>XrmDatabase *<parameter>database</parameter></paramdef>
+  <paramdef>XrmOptionDescList <parameter>table</parameter></paramdef>
+  <paramdef>int <parameter>table_count</parameter></paramdef>
+  <paramdef>char *<parameter>name</parameter></paramdef>
+  <paramdef>int *<parameter>argc_in_out</parameter></paramdef>
+  <paramdef>char **<parameter>argv_in_out</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

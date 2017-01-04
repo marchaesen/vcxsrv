@@ -20,6 +20,9 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#ifndef OPENSSL_NO_CMS
+# include <openssl/cms.h>
+#endif
 #include "e_os.h"
 
 static const ASN1_ITEM *item_type;
@@ -142,13 +145,17 @@ int main(int argc, char **argv)
     int result = 0;
     const char *test_type_name;
     const char *expected_error_string;
+    const char *p = getenv("OPENSSL_DEBUG_MEMORY");
 
     size_t i;
     static ASN1_ITEM_EXP *items[] = {
         ASN1_ITEM_ref(ASN1_ANY),
         ASN1_ITEM_ref(X509),
         ASN1_ITEM_ref(GENERAL_NAME),
-        ASN1_ITEM_ref(ASN1_INTEGER)
+        ASN1_ITEM_ref(ASN1_INTEGER),
+#ifndef OPENSSL_NO_CMS
+        ASN1_ITEM_ref(CMS_ContentInfo)
+#endif
     };
 
     static error_enum expected_errors[] = {
@@ -158,6 +165,10 @@ int main(int argc, char **argv)
         {"encode", ASN1_ENCODE},
         {"compare", ASN1_COMPARE}
     };
+
+    if (p != NULL && strcmp(p, "on") == 0)
+        CRYPTO_set_mem_debug(1);
+    CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
 
     if (argc != 4) {
         fprintf(stderr,
@@ -201,6 +212,11 @@ int main(int argc, char **argv)
     ADD_TEST(test_bad_asn1);
 
     result = run_tests(argv[0]);
+
+#ifndef OPENSSL_NO_CRYPTO_MDEBUG
+    if (CRYPTO_mem_leaks_fp(stderr) <= 0)
+        result = 1;
+#endif
 
     return result;
 }

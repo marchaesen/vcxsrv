@@ -104,8 +104,8 @@ To obtain a KeySym for the KeyCode of an event, use
 <funcsynopsis id='XLookupKeysym'>
 <funcprototype>
   <funcdef>KeySym <function>XLookupKeysym</function></funcdef>
-  <paramdef>XKeyEvent<parameter> *key_event</parameter></paramdef>
-  <paramdef>int<parameter> index</parameter></paramdef>
+  <paramdef>XKeyEvent *<parameter>key_event</parameter></paramdef>
+  <paramdef>int <parameter>index</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -162,9 +162,9 @@ To obtain a KeySym for a specific KeyCode, use
 <funcsynopsis id='XKeycodeToKeysym'>
 <funcprototype>
   <funcdef>KeySym <function>XKeycodeToKeysym</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>KeyCode<parameter> keycode</parameter></paramdef>
-  <paramdef>int<parameter> index</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  <paramdef>int <parameter>index</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -224,8 +224,8 @@ To obtain a KeyCode for a key having a specific KeySym, use
 <funcsynopsis id='XKeysymToKeycode'>
 <funcprototype>
   <funcdef>KeyCode <function>XKeysymToKeycode</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>KeySym<parameter> keysym</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>KeySym <parameter>keysym</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -272,7 +272,7 @@ To refresh the stored modifier and keymap information, use
 <funcsynopsis id='XRefreshKeyboardMapping'>
 <funcprototype>
   <funcdef><function>XRefreshKeyboardMapping</function></funcdef>
-  <paramdef>XMappingEvent<parameter> *event_map</parameter></paramdef>
+  <paramdef>XMappingEvent *<parameter>event_map</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -314,9 +314,9 @@ To obtain the uppercase and lowercase forms of a KeySym, use
 <funcsynopsis id='XConvertCase'>
 <funcprototype>
   <funcdef>void <function>XConvertCase</function></funcdef>
-  <paramdef>KeySym<parameter> keysym</parameter></paramdef>
-  <paramdef>KeySym<parameter> *lower_return</parameter></paramdef>
-  <paramdef>KeySym<parameter> *upper_return</parameter></paramdef>
+  <paramdef>KeySym <parameter>keysym</parameter></paramdef>
+  <paramdef>KeySym *<parameter>lower_return</parameter></paramdef>
+  <paramdef>KeySym *<parameter>upper_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -376,7 +376,7 @@ To convert the name of the KeySym to the KeySym code, use
 <funcsynopsis id='XStringToKeysym'>
 <funcprototype>
   <funcdef>KeySym <function>XStringToKeysym</function></funcdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -426,7 +426,7 @@ To convert a KeySym code to the name of the KeySym, use
 <funcsynopsis id='XKeysymToString'>
 <funcprototype>
   <funcdef>char *<function>XKeysymToString</function></funcdef>
-  <paramdef>KeySym<parameter> keysym</parameter></paramdef>
+  <paramdef>KeySym <parameter>keysym</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -670,11 +670,11 @@ To map a key event to an ISO Latin-1 string, use
 <funcsynopsis id='XLookupString'>
 <funcprototype>
   <funcdef>int <function>XLookupString</function></funcdef>
-  <paramdef>XKeyEvent<parameter> *event_struct</parameter></paramdef>
-  <paramdef>char<parameter> *buffer_return</parameter></paramdef>
-  <paramdef>int<parameter> bytes_buffer</parameter></paramdef>
-  <paramdef>KeySym<parameter> *keysym_return</parameter></paramdef>
-  <paramdef>XComposeStatus<parameter> *status_in_out</parameter></paramdef>
+  <paramdef>XKeyEvent *<parameter>event_struct</parameter></paramdef>
+  <paramdef>char *<parameter>buffer_return</parameter></paramdef>
+  <paramdef>int <parameter>bytes_buffer</parameter></paramdef>
+  <paramdef>KeySym *<parameter>keysym_return</parameter></paramdef>
+  <paramdef>XComposeStatus *<parameter>status_in_out</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -792,12 +792,12 @@ use
 <funcsynopsis id='XRebindKeysym'>
 <funcprototype>
   <funcdef><function>XRebindKeysym</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>KeySym<parameter> keysym</parameter></paramdef>
-  <paramdef>KeySym<parameter> list[&hairsp;]</parameter></paramdef>
-  <paramdef>int<parameter> mod_count</parameter></paramdef>
-  <paramdef>unsignedchar<parameter> *string</parameter></paramdef>
-  <paramdef>int<parameter> num_bytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>KeySym <parameter>keysym</parameter></paramdef>
+  <paramdef>KeySym <parameter>list[&hairsp;]</parameter></paramdef>
+  <paramdef>int <parameter>mod_count</parameter></paramdef>
+  <paramdef>unsignedchar *<parameter>string</parameter></paramdef>
+  <paramdef>int <parameter>num_bytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -895,7 +895,7 @@ To allocate some memory you will never give back, use
 <funcsynopsis id='Xpermalloc'>
 <funcprototype>
   <funcdef>char *<function>Xpermalloc</function></funcdef>
-  <paramdef>unsigned int <parameter> size</parameter></paramdef>
+  <paramdef>unsigned int <parameter>size</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -928,10 +928,11 @@ To parse standard window geometry strings, use
 <funcsynopsis id='XParseGeometry'>
 <funcprototype>
   <funcdef>int <function>XParseGeometry</function></funcdef>
-  <paramdef>char<parameter> *parsestring</parameter></paramdef>
-  <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
+  <paramdef>char *<parameter>parsestring</parameter></paramdef>
+  <paramdef>int *<parameter>x_return</parameter></paramdef>
+  <paramdef>int *<parameter>y_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1063,16 +1064,17 @@ To construct a window's geometry information, use
 <funcsynopsis id='XWMGeometry'>
 <funcprototype>
   <funcdef>int <function>XWMGeometry</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> screen</parameter></paramdef>
-  <paramdef>char<parameter> *user_geom</parameter></paramdef>
-  <paramdef>char<parameter> *def_geom</parameter></paramdef>
-  <paramdef>unsigned int <parameter> bwidth</parameter></paramdef>
-  <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
-  <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
-  <paramdef>int<parameter> *width_return</parameter></paramdef>
-  <paramdef>int<parameter> *height_return</parameter></paramdef>
-  <paramdef>int<parameter> *gravity_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>screen</parameter></paramdef>
+  <paramdef>char *<parameter>user_geom</parameter></paramdef>
+  <paramdef>char *<parameter>def_geom</parameter></paramdef>
+  <paramdef>unsigned int <parameter>bwidth</parameter></paramdef>
+  <paramdef>XSizeHints *<parameter>hints</parameter></paramdef>
+  <paramdef>int *<parameter>x_return</parameter></paramdef>
+  <paramdef>int *<parameter>y_return</parameter></paramdef>
+  <paramdef>int *<parameter>width_return</parameter></paramdef>
+  <paramdef>int *<parameter>height_return</parameter></paramdef>
+  <paramdef>int *<parameter>gravity_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1287,7 +1289,13 @@ Locate a point or rectangle in a region
 To create a new empty region, use
 <function>XCreateRegion</function>.
 </para>
-<para>Region XCreateRegion()</para>
+
+<funcsynopsis id='XCreateRegion'>
+<funcprototype>
+  <funcdef>Region <function>XCreateRegion</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 
 <para>
 <!-- .LP -->
@@ -1301,9 +1309,9 @@ To generate a region from a polygon, use
 <funcsynopsis id='XPolygonRegion'>
 <funcprototype>
   <funcdef>Region <function>XPolygonRegion</function></funcdef>
-  <paramdef>XPoint<parameter> points[]</parameter></paramdef>
-  <paramdef>int<parameter> n</parameter></paramdef>
-  <paramdef>int<parameter> fill_rule</parameter></paramdef>
+  <paramdef>XPoint <parameter>points[]</parameter></paramdef>
+  <paramdef>int <parameter>n</parameter></paramdef>
+  <paramdef>int <parameter>fill_rule</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1365,9 +1373,9 @@ To set the clip-mask of a GC to a region, use
 <funcsynopsis id='XSetRegion'>
 <funcprototype>
   <funcdef><function>XSetRegion</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>GC <parameter>gc</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1425,7 +1433,7 @@ To deallocate the storage associated with a specified region, use
 <funcsynopsis id='XDestroyRegion'>
 <funcprototype>
   <funcdef><function>XDestroyRegion</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1461,8 +1469,9 @@ To move a region by a specified amount, use
 <funcsynopsis id='XOffsetRegion'>
 <funcprototype>
   <funcdef><function>XOffsetRegion</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
-  <paramdef>intdx,<parameter> dy</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
+  <paramdef>int <parameter>dx</parameter></paramdef>
+  <paramdef>int <parameter>dy</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1512,8 +1521,9 @@ To reduce a region by a specified amount, use
 <funcsynopsis id='XShrinkRegion'>
 <funcprototype>
   <funcdef><function>XShrinkRegion</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
-  <paramdef>intdx,<parameter> dy</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
+  <paramdef>int <parameter>dx</parameter></paramdef>
+  <paramdef>int <parameter>dy</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1574,8 +1584,8 @@ To generate the smallest rectangle enclosing a region, use
 <funcsynopsis id='XClipBox'>
 <funcprototype>
   <funcdef><function>XClipBox</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
-  <paramdef>XRectangle<parameter> *rect_return</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
+  <paramdef>XRectangle *<parameter>rect_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1619,7 +1629,9 @@ To compute the intersection of two regions, use
 <funcsynopsis id='XIntersectRegion'>
 <funcprototype>
   <funcdef><function>XIntersectRegion</function></funcdef>
-  <paramdef>Regionsra,srb,<parameter> dr_return</parameter></paramdef>
+  <paramdef>Region <parameter>sra</parameter></paramdef>
+  <paramdef>Region <parameter>srb</parameter></paramdef>
+  <paramdef>Region <parameter>dr_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1668,7 +1680,9 @@ To compute the union of two regions, use
 <funcsynopsis id='XUnionRegion'>
 <funcprototype>
   <funcdef><function>XUnionRegion</function></funcdef>
-  <paramdef>Regionsra,srb,<parameter> dr_return</parameter></paramdef>
+  <paramdef>Region <parameter>sra</parameter></paramdef>
+  <paramdef>Region <parameter>srb</parameter></paramdef>
+  <paramdef>Region <parameter>dr_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1717,9 +1731,9 @@ To create a union of a source region and a rectangle, use
 <funcsynopsis id='XUnionRectWithRegion'>
 <funcprototype>
   <funcdef><function>XUnionRectWithRegion</function></funcdef>
-  <paramdef>XRectangle<parameter> *rectangle</parameter></paramdef>
-  <paramdef>Region<parameter> src_region</parameter></paramdef>
-  <paramdef>Region<parameter> dest_region_return</parameter></paramdef>
+  <paramdef>XRectangle *<parameter>rectangle</parameter></paramdef>
+  <paramdef>Region <parameter>src_region</parameter></paramdef>
+  <paramdef>Region <parameter>dest_region_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1774,7 +1788,9 @@ To subtract two regions, use
 <funcsynopsis id='XSubtractRegion'>
 <funcprototype>
   <funcdef><function>XSubtractRegion</function></funcdef>
-  <paramdef>Regionsra,srb,<parameter> dr_return</parameter></paramdef>
+  <paramdef>Region <parameter>sra</parameter></paramdef>
+  <paramdef>Region <parameter>srb</parameter></paramdef>
+  <paramdef>Region <parameter>dr_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1830,7 +1846,9 @@ of two regions, use
 <funcsynopsis id='XXorRegion'>
 <funcprototype>
   <funcdef><function>XXorRegion</function></funcdef>
-  <paramdef>Regionsra,srb,<parameter> dr_return</parameter></paramdef>
+  <paramdef>Region <parameter>sra</parameter></paramdef>
+  <paramdef>Region <parameter>srb</parameter></paramdef>
+  <paramdef>Region <parameter>dr_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1887,7 +1905,7 @@ To determine if the specified region is empty, use
 <funcsynopsis id='XEmptyRegion'>
 <funcprototype>
   <funcdef>Bool <function>XEmptyRegion</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1923,7 +1941,8 @@ To determine if two regions have the same offset, size, and shape, use
 <funcsynopsis id='XEqualRegion'>
 <funcprototype>
   <funcdef>Bool <function>XEqualRegion</function></funcdef>
-  <paramdef>Regionr1,<parameter> r2</parameter></paramdef>
+  <paramdef>Region <parameter>r1</parameter></paramdef>
+  <paramdef>Region <parameter>r2</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1975,7 +1994,7 @@ To determine if a specified point resides in a specified region, use
 <funcsynopsis id='XPointInRegion'>
 <funcprototype>
   <funcdef>Bool <function>XPointInRegion</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
@@ -2034,7 +2053,7 @@ To determine if a specified rectangle is inside a region, use
 <funcsynopsis id='XRectInRegion'>
 <funcprototype>
   <funcdef>int <function>XRectInRegion</function></funcdef>
-  <paramdef>Region<parameter> r</parameter></paramdef>
+  <paramdef>Region <parameter>r</parameter></paramdef>
   <paramdef>int <parameter>x</parameter></paramdef>
   <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
@@ -2148,9 +2167,9 @@ To store data in cut buffer 0, use
 <funcsynopsis id='XStoreBytes'>
 <funcprototype>
   <funcdef><function>XStoreBytes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *bytes</parameter></paramdef>
-  <paramdef>int<parameter> nbytes</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>bytes</parameter></paramdef>
+  <paramdef>int <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN  -->
@@ -2213,10 +2232,10 @@ To store data in a specified cut buffer, use
 <funcsynopsis id='XStoreBuffer'>
 <funcprototype>
   <funcdef><function>XStoreBuffer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *bytes</parameter></paramdef>
-  <paramdef>int<parameter> nbytes</parameter></paramdef>
-  <paramdef>int<parameter> buffer</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>bytes</parameter></paramdef>
+  <paramdef>int <parameter>nbytes</parameter></paramdef>
+  <paramdef>int <parameter>buffer</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2287,8 +2306,8 @@ To return data from cut buffer 0, use
 <funcsynopsis id='XFetchBytes'>
 <funcprototype>
   <funcdef>char *<function>XFetchBytes</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> *nbytes_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>nbytes_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2339,9 +2358,9 @@ To return data from a specified cut buffer, use
 <funcsynopsis id='XFetchBuffer'>
 <funcprototype>
   <funcdef>char *<function>XFetchBuffer</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> *nbytes_return</parameter></paramdef>
-  <paramdef>int<parameter> buffer</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int *<parameter>nbytes_return</parameter></paramdef>
+  <paramdef>int <parameter>buffer</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2397,8 +2416,8 @@ To rotate the cut buffers, use
 <funcsynopsis id='XRotateBuffers'>
 <funcprototype>
   <funcdef><function>XRotateBuffers</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> rotate</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>rotate</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2517,10 +2536,10 @@ template, use
 <funcsynopsis id='XGetVisualInfo'>
 <funcprototype>
   <funcdef>XVisualInfo *<function>XGetVisualInfo</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>long<parameter> vinfo_mask</parameter></paramdef>
-  <paramdef>XVisualInfo<parameter> *vinfo_template</parameter></paramdef>
-  <paramdef>int<parameter> *nitems_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>long <parameter>vinfo_mask</parameter></paramdef>
+  <paramdef>XVisualInfo *<parameter>vinfo_template</parameter></paramdef>
+  <paramdef>int *<parameter>nitems_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2592,11 +2611,11 @@ class of the screen, use
 <funcsynopsis id='XMatchVisualInfo'>
 <funcprototype>
   <funcdef>Status <function>XMatchVisualInfo</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> screen</parameter></paramdef>
-  <paramdef>int<parameter> depth</parameter></paramdef>
-  <paramdef>int<parameter> class</parameter></paramdef>
-  <paramdef>XVisualInfo<parameter> *vinfo_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>screen</parameter></paramdef>
+  <paramdef>int <parameter>depth</parameter></paramdef>
+  <paramdef>int <parameter>class</parameter></paramdef>
+  <paramdef>XVisualInfo *<parameter>vinfo_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2742,16 +2761,16 @@ structure and initialize it with image format values from a display, use
 <funcsynopsis id='XCreateImage'>
 <funcprototype>
   <funcdef>XImage *<function>XCreateImage</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Visual<parameter> *visual</parameter></paramdef>
-  <paramdef>unsigned int <parameter> depth</parameter></paramdef>
-  <paramdef>int<parameter> format</parameter></paramdef>
-  <paramdef>int<parameter> offset</parameter></paramdef>
-  <paramdef>char<parameter> *data</parameter></paramdef>
-  <paramdef>unsigned int <parameter> width</parameter></paramdef>
-  <paramdef>unsigned int <parameter> height</parameter></paramdef>
-  <paramdef>int<parameter> bitmap_pad</parameter></paramdef>
-  <paramdef>int<parameter> bytes_per_line</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Visual *<parameter>visual</parameter></paramdef>
+  <paramdef>unsigned int <parameter>depth</parameter></paramdef>
+  <paramdef>int <parameter>format</parameter></paramdef>
+  <paramdef>int <parameter>offset</parameter></paramdef>
+  <paramdef>char *<parameter>data</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
+  <paramdef>int <parameter>bitmap_pad</parameter></paramdef>
+  <paramdef>int <parameter>bytes_per_line</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2925,9 +2944,9 @@ To obtain a pixel value in an image, use
 <funcsynopsis id='XGetPixel'>
 <funcprototype>
   <funcdef>unsigned long <function>XGetPixel</function></funcdef>
-  <paramdef>XImage<parameter> *ximage</parameter></paramdef>
-  <paramdef>int<parameter> x</parameter></paramdef>
-  <paramdef>int<parameter> y</parameter></paramdef>
+  <paramdef>XImage *<parameter>ximage</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2986,10 +3005,10 @@ To set a pixel value in an image, use
 <funcsynopsis id='XPutPixel'>
 <funcprototype>
   <funcdef><function>XPutPixel</function></funcdef>
-  <paramdef>XImage<parameter> *ximage</parameter></paramdef>
-  <paramdef>int<parameter> x</parameter></paramdef>
-  <paramdef>int<parameter> y</parameter></paramdef>
-  <paramdef>unsigned long <parameter> pixel</parameter></paramdef>
+  <paramdef>XImage *<parameter>ximage</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>unsigned long <parameter>pixel</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3058,11 +3077,11 @@ To create a subimage, use
 <funcsynopsis id='XSubImage'>
 <funcprototype>
   <funcdef>XImage *<function>XSubImage</function></funcdef>
-  <paramdef>XImage<parameter> *ximage</parameter></paramdef>
-  <paramdef>int<parameter> x</parameter></paramdef>
-  <paramdef>int<parameter> y</parameter></paramdef>
-  <paramdef>unsigned int <parameter> subimage_width</parameter></paramdef>
-  <paramdef>unsigned int <parameter> subimage_height</parameter></paramdef>
+  <paramdef>XImage *<parameter>ximage</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>unsigned int <parameter>subimage_width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>subimage_height</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3144,8 +3163,8 @@ To increment each pixel in an image by a constant value, use
 <funcsynopsis id='XAddPixel'>
 <funcprototype>
   <funcdef><function>XAddPixel</function></funcdef>
-  <paramdef>XImage<parameter> *ximage</parameter></paramdef>
-  <paramdef>long<parameter> value</parameter></paramdef>
+  <paramdef>XImage *<parameter>ximage</parameter></paramdef>
+  <paramdef>long <parameter>value</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3280,13 +3299,14 @@ To read a bitmap from a file and store it in a pixmap, use
 <funcsynopsis id='XReadBitmapFile'>
 <funcprototype>
   <funcdef>int <function>XReadBitmapFile</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>char<parameter> *filename</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
-  <paramdef>Pixmap<parameter> *bitmap_return</parameter></paramdef>
-  <paramdef>int*x_hot_return,<parameter> *y_hot_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>char *<parameter>filename</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
+  <paramdef>Pixmap *<parameter>bitmap_return</parameter></paramdef>
+  <paramdef>int *<parameter>x_hot_return</parameter></paramdef>
+  <paramdef>int *<parameter>y_hot_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3435,11 +3455,12 @@ To read a bitmap from a file and return it as data, use
 <funcsynopsis id='XReadBitmapFileData'>
 <funcprototype>
   <funcdef>int <function>XReadBitmapFileData</function></funcdef>
-  <paramdef>char<parameter> *filename</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
-  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
-  <paramdef>unsignedchar<parameter> *data_return</parameter></paramdef>
-  <paramdef>int*x_hot_return,<parameter> *y_hot_return</parameter></paramdef>
+  <paramdef>char *<parameter>filename</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>width_return</parameter></paramdef>
+  <paramdef>unsigned int *<parameter>height_return</parameter></paramdef>
+  <paramdef>unsignedchar *<parameter>data_return</parameter></paramdef>
+  <paramdef>int *<parameter>x_hot_return</parameter></paramdef>
+  <paramdef>int *<parameter>y_hot_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3533,12 +3554,13 @@ To write out a bitmap from a pixmap to a file, use
 <funcsynopsis id='XWriteBitmapFile'>
 <funcprototype>
   <funcdef>int <function>XWriteBitmapFile</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char<parameter> *filename</parameter></paramdef>
-  <paramdef>Pixmap<parameter> bitmap</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>filename</parameter></paramdef>
+  <paramdef>Pixmap <parameter>bitmap</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>intx_hot,<parameter> y_hot</parameter></paramdef>
+  <paramdef>int <parameter>x_hot</parameter></paramdef>
+  <paramdef>int <parameter>y_hot</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3661,13 +3683,14 @@ To create a pixmap and then store bitmap-format data into it, use
 <funcsynopsis id='XCreatePixmapFromBitmapData'>
 <funcprototype>
   <funcdef>Pixmap <function>XCreatePixmapFromBitmapData</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>char<parameter> *data</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>char *<parameter>data</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
-  <paramdef>unsigned long fg,<parameter> bg</parameter></paramdef>
-  <paramdef>unsigned int <parameter> depth</parameter></paramdef>
+  <paramdef>unsigned long <parameter>fg</parameter></paramdef>
+  <paramdef>unsigned long <parameter>bg</parameter></paramdef>
+  <paramdef>unsigned int <parameter>depth</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3793,9 +3816,9 @@ in a program directly, as opposed to reading it in every time at run time, use
 <funcsynopsis id='XCreateBitmapFromData'>
 <funcprototype>
   <funcdef>Pixmap <function>XCreateBitmapFromData</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Drawable<parameter> d</parameter></paramdef>
-  <paramdef>char<parameter> *data</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Drawable <parameter>d</parameter></paramdef>
+  <paramdef>char *<parameter>data</parameter></paramdef>
   <paramdef>unsigned int <parameter>width</parameter></paramdef>
   <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
@@ -3939,10 +3962,10 @@ To save a data value that corresponds to a resource ID and context type, use
 <funcsynopsis id='XSaveContext'>
 <funcprototype>
   <funcdef>int <function>XSaveContext</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> rid</parameter></paramdef>
-  <paramdef>XContext<parameter> context</parameter></paramdef>
-  <paramdef>XPointer<parameter> data</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>rid</parameter></paramdef>
+  <paramdef>XContext <parameter>context</parameter></paramdef>
+  <paramdef>XPointer <parameter>data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4013,10 +4036,10 @@ To get the data associated with a resource ID and type, use
 <funcsynopsis id='XFindContext'>
 <funcprototype>
   <funcdef>int <function>XFindContext</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> rid</parameter></paramdef>
-  <paramdef>XContext<parameter> context</parameter></paramdef>
-  <paramdef>XPointer<parameter> *data_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>rid</parameter></paramdef>
+  <paramdef>XContext <parameter>context</parameter></paramdef>
+  <paramdef>XPointer *<parameter>data_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4086,9 +4109,9 @@ To delete an entry for a given resource ID and type, use
 <funcsynopsis id='XDeleteContext'>
 <funcprototype>
   <funcdef>int <function>XDeleteContext</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XID<parameter> rid</parameter></paramdef>
-  <paramdef>XContext<parameter> context</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XID <parameter>rid</parameter></paramdef>
+  <paramdef>XContext <parameter>context</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -4147,7 +4170,13 @@ and
 use
 <function>XUniqueContext</function>.
 </para>
-<para>XContext XuniqueContext()</para>
+
+<funcsynopsis id='XUniqueContext'>
+<funcprototype>
+  <funcdef>XContext <function>XUniqueContext</function></funcdef>
+  <void />
+</funcprototype>
+</funcsynopsis>
 
 </sect1>
 </chapter>

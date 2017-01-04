@@ -153,6 +153,10 @@ LIBDIR={- #
 ENGINESDIR={- use File::Spec::Functions;
               catdir($prefix,$libdir,"engines-$sover") -}
 
+# Convenience variable for those who want to set the rpath in shared
+# libraries and applications
+LIBRPATH=$(INSTALLTOP)/$(LIBDIR)
+
 MANDIR=$(INSTALLTOP)/share/man
 DOCDIR=$(INSTALLTOP)/share/doc/$(BASENAME)
 HTMLDIR=$(DOCDIR)/html
@@ -173,20 +177,7 @@ LDFLAGS= {- $target{lflags} -}
 PLIB_LDFLAGS= {- $target{plib_lflags} -}
 EX_LIBS= {- $target{ex_libs} -} {- $config{ex_libs} -}
 LIB_CFLAGS={- $target{shared_cflag} || "" -}
-LIB_LDFLAGS={- $target{shared_ldflag}." ".$config{shared_ldflag}
-               # Unlike other OSes (like Solaris, Linux, Tru64,
-               # IRIX) BSD run-time linkers (tested OpenBSD, NetBSD
-               # and FreeBSD) "demand" RPATH set on .so objects.
-               # Apparently application RPATH is not global and
-               # does not apply to .so linked with other .so.
-               # Problem manifests itself when libssl.so fails to
-               # load libcrypto.so. One can argue that we should
-               # engrave this into Makefile.shared rules or into
-               # BSD-* config lines above. Meanwhile let's try to
-               # be cautious and pass -rpath to linker only when
-               # $prefix is not /usr.
-               . ($config{target} =~ m|^BSD-| && $prefix !~ m|^/usr/.*$|
-                  ? " -Wl,-rpath,\$\$(LIBRPATH)" : "") -}
+LIB_LDFLAGS={- $target{shared_ldflag}." ".$config{shared_ldflag} -}
 DSO_CFLAGS={- $target{shared_cflag} || "" -}
 DSO_LDFLAGS=$(LIB_LDFLAGS)
 BIN_CFLAGS={- $target{bin_cflags} -}
@@ -255,6 +246,7 @@ test: tests
 	  PERL="$(PERL)" \
 	  EXE_EXT={- $exeext -} \
 	  OPENSSL_ENGINES=../$(BLDDIR)/engines \
+	  OPENSSL_DEBUG_MEMORY=on \
 	    $(PERL) ../$(SRCDIR)/test/run_tests.pl $(TESTS) )
 	@ : {- if ($disabled{tests}) { output_on(); } else { output_off(); } "" -}
 	@echo "Tests are not supported with your chosen Configure options"
@@ -301,14 +293,12 @@ distclean: clean
 	$(RM) configdata.pm
 	$(RM) Makefile
 
-# This exists solely for those who still type 'make depend'
-#
 # We check if any depfile is newer than Makefile and decide to
 # concatenate only if that is true.
 depend:
 	@: {- output_off() if $disabled{makedepend}; "" -}
-	@if [ -n "`find $(DEPS) -newer Makefile 2>/dev/null; exit 0`" ]; then \
-	  ( sed -e '/^# DO NOT DELETE THIS LINE.*/,$$d' < Makefile; \
+	@if egrep "^# DO NOT DELETE THIS LINE" Makefile >/dev/null && [ -z "`find $(DEPS) -newer Makefile 2>/dev/null; exit 0`" ]; then :; else \
+	  ( $(PERL) -pe 'exit 0 if /^# DO NOT DELETE THIS LINE.*/' < Makefile; \
 	    echo '# DO NOT DELETE THIS LINE -- make depend depends on it.'; \
 	    echo; \
 	    for f in $(DEPS); do \
@@ -771,7 +761,7 @@ tar:
 	cd $(SRCDIR); ls -l $(TARFILE).gz
 
 dist:
-	@$(MAKE) PREPARE_CMD='./Configure dist' tar
+	@$(MAKE) PREPARE_CMD='$(PERL) ./Configure dist' tar
 
 # Helper targets #####################################################
 
@@ -830,7 +820,7 @@ openssl.pc:
 configdata.pm: $(SRCDIR)/Configure $(SRCDIR)/config {- join(" ", @{$config{build_file_templates}}, @{$config{build_infos}}, @{$config{conf_files}}) -}
 	@echo "Detected changed: $?"
 	@echo "Reconfiguring..."
-	$(SRCDIR)/Configure reconf
+	$(PERL) $(SRCDIR)/Configure reconf
 	@echo "**************************************************"
 	@echo "***                                            ***"
 	@echo "***   Please run the same make command again   ***"
@@ -1079,7 +1069,7 @@ $bin$exeext: $objs $deps
 		APPNAME=$bin$exeext OBJECTS="$objs" \\
 		LIBDEPS='\$(PLIB_LDFLAGS) '"$linklibs"' \$(EX_LIBS)' \\
 		CC='\$(CC)' CFLAGS='\$(CFLAGS) \$(BIN_CFLAGS)' \\
-		LDFLAGS='\$(LDFLAGS)' LIBRPATH='\$(INSTALLTOP)/\$(LIBDIR)' \\
+		LDFLAGS='\$(LDFLAGS)' \\
 		link_app.$shlib_target
 EOF
   }

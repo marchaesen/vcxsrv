@@ -1,3 +1,11 @@
 ; zlib data compression library
 EXPORTS
 
+    deflateGetDictionary
+    uncompress2
+    gzfread
+    gzfwrite
+    adler32_z
+    crc32_z
+    inflateValidate
+    inflateCodesUsed

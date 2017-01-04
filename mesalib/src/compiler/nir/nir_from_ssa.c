@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 #include "nir_vla.h"
 
 /*
@@ -35,12 +36,11 @@
  */
 
 struct from_ssa_state {
-   void *mem_ctx;
+   nir_builder builder;
    void *dead_ctx;
    bool phi_webs_only;
    struct hash_table *merge_node_table;
    nir_instr *instr;
-   nir_function_impl *impl;
 };
 
 /* Returns true if a dominates b */
@@ -477,7 +477,7 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
        * matter which node's definition we use.
        */
       if (node->set->reg == NULL)
-         node->set->reg = create_reg_for_ssa_def(def, state->impl);
+         node->set->reg = create_reg_for_ssa_def(def, state->builder.impl);
 
       reg = node->set->reg;
    } else {
@@ -490,7 +490,7 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
       if (def->parent_instr->type == nir_instr_type_load_const)
          return true;
 
-      reg = create_reg_for_ssa_def(def, state->impl);
+      reg = create_reg_for_ssa_def(def, state->builder.impl);
    }
 
    nir_ssa_def_rewrite_uses(def, nir_src_for_reg(reg));
@@ -539,8 +539,7 @@ resolve_registers_block(nir_block *block, struct from_ssa_state *state)
 }
 
 static void
-emit_copy(nir_parallel_copy_instr *pcopy, nir_src src, nir_src dest_src,
-          void *mem_ctx)
+emit_copy(nir_builder *b, nir_src src, nir_src dest_src)
 {
    assert(!dest_src.is_ssa &&
           dest_src.reg.indirect == NULL &&
@@ -551,12 +550,12 @@ emit_copy(nir_parallel_copy_instr *pcopy, nir_src src, nir_src dest_src,
    else
       assert(src.reg.reg->num_components >= dest_src.reg.reg->num_components);
 
-   nir_alu_instr *mov = nir_alu_instr_create(mem_ctx, nir_op_imov);
+   nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_imov);
    nir_src_copy(&mov->src[0].src, &src, mov);
    mov->dest.dest = nir_dest_for_reg(dest_src.reg.reg);
    mov->dest.write_mask = (1 << dest_src.reg.reg->num_components) - 1;
 
-   nir_instr_insert_before(&pcopy->instr, &mov->instr);
+   nir_builder_instr_insert(b, &mov->instr);
 }
 
 /* Resolves a single parallel copy operation into a sequence of mov's
@@ -612,6 +611,8 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
    /* The destinations we have yet to properly fill */
    NIR_VLA(int, to_do, num_copies * 2);
    int to_do_idx = -1;
+
+   state->builder.cursor = nir_before_instr(&pcopy->instr);
 
    /* Now we set everything up:
     *  - All values get assigned a temporary index
@@ -676,7 +677,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
       while (ready_idx >= 0) {
          int b = ready[ready_idx--];
          int a = pred[b];
-         emit_copy(pcopy, values[loc[a]], values[b], state->mem_ctx);
+         emit_copy(&state->builder, values[loc[a]], values[b]);
 
          /* If any other copies want a they can find it at b */
          loc[a] = b;
@@ -702,7 +703,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
        * backend can coalesce the (possibly multiple) temporaries.
        */
       assert(num_vals < num_copies * 2);
-      nir_register *reg = nir_local_reg_create(state->impl);
+      nir_register *reg = nir_local_reg_create(state->builder.impl);
       reg->name = "copy_temp";
       reg->num_array_elems = 0;
       if (values[b].is_ssa)
@@ -712,7 +713,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
       values[num_vals].is_ssa = false;
       values[num_vals].reg.reg = reg;
 
-      emit_copy(pcopy, values[b], values[num_vals], state->mem_ctx);
+      emit_copy(&state->builder, values[b], values[num_vals]);
       loc[b] = num_vals;
       ready[++ready_idx] = b;
       num_vals++;
@@ -760,9 +761,8 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
 {
    struct from_ssa_state state;
 
-   state.mem_ctx = ralloc_parent(impl);
+   nir_builder_init(&state.builder, impl);
    state.dead_ctx = ralloc_context(NULL);
-   state.impl = impl;
    state.phi_webs_only = phi_webs_only;
    state.merge_node_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                                     _mesa_key_pointer_equal);

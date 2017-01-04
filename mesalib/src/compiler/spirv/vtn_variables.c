@@ -186,8 +186,7 @@ _vtn_local_load_store(struct vtn_builder *b, bool load, nir_deref_var *deref,
                                    nir_intrinsic_store_var;
 
       nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->shader, op);
-      intrin->variables[0] =
-         nir_deref_as_var(nir_copy_deref(intrin, &deref->deref));
+      intrin->variables[0] = nir_deref_var_clone(deref, intrin);
       intrin->num_components = glsl_get_vector_elements(tail->type);
 
       if (load) {

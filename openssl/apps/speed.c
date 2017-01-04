@@ -1219,13 +1219,12 @@ static int run_benchmark(int async_jobs,
 
 int speed_main(int argc, char **argv)
 {
+    ENGINE *e = NULL;
     loopargs_t *loopargs = NULL;
     int async_init = 0;
     int loopargs_len = 0;
     char *prog;
-#ifndef OPENSSL_NO_ENGINE
     const char *engine_id = NULL;
-#endif
     const EVP_CIPHER *evp_cipher = NULL;
     double d = 0.0;
     OPTION_CHOICE o;
@@ -1399,9 +1398,7 @@ int speed_main(int argc, char **argv)
              * initialised by each child process, not by the parent.
              * So store the name here and run setup_engine() later on.
              */
-#ifndef OPENSSL_NO_ENGINE
             engine_id = opt_arg();
-#endif
             break;
         case OPT_MULTI:
 #ifndef NO_FORK
@@ -1566,7 +1563,7 @@ int speed_main(int argc, char **argv)
 #endif
 
     /* Initialize the engine after the fork */
-    (void)setup_engine(engine_id, 0);
+    e = setup_engine(engine_id, 0);
 
     /* No parameters; turn on everything. */
     if ((argc == 0) && !doit[D_EVP]) {
@@ -2819,6 +2816,7 @@ int speed_main(int argc, char **argv)
         ASYNC_cleanup_thread();
     }
     OPENSSL_free(loopargs);
+    release_engine(e);
     return (ret);
 }
 

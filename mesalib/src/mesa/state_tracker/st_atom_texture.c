@@ -111,9 +111,6 @@ update_textures(struct st_context *st,
    GLbitfield free_slots = ~prog->SamplersUsed;
    GLbitfield external_samplers_used = prog->ExternalSamplersUsed;
    GLuint unit;
-   struct gl_shader_program *shader =
-      st->ctx->_Shader->CurrentProgram[mesa_shader];
-   unsigned glsl_version = shader ? shader->data->Version : 0;
    enum pipe_shader_type shader_stage = st_shader_stage_to_ptarget(mesa_shader);
 
    if (samplers_used == 0x0 && old_max == 0)
@@ -130,7 +127,7 @@ update_textures(struct st_context *st,
          GLboolean retval;
 
          retval = update_single_texture(st, &sampler_view, texUnit,
-                                        glsl_version);
+                                        prog->sh.data->Version);
          if (retval == GL_FALSE)
             continue;
 

@@ -177,6 +177,12 @@ const char *SSL_rstate_string(const SSL *s)
     }
 }
 
+/*
+ * Return values are as per SSL_read(), i.e.
+ * >0 The number of read bytes
+ *  0 Failure (not retryable)
+ * <0 Failure (may be retryable)
+ */
 int ssl3_read_n(SSL *s, int n, int max, int extend, int clearold)
 {
     /*
@@ -235,6 +241,18 @@ int ssl3_read_n(SSL *s, int n, int max, int extend, int clearold)
         /* ... now we can act as if 'extend' was set */
     }
 
+    len = s->rlayer.packet_length;
+    pkt = rb->buf + align;
+    /*
+     * Move any available bytes to front of buffer: 'len' bytes already
+     * pointed to by 'packet', 'left' extra ones at the end
+     */
+    if (s->rlayer.packet != pkt && clearold == 1) {
+        memmove(pkt, s->rlayer.packet, len + left);
+        s->rlayer.packet = pkt;
+        rb->offset = len + align;
+    }
+
     /*
      * For DTLS/UDP reads should not span multiple packets because the read
      * operation returns the whole packet at once (as long as it fits into
@@ -256,18 +274,6 @@ int ssl3_read_n(SSL *s, int n, int max, int extend, int clearold)
     }
 
     /* else we need to read more data */
-
-    len = s->rlayer.packet_length;
-    pkt = rb->buf + align;
-    /*
-     * Move any available bytes to front of buffer: 'len' bytes already
-     * pointed to by 'packet', 'left' extra ones at the end
-     */
-    if (s->rlayer.packet != pkt && clearold == 1) { /* len > 0 */
-        memmove(pkt, s->rlayer.packet, len + left);
-        s->rlayer.packet = pkt;
-        rb->offset = len + align;
-    }
 
     if (n > (int)(rb->len - rb->offset)) { /* does not happen */
         SSLerr(SSL_F_SSL3_READ_N, ERR_R_INTERNAL_ERROR);
@@ -306,7 +312,7 @@ int ssl3_read_n(SSL *s, int n, int max, int extend, int clearold)
             if (s->mode & SSL_MODE_RELEASE_BUFFERS && !SSL_IS_DTLS(s))
                 if (len + left == 0)
                     ssl3_release_read_buffer(s);
-            return (i);
+            return -1;
         }
         left += i;
         /*
@@ -874,7 +880,13 @@ int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
     return -1;
 }
 
-/* if s->s3->wbuf.left != 0, we need to call this */
+/* if s->s3->wbuf.left != 0, we need to call this
+ *
+ * Return values are as per SSL_read(), i.e.
+ * >0 The number of read bytes
+ *  0 Failure (not retryable)
+ * <0 Failure (may be retryable)
+ */
 int ssl3_write_pending(SSL *s, int type, const unsigned char *buf,
                        unsigned int len)
 {
@@ -924,7 +936,7 @@ int ssl3_write_pending(SSL *s, int type, const unsigned char *buf,
                  */
                 SSL3_BUFFER_set_left(&wb[currbuf], 0);
             }
-            return (i);
+            return -1;
         }
         SSL3_BUFFER_add_offset(&wb[currbuf], i);
         SSL3_BUFFER_add_left(&wb[currbuf], -i);
@@ -1451,14 +1463,12 @@ int ssl3_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
     switch (SSL3_RECORD_get_type(rr)) {
     default:
         /*
-         * TLS up to v1.1 just ignores unknown message types: TLS v1.2 give
-         * an unexpected message alert.
+         * TLS 1.0 and 1.1 say you SHOULD ignore unrecognised record types, but
+         * TLS 1.2 says you MUST send an unexpected message alert. We use the
+         * TLS 1.2 behaviour for all protocol versions to prevent issues where
+         * no progress is being made and the peer continually sends unrecognised
+         * record types, using up resources processing them.
          */
-        if (s->version >= TLS1_VERSION && s->version <= TLS1_1_VERSION) {
-            SSL3_RECORD_set_length(rr, 0);
-            SSL3_RECORD_set_read(rr);
-            goto start;
-        }
         al = SSL_AD_UNEXPECTED_MESSAGE;
         SSLerr(SSL_F_SSL3_READ_BYTES, SSL_R_UNEXPECTED_RECORD);
         goto f_err;

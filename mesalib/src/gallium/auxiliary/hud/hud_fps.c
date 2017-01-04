@@ -88,5 +88,7 @@ hud_fps_graph_install(struct hud_pane *pane)
     */
    gr->free_query_data = free_query_data;
 
+   hud_graph_set_dump_file(gr);
+
    hud_pane_add_graph(pane, gr);
 }

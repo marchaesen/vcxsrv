@@ -102,7 +102,7 @@ check_blend_func_error(struct gl_context *ctx)
       const struct gl_shader_program *sh_prog =
          ctx->_Shader->_CurrentFragmentProgram;
       const GLbitfield blend_support = !sh_prog ? 0 :
-         sh_prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->info.BlendSupport;
+         sh_prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program->sh.fs.BlendSupport;
 
       if ((blend_support & ctx->Color._AdvancedBlendMode) == 0) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -197,8 +197,8 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       gl_shader_stage i;
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 if (shProg[i] == NULL || shProg[i]->_Used
-	     || shProg[i]->_LinkedShaders[i] == NULL)
+	 if (shProg[i] == NULL || shProg[i]->_LinkedShaders[i] == NULL ||
+             shProg[i]->_LinkedShaders[i]->Program->_Used)
 	    continue;
 
 	 /* This is the first time this shader is being used.
@@ -210,12 +210,12 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 	  * program isn't also bound to the fragment shader target we don't
 	  * want to log its fragment data.
 	  */
-	 _mesa_append_uniforms_to_file(shProg[i]->_LinkedShaders[i]);
+	 _mesa_append_uniforms_to_file(shProg[i]->_LinkedShaders[i]->Program);
       }
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 if (shProg[i] != NULL)
-	    shProg[i]->_Used = GL_TRUE;
+	 if (shProg[i] != NULL && shProg[i]->_LinkedShaders[i] != NULL)
+	    shProg[i]->_LinkedShaders[i]->Program->_Used = GL_TRUE;
       }
    }
 #endif

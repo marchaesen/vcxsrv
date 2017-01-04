@@ -49,9 +49,9 @@ Another way is to use
 <funcsynopsis id='XSelectInput'>
 <funcprototype>
   <funcdef><function>XSelectInput</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>long<parameter> event_mask</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>long <parameter>event_mask</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN	 -->
@@ -186,7 +186,7 @@ To flush the output buffer, use
 <funcsynopsis id='XFlush'>
 <funcprototype>
   <funcdef><function>XFlush</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -232,8 +232,8 @@ use
 <funcsynopsis id='XSync'>
 <funcprototype>
   <funcdef><function>XSync</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Bool<parameter> discard</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Bool <parameter>discard</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -316,8 +316,8 @@ To check the number of events in the event queue, use
 <funcsynopsis id='XEventsQueued'>
 <funcprototype>
   <funcdef>int <function>XEventsQueued</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> mode</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -402,7 +402,7 @@ To return the number of events that are pending, use
 <funcsynopsis id='XPending'>
 <funcprototype>
   <funcdef>int <function>XPending</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN	 -->
@@ -476,8 +476,8 @@ To get the next event and remove it from the queue, use
 <funcsynopsis id='XNextEvent'>
 <funcprototype>
   <funcdef><function>XNextEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -526,8 +526,8 @@ To peek at the event queue, use
 <funcsynopsis id='XPeekEvent'>
 <funcprototype>
   <funcdef><function>XPeekEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -596,9 +596,9 @@ The predicate procedure and its associated arguments are:
 <funcsynopsis>
 <funcprototype>
   <funcdef><type>Bool</type></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event</parameter></paramdef>
-  <paramdef>XPointer<parameter> arg</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event</parameter></paramdef>
+  <paramdef>XPointer <parameter>arg</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -663,10 +663,10 @@ and, if found, remove the event from the queue, use
 <funcsynopsis id='XIfEvent'>
 <funcprototype>
   <funcdef><function>XIfEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
-  <paramdef>Bool<parameter> (*predicate)()</parameter></paramdef>
-  <paramdef>XPointer<parameter> arg</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+  <paramdef>Bool <parameter>(*predicate)()</parameter></paramdef>
+  <paramdef>XPointer <parameter>arg</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -742,10 +742,10 @@ To check the event queue for a matching event without blocking, use
 <funcsynopsis id='XCheckIfEvent'>
 <funcprototype>
   <funcdef>Bool <function>XCheckIfEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
-  <paramdef>Bool<parameter> (*predicate)()</parameter></paramdef>
-  <paramdef>XPointer<parameter> arg</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+  <paramdef>Bool <parameter>(*predicate)()</parameter></paramdef>
+  <paramdef>XPointer <parameter>arg</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -821,10 +821,10 @@ without removing the event from the queue, use
 <funcsynopsis id='XPeekIfEvent'>
 <funcprototype>
   <funcdef><function>XPeekIfEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
-  <paramdef>Bool<parameter> (*predicate)()</parameter></paramdef>
-  <paramdef>XPointer<parameter> arg</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+  <paramdef>Bool <parameter>(*predicate)()</parameter></paramdef>
+  <paramdef>XPointer <parameter>arg</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -910,10 +910,10 @@ To remove the next event that matches both a window and an event mask, use
 <funcsynopsis id='XWindowEvent'>
 <funcprototype>
   <funcdef><function>XWindowEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>long<parameter> event_mask</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>long <parameter>event_mask</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -994,10 +994,10 @@ indicating if the event was returned.
 <funcsynopsis id='XCheckWindowEvent'>
 <funcprototype>
   <funcdef>Bool <function>XCheckWindowEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>long<parameter> event_mask</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>long <parameter>event_mask</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1075,9 +1075,9 @@ To remove the next event that matches an event mask, use
 <funcsynopsis id='XMaskEvent'>
 <funcprototype>
   <funcdef><function>XMaskEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>long<parameter> event_mask</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>long <parameter>event_mask</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1146,9 +1146,9 @@ indicating if the event was returned.
 <funcsynopsis id='XCheckMaskEvent'>
 <funcprototype>
   <funcdef>Bool <function>XCheckMaskEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>long<parameter> event_mask</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>long <parameter>event_mask</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1215,9 +1215,9 @@ To return and remove the next event in the queue that matches an event type, use
 <funcsynopsis id='XCheckTypedEvent'>
 <funcprototype>
   <funcdef>Bool <function>XCheckTypedEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> event_type</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>event_type</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1286,10 +1286,10 @@ and a window, use
 <funcsynopsis id='XCheckTypedWindowEvent'>
 <funcprototype>
   <funcdef>Bool <function>XCheckTypedWindowEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>int<parameter> event_type</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>int <parameter>event_type</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1374,8 +1374,8 @@ To push an event back into the event queue, use
 <funcsynopsis id='XPutBackEvent'>
 <funcprototype>
   <funcdef><function>XPutBackEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1437,11 +1437,11 @@ and stored as a property.
 <funcsynopsis id='XSendEvent'>
 <funcprototype>
   <funcdef>Status <function>XSendEvent</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Bool<parameter> propagate</parameter></paramdef>
-  <paramdef>long<parameter> event_mask</parameter></paramdef>
-  <paramdef>XEvent<parameter> *event_send</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Bool <parameter>propagate</parameter></paramdef>
+  <paramdef>long <parameter>event_mask</parameter></paramdef>
+  <paramdef>XEvent *<parameter>event_send</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1635,7 +1635,7 @@ use
 <funcsynopsis id='XGetMotionEvents'>
 <funcprototype>
   <funcdef>unsigned <type>long</type></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1673,10 +1673,11 @@ To get the motion history for a specified window and time, use
 <funcsynopsis id='xgetmotionevents'>
 <funcprototype>
   <funcdef>XTimeCoord *<function>XGetMotionEvents</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>Timestart,<parameter> stop</parameter></paramdef>
-  <paramdef>int<parameter> *nevents_return</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Window <parameter>w</parameter></paramdef>
+  <paramdef>Time <parameter>start</parameter></paramdef>
+  <paramdef>Time <parameter>stop</parameter></paramdef>
+  <paramdef>int *<parameter>nevents_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1829,8 +1830,8 @@ sets which function is to be called.
 <funcsynopsis id='XSetAfterFunction'>
 <funcprototype>
   <funcdef><type>int</type></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> (*procedure)()</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>(*procedure)()</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1874,8 +1875,8 @@ To enable or disable synchronization, use
 <funcsynopsis id='xsynchronize'>
 <funcprototype>
   <funcdef><type>int</type></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Bool<parameter> onoff</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>Bool <parameter>onoff</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1950,7 +1951,7 @@ To set the error handler, use
 <funcsynopsis id='XSetErrorHandler'>
 <funcprototype>
   <funcdef>int *<function>XSetErrorHandler</function></funcdef>
-  <paramdef>int <parameter> *handler</parameter></paramdef>
+  <paramdef>int *<parameter>handler</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2219,10 +2220,10 @@ To obtain textual descriptions of the specified error code, use
 <funcsynopsis id='XGetErrorText'>
 <funcprototype>
   <funcdef><function>XGetErrorText</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>int<parameter> code</parameter></paramdef>
-  <paramdef>char<parameter> *buffer_return</parameter></paramdef>
-  <paramdef>int<parameter> length</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>int <parameter>code</parameter></paramdef>
+  <paramdef>char *<parameter>buffer_return</parameter></paramdef>
+  <paramdef>int <parameter>length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2291,11 +2292,12 @@ To obtain error messages from the error database, use
 <funcsynopsis id='XGetErrorDatabaseText'>
 <funcprototype>
   <funcdef><function>XGetErrorDatabaseText</function></funcdef>
-  <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>char*name,<parameter> *message</parameter></paramdef>
-  <paramdef>char<parameter> *default_string</parameter></paramdef>
-  <paramdef>char<parameter> *buffer_return</parameter></paramdef>
-  <paramdef>int<parameter> length</parameter></paramdef>
+  <paramdef>Display *<parameter>display</parameter></paramdef>
+  <paramdef>char *<parameter>name</parameter></paramdef>
+  <paramdef>char *<parameter>message</parameter></paramdef>
+  <paramdef>char *<parameter>default_string</parameter></paramdef>
+  <paramdef>char *<parameter>buffer_return</parameter></paramdef>
+  <paramdef>int <parameter>length</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2436,7 +2438,7 @@ To report an error to the user when the requested display does not exist, use
 <funcsynopsis id='XDisplayName'>
 <funcprototype>
   <funcdef>char *<function>XDisplayName</function></funcdef>
-  <paramdef>char<parameter> *string</parameter></paramdef>
+  <paramdef>char *<parameter>string</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2479,7 +2481,7 @@ To handle fatal I/O errors, use
 <funcsynopsis id='xsetioerrorhandler'>
 <funcprototype>
   <funcdef><type>int</type></funcdef>
-  <paramdef>int(*handler)(Display<parameter> *)</parameter></paramdef>
+  <paramdef>int(*handler)(Display *<parameter>)</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

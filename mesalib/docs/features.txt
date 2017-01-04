@@ -33,7 +33,7 @@ are exposed in the 3.0 context as extensions.
 Feature                                                 Status
 ------------------------------------------------------- ------------------------
 
-GL 3.0, GLSL 1.30 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr
+GL 3.0, GLSL 1.30 --- all DONE: freedreno, i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr
 
   glBindFragDataLocation, glGetFragDataLocation         DONE
   GL_NV_conditional_render (Conditional rendering)      DONE ()
@@ -60,12 +60,12 @@ GL 3.0, GLSL 1.30 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, soft
   glVertexAttribI commands                              DONE
   Depth format cube textures                            DONE ()
   GLX_ARB_create_context (GLX 1.4 is required)          DONE
-  Multisample anti-aliasing                             DONE (llvmpipe (*), softpipe (*), swr (*))
+  Multisample anti-aliasing                             DONE (freedreno (*), llvmpipe (*), softpipe (*), swr (*))
 
-(*) llvmpipe, softpipe, and swr have fake Multisample anti-aliasing support
+(*) freedreno, llvmpipe, softpipe, and swr have fake Multisample anti-aliasing support
 
 
-GL 3.1, GLSL 1.40 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr
+GL 3.1, GLSL 1.40 --- all DONE: freedreno, i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr
 
   Forward compatible context support/deprecations       DONE ()
   GL_ARB_draw_instanced (Instanced drawing)             DONE ()
@@ -82,34 +82,34 @@ GL 3.2, GLSL 1.50 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, soft
 
   Core/compatibility profiles                           DONE
   Geometry shaders                                      DONE ()
-  GL_ARB_vertex_array_bgra (BGRA vertex order)          DONE (swr)
-  GL_ARB_draw_elements_base_vertex (Base vertex offset) DONE (swr)
-  GL_ARB_fragment_coord_conventions (Frag shader coord) DONE (swr)
-  GL_ARB_provoking_vertex (Provoking vertex)            DONE (swr)
-  GL_ARB_seamless_cube_map (Seamless cubemaps)          DONE (swr)
+  GL_ARB_vertex_array_bgra (BGRA vertex order)          DONE (freedreno, swr)
+  GL_ARB_draw_elements_base_vertex (Base vertex offset) DONE (freedreno, swr)
+  GL_ARB_fragment_coord_conventions (Frag shader coord) DONE (freedreno, swr)
+  GL_ARB_provoking_vertex (Provoking vertex)            DONE (freedreno, swr)
+  GL_ARB_seamless_cube_map (Seamless cubemaps)          DONE (freedreno, swr)
   GL_ARB_texture_multisample (Multisample textures)     DONE (swr)
-  GL_ARB_depth_clamp (Frag depth clamp)                 DONE (swr)
-  GL_ARB_sync (Fence objects)                           DONE (swr)
+  GL_ARB_depth_clamp (Frag depth clamp)                 DONE (freedreno, swr)
+  GL_ARB_sync (Fence objects)                           DONE (freedreno, swr)
   GLX_ARB_create_context_profile                        DONE
 
 
 GL 3.3, GLSL 3.30 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe
 
-  GL_ARB_blend_func_extended                            DONE (swr)
+  GL_ARB_blend_func_extended                            DONE (freedreno/a3xx, swr)
   GL_ARB_explicit_attrib_location                       DONE (all drivers that support GLSL)
-  GL_ARB_occlusion_query2                               DONE (swr)
+  GL_ARB_occlusion_query2                               DONE (freedreno, swr)
   GL_ARB_sampler_objects                                DONE (all drivers)
-  GL_ARB_shader_bit_encoding                            DONE (swr)
-  GL_ARB_texture_rgb10_a2ui                             DONE (swr)
-  GL_ARB_texture_swizzle                                DONE (swr)
+  GL_ARB_shader_bit_encoding                            DONE (freedreno, swr)
+  GL_ARB_texture_rgb10_a2ui                             DONE (freedreno, swr)
+  GL_ARB_texture_swizzle                                DONE (freedreno, swr)
   GL_ARB_timer_query                                    DONE (swr)
-  GL_ARB_instanced_arrays                               DONE (swr)
-  GL_ARB_vertex_type_2_10_10_10_rev                     DONE (swr)
+  GL_ARB_instanced_arrays                               DONE (freedreno, swr)
+  GL_ARB_vertex_type_2_10_10_10_rev                     DONE (freedreno, swr)
 
 
 GL 4.0, GLSL 4.00 --- all DONE: i965/gen8+, nvc0, r600, radeonsi
 
-  GL_ARB_draw_buffers_blend                             DONE (i965/gen6+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_draw_buffers_blend                             DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr)
   GL_ARB_draw_indirect                                  DONE (i965/gen7+, llvmpipe, softpipe, swr)
   GL_ARB_gpu_shader5                                    DONE (i965/gen7+)
   - 'precise' qualifier                                 DONE

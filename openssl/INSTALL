@@ -601,17 +601,14 @@
      ("openssl"). The libraries will be built in the top-level directory,
      and the binary will be in the "apps" subdirectory.
 
-     If the build fails, look at the output.  There may be reasons for
-     the failure that aren't problems in OpenSSL itself (like missing
-     standard headers).  If you are having problems you can get help by
-     sending an email to the openssl-users email list (see
-     https://www.openssl.org/community/mailinglists.html for details). If it
-     is a bug with OpenSSL itself, please report the problem to
-     <rt@openssl.org> (note that your message will be recorded in the request
-     tracker publicly readable at
-     https://www.openssl.org/community/index.html#bugs and will be
-     forwarded to a public mailing list). Please check out the request
-     tracker. Maybe the bug was already reported or has already been
+     If the build fails, look at the output.  There may be reasons
+     for the failure that aren't problems in OpenSSL itself (like
+     missing standard headers).  If you are having problems you can
+     get help by sending an email to the openssl-users email list (see
+     https://www.openssl.org/community/mailinglists.html for details). If
+     it is a bug with OpenSSL itself, please open an issue on GitHub, at
+     https://github.com/openssl/openssl/issues. Please review the existing
+     ones first; maybe the bug was already reported or has already been
      fixed.
 
      (If you encounter assembler error messages, try the "no-asm"
@@ -899,8 +896,8 @@
  supported. If your platform does not provide pthreads or Windows threads then
  you should Configure with the "no-threads" option.
 
- Note on shared libraries
- ------------------------
+ Notes on shared libraries
+ -------------------------
 
  For most systems the OpenSSL Configure script knows what is needed to
  build shared libraries for libcrypto and libssl. On these systems
@@ -908,6 +905,31 @@
  only static libraries created by using the "no-shared" option. On systems
  where OpenSSL does not know how to build shared libraries the "no-shared"
  option will be forced and only static libraries will be created.
+
+ Shared libraries are named a little differently on different platforms.
+ One way or another, they all have the major OpenSSL version number as
+ part of the file name, i.e. for OpenSSL 1.1.x, 1.1 is somehow part of
+ the name.
+
+ On most POSIXly platforms, shared libraries are named libcrypto.so.1.1
+ and libssl.so.1.1.
+
+ on Cygwin, shared libraries are named cygcrypto-1.1.dll and cygssl-1.1.dll
+ with import libraries libcrypto.dll.a and libssl.dll.a.
+
+ On Windows build with MSVC or using MingW, shared libraries are named
+ libcrypto-1_1.dll and libssl-1_1.dll for 32-bit Windows, libcrypto-1_1-x64.dll
+ and libssl-1_1-x64.dll for 64-bit x86_64 Windows, and libcrypto-1_1-ia64.dll
+ and libssl-1_1-ia64.dll for IA64 Windows.  With MSVC, the import libraries
+ are named libcrypto.lib and libssl.lib, while with MingW, they are named
+ libcrypto.dll.a and libssl.dll.a.
+
+ On VMS, shareable images (VMS speak for shared libraries) are named
+ ossl$libcrypto0101_shr.exe and ossl$libssl0101_shr.exe.  However, when
+ OpenSSL is specifically built for 32-bit pointers, the shareable images
+ are named ossl$libcrypto0101_shr32.exe and ossl$libssl0101_shr32.exe
+ instead, and when built for 64-bit pointers, they are named
+ ossl$libcrypto0101_shr64.exe and ossl$libssl0101_shr64.exe.
 
  Note on random number generation
  --------------------------------
