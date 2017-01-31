@@ -1334,7 +1334,8 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value)
 }
 
 glcpp_parser_t *
-glcpp_parser_create(glcpp_extension_iterator extensions, void *state, gl_api api)
+glcpp_parser_create(const struct gl_extensions *extension_list,
+                    glcpp_extension_iterator extensions, void *state, gl_api api)
 {
    glcpp_parser_t *parser;
 
@@ -1369,6 +1370,7 @@ glcpp_parser_create(glcpp_extension_iterator extensions, void *state, gl_api api
    parser->error = 0;
 
    parser->extensions = extensions;
+   parser->extension_list = extension_list;
    parser->state = state;
    parser->api = api;
    parser->version = 0;
@@ -2334,6 +2336,21 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
    if (parser->extensions)
       parser->extensions(parser->state, add_builtin_define, parser,
                          version, parser->is_gles);
+
+   if (parser->extension_list) {
+      /* If MESA_shader_integer_functions is supported, then the building
+       * blocks required for the 64x64 => 64 multiply exist.  Add defines for
+       * those functions so that they can be tested.
+       */
+      if (parser->extension_list->MESA_shader_integer_functions) {
+         add_builtin_define(parser, "__have_builtin_builtin_sign64", 1);
+         add_builtin_define(parser, "__have_builtin_builtin_umul64", 1);
+         add_builtin_define(parser, "__have_builtin_builtin_udiv64", 1);
+         add_builtin_define(parser, "__have_builtin_builtin_umod64", 1);
+         add_builtin_define(parser, "__have_builtin_builtin_idiv64", 1);
+         add_builtin_define(parser, "__have_builtin_builtin_imod64", 1);
+      }
+   }
 
    if (explicitly_set) {
       ralloc_asprintf_rewrite_tail(&parser->output, &parser->output_length,

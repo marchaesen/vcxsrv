@@ -60,8 +60,8 @@
 #include "globals.h"
 #include "extension.h"
 #include "xf86pciBus.h"
-
 #include "xf86Xinput.h"
+#include "loaderProcs.h"
 
 #include "xkbsrv.h"
 
@@ -516,82 +516,6 @@ xf86InputDriverlistFromConfig(void)
             }
     }
     return modulearray;
-}
-
-static int
-is_fallback(const char *s)
-{
-    /* later entries are less preferred */
-    const char *fallback[5] = { "modesetting", "fbdev", "vesa",  "wsfb", NULL };
-    int i;
-
-    for (i = 0; fallback[i]; i++)
-	if (strstr(s, fallback[i]))
-	    return i;
-
-    return -1;
-}
-
-static int
-driver_sort(const void *_l, const void *_r)
-{
-    const char *l = *(const char **)_l;
-    const char *r = *(const char **)_r;
-    int left = is_fallback(l);
-    int right = is_fallback(r);
-
-    /* neither is a fallback, asciibetize */
-    if (left == -1 && right == -1)
-	return strcmp(l, r);
-
-    /* left is a fallback */
-    if (left >= 0)
-	return 1;
-
-    /* right is a fallback */
-    if (right >= 0)
-	return -1;
-
-    /* both are fallbacks, which is worse */
-    return left - right;
-}
-
-static void
-fixup_video_driver_list(const char **drivers)
-{
-    const char **end;
-
-    /* walk to the end of the list */
-    for (end = drivers; *end && **end; end++);
-    end--;
-
-    qsort(drivers, end - drivers, sizeof(const char *), driver_sort);
-}
-
-static const char **
-GenerateDriverlist(const char *dirname)
-{
-    const char **ret;
-    const char *subdirs[] = { dirname, NULL };
-    static const char *patlist[] = { "(.*)_drv\\.so", NULL };
-    ret = LoaderListDirs(subdirs, patlist);
-
-    /* fix up the probe order for video drivers */
-    if (strstr(dirname, "drivers") && ret != NULL)
-        fixup_video_driver_list(ret);
-
-    return ret;
-}
-
-const char **
-xf86DriverlistFromCompile(void)
-{
-    static const char **driverlist = NULL;
-
-    if (!driverlist)
-        driverlist = GenerateDriverlist("drivers");
-
-    return driverlist;
 }
 
 static void

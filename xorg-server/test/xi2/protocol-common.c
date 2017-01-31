@@ -34,6 +34,7 @@
 #include "syncsrv.h"
 #include <X11/extensions/XI2.h>
 
+#define INSIDE_PROTOCOL_COMMON
 #include "protocol-common.h"
 
 struct devices devices;
@@ -43,6 +44,9 @@ WindowRec window;
 static ClientRec server_client;
 
 void *global_userdata;
+
+int enable_GrabButton_wrap = 1;
+int enable_XISetEventMask_wrap = 1;
 
 static void
 fake_init_sprite(DeviceIntPtr dev)
@@ -283,4 +287,41 @@ __wrap_WriteToClient(ClientPtr client, int len, void *data)
     assert(reply_handler != NULL);
 
     (*reply_handler) (client, len, data, global_userdata);
+}
+
+/* dixLookupWindow requires a lot of setup not necessary for this test.
+ * Simple wrapper that returns either one of the fake root window or the
+ * fake client window. If the requested ID is neither of those wanted,
+ * return whatever the real dixLookupWindow does.
+ */
+int
+__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
+{
+    if (id == root.drawable.id) {
+        *win = &root;
+        return Success;
+    }
+    else if (id == window.drawable.id) {
+        *win = &window;
+        return Success;
+    }
+
+    return __real_dixLookupWindow(win, id, client, access);
+}
+
+extern ClientRec client_window;
+
+int
+__wrap_dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client,
+                       Mask access)
+{
+    if (rid == ROOT_WINDOW_ID)
+        return BadWindow;
+
+    if (rid == CLIENT_WINDOW_ID) {
+        *pClient = &client_window;
+        return Success;
+    }
+
+    return __real_dixLookupClient(pClient, rid, client, access);
 }

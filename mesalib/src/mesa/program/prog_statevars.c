@@ -610,7 +610,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
 
       case STATE_TES_PATCH_VERTICES_IN:
          if (ctx->TessCtrlProgram._Current)
-            val[0].i = ctx->TessCtrlProgram._Current->info.tcs.vertices_out;
+            val[0].i = ctx->TessCtrlProgram._Current->info.tess.tcs_vertices_out;
          else
             val[0].i = ctx->TessCtrlProgram.patch_vertices;
          return;

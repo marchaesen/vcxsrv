@@ -237,6 +237,8 @@ split_var_copies_block(nir_block *block, struct split_var_copies_state *state)
          break;
       case GLSL_TYPE_INT:
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_INT64:
+      case GLSL_TYPE_UINT64:
       case GLSL_TYPE_BOOL:
          assert(!glsl_type_is_matrix(src_tail->type));
          break;

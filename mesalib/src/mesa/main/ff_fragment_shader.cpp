@@ -300,9 +300,7 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
 {
    /* _NEW_PROGRAM */
    const GLboolean vertexShader =
-      (ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] &&
-       ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->data->LinkStatus &&
-       ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->_LinkedShaders[MESA_SHADER_VERTEX]);
+      ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] != NULL;
    const GLboolean vertexProgram = ctx->VertexProgram._Enabled;
    GLbitfield fp_inputs = 0x0;
 
@@ -366,7 +364,7 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
        * validation (see additional comments in state.c).
        */
       if (vertexShader)
-         vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]->_LinkedShaders[MESA_SHADER_VERTEX]->Program;
+         vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
       else
          vprog = ctx->VertexProgram.Current;
 
@@ -1222,7 +1220,19 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
     */
    p.shader_program->SeparateShader = GL_TRUE;
 
-   state->language_version = 130;
+   /* The legacy GLSL shadow functions follow the depth texture
+    * mode and return vec4. The GLSL 1.30 shadow functions return float and
+    * ignore the depth texture mode. That's a shader and state dependency
+    * that's difficult to deal with. st/mesa uses a simple but not
+    * completely correct solution: if the shader declares GLSL >= 1.30 and
+    * the depth texture mode is GL_ALPHA (000X), it sets the XXXX swizzle
+    * instead. Thus, the GLSL 1.30 shadow function will get the result in .x
+    * and legacy shadow functions will get it in .w as expected.
+    * For the fixed-function fragment shader, use 120 to get correct behavior
+    * for GL_ALPHA.
+    */
+   state->language_version = 120;
+
    state->es_shader = false;
    if (_mesa_is_gles(ctx) && ctx->Extensions.OES_EGL_image_external)
       state->OES_EGL_image_external_enable = true;
@@ -1254,9 +1264,13 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
    const struct gl_shader_compiler_options *options =
       &ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT];
 
-   while (do_common_optimization(p.shader->ir, false, false, options,
-                                 ctx->Const.NativeIntegers))
-      ;
+   /* Conservative approach: Don't optimize here, the linker does it too. */
+   if (!ctx->Const.GLSLOptimizeConservatively) {
+      while (do_common_optimization(p.shader->ir, false, false, options,
+                                    ctx->Const.NativeIntegers))
+         ;
+   }
+
    reparent_ir(p.shader->ir, p.shader->ir);
 
    p.shader->CompileStatus = true;

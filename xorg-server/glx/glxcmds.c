@@ -1030,13 +1030,14 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
         buf[p++] = modes->samples;
         buf[p++] = GLX_SAMPLE_BUFFERS_SGIS;
         buf[p++] = modes->sampleBuffers;
+        buf[p++] = GLX_VISUAL_SELECT_GROUP_SGIX;
+        buf[p++] = modes->visualSelectGroup;
         /* Add attribute only if its value is not default. */
         if (modes->sRGBCapable != GL_FALSE) {
             buf[p++] = GLX_FRAMEBUFFER_SRGB_CAPABLE_EXT;
             buf[p++] = modes->sRGBCapable;
         }
-        /* Don't add visualSelectGroup (GLX_VISUAL_SELECT_GROUP_SGIX)?
-         * Pad the remaining place with zeroes, so that attributes count is constant. */
+        /* Pad with zeroes, so that attributes count is constant. */
         while (p < GLX_VIS_CONFIG_TOTAL) {
             buf[p++] = 0;
             buf[p++] = 0;

@@ -265,7 +265,8 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
       return false;
 
    if (!wsi_conn->has_dri3) {
-      fprintf(stderr, "vulkan: No DRI3 support\n");
+      fprintf(stderr, "vulkan: No DRI3 support detected - required for presentation\n");
+      fprintf(stderr, "Note: Buggy applications may crash, if they do please report to vendor\n");
       return false;
    }
 
@@ -313,7 +314,8 @@ x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    if (!wsi_conn->has_dri3) {
-      fprintf(stderr, "vulkan: No DRI3 support\n");
+      fprintf(stderr, "vulkan: No DRI3 support detected - required for presentation\n");
+      fprintf(stderr, "Note: Buggy applications may crash, if they do please report to vendor\n");
       *pSupported = false;
       return VK_SUCCESS;
    }
@@ -368,7 +370,8 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
        */
       caps->currentExtent = (VkExtent2D) { -1, -1 };
       caps->minImageExtent = (VkExtent2D) { 1, 1 };
-      caps->maxImageExtent = (VkExtent2D) { INT16_MAX, INT16_MAX };
+      /* This is the maximum supported size on Intel */
+      caps->maxImageExtent = (VkExtent2D) { 1 << 14, 1 << 14 };
    }
    free(err);
    free(geom);
@@ -453,7 +456,7 @@ VkResult wsi_create_xcb_surface(const VkAllocationCallbacks *pAllocator,
    surface->connection = pCreateInfo->connection;
    surface->window = pCreateInfo->window;
 
-   *pSurface = _VkIcdSurfaceBase_to_handle(&surface->base);
+   *pSurface = VkIcdSurfaceBase_to_handle(&surface->base);
    return VK_SUCCESS;
 }
 
@@ -472,7 +475,7 @@ VkResult wsi_create_xlib_surface(const VkAllocationCallbacks *pAllocator,
    surface->dpy = pCreateInfo->dpy;
    surface->window = pCreateInfo->window;
 
-   *pSurface = _VkIcdSurfaceBase_to_handle(&surface->base);
+   *pSurface = VkIcdSurfaceBase_to_handle(&surface->base);
    return VK_SUCCESS;
 }
 

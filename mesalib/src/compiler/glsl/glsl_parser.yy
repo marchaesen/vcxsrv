@@ -97,6 +97,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 
 %union {
    int n;
+   int64_t n64;
    float real;
    double dreal;
    const char *identifier;
@@ -136,6 +137,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token ATTRIBUTE CONST_TOK BOOL_TOK FLOAT_TOK INT_TOK UINT_TOK DOUBLE_TOK
 %token BREAK BUFFER CONTINUE DO ELSE FOR IF DISCARD RETURN SWITCH CASE DEFAULT
 %token BVEC2 BVEC3 BVEC4 IVEC2 IVEC3 IVEC4 UVEC2 UVEC3 UVEC4 VEC2 VEC3 VEC4 DVEC2 DVEC3 DVEC4
+%token INT64_TOK UINT64_TOK I64VEC2 I64VEC3 I64VEC4 U64VEC2 U64VEC3 U64VEC4
 %token CENTROID IN_TOK OUT_TOK INOUT_TOK UNIFORM VARYING SAMPLE
 %token NOPERSPECTIVE FLAT SMOOTH
 %token MAT2X2 MAT2X3 MAT2X4
@@ -173,6 +175,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token <real> FLOATCONSTANT
 %token <dreal> DOUBLECONSTANT
 %token <n> INTCONSTANT UINTCONSTANT BOOLCONSTANT
+%token <n64> INT64CONSTANT UINT64CONSTANT
 %token <identifier> FIELD_SELECTION
 %token LEFT_OP RIGHT_OP
 %token INC_OP DEC_OP LE_OP GE_OP EQ_OP NE_OP
@@ -450,6 +453,20 @@ primary_expression:
       $$ = new(ctx) ast_expression(ast_uint_constant, NULL, NULL, NULL);
       $$->set_location(@1);
       $$->primary_expression.uint_constant = $1;
+   }
+   | INT64CONSTANT
+   {
+      void *ctx = state->linalloc;
+      $$ = new(ctx) ast_expression(ast_int64_constant, NULL, NULL, NULL);
+      $$->set_location(@1);
+      $$->primary_expression.int64_constant = $1;
+   }
+   | UINT64CONSTANT
+   {
+      void *ctx = state->linalloc;
+      $$ = new(ctx) ast_expression(ast_uint64_constant, NULL, NULL, NULL);
+      $$->set_location(@1);
+      $$->primary_expression.uint64_constant = $1;
    }
    | FLOATCONSTANT
    {
@@ -1463,11 +1480,11 @@ layout_qualifier_id:
       if (!$$.flags.i) {
          static const struct {
             const char *s;
-            GLenum e;
+            enum gl_tess_spacing e;
          } map[] = {
-                 { "equal_spacing", GL_EQUAL },
-                 { "fractional_odd_spacing", GL_FRACTIONAL_ODD },
-                 { "fractional_even_spacing", GL_FRACTIONAL_EVEN },
+                 { "equal_spacing", TESS_SPACING_EQUAL },
+                 { "fractional_odd_spacing", TESS_SPACING_FRACTIONAL_ODD },
+                 { "fractional_even_spacing", TESS_SPACING_FRACTIONAL_EVEN },
          };
          for (unsigned i = 0; i < ARRAY_SIZE(map); i++) {
             if (match_layout_qualifier($1, map[i].s, state) == 0) {
@@ -2304,6 +2321,14 @@ basic_type_specifier_nonarray:
    | UIMAGE2DMS             { $$ = "uimage2DMS"; }
    | UIMAGE2DMSARRAY        { $$ = "uimage2DMSArray"; }
    | ATOMIC_UINT            { $$ = "atomic_uint"; }
+   | INT64_TOK              { $$ = "int64_t";	   }
+   | I64VEC2                { $$ = "i64vec2";	   }
+   | I64VEC3                { $$ = "i64vec3";	   }
+   | I64VEC4                { $$ = "i64vec4";	   }
+   | UINT64_TOK             { $$ = "uint64_t";	   }
+   | U64VEC2                { $$ = "u64vec2";	   }
+   | U64VEC3                { $$ = "u64vec3";	   }
+   | U64VEC4                { $$ = "u64vec4";	   }
    ;
 
 precision_qualifier:

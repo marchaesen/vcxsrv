@@ -369,13 +369,16 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 		const VkOffset3D src_offset_el =
 			meta_region_offset_el(src_image, &pRegions[r].srcOffset);
 		const VkExtent3D img_extent_el =
-			meta_region_extent_el(src_image, &pRegions[r].extent);
+			meta_region_extent_el(dest_image, &pRegions[r].extent);
 
 		/* Start creating blit rect */
 		struct radv_meta_blit2d_rect rect = {
 			.width = img_extent_el.width,
 			.height = img_extent_el.height,
 		};
+
+		if (dest_image->type == VK_IMAGE_TYPE_3D)
+			b_dst.layer = dst_offset_el.z;
 
 		/* Loop through each 3D or array slice */
 		unsigned num_slices_3d = img_extent_el.depth;

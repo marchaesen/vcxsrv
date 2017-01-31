@@ -40,6 +40,7 @@
 #include "xf86Sbus.h"
 #endif
 #include "misc.h"
+#include "loaderProcs.h"
 
 typedef struct _DevToConfig {
     GDevRec GDev;
@@ -157,7 +158,7 @@ configureInputSection(void)
 {
     XF86ConfInputPtr mouse = NULL;
 
-    parsePrologue(XF86ConfInputPtr, XF86ConfInputRec)
+    parsePrologue(XF86ConfInputPtr, XF86ConfInputRec);
 
     ptr->inp_identifier = xnfstrdup("Keyboard0");
     ptr->inp_driver = xnfstrdup("kbd");
@@ -196,7 +197,7 @@ configureScreenSection(int screennum)
     int i;
     int depths[] = { 1, 4, 8, 15, 16, 24 /*, 32 */  };
     char *tmp;
-    parsePrologue(XF86ConfScreenPtr, XF86ConfScreenRec)
+    parsePrologue(XF86ConfScreenPtr, XF86ConfScreenRec);
 
     XNFasprintf(&tmp, "Screen%d", screennum);
     ptr->scrn_identifier = tmp;
@@ -254,9 +255,9 @@ configureDeviceSection(int screennum)
     int i = 0;
     char *identifier;
 
-    parsePrologue(XF86ConfDevicePtr, XF86ConfDeviceRec)
+    parsePrologue(XF86ConfDevicePtr, XF86ConfDeviceRec);
 
-        /* Move device info to parser structure */
+    /* Move device info to parser structure */
    if (asprintf(&identifier, "Card%d", screennum) == -1)
         identifier = NULL;
     ptr->dev_identifier = identifier;
@@ -326,9 +327,9 @@ configureLayoutSection(void)
 {
     int scrnum = 0;
 
-    parsePrologue(XF86ConfLayoutPtr, XF86ConfLayoutRec)
+    parsePrologue(XF86ConfLayoutPtr, XF86ConfLayoutRec);
 
-        ptr->lay_identifier = "X.org Configured";
+    ptr->lay_identifier = "X.org Configured";
 
     {
         XF86ConfInputrefPtr iptr;
@@ -389,9 +390,9 @@ configureLayoutSection(void)
 static XF86ConfFlagsPtr
 configureFlagsSection(void)
 {
-    parsePrologue(XF86ConfFlagsPtr, XF86ConfFlagsRec)
+    parsePrologue(XF86ConfFlagsPtr, XF86ConfFlagsRec);
 
-        return ptr;
+    return ptr;
 }
 
 static XF86ConfModulePtr
@@ -399,15 +400,9 @@ configureModuleSection(void)
 {
     const char **elist, **el;
 
-    /* Find the list of extension & font modules. */
-    const char *esubdirs[] = {
-        "extensions",
-        "fonts",
-        NULL
-    };
-    parsePrologue(XF86ConfModulePtr, XF86ConfModuleRec)
+    parsePrologue(XF86ConfModulePtr, XF86ConfModuleRec);
 
-        elist = LoaderListDirs(esubdirs, NULL);
+    elist = LoaderListDir("extensions", NULL);
     if (elist) {
         for (el = elist; *el; el++) {
             XF86LoadPtr module;
@@ -427,9 +422,9 @@ configureModuleSection(void)
 static XF86ConfFilesPtr
 configureFilesSection(void)
 {
-    parsePrologue(XF86ConfFilesPtr, XF86ConfFilesRec)
+    parsePrologue(XF86ConfFilesPtr, XF86ConfFilesRec);
 
-        if (xf86ModulePath)
+    if (xf86ModulePath)
         ptr->file_modulepath = xnfstrdup(xf86ModulePath);
     if (defaultFontPath)
         ptr->file_fontpath = xnfstrdup(defaultFontPath);
@@ -441,7 +436,7 @@ static XF86ConfMonitorPtr
 configureMonitorSection(int screennum)
 {
     char *tmp;
-    parsePrologue(XF86ConfMonitorPtr, XF86ConfMonitorRec)
+    parsePrologue(XF86ConfMonitorPtr, XF86ConfMonitorRec);
 
     XNFasprintf(&tmp, "Monitor%d", screennum);
     ptr->mon_identifier = tmp;
@@ -486,7 +481,7 @@ configureDDCMonitorSection(int screennum)
     int displaySizeLen;
     char *tmp;
 
-    parsePrologue(XF86ConfMonitorPtr, XF86ConfMonitorRec)
+    parsePrologue(XF86ConfMonitorPtr, XF86ConfMonitorRec);
 
     XNFasprintf(&tmp, "Monitor%d", screennum);
     ptr->mon_identifier = tmp;
@@ -534,6 +529,70 @@ configureDDCMonitorSection(int screennum)
     return ptr;
 }
 
+static int
+is_fallback(const char *s)
+{
+    /* later entries are less preferred */
+    const char *fallback[5] = { "modesetting", "fbdev", "vesa",  "wsfb", NULL };
+    int i;
+
+    for (i = 0; fallback[i]; i++)
+	if (strstr(s, fallback[i]))
+	    return i;
+
+    return -1;
+}
+
+static int
+driver_sort(const void *_l, const void *_r)
+{
+    const char *l = *(const char **)_l;
+    const char *r = *(const char **)_r;
+    int left = is_fallback(l);
+    int right = is_fallback(r);
+
+    /* neither is a fallback, asciibetize */
+    if (left == -1 && right == -1)
+	return strcmp(l, r);
+
+    /* left is a fallback */
+    if (left >= 0)
+	return 1;
+
+    /* right is a fallback */
+    if (right >= 0)
+	return -1;
+
+    /* both are fallbacks, which is worse */
+    return left - right;
+}
+
+static void
+fixup_video_driver_list(const char **drivers)
+{
+    const char **end;
+
+    /* walk to the end of the list */
+    for (end = drivers; *end && **end; end++);
+    end--;
+
+    qsort(drivers, end - drivers, sizeof(const char *), driver_sort);
+}
+
+static const char **
+GenerateDriverList(void)
+{
+    const char **ret;
+    static const char *patlist[] = { "(.*)_drv\\.so", NULL };
+    ret = LoaderListDir("drivers", patlist);
+
+    /* fix up the probe order for video drivers */
+    if (ret != NULL)
+        fixup_video_driver_list(ret);
+
+    return ret;
+}
+
 void
 DoConfigure(void)
 {
@@ -545,7 +604,7 @@ DoConfigure(void)
     const char **vlist, **vl;
     int *dev2screen;
 
-    vlist = xf86DriverlistFromCompile();
+    vlist = GenerateDriverList();
 
     if (!vlist) {
         ErrorF("Missing output drivers.  Configuration failed.\n");
@@ -784,7 +843,7 @@ DoShowOptions(void)
     char *pSymbol = 0;
     XF86ModuleData *initData = 0;
 
-    if (!(vlist = xf86DriverlistFromCompile())) {
+    if (!(vlist = GenerateDriverList())) {
         ErrorF("Missing output drivers\n");
         goto bail;
     }

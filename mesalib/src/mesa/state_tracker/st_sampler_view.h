@@ -57,10 +57,6 @@ st_create_texture_sampler_view(struct pipe_context *pipe,
 }
 
 
-extern struct pipe_sampler_view **
-st_texture_get_sampler_view(struct st_context *st,
-                            struct st_texture_object *stObj);
-
 extern void
 st_texture_release_sampler_view(struct st_context *st,
                                 struct st_texture_object *stObj);

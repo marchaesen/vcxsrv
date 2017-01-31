@@ -266,6 +266,16 @@ mark_client_ready(ClientPtr client)
         xorg_list_append(&client->ready, &ready_clients);
 }
 
+/*
+ * Client has requests queued or data on the network, but awaits a
+ * server grab release
+ */
+void mark_client_saved_ready(ClientPtr client)
+{
+    if (xorg_list_is_empty(&client->ready))
+        xorg_list_append(&client->ready, &saved_ready_clients);
+}
+
 /* Client has no requests queued and no data on network */
 void
 mark_client_not_ready(ClientPtr client)

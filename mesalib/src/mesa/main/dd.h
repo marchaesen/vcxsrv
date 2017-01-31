@@ -474,7 +474,7 @@ struct dd_function_table {
                        struct gl_program *prog);
    /** Allocate a new program */
    struct gl_program * (*NewProgram)(struct gl_context *ctx, GLenum target,
-                                     GLuint id);
+                                     GLuint id, bool is_arb_asm);
    /** Delete a program */
    void (*DeleteProgram)(struct gl_context *ctx, struct gl_program *prog);   
    /**

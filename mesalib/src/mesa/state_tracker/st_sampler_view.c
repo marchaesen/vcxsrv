@@ -46,7 +46,7 @@
  * If none is found an empty slot is initialized with a
  * template and returned instead.
  */
-struct pipe_sampler_view **
+static struct pipe_sampler_view **
 st_texture_get_sampler_view(struct st_context *st,
                             struct st_texture_object *stObj)
 {

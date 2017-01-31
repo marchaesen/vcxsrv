@@ -212,23 +212,28 @@ static const char *scratch_rsrc_dword1_symbol =
 
 void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 				  struct ac_shader_config *conf,
-				  unsigned symbol_offset)
+				  unsigned symbol_offset,
+				  bool supports_spill)
 {
 	unsigned i;
 	const unsigned char *config =
 		ac_shader_binary_config_start(binary, symbol_offset);
 	bool really_needs_scratch = false;
-
+	uint32_t wavesize = 0;
 	/* LLVM adds SGPR spills to the scratch size.
 	 * Find out if we really need the scratch buffer.
 	 */
-	for (i = 0; i < binary->reloc_count; i++) {
-		const struct ac_shader_reloc *reloc = &binary->relocs[i];
+	if (supports_spill) {
+		really_needs_scratch = true;
+	} else {
+		for (i = 0; i < binary->reloc_count; i++) {
+			const struct ac_shader_reloc *reloc = &binary->relocs[i];
 
-		if (!strcmp(scratch_rsrc_dword0_symbol, reloc->name) ||
-		    !strcmp(scratch_rsrc_dword1_symbol, reloc->name)) {
-			really_needs_scratch = true;
-			break;
+			if (!strcmp(scratch_rsrc_dword0_symbol, reloc->name) ||
+			    !strcmp(scratch_rsrc_dword1_symbol, reloc->name)) {
+				really_needs_scratch = true;
+				break;
+			}
 		}
 	}
 
@@ -259,9 +264,7 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 		case R_0286E8_SPI_TMPRING_SIZE:
 		case R_00B860_COMPUTE_TMPRING_SIZE:
 			/* WAVESIZE is in units of 256 dwords. */
-			if (really_needs_scratch)
-				conf->scratch_bytes_per_wave =
-					G_00B860_WAVESIZE(value) * 256 * 4;
+			wavesize = value;
 			break;
 		case SPILLED_SGPRS:
 			conf->spilled_sgprs = value;
@@ -284,5 +287,10 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 
 		if (!conf->spi_ps_input_addr)
 			conf->spi_ps_input_addr = conf->spi_ps_input_ena;
+	}
+
+	if (really_needs_scratch) {
+		/* sgprs spills aren't spilling */
+	        conf->scratch_bytes_per_wave = G_00B860_WAVESIZE(wavesize) * 256 * 4;
 	}
 }

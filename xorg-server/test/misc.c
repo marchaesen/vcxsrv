@@ -31,6 +31,8 @@
 #include "dix.h"
 #include "dixstruct.h"
 
+#include "tests-common.h"
+
 ScreenInfo screenInfo;
 
 static void
@@ -192,7 +194,7 @@ dix_request_size_checks(void)
 
 
 int
-main(int argc, char **argv)
+misc_test(void)
 {
     dix_version_compare();
     dix_update_desktop_dimensions();

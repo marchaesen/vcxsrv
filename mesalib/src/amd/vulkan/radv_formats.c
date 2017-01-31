@@ -565,11 +565,14 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	}
 
 	if (vk_format_is_depth_or_stencil(format)) {
-		if (radv_is_zs_format_supported(format))
+		if (radv_is_zs_format_supported(format)) {
 			tiled |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-		tiled |= VK_FORMAT_FEATURE_BLIT_SRC_BIT |
-			VK_FORMAT_FEATURE_BLIT_DST_BIT;
+			tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+			tiled |= VK_FORMAT_FEATURE_BLIT_SRC_BIT |
+			         VK_FORMAT_FEATURE_BLIT_DST_BIT;
+			tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
+			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
+		}
 	} else {
 		bool linear_sampling;
 		if (radv_is_sampler_format_supported(format, &linear_sampling)) {
@@ -590,6 +593,15 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 			}
 		}
+		if (util_is_power_of_two(vk_format_get_blocksize(format))) {
+			tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
+			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
+		}
+	}
+
+	if (util_is_power_of_two(vk_format_get_blocksize(format))) {
+		linear |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
+		          VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 	}
 
 	if (format == VK_FORMAT_R32_UINT || format == VK_FORMAT_R32_SINT) {
@@ -957,6 +969,18 @@ void radv_GetPhysicalDeviceFormatProperties(
 						   pFormatProperties);
 }
 
+void radv_GetPhysicalDeviceFormatProperties2KHR(
+	VkPhysicalDevice                            physicalDevice,
+	VkFormat                                    format,
+	VkFormatProperties2KHR*                         pFormatProperties)
+{
+	RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
+
+	radv_physical_device_get_format_properties(physical_device,
+						   format,
+						   &pFormatProperties->formatProperties);
+}
+
 VkResult radv_GetPhysicalDeviceImageFormatProperties(
 	VkPhysicalDevice                            physicalDevice,
 	VkFormat                                    format,
@@ -1071,6 +1095,20 @@ unsupported:
 	return VK_ERROR_FORMAT_NOT_SUPPORTED;
 }
 
+VkResult radv_GetPhysicalDeviceImageFormatProperties2KHR(
+	VkPhysicalDevice                            physicalDevice,
+	const VkPhysicalDeviceImageFormatInfo2KHR*  pImageFormatInfo,
+	VkImageFormatProperties2KHR                *pImageFormatProperties)
+{
+	return radv_GetPhysicalDeviceImageFormatProperties(physicalDevice,
+							   pImageFormatInfo->format,
+							   pImageFormatInfo->type,
+							   pImageFormatInfo->tiling,
+							   pImageFormatInfo->usage,
+							   pImageFormatInfo->flags,
+							   &pImageFormatProperties->imageFormatProperties);
+}
+
 void radv_GetPhysicalDeviceSparseImageFormatProperties(
 	VkPhysicalDevice                            physicalDevice,
 	VkFormat                                    format,
@@ -1083,4 +1121,14 @@ void radv_GetPhysicalDeviceSparseImageFormatProperties(
 {
 	/* Sparse images are not yet supported. */
 	*pNumProperties = 0;
+}
+
+void radv_GetPhysicalDeviceSparseImageFormatProperties2KHR(
+	VkPhysicalDevice                            physicalDevice,
+	const VkPhysicalDeviceSparseImageFormatInfo2KHR* pFormatInfo,
+	uint32_t                                   *pPropertyCount,
+	VkSparseImageFormatProperties2KHR*          pProperties)
+{
+	/* Sparse images are not yet supported. */
+	*pPropertyCount = 0;
 }

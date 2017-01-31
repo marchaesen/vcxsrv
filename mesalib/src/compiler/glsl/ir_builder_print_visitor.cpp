@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#define __STDC_FORMAT_MACROS 1
 #include <inttypes.h> /* for PRIx64 macro */
 #include "ir.h"
 #include "ir_hierarchical_visitor.h"
@@ -396,13 +395,24 @@ ir_builder_print_visitor::visit(ir_constant *ir)
 
             memcpy(&v, &ir->value.d[i], sizeof(v));
             if (v != 0)
-               /* FIXME: This won't actually work until ARB_gpu_shader_int64
-                * support lands.
-                */
                print_without_indent("r%04X_data.u64[%u] = 0x%016" PRIx64 "; /* %g */\n",
                                     my_index, i, v, ir->value.d[i]);
             break;
          }
+         case GLSL_TYPE_UINT64:
+            if (ir->value.u64[i] != 0)
+               print_without_indent("r%04X_data.u64[%u] = %" PRIu64 ";\n",
+                                    my_index,
+                                    i,
+                                    ir->value.u64[i]);
+            break;
+         case GLSL_TYPE_INT64:
+            if (ir->value.i64[i] != 0)
+               print_without_indent("r%04X_data.i64[%u] = %" PRId64 ";\n",
+                                    my_index,
+                                    i,
+                                    ir->value.i64[i]);
+            break;
          case GLSL_TYPE_BOOL:
             if (ir->value.u[i] != 0)
                print_without_indent("r%04X_data.u[%u] = 1;\n", my_index, i);

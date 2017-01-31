@@ -30,6 +30,7 @@
 #include "main/uniforms.h"
 #include "program/prog_statevars.h"
 #include "program/prog_instruction.h"
+#include "builtin_functions.h"
 
 using namespace ir_builder;
 
@@ -1075,10 +1076,17 @@ builtin_variable_generator::generate_tes_special_vars()
    add_system_value(SYSTEM_VALUE_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
    add_system_value(SYSTEM_VALUE_VERTICES_IN, int_t, "gl_PatchVerticesIn");
    add_system_value(SYSTEM_VALUE_TESS_COORD, vec3_t, "gl_TessCoord");
-   add_system_value(SYSTEM_VALUE_TESS_LEVEL_OUTER, array(float_t, 4),
-                    "gl_TessLevelOuter");
-   add_system_value(SYSTEM_VALUE_TESS_LEVEL_INNER, array(float_t, 2),
-                    "gl_TessLevelInner");
+   if (this->state->ctx->Const.GLSLTessLevelsAsInputs) {
+      add_input(VARYING_SLOT_TESS_LEVEL_OUTER, array(float_t, 4),
+                "gl_TessLevelOuter")->data.patch = 1;
+      add_input(VARYING_SLOT_TESS_LEVEL_INNER, array(float_t, 2),
+                "gl_TessLevelInner")->data.patch = 1;
+   } else {
+      add_system_value(SYSTEM_VALUE_TESS_LEVEL_OUTER, array(float_t, 4),
+                       "gl_TessLevelOuter");
+      add_system_value(SYSTEM_VALUE_TESS_LEVEL_INNER, array(float_t, 2),
+                       "gl_TessLevelInner");
+   }
    if (state->ARB_shader_viewport_layer_array_enable) {
       var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
       var->data.interpolation = INTERP_MODE_FLAT;

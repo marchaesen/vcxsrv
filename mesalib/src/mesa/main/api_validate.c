@@ -99,10 +99,8 @@ check_blend_func_error(struct gl_context *ctx)
        *     the blend equation or "blend_support_all_equations", the error
        *     INVALID_OPERATION is generated [...]"
        */
-      const struct gl_shader_program *sh_prog =
-         ctx->_Shader->_CurrentFragmentProgram;
-      const GLbitfield blend_support = !sh_prog ? 0 :
-         sh_prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program->sh.fs.BlendSupport;
+      const struct gl_program *prog = ctx->_Shader->_CurrentFragmentProgram;
+      const GLbitfield blend_support = !prog ? 0 : prog->sh.fs.BlendSupport;
 
       if ((blend_support & ctx->Color._AdvancedBlendMode) == 0) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -193,12 +191,10 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 
 #ifdef DEBUG
    if (ctx->_Shader->Flags & GLSL_LOG) {
-      struct gl_shader_program **shProg = ctx->_Shader->CurrentProgram;
-      gl_shader_stage i;
+      struct gl_program **prog = ctx->_Shader->CurrentProgram;
 
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 if (shProg[i] == NULL || shProg[i]->_LinkedShaders[i] == NULL ||
-             shProg[i]->_LinkedShaders[i]->Program->_Used)
+      for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+	 if (prog[i] == NULL || prog[i]->_Used)
 	    continue;
 
 	 /* This is the first time this shader is being used.
@@ -210,12 +206,12 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 	  * program isn't also bound to the fragment shader target we don't
 	  * want to log its fragment data.
 	  */
-	 _mesa_append_uniforms_to_file(shProg[i]->_LinkedShaders[i]->Program);
+	 _mesa_append_uniforms_to_file(prog[i]);
       }
 
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
-	 if (shProg[i] != NULL && shProg[i]->_LinkedShaders[i] != NULL)
-	    shProg[i]->_LinkedShaders[i]->Program->_Used = GL_TRUE;
+      for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+	 if (prog[i] != NULL)
+	    prog[i]->_Used = GL_TRUE;
       }
    }
 #endif
@@ -396,17 +392,15 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
    if (ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]) {
       const GLenum geom_mode =
          ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]->
-            _LinkedShaders[MESA_SHADER_GEOMETRY]->info.Geom.InputType;
-      struct gl_shader_program *tes =
+            info.gs.input_primitive;
+      struct gl_program *tes =
          ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
       GLenum mode_before_gs = mode;
 
       if (tes) {
-         struct gl_linked_shader *tes_sh =
-            tes->_LinkedShaders[MESA_SHADER_TESS_EVAL];
-         if (tes_sh->info.TessEval.PointMode)
+         if (tes->info.tess.point_mode)
             mode_before_gs = GL_POINTS;
-         else if (tes_sh->info.TessEval.PrimitiveMode == GL_ISOLINES)
+         else if (tes->info.tess.primitive_mode == GL_ISOLINES)
             mode_before_gs = GL_LINES;
          else
             /* the GL_QUADS mode generates triangles too */
@@ -503,8 +497,7 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
 
       if(ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]) {
          switch (ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY]->
-                    _LinkedShaders[MESA_SHADER_GEOMETRY]->
-                    info.Geom.OutputType) {
+                    info.gs.output_primitive) {
          case GL_POINTS:
             pass = ctx->TransformFeedback.Mode == GL_POINTS;
             break;
@@ -519,13 +512,11 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
          }
       }
       else if (ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL]) {
-         struct gl_shader_program *tes =
+         struct gl_program *tes =
             ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
-         struct gl_linked_shader *tes_sh =
-            tes->_LinkedShaders[MESA_SHADER_TESS_EVAL];
-         if (tes_sh->info.TessEval.PointMode)
+         if (tes->info.tess.point_mode)
             pass = ctx->TransformFeedback.Mode == GL_POINTS;
-         else if (tes_sh->info.TessEval.PrimitiveMode == GL_ISOLINES)
+         else if (tes->info.tess.primitive_mode == GL_ISOLINES)
             pass = ctx->TransformFeedback.Mode == GL_LINES;
          else
             pass = ctx->TransformFeedback.Mode == GL_TRIANGLES;
@@ -1298,8 +1289,6 @@ _mesa_validate_MultiDrawElementsIndirectCount(struct gl_context *ctx,
 static bool
 check_valid_to_compute(struct gl_context *ctx, const char *function)
 {
-   struct gl_shader_program *prog;
-
    if (!_mesa_has_compute_shaders(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "unsupported function (%s) called",
@@ -1312,8 +1301,7 @@ check_valid_to_compute(struct gl_context *ctx, const char *function)
     * "An INVALID_OPERATION error is generated if there is no active program
     *  for the compute shader stage."
     */
-   prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
-   if (prog == NULL || prog->_LinkedShaders[MESA_SHADER_COMPUTE] == NULL) {
+   if (ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE] == NULL) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(no active compute shader)",
                   function);
@@ -1327,7 +1315,6 @@ GLboolean
 _mesa_validate_DispatchCompute(struct gl_context *ctx,
                                const GLuint *num_groups)
 {
-   struct gl_shader_program *prog;
    int i;
    FLUSH_CURRENT(ctx, 0);
 
@@ -1365,8 +1352,8 @@ _mesa_validate_DispatchCompute(struct gl_context *ctx,
     * "An INVALID_OPERATION error is generated by DispatchCompute if the active
     *  program for the compute shader stage has a variable work group size."
     */
-   prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
-   if (prog->Comp.LocalSizeVariable) {
+   struct gl_program *prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
+   if (prog->info.cs.local_size_variable) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glDispatchCompute(variable work group size forbidden)");
       return GL_FALSE;
@@ -1380,7 +1367,6 @@ _mesa_validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
                                            const GLuint *num_groups,
                                            const GLuint *group_size)
 {
-   struct gl_shader_program *prog;
    GLuint total_invocations = 1;
    int i;
 
@@ -1395,8 +1381,8 @@ _mesa_validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
     *  DispatchComputeGroupSizeARB if the active program for the compute
     *  shader stage has a fixed work group size."
     */
-   prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
-   if (!prog->Comp.LocalSizeVariable) {
+   struct gl_program *prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
+   if (!prog->info.cs.local_size_variable) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glDispatchComputeGroupSizeARB(fixed work group size "
                   "forbidden)");
@@ -1464,7 +1450,6 @@ valid_dispatch_indirect(struct gl_context *ctx,
                         GLsizei size, const char *name)
 {
    const uint64_t end = (uint64_t) indirect + size;
-   struct gl_shader_program *prog;
 
    if (!check_valid_to_compute(ctx, name))
       return GL_FALSE;
@@ -1515,8 +1500,8 @@ valid_dispatch_indirect(struct gl_context *ctx,
     * "An INVALID_OPERATION error is generated if the active program for the
     *  compute shader stage has a variable work group size."
     */
-   prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
-   if (prog->Comp.LocalSizeVariable) {
+   struct gl_program *prog = ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
+   if (prog->info.cs.local_size_variable) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(variable work group size forbidden)", name);
       return GL_FALSE;

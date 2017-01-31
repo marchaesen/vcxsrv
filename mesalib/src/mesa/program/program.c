@@ -178,10 +178,9 @@ _mesa_set_program_error(struct gl_context *ctx, GLint pos, const char *string)
  * Initialize a new gl_program object.
  */
 struct gl_program *
-_mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id)
+_mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id,
+                      bool is_arb_asm)
 {
-   GLuint i;
-
    if (!prog)
       return NULL;
 
@@ -192,10 +191,24 @@ _mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id)
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
    prog->info.stage = _mesa_program_enum_to_shader_stage(target);
+   prog->is_arb_asm = is_arb_asm;
 
-   /* default mapping from samplers to texture units */
-   for (i = 0; i < MAX_SAMPLERS; i++)
-      prog->SamplerUnits[i] = i;
+   /* Uniforms that lack an initializer in the shader code have an initial
+    * value of zero.  This includes sampler uniforms.
+    *
+    * Page 24 (page 30 of the PDF) of the GLSL 1.20 spec says:
+    *
+    *     "The link time initial value is either the value of the variable's
+    *     initializer, if present, or 0 if no initializer is present. Sampler
+    *     types cannot have initializers."
+    *
+    * So we only initialise ARB assembly style programs.
+    */
+   if (is_arb_asm) {
+      /* default mapping from samplers to texture units */
+      for (unsigned i = 0; i < MAX_SAMPLERS; i++)
+         prog->SamplerUnits[i] = i;
+   }
 
    return prog;
 }
@@ -214,7 +227,8 @@ _mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id)
  * \return  pointer to new program object
  */
 struct gl_program *
-_mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id)
+_mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id,
+                  bool is_arb_asm)
 {
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
@@ -224,7 +238,7 @@ _mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id)
    case GL_FRAGMENT_PROGRAM_ARB:
    case GL_COMPUTE_PROGRAM_NV: {
       struct gl_program *prog = rzalloc(NULL, struct gl_program);
-      return _mesa_init_gl_program(prog, target, id);
+      return _mesa_init_gl_program(prog, target, id, is_arb_asm);
    }
    default:
       _mesa_problem(ctx, "bad target in _mesa_new_program");

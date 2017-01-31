@@ -278,7 +278,7 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
 
 
 static void
-st_destroy_context_priv(struct st_context *st)
+st_destroy_context_priv(struct st_context *st, bool destroy_pipe)
 {
    uint shader, i;
 
@@ -314,6 +314,10 @@ st_destroy_context_priv(struct st_context *st)
    st_invalidate_readpix_cache(st);
 
    cso_destroy_context(st->cso_context);
+
+   if (st->pipe && destroy_pipe)
+      st->pipe->destroy(st->pipe);
+
    free( st );
 }
 
@@ -503,7 +507,7 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
       /* This can happen when a core profile was requested, but the driver
        * does not support some features of GL 3.1 or later.
        */
-      st_destroy_context_priv(st);
+      st_destroy_context_priv(st, false);
       return NULL;
    }
 
@@ -579,7 +583,6 @@ destroy_tex_sampler_cb(GLuint id, void *data, void *userData)
  
 void st_destroy_context( struct st_context *st )
 {
-   struct pipe_context *pipe = st->pipe;
    struct gl_context *ctx = st->ctx;
    GLuint i;
 
@@ -608,10 +611,8 @@ void st_destroy_context( struct st_context *st )
 
    /* This will free the st_context too, so 'st' must not be accessed
     * afterwards. */
-   st_destroy_context_priv(st);
+   st_destroy_context_priv(st, true);
    st = NULL;
-
-   pipe->destroy( pipe );
 
    free(ctx);
 }

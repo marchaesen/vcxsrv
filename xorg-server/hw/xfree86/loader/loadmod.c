@@ -51,18 +51,11 @@
 #endif
 
 #include "os.h"
-/* For stat() and related stuff */
-#define NO_OSLIB_PROTOTYPES
-#include "xf86_OSlib.h"
-#define LOADERDECLARATIONS
 #include "loaderProcs.h"
-#include "misc.h"
-#include "xf86.h"
-#include "xf86Priv.h"
-#include "xf86Xinput.h"
+#include "xf86Module.h"
 #include "loader.h"
-#include "xf86Optrec.h"
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <dirent.h>
@@ -74,7 +67,7 @@ typedef struct _pattern {
 } PatternRec, *PatternPtr;
 
 /* Prototypes for static functions */
-static char *FindModule(const char *, const char *, const char **, PatternPtr);
+static char *FindModule(const char *, const char *, PatternPtr);
 static Bool CheckVersion(const char *, XF86ModuleVersionInfo *,
                          const XF86ModReqInfo *);
 static char *LoaderGetCanonicalName(const char *, PatternPtr);
@@ -127,9 +120,6 @@ InitPathList(const char *path)
     int addslash;
     int n = 0;
 
-    if (!path)
-        return defaultPathList;
-
     fullpath = strdup(path);
     if (!fullpath)
         return NULL;
@@ -171,13 +161,6 @@ InitPathList(const char *path)
     return list;
 }
 
-static void
-FreePathList(char **pathlist)
-{
-    if (pathlist && pathlist != defaultPathList)
-        FreeStringList(pathlist);
-}
-
 void
 LoaderSetPath(const char *path)
 {
@@ -194,7 +177,6 @@ static const char *stdSubdirs[] = {
     "input/",
     "drivers/",
     "extensions/",
-    "internal/",
     NULL
 };
 
@@ -279,111 +261,6 @@ FreePatterns(PatternPtr patterns)
         free(patterns);
 }
 
-static const char **
-InitSubdirs(const char **subdirlist)
-{
-    int i;
-    const char **tmp_subdirlist = NULL;
-    char **subdirs = NULL;
-    const char **s, **stmp = NULL;
-    const char *osname;
-    const char *slash;
-    int oslen = 0, len;
-    Bool indefault;
-
-    if (subdirlist == NULL) {
-        subdirlist = tmp_subdirlist = malloc(2 * sizeof(char *));
-        if (subdirlist == NULL)
-            return NULL;
-        subdirlist[0] = DEFAULT_LIST;
-        subdirlist[1] = NULL;
-    }
-
-    LoaderGetOS(&osname, NULL, NULL, NULL);
-    oslen = strlen(osname);
-
-    {
-        /* Count number of entries and check for invalid paths */
-        for (i = 0, s = subdirlist; *s; i++, s++) {
-            if (*s == DEFAULT_LIST) {
-                i += sizeof(stdSubdirs) / sizeof(stdSubdirs[0]) - 1 - 1;
-            }
-            else {
-                /*
-                 * Path validity check.  Don't allow absolute paths, or
-                 * paths containing "..".  To catch absolute paths on
-                 * platforms that use driver letters, don't allow the ':'
-                 * character to appear at all.
-                 */
-                if (**s == '/' || **s == '\\' || strchr(*s, ':') ||
-                    strstr(*s, "..")) {
-                    xf86Msg(X_ERROR, "InitSubdirs: Bad subdir: \"%s\"\n", *s);
-                    free(tmp_subdirlist);
-                    return NULL;
-                }
-            }
-        }
-        subdirs = xallocarray(i * 2 + 1, sizeof(char *));
-        if (!subdirs) {
-            free(tmp_subdirlist);
-            return NULL;
-        }
-        i = 0;
-        s = subdirlist;
-        indefault = FALSE;
-        while (*s) {
-            if (*s == DEFAULT_LIST) {
-                /* Divert to the default list */
-                indefault = TRUE;
-                stmp = ++s;
-                s = stdSubdirs;
-            }
-            len = strlen(*s);
-            if (**s && (*s)[len - 1] != '/') {
-                slash = "/";
-                len++;
-            }
-            else
-                slash = "";
-            len += oslen + 2;
-            if (!(subdirs[i] = malloc(len))) {
-                while (--i >= 0)
-                    free(subdirs[i]);
-                free(subdirs);
-                free(tmp_subdirlist);
-                return NULL;
-            }
-            /* tack on the OS name */
-            sprintf(subdirs[i], "%s%s%s/", *s, slash, osname);
-            i++;
-            /* path as given */
-            subdirs[i] = strdup(*s);
-            i++;
-            s++;
-            if (indefault && !s) {
-                /* revert back to the main list */
-                indefault = FALSE;
-                s = stmp;
-            }
-        }
-        subdirs[i] = NULL;
-    }
-    free(tmp_subdirlist);
-    return (const char **) subdirs;
-}
-
-static void
-FreeSubdirs(const char **subdirs)
-{
-    const char **s;
-
-    if (subdirs) {
-        for (s = subdirs; *s; s++)
-            free((char *) *s);
-        free(subdirs);
-    }
-}
-
 static char *
 FindModuleInSubdir(const char *dirpath, const char *module)
 {
@@ -448,43 +325,30 @@ FindModuleInSubdir(const char *dirpath, const char *module)
 }
 
 static char *
-FindModule(const char *module, const char *dirname, const char **subdirlist,
-           PatternPtr patterns)
+FindModule(const char *module, const char *dirname, PatternPtr patterns)
 {
     char buf[PATH_MAX + 1];
     char *name = NULL;
-    const char **subdirs = NULL;
     const char **s;
 
     if (strlen(dirname) > PATH_MAX)
         return NULL;
 
-    subdirs = InitSubdirs(subdirlist);
-    if (!subdirs)
-        return NULL;
-
-    for (s = subdirs; *s; s++) {
-        if ((strlen(dirname) + strlen(*s)) > PATH_MAX)
-            continue;
-        strcpy(buf, dirname);
-        strcat(buf, *s);
+    for (s = stdSubdirs; *s; s++) {
+        snprintf(buf, PATH_MAX, "%s%s", dirname, *s);
         if ((name = FindModuleInSubdir(buf, module)))
             break;
     }
-
-    FreeSubdirs(subdirs);
 
     return name;
 }
 
 const char **
-LoaderListDirs(const char **subdirlist, const char **patternlist)
+LoaderListDir(const char *subdir, const char **patternlist)
 {
     char buf[PATH_MAX + 1];
     char **pathlist;
     char **elem;
-    const char **subdirs;
-    const char **s;
     PatternPtr patterns = NULL;
     PatternPtr p;
     DIR *d;
@@ -498,64 +362,54 @@ LoaderListDirs(const char **subdirlist, const char **patternlist)
     char **ret = NULL;
     int n = 0;
 
-    if (!(pathlist = InitPathList(NULL)))
+    if (!(pathlist = defaultPathList))
         return NULL;
-    if (!(subdirs = InitSubdirs(subdirlist)))
-        goto bail;
     if (!(patterns = InitPatterns(patternlist)))
         goto bail;
 
     for (elem = pathlist; *elem; elem++) {
-        for (s = subdirs; *s; s++) {
-            if ((dirlen = strlen(*elem) + strlen(*s)) > PATH_MAX)
-                continue;
-            strcpy(buf, *elem);
-            strcat(buf, *s);
-            fp = buf + dirlen;
-            if (stat(buf, &stat_buf) == 0 && S_ISDIR(stat_buf.st_mode) &&
-                (d = opendir(buf))) {
-                if (buf[dirlen - 1] != '/') {
-                    buf[dirlen++] = '/';
-                    fp++;
-                }
-                while ((dp = readdir(d))) {
-                    if (dirlen + strlen(dp->d_name) > PATH_MAX)
-                        continue;
-                    strcpy(fp, dp->d_name);
-                    if (!(stat(buf, &stat_buf) == 0 &&
-                          S_ISREG(stat_buf.st_mode)))
-                        continue;
-                    for (p = patterns; p->pattern; p++) {
-                        if (regexec(&p->rex, dp->d_name, 2, match, 0) == 0 &&
-                            match[1].rm_so != -1) {
-                            len = match[1].rm_eo - match[1].rm_so;
-                            save = listing;
-                            listing = reallocarray(listing, n + 2,
-                                                   sizeof(char *));
-                            if (!listing) {
-                                if (save) {
-                                    save[n] = NULL;
-                                    FreeStringList(save);
-                                }
-                                closedir(d);
-                                goto bail;
+        dirlen = snprintf(buf, PATH_MAX, "%s/%s", *elem, subdir);
+        fp = buf + dirlen;
+        if (stat(buf, &stat_buf) == 0 && S_ISDIR(stat_buf.st_mode) &&
+            (d = opendir(buf))) {
+            if (buf[dirlen - 1] != '/') {
+                buf[dirlen++] = '/';
+                fp++;
+            }
+            while ((dp = readdir(d))) {
+                if (dirlen + strlen(dp->d_name) > PATH_MAX)
+                    continue;
+                strcpy(fp, dp->d_name);
+                if (!(stat(buf, &stat_buf) == 0 && S_ISREG(stat_buf.st_mode)))
+                    continue;
+                for (p = patterns; p->pattern; p++) {
+                    if (regexec(&p->rex, dp->d_name, 2, match, 0) == 0 &&
+                        match[1].rm_so != -1) {
+                        len = match[1].rm_eo - match[1].rm_so;
+                        save = listing;
+                        listing = reallocarray(listing, n + 2, sizeof(char *));
+                        if (!listing) {
+                            if (save) {
+                                save[n] = NULL;
+                                FreeStringList(save);
                             }
-                            listing[n] = malloc(len + 1);
-                            if (!listing[n]) {
-                                FreeStringList(listing);
-                                closedir(d);
-                                goto bail;
-                            }
-                            strncpy(listing[n], dp->d_name + match[1].rm_so,
-                                    len);
-                            listing[n][len] = '\0';
-                            n++;
-                            break;
+                            closedir(d);
+                            goto bail;
                         }
+                        listing[n] = malloc(len + 1);
+                        if (!listing[n]) {
+                            FreeStringList(listing);
+                            closedir(d);
+                            goto bail;
+                        }
+                        strncpy(listing[n], dp->d_name + match[1].rm_so, len);
+                        listing[n][len] = '\0';
+                        n++;
+                        break;
                     }
                 }
-                closedir(d);
             }
+            closedir(d);
         }
     }
     if (listing)
@@ -564,15 +418,7 @@ LoaderListDirs(const char **subdirlist, const char **patternlist)
 
  bail:
     FreePatterns(patterns);
-    FreeSubdirs(subdirs);
-    FreePathList(pathlist);
     return (const char **) ret;
-}
-
-void
-LoaderFreeDirList(char **list)
-{
-    FreeStringList(list);
 }
 
 static Bool
@@ -583,22 +429,22 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
     long ver = data->xf86version;
     MessageType errtype;
 
-    xf86Msg(X_INFO, "Module %s: vendor=\"%s\"\n",
-            data->modname ? data->modname : "UNKNOWN!",
-            data->vendor ? data->vendor : "UNKNOWN!");
+    LogMessage(X_INFO, "Module %s: vendor=\"%s\"\n",
+               data->modname ? data->modname : "UNKNOWN!",
+               data->vendor ? data->vendor : "UNKNOWN!");
 
     vercode[0] = ver / 10000000;
     vercode[1] = (ver / 100000) % 100;
     vercode[2] = (ver / 1000) % 100;
     vercode[3] = ver % 1000;
-    xf86ErrorF("\tcompiled for %d.%d.%d", vercode[0], vercode[1], vercode[2]);
+    LogWrite(1, "\tcompiled for %d.%d.%d", vercode[0], vercode[1], vercode[2]);
     if (vercode[3] != 0)
-        xf86ErrorF(".%d", vercode[3]);
-    xf86ErrorF(", module version = %d.%d.%d\n", data->majorversion,
-               data->minorversion, data->patchlevel);
+        LogWrite(1, ".%d", vercode[3]);
+    LogWrite(1, ", module version = %d.%d.%d\n", data->majorversion,
+             data->minorversion, data->patchlevel);
 
     if (data->moduleclass)
-        xf86ErrorFVerb(2, "\tModule class: %s\n", data->moduleclass);
+        LogWrite(2, "\tModule class: %s\n", data->moduleclass);
 
     ver = -1;
     if (data->abiclass) {
@@ -616,8 +462,8 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
 
         abimaj = GET_ABI_MAJOR(data->abiversion);
         abimin = GET_ABI_MINOR(data->abiversion);
-        xf86ErrorFVerb(2, "\tABI class: %s, version %d.%d\n",
-                       data->abiclass, abimaj, abimin);
+        LogWrite(2, "\tABI class: %s, version %d.%d\n",
+                 data->abiclass, abimaj, abimin);
         if (ver != -1) {
             vermaj = GET_ABI_MAJOR(ver);
             vermin = GET_ABI_MINOR(ver);
@@ -626,10 +472,9 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
                     errtype = X_WARNING;
                 else
                     errtype = X_ERROR;
-                xf86MsgVerb(errtype, 0,
-                            "%s: module ABI major version (%d) doesn't"
-                            " match the server's version (%d)\n",
-                            module, abimaj, vermaj);
+                LogMessageVerb(errtype, 0, "%s: module ABI major version (%d) "
+                               "doesn't match the server's version (%d)\n",
+                               module, abimaj, vermaj);
                 if (!(LoaderOptions & LDR_OPT_ABI_MISMATCH_NONFATAL))
                     return FALSE;
             }
@@ -638,10 +483,9 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
                     errtype = X_WARNING;
                 else
                     errtype = X_ERROR;
-                xf86MsgVerb(errtype, 0,
-                            "%s: module ABI minor version (%d) is "
-                            "newer than the server's version "
-                            "(%d)\n", module, abimin, vermin);
+                LogMessageVerb(errtype, 0, "%s: module ABI minor version (%d) "
+                               "is newer than the server's version (%d)\n",
+                               module, abimin, vermin);
                 if (!(LoaderOptions & LDR_OPT_ABI_MISMATCH_NONFATAL))
                     return FALSE;
             }
@@ -650,54 +494,45 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
 
     /* Check against requirements that the caller has specified */
     if (req) {
-        if (req->majorversion != MAJOR_UNSPEC) {
-            if (data->majorversion != req->majorversion) {
-                xf86MsgVerb(X_WARNING, 2, "%s: module major version (%d) "
-                            "doesn't match required major version (%d)\n",
-                            module, data->majorversion, req->majorversion);
-                return FALSE;
-            }
-            else if (req->minorversion != MINOR_UNSPEC) {
-                if (data->minorversion < req->minorversion) {
-                    xf86MsgVerb(X_WARNING, 2, "%s: module minor version (%d) "
-                                "is less than the required minor version (%d)\n",
-                                module, data->minorversion, req->minorversion);
-                    return FALSE;
-                }
-                else if (data->minorversion == req->minorversion &&
-                         req->patchlevel != PATCH_UNSPEC) {
-                    if (data->patchlevel < req->patchlevel) {
-                        xf86MsgVerb(X_WARNING, 2, "%s: module patch level (%d) "
-                                    "is less than the required patch level (%d)\n",
-                                    module, data->patchlevel, req->patchlevel);
-                        return FALSE;
-                    }
-                }
-            }
+        if (data->majorversion != req->majorversion) {
+            LogMessageVerb(X_WARNING, 2, "%s: module major version (%d) "
+                           "doesn't match required major version (%d)\n",
+                           module, data->majorversion, req->majorversion);
+            return FALSE;
+        }
+        else if (data->minorversion < req->minorversion) {
+            LogMessageVerb(X_WARNING, 2, "%s: module minor version (%d) is "
+                          "less than the required minor version (%d)\n",
+                          module, data->minorversion, req->minorversion);
+            return FALSE;
+        }
+        else if (data->minorversion == req->minorversion &&
+                 data->patchlevel < req->patchlevel) {
+            LogMessageVerb(X_WARNING, 2, "%s: module patch level (%d) "
+                           "is less than the required patch level "
+                           "(%d)\n", module, data->patchlevel, req->patchlevel);
+            return FALSE;
         }
         if (req->moduleclass) {
             if (!data->moduleclass ||
                 strcmp(req->moduleclass, data->moduleclass)) {
-                xf86MsgVerb(X_WARNING, 2, "%s: Module class (%s) doesn't match "
-                            "the required class (%s)\n",
-                            module,
-                            data->moduleclass ? data->moduleclass : "<NONE>",
-                            req->moduleclass);
+                LogMessageVerb(X_WARNING, 2, "%s: Module class (%s) doesn't "
+                               "match the required class (%s)\n", module,
+                               data->moduleclass ? data->moduleclass : "<NONE>",
+                               req->moduleclass);
                 return FALSE;
             }
         }
         else if (req->abiclass != ABI_CLASS_NONE) {
             if (!data->abiclass || strcmp(req->abiclass, data->abiclass)) {
-                xf86MsgVerb(X_WARNING, 2, "%s: ABI class (%s) doesn't match the "
-                            "required ABI class (%s)\n",
-                            module,
-                            data->abiclass ? data->abiclass : "<NONE>",
-                            req->abiclass);
+                LogMessageVerb(X_WARNING, 2, "%s: ABI class (%s) doesn't match"
+                               " the required ABI class (%s)\n", module,
+                               data->abiclass ? data->abiclass : "<NONE>",
+                               req->abiclass);
                 return FALSE;
             }
         }
-        if ((req->abiclass != ABI_CLASS_NONE) &&
-            req->abiversion != ABI_VERS_UNSPEC) {
+        if (req->abiclass != ABI_CLASS_NONE) {
             int reqmaj, reqmin, maj, min;
 
             reqmaj = GET_ABI_MAJOR(req->abiversion);
@@ -705,16 +540,16 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
             maj = GET_ABI_MAJOR(data->abiversion);
             min = GET_ABI_MINOR(data->abiversion);
             if (maj != reqmaj) {
-                xf86MsgVerb(X_WARNING, 2, "%s: ABI major version (%d) doesn't "
-                            "match the required ABI major version (%d)\n",
-                            module, maj, reqmaj);
+                LogMessageVerb(X_WARNING, 2, "%s: ABI major version (%d) "
+                               "doesn't match the required ABI major version "
+                               "(%d)\n", module, maj, reqmaj);
                 return FALSE;
             }
             /* XXX Maybe this should be the other way around? */
             if (min > reqmin) {
-                xf86MsgVerb(X_WARNING, 2, "%s: module ABI minor version (%d) "
-                            "is newer than that available (%d)\n",
-                            module, min, reqmin);
+                LogMessageVerb(X_WARNING, 2, "%s: module ABI minor version "
+                               "(%d) is newer than that available (%d)\n",
+                               module, min, reqmin);
                 return FALSE;
             }
         }
@@ -738,12 +573,11 @@ LoadSubModule(void *_parent, const char *module,
     ModuleDescPtr submod;
     ModuleDescPtr parent = (ModuleDescPtr) _parent;
 
-    xf86MsgVerb(X_INFO, 3, "Loading sub module \"%s\"\n", module);
+    LogMessageVerb(X_INFO, 3, "Loading sub module \"%s\"\n", module);
 
     if (PathIsAbsolute(module)) {
-        xf86Msg(X_ERROR,
-                "LoadSubModule: Absolute module path not permitted: \"%s\"\n",
-                module);
+        LogMessage(X_ERROR, "LoadSubModule: "
+                   "Absolute module path not permitted: \"%s\"\n", module);
         if (errmaj)
             *errmaj = LDR_BADUSAGE;
         if (errmin)
@@ -751,24 +585,12 @@ LoadSubModule(void *_parent, const char *module,
         return NULL;
     }
 
-    submod = LoadModule(module, NULL, subdirlist, patternlist, options,
-                        modreq, errmaj, errmin);
+    submod = LoadModule(module, options, modreq, errmaj);
     if (submod && submod != (ModuleDescPtr) 1) {
         parent->child = AddSibling(parent->child, submod);
         submod->parent = parent;
     }
     return submod;
-}
-
-static ModuleDescPtr
-NewModuleDesc(const char *name)
-{
-    ModuleDescPtr mdp = calloc(1, sizeof(ModuleDesc));
-
-    if (mdp)
-        mdp->name = xstrdup(name);
-
-    return mdp;
 }
 
 ModuleDescPtr
@@ -779,7 +601,7 @@ DuplicateModule(ModuleDescPtr mod, ModuleDescPtr parent)
     if (!mod)
         return NULL;
 
-    ret = NewModuleDesc(mod->name);
+    ret = calloc(1, sizeof(ModuleDesc));
     if (ret == NULL)
         return NULL;
 
@@ -792,7 +614,6 @@ DuplicateModule(ModuleDescPtr mod, ModuleDescPtr parent)
     ret->sib = DuplicateModule(mod->sib, parent);
     ret->parent = parent;
     ret->VersionInfo = mod->VersionInfo;
-    ret->path = strdup(mod->path);
 
     return ret;
 }
@@ -821,16 +642,6 @@ static const char *compiled_in_modules[] = {
  * module       The module name.  Normally this is not a filename but the
  *              module's "canonical name.  A full pathname is, however,
  *              also accepted.
- * path         A comma separated list of module directories.
- * subdirlist   A NULL terminated list of subdirectories to search.  When
- *              NULL, the default "stdSubdirs" list is used.  The default
- *              list is also substituted for entries with value DEFAULT_LIST.
- * patternlist  A NULL terminated list of regular expressions used to find
- *              module filenames.  Each regex should contain exactly one
- *              subexpression that corresponds to the canonical module name.
- *              When NULL, the default "stdPatterns" list is used.  The
- *              default list is also substituted for entries with value
- *              DEFAULT_LIST.
  * options      A NULL terminated list of Options that are passed to the
  *              module's SetupProc function.
  * modreq       An optional XF86ModReqInfo* containing
@@ -849,13 +660,11 @@ static const char *compiled_in_modules[] = {
  *                               string
  *              "don't care" values are ~0 for numbers, and NULL for strings
  * errmaj       Major error return.
- * errmin       Minor error return.
  *
  */
 ModuleDescPtr
-LoadModule(const char *module, const char *path, const char **subdirlist,
-           const char **patternlist, void *options,
-           const XF86ModReqInfo * modreq, int *errmaj, int *errmin)
+LoadModule(const char *module, void *options, const XF86ModReqInfo *modreq,
+           int *errmaj)
 {
     XF86ModuleData *initdata = NULL;
     char **pathlist = NULL;
@@ -869,26 +678,26 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
     char *m = NULL;
     const char **cim;
 
-    xf86MsgVerb(X_INFO, 3, "LoadModule: \"%s\"", module);
+    LogMessageVerb(X_INFO, 3, "LoadModule: \"%s\"", module);
 
-    patterns = InitPatterns(patternlist);
+    patterns = InitPatterns(NULL);
     name = LoaderGetCanonicalName(module, patterns);
     noncanonical = (name && strcmp(module, name) != 0);
     if (noncanonical) {
-        xf86ErrorFVerb(3, " (%s)\n", name);
-        xf86MsgVerb(X_WARNING, 1,
-                    "LoadModule: given non-canonical module name \"%s\"\n",
-                    module);
+        LogWrite(3, " (%s)\n", name);
+        LogMessageVerb(X_WARNING, 1,
+                       "LoadModule: given non-canonical module name \"%s\"\n",
+                       module);
         m = name;
     }
     else {
-        xf86ErrorFVerb(3, "\n");
+        LogWrite(3, "\n");
         m = (char *) module;
     }
 
     for (cim = compiled_in_modules; *cim; cim++)
         if (!strcmp(m, *cim)) {
-            xf86MsgVerb(X_INFO, 3, "Module \"%s\" already built-in\n", m);
+            LogMessageVerb(X_INFO, 3, "Module \"%s\" already built-in\n", m);
             ret = (ModuleDescPtr) 1;
             goto LoadModule_exit;
         }
@@ -896,26 +705,20 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
     if (!name) {
         if (errmaj)
             *errmaj = LDR_BADUSAGE;
-        if (errmin)
-            *errmin = 0;
         goto LoadModule_fail;
     }
-    ret = NewModuleDesc(name);
+    ret = calloc(1, sizeof(ModuleDesc));
     if (!ret) {
         if (errmaj)
             *errmaj = LDR_NOMEM;
-        if (errmin)
-            *errmin = 0;
         goto LoadModule_fail;
     }
 
-    pathlist = InitPathList(path);
+    pathlist = defaultPathList;
     if (!pathlist) {
         /* This could be a malloc failure too */
         if (errmaj)
             *errmaj = LDR_BADUSAGE;
-        if (errmin)
-            *errmin = 1;
         goto LoadModule_fail;
     }
 
@@ -927,7 +730,7 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
         found = xstrdup(module);
     path_elem = pathlist;
     while (!found && *path_elem != NULL) {
-        found = FindModule(m, *path_elem, subdirlist, patterns);
+        found = FindModule(m, *path_elem, patterns);
         path_elem++;
         /*
          * When the module name isn't the canonical name, search for the
@@ -943,17 +746,14 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
      * did we find the module?
      */
     if (!found) {
-        xf86Msg(X_WARNING, "Warning, couldn't open module %s\n", module);
+        LogMessage(X_WARNING, "Warning, couldn't open module %s\n", module);
         if (errmaj)
             *errmaj = LDR_NOENT;
-        if (errmin)
-            *errmin = 0;
         goto LoadModule_fail;
     }
-    ret->handle = LoaderOpen(found, errmaj, errmin);
+    ret->handle = LoaderOpen(found, errmaj);
     if (ret->handle == NULL)
         goto LoadModule_fail;
-    ret->path = strdup(found);
 
     /* drop any explicit suffix from the module name */
     p = strchr(name, '.');
@@ -968,8 +768,6 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
         p = NULL;
         if (errmaj)
             *errmaj = LDR_NOMEM;
-        if (errmin)
-            *errmin = 0;
         goto LoadModule_fail;
     }
     initdata = LoaderSymbolFromModule(ret->handle, p);
@@ -986,19 +784,14 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
             if (!CheckVersion(module, vers, modreq)) {
                 if (errmaj)
                     *errmaj = LDR_MISMATCH;
-                if (errmin)
-                    *errmin = 0;
                 goto LoadModule_fail;
             }
         }
         else {
-            xf86Msg(X_ERROR,
-                    "LoadModule: Module %s does not supply"
-                    " version information\n", module);
+            LogMessage(X_ERROR, "LoadModule: Module %s does not supply"
+                       " version information\n", module);
             if (errmaj)
                 *errmaj = LDR_INVALID;
-            if (errmin)
-                *errmin = 0;
             goto LoadModule_fail;
         }
         if (setup)
@@ -1009,23 +802,21 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
     }
     else {
         /* no initdata, fail the load */
-        xf86Msg(X_ERROR, "LoadModule: Module %s does not have a %s "
-                "data object.\n", module, p);
+        LogMessage(X_ERROR, "LoadModule: Module %s does not have a %s "
+                   "data object.\n", module, p);
         if (errmaj)
             *errmaj = LDR_INVALID;
-        if (errmin)
-            *errmin = 0;
         goto LoadModule_fail;
     }
     if (ret->SetupProc) {
-        ret->TearDownData = ret->SetupProc(ret, options, errmaj, errmin);
+        ret->TearDownData = ret->SetupProc(ret, options, errmaj, NULL);
         if (!ret->TearDownData) {
             goto LoadModule_fail;
         }
     }
     else if (options) {
-        xf86Msg(X_WARNING, "Module Options present, but no SetupProc "
-                "available for %s\n", module);
+        LogMessage(X_WARNING, "Module Options present, but no SetupProc "
+                   "available for %s\n", module);
     }
     goto LoadModule_exit;
 
@@ -1034,7 +825,6 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
     ret = NULL;
 
  LoadModule_exit:
-    FreePathList(pathlist);
     FreePatterns(patterns);
     free(found);
     free(name);
@@ -1047,31 +837,31 @@ void
 UnloadModule(void *_mod)
 {
     ModuleDescPtr mod = _mod;
+    const char *name;
 
     if (mod == (ModuleDescPtr) 1)
         return;
 
-    if (mod == NULL || mod->name == NULL)
+    if (mod == NULL)
         return;
 
+    name = mod->VersionInfo->modname;
+
     if (mod->parent)
-        LogMessageVerbSigSafe(X_INFO, 3, "UnloadSubModule: \"%s\"\n",
-                              mod->name);
+        LogMessageVerbSigSafe(X_INFO, 3, "UnloadSubModule: \"%s\"\n", name);
     else
-        LogMessageVerbSigSafe(X_INFO, 3, "UnloadModule: \"%s\"\n", mod->name);
+        LogMessageVerbSigSafe(X_INFO, 3, "UnloadModule: \"%s\"\n", name);
 
     if (mod->TearDownData != ModuleDuplicated) {
         if ((mod->TearDownProc) && (mod->TearDownData))
             mod->TearDownProc(mod->TearDownData);
-        LoaderUnload(mod->name, mod->handle);
+        LoaderUnload(name, mod->handle);
     }
 
     if (mod->child)
         UnloadModule(mod->child);
     if (mod->sib)
         UnloadModule(mod->sib);
-    free(mod->path);
-    free(mod->name);
     free(mod);
 }
 
@@ -1131,30 +921,12 @@ LoaderErrorMsg(const char *name, const char *modname, int errmaj, int errmin)
     case LDR_NOENT:
         msg = "module does not exist";
         break;
-    case LDR_NOSUBENT:
-        msg = "a required submodule could not be loaded";
-        break;
-    case LDR_NOSPACE:
-        msg = "too many modules";
-        break;
-    case LDR_NOMODOPEN:
-        msg = "open failed";
-        break;
-    case LDR_UNKTYPE:
-        msg = "unknown module type";
-        break;
     case LDR_NOLOAD:
         msg = "loader failed";
         break;
     case LDR_ONCEONLY:
         msg = "already loaded";
         type = X_INFO;
-        break;
-    case LDR_NOPORTOPEN:
-        msg = "port open failed";
-        break;
-    case LDR_NOHARDWARE:
-        msg = "no hardware found";
         break;
     case LDR_MISMATCH:
         msg = "module requirement mismatch";
@@ -1175,11 +947,11 @@ LoaderErrorMsg(const char *name, const char *modname, int errmaj, int errmin)
         msg = "unknown error";
     }
     if (name)
-        xf86Msg(type, "%s: Failed to load module \"%s\" (%s, %d)\n",
-                name, modname, msg, errmin);
+        LogMessage(type, "%s: Failed to load module \"%s\" (%s, %d)\n",
+                   name, modname, msg, errmin);
     else
-        xf86Msg(type, "Failed to load module \"%s\" (%s, %d)\n",
-                modname, msg, errmin);
+        LogMessage(type, "Failed to load module \"%s\" (%s, %d)\n",
+                   modname, msg, errmin);
 }
 
 /* Given a module path or file name, return the module's canonical name */

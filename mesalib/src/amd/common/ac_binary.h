@@ -27,6 +27,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct ac_shader_reloc {
 	char name[32];
@@ -85,4 +86,5 @@ void ac_elf_read(const char *elf_data, unsigned elf_size,
 
 void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 				  struct ac_shader_config *conf,
-				  unsigned symbol_offset);
+				  unsigned symbol_offset,
+				  bool supports_spill);

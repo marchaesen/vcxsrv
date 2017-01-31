@@ -970,7 +970,6 @@ nir_lower_ssa_defs_to_regs_block(nir_block *block)
       } else {
          nir_foreach_dest(instr, dest_replace_ssa_with_reg, &state);
       }
-         nir_foreach_dest(instr, dest_replace_ssa_with_reg, &state);
    }
 
    return state.progress;

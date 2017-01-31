@@ -1611,8 +1611,8 @@
       <variantList>
         <variant>
           <configItem>
-            <name>plisi-d1</name>
-            <_description>Albanian (Plisi D1)</_description>
+            <name>plisi</name>
+            <_description>Albanian (Plisi)</_description>
           </configItem>
         </variant>
       </variantList>

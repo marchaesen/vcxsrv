@@ -54,6 +54,8 @@ enum glsl_base_type {
    GLSL_TYPE_INT,
    GLSL_TYPE_FLOAT,
    GLSL_TYPE_DOUBLE,
+   GLSL_TYPE_UINT64,
+   GLSL_TYPE_INT64,
    GLSL_TYPE_BOOL,
    GLSL_TYPE_SAMPLER,
    GLSL_TYPE_IMAGE,
@@ -69,7 +71,9 @@ enum glsl_base_type {
 
 static inline bool glsl_base_type_is_64bit(enum glsl_base_type type)
 {
-   return type == GLSL_TYPE_DOUBLE;
+   return type == GLSL_TYPE_DOUBLE ||
+          type == GLSL_TYPE_UINT64 ||
+          type == GLSL_TYPE_INT64;
 }
 
 enum glsl_sampler_dim {
@@ -225,6 +229,8 @@ struct glsl_type {
    static const glsl_type *ivec(unsigned components);
    static const glsl_type *uvec(unsigned components);
    static const glsl_type *bvec(unsigned components);
+   static const glsl_type *i64vec(unsigned components);
+   static const glsl_type *u64vec(unsigned components);
    /**@}*/
 
    /**
@@ -462,7 +468,7 @@ struct glsl_type {
     */
    bool is_numeric() const
    {
-      return (base_type >= GLSL_TYPE_UINT) && (base_type <= GLSL_TYPE_DOUBLE);
+      return (base_type >= GLSL_TYPE_UINT) && (base_type <= GLSL_TYPE_INT64);
    }
 
    /**
@@ -474,8 +480,17 @@ struct glsl_type {
    }
 
    /**
-    * Query whether or not type is an integral type, or for struct, interface
-    * and array types, contains an integral type.
+    * Query whether or not a type is a 32-bit or 64-bit integer
+    */
+   bool is_integer_32_64() const
+   {
+      return (base_type == GLSL_TYPE_UINT) || (base_type == GLSL_TYPE_INT) ||
+             (base_type == GLSL_TYPE_UINT64) || (base_type == GLSL_TYPE_INT64);
+   }
+
+   /**
+    * Query whether or not type is an integral type, or for struct and array
+    * types, contains an integral type.
     */
    bool contains_integer() const;
 

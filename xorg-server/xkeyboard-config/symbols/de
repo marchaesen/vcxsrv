@@ -68,13 +68,13 @@ xkb_symbols "nodeadkeys" {
     include "de(basic)"
     name[Group1]="German (eliminate dead keys)";
 
-    key <TLDE>	{ [asciicircum,    degree,      notsign,      notsign ]	};
-    key <AE12>	{ [     acute,      grave,      cedilla,      cedilla ]	};
-    key <AD11>	{ [udiaeresis, Udiaeresis,    diaeresis,    diaeresis ]	};
-    key <AD12>	{ [      plus,   asterisk,   asciitilde,       macron ]	};
-    key <AC10>	{ [odiaeresis, Odiaeresis,  doubleacute,  doubleacute ]	};
-    key <AC11>	{ [adiaeresis, Adiaeresis,  asciicircum,  asciicircum ]	};
-    key <BKSL>	{ [numbersign, apostrophe,        grave,        grave ]	};
+    key <TLDE>	{ [asciicircum,     degree,              notsign,     notsign ]	};
+    key <AE12>	{ [      acute,      grave,              cedilla,     cedilla ]	};
+    key <AD11>	{ [ udiaeresis, Udiaeresis,            diaeresis,   diaeresis ]	};
+    key <AD12>	{ [       plus,   asterisk,           asciitilde,      macron ]	};
+    key <AC10>	{ [ odiaeresis, Odiaeresis,          doubleacute, doubleacute ]	};
+    key <AC11>	{ [ adiaeresis, Adiaeresis,          asciicircum, asciicircum ]	};
+    key <BKSL>	{ [ numbersign, apostrophe, rightsinglequotemark,       grave ]	};
 };
 
 partial alphanumeric_keys
@@ -86,9 +86,9 @@ xkb_symbols "deadgraveacute" {
     include "de(basic)"
     name[Group1]="German (dead grave acute)";
 
-    key <TLDE>	{ [asciicircum,    degree,      notsign,      notsign ]	};
-    key <AD12>	{ [      plus,   asterisk,   asciitilde,  dead_macron ]	};
-    key <BKSL>	{ [numbersign, apostrophe,        grave,        grave ]	};
+    key <TLDE>	{ [asciicircum,     degree,              notsign,      notsign ] };
+    key <AD12>	{ [       plus,   asterisk,           asciitilde,  dead_macron ] };
+    key <BKSL>	{ [ numbersign, apostrophe, rightsinglequotemark,        grave ] };
 };
 
 partial alphanumeric_keys
@@ -101,8 +101,8 @@ xkb_symbols "deadacute" {
 
     name[Group1]="German (dead acute)";
 
-    key <AE12>	{ [dead_acute,      grave, dead_cedilla,  dead_ogonek ]	};
-    key <BKSL>	{ [numbersign, apostrophe,   dead_grave,   dead_grave ]	};
+    key <AE12>	{ [dead_acute,      grave,           dead_cedilla,  dead_ogonek ] };
+    key <BKSL>	{ [numbersign, apostrophe,   rightsinglequotemark,   dead_grave ] };
 };
 
 
@@ -180,7 +180,7 @@ xkb_symbols "T3" {
     key.type[Group1] = "THREE_LEVEL";
     key <LFSH> { [ Shift_L, Shift_L, ISO_Level5_Latch ] };
     key <RTSH> { [ Shift_R, Shift_R, ISO_Level5_Latch ] };
-    key <RALT> { [ ISO_Level3_Latch, ISO_Level5_Latch, ISO_Level5_Latch ] };
+    key <RALT> { [ ISO_Level3_Switch, ISO_Level5_Latch, ISO_Level5_Latch ] };
  };
 
 partial alphanumeric_keys
@@ -521,7 +521,7 @@ xkb_symbols "mac_nodeadkeys" {
     key <AC10>	{ [ odiaeresis, Odiaeresis,       acute       ]	};
     key <AC11>	{ [ adiaeresis, Adiaeresis, asciicircum       ]	};
 
-    key <BKSL>	{ [ numbersign, apostrophe,       grave       ]	};
+    key <BKSL>	{ [ numbersign, apostrophe, rightsinglequotemark ] };
 };
 
 partial alphanumeric_keys
@@ -762,19 +762,19 @@ xkb_symbols "hu" {
     include "de(basic)"
     name[Group1]="German (with Hungarian letters and no dead keys)";
 
-    key <AB01> { [         y,          Y, guillemotleft,        less ] };
-    key <AC10> { [odiaeresis, Odiaeresis,        eacute,      Eacute ] };
-    key <AC11> { [adiaeresis, Adiaeresis,        aacute,       Aacute] };
-    key <AD03> { [         e,          E,      EuroSign,    EuroSign ] };
-    key <AD06> { [         z,          Z,     leftarrow,         yen ] };
-    key <AD07> { [         u,          U,        uacute,      Uacute ] };
-    key <AD08> { [         i,          I,        iacute,      Iacute ] };
-    key <AD09> { [         o,          O,  odoubleacute,Odoubleacute ] };
-    key <AD11> { [udiaeresis, Udiaeresis,  udoubleacute,Udoubleacute ] };
-    key <AD12> { [      plus,   asterisk,    asciitilde,      macron ] };
-    key <AE12> { [     acute,      grave,        oacute,      Oacute ] };
-    key <BKSL> { [numbersign, apostrophe,         grave,       grave ] };
-    key <TLDE> { [asciicircum,    degree,       notsign,     notsign ] };
+    key <AB01> { [         y,          Y,        guillemotleft,         less ] };
+    key <AC10> { [odiaeresis, Odiaeresis,               eacute,       Eacute ] };
+    key <AC11> { [adiaeresis, Adiaeresis,               aacute,        Aacute] };
+    key <AD03> { [         e,          E,             EuroSign,     EuroSign ] };
+    key <AD06> { [         z,          Z,            leftarrow,          yen ] };
+    key <AD07> { [         u,          U,               uacute,       Uacute ] };
+    key <AD08> { [         i,          I,               iacute,       Iacute ] };
+    key <AD09> { [         o,          O,         odoubleacute, Odoubleacute ] };
+    key <AD11> { [udiaeresis, Udiaeresis,         udoubleacute, Udoubleacute ] };
+    key <AD12> { [      plus,   asterisk,           asciitilde,       macron ] };
+    key <AE12> { [     acute,      grave,               oacute,       Oacute ] };
+    key <BKSL> { [numbersign, apostrophe, rightsinglequotemark,        grave ] };
+    key <TLDE> { [asciicircum,    degree,              notsign,      notsign ] };
 };
 
 partial alphanumeric_keys

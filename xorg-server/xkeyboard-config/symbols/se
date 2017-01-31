@@ -359,4 +359,18 @@ xkb_symbols "dvorak_a5" {
 
 };
 
+partial alphanumeric_keys
+xkb_symbols "ovd" {
 
+    // Adds combining ogonek (U0328) to the basic Swedish layout to facilitate
+    // typing of Ą ą Ę ę Į į Ų ų Y̨ y̨ Ą̊ ą̊.
+    // The character replaces <dead_diaeresis> which is considered dispensable
+    // since ä and ö have their own keys. <dead_diaeresis> is still available
+    // via <AltGr> + Å.
+
+    include "se(basic)"
+
+    name[Group1]="Elfdalian (Swedish, with combining ogonek)";
+
+    key <AD12> { [ U0328,  dead_circumflex,  dead_tilde,  dead_caron ] };
+};

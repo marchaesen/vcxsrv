@@ -1,7 +1,6 @@
-AC_INIT(xkeyboard-config, 2.19)
+AC_INIT(xkeyboard-config, 2.19.99)
 AC_CONFIG_SRCDIR(rules/base.xml.in)
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
-AM_MAINTAINER_MODE
 
 # Require X.Org macros 1.12 or later for XORG_WITH_XSLTPROC
 m4_ifndef([XORG_MACROS_VERSION],

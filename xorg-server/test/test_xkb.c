@@ -48,6 +48,8 @@
 #include "../xkb/xkb.h"
 #include <assert.h>
 
+#include "tests-common.h"
+
 /**
  * Initialize an empty XkbRMLVOSet.
  * Call XkbGetRulesDflts to obtain the default ruleset.
@@ -164,7 +166,7 @@ xkb_set_get_rules_test(void)
 }
 
 int
-main(int argc, char **argv)
+xkb_test(void)
 {
     xkb_set_get_rules_test();
     xkb_get_rules_test();

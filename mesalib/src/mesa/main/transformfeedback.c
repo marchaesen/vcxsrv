@@ -65,9 +65,12 @@ bool
 _mesa_transform_feedback_is_using_program(struct gl_context *ctx,
                                           struct gl_shader_program *shProg)
 {
+   if (!shProg->last_vert_prog)
+      return false;
+
    struct using_program_tuple callback_data;
    callback_data.found = false;
-   callback_data.prog = shProg->xfb_program;
+   callback_data.prog = shProg->last_vert_prog;
 
    _mesa_HashWalk(ctx->TransformFeedback.Objects,
                   active_xfb_object_references_program, &callback_data);
@@ -390,7 +393,7 @@ get_xfb_source(struct gl_context *ctx)
    int i;
    for (i = MESA_SHADER_GEOMETRY; i >= MESA_SHADER_VERTEX; i--) {
       if (ctx->_Shader->CurrentProgram[i] != NULL)
-         return ctx->_Shader->CurrentProgram[i]->_LinkedShaders[i]->Program;
+         return ctx->_Shader->CurrentProgram[i];
    }
    return NULL;
 }

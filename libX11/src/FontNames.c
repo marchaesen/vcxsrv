@@ -43,6 +43,7 @@ int *actualCount)	/* RETURN */
     register int length;
     char **flist = NULL;
     char *ch = NULL;
+    char *chstart;
     char *chend;
     int count = 0;
     xListFontsReply rep;
@@ -86,6 +87,7 @@ int *actualCount)	/* RETURN */
 	/*
 	 * unpack into null terminated strings.
 	 */
+	chstart = ch;
 	chend = ch + (rlen + 1);
 	length = *(unsigned char *)ch;
 	*ch = 1; /* make sure it is non-zero for XFreeFontNames */
@@ -98,14 +100,14 @@ int *actualCount)	/* RETURN */
 		    *ch = '\0';  /* and replace with null-termination */
 		    count++;
 		} else {
-                    Xfree(ch);
+                    Xfree(chstart);
                     Xfree(flist);
                     flist = NULL;
                     count = 0;
                     break;
 		}
 	    } else {
-                Xfree(ch);
+                Xfree(chstart);
                 Xfree(flist);
                 flist = NULL;
                 count = 0;

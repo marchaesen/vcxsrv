@@ -846,6 +846,8 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_INT64:
    case GLSL_TYPE_BOOL:
       load->value = constant->values[matrix_col];
       break;
@@ -1955,4 +1957,85 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
    default:
       unreachable("intrinsic doesn't produce a system value");
    }
+}
+
+nir_op
+nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
+{
+   nir_alu_type src_base_type = (nir_alu_type) nir_alu_type_get_base_type(src);
+   nir_alu_type dst_base_type = (nir_alu_type) nir_alu_type_get_base_type(dst);
+   unsigned src_bitsize = nir_alu_type_get_type_size(src);
+   unsigned dst_bitsize = nir_alu_type_get_type_size(dst);
+
+   if (src_base_type == dst_base_type) {
+      if (src_bitsize == dst_bitsize)
+         return (src_base_type == nir_type_float) ? nir_op_fmov : nir_op_imov;
+
+      assert (src_base_type == nir_type_float);
+      /* TODO: implement support for float16 */
+      assert(src_bitsize == 64 || dst_bitsize == 64);
+      return (src_bitsize == 64) ? nir_op_d2f : nir_op_f2d;
+   }
+
+   /* Different base type but same bit_size */
+   if (src_bitsize == dst_bitsize) {
+      /* TODO: This does not include specific conversions between
+       * signed or unsigned integer types of bit size different than 32 yet.
+       */
+      assert(src_bitsize == 32);
+      switch (src_base_type) {
+      case nir_type_uint:
+         return (dst_base_type == nir_type_float) ? nir_op_u2f : nir_op_imov;
+      case nir_type_int:
+         return (dst_base_type == nir_type_float) ? nir_op_i2f : nir_op_imov;
+      case nir_type_bool:
+         return (dst_base_type == nir_type_float) ? nir_op_b2f : nir_op_b2i;
+      case nir_type_float:
+         switch (dst_base_type) {
+         case nir_type_uint:
+            return nir_op_f2u;
+         case nir_type_bool:
+            return nir_op_f2b;
+         default:
+            return nir_op_f2i;
+         };
+      default:
+         unreachable("Invalid conversion");
+      };
+   }
+
+   /* Different bit_size and different base type */
+   /* TODO: Implement integer support for types with bit_size != 32 */
+   switch (src_base_type) {
+   case nir_type_uint:
+      assert(dst == nir_type_float64);
+      return nir_op_u2d;
+   case nir_type_int:
+      assert(dst == nir_type_float64);
+      return nir_op_i2d;
+   case nir_type_bool:
+      assert(dst == nir_type_float64);
+      return nir_op_u2d;
+   case nir_type_float:
+      assert(src_bitsize == 32 || src_bitsize == 64);
+      if (src_bitsize != 64) {
+         assert(dst == nir_type_float64);
+         return nir_op_f2d;
+      }
+      assert(dst_bitsize == 32);
+      switch (dst_base_type) {
+      case nir_type_uint:
+         return nir_op_d2u;
+      case nir_type_int:
+         return nir_op_d2i;
+      case nir_type_bool:
+         return nir_op_d2b;
+      case nir_type_float:
+         return nir_op_d2f;
+      default:
+         unreachable("Invalid conversion");
+      };
+   default:
+      unreachable("Invalid conversion");
+   };
 }

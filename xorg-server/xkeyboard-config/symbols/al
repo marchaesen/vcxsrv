@@ -41,65 +41,70 @@ xkb_symbols "basic" {
 };
 
 
+// Tastiera Plisi (plisi.org)
+// by Getoar Mjeku <gm@getoar.com>
+//
+
 partial alphanumeric_keys 
-xkb_symbols "plisi-d1" {
+xkb_symbols "plisi" {
 
-  include "us"
+ include "us"
 
-  name[Group1]= "Albanian (Plisi D1)";
+ name[Group1]= "Albanian (Plisi)";
 
-  key <TLDE> { [ grave, asciitilde ] };
-  key <AE01> { [ 1, exclam ] };
-  key <AE02> { [ 2, at ] };
-  key <AE03> { [ 3, numbersign ] };
-  key <AE04> { [ 4, dollar, EuroSign ] };
-  key <AE05> { [ 5, percent ] };
-  key <AE06> { [ 6, asciicircum ] };
-  key <AE07> { [ 7, ampersand, braceleft ] };
-  key <AE08> { [ 8, asterisk, braceright ] };
-  key <AE09> { [ 9, parenleft, bracketleft ] };
-  key <AE10> { [ 0, parenright, bracketright ] };
-  key <AE11> { [ minus, underscore ] };
-  key <AE12> { [ equal, plus ] };
+ key <TLDE> { [ grave, asciitilde ] };
+ key <AE01> { [ 1, exclam, U2019 ] };
+ key <AE02> { [ 2, at, twosuperior ] };
+ key <AE03> { [ 3, numbersign, threesuperior ] };
+ key <AE04> { [ 4, dollar, EuroSign ] };
+ key <AE05> { [ 5, percent, exclamdown ] };
+ key <AE06> { [ 6, asciicircum, questiondown ] };
+ key <AE07> { [ 7, ampersand, braceleft ] };
+ key <AE08> { [ 8, asterisk, braceright ] };
+ key <AE09> { [ 9, parenleft, bracketleft ] };
+ key <AE10> { [ 0, parenright, bracketright ] };
+ key <AE11> { [ minus, underscore, U00AD ] };
+ key <AE12> { [ equal, plus, registered ] };
 
-  key <AD01> { [ q, Q ] };
-  key <AD02> { [ w, W ] };
-  key <AD03> { [ e, E ] };
-  key <AD04> { [ r, R ] };
-  key <AD05> { [ t, T ] };
-  key <AD06> { [ y, Y ] };
-  key <AD07> { [ u, U ] };
-  key <AD08> { [ i, I ] };
-  key <AD09> { [ o, O ] };
-  key <AD10> { [ p, P ] };
-  key <AD11> { [ ccedilla, Ccedilla ] };
-  key <AD12> { [ greater, less ] };
+ key <AD01> { [ q, Q, dead_grave ] };
+ key <AD02> { [ w, W, dead_caron ] };
+ key <AD03> { [ e, E, dead_circumflex ] };
+ key <AD04> { [ r, R, dead_diaeresis ] };
+ key <AD05> { [ t, T, dead_macron ] };
+ key <AD06> { [ y, Y, dead_doubleacute ] };
+ key <AD07> { [ u, U, dead_breve ] };
+ key <AD08> { [ i, I, dead_tilde, U0131 ] };
+ key <AD09> { [ o, O, dead_abovering ] };
+ key <AD10> { [ p, P, dead_abovedot ] };
+ key <AD11> { [ ccedilla, Ccedilla, dead_acute ] };
+ key <AD12> { [ greater, less, U031C ] };
 
-  key <AC01> { [ a, A ] };
-  key <AC02> { [ s, S ] };
-  key <AC03> { [ d, D ] };
-  key <AC04> { [ f, F ] };
-  key <AC05> { [ g, G ] };
-  key <AC06> { [ h, H ] };
-  key <AC07> { [ j, J ] };
-  key <AC08> { [ k, K ] };
-  key <AC09> { [ l, L ] };
-  key <AC10> { [ ediaeresis, Ediaeresis ] };
-  key <AC11> { [ apostrophe, quotedbl ] };
+ key <AC01> { [ a, A, U2264 ] };
+ key <AC02> { [ s, S, U2265 ] };
+ key <AC03> { [ d, D, U2300 ] };
+ key <AC04> { [ f, F, U2032 ] };
+ key <AC05> { [ g, G, U2033 ] };
+ key <AC06> { [ h, H, section ] };
+ key <AC07> { [ j, J, dead_cedilla ] };
+ key <AC08> { [ k, K, dead_comma ] };
+ key <AC09> { [ l, L, dead_ogonek ] };
+ key <AC10> { [ ediaeresis, Ediaeresis, dead_belowdot ] };
+ key <AC11> { [ apostrophe, quotedbl ] };
 
-  key <AB01> { [ z, Z ] };
-  key <AB02> { [ x, X ] };
-  key <AB03> { [ c, C ] };
-  key <AB04> { [ v, V ] };
-  key <AB05> { [ b, B ] };
-  key <AB06> { [ n, N ] };
-  key <AB07> { [ m, M ] };
-  key <AB08> { [ comma, semicolon ] };
-  key <AB09> { [ period, colon ] };
-  key <AB10> { [ slash, question ] };
+ key <AB01> { [ z, Z, guillemotleft ] };
+ key <AB02> { [ x, X, guillemotright ] };
+ key <AB03> { [ c, C, copyright ] };
+ key <AB04> { [ v, V, U2039 ] };
+ key <AB05> { [ b, B, U203A ] };
+ key <AB06> { [ n, N, endash ] };
+ key <AB07> { [ m, M, emdash, U00B5 ] };
+ key <AB08> { [ comma, semicolon, U02BB ] };
+ key <AB09> { [ period, colon, U200C ] };
+ key <AB10> { [ slash, question, U2011 ] };
 
-  key <BKSL> { [ backslash, bar ] };
+ key <BKSL> { [ backslash, bar, U031B ] };
 
-  include "level3(ralt_switch)"
+ include "level3(ralt_switch)"
+
 };
 

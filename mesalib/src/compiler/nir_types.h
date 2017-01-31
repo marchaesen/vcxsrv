@@ -92,6 +92,8 @@ glsl_get_bit_size(const struct glsl_type *type)
       return 32;
 
    case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_INT64:
+   case GLSL_TYPE_UINT64:
       return 64;
 
    default:

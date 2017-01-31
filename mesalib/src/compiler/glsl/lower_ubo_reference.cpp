@@ -289,11 +289,11 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
    unsigned num_blocks;
    struct gl_uniform_block **blocks;
    if (this->buffer_access_type != ubo_load_access) {
-      num_blocks = shader->NumShaderStorageBlocks;
-      blocks = shader->ShaderStorageBlocks;
+      num_blocks = shader->Program->info.num_ssbos;
+      blocks = shader->Program->sh.ShaderStorageBlocks;
    } else {
-      num_blocks = shader->NumUniformBlocks;
-      blocks = shader->UniformBlocks;
+      num_blocks = shader->Program->info.num_ubos;
+      blocks = shader->Program->sh.UniformBlocks;
    }
    this->uniform_block = NULL;
    for (unsigned i = 0; i < num_blocks; i++) {

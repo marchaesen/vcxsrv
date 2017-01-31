@@ -46,23 +46,8 @@ struct {
     int win;
 } test_data;
 
-static ClientRec client_window;
+ClientRec client_window;
 static ClientRec client_request;
-
-int
-__wrap_dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client,
-                       Mask access)
-{
-    if (rid == ROOT_WINDOW_ID)
-        return BadWindow;
-
-    if (rid == CLIENT_WINDOW_ID) {
-        *pClient = &client_window;
-        return Success;
-    }
-
-    return __real_dixLookupClient(pClient, rid, client, access);
-}
 
 static void
 reply_XIGetClientPointer(ClientPtr client, int len, char *data, void *userdata)
@@ -157,7 +142,7 @@ test_XIGetClientPointer(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xigetclientpointer_test(void)
 {
     init_simple();
     client_window = init_client(0, NULL);

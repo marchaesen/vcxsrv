@@ -35,6 +35,8 @@
 #include "xserver-properties.h"
 #include "syncsrv.h"
 
+#include "tests-common.h"
+
 /**
  */
 
@@ -123,7 +125,7 @@ xtest_properties(void)
 }
 
 int
-main(int argc, char **argv)
+xtest_test(void)
 {
     xtest_init_devices();
     xtest_properties();

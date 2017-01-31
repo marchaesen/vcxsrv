@@ -250,6 +250,11 @@ struct _mesa_glsl_parse_state {
       return ARB_gpu_shader_fp64_enable || is_version(400, 0);
    }
 
+   bool has_int64() const
+   {
+      return ARB_gpu_shader_int64_enable;
+   }
+
    bool has_420pack() const
    {
       return ARB_shading_language_420pack_enable || is_version(420, 0);
@@ -610,6 +615,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_gpu_shader5_warn;
    bool ARB_gpu_shader_fp64_enable;
    bool ARB_gpu_shader_fp64_warn;
+   bool ARB_gpu_shader_int64_enable;
+   bool ARB_gpu_shader_int64_warn;
    bool ARB_post_depth_coverage_enable;
    bool ARB_post_depth_coverage_warn;
    bool ARB_sample_shading_enable;

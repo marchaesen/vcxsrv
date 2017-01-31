@@ -33,6 +33,8 @@
 #include "inpututils.h"
 #include <X11/extensions/XI2proto.h>
 
+#include "protocol-common.h"
+
 static void
 test_values_XIRawEvent(RawDeviceEvent *in, xXIRawEvent * out, BOOL swap)
 {
@@ -1200,7 +1202,7 @@ test_convert_XIBarrierEvent(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_eventconvert_test(void)
 {
     test_convert_XIRawEvent();
     test_convert_XIFocusEvent();

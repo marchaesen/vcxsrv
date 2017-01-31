@@ -238,21 +238,21 @@ const struct st_tracked_state st_update_cs_constants = {
    update_cs_constants					/* update */
 };
 
-static void st_bind_ubos(struct st_context *st,
-                           struct gl_linked_shader *shader,
-                           unsigned shader_type)
+static void st_bind_ubos(struct st_context *st, struct gl_program *prog,
+                         unsigned shader_type)
 {
    unsigned i;
    struct pipe_constant_buffer cb = { 0 };
 
-   if (!shader)
+   if (!prog)
       return;
 
-   for (i = 0; i < shader->NumUniformBlocks; i++) {
+   for (i = 0; i < prog->info.num_ubos; i++) {
       struct gl_uniform_buffer_binding *binding;
       struct st_buffer_object *st_obj;
 
-      binding = &st->ctx->UniformBufferBindings[shader->UniformBlocks[i]->Binding];
+      binding =
+         &st->ctx->UniformBufferBindings[prog->sh.UniformBlocks[i]->Binding];
       st_obj = st_buffer_object(binding->BufferObject);
 
       cb.buffer = st_obj->buffer;
@@ -278,13 +278,10 @@ static void st_bind_ubos(struct st_context *st,
 
 static void bind_vs_ubos(struct st_context *st)
 {
-   struct gl_shader_program *prog =
+   struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
 
-   if (!prog)
-      return;
-
-   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_VERTEX], PIPE_SHADER_VERTEX);
+   st_bind_ubos(st, prog, PIPE_SHADER_VERTEX);
 }
 
 const struct st_tracked_state st_bind_vs_ubos = {
@@ -293,13 +290,10 @@ const struct st_tracked_state st_bind_vs_ubos = {
 
 static void bind_fs_ubos(struct st_context *st)
 {
-   struct gl_shader_program *prog =
+   struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
 
-   if (!prog)
-      return;
-
-   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_FRAGMENT], PIPE_SHADER_FRAGMENT);
+   st_bind_ubos(st, prog, PIPE_SHADER_FRAGMENT);
 }
 
 const struct st_tracked_state st_bind_fs_ubos = {
@@ -308,13 +302,10 @@ const struct st_tracked_state st_bind_fs_ubos = {
 
 static void bind_gs_ubos(struct st_context *st)
 {
-   struct gl_shader_program *prog =
+   struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
 
-   if (!prog)
-      return;
-
-   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_GEOMETRY], PIPE_SHADER_GEOMETRY);
+   st_bind_ubos(st, prog, PIPE_SHADER_GEOMETRY);
 }
 
 const struct st_tracked_state st_bind_gs_ubos = {
@@ -323,13 +314,10 @@ const struct st_tracked_state st_bind_gs_ubos = {
 
 static void bind_tcs_ubos(struct st_context *st)
 {
-   struct gl_shader_program *prog =
+   struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
 
-   if (!prog)
-      return;
-
-   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_TESS_CTRL], PIPE_SHADER_TESS_CTRL);
+   st_bind_ubos(st, prog, PIPE_SHADER_TESS_CTRL);
 }
 
 const struct st_tracked_state st_bind_tcs_ubos = {
@@ -338,13 +326,10 @@ const struct st_tracked_state st_bind_tcs_ubos = {
 
 static void bind_tes_ubos(struct st_context *st)
 {
-   struct gl_shader_program *prog =
+   struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
 
-   if (!prog)
-      return;
-
-   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_TESS_EVAL], PIPE_SHADER_TESS_EVAL);
+   st_bind_ubos(st, prog, PIPE_SHADER_TESS_EVAL);
 }
 
 const struct st_tracked_state st_bind_tes_ubos = {
@@ -353,14 +338,10 @@ const struct st_tracked_state st_bind_tes_ubos = {
 
 static void bind_cs_ubos(struct st_context *st)
 {
-   struct gl_shader_program *prog =
+   struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
 
-   if (!prog)
-      return;
-
-   st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_COMPUTE],
-                PIPE_SHADER_COMPUTE);
+   st_bind_ubos(st, prog, PIPE_SHADER_COMPUTE);
 }
 
 const struct st_tracked_state st_bind_cs_ubos = {

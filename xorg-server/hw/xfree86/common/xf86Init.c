@@ -1473,7 +1473,7 @@ ddxUseMsg(void)
 Bool
 xf86LoadModules(const char **list, void **optlist)
 {
-    int errmaj, errmin;
+    int errmaj;
     void *opt;
     int i;
     char *name;
@@ -1503,8 +1503,8 @@ xf86LoadModules(const char **list, void **optlist)
         else
             opt = NULL;
 
-        if (!LoadModule(name, NULL, NULL, NULL, opt, NULL, &errmaj, &errmin)) {
-            LoaderErrorMsg(NULL, name, errmaj, errmin);
+        if (!LoadModule(name, opt, NULL, &errmaj)) {
+            LoaderErrorMsg(NULL, name, errmaj, 0);
             failed = TRUE;
         }
         free(name);

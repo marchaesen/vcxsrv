@@ -16,12 +16,6 @@
 /* Support tslib touchscreen abstraction library */
 #undef TSLIB
 
-/* Support KDrive kbd driver */
-#undef KDRIVE_KBD
-
-/* Support KDrive mouse driver */
-#undef KDRIVE_MOUSE
-
 /* Support KDrive evdev driver */
 #undef KDRIVE_EVDEV
 

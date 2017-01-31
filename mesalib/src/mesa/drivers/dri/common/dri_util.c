@@ -881,8 +881,12 @@ driImageFormatToGLFormat(uint32_t image_format)
       return MESA_FORMAT_R8G8B8X8_UNORM;
    case __DRI_IMAGE_FORMAT_R8:
       return MESA_FORMAT_R_UNORM8;
+   case __DRI_IMAGE_FORMAT_R16:
+      return MESA_FORMAT_R_UNORM16;
    case __DRI_IMAGE_FORMAT_GR88:
       return MESA_FORMAT_R8G8_UNORM;
+   case __DRI_IMAGE_FORMAT_GR1616:
+      return MESA_FORMAT_R16G16_UNORM;
    case __DRI_IMAGE_FORMAT_SARGB8:
       return MESA_FORMAT_B8G8R8A8_SRGB;
    case __DRI_IMAGE_FORMAT_NONE:

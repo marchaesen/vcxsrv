@@ -67,6 +67,12 @@ st_glsl_attrib_type_size(const struct glsl_type *type, bool is_vs_input)
             return 2;
       }
       break;
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_INT64:
+      if (type->vector_elements <= 2 || is_vs_input)
+         return 1;
+      else
+         return 2;
    case GLSL_TYPE_ARRAY:
       assert(type->length > 0);
       return st_glsl_attrib_type_size(type->fields.array, is_vs_input) * type->length;

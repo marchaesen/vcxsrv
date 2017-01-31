@@ -54,6 +54,8 @@ struct test_data {
     int num_devices_in_reply;
 };
 
+ClientRec client_window;
+
 static void reply_XIQueryDevice_data(ClientPtr client, int len, char *data,
                                      void *closure);
 static void reply_XIQueryDevice(ClientPtr client, int len, char *data,
@@ -333,7 +335,7 @@ test_XIQueryDevice(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xiquerydevice_test(void)
 {
     init_simple();
 

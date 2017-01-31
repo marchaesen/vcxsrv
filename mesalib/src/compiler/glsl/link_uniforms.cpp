@@ -613,7 +613,7 @@ private:
          this->next_image += MAX2(1, uniform->array_elements);
 
          for (unsigned i = first; i < MIN2(next_image, MAX_IMAGE_UNIFORMS); i++)
-            prog->_LinkedShaders[shader_type]->ImageAccess[i] = access;
+            prog->_LinkedShaders[shader_type]->Program->sh.ImageAccess[i] = access;
       }
    }
 
@@ -901,9 +901,10 @@ link_update_uniform_buffer_variables(struct gl_linked_shader *shader,
              var->data.mode == ir_var_shader_storage);
 
       unsigned num_blocks = var->data.mode == ir_var_uniform ?
-         shader->NumUniformBlocks : shader->NumShaderStorageBlocks;
+         shader->Program->info.num_ubos : shader->Program->info.num_ssbos;
       struct gl_uniform_block **blks = var->data.mode == ir_var_uniform ?
-         shader->UniformBlocks : shader->ShaderStorageBlocks;
+         shader->Program->sh.UniformBlocks :
+         shader->Program->sh.ShaderStorageBlocks;
 
       if (var->is_interface_instance()) {
          const ir_array_refcount_entry *const entry = v.get_variable_entry(var);
@@ -1041,12 +1042,10 @@ find_empty_block(struct gl_shader_program *prog,
 
 static void
 link_setup_uniform_remap_tables(struct gl_context *ctx,
-                                struct gl_shader_program *prog,
-                                unsigned num_explicit_uniform_locs)
+                                struct gl_shader_program *prog)
 {
-   unsigned total_entries = num_explicit_uniform_locs;
-   unsigned empty_locs =
-      prog->NumUniformRemapTable - num_explicit_uniform_locs;
+   unsigned total_entries = prog->NumExplicitUniformLocations;
+   unsigned empty_locs = prog->NumUniformRemapTable - total_entries;
 
    /* Reserve all the explicit locations of the active uniforms. */
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
@@ -1205,8 +1204,7 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
 static void
 link_assign_uniform_storage(struct gl_context *ctx,
                             struct gl_shader_program *prog,
-                            const unsigned num_data_slots,
-                            unsigned num_explicit_uniform_locs)
+                            const unsigned num_data_slots)
 {
    /* On the outside chance that there were no uniforms, bail out.
     */
@@ -1243,13 +1241,15 @@ link_assign_uniform_storage(struct gl_context *ctx,
          parcel.set_and_process(var);
       }
 
-      prog->_LinkedShaders[i]->active_samplers = parcel.shader_samplers_used;
+      prog->_LinkedShaders[i]->Program->SamplersUsed =
+         parcel.shader_samplers_used;
       prog->_LinkedShaders[i]->shadow_samplers = parcel.shader_shadow_samplers;
 
-      STATIC_ASSERT(sizeof(prog->_LinkedShaders[i]->SamplerTargets) ==
+      STATIC_ASSERT(sizeof(prog->_LinkedShaders[i]->Program->sh.SamplerTargets) ==
                     sizeof(parcel.targets));
-      memcpy(prog->_LinkedShaders[i]->SamplerTargets, parcel.targets,
-             sizeof(prog->_LinkedShaders[i]->SamplerTargets));
+      memcpy(prog->_LinkedShaders[i]->Program->sh.SamplerTargets,
+             parcel.targets,
+             sizeof(prog->_LinkedShaders[i]->Program->sh.SamplerTargets));
    }
 
 #ifndef NDEBUG
@@ -1263,15 +1263,18 @@ link_assign_uniform_storage(struct gl_context *ctx,
    assert(parcel.values == data_end);
 #endif
 
-   link_setup_uniform_remap_tables(ctx, prog, num_explicit_uniform_locs);
+   link_setup_uniform_remap_tables(ctx, prog);
+
+   /* Set shader cache fields */
+   prog->data->NumUniformDataSlots = num_data_slots;
+   prog->data->UniformDataSlots = data;
 
    link_set_uniform_initializers(prog, boolean_true);
 }
 
 void
 link_assign_uniform_locations(struct gl_shader_program *prog,
-                              struct gl_context *ctx,
-                              unsigned int num_explicit_uniform_locs)
+                              struct gl_context *ctx)
 {
    ralloc_free(prog->data->UniformStorage);
    prog->data->UniformStorage = NULL;
@@ -1298,18 +1301,6 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       if (sh == NULL)
          continue;
 
-      /* Uniforms that lack an initializer in the shader code have an initial
-       * value of zero.  This includes sampler uniforms.
-       *
-       * Page 24 (page 30 of the PDF) of the GLSL 1.20 spec says:
-       *
-       *     "The link time initial value is either the value of the variable's
-       *     initializer, if present, or 0 if no initializer is present. Sampler
-       *     types cannot have initializers."
-       */
-      memset(sh->SamplerUnits, 0, sizeof(sh->SamplerUnits));
-      memset(sh->ImageUnits, 0, sizeof(sh->ImageUnits));
-
       link_update_uniform_buffer_variables(sh, i);
 
       /* Reset various per-shader target counts.
@@ -1326,14 +1317,14 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
          uniform_size.process(var);
       }
 
-      sh->num_samplers = uniform_size.num_shader_samplers;
-      sh->NumImages = uniform_size.num_shader_images;
+      sh->Program->info.num_textures = uniform_size.num_shader_samplers;
+      sh->Program->info.num_images = uniform_size.num_shader_images;
       sh->num_uniform_components = uniform_size.num_shader_uniform_components;
       sh->num_combined_uniform_components = sh->num_uniform_components;
 
-      for (unsigned i = 0; i < sh->NumUniformBlocks; i++) {
+      for (unsigned i = 0; i < sh->Program->info.num_ubos; i++) {
          sh->num_combined_uniform_components +=
-            sh->UniformBlocks[i]->UniformBufferSize / 4;
+            sh->Program->sh.UniformBlocks[i]->UniformBufferSize / 4;
       }
    }
 
@@ -1344,6 +1335,5 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
    hiddenUniforms->iterate(assign_hidden_uniform_slot_id, &uniform_size);
    delete hiddenUniforms;
 
-   link_assign_uniform_storage(ctx, prog, uniform_size.num_values,
-                               num_explicit_uniform_locs);
+   link_assign_uniform_storage(ctx, prog, uniform_size.num_values);
 }

@@ -1067,6 +1067,10 @@ AttendClient(ClientPtr client)
     set_poll_client(client);
     if (listen_to_client(client))
         mark_client_ready(client);
+    else {
+        /* grab active, mark ready when grab goes away */
+        mark_client_saved_ready(client);
+    }
 }
 
 /* make client impervious to grabs; assume only executing client calls this */

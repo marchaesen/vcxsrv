@@ -143,6 +143,12 @@ extern void SmartScheduleStopTimer(void);
 /* Client has requests queued or data on the network */
 void mark_client_ready(ClientPtr client);
 
+/*
+ * Client has requests queued or data on the network, but awaits a
+ * server grab release
+ */
+void mark_client_saved_ready(ClientPtr client);
+
 /* Client has no requests queued and no data on network */
 void mark_client_not_ready(ClientPtr client);
 

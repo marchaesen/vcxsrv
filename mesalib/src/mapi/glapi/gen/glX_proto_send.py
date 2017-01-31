@@ -573,7 +573,7 @@ generic_%u_byte( GLint rop, const void * ptr )
                         condition = 'compsize > 0'
 
                     print 'if (%s) {' % (condition)
-                    print '    (*gc->fillImage)(gc, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (dim_str, width, height, depth, param.img_format, param.img_type, param.name, pcPtr, pixHeaderPtr)
+                    print '    gc->fillImage(gc, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (dim_str, width, height, depth, param.img_format, param.img_type, param.name, pcPtr, pixHeaderPtr)
                     print '} else {'
                     print '    (void) memcpy( %s, default_pixel_store_%uD, default_pixel_store_%uD_size );' % (pixHeaderPtr, dim, dim)
                     print '}'

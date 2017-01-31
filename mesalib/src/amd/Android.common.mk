@@ -28,7 +28,22 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libmesa_amd_common
 
-LOCAL_SRC_FILES := $(AMD_COMPILER_FILES)
+LOCAL_SRC_FILES := \
+	$(AMD_COMPILER_FILES) \
+	$(AMD_DEBUG_FILES)
+
+LOCAL_CFLAGS += -DFORCE_BUILD_AMDGPU   # instructs LLVM to declare LLVMInitializeAMDGPU* functions
+
+# generate sources
+LOCAL_MODULE_CLASS := STATIC_LIBRARIES
+intermediates := $(call local-generated-sources-dir)
+LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, $(AMD_GENERATED_FILES))
+
+$(LOCAL_GENERATED_SOURCES): PRIVATE_PYTHON := $(MESA_PYTHON2)
+$(LOCAL_GENERATED_SOURCES): PRIVATE_CUSTOM_TOOL = $(PRIVATE_PYTHON) $^ > $@
+
+$(intermediates)/common/sid_tables.h: $(LOCAL_PATH)/common/sid_tables.py $(MESA_TOP)/src/amd/common/sid.h
+	$(transform-generated-source)
 
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/include \
@@ -36,6 +51,7 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/amd/common \
 	$(MESA_TOP)/src/gallium/include \
 	$(MESA_TOP)/src/gallium/auxiliary \
+	$(intermediates)/common \
 	external/llvm/include \
 	external/llvm/device/include \
 	external/libcxx/include \

@@ -1,16 +1,6 @@
-fixes
-hashtabletest
-input
-list
-misc
+tests
 os
 sdksyms.c
-string
-touch
-xfree86
-xkb
-xtest
-signal-logging
 piglit-results
 simple-xinit
 *.log

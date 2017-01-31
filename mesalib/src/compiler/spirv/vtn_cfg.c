@@ -527,11 +527,12 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
    nir_variable *phi_var = phi_entry->data;
 
    for (unsigned i = 3; i < count; i += 2) {
-      struct vtn_ssa_value *src = vtn_ssa_value(b, w[i]);
       struct vtn_block *pred =
          vtn_value(b, w[i + 1], vtn_value_type_block)->block;
 
       b->nb.cursor = nir_after_instr(&pred->end_nop->instr);
+
+      struct vtn_ssa_value *src = vtn_ssa_value(b, w[i]);
 
       vtn_local_store(b, src, nir_deref_var_create(b, phi_var));
    }

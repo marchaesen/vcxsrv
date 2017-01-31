@@ -110,7 +110,7 @@ static inline bool list_empty(struct list_head *list)
  */
 static inline bool list_is_singular(const struct list_head *list)
 {
-   return list->next != NULL && list->next->next == list;
+   return list->next != NULL && list->next != list && list->next->next == list;
 }
 
 static inline unsigned list_length(struct list_head *list)

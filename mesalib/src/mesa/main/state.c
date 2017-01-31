@@ -95,17 +95,17 @@ update_program_enables(struct gl_context *ctx)
 static GLbitfield
 update_program(struct gl_context *ctx)
 {
-   const struct gl_shader_program *vsProg =
+   struct gl_program *vsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
-   const struct gl_shader_program *tcsProg =
+   struct gl_program *tcsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
-   const struct gl_shader_program *tesProg =
+   struct gl_program *tesProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
-   const struct gl_shader_program *gsProg =
+   struct gl_program *gsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
-   struct gl_shader_program *fsProg =
+   struct gl_program *fsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
-   const struct gl_shader_program *csProg =
+   struct gl_program *csProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
    const struct gl_program *prevVP = ctx->VertexProgram._Current;
    const struct gl_program *prevFP = ctx->FragmentProgram._Current;
@@ -132,22 +132,18 @@ update_program(struct gl_context *ctx)
     * come up, or matter.
     */
 
-   if (fsProg && fsProg->data->LinkStatus
-       && fsProg->_LinkedShaders[MESA_SHADER_FRAGMENT]) {
+   if (fsProg) {
       /* Use GLSL fragment shader */
-      _mesa_reference_shader_program(ctx,
-                                     &ctx->_Shader->_CurrentFragmentProgram,
-				     fsProg);
-      _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
-                              fsProg->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
+      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
+                              fsProg);
+      _mesa_reference_program(ctx, &ctx->FragmentProgram._Current, fsProg);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
                               NULL);
    }
    else if (ctx->FragmentProgram._Enabled) {
       /* Use user-defined fragment program */
-      _mesa_reference_shader_program(ctx,
-                                     &ctx->_Shader->_CurrentFragmentProgram,
-				     NULL);
+      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
+                              NULL);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
                               ctx->FragmentProgram.Current);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
@@ -156,9 +152,8 @@ update_program(struct gl_context *ctx)
    else if (ctx->ATIFragmentShader._Enabled &&
             ctx->ATIFragmentShader.Current->Program) {
        /* Use the enabled ATI fragment shader's associated program */
-      _mesa_reference_shader_program(ctx,
-                                     &ctx->_Shader->_CurrentFragmentProgram,
-                                     NULL);
+      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
+                              NULL);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
                               ctx->ATIFragmentShader.Current->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
@@ -168,9 +163,8 @@ update_program(struct gl_context *ctx)
       /* Use fragment program generated from fixed-function state */
       struct gl_shader_program *f = _mesa_get_fixed_func_fragment_program(ctx);
 
-      _mesa_reference_shader_program(ctx,
-                                     &ctx->_Shader->_CurrentFragmentProgram,
-				     f);
+      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
+                              f->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
 			      f->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
@@ -183,32 +177,26 @@ update_program(struct gl_context *ctx)
 			      NULL);
    }
 
-   if (gsProg && gsProg->data->LinkStatus
-       && gsProg->_LinkedShaders[MESA_SHADER_GEOMETRY]) {
+   if (gsProg) {
       /* Use GLSL geometry shader */
-      _mesa_reference_program(ctx, &ctx->GeometryProgram._Current,
-                              gsProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->Program);
+      _mesa_reference_program(ctx, &ctx->GeometryProgram._Current, gsProg);
    } else {
       /* No geometry program */
       _mesa_reference_program(ctx, &ctx->GeometryProgram._Current, NULL);
    }
 
-   if (tesProg && tesProg->data->LinkStatus
-       && tesProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]) {
+   if (tesProg) {
       /* Use GLSL tessellation evaluation shader */
-      _mesa_reference_program(ctx, &ctx->TessEvalProgram._Current,
-         tesProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->Program);
+      _mesa_reference_program(ctx, &ctx->TessEvalProgram._Current, tesProg);
    }
    else {
       /* No tessellation evaluation program */
       _mesa_reference_program(ctx, &ctx->TessEvalProgram._Current, NULL);
    }
 
-   if (tcsProg && tcsProg->data->LinkStatus
-       && tcsProg->_LinkedShaders[MESA_SHADER_TESS_CTRL]) {
+   if (tcsProg) {
       /* Use GLSL tessellation control shader */
-      _mesa_reference_program(ctx, &ctx->TessCtrlProgram._Current,
-          tcsProg->_LinkedShaders[MESA_SHADER_TESS_CTRL]->Program);
+      _mesa_reference_program(ctx, &ctx->TessCtrlProgram._Current, tcsProg);
    }
    else {
       /* No tessellation control program */
@@ -219,11 +207,9 @@ update_program(struct gl_context *ctx)
     * _mesa_get_fixed_func_vertex_program() needs to know active
     * fragprog inputs.
     */
-   if (vsProg && vsProg->data->LinkStatus
-       && vsProg->_LinkedShaders[MESA_SHADER_VERTEX]) {
+   if (vsProg) {
       /* Use GLSL vertex shader */
-      _mesa_reference_program(ctx, &ctx->VertexProgram._Current,
-                              vsProg->_LinkedShaders[MESA_SHADER_VERTEX]->Program);
+      _mesa_reference_program(ctx, &ctx->VertexProgram._Current, vsProg);
    }
    else if (ctx->VertexProgram._Enabled) {
       /* Use user-defined vertex program */
@@ -242,11 +228,9 @@ update_program(struct gl_context *ctx)
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current, NULL);
    }
 
-   if (csProg && csProg->data->LinkStatus
-       && csProg->_LinkedShaders[MESA_SHADER_COMPUTE]) {
+   if (csProg) {
       /* Use GLSL compute shader */
-      _mesa_reference_program(ctx, &ctx->ComputeProgram._Current,
-                              csProg->_LinkedShaders[MESA_SHADER_COMPUTE]->Program);
+      _mesa_reference_program(ctx, &ctx->ComputeProgram._Current, csProg);
    } else {
       /* no compute program */
       _mesa_reference_program(ctx, &ctx->ComputeProgram._Current, NULL);

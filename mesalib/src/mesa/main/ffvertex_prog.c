@@ -1671,7 +1671,7 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
       if (0)
          printf("Build new TNL program\n");
 
-      prog = ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0);
+      prog = ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0, true);
       if (!prog)
          return NULL;
 

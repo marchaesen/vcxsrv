@@ -44,25 +44,7 @@
 static int expected_x = SPRITE_X;
 static int expected_y = SPRITE_Y;
 
-/* dixLookupWindow requires a lot of setup not necessary for this test.
- * Simple wrapper that returns either one of the fake root window or the
- * fake client window. If the requested ID is neither of those wanted,
- * return whatever the real dixLookupWindow does.
- */
-int
-__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
-{
-    if (id == root.drawable.id) {
-        *win = &root;
-        return Success;
-    }
-    else if (id == window.drawable.id) {
-        *win = &window;
-        return Success;
-    }
-
-    return __real_dixLookupWindow(win, id, client, access);
-}
+ClientRec client_window;
 
 /**
  * This function overrides the one in the screen rec.
@@ -204,7 +186,7 @@ test_XIWarpPointer(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xiwarppointer_test(void)
 {
     init_simple();
     screen.SetCursorPosition = ScreenSetCursorPosition;

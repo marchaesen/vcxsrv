@@ -139,6 +139,7 @@ API_XML = \
 	ARB_get_program_binary.xml \
 	ARB_get_texture_sub_image.xml \
 	ARB_gpu_shader_fp64.xml \
+	ARB_gpu_shader_int64.xml \
 	ARB_gpu_shader5.xml \
 	ARB_indirect_parameters.xml \
 	ARB_instanced_arrays.xml \

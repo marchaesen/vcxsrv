@@ -286,6 +286,7 @@ XineramaQueryScreens(
     if (!_XReply (dpy, (xReply *) &rep, 0, xFalse)) {
 	UnlockDisplay (dpy);
 	SyncHandle ();
+	*number = 0;
 	return NULL;
     }
 

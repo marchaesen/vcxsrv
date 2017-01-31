@@ -1619,9 +1619,10 @@ bind_texture(struct gl_context *ctx,
    assert(targetIndex < NUM_TEXTURE_TARGETS);
 
    /* Check if this texture is only used by this context and is already bound.
-    * If so, just return.
+    * If so, just return. For GL_OES_image_external, rebinding the texture
+    * always must invalidate cached resources.
     */
-   {
+   if (targetIndex != TEXTURE_EXTERNAL_INDEX) {
       bool early_out;
       mtx_lock(&ctx->Shared->Mutex);
       early_out = ((ctx->Shared->RefCount == 1)

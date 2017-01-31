@@ -43,6 +43,7 @@
 #include "glxutil.h"
 #include "glxext.h"
 #include "protocol-versions.h"
+#include "compositeext.h"
 
 static DevPrivateKeyRec glxScreenPrivateKeyRec;
 
@@ -336,6 +337,10 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
         if (config) {
             pGlxScreen->visuals[pGlxScreen->numVisuals++] = config;
             config->visualID = visual->vid;
+#ifdef COMPOSITE
+            if (compIsAlternateVisual(pScreen, visual->vid))
+                config->visualSelectGroup++;
+#endif
         }
     }
 

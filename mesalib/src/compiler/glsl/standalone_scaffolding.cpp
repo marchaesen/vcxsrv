@@ -178,6 +178,7 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
    ctx->Extensions.ARB_fragment_layer_viewport = true;
    ctx->Extensions.ARB_gpu_shader5 = true;
    ctx->Extensions.ARB_gpu_shader_fp64 = true;
+   ctx->Extensions.ARB_gpu_shader_int64 = true;
    ctx->Extensions.ARB_sample_shading = true;
    ctx->Extensions.ARB_shader_bit_encoding = true;
    ctx->Extensions.ARB_shader_draw_parameters = true;

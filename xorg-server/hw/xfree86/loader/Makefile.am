@@ -14,7 +14,6 @@ EXTRA_DIST = \
 libloader_la_SOURCES = \
 	loader.c \
 	loaderProcs.h \
-        loadmod.c \
-	os.c
+        loadmod.c
 
 libloader_la_LIBADD = $(DLOPEN_LIBS)

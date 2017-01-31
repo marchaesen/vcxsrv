@@ -30,6 +30,7 @@ common_libamd_common_la_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src/amd/common \
 	-I$(top_srcdir)/src/amd/common \
 	-I$(top_builddir)/src/compiler \
 	-I$(top_builddir)/src/compiler/nir \
@@ -52,12 +53,20 @@ common_libamd_common_la_CXXFLAGS = \
 
 noinst_LTLIBRARIES += $(COMMON_LIBS)
 
-common_libamd_common_la_SOURCES = $(AMD_COMPILER_FILES)
+common_libamd_common_la_SOURCES = \
+	$(AMD_COMPILER_FILES) \
+	$(AMD_DEBUG_FILES) \
+	$(AMD_GENERATED_FILES)
 
 # nir_to_llvm requires LLVM 3.9, which is only required as a minimum when
 # radv is built.
 if HAVE_RADEON_VULKAN
 common_libamd_common_la_SOURCES += $(AMD_NIR_FILES)
 endif
-
 endif
+
+common/sid_tables.h: $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h
+	$(AM_V_at)$(MKDIR_P) $(@D)
+	$(AM_V_GEN) $(PYTHON2) $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h > $@
+
+BUILT_SOURCES = $(AMD_GENERATED_FILES)

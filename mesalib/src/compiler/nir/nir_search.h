@@ -103,6 +103,14 @@ typedef struct {
 
    nir_op opcode;
    const nir_search_value *srcs[4];
+
+   /** Optional condition fxn ptr
+    *
+    * This allows additional constraints on expression matching, it is
+    * typically used to match an expressions uses such as the number of times
+    * the expression is used, and whether its used by an if.
+    */
+   bool (*cond)(nir_alu_instr *instr);
 } nir_search_expression;
 
 NIR_DEFINE_CAST(nir_search_value_as_variable, nir_search_value,

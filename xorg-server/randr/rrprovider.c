@@ -338,6 +338,9 @@ ProcRRSetProviderOutputSource(ClientPtr client)
     pScreen = provider->pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
 
+    if (!pScreen->isGPU)
+        return BadValue;
+
     pScrPriv->rrProviderSetOutputSource(pScreen, provider, source_provider);
 
     RRInitPrimeSyncProps(pScreen);

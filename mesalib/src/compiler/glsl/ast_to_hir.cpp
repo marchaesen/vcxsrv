@@ -58,6 +58,7 @@
 #include "main/shaderobj.h"
 #include "ir.h"
 #include "ir_builder.h"
+#include "builtin_functions.h"
 
 using namespace ir_builder;
 
@@ -259,6 +260,26 @@ get_implicit_conversion_operation(const glsl_type *to, const glsl_type *from,
       case GLSL_TYPE_INT: return ir_unop_i2d;
       case GLSL_TYPE_UINT: return ir_unop_u2d;
       case GLSL_TYPE_FLOAT: return ir_unop_f2d;
+      case GLSL_TYPE_INT64: return ir_unop_i642d;
+      case GLSL_TYPE_UINT64: return ir_unop_u642d;
+      default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_UINT64:
+      if (!state->has_int64())
+         return (ir_expression_operation)0;
+      switch (from->base_type) {
+      case GLSL_TYPE_INT: return ir_unop_i2u64;
+      case GLSL_TYPE_UINT: return ir_unop_u2u64;
+      case GLSL_TYPE_INT64: return ir_unop_i642u64;
+      default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_INT64:
+      if (!state->has_int64())
+         return (ir_expression_operation)0;
+      switch (from->base_type) {
+      case GLSL_TYPE_INT: return ir_unop_i2i64;
       default: return (ir_expression_operation)0;
       }
 
@@ -513,12 +534,12 @@ bit_logic_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
     *     (|). The operands must be of type signed or unsigned integers or
     *     integer vectors."
     */
-   if (!type_a->is_integer()) {
+   if (!type_a->is_integer_32_64()) {
       _mesa_glsl_error(loc, state, "LHS of `%s' must be an integer",
                         ast_expression::operator_string(op));
       return glsl_type::error_type;
    }
-   if (!type_b->is_integer()) {
+   if (!type_b->is_integer_32_64()) {
       _mesa_glsl_error(loc, state, "RHS of `%s' must be an integer",
                        ast_expression::operator_string(op));
       return glsl_type::error_type;
@@ -599,11 +620,11 @@ modulus_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
     *    "The operator modulus (%) operates on signed or unsigned integers or
     *    integer vectors."
     */
-   if (!type_a->is_integer()) {
+   if (!type_a->is_integer_32_64()) {
       _mesa_glsl_error(loc, state, "LHS of operator %% must be an integer");
       return glsl_type::error_type;
    }
-   if (!type_b->is_integer()) {
+   if (!type_b->is_integer_32_64()) {
       _mesa_glsl_error(loc, state, "RHS of operator %% must be an integer");
       return glsl_type::error_type;
    }
@@ -721,7 +742,7 @@ shift_result_type(const struct glsl_type *type_a,
     *     must be signed or unsigned integers or integer vectors. One operand
     *     can be signed while the other is unsigned."
     */
-   if (!type_a->is_integer()) {
+   if (!type_a->is_integer_32_64()) {
       _mesa_glsl_error(loc, state, "LHS of operator %s must be an integer or "
                        "integer vector", ast_expression::operator_string(op));
      return glsl_type::error_type;
@@ -1093,6 +1114,8 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
    case GLSL_TYPE_INT:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_INT64:
       return new(mem_ctx) ir_expression(operation, op0, op1);
 
    case GLSL_TYPE_ARRAY: {
@@ -1256,6 +1279,10 @@ constant_one_for_inc_dec(void *ctx, const glsl_type *type)
       return new(ctx) ir_constant((unsigned) 1);
    case GLSL_TYPE_INT:
       return new(ctx) ir_constant(1);
+   case GLSL_TYPE_UINT64:
+      return new(ctx) ir_constant((uint64_t) 1);
+   case GLSL_TYPE_INT64:
+      return new(ctx) ir_constant((int64_t) 1);
    default:
    case GLSL_TYPE_FLOAT:
       return new(ctx) ir_constant(1.0f);
@@ -1535,7 +1562,7 @@ ast_expression::do_hir(exec_list *instructions,
          error_emitted = true;
       }
 
-      if (!op[0]->type->is_integer()) {
+      if (!op[0]->type->is_integer_32_64()) {
          _mesa_glsl_error(&loc, state, "operand of `~' must be an integer");
          error_emitted = true;
       }
@@ -2006,6 +2033,14 @@ ast_expression::do_hir(exec_list *instructions,
       result = new(ctx) ir_constant(this->primary_expression.double_constant);
       break;
 
+   case ast_uint64_constant:
+      result = new(ctx) ir_constant(this->primary_expression.uint64_constant);
+      break;
+
+   case ast_int64_constant:
+      result = new(ctx) ir_constant(this->primary_expression.int64_constant);
+      break;
+
    case ast_sequence: {
       /* It should not be possible to generate a sequence in the AST without
        * any expressions in it.
@@ -2132,6 +2167,8 @@ ast_expression::has_sequence_subexpression() const
    case ast_float_constant:
    case ast_bool_constant:
    case ast_double_constant:
+   case ast_int64_constant:
+   case ast_uint64_constant:
       return false;
 
    case ast_aggregate:
@@ -3828,6 +3865,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
                           "varying variables may not be of type struct");
          break;
       case GLSL_TYPE_DOUBLE:
+      case GLSL_TYPE_UINT64:
+      case GLSL_TYPE_INT64:
          break;
       default:
          _mesa_glsl_error(loc, state, "illegal type for a varying variable");
@@ -4886,6 +4925,9 @@ ast_declarator_list::hir(exec_list *instructions,
             switch (check_type->base_type) {
             case GLSL_TYPE_FLOAT:
             break;
+            case GLSL_TYPE_UINT64:
+            case GLSL_TYPE_INT64:
+               break;
             case GLSL_TYPE_UINT:
             case GLSL_TYPE_INT:
                if (state->is_version(120, 300))

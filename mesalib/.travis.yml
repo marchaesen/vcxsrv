@@ -32,7 +32,7 @@ env:
     - DRI3PROTO_VERSION=dri3proto-1.0
     - PRESENTPROTO_VERSION=presentproto-1.0
     - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
-    - LIBDRM_VERSION=libdrm-2.4.65
+    - LIBDRM_VERSION=libdrm-2.4.74
     - XCBPROTO_VERSION=xcb-proto-1.11
     - LIBXCB_VERSION=libxcb-1.11
     - LIBXSHMFENCE_VERSION=libxshmfence-1.2
@@ -92,7 +92,7 @@ install:
 
   - wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
   - tar -jxvf $LIBDRM_VERSION.tar.bz2
-  - (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 && make install)
+  - (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-etnaviv-experimental-api && make install)
 
   - wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
   - tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
@@ -103,7 +103,7 @@ script:
       ./autogen.sh --enable-debug
         --with-egl-platforms=x11,drm
         --with-dri-drivers=i915,i965,radeon,r200,swrast,nouveau
-        --with-gallium-drivers=svga,swrast,vc4,virgl,r300,r600
+        --with-gallium-drivers=svga,swrast,vc4,virgl,r300,r600,etnaviv,imx
         --disable-llvm-shared-libs
         ;
       make && make check;

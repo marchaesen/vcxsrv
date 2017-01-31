@@ -55,9 +55,6 @@
 #include "config/dmxconfig.h"
 #include "dmxcursor.h"
 
-#include "lnx-keyboard.h"
-#include "lnx-ms.h"
-#include "lnx-ps2.h"
 #include "usb-keyboard.h"
 #include "usb-mouse.h"
 #include "usb-other.h"
@@ -133,31 +130,6 @@ static DMXLocalInputInfoRec DMXConsoleKbd = {
 
 static DMXLocalInputInfoRec DMXLocalDevices[] = {
     /* Dummy drivers that can compile on any OS */
-#ifdef __linux__
-    /* Linux-specific drivers */
-    {
-     "kbd", DMX_LOCAL_KEYBOARD, DMX_LOCAL_TYPE_LOCAL, 1,
-     kbdLinuxCreatePrivate, kbdLinuxDestroyPrivate,
-     kbdLinuxInit, NULL, NULL, kbdLinuxGetInfo,
-     kbdLinuxOn, kbdLinuxOff, NULL,
-     kbdLinuxVTPreSwitch, kbdLinuxVTPostSwitch, kbdLinuxVTSwitch,
-     kbdLinuxRead, NULL, NULL, NULL,
-     NULL, kbdLinuxCtrl, kbdLinuxBell},
-    {
-     "ms", DMX_LOCAL_MOUSE, DMX_LOCAL_TYPE_LOCAL, 1,
-     msLinuxCreatePrivate, msLinuxDestroyPrivate,
-     msLinuxInit, NULL, NULL, msLinuxGetInfo,
-     msLinuxOn, msLinuxOff, NULL,
-     msLinuxVTPreSwitch, msLinuxVTPostSwitch, NULL,
-     msLinuxRead},
-    {
-     "ps2", DMX_LOCAL_MOUSE, DMX_LOCAL_TYPE_LOCAL, 1,
-     ps2LinuxCreatePrivate, ps2LinuxDestroyPrivate,
-     ps2LinuxInit, NULL, NULL, ps2LinuxGetInfo,
-     ps2LinuxOn, ps2LinuxOff, NULL,
-     ps2LinuxVTPreSwitch, ps2LinuxVTPostSwitch, NULL,
-     ps2LinuxRead},
-#endif
 #ifdef __linux__
     /* USB drivers, currently only for
        Linux, but relatively easy to port to

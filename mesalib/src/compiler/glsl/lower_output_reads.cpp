@@ -90,7 +90,7 @@ output_read_remover::~output_read_remover()
 ir_visitor_status
 output_read_remover::visit(ir_dereference_variable *ir)
 {
-   if (ir->var->data.mode != ir_var_shader_out)
+   if (ir->var->data.mode != ir_var_shader_out || ir->var->data.fb_fetch_output)
       return visit_continue;
 
    hash_entry *entry = _mesa_hash_table_search(replacements, ir->var);

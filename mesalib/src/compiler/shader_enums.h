@@ -591,6 +591,14 @@ enum gl_advanced_blend_mode
    BLEND_ALL            = 0x7fff,
 };
 
+enum gl_tess_spacing
+{
+   TESS_SPACING_UNSPECIFIED,
+   TESS_SPACING_EQUAL,
+   TESS_SPACING_FRACTIONAL_ODD,
+   TESS_SPACING_FRACTIONAL_EVEN,
+};
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

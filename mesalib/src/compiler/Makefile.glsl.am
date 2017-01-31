@@ -73,6 +73,7 @@ glsl_tests_general_ir_test_SOURCES =			\
 	glsl/tests/builtin_variable_test.cpp		\
 	glsl/tests/invalidate_locations_test.cpp	\
 	glsl/tests/general_ir_test.cpp			\
+	glsl/tests/lower_int64_test.cpp			\
 	glsl/tests/opt_add_neg_to_sub_test.cpp		\
 	glsl/tests/varyings_test.cpp
 glsl_tests_general_ir_test_CFLAGS =			\

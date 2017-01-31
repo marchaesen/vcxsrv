@@ -35,10 +35,10 @@
 
 static unsigned get_max_db(struct radv_device *device)
 {
-	unsigned num_db = device->instance->physicalDevice.rad_info.num_render_backends;
-	MAYBE_UNUSED unsigned rb_mask = device->instance->physicalDevice.rad_info.enabled_rb_mask;
+	unsigned num_db = device->physical_device->rad_info.num_render_backends;
+	MAYBE_UNUSED unsigned rb_mask = device->physical_device->rad_info.enabled_rb_mask;
 
-	if (device->instance->physicalDevice.rad_info.chip_class == SI)
+	if (device->physical_device->rad_info.chip_class == SI)
 		num_db = 8;
 	else
 		num_db = MAX2(8, num_db);

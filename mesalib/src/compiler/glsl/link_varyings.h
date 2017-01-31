@@ -176,6 +176,14 @@ private:
       case GL_DOUBLE_MAT4:
       case GL_DOUBLE_MAT4x2:
       case GL_DOUBLE_MAT4x3:
+      case GL_INT64_ARB:
+      case GL_INT64_VEC2_ARB:
+      case GL_INT64_VEC3_ARB:
+      case GL_INT64_VEC4_ARB:
+      case GL_UNSIGNED_INT64_ARB:
+      case GL_UNSIGNED_INT64_VEC2_ARB:
+      case GL_UNSIGNED_INT64_VEC3_ARB:
+      case GL_UNSIGNED_INT64_VEC4_ARB:
          return true;
       default:
          return false;
@@ -288,57 +296,13 @@ private:
    unsigned stream_id;
 };
 
+bool
+link_varyings(struct gl_shader_program *prog, unsigned first, unsigned last,
+              struct gl_context *ctx, void *mem_ctx);
 
 void
 cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
                                  gl_linked_shader *producer,
                                  gl_linked_shader *consumer);
-
-bool
-parse_tfeedback_decls(struct gl_context *ctx, struct gl_shader_program *prog,
-                      const void *mem_ctx, unsigned num_names,
-                      char **varying_names, tfeedback_decl *decls);
-
-bool
-process_xfb_layout_qualifiers(void *mem_ctx, const gl_linked_shader *sh,
-                              unsigned *num_tfeedback_decls,
-                              char ***varying_names);
-
-void
-remove_unused_shader_inputs_and_outputs(bool is_separate_shader_object,
-                                        gl_linked_shader *sh,
-                                        enum ir_variable_mode mode);
-
-bool
-store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
-                     unsigned num_tfeedback_decls,
-                     tfeedback_decl *tfeedback_decls,
-                     bool has_xfb_qualifiers);
-
-bool
-assign_varying_locations(struct gl_context *ctx,
-			 void *mem_ctx,
-			 struct gl_shader_program *prog,
-                         gl_linked_shader *producer,
-                         gl_linked_shader *consumer,
-                         unsigned num_tfeedback_decls,
-                         tfeedback_decl *tfeedback_decls,
-                         const uint64_t reserved_slots);
-
-uint64_t
-reserved_varying_slot(struct gl_linked_shader *stage,
-                      ir_variable_mode io_mode);
-
-bool
-check_against_output_limit(struct gl_context *ctx,
-                           struct gl_shader_program *prog,
-                           gl_linked_shader *producer,
-                           unsigned num_explicit_locations);
-
-bool
-check_against_input_limit(struct gl_context *ctx,
-                          struct gl_shader_program *prog,
-                          gl_linked_shader *consumer,
-                          unsigned num_explicit_locations);
 
 #endif /* GLSL_LINK_VARYINGS_H */

@@ -116,8 +116,26 @@ struct wsi_callbacks {
       return (__VkType)(uintptr_t) _obj;                                   \
    }
 
-WSI_DEFINE_NONDISP_HANDLE_CASTS(_VkIcdSurfaceBase, VkSurfaceKHR)
 WSI_DEFINE_NONDISP_HANDLE_CASTS(wsi_swapchain, VkSwapchainKHR)
+
+#define ICD_DEFINE_NONDISP_HANDLE_CASTS(__VkIcdType, __VkType)             \
+                                                                           \
+   static inline __VkIcdType *                                             \
+   __VkIcdType ## _from_handle(__VkType _handle)                           \
+   {                                                                       \
+      return (__VkIcdType *)(uintptr_t) _handle;                           \
+   }                                                                       \
+                                                                           \
+   static inline __VkType                                                  \
+   __VkIcdType ## _to_handle(__VkIcdType *_obj)                            \
+   {                                                                       \
+      return (__VkType)(uintptr_t) _obj;                                   \
+   }
+
+#define ICD_FROM_HANDLE(__VkIcdType, __name, __handle) \
+   __VkIcdType *__name = __VkIcdType ## _from_handle(__handle)
+
+ICD_DEFINE_NONDISP_HANDLE_CASTS(VkIcdSurfaceBase, VkSurfaceKHR)
 
 VkResult wsi_x11_init_wsi(struct wsi_device *wsi_device,
                           const VkAllocationCallbacks *alloc);

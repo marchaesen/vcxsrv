@@ -37,6 +37,7 @@
 
 #include "protocol-common.h"
 
+ClientRec client_window;
 static ClientRec client_request;
 
 static void
@@ -112,7 +113,7 @@ test_ChangeDeviceControl(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xchangedevicecontrol_test(void)
 {
     init_simple();
 

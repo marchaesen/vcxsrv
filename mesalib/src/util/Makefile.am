@@ -36,15 +36,12 @@ libmesautil_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/mesa \
 	-I$(top_srcdir)/src/gallium/include \
 	-I$(top_srcdir)/src/gallium/auxiliary \
-	$(SHA1_CFLAGS) \
 	$(VISIBILITY_CFLAGS) \
 	$(MSVC2013_COMPAT_CFLAGS)
 
 libmesautil_la_SOURCES = \
 	$(MESA_UTIL_FILES) \
 	$(MESA_UTIL_GENERATED_FILES)
-
-libmesautil_la_LIBADD = $(SHA1_LIBS)
 
 roundeven_test_LDADD = -lm
 

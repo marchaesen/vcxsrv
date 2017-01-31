@@ -41,6 +41,7 @@
 
 #include "protocol-common.h"
 
+ClientRec client_window;
 static ClientRec client_request;
 static void reply_XIQueryPointer_data(ClientPtr client, int len,
                                       char *data, void *closure);
@@ -49,26 +50,6 @@ static struct {
     DeviceIntPtr dev;
     WindowPtr win;
 } test_data;
-
-/* dixLookupWindow requires a lot of setup not necessary for this test.
- * Simple wrapper that returns either one of the fake root window or the
- * fake client window. If the requested ID is neither of those wanted,
- * return whatever the real dixLookupWindow does.
- */
-int
-__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
-{
-    if (id == root.drawable.id) {
-        *win = &root;
-        return Success;
-    }
-    else if (id == window.drawable.id) {
-        *win = &window;
-        return Success;
-    }
-
-    return __real_dixLookupWindow(win, id, client, access);
-}
 
 static void
 reply_XIQueryPointer(ClientPtr client, int len, char *data, void *closure)
@@ -209,7 +190,7 @@ test_XIQueryPointer(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xiquerypointer_test(void)
 {
     init_simple();
 

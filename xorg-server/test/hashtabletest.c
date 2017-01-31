@@ -8,6 +8,8 @@
 #include "hashtable.h"
 #include "resource.h"
 
+#include "tests-common.h"
+
 static void
 print_xid(void* ptr, void* v)
 {
@@ -154,7 +156,7 @@ test3(void)
 }
 
 int
-main(void)
+hashtabletest_test(void)
 {
     int ok = test1();
     ok = ok && test2();

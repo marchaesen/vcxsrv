@@ -330,6 +330,17 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
       }
       break;
 
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_INT64:
+      /* Only float base types can be matrices. */
+      assert(cols == 1);
+
+      for (i = 0; i < cols; i++) {
+         if (i > 0) fprintf(fp, ", ");
+         fprintf(fp, "0x%08" PRIx64, c->values[0].u64[i]);
+      }
+      break;
+
    case GLSL_TYPE_STRUCT:
       for (i = 0; i < c->num_elements; i++) {
          if (i > 0) fprintf(fp, ", ");

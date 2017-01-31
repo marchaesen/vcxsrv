@@ -33,11 +33,6 @@ mesautil_sources = (
     source_lists['MESA_UTIL_GENERATED_FILES']
 )
 
-# XXX We don't yet have scons support for detecting any of the various
-# HAVE_SHA1_* definitions, so for now simply disable the shader cache.
-if False:
-    mesautil_sources += source_lists['MESA_UTIL_SHADER_CACHE_FILES']
-
 mesautil = env.ConvenienceLibrary(
     target = 'mesautil',
     source = mesautil_sources,

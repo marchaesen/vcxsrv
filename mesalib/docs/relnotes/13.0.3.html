@@ -1,0 +1,177 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 13.0.3 Release Notes / January 5, 2017</h1>
+
+<p>
+Mesa 13.0.3 is a bug fix release which fixes bugs found since the 13.0.2 release.
+</p>
+<p>
+Mesa 13.0.3 implements the OpenGL 4.4 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.4.  OpenGL
+4.4 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+55b07d056f9b855ba9d7c8b2ddc7d3b220a61c6ab1bdc73cbfc2f607721094c2  mesa-13.0.3.tar.gz
+d9aa8be5c176d00d0cd503cb2f64a5a403ea471ec819c022581414860d7ba40e  mesa-13.0.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=77662">Bug 77662</a> - Fail to render to different faces of depth-stencil cube map</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92234">Bug 92234</a> - [BDW] GPU hang in Shogun2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98329">Bug 98329</a> - [dEQP, EGL, SKL, BDW, BSW] dEQP-EGL.functional.image.render_multiple_contexts.gles2_renderbuffer_depth16_depth_buffer</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99038">Bug 99038</a> - [dEQP, EGL, SKL, BDW, BSW] dEQP-EGL.functional.negative_api.create_pixmap_surface crashes</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Chad Versace (2):</p>
+<ul>
+  <li>i965/mt: Disable aux surfaces after making miptree shareable</li>
+  <li>egl: Fix crashes in eglCreate*Surface()</li>
+</ul>
+
+<p>Dave Airlie (4):</p>
+<ul>
+  <li>anv: set maxFragmentDualSrcAttachments to 1</li>
+  <li>radv: set maxFragmentDualSrcAttachments to 1</li>
+  <li>radv: fix another regression since shadow fixes.</li>
+  <li>radv: add missing license file to radv_meta_bufimage.</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>docs: add sha256 checksums for 13.0.2</li>
+  <li>anv: don't double-close the same fd</li>
+  <li>anv: don't leak memory if anv_init_wsi() fails</li>
+  <li>radv: don't leak the fd if radv_physical_device_init() succeeds</li>
+  <li>Update version to 13.0.3</li>
+</ul>
+
+<p>Eric Anholt (1):</p>
+<ul>
+  <li>vc4: In a loop break/continue, jump if everyone has taken the path.</li>
+</ul>
+
+<p>Gwan-gyeong Mun (3):</p>
+<ul>
+  <li>anv: Add missing error-checking to anv_block_pool_init (v2)</li>
+  <li>anv: Update the teardown in reverse order of the anv_CreateDevice</li>
+  <li>vulkan/wsi: Fix resource leak in success path of wsi_queue_init()</li>
+</ul>
+
+<p>Haixia Shi (1):</p>
+<ul>
+  <li>compiler/glsl: fix precision problem of tanh</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>mesa: only verify that enabled arrays have backing buffers</li>
+</ul>
+
+<p>Jason Ekstrand (8):</p>
+<ul>
+  <li>anv/cmd_buffer: Re-emit MEDIA_CURBE_LOAD when CS push constants are dirty</li>
+  <li>anv/image: Rename hiz_surface to aux_surface</li>
+  <li>anv/cmd_buffer: Remove the 1-D case from the HiZ QPitch calculation</li>
+  <li>genxml/gen9: Change the default of MI_SEMAPHORE_WAIT::RegisterPoleMode</li>
+  <li>anv/device: Return the right error for failed maps</li>
+  <li>anv/device: Implicitly unmap memory objects in FreeMemory</li>
+  <li>anv/descriptor_set: Write the state offset in the surface state free list.</li>
+  <li>spirv: Use a simpler and more correct implementaiton of tanh()</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>i965: Allocate at least some URB space even when max_vertices = 0.</li>
+</ul>
+
+<p>Marek Olšák (17):</p>
+<ul>
+  <li>radeonsi: always set all blend registers</li>
+  <li>radeonsi: set CB_BLEND1_CONTROL.ENABLE for dual source blending</li>
+  <li>radeonsi: disable RB+ blend optimizations for dual source blending</li>
+  <li>radeonsi: consolidate max-work-group-size computation</li>
+  <li>radeonsi: apply a multi-wave workgroup SPI bug workaround to affected CIK chips</li>
+  <li>radeonsi: apply a TC L1 write corruption workaround for SI</li>
+  <li>radeonsi: apply a tessellation bug workaround for SI</li>
+  <li>radeonsi: add a tess+GS hang workaround for VI dGPUs</li>
+  <li>radeonsi: apply the double EVENT_WRITE_EOP workaround to VI as well</li>
+  <li>cso: don't release sampler states that are bound</li>
+  <li>radeonsi: always restore sampler states when unbinding sampler views</li>
+  <li>radeonsi: fix incorrect FMASK checking in bind_sampler_states</li>
+  <li>radeonsi: allow specifying simm16 of emit_waitcnt at call sites</li>
+  <li>radeonsi: wait for outstanding memory instructions in TCS barriers</li>
+  <li>tgsi: fix the src type of TGSI_OPCODE_MEMBAR</li>
+  <li>radeonsi: wait for outstanding LDS instructions in memory barriers if needed</li>
+  <li>radeonsi: disable the constant engine (CE) on Carrizo and Stoney</li>
+</ul>
+
+<p>Matt Turner (3):</p>
+<ul>
+  <li>i965/fs: Rename opt_copy_propagate -&gt; opt_copy_propagation.</li>
+  <li>i965/fs: Add unit tests for copy propagation pass.</li>
+  <li>i965/fs: Reject copy propagation into SEL if not min/max.</li>
+</ul>
+
+<p>Nanley Chery (1):</p>
+<ul>
+  <li>mesa/fbobject: Update CubeMapFace when reusing textures</li>
+</ul>
+
+<p>Nicolai Hähnle (4):</p>
+<ul>
+  <li>radeonsi: fix isolines tess factor writes to control ring</li>
+  <li>radeonsi: update all GSVS ring descriptors for new buffer allocations</li>
+  <li>radeonsi: do not kill GS with memory writes</li>
+  <li>radeonsi: fix an off-by-one error in the bounds check for max_vertices</li>
+</ul>
+
+<p>Rhys Kidd (1):</p>
+<ul>
+  <li>glsl: Add pthread libs to cache_test</li>
+</ul>
+
+<p>Timothy Arceri (2):</p>
+<ul>
+  <li>mesa: fix active subroutine uniforms properly</li>
+  <li>Revert "nir: Turn imov/fmov of undef into undef."</li>
+</ul>
+
+
+</div>
+</body>
+</html>

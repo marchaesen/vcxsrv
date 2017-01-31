@@ -30,6 +30,8 @@
 #include "assert.h"
 #include "misc.h"
 
+#include "tests-common.h"
+
 struct number_format_test {
     uint64_t number;
     char string[21];
@@ -395,7 +397,7 @@ static void logging_format(void)
 #pragma GCC diagnostic pop /* "-Wformat-security" */
 
 int
-main(int argc, char **argv)
+signal_logging_test(void)
 {
     number_formatting();
     logging_format();

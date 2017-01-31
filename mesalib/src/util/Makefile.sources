@@ -19,6 +19,8 @@ MESA_UTIL_FILES :=	\
 	macros.h \
 	mesa-sha1.c \
 	mesa-sha1.h \
+	sha1/sha1.c \
+	sha1/sha1.h \
 	ralloc.c \
 	ralloc.h \
 	register_allocate.c \

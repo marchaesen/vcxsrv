@@ -9,7 +9,10 @@ liblinuxev56_la_SOURCES = lnx_ev56.c
 endif
 
 if LNXACPI
-ACPI_SRCS = lnx_acpi.c lnx_apm.c
+ACPI_SRCS = lnx_acpi.c
+if !LNXAPM
+ACPI_SRCS += lnx_apm.c
+endif
 XORG_CFLAGS += -DHAVE_ACPI
 endif
 

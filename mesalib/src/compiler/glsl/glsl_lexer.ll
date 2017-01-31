@@ -107,17 +107,29 @@ literal_integer(char *text, int len, struct _mesa_glsl_parse_state *state,
 {
    bool is_uint = (text[len - 1] == 'u' ||
 		   text[len - 1] == 'U');
+   bool is_long = (text[len - 1] == 'l' || text[len - 1] == 'L');
    const char *digits = text;
 
+   if (is_long)
+      is_uint = (text[len - 2] == 'u' && text[len - 1] == 'l') ||
+                (text[len - 2] == 'U' && text[len - 1] == 'L');
    /* Skip "0x" */
    if (base == 16)
       digits += 2;
 
    unsigned long long value = strtoull(digits, NULL, base);
 
-   lval->n = (int)value;
+   if (is_long)
+      lval->n64 = (int64_t)value;
+   else
+      lval->n = (int)value;
 
-   if (value > UINT_MAX) {
+   if (is_long && !is_uint && base == 10 && value > (uint64_t)LLONG_MAX + 1) {
+      /* Tries to catch unintentionally providing a negative value. */
+      _mesa_glsl_warning(lloc, state,
+                         "signed literal value `%s' is interpreted as %lld",
+                         text, lval->n64);
+   } else if (!is_long && value > UINT_MAX) {
       /* Note that signed 0xffffffff is valid, not out of range! */
       if (state->is_version(130, 300)) {
 	 _mesa_glsl_error(lloc, state,
@@ -135,7 +147,10 @@ literal_integer(char *text, int len, struct _mesa_glsl_parse_state *state,
 			 "signed literal value `%s' is interpreted as %d",
 			 text, lval->n);
    }
-   return is_uint ? UINTCONSTANT : INTCONSTANT;
+   if (is_long)
+      return is_uint ? UINT64CONSTANT : INT64CONSTANT;
+   else
+      return is_uint ? UINTCONSTANT : INTCONSTANT;
 }
 
 #define LITERAL_INTEGER(base) \
@@ -462,13 +477,13 @@ layout		{
 \|=		return OR_ASSIGN;
 -=		return SUB_ASSIGN;
 
-[1-9][0-9]*[uU]?	{
+[1-9][0-9]*([uU]|[lL]|ul|UL)?	{
 			    return LITERAL_INTEGER(10);
 			}
-0[xX][0-9a-fA-F]+[uU]?	{
+0[xX][0-9a-fA-F]+([uU]|[lL]|ul|UL)?	{
 			    return LITERAL_INTEGER(16);
 			}
-0[0-7]*[uU]?		{
+0[0-7]*([uU]|[lL]|ul|UL)?		{
 			    return LITERAL_INTEGER(8);
 			}
 
@@ -591,6 +606,16 @@ resource	KEYWORD(420, 300, 0, 0, RESOURCE);
 sample		KEYWORD_WITH_ALT(400, 300, 400, 320, yyextra->ARB_gpu_shader5_enable || yyextra->OES_shader_multisample_interpolation_enable, SAMPLE);
 subroutine	KEYWORD_WITH_ALT(400, 300, 400, 0, yyextra->ARB_shader_subroutine_enable, SUBROUTINE);
 
+    /* Additional words for ARB_gpu_shader_int64 */
+int64_t		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, INT64_TOK);
+i64vec2		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, I64VEC2);
+i64vec3		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, I64VEC3);
+i64vec4		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, I64VEC4);
+
+uint64_t	KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, UINT64_TOK);
+u64vec2		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, U64VEC2);
+u64vec3		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, U64VEC3);
+u64vec4		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable, U64VEC4);
 
 [_a-zA-Z][_a-zA-Z0-9]*	{
 			    struct _mesa_glsl_parse_state *state = yyextra;

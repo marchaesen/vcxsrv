@@ -66,7 +66,7 @@ static const struct instruction_desc inst_desc[] = {
    {TGSI_OPCODE_NOP, "UND", 0}, /* unused */
    {TGSI_OPCODE_ADD, "ADD", 2},
    {TGSI_OPCODE_MUL, "MUL", 2},
-   {TGSI_OPCODE_SUB, "SUB", 2},
+   {TGSI_OPCODE_NOP, "SUB", 2},
    {TGSI_OPCODE_DP3, "DOT3", 2},
    {TGSI_OPCODE_DP4, "DOT4", 2},
    {TGSI_OPCODE_MAD, "MAD", 3},
@@ -175,16 +175,16 @@ prepare_argument(struct st_translate *t, const unsigned argId,
    if (srcReg->argMod & GL_COMP_BIT_ATI) {
       struct ureg_src modsrc[2];
       modsrc[0] = ureg_imm1f(t->ureg, 1.0f);
-      modsrc[1] = ureg_src(arg);
+      modsrc[1] = ureg_negate(ureg_src(arg));
 
-      ureg_insn(t->ureg, TGSI_OPCODE_SUB, &arg, 1, modsrc, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2);
    }
    if (srcReg->argMod & GL_BIAS_BIT_ATI) {
       struct ureg_src modsrc[2];
       modsrc[0] = ureg_src(arg);
-      modsrc[1] = ureg_imm1f(t->ureg, 0.5f);
+      modsrc[1] = ureg_imm1f(t->ureg, -0.5f);
 
-      ureg_insn(t->ureg, TGSI_OPCODE_SUB, &arg, 1, modsrc, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2);
    }
    if (srcReg->argMod & GL_2X_BIT_ATI) {
       struct ureg_src modsrc[2];
@@ -211,11 +211,13 @@ emit_special_inst(struct st_translate *t, const struct instruction_desc *desc,
    struct ureg_dst tmp[1];
    struct ureg_src src[3];
 
-   if (!strcmp(desc->name, "CND")) {
+   if (!strcmp(desc->name, "SUB")) {
+      ureg_ADD(t->ureg, *dst, args[0], ureg_negate(args[1]));
+   } else if (!strcmp(desc->name, "CND")) {
       tmp[0] = get_temp(t, MAX_NUM_FRAGMENT_REGISTERS_ATI + 2); /* re-purpose a3 */
       src[0] = ureg_imm1f(t->ureg, 0.5f);
-      src[1] = args[2];
-      ureg_insn(t->ureg, TGSI_OPCODE_SUB, tmp, 1, src, 2);
+      src[1] = ureg_negate(args[2]);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, tmp, 1, src, 2);
       src[0] = ureg_src(tmp[0]);
       src[1] = args[0];
       src[2] = args[1];
@@ -243,7 +245,8 @@ emit_arith_inst(struct st_translate *t,
                 struct ureg_dst *dst, struct ureg_src *args, unsigned argcount)
 {
    if (desc->TGSI_opcode == TGSI_OPCODE_NOP) {
-      return emit_special_inst(t, desc, dst, args, argcount);
+      emit_special_inst(t, desc, dst, args, argcount);
+      return;
    }
 
    ureg_insn(t->ureg, desc->TGSI_opcode, dst, 1, args, argcount);

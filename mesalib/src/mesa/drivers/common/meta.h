@@ -125,7 +125,7 @@ struct save_state
    GLboolean FragmentProgramEnabled;
    struct gl_program *FragmentProgram;
    GLboolean ATIFragmentShaderEnabled;
-   struct gl_shader_program *Shader[MESA_SHADER_STAGES];
+   struct gl_program *Program[MESA_SHADER_STAGES];
    struct gl_shader_program *ActiveShader;
    struct gl_pipeline_object   *Pipeline;
 

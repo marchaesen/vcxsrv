@@ -39,8 +39,8 @@ libloader_la_LIBADD =
 
 if HAVE_DRICOMMON
 libloader_la_CPPFLAGS += \
-	-I$(top_srcdir)/src/mesa/drivers/dri/common/ \
 	-I$(top_builddir)/src/mesa/drivers/dri/common/ \
+	-I$(top_srcdir)/src/mesa/drivers/dri/common/ \
 	-I$(top_srcdir)/src/mesa/ \
 	-I$(top_srcdir)/src/mapi/ \
 	-DUSE_DRICONF
