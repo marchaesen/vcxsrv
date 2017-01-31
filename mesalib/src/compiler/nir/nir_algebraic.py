@@ -76,7 +76,6 @@ class Value(object):
          return Constant(val, name_base)
 
    __template = mako.template.Template("""
-#include "compiler/nir/nir_search_helpers.h"
 static const ${val.c_type} ${val.name} = {
    { ${val.type_enum}, ${val.bit_size} },
 % if isinstance(val, Constant):
@@ -90,6 +89,7 @@ static const ${val.c_type} ${val.name} = {
    ${'true' if val.inexact else 'false'},
    nir_op_${val.opcode},
    { ${', '.join(src.c_ptr for src in val.sources)} },
+   ${val.cond if val.cond else 'NULL'},
 % endif
 };""")
 
@@ -185,7 +185,8 @@ class Variable(Value):
       elif self.required_type == 'float':
          return "nir_type_float"
 
-_opcode_re = re.compile(r"(?P<inexact>~)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?")
+_opcode_re = re.compile(r"(?P<inexact>~)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?"
+                        r"(?P<cond>\([^\)]+\))?")
 
 class Expression(Value):
    def __init__(self, expr, name_base, varset):
@@ -198,6 +199,7 @@ class Expression(Value):
       self.opcode = m.group('opcode')
       self.bit_size = int(m.group('bits')) if m.group('bits') else 0
       self.inexact = m.group('inexact') is not None
+      self.cond = m.group('cond')
       self.sources = [ Value.create(src, "{0}_{1}".format(name_base, i), varset)
                        for (i, src) in enumerate(expr[1:]) ]
 
@@ -497,6 +499,7 @@ class SearchAndReplace(object):
 _algebraic_pass_template = mako.template.Template("""
 #include "nir.h"
 #include "nir_search.h"
+#include "nir_search_helpers.h"
 
 #ifndef NIR_OPT_ALGEBRAIC_STRUCT_DEFS
 #define NIR_OPT_ALGEBRAIC_STRUCT_DEFS

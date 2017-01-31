@@ -861,6 +861,14 @@ _mesa_ClampColor(GLenum target, GLenum clamp)
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   /* Check for both the extension and the GL version, since the Intel driver
+    * does not advertise the extension in core profiles.
+    */
+   if (ctx->Version <= 30 && !ctx->Extensions.ARB_color_buffer_float) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glClampColor()");
+      return;
+   }
+
    if (clamp != GL_TRUE && clamp != GL_FALSE && clamp != GL_FIXED_ONLY_ARB) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glClampColorARB(clamp)");
       return;
@@ -868,19 +876,15 @@ _mesa_ClampColor(GLenum target, GLenum clamp)
 
    switch (target) {
    case GL_CLAMP_VERTEX_COLOR_ARB:
-      if (ctx->API == API_OPENGL_CORE &&
-          !ctx->Extensions.ARB_color_buffer_float) {
+      if (ctx->API == API_OPENGL_CORE)
          goto invalid_enum;
-      }
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       ctx->Light.ClampVertexColor = clamp;
       _mesa_update_clamp_vertex_color(ctx, ctx->DrawBuffer);
       break;
    case GL_CLAMP_FRAGMENT_COLOR_ARB:
-      if (ctx->API == API_OPENGL_CORE &&
-          !ctx->Extensions.ARB_color_buffer_float) {
+      if (ctx->API == API_OPENGL_CORE)
          goto invalid_enum;
-      }
       FLUSH_VERTICES(ctx, _NEW_FRAG_CLAMP);
       ctx->Color.ClampFragmentColor = clamp;
       _mesa_update_clamp_fragment_color(ctx, ctx->DrawBuffer);

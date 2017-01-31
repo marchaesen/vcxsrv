@@ -112,8 +112,8 @@ radv_init_surface(struct radv_device *device,
 	                           VK_IMAGE_USAGE_STORAGE_BIT)) ||
 	    (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) ||
             (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR) ||
-            device->instance->physicalDevice.rad_info.chip_class < VI ||
-            create_info->scanout || !device->allow_dcc ||
+            device->physical_device->rad_info.chip_class < VI ||
+            create_info->scanout || (device->debug_flags & RADV_DEBUG_NO_DCC) ||
             !radv_is_colorbuffer_format_supported(pCreateInfo->format, &blendable))
 		surface->flags |= RADEON_SURF_DISABLE_DCC;
 	if (create_info->scanout)
@@ -123,7 +123,7 @@ radv_init_surface(struct radv_device *device,
 #define ATI_VENDOR_ID 0x1002
 static uint32_t si_get_bo_metadata_word1(struct radv_device *device)
 {
-	return (ATI_VENDOR_ID << 16) | device->instance->physicalDevice.rad_info.pci_id;
+	return (ATI_VENDOR_ID << 16) | device->physical_device->rad_info.pci_id;
 }
 
 static inline unsigned
@@ -326,7 +326,7 @@ si_make_texture_descriptor(struct radv_device *device,
 		/* The last dword is unused by hw. The shader uses it to clear
 		 * bits in the first dword of sampler state.
 		 */
-		if (device->instance->physicalDevice.rad_info.chip_class <= CIK && image->samples <= 1) {
+		if (device->physical_device->rad_info.chip_class <= CIK && image->samples <= 1) {
 			if (first_level == last_level)
 				state[7] = C_008F30_MAX_ANISO_RATIO;
 			else
@@ -517,8 +517,8 @@ radv_image_get_cmask_info(struct radv_device *device,
 			  struct radv_image *image,
 			  struct radv_cmask_info *out)
 {
-	unsigned pipe_interleave_bytes = device->instance->physicalDevice.rad_info.pipe_interleave_bytes;
-	unsigned num_pipes = device->instance->physicalDevice.rad_info.num_tile_pipes;
+	unsigned pipe_interleave_bytes = device->physical_device->rad_info.pipe_interleave_bytes;
+	unsigned num_pipes = device->physical_device->rad_info.num_tile_pipes;
 	unsigned cl_width, cl_height;
 
 	switch (num_pipes) {
@@ -589,8 +589,8 @@ radv_image_get_htile_size(struct radv_device *device,
 {
 	unsigned cl_width, cl_height, width, height;
 	unsigned slice_elements, slice_bytes, base_align;
-	unsigned num_pipes = device->instance->physicalDevice.rad_info.num_tile_pipes;
-	unsigned pipe_interleave_bytes = device->instance->physicalDevice.rad_info.pipe_interleave_bytes;
+	unsigned num_pipes = device->physical_device->rad_info.num_tile_pipes;
+	unsigned pipe_interleave_bytes = device->physical_device->rad_info.pipe_interleave_bytes;
 
 	/* Overalign HTILE on P2 configs to work around GPU hangs in
 	 * piglit/depthstencil-render-miplevels 585.
@@ -599,7 +599,7 @@ radv_image_get_htile_size(struct radv_device *device,
 	 * are always reproducible. I think I have seen the test hang
 	 * on Carrizo too, though it was very rare there.
 	 */
-	if (device->instance->physicalDevice.rad_info.chip_class >= CIK && num_pipes < 4)
+	if (device->physical_device->rad_info.chip_class >= CIK && num_pipes < 4)
 		num_pipes = 4;
 
 	switch (num_pipes) {
@@ -649,7 +649,7 @@ static void
 radv_image_alloc_htile(struct radv_device *device,
 		       struct radv_image *image)
 {
-	if (env_var_as_boolean("RADV_HIZ_DISABLE", false))
+	if (device->debug_flags & RADV_DEBUG_NO_HIZ)
 		return;
 
 	image->htile.size = radv_image_get_htile_size(device, image);
@@ -821,7 +821,7 @@ void radv_image_set_optimal_micro_tile_mode(struct radv_device *device,
 	 * definitions for them either. They are all 2D_TILED_THIN1 modes with
 	 * different bpp and micro tile mode.
 	 */
-	if (device->instance->physicalDevice.rad_info.chip_class >= CIK) {
+	if (device->physical_device->rad_info.chip_class >= CIK) {
 		switch (micro_tile_mode) {
 		case 0: /* displayable */
 			image->surface.tiling_index[0] = 10;

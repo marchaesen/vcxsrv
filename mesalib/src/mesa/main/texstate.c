@@ -700,9 +700,8 @@ update_texture_state( struct gl_context *ctx )
    BITSET_DECLARE(enabled_texture_units, MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (ctx->_Shader->CurrentProgram[i] &&
-          ctx->_Shader->CurrentProgram[i]->data->LinkStatus) {
-         prog[i] = ctx->_Shader->CurrentProgram[i]->_LinkedShaders[i]->Program;
+      if (ctx->_Shader->CurrentProgram[i]) {
+         prog[i] = ctx->_Shader->CurrentProgram[i];
       } else {
          if (i == MESA_SHADER_FRAGMENT && ctx->FragmentProgram._Enabled)
             prog[i] = ctx->FragmentProgram.Current;

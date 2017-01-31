@@ -79,14 +79,7 @@ xf86AddDriver(DriverPtr driver, void *module, int flags)
     xf86DriverList = xnfreallocarray(xf86DriverList,
                                      xf86NumDrivers, sizeof(DriverPtr));
     xf86DriverList[xf86NumDrivers - 1] = xnfalloc(sizeof(DriverRec));
-    if (flags & HaveDriverFuncs)
-        *xf86DriverList[xf86NumDrivers - 1] = *driver;
-    else {
-        (void) memset(xf86DriverList[xf86NumDrivers - 1], 0, sizeof(DriverRec));
-        (void) memcpy(xf86DriverList[xf86NumDrivers - 1], driver,
-                      sizeof(DriverRec1));
-
-    }
+    *xf86DriverList[xf86NumDrivers - 1] = *driver;
     xf86DriverList[xf86NumDrivers - 1]->module = module;
     xf86DriverList[xf86NumDrivers - 1]->refCount = 0;
 }
@@ -1597,7 +1590,7 @@ xf86LoadSubModule(ScrnInfoPtr pScrn, const char *name)
 void *
 xf86LoadOneModule(const char *name, void *opt)
 {
-    int errmaj, errmin;
+    int errmaj;
     char *Name;
     void *mod;
 
@@ -1615,9 +1608,9 @@ xf86LoadOneModule(const char *name, void *opt)
         return NULL;
     }
 
-    mod = LoadModule(Name, NULL, NULL, NULL, opt, NULL, &errmaj, &errmin);
+    mod = LoadModule(Name, opt, NULL, &errmaj);
     if (!mod)
-        LoaderErrorMsg(NULL, Name, errmaj, errmin);
+        LoaderErrorMsg(NULL, Name, errmaj, 0);
     free(Name);
     return mod;
 }
@@ -1751,10 +1744,6 @@ xf86FindXvOptions(ScrnInfoPtr pScrn, int adaptor_index, const char *port_name,
 
     return NULL;
 }
-
-/* Rather than duplicate loader's get OS function, just include it directly */
-#define LoaderGetOS xf86GetOS
-#include "loader/os.c"
 
 static void
 xf86ConfigFbEntityInactive(EntityInfoPtr pEnt, EntityProc init,

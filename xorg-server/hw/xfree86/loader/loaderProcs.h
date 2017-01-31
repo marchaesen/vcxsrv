@@ -59,8 +59,6 @@ typedef struct module_desc {
     struct module_desc *child;
     struct module_desc *sib;
     struct module_desc *parent;
-    char *name;
-    char *path;
     void *handle;
     ModuleSetupProc SetupProc;
     ModuleTearDownProc TearDownProc;
@@ -72,11 +70,7 @@ typedef struct module_desc {
 
 void LoaderInit(void);
 
-ModuleDescPtr LoadDriver(const char *, const char *, int, void *, int *,
-                         int *);
-ModuleDescPtr LoadModule(const char *, const char *, const char **,
-                         const char **, void *, const XF86ModReqInfo *,
-                         int *, int *);
+ModuleDescPtr LoadModule(const char *, void *, const XF86ModReqInfo *, int *);
 ModuleDescPtr DuplicateModule(ModuleDescPtr mod, ModuleDescPtr parent);
 void UnloadDriver(ModuleDescPtr);
 void LoaderSetPath(const char *path);
@@ -86,6 +80,8 @@ unsigned long LoaderGetModuleVersion(ModuleDescPtr mod);
 
 void LoaderResetOptions(void);
 void LoaderSetOptions(unsigned long);
+
+const char **LoaderListDir(const char *, const char **);
 
 /* Options for LoaderSetOptions */
 #define LDR_OPT_ABI_MISMATCH_NONFATAL		0x0001

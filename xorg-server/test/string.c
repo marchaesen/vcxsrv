@@ -32,6 +32,7 @@
 
 #include <assert.h>
 #include "os.h"
+#include "tests-common.h"
 
 /* Ensure we're testing our functions, even on platforms with libc versions */
 #include <string.h>
@@ -62,7 +63,7 @@ strndup_checks(void)
 }
 
 int
-main(int argc, char **argv)
+string_test(void)
 {
     strndup_checks();
 

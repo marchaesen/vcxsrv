@@ -27,6 +27,7 @@
 #include "ir.h"
 #include "main/core.h" /* for MIN2 */
 #include "main/shaderobj.h"
+#include "builtin_functions.h"
 
 static ir_rvalue *
 convert_component(ir_rvalue *src, const glsl_type *desired_type);
@@ -760,6 +761,12 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_DOUBLE:
          result = new(ctx) ir_expression(ir_unop_d2u, src);
          break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_u642u, src);
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642u, src);
+         break;
       }
       break;
    case GLSL_TYPE_INT:
@@ -776,6 +783,12 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_DOUBLE:
          result = new(ctx) ir_expression(ir_unop_d2i, src);
          break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_u642i, src);
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642i, src);
+         break;
       }
       break;
    case GLSL_TYPE_FLOAT:
@@ -791,6 +804,12 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
          break;
       case GLSL_TYPE_DOUBLE:
          result = new(ctx) ir_expression(ir_unop_d2f, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_u642f, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642f, desired_type, src, NULL);
          break;
       }
       break;
@@ -810,6 +829,14 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_DOUBLE:
          result = new(ctx) ir_expression(ir_unop_d2b, desired_type, src, NULL);
          break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_i642b,
+                                         new(ctx) ir_expression(ir_unop_u642i64,
+                                                                src));
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642b, desired_type, src, NULL);
+         break;
       }
       break;
    case GLSL_TYPE_DOUBLE:
@@ -828,7 +855,60 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2d, desired_type, src, NULL);
          break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_u642d, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642d, desired_type, src, NULL);
+         break;
       }
+      break;
+   case GLSL_TYPE_UINT64:
+      switch (b) {
+      case GLSL_TYPE_INT:
+         result = new(ctx) ir_expression(ir_unop_i2u64, src);
+         break;
+      case GLSL_TYPE_UINT:
+         result = new(ctx) ir_expression(ir_unop_u2u64, src);
+         break;
+      case GLSL_TYPE_BOOL:
+         result = new(ctx) ir_expression(ir_unop_i642u64,
+                                         new(ctx) ir_expression(ir_unop_b2i64,
+                                                                src));
+         break;
+      case GLSL_TYPE_FLOAT:
+         result = new(ctx) ir_expression(ir_unop_f2u64, src);
+         break;
+      case GLSL_TYPE_DOUBLE:
+         result = new(ctx) ir_expression(ir_unop_d2u64, src);
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642u64, src);
+         break;
+      }
+      break;
+   case GLSL_TYPE_INT64:
+      switch (b) {
+      case GLSL_TYPE_INT:
+         result = new(ctx) ir_expression(ir_unop_i2i64, src);
+         break;
+      case GLSL_TYPE_UINT:
+         result = new(ctx) ir_expression(ir_unop_u2i64, src);
+         break;
+      case GLSL_TYPE_BOOL:
+         result = new(ctx) ir_expression(ir_unop_b2i64, src);
+         break;
+      case GLSL_TYPE_FLOAT:
+         result = new(ctx) ir_expression(ir_unop_f2i64, src);
+         break;
+      case GLSL_TYPE_DOUBLE:
+         result = new(ctx) ir_expression(ir_unop_d2i64, src);
+         break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_u642i64, src);
+         break;
+      }
+      break;
    }
 
    assert(result != NULL);
@@ -1260,6 +1340,12 @@ emit_inline_vector_constructor(const glsl_type *type,
                case GLSL_TYPE_BOOL:
                   data.b[i + base_component] = c->get_bool_component(i);
                   break;
+               case GLSL_TYPE_UINT64:
+                  data.u64[i + base_component] = c->get_uint64_component(i);
+                  break;
+               case GLSL_TYPE_INT64:
+                  data.i64[i + base_component] = c->get_int64_component(i);
+                  break;
                default:
                   assert(!"Should not get here.");
                   break;
@@ -1267,8 +1353,7 @@ emit_inline_vector_constructor(const glsl_type *type,
             }
 
             /* Mask of fields to be written in the assignment. */
-            constant_mask |=
-               ((1U << rhs_components) - 1) << base_lhs_component;
+            constant_mask |= ((1U << rhs_components) - 1) << base_lhs_component;
             constant_components += rhs_components;
 
             base_component += rhs_components;

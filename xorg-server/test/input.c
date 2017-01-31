@@ -43,6 +43,8 @@
 #include "mi.h"
 #include "assert.h"
 
+#include "tests-common.h"
+
 /**
  * Init a device with axes.
  * Verify values set on the device.
@@ -1904,7 +1906,7 @@ dix_enqueue_events(void)
 }
 
 int
-main(int argc, char **argv)
+input_test(void)
 {
     dix_enqueue_events();
     dix_double_fp_conversion();

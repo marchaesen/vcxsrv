@@ -1440,21 +1440,17 @@ get_prime_id(void)
 static char *
 dri2_probe_driver_name(ScreenPtr pScreen, DRI2InfoPtr info)
 {
-    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
-    EntityInfoPtr pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
-    struct pci_device *pdev = NULL;
+#ifdef WITH_LIBDRM
     int i, j;
+    char *driver = NULL;
+    drmDevicePtr dev;
 
-    if (pEnt)
-        pdev = xf86GetPciInfoForEntity(pEnt->index);
-
-    /* For non-PCI devices, just assume that the 3D driver is named
-     * the same as the kernel driver.  This is currently true for vc4
-     * and msm (freedreno).
+    /* For non-PCI devices and drmGetDevice fail, just assume that
+     * the 3D driver is named the same as the kernel driver. This is
+     * currently true for vc4 and msm (freedreno).
      */
-    if (!pdev) {
+    if (drmGetDevice(info->fd, &dev) || dev->bustype != DRM_BUS_PCI) {
         drmVersionPtr version = drmGetVersion(info->fd);
-        char *kernel_driver;
 
         if (!version) {
             xf86DrvMsg(pScreen->myNum, X_ERROR,
@@ -1463,29 +1459,38 @@ dri2_probe_driver_name(ScreenPtr pScreen, DRI2InfoPtr info)
             return NULL;
         }
 
-        kernel_driver = strndup(version->name, version->name_len);
+        driver = strndup(version->name, version->name_len);
         drmFreeVersion(version);
-        return kernel_driver;
+        return driver;
     }
 
     for (i = 0; driver_map[i].driver; i++) {
-        if (pdev->vendor_id != driver_map[i].vendor_id)
+        if (dev->deviceinfo.pci->vendor_id != driver_map[i].vendor_id)
             continue;
 
-        if (driver_map[i].num_chips_ids == -1)
-            return strdup(driver_map[i].driver);
+        if (driver_map[i].num_chips_ids == -1) {
+             driver = strdup(driver_map[i].driver);
+             goto out;
+        }
 
         for (j = 0; j < driver_map[i].num_chips_ids; j++) {
-            if (driver_map[i].chip_ids[j] == pdev->device_id)
-                return strdup(driver_map[i].driver);
+            if (driver_map[i].chip_ids[j] == dev->deviceinfo.pci->device_id) {
+                driver = strdup(driver_map[i].driver);
+                goto out;
+            }
         }
     }
 
     xf86DrvMsg(pScreen->myNum, X_ERROR,
                "[DRI2] No driver mapping found for PCI device "
                "0x%04x / 0x%04x\n",
-               pdev->vendor_id, pdev->device_id);
+               dev->deviceinfo.pci->vendor_id, dev->deviceinfo.pci->device_id);
+out:
+    drmFreeDevice(&dev);
+    return driver;
+#else
     return NULL;
+#endif
 }
 
 Bool

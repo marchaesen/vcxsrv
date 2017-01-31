@@ -209,16 +209,6 @@ typedef CARD32 xorgHWFlags;
  */
 struct _DriverRec;
 
-typedef struct {
-    int driverVersion;
-    const char *driverName;
-    void (*Identify) (int flags);
-    Bool (*Probe) (struct _DriverRec * drv, int flags);
-    const OptionInfoRec *(*AvailableOptions) (int chipid, int bustype);
-    void *module;
-    int refCount;
-} DriverRec1;
-
 struct _SymTabRec;
 struct _PciChipsets;
 

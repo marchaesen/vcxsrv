@@ -119,8 +119,8 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
    /* Validate pname against interface. */
    switch(pname) {
    case GL_ACTIVE_RESOURCES:
-      for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++)
-         if (shProg->ProgramResourceList[i].Type == programInterface)
+      for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++)
+         if (shProg->data->ProgramResourceList[i].Type == programInterface)
             (*params)++;
       break;
    case GL_MAX_NAME_LENGTH:
@@ -135,32 +135,32 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
       /* Name length consists of base name, 3 additional chars '[0]' if
        * resource is an array and finally 1 char for string terminator.
        */
-      for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
-         if (shProg->ProgramResourceList[i].Type != programInterface)
+      for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++) {
+         if (shProg->data->ProgramResourceList[i].Type != programInterface)
             continue;
          unsigned len =
-            _mesa_program_resource_name_len(&shProg->ProgramResourceList[i]);
+            _mesa_program_resource_name_len(&shProg->data->ProgramResourceList[i]);
          *params = MAX2(*params, len + 1);
       }
       break;
    case GL_MAX_NUM_ACTIVE_VARIABLES:
       switch (programInterface) {
       case GL_UNIFORM_BLOCK:
-         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
-            if (shProg->ProgramResourceList[i].Type == programInterface) {
+         for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++) {
+            if (shProg->data->ProgramResourceList[i].Type == programInterface) {
                struct gl_uniform_block *block =
                   (struct gl_uniform_block *)
-                  shProg->ProgramResourceList[i].Data;
+                  shProg->data->ProgramResourceList[i].Data;
                *params = MAX2(*params, block->NumUniforms);
             }
          }
          break;
       case GL_SHADER_STORAGE_BLOCK:
-         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
-            if (shProg->ProgramResourceList[i].Type == programInterface) {
+         for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++) {
+            if (shProg->data->ProgramResourceList[i].Type == programInterface) {
                struct gl_uniform_block *block =
                   (struct gl_uniform_block *)
-                  shProg->ProgramResourceList[i].Data;
+                  shProg->data->ProgramResourceList[i].Data;
                GLint block_params = 0;
                for (unsigned j = 0; j < block->NumUniforms; j++) {
                   const char *iname = block->Uniforms[j].IndexName;
@@ -176,21 +176,21 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
          }
          break;
       case GL_ATOMIC_COUNTER_BUFFER:
-         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
-            if (shProg->ProgramResourceList[i].Type == programInterface) {
+         for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++) {
+            if (shProg->data->ProgramResourceList[i].Type == programInterface) {
                struct gl_active_atomic_buffer *buffer =
                   (struct gl_active_atomic_buffer *)
-                  shProg->ProgramResourceList[i].Data;
+                  shProg->data->ProgramResourceList[i].Data;
                *params = MAX2(*params, buffer->NumUniforms);
             }
          }
          break;
       case GL_TRANSFORM_FEEDBACK_BUFFER:
-         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
-            if (shProg->ProgramResourceList[i].Type == programInterface) {
+         for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++) {
+            if (shProg->data->ProgramResourceList[i].Type == programInterface) {
                struct gl_transform_feedback_buffer *buffer =
                   (struct gl_transform_feedback_buffer *)
-                  shProg->ProgramResourceList[i].Data;
+                  shProg->data->ProgramResourceList[i].Data;
                *params = MAX2(*params, buffer->NumVaryings);
             }
          }
@@ -210,11 +210,11 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
       case GL_COMPUTE_SUBROUTINE_UNIFORM:
       case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
       case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM: {
-         for (i = 0, *params = 0; i < shProg->NumProgramResourceList; i++) {
-            if (shProg->ProgramResourceList[i].Type == programInterface) {
+         for (i = 0, *params = 0; i < shProg->data->NumProgramResourceList; i++) {
+            if (shProg->data->ProgramResourceList[i].Type == programInterface) {
                struct gl_uniform_storage *uni =
                   (struct gl_uniform_storage *)
-                  shProg->ProgramResourceList[i].Data;
+                  shProg->data->ProgramResourceList[i].Data;
                *params = MAX2(*params, uni->num_compatible_subroutines);
             }
          }

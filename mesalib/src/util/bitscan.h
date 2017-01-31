@@ -226,6 +226,15 @@ u_bit_consecutive(unsigned start, unsigned count)
    return ((1u << count) - 1) << start;
 }
 
+static inline uint64_t
+u_bit_consecutive64(unsigned start, unsigned count)
+{
+   assert(start + count <= 64);
+   if (count == 64)
+      return ~(uint64_t)0;
+   return (((uint64_t)1 << count) - 1) << start;
+}
+
 
 #ifdef __cplusplus
 }

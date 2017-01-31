@@ -31,6 +31,8 @@
 #include <xfixesint.h>
 #include <X11/extensions/xfixeswire.h>
 
+#include "tests-common.h"
+
 static void
 _fixes_test_direction(struct PointerBarrier *barrier, int d[4], int permitted)
 {
@@ -343,7 +345,7 @@ fixes_pointer_barrier_clamp_test(void)
 }
 
 int
-main(int argc, char **argv)
+fixes_test(void)
 {
 
     fixes_pointer_barriers_test();

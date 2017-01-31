@@ -68,6 +68,13 @@ nir_builder_instr_insert(nir_builder *build, nir_instr *instr)
    build->cursor = nir_after_instr(instr);
 }
 
+static inline nir_instr *
+nir_builder_last_instr(nir_builder *build)
+{
+   assert(build->cursor.option == nir_cursor_after_instr);
+   return build->cursor.instr;
+}
+
 static inline void
 nir_builder_cf_insert(nir_builder *build, nir_cf_node *cf)
 {
@@ -407,6 +414,22 @@ nir_load_var(nir_builder *build, nir_variable *var)
    load->variables[0] = nir_deref_var_create(load, var);
    nir_ssa_dest_init(&load->instr, &load->dest, num_components,
                      glsl_get_bit_size(var->type), NULL);
+   nir_builder_instr_insert(build, &load->instr);
+   return &load->dest.ssa;
+}
+
+static inline nir_ssa_def *
+nir_load_deref_var(nir_builder *build, nir_deref_var *deref)
+{
+   const struct glsl_type *type = nir_deref_tail(&deref->deref)->type;
+   const unsigned num_components = glsl_get_vector_elements(type);
+
+   nir_intrinsic_instr *load =
+      nir_intrinsic_instr_create(build->shader, nir_intrinsic_load_var);
+   load->num_components = num_components;
+   load->variables[0] = nir_deref_var_clone(deref, load);
+   nir_ssa_dest_init(&load->instr, &load->dest, num_components,
+                     glsl_get_bit_size(type), NULL);
    nir_builder_instr_insert(build, &load->instr);
    return &load->dest.ssa;
 }

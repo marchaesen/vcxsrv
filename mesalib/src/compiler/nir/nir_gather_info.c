@@ -53,11 +53,6 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len)
          else
             shader->info->inputs_read |= bitfield;
 
-         /* double inputs read is only for vertex inputs */
-         if (shader->stage == MESA_SHADER_VERTEX &&
-             glsl_type_is_dual_slot(glsl_without_array(var->type)))
-            shader->info->double_inputs_read |= bitfield;
-
          if (shader->stage == MESA_SHADER_FRAGMENT) {
             shader->info->fs.uses_sample_qualifier |= var->data.sample;
          }
@@ -83,26 +78,21 @@ static void
 mark_whole_variable(nir_shader *shader, nir_variable *var)
 {
    const struct glsl_type *type = var->type;
-   bool is_vertex_input = false;
 
    if (nir_is_per_vertex_io(var, shader->stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
 
-   if (shader->stage == MESA_SHADER_VERTEX &&
-       var->data.mode == nir_var_shader_in)
-      is_vertex_input = true;
-
    const unsigned slots =
       var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
-                        : glsl_count_attribute_slots(type, is_vertex_input);
+                        : glsl_count_attribute_slots(type, false);
 
    set_io_mask(shader, var, 0, slots);
 }
 
 static unsigned
-get_io_offset(nir_deref_var *deref, bool is_vertex_input)
+get_io_offset(nir_deref_var *deref)
 {
    unsigned offset = 0;
 
@@ -117,7 +107,7 @@ get_io_offset(nir_deref_var *deref, bool is_vertex_input)
             return -1;
          }
 
-         offset += glsl_count_attribute_slots(tail->type, is_vertex_input) *
+         offset += glsl_count_attribute_slots(tail->type, false) *
             deref_array->base_offset;
       }
       /* TODO: we can get the offset for structs here see nir_lower_io() */
@@ -163,12 +153,7 @@ try_mask_partial_io(nir_shader *shader, nir_deref_var *deref)
       return false;
    }
 
-   bool is_vertex_input = false;
-   if (shader->stage == MESA_SHADER_VERTEX &&
-       var->data.mode == nir_var_shader_in)
-      is_vertex_input = true;
-
-   unsigned offset = get_io_offset(deref, is_vertex_input);
+   unsigned offset = get_io_offset(deref);
    if (offset == -1)
       return false;
 
@@ -184,8 +169,7 @@ try_mask_partial_io(nir_shader *shader, nir_deref_var *deref)
    }
 
    /* double element width for double types that takes two slots */
-   if (!is_vertex_input &&
-       glsl_type_is_dual_slot(glsl_without_array(type))) {
+   if (glsl_type_is_dual_slot(glsl_without_array(type))) {
       elem_width *= 2;
    }
 
@@ -220,13 +204,27 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
    case nir_intrinsic_interp_var_at_sample:
    case nir_intrinsic_interp_var_at_offset:
    case nir_intrinsic_load_var:
-   case nir_intrinsic_store_var:
-      if (instr->variables[0]->var->data.mode == nir_var_shader_in ||
-          instr->variables[0]->var->data.mode == nir_var_shader_out) {
+   case nir_intrinsic_store_var: {
+      nir_variable *var = instr->variables[0]->var;
+
+      if (var->data.mode == nir_var_shader_in ||
+          var->data.mode == nir_var_shader_out) {
          if (!try_mask_partial_io(shader, instr->variables[0]))
-            mark_whole_variable(shader, instr->variables[0]->var);
+            mark_whole_variable(shader, var);
+
+         /* We need to track which input_reads bits correspond to a
+          * dvec3/dvec4 input attribute */
+         if (shader->stage == MESA_SHADER_VERTEX &&
+             var->data.mode == nir_var_shader_in &&
+             glsl_type_is_dual_slot(glsl_without_array(var->type))) {
+            for (uint i = 0; i < glsl_count_attribute_slots(var->type, false); i++) {
+               int idx = var->data.location + i;
+               shader->info->double_inputs_read |= BITFIELD64_BIT(idx);
+            }
+         }
       }
       break;
+   }
 
    case nir_intrinsic_load_draw_id:
    case nir_intrinsic_load_front_face:
@@ -248,7 +246,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
    case nir_intrinsic_load_tess_level_outer:
    case nir_intrinsic_load_tess_level_inner:
       shader->info->system_values_read |=
-         (1 << nir_system_value_from_intrinsic(instr->intrinsic));
+         (1ull << nir_system_value_from_intrinsic(instr->intrinsic));
       break;
 
    case nir_intrinsic_end_primitive:

@@ -72,7 +72,8 @@ create_texture_for_pbo(struct gl_context *ctx,
                        const struct gl_pixelstore_attrib *packing,
                        struct gl_buffer_object **tmp_pbo, GLuint *tmp_tex)
 {
-   uint32_t pbo_format;
+   const mesa_format pbo_format =
+      _mesa_tex_format_from_format_and_type(ctx, format, type);
    GLenum internal_format;
    unsigned row_stride;
    struct gl_buffer_object *buffer_obj;
@@ -85,11 +86,7 @@ create_texture_for_pbo(struct gl_context *ctx,
        packing->Invert)
       return NULL;
 
-   pbo_format = _mesa_format_from_format_and_type(format, type);
-   if (_mesa_format_is_mesa_array_format(pbo_format))
-      pbo_format = _mesa_format_from_array_format(pbo_format);
-
-   if (!pbo_format || !ctx->TextureFormatSupported[pbo_format])
+   if (pbo_format == MESA_FORMAT_NONE)
       return NULL;
 
    /* Account for SKIP_PIXELS, SKIP_ROWS, ALIGNMENT, and SKIP_IMAGES */

@@ -41,6 +41,7 @@ struct hud_graph {
    /* name and query */
    char name[128];
    void *query_data;
+   void (*begin_query)(struct hud_graph *gr);
    void (*query_new_value)(struct hud_graph *gr);
    void (*free_query_data)(void *ptr); /**< do not use ordinary free() */
 
@@ -68,11 +69,13 @@ struct hud_pane {
    uint64_t ceiling;
    unsigned dyn_ceil_last_ran;
    boolean dyn_ceiling;
+   boolean sort_items;
    enum pipe_driver_query_type type;
    uint64_t period; /* in microseconds */
 
    struct list_head graph_list;
    unsigned num_graphs;
+   unsigned next_color;
 };
 
 
@@ -101,6 +104,7 @@ void hud_pipe_query_install(struct hud_batch_query_context **pbq,
 boolean hud_driver_query_install(struct hud_batch_query_context **pbq,
                                  struct hud_pane *pane,
                                  struct pipe_context *pipe, const char *name);
+void hud_batch_query_begin(struct hud_batch_query_context *bq);
 void hud_batch_query_update(struct hud_batch_query_context *bq);
 void hud_batch_query_cleanup(struct hud_batch_query_context **pbq);
 

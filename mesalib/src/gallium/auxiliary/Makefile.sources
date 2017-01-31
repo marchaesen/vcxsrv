@@ -435,3 +435,7 @@ GALLIVM_SOURCES := \
 	draw/draw_llvm_sample.c \
 	draw/draw_pt_fetch_shade_pipeline_llvm.c \
 	draw/draw_vs_llvm.c
+
+RENDERONLY_SOURCES := \
+	renderonly/renderonly.c \
+	renderonly/renderonly.h

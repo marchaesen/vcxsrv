@@ -258,13 +258,14 @@ yuv_to_rgb(struct tgsi_transform_context *tctx,
 
    /* SUB tmpA.xyz, tmpA, imm[3] */
    inst = tgsi_default_full_instruction();
-   inst.Instruction.Opcode = TGSI_OPCODE_SUB;
+   inst.Instruction.Opcode = TGSI_OPCODE_ADD;
    inst.Instruction.Saturate = 0;
    inst.Instruction.NumDstRegs = 1;
    inst.Instruction.NumSrcRegs = 2;
    reg_dst(&inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_XYZ);
    reg_src(&inst.Src[0], &ctx->tmp[A].src, SWIZ(X, Y, Z, _));
    reg_src(&inst.Src[1], &ctx->imm[3], SWIZ(X, Y, Z, _));
+   inst.Src[1].Register.Negate = 1;
    tctx->emit_instruction(tctx, &inst);
 
    /* DP3 dst.x, tmpA, imm[0] */

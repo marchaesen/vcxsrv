@@ -57,7 +57,7 @@ radv_pipeline_cache_init(struct radv_pipeline_cache *cache,
 	/* We don't consider allocation failure fatal, we just start with a 0-sized
 	 * cache. */
 	if (cache->hash_table == NULL ||
-	    !env_var_as_boolean("RADV_ENABLE_PIPELINE_CACHE", true))
+	    (device->debug_flags & RADV_DEBUG_NO_CACHE))
 		cache->table_size = 0;
 	else
 		memset(cache->hash_table, 0, byte_size);
@@ -88,7 +88,8 @@ radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 		 const char *entrypoint,
 		 const VkSpecializationInfo *spec_info,
 		 const struct radv_pipeline_layout *layout,
-		 const union ac_shader_variant_key *key)
+		 const union ac_shader_variant_key *key,
+		 uint32_t is_geom_copy_shader)
 {
 	struct mesa_sha1 *ctx;
 
@@ -104,6 +105,7 @@ radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 				  spec_info->mapEntryCount * sizeof spec_info->pMapEntries[0]);
 		_mesa_sha1_update(ctx, spec_info->pData, spec_info->dataSize);
 	}
+	_mesa_sha1_update(ctx, &is_geom_copy_shader, 4);
 	_mesa_sha1_final(ctx, hash);
 }
 
@@ -308,7 +310,6 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 			 const void *data, size_t size)
 {
 	struct radv_device *device = cache->device;
-	struct radv_physical_device *pdevice = &device->instance->physicalDevice;
 	struct cache_header header;
 
 	if (size < sizeof(header))
@@ -320,9 +321,9 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 		return;
 	if (header.vendor_id != 0x1002)
 		return;
-	if (header.device_id != device->instance->physicalDevice.rad_info.pci_id)
+	if (header.device_id != device->physical_device->rad_info.pci_id)
 		return;
-	if (memcmp(header.uuid, pdevice->uuid, VK_UUID_SIZE) != 0)
+	if (memcmp(header.uuid, device->physical_device->uuid, VK_UUID_SIZE) != 0)
 		return;
 
 	char *end = (void *) data + size;
@@ -404,7 +405,6 @@ VkResult radv_GetPipelineCacheData(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_pipeline_cache, cache, _cache);
-	struct radv_physical_device *pdevice = &device->instance->physicalDevice;
 	struct cache_header *header;
 	VkResult result = VK_SUCCESS;
 	const size_t size = sizeof(*header) + cache->total_size;
@@ -421,8 +421,8 @@ VkResult radv_GetPipelineCacheData(
 	header->header_size = sizeof(*header);
 	header->header_version = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
 	header->vendor_id = 0x1002;
-	header->device_id = device->instance->physicalDevice.rad_info.pci_id;
-	memcpy(header->uuid, pdevice->uuid, VK_UUID_SIZE);
+	header->device_id = device->physical_device->rad_info.pci_id;
+	memcpy(header->uuid, device->physical_device->uuid, VK_UUID_SIZE);
 	p += header->header_size;
 
 	struct cache_entry *entry;

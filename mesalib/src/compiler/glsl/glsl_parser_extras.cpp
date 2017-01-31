@@ -20,6 +20,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+#include <inttypes.h> /* for PRIx64 macro */
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -37,6 +38,7 @@
 #include "glsl_parser.h"
 #include "ir_optimization.h"
 #include "loop_analysis.h"
+#include "builtin_functions.h"
 
 /**
  * Format a short human-readable description of the given GLSL version.
@@ -608,6 +610,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_fragment_layer_viewport),
    EXT(ARB_gpu_shader5),
    EXT(ARB_gpu_shader_fp64),
+   EXT(ARB_gpu_shader_int64),
    EXT(ARB_post_depth_coverage),
    EXT(ARB_sample_shading),
    EXT(ARB_separate_shader_objects),
@@ -1247,6 +1250,14 @@ ast_expression::print(void) const
       printf("%f ", primary_expression.double_constant);
       break;
 
+   case ast_int64_constant:
+      printf("%" PRId64 " ", primary_expression.int64_constant);
+      break;
+
+   case ast_uint64_constant:
+      printf("%" PRIu64 " ", primary_expression.uint64_constant);
+      break;
+
    case ast_bool_constant:
       printf("%s ",
 	     primary_expression.bool_constant
@@ -1704,7 +1715,7 @@ set_shader_inout_layout(struct gl_shader *shader,
          if (state->out_qualifier->out_xfb_stride[i]->
                 process_qualifier_constant(state, "xfb_stride", &xfb_stride,
                 true)) {
-            shader->info.TransformFeedback.BufferStride[i] = xfb_stride;
+            shader->TransformFeedbackBufferStride[i] = xfb_stride;
          }
       }
    }
@@ -1732,7 +1743,7 @@ set_shader_inout_layout(struct gl_shader *shader,
       if (state->in_qualifier->flags.q.prim_type)
          shader->info.TessEval.PrimitiveMode = state->in_qualifier->prim_type;
 
-      shader->info.TessEval.Spacing = 0;
+      shader->info.TessEval.Spacing = TESS_SPACING_UNSPECIFIED;
       if (state->in_qualifier->flags.q.vertex_spacing)
          shader->info.TessEval.Spacing = state->in_qualifier->vertex_spacing;
 
@@ -1808,16 +1819,15 @@ set_shader_inout_layout(struct gl_shader *shader,
       break;
 
    case MESA_SHADER_FRAGMENT:
-      shader->info.redeclares_gl_fragcoord =
-         state->fs_redeclares_gl_fragcoord;
-      shader->info.uses_gl_fragcoord = state->fs_uses_gl_fragcoord;
-      shader->info.pixel_center_integer = state->fs_pixel_center_integer;
-      shader->info.origin_upper_left = state->fs_origin_upper_left;
-      shader->info.ARB_fragment_coord_conventions_enable =
+      shader->redeclares_gl_fragcoord = state->fs_redeclares_gl_fragcoord;
+      shader->uses_gl_fragcoord = state->fs_uses_gl_fragcoord;
+      shader->pixel_center_integer = state->fs_pixel_center_integer;
+      shader->origin_upper_left = state->fs_origin_upper_left;
+      shader->ARB_fragment_coord_conventions_enable =
          state->ARB_fragment_coord_conventions_enable;
-      shader->info.EarlyFragmentTests = state->fs_early_fragment_tests;
-      shader->info.InnerCoverage = state->fs_inner_coverage;
-      shader->info.PostDepthCoverage = state->fs_post_depth_coverage;
+      shader->EarlyFragmentTests = state->fs_early_fragment_tests;
+      shader->InnerCoverage = state->fs_inner_coverage;
+      shader->PostDepthCoverage = state->fs_post_depth_coverage;
       shader->BlendSupport = state->fs_blend_support;
       break;
 
@@ -1949,12 +1959,20 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
 
       assign_subroutine_indexes(shader, state);
       lower_subroutine(shader->ir, state);
+
       /* Do some optimization at compile time to reduce shader IR size
        * and reduce later work if the same shader is linked multiple times
        */
-      while (do_common_optimization(shader->ir, false, false, options,
-                                    ctx->Const.NativeIntegers))
-         ;
+      if (ctx->Const.GLSLOptimizeConservatively) {
+         /* Run it just once. */
+         do_common_optimization(shader->ir, false, false, options,
+                                ctx->Const.NativeIntegers);
+      } else {
+         /* Repeat it until it stops making changes. */
+         while (do_common_optimization(shader->ir, false, false, options,
+                                       ctx->Const.NativeIntegers))
+            ;
+      }
 
       validate_ir_tree(shader->ir);
 
@@ -2106,7 +2124,8 @@ do_common_optimization(exec_list *ir, bool linked,
    OPT(do_minmax_prune, ir);
    OPT(do_rebalance_tree, ir);
    OPT(do_algebraic, ir, native_integers, options);
-   OPT(do_lower_jumps, ir);
+   OPT(do_lower_jumps, ir, true, true, options->EmitNoMainReturn,
+       options->EmitNoCont, options->EmitNoLoops);
    OPT(do_vec_index_to_swizzle, ir);
    OPT(lower_vector_insert, ir, false);
    OPT(do_swizzle_swizzle, ir);

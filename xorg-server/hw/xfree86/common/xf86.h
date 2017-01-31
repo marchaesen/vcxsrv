@@ -343,8 +343,6 @@ xf86SetSilkenMouse(ScreenPtr pScreen);
 extern _X_EXPORT void *
 xf86FindXvOptions(ScrnInfoPtr pScrn, int adapt_index, const char *port_name,
                   const char **adaptor_name, void **adaptor_options);
-extern _X_EXPORT void
-xf86GetOS(const char **name, int *major, int *minor, int *teeny);
 extern _X_EXPORT ScrnInfoPtr
 xf86ConfigFbEntity(ScrnInfoPtr pScrn, int scrnFlag,
                    int entityIndex, EntityProc init,

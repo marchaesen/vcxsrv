@@ -186,11 +186,34 @@ ir_copy_propagation_visitor::visit_enter(ir_call *ir)
       }
    }
 
-   /* Since we're unlinked, we don't (necessarily) know the side effects of
-    * this call.  So kill all copies.
+   /* Since this pass can run when unlinked, we don't (necessarily) know
+    * the side effects of calls.  (When linked, most calls are inlined
+    * anyway, so it doesn't matter much.)
+    *
+    * One place where this does matter is IR intrinsics.  They're never
+    * inlined.  We also know what they do - while some have side effects
+    * (such as image writes), none edit random global variables.  So we
+    * can assume they're side-effect free (other than the return value
+    * and out parameters).
     */
-   _mesa_hash_table_clear(acp, NULL);
-   this->killed_all = true;
+   if (!ir->callee->is_intrinsic()) {
+      _mesa_hash_table_clear(acp, NULL);
+      this->killed_all = true;
+   } else {
+      if (ir->return_deref)
+         kill(ir->return_deref->var);
+
+      foreach_two_lists(formal_node, &ir->callee->parameters,
+                        actual_node, &ir->actual_parameters) {
+         ir_variable *sig_param = (ir_variable *) formal_node;
+         if (sig_param->data.mode == ir_var_function_out ||
+             sig_param->data.mode == ir_var_function_inout) {
+            ir_rvalue *ir = (ir_rvalue *) actual_node;
+            ir_variable *var = ir->variable_referenced();
+            kill(var);
+         }
+      }
+   }
 
    return visit_continue_with_parent;
 }

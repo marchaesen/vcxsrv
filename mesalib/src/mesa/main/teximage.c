@@ -3648,9 +3648,10 @@ copyteximage(struct gl_context *ctx, GLuint dims,
       if (texImage && can_avoid_reallocation(texImage, internalFormat, texFormat,
                                              x, y, width, height, border)) {
          _mesa_unlock_texture(ctx, texObj);
-         return _mesa_copy_texture_sub_image(ctx, dims, texObj, target, level,
-                                             0, 0, 0, x, y, width, height,
-                                             "CopyTexImage");
+         _mesa_copy_texture_sub_image(ctx, dims, texObj, target, level,
+                                      0, 0, 0, x, y, width, height,
+                                      "CopyTexImage");
+         return;
       }
    }
    _mesa_unlock_texture(ctx, texObj);

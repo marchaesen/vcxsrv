@@ -472,6 +472,34 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       }
       break;
 
+      /* This macro CANNOT use the do { } while(true) mechanism because
+       * then the breaks apply to the loop instead of the switch!
+       */
+#define HANDLE_PACK_UNPACK_INVERSE(inverse_operation)                   \
+      {                                                                 \
+         ir_expression *const op = ir->operands[0]->as_expression();    \
+         if (op == NULL)                                                \
+            break;                                                      \
+         if (op->operation == (inverse_operation))                      \
+            return op->operands[0];                                     \
+         break;                                                         \
+      }
+
+   case ir_unop_unpack_uint_2x32:
+      HANDLE_PACK_UNPACK_INVERSE(ir_unop_pack_uint_2x32);
+   case ir_unop_pack_uint_2x32:
+      HANDLE_PACK_UNPACK_INVERSE(ir_unop_unpack_uint_2x32);
+   case ir_unop_unpack_int_2x32:
+      HANDLE_PACK_UNPACK_INVERSE(ir_unop_pack_int_2x32);
+   case ir_unop_pack_int_2x32:
+      HANDLE_PACK_UNPACK_INVERSE(ir_unop_unpack_int_2x32);
+   case ir_unop_unpack_double_2x32:
+      HANDLE_PACK_UNPACK_INVERSE(ir_unop_pack_double_2x32);
+   case ir_unop_pack_double_2x32:
+      HANDLE_PACK_UNPACK_INVERSE(ir_unop_unpack_double_2x32);
+
+#undef HANDLE_PACK_UNPACK_INVERSE
+
    case ir_binop_add:
       if (is_vec_zero(op_const[0]))
 	 return ir->operands[1];

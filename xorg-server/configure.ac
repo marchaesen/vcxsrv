@@ -658,8 +658,6 @@ AC_ARG_ENABLE(xephyr,         AS_HELP_STRING([--enable-xephyr], [Build the kdriv
 AC_ARG_ENABLE(xfake,          AS_HELP_STRING([--enable-xfake], [Build the kdrive 'fake' server (default: auto)]), [XFAKE=$enableval], [XFAKE=auto])
 AC_ARG_ENABLE(xfbdev,         AS_HELP_STRING([--enable-xfbdev], [Build the kdrive framebuffer device server (default: auto)]), [XFBDEV=$enableval], [XFBDEV=auto])
 dnl kdrive options
-AC_ARG_ENABLE(kdrive-kbd,     AS_HELP_STRING([--enable-kdrive-kbd], [Build kbd driver for kdrive (default: auto)]), [KDRIVE_KBD=$enableval], [KDRIVE_KBD=auto])
-AC_ARG_ENABLE(kdrive-mouse,   AS_HELP_STRING([--enable-kdrive-mouse], [Build mouse driver for kdrive (default: auto)]), [KDRIVE_MOUSE=$enableval], [KDRIVE_MOUSE=auto])
 AC_ARG_ENABLE(kdrive-evdev,   AS_HELP_STRING([--enable-kdrive-evdev], [Build evdev driver for kdrive (default: auto)]), [KDRIVE_EVDEV=$enableval], [KDRIVE_EVDEV=auto])
 AC_ARG_ENABLE(libunwind,      AS_HELP_STRING([--enable-libunwind], [Use libunwind for backtracing (default: auto)]), [LIBUNWIND="$enableval"], [LIBUNWIND="auto"])
 AC_ARG_ENABLE(xshmfence,      AS_HELP_STRING([--disable-xshmfence], [Disable xshmfence (default: auto)]), [XSHMFENCE="$enableval"], [XSHMFENCE="auto"])
@@ -1340,7 +1338,12 @@ AM_CONDITIONAL(DRI3, test "x$DRI3" = xyes)
 if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$DRI3" = xyes || test "x$CONFIG_UDEV_KMS" = xyes; then
 	if test "x$DRM" = xyes; then
 		AC_DEFINE(WITH_LIBDRM, 1, [Building with libdrm support])
-		PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
+		if test "x$DRI2" = xyes; then
+			dnl 2.4.65 is required for drmGetDevice
+			PKG_CHECK_MODULES([LIBDRM], libdrm >= 2.4.65)
+		else
+			PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
+		fi
 	fi
 fi
 
@@ -2336,9 +2339,6 @@ if test "x$DMX" = xyes; then
 dnl USB sources in DMX require <linux/input.h>
 	AC_CHECK_HEADER([linux/input.h], DMX_BUILD_USB="yes",
 			DMX_BUILD_USB="no")
-dnl Linux sources in DMX require <linux/keyboard.h>
-	AC_CHECK_HEADER([linux/keyboard.h], DMX_BUILD_LNX="yes",
-			DMX_BUILD_LNX="no")
 	AC_SUBST(XDMXCONFIG_DEP_CFLAGS)
 	AC_SUBST(XDMXCONFIG_DEP_LIBS)
 	PKG_CHECK_MODULES([DMXEXAMPLES_DEP], [$LIBDMX $LIBXEXT x11])
@@ -2355,7 +2355,6 @@ dnl Linux sources in DMX require <linux/keyboard.h>
 	AC_SUBST(X11EXAMPLES_DEP_LIBS)
 
 fi
-AM_CONDITIONAL([DMX_BUILD_LNX], [test "x$DMX_BUILD_LNX" = xyes])
 AM_CONDITIONAL([DMX_BUILD_USB], [test "x$DMX_BUILD_USB" = xyes])
 
 dnl kdrive DDX
@@ -2407,34 +2406,16 @@ if test "$KDRIVE" = yes; then
 	    if test "x$KDRIVE_EVDEV" = xauto; then
 		KDRIVE_EVDEV=yes
 	    fi
-	    if test "x$KDRIVE_KBD" = xauto; then
-		KDRIVE_KBD=yes
-	    fi
-	    if test "x$KDRIVE_MOUSE" = xauto; then
-		KDRIVE_MOUSE=yes
-	    fi
 	    ;;
 	*)
 	    if test "x$KDRIVE_EVDEV" = xauto; then
 		KDRIVE_EVDEV=no
 	    fi
-	    if test "x$KDRIVE_KBD" = xauto; then
-		KDRIVE_KBD=no
-	    fi
-	    if test "x$KDRIVE_MOUSE" = xauto; then
-		KDRIVE_MOUSE=no
-	    fi
 	    ;;
     esac
 
-    if test "x$KDRIVE_KBD" = xyes; then
-       AC_DEFINE(KDRIVE_KBD, 1, [Enable KDrive kbd driver])
-    fi
     if test "x$KDRIVE_EVDEV" = xyes; then
        AC_DEFINE(KDRIVE_EVDEV, 1, [Enable KDrive evdev driver])
-    fi
-    if test "x$KDRIVE_MOUSE" = xyes; then
-       AC_DEFINE(KDRIVE_MOUSE, 1, [Enable KDrive mouse driver])
     fi
 
     XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-render xcb-renderutil xcb-aux xcb-image xcb-icccm xcb-shm xcb-keysyms xcb-randr xcb-xkb"
@@ -2486,8 +2467,6 @@ AC_SUBST([KDRIVE_LOCAL_LIBS])
 AC_SUBST([KDRIVE_LIBS])
 AM_CONDITIONAL(KDRIVELINUX, [test "x$KDRIVELINUX" = xyes])
 AM_CONDITIONAL(KDRIVE_EVDEV, [test "x$KDRIVE_EVDEV" = xyes])
-AM_CONDITIONAL(KDRIVE_KBD,   [test "x$KDRIVE_KBD" = xyes])
-AM_CONDITIONAL(KDRIVE_MOUSE, [test "x$KDRIVE_MOUSE" = xyes])
 AM_CONDITIONAL(TSLIB, [test "x$HAVE_TSLIB" = xyes])
 AM_CONDITIONAL(KDRIVEFBDEV, [test "x$XFBDEV" = xyes])
 AM_CONDITIONAL(XEPHYR, [test "x$KDRIVE" = xyes && test "x$XEPHYR" = xyes])
@@ -2679,8 +2658,6 @@ hw/kdrive/linux/Makefile
 hw/kdrive/src/Makefile
 hw/xwayland/Makefile
 test/Makefile
-test/xi1/Makefile
-test/xi2/Makefile
 xserver.ent
 xorg-server.pc
 ])

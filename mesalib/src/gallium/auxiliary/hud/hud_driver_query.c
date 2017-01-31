@@ -116,8 +116,15 @@ hud_batch_query_update(struct hud_batch_query_context *bq)
          return;
       }
    }
+}
 
-   if (!pipe->begin_query(pipe, bq->query[bq->head])) {
+void
+hud_batch_query_begin(struct hud_batch_query_context *bq)
+{
+   if (!bq || bq->failed || !bq->query[bq->head])
+      return;
+
+   if (!bq->pipe->begin_query(bq->pipe, bq->query[bq->head])) {
       fprintf(stderr,
               "gallium_hud: could not begin batch query. You may have "
               "selected too many or incompatible queries.\n");
@@ -277,7 +284,15 @@ query_new_value_normal(struct query_info *info)
       /* initialize */
       info->query[info->head] = pipe->create_query(pipe, info->query_type, 0);
    }
+}
 
+static void
+begin_query(struct hud_graph *gr)
+{
+   struct query_info *info = gr->query_data;
+   struct pipe_context *pipe = info->pipe;
+
+   assert(!info->batch);
    if (info->query[info->head])
       pipe->begin_query(pipe, info->query[info->head]);
 }
@@ -374,6 +389,7 @@ hud_pipe_query_install(struct hud_batch_query_context **pbq,
          goto fail_info;
       info->batch = *pbq;
    } else {
+      gr->begin_query = begin_query;
       info->query_type = query_type;
       info->result_index = result_index;
    }

@@ -224,7 +224,9 @@ static void usage(void)
 
 static void version(void)
 {
-    printf("plink: %s\n", ver);
+    char *buildinfo_text = buildinfo("\n");
+    printf("plink: %s\n%s\n", ver, buildinfo_text);
+    sfree(buildinfo_text);
     exit(1);
 }
 
@@ -500,22 +502,6 @@ int main(int argc, char **argv)
 	    }
 	}
     }
-
-#if !defined UNPROTECT && !defined NO_SECURITY
-    /*
-     * Protect our process.
-     */
-    {
-        char *error = NULL;
-        if (!setprocessacl(error)) {
-            char *message = dupprintf("Could not restrict process ACL: %s",
-                                      error);
-            logevent(NULL, message);
-            sfree(message);
-            sfree(error);
-        }
-    }
-#endif
 
     if (errors)
 	return 1;

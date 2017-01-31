@@ -31,6 +31,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "tests-common.h"
+
 struct parent {
     int a;
     struct xorg_list children;
@@ -369,7 +371,7 @@ test_nt_list_delete(void)
 }
 
 int
-main(int argc, char **argv)
+list_test(void)
 {
     test_xorg_list_init();
     test_xorg_list_add();

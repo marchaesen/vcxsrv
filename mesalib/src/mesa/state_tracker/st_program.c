@@ -390,9 +390,13 @@ st_translate_vertex_program(struct st_context *st,
       stvp->tgsi.type = PIPE_SHADER_IR_NIR;
       stvp->tgsi.ir.nir = nir;
 
-      st_translate_stream_output_info2(stvp->shader_program->xfb_program->sh.LinkedTransformFeedback,
-                                       stvp->result_to_output,
-                                       &stvp->tgsi.stream_output);
+      struct gl_program *prog = stvp->shader_program->last_vert_prog;
+      if (prog) {
+         st_translate_stream_output_info2(prog->sh.LinkedTransformFeedback,
+                                          stvp->result_to_output,
+                                          &stvp->tgsi.stream_output);
+      }
+
       return true;
    }
 
@@ -400,12 +404,12 @@ st_translate_vertex_program(struct st_context *st,
    if (ureg == NULL)
       return false;
 
-   if (stvp->Base.ClipDistanceArraySize)
+   if (stvp->Base.info.clip_distance_array_size)
       ureg_property(ureg, TGSI_PROPERTY_NUM_CLIPDIST_ENABLED,
-                    stvp->Base.ClipDistanceArraySize);
-   if (stvp->Base.CullDistanceArraySize)
+                    stvp->Base.info.clip_distance_array_size);
+   if (stvp->Base.info.cull_distance_array_size)
       ureg_property(ureg, TGSI_PROPERTY_NUM_CULLDIST_ENABLED,
-                    stvp->Base.CullDistanceArraySize);
+                    stvp->Base.info.cull_distance_array_size);
 
    if (ST_DEBUG & DEBUG_MESA) {
       _mesa_print_program(&stvp->Base);
@@ -1215,12 +1219,12 @@ st_translate_program_common(struct st_context *st,
    memset(outputMapping, 0, sizeof(outputMapping));
    memset(out_state, 0, sizeof(*out_state));
 
-   if (prog->ClipDistanceArraySize)
+   if (prog->info.clip_distance_array_size)
       ureg_property(ureg, TGSI_PROPERTY_NUM_CLIPDIST_ENABLED,
-                    prog->ClipDistanceArraySize);
-   if (prog->CullDistanceArraySize)
+                    prog->info.clip_distance_array_size);
+   if (prog->info.cull_distance_array_size)
       ureg_property(ureg, TGSI_PROPERTY_NUM_CULLDIST_ENABLED,
-                    prog->CullDistanceArraySize);
+                    prog->info.cull_distance_array_size);
 
    /*
     * Convert Mesa program inputs to TGSI input register semantics.
@@ -1577,7 +1581,7 @@ st_translate_tessctrl_program(struct st_context *st,
       return false;
 
    ureg_property(ureg, TGSI_PROPERTY_TCS_VERTICES_OUT,
-                 sttcp->Base.info.tcs.vertices_out);
+                 sttcp->Base.info.tess.tcs_vertices_out);
 
    st_translate_program_common(st, &sttcp->Base, sttcp->glsl_to_tgsi, ureg,
                                PIPE_SHADER_TESS_CTRL, &sttcp->tgsi);
@@ -1601,32 +1605,25 @@ st_translate_tesseval_program(struct st_context *st,
    if (ureg == NULL)
       return false;
 
-   if (sttep->Base.info.tes.primitive_mode == GL_ISOLINES)
+   if (sttep->Base.info.tess.primitive_mode == GL_ISOLINES)
       ureg_property(ureg, TGSI_PROPERTY_TES_PRIM_MODE, GL_LINES);
    else
       ureg_property(ureg, TGSI_PROPERTY_TES_PRIM_MODE,
-                    sttep->Base.info.tes.primitive_mode);
+                    sttep->Base.info.tess.primitive_mode);
 
-   switch (sttep->Base.info.tes.spacing) {
-   case GL_EQUAL:
-      ureg_property(ureg, TGSI_PROPERTY_TES_SPACING, PIPE_TESS_SPACING_EQUAL);
-      break;
-   case GL_FRACTIONAL_EVEN:
-      ureg_property(ureg, TGSI_PROPERTY_TES_SPACING,
-                    PIPE_TESS_SPACING_FRACTIONAL_EVEN);
-      break;
-   case GL_FRACTIONAL_ODD:
-      ureg_property(ureg, TGSI_PROPERTY_TES_SPACING,
-                    PIPE_TESS_SPACING_FRACTIONAL_ODD);
-      break;
-   default:
-      assert(0);
-   }
+   STATIC_ASSERT((TESS_SPACING_EQUAL + 1) % 3 == PIPE_TESS_SPACING_EQUAL);
+   STATIC_ASSERT((TESS_SPACING_FRACTIONAL_ODD + 1) % 3 ==
+                 PIPE_TESS_SPACING_FRACTIONAL_ODD);
+   STATIC_ASSERT((TESS_SPACING_FRACTIONAL_EVEN + 1) % 3 ==
+                 PIPE_TESS_SPACING_FRACTIONAL_EVEN);
+
+   ureg_property(ureg, TGSI_PROPERTY_TES_SPACING,
+                 (sttep->Base.info.tess.spacing + 1) % 3);
 
    ureg_property(ureg, TGSI_PROPERTY_TES_VERTEX_ORDER_CW,
-                 sttep->Base.info.tes.vertex_order == GL_CW);
+                 !sttep->Base.info.tess.ccw);
    ureg_property(ureg, TGSI_PROPERTY_TES_POINT_MODE,
-                 sttep->Base.info.tes.point_mode);
+                 sttep->Base.info.tess.point_mode);
 
    st_translate_program_common(st, &sttep->Base, sttep->glsl_to_tgsi,
                                ureg, PIPE_SHADER_TESS_EVAL, &sttep->tgsi);

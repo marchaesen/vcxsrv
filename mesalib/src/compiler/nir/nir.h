@@ -675,6 +675,32 @@ nir_alu_type_get_base_type(nir_alu_type type)
    return type & NIR_ALU_TYPE_BASE_TYPE_MASK;
 }
 
+static inline nir_alu_type
+nir_get_nir_type_for_glsl_type(const struct glsl_type *type)
+{
+   switch (glsl_get_base_type(type)) {
+   case GLSL_TYPE_BOOL:
+      return nir_type_bool32;
+      break;
+   case GLSL_TYPE_UINT:
+      return nir_type_uint32;
+      break;
+   case GLSL_TYPE_INT:
+      return nir_type_int32;
+      break;
+   case GLSL_TYPE_FLOAT:
+      return nir_type_float32;
+      break;
+   case GLSL_TYPE_DOUBLE:
+      return nir_type_float64;
+      break;
+   default:
+      unreachable("unknown type");
+   }
+}
+
+nir_op nir_type_conversion_op(nir_alu_type src, nir_alu_type dst);
+
 typedef enum {
    NIR_OP_IS_COMMUTATIVE = (1 << 0),
    NIR_OP_IS_ASSOCIATIVE = (1 << 1),
@@ -2464,6 +2490,7 @@ void nir_lower_two_sided_color(nir_shader *shader);
 void nir_lower_clamp_color_outputs(nir_shader *shader);
 
 void nir_lower_passthrough_edgeflags(nir_shader *shader);
+void nir_lower_tes_patch_vertices(nir_shader *tes, unsigned patch_vertices);
 
 typedef struct nir_lower_wpos_ytransform_options {
    int state_tokens[5];
@@ -2549,6 +2576,8 @@ bool nir_opt_global_to_local(nir_shader *shader);
 
 bool nir_copy_prop(nir_shader *shader);
 
+bool nir_opt_copy_prop_vars(nir_shader *shader);
+
 bool nir_opt_cse(nir_shader *shader);
 
 bool nir_opt_dce(nir_shader *shader);
@@ -2560,6 +2589,8 @@ bool nir_opt_gcm(nir_shader *shader, bool value_number);
 bool nir_opt_if(nir_shader *shader);
 
 bool nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask);
+
+bool nir_opt_move_comparisons(nir_shader *shader);
 
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
 

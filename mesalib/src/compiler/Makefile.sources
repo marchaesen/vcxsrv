@@ -20,8 +20,11 @@ LIBGLSL_FILES = \
 	glsl/blob.c \
 	glsl/blob.h \
 	glsl/builtin_functions.cpp \
+	glsl/builtin_functions.h \
+	glsl/builtin_int64.h \
 	glsl/builtin_types.cpp \
 	glsl/builtin_variables.cpp \
+	glsl/generate_ir.cpp \
 	glsl/glsl_parser_extras.cpp \
 	glsl/glsl_parser_extras.h \
 	glsl/glsl_symbol_table.cpp \
@@ -88,6 +91,7 @@ LIBGLSL_FILES = \
 	glsl/lower_distance.cpp \
 	glsl/lower_if_to_cond_assign.cpp \
 	glsl/lower_instructions.cpp \
+	glsl/lower_int64.cpp \
 	glsl/lower_jumps.cpp \
 	glsl/lower_mat_op_to_vec.cpp \
 	glsl/lower_noise.cpp \
@@ -218,6 +222,7 @@ NIR_FILES = \
 	nir/nir_lower_io_to_scalar.c \
 	nir/nir_lower_io_types.c \
 	nir/nir_lower_passthrough_edgeflags.c \
+	nir/nir_lower_patch_vertices.c \
 	nir/nir_lower_phis_to_scalar.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
@@ -236,6 +241,7 @@ NIR_FILES = \
 	nir/nir_normalize_cubemap_coords.c \
 	nir/nir_opt_conditional_discard.c \
 	nir/nir_opt_constant_folding.c \
+	nir/nir_opt_copy_prop_vars.c \
 	nir/nir_opt_copy_propagate.c \
 	nir/nir_opt_cse.c \
 	nir/nir_opt_dce.c \
@@ -244,6 +250,7 @@ NIR_FILES = \
 	nir/nir_opt_global_to_local.c \
 	nir/nir_opt_if.c \
 	nir/nir_opt_loop_unroll.c \
+	nir/nir_opt_move_comparisons.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_trivial_continues.c \

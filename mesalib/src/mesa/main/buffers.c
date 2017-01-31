@@ -204,6 +204,8 @@ read_buffer_enum_to_index(const struct gl_context *ctx, GLenum buffer)
          return BUFFER_FRONT_LEFT;
       case GL_AUX0:
          return BUFFER_AUX0;
+      case GL_FRONT_AND_BACK:
+         return BUFFER_FRONT_LEFT;
       case GL_AUX1:
       case GL_AUX2:
       case GL_AUX3:
@@ -343,7 +345,9 @@ _mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf)
  * \param n  number of outputs
  * \param buffers  array [n] of renderbuffer names.  Unlike glDrawBuffer, the
  *                 names cannot specify more than one buffer.  For example,
- *                 GL_FRONT_AND_BACK is illegal.
+ *                 GL_FRONT_AND_BACK is illegal. The only exception is GL_BACK
+ *                 that is considered special and allowed as far as n is one
+ *                 since 4.5.
  */
 static void
 draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
@@ -401,20 +405,38 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
          return;
       }
 
-      /* From the OpenGL 4.0 specification, page 256:
-       * "For both the default framebuffer and framebuffer objects, the
-       *  constants FRONT, BACK, LEFT, RIGHT, and FRONT_AND_BACK are not
-       *  valid in the bufs array passed to DrawBuffers, and will result in
-       *  the error INVALID_ENUM. This restriction is because these
-       *  constants may themselves refer to multiple buffers, as shown in
-       *  table 4.4."
-       *  Previous versions of the OpenGL specification say INVALID_OPERATION,
-       *  but the Khronos conformance tests expect INVALID_ENUM.
+      /* From the OpenGL 4.5 specification, page 493 (page 515 of the PDF)
+       * "An INVALID_ENUM error is generated if any value in bufs is FRONT,
+       *  LEFT, RIGHT, or FRONT_AND_BACK . This restriction applies to both
+       *  the default framebuffer and framebuffer objects, and exists because
+       *  these constants may themselves refer to multiple buffers, as shown
+       *  in table 17.4."
+       *
+       * And on page 492 (page 514 of the PDF):
+       * "If the default framebuffer is affected, then each of the constants
+       *  must be one of the values listed in table 17.6 or the special value
+       *  BACK. When BACK is used, n must be 1 and color values are written
+       *  into the left buffer for single-buffered contexts, or into the back
+       *  left buffer for double-buffered contexts."
+       *
+       * Note "special value BACK". GL_BACK also refers to multiple buffers,
+       * but it is consider a special case here. This is a change on 4.5. For
+       * OpenGL 4.x we check that behaviour. For any previous version we keep
+       * considering it wrong (as INVALID_ENUM).
        */
       if (_mesa_bitcount(destMask[output]) > 1) {
-         _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
-                     caller, _mesa_enum_to_string(buffers[output]));
-         return;
+         if (_mesa_is_winsys_fbo(fb) && ctx->Version >= 40 &&
+             buffers[output] == GL_BACK) {
+            if (n != 1) {
+               _mesa_error(ctx, GL_INVALID_OPERATION, "%s(with GL_BACK n must be 1)",
+                           caller);
+               return;
+            }
+         } else {
+            _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
+                        caller, _mesa_enum_to_string(buffers[output]));
+            return;
+         }
       }
 
       /* Section 4.2 (Whole Framebuffer Operations) of the OpenGL ES 3.0

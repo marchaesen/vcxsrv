@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 12.0.6 Release Notes / January 23, 2017</h1>
+
+<p>
+Mesa 12.0.6 is a bug fix release which fixes bugs found since the 12.0.5 release.
+</p>
+<p>
+Mesa 12.0.6 implements the OpenGL 4.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.3.  OpenGL
+4.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+65339ba5d76a45225b8b56f9a1da9db15c569e1d163760faa2921da0a8461741  mesa-12.0.6.tar.gz
+7d6da9744c1022a4c2ab6ad01a206984d00443fb691568011d01b3dd97e36448  mesa-12.0.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92234">Bug 92234</a> - [BDW] GPU hang in Shogun2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=95130">Bug 95130</a> - Derivatives of gl_Color wrong when helper pixels used</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98329">Bug 98329</a> - [dEQP, EGL, SKL, BDW, BSW] dEQP-EGL.functional.image.render_multiple_contexts.gles2_renderbuffer_depth16_depth_buffer</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99030">Bug 99030</a> - [HSW, regression] transform feedback fails on Linux 4.8</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99354">Bug 99354</a> - [G71] &quot;Assertion `bkref' failed&quot; reproducible with glmark2</li>
+
+</ul>
+
+<h2>Changes</h2>
+
+<p>Chad Versace (3):</p>
+<ul>
+  <li>i965/mt: Disable aux surfaces after making miptree shareable</li>
+  <li>i965/mt: Disable HiZ when sharing depth buffer externally (v2)</li>
+  <li>anv: Handle vkGetPhysicalDeviceQueueFamilyProperties with count == 0</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>docs: add sha256 checksums for 12.0.5</li>
+  <li>get-typod-pick-list.sh: add new script</li>
+  <li>automake: use shared llvm libs for make distcheck</li>
+  <li>egl/wayland: use the destroy_window_callback for swrast</li>
+  <li>Update version to 12.0.6</li>
+</ul>
+
+<p>Fredrik Höglund (1):</p>
+<ul>
+  <li>dri3: Fix MakeCurrent without a default framebuffer</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>nouveau: take extra push space into account for pushbuf_space calls</li>
+</ul>
+
+<p>Jason Ekstrand (19):</p>
+<ul>
+  <li>spirv/nir: Fix some texture opcode asserts</li>
+  <li>spirv/nir: Add support for shadow samplers that return vec4</li>
+  <li>spirv/nir: Properly handle gather components</li>
+  <li>anv/pipeline: Set binding_table.gather_texture_start</li>
+  <li>nir: Add a helper for determining the type of a texture source</li>
+  <li>nir/lower_tex: Add some helpers for working with tex sources</li>
+  <li>nir/lower_tex: Add support for lowering coordinate offsets</li>
+  <li>i965/nir: Enable NIR lowering of txf and rect offsets</li>
+  <li>i965: Get rid of the do_lower_unnormalized_offsets pass</li>
+  <li>spirv/nir: Don't increment coord_components for array lod queries</li>
+  <li>anv/image: Assert that the image format is actually supported</li>
+  <li>spirv/nir: Move opcode selection higher up in handle_texture</li>
+  <li>spirv/nir: Refactor type handling in handle_texture</li>
+  <li>nir/spirv: Refactor coordinate handling in handle_texture</li>
+  <li>spirv/nir: Handle texture projectors</li>
+  <li>spirv/nir: Add support for ImageQuerySamples</li>
+  <li>anv/device: Return the right error for failed maps</li>
+  <li>anv/device: Implicitly unmap memory objects in FreeMemory</li>
+  <li>anv/descriptor_set: Write the state offset in the surface state free list.</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>spirv: Move cursor before calling vtn_ssa_value() in phi 2nd pass.</li>
+  <li>i965: Properly flush in hsw_pause_transform_feedback().</li>
+</ul>
+
+<p>Marek Olšák (6):</p>
+<ul>
+  <li>cso: don't release sampler states that are bound</li>
+  <li>radeonsi: always restore sampler states when unbinding sampler views</li>
+  <li>radeonsi: fix incorrect FMASK checking in bind_sampler_states</li>
+  <li>radeonsi: disable CE on SI + AMDGPU</li>
+  <li>radeonsi: disable the constant engine (CE) on Carrizo and Stoney</li>
+  <li>gallium/radeon: fix the draw-calls HUD query</li>
+</ul>
+
+<p>Matt Turner (3):</p>
+<ul>
+  <li>i965/fs: Rename opt_copy_propagate -&gt; opt_copy_propagation.</li>
+  <li>i965/fs: Add unit tests for copy propagation pass.</li>
+  <li>i965/fs: Reject copy propagation into SEL if not min/max.</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>cso: Don't restore nr_samplers in cso_restore_fragment_samplers</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>radeonsi: enable WQM in PS prolog when needed</li>
+</ul>
+
+
+</div>
+</body>
+</html>

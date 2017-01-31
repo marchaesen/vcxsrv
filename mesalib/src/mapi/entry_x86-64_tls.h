@@ -41,10 +41,22 @@ __asm__(".text\n"
    ".balign 32\n"                                        \
    func ":"
 
+#ifndef __ILP32__
+
 #define STUB_ASM_CODE(slot)                              \
    "movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"  \
    "movq %fs:(%rax), %r11\n\t"                           \
    "jmp *(8 * " slot ")(%r11)"
+
+#else
+
+#define STUB_ASM_CODE(slot)                              \
+   "movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"  \
+   "movl %fs:(%rax), %r11d\n\t"                          \
+   "movl 4*" slot "(%r11d), %r11d\n\t"                   \
+   "jmp *%r11"
+
+#endif
 
 #define MAPI_TMP_STUB_ASM_GCC
 #include "mapi_tmp.h"
@@ -72,19 +84,32 @@ void
 entry_patch(mapi_func entry, int slot)
 {
    char *code = (char *) entry;
-   *((unsigned int *) (code + 12)) = slot * sizeof(mapi_func);
+   int offset = 12;
+#ifdef __ILP32__
+   offset = 13;
+#endif
+   *((unsigned int *) (code + offset)) = slot * sizeof(mapi_func);
 }
 
 mapi_func
 entry_generate(int slot)
 {
-   const char code_templ[16] = {
+   const char code_templ[] = {
+#ifndef __ILP32__
       /* movq %fs:0, %r11 */
       0x64, 0x4c, 0x8b, 0x1c, 0x25, 0x00, 0x00, 0x00, 0x00,
       /* jmp *0x1234(%r11) */
       0x41, 0xff, 0xa3, 0x34, 0x12, 0x00, 0x00,
+#else
+      /* movl %fs:0, %r11d */
+      0x64, 0x44, 0x8b, 0x1c, 0x25, 0x00, 0x00, 0x00, 0x00,
+      /* movl 0x1234(%r11d), %r11d */
+      0x67, 0x45, 0x8b, 0x9b, 0x34, 0x12, 0x00, 0x00,
+      /* jmp *%r11 */
+      0x41, 0xff, 0xe3,
+#endif
    };
-   unsigned long addr;
+   unsigned long long addr;
    char *code;
    mapi_func entry;
 

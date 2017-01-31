@@ -22,14 +22,8 @@
 # IN THE SOFTWARE.
 #
 
-import fileinput, re, sys
-
-# Each function typedef in the vulkan.h header is all on one line and matches
-# this regepx. We hope that won't change.
-
-p = re.compile('typedef ([^ ]*) *\((?:VKAPI_PTR)? *\*PFN_vk([^(]*)\)(.*);')
-
-entrypoints = []
+import sys
+import xml.etree.ElementTree as ET
 
 # We generate a static hash table for entry point lookup
 # (vkGetProcAddress). We use a linear congruential generator for our hash
@@ -51,29 +45,11 @@ def hash(name):
 
     return h
 
-def get_platform_guard_macro(name):
-    if "Xlib" in name:
-        return "VK_USE_PLATFORM_XLIB_KHR"
-    elif "Xcb" in name:
-        return "VK_USE_PLATFORM_XCB_KHR"
-    elif "Wayland" in name:
-        return "VK_USE_PLATFORM_WAYLAND_KHR"
-    elif "Mir" in name:
-        return "VK_USE_PLATFORM_MIR_KHR"
-    elif "Android" in name:
-        return "VK_USE_PLATFORM_ANDROID_KHR"
-    elif "Win32" in name:
-        return "VK_USE_PLATFORM_WIN32_KHR"
-    else:
-        return None
-
-def print_guard_start(name):
-    guard = get_platform_guard_macro(name)
+def print_guard_start(guard):
     if guard is not None:
         print "#ifdef {0}".format(guard)
 
-def print_guard_end(name):
-    guard = get_platform_guard_macro(name)
+def print_guard_end(guard):
     if guard is not None:
         print "#endif // {0}".format(guard)
 
@@ -87,18 +63,37 @@ elif (sys.argv[1] == "code"):
     opt_code = True
     sys.argv.pop()
 
-# Parse the entry points in the header
+# Extract the entry points from the registry
+def get_entrypoints(doc, entrypoints_to_defines):
+    entrypoints = []
+    commands = doc.findall('./commands/command')
+    for i, command in enumerate(commands):
+        type = command.find('./proto/type').text
+        fullname = command.find('./proto/name').text
+        shortname = fullname[2:]
+        params = map(lambda p: "".join(p.itertext()), command.findall('./param'))
+        params = ', '.join(params)
+        if fullname in entrypoints_to_defines:
+            guard = entrypoints_to_defines[fullname]
+        else:
+            guard = None
+        entrypoints.append((type, shortname, params, i, hash(fullname), guard))
+    return entrypoints
 
-i = 0
-for line in fileinput.input():
-    m  = p.match(line)
-    if (m):
-        if m.group(2) == 'VoidFunction':
-            continue
-        fullname = "vk" + m.group(2)
-        h = hash(fullname)
-        entrypoints.append((m.group(1), m.group(2), m.group(3), i, h))
-        i = i + 1
+# Maps entry points to extension defines
+def get_entrypoints_defines(doc):
+    entrypoints_to_defines = {}
+    extensions = doc.findall('./extensions/extension')
+    for extension in extensions:
+        define = extension.get('protect')
+        entrypoints = extension.findall('./require/command')
+        for entrypoint in entrypoints:
+            fullname = entrypoint.get('name')
+            entrypoints_to_defines[fullname] = define
+    return entrypoints_to_defines
+
+doc = ET.parse(sys.stdin)
+entrypoints = get_entrypoints(doc, get_entrypoints_defines(doc))
 
 # For outputting entrypoints.h we generate a radv_EntryPoint() prototype
 # per entry point.
@@ -111,8 +106,7 @@ if opt_header:
     print "      void *entrypoints[%d];" % len(entrypoints)
     print "      struct {"
 
-    for type, name, args, num, h in entrypoints:
-        guard = get_platform_guard_macro(name)
+    for type, name, args, num, h, guard in entrypoints:
         if guard is not None:
             print "#ifdef {0}".format(guard)
             print "         PFN_vk{0} {0};".format(name)
@@ -125,10 +119,10 @@ if opt_header:
     print "   };\n"
     print "};\n"
 
-    for type, name, args, num, h in entrypoints:
-        print_guard_start(name)
-        print "%s radv_%s%s;" % (type, name, args)
-        print_guard_end(name)
+    for type, name, args, num, h, guard in entrypoints:
+        print_guard_start(guard)
+        print "%s radv_%s(%s);" % (type, name, args)
+        print_guard_end(guard)
     exit()
 
 
@@ -174,7 +168,7 @@ static const char strings[] ="""
 
 offsets = []
 i = 0;
-for type, name, args, num, h in entrypoints:
+for type, name, args, num, h, guard in entrypoints:
     print "   \"vk%s\\0\"" % name
     offsets.append(i)
     i += 2 + len(name) + 1
@@ -183,7 +177,7 @@ print "   ;"
 # Now generate the table of all entry points
 
 print "\nstatic const struct radv_entrypoint entrypoints[] = {"
-for type, name, args, num, h in entrypoints:
+for type, name, args, num, h, guard in entrypoints:
     print "   { %5d, 0x%08x }," % (offsets[num], h)
 print "};\n"
 
@@ -196,15 +190,15 @@ print """
 """
 
 for layer in [ "radv" ]:
-    for type, name, args, num, h in entrypoints:
-        print_guard_start(name)
-        print "%s %s_%s%s __attribute__ ((weak));" % (type, layer, name, args)
-        print_guard_end(name)
+    for type, name, args, num, h, guard in entrypoints:
+        print_guard_start(guard)
+        print "%s %s_%s(%s) __attribute__ ((weak));" % (type, layer, name, args)
+        print_guard_end(guard)
     print "\nconst struct radv_dispatch_table %s_layer = {" % layer
-    for type, name, args, num, h in entrypoints:
-        print_guard_start(name)
+    for type, name, args, num, h, guard in entrypoints:
+        print_guard_start(guard)
         print "   .%s = %s_%s," % (name, layer, name)
-        print_guard_end(name)
+        print_guard_end(guard)
     print "};\n"
 
 print """
@@ -222,7 +216,7 @@ radv_resolve_entrypoint(uint32_t index)
 
 map = [none for f in xrange(hash_size)]
 collisions = [0 for f in xrange(10)]
-for type, name, args, num, h in entrypoints:
+for type, name, args, num, h, guard in entrypoints:
     level = 0
     while map[h & hash_mask] != none:
         h = h + prime_step

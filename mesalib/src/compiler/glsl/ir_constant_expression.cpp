@@ -88,6 +88,42 @@ bitcast_f2u(float f)
    return u;
 }
 
+static double
+bitcast_u642d(uint64_t u)
+{
+   assert(sizeof(double) == sizeof(uint64_t));
+   double d;
+   memcpy(&d, &u, sizeof(d));
+   return d;
+}
+
+static double
+bitcast_i642d(int64_t i)
+{
+   assert(sizeof(double) == sizeof(int64_t));
+   double d;
+   memcpy(&d, &i, sizeof(d));
+   return d;
+}
+
+static double
+bitcast_d2u64(double d)
+{
+   assert(sizeof(double) == sizeof(uint64_t));
+   uint64_t u;
+   memcpy(&u, &d, sizeof(d));
+   return u;
+}
+
+static double
+bitcast_d2i64(double d)
+{
+   assert(sizeof(double) == sizeof(int64_t));
+   int64_t i;
+   memcpy(&i, &d, sizeof(d));
+   return i;
+}
+
 /**
  * Evaluate one component of a floating-point 4x8 unpacking function.
  */

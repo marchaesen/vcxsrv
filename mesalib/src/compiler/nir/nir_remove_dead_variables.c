@@ -31,9 +31,27 @@ static void
 add_var_use_intrinsic(nir_intrinsic_instr *instr, struct set *live)
 {
    unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
-   for (unsigned i = 0; i < num_vars; i++) {
-      nir_variable *var = instr->variables[i]->var;
-      _mesa_set_add(live, var);
+
+   switch (instr->intrinsic) {
+   case nir_intrinsic_copy_var:
+      _mesa_set_add(live, instr->variables[1]->var);
+      /* Fall through */
+   case nir_intrinsic_store_var: {
+      /* The first source in both copy_var and store_var is the destination.
+       * If the variable is a local that never escapes the shader, then we
+       * don't mark it as live for just a store.
+       */
+      nir_variable_mode mode = instr->variables[0]->var->data.mode;
+      if (!(mode & (nir_var_local | nir_var_global | nir_var_shared)))
+         _mesa_set_add(live, instr->variables[0]->var);
+      break;
+   }
+
+   default:
+      for (unsigned i = 0; i < num_vars; i++) {
+         _mesa_set_add(live, instr->variables[i]->var);
+      }
+      break;
    }
 }
 
@@ -94,6 +112,31 @@ add_var_use_shader(nir_shader *shader, struct set *live)
    }
 }
 
+static void
+remove_dead_var_writes(nir_shader *shader, struct set *live)
+{
+   nir_foreach_function(function, shader) {
+      if (!function->impl)
+         continue;
+
+      nir_foreach_block(block, function->impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
+
+            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+            if (intrin->intrinsic != nir_intrinsic_copy_var &&
+                intrin->intrinsic != nir_intrinsic_store_var)
+               continue;
+
+            /* Stores to dead variables need to be removed */
+            if (intrin->variables[0]->var->data.mode == 0)
+               nir_instr_remove(instr);
+         }
+      }
+   }
+}
+
 static bool
 remove_dead_vars(struct exec_list *var_list, struct set *live)
 {
@@ -102,8 +145,9 @@ remove_dead_vars(struct exec_list *var_list, struct set *live)
    foreach_list_typed_safe(nir_variable, var, node, var_list) {
       struct set_entry *entry = _mesa_set_search(live, var);
       if (entry == NULL) {
+         /* Mark this variable as used by setting the mode to 0 */
+         var->data.mode = 0;
          exec_node_remove(&var->node);
-         ralloc_free(var);
          progress = true;
       }
    }
@@ -135,15 +179,25 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes)
    if (modes & nir_var_system_value)
       progress = remove_dead_vars(&shader->system_values, live) || progress;
 
+   if (modes & nir_var_shared)
+      progress = remove_dead_vars(&shader->shared, live) || progress;
+
    if (modes & nir_var_local) {
       nir_foreach_function(function, shader) {
          if (function->impl) {
-            if (remove_dead_vars(&function->impl->locals, live)) {
-               nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                                     nir_metadata_dominance |
-                                                     nir_metadata_live_ssa_defs);
+            if (remove_dead_vars(&function->impl->locals, live))
                progress = true;
-            }
+         }
+      }
+   }
+
+   if (progress) {
+      remove_dead_var_writes(shader, live);
+
+      nir_foreach_function(function, shader) {
+         if (function->impl) {
+            nir_metadata_preserve(function->impl, nir_metadata_block_index |
+                                                  nir_metadata_dominance);
          }
       }
    }

@@ -167,7 +167,7 @@ _mesa_meta_use_program(struct gl_context *ctx,
    _mesa_reference_pipeline_object(ctx, &ctx->_Shader, &ctx->Shader);
 
    /* Update the program */
-   _mesa_use_program(ctx, sh_prog);
+   _mesa_use_shader_program(ctx, sh_prog);
 }
 
 void
@@ -594,8 +594,8 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
        * that we don't have to worry about the current pipeline state.
        */
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
-         _mesa_reference_shader_program(ctx, &save->Shader[i],
-                                        ctx->Shader.CurrentProgram[i]);
+         _mesa_reference_program(ctx, &save->Program[i],
+                                 ctx->Shader.CurrentProgram[i]);
       }
       _mesa_reference_shader_program(ctx, &save->ActiveShader,
                                      ctx->Shader.ActiveProgram);
@@ -931,16 +931,6 @@ _mesa_meta_end(struct gl_context *ctx)
    }
 
    if (state & MESA_META_SHADER) {
-      static const GLenum targets[] = {
-         GL_VERTEX_SHADER,
-         GL_TESS_CONTROL_SHADER,
-         GL_TESS_EVALUATION_SHADER,
-         GL_GEOMETRY_SHADER,
-         GL_FRAGMENT_SHADER,
-         GL_COMPUTE_SHADER,
-      };
-      STATIC_ASSERT(MESA_SHADER_STAGES == ARRAY_SIZE(targets));
-
       bool any_shader;
 
       if (ctx->Extensions.ARB_vertex_program) {
@@ -966,22 +956,20 @@ _mesa_meta_end(struct gl_context *ctx)
 
       any_shader = false;
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
-         /* It is safe to call _mesa_use_shader_program even if the extension
+         /* It is safe to call _mesa_use_program even if the extension
           * necessary for that program state is not supported.  In that case,
           * the saved program object must be NULL and the currently bound
-          * program object must be NULL.  _mesa_use_shader_program is a no-op
+          * program object must be NULL.  _mesa_use_program is a no-op
           * in that case.
           */
-         _mesa_use_shader_program(ctx, targets[i],
-                                  save->Shader[i],
-                                  &ctx->Shader);
+         _mesa_use_program(ctx, i, save->Program[i],  &ctx->Shader);
 
          /* Do this *before* killing the reference. :)
           */
-         if (save->Shader[i] != NULL)
+         if (save->Program[i] != NULL)
             any_shader = true;
 
-         _mesa_reference_shader_program(ctx, &save->Shader[i], NULL);
+         _mesa_reference_program(ctx, &save->Program[i], NULL);
       }
 
       _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram,

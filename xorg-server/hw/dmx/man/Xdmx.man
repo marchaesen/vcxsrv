@@ -83,11 +83,8 @@ input events.
 .TP 4
 .B local
 The raw keyboard and pointer from the local computer are used.  A
-comma-separated list of driver names can be appended.  For example, to
-select the example Linux keyboard and PS/2 mouse driver use:
-.BR "-input local,kbd,ps2" .
-The following drivers have been implemented for Linux: kbd, ms (a
-two-button Microsoft mouse driver), ps2 (a PS/2 mouse driver), usb-mou
+comma-separated list of driver names can be appended.
+The following drivers have been implemented for Linux: usb-mou
 (a USB mouse driver), usb-kbd (a USB keyboard driver), and usb-oth (a
 USB non-keyboard, non-mouse driver).  Additional drivers may be
 implemented in the future.  Appropriate defaults will be used if no
@@ -603,7 +600,7 @@ Xdmx :1 -display d0:0 -display d1:0 -input :0 +xinerama
 .PP
 As above, except with core input from the local keyboard and mouse:
 .RS
-Xdmx :1 -display d0:0 -display d1:0 -input local,kbd,ps2 +xinerama
+Xdmx :1 -display d0:0 -display d1:0 -input local,usb-kbd,usb-mou +xinerama
 .RE
 Note that local input can be used under Linux while another X session is
 running on :0 (assuming the user can access the Linux console tty and

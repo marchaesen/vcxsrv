@@ -9,7 +9,6 @@ dnl Copyright © 2009-2014 Jon TURNEY
 dnl Copyright © 2011-2012 Benjamin Franzke
 dnl Copyright © 2008-2014 David Airlie
 dnl Copyright © 2009-2013 Brian Paul
-dnl Copyright © 2003-2007 Keith Packard, Daniel Stone
 dnl
 dnl Permission is hereby granted, free of charge, to any person obtaining a
 dnl copy of this software and associated documentation files (the "Software"),
@@ -68,7 +67,7 @@ OPENCL_VERSION=1
 AC_SUBST([OPENCL_VERSION])
 
 dnl Versions for external dependencies
-LIBDRM_REQUIRED=2.4.66
+LIBDRM_REQUIRED=2.4.75
 LIBDRM_RADEON_REQUIRED=2.4.56
 LIBDRM_AMDGPU_REQUIRED=2.4.63
 LIBDRM_INTEL_REQUIRED=2.4.61
@@ -76,6 +75,7 @@ LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
 LIBDRM_FREEDRENO_REQUIRED=2.4.74
 LIBDRM_VC4_REQUIRED=2.4.69
+LIBDRM_ETNAVIV_REQUIRED=2.4.74
 DRI2PROTO_REQUIRED=2.6
 DRI3PROTO_REQUIRED=1.0
 PRESENTPROTO_REQUIRED=1.0
@@ -83,7 +83,7 @@ GLPROTO_REQUIRED=1.4.14
 LIBOMXIL_BELLAGIO_REQUIRED=0.0
 LIBVA_REQUIRED=0.38.0
 VDPAU_REQUIRED=1.1
-WAYLAND_REQUIRED=1.2.0
+WAYLAND_REQUIRED=1.11
 XCB_REQUIRED=1.9.3
 XCBDRI2_REQUIRED=1.8
 XCBGLX_REQUIRED=1.8.1
@@ -238,6 +238,7 @@ AX_GCC_FUNC_ATTRIBUTE([unused])
 AX_GCC_FUNC_ATTRIBUTE([visibility])
 AX_GCC_FUNC_ATTRIBUTE([warn_unused_result])
 AX_GCC_FUNC_ATTRIBUTE([weak])
+AX_GCC_FUNC_ATTRIBUTE([alias])
 
 AM_CONDITIONAL([GEN_ASM_OFFSETS], test "x$GEN_ASM_OFFSETS" = xyes)
 
@@ -258,7 +259,7 @@ _SAVE_LDFLAGS="$LDFLAGS"
 _SAVE_CPPFLAGS="$CPPFLAGS"
 
 dnl Compiler macros
-DEFINES="-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
+DEFINES="-D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS"
 AC_SUBST([DEFINES])
 android=no
 case "$host_os" in
@@ -466,12 +467,10 @@ dnl explicitly requested. If both disabled, set to static since shared
 dnl was explicitly requested.
 case "x$enable_static$enable_shared" in
 xyesyes)
-    AC_MSG_WARN([Cannot build static and shared libraries, disabling shared])
-    enable_shared=no
+    AC_MSG_ERROR([Cannot enable both static and shared. Building using --enable-shared is strongly recommended])
     ;;
 xnono)
-    AC_MSG_WARN([Cannot disable both static and shared libraries, enabling shared])
-    enable_shared=yes
+    AC_MSG_ERROR([Cannot disable both static and shared. Building using --enable-shared is strongly recommended])
     ;;
 esac
 
@@ -978,12 +977,18 @@ llvm_set_environment_variables() {
         LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
         LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
 
+        # We need to respect LLVM_CFLAGS when compiling LLVM headers.
+        save_CFLAGS="$CFLAGS"
+        CFLAGS="$CFLAGS $LLVM_CFLAGS"
+
         AC_COMPUTE_INT([LLVM_VERSION_MAJOR], [LLVM_VERSION_MAJOR],
             [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
         AC_COMPUTE_INT([LLVM_VERSION_MINOR], [LLVM_VERSION_MINOR],
             [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
         AC_COMPUTE_INT([LLVM_VERSION_PATCH], [LLVM_VERSION_PATCH],
             [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
+
+        CFLAGS="$save_CFLAGS"
 
         # Only needed for LLVM < 3.6.0
         if test -z "$LLVM_VERSION_PATCH"; then
@@ -1119,11 +1124,11 @@ AC_ARG_ENABLE([lmsensors],
 AM_CONDITIONAL(HAVE_LIBSENSORS, test "x$enable_lmsensors" = xyes)
 if test "x$enable_lmsensors" = xyes ; then
     DEFINES="${DEFINES} -DHAVE_LIBSENSORS=1"
-    LIBSENSORS_LDFLAGS="-lsensors"
+    LIBSENSORS_LIBS="-lsensors"
 else
-    LIBSENSORS_LDFLAGS=""
+    LIBSENSORS_LIBS=""
 fi
-AC_SUBST(LIBSENSORS_LDFLAGS)
+AC_SUBST(LIBSENSORS_LIBS)
 
 case "$host_os" in
 linux*)
@@ -1233,7 +1238,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,ilo,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl"
+        "i915,ilo,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl,etnaviv,imx"
         @<:@default=r300,r600,svga,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])
@@ -1431,155 +1436,24 @@ if test "x$enable_gallium_osmesa" = xyes; then
     fi
 fi
 
-# SHA1 hashing
-AC_ARG_WITH([sha1],
-        [AS_HELP_STRING([--with-sha1=libc|libmd|libnettle|libgcrypt|libcrypto|libsha1|CommonCrypto|CryptoAPI],
-        [choose SHA1 implementation])])
-case "x$with_sha1" in
-x | xlibc | xlibmd | xlibnettle | xlibgcrypt | xlibcrypto | xlibsha1 | xCommonCrypto | xCryptoAPI)
-  ;;
-*)
-        AC_MSG_ERROR([Illegal value for --with-sha1: $with_sha1])
-esac
-
-AC_CHECK_FUNC([SHA1Init], [HAVE_SHA1_IN_LIBC=yes])
-if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_LIBC" = xyes; then
-	with_sha1=libc
-fi
-if test "x$with_sha1" = xlibc && test "x$HAVE_SHA1_IN_LIBC" != xyes; then
-	AC_MSG_ERROR([sha1 in libc requested but not found])
-fi
-if test "x$with_sha1" = xlibc; then
-	AC_DEFINE([HAVE_SHA1_IN_LIBC], [1],
-		[Use libc SHA1 functions])
-	SHA1_LIBS=""
-fi
-AC_CHECK_FUNC([CC_SHA1_Init], [HAVE_SHA1_IN_COMMONCRYPTO=yes])
-if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_COMMONCRYPTO" = xyes; then
-	with_sha1=CommonCrypto
-fi
-if test "x$with_sha1" = xCommonCrypto && test "x$HAVE_SHA1_IN_COMMONCRYPTO" != xyes; then
-	AC_MSG_ERROR([CommonCrypto requested but not found])
-fi
-if test "x$with_sha1" = xCommonCrypto; then
-	AC_DEFINE([HAVE_SHA1_IN_COMMONCRYPTO], [1],
-		[Use CommonCrypto SHA1 functions])
-	SHA1_LIBS=""
-fi
-dnl stdcall functions cannot be tested with AC_CHECK_LIB
-AC_CHECK_HEADER([wincrypt.h], [HAVE_SHA1_IN_CRYPTOAPI=yes], [], [#include <windows.h>])
-if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_CRYPTOAPI" = xyes; then
-	with_sha1=CryptoAPI
-fi
-if test "x$with_sha1" = xCryptoAPI && test "x$HAVE_SHA1_IN_CRYPTOAPI" != xyes; then
-	AC_MSG_ERROR([CryptoAPI requested but not found])
-fi
-if test "x$with_sha1" = xCryptoAPI; then
-	AC_DEFINE([HAVE_SHA1_IN_CRYPTOAPI], [1],
-		[Use CryptoAPI SHA1 functions])
-	SHA1_LIBS=""
-fi
-AC_CHECK_LIB([md], [SHA1Init], [HAVE_LIBMD=yes])
-if test "x$with_sha1" = x && test "x$HAVE_LIBMD" = xyes; then
-	with_sha1=libmd
-fi
-if test "x$with_sha1" = xlibmd && test "x$HAVE_LIBMD" != xyes; then
-	AC_MSG_ERROR([libmd requested but not found])
-fi
-if test "x$with_sha1" = xlibmd; then
-	AC_DEFINE([HAVE_SHA1_IN_LIBMD], [1],
-	          [Use libmd SHA1 functions])
-	SHA1_LIBS=-lmd
-fi
-PKG_CHECK_MODULES([LIBSHA1], [libsha1], [HAVE_LIBSHA1=yes], [HAVE_LIBSHA1=no])
-if test "x$with_sha1" = x && test "x$HAVE_LIBSHA1" = xyes; then
-   with_sha1=libsha1
-fi
-if test "x$with_sha1" = xlibsha1 && test "x$HAVE_LIBSHA1" != xyes; then
-	AC_MSG_ERROR([libsha1 requested but not found])
-fi
-if test "x$with_sha1" = xlibsha1; then
-	AC_DEFINE([HAVE_SHA1_IN_LIBSHA1], [1],
-	          [Use libsha1 for SHA1])
-	SHA1_LIBS=-lsha1
-fi
-AC_CHECK_LIB([nettle], [nettle_sha1_init], [HAVE_LIBNETTLE=yes])
-if test "x$with_sha1" = x && test "x$HAVE_LIBNETTLE" = xyes; then
-	with_sha1=libnettle
-fi
-if test "x$with_sha1" = xlibnettle && test "x$HAVE_LIBNETTLE" != xyes; then
-	AC_MSG_ERROR([libnettle requested but not found])
-fi
-if test "x$with_sha1" = xlibnettle; then
-	AC_DEFINE([HAVE_SHA1_IN_LIBNETTLE], [1],
-	          [Use libnettle SHA1 functions])
-	SHA1_LIBS=-lnettle
-fi
-AC_CHECK_LIB([gcrypt], [gcry_md_open], [HAVE_LIBGCRYPT=yes])
-if test "x$with_sha1" = x && test "x$HAVE_LIBGCRYPT" = xyes; then
-	with_sha1=libgcrypt
-fi
-if test "x$with_sha1" = xlibgcrypt && test "x$HAVE_LIBGCRYPT" != xyes; then
-	AC_MSG_ERROR([libgcrypt requested but not found])
-fi
-if test "x$with_sha1" = xlibgcrypt; then
-	AC_DEFINE([HAVE_SHA1_IN_LIBGCRYPT], [1],
-	          [Use libgcrypt SHA1 functions])
-	SHA1_LIBS=-lgcrypt
-fi
-# We don't need all of the OpenSSL libraries, just libcrypto
-AC_CHECK_LIB([crypto], [SHA1_Init], [HAVE_LIBCRYPTO=yes])
-PKG_CHECK_MODULES([OPENSSL], [openssl], [HAVE_OPENSSL_PKC=yes],
-                  [HAVE_OPENSSL_PKC=no])
-if test "x$HAVE_LIBCRYPTO" = xyes || test "x$HAVE_OPENSSL_PKC" = xyes; then
-	if test "x$with_sha1" = x; then
-		with_sha1=libcrypto
-	fi
-else
-	if test "x$with_sha1" = xlibcrypto; then
-		AC_MSG_ERROR([OpenSSL libcrypto requested but not found])
-	fi
-fi
-if test "x$with_sha1" = xlibcrypto; then
-	if test "x$HAVE_LIBCRYPTO" = xyes; then
-		SHA1_LIBS=-lcrypto
-	else
-		SHA1_LIBS="$OPENSSL_LIBS"
-		SHA1_CFLAGS="$OPENSSL_CFLAGS"
-	fi
-fi
-AC_MSG_CHECKING([for SHA1 implementation])
-AC_MSG_RESULT([$with_sha1])
-AC_SUBST(SHA1_LIBS)
-AC_SUBST(SHA1_CFLAGS)
-
-# Enable a define for SHA1
-if test "x$with_sha1" != "x"; then
-	DEFINES="$DEFINES -DHAVE_SHA1"
-fi
-
-# Allow user to configure out the shader-cache feature
-AC_ARG_ENABLE([shader-cache],
-    AS_HELP_STRING([--disable-shader-cache], [Disable binary shader cache]),
-    [enable_shader_cache="$enableval"],
-    [if test "x$with_sha1" != "x"; then
-        enable_shader_cache=yes
-     else
-        enable_shader_cache=no
-     fi])
-if test "x$with_sha1" = "x"; then
-    if test "x$enable_shader_cache" = "xyes"; then
-        AC_MSG_ERROR([Cannot enable shader cache (no SHA-1 implementation found)])
+require_dri_shared_libs_and_glapi() {
+    if test "x$enable_static" = xyes; then
+        AC_MSG_ERROR([$1 cannot be build as static library])
     fi
-fi
-if test "x$enable_shader_cache" = "xyes"; then
-   AC_DEFINE([ENABLE_SHADER_CACHE], [1], [Enable shader cache])
-fi
+
+    if test "x$enable_dri" != xyes; then
+        # There is only a single backend which won't be build/used otherwise.
+        # XXX: Revisit this as the egl/haiku is a thing.
+        AC_MSG_ERROR([$1 requires --enable-dri])
+    fi
+
+    if test "x$enable_shared_glapi" != xyes; then
+        AC_MSG_ERROR([$1 requires --enable-shared-glapi])
+    fi
+}
 
 if test "x$enable_dri" = xyes; then
-    if test "$enable_static" = yes; then
-        AC_MSG_ERROR([Cannot use static libraries for DRI drivers])
-    fi
+    require_dri_shared_libs_and_glapi "DRI"
 
     # not a hard requirement as swrast does not depend on it
     if test "x$have_libdrm" = xyes; then
@@ -1597,6 +1471,9 @@ AC_ARG_ENABLE([driglx-direct],
 dnl
 dnl libGL configuration per driver
 dnl
+if test "x$enable_glx" != xno; then
+    PKG_CHECK_MODULES([GLPROTO], [glproto >= $GLPROTO_REQUIRED])
+fi
 case "x$enable_glx" in
 xxlib | xgallium-xlib)
     # Xlib-based GLX
@@ -1610,7 +1487,6 @@ xxlib | xgallium-xlib)
     ;;
 xdri)
     # DRI-based GLX
-    PKG_CHECK_MODULES([GLPROTO], [glproto >= $GLPROTO_REQUIRED])
 
     # find the DRI deps for libGL
     dri_modules="x11 xext xdamage xfixes x11-xcb xcb xcb-glx >= $XCBGLX_REQUIRED"
@@ -1766,7 +1642,6 @@ if test "x$enable_dri" = xyes; then
     # Platform specific settings and drivers to build
     case "$host_os" in
     linux*)
-        DEFINES="$DEFINES -DHAVE_ALIAS"
         if test "x$enable_dri3" = xyes; then
             DEFINES="$DEFINES -DHAVE_DRI3"
         fi
@@ -1780,19 +1655,13 @@ if test "x$enable_dri" = xyes; then
             ;;
         esac
         ;;
-    *freebsd* | dragonfly* | *netbsd* | openbsd*)
-        DEFINES="$DEFINES -DHAVE_ALIAS"
-        ;;
-    gnu*)
-        DEFINES="$DEFINES -DHAVE_ALIAS"
-        ;;
     cygwin*)
         if test "x$with_dri_drivers" = "xyes"; then
             with_dri_drivers="swrast"
         fi
         ;;
     darwin*)
-        DEFINES="$DEFINES -DGLX_ALIAS_UNSUPPORTED -DBUILDING_MESA"
+        DEFINES="$DEFINES -DBUILDING_MESA"
         if test "x$with_dri_drivers" = "xyes"; then
             with_dri_drivers="swrast"
         fi
@@ -1869,7 +1738,7 @@ fi
 AC_ARG_WITH([vulkan-drivers],
     [AS_HELP_STRING([--with-vulkan-drivers@<:@=DIRS...@:>@],
         [comma delimited Vulkan drivers list, e.g.
-        "intel"
+        "intel,radeon"
         @<:@default=no@:>@])],
     [with_vulkan_drivers="$withval"],
     [with_vulkan_drivers="no"])
@@ -1896,9 +1765,6 @@ if test -n "$with_vulkan_drivers"; then
             if test "x$HAVE_I965_DRI" != xyes; then
                 AC_MSG_ERROR([Intel Vulkan driver requires the i965 dri driver])
             fi
-            if test "x$with_sha1" == "x"; then
-                AC_MSG_ERROR([Intel Vulkan driver requires SHA1])
-            fi
             HAVE_INTEL_VULKAN=yes;
 
             ;;
@@ -1906,10 +1772,7 @@ if test -n "$with_vulkan_drivers"; then
             PKG_CHECK_MODULES([AMDGPU], [libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             radeon_llvm_check $LLVM_REQUIRED_RADV "radv"
             HAVE_RADEON_VULKAN=yes;
-            if test "x$with_sha1" == "x"; then
-                AC_MSG_ERROR([radv vulkan driver requires SHA1])
-            fi
-	    ;;
+            ;;
         *)
             AC_MSG_ERROR([Vulkan driver '$driver' does not exist])
             ;;
@@ -1919,6 +1782,7 @@ if test -n "$with_vulkan_drivers"; then
 fi
 
 
+DEFINES="$DEFINES -DENABLE_SHADER_CACHE"
 AM_CONDITIONAL(NEED_MEGADRIVER, test -n "$DRI_DIRS")
 AM_CONDITIONAL(NEED_LIBMESA, test "x$enable_glx" = xxlib -o \
                                   "x$enable_osmesa" = xyes -o \
@@ -1971,18 +1835,7 @@ dnl
 dnl gbm configuration
 dnl
 if test "x$enable_gbm" = xyes; then
-    if test "x$enable_dri" = xyes; then
-        if test "x$enable_shared_glapi" = xno; then
-            AC_MSG_ERROR([gbm_dri requires --enable-shared-glapi])
-        fi
-    else
-        # Strictly speaking libgbm does not require --enable-dri, although
-        # both of its backends do. Thus one can build libgbm without any
-        # backends if --disable-dri is set.
-        # To avoid unnecessary complexity of checking if at least one backend
-        # is available when building, just mandate --enable-dri.
-        AC_MSG_ERROR([gbm requires --enable-dri])
-    fi
+    require_dri_shared_libs_and_glapi "gbm"
 fi
 AM_CONDITIONAL(HAVE_GBM, test "x$enable_gbm" = xyes)
 # FINISHME: GBM has a number of dependencies which we should add below
@@ -1994,32 +1847,13 @@ AC_SUBST([GBM_PC_LIB_PRIV])
 dnl
 dnl EGL configuration
 dnl
-EGL_CLIENT_APIS=""
 
 if test "x$enable_egl" = xyes; then
     EGL_LIB_DEPS="$DLOPEN_LIBS $SELINUX_LIBS $PTHREAD_LIBS"
 
     AC_CHECK_FUNC(mincore, [DEFINES="$DEFINES -DHAVE_MINCORE"])
 
-    if test "$enable_static" != yes; then
-        if test "x$enable_dri" = xyes; then
-            HAVE_EGL_DRIVER_DRI2=1
-            if test "x$enable_shared_glapi" = xno; then
-                AC_MSG_ERROR([egl_dri2 requires --enable-shared-glapi])
-            fi
-            if test "x$enable_dri3" = xyes; then
-                HAVE_EGL_DRIVER_DRI3=1
-                if test "x$enable_shared_glapi" = xno; then
-                    AC_MSG_ERROR([egl_dri3 requires --enable-shared-glapi])
-                fi
-            fi
-        else
-            # Avoid building an "empty" libEGL. Drop/update this
-            # when other backends (haiku?) come along.
-            AC_MSG_ERROR([egl requires --enable-dri])
-        fi
-
-    fi
+    require_dri_shared_libs_and_glapi "egl"
 fi
 AM_CONDITIONAL(HAVE_EGL, test "x$enable_egl" = xyes)
 AC_SUBST([EGL_LIB_DEPS])
@@ -2078,7 +1912,7 @@ if test "x$enable_xvmc" = xyes -o \
         "x$enable_va" = xyes; then
     if test x"$enable_dri3" = xyes; then
         PKG_CHECK_MODULES([VL], [xcb-dri3 xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED
-                                 x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+                                 xcb-xfixes x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
     else
         PKG_CHECK_MODULES([VL], [x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
     fi
@@ -2208,15 +2042,6 @@ dnl Gallium configuration
 dnl
 AM_CONDITIONAL(HAVE_GALLIUM, test -n "$with_gallium_drivers")
 
-case "x$enable_opengl$enable_gles1$enable_gles2" in
-x*yes*)
-    EGL_CLIENT_APIS="$EGL_CLIENT_APIS "'$(GL_LIB)'
-    ;;
-esac
-
-AC_SUBST([VG_LIB_DEPS])
-AC_SUBST([EGL_CLIENT_APIS])
-
 dnl
 dnl EGL Platforms configuration
 dnl
@@ -2302,8 +2127,6 @@ AM_CONDITIONAL(HAVE_EGL_PLATFORM_DRM, echo "$egl_platforms" | grep -q 'drm')
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_SURFACELESS, echo "$egl_platforms" | grep -q 'surfaceless')
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_ANDROID, echo "$egl_platforms" | grep -q 'android')
 
-AM_CONDITIONAL(HAVE_EGL_DRIVER_DRI2, test "x$HAVE_EGL_DRIVER_DRI2" != "x")
-
 AC_SUBST([EGL_NATIVE_PLATFORM])
 AC_SUBST([EGL_CFLAGS])
 
@@ -2382,11 +2205,24 @@ dnl
 dnl Gallium helper functions
 dnl
 gallium_require_llvm() {
-    if test "x$enable_gallium_llvm" == "xyes"; then
+    if test "x$enable_gallium_llvm" = "xyes"; then
         llvm_check_version_for $LLVM_REQUIRED_GALLIUM "gallium"
     else
         AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
     fi
+}
+
+dnl
+dnl r300 doesn't strictly require LLVM, but for performance reasons we
+dnl highly recommend LLVM usage. So require it at least on x86 and x86_64
+dnl architectures.
+dnl
+r300_require_llvm() {
+    case "$host" in *gnux32) return;; esac
+    case "$host_cpu" in
+    i*86|x86_64|amd64) gallium_require_llvm $1
+        ;;
+    esac
 }
 
 dnl
@@ -2475,7 +2311,7 @@ if test -n "$with_gallium_drivers"; then
             HAVE_GALLIUM_R300=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             require_libdrm "r300"
-            gallium_require_llvm "r300"
+            r300_require_llvm "r300"
             ;;
         xr600)
             HAVE_GALLIUM_R600=yes
@@ -2505,6 +2341,14 @@ if test -n "$with_gallium_drivers"; then
             HAVE_GALLIUM_FREEDRENO=yes
             PKG_CHECK_MODULES([FREEDRENO], [libdrm_freedreno >= $LIBDRM_FREEDRENO_REQUIRED])
             require_libdrm "freedreno"
+            ;;
+        xetnaviv)
+            HAVE_GALLIUM_ETNAVIV=yes
+            PKG_CHECK_MODULES([ETNAVIV], [libdrm_etnaviv >= $LIBDRM_ETNAVIV_REQUIRED])
+            require_libdrm "etnaviv"
+            ;;
+       ximx)
+            HAVE_GALLIUM_IMX=yes
             ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
@@ -2558,6 +2402,12 @@ fi
 if test "x$enable_gallium_llvm" == "xyes"; then
     llvm_check_version_for $LLVM_REQUIRED_GALLIUM "gallium"
     llvm_add_default_components "gallium"
+fi
+
+dnl We need to validate some needed dependencies for renderonly drivers.
+
+if test "x$HAVE_GALLIUM_ETNAVIV" != xyes -a "x$HAVE_GALLIUM_IMX" == xyes  ; then
+    AC_ERROR([Building with imx requires etnaviv])
 fi
 
 dnl Set LLVM_LIBS - This is done after the driver configuration so
@@ -2624,6 +2474,8 @@ AM_CONDITIONAL(HAVE_GALLIUM_RADEON_COMMON, test "x$HAVE_GALLIUM_R600" = xyes -o 
                                                 "x$HAVE_GALLIUM_RADEONSI" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_ETNAVIV, test "x$HAVE_GALLIUM_ETNAVIV" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_IMX, test "x$HAVE_GALLIUM_IMX" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SWR, test "x$HAVE_GALLIUM_SWR" = xyes)
@@ -2777,6 +2629,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/svga/Makefile
 		src/gallium/drivers/swr/Makefile
 		src/gallium/drivers/trace/Makefile
+		src/gallium/drivers/etnaviv/Makefile
+		src/gallium/drivers/imx/Makefile
 		src/gallium/drivers/vc4/Makefile
 		src/gallium/drivers/virgl/Makefile
 		src/gallium/state_trackers/clover/Makefile
@@ -2806,6 +2660,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/xvmc/Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
+		src/gallium/winsys/etnaviv/drm/Makefile
+		src/gallium/winsys/imx/drm/Makefile
 		src/gallium/winsys/freedreno/drm/Makefile
 		src/gallium/winsys/i915/drm/Makefile
 		src/gallium/winsys/intel/drm/Makefile
@@ -2924,10 +2780,10 @@ if test "$enable_egl" = yes; then
     echo "        EGL platforms:   $egl_platforms"
 
     egl_drivers=""
-    if test "x$HAVE_EGL_DRIVER_DRI2" != "x"; then
+    if test "x$enable_dri" != "xno"; then
         egl_drivers="$egl_drivers builtin:egl_dri2"
     fi
-    if test "x$HAVE_EGL_DRIVER_DRI3" != "x"; then
+    if test "x$enable_dri3" != "xno"; then
         egl_drivers="$egl_drivers builtin:egl_dri3"
     fi
 
@@ -2976,13 +2832,6 @@ if test "x$enable_lmsensors" != xyes; then
     echo "        HUD lmsensors:   no"
 else
     echo "        HUD lmsensors:   yes"
-fi
-
-dnl Shader cache
-echo ""
-echo "        Shader cache:    $enable_shader_cache"
-if test "x$enable_shader_cache" = "xyes"; then
-    echo "        With SHA1 from:  $with_sha1"
 fi
 
 dnl Libraries

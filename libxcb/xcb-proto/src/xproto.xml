@@ -198,9 +198,11 @@ authorization from the authors.
     <list type="char" name="authorization_protocol_name">
       <fieldref>authorization_protocol_name_len</fieldref>
     </list>
+    <pad align="4" />
     <list type="char" name="authorization_protocol_data">
       <fieldref>authorization_protocol_data_len</fieldref>
     </list>
+    <pad align="4" />
   </struct>
 
   <struct name="SetupFailed">

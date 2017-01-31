@@ -298,7 +298,7 @@ radv_descriptor_set_create(struct radv_device *device,
 
 				if (entry < 0) {
 					vk_free2(&device->alloc, NULL, set);
-					return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
+					return vk_error(VK_ERROR_OUT_OF_POOL_MEMORY_KHR);
 				}
 				offset = pool->free_nodes[entry].offset;
 				pool->free_nodes[entry].next = pool->full_list;

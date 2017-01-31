@@ -163,6 +163,7 @@ test_c99_compat_h(const void * restrict a,
 #    define HAVE_FUNC_ATTRIBUTE_UNUSED 1
 #    define HAVE_FUNC_ATTRIBUTE_FORMAT 1
 #    define HAVE_FUNC_ATTRIBUTE_PACKED 1
+#    define HAVE_FUNC_ATTRIBUTE_ALIAS 1
 
 #    if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
        /* https://gcc.gnu.org/onlinedocs/gcc-4.3.6/gcc/Other-Builtins.html */

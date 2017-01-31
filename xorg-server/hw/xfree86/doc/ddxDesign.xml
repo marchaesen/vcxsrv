@@ -5210,10 +5210,8 @@ XFree86 common layer.
 
       <blockquote><para>
 	  <programlisting>
-    pointer LoadModule(const char *module, const char *path,
-                       const char **subdirlist, const char **patternlist,
-                       pointer options, const XF86ModReqInfo * modreq,
-                       int *errmaj, int *errmin);
+    pointer LoadModule(const char *module, pointer options,
+                       const XF86ModReqInfo * modreq, int *errmaj);
 	  </programlisting>
 	  <blockquote><para>
     The <function>LoadModule()</function> function loads the module called
@@ -5226,48 +5224,6 @@ XFree86 common layer.
     This might change.  The other parameters are:
 
 	      <variablelist>
-		<varlistentry>
-		  <term><parameter>path</parameter></term>
-		  <listitem><para>
-		  An optional comma-separated list of module search paths.
-		  When <constant>NULL</constant>, the default search path is used.
-		    </para></listitem></varlistentry>
-
-
-		<varlistentry>
-		  <term><parameter>subdirlist</parameter></term>
-		  <listitem><para>
-		  An optional <constant>NULL</constant> terminated list of
-		  subdirectories to search.  When <constant>NULL</constant>,
-		  the default built-in list is used (refer to
-		  <varname>stdSubdirs</varname> in <filename>loadmod.c</filename>).
-		  The default list is also substituted for entries in
-		  <parameter>subdirlist</parameter> with the value
-		  <constant>DEFAULT_LIST</constant>.  This makes is possible
-		  to augment the default list instead of replacing it.
-		  Subdir elements must be relative, and must not contain
-		  <literal remap="tt">".."</literal>.  If any violate this requirement,
-		  the load fails.
-		    </para></listitem></varlistentry>
-
-
-		<varlistentry>
-		  <term><parameter>patternlist</parameter></term>
-		  <listitem><para>
-		  An optional <constant>NULL</constant> terminated list of
-		  POSIX regular expressions used to connect module
-		  filenames with canonical module names.  Each regex
-		  should contain exactly one subexpression that corresponds
-		  to the canonical module name.  When <constant>NULL</constant>,
-		  the default built-in list is used (refer to
-		  <varname>stdPatterns</varname> in
-		  <filename>loadmod.c</filename>).  The default list is also
-		  substituted for entries in <parameter>patternlist</parameter>
-		  with the value <constant>DEFAULT_LIST</constant>.  This
-		  makes it possible to augment the default list instead
-		  of replacing it.
-		    </para></listitem></varlistentry>
-
 
 		<varlistentry>
 		  <term><parameter>options</parameter></term>
@@ -5299,12 +5255,12 @@ XFree86 common layer.
 		  as follows:
 		      <programlisting>
 typedef struct {
-	CARD8        majorversion;  /* MAJOR_UNSPEC */
-	CARD8        minorversion;  /* MINOR_UNSPEC */
-	CARD16       patchlevel;    /* PATCH_UNSPEC */
-	const char * abiclass;      /* ABI_CLASS_NONE */
-	CARD32       abiversion;    /* ABI_VERS_UNSPEC */
-	const char * moduleclass;   /* MOD_CLASS_NONE */
+	CARD8        majorversion;
+	CARD8        minorversion;
+	CARD16       patchlevel;
+	const char * abiclass;
+	CARD32       abiversion;
+	const char * moduleclass;
 } XF86ModReqInfo;
 			</programlisting>
 
@@ -5329,8 +5285,8 @@ typedef struct {
 				   The module's minor version must be
 				   no less than this value.  This
 				   comparison is only made if
-				   <structfield>majorversion</structfield> is
-				   specified and matches.
+				   <structfield>majorversion</structfield>
+                                   matches.
 			    </para></listitem></varlistentry>
 
 			<varlistentry>
@@ -5339,8 +5295,8 @@ typedef struct {
 				   The module's patchlevel must be no
 				   less than this value.  This comparison
 				   is only made if
-				   <structfield>minorversion</structfield> is
-				   specified and matches.
+				   <structfield>minorversion</structfield>
+				   matches.
 			    </para></listitem></varlistentry>
 
 			<varlistentry>
@@ -5375,13 +5331,6 @@ typedef struct {
 		  part or the error code.  When provided,
 		  <parameter>*errmaj</parameter> is filled in when
 		  <function>LoadModule()</function> fails.
-		    </para></listitem></varlistentry>
-
-		<varlistentry>
-		  <term><parameter>errmin</parameter></term>
-		  <listitem><para>
-		  Like <parameter>errmaj</parameter>, but for the minor part
-		  of the error code.
 		    </para></listitem></varlistentry>
 
 	      </variablelist>
@@ -5695,11 +5644,7 @@ the server, and may also be used from within modules.
     described above, except that the module loaded is registered as a
     child of the calling module.  The <parameter>parent</parameter> parameter
     is the calling module's handle.  Modules loaded with this function
-    are automatically unloaded when the parent module is unloaded.  The
-    other difference is that the path parameter may not be specified.
-    The module search path used for modules loaded with this function
-    is the default search path as initialised with
-    <function>LoaderSetPath()</function>.
+    are automatically unloaded when the parent module is unloaded.
 	    </para>
 
 	  </blockquote></para></blockquote>

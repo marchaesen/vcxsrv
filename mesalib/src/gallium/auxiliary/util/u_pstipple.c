@@ -344,7 +344,7 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
                            TGSI_FILE_TEMPORARY, texTemp,
                            TGSI_WRITEMASK_XYZW,
                            pctx->wincoordFile, wincoordInput,
-                           TGSI_FILE_IMMEDIATE, pctx->numImmed);
+                           TGSI_FILE_IMMEDIATE, pctx->numImmed, false);
 
    /* TEX texTemp, texTemp, sampler, 2D; */
    tgsi_transform_tex_inst(ctx,

@@ -64,10 +64,12 @@ extern void
 _mesa_set_program_error(struct gl_context *ctx, GLint pos, const char *string);
 
 extern struct gl_program *
-_mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id);
+_mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id,
+                      bool is_arb_asm);
 
 extern struct gl_program *
-_mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id);
+_mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id,
+                  bool is_arb_asm);
 
 extern void
 _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog);

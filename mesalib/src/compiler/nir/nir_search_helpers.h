@@ -114,4 +114,48 @@ is_zero_to_one(nir_alu_instr *instr, unsigned src, unsigned num_components,
    return true;
 }
 
+static inline bool
+is_used_more_than_once(nir_alu_instr *instr)
+{
+   bool zero_if_use = list_empty(&instr->dest.dest.ssa.if_uses);
+   bool zero_use = list_empty(&instr->dest.dest.ssa.uses);
+
+   if (zero_use && zero_if_use)
+      return false;
+   else if (zero_use && list_is_singular(&instr->dest.dest.ssa.if_uses))
+      return false;
+   else if (zero_if_use && list_is_singular(&instr->dest.dest.ssa.uses))
+      return false;
+
+   return true;
+}
+
+static inline bool
+is_used_once(nir_alu_instr *instr)
+{
+   bool zero_if_use = list_empty(&instr->dest.dest.ssa.if_uses);
+   bool zero_use = list_empty(&instr->dest.dest.ssa.uses);
+
+   if (zero_if_use && zero_use)
+      return false;
+
+   if (!zero_if_use && list_is_singular(&instr->dest.dest.ssa.uses))
+     return false;
+
+   if (!zero_use && list_is_singular(&instr->dest.dest.ssa.if_uses))
+     return false;
+
+   if (!list_is_singular(&instr->dest.dest.ssa.if_uses) &&
+       !list_is_singular(&instr->dest.dest.ssa.uses))
+      return false;
+
+   return true;
+}
+
+static inline bool
+is_not_used_by_if(nir_alu_instr *instr)
+{
+   return list_empty(&instr->dest.dest.ssa.if_uses);
+}
+
 #endif /* _NIR_SEARCH_ */

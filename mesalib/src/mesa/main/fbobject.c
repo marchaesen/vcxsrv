@@ -222,14 +222,20 @@ get_framebuffer_target(struct gl_context *ctx, GLenum target)
  * default / window-system FB object.
  * If \p attachment is GL_DEPTH_STENCIL_ATTACHMENT, return a pointer to
  * the depth buffer attachment point.
+ * Returns if the attachment is a GL_COLOR_ATTACHMENTm_EXT on
+ * is_color_attachment, because several callers would return different errors
+ * if they don't find the attachment.
  */
 static struct gl_renderbuffer_attachment *
 get_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
-               GLenum attachment)
+               GLenum attachment, bool *is_color_attachment)
 {
    GLuint i;
 
    assert(_mesa_is_user_fbo(fb));
+
+   if (is_color_attachment)
+      *is_color_attachment = false;
 
    switch (attachment) {
    case GL_COLOR_ATTACHMENT0_EXT:
@@ -248,6 +254,8 @@ get_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
    case GL_COLOR_ATTACHMENT13_EXT:
    case GL_COLOR_ATTACHMENT14_EXT:
    case GL_COLOR_ATTACHMENT15_EXT:
+      if (is_color_attachment)
+         *is_color_attachment = true;
       /* Only OpenGL ES 1.x forbids color attachments other than
        * GL_COLOR_ATTACHMENT0.  For all other APIs the limit set by the
        * hardware is used.
@@ -543,13 +551,13 @@ _mesa_FramebufferRenderbuffer_sw(struct gl_context *ctx,
 
    mtx_lock(&fb->Mutex);
 
-   att = get_attachment(ctx, fb, attachment);
+   att = get_attachment(ctx, fb, attachment, NULL);
    assert(att);
    if (rb) {
       set_renderbuffer_attachment(ctx, att, rb);
       if (attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
          /* do stencil attachment here (depth already done above) */
-         att = get_attachment(ctx, fb, GL_STENCIL_ATTACHMENT_EXT);
+         att = get_attachment(ctx, fb, GL_STENCIL_ATTACHMENT_EXT, NULL);
          assert(att);
          set_renderbuffer_attachment(ctx, att, rb);
       }
@@ -559,7 +567,7 @@ _mesa_FramebufferRenderbuffer_sw(struct gl_context *ctx,
       remove_attachment(ctx, att);
       if (attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
          /* detach stencil (depth was detached above) */
-         att = get_attachment(ctx, fb, GL_STENCIL_ATTACHMENT_EXT);
+         att = get_attachment(ctx, fb, GL_STENCIL_ATTACHMENT_EXT, NULL);
          assert(att);
          remove_attachment(ctx, att);
       }
@@ -1219,7 +1227,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       for (j = 0; j < ctx->Const.MaxDrawBuffers; j++) {
          if (fb->ColorDrawBuffer[j] != GL_NONE) {
             const struct gl_renderbuffer_attachment *att
-               = get_attachment(ctx, fb, fb->ColorDrawBuffer[j]);
+               = get_attachment(ctx, fb, fb->ColorDrawBuffer[j], NULL);
             assert(att);
             if (att->Type == GL_NONE) {
                fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT;
@@ -1232,7 +1240,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       /* Check that the ReadBuffer is present */
       if (fb->ColorReadBuffer != GL_NONE) {
          const struct gl_renderbuffer_attachment *att
-            = get_attachment(ctx, fb, fb->ColorReadBuffer);
+            = get_attachment(ctx, fb, fb->ColorReadBuffer, NULL);
          assert(att);
          if (att->Type == GL_NONE) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT;
@@ -3151,7 +3159,7 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
    }
 
    /* Not a hash lookup, so we can afford to get the attachment here. */
-   att = get_attachment(ctx, fb, attachment);
+   att = get_attachment(ctx, fb, attachment, NULL);
    if (att == NULL) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid attachment %s)", caller,
                   _mesa_enum_to_string(attachment));
@@ -3487,6 +3495,7 @@ framebuffer_renderbuffer(struct gl_context *ctx,
                          const char *func)
 {
    struct gl_renderbuffer_attachment *att;
+   bool is_color_attachment;
 
    if (_mesa_is_winsys_fbo(fb)) {
       /* Can't attach new renderbuffers to a window system framebuffer */
@@ -3495,11 +3504,29 @@ framebuffer_renderbuffer(struct gl_context *ctx,
       return;
    }
 
-   att = get_attachment(ctx, fb, attachment);
+   att = get_attachment(ctx, fb, attachment, &is_color_attachment);
    if (att == NULL) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "%s(invalid attachment %s)", func,
-                  _mesa_enum_to_string(attachment));
+      /*
+       * From OpenGL 4.5 spec, section 9.2.7 "Attaching Renderbuffer Images to
+       * a Framebuffer":
+       *
+       *    "An INVALID_OPERATION error is generated if attachment is COLOR_-
+       *     ATTACHMENTm where m is greater than or equal to the value of
+       *     MAX_COLOR_- ATTACHMENTS ."
+       *
+       * If we are at this point, is because the attachment is not valid, so
+       * if is_color_attachment is true, is because of the previous reason.
+       */
+      if (is_color_attachment) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(invalid color attachment %s)", func,
+                     _mesa_enum_to_string(attachment));
+      } else {
+         _mesa_error(ctx, GL_INVALID_ENUM,
+                     "%s(invalid attachment %s)", func,
+                     _mesa_enum_to_string(attachment));
+      }
+
       return;
    }
 
@@ -3601,6 +3628,7 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
                                            GLint *params, const char *caller)
 {
    const struct gl_renderbuffer_attachment *att;
+   bool is_color_attachment;
    GLenum err;
 
    /* The error code for an attachment type of GL_NONE differs between APIs.
@@ -3668,12 +3696,27 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
    }
    else {
       /* user-created framebuffer FBO */
-      att = get_attachment(ctx, buffer, attachment);
+      att = get_attachment(ctx, buffer, attachment, &is_color_attachment);
    }
 
    if (att == NULL) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid attachment %s)", caller,
-                  _mesa_enum_to_string(attachment));
+      /*
+       * From OpenGL 4.5 spec, section 9.2.3 "Framebuffer Object Queries":
+       *
+       *    "An INVALID_OPERATION error is generated if a framebuffer object
+       *     is bound to target and attachment is COLOR_ATTACHMENTm where m is
+       *     greater than or equal to the value of MAX_COLOR_ATTACHMENTS."
+       *
+       * If we are at this point, is because the attachment is not valid, so
+       * if is_color_attachment is true, is because of the previous reason.
+       */
+      if (is_color_attachment) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid color attachment %s)",
+                     caller, _mesa_enum_to_string(attachment));
+      } else {
+         _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid attachment %s)", caller,
+                     _mesa_enum_to_string(attachment));
+      }
       return;
    }
 
@@ -3692,8 +3735,8 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
          return;
       }
       /* the depth and stencil attachments must point to the same buffer */
-      depthAtt = get_attachment(ctx, buffer, GL_DEPTH_ATTACHMENT);
-      stencilAtt = get_attachment(ctx, buffer, GL_STENCIL_ATTACHMENT);
+      depthAtt = get_attachment(ctx, buffer, GL_DEPTH_ATTACHMENT, NULL);
+      stencilAtt = get_attachment(ctx, buffer, GL_STENCIL_ATTACHMENT, NULL);
       if (depthAtt->Renderbuffer != stencilAtt->Renderbuffer) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(DEPTH/STENCIL attachments differ)", caller);
@@ -3711,11 +3754,13 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
        *  either no framebuffer is bound to target; or the default framebuffer
        *  is bound, attachment is DEPTH or STENCIL, and the number of depth or
        *  stencil bits, respectively, is zero."
+       *
+       * Note that we don't need explicit checks on DEPTH and STENCIL, because
+       * on the case the spec is pointing, att->Type is already NONE, so we
+       * just need to check att->Type.
        */
-      *params = (_mesa_is_winsys_fbo(buffer) &&
-                 ((attachment != GL_DEPTH && attachment != GL_STENCIL) ||
-                  (att->Type != GL_NONE)))
-         ? GL_FRAMEBUFFER_DEFAULT : att->Type;
+      *params = (_mesa_is_winsys_fbo(buffer) && att->Type != GL_NONE) ?
+         GL_FRAMEBUFFER_DEFAULT : att->Type;
       return;
    case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME_EXT:
       if (att->Type == GL_RENDERBUFFER_EXT) {

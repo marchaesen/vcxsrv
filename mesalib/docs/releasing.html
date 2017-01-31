@@ -158,6 +158,11 @@ To setup the branchpoint:
 	git checkout master # make sure we're in master first
 	git tag -s X.Y-branchpoint -m "Mesa X.Y branchpoint"
 	git checkout -b X.Y
+	git checkout master
+	$EDITOR VERSION # bump the version number
+	git commit -as
+	cp docs/relnotes/{X.Y,X.Y+1}.html # copy/create relnotes template
+	git commit -as
 	git push origin X.Y-branchpoint X.Y
 </pre>
 
@@ -342,7 +347,7 @@ Here is one solution that I've been using.
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version &amp;&amp; scons &amp;&amp; cd ..
 
 	# Test the automake binaries
-	rm -rf cd mesa-$__version
+	rm -rf mesa-$__version
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
 	./configure \
 		--with-dri-drivers=i965,swrast \

@@ -64,6 +64,8 @@ copy_constant_to_storage(union gl_constant_value *storage,
          storage[i].f = val->value.f[i];
          break;
       case GLSL_TYPE_DOUBLE:
+      case GLSL_TYPE_UINT64:
+      case GLSL_TYPE_INT64:
          /* XXX need to check on big-endian */
          memcpy(&storage[i * 2].u, &val->value.d[i], sizeof(double));
          break;
@@ -134,16 +136,18 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
                 storage->opaque[sh].active) {
                for (unsigned i = 0; i < elements; i++) {
                   const unsigned index = storage->opaque[sh].index + i;
-                  shader->SamplerUnits[index] = storage->storage[i].i;
+                  shader->Program->SamplerUnits[index] =
+                     storage->storage[i].i;
                }
 
             } else if (storage->type->base_type == GLSL_TYPE_IMAGE &&
                     storage->opaque[sh].active) {
                for (unsigned i = 0; i < elements; i++) {
                   const unsigned index = storage->opaque[sh].index + i;
-                  if (index >= ARRAY_SIZE(shader->ImageUnits))
+                  if (index >= ARRAY_SIZE(shader->Program->sh.ImageUnits))
                      break;
-                  shader->ImageUnits[index] = storage->storage[i].i;
+                  shader->Program->sh.ImageUnits[index] =
+                     storage->storage[i].i;
                }
             }
          }
@@ -241,7 +245,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
             if (shader && storage->opaque[sh].active) {
                unsigned index = storage->opaque[sh].index;
 
-               shader->SamplerUnits[index] = storage->storage[0].i;
+               shader->Program->SamplerUnits[index] = storage->storage[0].i;
             }
          }
       }

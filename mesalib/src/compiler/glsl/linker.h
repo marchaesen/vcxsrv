@@ -35,8 +35,7 @@ link_invalidate_variable_locations(exec_list *ir);
 
 extern void
 link_assign_uniform_locations(struct gl_shader_program *prog,
-                              struct gl_context *ctx,
-                              unsigned int num_explicit_uniform_locs);
+                              struct gl_context *ctx);
 
 extern void
 link_set_uniform_initializers(struct gl_shader_program *prog,

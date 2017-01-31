@@ -355,7 +355,7 @@ ir_minmax_visitor::prune_expression(ir_expression *expr, minmax_range baserange)
           */
          if (!is_redundant && limits[i].low && baserange.high) {
             cr = compare_components(limits[i].low, baserange.high);
-            if (cr >= EQUAL && cr != MIXED)
+            if (cr > EQUAL && cr != MIXED)
                is_redundant = true;
          }
       } else {
@@ -373,7 +373,7 @@ ir_minmax_visitor::prune_expression(ir_expression *expr, minmax_range baserange)
           */
          if (!is_redundant && limits[i].high && baserange.low) {
             cr = compare_components(limits[i].high, baserange.low);
-            if (cr <= EQUAL)
+            if (cr < EQUAL)
                is_redundant = true;
          }
       }

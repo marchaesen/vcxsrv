@@ -2093,6 +2093,8 @@ union ir_constant_data {
       float f[16];
       bool b[16];
       double d[16];
+      uint64_t u64[16];
+      int64_t i64[16];
 };
 
 
@@ -2104,6 +2106,8 @@ public:
    ir_constant(int i, unsigned vector_elements=1);
    ir_constant(float f, unsigned vector_elements=1);
    ir_constant(double d, unsigned vector_elements=1);
+   ir_constant(uint64_t u64, unsigned vector_elements=1);
+   ir_constant(int64_t i64, unsigned vector_elements=1);
 
    /**
     * Construct an ir_constant from a list of ir_constant values
@@ -2154,6 +2158,8 @@ public:
    double get_double_component(unsigned i) const;
    int get_int_component(unsigned i) const;
    unsigned get_uint_component(unsigned i) const;
+   int64_t get_int64_component(unsigned i) const;
+   uint64_t get_uint64_component(unsigned i) const;
    /*@}*/
 
    ir_constant *get_array_element(unsigned i) const;
@@ -2376,25 +2382,6 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
 extern void
 _mesa_glsl_initialize_derived_variables(struct gl_context *ctx,
                                         gl_shader *shader);
-
-extern void
-_mesa_glsl_initialize_builtin_functions();
-
-extern ir_function_signature *
-_mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
-                                 const char *name, exec_list *actual_parameters);
-
-extern ir_function *
-_mesa_glsl_find_builtin_function_by_name(const char *name);
-
-extern gl_shader *
-_mesa_glsl_get_builtin_function_shader(void);
-
-extern ir_function_signature *
-_mesa_get_main_function_signature(glsl_symbol_table *symbols);
-
-extern void
-_mesa_glsl_release_builtin_functions(void);
 
 extern void
 reparent_ir(exec_list *list, void *mem_ctx);

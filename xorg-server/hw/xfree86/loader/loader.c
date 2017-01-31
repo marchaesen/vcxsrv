@@ -50,21 +50,10 @@
 #include <xorg-config.h>
 #endif
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <string.h>
-#include <stdarg.h>
-
 #include "os.h"
 #include "loader.h"
 #include "loaderProcs.h"
-#include "xf86.h"
-#include "xf86Priv.h"
 
 #ifdef HAVE_DLFCN_H
 
@@ -80,27 +69,27 @@ extern void *xorg_symbols[];
 void
 LoaderInit(void)
 {
-    xf86MsgVerb(X_INFO, 2, "Loader magic: %p\n", (void *) xorg_symbols);
-    xf86MsgVerb(X_INFO, 2, "Module ABI versions:\n");
-    xf86ErrorFVerb(2, "\t%s: %d.%d\n", ABI_CLASS_ANSIC,
-                   GET_ABI_MAJOR(LoaderVersionInfo.ansicVersion),
-                   GET_ABI_MINOR(LoaderVersionInfo.ansicVersion));
-    xf86ErrorFVerb(2, "\t%s: %d.%d\n", ABI_CLASS_VIDEODRV,
-                   GET_ABI_MAJOR(LoaderVersionInfo.videodrvVersion),
-                   GET_ABI_MINOR(LoaderVersionInfo.videodrvVersion));
-    xf86ErrorFVerb(2, "\t%s : %d.%d\n", ABI_CLASS_XINPUT,
-                   GET_ABI_MAJOR(LoaderVersionInfo.xinputVersion),
-                   GET_ABI_MINOR(LoaderVersionInfo.xinputVersion));
-    xf86ErrorFVerb(2, "\t%s : %d.%d\n", ABI_CLASS_EXTENSION,
-                   GET_ABI_MAJOR(LoaderVersionInfo.extensionVersion),
-                   GET_ABI_MINOR(LoaderVersionInfo.extensionVersion));
+    LogMessageVerb(X_INFO, 2, "Loader magic: %p\n", (void *) xorg_symbols);
+    LogMessageVerb(X_INFO, 2, "Module ABI versions:\n");
+    LogWrite(2, "\t%s: %d.%d\n", ABI_CLASS_ANSIC,
+             GET_ABI_MAJOR(LoaderVersionInfo.ansicVersion),
+             GET_ABI_MINOR(LoaderVersionInfo.ansicVersion));
+    LogWrite(2, "\t%s: %d.%d\n", ABI_CLASS_VIDEODRV,
+             GET_ABI_MAJOR(LoaderVersionInfo.videodrvVersion),
+             GET_ABI_MINOR(LoaderVersionInfo.videodrvVersion));
+    LogWrite(2, "\t%s : %d.%d\n", ABI_CLASS_XINPUT,
+             GET_ABI_MAJOR(LoaderVersionInfo.xinputVersion),
+             GET_ABI_MINOR(LoaderVersionInfo.xinputVersion));
+    LogWrite(2, "\t%s : %d.%d\n", ABI_CLASS_EXTENSION,
+             GET_ABI_MAJOR(LoaderVersionInfo.extensionVersion),
+             GET_ABI_MINOR(LoaderVersionInfo.extensionVersion));
 
 }
 
 /* Public Interface to the loader. */
 
 void *
-LoaderOpen(const char *module, int *errmaj, int *errmin)
+LoaderOpen(const char *module, int *errmaj)
 {
     void *ret;
 
@@ -108,14 +97,12 @@ LoaderOpen(const char *module, int *errmaj, int *errmin)
     ErrorF("LoaderOpen(%s)\n", module);
 #endif
 
-    xf86Msg(X_INFO, "Loading %s\n", module);
+    LogMessage(X_INFO, "Loading %s\n", module);
 
     if (!(ret = dlopen(module, RTLD_LAZY | RTLD_GLOBAL))) {
-        xf86Msg(X_ERROR, "Failed to load %s: %s\n", module, dlerror());
+        LogMessage(X_ERROR, "Failed to load %s: %s\n", module, dlerror());
         if (errmaj)
             *errmaj = LDR_NOLOAD;
-        if (errmin)
-            *errmin = LDR_NOLOAD;
         return NULL;
     }
 

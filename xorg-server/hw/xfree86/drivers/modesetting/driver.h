@@ -89,12 +89,6 @@ typedef struct _modesettingRec {
 
     int Chipset;
     EntityInfoPtr pEnt;
-#if XSERVER_LIBPCIACCESS
-    struct pci_device *PciInfo;
-#else
-    pciVideoPtr PciInfo;
-    PCITAG PciTag;
-#endif
 
     Bool noAccel;
     CloseScreenProcPtr CloseScreen;

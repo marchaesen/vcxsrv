@@ -75,7 +75,7 @@ void radv_DestroySurfaceKHR(
 	const VkAllocationCallbacks*                 pAllocator)
 {
 	RADV_FROM_HANDLE(radv_instance, instance, _instance);
-	RADV_FROM_HANDLE(_VkIcdSurfaceBase, surface, _surface);
+	ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, _surface);
 
 	vk_free2(&instance->alloc, pAllocator, surface);
 }
@@ -87,7 +87,7 @@ VkResult radv_GetPhysicalDeviceSurfaceSupportKHR(
 	VkBool32*                                   pSupported)
 {
 	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
-	RADV_FROM_HANDLE(_VkIcdSurfaceBase, surface, _surface);
+	ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, _surface);
 	struct wsi_interface *iface = device->wsi_device.wsi[surface->platform];
 
 	return iface->get_support(surface, &device->wsi_device,
@@ -101,7 +101,7 @@ VkResult radv_GetPhysicalDeviceSurfaceCapabilitiesKHR(
 	VkSurfaceCapabilitiesKHR*                   pSurfaceCapabilities)
 {
 	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
-	RADV_FROM_HANDLE(_VkIcdSurfaceBase, surface, _surface);
+	ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, _surface);
 	struct wsi_interface *iface = device->wsi_device.wsi[surface->platform];
 
 	return iface->get_capabilities(surface, pSurfaceCapabilities);
@@ -114,7 +114,7 @@ VkResult radv_GetPhysicalDeviceSurfaceFormatsKHR(
 	VkSurfaceFormatKHR*                         pSurfaceFormats)
 {
 	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
-	RADV_FROM_HANDLE(_VkIcdSurfaceBase, surface, _surface);
+	ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, _surface);
 	struct wsi_interface *iface = device->wsi_device.wsi[surface->platform];
 
 	return iface->get_formats(surface, &device->wsi_device, pSurfaceFormatCount,
@@ -128,7 +128,7 @@ VkResult radv_GetPhysicalDeviceSurfacePresentModesKHR(
 	VkPresentModeKHR*                           pPresentModes)
 {
 	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
-	RADV_FROM_HANDLE(_VkIcdSurfaceBase, surface, _surface);
+	ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, _surface);
 	struct wsi_interface *iface = device->wsi_device.wsi[surface->platform];
 
 	return iface->get_present_modes(surface, pPresentModeCount,
@@ -249,9 +249,9 @@ VkResult radv_CreateSwapchainKHR(
 	VkSwapchainKHR*                              pSwapchain)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	RADV_FROM_HANDLE(_VkIcdSurfaceBase, surface, pCreateInfo->surface);
+	ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pCreateInfo->surface);
 	struct wsi_interface *iface =
-		device->instance->physicalDevice.wsi_device.wsi[surface->platform];
+		device->physical_device->wsi_device.wsi[surface->platform];
 	struct wsi_swapchain *swapchain;
 	const VkAllocationCallbacks *alloc;
 	if (pAllocator)
@@ -259,7 +259,7 @@ VkResult radv_CreateSwapchainKHR(
 	else
 		alloc = &device->alloc;
 	VkResult result = iface->create_swapchain(surface, _device,
-						  &device->instance->physicalDevice.wsi_device,
+						  &device->physical_device->wsi_device,
 						  pCreateInfo,
 						  alloc, &radv_wsi_image_fns,
 						  &swapchain);
@@ -364,10 +364,10 @@ VkResult radv_QueuePresentKHR(
 
 		RADV_FROM_HANDLE(radv_fence, fence, swapchain->fences[0]);
 		struct radeon_winsys_fence *base_fence = fence->fence;
-		struct radeon_winsys_ctx *ctx = queue->device->hw_ctx;
+		struct radeon_winsys_ctx *ctx = queue->hw_ctx;
 		queue->device->ws->cs_submit(ctx, queue->queue_idx,
 					     &queue->device->empty_cs[queue->queue_family_index],
-					     1,
+					     1, NULL,
 					     (struct radeon_winsys_sem **)pPresentInfo->pWaitSemaphores,
 					     pPresentInfo->waitSemaphoreCount, NULL, 0, false, base_fence);
 		fence->submitted = true;

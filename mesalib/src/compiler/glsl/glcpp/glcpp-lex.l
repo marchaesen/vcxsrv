@@ -175,7 +175,7 @@ glcpp_lex_update_state_per_token (glcpp_parser_t *parser, int token)
 
 SPACE		[[:space:]]
 NONSPACE	[^[:space:]]
-HSPACE		[ \t]
+HSPACE		[ \t\v\f]
 HASH		#
 NEWLINE		(\r\n|\n\r|\r|\n)
 IDENTIFIER	[_a-zA-Z][_a-zA-Z0-9]*

@@ -282,8 +282,6 @@ init_shader_program(struct gl_shader_program *prog)
    prog->Geom.UsesEndPrimitive = false;
    prog->Geom.UsesStreams = false;
 
-   prog->Comp.LocalSizeVariable = false;
-
    prog->TransformFeedback.BufferMode = GL_INTERLEAVED_ATTRIBS;
 
    exec_list_make_empty(&prog->EmptyUniformLocations);
@@ -364,10 +362,10 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
    shProg->data->AtomicBuffers = NULL;
    shProg->data->NumAtomicBuffers = 0;
 
-   if (shProg->ProgramResourceList) {
-      ralloc_free(shProg->ProgramResourceList);
-      shProg->ProgramResourceList = NULL;
-      shProg->NumProgramResourceList = 0;
+   if (shProg->data->ProgramResourceList) {
+      ralloc_free(shProg->data->ProgramResourceList);
+      shProg->data->ProgramResourceList = NULL;
+      shProg->data->NumProgramResourceList = 0;
    }
 }
 

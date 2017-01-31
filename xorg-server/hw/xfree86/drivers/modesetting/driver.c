@@ -812,7 +812,6 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
     EntityInfoPtr pEnt;
     modesettingPtr ms;
     modesettingEntPtr ms_ent;
-    char *BusID = NULL;
 
     ms = modesettingPTR(pScrn);
     ms_ent = ms_ent_priv(pScrn);
@@ -845,25 +844,24 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
     }
     else
 #endif
+#if XSERVER_LIBPCIACCESS
     if (pEnt->location.type == BUS_PCI) {
-        ms->PciInfo = xf86GetPciInfoForEntity(ms->pEnt->index);
-        if (ms->PciInfo) {
+        char *BusID = NULL;
+        struct pci_device *PciInfo;
+
+        PciInfo = xf86GetPciInfoForEntity(ms->pEnt->index);
+        if (PciInfo) {
             BusID = XNFalloc(64);
             sprintf(BusID, "PCI:%d:%d:%d",
-#if XSERVER_LIBPCIACCESS
-                    ((ms->PciInfo->domain << 8) | ms->PciInfo->bus),
-                    ms->PciInfo->dev, ms->PciInfo->func
-#else
-                    ((pciConfigPtr) ms->PciInfo->thisCard)->busnum,
-                    ((pciConfigPtr) ms->PciInfo->thisCard)->devnum,
-                    ((pciConfigPtr) ms->PciInfo->thisCard)->funcnum
-#endif
-                );
+                    ((PciInfo->domain << 8) | PciInfo->bus),
+                    PciInfo->dev, PciInfo->func);
         }
         ms->fd = drmOpen(NULL, BusID);
         free(BusID);
     }
-    else {
+    else
+#endif
+    {
         const char *devicename;
         devicename = xf86FindOptionValue(ms->pEnt->device->options, "kmsdev");
         ms->fd = open_hw(devicename);

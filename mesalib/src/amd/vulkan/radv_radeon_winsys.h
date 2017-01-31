@@ -305,6 +305,7 @@ struct radeon_winsys {
 			 int queue_index,
 			 struct radeon_winsys_cs **cs_array,
 			 unsigned cs_count,
+			 struct radeon_winsys_cs *preamble_cs,
 			 struct radeon_winsys_sem **wait_sem,
 			 unsigned wait_sem_count,
 			 struct radeon_winsys_sem **signal_sem,
@@ -318,6 +319,8 @@ struct radeon_winsys {
 
 	void (*cs_execute_secondary)(struct radeon_winsys_cs *parent,
 				    struct radeon_winsys_cs *child);
+
+	void (*cs_dump)(struct radeon_winsys_cs *cs, FILE* file, uint32_t trace_id);
 
 	int (*surface_init)(struct radeon_winsys *ws,
 			    struct radeon_surf *surf);

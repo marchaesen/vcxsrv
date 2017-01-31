@@ -1071,7 +1071,8 @@ _mesa_PopAttrib(void)
                if (ctx->Extensions.ARB_color_buffer_float)
                   _mesa_ClampColor(GL_CLAMP_FRAGMENT_COLOR_ARB,
                                    color->ClampFragmentColor);
-               _mesa_ClampColor(GL_CLAMP_READ_COLOR_ARB, color->ClampReadColor);
+               if (ctx->Extensions.ARB_color_buffer_float || ctx->Version >= 30)
+                  _mesa_ClampColor(GL_CLAMP_READ_COLOR_ARB, color->ClampReadColor);
 
                /* GL_ARB_framebuffer_sRGB / GL_EXT_framebuffer_sRGB */
                if (ctx->Extensions.EXT_framebuffer_sRGB)

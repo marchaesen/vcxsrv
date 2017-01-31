@@ -351,6 +351,38 @@ lower_packed_varyings_visitor::bitwise_assign_pack(ir_rvalue *lhs,
             rhs = u2i(expr(ir_unop_unpack_double_2x32, rhs));
          }
          break;
+      case GLSL_TYPE_INT64:
+         assert(rhs->type->vector_elements <= 2);
+         if (rhs->type->vector_elements == 2) {
+            ir_variable *t = new(mem_ctx) ir_variable(lhs->type, "pack", ir_var_temporary);
+
+            assert(lhs->type->vector_elements == 4);
+            this->out_variables->push_tail(t);
+            this->out_instructions->push_tail(
+               assign(t, expr(ir_unop_unpack_int_2x32, swizzle_x(rhs->clone(mem_ctx, NULL))), 0x3));
+            this->out_instructions->push_tail(
+               assign(t,  expr(ir_unop_unpack_int_2x32, swizzle_y(rhs)), 0xc));
+            rhs = deref(t).val;
+         } else {
+            rhs = expr(ir_unop_unpack_int_2x32, rhs);
+         }
+         break;
+      case GLSL_TYPE_UINT64:
+         assert(rhs->type->vector_elements <= 2);
+         if (rhs->type->vector_elements == 2) {
+            ir_variable *t = new(mem_ctx) ir_variable(lhs->type, "pack", ir_var_temporary);
+
+            assert(lhs->type->vector_elements == 4);
+            this->out_variables->push_tail(t);
+            this->out_instructions->push_tail(
+                  assign(t, u2i(expr(ir_unop_unpack_uint_2x32, swizzle_x(rhs->clone(mem_ctx, NULL)))), 0x3));
+            this->out_instructions->push_tail(
+                  assign(t,  u2i(expr(ir_unop_unpack_uint_2x32, swizzle_y(rhs))), 0xc));
+            rhs = deref(t).val;
+         } else {
+            rhs = u2i(expr(ir_unop_unpack_uint_2x32, rhs));
+         }
+         break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
          break;
@@ -398,6 +430,36 @@ lower_packed_varyings_visitor::bitwise_assign_unpack(ir_rvalue *lhs,
             rhs = deref(t).val;
          } else {
             rhs = expr(ir_unop_pack_double_2x32, i2u(rhs));
+         }
+         break;
+      case GLSL_TYPE_INT64:
+         assert(lhs->type->vector_elements <= 2);
+         if (lhs->type->vector_elements == 2) {
+            ir_variable *t = new(mem_ctx) ir_variable(lhs->type, "unpack", ir_var_temporary);
+            assert(rhs->type->vector_elements == 4);
+            this->out_variables->push_tail(t);
+            this->out_instructions->push_tail(
+                  assign(t, expr(ir_unop_pack_int_2x32, swizzle_xy(rhs->clone(mem_ctx, NULL))), 0x1));
+            this->out_instructions->push_tail(
+                  assign(t, expr(ir_unop_pack_int_2x32, swizzle(rhs->clone(mem_ctx, NULL), SWIZZLE_ZWZW, 2)), 0x2));
+            rhs = deref(t).val;
+         } else {
+            rhs = expr(ir_unop_pack_int_2x32, rhs);
+         }
+         break;
+      case GLSL_TYPE_UINT64:
+         assert(lhs->type->vector_elements <= 2);
+         if (lhs->type->vector_elements == 2) {
+            ir_variable *t = new(mem_ctx) ir_variable(lhs->type, "unpack", ir_var_temporary);
+            assert(rhs->type->vector_elements == 4);
+            this->out_variables->push_tail(t);
+            this->out_instructions->push_tail(
+                  assign(t, expr(ir_unop_pack_uint_2x32, i2u(swizzle_xy(rhs->clone(mem_ctx, NULL)))), 0x1));
+            this->out_instructions->push_tail(
+                  assign(t, expr(ir_unop_pack_uint_2x32, i2u(swizzle(rhs->clone(mem_ctx, NULL), SWIZZLE_ZWZW, 2))), 0x2));
+            rhs = deref(t).val;
+         } else {
+            rhs = expr(ir_unop_pack_uint_2x32, i2u(rhs));
          }
          break;
       default:

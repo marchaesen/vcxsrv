@@ -382,7 +382,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_meta_save_graphics_reset_vport_scissor(&saved_state, cmd_buffer);
 
-	for (uint32_t layer = 0; layer < subresourceRange->layerCount; layer++) {
+	for (uint32_t layer = 0; layer < radv_get_layerCount(image, subresourceRange); layer++) {
 		struct radv_image_view iview;
 
 		radv_image_view_init(&iview, cmd_buffer->device,

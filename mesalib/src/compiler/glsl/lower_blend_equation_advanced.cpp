@@ -28,6 +28,7 @@
 #include "program/prog_instruction.h"
 #include "program/prog_statevars.h"
 #include "util/bitscan.h"
+#include "builtin_functions.h"
 
 using namespace ir_builder;
 

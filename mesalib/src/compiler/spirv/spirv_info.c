@@ -82,6 +82,11 @@ static const char * const capability_to_string[] = {
    CAPABILITY(StorageImageReadWithoutFormat),
    CAPABILITY(StorageImageWriteWithoutFormat),
    CAPABILITY(MultiViewport),
+   CAPABILITY(SubgroupDispatch),
+   CAPABILITY(NamedBarrier),
+   CAPABILITY(PipeStorage),
+   CAPABILITY(SubgroupBallotKHR),
+   CAPABILITY(DrawParameters),
 };
 
 const char *
@@ -138,6 +143,7 @@ static const char * const decoration_to_string[] = {
    DECORATION(NoContraction),
    DECORATION(InputAttachmentIndex),
    DECORATION(Alignment),
+   DECORATION(MaxByteOffset),
 };
 
 const char *

@@ -58,6 +58,8 @@ struct test_data {
     int minor_expected;
 };
 
+ClientRec client_window;
+
 static void
 reply_XIQueryVersion(ClientPtr client, int len, char *data, void *closure)
 {
@@ -286,7 +288,7 @@ test_XIQueryVersion_multiple(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xiqueryversion_test(void)
 {
     init_simple();
 

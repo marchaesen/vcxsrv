@@ -291,8 +291,9 @@ def generate(env):
     # C preprocessor options
     cppdefines = []
     cppdefines += [
-        '__STDC_LIMIT_MACROS',
         '__STDC_CONSTANT_MACROS',
+        '__STDC_FORMAT_MACROS',
+        '__STDC_LIMIT_MACROS',
         'HAVE_NO_AUTOCONF',
     ]
     if env['build'] in ('debug', 'checked'):
@@ -323,10 +324,6 @@ def generate(env):
                 'GLX_DIRECT_RENDERING',
                 'GLX_INDIRECT_RENDERING',
             ]
-        if env['platform'] in ('linux', 'freebsd'):
-            cppdefines += ['HAVE_ALIAS']
-        else:
-            cppdefines += ['GLX_ALIAS_UNSUPPORTED']
 
         if env['platform'] in ('linux', 'darwin'):
             cppdefines += ['HAVE_XLOCALE_H']

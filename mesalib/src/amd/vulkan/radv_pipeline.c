@@ -104,6 +104,22 @@ void radv_DestroyShaderModule(
 	vk_free2(&device->alloc, pAllocator, module);
 }
 
+
+static void
+radv_pipeline_destroy(struct radv_device *device,
+                      struct radv_pipeline *pipeline,
+                      const VkAllocationCallbacks* allocator)
+{
+	for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i)
+		if (pipeline->shaders[i])
+			radv_shader_variant_destroy(device, pipeline->shaders[i]);
+
+	if (pipeline->gs_copy_shader)
+		radv_shader_variant_destroy(device, pipeline->gs_copy_shader);
+
+	vk_free2(&device->alloc, allocator, pipeline);
+}
+
 void radv_DestroyPipeline(
 	VkDevice                                    _device,
 	VkPipeline                                  _pipeline,
@@ -115,11 +131,7 @@ void radv_DestroyPipeline(
 	if (!_pipeline)
 		return;
 
-	for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i)
-		if (pipeline->shaders[i])
-			radv_shader_variant_destroy(device, pipeline->shaders[i]);
-
-	vk_free2(&device->alloc, pAllocator, pipeline);
+	radv_pipeline_destroy(device, pipeline, pAllocator);
 }
 
 
@@ -188,7 +200,10 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				assert(data + entry.size <= spec_info->pData + spec_info->dataSize);
 
 				spec_entries[i].id = spec_info->pMapEntries[i].constantID;
-				spec_entries[i].data = *(const uint32_t *)data;
+				if (spec_info->dataSize == 8)
+					spec_entries[i].data64 = *(const uint64_t *)data;
+				else
+					spec_entries[i].data32 = *(const uint32_t *)data;
 			}
 		}
 		const struct nir_spirv_supported_extensions supported_ext = {
@@ -202,11 +217,13 @@ radv_shader_compile_to_nir(struct radv_device *device,
 
 		free(spec_entries);
 
-		nir_lower_returns(nir);
-		nir_validate_shader(nir);
-
-		nir_inline_functions(nir);
-		nir_validate_shader(nir);
+		/* We have to lower away local constant initializers right before we
+		 * inline functions.  That way they get properly initialized at the top
+		 * of the function and not at the top of its caller.
+		 */
+		NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_local);
+		NIR_PASS_V(nir, nir_lower_returns);
+		NIR_PASS_V(nir, nir_inline_functions);
 
 		/* Pick off the single entrypoint that we want */
 		foreach_list_typed_safe(nir_function, func, node, &nir->functions) {
@@ -216,13 +233,14 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		assert(exec_list_length(&nir->functions) == 1);
 		entry_point->name = ralloc_strdup(entry_point, "main");
 
-		nir_remove_dead_variables(nir, nir_var_shader_in);
-		nir_remove_dead_variables(nir, nir_var_shader_out);
-		nir_remove_dead_variables(nir, nir_var_system_value);
-		nir_validate_shader(nir);
+		NIR_PASS_V(nir, nir_remove_dead_variables,
+		           nir_var_shader_in | nir_var_shader_out | nir_var_system_value);
 
-		nir_lower_system_values(nir);
-		nir_validate_shader(nir);
+		/* Now that we've deleted all but the main function, we can go ahead and
+		 * lower the rest of the constant initializers.
+		 */
+		NIR_PASS_V(nir, nir_lower_constant_initializers, ~0);
+		NIR_PASS_V(nir, nir_lower_system_values);
 	}
 
 	/* Vulkan uses the separate-shader linking model */
@@ -262,7 +280,8 @@ static const char *radv_get_shader_name(struct radv_shader_variant *var,
 					gl_shader_stage stage)
 {
 	switch (stage) {
-	case MESA_SHADER_VERTEX: return "Vertex Shader as VS";
+	case MESA_SHADER_VERTEX: return var->info.vs.as_es ? "Vertex Shader as ES" : "Vertex Shader as VS";
+	case MESA_SHADER_GEOMETRY: return "Geometry Shader";
 	case MESA_SHADER_FRAGMENT: return "Pixel Shader";
 	case MESA_SHADER_COMPUTE: return "Compute Shader";
 	default:
@@ -272,7 +291,7 @@ static const char *radv_get_shader_name(struct radv_shader_variant *var,
 }
 static void radv_dump_pipeline_stats(struct radv_device *device, struct radv_pipeline *pipeline)
 {
-	unsigned lds_increment = device->instance->physicalDevice.rad_info.chip_class >= CIK ? 512 : 256;
+	unsigned lds_increment = device->physical_device->rad_info.chip_class >= CIK ? 512 : 256;
 	struct radv_shader_variant *var;
 	struct ac_shader_config *conf;
 	int i;
@@ -293,7 +312,7 @@ static void radv_dump_pipeline_stats(struct radv_device *device, struct radv_pip
 		}
 
 		if (conf->num_sgprs) {
-			if (device->instance->physicalDevice.rad_info.chip_class >= VI)
+			if (device->physical_device->rad_info.chip_class >= VI)
 				max_simd_waves = MIN2(max_simd_waves, 800 / conf->num_sgprs);
 			else
 				max_simd_waves = MIN2(max_simd_waves, 512 / conf->num_sgprs);
@@ -348,15 +367,17 @@ static void radv_fill_shader_variant(struct radv_device *device,
 				     struct ac_shader_binary *binary,
 				     gl_shader_stage stage)
 {
-	variant->code_size = binary->code_size;
 	bool scratch_enabled = variant->config.scratch_bytes_per_wave > 0;
 	unsigned vgpr_comp_cnt = 0;
 
-	if (scratch_enabled)
-		radv_finishme("shader scratch space");
+	if (scratch_enabled && !device->llvm_supports_spill)
+		radv_finishme("shader scratch support only available with LLVM 4.0");
+
+	variant->code_size = binary->code_size;
 
 	switch (stage) {
 	case MESA_SHADER_VERTEX:
+	case MESA_SHADER_GEOMETRY:
 		variant->rsrc2 = S_00B12C_USER_SGPR(variant->info.num_user_sgprs) |
 			S_00B12C_SCRATCH_EN(scratch_enabled);
 		vgpr_comp_cnt = variant->info.vs.vgpr_comp_cnt;
@@ -403,7 +424,7 @@ static struct radv_shader_variant *radv_shader_variant_create(struct radv_device
 							      bool dump)
 {
 	struct radv_shader_variant *variant = calloc(1, sizeof(struct radv_shader_variant));
-	enum radeon_family chip_family = device->instance->physicalDevice.rad_info.family;
+	enum radeon_family chip_family = device->physical_device->rad_info.family;
 	LLVMTargetMachineRef tm;
 	if (!variant)
 		return NULL;
@@ -415,10 +436,11 @@ static struct radv_shader_variant *radv_shader_variant_create(struct radv_device
 
 	struct ac_shader_binary binary;
 
-	options.unsafe_math = env_var_as_boolean("RADV_UNSAFE_MATH", false);
+	options.unsafe_math = !!(device->debug_flags & RADV_DEBUG_UNSAFE_MATH);
 	options.family = chip_family;
-	options.chip_class = device->instance->physicalDevice.rad_info.chip_class;
-	tm = ac_create_target_machine(chip_family);
+	options.chip_class = device->physical_device->rad_info.chip_class;
+	options.supports_spill = device->llvm_supports_spill;
+	tm = ac_create_target_machine(chip_family, options.supports_spill);
 	ac_compile_nir_shader(tm, &binary, &variant->config,
 			      &variant->info, shader, &options, dump);
 	LLVMDisposeTargetMachine(tm);
@@ -439,6 +461,43 @@ static struct radv_shader_variant *radv_shader_variant_create(struct radv_device
 	return variant;
 }
 
+static struct radv_shader_variant *
+radv_pipeline_create_gs_copy_shader(struct radv_pipeline *pipeline,
+				    struct nir_shader *nir,
+				    void** code_out,
+				    unsigned *code_size_out,
+				    bool dump_shader)
+{
+	struct radv_shader_variant *variant = calloc(1, sizeof(struct radv_shader_variant));
+	enum radeon_family chip_family = pipeline->device->physical_device->rad_info.family;
+	LLVMTargetMachineRef tm;
+	if (!variant)
+		return NULL;
+
+	struct ac_nir_compiler_options options = {0};
+	struct ac_shader_binary binary;
+	options.family = chip_family;
+	options.chip_class = pipeline->device->physical_device->rad_info.chip_class;
+	options.supports_spill = pipeline->device->llvm_supports_spill;
+	tm = ac_create_target_machine(chip_family, options.supports_spill);
+	ac_create_gs_copy_shader(tm, nir, &binary, &variant->config, &variant->info, &options, dump_shader);
+	LLVMDisposeTargetMachine(tm);
+
+	radv_fill_shader_variant(pipeline->device, variant, &binary, MESA_SHADER_VERTEX);
+
+	if (code_out) {
+		*code_out = binary.code;
+		*code_size_out = binary.code_size;
+	} else
+		free(binary.code);
+	free(binary.config);
+	free(binary.rodata);
+	free(binary.global_symbol_offsets);
+	free(binary.relocs);
+	free(binary.disasm_string);
+	variant->ref_count = 1;
+	return variant;	
+}
 
 static struct radv_shader_variant *
 radv_pipeline_compile(struct radv_pipeline *pipeline,
@@ -448,26 +507,38 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 		      gl_shader_stage stage,
 		      const VkSpecializationInfo *spec_info,
 		      struct radv_pipeline_layout *layout,
-		      const union ac_shader_variant_key *key,
-		      bool dump)
+		      const union ac_shader_variant_key *key)
 {
 	unsigned char sha1[20];
+	unsigned char gs_copy_sha1[20];
 	struct radv_shader_variant *variant;
 	nir_shader *nir;
 	void *code = NULL;
 	unsigned code_size = 0;
+	bool dump = (pipeline->device->debug_flags & RADV_DEBUG_DUMP_SHADERS);
 
 	if (module->nir)
 		_mesa_sha1_compute(module->nir->info->name,
 				   strlen(module->nir->info->name),
 				   module->sha1);
 
-	radv_hash_shader(sha1, module, entrypoint, spec_info, layout, key);
+	radv_hash_shader(sha1, module, entrypoint, spec_info, layout, key, 0);
+	if (stage == MESA_SHADER_GEOMETRY)
+		radv_hash_shader(gs_copy_sha1, module, entrypoint, spec_info,
+				 layout, key, 1);
 
 	if (cache) {
 		variant = radv_create_shader_variant_from_pipeline_cache(pipeline->device,
 									 cache,
 									 sha1);
+
+		if (stage == MESA_SHADER_GEOMETRY) {
+			pipeline->gs_copy_shader =
+				radv_create_shader_variant_from_pipeline_cache(
+					pipeline->device,
+					cache,
+					gs_copy_sha1);
+		}
 		if (variant)
 			return variant;
 	}
@@ -480,8 +551,24 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 
 	variant = radv_shader_variant_create(pipeline->device, nir, layout, key,
 					     &code, &code_size, dump);
+
+	if (stage == MESA_SHADER_GEOMETRY) {
+		void *gs_copy_code = NULL;
+		unsigned gs_copy_code_size = 0;
+		pipeline->gs_copy_shader = radv_pipeline_create_gs_copy_shader(
+			pipeline, nir, &gs_copy_code, &gs_copy_code_size, dump);
+
+		if (pipeline->gs_copy_shader && cache) {
+			pipeline->gs_copy_shader =
+				radv_pipeline_cache_insert_shader(cache,
+								  gs_copy_sha1,
+								  pipeline->gs_copy_shader,
+								  gs_copy_code,
+								  gs_copy_code_size);
+		}
+	}
 	if (!module->nir)
-			ralloc_free(nir);
+		ralloc_free(nir);
 
 	if (variant && cache)
 		variant = radv_pipeline_cache_insert_shader(cache, sha1, variant,
@@ -490,6 +577,48 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 	if (code)
 		free(code);
 	return variant;
+}
+
+static VkResult
+radv_pipeline_scratch_init(struct radv_device *device,
+                           struct radv_pipeline *pipeline)
+{
+	unsigned scratch_bytes_per_wave = 0;
+	unsigned max_waves = 0;
+	unsigned min_waves = 1;
+
+	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
+		if (pipeline->shaders[i]) {
+			unsigned max_stage_waves = device->scratch_waves;
+
+			scratch_bytes_per_wave = MAX2(scratch_bytes_per_wave,
+			                              pipeline->shaders[i]->config.scratch_bytes_per_wave);
+
+			max_stage_waves = MIN2(max_stage_waves,
+			          4 * device->physical_device->rad_info.num_good_compute_units *
+			          (256 / pipeline->shaders[i]->config.num_vgprs));
+			max_waves = MAX2(max_waves, max_stage_waves);
+		}
+	}
+
+	if (pipeline->shaders[MESA_SHADER_COMPUTE]) {
+		unsigned group_size = pipeline->shaders[MESA_SHADER_COMPUTE]->info.cs.block_size[0] *
+		                      pipeline->shaders[MESA_SHADER_COMPUTE]->info.cs.block_size[1] *
+		                      pipeline->shaders[MESA_SHADER_COMPUTE]->info.cs.block_size[2];
+		min_waves = MAX2(min_waves, round_up_u32(group_size, 64));
+	}
+
+	if (scratch_bytes_per_wave)
+		max_waves = MIN2(max_waves, 0xffffffffu / scratch_bytes_per_wave);
+
+	if (scratch_bytes_per_wave && max_waves < min_waves) {
+		/* Not really true at this moment, but will be true on first
+		 * execution. Avoid having hanging shaders. */
+		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+	}
+	pipeline->scratch_bytes_per_wave = scratch_bytes_per_wave;
+	pipeline->max_waves = max_waves;
+	return VK_SUCCESS;
 }
 
 static uint32_t si_translate_blend_function(VkBlendOp op)
@@ -1028,7 +1157,7 @@ radv_pipeline_init_multisample_state(struct radv_pipeline *pipeline,
 	const VkPipelineMultisampleStateCreateInfo *vkms = pCreateInfo->pMultisampleState;
 	struct radv_blend_state *blend = &pipeline->graphics.blend;
 	struct radv_multisample_state *ms = &pipeline->graphics.ms;
-	unsigned num_tile_pipes = pipeline->device->instance->physicalDevice.rad_info.num_tile_pipes;
+	unsigned num_tile_pipes = pipeline->device->physical_device->rad_info.num_tile_pipes;
 	int ps_iter_samples = 1;
 	uint32_t mask = 0xffff;
 
@@ -1105,6 +1234,29 @@ si_translate_prim(enum VkPrimitiveTopology topology)
 		return V_008958_DI_PT_TRISTRIP_ADJ;
 	case VK_PRIMITIVE_TOPOLOGY_PATCH_LIST:
 		return V_008958_DI_PT_PATCH;
+	default:
+		assert(0);
+		return 0;
+	}
+}
+
+static uint32_t
+si_conv_gl_prim_to_gs_out(unsigned gl_prim)
+{
+	switch (gl_prim) {
+	case 0: /* GL_POINTS */
+		return V_028A6C_OUTPRIM_TYPE_POINTLIST;
+	case 1: /* GL_LINES */
+	case 3: /* GL_LINE_STRIP */
+	case 0xA: /* GL_LINE_STRIP_ADJACENCY_ARB */
+	case 0x8E7A: /* GL_ISOLINES */
+		return V_028A6C_OUTPRIM_TYPE_LINESTRIP;
+
+	case 4: /* GL_TRIANGLES */
+	case 0xc: /* GL_TRIANGLES_ADJACENCY_ARB */
+	case 5: /* GL_TRIANGLE_STRIP */
+	case 7: /* GL_QUADS */
+		return V_028A6C_OUTPRIM_TYPE_TRISTRIP;
 	default:
 		assert(0);
 		return 0;
@@ -1279,7 +1431,7 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 }
 
 static union ac_shader_variant_key
-radv_compute_vs_key(const VkGraphicsPipelineCreateInfo *pCreateInfo)
+radv_compute_vs_key(const VkGraphicsPipelineCreateInfo *pCreateInfo, bool as_es)
 {
 	union ac_shader_variant_key key;
 	const VkPipelineVertexInputStateCreateInfo *input_state =
@@ -1287,6 +1439,7 @@ radv_compute_vs_key(const VkGraphicsPipelineCreateInfo *pCreateInfo)
 
 	memset(&key, 0, sizeof(key));
 	key.vs.instance_rate_inputs = 0;
+	key.vs.as_es = as_es;
 
 	for (unsigned i = 0; i < input_state->vertexAttributeDescriptionCount; ++i) {
 		unsigned binding;
@@ -1295,6 +1448,37 @@ radv_compute_vs_key(const VkGraphicsPipelineCreateInfo *pCreateInfo)
 			key.vs.instance_rate_inputs |= 1u << input_state->pVertexAttributeDescriptions[i].location;
 	}
 	return key;
+}
+
+static void
+calculate_gs_ring_sizes(struct radv_pipeline *pipeline)
+{
+	struct radv_device *device = pipeline->device;
+	unsigned num_se = device->physical_device->rad_info.max_se;
+	unsigned wave_size = 64;
+	unsigned max_gs_waves = 32 * num_se; /* max 32 per SE on GCN */
+	unsigned gs_vertex_reuse = 16 * num_se; /* GS_VERTEX_REUSE register (per SE) */
+	unsigned alignment = 256 * num_se;
+	/* The maximum size is 63.999 MB per SE. */
+	unsigned max_size = ((unsigned)(63.999 * 1024 * 1024) & ~255) * num_se;
+
+	struct ac_shader_variant_info *gs_info = &pipeline->shaders[MESA_SHADER_GEOMETRY]->info;
+	struct ac_shader_variant_info *es_info = &pipeline->shaders[MESA_SHADER_VERTEX]->info;
+	/* Calculate the minimum size. */
+	unsigned min_esgs_ring_size = align(es_info->vs.esgs_itemsize * gs_vertex_reuse *
+					    wave_size, alignment);
+	/* These are recommended sizes, not minimum sizes. */
+	unsigned esgs_ring_size = max_gs_waves * 2 * wave_size *
+		es_info->vs.esgs_itemsize * gs_info->gs.vertices_in;
+	unsigned gsvs_ring_size = max_gs_waves * 2 * wave_size *
+		gs_info->gs.max_gsvs_emit_size * 1; // no streams in VK (gs->max_gs_stream + 1);
+
+	min_esgs_ring_size = align(min_esgs_ring_size, alignment);
+	esgs_ring_size = align(esgs_ring_size, alignment);
+	gsvs_ring_size = align(gsvs_ring_size, alignment);
+
+	pipeline->graphics.esgs_ring_size = CLAMP(esgs_ring_size, min_esgs_ring_size, max_size);
+	pipeline->graphics.gsvs_ring_size = MIN2(gsvs_ring_size, max_size);
 }
 
 VkResult
@@ -1306,8 +1490,8 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		   const VkAllocationCallbacks *alloc)
 {
 	struct radv_shader_module fs_m = {0};
+	VkResult result;
 
-	bool dump = getenv("RADV_DUMP_SHADERS");
 	if (alloc == NULL)
 		alloc = &device->alloc;
 
@@ -1327,16 +1511,31 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 
 	/* */
 	if (modules[MESA_SHADER_VERTEX]) {
-		union ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo);
+		bool as_es = modules[MESA_SHADER_GEOMETRY] != NULL;
+		union ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo, as_es);
 
 		pipeline->shaders[MESA_SHADER_VERTEX] =
 			 radv_pipeline_compile(pipeline, cache, modules[MESA_SHADER_VERTEX],
 					       pStages[MESA_SHADER_VERTEX]->pName,
 					       MESA_SHADER_VERTEX,
 					       pStages[MESA_SHADER_VERTEX]->pSpecializationInfo,
-					       pipeline->layout, &key, dump);
+					       pipeline->layout, &key);
 
 		pipeline->active_stages |= mesa_to_vk_shader_stage(MESA_SHADER_VERTEX);
+	}
+
+	if (modules[MESA_SHADER_GEOMETRY]) {
+		union ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo, false);
+
+		pipeline->shaders[MESA_SHADER_GEOMETRY] =
+			 radv_pipeline_compile(pipeline, cache, modules[MESA_SHADER_GEOMETRY],
+					       pStages[MESA_SHADER_GEOMETRY]->pName,
+					       MESA_SHADER_GEOMETRY,
+					       pStages[MESA_SHADER_GEOMETRY]->pSpecializationInfo,
+					       pipeline->layout, &key);
+
+		pipeline->active_stages |= mesa_to_vk_shader_stage(MESA_SHADER_GEOMETRY);
+		calculate_gs_ring_sizes(pipeline);
 	}
 
 	if (!modules[MESA_SHADER_FRAGMENT]) {
@@ -1359,7 +1558,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 					       stage ? stage->pName : "main",
 					       MESA_SHADER_FRAGMENT,
 					       stage ? stage->pSpecializationInfo : NULL,
-					       pipeline->layout, &key, dump);
+					       pipeline->layout, &key);
 		pipeline->active_stages |= mesa_to_vk_shader_stage(MESA_SHADER_FRAGMENT);
 	}
 
@@ -1370,7 +1569,11 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	radv_pipeline_init_raster_state(pipeline, pCreateInfo);
 	radv_pipeline_init_multisample_state(pipeline, pCreateInfo);
 	pipeline->graphics.prim = si_translate_prim(pCreateInfo->pInputAssemblyState->topology);
-	pipeline->graphics.gs_out = si_conv_prim_to_gs_out(pCreateInfo->pInputAssemblyState->topology);
+	if (radv_pipeline_has_gs(pipeline)) {
+		pipeline->graphics.gs_out = si_conv_gl_prim_to_gs_out(pipeline->shaders[MESA_SHADER_GEOMETRY]->info.gs.output_prim);
+	} else {
+		pipeline->graphics.gs_out = si_conv_prim_to_gs_out(pCreateInfo->pInputAssemblyState->topology);
+	}
 	if (extra && extra->use_rectlist) {
 		pipeline->graphics.prim = V_008958_DI_PT_RECTLIST;
 		pipeline->graphics.gs_out = V_028A6C_OUTPRIM_TYPE_TRISTRIP;
@@ -1411,11 +1614,12 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		pipeline->binding_stride[desc->binding] = desc->stride;
 	}
 
-	if (device->shader_stats_dump) {
+	if (device->debug_flags & RADV_DEBUG_DUMP_SHADER_STATS) {
 		radv_dump_pipeline_stats(device, pipeline);
 	}
 
-	return VK_SUCCESS;
+	result = radv_pipeline_scratch_init(device, pipeline);
+	return result;
 }
 
 VkResult
@@ -1441,7 +1645,7 @@ radv_graphics_pipeline_create(
 	result = radv_pipeline_init(pipeline, device, cache,
 				    pCreateInfo, extra, pAllocator);
 	if (result != VK_SUCCESS) {
-		vk_free2(&device->alloc, pAllocator, pipeline);
+		radv_pipeline_destroy(device, pipeline, pAllocator);
 		return result;
 	}
 
@@ -1487,7 +1691,7 @@ static VkResult radv_compute_pipeline_create(
 	RADV_FROM_HANDLE(radv_pipeline_cache, cache, _cache);
 	RADV_FROM_HANDLE(radv_shader_module, module, pCreateInfo->stage.module);
 	struct radv_pipeline *pipeline;
-	bool dump = getenv("RADV_DUMP_SHADERS");
+	VkResult result;
 
 	pipeline = vk_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
 			       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -1503,11 +1707,18 @@ static VkResult radv_compute_pipeline_create(
 				       pCreateInfo->stage.pName,
 				       MESA_SHADER_COMPUTE,
 				       pCreateInfo->stage.pSpecializationInfo,
-				       pipeline->layout, NULL, dump);
+				       pipeline->layout, NULL);
+
+
+	result = radv_pipeline_scratch_init(device, pipeline);
+	if (result != VK_SUCCESS) {
+		radv_pipeline_destroy(device, pipeline, pAllocator);
+		return result;
+	}
 
 	*pPipeline = radv_pipeline_to_handle(pipeline);
 
-	if (device->shader_stats_dump) {
+	if (device->debug_flags & RADV_DEBUG_DUMP_SHADER_STATS) {
 		radv_dump_pipeline_stats(device, pipeline);
 	}
 	return VK_SUCCESS;

@@ -41,6 +41,7 @@
 #include "linker.h"
 #include "glsl_parser_extras.h"
 #include "ir_builder_print_visitor.h"
+#include "builtin_functions.h"
 #include "opt_add_neg_to_sub.h"
 
 class dead_variable_visitor : public ir_hierarchical_visitor {
@@ -100,20 +101,17 @@ private:
 };
 
 void
-init_gl_program(struct gl_program *prog, GLenum target)
+init_gl_program(struct gl_program *prog, GLenum target, bool is_arb_asm)
 {
    mtx_init(&prog->Mutex, mtx_plain);
 
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
-
-   /* default mapping from samplers to texture units */
-   for (int i = 0; i < MAX_SAMPLERS; i++)
-      prog->SamplerUnits[i] = i;
+   prog->is_arb_asm = is_arb_asm;
 }
 
 struct gl_program *
-new_program(struct gl_context *ctx, GLenum target, GLuint id)
+new_program(struct gl_context *ctx, GLenum target, GLuint id, bool is_arb_asm)
 {
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
@@ -123,7 +121,7 @@ new_program(struct gl_context *ctx, GLenum target, GLuint id)
    case GL_FRAGMENT_PROGRAM_ARB:
    case GL_COMPUTE_PROGRAM_NV: {
       struct gl_program *prog = rzalloc(NULL, struct gl_program);
-      init_gl_program(prog, target);
+      init_gl_program(prog, target, is_arb_asm);
       return prog;
    }
    default:

@@ -41,6 +41,7 @@
 
 #include "protocol-common.h"
 
+ClientRec client_window;
 static ClientRec client_request;
 
 #define N_MODS 7
@@ -54,23 +55,12 @@ int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
                       DeviceIntPtr modifier_device, int button,
                       GrabParameters *param, enum InputLevel grabtype,
                       GrabMask *mask);
+int __real_GrabButton(ClientPtr client, DeviceIntPtr dev,
+                      DeviceIntPtr modifier_device, int button,
+                      GrabParameters *param, enum InputLevel grabtype,
+                      GrabMask *mask);
 static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len,
                                            char *data, void *closure);
-
-int
-__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
-{
-    if (id == root.drawable.id) {
-        *win = &root;
-        return Success;
-    }
-    else if (id == window.drawable.id) {
-        *win = &window;
-        return Success;
-    }
-
-    return __real_dixLookupWindow(win, id, client, access);
-}
 
 int
 __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
@@ -78,6 +68,9 @@ __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
                   GrabParameters *param, enum InputLevel grabtype,
                   GrabMask *mask)
 {
+    if (!enable_GrabButton_wrap)
+        __real_GrabButton(client, dev, modifier_device, button, param, grabtype, mask);
+
     /* Fail every odd modifier */
     if (param->modifiers % 2)
         return BadAccess;
@@ -252,7 +245,7 @@ test_XIPassiveGrabDevice(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xipassivegrabdevice_test(void)
 {
     init_simple();
 

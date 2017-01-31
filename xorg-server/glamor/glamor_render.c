@@ -1494,6 +1494,10 @@ glamor_composite_clipped_region(CARD8 op,
             ca_state = CA_DUAL_BLEND;
         } else {
             if (op == PictOpOver) {
+                if (glamor_pixmap_is_memory(mask_pixmap)) {
+                    glamor_fallback("two pass not supported on memory pximaps\n");
+                    goto out;
+                }
                 ca_state = CA_TWO_PASS;
                 op = PictOpOutReverse;
             }

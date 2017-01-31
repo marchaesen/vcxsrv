@@ -40,7 +40,8 @@ xkb_symbols "basic" {
     key <AC03> {  [      Arabic_yeh,     bracketright     ]     };
     key <AC04> {  [      Arabic_beh,      bracketleft,      0x100067e   ]     };
     key <AC05> {  [      Arabic_lam,        0x100fef7     ]     };
-    key <AC06> {  [     Arabic_alef, Arabic_hamzaonalef   ]     };
+    // ARABIC LETTER ALEF WASLA on AltGr
+    key <AC06> {  [     Arabic_alef, Arabic_hamzaonalef,    0x1000671   ]     };
     key <AC07> {  [      Arabic_teh,   Arabic_tatweel     ]     };
     key <AC08> {  [     Arabic_noon,     Arabic_comma     ]     };
     key <AC09> {  [     Arabic_meem,            slash     ]     };
@@ -53,7 +54,8 @@ xkb_symbols "basic" {
     key <AB03> {  [Arabic_hamzaonwaw,      braceright     ]     };
     key <AB04> {  [       Arabic_ra,        braceleft     ]     };
     key <AB05> {  [       0x100fefb,        0x100fef5     ]     };
-    key <AB06> {  [Arabic_alefmaksura, Arabic_maddaonalef ]     };
+    // ARABIC LETTER SUPERSCRIPT ALEF on AltGr
+    key <AB06> {  [Arabic_alefmaksura, Arabic_maddaonalef,  0x1000670 ]     };
     key <AB07> {  [Arabic_tehmarbuta,      apostrophe     ]     };
     key <AB08> {  [      Arabic_waw,            comma     ]     };
     key <AB09> {  [     Arabic_zain,           period     ]     };
@@ -294,7 +296,7 @@ xkb_symbols "mac" {
     key <AE11> {  [            minus,      underscore      ]     };
     key <AE12> {  [            equal,            plus      ]     };
     
-    key <TLDE> {  [       VoidSymbol,      VoidSymbol      ]	 };
+    key <TLDE> {  [   Arabic_tatweel,     VoidSymbol       ]	 };
     key <AD03> {  [      Arabic_theh,     Arabic_kasra     ]     };
     key <AD04> {  [       Arabic_qaf,     Arabic_kasratan  ]     };
     key <AD05> {  [       Arabic_feh,     Arabic_damma     ]     };
@@ -309,10 +311,10 @@ xkb_symbols "mac" {
     key <AC01> {  [    Arabic_sheen,     guillemotright     ]     };
     key <AC02> {  [     Arabic_seen,     guillemotleft    ]     };
     key <AC03> {  [      Arabic_yeh,     Arabic_alefmaksura]     };
-    key <AC04> {  [      Arabic_beh,     VoidSymbol        ]     };
+    key <AC04> {  [      Arabic_beh,     0x1000670         ]     };
     key <AC05> {  [      Arabic_lam,     VoidSymbol        ]     };
     key <AC06> {  [     Arabic_alef,   Arabic_maddaonalef  ]     };
-    key <AC07> {  [      Arabic_teh,     VoidSymbol        ]     };
+    key <AC07> {  [      Arabic_teh,     0x1000671         ]     };
     key <AC08> {  [     Arabic_noon,     VoidSymbol        ]     };
     key <AC09> {  [     Arabic_meem,     VoidSymbol        ]     };
     key <AC10> {  [      Arabic_kaf,            colon      ]     };

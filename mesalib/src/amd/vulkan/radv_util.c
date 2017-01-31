@@ -65,25 +65,6 @@ void radv_printflike(3, 4)
 	fprintf(stderr, "%s:%d: FINISHME: %s\n", file, line, buffer);
 }
 
-void radv_noreturn radv_printflike(1, 2)
-	radv_abortf(const char *format, ...)
-{
-	va_list va;
-
-	va_start(va, format);
-	radv_abortfv(format, va);
-	va_end(va);
-}
-
-void radv_noreturn
-radv_abortfv(const char *format, va_list va)
-{
-	fprintf(stderr, "vk: error: ");
-	vfprintf(stderr, format, va);
-	fprintf(stderr, "\n");
-	abort();
-}
-
 VkResult
 __vk_errorf(VkResult error, const char *file, int line, const char *format, ...)
 {
@@ -103,10 +84,20 @@ __vk_errorf(VkResult error, const char *file, int line, const char *format, ...)
 			ERROR_CASE(VK_ERROR_MEMORY_MAP_FAILED)
 			ERROR_CASE(VK_ERROR_LAYER_NOT_PRESENT)
 			ERROR_CASE(VK_ERROR_EXTENSION_NOT_PRESENT)
+			ERROR_CASE(VK_ERROR_FEATURE_NOT_PRESENT)
 			ERROR_CASE(VK_ERROR_INCOMPATIBLE_DRIVER)
+			ERROR_CASE(VK_ERROR_TOO_MANY_OBJECTS)
+			ERROR_CASE(VK_ERROR_FORMAT_NOT_SUPPORTED)
+			ERROR_CASE(VK_ERROR_FRAGMENTED_POOL)
 
 			/* Extension errors */
+			ERROR_CASE(VK_ERROR_SURFACE_LOST_KHR)
+			ERROR_CASE(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR)
 			ERROR_CASE(VK_ERROR_OUT_OF_DATE_KHR)
+			ERROR_CASE(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR)
+			ERROR_CASE(VK_ERROR_VALIDATION_FAILED_EXT)
+			ERROR_CASE(VK_ERROR_INVALID_SHADER_NV)
+			ERROR_CASE(VK_ERROR_OUT_OF_POOL_MEMORY_KHR)
 
 	default:
 		assert(!"Unknown error");

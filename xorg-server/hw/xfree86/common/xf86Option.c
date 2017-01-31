@@ -87,7 +87,7 @@ xf86CollectOptions(ScrnInfoPtr pScrn, XF86OptionPtr extraOpts)
         if (device && device->options) {
             tmp = xf86optionListDup(device->options);
             if (pScrn->options)
-                xf86optionListMerge(pScrn->options, tmp);
+                pScrn->options = xf86optionListMerge(pScrn->options, tmp);
             else
                 pScrn->options = tmp;
         }

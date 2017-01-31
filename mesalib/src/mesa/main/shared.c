@@ -70,9 +70,9 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    shared->Programs = _mesa_NewHashTable();
 
    shared->DefaultVertexProgram =
-      ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0);
+      ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0, true);
    shared->DefaultFragmentProgram =
-      ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB, 0);
+      ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB, 0, true);
 
    shared->ATIShaders = _mesa_NewHashTable();
    shared->DefaultFragmentShader = _mesa_new_ati_fragment_shader(ctx, 0);

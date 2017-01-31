@@ -54,38 +54,39 @@
  * fragment program.
  */
 static struct gl_program *
-st_new_program(struct gl_context *ctx, GLenum target, GLuint id)
+st_new_program(struct gl_context *ctx, GLenum target, GLuint id,
+               bool is_arb_asm)
 {
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: {
       struct st_vertex_program *prog = rzalloc(NULL,
                                                struct st_vertex_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    case GL_FRAGMENT_PROGRAM_ARB: {
       struct st_fragment_program *prog = rzalloc(NULL,
                                                  struct st_fragment_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *prog = rzalloc(NULL,
                                                  struct st_geometry_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    case GL_TESS_CONTROL_PROGRAM_NV: {
       struct st_tessctrl_program *prog = rzalloc(NULL,
                                                  struct st_tessctrl_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    case GL_TESS_EVALUATION_PROGRAM_NV: {
       struct st_tesseval_program *prog = rzalloc(NULL,
                                                  struct st_tesseval_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    case GL_COMPUTE_PROGRAM_NV: {
       struct st_compute_program *prog = rzalloc(NULL,
                                                 struct st_compute_program);
-      return _mesa_init_gl_program(&prog->Base, target, id);
+      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    default:
       assert(0);
@@ -290,7 +291,7 @@ static struct gl_program *
 st_new_ati_fs(struct gl_context *ctx, struct ati_fragment_shader *curProg)
 {
    struct gl_program *prog = ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB,
-         curProg->Id);
+         curProg->Id, true);
    struct st_fragment_program *stfp = (struct st_fragment_program *)prog;
    stfp->ati_fs = curProg;
    return prog;

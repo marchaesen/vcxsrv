@@ -483,7 +483,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    const struct pipe_sampler_state *sampler_states[] =
          { &hud->font_sampler_state };
    struct hud_pane *pane;
-   struct hud_graph *gr;
+   struct hud_graph *gr, *next;
 
    if (!huds_visible)
       return;
@@ -564,9 +564,9 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
    /* prepare vertex buffers */
-   hud_alloc_vertices(hud, &hud->bg, 4 * 256, 2 * sizeof(float));
+   hud_alloc_vertices(hud, &hud->bg, 16 * 256, 2 * sizeof(float));
    hud_alloc_vertices(hud, &hud->whitelines, 4 * 256, 2 * sizeof(float));
-   hud_alloc_vertices(hud, &hud->text, 4 * 1024, 4 * sizeof(float));
+   hud_alloc_vertices(hud, &hud->text, 16 * 1024, 4 * sizeof(float));
 
    /* prepare all graphs */
    hud_batch_query_update(hud->batch_query);
@@ -574,6 +574,23 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
       LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
          gr->query_new_value(gr);
+      }
+
+      if (pane->sort_items) {
+         LIST_FOR_EACH_ENTRY_SAFE(gr, next, &pane->graph_list, head) {
+            /* ignore the last one */
+            if (&gr->head == pane->graph_list.prev)
+               continue;
+
+            /* This is an incremental bubble sort, because we only do one pass
+             * per frame. It will eventually reach an equilibrium.
+             */
+            if (gr->current_value <
+                LIST_ENTRY(struct hud_graph, next, head)->current_value) {
+               LIST_DEL(&gr->head);
+               LIST_ADD(&gr->head, &next->head);
+            }
+         }
       }
 
       hud_pane_accumulate_vertices(hud, pane);
@@ -645,6 +662,16 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
 
    pipe_surface_reference(&surf, NULL);
+
+   /* Start queries. */
+   hud_batch_query_begin(hud->batch_query);
+
+   LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
+      LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
+         if (gr->begin_query)
+            gr->begin_query(gr);
+      }
+   }
 }
 
 static void
@@ -761,7 +788,7 @@ hud_pane_update_dyn_ceiling(struct hud_graph *gr, struct hud_pane *pane)
 static struct hud_pane *
 hud_pane_create(unsigned x1, unsigned y1, unsigned x2, unsigned y2,
                 unsigned period, uint64_t max_value, uint64_t ceiling,
-                boolean dyn_ceiling)
+                boolean dyn_ceiling, boolean sort_items)
 {
    struct hud_pane *pane = CALLOC_STRUCT(hud_pane);
 
@@ -783,10 +810,22 @@ hud_pane_create(unsigned x1, unsigned y1, unsigned x2, unsigned y2,
    pane->ceiling = ceiling;
    pane->dyn_ceiling = dyn_ceiling;
    pane->dyn_ceil_last_ran = 0;
+   pane->sort_items = sort_items;
    pane->initial_max_value = max_value;
    hud_pane_set_max_value(pane, max_value);
    LIST_INITHEAD(&pane->graph_list);
    return pane;
+}
+
+/* replace '-' with a space */
+static void
+strip_hyphens(char *s)
+{
+   while (*s) {
+      if (*s == '-')
+         *s = ' ';
+      s++;
+   }
 }
 
 /**
@@ -802,26 +841,29 @@ hud_pane_add_graph(struct hud_pane *pane, struct hud_graph *gr)
       {0, 1, 1},
       {1, 0, 1},
       {1, 1, 0},
-      {0.5, 0.5, 1},
-      {0.5, 0.5, 0.5},
+      {0.5, 1, 0.5},
+      {1, 0.5, 0.5},
+      {0.5, 1, 1},
+      {1, 0.5, 1},
+      {1, 1, 0.5},
+      {0, 0.5, 0},
+      {0.5, 0, 0},
+      {0, 0.5, 0.5},
+      {0.5, 0, 0.5},
+      {0.5, 0.5, 0},
    };
-   char *name = gr->name;
+   unsigned color = pane->next_color % ARRAY_SIZE(colors);
 
-   /* replace '-' with a space */
-   while (*name) {
-      if (*name == '-')
-         *name = ' ';
-      name++;
-   }
+   strip_hyphens(gr->name);
 
-   assert(pane->num_graphs < ARRAY_SIZE(colors));
    gr->vertices = MALLOC(pane->max_num_vertices * sizeof(float) * 2);
-   gr->color[0] = colors[pane->num_graphs][0];
-   gr->color[1] = colors[pane->num_graphs][1];
-   gr->color[2] = colors[pane->num_graphs][2];
+   gr->color[0] = colors[color][0];
+   gr->color[1] = colors[color][1];
+   gr->color[2] = colors[color][2];
    gr->pane = pane;
    LIST_ADDTAIL(&gr->head, &pane->graph_list);
    pane->num_graphs++;
+   pane->next_color++;
 }
 
 void
@@ -895,7 +937,7 @@ parse_string(const char *s, char *out)
 {
    int i;
 
-   for (i = 0; *s && *s != '+' && *s != ',' && *s != ':' && *s != ';';
+   for (i = 0; *s && *s != '+' && *s != ',' && *s != ':' && *s != ';' && *s != '=';
         s++, out++, i++)
       *out = *s;
 
@@ -913,7 +955,8 @@ parse_string(const char *s, char *out)
 static char *
 read_pane_settings(char *str, unsigned * const x, unsigned * const y,
                unsigned * const width, unsigned * const height,
-               uint64_t * const ceiling, boolean * const dyn_ceiling)
+               uint64_t * const ceiling, boolean * const dyn_ceiling,
+               boolean *reset_colors, boolean *sort_items)
 {
    char *ret = str;
    unsigned tmp;
@@ -964,6 +1007,18 @@ read_pane_settings(char *str, unsigned * const x, unsigned * const y,
          *dyn_ceiling = true;
          break;
 
+      case 'r':
+         ++str;
+         ret = str;
+         *reset_colors = true;
+         break;
+
+      case 's':
+         ++str;
+         ret = str;
+         *sort_items = true;
+         break;
+
       default:
          fprintf(stderr, "gallium_hud: syntax error: unexpected '%c'\n", *str);
          fflush(stderr);
@@ -1005,6 +1060,8 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
    uint64_t ceiling = UINT64_MAX;
    unsigned column_width = 251;
    boolean dyn_ceiling = false;
+   boolean reset_colors = false;
+   boolean sort_items = false;
    const char *period_env;
 
    /*
@@ -1025,7 +1082,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
 
       /* check for explicit location, size and etc. settings */
       name = read_pane_settings(name_a, &x, &y, &width, &height, &ceiling,
-                         &dyn_ceiling);
+                                &dyn_ceiling, &reset_colors, &sort_items);
 
      /*
       * Keep track of overall column width to avoid pane overlapping in case
@@ -1036,9 +1093,14 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
 
       if (!pane) {
          pane = hud_pane_create(x, y, x + width, y + height, period, 10,
-                         ceiling, dyn_ceiling);
+                         ceiling, dyn_ceiling, sort_items);
          if (!pane)
             return;
+      }
+
+      if (reset_colors) {
+         pane->next_color = 0;
+         reset_colors = false;
       }
 
       /* Add a graph. */
@@ -1193,8 +1255,30 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
          }
          else {
             fprintf(stderr, "gallium_hud: syntax error: unexpected '%c' (%i) "
-                    "after ':'\n", *env, *env);
+                            "after ':'\n", *env, *env);
             fflush(stderr);
+         }
+      }
+
+      if (*env == '=') {
+         env++;
+
+         if (!pane) {
+            fprintf(stderr, "gallium_hud: syntax error: unexpected '=', "
+                    "expected a name\n");
+            fflush(stderr);
+            break;
+         }
+
+         num = parse_string(env, s);
+         env += num;
+
+         strip_hyphens(s);
+         if (!LIST_IS_EMPTY(&pane->graph_list)) {
+            struct hud_graph *graph;
+            graph = LIST_ENTRY(struct hud_graph, pane->graph_list.prev, head);
+            strncpy(graph->name, s, sizeof(graph->name)-1);
+            graph->name[sizeof(graph->name)-1] = 0;
          }
       }
 
@@ -1245,6 +1329,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       width = 251;
       ceiling = UINT64_MAX;
       dyn_ceiling = false;
+      sort_items = false;
 
    }
 
@@ -1274,6 +1359,8 @@ print_help(struct pipe_screen *screen)
    puts("             for the given pane.");
    puts("  ',' creates a new pane below the last one.");
    puts("  ';' creates a new pane at the top of the next column.");
+   puts("  '=' followed by a string, changes the name of the last data source");
+   puts("      to that string");
    puts("");
    puts("  Example: GALLIUM_HUD=\"cpu,fps;primitives-generated\"");
    puts("");
@@ -1294,6 +1381,8 @@ print_help(struct pipe_screen *screen)
    puts("             the ceiling allows, the value is clamped.");
    puts("  'd' activates dynamic Y axis readjustment to set the value of");
    puts("      the Y axis to match the highest value still visible in the graph.");
+   puts("  'r' resets the color counter (the next color will be green)");
+   puts("  's' sort items below graphs in descending order");
    puts("");
    puts("  If 'c' and 'd' modifiers are used simultaneously, both are in effect:");
    puts("  the Y axis does not go above the restriction imposed by 'c' while");

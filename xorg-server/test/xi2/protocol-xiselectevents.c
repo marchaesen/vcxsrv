@@ -62,31 +62,20 @@
 
 static unsigned char *data[4096 * 20];  /* the request data buffer */
 
+ClientRec client_window;
+
+int
+__real_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len,
+                      unsigned char *mask);
+
 int
 __wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len,
                       unsigned char *mask)
 {
+    if (!enable_XISetEventMask_wrap)
+        return __real_XISetEventMask(dev, win, len, mask);
+
     return Success;
-}
-
-/* dixLookupWindow requires a lot of setup not necessary for this test.
- * Simple wrapper that returns either one of the fake root window or the
- * fake client window. If the requested ID is neither of those wanted,
- * return whatever the real dixLookupWindow does.
- */
-int
-__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
-{
-    if (id == root.drawable.id) {
-        *win = &root;
-        return Success;
-    }
-    else if (id == window.drawable.id) {
-        *win = &window;
-        return Success;
-    }
-
-    return __real_dixLookupWindow(win, id, client, access);
 }
 
 static void
@@ -342,7 +331,7 @@ test_XISelectEvents(void)
 }
 
 int
-main(int argc, char **argv)
+protocol_xiselectevents_test(void)
 {
     init_simple();
 

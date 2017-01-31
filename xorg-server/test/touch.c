@@ -30,6 +30,8 @@
 #include "assert.h"
 #include "scrnintstr.h"
 
+#include "tests-common.h"
+
 static void
 touch_grow_queue(void)
 {
@@ -278,13 +280,15 @@ touch_init(void)
 }
 
 int
-main(int argc, char **argv)
+touch_test(void)
 {
+    printf("touch_test: start...\n");
     touch_grow_queue();
     touch_find_ddxid();
     touch_begin_ddxtouch();
     touch_init();
     touch_begin_touch();
 
+    printf("touch_test: exiting successfully\n");
     return 0;
 }

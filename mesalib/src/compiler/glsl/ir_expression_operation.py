@@ -80,14 +80,16 @@ class type_signature_iter(object):
 
 uint_type = type("unsigned", "u", "GLSL_TYPE_UINT")
 int_type = type("int", "i", "GLSL_TYPE_INT")
+uint64_type = type("uint64_t", "u64", "GLSL_TYPE_UINT64")
+int64_type = type("int64_t", "i64", "GLSL_TYPE_INT64")
 float_type = type("float", "f", "GLSL_TYPE_FLOAT")
 double_type = type("double", "d", "GLSL_TYPE_DOUBLE")
 bool_type = type("bool", "b", "GLSL_TYPE_BOOL")
 
-all_types = (uint_type, int_type, float_type, double_type, bool_type)
-numeric_types = (uint_type, int_type, float_type, double_type)
-signed_numeric_types = (int_type, float_type, double_type)
-integer_types = (uint_type, int_type)
+all_types = (uint_type, int_type, float_type, double_type, uint64_type, int64_type, bool_type)
+numeric_types = (uint_type, int_type, float_type, double_type, uint64_type, int64_type)
+signed_numeric_types = (int_type, float_type, double_type, int64_type)
+integer_types = (uint_type, int_type, uint64_type, int64_type)
 real_types = (float_type, double_type)
 
 # This template is for operations that can have operands of a several
@@ -418,8 +420,8 @@ ir_expression_operation = [
    operation("bit_not", 1, printable_name="~", source_types=integer_types, c_expression="~ {src0}"),
    operation("logic_not", 1, printable_name="!", source_types=(bool_type,), c_expression="!{src0}"),
    operation("neg", 1, source_types=numeric_types, c_expression={'u': "-((int) {src0})", 'default': "-{src0}"}),
-   operation("abs", 1, source_types=signed_numeric_types, c_expression={'i': "{src0} < 0 ? -{src0} : {src0}", 'f': "fabsf({src0})", 'd': "fabs({src0})"}),
-   operation("sign", 1, source_types=signed_numeric_types, c_expression={'i': "({src0} > 0) - ({src0} < 0)", 'f': "float(({src0} > 0.0F) - ({src0} < 0.0F))", 'd': "double(({src0} > 0.0) - ({src0} < 0.0))"}),
+   operation("abs", 1, source_types=signed_numeric_types, c_expression={'i': "{src0} < 0 ? -{src0} : {src0}", 'f': "fabsf({src0})", 'd': "fabs({src0})", 'i64': "{src0} < 0 ? -{src0} : {src0}"}),
+   operation("sign", 1, source_types=signed_numeric_types, c_expression={'i': "({src0} > 0) - ({src0} < 0)", 'f': "float(({src0} > 0.0F) - ({src0} < 0.0F))", 'd': "double(({src0} > 0.0) - ({src0} < 0.0))", 'i64': "({src0} > 0) - ({src0} < 0)"}),
    operation("rcp", 1, source_types=real_types, c_expression={'f': "{src0} != 0.0F ? 1.0F / {src0} : 0.0F", 'd': "{src0} != 0.0 ? 1.0 / {src0} : 0.0"}),
    operation("rsq", 1, source_types=real_types, c_expression={'f': "1.0F / sqrtf({src0})", 'd': "1.0 / sqrt({src0})"}),
    operation("sqrt", 1, source_types=real_types, c_expression={'f': "sqrtf({src0})", 'd': "sqrt({src0})"}),
@@ -439,7 +441,7 @@ ir_expression_operation = [
    # Boolean-to-float conversion
    operation("b2f", 1, source_types=(bool_type,), dest_type=float_type, c_expression="{src0} ? 1.0F : 0.0F"),
    # int-to-boolean conversion
-   operation("i2b", 1, source_types=integer_types, dest_type=bool_type, c_expression="{src0} ? true : false"),
+   operation("i2b", 1, source_types=(uint_type, int_type), dest_type=bool_type, c_expression="{src0} ? true : false"),
    # Boolean-to-int conversion
    operation("b2i", 1, source_types=(bool_type,), dest_type=int_type, c_expression="{src0} ? 1 : 0"),
    # Unsigned-to-float conversion.
@@ -470,6 +472,37 @@ ir_expression_operation = [
    operation("bitcast_u2f", 1, source_types=(uint_type,), dest_type=float_type, c_expression="bitcast_u2f({src0})"),
    # 'Bit-identical float-to-uint "conversion"
    operation("bitcast_f2u", 1, source_types=(float_type,), dest_type=uint_type, c_expression="bitcast_f2u({src0})"),
+   # Bit-identical u64-to-double "conversion"
+   operation("bitcast_u642d", 1, source_types=(uint64_type,), dest_type=double_type, c_expression="bitcast_u642d({src0})"),
+   # Bit-identical i64-to-double "conversion"
+   operation("bitcast_i642d", 1, source_types=(int64_type,), dest_type=double_type, c_expression="bitcast_i642d({src0})"),
+   # Bit-identical double-to_u64 "conversion"
+   operation("bitcast_d2u64", 1, source_types=(double_type,), dest_type=uint64_type, c_expression="bitcast_d2u64({src0})"),
+   # Bit-identical double-to-i64 "conversion"
+   operation("bitcast_d2i64", 1, source_types=(double_type,), dest_type=int64_type, c_expression="bitcast_d2i64({src0})"),
+   # i64-to-i32 conversion
+   operation("i642i", 1, source_types=(int64_type,), dest_type=int_type, c_expression="{src0}"),
+   # ui64-to-i32 conversion
+   operation("u642i", 1, source_types=(uint64_type,), dest_type=int_type, c_expression="{src0}"),
+   operation("i642u", 1, source_types=(int64_type,), dest_type=uint_type, c_expression="{src0}"),
+   operation("u642u", 1, source_types=(uint64_type,), dest_type=uint_type, c_expression="{src0}"),
+   operation("i642b", 1, source_types=(int64_type,), dest_type=bool_type, c_expression="{src0} != 0"),
+   operation("i642f", 1, source_types=(int64_type,), dest_type=float_type, c_expression="{src0}"),
+   operation("u642f", 1, source_types=(uint64_type,), dest_type=float_type, c_expression="{src0}"),
+   operation("i642d", 1, source_types=(int64_type,), dest_type=double_type, c_expression="{src0}"),
+   operation("u642d", 1, source_types=(uint64_type,), dest_type=double_type, c_expression="{src0}"),
+   operation("i2i64", 1, source_types=(int_type,), dest_type=int64_type, c_expression="{src0}"),
+   operation("u2i64", 1, source_types=(uint_type,), dest_type=int64_type, c_expression="{src0}"),
+   operation("b2i64", 1, source_types=(bool_type,), dest_type=int64_type, c_expression="{src0}"),
+   operation("f2i64", 1, source_types=(float_type,), dest_type=int64_type, c_expression="{src0}"),
+   operation("d2i64", 1, source_types=(double_type,), dest_type=int64_type, c_expression="{src0}"),
+   operation("i2u64", 1, source_types=(int_type,), dest_type=uint64_type, c_expression="{src0}"),
+   operation("u2u64", 1, source_types=(uint_type,), dest_type=uint64_type, c_expression="{src0}"),
+   operation("f2u64", 1, source_types=(float_type,), dest_type=uint64_type, c_expression="{src0}"),
+   operation("d2u64", 1, source_types=(double_type,), dest_type=uint64_type, c_expression="{src0}"),
+   operation("u642i64", 1, source_types=(uint64_type,), dest_type=int64_type, c_expression="{src0}"),
+   operation("i642u64", 1, source_types=(int64_type,), dest_type=uint64_type, c_expression="{src0}"),
+
 
    # Unary floating-point rounding operations.
    operation("trunc", 1, source_types=real_types, c_expression={'f': "truncf({src0})", 'd': "trunc({src0})"}),
@@ -503,10 +536,10 @@ ir_expression_operation = [
    operation("unpack_half_2x16", 1, printable_name="unpackHalf2x16", source_types=(uint_type,), dest_type=float_type, c_expression="unpack_2x16(unpack_half_1x16, op[0]->value.u[0], &data.f[0], &data.f[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
 
    # Bit operations, part of ARB_gpu_shader5.
-   operation("bitfield_reverse", 1, source_types=integer_types, c_expression="bitfield_reverse({src0})"),
-   operation("bit_count", 1, source_types=integer_types, dest_type=int_type, c_expression="_mesa_bitcount({src0})"),
-   operation("find_msb", 1, source_types=integer_types, dest_type=int_type, c_expression={'u': "find_msb_uint({src0})", 'i': "find_msb_int({src0})"}),
-   operation("find_lsb", 1, source_types=integer_types, dest_type=int_type, c_expression="find_msb_uint({src0} & -{src0})"),
+   operation("bitfield_reverse", 1, source_types=(uint_type, int_type), c_expression="bitfield_reverse({src0})"),
+   operation("bit_count", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="_mesa_bitcount({src0})"),
+   operation("find_msb", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression={'u': "find_msb_uint({src0})", 'i': "find_msb_int({src0})"}),
+   operation("find_lsb", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="find_msb_uint({src0} & -{src0})"),
 
    operation("saturate", 1, printable_name="sat", source_types=(float_type,), c_expression="CLAMP({src0}, 0.0f, 1.0f)"),
 
@@ -543,12 +576,18 @@ ir_expression_operation = [
    operation("vote_all", 1),
    operation("vote_eq", 1),
 
+   # 64-bit integer packing ops.
+   operation("pack_int_2x32", 1, printable_name="packInt2x32", source_types=(int_type,), dest_type=int64_type, c_expression="memcpy(&data.i64[0], &op[0]->value.i[0], sizeof(int64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_uint_2x32", 1, printable_name="packUint2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="memcpy(&data.u64[0], &op[0]->value.u[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_int_2x32", 1, printable_name="unpackInt2x32", source_types=(int64_type,), dest_type=int_type, c_expression="memcpy(&data.i[0], &op[0]->value.i64[0], sizeof(int64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_uint_2x32", 1, printable_name="unpackUint2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.u64[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+
    operation("add", 2, printable_name="+", source_types=numeric_types, c_expression="{src0} + {src1}", flags=vector_scalar_operation),
    operation("sub", 2, printable_name="-", source_types=numeric_types, c_expression="{src0} - {src1}", flags=vector_scalar_operation),
    # "Floating-point or low 32-bit integer multiply."
    operation("mul", 2, printable_name="*", source_types=numeric_types, c_expression="{src0} * {src1}"),
    operation("imul_high", 2),       # Calculates the high 32-bits of a 64-bit multiply.
-   operation("div", 2, printable_name="/", source_types=numeric_types, c_expression={'u': "{src1} == 0 ? 0 : {src0} / {src1}", 'i': "{src1} == 0 ? 0 : {src0} / {src1}", 'default': "{src0} / {src1}"}, flags=vector_scalar_operation),
+   operation("div", 2, printable_name="/", source_types=numeric_types, c_expression={'u': "{src1} == 0 ? 0 : {src0} / {src1}", 'i': "{src1} == 0 ? 0 : {src0} / {src1}", 'u64': "{src1} == 0 ? 0 : {src0} / {src1}", 'i64': "{src1} == 0 ? 0 : {src0} / {src1}", 'default': "{src0} / {src1}"}, flags=vector_scalar_operation),
 
    # Returns the carry resulting from the addition of the two arguments.
    operation("carry", 2),
@@ -561,7 +600,7 @@ ir_expression_operation = [
    #
    # We don't use fmod because it rounds toward zero; GLSL specifies the use
    # of floor.
-   operation("mod", 2, printable_name="%", source_types=numeric_types, c_expression={'u': "{src1} == 0 ? 0 : {src0} % {src1}", 'i': "{src1} == 0 ? 0 : {src0} % {src1}", 'f': "{src0} - {src1} * floorf({src0} / {src1})", 'd': "{src0} - {src1} * floor({src0} / {src1})"}, flags=vector_scalar_operation),
+   operation("mod", 2, printable_name="%", source_types=numeric_types, c_expression={'u': "{src1} == 0 ? 0 : {src0} % {src1}", 'i': "{src1} == 0 ? 0 : {src0} % {src1}", 'f': "{src0} - {src1} * floorf({src0} / {src1})", 'd': "{src0} - {src1} * floor({src0} / {src1})", 'u64': "{src1} == 0 ? 0 : {src0} % {src1}", 'i64': "{src1} == 0 ? 0 : {src0} % {src1}"}, flags=vector_scalar_operation),
 
    # Binary comparison operators which return a boolean vector.
    # The type of both operands must be equal.

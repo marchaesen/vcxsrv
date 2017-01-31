@@ -379,7 +379,8 @@ wsi_wl_surface_get_capabilities(VkIcdSurfaceBase *surface,
 
    caps->currentExtent = (VkExtent2D) { -1, -1 };
    caps->minImageExtent = (VkExtent2D) { 1, 1 };
-   caps->maxImageExtent = (VkExtent2D) { INT16_MAX, INT16_MAX };
+   /* This is the maximum supported size on Intel */
+   caps->maxImageExtent = (VkExtent2D) { 1 << 14, 1 << 14 };
    caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    caps->maxImageArrayLayers = 1;
@@ -409,24 +410,26 @@ wsi_wl_surface_get_formats(VkIcdSurfaceBase *icd_surface,
    if (!display)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-   uint32_t count = u_vector_length(&display->formats);
-
    if (pSurfaceFormats == NULL) {
-      *pSurfaceFormatCount = count;
+      *pSurfaceFormatCount = u_vector_length(&display->formats);
       return VK_SUCCESS;
    }
 
-   assert(*pSurfaceFormatCount >= count);
-   *pSurfaceFormatCount = count;
-
+   uint32_t count = 0;
    VkFormat *f;
    u_vector_foreach(f, &display->formats) {
-      *(pSurfaceFormats++) = (VkSurfaceFormatKHR) {
+      if (count == *pSurfaceFormatCount)
+         return VK_INCOMPLETE;
+
+      pSurfaceFormats[count++] = (VkSurfaceFormatKHR) {
          .format = *f,
          /* TODO: We should get this from the compositor somehow */
          .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
       };
    }
+
+   assert(*pSurfaceFormatCount <= count);
+   *pSurfaceFormatCount = count;
 
    return VK_SUCCESS;
 }
@@ -441,11 +444,13 @@ wsi_wl_surface_get_present_modes(VkIcdSurfaceBase *surface,
       return VK_SUCCESS;
    }
 
-   assert(*pPresentModeCount >= ARRAY_SIZE(present_modes));
+   *pPresentModeCount = MIN2(*pPresentModeCount, ARRAY_SIZE(present_modes));
    typed_memcpy(pPresentModes, present_modes, *pPresentModeCount);
-   *pPresentModeCount = ARRAY_SIZE(present_modes);
 
-   return VK_SUCCESS;
+   if (*pPresentModeCount < ARRAY_SIZE(present_modes))
+      return VK_INCOMPLETE;
+   else
+      return VK_SUCCESS;
 }
 
 VkResult wsi_create_wl_surface(const VkAllocationCallbacks *pAllocator,
@@ -463,7 +468,7 @@ VkResult wsi_create_wl_surface(const VkAllocationCallbacks *pAllocator,
    surface->display = pCreateInfo->display;
    surface->surface = pCreateInfo->surface;
 
-   *pSurface = _VkIcdSurfaceBase_to_handle(&surface->base);
+   *pSurface = VkIcdSurfaceBase_to_handle(&surface->base);
 
    return VK_SUCCESS;
 }

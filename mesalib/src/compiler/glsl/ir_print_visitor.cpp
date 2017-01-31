@@ -21,6 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <inttypes.h> /* for PRIx64 macro */
 #include "ir_print_visitor.h"
 #include "compiler/glsl_types.h"
 #include "glsl_parser_extras.h"
@@ -476,6 +477,8 @@ void ir_print_visitor::visit(ir_constant *ir)
             else
                fprintf(f, "%f", ir->value.f[i]);
             break;
+	 case GLSL_TYPE_UINT64:fprintf(f, "%" PRIu64, ir->value.u64[i]); break;
+	 case GLSL_TYPE_INT64: fprintf(f, "%" PRIi64, ir->value.i64[i]); break;
 	 case GLSL_TYPE_BOOL:  fprintf(f, "%d", ir->value.b[i]); break;
 	 case GLSL_TYPE_DOUBLE:
             if (ir->value.d[i] == 0.0)

@@ -241,8 +241,8 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
 static int
 compare_blocks(const void *_a, const void *_b)
 {
-   nir_block * const * a = _a;
-   nir_block * const * b = _b;
+   const nir_block * const * a = _a;
+   const nir_block * const * b = _b;
 
    return (*a)->index - (*b)->index;
 }

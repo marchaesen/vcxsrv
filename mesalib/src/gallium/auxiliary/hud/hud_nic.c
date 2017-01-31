@@ -263,11 +263,11 @@ hud_nic_graph_install(struct hud_pane *pane, const char *nic_name,
 
    nic->mode = mode;
    if (nic->mode == NIC_DIRECTION_RX) {
-      snprintf(gr->name, sizeof(gr->name), "%s-rx-%lldMbps", nic->name,
+      snprintf(gr->name, sizeof(gr->name), "%s-rx-%"PRId64"Mbps", nic->name,
          nic->speedMbps);
    }
    else if (nic->mode == NIC_DIRECTION_TX) {
-      snprintf(gr->name, sizeof(gr->name), "%s-tx-%lldMbps", nic->name,
+      snprintf(gr->name, sizeof(gr->name), "%s-tx-%"PRId64"Mbps", nic->name,
          nic->speedMbps);
    }
    else if (nic->mode == NIC_RSSI_DBM)
