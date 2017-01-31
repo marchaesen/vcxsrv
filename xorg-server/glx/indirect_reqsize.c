@@ -40,10 +40,7 @@
 #include "indirect_size.h"
 #include "indirect_reqsize.h"
 
-#if defined(__CYGWIN__) || defined(__MINGW32__)
-#  undef HAVE_ALIAS
-#endif
-#ifdef HAVE_ALIAS
+#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS
 #  define ALIAS2(from,to) \
     GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \
         __attribute__ ((alias( # to )));

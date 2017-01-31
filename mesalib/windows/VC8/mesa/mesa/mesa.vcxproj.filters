@@ -875,6 +875,9 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ir_array_refcount.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\generate_ir.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\mesa\program\program_lexer.l">

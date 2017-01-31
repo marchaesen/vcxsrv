@@ -3,7 +3,7 @@ LIBRARY=libglx
 DEFINES += GLAPIENTRY=__stdcall _GLAPI_NO_EXPORTS
 
 
-glapi_sources =					\
+indirect_sources =					\
 	indirect_dispatch.c			\
 	indirect_dispatch_swap.c		\
 	indirect_reqsize.c			\
@@ -15,7 +15,6 @@ glapi_sources =					\
 
 CSRCS = \
 	$(indirect_sources) \
-	$(glapi_sources) \
 	clientinfo.c \
 	createcontext.c \
 	extension_string.c \
@@ -41,5 +40,5 @@ CSRCS = \
         swap_interval.c \
         xfont.c
 
-INCLUDES := $(MHMAKECONF)\mesalib\include . $(INCLUDES)
+INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES)
 

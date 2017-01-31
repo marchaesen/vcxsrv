@@ -686,8 +686,6 @@ extern _X_HIDDEN void __glXDisp_MultMatrixf(GLbyte * pc);
 extern _X_HIDDEN _X_COLD void __glXDispSwap_MultMatrixf(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_MultiTexCoord4fvARB(GLbyte * pc);
 extern _X_HIDDEN _X_COLD void __glXDispSwap_MultiTexCoord4fvARB(GLbyte * pc);
-extern _X_HIDDEN void __glXDisp_TrackMatrixNV(GLbyte * pc);
-extern _X_HIDDEN _X_COLD void __glXDispSwap_TrackMatrixNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_DrawArrays(GLbyte * pc);
 extern _X_HIDDEN _X_COLD void __glXDispSwap_DrawArrays(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_PointParameteri(GLbyte * pc);
@@ -1046,6 +1044,8 @@ extern _X_HIDDEN int __glXDisp_GetLightiv(struct __GLXclientStateRec *, GLbyte *
 extern _X_HIDDEN _X_COLD int __glXDispSwap_GetLightiv(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_CopyConvolutionFilter2D(GLbyte * pc);
 extern _X_HIDDEN _X_COLD void __glXDispSwap_CopyConvolutionFilter2D(GLbyte * pc);
+extern _X_HIDDEN void __glXDisp_TrackMatrixNV(GLbyte * pc);
+extern _X_HIDDEN _X_COLD void __glXDispSwap_TrackMatrixNV(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_QueryContext(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN _X_COLD int __glXDispSwap_QueryContext(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDisp_RenderLarge(struct __GLXclientStateRec *, GLbyte *);
