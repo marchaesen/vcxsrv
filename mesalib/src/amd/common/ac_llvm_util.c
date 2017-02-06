@@ -35,6 +35,8 @@
 #include "util/bitscan.h"
 #include "util/macros.h"
 
+#include "sid.h"
+
 static void ac_init_llvm_target()
 {
 #if HAVE_LLVM < 0x0307
@@ -157,13 +159,30 @@ ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context)
 	ctx->module = NULL;
 	ctx->builder = NULL;
 
+	ctx->voidt = LLVMVoidTypeInContext(ctx->context);
+	ctx->i1 = LLVMInt1TypeInContext(ctx->context);
+	ctx->i8 = LLVMInt8TypeInContext(ctx->context);
 	ctx->i32 = LLVMIntTypeInContext(ctx->context, 32);
 	ctx->f32 = LLVMFloatTypeInContext(ctx->context);
+	ctx->v4i32 = LLVMVectorType(ctx->i32, 4);
+	ctx->v4f32 = LLVMVectorType(ctx->f32, 4);
+	ctx->v16i8 = LLVMVectorType(ctx->i8, 16);
+
+	ctx->range_md_kind = LLVMGetMDKindIDInContext(ctx->context,
+						     "range", 5);
+
+	ctx->invariant_load_md_kind = LLVMGetMDKindIDInContext(ctx->context,
+							       "invariant.load", 14);
 
 	ctx->fpmath_md_kind = LLVMGetMDKindIDInContext(ctx->context, "fpmath", 6);
 
 	args[0] = LLVMConstReal(ctx->f32, 2.5);
 	ctx->fpmath_md_2p5_ulp = LLVMMDNodeInContext(ctx->context, args, 1);
+
+	ctx->uniform_md_kind = LLVMGetMDKindIDInContext(ctx->context,
+							"amdgpu.uniform", 14);
+
+	ctx->empty_md = LLVMMDNodeInContext(ctx->context, NULL, 0);
 }
 
 #if HAVE_LLVM < 0x0400
@@ -511,4 +530,398 @@ ac_dump_module(LLVMModuleRef module)
 	char *str = LLVMPrintModuleToString(module);
 	fprintf(stderr, "%s", str);
 	LLVMDisposeMessage(str);
+}
+
+LLVMValueRef
+ac_build_fs_interp(struct ac_llvm_context *ctx,
+		   LLVMValueRef llvm_chan,
+		   LLVMValueRef attr_number,
+		   LLVMValueRef params,
+		   LLVMValueRef i,
+		   LLVMValueRef j)
+{
+	LLVMValueRef args[5];
+	LLVMValueRef p1;
+	
+	if (HAVE_LLVM < 0x0400) {
+		LLVMValueRef ij[2];
+		ij[0] = LLVMBuildBitCast(ctx->builder, i, ctx->i32, "");
+		ij[1] = LLVMBuildBitCast(ctx->builder, j, ctx->i32, "");
+
+		args[0] = llvm_chan;
+		args[1] = attr_number;
+		args[2] = params;
+		args[3] = ac_build_gather_values(ctx, ij, 2);
+		return ac_emit_llvm_intrinsic(ctx, "llvm.SI.fs.interp",
+					      ctx->f32, args, 4,
+					      AC_FUNC_ATTR_READNONE);
+	}
+
+	args[0] = i;
+	args[1] = llvm_chan;
+	args[2] = attr_number;
+	args[3] = params;
+
+	p1 = ac_emit_llvm_intrinsic(ctx, "llvm.amdgcn.interp.p1",
+				    ctx->f32, args, 4, AC_FUNC_ATTR_READNONE);
+
+	args[0] = p1;
+	args[1] = j;
+	args[2] = llvm_chan;
+	args[3] = attr_number;
+	args[4] = params;
+
+	return ac_emit_llvm_intrinsic(ctx, "llvm.amdgcn.interp.p2",
+				      ctx->f32, args, 5, AC_FUNC_ATTR_READNONE);
+}
+
+LLVMValueRef
+ac_build_fs_interp_mov(struct ac_llvm_context *ctx,
+		       LLVMValueRef parameter,
+		       LLVMValueRef llvm_chan,
+		       LLVMValueRef attr_number,
+		       LLVMValueRef params)
+{
+	LLVMValueRef args[4];
+	if (HAVE_LLVM < 0x0400) {
+		args[0] = llvm_chan;
+		args[1] = attr_number;
+		args[2] = params;
+
+		return ac_emit_llvm_intrinsic(ctx,
+					      "llvm.SI.fs.constant",
+					      ctx->f32, args, 3,
+					      AC_FUNC_ATTR_READNONE);
+	}
+
+	args[0] = parameter;
+	args[1] = llvm_chan;
+	args[2] = attr_number;
+	args[3] = params;
+
+	return ac_emit_llvm_intrinsic(ctx, "llvm.amdgcn.interp.mov",
+				      ctx->f32, args, 4, AC_FUNC_ATTR_READNONE);
+}
+
+LLVMValueRef
+ac_build_gep0(struct ac_llvm_context *ctx,
+	      LLVMValueRef base_ptr,
+	      LLVMValueRef index)
+{
+	LLVMValueRef indices[2] = {
+		LLVMConstInt(ctx->i32, 0, 0),
+		index,
+	};
+	return LLVMBuildGEP(ctx->builder, base_ptr,
+			    indices, 2, "");
+}
+
+void
+ac_build_indexed_store(struct ac_llvm_context *ctx,
+		       LLVMValueRef base_ptr, LLVMValueRef index,
+		       LLVMValueRef value)
+{
+	LLVMBuildStore(ctx->builder, value,
+		       ac_build_gep0(ctx, base_ptr, index));
+}
+
+/**
+ * Build an LLVM bytecode indexed load using LLVMBuildGEP + LLVMBuildLoad.
+ * It's equivalent to doing a load from &base_ptr[index].
+ *
+ * \param base_ptr  Where the array starts.
+ * \param index     The element index into the array.
+ * \param uniform   Whether the base_ptr and index can be assumed to be
+ *                  dynamically uniform
+ */
+LLVMValueRef
+ac_build_indexed_load(struct ac_llvm_context *ctx,
+		      LLVMValueRef base_ptr, LLVMValueRef index,
+		      bool uniform)
+{
+	LLVMValueRef pointer;
+
+	pointer = ac_build_gep0(ctx, base_ptr, index);
+	if (uniform)
+		LLVMSetMetadata(pointer, ctx->uniform_md_kind, ctx->empty_md);
+	return LLVMBuildLoad(ctx->builder, pointer, "");
+}
+
+/**
+ * Do a load from &base_ptr[index], but also add a flag that it's loading
+ * a constant from a dynamically uniform index.
+ */
+LLVMValueRef
+ac_build_indexed_load_const(struct ac_llvm_context *ctx,
+			    LLVMValueRef base_ptr, LLVMValueRef index)
+{
+	LLVMValueRef result = ac_build_indexed_load(ctx, base_ptr, index, true);
+	LLVMSetMetadata(result, ctx->invariant_load_md_kind, ctx->empty_md);
+	return result;
+}
+
+/* TBUFFER_STORE_FORMAT_{X,XY,XYZ,XYZW} <- the suffix is selected by num_channels=1..4.
+ * The type of vdata must be one of i32 (num_channels=1), v2i32 (num_channels=2),
+ * or v4i32 (num_channels=3,4).
+ */
+void
+ac_build_tbuffer_store(struct ac_llvm_context *ctx,
+		       LLVMValueRef rsrc,
+		       LLVMValueRef vdata,
+		       unsigned num_channels,
+		       LLVMValueRef vaddr,
+		       LLVMValueRef soffset,
+		       unsigned inst_offset,
+		       unsigned dfmt,
+		       unsigned nfmt,
+		       unsigned offen,
+		       unsigned idxen,
+		       unsigned glc,
+		       unsigned slc,
+		       unsigned tfe)
+{
+	LLVMValueRef args[] = {
+		rsrc,
+		vdata,
+		LLVMConstInt(ctx->i32, num_channels, 0),
+		vaddr,
+		soffset,
+		LLVMConstInt(ctx->i32, inst_offset, 0),
+		LLVMConstInt(ctx->i32, dfmt, 0),
+		LLVMConstInt(ctx->i32, nfmt, 0),
+		LLVMConstInt(ctx->i32, offen, 0),
+		LLVMConstInt(ctx->i32, idxen, 0),
+		LLVMConstInt(ctx->i32, glc, 0),
+		LLVMConstInt(ctx->i32, slc, 0),
+		LLVMConstInt(ctx->i32, tfe, 0)
+	};
+
+	/* The instruction offset field has 12 bits */
+	assert(offen || inst_offset < (1 << 12));
+
+	/* The intrinsic is overloaded, we need to add a type suffix for overloading to work. */
+	unsigned func = CLAMP(num_channels, 1, 3) - 1;
+	const char *types[] = {"i32", "v2i32", "v4i32"};
+	char name[256];
+	snprintf(name, sizeof(name), "llvm.SI.tbuffer.store.%s", types[func]);
+
+	ac_emit_llvm_intrinsic(ctx, name, ctx->voidt,
+			       args, ARRAY_SIZE(args), 0);
+}
+
+void
+ac_build_tbuffer_store_dwords(struct ac_llvm_context *ctx,
+			      LLVMValueRef rsrc,
+			      LLVMValueRef vdata,
+			      unsigned num_channels,
+			      LLVMValueRef vaddr,
+			      LLVMValueRef soffset,
+			      unsigned inst_offset)
+{
+	static unsigned dfmt[] = {
+		V_008F0C_BUF_DATA_FORMAT_32,
+		V_008F0C_BUF_DATA_FORMAT_32_32,
+		V_008F0C_BUF_DATA_FORMAT_32_32_32,
+		V_008F0C_BUF_DATA_FORMAT_32_32_32_32
+	};
+	assert(num_channels >= 1 && num_channels <= 4);
+
+	ac_build_tbuffer_store(ctx, rsrc, vdata, num_channels, vaddr, soffset,
+			       inst_offset, dfmt[num_channels - 1],
+			       V_008F0C_BUF_NUM_FORMAT_UINT, 1, 0, 1, 1, 0);
+}
+
+LLVMValueRef
+ac_build_buffer_load(struct ac_llvm_context *ctx,
+		     LLVMValueRef rsrc,
+		     int num_channels,
+		     LLVMValueRef vindex,
+		     LLVMValueRef voffset,
+		     LLVMValueRef soffset,
+		     unsigned inst_offset,
+		     unsigned glc,
+		     unsigned slc)
+{
+	unsigned func = CLAMP(num_channels, 1, 3) - 1;
+
+	if (HAVE_LLVM >= 0x309) {
+		LLVMValueRef args[] = {
+			LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
+			vindex ? vindex : LLVMConstInt(ctx->i32, 0, 0),
+			LLVMConstInt(ctx->i32, inst_offset, 0),
+			LLVMConstInt(ctx->i1, glc, 0),
+			LLVMConstInt(ctx->i1, slc, 0)
+		};
+
+		LLVMTypeRef types[] = {ctx->f32, LLVMVectorType(ctx->f32, 2),
+		                       ctx->v4f32};
+		const char *type_names[] = {"f32", "v2f32", "v4f32"};
+		char name[256];
+
+		if (voffset) {
+			args[2] = LLVMBuildAdd(ctx->builder, args[2], voffset,
+			                       "");
+		}
+
+		if (soffset) {
+			args[2] = LLVMBuildAdd(ctx->builder, args[2], soffset,
+			                       "");
+		}
+
+		snprintf(name, sizeof(name), "llvm.amdgcn.buffer.load.%s",
+		         type_names[func]);
+
+		return ac_emit_llvm_intrinsic(ctx, name, types[func], args,
+					      ARRAY_SIZE(args), AC_FUNC_ATTR_READONLY);
+	} else {
+		LLVMValueRef args[] = {
+			LLVMBuildBitCast(ctx->builder, rsrc, ctx->v16i8, ""),
+			voffset ? voffset : vindex,
+			soffset,
+			LLVMConstInt(ctx->i32, inst_offset, 0),
+			LLVMConstInt(ctx->i32, voffset ? 1 : 0, 0), // offen
+			LLVMConstInt(ctx->i32, vindex ? 1 : 0, 0), //idxen
+			LLVMConstInt(ctx->i32, glc, 0),
+			LLVMConstInt(ctx->i32, slc, 0),
+			LLVMConstInt(ctx->i32, 0, 0), // TFE
+		};
+
+		LLVMTypeRef types[] = {ctx->i32, LLVMVectorType(ctx->i32, 2),
+		                       ctx->v4i32};
+		const char *type_names[] = {"i32", "v2i32", "v4i32"};
+		const char *arg_type = "i32";
+		char name[256];
+
+		if (voffset && vindex) {
+			LLVMValueRef vaddr[] = {vindex, voffset};
+
+			arg_type = "v2i32";
+			args[1] = ac_build_gather_values(ctx, vaddr, 2);
+		}
+
+		snprintf(name, sizeof(name), "llvm.SI.buffer.load.dword.%s.%s",
+		         type_names[func], arg_type);
+
+		return ac_emit_llvm_intrinsic(ctx, name, types[func], args,
+					       ARRAY_SIZE(args), AC_FUNC_ATTR_READONLY);
+	}
+}
+
+/**
+ * Set range metadata on an instruction.  This can only be used on load and
+ * call instructions.  If you know an instruction can only produce the values
+ * 0, 1, 2, you would do set_range_metadata(value, 0, 3);
+ * \p lo is the minimum value inclusive.
+ * \p hi is the maximum value exclusive.
+ */
+static void set_range_metadata(struct ac_llvm_context *ctx,
+			       LLVMValueRef value, unsigned lo, unsigned hi)
+{
+	LLVMValueRef range_md, md_args[2];
+	LLVMTypeRef type = LLVMTypeOf(value);
+	LLVMContextRef context = LLVMGetTypeContext(type);
+
+	md_args[0] = LLVMConstInt(type, lo, false);
+	md_args[1] = LLVMConstInt(type, hi, false);
+	range_md = LLVMMDNodeInContext(context, md_args, 2);
+	LLVMSetMetadata(value, ctx->range_md_kind, range_md);
+}
+
+LLVMValueRef
+ac_get_thread_id(struct ac_llvm_context *ctx)
+{
+	LLVMValueRef tid;
+
+	if (HAVE_LLVM < 0x0308) {
+		tid = ac_emit_llvm_intrinsic(ctx, "llvm.SI.tid",
+					     ctx->i32,
+					     NULL, 0, AC_FUNC_ATTR_READNONE);
+	} else {
+		LLVMValueRef tid_args[2];
+		tid_args[0] = LLVMConstInt(ctx->i32, 0xffffffff, false);
+		tid_args[1] = LLVMConstInt(ctx->i32, 0, false);
+		tid_args[1] = ac_emit_llvm_intrinsic(ctx,
+						     "llvm.amdgcn.mbcnt.lo", ctx->i32,
+						     tid_args, 2, AC_FUNC_ATTR_READNONE);
+
+		tid = ac_emit_llvm_intrinsic(ctx, "llvm.amdgcn.mbcnt.hi",
+					     ctx->i32, tid_args,
+					     2, AC_FUNC_ATTR_READNONE);
+	}
+	set_range_metadata(ctx, tid, 0, 64);
+	return tid;
+}
+
+/*
+ * SI implements derivatives using the local data store (LDS)
+ * All writes to the LDS happen in all executing threads at
+ * the same time. TID is the Thread ID for the current
+ * thread and is a value between 0 and 63, representing
+ * the thread's position in the wavefront.
+ *
+ * For the pixel shader threads are grouped into quads of four pixels.
+ * The TIDs of the pixels of a quad are:
+ *
+ *  +------+------+
+ *  |4n + 0|4n + 1|
+ *  +------+------+
+ *  |4n + 2|4n + 3|
+ *  +------+------+
+ *
+ * So, masking the TID with 0xfffffffc yields the TID of the top left pixel
+ * of the quad, masking with 0xfffffffd yields the TID of the top pixel of
+ * the current pixel's column, and masking with 0xfffffffe yields the TID
+ * of the left pixel of the current pixel's row.
+ *
+ * Adding 1 yields the TID of the pixel to the right of the left pixel, and
+ * adding 2 yields the TID of the pixel below the top pixel.
+ */
+LLVMValueRef
+ac_emit_ddxy(struct ac_llvm_context *ctx,
+	     bool has_ds_bpermute,
+	     uint32_t mask,
+	     int idx,
+	     LLVMValueRef lds,
+	     LLVMValueRef val)
+{
+	LLVMValueRef thread_id, tl, trbl, tl_tid, trbl_tid, args[2];
+	LLVMValueRef result;
+
+	thread_id = ac_get_thread_id(ctx);
+
+	tl_tid = LLVMBuildAnd(ctx->builder, thread_id,
+			      LLVMConstInt(ctx->i32, mask, false), "");
+
+	trbl_tid = LLVMBuildAdd(ctx->builder, tl_tid,
+				LLVMConstInt(ctx->i32, idx, false), "");
+
+	if (has_ds_bpermute) {
+		args[0] = LLVMBuildMul(ctx->builder, tl_tid,
+				       LLVMConstInt(ctx->i32, 4, false), "");
+		args[1] = val;
+		tl = ac_emit_llvm_intrinsic(ctx,
+					    "llvm.amdgcn.ds.bpermute", ctx->i32,
+					    args, 2, AC_FUNC_ATTR_READNONE);
+
+		args[0] = LLVMBuildMul(ctx->builder, trbl_tid,
+				       LLVMConstInt(ctx->i32, 4, false), "");
+		trbl = ac_emit_llvm_intrinsic(ctx,
+					      "llvm.amdgcn.ds.bpermute", ctx->i32,
+					      args, 2, AC_FUNC_ATTR_READNONE);
+	} else {
+		LLVMValueRef store_ptr, load_ptr0, load_ptr1;
+
+		store_ptr = ac_build_gep0(ctx, lds, thread_id);
+		load_ptr0 = ac_build_gep0(ctx, lds, tl_tid);
+		load_ptr1 = ac_build_gep0(ctx, lds, trbl_tid);
+
+		LLVMBuildStore(ctx->builder, val, store_ptr);
+		tl = LLVMBuildLoad(ctx->builder, load_ptr0, "");
+		trbl = LLVMBuildLoad(ctx->builder, load_ptr1, "");
+	}
+
+	tl = LLVMBuildBitCast(ctx->builder, tl, ctx->f32, "");
+	trbl = LLVMBuildBitCast(ctx->builder, trbl, ctx->f32, "");
+	result = LLVMBuildFSub(ctx->builder, trbl, tl, "");
+	return result;
 }

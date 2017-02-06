@@ -124,6 +124,10 @@ static const VkExtensionProperties common_device_extensions[] = {
 		.extensionName = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 		.specVersion = 1,
 	},
+	{
+		.extensionName = VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+		.specVersion = 1,
+	},
 };
 
 static VkResult
@@ -463,7 +467,7 @@ void radv_GetPhysicalDeviceFeatures(
 		.shaderStorageImageWriteWithoutFormat     = false,
 		.shaderClipDistance                       = true,
 		.shaderCullDistance                       = true,
-		.shaderFloat64                            = false,
+		.shaderFloat64                            = true,
 		.shaderInt64                              = false,
 		.shaderInt16                              = false,
 		.alphaToOne                               = true,

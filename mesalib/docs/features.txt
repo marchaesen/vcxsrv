@@ -333,5 +333,6 @@ we DO NOT WANT implementations of these extensions for Mesa.
   GL_ARB_shadow_ambient                                 Superseded by GL_ARB_fragment_program
   GL_ARB_vertex_blend                                   Superseded by GL_ARB_vertex_program
 
-More info about these features and the work involved can be found at
-http://dri.freedesktop.org/wiki/MissingFunctionality
+
+A graphical representation of this information can be found at
+http://mesamatrix.net/

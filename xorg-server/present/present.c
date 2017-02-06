@@ -118,6 +118,18 @@ present_flip_pending_pixmap(ScreenPtr screen)
 }
 
 static Bool
+present_check_output_slaves_active(ScreenPtr pScreen)
+{
+    ScreenPtr pSlave;
+
+    xorg_list_for_each_entry(pSlave, &pScreen->slave_list, slave_head) {
+        if (RRHasScanoutPixmap(pSlave))
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static Bool
 present_check_flip(RRCrtcPtr    crtc,
                    WindowPtr    window,
                    PixmapPtr    pixmap,
@@ -145,7 +157,7 @@ present_check_flip(RRCrtcPtr    crtc,
         return FALSE;
 
     /* Fail to flip if we have slave outputs */
-    if (screen->output_slaves)
+    if (screen->output_slaves && present_check_output_slaves_active(screen))
         return FALSE;
 
     /* Make sure the window hasn't been redirected with Composite */

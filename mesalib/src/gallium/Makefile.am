@@ -27,11 +27,6 @@ if HAVE_GALLIUM_I915
 SUBDIRS += drivers/i915 winsys/i915/drm
 endif
 
-## ilo/i965
-if HAVE_GALLIUM_ILO
-SUBDIRS += drivers/ilo winsys/intel/drm
-endif
-
 ## nouveau
 if HAVE_GALLIUM_NOUVEAU
 SUBDIRS += drivers/nouveau winsys/nouveau/drm

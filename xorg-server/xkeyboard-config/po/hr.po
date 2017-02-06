@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config 2.18.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2016-09-20 00:50+0100\n"
-"PO-Revision-Date: 2016-09-21 19:28+0200\n"
+"PO-Revision-Date: 2016-12-15 16:07-0800\n"
 "Last-Translator: Božidar Putanec <bozidarp@yahoo.com>\n"
 "Language-Team: Croatian <lokalizacija@linux.hr>\n"
 "Language: hr\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Bugs: Report translation errors to the Language-Team address.\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Poedit 1.8.9\n"
+"X-Generator: Poedit 1.8.7.1\n"
 
 #: ../rules/base.xml.in.h:1
 msgid "Generic 101-key PC"
@@ -1002,7 +1002,6 @@ msgstr "njemački (Austrija, Macintosh)"
 
 #: ../rules/base.xml.in.h:253
 #, fuzzy
-#| msgid "English (Norman)"
 msgid "English (Australian)"
 msgstr "engleski (normanski)"
 
@@ -1804,7 +1803,6 @@ msgstr ""
 
 #: ../rules/base.xml.in.h:475
 #, fuzzy
-#| msgid "German (legacy)"
 msgid "German (dead tilde)"
 msgstr "njemački (zastarjeli)"
 
@@ -2037,7 +2035,7 @@ msgstr "ki"
 
 #: ../rules/base.xml.in.h:538
 msgid "Kyrgyz"
-msgstr "kirgiški"
+msgstr "kirgiski"
 
 #: ../rules/base.xml.in.h:539
 msgid "Kyrgyz (phonetic)"
@@ -2059,7 +2057,7 @@ msgstr "kk"
 
 #: ../rules/base.xml.in.h:545
 msgid "Kazakh"
-msgstr "kazaški"
+msgstr "kazanski"
 
 #: ../rules/base.xml.in.h:546
 msgid "Russian (Kazakhstan, with Kazakh)"
@@ -2475,7 +2473,7 @@ msgstr "srpski (Rusija)"
 
 #: ../rules/base.xml.in.h:658
 msgid "Bashkirian"
-msgstr ""
+msgstr "baškirski"
 
 #: ../rules/base.xml.in.h:659
 msgid "Mari"
@@ -2487,7 +2485,6 @@ msgstr "ruski (fonetski azerty)"
 
 #: ../rules/base.xml.in.h:661
 #, fuzzy
-#| msgid "Russian (phonetic azerty)"
 msgid "Russian (phonetic dvorak)"
 msgstr "ruski (fonetski azerty)"
 
@@ -3479,7 +3476,7 @@ msgstr "Raspored numeričke tipkovnice"
 # legacy, zastarjeli
 #: ../rules/base.xml.in.h:928
 msgid "Legacy"
-msgstr "Zastarjeli (stari)"
+msgstr "Nasljedstvo (programa)"
 
 #: ../rules/base.xml.in.h:929
 msgid "Unicode additions (arrows and math operators)"
@@ -3823,7 +3820,7 @@ msgstr "Desni Win odabire 5. razinu, zaključava je pritisne li se zajedno s jo�
 # space key = razmaknica; space = bjelina=razmak; (1 udarac na razmaknicu)
 #: ../rules/base.xml.in.h:1013
 msgid "Using space key to input non-breakable space character"
-msgstr "Uporaba razmaknice (space bar) za unos „non-breakable“ znaka bjeline (razmaka)"
+msgstr "Uporaba razmaknice (space bar) za unos neraskidivog znaka bjeline (razmaka)"
 
 #: ../rules/base.xml.in.h:1014
 msgid "Usual space at any level"
@@ -3832,31 +3829,31 @@ msgstr "Obična bjelina (razmak) na bilo kojoj razini"
 # space = bjelina; non-breakable = tvrda bjelina, ali to nije uobičajeno
 #: ../rules/base.xml.in.h:1015
 msgid "Non-breakable space character at second level"
-msgstr "„Non-breakable“ znak bjeline na 2. razini"
+msgstr "Neraskidiv znak bjeline na 2. razini"
 
 #: ../rules/base.xml.in.h:1016
 msgid "Non-breakable space character at third level"
-msgstr "„Non-breakable“ znak bjeline na 3. razini"
+msgstr "Neraskidiv znak bjeline na 3. razini"
 
 #: ../rules/base.xml.in.h:1017
 msgid "Non-breakable space character at third level, nothing at fourth level"
-msgstr "„Non-breakable“ znak bjeline na 3. razini, ali ne i na 4. razini"
+msgstr "Neraskidiv znak bjeline na 3. razini, ali ne i na 4. razini"
 
 #: ../rules/base.xml.in.h:1018
 msgid "Non-breakable space character at third level, thin non-breakable space character at fourth level"
-msgstr "„Non-breakable“ znak bjeline na 3. razini, uski „non-breakable“ znak bjeline na 4. razini"
+msgstr "Neraskidiv znak bjeline na 3. razini, uski neraskidiv znak bjeline na 4. razini"
 
 #: ../rules/base.xml.in.h:1019
 msgid "Non-breakable space character at fourth level"
-msgstr "„Non-breakable“ znak bjeline na 4. razini"
+msgstr "Neraskidiv znak bjeline na 4. razini"
 
 #: ../rules/base.xml.in.h:1020
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level"
-msgstr "„Non-breakable“ znak bjeline na 4. razini, uski „non-breakable“ znak bjeline na 6. razini"
+msgstr "Neraskidiv znak bjeline na 4. razini, uski neraskidiv znak bjeline na 6. razini"
 
 #: ../rules/base.xml.in.h:1021
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level (via Ctrl+Shift)"
-msgstr "„Non-breakable“ znak bjeline na 4. razini, uski „non-breakable“ znak bjeline na 4. razini (s Ctrl + Shift)"
+msgstr "Neraskidiv znak bjeline na 4. razini, uski neraskidiv znak bjeline na 4. razini (s Ctrl + Shift)"
 
 # non-printing „Zero-width non-joiner“, „Zero-width joiner“ tipografski znak koji se koristi u nekim jezicima
 #: ../rules/base.xml.in.h:1022
@@ -3869,23 +3866,23 @@ msgstr "„Zero-width non-joiner“ znak na 2. razini, „zero-width non-joiner�
 
 #: ../rules/base.xml.in.h:1024
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level, non-breakable space character at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „zero-width non-joiner“ znak na 3. razini, „non-breakable“ znak bjeline na 4. razini"
+msgstr "„Zero-width non-joiner“ znak na 2. razini, „zero-width non-joiner“ znak na 3. razini, neraskidiv znak bjeline na 4. razini"
 
 #: ../rules/base.xml.in.h:1025
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „non-breakable“ znak bjeline na 3. razini"
+msgstr "„Zero-width non-joiner“ znak na 2. razini, neraskidiv znak bjeline na 3. razini"
 
 #: ../rules/base.xml.in.h:1026
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, nothing at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „non-breakable“ znak bjeline na 3. razini, ništa na 4. razini"
+msgstr "„Zero-width non-joiner“ znak na 2. razini, neraskidiv znak bjeline na 3. razini, ništa na 4. razini"
 
 #: ../rules/base.xml.in.h:1027
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, zero-width joiner at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „non-breakable“ znak bjeline na 3. razini, „zero-width joiner“ na 4. razini"
+msgstr "„Zero-width non-joiner“ znak na 2. razini, neraskidiv znak bjeline na 3. razini, „zero-width joiner“ na 4. razini"
 
 #: ../rules/base.xml.in.h:1028
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, thin non-breakable space at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „non-breakable“ znak bjeline na 3. razini, uska „non-breakable“ bjelina na 4. razini"
+msgstr "„Zero-width non-joiner“ znak na 2. razini,  neraskidiv znak bjeline na 3. razini, uska  bjelina na 4. razini"
 
 #: ../rules/base.xml.in.h:1029
 msgid "Zero-width non-joiner character at third level, zero-width joiner at fourth level"

@@ -1083,7 +1083,7 @@ bool radv_layout_can_fast_clear(const struct radv_image *image,
 			        unsigned queue_mask);
 
 
-unsigned radv_image_queue_family_mask(const struct radv_image *image, int family);
+unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t family, uint32_t queue_family);
 
 static inline uint32_t
 radv_get_layerCount(const struct radv_image *image,

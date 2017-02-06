@@ -1010,6 +1010,18 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = SYSTEM_VALUE_GLOBAL_INVOCATION_ID;
       set_mode_system_value(mode);
       break;
+   case SpvBuiltInBaseVertex:
+      *location = SYSTEM_VALUE_BASE_VERTEX;
+      set_mode_system_value(mode);
+      break;
+   case SpvBuiltInBaseInstance:
+      *location = SYSTEM_VALUE_BASE_INSTANCE;
+      set_mode_system_value(mode);
+      break;
+   case SpvBuiltInDrawIndex:
+      *location = SYSTEM_VALUE_DRAW_ID;
+      set_mode_system_value(mode);
+      break;
    case SpvBuiltInHelperInvocation:
    default:
       unreachable("unsupported builtin");

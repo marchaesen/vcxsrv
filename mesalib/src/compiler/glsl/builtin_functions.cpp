@@ -3560,44 +3560,88 @@ builtin_builder::_acos(const glsl_type *type)
 ir_function_signature *
 builtin_builder::_atan2(const glsl_type *type)
 {
-   ir_variable *vec_y = in_var(type, "vec_y");
-   ir_variable *vec_x = in_var(type, "vec_x");
-   MAKE_SIG(type, always_available, 2, vec_y, vec_x);
+   const unsigned n = type->vector_elements;
+   ir_variable *y = in_var(type, "y");
+   ir_variable *x = in_var(type, "x");
+   MAKE_SIG(type, always_available, 2, y, x);
 
-   ir_variable *vec_result = body.make_temp(type, "vec_result");
-   ir_variable *r = body.make_temp(glsl_type::float_type, "r");
-   for (int i = 0; i < type->vector_elements; i++) {
-      ir_variable *y = body.make_temp(glsl_type::float_type, "y");
-      ir_variable *x = body.make_temp(glsl_type::float_type, "x");
-      body.emit(assign(y, swizzle(vec_y, i, 1)));
-      body.emit(assign(x, swizzle(vec_x, i, 1)));
+   /* If we're on the left half-plane rotate the coordinates π/2 clock-wise
+    * for the y=0 discontinuity to end up aligned with the vertical
+    * discontinuity of atan(s/t) along t=0.  This also makes sure that we
+    * don't attempt to divide by zero along the vertical line, which may give
+    * unspecified results on non-GLSL 4.1-capable hardware.
+    */
+   ir_variable *flip = body.make_temp(glsl_type::bvec(n), "flip");
+   body.emit(assign(flip, gequal(imm(0.0f, n), x)));
+   ir_variable *s = body.make_temp(type, "s");
+   body.emit(assign(s, csel(flip, abs(x), y)));
+   ir_variable *t = body.make_temp(type, "t");
+   body.emit(assign(t, csel(flip, y, abs(x))));
 
-      /* If |x| >= 1.0e-8 * |y|: */
-      ir_if *outer_if =
-         new(mem_ctx) ir_if(greater(abs(x), mul(imm(1.0e-8f), abs(y))));
+   /* If the magnitude of the denominator exceeds some huge value, scale down
+    * the arguments in order to prevent the reciprocal operation from flushing
+    * its result to zero, which would cause precision problems, and for s
+    * infinite would cause us to return a NaN instead of the correct finite
+    * value.
+    *
+    * If fmin and fmax are respectively the smallest and largest positive
+    * normalized floating point values representable by the implementation,
+    * the constants below should be in agreement with:
+    *
+    *    huge <= 1 / fmin
+    *    scale <= 1 / fmin / fmax (for |t| >= huge)
+    *
+    * In addition scale should be a negative power of two in order to avoid
+    * loss of precision.  The values chosen below should work for most usual
+    * floating point representations with at least the dynamic range of ATI's
+    * 24-bit representation.
+    */
+   ir_constant *huge = imm(1e18f, n);
+   ir_variable *scale = body.make_temp(type, "scale");
+   body.emit(assign(scale, csel(gequal(abs(t), huge),
+                                imm(0.25f, n), imm(1.0f, n))));
+   ir_variable *rcp_scaled_t = body.make_temp(type, "rcp_scaled_t");
+   body.emit(assign(rcp_scaled_t, rcp(mul(t, scale))));
+   ir_expression *s_over_t = mul(mul(s, scale), rcp_scaled_t);
 
-      ir_factory outer_then(&outer_if->then_instructions, mem_ctx);
+   /* For |x| = |y| assume tan = 1 even if infinite (i.e. pretend momentarily
+    * that ∞/∞ = 1) in order to comply with the rather artificial rules
+    * inherited from IEEE 754-2008, namely:
+    *
+    *  "atan2(±∞, −∞) is ±3π/4
+    *   atan2(±∞, +∞) is ±π/4"
+    *
+    * Note that this is inconsistent with the rules for the neighborhood of
+    * zero that are based on iterated limits:
+    *
+    *  "atan2(±0, −0) is ±π
+    *   atan2(±0, +0) is ±0"
+    *
+    * but GLSL specifically allows implementations to deviate from IEEE rules
+    * at (0,0), so we take that license (i.e. pretend that 0/0 = 1 here as
+    * well).
+    */
+   ir_expression *tan = csel(equal(abs(x), abs(y)),
+                             imm(1.0f, n), abs(s_over_t));
 
-      /* Then...call atan(y/x) */
-      do_atan(outer_then, glsl_type::float_type, r, div(y, x));
+   /* Calculate the arctangent and fix up the result if we had flipped the
+    * coordinate system.
+    */
+   ir_variable *arc = body.make_temp(type, "arc");
+   do_atan(body, type, arc, tan);
+   body.emit(assign(arc, add(arc, mul(b2f(flip), imm(M_PI_2f)))));
 
-      /*     ...and fix it up: */
-      ir_if *inner_if = new(mem_ctx) ir_if(less(x, imm(0.0f)));
-      inner_if->then_instructions.push_tail(
-         if_tree(gequal(y, imm(0.0f)),
-                 assign(r, add(r, imm(M_PIf))),
-                 assign(r, sub(r, imm(M_PIf)))));
-      outer_then.emit(inner_if);
-
-      /* Else... */
-      outer_if->else_instructions.push_tail(
-         assign(r, mul(sign(y), imm(M_PI_2f))));
-
-      body.emit(outer_if);
-
-      body.emit(assign(vec_result, r, 1 << i));
-   }
-   body.emit(ret(vec_result));
+   /* Rather convoluted calculation of the sign of the result.  When x < 0 we
+    * cannot use fsign because we need to be able to distinguish between
+    * negative and positive zero.  Unfortunately we cannot use bitwise
+    * arithmetic tricks either because of back-ends without integer support.
+    * When x >= 0 rcp_scaled_t will always be non-negative so this won't be
+    * able to distinguish between negative and positive zero, but we don't
+    * care because atan2 is continuous along the whole positive y = 0
+    * half-line, so it won't affect the result significantly.
+    */
+   body.emit(ret(csel(less(min2(y, rcp_scaled_t), imm(0.0f, n)),
+                      neg(arc), arc)));
 
    return sig;
 }

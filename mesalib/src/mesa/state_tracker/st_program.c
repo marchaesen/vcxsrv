@@ -757,72 +757,70 @@ st_translate_fragment_program(struct st_context *st,
    /*
     * Semantics and mapping for outputs
     */
-   {
-      GLbitfield64 outputsWritten = stfp->Base.info.outputs_written;
+   GLbitfield64 outputsWritten = stfp->Base.info.outputs_written;
 
-      /* if z is written, emit that first */
-      if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_DEPTH)) {
-         fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_POSITION;
-         fs_output_semantic_index[fs_num_outputs] = 0;
-         outputMapping[FRAG_RESULT_DEPTH] = fs_num_outputs;
-         fs_num_outputs++;
-         outputsWritten &= ~(1 << FRAG_RESULT_DEPTH);
-      }
+   /* if z is written, emit that first */
+   if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_DEPTH)) {
+      fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_POSITION;
+      fs_output_semantic_index[fs_num_outputs] = 0;
+      outputMapping[FRAG_RESULT_DEPTH] = fs_num_outputs;
+      fs_num_outputs++;
+      outputsWritten &= ~(1 << FRAG_RESULT_DEPTH);
+   }
 
-      if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_STENCIL)) {
-         fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_STENCIL;
-         fs_output_semantic_index[fs_num_outputs] = 0;
-         outputMapping[FRAG_RESULT_STENCIL] = fs_num_outputs;
-         fs_num_outputs++;
-         outputsWritten &= ~(1 << FRAG_RESULT_STENCIL);
-      }
+   if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_STENCIL)) {
+      fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_STENCIL;
+      fs_output_semantic_index[fs_num_outputs] = 0;
+      outputMapping[FRAG_RESULT_STENCIL] = fs_num_outputs;
+      fs_num_outputs++;
+      outputsWritten &= ~(1 << FRAG_RESULT_STENCIL);
+   }
 
-      if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK)) {
-         fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_SAMPLEMASK;
-         fs_output_semantic_index[fs_num_outputs] = 0;
-         outputMapping[FRAG_RESULT_SAMPLE_MASK] = fs_num_outputs;
-         fs_num_outputs++;
-         outputsWritten &= ~(1 << FRAG_RESULT_SAMPLE_MASK);
-      }
+   if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK)) {
+      fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_SAMPLEMASK;
+      fs_output_semantic_index[fs_num_outputs] = 0;
+      outputMapping[FRAG_RESULT_SAMPLE_MASK] = fs_num_outputs;
+      fs_num_outputs++;
+      outputsWritten &= ~(1 << FRAG_RESULT_SAMPLE_MASK);
+   }
 
-      /* handle remaining outputs (color) */
-      for (attr = 0; attr < ARRAY_SIZE(outputMapping); attr++) {
-         const GLbitfield64 written = attr < FRAG_RESULT_MAX ? outputsWritten :
-            stfp->Base.SecondaryOutputsWritten;
-         const unsigned loc = attr % FRAG_RESULT_MAX;
+   /* handle remaining outputs (color) */
+   for (attr = 0; attr < ARRAY_SIZE(outputMapping); attr++) {
+      const GLbitfield64 written = attr < FRAG_RESULT_MAX ? outputsWritten :
+         stfp->Base.SecondaryOutputsWritten;
+      const unsigned loc = attr % FRAG_RESULT_MAX;
 
-         if (written & BITFIELD64_BIT(loc)) {
-            switch (loc) {
-            case FRAG_RESULT_DEPTH:
-            case FRAG_RESULT_STENCIL:
-            case FRAG_RESULT_SAMPLE_MASK:
-               /* handled above */
-               assert(0);
-               break;
-            case FRAG_RESULT_COLOR:
-               write_all = GL_TRUE; /* fallthrough */
-            default: {
-               int index;
-               assert(loc == FRAG_RESULT_COLOR ||
-                      (FRAG_RESULT_DATA0 <= loc && loc < FRAG_RESULT_MAX));
+      if (written & BITFIELD64_BIT(loc)) {
+         switch (loc) {
+         case FRAG_RESULT_DEPTH:
+         case FRAG_RESULT_STENCIL:
+         case FRAG_RESULT_SAMPLE_MASK:
+            /* handled above */
+            assert(0);
+            break;
+         case FRAG_RESULT_COLOR:
+            write_all = GL_TRUE; /* fallthrough */
+         default: {
+            int index;
+            assert(loc == FRAG_RESULT_COLOR ||
+                   (FRAG_RESULT_DATA0 <= loc && loc < FRAG_RESULT_MAX));
 
-               index = (loc == FRAG_RESULT_COLOR) ? 0 : (loc - FRAG_RESULT_DATA0);
+            index = (loc == FRAG_RESULT_COLOR) ? 0 : (loc - FRAG_RESULT_DATA0);
 
-               if (attr >= FRAG_RESULT_MAX) {
-                  /* Secondary color for dual source blending. */
-                  assert(index == 0);
-                  index++;
-               }
-
-               fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_COLOR;
-               fs_output_semantic_index[fs_num_outputs] = index;
-               outputMapping[attr] = fs_num_outputs;
-               break;
-            }
+            if (attr >= FRAG_RESULT_MAX) {
+               /* Secondary color for dual source blending. */
+               assert(index == 0);
+               index++;
             }
 
-            fs_num_outputs++;
+            fs_output_semantic_name[fs_num_outputs] = TGSI_SEMANTIC_COLOR;
+            fs_output_semantic_index[fs_num_outputs] = index;
+            outputMapping[attr] = fs_num_outputs;
+            break;
          }
+         }
+
+         fs_num_outputs++;
       }
    }
 

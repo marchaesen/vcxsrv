@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 13.0.4 Release Notes / February 1, 2017</h1>
+
+<p>
+Mesa 13.0.4 is a bug fix release which fixes bugs found since the 13.0.3 release.
+</p>
+<p>
+Mesa 13.0.4 implements the OpenGL 4.4 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.4.  OpenGL
+4.4 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+a78518030b0b7d77a6c426ac3ff40f4b27fb0e2cdb0dfbe685024a46cae59bad  mesa-13.0.4.tar.gz
+a95d7ce8f7bd5f88585e4be3144a341236d8c0fc91f6feaec59bb8ba3120e726  mesa-13.0.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=92634">Bug 92634</a> - gallium's vl_mpeg12_decoder does not work with st/va</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=94512">Bug 94512</a> - X segfaults with glx-tls enabled in a x32 environment</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=94900">Bug 94900</a> - HD6950 GPU lockup loop with various steam games (octodad[always], saints row 4[always], dead island[always], grid autosport[sometimes])</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98263">Bug 98263</a> - [radv] The Talos Principle fails to launch with &quot;Fatal error: Cannot set display mode.&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98914">Bug 98914</a> - mesa-vdpau-drivers: breaks vdpau for mpeg2video</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98975">Bug 98975</a> - Wasteland 2 Directors Cut: Hangs. GPU fault</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99030">Bug 99030</a> - [HSW, regression] transform feedback fails on Linux 4.8</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99085">Bug 99085</a> - [EGL] dEQP-EGL.functional.sharing.gles2.multithread intermittent</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99097">Bug 99097</a> - [vulkancts] dEQP-VK.image.store regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99100">Bug 99100</a> - [SKL,BDW,BSW,KBL] dEQP-VK.glsl.return.return_in_dynamic_loop_dynamic_vertex regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99144">Bug 99144</a> - Incorrect rendering using glDrawArraysInstancedBaseInstance and first != 0 on Skylake</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99154">Bug 99154</a> - Link time error when using multiple builtin functions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99158">Bug 99158</a> - vdpau segfaults and gpu locks with kodi on R9285</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99185">Bug 99185</a> - dEQP-EGL.functional.image.modify.tex_rgb5_a1_tex_subimage_rgba8</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99188">Bug 99188</a> - dEQP-EGL.functional.create_context_ext.robust_gl_30.rgb565_no_depth_no_stencil</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99210">Bug 99210</a> - ES3-CTS.functional.texture.mipmap.cube.generate.rgba5551_*</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99354">Bug 99354</a> - [G71] &quot;Assertion `bkref' failed&quot; reproducible with glmark2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99450">Bug 99450</a> - [amdgpu] Payday 2 visual glitches on some models</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99451">Bug 99451</a> - polygon offset use after free</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andres Rodriguez (2):</p>
+<ul>
+  <li>vulkan/wsi: clarify the severity of lack of DRI3 v2</li>
+  <li>radv: fix include order for installed headers v2</li>
+</ul>
+
+<p>Arda Coskunses (2):</p>
+<ul>
+  <li>vulkan/wsi/x11: don't crash on null visual</li>
+  <li>vulkan/wsi/x11: don't crash on null wsi x11 connection</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (1):</p>
+<ul>
+  <li>radv: Support loader interface version 3.</li>
+</ul>
+
+<p>Chad Versace (10):</p>
+<ul>
+  <li>egl: Check config's surface types in eglCreate*Surface()</li>
+  <li>dri: Add __DRI_IMAGE_FORMAT_ARGB1555</li>
+  <li>mesa/texformat: Handle GL_RGBA + GL_UNSIGNED_SHORT_5_5_5_1</li>
+  <li>egl: Emit correct error when robust context creation fails</li>
+  <li>anv: Handle vkGetPhysicalDeviceQueueFamilyProperties with count == 0</li>
+  <li>mesa/shaderobj: Fix races on refcounts</li>
+  <li>meta: Disable dithering during glGenerateMipmap</li>
+  <li>vulkan: Add new cast macros for VkIcd types</li>
+  <li>vulkan: Update vk_icd.h to interface version 3</li>
+  <li>anv: Support loader interface version 3 (patch v2)</li>
+</ul>
+
+<p>Christian König (1):</p>
+<ul>
+  <li>vl/zscan: fix "Fix trivial sign compare warnings"</li>
+</ul>
+
+<p>Chuck Atkins (1):</p>
+<ul>
+  <li>glx: Add missing glproto dependency for gallium-xlib glx</li>
+</ul>
+
+<p>Damien Grassart (1):</p>
+<ul>
+  <li>anv: return count of queue families written</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>radv: flush smem for uniform buffer bit.</li>
+</ul>
+
+<p>Emil Velikov (10):</p>
+<ul>
+  <li>docs: add sha256 checksums for 13.0.3</li>
+  <li>cherry-ignore: add couple of intel_miptree_copy related patches</li>
+  <li>cherry-ignore: add radv: Call nir_lower_constant_initializers."</li>
+  <li>get-typod-pick-list.sh: add new script</li>
+  <li>cherry-ignore: add "_mesa_ClampColor extension/version fix"</li>
+  <li>cherry-ignore: add wayland race condition fix</li>
+  <li>egl/wayland: use the destroy_window_callback for swrast</li>
+  <li>automake: use shared llvm libs for make distcheck</li>
+  <li>get-pick-list.sh: Require explicit "13.0" for nominating stable patches</li>
+  <li>Update version to 13.0.4</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>anv: Fix uniform and storage buffer offset alignment limits.</li>
+</ul>
+
+<p>Fredrik Höglund (2):</p>
+<ul>
+  <li>radv: fix dual source blending</li>
+  <li>dri3: Fix MakeCurrent without a default framebuffer</li>
+</ul>
+
+<p>Grazvydas Ignotas (1):</p>
+<ul>
+  <li>mapi: update the asm code to support x32</li>
+</ul>
+
+<p>Heiko Przybyl (1):</p>
+<ul>
+  <li>r600/sb: Fix loop optimization related hangs on eg</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>nouveau: take extra push space into account for pushbuf_space calls</li>
+</ul>
+
+<p>Jason Ekstrand (4):</p>
+<ul>
+  <li>i965/generator/tex: Handle an immediate sampler with an indirect texture</li>
+  <li>anv/formats: Use the real format for B4G4R4A4_UNORM_PACK16 on gen8</li>
+  <li>nir/search: Only allow matching SSA values</li>
+  <li>isl: Mark A4B4G4R4_UNORM as supported on gen8</li>
+</ul>
+
+<p>Jonas Ådahl (1):</p>
+<ul>
+  <li>egl/wayland: Cleanup private display connection when init fails</li>
+</ul>
+
+<p>Kenneth Graunke (7):</p>
+<ul>
+  <li>i965: Don't bail on vertex element processing if we need draw params.</li>
+  <li>i965: Fix last slot calculations</li>
+  <li>i965: Fix texturing in the vec4 TCS and GS backends.</li>
+  <li>spirv: Move cursor before calling vtn_ssa_value() in phi 2nd pass.</li>
+  <li>i965: Make BLORP disable the NP Z PMA stall fix.</li>
+  <li>glsl: Use ir_var_temporary when generating inline functions.</li>
+  <li>i965: Properly flush in hsw_pause_transform_feedback().</li>
+</ul>
+
+<p>Marek Olšák (4):</p>
+<ul>
+  <li>vdpau: call texture_get_handle while the mutex is being held</li>
+  <li>va: call texture_get_handle while the mutex is being held</li>
+  <li>radeonsi: for the tess barrier, only use emit_waitcnt on SI and LLVM 3.9+</li>
+  <li>radeonsi: don't forget to add HTILE to the buffer list for texturing</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>cso: Don't restore nr_samplers in cso_restore_fragment_samplers</li>
+</ul>
+
+<p>Nanley Chery (3):</p>
+<ul>
+  <li>anv/cmd_buffer: Fix arrayed depth/stencil attachments</li>
+  <li>anv/cmd_buffer: Fix programmed HiZ qpitch</li>
+  <li>anv/image: Disable HiZ for depth buffer arrays</li>
+</ul>
+
+<p>Nayan Deshmukh (1):</p>
+<ul>
+  <li>st/va: delay calling begin_frame until we have all parameters</li>
+</ul>
+
+<p>Rob Clark (1):</p>
+<ul>
+  <li>freedreno: some fence cleanup</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>gallium/hud: add missing break in hud_cpufreq_graph_install()</li>
+</ul>
+
+<p>Timothy Arceri (3):</p>
+<ul>
+  <li>nir: Turn imov/fmov of undef into undef</li>
+  <li>glsl: fix opt_minmax redundancy checks against baserange</li>
+  <li>util: fix list_is_singular()</li>
+</ul>
+
+<p>Zachary Michaels (1):</p>
+<ul>
+  <li>radeonsi: Always leave poly_offset in a valid state</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -199,6 +199,7 @@ EXT(EXT_buffer_storage                      , ARB_buffer_storage                
 EXT(EXT_clip_cull_distance                  , ARB_cull_distance                      ,  x ,  x ,  x ,  30, 2016)
 EXT(EXT_color_buffer_float                  , dummy_true                             ,  x ,  x ,  x ,  30, 2013)
 EXT(EXT_compiled_vertex_array               , dummy_true                             , GLL,  x ,  x ,  x , 1996)
+EXT(EXT_compressed_ETC1_RGB8_sub_texture    , OES_compressed_ETC1_RGB8_texture       ,  x ,  x , ES1, ES2, 2014)
 EXT(EXT_copy_image                          , OES_copy_image                         ,  x ,  x ,  x ,  30, 2014)
 EXT(EXT_copy_texture                        , dummy_true                             , GLL,  x ,  x ,  x , 1995)
 EXT(EXT_depth_bounds_test                   , EXT_depth_bounds_test                  , GLL, GLC,  x ,  x , 2002)

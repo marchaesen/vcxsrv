@@ -55,7 +55,7 @@ LOCAL_C_INCLUDES := \
 	external/llvm/include \
 	external/llvm/device/include \
 	external/libcxx/include \
-	external/elfutils/$(if $(filter 5,$(MESA_ANDROID_MAJOR_VERSION)),0.153/,$(if $(filter 6,$(MESA_ANDROID_MAJOR_VERSION)),src/))libelf
+	$(ELF_INCLUDES)
 
 LOCAL_STATIC_LIBRARIES := libLLVMCore
 

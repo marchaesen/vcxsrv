@@ -132,13 +132,11 @@ update_fp( struct st_context *st )
       _mesa_geometric_samples(st->ctx->DrawBuffer) > 1;
 
    if (stfp->ati_fs) {
-      unsigned u;
-
       if (st->ctx->Fog.Enabled) {
          key.fog = translate_fog_mode(st->ctx->Fog.Mode);
       }
 
-      for (u = 0; u < MAX_NUM_FRAGMENT_REGISTERS_ATI; u++) {
+      for (unsigned u = 0; u < MAX_NUM_FRAGMENT_REGISTERS_ATI; u++) {
          key.texture_targets[u] = get_texture_target(st->ctx, u);
       }
    }
