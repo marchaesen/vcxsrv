@@ -93,6 +93,11 @@ struct FontSpec *fontspec_new(const char *name,
 #define PLATFORM_HAS_SMEMCLR /* inhibit cross-platform one in misc.c */
 #endif
 
+/* Up-to-date Windows headers warn that the unprefixed versions of
+ * these names are deprecated. */
+#define stricmp _stricmp
+#define strnicmp _strnicmp
+
 #define BROKEN_PIPE_ERROR_CODE ERROR_BROKEN_PIPE   /* used in sshshare.c */
 
 /*
@@ -485,6 +490,7 @@ BOOL init_winver(void);
 HMODULE load_system32_dll(const char *libname);
 const char *win_strerror(int error);
 void restrict_process_acl(void);
+GLOBAL int restricted_acl;
 
 /*
  * Exports from sizetip.c.

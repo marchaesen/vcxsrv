@@ -302,28 +302,81 @@ build_atan(nir_builder *b, nir_ssa_def *y_over_x)
 static nir_ssa_def *
 build_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x)
 {
-   nir_ssa_def *zero = nir_imm_float(b, 0.0f);
+   nir_ssa_def *zero = nir_imm_float(b, 0);
+   nir_ssa_def *one = nir_imm_float(b, 1);
 
-   /* If |x| >= 1.0e-8 * |y|: */
-   nir_ssa_def *condition =
-      nir_fge(b, nir_fabs(b, x),
-              nir_fmul(b, nir_imm_float(b, 1.0e-8f), nir_fabs(b, y)));
+   /* If we're on the left half-plane rotate the coordinates π/2 clock-wise
+    * for the y=0 discontinuity to end up aligned with the vertical
+    * discontinuity of atan(s/t) along t=0.  This also makes sure that we
+    * don't attempt to divide by zero along the vertical line, which may give
+    * unspecified results on non-GLSL 4.1-capable hardware.
+    */
+   nir_ssa_def *flip = nir_fge(b, zero, x);
+   nir_ssa_def *s = nir_bcsel(b, flip, nir_fabs(b, x), y);
+   nir_ssa_def *t = nir_bcsel(b, flip, y, nir_fabs(b, x));
 
-   /* Then...call atan(y/x) and fix it up: */
-   nir_ssa_def *atan1 = build_atan(b, nir_fdiv(b, y, x));
-   nir_ssa_def *r_then =
-      nir_bcsel(b, nir_flt(b, x, zero),
-                   nir_fadd(b, atan1,
-                               nir_bcsel(b, nir_fge(b, y, zero),
-                                            nir_imm_float(b, M_PIf),
-                                            nir_imm_float(b, -M_PIf))),
-                   atan1);
+   /* If the magnitude of the denominator exceeds some huge value, scale down
+    * the arguments in order to prevent the reciprocal operation from flushing
+    * its result to zero, which would cause precision problems, and for s
+    * infinite would cause us to return a NaN instead of the correct finite
+    * value.
+    *
+    * If fmin and fmax are respectively the smallest and largest positive
+    * normalized floating point values representable by the implementation,
+    * the constants below should be in agreement with:
+    *
+    *    huge <= 1 / fmin
+    *    scale <= 1 / fmin / fmax (for |t| >= huge)
+    *
+    * In addition scale should be a negative power of two in order to avoid
+    * loss of precision.  The values chosen below should work for most usual
+    * floating point representations with at least the dynamic range of ATI's
+    * 24-bit representation.
+    */
+   nir_ssa_def *huge = nir_imm_float(b, 1e18f);
+   nir_ssa_def *scale = nir_bcsel(b, nir_fge(b, nir_fabs(b, t), huge),
+                                  nir_imm_float(b, 0.25), one);
+   nir_ssa_def *rcp_scaled_t = nir_frcp(b, nir_fmul(b, t, scale));
+   nir_ssa_def *s_over_t = nir_fmul(b, nir_fmul(b, s, scale), rcp_scaled_t);
 
-   /* Else... */
-   nir_ssa_def *r_else =
-      nir_fmul(b, nir_fsign(b, y), nir_imm_float(b, M_PI_2f));
+   /* For |x| = |y| assume tan = 1 even if infinite (i.e. pretend momentarily
+    * that ∞/∞ = 1) in order to comply with the rather artificial rules
+    * inherited from IEEE 754-2008, namely:
+    *
+    *  "atan2(±∞, −∞) is ±3π/4
+    *   atan2(±∞, +∞) is ±π/4"
+    *
+    * Note that this is inconsistent with the rules for the neighborhood of
+    * zero that are based on iterated limits:
+    *
+    *  "atan2(±0, −0) is ±π
+    *   atan2(±0, +0) is ±0"
+    *
+    * but GLSL specifically allows implementations to deviate from IEEE rules
+    * at (0,0), so we take that license (i.e. pretend that 0/0 = 1 here as
+    * well).
+    */
+   nir_ssa_def *tan = nir_bcsel(b, nir_feq(b, nir_fabs(b, x), nir_fabs(b, y)),
+                                one, nir_fabs(b, s_over_t));
 
-   return nir_bcsel(b, condition, r_then, r_else);
+   /* Calculate the arctangent and fix up the result if we had flipped the
+    * coordinate system.
+    */
+   nir_ssa_def *arc = nir_fadd(b, nir_fmul(b, nir_b2f(b, flip),
+                                           nir_imm_float(b, M_PI_2f)),
+                               build_atan(b, tan));
+
+   /* Rather convoluted calculation of the sign of the result.  When x < 0 we
+    * cannot use fsign because we need to be able to distinguish between
+    * negative and positive zero.  We don't use bitwise arithmetic tricks for
+    * consistency with the GLSL front-end.  When x >= 0 rcp_scaled_t will
+    * always be non-negative so this won't be able to distinguish between
+    * negative and positive zero, but we don't care because atan2 is
+    * continuous along the whole positive y = 0 half-line, so it won't affect
+    * the result significantly.
+    */
+   return nir_bcsel(b, nir_flt(b, nir_fmin(b, y, rcp_scaled_t), zero),
+                    nir_fneg(b, arc), arc);
 }
 
 static nir_ssa_def *

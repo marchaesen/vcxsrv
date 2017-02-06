@@ -1465,6 +1465,12 @@ _mesa_GetTextureSubImage(GLuint texture, GLint level,
       return;
    }
 
+   if (!legal_getteximage_target(ctx, texObj->Target, true)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(buffer/multisample texture)", caller);
+      return;
+   }
+
    if (getteximage_error_check(ctx, texObj, texObj->Target, level,
                                xoffset, yoffset, zoffset, width, height, depth,
                                format, type, bufSize, pixels, caller)) {

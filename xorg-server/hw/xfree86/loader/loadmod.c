@@ -837,7 +837,6 @@ void
 UnloadModule(void *_mod)
 {
     ModuleDescPtr mod = _mod;
-    const char *name;
 
     if (mod == (ModuleDescPtr) 1)
         return;
@@ -845,17 +844,19 @@ UnloadModule(void *_mod)
     if (mod == NULL)
         return;
 
-    name = mod->VersionInfo->modname;
+    if (mod->VersionInfo) {
+        const char *name = mod->VersionInfo->modname;
 
-    if (mod->parent)
-        LogMessageVerbSigSafe(X_INFO, 3, "UnloadSubModule: \"%s\"\n", name);
-    else
-        LogMessageVerbSigSafe(X_INFO, 3, "UnloadModule: \"%s\"\n", name);
+        if (mod->parent)
+            LogMessageVerbSigSafe(X_INFO, 3, "UnloadSubModule: \"%s\"\n", name);
+        else
+            LogMessageVerbSigSafe(X_INFO, 3, "UnloadModule: \"%s\"\n", name);
 
-    if (mod->TearDownData != ModuleDuplicated) {
-        if ((mod->TearDownProc) && (mod->TearDownData))
-            mod->TearDownProc(mod->TearDownData);
-        LoaderUnload(name, mod->handle);
+        if (mod->TearDownData != ModuleDuplicated) {
+            if ((mod->TearDownProc) && (mod->TearDownData))
+                mod->TearDownProc(mod->TearDownData);
+            LoaderUnload(name, mod->handle);
+        }
     }
 
     if (mod->child)

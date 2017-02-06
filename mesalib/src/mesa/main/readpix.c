@@ -1033,8 +1033,8 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
    if (_mesa_is_gles(ctx)) {
       if (ctx->API == API_OPENGLES2 &&
           _mesa_is_color_format(format) &&
-          _mesa_get_color_read_format(ctx) == format &&
-          _mesa_get_color_read_type(ctx) == type) {
+          _mesa_get_color_read_format(ctx, NULL, "glReadPixels") == format &&
+          _mesa_get_color_read_type(ctx, NULL, "glReadPixels") == type) {
          err = GL_NO_ERROR;
       } else if (ctx->Version < 30) {
          err = _mesa_es_error_check_format_and_type(ctx, format, type, 2);

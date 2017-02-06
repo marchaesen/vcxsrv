@@ -535,7 +535,7 @@ private:
             const char *str_end;
             while((str_start = strchr(name_copy, '[')) &&
                   (str_end = strchr(name_copy, ']'))) {
-               memmove(str_start, str_end + 1, 1 + strlen(str_end));
+               memmove(str_start, str_end + 1, 1 + strlen(str_end + 1));
             }
 
             unsigned index = 0;

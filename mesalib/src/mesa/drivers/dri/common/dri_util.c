@@ -645,6 +645,8 @@ driCreateNewDrawable(__DRIscreen *screen,
 {
     __DRIdrawable *pdraw;
 
+    assert(data != NULL);
+
     pdraw = malloc(sizeof *pdraw);
     if (!pdraw)
 	return NULL;
@@ -674,6 +676,16 @@ driCreateNewDrawable(__DRIscreen *screen,
 static void
 driDestroyDrawable(__DRIdrawable *pdp)
 {
+    /*
+     * The loader's data structures are going away, even if pdp itself stays
+     * around for the time being because it is currently bound. This happens
+     * when a currently bound GLX pixmap is destroyed.
+     *
+     * Clear out the pointer back into the loader's data structures to avoid
+     * accessing an outdated pointer.
+     */
+    pdp->loaderPrivate = NULL;
+
     dri_put_drawable(pdp);
 }
 

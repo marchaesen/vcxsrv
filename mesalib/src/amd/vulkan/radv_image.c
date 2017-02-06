@@ -905,10 +905,13 @@ bool radv_layout_can_fast_clear(const struct radv_image *image,
 }
 
 
-unsigned radv_image_queue_family_mask(const struct radv_image *image, int family) {
-	if (image->exclusive)
-		return 1u <<family;
-	return image->queue_family_mask;
+unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t family, uint32_t queue_family)
+{
+	if (!image->exclusive)
+		return image->queue_family_mask;
+	if (family == VK_QUEUE_FAMILY_IGNORED)
+		return 1u << queue_family;
+	return 1u << family;
 }
 
 VkResult

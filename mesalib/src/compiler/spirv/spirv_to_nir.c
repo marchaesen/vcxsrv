@@ -2683,6 +2683,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(tessellation, cap);
          break;
 
+      case SpvCapabilityDrawParameters:
+         spv_check_supported(draw_parameters, cap);
+         break;
+
       default:
          unreachable("Unhandled capability");
       }

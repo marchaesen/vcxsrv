@@ -787,10 +787,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    case GL_IMPLEMENTATION_COLOR_READ_TYPE_OES:
-      v->value_int = _mesa_get_color_read_type(ctx);
+      v->value_int = _mesa_get_color_read_type(ctx, NULL, "glGetIntegerv");
       break;
    case GL_IMPLEMENTATION_COLOR_READ_FORMAT_OES:
-      v->value_int = _mesa_get_color_read_format(ctx);
+      v->value_int = _mesa_get_color_read_format(ctx, NULL, "glGetIntegerv");
       break;
 
    case GL_CURRENT_MATRIX_STACK_DEPTH_ARB:

@@ -315,6 +315,12 @@ exp(operand a)
 }
 
 ir_expression *
+rcp(operand a)
+{
+   return expr(ir_unop_rcp, a);
+}
+
+ir_expression *
 rsq(operand a)
 {
    return expr(ir_unop_rsq, a);

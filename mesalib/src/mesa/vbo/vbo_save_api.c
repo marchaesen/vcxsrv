@@ -78,6 +78,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/api_arrayelt.h"
 #include "main/vtxfmt.h"
 #include "main/dispatch.h"
+#include "main/state.h"
 #include "util/bitscan.h"
 
 #include "vbo_context.h"
@@ -1159,6 +1160,9 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
    if (save->out_of_memory)
       return;
 
+   /* Make sure to process any VBO binding changes */
+   _mesa_update_state(ctx);
+
    _ae_map_vbos(ctx);
 
    vbo_save_NotifyBegin(ctx, (mode | VBO_SAVE_PRIM_WEAK
@@ -1201,6 +1205,9 @@ _save_OBE_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
 
    if (save->out_of_memory)
       return;
+
+   /* Make sure to process any VBO binding changes */
+   _mesa_update_state(ctx);
 
    _ae_map_vbos(ctx);
 

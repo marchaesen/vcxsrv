@@ -76,6 +76,11 @@ EGL_MESA_platform_gbm
 EGL_MESA_platform_surfaceless
         EGL_PLATFORM_SURFACELESS_MESA           0x31DD
 
+EGL_MESA_drm_image
+        EGL_DRM_BUFFER_FORMAT_ARGB2101010_MESA  0x3290
+        EGL_DRM_BUFFER_FORMAT_ARGB1555_MESA     0x3291
+        EGL_DRM_BUFFER_FORMAT_RGB565_MESA       0x3292
+
 EGL_WL_bind_wayland_display
         EGL_TEXTURE_FORMAT                      0x3080
         EGL_WAYLAND_BUFFER_WL                   0x31D5

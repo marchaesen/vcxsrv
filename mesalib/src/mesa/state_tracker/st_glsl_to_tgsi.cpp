@@ -6841,140 +6841,114 @@ set_affected_state_flags(uint64_t *states,
       *states |= new_atomics;
 }
 
-static struct gl_program *
-get_mesa_program(struct gl_context *ctx,
-                 struct gl_shader_program *shader_program,
-                 struct gl_linked_shader *shader)
+static void
+set_prog_affected_state_flags(struct gl_program *prog)
 {
-   struct pipe_screen *pscreen = ctx->st->pipe->screen;
-   enum pipe_shader_type ptarget = st_shader_stage_to_ptarget(shader->Stage);
-   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
-      pscreen->get_shader_param(pscreen, ptarget, PIPE_SHADER_CAP_PREFERRED_IR);
-   struct gl_program *prog = NULL;
+   uint64_t *states;
 
-   if (preferred_ir == PIPE_SHADER_IR_NIR) {
-      /* TODO only for GLSL VS/FS for now: */
-      switch (shader->Stage) {
-      case MESA_SHADER_VERTEX:
-      case MESA_SHADER_FRAGMENT:
-         prog = st_nir_get_mesa_program(ctx, shader_program, shader);
-      default:
-         break;
-      }
-   } else {
-      prog = get_mesa_program_tgsi(ctx, shader_program, shader);
+   /* This determines which states will be updated when the shader is bound.
+    */
+   switch (prog->info.stage) {
+   case MESA_SHADER_VERTEX:
+      states = &((struct st_vertex_program*)prog)->affected_states;
+
+      *states = ST_NEW_VS_STATE |
+                ST_NEW_RASTERIZER |
+                ST_NEW_VERTEX_ARRAYS;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_VS_CONSTANTS,
+                               ST_NEW_VS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_VS_IMAGES,
+                               ST_NEW_VS_UBOS,
+                               ST_NEW_VS_SSBOS,
+                               ST_NEW_VS_ATOMICS);
+      break;
+
+   case MESA_SHADER_TESS_CTRL:
+      states = &((struct st_tessctrl_program*)prog)->affected_states;
+
+      *states = ST_NEW_TCS_STATE;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_TCS_CONSTANTS,
+                               ST_NEW_TCS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_TCS_IMAGES,
+                               ST_NEW_TCS_UBOS,
+                               ST_NEW_TCS_SSBOS,
+                               ST_NEW_TCS_ATOMICS);
+      break;
+
+   case MESA_SHADER_TESS_EVAL:
+      states = &((struct st_tesseval_program*)prog)->affected_states;
+
+      *states = ST_NEW_TES_STATE |
+                ST_NEW_RASTERIZER;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_TES_CONSTANTS,
+                               ST_NEW_TES_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_TES_IMAGES,
+                               ST_NEW_TES_UBOS,
+                               ST_NEW_TES_SSBOS,
+                               ST_NEW_TES_ATOMICS);
+      break;
+
+   case MESA_SHADER_GEOMETRY:
+      states = &((struct st_geometry_program*)prog)->affected_states;
+
+      *states = ST_NEW_GS_STATE |
+                ST_NEW_RASTERIZER;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_GS_CONSTANTS,
+                               ST_NEW_GS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_GS_IMAGES,
+                               ST_NEW_GS_UBOS,
+                               ST_NEW_GS_SSBOS,
+                               ST_NEW_GS_ATOMICS);
+      break;
+
+   case MESA_SHADER_FRAGMENT:
+      states = &((struct st_fragment_program*)prog)->affected_states;
+
+      /* gl_FragCoord and glDrawPixels always use constants. */
+      *states = ST_NEW_FS_STATE |
+                ST_NEW_SAMPLE_SHADING |
+                ST_NEW_FS_CONSTANTS;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_FS_CONSTANTS,
+                               ST_NEW_FS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_FS_IMAGES,
+                               ST_NEW_FS_UBOS,
+                               ST_NEW_FS_SSBOS,
+                               ST_NEW_FS_ATOMICS);
+      break;
+
+   case MESA_SHADER_COMPUTE:
+      states = &((struct st_compute_program*)prog)->affected_states;
+
+      *states = ST_NEW_CS_STATE;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_CS_CONSTANTS,
+                               ST_NEW_CS_SAMPLER_VIEWS,
+                               ST_NEW_CS_SAMPLERS,
+                               ST_NEW_CS_IMAGES,
+                               ST_NEW_CS_UBOS,
+                               ST_NEW_CS_SSBOS,
+                               ST_NEW_CS_ATOMICS);
+      break;
+
+   default:
+      unreachable("unhandled shader stage");
    }
-
-   if (prog) {
-      uint64_t *states;
-
-      /* This determines which states will be updated when the shader is
-       * bound.
-       */
-      switch (shader->Stage) {
-      case MESA_SHADER_VERTEX:
-         states = &((struct st_vertex_program*)prog)->affected_states;
-
-         *states = ST_NEW_VS_STATE |
-                   ST_NEW_RASTERIZER |
-                   ST_NEW_VERTEX_ARRAYS;
-
-         set_affected_state_flags(states, prog,
-                                  ST_NEW_VS_CONSTANTS,
-                                  ST_NEW_VS_SAMPLER_VIEWS,
-                                  ST_NEW_RENDER_SAMPLERS,
-                                  ST_NEW_VS_IMAGES,
-                                  ST_NEW_VS_UBOS,
-                                  ST_NEW_VS_SSBOS,
-                                  ST_NEW_VS_ATOMICS);
-         break;
-
-      case MESA_SHADER_TESS_CTRL:
-         states = &((struct st_tessctrl_program*)prog)->affected_states;
-
-         *states = ST_NEW_TCS_STATE;
-
-         set_affected_state_flags(states, prog,
-                                  ST_NEW_TCS_CONSTANTS,
-                                  ST_NEW_TCS_SAMPLER_VIEWS,
-                                  ST_NEW_RENDER_SAMPLERS,
-                                  ST_NEW_TCS_IMAGES,
-                                  ST_NEW_TCS_UBOS,
-                                  ST_NEW_TCS_SSBOS,
-                                  ST_NEW_TCS_ATOMICS);
-         break;
-
-      case MESA_SHADER_TESS_EVAL:
-         states = &((struct st_tesseval_program*)prog)->affected_states;
-
-         *states = ST_NEW_TES_STATE |
-                   ST_NEW_RASTERIZER;
-
-         set_affected_state_flags(states, prog,
-                                  ST_NEW_TES_CONSTANTS,
-                                  ST_NEW_TES_SAMPLER_VIEWS,
-                                  ST_NEW_RENDER_SAMPLERS,
-                                  ST_NEW_TES_IMAGES,
-                                  ST_NEW_TES_UBOS,
-                                  ST_NEW_TES_SSBOS,
-                                  ST_NEW_TES_ATOMICS);
-         break;
-
-      case MESA_SHADER_GEOMETRY:
-         states = &((struct st_geometry_program*)prog)->affected_states;
-
-         *states = ST_NEW_GS_STATE |
-                   ST_NEW_RASTERIZER;
-
-         set_affected_state_flags(states, prog,
-                                  ST_NEW_GS_CONSTANTS,
-                                  ST_NEW_GS_SAMPLER_VIEWS,
-                                  ST_NEW_RENDER_SAMPLERS,
-                                  ST_NEW_GS_IMAGES,
-                                  ST_NEW_GS_UBOS,
-                                  ST_NEW_GS_SSBOS,
-                                  ST_NEW_GS_ATOMICS);
-         break;
-
-      case MESA_SHADER_FRAGMENT:
-         states = &((struct st_fragment_program*)prog)->affected_states;
-
-         /* gl_FragCoord and glDrawPixels always use constants. */
-         *states = ST_NEW_FS_STATE |
-                   ST_NEW_SAMPLE_SHADING |
-                   ST_NEW_FS_CONSTANTS;
-
-         set_affected_state_flags(states, prog,
-                                  ST_NEW_FS_CONSTANTS,
-                                  ST_NEW_FS_SAMPLER_VIEWS,
-                                  ST_NEW_RENDER_SAMPLERS,
-                                  ST_NEW_FS_IMAGES,
-                                  ST_NEW_FS_UBOS,
-                                  ST_NEW_FS_SSBOS,
-                                  ST_NEW_FS_ATOMICS);
-         break;
-
-      case MESA_SHADER_COMPUTE:
-         states = &((struct st_compute_program*)prog)->affected_states;
-
-         *states = ST_NEW_CS_STATE;
-
-         set_affected_state_flags(states, prog,
-                                  ST_NEW_CS_CONSTANTS,
-                                  ST_NEW_CS_SAMPLER_VIEWS,
-                                  ST_NEW_CS_SAMPLERS,
-                                  ST_NEW_CS_IMAGES,
-                                  ST_NEW_CS_UBOS,
-                                  ST_NEW_CS_SSBOS,
-                                  ST_NEW_CS_ATOMICS);
-         break;
-
-      default:
-         unreachable("unhandled shader stage");
-      }
-   }
-
-   return prog;
 }
 
 /* See if there are unsupported control flow statements. */
@@ -7158,19 +7132,36 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
    build_program_resource_list(ctx, prog);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      struct gl_program *linked_prog;
-
-      if (prog->_LinkedShaders[i] == NULL)
+      struct gl_linked_shader *shader = prog->_LinkedShaders[i];
+      if (shader == NULL)
          continue;
 
-      linked_prog = get_mesa_program(ctx, prog, prog->_LinkedShaders[i]);
+      enum pipe_shader_type ptarget =
+         st_shader_stage_to_ptarget(shader->Stage);
+      enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+         pscreen->get_shader_param(pscreen, ptarget,
+                                   PIPE_SHADER_CAP_PREFERRED_IR);
+
+      struct gl_program *linked_prog = NULL;
+      if (preferred_ir == PIPE_SHADER_IR_NIR) {
+         /* TODO only for GLSL VS/FS for now: */
+         switch (shader->Stage) {
+         case MESA_SHADER_VERTEX:
+         case MESA_SHADER_FRAGMENT:
+            linked_prog = st_nir_get_mesa_program(ctx, prog, shader);
+         default:
+            break;
+         }
+      } else {
+         linked_prog = get_mesa_program_tgsi(ctx, prog, shader);
+      }
 
       if (linked_prog) {
+         set_prog_affected_state_flags(linked_prog);
          if (!ctx->Driver.ProgramStringNotify(ctx,
                                               _mesa_shader_stage_to_program(i),
                                               linked_prog)) {
-            _mesa_reference_program(ctx, &prog->_LinkedShaders[i]->Program,
-                                    NULL);
+            _mesa_reference_program(ctx, &shader->Program, NULL);
             return GL_FALSE;
          }
       }

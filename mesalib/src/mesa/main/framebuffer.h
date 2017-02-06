@@ -128,10 +128,14 @@ extern GLboolean
 _mesa_dest_buffer_exists(struct gl_context *ctx, GLenum format);
 
 extern GLenum
-_mesa_get_color_read_type(struct gl_context *ctx);
+_mesa_get_color_read_type(struct gl_context *ctx,
+                          struct gl_framebuffer *fb,
+                          const char *caller);
 
 extern GLenum
-_mesa_get_color_read_format(struct gl_context *ctx);
+_mesa_get_color_read_format(struct gl_context *ctx,
+                            struct gl_framebuffer *fb,
+                            const char *caller);
 
 extern struct gl_renderbuffer *
 _mesa_get_read_renderbuffer_for_format(const struct gl_context *ctx,

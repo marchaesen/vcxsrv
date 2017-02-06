@@ -148,6 +148,7 @@ ir_expression *neg(operand a);
 ir_expression *sin(operand a);
 ir_expression *cos(operand a);
 ir_expression *exp(operand a);
+ir_expression *rcp(operand a);
 ir_expression *rsq(operand a);
 ir_expression *sqrt(operand a);
 ir_expression *log(operand a);
