@@ -4404,8 +4404,6 @@ handle_tess_ctrl_shader_output_decl(struct _mesa_glsl_parse_state *state,
    if (var->data.patch)
       return;
 
-   var->data.tess_varying_implicit_sized_array = var->type->is_unsized_array();
-
    validate_layout_qualifier_vertex_count(state, loc, var, num_vertices,
                                           &state->tcs_output_size,
                                           "tessellation control shader output");
@@ -4442,7 +4440,6 @@ handle_tess_shader_input_decl(struct _mesa_glsl_parse_state *state,
    if (var->type->is_unsized_array()) {
       var->type = glsl_type::get_array_instance(var->type->fields.array,
             state->Const.MaxPatchVertices);
-      var->data.tess_varying_implicit_sized_array = true;
    } else if (var->type->length != state->Const.MaxPatchVertices) {
       _mesa_glsl_error(&loc, state,
                        "per-vertex tessellation shader input arrays must be "
@@ -7903,10 +7900,9 @@ ast_interface_block::hir(exec_list *instructions,
          }
 
          if (var->type->is_unsized_array()) {
-            if (var->is_in_shader_storage_block()) {
-               if (is_unsized_array_last_element(var)) {
-                  var->data.from_ssbo_unsized_array = true;
-               }
+            if (var->is_in_shader_storage_block() &&
+                is_unsized_array_last_element(var)) {
+               var->data.from_ssbo_unsized_array = true;
             } else {
                /* From GLSL ES 3.10 spec, section 4.1.9 "Arrays":
                 *
@@ -7914,6 +7910,10 @@ ast_interface_block::hir(exec_list *instructions,
                 * block and the size is not specified at compile-time, it is
                 * sized at run-time. In all other cases, arrays are sized only
                 * at compile-time."
+                *
+                * In desktop GLSL it is allowed to have unsized-arrays that are
+                * not last, as long as we can determine that they are implicitly
+                * sized.
                 */
                if (state->es_shader) {
                   _mesa_glsl_error(&loc, state, "unsized array `%s' "

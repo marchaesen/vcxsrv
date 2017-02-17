@@ -84,6 +84,8 @@ void util_queue_add_job(struct util_queue *queue,
                         util_queue_execute_func cleanup);
 
 void util_queue_job_wait(struct util_queue_fence *fence);
+int64_t util_queue_get_thread_time_nano(struct util_queue *queue,
+                                        unsigned thread_index);
 
 /* util_queue needs to be cleared to zeroes for this to work */
 static inline bool

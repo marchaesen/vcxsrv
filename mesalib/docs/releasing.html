@@ -343,41 +343,51 @@ Here is one solution that I've been using.
 
 	$__mesa_root/autogen.sh --enable-llvm-shared-libs &amp;&amp; make -j2 distcheck
 
-	# Build check the tarballs (scons)
-	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version &amp;&amp; scons &amp;&amp; cd ..
+	# Build check the tarballs (scons, linux)
+	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
+	scons
+	cd .. &amp;&amp; rm -rf mesa-$__version
+
+	# Build check the tarballs (scons, windows/mingw)
+	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
+	scons platform=windows toolchain=crossmingw
+	cd .. &amp;&amp; rm -rf mesa-$__version
 
 	# Test the automake binaries
-	rm -rf mesa-$__version
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
 	./configure \
 		--with-dri-drivers=i965,swrast \
 		--with-gallium-drivers=swrast \
 		--with-vulkan-drivers=intel \
 		--enable-llvm-shared-libs \
-		--enable-gallium-llvm \
+		--enable-llvm \
 		--enable-glx-tls \
 		--enable-gbm \
 		--enable-egl \
 		--with-egl-platforms=x11,drm,wayland
 	make -j2 &amp;&amp; DESTDIR=`pwd`/test make -j6 install
+	__glxinfo_cmd='glxinfo 2>&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
+	__glxgears_cmd='glxgears 2>&amp;1 | grep -v "configuration file"'
+	__es2info_cmd='es2_info 2>&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
+	__es2gears_cmd='es2gears_x11 2>&amp;1 | grep -v "configuration file"'
 	export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/
 	export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
 	export LIBGL_DEBUG=verbose
-	glxinfo | egrep -o "Mesa.*"
-	glxgears
-	es2_info | egrep "GL_VERSION|GL_RENDERER"
-	es2gears_x11
+	eval $__glxinfo_cmd
+	eval $__glxgears_cmd
+	eval $__es2info_cmd
+	eval $__es2gears_cmd
 	export LIBGL_ALWAYS_SOFTWARE=1
-	glxinfo | egrep -o "Mesa.*|Gallium.*"
-	glxgears
-	es2_info | egrep "GL_VERSION|GL_RENDERER"
-	es2gears_x11
+	eval $__glxinfo_cmd
+	eval $__glxgears_cmd
+	eval $__es2info_cmd
+	eval $__es2gears_cmd
 	export LIBGL_ALWAYS_SOFTWARE=1
 	export GALLIUM_DRIVER=softpipe
-	glxinfo | egrep -o "Mesa.*|Gallium.*"
-	glxgears
-	es2_info | egrep "GL_VERSION|GL_RENDERER"
-	es2gears_x11
+	eval $__glxinfo_cmd
+	eval $__glxgears_cmd
+	eval $__es2info_cmd
+	eval $__es2gears_cmd
 	# Smoke test DOTA2
 	unset LD_LIBRARY_PATH
 	unset LIBGL_DRIVERS_PATH
@@ -477,22 +487,9 @@ Use the generated template during the releasing process.
 <h1 id="website">Update the mesa3d.org website</h1>
 
 <p>
-NOTE: The recent release managers have not been performing this step
-themselves, but leaving this to Brian Paul, (who has access to the
-sourceforge.net hosting for mesa3d.org). Brian is more than willing to grant
-the permission necessary to future release managers to do this step on their
-own.
+As the hosting was moved to freedesktop, git hooks are deployed to update the
+website. Manually check that it is updated 5-10 minutes after the final <code>git push</code>
 </p>
-
-<p>
-Update the web site by copying the docs/ directory's files to
-/home/users/b/br/brianp/mesa-www/htdocs/ with:
-<br>
-<code>
-sftp USERNAME,mesa3d@web.sourceforge.net
-</code>
-</p>
-
 
 <h1 id="bugzilla">Update Bugzilla</h1>
 

@@ -34,6 +34,7 @@
 #include    <X11/fonts/fontstruct.h>
 #include    <X11/fonts/libxfont2.h>
 #include    "mi.h"
+#include    "mipict.h"
 #include    "regionstr.h"
 #include    "globals.h"
 #include    "gcstruct.h"
@@ -499,6 +500,15 @@ damageComposite(CARD8 op,
         if (BOX_NOT_EMPTY(box))
             damageDamageBox(pDst->pDrawable, &box, pDst->subWindowMode);
     }
+    /*
+     * Validating a source picture bound to a window may trigger other
+     * composite operations. Do it before unwrapping to make sure damage
+     * is reported correctly.
+     */
+    if (pSrc->pDrawable && WindowDrawable(pSrc->pDrawable->type))
+        miCompositeSourceValidate(pSrc);
+    if (pMask && pMask->pDrawable && WindowDrawable(pMask->pDrawable->type))
+        miCompositeSourceValidate(pMask);
     unwrap(pScrPriv, ps, Composite);
     (*ps->Composite) (op,
                       pSrc,

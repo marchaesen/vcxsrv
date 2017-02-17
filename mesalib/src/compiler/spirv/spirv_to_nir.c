@@ -104,6 +104,8 @@ vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
    switch (glsl_get_base_type(type)) {
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT64:
+   case GLSL_TYPE_UINT64:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_DOUBLE: {
@@ -420,6 +422,8 @@ vtn_type_copy(struct vtn_builder *b, struct vtn_type *src)
       switch (glsl_get_base_type(src->type)) {
       case GLSL_TYPE_INT:
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_INT64:
+      case GLSL_TYPE_UINT64:
       case GLSL_TYPE_BOOL:
       case GLSL_TYPE_FLOAT:
       case GLSL_TYPE_DOUBLE:
@@ -715,8 +719,12 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       val->type->type = glsl_bool_type();
       break;
    case SpvOpTypeInt: {
+      int bit_size = w[2];
       const bool signedness = w[3];
-      val->type->type = (signedness ? glsl_int_type() : glsl_uint_type());
+      if (bit_size == 64)
+         val->type->type = (signedness ? glsl_int64_t_type() : glsl_uint64_t_type());
+      else
+         val->type->type = (signedness ? glsl_int_type() : glsl_uint_type());
       break;
    }
    case SpvOpTypeFloat: {
@@ -874,8 +882,6 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          val->type->type = glsl_sampler_type(dim, is_shadow, is_array,
                                              glsl_get_base_type(sampled_type));
       } else if (sampled == 2) {
-         assert((dim == GLSL_SAMPLER_DIM_SUBPASS ||
-                 dim == GLSL_SAMPLER_DIM_SUBPASS_MS) || format);
          assert(!is_shadow);
          val->type->type = glsl_image_type(dim, is_array,
                                            glsl_get_base_type(sampled_type));
@@ -919,6 +925,8 @@ vtn_null_constant(struct vtn_builder *b, const struct glsl_type *type)
    switch (glsl_get_base_type(type)) {
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT64:
+   case GLSL_TYPE_UINT64:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_DOUBLE:
@@ -1073,6 +1081,8 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       switch (glsl_get_base_type(val->const_type)) {
       case GLSL_TYPE_UINT:
       case GLSL_TYPE_INT:
+      case GLSL_TYPE_UINT64:
+      case GLSL_TYPE_INT64:
       case GLSL_TYPE_FLOAT:
       case GLSL_TYPE_BOOL:
       case GLSL_TYPE_DOUBLE: {
@@ -1210,6 +1220,8 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             switch (glsl_get_base_type(type)) {
             case GLSL_TYPE_UINT:
             case GLSL_TYPE_INT:
+            case GLSL_TYPE_UINT64:
+            case GLSL_TYPE_INT64:
             case GLSL_TYPE_FLOAT:
             case GLSL_TYPE_DOUBLE:
             case GLSL_TYPE_BOOL:
@@ -1379,6 +1391,8 @@ vtn_create_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
          switch (glsl_get_base_type(type)) {
          case GLSL_TYPE_INT:
          case GLSL_TYPE_UINT:
+         case GLSL_TYPE_INT64:
+         case GLSL_TYPE_UINT64:
          case GLSL_TYPE_BOOL:
          case GLSL_TYPE_FLOAT:
          case GLSL_TYPE_DOUBLE:
@@ -2334,15 +2348,30 @@ vtn_vector_construct(struct vtn_builder *b, unsigned num_components,
    nir_alu_instr *vec = create_vec(b->shader, num_components,
                                    srcs[0]->bit_size);
 
+   /* From the SPIR-V 1.1 spec for OpCompositeConstruct:
+    *
+    *    "When constructing a vector, there must be at least two Constituent
+    *    operands."
+    */
+   assert(num_srcs >= 2);
+
    unsigned dest_idx = 0;
    for (unsigned i = 0; i < num_srcs; i++) {
       nir_ssa_def *src = srcs[i];
+      assert(dest_idx + src->num_components <= num_components);
       for (unsigned j = 0; j < src->num_components; j++) {
          vec->src[dest_idx].src = nir_src_for_ssa(src);
          vec->src[dest_idx].swizzle[0] = j;
          dest_idx++;
       }
    }
+
+   /* From the SPIR-V 1.1 spec for OpCompositeConstruct:
+    *
+    *    "When constructing a vector, the total number of components in all
+    *    the operands must equal the number of components in Result Type."
+    */
+   assert(dest_idx == num_components);
 
    nir_builder_instr_insert(&b->nb, &vec->instr);
 
@@ -2640,7 +2669,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityVector16:
       case SpvCapabilityFloat16Buffer:
       case SpvCapabilityFloat16:
-      case SpvCapabilityInt64:
       case SpvCapabilityInt64Atomics:
       case SpvCapabilityAtomicStorage:
       case SpvCapabilityInt16:
@@ -2650,14 +2678,15 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilitySparseResidency:
       case SpvCapabilityMinLod:
       case SpvCapabilityTransformFeedback:
-      case SpvCapabilityStorageImageReadWithoutFormat:
-      case SpvCapabilityStorageImageWriteWithoutFormat:
          vtn_warn("Unsupported SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
          break;
 
       case SpvCapabilityFloat64:
          spv_check_supported(float64, cap);
+         break;
+      case SpvCapabilityInt64:
+         spv_check_supported(int64, cap);
          break;
 
       case SpvCapabilityAddresses:
@@ -2685,6 +2714,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityDrawParameters:
          spv_check_supported(draw_parameters, cap);
+         break;
+
+      case SpvCapabilityStorageImageReadWithoutFormat:
+         spv_check_supported(image_read_without_format, cap);
+         break;
+
+      case SpvCapabilityStorageImageWriteWithoutFormat:
+         spv_check_supported(image_write_without_format, cap);
          break;
 
       default:

@@ -854,7 +854,7 @@ touch_handle_down(void *data, struct wl_touch *wl_touch,
 
     xwl_touch = calloc(1, sizeof *xwl_touch);
     if (xwl_touch == NULL) {
-        ErrorF("touch_handle_down ENOMEM");
+        ErrorF("%s: ENOMEM\n", __func__);
         return;
     }
 
@@ -1125,7 +1125,7 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
 
     xwl_seat = calloc(1, sizeof *xwl_seat);
     if (xwl_seat == NULL) {
-        ErrorF("create_input ENOMEM\n");
+        ErrorF("%s: ENOMEM\n", __func__);
         return;
     }
 
@@ -1452,7 +1452,7 @@ xwl_pointer_warp_emulator_create(struct xwl_seat *xwl_seat)
 
     warp_emulator = calloc(1, sizeof *warp_emulator);
     if (!warp_emulator) {
-        ErrorF("%s: ENOMEM", __func__);
+        ErrorF("%s: ENOMEM\n", __func__);
         return NULL;
     }
 

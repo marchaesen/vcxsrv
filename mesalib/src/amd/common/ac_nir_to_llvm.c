@@ -22,6 +22,7 @@
  */
 
 #include "ac_nir_to_llvm.h"
+#include "ac_llvm_build.h"
 #include "ac_llvm_util.h"
 #include "ac_binary.h"
 #include "sid.h"
@@ -42,14 +43,6 @@ enum radeon_llvm_calling_convention {
 
 #define RADEON_LLVM_MAX_INPUTS (VARYING_SLOT_VAR31 + 1)
 #define RADEON_LLVM_MAX_OUTPUTS (VARYING_SLOT_VAR31 + 1)
-
-#define SENDMSG_GS 2
-#define SENDMSG_GS_DONE 3
-
-#define SENDMSG_GS_OP_NOP      (0 << 4)
-#define SENDMSG_GS_OP_CUT      (1 << 4)
-#define SENDMSG_GS_OP_EMIT     (2 << 4)
-#define SENDMSG_GS_OP_EMIT_CUT (3 << 4)
 
 enum desc_type {
 	DESC_IMAGE,
@@ -937,45 +930,13 @@ static LLVMValueRef emit_find_lsb(struct nir_to_llvm_context *ctx,
 static LLVMValueRef emit_ifind_msb(struct nir_to_llvm_context *ctx,
 				   LLVMValueRef src0)
 {
-	LLVMValueRef msb = ac_emit_llvm_intrinsic(&ctx->ac, "llvm.AMDGPU.flbit.i32",
-					       ctx->i32, &src0, 1,
-					       AC_FUNC_ATTR_READNONE);
-
-	/* The HW returns the last bit index from MSB, but NIR wants
-	 * the index from LSB. Invert it by doing "31 - msb". */
-	msb = LLVMBuildSub(ctx->builder, LLVMConstInt(ctx->i32, 31, false),
-			   msb, "");
-
-	LLVMValueRef all_ones = LLVMConstInt(ctx->i32, -1, true);
-	LLVMValueRef cond = LLVMBuildOr(ctx->builder,
-					LLVMBuildICmp(ctx->builder, LLVMIntEQ,
-						      src0, ctx->i32zero, ""),
-					LLVMBuildICmp(ctx->builder, LLVMIntEQ,
-						      src0, all_ones, ""), "");
-
-	return LLVMBuildSelect(ctx->builder, cond, all_ones, msb, "");
+	return ac_emit_imsb(&ctx->ac, src0, ctx->i32);
 }
 
 static LLVMValueRef emit_ufind_msb(struct nir_to_llvm_context *ctx,
 				   LLVMValueRef src0)
 {
-	LLVMValueRef args[2] = {
-		src0,
-		ctx->i32one,
-	};
-	LLVMValueRef msb = ac_emit_llvm_intrinsic(&ctx->ac, "llvm.ctlz.i32",
-					       ctx->i32, args, ARRAY_SIZE(args),
-					       AC_FUNC_ATTR_READNONE);
-
-	/* The HW returns the last bit index from MSB, but NIR wants
-	 * the index from LSB. Invert it by doing "31 - msb". */
-	msb = LLVMBuildSub(ctx->builder, LLVMConstInt(ctx->i32, 31, false),
-			   msb, "");
-
-	return LLVMBuildSelect(ctx->builder,
-			       LLVMBuildICmp(ctx->builder, LLVMIntEQ, src0,
-					     ctx->i32zero, ""),
-			       LLVMConstInt(ctx->i32, -1, true), msb, "");
+	return ac_emit_umsb(&ctx->ac, src0, ctx->i32);
 }
 
 static LLVMValueRef emit_minmax_int(struct nir_to_llvm_context *ctx,
@@ -2908,7 +2869,6 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 	unsigned location;
 	unsigned chan;
 	LLVMValueRef src_c0, src_c1;
-	const char *intr_name;
 	LLVMValueRef src0;
 	int input_index = instr->variables[0]->var->data.location - VARYING_SLOT_VAR0;
 	switch (instr->intrinsic) {
@@ -2980,18 +2940,27 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 		interp_param = ac_build_gather_values(&ctx->ac, ij_out, 2);
 
 	}
-	intr_name = interp_param ? "llvm.SI.fs.interp" : "llvm.SI.fs.constant";
+
 	for (chan = 0; chan < 2; chan++) {
-		LLVMValueRef args[4];
 		LLVMValueRef llvm_chan = LLVMConstInt(ctx->i32, chan, false);
 
-		args[0] = llvm_chan;
-		args[1] = attr_number;
-		args[2] = ctx->prim_mask;
-		args[3] = interp_param;
-		result[chan] = ac_emit_llvm_intrinsic(&ctx->ac, intr_name,
-						   ctx->f32, args, args[3] ? 4 : 3,
-						   AC_FUNC_ATTR_READNONE);
+		if (interp_param) {
+			interp_param = LLVMBuildBitCast(ctx->builder,
+							interp_param, LLVMVectorType(ctx->f32, 2), "");
+			LLVMValueRef i = LLVMBuildExtractElement(
+				ctx->builder, interp_param, ctx->i32zero, "");
+			LLVMValueRef j = LLVMBuildExtractElement(
+				ctx->builder, interp_param, ctx->i32one, "");
+
+			result[chan] = ac_build_fs_interp(&ctx->ac,
+							  llvm_chan, attr_number,
+							  ctx->prim_mask, i, j);
+		} else {
+			result[chan] = ac_build_fs_interp_mov(&ctx->ac,
+							      LLVMConstInt(ctx->i32, 2, false),
+							      llvm_chan, attr_number,
+							      ctx->prim_mask);
+		}
 	}
 	return ac_build_gather_values(&ctx->ac, result, 2);
 }
@@ -3002,7 +2971,6 @@ visit_emit_vertex(struct nir_to_llvm_context *ctx,
 {
 	LLVMValueRef gs_next_vertex;
 	LLVMValueRef can_emit, kill;
-	LLVMValueRef args[2];
 	int idx;
 
 	assert(instr->const_index[0] == 0);
@@ -3054,24 +3022,15 @@ visit_emit_vertex(struct nir_to_llvm_context *ctx,
 	gs_next_vertex = LLVMBuildAdd(ctx->builder, gs_next_vertex,
 				      ctx->i32one, "");
 	LLVMBuildStore(ctx->builder, gs_next_vertex, ctx->gs_next_vertex);
-	args[0] = LLVMConstInt(ctx->i32, SENDMSG_GS_OP_EMIT | SENDMSG_GS | (0 << 8), false);
-	args[1] = ctx->gs_wave_id;
-	ac_emit_llvm_intrinsic(&ctx->ac, "llvm.SI.sendmsg",
-			       ctx->voidt, args, 2, 0);
+
+	ac_emit_sendmsg(&ctx->ac, AC_SENDMSG_GS_OP_EMIT | AC_SENDMSG_GS | (0 << 8), ctx->gs_wave_id);
 }
 
 static void
 visit_end_primitive(struct nir_to_llvm_context *ctx,
 		    nir_intrinsic_instr *instr)
 {
-	LLVMValueRef args[2];
-
-	assert(instr->const_index[0] == 0);
-	args[0] = LLVMConstInt(ctx->i32, SENDMSG_GS_OP_CUT | SENDMSG_GS | (0 << 8), false);
-	args[1] = ctx->gs_wave_id;
-
-	ac_emit_llvm_intrinsic(&ctx->ac, "llvm.SI.sendmsg", ctx->voidt,
-			       args, 2, 0);
+	ac_emit_sendmsg(&ctx->ac, AC_SENDMSG_GS_OP_CUT | AC_SENDMSG_GS | (0 << 8), ctx->gs_wave_id);
 }
 
 static void visit_intrinsic(struct nir_to_llvm_context *ctx,
@@ -3648,7 +3607,8 @@ static void visit_tex(struct nir_to_llvm_context *ctx, nir_tex_instr *instr)
 	 * The sample index should be adjusted as follows:
 	 *   sample_index = (fmask >> (sample_index * 4)) & 0xF;
 	 */
-	if (instr->sampler_dim == GLSL_SAMPLER_DIM_MS) {
+	if (instr->sampler_dim == GLSL_SAMPLER_DIM_MS &&
+	    instr->op != nir_texop_txs) {
 		LLVMValueRef txf_address[4];
 		struct ac_tex_info txf_info = { 0 };
 		unsigned txf_count = count;
@@ -3989,9 +3949,10 @@ static void interp_fs_input(struct nir_to_llvm_context *ctx,
 			    LLVMValueRef prim_mask,
 			    LLVMValueRef result[4])
 {
-	const char *intr_name;
 	LLVMValueRef attr_number;
 	unsigned chan;
+	LLVMValueRef i, j;
+	bool interp = interp_param != NULL;
 
 	attr_number = LLVMConstInt(ctx->i32, attr, false);
 
@@ -4005,19 +3966,31 @@ static void interp_fs_input(struct nir_to_llvm_context *ctx,
 	 * fs.interp cannot be used on integers, because they can be equal
 	 * to NaN.
 	 */
-	intr_name = interp_param ? "llvm.SI.fs.interp" : "llvm.SI.fs.constant";
+	if (interp) {
+		interp_param = LLVMBuildBitCast(ctx->builder, interp_param,
+						LLVMVectorType(ctx->f32, 2), "");
+
+		i = LLVMBuildExtractElement(ctx->builder, interp_param,
+						ctx->i32zero, "");
+		j = LLVMBuildExtractElement(ctx->builder, interp_param,
+						ctx->i32one, "");
+	}
 
 	for (chan = 0; chan < 4; chan++) {
-		LLVMValueRef args[4];
 		LLVMValueRef llvm_chan = LLVMConstInt(ctx->i32, chan, false);
 
-		args[0] = llvm_chan;
-		args[1] = attr_number;
-		args[2] = prim_mask;
-		args[3] = interp_param;
-		result[chan] = ac_emit_llvm_intrinsic(&ctx->ac, intr_name,
-						   ctx->f32, args, args[3] ? 4 : 3,
-						  AC_FUNC_ATTR_READNONE | AC_FUNC_ATTR_NOUNWIND);
+		if (interp) {
+			result[chan] = ac_build_fs_interp(&ctx->ac,
+							  llvm_chan,
+							  attr_number,
+							  prim_mask, i, j);
+		} else {
+			result[chan] = ac_build_fs_interp_mov(&ctx->ac,
+							      LLVMConstInt(ctx->i32, 2, false),
+							      llvm_chan,
+							      attr_number,
+							      prim_mask);
+		}
 	}
 }
 
@@ -4680,12 +4653,7 @@ handle_fs_outputs_post(struct nir_to_llvm_context *ctx)
 static void
 emit_gs_epilogue(struct nir_to_llvm_context *ctx)
 {
-	LLVMValueRef args[2];
-
-	args[0] = LLVMConstInt(ctx->i32, SENDMSG_GS_OP_NOP | SENDMSG_GS_DONE, false);
-	args[1] = ctx->gs_wave_id;
-	ac_emit_llvm_intrinsic(&ctx->ac, "llvm.SI.sendmsg",
-			       ctx->voidt, args, 2, 0);
+	ac_emit_sendmsg(&ctx->ac, AC_SENDMSG_GS_OP_NOP | AC_SENDMSG_GS_DONE, ctx->gs_wave_id);
 }
 
 static void

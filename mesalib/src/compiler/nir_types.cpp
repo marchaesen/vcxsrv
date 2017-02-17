@@ -289,6 +289,18 @@ glsl_uint_type(void)
 }
 
 const glsl_type *
+glsl_int64_t_type(void)
+{
+   return glsl_type::int64_t_type;
+}
+
+const glsl_type *
+glsl_uint64_t_type(void)
+{
+   return glsl_type::uint64_t_type;
+}
+
+const glsl_type *
 glsl_bool_type(void)
 {
    return glsl_type::bool_type;

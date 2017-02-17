@@ -46,6 +46,7 @@
 #include "compiler/glsl_types.h"
 #include "compiler/glsl/linker.h"
 #include "compiler/glsl/program.h"
+#include "compiler/glsl/shader_cache.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
@@ -3096,7 +3097,7 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
    _mesa_clear_shader_program_data(ctx, prog);
 
-   prog->data->LinkStatus = GL_TRUE;
+   prog->data->LinkStatus = linking_success;
 
    for (i = 0; i < prog->NumShaders; i++) {
       if (!prog->Shaders[i]->CompileStatus) {
@@ -3110,9 +3111,13 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
    if (prog->data->LinkStatus) {
       if (!ctx->Driver.LinkShader(ctx, prog)) {
-         prog->data->LinkStatus = GL_FALSE;
+         prog->data->LinkStatus = linking_failure;
       }
    }
+
+   /* Return early if we are loading the shader from on-disk cache */
+   if (prog->data->LinkStatus == linking_skipped)
+      return;
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {
       if (!prog->data->LinkStatus) {
@@ -3124,6 +3129,11 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
          fprintf(stderr, "%s\n", prog->data->InfoLog);
       }
    }
+
+#ifdef ENABLE_SHADER_CACHE
+   if (prog->data->LinkStatus)
+      shader_cache_write_program_metadata(ctx, prog);
+#endif
 }
 
 } /* extern "C" */

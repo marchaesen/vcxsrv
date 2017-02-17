@@ -37,6 +37,7 @@ env:
     - LIBXCB_VERSION=libxcb-1.11
     - LIBXSHMFENCE_VERSION=libxshmfence-1.2
     - PKG_CONFIG_PATH=$HOME/prefix/lib/pkgconfig
+    - MAKEFLAGS=-j2
   matrix:
     - BUILD=make
     - BUILD=scons
@@ -47,7 +48,7 @@ install:
 
   # Since libdrm gets updated in configure.ac regularly, try to pick up the
   # latest version from there.
-  - for line in `grep "^LIBDRM_.*_REQUIRED=" configure.ac`; do
+  - for line in `grep "^LIBDRM.*_REQUIRED=" configure.ac`; do
       old_ver=`echo $LIBDRM_VERSION | sed 's/libdrm-//'`;
       new_ver=`echo $line | sed 's/.*REQUIRED=//'`;
       if `echo "$old_ver,$new_ver" | tr ',' '\n' | sort -Vc 2> /dev/null`; then
@@ -92,7 +93,7 @@ install:
 
   - wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
   - tar -jxvf $LIBDRM_VERSION.tar.bz2
-  - (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-etnaviv-experimental-api && make install)
+  - (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-freedreno --enable-etnaviv-experimental-api && make install)
 
   - wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
   - tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
@@ -103,7 +104,7 @@ script:
       ./autogen.sh --enable-debug
         --with-egl-platforms=x11,drm
         --with-dri-drivers=i915,i965,radeon,r200,swrast,nouveau
-        --with-gallium-drivers=svga,swrast,vc4,virgl,r300,r600,etnaviv,imx
+        --with-gallium-drivers=i915,nouveau,r300,r600,freedreno,svga,swrast,vc4,virgl,etnaviv,imx
         --disable-llvm-shared-libs
         ;
       make && make check;

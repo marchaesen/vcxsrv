@@ -452,13 +452,13 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(enum GLSLstd450 opcode)
    case GLSLstd450PackSnorm2x16:    return nir_op_pack_snorm_2x16;
    case GLSLstd450PackUnorm2x16:    return nir_op_pack_unorm_2x16;
    case GLSLstd450PackHalf2x16:     return nir_op_pack_half_2x16;
-   case GLSLstd450PackDouble2x32:   return nir_op_pack_double_2x32;
+   case GLSLstd450PackDouble2x32:   return nir_op_pack_64_2x32;
    case GLSLstd450UnpackSnorm4x8:   return nir_op_unpack_snorm_4x8;
    case GLSLstd450UnpackUnorm4x8:   return nir_op_unpack_unorm_4x8;
    case GLSLstd450UnpackSnorm2x16:  return nir_op_unpack_snorm_2x16;
    case GLSLstd450UnpackUnorm2x16:  return nir_op_unpack_unorm_2x16;
    case GLSLstd450UnpackHalf2x16:   return nir_op_unpack_half_2x16;
-   case GLSLstd450UnpackDouble2x32: return nir_op_unpack_double_2x32;
+   case GLSLstd450UnpackDouble2x32: return nir_op_unpack_64_2x32;
 
    default:
       unreachable("No NIR equivalent");

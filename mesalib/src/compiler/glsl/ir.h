@@ -844,12 +844,6 @@ public:
       unsigned implicit_sized_array:1;
 
       /**
-       * Is this a non-patch TCS output / TES input array that was implicitly
-       * sized to gl_MaxPatchVertices?
-       */
-      unsigned tess_varying_implicit_sized_array:1;
-
-      /**
        * Whether this is a fragment shader output implicitly initialized with
        * the previous contents of the specified render target at the
        * framebuffer location corresponding to this shader invocation.

@@ -44,7 +44,7 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
-<li>GL_ARB_gpu_shader_int64 on i965/gen8+, radeonsi, softpipe, llvmpipe</li>
+<li>GL_ARB_gpu_shader_int64 on i965/gen8+, nvc0, radeonsi, softpipe, llvmpipe</li>
 </ul>
 
 <h2>Bug fixes</h2>
@@ -54,8 +54,8 @@ Note: some of the new features are only available with certain drivers.
 
 <h2>Changes</h2>
 
-The Gallium3D Intel driver 'ilo' has been considered unmaintained for awhile
-now. This release finally drops it for maintainability.
+<li>Removed the ilo gallium driver.</li>
+<li>The configure option --enable-gallium-llvm is superseded by --enable-llvm.</li>
 
 </div>
 </body>

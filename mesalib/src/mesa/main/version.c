@@ -566,8 +566,10 @@ _mesa_get_version(const struct gl_extensions *extensions,
    case API_OPENGL_COMPAT:
       /* Disable GLSL 1.40 and later for legacy contexts.
        * This disallows creation of the GL 3.1 compatibility context. */
-      if (consts->GLSLVersion > 130) {
-         consts->GLSLVersion = 130;
+      if (!consts->AllowHigherCompatVersion) {
+         if (consts->GLSLVersion > 130) {
+            consts->GLSLVersion = 130;
+         }
       }
       /* fall through */
    case API_OPENGL_CORE:

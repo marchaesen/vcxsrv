@@ -60,8 +60,10 @@ _mesa_delete_pipeline_object(struct gl_context *ctx,
 
    _mesa_reference_program(ctx, &obj->_CurrentFragmentProgram, NULL);
 
-   for (i = 0; i < MESA_SHADER_STAGES; i++)
+   for (i = 0; i < MESA_SHADER_STAGES; i++) {
       _mesa_reference_program(ctx, &obj->CurrentProgram[i], NULL);
+      _mesa_reference_shader_program(ctx, &obj->ReferencedPrograms[i], NULL);
+   }
 
    _mesa_reference_shader_program(ctx, &obj->ActiveProgram, NULL);
    mtx_destroy(&obj->Mutex);
@@ -227,7 +229,7 @@ use_program_stage(struct gl_context *ctx, GLenum type,
    if (shProg && shProg->_LinkedShaders[stage])
       prog = shProg->_LinkedShaders[stage]->Program;
 
-   _mesa_use_program(ctx, stage, prog, pipe);
+   _mesa_use_program(ctx, stage, shProg, prog, pipe);
 }
 
 /**

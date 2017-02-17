@@ -100,13 +100,13 @@ void st_upload_constants( struct st_context *st,
        * avoid gratuitous rendering synchronization.
        * Let's use a user buffer to avoid an unnecessary copy.
        */
-      if (st->constbuf_uploader) {
+      if (!st->has_user_constbuf) {
          cb.buffer = NULL;
          cb.user_buffer = NULL;
-         u_upload_data(st->constbuf_uploader, 0, paramBytes,
+         u_upload_data(st->pipe->const_uploader, 0, paramBytes,
                        st->ctx->Const.UniformBufferOffsetAlignment,
                        params->ParameterValues, &cb.buffer_offset, &cb.buffer);
-         u_upload_unmap(st->constbuf_uploader);
+         u_upload_unmap(st->pipe->const_uploader);
       } else {
          cb.buffer = NULL;
          cb.user_buffer = params->ParameterValues;

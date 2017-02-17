@@ -1470,12 +1470,6 @@ In most cases this is not required because the Xorg server probes
 the graphics board to determine this quantity.
 The driver-specific documentation should indicate when it might be needed.
 .TP 7
-.BI "BiosBase  " "baseaddress"
-This optional entry specifies the base address of the video BIOS for
-the VGA board.
-This address is normally auto-detected, and should only be specified if the
-driver-specific documentation recommends it.
-.TP 7
 .BI "MemBase  " "baseaddress"
 This optional entry specifies the memory base address of a graphics
 board's linear frame buffer.

@@ -645,7 +645,7 @@ def generate(env):
     env.AddMethod(msvc2013_compat, 'MSVC2013Compat')
     env.AddMethod(unit_test, 'UnitTest')
 
-    env.PkgCheckModules('X11', ['x11', 'xext', 'xdamage', 'xfixes', 'glproto >= 1.4.13'])
+    env.PkgCheckModules('X11', ['x11', 'xext', 'xdamage >= 1.1', 'xfixes', 'glproto >= 1.4.13', 'dri2proto >= 2.8'])
     env.PkgCheckModules('XCB', ['x11-xcb', 'xcb-glx >= 1.8.1', 'xcb-dri2 >= 1.8'])
     env.PkgCheckModules('XF86VIDMODE', ['xxf86vm'])
     env.PkgCheckModules('DRM', ['libdrm >= 2.4.66'])

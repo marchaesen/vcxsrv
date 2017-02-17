@@ -296,6 +296,13 @@ xwayland_cvt(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
     if (Interlaced)
         modeinfo.modeFlags |= RR_Interlace;
 
+    /* FWXGA hack adapted from hw/xfree86/modes/xf86EdidModes.c, because you can't say 1366 */
+    if (HDisplay == 1366 && VDisplay == 768) {
+         modeinfo.width = 1366;
+         modeinfo.hSyncStart--;
+         modeinfo.hSyncEnd--;
+    }
+
     snprintf(name, sizeof name, "%dx%d",
              modeinfo.width, modeinfo.height);
     modeinfo.nameLength = strlen(name);

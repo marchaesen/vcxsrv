@@ -86,6 +86,15 @@ u_upload_create(struct pipe_context *pipe, unsigned default_size,
    return upload;
 }
 
+struct u_upload_mgr *
+u_upload_create_default(struct pipe_context *pipe)
+{
+   return u_upload_create(pipe, 1024 * 1024,
+                          PIPE_BIND_VERTEX_BUFFER |
+                          PIPE_BIND_INDEX_BUFFER |
+                          PIPE_BIND_CONSTANT_BUFFER,
+                          PIPE_USAGE_STREAM);
+}
 
 static void upload_unmap_internal(struct u_upload_mgr *upload, boolean destroying)
 {
@@ -254,36 +263,4 @@ void u_upload_data(struct u_upload_mgr *upload,
                   (void**)&ptr);
    if (ptr)
       memcpy(ptr, data, size);
-}
-
-/* XXX: Remove. It's basically a CPU fallback of resource_copy_region. */
-void u_upload_buffer(struct u_upload_mgr *upload,
-                     unsigned min_out_offset,
-                     unsigned offset,
-                     unsigned size,
-                     unsigned alignment,
-                     struct pipe_resource *inbuf,
-                     unsigned *out_offset,
-                     struct pipe_resource **outbuf)
-{
-   struct pipe_transfer *transfer = NULL;
-   const char *map = NULL;
-
-   map = (const char *)pipe_buffer_map_range(upload->pipe,
-                                             inbuf,
-                                             offset, size,
-                                             PIPE_TRANSFER_READ,
-                                             &transfer);
-
-   if (!map) {
-      pipe_resource_reference(outbuf, NULL);
-      return;
-   }
-
-   if (0)
-      debug_printf("upload ptr %p ofs %d sz %d\n", map, offset, size);
-
-   u_upload_data(upload, min_out_offset, size, alignment,
-                 map, out_offset, outbuf);
-   pipe_buffer_unmap( upload->pipe, transfer );
 }

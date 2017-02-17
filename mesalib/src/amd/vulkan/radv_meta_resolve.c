@@ -95,9 +95,11 @@ create_pass(struct radv_device *device)
 		attachments[i].samples = 1;
 		attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 		attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
-		attachments[i].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
 	}
+	attachments[0].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+	attachments[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachments[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	result = radv_CreateRenderPass(device_h,
 				       &(VkRenderPassCreateInfo) {
@@ -116,7 +118,7 @@ create_pass(struct radv_device *device)
 							       },
 							       {
 								       .attachment = 1,
-								       .layout = VK_IMAGE_LAYOUT_GENERAL,
+								       .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 							       },
 						       },
 						       .pResolveAttachments = NULL,
@@ -428,6 +430,9 @@ void radv_CmdResolveImage(
 	if (src_image->array_size > 1)
 		radv_finishme("vkCmdResolveImage: multisample array images");
 
+	if (dest_image->surface.dcc_size) {
+		radv_initialize_dcc(cmd_buffer, dest_image, 0xffffffff);
+	}
 	for (uint32_t r = 0; r < region_count; ++r) {
 		const VkImageResolve *region = &regions[r];
 

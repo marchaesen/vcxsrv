@@ -211,6 +211,7 @@ void radv_CmdCopyQueryPoolResults(
 
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, pool->bo, 8);
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, dst_buffer->bo, 8);
+	cmd_buffer->no_draws = false;
 
 	for(unsigned i = 0; i < queryCount; ++i, dest_va += stride) {
 		unsigned query = firstQuery + i;
@@ -310,6 +311,7 @@ void radv_CmdBeginQuery(
 	va += pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
+	cmd_buffer->no_draws = false;
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -343,6 +345,7 @@ void radv_CmdEndQuery(
 	va += pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
+	cmd_buffer->no_draws = false;
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -394,6 +397,7 @@ void radv_CmdWriteTimestamp(
 	uint64_t query_va = va + pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 5);
+	cmd_buffer->no_draws = false;
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cs, 12);
 

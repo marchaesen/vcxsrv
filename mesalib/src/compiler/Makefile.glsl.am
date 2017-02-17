@@ -131,7 +131,8 @@ glsl_libglsl_la_LIBADD = \
 
 glsl_libglsl_la_SOURCES =				\
 	$(LIBGLSL_GENERATED_FILES)			\
-	$(LIBGLSL_FILES)
+	$(LIBGLSL_FILES)				\
+	$(LIBGLSL_SHADER_CACHE_FILES)
 
 glsl_libstandalone_la_SOURCES = \
 	$(GLSL_COMPILER_CXX_FILES)

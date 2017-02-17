@@ -27,5 +27,5 @@ ARB_texture_float:
     enable this extension.
 
 
-[1] http://www.google.com/patents/about?id=mIIOAAAAEBAJ&dq=6650327
-[2] http://www.opengl.org/registry/specs/ARB/texture_float.txt
+[1] https://www.google.com/patents/about?id=mIIOAAAAEBAJ&dq=6650327
+[2] https://www.opengl.org/registry/specs/ARB/texture_float.txt

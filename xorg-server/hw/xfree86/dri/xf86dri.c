@@ -599,14 +599,7 @@ XFree86DRIExtensionInit(void)
 {
     ExtensionEntry *extEntry;
 
-#ifdef XF86DRI_EVENTS
-    EventType = CreateNewResourceType(XF86DRIFreeEvents, "DRIEvent");
-#endif
-
     if (DRIExtensionInit() &&
-#ifdef XF86DRI_EVENTS
-        EventType && ScreenPrivateIndex != -1 &&
-#endif
         (extEntry = AddExtension(XF86DRINAME,
                                  XF86DRINumberEvents,
                                  XF86DRINumberErrors,

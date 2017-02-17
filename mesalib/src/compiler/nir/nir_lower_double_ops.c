@@ -41,22 +41,22 @@ static nir_ssa_def *
 set_exponent(nir_builder *b, nir_ssa_def *src, nir_ssa_def *exp)
 {
    /* Split into bits 0-31 and 32-63 */
-   nir_ssa_def *lo = nir_unpack_double_2x32_split_x(b, src);
-   nir_ssa_def *hi = nir_unpack_double_2x32_split_y(b, src);
+   nir_ssa_def *lo = nir_unpack_64_2x32_split_x(b, src);
+   nir_ssa_def *hi = nir_unpack_64_2x32_split_y(b, src);
 
    /* The exponent is bits 52-62, or 20-30 of the high word, so set the exponent
     * to 1023
     */
    nir_ssa_def *new_hi = nir_bfi(b, nir_imm_int(b, 0x7ff00000), exp, hi);
    /* recombine */
-   return nir_pack_double_2x32_split(b, lo, new_hi);
+   return nir_pack_64_2x32_split(b, lo, new_hi);
 }
 
 static nir_ssa_def *
 get_exponent(nir_builder *b, nir_ssa_def *src)
 {
    /* get bits 32-63 */
-   nir_ssa_def *hi = nir_unpack_double_2x32_split_y(b, src);
+   nir_ssa_def *hi = nir_unpack_64_2x32_split_y(b, src);
 
    /* extract bits 20-30 of the high word */
    return nir_ubitfield_extract(b, hi, nir_imm_int(b, 20), nir_imm_int(b, 11));
@@ -67,7 +67,7 @@ get_exponent(nir_builder *b, nir_ssa_def *src)
 static nir_ssa_def *
 get_signed_inf(nir_builder *b, nir_ssa_def *zero)
 {
-   nir_ssa_def *zero_hi = nir_unpack_double_2x32_split_y(b, zero);
+   nir_ssa_def *zero_hi = nir_unpack_64_2x32_split_y(b, zero);
 
    /* The bit pattern for infinity is 0x7ff0000000000000, where the sign bit
     * is the highest bit. Only the sign bit can be non-zero in the passed in
@@ -76,7 +76,7 @@ get_signed_inf(nir_builder *b, nir_ssa_def *zero)
     * bits and then pack it together with zero low 32 bits.
     */
    nir_ssa_def *inf_hi = nir_ior(b, nir_imm_int(b, 0x7ff00000), zero_hi);
-   return nir_pack_double_2x32_split(b, nir_imm_int(b, 0), inf_hi);
+   return nir_pack_64_2x32_split(b, nir_imm_int(b, 0), inf_hi);
 }
 
 /*
@@ -337,8 +337,8 @@ lower_trunc(nir_builder *b, nir_ssa_def *src)
                          nir_imm_int(b, ~0),
                          nir_isub(b, frac_bits, nir_imm_int(b, 32))));
 
-   nir_ssa_def *src_lo = nir_unpack_double_2x32_split_x(b, src);
-   nir_ssa_def *src_hi = nir_unpack_double_2x32_split_y(b, src);
+   nir_ssa_def *src_lo = nir_unpack_64_2x32_split_x(b, src);
+   nir_ssa_def *src_hi = nir_unpack_64_2x32_split_y(b, src);
 
    return
       nir_bcsel(b,
@@ -346,9 +346,9 @@ lower_trunc(nir_builder *b, nir_ssa_def *src)
                 nir_imm_double(b, 0.0),
                 nir_bcsel(b, nir_ige(b, unbiased_exp, nir_imm_int(b, 53)),
                           src,
-                          nir_pack_double_2x32_split(b,
-                                                     nir_iand(b, mask_lo, src_lo),
-                                                     nir_iand(b, mask_hi, src_hi))));
+                          nir_pack_64_2x32_split(b,
+                                                 nir_iand(b, mask_lo, src_lo),
+                                                 nir_iand(b, mask_hi, src_hi))));
 }
 
 static nir_ssa_def *

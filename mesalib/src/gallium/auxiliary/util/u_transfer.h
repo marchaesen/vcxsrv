@@ -10,6 +10,10 @@
 struct pipe_context;
 struct winsys_handle;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 boolean u_default_resource_get_handle(struct pipe_screen *screen,
                                       struct pipe_resource *resource,
                                       struct winsys_handle *handle);
@@ -94,5 +98,9 @@ void u_transfer_flush_region_vtbl( struct pipe_context *pipe,
 
 void u_transfer_unmap_vtbl( struct pipe_context *rm_ctx,
                             struct pipe_transfer *transfer );
+
+#ifdef __cplusplus
+} // extern "C" {
+#endif
 
 #endif

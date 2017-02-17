@@ -756,37 +756,33 @@ drmmode_set_cursor(xf86CrtcPtr crtc)
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
     uint32_t handle = drmmode_crtc->cursor_bo->handle;
     modesettingPtr ms = modesettingPTR(crtc->scrn);
+    CursorPtr cursor = xf86CurrentCursor(crtc->scrn->pScreen);
     int ret = -EINVAL;
 
-    if (!drmmode_crtc->set_cursor2_failed) {
-        CursorPtr cursor = xf86CurrentCursor(crtc->scrn->pScreen);
+    ret = drmModeSetCursor2(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
+                            handle, ms->cursor_width, ms->cursor_height,
+                            cursor->bits->xhot, cursor->bits->yhot);
 
-        ret =
-            drmModeSetCursor2(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
-                              handle, ms->cursor_width, ms->cursor_height,
-                              cursor->bits->xhot, cursor->bits->yhot);
-        if (!ret)
-            return TRUE;
-
-        /* -EINVAL can mean that an old kernel supports drmModeSetCursor but
-         * not drmModeSetCursor2, though it can mean other things too. */
-        if (ret == -EINVAL)
-            drmmode_crtc->set_cursor2_failed = TRUE;
-    }
-
+    /* -EINVAL can mean that an old kernel supports drmModeSetCursor but
+     * not drmModeSetCursor2, though it can mean other things too. */
     if (ret == -EINVAL)
         ret = drmModeSetCursor(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
                                handle, ms->cursor_width, ms->cursor_height);
 
-    if (ret) {
+    /* -ENXIO normally means that the current drm driver supports neither
+     * cursor_set nor cursor_set2.  Disable hardware cursor support for
+     * the rest of the session in that case. */
+    if (ret == -ENXIO) {
         xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
         xf86CursorInfoPtr cursor_info = xf86_config->cursor_info;
 
         cursor_info->MaxWidth = cursor_info->MaxHeight = 0;
         drmmode_crtc->drmmode->sw_cursor = TRUE;
+    }
+
+    if (ret)
         /* fallback to swcursor */
         return FALSE;
-    }
     return TRUE;
 }
 
@@ -813,13 +809,8 @@ drmmode_load_cursor_argb_check(xf86CrtcPtr crtc, CARD32 *image)
     for (i = 0; i < ms->cursor_width * ms->cursor_height; i++)
         ptr[i] = image[i];      // cpu_to_le32(image[i]);
 
-    if (drmmode_crtc->cursor_up || !drmmode_crtc->first_cursor_load_done) {
-        Bool ret = drmmode_set_cursor(crtc);
-        if (!drmmode_crtc->cursor_up)
-            drmmode_hide_cursor(crtc);
-        drmmode_crtc->first_cursor_load_done = TRUE;
-        return ret;
-    }
+    if (drmmode_crtc->cursor_up)
+        return drmmode_set_cursor(crtc);
     return TRUE;
 }
 
@@ -835,12 +826,12 @@ drmmode_hide_cursor(xf86CrtcPtr crtc)
                      ms->cursor_width, ms->cursor_height);
 }
 
-static void
+static Bool
 drmmode_show_cursor(xf86CrtcPtr crtc)
 {
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
     drmmode_crtc->cursor_up = TRUE;
-    drmmode_set_cursor(crtc);
+    return drmmode_set_cursor(crtc);
 }
 
 static void
@@ -1108,7 +1099,7 @@ static const xf86CrtcFuncsRec drmmode_crtc_funcs = {
     .set_mode_major = drmmode_set_mode_major,
     .set_cursor_colors = drmmode_set_cursor_colors,
     .set_cursor_position = drmmode_set_cursor_position,
-    .show_cursor = drmmode_show_cursor,
+    .show_cursor_check = drmmode_show_cursor,
     .hide_cursor = drmmode_hide_cursor,
     .load_cursor_argb_check = drmmode_load_cursor_argb_check,
 

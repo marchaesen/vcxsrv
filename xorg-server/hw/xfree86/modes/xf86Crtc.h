@@ -195,6 +195,8 @@ typedef struct _xf86CrtcFuncs {
      */
     void
      (*show_cursor) (xf86CrtcPtr crtc);
+    Bool
+     (*show_cursor_check) (xf86CrtcPtr crtc);
 
     /**
      * Hide cursor
@@ -993,7 +995,7 @@ static _X_INLINE _X_DEPRECATED void xf86_reload_cursors(ScreenPtr screen) {}
 /**
  * Called from EnterVT to turn the cursors back on
  */
-extern _X_EXPORT void
+extern _X_EXPORT Bool
  xf86_show_cursors(ScrnInfoPtr scrn);
 
 /**

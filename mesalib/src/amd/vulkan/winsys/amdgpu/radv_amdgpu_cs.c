@@ -486,9 +486,19 @@ static int radv_amdgpu_create_bo_list(struct radv_amdgpu_winsys *ws,
 			else
 				cs = (struct radv_amdgpu_cs*)cs_array[i];
 
+			if (!cs->num_buffers)
+				continue;
+
+			if (unique_bo_count == 0) {
+				memcpy(handles, cs->handles, cs->num_buffers * sizeof(amdgpu_bo_handle));
+				memcpy(priorities, cs->priorities, cs->num_buffers * sizeof(uint8_t));
+				unique_bo_count = cs->num_buffers;
+				continue;
+			}
+			int unique_bo_so_far = unique_bo_count;
 			for (unsigned j = 0; j < cs->num_buffers; ++j) {
 				bool found = false;
-				for (unsigned k = 0; k < unique_bo_count; ++k) {
+				for (unsigned k = 0; k < unique_bo_so_far; ++k) {
 					if (handles[k] == cs->handles[j]) {
 						found = true;
 						priorities[k] = MAX2(priorities[k],

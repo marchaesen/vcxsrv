@@ -523,6 +523,7 @@ void radv_CmdUpdateBuffer(
 	assert(!(dataSize & 3));
 	assert(!(va & 3));
 
+	cmd_buffer->no_draws = false;
 	if (dataSize < 4096) {
 		cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, dst_buffer->bo, 8);
 

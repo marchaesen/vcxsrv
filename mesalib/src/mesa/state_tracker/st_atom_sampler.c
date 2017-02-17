@@ -226,7 +226,7 @@ convert_sampler(struct st_context *st,
 
    /* If sampling a depth texture and using shadow comparison */
    if ((texBaseFormat == GL_DEPTH_COMPONENT ||
-        texBaseFormat == GL_DEPTH_STENCIL) &&
+        (texBaseFormat == GL_DEPTH_STENCIL && !texobj->StencilSampling)) &&
        msamp->CompareMode == GL_COMPARE_R_TO_TEXTURE) {
       sampler->compare_mode = PIPE_TEX_COMPARE_R_TO_TEXTURE;
       sampler->compare_func = st_compare_func_to_pipe(msamp->CompareFunc);

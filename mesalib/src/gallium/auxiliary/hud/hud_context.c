@@ -60,7 +60,6 @@ static boolean huds_visible = TRUE;
 struct hud_context {
    struct pipe_context *pipe;
    struct cso_context *cso;
-   struct u_upload_mgr *uploader;
 
    struct hud_batch_query_context *batch_query;
    struct list_head pane_list;
@@ -98,7 +97,8 @@ struct hud_context {
       struct pipe_vertex_buffer vbuf;
       unsigned max_num_vertices;
       unsigned num_vertices;
-   } text, bg, whitelines;
+      unsigned buffer_size;
+   } text, bg, whitelines, color_prims;
 
    bool has_srgb;
 };
@@ -118,7 +118,10 @@ hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
                        int xoffset, int yoffset, float yscale)
 {
    struct cso_context *cso = hud->cso;
-   struct pipe_vertex_buffer vbuffer = {0};
+   unsigned size = num_vertices * hud->color_prims.vbuf.stride;
+
+   assert(size <= hud->color_prims.buffer_size);
+   memcpy(hud->color_prims.vertices, buffer, size);
 
    hud->constants.color[0] = r;
    hud->constants.color[1] = g;
@@ -130,13 +133,14 @@ hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
    hud->constants.scale[1] = yscale;
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
-   vbuffer.user_buffer = buffer;
-   vbuffer.stride = 2 * sizeof(float);
-
    cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso),
-                          1, &vbuffer);
+                          1, &hud->color_prims.vbuf);
    cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
    cso_draw_arrays(cso, prim, 0, num_vertices);
+
+   hud->color_prims.vertices += size / sizeof(float);
+   hud->color_prims.vbuf.buffer_offset += size;
+   hud->color_prims.buffer_size -= size;
 }
 
 static void
@@ -457,15 +461,13 @@ hud_pane_draw_colored_objects(struct hud_context *hud,
 }
 
 static void
-hud_alloc_vertices(struct hud_context *hud, struct vertex_queue *v,
-                   unsigned num_vertices, unsigned stride)
+hud_prepare_vertices(struct hud_context *hud, struct vertex_queue *v,
+                     unsigned num_vertices, unsigned stride)
 {
    v->num_vertices = 0;
    v->max_num_vertices = num_vertices;
    v->vbuf.stride = stride;
-   u_upload_alloc(hud->uploader, 0, v->vbuf.stride * v->max_num_vertices,
-                  16, &v->vbuf.buffer_offset, &v->vbuf.buffer,
-                  (void**)&v->vertices);
+   v->buffer_size = stride * num_vertices;
 }
 
 /**
@@ -564,9 +566,39 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
    /* prepare vertex buffers */
-   hud_alloc_vertices(hud, &hud->bg, 16 * 256, 2 * sizeof(float));
-   hud_alloc_vertices(hud, &hud->whitelines, 4 * 256, 2 * sizeof(float));
-   hud_alloc_vertices(hud, &hud->text, 16 * 1024, 4 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->bg, 16 * 256, 2 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->whitelines, 4 * 256, 2 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->text, 16 * 1024, 4 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->color_prims, 32 * 1024, 2 * sizeof(float));
+
+   /* Allocate everything once and divide the storage into 3 portions
+    * manually, because u_upload_alloc can unmap memory from previous calls.
+    */
+   u_upload_alloc(hud->pipe->stream_uploader, 0,
+                  hud->bg.buffer_size +
+                  hud->whitelines.buffer_size +
+                  hud->text.buffer_size +
+                  hud->color_prims.buffer_size,
+                  16, &hud->bg.vbuf.buffer_offset, &hud->bg.vbuf.buffer,
+                  (void**)&hud->bg.vertices);
+   pipe_resource_reference(&hud->whitelines.vbuf.buffer, hud->bg.vbuf.buffer);
+   pipe_resource_reference(&hud->text.vbuf.buffer, hud->bg.vbuf.buffer);
+   pipe_resource_reference(&hud->color_prims.vbuf.buffer, hud->bg.vbuf.buffer);
+
+   hud->whitelines.vbuf.buffer_offset = hud->bg.vbuf.buffer_offset +
+                                        hud->bg.buffer_size;
+   hud->whitelines.vertices = hud->bg.vertices +
+                              hud->bg.buffer_size / sizeof(float);
+
+   hud->text.vbuf.buffer_offset = hud->whitelines.vbuf.buffer_offset +
+                                  hud->whitelines.buffer_size;
+   hud->text.vertices = hud->whitelines.vertices +
+                        hud->whitelines.buffer_size / sizeof(float);
+
+   hud->color_prims.vbuf.buffer_offset = hud->text.vbuf.buffer_offset +
+                                         hud->text.buffer_size;
+   hud->color_prims.vertices = hud->text.vertices +
+                               hud->text.buffer_size / sizeof(float);
 
    /* prepare all graphs */
    hud_batch_query_update(hud->batch_query);
@@ -597,7 +629,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    }
 
    /* unmap the uploader's vertex buffer before drawing */
-   u_upload_unmap(hud->uploader);
+   u_upload_unmap(pipe->stream_uploader);
 
    /* draw accumulated vertices for background quads */
    cso_set_blend(cso, &hud->alpha_blend);
@@ -1117,6 +1149,9 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       else if (sscanf(name, "cpu%u%s", &i, s) == 1) {
          hud_cpu_graph_install(pane, i);
       }
+      else if (strcmp(name, "API-thread-busy") == 0) {
+         hud_api_thread_busy_install(pane);
+      }
 #if HAVE_GALLIUM_EXTRA_HUD
       else if (sscanf(name, "nic-rx-%s", arg_name) == 1) {
          hud_nic_graph_install(pane, arg_name, NIC_DIRECTION_RX);
@@ -1476,12 +1511,9 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
 
    hud->pipe = pipe;
    hud->cso = cso;
-   hud->uploader = u_upload_create(pipe, 256 * 1024,
-                                   PIPE_BIND_VERTEX_BUFFER, PIPE_USAGE_STREAM);
 
    /* font */
    if (!util_font_create(pipe, UTIL_FONT_FIXED_8X13, &hud->font)) {
-      u_upload_destroy(hud->uploader);
       FREE(hud);
       return NULL;
    }
@@ -1531,7 +1563,6 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       if (!tgsi_text_translate(fragment_shader_text, tokens, ARRAY_SIZE(tokens))) {
          assert(0);
          pipe_resource_reference(&hud->font.texture, NULL);
-         u_upload_destroy(hud->uploader);
          FREE(hud);
          return NULL;
       }
@@ -1580,7 +1611,6 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       if (!tgsi_text_translate(vertex_shader_text, tokens, ARRAY_SIZE(tokens))) {
          assert(0);
          pipe_resource_reference(&hud->font.texture, NULL);
-         u_upload_destroy(hud->uploader);
          FREE(hud);
          return NULL;
       }
@@ -1655,6 +1685,5 @@ hud_destroy(struct hud_context *hud)
    pipe->delete_vs_state(pipe, hud->vs);
    pipe_sampler_view_reference(&hud->font_sampler_view, NULL);
    pipe_resource_reference(&hud->font.texture, NULL);
-   u_upload_destroy(hud->uploader);
    FREE(hud);
 }

@@ -122,6 +122,7 @@ void
 _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
 {
    free((void *)sh->Source);
+   free((void *)sh->FallbackSource);
    free(sh->Label);
    ralloc_free(sh);
 }
@@ -326,7 +327,7 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
 
    shProg->data->linked_stages = 0;
 
-   if (shProg->data->UniformStorage) {
+   if (shProg->data->UniformStorage && !shProg->data->cache_fallback) {
       for (unsigned i = 0; i < shProg->data->NumUniformStorage; ++i)
          _mesa_uniform_detach_all_driver_storage(&shProg->data->
                                                     UniformStorage[i]);
@@ -335,7 +336,7 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
       shProg->data->UniformStorage = NULL;
    }
 
-   if (shProg->UniformRemapTable) {
+   if (shProg->UniformRemapTable && !shProg->data->cache_fallback) {
       ralloc_free(shProg->UniformRemapTable);
       shProg->NumUniformRemapTable = 0;
       shProg->UniformRemapTable = NULL;
@@ -350,17 +351,21 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
    ralloc_free(shProg->data->InfoLog);
    shProg->data->InfoLog = ralloc_strdup(shProg->data, "");
 
-   ralloc_free(shProg->data->UniformBlocks);
-   shProg->data->UniformBlocks = NULL;
-   shProg->data->NumUniformBlocks = 0;
+   if (!shProg->data->cache_fallback) {
+      ralloc_free(shProg->data->UniformBlocks);
+      shProg->data->UniformBlocks = NULL;
+      shProg->data->NumUniformBlocks = 0;
 
-   ralloc_free(shProg->data->ShaderStorageBlocks);
-   shProg->data->ShaderStorageBlocks = NULL;
-   shProg->data->NumShaderStorageBlocks = 0;
+      ralloc_free(shProg->data->ShaderStorageBlocks);
+      shProg->data->ShaderStorageBlocks = NULL;
+      shProg->data->NumShaderStorageBlocks = 0;
+   }
 
-   ralloc_free(shProg->data->AtomicBuffers);
-   shProg->data->AtomicBuffers = NULL;
-   shProg->data->NumAtomicBuffers = 0;
+   if (shProg->data->AtomicBuffers && !shProg->data->cache_fallback) {
+      ralloc_free(shProg->data->AtomicBuffers);
+      shProg->data->AtomicBuffers = NULL;
+      shProg->data->NumAtomicBuffers = 0;
+   }
 
    if (shProg->data->ProgramResourceList) {
       ralloc_free(shProg->data->ProgramResourceList);
@@ -429,7 +434,8 @@ _mesa_delete_shader_program(struct gl_context *ctx,
                             struct gl_shader_program *shProg)
 {
    _mesa_free_shader_program_data(ctx, shProg);
-   _mesa_reference_shader_program_data(ctx, &shProg->data, NULL);
+   if (!shProg->data->cache_fallback)
+      _mesa_reference_shader_program_data(ctx, &shProg->data, NULL);
    ralloc_free(shProg);
 }
 

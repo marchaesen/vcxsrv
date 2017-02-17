@@ -636,7 +636,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       *params = shProg->DeletePending;
       return;
    case GL_LINK_STATUS:
-      *params = shProg->data->LinkStatus;
+      *params = shProg->data->LinkStatus ? GL_TRUE : GL_FALSE;
       return;
    case GL_VALIDATE_STATUS:
       *params = shProg->data->Validated;
@@ -815,7 +815,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    }
    case GL_PROGRAM_SEPARABLE:
       /* If the program has not been linked, return initial value 0. */
-      *params = (shProg->data->LinkStatus == GL_FALSE) ? 0 : shProg->SeparateShader;
+      *params = (shProg->data->LinkStatus == linking_failure) ? 0 : shProg->SeparateShader;
       return;
 
    /* ARB_tessellation_shader */
@@ -1003,9 +1003,18 @@ shader_source(struct gl_shader *sh, const GLchar *source)
 {
    assert(sh);
 
-   /* free old shader source string and install new one */
-   free((void *)sh->Source);
-   sh->Source = source;
+   if (sh->CompileStatus == GL_TRUE && !sh->FallbackSource) {
+      /* If shader was previously compiled back-up the source in case of cache
+       * fallback.
+       */
+      sh->FallbackSource = sh->Source;
+      sh->Source = source;
+   } else {
+      /* free old shader source string and install new one */
+      free((void *)sh->Source);
+      sh->Source = source;
+   }
+
 #ifdef DEBUG
    sh->SourceChecksum = util_hash_crc32(sh->Source, strlen(sh->Source));
 #endif
@@ -1036,7 +1045,7 @@ _mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh)
       /* this call will set the shader->CompileStatus field to indicate if
        * compilation was successful.
        */
-      _mesa_glsl_compile_shader(ctx, sh, false, false);
+      _mesa_glsl_compile_shader(ctx, sh, false, false, false);
 
       if (ctx->_Shader->Flags & GLSL_LOG) {
          _mesa_write_shader_to_file(sh);
@@ -1128,7 +1137,7 @@ _mesa_link_program(struct gl_context *ctx, struct gl_shader_program *shProg)
          if (shProg->_LinkedShaders[stage])
             prog = shProg->_LinkedShaders[stage]->Program;
 
-         _mesa_use_program(ctx, stage, prog, ctx->_Shader);
+         _mesa_use_program(ctx, stage, shProg, prog, ctx->_Shader);
       }
    }
 
@@ -1160,7 +1169,7 @@ _mesa_link_program(struct gl_context *ctx, struct gl_shader_program *shProg)
       ralloc_free(filename);
    }
 
-   if (shProg->data->LinkStatus == GL_FALSE &&
+   if (shProg->data->LinkStatus == linking_failure &&
        (ctx->_Shader->Flags & GLSL_REPORT_ERRORS)) {
       _mesa_debug(ctx, "Error linking program %u:\n%s\n",
                   shProg->Name, shProg->data->InfoLog);
@@ -1243,7 +1252,8 @@ _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
 
 static void
 use_program(struct gl_context *ctx, gl_shader_stage stage,
-            struct gl_program *new_prog, struct gl_pipeline_object *shTarget)
+            struct gl_shader_program *shProg, struct gl_program *new_prog,
+            struct gl_pipeline_object *shTarget)
 {
    struct gl_program **target;
 
@@ -1279,6 +1289,9 @@ use_program(struct gl_context *ctx, gl_shader_stage stage,
 	 break;
       }
 
+      _mesa_reference_shader_program(ctx,
+                                     &shTarget->ReferencedPrograms[stage],
+                                     shProg);
       _mesa_reference_program(ctx, target, new_prog);
       return;
    }
@@ -1296,7 +1309,7 @@ _mesa_use_shader_program(struct gl_context *ctx,
       struct gl_program *new_prog = NULL;
       if (shProg && shProg->_LinkedShaders[i])
          new_prog = shProg->_LinkedShaders[i]->Program;
-      use_program(ctx, i, new_prog, &ctx->Shader);
+      use_program(ctx, i, shProg, new_prog, &ctx->Shader);
    }
    _mesa_active_program(ctx, shProg, "glUseProgram");
 }
@@ -2095,7 +2108,7 @@ _mesa_ProgramBinary(GLuint program, GLenum binaryFormat,
     * Since any value of binaryFormat passed "is not one of those specified as
     * allowable for [this] command, an INVALID_ENUM error is generated."
     */
-   shProg->data->LinkStatus = GL_FALSE;
+   shProg->data->LinkStatus = linking_failure;
    _mesa_error(ctx, GL_INVALID_ENUM, "glProgramBinary");
 }
 
@@ -2180,10 +2193,10 @@ invalid_value:
 
 void
 _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
-                  struct gl_program *prog,
+                  struct gl_shader_program *shProg, struct gl_program *prog,
                   struct gl_pipeline_object *shTarget)
 {
-   use_program(ctx, stage, prog, shTarget);
+   use_program(ctx, stage, shProg, prog, shTarget);
 }
 
 
@@ -2270,7 +2283,7 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 	    /* Possibly... */
 	    if (active-user-defined-varyings-in-linked-program) {
 	       append-error-to-info-log;
-               shProg->data->LinkStatus = GL_FALSE;
+               shProg->data->LinkStatus = linking_failure;
 	    }
 #endif
 	 }

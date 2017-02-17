@@ -30,6 +30,7 @@
 
 #include "util/u_half.h"
 #include "util/format_srgb.h"
+#include "util/format_r11g11b10f.h"
 
 uint32_t radv_translate_buffer_dataformat(const struct vk_format_description *desc,
 					  int first_non_void)
@@ -940,8 +941,12 @@ bool radv_format_pack_clear_color(VkFormat format,
 		clear_vals[1] |= ((uint16_t)util_iround(CLAMP(value->float32[3], 0.0f, 1.0f) * 0xffff)) << 16;
 		break;
 	case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
-		/* TODO */
-		return false;
+		clear_vals[0] = ((uint16_t)util_iround(CLAMP(value->float32[0], 0.0f, 1.0f) * 0x3ff)) & 0x3ff;
+		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[1], 0.0f, 1.0f) * 0x3ff)) & 0x3ff) << 10;
+		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[2], 0.0f, 1.0f) * 0x3ff)) & 0x3ff) << 20;
+		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[1], 0.0f, 1.0f) * 0x3)) & 0x3) << 30;
+		clear_vals[1] = 0;
+		return true;
 	case VK_FORMAT_R32G32_SFLOAT:
 		clear_vals[0] = fui(value->float32[0]);
 		clear_vals[1] = fui(value->float32[1]);
@@ -949,6 +954,10 @@ bool radv_format_pack_clear_color(VkFormat format,
 	case VK_FORMAT_R32_SFLOAT:
 		clear_vals[1] = 0;
 		clear_vals[0] = fui(value->float32[0]);
+		break;
+	case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+		clear_vals[0] = float3_to_r11g11b10f(value->float32);
+		clear_vals[1] = 0;
 		break;
 	default:
 		fprintf(stderr, "failed to fast clear %d\n", format);

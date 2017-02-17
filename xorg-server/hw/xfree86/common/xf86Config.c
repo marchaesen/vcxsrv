@@ -2105,7 +2105,6 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active, Bool g
     devicep->driver = conf_device->dev_driver;
     devicep->active = active;
     devicep->videoRam = conf_device->dev_videoram;
-    devicep->BiosBase = conf_device->dev_bios_base;
     devicep->MemBase = conf_device->dev_mem_base;
     devicep->IOBase = conf_device->dev_io_base;
     devicep->clockchip = conf_device->dev_clockchip;

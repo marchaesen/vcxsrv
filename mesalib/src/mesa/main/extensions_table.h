@@ -211,6 +211,7 @@ EXT(EXT_draw_elements_base_vertex           , ARB_draw_elements_base_vertex     
 EXT(EXT_draw_instanced                      , ARB_draw_instanced                     , GLL, GLC,  x ,  x , 2006)
 EXT(EXT_draw_range_elements                 , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_fog_coord                           , dummy_true                             , GLL,  x ,  x ,  x , 1999)
+EXT(EXT_frag_depth                          , dummy_true                             ,  x ,  x ,  x , ES2, 2010)
 EXT(EXT_framebuffer_blit                    , dummy_true                             , GLL, GLC,  x ,  x , 2005)
 EXT(EXT_framebuffer_multisample             , EXT_framebuffer_multisample            , GLL, GLC,  x ,  x , 2005)
 EXT(EXT_framebuffer_multisample_blit_scaled , EXT_framebuffer_multisample_blit_scaled, GLL, GLC,  x ,  x , 2011)
