@@ -558,6 +558,12 @@ compute_shader(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+compute_shader_supported(const _mesa_glsl_parse_state *state)
+{
+   return state->has_compute_shader();
+}
+
+static bool
 buffer_atomics_supported(const _mesa_glsl_parse_state *state)
 {
    return compute_shader(state) || shader_storage_buffer_object(state);
@@ -1133,15 +1139,15 @@ builtin_builder::create_intrinsics()
                                           ir_intrinsic_group_memory_barrier),
                 NULL);
    add_function("__intrinsic_memory_barrier_atomic_counter",
-                _memory_barrier_intrinsic(compute_shader,
+                _memory_barrier_intrinsic(compute_shader_supported,
                                           ir_intrinsic_memory_barrier_atomic_counter),
                 NULL);
    add_function("__intrinsic_memory_barrier_buffer",
-                _memory_barrier_intrinsic(compute_shader,
+                _memory_barrier_intrinsic(compute_shader_supported,
                                           ir_intrinsic_memory_barrier_buffer),
                 NULL);
    add_function("__intrinsic_memory_barrier_image",
-                _memory_barrier_intrinsic(compute_shader,
+                _memory_barrier_intrinsic(compute_shader_supported,
                                           ir_intrinsic_memory_barrier_image),
                 NULL);
    add_function("__intrinsic_memory_barrier_shared",
@@ -3070,15 +3076,15 @@ builtin_builder::create_builtins()
                 NULL);
    add_function("memoryBarrierAtomicCounter",
                 _memory_barrier("__intrinsic_memory_barrier_atomic_counter",
-                                compute_shader),
+                                compute_shader_supported),
                 NULL);
    add_function("memoryBarrierBuffer",
                 _memory_barrier("__intrinsic_memory_barrier_buffer",
-                                compute_shader),
+                                compute_shader_supported),
                 NULL);
    add_function("memoryBarrierImage",
                 _memory_barrier("__intrinsic_memory_barrier_image",
-                                compute_shader),
+                                compute_shader_supported),
                 NULL);
    add_function("memoryBarrierShared",
                 _memory_barrier("__intrinsic_memory_barrier_shared",

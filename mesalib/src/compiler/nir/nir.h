@@ -688,6 +688,12 @@ nir_get_nir_type_for_glsl_type(const struct glsl_type *type)
    case GLSL_TYPE_INT:
       return nir_type_int32;
       break;
+   case GLSL_TYPE_UINT64:
+      return nir_type_uint64;
+      break;
+   case GLSL_TYPE_INT64:
+      return nir_type_int64;
+      break;
    case GLSL_TYPE_FLOAT:
       return nir_type_float32;
       break;
@@ -2543,7 +2549,7 @@ typedef enum {
 } nir_lower_doubles_options;
 
 void nir_lower_doubles(nir_shader *shader, nir_lower_doubles_options options);
-void nir_lower_double_pack(nir_shader *shader);
+void nir_lower_64bit_pack(nir_shader *shader);
 
 bool nir_normalize_cubemap_coords(nir_shader *shader);
 

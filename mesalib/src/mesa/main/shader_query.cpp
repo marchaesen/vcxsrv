@@ -1378,11 +1378,12 @@ validate_io(struct gl_program *producer, struct gl_program *consumer)
    if (producer->sh.data->linked_stages == consumer->sh.data->linked_stages)
       return true;
 
-   const bool nonarray_stage_to_array_stage =
-      producer->info.stage != MESA_SHADER_TESS_CTRL &&
-      (consumer->info.stage == MESA_SHADER_GEOMETRY ||
-       consumer->info.stage == MESA_SHADER_TESS_CTRL ||
-       consumer->info.stage == MESA_SHADER_TESS_EVAL);
+   const bool producer_is_array_stage =
+      producer->info.stage == MESA_SHADER_TESS_CTRL;
+   const bool consumer_is_array_stage =
+      consumer->info.stage == MESA_SHADER_GEOMETRY ||
+      consumer->info.stage == MESA_SHADER_TESS_CTRL ||
+      consumer->info.stage == MESA_SHADER_TESS_EVAL;
 
    bool valid = true;
 
@@ -1495,6 +1496,56 @@ validate_io(struct gl_program *producer, struct gl_program *consumer)
       if (match_index < num_outputs)
          outputs[match_index] = outputs[num_outputs];
 
+      /* Section 7.4.1 (Shader Interface Matching) of the ES 3.2 spec says:
+       *
+       *    "Tessellation control shader per-vertex output variables and
+       *     blocks and tessellation control, tessellation evaluation, and
+       *     geometry shader per-vertex input variables and blocks are
+       *     required to be declared as arrays, with each element representing
+       *     input or output values for a single vertex of a multi-vertex
+       *     primitive. For the purposes of interface matching, such variables
+       *     and blocks are treated as though they were not declared as
+       *     arrays."
+       *
+       * So we unwrap those types before matching.
+       */
+      const glsl_type *consumer_type = consumer_var->type;
+      const glsl_type *consumer_interface_type = consumer_var->interface_type;
+      const glsl_type *producer_type = producer_var->type;
+      const glsl_type *producer_interface_type = producer_var->interface_type;
+
+      if (consumer_is_array_stage) {
+         if (consumer_interface_type) {
+            /* the interface is the array; the underlying types should match */
+            if (consumer_interface_type->is_array() && !consumer_var->patch)
+               consumer_interface_type = consumer_interface_type->fields.array;
+         } else {
+            if (consumer_type->is_array() && !consumer_var->patch)
+               consumer_type = consumer_type->fields.array;
+         }
+      }
+
+      if (producer_is_array_stage) {
+         if (producer_interface_type) {
+            /* the interface is the array; the underlying types should match */
+            if (producer_interface_type->is_array() && !producer_var->patch)
+               producer_interface_type = producer_interface_type->fields.array;
+         } else {
+            if (producer_type->is_array() && !producer_var->patch)
+               producer_type = producer_type->fields.array;
+         }
+      }
+
+      if (producer_type != consumer_type) {
+         valid = false;
+         goto out;
+      }
+
+      if (producer_interface_type != consumer_interface_type) {
+         valid = false;
+         goto out;
+      }
+
       /* Section 9.2.2 (Separable Programs) of the GLSL ES spec says:
        *
        *    Qualifier Class|  Qualifier  |in/out
@@ -1525,43 +1576,6 @@ validate_io(struct gl_program *producer, struct gl_program *consumer)
        * Note that location mismatches are detected by the loops above that
        * find the producer variable that goes with the consumer variable.
        */
-      if (nonarray_stage_to_array_stage) {
-         if (consumer_var->interface_type != NULL) {
-            /* the interface is the array; underlying types should match */
-            if (producer_var->type != consumer_var->type) {
-               valid = false;
-               goto out;
-            }
-
-            if (!consumer_var->interface_type->is_array() ||
-                consumer_var->interface_type->fields.array != producer_var->interface_type) {
-               valid = false;
-               goto out;
-            }
-         } else {
-            if (producer_var->interface_type != NULL) {
-               valid = false;
-               goto out;
-            }
-
-            if (!consumer_var->type->is_array() ||
-                consumer_var->type->fields.array != producer_var->type) {
-               valid = false;
-               goto out;
-            }
-         }
-      } else {
-         if (producer_var->type != consumer_var->type) {
-            valid = false;
-            goto out;
-         }
-
-         if (producer_var->interface_type != consumer_var->interface_type) {
-            valid = false;
-            goto out;
-         }
-      }
-
       if (producer_var->interpolation != consumer_var->interpolation) {
          valid = false;
          goto out;

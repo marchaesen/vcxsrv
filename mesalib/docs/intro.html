@@ -17,22 +17,34 @@
 <h1>Introduction</h1>
 
 <p>
-Mesa is an open-source implementation of the
-<a href="http://www.opengl.org/">OpenGL</a> specification -
+The Mesa project began as an open-source implementation of the
+<a href="https://www.opengl.org/">OpenGL</a> specification -
 a system for rendering interactive 3D graphics.
 </p>
 
 <p>
-A variety of device drivers allows Mesa to be used in many different
-environments ranging from software emulation to complete hardware acceleration
-for modern GPUs.
+Over the years the project has grown to implement more graphics APIs,
+including
+<a href="https://www.khronos.org/opengles/">OpenGL ES</a> (versions 1, 2, 3),
+<a href="https://www.khronos.org/opencl/">OpenCL</a>,
+<a href="https://www.khronos.org/openmax/">OpenMAX</a>,
+<a href="https://en.wikipedia.org/wiki/VDPAU">VDPAU</a>,
+<a href="https://en.wikipedia.org/wiki/Video_Acceleration_API">VA API</a>,
+<a href="https://en.wikipedia.org/wiki/X-Video_Motion_Compensation">XvMC</a> and
+<a href="https://www.khronos.org/vulkan/">Vulkan</a>.
 </p>
 
 <p>
-Mesa ties into several other open-source projects: the 
-<a href="http://dri.freedesktop.org/">Direct Rendering 
-Infrastructure</a> and <a href="http://x.org">X.org</a> to 
-provide OpenGL support to users of X on Linux, FreeBSD and other operating 
+A variety of device drivers allows the Mesa libraries to be used in many
+different environments ranging from software emulation to complete hardware
+acceleration for modern GPUs.
+</p>
+
+<p>
+Mesa ties into several other open-source projects: the
+<a href="https://dri.freedesktop.org/">Direct Rendering
+Infrastructure</a> and <a href="https://x.org">X.org</a> to
+provide OpenGL support on Linux, FreeBSD and other operating
 systems.
 </p>
 
@@ -85,7 +97,7 @@ the OpenGL API, so they didn't feel threatened by the project.
 1995-1996: I continue working on Mesa both during my spare time and during
 my work hours at the Space Science and Engineering Center at the University
 of Wisconsin in Madison.  My supervisor, Bill Hibbard, lets me do this because
-Mesa is now being using for the <a href="http://www.ssec.wisc.edu/%7Ebillh/vis.html">Vis5D</a> project.
+Mesa is now being using for the <a href="https://www.ssec.wisc.edu/%7Ebillh/vis.html">Vis5D</a> project.
 </p><p>
 October 1996: Mesa 2.0 is released.  It implements the OpenGL 1.1 specification.
 </p>
@@ -142,7 +154,7 @@ and OpenGL Shading Language.
 
 <p>
 2008: Keith Whitwell and other Tungsten Graphics employees develop
-<a href="http://en.wikipedia.org/wiki/Gallium3D">Gallium</a>
+<a href="https://en.wikipedia.org/wiki/Gallium3D">Gallium</a>
 - a new GPU abstraction layer.  The latest Mesa drivers are based on
 Gallium and other APIs such as OpenVG are implemented on top of Gallium.
 </p>
@@ -153,13 +165,22 @@ and version 1.30 of the OpenGL Shading Language.
 </p>
 
 <p>
-Ongoing: Mesa is the OpenGL implementation for several types of hardware
-made by Intel, AMD and NVIDIA, plus the VMware virtual GPU.
+July 2016: Mesa 12.0 is released, including OpenGL 4.3 support and initial
+support for Vulkan for Intel GPUs.  Plus, there's another gallium software
+driver ("swr") based on LLVM and developed by Intel.
+</p>
+
+<p>
+Ongoing: Mesa is the OpenGL implementation for devices designed by
+Intel, AMD, NVIDIA, Qualcomm, Broadcom, Vivante, plus the VMware and
+VirGL virtual GPUs.
 There's also several software-based renderers: swrast (the legacy
-Mesa rasterizer), softpipe (a gallium reference driver) and llvmpipe
-(LLVM/JIT-based high-speed rasterizer).
+Mesa rasterizer), softpipe (a gallium reference driver), llvmpipe
+(LLVM/JIT-based high-speed rasterizer) and swr (another LLVM-based driver).
+</p>
+<p>
 Work continues on the drivers and core Mesa to implement newer versions
-of the OpenGL specification.
+of the OpenGL, OpenGL ES and Vulkan specifications.
 </p>
 
 
@@ -177,6 +198,9 @@ of the OpenGL specification is implemented.
 <p>
 Version 12.x of Mesa implements the OpenGL 4.3 API, but not all drivers
 support OpenGL 4.3.
+</p>
+<p>
+Initial support for Vulkan is also included.
 </p>
 
 
@@ -259,7 +283,7 @@ GL_SRC2_ALPHA               GL_SOURCE2_ALPHA
 </pre>
 <p>
 See the
-<a href="http://www.opengl.org/documentation/spec.html">
+<a href="https://www.opengl.org/documentation/spec.html">
 OpenGL specification</a> for more details.
 </p>
 

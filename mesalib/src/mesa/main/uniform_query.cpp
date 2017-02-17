@@ -25,6 +25,7 @@
  */
 
 #include <stdlib.h>
+#include <inttypes.h>  /* for PRIx64 macro */
 
 #include "main/core.h"
 #include "main/context.h"
@@ -506,20 +507,28 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
             case GLSL_TYPE_INT64:
             case GLSL_TYPE_UINT64:
                switch (uni->type->base_type) {
-               case GLSL_TYPE_UINT:
-                  *(int64_t *)&dst[didx].u = (int64_t) src[sidx].u;
+               case GLSL_TYPE_UINT: {
+                  uint64_t tmp = src[sidx].u;
+                  memcpy(&dst[didx].u, &tmp, sizeof(tmp));
                   break;
+               }
                case GLSL_TYPE_INT:
                case GLSL_TYPE_SAMPLER:
-               case GLSL_TYPE_IMAGE:
-                  *(int64_t *)&dst[didx].u = (int64_t) src[sidx].i;
+               case GLSL_TYPE_IMAGE: {
+                  int64_t tmp = src[sidx].i;
+                  memcpy(&dst[didx].u, &tmp, sizeof(tmp));
                   break;
-               case GLSL_TYPE_BOOL:
-                  *(int64_t *)&dst[didx].u = src[sidx].i ? 1.0f : 0.0f;
+               }
+               case GLSL_TYPE_BOOL: {
+                  int64_t tmp = src[sidx].i ? 1.0f : 0.0f;
+                  memcpy(&dst[didx].u, &tmp, sizeof(tmp));
                   break;
-               case GLSL_TYPE_FLOAT:
-                  *(int64_t *)&dst[didx].u = (int64_t) src[sidx].f;
+               }
+               case GLSL_TYPE_FLOAT: {
+                  int64_t tmp = src[sidx].f;
+                  memcpy(&dst[didx].u, &tmp, sizeof(tmp));
                   break;
+               }
                default:
                   assert(!"Should not get here.");
                   break;
@@ -562,12 +571,18 @@ log_uniform(const void *values, enum glsl_base_type basicType,
       case GLSL_TYPE_INT:
 	 printf("%d ", v[i].i);
 	 break;
-      case GLSL_TYPE_UINT64:
-         printf("%lu ", *(uint64_t* )&v[i * 2].u);
+      case GLSL_TYPE_UINT64: {
+         uint64_t tmp;
+         memcpy(&tmp, &v[i * 2].u, sizeof(tmp));
+         printf("%" PRIu64 " ", tmp);
          break;
-      case GLSL_TYPE_INT64:
-         printf("%ld ", *(int64_t* )&v[i * 2].u);
+      }
+      case GLSL_TYPE_INT64: {
+         int64_t tmp;
+         memcpy(&tmp, &v[i * 2].u, sizeof(tmp));
+         printf("%" PRId64 " ", tmp);
          break;
+      }
       case GLSL_TYPE_FLOAT:
 	 printf("%g ", v[i].f);
 	 break;

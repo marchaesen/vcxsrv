@@ -61,8 +61,6 @@ struct blitter_context_priv
 {
    struct blitter_context base;
 
-   struct u_upload_mgr *upload;
-
    float vertices[4][2][4];   /**< {pos, color} or {pos, texcoord} */
 
    /* Templates for various state objects. */
@@ -316,9 +314,6 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    for (i = 0; i < 4; i++)
       ctx->vertices[i][0][3] = 1; /*v.w*/
 
-   ctx->upload = u_upload_create(pipe, 65536, PIPE_BIND_VERTEX_BUFFER,
-                                 PIPE_USAGE_STREAM);
-
    return &ctx->base;
 }
 
@@ -491,7 +486,6 @@ void util_blitter_destroy(struct blitter_context *blitter)
    pipe->delete_sampler_state(pipe, ctx->sampler_state_rect);
    pipe->delete_sampler_state(pipe, ctx->sampler_state_linear);
    pipe->delete_sampler_state(pipe, ctx->sampler_state);
-   u_upload_destroy(ctx->upload);
    FREE(ctx);
 }
 
@@ -1214,11 +1208,11 @@ static void blitter_draw(struct blitter_context_priv *ctx,
 
    vb.stride = 8 * sizeof(float);
 
-   u_upload_data(ctx->upload, 0, sizeof(ctx->vertices), 4, ctx->vertices,
+   u_upload_data(pipe->stream_uploader, 0, sizeof(ctx->vertices), 4, ctx->vertices,
                  &vb.buffer_offset, &vb.buffer);
    if (!vb.buffer)
       return;
-   u_upload_unmap(ctx->upload);
+   u_upload_unmap(pipe->stream_uploader);
 
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
    util_draw_arrays_instanced(pipe, PIPE_PRIM_TRIANGLE_FAN, 0, 4,
@@ -2264,7 +2258,7 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
       return;
    }
 
-   u_upload_data(ctx->upload, 0, num_channels*4, 4, clear_value,
+   u_upload_data(pipe->stream_uploader, 0, num_channels*4, 4, clear_value,
                  &vb.buffer_offset, &vb.buffer);
    if (!vb.buffer)
       goto out;

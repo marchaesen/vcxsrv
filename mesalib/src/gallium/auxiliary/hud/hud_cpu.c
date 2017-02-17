@@ -30,6 +30,7 @@
 
 #include "hud/hud_private.h"
 #include "os/os_time.h"
+#include "os/os_thread.h"
 #include "util/u_memory.h"
 #include <stdio.h>
 #include <inttypes.h>
@@ -229,4 +230,63 @@ hud_get_num_cpus(void)
       i++;
 
    return i;
+}
+
+struct thread_info {
+   int64_t last_time;
+   int64_t last_thread_time;
+};
+
+static void
+query_api_thread_busy_status(struct hud_graph *gr)
+{
+   struct thread_info *info = gr->query_data;
+   int64_t now = os_time_get_nano();
+
+   if (info->last_time) {
+      if (info->last_time + gr->pane->period*1000 <= now) {
+         int64_t thread_now = pipe_current_thread_get_time_nano();
+
+         hud_graph_add_value(gr,
+                             (thread_now - info->last_thread_time) * 100 /
+                             (now - info->last_time));
+
+         info->last_thread_time = thread_now;
+         info->last_time = now;
+      }
+   } else {
+      /* initialize */
+      info->last_time = now;
+      info->last_thread_time = pipe_current_thread_get_time_nano();
+   }
+}
+
+void
+hud_api_thread_busy_install(struct hud_pane *pane)
+{
+   struct hud_graph *gr;
+
+   gr = CALLOC_STRUCT(hud_graph);
+   if (!gr)
+      return;
+
+   strcpy(gr->name, "API-thread-busy");
+
+   gr->query_data = CALLOC_STRUCT(thread_info);
+   if (!gr->query_data) {
+      FREE(gr);
+      return;
+   }
+
+   gr->query_new_value = query_api_thread_busy_status;
+
+   /* Don't use free() as our callback as that messes up Gallium's
+    * memory debugger.  Use simple free_query_data() wrapper.
+    */
+   gr->free_query_data = free_query_data;
+
+   hud_graph_set_dump_file(gr);
+
+   hud_pane_add_graph(pane, gr);
+   hud_pane_set_max_value(pane, 100);
 }

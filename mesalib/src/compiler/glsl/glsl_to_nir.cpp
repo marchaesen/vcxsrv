@@ -1501,6 +1501,7 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_i642i: result = nir_i2i32(&b, srcs[0]);   break;
    case ir_unop_i642u: result = nir_i2u32(&b, srcs[0]);   break;
    case ir_unop_i642f: result = nir_i642f(&b, srcs[0]);   break;
+   case ir_unop_i642b: result = nir_i642b(&b, srcs[0]);   break;
    case ir_unop_i642d: result = nir_i642d(&b, srcs[0]);   break;
 
    case ir_unop_u642i: result = nir_u2i32(&b, srcs[0]);   break;
@@ -1580,18 +1581,14 @@ nir_visitor::visit(ir_expression *ir)
       result = nir_unpack_half_2x16(&b, srcs[0]);
       break;
    case ir_unop_pack_double_2x32:
-      result = nir_pack_double_2x32(&b, srcs[0]);
-      break;
-   case ir_unop_unpack_double_2x32:
-      result = nir_unpack_double_2x32(&b, srcs[0]);
-      break;
    case ir_unop_pack_int_2x32:
    case ir_unop_pack_uint_2x32:
-      result = nir_pack_int_2x32(&b, srcs[0]);
+      result = nir_pack_64_2x32(&b, srcs[0]);
       break;
+   case ir_unop_unpack_double_2x32:
    case ir_unop_unpack_int_2x32:
    case ir_unop_unpack_uint_2x32:
-      result = nir_unpack_int_2x32(&b, srcs[0]);
+      result = nir_unpack_64_2x32(&b, srcs[0]);
       break;
    case ir_unop_bitfield_reverse:
       result = nir_bitfield_reverse(&b, srcs[0]);

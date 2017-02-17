@@ -717,7 +717,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
 
    vb.stride = sizeof(struct st_util_vertex);
 
-   u_upload_alloc(st->uploader, 0, num_vert_bytes, 4,
+   u_upload_alloc(pipe->stream_uploader, 0, num_vert_bytes, 4,
                   &vb.buffer_offset, &vb.buffer, (void **) &verts);
 
    /* build quads vertex data */
@@ -789,7 +789,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
       ctx->Current.RasterPos[1] += ymove;
    }
 
-   u_upload_unmap(st->uploader);
+   u_upload_unmap(pipe->stream_uploader);
 
    cso_set_vertex_buffers(st->cso_context,
                           cso_get_aux_vertex_buffer_slot(st->cso_context),

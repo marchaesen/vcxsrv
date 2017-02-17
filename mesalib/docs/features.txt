@@ -283,7 +283,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_ES3_2_compatibility                            DONE (i965/gen8+)
   GL_ARB_fragment_shader_interlock                      not started
   GL_ARB_gl_spirv                                       not started
-  GL_ARB_gpu_shader_int64                               DONE (i965/gen8+, radeonsi, softpipe, llvmpipe)
+  GL_ARB_gpu_shader_int64                               DONE (i965/gen8+, nvc0, radeonsi, softpipe, llvmpipe)
   GL_ARB_indirect_parameters                            DONE (nvc0, radeonsi)
   GL_ARB_parallel_shader_compile                        not started, but Chia-I Wu did some related work in 2014
   GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, radeonsi, softpipe, swr)
@@ -335,4 +335,4 @@ we DO NOT WANT implementations of these extensions for Mesa.
 
 
 A graphical representation of this information can be found at
-http://mesamatrix.net/
+https://mesamatrix.net/

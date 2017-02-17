@@ -142,6 +142,10 @@ LIBGLSL_FILES = \
 	glsl/s_expression.cpp \
 	glsl/s_expression.h
 
+LIBGLSL_SHADER_CACHE_FILES = \
+	glsl/shader_cache.cpp \
+	glsl/shader_cache.h
+
 # glsl_compiler
 
 GLSL_COMPILER_CXX_FILES = \
@@ -201,6 +205,7 @@ NIR_FILES = \
 	nir/nir_liveness.c \
 	nir/nir_loop_analyze.c \
 	nir/nir_loop_analyze.h \
+	nir/nir_lower_64bit_packing.c \
 	nir/nir_lower_alu_to_scalar.c \
 	nir/nir_lower_atomics.c \
 	nir/nir_lower_bitmap.c \
@@ -209,7 +214,6 @@ NIR_FILES = \
 	nir/nir_lower_clip_cull_distance_arrays.c \
 	nir/nir_lower_constant_initializers.c \
 	nir/nir_lower_double_ops.c \
-	nir/nir_lower_double_packing.c \
 	nir/nir_lower_drawpixels.c \
 	nir/nir_lower_global_vars_to_local.c \
 	nir/nir_lower_gs_intrinsics.c \

@@ -462,7 +462,6 @@ typedef struct {
 
 #define fbGetCompositeClip(pGC) ((pGC)->pCompositeClip)
 #define fbGetExpose(pGC)	((pGC)->fExpose)
-#define fbGetFreeCompClip(pGC)	((pGC)->freeCompClip)
 #define fbGetRotatedPixmap(pGC)	((pGC)->pRotatedPixmap)
 
 #define fbGetScreenPixmap(s)	((PixmapPtr) (s)->devPrivate)
@@ -901,13 +900,9 @@ extern _X_EXPORT void
  fbClearVisualTypes(void);
 
 extern _X_EXPORT Bool
- fbHasVisualTypes(int depth);
-
-extern _X_EXPORT Bool
  fbSetVisualTypes(int depth, int visuals, int bitsPerRGB);
 
 extern _X_EXPORT Bool
-
 fbSetVisualTypesAndMasks(int depth, int visuals, int bitsPerRGB,
                          Pixel redMask, Pixel greenMask, Pixel blueMask);
 
@@ -1192,8 +1187,8 @@ extern _X_EXPORT Bool
                int dpiy, int width,     /* pixel width of frame buffer */
                int bpp);        /* bits per pixel of frame buffer */
 
+#ifdef FB_ACCESS_WRAPPER
 extern _X_EXPORT Bool
-
 wfbFinishScreenInit(ScreenPtr pScreen,
                     void *pbits,
                     int xsize,
@@ -1205,7 +1200,6 @@ wfbFinishScreenInit(ScreenPtr pScreen,
                     SetupWrapProcPtr setupWrap, FinishWrapProcPtr finishWrap);
 
 extern _X_EXPORT Bool
-
 wfbScreenInit(ScreenPtr pScreen,
               void *pbits,
               int xsize,
@@ -1215,9 +1209,9 @@ wfbScreenInit(ScreenPtr pScreen,
               int width,
               int bpp,
               SetupWrapProcPtr setupWrap, FinishWrapProcPtr finishWrap);
+#endif
 
 extern _X_EXPORT Bool
-
 fbFinishScreenInit(ScreenPtr pScreen,
                    void *pbits,
                    int xsize,

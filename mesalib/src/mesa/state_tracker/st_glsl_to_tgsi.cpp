@@ -588,7 +588,7 @@ fail_link(struct gl_shader_program *prog, const char *fmt, ...)
    ralloc_vasprintf_append(&prog->data->InfoLog, fmt, args);
    va_end(args);
 
-   prog->data->LinkStatus = GL_FALSE;
+   prog->data->LinkStatus = linking_failure;
 }
 
 static int
@@ -3363,15 +3363,13 @@ glsl_to_tgsi_visitor::visit(ir_constant *ir)
    case GLSL_TYPE_INT64:
       gl_type = GL_INT64_ARB;
       for (i = 0; i < ir->type->vector_elements; i++) {
-         values[i * 2].i = *(uint32_t *)&ir->value.d[i];
-         values[i * 2 + 1].i = *(((uint32_t *)&ir->value.d[i]) + 1);
+         memcpy(&values[i * 2], &ir->value.d[i], sizeof(int64_t));
       }
       break;
    case GLSL_TYPE_UINT64:
       gl_type = GL_UNSIGNED_INT64_ARB;
       for (i = 0; i < ir->type->vector_elements; i++) {
-         values[i * 2].i = *(uint32_t *)&ir->value.d[i];
-         values[i * 2 + 1].i = *(((uint32_t *)&ir->value.d[i]) + 1);
+         memcpy(&values[i * 2], &ir->value.d[i], sizeof(uint64_t));
       }
       break;
    case GLSL_TYPE_UINT:
@@ -7043,6 +7041,9 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                                              options->EmitNoIndirectTemp,
                                              options->EmitNoIndirectUniform);
       }
+
+      if (!pscreen->get_param(pscreen, PIPE_CAP_INT64_DIVMOD))
+         lower_64bit_integer_instructions(ir, DIV64 | MOD64);
 
       if (ctx->Extensions.ARB_shading_language_packing) {
          unsigned lower_inst = LOWER_PACK_SNORM_2x16 |

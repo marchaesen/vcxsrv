@@ -73,6 +73,7 @@
 #include "program.h"
 #include "program/prog_instruction.h"
 #include "program/program.h"
+#include "util/mesa-sha1.h"
 #include "util/set.h"
 #include "util/string_to_uint_map.h"
 #include "linker.h"
@@ -81,6 +82,7 @@
 #include "ir_rvalue_visitor.h"
 #include "ir_uniform.h"
 #include "builtin_functions.h"
+#include "shader_cache.h"
 
 #include "main/shaderobj.h"
 #include "main/enums.h"
@@ -421,7 +423,7 @@ linker_error(gl_shader_program *prog, const char *fmt, ...)
    ralloc_vasprintf_append(&prog->data->InfoLog, fmt, ap);
    va_end(ap);
 
-   prog->data->LinkStatus = false;
+   prog->data->LinkStatus = linking_failure;
 }
 
 
@@ -2190,12 +2192,13 @@ link_intrastage_shaders(void *mem_ctx,
                              _mesa_shader_stage_to_program(shader_list[0]->Stage),
                              prog->Name, false);
    if (!gl_prog) {
-      prog->data->LinkStatus = false;
+      prog->data->LinkStatus = linking_failure;
       _mesa_delete_linked_shader(ctx, linked);
       return NULL;
    }
 
-   _mesa_reference_shader_program_data(ctx, &gl_prog->sh.data, prog->data);
+   if (!prog->data->cache_fallback)
+      _mesa_reference_shader_program_data(ctx, &gl_prog->sh.data, prog->data);
 
    /* Don't use _mesa_reference_program() just take ownership */
    linked->Program = gl_prog;
@@ -2249,32 +2252,34 @@ link_intrastage_shaders(void *mem_ctx,
    v.run(linked->ir);
    v.fixup_unnamed_interface_types();
 
-   /* Link up uniform blocks defined within this stage. */
-   link_uniform_blocks(mem_ctx, ctx, prog, linked, &ubo_blocks,
-                       &num_ubo_blocks, &ssbo_blocks, &num_ssbo_blocks);
+   if (!prog->data->cache_fallback) {
+      /* Link up uniform blocks defined within this stage. */
+      link_uniform_blocks(mem_ctx, ctx, prog, linked, &ubo_blocks,
+                          &num_ubo_blocks, &ssbo_blocks, &num_ssbo_blocks);
 
-   if (!prog->data->LinkStatus) {
-      _mesa_delete_linked_shader(ctx, linked);
-      return NULL;
-   }
+      if (!prog->data->LinkStatus) {
+         _mesa_delete_linked_shader(ctx, linked);
+         return NULL;
+      }
 
-   /* Copy ubo blocks to linked shader list */
-   linked->Program->sh.UniformBlocks =
-      ralloc_array(linked, gl_uniform_block *, num_ubo_blocks);
-   ralloc_steal(linked, ubo_blocks);
-   for (unsigned i = 0; i < num_ubo_blocks; i++) {
-      linked->Program->sh.UniformBlocks[i] = &ubo_blocks[i];
-   }
-   linked->Program->info.num_ubos = num_ubo_blocks;
+      /* Copy ubo blocks to linked shader list */
+      linked->Program->sh.UniformBlocks =
+         ralloc_array(linked, gl_uniform_block *, num_ubo_blocks);
+      ralloc_steal(linked, ubo_blocks);
+      for (unsigned i = 0; i < num_ubo_blocks; i++) {
+         linked->Program->sh.UniformBlocks[i] = &ubo_blocks[i];
+      }
+      linked->Program->info.num_ubos = num_ubo_blocks;
 
-   /* Copy ssbo blocks to linked shader list */
-   linked->Program->sh.ShaderStorageBlocks =
-      ralloc_array(linked, gl_uniform_block *, num_ssbo_blocks);
-   ralloc_steal(linked, ssbo_blocks);
-   for (unsigned i = 0; i < num_ssbo_blocks; i++) {
-      linked->Program->sh.ShaderStorageBlocks[i] = &ssbo_blocks[i];
+      /* Copy ssbo blocks to linked shader list */
+      linked->Program->sh.ShaderStorageBlocks =
+         ralloc_array(linked, gl_uniform_block *, num_ssbo_blocks);
+      ralloc_steal(linked, ssbo_blocks);
+      for (unsigned i = 0; i < num_ssbo_blocks; i++) {
+         linked->Program->sh.ShaderStorageBlocks[i] = &ssbo_blocks[i];
+      }
+      linked->Program->info.num_ssbos = num_ssbo_blocks;
    }
-   linked->Program->info.num_ssbos = num_ssbo_blocks;
 
    /* At this point linked should contain all of the linked IR, so
     * validate it to make sure nothing went wrong.
@@ -3709,17 +3714,6 @@ create_shader_variable(struct gl_shader_program *shProg,
    return out;
 }
 
-static const glsl_type *
-resize_to_max_patch_vertices(const struct gl_context *ctx,
-                             const glsl_type *type)
-{
-   if (!type)
-      return NULL;
-
-   return glsl_type::get_array_instance(type->fields.array,
-                                        ctx->Const.MaxPatchVertices);
-}
-
 static bool
 add_shader_variable(const struct gl_context *ctx,
                     struct gl_shader_program *shProg,
@@ -3733,27 +3727,6 @@ add_shader_variable(const struct gl_context *ctx,
    const glsl_type *interface_type = var->get_interface_type();
 
    if (outermost_struct_type == NULL) {
-      /* Unsized (non-patch) TCS output/TES input arrays are implicitly
-       * sized to gl_MaxPatchVertices.  Internally, we shrink them to a
-       * smaller size.
-       *
-       * This can cause trouble with SSO programs.  Since the TCS declares
-       * the number of output vertices, we can always shrink TCS output
-       * arrays.  However, the TES might not be linked with a TCS, in
-       * which case it won't know the size of the patch.  In other words,
-       * the TCS and TES may disagree on the (smaller) array sizes.  This
-       * can result in the resource names differing across stages, causing
-       * SSO validation failures and other cascading issues.
-       *
-       * Expanding the array size to the full gl_MaxPatchVertices fixes
-       * these issues.  It's also what program interface queries expect,
-       * as that is the official size of the array.
-       */
-      if (var->data.tess_varying_implicit_sized_array) {
-         type = resize_to_max_patch_vertices(ctx, type);
-         interface_type = resize_to_max_patch_vertices(ctx, interface_type);
-      }
-
       if (var->data.from_named_ifc_block) {
          const char *interface_name = interface_type->name;
 
@@ -4529,12 +4502,14 @@ link_and_validate_uniforms(struct gl_context *ctx,
    update_array_sizes(prog);
    link_assign_uniform_locations(prog, ctx);
 
-   link_assign_atomic_counter_resources(ctx, prog);
-   link_calculate_subroutine_compat(prog);
-   check_resources(ctx, prog);
-   check_subroutine_resources(prog);
-   check_image_resources(ctx, prog);
-   link_check_atomic_counter_resources(ctx, prog);
+   if (!prog->data->cache_fallback) {
+      link_assign_atomic_counter_resources(ctx, prog);
+      link_calculate_subroutine_compat(prog);
+      check_resources(ctx, prog);
+      check_subroutine_resources(prog);
+      check_image_resources(ctx, prog);
+      link_check_atomic_counter_resources(ctx, prog);
+   }
 }
 
 static bool
@@ -4629,7 +4604,7 @@ linker_optimisation_loop(struct gl_context *ctx, exec_list *ir,
 void
 link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 {
-   prog->data->LinkStatus = true; /* All error paths will set this to false */
+   prog->data->LinkStatus = linking_success; /* All error paths will set this to false */
    prog->data->Validated = false;
 
    /* Section 7.3 (Program Objects) of the OpenGL 4.5 Core Profile spec says:
@@ -4650,6 +4625,23 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
          linker_error(prog, "no shaders attached to the program\n");
       return;
    }
+
+#ifdef ENABLE_SHADER_CACHE
+   /* If transform feedback used on the program then compile all shaders. */
+   bool skip_cache = false;
+   if (prog->TransformFeedback.NumVarying > 0) {
+      for (unsigned i = 0; i < prog->NumShaders; i++) {
+         if (prog->Shaders[i]->ir) {
+            continue;
+         }
+         _mesa_glsl_compile_shader(ctx, prog->Shaders[i], false, false, true);
+      }
+      skip_cache = true;
+   }
+
+   if (!skip_cache && shader_cache_read_program_metadata(ctx, prog))
+      return;
+#endif
 
    void *mem_ctx = ralloc_context(NULL); // temporary linker context
 
@@ -4721,7 +4713,15 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
          goto done;
       }
 
-      /* The spec is self-contradictory here. It allows linking without a tess
+      /* Section 7.3 of the OpenGL ES 3.2 specification says:
+       *
+       *    "Linking can fail for [...] any of the following reasons:
+       *
+       *     * program contains an object to form a tessellation control
+       *       shader [...] and [...] the program is not separable and
+       *       contains no object to form a tessellation evaluation shader"
+       *
+       * The OpenGL spec is contradictory. It allows linking without a tess
        * eval shader, but that can only be used with transform feedback and
        * rasterization disabled. However, transform feedback isn't allowed
        * with GL_PATCHES, so it can't be used.
@@ -4816,8 +4816,10 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       last = i;
    }
 
-   check_explicit_uniform_locations(ctx, prog);
-   link_assign_subroutine_types(prog);
+   if (!prog->data->cache_fallback) {
+      check_explicit_uniform_locations(ctx, prog);
+      link_assign_subroutine_types(prog);
+   }
 
    if (!prog->data->LinkStatus)
       goto done;
@@ -4872,13 +4874,15 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    if (prog->SeparateShader)
       disable_varying_optimizations_for_sso(prog);
 
-   /* Process UBOs */
-   if (!interstage_cross_validate_uniform_blocks(prog, false))
-      goto done;
+   if (!prog->data->cache_fallback) {
+      /* Process UBOs */
+      if (!interstage_cross_validate_uniform_blocks(prog, false))
+         goto done;
 
-   /* Process SSBOs */
-   if (!interstage_cross_validate_uniform_blocks(prog, true))
-      goto done;
+      /* Process SSBOs */
+      if (!interstage_cross_validate_uniform_blocks(prog, true))
+         goto done;
+   }
 
    /* Do common optimization before assigning storage for attributes,
     * uniforms, and varyings.  Later optimization could possibly make

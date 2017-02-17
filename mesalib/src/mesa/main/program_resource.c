@@ -76,7 +76,7 @@ lookup_linked_program(GLuint program, const char *caller)
    if (!prog)
       return NULL;
 
-   if (prog->data->LinkStatus == GL_FALSE) {
+   if (prog->data->LinkStatus == linking_failure) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
                   caller);
       return NULL;

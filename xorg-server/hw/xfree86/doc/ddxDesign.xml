@@ -1190,8 +1190,6 @@ Here is what <function>InitOutput()</function> does:
           rgbBits               (8bpp only)
           gamma
           defaultVisual
-          maxHValue
-          maxVValue
           virtualX
           virtualY
           displayWidth
@@ -1210,9 +1208,7 @@ Here is what <function>InitOutput()</function> does:
           numClocks             (if not programmable)
           clock[]               (if not programmable)
           videoRam
-          biosBase
           memBase
-          memClk
           driverPrivate
           chipID
           chipRev
@@ -2922,34 +2918,6 @@ Two functions are provided to obtain a resource range of a given type:
 	</para>
 
 	<para>
-Some PCI devices are broken in the sense that they return invalid size
-information for a certain resource.  In this case the driver can supply
-the correct size and make sure that the resource range allocated for
-the card is large enough to hold the address range decoded by the card.
-The function <function>xf86FixPciResource()</function> can be used to do this:
-	  <blockquote><para>
-	      <programlisting>
-    Bool xf86FixPciResource(int entityIndex, unsigned int prt,
-                            CARD32 alignment, long type);
-	      </programlisting>
-	      <blockquote><para>
-      This function fixes a PCI resource allocation.  The
-      <parameter>prt</parameter> parameter contains the number of the PCI base
-      register that needs to be fixed (<constant>0-5</constant>, and
-      <constant>6</constant> for the BIOS base register).  The size is
-      specified by the alignment.  Since PCI resources need to span an
-      integral range of size <literal remap="tt">2&circ;n</literal>, the alignm      ent also
-      specifies the number of addresses that will be decoded.  If the
-      driver specifies a type mask it can override the default type for
-      PCI resources which is <constant>ResShared</constant>.  The resource
-      broker needs to know that to find a matching resource range.  This
-      function should be called before calling
-      <function>xf86RegisterResources()</function>.  The return value is
-      <constant>TRUE</constant> when the function succeeds.
-		</para>
-
-	      </blockquote></para></blockquote>
-
 	  <blockquote><para>
 	      <programlisting>
     Bool xf86CheckPciMemBase(pciVideoPtr pPci, memType base);
@@ -6596,16 +6564,6 @@ be catered for the by the helpers.
 		      total video memory size (in bytes)
 		    </para></listitem></varlistentry>
 		<varlistentry>
-		  <term><structfield>maxHValue</structfield></term>
-		  <listitem><para>
-		      Maximum horizontal timing value allowed
-		    </para></listitem></varlistentry>
-		<varlistentry>
-		  <term><structfield>maxVValue</structfield></term>
-		  <listitem><para>
-		      Maximum vertical timing value allowed
-		    </para></listitem></varlistentry>
-		<varlistentry>
 		  <term><structfield>xInc</structfield></term>
 		  <listitem><para>
 		      Horizontal timing increment in pixels (defaults to 8)
@@ -6650,12 +6608,6 @@ be catered for the by the helpers.
 		  <term><structfield>displayWidth</structfield></term>
 		  <listitem><para>
 		The resulting line pitch.
-		    </para></listitem></varlistentry>
-
-		<varlistentry>
-		  <term><structfield>virtualFrom</structfield></term>
-		  <listitem><para>
-		Where the virtual size was determined from.
 		    </para></listitem></varlistentry>
 
 	      </variablelist>

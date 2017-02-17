@@ -31,6 +31,12 @@
 #include <randrstr.h>
 
 #define DEFAULT_DPI 96
+#define ALL_ROTATIONS (RR_Rotate_0   | \
+                       RR_Rotate_90  | \
+                       RR_Rotate_180 | \
+                       RR_Rotate_270 | \
+                       RR_Reflect_X  | \
+                       RR_Reflect_Y)
 
 static Rotation
 wl_transform_to_xrandr(enum wl_output_transform transform)
@@ -102,14 +108,8 @@ output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
     if (!(flags & WL_OUTPUT_MODE_CURRENT))
         return;
 
-    if (xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180)) {
-        xwl_output->width = width;
-        xwl_output->height = height;
-    } else {
-        xwl_output->width = height;
-        xwl_output->height = width;
-    }
-
+    xwl_output->width = width;
+    xwl_output->height = height;
     xwl_output->refresh = refresh;
 }
 
@@ -117,11 +117,21 @@ static inline void
 output_get_new_size(struct xwl_output *xwl_output,
                     int *height, int *width)
 {
-    if (*width < xwl_output->x + xwl_output->width)
-        *width = xwl_output->x + xwl_output->width;
+    int output_width, output_height;
 
-    if (*height < xwl_output->y + xwl_output->height)
-        *height = xwl_output->y + xwl_output->height;
+    if (xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180)) {
+        output_width = xwl_output->width;
+        output_height = xwl_output->height;
+    } else {
+        output_width = xwl_output->height;
+        output_height = xwl_output->width;
+    }
+
+    if (*width < xwl_output->x + output_width)
+        *width = xwl_output->x + output_width;
+
+    if (*height < xwl_output->y + output_height)
+        *height = xwl_output->y + output_height;
 }
 
 /* Approximate some kind of mmpd (m.m. per dot) of the screen given the outputs
@@ -244,7 +254,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
 
     xwl_output = calloc(1, sizeof *xwl_output);
     if (xwl_output == NULL) {
-        ErrorF("create_output ENOMEM\n");
+        ErrorF("%s ENOMEM\n", __func__);
         return NULL;
     }
 
@@ -266,6 +276,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
         ErrorF("Failed creating RandR CRTC\n");
         goto err;
     }
+    RRCrtcSetRotations (xwl_output->randr_crtc, ALL_ROTATIONS);
 
     xwl_output->randr_output = RROutputCreate(xwl_screen->screen, name,
                                               strlen(name), xwl_output);
@@ -317,7 +328,7 @@ xwl_output_remove(struct xwl_output *xwl_output)
 static Bool
 xwl_randr_get_info(ScreenPtr pScreen, Rotation * rotations)
 {
-    *rotations = 0;
+    *rotations = ALL_ROTATIONS;
 
     return TRUE;
 }

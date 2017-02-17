@@ -16,6 +16,7 @@ typedef struct _xf86CursorInfoRec {
     Bool (*LoadCursorImageCheck) (ScrnInfoPtr pScrn, unsigned char *bits);
     void (*HideCursor) (ScrnInfoPtr pScrn);
     void (*ShowCursor) (ScrnInfoPtr pScrn);
+    Bool (*ShowCursorCheck) (ScrnInfoPtr pScrn);
     unsigned char *(*RealizeCursor) (struct _xf86CursorInfoRec *, CursorPtr);
     Bool (*UseHWCursor) (ScreenPtr, CursorPtr);
 
@@ -37,6 +38,21 @@ xf86DriverLoadCursorImage(xf86CursorInfoPtr infoPtr, unsigned char *bits)
     if(infoPtr->LoadCursorImageCheck)
         return infoPtr->LoadCursorImageCheck(infoPtr->pScrn, bits);
     infoPtr->LoadCursorImage(infoPtr->pScrn, bits);
+    return TRUE;
+}
+
+static inline Bool
+xf86DriverHasShowCursor(xf86CursorInfoPtr infoPtr)
+{
+    return infoPtr->ShowCursorCheck || infoPtr->ShowCursor;
+}
+
+static inline Bool
+xf86DriverShowCursor(xf86CursorInfoPtr infoPtr)
+{
+    if(infoPtr->ShowCursorCheck)
+        return infoPtr->ShowCursorCheck(infoPtr->pScrn);
+    infoPtr->ShowCursor(infoPtr->pScrn);
     return TRUE;
 }
 

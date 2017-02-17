@@ -306,6 +306,12 @@ optimizations = [
    (('fabs', ('b2f', a)), ('b2f', a)),
    (('iabs', ('b2i', a)), ('b2i', a)),
 
+   # Packing and then unpacking does nothing
+   (('unpack_64_2x32_split_x', ('pack_64_2x32_split', a, b)), a),
+   (('unpack_64_2x32_split_y', ('pack_64_2x32_split', a, b)), b),
+   (('pack_64_2x32_split', ('unpack_64_2x32_split_x', a),
+                           ('unpack_64_2x32_split_y', a)), a),
+
    # Byte extraction
    (('ushr', a, 24), ('extract_u8', a, 3), '!options->lower_extract_byte'),
    (('iand', 0xff, ('ushr', a, 16)), ('extract_u8', a, 2), '!options->lower_extract_byte'),
@@ -434,7 +440,7 @@ def fexp2i(exp, bits):
    if bits == 32:
       return ('ishl', ('iadd', exp, 127), 23)
    elif bits == 64:
-      return ('pack_double_2x32_split', 0, ('ishl', ('iadd', exp, 1023), 20))
+      return ('pack_64_2x32_split', 0, ('ishl', ('iadd', exp, 1023), 20))
    else:
       assert False
 

@@ -102,7 +102,7 @@ enum radv_mem_type {
 
 
 enum {
-	RADV_DEBUG_FAST_CLEARS       =   0x1,
+	RADV_DEBUG_NO_FAST_CLEARS    =   0x1,
 	RADV_DEBUG_NO_DCC            =   0x2,
 	RADV_DEBUG_DUMP_SHADERS      =   0x4,
 	RADV_DEBUG_NO_CACHE          =   0x8,
@@ -511,6 +511,10 @@ struct radv_device {
 	float sample_locations_8x[8][2];
 	float sample_locations_16x[16][2];
 
+	/* CIK and later */
+	uint32_t gfx_init_size_dw;
+	struct radeon_winsys_bo                      *gfx_init;
+
 	struct radeon_winsys_bo                      *trace_bo;
 	uint32_t                                     *trace_id_ptr;
 
@@ -532,7 +536,6 @@ struct radv_descriptor_range {
 
 struct radv_descriptor_set {
 	const struct radv_descriptor_set_layout *layout;
-	struct list_head descriptor_pool;
 	uint32_t size;
 
 	struct radv_buffer_view *buffer_views;
@@ -540,27 +543,19 @@ struct radv_descriptor_set {
 	uint64_t va;
 	uint32_t *mapped_ptr;
 	struct radv_descriptor_range *dynamic_descriptors;
+
+	struct list_head vram_list;
+
 	struct radeon_winsys_bo *descriptors[0];
 };
 
-struct radv_descriptor_pool_free_node {
-	int next;
-	uint32_t offset;
-	uint32_t size;
-};
-
 struct radv_descriptor_pool {
-	struct list_head descriptor_sets;
-
 	struct radeon_winsys_bo *bo;
 	uint8_t *mapped_ptr;
 	uint64_t current_offset;
 	uint64_t size;
 
-	int free_list;
-	int full_list;
-	uint32_t max_sets;
-	struct radv_descriptor_pool_free_node free_nodes[];
+	struct list_head vram_list;
 };
 
 struct radv_buffer {
@@ -682,8 +677,8 @@ struct radv_attachment_state {
 
 struct radv_cmd_state {
 	uint32_t                                      vb_dirty;
-	bool                                          vertex_descriptors_dirty;
 	radv_cmd_dirty_mask_t                         dirty;
+	bool                                          vertex_descriptors_dirty;
 
 	struct radv_pipeline *                        pipeline;
 	struct radv_pipeline *                        emitted_pipeline;
@@ -706,6 +701,7 @@ struct radv_cmd_state {
 	float					     offset_scale;
 	uint32_t                                      descriptors_dirty;
 	uint32_t                                      trace_id;
+	uint32_t                                      last_ia_multi_vgt_param;
 };
 
 struct radv_cmd_pool {
@@ -750,21 +746,25 @@ struct radv_cmd_buffer {
 	uint32_t gsvs_ring_size_needed;
 
 	int ring_offsets_idx; /* just used for verification */
+
+	bool no_draws;
 };
 
 struct radv_image;
 
 bool radv_cmd_buffer_uses_mec(struct radv_cmd_buffer *cmd_buffer);
 
-void si_init_compute(struct radv_physical_device *physical_device,
-		     struct radv_cmd_buffer *cmd_buffer);
-void si_init_config(struct radv_physical_device *physical_device,
-		    struct radv_cmd_buffer *cmd_buffer);
+void si_init_compute(struct radv_cmd_buffer *cmd_buffer);
+void si_init_config(struct radv_cmd_buffer *cmd_buffer);
+
+void cik_create_gfx_config(struct radv_device *device);
+
 void si_write_viewport(struct radeon_winsys_cs *cs, int first_vp,
 		       int count, const VkViewport *viewports);
 void si_write_scissors(struct radeon_winsys_cs *cs, int first,
 		       int count, const VkRect2D *scissors);
-uint32_t si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer);
+uint32_t si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
+				   bool instanced_or_indirect_draw, uint32_t draw_vertex_count);
 void si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer);
 void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 			   uint64_t src_va, uint64_t dest_va,
@@ -918,6 +918,11 @@ struct radv_multisample_state {
 	unsigned num_samples;
 };
 
+struct radv_prim_vertex_count {
+	uint8_t min;
+	uint8_t incr;
+};
+
 struct radv_pipeline {
 	struct radv_device *                          device;
 	uint32_t                                     dynamic_state_mask;
@@ -949,6 +954,7 @@ struct radv_pipeline {
 			bool prim_restart_enable;
 			unsigned esgs_ring_size;
 			unsigned gsvs_ring_size;
+			struct radv_prim_vertex_count prim_vertex_count;
 		} graphics;
 	};
 

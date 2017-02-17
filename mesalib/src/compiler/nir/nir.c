@@ -1971,10 +1971,15 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
       if (src_bitsize == dst_bitsize)
          return (src_base_type == nir_type_float) ? nir_op_fmov : nir_op_imov;
 
-      assert (src_base_type == nir_type_float);
-      /* TODO: implement support for float16 */
       assert(src_bitsize == 64 || dst_bitsize == 64);
-      return (src_bitsize == 64) ? nir_op_d2f : nir_op_f2d;
+      if (src_base_type == nir_type_float)
+         /* TODO: implement support for float16 */
+         return (src_bitsize == 64) ? nir_op_d2f : nir_op_f2d;
+      else if (src_base_type == nir_type_uint)
+         return (src_bitsize == 64) ? nir_op_imov : nir_op_u2u64;
+      else if (src_base_type == nir_type_int)
+         return (src_bitsize == 64) ? nir_op_imov : nir_op_i2i64;
+      unreachable("Invalid conversion");
    }
 
    /* Different base type but same bit_size */
@@ -2008,11 +2013,17 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
    /* TODO: Implement integer support for types with bit_size != 32 */
    switch (src_base_type) {
    case nir_type_uint:
-      assert(dst == nir_type_float64);
-      return nir_op_u2d;
+      if (dst == nir_type_float64)
+         return nir_op_u2d;
+      else if (dst == nir_type_int64)
+         return nir_op_u2i64;
+      break;
    case nir_type_int:
-      assert(dst == nir_type_float64);
-      return nir_op_i2d;
+      if (dst == nir_type_float64)
+         return nir_op_i2d;
+      else if (dst == nir_type_uint64)
+         return nir_op_i2i64;
+      break;
    case nir_type_bool:
       assert(dst == nir_type_float64);
       return nir_op_u2d;
@@ -2038,4 +2049,5 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
    default:
       unreachable("Invalid conversion");
    };
+   unreachable("Invalid conversion");
 }

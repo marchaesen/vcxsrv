@@ -242,3 +242,13 @@ util_queue_add_job(struct util_queue *queue,
    pipe_condvar_signal(queue->has_queued_cond);
    pipe_mutex_unlock(queue->lock);
 }
+
+int64_t
+util_queue_get_thread_time_nano(struct util_queue *queue, unsigned thread_index)
+{
+   /* Allow some flexibility by not raising an error. */
+   if (thread_index >= queue->num_threads)
+      return 0;
+
+   return pipe_thread_get_time_nano(queue->threads[thread_index]);
+}

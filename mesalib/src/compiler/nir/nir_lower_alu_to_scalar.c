@@ -188,8 +188,7 @@ lower_alu_instr_scalar(nir_alu_instr *instr, nir_builder *b)
       return true;
    }
 
-   case nir_op_unpack_double_2x32:
-   case nir_op_unpack_int_2x32:
+   case nir_op_unpack_64_2x32:
       return false;
 
       LOWER_REDUCTION(nir_op_fdot, nir_op_fmul, nir_op_fadd);

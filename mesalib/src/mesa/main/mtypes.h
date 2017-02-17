@@ -2397,6 +2397,8 @@ struct gl_shader
 #endif
    const GLchar *Source;  /**< Source code string */
 
+   const GLchar *FallbackSource;  /**< Fallback string used by on-disk cache*/
+
    GLchar *InfoLog;
 
    unsigned Version;       /**< GLSL version used for linking */
@@ -2647,6 +2649,17 @@ struct gl_program_resource
 };
 
 /**
+ * Link status enum. linking_skipped is used to indicate linking
+ * was skipped due to the shader being loaded from the on-disk cache.
+ */
+enum gl_link_status
+{
+   linking_failure = 0,
+   linking_success,
+   linking_skipped
+};
+
+/**
  * A data structure to be shared by gl_shader_program and gl_program.
  */
 struct gl_shader_program_data
@@ -2673,11 +2686,13 @@ struct gl_shader_program_data
    unsigned NumUniformDataSlots;
    union gl_constant_value *UniformDataSlots;
 
+   bool cache_fallback;
+
    /** List of all active resources after linking. */
    struct gl_program_resource *ProgramResourceList;
    unsigned NumProgramResourceList;
 
-   GLboolean LinkStatus;   /**< GL_LINK_STATUS */
+   enum gl_link_status LinkStatus;   /**< GL_LINK_STATUS */
    GLboolean Validated;
    GLchar *InfoLog;
 
@@ -2863,6 +2878,8 @@ struct gl_pipeline_object
     * There is a separate program set for each shader stage.
     */
    struct gl_program *CurrentProgram[MESA_SHADER_STAGES];
+
+   struct gl_shader_program *ReferencedPrograms[MESA_SHADER_STAGES];
 
    struct gl_program *_CurrentFragmentProgram;
 
@@ -3490,6 +3507,13 @@ struct gl_constants
    GLboolean AllowGLSLExtensionDirectiveMidShader;
 
    /**
+    * Allow creating a higher compat profile (version 3.1+) for apps that
+    * request it. Be careful when adding that driconf option because some
+    * features are unimplemented and might not work correctly.
+    */
+   GLboolean AllowHigherCompatVersion;
+
+   /**
     * Force uninitialized variables to default to zero.
     */
    GLboolean GLSLZeroInit;
@@ -3749,6 +3773,9 @@ struct gl_constants
 
    /** GL_OES_primitive_bounding_box */
    bool NoPrimitiveBoundingBoxOutput;
+
+   /** Used as an input for sha1 generation in the on-disk shader cache */
+   unsigned char *dri_config_options_sha1;
 };
 
 

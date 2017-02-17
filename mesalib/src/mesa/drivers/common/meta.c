@@ -962,7 +962,7 @@ _mesa_meta_end(struct gl_context *ctx)
           * program object must be NULL.  _mesa_use_program is a no-op
           * in that case.
           */
-         _mesa_use_program(ctx, i, save->Program[i],  &ctx->Shader);
+         _mesa_use_program(ctx, i, NULL, save->Program[i],  &ctx->Shader);
 
          /* Do this *before* killing the reference. :)
           */

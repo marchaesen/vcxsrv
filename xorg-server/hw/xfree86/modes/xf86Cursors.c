@@ -210,8 +210,14 @@ set_bit(CARD8 *image, xf86CursorInfoPtr cursor_info, int x, int y, Bool mask)
 
 /*
  * Wrappers to deal with API compatibility with drivers that don't expose
- * load_cursor_*_check
+ * *_cursor_*_check
  */
+static inline Bool
+xf86_driver_has_show_cursor(xf86CrtcPtr crtc)
+{
+    return crtc->funcs->show_cursor_check || crtc->funcs->show_cursor;
+}
+
 static inline Bool
 xf86_driver_has_load_cursor_image(xf86CrtcPtr crtc)
 {
@@ -222,6 +228,15 @@ static inline Bool
 xf86_driver_has_load_cursor_argb(xf86CrtcPtr crtc)
 {
     return crtc->funcs->load_cursor_argb_check || crtc->funcs->load_cursor_argb;
+}
+
+static inline Bool
+xf86_driver_show_cursor(xf86CrtcPtr crtc)
+{
+    if (crtc->funcs->show_cursor_check)
+        return crtc->funcs->show_cursor_check(crtc);
+    crtc->funcs->show_cursor(crtc);
+    return TRUE;
 }
 
 static inline Bool
@@ -333,16 +348,19 @@ xf86_hide_cursors(ScrnInfoPtr scrn)
     }
 }
 
-static void
+static Bool
 xf86_crtc_show_cursor(xf86CrtcPtr crtc)
 {
-    if (!crtc->cursor_shown && crtc->cursor_in_range) {
-        crtc->funcs->show_cursor(crtc);
-        crtc->cursor_shown = TRUE;
-    }
+    if (!crtc->cursor_in_range)
+        return TRUE;
+
+    if (!crtc->cursor_shown)
+        crtc->cursor_shown = xf86_driver_show_cursor(crtc);
+
+    return crtc->cursor_shown;
 }
 
-void
+Bool
 xf86_show_cursors(ScrnInfoPtr scrn)
 {
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
@@ -352,9 +370,11 @@ xf86_show_cursors(ScrnInfoPtr scrn)
     for (c = 0; c < xf86_config->num_crtc; c++) {
         xf86CrtcPtr crtc = xf86_config->crtc[c];
 
-        if (crtc->enabled)
-            xf86_crtc_show_cursor(crtc);
+        if (crtc->enabled && !xf86_crtc_show_cursor(crtc))
+            return FALSE;
     }
+
+    return TRUE;
 }
 
 static void
@@ -653,7 +673,7 @@ xf86_cursors_init(ScreenPtr screen, int max_width, int max_height, int flags)
     cursor_info->SetCursorPosition = xf86_set_cursor_position;
     cursor_info->LoadCursorImageCheck = xf86_load_cursor_image;
     cursor_info->HideCursor = xf86_hide_cursors;
-    cursor_info->ShowCursor = xf86_show_cursors;
+    cursor_info->ShowCursorCheck = xf86_show_cursors;
     cursor_info->UseHWCursor = xf86_use_hw_cursor;
     if (flags & HARDWARE_CURSOR_ARGB) {
         cursor_info->UseHWCursorARGB = xf86_use_hw_cursor_argb;

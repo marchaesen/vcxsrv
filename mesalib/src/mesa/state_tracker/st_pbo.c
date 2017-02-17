@@ -229,7 +229,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
       vbo.buffer = NULL;
       vbo.stride = 2 * sizeof(float);
 
-      u_upload_alloc(st->uploader, 0, 8 * sizeof(float), 4,
+      u_upload_alloc(st->pipe->stream_uploader, 0, 8 * sizeof(float), 4,
                      &vbo.buffer_offset, &vbo.buffer, (void **) &verts);
       if (!verts)
          return false;
@@ -243,7 +243,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
       verts[6] = x1;
       verts[7] = y1;
 
-      u_upload_unmap(st->uploader);
+      u_upload_unmap(st->pipe->stream_uploader);
 
       velem.src_offset = 0;
       velem.instance_divisor = 0;
@@ -261,16 +261,16 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
    {
       struct pipe_constant_buffer cb;
 
-      if (st->constbuf_uploader) {
+      if (!st->has_user_constbuf) {
          cb.buffer = NULL;
          cb.user_buffer = NULL;
-         u_upload_data(st->constbuf_uploader, 0, sizeof(addr->constants),
+         u_upload_data(st->pipe->const_uploader, 0, sizeof(addr->constants),
                        st->ctx->Const.UniformBufferOffsetAlignment,
                        &addr->constants, &cb.buffer_offset, &cb.buffer);
          if (!cb.buffer)
             return false;
 
-         u_upload_unmap(st->constbuf_uploader);
+         u_upload_unmap(st->pipe->const_uploader);
       } else {
          cb.buffer = NULL;
          cb.user_buffer = &addr->constants;

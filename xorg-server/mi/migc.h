@@ -26,6 +26,9 @@ from The Open Group.
 
 */
 
+#ifndef _MIGC_H
+#define _MIGC_H
+
 extern _X_EXPORT void miChangeGC(GCPtr          pGC,
                                  unsigned long  mask);
 
@@ -47,3 +50,5 @@ extern _X_EXPORT void miCopyGC(GCPtr            pGCSrc,
 
 extern _X_EXPORT void miComputeCompositeClip(GCPtr              pGC,
                                              DrawablePtr        pDrawable);
+
+#endif

@@ -286,8 +286,8 @@ vtn_nir_alu_op_for_spirv_opcode(SpvOp opcode, bool *swap,
 
    /* Conversions: */
    case SpvOpBitcast:               return nir_op_imov;
-   case SpvOpUConvert:
    case SpvOpQuantizeToF16:         return nir_op_fquantize2f16;
+   case SpvOpUConvert:
    case SpvOpConvertFToU:
    case SpvOpConvertFToS:
    case SpvOpConvertSToF:

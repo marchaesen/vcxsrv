@@ -170,11 +170,10 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 				       S_030800_INSTANCE_BROADCAST_WRITES(1));
 }
 
-void
-si_init_compute(struct radv_physical_device *physical_device,
-                struct radv_cmd_buffer *cmd_buffer)
+static void
+si_emit_compute(struct radv_physical_device *physical_device,
+                struct radeon_winsys_cs *cs)
 {
-	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	radeon_set_sh_reg_seq(cs, R_00B810_COMPUTE_START_X, 3);
 	radeon_emit(cs, 0);
 	radeon_emit(cs, 0);
@@ -210,15 +209,22 @@ si_init_compute(struct radv_physical_device *physical_device,
 	}
 }
 
+void
+si_init_compute(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_physical_device *physical_device = cmd_buffer->device->physical_device;
+	si_emit_compute(physical_device, cmd_buffer->cs);
+}
 
-void si_init_config(struct radv_physical_device *physical_device,
-		    struct radv_cmd_buffer *cmd_buffer)
+static void
+si_emit_config(struct radv_physical_device *physical_device,
+	       struct radeon_winsys_cs *cs)
 {
 	unsigned num_rb = MIN2(physical_device->rad_info.num_render_backends, 16);
 	unsigned rb_mask = physical_device->rad_info.enabled_rb_mask;
 	unsigned raster_config, raster_config_1;
 	int i;
-	struct radeon_winsys_cs *cs = cmd_buffer->cs;
+
 	radeon_emit(cs, PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
 	radeon_emit(cs, CONTEXT_CONTROL_LOAD_ENABLE(1));
 	radeon_emit(cs, CONTEXT_CONTROL_SHADOW_ENABLE(1));
@@ -372,6 +378,15 @@ void si_init_config(struct radv_physical_device *physical_device,
 	radeon_set_context_reg(cs, R_028408_VGT_INDX_OFFSET, 0);
 
 	if (physical_device->rad_info.chip_class >= CIK) {
+		/* If this is 0, Bonaire can hang even if GS isn't being used.
+		 * Other chips are unaffected. These are suboptimal values,
+		 * but we don't use on-chip GS.
+		 */
+		radeon_set_context_reg(cs, R_028A44_VGT_GS_ONCHIP_CNTL,
+				       S_028A44_ES_VERTS_PER_SUBGRP(64) |
+				       S_028A44_GS_PRIMS_PER_SUBGRP(4));
+
+		radeon_set_sh_reg(cs, R_00B51C_SPI_SHADER_PGM_RSRC3_LS, S_00B51C_CU_EN(0xffff));
 		radeon_set_sh_reg(cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, 0);
 		radeon_set_sh_reg(cs, R_00B31C_SPI_SHADER_PGM_RSRC3_ES, S_00B31C_CU_EN(0xffff));
 		radeon_set_sh_reg(cs, R_00B21C_SPI_SHADER_PGM_RSRC3_GS, S_00B21C_CU_EN(0xffff));
@@ -384,7 +399,6 @@ void si_init_config(struct radv_physical_device *physical_device,
 			 *
 			 * LATE_ALLOC_VS = 2 is the highest safe number.
 			 */
-			radeon_set_sh_reg(cs, R_00B51C_SPI_SHADER_PGM_RSRC3_LS, S_00B51C_CU_EN(0xffff));
 			radeon_set_sh_reg(cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS, S_00B118_CU_EN(0xffff));
 			radeon_set_sh_reg(cs, R_00B11C_SPI_SHADER_LATE_ALLOC_VS, S_00B11C_LIMIT(2));
 		} else {
@@ -393,7 +407,6 @@ void si_init_config(struct radv_physical_device *physical_device,
 			 * - VS can't execute on CU0.
 			 * - If HS writes outputs to LDS, LS can't execute on CU0.
 			 */
-			radeon_set_sh_reg(cs, R_00B51C_SPI_SHADER_PGM_RSRC3_LS, S_00B51C_CU_EN(0xfffe));
 			radeon_set_sh_reg(cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS, S_00B118_CU_EN(0xfffe));
 			radeon_set_sh_reg(cs, R_00B11C_SPI_SHADER_LATE_ALLOC_VS, S_00B11C_LIMIT(31));
 		}
@@ -420,7 +433,51 @@ void si_init_config(struct radv_physical_device *physical_device,
 	if (physical_device->rad_info.family == CHIP_STONEY)
 		radeon_set_context_reg(cs, R_028C40_PA_SC_SHADER_CONTROL, 0);
 
-	si_init_compute(physical_device, cmd_buffer);
+	si_emit_compute(physical_device, cs);
+}
+
+void si_init_config(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_physical_device *physical_device = cmd_buffer->device->physical_device;
+
+	si_emit_config(physical_device, cmd_buffer->cs);
+}
+
+void
+cik_create_gfx_config(struct radv_device *device)
+{
+	struct radeon_winsys_cs *cs = device->ws->cs_create(device->ws, RING_GFX);
+	if (!cs)
+		return;
+
+	si_emit_config(device->physical_device, cs);
+
+	while (cs->cdw & 7) {
+		if (device->physical_device->rad_info.gfx_ib_pad_with_type2)
+			radeon_emit(cs, 0x80000000);
+		else
+			radeon_emit(cs, 0xffff1000);
+	}
+
+	device->gfx_init = device->ws->buffer_create(device->ws,
+						     cs->cdw * 4, 4096,
+						     RADEON_DOMAIN_GTT,
+						     RADEON_FLAG_CPU_ACCESS);
+	if (!device->gfx_init)
+		goto fail;
+
+	void *map = device->ws->buffer_map(device->gfx_init);
+	if (!map) {
+		device->ws->buffer_destroy(device->gfx_init);
+		device->gfx_init = NULL;
+		goto fail;
+	}
+	memcpy(map, cs->buf, cs->cdw * 4);
+
+	device->ws->buffer_unmap(device->gfx_init);
+	device->gfx_init_size_dw = cs->cdw;
+fail:
+	device->ws->cs_destroy(cs);
 }
 
 static void
@@ -508,8 +565,25 @@ si_write_scissors(struct radeon_winsys_cs *cs, int first,
 	}
 }
 
+static inline unsigned
+radv_prims_for_vertices(struct radv_prim_vertex_count *info, unsigned num)
+{
+	if (num == 0)
+		return 0;
+
+	if (info->incr == 0)
+		return 0;
+
+	if (num < info->min)
+		return 0;
+
+	return 1 + ((num - info->min) / info->incr);
+}
+
 uint32_t
-si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer)
+si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
+			  bool instanced_or_indirect_draw,
+			  uint32_t draw_vertex_count)
 {
 	enum chip_class chip_class = cmd_buffer->device->physical_device->rad_info.chip_class;
 	enum radeon_family family = cmd_buffer->device->physical_device->rad_info.family;
@@ -523,10 +597,14 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer)
 	bool ia_switch_on_eoi = false;
 	bool partial_vs_wave = false;
 	bool partial_es_wave = false;
+	uint32_t num_prims = radv_prims_for_vertices(&cmd_buffer->state.pipeline->graphics.prim_vertex_count, draw_vertex_count);
+	bool multi_instances_smaller_than_primgroup;
 
 	if (radv_pipeline_has_gs(cmd_buffer->state.pipeline))
 		primgroup_size = 64;  /* recommended with a GS */
 
+	multi_instances_smaller_than_primgroup = (instanced_or_indirect_draw ||
+						  num_prims < primgroup_size);
 	/* TODO TES */
 
 	/* TODO linestipple */
@@ -539,12 +617,30 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer)
 		    prim == V_008958_DI_PT_POLYGON ||
 		    prim == V_008958_DI_PT_LINELOOP ||
 		    prim == V_008958_DI_PT_TRIFAN ||
-		    prim == V_008958_DI_PT_TRISTRIP_ADJ)
-			//	    info->primitive_restart ||
-			//	    info->count_from_stream_output)
+		    prim == V_008958_DI_PT_TRISTRIP_ADJ ||
+		    (cmd_buffer->state.pipeline->graphics.prim_restart_enable &&
+		     (family < CHIP_POLARIS10 ||
+		      (prim != V_008958_DI_PT_POINTLIST &&
+		      prim != V_008958_DI_PT_LINESTRIP &&
+		       prim != V_008958_DI_PT_TRISTRIP))))
 			wd_switch_on_eop = true;
 
-		/* TODO HAWAII */
+		/* Hawaii hangs if instancing is enabled and WD_SWITCH_ON_EOP is 0.
+		 * We don't know that for indirect drawing, so treat it as
+		 * always problematic. */
+		if (family == CHIP_HAWAII &&
+		    instanced_or_indirect_draw)
+			wd_switch_on_eop = true;
+
+		/* Performance recommendation for 4 SE Gfx7-8 parts if
+		 * instances are smaller than a primgroup.
+		 * Assume indirect draws always use small instances.
+		 * This is needed for good VS wave utilization.
+		 */
+		if (chip_class <= VI &&
+		    info->max_se == 4 &&
+		    multi_instances_smaller_than_primgroup)
+			wd_switch_on_eop = true;
 
 		/* Required on CIK and later. */
 		if (info->max_se > 2 && !wd_switch_on_eop)
@@ -557,12 +653,11 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer)
 		      (radv_pipeline_has_gs(cmd_buffer->state.pipeline) || max_primgroup_in_wave != 2))))
 			partial_vs_wave = true;
 
-#if 0
 		/* Instancing bug on Bonaire. */
 		if (family == CHIP_BONAIRE && ia_switch_on_eoi &&
-		    (info->indirect || info->instance_count > 1))
+		    instanced_or_indirect_draw)
 			partial_vs_wave = true;
-#endif
+
 		/* If the WD switch is false, the IA switch must be false too. */
 		assert(wd_switch_on_eop || !ia_switch_on_eop);
 	}
@@ -570,19 +665,19 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer)
 	if (ia_switch_on_eoi)
 		partial_es_wave = true;
 
-	/* GS requirement. */
-	if (SI_GS_PER_ES / primgroup_size >= cmd_buffer->device->gs_table_depth - 3)
-		partial_es_wave = true;
+	if (radv_pipeline_has_gs(cmd_buffer->state.pipeline)) {
+		/* GS requirement. */
+		if (SI_GS_PER_ES / primgroup_size >= cmd_buffer->device->gs_table_depth - 3)
+			partial_es_wave = true;
 
-	/* Hw bug with single-primitive instances and SWITCH_ON_EOI
-	 * on multi-SE chips. */
-#if 0
-	if (info->max_se >= 2 && ia_switch_on_eoi &&
-	    (info->indirect ||
-	     (info->instance_count > 1 &&
-	      si_num_prims_for_vertices(info) <= 1)))
-		sctx->b.flags |= SI_CONTEXT_VGT_FLUSH;
-#endif
+		/* Hw bug with single-primitive instances and SWITCH_ON_EOI
+		 * on multi-SE chips. */
+		if (info->max_se >= 2 && ia_switch_on_eoi &&
+		    (instanced_or_indirect_draw &&
+		     num_prims <= 1))
+			cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_VGT_FLUSH;
+	}
+
 	return S_028AA8_SWITCH_ON_EOP(ia_switch_on_eop) |
 		S_028AA8_SWITCH_ON_EOI(ia_switch_on_eoi) |
 		S_028AA8_PARTIAL_VS_WAVE_ON(partial_vs_wave) |
@@ -828,7 +923,7 @@ static void si_emit_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer,
 static void si_cp_dma_prepare(struct radv_cmd_buffer *cmd_buffer, uint64_t byte_count,
 			      uint64_t remaining_size, unsigned *flags)
 {
-
+	cmd_buffer->no_draws = false;
 	/* Flush the caches for the first copy only.
 	 * Also wait for the previous CP DMA operations.
 	 */

@@ -215,7 +215,7 @@ _mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value);
 
 void
 _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
-                  struct gl_program *prog,
+                  struct gl_shader_program *shProg, struct gl_program *prog,
                   struct gl_pipeline_object *shTarget);
 
 extern void

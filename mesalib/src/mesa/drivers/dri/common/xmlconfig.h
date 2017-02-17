@@ -30,6 +30,9 @@
 #ifndef __XMLCONFIG_H
 #define __XMLCONFIG_H
 
+#include "util/mesa-sha1.h"
+#include "util/ralloc.h"
+
 #define STRING_CONF_MAXLEN 25
 
 /** \brief Option data types */
@@ -123,5 +126,54 @@ int driQueryOptioni (const driOptionCache *cache, const char *name);
 float driQueryOptionf (const driOptionCache *cache, const char *name);
 /** \brief Query a string option value */
 char *driQueryOptionstr (const driOptionCache *cache, const char *name);
+
+/**
+ * Returns a hash of the options for this application.
+ */
+static inline void
+driComputeOptionsSha1(const driOptionCache *cache, unsigned char *sha1)
+{
+   void *ctx = ralloc_context(NULL);
+   char *dri_options = ralloc_strdup(ctx, "");
+
+   for (int i = 0; i < 1 << cache->tableSize; i++) {
+      if (cache->info[i].name == NULL)
+         continue;
+
+      bool ret = false;
+      switch (cache->info[i].type) {
+      case DRI_BOOL:
+         ret = ralloc_asprintf_append(&dri_options, "%s:%u,",
+                                      cache->info[i].name,
+                                      cache->values[i]._bool);
+         break;
+      case DRI_INT:
+      case DRI_ENUM:
+         ret = ralloc_asprintf_append(&dri_options, "%s:%d,",
+                                      cache->info[i].name,
+                                      cache->values[i]._int);
+         break;
+      case DRI_FLOAT:
+         ret = ralloc_asprintf_append(&dri_options, "%s:%f,",
+                                      cache->info[i].name,
+                                      cache->values[i]._float);
+         break;
+      case DRI_STRING:
+         ret = ralloc_asprintf_append(&dri_options, "%s:%s,",
+                                      cache->info[i].name,
+                                      cache->values[i]._string);
+         break;
+      default:
+         unreachable("unsupported dri config type!");
+      }
+
+      if (!ret) {
+         break;
+      }
+   }
+
+   _mesa_sha1_compute(dri_options, strlen(dri_options), sha1);
+   ralloc_free(ctx);
+}
 
 #endif

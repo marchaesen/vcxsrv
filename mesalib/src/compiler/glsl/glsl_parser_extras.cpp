@@ -33,6 +33,8 @@
 #include "main/shaderobj.h"
 #include "util/u_atomic.h" /* for p_atomic_cmpxchg */
 #include "util/ralloc.h"
+#include "util/disk_cache.h"
+#include "util/mesa-sha1.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "glsl_parser.h"
@@ -83,6 +85,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->forced_language_version = ctx->Const.ForceGLSLVersion;
    this->zero_init = ctx->Const.GLSLZeroInit;
    this->gl_version = 20;
+   this->compat_shader = true;
    this->es_shader = false;
    this->ARB_texture_rectangle_enable = true;
 
@@ -370,6 +373,7 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
                                                   const char *ident)
 {
    bool es_token_present = false;
+   bool compat_token_present = false;
    if (ident) {
       if (strcmp(ident, "es") == 0) {
          es_token_present = true;
@@ -379,8 +383,12 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
              * a core profile shader since that's the only profile we support.
              */
          } else if (strcmp(ident, "compatibility") == 0) {
-            _mesa_glsl_error(locp, this,
-                             "the compatibility profile is not supported");
+            compat_token_present = true;
+
+            if (this->ctx->API != API_OPENGL_COMPAT) {
+               _mesa_glsl_error(locp, this,
+                                "the compatibility profile is not supported");
+            }
          } else {
             _mesa_glsl_error(locp, this,
                              "\"%s\" is not a valid shading language profile; "
@@ -411,6 +419,9 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
       this->language_version = this->forced_language_version;
    else
       this->language_version = version;
+
+   this->compat_shader = compat_token_present ||
+                         (!this->es_shader && this->language_version < 140);
 
    bool supported = false;
    for (unsigned i = 0; i < this->num_supported_versions; i++) {
@@ -675,6 +686,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_vertex_shader_viewport_index),
    EXT(ANDROID_extension_pack_es31a),
    EXT(EXT_blend_func_extended),
+   EXT(EXT_frag_depth),
    EXT(EXT_draw_buffers),
    EXT(EXT_clip_cull_distance),
    EXT(EXT_geometry_point_size),
@@ -1911,11 +1923,12 @@ do_late_parsing_checks(struct _mesa_glsl_parse_state *state)
 
 void
 _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
-                          bool dump_ast, bool dump_hir)
+                          bool dump_ast, bool dump_hir, bool force_recompile)
 {
    struct _mesa_glsl_parse_state *state =
       new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
-   const char *source = shader->Source;
+   const char *source = force_recompile && shader->FallbackSource ?
+      shader->FallbackSource : shader->Source;
 
    if (ctx->Const.GenerateTemporaryNames)
       (void) p_atomic_cmpxchg(&ir_variable::temporaries_allocate_names,
@@ -1923,6 +1936,23 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
 
    state->error = glcpp_preprocess(state, &source, &state->info_log,
                              add_builtin_defines, state, ctx);
+
+   if (!force_recompile) {
+      char buf[41];
+      _mesa_sha1_compute(source, strlen(source), shader->sha1);
+      if (ctx->Cache && disk_cache_has_key(ctx->Cache, shader->sha1)) {
+         /* We've seen this shader before and know it compiles */
+         if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
+            fprintf(stderr, "deferring compile of shader: %s\n",
+                    _mesa_sha1_format(buf, shader->sha1));
+         }
+         shader->CompileStatus = true;
+
+         free((void *)shader->FallbackSource);
+         shader->FallbackSource = NULL;
+         return;
+      }
+   }
 
    if (!state->error) {
      _mesa_glsl_lexer_ctor(state, source);
@@ -2040,6 +2070,11 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    }
 
    _mesa_glsl_initialize_derived_variables(ctx, shader);
+
+   if (!force_recompile) {
+      free((void *)shader->FallbackSource);
+      shader->FallbackSource = NULL;
+   }
 
    delete state->symbols;
    ralloc_free(state);

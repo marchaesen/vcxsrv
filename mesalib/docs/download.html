@@ -24,43 +24,36 @@ or <a href="https://mesa.freedesktop.org/archive/">mesa.freedesktop.org</a>
 </p>
 
 <p>
+Starting with the first release of 2017, Mesa's version scheme is
+year-based. Filenames are in the form <tt>mesa-Y.N.P.tar.gz</tt>, where
+<tt>Y</tt> is the year (two digits), <tt>N</tt> is an incremental number
+(starting at 0) and <tt>P</tt> is the patch number (0 for the first
+release, 1 for the first patch after that).
+</p>
+
+<p>
 When a new release is coming, release candidates (betas) may be found
-<a href="ftp://ftp.freedesktop.org/pub/mesa/beta/">here</a>.
+in the same directory, and are recognisable by the
+<tt>mesa-Y.N.P-<b>rc</b>X.tar.gz</tt> filename.
 </p>
 
 
 <h1>Unpacking</h1>
 
 <p>
-Mesa releases are available in three formats: .tar.bz2, .tar.gz, and .zip
+Mesa releases are available in two formats: <tt>.tar.xz</tt> and <tt>.tar.gz</tt>.
 </p>
 
 <p>
-To unpack .tar.gz files:
-</p>
+To unpack the tarball:
 <pre>
-	tar zxf MesaLib-x.y.z.tar.gz
+	tar xf mesa-Y.N.P.tar.xz
 </pre>
 or
 <pre>
-	gzcat MesaLib-x.y.z.tar.gz | tar xf -
+	tar xf mesa-Y.N.P.tar.gz
 </pre>
-or
-<pre>
-	gunzip MesaLib-x.y.z.tar.gz ; tar xf MesaLib-x.y.z.tar
-</pre>
-<p>
-To unpack .tar.bz2 files:
 </p>
-<pre>
-	bunzip2 -c MesaLib-x.y.z.tar.gz | tar xf -
-</pre>
-<p>
-To unpack .zip files:
-</p>
-<pre>
-	unzip MesaLib-x.y.z.zip
-</pre>
 
 
 <h1>Contents</h1>
@@ -69,8 +62,8 @@ To unpack .zip files:
 After unpacking you'll have these files and directories (among others):
 </p>
 <pre>
-Makefile	- top-level Makefile for most systems
-configs/	- makefile parameter files for various systems
+autogen.sh	- Autoconf script for *nix systems
+scons/		- SCons script for Windows builds
 include/	- GL header (include) files
 bin/		- shell scripts for making shared libraries, etc
 docs/		- documentation
@@ -109,9 +102,9 @@ In the past, GLUT, GLU and the Mesa demos were released in conjunction with
 Mesa releases.  But since GLUT, GLU and the demos change infrequently, they
 were split off into their own git repositories:
 
-<a href="http://cgit.freedesktop.org/mesa/glut/">GLUT</a>,
-<a href="http://cgit.freedesktop.org/mesa/glu/">GLU</a> and
-<a href="http://cgit.freedesktop.org/mesa/demos/">Demos</a>,
+<a href="https://cgit.freedesktop.org/mesa/glut/">GLUT</a>,
+<a href="https://cgit.freedesktop.org/mesa/glu/">GLU</a> and
+<a href="https://cgit.freedesktop.org/mesa/demos/">Demos</a>,
 </p>
 
 </div>

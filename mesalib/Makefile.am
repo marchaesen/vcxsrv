@@ -27,7 +27,7 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-egl \
 	--enable-gallium-tests \
 	--enable-gallium-osmesa \
-	--enable-gallium-llvm \
+	--enable-llvm \
 	--enable-gbm \
 	--enable-gles1 \
 	--enable-gles2 \

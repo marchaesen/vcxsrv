@@ -2,6 +2,8 @@ MESA_UTIL_FILES :=	\
 	bitscan.c \
 	bitscan.h \
 	bitset.h \
+	build_id.c \
+	build_id.h \
 	crc32.c \
 	crc32.h \
 	debug.c \
@@ -44,7 +46,8 @@ MESA_UTIL_FILES :=	\
 	u_endian.h \
 	u_vector.c \
 	u_vector.h \
-	vk_alloc.h
+	vk_alloc.h \
+	vk_util.h
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c

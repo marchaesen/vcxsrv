@@ -8,13 +8,16 @@
 # $ bin/get-pick-list.sh > picklist
 # $ bin/get-pick-list.sh | tee picklist
 
+# Use the last branchpoint as our limit for the search
+latest_branchpoint=`git merge-base origin/master HEAD`
+
 # Grep for commits with "cherry picked from commit" in the commit message.
-git log --reverse --grep="cherry picked from commit" origin/master..HEAD |\
+git log --reverse --grep="cherry picked from commit" $latest_branchpoint..HEAD |\
 	grep "cherry picked from commit" |\
 	sed -e 's/^[[:space:]]*(cherry picked from commit[[:space:]]*//' -e 's/)//' > already_picked
 
 # Grep for commits that were marked as a candidate for the stable tree.
-git log --reverse --pretty=%H -i --grep='^\([[:space:]]*NOTE: .*[Cc]andidate\|CC:.*mesa-stable\)' HEAD..origin/master |\
+git log --reverse --pretty=%H -i --grep='^CC:.*mesa-stable' $latest_branchpoint..origin/master |\
 while read sha
 do
 	# Check to see whether the patch is on the ignore list.

@@ -45,7 +45,7 @@
 /**
  * Count the backing storage requirements for a type
  */
-static unsigned
+unsigned
 values_for_type(const glsl_type *type)
 {
    if (type->is_sampler()) {
@@ -1213,11 +1213,17 @@ link_assign_uniform_storage(struct gl_context *ctx,
 
    unsigned int boolean_true = ctx->Const.UniformBooleanTrue;
 
-   prog->data->UniformStorage = rzalloc_array(prog, struct gl_uniform_storage,
-                                              prog->data->NumUniformStorage);
-   union gl_constant_value *data = rzalloc_array(prog->data->UniformStorage,
-                                                 union gl_constant_value,
-                                                 num_data_slots);
+   union gl_constant_value *data;
+   if (prog->data->UniformStorage == NULL) {
+      prog->data->UniformStorage = rzalloc_array(prog,
+                                                 struct gl_uniform_storage,
+                                                 prog->data->NumUniformStorage);
+      data = rzalloc_array(prog->data->UniformStorage,
+                           union gl_constant_value, num_data_slots);
+   } else {
+      data = prog->data->UniformDataSlots;
+   }
+
 #ifndef NDEBUG
    union gl_constant_value *data_end = &data[num_data_slots];
 #endif
@@ -1252,6 +1258,13 @@ link_assign_uniform_storage(struct gl_context *ctx,
              sizeof(prog->_LinkedShaders[i]->Program->sh.SamplerTargets));
    }
 
+   /* If this is a fallback compile for a cache miss we already have the
+    * correct uniform mappings and we don't want to reinitialise uniforms so
+    * just return now.
+    */
+   if (prog->data->cache_fallback)
+      return;
+
 #ifndef NDEBUG
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       assert(prog->data->UniformStorage[i].storage != NULL ||
@@ -1276,9 +1289,11 @@ void
 link_assign_uniform_locations(struct gl_shader_program *prog,
                               struct gl_context *ctx)
 {
-   ralloc_free(prog->data->UniformStorage);
-   prog->data->UniformStorage = NULL;
-   prog->data->NumUniformStorage = 0;
+   if (!prog->data->cache_fallback) {
+      ralloc_free(prog->data->UniformStorage);
+      prog->data->UniformStorage = NULL;
+      prog->data->NumUniformStorage = 0;
+   }
 
    if (prog->UniformHash != NULL) {
       prog->UniformHash->clear();

@@ -105,16 +105,16 @@ setup_index_buffer(struct st_context *st,
       ibuffer->buffer = st_buffer_object(bufobj)->buffer;
       ibuffer->offset = pointer_to_offset(ib->ptr);
    }
-   else if (st->indexbuf_uploader) {
+   else if (!st->has_user_indexbuf) {
       /* upload indexes from user memory into a real buffer */
-      u_upload_data(st->indexbuf_uploader, 0,
+      u_upload_data(st->pipe->stream_uploader, 0,
                     ib->count * ibuffer->index_size, 4, ib->ptr,
                     &ibuffer->offset, &ibuffer->buffer);
       if (!ibuffer->buffer) {
          /* out of memory */
          return FALSE;
       }
-      u_upload_unmap(st->indexbuf_uploader);
+      u_upload_unmap(st->pipe->stream_uploader);
    }
    else {
       /* indices are in user space memory */
@@ -277,7 +277,7 @@ st_draw_vbo(struct gl_context *ctx,
       }
    }
 
-   if (ib && st->indexbuf_uploader && !_mesa_is_bufferobj(ib->obj)) {
+   if (ib && !st->has_user_indexbuf && !_mesa_is_bufferobj(ib->obj)) {
       pipe_resource_reference(&ibuffer.buffer, NULL);
    }
 }
@@ -418,7 +418,8 @@ st_draw_quad(struct st_context *st,
 
    vb.stride = sizeof(struct st_util_vertex);
 
-   u_upload_alloc(st->uploader, 0, 4 * sizeof(struct st_util_vertex), 4,
+   u_upload_alloc(st->pipe->stream_uploader, 0,
+                  4 * sizeof(struct st_util_vertex), 4,
                   &vb.buffer_offset, &vb.buffer, (void **) &verts);
    if (!vb.buffer) {
       return false;
@@ -468,7 +469,7 @@ st_draw_quad(struct st_context *st,
    verts[3].s = s0;
    verts[3].t = t1;
 
-   u_upload_unmap(st->uploader);
+   u_upload_unmap(st->pipe->stream_uploader);
 
    /* At the time of writing, cso_get_aux_vertex_buffer_slot() always returns
     * zero.  If that ever changes we need to audit the calls to that function

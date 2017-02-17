@@ -142,45 +142,7 @@ DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
     if (pid == -1)
         return;
 
-#ifdef __sun                    /* Solaris */
-    /* Solaris does not support /proc/pid/cmdline, but makes information
-     * similar to what ps shows available in a binary structure in the
-     * /proc/pid/psinfo file. */
-    if (snprintf(path, sizeof(path), "/proc/%d/psinfo", pid) < 0)
-        return;
-    fd = open(path, O_RDONLY);
-    if (fd < 0) {
-        ErrorF("Failed to open %s: %s\n", path, strerror(errno));
-        return;
-    }
-    else {
-        psinfo_t psinfo = { 0 };
-        char *sp;
-
-        totsize = read(fd, &psinfo, sizeof(psinfo_t));
-        close(fd);
-        if (totsize <= 0)
-            return;
-
-        /* pr_psargs is the first PRARGSZ (80) characters of the command
-         * line string - assume up to the first space is the command name,
-         * since it's not delimited.   While there is also pr_fname, that's
-         * more limited, giving only the first 16 chars of the basename of
-         * the file that was exec'ed, thus cutting off many long gnome
-         * command names, or returning "isapython2.6" for all python scripts.
-         */
-        psinfo.pr_psargs[PRARGSZ - 1] = '\0';
-        sp = strchr(psinfo.pr_psargs, ' ');
-        if (sp)
-            *sp++ = '\0';
-
-        if (cmdname)
-            *cmdname = strdup(psinfo.pr_psargs);
-
-        if (cmdargs && sp)
-            *cmdargs = strdup(sp);
-    }
-#elif defined(__OpenBSD__)
+#if defined(__OpenBSD__)
     /* on OpenBSD use kvm_getargv() */
     {
         kvm_t *kd;
@@ -221,7 +183,11 @@ DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
         return;
     fd = open(path, O_RDONLY);
     if (fd < 0)
+#ifdef __sun
+        goto fallback;
+#else
         return;
+#endif
 
     /* Read the contents of /proc/pid/cmdline. It should contain the
      * process name and arguments. */
@@ -255,6 +221,48 @@ DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
             args[argsize - 1] = '\0';
             *cmdargs = args;
         }
+    }
+    return;
+#endif
+
+#ifdef __sun                    /* Solaris */
+  fallback:
+    /* Solaris prior to 11.3.5 does not support /proc/pid/cmdline, but
+     * makes information similar to what ps shows available in a binary
+     * structure in the /proc/pid/psinfo file. */
+    if (snprintf(path, sizeof(path), "/proc/%d/psinfo", pid) < 0)
+        return;
+    fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        ErrorF("Failed to open %s: %s\n", path, strerror(errno));
+        return;
+    }
+    else {
+        psinfo_t psinfo = { 0 };
+        char *sp;
+
+        totsize = read(fd, &psinfo, sizeof(psinfo_t));
+        close(fd);
+        if (totsize <= 0)
+            return;
+
+        /* pr_psargs is the first PRARGSZ (80) characters of the command
+         * line string - assume up to the first space is the command name,
+         * since it's not delimited.   While there is also pr_fname, that's
+         * more limited, giving only the first 16 chars of the basename of
+         * the file that was exec'ed, thus cutting off many long gnome
+         * command names, or returning "isapython2.6" for all python scripts.
+         */
+        psinfo.pr_psargs[PRARGSZ - 1] = '\0';
+        sp = strchr(psinfo.pr_psargs, ' ');
+        if (sp)
+            *sp++ = '\0';
+
+        if (cmdname)
+            *cmdname = strdup(psinfo.pr_psargs);
+
+        if (cmdargs && sp)
+            *cmdargs = strdup(sp);
     }
 #endif
 }

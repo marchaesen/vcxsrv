@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 #ifdef MAJOR_IN_MKDEV
 #include <sys/mkdev.h>
 #endif
@@ -42,8 +44,6 @@
 #include "loader.h"
 
 #ifdef HAVE_LIBDRM
-#include <stdlib.h>
-#include <unistd.h>
 #include <xf86drm.h>
 #ifdef USE_DRICONF
 #include "xmlconfig.h"
@@ -344,6 +344,17 @@ loader_get_driver_for_fd(int fd)
 {
    int vendor_id, chip_id, i, j;
    char *driver = NULL;
+
+   /* Allow an environment variable to force choosing a different driver
+    * binary.  If that driver binary can't survive on this FD, that's the
+    * user's problem, but this allows vc4 simulator to run on an i965 host,
+    * and may be useful for some touch testing of i915 on an i965 host.
+    */
+   if (geteuid() == getuid()) {
+      driver = getenv("MESA_LOADER_DRIVER_OVERRIDE");
+      if (driver)
+         return strdup(driver);
+   }
 
    if (!loader_get_pci_id_for_fd(fd, &vendor_id, &chip_id)) {
 

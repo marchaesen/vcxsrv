@@ -24,6 +24,7 @@
 #ifdef ENABLE_SHADER_CACHE
 
 #include <ctype.h>
+#include <ftw.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -115,7 +116,7 @@ mkdir_if_needed(char *path)
  *      <path>/<name> cannot be created as a directory
  */
 static char *
-concatenate_and_mkdir(void *ctx, char *path, char *name)
+concatenate_and_mkdir(void *ctx, char *path, const char *name)
 {
    char *new_path;
    struct stat sb;
@@ -131,8 +132,63 @@ concatenate_and_mkdir(void *ctx, char *path, char *name)
       return NULL;
 }
 
+static int
+remove_dir(const char *fpath, const struct stat *sb,
+           int typeflag, struct FTW *ftwbuf)
+{
+   if (S_ISREG(sb->st_mode))
+      unlink(fpath);
+   else if (S_ISDIR(sb->st_mode))
+      rmdir(fpath);
+
+   return 0;
+}
+
+static void
+remove_old_cache_directories(void *mem_ctx, char *path, const char *timestamp)
+{
+   DIR *dir = opendir(path);
+
+   struct dirent* d_entry;
+   while((d_entry = readdir(dir)) != NULL)
+   {
+      struct stat sb;
+      stat(d_entry->d_name, &sb);
+      if (S_ISDIR(sb.st_mode) &&
+          strcmp(d_entry->d_name, timestamp) != 0 &&
+          strcmp(d_entry->d_name, "..") != 0 &&
+          strcmp(d_entry->d_name, ".") != 0) {
+         char *full_path =
+            ralloc_asprintf(mem_ctx, "%s/%s", path, d_entry->d_name);
+         nftw(full_path, remove_dir, 20, FTW_DEPTH);
+      }
+   }
+}
+
+static char *
+create_mesa_cache_dir(void *mem_ctx, char *path, const char *timestamp,
+                      const char *gpu_name)
+{
+   char *new_path = concatenate_and_mkdir(mem_ctx, path, "mesa");
+   if (new_path == NULL)
+      return NULL;
+
+   /* Remove cache directories for old Mesa versions */
+   remove_old_cache_directories(mem_ctx, new_path, timestamp);
+
+   new_path = concatenate_and_mkdir(mem_ctx, new_path, timestamp);
+   if (new_path == NULL)
+      return NULL;
+
+   new_path = concatenate_and_mkdir(mem_ctx, new_path, gpu_name);
+   if (new_path == NULL)
+      return NULL;
+
+   return new_path;
+}
+
 struct disk_cache *
-disk_cache_create(void)
+disk_cache_create(const char *gpu_name, const char *timestamp)
 {
    void *local;
    struct disk_cache *cache = NULL;
@@ -141,6 +197,10 @@ disk_cache_create(void)
    int fd = -1;
    struct stat sb;
    size_t size;
+
+   /* If running as a users other than the real user disable cache */
+   if (geteuid() != getuid())
+      return NULL;
 
    /* A ralloc context for transient data during this invocation. */
    local = ralloc_context(NULL);
@@ -176,7 +236,8 @@ disk_cache_create(void)
          if (mkdir_if_needed(xdg_cache_home) == -1)
             goto fail;
 
-         path = concatenate_and_mkdir(local, xdg_cache_home, "mesa");
+         path = create_mesa_cache_dir(local, xdg_cache_home, timestamp,
+                                      gpu_name);
          if (path == NULL)
             goto fail;
       }
@@ -212,7 +273,7 @@ disk_cache_create(void)
       if (path == NULL)
          goto fail;
 
-      path = concatenate_and_mkdir(local, path, "mesa");
+      path = create_mesa_cache_dir(local, path, timestamp, gpu_name);
       if (path == NULL)
          goto fail;
    }
@@ -278,8 +339,6 @@ disk_cache_create(void)
       if (end == max_size_str) {
          max_size = 0;
       } else {
-         while (*end && isspace(*end))
-            end++;
          switch (*end) {
          case 'K':
          case 'k':
@@ -322,7 +381,8 @@ disk_cache_create(void)
 void
 disk_cache_destroy(struct disk_cache *cache)
 {
-   munmap(cache->index_mmap, cache->index_mmap_size);
+   if (cache)
+      munmap(cache->index_mmap, cache->index_mmap_size);
 
    ralloc_free(cache);
 }
@@ -336,11 +396,14 @@ static char *
 get_cache_file(struct disk_cache *cache, cache_key key)
 {
    char buf[41];
+   char *filename;
 
    _mesa_sha1_format(buf, key);
+   if (asprintf(&filename, "%s/%c%c/%s", cache->path, buf[0],
+                buf[1], buf + 2) == -1)
+      return NULL;
 
-   return ralloc_asprintf(cache, "%s/%c%c/%s",
-                          cache->path, buf[0], buf[1], buf + 2);
+   return filename;
 }
 
 /* Create the directory that will be needed for the cache file for \key.
@@ -355,12 +418,11 @@ make_cache_file_directory(struct disk_cache *cache, cache_key key)
    char buf[41];
 
    _mesa_sha1_format(buf, key);
-
-   dir = ralloc_asprintf(cache, "%s/%c%c", cache->path, buf[0], buf[1]);
+   if (asprintf(&dir, "%s/%c%c", cache->path, buf[0], buf[1]) == -1)
+      return;
 
    mkdir_if_needed(dir);
-
-   ralloc_free(dir);
+   free(dir);
 }
 
 /* Given a directory path and predicate function, count all entries in
@@ -373,7 +435,8 @@ make_cache_file_directory(struct disk_cache *cache, cache_key key)
  */
 static char *
 choose_random_file_matching(const char *dir_path,
-                            bool (*predicate)(struct dirent *))
+                            bool (*predicate)(struct dirent *,
+                                              const char *dir_path))
 {
    DIR *dir;
    struct dirent *entry;
@@ -390,7 +453,7 @@ choose_random_file_matching(const char *dir_path,
       entry = readdir(dir);
       if (entry == NULL)
          break;
-      if (! predicate(entry))
+      if (!predicate(entry, dir_path))
          continue;
 
       count++;
@@ -410,7 +473,7 @@ choose_random_file_matching(const char *dir_path,
       entry = readdir(dir);
       if (entry == NULL)
          break;
-      if (! predicate(entry))
+      if (!predicate(entry, dir_path))
          continue;
       if (count == victim)
          break;
@@ -435,14 +498,20 @@ choose_random_file_matching(const char *dir_path,
  * ".tmp"
  */
 static bool
-is_regular_non_tmp_file(struct dirent *entry)
+is_regular_non_tmp_file(struct dirent *entry, const char *path)
 {
-   size_t len;
-
-   if (entry->d_type != DT_REG)
+   char *filename;
+   if (asprintf(&filename, "%s/%s", path, entry->d_name) == -1)
       return false;
 
-   len = strlen (entry->d_name);
+   struct stat sb;
+   int res = stat(filename, &sb);
+   free(filename);
+
+   if (res == -1 || !S_ISREG(sb.st_mode))
+      return false;
+
+   size_t len = strlen (entry->d_name);
    if (len >= 4 && strcmp(&entry->d_name[len-4], ".tmp") == 0)
       return false;
 
@@ -476,9 +545,17 @@ unlink_random_file_from_directory(const char *path)
  * special name of "..")
  */
 static bool
-is_two_character_sub_directory(struct dirent *entry)
+is_two_character_sub_directory(struct dirent *entry, const char *path)
 {
-   if (entry->d_type != DT_DIR)
+   char *subdir;
+   if (asprintf(&subdir, "%s/%s", path, entry->d_name) == -1)
+      return false;
+
+   struct stat sb;
+   int res = stat(subdir, &sb);
+   free(subdir);
+
+   if (res == -1 || !S_ISDIR(sb.st_mode))
       return false;
 
    if (strlen(entry->d_name) != 2)
@@ -538,6 +615,28 @@ evict_random_item(struct disk_cache *cache)
 }
 
 void
+disk_cache_remove(struct disk_cache *cache, cache_key key)
+{
+   struct stat sb;
+
+   char *filename = get_cache_file(cache, key);
+   if (filename == NULL) {
+      return;
+   }
+
+   if (stat(filename, &sb) == -1) {
+      free(filename);
+      return;
+   }
+
+   unlink(filename);
+   free(filename);
+
+   if (sb.st_size)
+      p_atomic_add(cache->size, - sb.st_size);
+}
+
+void
 disk_cache_put(struct disk_cache *cache,
           cache_key key,
           const void *data,
@@ -556,8 +655,7 @@ disk_cache_put(struct disk_cache *cache,
     * final destination filename, (to prevent any readers from seeing
     * a partially written file).
     */
-   filename_tmp = ralloc_asprintf(cache, "%s.tmp", filename);
-   if (filename_tmp == NULL)
+   if (asprintf(&filename_tmp, "%s.tmp", filename) == -1)
       goto done;
 
    fd = open(filename_tmp, O_WRONLY | O_CLOEXEC | O_CREAT, 0644);
@@ -628,9 +726,9 @@ disk_cache_put(struct disk_cache *cache,
    if (fd != -1)
       close(fd);
    if (filename_tmp)
-      ralloc_free(filename_tmp);
+      free(filename_tmp);
    if (filename)
-      ralloc_free(filename);
+      free(filename);
 }
 
 void *
@@ -665,7 +763,7 @@ disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
          goto fail;
    }
 
-   ralloc_free(filename);
+   free(filename);
    close(fd);
 
    if (size)
@@ -677,7 +775,7 @@ disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
    if (data)
       free(data);
    if (filename)
-      ralloc_free(filename);
+      free(filename);
    if (fd != -1)
       close(fd);
 

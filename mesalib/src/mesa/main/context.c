@@ -1230,8 +1230,6 @@ _mesa_initialize_context(struct gl_context *ctx,
    memset(&ctx->TextureFormatSupported, GL_TRUE,
           sizeof(ctx->TextureFormatSupported));
 
-   ctx->Cache = disk_cache_create();
-
    switch (ctx->API) {
    case API_OPENGL_COMPAT:
       ctx->BeginEnd = create_beginend_table(ctx);
@@ -1272,7 +1270,6 @@ fail:
    free(ctx->BeginEnd);
    free(ctx->OutsideBeginEnd);
    free(ctx->Save);
-   ralloc_free(ctx->Cache);
    return GL_FALSE;
 }
 
@@ -1339,8 +1336,6 @@ _mesa_free_context_data( struct gl_context *ctx )
    free(ctx->OutsideBeginEnd);
    free(ctx->Save);
    free(ctx->ContextLost);
-
-   ralloc_free(ctx->Cache);
 
    /* Shared context state (display lists, textures, etc) */
    _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);

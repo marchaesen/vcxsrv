@@ -294,7 +294,7 @@ static const VkAllocationCallbacks default_alloc = {
 };
 
 static const struct debug_control radv_debug_options[] = {
-	{"fastclears", RADV_DEBUG_FAST_CLEARS},
+	{"nofastclears", RADV_DEBUG_NO_FAST_CLEARS},
 	{"nodcc", RADV_DEBUG_NO_DCC},
 	{"shaders", RADV_DEBUG_DUMP_SHADERS},
 	{"nocache", RADV_DEBUG_NO_CACHE},
@@ -463,8 +463,8 @@ void radv_GetPhysicalDeviceFeatures(
 		.shaderSampledImageArrayDynamicIndexing   = true,
 		.shaderStorageBufferArrayDynamicIndexing  = true,
 		.shaderStorageImageArrayDynamicIndexing   = true,
-		.shaderStorageImageReadWithoutFormat      = false,
-		.shaderStorageImageWriteWithoutFormat     = false,
+		.shaderStorageImageReadWithoutFormat      = true,
+		.shaderStorageImageWriteWithoutFormat     = true,
 		.shaderClipDistance                       = true,
 		.shaderCullDistance                       = true,
 		.shaderFloat64                            = true,
@@ -623,12 +623,11 @@ void radv_GetPhysicalDeviceProperties2KHR(
 	return radv_GetPhysicalDeviceProperties(physicalDevice, &pProperties->properties);
 }
 
-void radv_GetPhysicalDeviceQueueFamilyProperties(
-	VkPhysicalDevice                            physicalDevice,
+static void radv_get_physical_device_queue_family_properties(
+	struct radv_physical_device*                pdevice,
 	uint32_t*                                   pCount,
-	VkQueueFamilyProperties*                    pQueueFamilyProperties)
+	VkQueueFamilyProperties**                    pQueueFamilyProperties)
 {
-	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	int num_queue_families = 1;
 	int idx;
 	if (pdevice->rad_info.compute_rings > 0 &&
@@ -646,7 +645,7 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 
 	idx = 0;
 	if (*pCount >= 1) {
-		pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
+		*pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
 			.queueFlags = VK_QUEUE_GRAPHICS_BIT |
 			VK_QUEUE_COMPUTE_BIT |
 			VK_QUEUE_TRANSFER_BIT,
@@ -661,7 +660,7 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 	    pdevice->rad_info.chip_class >= CIK &&
 	    !(pdevice->instance->debug_flags & RADV_DEBUG_NO_COMPUTE_QUEUE)) {
 		if (*pCount > idx) {
-			pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
+			*pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
 				.queueFlags = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT,
 				.queueCount = pdevice->rad_info.compute_rings,
 				.timestampValidBits = 64,
@@ -673,14 +672,42 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 	*pCount = idx;
 }
 
+void radv_GetPhysicalDeviceQueueFamilyProperties(
+	VkPhysicalDevice                            physicalDevice,
+	uint32_t*                                   pCount,
+	VkQueueFamilyProperties*                    pQueueFamilyProperties)
+{
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
+	if (!pQueueFamilyProperties) {
+		return radv_get_physical_device_queue_family_properties(pdevice, pCount, NULL);
+		return;
+	}
+	VkQueueFamilyProperties *properties[] = {
+		pQueueFamilyProperties + 0,
+		pQueueFamilyProperties + 1,
+		pQueueFamilyProperties + 2,
+	};
+	radv_get_physical_device_queue_family_properties(pdevice, pCount, properties);
+	assert(*pCount <= 3);
+}
+
 void radv_GetPhysicalDeviceQueueFamilyProperties2KHR(
 	VkPhysicalDevice                            physicalDevice,
 	uint32_t*                                   pCount,
 	VkQueueFamilyProperties2KHR                *pQueueFamilyProperties)
 {
-	return radv_GetPhysicalDeviceQueueFamilyProperties(physicalDevice,
-							   pCount,
-							   &pQueueFamilyProperties->queueFamilyProperties);
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
+	if (!pQueueFamilyProperties) {
+		return radv_get_physical_device_queue_family_properties(pdevice, pCount, NULL);
+		return;
+	}
+	VkQueueFamilyProperties *properties[] = {
+		&pQueueFamilyProperties[0].queueFamilyProperties,
+		&pQueueFamilyProperties[1].queueFamilyProperties,
+		&pQueueFamilyProperties[2].queueFamilyProperties,
+	};
+	radv_get_physical_device_queue_family_properties(pdevice, pCount, properties);
+	assert(*pCount <= 3);
 }
 
 void radv_GetPhysicalDeviceMemoryProperties(
@@ -922,12 +949,18 @@ VkResult radv_CreateDevice(
 			goto fail;
 	}
 
+	if (device->physical_device->rad_info.chip_class >= CIK)
+		cik_create_gfx_config(device);
+
 	*pDevice = radv_device_to_handle(device);
 	return VK_SUCCESS;
 
 fail:
 	if (device->trace_bo)
 		device->ws->buffer_destroy(device->trace_bo);
+
+	if (device->gfx_init)
+		device->ws->buffer_destroy(device->gfx_init);
 
 	for (unsigned i = 0; i < RADV_MAX_QUEUE_FAMILIES; i++) {
 		for (unsigned q = 0; q < device->queue_count[i]; q++)
@@ -948,6 +981,9 @@ void radv_DestroyDevice(
 
 	if (device->trace_bo)
 		device->ws->buffer_destroy(device->trace_bo);
+
+	if (device->gfx_init)
+		device->ws->buffer_destroy(device->gfx_init);
 
 	for (unsigned i = 0; i < RADV_MAX_QUEUE_FAMILIES; i++) {
 		for (unsigned q = 0; q < device->queue_count[i]; q++)
@@ -1400,6 +1436,7 @@ VkResult radv_QueueSubmit(
 	uint32_t esgs_ring_size = 0, gsvs_ring_size = 0;
 	struct radeon_winsys_cs *preamble_cs = NULL;
 	VkResult result;
+	bool fence_emitted = false;
 
 	/* Do this first so failing to allocate scratch buffers can't result in
 	 * partially executed submissions. */
@@ -1424,28 +1461,57 @@ VkResult radv_QueueSubmit(
 		struct radeon_winsys_cs **cs_array;
 		bool can_patch = true;
 		uint32_t advance;
-
-		if (!pSubmits[i].commandBufferCount)
-			continue;
-
-		cs_array = malloc(sizeof(struct radeon_winsys_cs *) *
-					        pSubmits[i].commandBufferCount);
+		int draw_cmd_buffers_count = 0;
 
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
 			RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer,
 					 pSubmits[i].pCommandBuffers[j]);
 			assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+			if (cmd_buffer->no_draws == true)
+				continue;
+			draw_cmd_buffers_count++;
+		}
 
-			cs_array[j] = cmd_buffer->cs;
+		if (!draw_cmd_buffers_count) {
+			if (pSubmits[i].waitSemaphoreCount || pSubmits[i].signalSemaphoreCount) {
+				ret = queue->device->ws->cs_submit(ctx, queue->queue_idx,
+								   &queue->device->empty_cs[queue->queue_family_index],
+								   1, NULL,
+								   (struct radeon_winsys_sem **)pSubmits[i].pWaitSemaphores,
+								   pSubmits[i].waitSemaphoreCount,
+								   (struct radeon_winsys_sem **)pSubmits[i].pSignalSemaphores,
+								   pSubmits[i].signalSemaphoreCount,
+								   false, base_fence);
+				if (ret) {
+					radv_loge("failed to submit CS %d\n", i);
+					abort();
+				}
+				fence_emitted = true;
+			}
+			continue;
+		}
+
+		cs_array = malloc(sizeof(struct radeon_winsys_cs *) * draw_cmd_buffers_count);
+
+		int draw_cmd_buffer_idx = 0;
+		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
+			RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer,
+					 pSubmits[i].pCommandBuffers[j]);
+			assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+			if (cmd_buffer->no_draws == true)
+				continue;
+
+			cs_array[draw_cmd_buffer_idx] = cmd_buffer->cs;
+			draw_cmd_buffer_idx++;
 			if ((cmd_buffer->usage_flags & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
 				can_patch = false;
 		}
 
-		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j += advance) {
+		for (uint32_t j = 0; j < draw_cmd_buffers_count; j += advance) {
 			advance = MIN2(max_cs_submission,
-				       pSubmits[i].commandBufferCount - j);
+				       draw_cmd_buffers_count - j);
 			bool b = j == 0;
-			bool e = j + advance == pSubmits[i].commandBufferCount;
+			bool e = j + advance == draw_cmd_buffers_count;
 
 			if (queue->device->trace_bo)
 				*queue->device->trace_id_ptr = 0;
@@ -1462,6 +1528,7 @@ VkResult radv_QueueSubmit(
 				radv_loge("failed to submit CS %d\n", i);
 				abort();
 			}
+			fence_emitted = true;
 			if (queue->device->trace_bo) {
 				bool success = queue->device->ws->ctx_wait_idle(
 							queue->hw_ctx,
@@ -1479,7 +1546,7 @@ VkResult radv_QueueSubmit(
 	}
 
 	if (fence) {
-		if (!submitCount)
+		if (!fence_emitted)
 			ret = queue->device->ws->cs_submit(ctx, queue->queue_idx,
 							   &queue->device->empty_cs[queue->queue_family_index],
 							   1, NULL, NULL, 0, NULL, 0,
@@ -1584,7 +1651,7 @@ VkResult radv_AllocateMemory(
 	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
 
-	mem->bo = device->ws->buffer_create(device->ws, alloc_size, 32768,
+	mem->bo = device->ws->buffer_create(device->ws, alloc_size, 65536,
 					       domain, flags);
 
 	if (!mem->bo) {
@@ -2157,7 +2224,7 @@ radv_initialise_color_surface(struct radv_device *device,
 			cb->cb_color_info |= S_028C70_COMPRESSION(1);
 
 	if (iview->image->cmask.size &&
-	    (device->debug_flags & RADV_DEBUG_FAST_CLEARS))
+	    !(device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS))
 		cb->cb_color_info |= S_028C70_FAST_CLEAR(1);
 
 	if (iview->image->surface.dcc_size && level_info->dcc_enabled)

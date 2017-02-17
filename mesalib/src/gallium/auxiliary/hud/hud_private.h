@@ -93,6 +93,7 @@ int hud_get_num_cpus(void);
 
 void hud_fps_graph_install(struct hud_pane *pane);
 void hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index);
+void hud_api_thread_busy_install(struct hud_pane *pane);
 void hud_pipe_query_install(struct hud_batch_query_context **pbq,
                             struct hud_pane *pane, struct pipe_context *pipe,
                             const char *name, unsigned query_type,

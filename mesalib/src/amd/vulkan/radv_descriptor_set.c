@@ -275,38 +275,37 @@ radv_descriptor_set_create(struct radv_device *device,
 		uint32_t layout_size = align_u32(layout->size, 32);
 		set->size = layout->size;
 		if (!cmd_buffer) {
+			/* try to allocate linearly first, so that we don't spend
+			 * time looking for gaps if the app only allocates &
+			 * resets via the pool. */
 			if (pool->current_offset + layout_size <= pool->size) {
 				set->bo = pool->bo;
 				set->mapped_ptr = (uint32_t*)(pool->mapped_ptr + pool->current_offset);
 				set->va = device->ws->buffer_get_va(set->bo) + pool->current_offset;
 				pool->current_offset += layout_size;
-
+				list_addtail(&set->vram_list, &pool->vram_list);
 			} else {
-				int entry = pool->free_list, prev_entry = -1;
-				uint32_t offset;
-				while (entry >= 0) {
-					if (pool->free_nodes[entry].size >= layout_size) {
-						if (prev_entry >= 0)
-							pool->free_nodes[prev_entry].next = pool->free_nodes[entry].next;
-						else
-							pool->free_list = pool->free_nodes[entry].next;
+				uint64_t offset = 0;
+				struct list_head *prev = &pool->vram_list;
+				struct radv_descriptor_set *cur;
+				LIST_FOR_EACH_ENTRY(cur, &pool->vram_list, vram_list) {
+					uint64_t start = (uint8_t*)cur->mapped_ptr - pool->mapped_ptr;
+					if (start - offset >= layout_size)
 						break;
-					}
-					prev_entry = entry;
-					entry = pool->free_nodes[entry].next;
+
+					offset = start + cur->size;
+					prev = &cur->vram_list;
 				}
 
-				if (entry < 0) {
+				if (pool->size - offset < layout_size) {
+					vk_free2(&device->alloc, NULL, set->dynamic_descriptors);
 					vk_free2(&device->alloc, NULL, set);
 					return vk_error(VK_ERROR_OUT_OF_POOL_MEMORY_KHR);
 				}
-				offset = pool->free_nodes[entry].offset;
-				pool->free_nodes[entry].next = pool->full_list;
-				pool->full_list = entry;
-
 				set->bo = pool->bo;
 				set->mapped_ptr = (uint32_t*)(pool->mapped_ptr + offset);
 				set->va = device->ws->buffer_get_va(set->bo) + offset;
+				list_add(&set->vram_list, prev);
 			}
 		} else {
 			unsigned bo_offset;
@@ -322,11 +321,6 @@ radv_descriptor_set_create(struct radv_device *device,
 			set->va += bo_offset;
 		}
 	}
-
-	if (pool)
-		list_add(&set->descriptor_pool, &pool->descriptor_sets);
-	else
-		list_inithead(&set->descriptor_pool);
 
 	for (unsigned i = 0; i < layout->binding_count; ++i) {
 		if (!layout->binding[i].immutable_samplers)
@@ -354,19 +348,10 @@ radv_descriptor_set_destroy(struct radv_device *device,
 			    struct radv_descriptor_set *set,
 			    bool free_bo)
 {
-	if (free_bo && set->size) {
-		assert(pool->full_list >= 0);
-		int next = pool->free_nodes[pool->full_list].next;
-		pool->free_nodes[pool->full_list].next = pool->free_list;
-		pool->free_nodes[pool->full_list].offset = (uint8_t*)set->mapped_ptr - pool->mapped_ptr;
-		pool->free_nodes[pool->full_list].size = align_u32(set->size, 32);
-		pool->free_list = pool->full_list;
-		pool->full_list = next;
-	}
+	if (free_bo && set->size)
+		list_del(&set->vram_list);
 	if (set->dynamic_descriptors)
 		vk_free2(&device->alloc, NULL, set->dynamic_descriptors);
-	if (!list_empty(&set->descriptor_pool))
-		list_del(&set->descriptor_pool);
 	vk_free2(&device->alloc, NULL, set);
 }
 
@@ -402,9 +387,7 @@ VkResult radv_CreateDescriptorPool(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_descriptor_pool *pool;
-	unsigned max_sets = pCreateInfo->maxSets * 2;
-	int size = sizeof(struct radv_descriptor_pool) +
-	           max_sets * sizeof(struct radv_descriptor_pool_free_node);
+	int size = sizeof(struct radv_descriptor_pool);
 	uint64_t bo_size = 0;
 	pool = vk_alloc2(&device->alloc, pAllocator, size, 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -412,14 +395,6 @@ VkResult radv_CreateDescriptorPool(
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	memset(pool, 0, sizeof(*pool));
-
-	pool->free_list = -1;
-	pool->full_list = 0;
-	pool->free_nodes[max_sets - 1].next = -1;
-	pool->max_sets = max_sets;
-
-	for (int i = 0; i  + 1 < max_sets; ++i)
-		pool->free_nodes[i].next = i + 1;
 
 	for (unsigned i = 0; i < pCreateInfo->poolSizeCount; ++i) {
 		switch(pCreateInfo->pPoolSizes[i].type) {
@@ -455,7 +430,7 @@ VkResult radv_CreateDescriptorPool(
 	}
 	pool->size = bo_size;
 
-	list_inithead(&pool->descriptor_sets);
+	list_inithead(&pool->vram_list);
 	*pDescriptorPool = radv_descriptor_pool_to_handle(pool);
 	return VK_SUCCESS;
 }
@@ -472,7 +447,7 @@ void radv_DestroyDescriptorPool(
 		return;
 
 	list_for_each_entry_safe(struct radv_descriptor_set, set,
-				 &pool->descriptor_sets, descriptor_pool) {
+				 &pool->vram_list, vram_list) {
 		radv_descriptor_set_destroy(device, pool, set, false);
 	}
 
@@ -490,17 +465,13 @@ VkResult radv_ResetDescriptorPool(
 	RADV_FROM_HANDLE(radv_descriptor_pool, pool, descriptorPool);
 
 	list_for_each_entry_safe(struct radv_descriptor_set, set,
-				 &pool->descriptor_sets, descriptor_pool) {
+				 &pool->vram_list, vram_list) {
 		radv_descriptor_set_destroy(device, pool, set, false);
 	}
 
-	pool->current_offset = 0;
-	pool->free_list = -1;
-	pool->full_list = 0;
-	pool->free_nodes[pool->max_sets - 1].next = -1;
+	list_inithead(&pool->vram_list);
 
-	for (int i = 0; i  + 1 < pool->max_sets; ++i)
-		pool->free_nodes[i].next = i + 1;
+	pool->current_offset = 0;
 
 	return VK_SUCCESS;
 }
