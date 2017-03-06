@@ -3684,7 +3684,7 @@ _mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
                                            GLint *params, const char *caller)
 {
    const struct gl_renderbuffer_attachment *att;
-   bool is_color_attachment;
+   bool is_color_attachment = false;
    GLenum err;
 
    /* The error code for an attachment type of GL_NONE differs between APIs.

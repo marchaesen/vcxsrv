@@ -70,6 +70,12 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #  define FC_DIR_SEPARATOR_S       "/"
 #endif
 
+#ifdef PATH_MAX
+#define FC_PATH_MAX	PATH_MAX
+#else
+#define FC_PATH_MAX	128
+#endif
+
 #if __GNUC__ >= 4
 #define FC_UNUSED	__attribute__((unused))
 #else

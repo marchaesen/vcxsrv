@@ -75,7 +75,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXUngrabDeviceKey(ClientPtr client)
 {
     REQUEST(xUngrabDeviceKeyReq);

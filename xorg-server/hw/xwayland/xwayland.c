@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 
+#include <X11/Xatom.h>
 #include <selection.h>
 #include <micmap.h>
 #include <misyncshm.h>
@@ -34,6 +35,7 @@
 #include <glx_extinit.h>
 #include <os.h>
 #include <xserver_poll.h>
+#include <propertyst.h>
 
 #ifdef XF86VIDMODE
 #include <X11/extensions/xf86vmproto.h>
@@ -115,12 +117,102 @@ xwl_screen_get(ScreenPtr screen)
     return dixLookupPrivate(&screen->devPrivates, &xwl_screen_private_key);
 }
 
+static void
+xwl_window_set_allow_commits(struct xwl_window *xwl_window, Bool allow,
+                             const char *debug_msg)
+{
+    xwl_window->allow_commits = allow;
+    DebugF("xwayland: win %d allow_commits = %d (%s)\n",
+           xwl_window->window->drawable.id, allow, debug_msg);
+}
+
+static void
+xwl_window_set_allow_commits_from_property(struct xwl_window *xwl_window,
+                                           PropertyPtr prop)
+{
+    static Bool warned = FALSE;
+    CARD32 *propdata;
+
+    if (prop->propertyName != xwl_window->xwl_screen->allow_commits_prop)
+        FatalError("Xwayland internal error: prop mismatch in %s.\n", __func__);
+
+    if (prop->type != XA_CARDINAL || prop->format != 32 || prop->size != 1) {
+        /* Not properly set, so fall back to safe and glitchy */
+        xwl_window_set_allow_commits(xwl_window, TRUE, "WM fault");
+
+        if (!warned) {
+            LogMessage(X_WARNING, "Window manager is misusing property %s.\n",
+                       NameForAtom(prop->propertyName));
+            warned = TRUE;
+        }
+        return;
+    }
+
+    propdata = prop->data;
+    xwl_window_set_allow_commits(xwl_window, !!propdata[0], "from property");
+}
+
+static void
+xwl_window_property_allow_commits(struct xwl_window *xwl_window,
+                                  PropertyStateRec *propstate)
+{
+    Bool old_allow_commits = xwl_window->allow_commits;
+
+    switch (propstate->state) {
+    case PropertyNewValue:
+        xwl_window_set_allow_commits_from_property(xwl_window, propstate->prop);
+        break;
+
+    case PropertyDelete:
+        xwl_window_set_allow_commits(xwl_window, TRUE, "property deleted");
+        break;
+
+    default:
+        break;
+    }
+
+    /* If allow_commits turned from off to on, discard any frame
+     * callback we might be waiting for so that a new buffer is posted
+     * immediately through block_handler() if there is damage to post.
+     */
+    if (!old_allow_commits && xwl_window->allow_commits) {
+        if (xwl_window->frame_callback) {
+            wl_callback_destroy(xwl_window->frame_callback);
+            xwl_window->frame_callback = NULL;
+        }
+    }
+}
+
+static void
+xwl_property_callback(CallbackListPtr *pcbl, void *closure,
+                      void *calldata)
+{
+    ScreenPtr screen = closure;
+    PropertyStateRec *rec = calldata;
+    struct xwl_screen *xwl_screen;
+    struct xwl_window *xwl_window;
+
+    if (rec->win->drawable.pScreen != screen)
+        return;
+
+    xwl_window = xwl_window_get(rec->win);
+    if (!xwl_window)
+        return;
+
+    xwl_screen = xwl_screen_get(screen);
+
+    if (rec->prop->propertyName == xwl_screen->allow_commits_prop)
+        xwl_window_property_allow_commits(xwl_window, rec);
+}
+
 static Bool
 xwl_close_screen(ScreenPtr screen)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_output *xwl_output, *next_xwl_output;
     struct xwl_seat *xwl_seat, *next_xwl_seat;
+
+    DeleteCallback(&PropertyStateCallback, xwl_property_callback, screen);
 
     xorg_list_for_each_entry_safe(xwl_output, next_xwl_output,
                                   &xwl_screen->output_list, link)
@@ -262,6 +354,21 @@ xwl_pixmap_get(PixmapPtr pixmap)
 }
 
 static void
+xwl_window_init_allow_commits(struct xwl_window *xwl_window)
+{
+    PropertyPtr prop = NULL;
+    int ret;
+
+    ret = dixLookupProperty(&prop, xwl_window->window,
+                            xwl_window->xwl_screen->allow_commits_prop,
+                            serverClient, DixReadAccess);
+    if (ret == Success && prop)
+        xwl_window_set_allow_commits_from_property(xwl_window, prop);
+    else
+        xwl_window_set_allow_commits(xwl_window, TRUE, "no property");
+}
+
+static void
 send_surface_id_event(struct xwl_window *xwl_window)
 {
     static const char atom_name[] = "WL_SURFACE_ID";
@@ -376,6 +483,8 @@ xwl_realize_window(WindowPtr window)
     dixSetPrivate(&window->devPrivates, &xwl_window_private_key, xwl_window);
     xorg_list_init(&xwl_window->link_damage);
 
+    xwl_window_init_allow_commits(xwl_window);
+
     return ret;
 
 err_surf:
@@ -458,13 +567,45 @@ static const struct wl_callback_listener frame_listener = {
 };
 
 static void
-xwl_screen_post_damage(struct xwl_screen *xwl_screen)
+xwl_window_post_damage(struct xwl_window *xwl_window)
 {
-    struct xwl_window *xwl_window, *next_xwl_window;
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
     RegionPtr region;
     BoxPtr box;
     struct wl_buffer *buffer;
     PixmapPtr pixmap;
+
+    assert(!xwl_window->frame_callback);
+
+    region = DamageRegion(xwl_window->damage);
+    pixmap = (*xwl_screen->screen->GetWindowPixmap) (xwl_window->window);
+
+#if GLAMOR_HAS_GBM
+    if (xwl_screen->glamor)
+        buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap);
+    else
+#endif
+        buffer = xwl_shm_pixmap_get_wl_buffer(pixmap);
+
+    wl_surface_attach(xwl_window->surface, buffer, 0, 0);
+
+    box = RegionExtents(region);
+    wl_surface_damage(xwl_window->surface, box->x1, box->y1,
+                        box->x2 - box->x1, box->y2 - box->y1);
+
+    xwl_window->frame_callback = wl_surface_frame(xwl_window->surface);
+    wl_callback_add_listener(xwl_window->frame_callback, &frame_listener, xwl_window);
+
+    wl_surface_commit(xwl_window->surface);
+    DamageEmpty(xwl_window->damage);
+
+    xorg_list_del(&xwl_window->link_damage);
+}
+
+static void
+xwl_screen_post_damage(struct xwl_screen *xwl_screen)
+{
+    struct xwl_window *xwl_window, *next_xwl_window;
 
     xorg_list_for_each_entry_safe(xwl_window, next_xwl_window,
                                   &xwl_screen->damage_window_list, link_damage) {
@@ -473,29 +614,10 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
         if (xwl_window->frame_callback)
             continue;
 
-        region = DamageRegion(xwl_window->damage);
-        pixmap = (*xwl_screen->screen->GetWindowPixmap) (xwl_window->window);
+        if (!xwl_window->allow_commits)
+            continue;
 
-#if GLAMOR_HAS_GBM
-        if (xwl_screen->glamor)
-            buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap);
-#endif
-        if (!xwl_screen->glamor)
-            buffer = xwl_shm_pixmap_get_wl_buffer(pixmap);
-
-        wl_surface_attach(xwl_window->surface, buffer, 0, 0);
-
-        box = RegionExtents(region);
-        wl_surface_damage(xwl_window->surface, box->x1, box->y1,
-                          box->x2 - box->x1, box->y2 - box->y1);
-
-        xwl_window->frame_callback = wl_surface_frame(xwl_window->surface);
-        wl_callback_add_listener(xwl_window->frame_callback, &frame_listener, xwl_window);
-
-        wl_surface_commit(xwl_window->surface);
-        DamageEmpty(xwl_window->damage);
-
-        xorg_list_del(&xwl_window->link_damage);
+        xwl_window_post_damage(xwl_window);
     }
 }
 
@@ -684,6 +806,7 @@ wm_selection_callback(CallbackListPtr *p, void *data, void *arg)
 static Bool
 xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 {
+    static const char allow_commits[] = "_XWAYLAND_ALLOW_COMMITS";
     struct xwl_screen *xwl_screen;
     Pixel red_mask, blue_mask, green_mask;
     int ret, bpc, green_bpc, i;
@@ -838,6 +961,14 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     pScreen->CursorWarpedTo = xwl_cursor_warped_to;
     pScreen->CursorConfinedTo = xwl_cursor_confined_to;
+
+    xwl_screen->allow_commits_prop = MakeAtom(allow_commits,
+                                              strlen(allow_commits),
+                                              TRUE);
+    if (xwl_screen->allow_commits_prop == BAD_RESOURCE)
+        return FALSE;
+
+    AddCallback(&PropertyStateCallback, xwl_property_callback, pScreen);
 
     return ret;
 }

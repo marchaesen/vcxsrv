@@ -25,13 +25,13 @@
 #ifndef BLOB_H
 #define BLOB_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* The blob functions implement a simple, low-level API for serializing and
  * deserializing.
@@ -78,7 +78,7 @@ struct blob_reader {
  * \return The new blob, (or NULL in case of allocation failure).
  */
 struct blob *
-blob_create (void *mem_ctx);
+blob_create(void *mem_ctx);
 
 /**
  * Add some unstructured, fixed-size data to a blob.
@@ -86,7 +86,7 @@ blob_create (void *mem_ctx);
  * \return True unless allocation failed.
  */
 bool
-blob_write_bytes (struct blob *blob, const void *bytes, size_t to_write);
+blob_write_bytes(struct blob *blob, const void *bytes, size_t to_write);
 
 /**
  * Reserve space in \blob for a number of bytes.
@@ -107,7 +107,7 @@ blob_write_bytes (struct blob *blob, const void *bytes, size_t to_write);
  * can be written, (or NULL in case of any allocation error).
  */
 uint8_t *
-blob_reserve_bytes (struct blob *blob, size_t to_write);
+blob_reserve_bytes(struct blob *blob, size_t to_write);
 
 /**
  * Overwrite some data previously written to the blob.
@@ -122,10 +122,10 @@ blob_reserve_bytes (struct blob *blob, size_t to_write);
  * the current blob's size.
  */
 bool
-blob_overwrite_bytes (struct blob *blob,
-                      size_t offset,
-                      const void *bytes,
-                      size_t to_write);
+blob_overwrite_bytes(struct blob *blob,
+                     size_t offset,
+                     const void *bytes,
+                     size_t to_write);
 
 /**
  * Add a uint32_t to a blob.
@@ -138,7 +138,7 @@ blob_overwrite_bytes (struct blob *blob,
  * \return True unless allocation failed.
  */
 bool
-blob_write_uint32 (struct blob *blob, uint32_t value);
+blob_write_uint32(struct blob *blob, uint32_t value);
 
 /**
  * Overwrite a uint32_t previously written to the blob.
@@ -161,9 +161,9 @@ blob_write_uint32 (struct blob *blob, uint32_t value);
  * the current blob's size.
  */
 bool
-blob_overwrite_uint32 (struct blob *blob,
-                       size_t offset,
-                       uint32_t value);
+blob_overwrite_uint32(struct blob *blob,
+                      size_t offset,
+                      uint32_t value);
 
 /**
  * Add a uint64_t to a blob.
@@ -176,7 +176,7 @@ blob_overwrite_uint32 (struct blob *blob,
  * \return True unless allocation failed.
  */
 bool
-blob_write_uint64 (struct blob *blob, uint64_t value);
+blob_write_uint64(struct blob *blob, uint64_t value);
 
 /**
  * Add an intptr_t to a blob.
@@ -189,7 +189,7 @@ blob_write_uint64 (struct blob *blob, uint64_t value);
  * \return True unless allocation failed.
  */
 bool
-blob_write_intptr (struct blob *blob, intptr_t value);
+blob_write_intptr(struct blob *blob, intptr_t value);
 
 /**
  * Add a NULL-terminated string to a blob, (including the NULL terminator).
@@ -197,7 +197,7 @@ blob_write_intptr (struct blob *blob, intptr_t value);
  * \return True unless allocation failed.
  */
 bool
-blob_write_string (struct blob *blob, const char *str);
+blob_write_string(struct blob *blob, const char *str);
 
 /**
  * Start reading a blob, (initializing the contents of \blob for reading).
@@ -211,7 +211,7 @@ blob_write_string (struct blob *blob, const char *str);
  * current value is unchanged before and after the call.
  */
 void
-blob_reader_init (struct blob_reader *blob, uint8_t *data, size_t size);
+blob_reader_init(struct blob_reader *blob, uint8_t *data, size_t size);
 
 /**
  * Read some unstructured, fixed-size data from the current location, (and
@@ -224,14 +224,14 @@ blob_reader_init (struct blob_reader *blob, uint8_t *data, size_t size);
  * \return The bytes read (see note above about memory lifetime).
  */
 void *
-blob_read_bytes (struct blob_reader *blob, size_t size);
+blob_read_bytes(struct blob_reader *blob, size_t size);
 
 /**
  * Read some unstructured, fixed-size data from the current location, copying
  * it to \dest (and update the current location to just past this data)
  */
 void
-blob_copy_bytes (struct blob_reader *blob, uint8_t *dest, size_t size);
+blob_copy_bytes(struct blob_reader *blob, uint8_t *dest, size_t size);
 
 /**
  * Read a uint32_t from the current location, (and update the current location
@@ -243,7 +243,7 @@ blob_copy_bytes (struct blob_reader *blob, uint8_t *dest, size_t size);
  * \return The uint32_t read
  */
 uint32_t
-blob_read_uint32 (struct blob_reader *blob);
+blob_read_uint32(struct blob_reader *blob);
 
 /**
  * Read a uint64_t from the current location, (and update the current location
@@ -255,7 +255,7 @@ blob_read_uint32 (struct blob_reader *blob);
  * \return The uint64_t read
  */
 uint64_t
-blob_read_uint64 (struct blob_reader *blob);
+blob_read_uint64(struct blob_reader *blob);
 
 /**
  * Read an intptr_t value from the current location, (and update the
@@ -267,7 +267,7 @@ blob_read_uint64 (struct blob_reader *blob);
  * \return The intptr_t read
  */
 intptr_t
-blob_read_intptr (struct blob_reader *blob);
+blob_read_intptr(struct blob_reader *blob);
 
 /**
  * Read a NULL-terminated string from the current location, (and update the
@@ -282,7 +282,7 @@ blob_read_intptr (struct blob_reader *blob);
  * NULL.
  */
 char *
-blob_read_string (struct blob_reader *blob);
+blob_read_string(struct blob_reader *blob);
 
 #ifdef __cplusplus
 }

@@ -17,6 +17,7 @@
 // This file doesn't deal with all the combining stuff -- I'm not an APL programmer,
 // and am not quite sure what's needed here.  However, it may be possible to get this
 // working with dead keys and the like.  Patches gratefully accepted.  
+// [Geoff Streeter: What has been done to is to support all of the APL overstrikes in the compose table]
 
 // Some of the shift-key assignments may differ from the APL tradition.  If
 // that's not considered acceptable, it should be possible to remap the 
@@ -26,6 +27,7 @@
 // I'm assuming that this will be used with another keyboard layout (ie. for 
 // your language), with a special shift key to use these maps.  
 
+// 2017-02-27 changed ¤ to ⌺, added ⊆
 // 2012-09-26 changed "overbar" to macron which fixed some strangeness in xterm
 
 // 2011-12-22 Geoff Streeter: geoff@dyalog.com
@@ -62,9 +64,9 @@ xkb_symbols "basic" {
 // ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
 
-hidden partial alphanumeric_keys
+partial hidden alphanumeric_keys
 xkb_symbols "common" {
-	name[Group1]= "APL keyboard symbols";
+	name[Group1]= "APL";
 
 	key <AB01> { [	U2282		] }; // Z: ⊂ -- Subset Of
 	key <AB02> { [	U2283		] }; // X: ⊃ -- Superset Of
@@ -129,7 +131,7 @@ xkb_symbols "common" {
 
 partial alphanumeric_keys
 xkb_symbols "unified" {
-	name[Group1]= "APL keyboard symbols (unified)";
+	name[Group1]= "APL Keyboard Symbols: Unified Layout";
 
 	include "apl(common)"
 
@@ -162,7 +164,7 @@ xkb_symbols "unified" {
 
 partial alphanumeric_keys
 xkb_symbols "sax" {
-	name[Group1]= "APL keyboard symbols (sax)";
+	name[Group1]= "APL Keyboard Symbols: sax";
 
 	include "apl(unified)"
 
@@ -224,7 +226,7 @@ xkb_symbols "sax" {
 
 partial alphanumeric_keys
 xkb_symbols "apl2" {
-	name[Group1]= "APL keyboard symbols (IBM APL2)";
+	name[Group1]= "APL Keyboard Symbols: IBM APL2";
 
 	include "apl(common)"
 
@@ -284,7 +286,7 @@ xkb_symbols "apl2" {
 
 partial alphanumeric_keys
 xkb_symbols "aplplusII" {
-	name[Group1]= "APL keyboard symbols (Manugistics APL*PLUS II)";
+	name[Group1]= "APL Keyboard Symbols: Manugistics APL*PLUS II";
 	// AFS - short for APL Functional Symbol
 
 	include "apl(apl2)"
@@ -321,7 +323,7 @@ xkb_symbols "aplplusII" {
 
 partial alphanumeric_keys
 xkb_symbols "aplx" {
-	name[Group1]= "APL keyboard symbols (APLX unified)";
+	name[Group1]= "APL Keyboard Symbols: APLX Unified APL Layout";
 
 	include "apl(unified)"
 
@@ -367,17 +369,17 @@ xkb_symbols "aplx" {
 // add del diaerisis 2014-05-23
 // add quad query 2014-05-23
 // add dagger 2014-05-23
+// correct spelling of key name LTGT→LSGT 2016-05-26
 
 // The intention is that this keyboard layout overlays a base keyboard that provides 
 // the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
 // be reached with a latching shift to increase group by one.
 
-hidden partial alphanumeric_keys
+partial alphanumeric_keys
 xkb_symbols "dyalog_base" {
 
-
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
-// │ ¤   │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │ !   │ ⌹   ┃         ┃
+// │ ⌺   │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │ !   │ ⌹   ┃         ┃
 // │ ⋄   │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │ ×   │ ÷   ┃         ┃
 // ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
 // ┃       ┃ ⍰   │     │ ⍷   │ ⌾   │ ⍨   │     │     │ ⍸   │ ⍥   │ ⍣   │ ⍞   │ ⍬   ┃       ┃
@@ -386,15 +388,15 @@ xkb_symbols "dyalog_base" {
 // ┃        ┃     │     │     │     │ ⍢   │     │ ⍤   │ ⌸   │ ⌷   │ ≡   │ ≢   │ ⊣   ┃      ┃
 // ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │ ⍎   │ ⍕   │ ⊢   ┃      ┃
 // ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
-// ┃       ┃     │     │     │     │     │ ⍭   │ ⍡   │ ∥   │ ⍪   │ ⍙   │ ⍠   ┃             ┃
-// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │ ⍝   │ ⍀   │ ⌿   ┃             ┃
+// ┃       ┃  ⊣  │ ⊆   │     │     │     │ ⍭   │ ⍡   │ ∥   │ ⍪   │ ⍙   │ ⍠   ┃             ┃
+// ┃       ┃  ⊢  │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │ ⍝   │ ⍀   │ ⌿   ┃             ┃
 // ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
 // ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
 
 
-	key <AB01> { [ U2282			] };	// subset of
+	key <AB01> { [ U2282,		U2286	] };	// subset of, enclose if simple
 	key <AB02> { [ U2283			] };	// superset of
 	key <AB03> { [ U2229			] };	// intersection
 	key <AB04> { [ U222A			] };	// union
@@ -440,11 +442,11 @@ xkb_symbols "dyalog_base" {
 	key <AE11> { [ multiply,	exclam	] };
 	key <AE12> { [ division,	U2339	] };	// quad divide
 	key <BKSL> { [ U22a2,		U22a3	] };	// right tack, left tack
-	key <LTGT> { [ U22a2,		U22a3	] };	// right tack, left tack
-	key <TLDE> { [ U22c4,		currency] };	// diamond
+	key <LSGT> { [ U22a2,		U22a3	] };	// right tack, left tack
+	key <TLDE> { [ U22c4,		U233a	] };	// diamond, quad diamond
 };
 
-hidden partial keypad_keys
+partial keypad_keys
 xkb_symbols "dyalog_box" {
 
 // ┌───┬───┬───┬───┐
@@ -471,9 +473,9 @@ xkb_symbols "dyalog_box" {
 	key <KP9>  { [ U2510 ] };	// box drawing light down and left
 	key <KPDL> { [ U2502 ] };	// box drawing light vertical
 
-};
+}; 
 
-hidden xkb_symbols "dyalog_codes" {
+xkb_symbols "dyalog_codes" {
 
 //	Layout of private use area for this. In the style of the Unicode book
 //
@@ -610,6 +612,6 @@ xkb_symbols "dyalog" {
 	include "apl(dyalog_base)"
 	include "apl(dyalog_box)"
 	include "apl(dyalog_codes)"
-	name[Group1] = "APL keyboard symbols (Dyalog)";
+	name[Group1] = "Dyalog APL complete";
 };
 

@@ -24,8 +24,13 @@
 #ifndef DISK_CACHE_H
 #define DISK_CACHE_H
 
+#ifdef ENABLE_SHADER_CACHE
+#include <dlfcn.h>
+#endif
+#include <assert.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +42,42 @@ extern "C" {
 typedef uint8_t cache_key[CACHE_KEY_SIZE];
 
 struct disk_cache;
+
+static inline const char *
+get_arch_bitness_str(void)
+{
+    if (sizeof(void *) == 4)
+#ifdef __ILP32__
+        return "ilp-32";
+#else
+        return "32";
+#endif
+    if (sizeof(void *) == 8)
+        return "64";
+
+    /* paranoia check which will be dropped by the optimiser */
+    assert(!"unknown_arch");
+    return "unknown_arch";
+}
+
+static inline bool
+disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
+{
+#ifdef ENABLE_SHADER_CACHE
+   Dl_info info;
+   struct stat st;
+   if (!dladdr(ptr, &info) || !info.dli_fname) {
+      return false;
+   }
+   if (stat(info.dli_fname, &st)) {
+      return false;
+   }
+   *timestamp = st.st_mtime;
+   return true;
+#else
+   return false;
+#endif
+}
 
 /* Provide inlined stub functions if the shader cache is disabled. */
 
@@ -81,7 +122,7 @@ disk_cache_destroy(struct disk_cache *cache);
  * Remove the item in the cache under the name \key.
  */
 void
-disk_cache_remove(struct disk_cache *cache, cache_key key);
+disk_cache_remove(struct disk_cache *cache, const cache_key key);
 
 /**
  * Store an item in the cache under the name \key.
@@ -93,7 +134,7 @@ disk_cache_remove(struct disk_cache *cache, cache_key key);
  * evicted from the cache.
  */
 void
-disk_cache_put(struct disk_cache *cache, cache_key key,
+disk_cache_put(struct disk_cache *cache, const cache_key key,
                const void *data, size_t size);
 
 /**
@@ -110,7 +151,7 @@ disk_cache_put(struct disk_cache *cache, cache_key key,
  * caller should call free() it when finished.
  */
 void *
-disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size);
+disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size);
 
 /**
  * Store the name \key within the cache, (without any associated data).
@@ -122,7 +163,7 @@ disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size);
  * evicted from the cache.
  */
 void
-disk_cache_put_key(struct disk_cache *cache, cache_key key);
+disk_cache_put_key(struct disk_cache *cache, const cache_key key);
 
 /**
  * Test whether the name \key was previously recorded in the cache.
@@ -135,7 +176,7 @@ disk_cache_put_key(struct disk_cache *cache, cache_key key);
  * disk_cache_has_key() to return true for the same key.
  */
 bool
-disk_cache_has_key(struct disk_cache *cache, cache_key key);
+disk_cache_has_key(struct disk_cache *cache, const cache_key key);
 
 #else
 
@@ -151,32 +192,32 @@ disk_cache_destroy(struct disk_cache *cache) {
 }
 
 static inline void
-disk_cache_put(struct disk_cache *cache, cache_key key,
+disk_cache_put(struct disk_cache *cache, const cache_key key,
           const void *data, size_t size)
 {
    return;
 }
 
 static inline void
-disk_cache_remove(struct disk_cache *cache, cache_key key)
+disk_cache_remove(struct disk_cache *cache, const cache_key key)
 {
    return;
 }
 
 static inline uint8_t *
-disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
+disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
 {
    return NULL;
 }
 
 static inline void
-disk_cache_put_key(struct disk_cache *cache, cache_key key)
+disk_cache_put_key(struct disk_cache *cache, const cache_key key)
 {
    return;
 }
 
 static inline bool
-disk_cache_has_key(struct disk_cache *cache, cache_key key)
+disk_cache_has_key(struct disk_cache *cache, const cache_key key)
 {
    return false;
 }

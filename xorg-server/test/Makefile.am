@@ -6,14 +6,11 @@ AM_CPPFLAGS = $(XORG_INCS)
 tests_CPPFLAGS=
 CLEANFILES=
 
-if XORG
-# Tests that require at least some DDX functions in order to fully link
-# For now, requires xf86 ddx, could be adjusted to use another
-if RES
-RES_SRCS = hashtabletest.c
-AM_CPPFLAGS += -DRES_TESTS
-endif
-endif
+tests_SOURCES = \
+        tests-common.c \
+        list.c \
+        string.c \
+        tests.c
 
 noinst_PROGRAMS = simple-xinit tests
 
@@ -41,7 +38,13 @@ TESTS_ENVIRONMENT = \
 	$(XORG_MALLOC_DEBUG_ENV) \
 	$(NULL)
 
+tests_LDADD =
+
 if XORG
+
+# Tests that require at least some DDX functions in order to fully link
+# For now, requires xf86 ddx, could be adjusted to use another
+
 AM_CPPFLAGS += \
 	-I$(srcdir)/xi1 \
 	-I$(srcdir)/xi2 \
@@ -52,39 +55,30 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/hw/xfree86/ramdac -I$(top_srcdir)/hw/xfree86/dri \
 	-I$(top_srcdir)/hw/xfree86/dri2 -I$(top_srcdir)/dri3
 tests_CPPFLAGS += $(AM_CPPFLAGS)
-endif
 
-tests_LDFLAGS = \
-	-Wl,-wrap,dixLookupWindow \
-	-Wl,-wrap,dixLookupClient \
-	-Wl,-wrap,WriteToClient \
-	-Wl,-wrap,dixLookupWindow \
-	-Wl,-wrap,XISetEventMask \
-	-Wl,-wrap,AddResource \
-	-Wl,-wrap,GrabButton \
-	$()
-
-tests_LDADD =
-
-tests_SOURCES = \
-        tests-common.c \
+tests_SOURCES += \
         fixes.c \
         input.c \
-        list.c \
         misc.c \
         signal-logging.c \
-        string.c \
         touch.c \
         xfree86.c \
         test_xkb.c \
-        xtest.c \
-        $(RES_SRCS) \
-        tests.c
+        xtest.c
+tests_CPPFLAGS += -DXORG_TESTS
+
+if RES
+tests_SOURCES += hashtabletest.c
+tests_CPPFLAGS += -DRES_TESTS
+endif
+
+endif XORG
 
 if HAVE_LD_WRAP
 
 tests_CPPFLAGS += -DLDWRAP_TESTS
 
+if XORG
 tests_SOURCES += \
 	xi1/protocol-xchangedevicecontrol.c \
 	xi2/protocol-common.c \
@@ -99,6 +93,17 @@ tests_SOURCES += \
 	xi2/protocol-xiwarppointer.c \
 	xi2/protocol-eventconvert.c \
 	xi2/xi2.c
+
+tests_LDFLAGS = \
+	-Wl,-wrap,dixLookupWindow \
+	-Wl,-wrap,dixLookupClient \
+	-Wl,-wrap,WriteToClient \
+	-Wl,-wrap,dixLookupWindow \
+	-Wl,-wrap,XISetEventMask \
+	-Wl,-wrap,AddResource \
+	-Wl,-wrap,GrabButton \
+	$()
+endif XORG
 
 else !HAVE_LD_WRAP
 
@@ -122,8 +127,6 @@ xi2-tests:
 
 endif !HAVE_LD_WRAP
 
-tests_LDADD += $(XSERVER_LIBS)
-
 if XORG
 
 nodist_tests_SOURCES = sdksyms.c
@@ -140,7 +143,8 @@ tests_LDADD += \
             $(top_builddir)/hw/xfree86/i2c/libi2c.la \
             $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la \
             $(top_builddir)/Xext/libXvidmode.la \
-            @XORG_LIBS@
+            $(XSERVER_LIBS) \
+            $(XORG_LIBS)
 
 if !SPECIAL_DTRACE_OBJECTS
 tests_LDADD += $(top_builddir)/os/libos.la
@@ -164,66 +168,7 @@ if DRI3
 tests_LDADD += $(top_builddir)/dri3/libdri3.la
 endif
 
-else !XORG
-
-nodist_tests_SOURCES = \
-            ddxstubs.c \
-            $(top_srcdir)/mi/miinitext.c
-
-tests_LDADD += \
-            $(top_builddir)/damageext/libdamageext.la \
-            $(top_builddir)/fb/libfb.la \
-            $(top_builddir)/fb/libwfb.la \
-            $(top_builddir)/miext/damage/libdamage.la \
-            $(top_builddir)/miext/sync/libsync.la \
-            $(top_builddir)/randr/librandr.la \
-            $(top_builddir)/render/librender.la \
-            $(top_builddir)/Xext/libXext.la \
-            $(top_builddir)/Xext/libXextdpmsstubs.la \
-            $(top_builddir)/Xext/libXvidmode.la \
-            $(top_builddir)/Xi/libXi.la \
-            $(top_builddir)/Xi/libXistubs.la \
-            $(top_builddir)/xfixes/libxfixes.la \
-            $(top_builddir)/xkb/libxkb.la \
-            $(top_builddir)/xkb/libxkbstubs.la
-
-if COMPOSITE
-tests_LDADD += \
-            $(top_builddir)/composite/libcomposite.la
-endif
-
-if DBE
-tests_LDADD += \
-            $(top_builddir)/dbe/libdbe.la
-endif
-
-if GLX
-tests_LDADD += \
-            $(top_builddir)/glx/libglx.la
-endif
-
-if RECORD
-tests_LDADD += \
-            $(top_builddir)/record/librecord.la
-endif
-
-if DRI3
-tests_LDADD += \
-            $(top_builddir)/dri3/libdri3.la
-endif
-
-if XQUARTZ
-tests_LDADD += \
-            $(top_builddir)/miext/rootless/librootless.la
-tests_LDADD += -lXplugin
-endif
-
-if XWIN_MULTIWINDOWEXTWM
-tests_LDADD += \
-            $(top_builddir)/miext/rootless/librootless.la
-endif
-
-endif !XORG
+endif XORG
 
 # GNU LD scans only in one direction, add the following dependencies at the end
 # so as they get picked up by the previously-linked libraries

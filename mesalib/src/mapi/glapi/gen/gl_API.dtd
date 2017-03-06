@@ -90,7 +90,7 @@ param:
 	 the stride parameters to Map1f, etc.)
      count - for counted arrays (e.g., the 'lists' parameter to glCallLists),
          the parameter or literal that represents the count.  For functions
-         like glVertex3fv it will be a litteral, for others it will be one of
+         like glVertex3fv it will be a literal, for others it will be one of
          the parameters.
      counter - this parameter is a counter that will be referenced by the
          'count' attribute in another parameter.

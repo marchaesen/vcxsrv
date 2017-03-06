@@ -29,6 +29,6 @@
 #ifndef RADV_AMDGPU_WINSYS_PUBLIC_H
 #define RADV_AMDGPU_WINSYS_PUBLIC_H
 
-struct radeon_winsys *radv_amdgpu_winsys_create(int fd);
+struct radeon_winsys *radv_amdgpu_winsys_create(int fd, uint32_t debug_flags);
 
 #endif /* RADV_AMDGPU_WINSYS_PUBLIC_H */

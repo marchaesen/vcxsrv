@@ -662,7 +662,7 @@ ProcXF86BigfontDispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcXF86BigfontQueryVersion(ClientPtr client)
 {
     REQUEST(xXF86BigfontQueryVersionReq);
@@ -671,7 +671,7 @@ SProcXF86BigfontQueryVersion(ClientPtr client)
     return ProcXF86BigfontQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcXF86BigfontQueryFont(ClientPtr client)
 {
     REQUEST(xXF86BigfontQueryFontReq);
@@ -682,7 +682,7 @@ SProcXF86BigfontQueryFont(ClientPtr client)
     return ProcXF86BigfontQueryFont(client);
 }
 
-static int
+static int _X_COLD
 SProcXF86BigfontDispatch(ClientPtr client)
 {
     REQUEST(xReq);

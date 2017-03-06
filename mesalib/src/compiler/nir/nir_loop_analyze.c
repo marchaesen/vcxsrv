@@ -359,7 +359,7 @@ find_loop_terminators(loop_info_state *state)
 
 static int32_t
 get_iteration(nir_op cond_op, nir_const_value *initial, nir_const_value *step,
-              nir_const_value *limit, nir_alu_instr *alu)
+              nir_const_value *limit)
 {
    int32_t iter;
 
@@ -490,7 +490,7 @@ calculate_iterations(nir_const_value *initial, nir_const_value *step,
       trip_offset = 1;
    }
 
-   int iter_int = get_iteration(cond_alu->op, initial, step, limit, alu);
+   int iter_int = get_iteration(cond_alu->op, initial, step, limit);
 
    /* If iter_int is negative the loop is ill-formed or is the conditional is
     * unsigned with a huge iteration count so don't bother going any further.

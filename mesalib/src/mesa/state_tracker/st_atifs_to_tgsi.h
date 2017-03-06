@@ -23,12 +23,12 @@
 #ifndef ST_ATIFS_TO_TGSI_H
 #define ST_ATIFS_TO_TGSI_H
 
+#include "main/glheader.h"
+#include "pipe/p_defines.h"
+
 #if defined __cplusplus
 extern "C" {
 #endif
-
-#include "main/glheader.h"
-#include "pipe/p_defines.h"
 
 struct gl_context;
 struct gl_program;

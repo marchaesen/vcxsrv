@@ -458,24 +458,6 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
                    1);
          return;
 
-      case STATE_TEXRECT_SCALE:
-         /* Value = { 1/texWidth, 1/texHeight, 0, 1 }.
-          * Used to convert unnormalized texcoords to normalized texcoords.
-          */
-         {
-            const int unit = (int) state[2];
-            const struct gl_texture_object *texObj
-               = ctx->Texture.Unit[unit]._Current;
-            if (texObj) {
-               struct gl_texture_image *texImage = texObj->Image[0][0];
-               ASSIGN_4V(value,
-                         (GLfloat) (1.0 / texImage->Width),
-                         (GLfloat) (1.0 / texImage->Height),
-                         0.0f, 1.0f);
-            }
-         }
-         return;
-
       case STATE_FOG_PARAMS_OPTIMIZED:
          /* for simpler per-vertex/pixel fog calcs. POW (for EXP/EXP2 fog)
           * might be more expensive than EX2 on some hw, plus it needs
@@ -709,8 +691,6 @@ _mesa_program_state_flags(const gl_state_index state[STATE_LENGTH])
       case STATE_NORMAL_SCALE:
          return _NEW_MODELVIEW;
 
-      case STATE_TEXRECT_SCALE:
-	 return _NEW_TEXTURE;
       case STATE_FOG_PARAMS_OPTIMIZED:
 	 return _NEW_FOG;
       case STATE_POINT_SIZE_CLAMPED:
@@ -904,9 +884,6 @@ append_token(char *dst, gl_state_index k)
       break;
    case STATE_NORMAL_SCALE:
       append(dst, "normalScale");
-      break;
-   case STATE_TEXRECT_SCALE:
-      append(dst, "texrectScale");
       break;
    case STATE_FOG_PARAMS_OPTIMIZED:
       append(dst, "fogParamsOptimized");

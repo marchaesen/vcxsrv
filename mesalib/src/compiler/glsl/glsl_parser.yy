@@ -901,7 +901,7 @@ function_header:
       $$->return_type = $1;
       $$->identifier = $2;
 
-      if ($1->qualifier.flags.q.subroutine) {
+      if ($1->qualifier.is_subroutine_decl()) {
          /* add type for IDENTIFIER search */
          state->symbols->add_type($2, glsl_type::get_subroutine_instance($2));
       } else
@@ -1228,14 +1228,18 @@ layout_qualifier_id:
            state->ARB_conservative_depth_enable ||
            state->is_version(420, 0))) {
          if (match_layout_qualifier($1, "depth_any", state) == 0) {
-            $$.flags.q.depth_any = 1;
+            $$.flags.q.depth_type = 1;
+            $$.depth_type = ast_depth_any;
          } else if (match_layout_qualifier($1, "depth_greater", state) == 0) {
-            $$.flags.q.depth_greater = 1;
+            $$.flags.q.depth_type = 1;
+            $$.depth_type = ast_depth_greater;
          } else if (match_layout_qualifier($1, "depth_less", state) == 0) {
-            $$.flags.q.depth_less = 1;
+            $$.flags.q.depth_type = 1;
+            $$.depth_type = ast_depth_less;
          } else if (match_layout_qualifier($1, "depth_unchanged",
                                            state) == 0) {
-            $$.flags.q.depth_unchanged = 1;
+            $$.flags.q.depth_type = 1;
+            $$.depth_type = ast_depth_unchanged;
          }
 
          if ($$.flags.i && state->AMD_conservative_depth_warn) {
@@ -1319,8 +1323,7 @@ layout_qualifier_id:
       }
 
       /* Layout qualifiers for ARB_shader_image_load_store. */
-      if (state->ARB_shader_image_load_store_enable ||
-          state->is_version(420, 310)) {
+      if (state->has_shader_image_load_store()) {
          if (!$$.flags.i) {
             static const struct {
                const char *name;
@@ -1810,7 +1813,7 @@ subroutine_qualifier:
    | SUBROUTINE '(' subroutine_type_list ')'
    {
       memset(& $$, 0, sizeof($$));
-      $$.flags.q.subroutine_def = 1;
+      $$.flags.q.subroutine = 1;
       $$.subroutine_list = $3;
    }
    ;

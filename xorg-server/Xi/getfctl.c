@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXGetFeedbackControl(ClientPtr client)
 {
     REQUEST(xGetFeedbackControlReq);
@@ -258,7 +258,7 @@ CopySwapBellFeedback(ClientPtr client, BellFeedbackPtr b, char **buf)
  *
  */
 
-void
+void _X_COLD
 SRepXGetFeedbackControl(ClientPtr client, int size,
                         xGetFeedbackControlReply * rep)
 {

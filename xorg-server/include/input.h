@@ -722,6 +722,7 @@ extern _X_HIDDEN void input_constrain_cursor(DeviceIntPtr pDev, ScreenPtr screen
 extern _X_EXPORT void input_lock(void);
 extern _X_EXPORT void input_unlock(void);
 extern _X_EXPORT void input_force_unlock(void);
+extern _X_EXPORT int in_input_thread(void);
 
 extern void InputThreadPreInit(void);
 extern void InputThreadInit(void);

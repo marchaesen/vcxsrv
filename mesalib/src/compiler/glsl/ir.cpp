@@ -1501,7 +1501,7 @@ ir_texture::set_sampler(ir_dereference *sampler, const glsl_type *type)
       assert(type->base_type == GLSL_TYPE_FLOAT);
    } else if (this->op == ir_samples_identical) {
       assert(type == glsl_type::bool_type);
-      assert(sampler->type->base_type == GLSL_TYPE_SAMPLER);
+      assert(sampler->type->is_sampler());
       assert(sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_MS);
    } else {
       assert(sampler->type->sampled_type == (int) type->base_type);
@@ -1738,7 +1738,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.fb_fetch_output = false;
 
    if (type != NULL) {
-      if (type->base_type == GLSL_TYPE_SAMPLER)
+      if (type->is_sampler())
          this->data.read_only = true;
 
       if (type->is_interface())

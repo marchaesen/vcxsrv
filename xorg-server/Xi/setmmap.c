@@ -70,7 +70,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXSetDeviceModifierMapping(ClientPtr client)
 {
     REQUEST(xSetDeviceModifierMappingReq);
@@ -135,7 +135,7 @@ ProcXSetDeviceModifierMapping(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXSetDeviceModifierMapping(ClientPtr client, int size,
                               xSetDeviceModifierMappingReply * rep)
 {

@@ -193,6 +193,26 @@ fi
 AC_CHECK_MEMBERS([struct dirent.d_type],,,
 	[#include <dirent.h>])
 
+# Check the argument type of the gperf hash/lookup function
+AC_MSG_CHECKING([The type of len parameter of gperf hash/lookup function])
+fc_gperf_test="$(echo 'foo' | gperf -L ANSI-C)"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+	#include <string.h>
+
+	const char *in_word_set(register const char *, register size_t);
+	$fc_gperf_test
+	]])], [FC_GPERF_SIZE_T=size_t],
+	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+		#include <string.h>
+
+		const char *in_word_set(register const char *, register unsigned int);
+		$fc_gperf_test
+	]])], [FC_GPERF_SIZE_T="unsigned int"],
+	[AC_MSG_ERROR([Unable to determine the type of the len parameter of the gperf hash/lookup function])]
+)])
+AC_DEFINE_UNQUOTED(FC_GPERF_SIZE_T, $FC_GPERF_SIZE_T, [The type of len parameter of the gperf hash/lookup function])
+AC_MSG_RESULT($FC_GPERF_SIZE_T)
+
 #
 # Checks for iconv
 #

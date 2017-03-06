@@ -634,7 +634,7 @@ ProcDRI2Dispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcDRI2Connect(ClientPtr client)
 {
     REQUEST(xDRI2ConnectReq);
@@ -659,7 +659,7 @@ SProcDRI2Connect(ClientPtr client)
     return Success;
 }
 
-static int
+static int _X_COLD
 SProcDRI2Dispatch(ClientPtr client)
 {
     REQUEST(xReq);

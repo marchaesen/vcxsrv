@@ -98,15 +98,16 @@ static void
 busfault_sigaction(int sig, siginfo_t *info, void *param)
 {
     void                *fault = info->si_addr;
-    struct busfault     *busfault = NULL;
+    struct busfault     *iter, *busfault = NULL;
     void                *new_addr;
 
     /* Locate the faulting address in our list of shared segments
      */
-    xorg_list_for_each_entry(busfault, &busfaults, list) {
-        if ((char *) busfault->addr <= (char *) fault && (char *) fault < (char *) busfault->addr + busfault->size) {
-            break;
-        }
+    xorg_list_for_each_entry(iter, &busfaults, list) {
+	if ((char *) iter->addr <= (char *) fault && (char *) fault < (char *) iter->addr + iter->size) {
+	    busfault = iter;
+	    break;
+	}
     }
     if (!busfault)
         goto panic;
@@ -132,7 +133,7 @@ panic:
     if (previous_busfault_sigaction)
         (*previous_busfault_sigaction)(sig, info, param);
     else
-        FatalError("bus error");
+        FatalError("bus error\n");
 }
 
 Bool

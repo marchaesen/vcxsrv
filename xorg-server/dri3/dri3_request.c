@@ -319,7 +319,7 @@ proc_dri3_dispatch(ClientPtr client)
     return (*proc_dri3_vector[stuff->data]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_dri3_query_version(ClientPtr client)
 {
     REQUEST(xDRI3QueryVersionReq);
@@ -331,7 +331,7 @@ sproc_dri3_query_version(ClientPtr client)
     return (*proc_dri3_vector[stuff->dri3ReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_dri3_open(ClientPtr client)
 {
     REQUEST(xDRI3OpenReq);
@@ -343,7 +343,7 @@ sproc_dri3_open(ClientPtr client)
     return (*proc_dri3_vector[stuff->dri3ReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_dri3_pixmap_from_buffer(ClientPtr client)
 {
     REQUEST(xDRI3PixmapFromBufferReq);
@@ -359,7 +359,7 @@ sproc_dri3_pixmap_from_buffer(ClientPtr client)
     return (*proc_dri3_vector[stuff->dri3ReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_dri3_buffer_from_pixmap(ClientPtr client)
 {
     REQUEST(xDRI3BufferFromPixmapReq);
@@ -370,7 +370,7 @@ sproc_dri3_buffer_from_pixmap(ClientPtr client)
     return (*proc_dri3_vector[stuff->dri3ReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_dri3_fence_from_fd(ClientPtr client)
 {
     REQUEST(xDRI3FenceFromFDReq);
@@ -382,7 +382,7 @@ sproc_dri3_fence_from_fd(ClientPtr client)
     return (*proc_dri3_vector[stuff->dri3ReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_dri3_fd_from_fence(ClientPtr client)
 {
     REQUEST(xDRI3FDFromFenceReq);
@@ -403,7 +403,7 @@ int (*sproc_dri3_vector[DRI3NumberRequests]) (ClientPtr) = {
     sproc_dri3_fd_from_fence,           /* 5 */
 };
 
-int
+int _X_COLD
 sproc_dri3_dispatch(ClientPtr client)
 {
     REQUEST(xReq);

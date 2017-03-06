@@ -52,7 +52,7 @@
  *
  */
 
-int
+int _X_COLD
 SProcXIWarpPointer(ClientPtr client)
 {
     REQUEST(xXIWarpPointerReq);

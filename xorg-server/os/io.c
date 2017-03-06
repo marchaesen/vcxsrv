@@ -116,7 +116,6 @@ static OsCommPtr AvailableInput = (OsCommPtr) NULL;
 				  lswapl(((xBigReq *)(req))->length) : \
 				  ((xBigReq *)(req))->length)
 
-#define MAX_TIMES_PER         10
 #define BUFSIZE 16384
 #define BUFWATERMARK 32768
 
@@ -651,6 +650,9 @@ WriteToClient(ClientPtr who, int count, const void *__buf)
     ConnectionOutputPtr oco;
     int padBytes;
     const char *buf = __buf;
+
+    BUG_RETURN_VAL_MSG(in_input_thread(), 0,
+                       "******** %s called from input thread *********\n", __func__);
 
 #ifdef DEBUG_COMMUNICATION
     Bool multicount = FALSE;

@@ -45,7 +45,7 @@ st_GetSamplePosition(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
 
-   st_validate_state(st, ST_PIPELINE_RENDER);
+   st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
 
    if (st->pipe->get_sample_position)
       st->pipe->get_sample_position(st->pipe,

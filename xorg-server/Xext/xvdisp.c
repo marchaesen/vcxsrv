@@ -1115,7 +1115,7 @@ ProcXvDispatch(ClientPtr client)
 
 /* Swapped Procs */
 
-static int
+static int _X_COLD
 SProcXvQueryExtension(ClientPtr client)
 {
     REQUEST(xvQueryExtensionReq);
@@ -1124,7 +1124,7 @@ SProcXvQueryExtension(ClientPtr client)
     return XvProcVector[xv_QueryExtension] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvQueryAdaptors(ClientPtr client)
 {
     REQUEST(xvQueryAdaptorsReq);
@@ -1134,7 +1134,7 @@ SProcXvQueryAdaptors(ClientPtr client)
     return XvProcVector[xv_QueryAdaptors] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvQueryEncodings(ClientPtr client)
 {
     REQUEST(xvQueryEncodingsReq);
@@ -1144,7 +1144,7 @@ SProcXvQueryEncodings(ClientPtr client)
     return XvProcVector[xv_QueryEncodings] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvGrabPort(ClientPtr client)
 {
     REQUEST(xvGrabPortReq);
@@ -1155,7 +1155,7 @@ SProcXvGrabPort(ClientPtr client)
     return XvProcVector[xv_GrabPort] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvUngrabPort(ClientPtr client)
 {
     REQUEST(xvUngrabPortReq);
@@ -1166,7 +1166,7 @@ SProcXvUngrabPort(ClientPtr client)
     return XvProcVector[xv_UngrabPort] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvPutVideo(ClientPtr client)
 {
     REQUEST(xvPutVideoReq);
@@ -1186,7 +1186,7 @@ SProcXvPutVideo(ClientPtr client)
     return XvProcVector[xv_PutVideo] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvPutStill(ClientPtr client)
 {
     REQUEST(xvPutStillReq);
@@ -1206,7 +1206,7 @@ SProcXvPutStill(ClientPtr client)
     return XvProcVector[xv_PutStill] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvGetVideo(ClientPtr client)
 {
     REQUEST(xvGetVideoReq);
@@ -1226,7 +1226,7 @@ SProcXvGetVideo(ClientPtr client)
     return XvProcVector[xv_GetVideo] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvGetStill(ClientPtr client)
 {
     REQUEST(xvGetStillReq);
@@ -1246,7 +1246,7 @@ SProcXvGetStill(ClientPtr client)
     return XvProcVector[xv_GetStill] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvPutImage(ClientPtr client)
 {
     REQUEST(xvPutImageReq);
@@ -1270,7 +1270,7 @@ SProcXvPutImage(ClientPtr client)
 }
 
 #ifdef MITSHM
-static int
+static int _X_COLD
 SProcXvShmPutImage(ClientPtr client)
 {
     REQUEST(xvShmPutImageReq);
@@ -1298,7 +1298,7 @@ SProcXvShmPutImage(ClientPtr client)
 #define SProcXvShmPutImage ProcXvShmPutImage
 #endif
 
-static int
+static int _X_COLD
 SProcXvSelectVideoNotify(ClientPtr client)
 {
     REQUEST(xvSelectVideoNotifyReq);
@@ -1308,7 +1308,7 @@ SProcXvSelectVideoNotify(ClientPtr client)
     return XvProcVector[xv_SelectVideoNotify] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvSelectPortNotify(ClientPtr client)
 {
     REQUEST(xvSelectPortNotifyReq);
@@ -1318,7 +1318,7 @@ SProcXvSelectPortNotify(ClientPtr client)
     return XvProcVector[xv_SelectPortNotify] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvStopVideo(ClientPtr client)
 {
     REQUEST(xvStopVideoReq);
@@ -1329,7 +1329,7 @@ SProcXvStopVideo(ClientPtr client)
     return XvProcVector[xv_StopVideo] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvSetPortAttribute(ClientPtr client)
 {
     REQUEST(xvSetPortAttributeReq);
@@ -1341,7 +1341,7 @@ SProcXvSetPortAttribute(ClientPtr client)
     return XvProcVector[xv_SetPortAttribute] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvGetPortAttribute(ClientPtr client)
 {
     REQUEST(xvGetPortAttributeReq);
@@ -1352,7 +1352,7 @@ SProcXvGetPortAttribute(ClientPtr client)
     return XvProcVector[xv_GetPortAttribute] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvQueryBestSize(ClientPtr client)
 {
     REQUEST(xvQueryBestSizeReq);
@@ -1366,7 +1366,7 @@ SProcXvQueryBestSize(ClientPtr client)
     return XvProcVector[xv_QueryBestSize] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvQueryPortAttributes(ClientPtr client)
 {
     REQUEST(xvQueryPortAttributesReq);
@@ -1376,7 +1376,7 @@ SProcXvQueryPortAttributes(ClientPtr client)
     return XvProcVector[xv_QueryPortAttributes] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvQueryImageAttributes(ClientPtr client)
 {
     REQUEST(xvQueryImageAttributesReq);
@@ -1389,7 +1389,7 @@ SProcXvQueryImageAttributes(ClientPtr client)
     return XvProcVector[xv_QueryImageAttributes] (client);
 }
 
-static int
+static int _X_COLD
 SProcXvListImageFormats(ClientPtr client)
 {
     REQUEST(xvListImageFormatsReq);
@@ -1419,7 +1419,7 @@ SProcXvQueryExtension,
         SProcXvListImageFormats,
         SProcXvQueryImageAttributes, SProcXvPutImage, SProcXvShmPutImage,};
 
-int
+int _X_COLD
 SProcXvDispatch(ClientPtr client)
 {
     REQUEST(xReq);

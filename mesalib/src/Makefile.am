@@ -75,6 +75,16 @@ endif
 # include only conditionally ?
 SUBDIRS += compiler
 
+## Optionally required by GBM, EGL and Vulkan
+if HAVE_PLATFORM_WAYLAND
+SUBDIRS += egl/wayland/wayland-drm
+endif
+
+if HAVE_VULKAN_COMMON
+SUBDIRS += vulkan
+endif
+EXTRA_DIST += vulkan/registry/vk.xml
+
 if HAVE_AMD_DRIVERS
 SUBDIRS += amd
 endif
@@ -91,11 +101,6 @@ SUBDIRS += loader
 
 if HAVE_DRI_GLX
 SUBDIRS += glx
-endif
-
-## Optionally required by GBM and EGL
-if HAVE_PLATFORM_WAYLAND
-SUBDIRS += egl/wayland/wayland-drm
 endif
 
 ## Optionally required by EGL (aka PLATFORM_GBM)
@@ -115,11 +120,6 @@ endif
 if HAVE_INTEL_DRIVERS
 SUBDIRS += intel/tools
 endif
-
-if HAVE_VULKAN_COMMON
-SUBDIRS += vulkan/wsi
-endif
-EXTRA_DIST += vulkan/registry/vk.xml
 
 ## Requires the i965 compiler (part of mesa) and wayland-drm
 if HAVE_INTEL_VULKAN

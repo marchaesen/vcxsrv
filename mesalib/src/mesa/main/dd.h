@@ -780,6 +780,47 @@ struct dd_function_table {
    /*@}*/
 
    /**
+    * \name Performance Query objects
+    */
+   /*@{*/
+   unsigned (*InitPerfQueryInfo)(struct gl_context *ctx);
+   void (*GetPerfQueryInfo)(struct gl_context *ctx,
+                            unsigned queryIndex,
+                            const char **name,
+                            GLuint *dataSize,
+                            GLuint *numCounters,
+                            GLuint *numActive);
+   void (*GetPerfCounterInfo)(struct gl_context *ctx,
+                              unsigned queryIndex,
+                              unsigned counterIndex,
+                              const char **name,
+                              const char **desc,
+                              GLuint *offset,
+                              GLuint *data_size,
+                              GLuint *type_enum,
+                              GLuint *data_type_enum,
+                              GLuint64 *raw_max);
+   struct gl_perf_query_object * (*NewPerfQueryObject)(struct gl_context *ctx,
+                                                       unsigned queryIndex);
+   void (*DeletePerfQuery)(struct gl_context *ctx,
+                           struct gl_perf_query_object *obj);
+   bool (*BeginPerfQuery)(struct gl_context *ctx,
+                          struct gl_perf_query_object *obj);
+   void (*EndPerfQuery)(struct gl_context *ctx,
+                        struct gl_perf_query_object *obj);
+   void (*WaitPerfQuery)(struct gl_context *ctx,
+                         struct gl_perf_query_object *obj);
+   bool (*IsPerfQueryReady)(struct gl_context *ctx,
+                            struct gl_perf_query_object *obj);
+   void (*GetPerfQueryData)(struct gl_context *ctx,
+                            struct gl_perf_query_object *obj,
+                            GLsizei dataSize,
+                            GLuint *data,
+                            GLuint *bytesWritten);
+   /*@}*/
+
+
+   /**
     * \name GREMEDY debug/marker functions
     */
    /*@{*/

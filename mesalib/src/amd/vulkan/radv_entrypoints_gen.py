@@ -25,6 +25,22 @@
 import sys
 import xml.etree.ElementTree as ET
 
+max_api_version = 1.0
+
+supported_extensions = [
+   'VK_AMD_draw_indirect_count',
+   'VK_NV_dedicated_allocation',
+   'VK_KHR_get_physical_device_properties2',
+   'VK_KHR_maintenance1',
+   'VK_KHR_sampler_mirror_clamp_to_edge',
+   'VK_KHR_shader_draw_parameters',
+   'VK_KHR_surface',
+   'VK_KHR_swapchain',
+   'VK_KHR_wayland_surface',
+   'VK_KHR_xcb_surface',
+   'VK_KHR_xlib_surface',
+]
+
 # We generate a static hash table for entry point lookup
 # (vkGetProcAddress). We use a linear congruential generator for our hash
 # function and a power-of-two size table. The prime numbers are determined
@@ -66,10 +82,32 @@ elif (sys.argv[1] == "code"):
 # Extract the entry points from the registry
 def get_entrypoints(doc, entrypoints_to_defines):
     entrypoints = []
-    commands = doc.findall('./commands/command')
-    for i, command in enumerate(commands):
+
+    enabled_commands = set()
+    for feature in doc.findall('./feature'):
+        assert feature.attrib['api'] == 'vulkan'
+        if float(feature.attrib['number']) > max_api_version:
+            continue
+
+        for command in feature.findall('./require/command'):
+            enabled_commands.add(command.attrib['name'])
+
+    for extension in doc.findall('.extensions/extension'):
+        if extension.attrib['name'] not in supported_extensions:
+            continue
+
+        assert extension.attrib['supported'] == 'vulkan'
+        for command in extension.findall('./require/command'):
+            enabled_commands.add(command.attrib['name'])
+
+    index = 0
+    for command in doc.findall('./commands/command'):
         type = command.find('./proto/type').text
         fullname = command.find('./proto/name').text
+
+        if fullname not in enabled_commands:
+            continue
+
         shortname = fullname[2:]
         params = map(lambda p: "".join(p.itertext()), command.findall('./param'))
         params = ', '.join(params)
@@ -77,7 +115,9 @@ def get_entrypoints(doc, entrypoints_to_defines):
             guard = entrypoints_to_defines[fullname]
         else:
             guard = None
-        entrypoints.append((type, shortname, params, i, hash(fullname), guard))
+        entrypoints.append((type, shortname, params, index, hash(fullname), guard))
+        index += 1
+
     return entrypoints
 
 # Maps entry points to extension defines
@@ -203,7 +243,7 @@ for layer in [ "radv" ]:
 
 print """
 
-void * __attribute__ ((noinline))
+static void * __attribute__ ((noinline))
 radv_resolve_entrypoint(uint32_t index)
 {
    return radv_layer.entrypoints[index];

@@ -535,7 +535,8 @@ static int radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 						int queue_idx,
 						struct radeon_winsys_cs **cs_array,
 						unsigned cs_count,
-						struct radeon_winsys_cs *preamble_cs,
+						struct radeon_winsys_cs *initial_preamble_cs,
+						struct radeon_winsys_cs *continue_preamble_cs,
 						struct radeon_winsys_fence *_fence)
 {
 	int r;
@@ -568,7 +569,7 @@ static int radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 		}
 	}
 
-	r = radv_amdgpu_create_bo_list(cs0->ws, cs_array, cs_count, NULL, preamble_cs, &bo_list);
+	r = radv_amdgpu_create_bo_list(cs0->ws, cs_array, cs_count, NULL, initial_preamble_cs, &bo_list);
 	if (r) {
 		fprintf(stderr, "amdgpu: Failed to created the BO list for submission\n");
 		return r;
@@ -580,11 +581,11 @@ static int radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 	request.ibs = &cs0->ib;
 	request.resources = bo_list;
 
-	if (preamble_cs) {
+	if (initial_preamble_cs) {
 		request.ibs = ibs;
 		request.number_of_ibs = 2;
 		ibs[1] = cs0->ib;
-		ibs[0] = ((struct radv_amdgpu_cs*)preamble_cs)->ib;
+		ibs[0] = ((struct radv_amdgpu_cs*)initial_preamble_cs)->ib;
 	}
 
 	r = amdgpu_cs_submit(ctx->ctx, 0, &request, 1);
@@ -610,7 +611,8 @@ static int radv_amdgpu_winsys_cs_submit_fallback(struct radeon_winsys_ctx *_ctx,
 						 int queue_idx,
 						 struct radeon_winsys_cs **cs_array,
 						 unsigned cs_count,
-						 struct radeon_winsys_cs *preamble_cs,
+						 struct radeon_winsys_cs *initial_preamble_cs,
+						 struct radeon_winsys_cs *continue_preamble_cs,
 						 struct radeon_winsys_fence *_fence)
 {
 	int r;
@@ -624,6 +626,7 @@ static int radv_amdgpu_winsys_cs_submit_fallback(struct radeon_winsys_ctx *_ctx,
 	for (unsigned i = 0; i < cs_count;) {
 		struct radv_amdgpu_cs *cs0 = radv_amdgpu_cs(cs_array[i]);
 		struct amdgpu_cs_ib_info ibs[AMDGPU_CS_MAX_IBS_PER_SUBMIT];
+		struct radeon_winsys_cs *preamble_cs = i ? continue_preamble_cs : initial_preamble_cs;
 		unsigned cnt = MIN2(AMDGPU_CS_MAX_IBS_PER_SUBMIT - !!preamble_cs,
 		                    cs_count - i);
 
@@ -684,7 +687,8 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 					       int queue_idx,
 					       struct radeon_winsys_cs **cs_array,
 					       unsigned cs_count,
-					       struct radeon_winsys_cs *preamble_cs,
+					       struct radeon_winsys_cs *initial_preamble_cs,
+					       struct radeon_winsys_cs *continue_preamble_cs,
 					       struct radeon_winsys_fence *_fence)
 {
 	int r;
@@ -704,6 +708,7 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 	for (unsigned i = 0; i < cs_count;) {
 		struct amdgpu_cs_ib_info ib = {0};
 		struct radeon_winsys_bo *bo = NULL;
+		struct radeon_winsys_cs *preamble_cs = i ? continue_preamble_cs : initial_preamble_cs;
 		uint32_t *ptr;
 		unsigned cnt = 0;
 		unsigned size = 0;
@@ -787,7 +792,8 @@ static int radv_amdgpu_winsys_cs_submit(struct radeon_winsys_ctx *_ctx,
 					int queue_idx,
 					struct radeon_winsys_cs **cs_array,
 					unsigned cs_count,
-					struct radeon_winsys_cs *preamble_cs,
+					struct radeon_winsys_cs *initial_preamble_cs,
+					struct radeon_winsys_cs *continue_preamble_cs,
 					struct radeon_winsys_sem **wait_sem,
 					unsigned wait_sem_count,
 					struct radeon_winsys_sem **signal_sem,
@@ -807,13 +813,13 @@ static int radv_amdgpu_winsys_cs_submit(struct radeon_winsys_ctx *_ctx,
 	}
 	if (!cs->ws->use_ib_bos) {
 		ret = radv_amdgpu_winsys_cs_submit_sysmem(_ctx, queue_idx, cs_array,
-							   cs_count, preamble_cs, _fence);
+							   cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
 	} else if (can_patch && cs_count > AMDGPU_CS_MAX_IBS_PER_SUBMIT && false) {
 		ret = radv_amdgpu_winsys_cs_submit_chained(_ctx, queue_idx, cs_array,
-							    cs_count, preamble_cs, _fence);
+							    cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
 	} else {
 		ret = radv_amdgpu_winsys_cs_submit_fallback(_ctx, queue_idx, cs_array,
-							     cs_count, preamble_cs, _fence);
+							     cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
 	}
 
 	for (i = 0; i < signal_sem_count; i++) {

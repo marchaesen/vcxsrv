@@ -986,12 +986,6 @@ ttn_sgt(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
 }
 
 static void
-ttn_clamp(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
-{
-   ttn_move_dest(b, dest, nir_fmin(b, nir_fmax(b, src[0], src[1]), src[2]));
-}
-
-static void
 ttn_xpd(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
 {
    ttn_move_dest_masked(b, dest,
@@ -1539,7 +1533,6 @@ static const nir_op op_trans[TGSI_OPCODE_LAST] = {
    [TGSI_OPCODE_SQRT] = nir_op_fsqrt,
    [TGSI_OPCODE_DP2A] = 0,
    [TGSI_OPCODE_FRC] = nir_op_ffract,
-   [TGSI_OPCODE_CLAMP] = 0,
    [TGSI_OPCODE_FLR] = nir_op_ffloor,
    [TGSI_OPCODE_ROUND] = nir_op_fround_even,
    [TGSI_OPCODE_EX2] = nir_op_fexp2,
@@ -1763,10 +1756,6 @@ ttn_emit_instruction(struct ttn_compile *c)
 
    case TGSI_OPCODE_LIT:
       ttn_lit(b, op_trans[tgsi_op], dest, src);
-      break;
-
-   case TGSI_OPCODE_CLAMP:
-      ttn_clamp(b, op_trans[tgsi_op], dest, src);
       break;
 
    case TGSI_OPCODE_XPD:

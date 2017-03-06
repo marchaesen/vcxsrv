@@ -65,18 +65,13 @@
  */
 void
 _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
-				  struct gl_program *prog)
+                                  struct gl_program *prog)
 {
-   GLbitfield mask = prog->SamplersUsed;
-   struct gl_linked_shader *shader =
-      shProg->_LinkedShaders[_mesa_program_enum_to_shader_stage(prog->Target)];
-
-   assert(shader);
-
    memset(prog->TexturesUsed, 0, sizeof(prog->TexturesUsed));
 
    shProg->SamplersValidated = GL_TRUE;
 
+   GLbitfield mask = prog->SamplersUsed;
    while (mask) {
       const int s = u_bit_scan(&mask);
       GLuint unit = prog->SamplerUnits[s];

@@ -33,8 +33,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-
+#include <fcntl.h>
 #include <poll.h>
+#include <xf86drm.h>
 #include "util/hash_table.h"
 
 #include "wsi_common.h"
@@ -49,6 +50,7 @@
 struct wsi_x11_connection {
    bool has_dri3;
    bool has_present;
+   bool is_proprietary_x11;
 };
 
 struct wsi_x11 {
@@ -59,12 +61,72 @@ struct wsi_x11 {
    struct hash_table *connections;
 };
 
+
+/** wsi_dri3_open
+ *
+ * Wrapper around xcb_dri3_open
+ */
+static int
+wsi_dri3_open(xcb_connection_t *conn,
+	      xcb_window_t root,
+	      uint32_t provider)
+{
+   xcb_dri3_open_cookie_t       cookie;
+   xcb_dri3_open_reply_t        *reply;
+   int                          fd;
+
+   cookie = xcb_dri3_open(conn,
+                          root,
+                          provider);
+
+   reply = xcb_dri3_open_reply(conn, cookie, NULL);
+   if (!reply)
+      return -1;
+
+   if (reply->nfd != 1) {
+      free(reply);
+      return -1;
+   }
+
+   fd = xcb_dri3_open_reply_fds(conn, reply)[0];
+   free(reply);
+   fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+
+   return fd;
+}
+
+static bool
+wsi_x11_check_dri3_compatible(xcb_connection_t *conn, int local_fd)
+{
+   xcb_screen_iterator_t screen_iter =
+      xcb_setup_roots_iterator(xcb_get_setup(conn));
+   xcb_screen_t *screen = screen_iter.data;
+
+   int dri3_fd = wsi_dri3_open(conn, screen->root, None);
+   if (dri3_fd != -1) {
+      char *local_dev = drmGetRenderDeviceNameFromFd(local_fd);
+      char *dri3_dev = drmGetRenderDeviceNameFromFd(dri3_fd);
+      int ret;
+
+      close(dri3_fd);
+
+      ret = strcmp(local_dev, dri3_dev);
+
+      free(local_dev);
+      free(dri3_dev);
+
+      if (ret != 0)
+         return false;
+   }
+   return true;
+}
+
 static struct wsi_x11_connection *
 wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
                           xcb_connection_t *conn)
 {
-   xcb_query_extension_cookie_t dri3_cookie, pres_cookie;
-   xcb_query_extension_reply_t *dri3_reply, *pres_reply;
+   xcb_query_extension_cookie_t dri3_cookie, pres_cookie, amd_cookie, nv_cookie;
+   xcb_query_extension_reply_t *dri3_reply, *pres_reply, *amd_reply, *nv_reply;
 
    struct wsi_x11_connection *wsi_conn =
       vk_alloc(alloc, sizeof(*wsi_conn), 8,
@@ -75,20 +137,43 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
    dri3_cookie = xcb_query_extension(conn, 4, "DRI3");
    pres_cookie = xcb_query_extension(conn, 7, "PRESENT");
 
+   /* We try to be nice to users and emit a warning if they try to use a
+    * Vulkan application on a system without DRI3 enabled.  However, this ends
+    * up spewing the warning when a user has, for example, both Intel
+    * integrated graphics and a discrete card with proprietary drivers and are
+    * running on the discrete card with the proprietary DDX.  In this case, we
+    * really don't want to print the warning because it just confuses users.
+    * As a heuristic to detect this case, we check for a couple of proprietary
+    * X11 extensions.
+    */
+   amd_cookie = xcb_query_extension(conn, 11, "ATIFGLRXDRI");
+   nv_cookie = xcb_query_extension(conn, 10, "NV-CONTROL");
+
    dri3_reply = xcb_query_extension_reply(conn, dri3_cookie, NULL);
    pres_reply = xcb_query_extension_reply(conn, pres_cookie, NULL);
-   if (dri3_reply == NULL || pres_reply == NULL) {
+   amd_reply = xcb_query_extension_reply(conn, amd_cookie, NULL);
+   nv_reply = xcb_query_extension_reply(conn, nv_cookie, NULL);
+   if (!dri3_reply || !pres_reply) {
       free(dri3_reply);
       free(pres_reply);
+      free(amd_reply);
+      free(nv_reply);
       vk_free(alloc, wsi_conn);
       return NULL;
    }
 
    wsi_conn->has_dri3 = dri3_reply->present != 0;
    wsi_conn->has_present = pres_reply->present != 0;
+   wsi_conn->is_proprietary_x11 = false;
+   if (amd_reply && amd_reply->present)
+      wsi_conn->is_proprietary_x11 = true;
+   if (nv_reply && nv_reply->present)
+      wsi_conn->is_proprietary_x11 = true;
 
    free(dri3_reply);
    free(pres_reply);
+   free(amd_reply);
+   free(nv_reply);
 
    return wsi_conn;
 }
@@ -98,6 +183,18 @@ wsi_x11_connection_destroy(const VkAllocationCallbacks *alloc,
                            struct wsi_x11_connection *conn)
 {
    vk_free(alloc, conn);
+}
+
+static bool
+wsi_x11_check_for_dri3(struct wsi_x11_connection *wsi_conn)
+{
+  if (wsi_conn->has_dri3)
+    return true;
+  if (!wsi_conn->is_proprietary_x11) {
+    fprintf(stderr, "vulkan: No DRI3 support detected - required for presentation\n"
+                    "Note: you can probably enable DRI3 in your Xorg config\n");
+  }
+  return false;
 }
 
 static struct wsi_x11_connection *
@@ -255,6 +352,8 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
     struct wsi_device *wsi_device,
     VkAllocationCallbacks *alloc,
     uint32_t                                    queueFamilyIndex,
+    int fd,
+    bool can_handle_different_gpu,
     xcb_connection_t*                           connection,
     xcb_visualid_t                              visual_id)
 {
@@ -264,11 +363,12 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
    if (!wsi_conn)
       return false;
 
-   if (!wsi_conn->has_dri3) {
-      fprintf(stderr, "vulkan: No DRI3 support detected - required for presentation\n");
-      fprintf(stderr, "Note: Buggy applications may crash, if they do please report to vendor\n");
+   if (!wsi_x11_check_for_dri3(wsi_conn))
       return false;
-   }
+
+   if (!can_handle_different_gpu)
+      if (!wsi_x11_check_dri3_compatible(connection, fd))
+         return false;
 
    unsigned visual_depth;
    if (!connection_get_visualtype(connection, visual_id, &visual_depth))
@@ -303,6 +403,8 @@ x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
                         struct wsi_device *wsi_device,
                         const VkAllocationCallbacks *alloc,
                         uint32_t queueFamilyIndex,
+                        int local_fd,
+                        bool can_handle_different_gpu,
                         VkBool32* pSupported)
 {
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
@@ -313,12 +415,14 @@ x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
    if (!wsi_conn)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-   if (!wsi_conn->has_dri3) {
-      fprintf(stderr, "vulkan: No DRI3 support detected - required for presentation\n");
-      fprintf(stderr, "Note: Buggy applications may crash, if they do please report to vendor\n");
+   if (!wsi_x11_check_for_dri3(wsi_conn)) {
       *pSupported = false;
       return VK_SUCCESS;
    }
+
+   if (!can_handle_different_gpu)
+      if (!wsi_x11_check_dri3_compatible(conn, local_fd))
+         return false;
 
    unsigned visual_depth;
    if (!get_visualtype_for_window(conn, window, &visual_depth)) {
@@ -481,7 +585,9 @@ VkResult wsi_create_xlib_surface(const VkAllocationCallbacks *pAllocator,
 
 struct x11_image {
    VkImage image;
+   VkImage linear_image; // for prime
    VkDeviceMemory memory;
+   VkDeviceMemory linear_memory; // for prime
    xcb_pixmap_t                              pixmap;
    bool                                      busy;
    struct xshmfence *                        shm_fence;
@@ -496,7 +602,6 @@ struct x11_swapchain {
    xcb_gc_t                                     gc;
    uint32_t                                     depth;
    VkExtent2D                                   extent;
-   uint32_t                                     image_count;
 
    xcb_present_event_t                          event_id;
    xcb_special_event_t *                        special_event;
@@ -522,13 +627,13 @@ x11_get_images(struct wsi_swapchain *anv_chain,
    VkResult result;
 
    if (pSwapchainImages == NULL) {
-      *pCount = chain->image_count;
+      *pCount = chain->base.image_count;
       return VK_SUCCESS;
    }
 
    result = VK_SUCCESS;
-   ret_count = chain->image_count;
-   if (chain->image_count > *pCount) {
+   ret_count = chain->base.image_count;
+   if (chain->base.image_count > *pCount) {
      ret_count = *pCount;
      result = VK_INCOMPLETE;
    }
@@ -537,6 +642,15 @@ x11_get_images(struct wsi_swapchain *anv_chain,
       pSwapchainImages[i] = chain->images[i].image;
 
    return result;
+}
+
+static void
+x11_get_image_and_linear(struct wsi_swapchain *drv_chain,
+                         int imageIndex, VkImage *image, VkImage *linear_image)
+{
+   struct x11_swapchain *chain = (struct x11_swapchain *)drv_chain;
+   *image = chain->images[imageIndex].image;
+   *linear_image = chain->images[imageIndex].linear_image;
 }
 
 static VkResult
@@ -557,7 +671,7 @@ x11_handle_dri3_present_event(struct x11_swapchain *chain,
    case XCB_PRESENT_EVENT_IDLE_NOTIFY: {
       xcb_present_idle_notify_event_t *idle = (void *) event;
 
-      for (unsigned i = 0; i < chain->image_count; i++) {
+      for (unsigned i = 0; i < chain->base.image_count; i++) {
          if (chain->images[i].pixmap == idle->pixmap) {
             chain->images[i].busy = false;
             if (chain->threaded)
@@ -611,7 +725,7 @@ x11_acquire_next_image_poll_x11(struct x11_swapchain *chain,
    struct pollfd pfds;
    uint64_t atimeout;
    while (1) {
-      for (uint32_t i = 0; i < chain->image_count; i++) {
+      for (uint32_t i = 0; i < chain->base.image_count; i++) {
          if (!chain->images[i].busy) {
             /* We found a non-busy image */
             xshmfence_await(chain->images[i].shm_fence);
@@ -678,7 +792,7 @@ x11_acquire_next_image_from_queue(struct x11_swapchain *chain,
       return chain->status;
    }
 
-   assert(image_index < chain->image_count);
+   assert(image_index < chain->base.image_count);
    xshmfence_await(chain->images[image_index].shm_fence);
 
    *image_index_out = image_index;
@@ -692,7 +806,7 @@ x11_present_to_x11(struct x11_swapchain *chain, uint32_t image_index,
 {
    struct x11_image *image = &chain->images[image_index];
 
-   assert(image_index < chain->image_count);
+   assert(image_index < chain->base.image_count);
 
    uint32_t options = XCB_PRESENT_OPTION_NONE;
 
@@ -822,6 +936,8 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
    result = chain->base.image_fns->create_wsi_image(device_h,
                                                     pCreateInfo,
                                                     pAllocator,
+                                                    chain->base.needs_linear_copy,
+                                                    false,
                                                     &image->image,
                                                     &image->memory,
                                                     &size,
@@ -830,6 +946,25 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
                                                     &fd);
    if (result != VK_SUCCESS)
       return result;
+
+   if (chain->base.needs_linear_copy) {
+      result = chain->base.image_fns->create_wsi_image(device_h,
+                                                       pCreateInfo,
+                                                       pAllocator,
+                                                       chain->base.needs_linear_copy,
+                                                       true,
+                                                       &image->linear_image,
+                                                       &image->linear_memory,
+                                                       &size,
+                                                       &offset,
+                                                       &row_pitch,
+                                                       &fd);
+      if (result != VK_SUCCESS) {
+         chain->base.image_fns->free_wsi_image(device_h, pAllocator,
+                                               image->image, image->memory);
+         return result;
+      }
+   }
 
    image->pixmap = xcb_generate_id(chain->conn);
 
@@ -871,8 +1006,12 @@ fail_pixmap:
    cookie = xcb_free_pixmap(chain->conn, image->pixmap);
    xcb_discard_reply(chain->conn, cookie.sequence);
 
+   if (chain->base.needs_linear_copy) {
+      chain->base.image_fns->free_wsi_image(device_h, pAllocator,
+                                            image->linear_image, image->linear_memory);
+   }
    chain->base.image_fns->free_wsi_image(device_h, pAllocator,
-                                        image->image, image->memory);
+                                         image->image, image->memory);
 
    return result;
 }
@@ -891,6 +1030,10 @@ x11_image_finish(struct x11_swapchain *chain,
    cookie = xcb_free_pixmap(chain->conn, image->pixmap);
    xcb_discard_reply(chain->conn, cookie.sequence);
 
+   if (chain->base.needs_linear_copy) {
+      chain->base.image_fns->free_wsi_image(chain->base.device, pAllocator,
+                                            image->linear_image, image->linear_memory);
+   }
    chain->base.image_fns->free_wsi_image(chain->base.device, pAllocator,
                                         image->image, image->memory);
 }
@@ -902,7 +1045,7 @@ x11_swapchain_destroy(struct wsi_swapchain *anv_chain,
    struct x11_swapchain *chain = (struct x11_swapchain *)anv_chain;
    xcb_void_cookie_t cookie;
 
-   for (uint32_t i = 0; i < chain->image_count; i++)
+   for (uint32_t i = 0; i < chain->base.image_count; i++)
       x11_image_finish(chain, pAllocator, &chain->images[i]);
 
    if (chain->threaded) {
@@ -929,6 +1072,7 @@ static VkResult
 x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                              VkDevice device,
                              struct wsi_device *wsi_device,
+                             int local_fd,
                              const VkSwapchainCreateInfoKHR *pCreateInfo,
                              const VkAllocationCallbacks* pAllocator,
                              const struct wsi_image_fns *image_fns,
@@ -959,21 +1103,26 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->base.device = device;
    chain->base.destroy = x11_swapchain_destroy;
    chain->base.get_images = x11_get_images;
+   chain->base.get_image_and_linear = x11_get_image_and_linear;
    chain->base.acquire_next_image = x11_acquire_next_image;
    chain->base.queue_present = x11_queue_present;
    chain->base.image_fns = image_fns;
    chain->base.present_mode = pCreateInfo->presentMode;
+   chain->base.image_count = num_images;
    chain->conn = conn;
    chain->window = window;
    chain->depth = geometry->depth;
    chain->extent = pCreateInfo->imageExtent;
-   chain->image_count = num_images;
    chain->send_sbc = 0;
    chain->last_present_msc = 0;
    chain->threaded = false;
    chain->status = VK_SUCCESS;
 
    free(geometry);
+
+   chain->base.needs_linear_copy = false;
+   if (!wsi_x11_check_dri3_compatible(conn, local_fd))
+       chain->base.needs_linear_copy = true;
 
    chain->event_id = xcb_generate_id(chain->conn);
    xcb_present_select_input(chain->conn, chain->event_id, chain->window,
@@ -1003,7 +1152,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    xcb_discard_reply(chain->conn, cookie.sequence);
 
    uint32_t image = 0;
-   for (; image < chain->image_count; image++) {
+   for (; image < chain->base.image_count; image++) {
       result = x11_image_init(device, chain, pCreateInfo, pAllocator,
                               &chain->images[image]);
       if (result != VK_SUCCESS)
@@ -1013,23 +1162,23 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    if (chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR) {
       chain->threaded = true;
 
-      /* Initialize our queues.  We make them image_count + 1 because we will
+      /* Initialize our queues.  We make them base.image_count + 1 because we will
        * occasionally use UINT32_MAX to signal the other thread that an error
        * has occurred and we don't want an overflow.
        */
       int ret;
-      ret = wsi_queue_init(&chain->acquire_queue, chain->image_count + 1);
+      ret = wsi_queue_init(&chain->acquire_queue, chain->base.image_count + 1);
       if (ret) {
          goto fail_init_images;
       }
 
-      ret = wsi_queue_init(&chain->present_queue, chain->image_count + 1);
+      ret = wsi_queue_init(&chain->present_queue, chain->base.image_count + 1);
       if (ret) {
          wsi_queue_destroy(&chain->acquire_queue);
          goto fail_init_images;
       }
 
-      for (unsigned i = 0; i < chain->image_count; i++)
+      for (unsigned i = 0; i < chain->base.image_count; i++)
          wsi_queue_push(&chain->acquire_queue, i);
 
       ret = pthread_create(&chain->queue_manager, NULL,

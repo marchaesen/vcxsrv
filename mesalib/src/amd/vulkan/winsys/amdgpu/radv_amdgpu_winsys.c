@@ -27,6 +27,7 @@
 #include "radv_amdgpu_winsys.h"
 #include "radv_amdgpu_winsys_public.h"
 #include "radv_amdgpu_surface.h"
+#include "radv_debug.h"
 #include "amdgpu_id.h"
 #include "xf86drm.h"
 #include <stdio.h>
@@ -347,7 +348,7 @@ static void radv_amdgpu_winsys_destroy(struct radeon_winsys *rws)
 }
 
 struct radeon_winsys *
-radv_amdgpu_winsys_create(int fd)
+radv_amdgpu_winsys_create(int fd, uint32_t debug_flags)
 {
 	uint32_t drm_major, drm_minor, r;
 	amdgpu_device_handle dev;
@@ -367,7 +368,10 @@ radv_amdgpu_winsys_create(int fd)
 	if (!do_winsys_init(ws, fd))
 		goto winsys_fail;
 
-	ws->debug_all_bos = getenv("RADV_DEBUG_ALL_BOS") ? true : false;
+	ws->debug_all_bos = !!(debug_flags & RADV_DEBUG_ALL_BOS);
+	if (debug_flags & RADV_DEBUG_NO_IBS)
+		ws->use_ib_bos = false;
+
 	LIST_INITHEAD(&ws->global_bo_list);
 	pthread_mutex_init(&ws->global_bo_list_lock, NULL);
 	ws->base.query_info = radv_amdgpu_winsys_query_info;

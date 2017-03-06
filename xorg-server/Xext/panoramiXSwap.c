@@ -47,7 +47,7 @@ Equipment Corporation.
 #include "globals.h"
 #include "panoramiXh.h"
 
-static int
+static int _X_COLD
 SProcPanoramiXQueryVersion(ClientPtr client)
 {
     REQUEST(xPanoramiXQueryVersionReq);
@@ -57,7 +57,7 @@ SProcPanoramiXQueryVersion(ClientPtr client)
     return ProcPanoramiXQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcPanoramiXGetState(ClientPtr client)
 {
     REQUEST(xPanoramiXGetStateReq);
@@ -68,7 +68,7 @@ SProcPanoramiXGetState(ClientPtr client)
     return ProcPanoramiXGetState(client);
 }
 
-static int
+static int _X_COLD
 SProcPanoramiXGetScreenCount(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenCountReq);
@@ -79,7 +79,7 @@ SProcPanoramiXGetScreenCount(ClientPtr client)
     return ProcPanoramiXGetScreenCount(client);
 }
 
-static int
+static int _X_COLD
 SProcPanoramiXGetScreenSize(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenSizeReq);
@@ -91,7 +91,7 @@ SProcPanoramiXGetScreenSize(ClientPtr client)
     return ProcPanoramiXGetScreenSize(client);
 }
 
-static int
+static int _X_COLD
 SProcXineramaIsActive(ClientPtr client)
 {
     REQUEST(xXineramaIsActiveReq);
@@ -101,7 +101,7 @@ SProcXineramaIsActive(ClientPtr client)
     return ProcXineramaIsActive(client);
 }
 
-static int
+static int _X_COLD
 SProcXineramaQueryScreens(ClientPtr client)
 {
     REQUEST(xXineramaQueryScreensReq);
@@ -111,7 +111,7 @@ SProcXineramaQueryScreens(ClientPtr client)
     return ProcXineramaQueryScreens(client);
 }
 
-int
+int _X_COLD
 SProcPanoramiXDispatch(ClientPtr client)
 {
     REQUEST(xReq);

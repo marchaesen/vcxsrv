@@ -162,6 +162,7 @@ EXT(ARB_timer_query                         , ARB_timer_query                   
 EXT(ARB_transform_feedback2                 , ARB_transform_feedback2                , GLL, GLC,  x ,  x , 2010)
 EXT(ARB_transform_feedback3                 , ARB_transform_feedback3                , GLL, GLC,  x ,  x , 2010)
 EXT(ARB_transform_feedback_instanced        , ARB_transform_feedback_instanced       , GLL, GLC,  x ,  x , 2011)
+EXT(ARB_transform_feedback_overflow_query   , ARB_transform_feedback_overflow_query  , GLL, GLC,  x ,  x , 2014)
 EXT(ARB_transpose_matrix                    , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(ARB_uniform_buffer_object               , ARB_uniform_buffer_object              , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_vertex_array_bgra                   , EXT_vertex_array_bgra                  , GLL, GLC,  x ,  x , 2008)

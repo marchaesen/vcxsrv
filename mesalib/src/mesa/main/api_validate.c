@@ -664,7 +664,8 @@ validate_DrawElements_common(struct gl_context *ctx,
     * to have been overlooked.  The body of the spec only explicitly allows
     * the indirect versions.
     */
-   if (_mesa_is_gles3(ctx) && !ctx->Extensions.OES_geometry_shader &&
+   if (_mesa_is_gles3(ctx) &&
+       !_mesa_has_OES_geometry_shader(ctx) &&
        _mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(transform feedback active)", caller);

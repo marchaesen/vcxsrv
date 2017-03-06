@@ -690,7 +690,7 @@ ProcXvMCDispatch(ClientPtr client)
         return BadRequest;
 }
 
-static int
+static int _X_COLD
 SProcXvMCDispatch(ClientPtr client)
 {
     /* We only support local */

@@ -411,33 +411,6 @@ XdmResetCookie(void)
     return 1;
 }
 
-XID
-XdmToID(unsigned short cookie_length, char *cookie)
-{
-    XdmAuthorizationPtr auth;
-    XdmClientAuthPtr client;
-    unsigned char *plain;
-
-    plain = malloc(cookie_length);
-    if (!plain)
-        return (XID) -1;
-    for (auth = xdmAuth; auth; auth = auth->next) {
-        XdmcpUnwrap((unsigned char *) cookie, (unsigned char *) &auth->key,
-                    plain, cookie_length);
-        if ((client =
-             XdmAuthorizationValidate(plain, cookie_length, &auth->rho, NULL,
-                                      NULL)) != NULL) {
-            free(client);
-            free(cookie);
-            free(plain);
-            return auth->id;
-        }
-    }
-    free(cookie);
-    free(plain);
-    return (XID) -1;
-}
-
 int
 XdmFromID(XID id, unsigned short *data_lenp, char **datap)
 {

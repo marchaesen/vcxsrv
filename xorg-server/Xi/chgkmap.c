@@ -69,7 +69,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXChangeDeviceKeyMapping(ClientPtr client)
 {
     unsigned int count;

@@ -28,9 +28,7 @@
 
 #include <new>
 
-extern "C" {
 #include "program/symbol_table.h"
-}
 #include "ir.h"
 
 class symbol_table_entry;

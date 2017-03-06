@@ -129,7 +129,7 @@ ProcXIQueryVersion(ClientPtr client)
 
 /* Swapping routines */
 
-int
+int _X_COLD
 SProcXIQueryVersion(ClientPtr client)
 {
     REQUEST(xXIQueryVersionReq);
@@ -140,7 +140,7 @@ SProcXIQueryVersion(ClientPtr client)
     return (ProcXIQueryVersion(client));
 }
 
-void
+void _X_COLD
 SRepXIQueryVersion(ClientPtr client, int size, xXIQueryVersionReply * rep)
 {
     swaps(&rep->sequenceNumber);

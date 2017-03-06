@@ -2407,13 +2407,13 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
    case GLSL_TYPE_SAMPLER: {
       const unsigned type_idx =
          type->sampler_array + 2 * type->sampler_shadow;
-      const unsigned offset = type->base_type == GLSL_TYPE_SAMPLER ? 0 : 4;
+      const unsigned offset = type->is_sampler() ? 0 : 4;
       assert(type_idx < 4);
       switch (type->sampled_type) {
       case GLSL_TYPE_FLOAT:
          switch (type->sampler_dimensionality) {
          case GLSL_SAMPLER_DIM_1D: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "sampler1D", "sampler1DArray",
               "sampler1DShadow", "sampler1DArrayShadow"
@@ -2444,14 +2444,14 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
             return names[offset + type_idx];
          }
          case GLSL_SAMPLER_DIM_MS: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "sampler2DMS", "sampler2DMSArray", NULL, NULL
             };
             return names[type_idx];
          }
          case GLSL_SAMPLER_DIM_RECT: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "samplerRect", NULL, "samplerRectShadow", NULL
             };
@@ -2465,7 +2465,7 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
             return names[offset + type_idx];
          }
          case GLSL_SAMPLER_DIM_EXTERNAL: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "samplerExternalOES", NULL, NULL, NULL
             };
@@ -2478,7 +2478,7 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
       case GLSL_TYPE_INT:
          switch (type->sampler_dimensionality) {
          case GLSL_SAMPLER_DIM_1D: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "isampler1D", "isampler1DArray", NULL, NULL
             };
@@ -2506,14 +2506,14 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
             return names[offset + type_idx];
          }
          case GLSL_SAMPLER_DIM_MS: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "isampler2DMS", "isampler2DMSArray", NULL, NULL
             };
             return names[type_idx];
          }
          case GLSL_SAMPLER_DIM_RECT: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "isamplerRect", NULL, "isamplerRectShadow", NULL
             };
@@ -2533,7 +2533,7 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
       case GLSL_TYPE_UINT:
          switch (type->sampler_dimensionality) {
          case GLSL_SAMPLER_DIM_1D: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "usampler1D", "usampler1DArray", NULL, NULL
             };
@@ -2561,14 +2561,14 @@ get_type_name_for_precision_qualifier(const glsl_type *type)
             return names[offset + type_idx];
          }
          case GLSL_SAMPLER_DIM_MS: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "usampler2DMS", "usampler2DMSArray", NULL, NULL
             };
             return names[type_idx];
          }
          case GLSL_SAMPLER_DIM_RECT: {
-            assert(type->base_type == GLSL_TYPE_SAMPLER);
+            assert(type->is_sampler());
             static const char *const names[4] = {
               "usamplerRect", NULL, "usamplerRectShadow", NULL
             };
@@ -3256,7 +3256,7 @@ apply_explicit_location(const struct ast_type_qualifier *qual,
       }
 
       /* Check if index was set for the uniform instead of the function */
-      if (qual->flags.q.explicit_index && qual->flags.q.subroutine) {
+      if (qual->flags.q.explicit_index && qual->is_subroutine_decl()) {
          _mesa_glsl_error(loc, state, "an index qualifier can only be "
                           "used with subroutine functions");
          return;
@@ -3510,7 +3510,7 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
          }
       }
    } else if (qual->flags.q.explicit_index) {
-      if (!qual->flags.q.subroutine_def)
+      if (!qual->subroutine_list)
          _mesa_glsl_error(loc, state,
                           "explicit index requires explicit location");
    } else if (qual->flags.q.explicit_component) {
@@ -3589,6 +3589,15 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    }
 
+   if (var->type->contains_sampler()) {
+      if (var->data.mode != ir_var_uniform &&
+          var->data.mode != ir_var_function_in) {
+         _mesa_glsl_error(loc, state, "sampler variables may only be declared "
+                          "as function parameters or uniform-qualified "
+                          "global variables");
+      }
+   }
+
    /* Is the 'layout' keyword used with parameters that allow relaxed checking.
     * Many implementations of GL_ARB_fragment_coord_conventions_enable and some
     * implementations (only Mesa?) GL_ARB_explicit_attrib_location_enable
@@ -3629,11 +3638,7 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
    /* Layout qualifiers for gl_FragDepth, which are enabled by extension
     * AMD_conservative_depth.
     */
-   int depth_layout_count = qual->flags.q.depth_any
-      + qual->flags.q.depth_greater
-      + qual->flags.q.depth_less
-      + qual->flags.q.depth_unchanged;
-   if (depth_layout_count > 0
+   if (qual->flags.q.depth_type
        && !state->is_version(420, 0)
        && !state->AMD_conservative_depth_enable
        && !state->ARB_conservative_depth_enable) {
@@ -3641,27 +3646,30 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
                         "extension GL_AMD_conservative_depth or "
                         "GL_ARB_conservative_depth must be enabled "
                         "to use depth layout qualifiers");
-   } else if (depth_layout_count > 0
+   } else if (qual->flags.q.depth_type
               && strcmp(var->name, "gl_FragDepth") != 0) {
        _mesa_glsl_error(loc, state,
                         "depth layout qualifiers can be applied only to "
                         "gl_FragDepth");
-   } else if (depth_layout_count > 1
-              && strcmp(var->name, "gl_FragDepth") == 0) {
-      _mesa_glsl_error(loc, state,
-                       "at most one depth layout qualifier can be applied to "
-                       "gl_FragDepth");
    }
-   if (qual->flags.q.depth_any)
+
+   switch (qual->depth_type) {
+   case ast_depth_any:
       var->data.depth_layout = ir_depth_layout_any;
-   else if (qual->flags.q.depth_greater)
+      break;
+   case ast_depth_greater:
       var->data.depth_layout = ir_depth_layout_greater;
-   else if (qual->flags.q.depth_less)
+      break;
+   case ast_depth_less:
       var->data.depth_layout = ir_depth_layout_less;
-   else if (qual->flags.q.depth_unchanged)
-       var->data.depth_layout = ir_depth_layout_unchanged;
-   else
-       var->data.depth_layout = ir_depth_layout_none;
+      break;
+   case ast_depth_unchanged:
+      var->data.depth_layout = ir_depth_layout_unchanged;
+      break;
+   default:
+      var->data.depth_layout = ir_depth_layout_none;
+      break;
+   }
 
    if (qual->flags.q.std140 ||
        qual->flags.q.std430 ||
@@ -3734,7 +3742,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    }
 
-   if (qual->flags.q.subroutine && !qual->flags.q.uniform) {
+   if (qual->is_subroutine_decl() && !qual->flags.q.uniform) {
       _mesa_glsl_error(loc, state,
                        "`subroutine' may only be applied to uniforms, "
                        "subroutine type declarations, or function definitions");
@@ -3947,7 +3955,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 }
 
 /**
- * Get the variable that is being redeclared by this declaration
+ * Get the variable that is being redeclared by this declaration or if it
+ * does not exist, the current declared variable.
  *
  * Semantic checks to verify the validity of the redeclaration are also
  * performed.  If semantic checks fail, compilation error will be emitted via
@@ -3955,12 +3964,15 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
  *
  * \returns
  * A pointer to an existing variable in the current scope if the declaration
- * is a redeclaration, \c NULL otherwise.
+ * is a redeclaration, current variable otherwise. \c is_declared boolean
+ * will return \c true if the declaration is a redeclaration, \c false
+ * otherwise.
  */
 static ir_variable *
 get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
                               struct _mesa_glsl_parse_state *state,
-                              bool allow_all_redeclarations)
+                              bool allow_all_redeclarations,
+                              bool *is_redeclaration)
 {
    /* Check if this declaration is actually a re-declaration, either to
     * resize an array or add qualifiers to an existing variable.
@@ -3972,9 +3984,11 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
    if (earlier == NULL ||
        (state->current_function != NULL &&
        !state->symbols->name_declared_this_scope(var->name))) {
-      return NULL;
+      *is_redeclaration = false;
+      return var;
    }
 
+   *is_redeclaration = true;
 
    /* From page 24 (page 30 of the PDF) of the GLSL 1.50 spec,
     *
@@ -4766,7 +4780,7 @@ ast_declarator_list::hir(exec_list *instructions,
          continue;
       }
 
-      if (this->type->qualifier.flags.q.subroutine) {
+      if (this->type->qualifier.is_subroutine_decl()) {
          const glsl_type *t;
          const char *name;
 
@@ -4843,7 +4857,7 @@ ast_declarator_list::hir(exec_list *instructions,
       if ((var->data.mode == ir_var_auto || var->data.mode == ir_var_temporary)
           && (var->type->is_numeric() || var->type->is_boolean())
           && state->zero_init) {
-         const ir_constant_data data = {0};
+         const ir_constant_data data = { { 0 } };
          var->data.has_initializer = true;
          var->constant_initializer = new(var) ir_constant(var->type, &data);
       }
@@ -4865,7 +4879,7 @@ ast_declarator_list::hir(exec_list *instructions,
           */
          if (this->type->qualifier.flags.q.attribute) {
             mode = "attribute";
-         } else if (this->type->qualifier.flags.q.subroutine) {
+         } else if (this->type->qualifier.is_subroutine_decl()) {
             mode = "subroutine uniform";
          } else if (this->type->qualifier.flags.q.uniform) {
             mode = "uniform";
@@ -5203,21 +5217,23 @@ ast_declarator_list::hir(exec_list *instructions,
       /* Examine var name here since var may get deleted in the next call */
       bool var_is_gl_id = is_gl_identifier(var->name);
 
-      ir_variable *earlier =
+      bool is_redeclaration;
+      ir_variable *declared_var =
          get_variable_being_redeclared(var, decl->get_location(), state,
-                                       false /* allow_all_redeclarations */);
-      if (earlier != NULL) {
+                                       false /* allow_all_redeclarations */,
+                                       &is_redeclaration);
+      if (is_redeclaration) {
          if (var_is_gl_id &&
-             earlier->data.how_declared == ir_var_declared_in_block) {
+             declared_var->data.how_declared == ir_var_declared_in_block) {
             _mesa_glsl_error(&loc, state,
                              "`%s' has already been redeclared using "
-                             "gl_PerVertex", earlier->name);
+                             "gl_PerVertex", declared_var->name);
          }
-         earlier->data.how_declared = ir_var_declared_normally;
+         declared_var->data.how_declared = ir_var_declared_normally;
       }
 
       if (decl->initializer != NULL) {
-         result = process_initializer((earlier == NULL) ? var : earlier,
+         result = process_initializer(declared_var,
                                       decl, this->type,
                                       &initializer_instructions, state);
       } else {
@@ -5237,8 +5253,7 @@ ast_declarator_list::hir(exec_list *instructions,
       }
 
       if (state->es_shader) {
-         const glsl_type *const t = (earlier == NULL)
-            ? var->type : earlier->type;
+         const glsl_type *const t = declared_var->type;
 
          /* Skip the unsized array check for TCS/TES/GS inputs & TCS outputs.
           *
@@ -5260,10 +5275,10 @@ ast_declarator_list::hir(exec_list *instructions,
           *     present, as per the following table."
           */
          const bool implicitly_sized =
-            (var->data.mode == ir_var_shader_in &&
+            (declared_var->data.mode == ir_var_shader_in &&
              state->stage >= MESA_SHADER_TESS_CTRL &&
              state->stage <= MESA_SHADER_GEOMETRY) ||
-            (var->data.mode == ir_var_shader_out &&
+            (declared_var->data.mode == ir_var_shader_out &&
              state->stage == MESA_SHADER_TESS_CTRL);
 
          if (t->is_unsized_array() && !implicitly_sized)
@@ -5293,7 +5308,7 @@ ast_declarator_list::hir(exec_list *instructions,
        * semantic checks that must be applied.  In addition, variable that was
        * created for the declaration should be added to the IR stream.
        */
-      if (earlier == NULL) {
+      if (!is_redeclaration) {
          validate_identifier(decl->identifier, loc, state);
 
          /* Add the variable to the symbol table.  Note that the initializer's
@@ -5308,7 +5323,7 @@ ast_declarator_list::hir(exec_list *instructions,
           *     after the initializer if present or immediately after the name
           *     being declared if not."
           */
-         if (!state->symbols->add_variable(var)) {
+         if (!state->symbols->add_variable(declared_var)) {
             YYLTYPE loc = this->get_location();
             _mesa_glsl_error(&loc, state, "name `%s' already taken in the "
                              "current scope", decl->identifier);
@@ -5321,7 +5336,7 @@ ast_declarator_list::hir(exec_list *instructions,
           * global var is decled, then the function is defined with usage of
           * the global var.  See glslparsertest's CorrectModule.frag.
           */
-         instructions->push_head(var);
+         instructions->push_head(declared_var);
       }
 
       instructions->append_list(&initializer_instructions);
@@ -5561,7 +5576,7 @@ ast_function::hir(exec_list *instructions,
     *  "Subroutine declarations cannot be prototyped. It is an error to prepend
     *   subroutine(...) to a function declaration."
     */
-   if (this->return_type->qualifier.flags.q.subroutine_def && !is_definition) {
+   if (this->return_type->qualifier.subroutine_list && !is_definition) {
       YYLTYPE loc = this->get_location();
       _mesa_glsl_error(&loc, state,
                        "function declaration `%s' cannot have subroutine prepended",
@@ -5614,7 +5629,7 @@ ast_function::hir(exec_list *instructions,
    f = state->symbols->get_function(name);
    if (f == NULL) {
       f = new(ctx) ir_function(name);
-      if (!this->return_type->qualifier.flags.q.subroutine) {
+      if (!this->return_type->qualifier.is_subroutine_decl()) {
          if (!state->symbols->add_function(f)) {
             /* This function name shadows a non-function use of the same name. */
             YYLTYPE loc = this->get_location();
@@ -5709,7 +5724,7 @@ ast_function::hir(exec_list *instructions,
    sig->replace_parameters(&hir_parameters);
    signature = sig;
 
-   if (this->return_type->qualifier.flags.q.subroutine_def) {
+   if (this->return_type->qualifier.subroutine_list) {
       int idx;
 
       if (this->return_type->qualifier.flags.q.explicit_index) {
@@ -5772,7 +5787,7 @@ ast_function::hir(exec_list *instructions,
 
    }
 
-   if (this->return_type->qualifier.flags.q.subroutine) {
+   if (this->return_type->qualifier.is_subroutine_decl()) {
       if (!state->symbols->add_type(this->identifier, glsl_type::get_subroutine_instance(this->identifier))) {
          _mesa_glsl_error(& loc, state, "type '%s' previously defined", this->identifier);
          return NULL;
@@ -7869,20 +7884,22 @@ ast_interface_block::hir(exec_list *instructions,
          bool var_is_gl_id = is_gl_identifier(var->name);
 
          if (redeclaring_per_vertex) {
-            ir_variable *earlier =
+            bool is_redeclaration;
+            ir_variable *declared_var =
                get_variable_being_redeclared(var, loc, state,
-                                             true /* allow_all_redeclarations */);
-            if (!var_is_gl_id || earlier == NULL) {
+                                             true /* allow_all_redeclarations */,
+                                             &is_redeclaration);
+            if (!var_is_gl_id || !is_redeclaration) {
                _mesa_glsl_error(&loc, state,
                                 "redeclaration of gl_PerVertex can only "
                                 "include built-in variables");
-            } else if (earlier->data.how_declared == ir_var_declared_normally) {
+            } else if (declared_var->data.how_declared == ir_var_declared_normally) {
                _mesa_glsl_error(&loc, state,
                                 "`%s' has already been redeclared",
-                                earlier->name);
+                                declared_var->name);
             } else {
-               earlier->data.how_declared = ir_var_declared_in_block;
-               earlier->reinit_interface_type(block_type);
+               declared_var->data.how_declared = ir_var_declared_in_block;
+               declared_var->reinit_interface_type(block_type);
             }
             continue;
          }

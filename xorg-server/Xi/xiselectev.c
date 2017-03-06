@@ -110,7 +110,7 @@ XICheckInvalidMaskBits(ClientPtr client, unsigned char *mask, int len)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXISelectEvents(ClientPtr client)
 {
     int i;
@@ -275,7 +275,7 @@ ProcXISelectEvents(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXIGetSelectedEvents(ClientPtr client)
 {
     REQUEST(xXIGetSelectedEventsReq);

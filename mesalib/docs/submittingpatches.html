@@ -25,6 +25,7 @@
 <li><a href="#reviewing">Reviewing Patches</a>
 <li><a href="#nominations">Nominating a commit for a stable branch</a>
 <li><a href="#criteria">Criteria for accepting patches to the stable branch</a>
+<li><a href="#backports">Sending backports for the stable branch</a>
 <li><a href="#gittips">Git tips</a>
 </ul>
 
@@ -77,6 +78,11 @@ patch comment.  For example:
 <pre>
    Bugzilla: https://bugs.freedesktop.org/show_bug.cgi?id=89689
 </pre>
+<li>If a patch addresses a issue introduced with earlier commit, that should be
+noted in the patch comment.  For example:
+<pre>
+   Fixes: d7b3707c612 "util/disk_cache: use stat() to check if entry is a directory"
+</pre>
 <li>If there have been several revisions to a patch during the review
 process, they should be noted such as in this example:
 <pre>
@@ -114,7 +120,7 @@ them in the CC list.
 Please use common sense and do <strong>not</strong> blindly add everyone.
 <br>
 <pre>
-    $ scripts/get_reviewer.pl --help # to get the the help screen
+    $ scripts/get_reviewer.pl --help # to get the help screen
     $ scripts/get_reviewer.pl -f src/egl/drivers/dri2/platform_android.c
     Rob Herring <robh@kernel.org> (reviewer:ANDROID EGL SUPPORT,added_lines:188/700=27%,removed_lines:58/283=20%)
     Tomasz Figa <tfiga@chromium.org> (reviewer:ANDROID EGL SUPPORT,authored:12/41=29%,added_lines:308/700=44%,removed_lines:115/283=41%)
@@ -232,17 +238,11 @@ Here are some examples of such a note:
 </p>
 <ul>
   <li>CC: &lt;mesa-stable@lists.freedesktop.org&gt;</li>
-  <li>CC: "9.2 10.0" &lt;mesa-stable@lists.freedesktop.org&gt;</li>
-  <li>CC: "10.0" &lt;mesa-stable@lists.freedesktop.org&gt;</li>
 </ul>
 
 Simply adding the CC to the mesa-stable list address is adequate to nominate
-the commit for the most-recently-created stable branch. It is only necessary
-to specify a specific branch name, (such as "9.2 10.0" or "10.0" in the
-examples above), if you want to nominate the commit for an older stable
-branch. And, as in these examples, you can nominate the commit for the older
-branch in addition to the more recent branch, or nominate the commit
-exclusively for the older branch.
+the commit for all the active stable branches. If the commit is not applicable
+for said branch the stable-release manager will reply stating so.
 
 This "CC" syntax for patch nomination will cause patches to automatically be
 copied to the mesa-stable@ mailing list when you use "git send-email" to send
@@ -259,15 +259,53 @@ Thus, drop the line <strong>only</strong> if you want to cancel the nomination.
 <h2 id="criteria">Criteria for accepting patches to the stable branch</h2>
 
 Mesa has a designated release manager for each stable branch, and the release
-manager is the only developer that should be pushing changes to these
-branches. Everyone else should simply nominate patches using the mechanism
-described above.
+manager is the only developer that should be pushing changes to these branches.
+Everyone else should nominate patches using the mechanism described above.
 
-The stable-release manager will work with the list of nominated patches, and
-for each patch that meets the criteria below will cherry-pick the patch with:
-<code>git cherry-pick -x &lt;commit&gt;</code>. The <code>-x</code> option is
-important so that the picked patch references the commit ID of the original
-patch.
+The following rules define which patches are accepted and which are not. The
+stable-release manager is also given broad discretion in rejecting patches
+that have been nominated.
+
+<ul>
+  <li>Patch must conform with the <a href="#guidelines">Basic guidelines</a></li>
+
+  <li>Patch must have landed in master first. In case where the original
+  patch is too large and/or otherwise contradicts with the rules set within, a
+  backport is appropriate.</li>
+
+  <li>It must not introduce a regression - be that build or runtime wise.
+
+  Note:  If the regression is due to faulty piglit/dEQP/CTS/other test the
+  latter must be fixed first. A reference to the offending test(s) and
+  respective fix(es) should be provided in the nominated patch.</li>
+
+  <li>Patch cannot be larger than 100 lines.</li>
+
+  <li>Patches that move code around with no functional change should be
+  rejected.</li>
+
+  <li>Patch must be a bug fix and not a new feature.
+
+  Note: An exception to this rule, are hardware-enabling "features". For
+  example, <a href="#backports">backports</a> of new code to support a
+  newly-developed hardware product can be accepted if they can be reasonably
+  determined not to have effects on other hardware.</li>
+
+  <li>Patch must be reviewed, For example, the commit message has Reviewed-by,
+  Signed-off-by, or Tested-by tags from someone but the author.</li>
+
+  <li>Performance patches are considered only if they provide information
+  about the hardware, program in question and observed improvement. Use numbers
+  to represent your measurements.</li>
+</ul>
+
+If the patch complies with the rules it will be
+<a href="releasing.html#pickntest">cherry-picked</a>. Alternatively the release
+manager will reply to the patch in question stating why the patch has been
+rejected or would request a backport.
+
+A summary of all the picked/rejected patches will be presented in the
+<a href="releasing.html#prerelease">pre-release</a> announcement.
 
 The stable-release manager may at times need to force-push changes to the
 stable branches, for example, to drop a previously-picked patch that was later
@@ -275,71 +313,15 @@ identified as causing a regression). These force-pushes may cause changes to
 be lost from the stable branch if developers push things directly. Consider
 yourself warned.
 
-The stable-release manager is also given broad discretion in rejecting patches
-that have been nominated for the stable branch. The most basic rule is that
-the stable branch is for bug fixes only, (no new features, no
-regressions). Here is a non-exhaustive list of some reasons that a patch may
-be rejected:
-
-<ul>
-  <li>Patch introduces a regression. Any reported build breakage or other
-  regression caused by a particular patch, (game no longer works, piglit test
-  changes from PASS to FAIL), is justification for rejecting a patch.</li>
-
-  <li>Patch is too large, (say, larger than 100 lines)</li>
-
-  <li>Patch is not a fix. For example, a commit that moves code around with no
-  functional change should be rejected.</li>
-
-  <li>Patch fix is not clearly described. For example, a commit message
-  of only a single line, no description of the bug, no mention of bugzilla,
-  etc.</li>
-
-  <li>Patch has not obviously been reviewed, For example, the commit message
-  has no Reviewed-by, Signed-off-by, nor Tested-by tags from anyone but the
-  author.</li>
-
-  <li>Patch has not already been merged to the master branch. As a rule, bug
-  fixes should never be applied first to a stable branch. Patches should land
-  first on the master branch and then be cherry-picked to a stable
-  branch. (This is to avoid future releases causing regressions if the patch
-  is not also applied to master.) The only things that might look like
-  exceptions would be backports of patches from master that happen to look
-  significantly different.</li>
-
-  <li>Patch depends on too many other patches. Ideally, all stable-branch
-  patches should be self-contained. It sometimes occurs that a single, logical
-  bug-fix occurs as two separate patches on master, (such as an original
-  patch, then a subsequent fix-up to that patch). In such a case, these two
-  patches should be squashed into a single, self-contained patch for the
-  stable branch. (Of course, if the squashing makes the patch too large, then
-  that could be a reason to reject the patch.)</li>
-
-  <li>Patch includes new feature development, not bug fixes. New OpenGL
-  features, extensions, etc. should be applied to Mesa master and included in
-  the next major release. Stable releases are intended only for bug fixes.
-
-  Note: As an exception to this rule, the stable-release manager may accept
-  hardware-enabling "features". For example, backports of new code to support
-  a newly-developed hardware product can be accepted if they can be reasonably
-  determined not to have effects on other hardware.</li>
-
-  <li>Patch is a performance optimization. As a rule, performance patches are
-  not candidates for the stable branch. The only exception might be a case
-  where an application's performance was recently severely impacted so as to
-  become unusable. The fix for this performance regression could then be
-  considered for a stable branch. The optimization must also be
-  non-controversial and the patches still need to meet the other criteria of
-  being simple and self-contained</li>
-
-  <li>Patch introduces a new failure mode (such as an assert). While the new
-  assert might technically be correct, for example to make Mesa more
-  conformant, this is not the kind of "bug fix" we want in a stable
-  release. The potential problem here is that an OpenGL program that was
-  previously working, (even if technically non-compliant with the
-  specification), could stop working after this patch. So that would be a
-  regression that is unacceptable for the stable branch.</li>
-</ul>
+<h2 id="backports">Sending backports for the stable branch</h2>
+By default merge conflicts are resolved by the stable-release manager. In which
+case he/she should provide a comment about the changes required, alongside the
+<code>Conflicts</code> section. Summary of which will be provided in the
+<a href="releasing.html#prerelease">pre-release</a> announcement.
+<br>
+Developers are interested in sending backports are recommended to use either a
+<code>[BACKPORT #branch]</code> subject prefix or provides similar information
+within the commit summary.
 
 <h2 id="gittips">Git tips</h2>
 

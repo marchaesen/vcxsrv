@@ -412,49 +412,54 @@ emit_fast_clear_flush(struct radv_cmd_buffer *cmd_buffer,
  */
 void
 radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
-				    struct radv_image *image)
+				    struct radv_image *image,
+				    const VkImageSubresourceRange *subresourceRange)
 {
 	struct radv_meta_saved_state saved_state;
 	struct radv_meta_saved_pass_state saved_pass_state;
 	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
+	uint32_t layer_count = radv_get_layerCount(image, subresourceRange);
 
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
 	radv_meta_save_pass(&saved_pass_state, cmd_buffer);
 	radv_meta_save_graphics_reset_vport_scissor(&saved_state, cmd_buffer);
 
-	struct radv_image_view iview;
-	radv_image_view_init(&iview, cmd_buffer->device,
-			     &(VkImageViewCreateInfo) {
-				     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+	for (uint32_t layer = 0; layer < layer_count; ++layer) {
+		struct radv_image_view iview;
+
+		radv_image_view_init(&iview, cmd_buffer->device,
+				     &(VkImageViewCreateInfo) {
+					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 					     .image = radv_image_to_handle(image),
+					     .viewType = radv_meta_get_view_type(image),
 					     .format = image->vk_format,
 					     .subresourceRange = {
 						     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 						     .baseMipLevel = 0,
 						     .levelCount = 1,
-						     .baseArrayLayer = 0,
+						     .baseArrayLayer = subresourceRange->baseArrayLayer + layer,
 						     .layerCount = 1,
-					     },
+					      },
 				     },
 				     cmd_buffer, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 
-	VkFramebuffer fb_h;
-	radv_CreateFramebuffer(device_h,
-			       &(VkFramebufferCreateInfo) {
-				       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-				       .attachmentCount = 1,
-				       .pAttachments = (VkImageView[]) {
-					       radv_image_view_to_handle(&iview)
-				       },
+		VkFramebuffer fb_h;
+		radv_CreateFramebuffer(device_h,
+				&(VkFramebufferCreateInfo) {
+					.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+					.attachmentCount = 1,
+					.pAttachments = (VkImageView[]) {
+						radv_image_view_to_handle(&iview)
+					},
 				       .width = image->extent.width,
 				       .height = image->extent.height,
 				       .layers = 1
-			      },
-			      &cmd_buffer->pool->alloc,
-			      &fb_h);
+				},
+				&cmd_buffer->pool->alloc,
+				&fb_h);
 
-	radv_CmdBeginRenderPass(cmd_buffer_h,
+		radv_CmdBeginRenderPass(cmd_buffer_h,
 				      &(VkRenderPassBeginInfo) {
 					      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 						      .renderPass = cmd_buffer->device->meta_state.fast_clear_flush.pass,
@@ -474,14 +479,15 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 				     },
 				     VK_SUBPASS_CONTENTS_INLINE);
 
-	emit_fast_clear_flush(cmd_buffer,
-			      &(VkExtent2D) { image->extent.width, image->extent.height },
-			      image->fmask.size > 0);
-	radv_CmdEndRenderPass(cmd_buffer_h);
+		emit_fast_clear_flush(cmd_buffer,
+				      &(VkExtent2D) { image->extent.width, image->extent.height },
+				      image->fmask.size > 0);
+		radv_CmdEndRenderPass(cmd_buffer_h);
 
-	radv_DestroyFramebuffer(device_h, fb_h,
-				&cmd_buffer->pool->alloc);
+		radv_DestroyFramebuffer(device_h, fb_h,
+					&cmd_buffer->pool->alloc);
 
+	}
 	radv_meta_restore(&saved_state, cmd_buffer);
 	radv_meta_restore_pass(&saved_pass_state, cmd_buffer);
 }

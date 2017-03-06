@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXGetDeviceControl(ClientPtr client)
 {
     REQUEST(xGetDeviceControlReq);
@@ -153,7 +153,7 @@ CopySwapDeviceEnable(ClientPtr client, DeviceIntPtr dev, char *buf)
  *
  */
 
-void
+void _X_COLD
 SRepXGetDeviceControl(ClientPtr client, int size, xGetDeviceControlReply * rep)
 {
     swaps(&rep->sequenceNumber);

@@ -99,6 +99,7 @@ XSHMFENCE_REQUIRED=1.1
 XVMC_REQUIRED=1.0.6
 PYTHON_MAKO_REQUIRED=0.8.0
 LIBSENSORS_REQUIRED=4.0.0
+ZLIB_REQUIRED=1.2.8
 
 dnl LLVM versions
 LLVM_REQUIRED_GALLIUM=3.3.0
@@ -106,7 +107,7 @@ LLVM_REQUIRED_OPENCL=3.6.0
 LLVM_REQUIRED_R600=3.6.0
 LLVM_REQUIRED_RADEONSI=3.6.0
 LLVM_REQUIRED_RADV=3.9.0
-LLVM_REQUIRED_SWR=3.6.0
+LLVM_REQUIRED_SWR=3.9.0
 
 dnl Check for progs
 AC_PROG_CPP
@@ -783,6 +784,9 @@ esac
 
 dnl See if posix_memalign is available
 AC_CHECK_FUNC([posix_memalign], [DEFINES="$DEFINES -DHAVE_POSIX_MEMALIGN"])
+
+dnl Check for zlib
+PKG_CHECK_MODULES([ZLIB], [zlib >= $ZLIB_REQUIRED])
 
 dnl Check for pthreads
 AX_PTHREAD
@@ -2033,6 +2037,20 @@ if test "x$enable_opencl" = xyes; then
        AC_MSG_ERROR([Clover requires libelf])
     fi
 
+    if test "x${ac_cv_cxx_compiler_gnu}" = xyes; then
+        altivec_enabled=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+        #if !defined(__VEC__) || !defined(__ALTIVEC__)
+        #error "AltiVec not enabled"
+        #endif
+        ])], altivec_enabled=yes)
+
+        if test "$altivec_enabled" = yes; then
+            CLOVER_STD_OVERRIDE="-std=gnu++11"
+        fi
+        AC_SUBST([CLOVER_STD_OVERRIDE])
+    fi
+
     llvm_require_version $LLVM_REQUIRED_OPENCL "opencl"
 
     llvm_add_default_components "opencl"
@@ -2297,7 +2315,7 @@ if test -n "$with_gallium_drivers"; then
             HAVE_GALLIUM_R600=yes
             PKG_CHECK_MODULES([RADEON], [libdrm >= $LIBDRM_RADEON_REQUIRED libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             require_libdrm "r600"
-            if test "x$enable_opencl" = xyes; then
+            if test "x$enable_llvm" = xyes; then
                 radeon_llvm_check $LLVM_REQUIRED_R600 "r600"
 
                 llvm_add_component "asmparser" "r600"
@@ -2310,7 +2328,9 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([AMDGPU], [libdrm >= $LIBDRM_AMDGPU_REQUIRED libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             require_libdrm "radeonsi"
             radeon_llvm_check $LLVM_REQUIRED_RADEONSI "radeonsi"
-            require_basic_egl "radeonsi"
+            if test "x$enable_egl" = xyes; then
+                require_basic_egl "radeonsi"
+            fi
             ;;
         xnouveau)
             HAVE_GALLIUM_NOUVEAU=yes
@@ -2691,7 +2711,7 @@ AC_CONFIG_FILES([Makefile
 		src/mesa/main/tests/Makefile
 		src/util/Makefile
 		src/util/tests/hash_table/Makefile
-		src/vulkan/wsi/Makefile])
+		src/vulkan/Makefile])
 
 AC_OUTPUT
 

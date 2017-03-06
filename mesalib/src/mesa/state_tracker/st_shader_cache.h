@@ -1,7 +1,5 @@
 /*
- * Mesa 3-D graphics library
- *
- * Copyright (C) 2010 LunarG Inc.
+ * Copyright © 2017 Timothy Arceri
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -10,8 +8,9 @@
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -20,44 +19,28 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
- * Authors:
- *    Chia-I Wu <olv@lunarg.com>
  */
 
-#ifndef _MAPI_H_
-#define _MAPI_H_
+#include "st_context.h"
+#include "compiler/glsl/blob.h"
+#include "main/mtypes.h"
+#include "pipe/p_state.h"
+#include "util/disk_cache.h"
+#include "util/mesa-sha1.h"
 
-#ifdef _WIN32
-#ifdef MAPI_DLL_EXPORTS
-#define MAPI_EXPORT __declspec(dllexport)
-#else
-#define MAPI_EXPORT __declspec(dllimport)
-#endif
-#else /* _WIN32 */
-#define MAPI_EXPORT PUBLIC
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-typedef void (*mapi_proc)(void);
+bool
+st_load_tgsi_from_disk_cache(struct gl_context *ctx,
+                             struct gl_shader_program *prog);
 
-struct mapi_table;
+void
+st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
+                            struct pipe_shader_state *out_state,
+                            unsigned num_tokens);
 
-MAPI_EXPORT void
-mapi_init(const char *spec);
-
-MAPI_EXPORT mapi_proc
-mapi_get_proc_address(const char *name);
-
-MAPI_EXPORT struct mapi_table *
-mapi_table_create(void);
-
-MAPI_EXPORT void
-mapi_table_destroy(struct mapi_table *tbl);
-
-MAPI_EXPORT void
-mapi_table_fill(struct mapi_table *tbl, const mapi_proc *procs);
-
-MAPI_EXPORT void
-mapi_table_make_current(const struct mapi_table *tbl);
-
-#endif /* _MAPI_H_ */
+#ifdef __cplusplus
+}
+#endif

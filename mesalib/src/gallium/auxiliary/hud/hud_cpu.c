@@ -214,8 +214,6 @@ hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index)
    info = gr->query_data;
    info->cpu_index = cpu_index;
 
-   hud_graph_set_dump_file(gr);
-
    hud_pane_add_graph(pane, gr);
    hud_pane_set_max_value(pane, 100);
 }
@@ -246,10 +244,16 @@ query_api_thread_busy_status(struct hud_graph *gr)
    if (info->last_time) {
       if (info->last_time + gr->pane->period*1000 <= now) {
          int64_t thread_now = pipe_current_thread_get_time_nano();
+         unsigned percent = (thread_now - info->last_thread_time) * 100 /
+                            (now - info->last_time);
 
-         hud_graph_add_value(gr,
-                             (thread_now - info->last_thread_time) * 100 /
-                             (now - info->last_time));
+         /* Check if the context changed a thread, so that we don't show
+          * a random value. When a thread is changed, the new thread clock
+          * is different, which can result in "percent" being very high.
+          */
+         if (percent > 100)
+            percent = 0;
+         hud_graph_add_value(gr, percent);
 
          info->last_thread_time = thread_now;
          info->last_time = now;
@@ -284,8 +288,6 @@ hud_api_thread_busy_install(struct hud_pane *pane)
     * memory debugger.  Use simple free_query_data() wrapper.
     */
    gr->free_query_data = free_query_data;
-
-   hud_graph_set_dump_file(gr);
 
    hud_pane_add_graph(pane, gr);
    hud_pane_set_max_value(pane, 100);

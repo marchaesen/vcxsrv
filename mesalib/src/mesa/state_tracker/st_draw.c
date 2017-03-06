@@ -88,41 +88,31 @@ all_varyings_in_vbos(const struct gl_vertex_array *arrays[])
 /**
  * Basically, translate Mesa's index buffer information into
  * a pipe_index_buffer object.
- * \return TRUE or FALSE for success/failure
  */
-static boolean
+static void
 setup_index_buffer(struct st_context *st,
-                   const struct _mesa_index_buffer *ib,
-                   struct pipe_index_buffer *ibuffer)
+                   const struct _mesa_index_buffer *ib)
 {
+   struct pipe_index_buffer ibuffer;
    struct gl_buffer_object *bufobj = ib->obj;
 
-   ibuffer->index_size = vbo_sizeof_ib_type(ib->type);
+   ibuffer.index_size = vbo_sizeof_ib_type(ib->type);
 
    /* get/create the index buffer object */
    if (_mesa_is_bufferobj(bufobj)) {
       /* indices are in a real VBO */
-      ibuffer->buffer = st_buffer_object(bufobj)->buffer;
-      ibuffer->offset = pointer_to_offset(ib->ptr);
-   }
-   else if (!st->has_user_indexbuf) {
-      /* upload indexes from user memory into a real buffer */
-      u_upload_data(st->pipe->stream_uploader, 0,
-                    ib->count * ibuffer->index_size, 4, ib->ptr,
-                    &ibuffer->offset, &ibuffer->buffer);
-      if (!ibuffer->buffer) {
-         /* out of memory */
-         return FALSE;
-      }
-      u_upload_unmap(st->pipe->stream_uploader);
+      ibuffer.buffer = st_buffer_object(bufobj)->buffer;
+      ibuffer.offset = pointer_to_offset(ib->ptr);
+      ibuffer.user_buffer = NULL;
    }
    else {
       /* indices are in user space memory */
-      ibuffer->user_buffer = ib->ptr;
+      ibuffer.buffer = NULL;
+      ibuffer.offset = 0;
+      ibuffer.user_buffer = ib->ptr;
    }
 
-   cso_set_index_buffer(st->cso_context, ibuffer);
-   return TRUE;
+   cso_set_index_buffer(st->cso_context, &ibuffer);
 }
 
 
@@ -185,7 +175,6 @@ st_draw_vbo(struct gl_context *ctx,
             struct gl_buffer_object *indirect)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_index_buffer ibuffer = {0};
    struct pipe_draw_info info;
    const struct gl_vertex_array **arrays = ctx->Array._DrawArrays;
    unsigned i;
@@ -215,10 +204,7 @@ st_draw_vbo(struct gl_context *ctx,
             vbo_get_minmax_indices(ctx, prims, ib, &min_index, &max_index,
                                    nr_prims);
 
-      if (!setup_index_buffer(st, ib, &ibuffer)) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBegin/DrawElements/DrawArray");
-         return;
-      }
+      setup_index_buffer(st, ib);
 
       info.indexed = TRUE;
       if (min_index != ~0U && max_index != ~0U) {
@@ -276,10 +262,6 @@ st_draw_vbo(struct gl_context *ctx,
          cso_draw_vbo(st->cso_context, &info);
       }
    }
-
-   if (ib && !st->has_user_indexbuf && !_mesa_is_bufferobj(ib->obj)) {
-      pipe_resource_reference(&ibuffer.buffer, NULL);
-   }
 }
 
 static void
@@ -294,7 +276,6 @@ st_indirect_draw_vbo(struct gl_context *ctx,
                      const struct _mesa_index_buffer *ib)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_index_buffer ibuffer = {0};
    struct pipe_draw_info info;
 
    /* Mesa core state should have been validated already */
@@ -314,12 +295,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    util_draw_init_info(&info);
 
    if (ib) {
-      if (!setup_index_buffer(st, ib, &ibuffer)) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "gl%sDrawElementsIndirect%s",
-                     (draw_count > 1) ? "Multi" : "",
-                     indirect_params ? "CountARB" : "");
-         return;
-      }
+      setup_index_buffer(st, ib);
 
       info.indexed = TRUE;
 

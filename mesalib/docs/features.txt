@@ -78,18 +78,18 @@ GL 3.1, GLSL 1.40 --- all DONE: freedreno, i965, nv50, nvc0, r600, radeonsi, llv
   GL_EXT_texture_snorm (Signed normalized textures)     DONE ()
 
 
-GL 3.2, GLSL 1.50 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe
+GL 3.2, GLSL 1.50 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr
 
   Core/compatibility profiles                           DONE
   Geometry shaders                                      DONE ()
-  GL_ARB_vertex_array_bgra (BGRA vertex order)          DONE (freedreno, swr)
-  GL_ARB_draw_elements_base_vertex (Base vertex offset) DONE (freedreno, swr)
-  GL_ARB_fragment_coord_conventions (Frag shader coord) DONE (freedreno, swr)
-  GL_ARB_provoking_vertex (Provoking vertex)            DONE (freedreno, swr)
-  GL_ARB_seamless_cube_map (Seamless cubemaps)          DONE (freedreno, swr)
-  GL_ARB_texture_multisample (Multisample textures)     DONE (swr)
-  GL_ARB_depth_clamp (Frag depth clamp)                 DONE (freedreno, swr)
-  GL_ARB_sync (Fence objects)                           DONE (freedreno, swr)
+  GL_ARB_vertex_array_bgra (BGRA vertex order)          DONE (freedreno)
+  GL_ARB_draw_elements_base_vertex (Base vertex offset) DONE (freedreno)
+  GL_ARB_fragment_coord_conventions (Frag shader coord) DONE (freedreno)
+  GL_ARB_provoking_vertex (Provoking vertex)            DONE (freedreno)
+  GL_ARB_seamless_cube_map (Seamless cubemaps)          DONE (freedreno)
+  GL_ARB_texture_multisample (Multisample textures)     DONE ()
+  GL_ARB_depth_clamp (Frag depth clamp)                 DONE (freedreno)
+  GL_ARB_sync (Fence objects)                           DONE (freedreno)
   GLX_ARB_create_context_profile                        DONE
 
 
@@ -132,7 +132,7 @@ GL 4.0, GLSL 4.00 --- all DONE: i965/hsw+, nvc0, r600, radeonsi
   GL_ARB_texture_cube_map_array                         DONE (i965/gen6+, nv50, llvmpipe, softpipe)
   GL_ARB_texture_gather                                 DONE (i965/gen6+, nv50, llvmpipe, softpipe, swr)
   GL_ARB_texture_query_lod                              DONE (i965, nv50, softpipe)
-  GL_ARB_transform_feedback2                            DONE (i965/gen7+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_transform_feedback2                            DONE (i965/gen6+, nv50, llvmpipe, softpipe, swr)
   GL_ARB_transform_feedback3                            DONE (i965/gen7+, llvmpipe, softpipe, swr)
 
 
@@ -191,8 +191,8 @@ GL 4.3, GLSL 4.30 -- all DONE: i965/gen8+, nvc0, radeonsi
 GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, radeonsi
 
   GL_MAX_VERTEX_ATTRIB_STRIDE                           DONE (all drivers)
-  GL_ARB_buffer_storage                                 DONE (i965, nv50, r600)
-  GL_ARB_clear_texture                                  DONE (i965, nv50, r600)
+  GL_ARB_buffer_storage                                 DONE (i965, nv50, r600, llvmpipe, swr)
+  GL_ARB_clear_texture                                  DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
   GL_ARB_enhanced_layouts                               DONE (i965, nv50, llvmpipe, softpipe)
   - compile-time constant expressions                   DONE
   - explicit byte offsets for blocks                    DONE
@@ -303,7 +303,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_sparse_texture2                                not started
   GL_ARB_sparse_texture_clamp                           not started
   GL_ARB_texture_filter_minmax                          not started
-  GL_ARB_transform_feedback_overflow_query              not started
+  GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+)
   GL_KHR_blend_equation_advanced_coherent               DONE (i965/gen9+)
   GL_KHR_no_error                                       not started
   GL_KHR_texture_compression_astc_hdr                   DONE (core only)

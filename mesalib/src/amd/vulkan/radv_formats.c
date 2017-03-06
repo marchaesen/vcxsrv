@@ -743,9 +743,6 @@ uint32_t radv_translate_dbformat(VkFormat format)
 	case VK_FORMAT_D16_UNORM:
 	case VK_FORMAT_D16_UNORM_S8_UINT:
 		return V_028040_Z_16;
-	case VK_FORMAT_X8_D24_UNORM_PACK32:
-	case VK_FORMAT_D24_UNORM_S8_UINT:
-		return V_028040_Z_24; /* deprecated on SI */
 	case VK_FORMAT_D32_SFLOAT:
 	case VK_FORMAT_D32_SFLOAT_S8_UINT:
 		return V_028040_Z_32_FLOAT;
@@ -864,6 +861,10 @@ bool radv_format_pack_clear_color(VkFormat format,
 		clear_vals[0] = value->uint32[0] & 0xff;
 		clear_vals[1] = 0;
 		break;
+	case VK_FORMAT_R8_SINT:
+		clear_vals[0] = value->int32[0] & 0xff;
+		clear_vals[1] = 0;
+		break;
 	case VK_FORMAT_R16_UINT:
 		clear_vals[0] = value->uint32[0] & 0xffff;
 		clear_vals[1] = 0;
@@ -873,11 +874,23 @@ bool radv_format_pack_clear_color(VkFormat format,
 		clear_vals[0] |= (value->uint32[1] & 0xff) << 8;
 		clear_vals[1] = 0;
 		break;
+	case VK_FORMAT_R8G8_SINT:
+		clear_vals[0] = value->int32[0] & 0xff;
+		clear_vals[0] |= (value->int32[1] & 0xff) << 8;
+		clear_vals[1] = 0;
+		break;
 	case VK_FORMAT_R8G8B8A8_UINT:
 		clear_vals[0] = value->uint32[0] & 0xff;
 		clear_vals[0] |= (value->uint32[1] & 0xff) << 8;
 		clear_vals[0] |= (value->uint32[2] & 0xff) << 16;
 		clear_vals[0] |= (value->uint32[3] & 0xff) << 24;
+		clear_vals[1] = 0;
+		break;
+	case VK_FORMAT_R8G8B8A8_SINT:
+		clear_vals[0] = value->int32[0] & 0xff;
+		clear_vals[0] |= (value->int32[1] & 0xff) << 8;
+		clear_vals[0] |= (value->int32[2] & 0xff) << 16;
+		clear_vals[0] |= (value->int32[3] & 0xff) << 24;
 		clear_vals[1] = 0;
 		break;
 	case VK_FORMAT_A8B8G8R8_UINT_PACK32:
@@ -944,7 +957,7 @@ bool radv_format_pack_clear_color(VkFormat format,
 		clear_vals[0] = ((uint16_t)util_iround(CLAMP(value->float32[0], 0.0f, 1.0f) * 0x3ff)) & 0x3ff;
 		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[1], 0.0f, 1.0f) * 0x3ff)) & 0x3ff) << 10;
 		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[2], 0.0f, 1.0f) * 0x3ff)) & 0x3ff) << 20;
-		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[1], 0.0f, 1.0f) * 0x3)) & 0x3) << 30;
+		clear_vals[0] |= (((uint16_t)util_iround(CLAMP(value->float32[3], 0.0f, 1.0f) * 0x3)) & 0x3) << 30;
 		clear_vals[1] = 0;
 		return true;
 	case VK_FORMAT_R32G32_SFLOAT:

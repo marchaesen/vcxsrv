@@ -109,5 +109,5 @@ script:
         ;
       make && make check;
     elif test x$BUILD = xscons; then
-      scons;
+      scons llvm=1 && scons llvm=1 check;
     fi

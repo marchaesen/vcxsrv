@@ -690,10 +690,121 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 }
 
 void
+si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
+                       enum chip_class chip_class,
+                       bool is_mec,
+                       enum radv_cmd_flush_bits flush_bits)
+{
+	unsigned cp_coher_cntl = 0;
+
+	if (flush_bits & RADV_CMD_FLAG_INV_ICACHE)
+		cp_coher_cntl |= S_0085F0_SH_ICACHE_ACTION_ENA(1);
+	if (flush_bits & RADV_CMD_FLAG_INV_SMEM_L1)
+		cp_coher_cntl |= S_0085F0_SH_KCACHE_ACTION_ENA(1);
+	if (flush_bits & RADV_CMD_FLAG_INV_VMEM_L1)
+		cp_coher_cntl |= S_0085F0_TCL1_ACTION_ENA(1);
+	if (flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) {
+		cp_coher_cntl |= S_0085F0_TC_ACTION_ENA(1);
+		if (chip_class >= VI)
+			cp_coher_cntl |= S_0301F0_TC_WB_ACTION_ENA(1);
+	}
+
+	if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB) {
+		cp_coher_cntl |= S_0085F0_CB_ACTION_ENA(1) |
+			S_0085F0_CB0_DEST_BASE_ENA(1) |
+			S_0085F0_CB1_DEST_BASE_ENA(1) |
+			S_0085F0_CB2_DEST_BASE_ENA(1) |
+			S_0085F0_CB3_DEST_BASE_ENA(1) |
+			S_0085F0_CB4_DEST_BASE_ENA(1) |
+			S_0085F0_CB5_DEST_BASE_ENA(1) |
+			S_0085F0_CB6_DEST_BASE_ENA(1) |
+			S_0085F0_CB7_DEST_BASE_ENA(1);
+
+		/* Necessary for DCC */
+		if (chip_class >= VI) {
+			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, 0));
+			radeon_emit(cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_DATA_TS) |
+			                            EVENT_INDEX(5));
+			radeon_emit(cs, 0);
+			radeon_emit(cs, 0);
+			radeon_emit(cs, 0);
+			radeon_emit(cs, 0);
+		}
+	}
+
+	if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB) {
+		cp_coher_cntl |= S_0085F0_DB_ACTION_ENA(1) |
+			S_0085F0_DB_DEST_BASE_ENA(1);
+	}
+
+	if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB_META) {
+		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_META) | EVENT_INDEX(0));
+	}
+
+	if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB_META) {
+		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
+	}
+
+	if (!(flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+					      RADV_CMD_FLAG_FLUSH_AND_INV_DB))) {
+		if (flush_bits & RADV_CMD_FLAG_PS_PARTIAL_FLUSH) {
+			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+			radeon_emit(cs, EVENT_TYPE(V_028A90_PS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+		} else if (flush_bits & RADV_CMD_FLAG_VS_PARTIAL_FLUSH) {
+			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+			radeon_emit(cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+		}
+	}
+
+	if (flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH) {
+		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cs, EVENT_TYPE(V_028A90_CS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+	}
+
+	/* VGT state sync */
+	if (flush_bits & RADV_CMD_FLAG_VGT_FLUSH) {
+		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cs, EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
+	}
+
+	/* Make sure ME is idle (it executes most packets) before continuing.
+	 * This prevents read-after-write hazards between PFP and ME.
+	 */
+	if ((cp_coher_cntl || (flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH)) &&
+	    !is_mec) {
+		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
+		radeon_emit(cs, 0);
+	}
+
+	/* When one of the DEST_BASE flags is set, SURFACE_SYNC waits for idle.
+	 * Therefore, it should be last. Done in PFP.
+	 */
+	if (cp_coher_cntl) {
+		if (is_mec) {
+			radeon_emit(cs, PKT3(PKT3_ACQUIRE_MEM, 5, 0) |
+			                            PKT3_SHADER_TYPE_S(1));
+			radeon_emit(cs, cp_coher_cntl);   /* CP_COHER_CNTL */
+			radeon_emit(cs, 0xffffffff);      /* CP_COHER_SIZE */
+			radeon_emit(cs, 0xff);            /* CP_COHER_SIZE_HI */
+			radeon_emit(cs, 0);               /* CP_COHER_BASE */
+			radeon_emit(cs, 0);               /* CP_COHER_BASE_HI */
+			radeon_emit(cs, 0x0000000A);      /* POLL_INTERVAL */
+		} else {
+			/* ACQUIRE_MEM is only required on a compute ring. */
+			radeon_emit(cs, PKT3(PKT3_SURFACE_SYNC, 3, 0));
+			radeon_emit(cs, cp_coher_cntl);   /* CP_COHER_CNTL */
+			radeon_emit(cs, 0xffffffff);      /* CP_COHER_SIZE */
+			radeon_emit(cs, 0);               /* CP_COHER_BASE */
+			radeon_emit(cs, 0x0000000A);      /* POLL_INTERVAL */
+		}
+	}
+}
+
+void
 si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 {
-	enum chip_class chip_class = cmd_buffer->device->physical_device->rad_info.chip_class;
-	unsigned cp_coher_cntl = 0;
 	bool is_compute = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
 
 	if (is_compute)
@@ -707,109 +818,11 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 
 	radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 128);
 
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_INV_ICACHE)
-		cp_coher_cntl |= S_0085F0_SH_ICACHE_ACTION_ENA(1);
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_INV_SMEM_L1)
-		cp_coher_cntl |= S_0085F0_SH_KCACHE_ACTION_ENA(1);
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_INV_VMEM_L1)
-		cp_coher_cntl |= S_0085F0_TCL1_ACTION_ENA(1);
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) {
-		cp_coher_cntl |= S_0085F0_TC_ACTION_ENA(1);
-		if (chip_class >= VI)
-			cp_coher_cntl |= S_0301F0_TC_WB_ACTION_ENA(1);
-	}
+	si_cs_emit_cache_flush(cmd_buffer->cs,
+	                       cmd_buffer->device->physical_device->rad_info.chip_class,
+	                       radv_cmd_buffer_uses_mec(cmd_buffer),
+	                       cmd_buffer->state.flush_bits);
 
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB) {
-		cp_coher_cntl |= S_0085F0_CB_ACTION_ENA(1) |
-			S_0085F0_CB0_DEST_BASE_ENA(1) |
-			S_0085F0_CB1_DEST_BASE_ENA(1) |
-			S_0085F0_CB2_DEST_BASE_ENA(1) |
-			S_0085F0_CB3_DEST_BASE_ENA(1) |
-			S_0085F0_CB4_DEST_BASE_ENA(1) |
-			S_0085F0_CB5_DEST_BASE_ENA(1) |
-			S_0085F0_CB6_DEST_BASE_ENA(1) |
-			S_0085F0_CB7_DEST_BASE_ENA(1);
-
-		/* Necessary for DCC */
-		if (cmd_buffer->device->physical_device->rad_info.chip_class >= VI) {
-			radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, 0));
-			radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_DATA_TS) |
-			                            EVENT_INDEX(5));
-			radeon_emit(cmd_buffer->cs, 0);
-			radeon_emit(cmd_buffer->cs, 0);
-			radeon_emit(cmd_buffer->cs, 0);
-			radeon_emit(cmd_buffer->cs, 0);
-		}
-	}
-
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB) {
-		cp_coher_cntl |= S_0085F0_DB_ACTION_ENA(1) |
-			S_0085F0_DB_DEST_BASE_ENA(1);
-	}
-
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB_META) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-		radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_META) | EVENT_INDEX(0));
-	}
-
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB_META) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-		radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
-	}
-
-	if (!(cmd_buffer->state.flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-					      RADV_CMD_FLAG_FLUSH_AND_INV_DB))) {
-		if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_PS_PARTIAL_FLUSH) {
-			radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-			radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_PS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-		} else if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_VS_PARTIAL_FLUSH) {
-			radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-			radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-		}
-	}
-
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-		radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_CS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-	}
-
-	/* VGT state sync */
-	if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_VGT_FLUSH) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-		radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
-	}
-
-	/* Make sure ME is idle (it executes most packets) before continuing.
-	 * This prevents read-after-write hazards between PFP and ME.
-	 */
-	if ((cp_coher_cntl || (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH)) &&
-	    !radv_cmd_buffer_uses_mec(cmd_buffer)) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
-		radeon_emit(cmd_buffer->cs, 0);
-	}
-
-	/* When one of the DEST_BASE flags is set, SURFACE_SYNC waits for idle.
-	 * Therefore, it should be last. Done in PFP.
-	 */
-	if (cp_coher_cntl) {
-		if (radv_cmd_buffer_uses_mec(cmd_buffer)) {
-			radeon_emit(cmd_buffer->cs, PKT3(PKT3_ACQUIRE_MEM, 5, 0) |
-			                            PKT3_SHADER_TYPE_S(1));
-			radeon_emit(cmd_buffer->cs, cp_coher_cntl);   /* CP_COHER_CNTL */
-			radeon_emit(cmd_buffer->cs, 0xffffffff);      /* CP_COHER_SIZE */
-			radeon_emit(cmd_buffer->cs, 0xff);            /* CP_COHER_SIZE_HI */
-			radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE */
-			radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE_HI */
-			radeon_emit(cmd_buffer->cs, 0x0000000A);      /* POLL_INTERVAL */
-		} else {
-			/* ACQUIRE_MEM is only required on a compute ring. */
-			radeon_emit(cmd_buffer->cs, PKT3(PKT3_SURFACE_SYNC, 3, 0));
-			radeon_emit(cmd_buffer->cs, cp_coher_cntl);   /* CP_COHER_CNTL */
-			radeon_emit(cmd_buffer->cs, 0xffffffff);      /* CP_COHER_SIZE */
-			radeon_emit(cmd_buffer->cs, 0);               /* CP_COHER_BASE */
-			radeon_emit(cmd_buffer->cs, 0x0000000A);      /* POLL_INTERVAL */
-		}
-	}
 
 	if (cmd_buffer->state.flush_bits)
 		radv_cmd_buffer_trace_emit(cmd_buffer);
@@ -923,7 +936,7 @@ static void si_emit_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer,
 static void si_cp_dma_prepare(struct radv_cmd_buffer *cmd_buffer, uint64_t byte_count,
 			      uint64_t remaining_size, unsigned *flags)
 {
-	cmd_buffer->no_draws = false;
+
 	/* Flush the caches for the first copy only.
 	 * Also wait for the previous CP DMA operations.
 	 */

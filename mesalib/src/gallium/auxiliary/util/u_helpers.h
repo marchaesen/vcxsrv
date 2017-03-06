@@ -47,6 +47,11 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
 void util_set_index_buffer(struct pipe_index_buffer *dst,
                            const struct pipe_index_buffer *src);
 
+bool util_save_and_upload_index_buffer(struct pipe_context *pipe,
+                                       const struct pipe_draw_info *info,
+                                       const struct pipe_index_buffer *ib,
+                                       struct pipe_index_buffer *out_saved);
+
 #ifdef __cplusplus
 }
 #endif

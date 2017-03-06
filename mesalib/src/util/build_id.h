@@ -31,8 +31,7 @@ build_id_find_nhdr(const char *filename);
 unsigned
 build_id_length(const struct build_id_note *note);
 
-void
-build_id_read(const struct build_id_note *note,
-              unsigned char *build_id, size_t n);
+const uint8_t *
+build_id_data(const struct build_id_note *note);
 
 #endif

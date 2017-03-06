@@ -43,7 +43,7 @@
 #include "xigrabdev.h"
 #include "inpututils.h"
 
-int
+int _X_COLD
 SProcXIGrabDevice(ClientPtr client)
 {
     REQUEST(xXIGrabDeviceReq);
@@ -131,7 +131,7 @@ ProcXIGrabDevice(ClientPtr client)
     return ret;
 }
 
-int
+int _X_COLD
 SProcXIUngrabDevice(ClientPtr client)
 {
     REQUEST(xXIUngrabDeviceReq);
@@ -170,7 +170,7 @@ ProcXIUngrabDevice(ClientPtr client)
     return Success;
 }
 
-void
+void _X_COLD
 SRepXIGrabDevice(ClientPtr client, int size, xXIGrabDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);

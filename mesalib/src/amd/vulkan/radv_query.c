@@ -131,6 +131,7 @@ VkResult radv_GetQueryPoolResults(
 	VkDeviceSize                                stride,
 	VkQueryResultFlags                          flags)
 {
+	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	char *data = pData;
 	VkResult result = VK_SUCCESS;
@@ -141,23 +142,20 @@ VkResult radv_GetQueryPoolResults(
 		char *src = pool->ptr + query * pool->stride;
 		uint32_t available;
 
-		if (flags & VK_QUERY_RESULT_WAIT_BIT) {
-			while(!*(volatile uint32_t*)(pool->ptr + pool->availability_offset + 4 * query))
-				;
-		}
-
-		if (!*(uint32_t*)(pool->ptr + pool->availability_offset + 4 * query) &&
-		    !(flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
-			if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)
-				*(uint32_t*)dest = 0;
-			result = VK_NOT_READY;
-			continue;
-
-		}
-
-		available = *(uint32_t*)(pool->ptr + pool->availability_offset + 4 * query);
 		switch (pool->type) {
-		case VK_QUERY_TYPE_TIMESTAMP:
+		case VK_QUERY_TYPE_TIMESTAMP: {
+			if (flags & VK_QUERY_RESULT_WAIT_BIT) {
+				while(!*(volatile uint32_t*)(pool->ptr + pool->availability_offset + 4 * query))
+					;
+			}
+
+			available = *(uint32_t*)(pool->ptr + pool->availability_offset + 4 * query);
+			if (!available && !(flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
+				result = VK_NOT_READY;
+				break;
+
+			}
+
 			if (flags & VK_QUERY_RESULT_64_BIT) {
 				*(uint64_t*)dest = *(uint64_t*)src;
 				dest += 8;
@@ -166,8 +164,32 @@ VkResult radv_GetQueryPoolResults(
 				dest += 4;
 			}
 			break;
+		}
 		case VK_QUERY_TYPE_OCCLUSION: {
-			uint64_t result = *(uint64_t*)(src + pool->stride - 16);
+			volatile uint64_t const *src64 = (volatile uint64_t const *)src;
+			uint64_t result = 0;
+			int db_count = get_max_db(device);
+			available = 1;
+
+			for (int i = 0; i < db_count; ++i) {
+				uint64_t start, end;
+				do {
+					start = src64[2 * i];
+					end = src64[2 * i + 1];
+				} while ((!(start & (1ull << 63)) || !(end & (1ull << 63))) && (flags & VK_QUERY_RESULT_WAIT_BIT));
+
+				if (!(start & (1ull << 63)) || !(end & (1ull << 63)))
+					available = 0;
+				else {
+					result += end - start;
+				}
+			}
+
+			if (!available && !(flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
+				result = VK_NOT_READY;
+				break;
+
+			}
 
 			if (flags & VK_QUERY_RESULT_64_BIT) {
 				*(uint64_t*)dest = result;
@@ -183,8 +205,11 @@ VkResult radv_GetQueryPoolResults(
 		}
 
 		if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) {
-			*(uint32_t*)dest = available;
-			dest += 4;
+			if (flags & VK_QUERY_RESULT_64_BIT) {
+				*(uint64_t*)dest = available;
+			} else {
+				*(uint32_t*)dest = available;
+			}
 		}
 	}
 
@@ -211,7 +236,6 @@ void radv_CmdCopyQueryPoolResults(
 
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, pool->bo, 8);
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, dst_buffer->bo, 8);
-	cmd_buffer->no_draws = false;
 
 	for(unsigned i = 0; i < queryCount; ++i, dest_va += stride) {
 		unsigned query = firstQuery + i;
@@ -311,7 +335,6 @@ void radv_CmdBeginQuery(
 	va += pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
-	cmd_buffer->no_draws = false;
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -345,7 +368,6 @@ void radv_CmdEndQuery(
 	va += pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
-	cmd_buffer->no_draws = false;
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -360,11 +382,14 @@ void radv_CmdEndQuery(
 		radeon_emit(cs, va + 8);
 		radeon_emit(cs, (va + 8) >> 32);
 
-		radeon_emit(cs, PKT3(PKT3_OCCLUSION_QUERY, 3, 0));
-		radeon_emit(cs, va);
-		radeon_emit(cs, va >> 32);
-		radeon_emit(cs, va + pool->stride - 16);
-		radeon_emit(cs, (va + pool->stride - 16) >> 32);
+		/* hangs for VK_COMMAND_BUFFER_LEVEL_SECONDARY. */
+		if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
+			radeon_emit(cs, PKT3(PKT3_OCCLUSION_QUERY, 3, 0));
+			radeon_emit(cs, va);
+			radeon_emit(cs, va >> 32);
+			radeon_emit(cs, va + pool->stride - 16);
+			radeon_emit(cs, (va + pool->stride - 16) >> 32);
+		}
 
 		break;
 	default:
@@ -397,7 +422,6 @@ void radv_CmdWriteTimestamp(
 	uint64_t query_va = va + pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 5);
-	cmd_buffer->no_draws = false;
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cs, 12);
 

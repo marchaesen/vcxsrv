@@ -307,3 +307,49 @@ partial alphanumeric_keys
 	xkb_symbols "sun_type6" {
 	include "sun_vndr/it(sun_type6)"
 };
+
+partial alphanumeric_keys
+	xkb_symbols "fur" {
+	include "it(basic)"
+	include "latin(type4)"
+	include "level3(ralt_switch)"	
+	name[Group1] = "Friulian (Italy)";
+
+
+
+    key <TLDE>	{ [ backslash,        bar,      notsign,    brokenbar ]	};
+
+    key <AE02>	{ [         2,   quotedbl,  twosuperior, dead_doubleacute ] };
+    key <AE03>	{ [         3,   sterling,threesuperior,        U1D49 ]	};
+    key <AE04>	{ [         4,     dollar,   onequarter,    oneeighth ] };
+    key <AE05>	{ [         5,    percent,     EuroSign,      onehalf ] };
+
+    key <AE10>	{ [         0,      equal,   braceright,  dead_ogonek ] };
+    key <AE11>	{ [apostrophe,   question,        grave, questiondown ]	};
+    key <AE12>	{ [    igrave, asciicircum,  asciitilde, dead_circumflex ] };
+
+    key <AD03> { [          e,          E,  ecircumflex,  Ecircumflex ] };
+    key <AD05> { [          t,          T,        U1D57,        U1D40 ] };
+    key <AD07> { [          u,          U,  ucircumflex,     NoSymbol ] };
+    key <AD08> { [          i,          I,  icircumflex,  Icircumflex ] };
+    key <AD09> { [          o,          O,  ocircumflex,  Ocircumflex ] };
+    key <AD11>	{ [    egrave,     eacute,  bracketleft,    braceleft ]	};
+    key <AD12>	{ [      plus,   asterisk, bracketright,   braceright ]	};
+    key <AC01>  { [         a,          A,  acircumflex,  Acircumflex ] };
+    key <AC04>  { [         f,          F,        U1DA0,        U00AA ] };
+    key <AC10>	{ [    ograve,   ccedilla,           at, dead_cedilla ] };
+    key <AC11>	{ [    agrave,     degree,   numbersign, dead_abovering ] };
+
+    key <AB03>	{ [         c,          C,       U1D9C,       U00A9  ]	};
+    key <AB06>	{ [         n,          N,       U207F,       Ntilde ]	};
+    key <AB07>	{ [         m,		M,       U1D50,       U00B5  ]	};
+    key <AB08>	{ [     comma,  semicolon,   dead_acute,     multiply ]	};
+    key <AB09>	{ [    period,      colon,periodcentered, dead_diaeresis ] };
+    key <AB10>	{ [     minus, underscore,  dead_macron,     division ] };
+
+    key <BKSL>	{ [    ugrave,    section,   dead_grave,   dead_breve ]	};
+
+    key <LSGT>	{ [      less,    greater,guillemotleft,guillemotright] };
+
+};
+

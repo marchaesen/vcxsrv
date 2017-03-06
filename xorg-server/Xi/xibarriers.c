@@ -822,7 +822,7 @@ XIDestroyPointerBarrier(ClientPtr client,
     return Success;
 }
 
-int
+int _X_COLD
 SProcXIBarrierReleasePointer(ClientPtr client)
 {
     xXIBarrierReleasePointerInfo *info;

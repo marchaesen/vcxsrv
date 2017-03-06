@@ -731,9 +731,10 @@ hud_pane_set_max_value(struct hud_pane *pane, uint64_t value)
     * hard-to-read numbers like 1.753.
     */
 
-   /* Find the left-most digit. */
+   /* Find the left-most digit. Make sure exp10 * 10 and fixup_bytes doesn't
+    * overflow. (11 is safe) */
    exp10 = 1;
-   for (i = 0; value > 9 * exp10; i++) {
+   for (i = 0; exp10 <= UINT64_MAX / 11 && exp10 * 9 < value; i++) {
       exp10 *= 10;
       fixup_bytes(pane->type, i + 1, &exp10);
    }
@@ -939,7 +940,20 @@ hud_graph_destroy(struct hud_graph *graph)
    FREE(graph);
 }
 
-void
+static void strcat_without_spaces(char *dst, const char *src)
+{
+   dst += strlen(dst);
+   while (*src) {
+      if (*src == ' ')
+         *dst++ = '_';
+      else
+         *dst++ = *src;
+      src++;
+   }
+   *dst = 0;
+}
+
+static void
 hud_graph_set_dump_file(struct hud_graph *gr)
 {
 #ifndef PIPE_OS_WINDOWS
@@ -951,7 +965,7 @@ hud_graph_set_dump_file(struct hud_graph *gr)
       if (dump_file) {
          strcpy(dump_file, hud_dump_dir);
          strcat(dump_file, "/");
-         strcat(dump_file, gr->name);
+         strcat_without_spaces(dump_file, gr->name);
          gr->fd = fopen(dump_file, "w+");
          free(dump_file);
       }
@@ -1374,6 +1388,14 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       }
       else {
          FREE(pane);
+      }
+   }
+
+   LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
+      struct hud_graph *gr;
+
+      LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
+         hud_graph_set_dump_file(gr);
       }
    }
 }

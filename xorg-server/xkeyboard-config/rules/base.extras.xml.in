@@ -7,7 +7,7 @@
       <configItem>
         <name>apl</name>
         <_shortDescription>apl</_shortDescription>
-        <_description>APL keyboard symbols</_description>
+        <_description>APL</_description>
         <languageList>
           <iso639Id>eng</iso639Id>
         </languageList>
@@ -17,42 +17,42 @@
           <configItem>
             <name>dyalog</name>
             <_shortDescription>dlg</_shortDescription>
-            <_description>APL keyboard symbols (Dyalog)</_description>
+            <_description>Dyalog APL complete</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>sax</name>
             <_shortDescription>sax</_shortDescription>
-            <_description>APL keyboard symbols (sax)</_description>
+            <_description>APL Keyboard Symbols: sax</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>unified</name>
             <_shortDescription>ufd</_shortDescription>
-            <_description>APL keyboard symbols (unified)</_description>
+            <_description>APL Keyboard Symbols: Unified Layout</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>apl2</name>
             <_shortDescription>apl2</_shortDescription>
-            <_description>APL keyboard symbols (IBM APL2)</_description>
+            <_description>APL Keyboard Symbols: IBM APL2</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>aplplusII</name>
             <_shortDescription>aplII</_shortDescription>
-            <_description>APL keyboard symbols (Manugistics APL*PLUS II)</_description>
+            <_description>APL Keyboard Symbols: Manugistics APL*PLUS II</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>aplx</name>
             <_shortDescription>aplx</_shortDescription>
-            <_description>APL keyboard symbols (APLX unified)</_description>
+            <_description>APL Keyboard Symbols: APLX Unified APL Layout</_description>
           </configItem>
         </variant>
       </variantList>
@@ -719,6 +719,15 @@
           <configItem>
             <name>sun_type6</name>
             <_description>Italian (Sun Type 6/7)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>fur</name>
+            <_description>Friulian (Italy)</_description>
+            <languageList>
+              <iso639Id>fur</iso639Id>
+            </languageList>
           </configItem>
         </variant>
       </variantList>

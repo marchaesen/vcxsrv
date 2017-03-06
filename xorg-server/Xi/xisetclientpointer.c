@@ -47,7 +47,7 @@
 
 #include "xisetclientpointer.h"
 
-int
+int _X_COLD
 SProcXISetClientPointer(ClientPtr client)
 {
     REQUEST(xXISetClientPointerReq);

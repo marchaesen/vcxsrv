@@ -148,17 +148,34 @@ retry:
 	    prgname = FcStrdup ("");
 #else
 # if defined (HAVE_GETEXECNAME)
-	const char *p = getexecname ();
+	char *p = FcStrdup(getexecname ());
 # elif defined (HAVE_READLINK)
-	char buf[PATH_MAX + 1];
-	int len;
+	size_t size = FC_PATH_MAX;
 	char *p = NULL;
 
-	len = readlink ("/proc/self/exe", buf, sizeof (buf) - 1);
-	if (len != -1)
+	while (1)
 	{
-	    buf[len] = '\0';
-	    p = buf;
+	    char *buf = malloc (size);
+	    ssize_t len;
+
+	    if (!buf)
+		break;
+
+	    len = readlink ("/proc/self/exe", buf, size - 1);
+	    if (len < 0)
+	    {
+		free (buf);
+		break;
+	    }
+	    if (len < size - 1)
+	    {
+		buf[len] = 0;
+		p = buf;
+		break;
+	    }
+
+	    free (buf);
+	    size *= 2;
 	}
 # else
 	char *p = NULL;
@@ -176,6 +193,9 @@ retry:
 
 	if (!prgname)
 	    prgname = FcStrdup ("");
+
+	if (p)
+	    free (p);
 #endif
 
 	if (!fc_atomic_ptr_cmpexch (&default_prgname, NULL, prgname)) {

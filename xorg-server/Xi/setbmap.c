@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXSetDeviceButtonMapping(ClientPtr client)
 {
     REQUEST(xSetDeviceButtonMappingReq);
@@ -129,7 +129,7 @@ ProcXSetDeviceButtonMapping(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXSetDeviceButtonMapping(ClientPtr client, int size,
                             xSetDeviceButtonMappingReply * rep)
 {

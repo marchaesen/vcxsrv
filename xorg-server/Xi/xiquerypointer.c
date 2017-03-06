@@ -59,7 +59,7 @@
  *
  */
 
-int
+int _X_COLD
 SProcXIQueryPointer(ClientPtr client)
 {
     REQUEST(xXIQueryPointerReq);

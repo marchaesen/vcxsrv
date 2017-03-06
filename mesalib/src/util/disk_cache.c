@@ -37,7 +37,9 @@
 #include <pwd.h>
 #include <errno.h>
 #include <dirent.h>
+#include "zlib.h"
 
+#include "util/crc32.h"
 #include "util/u_atomic.h"
 #include "util/mesa-sha1.h"
 #include "util/ralloc.h"
@@ -78,7 +80,7 @@ struct disk_cache {
  *         -1 in all other cases.
  */
 static int
-mkdir_if_needed(char *path)
+mkdir_if_needed(const char *path)
 {
    struct stat sb;
 
@@ -116,7 +118,7 @@ mkdir_if_needed(char *path)
  *      <path>/<name> cannot be created as a directory
  */
 static char *
-concatenate_and_mkdir(void *ctx, char *path, const char *name)
+concatenate_and_mkdir(void *ctx, const char *path, const char *name)
 {
    char *new_path;
    struct stat sb;
@@ -145,31 +147,43 @@ remove_dir(const char *fpath, const struct stat *sb,
 }
 
 static void
-remove_old_cache_directories(void *mem_ctx, char *path, const char *timestamp)
+remove_old_cache_directories(void *mem_ctx, const char *path,
+                             const char *timestamp)
 {
    DIR *dir = opendir(path);
 
    struct dirent* d_entry;
    while((d_entry = readdir(dir)) != NULL)
    {
+      char *full_path =
+         ralloc_asprintf(mem_ctx, "%s/%s", path, d_entry->d_name);
+
       struct stat sb;
-      stat(d_entry->d_name, &sb);
-      if (S_ISDIR(sb.st_mode) &&
+      if (stat(full_path, &sb) == 0 && S_ISDIR(sb.st_mode) &&
           strcmp(d_entry->d_name, timestamp) != 0 &&
           strcmp(d_entry->d_name, "..") != 0 &&
           strcmp(d_entry->d_name, ".") != 0) {
-         char *full_path =
-            ralloc_asprintf(mem_ctx, "%s/%s", path, d_entry->d_name);
          nftw(full_path, remove_dir, 20, FTW_DEPTH);
       }
    }
+
+   closedir(dir);
 }
 
 static char *
-create_mesa_cache_dir(void *mem_ctx, char *path, const char *timestamp,
+create_mesa_cache_dir(void *mem_ctx, const char *path, const char *timestamp,
                       const char *gpu_name)
 {
    char *new_path = concatenate_and_mkdir(mem_ctx, path, "mesa");
+   if (new_path == NULL)
+      return NULL;
+
+   /* Create a parent architecture directory so that we don't remove cache
+    * files for other architectures. In theory we could share the cache
+    * between architectures but we have no way of knowing if they were created
+    * by a compatible Mesa version.
+    */
+   new_path = concatenate_and_mkdir(mem_ctx, new_path, get_arch_bitness_str());
    if (new_path == NULL)
       return NULL;
 
@@ -211,13 +225,6 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
    if (getenv("MESA_GLSL_CACHE_DISABLE"))
       goto fail;
 
-   /* As a temporary measure, (while the shader cache is under
-    * development, and known to not be fully functional), also require
-    * the MESA_GLSL_CACHE_ENABLE variable to be set.
-    */
-   if (!getenv("MESA_GLSL_CACHE_ENABLE"))
-      goto fail;
-
    /* Determine path for cache based on the first defined name as follows:
     *
     *   $MESA_GLSL_CACHE_DIR
@@ -225,8 +232,14 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
     *   <pwd.pw_dir>/.cache/mesa
     */
    path = getenv("MESA_GLSL_CACHE_DIR");
-   if (path && mkdir_if_needed(path) == -1) {
-      goto fail;
+   if (path) {
+      if (mkdir_if_needed(path) == -1)
+         goto fail;
+
+      path = create_mesa_cache_dir(local, path, timestamp,
+                                   gpu_name);
+      if (path == NULL)
+         goto fail;
    }
 
    if (path == NULL) {
@@ -393,7 +406,7 @@ disk_cache_destroy(struct disk_cache *cache)
  * Returns NULL if out of memory.
  */
 static char *
-get_cache_file(struct disk_cache *cache, cache_key key)
+get_cache_file(struct disk_cache *cache, const cache_key key)
 {
    char buf[41];
    char *filename;
@@ -412,7 +425,7 @@ get_cache_file(struct disk_cache *cache, cache_key key)
  * _get_cache_file above.
 */
 static void
-make_cache_file_directory(struct disk_cache *cache, cache_key key)
+make_cache_file_directory(struct disk_cache *cache, const cache_key key)
 {
    char *dir;
    char buf[41];
@@ -435,7 +448,7 @@ make_cache_file_directory(struct disk_cache *cache, cache_key key)
  */
 static char *
 choose_random_file_matching(const char *dir_path,
-                            bool (*predicate)(struct dirent *,
+                            bool (*predicate)(const struct dirent *,
                                               const char *dir_path))
 {
    DIR *dir;
@@ -498,7 +511,7 @@ choose_random_file_matching(const char *dir_path,
  * ".tmp"
  */
 static bool
-is_regular_non_tmp_file(struct dirent *entry, const char *path)
+is_regular_non_tmp_file(const struct dirent *entry, const char *path)
 {
    char *filename;
    if (asprintf(&filename, "%s/%s", path, entry->d_name) == -1)
@@ -545,7 +558,7 @@ unlink_random_file_from_directory(const char *path)
  * special name of "..")
  */
 static bool
-is_two_character_sub_directory(struct dirent *entry, const char *path)
+is_two_character_sub_directory(const struct dirent *entry, const char *path)
 {
    char *subdir;
    if (asprintf(&subdir, "%s/%s", path, entry->d_name) == -1)
@@ -615,7 +628,7 @@ evict_random_item(struct disk_cache *cache)
 }
 
 void
-disk_cache_remove(struct disk_cache *cache, cache_key key)
+disk_cache_remove(struct disk_cache *cache, const cache_key key)
 {
    struct stat sb;
 
@@ -636,16 +649,92 @@ disk_cache_remove(struct disk_cache *cache, cache_key key)
       p_atomic_add(cache->size, - sb.st_size);
 }
 
+/* From the zlib docs:
+ *    "If the memory is available, buffers sizes on the order of 128K or 256K
+ *    bytes should be used."
+ */
+#define BUFSIZE 256 * 1024
+
+/**
+ * Compresses cache entry in memory and writes it to disk. Returns the size
+ * of the data written to disk.
+ */
+static size_t
+deflate_and_write_to_disk(const void *in_data, size_t in_data_size, int dest,
+                          const char *filename)
+{
+   unsigned char out[BUFSIZE];
+
+   /* allocate deflate state */
+   z_stream strm;
+   strm.zalloc = Z_NULL;
+   strm.zfree = Z_NULL;
+   strm.opaque = Z_NULL;
+   strm.next_in = (uint8_t *) in_data;
+   strm.avail_in = in_data_size;
+
+   int ret = deflateInit(&strm, Z_BEST_COMPRESSION);
+   if (ret != Z_OK)
+       return 0;
+
+   /* compress until end of in_data */
+   size_t compressed_size = 0;
+   int flush;
+   do {
+      int remaining = in_data_size - BUFSIZE;
+      flush = remaining > 0 ? Z_NO_FLUSH : Z_FINISH;
+      in_data_size -= BUFSIZE;
+
+      /* Run deflate() on input until the output buffer is not full (which
+       * means there is no more data to deflate).
+       */
+      do {
+         strm.avail_out = BUFSIZE;
+         strm.next_out = out;
+
+         ret = deflate(&strm, flush);    /* no bad return value */
+         assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+
+         size_t have = BUFSIZE - strm.avail_out;
+         compressed_size += compressed_size + have;
+
+         size_t written = 0;
+         for (size_t len = 0; len < have; len += written) {
+            written = write(dest, out + len, have - len);
+            if (written == -1) {
+               (void)deflateEnd(&strm);
+               return 0;
+            }
+         }
+      } while (strm.avail_out == 0);
+
+      /* all input should be used */
+      assert(strm.avail_in == 0);
+
+   } while (flush != Z_FINISH);
+
+   /* stream should be complete */
+   assert(ret == Z_STREAM_END);
+
+   /* clean up and return */
+   (void)deflateEnd(&strm);
+   return compressed_size;
+}
+
+struct cache_entry_file_data {
+   uint32_t crc32;
+   uint32_t uncompressed_size;
+};
+
 void
 disk_cache_put(struct disk_cache *cache,
-          cache_key key,
+          const cache_key key,
           const void *data,
           size_t size)
 {
    int fd = -1, fd_final = -1, err, ret;
    size_t len;
    char *filename = NULL, *filename_tmp = NULL;
-   const char *p = data;
 
    filename = get_cache_file(cache, key);
    if (filename == NULL)
@@ -701,21 +790,35 @@ disk_cache_put(struct disk_cache *cache,
    if (*cache->size + size > cache->max_size)
       evict_random_item(cache);
 
-   /* Now, finally, write out the contents to the temporary file, then
-    * rename them atomically to the destination filename, and also
-    * perform an atomic increment of the total cache size.
+   /* Create CRC of the data and store at the start of the file. We will
+    * read this when restoring the cache and use it to check for corruption.
     */
-   for (len = 0; len < size; len += ret) {
-      ret = write(fd, p + len, size - len);
+   struct cache_entry_file_data cf_data;
+   cf_data.crc32 = util_hash_crc32(data, size);
+   cf_data.uncompressed_size = size;
+
+   size_t cf_data_size = sizeof(cf_data);
+   for (len = 0; len < cf_data_size; len += ret) {
+      ret = write(fd, ((uint8_t *) &cf_data) + len, cf_data_size - len);
       if (ret == -1) {
          unlink(filename_tmp);
          goto done;
       }
    }
 
+   /* Now, finally, write out the contents to the temporary file, then
+    * rename them atomically to the destination filename, and also
+    * perform an atomic increment of the total cache size.
+    */
+   size_t file_size = deflate_and_write_to_disk(data, size, fd, filename_tmp);
+   if (file_size == 0) {
+      unlink(filename_tmp);
+      goto done;
+   }
    rename(filename_tmp, filename);
 
-   p_atomic_add(cache->size, size);
+   file_size += cf_data_size;
+   p_atomic_add(cache->size, file_size);
 
  done:
    if (fd_final != -1)
@@ -731,13 +834,53 @@ disk_cache_put(struct disk_cache *cache,
       free(filename);
 }
 
+/**
+ * Decompresses cache entry, returns true if successful.
+ */
+static bool
+inflate_cache_data(uint8_t *in_data, size_t in_data_size,
+                   uint8_t *out_data, size_t out_data_size)
+{
+   z_stream strm;
+
+   /* allocate inflate state */
+   strm.zalloc = Z_NULL;
+   strm.zfree = Z_NULL;
+   strm.opaque = Z_NULL;
+   strm.next_in = in_data;
+   strm.avail_in = in_data_size;
+   strm.next_out = out_data;
+   strm.avail_out = out_data_size;
+
+   int ret = inflateInit(&strm);
+   if (ret != Z_OK)
+      return false;
+
+   ret = inflate(&strm, Z_NO_FLUSH);
+   assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+
+   /* Unless there was an error we should have decompressed everything in one
+    * go as we know the uncompressed file size.
+    */
+   if (ret != Z_STREAM_END) {
+      (void)inflateEnd(&strm);
+      return false;
+   }
+   assert(strm.avail_out == 0);
+
+   /* clean up and return */
+   (void)inflateEnd(&strm);
+   return true;
+}
+
 void *
-disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
+disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
 {
    int fd = -1, ret, len;
    struct stat sb;
    char *filename = NULL;
    uint8_t *data = NULL;
+   uint8_t *uncompressed_data = NULL;
 
    if (size)
       *size = 0;
@@ -757,23 +900,49 @@ disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
    if (data == NULL)
       goto fail;
 
-   for (len = 0; len < sb.st_size; len += ret) {
-      ret = read(fd, data + len, sb.st_size - len);
+   /* Load the CRC that was created when the file was written. */
+   struct cache_entry_file_data cf_data;
+   size_t cf_data_size = sizeof(cf_data);
+   assert(sb.st_size > cf_data_size);
+   for (len = 0; len < cf_data_size; len += ret) {
+      ret = read(fd, ((uint8_t *) &cf_data) + len, cf_data_size - len);
       if (ret == -1)
          goto fail;
    }
 
+   /* Load the actual cache data. */
+   size_t cache_data_size = sb.st_size - cf_data_size;
+   for (len = 0; len < cache_data_size; len += ret) {
+      ret = read(fd, data + len, cache_data_size - len);
+      if (ret == -1)
+         goto fail;
+   }
+
+   /* Uncompress the cache data */
+   uncompressed_data = malloc(cf_data.uncompressed_size);
+   if (!inflate_cache_data(data, cache_data_size, uncompressed_data,
+                           cf_data.uncompressed_size))
+      goto fail;
+
+   /* Check the data for corruption */
+   if (cf_data.crc32 != util_hash_crc32(uncompressed_data,
+                                        cf_data.uncompressed_size))
+      goto fail;
+
+   free(data);
    free(filename);
    close(fd);
 
    if (size)
-      *size = sb.st_size;
+      *size = cf_data.uncompressed_size;
 
-   return data;
+   return uncompressed_data;
 
  fail:
    if (data)
       free(data);
+   if (uncompressed_data)
+      free(uncompressed_data);
    if (filename)
       free(filename);
    if (fd != -1)
@@ -783,9 +952,9 @@ disk_cache_get(struct disk_cache *cache, cache_key key, size_t *size)
 }
 
 void
-disk_cache_put_key(struct disk_cache *cache, cache_key key)
+disk_cache_put_key(struct disk_cache *cache, const cache_key key)
 {
-   uint32_t *key_chunk = (uint32_t *) key;
+   const uint32_t *key_chunk = (const uint32_t *) key;
    int i = *key_chunk & CACHE_INDEX_KEY_MASK;
    unsigned char *entry;
 
@@ -802,9 +971,9 @@ disk_cache_put_key(struct disk_cache *cache, cache_key key)
  * extra recompile.
  */
 bool
-disk_cache_has_key(struct disk_cache *cache, cache_key key)
+disk_cache_has_key(struct disk_cache *cache, const cache_key key)
 {
-   uint32_t *key_chunk = (uint32_t *) key;
+   const uint32_t *key_chunk = (const uint32_t *) key;
    int i = *key_chunk & CACHE_INDEX_KEY_MASK;
    unsigned char *entry;
 

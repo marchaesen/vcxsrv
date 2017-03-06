@@ -81,6 +81,101 @@ nir_builder_cf_insert(nir_builder *build, nir_cf_node *cf)
    nir_cf_node_insert(build->cursor, cf);
 }
 
+static inline bool
+nir_builder_is_inside_cf(nir_builder *build, nir_cf_node *cf_node)
+{
+   nir_block *block = nir_cursor_current_block(build->cursor);
+   for (nir_cf_node *n = &block->cf_node; n; n = n->parent) {
+      if (n == cf_node)
+         return true;
+   }
+   return false;
+}
+
+static inline nir_if *
+nir_push_if(nir_builder *build, nir_ssa_def *condition)
+{
+   nir_if *nif = nir_if_create(build->shader);
+   nif->condition = nir_src_for_ssa(condition);
+   nir_builder_cf_insert(build, &nif->cf_node);
+   build->cursor = nir_before_cf_list(&nif->then_list);
+   return nif;
+}
+
+static inline nir_if *
+nir_push_else(nir_builder *build, nir_if *nif)
+{
+   if (nif) {
+      assert(nir_builder_is_inside_cf(build, &nif->cf_node));
+   } else {
+      nir_block *block = nir_cursor_current_block(build->cursor);
+      nif = nir_cf_node_as_if(block->cf_node.parent);
+   }
+   build->cursor = nir_before_cf_list(&nif->else_list);
+   return nif;
+}
+
+static inline void
+nir_pop_if(nir_builder *build, nir_if *nif)
+{
+   if (nif) {
+      assert(nir_builder_is_inside_cf(build, &nif->cf_node));
+   } else {
+      nir_block *block = nir_cursor_current_block(build->cursor);
+      nif = nir_cf_node_as_if(block->cf_node.parent);
+   }
+   build->cursor = nir_after_cf_node(&nif->cf_node);
+}
+
+static inline nir_ssa_def *
+nir_if_phi(nir_builder *build, nir_ssa_def *then_def, nir_ssa_def *else_def)
+{
+   nir_block *block = nir_cursor_current_block(build->cursor);
+   nir_if *nif = nir_cf_node_as_if(nir_cf_node_prev(&block->cf_node));
+
+   nir_phi_instr *phi = nir_phi_instr_create(build->shader);
+
+   nir_phi_src *src = ralloc(phi, nir_phi_src);
+   src->pred = nir_if_last_then_block(nif);
+   src->src = nir_src_for_ssa(then_def);
+   exec_list_push_tail(&phi->srcs, &src->node);
+
+   src = ralloc(phi, nir_phi_src);
+   src->pred = nir_if_last_else_block(nif);
+   src->src = nir_src_for_ssa(else_def);
+   exec_list_push_tail(&phi->srcs, &src->node);
+
+   assert(then_def->num_components == else_def->num_components);
+   assert(then_def->bit_size == else_def->bit_size);
+   nir_ssa_dest_init(&phi->instr, &phi->dest,
+                     then_def->num_components, then_def->bit_size, NULL);
+
+   nir_builder_instr_insert(build, &phi->instr);
+
+   return &phi->dest.ssa;
+}
+
+static inline nir_loop *
+nir_push_loop(nir_builder *build)
+{
+   nir_loop *loop = nir_loop_create(build->shader);
+   nir_builder_cf_insert(build, &loop->cf_node);
+   build->cursor = nir_before_cf_list(&loop->body);
+   return loop;
+}
+
+static inline void
+nir_pop_loop(nir_builder *build, nir_loop *loop)
+{
+   if (loop) {
+      assert(nir_builder_is_inside_cf(build, &loop->cf_node));
+   } else {
+      nir_block *block = nir_cursor_current_block(build->cursor);
+      loop = nir_cf_node_as_loop(block->cf_node.parent);
+   }
+   build->cursor = nir_after_cf_node(&loop->cf_node);
+}
+
 static inline nir_ssa_def *
 nir_ssa_undef(nir_builder *build, unsigned num_components, unsigned bit_size)
 {
@@ -155,6 +250,17 @@ nir_imm_int(nir_builder *build, int x)
    v.i32[0] = x;
 
    return nir_build_imm(build, 1, 32, v);
+}
+
+static inline nir_ssa_def *
+nir_imm_int64(nir_builder *build, int64_t x)
+{
+   nir_const_value v;
+
+   memset(&v, 0, sizeof(v));
+   v.i64[0] = x;
+
+   return nir_build_imm(build, 1, 64, v);
 }
 
 static inline nir_ssa_def *

@@ -44,7 +44,8 @@ struct radv_descriptor_set_binding_layout {
    uint16_t dynamic_offset_count;
 
    /* Immutable samplers (or NULL if no immutable samplers) */
-   struct radv_sampler **immutable_samplers;
+   uint32_t *immutable_samplers;
+   bool immutable_samplers_equal;
 };
 
 struct radv_descriptor_set_layout {

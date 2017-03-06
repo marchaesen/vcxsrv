@@ -40,7 +40,7 @@ void
 glsl_type::init_ralloc_type_ctx(void)
 {
    if (glsl_type::mem_ctx == NULL) {
-      glsl_type::mem_ctx = ralloc_autofree_context();
+      glsl_type::mem_ctx = ralloc_context(NULL);
       assert(glsl_type::mem_ctx != NULL);
    }
 }
@@ -95,7 +95,7 @@ glsl_type::glsl_type(GLenum gl_type, glsl_base_type base_type,
 
    memset(& fields, 0, sizeof(fields));
 
-   if (base_type == GLSL_TYPE_SAMPLER) {
+   if (is_sampler()) {
       /* Samplers take no storage whatsoever. */
       matrix_columns = vector_elements = 0;
    } else {
@@ -416,6 +416,9 @@ _mesa_glsl_release_types(void)
       _mesa_hash_table_destroy(glsl_type::interface_types, NULL);
       glsl_type::interface_types = NULL;
    }
+
+   ralloc_free(glsl_type::mem_ctx);
+   glsl_type::mem_ctx = NULL;
 }
 
 
@@ -2032,8 +2035,7 @@ glsl_type::coordinate_components() const
     * cubemap faces.
     */
    if (sampler_array &&
-       !(base_type == GLSL_TYPE_IMAGE &&
-         sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE))
+       !(is_image() && sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE))
       size += 1;
 
    return size;

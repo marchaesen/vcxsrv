@@ -3939,7 +3939,7 @@ _mesa_CopyTextureSubImage1D(GLuint texture, GLint level,
 
    /* Check target (proxies not allowed). */
    if (!legal_texsubimage_target(ctx, 1, texObj->Target, true)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid target %s)", self,
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid target %s)", self,
                   _mesa_enum_to_string(texObj->Target));
       return;
    }
@@ -3963,7 +3963,7 @@ _mesa_CopyTextureSubImage2D(GLuint texture, GLint level,
 
    /* Check target (proxies not allowed). */
    if (!legal_texsubimage_target(ctx, 2, texObj->Target, true)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid target %s)", self,
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid target %s)", self,
                   _mesa_enum_to_string(texObj->Target));
       return;
    }
@@ -3990,7 +3990,7 @@ _mesa_CopyTextureSubImage3D(GLuint texture, GLint level,
 
    /* Check target (proxies not allowed). */
    if (!legal_texsubimage_target(ctx, 3, texObj->Target, true)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid target %s)", self,
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid target %s)", self,
                   _mesa_enum_to_string(texObj->Target));
       return;
    }

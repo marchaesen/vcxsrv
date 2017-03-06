@@ -72,7 +72,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXChangeKeyboardDevice(ClientPtr client)
 {
     REQUEST(xChangeKeyboardDeviceReq);

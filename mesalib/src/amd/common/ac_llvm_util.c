@@ -24,7 +24,7 @@
  */
 /* based on pieces from si_pipe.c and radeon_llvm_emit.c */
 #include "ac_llvm_util.h"
-
+#include "util/bitscan.h"
 #include <llvm-c/Core.h>
 
 #include "c11/threads.h"
@@ -172,6 +172,8 @@ static const char *attr_to_str(enum ac_func_attr attr)
    case AC_FUNC_ATTR_NOUNWIND: return "nounwind";
    case AC_FUNC_ATTR_READNONE: return "readnone";
    case AC_FUNC_ATTR_READONLY: return "readonly";
+   case AC_FUNC_ATTR_WRITEONLY: return "writeonly";
+   case AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY: return "inaccessiblememonly";
    default:
 	   fprintf(stderr, "Unhandled function attribute: %x\n", attr);
 	   return 0;
@@ -181,11 +183,9 @@ static const char *attr_to_str(enum ac_func_attr attr)
 #endif
 
 void
-ac_add_function_attr(LLVMValueRef function,
-                     int attr_idx,
-                     enum ac_func_attr attr)
+ac_add_function_attr(LLVMContextRef ctx, LLVMValueRef function,
+                     int attr_idx, enum ac_func_attr attr)
 {
-
 #if HAVE_LLVM < 0x0400
    LLVMAttribute llvm_attr = ac_attr_to_llvm_attr(attr);
    if (attr_idx == -1) {
@@ -194,13 +194,28 @@ ac_add_function_attr(LLVMValueRef function,
       LLVMAddAttribute(LLVMGetParam(function, attr_idx - 1), llvm_attr);
    }
 #else
-   LLVMContextRef context = LLVMGetModuleContext(LLVMGetGlobalParent(function));
    const char *attr_name = attr_to_str(attr);
    unsigned kind_id = LLVMGetEnumAttributeKindForName(attr_name,
                                                       strlen(attr_name));
-   LLVMAttributeRef llvm_attr = LLVMCreateEnumAttribute(context, kind_id, 0);
-   LLVMAddAttributeAtIndex(function, attr_idx, llvm_attr);
+   LLVMAttributeRef llvm_attr = LLVMCreateEnumAttribute(ctx, kind_id, 0);
+
+   if (LLVMIsAFunction(function))
+      LLVMAddAttributeAtIndex(function, attr_idx, llvm_attr);
+   else
+      LLVMAddCallSiteAttribute(function, attr_idx, llvm_attr);
 #endif
+}
+
+void ac_add_func_attributes(LLVMContextRef ctx, LLVMValueRef function,
+			    unsigned attrib_mask)
+{
+	attrib_mask |= AC_FUNC_ATTR_NOUNWIND;
+	attrib_mask &= ~AC_FUNC_ATTR_LEGACY;
+
+	while (attrib_mask) {
+		enum ac_func_attr attr = 1u << u_bit_scan(&attrib_mask);
+		ac_add_function_attr(ctx, function, -1, attr);
+	}
 }
 
 void
