@@ -33,6 +33,7 @@ libos_la_SOURCES = 	\
 	ospoll.c	\
 	utils.c		\
 	strcasecmp.c	\
+  timingsafe_memcmp.c \
 	strcasestr.c	\
 	xdmauth.c	\
 	xsha1.c		\

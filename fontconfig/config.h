@@ -10,6 +10,7 @@
 #define HAVE__MKTEMP_S 1
 #define FC_CACHEDIR getenv("TEMP")
 #define FC_DEFAULT_FONTS "fonts"
+#define FC_GPERF_SIZE_T unsigned int
 #ifdef _WIN64
 #define SIZEOF_VOID_P 8
 #else

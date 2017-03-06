@@ -340,6 +340,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\objectpurge.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\performance_monitor.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\performance_query.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pipelineobj.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\program_resource.c" />
