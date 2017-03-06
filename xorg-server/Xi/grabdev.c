@@ -72,7 +72,7 @@ extern int ExtEventIndex;
  *
  */
 
-int
+int _X_COLD
 SProcXGrabDevice(ClientPtr client)
 {
     REQUEST(xGrabDeviceReq);
@@ -205,7 +205,7 @@ CreateMaskFromList(ClientPtr client, XEventClass * list, int count,
  *
  */
 
-void
+void _X_COLD
 SRepXGrabDevice(ClientPtr client, int size, xGrabDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);

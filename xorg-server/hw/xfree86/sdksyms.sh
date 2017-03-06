@@ -343,6 +343,10 @@ BEGIN {
            n = 1;
         }
 
+        # only match _X_EXPORT
+        if ($n !~ /^(__attribute__..visibility..default|__global)/)
+            next;
+
 	# skip attribute, if any
 	while ($n ~ /^(__attribute__|__global)/ ||
 	    # skip modifiers, if any

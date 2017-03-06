@@ -29,14 +29,14 @@
 #ifndef ST_MESA_TO_TGSI_H
 #define ST_MESA_TO_TGSI_H
 
-#if defined __cplusplus
-extern "C" {
-#endif
-
 #include "main/glheader.h"
 
 #include "pipe/p_compiler.h"
 #include "pipe/p_defines.h"
+
+#if defined __cplusplus
+extern "C" {
+#endif
 
 struct gl_context;
 struct gl_program;

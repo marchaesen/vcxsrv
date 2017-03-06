@@ -27,6 +27,7 @@
 
 #include "util/u_helpers.h"
 #include "util/u_inlines.h"
+#include "util/u_upload_mgr.h"
 
 /**
  * This function is used to copy an array of pipe_vertex_buffer structures,
@@ -108,4 +109,33 @@ util_set_index_buffer(struct pipe_index_buffer *dst,
       pipe_resource_reference(&dst->buffer, NULL);
       memset(dst, 0, sizeof(*dst));
    }
+}
+
+/**
+ * Given a user index buffer, save the structure to "saved", and upload it.
+ */
+bool
+util_save_and_upload_index_buffer(struct pipe_context *pipe,
+                                  const struct pipe_draw_info *info,
+                                  const struct pipe_index_buffer *ib,
+                                  struct pipe_index_buffer *out_saved)
+{
+   struct pipe_index_buffer new_ib = {0};
+   unsigned start_offset = info->start * ib->index_size;
+
+   u_upload_data(pipe->stream_uploader, start_offset,
+                 info->count * ib->index_size, 4,
+                 (char*)ib->user_buffer + start_offset,
+                 &new_ib.offset, &new_ib.buffer);
+   if (!new_ib.buffer)
+      return false;
+   u_upload_unmap(pipe->stream_uploader);
+
+   new_ib.offset -= start_offset;
+   new_ib.index_size = ib->index_size;
+
+   util_set_index_buffer(out_saved, ib);
+   pipe->set_index_buffer(pipe, &new_ib);
+   pipe_resource_reference(&new_ib.buffer, NULL);
+   return true;
 }

@@ -73,7 +73,7 @@ extern CARD8 event_base[];
  *
  */
 
-int
+int _X_COLD
 SProcXOpenDevice(ClientPtr client)
 {
     REQUEST(xOpenDeviceReq);
@@ -163,7 +163,7 @@ ProcXOpenDevice(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXOpenDevice(ClientPtr client, int size, xOpenDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);

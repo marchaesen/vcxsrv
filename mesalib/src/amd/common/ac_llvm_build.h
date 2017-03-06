@@ -58,9 +58,11 @@ void
 ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context);
 
 LLVMValueRef
-ac_emit_llvm_intrinsic(struct ac_llvm_context *ctx, const char *name,
-		       LLVMTypeRef return_type, LLVMValueRef *params,
-		       unsigned param_count, unsigned attrib_mask);
+ac_build_intrinsic(struct ac_llvm_context *ctx, const char *name,
+		   LLVMTypeRef return_type, LLVMValueRef *params,
+		   unsigned param_count, unsigned attrib_mask);
+
+void ac_build_type_name_for_intr(LLVMTypeRef type, char *buf, unsigned bufsize);
 
 LLVMValueRef
 ac_build_gather_values_extended(struct ac_llvm_context *ctx,
@@ -74,9 +76,9 @@ ac_build_gather_values(struct ac_llvm_context *ctx,
 		       unsigned value_count);
 
 LLVMValueRef
-ac_emit_fdiv(struct ac_llvm_context *ctx,
-	     LLVMValueRef num,
-	     LLVMValueRef den);
+ac_build_fdiv(struct ac_llvm_context *ctx,
+	      LLVMValueRef num,
+	      LLVMValueRef den);
 
 void
 ac_prepare_cube_coords(struct ac_llvm_context *ctx,
@@ -120,30 +122,17 @@ ac_build_indexed_load_const(struct ac_llvm_context *ctx,
 			    LLVMValueRef base_ptr, LLVMValueRef index);
 
 void
-ac_build_tbuffer_store_dwords(struct ac_llvm_context *ctx,
-			      LLVMValueRef rsrc,
-			      LLVMValueRef vdata,
-			      unsigned num_channels,
-			      LLVMValueRef vaddr,
-			      LLVMValueRef soffset,
-			      unsigned inst_offset);
-
-void
-ac_build_tbuffer_store(struct ac_llvm_context *ctx,
-		       LLVMValueRef rsrc,
-		       LLVMValueRef vdata,
-		       unsigned num_channels,
-		       LLVMValueRef vaddr,
-		       LLVMValueRef soffset,
-		       unsigned inst_offset,
-		       unsigned dfmt,
-		       unsigned nfmt,
-		       unsigned offen,
-		       unsigned idxen,
-		       unsigned glc,
-		       unsigned slc,
-		       unsigned tfe);
-
+ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
+			    LLVMValueRef rsrc,
+			    LLVMValueRef vdata,
+			    unsigned num_channels,
+			    LLVMValueRef voffset,
+			    LLVMValueRef soffset,
+			    unsigned inst_offset,
+		            bool glc,
+		            bool slc,
+			    bool writeonly_memory,
+			    bool has_add_tid);
 LLVMValueRef
 ac_build_buffer_load(struct ac_llvm_context *ctx,
 		     LLVMValueRef rsrc,
@@ -153,7 +142,14 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 		     LLVMValueRef soffset,
 		     unsigned inst_offset,
 		     unsigned glc,
-		     unsigned slc);
+		     unsigned slc,
+		     bool readonly_memory);
+
+LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
+					 LLVMValueRef rsrc,
+					 LLVMValueRef vindex,
+					 LLVMValueRef voffset,
+					 bool readonly_memory);
 
 LLVMValueRef
 ac_get_thread_id(struct ac_llvm_context *ctx);
@@ -163,12 +159,12 @@ ac_get_thread_id(struct ac_llvm_context *ctx);
 #define AC_TID_MASK_LEFT     0xfffffffe
 
 LLVMValueRef
-ac_emit_ddxy(struct ac_llvm_context *ctx,
-	     bool has_ds_bpermute,
-	     uint32_t mask,
-	     int idx,
-	     LLVMValueRef lds,
-	     LLVMValueRef val);
+ac_build_ddxy(struct ac_llvm_context *ctx,
+	      bool has_ds_bpermute,
+	      uint32_t mask,
+	      int idx,
+	      LLVMValueRef lds,
+	      LLVMValueRef val);
 
 #define AC_SENDMSG_GS 2
 #define AC_SENDMSG_GS_DONE 3
@@ -178,17 +174,65 @@ ac_emit_ddxy(struct ac_llvm_context *ctx,
 #define AC_SENDMSG_GS_OP_EMIT     (2 << 4)
 #define AC_SENDMSG_GS_OP_EMIT_CUT (3 << 4)
 
-void ac_emit_sendmsg(struct ac_llvm_context *ctx,
-		     uint32_t msg,
-		     LLVMValueRef wave_id);
+void ac_build_sendmsg(struct ac_llvm_context *ctx,
+		      uint32_t msg,
+		      LLVMValueRef wave_id);
 
-LLVMValueRef ac_emit_imsb(struct ac_llvm_context *ctx,
+LLVMValueRef ac_build_imsb(struct ac_llvm_context *ctx,
+			   LLVMValueRef arg,
+			   LLVMTypeRef dst_type);
+
+LLVMValueRef ac_build_umsb(struct ac_llvm_context *ctx,
 			  LLVMValueRef arg,
 			  LLVMTypeRef dst_type);
 
-LLVMValueRef ac_emit_umsb(struct ac_llvm_context *ctx,
-			  LLVMValueRef arg,
-			  LLVMTypeRef dst_type);
+LLVMValueRef ac_build_clamp(struct ac_llvm_context *ctx, LLVMValueRef value);
+
+struct ac_export_args {
+	LLVMValueRef out[4];
+        unsigned target;
+        unsigned enabled_channels;
+        bool compr;
+        bool done;
+        bool valid_mask;
+};
+
+void ac_build_export(struct ac_llvm_context *ctx, struct ac_export_args *a);
+
+enum ac_image_opcode {
+	ac_image_sample,
+	ac_image_gather4,
+	ac_image_load,
+	ac_image_load_mip,
+	ac_image_get_lod,
+	ac_image_get_resinfo,
+};
+
+struct ac_image_args {
+	enum ac_image_opcode opcode;
+	bool level_zero;
+	bool bias;
+	bool lod;
+	bool deriv;
+	bool compare;
+	bool offset;
+
+	LLVMValueRef resource;
+	LLVMValueRef sampler;
+	LLVMValueRef addr;
+	unsigned dmask;
+	bool unorm;
+	bool da;
+};
+
+LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
+				   struct ac_image_args *a);
+LLVMValueRef ac_build_cvt_pkrtz_f16(struct ac_llvm_context *ctx,
+				    LLVMValueRef args[2]);
+void ac_build_kill(struct ac_llvm_context *ctx, LLVMValueRef value);
+LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
+			  LLVMValueRef offset, LLVMValueRef width,
+			  bool is_signed);
 
 #ifdef __cplusplus
 }

@@ -25,10 +25,10 @@
 #include "fcint.h"
 
 static unsigned int
-FcObjectTypeHash (register const char *str, register unsigned int len);
+FcObjectTypeHash (register const char *str, register FC_GPERF_SIZE_T len);
 
 static const struct FcObjectTypeInfo *
-FcObjectTypeLookup (register const char *str, register unsigned int len);
+FcObjectTypeLookup (register const char *str, register FC_GPERF_SIZE_T len);
 
 #include "fcobjshash.h"
 

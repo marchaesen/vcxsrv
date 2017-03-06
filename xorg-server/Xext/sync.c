@@ -2151,7 +2151,7 @@ ProcSyncDispatch(ClientPtr client)
  * Boring Swapping stuff ...
  */
 
-static int
+static int _X_COLD
 SProcSyncInitialize(ClientPtr client)
 {
     REQUEST(xSyncInitializeReq);
@@ -2161,7 +2161,7 @@ SProcSyncInitialize(ClientPtr client)
     return ProcSyncInitialize(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncListSystemCounters(ClientPtr client)
 {
     REQUEST(xSyncListSystemCountersReq);
@@ -2171,7 +2171,7 @@ SProcSyncListSystemCounters(ClientPtr client)
     return ProcSyncListSystemCounters(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncCreateCounter(ClientPtr client)
 {
     REQUEST(xSyncCreateCounterReq);
@@ -2184,7 +2184,7 @@ SProcSyncCreateCounter(ClientPtr client)
     return ProcSyncCreateCounter(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncSetCounter(ClientPtr client)
 {
     REQUEST(xSyncSetCounterReq);
@@ -2197,7 +2197,7 @@ SProcSyncSetCounter(ClientPtr client)
     return ProcSyncSetCounter(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncChangeCounter(ClientPtr client)
 {
     REQUEST(xSyncChangeCounterReq);
@@ -2210,7 +2210,7 @@ SProcSyncChangeCounter(ClientPtr client)
     return ProcSyncChangeCounter(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncQueryCounter(ClientPtr client)
 {
     REQUEST(xSyncQueryCounterReq);
@@ -2221,7 +2221,7 @@ SProcSyncQueryCounter(ClientPtr client)
     return ProcSyncQueryCounter(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncDestroyCounter(ClientPtr client)
 {
     REQUEST(xSyncDestroyCounterReq);
@@ -2232,7 +2232,7 @@ SProcSyncDestroyCounter(ClientPtr client)
     return ProcSyncDestroyCounter(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncAwait(ClientPtr client)
 {
     REQUEST(xSyncAwaitReq);
@@ -2243,7 +2243,7 @@ SProcSyncAwait(ClientPtr client)
     return ProcSyncAwait(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncCreateAlarm(ClientPtr client)
 {
     REQUEST(xSyncCreateAlarmReq);
@@ -2256,7 +2256,7 @@ SProcSyncCreateAlarm(ClientPtr client)
     return ProcSyncCreateAlarm(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncChangeAlarm(ClientPtr client)
 {
     REQUEST(xSyncChangeAlarmReq);
@@ -2268,7 +2268,7 @@ SProcSyncChangeAlarm(ClientPtr client)
     return ProcSyncChangeAlarm(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncQueryAlarm(ClientPtr client)
 {
     REQUEST(xSyncQueryAlarmReq);
@@ -2279,7 +2279,7 @@ SProcSyncQueryAlarm(ClientPtr client)
     return ProcSyncQueryAlarm(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncDestroyAlarm(ClientPtr client)
 {
     REQUEST(xSyncDestroyAlarmReq);
@@ -2290,7 +2290,7 @@ SProcSyncDestroyAlarm(ClientPtr client)
     return ProcSyncDestroyAlarm(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncSetPriority(ClientPtr client)
 {
     REQUEST(xSyncSetPriorityReq);
@@ -2302,7 +2302,7 @@ SProcSyncSetPriority(ClientPtr client)
     return ProcSyncSetPriority(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncGetPriority(ClientPtr client)
 {
     REQUEST(xSyncGetPriorityReq);
@@ -2313,7 +2313,7 @@ SProcSyncGetPriority(ClientPtr client)
     return ProcSyncGetPriority(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncCreateFence(ClientPtr client)
 {
     REQUEST(xSyncCreateFenceReq);
@@ -2324,7 +2324,7 @@ SProcSyncCreateFence(ClientPtr client)
     return ProcSyncCreateFence(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncTriggerFence(ClientPtr client)
 {
     REQUEST(xSyncTriggerFenceReq);
@@ -2335,7 +2335,7 @@ SProcSyncTriggerFence(ClientPtr client)
     return ProcSyncTriggerFence(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncResetFence(ClientPtr client)
 {
     REQUEST(xSyncResetFenceReq);
@@ -2346,7 +2346,7 @@ SProcSyncResetFence(ClientPtr client)
     return ProcSyncResetFence(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncDestroyFence(ClientPtr client)
 {
     REQUEST(xSyncDestroyFenceReq);
@@ -2357,7 +2357,7 @@ SProcSyncDestroyFence(ClientPtr client)
     return ProcSyncDestroyFence(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncQueryFence(ClientPtr client)
 {
     REQUEST(xSyncQueryFenceReq);
@@ -2368,7 +2368,7 @@ SProcSyncQueryFence(ClientPtr client)
     return ProcSyncQueryFence(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncAwaitFence(ClientPtr client)
 {
     REQUEST(xSyncAwaitFenceReq);
@@ -2379,7 +2379,7 @@ SProcSyncAwaitFence(ClientPtr client)
     return ProcSyncAwaitFence(client);
 }
 
-static int
+static int _X_COLD
 SProcSyncDispatch(ClientPtr client)
 {
     REQUEST(xReq);
@@ -2434,7 +2434,7 @@ SProcSyncDispatch(ClientPtr client)
  * Event Swapping
  */
 
-static void
+static void _X_COLD
 SCounterNotifyEvent(xSyncCounterNotifyEvent * from,
                     xSyncCounterNotifyEvent * to)
 {
@@ -2451,7 +2451,7 @@ SCounterNotifyEvent(xSyncCounterNotifyEvent * from,
     to->destroyed = from->destroyed;
 }
 
-static void
+static void _X_COLD
 SAlarmNotifyEvent(xSyncAlarmNotifyEvent * from, xSyncAlarmNotifyEvent * to)
 {
     to->type = from->type;

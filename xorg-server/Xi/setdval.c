@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXSetDeviceValuators(ClientPtr client)
 {
     REQUEST(xSetDeviceValuatorsReq);
@@ -137,7 +137,7 @@ ProcXSetDeviceValuators(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXSetDeviceValuators(ClientPtr client, int size,
                         xSetDeviceValuatorsReply * rep)
 {

@@ -105,18 +105,27 @@ dixLookupProperty(PropertyPtr *result, WindowPtr pWin, Atom propertyName,
     return rc;
 }
 
+CallbackListPtr PropertyStateCallback;
+
 static void
-deliverPropertyNotifyEvent(WindowPtr pWin, int state, Atom atom)
+deliverPropertyNotifyEvent(WindowPtr pWin, int state, PropertyPtr pProp)
 {
     xEvent event;
+    PropertyStateRec rec = {
+        .win = pWin,
+        .prop = pProp,
+        .state = state
+    };
     UpdateCurrentTimeIf();
     event = (xEvent) {
         .u.property.window = pWin->drawable.id,
         .u.property.state = state,
-        .u.property.atom = atom,
+        .u.property.atom = pProp->propertyName,
         .u.property.time = currentTime.milliseconds,
     };
     event.u.u.type = PropertyNotify;
+
+    CallCallbacks(&PropertyStateCallback, &rec);
     DeliverEvents(pWin, &event, 1, (WindowPtr) NULL);
 }
 
@@ -175,7 +184,7 @@ ProcRotateProperties(ClientPtr client)
             delta += stuff->nAtoms;
         for (i = 0; i < stuff->nAtoms; i++) {
             j = (i + delta) % stuff->nAtoms;
-            deliverPropertyNotifyEvent(pWin, PropertyNewValue, atoms[i]);
+            deliverPropertyNotifyEvent(pWin, PropertyNewValue, props[i]);
 
             /* Preserve name and devPrivates */
             props[j]->type = saved[i].type;
@@ -351,7 +360,7 @@ dixChangeWindowProperty(ClientPtr pClient, WindowPtr pWin, Atom property,
         return rc;
 
     if (sendevent)
-        deliverPropertyNotifyEvent(pWin, PropertyNewValue, pProp->propertyName);
+        deliverPropertyNotifyEvent(pWin, PropertyNewValue, pProp);
 
     return Success;
 }
@@ -380,7 +389,7 @@ DeleteProperty(ClientPtr client, WindowPtr pWin, Atom propName)
             prevProp->next = pProp->next;
         }
 
-        deliverPropertyNotifyEvent(pWin, PropertyDelete, pProp->propertyName);
+        deliverPropertyNotifyEvent(pWin, PropertyDelete, pProp);
         free(pProp->data);
         dixFreeObjectWithPrivates(pProp, PRIVATE_PROPERTY);
     }
@@ -394,7 +403,7 @@ DeleteAllWindowProperties(WindowPtr pWin)
 
     pProp = wUserProps(pWin);
     while (pProp) {
-        deliverPropertyNotifyEvent(pWin, PropertyDelete, pProp->propertyName);
+        deliverPropertyNotifyEvent(pWin, PropertyDelete, pProp);
         pNextProp = pProp->next;
         free(pProp->data);
         dixFreeObjectWithPrivates(pProp, PRIVATE_PROPERTY);
@@ -517,7 +526,7 @@ ProcGetProperty(ClientPtr client)
     };
 
     if (stuff->delete && (reply.bytesAfter == 0))
-        deliverPropertyNotifyEvent(pWin, PropertyDelete, pProp->propertyName);
+        deliverPropertyNotifyEvent(pWin, PropertyDelete, pProp);
 
     WriteReplyToClient(client, sizeof(xGenericReply), &reply);
     if (len) {

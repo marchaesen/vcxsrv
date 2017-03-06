@@ -29,6 +29,7 @@
 #include <assert.h>
 
 #include "radv_private.h"
+#include "vk_enum_to_str.h"
 
 #include "util/u_math.h"
 
@@ -71,40 +72,7 @@ __vk_errorf(VkResult error, const char *file, int line, const char *format, ...)
 	va_list ap;
 	char buffer[256];
 
-#define ERROR_CASE(error) case error: error_str = #error; break;
-
-	const char *error_str;
-	switch ((int32_t)error) {
-
-		/* Core errors */
-		ERROR_CASE(VK_ERROR_OUT_OF_HOST_MEMORY)
-			ERROR_CASE(VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			ERROR_CASE(VK_ERROR_INITIALIZATION_FAILED)
-			ERROR_CASE(VK_ERROR_DEVICE_LOST)
-			ERROR_CASE(VK_ERROR_MEMORY_MAP_FAILED)
-			ERROR_CASE(VK_ERROR_LAYER_NOT_PRESENT)
-			ERROR_CASE(VK_ERROR_EXTENSION_NOT_PRESENT)
-			ERROR_CASE(VK_ERROR_FEATURE_NOT_PRESENT)
-			ERROR_CASE(VK_ERROR_INCOMPATIBLE_DRIVER)
-			ERROR_CASE(VK_ERROR_TOO_MANY_OBJECTS)
-			ERROR_CASE(VK_ERROR_FORMAT_NOT_SUPPORTED)
-			ERROR_CASE(VK_ERROR_FRAGMENTED_POOL)
-
-			/* Extension errors */
-			ERROR_CASE(VK_ERROR_SURFACE_LOST_KHR)
-			ERROR_CASE(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR)
-			ERROR_CASE(VK_ERROR_OUT_OF_DATE_KHR)
-			ERROR_CASE(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR)
-			ERROR_CASE(VK_ERROR_VALIDATION_FAILED_EXT)
-			ERROR_CASE(VK_ERROR_INVALID_SHADER_NV)
-			ERROR_CASE(VK_ERROR_OUT_OF_POOL_MEMORY_KHR)
-
-	default:
-		assert(!"Unknown error");
-		error_str = "unknown error";
-	}
-
-#undef ERROR_CASE
+	const char *error_str = vk_Result_to_str(error);
 
 	if (format) {
 		va_start(ap, format);

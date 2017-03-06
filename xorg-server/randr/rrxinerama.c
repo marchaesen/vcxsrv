@@ -82,7 +82,7 @@ static int ProcRRXineramaGetScreenCount(ClientPtr client);
 static int ProcRRXineramaGetScreenSize(ClientPtr client);
 static int ProcRRXineramaIsActive(ClientPtr client);
 static int ProcRRXineramaQueryScreens(ClientPtr client);
-static int SProcRRXineramaDispatch(ClientPtr client);
+static int _X_COLD SProcRRXineramaDispatch(ClientPtr client);
 
 Bool noRRXineramaExtension = FALSE;
 
@@ -332,7 +332,7 @@ ProcRRXineramaDispatch(ClientPtr client)
 
 /* SProc */
 
-static int
+static int _X_COLD
 SProcRRXineramaQueryVersion(ClientPtr client)
 {
     REQUEST(xPanoramiXQueryVersionReq);
@@ -341,7 +341,7 @@ SProcRRXineramaQueryVersion(ClientPtr client)
     return ProcRRXineramaQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcRRXineramaGetState(ClientPtr client)
 {
     REQUEST(xPanoramiXGetStateReq);
@@ -351,7 +351,7 @@ SProcRRXineramaGetState(ClientPtr client)
     return ProcRRXineramaGetState(client);
 }
 
-static int
+static int _X_COLD
 SProcRRXineramaGetScreenCount(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenCountReq);
@@ -361,7 +361,7 @@ SProcRRXineramaGetScreenCount(ClientPtr client)
     return ProcRRXineramaGetScreenCount(client);
 }
 
-static int
+static int _X_COLD
 SProcRRXineramaGetScreenSize(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenSizeReq);
@@ -372,7 +372,7 @@ SProcRRXineramaGetScreenSize(ClientPtr client)
     return ProcRRXineramaGetScreenSize(client);
 }
 
-static int
+static int _X_COLD
 SProcRRXineramaIsActive(ClientPtr client)
 {
     REQUEST(xXineramaIsActiveReq);
@@ -381,7 +381,7 @@ SProcRRXineramaIsActive(ClientPtr client)
     return ProcRRXineramaIsActive(client);
 }
 
-static int
+static int _X_COLD
 SProcRRXineramaQueryScreens(ClientPtr client)
 {
     REQUEST(xXineramaQueryScreensReq);

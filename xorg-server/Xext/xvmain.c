@@ -984,7 +984,7 @@ XvdiGetPortAttribute(ClientPtr client,
 
 }
 
-static void
+static void _X_COLD
 WriteSwappedVideoNotifyEvent(xvEvent * from, xvEvent * to)
 {
 
@@ -998,7 +998,7 @@ WriteSwappedVideoNotifyEvent(xvEvent * from, xvEvent * to)
 
 }
 
-static void
+static void _X_COLD
 WriteSwappedPortNotifyEvent(xvEvent * from, xvEvent * to)
 {
 

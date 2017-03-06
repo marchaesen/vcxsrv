@@ -404,7 +404,6 @@ void radv_CmdResolveImage(
 
 	if (use_compute_resolve) {
 
-		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image);
 		radv_meta_resolve_compute_image(cmd_buffer,
 						src_image,
 						src_image_layout,

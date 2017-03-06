@@ -53,6 +53,7 @@
 #include "radv_radeon_winsys.h"
 #include "ac_binary.h"
 #include "ac_nir_to_llvm.h"
+#include "radv_debug.h"
 #include "radv_descriptor_set.h"
 
 #include <llvm-c/TargetMachine.h>
@@ -98,18 +99,6 @@ enum radv_mem_type {
 	RADV_MEM_TYPE_VRAM_CPU_ACCESS,
 	RADV_MEM_TYPE_GTT_CACHED,
 	RADV_MEM_TYPE_COUNT
-};
-
-
-enum {
-	RADV_DEBUG_NO_FAST_CLEARS    =   0x1,
-	RADV_DEBUG_NO_DCC            =   0x2,
-	RADV_DEBUG_DUMP_SHADERS      =   0x4,
-	RADV_DEBUG_NO_CACHE          =   0x8,
-	RADV_DEBUG_DUMP_SHADER_STATS =  0x10,
-	RADV_DEBUG_NO_HIZ            =  0x20,
-	RADV_DEBUG_NO_COMPUTE_QUEUE  =  0x40,
-	RADV_DEBUG_UNSAFE_MATH       =  0x80,
 };
 
 #define radv_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
@@ -259,10 +248,7 @@ void radv_loge_v(const char *format, va_list va);
 		return;					\
 	} while (0)
 
-void *radv_resolve_entrypoint(uint32_t index);
 void *radv_lookup_entrypoint(const char *name);
-
-extern struct radv_dispatch_table dtable;
 
 struct radv_extensions {
 	VkExtensionProperties       *ext_array;
@@ -280,6 +266,7 @@ struct radv_physical_device {
 	const char *                                name;
 	uint8_t                                     uuid[VK_UUID_SIZE];
 
+	int local_fd;
 	struct wsi_device                       wsi_device;
 	struct radv_extensions                      extensions;
 };
@@ -478,7 +465,8 @@ struct radv_queue {
 	struct radeon_winsys_bo *compute_scratch_bo;
 	struct radeon_winsys_bo *esgs_ring_bo;
 	struct radeon_winsys_bo *gsvs_ring_bo;
-	struct radeon_winsys_cs *preamble_cs;
+	struct radeon_winsys_cs *initial_preamble_cs;
+	struct radeon_winsys_cs *continue_preamble_cs;
 };
 
 struct radv_device {
@@ -494,6 +482,7 @@ struct radv_device {
 	struct radv_queue *queues[RADV_MAX_QUEUE_FAMILIES];
 	int queue_count[RADV_MAX_QUEUE_FAMILIES];
 	struct radeon_winsys_cs *empty_cs[RADV_MAX_QUEUE_FAMILIES];
+	struct radeon_winsys_cs *flush_cs[RADV_MAX_QUEUE_FAMILIES];
 
 	uint64_t debug_flags;
 
@@ -523,6 +512,9 @@ struct radv_device {
 
 struct radv_device_memory {
 	struct radeon_winsys_bo                      *bo;
+	/* for dedicated allocations */
+	struct radv_image                            *image;
+	struct radv_buffer                           *buffer;
 	uint32_t                                     type_index;
 	VkDeviceSize                                 map_size;
 	void *                                       map;
@@ -707,6 +699,7 @@ struct radv_cmd_state {
 struct radv_cmd_pool {
 	VkAllocationCallbacks                        alloc;
 	struct list_head                             cmd_buffers;
+	struct list_head                             free_cmd_buffers;
 	uint32_t queue_family_index;
 };
 
@@ -746,8 +739,6 @@ struct radv_cmd_buffer {
 	uint32_t gsvs_ring_size_needed;
 
 	int ring_offsets_idx; /* just used for verification */
-
-	bool no_draws;
 };
 
 struct radv_image;
@@ -765,6 +756,14 @@ void si_write_scissors(struct radeon_winsys_cs *cs, int first,
 		       int count, const VkRect2D *scissors);
 uint32_t si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 				   bool instanced_or_indirect_draw, uint32_t draw_vertex_count);
+void si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
+                            enum chip_class chip_class,
+                            bool is_mec,
+                            enum radv_cmd_flush_bits flush_bits);
+void si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
+                            enum chip_class chip_class,
+                            bool is_mec,
+                            enum radv_cmd_flush_bits flush_bits);
 void si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer);
 void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 			   uint64_t src_va, uint64_t dest_va,
@@ -808,7 +807,9 @@ void radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
 		      struct radeon_winsys_bo *bo,
 		      uint64_t offset, uint64_t size, uint32_t value);
 void radv_cmd_buffer_trace_emit(struct radv_cmd_buffer *cmd_buffer);
-
+bool radv_get_memory_fd(struct radv_device *device,
+			struct radv_device_memory *memory,
+			int *pFD);
 /*
  * Takes x,y,z as exact numbers of invocations, instead of blocks.
  *
@@ -1315,6 +1316,8 @@ struct radv_fence {
 	bool signalled;
 };
 
+struct radeon_winsys_sem;
+
 #define RADV_DEFINE_HANDLE_CASTS(__radv_type, __VkType)		\
 								\
 	static inline struct __radv_type *			\
@@ -1371,5 +1374,6 @@ RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_query_pool, VkQueryPool)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_render_pass, VkRenderPass)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_sampler, VkSampler)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_shader_module, VkShaderModule)
+RADV_DEFINE_NONDISP_HANDLE_CASTS(radeon_winsys_sem, VkSemaphore)
 
 #endif /* RADV_PRIVATE_H */

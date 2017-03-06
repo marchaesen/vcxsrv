@@ -277,7 +277,7 @@ GetBit(unsigned char *line, int x)
     return 0;
 }
 
-int
+int _X_COLD
 SProcXFixesSelectCursorInput(ClientPtr client)
 {
     REQUEST(xXFixesSelectCursorInputReq);
@@ -288,7 +288,7 @@ SProcXFixesSelectCursorInput(ClientPtr client)
     return (*ProcXFixesVector[stuff->xfixesReqType]) (client);
 }
 
-void
+void _X_COLD
 SXFixesCursorNotifyEvent(xXFixesCursorNotifyEvent * from,
                          xXFixesCursorNotifyEvent * to)
 {
@@ -397,7 +397,7 @@ ProcXFixesGetCursorImage(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesGetCursorImage(ClientPtr client)
 {
     REQUEST(xXFixesGetCursorImageReq);
@@ -425,7 +425,7 @@ ProcXFixesSetCursorName(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesSetCursorName(ClientPtr client)
 {
     REQUEST(xXFixesSetCursorNameReq);
@@ -474,7 +474,7 @@ ProcXFixesGetCursorName(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesGetCursorName(ClientPtr client)
 {
     REQUEST(xXFixesGetCursorNameReq);
@@ -554,7 +554,7 @@ ProcXFixesGetCursorImageAndName(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesGetCursorImageAndName(ClientPtr client)
 {
     REQUEST(xXFixesGetCursorImageAndNameReq);
@@ -681,7 +681,7 @@ ProcXFixesChangeCursor(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesChangeCursor(ClientPtr client)
 {
     REQUEST(xXFixesChangeCursorReq);
@@ -720,7 +720,7 @@ ProcXFixesChangeCursorByName(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesChangeCursorByName(ClientPtr client)
 {
     REQUEST(xXFixesChangeCursorByNameReq);
@@ -880,7 +880,7 @@ ProcXFixesHideCursor(ClientPtr client)
     return ret;
 }
 
-int
+int _X_COLD
 SProcXFixesHideCursor(ClientPtr client)
 {
     REQUEST(xXFixesHideCursorReq);
@@ -931,7 +931,7 @@ ProcXFixesShowCursor(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesShowCursor(ClientPtr client)
 {
     REQUEST(xXFixesShowCursorReq);
@@ -1000,7 +1000,7 @@ ProcXFixesCreatePointerBarrier(ClientPtr client)
     return XICreatePointerBarrier(client, stuff);
 }
 
-int
+int _X_COLD
 SProcXFixesCreatePointerBarrier(ClientPtr client)
 {
     REQUEST(xXFixesCreatePointerBarrierReq);
@@ -1035,7 +1035,7 @@ ProcXFixesDestroyPointerBarrier(ClientPtr client)
     return XIDestroyPointerBarrier(client, stuff);
 }
 
-int
+int _X_COLD
 SProcXFixesDestroyPointerBarrier(ClientPtr client)
 {
     REQUEST(xXFixesDestroyPointerBarrierReq);

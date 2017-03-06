@@ -840,8 +840,7 @@ builtin_variable_generator::generate_constants()
                 state->Const.MaxTransformFeedbackInterleavedComponents);
    }
 
-   if (state->is_version(420, 310) ||
-       state->ARB_shader_image_load_store_enable) {
+   if (state->has_shader_image_load_store()) {
       add_const("gl_MaxImageUnits",
                 state->Const.MaxImageUnits);
       add_const("gl_MaxVertexImageUniforms",

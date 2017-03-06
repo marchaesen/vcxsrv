@@ -74,7 +74,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXListInputDevices(ClientPtr client)
 {
     REQUEST(xListInputDevicesReq);
@@ -413,7 +413,7 @@ ProcXListInputDevices(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXListInputDevices(ClientPtr client, int size, xListInputDevicesReply * rep)
 {
     swaps(&rep->sequenceNumber);

@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXSetDeviceMode(ClientPtr client)
 {
     REQUEST(xSetDeviceModeReq);
@@ -138,7 +138,7 @@ ProcXSetDeviceMode(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXSetDeviceMode(ClientPtr client, int size, xSetDeviceModeReply * rep)
 {
     swaps(&rep->sequenceNumber);

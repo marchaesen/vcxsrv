@@ -127,7 +127,7 @@ XISendDeviceHierarchyEvent(int flags[MAXDEVICES])
  *
  */
 
-int
+int _X_COLD
 SProcXIChangeHierarchy(ClientPtr client)
 {
     REQUEST(xXIChangeHierarchyReq);

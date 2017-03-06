@@ -118,6 +118,7 @@ struct ac_shader_variant_info {
 			bool can_discard;
 			bool writes_z;
 			bool writes_stencil;
+			bool writes_sample_mask;
 			bool early_fragment_test;
 			bool writes_memory;
 			bool force_persample;

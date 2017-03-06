@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXGetDeviceMotionEvents(ClientPtr client)
 {
     REQUEST(xGetDeviceMotionEventsReq);
@@ -162,7 +162,7 @@ ProcXGetDeviceMotionEvents(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXGetDeviceMotionEvents(ClientPtr client, int size,
                            xGetDeviceMotionEventsReply * rep)
 {

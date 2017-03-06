@@ -40,6 +40,10 @@
 #include "compiler/shader_info.h"
 #include <stdio.h>
 
+#ifdef DEBUG
+#include "util/debug.h"
+#endif /* DEBUG */
+
 #include "nir_opcodes.h"
 
 #ifdef __cplusplus
@@ -2279,7 +2283,6 @@ void nir_validate_shader(nir_shader *shader);
 void nir_metadata_set_validation_flag(nir_shader *shader);
 void nir_metadata_check_validation_flag(nir_shader *shader);
 
-#include "util/debug.h"
 static inline bool
 should_clone_nir(void)
 {
@@ -2535,6 +2538,15 @@ void nir_lower_atomics(nir_shader *shader,
 void nir_lower_to_source_mods(nir_shader *shader);
 
 bool nir_lower_gs_intrinsics(nir_shader *shader);
+
+typedef enum {
+   nir_lower_imul64 = (1 << 0),
+   nir_lower_isign64 = (1 << 1),
+   /** Lower all int64 modulus and division opcodes */
+   nir_lower_divmod64 = (1 << 2),
+} nir_lower_int64_options;
+
+bool nir_lower_int64(nir_shader *shader, nir_lower_int64_options options);
 
 typedef enum {
    nir_lower_drcp = (1 << 0),

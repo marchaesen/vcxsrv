@@ -50,7 +50,7 @@ static int
  ListDeviceInfo(ClientPtr client, DeviceIntPtr dev, xXIDeviceInfo * info);
 static int SizeDeviceInfo(DeviceIntPtr dev);
 static void SwapDeviceInfo(DeviceIntPtr dev, xXIDeviceInfo * info);
-int
+int _X_COLD
 SProcXIQueryDevice(ClientPtr client)
 {
     REQUEST(xXIQueryDeviceReq);

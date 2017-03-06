@@ -35,6 +35,8 @@ struct wsi_image_fns {
    VkResult (*create_wsi_image)(VkDevice device_h,
                                 const VkSwapchainCreateInfoKHR *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator,
+                                bool needs_linear_copy,
+                                bool linear,
                                 VkImage *image_p,
                                 VkDeviceMemory *memory_p,
                                 uint32_t *size_p,
@@ -53,7 +55,11 @@ struct wsi_swapchain {
    VkAllocationCallbacks alloc;
    const struct wsi_image_fns *image_fns;
    VkFence fences[3];
+   VkCommandBuffer *cmd_buffers;
+   VkCommandPool cmd_pools[3];
    VkPresentModeKHR present_mode;
+   uint32_t image_count;
+   bool needs_linear_copy;
 
    VkResult (*destroy)(struct wsi_swapchain *swapchain,
                        const VkAllocationCallbacks *pAllocator);
@@ -64,6 +70,7 @@ struct wsi_swapchain {
                                   uint32_t *image_index);
    VkResult (*queue_present)(struct wsi_swapchain *swap_chain,
                              uint32_t image_index);
+   void (*get_image_and_linear)(struct wsi_swapchain *swapchain, int imageIndex, VkImage *image, VkImage *linear_image);
 };
 
 struct wsi_interface {
@@ -71,6 +78,8 @@ struct wsi_interface {
                            struct wsi_device *wsi_device,
                            const VkAllocationCallbacks *alloc,
                            uint32_t queueFamilyIndex,
+                           int local_fd,
+                           bool can_handle_different_gpu,
                            VkBool32* pSupported);
    VkResult (*get_capabilities)(VkIcdSurfaceBase *surface,
                                 VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
@@ -84,6 +93,7 @@ struct wsi_interface {
    VkResult (*create_swapchain)(VkIcdSurfaceBase *surface,
                                 VkDevice device,
                                 struct wsi_device *wsi_device,
+                                int local_fd,
                                 const VkSwapchainCreateInfoKHR* pCreateInfo,
                                 const VkAllocationCallbacks* pAllocator,
                                 const struct wsi_image_fns *image_fns,

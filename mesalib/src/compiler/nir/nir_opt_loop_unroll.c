@@ -26,6 +26,16 @@
 #include "nir_control_flow.h"
 #include "nir_loop_analyze.h"
 
+
+/* This limit is chosen fairly arbitrarily.  GLSL IR max iteration is 32
+ * instructions. (Multiply counting nodes and magic number 5.)  But there is
+ * no 1:1 mapping between GLSL IR and NIR so 25 was picked because it seemed
+ * to give about the same results. Around 5 instructions per node.  But some
+ * loops that would unroll with GLSL IR fail to unroll if we set this to 25 so
+ * we set it to 26.
+ */
+#define LOOP_UNROLL_LIMIT 26
+
 /* Prepare this loop for unrolling by first converting to lcssa and then
  * converting the phis from the loops first block and the block that follows
  * the loop into regs.  Partially converting out of SSA allows us to unroll
@@ -460,7 +470,7 @@ is_loop_small_enough_to_unroll(nir_shader *shader, nir_loop_info *li)
       return true;
 
    bool loop_not_too_large =
-      li->num_instructions * li->trip_count <= max_iter * 26;
+      li->num_instructions * li->trip_count <= max_iter * LOOP_UNROLL_LIMIT;
 
    return loop_not_too_large;
 }

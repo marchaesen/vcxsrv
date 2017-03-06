@@ -51,12 +51,6 @@ void
 util_draw_user_vertex_buffer(struct cso_context *cso, void *buffer,
                              uint prim_type, uint num_verts, uint num_attribs);
 
-extern void 
-util_draw_texquad(struct pipe_context *pipe, struct cso_context *cso,
-                  uint vbuf_slot,
-                  float x0, float y0, float x1, float y1, float z);
-
-
 #ifdef __cplusplus
 }
 #endif

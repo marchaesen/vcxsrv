@@ -1336,7 +1336,7 @@ ProcShmDispatch(ClientPtr client)
     }
 }
 
-static void
+static void _X_COLD
 SShmCompletionEvent(xShmCompletionEvent * from, xShmCompletionEvent * to)
 {
     to->type = from->type;
@@ -1348,7 +1348,7 @@ SShmCompletionEvent(xShmCompletionEvent * from, xShmCompletionEvent * to)
     cpswapl(from->offset, to->offset);
 }
 
-static int
+static int _X_COLD
 SProcShmQueryVersion(ClientPtr client)
 {
     REQUEST(xShmQueryVersionReq);
@@ -1357,7 +1357,7 @@ SProcShmQueryVersion(ClientPtr client)
     return ProcShmQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcShmAttach(ClientPtr client)
 {
     REQUEST(xShmAttachReq);
@@ -1368,7 +1368,7 @@ SProcShmAttach(ClientPtr client)
     return ProcShmAttach(client);
 }
 
-static int
+static int _X_COLD
 SProcShmDetach(ClientPtr client)
 {
     REQUEST(xShmDetachReq);
@@ -1378,7 +1378,7 @@ SProcShmDetach(ClientPtr client)
     return ProcShmDetach(client);
 }
 
-static int
+static int _X_COLD
 SProcShmPutImage(ClientPtr client)
 {
     REQUEST(xShmPutImageReq);
@@ -1399,7 +1399,7 @@ SProcShmPutImage(ClientPtr client)
     return ProcShmPutImage(client);
 }
 
-static int
+static int _X_COLD
 SProcShmGetImage(ClientPtr client)
 {
     REQUEST(xShmGetImageReq);
@@ -1416,7 +1416,7 @@ SProcShmGetImage(ClientPtr client)
     return ProcShmGetImage(client);
 }
 
-static int
+static int _X_COLD
 SProcShmCreatePixmap(ClientPtr client)
 {
     REQUEST(xShmCreatePixmapReq);
@@ -1432,7 +1432,7 @@ SProcShmCreatePixmap(ClientPtr client)
 }
 
 #ifdef SHM_FD_PASSING
-static int
+static int _X_COLD
 SProcShmAttachFd(ClientPtr client)
 {
     REQUEST(xShmAttachFdReq);
@@ -1443,7 +1443,7 @@ SProcShmAttachFd(ClientPtr client)
     return ProcShmAttachFd(client);
 }
 
-static int
+static int _X_COLD
 SProcShmCreateSegment(ClientPtr client)
 {
     REQUEST(xShmCreateSegmentReq);
@@ -1455,7 +1455,7 @@ SProcShmCreateSegment(ClientPtr client)
 }
 #endif  /* SHM_FD_PASSING */
 
-static int
+static int _X_COLD
 SProcShmDispatch(ClientPtr client)
 {
     REQUEST(xReq);

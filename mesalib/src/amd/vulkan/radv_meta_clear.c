@@ -826,7 +826,9 @@ fail:
 static bool
 emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		      const VkClearAttachment *clear_att,
-		      const VkClearRect *clear_rect)
+		      const VkClearRect *clear_rect,
+		      enum radv_cmd_flush_bits *pre_flush,
+		      enum radv_cmd_flush_bits *post_flush)
 {
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	const uint32_t subpass_att = clear_att->colorAttachment;
@@ -884,9 +886,13 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (ret == false)
 		goto fail;
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
-	si_emit_cache_flush(cmd_buffer);
+	if (pre_flush) {
+		cmd_buffer->state.flush_bits |= (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+						 RADV_CMD_FLAG_FLUSH_AND_INV_CB_META) & ~ *pre_flush;
+		*pre_flush |= cmd_buffer->state.flush_bits;
+	} else
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+		                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 	/* clear cmask buffer */
 	if (iview->image->surface.dcc_size) {
 		radv_fill_buffer(cmd_buffer, iview->image->bo,
@@ -897,9 +903,15 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 				 iview->image->offset + iview->image->cmask.offset,
 				 iview->image->cmask.size, 0);
 	}
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_INV_VMEM_L1 |
-	                                RADV_CMD_FLAG_INV_GLOBAL_L2;
+
+	if (post_flush)
+		*post_flush |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+	                       RADV_CMD_FLAG_INV_VMEM_L1 |
+	                       RADV_CMD_FLAG_INV_GLOBAL_L2;
+	else
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+	                                        RADV_CMD_FLAG_INV_VMEM_L1 |
+	                                        RADV_CMD_FLAG_INV_GLOBAL_L2;
 
 	radv_set_color_clear_regs(cmd_buffer, iview->image, subpass_att, clear_color);
 
@@ -914,11 +926,14 @@ fail:
 static void
 emit_clear(struct radv_cmd_buffer *cmd_buffer,
            const VkClearAttachment *clear_att,
-           const VkClearRect *clear_rect)
+           const VkClearRect *clear_rect,
+           enum radv_cmd_flush_bits *pre_flush,
+           enum radv_cmd_flush_bits *post_flush)
 {
 	if (clear_att->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
 
-		if (!emit_fast_color_clear(cmd_buffer, clear_att, clear_rect))
+		if (!emit_fast_color_clear(cmd_buffer, clear_att, clear_rect,
+		                           pre_flush, post_flush))
 			emit_color_clear(cmd_buffer, clear_att, clear_rect);
 	} else {
 		assert(clear_att->aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT |
@@ -961,6 +976,8 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radv_cmd_state *cmd_state = &cmd_buffer->state;
 	struct radv_meta_saved_state saved_state;
+	enum radv_cmd_flush_bits pre_flush = 0;
+	enum radv_cmd_flush_bits post_flush = 0;
 
 	if (!subpass_needs_clear(cmd_buffer))
 		return;
@@ -988,7 +1005,7 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 			.clearValue = cmd_state->attachments[a].clear_value,
 		};
 
-		emit_clear(cmd_buffer, &clear_att, &clear_rect);
+		emit_clear(cmd_buffer, &clear_att, &clear_rect, &pre_flush, &post_flush);
 		cmd_state->attachments[a].pending_clear_aspects = 0;
 	}
 
@@ -1003,12 +1020,14 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 				.clearValue = cmd_state->attachments[ds].clear_value,
 			};
 
-			emit_clear(cmd_buffer, &clear_att, &clear_rect);
+			emit_clear(cmd_buffer, &clear_att, &clear_rect,
+			           &pre_flush, &post_flush);
 			cmd_state->attachments[ds].pending_clear_aspects = 0;
 		}
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);
+	cmd_buffer->state.flush_bits |= post_flush;
 }
 
 static void
@@ -1129,7 +1148,7 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 		.layerCount = 1, /* FINISHME: clear multi-layer framebuffer */
 	};
 
-	emit_clear(cmd_buffer, &clear_att, &clear_rect);
+	emit_clear(cmd_buffer, &clear_att, &clear_rect, NULL, NULL);
 
 	radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
 	radv_DestroyRenderPass(device_h, pass,
@@ -1245,6 +1264,8 @@ void radv_CmdClearAttachments(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	struct radv_meta_saved_state saved_state;
+	enum radv_cmd_flush_bits pre_flush = 0;
+	enum radv_cmd_flush_bits post_flush = 0;
 
 	if (!cmd_buffer->state.subpass)
 		return;
@@ -1256,9 +1277,10 @@ void radv_CmdClearAttachments(
 	 */
 	for (uint32_t a = 0; a < attachmentCount; ++a) {
 		for (uint32_t r = 0; r < rectCount; ++r) {
-			emit_clear(cmd_buffer, &pAttachments[a], &pRects[r]);
+			emit_clear(cmd_buffer, &pAttachments[a], &pRects[r], &pre_flush, &post_flush);
 		}
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);
+	cmd_buffer->state.flush_bits |= post_flush;
 }

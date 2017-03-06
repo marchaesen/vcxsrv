@@ -969,7 +969,7 @@ ProcDMXDispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcDMXQueryVersion(ClientPtr client)
 {
     REQUEST(xDMXQueryVersionReq);
@@ -979,7 +979,7 @@ SProcDMXQueryVersion(ClientPtr client)
     return ProcDMXQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXSync(ClientPtr client)
 {
     REQUEST(xDMXSyncReq);
@@ -989,7 +989,7 @@ SProcDMXSync(ClientPtr client)
     return ProcDMXSync(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXForceWindowCreation(ClientPtr client)
 {
     REQUEST(xDMXForceWindowCreationReq);
@@ -1000,7 +1000,7 @@ SProcDMXForceWindowCreation(ClientPtr client)
     return ProcDMXForceWindowCreation(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXGetScreenCount(ClientPtr client)
 {
     REQUEST(xDMXGetScreenCountReq);
@@ -1010,7 +1010,7 @@ SProcDMXGetScreenCount(ClientPtr client)
     return ProcDMXGetScreenCount(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXGetScreenAttributes(ClientPtr client)
 {
     REQUEST(xDMXGetScreenAttributesReq);
@@ -1021,7 +1021,7 @@ SProcDMXGetScreenAttributes(ClientPtr client)
     return ProcDMXGetScreenAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXChangeScreensAttributes(ClientPtr client)
 {
     REQUEST(xDMXChangeScreensAttributesReq);
@@ -1034,7 +1034,7 @@ SProcDMXChangeScreensAttributes(ClientPtr client)
     return ProcDMXGetScreenAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXAddScreen(ClientPtr client)
 {
     int paddedLength;
@@ -1050,7 +1050,7 @@ SProcDMXAddScreen(ClientPtr client)
     return ProcDMXAddScreen(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXRemoveScreen(ClientPtr client)
 {
     REQUEST(xDMXRemoveScreenReq);
@@ -1061,7 +1061,7 @@ SProcDMXRemoveScreen(ClientPtr client)
     return ProcDMXRemoveScreen(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXGetWindowAttributes(ClientPtr client)
 {
     REQUEST(xDMXGetWindowAttributesReq);
@@ -1072,7 +1072,7 @@ SProcDMXGetWindowAttributes(ClientPtr client)
     return ProcDMXGetWindowAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXGetDesktopAttributes(ClientPtr client)
 {
     REQUEST(xDMXGetDesktopAttributesReq);
@@ -1082,7 +1082,7 @@ SProcDMXGetDesktopAttributes(ClientPtr client)
     return ProcDMXGetDesktopAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXChangeDesktopAttributes(ClientPtr client)
 {
     REQUEST(xDMXChangeDesktopAttributesReq);
@@ -1094,7 +1094,7 @@ SProcDMXChangeDesktopAttributes(ClientPtr client)
     return ProcDMXChangeDesktopAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXGetInputCount(ClientPtr client)
 {
     REQUEST(xDMXGetInputCountReq);
@@ -1104,7 +1104,7 @@ SProcDMXGetInputCount(ClientPtr client)
     return ProcDMXGetInputCount(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXGetInputAttributes(ClientPtr client)
 {
     REQUEST(xDMXGetInputAttributesReq);
@@ -1115,7 +1115,7 @@ SProcDMXGetInputAttributes(ClientPtr client)
     return ProcDMXGetInputAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXAddInput(ClientPtr client)
 {
     int paddedLength;
@@ -1131,7 +1131,7 @@ SProcDMXAddInput(ClientPtr client)
     return ProcDMXAddInput(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXRemoveInput(ClientPtr client)
 {
     REQUEST(xDMXRemoveInputReq);
@@ -1142,7 +1142,7 @@ SProcDMXRemoveInput(ClientPtr client)
     return ProcDMXRemoveInput(client);
 }
 
-static int
+static int _X_COLD
 SProcDMXDispatch(ClientPtr client)
 {
     REQUEST(xReq);

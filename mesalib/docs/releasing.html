@@ -57,11 +57,11 @@ to a minimum.
 
 <h2>Feature releases</h2>
 <ul>
-<li>Available approximatelly every three months.
+<li>Available approximately every three months.
 <li>Initial timeplan available 2-4 weeks before the planned branchpoint (rc1)
 on the mesa-announce@ mailing list.
 <li>A <a href="#prerelease">pre-release</a> announcement should be available
-approximatelly 24 hours before the final (non-rc) release.
+approximately 24 hours before the final (non-rc) release.
 </ul>
 
 <h2>Stable releases</h2>
@@ -69,7 +69,7 @@ approximatelly 24 hours before the final (non-rc) release.
 <li>Normally available once every two weeks.
 <li>Only the latest branch has releases. See note below.
 <li>A <a href="#prerelease">pre-release</a> announcement should be available
-approximatelly 48 hours before the actual release.
+approximately 48 hours before the actual release.
 </ul>
 
 <p>
@@ -171,9 +171,9 @@ Now go to
 <a href="https://bugs.freedesktop.org/editversions.cgi?action=add&amp;product=Mesa" target="_parent">Bugzilla</a> and add the new Mesa version X.Y.
 </p>
 <p>
-Check for rare that there are no distribution breaking changes and revert them
-if needed. Extremely rare - we had only one case so far (see
-commit 2ced8eb136528914e1bf4e000dea06a9d53c7e04).
+Check that there are no distribution breaking changes and revert them if needed.
+For example: files being overwritten on install, etc. Happens extremely rarely -
+we had only one case so far (see commit 2ced8eb136528914e1bf4e000dea06a9d53c7e04).
 </p>
 <p>
 Proceed to <a href="#release">release</a> -rc1.
@@ -453,7 +453,7 @@ and SSH passphrase(s) to sign and upload the files, respectively.
 <h3>Add the sha256sums to the release notes</h3>
 
 <p>
-Edit docs/relnotes/X.Y.Z.html to add the sha256sums as availabe in the mesa-X.Y.Z.announce template. Commit this change.
+Edit docs/relnotes/X.Y.Z.html to add the sha256sums as available in the mesa-X.Y.Z.announce template. Commit this change.
 </p>
 
 <h3>Back on mesa master, add the new release notes into the tree</h3>

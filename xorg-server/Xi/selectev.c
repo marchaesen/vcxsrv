@@ -119,7 +119,7 @@ HandleDevicePresenceMask(ClientPtr client, WindowPtr win,
  *
  */
 
-int
+int _X_COLD
 SProcXSelectExtensionEvent(ClientPtr client)
 {
     REQUEST(xSelectExtensionEventReq);

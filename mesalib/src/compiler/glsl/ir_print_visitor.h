@@ -29,9 +29,7 @@
 #include "ir.h"
 #include "ir_visitor.h"
 
-extern "C" {
 #include "program/symbol_table.h"
-}
 
 /**
  * Abstract base class of visitors of IR instruction trees

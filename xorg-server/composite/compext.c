@@ -375,7 +375,7 @@ ProcCompositeDispatch(ClientPtr client)
         return BadRequest;
 }
 
-static int
+static int _X_COLD
 SProcCompositeQueryVersion(ClientPtr client)
 {
     REQUEST(xCompositeQueryVersionReq);
@@ -387,7 +387,7 @@ SProcCompositeQueryVersion(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeRedirectWindow(ClientPtr client)
 {
     REQUEST(xCompositeRedirectWindowReq);
@@ -398,7 +398,7 @@ SProcCompositeRedirectWindow(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeRedirectSubwindows(ClientPtr client)
 {
     REQUEST(xCompositeRedirectSubwindowsReq);
@@ -409,7 +409,7 @@ SProcCompositeRedirectSubwindows(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeUnredirectWindow(ClientPtr client)
 {
     REQUEST(xCompositeUnredirectWindowReq);
@@ -420,7 +420,7 @@ SProcCompositeUnredirectWindow(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeUnredirectSubwindows(ClientPtr client)
 {
     REQUEST(xCompositeUnredirectSubwindowsReq);
@@ -431,7 +431,7 @@ SProcCompositeUnredirectSubwindows(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeCreateRegionFromBorderClip(ClientPtr client)
 {
     REQUEST(xCompositeCreateRegionFromBorderClipReq);
@@ -443,7 +443,7 @@ SProcCompositeCreateRegionFromBorderClip(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeNameWindowPixmap(ClientPtr client)
 {
     REQUEST(xCompositeNameWindowPixmapReq);
@@ -455,7 +455,7 @@ SProcCompositeNameWindowPixmap(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeGetOverlayWindow(ClientPtr client)
 {
     REQUEST(xCompositeGetOverlayWindowReq);
@@ -466,7 +466,7 @@ SProcCompositeGetOverlayWindow(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int
+static int _X_COLD
 SProcCompositeReleaseOverlayWindow(ClientPtr client)
 {
     REQUEST(xCompositeReleaseOverlayWindowReq);
@@ -477,17 +477,20 @@ SProcCompositeReleaseOverlayWindow(ClientPtr client)
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
 }
 
-static int (*SProcCompositeVector[CompositeNumberRequests]) (ClientPtr) = {
-SProcCompositeQueryVersion,
-        SProcCompositeRedirectWindow,
-        SProcCompositeRedirectSubwindows,
-        SProcCompositeUnredirectWindow,
-        SProcCompositeUnredirectSubwindows,
-        SProcCompositeCreateRegionFromBorderClip,
-        SProcCompositeNameWindowPixmap,
-        SProcCompositeGetOverlayWindow, SProcCompositeReleaseOverlayWindow,};
-
 static int
+(*SProcCompositeVector[CompositeNumberRequests]) (ClientPtr) = {
+    SProcCompositeQueryVersion,
+    SProcCompositeRedirectWindow,
+    SProcCompositeRedirectSubwindows,
+    SProcCompositeUnredirectWindow,
+    SProcCompositeUnredirectSubwindows,
+    SProcCompositeCreateRegionFromBorderClip,
+    SProcCompositeNameWindowPixmap,
+    SProcCompositeGetOverlayWindow,
+    SProcCompositeReleaseOverlayWindow,
+};
+
+static int _X_COLD
 SProcCompositeDispatch(ClientPtr client)
 {
     REQUEST(xReq);

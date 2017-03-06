@@ -70,7 +70,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXCloseDevice(ClientPtr client)
 {
     REQUEST(xCloseDeviceReq);

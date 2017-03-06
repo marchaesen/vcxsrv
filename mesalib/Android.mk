@@ -97,7 +97,8 @@ SUBDIRS := \
 	src/egl \
 	src/amd \
 	src/intel \
-	src/mesa/drivers/dri
+	src/mesa/drivers/dri \
+	src/vulkan
 
 INC_DIRS := $(call all-named-subdir-makefiles,$(SUBDIRS))
 

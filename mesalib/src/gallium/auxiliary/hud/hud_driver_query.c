@@ -394,8 +394,6 @@ hud_pipe_query_install(struct hud_batch_query_context **pbq,
       info->result_index = result_index;
    }
 
-   hud_graph_set_dump_file(gr);
-
    hud_pane_add_graph(pane, gr);
    pane->type = type; /* must be set before updating the max_value */
 

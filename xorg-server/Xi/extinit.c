@@ -407,7 +407,7 @@ ProcIDispatch(ClientPtr client)
  *
  */
 
-static int
+static int _X_COLD
 SProcIDispatch(ClientPtr client)
 {
     REQUEST(xReq);
@@ -425,7 +425,7 @@ SProcIDispatch(ClientPtr client)
  *
  */
 
-static void
+static void _X_COLD
 SReplyIDispatch(ClientPtr client, int len, xGrabDeviceReply * rep)
 {
     /* All we look at is the type field */
@@ -859,7 +859,7 @@ SBarrierEvent(xXIBarrierEvent * from,
 }
 
 /** Event swapping function for XI2 events. */
-void
+void _X_COLD
 XI2EventSwap(xGenericEvent *from, xGenericEvent *to)
 {
     switch (from->evtype) {
@@ -1202,7 +1202,7 @@ MakeDeviceTypeAtoms(void)
  */
 #define DO_SWAP(func,type) func ((type *)from, (type *)to)
 
-static void
+static void _X_COLD
 SEventIDispatch(xEvent *from, xEvent *to)
 {
     int type = from->u.u.type & 0177;

@@ -99,6 +99,8 @@ struct xwl_screen {
     void *egl_display, *egl_context;
     struct gbm_device *gbm;
     struct glamor_context *glamor_ctx;
+
+    Atom allow_commits_prop;
 };
 
 struct xwl_window {
@@ -109,6 +111,7 @@ struct xwl_window {
     DamagePtr damage;
     struct xorg_list link_damage;
     struct wl_callback *frame_callback;
+    Bool allow_commits;
 };
 
 #define MODIFIER_META 0x01

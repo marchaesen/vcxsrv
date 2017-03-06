@@ -430,3 +430,23 @@ void radv_CmdCopyImage(
 	meta_copy_image(cmd_buffer, src_image, dest_image,
 			regionCount, pRegions);
 }
+
+void radv_blit_to_prime_linear(struct radv_cmd_buffer *cmd_buffer,
+			       struct radv_image *image,
+			       struct radv_image *linear_image)
+{
+	struct VkImageCopy image_copy = { 0 };
+
+	image_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	image_copy.srcSubresource.layerCount = 1;
+
+	image_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	image_copy.dstSubresource.layerCount = 1;
+
+	image_copy.extent.width = image->extent.width;
+	image_copy.extent.height = image->extent.height;
+	image_copy.extent.depth = 1;
+
+	meta_copy_image(cmd_buffer, image, linear_image,
+			1, &image_copy);
+}

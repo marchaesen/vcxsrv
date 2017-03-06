@@ -103,4 +103,5 @@ EXTRA_DIST += \
 	nir/nir_opcodes_h.py				\
 	nir/nir_opt_algebraic.py			\
 	nir/tests \
+	nir/README \
 	SConscript.nir

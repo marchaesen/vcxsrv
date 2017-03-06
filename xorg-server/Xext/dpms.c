@@ -234,7 +234,7 @@ ProcDPMSDispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcDPMSGetVersion(ClientPtr client)
 {
     REQUEST(xDPMSGetVersionReq);
@@ -246,7 +246,7 @@ SProcDPMSGetVersion(ClientPtr client)
     return ProcDPMSGetVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSCapable(ClientPtr client)
 {
     REQUEST(xDPMSCapableReq);
@@ -257,7 +257,7 @@ SProcDPMSCapable(ClientPtr client)
     return ProcDPMSCapable(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSGetTimeouts(ClientPtr client)
 {
     REQUEST(xDPMSGetTimeoutsReq);
@@ -268,7 +268,7 @@ SProcDPMSGetTimeouts(ClientPtr client)
     return ProcDPMSGetTimeouts(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSSetTimeouts(ClientPtr client)
 {
     REQUEST(xDPMSSetTimeoutsReq);
@@ -282,7 +282,7 @@ SProcDPMSSetTimeouts(ClientPtr client)
     return ProcDPMSSetTimeouts(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSEnable(ClientPtr client)
 {
     REQUEST(xDPMSEnableReq);
@@ -293,7 +293,7 @@ SProcDPMSEnable(ClientPtr client)
     return ProcDPMSEnable(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSDisable(ClientPtr client)
 {
     REQUEST(xDPMSDisableReq);
@@ -304,7 +304,7 @@ SProcDPMSDisable(ClientPtr client)
     return ProcDPMSDisable(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSForceLevel(ClientPtr client)
 {
     REQUEST(xDPMSForceLevelReq);
@@ -317,7 +317,7 @@ SProcDPMSForceLevel(ClientPtr client)
     return ProcDPMSForceLevel(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSInfo(ClientPtr client)
 {
     REQUEST(xDPMSInfoReq);
@@ -328,7 +328,7 @@ SProcDPMSInfo(ClientPtr client)
     return ProcDPMSInfo(client);
 }
 
-static int
+static int _X_COLD
 SProcDPMSDispatch(ClientPtr client)
 {
     REQUEST(xReq);

@@ -590,6 +590,11 @@ extern _X_EXPORT char *
 strndup(const char *str, size_t n);
 #endif
 
+#ifndef HAVE_TIMINGSAFE_MEMCMP
+extern _X_EXPORT int
+timingsafe_memcmp(const void *b1, const void *b2, size_t len);
+#endif
+
 /* Logging. */
 typedef enum _LogParameter {
     XLOG_FLUSH,

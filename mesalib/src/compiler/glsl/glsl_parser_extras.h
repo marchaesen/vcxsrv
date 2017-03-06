@@ -330,6 +330,11 @@ struct _mesa_glsl_parse_state {
              is_version(400, 320);
    }
 
+   bool has_shader_image_load_store() const
+   {
+      return ARB_shader_image_load_store_enable || is_version(420, 310);
+   }
+
    void process_version_directive(YYLTYPE *locp, int version,
                                   const char *ident);
 

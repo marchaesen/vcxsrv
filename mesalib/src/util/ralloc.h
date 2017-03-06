@@ -247,15 +247,6 @@ void ralloc_adopt(const void *new_ctx, void *old_ctx);
 void *ralloc_parent(const void *ptr);
 
 /**
- * Return a context whose memory will be automatically freed at program exit.
- *
- * The first call to this function creates a context and registers a handler
- * to free it using \c atexit.  This may cause trouble if used in a library
- * loaded with \c dlopen.
- */
-void *ralloc_autofree_context(void);
-
-/**
  * Set a callback to occur just before an object is freed.
  */
 void ralloc_set_destructor(const void *ptr, void(*destructor)(void *));

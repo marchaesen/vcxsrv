@@ -68,7 +68,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXGetDeviceFocus(ClientPtr client)
 {
     REQUEST(xGetDeviceFocusReq);
@@ -130,7 +130,7 @@ ProcXGetDeviceFocus(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXGetDeviceFocus(ClientPtr client, int size, xGetDeviceFocusReply * rep)
 {
     swaps(&rep->sequenceNumber);

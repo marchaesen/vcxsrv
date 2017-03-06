@@ -30,8 +30,6 @@ MAPI_BRIDGE_FILES = \
 
 MAPI_FILES = \
 	entry.c \
-	mapi.c \
-	mapi.h \
 	stub.c \
 	stub.h \
 	table.c \

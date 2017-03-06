@@ -188,7 +188,6 @@ void ac_elf_read(const char *elf_data, unsigned elf_size,
 	}
 }
 
-static
 const unsigned char *ac_shader_binary_config_start(
 	const struct ac_shader_binary *binary,
 	uint64_t symbol_offset)

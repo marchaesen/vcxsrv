@@ -70,7 +70,7 @@ XExtensionVersion XIVersion;
  *
  */
 
-int
+int _X_COLD
 SProcXGetExtensionVersion(ClientPtr client)
 {
     REQUEST(xGetExtensionVersionReq);
@@ -120,7 +120,7 @@ ProcXGetExtensionVersion(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXGetExtensionVersion(ClientPtr client, int size,
                          xGetExtensionVersionReply * rep)
 {

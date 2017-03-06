@@ -239,4 +239,6 @@ loader_dri3_get_buffers(__DRIdrawable *driDrawable,
                         uint32_t buffer_mask,
                         struct __DRIimageList *buffers);
 
+void
+loader_dri3_update_drawable_geometry(struct loader_dri3_drawable *draw);
 #endif

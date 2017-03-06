@@ -142,7 +142,7 @@ ProcXCMiscDispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcXCMiscGetVersion(ClientPtr client)
 {
     REQUEST(xXCMiscGetVersionReq);
@@ -154,7 +154,7 @@ SProcXCMiscGetVersion(ClientPtr client)
     return ProcXCMiscGetVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcXCMiscGetXIDRange(ClientPtr client)
 {
     REQUEST(xReq);
@@ -163,7 +163,7 @@ SProcXCMiscGetXIDRange(ClientPtr client)
     return ProcXCMiscGetXIDRange(client);
 }
 
-static int
+static int _X_COLD
 SProcXCMiscGetXIDList(ClientPtr client)
 {
     REQUEST(xXCMiscGetXIDListReq);
@@ -174,7 +174,7 @@ SProcXCMiscGetXIDList(ClientPtr client)
     return ProcXCMiscGetXIDList(client);
 }
 
-static int
+static int _X_COLD
 SProcXCMiscDispatch(ClientPtr client)
 {
     REQUEST(xReq);

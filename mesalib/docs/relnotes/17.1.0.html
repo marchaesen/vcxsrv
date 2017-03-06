@@ -45,6 +45,9 @@ Note: some of the new features are only available with certain drivers.
 
 <ul>
 <li>GL_ARB_gpu_shader_int64 on i965/gen8+, nvc0, radeonsi, softpipe, llvmpipe</li>
+<li>GL_ARB_transform_feedback2 on i965/gen6</li>
+<li>GL_ARB_transform_feedback_overflow_query on i965/gen6+</li>
+<li>Geometry shaders enabled on swr</li>
 </ul>
 
 <h2>Bug fixes</h2>
@@ -54,8 +57,11 @@ Note: some of the new features are only available with certain drivers.
 
 <h2>Changes</h2>
 
+<ul>
 <li>Removed the ilo gallium driver.</li>
 <li>The configure option --enable-gallium-llvm is superseded by --enable-llvm.</li>
+<li>swr driver now requires llvm &gt;= 3.9.0.</li>
+</ul>
 
 </div>
 </body>

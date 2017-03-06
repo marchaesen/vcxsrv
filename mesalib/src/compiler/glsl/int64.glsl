@@ -115,7 +115,7 @@ imod64(ivec2 _n, ivec2 _d)
    uvec2 n = unpackUint2x32(uint64_t(abs(packInt2x32(_n))));
    uvec2 d = unpackUint2x32(uint64_t(abs(packInt2x32(_d))));
 
-   uvec2 rem = udivmod64(n, d).zy;
+   uvec2 rem = udivmod64(n, d).zw;
 
    return negate ? unpackInt2x32(-int64_t(packUint2x32(rem))) : ivec2(rem);
 }

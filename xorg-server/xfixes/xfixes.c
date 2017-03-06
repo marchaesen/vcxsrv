@@ -156,7 +156,7 @@ ProcXFixesDispatch(ClientPtr client)
     return (*ProcXFixesVector[stuff->xfixesReqType]) (client);
 }
 
-static int
+static _X_COLD int
 SProcXFixesQueryVersion(ClientPtr client)
 {
     REQUEST(xXFixesQueryVersionReq);
@@ -203,7 +203,7 @@ static int (*SProcXFixesVector[XFixesNumberRequests]) (ClientPtr) = {
 /*************** Version 5 ****************/
 SProcXFixesCreatePointerBarrier, SProcXFixesDestroyPointerBarrier,};
 
-static int
+static _X_COLD int
 SProcXFixesDispatch(ClientPtr client)
 {
     REQUEST(xXFixesReq);

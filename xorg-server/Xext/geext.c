@@ -98,7 +98,7 @@ static int (*ProcGEVector[GENumberRequests]) (ClientPtr) = {
 /************************************************************/
 /*                swapped request handlers                  */
 /************************************************************/
-static int
+static int _X_COLD
 SProcGEQueryVersion(ClientPtr client)
 {
     REQUEST(xGEQueryVersionReq);
@@ -136,7 +136,7 @@ ProcGEDispatch(ClientPtr client)
 }
 
 /* dispatch swapped requests */
-static int
+static int _X_COLD
 SProcGEDispatch(ClientPtr client)
 {
     REQUEST(xGEReq);
@@ -159,7 +159,7 @@ GEResetProc(ExtensionEntry * extEntry)
  *  written on the wire, this one calls the registered swap function to do the
  *  work.
  */
-static void
+static void _X_COLD
 SGEGenericEvent(xEvent *from, xEvent *to)
 {
     xGenericEvent *gefrom = (xGenericEvent *) from;

@@ -74,7 +74,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXChangePointerDevice(ClientPtr client)
 {
     REQUEST(xChangePointerDeviceReq);

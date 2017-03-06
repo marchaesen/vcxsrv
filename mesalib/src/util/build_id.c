@@ -28,6 +28,14 @@
 
 #include "build_id.h"
 
+#ifndef NT_GNU_BUILD_ID
+#define NT_GNU_BUILD_ID 3
+#endif
+
+#ifndef ElfW
+#define ElfW(type) Elf_##type
+#endif
+
 #define ALIGN(val, align)      (((val) + (align) - 1) & ~((align) - 1))
 
 struct build_id_note {
@@ -99,11 +107,10 @@ build_id_length(const struct build_id_note *note)
    return note->nhdr.n_descsz;
 }
 
-void
-build_id_read(const struct build_id_note *note,
-              unsigned char *build_id, size_t n)
+const uint8_t *
+build_id_data(const struct build_id_note *note)
 {
-   memcpy(build_id, note->build_id, n);
+   return note->build_id;
 }
 
 #endif

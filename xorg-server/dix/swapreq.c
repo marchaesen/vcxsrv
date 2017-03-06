@@ -116,7 +116,7 @@ SwapShorts(short *list, unsigned long count)
 
 /* The following is used for all requests that have
    no fields to be swapped (except "length") */
-int
+int _X_COLD
 SProcSimpleReq(ClientPtr client)
 {
     REQUEST(xReq);
@@ -127,7 +127,7 @@ SProcSimpleReq(ClientPtr client)
 /* The following is used for all requests that have
    only a single 32-bit field to be swapped, coming
    right after the "length" field */
-int
+int _X_COLD
 SProcResourceReq(ClientPtr client)
 {
     REQUEST(xResourceReq);
@@ -137,7 +137,7 @@ SProcResourceReq(ClientPtr client)
     return (*ProcVector[stuff->reqType]) (client);
 }
 
-int
+int _X_COLD
 SProcCreateWindow(ClientPtr client)
 {
     REQUEST(xCreateWindowReq);
@@ -157,7 +157,7 @@ SProcCreateWindow(ClientPtr client)
     return ((*ProcVector[X_CreateWindow]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeWindowAttributes(ClientPtr client)
 {
     REQUEST(xChangeWindowAttributesReq);
@@ -169,7 +169,7 @@ SProcChangeWindowAttributes(ClientPtr client)
     return ((*ProcVector[X_ChangeWindowAttributes]) (client));
 }
 
-int
+int _X_COLD
 SProcReparentWindow(ClientPtr client)
 {
     REQUEST(xReparentWindowReq);
@@ -182,7 +182,7 @@ SProcReparentWindow(ClientPtr client)
     return ((*ProcVector[X_ReparentWindow]) (client));
 }
 
-int
+int _X_COLD
 SProcConfigureWindow(ClientPtr client)
 {
     REQUEST(xConfigureWindowReq);
@@ -195,7 +195,7 @@ SProcConfigureWindow(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcInternAtom(ClientPtr client)
 {
     REQUEST(xInternAtomReq);
@@ -205,7 +205,7 @@ SProcInternAtom(ClientPtr client)
     return ((*ProcVector[X_InternAtom]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeProperty(ClientPtr client)
 {
     REQUEST(xChangePropertyReq);
@@ -228,7 +228,7 @@ SProcChangeProperty(ClientPtr client)
     return ((*ProcVector[X_ChangeProperty]) (client));
 }
 
-int
+int _X_COLD
 SProcDeleteProperty(ClientPtr client)
 {
     REQUEST(xDeletePropertyReq);
@@ -240,7 +240,7 @@ SProcDeleteProperty(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcGetProperty(ClientPtr client)
 {
     REQUEST(xGetPropertyReq);
@@ -254,7 +254,7 @@ SProcGetProperty(ClientPtr client)
     return ((*ProcVector[X_GetProperty]) (client));
 }
 
-int
+int _X_COLD
 SProcSetSelectionOwner(ClientPtr client)
 {
     REQUEST(xSetSelectionOwnerReq);
@@ -266,7 +266,7 @@ SProcSetSelectionOwner(ClientPtr client)
     return ((*ProcVector[X_SetSelectionOwner]) (client));
 }
 
-int
+int _X_COLD
 SProcConvertSelection(ClientPtr client)
 {
     REQUEST(xConvertSelectionReq);
@@ -280,7 +280,7 @@ SProcConvertSelection(ClientPtr client)
     return ((*ProcVector[X_ConvertSelection]) (client));
 }
 
-int
+int _X_COLD
 SProcSendEvent(ClientPtr client)
 {
     xEvent eventT = { .u.u.type = 0 };
@@ -302,7 +302,7 @@ SProcSendEvent(ClientPtr client)
     return ((*ProcVector[X_SendEvent]) (client));
 }
 
-int
+int _X_COLD
 SProcGrabPointer(ClientPtr client)
 {
     REQUEST(xGrabPointerReq);
@@ -316,7 +316,7 @@ SProcGrabPointer(ClientPtr client)
     return ((*ProcVector[X_GrabPointer]) (client));
 }
 
-int
+int _X_COLD
 SProcGrabButton(ClientPtr client)
 {
     REQUEST(xGrabButtonReq);
@@ -330,7 +330,7 @@ SProcGrabButton(ClientPtr client)
     return ((*ProcVector[X_GrabButton]) (client));
 }
 
-int
+int _X_COLD
 SProcUngrabButton(ClientPtr client)
 {
     REQUEST(xUngrabButtonReq);
@@ -341,7 +341,7 @@ SProcUngrabButton(ClientPtr client)
     return ((*ProcVector[X_UngrabButton]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeActivePointerGrab(ClientPtr client)
 {
     REQUEST(xChangeActivePointerGrabReq);
@@ -353,7 +353,7 @@ SProcChangeActivePointerGrab(ClientPtr client)
     return ((*ProcVector[X_ChangeActivePointerGrab]) (client));
 }
 
-int
+int _X_COLD
 SProcGrabKeyboard(ClientPtr client)
 {
     REQUEST(xGrabKeyboardReq);
@@ -364,7 +364,7 @@ SProcGrabKeyboard(ClientPtr client)
     return ((*ProcVector[X_GrabKeyboard]) (client));
 }
 
-int
+int _X_COLD
 SProcGrabKey(ClientPtr client)
 {
     REQUEST(xGrabKeyReq);
@@ -375,7 +375,7 @@ SProcGrabKey(ClientPtr client)
     return ((*ProcVector[X_GrabKey]) (client));
 }
 
-int
+int _X_COLD
 SProcUngrabKey(ClientPtr client)
 {
     REQUEST(xUngrabKeyReq);
@@ -386,7 +386,7 @@ SProcUngrabKey(ClientPtr client)
     return ((*ProcVector[X_UngrabKey]) (client));
 }
 
-int
+int _X_COLD
 SProcGetMotionEvents(ClientPtr client)
 {
     REQUEST(xGetMotionEventsReq);
@@ -398,7 +398,7 @@ SProcGetMotionEvents(ClientPtr client)
     return ((*ProcVector[X_GetMotionEvents]) (client));
 }
 
-int
+int _X_COLD
 SProcTranslateCoords(ClientPtr client)
 {
     REQUEST(xTranslateCoordsReq);
@@ -411,7 +411,7 @@ SProcTranslateCoords(ClientPtr client)
     return ((*ProcVector[X_TranslateCoords]) (client));
 }
 
-int
+int _X_COLD
 SProcWarpPointer(ClientPtr client)
 {
     REQUEST(xWarpPointerReq);
@@ -428,7 +428,7 @@ SProcWarpPointer(ClientPtr client)
     return ((*ProcVector[X_WarpPointer]) (client));
 }
 
-int
+int _X_COLD
 SProcSetInputFocus(ClientPtr client)
 {
     REQUEST(xSetInputFocusReq);
@@ -439,7 +439,7 @@ SProcSetInputFocus(ClientPtr client)
     return ((*ProcVector[X_SetInputFocus]) (client));
 }
 
-int
+int _X_COLD
 SProcOpenFont(ClientPtr client)
 {
     REQUEST(xOpenFontReq);
@@ -450,7 +450,7 @@ SProcOpenFont(ClientPtr client)
     return ((*ProcVector[X_OpenFont]) (client));
 }
 
-int
+int _X_COLD
 SProcListFonts(ClientPtr client)
 {
     REQUEST(xListFontsReq);
@@ -461,7 +461,7 @@ SProcListFonts(ClientPtr client)
     return ((*ProcVector[X_ListFonts]) (client));
 }
 
-int
+int _X_COLD
 SProcListFontsWithInfo(ClientPtr client)
 {
     REQUEST(xListFontsWithInfoReq);
@@ -472,7 +472,7 @@ SProcListFontsWithInfo(ClientPtr client)
     return ((*ProcVector[X_ListFontsWithInfo]) (client));
 }
 
-int
+int _X_COLD
 SProcSetFontPath(ClientPtr client)
 {
     REQUEST(xSetFontPathReq);
@@ -482,7 +482,7 @@ SProcSetFontPath(ClientPtr client)
     return ((*ProcVector[X_SetFontPath]) (client));
 }
 
-int
+int _X_COLD
 SProcCreatePixmap(ClientPtr client)
 {
     REQUEST(xCreatePixmapReq);
@@ -496,7 +496,7 @@ SProcCreatePixmap(ClientPtr client)
     return ((*ProcVector[X_CreatePixmap]) (client));
 }
 
-int
+int _X_COLD
 SProcCreateGC(ClientPtr client)
 {
     REQUEST(xCreateGCReq);
@@ -509,7 +509,7 @@ SProcCreateGC(ClientPtr client)
     return ((*ProcVector[X_CreateGC]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeGC(ClientPtr client)
 {
     REQUEST(xChangeGCReq);
@@ -521,7 +521,7 @@ SProcChangeGC(ClientPtr client)
     return ((*ProcVector[X_ChangeGC]) (client));
 }
 
-int
+int _X_COLD
 SProcCopyGC(ClientPtr client)
 {
     REQUEST(xCopyGCReq);
@@ -533,7 +533,7 @@ SProcCopyGC(ClientPtr client)
     return ((*ProcVector[X_CopyGC]) (client));
 }
 
-int
+int _X_COLD
 SProcSetDashes(ClientPtr client)
 {
     REQUEST(xSetDashesReq);
@@ -546,7 +546,7 @@ SProcSetDashes(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcSetClipRectangles(ClientPtr client)
 {
     REQUEST(xSetClipRectanglesReq);
@@ -559,7 +559,7 @@ SProcSetClipRectangles(ClientPtr client)
     return ((*ProcVector[X_SetClipRectangles]) (client));
 }
 
-int
+int _X_COLD
 SProcClearToBackground(ClientPtr client)
 {
     REQUEST(xClearAreaReq);
@@ -573,7 +573,7 @@ SProcClearToBackground(ClientPtr client)
     return ((*ProcVector[X_ClearArea]) (client));
 }
 
-int
+int _X_COLD
 SProcCopyArea(ClientPtr client)
 {
     REQUEST(xCopyAreaReq);
@@ -591,7 +591,7 @@ SProcCopyArea(ClientPtr client)
     return ((*ProcVector[X_CopyArea]) (client));
 }
 
-int
+int _X_COLD
 SProcCopyPlane(ClientPtr client)
 {
     REQUEST(xCopyPlaneReq);
@@ -612,7 +612,7 @@ SProcCopyPlane(ClientPtr client)
 
 /* The following routine is used for all Poly drawing requests
    (except FillPoly, which uses a different request format) */
-int
+int _X_COLD
 SProcPoly(ClientPtr client)
 {
     REQUEST(xPolyPointReq);
@@ -627,7 +627,7 @@ SProcPoly(ClientPtr client)
 /* cannot use SProcPoly for this one, because xFillPolyReq
    is longer than xPolyPointReq, and we don't want to swap
    the difference as shorts! */
-int
+int _X_COLD
 SProcFillPoly(ClientPtr client)
 {
     REQUEST(xFillPolyReq);
@@ -639,7 +639,7 @@ SProcFillPoly(ClientPtr client)
     return ((*ProcVector[X_FillPoly]) (client));
 }
 
-int
+int _X_COLD
 SProcPutImage(ClientPtr client)
 {
     REQUEST(xPutImageReq);
@@ -656,7 +656,7 @@ SProcPutImage(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcGetImage(ClientPtr client)
 {
     REQUEST(xGetImageReq);
@@ -673,7 +673,7 @@ SProcGetImage(ClientPtr client)
 
 /* ProcPolyText used for both PolyText8 and PolyText16 */
 
-int
+int _X_COLD
 SProcPolyText(ClientPtr client)
 {
     REQUEST(xPolyTextReq);
@@ -688,7 +688,7 @@ SProcPolyText(ClientPtr client)
 
 /* ProcImageText used for both ImageText8 and ImageText16 */
 
-int
+int _X_COLD
 SProcImageText(ClientPtr client)
 {
     REQUEST(xImageTextReq);
@@ -701,7 +701,7 @@ SProcImageText(ClientPtr client)
     return ((*ProcVector[stuff->reqType]) (client));
 }
 
-int
+int _X_COLD
 SProcCreateColormap(ClientPtr client)
 {
     REQUEST(xCreateColormapReq);
@@ -713,7 +713,7 @@ SProcCreateColormap(ClientPtr client)
     return ((*ProcVector[X_CreateColormap]) (client));
 }
 
-int
+int _X_COLD
 SProcCopyColormapAndFree(ClientPtr client)
 {
     REQUEST(xCopyColormapAndFreeReq);
@@ -725,7 +725,7 @@ SProcCopyColormapAndFree(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcAllocColor(ClientPtr client)
 {
     REQUEST(xAllocColorReq);
@@ -738,7 +738,7 @@ SProcAllocColor(ClientPtr client)
     return ((*ProcVector[X_AllocColor]) (client));
 }
 
-int
+int _X_COLD
 SProcAllocNamedColor(ClientPtr client)
 {
     REQUEST(xAllocNamedColorReq);
@@ -749,7 +749,7 @@ SProcAllocNamedColor(ClientPtr client)
     return ((*ProcVector[X_AllocNamedColor]) (client));
 }
 
-int
+int _X_COLD
 SProcAllocColorCells(ClientPtr client)
 {
     REQUEST(xAllocColorCellsReq);
@@ -761,7 +761,7 @@ SProcAllocColorCells(ClientPtr client)
     return ((*ProcVector[X_AllocColorCells]) (client));
 }
 
-int
+int _X_COLD
 SProcAllocColorPlanes(ClientPtr client)
 {
     REQUEST(xAllocColorPlanesReq);
@@ -775,7 +775,7 @@ SProcAllocColorPlanes(ClientPtr client)
     return ((*ProcVector[X_AllocColorPlanes]) (client));
 }
 
-int
+int _X_COLD
 SProcFreeColors(ClientPtr client)
 {
     REQUEST(xFreeColorsReq);
@@ -788,7 +788,7 @@ SProcFreeColors(ClientPtr client)
 
 }
 
-void
+void _X_COLD
 SwapColorItem(xColorItem * pItem)
 {
     swapl(&pItem->pixel);
@@ -797,7 +797,7 @@ SwapColorItem(xColorItem * pItem)
     swaps(&pItem->blue);
 }
 
-int
+int _X_COLD
 SProcStoreColors(ClientPtr client)
 {
     long count;
@@ -813,7 +813,7 @@ SProcStoreColors(ClientPtr client)
     return ((*ProcVector[X_StoreColors]) (client));
 }
 
-int
+int _X_COLD
 SProcStoreNamedColor(ClientPtr client)
 {
     REQUEST(xStoreNamedColorReq);
@@ -825,7 +825,7 @@ SProcStoreNamedColor(ClientPtr client)
     return ((*ProcVector[X_StoreNamedColor]) (client));
 }
 
-int
+int _X_COLD
 SProcQueryColors(ClientPtr client)
 {
     REQUEST(xQueryColorsReq);
@@ -836,7 +836,7 @@ SProcQueryColors(ClientPtr client)
     return ((*ProcVector[X_QueryColors]) (client));
 }
 
-int
+int _X_COLD
 SProcLookupColor(ClientPtr client)
 {
     REQUEST(xLookupColorReq);
@@ -847,7 +847,7 @@ SProcLookupColor(ClientPtr client)
     return ((*ProcVector[X_LookupColor]) (client));
 }
 
-int
+int _X_COLD
 SProcCreateCursor(ClientPtr client)
 {
     REQUEST(xCreateCursorReq);
@@ -867,7 +867,7 @@ SProcCreateCursor(ClientPtr client)
     return ((*ProcVector[X_CreateCursor]) (client));
 }
 
-int
+int _X_COLD
 SProcCreateGlyphCursor(ClientPtr client)
 {
     REQUEST(xCreateGlyphCursorReq);
@@ -887,7 +887,7 @@ SProcCreateGlyphCursor(ClientPtr client)
     return ((*ProcVector[X_CreateGlyphCursor]) (client));
 }
 
-int
+int _X_COLD
 SProcRecolorCursor(ClientPtr client)
 {
     REQUEST(xRecolorCursorReq);
@@ -903,7 +903,7 @@ SProcRecolorCursor(ClientPtr client)
     return ((*ProcVector[X_RecolorCursor]) (client));
 }
 
-int
+int _X_COLD
 SProcQueryBestSize(ClientPtr client)
 {
     REQUEST(xQueryBestSizeReq);
@@ -916,7 +916,7 @@ SProcQueryBestSize(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcQueryExtension(ClientPtr client)
 {
     REQUEST(xQueryExtensionReq);
@@ -926,7 +926,7 @@ SProcQueryExtension(ClientPtr client)
     return ((*ProcVector[X_QueryExtension]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeKeyboardMapping(ClientPtr client)
 {
     REQUEST(xChangeKeyboardMappingReq);
@@ -936,7 +936,7 @@ SProcChangeKeyboardMapping(ClientPtr client)
     return ((*ProcVector[X_ChangeKeyboardMapping]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeKeyboardControl(ClientPtr client)
 {
     REQUEST(xChangeKeyboardControlReq);
@@ -947,7 +947,7 @@ SProcChangeKeyboardControl(ClientPtr client)
     return ((*ProcVector[X_ChangeKeyboardControl]) (client));
 }
 
-int
+int _X_COLD
 SProcChangePointerControl(ClientPtr client)
 {
     REQUEST(xChangePointerControlReq);
@@ -959,7 +959,7 @@ SProcChangePointerControl(ClientPtr client)
     return ((*ProcVector[X_ChangePointerControl]) (client));
 }
 
-int
+int _X_COLD
 SProcSetScreenSaver(ClientPtr client)
 {
     REQUEST(xSetScreenSaverReq);
@@ -970,7 +970,7 @@ SProcSetScreenSaver(ClientPtr client)
     return ((*ProcVector[X_SetScreenSaver]) (client));
 }
 
-int
+int _X_COLD
 SProcChangeHosts(ClientPtr client)
 {
     REQUEST(xChangeHostsReq);
@@ -981,7 +981,7 @@ SProcChangeHosts(ClientPtr client)
 
 }
 
-int
+int _X_COLD
 SProcRotateProperties(ClientPtr client)
 {
     REQUEST(xRotatePropertiesReq);
@@ -994,7 +994,7 @@ SProcRotateProperties(ClientPtr client)
     return ((*ProcVector[X_RotateProperties]) (client));
 }
 
-int
+int _X_COLD
 SProcNoOperation(ClientPtr client)
 {
     REQUEST(xReq);
@@ -1002,7 +1002,7 @@ SProcNoOperation(ClientPtr client)
     return ((*ProcVector[X_NoOperation]) (client));
 }
 
-void
+void _X_COLD
 SwapConnClientPrefix(xConnClientPrefix * pCCP)
 {
     swaps(&pCCP->majorVersion);

@@ -221,8 +221,12 @@ AC_CHECK_FUNCS([backtrace ffs geteuid getuid issetugid getresuid \
 	mmap posix_fallocate seteuid shmctl64 strncasecmp vasprintf vsnprintf \
 	walkcontext setitimer poll epoll_create1])
 AC_CONFIG_LIBOBJ_DIR([os])
-AC_REPLACE_FUNCS([reallocarray strcasecmp strcasestr strlcat strlcpy strndup])
+AC_REPLACE_FUNCS([reallocarray strcasecmp strcasestr strlcat strlcpy strndup\
+	timingsafe_memcmp])
 AM_CONDITIONAL(POLL, [test "x$ac_cv_func_poll" = "xyes"])
+
+AC_CHECK_LIB([bsd], [arc4random_buf])
+AC_CHECK_FUNCS([arc4random_buf])
 
 AC_CHECK_DECLS([program_invocation_short_name], [], [], [[#include <errno.h>]])
 
@@ -655,10 +659,7 @@ AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor di
 dnl kdrive and its subsystems
 AC_ARG_ENABLE(kdrive,         AS_HELP_STRING([--enable-kdrive], [Build kdrive servers (default: no)]), [KDRIVE=$enableval], [KDRIVE=no])
 AC_ARG_ENABLE(xephyr,         AS_HELP_STRING([--enable-xephyr], [Build the kdrive Xephyr server (default: auto)]), [XEPHYR=$enableval], [XEPHYR=auto])
-AC_ARG_ENABLE(xfake,          AS_HELP_STRING([--enable-xfake], [Build the kdrive 'fake' server (default: auto)]), [XFAKE=$enableval], [XFAKE=auto])
-AC_ARG_ENABLE(xfbdev,         AS_HELP_STRING([--enable-xfbdev], [Build the kdrive framebuffer device server (default: auto)]), [XFBDEV=$enableval], [XFBDEV=auto])
 dnl kdrive options
-AC_ARG_ENABLE(kdrive-evdev,   AS_HELP_STRING([--enable-kdrive-evdev], [Build evdev driver for kdrive (default: auto)]), [KDRIVE_EVDEV=$enableval], [KDRIVE_EVDEV=auto])
 AC_ARG_ENABLE(libunwind,      AS_HELP_STRING([--enable-libunwind], [Use libunwind for backtracing (default: auto)]), [LIBUNWIND="$enableval"], [LIBUNWIND="auto"])
 AC_ARG_ENABLE(xshmfence,      AS_HELP_STRING([--disable-xshmfence], [Disable xshmfence (default: auto)]), [XSHMFENCE="$enableval"], [XSHMFENCE="auto"])
 
@@ -2368,56 +2369,6 @@ if test "$KDRIVE" = yes; then
     AC_DEFINE(KDRIVESERVER,1,[Build Kdrive X server])
     AC_DEFINE(KDRIVEDDXACTIONS,,[Build kdrive ddx])
 
-    AC_CHECK_HEADERS([linux/fb.h])
-    if test "$ac_cv_header_linux_fb_h" = yes && test "x$XFBDEV" = xauto; then
-        XFBDEV=yes
-    fi
-
-    if test "x$XFBDEV" = xyes; then
-        KDRIVEFBDEVLIB=yes
-        AC_DEFINE(KDRIVEFBDEV, 1, [Build fbdev-based kdrive server])
-    fi
-
-
-    PKG_CHECK_MODULES([TSLIB], [tslib-0.0], [HAVE_TSLIB="yes"], [HAVE_TSLIB="no"])
-    if test "x$HAVE_TSLIB" = xno; then
-        AC_CHECK_LIB(ts, ts_open, [
-			HAVE_TSLIB="yes"
-			TSLIB_LIBS="-lts"
-		])
-    fi
-
-    if test "xTSLIB" = xauto; then
-        TSLIB="$HAVE_TSLIB"
-    fi
-
-    if test "x$TSLIB" = xyes; then
-        if ! test "x$HAVE_TSLIB" = xyes; then
-            AC_MSG_ERROR([tslib must be installed to build the tslib driver. See http://tslib.berlios.de/])
-        else
-            AC_DEFINE(TSLIB, 1, [Have tslib support])
-        fi
-    fi
-
-    case $host_os in
-	*linux*)
-	    KDRIVE_OS_LIB='$(top_builddir)/hw/kdrive/linux/liblinux.la'
-            KDRIVELINUX=yes
-	    if test "x$KDRIVE_EVDEV" = xauto; then
-		KDRIVE_EVDEV=yes
-	    fi
-	    ;;
-	*)
-	    if test "x$KDRIVE_EVDEV" = xauto; then
-		KDRIVE_EVDEV=no
-	    fi
-	    ;;
-    esac
-
-    if test "x$KDRIVE_EVDEV" = xyes; then
-       AC_DEFINE(KDRIVE_EVDEV, 1, [Enable KDrive evdev driver])
-    fi
-
     XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-render xcb-renderutil xcb-aux xcb-image xcb-icccm xcb-shm xcb-keysyms xcb-randr xcb-xkb"
     if test "x$XV" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xcb-xv"
@@ -2465,17 +2416,11 @@ AC_SUBST([KDRIVE_PURE_LIBS])
 AC_SUBST([KDRIVE_MAIN_LIB])
 AC_SUBST([KDRIVE_LOCAL_LIBS])
 AC_SUBST([KDRIVE_LIBS])
-AM_CONDITIONAL(KDRIVELINUX, [test "x$KDRIVELINUX" = xyes])
-AM_CONDITIONAL(KDRIVE_EVDEV, [test "x$KDRIVE_EVDEV" = xyes])
-AM_CONDITIONAL(TSLIB, [test "x$HAVE_TSLIB" = xyes])
-AM_CONDITIONAL(KDRIVEFBDEV, [test "x$XFBDEV" = xyes])
 AM_CONDITIONAL(XEPHYR, [test "x$KDRIVE" = xyes && test "x$XEPHYR" = xyes])
-AM_CONDITIONAL(BUILD_KDRIVEFBDEVLIB, [test "x$KDRIVE" = xyes && test "x$KDRIVEFBDEVLIB" = xyes])
-AM_CONDITIONAL(XFAKESERVER, [test "x$KDRIVE" = xyes && test "x$XFAKE" = xyes])
 
 dnl Xwayland DDX
 
-XWAYLANDMODULES="wayland-client >= 1.3.0 wayland-protocols >= 1.7 $LIBDRM epoxy"
+XWAYLANDMODULES="wayland-client >= 1.3.0 wayland-protocols >= 1.1 $LIBDRM epoxy"
 if test "x$XF86VIDMODE" = xyes; then
 	XWAYLANDMODULES="$XWAYLANDMODULES $VIDMODEPROTO"
 fi
@@ -2652,9 +2597,6 @@ hw/xquartz/xpr/Makefile
 hw/kdrive/Makefile
 hw/kdrive/ephyr/Makefile
 hw/kdrive/ephyr/man/Makefile
-hw/kdrive/fake/Makefile
-hw/kdrive/fbdev/Makefile
-hw/kdrive/linux/Makefile
 hw/kdrive/src/Makefile
 hw/xwayland/Makefile
 test/Makefile

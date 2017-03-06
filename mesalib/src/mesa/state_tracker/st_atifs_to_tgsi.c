@@ -619,7 +619,6 @@ struct tgsi_atifs_transform {
    const struct st_fp_variant_key *key;
    bool first_instruction_emitted;
    unsigned fog_factor_temp;
-   unsigned fog_clamp_imm;
 };
 
 static inline struct tgsi_atifs_transform *
@@ -676,10 +675,6 @@ transform_instr(struct tgsi_transform_context *tctx,
       /* add a new temp for the fog factor */
       ctx->fog_factor_temp = ctx->info.file_max[TGSI_FILE_TEMPORARY] + 1;
       tgsi_transform_temp_decl(tctx, ctx->fog_factor_temp);
-
-      /* add immediates for clamp */
-      ctx->fog_clamp_imm = ctx->info.immediate_count;
-      tgsi_transform_immediate_decl(tctx, 1.0f, 0.0f, 0.0f, 0.0f);
    }
 
 transform_inst:
@@ -790,17 +785,16 @@ transform_inst:
          inst.Src[0].Register.Negate ^= 1;
          tctx->emit_instruction(tctx, &inst);
       }
-      /* f = CLAMP(f, 0.0, 1.0) */
+      /* f = saturate(f) */
       inst = tgsi_default_full_instruction();
-      inst.Instruction.Opcode = TGSI_OPCODE_CLAMP;
+      inst.Instruction.Opcode = TGSI_OPCODE_MOV;
       inst.Instruction.NumDstRegs = 1;
+      inst.Instruction.Saturate = 1;
       inst.Dst[0].Register.File  = TGSI_FILE_TEMPORARY;
       inst.Dst[0].Register.Index = ctx->fog_factor_temp;
       inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZW;
-      inst.Instruction.NumSrcRegs = 3;
+      inst.Instruction.NumSrcRegs = 1;
       SET_SRC(&inst, 0, TGSI_FILE_TEMPORARY, ctx->fog_factor_temp, X, Y, Z, W);
-      SET_SRC(&inst, 1, TGSI_FILE_IMMEDIATE, ctx->fog_clamp_imm, Y, Y, Y, Y); // 0.0
-      SET_SRC(&inst, 2, TGSI_FILE_IMMEDIATE, ctx->fog_clamp_imm, X, X, X, X); // 1.0
       tctx->emit_instruction(tctx, &inst);
 
       /* REG0 = LRP(f, REG0, fogcolor) */

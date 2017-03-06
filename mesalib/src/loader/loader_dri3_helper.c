@@ -1408,3 +1408,26 @@ loader_dri3_get_buffers(__DRIdrawable *driDrawable,
 
    return true;
 }
+
+/** loader_dri3_update_drawable_geometry
+ *
+ * Get the current drawable geometry.
+ */
+void
+loader_dri3_update_drawable_geometry(struct loader_dri3_drawable *draw)
+{
+   xcb_get_geometry_cookie_t geom_cookie;
+   xcb_get_geometry_reply_t *geom_reply;
+
+   geom_cookie = xcb_get_geometry(draw->conn, draw->drawable);
+
+   geom_reply = xcb_get_geometry_reply(draw->conn, geom_cookie, NULL);
+
+   if (geom_reply) {
+      draw->width = geom_reply->width;
+      draw->height = geom_reply->height;
+      draw->vtable->set_drawable_size(draw, draw->width, draw->height);
+
+      free(geom_reply);
+   }
+}

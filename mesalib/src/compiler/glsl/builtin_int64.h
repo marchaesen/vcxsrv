@@ -279,8 +279,7 @@ udiv64(void *mem_ctx, builtin_available_predicate avail)
    sig_parameters.push_tail(r0035);
    ir_variable *const r0036 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "d", ir_var_function_in);
    sig_parameters.push_tail(r0036);
-   ir_variable *const r0037 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "n", ir_var_auto);
-   body.emit(r0037);
+   ir_variable *const r0037 = body.make_temp(glsl_type::uvec2_type, "n");
    body.emit(assign(r0037, r0035, 0x03));
 
    ir_variable *const r0038 = new(mem_ctx) ir_variable(glsl_type::int_type, "i", ir_var_auto);
@@ -495,15 +494,13 @@ idiv64(void *mem_ctx, builtin_available_predicate avail)
    ir_expression *const r0062 = less(swizzle_y(r005F), body.constant(int(0)));
    body.emit(assign(r0060, nequal(r0061, r0062), 0x01));
 
-   ir_variable *const r0063 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "n", ir_var_auto);
-   body.emit(r0063);
+   ir_variable *const r0063 = body.make_temp(glsl_type::uvec2_type, "n");
    ir_expression *const r0064 = expr(ir_unop_pack_int_2x32, r005E);
    ir_expression *const r0065 = expr(ir_unop_abs, r0064);
    ir_expression *const r0066 = expr(ir_unop_i642u64, r0065);
    body.emit(assign(r0063, expr(ir_unop_unpack_uint_2x32, r0066), 0x03));
 
-   ir_variable *const r0067 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "d", ir_var_auto);
-   body.emit(r0067);
+   ir_variable *const r0067 = body.make_temp(glsl_type::uvec2_type, "d");
    ir_expression *const r0068 = expr(ir_unop_pack_int_2x32, r005F);
    ir_expression *const r0069 = expr(ir_unop_abs, r0068);
    ir_expression *const r006A = expr(ir_unop_i642u64, r0069);
@@ -740,8 +737,7 @@ umod64(void *mem_ctx, builtin_available_predicate avail)
    sig_parameters.push_tail(r0096);
    ir_variable *const r0097 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "d", ir_var_function_in);
    sig_parameters.push_tail(r0097);
-   ir_variable *const r0098 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "n", ir_var_auto);
-   body.emit(r0098);
+   ir_variable *const r0098 = body.make_temp(glsl_type::uvec2_type, "n");
    body.emit(assign(r0098, r0096, 0x03));
 
    ir_variable *const r0099 = new(mem_ctx) ir_variable(glsl_type::int_type, "i", ir_var_auto);
@@ -962,15 +958,13 @@ imod64(void *mem_ctx, builtin_available_predicate avail)
    ir_expression *const r00C5 = less(swizzle_y(r00C2), body.constant(int(0)));
    body.emit(assign(r00C3, nequal(r00C4, r00C5), 0x01));
 
-   ir_variable *const r00C6 = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "n", ir_var_auto);
-   body.emit(r00C6);
+   ir_variable *const r00C6 = body.make_temp(glsl_type::uvec2_type, "n");
    ir_expression *const r00C7 = expr(ir_unop_pack_int_2x32, r00C1);
    ir_expression *const r00C8 = expr(ir_unop_abs, r00C7);
    ir_expression *const r00C9 = expr(ir_unop_i642u64, r00C8);
    body.emit(assign(r00C6, expr(ir_unop_unpack_uint_2x32, r00C9), 0x03));
 
-   ir_variable *const r00CA = new(mem_ctx) ir_variable(glsl_type::uvec2_type, "d", ir_var_auto);
-   body.emit(r00CA);
+   ir_variable *const r00CA = body.make_temp(glsl_type::uvec2_type, "d");
    ir_expression *const r00CB = expr(ir_unop_pack_int_2x32, r00C2);
    ir_expression *const r00CC = expr(ir_unop_abs, r00CB);
    ir_expression *const r00CD = expr(ir_unop_i642u64, r00CC);
@@ -1176,7 +1170,7 @@ imod64(void *mem_ctx, builtin_available_predicate avail)
       /* THEN INSTRUCTIONS */
       body.instructions = &f00F6->then_instructions;
 
-      ir_swizzle *const r00F7 = swizzle(r00F4, MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_Y, SWIZZLE_X, SWIZZLE_X), 2);
+      ir_swizzle *const r00F7 = swizzle(r00F4, MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_W, SWIZZLE_X, SWIZZLE_X), 2);
       ir_expression *const r00F8 = expr(ir_unop_pack_uint_2x32, r00F7);
       ir_expression *const r00F9 = expr(ir_unop_u642i64, r00F8);
       ir_expression *const r00FA = neg(r00F9);
@@ -1186,7 +1180,7 @@ imod64(void *mem_ctx, builtin_available_predicate avail)
       /* ELSE INSTRUCTIONS */
       body.instructions = &f00F6->else_instructions;
 
-      ir_swizzle *const r00FB = swizzle(r00F4, MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_Y, SWIZZLE_X, SWIZZLE_X), 2);
+      ir_swizzle *const r00FB = swizzle(r00F4, MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_W, SWIZZLE_X, SWIZZLE_X), 2);
       body.emit(assign(r00F5, expr(ir_unop_u2i, r00FB), 0x03));
 
 

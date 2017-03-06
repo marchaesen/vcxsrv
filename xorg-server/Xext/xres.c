@@ -1007,14 +1007,14 @@ ProcResDispatch(ClientPtr client)
     return BadRequest;
 }
 
-static int
+static int _X_COLD
 SProcXResQueryVersion(ClientPtr client)
 {
     REQUEST_SIZE_MATCH(xXResQueryVersionReq);
     return ProcXResQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcXResQueryClientResources(ClientPtr client)
 {
     REQUEST(xXResQueryClientResourcesReq);
@@ -1023,7 +1023,7 @@ SProcXResQueryClientResources(ClientPtr client)
     return ProcXResQueryClientResources(client);
 }
 
-static int
+static int _X_COLD
 SProcXResQueryClientPixmapBytes(ClientPtr client)
 {
     REQUEST(xXResQueryClientPixmapBytesReq);
@@ -1032,7 +1032,7 @@ SProcXResQueryClientPixmapBytes(ClientPtr client)
     return ProcXResQueryClientPixmapBytes(client);
 }
 
-static int
+static int _X_COLD
 SProcXResQueryClientIds (ClientPtr client)
 {
     REQUEST(xXResQueryClientIdsReq);
@@ -1045,7 +1045,7 @@ SProcXResQueryClientIds (ClientPtr client)
 /** @brief Implements the XResQueryResourceBytes of XResProto v1.2.
     This variant byteswaps request contents before issuing the
     rest of the work to ProcXResQueryResourceBytes */
-static int
+static int _X_COLD
 SProcXResQueryResourceBytes (ClientPtr client)
 {
     REQUEST(xXResQueryResourceBytesReq);
@@ -1064,7 +1064,7 @@ SProcXResQueryResourceBytes (ClientPtr client)
     return ProcXResQueryResourceBytes(client);
 }
 
-static int
+static int _X_COLD
 SProcResDispatch (ClientPtr client)
 {
     REQUEST(xReq);

@@ -108,6 +108,7 @@
 #include "matrix.h"
 #include "multisample.h"
 #include "performance_monitor.h"
+#include "performance_query.h"
 #include "pipelineobj.h"
 #include "pixel.h"
 #include "pixelstore.h"
@@ -836,6 +837,7 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_matrix( ctx );
    _mesa_init_multisample( ctx );
    _mesa_init_performance_monitors( ctx );
+   _mesa_init_performance_queries( ctx );
    _mesa_init_pipeline( ctx );
    _mesa_init_pixel( ctx );
    _mesa_init_pixelstore( ctx );
@@ -1325,6 +1327,7 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_free_varray_data(ctx);
    _mesa_free_transform_feedback(ctx);
    _mesa_free_performance_monitors(ctx);
+   _mesa_free_performance_queries(ctx);
 
    _mesa_reference_buffer_object(ctx, &ctx->Pack.BufferObj, NULL);
    _mesa_reference_buffer_object(ctx, &ctx->Unpack.BufferObj, NULL);

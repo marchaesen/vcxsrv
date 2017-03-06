@@ -1692,7 +1692,7 @@ ProcVidModeDispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcVidModeQueryVersion(ClientPtr client)
 {
     REQUEST(xXF86VidModeQueryVersionReq);
@@ -1700,7 +1700,7 @@ SProcVidModeQueryVersion(ClientPtr client)
     return ProcVidModeQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetModeLine(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetModeLineReq);
@@ -1710,7 +1710,7 @@ SProcVidModeGetModeLine(ClientPtr client)
     return ProcVidModeGetModeLine(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetAllModeLines(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetAllModeLinesReq);
@@ -1720,7 +1720,7 @@ SProcVidModeGetAllModeLines(ClientPtr client)
     return ProcVidModeGetAllModeLines(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeAddModeLine(ClientPtr client)
 {
     xXF86OldVidModeAddModeLineReq *oldstuff =
@@ -1765,7 +1765,7 @@ SProcVidModeAddModeLine(ClientPtr client)
     return ProcVidModeAddModeLine(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeDeleteModeLine(ClientPtr client)
 {
     xXF86OldVidModeDeleteModeLineReq *oldstuff =
@@ -1810,7 +1810,7 @@ SProcVidModeDeleteModeLine(ClientPtr client)
     return ProcVidModeDeleteModeLine(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeModModeLine(ClientPtr client)
 {
     xXF86OldVidModeModModeLineReq *oldstuff =
@@ -1855,7 +1855,7 @@ SProcVidModeModModeLine(ClientPtr client)
     return ProcVidModeModModeLine(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeValidateModeLine(ClientPtr client)
 {
     xXF86OldVidModeValidateModeLineReq *oldstuff =
@@ -1900,7 +1900,7 @@ SProcVidModeValidateModeLine(ClientPtr client)
     return ProcVidModeValidateModeLine(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeSwitchMode(ClientPtr client)
 {
     REQUEST(xXF86VidModeSwitchModeReq);
@@ -1911,7 +1911,7 @@ SProcVidModeSwitchMode(ClientPtr client)
     return ProcVidModeSwitchMode(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeSwitchToMode(ClientPtr client)
 {
     REQUEST(xXF86VidModeSwitchToModeReq);
@@ -1921,7 +1921,7 @@ SProcVidModeSwitchToMode(ClientPtr client)
     return ProcVidModeSwitchToMode(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeLockModeSwitch(ClientPtr client)
 {
     REQUEST(xXF86VidModeLockModeSwitchReq);
@@ -1932,7 +1932,7 @@ SProcVidModeLockModeSwitch(ClientPtr client)
     return ProcVidModeLockModeSwitch(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetMonitor(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetMonitorReq);
@@ -1942,7 +1942,7 @@ SProcVidModeGetMonitor(ClientPtr client)
     return ProcVidModeGetMonitor(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetViewPort(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetViewPortReq);
@@ -1952,7 +1952,7 @@ SProcVidModeGetViewPort(ClientPtr client)
     return ProcVidModeGetViewPort(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeSetViewPort(ClientPtr client)
 {
     REQUEST(xXF86VidModeSetViewPortReq);
@@ -1964,7 +1964,7 @@ SProcVidModeSetViewPort(ClientPtr client)
     return ProcVidModeSetViewPort(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetDotClocks(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetDotClocksReq);
@@ -1974,7 +1974,7 @@ SProcVidModeGetDotClocks(ClientPtr client)
     return ProcVidModeGetDotClocks(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeSetClientVersion(ClientPtr client)
 {
     REQUEST(xXF86VidModeSetClientVersionReq);
@@ -1985,7 +1985,7 @@ SProcVidModeSetClientVersion(ClientPtr client)
     return ProcVidModeSetClientVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeSetGamma(ClientPtr client)
 {
     REQUEST(xXF86VidModeSetGammaReq);
@@ -1998,7 +1998,7 @@ SProcVidModeSetGamma(ClientPtr client)
     return ProcVidModeSetGamma(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetGamma(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetGammaReq);
@@ -2008,7 +2008,7 @@ SProcVidModeGetGamma(ClientPtr client)
     return ProcVidModeGetGamma(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeSetGammaRamp(ClientPtr client)
 {
     int length;
@@ -2024,7 +2024,7 @@ SProcVidModeSetGammaRamp(ClientPtr client)
     return ProcVidModeSetGammaRamp(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetGammaRamp(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetGammaRampReq);
@@ -2035,7 +2035,7 @@ SProcVidModeGetGammaRamp(ClientPtr client)
     return ProcVidModeGetGammaRamp(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetGammaRampSize(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetGammaRampSizeReq);
@@ -2045,7 +2045,7 @@ SProcVidModeGetGammaRampSize(ClientPtr client)
     return ProcVidModeGetGammaRampSize(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeGetPermissions(ClientPtr client)
 {
     REQUEST(xXF86VidModeGetPermissionsReq);
@@ -2055,7 +2055,7 @@ SProcVidModeGetPermissions(ClientPtr client)
     return ProcVidModeGetPermissions(client);
 }
 
-static int
+static int _X_COLD
 SProcVidModeDispatch(ClientPtr client)
 {
     REQUEST(xReq);

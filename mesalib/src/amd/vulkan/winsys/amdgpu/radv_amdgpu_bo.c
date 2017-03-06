@@ -205,6 +205,8 @@ radv_amdgpu_winsys_bo_from_fd(struct radeon_winsys *_ws,
 	bo->initial_domain = initial;
 	bo->size = result.alloc_size;
 	bo->is_shared = true;
+	bo->ws = ws;
+	radv_amdgpu_add_buffer_to_global_list(bo);
 	return (struct radeon_winsys_bo *)bo;
 error_va_map:
 	amdgpu_va_range_free(va_handle);

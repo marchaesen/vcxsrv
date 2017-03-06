@@ -278,8 +278,13 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 	{
 #endif
 	struct stat statb;
-	char f[PATH_MAX + 1];
+	char *f = malloc (len + 1 + dlen + 1);
 
+	if (!f)
+	{
+	    ret = -1;
+	    goto bail;
+	}
 	memcpy (f, dir, len);
 	f[len] = FC_DIR_SEPARATOR;
 	memcpy (&f[len + 1], files[n]->d_name, dlen);
@@ -287,11 +292,16 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 	if (lstat (f, &statb) < 0)
 	{
 	    ret = -1;
+	    free (f);
 	    goto bail;
 	}
 	if (S_ISDIR (statb.st_mode))
+	{
+	    free (f);
 	    goto bail;
+	}
 
+	free (f);
 	dtype = statb.st_mode;
 #ifdef HAVE_STRUCT_DIRENT_D_TYPE
 	}

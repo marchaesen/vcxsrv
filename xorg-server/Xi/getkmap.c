@@ -71,7 +71,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXGetDeviceKeyMapping(ClientPtr client)
 {
     REQUEST(xGetDeviceKeyMappingReq);
@@ -146,7 +146,7 @@ ProcXGetDeviceKeyMapping(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXGetDeviceKeyMapping(ClientPtr client, int size,
                          xGetDeviceKeyMappingReply * rep)
 {

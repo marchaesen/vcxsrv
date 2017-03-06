@@ -99,7 +99,9 @@ _mesa_BeginConditionalRender(GLuint queryId, GLenum mode)
     */
    if ((q->Target != GL_SAMPLES_PASSED &&
         q->Target != GL_ANY_SAMPLES_PASSED &&
-        q->Target != GL_ANY_SAMPLES_PASSED_CONSERVATIVE) || q->Active) {
+        q->Target != GL_ANY_SAMPLES_PASSED_CONSERVATIVE &&
+        q->Target != GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB &&
+        q->Target != GL_TRANSFORM_FEEDBACK_OVERFLOW_ARB) || q->Active) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glBeginConditionalRender()");
       return;
    }

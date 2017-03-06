@@ -601,7 +601,7 @@ ProcSecurityDispatch(ClientPtr client)
     }
 }                               /* ProcSecurityDispatch */
 
-static int
+static int _X_COLD
 SProcSecurityQueryVersion(ClientPtr client)
 {
     REQUEST(xSecurityQueryVersionReq);
@@ -613,7 +613,7 @@ SProcSecurityQueryVersion(ClientPtr client)
     return ProcSecurityQueryVersion(client);
 }                               /* SProcSecurityQueryVersion */
 
-static int
+static int _X_COLD
 SProcSecurityGenerateAuthorization(ClientPtr client)
 {
     REQUEST(xSecurityGenerateAuthorizationReq);
@@ -637,7 +637,7 @@ SProcSecurityGenerateAuthorization(ClientPtr client)
     return ProcSecurityGenerateAuthorization(client);
 }                               /* SProcSecurityGenerateAuthorization */
 
-static int
+static int _X_COLD
 SProcSecurityRevokeAuthorization(ClientPtr client)
 {
     REQUEST(xSecurityRevokeAuthorizationReq);
@@ -648,7 +648,7 @@ SProcSecurityRevokeAuthorization(ClientPtr client)
     return ProcSecurityRevokeAuthorization(client);
 }                               /* SProcSecurityRevokeAuthorization */
 
-static int
+static int _X_COLD
 SProcSecurityDispatch(ClientPtr client)
 {
     REQUEST(xReq);
@@ -665,7 +665,7 @@ SProcSecurityDispatch(ClientPtr client)
     }
 }                               /* SProcSecurityDispatch */
 
-static void
+static void _X_COLD
 SwapSecurityAuthorizationRevokedEvent(xSecurityAuthorizationRevokedEvent * from,
                                       xSecurityAuthorizationRevokedEvent * to)
 {

@@ -1860,6 +1860,23 @@ struct gl_perf_monitor_group
 
 
 /**
+ * A query object instance as described in INTEL_performance_query.
+ *
+ * NB: We want to keep this and the corresponding backend structure
+ * relatively lean considering that applications may expect to
+ * allocate enough objects to be able to query around all draw calls
+ * in a frame.
+ */
+struct gl_perf_query_object
+{
+   GLuint Id;          /**< hash table ID/name */
+   unsigned Used:1;    /**< has been used for 1 or more queries */
+   unsigned Active:1;  /**< inside Begin/EndPerfQuery */
+   unsigned Ready:1;   /**< result is ready? */
+};
+
+
+/**
  * Context state for AMD_performance_monitor.
  */
 struct gl_perf_monitor_state
@@ -1870,6 +1887,15 @@ struct gl_perf_monitor_state
 
    /** The table of all performance monitors. */
    struct _mesa_HashTable *Monitors;
+};
+
+
+/**
+ * Context state for INTEL_performance_query.
+ */
+struct gl_perf_query_state
+{
+   struct _mesa_HashTable *Objects; /**< The table of all performance query objects */
 };
 
 
@@ -2995,6 +3021,10 @@ struct gl_query_state
    struct gl_query_object *PrimitivesGenerated[MAX_VERTEX_STREAMS];
    struct gl_query_object *PrimitivesWritten[MAX_VERTEX_STREAMS];
 
+   /** GL_ARB_transform_feedback_overflow_query */
+   struct gl_query_object *TransformFeedbackOverflow[MAX_VERTEX_STREAMS];
+   struct gl_query_object *TransformFeedbackOverflowAny;
+
    /** GL_ARB_timer_query */
    struct gl_query_object *TimeElapsed;
 
@@ -3889,6 +3919,7 @@ struct gl_extensions
    GLboolean ARB_transform_feedback2;
    GLboolean ARB_transform_feedback3;
    GLboolean ARB_transform_feedback_instanced;
+   GLboolean ARB_transform_feedback_overflow_query;
    GLboolean ARB_uniform_buffer_object;
    GLboolean ARB_vertex_attrib_64bit;
    GLboolean ARB_vertex_program;
@@ -4521,6 +4552,7 @@ struct gl_context
    struct gl_transform_feedback_state TransformFeedback;
 
    struct gl_perf_monitor_state PerfMonitor;
+   struct gl_perf_query_state PerfQuery;
 
    struct gl_buffer_object *DrawIndirectBuffer; /** < GL_ARB_draw_indirect */
    struct gl_buffer_object *ParameterBuffer; /** < GL_ARB_indirect_parameters */

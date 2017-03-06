@@ -520,31 +520,19 @@ nir_visitor::visit(ir_function_signature *ir)
 void
 nir_visitor::visit(ir_loop *ir)
 {
-   nir_loop *loop = nir_loop_create(this->shader);
-   nir_builder_cf_insert(&b, &loop->cf_node);
-
-   b.cursor = nir_after_cf_list(&loop->body);
+   nir_push_loop(&b);
    visit_exec_list(&ir->body_instructions, this);
-   b.cursor = nir_after_cf_node(&loop->cf_node);
+   nir_pop_loop(&b, NULL);
 }
 
 void
 nir_visitor::visit(ir_if *ir)
 {
-   nir_src condition =
-      nir_src_for_ssa(evaluate_rvalue(ir->condition));
-
-   nir_if *if_stmt = nir_if_create(this->shader);
-   if_stmt->condition = condition;
-   nir_builder_cf_insert(&b, &if_stmt->cf_node);
-
-   b.cursor = nir_after_cf_list(&if_stmt->then_list);
+   nir_push_if(&b, evaluate_rvalue(ir->condition));
    visit_exec_list(&ir->then_instructions, this);
-
-   b.cursor = nir_after_cf_list(&if_stmt->else_list);
+   nir_push_else(&b, NULL);
    visit_exec_list(&ir->else_instructions, this);
-
-   b.cursor = nir_after_cf_node(&if_stmt->cf_node);
+   nir_pop_if(&b, NULL);
 }
 
 void
@@ -1193,11 +1181,9 @@ nir_visitor::visit(ir_assignment *ir)
       copy->variables[1] = evaluate_deref(&copy->instr, ir->rhs);
 
       if (ir->condition) {
-         nir_if *if_stmt = nir_if_create(this->shader);
-         if_stmt->condition = nir_src_for_ssa(evaluate_rvalue(ir->condition));
-         nir_builder_cf_insert(&b, &if_stmt->cf_node);
-         nir_instr_insert_after_cf_list(&if_stmt->then_list, &copy->instr);
-         b.cursor = nir_after_cf_node(&if_stmt->cf_node);
+         nir_push_if(&b, evaluate_rvalue(ir->condition));
+         nir_builder_instr_insert(&b, &copy->instr);
+         nir_pop_if(&b, NULL);
       } else {
          nir_builder_instr_insert(&b, &copy->instr);
       }
@@ -1232,11 +1218,9 @@ nir_visitor::visit(ir_assignment *ir)
    store->src[0] = nir_src_for_ssa(src);
 
    if (ir->condition) {
-      nir_if *if_stmt = nir_if_create(this->shader);
-      if_stmt->condition = nir_src_for_ssa(evaluate_rvalue(ir->condition));
-      nir_builder_cf_insert(&b, &if_stmt->cf_node);
-      nir_instr_insert_after_cf_list(&if_stmt->then_list, &store->instr);
-      b.cursor = nir_after_cf_node(&if_stmt->cf_node);
+      nir_push_if(&b, evaluate_rvalue(ir->condition));
+      nir_builder_instr_insert(&b, &store->instr);
+      nir_pop_if(&b, NULL);
    } else {
       nir_builder_instr_insert(&b, &store->instr);
    }

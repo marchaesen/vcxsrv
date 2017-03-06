@@ -72,7 +72,7 @@ extern int ExtEventIndex;
  *
  */
 
-int
+int _X_COLD
 SProcXGetDeviceDontPropagateList(ClientPtr client)
 {
     REQUEST(xGetDeviceDontPropagateListReq);
@@ -173,7 +173,7 @@ XEventClass
  *
  */
 
-void
+void _X_COLD
 SRepXGetDeviceDontPropagateList(ClientPtr client, int size,
                                 xGetDeviceDontPropagateListReply * rep)
 {

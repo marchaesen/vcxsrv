@@ -46,7 +46,7 @@
  * setting.
  */
 
-int
+int _X_COLD
 SProcXIGetClientPointer(ClientPtr client)
 {
     REQUEST(xXIGetClientPointerReq);
@@ -96,7 +96,7 @@ ProcXIGetClientPointer(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXIGetClientPointer(ClientPtr client, int size,
                        xXIGetClientPointerReply * rep)
 {

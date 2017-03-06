@@ -91,7 +91,7 @@ ProcXFixesCreateRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCreateRegion(ClientPtr client)
 {
     REQUEST(xXFixesCreateRegionReq);
@@ -135,7 +135,7 @@ ProcXFixesCreateRegionFromBitmap(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCreateRegionFromBitmap(ClientPtr client)
 {
     REQUEST(xXFixesCreateRegionFromBitmapReq);
@@ -194,7 +194,7 @@ ProcXFixesCreateRegionFromWindow(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCreateRegionFromWindow(ClientPtr client)
 {
     REQUEST(xXFixesCreateRegionFromWindowReq);
@@ -237,7 +237,7 @@ ProcXFixesCreateRegionFromGC(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCreateRegionFromGC(ClientPtr client)
 {
     REQUEST(xXFixesCreateRegionFromGCReq);
@@ -279,7 +279,7 @@ ProcXFixesCreateRegionFromPicture(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCreateRegionFromPicture(ClientPtr client)
 {
     REQUEST(xXFixesCreateRegionFromPictureReq);
@@ -303,7 +303,7 @@ ProcXFixesDestroyRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesDestroyRegion(ClientPtr client)
 {
     REQUEST(xXFixesDestroyRegionReq);
@@ -341,7 +341,7 @@ ProcXFixesSetRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesSetRegion(ClientPtr client)
 {
     REQUEST(xXFixesSetRegionReq);
@@ -369,7 +369,7 @@ ProcXFixesCopyRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCopyRegion(ClientPtr client)
 {
     REQUEST(xXFixesCopyRegionReq);
@@ -411,7 +411,7 @@ ProcXFixesCombineRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesCombineRegion(ClientPtr client)
 {
     REQUEST(xXFixesCombineRegionReq);
@@ -455,7 +455,7 @@ ProcXFixesInvertRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesInvertRegion(ClientPtr client)
 {
     REQUEST(xXFixesInvertRegionReq);
@@ -485,7 +485,7 @@ ProcXFixesTranslateRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesTranslateRegion(ClientPtr client)
 {
     REQUEST(xXFixesTranslateRegionReq);
@@ -514,7 +514,7 @@ ProcXFixesRegionExtents(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesRegionExtents(ClientPtr client)
 {
     REQUEST(xXFixesRegionExtentsReq);
@@ -579,7 +579,7 @@ ProcXFixesFetchRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesFetchRegion(ClientPtr client)
 {
     REQUEST(xXFixesFetchRegionReq);
@@ -622,7 +622,7 @@ ProcXFixesSetGCClipRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesSetGCClipRegion(ClientPtr client)
 {
     REQUEST(xXFixesSetGCClipRegionReq);
@@ -712,7 +712,7 @@ ProcXFixesSetWindowShapeRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesSetWindowShapeRegion(ClientPtr client)
 {
     REQUEST(xXFixesSetWindowShapeRegionReq);
@@ -745,7 +745,7 @@ ProcXFixesSetPictureClipRegion(ClientPtr client)
                                 pRegion);
 }
 
-int
+int _X_COLD
 SProcXFixesSetPictureClipRegion(ClientPtr client)
 {
     REQUEST(xXFixesSetPictureClipRegionReq);
@@ -798,7 +798,7 @@ ProcXFixesExpandRegion(ClientPtr client)
     return Success;
 }
 
-int
+int _X_COLD
 SProcXFixesExpandRegion(ClientPtr client)
 {
     REQUEST(xXFixesExpandRegionReq);

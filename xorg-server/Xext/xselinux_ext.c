@@ -528,13 +528,13 @@ ProcSELinuxDispatch(ClientPtr client)
     }
 }
 
-static int
+static int _X_COLD
 SProcSELinuxQueryVersion(ClientPtr client)
 {
     return ProcSELinuxQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxSetCreateContext(ClientPtr client, unsigned offset)
 {
     REQUEST(SELinuxSetCreateContextReq);
@@ -544,7 +544,7 @@ SProcSELinuxSetCreateContext(ClientPtr client, unsigned offset)
     return ProcSELinuxSetCreateContext(client, offset);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxSetDeviceContext(ClientPtr client)
 {
     REQUEST(SELinuxSetContextReq);
@@ -555,7 +555,7 @@ SProcSELinuxSetDeviceContext(ClientPtr client)
     return ProcSELinuxSetDeviceContext(client);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxGetDeviceContext(ClientPtr client)
 {
     REQUEST(SELinuxGetContextReq);
@@ -565,7 +565,7 @@ SProcSELinuxGetDeviceContext(ClientPtr client)
     return ProcSELinuxGetDeviceContext(client);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxGetDrawableContext(ClientPtr client)
 {
     REQUEST(SELinuxGetContextReq);
@@ -575,7 +575,7 @@ SProcSELinuxGetDrawableContext(ClientPtr client)
     return ProcSELinuxGetDrawableContext(client);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxGetPropertyContext(ClientPtr client, void *privKey)
 {
     REQUEST(SELinuxGetPropertyContextReq);
@@ -586,7 +586,7 @@ SProcSELinuxGetPropertyContext(ClientPtr client, void *privKey)
     return ProcSELinuxGetPropertyContext(client, privKey);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxGetSelectionContext(ClientPtr client, void *privKey)
 {
     REQUEST(SELinuxGetContextReq);
@@ -596,7 +596,7 @@ SProcSELinuxGetSelectionContext(ClientPtr client, void *privKey)
     return ProcSELinuxGetSelectionContext(client, privKey);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxListProperties(ClientPtr client)
 {
     REQUEST(SELinuxGetContextReq);
@@ -606,7 +606,7 @@ SProcSELinuxListProperties(ClientPtr client)
     return ProcSELinuxListProperties(client);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxGetClientContext(ClientPtr client)
 {
     REQUEST(SELinuxGetContextReq);
@@ -616,7 +616,7 @@ SProcSELinuxGetClientContext(ClientPtr client)
     return ProcSELinuxGetClientContext(client);
 }
 
-static int
+static int _X_COLD
 SProcSELinuxDispatch(ClientPtr client)
 {
     REQUEST(xReq);

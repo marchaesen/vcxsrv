@@ -58,9 +58,151 @@
 #include "st_mesa_to_tgsi.h"
 #include "st_atifs_to_tgsi.h"
 #include "st_nir.h"
+#include "st_shader_cache.h"
 #include "cso_cache/cso_context.h"
 
 
+
+static void
+set_affected_state_flags(uint64_t *states,
+                         struct gl_program *prog,
+                         uint64_t new_constants,
+                         uint64_t new_sampler_views,
+                         uint64_t new_samplers,
+                         uint64_t new_images,
+                         uint64_t new_ubos,
+                         uint64_t new_ssbos,
+                         uint64_t new_atomics)
+{
+   if (prog->Parameters->NumParameters)
+      *states |= new_constants;
+
+   if (prog->info.num_textures)
+      *states |= new_sampler_views | new_samplers;
+
+   if (prog->info.num_images)
+      *states |= new_images;
+
+   if (prog->info.num_ubos)
+      *states |= new_ubos;
+
+   if (prog->info.num_ssbos)
+      *states |= new_ssbos;
+
+   if (prog->info.num_abos)
+      *states |= new_atomics;
+}
+
+/**
+ * This determines which states will be updated when the shader is bound.
+ */
+void
+st_set_prog_affected_state_flags(struct gl_program *prog)
+{
+   uint64_t *states;
+
+   switch (prog->info.stage) {
+   case MESA_SHADER_VERTEX:
+      states = &((struct st_vertex_program*)prog)->affected_states;
+
+      *states = ST_NEW_VS_STATE |
+                ST_NEW_RASTERIZER |
+                ST_NEW_VERTEX_ARRAYS;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_VS_CONSTANTS,
+                               ST_NEW_VS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_VS_IMAGES,
+                               ST_NEW_VS_UBOS,
+                               ST_NEW_VS_SSBOS,
+                               ST_NEW_VS_ATOMICS);
+      break;
+
+   case MESA_SHADER_TESS_CTRL:
+      states = &((struct st_tessctrl_program*)prog)->affected_states;
+
+      *states = ST_NEW_TCS_STATE;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_TCS_CONSTANTS,
+                               ST_NEW_TCS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_TCS_IMAGES,
+                               ST_NEW_TCS_UBOS,
+                               ST_NEW_TCS_SSBOS,
+                               ST_NEW_TCS_ATOMICS);
+      break;
+
+   case MESA_SHADER_TESS_EVAL:
+      states = &((struct st_tesseval_program*)prog)->affected_states;
+
+      *states = ST_NEW_TES_STATE |
+                ST_NEW_RASTERIZER;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_TES_CONSTANTS,
+                               ST_NEW_TES_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_TES_IMAGES,
+                               ST_NEW_TES_UBOS,
+                               ST_NEW_TES_SSBOS,
+                               ST_NEW_TES_ATOMICS);
+      break;
+
+   case MESA_SHADER_GEOMETRY:
+      states = &((struct st_geometry_program*)prog)->affected_states;
+
+      *states = ST_NEW_GS_STATE |
+                ST_NEW_RASTERIZER;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_GS_CONSTANTS,
+                               ST_NEW_GS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_GS_IMAGES,
+                               ST_NEW_GS_UBOS,
+                               ST_NEW_GS_SSBOS,
+                               ST_NEW_GS_ATOMICS);
+      break;
+
+   case MESA_SHADER_FRAGMENT:
+      states = &((struct st_fragment_program*)prog)->affected_states;
+
+      /* gl_FragCoord and glDrawPixels always use constants. */
+      *states = ST_NEW_FS_STATE |
+                ST_NEW_SAMPLE_SHADING |
+                ST_NEW_FS_CONSTANTS;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_FS_CONSTANTS,
+                               ST_NEW_FS_SAMPLER_VIEWS,
+                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_FS_IMAGES,
+                               ST_NEW_FS_UBOS,
+                               ST_NEW_FS_SSBOS,
+                               ST_NEW_FS_ATOMICS);
+      break;
+
+   case MESA_SHADER_COMPUTE:
+      states = &((struct st_compute_program*)prog)->affected_states;
+
+      *states = ST_NEW_CS_STATE;
+
+      set_affected_state_flags(states, prog,
+                               ST_NEW_CS_CONSTANTS,
+                               ST_NEW_CS_SAMPLER_VIEWS,
+                               ST_NEW_CS_SAMPLERS,
+                               ST_NEW_CS_IMAGES,
+                               ST_NEW_CS_UBOS,
+                               ST_NEW_CS_SSBOS,
+                               ST_NEW_CS_ATOMICS);
+      break;
+
+   default:
+      unreachable("unhandled shader stage");
+   }
+}
 
 /**
  * Delete a vertex program variant.  Note the caller must unlink
@@ -222,7 +364,6 @@ st_release_cp_variants(struct st_context *st, struct st_compute_program *stcp)
       stcp->tgsi.prog = NULL;
    }
 }
-
 
 /**
  * Translate a vertex program.
@@ -442,7 +583,6 @@ st_translate_vertex_program(struct st_context *st,
                                       &stvp->tgsi.stream_output);
 
       free_glsl_to_tgsi_visitor(stvp->glsl_to_tgsi);
-      stvp->glsl_to_tgsi = NULL;
    } else
       error = st_translate_mesa_program(st->ctx,
                                         PIPE_SHADER_VERTEX,
@@ -467,8 +607,15 @@ st_translate_vertex_program(struct st_context *st,
       return false;
    }
 
-   stvp->tgsi.tokens = ureg_get_tokens(ureg, NULL);
+   unsigned num_tokens;
+   stvp->tgsi.tokens = ureg_get_tokens(ureg, &num_tokens);
    ureg_destroy(ureg);
+
+   if (stvp->glsl_to_tgsi) {
+      stvp->glsl_to_tgsi = NULL;
+      st_store_tgsi_in_disk_cache(st, &stvp->Base, NULL, num_tokens);
+   }
+
    return stvp->tgsi.tokens != NULL;
 }
 
@@ -890,7 +1037,6 @@ st_translate_fragment_program(struct st_context *st,
                            fs_output_semantic_index);
 
       free_glsl_to_tgsi_visitor(stfp->glsl_to_tgsi);
-      stfp->glsl_to_tgsi = NULL;
    } else if (stfp->ati_fs)
       st_translate_atifs_program(ureg,
                                  stfp->ati_fs,
@@ -923,8 +1069,15 @@ st_translate_fragment_program(struct st_context *st,
                                 fs_output_semantic_name,
                                 fs_output_semantic_index);
 
-   stfp->tgsi.tokens = ureg_get_tokens(ureg, NULL);
+   unsigned num_tokens;
+   stfp->tgsi.tokens = ureg_get_tokens(ureg, &num_tokens);
    ureg_destroy(ureg);
+
+   if (stfp->glsl_to_tgsi) {
+      stfp->glsl_to_tgsi = NULL;
+      st_store_tgsi_in_disk_cache(st, &stfp->Base, NULL, num_tokens);
+   }
+
    return stfp->tgsi.tokens != NULL;
 }
 
@@ -1459,12 +1612,15 @@ st_translate_program_common(struct st_context *st,
                         output_semantic_name,
                         output_semantic_index);
 
-   out_state->tokens = ureg_get_tokens(ureg, NULL);
+   unsigned num_tokens;
+   out_state->tokens = ureg_get_tokens(ureg, &num_tokens);
    ureg_destroy(ureg);
 
    st_translate_stream_output_info(glsl_to_tgsi,
                                    outputMapping,
                                    &out_state->stream_output);
+
+   st_store_tgsi_in_disk_cache(st, prog, out_state, num_tokens);
 
    if ((ST_DEBUG & DEBUG_TGSI) && (ST_DEBUG & DEBUG_MESA)) {
       _mesa_print_program(prog);

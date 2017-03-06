@@ -70,7 +70,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXGetSelectedExtensionEvents(ClientPtr client)
 {
     REQUEST(xGetSelectedExtensionEventsReq);
@@ -164,7 +164,7 @@ ProcXGetSelectedExtensionEvents(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXGetSelectedExtensionEvents(ClientPtr client, int size,
                                 xGetSelectedExtensionEventsReply * rep)
 {

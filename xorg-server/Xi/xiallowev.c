@@ -44,7 +44,7 @@
 #include "exevents.h"
 #include "xiallowev.h"
 
-int
+int _X_COLD
 SProcXIAllowEvents(ClientPtr client)
 {
     REQUEST(xXIAllowEventsReq);

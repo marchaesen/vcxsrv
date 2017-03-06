@@ -338,8 +338,6 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
 
    st->dirty = ST_ALL_STATES_MASK;
 
-   st->has_user_indexbuf =
-      screen->get_param(screen, PIPE_CAP_USER_INDEX_BUFFERS);
    st->has_user_constbuf =
       screen->get_param(screen, PIPE_CAP_USER_CONSTANT_BUFFERS);
 
@@ -537,6 +535,9 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
       free(ctx);
       return NULL;
    }
+
+   if (pipe->screen->get_disk_shader_cache)
+      ctx->Cache = pipe->screen->get_disk_shader_cache(pipe->screen);
 
    st_init_driver_flags(&ctx->DriverFlags);
 

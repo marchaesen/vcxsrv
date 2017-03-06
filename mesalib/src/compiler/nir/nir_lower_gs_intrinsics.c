@@ -84,12 +84,7 @@ rewrite_emit_vertex(nir_intrinsic_instr *intrin, struct state *state)
     * The new if statement needs to be hooked up to the control flow graph
     * before we start inserting instructions into it.
     */
-   nir_if *if_stmt = nir_if_create(b->shader);
-   if_stmt->condition = nir_src_for_ssa(nir_ilt(b, count, max_vertices));
-   nir_builder_cf_insert(b, &if_stmt->cf_node);
-
-   /* Fill out the new then-block */
-   b->cursor = nir_after_cf_list(&if_stmt->then_list);
+   nir_push_if(b, nir_ilt(b, count, max_vertices));
 
    nir_intrinsic_instr *lowered =
       nir_intrinsic_instr_create(b->shader,
@@ -102,6 +97,8 @@ rewrite_emit_vertex(nir_intrinsic_instr *intrin, struct state *state)
    nir_store_var(b, state->vertex_count_var,
                  nir_iadd(b, count, nir_imm_int(b, 1)),
                  0x1); /* .x */
+
+   nir_pop_if(b, NULL);
 
    nir_instr_remove(&intrin->instr);
 

@@ -1881,7 +1881,7 @@ link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
       }
 
       linked_shader->Program->info.fs.early_fragment_tests |=
-         shader->EarlyFragmentTests;
+         shader->EarlyFragmentTests || shader->PostDepthCoverage;
       linked_shader->Program->info.fs.inner_coverage |= shader->InnerCoverage;
       linked_shader->Program->info.fs.post_depth_coverage |=
          shader->PostDepthCoverage;
@@ -4742,6 +4742,16 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
          linker_error(prog, "Tessellation control shader must be linked with "
                       "tessellation evaluation shader\n");
          goto done;
+      }
+
+      if (prog->IsES) {
+         if (num_shaders[MESA_SHADER_TESS_EVAL] > 0 &&
+             num_shaders[MESA_SHADER_TESS_CTRL] == 0) {
+            linker_error(prog, "GLSL ES requires non-separable programs "
+                         "containing a tessellation evaluation shader to also "
+                         "be linked with a tessellation control shader\n");
+            goto done;
+         }
       }
    }
 

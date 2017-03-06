@@ -71,7 +71,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXSetDeviceFocus(ClientPtr client)
 {
     REQUEST(xSetDeviceFocusReq);

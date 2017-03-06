@@ -2052,7 +2052,7 @@ ProcXF86DGAViewPortChanged(ClientPtr client)
 
 #endif                          /* DGA_PROTOCOL_OLD_SUPPORT */
 
-static int
+static int _X_COLD
 SProcXDGADispatch(ClientPtr client)
 {
     return DGAErrorBase + XF86DGAClientNotLocal;

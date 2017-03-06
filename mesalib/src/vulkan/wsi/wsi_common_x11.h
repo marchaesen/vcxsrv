@@ -29,6 +29,8 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
     struct wsi_device *wsi_device,
     VkAllocationCallbacks *alloc,
     uint32_t                                    queueFamilyIndex,
+    int local_fd,
+    bool can_handle_different_gpu,
     xcb_connection_t*                           connection,
     xcb_visualid_t                              visual_id);
 

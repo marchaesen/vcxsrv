@@ -55,41 +55,16 @@ emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
 
       nir_ssa_def *then_dest, *else_dest;
 
-      nir_if *if_stmt = nir_if_create(b->shader);
-      if_stmt->condition = nir_src_for_ssa(nir_ilt(b, arr->indirect.ssa,
-                                                      nir_imm_int(b, mid)));
-      nir_cf_node_insert(b->cursor, &if_stmt->cf_node);
-
-      b->cursor = nir_after_cf_list(&if_stmt->then_list);
+      nir_push_if(b, nir_ilt(b, arr->indirect.ssa, nir_imm_int(b, mid)));
       emit_indirect_load_store(b, orig_instr, deref, arr_parent,
                                start, mid, &then_dest, src);
-
-      b->cursor = nir_after_cf_list(&if_stmt->else_list);
+      nir_push_else(b, NULL);
       emit_indirect_load_store(b, orig_instr, deref, arr_parent,
                                mid, end, &else_dest, src);
+      nir_pop_if(b, NULL);
 
-      b->cursor = nir_after_cf_node(&if_stmt->cf_node);
-
-      if (src == NULL) {
-         /* We're a load.  We need to insert a phi node */
-         nir_phi_instr *phi = nir_phi_instr_create(b->shader);
-         unsigned bit_size = then_dest->bit_size;
-         nir_ssa_dest_init(&phi->instr, &phi->dest,
-                           then_dest->num_components, bit_size, NULL);
-
-         nir_phi_src *src0 = ralloc(phi, nir_phi_src);
-         src0->pred = nir_if_last_then_block(if_stmt);
-         src0->src = nir_src_for_ssa(then_dest);
-         exec_list_push_tail(&phi->srcs, &src0->node);
-
-         nir_phi_src *src1 = ralloc(phi, nir_phi_src);
-         src1->pred = nir_if_last_else_block(if_stmt);
-         src1->src = nir_src_for_ssa(else_dest);
-         exec_list_push_tail(&phi->srcs, &src1->node);
-
-         nir_builder_instr_insert(b, &phi->instr);
-         *dest = &phi->dest.ssa;
-      }
+      if (src == NULL)
+         *dest = nir_if_phi(b, then_dest, else_dest);
    }
 }
 

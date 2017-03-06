@@ -51,7 +51,18 @@ _CRTIMP int _vscprintf(const char *format, va_list argptr);
 
 #define CANARY 0x5A1106
 
-struct ralloc_header
+/* Align the header's size so that ralloc() allocations will return with the
+ * same alignment as a libc malloc would have (8 on 32-bit GLIBC, 16 on
+ * 64-bit), avoiding performance penalities on x86 and alignment faults on
+ * ARM.
+ */
+struct
+#ifdef _MSC_VER
+ __declspec(align(8))
+#else
+ __attribute__((aligned))
+#endif
+   ralloc_header
 {
 #ifdef DEBUG
    /* A canary value used to determine whether a pointer is ralloc'd. */
@@ -321,24 +332,6 @@ ralloc_parent(const void *ptr)
 
    info = get_header(ptr);
    return info->parent ? PTR_FROM_HEADER(info->parent) : NULL;
-}
-
-static void *autofree_context = NULL;
-
-static void
-autofree(void)
-{
-   ralloc_free(autofree_context);
-}
-
-void *
-ralloc_autofree_context(void)
-{
-   if (unlikely(autofree_context == NULL)) {
-      autofree_context = ralloc_context(NULL);
-      atexit(autofree);
-   }
-   return autofree_context;
 }
 
 void

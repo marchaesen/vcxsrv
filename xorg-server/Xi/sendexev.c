@@ -73,7 +73,7 @@ extern int lastEvent;           /* Defined in extension.c */
  *
  */
 
-int
+int _X_COLD
 SProcXSendExtensionEvent(ClientPtr client)
 {
     CARD32 *p;

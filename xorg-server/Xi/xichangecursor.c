@@ -53,7 +53,7 @@
  *
  */
 
-int
+int _X_COLD
 SProcXIChangeCursor(ClientPtr client)
 {
     REQUEST(xXIChangeCursorReq);

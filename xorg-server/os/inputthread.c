@@ -90,6 +90,13 @@ static pthread_mutex_t input_mutex;
 static Bool input_mutex_initialized;
 #endif
 
+int
+in_input_thread(void)
+{
+    return inputThreadInfo &&
+           pthread_equal(pthread_self(), inputThreadInfo->thread);
+}
+
 void
 input_lock(void)
 {
@@ -403,6 +410,8 @@ InputThreadPreInit(void)
     if (!inputThreadInfo)
         FatalError("input-thread: could not allocate memory");
 
+    inputThreadInfo->changed = FALSE;
+
     inputThreadInfo->thread = 0;
     xorg_list_init(&inputThreadInfo->devs);
     inputThreadInfo->fds = ospoll_create();
@@ -529,6 +538,7 @@ void input_force_unlock(void) {}
 void InputThreadPreInit(void) {}
 void InputThreadInit(void) {}
 void InputThreadFini(void) {}
+int in_input_thread(void) { return 0; }
 
 int InputThreadRegisterDev(int fd,
                            NotifyFdProcPtr readInputProc,

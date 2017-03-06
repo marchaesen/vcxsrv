@@ -388,6 +388,66 @@ no_src_map:
    ;
 }
 
+static void
+util_clear_color_texture_helper(struct pipe_transfer *dst_trans,
+                                ubyte *dst_map,
+                                enum pipe_format format,
+                                const union pipe_color_union *color,
+                                unsigned width, unsigned height, unsigned depth)
+{
+   union util_color uc;
+
+   assert(dst_trans->stride > 0);
+
+   if (util_format_is_pure_integer(format)) {
+      /*
+       * We expect int/uint clear values here, though some APIs
+       * might disagree (but in any case util_pack_color()
+       * couldn't handle it)...
+       */
+      if (util_format_is_pure_sint(format)) {
+         util_format_write_4i(format, color->i, 0, &uc, 0, 0, 0, 1, 1);
+      } else {
+         assert(util_format_is_pure_uint(format));
+         util_format_write_4ui(format, color->ui, 0, &uc, 0, 0, 0, 1, 1);
+      }
+   } else {
+      util_pack_color(color->f, format, &uc);
+   }
+
+   util_fill_box(dst_map, format,
+                 dst_trans->stride, dst_trans->layer_stride,
+                 0, 0, 0, width, height, depth, &uc);
+}
+
+static void
+util_clear_color_texture(struct pipe_context *pipe,
+                         struct pipe_resource *texture,
+                         enum pipe_format format,
+                         const union pipe_color_union *color,
+                         unsigned level,
+                         unsigned dstx, unsigned dsty, unsigned dstz,
+                         unsigned width, unsigned height, unsigned depth)
+{
+   struct pipe_transfer *dst_trans;
+   ubyte *dst_map;
+
+   dst_map = pipe_transfer_map_3d(pipe,
+                                  texture,
+                                  level,
+                                  PIPE_TRANSFER_WRITE,
+                                  dstx, dsty, dstz,
+                                  width, height, depth,
+                                  &dst_trans);
+   if (!dst_map)
+      return;
+
+   if (dst_trans->stride > 0) {
+      util_clear_color_texture_helper(dst_trans, dst_map, format, color,
+                                      width, height, depth);
+   }
+   pipe->transfer_unmap(pipe, dst_trans);
+}
 
 
 #define UBYTE_TO_USHORT(B) ((B) | ((B) << 8))
@@ -410,8 +470,6 @@ util_clear_render_target(struct pipe_context *pipe,
 {
    struct pipe_transfer *dst_trans;
    ubyte *dst_map;
-   union util_color uc;
-   unsigned max_layer;
 
    assert(dst->texture);
    if (!dst->texture)
@@ -426,55 +484,202 @@ util_clear_render_target(struct pipe_context *pipe,
       unsigned pixstride = util_format_get_blocksize(dst->format);
       dx = (dst->u.buf.first_element + dstx) * pixstride;
       w = width * pixstride;
-      max_layer = 0;
       dst_map = pipe_transfer_map(pipe,
                                   dst->texture,
                                   0, 0,
                                   PIPE_TRANSFER_WRITE,
                                   dx, 0, w, 1,
                                   &dst_trans);
+      if (dst_map) {
+         util_clear_color_texture_helper(dst_trans, dst_map, dst->format,
+                                         color, width, height, 1);
+         pipe->transfer_unmap(pipe, dst_trans);
+      }
    }
    else {
-      max_layer = dst->u.tex.last_layer - dst->u.tex.first_layer;
-      dst_map = pipe_transfer_map_3d(pipe,
-                                     dst->texture,
-                                     dst->u.tex.level,
-                                     PIPE_TRANSFER_WRITE,
-                                     dstx, dsty, dst->u.tex.first_layer,
-                                     width, height, max_layer + 1, &dst_trans);
-   }
-
-   assert(dst_map);
-
-   if (dst_map) {
-      enum pipe_format format = dst->format;
-      assert(dst_trans->stride > 0);
-
-      if (util_format_is_pure_integer(format)) {
-         /*
-          * We expect int/uint clear values here, though some APIs
-          * might disagree (but in any case util_pack_color()
-          * couldn't handle it)...
-          */
-         if (util_format_is_pure_sint(format)) {
-            util_format_write_4i(format, color->i, 0, &uc, 0, 0, 0, 1, 1);
-         }
-         else {
-            assert(util_format_is_pure_uint(format));
-            util_format_write_4ui(format, color->ui, 0, &uc, 0, 0, 0, 1, 1);
-         }
-      }
-      else {
-         util_pack_color(color->f, format, &uc);
-      }
-
-      util_fill_box(dst_map, dst->format,
-                    dst_trans->stride, dst_trans->layer_stride,
-                    0, 0, 0, width, height, max_layer + 1, &uc);
-
-      pipe->transfer_unmap(pipe, dst_trans);
+      unsigned depth = dst->u.tex.last_layer - dst->u.tex.first_layer + 1;
+      util_clear_color_texture(pipe, dst->texture, dst->format, color,
+                               dst->u.tex.level, dstx, dsty,
+                               dst->u.tex.first_layer, width, height, depth);
    }
 }
+
+static void
+util_clear_depth_stencil_texture(struct pipe_context *pipe,
+                                 struct pipe_resource *texture,
+                                 enum pipe_format format,
+                                 unsigned clear_flags,
+                                 uint64_t zstencil, unsigned level,
+                                 unsigned dstx, unsigned dsty, unsigned dstz,
+                                 unsigned width, unsigned height, unsigned depth)
+{
+   struct pipe_transfer *dst_trans;
+   ubyte *dst_map;
+   boolean need_rmw = FALSE;
+   unsigned dst_stride;
+   ubyte *dst_layer;
+   unsigned i, j, layer;
+
+   if ((clear_flags & PIPE_CLEAR_DEPTHSTENCIL) &&
+       ((clear_flags & PIPE_CLEAR_DEPTHSTENCIL) != PIPE_CLEAR_DEPTHSTENCIL) &&
+       util_format_is_depth_and_stencil(format))
+      need_rmw = TRUE;
+
+   dst_map = pipe_transfer_map_3d(pipe,
+                                  texture,
+                                  level,
+                                  (need_rmw ? PIPE_TRANSFER_READ_WRITE :
+                                              PIPE_TRANSFER_WRITE),
+                                  dstx, dsty, dstz,
+                                  width, height, depth, &dst_trans);
+   assert(dst_map);
+   if (!dst_map)
+      return;
+
+   dst_stride = dst_trans->stride;
+   dst_layer = dst_map;
+   assert(dst_trans->stride > 0);
+
+   for (layer = 0; layer < depth; layer++) {
+      dst_map = dst_layer;
+
+      switch (util_format_get_blocksize(format)) {
+      case 1:
+         assert(format == PIPE_FORMAT_S8_UINT);
+         if(dst_stride == width)
+            memset(dst_map, (uint8_t) zstencil, height * width);
+         else {
+            for (i = 0; i < height; i++) {
+               memset(dst_map, (uint8_t) zstencil, width);
+               dst_map += dst_stride;
+            }
+         }
+         break;
+      case 2:
+         assert(format == PIPE_FORMAT_Z16_UNORM);
+         for (i = 0; i < height; i++) {
+            uint16_t *row = (uint16_t *)dst_map;
+            for (j = 0; j < width; j++)
+               *row++ = (uint16_t) zstencil;
+            dst_map += dst_stride;
+            }
+         break;
+      case 4:
+         if (!need_rmw) {
+            for (i = 0; i < height; i++) {
+               uint32_t *row = (uint32_t *)dst_map;
+               for (j = 0; j < width; j++)
+                  *row++ = (uint32_t) zstencil;
+               dst_map += dst_stride;
+            }
+         }
+         else {
+            uint32_t dst_mask;
+            if (format == PIPE_FORMAT_Z24_UNORM_S8_UINT)
+               dst_mask = 0x00ffffff;
+            else {
+               assert(format == PIPE_FORMAT_S8_UINT_Z24_UNORM);
+               dst_mask = 0xffffff00;
+            }
+            if (clear_flags & PIPE_CLEAR_DEPTH)
+               dst_mask = ~dst_mask;
+            for (i = 0; i < height; i++) {
+               uint32_t *row = (uint32_t *)dst_map;
+               for (j = 0; j < width; j++) {
+                  uint32_t tmp = *row & dst_mask;
+                  *row++ = tmp | ((uint32_t) zstencil & ~dst_mask);
+               }
+               dst_map += dst_stride;
+            }
+         }
+         break;
+      case 8:
+         if (!need_rmw) {
+            for (i = 0; i < height; i++) {
+               uint64_t *row = (uint64_t *)dst_map;
+               for (j = 0; j < width; j++)
+                  *row++ = zstencil;
+               dst_map += dst_stride;
+            }
+         }
+         else {
+            uint64_t src_mask;
+
+            if (clear_flags & PIPE_CLEAR_DEPTH)
+               src_mask = 0x00000000ffffffffull;
+            else
+               src_mask = 0x000000ff00000000ull;
+
+            for (i = 0; i < height; i++) {
+               uint64_t *row = (uint64_t *)dst_map;
+               for (j = 0; j < width; j++) {
+                  uint64_t tmp = *row & ~src_mask;
+                  *row++ = tmp | (zstencil & src_mask);
+               }
+               dst_map += dst_stride;
+            }
+         }
+         break;
+      default:
+         assert(0);
+         break;
+      }
+      dst_layer += dst_trans->layer_stride;
+   }
+
+   pipe->transfer_unmap(pipe, dst_trans);
+}
+
+
+void
+util_clear_texture(struct pipe_context *pipe,
+                   struct pipe_resource *tex,
+                   unsigned level,
+                   const struct pipe_box *box,
+                   const void *data)
+{
+   const struct util_format_description *desc =
+          util_format_description(tex->format);
+
+   if (level > tex->last_level)
+      return;
+
+   if (util_format_is_depth_or_stencil(tex->format)) {
+      unsigned clear = 0;
+      float depth = 0.0f;
+      uint8_t stencil = 0;
+      uint64_t zstencil;
+
+      if (util_format_has_depth(desc)) {
+         clear |= PIPE_CLEAR_DEPTH;
+         desc->unpack_z_float(&depth, 0, data, 0, 1, 1);
+      }
+
+      if (util_format_has_stencil(desc)) {
+         clear |= PIPE_CLEAR_STENCIL;
+         desc->unpack_s_8uint(&stencil, 0, data, 0, 1, 1);
+      }
+
+      zstencil = util_pack64_z_stencil(tex->format, depth, stencil);
+
+      util_clear_depth_stencil_texture(pipe, tex, tex->format, clear, zstencil,
+                                       level, box->x, box->y, box->z,
+                                       box->width, box->height, box->depth);
+   } else {
+      union pipe_color_union color;
+      if (util_format_is_pure_uint(tex->format))
+         desc->unpack_rgba_uint(color.ui, 0, data, 0, 1, 1);
+      else if (util_format_is_pure_sint(tex->format))
+         desc->unpack_rgba_sint(color.i, 0, data, 0, 1, 1);
+      else
+         desc->unpack_rgba_float(color.f, 0, data, 0, 1, 1);
+
+      util_clear_color_texture(pipe, tex, tex->format, &color, level,
+                               box->x, box->y, box->z,
+                               box->width, box->height, box->depth);
+   }
+}
+
 
 /**
  * Fallback for pipe->clear_stencil() function.
@@ -492,127 +697,19 @@ util_clear_depth_stencil(struct pipe_context *pipe,
                          unsigned dstx, unsigned dsty,
                          unsigned width, unsigned height)
 {
-   enum pipe_format format = dst->format;
-   struct pipe_transfer *dst_trans;
-   ubyte *dst_map;
-   boolean need_rmw = FALSE;
-   unsigned max_layer, layer;
-
-   if ((clear_flags & PIPE_CLEAR_DEPTHSTENCIL) &&
-       ((clear_flags & PIPE_CLEAR_DEPTHSTENCIL) != PIPE_CLEAR_DEPTHSTENCIL) &&
-       util_format_is_depth_and_stencil(format))
-      need_rmw = TRUE;
+   uint64_t zstencil;
+   unsigned max_layer;
 
    assert(dst->texture);
    if (!dst->texture)
       return;
 
+   zstencil = util_pack64_z_stencil(dst->format, depth, stencil);
    max_layer = dst->u.tex.last_layer - dst->u.tex.first_layer;
-   dst_map = pipe_transfer_map_3d(pipe,
-                                  dst->texture,
-                                  dst->u.tex.level,
-                                  (need_rmw ? PIPE_TRANSFER_READ_WRITE :
-                                              PIPE_TRANSFER_WRITE),
-                                  dstx, dsty, dst->u.tex.first_layer,
-                                  width, height, max_layer + 1, &dst_trans);
-   assert(dst_map);
-
-   if (dst_map) {
-      unsigned dst_stride = dst_trans->stride;
-      uint64_t zstencil = util_pack64_z_stencil(format, depth, stencil);
-      ubyte *dst_layer = dst_map;
-      unsigned i, j;
-      assert(dst_trans->stride > 0);
-
-      for (layer = 0; layer <= max_layer; layer++) {
-         dst_map = dst_layer;
-
-         switch (util_format_get_blocksize(format)) {
-         case 1:
-            assert(format == PIPE_FORMAT_S8_UINT);
-            if(dst_stride == width)
-               memset(dst_map, (uint8_t) zstencil, height * width);
-            else {
-               for (i = 0; i < height; i++) {
-                  memset(dst_map, (uint8_t) zstencil, width);
-                  dst_map += dst_stride;
-               }
-            }
-            break;
-         case 2:
-            assert(format == PIPE_FORMAT_Z16_UNORM);
-            for (i = 0; i < height; i++) {
-               uint16_t *row = (uint16_t *)dst_map;
-               for (j = 0; j < width; j++)
-                  *row++ = (uint16_t) zstencil;
-               dst_map += dst_stride;
-               }
-            break;
-         case 4:
-            if (!need_rmw) {
-               for (i = 0; i < height; i++) {
-                  uint32_t *row = (uint32_t *)dst_map;
-                  for (j = 0; j < width; j++)
-                     *row++ = (uint32_t) zstencil;
-                  dst_map += dst_stride;
-               }
-            }
-            else {
-               uint32_t dst_mask;
-               if (format == PIPE_FORMAT_Z24_UNORM_S8_UINT)
-                  dst_mask = 0x00ffffff;
-               else {
-                  assert(format == PIPE_FORMAT_S8_UINT_Z24_UNORM);
-                  dst_mask = 0xffffff00;
-               }
-               if (clear_flags & PIPE_CLEAR_DEPTH)
-                  dst_mask = ~dst_mask;
-               for (i = 0; i < height; i++) {
-                  uint32_t *row = (uint32_t *)dst_map;
-                  for (j = 0; j < width; j++) {
-                     uint32_t tmp = *row & dst_mask;
-                     *row++ = tmp | ((uint32_t) zstencil & ~dst_mask);
-                  }
-                  dst_map += dst_stride;
-               }
-            }
-            break;
-         case 8:
-            if (!need_rmw) {
-               for (i = 0; i < height; i++) {
-                  uint64_t *row = (uint64_t *)dst_map;
-                  for (j = 0; j < width; j++)
-                     *row++ = zstencil;
-                  dst_map += dst_stride;
-               }
-            }
-            else {
-               uint64_t src_mask;
-
-               if (clear_flags & PIPE_CLEAR_DEPTH)
-                  src_mask = 0x00000000ffffffffull;
-               else
-                  src_mask = 0x000000ff00000000ull;
-
-               for (i = 0; i < height; i++) {
-                  uint64_t *row = (uint64_t *)dst_map;
-                  for (j = 0; j < width; j++) {
-                     uint64_t tmp = *row & ~src_mask;
-                     *row++ = tmp | (zstencil & src_mask);
-                  }
-                  dst_map += dst_stride;
-               }
-            }
-            break;
-         default:
-            assert(0);
-            break;
-         }
-         dst_layer += dst_trans->layer_stride;
-      }
-
-      pipe->transfer_unmap(pipe, dst_trans);
-   }
+   util_clear_depth_stencil_texture(pipe, dst->texture, dst->format,
+                                    clear_flags, zstencil, dst->u.tex.level,
+                                    dstx, dsty, dst->u.tex.first_layer,
+                                    width, height, max_layer + 1);
 }
 
 

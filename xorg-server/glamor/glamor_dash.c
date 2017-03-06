@@ -32,6 +32,7 @@ static const char dash_vs_vars[] =
 
 static const char dash_vs_exec[] =
     "       dash_offset = primitive.z / dash_length;\n"
+    "       vec2_pos = vec2(0,0);\n"
     GLAMOR_POS(gl_Position, primitive.xy);
 
 static const char dash_fs_vars[] =

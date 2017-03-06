@@ -24,6 +24,7 @@
  */
 
 #include "radv_private.h"
+#include "radv_meta.h"
 #include "wsi_common.h"
 
 static const struct wsi_callbacks wsi_cbs = {
@@ -92,7 +93,7 @@ VkResult radv_GetPhysicalDeviceSurfaceSupportKHR(
 
 	return iface->get_support(surface, &device->wsi_device,
 				  &device->instance->alloc,
-				  queueFamilyIndex, pSupported);
+				  queueFamilyIndex, device->local_fd, true, pSupported);
 }
 
 VkResult radv_GetPhysicalDeviceSurfaceCapabilitiesKHR(
@@ -139,18 +140,18 @@ static VkResult
 radv_wsi_image_create(VkDevice device_h,
 		      const VkSwapchainCreateInfoKHR *pCreateInfo,
 		      const VkAllocationCallbacks* pAllocator,
+		      bool needs_linear_copy,
+		      bool linear,
 		      VkImage *image_p,
 		      VkDeviceMemory *memory_p,
 		      uint32_t *size,
 		      uint32_t *offset,
 		      uint32_t *row_pitch, int *fd_p)
 {
-	struct radv_device *device = radv_device_from_handle(device_h);
 	VkResult result = VK_SUCCESS;
 	struct radeon_surf *surface;
 	VkImage image_h;
 	struct radv_image *image;
-	bool bret;
 	int fd;
 
 	result = radv_image_create(device_h,
@@ -169,7 +170,7 @@ radv_wsi_image_create(VkDevice device_h,
 						   .arrayLayers = 1,
 						   .samples = 1,
 						   /* FIXME: Need a way to use X tiling to allow scanout */
-						   .tiling = VK_IMAGE_TILING_OPTIMAL,
+						   .tiling = linear ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL,
 						   .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 						   .flags = 0,
 					   },
@@ -182,37 +183,44 @@ radv_wsi_image_create(VkDevice device_h,
 	image = radv_image_from_handle(image_h);
 
 	VkDeviceMemory memory_h;
-	struct radv_device_memory *memory;
+
+	const VkDedicatedAllocationMemoryAllocateInfoNV ded_alloc = {
+		.sType = VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,
+		.pNext = NULL,
+		.buffer = VK_NULL_HANDLE,
+		.image = image_h
+	};
+
 	result = radv_AllocateMemory(device_h,
 				     &(VkMemoryAllocateInfo) {
 					     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-						     .allocationSize = image->size,
-						     .memoryTypeIndex = 0,
-						     },
+					     .pNext = &ded_alloc,
+					     .allocationSize = image->size,
+					     .memoryTypeIndex = linear ? 1 : 0,
+				     },
 				     NULL /* XXX: pAllocator */,
 				     &memory_h);
 	if (result != VK_SUCCESS)
 		goto fail_create_image;
 
-	memory = radv_device_memory_from_handle(memory_h);
+	radv_BindImageMemory(device_h, image_h, memory_h, 0);
 
-	radv_BindImageMemory(VK_NULL_HANDLE, image_h, memory_h, 0);
-
-	bret = device->ws->buffer_get_fd(device->ws,
-					 memory->bo, &fd);
-	if (bret == false)
-		goto fail_alloc_memory;
-
-	{
-		struct radeon_bo_metadata metadata;
-		radv_init_metadata(device, image, &metadata);
-		device->ws->buffer_set_metadata(memory->bo, &metadata);
+	/*
+	 * return the fd for the image in the no copy mode,
+	 * or the fd for the linear image if a copy is required.
+	 */
+	if (!needs_linear_copy || (needs_linear_copy && linear)) {
+		RADV_FROM_HANDLE(radv_device, device, device_h);
+		RADV_FROM_HANDLE(radv_device_memory, memory, memory_h);
+		if (!radv_get_memory_fd(device, memory, &fd))
+			goto fail_alloc_memory;
+		*fd_p = fd;
 	}
+
 	surface = &image->surface;
 
 	*image_p = image_h;
 	*memory_p = memory_h;
-	*fd_p = fd;
 	*size = image->size;
 	*offset = image->offset;
 	*row_pitch = surface->level[0].pitch_bytes;
@@ -242,6 +250,94 @@ static const struct wsi_image_fns radv_wsi_image_fns = {
    .free_wsi_image = radv_wsi_image_free,
 };
 
+#define NUM_PRIME_POOLS RADV_QUEUE_TRANSFER
+static void
+radv_wsi_free_prime_command_buffers(struct radv_device *device,
+				    struct wsi_swapchain *swapchain)
+{
+	const int num_pools = NUM_PRIME_POOLS;
+	const int num_images = swapchain->image_count;
+	int i;
+	for (i = 0; i < num_pools; i++) {
+		radv_FreeCommandBuffers(radv_device_to_handle(device),
+				     swapchain->cmd_pools[i],
+				     swapchain->image_count,
+				     &swapchain->cmd_buffers[i * num_images]);
+
+		radv_DestroyCommandPool(radv_device_to_handle(device),
+				     swapchain->cmd_pools[i],
+				     &swapchain->alloc);
+	}
+}
+
+static VkResult
+radv_wsi_create_prime_command_buffers(struct radv_device *device,
+				      const VkAllocationCallbacks *alloc,
+				      struct wsi_swapchain *swapchain)
+{
+	const int num_pools = NUM_PRIME_POOLS;
+	const int num_images = swapchain->image_count;
+	int num_cmd_buffers = num_images * num_pools; //TODO bump to MAX_QUEUE_FAMILIES
+	VkResult result;
+	int i, j;
+
+	swapchain->cmd_buffers = vk_alloc(alloc, (sizeof(VkCommandBuffer) * num_cmd_buffers), 8,
+					  VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+	if (!swapchain->cmd_buffers)
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+	memset(swapchain->cmd_buffers, 0, sizeof(VkCommandBuffer) * num_cmd_buffers);
+	memset(swapchain->cmd_pools, 0, sizeof(VkCommandPool) * num_pools);
+	for (i = 0; i < num_pools; i++) {
+		VkCommandPoolCreateInfo pool_create_info;
+
+		pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		pool_create_info.pNext = NULL;
+		pool_create_info.flags = 0;
+		pool_create_info.queueFamilyIndex = i;
+
+		result = radv_CreateCommandPool(radv_device_to_handle(device),
+						&pool_create_info, alloc,
+						&swapchain->cmd_pools[i]);
+		if (result != VK_SUCCESS)
+			goto fail;
+
+		VkCommandBufferAllocateInfo cmd_buffer_info;
+		cmd_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		cmd_buffer_info.pNext = NULL;
+		cmd_buffer_info.commandPool = swapchain->cmd_pools[i];
+		cmd_buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		cmd_buffer_info.commandBufferCount = num_images;
+
+		result = radv_AllocateCommandBuffers(radv_device_to_handle(device),
+						     &cmd_buffer_info,
+						     &swapchain->cmd_buffers[i * num_images]);
+		if (result != VK_SUCCESS)
+			goto fail;
+		for (j = 0; j < num_images; j++) {
+			VkImage image, linear_image;
+			int idx = (i * num_images) + j;
+
+			swapchain->get_image_and_linear(swapchain, j, &image, &linear_image);
+			VkCommandBufferBeginInfo begin_info = {0};
+
+			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+			radv_BeginCommandBuffer(swapchain->cmd_buffers[idx], &begin_info);
+
+			radv_blit_to_prime_linear(radv_cmd_buffer_from_handle(swapchain->cmd_buffers[idx]),
+						  radv_image_from_handle(image),
+						  radv_image_from_handle(linear_image));
+
+			radv_EndCommandBuffer(swapchain->cmd_buffers[idx]);
+		}
+	}
+	return VK_SUCCESS;
+fail:
+	radv_wsi_free_prime_command_buffers(device, swapchain);
+	return result;
+}
+
 VkResult radv_CreateSwapchainKHR(
 	VkDevice                                     _device,
 	const VkSwapchainCreateInfoKHR*              pCreateInfo,
@@ -260,6 +356,7 @@ VkResult radv_CreateSwapchainKHR(
 		alloc = &device->alloc;
 	VkResult result = iface->create_swapchain(surface, _device,
 						  &device->physical_device->wsi_device,
+						  device->physical_device->local_fd,
 						  pCreateInfo,
 						  alloc, &radv_wsi_image_fns,
 						  &swapchain);
@@ -273,6 +370,13 @@ VkResult radv_CreateSwapchainKHR(
 
 	for (unsigned i = 0; i < ARRAY_SIZE(swapchain->fences); i++)
 		swapchain->fences[i] = VK_NULL_HANDLE;
+
+	if (swapchain->needs_linear_copy) {
+		result = radv_wsi_create_prime_command_buffers(device, alloc,
+							       swapchain);
+		if (result != VK_SUCCESS)
+			return result;
+	}
 
 	*pSwapchain = wsi_swapchain_to_handle(swapchain);
 
@@ -300,6 +404,9 @@ void radv_DestroySwapchainKHR(
 		if (swapchain->fences[i] != VK_NULL_HANDLE)
 			radv_DestroyFence(_device, swapchain->fences[i], pAllocator);
 	}
+
+	if (swapchain->needs_linear_copy)
+		radv_wsi_free_prime_command_buffers(device, swapchain);
 
 	swapchain->destroy(swapchain, alloc);
 }
@@ -347,7 +454,7 @@ VkResult radv_QueuePresentKHR(
 
 	for (uint32_t i = 0; i < pPresentInfo->swapchainCount; i++) {
 		RADV_FROM_HANDLE(wsi_swapchain, swapchain, pPresentInfo->pSwapchains[i]);
-
+		struct radeon_winsys_cs *cs;
 		assert(radv_device_from_handle(swapchain->device) == queue->device);
 		if (swapchain->fences[0] == VK_NULL_HANDLE) {
 			result = radv_CreateFence(radv_device_to_handle(queue->device),
@@ -362,12 +469,17 @@ VkResult radv_QueuePresentKHR(
 					 1, &swapchain->fences[0]);
 		}
 
+		if (swapchain->needs_linear_copy) {
+			int idx = (queue->queue_family_index * swapchain->image_count) + pPresentInfo->pImageIndices[i];
+			cs = radv_cmd_buffer_from_handle(swapchain->cmd_buffers[idx])->cs;
+		} else
+			cs = queue->device->empty_cs[queue->queue_family_index];
 		RADV_FROM_HANDLE(radv_fence, fence, swapchain->fences[0]);
 		struct radeon_winsys_fence *base_fence = fence->fence;
 		struct radeon_winsys_ctx *ctx = queue->hw_ctx;
 		queue->device->ws->cs_submit(ctx, queue->queue_idx,
-					     &queue->device->empty_cs[queue->queue_family_index],
-					     1, NULL,
+					     &cs,
+					     1, NULL, NULL,
 					     (struct radeon_winsys_sem **)pPresentInfo->pWaitSemaphores,
 					     pPresentInfo->waitSemaphoreCount, NULL, 0, false, base_fence);
 		fence->submitted = true;

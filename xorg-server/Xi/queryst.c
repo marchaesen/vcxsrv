@@ -53,7 +53,7 @@ from The Open Group.
  *
  */
 
-int
+int _X_COLD
 SProcXQueryDeviceState(ClientPtr client)
 {
     REQUEST(xQueryDeviceStateReq);
@@ -179,7 +179,7 @@ ProcXQueryDeviceState(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXQueryDeviceState(ClientPtr client, int size, xQueryDeviceStateReply * rep)
 {
     swaps(&rep->sequenceNumber);

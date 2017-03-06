@@ -73,7 +73,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXUngrabDeviceButton(ClientPtr client)
 {
     REQUEST(xUngrabDeviceButtonReq);

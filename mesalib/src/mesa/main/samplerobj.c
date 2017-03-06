@@ -797,6 +797,28 @@ set_sampler_srgb_decode(struct gl_context *ctx,
    return GL_TRUE;
 }
 
+static struct gl_sampler_object *
+sampler_parameter_error_check(struct gl_context *ctx, GLuint sampler,
+                              const char *name)
+{
+   struct gl_sampler_object *sampObj;
+
+   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
+   if (!sampObj) {
+      /* OpenGL 4.5 spec, section "8.2 Sampler Objects", page 176 of the PDF
+       * states:
+       *
+       *    "An INVALID_OPERATION error is generated if sampler is not the name
+       *    of a sampler object previously returned from a call to
+       *    GenSamplers."
+       */
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid sampler)", name);
+      return NULL;
+   }
+
+   return sampObj;
+}
+
 void GLAPIENTRY
 _mesa_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
@@ -804,18 +826,10 @@ _mesa_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
    GLuint res;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      /* '3.8.2 Sampler Objects' section of the GL-ES 3.0 specification states:
-       *
-       *     "An INVALID_OPERATION error is generated if sampler is not the name
-       *     of a sampler object previously returned from a call to GenSamplers."
-       *
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glSamplerParameteri(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glSamplerParameteri");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -895,18 +909,10 @@ _mesa_SamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
    GLuint res;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      /* '3.8.2 Sampler Objects' section of the GL-ES 3.0 specification states:
-       *
-       *     "An INVALID_OPERATION error is generated if sampler is not the name
-       *     of a sampler object previously returned from a call to GenSamplers."
-       *
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glSamplerParameterf(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glSamplerParameterf");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -985,17 +991,10 @@ _mesa_SamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
    GLuint res;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      /* '3.8.2 Sampler Objects' section of the GL-ES 3.0 specification states:
-       *
-       *     "An INVALID_OPERATION error is generated if sampler is not the name
-       *     of a sampler object previously returned from a call to GenSamplers."
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glSamplerParameteriv(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glSamplerParameteriv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1082,18 +1081,10 @@ _mesa_SamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
    GLuint res;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      /* '3.8.2 Sampler Objects' section of the GL-ES 3.0 specification states:
-       *
-       *     "An INVALID_OPERATION error is generated if sampler is not the name
-       *     of a sampler object previously returned from a call to GenSamplers."
-       *
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glSamplerParameterfv(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glSamplerParameterfv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1173,12 +1164,10 @@ _mesa_SamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
    GLuint res;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glSamplerParameterIiv(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glSamplerParameterIiv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1259,12 +1248,10 @@ _mesa_SamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
    GLuint res;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glSamplerParameterIuiv(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glSamplerParameterIuiv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1344,18 +1331,10 @@ _mesa_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
    struct gl_sampler_object *sampObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      /* '3.8.2 Sampler Objects' section of the GL-ES 3.0 specification states:
-       *
-       *     "An INVALID_OPERATION error is generated if sampler is not the name
-       *     of a sampler object previously returned from a call to GenSamplers."
-       *
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetSamplerParameteriv(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glGetSamplerParameteriv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1436,18 +1415,10 @@ _mesa_GetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
    struct gl_sampler_object *sampObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      /* '3.8.2 Sampler Objects' section of the GL-ES 3.0 specification states:
-       *
-       *     "An INVALID_OPERATION error is generated if sampler is not the name
-       *     of a sampler object previously returned from a call to GenSamplers."
-       *
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetSamplerParameterfv(sampler %u)", sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glGetSamplerParameterfv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1516,13 +1487,10 @@ _mesa_GetSamplerParameterIiv(GLuint sampler, GLenum pname, GLint *params)
    struct gl_sampler_object *sampObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetSamplerParameterIiv(sampler %u)",
-                  sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glGetSamplerParameterIiv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:
@@ -1591,13 +1559,10 @@ _mesa_GetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params)
    struct gl_sampler_object *sampObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
-   if (!sampObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetSamplerParameterIuiv(sampler %u)",
-                  sampler);
+   sampObj = sampler_parameter_error_check(ctx, sampler,
+                                           "glGetSamplerParameterIuiv");
+   if (!sampObj)
       return;
-   }
 
    switch (pname) {
    case GL_TEXTURE_WRAP_S:

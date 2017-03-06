@@ -197,7 +197,7 @@ ProcXFixesSelectSelectionInput(ClientPtr client)
                                       pWin, stuff->eventMask);
 }
 
-int
+int _X_COLD
 SProcXFixesSelectSelectionInput(ClientPtr client)
 {
     REQUEST(xXFixesSelectSelectionInputReq);
@@ -210,7 +210,7 @@ SProcXFixesSelectSelectionInput(ClientPtr client)
     return (*ProcXFixesVector[stuff->xfixesReqType]) (client);
 }
 
-void
+void _X_COLD
 SXFixesSelectionNotifyEvent(xXFixesSelectionNotifyEvent * from,
                             xXFixesSelectionNotifyEvent * to)
 {

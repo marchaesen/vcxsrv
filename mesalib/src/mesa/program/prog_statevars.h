@@ -117,7 +117,6 @@ typedef enum gl_state_index_ {
    STATE_CURRENT_ATTRIB,        /* ctx->Current vertex attrib value */
    STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED,        /* ctx->Current vertex attrib value after passthrough vertex processing */
    STATE_NORMAL_SCALE,
-   STATE_TEXRECT_SCALE,
    STATE_FOG_PARAMS_OPTIMIZED,  /* for faster fog calc */
    STATE_POINT_SIZE_CLAMPED,    /* includes implementation dependent size clamp */
    STATE_LIGHT_SPOT_DIR_NORMALIZED,   /* pre-normalized spot dir */

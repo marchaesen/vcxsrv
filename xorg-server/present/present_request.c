@@ -249,7 +249,7 @@ proc_present_dispatch(ClientPtr client)
     return (*proc_present_vector[stuff->data]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_present_query_version(ClientPtr client)
 {
     REQUEST(xPresentQueryVersionReq);
@@ -261,7 +261,7 @@ sproc_present_query_version(ClientPtr client)
     return (*proc_present_vector[stuff->presentReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_present_pixmap(ClientPtr client)
 {
     REQUEST(xPresentPixmapReq);
@@ -281,7 +281,7 @@ sproc_present_pixmap(ClientPtr client)
     return (*proc_present_vector[stuff->presentReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_present_notify_msc(ClientPtr client)
 {
     REQUEST(xPresentNotifyMSCReq);
@@ -295,7 +295,7 @@ sproc_present_notify_msc(ClientPtr client)
     return (*proc_present_vector[stuff->presentReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_present_select_input (ClientPtr client)
 {
     REQUEST(xPresentSelectInputReq);
@@ -307,7 +307,7 @@ sproc_present_select_input (ClientPtr client)
     return (*proc_present_vector[stuff->presentReqType]) (client);
 }
 
-static int
+static int _X_COLD
 sproc_present_query_capabilities (ClientPtr client)
 {
     REQUEST(xPresentQueryCapabilitiesReq);
@@ -325,7 +325,7 @@ static int (*sproc_present_vector[PresentNumberRequests]) (ClientPtr) = {
     sproc_present_query_capabilities,      /* 4 */
 };
 
-int
+int _X_COLD
 sproc_present_dispatch(ClientPtr client)
 {
     REQUEST(xReq);

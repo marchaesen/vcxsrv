@@ -197,6 +197,16 @@ get_query_binding_point(struct gl_context *ctx, GLenum target, GLuint index)
          return &ctx->Query.PrimitivesWritten[index];
       else
          return NULL;
+   case GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB:
+      if (ctx->Extensions.ARB_transform_feedback_overflow_query)
+         return &ctx->Query.TransformFeedbackOverflow[index];
+      else
+         return NULL;
+   case GL_TRANSFORM_FEEDBACK_OVERFLOW_ARB:
+      if (ctx->Extensions.ARB_transform_feedback_overflow_query)
+         return &ctx->Query.TransformFeedbackOverflowAny;
+      else
+         return NULL;
 
    case GL_VERTICES_SUBMITTED_ARB:
    case GL_PRIMITIVES_SUBMITTED_ARB:
@@ -293,6 +303,8 @@ _mesa_CreateQueries(GLenum target, GLsizei n, GLuint *ids)
    case GL_TIMESTAMP:
    case GL_PRIMITIVES_GENERATED:
    case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
+   case GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB:
+   case GL_TRANSFORM_FEEDBACK_OVERFLOW_ARB:
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glCreateQueries(invalid target = %s)",
@@ -368,6 +380,7 @@ query_error_check_index(struct gl_context *ctx, GLenum target, GLuint index)
    switch (target) {
    case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
    case GL_PRIMITIVES_GENERATED:
+   case GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB:
       if (index >= ctx->Const.MaxVertexStreams) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glBeginQueryIndexed(index>=MaxVertexStreams)");
@@ -676,6 +689,14 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
             break;
          case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
             *params = ctx->Const.QueryCounterBits.PrimitivesWritten;
+            break;
+         case GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB:
+         case GL_TRANSFORM_FEEDBACK_OVERFLOW_ARB:
+            /* The minimum value of this is 1 if it's nonzero, and the value
+             * is only ever GL_TRUE or GL_FALSE, so no sense in reporting more
+             * bits.
+             */
+            *params = 1;
             break;
          case GL_VERTICES_SUBMITTED_ARB:
             *params = ctx->Const.QueryCounterBits.VerticesSubmitted;

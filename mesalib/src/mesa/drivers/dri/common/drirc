@@ -116,5 +116,9 @@ TODO: document the other workarounds.
         <application name="Tropico 5" executable="Tropico5">
             <option name="allow_higher_compat_version" value="true" />
         </application>
+
+        <application name="The Culling" executable="Victory">
+            <option name="force_glsl_version" value="440" />
+        </application>
     </device>
 </driconf>

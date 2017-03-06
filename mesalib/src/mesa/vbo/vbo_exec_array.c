@@ -411,7 +411,9 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
 
    vbo_bind_arrays(ctx);
 
-   /* init most fields to zero */
+   /* OpenGL 4.5 says that primitive restart is ignored with non-indexed
+    * draws.
+    */
    memset(prim, 0, sizeof(prim));
    prim[0].begin = 1;
    prim[0].end = 1;
@@ -419,55 +421,11 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    prim[0].num_instances = numInstances;
    prim[0].base_instance = baseInstance;
    prim[0].is_indirect = 0;
+   prim[0].start = start;
+   prim[0].count = count;
 
-   /* Implement the primitive restart index */
-   if (ctx->Array.PrimitiveRestart &&
-       !ctx->Array.PrimitiveRestartFixedIndex &&
-       ctx->Array.RestartIndex < count) {
-      GLuint primCount = 0;
-
-      if (ctx->Array.RestartIndex == start) {
-         /* special case: RestartIndex at beginning */
-         if (count > 1) {
-            prim[0].start = start + 1;
-            prim[0].count = count - 1;
-            primCount = 1;
-         }
-      }
-      else if (ctx->Array.RestartIndex == start + count - 1) {
-         /* special case: RestartIndex at end */
-         if (count > 1) {
-            prim[0].start = start;
-            prim[0].count = count - 1;
-            primCount = 1;
-         }
-      }
-      else {
-         /* general case: RestartIndex in middle, split into two prims */
-         prim[0].start = start;
-         prim[0].count = ctx->Array.RestartIndex - start;
-
-         prim[1] = prim[0];
-         prim[1].start = ctx->Array.RestartIndex + 1;
-         prim[1].count = count - prim[1].start;
-
-         primCount = 2;
-      }
-
-      if (primCount > 0) {
-         /* draw one or two prims */
-         vbo->draw_prims(ctx, prim, primCount, NULL,
-                         GL_TRUE, start, start + count - 1, NULL, 0, NULL);
-      }
-   }
-   else {
-      /* no prim restart */
-      prim[0].start = start;
-      prim[0].count = count;
-
-      vbo->draw_prims(ctx, prim, 1, NULL,
-                      GL_TRUE, start, start + count - 1, NULL, 0, NULL);
-   }
+   vbo->draw_prims(ctx, prim, 1, NULL,
+                   GL_TRUE, start, start + count - 1, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);

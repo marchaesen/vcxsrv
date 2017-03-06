@@ -71,7 +71,7 @@ SOFTWARE.
  *
  */
 
-int
+int _X_COLD
 SProcXChangeDeviceControl(ClientPtr client)
 {
     xDeviceCtl *ctl;
@@ -247,7 +247,7 @@ ProcXChangeDeviceControl(ClientPtr client)
  *
  */
 
-void
+void _X_COLD
 SRepXChangeDeviceControl(ClientPtr client, int size,
                          xChangeDeviceControlReply * rep)
 {

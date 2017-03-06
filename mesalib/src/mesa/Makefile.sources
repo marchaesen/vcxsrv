@@ -150,6 +150,8 @@ MAIN_FILES = \
 	main/pbo.h \
 	main/performance_monitor.c \
 	main/performance_monitor.h \
+	main/performance_query.c \
+	main/performance_query.h \
 	main/pipelineobj.c \
 	main/pipelineobj.h \
 	main/pixel.c \
@@ -514,6 +516,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_sampler_view.h \
 	state_tracker/st_scissor.c \
 	state_tracker/st_scissor.h \
+	state_tracker/st_shader_cache.c \
+	state_tracker/st_shader_cache.h \
 	state_tracker/st_texture.c \
 	state_tracker/st_texture.h \
 	state_tracker/st_tgsi_lower_yuv.c \

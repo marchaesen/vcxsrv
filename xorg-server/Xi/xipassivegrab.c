@@ -46,7 +46,7 @@
 #include "misc.h"
 #include "inpututils.h"
 
-int
+int _X_COLD
 SProcXIPassiveGrabDevice(ClientPtr client)
 {
     int i;
@@ -238,7 +238,7 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     return ret;
 }
 
-void
+void _X_COLD
 SRepXIPassiveGrabDevice(ClientPtr client, int size,
                         xXIPassiveGrabDeviceReply * rep)
 {
@@ -249,7 +249,7 @@ SRepXIPassiveGrabDevice(ClientPtr client, int size,
     WriteToClient(client, size, rep);
 }
 
-int
+int _X_COLD
 SProcXIPassiveUngrabDevice(ClientPtr client)
 {
     int i;

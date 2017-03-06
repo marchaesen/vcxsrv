@@ -211,7 +211,7 @@ SRRProviderPropertyNotifyEvent(xRRProviderPropertyNotifyEvent * from,
     /* pad4 */
 }
 
-static void
+static void _X_COLD
 SRRResourceChangeNotifyEvent(xRRResourceChangeNotifyEvent * from,
                              xRRResourceChangeNotifyEvent * to)
 {
@@ -222,7 +222,7 @@ SRRResourceChangeNotifyEvent(xRRResourceChangeNotifyEvent * from,
     cpswapl(from->window, to->window);
 }
 
-static void
+static void _X_COLD
 SRRNotifyEvent(xEvent *from, xEvent *to)
 {
     switch (from->u.u.detail) {
@@ -682,7 +682,7 @@ ProcRRDispatch(ClientPtr client)
     return (*ProcRandrVector[stuff->data]) (client);
 }
 
-static int
+static int _X_COLD
 SProcRRDispatch(ClientPtr client)
 {
     REQUEST(xReq);

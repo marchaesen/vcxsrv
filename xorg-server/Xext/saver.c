@@ -426,7 +426,7 @@ SendScreenSaverNotify(ScreenPtr pScreen, int state, Bool forced)
     }
 }
 
-static void
+static void _X_COLD
 SScreenSaverNotifyEvent(xScreenSaverNotifyEvent * from,
                         xScreenSaverNotifyEvent * to)
 {
@@ -1277,7 +1277,7 @@ ProcScreenSaverDispatch(ClientPtr client)
     return BadRequest;
 }
 
-static int
+static int _X_COLD
 SProcScreenSaverQueryVersion(ClientPtr client)
 {
     REQUEST(xScreenSaverQueryVersionReq);
@@ -1286,7 +1286,7 @@ SProcScreenSaverQueryVersion(ClientPtr client)
     return ProcScreenSaverQueryVersion(client);
 }
 
-static int
+static int _X_COLD
 SProcScreenSaverQueryInfo(ClientPtr client)
 {
     REQUEST(xScreenSaverQueryInfoReq);
@@ -1296,7 +1296,7 @@ SProcScreenSaverQueryInfo(ClientPtr client)
     return ProcScreenSaverQueryInfo(client);
 }
 
-static int
+static int _X_COLD
 SProcScreenSaverSelectInput(ClientPtr client)
 {
     REQUEST(xScreenSaverSelectInputReq);
@@ -1307,7 +1307,7 @@ SProcScreenSaverSelectInput(ClientPtr client)
     return ProcScreenSaverSelectInput(client);
 }
 
-static int
+static int _X_COLD
 SProcScreenSaverSetAttributes(ClientPtr client)
 {
     REQUEST(xScreenSaverSetAttributesReq);
@@ -1325,7 +1325,7 @@ SProcScreenSaverSetAttributes(ClientPtr client)
     return ProcScreenSaverSetAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcScreenSaverUnsetAttributes(ClientPtr client)
 {
     REQUEST(xScreenSaverUnsetAttributesReq);
@@ -1335,7 +1335,7 @@ SProcScreenSaverUnsetAttributes(ClientPtr client)
     return ProcScreenSaverUnsetAttributes(client);
 }
 
-static int
+static int _X_COLD
 SProcScreenSaverSuspend(ClientPtr client)
 {
     REQUEST(xScreenSaverSuspendReq);
@@ -1352,7 +1352,7 @@ SProcScreenSaverQueryVersion,
         SProcScreenSaverSetAttributes,
         SProcScreenSaverUnsetAttributes, SProcScreenSaverSuspend,};
 
-static int
+static int _X_COLD
 SProcScreenSaverDispatch(ClientPtr client)
 {
     REQUEST(xReq);
