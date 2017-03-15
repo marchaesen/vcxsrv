@@ -1,6 +1,7 @@
 TTYAPP = bdftopcf
 
 INCLUDELIBFILES = \
+ $(MHMAKECONF)\apps\common\$(OBJDIR)\common.lib \
  $(MHMAKECONF)\zlib\$(OBJDIR)\zlib1.lib \
  $(MHMAKECONF)\libXfont2\$(OBJDIR)\libXfont2.lib \
  $(MHMAKECONF)\libfontenc\src\$(OBJDIR)\libfontenc.lib

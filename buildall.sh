@@ -34,12 +34,14 @@ cd openssl
 
 if [[ "$IS64" == "" ]]; then
 
+NOASM=no-asm
+
 if [[ ! -d "release32" ]]; then
   mkdir release32
 fi
 cd release32
 
-PERL=perl perl ../Configure VC-WIN32 --release
+PERL=perl perl ../Configure VC-WIN32 $NOASM --release
 check-error 'Error executing perl'
 else
 
@@ -64,7 +66,7 @@ if [[ ! -d "debug32" ]]; then
 fi
 cd debug32
 
-PERL=perl perl ../Configure VC-WIN32 --debug
+PERL=perl perl ../Configure VC-WIN32 $NOASM --debug
 check-error 'Error executing perl'
 else
 
