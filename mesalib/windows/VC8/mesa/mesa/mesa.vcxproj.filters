@@ -815,9 +815,6 @@
     <ClCompile Include="..\..\..\..\src\util\half_float.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\util\strndup.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\objectpurge.c">
       <Filter>Source Files</Filter>
     </ClCompile>

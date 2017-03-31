@@ -321,9 +321,6 @@
     <ClCompile Include="..\..\..\..\src\util\half_float.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\util\strndup.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_ubo_reference.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

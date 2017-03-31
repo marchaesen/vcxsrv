@@ -500,7 +500,6 @@
     <ClCompile Include="..\..\..\..\src\util\set.c" />
     <ClCompile Include="..\..\..\..\src\util\sha1\sha1.c" />
     <ClCompile Include="..\..\..\..\src\util\string_to_uint_map.cpp" />
-    <ClCompile Include="..\..\..\..\src\util\strndup.c" />
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>
   <ItemGroup>
