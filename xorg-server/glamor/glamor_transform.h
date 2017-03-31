@@ -23,7 +23,7 @@
 #ifndef _GLAMOR_TRANSFORM_H_
 #define _GLAMOR_TRANSFORM_H_
 
-void
+Bool
 glamor_set_destination_drawable(DrawablePtr     drawable,
                                 int             box_index,
                                 Bool            do_drawable_translate,

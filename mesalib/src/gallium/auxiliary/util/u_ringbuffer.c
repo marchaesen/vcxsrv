@@ -16,8 +16,8 @@ struct util_ringbuffer
     */
    unsigned head;
    unsigned tail;
-   pipe_condvar change;
-   pipe_mutex mutex;
+   cnd_t change;
+   mtx_t mutex;
 };
 
 
@@ -35,8 +35,8 @@ struct util_ringbuffer *util_ringbuffer_create( unsigned dwords )
 
    ring->mask = dwords - 1;
 
-   pipe_condvar_init(ring->change);
-   pipe_mutex_init(ring->mutex);
+   cnd_init(&ring->change);
+   (void) mtx_init(&ring->mutex, mtx_plain);
    return ring;
 
 fail:
@@ -47,8 +47,8 @@ fail:
 
 void util_ringbuffer_destroy( struct util_ringbuffer *ring )
 {
-   pipe_condvar_destroy(ring->change);
-   pipe_mutex_destroy(ring->mutex);
+   cnd_destroy(&ring->change);
+   mtx_destroy(&ring->mutex);
    FREE(ring->buf);
    FREE(ring);
 }
@@ -76,7 +76,7 @@ void util_ringbuffer_enqueue( struct util_ringbuffer *ring,
 
    /* XXX: over-reliance on mutexes, etc:
     */
-   pipe_mutex_lock(ring->mutex);
+   mtx_lock(&ring->mutex);
 
    /* make sure we don't request an impossible amount of space
     */
@@ -85,7 +85,7 @@ void util_ringbuffer_enqueue( struct util_ringbuffer *ring,
    /* Wait for free space:
     */
    while (util_ringbuffer_space(ring) < packet->dwords)
-      pipe_condvar_wait(ring->change, ring->mutex);
+      cnd_wait(&ring->change, &ring->mutex);
 
    /* Copy data to ring:
     */
@@ -102,8 +102,8 @@ void util_ringbuffer_enqueue( struct util_ringbuffer *ring,
 
    /* Signal change:
     */
-   pipe_condvar_signal(ring->change);
-   pipe_mutex_unlock(ring->mutex);
+   cnd_signal(&ring->change);
+   mtx_unlock(&ring->mutex);
 }
 
 enum pipe_error util_ringbuffer_dequeue( struct util_ringbuffer *ring,
@@ -117,13 +117,13 @@ enum pipe_error util_ringbuffer_dequeue( struct util_ringbuffer *ring,
 
    /* XXX: over-reliance on mutexes, etc:
     */
-   pipe_mutex_lock(ring->mutex);
+   mtx_lock(&ring->mutex);
 
    /* Get next ring entry:
     */
    if (wait) {
       while (util_ringbuffer_empty(ring))
-         pipe_condvar_wait(ring->change, ring->mutex);
+         cnd_wait(&ring->change, &ring->mutex);
    }
    else {
       if (util_ringbuffer_empty(ring)) {
@@ -154,7 +154,7 @@ enum pipe_error util_ringbuffer_dequeue( struct util_ringbuffer *ring,
 out:
    /* Signal change:
     */
-   pipe_condvar_signal(ring->change);
-   pipe_mutex_unlock(ring->mutex);
+   cnd_signal(&ring->change);
+   mtx_unlock(&ring->mutex);
    return ret;
 }

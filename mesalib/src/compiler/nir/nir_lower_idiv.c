@@ -56,15 +56,15 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    denom = nir_ssa_for_alu_src(bld, alu, 1);
 
    if (is_signed) {
-      af = nir_i2f(bld, numer);
-      bf = nir_i2f(bld, denom);
+      af = nir_i2f32(bld, numer);
+      bf = nir_i2f32(bld, denom);
       af = nir_fabs(bld, af);
       bf = nir_fabs(bld, bf);
       a  = nir_iabs(bld, numer);
       b  = nir_iabs(bld, denom);
    } else {
-      af = nir_u2f(bld, numer);
-      bf = nir_u2f(bld, denom);
+      af = nir_u2f32(bld, numer);
+      bf = nir_u2f32(bld, denom);
       a  = numer;
       b  = denom;
    }
@@ -75,17 +75,17 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    q  = nir_fmul(bld, af, bf);
 
    if (is_signed) {
-      q = nir_f2i(bld, q);
+      q = nir_f2i32(bld, q);
    } else {
-      q = nir_f2u(bld, q);
+      q = nir_f2u32(bld, q);
    }
 
    /* get error of first result: */
    r = nir_imul(bld, q, b);
    r = nir_isub(bld, a, r);
-   r = nir_u2f(bld, r);
+   r = nir_u2f32(bld, r);
    r = nir_fmul(bld, r, bf);
-   r = nir_f2u(bld, r);
+   r = nir_f2u32(bld, r);
 
    /* add quotients: */
    q = nir_iadd(bld, q, r);

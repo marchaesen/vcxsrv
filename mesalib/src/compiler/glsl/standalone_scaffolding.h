@@ -27,7 +27,6 @@
  * compiling builtins).
  */
 
-#pragma once
 #ifndef STANDALONE_SCAFFOLDING_H
 #define STANDALONE_SCAFFOLDING_H
 

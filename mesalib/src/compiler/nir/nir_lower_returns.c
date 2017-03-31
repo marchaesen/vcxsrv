@@ -113,7 +113,7 @@ lower_returns_in_if(nir_if *if_stmt, struct lower_returns_state *state)
     * returns inside of the body of the if.  If we're in a loop, then these
     * were lowered to breaks which automatically skip to the end of the
     * loop so we don't have to do anything.  If we're not in a loop, then
-    * all we know is that the return flag is set appropreately and that the
+    * all we know is that the return flag is set appropriately and that the
     * recursive calls ensured that nothing gets executed *inside* the if
     * after a return.  In order to ensure nothing outside gets executed
     * after a return, we need to predicate everything following on the

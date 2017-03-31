@@ -338,7 +338,7 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
             fp_inputs |= VARYING_BIT_COL1;
       }
 
-      /* _NEW_TEXTURE */
+      /* _NEW_TEXTURE_STATE */
       fp_inputs |= (ctx->Texture._TexGenEnabled |
                     ctx->Texture._TexMatEnabled) << VARYING_SLOT_TEX0;
 
@@ -404,7 +404,7 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
 
    memset(key, 0, sizeof(*key));
 
-   /* _NEW_TEXTURE */
+   /* _NEW_TEXTURE_OBJECT */
    mask = ctx->Texture._EnabledCoordUnits;
    while (mask) {
       const int i = u_bit_scan(&mask);
@@ -1273,7 +1273,7 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    reparent_ir(p.shader->ir, p.shader->ir);
 
-   p.shader->CompileStatus = true;
+   p.shader->CompileStatus = compile_success;
    p.shader->Version = state->language_version;
    p.shader_program->Shaders =
       (gl_shader **)malloc(sizeof(*p.shader_program->Shaders));

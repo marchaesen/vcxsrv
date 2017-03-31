@@ -53,6 +53,7 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #ifdef DPMSExtension
 #include <X11/extensions/dpmsconst.h>
+#include "dpmsproc.h"
 #endif
 #include "protocol-versions.h"
 

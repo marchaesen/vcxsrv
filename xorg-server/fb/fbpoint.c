@@ -61,33 +61,13 @@ fbDots(FbBits * dstOrig,
         y = pts->y + yorg;
         pts++;
         if (x1 <= x && x < x2 && y1 <= y && y < y2) {
+            FbStip mask;
             x = (x + xoff) * dstBpp;
             d = dst + ((y + yoff) * dstStride) + (x >> FB_STIP_SHIFT);
             x &= FB_STIP_MASK;
-            if (dstBpp == 24) {
-                FbStip leftMask, rightMask;
-                int n, rot;
-                FbStip andT, xorT;
 
-                rot = FbFirst24Rot(x);
-                andT = FbRot24Stip(and, rot);
-                xorT = FbRot24Stip(xor, rot);
-                FbMaskStip(x, 24, leftMask, n, rightMask);
-                if (leftMask) {
-                    WRITE(d, FbDoMaskRRop(READ(d), andT, xorT, leftMask));
-                    andT = FbNext24Stip(andT);
-                    xorT = FbNext24Stip(xorT);
-                    d++;
-                }
-                if (rightMask)
-                    WRITE(d, FbDoMaskRRop(READ(d), andT, xorT, rightMask));
-            }
-            else {
-                FbStip mask;
-
-                mask = FbStipMask(x, dstBpp);
-                WRITE(d, FbDoMaskRRop(READ(d), and, xor, mask));
-            }
+            mask = FbStipMask(x, dstBpp);
+            WRITE(d, FbDoMaskRRop(READ(d), and, xor, mask));
         }
     }
 }
@@ -130,9 +110,6 @@ fbPolyPoint(DrawablePtr pDrawable,
         break;
     case 16:
         dots = fbDots16;
-        break;
-    case 24:
-        dots = fbDots24;
         break;
     case 32:
         dots = fbDots32;

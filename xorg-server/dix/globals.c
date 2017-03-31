@@ -93,16 +93,6 @@ CARD32 ScreenSaverInterval;
 int ScreenSaverBlanking;
 int ScreenSaverAllowExposures;
 
-#ifdef DPMSExtension
-CARD16 DPMSPowerLevel = 0;
-Bool DPMSDisabledSwitch = FALSE;
-Bool DPMSCapableFlag = FALSE;
-CARD32 DPMSStandbyTime;
-CARD32 DPMSSuspendTime;
-CARD32 DPMSOffTime;
-Bool DPMSEnabled;
-#endif
-
 CARD32 defaultScreenSaverTime = DEFAULT_SCREEN_SAVER_TIME;
 CARD32 defaultScreenSaverInterval = DEFAULT_SCREEN_SAVER_INTERVAL;
 int defaultScreenSaverBlanking = DEFAULT_SCREEN_SAVER_BLANKING;

@@ -306,7 +306,7 @@ ptn_move_dest(nir_builder *b, nir_alu_dest dest, nir_ssa_def *def)
 static void
 ptn_arl(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src)
 {
-   ptn_move_dest(b, dest, nir_f2i(b, nir_ffloor(b, src[0])));
+   ptn_move_dest(b, dest, nir_f2i32(b, nir_ffloor(b, src[0])));
 }
 
 /* EXP - Approximate Exponential Base 2

@@ -276,8 +276,6 @@ C_SOURCES := \
 	util/u_pstipple.c \
 	util/u_pstipple.h \
 	util/u_pwr8.h \
-	util/u_queue.c \
-	util/u_queue.h \
 	util/u_range.h \
 	util/u_rect.h \
 	util/u_resource.c \
@@ -290,7 +288,6 @@ C_SOURCES := \
 	util/u_simple_shaders.h \
 	util/u_split_prim.h \
 	util/u_sse.h \
-	util/u_string.h \
 	util/u_suballoc.c \
 	util/u_suballoc.h \
 	util/u_surface.c \

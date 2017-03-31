@@ -963,7 +963,7 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
 
 	 if (changed) {
 	    if (!flushed) {
-	       FLUSH_VERTICES(ctx, _NEW_TEXTURE | _NEW_PROGRAM);
+	       FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT | _NEW_PROGRAM);
 	       flushed = true;
 	    }
 

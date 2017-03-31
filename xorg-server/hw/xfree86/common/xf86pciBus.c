@@ -1023,9 +1023,6 @@ xf86ConfigPciEntityInactive(EntityInfoPtr pEnt, PciChipsets * p_chip,
 
     if ((pScrn = xf86FindScreenForEntity(pEnt->index)))
         xf86RemoveEntityFromScreen(pScrn, pEnt->index);
-
-    /* shared resources are only needed when entity is active: remove */
-    xf86SetEntityFuncs(pEnt->index, init, enter, leave, private);
 }
 
 ScrnInfoPtr
@@ -1034,6 +1031,9 @@ xf86ConfigPciEntity(ScrnInfoPtr pScrn, int scrnFlag, int entityIndex,
                     EntityProc enter, EntityProc leave, void *private)
 {
     EntityInfoPtr pEnt = xf86GetEntityInfo(entityIndex);
+
+    if (dummy || init || enter || leave)
+        FatalError("Legacy entity access functions are unsupported\n");
 
     if (!pEnt)
         return pScrn;
@@ -1059,8 +1059,6 @@ xf86ConfigPciEntity(ScrnInfoPtr pScrn, int scrnFlag, int entityIndex,
         return pScrn;
     }
     free(pEnt);
-
-    xf86SetEntityFuncs(entityIndex, init, enter, leave, private);
 
     return pScrn;
 }

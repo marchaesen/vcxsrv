@@ -26,10 +26,8 @@
 /* based on Marek's patch to lp_bld_misc.cpp */
 
 // Workaround http://llvm.org/PR23628
-#if HAVE_LLVM >= 0x0307
-#  pragma push_macro("DEBUG")
-#  undef DEBUG
-#endif
+#pragma push_macro("DEBUG")
+#undef DEBUG
 
 #include "ac_llvm_util.h"
 #include <llvm-c/Core.h>
@@ -37,18 +35,24 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/IR/Attributes.h>
 
+#if HAVE_LLVM < 0x0500
+namespace llvm {
+typedef AttributeSet AttributeList;
+}
+#endif
+
 void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes)
 {
    llvm::Argument *A = llvm::unwrap<llvm::Argument>(val);
    llvm::AttrBuilder B;
    B.addDereferenceableAttr(bytes);
-   A->addAttr(llvm::AttributeSet::get(A->getContext(), A->getArgNo() + 1,  B));
+   A->addAttr(llvm::AttributeList::get(A->getContext(), A->getArgNo() + 1,  B));
 }
 
 bool ac_is_sgpr_param(LLVMValueRef arg)
 {
 	llvm::Argument *A = llvm::unwrap<llvm::Argument>(arg);
-	llvm::AttributeSet AS = A->getParent()->getAttributes();
+	llvm::AttributeList AS = A->getParent()->getAttributes();
 	unsigned ArgNo = A->getArgNo();
 	return AS.hasAttribute(ArgNo + 1, llvm::Attribute::ByVal) ||
 	       AS.hasAttribute(ArgNo + 1, llvm::Attribute::InReg);

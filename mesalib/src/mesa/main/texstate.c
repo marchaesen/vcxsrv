@@ -306,7 +306,7 @@ _mesa_ActiveTexture(GLenum texture)
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
 
    ctx->Texture.CurrentUnit = texUnit;
    if (ctx->Transform.MatrixMode == GL_TEXTURE) {
@@ -350,13 +350,13 @@ _mesa_ClientActiveTexture(GLenum texture)
 /**
  * \note This routine refers to derived texture attribute values to
  * compute the ENABLE_TEXMAT flags, but is only called on
- * _NEW_TEXTURE_MATRIX.  On changes to _NEW_TEXTURE, the ENABLE_TEXMAT
- * flags are updated by _mesa_update_textures(), below.
+ * _NEW_TEXTURE_MATRIX.  On changes to _NEW_TEXTURE_OBJECT/STATE,
+ * the ENABLE_TEXMAT flags are updated by _mesa_update_textures(), below.
  *
  * \param ctx GL context.
  */
-static void
-update_texture_matrices( struct gl_context *ctx )
+void
+_mesa_update_texture_matrices(struct gl_context *ctx)
 {
    GLuint u;
 
@@ -686,13 +686,14 @@ update_ff_texture_state(struct gl_context *ctx,
 /**
  * \note This routine refers to derived texture matrix values to
  * compute the ENABLE_TEXMAT flags, but is only called on
- * _NEW_TEXTURE.  On changes to _NEW_TEXTURE_MATRIX, the ENABLE_TEXMAT
- * flags are updated by _mesa_update_texture_matrices, above.
+ * _NEW_TEXTURE_OBJECT/STATE.  On changes to _NEW_TEXTURE_MATRIX,
+ * the ENABLE_TEXMAT flags are updated by _mesa_update_texture_matrices,
+ * above.
  *
  * \param ctx GL context.
  */
-static void
-update_texture_state( struct gl_context *ctx )
+void
+_mesa_update_texture_state(struct gl_context *ctx)
 {
    struct gl_program *prog[MESA_SHADER_STAGES];
    int i;
@@ -711,7 +712,7 @@ update_texture_state( struct gl_context *ctx )
    }
 
    /* TODO: only set this if there are actual changes */
-   ctx->NewState |= _NEW_TEXTURE;
+   ctx->NewState |= _NEW_TEXTURE_OBJECT | _NEW_TEXTURE_STATE;
 
    ctx->Texture._GenFlags = 0x0;
    ctx->Texture._TexMatEnabled = 0x0;
@@ -744,20 +745,6 @@ update_texture_state( struct gl_context *ctx )
 
    if (!prog[MESA_SHADER_FRAGMENT] || !prog[MESA_SHADER_VERTEX])
       update_texgen(ctx);
-}
-
-
-/**
- * Update texture-related derived state.
- */
-void
-_mesa_update_texture( struct gl_context *ctx, GLuint new_state )
-{
-   if (new_state & _NEW_TEXTURE_MATRIX)
-      update_texture_matrices( ctx );
-
-   if (new_state & (_NEW_TEXTURE | _NEW_PROGRAM))
-      update_texture_state( ctx );
 }
 
 

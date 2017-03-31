@@ -35,14 +35,14 @@ LOCAL_C_INCLUDES += \
 	$(intermediates)/glsl \
 	$(intermediates)/glsl/glcpp \
 	$(LOCAL_PATH)/glsl \
-	$(LOCAL_PATH)/glsl/glcpp \
+	$(LOCAL_PATH)/glsl/glcpp
 
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
 	$(LIBGLCPP_GENERATED_FILES) \
 	$(LIBGLSL_GENERATED_FILES))
 
 LOCAL_EXPORT_C_INCLUDE_DIRS += \
-	$(intermediates)/glsl \
+	$(intermediates)/glsl
 
 # Modules using libmesa_nir must set LOCAL_GENERATED_SOURCES to this
 MESA_GEN_GLSL_H := $(addprefix $(call local-generated-sources-dir)/, \

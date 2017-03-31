@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef BLOB_H
 #define BLOB_H
 
@@ -73,12 +72,12 @@ struct blob_reader {
 };
 
 /**
- * Create a new, empty blob, belonging to \mem_ctx.
+ * Create a new, empty blob.
  *
  * \return The new blob, (or NULL in case of allocation failure).
  */
 struct blob *
-blob_create(void *mem_ctx);
+blob_create(void);
 
 /**
  * Add some unstructured, fixed-size data to a blob.

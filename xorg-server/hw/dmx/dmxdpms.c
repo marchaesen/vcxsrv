@@ -53,10 +53,7 @@
 #include "windowstr.h"          /* For screenIsSaved */
 #include <X11/extensions/dpms.h>
 
-static unsigned long dpmsGeneration = 0;
-static Bool dpmsSupported = TRUE;
-
-static void
+static int
 _dmxDPMSInit(DMXScreenInfo * dmxScreen)
 {
     int event_base, error_base;
@@ -65,14 +62,9 @@ _dmxDPMSInit(DMXScreenInfo * dmxScreen)
     BOOL state;
     const char *monitor;
 
-    if (dpmsGeneration != serverGeneration) {
-        dpmsSupported = TRUE;   /* On unless a backend doesn't support it */
-        dpmsGeneration = serverGeneration;
-    }
-
 #ifdef DPMSExtension
     if (DPMSDisabledSwitch)
-        dpmsSupported = FALSE;  /* -dpms turns off */
+        return FALSE;
 #endif
 
     dmxScreen->dpmsCapable = 0;
@@ -80,25 +72,21 @@ _dmxDPMSInit(DMXScreenInfo * dmxScreen)
     if (!dmxScreen->beDisplay) {
         dmxLogOutput(dmxScreen,
                      "Cannot determine if DPMS supported (detached screen)\n");
-        dpmsSupported = FALSE;
-        return;
+        return FALSE;
     }
 
     if (!DPMSQueryExtension(dmxScreen->beDisplay, &event_base, &error_base)) {
         dmxLogOutput(dmxScreen, "DPMS not supported\n");
-        dpmsSupported = FALSE;
-        return;
+        return FALSE;
     }
     if (!DPMSGetVersion(dmxScreen->beDisplay, &major, &minor)) {
         dmxLogOutput(dmxScreen, "DPMS not supported\n");
-        dpmsSupported = FALSE;
-        return;
+        return FALSE;
     }
     if (!DPMSCapable(dmxScreen->beDisplay)) {
         dmxLogOutput(dmxScreen, "DPMS %d.%d (not DPMS capable)\n",
                      major, minor);
-        dpmsSupported = FALSE;
-        return;
+        return FALSE;
     }
 
     DPMSInfo(dmxScreen->beDisplay, &level, &state);
@@ -134,20 +122,22 @@ _dmxDPMSInit(DMXScreenInfo * dmxScreen)
                  "DPMS %d.%d (%s, %s, %d %d %d)\n",
                  major, minor, monitor, state ? "enabled" : "disabled",
                  standby, suspend, off);
+    return TRUE;
 }
 
 /** Initialize DPMS support.  We save the current settings and turn off
  * DPMS.  The settings are restored in #dmxDPMSTerm. */
-void
+int
 dmxDPMSInit(DMXScreenInfo * dmxScreen)
 {
     int interval, preferBlanking, allowExposures;
 
     /* Turn off DPMS */
-    _dmxDPMSInit(dmxScreen);
+    if (!_dmxDPMSInit(dmxScreen))
+        return FALSE;
 
     if (!dmxScreen->beDisplay)
-        return;
+        return FALSE;
 
     /* Turn off screen saver */
     XGetScreenSaver(dmxScreen->beDisplay, &dmxScreen->savedTimeout, &interval,
@@ -156,6 +146,7 @@ dmxDPMSInit(DMXScreenInfo * dmxScreen)
                     preferBlanking, allowExposures);
     XResetScreenSaver(dmxScreen->beDisplay);
     dmxSync(dmxScreen, FALSE);
+    return TRUE;
 }
 
 /** Terminate DPMS support on \a dmxScreen.  We restore the settings
@@ -199,38 +190,12 @@ dmxDPMSWakeup(void)
 }
 
 #ifdef DPMSExtension
-/** This is called on each server generation.  It should determine if
- * DPMS is supported on all of the backends and, if so, return TRUE. */
-Bool
-DPMSSupported(void)
+void
+dmxDPMSBackend(DMXScreenInfo *dmxScreen, int level)
 {
-    return dpmsSupported;
-}
-
-/** This is used by clients (e.g., xset) to set the DPMS level. */
-int
-DPMSSet(ClientPtr client, int level)
-{
-    int i;
-
-    if (!dpmsSupported)
-        return Success;
-
-    if (level < 0)
-        level = DPMSModeOn;
-    if (level > 3)
-        level = DPMSModeOff;
-
-    DPMSPowerLevel = level;
-
-    for (i = 0; i < dmxNumScreens; i++) {
-        DMXScreenInfo *dmxScreen = &dmxScreens[i];
-
-        if (dmxScreen->beDisplay) {
-            DPMSForceLevel(dmxScreen->beDisplay, level);
-            dmxSync(dmxScreen, FALSE);
-        }
+    if (dmxScreen->beDisplay) {
+        DPMSForceLevel(dmxScreen->beDisplay, level);
+        dmxSync(dmxScreen, FALSE);
     }
-    return Success;
 }
 #endif

@@ -141,136 +141,136 @@
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLint *" />
+         <param name="value" type="const GLint *" count="count" />
       </function>
       <function name="ProgramUniform2iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLint *" />
+         <param name="value" type="const GLint *" count="count" count_scale="2" />
       </function>
       <function name="ProgramUniform3iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLint *" />
+         <param name="value" type="const GLint *" count="count" count_scale="3" />
       </function>
       <function name="ProgramUniform4iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLint *" />
+         <param name="value" type="const GLint *" count="count" count_scale="4" />
       </function>
       <function name="ProgramUniform1uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLuint *" />
+         <param name="value" type="const GLuint *" count="count" />
       </function>
       <function name="ProgramUniform2uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLuint *" />
+         <param name="value" type="const GLuint *" count="count" count_scale="2" />
       </function>
       <function name="ProgramUniform3uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLuint *" />
+         <param name="value" type="const GLuint *" count="count" count_scale="3" />
       </function>
       <function name="ProgramUniform4uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLuint *" />
+         <param name="value" type="const GLuint *" count="count" count_scale="4" />
       </function>
       <function name="ProgramUniform1fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" />
       </function>
       <function name="ProgramUniform2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="2" />
       </function>
       <function name="ProgramUniform3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="3" />
       </function>
       <function name="ProgramUniform4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="4" />
       </function>
       <function name="ProgramUniformMatrix2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="4" />
       </function>
       <function name="ProgramUniformMatrix3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="9" />
       </function>
       <function name="ProgramUniformMatrix4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="16" />
       </function>
       <function name="ProgramUniformMatrix2x3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="6" />
       </function>
       <function name="ProgramUniformMatrix3x2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="6" />
       </function>
       <function name="ProgramUniformMatrix2x4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="8" />
       </function>
       <function name="ProgramUniformMatrix4x2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="8" />
       </function>
       <function name="ProgramUniformMatrix3x4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="12" />
       </function>
       <function name="ProgramUniformMatrix4x3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
+         <param name="value" type="const GLfloat *" count="count" count_scale="12" />
       </function>
       <function name="ValidateProgramPipeline" es2="3.1">
          <param name="pipeline" type="GLuint" />
@@ -313,87 +313,87 @@
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="6" />
       </function>
       <function name="ProgramUniformMatrix3x2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="6" />
       </function>
       <function name="ProgramUniformMatrix2x4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="8" />
       </function>
       <function name="ProgramUniformMatrix4x2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="8" />
       </function>
       <function name="ProgramUniformMatrix3x4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="12" />
       </function>
       <function name="ProgramUniformMatrix4x3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="12" />
       </function>
       <function name="ProgramUniformMatrix2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="4" />
       </function>
       <function name="ProgramUniformMatrix3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="9" />
       </function>
       <function name="ProgramUniformMatrix4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="16" />
       </function>
       <function name="ProgramUniform1dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" />
       </function>
       <function name="ProgramUniform2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="2" />
       </function>
       <function name="ProgramUniform3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="3" />
       </function>
       <function name="ProgramUniform4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
-         <param name="value" type="const GLdouble *" />
+         <param name="value" type="const GLdouble *" count="count" count_scale="4" />
       </function>
    </category>
 </OpenGLAPI>

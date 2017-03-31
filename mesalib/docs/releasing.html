@@ -115,6 +115,38 @@ performed where possible.
 Achieved by combination of local ad-hoc scripts and AppVeyor plus Travis-CI,
 the latter as part of their Github integration.
 </p>
+<p>
+<strong>Note:</strong> If a patch in the current queue needs any additional
+fix(es), then they should be squashed together.
+<br>
+The commit messages and the <code>cherry picked from</code> tags must be preserved.
+</p>
+<p>
+This should be noted in the <a href="#prerelease">pre-announce</a> email.
+<pre>
+    git show b10859ec41d09c57663a258f43fe57c12332698e
+
+    commit b10859ec41d09c57663a258f43fe57c12332698e
+    Author: Jonas Pfeil &ltpfeiljonas@gmx.de&gt
+    Date:   Wed Mar 1 18:11:10 2017 +0100
+
+        ralloc: Make sure ralloc() allocations match malloc()'s alignment.
+
+        The header of ralloc needs to be aligned, because the compiler assumes
+        ...
+
+        (cherry picked from commit cd2b55e536dc806f9358f71db438dd9c246cdb14)
+
+        Squashed with commit:
+
+        ralloc: don't leave out the alignment factor
+
+        Experimentation shows that without alignment factor gcc and clang choose
+        ...
+
+        (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)
+</pre>
+</p>
 
 <h2>Regression/functionality testing</h2>
 
@@ -290,6 +322,12 @@ Queued (NUMBER)
 AUTHOR (NUMBER):
       COMMIT SUMMARY
 
+For example:
+
+Jonas Pfeil (1):
+      ralloc: Make sure ralloc() allocations match malloc()'s alignment.
+Squashed with
+      ralloc: don't leave out the alignment factor
 
 Rejected (NUMBER)
 =================
@@ -341,7 +379,7 @@ Here is one solution that I've been using.
 	chmod 755 -fR $__build_root; rm -rf $__build_root
 	mkdir -p $__build_root &amp;&amp; cd $__build_root
 
-	$__mesa_root/autogen.sh --enable-llvm-shared-libs &amp;&amp; make -j2 distcheck
+	$__mesa_root/autogen.sh &amp;&amp; make -j2 distcheck
 
 	# Build check the tarballs (scons, linux)
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
@@ -435,11 +473,10 @@ Commit these changes and push the branch.
 </pre>
 
 
-<h3>Use the release.sh script from xorg util-macros</h3>
+<h3>Use the release.sh script from xorg <a href="https://cgit.freedesktop.org/xorg/util/modular/">util-modular</a></h3>
 
 <p>
-Ensure that the mesa git tree is clean via <code>git clean -fXd</code> and
-start the release process.
+Start the release process.
 </p>
 <pre>
 	../relative/path/to/release.sh . # append --dist if you've already done distcheck above

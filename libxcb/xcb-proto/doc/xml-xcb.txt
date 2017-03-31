@@ -76,6 +76,12 @@ Top-Level Elements
   the field and pad elements described in the section "Structure Contents
   below".
 
+<eventstruct name="identifier">event-type-selector list</struct>
+
+  This element represents a data structure that is the wire-representation of
+  an event. The event can be any type that's selected by the
+  event-type-selector list.
+
 <xidtype name="identifier" />
 
   This element represents an identifier for a particular type of resource.
@@ -358,6 +364,29 @@ Expressions
 
   This element represents the current list-element when used inside
   a list-iteration expression such as <sumof>.
+
+
+Event-Type-Selector List
+------------------------
+
+  The event-type-selector list selects a set of eventtypes.
+  It consists of any number of the following elements:
+
+  <allowed extension="identifier" xge="boolean"
+           opcode-min="integer" opcode-max="integer" />
+
+  The extension attribute selects events from the given extension.
+
+  If the xge attribute is true, the event is an X Generic Event and
+  will be treated as such.
+
+  opcode-min and opcode-max describe the minimum and maximum opcode
+  respectively. The opcode is the same number as the number-attribute
+  of an event definition. I.e. this is the offset from the event-base
+  to the actual number used on the wire.
+
+  In the current implementation, only xge="false" is supported.
+
 
 Documentation
 -------------

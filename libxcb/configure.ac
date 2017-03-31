@@ -220,6 +220,7 @@ XCB_EXTENSION(Damage, yes)
 XCB_EXTENSION(DPMS, yes)
 XCB_EXTENSION(DRI2, yes)
 XCB_EXTENSION(DRI3, $have_sendmsg)
+XCB_EXTENSION(GE, no)
 XCB_EXTENSION(GLX, yes)
 XCB_EXTENSION(Present, yes)
 XCB_EXTENSION(RandR, yes)
@@ -271,6 +272,7 @@ xcb-damage.pc
 xcb-dpms.pc
 xcb-dri2.pc
 xcb-dri3.pc
+xcb-ge.pc
 xcb-glx.pc
 xcb-present.pc
 xcb-randr.pc
@@ -318,6 +320,7 @@ echo "    Damage..............: ${BUILD_DAMAGE}"
 echo "    Dpms................: ${BUILD_DPMS}"
 echo "    Dri2................: ${BUILD_DRI2}"
 echo "    Dri3................: ${BUILD_DRI3}"
+echo "    GenericEvent........: ${BUILD_GE}"
 echo "    Glx.................: ${BUILD_GLX}"
 echo "    Randr...............: ${BUILD_RANDR}"
 echo "    Record..............: ${BUILD_RECORD}"

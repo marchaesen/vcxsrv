@@ -240,6 +240,22 @@ authorization from the authors.
     <xsd:attribute name="ref" type="xsd:string" use="required" />
   </xsd:complexType>
 
+  <!-- Type for a structure that is an event
+       which can be of an event type from a set of event types -->
+  <xsd:complexType name="eventstruct">
+    <xsd:sequence>
+      <xsd:element name="allowed">
+        <xsd:complexType>
+          <xsd:attribute name="extension" type="xsd:string" use="required" />
+          <xsd:attribute name="xge" type="xsd:boolean" use="required" />
+          <xsd:attribute name="opcode-min" type="xsd:integer" use="required" />
+          <xsd:attribute name="opcode-max" type="xsd:integer" use="required" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string" use="required" />
+  </xsd:complexType>
+
   <!-- Type for bit values -->
   <xsd:simpleType name="bitType">
     <xsd:restriction base="xsd:integer">
@@ -354,6 +370,7 @@ authorization from the authors.
       <xsd:element name="errorcopy" type="packet-struct-copy" />
       <xsd:element name="struct" type="struct" />
       <xsd:element name="union" type="struct" />
+      <xsd:element name="eventstruct" type="eventstruct" />
       <xsd:element name="xidtype">
         <xsd:complexType>
           <xsd:attribute name="name" type="xsd:string" use="required" />

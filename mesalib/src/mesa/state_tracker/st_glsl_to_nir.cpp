@@ -426,7 +426,8 @@ st_nir_get_mesa_program(struct gl_context *ctx,
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
     * program constant) has to happen before creating this linkage.
     */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters);
+   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters,
+                                   true);
 
    struct st_vertex_program *stvp;
    struct st_fragment_program *stfp;

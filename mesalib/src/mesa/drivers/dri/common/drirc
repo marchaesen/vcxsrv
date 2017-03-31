@@ -120,5 +120,13 @@ TODO: document the other workarounds.
         <application name="The Culling" executable="Victory">
             <option name="force_glsl_version" value="440" />
         </application>
+
+        <application name="Spec Ops: The Line (32-bit)" executable="specops.i386">
+            <option name="force_glsl_abs_sqrt" value="true" />
+        </application>
+
+        <application name="Spec Ops: The Line (64-bit)" executable="specops">
+            <option name="force_glsl_abs_sqrt" value="true" />
+        </application>
     </device>
 </driconf>

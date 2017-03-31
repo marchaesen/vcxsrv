@@ -156,6 +156,10 @@ glamor_create_fbo(glamor_screen_private *glamor_priv,
                   int w, int h, GLenum format, int flag)
 {
     GLint tex = _glamor_create_tex(glamor_priv, w, h, format);
+
+    if (!tex) /* Texture creation failed due to GL_OUT_OF_MEMORY */
+        return NULL;
+
     return glamor_create_fbo_from_tex(glamor_priv, w, h, format, tex, flag);
 }
 

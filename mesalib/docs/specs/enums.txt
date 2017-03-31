@@ -1,10 +1,10 @@
 The definitive source for enum values and reserved ranges are the XML files in
 the Khronos registry:
 
-    https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/egl.xml
-    https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/gl.xml
-    https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/glx.xml
-    https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/wgl.xml
+    https://github.com/KhronosGroup/EGL-Registry/blob/master/api/egl.xml
+    https://github.com/KhronosGroup/OpenGL-Registry/blob/master/xml/gl.xml
+    https://github.com/KhronosGroup/OpenGL-Registry/blob/master/xml/glx.xml
+    https://github.com/KhronosGroup/OpenGL-Registry/blob/master/xml/wgl.xml
 
 GL blocks allocated to Mesa:
        0x8750-0x875F

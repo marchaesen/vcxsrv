@@ -46,6 +46,7 @@ glamor_poly_segment_solid_gl(DrawablePtr drawable, GCPtr gc,
     char *vbo_offset;
     int box_index;
     int add_last;
+    Bool ret = FALSE;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -62,7 +63,7 @@ glamor_poly_segment_solid_gl(DrawablePtr drawable, GCPtr gc,
                                    &glamor_facet_poly_segment);
 
     if (!prog)
-        goto bail_ctx;
+        goto bail;
 
     /* Set up the vertex buffers for the points */
 
@@ -95,8 +96,9 @@ glamor_poly_segment_solid_gl(DrawablePtr drawable, GCPtr gc,
         int nbox = RegionNumRects(gc->pCompositeClip);
         BoxPtr box = RegionRects(gc->pCompositeClip);
 
-        glamor_set_destination_drawable(drawable, box_index, TRUE, TRUE,
-                                        prog->matrix_uniform, &off_x, &off_y);
+        if (!glamor_set_destination_drawable(drawable, box_index, TRUE, TRUE,
+                                             prog->matrix_uniform, &off_x, &off_y))
+            goto bail;
 
         while (nbox--) {
             glScissor(box->x1 + off_x,
@@ -108,13 +110,13 @@ glamor_poly_segment_solid_gl(DrawablePtr drawable, GCPtr gc,
         }
     }
 
+    ret = TRUE;
+
     glDisable(GL_SCISSOR_TEST);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    return TRUE;
-bail_ctx:
 bail:
-    return FALSE;
+    return ret;
 }
 
 static Bool

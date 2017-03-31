@@ -83,64 +83,6 @@
 #undef BITS
 #undef BITS2
 
-#define BRESSOLID   fbBresSolid24
-#define BRESDASH    fbBresDash24
-#define DOTS        fbDots24
-#define ARC         fbArc24
-#define POLYLINE    fbPolyline24
-#define POLYSEGMENT fbPolySegment24
-
-#define BITS        CARD32
-#define BITSUNIT    BYTE
-#define BITSMUL	    3
-
-#define FbDoTypeStore(b,t,x,s)	WRITE(((t *) (b)), (x) >> (s))
-#define FbDoTypeRRop(b,t,a,x,s) WRITE((t *) (b), FbDoRRop(READ((t *) (b)),\
-							  (a) >> (s), \
-							  (x) >> (s)))
-#define FbDoTypeMaskRRop(b,t,a,x,m,s) WRITE((t *) (b), FbDoMaskRRop(READ((t *) (b)),\
-								    (a) >> (s), \
-								    (x) >> (s), \
-								    (m) >> (s)))
-#if BITMAP_BIT_ORDER == LSBFirst
-#define BITSSTORE(b,x)	((unsigned long) (b) & 1 ? \
-			 (FbDoTypeStore (b, CARD8, x, 0), \
-			  FbDoTypeStore ((b) + 1, CARD16, x, 8)) : \
-			 (FbDoTypeStore (b, CARD16, x, 0), \
-			  FbDoTypeStore ((b) + 2, CARD8, x, 16)))
-#define BITSRROP(b,a,x)	((unsigned long) (b) & 1 ? \
-			 (FbDoTypeRRop(b,CARD8,a,x,0), \
-			  FbDoTypeRRop((b)+1,CARD16,a,x,8)) : \
-			 (FbDoTypeRRop(b,CARD16,a,x,0), \
-			  FbDoTypeRRop((b)+2,CARD8,a,x,16)))
-#else
-#define BITSSTORE(b,x)  ((unsigned long) (b) & 1 ? \
-			 (FbDoTypeStore (b, CARD8, x, 16), \
-			  FbDoTypeStore ((b) + 1, CARD16, x, 0)) : \
-			 (FbDoTypeStore (b, CARD16, x, 8), \
-			  FbDoTypeStore ((b) + 2, CARD8, x, 0)))
-#define BITSRROP(b,a,x)	((unsigned long) (b) & 1 ? \
-			 (FbDoTypeRRop (b, CARD8, a, x, 16), \
-			  FbDoTypeRRop ((b) + 1, CARD16, a, x, 0)) : \
-			 (FbDoTypeRRop (b, CARD16, a, x, 8), \
-			  FbDoTypeRRop ((b) + 2, CARD8, a, x, 0)))
-#endif
-
-#include "fbbits.h"
-
-#undef BITSSTORE
-#undef BITSRROP
-#undef BITSMUL
-#undef BITSUNIT
-#undef BITS
-
-#undef BRESSOLID
-#undef BRESDASH
-#undef DOTS
-#undef ARC
-#undef POLYLINE
-#undef POLYSEGMENT
-
 #define BRESSOLID   fbBresSolid32
 #define BRESDASH    fbBresDash32
 #define DOTS	    fbDots32

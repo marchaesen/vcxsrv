@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # This script is used to generate the list of changes that
 # appears in the release notes files, with HTML formatting.
@@ -10,7 +10,7 @@
 # $ bin/shortlog_mesa.sh mesa-9.0.2..mesa-9.0.3 | tee changes
 
 
-typeset -i in_log=0
+in_log=0
 
 git shortlog $* | while read l
 do

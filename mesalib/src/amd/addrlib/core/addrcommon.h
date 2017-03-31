@@ -25,10 +25,10 @@
  */
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @file  addrcommon.h
-* @brief Contains the helper function and constants
-***************************************************************************************************
+* @brief Contains the helper function and constants.
+****************************************************************************************************
 */
 
 #ifndef __ADDR_COMMON_H__
@@ -41,108 +41,14 @@
 // Moved from addrinterface.h so __KERNEL__ is not needed any more
 #if ADDR_LNX_KERNEL_BUILD // || (defined(__GNUC__) && defined(__KERNEL__))
     #include "lnx_common_defs.h" // ported from cmmqs
-#elif !defined(__APPLE__)
+#elif !defined(__APPLE__) || defined(HAVE_TSERVER)
     #include <stdlib.h>
     #include <string.h>
 #endif
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Common constants
-///////////////////////////////////////////////////////////////////////////////////////////////////
-static const UINT_32 MicroTileWidth      = 8;       ///< Micro tile width, for 1D and 2D tiling
-static const UINT_32 MicroTileHeight     = 8;       ///< Micro tile height, for 1D and 2D tiling
-static const UINT_32 ThickTileThickness  = 4;       ///< Micro tile thickness, for THICK modes
-static const UINT_32 XThickTileThickness = 8;       ///< Extra thick tiling thickness
-static const UINT_32 PowerSaveTileBytes  = 64;      ///< Nuber of bytes per tile for power save 64
-static const UINT_32 CmaskCacheBits      = 1024;    ///< Number of bits for CMASK cache
-static const UINT_32 CmaskElemBits       = 4;       ///< Number of bits for CMASK element
-static const UINT_32 HtileCacheBits      = 16384;   ///< Number of bits for HTILE cache 512*32
-
-static const UINT_32 MicroTilePixels     = MicroTileWidth * MicroTileHeight;
-
-static const INT_32 TileIndexInvalid        = TILEINDEX_INVALID;
-static const INT_32 TileIndexLinearGeneral  = TILEINDEX_LINEAR_GENERAL;
-static const INT_32 TileIndexNoMacroIndex   = -3;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Common macros
-///////////////////////////////////////////////////////////////////////////////////////////////////
-#define BITS_PER_BYTE 8
-#define BITS_TO_BYTES(x) ( ((x) + (BITS_PER_BYTE-1)) / BITS_PER_BYTE )
-#define BYTES_TO_BITS(x) ( (x) * BITS_PER_BYTE )
-
-/// Helper macros to select a single bit from an int (undefined later in section)
-#define _BIT(v,b)      (((v) >> (b) ) & 1)
-
-/**
-***************************************************************************************************
-* @brief Enums to identify AddrLib type
-***************************************************************************************************
-*/
-enum AddrLibClass
-{
-    BASE_ADDRLIB = 0x0,
-    R600_ADDRLIB = 0x6,
-    R800_ADDRLIB = 0x8,
-    SI_ADDRLIB   = 0xa,
-    CI_ADDRLIB   = 0xb,
-};
-
-/**
-***************************************************************************************************
-* AddrChipFamily
-*
-*   @brief
-*       Neutral enums that specifies chip family.
-*
-***************************************************************************************************
-*/
-enum AddrChipFamily
-{
-    ADDR_CHIP_FAMILY_IVLD,    ///< Invalid family
-    ADDR_CHIP_FAMILY_R6XX,
-    ADDR_CHIP_FAMILY_R7XX,
-    ADDR_CHIP_FAMILY_R8XX,
-    ADDR_CHIP_FAMILY_NI,
-    ADDR_CHIP_FAMILY_SI,
-    ADDR_CHIP_FAMILY_CI,
-    ADDR_CHIP_FAMILY_VI,
-};
-
-/**
-***************************************************************************************************
-* ADDR_CONFIG_FLAGS
-*
-*   @brief
-*       This structure is used to set addr configuration flags.
-***************************************************************************************************
-*/
-union ADDR_CONFIG_FLAGS
-{
-    struct
-    {
-        /// Clients do not need to set these flags except forceLinearAligned.
-        /// There flags are set up by AddrLib inside thru AddrInitGlobalParamsFromRegister
-        UINT_32 optimalBankSwap        : 1;    ///< New bank tiling for RV770 only
-        UINT_32 noCubeMipSlicesPad     : 1;    ///< Disables faces padding for cubemap mipmaps
-        UINT_32 fillSizeFields         : 1;    ///< If clients fill size fields in all input and
-                                               ///  output structure
-        UINT_32 ignoreTileInfo         : 1;    ///< Don't use tile info structure
-        UINT_32 useTileIndex           : 1;    ///< Make tileIndex field in input valid
-        UINT_32 useCombinedSwizzle     : 1;    ///< Use combined swizzle
-        UINT_32 checkLast2DLevel       : 1;    ///< Check the last 2D mip sub level
-        UINT_32 useHtileSliceAlign     : 1;    ///< Do htile single slice alignment
-        UINT_32 degradeBaseLevel       : 1;    ///< Degrade to 1D modes automatically for base level
-        UINT_32 allowLargeThickTile    : 1;    ///< Allow 64*thickness*bytesPerPixel > rowSize
-        UINT_32 reserved               : 22;   ///< Reserved bits for future use
-    };
-
-    UINT_32 value;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Platform specific debug break defines
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 #if DEBUG
     #if defined(__GNUC__)
         #define ADDR_DBG_BREAK()
@@ -154,30 +60,40 @@ union ADDR_CONFIG_FLAGS
 #else
     #define ADDR_DBG_BREAK()
 #endif
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Debug assertions used in AddrLib
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined(_WIN32) && (_MSC_VER >= 1400)
+    #define ADDR_ANALYSIS_ASSUME(expr) __analysis_assume(expr)
+#else
+    #define ADDR_ANALYSIS_ASSUME(expr) do { } while (0)
+#endif
+
 #if DEBUG
-#define ADDR_ASSERT(__e) if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); }
-#define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
-#define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
-#define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
+    #define ADDR_ASSERT(__e)                                \
+        do {                                                    \
+            ADDR_ANALYSIS_ASSUME(__e);                          \
+            if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); } \
+        } while (0)
+    #define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
+    #define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
+    #define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
 #else //DEBUG
-#define ADDR_ASSERT(__e)
-#define ADDR_ASSERT_ALWAYS()
-#define ADDR_UNHANDLED_CASE()
-#define ADDR_NOT_IMPLEMENTED()
+    #define ADDR_ASSERT(__e) ADDR_ANALYSIS_ASSUME(__e)
+    #define ADDR_ASSERT_ALWAYS()
+    #define ADDR_UNHANDLED_CASE()
+    #define ADDR_NOT_IMPLEMENTED()
 #endif //DEBUG
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Debug print macro from legacy address library
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 #if DEBUG
 
-#define ADDR_PRNT(a)    AddrObject::DebugPrint a
+#define ADDR_PRNT(a)    Object::DebugPrint a
 
 /// @brief Macro for reporting informational messages
 /// @ingroup util
@@ -245,19 +161,121 @@ union ADDR_CONFIG_FLAGS
 #define ADDR_EXIT(cond, a)
 
 #endif // DEBUG
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+namespace Addr
+{
+
+namespace V1
+{
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Common constants
+////////////////////////////////////////////////////////////////////////////////////////////////////
+static const UINT_32 MicroTileWidth      = 8;       ///< Micro tile width, for 1D and 2D tiling
+static const UINT_32 MicroTileHeight     = 8;       ///< Micro tile height, for 1D and 2D tiling
+static const UINT_32 ThickTileThickness  = 4;       ///< Micro tile thickness, for THICK modes
+static const UINT_32 XThickTileThickness = 8;       ///< Extra thick tiling thickness
+static const UINT_32 PowerSaveTileBytes  = 64;      ///< Nuber of bytes per tile for power save 64
+static const UINT_32 CmaskCacheBits      = 1024;    ///< Number of bits for CMASK cache
+static const UINT_32 CmaskElemBits       = 4;       ///< Number of bits for CMASK element
+static const UINT_32 HtileCacheBits      = 16384;   ///< Number of bits for HTILE cache 512*32
+
+static const UINT_32 MicroTilePixels     = MicroTileWidth * MicroTileHeight;
+
+static const INT_32 TileIndexInvalid        = TILEINDEX_INVALID;
+static const INT_32 TileIndexLinearGeneral  = TILEINDEX_LINEAR_GENERAL;
+static const INT_32 TileIndexNoMacroIndex   = -3;
+
+} // V1
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Common macros
+////////////////////////////////////////////////////////////////////////////////////////////////////
+#define BITS_PER_BYTE 8
+#define BITS_TO_BYTES(x) ( ((x) + (BITS_PER_BYTE-1)) / BITS_PER_BYTE )
+#define BYTES_TO_BITS(x) ( (x) * BITS_PER_BYTE )
+
+/// Helper macros to select a single bit from an int (undefined later in section)
+#define _BIT(v,b)      (((v) >> (b) ) & 1)
+
+/**
+****************************************************************************************************
+* @brief Enums to identify AddrLib type
+****************************************************************************************************
+*/
+enum LibClass
+{
+    BASE_ADDRLIB = 0x0,
+    R600_ADDRLIB = 0x6,
+    R800_ADDRLIB = 0x8,
+    SI_ADDRLIB   = 0xa,
+    CI_ADDRLIB   = 0xb,
+    AI_ADDRLIB   = 0xd,
+};
+
+/**
+****************************************************************************************************
+* ChipFamily
+*
+*   @brief
+*       Neutral enums that specifies chip family.
+*
+****************************************************************************************************
+*/
+enum ChipFamily
+{
+    ADDR_CHIP_FAMILY_IVLD,    ///< Invalid family
+    ADDR_CHIP_FAMILY_R6XX,
+    ADDR_CHIP_FAMILY_R7XX,
+    ADDR_CHIP_FAMILY_R8XX,
+    ADDR_CHIP_FAMILY_NI,
+    ADDR_CHIP_FAMILY_SI,
+    ADDR_CHIP_FAMILY_CI,
+    ADDR_CHIP_FAMILY_VI,
+    ADDR_CHIP_FAMILY_AI,
+};
+
+/**
+****************************************************************************************************
+* ConfigFlags
+*
+*   @brief
+*       This structure is used to set configuration flags.
+****************************************************************************************************
+*/
+union ConfigFlags
+{
+    struct
+    {
+        /// These flags are set up internally thru AddrLib::Create() based on ADDR_CREATE_FLAGS
+        UINT_32 optimalBankSwap        : 1;    ///< New bank tiling for RV770 only
+        UINT_32 noCubeMipSlicesPad     : 1;    ///< Disables faces padding for cubemap mipmaps
+        UINT_32 fillSizeFields         : 1;    ///< If clients fill size fields in all input and
+                                               ///  output structure
+        UINT_32 ignoreTileInfo         : 1;    ///< Don't use tile info structure
+        UINT_32 useTileIndex           : 1;    ///< Make tileIndex field in input valid
+        UINT_32 useCombinedSwizzle     : 1;    ///< Use combined swizzle
+        UINT_32 checkLast2DLevel       : 1;    ///< Check the last 2D mip sub level
+        UINT_32 useHtileSliceAlign     : 1;    ///< Do htile single slice alignment
+        UINT_32 allowLargeThickTile    : 1;    ///< Allow 64*thickness*bytesPerPixel > rowSize
+        UINT_32 disableLinearOpt       : 1;    ///< Disallow tile modes to be optimized to linear
+        UINT_32 reserved               : 22;   ///< Reserved bits for future use
+    };
+
+    UINT_32 value;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Misc helper functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrXorReduce
 *
 *   @brief
 *       Xor the right-side numberOfBits bits of x.
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 XorReduce(
     UINT_32 x,
@@ -275,12 +293,12 @@ static inline UINT_32 XorReduce(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   IsPow2
 *
 *   @brief
 *       Check if the size (UINT_32) is pow 2
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 IsPow2(
     UINT_32 dim)        ///< [in] dimension of miplevel
@@ -290,12 +308,12 @@ static inline UINT_32 IsPow2(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   IsPow2
 *
 *   @brief
 *       Check if the size (UINT_64) is pow 2
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_64 IsPow2(
     UINT_64 dim)        ///< [in] dimension of miplevel
@@ -305,12 +323,12 @@ static inline UINT_64 IsPow2(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   ByteAlign
 *
 *   @brief
 *       Align UINT_32 "x" to "align" alignment, "align" should be power of 2
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 PowTwoAlign(
     UINT_32 x,
@@ -324,12 +342,12 @@ static inline UINT_32 PowTwoAlign(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   ByteAlign
 *
 *   @brief
 *       Align UINT_64 "x" to "align" alignment, "align" should be power of 2
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_64 PowTwoAlign(
     UINT_64 x,
@@ -343,12 +361,12 @@ static inline UINT_64 PowTwoAlign(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Min
 *
 *   @brief
 *       Get the min value between two unsigned values
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 Min(
     UINT_32 value1,
@@ -358,12 +376,12 @@ static inline UINT_32 Min(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Min
 *
 *   @brief
 *       Get the min value between two signed values
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline INT_32 Min(
     INT_32 value1,
@@ -373,12 +391,12 @@ static inline INT_32 Min(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Max
 *
 *   @brief
 *       Get the max value between two unsigned values
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 Max(
     UINT_32 value1,
@@ -388,12 +406,12 @@ static inline UINT_32 Max(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Max
 *
 *   @brief
 *       Get the max value between two signed values
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline INT_32 Max(
     INT_32 value1,
@@ -403,12 +421,12 @@ static inline INT_32 Max(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   NextPow2
 *
 *   @brief
 *       Compute the mipmap's next level dim size
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 NextPow2(
     UINT_32 dim)        ///< [in] dimension of miplevel
@@ -434,22 +452,17 @@ static inline UINT_32 NextPow2(
 }
 
 /**
-***************************************************************************************************
-*   Log2
+****************************************************************************************************
+*   Log2NonPow2
 *
 *   @brief
-*       Compute log of base 2
-***************************************************************************************************
+*       Compute log of base 2 no matter the target is power of 2 or not
+****************************************************************************************************
 */
-static inline UINT_32 Log2(
+static inline UINT_32 Log2NonPow2(
     UINT_32 x)      ///< [in] the value should calculate log based 2
 {
     UINT_32 y;
-
-    //
-    // Assert that x is a power of two.
-    //
-    ADDR_ASSERT(IsPow2(x));
 
     y = 0;
     while (x > 1)
@@ -462,12 +475,29 @@ static inline UINT_32 Log2(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
+*   Log2
+*
+*   @brief
+*       Compute log of base 2
+****************************************************************************************************
+*/
+static inline UINT_32 Log2(
+    UINT_32 x)      ///< [in] the value should calculate log based 2
+{
+    // Assert that x is a power of two.
+    ADDR_ASSERT(IsPow2(x));
+
+    return Log2NonPow2(x);
+}
+
+/**
+****************************************************************************************************
 *   QLog2
 *
 *   @brief
 *       Compute log of base 2 quickly (<= 16)
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline UINT_32 QLog2(
     UINT_32 x)      ///< [in] the value should calculate log based 2
@@ -501,12 +531,12 @@ static inline UINT_32 QLog2(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   SafeAssign
 *
 *   @brief
 *       NULL pointer safe assignment
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline VOID SafeAssign(
     UINT_32*    pLVal,  ///< [in] Pointer to left val
@@ -519,12 +549,12 @@ static inline VOID SafeAssign(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   SafeAssign
 *
 *   @brief
 *       NULL pointer safe assignment for 64bit values
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline VOID SafeAssign(
     UINT_64*    pLVal,  ///< [in] Pointer to left val
@@ -537,12 +567,12 @@ static inline VOID SafeAssign(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   SafeAssign
 *
 *   @brief
 *       NULL pointer safe assignment for AddrTileMode
-***************************************************************************************************
+****************************************************************************************************
 */
 static inline VOID SafeAssign(
     AddrTileMode*    pLVal, ///< [in] Pointer to left val
@@ -553,6 +583,313 @@ static inline VOID SafeAssign(
         *pLVal = rVal;
     }
 }
+
+/**
+****************************************************************************************************
+*   RoundHalf
+*
+*   @brief
+*       return (x + 1) / 2
+****************************************************************************************************
+*/
+static inline UINT_32 RoundHalf(
+    UINT_32     x)     ///< [in] input value
+{
+    ADDR_ASSERT(x != 0);
+
+#if 1
+    return (x >> 1) + (x & 1);
+#else
+    return (x + 1) >> 1;
+#endif
+}
+
+/**
+****************************************************************************************************
+*   SumGeo
+*
+*   @brief
+*       Calculate sum of a geometric progression whose ratio is 1/2
+****************************************************************************************************
+*/
+static inline UINT_32 SumGeo(
+    UINT_32     base,   ///< [in] First term in the geometric progression
+    UINT_32     num)    ///< [in] Number of terms to be added into sum
+{
+    ADDR_ASSERT(base > 0);
+
+    UINT_32 sum = 0;
+    UINT_32 i = 0;
+    for (; (i < num) && (base > 1); i++)
+    {
+        sum += base;
+        base = RoundHalf(base);
+    }
+    sum += num - i;
+
+    return sum;
+}
+
+/**
+****************************************************************************************************
+*   GetBit
+*
+*   @brief
+*       Extract bit N value (0 or 1) of a UINT32 value.
+****************************************************************************************************
+*/
+static inline UINT_32 GetBit(
+    UINT_32     u32,   ///< [in] UINT32 value
+    UINT_32     pos)   ///< [in] bit position from LSB, valid range is [0..31]
+{
+    ADDR_ASSERT(pos <= 31);
+
+    return (u32 >> pos) & 0x1;
+}
+
+/**
+****************************************************************************************************
+*   GetBits
+*
+*   @brief
+*       Copy 'bitsNum' bits from src start from srcStartPos into destination from dstStartPos
+*       srcStartPos: 0~31 for UINT_32
+*       bitsNum    : 1~32 for UINT_32
+*       srcStartPos: 0~31 for UINT_32
+*                                                                 src start position
+*                                                                          |
+*       src : b[31] b[30] b[29] ... ... ... ... ... ... ... ... b[end]..b[beg] ... b[1] b[0]
+*                                   || Bits num || copy length  || Bits num ||
+*       dst : b[31] b[30] b[29] ... b[end]..b[beg] ... ... ... ... ... ... ... ... b[1] b[0]
+*                                              |
+*                                     dst start position
+****************************************************************************************************
+*/
+static inline UINT_32 GetBits(
+    UINT_32 src,
+    UINT_32 srcStartPos,
+    UINT_32 bitsNum,
+    UINT_32 dstStartPos)
+{
+    ADDR_ASSERT((srcStartPos < 32) && (dstStartPos < 32) && (bitsNum > 0));
+    ADDR_ASSERT((bitsNum + dstStartPos <= 32) && (bitsNum + srcStartPos <= 32));
+
+    return ((src >> srcStartPos) << (32 - bitsNum)) >> (32 - bitsNum - dstStartPos);
+}
+
+/**
+****************************************************************************************************
+*   MortonGen2d
+*
+*   @brief
+*       Generate 2D Morton interleave code with num lowest bits in each channel
+****************************************************************************************************
+*/
+static inline UINT_32 MortonGen2d(
+    UINT_32     x,     ///< [in] First channel
+    UINT_32     y,     ///< [in] Second channel
+    UINT_32     num)   ///< [in] Number of bits extracted from each channel
+{
+    UINT_32 mort = 0;
+
+    for (UINT_32 i = 0; i < num; i++)
+    {
+        mort |= (GetBit(y, i) << (2 * i));
+        mort |= (GetBit(x, i) << (2 * i + 1));
+    }
+
+    return mort;
+}
+
+/**
+****************************************************************************************************
+*   MortonGen3d
+*
+*   @brief
+*       Generate 3D Morton interleave code with num lowest bits in each channel
+****************************************************************************************************
+*/
+static inline UINT_32 MortonGen3d(
+    UINT_32     x,     ///< [in] First channel
+    UINT_32     y,     ///< [in] Second channel
+    UINT_32     z,     ///< [in] Third channel
+    UINT_32     num)   ///< [in] Number of bits extracted from each channel
+{
+    UINT_32 mort = 0;
+
+    for (UINT_32 i = 0; i < num; i++)
+    {
+        mort |= (GetBit(z, i) << (3 * i));
+        mort |= (GetBit(y, i) << (3 * i + 1));
+        mort |= (GetBit(x, i) << (3 * i + 2));
+    }
+
+    return mort;
+}
+
+/**
+****************************************************************************************************
+*   ReverseBitVector
+*
+*   @brief
+*       Return reversed lowest num bits of v
+****************************************************************************************************
+*/
+static inline UINT_32 ReverseBitVector(
+    UINT_32     v,     ///< [in] Reverse operation base value
+    UINT_32     num)   ///< [in] Number of bits used in reverse operation
+{
+    UINT_32 reverse = 0;
+
+    for (UINT_32 i = 0; i < num; i++)
+    {
+        reverse |= (GetBit(v, num - 1 - i) << i);
+    }
+
+    return reverse;
+}
+
+/**
+****************************************************************************************************
+*   FoldXor2d
+*
+*   @brief
+*       Xor bit vector v[num-1]v[num-2]...v[1]v[0] with v[num]v[num+1]...v[2*num-2]v[2*num-1]
+****************************************************************************************************
+*/
+static inline UINT_32 FoldXor2d(
+    UINT_32     v,     ///< [in] Xor operation base value
+    UINT_32     num)   ///< [in] Number of bits used in fold xor operation
+{
+    return (v & ((1 << num) - 1)) ^ ReverseBitVector(v >> num, num);
+}
+
+/**
+****************************************************************************************************
+*   DeMort
+*
+*   @brief
+*       Return v[0] | v[2] | v[4] | v[6]... | v[2*num - 2]
+****************************************************************************************************
+*/
+static inline UINT_32 DeMort(
+    UINT_32     v,     ///< [in] DeMort operation base value
+    UINT_32     num)   ///< [in] Number of bits used in fold DeMort operation
+{
+    UINT_32 d = 0;
+
+    for (UINT_32 i = 0; i < num; i++)
+    {
+        d |= ((v & (1 << (i << 1))) >> i);
+    }
+
+    return d;
+}
+
+/**
+****************************************************************************************************
+*   FoldXor3d
+*
+*   @brief
+*       v[0]...v[num-1] ^ v[3*num-1]v[3*num-3]...v[num+2]v[num] ^ v[3*num-2]...v[num+1]v[num-1]
+****************************************************************************************************
+*/
+static inline UINT_32 FoldXor3d(
+    UINT_32     v,     ///< [in] Xor operation base value
+    UINT_32     num)   ///< [in] Number of bits used in fold xor operation
+{
+    UINT_32 t = v & ((1 << num) - 1);
+    t ^= ReverseBitVector(DeMort(v >> num, num), num);
+    t ^= ReverseBitVector(DeMort(v >> (num + 1), num), num);
+
+    return t;
+}
+
+/**
+****************************************************************************************************
+*   InitChannel
+*
+*   @brief
+*       Set channel initialization value via a return value
+****************************************************************************************************
+*/
+static inline ADDR_CHANNEL_SETTING InitChannel(
+    UINT_32     valid,     ///< [in] valid setting
+    UINT_32     channel,   ///< [in] channel setting
+    UINT_32     index)     ///< [in] index setting
+{
+    ADDR_CHANNEL_SETTING t;
+    t.valid = valid;
+    t.channel = channel;
+    t.index = index;
+
+    return t;
+}
+
+/**
+****************************************************************************************************
+*   InitChannel
+*
+*   @brief
+*       Set channel initialization value via channel pointer
+****************************************************************************************************
+*/
+static inline VOID InitChannel(
+    UINT_32     valid,              ///< [in] valid setting
+    UINT_32     channel,            ///< [in] channel setting
+    UINT_32     index,              ///< [in] index setting
+    ADDR_CHANNEL_SETTING *pChanSet) ///< [out] channel setting to be initialized
+{
+    pChanSet->valid = valid;
+    pChanSet->channel = channel;
+    pChanSet->index = index;
+}
+
+
+/**
+****************************************************************************************************
+*   InitChannel
+*
+*   @brief
+*       Set channel initialization value via another channel
+****************************************************************************************************
+*/
+static inline VOID InitChannel(
+    ADDR_CHANNEL_SETTING *pChanDst, ///< [in] channel setting to be copied from
+    ADDR_CHANNEL_SETTING *pChanSrc) ///< [out] channel setting to be initialized
+{
+    pChanDst->valid = pChanSrc->valid;
+    pChanDst->channel = pChanSrc->channel;
+    pChanDst->index = pChanSrc->channel;
+}
+
+/**
+****************************************************************************************************
+*   GetMaxValidChannelIndex
+*
+*   @brief
+*       Get max valid index for a specific channel
+****************************************************************************************************
+*/
+static inline UINT_32 GetMaxValidChannelIndex(
+    ADDR_CHANNEL_SETTING *pChanSet, ///< [in] channel setting to be initialized
+    UINT_32     searchCount,        ///< [in] number of channel setting to be searched
+    UINT_32     channel)            ///< [in] channel to be searched
+{
+    UINT_32 index = 0;
+
+    for (UINT_32 i = 0; i < searchCount; i++)
+    {
+        if (pChanSet[i].valid && (pChanSet[i].channel == channel))
+        {
+            index = Max(index, static_cast<UINT_32>(pChanSet[i].index));
+        }
+    }
+
+    return index;
+}
+
+} // Addr
 
 #endif // __ADDR_COMMON_H__
 

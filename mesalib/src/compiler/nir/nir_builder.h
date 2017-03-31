@@ -328,6 +328,10 @@ nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
       }
    }
 
+   /* When in doubt, assume 32. */
+   if (bit_size == 0)
+      bit_size = 32;
+
    /* Make sure we don't swizzle from outside of our source vector (like if a
     * scalar value was passed into a multiply with a vector).
     */
@@ -491,7 +495,7 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
 }
 
 /**
- * Similar to nir_ssa_for_src(), but for alu src's, respecting the
+ * Similar to nir_ssa_for_src(), but for alu srcs, respecting the
  * nir_alu_src's swizzle.
  */
 static inline nir_ssa_def *

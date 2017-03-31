@@ -737,7 +737,7 @@ extern int XkbDfltRepeatInterval;
 extern unsigned short XkbDfltAccessXTimeout;
 extern unsigned int XkbDfltAccessXTimeoutMask;
 extern unsigned int XkbDfltAccessXFeedback;
-extern unsigned char XkbDfltAccessXOptions;
+extern unsigned short XkbDfltAccessXOptions;
 
 int
 XkbProcessArguments(int argc, char *argv[], int i)
@@ -798,7 +798,7 @@ XkbProcessArguments(int argc, char *argv[], int i)
                     j++;
                 }
                 if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
-                    XkbDfltAccessXOptions = (unsigned char)
+                    XkbDfltAccessXOptions = (unsigned short)
                         strtol(argv[++i], NULL, 16);
                     j++;
                 }

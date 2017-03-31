@@ -18,7 +18,6 @@ Xwayland_SOURCES =				\
 	xwayland-cvt.c				\
 	xwayland-vidmode.c			\
 	xwayland.h				\
-	$(top_srcdir)/Xext/dpmsstubs.c		\
 	$(top_srcdir)/Xi/stubs.c		\
 	$(top_srcdir)/mi/miinitext.c
 

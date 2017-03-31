@@ -21,12 +21,14 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-
 /**
  * \file ir_optimization.h
  *
  * Prototypes for optimization passes to be called by the compiler and drivers.
  */
+
+#ifndef GLSL_IR_OPTIMIZATION_H
+#define GLSL_IR_OPTIMIZATION_H
 
 /* Operations for lower_instructions() */
 #define SUB_TO_ADD_NEG     0x01
@@ -51,6 +53,7 @@
 #define IMUL_HIGH_TO_MUL          0x80000
 #define DDIV_TO_MUL_RCP           0x100000
 #define DIV_TO_MUL_RCP            (FDIV_TO_MUL_RCP | DDIV_TO_MUL_RCP)
+#define SQRT_TO_ABS_SQRT          0x200000
 
 /* Opertaions for lower_64bit_integer_instructions() */
 #define MUL64                     (1U << 0)
@@ -173,3 +176,5 @@ compare_index_block(exec_list *instructions, ir_variable *index,
 
 bool lower_64bit_integer_instructions(exec_list *instructions,
                                       unsigned what_to_lower);
+
+#endif /* GLSL_IR_OPTIMIZATION_H */

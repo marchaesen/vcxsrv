@@ -426,9 +426,7 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean keepUnmapped)
          if (ctx->NewState)
             _mesa_update_state( ctx );
 
-         if (_mesa_is_bufferobj(exec->vtx.bufferobj)) {
-            vbo_exec_vtx_unmap( exec );
-         }
+         vbo_exec_vtx_unmap(exec);
 
          if (0)
             printf("%s %d %d\n", __func__, exec->vtx.prim_count,
@@ -443,19 +441,15 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean keepUnmapped)
 				       exec->vtx.vert_count - 1,
 				       NULL, 0, NULL);
 
-	 /* If using a real VBO, get new storage -- unless asked not to.
-          */
-         if (_mesa_is_bufferobj(exec->vtx.bufferobj) && !keepUnmapped) {
+         /* Get new storage -- unless asked not to. */
+         if (!keepUnmapped)
             vbo_exec_vtx_map( exec );
-         }
       }
    }
 
    /* May have to unmap explicitly if we didn't draw:
     */
-   if (keepUnmapped &&
-       _mesa_is_bufferobj(exec->vtx.bufferobj) &&
-       exec->vtx.buffer_map) {
+   if (keepUnmapped && exec->vtx.buffer_map) {
       vbo_exec_vtx_unmap( exec );
    }
 

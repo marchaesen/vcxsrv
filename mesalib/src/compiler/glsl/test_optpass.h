@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef TEST_OPTPASS_H
 #define TEST_OPTPASS_H
 

@@ -200,8 +200,8 @@ create_pipeline(struct radv_device *device,
 					       },
 					       .pViewportState = &(VkPipelineViewportStateCreateInfo) {
 						       .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-						       .viewportCount = 0,
-						       .scissorCount = 0,
+						       .viewportCount = 1,
+						       .scissorCount = 1,
 					       },
 					       .pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 						       .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -236,7 +236,14 @@ create_pipeline(struct radv_device *device,
 							       }
 						       },
 						},
-						  .pDynamicState = NULL,
+						.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
+							.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+							.dynamicStateCount = 2,
+							.pDynamicStates = (VkDynamicState[]) {
+								VK_DYNAMIC_STATE_VIEWPORT,
+								VK_DYNAMIC_STATE_SCISSOR,
+							},
+						},
 																       .renderPass = device->meta_state.resolve.pass,
 																       .subpass = 0,
 																       },
@@ -319,20 +326,20 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 	const struct vertex_attrs vertex_data[3] = {
 		{
 			.position = {
-				dest_offset->x,
-				dest_offset->y,
+				-1.0,
+				-1.0,
 			},
 		},
 		{
 			.position = {
-				dest_offset->x,
-				dest_offset->y + resolve_extent->height,
+				-1.0,
+				1.0,
 			},
 		},
 		{
 			.position = {
-				dest_offset->x + resolve_extent->width,
-				dest_offset->y,
+				1.0,
+				-1.0,
 			},
 		},
 	};
@@ -362,9 +369,22 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 				     pipeline_h);
 	}
 
+	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
+		.x = dest_offset->x,
+		.y = dest_offset->y,
+		.width = resolve_extent->width,
+		.height = resolve_extent->height,
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	});
+
+	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
+		.offset = *dest_offset,
+		.extent = *resolve_extent,
+	});
+
 	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
-	si_emit_cache_flush(cmd_buffer);
 }
 
 void radv_CmdResolveImage(

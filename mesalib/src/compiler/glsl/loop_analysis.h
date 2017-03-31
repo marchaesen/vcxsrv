@@ -22,7 +22,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef LOOP_ANALYSIS_H
 #define LOOP_ANALYSIS_H
 

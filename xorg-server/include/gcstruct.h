@@ -278,14 +278,7 @@ typedef struct _GC {
     const GCFuncs *funcs;
     const GCOps *ops;
     PrivateRec *devPrivates;
-    /*
-     * The following were moved here from private storage to allow device-
-     * independent access to them from screen wrappers.
-     * --- 1997.11.03  Marc Aurele La France (tsi@xfree86.org)
-     */
-    PixmapPtr pRotatedPixmap;   /* tile/stipple rotated for alignment */
     RegionPtr pCompositeClip;
-    /* fExpose & freeCompClip defined above */
 } GC;
 
 #endif                          /* GCSTRUCT_H */

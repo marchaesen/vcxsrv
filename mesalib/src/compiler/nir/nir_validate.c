@@ -126,10 +126,12 @@ log_error(validate_state *state, const char *cond, const char *file, int line)
          log_error(state, #cond, __FILE__, __LINE__); \
    } while (0)
 
-static void validate_src(nir_src *src, validate_state *state);
+static void validate_src(nir_src *src, validate_state *state,
+                         unsigned bit_size, unsigned num_components);
 
 static void
-validate_reg_src(nir_src *src, validate_state *state)
+validate_reg_src(nir_src *src, validate_state *state,
+                 unsigned bit_size, unsigned num_components)
 {
    validate_assert(state, src->reg.reg != NULL);
 
@@ -151,6 +153,13 @@ validate_reg_src(nir_src *src, validate_state *state)
              "using a register declared in a different function");
    }
 
+   if (!src->reg.reg->is_packed) {
+      if (bit_size)
+         validate_assert(state, src->reg.reg->bit_size == bit_size);
+      if (num_components)
+         validate_assert(state, src->reg.reg->num_components == num_components);
+   }
+
    validate_assert(state, (src->reg.reg->num_array_elems == 0 ||
           src->reg.base_offset < src->reg.reg->num_array_elems) &&
           "definitely out-of-bounds array access");
@@ -160,12 +169,13 @@ validate_reg_src(nir_src *src, validate_state *state)
       validate_assert(state, (src->reg.indirect->is_ssa ||
               src->reg.indirect->reg.indirect == NULL) &&
              "only one level of indirection allowed");
-      validate_src(src->reg.indirect, state);
+      validate_src(src->reg.indirect, state, 32, 1);
    }
 }
 
 static void
-validate_ssa_src(nir_src *src, validate_state *state)
+validate_ssa_src(nir_src *src, validate_state *state,
+                 unsigned bit_size, unsigned num_components)
 {
    validate_assert(state, src->ssa != NULL);
 
@@ -188,11 +198,17 @@ validate_ssa_src(nir_src *src, validate_state *state)
       _mesa_set_add(def_state->if_uses, src);
    }
 
+   if (bit_size)
+      validate_assert(state, src->ssa->bit_size == bit_size);
+   if (num_components)
+      validate_assert(state, src->ssa->num_components == num_components);
+
    /* TODO validate that the use is dominated by the definition */
 }
 
 static void
-validate_src(nir_src *src, validate_state *state)
+validate_src(nir_src *src, validate_state *state,
+             unsigned bit_size, unsigned num_components)
 {
    if (state->instr)
       validate_assert(state, src->parent_instr == state->instr);
@@ -200,9 +216,9 @@ validate_src(nir_src *src, validate_state *state)
       validate_assert(state, src->parent_if == state->if_stmt);
 
    if (src->is_ssa)
-      validate_ssa_src(src, state);
+      validate_ssa_src(src, state, bit_size, num_components);
    else
-      validate_reg_src(src, state);
+      validate_reg_src(src, state, bit_size, num_components);
 }
 
 static void
@@ -211,12 +227,9 @@ validate_alu_src(nir_alu_instr *instr, unsigned index, validate_state *state)
    nir_alu_src *src = &instr->src[index];
 
    unsigned num_components;
-   unsigned src_bit_size;
    if (src->src.is_ssa) {
-      src_bit_size = src->src.ssa->bit_size;
       num_components = src->src.ssa->num_components;
    } else {
-      src_bit_size = src->src.reg.reg->bit_size;
       if (src->src.reg.reg->is_packed)
          num_components = 4; /* can't check anything */
       else
@@ -229,29 +242,12 @@ validate_alu_src(nir_alu_instr *instr, unsigned index, validate_state *state)
          validate_assert(state, src->swizzle[i] < num_components);
    }
 
-   nir_alu_type src_type = nir_op_infos[instr->op].input_types[index];
-
-   /* 8-bit float isn't a thing */
-   if (nir_alu_type_get_base_type(src_type) == nir_type_float)
-      validate_assert(state, src_bit_size == 16 || src_bit_size == 32 || src_bit_size == 64);
-
-   if (nir_alu_type_get_type_size(src_type)) {
-      /* This source has an explicit bit size */
-      validate_assert(state, nir_alu_type_get_type_size(src_type) == src_bit_size);
-   } else {
-      if (!nir_alu_type_get_type_size(nir_op_infos[instr->op].output_type)) {
-         unsigned dest_bit_size =
-            instr->dest.dest.is_ssa ? instr->dest.dest.ssa.bit_size
-                                    : instr->dest.dest.reg.reg->bit_size;
-         validate_assert(state, dest_bit_size == src_bit_size);
-      }
-   }
-
-   validate_src(&src->src, state);
+   validate_src(&src->src, state, 0, 0);
 }
 
 static void
-validate_reg_dest(nir_reg_dest *dest, validate_state *state)
+validate_reg_dest(nir_reg_dest *dest, validate_state *state,
+                  unsigned bit_size, unsigned num_components)
 {
    validate_assert(state, dest->reg != NULL);
 
@@ -270,6 +266,13 @@ validate_reg_dest(nir_reg_dest *dest, validate_state *state)
              "writing to a register declared in a different function");
    }
 
+   if (!dest->reg->is_packed) {
+      if (bit_size)
+         validate_assert(state, dest->reg->bit_size == bit_size);
+      if (num_components)
+         validate_assert(state, dest->reg->num_components == num_components);
+   }
+
    validate_assert(state, (dest->reg->num_array_elems == 0 ||
           dest->base_offset < dest->reg->num_array_elems) &&
           "definitely out-of-bounds array access");
@@ -278,7 +281,7 @@ validate_reg_dest(nir_reg_dest *dest, validate_state *state)
       validate_assert(state, dest->reg->num_array_elems != 0);
       validate_assert(state, (dest->indirect->is_ssa || dest->indirect->reg.indirect == NULL) &&
              "only one level of indirection allowed");
-      validate_src(dest->indirect, state);
+      validate_src(dest->indirect, state, 32, 1);
    }
 }
 
@@ -307,12 +310,18 @@ validate_ssa_def(nir_ssa_def *def, validate_state *state)
 }
 
 static void
-validate_dest(nir_dest *dest, validate_state *state)
+validate_dest(nir_dest *dest, validate_state *state,
+              unsigned bit_size, unsigned num_components)
 {
-   if (dest->is_ssa)
+   if (dest->is_ssa) {
+      if (bit_size)
+         validate_assert(state, dest->ssa.bit_size == bit_size);
+      if (num_components)
+         validate_assert(state, dest->ssa.num_components == num_components);
       validate_ssa_def(&dest->ssa, state);
-   else
-      validate_reg_dest(&dest->reg, state);
+   } else {
+      validate_reg_dest(&dest->reg, state, bit_size, num_components);
+   }
 }
 
 static void
@@ -339,18 +348,7 @@ validate_alu_dest(nir_alu_instr *instr, validate_state *state)
            nir_type_float) ||
           !dest->saturate);
 
-   unsigned bit_size = dest->dest.is_ssa ? dest->dest.ssa.bit_size
-                                         : dest->dest.reg.reg->bit_size;
-   nir_alu_type type = nir_op_infos[instr->op].output_type;
-
-   /* 8-bit float isn't a thing */
-   if (nir_alu_type_get_base_type(type) == nir_type_float)
-      validate_assert(state, bit_size == 16 || bit_size == 32 || bit_size == 64);
-
-   validate_assert(state, nir_alu_type_get_type_size(type) == 0 ||
-          nir_alu_type_get_type_size(type) == bit_size);
-
-   validate_dest(&dest->dest, state);
+   validate_dest(&dest->dest, state, 0, 0);
 }
 
 static void
@@ -358,8 +356,41 @@ validate_alu_instr(nir_alu_instr *instr, validate_state *state)
 {
    validate_assert(state, instr->op < nir_num_opcodes);
 
+   unsigned instr_bit_size = 0;
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
+      nir_alu_type src_type = nir_op_infos[instr->op].input_types[i];
+      unsigned src_bit_size = nir_src_bit_size(instr->src[i].src);
+      if (nir_alu_type_get_type_size(src_type)) {
+         validate_assert(state, src_bit_size == nir_alu_type_get_type_size(src_type));
+      } else if (instr_bit_size) {
+         validate_assert(state, src_bit_size == instr_bit_size);
+      } else {
+         instr_bit_size = src_bit_size;
+      }
+
+      if (nir_alu_type_get_base_type(src_type) == nir_type_float) {
+         /* 8-bit float isn't a thing */
+         validate_assert(state, src_bit_size == 16 || src_bit_size == 32 ||
+                                src_bit_size == 64);
+      }
+
       validate_alu_src(instr, i, state);
+   }
+
+   nir_alu_type dest_type = nir_op_infos[instr->op].output_type;
+   unsigned dest_bit_size = nir_dest_bit_size(instr->dest.dest);
+   if (nir_alu_type_get_type_size(dest_type)) {
+      validate_assert(state, dest_bit_size == nir_alu_type_get_type_size(dest_type));
+   } else if (instr_bit_size) {
+      validate_assert(state, dest_bit_size == instr_bit_size);
+   } else {
+      /* The only unsized thing is the destination so it's vacuously valid */
+   }
+
+   if (nir_alu_type_get_base_type(dest_type) == nir_type_float) {
+      /* 8-bit float isn't a thing */
+      validate_assert(state, dest_bit_size == 16 || dest_bit_size == 32 ||
+                             dest_bit_size == 64);
    }
 
    validate_alu_dest(instr, state);
@@ -377,7 +408,7 @@ validate_deref_chain(nir_deref *deref, validate_state *state)
          validate_assert(state, deref->type == glsl_get_array_element(parent->type));
          if (nir_deref_as_array(deref)->deref_array_type ==
              nir_deref_array_type_indirect)
-            validate_src(&nir_deref_as_array(deref)->indirect, state);
+            validate_src(&nir_deref_as_array(deref)->indirect, state, 32, 1);
          break;
 
       case nir_deref_type_struct:
@@ -426,6 +457,14 @@ validate_deref_var(void *parent_mem_ctx, nir_deref_var *deref, validate_state *s
 static void
 validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 {
+   unsigned bit_size = 0;
+   if (instr->intrinsic == nir_intrinsic_load_var ||
+       instr->intrinsic == nir_intrinsic_store_var) {
+      const struct glsl_type *type =
+         nir_deref_tail(&instr->variables[0]->deref)->type;
+      bit_size = glsl_get_bit_size(type);
+   }
+
    unsigned num_srcs = nir_intrinsic_infos[instr->intrinsic].num_srcs;
    for (unsigned i = 0; i < num_srcs; i++) {
       unsigned components_read =
@@ -435,13 +474,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
       validate_assert(state, components_read > 0);
 
-      if (instr->src[i].is_ssa) {
-         validate_assert(state, components_read <= instr->src[i].ssa->num_components);
-      } else if (!instr->src[i].reg.reg->is_packed) {
-         validate_assert(state, components_read <= instr->src[i].reg.reg->num_components);
-      }
-
-      validate_src(&instr->src[i], state);
+      validate_src(&instr->src[i], state, bit_size, components_read);
    }
 
    unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
@@ -457,13 +490,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
       validate_assert(state, components_written > 0);
 
-      if (instr->dest.is_ssa) {
-         validate_assert(state, components_written <= instr->dest.ssa.num_components);
-      } else if (!instr->dest.reg.reg->is_packed) {
-         validate_assert(state, components_written <= instr->dest.reg.reg->num_components);
-      }
-
-      validate_dest(&instr->dest, state);
+      validate_dest(&instr->dest, state, bit_size, components_written);
    }
 
    switch (instr->intrinsic) {
@@ -511,7 +538,8 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
    for (unsigned i = 0; i < instr->num_srcs; i++) {
       validate_assert(state, !src_type_seen[instr->src[i].src_type]);
       src_type_seen[instr->src[i].src_type] = true;
-      validate_src(&instr->src[i].src, state);
+      validate_src(&instr->src[i].src, state,
+                   0, nir_tex_instr_src_size(instr, i));
    }
 
    if (instr->texture != NULL)
@@ -520,7 +548,7 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
    if (instr->sampler != NULL)
       validate_deref_var(instr, instr->sampler, state);
 
-   validate_dest(&instr->dest, state);
+   validate_dest(&instr->dest, state, 0, nir_tex_instr_dest_size(instr));
 }
 
 static void
@@ -561,7 +589,7 @@ validate_phi_instr(nir_phi_instr *instr, validate_state *state)
     * basic blocks, to avoid validating an SSA use before its definition.
     */
 
-   validate_dest(&instr->dest, state);
+   validate_dest(&instr->dest, state, 0, 0);
 
    exec_list_validate(&instr->srcs);
    validate_assert(state, exec_list_length(&instr->srcs) ==
@@ -626,10 +654,8 @@ validate_phi_src(nir_phi_instr *instr, nir_block *pred, validate_state *state)
    nir_foreach_phi_src(src, instr) {
       if (src->pred == pred) {
          validate_assert(state, src->src.is_ssa);
-         validate_assert(state, src->src.ssa->num_components ==
-                instr->dest.ssa.num_components);
-
-         validate_src(&src->src, state);
+         validate_src(&src->src, state, instr->dest.ssa.bit_size,
+                      instr->dest.ssa.num_components);
          state->instr = NULL;
          return;
       }
@@ -777,7 +803,7 @@ validate_if(nir_if *if_stmt, validate_state *state)
    nir_cf_node *next_node = nir_cf_node_next(&if_stmt->cf_node);
    validate_assert(state, next_node->type == nir_cf_node_block);
 
-   validate_src(&if_stmt->condition, state);
+   validate_src(&if_stmt->condition, state, 32, 1);
 
    validate_assert(state, !exec_list_is_empty(&if_stmt->then_list));
    validate_assert(state, !exec_list_is_empty(&if_stmt->else_list));

@@ -22,7 +22,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef IR_PRINT_VISITOR_H
 #define IR_PRINT_VISITOR_H
 

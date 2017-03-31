@@ -117,8 +117,6 @@ xf86InfoRec xf86Info = {
     .vidModeAllowNonLocal = FALSE,
     .miscModInDevEnabled = TRUE,
     .miscModInDevAllowNonLocal = FALSE,
-    .pixmap24 = Pix24DontCare,
-    .pix24From = X_DEFAULT,
     .pmFlag = TRUE,
     .disableRandR = FALSE,
     .randRFrom = X_DEFAULT,
@@ -189,7 +187,6 @@ char *xf86KeyboardName = NULL;
 int xf86Verbose = DEFAULT_VERBOSE;
 int xf86LogVerbose = DEFAULT_LOG_VERBOSE;
 int xf86FbBpp = -1;
-Pix24Flags xf86Pix24 = Pix24DontCare;
 int xf86Depth = -1;
 rgb xf86Weight = { 0, 0, 0 };
 

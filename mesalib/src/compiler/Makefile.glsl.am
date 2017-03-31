@@ -30,17 +30,18 @@ EXTRA_DIST += glsl/tests glsl/glcpp/tests glsl/README	\
 	glsl/glcpp/glcpp-parse.y			\
 	SConscript.glsl
 
-TESTS += glsl/glcpp/tests/glcpp-test			\
-	glsl/glcpp/tests/glcpp-test-cr-lf		\
+TESTS += glsl/glcpp/tests/glcpp-test.sh			\
+	glsl/glcpp/tests/glcpp-test-cr-lf.sh		\
 	glsl/tests/blob-test				\
 	glsl/tests/cache-test				\
 	glsl/tests/general-ir-test			\
-	glsl/tests/optimization-test			\
+	glsl/tests/optimization-test.sh			\
 	glsl/tests/sampler-types-test			\
 	glsl/tests/uniform-initializer-test             \
-	glsl/tests/warnings-test
+	glsl/tests/warnings-test.sh
 
 TESTS_ENVIRONMENT= \
+	export abs_builddir=$(abs_builddir); \
 	export PYTHON2=$(PYTHON2); \
 	export PYTHON_FLAGS=$(PYTHON_FLAGS);
 
@@ -66,7 +67,8 @@ glsl_tests_cache_test_CFLAGS =				\
 	$(PTHREAD_CFLAGS)
 glsl_tests_cache_test_LDADD =				\
 	glsl/libglsl.la					\
-	$(PTHREAD_LIBS)
+	$(PTHREAD_LIBS)					\
+	$(CLOCK_LIB)
 
 glsl_tests_general_ir_test_SOURCES =			\
 	glsl/tests/array_refcount_test.cpp 		\
@@ -83,7 +85,8 @@ glsl_tests_general_ir_test_LDADD =			\
 	glsl/libglsl.la		\
 	glsl/libstandalone.la				\
 	$(top_builddir)/src/libglsl_util.la		\
-	$(PTHREAD_LIBS)
+	$(PTHREAD_LIBS)					\
+	$(CLOCK_LIB)
 
 glsl_tests_uniform_initializer_test_SOURCES =		\
 	glsl/tests/copy_constant_to_storage_tests.cpp	\
@@ -147,7 +150,8 @@ glsl_compiler_SOURCES = \
 	glsl/main.cpp
 
 glsl_compiler_LDADD = \
-	glsl/libstandalone.la
+	glsl/libstandalone.la \
+	$(CLOCK_LIB)
 
 glsl_glsl_test_SOURCES = \
 	glsl/test.cpp \
@@ -158,7 +162,8 @@ glsl_glsl_test_LDADD =					\
 	glsl/libglsl.la					\
 	glsl/libstandalone.la				\
 	$(top_builddir)/src/libglsl_util.la		\
-	$(PTHREAD_LIBS)
+	$(PTHREAD_LIBS)					\
+	$(CLOCK_LIB)
 
 # We write our own rules for yacc and lex below. We'd rather use automake,
 # but automake makes it especially difficult for a number of reasons:
@@ -247,6 +252,12 @@ CLEANFILES +=						\
 	glsl/glcpp/glcpp-lex.c
 
 clean-local:
+	$(RM) glsl/tests/lower_jumps/*.opt_test
+	$(RM) glsl/tests/lower_jumps/*.expected
+	$(RM) glsl/tests/lower_jumps/*.out
+	$(RM) glsl/tests/warnings/*.out
+	$(RM) glsl/glcpp/tests/*.out
+	$(RM) -r glsl/glcpp/tests/subtest*/
 	$(RM) -r subtest-cr subtest-cr-lf subtest-lf subtest-lf-cr
 
 dist-hook:

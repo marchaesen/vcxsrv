@@ -128,7 +128,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count, bool alu_ok)
             if (!list_empty(&mov->dest.dest.ssa.if_uses))
                return false;
 
-            /* The only uses of this definition must be phi's in the successor */
+            /* The only uses of this definition must be phis in the successor */
             nir_foreach_use(use, &mov->dest.dest.ssa) {
                if (use->parent_instr->type != nir_instr_type_phi ||
                    use->parent_instr->block != block->successors[0])

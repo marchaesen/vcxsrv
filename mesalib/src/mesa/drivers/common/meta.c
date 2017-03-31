@@ -131,7 +131,7 @@ meta_compile_shader_with_debug(struct gl_context *ctx, gl_shader_stage stage,
 
    sh = _mesa_new_shader(name, stage);
    sh->Source = strdup(source);
-   sh->CompileStatus = false;
+   sh->CompileStatus = compile_failure;
    _mesa_compile_shader(ctx, sh);
 
    if (!sh->CompileStatus) {
@@ -321,13 +321,14 @@ _mesa_meta_setup_vertex_objects(struct gl_context *ctx,
                         GL_DYNAMIC_DRAW, __func__);
 
       /* setup vertex arrays */
+      FLUSH_VERTICES(ctx, 0);
       if (use_generic_attributes) {
          assert(color_size == 0);
 
          _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_GENERIC(0),
                                    vertex_size, GL_FLOAT, GL_RGBA, GL_FALSE,
                                    GL_FALSE, GL_FALSE,
-                                   offsetof(struct vertex, x), true);
+                                   offsetof(struct vertex, x));
          _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_GENERIC(0),
                                   *buf_obj, 0, sizeof(struct vertex));
          _mesa_enable_vertex_array_attrib(ctx, array_obj,
@@ -336,7 +337,7 @@ _mesa_meta_setup_vertex_objects(struct gl_context *ctx,
             _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_GENERIC(1),
                                       texcoord_size, GL_FLOAT, GL_RGBA,
                                       GL_FALSE, GL_FALSE, GL_FALSE,
-                                      offsetof(struct vertex, tex), false);
+                                      offsetof(struct vertex, tex));
             _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_GENERIC(1),
                                      *buf_obj, 0, sizeof(struct vertex));
             _mesa_enable_vertex_array_attrib(ctx, array_obj,
@@ -346,7 +347,7 @@ _mesa_meta_setup_vertex_objects(struct gl_context *ctx,
          _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_POS,
                                    vertex_size, GL_FLOAT, GL_RGBA, GL_FALSE,
                                    GL_FALSE, GL_FALSE,
-                                   offsetof(struct vertex, x), true);
+                                   offsetof(struct vertex, x));
          _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_POS,
                                   *buf_obj, 0, sizeof(struct vertex));
          _mesa_enable_vertex_array_attrib(ctx, array_obj, VERT_ATTRIB_POS);
@@ -355,7 +356,7 @@ _mesa_meta_setup_vertex_objects(struct gl_context *ctx,
             _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_TEX(0),
                                       vertex_size, GL_FLOAT, GL_RGBA, GL_FALSE,
                                       GL_FALSE, GL_FALSE,
-                                      offsetof(struct vertex, tex), false);
+                                      offsetof(struct vertex, tex));
             _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_TEX(0),
                                      *buf_obj, 0, sizeof(struct vertex));
             _mesa_enable_vertex_array_attrib(ctx, array_obj, VERT_ATTRIB_TEX(0));
@@ -365,7 +366,7 @@ _mesa_meta_setup_vertex_objects(struct gl_context *ctx,
             _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_COLOR0,
                                       vertex_size, GL_FLOAT, GL_RGBA, GL_FALSE,
                                       GL_FALSE, GL_FALSE,
-                                      offsetof(struct vertex, r), false);
+                                      offsetof(struct vertex, r));
             _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_COLOR0,
                                      *buf_obj, 0, sizeof(struct vertex));
             _mesa_enable_vertex_array_attrib(ctx, array_obj, VERT_ATTRIB_COLOR0);
@@ -3319,20 +3320,22 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                         GL_DYNAMIC_DRAW, __func__);
 
       /* setup vertex arrays */
+      FLUSH_VERTICES(ctx, 0);
       _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_POS,
                                 3, GL_FLOAT, GL_RGBA, GL_FALSE,
                                 GL_FALSE, GL_FALSE,
-                                offsetof(struct vertex, x), true);
+                                offsetof(struct vertex, x));
       _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_POS,
                                drawtex->buf_obj, 0, sizeof(struct vertex));
       _mesa_enable_vertex_array_attrib(ctx, array_obj, VERT_ATTRIB_POS);
 
 
       for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
+         FLUSH_VERTICES(ctx, 0);
          _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_TEX(i),
                                    2, GL_FLOAT, GL_RGBA, GL_FALSE,
                                    GL_FALSE, GL_FALSE,
-                                   offsetof(struct vertex, st[i]), true);
+                                   offsetof(struct vertex, st[i]));
          _mesa_bind_vertex_buffer(ctx, array_obj, VERT_ATTRIB_TEX(i),
                                   drawtex->buf_obj, 0, sizeof(struct vertex));
          _mesa_enable_vertex_array_attrib(ctx, array_obj, VERT_ATTRIB_TEX(i));

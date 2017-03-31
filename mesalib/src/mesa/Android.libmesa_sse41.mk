@@ -33,6 +33,9 @@ LOCAL_MODULE := libmesa_sse41
 LOCAL_SRC_FILES += \
 	$(X86_SSE41_FILES)
 
+LOCAL_CFLAGS := \
+	-msse4.1
+
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \
 	$(MESA_TOP)/src/gallium/include \

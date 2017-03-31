@@ -38,6 +38,8 @@
 #include <dri3.h>
 #include "drm-client-protocol.h"
 
+static DevPrivateKeyRec xwl_auth_state_private_key;
+
 struct xwl_pixmap {
     struct wl_buffer *buffer;
     struct gbm_bo *bo;
@@ -429,17 +431,49 @@ glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
 struct xwl_auth_state {
     int fd;
     ClientPtr client;
+    struct wl_callback *callback;
 };
+
+static void
+free_xwl_auth_state(ClientPtr pClient, struct xwl_auth_state *state)
+{
+    dixSetPrivate(&pClient->devPrivates, &xwl_auth_state_private_key, NULL);
+    if (state) {
+        wl_callback_destroy(state->callback);
+        free(state);
+    }
+}
+
+static void
+xwl_auth_state_client_callback(CallbackListPtr *pcbl, void *unused, void *data)
+{
+    NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
+    ClientPtr pClient = clientinfo->client;
+    struct xwl_auth_state *state;
+
+    switch (pClient->clientState) {
+    case ClientStateGone:
+    case ClientStateRetained:
+        state = dixLookupPrivate(&pClient->devPrivates, &xwl_auth_state_private_key);
+        free_xwl_auth_state(pClient, state);
+        break;
+    default:
+        break;
+    }
+}
 
 static void
 sync_callback(void *data, struct wl_callback *callback, uint32_t serial)
 {
     struct xwl_auth_state *state = data;
+    ClientPtr client = state->client;
 
-    dri3_send_open_reply(state->client, state->fd);
-    AttendClient(state->client);
-    free(state);
-    wl_callback_destroy(callback);
+    /* if the client is gone, the callback is cancelled so it's safe to
+     * assume the client is still in ClientStateRunning at this point...
+     */
+    dri3_send_open_reply(client, state->fd);
+    AttendClient(client);
+    free_xwl_auth_state(client, state);
 }
 
 static const struct wl_callback_listener sync_listener = {
@@ -454,7 +488,6 @@ xwl_dri3_open_client(ClientPtr client,
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_auth_state *state;
-    struct wl_callback *callback;
     drm_magic_t magic;
     int fd;
 
@@ -482,8 +515,9 @@ xwl_dri3_open_client(ClientPtr client,
     }
 
     wl_drm_authenticate(xwl_screen->drm, magic);
-    callback = wl_display_sync(xwl_screen->display);
-    wl_callback_add_listener(callback, &sync_listener, state);
+    state->callback = wl_display_sync(xwl_screen->display);
+    wl_callback_add_listener(state->callback, &sync_listener, state);
+    dixSetPrivate(&client->devPrivates, &xwl_auth_state_private_key, state);
 
     IgnoreClient(client);
 
@@ -562,6 +596,16 @@ xwl_glamor_init(struct xwl_screen *xwl_screen)
 
     if (!dri3_screen_init(xwl_screen->screen, &xwl_dri3_info)) {
         ErrorF("Failed to initialize dri3\n");
+        return FALSE;
+    }
+
+    if (!dixRegisterPrivateKey(&xwl_auth_state_private_key, PRIVATE_CLIENT, 0)) {
+        ErrorF("Failed to register private key\n");
+        return FALSE;
+    }
+
+    if (!AddCallback(&ClientStateCallback, xwl_auth_state_client_callback, NULL)) {
+        ErrorF("Failed to add client state callback\n");
         return FALSE;
     }
 

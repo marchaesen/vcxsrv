@@ -129,7 +129,7 @@
     <param name="value" type="const GLuint *"/>
   </function>
 
-  <function name="ClearBufferfv" es2="3.0">
+  <function name="ClearBufferfv" es2="3.0" marshal="custom">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="value" type="const GLfloat *"/>
@@ -256,7 +256,8 @@
 
   <!-- These functions alias ones from GL_EXT_gpu_shader4 -->
 
-  <function name="VertexAttribIPointer" es2="3.0">
+  <function name="VertexAttribIPointer" es2="3.0" marshal="async"
+            marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
     <param name="index" type="GLuint"/>
     <param name="size" type="GLint"/>
     <param name="type" type="GLenum"/>

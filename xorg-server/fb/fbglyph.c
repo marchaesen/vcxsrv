@@ -53,185 +53,6 @@ fbGlyphIn(RegionPtr pRegion, int x, int y, int width, int height)
     return RegionContainsRect(pRegion, &box) == rgnIN;
 }
 
-#define WRITE1(d,n,fg)	WRITE((d) + (n), (CARD8) fg)
-#define WRITE2(d,n,fg)	WRITE((CARD16 *) &(d[n]), (CARD16) fg)
-#define WRITE4(d,n,fg)	WRITE((CARD32 *) &(d[n]), (CARD32) fg)
-#define WRITE8(d)	WRITE4(d,0,_ABCA), WRITE4(d,4,_BCAB)
-
-/*
- * This is a bit tricky, but it's brief.  Write 12 bytes worth
- * of dest, which is four pixels, at a time.  This gives constant
- * code for each pattern as they're always aligned the same
- *
- *  a b c d  a b c d  a b c d	bytes
- *  A B C A  B C A B  C A B C	pixels
- *
- *    f0        f1       f2
- *  A B C A  B C A B  C A B C	pixels LSB
- *  C A B C  A B C A  B C A B	pixels MSB
- *
- *		LSB	MSB
- *  A		f0	f1
- *  B		f1	f2
- *  C		f2	f0
- *  A B		f0	f2
- *  B C		f1	f0
- *  C A		f2	f1
- *  A B C A	f0	f1
- *  B C A B	f1    	f2
- *  C A B C	f2	f0
- */
-
-#undef _A
-#undef _B
-#undef _C
-#undef _AB
-#undef _BC
-#undef _CA
-#undef _ABCA
-#undef _BCAB
-#undef _CABC
-
-#if IMAGE_BYTE_ORDER == MSBFirst
-#define _A	f1
-#define _B	f2
-#define _C	f0
-#define _AB	f2
-#define _BC	f0
-#define _CA	f1
-#define _ABCA	f1
-#define _BCAB	f2
-#define _CABC	f0
-#define CASE(a,b,c,d)	((a << 3) | (b << 2) | (c << 1) | d)
-#else
-#define _A	f0
-#define _B	f1
-#define _C	f2
-#define _AB	f0
-#define _BC	f1
-#define _CA	f2
-#define _ABCA	f0
-#define _BCAB	f1
-#define _CABC	f2
-#define CASE(a,b,c,d)	(a | (b << 1) | (c << 2) | (d << 3))
-#endif
-
-static void
-fbGlyph24(FbBits * dstBits,
-          FbStride dstStride,
-          int dstBpp, FbStip * stipple, FbBits fg, int x, int height)
-{
-    int lshift;
-    FbStip bits;
-    CARD8 *dstLine;
-    CARD8 *dst;
-    FbStip f0, f1, f2;
-    int n;
-    int shift;
-
-    f0 = fg;
-    f1 = FbRot24(f0, 16);
-    f2 = FbRot24(f0, 8);
-
-    dstLine = (CARD8 *) dstBits;
-    dstLine += (x & ~3) * 3;
-    dstStride *= (sizeof(FbBits) / sizeof(CARD8));
-    shift = x & 3;
-    lshift = 4 - shift;
-    while (height--) {
-        bits = READ(stipple++);
-        n = lshift;
-        dst = dstLine;
-        while (bits) {
-            switch (FbStipMoveLsb(FbLeftStipBits(bits, n), 4, n)) {
-            case CASE(0, 0, 0, 0):
-                break;
-            case CASE(1, 0, 0, 0):
-                WRITE2(dst, 0, _AB);
-                WRITE1(dst, 2, _C);
-                break;
-            case CASE(0, 1, 0, 0):
-                WRITE1(dst, 3, _A);
-                WRITE2(dst, 4, _BC);
-                break;
-            case CASE(1, 1, 0, 0):
-                WRITE4(dst, 0, _ABCA);
-                WRITE2(dst, 4, _BC);
-                break;
-            case CASE(0, 0, 1, 0):
-                WRITE2(dst, 6, _AB);
-                WRITE1(dst, 8, _C);
-                break;
-            case CASE(1, 0, 1, 0):
-                WRITE2(dst, 0, _AB);
-                WRITE1(dst, 2, _C);
-
-                WRITE2(dst, 6, _AB);
-                WRITE1(dst, 8, _C);
-                break;
-            case CASE(0, 1, 1, 0):
-                WRITE1(dst, 3, _A);
-                WRITE4(dst, 4, _BCAB);
-                WRITE1(dst, 8, _C);
-                break;
-            case CASE(1, 1, 1, 0):
-                WRITE8(dst);
-                WRITE1(dst, 8, _C);
-                break;
-            case CASE(0, 0, 0, 1):
-                WRITE1(dst, 9, _A);
-                WRITE2(dst, 10, _BC);
-                break;
-            case CASE(1, 0, 0, 1):
-                WRITE2(dst, 0, _AB);
-                WRITE1(dst, 2, _C);
-
-                WRITE1(dst, 9, _A);
-                WRITE2(dst, 10, _BC);
-                break;
-            case CASE(0, 1, 0, 1):
-                WRITE1(dst, 3, _A);
-                WRITE2(dst, 4, _BC);
-
-                WRITE1(dst, 9, _A);
-                WRITE2(dst, 10, _BC);
-                break;
-            case CASE(1, 1, 0, 1):
-                WRITE4(dst, 0, _ABCA);
-                WRITE2(dst, 4, _BC);
-
-                WRITE1(dst, 9, _A);
-                WRITE2(dst, 10, _BC);
-                break;
-            case CASE(0, 0, 1, 1):
-                WRITE2(dst, 6, _AB);
-                WRITE4(dst, 8, _CABC);
-                break;
-            case CASE(1, 0, 1, 1):
-                WRITE2(dst, 0, _AB);
-                WRITE1(dst, 2, _C);
-
-                WRITE2(dst, 6, _AB);
-                WRITE4(dst, 8, _CABC);
-                break;
-            case CASE(0, 1, 1, 1):
-                WRITE1(dst, 3, _A);
-                WRITE4(dst, 4, _BCAB);
-                WRITE4(dst, 8, _CABC);
-                break;
-            case CASE(1, 1, 1, 1):
-                WRITE8(dst);
-                WRITE4(dst, 8, _CABC);
-                break;
-            }
-            bits = FbStipLeft(bits, n);
-            n = 4;
-            dst += 12;
-        }
-        dstLine += dstStride;
-    }
-}
-
 void
 fbPolyGlyphBlt(DrawablePtr pDrawable,
                GCPtr pGC,
@@ -260,9 +81,6 @@ fbPolyGlyphBlt(DrawablePtr pDrawable,
             break;
         case 16:
             glyph = fbGlyph16;
-            break;
-        case 24:
-            glyph = fbGlyph24;
             break;
         case 32:
             glyph = fbGlyph32;
@@ -331,9 +149,6 @@ fbImageGlyphBlt(DrawablePtr pDrawable,
             break;
         case 16:
             glyph = fbGlyph16;
-            break;
-        case 24:
-            glyph = fbGlyph24;
             break;
         case 32:
             glyph = fbGlyph32;

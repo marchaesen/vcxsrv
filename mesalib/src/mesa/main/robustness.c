@@ -101,8 +101,8 @@ _mesa_set_context_lost_dispatch(struct gl_context *ctx)
       SET_GetQueryObjectuiv(ctx->ContextLost, _context_lost_GetQueryObjectuiv);
    }
 
-   ctx->CurrentDispatch = ctx->ContextLost;
-   _glapi_set_dispatch(ctx->CurrentDispatch);
+   ctx->CurrentServerDispatch = ctx->ContextLost;
+   _glapi_set_dispatch(ctx->CurrentServerDispatch);
 }
 
 /**

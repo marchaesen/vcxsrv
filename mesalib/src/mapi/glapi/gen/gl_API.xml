@@ -1109,7 +1109,7 @@
     <type name="DEBUGPROCARB" size="4" pointer="true"/>
     <type name="DEBUGPROC" size="4" pointer="true"/>
 
-    <function name="NewList" deprecated="3.1">
+    <function name="NewList" deprecated="3.1" marshal_fail="true">
         <param name="list" type="GLuint"/>
         <param name="mode" type="GLenum"/>
         <glx sop="101"/>
@@ -1148,7 +1148,7 @@
         <glx rop="3"/>
     </function>
 
-    <function name="Begin" deprecated="3.1" exec="dynamic">
+    <function name="Begin" deprecated="3.1" exec="dynamic" marshal_fail="true">
         <param name="mode" type="GLenum"/>
         <glx rop="4"/>
     </function>
@@ -2366,11 +2366,18 @@
         <glx rop="139" handcode="client"/>
     </function>
 
-    <function name="Finish" es1="1.0" es2="2.0">
+    <function name="Finish" es1="1.0" es2="2.0" marshal="sync">
         <glx sop="108" handcode="true"/>
     </function>
 
-    <function name="Flush" es1="1.0" es2="2.0">
+    <!-- TODO: Flush is marshalled synchronously as a temporary hack
+    since we don't yet have a hook into SwapBuffers.
+
+    NOTE: when we remove this hack, we'll still have to handle Flush
+    specially to ensure that it causes all previous commands to get
+    delivered to the server thread.
+    -->
+    <function name="Flush" es1="1.0" es2="2.0" marshal="custom">
         <glx sop="142" handcode="true"/>
     </function>
 
@@ -2598,21 +2605,21 @@
         <glx sop="110" handcode="client"/>
     </function>
 
-    <function name="PixelMapfv" deprecated="3.1">
+    <function name="PixelMapfv" deprecated="3.1" marshal="sync">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
         <param name="values" type="const GLfloat *" count="mapsize"/>
         <glx rop="168" large="true"/>
     </function>
 
-    <function name="PixelMapuiv" deprecated="3.1">
+    <function name="PixelMapuiv" deprecated="3.1" marshal="sync">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
         <param name="values" type="const GLuint *" count="mapsize"/>
         <glx rop="169" large="true"/>
     </function>
 
-    <function name="PixelMapusv" deprecated="3.1">
+    <function name="PixelMapusv" deprecated="3.1" marshal="sync">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
         <param name="values" type="const GLushort *" count="mapsize"/>
@@ -3141,12 +3148,13 @@
     <enum name="CLIENT_VERTEX_ARRAY_BIT"                  value="0x00000002"/>
     <enum name="CLIENT_ALL_ATTRIB_BITS"                   value="0xFFFFFFFF"/>
 
-    <function name="ArrayElement" deprecated="3.1" exec="dynamic">
+    <function name="ArrayElement" deprecated="3.1" exec="dynamic" marshal="draw">
         <param name="i" type="GLint"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="ColorPointer" es1="1.0" deprecated="3.1">
+    <function name="ColorPointer" es1="1.0" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -3159,14 +3167,15 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="DrawArrays" es1="1.0" es2="2.0" exec="dynamic">
+    <function name="DrawArrays" es1="1.0" es2="2.0" exec="dynamic" marshal="draw">
         <param name="mode" type="GLenum"/>
         <param name="first" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <glx rop="193" handcode="true"/>
     </function>
 
-    <function name="DrawElements" es1="1.0" es2="2.0" exec="dynamic">
+    <function name="DrawElements" es1="1.0" es2="2.0" exec="dynamic" marshal="draw"
+              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -3174,7 +3183,8 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="EdgeFlagPointer" deprecated="3.1">
+    <function name="EdgeFlagPointer" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
         <glx handcode="true"/>
@@ -3191,7 +3201,8 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="IndexPointer" deprecated="3.1">
+    <function name="IndexPointer" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
@@ -3205,14 +3216,16 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="NormalPointer" es1="1.0" deprecated="3.1">
+    <function name="NormalPointer" es1="1.0" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="TexCoordPointer" es1="1.0" deprecated="3.1">
+    <function name="TexCoordPointer" es1="1.0" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -3220,7 +3233,8 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="VertexPointer" es1="1.0" deprecated="3.1">
+    <function name="VertexPointer" es1="1.0" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -3723,7 +3737,8 @@
         <glx rop="4097"/>
     </function>
 
-    <function name="DrawRangeElements" es2="3.0" exec="dynamic">
+    <function name="DrawRangeElements" es2="3.0" exec="dynamic" marshal="draw"
+              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -4486,7 +4501,7 @@
         <glx rop="229"/>
     </function>
 
-    <function name="CompressedTexImage3D" es2="3.0">
+    <function name="CompressedTexImage3D" es2="3.0" marshal="sync">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4499,7 +4514,7 @@
         <glx rop="216" handcode="client"/>
     </function>
 
-    <function name="CompressedTexImage2D" es1="1.0" es2="2.0">
+    <function name="CompressedTexImage2D" es1="1.0" es2="2.0" marshal="sync">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4511,7 +4526,7 @@
         <glx rop="215" handcode="client"/>
     </function>
 
-    <function name="CompressedTexImage1D">
+    <function name="CompressedTexImage1D" marshal="sync">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4522,7 +4537,7 @@
         <glx rop="214" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage3D" es2="3.0">
+    <function name="CompressedTexSubImage3D" es2="3.0" marshal="sync">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4537,7 +4552,7 @@
         <glx rop="219" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0">
+    <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0" marshal="sync">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4550,7 +4565,7 @@
         <glx rop="218" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage1D">
+    <function name="CompressedTexSubImage1D" marshal="sync">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4709,14 +4724,15 @@
         <glx rop="4125"/>
     </function>
 
-    <function name="FogCoordPointer" deprecated="3.1">
+    <function name="FogCoordPointer" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="MultiDrawArrays">
+    <function name="MultiDrawArrays" marshal="draw">
         <param name="mode" type="GLenum"/>
         <param name="first" type="const GLint *"/>
         <param name="count" type="const GLsizei *"/>
@@ -4845,7 +4861,8 @@
         <glx rop="4132"/>
     </function>
 
-    <function name="SecondaryColorPointer" deprecated="3.1">
+    <function name="SecondaryColorPointer" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -5010,13 +5027,13 @@
     <type name="intptr"   size="4"                  glx_name="CARD32"/>
     <type name="sizeiptr" size="4"  unsigned="true" glx_name="CARD32"/>
 
-    <function name="BindBuffer" es1="1.1" es2="2.0">
+    <function name="BindBuffer" es1="1.1" es2="2.0" marshal="custom">
         <param name="target" type="GLenum"/>
         <param name="buffer" type="GLuint"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="BufferData" es1="1.1" es2="2.0">
+    <function name="BufferData" es1="1.1" es2="2.0" marshal="custom">
         <param name="target" type="GLenum"/>
         <param name="size" type="GLsizeiptr" counter="true"/>
         <param name="data" type="const GLvoid *" count="size" img_null_flag="true"/>
@@ -5024,7 +5041,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="BufferSubData" es1="1.1" es2="2.0">
+    <function name="BufferSubData" es1="1.1" es2="2.0" marshal="custom">
         <param name="target" type="GLenum"/>
         <param name="offset" type="GLintptr"/>
         <param name="size" type="GLsizeiptr" counter="true"/>
@@ -5467,7 +5484,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="ShaderSource" es2="2.0">
+    <function name="ShaderSource" es2="2.0" marshal="custom">
         <param name="shader" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="string" type="const GLchar * const *"/>
@@ -5799,7 +5816,8 @@
         <glx rop="4233"/>
     </function>
 
-    <function name="VertexAttribPointer" es2="2.0">
+    <function name="VertexAttribPointer" es2="2.0" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="index" type="GLuint"/>
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
@@ -5858,7 +5876,7 @@
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLfloat *" count="count" count_scale="6"/>
+        <param name="value" type="const GLfloat *" count="count" count_scale="8"/>
         <glx ignore="true"/>
     </function>
     <function name="UniformMatrix4x2fv" es2="3.0">
@@ -8089,7 +8107,7 @@
   <enum name="MAX_TRANSFORM_FEEDBACK_BUFFERS" value="0x8E70"/>
   <enum name="MAX_VERTEX_STREAMS"             value="0x8E71"/>
 
-  <function name="DrawTransformFeedbackStream" exec="dynamic">
+  <function name="DrawTransformFeedbackStream" exec="dynamic" marshal="draw">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="stream" type="GLuint"/>
@@ -8137,13 +8155,13 @@
 <xi:include href="ARB_base_instance.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_ARB_transform_feedback_instanced" number="109">
-  <function name="DrawTransformFeedbackInstanced" exec="dynamic">
+  <function name="DrawTransformFeedbackInstanced" exec="dynamic" marshal="draw">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="primcount" type="GLsizei"/>
   </function>
 
-  <function name="DrawTransformFeedbackStreamInstanced" exec="dynamic">
+  <function name="DrawTransformFeedbackStreamInstanced" exec="dynamic" marshal="draw">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="stream" type="GLuint"/>
@@ -9172,7 +9190,8 @@
         <param name="i" type="GLint"/>
     </function>
 
-    <function name="ColorPointerEXT" deprecated="3.1">
+    <function name="ColorPointerEXT" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -9187,7 +9206,8 @@
         <param name="count" type="GLsizei"/>
     </function>
 
-    <function name="EdgeFlagPointerEXT" deprecated="3.1">
+    <function name="EdgeFlagPointerEXT" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="stride" type="GLsizei"/>
         <param name="count" type="GLsizei"/>
         <param name="pointer" type="const GLboolean *"/>
@@ -9199,7 +9219,8 @@
         <param name="params" type="GLvoid **" output="true"/>
     </function>
 
-    <function name="IndexPointerEXT" deprecated="3.1">
+    <function name="IndexPointerEXT" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="count" type="GLsizei"/>
@@ -9207,7 +9228,8 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="NormalPointerEXT" deprecated="3.1">
+    <function name="NormalPointerEXT" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="count" type="GLsizei"/>
@@ -9215,7 +9237,8 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="TexCoordPointerEXT" deprecated="3.1">
+    <function name="TexCoordPointerEXT" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -9224,7 +9247,8 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="VertexPointerEXT" deprecated="3.1">
+    <function name="VertexPointerEXT" deprecated="3.1" marshal="async"
+              marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -10199,7 +10223,8 @@
         <param name="primcount" type="GLsizei"/>
     </function>
 
-    <function name="MultiDrawElementsEXT" es1="1.0" es2="2.0" exec="dynamic">
+    <function name="MultiDrawElementsEXT" es1="1.0" es2="2.0" exec="dynamic" marshal="draw"
+              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="count" type="const GLsizei *"/>
         <param name="type" type="GLenum"/>
@@ -11209,7 +11234,7 @@
 </category>
 
 <category name="GL_IBM_multimode_draw_arrays" number="200">
-    <function name="MultiModeDrawArraysIBM">
+    <function name="MultiModeDrawArraysIBM" marshal="draw">
         <param name="mode" type="const GLenum *"/>
         <param name="first" type="const GLint *"/>
         <param name="count" type="const GLsizei *"/>
@@ -11218,7 +11243,8 @@
         <glx handcode="true" ignore="true"/>
     </function>
 
-    <function name="MultiModeDrawElementsIBM">
+    <function name="MultiModeDrawElementsIBM" marshal="draw"
+              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
         <param name="mode" type="const GLenum *"/>
         <param name="count" type="const GLsizei *"/>
         <param name="type" type="GLenum"/>

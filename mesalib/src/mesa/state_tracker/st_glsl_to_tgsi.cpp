@@ -432,6 +432,7 @@ public:
    bool have_sqrt;
    bool have_fma;
    bool use_shared_memory;
+   bool has_tex_txf_lz;
 
    variable_storage *find_variable_storage(ir_variable *var);
 
@@ -3879,39 +3880,7 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
    inst->sampler_array_size = sampler_array_size;
    inst->sampler_base = sampler_base;
 
-   switch (type->sampler_dimensionality) {
-   case GLSL_SAMPLER_DIM_1D:
-      inst->tex_target = (type->sampler_array)
-         ? TEXTURE_1D_ARRAY_INDEX : TEXTURE_1D_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_2D:
-      inst->tex_target = (type->sampler_array)
-         ? TEXTURE_2D_ARRAY_INDEX : TEXTURE_2D_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_3D:
-      inst->tex_target = TEXTURE_3D_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_CUBE:
-      inst->tex_target = (type->sampler_array)
-         ? TEXTURE_CUBE_ARRAY_INDEX : TEXTURE_CUBE_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_RECT:
-      inst->tex_target = TEXTURE_RECT_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_BUF:
-      inst->tex_target = TEXTURE_BUFFER_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_EXTERNAL:
-      inst->tex_target = TEXTURE_EXTERNAL_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_MS:
-      inst->tex_target = (type->sampler_array)
-         ? TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX : TEXTURE_2D_MULTISAMPLE_INDEX;
-      break;
-   default:
-      assert(!"Should not get here.");
-   }
-
+   inst->tex_target = type->sampler_index();
    inst->image_format = st_mesa_format_to_pipe_format(st_context(ctx),
          _mesa_get_shader_image_format(imgvar->data.image_format));
 
@@ -3994,6 +3963,16 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
       visit_image_intrinsic(ir);
       return;
 
+   case ir_intrinsic_shader_clock: {
+      ir->return_deref->accept(this);
+
+      st_dst_reg dst = st_dst_reg(this->result);
+      dst.writemask = TGSI_WRITEMASK_XY;
+
+      emit_asm(ir, TGSI_OPCODE_CLOCK, dst);
+      return;
+   }
+
    case ir_intrinsic_invalid:
    case ir_intrinsic_generic_load:
    case ir_intrinsic_generic_store:
@@ -4005,7 +3984,6 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
    case ir_intrinsic_generic_atomic_max:
    case ir_intrinsic_generic_atomic_exchange:
    case ir_intrinsic_generic_atomic_comp_swap:
-   case ir_intrinsic_shader_clock:
       unreachable("Invalid intrinsic");
    }
 }
@@ -4132,13 +4110,13 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    const glsl_type *sampler_type = ir->sampler->type;
    unsigned sampler_array_size = 1, sampler_base = 0;
    uint16_t sampler_index = 0;
-   bool is_cube_array = false;
+   bool is_cube_array = false, is_cube_shadow = false;
    unsigned i;
 
-   /* if we are a cube array sampler */
-   if ((sampler_type->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE &&
-        sampler_type->sampler_array)) {
-      is_cube_array = true;
+   /* if we are a cube array sampler or a cube shadow */
+   if (sampler_type->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE) {
+      is_cube_array = sampler_type->sampler_array;
+      is_cube_shadow = sampler_type->sampler_shadow;
    }
 
    if (ir->coordinate) {
@@ -4165,6 +4143,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
     */
    result_src = get_temp(ir->type);
    result_dst = st_dst_reg(result_src);
+   result_dst.writemask = (1 << ir->type->vector_elements) - 1;
 
    switch (ir->op) {
    case ir_tex:
@@ -4175,8 +4154,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       }
       break;
    case ir_txb:
-      if (is_cube_array ||
-          sampler_type == glsl_type::samplerCubeShadow_type) {
+      if (is_cube_array || is_cube_shadow) {
          opcode = TGSI_OPCODE_TXB2;
       }
       else {
@@ -4190,9 +4168,13 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       }
       break;
    case ir_txl:
-      opcode = is_cube_array ? TGSI_OPCODE_TXL2 : TGSI_OPCODE_TXL;
-      ir->lod_info.lod->accept(this);
-      lod_info = this->result;
+      if (this->has_tex_txf_lz && ir->lod_info.lod->is_zero()) {
+         opcode = TGSI_OPCODE_TEX_LZ;
+      } else {
+         opcode = is_cube_array ? TGSI_OPCODE_TXL2 : TGSI_OPCODE_TXL;
+         ir->lod_info.lod->accept(this);
+         lod_info = this->result;
+      }
       if (ir->offset) {
          ir->offset->accept(this);
          offset[0] = this->result;
@@ -4220,9 +4202,13 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       levels_src = get_temp(ir->type);
       break;
    case ir_txf:
-      opcode = TGSI_OPCODE_TXF;
-      ir->lod_info.lod->accept(this);
-      lod_info = this->result;
+      if (this->has_tex_txf_lz && ir->lod_info.lod->is_zero()) {
+         opcode = TGSI_OPCODE_TXF_LZ;
+      } else {
+         opcode = TGSI_OPCODE_TXF;
+         ir->lod_info.lod->accept(this);
+         lod_info = this->result;
+      }
       if (ir->offset) {
          ir->offset->accept(this);
          offset[0] = this->result;
@@ -4372,8 +4358,6 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
          inst = emit_asm(ir, opcode, result_dst, lod_info);
    } else if (opcode == TGSI_OPCODE_TXQS) {
       inst = emit_asm(ir, opcode, result_dst);
-   } else if (opcode == TGSI_OPCODE_TXF) {
-      inst = emit_asm(ir, opcode, result_dst, coord);
    } else if (opcode == TGSI_OPCODE_TXL2 || opcode == TGSI_OPCODE_TXB2) {
       inst = emit_asm(ir, opcode, result_dst, coord, lod_info);
    } else if (opcode == TGSI_OPCODE_TEX2) {
@@ -4408,39 +4392,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       inst->tex_offset_num_offset = i;
    }
 
-   switch (sampler_type->sampler_dimensionality) {
-   case GLSL_SAMPLER_DIM_1D:
-      inst->tex_target = (sampler_type->sampler_array)
-         ? TEXTURE_1D_ARRAY_INDEX : TEXTURE_1D_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_2D:
-      inst->tex_target = (sampler_type->sampler_array)
-         ? TEXTURE_2D_ARRAY_INDEX : TEXTURE_2D_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_3D:
-      inst->tex_target = TEXTURE_3D_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_CUBE:
-      inst->tex_target = (sampler_type->sampler_array)
-         ? TEXTURE_CUBE_ARRAY_INDEX : TEXTURE_CUBE_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_RECT:
-      inst->tex_target = TEXTURE_RECT_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_BUF:
-      inst->tex_target = TEXTURE_BUFFER_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_EXTERNAL:
-      inst->tex_target = TEXTURE_EXTERNAL_INDEX;
-      break;
-   case GLSL_SAMPLER_DIM_MS:
-      inst->tex_target = (sampler_type->sampler_array)
-         ? TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX : TEXTURE_2D_MULTISAMPLE_INDEX;
-      break;
-   default:
-      assert(!"Should not get here.");
-   }
-
+   inst->tex_target = sampler_type->sampler_index();
    inst->tex_type = ir->type->base_type;
 
    this->result = result_src;
@@ -4561,6 +4513,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    have_sqrt = false;
    have_fma = false;
    use_shared_memory = false;
+   has_tex_txf_lz = false;
 }
 
 glsl_to_tgsi_visitor::~glsl_to_tgsi_visitor()
@@ -5806,6 +5759,7 @@ compile_tgsi_instruction(struct st_translate *t,
       return;
 
    case TGSI_OPCODE_TEX:
+   case TGSI_OPCODE_TEX_LZ:
    case TGSI_OPCODE_TXB:
    case TGSI_OPCODE_TXD:
    case TGSI_OPCODE_TXL:
@@ -5813,6 +5767,7 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_TXQ:
    case TGSI_OPCODE_TXQS:
    case TGSI_OPCODE_TXF:
+   case TGSI_OPCODE_TXF_LZ:
    case TGSI_OPCODE_TEX2:
    case TGSI_OPCODE_TXB2:
    case TGSI_OPCODE_TXL2:
@@ -6666,6 +6621,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
                                             PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED);
    v->have_fma = pscreen->get_shader_param(pscreen, ptarget,
                                            PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED);
+   v->has_tex_txf_lz = pscreen->get_param(pscreen,
+                                          PIPE_CAP_TGSI_TEX_TXF_LZ);
 
    _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
                                                prog->Parameters);
@@ -6770,7 +6727,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
     * program constant) has to happen before creating this linkage.
     */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters);
+   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters,
+                                   true);
    if (!shader_program->data->LinkStatus) {
       free_glsl_to_tgsi_visitor(v);
       _mesa_reference_program(ctx, &shader->Program, NULL);
@@ -6958,6 +6916,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          (options->EmitNoPow ? POW_TO_EXP2 : 0) |
                          (!ctx->Const.NativeIntegers ? INT_DIV_TO_MUL_RCP : 0) |
                          (options->EmitNoSat ? SAT_TO_CLAMP : 0) |
+                         (ctx->Const.ForceGLSLAbsSqrt ? SQRT_TO_ABS_SQRT : 0) |
                          /* Assume that if ARB_gpu_shader5 is not supported
                           * then all of the extended integer functions need
                           * lowering.  It may be necessary to add some caps

@@ -42,10 +42,6 @@ fbSetSpans(DrawablePtr pDrawable,
     int xoff;
     int x1, x2;
 
-    if (pDrawable->bitsPerPixel != BitsPerPixel(pDrawable->depth)) {
-        fb24_32SetSpans(pDrawable, pGC, src, ppt, pwidth, nspans, fSorted);
-        return;
-    }
     fbGetDrawable(pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
     while (nspans--) {
         d = dst + (ppt->y + dstYoff) * dstStride;

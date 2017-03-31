@@ -64,11 +64,12 @@ st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
    /* Exit early when we are dealing with a ff shader with no source file to
     * generate a source from.
     */
-   if (*prog->sh.data->sha1 == 0)
+   static const char zero[sizeof(prog->sh.data->sha1)] = {0};
+   if (memcmp(prog->sh.data->sha1, zero, sizeof(prog->sh.data->sha1)) == 0)
       return;
 
    unsigned char *sha1;
-   struct blob *blob = blob_create(NULL);
+   struct blob *blob = blob_create();
 
    switch (prog->info.stage) {
    case MESA_SHADER_VERTEX: {
@@ -134,7 +135,7 @@ st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
               _mesa_shader_stage_to_string(prog->info.stage), sha1_buf);
    }
 
-   ralloc_free(blob);
+   free(blob);
 }
 
 static void
@@ -183,7 +184,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
          struct st_vertex_program *stvp = (struct st_vertex_program *) glprog;
          stage_sha1[i] = stvp->sha1;
          ralloc_strcat(&buf, " vs");
-         _mesa_sha1_compute(buf, strlen(buf), stage_sha1[i]);
+         disk_cache_compute_key(ctx->Cache, buf, strlen(buf), stage_sha1[i]);
          break;
       }
       case MESA_SHADER_TESS_CTRL: {
@@ -191,7 +192,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
             (struct st_tessctrl_program *) glprog;
          stage_sha1[i] = stcp->sha1;
          ralloc_strcat(&buf, " tcs");
-         _mesa_sha1_compute(buf, strlen(buf), stage_sha1[i]);
+         disk_cache_compute_key(ctx->Cache, buf, strlen(buf), stage_sha1[i]);
          break;
       }
       case MESA_SHADER_TESS_EVAL: {
@@ -199,7 +200,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
             (struct st_tesseval_program *) glprog;
          stage_sha1[i] = step->sha1;
          ralloc_strcat(&buf, " tes");
-         _mesa_sha1_compute(buf, strlen(buf), stage_sha1[i]);
+         disk_cache_compute_key(ctx->Cache, buf, strlen(buf), stage_sha1[i]);
          break;
       }
       case MESA_SHADER_GEOMETRY: {
@@ -207,7 +208,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
             (struct st_geometry_program *) glprog;
          stage_sha1[i] = stgp->sha1;
          ralloc_strcat(&buf, " gs");
-         _mesa_sha1_compute(buf, strlen(buf), stage_sha1[i]);
+         disk_cache_compute_key(ctx->Cache, buf, strlen(buf), stage_sha1[i]);
          break;
       }
       case MESA_SHADER_FRAGMENT: {
@@ -215,7 +216,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
             (struct st_fragment_program *) glprog;
          stage_sha1[i] = stfp->sha1;
          ralloc_strcat(&buf, " fs");
-         _mesa_sha1_compute(buf, strlen(buf), stage_sha1[i]);
+         disk_cache_compute_key(ctx->Cache, buf, strlen(buf), stage_sha1[i]);
          break;
       }
       case MESA_SHADER_COMPUTE: {
@@ -223,7 +224,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
             (struct st_compute_program *) glprog;
          stage_sha1[i] = stcp->sha1;
          ralloc_strcat(&buf, " cs");
-         _mesa_sha1_compute(buf, strlen(buf), stage_sha1[i]);
+         disk_cache_compute_key(ctx->Cache, buf, strlen(buf), stage_sha1[i]);
          break;
       }
       default:
@@ -379,7 +380,8 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
          }
 
          st_set_prog_affected_state_flags(glprog);
-         _mesa_associate_uniform_storage(ctx, prog, glprog->Parameters);
+         _mesa_associate_uniform_storage(ctx, prog, glprog->Parameters,
+                                         false);
 
          free(buffer);
       } else {

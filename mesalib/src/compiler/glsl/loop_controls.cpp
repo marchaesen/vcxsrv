@@ -97,9 +97,10 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
       new(mem_ctx) ir_expression(ir_binop_div, sub->type, sub, increment);
 
    ir_constant *iter = div->constant_expression_value();
-
-   if (iter == NULL)
+   if (iter == NULL) {
+      ralloc_free(mem_ctx);
       return -1;
+   }
 
    if (!iter->type->is_integer()) {
       const ir_expression_operation op = iter->type->is_double()

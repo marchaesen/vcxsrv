@@ -21,7 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef IR_TO_MESA_H
+#define IR_TO_MESA_H
 
 #include "main/glheader.h"
 
@@ -45,8 +46,11 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 void
 _mesa_associate_uniform_storage(struct gl_context *ctx,
 				struct gl_shader_program *shader_program,
-				struct gl_program_parameter_list *params);
+                                struct gl_program_parameter_list *params,
+                                bool propagate_to_storage);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* IR_TO_MESA_H */

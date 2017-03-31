@@ -247,9 +247,6 @@
 /* Define to 1 if you have the `timingsafe_memcmp' function. */
 #undef HAVE_TIMINGSAFE_MEMCMP
 
-/* Define to 1 if you have the <tslib.h> header file. */
-#undef HAVE_TSLIB_H
-
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
@@ -321,9 +318,6 @@
 
 /* Support TCP socket connections */
 #undef TCPCONN
-
-/* Support tslib touchscreen abstraction library */
-#undef TSLIB
 
 /* Support UNIX socket connections */
 #undef UNIXCONN
@@ -517,6 +511,9 @@
 
 /* Build glamor/gbm has linear support */
 #undef GLAMOR_HAS_GBM_LINEAR
+
+/* Build glamor use new drmGetDeviceNameFromFD2 */
+#undef GLAMOR_HAS_DRM_NAME_FROM_FD_2
 
 /* byte order */
 #undef X_BYTE_ORDER

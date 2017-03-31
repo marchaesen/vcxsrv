@@ -20,8 +20,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <kdrive-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 #include "kdrive.h"
 #include <mivalidate.h>
@@ -1191,18 +1191,6 @@ KdInitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 void
 OsVendorFatalError(const char *f, va_list args)
 {
-}
-
-int
-DPMSSet(ClientPtr client, int level)
-{
-    return Success;
-}
-
-Bool
-DPMSSupported(void)
-{
-    return FALSE;
 }
 
 /* These stubs can be safely removed once we can

@@ -48,17 +48,30 @@ VULKAN_WSI_SOURCES += $(VULKAN_WSI_X11_FILES)
 VULKAN_LIB_DEPS += $(XCB_DRI3_LIBS) -lX11-xcb
 endif
 
+BUILT_SOURCES += $(VULKAN_WSI_WAYLAND_GENERATED_FILES)
+CLEANFILES = $(BUILT_SOURCES)
+
+WL_DRM_XML = $(top_srcdir)/src/egl/wayland/wayland-drm/wayland-drm.xml
+
+wsi/wayland-drm-protocol.c : $(WL_DRM_XML)
+	$(MKDIR_GEN)
+	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
+
+wsi/wayland-drm-client-protocol.h : $(WL_DRM_XML)
+	$(MKDIR_GEN)
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
+
 if HAVE_PLATFORM_WAYLAND
 AM_CPPFLAGS += \
-	-I$(top_builddir)/src/egl/wayland/wayland-drm \
-	-I$(top_srcdir)/src/egl/wayland/wayland-drm \
+	-I$(top_builddir)/src/vulkan/wsi \
 	$(WAYLAND_CFLAGS) \
 	-DVK_USE_PLATFORM_WAYLAND_KHR
 
-VULKAN_WSI_SOURCES += $(VULKAN_WSI_WAYLAND_FILES)
+VULKAN_WSI_SOURCES += \
+	$(VULKAN_WSI_WAYLAND_FILES) \
+	$(VULKAN_WSI_WAYLAND_GENERATED_FILES)
 
 VULKAN_LIB_DEPS += \
-	$(top_builddir)/src/egl/wayland/wayland-drm/libwayland-drm.la \
 	$(WAYLAND_LIBS)
 endif
 

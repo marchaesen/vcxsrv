@@ -26,6 +26,7 @@ AM_CPPFLAGS = 			\
 	@KDRIVE_CFLAGS@		\
 	@XEPHYR_INCS@		\
 	@XEPHYR_CFLAGS@		\
+	-DHAVE_DIX_CONFIG_H	\
 	-I$(top_srcdir)		\
 	-I$(top_srcdir)/glamor	\
 	-I$(top_srcdir)/exa

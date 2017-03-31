@@ -57,6 +57,12 @@ def struct(node, module, namespace):
     type = Struct(name, node)
     module.add_type(id, namespace.ns, name, type)
 
+def eventstruct(node, module, namespace):
+    id = node.get('name')
+    name = namespace.prefix + (id,)
+    type = EventStruct(name, node)
+    module.add_type(id, namespace.ns, name, type)
+
 def union(node, module, namespace):
     id = node.get('name')
     name = namespace.prefix + (id,)
@@ -103,6 +109,7 @@ funcs = {'import' : import_,
          'xidunion' : xidunion,
          'enum' : enum,
          'struct' : struct,
+         'eventstruct' : eventstruct,
          'union' : union,
          'request' : request,
          'event' : event,

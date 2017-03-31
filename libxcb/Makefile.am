@@ -84,6 +84,9 @@ endif
 if BUILD_XVMC
 pkgconfig_DATA += xcb-xvmc.pc
 endif
+if BUILD_GE
+pkgconfig_DATA += xcb-ge.pc
+endif
 
 
 AM_TESTS_ENVIRONMENT = \

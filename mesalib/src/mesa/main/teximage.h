@@ -118,9 +118,6 @@ _mesa_is_proxy_texture(GLenum target);
 extern bool
 _mesa_is_array_texture(GLenum target);
 
-extern struct gl_texture_image *
-_mesa_new_texture_image( struct gl_context *ctx );
-
 
 extern void
 _mesa_delete_texture_image( struct gl_context *ctx,

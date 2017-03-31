@@ -31,6 +31,7 @@
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -40,10 +41,13 @@
 #include "zlib.h"
 
 #include "util/crc32.h"
+#include "util/rand_xor.h"
 #include "util/u_atomic.h"
+#include "util/u_queue.h"
 #include "util/mesa-sha1.h"
 #include "util/ralloc.h"
 #include "main/errors.h"
+#include "util/macros.h"
 
 #include "disk_cache.h"
 
@@ -60,6 +64,12 @@ struct disk_cache {
    /* The path to the cache directory. */
    char *path;
 
+   /* Thread queue for compressing and writing cache entries to disk */
+   struct util_queue cache_queue;
+
+   /* Seed for rand, which is used to pick a random directory */
+   uint64_t seed_xorshift128plus[2];
+
    /* A pointer to the mmapped index file within the cache directory. */
    uint8_t *index_mmap;
    size_t index_mmap_size;
@@ -72,6 +82,24 @@ struct disk_cache {
 
    /* Maximum size of all cached objects (in bytes). */
    uint64_t max_size;
+
+   /* Driver cache keys. */
+   uint8_t *driver_keys_blob;
+   size_t driver_keys_blob_size;
+};
+
+struct disk_cache_put_job {
+   struct util_queue_fence fence;
+
+   struct disk_cache *cache;
+
+   cache_key key;
+
+   /* Copy of cache data to be compressed and written. */
+   void *data;
+
+   /* Size of data to be compressed and written. */
+   size_t size;
 };
 
 /* Create a directory named 'path' if it does not already exist.
@@ -134,73 +162,6 @@ concatenate_and_mkdir(void *ctx, const char *path, const char *name)
       return NULL;
 }
 
-static int
-remove_dir(const char *fpath, const struct stat *sb,
-           int typeflag, struct FTW *ftwbuf)
-{
-   if (S_ISREG(sb->st_mode))
-      unlink(fpath);
-   else if (S_ISDIR(sb->st_mode))
-      rmdir(fpath);
-
-   return 0;
-}
-
-static void
-remove_old_cache_directories(void *mem_ctx, const char *path,
-                             const char *timestamp)
-{
-   DIR *dir = opendir(path);
-
-   struct dirent* d_entry;
-   while((d_entry = readdir(dir)) != NULL)
-   {
-      char *full_path =
-         ralloc_asprintf(mem_ctx, "%s/%s", path, d_entry->d_name);
-
-      struct stat sb;
-      if (stat(full_path, &sb) == 0 && S_ISDIR(sb.st_mode) &&
-          strcmp(d_entry->d_name, timestamp) != 0 &&
-          strcmp(d_entry->d_name, "..") != 0 &&
-          strcmp(d_entry->d_name, ".") != 0) {
-         nftw(full_path, remove_dir, 20, FTW_DEPTH);
-      }
-   }
-
-   closedir(dir);
-}
-
-static char *
-create_mesa_cache_dir(void *mem_ctx, const char *path, const char *timestamp,
-                      const char *gpu_name)
-{
-   char *new_path = concatenate_and_mkdir(mem_ctx, path, "mesa");
-   if (new_path == NULL)
-      return NULL;
-
-   /* Create a parent architecture directory so that we don't remove cache
-    * files for other architectures. In theory we could share the cache
-    * between architectures but we have no way of knowing if they were created
-    * by a compatible Mesa version.
-    */
-   new_path = concatenate_and_mkdir(mem_ctx, new_path, get_arch_bitness_str());
-   if (new_path == NULL)
-      return NULL;
-
-   /* Remove cache directories for old Mesa versions */
-   remove_old_cache_directories(mem_ctx, new_path, timestamp);
-
-   new_path = concatenate_and_mkdir(mem_ctx, new_path, timestamp);
-   if (new_path == NULL)
-      return NULL;
-
-   new_path = concatenate_and_mkdir(mem_ctx, new_path, gpu_name);
-   if (new_path == NULL)
-      return NULL;
-
-   return new_path;
-}
-
 struct disk_cache *
 disk_cache_create(const char *gpu_name, const char *timestamp)
 {
@@ -210,6 +171,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
    uint64_t max_size;
    int fd = -1;
    struct stat sb;
+   struct statvfs vfs = { 0 };
    size_t size;
 
    /* If running as a users other than the real user disable cache */
@@ -236,8 +198,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
       if (mkdir_if_needed(path) == -1)
          goto fail;
 
-      path = create_mesa_cache_dir(local, path, timestamp,
-                                   gpu_name);
+      path = concatenate_and_mkdir(local, path, "mesa");
       if (path == NULL)
          goto fail;
    }
@@ -249,8 +210,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
          if (mkdir_if_needed(xdg_cache_home) == -1)
             goto fail;
 
-         path = create_mesa_cache_dir(local, xdg_cache_home, timestamp,
-                                      gpu_name);
+         path = concatenate_and_mkdir(local, xdg_cache_home, "mesa");
          if (path == NULL)
             goto fail;
       }
@@ -286,7 +246,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
       if (path == NULL)
          goto fail;
 
-      path = create_mesa_cache_dir(local, path, timestamp, gpu_name);
+      path = concatenate_and_mkdir(local, path, "mesa");
       if (path == NULL)
          goto fail;
    }
@@ -371,11 +331,47 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
       }
    }
 
-   /* Default to 1GB for maximum cache size. */
-   if (max_size == 0)
-      max_size = 1024*1024*1024;
+   /* Default to 1GB or 10% of filesystem for maximum cache size. */
+   if (max_size == 0) {
+      statvfs(path, &vfs);
+      max_size = MAX2(1024*1024*1024, vfs.f_blocks * vfs.f_bsize / 10);
+   }
 
    cache->max_size = max_size;
+
+   /* A limit of 32 jobs was choosen as observations of Deus Ex start-up times
+    * showed that we reached at most 11 jobs on an Intel i5-6400 CPU@2.70GHz
+    * (a fairly modest desktop CPU). 1 thread was chosen because we don't
+    * really care about getting things to disk quickly just that it's not
+    * blocking other tasks.
+    */
+   util_queue_init(&cache->cache_queue, "disk_cache", 32, 1);
+
+   /* Create driver id keys */
+   size_t ts_size = strlen(timestamp) + 1;
+   size_t gpu_name_size = strlen(gpu_name) + 1;
+   cache->driver_keys_blob_size = ts_size;
+   cache->driver_keys_blob_size += gpu_name_size;
+
+   /* We sometimes store entire structs that contains a pointers in the cache,
+    * use pointer size as a key to avoid hard to debug issues.
+    */
+   uint8_t ptr_size = sizeof(void *);
+   size_t ptr_size_size = sizeof(ptr_size);
+   cache->driver_keys_blob_size += ptr_size_size;
+
+   cache->driver_keys_blob =
+      ralloc_size(cache, cache->driver_keys_blob_size);
+   if (!cache->driver_keys_blob)
+      goto fail;
+
+   memcpy(cache->driver_keys_blob, timestamp, ts_size);
+   memcpy(cache->driver_keys_blob + ts_size, gpu_name, gpu_name_size);
+   memcpy(cache->driver_keys_blob + ts_size + gpu_name_size, &ptr_size,
+          ptr_size_size);
+
+   /* Seed our rand function */
+   s_rand_xorshift128plus(cache->seed_xorshift128plus, true);
 
    ralloc_free(local);
 
@@ -394,8 +390,10 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
 void
 disk_cache_destroy(struct disk_cache *cache)
 {
-   if (cache)
+   if (cache) {
+      util_queue_destroy(&cache->cache_queue);
       munmap(cache->index_mmap, cache->index_mmap_size);
+   }
 
    ralloc_free(cache);
 }
@@ -438,70 +436,62 @@ make_cache_file_directory(struct disk_cache *cache, const cache_key key)
    free(dir);
 }
 
-/* Given a directory path and predicate function, count all entries in
- * that directory for which the predicate returns true. Then choose a
- * random entry from among those counted.
+/* Given a directory path and predicate function, find the entry with
+ * the oldest access time in that directory for which the predicate
+ * returns true.
  *
  * Returns: A malloc'ed string for the path to the chosen file, (or
  * NULL on any error). The caller should free the string when
  * finished.
  */
 static char *
-choose_random_file_matching(const char *dir_path,
-                            bool (*predicate)(const struct dirent *,
-                                              const char *dir_path))
+choose_lru_file_matching(const char *dir_path,
+                         bool (*predicate)(const char *dir_path,
+                                           const struct stat *,
+                                           const char *, const size_t))
 {
    DIR *dir;
    struct dirent *entry;
-   unsigned int count, victim;
    char *filename;
+   char *lru_name = NULL;
+   time_t lru_atime = 0;
 
    dir = opendir(dir_path);
    if (dir == NULL)
       return NULL;
 
-   count = 0;
-
    while (1) {
       entry = readdir(dir);
       if (entry == NULL)
          break;
-      if (!predicate(entry, dir_path))
-         continue;
 
-      count++;
+      struct stat sb;
+      if (fstatat(dirfd(dir), entry->d_name, &sb, 0) == 0) {
+         if (!lru_atime || (sb.st_atime < lru_atime)) {
+            size_t len = strlen(entry->d_name);
+
+            if (!predicate(dir_path, &sb, entry->d_name, len))
+               continue;
+
+            char *tmp = realloc(lru_name, len + 1);
+            if (tmp) {
+               lru_name = tmp;
+               memcpy(lru_name, entry->d_name, len + 1);
+               lru_atime = sb.st_atime;
+            }
+         }
+      }
    }
 
-   if (count == 0) {
+   if (lru_name == NULL) {
       closedir(dir);
       return NULL;
    }
 
-   victim = rand() % count;
-
-   rewinddir(dir);
-   count = 0;
-
-   while (1) {
-      entry = readdir(dir);
-      if (entry == NULL)
-         break;
-      if (!predicate(entry, dir_path))
-         continue;
-      if (count == victim)
-         break;
-
-      count++;
-   }
-
-   if (entry == NULL) {
-      closedir(dir);
-      return NULL;
-   }
-
-   if (asprintf(&filename, "%s/%s", dir_path, entry->d_name) < 0)
+   if (asprintf(&filename, "%s/%s", dir_path, lru_name) < 0)
       filename = NULL;
 
+   free(lru_name);
    closedir(dir);
 
    return filename;
@@ -511,21 +501,13 @@ choose_random_file_matching(const char *dir_path,
  * ".tmp"
  */
 static bool
-is_regular_non_tmp_file(const struct dirent *entry, const char *path)
+is_regular_non_tmp_file(const char *path, const struct stat *sb,
+                        const char *d_name, const size_t len)
 {
-   char *filename;
-   if (asprintf(&filename, "%s/%s", path, entry->d_name) == -1)
+   if (!S_ISREG(sb->st_mode))
       return false;
 
-   struct stat sb;
-   int res = stat(filename, &sb);
-   free(filename);
-
-   if (res == -1 || !S_ISREG(sb.st_mode))
-      return false;
-
-   size_t len = strlen (entry->d_name);
-   if (len >= 4 && strcmp(&entry->d_name[len-4], ".tmp") == 0)
+   if (len >= 4 && strcmp(&d_name[len-4], ".tmp") == 0)
       return false;
 
    return true;
@@ -533,12 +515,12 @@ is_regular_non_tmp_file(const struct dirent *entry, const char *path)
 
 /* Returns the size of the deleted file, (or 0 on any error). */
 static size_t
-unlink_random_file_from_directory(const char *path)
+unlink_lru_file_from_directory(const char *path)
 {
    struct stat sb;
    char *filename;
 
-   filename = choose_random_file_matching(path, is_regular_non_tmp_file);
+   filename = choose_lru_file_matching(path, is_regular_non_tmp_file);
    if (filename == NULL)
       return 0;
 
@@ -548,83 +530,93 @@ unlink_random_file_from_directory(const char *path)
    }
 
    unlink(filename);
-
    free (filename);
 
    return sb.st_size;
 }
 
 /* Is entry a directory with a two-character name, (and not the
- * special name of "..")
+ * special name of ".."). We also return false if the dir is empty.
  */
 static bool
-is_two_character_sub_directory(const struct dirent *entry, const char *path)
+is_two_character_sub_directory(const char *path, const struct stat *sb,
+                               const char *d_name, const size_t len)
 {
-   char *subdir;
-   if (asprintf(&subdir, "%s/%s", path, entry->d_name) == -1)
+   if (!S_ISDIR(sb->st_mode))
       return false;
 
-   struct stat sb;
-   int res = stat(subdir, &sb);
+   if (len != 2)
+      return false;
+
+   if (strcmp(d_name, "..") == 0)
+      return false;
+
+   char *subdir;
+   if (asprintf(&subdir, "%s/%s", path, d_name) == -1)
+      return false;
+   DIR *dir = opendir(subdir);
    free(subdir);
 
-   if (res == -1 || !S_ISDIR(sb.st_mode))
-      return false;
+   if (dir == NULL)
+     return false;
 
-   if (strlen(entry->d_name) != 2)
-      return false;
+   unsigned subdir_entries = 0;
+   struct dirent *d;
+   while ((d = readdir(dir)) != NULL) {
+      if(++subdir_entries > 2)
+         break;
+   }
+   closedir(dir);
 
-   if (strcmp(entry->d_name, "..") == 0)
+   /* If dir only contains '.' and '..' it must be empty */
+   if (subdir_entries <= 2)
       return false;
 
    return true;
 }
 
 static void
-evict_random_item(struct disk_cache *cache)
+evict_lru_item(struct disk_cache *cache)
 {
-   const char hex[] = "0123456789abcde";
    char *dir_path;
-   int a, b;
-   size_t size;
 
    /* With a reasonably-sized, full cache, (and with keys generated
     * from a cryptographic hash), we can choose two random hex digits
     * and reasonably expect the directory to exist with a file in it.
+    * Provides pseudo-LRU eviction to reduce checking all cache files.
     */
-   a = rand() % 16;
-   b = rand() % 16;
-
-   if (asprintf(&dir_path, "%s/%c%c", cache->path, hex[a], hex[b]) < 0)
+   uint64_t rand64 = rand_xorshift128plus(cache->seed_xorshift128plus);
+   if (asprintf(&dir_path, "%s/%02" PRIx64 , cache->path, rand64 & 0xff) < 0)
       return;
 
-   size = unlink_random_file_from_directory(dir_path);
+   size_t size = unlink_lru_file_from_directory(dir_path);
 
    free(dir_path);
 
    if (size) {
-      p_atomic_add(cache->size, - size);
+      p_atomic_add(cache->size, - (uint64_t)size);
       return;
    }
 
    /* In the case where the random choice of directory didn't find
-    * something, we choose randomly from the existing directories.
+    * something, we choose the least recently accessed from the
+    * existing directories.
     *
     * Really, the only reason this code exists is to allow the unit
     * tests to work, (which use an artificially-small cache to be able
     * to force a single cached item to be evicted).
     */
-   dir_path = choose_random_file_matching(cache->path,
-                                          is_two_character_sub_directory);
+   dir_path = choose_lru_file_matching(cache->path,
+                                       is_two_character_sub_directory);
    if (dir_path == NULL)
       return;
 
-   size = unlink_random_file_from_directory(dir_path);
+   size = unlink_lru_file_from_directory(dir_path);
 
    free(dir_path);
 
    if (size)
-      p_atomic_add(cache->size, - size);
+      p_atomic_add(cache->size, - (uint64_t)size);
 }
 
 void
@@ -646,7 +638,37 @@ disk_cache_remove(struct disk_cache *cache, const cache_key key)
    free(filename);
 
    if (sb.st_size)
-      p_atomic_add(cache->size, - sb.st_size);
+      p_atomic_add(cache->size, - (uint64_t)sb.st_size);
+}
+
+static ssize_t
+read_all(int fd, void *buf, size_t count)
+{
+   char *in = buf;
+   ssize_t read_ret;
+   size_t done;
+
+   for (done = 0; done < count; done += read_ret) {
+      read_ret = read(fd, in + done, count - done);
+      if (read_ret == -1 || read_ret == 0)
+         return -1;
+   }
+   return done;
+}
+
+static ssize_t
+write_all(int fd, const void *buf, size_t count)
+{
+   const char *out = buf;
+   ssize_t written;
+   size_t done;
+
+   for (done = 0; done < count; done += written) {
+      written = write(fd, out + done, count - done);
+      if (written == -1)
+         return -1;
+   }
+   return done;
 }
 
 /* From the zlib docs:
@@ -696,15 +718,12 @@ deflate_and_write_to_disk(const void *in_data, size_t in_data_size, int dest,
          assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
 
          size_t have = BUFSIZE - strm.avail_out;
-         compressed_size += compressed_size + have;
+         compressed_size += have;
 
-         size_t written = 0;
-         for (size_t len = 0; len < have; len += written) {
-            written = write(dest, out + len, have - len);
-            if (written == -1) {
-               (void)deflateEnd(&strm);
-               return 0;
-            }
+         ssize_t written = write_all(dest, out, have);
+         if (written == -1) {
+            (void)deflateEnd(&strm);
+            return 0;
          }
       } while (strm.avail_out == 0);
 
@@ -721,24 +740,57 @@ deflate_and_write_to_disk(const void *in_data, size_t in_data_size, int dest,
    return compressed_size;
 }
 
+static struct disk_cache_put_job *
+create_put_job(struct disk_cache *cache, const cache_key key,
+               const void *data, size_t size)
+{
+   struct disk_cache_put_job *dc_job = (struct disk_cache_put_job *)
+      malloc(sizeof(struct disk_cache_put_job) + size);
+
+   if (dc_job) {
+      dc_job->cache = cache;
+      memcpy(dc_job->key, key, sizeof(cache_key));
+      dc_job->data = dc_job + 1;
+      memcpy(dc_job->data, data, size);
+      dc_job->size = size;
+   }
+
+   return dc_job;
+}
+
+static void
+destroy_put_job(void *job, int thread_index)
+{
+   if (job) {
+      free(job);
+   }
+}
+
 struct cache_entry_file_data {
    uint32_t crc32;
    uint32_t uncompressed_size;
 };
 
-void
-disk_cache_put(struct disk_cache *cache,
-          const cache_key key,
-          const void *data,
-          size_t size)
+static void
+cache_put(void *job, int thread_index)
 {
-   int fd = -1, fd_final = -1, err, ret;
-   size_t len;
-   char *filename = NULL, *filename_tmp = NULL;
+   assert(job);
 
-   filename = get_cache_file(cache, key);
+   int fd = -1, fd_final = -1, err, ret;
+   unsigned i = 0;
+   char *filename = NULL, *filename_tmp = NULL;
+   struct disk_cache_put_job *dc_job = (struct disk_cache_put_job *) job;
+
+   filename = get_cache_file(dc_job->cache, dc_job->key);
    if (filename == NULL)
       goto done;
+
+   /* If the cache is too large, evict something else first. */
+   while (*dc_job->cache->size + dc_job->size > dc_job->cache->max_size &&
+          i < 8) {
+      evict_lru_item(dc_job->cache);
+      i++;
+   }
 
    /* Write to a temporary file to allow for an atomic rename to the
     * final destination filename, (to prevent any readers from seeing
@@ -754,7 +806,7 @@ disk_cache_put(struct disk_cache *cache,
       if (errno != ENOENT)
          goto done;
 
-      make_cache_file_directory(cache, key);
+      make_cache_file_directory(dc_job->cache, dc_job->key);
 
       fd = open(filename_tmp, O_WRONLY | O_CLOEXEC | O_CREAT, 0644);
       if (fd == -1)
@@ -777,53 +829,64 @@ disk_cache_put(struct disk_cache *cache,
     * (to ensure the size accounting of the cache doesn't get off).
     */
    fd_final = open(filename, O_RDONLY | O_CLOEXEC);
-   if (fd_final != -1)
+   if (fd_final != -1) {
+      unlink(filename_tmp);
       goto done;
+   }
 
    /* OK, we're now on the hook to write out a file that we know is
     * not in the cache, and is also not being written out to the cache
     * by some other process.
-    *
-    * Before we do that, if the cache is too large, evict something
-    * else first.
     */
-   if (*cache->size + size > cache->max_size)
-      evict_random_item(cache);
 
-   /* Create CRC of the data and store at the start of the file. We will
-    * read this when restoring the cache and use it to check for corruption.
+   /* Write the driver_keys_blob, this can be used find information about the
+    * mesa version that produced the entry or deal with hash collisions,
+    * should that ever become a real problem.
+    */
+   ret = write_all(fd, dc_job->cache->driver_keys_blob,
+                   dc_job->cache->driver_keys_blob_size);
+   if (ret == -1) {
+      unlink(filename_tmp);
+      goto done;
+   }
+
+   /* Create CRC of the data. We will read this when restoring the cache and
+    * use it to check for corruption.
     */
    struct cache_entry_file_data cf_data;
-   cf_data.crc32 = util_hash_crc32(data, size);
-   cf_data.uncompressed_size = size;
+   cf_data.crc32 = util_hash_crc32(dc_job->data, dc_job->size);
+   cf_data.uncompressed_size = dc_job->size;
 
    size_t cf_data_size = sizeof(cf_data);
-   for (len = 0; len < cf_data_size; len += ret) {
-      ret = write(fd, ((uint8_t *) &cf_data) + len, cf_data_size - len);
-      if (ret == -1) {
-         unlink(filename_tmp);
-         goto done;
-      }
+   ret = write_all(fd, &cf_data, cf_data_size);
+   if (ret == -1) {
+      unlink(filename_tmp);
+      goto done;
    }
 
    /* Now, finally, write out the contents to the temporary file, then
     * rename them atomically to the destination filename, and also
     * perform an atomic increment of the total cache size.
     */
-   size_t file_size = deflate_and_write_to_disk(data, size, fd, filename_tmp);
+   size_t file_size = deflate_and_write_to_disk(dc_job->data, dc_job->size,
+                                                fd, filename_tmp);
    if (file_size == 0) {
       unlink(filename_tmp);
       goto done;
    }
-   rename(filename_tmp, filename);
+   ret = rename(filename_tmp, filename);
+   if (ret == -1) {
+      unlink(filename_tmp);
+      goto done;
+   }
 
-   file_size += cf_data_size;
-   p_atomic_add(cache->size, file_size);
+   file_size += cf_data_size + dc_job->cache->driver_keys_blob_size;
+   p_atomic_add(dc_job->cache->size, file_size);
 
  done:
    if (fd_final != -1)
       close(fd_final);
-   /* This close finally releases the flock, (now that the final dile
+   /* This close finally releases the flock, (now that the final file
     * has been renamed into place and the size has been added).
     */
    if (fd != -1)
@@ -832,6 +895,20 @@ disk_cache_put(struct disk_cache *cache,
       free(filename_tmp);
    if (filename)
       free(filename);
+}
+
+void
+disk_cache_put(struct disk_cache *cache, const cache_key key,
+               const void *data, size_t size)
+{
+   struct disk_cache_put_job *dc_job =
+      create_put_job(cache, key, data, size);
+
+   if (dc_job) {
+      util_queue_fence_init(&dc_job->fence);
+      util_queue_add_job(&cache->cache_queue, dc_job, &dc_job->fence,
+                         cache_put, destroy_put_job);
+   }
 }
 
 /**
@@ -876,7 +953,7 @@ inflate_cache_data(uint8_t *in_data, size_t in_data_size,
 void *
 disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
 {
-   int fd = -1, ret, len;
+   int fd = -1, ret;
    struct stat sb;
    char *filename = NULL;
    uint8_t *data = NULL;
@@ -900,23 +977,43 @@ disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
    if (data == NULL)
       goto fail;
 
+   size_t ck_size = cache->driver_keys_blob_size;
+#ifndef NDEBUG
+   uint8_t *file_header = malloc(ck_size);
+   if (!file_header)
+      goto fail;
+
+   assert(sb.st_size > ck_size);
+   ret = read_all(fd, file_header, ck_size);
+   if (ret == -1) {
+      free(file_header);
+      goto fail;
+   }
+
+   assert(memcmp(cache->driver_keys_blob, file_header, ck_size) == 0);
+
+   free(file_header);
+#else
+   /* The cache keys are currently just used for distributing precompiled
+    * shaders, they are not used by Mesa so just skip them for now.
+    */
+   ret = lseek(fd, ck_size, SEEK_CUR);
+   if (ret == -1)
+      goto fail;
+#endif
+
    /* Load the CRC that was created when the file was written. */
    struct cache_entry_file_data cf_data;
    size_t cf_data_size = sizeof(cf_data);
-   assert(sb.st_size > cf_data_size);
-   for (len = 0; len < cf_data_size; len += ret) {
-      ret = read(fd, ((uint8_t *) &cf_data) + len, cf_data_size - len);
-      if (ret == -1)
-         goto fail;
-   }
+   ret = read_all(fd, &cf_data, cf_data_size);
+   if (ret == -1)
+      goto fail;
 
    /* Load the actual cache data. */
-   size_t cache_data_size = sb.st_size - cf_data_size;
-   for (len = 0; len < cache_data_size; len += ret) {
-      ret = read(fd, data + len, cache_data_size - len);
-      if (ret == -1)
-         goto fail;
-   }
+   size_t cache_data_size = sb.st_size - cf_data_size - ck_size;
+   ret = read_all(fd, data, cache_data_size);
+   if (ret == -1)
+      goto fail;
 
    /* Uncompress the cache data */
    uncompressed_data = malloc(cf_data.uncompressed_size);
@@ -958,7 +1055,7 @@ disk_cache_put_key(struct disk_cache *cache, const cache_key key)
    int i = *key_chunk & CACHE_INDEX_KEY_MASK;
    unsigned char *entry;
 
-   entry = &cache->stored_keys[i + CACHE_KEY_SIZE];
+   entry = &cache->stored_keys[i * CACHE_KEY_SIZE];
 
    memcpy(entry, key, CACHE_KEY_SIZE);
 }
@@ -977,9 +1074,22 @@ disk_cache_has_key(struct disk_cache *cache, const cache_key key)
    int i = *key_chunk & CACHE_INDEX_KEY_MASK;
    unsigned char *entry;
 
-   entry = &cache->stored_keys[i + CACHE_KEY_SIZE];
+   entry = &cache->stored_keys[i * CACHE_KEY_SIZE];
 
    return memcmp(entry, key, CACHE_KEY_SIZE) == 0;
+}
+
+void
+disk_cache_compute_key(struct disk_cache *cache, const void *data, size_t size,
+                       cache_key key)
+{
+   struct mesa_sha1 ctx;
+
+   _mesa_sha1_init(&ctx);
+   _mesa_sha1_update(&ctx, cache->driver_keys_blob,
+                     cache->driver_keys_blob_size);
+   _mesa_sha1_update(&ctx, data, size);
+   _mesa_sha1_final(&ctx, key);
 }
 
 #endif /* ENABLE_SHADER_CACHE */

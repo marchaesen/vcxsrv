@@ -10,7 +10,8 @@
 
     <enum name="VERTEX_ARRAY_BINDING" value="0x85B5"/>
 
-    <function name="BindVertexArray" es2="3.0">
+    <function name="BindVertexArray" es2="3.0"
+              marshal_fail="_mesa_glthread_is_compat_bind_vertex_array(ctx)">
         <param name="array" type="GLuint"/>
     </function>
 

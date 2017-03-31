@@ -290,21 +290,6 @@ Disable Silken Mouse support.
 Disable the automatic switching on X server reset and shutdown to the
 VT that was active when the server started, if supported by the OS.
 .TP 8
-.B \-pixmap24
-Set the internal pixmap format for depth 24 pixmaps to 24 bits per pixel.
-The default is usually 32 bits per pixel.  There is normally little
-reason to use this option.  Some client applications don't like this
-pixmap format, even though it is a perfectly legal format.  This is
-equivalent to the
-.B Pixmap
-xorg.conf(__filemansuffix__) file option.
-.TP 8
-.B \-pixmap32
-Set the internal pixmap format for depth 24 pixmaps to 32 bits per pixel.
-This is usually the default.  This is equivalent to the
-.B Pixmap
-xorg.conf(__filemansuffix__) file option.
-.TP 8
 .BI \-pointer " pointer-name"
 Use the xorg.conf(__filemansuffix__) file
 .B InputDevice

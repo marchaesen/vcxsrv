@@ -117,15 +117,6 @@ if HAVE_EGL
 SUBDIRS += egl
 endif
 
-if HAVE_INTEL_DRIVERS
-SUBDIRS += intel/tools
-endif
-
-## Requires the i965 compiler (part of mesa) and wayland-drm
-if HAVE_INTEL_VULKAN
-SUBDIRS += intel/vulkan
-endif
-
 # Requires wayland-drm
 if HAVE_RADEON_VULKAN
 SUBDIRS += amd/vulkan

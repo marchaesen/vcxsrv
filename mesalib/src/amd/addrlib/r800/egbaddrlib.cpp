@@ -25,27 +25,33 @@
  */
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @file  egbaddrlib.cpp
-* @brief Contains the EgBasedAddrLib class implementation
-***************************************************************************************************
+* @brief Contains the EgBasedLib class implementation.
+****************************************************************************************************
 */
 
 #include "egbaddrlib.h"
 
+namespace Addr
+{
+namespace V1
+{
+
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::EgBasedAddrLib
+****************************************************************************************************
+*   EgBasedLib::EgBasedLib
 *
 *   @brief
 *       Constructor
 *
 *   @note
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-EgBasedAddrLib::EgBasedAddrLib(const AddrClient* pClient) :
-    AddrLib(pClient),
+EgBasedLib::EgBasedLib(const Client* pClient)
+    :
+    Lib(pClient),
     m_ranks(0),
     m_logicalBanks(0),
     m_bankInterleave(1)
@@ -53,20 +59,20 @@ EgBasedAddrLib::EgBasedAddrLib(const AddrClient* pClient) :
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::~EgBasedAddrLib
+****************************************************************************************************
+*   EgBasedLib::~EgBasedLib
 *
 *   @brief
 *       Destructor
-***************************************************************************************************
+****************************************************************************************************
 */
-EgBasedAddrLib::~EgBasedAddrLib()
+EgBasedLib::~EgBasedLib()
 {
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::DispatchComputeSurfaceInfo
+****************************************************************************************************
+*   EgBasedLib::DispatchComputeSurfaceInfo
 *
 *   @brief
 *       Compute surface sizes include padded pitch,height,slices,total size in bytes,
@@ -75,9 +81,9 @@ EgBasedAddrLib::~EgBasedAddrLib()
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::DispatchComputeSurfaceInfo(
+BOOL_32 EgBasedLib::DispatchComputeSurfaceInfo(
     const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,    ///< [in] input structure
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut    ///< [out] output structure
     ) const
@@ -197,8 +203,8 @@ BOOL_32 EgBasedAddrLib::DispatchComputeSurfaceInfo(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceInfoLinear
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceInfoLinear
 *
 *   @brief
 *       Compute linear surface sizes include padded pitch, height, slices, total size in
@@ -207,9 +213,9 @@ BOOL_32 EgBasedAddrLib::DispatchComputeSurfaceInfo(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoLinear(
+BOOL_32 EgBasedLib::ComputeSurfaceInfoLinear(
     const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,    ///< [in] Input structure
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut,   ///< [out] Output structure
     UINT_32                                 padDims ///< [in] Dimensions to padd
@@ -258,7 +264,7 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoLinear(
                   pOut->pTileInfo,
                   padDims,
                   pIn->mipLevel,
-                  &expPitch, pOut->pitchAlign,
+                  &expPitch, &pOut->pitchAlign,
                   &expHeight, pOut->heightAlign,
                   &expNumSlices, microTileThickness);
 
@@ -279,6 +285,44 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoLinear(
                                                   &expHeight,
                                                   &pOut->heightAlign);
 
+    if ((pIn->pitchAlign != 0) || (pIn->heightAlign != 0))
+    {
+        if (pIn->pitchAlign != 0)
+        {
+           ADDR_ASSERT((pIn->pitchAlign % pOut->pitchAlign) == 0);
+           pOut->pitchAlign = pIn->pitchAlign;
+
+            if (IsPow2(pOut->pitchAlign))
+            {
+                expPitch = PowTwoAlign(expPitch, pOut->pitchAlign);
+            }
+            else
+            {
+                expPitch += pOut->pitchAlign - 1;
+                expPitch /= pOut->pitchAlign;
+                expPitch *= pOut->pitchAlign;
+            }
+        }
+
+        if (pIn->heightAlign != 0)
+        {
+           ADDR_ASSERT((pIn->heightAlign % pOut->heightAlign) == 0);
+           pOut->heightAlign = pIn->heightAlign;
+
+            if (IsPow2(pOut->heightAlign))
+            {
+                expHeight = PowTwoAlign(expHeight, pOut->heightAlign);
+            }
+            else
+            {
+                expHeight += pOut->heightAlign - 1;
+                expHeight /= pOut->heightAlign;
+                expHeight *= pOut->heightAlign;
+            }
+        }
+
+        logicalSliceSize = BITS_TO_BYTES(expPitch * expHeight * pIn->bpp);
+    }
 
     pOut->pitch = expPitch;
     pOut->height = expHeight;
@@ -292,8 +336,8 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoLinear(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceInfoMicroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceInfoMicroTiled
 *
 *   @brief
 *       Compute 1D/Micro Tiled surface sizes include padded pitch, height, slices, total
@@ -302,9 +346,9 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoLinear(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMicroTiled(
+BOOL_32 EgBasedLib::ComputeSurfaceInfoMicroTiled(
     const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,        ///< [in] Input structure
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut,       ///< [out] Output structure
     UINT_32                                 padDims,    ///< [in] Dimensions to padd
@@ -324,7 +368,7 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMicroTiled(
     //
     // Compute the micro tile thickness.
     //
-    microTileThickness = ComputeSurfaceThickness(expTileMode);
+    microTileThickness = Thickness(expTileMode);
 
     //
     // Extra override for mip levels
@@ -372,7 +416,7 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMicroTiled(
                   pOut->pTileInfo,
                   padDims,
                   pIn->mipLevel,
-                  &expPitch, pOut->pitchAlign,
+                  &expPitch, &pOut->pitchAlign,
                   &expHeight, pOut->heightAlign,
                   &expNumSlices, microTileThickness);
 
@@ -402,8 +446,8 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMicroTiled(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceInfoMacroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceInfoMacroTiled
 *
 *   @brief
 *       Compute 2D/macro tiled surface sizes include padded pitch, height, slices, total
@@ -412,9 +456,9 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMicroTiled(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
+BOOL_32 EgBasedLib::ComputeSurfaceInfoMacroTiled(
     const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,        ///< [in] Input structure
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut,       ///< [out] Output structure
     UINT_32                                 padDims,    ///< [in] Dimensions to padd
@@ -445,17 +489,14 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
                                                pIn->flags,
                                                pIn->mipLevel,
                                                numSamples,
-                                               pOut->pTileInfo,
-                                               &pOut->baseAlign,
-                                               &pOut->pitchAlign,
-                                               &pOut->heightAlign);
+                                               pOut);
 
     if (valid)
     {
         //
         // Compute the micro tile thickness.
         //
-        microTileThickness = ComputeSurfaceThickness(expTileMode);
+        microTileThickness = Thickness(expTileMode);
 
         //
         // Find the correct tiling mode for mip levels
@@ -471,23 +512,20 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
                                                          expHeight,
                                                          expNumSlices,
                                                          numSamples,
-                                                         pOut->pitchAlign,
-                                                         pOut->heightAlign,
+                                                         pOut->blockWidth,
+                                                         pOut->blockHeight,
                                                          pOut->pTileInfo);
 
             if (!IsMacroTiled(expTileMode)) // Downgraded to micro-tiled
             {
                 return ComputeSurfaceInfoMicroTiled(pIn, pOut, padDims, expTileMode);
             }
-            else
+            else if (microTileThickness != Thickness(expTileMode))
             {
-                if (microTileThickness != ComputeSurfaceThickness(expTileMode))
-                {
-                    //
-                    // Re-compute if thickness changed since bank-height may be changed!
-                    //
-                    return ComputeSurfaceInfoMacroTiled(pIn, pOut, padDims, expTileMode);
-                }
+                //
+                // Re-compute if thickness changed since bank-height may be changed!
+                //
+                return ComputeSurfaceInfoMacroTiled(pIn, pOut, padDims, expTileMode);
             }
         }
 
@@ -504,10 +542,7 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
                                                        pIn->flags,
                                                        pIn->mipLevel,
                                                        numSamples,
-                                                       pOut->pTileInfo,
-                                                       &pOut->baseAlign,
-                                                       &pOut->pitchAlign,
-                                                       &pOut->heightAlign);
+                                                       pOut);
         }
 
         //
@@ -520,43 +555,73 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
                       pOut->pTileInfo,
                       padDims,
                       pIn->mipLevel,
-                      &paddedPitch, pOut->pitchAlign,
+                      &paddedPitch, &pOut->pitchAlign,
                       &paddedHeight, pOut->heightAlign,
                       &expNumSlices, microTileThickness);
 
         if (pIn->flags.qbStereo &&
-            (pOut->pStereoInfo != NULL) &&
-            HwlStereoCheckRightOffsetPadding())
+            (pOut->pStereoInfo != NULL))
         {
-            // Eye height's bank bits are different from y == 0?
-            // Since 3D rendering treats right eye buffer starting from y == "eye height" while
-            // display engine treats it to be 0, so the bank bits may be different, we pad
-            // more in height to make sure y == "eye height" has the same bank bits as y == 0.
-            UINT_32 checkMask = pOut->pTileInfo->banks - 1;
-            UINT_32 bankBits = 0;
-            do
-            {
-                bankBits = (paddedHeight / 8 / pOut->pTileInfo->bankHeight) & checkMask;
+            UINT_32 stereoHeightAlign = HwlStereoCheckRightOffsetPadding(pOut->pTileInfo);
 
-                if (bankBits)
-                {
-                   paddedHeight += pOut->heightAlign;
-                }
-            } while (bankBits);
+            if (stereoHeightAlign != 0)
+            {
+                paddedHeight = PowTwoAlign(paddedHeight, stereoHeightAlign);
+            }
         }
 
-        //
-        // Compute the size of a slice.
-        //
-        bytesPerSlice = BITS_TO_BYTES(static_cast<UINT_64>(paddedPitch) *
-                                      paddedHeight * NextPow2(pIn->bpp) * numSamples);
+        if ((pIn->flags.needEquation == TRUE) &&
+            (m_chipFamily == ADDR_CHIP_FAMILY_SI) &&
+            (pIn->numMipLevels > 1) &&
+            (pIn->mipLevel == 0))
+        {
+            BOOL_32 convertTo1D = FALSE;
+
+            ADDR_ASSERT(Thickness(expTileMode) == 1);
+
+            for (UINT_32 i = 1; i < pIn->numMipLevels; i++)
+            {
+                UINT_32 mipPitch = Max(1u, paddedPitch >> i);
+                UINT_32 mipHeight = Max(1u, pIn->height >> i);
+                UINT_32 mipSlices = pIn->flags.volume ?
+                                    Max(1u, pIn->numSlices >> i) : pIn->numSlices;
+                expTileMode = ComputeSurfaceMipLevelTileMode(expTileMode,
+                                                             pIn->bpp,
+                                                             mipPitch,
+                                                             mipHeight,
+                                                             mipSlices,
+                                                             numSamples,
+                                                             pOut->blockWidth,
+                                                             pOut->blockHeight,
+                                                             pOut->pTileInfo);
+
+                if (IsMacroTiled(expTileMode))
+                {
+                    if (PowTwoAlign(mipPitch, pOut->blockWidth) !=
+                        PowTwoAlign(mipPitch, pOut->pitchAlign))
+                    {
+                        convertTo1D = TRUE;
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (convertTo1D)
+            {
+                return ComputeSurfaceInfoMicroTiled(pIn, pOut, padDims, ADDR_TM_1D_TILED_THIN1);
+            }
+        }
 
         pOut->pitch = paddedPitch;
         // Put this check right here to workaround special mipmap cases which the original height
         // is needed.
         // The original height is pre-stored in pOut->height in PostComputeMipLevel and
         // pOut->pitch is needed in HwlCheckLastMacroTiledLvl, too.
-        if (m_configFlags.checkLast2DLevel && numSamples == 1) // Don't check MSAA
+        if (m_configFlags.checkLast2DLevel && (numSamples == 1)) // Don't check MSAA
         {
             // Set a TRUE in pOut if next Level is the first 1D sub level
             HwlCheckLastMacroTiledLvl(pIn, pOut);
@@ -564,6 +629,12 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
         pOut->height = paddedHeight;
 
         pOut->depth = expNumSlices;
+
+        //
+        // Compute the size of a slice.
+        //
+        bytesPerSlice = BITS_TO_BYTES(static_cast<UINT_64>(paddedPitch) *
+                                      paddedHeight * NextPow2(pIn->bpp) * numSamples);
 
         pOut->surfSize = bytesPerSlice * expNumSlices;
 
@@ -577,8 +648,8 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceAlignmentsLinear
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceAlignmentsLinear
 *
 *   @brief
 *       Compute linear surface alignment, calculation results are returned through
@@ -586,9 +657,9 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceInfoMacroTiled(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsLinear(
+BOOL_32 EgBasedLib::ComputeSurfaceAlignmentsLinear(
     AddrTileMode        tileMode,          ///< [in] tile mode
     UINT_32             bpp,               ///< [in] bits per pixel
     ADDR_SURFACE_FLAGS  flags,             ///< [in] surface flags
@@ -633,8 +704,8 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsLinear(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceAlignmentsMicroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceAlignmentsMicroTiled
 *
 *   @brief
 *       Compute 1D tiled surface alignment, calculation results are returned through
@@ -642,9 +713,9 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsLinear(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMicroTiled(
+BOOL_32 EgBasedLib::ComputeSurfaceAlignmentsMicroTiled(
     AddrTileMode        tileMode,          ///< [in] tile mode
     UINT_32             bpp,               ///< [in] bits per pixel
     ADDR_SURFACE_FLAGS  flags,             ///< [in] surface flags
@@ -683,8 +754,8 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMicroTiled(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlReduceBankWidthHeight
+****************************************************************************************************
+*   EgBasedLib::HwlReduceBankWidthHeight
 *
 *   @brief
 *       Additional checks, reduce bankHeight/bankWidth if needed and possible
@@ -692,16 +763,16 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMicroTiled(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::HwlReduceBankWidthHeight(
+BOOL_32 EgBasedLib::HwlReduceBankWidthHeight(
     UINT_32             tileSize,           ///< [in] tile size
     UINT_32             bpp,                ///< [in] bits per pixel
     ADDR_SURFACE_FLAGS  flags,              ///< [in] surface flags
     UINT_32             numSamples,         ///< [in] number of samples
     UINT_32             bankHeightAlign,    ///< [in] bank height alignment
     UINT_32             pipes,              ///< [in] pipes
-    ADDR_TILEINFO*      pTileInfo           ///< [in/out] bank structure.
+    ADDR_TILEINFO*      pTileInfo           ///< [in,out] bank structure.
     ) const
 {
     UINT_32 macroAspectAlign;
@@ -775,7 +846,7 @@ BOOL_32 EgBasedAddrLib::HwlReduceBankWidthHeight(
         valid = !stillGreater;
 
         // Generate a warning if we still fail to meet this constraint
-        if (!valid)
+        if (valid == FALSE)
         {
             ADDR_WARN(
                 0, ("TILE_SIZE(%d)*BANK_WIDTH(%d)*BANK_HEIGHT(%d) <= ROW_SIZE(%d)",
@@ -787,8 +858,8 @@ BOOL_32 EgBasedAddrLib::HwlReduceBankWidthHeight(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceAlignmentsMacroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceAlignmentsMacroTiled
 *
 *   @brief
 *       Compute 2D tiled surface alignment, calculation results are returned through
@@ -796,20 +867,19 @@ BOOL_32 EgBasedAddrLib::HwlReduceBankWidthHeight(
 *
 *   @return
 *       TRUE if no error occurs
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMacroTiled(
-    AddrTileMode        tileMode,           ///< [in] tile mode
-    UINT_32             bpp,                ///< [in] bits per pixel
-    ADDR_SURFACE_FLAGS  flags,              ///< [in] surface flags
-    UINT_32             mipLevel,           ///< [in] mip level
-    UINT_32             numSamples,         ///< [in] number of samples
-    ADDR_TILEINFO*      pTileInfo,          ///< [in/out] bank structure.
-    UINT_32*            pBaseAlign,         ///< [out] base address alignment in bytes
-    UINT_32*            pPitchAlign,        ///< [out] pitch alignment in pixels
-    UINT_32*            pHeightAlign        ///< [out] height alignment in pixels
+BOOL_32 EgBasedLib::ComputeSurfaceAlignmentsMacroTiled(
+    AddrTileMode                      tileMode,           ///< [in] tile mode
+    UINT_32                           bpp,                ///< [in] bits per pixel
+    ADDR_SURFACE_FLAGS                flags,              ///< [in] surface flags
+    UINT_32                           mipLevel,           ///< [in] mip level
+    UINT_32                           numSamples,         ///< [in] number of samples
+    ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut                ///< [in,out] Surface output
     ) const
 {
+    ADDR_TILEINFO* pTileInfo = pOut->pTileInfo;
+
     BOOL_32 valid = SanityCheckMacroTiled(pTileInfo);
 
     if (valid)
@@ -821,7 +891,7 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMacroTiled(
         UINT_32 bankHeightAlign;
         UINT_32 macroAspectAlign;
 
-        UINT_32 thickness = ComputeSurfaceThickness(tileMode);
+        UINT_32 thickness = Thickness(tileMode);
         UINT_32 pipes = HwlGetPipes(pTileInfo);
 
         //
@@ -847,19 +917,19 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMacroTiled(
         {
             // this restriction is only for mipmap (mipmap's numSamples must be 1)
             macroAspectAlign = Max(1u,
-                               m_pipeInterleaveBytes * m_bankInterleave /
-                               (tileSize * pipes * pTileInfo->bankWidth)
-                               );
+                                   m_pipeInterleaveBytes * m_bankInterleave /
+                                   (tileSize * pipes * pTileInfo->bankWidth)
+                                   );
             pTileInfo->macroAspectRatio = PowTwoAlign(pTileInfo->macroAspectRatio, macroAspectAlign);
         }
 
         valid = HwlReduceBankWidthHeight(tileSize,
-                                      bpp,
-                                      flags,
-                                      numSamples,
-                                      bankHeightAlign,
-                                      pipes,
-                                      pTileInfo);
+                                         bpp,
+                                         flags,
+                                         numSamples,
+                                         bankHeightAlign,
+                                         pipes,
+                                         pTileInfo);
 
         //
         // The required granularity for pitch is the macro tile width.
@@ -867,9 +937,10 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMacroTiled(
         macroTileWidth = MicroTileWidth * pTileInfo->bankWidth * pipes *
             pTileInfo->macroAspectRatio;
 
-        *pPitchAlign = macroTileWidth;
+        pOut->pitchAlign = macroTileWidth;
+        pOut->blockWidth = macroTileWidth;
 
-        AdjustPitchAlignment(flags, pPitchAlign);
+        AdjustPitchAlignment(flags, &pOut->pitchAlign);
 
         //
         // The required granularity for height is the macro tile height.
@@ -877,46 +948,32 @@ BOOL_32 EgBasedAddrLib::ComputeSurfaceAlignmentsMacroTiled(
         macroTileHeight = MicroTileHeight * pTileInfo->bankHeight * pTileInfo->banks /
             pTileInfo->macroAspectRatio;
 
-        *pHeightAlign = macroTileHeight;
+        pOut->heightAlign = macroTileHeight;
+        pOut->blockHeight = macroTileHeight;
 
         //
         // Compute base alignment
         //
-        *pBaseAlign = pipes *
-            pTileInfo->bankWidth * pTileInfo->banks * pTileInfo->bankHeight * tileSize;
+        pOut->baseAlign =
+            pipes * pTileInfo->bankWidth * pTileInfo->banks * pTileInfo->bankHeight * tileSize;
 
-        if ((mipLevel == 0) && (flags.prt) && (m_chipFamily == ADDR_CHIP_FAMILY_SI))
-        {
-            static const UINT_32 PrtTileSize = 0x10000;
-
-            UINT_32 macroTileSize = macroTileWidth * macroTileHeight * numSamples * bpp / 8;
-
-            if (macroTileSize < PrtTileSize)
-            {
-                UINT_32 numMacroTiles = PrtTileSize / macroTileSize;
-
-                ADDR_ASSERT((PrtTileSize % macroTileSize) == 0);
-
-                *pPitchAlign *= numMacroTiles;
-                *pBaseAlign  *= numMacroTiles;
-            }
-        }
+        HwlComputeSurfaceAlignmentsMacroTiled(tileMode, bpp, flags, mipLevel, numSamples, pOut);
     }
 
     return valid;
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::SanityCheckMacroTiled
+****************************************************************************************************
+*   EgBasedLib::SanityCheckMacroTiled
 *
 *   @brief
 *       Check if macro-tiled parameters are valid
 *   @return
 *       TRUE if valid
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::SanityCheckMacroTiled(
+BOOL_32 EgBasedLib::SanityCheckMacroTiled(
     ADDR_TILEINFO* pTileInfo   ///< [in] macro-tiled parameters
     ) const
 {
@@ -994,7 +1051,7 @@ BOOL_32 EgBasedAddrLib::SanityCheckMacroTiled(
     {
         if (pTileInfo->tileSplitBytes > m_rowSize)
         {
-            valid = FALSE;
+            ADDR_WARN(0, ("tileSplitBytes is bigger than row size"));
         }
     }
 
@@ -1012,17 +1069,17 @@ BOOL_32 EgBasedAddrLib::SanityCheckMacroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceMipLevelTileMode
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceMipLevelTileMode
 *
 *   @brief
 *       Compute valid tile mode for surface mipmap sub-levels
 *
 *   @return
 *       Suitable tile mode
-***************************************************************************************************
+****************************************************************************************************
 */
-AddrTileMode EgBasedAddrLib::ComputeSurfaceMipLevelTileMode(
+AddrTileMode EgBasedLib::ComputeSurfaceMipLevelTileMode(
     AddrTileMode        baseTileMode,   ///< [in] base tile mode
     UINT_32             bpp,            ///< [in] bits per pixels
     UINT_32             pitch,          ///< [in] current level pitch
@@ -1037,7 +1094,7 @@ AddrTileMode EgBasedAddrLib::ComputeSurfaceMipLevelTileMode(
     UINT_32 bytesPerTile;
 
     AddrTileMode expTileMode = baseTileMode;
-    UINT_32 microTileThickness = ComputeSurfaceThickness(expTileMode);
+    UINT_32 microTileThickness = Thickness(expTileMode);
     UINT_32 interleaveSize = m_pipeInterleaveBytes * m_bankInterleave;
 
     //
@@ -1104,29 +1161,31 @@ AddrTileMode EgBasedAddrLib::ComputeSurfaceMipLevelTileMode(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlDegradeBaseLevel
+****************************************************************************************************
+*   EgBasedLib::HwlGetAlignmentInfoMacroTiled
 *   @brief
-*       Check if degrade is needed for base level
+*       Get alignment info for giving tile mode
 *   @return
-*       TRUE if degrade is suggested
-***************************************************************************************************
+*       TRUE if getting alignment is OK
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::HwlDegradeBaseLevel(
-    const ADDR_COMPUTE_SURFACE_INFO_INPUT* pIn) const
+BOOL_32 EgBasedLib::HwlGetAlignmentInfoMacroTiled(
+    const ADDR_COMPUTE_SURFACE_INFO_INPUT* pIn,             ///< [in] create surface info
+    UINT_32*                               pPitchAlign,     ///< [out] pitch alignment
+    UINT_32*                               pHeightAlign,    ///< [out] height alignment
+    UINT_32*                               pSizeAlign       ///< [out] size alignment
+    ) const
 {
-    BOOL_32 degrade = FALSE;
     BOOL_32 valid = TRUE;
 
     ADDR_ASSERT(IsMacroTiled(pIn->tileMode));
 
-    UINT_32 baseAlign;
-    UINT_32 pitchAlign;
-    UINT_32 heightAlign;
+    UINT_32 numSamples = (pIn->numFrags == 0) ? pIn->numSamples : pIn->numFrags;
 
     ADDR_ASSERT(pIn->pTileInfo);
     ADDR_TILEINFO tileInfo = *pIn->pTileInfo;
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT out = {0};
+    out.pTileInfo = &tileInfo;
 
     if (UseTileIndex(pIn->tileIndex))
     {
@@ -1139,7 +1198,7 @@ BOOL_32 EgBasedAddrLib::HwlDegradeBaseLevel(
                      pIn->bpp,
                      pIn->width,
                      pIn->height,
-                     pIn->numSamples,
+                     numSamples,
                      &tileInfo,
                      &tileInfo,
                      pIn->tileType,
@@ -1149,42 +1208,37 @@ BOOL_32 EgBasedAddrLib::HwlDegradeBaseLevel(
                                                pIn->bpp,
                                                pIn->flags,
                                                pIn->mipLevel,
-                                               pIn->numSamples,
-                                               &tileInfo,
-                                               &baseAlign,
-                                               &pitchAlign,
-                                               &heightAlign);
+                                               numSamples,
+                                               &out);
 
     if (valid)
     {
-        degrade = (pIn->width < pitchAlign || pIn->height < heightAlign);
-    }
-    else
-    {
-        degrade = TRUE;
+        *pPitchAlign  = out.pitchAlign;
+        *pHeightAlign = out.heightAlign;
+        *pSizeAlign   = out.baseAlign;
     }
 
-    return degrade;
+    return valid;
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlDegradeThickTileMode
+****************************************************************************************************
+*   EgBasedLib::HwlDegradeThickTileMode
 *
 *   @brief
 *       Degrades valid tile mode for thick modes if needed
 *
 *   @return
 *       Suitable tile mode
-***************************************************************************************************
+****************************************************************************************************
 */
-AddrTileMode EgBasedAddrLib::HwlDegradeThickTileMode(
+AddrTileMode EgBasedLib::HwlDegradeThickTileMode(
     AddrTileMode        baseTileMode,   ///< [in] base tile mode
     UINT_32             numSlices,      ///< [in] current number of slices
-    UINT_32*            pBytesPerTile   ///< [in/out] pointer to bytes per slice
+    UINT_32*            pBytesPerTile   ///< [in,out] pointer to bytes per slice
     ) const
 {
-    ADDR_ASSERT(numSlices < ComputeSurfaceThickness(baseTileMode));
+    ADDR_ASSERT(numSlices < Thickness(baseTileMode));
     // if pBytesPerTile is NULL, this is a don't-care....
     UINT_32 bytesPerTile = pBytesPerTile != NULL ? *pBytesPerTile : 64;
 
@@ -1241,17 +1295,17 @@ AddrTileMode EgBasedAddrLib::HwlDegradeThickTileMode(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::DispatchComputeSurfaceAddrFromCoord
+****************************************************************************************************
+*   EgBasedLib::DispatchComputeSurfaceAddrFromCoord
 *
 *   @brief
 *       Compute surface address from given coord (x, y, slice,sample)
 *
 *   @return
 *       Address in bytes
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::DispatchComputeSurfaceAddrFromCoord(
+UINT_64 EgBasedLib::DispatchComputeSurfaceAddrFromCoord(
     const ADDR_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,    ///< [in] input structure
     ADDR_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut    ///< [out] output structure
     ) const
@@ -1298,9 +1352,9 @@ UINT_64 EgBasedAddrLib::DispatchComputeSurfaceAddrFromCoord(
         /// @note
         /// 128 bit/thick tiled surface doesn't support display tiling and
         /// mipmap chain must have the same tileType, so please fill tileType correctly
-        if (!IsLinear(pIn->tileMode))
+        if (IsLinear(pIn->tileMode) == FALSE)
         {
-            if (bpp >= 128 || ComputeSurfaceThickness(tileMode) > 1)
+            if (bpp >= 128 || Thickness(tileMode) > 1)
             {
                 ADDR_ASSERT(microTileType != ADDR_DISPLAYABLE);
             }
@@ -1406,17 +1460,148 @@ UINT_64 EgBasedAddrLib::DispatchComputeSurfaceAddrFromCoord(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceAddrFromCoordMicroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeMacroTileEquation
+*
+*   @brief
+*       Computes the address equation in macro tile
+*   @return
+*       If equation can be computed
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE EgBasedLib::ComputeMacroTileEquation(
+    UINT_32             log2BytesPP,            ///< [in] log2 of bytes per pixel
+    AddrTileMode        tileMode,               ///< [in] tile mode
+    AddrTileType        microTileType,          ///< [in] micro tiling type
+    ADDR_TILEINFO*      pTileInfo,              ///< [in] bank structure
+    ADDR_EQUATION*      pEquation               ///< [out] Equation for addressing in macro tile
+    ) const
+{
+    ADDR_E_RETURNCODE retCode;
+
+    // Element equation within a tile
+    retCode = ComputeMicroTileEquation(log2BytesPP, tileMode, microTileType, pEquation);
+
+    if (retCode == ADDR_OK)
+    {
+        // Tile equesiton with signle pipe bank
+        UINT_32 numPipes              = HwlGetPipes(pTileInfo);
+        UINT_32 numPipeBits           = Log2(numPipes);
+
+        for (UINT_32 i = 0; i < Log2(pTileInfo->bankWidth); i++)
+        {
+            pEquation->addr[pEquation->numBits].valid = 1;
+            pEquation->addr[pEquation->numBits].channel = 0;
+            pEquation->addr[pEquation->numBits].index = i + log2BytesPP + 3 + numPipeBits;
+            pEquation->numBits++;
+        }
+
+        for (UINT_32 i = 0; i < Log2(pTileInfo->bankHeight); i++)
+        {
+            pEquation->addr[pEquation->numBits].valid = 1;
+            pEquation->addr[pEquation->numBits].channel = 1;
+            pEquation->addr[pEquation->numBits].index = i + 3;
+            pEquation->numBits++;
+        }
+
+        ADDR_EQUATION equation;
+        memset(&equation, 0, sizeof(ADDR_EQUATION));
+
+        UINT_32 thresholdX = 32;
+        UINT_32 thresholdY = 32;
+
+        if (IsPrtNoRotationTileMode(tileMode))
+        {
+            UINT_32 macroTilePitch  =
+                (MicroTileWidth  * pTileInfo->bankWidth  * numPipes) * pTileInfo->macroAspectRatio;
+            UINT_32 macroTileHeight =
+                (MicroTileHeight * pTileInfo->bankHeight * pTileInfo->banks) /
+                pTileInfo->macroAspectRatio;
+            thresholdX = Log2(macroTilePitch);
+            thresholdY = Log2(macroTileHeight);
+        }
+
+        // Pipe equation
+        retCode = ComputePipeEquation(log2BytesPP, thresholdX, thresholdY, pTileInfo, &equation);
+
+        if (retCode == ADDR_OK)
+        {
+            UINT_32 pipeBitStart = Log2(m_pipeInterleaveBytes);
+
+            if (pEquation->numBits > pipeBitStart)
+            {
+                UINT_32 numLeftShift = pEquation->numBits - pipeBitStart;
+
+                for (UINT_32 i = 0; i < numLeftShift; i++)
+                {
+                    pEquation->addr[pEquation->numBits + equation.numBits - i - 1] =
+                        pEquation->addr[pEquation->numBits - i - 1];
+                    pEquation->xor1[pEquation->numBits + equation.numBits - i - 1] =
+                        pEquation->xor1[pEquation->numBits - i - 1];
+                    pEquation->xor2[pEquation->numBits + equation.numBits - i - 1] =
+                        pEquation->xor2[pEquation->numBits - i - 1];
+                }
+            }
+
+            for (UINT_32 i = 0; i < equation.numBits; i++)
+            {
+                pEquation->addr[pipeBitStart + i] = equation.addr[i];
+                pEquation->xor1[pipeBitStart + i] = equation.xor1[i];
+                pEquation->xor2[pipeBitStart + i] = equation.xor2[i];
+                pEquation->numBits++;
+            }
+
+            // Bank equation
+            memset(&equation, 0, sizeof(ADDR_EQUATION));
+
+            retCode = ComputeBankEquation(log2BytesPP, thresholdX, thresholdY,
+                                          pTileInfo, &equation);
+
+            if (retCode == ADDR_OK)
+            {
+                UINT_32 bankBitStart = pipeBitStart + numPipeBits + Log2(m_bankInterleave);
+
+                if (pEquation->numBits > bankBitStart)
+                {
+                    UINT_32 numLeftShift = pEquation->numBits - bankBitStart;
+
+                    for (UINT_32 i = 0; i < numLeftShift; i++)
+                    {
+                        pEquation->addr[pEquation->numBits + equation.numBits - i - 1] =
+                            pEquation->addr[pEquation->numBits - i - 1];
+                        pEquation->xor1[pEquation->numBits + equation.numBits - i - 1] =
+                            pEquation->xor1[pEquation->numBits - i - 1];
+                        pEquation->xor2[pEquation->numBits + equation.numBits - i - 1] =
+                            pEquation->xor2[pEquation->numBits - i - 1];
+                    }
+                }
+
+                for (UINT_32 i = 0; i < equation.numBits; i++)
+                {
+                    pEquation->addr[bankBitStart + i] = equation.addr[i];
+                    pEquation->xor1[bankBitStart + i] = equation.xor1[i];
+                    pEquation->xor2[bankBitStart + i] = equation.xor2[i];
+                    pEquation->numBits++;
+                }
+            }
+        }
+    }
+
+    return retCode;
+}
+
+/**
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceAddrFromCoordMicroTiled
 *
 *   @brief
 *       Computes the surface address and bit position from a
 *       coordinate for 2D tilied (macro tiled)
 *   @return
 *       The byte address
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::ComputeSurfaceAddrFromCoordMacroTiled(
+UINT_64 EgBasedLib::ComputeSurfaceAddrFromCoordMacroTiled(
     UINT_32             x,                      ///< [in] x coordinate
     UINT_32             y,                      ///< [in] y coordinate
     UINT_32             slice,                  ///< [in] slice index
@@ -1468,7 +1653,7 @@ UINT_64 EgBasedAddrLib::ComputeSurfaceAddrFromCoordMacroTiled(
     UINT_32 tileIndex;
     UINT_32 tileOffset;
 
-    UINT_32 microTileThickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 microTileThickness = Thickness(tileMode);
 
     //
     // Compute the number of group, pipe, and bank bits.
@@ -1681,17 +1866,17 @@ UINT_64 EgBasedAddrLib::ComputeSurfaceAddrFromCoordMacroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceAddrFromCoordMicroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceAddrFromCoordMicroTiled
 *
 *   @brief
 *       Computes the surface address and bit position from a coordinate for 1D tilied
 *       (micro tiled)
 *   @return
 *       The byte address
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::ComputeSurfaceAddrFromCoordMicroTiled(
+UINT_64 EgBasedLib::ComputeSurfaceAddrFromCoordMicroTiled(
     UINT_32             x,                      ///< [in] x coordinate
     UINT_32             y,                      ///< [in] y coordinate
     UINT_32             slice,                  ///< [in] slice index
@@ -1720,7 +1905,7 @@ UINT_64 EgBasedAddrLib::ComputeSurfaceAddrFromCoordMicroTiled(
     UINT_32 pixelIndex;
     UINT_32 pixelOffset;
 
-    UINT_32 microTileThickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 microTileThickness = Thickness(tileMode);
 
     //
     // Compute the micro tile size.
@@ -1806,16 +1991,16 @@ UINT_64 EgBasedAddrLib::ComputeSurfaceAddrFromCoordMicroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputePixelCoordFromOffset
+****************************************************************************************************
+*   EgBasedLib::HwlComputePixelCoordFromOffset
 *
 *   @brief
 *       Compute pixel coordinate from offset inside a micro tile
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::HwlComputePixelCoordFromOffset(
+VOID EgBasedLib::HwlComputePixelCoordFromOffset(
     UINT_32         offset,             ///< [in] offset inside micro tile in bits
     UINT_32         bpp,                ///< [in] bits per pixel
     UINT_32         numSamples,         ///< [in] number of samples
@@ -1833,7 +2018,7 @@ VOID EgBasedAddrLib::HwlComputePixelCoordFromOffset(
     UINT_32 x = 0;
     UINT_32 y = 0;
     UINT_32 z = 0;
-    UINT_32 thickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 thickness = Thickness(tileMode);
 
     // For planar surface, we adjust offset acoording to tile base
     if ((bpp != compBits) && (compBits != 0) && isDepthSampleOrder)
@@ -1995,16 +2180,16 @@ VOID EgBasedAddrLib::HwlComputePixelCoordFromOffset(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::DispatchComputeSurfaceCoordFromAddrDispatch
+****************************************************************************************************
+*   EgBasedLib::DispatchComputeSurfaceCoordFromAddrDispatch
 *
 *   @brief
 *       Compute (x,y,slice,sample) coordinates from surface address
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::DispatchComputeSurfaceCoordFromAddr(
+VOID EgBasedLib::DispatchComputeSurfaceCoordFromAddr(
     const ADDR_COMPUTE_SURFACE_COORDFROMADDR_INPUT* pIn,    ///< [in] input structure
     ADDR_COMPUTE_SURFACE_COORDFROMADDR_OUTPUT*      pOut    ///< [out] output structure
     ) const
@@ -2045,9 +2230,9 @@ VOID EgBasedAddrLib::DispatchComputeSurfaceCoordFromAddr(
         /// @note
         /// 128 bit/thick tiled surface doesn't support display tiling and
         /// mipmap chain must have the same tileType, so please fill tileType correctly
-        if (!IsLinear(pIn->tileMode))
+        if (IsLinear(pIn->tileMode) == FALSE)
         {
-            if (bpp >= 128 || ComputeSurfaceThickness(tileMode) > 1)
+            if (bpp >= 128 || Thickness(tileMode) > 1)
             {
                 ADDR_ASSERT(microTileType != ADDR_DISPLAYABLE);
             }
@@ -2140,16 +2325,16 @@ VOID EgBasedAddrLib::DispatchComputeSurfaceCoordFromAddr(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceCoordFromAddrMacroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceCoordFromAddrMacroTiled
 *
 *   @brief
 *       Compute surface coordinates from address for macro tiled surface
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::ComputeSurfaceCoordFromAddrMacroTiled(
+VOID EgBasedLib::ComputeSurfaceCoordFromAddrMacroTiled(
     UINT_64             addr,               ///< [in] byte address
     UINT_32             bitPosition,        ///< [in] bit position
     UINT_32             bpp,                ///< [in] bits per pixel
@@ -2201,7 +2386,7 @@ VOID EgBasedAddrLib::ComputeSurfaceCoordFromAddrMacroTiled(
         (((addrBits / groupBits / pipes) % bankInterleave) * groupBits) +
         (((addrBits / groupBits / pipes) / bankInterleave) / banks) * groupBits * bankInterleave;
 
-    UINT_32 microTileThickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 microTileThickness = Thickness(tileMode);
 
     UINT_32 microTileBits = bpp * microTileThickness * MicroTilePixels * numSamples;
 
@@ -2298,16 +2483,16 @@ VOID EgBasedAddrLib::ComputeSurfaceCoordFromAddrMacroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSurfaceCoord2DFromBankPipe
+****************************************************************************************************
+*   EgBasedLib::ComputeSurfaceCoord2DFromBankPipe
 *
 *   @brief
 *       Compute surface x,y coordinates from bank/pipe info
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::ComputeSurfaceCoord2DFromBankPipe(
+VOID EgBasedLib::ComputeSurfaceCoord2DFromBankPipe(
     AddrTileMode        tileMode,   ///< [in] tile mode
     UINT_32             x,          ///< [in] x coordinate
     UINT_32             y,          ///< [in] y coordinate
@@ -2359,7 +2544,7 @@ VOID EgBasedAddrLib::ComputeSurfaceCoord2DFromBankPipe(
             break;
     }
 
-    UINT_32 microTileThickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 microTileThickness = Thickness(tileMode);
 
     bank ^= tileSplitRotation * tileSlices;
     if (pipeRotation == 0)
@@ -2484,15 +2669,15 @@ VOID EgBasedAddrLib::ComputeSurfaceCoord2DFromBankPipe(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlExtractBankPipeSwizzle
+****************************************************************************************************
+*   EgBasedLib::HwlExtractBankPipeSwizzle
 *   @brief
-*       Entry of EgBasedAddrLib ExtractBankPipeSwizzle
+*       Entry of EgBasedLib ExtractBankPipeSwizzle
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlExtractBankPipeSwizzle(
+ADDR_E_RETURNCODE EgBasedLib::HwlExtractBankPipeSwizzle(
     const ADDR_EXTRACT_BANKPIPE_SWIZZLE_INPUT*  pIn,   ///< [in] input structure
     ADDR_EXTRACT_BANKPIPE_SWIZZLE_OUTPUT*       pOut   ///< [out] output structure
     ) const
@@ -2507,15 +2692,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlExtractBankPipeSwizzle(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlCombineBankPipeSwizzle
+****************************************************************************************************
+*   EgBasedLib::HwlCombineBankPipeSwizzle
 *   @brief
 *       Combine bank/pipe swizzle
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlCombineBankPipeSwizzle(
+ADDR_E_RETURNCODE EgBasedLib::HwlCombineBankPipeSwizzle(
     UINT_32         bankSwizzle,    ///< [in] bank swizzle
     UINT_32         pipeSwizzle,    ///< [in] pipe swizzle
     ADDR_TILEINFO*  pTileInfo,      ///< [in] tile info
@@ -2538,15 +2723,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlCombineBankPipeSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeBaseSwizzle
+****************************************************************************************************
+*   EgBasedLib::HwlComputeBaseSwizzle
 *   @brief
 *       Compute base swizzle
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeBaseSwizzle(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeBaseSwizzle(
     const ADDR_COMPUTE_BASE_SWIZZLE_INPUT* pIn,
     ADDR_COMPUTE_BASE_SWIZZLE_OUTPUT* pOut
     ) const
@@ -2613,15 +2798,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeBaseSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ExtractBankPipeSwizzle
+****************************************************************************************************
+*   EgBasedLib::ExtractBankPipeSwizzle
 *   @brief
 *       Extract bank/pipe swizzle from base256b
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::ExtractBankPipeSwizzle(
+VOID EgBasedLib::ExtractBankPipeSwizzle(
     UINT_32         base256b,       ///< [in] input base256b register value
     ADDR_TILEINFO*  pTileInfo,      ///< [in] 2D tile parameters. Client must provide all data
     UINT_32*        pBankSwizzle,   ///< [out] bank swizzle
@@ -2651,15 +2836,15 @@ VOID EgBasedAddrLib::ExtractBankPipeSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::GetBankPipeSwizzle
+****************************************************************************************************
+*   EgBasedLib::GetBankPipeSwizzle
 *   @brief
 *       Combine bank/pipe swizzle
 *   @return
 *       Base256b bits (only filled bank/pipe bits)
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::GetBankPipeSwizzle(
+UINT_32 EgBasedLib::GetBankPipeSwizzle(
     UINT_32         bankSwizzle,    ///< [in] bank swizzle
     UINT_32         pipeSwizzle,    ///< [in] pipe swizzle
     UINT_64         baseAddr,       ///< [in] base address
@@ -2677,15 +2862,15 @@ UINT_32 EgBasedAddrLib::GetBankPipeSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeSliceTileSwizzle
+****************************************************************************************************
+*   EgBasedLib::ComputeSliceTileSwizzle
 *   @brief
 *       Compute cubemap/3d texture faces/slices tile swizzle
 *   @return
 *       Tile swizzle
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputeSliceTileSwizzle(
+UINT_32 EgBasedLib::ComputeSliceTileSwizzle(
     AddrTileMode        tileMode,       ///< [in] Tile mode
     UINT_32             baseSwizzle,    ///< [in] Base swizzle
     UINT_32             slice,          ///< [in] Slice index, Cubemap face index, 0 means +X
@@ -2697,7 +2882,7 @@ UINT_32 EgBasedAddrLib::ComputeSliceTileSwizzle(
 
     if (IsMacroTiled(tileMode)) // Swizzle only for macro tile mode
     {
-        UINT_32 firstSlice = slice / ComputeSurfaceThickness(tileMode);
+        UINT_32 firstSlice = slice / Thickness(tileMode);
 
         UINT_32 numPipes = HwlGetPipes(pTileInfo);
         UINT_32 numBanks = pTileInfo->banks;
@@ -2742,16 +2927,16 @@ UINT_32 EgBasedAddrLib::ComputeSliceTileSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeQbStereoRightSwizzle
+****************************************************************************************************
+*   EgBasedLib::HwlComputeQbStereoRightSwizzle
 *
 *   @brief
 *       Compute right eye swizzle
 *   @return
 *       swizzle
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::HwlComputeQbStereoRightSwizzle(
+UINT_32 EgBasedLib::HwlComputeQbStereoRightSwizzle(
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pInfo  ///< [in] Surface info, must be valid
     ) const
 {
@@ -2774,16 +2959,16 @@ UINT_32 EgBasedAddrLib::HwlComputeQbStereoRightSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeBankFromCoord
+****************************************************************************************************
+*   EgBasedLib::ComputeBankFromCoord
 *
 *   @brief
 *       Compute bank number from coordinates
 *   @return
 *       Bank number
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputeBankFromCoord(
+UINT_32 EgBasedLib::ComputeBankFromCoord(
     UINT_32         x,              ///< [in] x coordinate
     UINT_32         y,              ///< [in] y coordinate
     UINT_32         slice,          ///< [in] slice index
@@ -2853,7 +3038,7 @@ UINT_32 EgBasedAddrLib::ComputeBankFromCoord(
     //
     // Compute bank rotation for the slice.
     //
-    UINT_32 microTileThickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 microTileThickness = Thickness(tileMode);
 
     switch (tileMode)
     {
@@ -2906,16 +3091,16 @@ UINT_32 EgBasedAddrLib::ComputeBankFromCoord(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeBankFromAddr
+****************************************************************************************************
+*   EgBasedLib::ComputeBankFromAddr
 *
 *   @brief
 *       Compute the bank number from an address
 *   @return
 *       Bank number
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputeBankFromAddr(
+UINT_32 EgBasedLib::ComputeBankFromAddr(
     UINT_64 addr,       ///< [in] address
     UINT_32 numBanks,   ///< [in] number of banks
     UINT_32 numPipes    ///< [in] number of pipes
@@ -2939,16 +3124,16 @@ UINT_32 EgBasedAddrLib::ComputeBankFromAddr(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputePipeRotation
+****************************************************************************************************
+*   EgBasedLib::ComputePipeRotation
 *
 *   @brief
 *       Compute pipe rotation value
 *   @return
 *       Pipe rotation
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputePipeRotation(
+UINT_32 EgBasedLib::ComputePipeRotation(
     AddrTileMode tileMode,  ///< [in] tile mode
     UINT_32      numPipes   ///< [in] number of pipes
     ) const
@@ -2974,16 +3159,16 @@ UINT_32 EgBasedAddrLib::ComputePipeRotation(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeBankRotation
+****************************************************************************************************
+*   EgBasedLib::ComputeBankRotation
 *
 *   @brief
 *       Compute bank rotation value
 *   @return
 *       Bank rotation
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputeBankRotation(
+UINT_32 EgBasedLib::ComputeBankRotation(
     AddrTileMode tileMode,  ///< [in] tile mode
     UINT_32      numBanks,  ///< [in] number of banks
     UINT_32      numPipes   ///< [in] number of pipes
@@ -3017,17 +3202,17 @@ UINT_32 EgBasedAddrLib::ComputeBankRotation(
 
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeHtileBytes
+****************************************************************************************************
+*   EgBasedLib::ComputeHtileBytes
 *
 *   @brief
 *       Compute htile size in bytes
 *
 *   @return
 *       Htile size in bytes
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::ComputeHtileBytes(
+UINT_64 EgBasedLib::ComputeHtileBytes(
     UINT_32 pitch,        ///< [in] pitch
     UINT_32 height,       ///< [in] height
     UINT_32 bpp,          ///< [in] bits per pixel
@@ -3060,8 +3245,8 @@ UINT_64 EgBasedAddrLib::ComputeHtileBytes(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::DispatchComputeFmaskInfo
+****************************************************************************************************
+*   EgBasedLib::DispatchComputeFmaskInfo
 *
 *   @brief
 *       Compute fmask sizes include padded pitch, height, slices, total size in bytes,
@@ -3070,9 +3255,9 @@ UINT_64 EgBasedAddrLib::ComputeHtileBytes(
 *
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::DispatchComputeFmaskInfo(
+ADDR_E_RETURNCODE EgBasedLib::DispatchComputeFmaskInfo(
     const ADDR_COMPUTE_FMASK_INFO_INPUT*    pIn,   ///< [in] input structure
     ADDR_COMPUTE_FMASK_INFO_OUTPUT*         pOut)  ///< [out] output structure
 {
@@ -3137,15 +3322,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::DispatchComputeFmaskInfo(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlFmaskSurfaceInfo
+****************************************************************************************************
+*   EgBasedLib::HwlFmaskSurfaceInfo
 *   @brief
-*       Entry of EgBasedAddrLib ComputeFmaskInfo
+*       Entry of EgBasedLib ComputeFmaskInfo
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeFmaskInfo(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeFmaskInfo(
     const ADDR_COMPUTE_FMASK_INFO_INPUT*    pIn,   ///< [in] input structure
     ADDR_COMPUTE_FMASK_INFO_OUTPUT*         pOut   ///< [out] output structure
     )
@@ -3179,15 +3364,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeFmaskInfo(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeFmaskAddrFromCoord
+****************************************************************************************************
+*   EgBasedLib::HwlComputeFmaskAddrFromCoord
 *   @brief
-*       Entry of EgBasedAddrLib ComputeFmaskAddrFromCoord
+*       Entry of EgBasedLib ComputeFmaskAddrFromCoord
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeFmaskAddrFromCoord(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeFmaskAddrFromCoord(
     const ADDR_COMPUTE_FMASK_ADDRFROMCOORD_INPUT*   pIn,    ///< [in] input structure
     ADDR_COMPUTE_FMASK_ADDRFROMCOORD_OUTPUT*        pOut    ///< [out] output structure
     ) const
@@ -3212,15 +3397,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeFmaskAddrFromCoord(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeFmaskCoordFromAddr
+****************************************************************************************************
+*   EgBasedLib::HwlComputeFmaskCoordFromAddr
 *   @brief
-*       Entry of EgBasedAddrLib ComputeFmaskCoordFromAddr
+*       Entry of EgBasedLib ComputeFmaskCoordFromAddr
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeFmaskCoordFromAddr(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeFmaskCoordFromAddr(
     const ADDR_COMPUTE_FMASK_COORDFROMADDR_INPUT*   pIn,    ///< [in] input structure
     ADDR_COMPUTE_FMASK_COORDFROMADDR_OUTPUT*        pOut    ///< [out] output structure
     ) const
@@ -3244,16 +3429,16 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeFmaskCoordFromAddr(
 
 #if ADDR_AM_BUILD
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::DispatchComputeFmaskAddrFromCoord
+****************************************************************************************************
+*   EgBasedLib::DispatchComputeFmaskAddrFromCoord
 *
 *   @brief
 *       Computes the FMASK address and bit position from a coordinate.
 *   @return
 *       The byte address
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::DispatchComputeFmaskAddrFromCoord(
+UINT_64 EgBasedLib::DispatchComputeFmaskAddrFromCoord(
     const ADDR_COMPUTE_FMASK_ADDRFROMCOORD_INPUT*   pIn,    ///< [in] input structure
     ADDR_COMPUTE_FMASK_ADDRFROMCOORD_OUTPUT*        pOut    ///< [out] output structure
     ) const
@@ -3275,7 +3460,7 @@ UINT_64 EgBasedAddrLib::DispatchComputeFmaskAddrFromCoord(
     UINT_64 addr          = 0;
 
     ADDR_ASSERT(numSamples > 1);
-    ADDR_ASSERT(ComputeSurfaceThickness(tileMode) == 1);
+    ADDR_ASSERT(Thickness(tileMode) == 1);
 
     switch (tileMode)
     {
@@ -3333,17 +3518,17 @@ UINT_64 EgBasedAddrLib::DispatchComputeFmaskAddrFromCoord(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeFmaskAddrFromCoordMicroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeFmaskAddrFromCoordMicroTiled
 *
 *   @brief
 *       Computes the FMASK address and bit position from a coordinate for 1D tilied (micro
 *       tiled)
 *   @return
 *       The byte address
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::ComputeFmaskAddrFromCoordMicroTiled(
+UINT_64 EgBasedLib::ComputeFmaskAddrFromCoordMicroTiled(
     UINT_32             x,              ///< [in] x coordinate
     UINT_32             y,              ///< [in] y coordinate
     UINT_32             slice,          ///< [in] slice index
@@ -3372,7 +3557,7 @@ UINT_64 EgBasedAddrLib::ComputeFmaskAddrFromCoordMicroTiled(
     //
     // Compute the number of planes.
     //
-    if (!resolved)
+    if (resolved == FALSE)
     {
         effectiveSamples = ComputeFmaskNumPlanesFromNumSamples(numSamples);
         effectiveBpp = numSamples;
@@ -3441,17 +3626,17 @@ UINT_64 EgBasedAddrLib::ComputeFmaskAddrFromCoordMicroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeFmaskAddrFromCoordMacroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeFmaskAddrFromCoordMacroTiled
 *
 *   @brief
 *       Computes the FMASK address and bit position from a coordinate for 2D tilied (macro
 *       tiled)
 *   @return
 *       The byte address
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::ComputeFmaskAddrFromCoordMacroTiled(
+UINT_64 EgBasedLib::ComputeFmaskAddrFromCoordMacroTiled(
     UINT_32             x,              ///< [in] x coordinate
     UINT_32             y,              ///< [in] y coordinate
     UINT_32             slice,          ///< [in] slice index
@@ -3484,7 +3669,7 @@ UINT_64 EgBasedAddrLib::ComputeFmaskAddrFromCoordMacroTiled(
     //
     // Compute the number of planes.
     //
-    if (!resolved)
+    if (resolved == FALSE)
     {
         effectiveSamples = ComputeFmaskNumPlanesFromNumSamples(numSamples);
         effectiveBpp = numSamples;
@@ -3563,17 +3748,17 @@ UINT_64 EgBasedAddrLib::ComputeFmaskAddrFromCoordMacroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeFmaskCoordFromAddrMicroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeFmaskCoordFromAddrMicroTiled
 *
 *   @brief
 *       Compute (x,y,slice,sample,plane) coordinates from fmask address
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMicroTiled(
+VOID EgBasedLib::ComputeFmaskCoordFromAddrMicroTiled(
     UINT_64             addr,       ///< [in] byte address
     UINT_32             bitPosition,///< [in] bit position
     UINT_32             pitch,      ///< [in] pitch in pixels
@@ -3597,7 +3782,7 @@ VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMicroTiled(
         numSamples = 4;
     }
 
-    if (!resolved)
+    if (resolved == FALSE)
     {
         effectiveSamples = ComputeFmaskNumPlanesFromNumSamples(numSamples);
         effectiveBpp  = numSamples;
@@ -3650,8 +3835,8 @@ VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMicroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeFmaskCoordFromAddrMacroTiled
+****************************************************************************************************
+*   EgBasedLib::ComputeFmaskCoordFromAddrMacroTiled
 *
 *   @brief
 *       Compute (x,y,slice,sample,plane) coordinates from
@@ -3659,9 +3844,9 @@ VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMicroTiled(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMacroTiled(
+VOID EgBasedLib::ComputeFmaskCoordFromAddrMacroTiled(
     UINT_64             addr,       ///< [in] byte address
     UINT_32             bitPosition,///< [in] bit position
     UINT_32             pitch,      ///< [in] pitch in pixels
@@ -3692,7 +3877,7 @@ VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMacroTiled(
     //
     // Compute the number of planes.
     //
-    if (!resolved)
+    if (resolved == FALSE)
     {
         effectiveSamples = ComputeFmaskNumPlanesFromNumSamples(numSamples);
         effectiveBpp  = numSamples;
@@ -3750,8 +3935,8 @@ VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMacroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::DispatchComputeFmaskCoordFromAddr
+****************************************************************************************************
+*   EgBasedLib::DispatchComputeFmaskCoordFromAddr
 *
 *   @brief
 *       Compute (x,y,slice,sample,plane) coordinates from
@@ -3759,9 +3944,9 @@ VOID EgBasedAddrLib::ComputeFmaskCoordFromAddrMacroTiled(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID EgBasedAddrLib::DispatchComputeFmaskCoordFromAddr(
+VOID EgBasedLib::DispatchComputeFmaskCoordFromAddr(
     const ADDR_COMPUTE_FMASK_COORDFROMADDR_INPUT*   pIn,    ///< [in] input structure
     ADDR_COMPUTE_FMASK_COORDFROMADDR_OUTPUT*        pOut    ///< [out] output structure
     ) const
@@ -3840,17 +4025,17 @@ VOID EgBasedAddrLib::DispatchComputeFmaskCoordFromAddr(
 #endif
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeFmaskNumPlanesFromNumSamples
+****************************************************************************************************
+*   EgBasedLib::ComputeFmaskNumPlanesFromNumSamples
 *
 *   @brief
 *       Compute fmask number of planes from number of samples
 *
 *   @return
 *       Number of planes
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputeFmaskNumPlanesFromNumSamples(
+UINT_32 EgBasedLib::ComputeFmaskNumPlanesFromNumSamples(
     UINT_32 numSamples)     ///< [in] number of samples
 {
     UINT_32 numPlanes;
@@ -3885,17 +4070,17 @@ UINT_32 EgBasedAddrLib::ComputeFmaskNumPlanesFromNumSamples(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::ComputeFmaskResolvedBppFromNumSamples
+****************************************************************************************************
+*   EgBasedLib::ComputeFmaskResolvedBppFromNumSamples
 *
 *   @brief
 *       Compute resolved fmask effective bpp based on number of samples
 *
 *   @return
 *       bpp
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::ComputeFmaskResolvedBppFromNumSamples(
+UINT_32 EgBasedLib::ComputeFmaskResolvedBppFromNumSamples(
     UINT_32 numSamples)     ///< number of samples
 {
     UINT_32 bpp;
@@ -3930,16 +4115,16 @@ UINT_32 EgBasedAddrLib::ComputeFmaskResolvedBppFromNumSamples(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::IsTileInfoAllZero
+****************************************************************************************************
+*   EgBasedLib::IsTileInfoAllZero
 *
 *   @brief
 *       Return TRUE if all field are zero
 *   @note
 *       Since NULL input is consider to be all zero
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::IsTileInfoAllZero(
+BOOL_32 EgBasedLib::IsTileInfoAllZero(
     ADDR_TILEINFO* pTileInfo)
 {
     BOOL_32 allZero = TRUE;
@@ -3962,16 +4147,16 @@ BOOL_32 EgBasedAddrLib::IsTileInfoAllZero(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlTileInfoEqual
+****************************************************************************************************
+*   EgBasedLib::HwlTileInfoEqual
 *
 *   @brief
 *       Return TRUE if all field are equal
 *   @note
 *       Only takes care of current HWL's data
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 EgBasedAddrLib::HwlTileInfoEqual(
+BOOL_32 EgBasedLib::HwlTileInfoEqual(
     const ADDR_TILEINFO* pLeft, ///<[in] Left compare operand
     const ADDR_TILEINFO* pRight ///<[in] Right compare operand
     ) const
@@ -3991,15 +4176,15 @@ BOOL_32 EgBasedAddrLib::HwlTileInfoEqual(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlConvertTileInfoToHW
+****************************************************************************************************
+*   EgBasedLib::HwlConvertTileInfoToHW
 *   @brief
-*       Entry of EgBasedAddrLib ConvertTileInfoToHW
+*       Entry of EgBasedLib ConvertTileInfoToHW
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlConvertTileInfoToHW(
+ADDR_E_RETURNCODE EgBasedLib::HwlConvertTileInfoToHW(
     const ADDR_CONVERT_TILEINFOTOHW_INPUT* pIn, ///< [in] input structure
     ADDR_CONVERT_TILEINFOTOHW_OUTPUT* pOut      ///< [out] output structure
     ) const
@@ -4259,15 +4444,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlConvertTileInfoToHW(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeSurfaceInfo
+****************************************************************************************************
+*   EgBasedLib::HwlComputeSurfaceInfo
 *   @brief
-*       Entry of EgBasedAddrLib ComputeSurfaceInfo
+*       Entry of EgBasedLib ComputeSurfaceInfo
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceInfo(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeSurfaceInfo(
     const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,    ///< [in] input structure
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut    ///< [out] output structure
     ) const
@@ -4289,24 +4474,30 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceInfo(
             pOut->pTileInfo = &tileInfo;
         }
 
-        if (!DispatchComputeSurfaceInfo(pIn, pOut))
+        if (DispatchComputeSurfaceInfo(pIn, pOut) == FALSE)
         {
             retCode = ADDR_INVALIDPARAMS;
         }
 
-        // Returns an index
-        pOut->tileIndex = HwlPostCheckTileIndex(pOut->pTileInfo,
-                                                pOut->tileMode,
-                                                pOut->tileType,
-                                                pOut->tileIndex);
-
-        if (IsMacroTiled(pOut->tileMode) && (pOut->macroModeIndex == TileIndexInvalid))
+        // In case client uses tile info as input and would like to calculate a correct size and
+        // alignment together with tile info as output when the tile info is not suppose to have any
+        // matching indices in tile mode tables.
+        if (pIn->flags.skipIndicesOutput == FALSE)
         {
-            pOut->macroModeIndex = HwlComputeMacroModeIndex(pOut->tileIndex,
-                                                            pIn->flags,
-                                                            pIn->bpp,
-                                                            pIn->numSamples,
-                                                            pOut->pTileInfo);
+            // Returns an index
+            pOut->tileIndex = HwlPostCheckTileIndex(pOut->pTileInfo,
+                                                    pOut->tileMode,
+                                                    pOut->tileType,
+                                                    pOut->tileIndex);
+
+            if (IsMacroTiled(pOut->tileMode) && (pOut->macroModeIndex == TileIndexInvalid))
+            {
+                pOut->macroModeIndex = HwlComputeMacroModeIndex(pOut->tileIndex,
+                                                                pIn->flags,
+                                                                pIn->bpp,
+                                                                pIn->numSamples,
+                                                                pOut->pTileInfo);
+            }
         }
 
         // Resets pTileInfo to NULL if the internal tile info is used
@@ -4317,9 +4508,10 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceInfo(
             if (IsMacroTiled(pOut->tileMode))
             {
                 // If a valid index is returned, then no pTileInfo is okay
-                ADDR_ASSERT(!m_configFlags.useTileIndex || pOut->tileIndex != TileIndexInvalid);
+                ADDR_ASSERT((m_configFlags.useTileIndex == FALSE) ||
+                            (pOut->tileIndex != TileIndexInvalid));
 
-                if (!IsTileInfoAllZero(pIn->pTileInfo))
+                if (IsTileInfoAllZero(pIn->pTileInfo) == FALSE)
                 {
                     // The initial value of pIn->pTileInfo is copied to tileInfo
                     // We do not expect any of these value to be changed nor any 0 of inputs
@@ -4339,15 +4531,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceInfo(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeSurfaceAddrFromCoord
+****************************************************************************************************
+*   EgBasedLib::HwlComputeSurfaceAddrFromCoord
 *   @brief
-*       Entry of EgBasedAddrLib ComputeSurfaceAddrFromCoord
+*       Entry of EgBasedLib ComputeSurfaceAddrFromCoord
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceAddrFromCoord(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeSurfaceAddrFromCoord(
     const ADDR_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,    ///< [in] input structure
     ADDR_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut    ///< [out] output structure
     ) const
@@ -4372,15 +4564,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceAddrFromCoord(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeSurfaceCoordFromAddr
+****************************************************************************************************
+*   EgBasedLib::HwlComputeSurfaceCoordFromAddr
 *   @brief
-*       Entry of EgBasedAddrLib ComputeSurfaceCoordFromAddr
+*       Entry of EgBasedLib ComputeSurfaceCoordFromAddr
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceCoordFromAddr(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeSurfaceCoordFromAddr(
     const ADDR_COMPUTE_SURFACE_COORDFROMADDR_INPUT* pIn,    ///< [in] input structure
     ADDR_COMPUTE_SURFACE_COORDFROMADDR_OUTPUT*      pOut    ///< [out] output structure
     ) const
@@ -4400,15 +4592,15 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSurfaceCoordFromAddr(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeSliceTileSwizzle
+****************************************************************************************************
+*   EgBasedLib::HwlComputeSliceTileSwizzle
 *   @brief
-*       Entry of EgBasedAddrLib ComputeSurfaceCoordFromAddr
+*       Entry of EgBasedLib ComputeSurfaceCoordFromAddr
 *   @return
 *       ADDR_E_RETURNCODE
-***************************************************************************************************
+****************************************************************************************************
 */
-ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSliceTileSwizzle(
+ADDR_E_RETURNCODE EgBasedLib::HwlComputeSliceTileSwizzle(
     const ADDR_COMPUTE_SLICESWIZZLE_INPUT*  pIn,    ///< [in] input structure
     ADDR_COMPUTE_SLICESWIZZLE_OUTPUT*       pOut    ///< [out] output structure
     ) const
@@ -4433,17 +4625,17 @@ ADDR_E_RETURNCODE EgBasedAddrLib::HwlComputeSliceTileSwizzle(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeHtileBpp
+****************************************************************************************************
+*   EgBasedLib::HwlComputeHtileBpp
 *
 *   @brief
 *       Compute htile bpp
 *
 *   @return
 *       Htile bpp
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::HwlComputeHtileBpp(
+UINT_32 EgBasedLib::HwlComputeHtileBpp(
     BOOL_32 isWidth8,   ///< [in] TRUE if block width is 8
     BOOL_32 isHeight8   ///< [in] TRUE if block height is 8
     ) const
@@ -4454,17 +4646,17 @@ UINT_32 EgBasedAddrLib::HwlComputeHtileBpp(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlComputeHtileBaseAlign
+****************************************************************************************************
+*   EgBasedLib::HwlComputeHtileBaseAlign
 *
 *   @brief
 *       Compute htile base alignment
 *
 *   @return
 *       Htile base alignment
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::HwlComputeHtileBaseAlign(
+UINT_32 EgBasedLib::HwlComputeHtileBaseAlign(
     BOOL_32         isTcCompatible, ///< [in] if TC compatible
     BOOL_32         isLinear,       ///< [in] if it is linear mode
     ADDR_TILEINFO*  pTileInfo       ///< [in] Tile info
@@ -4485,8 +4677,8 @@ UINT_32 EgBasedAddrLib::HwlComputeHtileBaseAlign(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlGetPitchAlignmentMicroTiled
+****************************************************************************************************
+*   EgBasedLib::HwlGetPitchAlignmentMicroTiled
 *
 *   @brief
 *       Compute 1D tiled surface pitch alignment, calculation results are returned through
@@ -4494,9 +4686,9 @@ UINT_32 EgBasedAddrLib::HwlComputeHtileBaseAlign(
 *
 *   @return
 *       pitch alignment
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 EgBasedAddrLib::HwlGetPitchAlignmentMicroTiled(
+UINT_32 EgBasedLib::HwlGetPitchAlignmentMicroTiled(
     AddrTileMode        tileMode,          ///< [in] tile mode
     UINT_32             bpp,               ///< [in] bits per pixel
     ADDR_SURFACE_FLAGS  flags,             ///< [in] surface flags
@@ -4505,7 +4697,7 @@ UINT_32 EgBasedAddrLib::HwlGetPitchAlignmentMicroTiled(
 {
     UINT_32 pitchAlign;
 
-    UINT_32 microTileThickness = ComputeSurfaceThickness(tileMode);
+    UINT_32 microTileThickness = Thickness(tileMode);
 
     UINT_32 pixelsPerMicroTile;
     UINT_32 pixelsPerPipeInterleave;
@@ -4519,7 +4711,7 @@ UINT_32 EgBasedAddrLib::HwlGetPitchAlignmentMicroTiled(
     // Note: this actually does not work for mipmap but mipmap depth texture is not really
     // sampled with mipmap.
     //
-    if (flags.depth && !flags.noStencil)
+    if (flags.depth && (flags.noStencil == FALSE))
     {
         bpp = 8;
     }
@@ -4534,25 +4726,25 @@ UINT_32 EgBasedAddrLib::HwlGetPitchAlignmentMicroTiled(
 }
 
 /**
-***************************************************************************************************
-*   EgBasedAddrLib::HwlGetSizeAdjustmentMicroTiled
+****************************************************************************************************
+*   EgBasedLib::HwlGetSizeAdjustmentMicroTiled
 *
 *   @brief
 *       Adjust 1D tiled surface pitch and slice size
 *
 *   @return
 *       Logical slice size in bytes
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_64 EgBasedAddrLib::HwlGetSizeAdjustmentMicroTiled(
+UINT_64 EgBasedLib::HwlGetSizeAdjustmentMicroTiled(
     UINT_32             thickness,      ///< [in] thickness
     UINT_32             bpp,            ///< [in] bits per pixel
     ADDR_SURFACE_FLAGS  flags,          ///< [in] surface flags
     UINT_32             numSamples,     ///< [in] number of samples
     UINT_32             baseAlign,      ///< [in] base alignment
     UINT_32             pitchAlign,     ///< [in] pitch alignment
-    UINT_32*            pPitch,         ///< [in/out] pointer to pitch
-    UINT_32*            pHeight         ///< [in/out] pointer to height
+    UINT_32*            pPitch,         ///< [in,out] pointer to pitch
+    UINT_32*            pHeight         ///< [in,out] pointer to height
     ) const
 {
     UINT_64 logicalSliceSize;
@@ -4570,8 +4762,45 @@ UINT_64 EgBasedAddrLib::HwlGetSizeAdjustmentMicroTiled(
     //
     // R800 will always pad physical slice size to baseAlign which is pipe_interleave_bytes
     //
-    ADDR_ASSERT((physicalSliceSize % baseAlign) == 0)
+    ADDR_ASSERT((physicalSliceSize % baseAlign) == 0);
 
     return logicalSliceSize;
 }
 
+/**
+****************************************************************************************************
+*   EgBasedLib::HwlStereoCheckRightOffsetPadding
+*
+*   @brief
+*       check if the height needs extra padding for stereo right eye offset, to avoid swizzling
+*
+*   @return
+*       TRUE is the extra padding is needed
+*
+****************************************************************************************************
+*/
+UINT_32 EgBasedLib::HwlStereoCheckRightOffsetPadding(
+    ADDR_TILEINFO* pTileInfo    ///< Tiling info
+    ) const
+{
+    UINT_32 stereoHeightAlign = 0;
+
+    if (pTileInfo->macroAspectRatio > 2)
+    {
+        // Since 3D rendering treats right eye surface starting from y == "eye height" while
+        // display engine treats it to be 0, so the bank bits may be different.
+        // Additional padding in height is required to make sure it's possible
+        // to achieve synonym by adjusting bank swizzle of right eye surface.
+
+        static const UINT_32 StereoAspectRatio = 2;
+        stereoHeightAlign = pTileInfo->banks *
+            pTileInfo->bankHeight *
+            MicroTileHeight /
+            StereoAspectRatio;
+    }
+
+    return stereoHeightAlign;
+}
+
+} // V1
+} // Addr

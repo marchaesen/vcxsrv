@@ -105,7 +105,6 @@ static const char *key_names[PRIVATE_LAST] = {
     [PRIVATE_CURSOR_BITS] = "CURSOR_BITS",
 
     /* extension privates */
-    [PRIVATE_DAMAGE] = "DAMAGE",
     [PRIVATE_GLYPH] = "GLYPH",
     [PRIVATE_GLYPHSET] = "GLYPHSET",
     [PRIVATE_PICTURE] = "PICTURE",

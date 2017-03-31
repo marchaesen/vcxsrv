@@ -52,7 +52,7 @@ static FILE *stream;
 /* TODO: maybe move this serial machinery to a stand-alone module and
  * expose it?
  */
-pipe_static_mutex(serials_mutex);
+static mtx_t serials_mutex = _MTX_INITIALIZER_NP;
 
 static struct util_hash_table *serials_hash;
 static unsigned serials_last;
@@ -89,12 +89,12 @@ debug_serial(void *p, unsigned *pserial)
    static boolean first = TRUE;
 
    if (first) {
-      pipe_mutex_init(serials_mutex);
+      (void) mtx_init(&serials_mutex, mtx_plain);
       first = FALSE;
    }
 #endif
 
-   pipe_mutex_lock(serials_mutex);
+   mtx_lock(&serials_mutex);
    if (!serials_hash)
       serials_hash = util_hash_table_create(hash_ptr, compare_ptr);
 
@@ -112,7 +112,7 @@ debug_serial(void *p, unsigned *pserial)
       util_hash_table_set(serials_hash, p, (void *) (uintptr_t) serial);
       found = FALSE;
    }
-   pipe_mutex_unlock(serials_mutex);
+   mtx_unlock(&serials_mutex);
 
    *pserial = serial;
 
@@ -126,9 +126,9 @@ debug_serial(void *p, unsigned *pserial)
 static void
 debug_serial_delete(void *p)
 {
-   pipe_mutex_lock(serials_mutex);
+   mtx_lock(&serials_mutex);
    util_hash_table_remove(serials_hash, p);
-   pipe_mutex_unlock(serials_mutex);
+   mtx_unlock(&serials_mutex);
 }
 
 

@@ -22,7 +22,6 @@
  */
 
 #include <wayland-client.h>
-#include <wayland-drm-client-protocol.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -33,6 +32,7 @@
 #include <pthread.h>
 
 #include "wsi_common_wayland.h"
+#include "wayland-drm-client-protocol.h"
 
 #include <util/hash_table.h>
 #include <util/u_vector.h>

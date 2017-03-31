@@ -100,6 +100,7 @@
 #include "fog.h"
 #include "formats.h"
 #include "framebuffer.h"
+#include "glthread.h"
 #include "hint.h"
 #include "hash.h"
 #include "light.h"
@@ -998,8 +999,8 @@ _mesa_new_nop_table(unsigned numEntries)
  * populated with pointers to "no-op" functions.  In turn, the no-op
  * functions will call nop_handler() above.
  */
-static struct _glapi_table *
-alloc_dispatch_table(void)
+struct _glapi_table *
+_mesa_alloc_dispatch_table(void)
 {
    /* Find the larger of Mesa's dispatch table and libGL's dispatch table.
     * In practice, this'll be the same for stand-alone Mesa.  But for DRI
@@ -1071,7 +1072,7 @@ create_beginend_table(const struct gl_context *ctx)
 {
    struct _glapi_table *table;
 
-   table = alloc_dispatch_table();
+   table = _mesa_alloc_dispatch_table();
    if (!table)
       return NULL;
 
@@ -1208,11 +1209,11 @@ _mesa_initialize_context(struct gl_context *ctx,
       goto fail;
 
    /* setup the API dispatch tables with all nop functions */
-   ctx->OutsideBeginEnd = alloc_dispatch_table();
+   ctx->OutsideBeginEnd = _mesa_alloc_dispatch_table();
    if (!ctx->OutsideBeginEnd)
       goto fail;
    ctx->Exec = ctx->OutsideBeginEnd;
-   ctx->CurrentDispatch = ctx->OutsideBeginEnd;
+   ctx->CurrentClientDispatch = ctx->CurrentServerDispatch = ctx->OutsideBeginEnd;
 
    ctx->FragmentProgram._MaintainTexEnvProgram
       = (getenv("MESA_TEX_PROG") != NULL);
@@ -1235,7 +1236,7 @@ _mesa_initialize_context(struct gl_context *ctx,
    switch (ctx->API) {
    case API_OPENGL_COMPAT:
       ctx->BeginEnd = create_beginend_table(ctx);
-      ctx->Save = alloc_dispatch_table();
+      ctx->Save = _mesa_alloc_dispatch_table();
       if (!ctx->BeginEnd || !ctx->Save)
          goto fail;
 
@@ -1339,6 +1340,7 @@ _mesa_free_context_data( struct gl_context *ctx )
    free(ctx->OutsideBeginEnd);
    free(ctx->Save);
    free(ctx->ContextLost);
+   free(ctx->MarshalExec);
 
    /* Shared context state (display lists, textures, etc) */
    _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
@@ -1663,7 +1665,7 @@ _mesa_make_current( struct gl_context *newCtx,
       }
    }
    else {
-      _glapi_set_dispatch(newCtx->CurrentDispatch);
+      _glapi_set_dispatch(newCtx->CurrentClientDispatch);
 
       if (drawBuffer && readBuffer) {
          assert(_mesa_is_winsys_fbo(drawBuffer));
@@ -1765,19 +1767,19 @@ _mesa_get_current_context( void )
 /**
  * Get context's current API dispatch table.
  *
- * It'll either be the immediate-mode execute dispatcher or the display list
- * compile dispatcher.
+ * It'll either be the immediate-mode execute dispatcher, the display list
+ * compile dispatcher, or the thread marshalling dispatcher.
  *
  * \param ctx GL context.
  *
  * \return pointer to dispatch_table.
  *
- * Simply returns __struct gl_contextRec::CurrentDispatch.
+ * Simply returns __struct gl_contextRec::CurrentClientDispatch.
  */
 struct _glapi_table *
 _mesa_get_dispatch(struct gl_context *ctx)
 {
-   return ctx->CurrentDispatch;
+   return ctx->CurrentClientDispatch;
 }
 
 /*@}*/

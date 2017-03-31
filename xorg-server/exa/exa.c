@@ -505,29 +505,14 @@ exaValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
     ExaScreenPriv(pScreen);
     ExaGCPriv(pGC);
     PixmapPtr pTile = NULL;
-    Bool finish_current_tile = FALSE;
 
-    /* Either of these conditions is enough to trigger access to a tile pixmap. */
-    /* With pGC->tileIsPixel == 1, you run the risk of dereferencing an invalid tile pixmap pointer. */
+    /* Either of these conditions is enough to trigger access to a tile pixmap.
+     * With pGC->tileIsPixel == 1, you run the risk of dereferencing an invalid
+     * tile pixmap pointer.
+     */
     if (pGC->fillStyle == FillTiled ||
         ((changes & GCTile) && !pGC->tileIsPixel)) {
         pTile = pGC->tile.pixmap;
-
-        /* Sometimes tile pixmaps are swapped, you need access to:
-         * - The current tile if it depth matches.
-         * - Or the rotated tile if that one matches depth and !(changes & GCTile).
-         * - Or the current tile pixmap and a newly created one.
-         */
-        if (pTile && pTile->drawable.depth != pDrawable->depth &&
-            !(changes & GCTile)) {
-            PixmapPtr pRotatedTile = fbGetRotatedPixmap(pGC);
-
-            if (pRotatedTile &&
-                pRotatedTile->drawable.depth == pDrawable->depth)
-                pTile = pRotatedTile;
-            else
-                finish_current_tile = TRUE;     /* CreatePixmap will be called. */
-        }
     }
 
     if (pGC->stipple)
@@ -544,8 +529,6 @@ exaValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
 
     if (pTile)
         exaFinishAccess(&pTile->drawable, EXA_PREPARE_SRC);
-    if (finish_current_tile && pGC->tile.pixmap)
-        exaFinishAccess(&pGC->tile.pixmap->drawable, EXA_PREPARE_AUX_DEST);
     if (pGC->stipple)
         exaFinishAccess(&pGC->stipple->drawable, EXA_PREPARE_MASK);
 }

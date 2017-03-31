@@ -36,6 +36,8 @@
 static bool
 nir_lower_to_source_mods_block(nir_block *block)
 {
+   bool progress = false;
+
    nir_foreach_instr(instr, block) {
       if (instr->type != nir_instr_type_alu)
          continue;
@@ -91,6 +93,8 @@ nir_lower_to_source_mods_block(nir_block *block)
          if (list_empty(&parent->dest.dest.ssa.uses) &&
              list_empty(&parent->dest.dest.ssa.if_uses))
             nir_instr_remove(&parent->instr);
+
+         progress = true;
       }
 
       switch (alu->op) {
@@ -161,6 +165,7 @@ nir_lower_to_source_mods_block(nir_block *block)
          continue;
 
       alu->dest.saturate = true;
+      progress = true;
 
       nir_foreach_use(child_src, &alu->dest.dest.ssa) {
          assert(child_src->is_ssa);
@@ -176,17 +181,35 @@ nir_lower_to_source_mods_block(nir_block *block)
       }
    }
 
-   return true;
+   return progress;
 }
 
-void
+static bool
+nir_lower_to_source_mods_impl(nir_function_impl *impl)
+{
+   bool progress = false;
+
+   nir_foreach_block(block, impl) {
+      progress |= nir_lower_to_source_mods_block(block);
+   }
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+
+   return progress;
+}
+
+bool
 nir_lower_to_source_mods(nir_shader *shader)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl) {
-         nir_foreach_block(block, function->impl) {
-            nir_lower_to_source_mods_block(block);
-         }
+         progress |= nir_lower_to_source_mods_impl(function->impl);
       }
    }
+
+   return progress;
 }

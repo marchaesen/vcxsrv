@@ -52,7 +52,7 @@ extern "C" {
 #define ffs __builtin_ffs
 #elif defined(_MSC_VER) && (_M_IX86 || _M_ARM || _M_AMD64 || _M_IA64)
 static inline
-int ffs(unsigned i)
+int ffs(int i)
 {
    unsigned long index;
    if (_BitScanForward(&index, i))
@@ -62,14 +62,14 @@ int ffs(unsigned i)
 }
 #else
 extern
-int ffs(unsigned i);
+int ffs(int i);
 #endif
 
 #ifdef HAVE___BUILTIN_FFSLL
 #define ffsll __builtin_ffsll
 #elif defined(_MSC_VER) && (_M_AMD64 || _M_ARM || _M_IA64)
 static inline int
-ffsll(uint64_t i)
+ffsll(long long int i)
 {
    unsigned long index;
    if (_BitScanForward64(&index, i))
@@ -79,7 +79,7 @@ ffsll(uint64_t i)
 }
 #else
 extern int
-ffsll(uint64_t val);
+ffsll(long long int val);
 #endif
 
 

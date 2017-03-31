@@ -38,7 +38,9 @@
                    es2                 CDATA   "none"
                    deprecated          CDATA   "none"
                    exec                NMTOKEN #IMPLIED
-                   desktop             (true | false) "true">
+                   desktop             (true | false) "true"
+                   marshal             NMTOKEN #IMPLIED
+                   marshal_fail        CDATA #IMPLIED>
 <!ATTLIST size     name                NMTOKEN #REQUIRED
                    count               NMTOKEN #IMPLIED
                    mode                (get | set) "set">
@@ -120,6 +122,18 @@ param:
         offset data should be padded to the next even number of dimensions.
         For example, this will insert an empty "height" field after the
         "width" field in the protocol for TexImage1D.
+     marshal - One of "sync", "async", "draw", or "custom", defaulting to
+        async unless one of the arguments is something we know we can't
+        codegen for.  If "sync", we finish any queued glthread work and call
+        the Mesa implementation directly.  If "async", we queue the function
+        call to be performed by glthread.  If "custom", the prototype will be
+        generated but a custom implementation will be present in marshal.c.
+        If "draw", it will follow the "async" rules except that "indices" are
+        ignored (since they may come from a VBO).
+     marshal_fail - an expression that, if it evaluates true, causes glthread
+        to switch back to the Mesa implementation and call it directly.  Used
+        to disable glthread for GL compatibility interactions that we don't
+        want to track state for.
 
 glx:
      rop - Opcode value for "render" commands

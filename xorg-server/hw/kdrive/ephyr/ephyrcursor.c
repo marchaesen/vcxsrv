@@ -24,8 +24,8 @@
  *      Adam Jackson <ajax@redhat.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#include <kdrive-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 #include "ephyr.h"
 #include "ephyrlog.h"

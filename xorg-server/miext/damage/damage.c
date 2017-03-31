@@ -1696,7 +1696,7 @@ DamageCreate(DamageReportFunc damageReport,
     damageScrPriv(pScreen);
     DamagePtr pDamage;
 
-    pDamage = dixAllocateObjectWithPrivates(DamageRec, PRIVATE_DAMAGE);
+    pDamage = calloc(1, sizeof(DamageRec));
     if (!pDamage)
         return 0;
     pDamage->pNext = 0;
@@ -1821,7 +1821,7 @@ DamageDestroy(DamagePtr pDamage)
     (*pScrPriv->funcs.Destroy) (pDamage);
     RegionUninit(&pDamage->damage);
     RegionUninit(&pDamage->pendingDamage);
-    dixFreeObjectWithPrivates(pDamage, PRIVATE_DAMAGE);
+    free(pDamage);
 }
 
 Bool

@@ -121,7 +121,7 @@ lower_offset(nir_builder *b, nir_tex_instr *tex)
    nir_ssa_def *offset_coord;
    if (nir_tex_instr_src_type(tex, coord_index) == nir_type_float) {
       assert(tex->sampler_dim == GLSL_SAMPLER_DIM_RECT);
-      offset_coord = nir_fadd(b, coord, nir_i2f(b, offset));
+      offset_coord = nir_fadd(b, coord, nir_i2f32(b, offset));
    } else {
       offset_coord = nir_iadd(b, coord, offset);
    }
@@ -172,10 +172,11 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
    txs->src[0].src = nir_src_for_ssa(nir_imm_int(b, 0));
    txs->src[0].src_type = nir_tex_src_lod;
 
-   nir_ssa_dest_init(&txs->instr, &txs->dest, tex->coord_components, 32, NULL);
+   nir_ssa_dest_init(&txs->instr, &txs->dest,
+                     nir_tex_instr_dest_size(txs), 32, NULL);
    nir_builder_instr_insert(b, &txs->instr);
 
-   return nir_i2f(b, &txs->dest.ssa);
+   return nir_i2f32(b, &txs->dest.ssa);
 }
 
 static void
@@ -644,7 +645,7 @@ swizzle_result(nir_builder *b, nir_tex_instr *tex, const uint8_t swizzle[4])
       if (swizzle[0] < 4 && swizzle[1] < 4 &&
           swizzle[2] < 4 && swizzle[3] < 4) {
          unsigned swiz[4] = { swizzle[0], swizzle[1], swizzle[2], swizzle[3] };
-         /* We have no 0's or 1's, just emit a swizzling MOV */
+         /* We have no 0s or 1s, just emit a swizzling MOV */
          swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4, false);
       } else {
          nir_ssa_def *srcs[4];

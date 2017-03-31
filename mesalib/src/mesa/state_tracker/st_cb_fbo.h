@@ -30,6 +30,7 @@
 #define ST_CB_FBO_H
 
 #include "main/compiler.h"
+#include "main/fbobject.h"
 #include "main/glheader.h"
 #include "main/mtypes.h"
 
@@ -71,6 +72,22 @@ static inline struct st_renderbuffer *
 st_renderbuffer(struct gl_renderbuffer *rb)
 {
    return (struct st_renderbuffer *) rb;
+}
+
+
+/**
+ * Cast wrapper to convert a struct gl_framebuffer to an st_framebuffer.
+ * Return NULL if the struct gl_framebuffer is a user-created framebuffer.
+ * We'll only return non-null for window system framebuffers.
+ * Note that this function may fail.
+ */
+static inline struct st_framebuffer *
+st_ws_framebuffer(struct gl_framebuffer *fb)
+{
+   /* FBO cannot be casted.  See st_new_framebuffer */
+   if (fb && _mesa_is_winsys_fbo(fb))
+      return (struct st_framebuffer *) fb;
+   return NULL;
 }
 
 

@@ -313,19 +313,6 @@ xf86IsEntityPrimary(int entityIndex)
 }
 
 Bool
-xf86SetEntityFuncs(int entityIndex, EntityProc init, EntityProc enter,
-                   EntityProc leave, void *private)
-{
-    if (entityIndex >= xf86NumEntities)
-        return FALSE;
-    xf86Entities[entityIndex]->entityInit = init;
-    xf86Entities[entityIndex]->entityEnter = enter;
-    xf86Entities[entityIndex]->entityLeave = leave;
-    xf86Entities[entityIndex]->private = private;
-    return TRUE;
-}
-
-Bool
 xf86DriverHasEntities(DriverPtr drvp)
 {
     int i;
@@ -543,38 +530,12 @@ xf86GetDevFromEntity(int entityIndex, int instance)
 }
 
 /*
- * xf86AccessEnter() -- gets called to save the text mode VGA IO
- * resources when reentering the server after a VT switch.
- */
-void
-xf86AccessEnter(void)
-{
-    int i;
-
-    for (i = 0; i < xf86NumEntities; i++)
-        if (xf86Entities[i]->entityEnter)
-            xf86Entities[i]->entityEnter(i, xf86Entities[i]->private);
-}
-
-void
-xf86AccessLeave(void)
-{
-    int i;
-
-    for (i = 0; i < xf86NumEntities; i++)
-        if (xf86Entities[i]->entityLeave)
-            xf86Entities[i]->entityLeave(i, xf86Entities[i]->private);
-}
-
-/*
  * xf86PostProbe() -- Allocate all non conflicting resources
  * This function gets called by xf86Init().
  */
 void
 xf86PostProbe(void)
 {
-    int i;
-
     if (fbSlotClaimed && (
 #if (defined(__sparc__) || defined(__sparc)) && !defined(__OpenBSD__)
                              sbusSlotClaimed ||
@@ -590,10 +551,6 @@ xf86PostProbe(void)
         ))
         FatalError("Cannot run in framebuffer mode. Please specify busIDs "
                    "       for all framebuffer devices\n");
-
-    for (i = 0; i < xf86NumEntities; i++)
-        if (xf86Entities[i]->entityInit)
-            xf86Entities[i]->entityInit(i, xf86Entities[i]->private);
 }
 
 int

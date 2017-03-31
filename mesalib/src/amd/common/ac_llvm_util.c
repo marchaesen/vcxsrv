@@ -26,7 +26,7 @@
 #include "ac_llvm_util.h"
 #include "util/bitscan.h"
 #include <llvm-c/Core.h>
-
+#include <llvm-c/Support.h>
 #include "c11/threads.h"
 
 #include <assert.h>
@@ -35,17 +35,21 @@
 
 static void ac_init_llvm_target()
 {
-#if HAVE_LLVM < 0x0307
-	LLVMInitializeR600TargetInfo();
-	LLVMInitializeR600Target();
-	LLVMInitializeR600TargetMC();
-	LLVMInitializeR600AsmPrinter();
-#else
 	LLVMInitializeAMDGPUTargetInfo();
 	LLVMInitializeAMDGPUTarget();
 	LLVMInitializeAMDGPUTargetMC();
 	LLVMInitializeAMDGPUAsmPrinter();
+
+	/*
+	 * Workaround for bug in llvm 4.0 that causes image intrinsics
+	 * to disappear.
+	 * https://reviews.llvm.org/D26348
+	 */
+#if HAVE_LLVM >= 0x0400
+	const char *argv[2] = {"mesa", "-simplifycfg-sink-common=false"};
+	LLVMParseCommandLineOptions(2, argv, NULL);
 #endif
+
 }
 
 static once_flag ac_init_llvm_target_once_flag = ONCE_FLAG_INIT;
@@ -97,18 +101,11 @@ static const char *ac_get_llvm_processor_name(enum radeon_family family)
 		return "iceland";
 	case CHIP_CARRIZO:
 		return "carrizo";
-#if HAVE_LLVM <= 0x0307
-	case CHIP_FIJI:
-		return "tonga";
-	case CHIP_STONEY:
-		return "carrizo";
-#else
 	case CHIP_FIJI:
 		return "fiji";
 	case CHIP_STONEY:
 		return "stoney";
-#endif
-#if HAVE_LLVM <= 0x0308
+#if HAVE_LLVM == 0x0308
 	case CHIP_POLARIS10:
 		return "tonga";
 	case CHIP_POLARIS11:
@@ -174,6 +171,7 @@ static const char *attr_to_str(enum ac_func_attr attr)
    case AC_FUNC_ATTR_READONLY: return "readonly";
    case AC_FUNC_ATTR_WRITEONLY: return "writeonly";
    case AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY: return "inaccessiblememonly";
+   case AC_FUNC_ATTR_CONVERGENT: return "convergent";
    default:
 	   fprintf(stderr, "Unhandled function attribute: %x\n", attr);
 	   return 0;

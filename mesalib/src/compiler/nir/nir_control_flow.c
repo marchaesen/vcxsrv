@@ -203,7 +203,7 @@ split_block_beginning(nir_block *block)
    }
 
    /* Any phi nodes must stay part of the new block, or else their
-    * sourcse will be messed up. This will reverse the order of the phi's, but
+    * sourcse will be messed up. This will reverse the order of the phis, but
     * order shouldn't matter.
     */
    nir_foreach_instr_safe(instr, block) {

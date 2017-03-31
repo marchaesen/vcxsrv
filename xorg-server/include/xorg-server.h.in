@@ -101,9 +101,6 @@
 /* Support TCP socket connections */
 #undef TCPCONN
 
-/* Support tslib touchscreen abstraction library */
-#undef TSLIB
-
 /* Support UNIX socket connections */
 #undef UNIXCONN
 

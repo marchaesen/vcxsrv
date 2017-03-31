@@ -169,6 +169,7 @@ class Expression(object):
                     else:
                         self.lenfield_parent = p
                     self.lenfield_type = fields[self.lenfield_name].field_type
+                    self.lenfield = fields[self.lenfield_name]
                     break
 
         self.recursive_resolve_tasks(module, parents)

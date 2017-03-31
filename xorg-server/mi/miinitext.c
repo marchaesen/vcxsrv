@@ -97,10 +97,6 @@ SOFTWARE.
 #undef DPMSExtension
 #endif
 
-#ifdef HAVE_KDRIVE_CONFIG_H
-#include <kdrive-config.h>
-#endif
-
 #ifdef HAVE_XGL_CONFIG_H
 #include <xgl-config.h>
 #endif

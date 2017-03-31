@@ -74,6 +74,7 @@ u_upload_create(struct pipe_context *pipe, unsigned default_size,
 
    if (upload->map_persistent) {
       upload->map_flags = PIPE_TRANSFER_WRITE |
+                          PIPE_TRANSFER_UNSYNCHRONIZED |
                           PIPE_TRANSFER_PERSISTENT |
                           PIPE_TRANSFER_COHERENT;
    }

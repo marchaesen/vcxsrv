@@ -47,6 +47,7 @@ enum radeon_bo_flag { /* bitfield */
 	RADEON_FLAG_GTT_WC =        (1 << 0),
 	RADEON_FLAG_CPU_ACCESS =    (1 << 1),
 	RADEON_FLAG_NO_CPU_ACCESS = (1 << 2),
+	RADEON_FLAG_VIRTUAL =       (1 << 3)
 };
 
 enum radeon_bo_usage { /* bitfield */
@@ -148,6 +149,7 @@ struct radeon_info {
 #define RADEON_SURF_HAS_TILE_MODE_INDEX         (1 << 20)
 #define RADEON_SURF_FMASK                       (1 << 21)
 #define RADEON_SURF_DISABLE_DCC                 (1 << 22)
+#define RADEON_SURF_TC_COMPATIBLE_HTILE         (1 << 23)
 
 #define RADEON_SURF_GET(v, field)   (((v) >> RADEON_SURF_ ## field ## _SHIFT) & RADEON_SURF_ ## field ## _MASK)
 #define RADEON_SURF_SET(v, field)   (((v) & RADEON_SURF_ ## field ## _MASK) << RADEON_SURF_ ## field ## _SHIFT)
@@ -217,6 +219,10 @@ struct radeon_surf {
 
 	uint64_t                    dcc_size;
 	uint64_t                    dcc_alignment;
+
+	uint64_t                    htile_size;
+	uint64_t                    htile_slice_size;
+	uint64_t                    htile_alignment;
 };
 
 enum radeon_bo_layout {
@@ -284,6 +290,10 @@ struct radeon_winsys {
 
 	void (*buffer_set_metadata)(struct radeon_winsys_bo *bo,
 				    struct radeon_bo_metadata *md);
+
+	void (*buffer_virtual_bind)(struct radeon_winsys_bo *parent,
+	                            uint64_t offset, uint64_t size,
+	                            struct radeon_winsys_bo *bo, uint64_t bo_offset);
 	struct radeon_winsys_ctx *(*ctx_create)(struct radeon_winsys *ws);
 	void (*ctx_destroy)(struct radeon_winsys_ctx *ctx);
 

@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef GLSL_PARSER_EXTRAS_H
 #define GLSL_PARSER_EXTRAS_H
 

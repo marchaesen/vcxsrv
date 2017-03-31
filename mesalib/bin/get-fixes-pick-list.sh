@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Script for generating a list of candidates [referenced by a Fixes tag] for
 # cherry-picking to a stable branch

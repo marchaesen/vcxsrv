@@ -62,6 +62,7 @@
 #include "program/prog_instruction.h"
 #include <math.h>
 #include "builtin_functions.h"
+#include "util/hash_table.h"
 
 #define M_PIf   ((float) M_PI)
 #define M_PI_2f ((float) M_PI_2)
@@ -5946,7 +5947,7 @@ builtin_builder::_shader_clock(builtin_available_predicate avail,
 {
    MAKE_SIG(type, avail, 0);
 
-   ir_variable *retval = body.make_temp(type, "clock_retval");
+   ir_variable *retval = body.make_temp(glsl_type::uvec2_type, "clock_retval");
 
    body.emit(call(shader->symbols->get_function("__intrinsic_shader_clock"),
                   retval, sig->parameters));
@@ -6002,21 +6003,32 @@ ir_function_signature *
 _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
                                  const char *name, exec_list *actual_parameters)
 {
-   ir_function_signature * s;
+   ir_function_signature *s;
    mtx_lock(&builtins_lock);
    s = builtins.find(state, name, actual_parameters);
    mtx_unlock(&builtins_lock);
-   return s;
+
+   if (s == NULL)
+      return NULL;
+
+   struct hash_table *ht =
+      _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   void *mem_ctx = state;
+   ir_function *f = s->function()->clone(mem_ctx, ht);
+   _mesa_hash_table_destroy(ht, NULL);
+
+   return f->matching_signature(state, actual_parameters, true);
 }
 
-ir_function *
-_mesa_glsl_find_builtin_function_by_name(const char *name)
+bool
+_mesa_glsl_has_builtin_function(const char *name)
 {
    ir_function *f;
    mtx_lock(&builtins_lock);
    f = builtins.shader->symbols->get_function(name);
    mtx_unlock(&builtins_lock);
-   return f;
+
+   return f != NULL;
 }
 
 gl_shader *

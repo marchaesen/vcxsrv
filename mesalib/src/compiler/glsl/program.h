@@ -22,6 +22,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef GLSL_PROGRAM_H
+#define GLSL_PROGRAM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,3 +59,5 @@ linker_warning(struct gl_shader_program *prog, const char *fmt, ...)
 extern long
 parse_program_resource_name(const GLchar *name,
                             const GLchar **out_base_name_end);
+
+#endif /* GLSL_PROGRAM_H */

@@ -85,7 +85,7 @@ build_nir_itob_compute_shader(struct radv_device *dev)
 	tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
 	tex->op = nir_texop_txf;
 	tex->src[0].src_type = nir_tex_src_coord;
-	tex->src[0].src = nir_src_for_ssa(img_coord);
+	tex->src[0].src = nir_src_for_ssa(nir_channels(&b, img_coord, 0x3));
 	tex->src[1].src_type = nir_tex_src_lod;
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->dest_type = nir_type_float;
@@ -288,7 +288,7 @@ build_nir_btoi_compute_shader(struct radv_device *dev)
 	tex->sampler_dim = GLSL_SAMPLER_DIM_BUF;
 	tex->op = nir_texop_txf;
 	tex->src[0].src_type = nir_tex_src_coord;
-	tex->src[0].src = nir_src_for_ssa(buf_coord);
+	tex->src[0].src = nir_src_for_ssa(nir_channels(&b, buf_coord, 1));
 	tex->src[1].src_type = nir_tex_src_lod;
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->dest_type = nir_type_float;
@@ -477,7 +477,7 @@ build_nir_itoi_compute_shader(struct radv_device *dev)
 	tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
 	tex->op = nir_texop_txf;
 	tex->src[0].src_type = nir_tex_src_coord;
-	tex->src[0].src = nir_src_for_ssa(src_coord);
+	tex->src[0].src = nir_src_for_ssa(nir_channels(&b, src_coord, 3));
 	tex->src[1].src_type = nir_tex_src_lod;
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->dest_type = nir_type_float;

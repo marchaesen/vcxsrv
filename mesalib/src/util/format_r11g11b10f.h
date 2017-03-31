@@ -27,6 +27,9 @@
  * below.
  */
 
+#ifndef FORMAT_R11G11B10F_H
+#define FORMAT_R11G11B10F_H
+
 #include <stdint.h>
 
 #define UF11(e, m)           ((e << 6) | (m))
@@ -225,3 +228,5 @@ static inline void r11g11b10f_to_float3(uint32_t rgb, float retval[3])
    retval[1] = uf11_to_f32((rgb >> 11) & 0x7ff);
    retval[2] = uf10_to_f32((rgb >> 22) & 0x3ff);
 }
+
+#endif /* FORMAT_R11G11B10F_H */

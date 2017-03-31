@@ -560,19 +560,14 @@ DoMakeCurrent(__GLXclientState * cl,
     __GLXdrawable *drawPriv = NULL;
     __GLXdrawable *readPriv = NULL;
     int error;
-    GLuint mask;
 
-    /*
-     ** If one is None and the other isn't, it's a bad match.
-     */
-
-    mask = (drawId == None) ? (1 << 0) : 0;
-    mask |= (readId == None) ? (1 << 1) : 0;
-    mask |= (contextId == None) ? (1 << 2) : 0;
-
-    if ((mask != 0x00) && (mask != 0x07)) {
+    /* Drawables but no context makes no sense */
+    if (!contextId && (drawId || readId))
         return BadMatch;
-    }
+
+    /* If either drawable is null, the other must be too */
+    if ((drawId == None) != (readId == None))
+        return BadMatch;
 
     /*
      ** Lookup old context.  If we have one, it must be in a usable state.
@@ -608,20 +603,20 @@ DoMakeCurrent(__GLXclientState * cl,
             return BadAccess;
         }
 
-        assert(drawId != None);
-        assert(readId != None);
+        if (drawId) {
+            drawPriv = __glXGetDrawable(glxc, drawId, client, &status);
+            if (drawPriv == NULL)
+                return status;
+        }
 
-        drawPriv = __glXGetDrawable(glxc, drawId, client, &status);
-        if (drawPriv == NULL)
-            return status;
-
-        readPriv = __glXGetDrawable(glxc, readId, client, &status);
-        if (readPriv == NULL)
-            return status;
-
-    }
-    else {
+        if (readId) {
+            readPriv = __glXGetDrawable(glxc, readId, client, &status);
+            if (readPriv == NULL)
+                return status;
+        }
+    } else {
         /* Switching to no context.  Ignore new drawable. */
+
         glxc = 0;
         drawPriv = 0;
         readPriv = 0;

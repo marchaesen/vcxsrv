@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef SHADER_CACHE
 #define SHADER_CACHE
 

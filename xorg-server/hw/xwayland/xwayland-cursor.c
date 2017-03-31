@@ -96,14 +96,22 @@ xwl_unrealize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
 }
 
 static void
+clear_cursor_frame_callback(struct xwl_seat *xwl_seat)
+{
+   if (xwl_seat->cursor_frame_cb) {
+       wl_callback_destroy (xwl_seat->cursor_frame_cb);
+       xwl_seat->cursor_frame_cb = NULL;
+   }
+}
+
+static void
 frame_callback(void *data,
                struct wl_callback *callback,
                uint32_t time)
 {
     struct xwl_seat *xwl_seat = data;
 
-    wl_callback_destroy (xwl_seat->cursor_frame_cb);
-    xwl_seat->cursor_frame_cb = NULL;
+    clear_cursor_frame_callback(xwl_seat);
     if (xwl_seat->cursor_needs_update) {
         xwl_seat->cursor_needs_update = FALSE;
         xwl_seat_set_cursor(xwl_seat);
@@ -127,6 +135,8 @@ xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
     if (!xwl_seat->x_cursor) {
         wl_pointer_set_cursor(xwl_seat->wl_pointer,
                               xwl_seat->pointer_enter_serial, NULL, 0, 0);
+        clear_cursor_frame_callback(xwl_seat);
+        xwl_seat->cursor_needs_update = FALSE;
         return;
     }
 

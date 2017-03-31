@@ -52,6 +52,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
     GLshort *v;
     char *vbo_offset;
     int box_index;
+    Bool ret = FALSE;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -115,8 +116,9 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
         int nbox = RegionNumRects(gc->pCompositeClip);
         BoxPtr box = RegionRects(gc->pCompositeClip);
 
-        glamor_set_destination_drawable(drawable, box_index, TRUE, FALSE,
-                                        prog->matrix_uniform, &off_x, &off_y);
+        if (!glamor_set_destination_drawable(drawable, box_index, TRUE, FALSE,
+                                             prog->matrix_uniform, &off_x, &off_y))
+            goto bail;
 
         while (nbox--) {
             glScissor(box->x1 + off_x,
@@ -132,14 +134,15 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
         }
     }
 
+    ret = TRUE;
+
+bail:
     glDisable(GL_SCISSOR_TEST);
     if (glamor_priv->glsl_version >= 130)
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    return TRUE;
-bail:
-    return FALSE;
+    return ret;
 }
 
 static void

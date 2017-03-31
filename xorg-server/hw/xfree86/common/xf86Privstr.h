@@ -81,8 +81,6 @@ typedef struct {
                                  * changed */
     Bool miscModInDevAllowNonLocal;
     Bool useSIGIO;              /* Use SIGIO for handling DRI1 swaps */
-    Pix24Flags pixmap24;
-    MessageType pix24From;
     Bool pmFlag;
     Bool disableRandR;
     MessageType randRFrom;
@@ -103,15 +101,6 @@ typedef struct {
 
     Bool autoAddGPU;
 } xf86InfoRec, *xf86InfoPtr;
-
-#ifdef DPMSExtension
-/* Private info for DPMS */
-typedef struct {
-    CloseScreenProcPtr CloseScreen;
-    Bool Enabled;
-    int Flags;
-} DPMSRec, *DPMSPtr;
-#endif
 
 /* ISC's cc can't handle ~ of UL constants, so explicitly type cast them. */
 #define XLED1   ((unsigned long) 0x00000001)

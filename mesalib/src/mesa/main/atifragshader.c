@@ -264,9 +264,6 @@ _mesa_BindFragmentShaderATI(GLuint id)
    assert(ctx->ATIFragmentShader.Current);
    if (newProg)
       newProg->RefCount++;
-
-   /*if (ctx->Driver.BindProgram)
-      ctx->Driver.BindProgram(ctx, target, prog); */
 }
 
 void GLAPIENTRY

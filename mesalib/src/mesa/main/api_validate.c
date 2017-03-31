@@ -724,11 +724,31 @@ GLboolean
 _mesa_validate_MultiDrawElements(struct gl_context *ctx,
                                  GLenum mode, const GLsizei *count,
                                  GLenum type, const GLvoid * const *indices,
-                                 GLuint primcount)
+                                 GLsizei primcount)
 {
-   unsigned i;
+   GLsizei i;
 
    FLUSH_CURRENT(ctx, 0);
+
+   /*
+    * Section 2.3.1 (Errors) of the OpenGL 4.5 (Core Profile) spec says:
+    *
+    *    "If a negative number is provided where an argument of type sizei or
+    *     sizeiptr is specified, an INVALID_VALUE error is generated."
+    *
+    * and in the same section:
+    *
+    *    "In other cases, there are no side effects unless otherwise noted;
+    *     the command which generates the error is ignored so that it has no
+    *     effect on GL state or framebuffer contents."
+    *
+    * Hence, check both primcount and all the count[i].
+    */
+   if (primcount < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glMultiDrawElements(primcount=%d)", primcount);
+      return GL_FALSE;
+   }
 
    for (i = 0; i < primcount; i++) {
       if (count[i] < 0) {

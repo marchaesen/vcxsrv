@@ -34,7 +34,7 @@
 
 #include "pipe/p_compiler.h"
 #include "os/os_thread.h"
-#include "u_string.h"
+#include "util/u_string.h"
 
 #include "u_debug.h"
 #include "u_debug_symbol.h"
@@ -271,7 +271,7 @@ debug_symbol_print(const void *addr)
 }
 
 struct util_hash_table* symbols_hash;
-pipe_static_mutex(symbols_mutex);
+static mtx_t symbols_mutex = _MTX_INITIALIZER_NP;
 
 static unsigned hash_ptr(void* p)
 {
@@ -296,12 +296,12 @@ debug_symbol_name_cached(const void *addr)
    static boolean first = TRUE;
 
    if (first) {
-      pipe_mutex_init(symbols_mutex);
+      (void) mtx_init(&symbols_mutex, mtx_plain);
       first = FALSE;
    }
 #endif
 
-   pipe_mutex_lock(symbols_mutex);
+   mtx_lock(&symbols_mutex);
    if(!symbols_hash)
       symbols_hash = util_hash_table_create(hash_ptr, compare_ptr);
    name = util_hash_table_get(symbols_hash, (void*)addr);
@@ -313,6 +313,6 @@ debug_symbol_name_cached(const void *addr)
 
       util_hash_table_set(symbols_hash, (void*)addr, (void*)name);
    }
-   pipe_mutex_unlock(symbols_mutex);
+   mtx_unlock(&symbols_mutex);
    return name;
 }

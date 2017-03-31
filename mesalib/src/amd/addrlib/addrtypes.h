@@ -25,16 +25,16 @@
  */
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @file  addrtypes.h
 * @brief Contains the helper function and constants
-***************************************************************************************************
+****************************************************************************************************
 */
 #ifndef __ADDR_TYPES_H__
 #define __ADDR_TYPES_H__
 
-#if defined(__APPLE__) || defined(TCORE_BUILD)
-// External definitions header maintained by Mac driver team (and TCORE team)
+#if defined(__APPLE__) && !defined(HAVE_TSERVER)
+// External definitions header maintained by Apple driver team, but not for diag team under Mac.
 // Helps address compilation issues & reduces code covered by NDA
 #include "addrExtDef.h"
 
@@ -59,12 +59,12 @@ typedef int            INT;
 
 #include <stdarg.h> // va_list...etc need this header
 
-#endif // defined (__APPLE__)
+#endif // defined (__APPLE__) && !defined(HAVE_TSERVER)
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Calling conventions
-***************************************************************************************************
+****************************************************************************************************
 */
 #ifndef ADDR_CDECL
     #if defined(__GNUC__)
@@ -121,9 +121,9 @@ typedef int            INT;
 #define ADDR_API ADDR_FASTCALL //default call convention is fast call
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * Global defines used by other modules
-***************************************************************************************************
+****************************************************************************************************
 */
 #if !defined(TILEINDEX_INVALID)
 #define TILEINDEX_INVALID                -1
@@ -138,9 +138,9 @@ typedef int            INT;
 #endif
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * Return codes
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _ADDR_E_RETURNCODE
 {
@@ -159,14 +159,14 @@ typedef enum _ADDR_E_RETURNCODE
 } ADDR_E_RETURNCODE;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @brief
 *   Neutral enums that define tile modes for all H/W
 * @note
 *   R600/R800 tiling mode can be cast to hw enums directly but never cast into HW enum from
 *   ADDR_TM_2D_TILED_XTHICK
 *
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrTileMode
 {
@@ -195,17 +195,154 @@ typedef enum _AddrTileMode
     ADDR_TM_PRT_TILED_THICK     = 22,   ///< No bank/pipe rotation or hashing beyond macrotile size
     ADDR_TM_PRT_2D_TILED_THICK  = 23,   ///< Same as 2D_TILED_THICK, PRT only
     ADDR_TM_PRT_3D_TILED_THICK  = 24,   ///< Same as 3D_TILED_THICK, PRT only
-    ADDR_TM_COUNT               = 25,   ///< Must be the value of the last tile mode
+    ADDR_TM_UNKNOWN             = 25,   ///< Unkown tile mode, should be decided by address lib
+    ADDR_TM_COUNT               = 26,   ///< Must be the value of the last tile mode
 } AddrTileMode;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
+* @brief
+*   Neutral enums that define swizzle modes for Gfx9 ASIC
+* @note
+*
+*   ADDR_SW_LINEAR linear aligned addressing mode, for 1D/2D/3D resouce
+*   ADDR_SW_256B_* addressing block aligned size is 256B, for 2D/3D resouce
+*   ADDR_SW_4KB_*  addressing block aligned size is 4KB, for 2D/3D resouce
+*   ADDR_SW_64KB_* addressing block aligned size is 64KB, for 2D/3D resouce
+*   ADDR_SW_VAR_*  addressing block aligned size is ASIC specific, for 2D/3D resouce
+*
+*   ADDR_SW_*_Z    For 2D resouce, represents Z-order swizzle mode for depth/stencil/FMask
+                   For 3D resouce, represents a swizzle mode similar to legacy thick tile mode
+*   ADDR_SW_*_S    represents standard swizzle mode defined by MS
+*   ADDR_SW_*_D    For 2D resouce, represents a swizzle mode for displayable resource
+*                  For 3D resouce, represents a swizzle mode which places each slice in order & pixel
+                   within slice is placed as 2D ADDR_SW_*_S. Don't use this combination if possible!
+*   ADDR_SW_*_R    For 2D resouce only, represents a swizzle mode for rotated displayable resource
+*
+****************************************************************************************************
+*/
+typedef enum _AddrSwizzleMode
+{
+    ADDR_SW_LINEAR          = 0,
+    ADDR_SW_256B_S          = 1,
+    ADDR_SW_256B_D          = 2,
+    ADDR_SW_256B_R          = 3,
+    ADDR_SW_4KB_Z           = 4,
+    ADDR_SW_4KB_S           = 5,
+    ADDR_SW_4KB_D           = 6,
+    ADDR_SW_4KB_R           = 7,
+    ADDR_SW_64KB_Z          = 8,
+    ADDR_SW_64KB_S          = 9,
+    ADDR_SW_64KB_D          = 10,
+    ADDR_SW_64KB_R          = 11,
+    ADDR_SW_VAR_Z           = 12,
+    ADDR_SW_VAR_S           = 13,
+    ADDR_SW_VAR_D           = 14,
+    ADDR_SW_VAR_R           = 15,
+    ADDR_SW_64KB_Z_T        = 16,
+    ADDR_SW_64KB_S_T        = 17,
+    ADDR_SW_64KB_D_T        = 18,
+    ADDR_SW_64KB_R_T        = 19,
+    ADDR_SW_4KB_Z_X         = 20,
+    ADDR_SW_4KB_S_X         = 21,
+    ADDR_SW_4KB_D_X         = 22,
+    ADDR_SW_4KB_R_X         = 23,
+    ADDR_SW_64KB_Z_X        = 24,
+    ADDR_SW_64KB_S_X        = 25,
+    ADDR_SW_64KB_D_X        = 26,
+    ADDR_SW_64KB_R_X        = 27,
+    ADDR_SW_VAR_Z_X         = 28,
+    ADDR_SW_VAR_S_X         = 29,
+    ADDR_SW_VAR_D_X         = 30,
+    ADDR_SW_VAR_R_X         = 31,
+    ADDR_SW_LINEAR_GENERAL  = 32,
+    ADDR_SW_MAX_TYPE        = 33,
+
+    // Used for represent block with identical size
+    ADDR_SW_256B            = ADDR_SW_256B_S,
+    ADDR_SW_4KB             = ADDR_SW_4KB_S_X,
+    ADDR_SW_64KB            = ADDR_SW_64KB_S_X,
+    ADDR_SW_VAR             = ADDR_SW_VAR_S_X,
+} AddrSwizzleMode;
+
+/**
+****************************************************************************************************
+* @brief
+*   Neutral enums that define image type
+* @note
+*   this is new for address library interface version 2
+*
+****************************************************************************************************
+*/
+typedef enum _AddrResourceType
+{
+    ADDR_RSRC_TEX_1D = 0,
+    ADDR_RSRC_TEX_2D = 1,
+    ADDR_RSRC_TEX_3D = 2,
+    ADDR_RSRC_MAX_TYPE = 3,
+} AddrResourceType;
+
+/**
+****************************************************************************************************
+* @brief
+*   Neutral enums that define resource heap location
+* @note
+*   this is new for address library interface version 2
+*
+****************************************************************************************************
+*/
+typedef enum _AddrResrouceLocation
+{
+    ADDR_RSRC_LOC_UNDEF  = 0,   // Resource heap is undefined/unknown
+    ADDR_RSRC_LOC_LOCAL  = 1,   // CPU visable and CPU invisable local heap
+    ADDR_RSRC_LOC_USWC   = 2,   // CPU write-combined non-cached nonlocal heap
+    ADDR_RSRC_LOC_CACHED = 3,   // CPU cached nonlocal heap
+    ADDR_RSRC_LOC_INVIS  = 4,   // CPU invisable local heap only
+    ADDR_RSRC_LOC_MAX_TYPE = 5,
+} AddrResrouceLocation;
+
+/**
+****************************************************************************************************
+* @brief
+*   Neutral enums that define resource basic swizzle mode
+* @note
+*   this is new for address library interface version 2
+*
+****************************************************************************************************
+*/
+typedef enum _AddrSwType
+{
+    ADDR_SW_Z  = 0,   // Resource basic swizzle mode is ZOrder
+    ADDR_SW_S  = 1,   // Resource basic swizzle mode is Standard
+    ADDR_SW_D  = 2,   // Resource basic swizzle mode is Display
+    ADDR_SW_R  = 3,   // Resource basic swizzle mode is Rotated
+} AddrSwType;
+
+/**
+****************************************************************************************************
+* @brief
+*   Neutral enums that define mipmap major mode
+* @note
+*   this is new for address library interface version 2
+*
+****************************************************************************************************
+*/
+typedef enum _AddrMajorMode
+{
+    ADDR_MAJOR_X = 0,
+    ADDR_MAJOR_Y = 1,
+    ADDR_MAJOR_Z = 2,
+    ADDR_MAJOR_MAX_TYPE = 3,
+} AddrMajorMode;
+
+/**
+****************************************************************************************************
 *   AddrFormat
 *
 *   @brief
 *       Neutral enum for SurfaceFormat
 *
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrFormat {
     ADDR_FMT_INVALID                              = 0x00000000,
@@ -272,16 +409,32 @@ typedef enum _AddrFormat {
     ADDR_FMT_APC7                                 = 0x0000003d,
     ADDR_FMT_CTX1                                 = 0x0000003e,
     ADDR_FMT_RESERVED_63                          = 0x0000003f,
+    ADDR_FMT_ASTC_4x4                             = 0x00000040,
+    ADDR_FMT_ASTC_5x4                             = 0x00000041,
+    ADDR_FMT_ASTC_5x5                             = 0x00000042,
+    ADDR_FMT_ASTC_6x5                             = 0x00000043,
+    ADDR_FMT_ASTC_6x6                             = 0x00000044,
+    ADDR_FMT_ASTC_8x5                             = 0x00000045,
+    ADDR_FMT_ASTC_8x6                             = 0x00000046,
+    ADDR_FMT_ASTC_8x8                             = 0x00000047,
+    ADDR_FMT_ASTC_10x5                            = 0x00000048,
+    ADDR_FMT_ASTC_10x6                            = 0x00000049,
+    ADDR_FMT_ASTC_10x8                            = 0x0000004a,
+    ADDR_FMT_ASTC_10x10                           = 0x0000004b,
+    ADDR_FMT_ASTC_12x10                           = 0x0000004c,
+    ADDR_FMT_ASTC_12x12                           = 0x0000004d,
+    ADDR_FMT_ETC2_64BPP                           = 0x0000004e,
+    ADDR_FMT_ETC2_128BPP                          = 0x0000004f,
 } AddrFormat;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrDepthFormat
 *
 *   @brief
 *       Neutral enum for addrFlt32ToDepthPixel
 *
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrDepthFormat
 {
@@ -297,13 +450,13 @@ typedef enum _AddrDepthFormat
 } AddrDepthFormat;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrColorFormat
 *
 *   @brief
 *       Neutral enum for ColorFormat
 *
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrColorFormat
 {
@@ -346,13 +499,13 @@ typedef enum _AddrColorFormat
 } AddrColorFormat;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrSurfaceNumber
 *
 *   @brief
 *       Neutral enum for SurfaceNumber
 *
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrSurfaceNumber {
     ADDR_NUMBER_UNORM                             = 0x00000000,
@@ -366,13 +519,13 @@ typedef enum _AddrSurfaceNumber {
 } AddrSurfaceNumber;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrSurfaceSwap
 *
 *   @brief
 *       Neutral enum for SurfaceSwap
 *
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrSurfaceSwap {
     ADDR_SWAP_STD                                 = 0x00000000,
@@ -382,12 +535,12 @@ typedef enum _AddrSurfaceSwap {
 } AddrSurfaceSwap;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrHtileBlockSize
 *
 *   @brief
 *       Size of HTILE blocks, valid values are 4 or 8 for now
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrHtileBlockSize
 {
@@ -397,7 +550,7 @@ typedef enum _AddrHtileBlockSize
 
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   AddrPipeCfg
 *
 *   @brief
@@ -410,7 +563,7 @@ typedef enum _AddrHtileBlockSize
 *       For hw configurations w/ non-pow2 memory number of memory channels, it usually matches
 *       the number of ROP units(? TODO: which registers??)
 *       The enum value = hw enum + 1 which is to reserve 0 for requesting default.
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrPipeCfg
 {
@@ -433,12 +586,12 @@ typedef enum _AddrPipeCfg
 } AddrPipeCfg;
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * AddrTileType
 *
 *   @brief
 *       Neutral enums that specifies micro tile type (MICRO_TILE_MODE)
-***************************************************************************************************
+****************************************************************************************************
 */
 typedef enum _AddrTileType
 {
@@ -449,13 +602,13 @@ typedef enum _AddrTileType
     ADDR_THICK              = 4,    ///< Thick micro-tiling, only valid for THICK and XTHICK
 } AddrTileType;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  Type definitions: short system-independent names for address library types
 //
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) || defined(HAVE_TSERVER)
 
 #ifndef BOOL_32        // no bool type in C
 /// @brief Boolean type, since none is defined in C
@@ -531,7 +684,7 @@ typedef enum _AddrTileType
 #define UINT_64  unsigned long long OR unsigned __int64
 #endif
 
-#endif // #if !defined(__APPLE__)
+#endif // #if !defined(__APPLE__) || defined(HAVE_TSERVER)
 
 //  ADDR64X is used to print addresses in hex form on both Windows and Linux
 //
@@ -574,11 +727,11 @@ typedef union {
 } ADDR_FLT_32;
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  Macros for controlling linking and building on multiple systems
 //
-///////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(_MSC_VER)
 #if defined(va_copy)
 #undef va_copy  //redefine va_copy to support VC2013

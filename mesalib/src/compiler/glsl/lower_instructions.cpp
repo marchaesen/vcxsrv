@@ -168,6 +168,7 @@ private:
    void find_lsb_to_float_cast(ir_expression *ir);
    void find_msb_to_float_cast(ir_expression *ir);
    void imul_high_to_mul(ir_expression *ir);
+   void sqrt_to_abs_sqrt(ir_expression *ir);
 
    ir_expression *_carry(operand a, operand b);
 };
@@ -1582,6 +1583,13 @@ lower_instructions_visitor::imul_high_to_mul(ir_expression *ir)
    }
 }
 
+void
+lower_instructions_visitor::sqrt_to_abs_sqrt(ir_expression *ir)
+{
+   ir->operands[0] = new(ir) ir_expression(ir_unop_abs, ir->operands[0]);
+   this->progress = true;
+}
+
 ir_visitor_status
 lower_instructions_visitor::visit_leave(ir_expression *ir)
 {
@@ -1717,6 +1725,12 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
    case ir_binop_imul_high:
       if (lowering(IMUL_HIGH_TO_MUL))
          imul_high_to_mul(ir);
+      break;
+
+   case ir_unop_rsq:
+   case ir_unop_sqrt:
+      if (lowering(SQRT_TO_ABS_SQRT))
+         sqrt_to_abs_sqrt(ir);
       break;
 
    default:

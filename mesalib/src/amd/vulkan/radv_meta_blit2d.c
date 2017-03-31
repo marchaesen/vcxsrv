@@ -305,8 +305,8 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 		vb_data[0] = (struct blit_vb_data) {
 			.pos = {
-				rects[r].dst_x,
-				rects[r].dst_y,
+				-1.0,
+				-1.0,
 			},
 			.tex_coord = {
 				rects[r].src_x,
@@ -316,8 +316,8 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 		vb_data[1] = (struct blit_vb_data) {
 			.pos = {
-				rects[r].dst_x,
-				rects[r].dst_y + rects[r].height,
+				-1.0,
+				1.0,
 			},
 			.tex_coord = {
 				rects[r].src_x,
@@ -327,8 +327,8 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 		vb_data[2] = (struct blit_vb_data) {
 			.pos = {
-				rects[r].dst_x + rects[r].width,
-				rects[r].dst_y,
+				1.0,
+				-1.0,
 			},
 			.tex_coord = {
 				rects[r].src_x + rects[r].width,
@@ -407,6 +407,22 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 			bind_stencil_pipeline(cmd_buffer, src_type);
 		}
+
+		radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
+			.x = rects[r].dst_x,
+			.y = rects[r].dst_y,
+			.width = rects[r].width,
+			.height = rects[r].height,
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		});
+
+		radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
+			.offset = (VkOffset2D) { rects[r].dst_x, rects[r].dst_y },
+			.extent = (VkExtent2D) { rects[r].width, rects[r].height },
+		});
+
+
 
 		radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 		radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
@@ -586,7 +602,7 @@ build_nir_copy_fragment_shader(struct radv_device *device,
 						      vec4, "f_color");
 	color_out->data.location = FRAG_RESULT_DATA0;
 
-	nir_ssa_def *pos_int = nir_f2i(&b, nir_load_var(&b, tex_pos_in));
+	nir_ssa_def *pos_int = nir_f2i32(&b, nir_load_var(&b, tex_pos_in));
 	unsigned swiz[4] = { 0, 1 };
 	nir_ssa_def *tex_pos = nir_swizzle(&b, pos_int, swiz, 2, false);
 
@@ -615,7 +631,7 @@ build_nir_copy_fragment_shader_depth(struct radv_device *device,
 						      vec4, "f_color");
 	color_out->data.location = FRAG_RESULT_DEPTH;
 
-	nir_ssa_def *pos_int = nir_f2i(&b, nir_load_var(&b, tex_pos_in));
+	nir_ssa_def *pos_int = nir_f2i32(&b, nir_load_var(&b, tex_pos_in));
 	unsigned swiz[4] = { 0, 1 };
 	nir_ssa_def *tex_pos = nir_swizzle(&b, pos_int, swiz, 2, false);
 
@@ -644,7 +660,7 @@ build_nir_copy_fragment_shader_stencil(struct radv_device *device,
 						      vec4, "f_color");
 	color_out->data.location = FRAG_RESULT_STENCIL;
 
-	nir_ssa_def *pos_int = nir_f2i(&b, nir_load_var(&b, tex_pos_in));
+	nir_ssa_def *pos_int = nir_f2i32(&b, nir_load_var(&b, tex_pos_in));
 	unsigned swiz[4] = { 0, 1 };
 	nir_ssa_def *tex_pos = nir_swizzle(&b, pos_int, swiz, 2, false);
 
@@ -798,8 +814,8 @@ blit2d_init_color_pipeline(struct radv_device *device,
 		},
 		.pViewportState = &(VkPipelineViewportStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 0,
-			.scissorCount = 0,
+			.viewportCount = 1,
+			.scissorCount = 1,
 		},
 		.pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -827,8 +843,10 @@ blit2d_init_color_pipeline(struct radv_device *device,
 		},
 		.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = 7,
+			.dynamicStateCount = 9,
 			.pDynamicStates = (VkDynamicState[]) {
+				VK_DYNAMIC_STATE_VIEWPORT,
+				VK_DYNAMIC_STATE_SCISSOR,
 				VK_DYNAMIC_STATE_LINE_WIDTH,
 				VK_DYNAMIC_STATE_DEPTH_BIAS,
 				VK_DYNAMIC_STATE_BLEND_CONSTANTS,
@@ -951,8 +969,8 @@ blit2d_init_depth_only_pipeline(struct radv_device *device,
 		},
 		.pViewportState = &(VkPipelineViewportStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 0,
-			.scissorCount = 0,
+			.viewportCount = 1,
+			.scissorCount = 1,
 		},
 		.pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -980,8 +998,10 @@ blit2d_init_depth_only_pipeline(struct radv_device *device,
 		},
 		.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = 7,
+			.dynamicStateCount = 9,
 			.pDynamicStates = (VkDynamicState[]) {
+				VK_DYNAMIC_STATE_VIEWPORT,
+				VK_DYNAMIC_STATE_SCISSOR,
 				VK_DYNAMIC_STATE_LINE_WIDTH,
 				VK_DYNAMIC_STATE_DEPTH_BIAS,
 				VK_DYNAMIC_STATE_BLEND_CONSTANTS,
@@ -1104,8 +1124,8 @@ blit2d_init_stencil_only_pipeline(struct radv_device *device,
 		},
 		.pViewportState = &(VkPipelineViewportStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 0,
-			.scissorCount = 0,
+			.viewportCount = 1,
+			.scissorCount = 1,
 		},
 		.pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -1152,8 +1172,10 @@ blit2d_init_stencil_only_pipeline(struct radv_device *device,
 		},
 		.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = 4,
+			.dynamicStateCount = 6,
 			.pDynamicStates = (VkDynamicState[]) {
+				VK_DYNAMIC_STATE_VIEWPORT,
+				VK_DYNAMIC_STATE_SCISSOR,
 				VK_DYNAMIC_STATE_LINE_WIDTH,
 				VK_DYNAMIC_STATE_DEPTH_BIAS,
 				VK_DYNAMIC_STATE_BLEND_CONSTANTS,

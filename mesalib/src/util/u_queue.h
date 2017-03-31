@@ -33,15 +33,21 @@
 #ifndef U_QUEUE_H
 #define U_QUEUE_H
 
-#include "os/os_thread.h"
+#include <string.h>
+
 #include "util/list.h"
+#include "util/u_thread.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Job completion fence.
  * Put this into your job structure.
  */
 struct util_queue_fence {
-   pipe_mutex mutex;
-   pipe_condvar cond;
+   mtx_t mutex;
+   cnd_t cond;
    int signalled;
 };
 
@@ -57,10 +63,10 @@ struct util_queue_job {
 /* Put this into your context. */
 struct util_queue {
    const char *name;
-   pipe_mutex lock;
-   pipe_condvar has_queued_cond;
-   pipe_condvar has_space_cond;
-   pipe_thread *threads;
+   mtx_t lock;
+   cnd_t has_queued_cond;
+   cnd_t has_space_cond;
+   thrd_t *threads;
    int num_queued;
    unsigned num_threads;
    int kill_threads;
@@ -103,5 +109,9 @@ util_queue_fence_is_signalled(struct util_queue_fence *fence)
 {
    return fence->signalled != 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

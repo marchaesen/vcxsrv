@@ -693,7 +693,7 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 					  /* READNONE means writes can't
 					   * affect it, while READONLY means
 					   * that writes can affect it. */
-					  readonly_memory ?
+					  readonly_memory && HAVE_LLVM >= 0x0400 ?
 						  AC_FUNC_ATTR_READNONE :
 						  AC_FUNC_ATTR_READONLY);
 	} else {
@@ -736,7 +736,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					 LLVMValueRef voffset,
 					 bool readonly_memory)
 {
-	if (HAVE_LLVM >= 0x0400) {
+	if (HAVE_LLVM >= 0x0309) {
 		LLVMValueRef args [] = {
 			LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
 			vindex,
@@ -751,7 +751,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					  /* READNONE means writes can't
 					   * affect it, while READONLY means
 					   * that writes can affect it. */
-					  readonly_memory ?
+					  readonly_memory && HAVE_LLVM >= 0x0400 ?
 						  AC_FUNC_ATTR_READNONE :
 						  AC_FUNC_ATTR_READONLY);
 	}
@@ -792,22 +792,16 @@ ac_get_thread_id(struct ac_llvm_context *ctx)
 {
 	LLVMValueRef tid;
 
-	if (HAVE_LLVM < 0x0308) {
-		tid = ac_build_intrinsic(ctx, "llvm.SI.tid",
-					 ctx->i32,
-					 NULL, 0, AC_FUNC_ATTR_READNONE);
-	} else {
-		LLVMValueRef tid_args[2];
-		tid_args[0] = LLVMConstInt(ctx->i32, 0xffffffff, false);
-		tid_args[1] = LLVMConstInt(ctx->i32, 0, false);
-		tid_args[1] = ac_build_intrinsic(ctx,
-						 "llvm.amdgcn.mbcnt.lo", ctx->i32,
-						 tid_args, 2, AC_FUNC_ATTR_READNONE);
+	LLVMValueRef tid_args[2];
+	tid_args[0] = LLVMConstInt(ctx->i32, 0xffffffff, false);
+	tid_args[1] = LLVMConstInt(ctx->i32, 0, false);
+	tid_args[1] = ac_build_intrinsic(ctx,
+					 "llvm.amdgcn.mbcnt.lo", ctx->i32,
+					 tid_args, 2, AC_FUNC_ATTR_READNONE);
 
-		tid = ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.hi",
-					 ctx->i32, tid_args,
-					 2, AC_FUNC_ATTR_READNONE);
-	}
+	tid = ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.hi",
+				 ctx->i32, tid_args,
+				 2, AC_FUNC_ATTR_READNONE);
 	set_range_metadata(ctx, tid, 0, 64);
 	return tid;
 }
@@ -861,13 +855,17 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 		args[1] = val;
 		tl = ac_build_intrinsic(ctx,
 					"llvm.amdgcn.ds.bpermute", ctx->i32,
-					args, 2, AC_FUNC_ATTR_READNONE);
+					args, 2,
+					AC_FUNC_ATTR_READNONE |
+					AC_FUNC_ATTR_CONVERGENT);
 
 		args[0] = LLVMBuildMul(ctx->builder, trbl_tid,
 				       LLVMConstInt(ctx->i32, 4, false), "");
 		trbl = ac_build_intrinsic(ctx,
 					  "llvm.amdgcn.ds.bpermute", ctx->i32,
-					  args, 2, AC_FUNC_ATTR_READNONE);
+					  args, 2,
+					  AC_FUNC_ATTR_READNONE |
+					  AC_FUNC_ATTR_CONVERGENT);
 	} else {
 		LLVMValueRef store_ptr, load_ptr0, load_ptr1;
 
@@ -968,15 +966,13 @@ LLVMValueRef ac_build_clamp(struct ac_llvm_context *ctx, LLVMValueRef value)
 					  AC_FUNC_ATTR_READNONE);
 	}
 
-	const char *intr = HAVE_LLVM >= 0x0308 ? "llvm.AMDGPU.clamp." :
-						 "llvm.AMDIL.clamp.";
 	LLVMValueRef args[3] = {
 		value,
 		LLVMConstReal(ctx->f32, 0),
 		LLVMConstReal(ctx->f32, 1),
 	};
 
-	return ac_build_intrinsic(ctx, intr, ctx->f32, args, 3,
+	return ac_build_intrinsic(ctx, "llvm.AMDGPU.clamp.", ctx->f32, args, 3,
 				  AC_FUNC_ATTR_READNONE |
 				  AC_FUNC_ATTR_LEGACY);
 }
@@ -1219,4 +1215,30 @@ LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 				  ctx->i32, args, 3,
 				  AC_FUNC_ATTR_READNONE |
 				  AC_FUNC_ATTR_LEGACY);
+}
+
+void ac_get_image_intr_name(const char *base_name,
+			    LLVMTypeRef data_type,
+			    LLVMTypeRef coords_type,
+			    LLVMTypeRef rsrc_type,
+			    char *out_name, unsigned out_len)
+{
+        char coords_type_name[8];
+
+        ac_build_type_name_for_intr(coords_type, coords_type_name,
+                            sizeof(coords_type_name));
+
+        if (HAVE_LLVM <= 0x0309) {
+                snprintf(out_name, out_len, "%s.%s", base_name, coords_type_name);
+        } else {
+                char data_type_name[8];
+                char rsrc_type_name[8];
+
+                ac_build_type_name_for_intr(data_type, data_type_name,
+                                        sizeof(data_type_name));
+                ac_build_type_name_for_intr(rsrc_type, rsrc_type_name,
+                                        sizeof(rsrc_type_name));
+                snprintf(out_name, out_len, "%s.%s.%s.%s", base_name,
+                         data_type_name, coords_type_name, rsrc_type_name);
+        }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Intel Corporation
+ * Copyright 2017 Timothy Arceri
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -16,32 +16,22 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
  * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
  */
 
-#if defined(_WIN32)
-#include <stdlib.h>
-#include <string.h>
-#include "strndup.h"
+#ifndef RAND_XOR_H
+#define RAND_XOR_H
 
-char *
-strndup(const char *str, size_t max)
-{
-   size_t n;
-   char *ptr;
+#include <stdint.h>
+#include <stdbool.h>
 
-   if (!str)
-      return NULL;
+uint64_t
+rand_xorshift128plus(uint64_t *seed);
 
-   n = strnlen(str, max);
-   ptr = (char *) calloc(n + 1, sizeof(char));
-   if (!ptr)
-      return NULL;
+void
+s_rand_xorshift128plus(uint64_t *seed, bool randomised_seed);
 
-   memcpy(ptr, str, n);
-   return ptr;
-}
-
-#endif
+#endif /* RAND_XOR_H */

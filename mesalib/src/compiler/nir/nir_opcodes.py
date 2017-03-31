@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 #
 # Copyright (C) 2014 Connor Abbott
 #
@@ -166,42 +165,30 @@ unop("frsq", tfloat, "bit_size == 64 ? 1.0 / sqrt(src0) : 1.0f / sqrtf(src0)")
 unop("fsqrt", tfloat, "bit_size == 64 ? sqrt(src0) : sqrtf(src0)")
 unop("fexp2", tfloat, "exp2f(src0)")
 unop("flog2", tfloat, "log2f(src0)")
-unop_convert("f2i", tint32, tfloat32, "src0") # Float-to-integer conversion.
-unop_convert("f2u", tuint32, tfloat32, "src0") # Float-to-unsigned conversion
-unop_convert("d2i", tint32, tfloat64, "src0") # Double-to-integer conversion.
-unop_convert("d2u", tuint32, tfloat64, "src0") # Double-to-unsigned conversion.
-unop_convert("i2f", tfloat32, tint32, "src0") # Integer-to-float conversion.
-unop_convert("i2d", tfloat64, tint32, "src0") # Integer-to-double conversion.
-unop_convert("i2i32", tint32, tint, "src0")    # General int (int8_t, int64_t, etc.) to int32_t conversion
-unop_convert("u2i32", tint32, tuint, "src0")   # General uint (uint8_t, uint64_t, etc.) to int32_t conversion
-unop_convert("i2u32", tuint32, tint, "src0")   # General int (int8_t, int64_t, etc.) to uint32_t conversion
-unop_convert("u2u32", tuint32, tuint, "src0")  # General uint (uint8_t, uint64_t, etc.) to uint32_t conversion
-unop_convert("i2i64", tint64, tint, "src0")    # General int (int8_t, int32_t, etc.) to int64_t conversion
-unop_convert("u2i64", tint64, tuint, "src0")   # General uint (uint8_t, uint64_t, etc.) to int64_t conversion
-unop_convert("f2i64", tint64, tfloat, "src0")  # General float (float or double) to int64_t conversion
-unop_convert("i2u64", tuint64, tint,  "src0")  # General int (int8_t, int64_t, etc.) to uint64_t conversion
-unop_convert("u2u64", tuint64, tuint, "src0")  # General uint (uint8_t, uint32_t, etc.) to uint64_t conversion
-unop_convert("f2u64", tuint64, tfloat, "src0") # General float (float or double) to uint64_t conversion
-unop_convert("i642f", tfloat32, tint64, "src0")  # int64_t-to-float conversion.
-unop_convert("i642b", tbool, tint64, "src0")  # int64_t-to-bool conversion.
-unop_convert("i642d", tfloat64, tint64, "src0")  # int64_t-to-double conversion.
-unop_convert("u642f", tfloat32, tuint64, "src0") # uint64_t-to-float conversion.
-unop_convert("u642d", tfloat64, tuint64, "src0") # uint64_t-to-double conversion.
 
-# Float-to-boolean conversion
-unop_convert("f2b", tbool, tfloat32, "src0 != 0.0f")
-unop_convert("d2b", tbool, tfloat64, "src0 != 0.0")
-# Boolean-to-float conversion
-unop_convert("b2f", tfloat32, tbool, "src0 ? 1.0f : 0.0f")
-# Int-to-boolean conversion
+# Generate all of the numeric conversion opcodes
+for src_t in [tint, tuint, tfloat]:
+   if src_t in (tint, tuint):
+      dst_types = [tfloat, src_t]
+   elif src_t == tfloat:
+      dst_types = [tint, tuint, tfloat]
+
+   for dst_t in dst_types:
+      if dst_t == tfloat:
+         bit_sizes = [16, 32, 64]
+      else:
+         bit_sizes = [8, 16, 32, 64]
+      for bit_size in bit_sizes:
+         unop_convert("{0}2{1}{2}".format(src_t[0], dst_t[0], bit_size),
+                      dst_t + str(bit_size), src_t, "src0")
+
+# We'll hand-code the to/from bool conversion opcodes.  Because bool doesn't
+# have multiple bit-sizes, we can always infer the size from the other type.
+unop_convert("f2b", tbool, tfloat, "src0 != 0.0")
 unop_convert("i2b", tbool, tint, "src0 != 0")
-unop_convert("b2i", tint32, tbool, "src0 ? 1 : 0") # Boolean-to-int conversion
-unop_convert("b2i64", tint64, tbool, "src0 ? 1 : 0")  # Boolean-to-int64_t conversion.
-unop_convert("u2f", tfloat32, tuint32, "src0") # Unsigned-to-float conversion.
-unop_convert("u2d", tfloat64, tuint32, "src0") # Unsigned-to-double conversion.
-# double-to-float conversion
-unop_convert("d2f", tfloat32, tfloat64, "src0") # Double to single precision
-unop_convert("f2d", tfloat64, tfloat32, "src0") # Single to double precision
+unop_convert("b2f", tfloat, tbool, "src0 ? 1.0 : 0.0")
+unop_convert("b2i", tint, tbool, "src0 ? 1 : 0")
+
 
 # Unary floating-point rounding operations.
 

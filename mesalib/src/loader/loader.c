@@ -145,7 +145,7 @@ static char *drm_get_id_path_tag_for_fd(int fd)
    drmDevicePtr device;
    char *tag;
 
-   if (drmGetDevice(fd, &device) != 0)
+   if (drmGetDevice2(fd, 0, &device) != 0)
        return NULL;
 
    tag = drm_construct_id_path_tag(device);
@@ -179,7 +179,7 @@ int loader_get_user_preferred_fd(int default_fd, int *different_device)
    if (default_tag == NULL)
       goto err;
 
-   num_devices = drmGetDevices(devices, MAX_DRM_DEVICES);
+   num_devices = drmGetDevices2(0, devices, MAX_DRM_DEVICES);
    if (num_devices < 0)
       goto err;
 
@@ -275,14 +275,14 @@ drm_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id)
    drmDevicePtr device;
    int ret;
 
-   if (drmGetDevice(fd, &device) == 0) {
+   if (drmGetDevice2(fd, 0, &device) == 0) {
       if (device->bustype == DRM_BUS_PCI) {
          *vendor_id = device->deviceinfo.pci->vendor_id;
          *chip_id = device->deviceinfo.pci->device_id;
          ret = 1;
       }
       else {
-         log_(_LOADER_WARNING, "MESA-LOADER: device is not located on the PCI bus\n");
+         log_(_LOADER_DEBUG, "MESA-LOADER: device is not located on the PCI bus\n");
          ret = 0;
       }
       drmFreeDevice(&device);

@@ -14,8 +14,6 @@ libwfb_la_LIBADD = $(PIXMAN_LIBS)
 
 libfb_la_SOURCES = 	\
 	fb.h		\
-	fb24_32.c	\
-	fb24_32.h	\
 	fballpriv.c	\
 	fbarc.c		\
 	fbbits.c	\

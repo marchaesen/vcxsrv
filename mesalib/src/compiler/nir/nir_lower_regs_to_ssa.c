@@ -210,11 +210,11 @@ rewrite_alu_instr(nir_alu_instr *alu, struct regs_to_ssa_state *state)
                                        &vec->dest.dest.ssa);
 }
 
-void
+bool
 nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
 {
    if (exec_list_is_empty(&impl->registers))
-      return;
+      return false;
 
    nir_metadata_require(impl, nir_metadata_block_index |
                               nir_metadata_dominance);
@@ -279,15 +279,19 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
+   return true;
 }
 
-void
+bool
 nir_lower_regs_to_ssa(nir_shader *shader)
 {
    assert(exec_list_is_empty(&shader->registers));
+   bool progress = false;
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         nir_lower_regs_to_ssa_impl(function->impl);
+         progress |= nir_lower_regs_to_ssa_impl(function->impl);
    }
+
+   return progress;
 }

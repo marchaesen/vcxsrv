@@ -187,13 +187,6 @@ fbBltOne(FbStip * src, FbStride srcStride,      /* FbStip units per scanline */
     Bool endNeedsLoad = FALSE;  /* need load for endmask */
     int startbyte, endbyte;
 
-    if (dstBpp == 24) {
-        fbBltOne24(src, srcStride, srcX,
-                   dst, dstStride, dstX, dstBpp,
-                   width, height, fgand, fgxor, bgand, bgxor);
-        return;
-    }
-
     /*
      * Do not read past the end of the buffer!
      */
@@ -377,266 +370,6 @@ fbBltOne(FbStip * src, FbStride srcStride,      /* FbStip units per scanline */
 }
 
 /*
- * Crufty macros to initialize the mask array, most of this
- * is to avoid compile-time warnings about shift overflow
- */
-
-#if BITMAP_BIT_ORDER == MSBFirst
-#define Mask24Pos(x,r) ((x)*24-(r))
-#else
-#define Mask24Pos(x,r) ((x)*24-((r) ? 24 - (r) : 0))
-#endif
-
-#define Mask24Neg(x,r)	(Mask24Pos(x,r) < 0 ? -Mask24Pos(x,r) : 0)
-#define Mask24Check(x,r)    (Mask24Pos(x,r) < 0 ? 0 : \
-			     Mask24Pos(x,r) >= FB_UNIT ? 0 : Mask24Pos(x,r))
-
-#define Mask24(x,r) (Mask24Pos(x,r) < FB_UNIT ? \
-		     (Mask24Pos(x,r) < 0 ? \
-		      0xffffffU >> Mask24Neg (x,r) : \
-		      0xffffffU << Mask24Check(x,r)) : 0)
-
-#define SelMask24(b,n,r)	((((b) >> n) & 1) * Mask24(n,r))
-
-#define C2_24(b,r)  \
-    (SelMask24(b,0,r) | \
-     SelMask24(b,1,r))
-
-#define FbStip24Len	    2
-#if BITMAP_BIT_ORDER == MSBFirst
-#define FbStip24New(rot)    (1 + (rot == 0))
-#else
-#define FbStip24New(rot)    (1 + (rot == 8))
-#endif
-
-const FbBits fbStipple24Bits[3][1 << FbStip24Len] = {
-    /* rotate 0 */
-    {
-     C2_24(0, 0), C2_24(1, 0), C2_24(2, 0), C2_24(3, 0),
-     },
-    /* rotate 8 */
-    {
-     C2_24(0, 8), C2_24(1, 8), C2_24(2, 8), C2_24(3, 8),
-     },
-    /* rotate 16 */
-    {
-     C2_24(0, 16), C2_24(1, 16), C2_24(2, 16), C2_24(3, 16),
-     }
-};
-
-#if BITMAP_BIT_ORDER == LSBFirst
-
-#define FbMergeStip24Bits(left, right, new) \
-	(FbStipLeft (left, new) | FbStipRight ((right), (FbStip24Len - (new))))
-
-#define FbMergePartStip24Bits(left, right, llen, rlen) \
-	(left | FbStipRight(right, llen))
-
-#else
-
-#define FbMergeStip24Bits(left, right, new) \
-	((FbStipLeft (left, new) & ((1 << FbStip24Len) - 1)) | right)
-
-#define FbMergePartStip24Bits(left, right, llen, rlen) \
-	(FbStipLeft(left, rlen) | right)
-
-#endif
-
-#define fbFirstStipBits(len,stip) {\
-    int	__len = (len); \
-    if (len <= remain) { \
-	stip = FbLeftStipBits(bits, len); \
-    } else { \
-	stip = FbLeftStipBits(bits, remain); \
-	bits = (src < srcEnd ? READ(src++) : 0); \
-	__len = (len) - remain; \
-	stip = FbMergePartStip24Bits(stip, FbLeftStipBits(bits, __len), \
-				     remain, __len); \
-	remain = FB_STIP_UNIT; \
-    } \
-    bits = FbStipLeft (bits, __len); \
-    remain -= __len; \
-}
-
-#define fbInitStipBits(offset,len,stip) {\
-    bits = FbStipLeft (READ(src++),offset); \
-    remain = FB_STIP_UNIT - offset; \
-    fbFirstStipBits(len,stip); \
-    stip = FbMergeStip24Bits (0, stip, len); \
-}
-
-#define fbNextStipBits(rot,stip) {\
-    int	    __new = FbStip24New(rot); \
-    FbStip  __right; \
-    fbFirstStipBits(__new, __right); \
-    stip = FbMergeStip24Bits (stip, __right, __new); \
-    rot = FbNext24Rot (rot); \
-}
-
-/*
- * Use deep mask tables that incorporate rotation, pull
- * a variable number of bits out of the stipple and
- * reuse the right bits as needed for the next write
- *
- * Yes, this is probably too much code, but most 24-bpp screens
- * have no acceleration so this code is used for stipples, copyplane
- * and text
- */
-void
-fbBltOne24(FbStip * srcLine, FbStride srcStride,        /* FbStip units per scanline */
-           int srcX,            /* bit position of source */
-           FbBits * dst, FbStride dstStride,    /* FbBits units per scanline */
-           int dstX,            /* bit position of dest */
-           int dstBpp,          /* bits per destination unit */
-           int width,           /* width in bits of destination */
-           int height,          /* height in scanlines */
-           FbBits fgand,        /* rrop values */
-           FbBits fgxor, FbBits bgand, FbBits bgxor)
-{
-    FbStip *src, *srcEnd;
-    FbBits leftMask, rightMask, mask;
-    int nlMiddle, nl;
-    FbStip stip, bits;
-    int remain;
-    int dstS;
-    int firstlen;
-    int rot0, rot;
-    int nDst;
-
-    /*
-     * Do not read past the end of the buffer!
-     */
-    srcEnd = srcLine + height * srcStride;
-
-    srcLine += srcX >> FB_STIP_SHIFT;
-    dst += dstX >> FB_SHIFT;
-    srcX &= FB_STIP_MASK;
-    dstX &= FB_MASK;
-    rot0 = FbFirst24Rot(dstX);
-
-    FbMaskBits(dstX, width, leftMask, nlMiddle, rightMask);
-
-    dstS = (dstX + 23) / 24;
-    firstlen = FbStip24Len - dstS;
-
-    nDst = nlMiddle;
-    if (leftMask)
-        nDst++;
-    dstStride -= nDst;
-
-    /* opaque copy */
-    if (bgand == 0 && fgand == 0) {
-        while (height--) {
-            rot = rot0;
-            src = srcLine;
-            srcLine += srcStride;
-            fbInitStipBits(srcX, firstlen, stip);
-            if (leftMask) {
-                mask = fbStipple24Bits[rot >> 3][stip];
-                WRITE(dst, (READ(dst) & ~leftMask) |
-                      (FbOpaqueStipple(mask,
-                                       FbRot24(fgxor, rot), FbRot24(bgxor, rot))
-                       & leftMask));
-                dst++;
-                fbNextStipBits(rot, stip);
-            }
-            nl = nlMiddle;
-            while (nl--) {
-                mask = fbStipple24Bits[rot >> 3][stip];
-                WRITE(dst, FbOpaqueStipple(mask,
-                                           FbRot24(fgxor, rot),
-                                           FbRot24(bgxor, rot)));
-                dst++;
-                fbNextStipBits(rot, stip);
-            }
-            if (rightMask) {
-                mask = fbStipple24Bits[rot >> 3][stip];
-                WRITE(dst, (READ(dst) & ~rightMask) |
-                      (FbOpaqueStipple(mask,
-                                       FbRot24(fgxor, rot), FbRot24(bgxor, rot))
-                       & rightMask));
-            }
-            dst += dstStride;
-            src += srcStride;
-        }
-    }
-    /* transparent copy */
-    else if (bgand == FB_ALLONES && bgxor == 0 && fgand == 0) {
-        while (height--) {
-            rot = rot0;
-            src = srcLine;
-            srcLine += srcStride;
-            fbInitStipBits(srcX, firstlen, stip);
-            if (leftMask) {
-                if (stip) {
-                    mask = fbStipple24Bits[rot >> 3][stip] & leftMask;
-                    WRITE(dst,
-                          (READ(dst) & ~mask) | (FbRot24(fgxor, rot) & mask));
-                }
-                dst++;
-                fbNextStipBits(rot, stip);
-            }
-            nl = nlMiddle;
-            while (nl--) {
-                if (stip) {
-                    mask = fbStipple24Bits[rot >> 3][stip];
-                    WRITE(dst,
-                          (READ(dst) & ~mask) | (FbRot24(fgxor, rot) & mask));
-                }
-                dst++;
-                fbNextStipBits(rot, stip);
-            }
-            if (rightMask) {
-                if (stip) {
-                    mask = fbStipple24Bits[rot >> 3][stip] & rightMask;
-                    WRITE(dst,
-                          (READ(dst) & ~mask) | (FbRot24(fgxor, rot) & mask));
-                }
-            }
-            dst += dstStride;
-        }
-    }
-    else {
-        while (height--) {
-            rot = rot0;
-            src = srcLine;
-            srcLine += srcStride;
-            fbInitStipBits(srcX, firstlen, stip);
-            if (leftMask) {
-                mask = fbStipple24Bits[rot >> 3][stip];
-                WRITE(dst, FbStippleRRopMask(READ(dst), mask,
-                                             FbRot24(fgand, rot),
-                                             FbRot24(fgxor, rot),
-                                             FbRot24(bgand, rot),
-                                             FbRot24(bgxor, rot), leftMask));
-                dst++;
-                fbNextStipBits(rot, stip);
-            }
-            nl = nlMiddle;
-            while (nl--) {
-                mask = fbStipple24Bits[rot >> 3][stip];
-                WRITE(dst, FbStippleRRop(READ(dst), mask,
-                                         FbRot24(fgand, rot),
-                                         FbRot24(fgxor, rot),
-                                         FbRot24(bgand, rot),
-                                         FbRot24(bgxor, rot)));
-                dst++;
-                fbNextStipBits(rot, stip);
-            }
-            if (rightMask) {
-                mask = fbStipple24Bits[rot >> 3][stip];
-                WRITE(dst, FbStippleRRopMask(READ(dst), mask,
-                                             FbRot24(fgand, rot),
-                                             FbRot24(fgxor, rot),
-                                             FbRot24(bgand, rot),
-                                             FbRot24(bgxor, rot), rightMask));
-            }
-            dst += dstStride;
-        }
-    }
-}
-
-/*
  * Not very efficient, but simple -- copy a single plane
  * from an N bit image to a 1 bit image
  */
@@ -668,7 +401,6 @@ fbBltPlane(FbBits * src,
     FbStip dstUnion;
     int w;
     int wt;
-    int rot0;
 
     if (!width)
         return;
@@ -682,19 +414,8 @@ fbBltPlane(FbBits * src,
     w = width / srcBpp;
 
     pm = fbReplicatePixel(planeMask, srcBpp);
-    if (srcBpp == 24) {
-        int tmpw = 24;
-
-        rot0 = FbFirst24Rot(srcX);
-        if (srcX + tmpw > FB_UNIT)
-            tmpw = FB_UNIT - srcX;
-        srcMaskFirst = FbRot24(pm, rot0) & FbBitsMask(srcX, tmpw);
-    }
-    else {
-        rot0 = 0;
-        srcMaskFirst = pm & FbBitsMask(srcX, srcBpp);
-        srcMask0 = pm & FbBitsMask(0, srcBpp);
-    }
+    srcMaskFirst = pm & FbBitsMask(srcX, srcBpp);
+    srcMask0 = pm & FbBitsMask(0, srcBpp);
 
     dstMaskFirst = FbStipMask(dstX, 1);
     while (height--) {
@@ -704,8 +425,6 @@ fbBltPlane(FbBits * src,
         src += srcStride;
 
         srcMask = srcMaskFirst;
-        if (srcBpp == 24)
-            srcMask0 = FbRot24(pm, rot0) & FbBitsMask(0, srcBpp);
         srcBits = READ(s++);
 
         dstMask = dstMaskFirst;
@@ -717,8 +436,6 @@ fbBltPlane(FbBits * src,
         while (wt--) {
             if (!srcMask) {
                 srcBits = READ(s++);
-                if (srcBpp == 24)
-                    srcMask0 = FbNext24Pix(srcMask0) & FbBitsMask(0, 24);
                 srcMask = srcMask0;
             }
             if (!dstMask) {

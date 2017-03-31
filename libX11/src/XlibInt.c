@@ -1382,6 +1382,16 @@ int _XDefaultError(
 	XErrorEvent *event)
 {
     if (_XPrintDefaultError (dpy, event, stderr) == 0) return 0;
+
+    /*
+     * Store in dpy flags that the client is exiting on an unhandled XError
+     * (pretend it is an IOError, since the application is dying anyway it
+     * does not make a difference).
+     * This is useful for _XReply not to hang if the application makes Xlib
+     * calls in _fini as part of process termination.
+     */
+    dpy->flags |= XlibDisplayIOError;
+
     exit(1);
     /*NOTREACHED*/
 }

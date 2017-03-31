@@ -56,10 +56,6 @@ fbOverlayCreateWindow(WindowPtr pWin)
     if (pWin->drawable.class != InputOutput)
         return TRUE;
 
-    if (pWin->drawable.bitsPerPixel == 32)
-        pWin->drawable.bitsPerPixel =
-            fbGetScreenPrivate(pWin->drawable.pScreen)->win32bpp;
-
     for (i = 0; i < pScrPriv->nlayers; i++) {
         pPixmap = pScrPriv->layer[i].u.run.pixmap;
         if (pWin->drawable.depth == pPixmap->drawable.depth) {
@@ -260,30 +256,6 @@ fbOverlaySetupScreen(ScreenPtr pScreen,
                          pbits1, xsize, ysize, dpix, dpiy, width1, bpp1);
 }
 
-static Bool
-fb24_32OverlayCreateScreenResources(ScreenPtr pScreen)
-{
-    FbOverlayScrPrivPtr pScrPriv = fbOverlayGetScrPriv(pScreen);
-    int pitch;
-    Bool retval;
-    int i;
-
-    if ((retval = fbOverlayCreateScreenResources(pScreen))) {
-        for (i = 0; i < pScrPriv->nlayers; i++) {
-            /* fix the screen pixmap */
-            PixmapPtr pPix = (PixmapPtr) pScrPriv->layer[i].u.run.pixmap;
-
-            if (pPix->drawable.bitsPerPixel == 32) {
-                pPix->drawable.bitsPerPixel = 24;
-                pitch = BitmapBytePad(pPix->drawable.width * 24);
-                pPix->devKind = pitch;
-            }
-        }
-    }
-
-    return retval;
-}
-
 Bool
 fbOverlayFinishScreenInit(ScreenPtr pScreen,
                           void *pbits1,
@@ -300,7 +272,6 @@ fbOverlayFinishScreenInit(ScreenPtr pScreen,
     DepthPtr depths;
     int nvisuals;
     int ndepths;
-    int bpp = 0, imagebpp = 32;
     VisualID defaultVisual;
     FbOverlayScrPrivPtr pScrPriv;
 
@@ -312,35 +283,8 @@ fbOverlayFinishScreenInit(ScreenPtr pScreen,
     if (!pScrPriv)
         return FALSE;
 
-    if (bpp1 == 32 || bpp2 == 32)
-        bpp = 32;
-    else if (bpp1 == 24 || bpp2 == 24)
-        bpp = 24;
-
-    if (bpp == 24) {
-        int f;
-
-        imagebpp = 32;
-        /*
-         * Check to see if we're advertising a 24bpp image format,
-         * in which case windows will use it in preference to a 32 bit
-         * format.
-         */
-        for (f = 0; f < screenInfo.numPixmapFormats; f++) {
-            if (screenInfo.formats[f].bitsPerPixel == 24) {
-                imagebpp = 24;
-                break;
-            }
-        }
-    }
-    if (imagebpp == 32) {
-        fbGetScreenPrivate(pScreen)->win32bpp = bpp;
-        fbGetScreenPrivate(pScreen)->pix32bpp = bpp;
-    }
-    else {
-        fbGetScreenPrivate(pScreen)->win32bpp = 32;
-        fbGetScreenPrivate(pScreen)->pix32bpp = 32;
-    }
+    if (bpp1 == 24 || bpp2 == 24)
+        return FALSE;
 
     if (!fbInitVisuals(&visuals, &depths, &nvisuals, &ndepths, &depth1,
                        &defaultVisual, ((unsigned long) 1 << (bpp1 - 1)) |
@@ -379,10 +323,6 @@ fbOverlayFinishScreenInit(ScreenPtr pScreen,
     pScreen->CreateWindow = fbOverlayCreateWindow;
     pScreen->WindowExposures = fbOverlayWindowExposures;
     pScreen->CopyWindow = fbOverlayCopyWindow;
-    if (bpp == 24 && imagebpp == 32) {
-        pScreen->ModifyPixmapHeader = fb24_32ModifyPixmapHeader;
-        pScreen->CreateScreenResources = fb24_32OverlayCreateScreenResources;
-    }
 
     return TRUE;
 }

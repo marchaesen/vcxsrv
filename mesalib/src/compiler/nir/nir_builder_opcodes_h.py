@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 
 template = """\
 /* Copyright (C) 2015 Broadcom

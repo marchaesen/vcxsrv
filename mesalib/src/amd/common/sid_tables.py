@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 CopyRight = '''
 /*
@@ -146,11 +145,8 @@ def strip_prefix(s):
     '''Strip prefix in the form ._.*_, e.g. R_001234_'''
     return s[s[2:].find('_')+3:]
 
-
-def parse(filename):
+def parse(filename, regs, packets):
     stream = open(filename)
-    regs = []
-    packets = []
 
     for line in stream:
         if not line.startswith('#define '):
@@ -159,16 +155,38 @@ def parse(filename):
         line = line[8:].strip()
 
         if line.startswith('R_'):
-            reg = Reg(line.split()[0])
-            regs.append(reg)
+            name = line.split()[0]
+
+            for it in regs:
+                if it.r_name == name:
+                    reg = it
+                    break
+            else:
+                reg = Reg(name)
+                regs.append(reg)
 
         elif line.startswith('S_'):
-            field = Field(reg, line[:line.find('(')])
-            reg.fields.append(field)
+            name = line[:line.find('(')]
+
+            for it in reg.fields:
+                if it.s_name == name:
+                    field = it
+                    break
+            else:
+                field = Field(reg, name)
+                reg.fields.append(field)
 
         elif line.startswith('V_'):
             split = line.split()
-            field.values.append((split[0], int(split[1], 0)))
+            name = split[0]
+            value = int(split[1], 0)
+
+            for (n,v) in field.values:
+                if n == name:
+                    if v != value:
+                        sys.exit('Value mismatch: name = ' + name)
+
+            field.values.append((name, value))
 
         elif line.startswith('PKT3_') and line.find('0x') != -1 and line.find('(') == -1:
             packets.append(line.split()[0])
@@ -193,12 +211,8 @@ def parse(filename):
                 reg.fields_owner = reg0
                 reg.own_fields = False
 
-    return (regs, packets)
 
-
-def write_tables(tables):
-    regs = tables[0]
-    packets = tables[1]
+def write_tables(regs, packets):
 
     strings = StringTable()
     strings_offsets = IntTable("int")
@@ -283,10 +297,11 @@ struct si_packet3 {
 
 
 def main():
-    tables = []
+    regs = []
+    packets = []
     for arg in sys.argv[1:]:
-        tables.extend(parse(arg))
-    write_tables(tables)
+        parse(arg, regs, packets)
+    write_tables(regs, packets)
 
 
 if __name__ == '__main__':

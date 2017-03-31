@@ -116,7 +116,7 @@ glamor_get_image_gl(DrawablePtr drawable, int x, int y, int w, int h,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    if (format != ZPixmap || !glamor_pm_is_solid(drawable->depth, plane_mask))
+    if (format != ZPixmap)
         goto bail;
 
     glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
@@ -128,6 +128,16 @@ glamor_get_image_gl(DrawablePtr drawable, int x, int y, int w, int h,
                           drawable->x + off_x, drawable->y + off_y,
                           -x, -y,
                           (uint8_t *) d, byte_stride);
+
+    if (!glamor_pm_is_solid(drawable->depth, plane_mask)) {
+        FbStip pm = fbReplicatePixel(plane_mask, drawable->bitsPerPixel);
+        FbStip *dst = (void *)d;
+        uint32_t dstStride = byte_stride / sizeof(FbStip);
+
+        for (int i = 0; i < dstStride * h; i++)
+            dst[i] &= pm;
+    }
+
     return TRUE;
 bail:
     return FALSE;

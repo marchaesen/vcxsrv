@@ -1,5 +1,5 @@
 New IR, or NIR, is an IR for Mesa intended to sit below GLSL IR and Mesa IR.
-Its design inherits from the various IR's that Mesa has used in the past, as
+Its design inherits from the various IRs that Mesa has used in the past, as
 well as Direct3D assembly, and it includes a few new ideas as well. It is a
 flat (in terms of using instructions instead of expressions), typeless IR,
 similar to TGSI and Mesa IR.  It also supports SSA (although it doesn't require

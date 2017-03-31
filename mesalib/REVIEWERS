@@ -58,6 +58,7 @@ F:	src/compiler/nir/
 
 DOCUMENTATION
 R: Emil Velikov <emil.l.velikov@gmail.com>
+R: Eric Engestrom <eric@engestrom.ch>
 F: docs/
 F: doxygen/
 
@@ -68,6 +69,10 @@ F: include/c99*
 DRI LOADER
 R: Emil Velikov <emil.l.velikov@gmail.com>
 F: src/loader/
+
+EGL
+R: Eric Engestrom <eric@engestrom.ch>
+F: src/egl/
 
 GALLIUM LOADER
 R: Emil Velikov <emil.l.velikov@gmail.com>
@@ -80,6 +85,7 @@ F: src/gallium/targets/
 
 AUTOCONF BUILD
 R: Emil Velikov <emil.l.velikov@gmail.com>
+F: autogen.sh
 F: configure.ac
 F: */Automake.inc
 F: */Makefile.*am

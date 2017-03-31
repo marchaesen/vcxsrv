@@ -361,11 +361,6 @@ si_emit_config(struct radv_physical_device *physical_device,
 	radeon_set_context_reg(cs, R_028234_PA_SU_HARDWARE_SCREEN_OFFSET, 0);
 	radeon_set_context_reg(cs, R_028820_PA_CL_NANINF_CNTL, 0);
 
-	radeon_set_context_reg(cs, R_028BE8_PA_CL_GB_VERT_CLIP_ADJ, fui(1.0));
-	radeon_set_context_reg(cs, R_028BEC_PA_CL_GB_VERT_DISC_ADJ, fui(1.0));
-	radeon_set_context_reg(cs, R_028BF0_PA_CL_GB_HORZ_CLIP_ADJ, fui(1.0));
-	radeon_set_context_reg(cs, R_028BF4_PA_CL_GB_HORZ_DISC_ADJ, fui(1.0));
-
 	radeon_set_context_reg(cs, R_028AC0_DB_SRESULTS_COMPARE_STATE0, 0x0);
 	radeon_set_context_reg(cs, R_028AC4_DB_SRESULTS_COMPARE_STATE1, 0x0);
 	radeon_set_context_reg(cs, R_028AC8_DB_PRELOAD_CONTROL, 0x0);
@@ -500,27 +495,29 @@ get_viewport_xform(const VkViewport *viewport,
 	translate[2] = n;
 }
 
+static void
+get_viewport_xform_scissor(const VkRect2D *scissor,
+                           float scale[2], float translate[2])
+{
+	float x = scissor->offset.x;
+	float y = scissor->offset.y;
+	float half_width = 0.5f * scissor->extent.width;
+	float half_height = 0.5f * scissor->extent.height;
+
+	scale[0] = half_width;
+	translate[0] = half_width + x;
+	scale[1] = half_height;
+	translate[1] = half_height + y;
+
+}
+
 void
 si_write_viewport(struct radeon_winsys_cs *cs, int first_vp,
                   int count, const VkViewport *viewports)
 {
 	int i;
 
-	if (count == 0) {
-		radeon_set_context_reg_seq(cs, R_02843C_PA_CL_VPORT_XSCALE, 6);
-		radeon_emit(cs, fui(1.0));
-		radeon_emit(cs, fui(0.0));
-		radeon_emit(cs, fui(1.0));
-		radeon_emit(cs, fui(0.0));
-		radeon_emit(cs, fui(1.0));
-		radeon_emit(cs, fui(0.0));
-
-		radeon_set_context_reg_seq(cs, R_0282D0_PA_SC_VPORT_ZMIN_0, 2);
-		radeon_emit(cs, fui(0.0));
-		radeon_emit(cs, fui(1.0));
-
-		return;
-	}
+	assert(count);
 	radeon_set_context_reg_seq(cs, R_02843C_PA_CL_VPORT_XSCALE +
 				   first_vp * 4 * 6, count * 6);
 
@@ -547,22 +544,84 @@ si_write_viewport(struct radeon_winsys_cs *cs, int first_vp,
 	}
 }
 
+static VkRect2D si_scissor_from_viewport(const VkViewport *viewport)
+{
+	float scale[3], translate[3];
+	VkRect2D rect;
+
+	get_viewport_xform(viewport, scale, translate);
+
+	rect.offset.x = translate[0] - abs(scale[0]);
+	rect.offset.y = translate[1] - abs(scale[1]);
+	rect.extent.width = ceilf(translate[0] + abs(scale[0])) - rect.offset.x;
+	rect.extent.height = ceilf(translate[1] + abs(scale[1])) - rect.offset.y;
+
+	return rect;
+}
+
+static VkRect2D si_intersect_scissor(const VkRect2D *a, const VkRect2D *b) {
+	VkRect2D ret;
+	ret.offset.x = MAX2(a->offset.x, b->offset.x);
+	ret.offset.y = MAX2(a->offset.y, b->offset.y);
+	ret.extent.width = MIN2(a->offset.x + a->extent.width,
+	                        b->offset.x + b->extent.width) - ret.offset.x;
+	ret.extent.height = MIN2(a->offset.y + a->extent.height,
+	                         b->offset.y + b->extent.height) - ret.offset.y;
+	return ret;
+}
+
+static VkRect2D si_union_scissor(const VkRect2D *a, const VkRect2D *b) {
+	VkRect2D ret;
+	ret.offset.x = MIN2(a->offset.x, b->offset.x);
+	ret.offset.y = MIN2(a->offset.y, b->offset.y);
+	ret.extent.width = MAX2(a->offset.x + a->extent.width,
+	                        b->offset.x + b->extent.width) - ret.offset.x;
+	ret.extent.height = MAX2(a->offset.y + a->extent.height,
+	                         b->offset.y + b->extent.height) - ret.offset.y;
+	return ret;
+}
+
+
 void
 si_write_scissors(struct radeon_winsys_cs *cs, int first,
-                  int count, const VkRect2D *scissors)
+                  int count, const VkRect2D *scissors,
+                  const VkViewport *viewports, bool can_use_guardband)
 {
 	int i;
-	if (count == 0)
-		return;
+	VkRect2D merged;
+	float scale[2], translate[2], guardband_x = 1.0, guardband_y = 1.0;
+	const float max_range = 32767.0f;
+	assert(count);
 
 	radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL + first * 4 * 2, count * 2);
 	for (i = 0; i < count; i++) {
-		radeon_emit(cs, S_028250_TL_X(scissors[i].offset.x) |
-			    S_028250_TL_Y(scissors[i].offset.y) |
+		VkRect2D viewport_scissor = si_scissor_from_viewport(viewports + i);
+		VkRect2D scissor = si_intersect_scissor(&scissors[i], &viewport_scissor);
+
+		if (i)
+			merged = si_union_scissor(&merged, &scissor);
+		else
+			merged = scissor;
+
+		radeon_emit(cs, S_028250_TL_X(scissor.offset.x) |
+			    S_028250_TL_Y(scissor.offset.y) |
 			    S_028250_WINDOW_OFFSET_DISABLE(1));
-		radeon_emit(cs, S_028254_BR_X(scissors[i].offset.x + scissors[i].extent.width) |
-			    S_028254_BR_Y(scissors[i].offset.y + scissors[i].extent.height));
+		radeon_emit(cs, S_028254_BR_X(scissor.offset.x + scissor.extent.width) |
+			    S_028254_BR_Y(scissor.offset.y + scissor.extent.height));
 	}
+
+	get_viewport_xform_scissor(&merged, scale, translate);
+
+	if (can_use_guardband) {
+		guardband_x = (max_range - abs(translate[0])) / scale[0];
+		guardband_y = (max_range - abs(translate[1])) / scale[1];
+	}
+
+	radeon_set_context_reg_seq(cs, R_028BE8_PA_CL_GB_VERT_CLIP_ADJ, 4);
+	radeon_emit(cs, fui(guardband_x));
+	radeon_emit(cs, fui(1.0));
+	radeon_emit(cs, fui(guardband_y));
+	radeon_emit(cs, fui(1.0));
 }
 
 static inline unsigned
@@ -582,7 +641,7 @@ radv_prims_for_vertices(struct radv_prim_vertex_count *info, unsigned num)
 
 uint32_t
 si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
-			  bool instanced_or_indirect_draw,
+			  bool instanced_draw, bool indirect_draw,
 			  uint32_t draw_vertex_count)
 {
 	enum chip_class chip_class = cmd_buffer->device->physical_device->rad_info.chip_class;
@@ -603,8 +662,8 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 	if (radv_pipeline_has_gs(cmd_buffer->state.pipeline))
 		primgroup_size = 64;  /* recommended with a GS */
 
-	multi_instances_smaller_than_primgroup = (instanced_or_indirect_draw ||
-						  num_prims < primgroup_size);
+	multi_instances_smaller_than_primgroup = indirect_draw || (instanced_draw &&
+								   num_prims < primgroup_size);
 	/* TODO TES */
 
 	/* TODO linestipple */
@@ -629,7 +688,7 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 		 * We don't know that for indirect drawing, so treat it as
 		 * always problematic. */
 		if (family == CHIP_HAWAII &&
-		    instanced_or_indirect_draw)
+		    (instanced_draw || indirect_draw))
 			wd_switch_on_eop = true;
 
 		/* Performance recommendation for 4 SE Gfx7-8 parts if
@@ -655,7 +714,7 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 
 		/* Instancing bug on Bonaire. */
 		if (family == CHIP_BONAIRE && ia_switch_on_eoi &&
-		    instanced_or_indirect_draw)
+		    (instanced_draw || indirect_draw))
 			partial_vs_wave = true;
 
 		/* If the WD switch is false, the IA switch must be false too. */
@@ -673,7 +732,7 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 		/* Hw bug with single-primitive instances and SWITCH_ON_EOI
 		 * on multi-SE chips. */
 		if (info->max_se >= 2 && ia_switch_on_eoi &&
-		    (instanced_or_indirect_draw &&
+		    ((instanced_draw || indirect_draw) &&
 		     num_prims <= 1))
 			cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_VGT_FLUSH;
 	}
@@ -689,6 +748,30 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 
 }
 
+static void
+si_emit_acquire_mem(struct radeon_winsys_cs *cs,
+                    bool is_mec,
+                    unsigned cp_coher_cntl)
+{
+	if (is_mec) {
+		radeon_emit(cs, PKT3(PKT3_ACQUIRE_MEM, 5, 0) |
+		                            PKT3_SHADER_TYPE_S(1));
+		radeon_emit(cs, cp_coher_cntl);   /* CP_COHER_CNTL */
+		radeon_emit(cs, 0xffffffff);      /* CP_COHER_SIZE */
+		radeon_emit(cs, 0xff);            /* CP_COHER_SIZE_HI */
+		radeon_emit(cs, 0);               /* CP_COHER_BASE */
+		radeon_emit(cs, 0);               /* CP_COHER_BASE_HI */
+		radeon_emit(cs, 0x0000000A);      /* POLL_INTERVAL */
+	} else {
+		/* ACQUIRE_MEM is only required on a compute ring. */
+		radeon_emit(cs, PKT3(PKT3_SURFACE_SYNC, 3, 0));
+		radeon_emit(cs, cp_coher_cntl);   /* CP_COHER_CNTL */
+		radeon_emit(cs, 0xffffffff);      /* CP_COHER_SIZE */
+		radeon_emit(cs, 0);               /* CP_COHER_BASE */
+		radeon_emit(cs, 0x0000000A);      /* POLL_INTERVAL */
+	}
+}
+
 void
 si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
                        enum chip_class chip_class,
@@ -701,13 +784,6 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 		cp_coher_cntl |= S_0085F0_SH_ICACHE_ACTION_ENA(1);
 	if (flush_bits & RADV_CMD_FLAG_INV_SMEM_L1)
 		cp_coher_cntl |= S_0085F0_SH_KCACHE_ACTION_ENA(1);
-	if (flush_bits & RADV_CMD_FLAG_INV_VMEM_L1)
-		cp_coher_cntl |= S_0085F0_TCL1_ACTION_ENA(1);
-	if (flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) {
-		cp_coher_cntl |= S_0085F0_TC_ACTION_ENA(1);
-		if (chip_class >= VI)
-			cp_coher_cntl |= S_0301F0_TC_WB_ACTION_ENA(1);
-	}
 
 	if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB) {
 		cp_coher_cntl |= S_0085F0_CB_ACTION_ENA(1) |
@@ -778,28 +854,29 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 		radeon_emit(cs, 0);
 	}
 
+	if ((flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) ||
+	    (chip_class <= CIK && (flush_bits & RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2))) {
+		cp_coher_cntl |= S_0085F0_TC_ACTION_ENA(1);
+		if (chip_class >= VI)
+			cp_coher_cntl |= S_0301F0_TC_WB_ACTION_ENA(1);
+	} else	if(flush_bits & RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2) {
+		cp_coher_cntl |= S_0301F0_TC_WB_ACTION_ENA(1) |
+		                 S_0301F0_TC_NC_ACTION_ENA(1);
+
+		/* L2 writeback doesn't combine with L1 invalidate */
+		si_emit_acquire_mem(cs, is_mec, cp_coher_cntl);
+
+		cp_coher_cntl = 0;
+	}
+
+	if (flush_bits & RADV_CMD_FLAG_INV_VMEM_L1)
+		cp_coher_cntl |= S_0085F0_TCL1_ACTION_ENA(1);
+
 	/* When one of the DEST_BASE flags is set, SURFACE_SYNC waits for idle.
 	 * Therefore, it should be last. Done in PFP.
 	 */
-	if (cp_coher_cntl) {
-		if (is_mec) {
-			radeon_emit(cs, PKT3(PKT3_ACQUIRE_MEM, 5, 0) |
-			                            PKT3_SHADER_TYPE_S(1));
-			radeon_emit(cs, cp_coher_cntl);   /* CP_COHER_CNTL */
-			radeon_emit(cs, 0xffffffff);      /* CP_COHER_SIZE */
-			radeon_emit(cs, 0xff);            /* CP_COHER_SIZE_HI */
-			radeon_emit(cs, 0);               /* CP_COHER_BASE */
-			radeon_emit(cs, 0);               /* CP_COHER_BASE_HI */
-			radeon_emit(cs, 0x0000000A);      /* POLL_INTERVAL */
-		} else {
-			/* ACQUIRE_MEM is only required on a compute ring. */
-			radeon_emit(cs, PKT3(PKT3_SURFACE_SYNC, 3, 0));
-			radeon_emit(cs, cp_coher_cntl);   /* CP_COHER_CNTL */
-			radeon_emit(cs, 0xffffffff);      /* CP_COHER_SIZE */
-			radeon_emit(cs, 0);               /* CP_COHER_BASE */
-			radeon_emit(cs, 0x0000000A);      /* POLL_INTERVAL */
-		}
-	}
+	if (cp_coher_cntl)
+		si_emit_acquire_mem(cs, is_mec, cp_coher_cntl);
 }
 
 void
@@ -851,7 +928,7 @@ static void si_emit_cp_dma_copy_buffer(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	uint32_t sync_flag = flags & R600_CP_DMA_SYNC ? S_411_CP_SYNC(1) : 0;
-	uint32_t wr_confirm = !(flags & R600_CP_DMA_SYNC) ? S_414_DISABLE_WR_CONFIRM(1) : 0;
+	uint32_t wr_confirm = !(flags & R600_CP_DMA_SYNC) ? S_414_DISABLE_WR_CONFIRM_GFX6(1) : 0;
 	uint32_t raw_wait = flags & SI_CP_DMA_RAW_WAIT ? S_414_RAW_WAIT(1) : 0;
 	uint32_t sel = flags & CIK_CP_DMA_USE_L2 ?
 			   S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2) |
@@ -899,7 +976,7 @@ static void si_emit_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	uint32_t sync_flag = flags & R600_CP_DMA_SYNC ? S_411_CP_SYNC(1) : 0;
-	uint32_t wr_confirm = !(flags & R600_CP_DMA_SYNC) ? S_414_DISABLE_WR_CONFIRM(1) : 0;
+	uint32_t wr_confirm = !(flags & R600_CP_DMA_SYNC) ? S_414_DISABLE_WR_CONFIRM_GFX6(1) : 0;
 	uint32_t raw_wait = flags & SI_CP_DMA_RAW_WAIT ? S_414_RAW_WAIT(1) : 0;
 	uint32_t dst_sel = flags & CIK_CP_DMA_USE_L2 ? S_411_DSL_SEL(V_411_DST_ADDR_TC_L2) : 0;
 

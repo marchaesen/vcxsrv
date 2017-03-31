@@ -115,6 +115,8 @@ MAIN_FILES = \
 	main/getstring.c \
 	main/glformats.c \
 	main/glformats.h \
+	main/glthread.c \
+	main/glthread.h \
 	main/glheader.h \
 	main/hash.c \
 	main/hash.h \
@@ -131,6 +133,10 @@ MAIN_FILES = \
 	main/lines.c \
 	main/lines.h \
 	main/macros.h \
+	main/marshal.c \
+	main/marshal.h \
+	main/marshal_generated.c \
+	main/marshal_generated.h \
 	main/matrix.c \
 	main/matrix.h \
 	main/mipmap.c \

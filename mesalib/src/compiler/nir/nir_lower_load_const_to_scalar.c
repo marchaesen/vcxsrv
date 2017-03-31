@@ -35,11 +35,11 @@
  * same value was used in different vector contant loads.
  */
 
-static void
+static bool
 lower_load_const_instr_scalar(nir_load_const_instr *lower)
 {
    if (lower->def.num_components == 1)
-      return;
+      return false;
 
    nir_builder b;
    nir_builder_init(&b, nir_cf_node_get_function(&lower->instr.block->cf_node));
@@ -65,24 +65,38 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    /* Replace the old load with a reference to our reconstructed vector. */
    nir_ssa_def_rewrite_uses(&lower->def, nir_src_for_ssa(vec));
    nir_instr_remove(&lower->instr);
+   return true;
 }
 
-static void
+static bool
 nir_lower_load_const_to_scalar_impl(nir_function_impl *impl)
 {
+   bool progress = false;
+
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
          if (instr->type == nir_instr_type_load_const)
-            lower_load_const_instr_scalar(nir_instr_as_load_const(instr));
+            progress |=
+               lower_load_const_instr_scalar(nir_instr_as_load_const(instr));
       }
    }
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+
+   return progress;
 }
 
-void
+bool
 nir_lower_load_const_to_scalar(nir_shader *shader)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl)
-         nir_lower_load_const_to_scalar_impl(function->impl);
+         progress |= nir_lower_load_const_to_scalar_impl(function->impl);
    }
+
+   return progress;
 }

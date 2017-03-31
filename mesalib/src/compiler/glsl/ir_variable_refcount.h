@@ -29,6 +29,9 @@
  * were defined in the scope.
  */
 
+#ifndef GLSL_IR_VARIABLE_REFCOUNT_H
+#define GLSL_IR_VARIABLE_REFCOUNT_H
+
 #include "ir.h"
 #include "ir_visitor.h"
 #include "compiler/glsl_types.h"
@@ -84,3 +87,5 @@ public:
 
    void *mem_ctx;
 };
+
+#endif /* GLSL_IR_VARIABLE_REFCOUNT_H */

@@ -1910,7 +1910,8 @@ ProcRecordUnregisterClients(ClientPtr client)
     int i;
 
     REQUEST_AT_LEAST_SIZE(xRecordUnregisterClientsReq);
-    if ((client->req_len << 2) - SIZEOF(xRecordUnregisterClientsReq) !=
+    if (INT_MAX / 4 < stuff->nClients ||
+        (client->req_len << 2) - SIZEOF(xRecordUnregisterClientsReq) !=
         4 * stuff->nClients)
         return BadLength;
     VERIFY_CONTEXT(pContext, stuff->context, client);

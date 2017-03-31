@@ -2532,7 +2532,8 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 void
 _mesa_associate_uniform_storage(struct gl_context *ctx,
 				struct gl_shader_program *shader_program,
-				struct gl_program_parameter_list *params)
+                                struct gl_program_parameter_list *params,
+                                bool propagate_to_storage)
 {
    /* After adding each uniform to the parameter list, connect the storage for
     * the parameter with the tracking structure used by the API for the
@@ -2622,9 +2623,11 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	  * data from the linker's backing store.  This will cause values from
 	  * initializers in the source code to be copied over.
 	  */
-	 _mesa_propagate_uniforms_to_driver_storage(storage,
-						    0,
-						    MAX2(1, storage->array_elements));
+         if (propagate_to_storage) {
+            unsigned array_elements = MAX2(1, storage->array_elements);
+            _mesa_propagate_uniforms_to_driver_storage(storage, 0,
+                                                       array_elements);
+         }
 
 	 last_location = location;
       }
@@ -2976,15 +2979,14 @@ get_mesa_program(struct gl_context *ctx,
       prog->info.fs.depth_layout = shader_program->FragDepthLayout;
    }
 
-   if ((ctx->_Shader->Flags & GLSL_NO_OPT) == 0) {
-      _mesa_optimize_program(ctx, prog, prog);
-   }
+   _mesa_optimize_program(ctx, prog, prog);
 
    /* This has to be done last.  Any operation that can cause
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
     * program constant) has to happen before creating this linkage.
     */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters);
+   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters,
+                                   true);
    if (!shader_program->data->LinkStatus) {
       goto fail_exit;
    }

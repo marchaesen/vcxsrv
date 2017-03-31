@@ -20,7 +20,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#pragma once
+
+#ifndef PROGRAM_PARSER_H
+#define PROGRAM_PARSER_H
 
 #include "main/config.h"
 #include "program/prog_parameter.h"
@@ -288,3 +290,5 @@ extern int _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
     const char *suffix, struct prog_instruction *inst);
 
 /*@}*/
+
+#endif /* PROGRAM_PARSER_H */

@@ -1136,7 +1136,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 13
+#define __DRI_IMAGE_VERSION 14
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1257,6 +1257,8 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_ATTRIB_NUM_PLANES   0x2009 /* available in versions 11 */
 
 #define __DRI_IMAGE_ATTRIB_OFFSET 0x200A /* available in versions 13 */
+#define __DRI_IMAGE_ATTRIB_MODIFIER_LOWER 0x200B /* available in versions 14 */
+#define __DRI_IMAGE_ATTRIB_MODIFIER_UPPER 0x200C /* available in versions 14 */
 
 enum __DRIYUVColorSpace {
    __DRI_YUV_COLOR_SPACE_UNDEFINED = 0,
@@ -1468,6 +1470,29 @@ struct __DRIimageExtensionRec {
     */
    void (*unmapImage)(__DRIcontext *context, __DRIimage *image, void *data);
 
+
+   /**
+    * Creates an image with implementation's favorite modifiers.
+    *
+    * This acts like createImage except there is a list of modifiers passed in
+    * which the implementation may selectively use to create the DRIimage. The
+    * result should be the implementation selects one modifier (perhaps it would
+    * hold on to a few and later pick).
+    *
+    * The created image should be destroyed with destroyImage().
+    *
+    * Returns the new DRIimage. The chosen modifier can be obtained later on
+    * and passed back to things like the kernel's AddFB2 interface.
+    *
+    * \sa __DRIimageRec::createImage
+    *
+    * \since 14
+    */
+   __DRIimage *(*createImageWithModifiers)(__DRIscreen *screen,
+                                           int width, int height, int format,
+                                           const uint64_t *modifiers,
+                                           const unsigned int modifier_count,
+                                           void *loaderPrivate);
 };
 
 
@@ -1656,6 +1681,45 @@ struct __DRIimageDriverExtensionRec {
    __DRIcreateNewDrawableFunc           createNewDrawable;
    __DRIcreateContextAttribsFunc        createContextAttribs;
    __DRIgetAPIMaskFunc                  getAPIMask;
+};
+
+/**
+ * Background callable loader extension.
+ *
+ * Loaders expose this extension to indicate to drivers that they are capable
+ * of handling callbacks from the driver's background drawing threads.
+ */
+#define __DRI_BACKGROUND_CALLABLE "DRI_BackgroundCallable"
+#define __DRI_BACKGROUND_CALLABLE_VERSION 1
+
+typedef struct __DRIbackgroundCallableExtensionRec __DRIbackgroundCallableExtension;
+struct __DRIbackgroundCallableExtensionRec {
+   __DRIextension base;
+
+   /**
+    * Indicate that this thread is being used by the driver as a background
+    * drawing thread which may make callbacks to the loader.
+    *
+    * \param loaderPrivate is the value that was passed to to the driver when
+    * the context was created.  This can be used by the loader to identify
+    * which context any callbacks are associated with.
+    *
+    * If this function is called more than once from any given thread, each
+    * subsequent call overrides the loaderPrivate data that was passed in the
+    * previous call.  The driver can take advantage of this to re-use a
+    * background thread to perform drawing on behalf of multiple contexts.
+    *
+    * It is permissible for the driver to call this function from a
+    * non-background thread (i.e. a thread that has already been bound to a
+    * context using __DRIcoreExtensionRec::bindContext()); when this happens,
+    * the \c loaderPrivate pointer must be equal to the pointer that was
+    * passed to the driver when the currently bound context was created.
+    *
+    * This call should execute quickly enough that the driver can call it with
+    * impunity whenever a background thread starts performing drawing
+    * operations (e.g. it should just set a thread-local variable).
+    */
+   void (*setBackgroundContext)(void *loaderPrivate);
 };
 
 #endif

@@ -121,13 +121,14 @@ rewrite_references(nir_instr *instr,
    /* There's no need to update writemasks; it's a scalar array. */
 }
 
-static void
+static bool
 combine_clip_cull(nir_shader *nir,
                   struct exec_list *vars,
                   bool store_info)
 {
    nir_variable *cull = NULL;
    nir_variable *clip = NULL;
+   bool progress = false;
 
    nir_foreach_variable(var, vars) {
       if (var->data.location == VARYING_SLOT_CLIP_DIST0)
@@ -174,15 +175,30 @@ combine_clip_cull(nir_shader *nir,
          exec_node_remove(&cull->node);
          ralloc_free(cull);
       }
+
+      nir_foreach_function(function, nir) {
+         if (function->impl) {
+            nir_metadata_preserve(function->impl,
+                                  nir_metadata_block_index |
+                                  nir_metadata_dominance);
+         }
+      }
+      progress = true;
    }
+
+   return progress;
 }
 
-void
+bool
 nir_lower_clip_cull_distance_arrays(nir_shader *nir)
 {
+   bool progress = false;
+
    if (nir->stage <= MESA_SHADER_GEOMETRY)
-      combine_clip_cull(nir, &nir->outputs, true);
+      progress |= combine_clip_cull(nir, &nir->outputs, true);
 
    if (nir->stage > MESA_SHADER_VERTEX)
-      combine_clip_cull(nir, &nir->inputs, false);
+      progress |= combine_clip_cull(nir, &nir->inputs, false);
+
+   return progress;
 }

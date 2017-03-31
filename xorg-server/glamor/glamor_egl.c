@@ -685,7 +685,11 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
             /* To do DRI3 device FD generation, we need to open a new fd
              * to the same device we were handed in originally.
              */
+#ifdef GLAMOR_HAS_DRM_NAME_FROM_FD_2
+            glamor_egl->device_path = drmGetDeviceNameFromFd2(glamor_egl->fd);
+#else
             glamor_egl->device_path = drmGetDeviceNameFromFd(glamor_egl->fd);
+#endif
 
             if (!dri3_screen_init(screen, &glamor_dri3_info)) {
                 xf86DrvMsg(scrn->scrnIndex, X_ERROR,

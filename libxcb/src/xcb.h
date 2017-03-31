@@ -143,6 +143,18 @@ typedef struct {
 } xcb_generic_event_t;
 
 /**
+ * @brief Raw Generic event.
+ *
+ * A generic event structure as used on the wire, i.e., without the full_sequence field
+ */
+typedef struct {
+    uint8_t   response_type;  /**< Type of the response */
+    uint8_t  pad0;           /**< Padding */
+    uint16_t sequence;       /**< Sequence number */
+    uint32_t pad[7];         /**< Padding */
+} xcb_raw_generic_event_t;
+
+/**
  * @brief GE event
  *
  * An event as sent by the XGE extension. The length field specifies the

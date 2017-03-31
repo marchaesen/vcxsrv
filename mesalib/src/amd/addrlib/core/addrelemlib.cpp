@@ -25,33 +25,36 @@
  */
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @file  addrelemlib.cpp
-* @brief Contains the class implementation for element/pixel related functions
-***************************************************************************************************
+* @brief Contains the class implementation for element/pixel related functions.
+****************************************************************************************************
 */
 
 #include "addrelemlib.h"
 #include "addrlib.h"
 
+namespace Addr
+{
 
 /**
-***************************************************************************************************
-*   AddrElemLib::AddrElemLib
+****************************************************************************************************
+*   ElemLib::ElemLib
 *
 *   @brief
 *       constructor
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-AddrElemLib::AddrElemLib(
-    AddrLib* const pAddrLib) :  ///< [in] Parent addrlib instance pointer
-    AddrObject(pAddrLib->GetClient()),
+ElemLib::ElemLib(
+    Lib* pAddrLib)  ///< [in] Parent addrlib instance pointer
+    :
+    Object(pAddrLib->GetClient()),
     m_pAddrLib(pAddrLib)
 {
-    switch (m_pAddrLib->GetAddrChipFamily())
+    switch (m_pAddrLib->GetChipFamily())
     {
         case ADDR_CHIP_FAMILY_R6XX:
             m_depthPlanarType = ADDR_DEPTH_PLANAR_R600;
@@ -75,58 +78,62 @@ AddrElemLib::AddrElemLib(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::~AddrElemLib
+****************************************************************************************************
+*   ElemLib::~ElemLib
 *
 *   @brief
 *       destructor
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-AddrElemLib::~AddrElemLib()
+ElemLib::~ElemLib()
 {
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::Create
+****************************************************************************************************
+*   ElemLib::Create
 *
 *   @brief
 *       Creates and initializes AddrLib object.
 *
 *   @return
 *       Returns point to ADDR_CREATEINFO if successful.
-***************************************************************************************************
+****************************************************************************************************
 */
-AddrElemLib* AddrElemLib::Create(
-    const AddrLib* const        pAddrLib)   ///< [in] Pointer of parent AddrLib instance
+ElemLib* ElemLib::Create(
+    const Lib* pAddrLib)   ///< [in] Pointer of parent AddrLib instance
 {
-    AddrElemLib* pElemLib = NULL;
+    ElemLib* pElemLib = NULL;
 
     if (pAddrLib)
     {
-        pElemLib = new(pAddrLib->GetClient()) AddrElemLib(const_cast<AddrLib* const>(pAddrLib));
+        VOID* pObj = Object::ClientAlloc(sizeof(ElemLib), pAddrLib->GetClient());
+        if (pObj)
+        {
+            pElemLib = new(pObj) ElemLib(const_cast<Lib* const>(pAddrLib));
+        }
     }
 
     return pElemLib;
 }
 
 /**************************************************************************************************
-*   AddrElemLib::Flt32sToInt32s
+*   ElemLib::Flt32sToInt32s
 *
 *   @brief
 *       Convert a ADDR_FLT_32 value to Int32 value
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::Flt32sToInt32s(
+VOID ElemLib::Flt32sToInt32s(
     ADDR_FLT_32     value,      ///< [in] ADDR_FLT_32 value
     UINT_32         bits,       ///< [in] nubmer of bits in value
-    AddrNumberType  numberType, ///< [in] the type of number
+    NumberType      numberType, ///< [in] the type of number
     UINT_32*        pResult)    ///< [out] Int32 value
 {
     UINT_8 round = 128;    //ADDR_ROUND_BY_HALF
@@ -303,8 +310,8 @@ VOID AddrElemLib::Flt32sToInt32s(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::Int32sToPixel
+****************************************************************************************************
+*   ElemLib::Int32sToPixel
 *
 *   @brief
 *       Pack 32-bit integer values into an uncompressed pixel,
@@ -318,14 +325,14 @@ VOID AddrElemLib::Flt32sToInt32s(
 *       an uncompressed pixel. The pixel values are specifies in
 *       standard order, e.g. depth/stencil. This routine asserts
 *       if called on compressed pixel.
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::Int32sToPixel(
+VOID ElemLib::Int32sToPixel(
     UINT_32              numComps,      ///< [in] number of components
     UINT_32*             pComps,        ///< [in] compnents
     UINT_32*             pCompBits,     ///< [in] total bits in each component
     UINT_32*             pCompStart,    ///< [in] the first bit position of each component
-    ADDR_COMPONENT_FLAGS properties,    ///< [in] properties about byteAligned, exportNorm
+    ComponentFlags       properties,    ///< [in] properties about byteAligned, exportNorm
     UINT_32              resultBits,    ///< [in] result bits: total bpp after decompression
     UINT_8*              pPixel)        ///< [out] a depth/stencil pixel value
 {
@@ -376,7 +383,7 @@ VOID AddrElemLib::Int32sToPixel(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Flt32ToDepthPixel
 *
 *   @brief
@@ -384,9 +391,9 @@ VOID AddrElemLib::Int32sToPixel(
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::Flt32ToDepthPixel(
+VOID ElemLib::Flt32ToDepthPixel(
     AddrDepthFormat     format,     ///< [in] Depth format
     const ADDR_FLT_32   comps[2],   ///< [in] two components of depth
     UINT_8*             pPixel      ///< [out] depth pixel value
@@ -394,10 +401,10 @@ VOID AddrElemLib::Flt32ToDepthPixel(
 {
     UINT_32 i;
     UINT_32 values[2];
-    ADDR_COMPONENT_FLAGS properties;    // byteAligned, exportNorm
-    UINT_32 resultBits = 0;             // result bits: total bits per pixel after decompression
+    ComponentFlags properties;  // byteAligned, exportNorm
+    UINT_32 resultBits = 0;     // result bits: total bits per pixel after decompression
 
-    ADDR_PIXEL_FORMATINFO fmt;
+    PixelFormatInfo fmt;
 
     // get type for each component
     PixGetDepthCompInfo(format, &fmt);
@@ -445,7 +452,7 @@ VOID AddrElemLib::Flt32ToDepthPixel(
 }
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 *   Flt32ToColorPixel
 *
 *   @brief
@@ -453,9 +460,9 @@ VOID AddrElemLib::Flt32ToDepthPixel(
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::Flt32ToColorPixel(
+VOID ElemLib::Flt32ToColorPixel(
     AddrColorFormat     format,     ///< [in] Color format
     AddrSurfaceNumber   surfNum,    ///< [in] Surface number
     AddrSurfaceSwap     surfSwap,   ///< [in] Surface swap
@@ -463,14 +470,14 @@ VOID AddrElemLib::Flt32ToColorPixel(
     UINT_8*             pPixel      ///< [out] a red/green/blue/alpha pixel value
     ) const
 {
-    ADDR_PIXEL_FORMATINFO pixelInfo;
+    PixelFormatInfo pixelInfo;
 
     UINT_32 i;
     UINT_32 values[4];
-    ADDR_COMPONENT_FLAGS properties;    // byteAligned, exportNorm
-    UINT_32 resultBits = 0;             // result bits: total bits per pixel after decompression
+    ComponentFlags properties;    // byteAligned, exportNorm
+    UINT_32 resultBits = 0;       // result bits: total bits per pixel after decompression
 
-    memset(&pixelInfo, 0, sizeof(ADDR_PIXEL_FORMATINFO));
+    memset(&pixelInfo, 0, sizeof(PixelFormatInfo));
 
     PixGetColorCompInfo(format, surfNum, surfSwap, &pixelInfo);
 
@@ -531,8 +538,8 @@ VOID AddrElemLib::Flt32ToColorPixel(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::GetCompType
+****************************************************************************************************
+*   ElemLib::GetCompType
 *
 *   @brief
 *       Fill per component info
@@ -540,12 +547,12 @@ VOID AddrElemLib::Flt32ToColorPixel(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::GetCompType(
-    AddrColorFormat         format,     ///< [in] surface format
-    AddrSurfaceNumber       numType,  ///< [in] number type
-    ADDR_PIXEL_FORMATINFO*  pInfo)       ///< [in][out] per component info out
+VOID ElemLib::GetCompType(
+    AddrColorFormat   format,     ///< [in] surface format
+    AddrSurfaceNumber numType,  ///< [in] number type
+    PixelFormatInfo*  pInfo)       ///< [in][out] per component info out
 {
     BOOL_32 handled = FALSE;
 
@@ -704,8 +711,8 @@ VOID AddrElemLib::GetCompType(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::GetCompSwap
+****************************************************************************************************
+*   ElemLib::GetCompSwap
 *
 *   @brief
 *       Get components swapped for color surface
@@ -713,11 +720,11 @@ VOID AddrElemLib::GetCompType(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::GetCompSwap(
-    AddrSurfaceSwap         swap,   ///< [in] swap mode
-    ADDR_PIXEL_FORMATINFO*  pInfo)  ///< [in/out] output per component info
+VOID ElemLib::GetCompSwap(
+    AddrSurfaceSwap  swap,   ///< [in] swap mode
+    PixelFormatInfo* pInfo)  ///< [in,out] output per component info
 {
     switch (pInfo->comps)
     {
@@ -794,8 +801,8 @@ VOID AddrElemLib::GetCompSwap(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::GetCompSwap
+****************************************************************************************************
+*   ElemLib::GetCompSwap
 *
 *   @brief
 *       Get components swapped for color surface
@@ -803,12 +810,12 @@ VOID AddrElemLib::GetCompSwap(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::SwapComps(
-    UINT_32                 c0,     ///< [in] component index 0
-    UINT_32                 c1,     ///< [in] component index 1
-    ADDR_PIXEL_FORMATINFO*  pInfo)  ///< [in/out] output per component info
+VOID ElemLib::SwapComps(
+    UINT_32          c0,     ///< [in] component index 0
+    UINT_32          c1,     ///< [in] component index 1
+    PixelFormatInfo* pInfo)  ///< [in,out] output per component info
 {
     UINT_32 start;
     UINT_32 bits;
@@ -823,8 +830,8 @@ VOID AddrElemLib::SwapComps(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::PixGetColorCompInfo
+****************************************************************************************************
+*   ElemLib::PixGetColorCompInfo
 *
 *   @brief
 *       Get per component info for color surface
@@ -832,13 +839,13 @@ VOID AddrElemLib::SwapComps(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::PixGetColorCompInfo(
-    AddrColorFormat         format, ///< [in] surface format, read from register
-    AddrSurfaceNumber       number, ///< [in] pixel number type
-    AddrSurfaceSwap         swap,   ///< [in] component swap mode
-    ADDR_PIXEL_FORMATINFO*  pInfo   ///< [out] output per component info
+VOID ElemLib::PixGetColorCompInfo(
+    AddrColorFormat   format, ///< [in] surface format, read from register
+    AddrSurfaceNumber number, ///< [in] pixel number type
+    AddrSurfaceSwap   swap,   ///< [in] component swap mode
+    PixelFormatInfo*  pInfo   ///< [out] output per component info
     ) const
 {
     // 1. Get componet bits
@@ -960,8 +967,8 @@ VOID AddrElemLib::PixGetColorCompInfo(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::PixGetDepthCompInfo
+****************************************************************************************************
+*   ElemLib::PixGetDepthCompInfo
 *
 *   @brief
 *       Get per component info for depth surface
@@ -969,11 +976,11 @@ VOID AddrElemLib::PixGetColorCompInfo(
 *   @return
 *       N/A
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::PixGetDepthCompInfo(
-    AddrDepthFormat         format,     ///< [in] surface format, read from register
-    ADDR_PIXEL_FORMATINFO*  pInfo       ///< [out] output per component bits and type
+VOID ElemLib::PixGetDepthCompInfo(
+    AddrDepthFormat  format,     ///< [in] surface format, read from register
+    PixelFormatInfo* pInfo       ///< [out] output per component bits and type
     ) const
 {
     if (m_depthPlanarType == ADDR_DEPTH_PLANAR_R800)
@@ -1058,8 +1065,8 @@ VOID AddrElemLib::PixGetDepthCompInfo(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::PixGetExportNorm
+****************************************************************************************************
+*   ElemLib::PixGetExportNorm
 *
 *   @brief
 *       Check if fp16 export norm can be enabled.
@@ -1067,9 +1074,9 @@ VOID AddrElemLib::PixGetDepthCompInfo(
 *   @return
 *       TRUE if this can be enabled.
 *
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 AddrElemLib::PixGetExportNorm(
+BOOL_32 ElemLib::PixGetExportNorm(
     AddrColorFormat     colorFmt,       ///< [in] surface format, read from register
     AddrSurfaceNumber   numberFmt,      ///< [in] pixel number type
     AddrSurfaceSwap     swap            ///< [in] components swap type
@@ -1077,7 +1084,7 @@ BOOL_32 AddrElemLib::PixGetExportNorm(
 {
     BOOL_32 enabled = TRUE;
 
-    ADDR_PIXEL_FORMATINFO formatInfo;
+    PixelFormatInfo formatInfo;
 
     PixGetColorCompInfo(colorFmt, numberFmt, swap, &formatInfo);
 
@@ -1110,24 +1117,24 @@ BOOL_32 AddrElemLib::PixGetExportNorm(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::AdjustSurfaceInfo
+****************************************************************************************************
+*   ElemLib::AdjustSurfaceInfo
 *
 *   @brief
 *       Adjust bpp/base pitch/width/height according to elemMode and expandX/Y
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::AdjustSurfaceInfo(
-    AddrElemMode    elemMode,       ///< [in] element mode
+VOID ElemLib::AdjustSurfaceInfo(
+    ElemMode        elemMode,       ///< [in] element mode
     UINT_32         expandX,        ///< [in] decompression expansion factor in X
     UINT_32         expandY,        ///< [in] decompression expansion factor in Y
-    UINT_32*        pBpp,           ///< [in/out] bpp
-    UINT_32*        pBasePitch,     ///< [in/out] base pitch
-    UINT_32*        pWidth,         ///< [in/out] width
-    UINT_32*        pHeight)        ///< [in/out] height
+    UINT_32*        pBpp,           ///< [in,out] bpp
+    UINT_32*        pBasePitch,     ///< [in,out] base pitch
+    UINT_32*        pWidth,         ///< [in,out] width
+    UINT_32*        pHeight)        ///< [in,out] height
 {
     UINT_32 packedBits;
     UINT_32 basePitch;
@@ -1165,7 +1172,13 @@ VOID AddrElemLib::AdjustSurfaceInfo(
             case ADDR_PACKED_BC3: // Fall through
             case ADDR_PACKED_BC5: // Fall through
                 bBCnFormat = TRUE;
+                // fall through
+            case ADDR_PACKED_ASTC:
+            case ADDR_PACKED_ETC2_128BPP:
                 packedBits = 128;
+                break;
+            case ADDR_PACKED_ETC2_64BPP:
+                packedBits = 64;
                 break;
             case ADDR_ROUND_BY_HALF:  // Fall through
             case ADDR_ROUND_TRUNCATE: // Fall through
@@ -1199,7 +1212,7 @@ VOID AddrElemLib::AdjustSurfaceInfo(
             else
             {
                 // Evergreen family workaround
-                if (bBCnFormat && (m_pAddrLib->GetAddrChipFamily() == ADDR_CHIP_FAMILY_R8XX))
+                if (bBCnFormat && (m_pAddrLib->GetChipFamily() == ADDR_CHIP_FAMILY_R8XX))
                 {
                     // For BCn we now pad it to POW2 at the beginning so it is safe to
                     // divide by 4 directly
@@ -1235,23 +1248,23 @@ VOID AddrElemLib::AdjustSurfaceInfo(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::RestoreSurfaceInfo
+****************************************************************************************************
+*   ElemLib::RestoreSurfaceInfo
 *
 *   @brief
 *       Reverse operation of AdjustSurfaceInfo
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::RestoreSurfaceInfo(
-    AddrElemMode    elemMode,       ///< [in] element mode
+VOID ElemLib::RestoreSurfaceInfo(
+    ElemMode        elemMode,       ///< [in] element mode
     UINT_32         expandX,        ///< [in] decompression expansion factor in X
     UINT_32         expandY,        ///< [out] decompression expansion factor in Y
-    UINT_32*        pBpp,           ///< [in/out] bpp
-    UINT_32*        pWidth,         ///< [in/out] width
-    UINT_32*        pHeight)        ///< [in/out] height
+    UINT_32*        pBpp,           ///< [in,out] bpp
+    UINT_32*        pWidth,         ///< [in,out] width
+    UINT_32*        pHeight)        ///< [in,out] height
 {
     UINT_32 originalBits;
     UINT_32 width;
@@ -1284,8 +1297,14 @@ VOID AddrElemLib::RestoreSurfaceInfo(
             break;
         case ADDR_PACKED_BC2: // Fall through
         case ADDR_PACKED_BC3: // Fall through
-            case ADDR_PACKED_BC5:
+        case ADDR_PACKED_BC5:
+            // fall through
+        case ADDR_PACKED_ASTC:
+        case ADDR_PACKED_ETC2_128BPP:
             originalBits = 128;
+            break;
+        case ADDR_PACKED_ETC2_64BPP:
+            originalBits = 64;
             break;
         case ADDR_ROUND_BY_HALF:  // Fall through
         case ADDR_ROUND_TRUNCATE: // Fall through
@@ -1327,8 +1346,8 @@ VOID AddrElemLib::RestoreSurfaceInfo(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::GetBitsPerPixel
+****************************************************************************************************
+*   ElemLib::GetBitsPerPixel
 *
 *   @brief
 *       Compute the total bits per element according to a format
@@ -1337,11 +1356,11 @@ VOID AddrElemLib::RestoreSurfaceInfo(
 *
 *   @return
 *       Bits per pixel
-***************************************************************************************************
+****************************************************************************************************
 */
-UINT_32 AddrElemLib::GetBitsPerPixel(
+UINT_32 ElemLib::GetBitsPerPixel(
     AddrFormat          format,         ///< [in] surface format code
-    AddrElemMode*       pElemMode,      ///< [out] element mode
+    ElemMode*           pElemMode,      ///< [out] element mode
     UINT_32*            pExpandX,       ///< [out] decompression expansion factor in X
     UINT_32*            pExpandY,       ///< [out] decompression expansion factor in Y
     UINT_32*            pUnusedBits)    ///< [out] bits unused
@@ -1350,7 +1369,7 @@ UINT_32 AddrElemLib::GetBitsPerPixel(
     UINT_32 expandX = 1;
     UINT_32 expandY = 1;
     UINT_32 bitUnused = 0;
-    AddrElemMode elemMode = ADDR_UNCOMPRESSED; // default value
+    ElemMode elemMode = ADDR_UNCOMPRESSED; // default value
 
     switch (format)
     {
@@ -1480,6 +1499,119 @@ UINT_32 AddrElemLib::GetBitsPerPixel(
             expandY = 4;
             bpp = 128;
             break;
+
+        case ADDR_FMT_ETC2_64BPP:
+            elemMode = ADDR_PACKED_ETC2_64BPP;
+            expandX  = 4;
+            expandY  = 4;
+            bpp      = 64;
+            break;
+
+        case ADDR_FMT_ETC2_128BPP:
+            elemMode = ADDR_PACKED_ETC2_128BPP;
+            expandX  = 4;
+            expandY  = 4;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_4x4:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 4;
+            expandY  = 4;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_5x4:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 5;
+            expandY  = 4;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_5x5:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 5;
+            expandY  = 5;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_6x5:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 6;
+            expandY  = 5;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_6x6:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 6;
+            expandY  = 6;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_8x5:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 8;
+            expandY  = 5;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_8x6:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 8;
+            expandY  = 6;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_8x8:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 8;
+            expandY  = 8;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_10x5:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 10;
+            expandY  = 5;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_10x6:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 10;
+            expandY  = 6;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_10x8:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 10;
+            expandY  = 8;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_10x10:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 10;
+            expandY  = 10;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_12x10:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 12;
+            expandY  = 10;
+            bpp      = 128;
+            break;
+
+        case ADDR_FMT_ASTC_12x12:
+            elemMode = ADDR_PACKED_ASTC;
+            expandX  = 12;
+            expandY  = 12;
+            bpp      = 128;
+            break;
+
         default:
             bpp = 0;
             ADDR_ASSERT_ALWAYS();
@@ -1496,23 +1628,23 @@ UINT_32 AddrElemLib::GetBitsPerPixel(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::GetCompBits
+****************************************************************************************************
+*   ElemLib::GetCompBits
 *
 *   @brief
 *       Set each component's bit size and bit start. And set element mode and number type
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::GetCompBits(
-    UINT_32 c0,                     ///< [in] bits of component 0
-    UINT_32 c1,                     ///< [in] bits of component 1
-    UINT_32 c2,                     ///< [in] bits of component 2
-    UINT_32 c3,                     ///< [in] bits of component 3
-    ADDR_PIXEL_FORMATINFO* pInfo,   ///< [out] per component info out
-    AddrElemMode elemMode)          ///< [in] element mode
+VOID ElemLib::GetCompBits(
+    UINT_32          c0,        ///< [in] bits of component 0
+    UINT_32          c1,        ///< [in] bits of component 1
+    UINT_32          c2,        ///< [in] bits of component 2
+    UINT_32          c3,        ///< [in] bits of component 3
+    PixelFormatInfo* pInfo,     ///< [out] per component info out
+    ElemMode         elemMode)  ///< [in] element mode
 {
     pInfo->comps = 0;
 
@@ -1543,8 +1675,8 @@ VOID AddrElemLib::GetCompBits(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::GetCompBits
+****************************************************************************************************
+*   ElemLib::GetCompBits
 *
 *   @brief
 *       Set the clear color (or clear depth/stencil) for a surface
@@ -1555,10 +1687,10 @@ VOID AddrElemLib::GetCompBits(
 *
 *   @return
 *       N/A
-***************************************************************************************************
+****************************************************************************************************
 */
-VOID AddrElemLib::SetClearComps(
-    ADDR_FLT_32 comps[4],   ///< [in/out] components
+VOID ElemLib::SetClearComps(
+    ADDR_FLT_32 comps[4],   ///< [in,out] components
     BOOL_32 clearColor,     ///< [in] TRUE if clear color is set (CLEAR_COLOR)
     BOOL_32 float32)        ///< [in] TRUE if float32 component (BLEND_FLOAT32)
 {
@@ -1599,8 +1731,8 @@ VOID AddrElemLib::SetClearComps(
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::IsBlockCompressed
+****************************************************************************************************
+*   ElemLib::IsBlockCompressed
 *
 *   @brief
 *       TRUE if this is block compressed format
@@ -1609,18 +1741,19 @@ VOID AddrElemLib::SetClearComps(
 *
 *   @return
 *       BOOL_32
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 AddrElemLib::IsBlockCompressed(
+BOOL_32 ElemLib::IsBlockCompressed(
     AddrFormat format)  ///< [in] Format
 {
-    return format >= ADDR_FMT_BC1 && format <= ADDR_FMT_BC7;
+    return (((format >= ADDR_FMT_BC1) && (format <= ADDR_FMT_BC7)) ||
+            ((format >= ADDR_FMT_ASTC_4x4) && (format <= ADDR_FMT_ETC2_128BPP)));
 }
 
 
 /**
-***************************************************************************************************
-*   AddrElemLib::IsCompressed
+****************************************************************************************************
+*   ElemLib::IsCompressed
 *
 *   @brief
 *       TRUE if this is block compressed format or 1 bit format
@@ -1629,17 +1762,17 @@ BOOL_32 AddrElemLib::IsBlockCompressed(
 *
 *   @return
 *       BOOL_32
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 AddrElemLib::IsCompressed(
+BOOL_32 ElemLib::IsCompressed(
     AddrFormat format)  ///< [in] Format
 {
     return IsBlockCompressed(format) || format == ADDR_FMT_BC1 || format == ADDR_FMT_BC7;
 }
 
 /**
-***************************************************************************************************
-*   AddrElemLib::IsExpand3x
+****************************************************************************************************
+*   ElemLib::IsExpand3x
 *
 *   @brief
 *       TRUE if this is 3x expand format
@@ -1648,9 +1781,9 @@ BOOL_32 AddrElemLib::IsCompressed(
 *
 *   @return
 *       BOOL_32
-***************************************************************************************************
+****************************************************************************************************
 */
-BOOL_32 AddrElemLib::IsExpand3x(
+BOOL_32 ElemLib::IsExpand3x(
     AddrFormat format)  ///< [in] Format
 {
     BOOL_32 is3x = FALSE;
@@ -1671,4 +1804,4 @@ BOOL_32 AddrElemLib::IsExpand3x(
     return is3x;
 }
 
-
+}

@@ -49,7 +49,6 @@ typedef struct _damage {
     Bool reportAfter;
     RegionRec pendingDamage;    /* will be flushed post submission at the latest */
     ScreenPtr pScreen;
-    PrivateRec *devPrivates;
 } DamageRec;
 
 typedef struct _damageScrPriv {
