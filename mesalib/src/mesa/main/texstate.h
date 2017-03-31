@@ -91,8 +91,11 @@ _mesa_ClientActiveTexture( GLenum target );
  */
 /*@{*/
 
-extern void 
-_mesa_update_texture( struct gl_context *ctx, GLuint new_state );
+extern void
+_mesa_update_texture_matrices(struct gl_context *ctx);
+
+extern void
+_mesa_update_texture_state(struct gl_context *ctx);
 
 extern GLboolean
 _mesa_init_texture( struct gl_context *ctx );

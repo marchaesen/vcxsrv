@@ -21,7 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef NIR_LOOP_ANALYZE_H
+#define NIR_LOOP_ANALYZE_H
 
 #include "nir.h"
 
@@ -90,3 +91,5 @@ nir_is_trivial_loop_if(nir_if *nif, nir_block *break_block)
 
    return true;
 }
+
+#endif /* NIR_LOOP_ANALYZE_H */

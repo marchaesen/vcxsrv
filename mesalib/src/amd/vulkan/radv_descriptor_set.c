@@ -187,7 +187,7 @@ VkResult radv_CreatePipelineLayout(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_pipeline_layout *layout;
-	struct mesa_sha1 *ctx;
+	struct mesa_sha1 ctx;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
 
@@ -201,7 +201,7 @@ VkResult radv_CreatePipelineLayout(
 	unsigned dynamic_offset_count = 0;
 
 
-	ctx = _mesa_sha1_init();
+	_mesa_sha1_init(&ctx);
 	for (uint32_t set = 0; set < pCreateInfo->setLayoutCount; set++) {
 		RADV_FROM_HANDLE(radv_descriptor_set_layout, set_layout,
 				 pCreateInfo->pSetLayouts[set]);
@@ -211,7 +211,7 @@ VkResult radv_CreatePipelineLayout(
 		for (uint32_t b = 0; b < set_layout->binding_count; b++) {
 			dynamic_offset_count += set_layout->binding[b].array_size * set_layout->binding[b].dynamic_offset_count;
 		}
-		_mesa_sha1_update(ctx, set_layout->binding,
+		_mesa_sha1_update(&ctx, set_layout->binding,
 				  sizeof(set_layout->binding[0]) * set_layout->binding_count);
 	}
 
@@ -224,9 +224,9 @@ VkResult radv_CreatePipelineLayout(
 	}
 
 	layout->push_constant_size = align(layout->push_constant_size, 16);
-	_mesa_sha1_update(ctx, &layout->push_constant_size,
+	_mesa_sha1_update(&ctx, &layout->push_constant_size,
 			  sizeof(layout->push_constant_size));
-	_mesa_sha1_final(ctx, layout->sha1);
+	_mesa_sha1_final(&ctx, layout->sha1);
 	*pPipelineLayout = radv_pipeline_layout_to_handle(layout);
 
 	return VK_SUCCESS;

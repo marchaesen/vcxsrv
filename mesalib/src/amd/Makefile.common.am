@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-if NEED_RADEON_LLVM
+if HAVE_GALLIUM_LLVM
 
 COMMON_LIBS = common/libamd_common.la
 
@@ -65,8 +65,8 @@ common_libamd_common_la_SOURCES += $(AMD_NIR_FILES)
 endif
 endif
 
-common/sid_tables.h: $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h
+common/sid_tables.h: $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h $(srcdir)/common/gfx9d.h
 	$(AM_V_at)$(MKDIR_P) $(@D)
-	$(AM_V_GEN) $(PYTHON2) $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h > $@
+	$(AM_V_GEN) $(PYTHON2) $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h $(srcdir)/common/gfx9d.h > $@
 
 BUILT_SOURCES = $(AMD_GENERATED_FILES)

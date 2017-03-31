@@ -2158,7 +2158,7 @@ typedef struct {
 #define X_GLXDestroyWindow               32
 #define X_GLXSetClientInfoARB            33
 #define X_GLXCreateContextAttribsARB     34
-#define X_GLXSetConfigInfo2ARB           35
+#define X_GLXSetClientInfo2ARB           35
 
 /* Opcodes for single commands (part of GLX command space) */
 

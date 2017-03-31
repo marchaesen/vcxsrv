@@ -720,6 +720,11 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
    u_upload_alloc(pipe->stream_uploader, 0, num_vert_bytes, 4,
                   &vb.buffer_offset, &vb.buffer, (void **) &verts);
 
+   if (unlikely(!verts)) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCallLists(bitmap text)");
+      goto out;
+   }
+
    /* build quads vertex data */
    for (i = 0; i < count; i++) {
       const GLfloat epsilon = 0.0001F;
@@ -797,6 +802,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
 
    cso_draw_arrays(st->cso_context, PIPE_PRIM_QUADS, 0, num_verts);
 
+out:
    restore_render_state(ctx);
 
    pipe_resource_reference(&vb.buffer, NULL);

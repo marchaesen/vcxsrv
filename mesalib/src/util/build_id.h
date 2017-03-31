@@ -21,6 +21,9 @@
  * IN THE SOFTWARE.
  */
 
+#ifndef BUILD_ID_H
+#define BUILD_ID_H
+
 #ifdef HAVE_DL_ITERATE_PHDR
 
 struct build_id_note;
@@ -35,3 +38,5 @@ const uint8_t *
 build_id_data(const struct build_id_note *note);
 
 #endif
+
+#endif /* BUILD_ID_H */

@@ -68,20 +68,9 @@ fbPutImage(DrawablePtr pDrawable,
         }
         break;
     case ZPixmap:
-        if (pDrawable->bitsPerPixel != BitsPerPixel(pDrawable->depth)) {
-            srcStride = PixmapBytePad(w, pDrawable->depth);
-            fb24_32PutZImage(pDrawable,
-                             fbGetCompositeClip(pGC),
-                             pGC->alu,
-                             (FbBits) pGC->planemask,
-                             x, y, w, h, (CARD8 *) pImage, srcStride);
-        }
-        else {
-            srcStride = PixmapBytePad(w, pDrawable->depth) / sizeof(FbStip);
-            fbPutZImage(pDrawable,
-                        fbGetCompositeClip(pGC),
-                        pGC->alu, pPriv->pm, x, y, w, h, src, srcStride);
-        }
+        srcStride = PixmapBytePad(w, pDrawable->depth) / sizeof(FbStip);
+        fbPutZImage(pDrawable, fbGetCompositeClip(pGC),
+                    pGC->alu, pPriv->pm, x, y, w, h, src, srcStride);
     }
 }
 
@@ -233,12 +222,6 @@ fbGetImage(DrawablePtr pDrawable,
     if (!fbDrawableEnabled(pDrawable))
         return;
 
-    if (format == ZPixmap &&
-        pDrawable->bitsPerPixel != BitsPerPixel(pDrawable->depth)) {
-        fb24_32GetImage(pDrawable, x, y, w, h, format, planeMask, d);
-        return;
-    }
-
     fbGetDrawable(pDrawable, src, srcStride, srcBpp, srcXoff, srcYoff);
 
     x += pDrawable->x;
@@ -250,13 +233,16 @@ fbGetImage(DrawablePtr pDrawable,
 
         pm = fbReplicatePixel(planeMask, srcBpp);
         dstStride = PixmapBytePad(w, pDrawable->depth);
-        if (pm != FB_ALLONES)
-            memset(d, 0, dstStride * h);
         dstStride /= sizeof(FbStip);
         fbBltStip((FbStip *) (src + (y + srcYoff) * srcStride),
                   FbBitsStrideToStipStride(srcStride),
                   (x + srcXoff) * srcBpp,
-                  dst, dstStride, 0, w * srcBpp, h, GXcopy, pm, srcBpp);
+                  dst, dstStride, 0, w * srcBpp, h, GXcopy, FB_ALLONES, srcBpp);
+
+        if (pm != FB_ALLONES) {
+            for (int i = 0; i < dstStride * h; i++)
+                dst[i] &= pm;
+        }
     }
     else {
         dstStride = BitmapBytePad(w) / sizeof(FbStip);

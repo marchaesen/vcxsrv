@@ -27,6 +27,7 @@
 #include "ac_debug.h"
 
 #include "sid.h"
+#include "gfx9d.h"
 #include "sid_tables.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"

@@ -94,7 +94,7 @@ _mesa_update_array_format(struct gl_context *ctx,
                           GLuint attrib, GLint size, GLenum type,
                           GLenum format, GLboolean normalized,
                           GLboolean integer, GLboolean doubles,
-                          GLuint relativeOffset, bool flush_vertices);
+                          GLuint relativeOffset);
 
 extern void
 _mesa_enable_vertex_array_attrib(struct gl_context *ctx,

@@ -22,7 +22,9 @@
  * of the Software.
  *
  */
-#pragma once
+
+#ifndef AC_LLVM_UTIL_H
+#define AC_LLVM_UTIL_H
 
 #include <stdbool.h>
 #include <llvm-c/TargetMachine.h>
@@ -43,6 +45,7 @@ enum ac_func_attr {
 	AC_FUNC_ATTR_READONLY     = (1 << 6),
 	AC_FUNC_ATTR_WRITEONLY    = HAVE_LLVM >= 0x0400 ? (1 << 7) : 0,
 	AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY = HAVE_LLVM >= 0x0400 ? (1 << 8) : 0,
+	AC_FUNC_ATTR_CONVERGENT = HAVE_LLVM >= 0x0400 ? (1 << 9) : 0,
 
 	/* Legacy intrinsic that needs attributes on function declarations
 	 * and they must match the internal LLVM definition exactly, otherwise
@@ -64,3 +67,5 @@ void ac_dump_module(LLVMModuleRef module);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* AC_LLVM_UTIL_H */

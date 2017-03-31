@@ -498,7 +498,7 @@ static bool radv_is_storage_image_format_supported(struct radv_physical_device *
 	}
 }
 
-static bool radv_is_buffer_format_supported(VkFormat format)
+static bool radv_is_buffer_format_supported(VkFormat format, bool *scaled)
 {
 	const struct vk_format_description *desc = vk_format_description(format);
 	unsigned data_format, num_format;
@@ -510,6 +510,7 @@ static bool radv_is_buffer_format_supported(VkFormat format)
 	num_format = radv_translate_buffer_numformat(desc,
 						     vk_format_get_first_non_void_channel(format));
 
+	*scaled = (num_format == V_008F0C_BUF_NUM_FORMAT_SSCALED) || (num_format == V_008F0C_BUF_NUM_FORMAT_USCALED);
 	return data_format != V_008F0C_BUF_DATA_FORMAT_INVALID &&
 		num_format != ~0;
 }
@@ -547,6 +548,7 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	VkFormatFeatureFlags linear = 0, tiled = 0, buffer = 0;
 	const struct vk_format_description *desc = vk_format_description(format);
 	bool blendable;
+	bool scaled = false;
 	if (!desc) {
 		out_properties->linearTilingFeatures = linear;
 		out_properties->optimalTilingFeatures = tiled;
@@ -559,10 +561,11 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 		linear |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
 	}
 
-	if (radv_is_buffer_format_supported(format)) {
-		buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT |
-			VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
-			VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+	if (radv_is_buffer_format_supported(format, &scaled)) {
+		buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+		if (!scaled)
+			buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
+				VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
 	}
 
 	if (vk_format_is_depth_or_stencil(format)) {
@@ -594,13 +597,13 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 			}
 		}
-		if (util_is_power_of_two(vk_format_get_blocksize(format))) {
+		if (util_is_power_of_two(vk_format_get_blocksize(format)) && !scaled) {
 			tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 		}
 	}
 
-	if (util_is_power_of_two(vk_format_get_blocksize(format))) {
+	if (util_is_power_of_two(vk_format_get_blocksize(format)) && !scaled) {
 		linear |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 		          VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 	}

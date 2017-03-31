@@ -49,6 +49,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
     glamor_program *prog;
     RegionPtr clip = gc->pCompositeClip;
     int box_index;
+    Bool ret = FALSE;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -75,8 +76,9 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
         int off_x, off_y;
         char *vbo_offset;
 
-        glamor_set_destination_drawable(drawable, box_index, FALSE, TRUE,
-                                        prog->matrix_uniform, &off_x, &off_y);
+        if (!glamor_set_destination_drawable(drawable, box_index, FALSE, TRUE,
+                                              prog->matrix_uniform, &off_x, &off_y))
+            goto bail;
 
         max_points = 500;
         num_points = 0;
@@ -138,11 +140,12 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
         }
     }
 
+    ret = TRUE;
+
+bail:
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    return TRUE;
-bail:
-    return FALSE;
+    return ret;
 }
 
 void
@@ -174,6 +177,7 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
     int num_points;
     INT16 *points = NULL;
     char *vbo_offset;
+    Bool ret = FALSE;
 
     if (w * h > MAXINT / (2 * sizeof(float)))
         goto bail;
@@ -221,17 +225,19 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
     glamor_put_vbo_space(screen);
 
     glamor_pixmap_loop(pixmap_priv, box_index) {
-        glamor_set_destination_drawable(drawable, box_index, FALSE, TRUE,
-                                        prog->matrix_uniform, NULL, NULL);
+        if (!glamor_set_destination_drawable(drawable, box_index, FALSE, TRUE,
+                                             prog->matrix_uniform, NULL, NULL))
+            goto bail;
 
         glDrawArrays(GL_POINTS, 0, num_points);
     }
 
-    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    return TRUE;
+    ret = TRUE;
 
 bail:
-    return FALSE;
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+
+    return ret;
 }
 
 void

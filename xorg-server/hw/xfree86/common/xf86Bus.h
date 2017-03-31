@@ -48,10 +48,6 @@ typedef struct {
     DriverPtr driver;
     int chipset;
     int entityProp;
-    EntityProc entityInit;
-    EntityProc entityEnter;
-    EntityProc entityLeave;
-    void *private;
     Bool active;
     Bool inUse;
     BusRec bus;

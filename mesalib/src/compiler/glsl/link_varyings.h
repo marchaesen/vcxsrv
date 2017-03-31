@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef GLSL_LINK_VARYINGS_H
 #define GLSL_LINK_VARYINGS_H
 

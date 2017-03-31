@@ -49,7 +49,7 @@ nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
 
    nir_foreach_variable(var, var_list) {
       /*
-       * UBO's have their own address spaces, so don't count them towards the
+       * UBOs have their own address spaces, so don't count them towards the
        * number of global uniforms
        */
       if ((var->data.mode == nir_var_uniform || var->data.mode == nir_var_shader_storage) &&
@@ -364,6 +364,7 @@ nir_lower_io_block(nir_block *block,
 {
    nir_builder *b = &state->builder;
    const nir_shader_compiler_options *options = b->shader->options;
+   bool progress = false;
 
    nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
@@ -474,18 +475,20 @@ nir_lower_io_block(nir_block *block,
 
       nir_instr_insert_before(&intrin->instr, &replacement->instr);
       nir_instr_remove(&intrin->instr);
+      progress = true;
    }
 
-   return true;
+   return progress;
 }
 
-static void
+static bool
 nir_lower_io_impl(nir_function_impl *impl,
                   nir_variable_mode modes,
                   int (*type_size)(const struct glsl_type *),
                   nir_lower_io_options options)
 {
    struct lower_io_state state;
+   bool progress = false;
 
    nir_builder_init(&state.builder, impl);
    state.modes = modes;
@@ -493,23 +496,29 @@ nir_lower_io_impl(nir_function_impl *impl,
    state.options = options;
 
    nir_foreach_block(block, impl) {
-      nir_lower_io_block(block, &state);
+      progress |= nir_lower_io_block(block, &state);
    }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
+   return progress;
 }
 
-void
+bool
 nir_lower_io(nir_shader *shader, nir_variable_mode modes,
              int (*type_size)(const struct glsl_type *),
              nir_lower_io_options options)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl) {
-         nir_lower_io_impl(function->impl, modes, type_size, options);
+         progress |= nir_lower_io_impl(function->impl, modes,
+                                       type_size, options);
       }
    }
+
+   return progress;
 }
 
 /**

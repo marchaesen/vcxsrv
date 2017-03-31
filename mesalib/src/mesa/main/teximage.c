@@ -154,23 +154,6 @@ set_tex_image(struct gl_texture_object *tObj,
 
 
 /**
- * Allocate a texture image structure.
- *
- * Called via ctx->Driver.NewTextureImage() unless overriden by a device
- * driver.
- *
- * \return a pointer to gl_texture_image struct with all fields initialized to
- * zero.
- */
-struct gl_texture_image *
-_mesa_new_texture_image( struct gl_context *ctx )
-{
-   (void) ctx;
-   return CALLOC_STRUCT(gl_texture_image);
-}
-
-
-/**
  * Free a gl_texture_image and associated data.
  * This function is a fallback called via ctx->Driver.DeleteTextureImage().
  *
@@ -3242,7 +3225,7 @@ _mesa_texture_sub_image(struct gl_context *ctx, GLuint dims,
 
          check_gen_mipmap(ctx, target, texObj, level);
 
-         /* NOTE: Don't signal _NEW_TEXTURE since we've only changed
+         /* NOTE: Don't signal _NEW_TEXTURE_OBJECT since we've only changed
           * the texel data, not the texture format, size, etc.
           */
       }
@@ -3834,7 +3817,7 @@ _mesa_copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
 
          check_gen_mipmap(ctx, target, texObj, level);
 
-         /* NOTE: Don't signal _NEW_TEXTURE since we've only changed
+         /* NOTE: Don't signal _NEW_TEXTURE_OBJECT since we've only changed
           * the texel data, not the texture format, size, etc.
           */
       }
@@ -4540,7 +4523,7 @@ _mesa_compressed_texture_sub_image(struct gl_context *ctx, GLuint dims,
 
          check_gen_mipmap(ctx, target, texObj, level);
 
-         /* NOTE: Don't signal _NEW_TEXTURE since we've only changed
+         /* NOTE: Don't signal _NEW_TEXTURE_OBJECT since we've only changed
           * the texel data, not the texture format, size, etc.
           */
       }

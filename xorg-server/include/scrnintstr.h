@@ -404,6 +404,8 @@ typedef WindowPtr (*XYToWindowProcPtr)(ScreenPtr pScreen,
 
 typedef int (*NameWindowPixmapProcPtr)(WindowPtr, PixmapPtr, CARD32);
 
+typedef void (*DPMSProcPtr)(ScreenPtr pScreen, int level);
+
 /* Wrapping Screen procedures
 
    There are a few modules in the X server which dynamically add and
@@ -661,6 +663,7 @@ typedef struct _Screen {
 
     ReplaceScanoutPixmapProcPtr ReplaceScanoutPixmap;
     XYToWindowProcPtr XYToWindow;
+    DPMSProcPtr DPMS;
 } ScreenRec;
 
 static inline RegionPtr

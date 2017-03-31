@@ -345,7 +345,7 @@ nir_block_create(nir_shader *shader)
                                           _mesa_key_pointer_equal);
    block->imm_dom = NULL;
    /* XXX maybe it would be worth it to defer allocation?  This
-    * way it doesn't get allocated for shader ref's that never run
+    * way it doesn't get allocated for shader refs that never run
     * nir_calc_dominance?  For example, state-tracker creates an
     * initial IR, clones that, runs appropriate lowering pass, passes
     * to driver which does common lowering/opt, and then stores ref
@@ -1957,97 +1957,4 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
    default:
       unreachable("intrinsic doesn't produce a system value");
    }
-}
-
-nir_op
-nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
-{
-   nir_alu_type src_base_type = (nir_alu_type) nir_alu_type_get_base_type(src);
-   nir_alu_type dst_base_type = (nir_alu_type) nir_alu_type_get_base_type(dst);
-   unsigned src_bitsize = nir_alu_type_get_type_size(src);
-   unsigned dst_bitsize = nir_alu_type_get_type_size(dst);
-
-   if (src_base_type == dst_base_type) {
-      if (src_bitsize == dst_bitsize)
-         return (src_base_type == nir_type_float) ? nir_op_fmov : nir_op_imov;
-
-      assert(src_bitsize == 64 || dst_bitsize == 64);
-      if (src_base_type == nir_type_float)
-         /* TODO: implement support for float16 */
-         return (src_bitsize == 64) ? nir_op_d2f : nir_op_f2d;
-      else if (src_base_type == nir_type_uint)
-         return (src_bitsize == 64) ? nir_op_imov : nir_op_u2u64;
-      else if (src_base_type == nir_type_int)
-         return (src_bitsize == 64) ? nir_op_imov : nir_op_i2i64;
-      unreachable("Invalid conversion");
-   }
-
-   /* Different base type but same bit_size */
-   if (src_bitsize == dst_bitsize) {
-      /* TODO: This does not include specific conversions between
-       * signed or unsigned integer types of bit size different than 32 yet.
-       */
-      assert(src_bitsize == 32);
-      switch (src_base_type) {
-      case nir_type_uint:
-         return (dst_base_type == nir_type_float) ? nir_op_u2f : nir_op_imov;
-      case nir_type_int:
-         return (dst_base_type == nir_type_float) ? nir_op_i2f : nir_op_imov;
-      case nir_type_bool:
-         return (dst_base_type == nir_type_float) ? nir_op_b2f : nir_op_b2i;
-      case nir_type_float:
-         switch (dst_base_type) {
-         case nir_type_uint:
-            return nir_op_f2u;
-         case nir_type_bool:
-            return nir_op_f2b;
-         default:
-            return nir_op_f2i;
-         };
-      default:
-         unreachable("Invalid conversion");
-      };
-   }
-
-   /* Different bit_size and different base type */
-   /* TODO: Implement integer support for types with bit_size != 32 */
-   switch (src_base_type) {
-   case nir_type_uint:
-      if (dst == nir_type_float64)
-         return nir_op_u2d;
-      else if (dst == nir_type_int64)
-         return nir_op_u2i64;
-      break;
-   case nir_type_int:
-      if (dst == nir_type_float64)
-         return nir_op_i2d;
-      else if (dst == nir_type_uint64)
-         return nir_op_i2i64;
-      break;
-   case nir_type_bool:
-      assert(dst == nir_type_float64);
-      return nir_op_u2d;
-   case nir_type_float:
-      assert(src_bitsize == 32 || src_bitsize == 64);
-      if (src_bitsize != 64) {
-         assert(dst == nir_type_float64);
-         return nir_op_f2d;
-      }
-      assert(dst_bitsize == 32);
-      switch (dst_base_type) {
-      case nir_type_uint:
-         return nir_op_d2u;
-      case nir_type_int:
-         return nir_op_d2i;
-      case nir_type_bool:
-         return nir_op_d2b;
-      case nir_type_float:
-         return nir_op_d2f;
-      default:
-         unreachable("Invalid conversion");
-      };
-   default:
-      unreachable("Invalid conversion");
-   };
-   unreachable("Invalid conversion");
 }

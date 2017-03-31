@@ -62,7 +62,7 @@ as discussed in <xref linkend="Symbolic_Names" />. Then set the map using
 <function>XkbSetMap</function>
 (see <link linkend="Changing_Map_Components_in_the_Server">section 14.3</link>)
 or
-<function>XkbSetNamedIndicator</function>
+<function>XkbSetNamedDeviceIndicator</function>
 (below). To retrieve indicator names, use
 <function>XkbGetNames</function>
 (<xref linkend="Symbolic_Names" />).
@@ -266,7 +266,7 @@ is not, and if you call a function which updates the server’s image of the
 indicator map (such as
 <function>XkbSetIndicatorMap</function>
 or
-<function>XkbSetNamedIndicator</function>),
+<function>XkbSetNamedDeviceIndicator</function>),
 Xkb changes the keyboard state and controls to reflect the other fields of
 the indicator map, as described in the remainder of this section. If you
 attempt to explicitly change the value of an indicator for which
@@ -840,7 +840,7 @@ implementation, uses a mask to specify the indicators. The second method, which
 is more suitable for applications concerned with interoperability, uses
 indicator names. The correspondence between the indicator name and the bit
 position in masks is as follows: one of the parameters returned from
-<function>XkbGetNamedIndicator</function>
+<function>XkbGetNamedDeviceIndicator</function>
 is an index that is the bit position to use in any function call that requires
 a mask of indicator bits, as well as the indicator’s index into the
 <structname>XkbIndicatorRec</structname>
@@ -1038,20 +1038,22 @@ of using vendor-specific constants such as
 mask on Digital workstations or
 <symbol>XLED_SCROLL_LOCK</symbol>
 on Sun workstations, you can instead use
+<function>XkbGetNamedDeviceIndicator</function> or
 <function>XkbGetNamedIndicator</function>
 to look up information on the indicator named <quote>Scroll Lock.</quote>
 </para>
 
 <para>
 Use
-<function>XkbGetNamedIndicator</function>
-to look up the indicator map and other information for an indicator by name.
+<function>XkbGetNamedDeviceIndicator</function>
+to look up the indicator map and other information for an indicator by name
+on a specific device.
 </para>
 
-<indexterm significance="preferred" zone="XkbGetNamedIndicator"><primary><function>XkbGetNamedIndicator</function></primary></indexterm>
-<funcsynopsis id="XkbGetNamedIndicator">
+<indexterm significance="preferred" zone="XkbGetNamedDeviceIndicator"><primary><function>XkbGetNamedDeviceIndicator</function></primary></indexterm>
+<funcsynopsis id="XkbGetNamedDeviceIndicator">
   <funcprototype>
-    <funcdef>Bool <function>XkbGetNamedIndicator</function></funcdef>
+    <funcdef>Bool <function>XkbGetNamedDeviceIndicator</function></funcdef>
 <!-- (
 <parameter>dpy</parameter>,
 <parameter>dev_spec</parameter>,
@@ -1064,6 +1066,8 @@ to look up the indicator map and other information for an indicator by name.
 
     <paramdef>Display *<parameter>dpy</parameter></paramdef>
     <paramdef>unsigned int <parameter>device_spec</parameter></paramdef>
+    <paramdef>unsigned int <parameter>led_class</parameter></paramdef>
+    <paramdef>unsigned int <parameter>led_id</parameter></paramdef>
     <paramdef>Atom <parameter>name</parameter></paramdef>
     <paramdef>int *<parameter>ndx_rtrn</parameter></paramdef>
     <paramdef>Bool *<parameter>state_rtrn</parameter></paramdef>
@@ -1089,6 +1093,26 @@ to look up the indicator map and other information for an indicator by name.
     <listitem>
       <para>
         keyboard device ID, or <symbol>XkbUseCoreKbd</symbol>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>led_class</parameter>
+    </term>
+    <listitem>
+      <para>
+        feedback class, or <symbol>XkbDfltXIClass</symbol>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>led_id</parameter>
+    </term>
+    <listitem>
+      <para>
+        feedback ID, or <symbol>XkbDfltXIId</symbol>
       </para>
     </listitem>
   </varlistentry>
@@ -1148,14 +1172,16 @@ to look up the indicator map and other information for an indicator by name.
 <para>
 If the device specified by
 <parameter>device_spec</parameter>
+with feedback specified by
+<parameter>led_class</parameter> and <parameter>led_id</parameter>
 has an indicator named
 <parameter>name</parameter>,
-<function>XkbGetNamedIndicator</function>
+<function>XkbGetNamedDeviceIndicator</function>
 returns
 <symbol>True</symbol>
 and populates the rest of the parameters with information about the indicator.
 Otherwise,
-<function>XkbGetNamedIndicator</function>
+<function>XkbGetNamedDeviceIndicator</function>
 returns
 <symbol>False</symbol>.
 </para>
@@ -1192,7 +1218,7 @@ for any unneeded "<parameter>_rtrn</parameter>" arguments.
 
 
 <para>
-<function>XkbGetNamedIndicator</function>
+<function>XkbGetNamedDeviceIndicator</function>
 can generate
 <errorname>BadAtom</errorname>
 and
@@ -1200,6 +1226,108 @@ and
 errors.
 </para>
 
+<para>
+As a convenience function, Xkb provides a function to get information about
+indicators with the default class and identifier on the default device:
+<function>XkbGetNamedIndicator</function>.
+</para>
+
+
+<indexterm significance="preferred" zone="XkbGetNamedIndicator"><primary><function>XkbGetNamedIndicator</function></primary></indexterm>
+<funcsynopsis id="XkbGetNamedIndicator">
+  <funcprototype>
+    <funcdef>Bool <function>XkbGetNamedIndicator</function></funcdef>
+    <paramdef>Display *<parameter>dpy</parameter></paramdef>
+    <paramdef>Atom <parameter>name</parameter></paramdef>
+    <paramdef>int *<parameter>ndx_rtrn</parameter></paramdef>
+    <paramdef>Bool *<parameter>state_rtrn</parameter></paramdef>
+    <paramdef>XkbIndicatorMapPtr <parameter>map_rtrn</parameter></paramdef>
+    <paramdef>Bool *<parameter>real_rtrn</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>dpy</parameter>
+    </term>
+    <listitem>
+      <para>
+        connection to the X server
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>name</parameter>
+    </term>
+    <listitem>
+      <para>
+        name of the indicator to be retrieved
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>ndx_rtrn</parameter>
+    </term>
+    <listitem>
+      <para>
+        backfilled with the index of the retrieved indicator
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>state_rtrn</parameter>
+    </term>
+    <listitem>
+      <para>
+        backfilled with the current state of the retrieved indicator
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>map_rtrn</parameter>
+    </term>
+    <listitem>
+      <para>
+        backfilled with the mapping for the retrieved indicator
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>real_rtrn</parameter>
+    </term>
+    <listitem>
+      <para>
+        backfilled with <symbol>True</symbol>
+         if the named indicator is real (physical)
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<function>XkbGetNamedIndicator</function>
+calls
+<function>XkbGetNamedDeviceIndicator</function>
+with the specified parameters, a
+<structfield>device_spec</structfield>
+of
+<symbol>XkbUseCoreKbd</symbol>,
+a
+<structfield>led_class</structfield>
+of
+<symbol>XkbDfltXIClass</symbol>,
+and a
+<structfield>led_id</structfield>
+of
+<symbol>XkbDfltXIId</symbol>,
+and returns the value which was returned by
+<function>XkbGetNamedDeviceIndicator</function>.
+</para>
 
 </sect2>
 </sect1>
@@ -1222,7 +1350,7 @@ There are two ways to make changes to indicator maps and state: either change a
 local copy of the indicator maps and use
 <function>XkbSetIndicatorMap</function>
 or
-<function>XkbSetNamedIndicator</function>,
+<function>XkbSetNamedDeviceIndicator</function>,
 or, to reduce network traffic, use an
 <structname>XkbIndicatorChangesRec</structname>
 structure and use
@@ -1252,7 +1380,7 @@ is not, and if you call a function that updates the server’s image of the
 indicator map (such as
 <function>XkbSetIndicatorMap</function>
 or
-<function>XkbSetNamedIndicator</function>),
+<function>XkbSetNamedDeviceIndicator</function>),
 Xkb changes the keyboard state and controls to reflect the other fields of
 the indicator map. If you attempt to explicitly change the value of an
 indicator for which
@@ -1404,6 +1532,7 @@ parameter to the server.
 <title>Changing Indicator Maps by Name</title>
 
 <para>
+<function>XkbSetNamedDeviceIndicator</function> and
 <function>XkbSetNamedIndicator</function>
 can do several related things:
 </para>
@@ -1431,10 +1560,10 @@ Set the indicator map for the indicator
 </listitem>
 </itemizedlist>
 
-<indexterm significance="preferred" zone="XkbSetNamedIndicator"><primary><function>XkbSetNamedIndicator</function></primary></indexterm>
-<funcsynopsis id="XkbSetNamedIndicator">
+<indexterm significance="preferred" zone="XkbSetNamedDeviceIndicator"><primary><function>XkbSetNamedDeviceIndicator</function></primary></indexterm>
+<funcsynopsis id="XkbSetNamedDeviceIndicator">
   <funcprototype>
-    <funcdef>Bool<function>XkbSetNamedIndicator</function></funcdef>
+    <funcdef>Bool<function>XkbSetNamedDeviceIndicator</function></funcdef>
 <!-- (
 <parameter>dpy</parameter>,
 <parameter>device_spec</parameter>,
@@ -1446,6 +1575,8 @@ Set the indicator map for the indicator
 
     <paramdef>Display *<parameter>dpy</parameter></paramdef>
     <paramdef>unsigned int <parameter>device_spec</parameter></paramdef>
+    <paramdef>unsigned int <parameter>led_class</parameter></paramdef>
+    <paramdef>unsigned int <parameter>led_id</parameter></paramdef>
     <paramdef>Atom <parameter>name</parameter></paramdef>
     <paramdef>Bool <parameter>change_state</parameter></paramdef>
     <paramdef>Bool <parameter>state</parameter></paramdef>
@@ -1471,6 +1602,26 @@ Set the indicator map for the indicator
     <listitem>
       <para>
         device ID, or <symbol>XkbUseCoreKbd</symbol>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>led_class</parameter>
+    </term>
+    <listitem>
+      <para>
+        feedback class, or <symbol>XkbDfltXIClass</symbol>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>led_id</parameter>
+    </term>
+    <listitem>
+      <para>
+        feedback ID, or <symbol>XkbDfltXIId</symbol>
       </para>
     </listitem>
   </varlistentry>
@@ -1529,7 +1680,7 @@ Set the indicator map for the indicator
 
 <para>
 If a compatible version of the Xkb extension is not available in the server,
-<function>XkbSetNamedIndicator</function>
+<function>XkbSetNamedDeviceIndicator</function>
 returns
 <symbol>False</symbol>.
 Otherwise, it sends a request to the X server to change the indicator
@@ -1545,14 +1696,16 @@ If
 <parameter>change_state</parameter>
 is
 <symbol>True</symbol>,
-and the optional parameter,
-<parameter>state</parameter>,
-is not
-<symbol>NULL</symbol>,
-<function>XkbSetNamedIndicator</function>
+<function>XkbSetNamedDeviceIndicator</function>
 tells the server to change the state of the named indicator to the value
 specified by
 <parameter>state</parameter>.
+If
+<parameter>change_state</parameter>
+is
+<symbol>False</symbol>,
+<parameter>state</parameter>
+is not used.
 </para>
 
 
@@ -1576,13 +1729,13 @@ If the optional parameter,
 <parameter>map</parameter>,
 is not
 <symbol>NULL</symbol>,
-<function>XkbSetNamedIndicator</function>
+<function>XkbSetNamedDeviceIndicator</function>
 tells the server to change the indicator’s map to the values specified
 in <parameter>map</parameter>.
 </para>
 
 <para>
-<function>XkbSetNamedIndicator</function>
+<function>XkbSetNamedDeviceIndicator</function>
 can generate
 <errorname>BadAtom</errorname>
 and
@@ -1596,6 +1749,107 @@ and
 events (see <link linkend="Tracking_Name_Changes">section 18.5</link>).
 </para>
 
+<para>
+As a convenience function, Xkb provides a function to set information about
+indicators with the default class and identifier on the default device:
+<function>XkbSetNamedIndicator</function>.
+</para>
+
+<indexterm significance="preferred" zone="XkbSetNamedIndicator"><primary><function>XkbSetNamedIndicator</function></primary></indexterm>
+<funcsynopsis id="XkbSetNamedIndicator">
+  <funcprototype>
+    <funcdef>Bool<function>XkbSetNamedIndicator</function></funcdef>
+    <paramdef>Display *<parameter>dpy</parameter></paramdef>
+    <paramdef>Atom <parameter>name</parameter></paramdef>
+    <paramdef>Bool <parameter>change_state</parameter></paramdef>
+    <paramdef>Bool <parameter>state</parameter></paramdef>
+    <paramdef>Bool <parameter>create_new</parameter></paramdef>
+    <paramdef>XkbIndicatorMapPtr <parameter>map</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>dpy</parameter>
+    </term>
+    <listitem>
+      <para>
+        connection to the X server
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>name</parameter>
+    </term>
+    <listitem>
+      <para>
+        name of the indicator to change
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>change_state</parameter>
+    </term>
+    <listitem>
+      <para>
+        whether to change the indicator state or not
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>state</parameter>
+    </term>
+    <listitem>
+      <para>
+        desired new state for the indicator
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>create_new</parameter>
+    </term>
+    <listitem>
+      <para>
+        whether a new indicator with the specified name should be
+        created when necessary
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>map</parameter>
+    </term>
+    <listitem>
+      <para>
+        new map for the indicator
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<function>XkbSetNamedIndicator</function>
+calls
+<function>XkbSetNamedDeviceIndicator</function>
+with the specified parameters, a
+<structfield>device_spec</structfield>
+of
+<symbol>XkbUseCoreKbd</symbol>,
+a
+<structfield>led_class</structfield>
+of
+<symbol>XkbDfltXIClass</symbol>,
+and a
+<structfield>led_id</structfield>
+of
+<symbol>XkbDfltXIId</symbol>,
+and returns the value which was returned by
+<function>XkbSetNamedDeviceIndicator</function>.
+</para>
 
 </sect2>
 <sect2 id='XkbIndicatorChangesRec'>

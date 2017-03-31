@@ -641,9 +641,9 @@ _mesa_program_state_flags(const gl_state_index state[STATE_LENGTH])
       return _NEW_LIGHT;
 
    case STATE_TEXGEN:
-      return _NEW_TEXTURE;
+      return _NEW_TEXTURE_STATE;
    case STATE_TEXENV_COLOR:
-      return _NEW_TEXTURE | _NEW_BUFFERS | _NEW_FRAG_CLAMP;
+      return _NEW_TEXTURE_STATE | _NEW_BUFFERS | _NEW_FRAG_CLAMP;
 
    case STATE_FOG_COLOR:
       return _NEW_FOG | _NEW_BUFFERS | _NEW_FRAG_CLAMP;

@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-typedef struct {
+typedef struct _SHA1_CTX {
     uint32_t state[5];
     uint64_t count;
     uint8_t buffer[SHA1_BLOCK_LENGTH];

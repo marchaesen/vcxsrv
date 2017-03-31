@@ -1,4 +1,5 @@
 COMMON_HEADER_FILES = \
+	common/gfx9d.h \
 	common/sid.h \
 	common/r600d_common.h \
 	common/amd_family.h \
@@ -14,8 +15,18 @@ ADDRLIB_FILES = \
 	addrlib/core/addrelemlib.h \
 	addrlib/core/addrlib.cpp \
 	addrlib/core/addrlib.h \
+	addrlib/core/addrlib1.cpp \
+	addrlib/core/addrlib1.h \
+	addrlib/core/addrlib2.cpp \
+	addrlib/core/addrlib2.h \
 	addrlib/core/addrobject.cpp \
 	addrlib/core/addrobject.h \
+	addrlib/gfx9/coord.cpp \
+	addrlib/gfx9/coord.h \
+	addrlib/gfx9/gfx9addrlib.cpp \
+	addrlib/gfx9/gfx9addrlib.h \
+	addrlib/gfx9/rbmap.cpp \
+	addrlib/gfx9/rbmap.h \
 	addrlib/inc/chip/r800/si_gb_reg.h \
 	addrlib/inc/lnx_common_defs.h \
 	addrlib/r800/chip/si_ci_vi_merged_enum.h \

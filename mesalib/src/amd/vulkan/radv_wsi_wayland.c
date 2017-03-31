@@ -23,9 +23,6 @@
  * IN THE SOFTWARE.
  */
 
-#include <wayland-client.h>
-#include <wayland-drm-client-protocol.h>
-
 #include "wsi_common_wayland.h"
 #include "radv_private.h"
 

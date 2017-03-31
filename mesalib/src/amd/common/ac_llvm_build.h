@@ -234,6 +234,11 @@ LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 			  LLVMValueRef offset, LLVMValueRef width,
 			  bool is_signed);
 
+void ac_get_image_intr_name(const char *base_name,
+			    LLVMTypeRef data_type,
+			    LLVMTypeRef coords_type,
+			    LLVMTypeRef rsrc_type,
+			    char *out_name, unsigned out_len);
 #ifdef __cplusplus
 }
 #endif

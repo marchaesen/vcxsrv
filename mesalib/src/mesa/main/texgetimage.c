@@ -1458,8 +1458,10 @@ _mesa_GetTextureSubImage(GLuint texture, GLint level,
 {
    GET_CURRENT_CONTEXT(ctx);
    static const char *caller = "glGetTextureSubImage";
-   struct gl_texture_object *texObj =
-      _mesa_lookup_texture(ctx, texture);
+   struct gl_texture_object *texObj = NULL;
+
+   if (texture > 0)
+      texObj = _mesa_lookup_texture(ctx, texture);
 
    if (!texObj) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(texture)", caller);
@@ -1774,9 +1776,11 @@ _mesa_GetCompressedTextureSubImage(GLuint texture, GLint level,
 {
    GET_CURRENT_CONTEXT(ctx);
    static const char *caller = "glGetCompressedTextureImage";
-   struct gl_texture_object *texObj;
+   struct gl_texture_object *texObj = NULL;
 
-   texObj = _mesa_lookup_texture(ctx, texture);
+   if (texture > 0)
+      texObj = _mesa_lookup_texture(ctx, texture);
+
    if (!texObj) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(texture)", caller);
       return;

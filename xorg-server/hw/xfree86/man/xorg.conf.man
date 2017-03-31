@@ -616,14 +616,6 @@ option set (see the MONITOR section below).
 Set the maximum number of clients allowed to connect to the X server.
 Acceptable values are 64, 128, 256 or 512.
 .TP 7
-.BI "Option \*qPixmap\*q  \*q" bpp \*q
-This sets the pixmap format to use for depth 24.
-Allowed values for
-.I bpp
-are 24 and 32.
-Default: 32 unless driver constraints don't allow this (which is rare).
-Note: some clients don't behave well when this value is set to 24.
-.TP 7
 .BI "Option \*qNoPM\*q  \*q" boolean \*q
 Disables something to do with power management events.
 Default: PM enabled on platforms that support it.

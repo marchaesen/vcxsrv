@@ -9,3 +9,5 @@ glapitable.h
 format_info.c
 format_pack.c
 format_unpack.c
+marshal_generated.c
+marshal_generated.h

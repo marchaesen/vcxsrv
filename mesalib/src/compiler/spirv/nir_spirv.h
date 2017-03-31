@@ -25,8 +25,6 @@
  *
  */
 
-#pragma once
-
 #ifndef _NIR_SPIRV_H_
 #define _NIR_SPIRV_H_
 

@@ -169,6 +169,8 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 			.pitch = buf_extent_el.width,
 		};
 
+		if (image->type == VK_IMAGE_TYPE_3D)
+			img_bsurf.layer = img_offset_el.z;
 		/* Loop through each 3D or array slice */
 		unsigned num_slices_3d = img_extent_el.depth;
 		unsigned num_slices_array = pRegions[r].imageSubresource.layerCount;
@@ -276,6 +278,8 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 			.pitch = buf_extent_el.width,
 		};
 
+		if (image->type == VK_IMAGE_TYPE_3D)
+			img_info.layer = img_offset_el.z;
 		/* Loop through each 3D or array slice */
 		unsigned num_slices_3d = img_extent_el.depth;
 		unsigned num_slices_array = pRegions[r].imageSubresource.layerCount;

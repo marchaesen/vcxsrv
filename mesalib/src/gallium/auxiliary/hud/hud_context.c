@@ -581,6 +581,10 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
                   hud->color_prims.buffer_size,
                   16, &hud->bg.vbuf.buffer_offset, &hud->bg.vbuf.buffer,
                   (void**)&hud->bg.vertices);
+   if (!hud->bg.vertices) {
+      goto out;
+   }
+
    pipe_resource_reference(&hud->whitelines.vbuf.buffer, hud->bg.vbuf.buffer);
    pipe_resource_reference(&hud->text.vbuf.buffer, hud->bg.vbuf.buffer);
    pipe_resource_reference(&hud->color_prims.vbuf.buffer, hud->bg.vbuf.buffer);
@@ -690,6 +694,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
          hud_pane_draw_colored_objects(hud, pane);
    }
 
+out:
    cso_restore_state(cso);
    cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
 

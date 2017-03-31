@@ -91,9 +91,6 @@ extern _X_EXPORT Bool VTSwitchEnabled;  /* kbd driver */
 
 #define BOOLTOSTRING(b) ((b) ? "TRUE" : "FALSE")
 
-#define PIX24TOBPP(p) (((p) == Pix24Use24) ? 24 : \
-			(((p) == Pix24Use32) ? 32 : 0))
-
 /* Compatibility functions for pre-input-thread drivers */
 static inline _X_DEPRECATED int xf86BlockSIGIO(void) { input_lock(); return 0; }
 static inline _X_DEPRECATED void xf86UnblockSIGIO(int wasset) { input_unlock(); }
@@ -157,9 +154,6 @@ extern _X_EXPORT GDevPtr xf86GetDevFromEntity(int entityIndex, int instance);
 extern _X_EXPORT void xf86RemoveEntityFromScreen(ScrnInfoPtr pScrn,
                                                  int entityIndex);
 extern _X_EXPORT EntityInfoPtr xf86GetEntityInfo(int entityIndex);
-extern _X_EXPORT Bool xf86SetEntityFuncs(int entityIndex, EntityProc init,
-                                         EntityProc enter, EntityProc leave,
-                                         void *);
 extern _X_EXPORT Bool xf86IsEntityPrimary(int entityIndex);
 extern _X_EXPORT ScrnInfoPtr xf86FindScreenForEntity(int entityIndex);
 
@@ -290,8 +284,6 @@ extern _X_EXPORT const char *
 xf86GetVisualName(int visual);
 extern _X_EXPORT int
 xf86GetVerbosity(void);
-extern _X_EXPORT Pix24Flags
-xf86GetPix24(void);
 extern _X_EXPORT int
 xf86GetDepth(void);
 extern _X_EXPORT rgb

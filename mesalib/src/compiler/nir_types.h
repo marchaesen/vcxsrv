@@ -25,7 +25,8 @@
  *
  */
 
-#pragma once
+#ifndef NIR_TYPES_H
+#define NIR_TYPES_H
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -157,3 +158,5 @@ const struct glsl_type *glsl_transposed_type(const struct glsl_type *type);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* NIR_TYPES_H */

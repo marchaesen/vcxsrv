@@ -797,11 +797,11 @@ vbo_exec_Begin(GLenum mode)
    /* We may have been called from a display list, in which case we should
     * leave dlist.c's dispatch table in place.
     */
-   if (ctx->CurrentDispatch == ctx->OutsideBeginEnd) {
-      ctx->CurrentDispatch = ctx->BeginEnd;
-      _glapi_set_dispatch(ctx->CurrentDispatch);
+   if (ctx->CurrentClientDispatch == ctx->OutsideBeginEnd) {
+      ctx->CurrentClientDispatch = ctx->BeginEnd;
+      _glapi_set_dispatch(ctx->CurrentClientDispatch);
    } else {
-      assert(ctx->CurrentDispatch == ctx->Save);
+      assert(ctx->CurrentClientDispatch == ctx->Save);
    }
 }
 
@@ -849,9 +849,9 @@ vbo_exec_End(void)
    }
 
    ctx->Exec = ctx->OutsideBeginEnd;
-   if (ctx->CurrentDispatch == ctx->BeginEnd) {
-      ctx->CurrentDispatch = ctx->OutsideBeginEnd;
-      _glapi_set_dispatch(ctx->CurrentDispatch);
+   if (ctx->CurrentClientDispatch == ctx->BeginEnd) {
+      ctx->CurrentClientDispatch = ctx->OutsideBeginEnd;
+      _glapi_set_dispatch(ctx->CurrentClientDispatch);
    }
 
    if (exec->vtx.prim_count > 0) {

@@ -35,7 +35,7 @@
  * that directly store the buffer index and byte offset
  */
 
-static void
+static bool
 lower_instr(nir_intrinsic_instr *instr,
             const struct gl_shader_program *shader_program,
             nir_shader *shader)
@@ -87,13 +87,13 @@ lower_instr(nir_intrinsic_instr *instr,
       break;
 
    default:
-      return;
+      return false;
    }
 
    if (instr->variables[0]->var->data.mode != nir_var_uniform &&
        instr->variables[0]->var->data.mode != nir_var_shader_storage &&
        instr->variables[0]->var->data.mode != nir_var_shared)
-      return; /* atomics passed as function arguments can't be lowered */
+      return false; /* atomics passed as function arguments can't be lowered */
 
    void *mem_ctx = ralloc_parent(instr);
    unsigned uniform_loc = instr->variables[0]->var->data.location;
@@ -168,19 +168,23 @@ lower_instr(nir_intrinsic_instr *instr,
 
    nir_instr_insert_before(&instr->instr, &new_instr->instr);
    nir_instr_remove(&instr->instr);
+
+   return true;
 }
 
-void
+bool
 nir_lower_atomics(nir_shader *shader,
                   const struct gl_shader_program *shader_program)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl) {
          nir_foreach_block(block, function->impl) {
             nir_foreach_instr_safe(instr, block) {
                if (instr->type == nir_instr_type_intrinsic)
-                  lower_instr(nir_instr_as_intrinsic(instr),
-                              shader_program, shader);
+                  progress |= lower_instr(nir_instr_as_intrinsic(instr),
+                                          shader_program, shader);
             }
          }
 
@@ -188,4 +192,6 @@ nir_lower_atomics(nir_shader *shader,
                                                nir_metadata_dominance);
       }
    }
+
+   return progress;
 }

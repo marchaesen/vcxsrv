@@ -1,0 +1,287 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 13.0.6 Release Notes / March 20, 2017</h1>
+
+<p>
+Mesa 13.0.6 is a bug fix release which fixes bugs found since the 13.0.5 release.
+</p>
+<p>
+Mesa 13.0.6 implements the OpenGL 4.4 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.4.  OpenGL
+4.4 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+1076590f29103f022a2cd87e6dff6ae77072013745603d06b0410c373ab2bb1a  mesa-13.0.6.tar.gz
+29ef104a7fc082d352b1599bd6cb1d040be424ccd22f5e0eb7ee9b0e9acd3597  mesa-13.0.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=68504">Bug 68504</a> - 9.2-rc1 workaround for clover build failure on ppc/altivec: cannot convert 'bool' to '__vector(4) __bool int' in return</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97102">Bug 97102</a> - [dri][swr] stack overflow / infinite loop with GALLIUM_DRIVER=swr</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98869">Bug 98869</a> - Electronic Super Joy graphic artefacts (regression,bisected)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99401">Bug 99401</a> - [g33] regression: piglit.spec.!opengl 1_0.gl-1_0-beginend-coverage</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99456">Bug 99456</a> - Firefox crashing when opening about:support with WebGL2 enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99677">Bug 99677</a> - heap-use-after-free in glsl</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99715">Bug 99715</a> - Don't print: &quot;Note: Buggy applications may crash, if they do please report to vendor&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99850">Bug 99850</a> - Tessellation bug on Carrizo</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100049">Bug 100049</a> - &quot;ralloc: Make sure ralloc() allocations match malloc()'s alignment.&quot; causes seg fault in 32bit build</li>
+
+</ul>
+
+<h2>Changes</h2>
+
+<p>Alex Smith (2):</p>
+<ul>
+  <li>radv: Emit pending flushes before executing a secondary command buffer</li>
+  <li>radv: Flush before copying with PKT3_WRITE_DATA in CmdUpdateBuffer</li>
+</ul>
+
+<p>Bartosz Tomczyk (1):</p>
+<ul>
+  <li>glsl: fix heap-buffer-overflow</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (8):</p>
+<ul>
+  <li>radv: Pass CMASK alignment to application.</li>
+  <li>radv: Pass DCC alignment to application.</li>
+  <li>radv: Never try to create more than max_sets descriptor sets.</li>
+  <li>radv: Reset emitted compute pipeline when calling secondary cmd buffer.</li>
+  <li>radv: Only use PKT3_OCCLUSION_QUERY when it doesn't hang.</li>
+  <li>radv: Use correct size for availability flag.</li>
+  <li>radv: Disable HTILE for textures with multiple layers/levels.</li>
+  <li>radv: Emit cache flushes before CP DMA.</li>
+</ul>
+
+<p>Ben Crocker (3):</p>
+<ul>
+  <li>gallivm: Improve debug output (V2)</li>
+  <li>gallivm: Override getHostCPUName() "generic" w/ "pwr8" (v4)</li>
+  <li>gallivm: Reenable PPC VSX (v3)</li>
+</ul>
+
+<p>Brendan King (1):</p>
+<ul>
+  <li>egl/dri3: implement query surface hook</li>
+</ul>
+
+<p>Bruce Cherniak (1):</p>
+<ul>
+  <li>swr: Prune empty nodes in CalculateProcessorTopology.</li>
+</ul>
+
+<p>Connor Abbott (1):</p>
+<ul>
+  <li>anv: fix Get*MemoryRequirements for !LLC</li>
+</ul>
+
+<p>Dave Airlie (13):</p>
+<ul>
+  <li>radv: program a default point size.</li>
+  <li>radv: handle transfer_write as a dst flag.</li>
+  <li>radv/ac: handle nir irem opcode.</li>
+  <li>radv/ac: implement txs for buffer textures.</li>
+  <li>radv/ac: correctly size shared memory usage.</li>
+  <li>radv/ac: avoid the fmask path when doing txs.</li>
+  <li>radv: pass FMASK alignment to application</li>
+  <li>tgsi: fix memory leak in tgsi sanity check</li>
+  <li>radv: fix depth format in blit2d.</li>
+  <li>radv: fix txs for sampler buffers</li>
+  <li>radv: drop Z24 support.</li>
+  <li>radv: disable mip point pre clamping.</li>
+  <li>radv: setup llvm target data layout</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>docs: add sha256 checksums for 13.0.5</li>
+  <li>Revert "get-pick-list.sh: Require explicit "13.0" for nominating stable patches"</li>
+  <li>cherry-ignore: don't pick nir_op_pack_double optimisation fix</li>
+  <li>i965: move brw_define.h ifndef guard to the top</li>
+  <li>cherry-ignore: add ANV fast clears related fixes</li>
+  <li>Update version to 13.0.6</li>
+</ul>
+
+<p>Fredrik Höglund (2):</p>
+<ul>
+  <li>radv: fix the dynamic buffer index in vkCmdBindDescriptorSets</li>
+  <li>radv/ac: fix multiple descriptor sets with dynamic buffers</li>
+</ul>
+
+<p>George Kyriazis (1):</p>
+<ul>
+  <li>swr: Align query results allocation</li>
+</ul>
+
+<p>Grazvydas Ignotas (3):</p>
+<ul>
+  <li>r300g: only allow byteswapped formats on big endian</li>
+  <li>gallium/u_queue: fix a crash with atexit handlers</li>
+  <li>gallium/u_queue: set num_threads correctly if not all threads start</li>
+</ul>
+
+<p>Gregory Hainaut (1):</p>
+<ul>
+  <li>glapi: fix typo in count_scale</li>
+</ul>
+
+<p>Ian Romanick (1):</p>
+<ul>
+  <li>mesa: Don't advertise GL_OES_read_format in core profile</li>
+</ul>
+
+<p>Ilia Mirkin (8):</p>
+<ul>
+  <li>nvc0: increase number of ubo binding points</li>
+  <li>nvc0/ir: fix robustness guarantees for constbuf loads on kepler+ compute</li>
+  <li>nvc0/ir: fix ubo max clamp, reset file index</li>
+  <li>gm107/ir: fix address offset bitfield for ATOMS</li>
+  <li>nvc0: set the render condition in the compute object</li>
+  <li>st/mesa: don't pass compare mode for stencil-sampled textures</li>
+  <li>nvc0: take extra pushbuf space into account for pushbuf_space calls</li>
+  <li>nvc0: increase alignment to 256 for texture buffers on fermi</li>
+</ul>
+
+<p>Jacob Lifshay (1):</p>
+<ul>
+  <li>vulkan/wsi: Improve the DRI3 error message</li>
+</ul>
+
+<p>Jason Ekstrand (11):</p>
+<ul>
+  <li>i965: Use a better guardband calculation.</li>
+  <li>intel/blorp: Swizzle clear colors on the CPU</li>
+  <li>i965/fs: Remove the inline pack_double_2x32 optimization</li>
+  <li>anv: Add an invalidate_range helper</li>
+  <li>anv/query: clflush the bo map on non-LLC platforms</li>
+  <li>genxml: Make MI_STORE_DATA_IMM more consistent</li>
+  <li>anv/query: Perform CmdResetQueryPool on the GPU</li>
+  <li>blorp/exec: Use uint32_t for copying varying data</li>
+  <li>intel/blorp: Explicitly flush all allocated state</li>
+  <li>anv: Accurately advertise dynamic descriptor limits</li>
+  <li>anv: Properly handle destroying NULL devices and instances</li>
+</ul>
+
+<p>Jonas Pfeil (1):</p>
+<ul>
+  <li>ralloc: Make sure ralloc() allocations match malloc()'s alignment.</li>
+</ul>
+
+<p>Jose Maria Casanova Crespo (1):</p>
+<ul>
+  <li>glsl: non-last member unsized array on SSBO must fail compilation on GLSL ES 3.1</li>
+</ul>
+
+<p>Kenneth Graunke (7):</p>
+<ul>
+  <li>i965: Fix fast depth clears for surfaces with a dimension of 16384.</li>
+  <li>i965: Use a UW source type for CS_OPCODE_CS_TERMINATE.</li>
+  <li>i965: Fix check for negative pitch in can_do_fast_copy_blit().</li>
+  <li>i965: Support the force_glsl_version driconf option.</li>
+  <li>i965: Combine the Gen6 SF and Clip viewport atoms.</li>
+  <li>mesa: Do (TCS &amp;&amp; !TES) draw time validation in ES as well.</li>
+  <li>egl: Ensure ResetNotificationStrategy matches for shared contexts.</li>
+</ul>
+
+<p>Lionel Landwerlin (3):</p>
+<ul>
+  <li>spirv: don't assert with location decorations on non i/o variables</li>
+  <li>anv: wsi: report presentation error per image request</li>
+  <li>i965/fs: fix uninitialized memory access</li>
+</ul>
+
+<p>Marc Di Luzio (1):</p>
+<ul>
+  <li>glsl: correct compute shader checks for memoryBarrier functions</li>
+</ul>
+
+<p>Marek Olšák (10):</p>
+<ul>
+  <li>st/mesa: destroy pipe_context before destroying st_context (v2)</li>
+  <li>radeonsi: don't invoke DCC decompression in update_all_texture_descriptors</li>
+  <li>radeonsi: fix UNSIGNED_BYTE index buffer fallback with non-zero start (v2)</li>
+  <li>gallium/util: remove unused u_index_modify helpers</li>
+  <li>gallium/u_index_modify: don't add PIPE_TRANSFER_UNSYNCHRONIZED unconditionally</li>
+  <li>gallium/u_queue: fix random crashes when the app calls exit()</li>
+  <li>st/mesa: reset sample_mask, min_sample, and render_condition for PBO ops</li>
+  <li>st/mesa: set blend state for PBO readbacks</li>
+  <li>radeonsi: fix broken tessellation on Carrizo and Stoney</li>
+  <li>radeonsi: mark all bound shader buffer ranges as initialized</li>
+</ul>
+
+<p>Matt Turner (1):</p>
+<ul>
+  <li>clover: Work around build failure with AltiVec.</li>
+</ul>
+
+<p>Nicolai Hähnle (12):</p>
+<ul>
+  <li>mesa/main: fix meta caller of _mesa_ClampColor</li>
+  <li>radeonsi: fix texture gather on stencil textures</li>
+  <li>glsl: split DIV_TO_MUL_RCP into single- and double-precision flags</li>
+  <li>glx/dri3: handle NULL pointers in loader-to-DRI3 drawable conversion</li>
+  <li>glx/dri3: guard in_current_context against a disappeared drawable</li>
+  <li>glx: guard swap-interval functions against destroyed drawables</li>
+  <li>dri/common: clear the loaderPrivate pointer in driDestroyDrawable</li>
+  <li>winsys/amdgpu: reduce max_alloc_size based on GTT limits</li>
+  <li>radeonsi: handle MultiDrawIndirect in si_get_draw_start_count</li>
+  <li>radeonsi: fix UINT/SINT clamping for 10-bit formats on &lt;= CIK</li>
+  <li>st/glsl_to_tgsi: avoid iterating past the head of the instruction list</li>
+  <li>st/mesa: inform the driver of framebuffer changes before compute dispatches</li>
+</ul>
+
+<p>Samuel Iglesias Gonsálvez (6):</p>
+<ul>
+  <li>glsl: fix heap-use-after-free in ast_declarator_list::hir()</li>
+  <li>i965/fs: mark last DF uniform array element as 64 bit live one</li>
+  <li>i965/fs: detect different bit size accesses to uniforms to push them in proper locations</li>
+  <li>i965/fs: fix indirect load DF uniforms on BSW/BXT</li>
+  <li>i965/fs: fix source type when emitting MOV_INDIRECT to read ICP handles</li>
+  <li>i965/fs: emit MOV_INDIRECT with the source with the right register type</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>winsys/amdgpu: avoid potential segfault in amdgpu_bo_map()</li>
+</ul>
+
+
+</div>
+</body>
+</html>

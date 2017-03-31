@@ -25,9 +25,10 @@
  *
  */
 
-#include "nir.h"
+#ifndef NIR_CONTROL_FLOW_H
+#define NIR_CONTROL_FLOW_H
 
-#pragma once
+#include "nir.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,11 +36,11 @@ extern "C" {
 
 /** NIR Control Flow Modification
  *
- * This file contains various API's that make modifying control flow in NIR,
+ * This file contains various APIs that make modifying control flow in NIR,
  * while maintaining the invariants checked by the validator, much easier.
  * There are two parts to this:
  *
- * 1. Inserting control flow (if's and loops) in various places, for creating
+ * 1. Inserting control flow (ifs and loops) in various places, for creating
  *    IR either from scratch or as part of some lowering pass.
  * 2. Taking existing pieces of the IR and either moving them around or
  *    deleting them.
@@ -92,12 +93,12 @@ nir_cf_node_insert_end(struct exec_list *list, nir_cf_node *node)
  *    predecessors:
  *
  *    1) After an if statement, if neither branch ends in a jump.
- *    2) After a loop, if there are multiple break's.
+ *    2) After a loop, if there are multiple breaks.
  *    3) At the beginning of a loop.
  *
  *    For #1, the phi node is considered to be part of the if, and for #2 and
  *    #3 the phi node is considered to be part of the loop. This allows us to
- *    keep phi's intact, but it means that phi nodes cannot be separated from
+ *    keep phis intact, but it means that phi nodes cannot be separated from
  *    the control flow they come from. For example, extracting an if without
  *    extracting all the phi nodes after it is not allowed, and neither is
  *    extracting only some of the phi nodes at the beginning of a block. It
@@ -163,3 +164,5 @@ nir_cf_node_remove(nir_cf_node *node)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* NIR_CONTROL_FLOW_H */

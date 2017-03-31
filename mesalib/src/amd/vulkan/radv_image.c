@@ -201,7 +201,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 
 	state[1] &= C_008F14_BASE_ADDRESS_HI;
 	state[3] &= C_008F1C_TILING_INDEX;
-	state[4] &= C_008F20_PITCH;
+	state[4] &= C_008F20_PITCH_GFX6;
 	state[6] &= C_008F28_COMPRESSION_EN;
 
 	assert(!(va & 255));
@@ -210,7 +210,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 	state[1] |= S_008F14_BASE_ADDRESS_HI(va >> 40);
 	state[3] |= S_008F1C_TILING_INDEX(si_tile_mode_index(image, base_level,
 							     is_stencil));
-	state[4] |= S_008F20_PITCH(pitch - 1);
+	state[4] |= S_008F20_PITCH_GFX6(pitch - 1);
 
 	if (image->surface.dcc_size && image->surface.level[first_level].dcc_enabled) {
 		state[6] |= S_008F28_COMPRESSION_EN(1);
@@ -297,8 +297,8 @@ si_make_texture_descriptor(struct radv_device *device,
 		depth = image->array_size / 6;
 
 	state[0] = 0;
-	state[1] = (S_008F14_DATA_FORMAT(data_format) |
-		    S_008F14_NUM_FORMAT(num_format));
+	state[1] = (S_008F14_DATA_FORMAT_GFX6(data_format) |
+		    S_008F14_NUM_FORMAT_GFX6(num_format));
 	state[2] = (S_008F18_WIDTH(width - 1) |
 		    S_008F18_HEIGHT(height - 1));
 	state[3] = (S_008F1C_DST_SEL_X(radv_map_swizzle(swizzle[0])) |
@@ -359,8 +359,8 @@ si_make_texture_descriptor(struct radv_device *device,
 
 		fmask_state[0] = va >> 8;
 		fmask_state[1] = S_008F14_BASE_ADDRESS_HI(va >> 40) |
-			S_008F14_DATA_FORMAT(fmask_format) |
-			S_008F14_NUM_FORMAT(V_008F14_IMG_NUM_FORMAT_UINT);
+			S_008F14_DATA_FORMAT_GFX6(fmask_format) |
+			S_008F14_NUM_FORMAT_GFX6(V_008F14_IMG_NUM_FORMAT_UINT);
 		fmask_state[2] = S_008F18_WIDTH(width - 1) |
 			S_008F18_HEIGHT(height - 1);
 		fmask_state[3] = S_008F1C_DST_SEL_X(V_008F1C_SQ_SEL_X) |
@@ -370,7 +370,7 @@ si_make_texture_descriptor(struct radv_device *device,
 			S_008F1C_TILING_INDEX(image->fmask.tile_mode_index) |
 			S_008F1C_TYPE(radv_tex_dim(image->type, view_type, 1, 0, false));
 		fmask_state[4] = S_008F20_DEPTH(depth - 1) |
-			S_008F20_PITCH(image->fmask.pitch_in_pixels - 1);
+			S_008F20_PITCH_GFX6(image->fmask.pitch_in_pixels - 1);
 		fmask_state[5] = S_008F24_BASE_ARRAY(first_layer) |
 			S_008F24_LAST_ARRAY(last_layer);
 		fmask_state[6] = 0;
@@ -586,86 +586,21 @@ radv_image_alloc_dcc(struct radv_device *device,
 	image->alignment = MAX2(image->alignment, image->surface.dcc_alignment);
 }
 
-static unsigned
-radv_image_get_htile_size(struct radv_device *device,
-			  struct radv_image *image)
-{
-	unsigned cl_width, cl_height, width, height;
-	unsigned slice_elements, slice_bytes, base_align;
-	unsigned num_pipes = device->physical_device->rad_info.num_tile_pipes;
-	unsigned pipe_interleave_bytes = device->physical_device->rad_info.pipe_interleave_bytes;
-
-	/* Overalign HTILE on P2 configs to work around GPU hangs in
-	 * piglit/depthstencil-render-miplevels 585.
-	 *
-	 * This has been confirmed to help Kabini & Stoney, where the hangs
-	 * are always reproducible. I think I have seen the test hang
-	 * on Carrizo too, though it was very rare there.
-	 */
-	if (device->physical_device->rad_info.chip_class >= CIK && num_pipes < 4)
-		num_pipes = 4;
-
-	switch (num_pipes) {
-	case 1:
-		cl_width = 32;
-		cl_height = 16;
-		break;
-	case 2:
-		cl_width = 32;
-		cl_height = 32;
-		break;
-	case 4:
-		cl_width = 64;
-		cl_height = 32;
-		break;
-	case 8:
-		cl_width = 64;
-		cl_height = 64;
-		break;
-	case 16:
-		cl_width = 128;
-		cl_height = 64;
-		break;
-	default:
-		assert(0);
-		return 0;
-	}
-
-	width = align(image->surface.npix_x, cl_width * 8);
-	height = align(image->surface.npix_y, cl_height * 8);
-
-	slice_elements = (width * height) / (8 * 8);
-	slice_bytes = slice_elements * 4;
-
-	base_align = num_pipes * pipe_interleave_bytes;
-
-	image->htile.pitch = width;
-	image->htile.height = height;
-	image->htile.xalign = cl_width * 8;
-	image->htile.yalign = cl_height * 8;
-
-	return image->array_size *
-		align(slice_bytes, base_align);
-}
-
 static void
 radv_image_alloc_htile(struct radv_device *device,
 		       struct radv_image *image)
 {
-	if (device->debug_flags & RADV_DEBUG_NO_HIZ)
+	if ((device->debug_flags & RADV_DEBUG_NO_HIZ) || image->levels > 1) {
+		image->surface.htile_size = 0;
 		return;
+	}
 
-	image->htile.size = radv_image_get_htile_size(device, image);
-
-	if (!image->htile.size)
-		return;
-
-	image->htile.offset = align64(image->size, 32768);
+	image->htile_offset = align64(image->size, image->surface.htile_alignment);
 
 	/* + 8 for storing the clear values */
-	image->clear_value_offset = image->htile.offset + image->htile.size;
-	image->size = image->htile.offset + image->htile.size + 8;
-	image->alignment = align64(image->alignment, 32768);
+	image->clear_value_offset = image->htile_offset + image->surface.htile_size;
+	image->size = image->clear_value_offset + 8;
+	image->alignment = align64(image->alignment, image->surface.htile_alignment);
 }
 
 VkResult
@@ -701,6 +636,7 @@ radv_image_create(VkDevice _device,
 	image->samples = pCreateInfo->samples;
 	image->tiling = pCreateInfo->tiling;
 	image->usage = pCreateInfo->usage;
+	image->flags = pCreateInfo->flags;
 
 	image->exclusive = pCreateInfo->sharingMode == VK_SHARING_MODE_EXCLUSIVE;
 	if (pCreateInfo->sharingMode == VK_SHARING_MODE_CONCURRENT) {
@@ -741,6 +677,20 @@ radv_image_create(VkDevice _device,
 		image->surface.level[0].pitch_bytes = create_info->stride;
 		image->surface.level[0].slice_size = create_info->stride * image->surface.level[0].nblk_y;
 	}
+
+	if (pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) {
+		image->alignment = MAX2(image->alignment, 4096);
+		image->size = align64(image->size, image->alignment);
+		image->offset = 0;
+
+		image->bo = device->ws->buffer_create(device->ws, image->size, image->alignment,
+		                                      0, RADEON_FLAG_VIRTUAL);
+		if (!image->bo) {
+			vk_free2(&device->alloc, alloc, image);
+			return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
+		}
+	}
+
 	*pImage = radv_image_to_handle(image);
 
 	return VK_SUCCESS;
@@ -937,11 +887,15 @@ radv_DestroyImage(VkDevice _device, VkImage _image,
 		  const VkAllocationCallbacks *pAllocator)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
+	RADV_FROM_HANDLE(radv_image, image, _image);
 
-	if (!_image)
+	if (!image)
 		return;
 
-	vk_free2(&device->alloc, pAllocator, radv_image_from_handle(_image));
+	if (image->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
+		device->ws->buffer_destroy(image->bo);
+
+	vk_free2(&device->alloc, pAllocator, image);
 }
 
 void radv_GetImageSubresourceLayout(

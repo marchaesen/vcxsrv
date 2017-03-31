@@ -27,26 +27,13 @@
 
 #include "main/glheader.h"
 #include "st_context.h"
+#include "st_cb_fbo.h"
 #include "st_cb_viewport.h"
 
 #include "pipe/p_state.h"
 #include "pipe/p_defines.h"
 #include "util/u_atomic.h"
 
-/**
- * Cast wrapper to convert a struct gl_framebuffer to an st_framebuffer.
- * Return NULL if the struct gl_framebuffer is a user-created framebuffer.
- * We'll only return non-null for window system framebuffers.
- * Note that this function may fail.
- */
-static inline struct st_framebuffer *
-st_ws_framebuffer(struct gl_framebuffer *fb)
-{
-   /* FBO cannot be casted.  See st_new_framebuffer */
-   if (fb && _mesa_is_winsys_fbo(fb))
-      return (struct st_framebuffer *) fb;
-   return NULL;
-}
 
 static void st_viewport(struct gl_context *ctx)
 {

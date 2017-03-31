@@ -25,8 +25,10 @@
  *
  */
 
-#include <stdbool.h>
+#ifndef REGISTER_ALLOCATE_H
+#define REGISTER_ALLOCATE_H
 
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,3 +91,5 @@ int ra_get_best_spill_node(struct ra_graph *g);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
+
+#endif /* REGISTER_ALLOCATE_H */

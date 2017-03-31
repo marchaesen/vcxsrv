@@ -232,6 +232,13 @@ libxcb_xvmc_la_LIBADD = $(XCB_LIBS)
 nodist_libxcb_xvmc_la_SOURCES = xvmc.c xvmc.h
 endif
 
+EXTSOURCES += ge.c
+if BUILD_GE
+lib_LTLIBRARIES += libxcb-ge.la
+libxcb_ge_la_LDFLAGS = -version-info 0:0:0 -no-undefined @lt_enable_auto_import@
+libxcb_ge_la_LIBADD = $(XCB_LIBS)
+nodist_libxcb_ge_la_SOURCES = ge.c ge.h
+endif
 
 EXTHEADERS=$(EXTSOURCES:.c=.h)
 xcbinclude_HEADERS = xcb.h xcbext.h

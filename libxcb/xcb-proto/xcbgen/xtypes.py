@@ -36,6 +36,8 @@ class Type(object):
         self.is_reply = False
         self.is_union = False
         self.is_pad = False
+        self.is_eventstruct = False
+        self.is_event = False
         self.is_switch = False
         self.is_case_or_bitcase = False
         self.is_bitcase = False
@@ -1164,6 +1166,82 @@ class Request(ComplexType):
     out = __main__.output['request']
 
 
+class EventStructAllowedRule:
+
+    def __init__(self, parent, elt):
+        self.elt = elt
+        self.extension = elt.get('extension')
+        self.ge_events = elt.get('xge') == "true"
+        self.min_opcode = int( elt.get('opcode-min') )
+        self.max_opcode = int( elt.get('opcode-max') )
+
+    def resolve(self, parent, module):
+        # get the namespace of the specified extension
+        extension_namespace = module.get_namespace( self.extension )
+        if extension_namespace is None:
+            raise Exception( "EventStructAllowedRule.resolve: cannot find extension \"" + self.extension + "\"" )
+            return
+
+        # find and add the selected events
+        for opcode in range(self.min_opcode, self.max_opcode):
+            name_and_event = extension_namespace.get_event_by_opcode( opcode, self.ge_events )
+            if name_and_event is None:
+                # could not find event -> error handling
+                if self.ge_events:
+                    raise Exception("EventStructAllowedRule.resolve: cannot find xge-event with opcode " + str(opcode) + " in extension " + self.extension )
+                else:
+                    raise Exception("EventStructAllowedRule.resolve: cannot find oldstyle-event with opcode " + str(opcode) + " in extension " + self.extension )
+                return
+
+            ( name, event ) = name_and_event
+            # add event to EventStruct
+            parent.add_event( module, self.extension, opcode, name, event )
+
+
+class EventStruct(Union):
+    '''
+    Derived class representing an event-use-as-struct data type.
+    '''
+
+    def __init__(self, name, elt):
+        Union.__init__(self, name, elt)
+        self.is_eventstruct = True
+        self.events = []
+        self.allowedRules = []
+        self.contains_ge_events = False
+        for item in list(elt):
+            if item.tag == 'allowed':
+                allowedRule = EventStructAllowedRule(self, item)
+                self.allowedRules.append( allowedRule )
+                if allowedRule.ge_events:
+                    self.contains_ge_events = True
+
+    out = __main__.output['eventstruct']
+
+    def resolve(self, module):
+        if self.resolved:
+            return
+        for allowedRule in self.allowedRules:
+            allowedRule.resolve(self, module)
+        Union.resolve(self,module)
+        self.resolved = True
+
+    # add event. called by resolve
+    def add_event(self, module, extension, opcode, name, event_type ):
+        self.events.append( (extension, opcode, name, event_type) )
+        # Add the field to ourself
+        event_type.make_member_of(module, self, name, name[-1], True, True, False)
+        # Recursively resolve the event (could be another structure, list)
+        event_type.resolve(module)
+
+    def fixed_size(self):
+        is_fixed_size = True
+        for extension, opcode, name, event in self.events:
+            if not event.fixed_size():
+                is_fixed_size = False
+        return is_fixed_size
+
+
 class Event(ComplexType):
     '''
     Derived class representing an event data type.
@@ -1183,6 +1261,8 @@ class Event(ComplexType):
 
         self.is_ge_event = bool(elt.get('xge'))
 
+        self.is_event = True
+
         self.doc = None
         for item in list(elt):
             if item.tag == 'doc':
@@ -1192,6 +1272,13 @@ class Event(ComplexType):
         self.opcodes[name] = opcode
         if main:
             self.name = name
+
+    def get_name_for_opcode(self, opcode):
+        for name, my_opcode in self.opcodes.items():
+            if int(my_opcode) == opcode:
+                return name
+        else:
+            return None
 
     def resolve(self, module):
         def add_event_header():

@@ -535,7 +535,7 @@ static inline void
 util_blitter_save_render_condition(struct blitter_context *blitter,
                                    struct pipe_query *query,
                                    boolean condition,
-                                   uint mode)
+                                   enum pipe_render_cond_flag mode)
 {
    blitter->saved_render_cond_query = query;
    blitter->saved_render_cond_mode = mode;

@@ -1867,7 +1867,7 @@ prepare_mipmap_level(struct gl_context *ctx,
          /* in case the mipmap level is part of an FBO: */
          _mesa_update_fbo_texture(ctx, texObj, face, level);
 
-         ctx->NewState |= _NEW_TEXTURE;
+         ctx->NewState |= _NEW_TEXTURE_OBJECT;
       }
    }
 

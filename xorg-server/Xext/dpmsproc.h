@@ -9,7 +9,14 @@
 
 #include "dixstruct.h"
 
-int _X_EXPORT DPMSSet(ClientPtr client, int level);
-Bool _X_EXPORT DPMSSupported(void);
+extern int DPMSSet(ClientPtr client, int level);
+extern Bool DPMSSupported(void);
+
+extern CARD32 DPMSStandbyTime;
+extern CARD32 DPMSSuspendTime;
+extern CARD32 DPMSOffTime;
+extern CARD16 DPMSPowerLevel;
+extern Bool DPMSEnabled;
+extern Bool DPMSDisabledSwitch;
 
 #endif

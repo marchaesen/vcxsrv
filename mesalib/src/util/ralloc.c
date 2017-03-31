@@ -59,8 +59,10 @@ _CRTIMP int _vscprintf(const char *format, va_list argptr);
 struct
 #ifdef _MSC_VER
  __declspec(align(8))
+#elif defined(__LP64__)
+ __attribute__((aligned(16)))
 #else
- __attribute__((aligned))
+ __attribute__((aligned(8)))
 #endif
    ralloc_header
 {

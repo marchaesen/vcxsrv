@@ -41,7 +41,7 @@ is_pos_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
 {
    nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
 
-   /* only constant src's: */
+   /* only constant srcs: */
    if (!val)
       return false;
 
@@ -71,7 +71,7 @@ is_neg_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
 {
    nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
 
-   /* only constant src's: */
+   /* only constant srcs: */
    if (!val)
       return false;
 

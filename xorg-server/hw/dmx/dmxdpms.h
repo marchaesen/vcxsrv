@@ -36,7 +36,8 @@
 
 #ifndef _DMXDPMS_H_
 #define _DMXDPMS_H_
-extern void dmxDPMSInit(DMXScreenInfo * dmxScreen);
+extern int dmxDPMSInit(DMXScreenInfo * dmxScreen);
 extern void dmxDPMSTerm(DMXScreenInfo * dmxScreen);
 extern void dmxDPMSWakeup(void);        /* Call when input is processed */
+extern void dmxDPMSBackend(DMXScreenInfo *dmxScreen, int level);
 #endif

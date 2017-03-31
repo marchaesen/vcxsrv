@@ -44,11 +44,6 @@ fbGetSpans(DrawablePtr pDrawable,
     if (!fbDrawableEnabled(pDrawable))
         return;
 
-    if (pDrawable->bitsPerPixel != BitsPerPixel(pDrawable->depth)) {
-        fb24_32GetSpans(pDrawable, wMax, ppt, pwidth, nspans, pchardstStart);
-        return;
-    }
-
     fbGetDrawable(pDrawable, src, srcStride, srcBpp, srcXoff, srcYoff);
 
     while (nspans--) {

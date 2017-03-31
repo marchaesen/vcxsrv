@@ -48,9 +48,6 @@ fbPolyArc(DrawablePtr pDrawable, GCPtr pGC, int narcs, xArc * parcs)
             case 16:
                 arc = fbArc16;
                 break;
-            case 24:
-                arc = fbArc24;
-                break;
             case 32:
                 arc = fbArc32;
                 break;

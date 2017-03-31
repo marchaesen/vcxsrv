@@ -25,8 +25,8 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <kdrive-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 
 #include "ephyr.h"
@@ -254,7 +254,8 @@ ephyrPrepareComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
     EphyrFakexaPriv *fakexa = scrpriv->fakexa;
 
     ephyrPreparePipelinedAccess(pDst, EXA_PREPARE_DEST);
-    ephyrPreparePipelinedAccess(pSrc, EXA_PREPARE_SRC);
+    if (pSrc != NULL)
+        ephyrPreparePipelinedAccess(pSrc, EXA_PREPARE_SRC);
     if (pMask != NULL)
         ephyrPreparePipelinedAccess(pMask, EXA_PREPARE_MASK);
 
@@ -298,7 +299,8 @@ ephyrDoneComposite(PixmapPtr pDst)
 
     if (fakexa->pMask != NULL)
         ephyrFinishPipelinedAccess(fakexa->pMask, EXA_PREPARE_MASK);
-    ephyrFinishPipelinedAccess(fakexa->pSrc, EXA_PREPARE_SRC);
+    if (fakexa->pSrc != NULL)
+        ephyrFinishPipelinedAccess(fakexa->pSrc, EXA_PREPARE_SRC);
     ephyrFinishPipelinedAccess(fakexa->pDst, EXA_PREPARE_DEST);
 }
 

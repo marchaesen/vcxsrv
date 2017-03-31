@@ -218,7 +218,7 @@ compute_induction_information(loop_info_state *state)
        */
       assert(!var->in_control_flow && var->type != invariant);
 
-      /* We are only interested in checking phi's for the basic induction
+      /* We are only interested in checking phis for the basic induction
        * variable case as its simple to detect. All basic induction variables
        * have a phi node
        */
@@ -707,7 +707,7 @@ static void
 get_loop_info(loop_info_state *state, nir_function_impl *impl)
 {
    /* Initialize all variables to "outside_loop". This also marks defs
-    * invariant and constant if they are nir_instr_type_load_const's
+    * invariant and constant if they are nir_instr_type_load_consts
     */
    nir_foreach_block(block, impl) {
       nir_foreach_instr(instr, block)

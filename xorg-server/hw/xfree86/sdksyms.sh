@@ -296,7 +296,7 @@ cat > sdksyms.c << EOF
 
 EOF
 
-topdir=$1
+topdir=$(readlink -f $1)
 shift
 LC_ALL=C
 export LC_ALL
@@ -314,11 +314,24 @@ BEGIN {
     printf("sdksyms.c:") > "sdksyms.dep";
 }
 /^# [0-9]+ "/ {
-    #   Process text after a include in a relative path or when the
-    # processed file has a basename matching $top_srcdir.
-    #   Note that indexing starts at 1; 0 means no match, and there
-    # is a starting ".
-    sdk = $3 !~ /^"\// || index($3, topdir) == 2;
+    # Match preprocessor linemarkers which have the form:
+    # # linenum "filename" flags
+    #
+    # Only process text for sdk exports where the linemarker filename has a
+    # relative path, or an absolute path matching $top_srcdir.
+    #
+
+    # canonicalize filename
+    if ($3 in canonicalized) {
+	c = canonicalized[$3]
+    } else {
+	cmd = "readlink -f " $3
+	cmd | getline c
+	close(cmd)
+        canonicalized[$3] = c
+    }
+    # note that index() starts at 1; 0 means no match.
+    sdk = $3 !~ /^"\// || index(c, topdir) == 1;
 
     if (sdk && $3 ~ /\.h"$/) {
 	# remove quotes
@@ -342,10 +355,6 @@ BEGIN {
            getline;
            n = 1;
         }
-
-        # only match _X_EXPORT
-        if ($n !~ /^(__attribute__..visibility..default|__global)/)
-            next;
 
 	# skip attribute, if any
 	while ($n ~ /^(__attribute__|__global)/ ||

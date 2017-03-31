@@ -140,7 +140,7 @@ nir_constant_clone(const nir_constant *c, nir_variable *nvar)
    return nc;
 }
 
-/* NOTE: for cloning nir_variable's, bypass nir_variable_create to avoid
+/* NOTE: for cloning nir_variables, bypass nir_variable_create to avoid
  * having to deal with locals and globals separately:
  */
 nir_variable *
@@ -185,7 +185,7 @@ clone_var_list(clone_state *state, struct exec_list *dst,
    }
 }
 
-/* NOTE: for cloning nir_register's, bypass nir_global/local_reg_create()
+/* NOTE: for cloning nir_registers, bypass nir_global/local_reg_create()
  * to avoid having to deal with locals and globals separately:
  */
 static nir_register *
@@ -724,7 +724,7 @@ clone_function(clone_state *state, const nir_function *fxn, nir_shader *ns)
 
    /* At first glance, it looks like we should clone the function_impl here.
     * However, call instructions need to be able to reference at least the
-    * function and those will get processed as we clone the function_impl's.
+    * function and those will get processed as we clone the function_impls.
     * We stop here and do function_impls as a second pass.
     */
 
@@ -752,7 +752,7 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
       clone_function(&state, fxn, ns);
 
    /* Only after all functions are cloned can we clone the actual function
-    * implementations.  This is because nir_call_instr's need to reference the
+    * implementations.  This is because nir_call_instrs need to reference the
     * functions of other functions and we don't know what order the functions
     * will have in the list.
     */

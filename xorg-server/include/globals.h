@@ -25,16 +25,6 @@ extern _X_EXPORT Bool noTestExtensions;
 extern _X_EXPORT char *SeatId;
 extern _X_EXPORT char *ConnectionInfo;
 
-#ifdef DPMSExtension
-extern _X_EXPORT CARD32 DPMSStandbyTime;
-extern _X_EXPORT CARD32 DPMSSuspendTime;
-extern _X_EXPORT CARD32 DPMSOffTime;
-extern _X_EXPORT CARD16 DPMSPowerLevel;
-extern _X_EXPORT Bool DPMSEnabled;
-extern _X_EXPORT Bool DPMSDisabledSwitch;
-extern _X_EXPORT Bool DPMSCapableFlag;
-#endif
-
 #ifdef PANORAMIX
 extern _X_EXPORT Bool PanoramiXExtensionDisabledHack;
 #endif

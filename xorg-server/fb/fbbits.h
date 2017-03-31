@@ -31,12 +31,6 @@
 #include <dix-config.h>
 #endif
 
-#ifdef BITSMUL
-#define MUL BITSMUL
-#else
-#define MUL 1
-#endif
-
 #ifdef BITSSTORE
 #define STORE(b,x)  BITSSTORE(b,x)
 #else
@@ -86,17 +80,17 @@ BRESSOLID(DrawablePtr pDrawable,
 
     fbGetDrawable(pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
     bits =
-        ((UNIT *) (dst + ((y1 + dstYoff) * dstStride))) + (x1 + dstXoff) * MUL;
+        ((UNIT *) (dst + ((y1 + dstYoff) * dstStride))) + (x1 + dstXoff);
     bitsStride = dstStride * (sizeof(FbBits) / sizeof(UNIT));
     if (signdy < 0)
         bitsStride = -bitsStride;
     if (axis == X_AXIS) {
-        majorStep = signdx * MUL;
+        majorStep = signdx;
         minorStep = bitsStride;
     }
     else {
         majorStep = bitsStride;
-        minorStep = signdx * MUL;
+        minorStep = signdx;
     }
     while (len--) {
         STORE(bits, xor);
@@ -143,17 +137,17 @@ BRESDASH(DrawablePtr pDrawable,
     FbDashInit(pGC, pPriv, dashOffset, dashlen, even);
 
     bits =
-        ((UNIT *) (dst + ((y1 + dstYoff) * dstStride))) + (x1 + dstXoff) * MUL;
+        ((UNIT *) (dst + ((y1 + dstYoff) * dstStride))) + (x1 + dstXoff);
     bitsStride = dstStride * (sizeof(FbBits) / sizeof(UNIT));
     if (signdy < 0)
         bitsStride = -bitsStride;
     if (axis == X_AXIS) {
-        majorStep = signdx * MUL;
+        majorStep = signdx;
         minorStep = bitsStride;
     }
     else {
         majorStep = bitsStride;
-        minorStep = signdx * MUL;
+        minorStep = signdx;
     }
     if (dashlen >= len)
         dashlen = len;
@@ -260,13 +254,13 @@ DOTS(FbBits * dst,
     ul = coordToInt(pBox->x1 - xorg, pBox->y1 - yorg);
     lr = coordToInt(pBox->x2 - xorg - 1, pBox->y2 - yorg - 1);
 
-    bits += bitsStride * (yorg + yoff) + (xorg + xoff) * MUL;
+    bits += bitsStride * (yorg + yoff) + (xorg + xoff);
 
     if (and == 0) {
         while (npt--) {
             pt = *pts++;
             if (!isClipped(pt, ul, lr)) {
-                point = bits + intToY(pt) * bitsStride + intToX(pt) * MUL;
+                point = bits + intToY(pt) * bitsStride + intToX(pt);
                 STORE(point, bxor);
             }
         }
@@ -275,7 +269,7 @@ DOTS(FbBits * dst,
         while (npt--) {
             pt = *pts++;
             if (!isClipped(pt, ul, lr)) {
-                point = bits + intToY(pt) * bitsStride + intToX(pt) * MUL;
+                point = bits + intToY(pt) * bitsStride + intToX(pt);
                 RROP(point, band, bxor);
             }
         }
@@ -311,8 +305,8 @@ ARC(FbBits * dst,
     do360 = miZeroArcSetup(arc, &info, TRUE);
     yorgp = bits + ((info.yorg + drawY) * bitsStride);
     yorgop = bits + ((info.yorgo + drawY) * bitsStride);
-    info.xorg = (info.xorg + drawX) * MUL;
-    info.xorgo = (info.xorgo + drawX) * MUL;
+    info.xorg = (info.xorg + drawX);
+    info.xorgo = (info.xorgo + drawX);
     MIARCSETUP();
     yoffset = y ? bitsStride : 0;
     dyoffset = 0;
@@ -339,37 +333,37 @@ ARC(FbBits * dst,
     if (do360 && (arc->width == arc->height) && !(arc->width & 1)) {
         int xoffset = bitsStride;
         UNIT *yorghb = yorgp + (info.h * bitsStride) + info.xorg;
-        UNIT *yorgohb = yorghb - info.h * MUL;
+        UNIT *yorgohb = yorghb - info.h;
 
         yorgp += info.xorg;
         yorgop += info.xorg;
-        yorghb += info.h * MUL;
+        yorghb += info.h;
         while (1) {
             if (andBits == 0) {
-                ARCCOPY(yorgp + yoffset + x * MUL);
-                ARCCOPY(yorgp + yoffset - x * MUL);
-                ARCCOPY(yorgop - yoffset - x * MUL);
-                ARCCOPY(yorgop - yoffset + x * MUL);
+                ARCCOPY(yorgp + yoffset + x);
+                ARCCOPY(yorgp + yoffset - x);
+                ARCCOPY(yorgop - yoffset - x);
+                ARCCOPY(yorgop - yoffset + x);
             }
             else {
-                ARCRROP(yorgp + yoffset + x * MUL);
-                ARCRROP(yorgp + yoffset - x * MUL);
-                ARCRROP(yorgop - yoffset - x * MUL);
-                ARCRROP(yorgop - yoffset + x * MUL);
+                ARCRROP(yorgp + yoffset + x);
+                ARCRROP(yorgp + yoffset - x);
+                ARCRROP(yorgop - yoffset - x);
+                ARCRROP(yorgop - yoffset + x);
             }
             if (a < 0)
                 break;
             if (andBits == 0) {
-                ARCCOPY(yorghb - xoffset - y * MUL);
-                ARCCOPY(yorgohb - xoffset + y * MUL);
-                ARCCOPY(yorgohb + xoffset + y * MUL);
-                ARCCOPY(yorghb + xoffset - y * MUL);
+                ARCCOPY(yorghb - xoffset - y);
+                ARCCOPY(yorgohb - xoffset + y);
+                ARCCOPY(yorgohb + xoffset + y);
+                ARCCOPY(yorghb + xoffset - y);
             }
             else {
-                ARCRROP(yorghb - xoffset - y * MUL);
-                ARCRROP(yorgohb - xoffset + y * MUL);
-                ARCRROP(yorgohb + xoffset + y * MUL);
-                ARCRROP(yorghb + xoffset - y * MUL);
+                ARCRROP(yorghb - xoffset - y);
+                ARCRROP(yorgohb - xoffset + y);
+                ARCRROP(yorgohb + xoffset + y);
+                ARCRROP(yorghb + xoffset - y);
             }
             xoffset += bitsStride;
             MIARCCIRCLESTEP(yoffset += bitsStride;
@@ -385,16 +379,16 @@ ARC(FbBits * dst,
             MIARCOCTANTSHIFT(dyoffset = bitsStride;
                 );
             if (andBits == 0) {
-                ARCCOPY(yorgp + yoffset + info.xorg + x * MUL);
-                ARCCOPY(yorgp + yoffset + info.xorgo - x * MUL);
-                ARCCOPY(yorgop - yoffset + info.xorgo - x * MUL);
-                ARCCOPY(yorgop - yoffset + info.xorg + x * MUL);
+                ARCCOPY(yorgp + yoffset + info.xorg + x);
+                ARCCOPY(yorgp + yoffset + info.xorgo - x);
+                ARCCOPY(yorgop - yoffset + info.xorgo - x);
+                ARCCOPY(yorgop - yoffset + info.xorg + x);
             }
             else {
-                ARCRROP(yorgp + yoffset + info.xorg + x * MUL);
-                ARCRROP(yorgp + yoffset + info.xorgo - x * MUL);
-                ARCRROP(yorgop - yoffset + info.xorgo - x * MUL);
-                ARCRROP(yorgop - yoffset + info.xorg + x * MUL);
+                ARCRROP(yorgp + yoffset + info.xorg + x);
+                ARCRROP(yorgp + yoffset + info.xorgo - x);
+                ARCRROP(yorgop - yoffset + info.xorgo - x);
+                ARCRROP(yorgop - yoffset + info.xorg + x);
             }
             MIARCSTEP(yoffset += dyoffset;
                       , yoffset += bitsStride;
@@ -411,23 +405,23 @@ ARC(FbBits * dst,
             }
             if (andBits == 0) {
                 if (mask & 1)
-                    ARCCOPY(yorgp + yoffset + info.xorg + x * MUL);
+                    ARCCOPY(yorgp + yoffset + info.xorg + x);
                 if (mask & 2)
-                    ARCCOPY(yorgp + yoffset + info.xorgo - x * MUL);
+                    ARCCOPY(yorgp + yoffset + info.xorgo - x);
                 if (mask & 4)
-                    ARCCOPY(yorgop - yoffset + info.xorgo - x * MUL);
+                    ARCCOPY(yorgop - yoffset + info.xorgo - x);
                 if (mask & 8)
-                    ARCCOPY(yorgop - yoffset + info.xorg + x * MUL);
+                    ARCCOPY(yorgop - yoffset + info.xorg + x);
             }
             else {
                 if (mask & 1)
-                    ARCRROP(yorgp + yoffset + info.xorg + x * MUL);
+                    ARCRROP(yorgp + yoffset + info.xorg + x);
                 if (mask & 2)
-                    ARCRROP(yorgp + yoffset + info.xorgo - x * MUL);
+                    ARCRROP(yorgp + yoffset + info.xorgo - x);
                 if (mask & 4)
-                    ARCRROP(yorgop - yoffset + info.xorgo - x * MUL);
+                    ARCRROP(yorgop - yoffset + info.xorgo - x);
                 if (mask & 8)
-                    ARCRROP(yorgop - yoffset + info.xorg + x * MUL);
+                    ARCRROP(yorgop - yoffset + info.xorg + x);
             }
             if ((x == info.end.x) || (y == info.end.y)) {
                 mask = info.end.mask;
@@ -442,26 +436,26 @@ ARC(FbBits * dst,
         mask = info.start.mask;
     if (andBits == 0) {
         if (mask & 1)
-            ARCCOPY(yorgp + yoffset + info.xorg + x * MUL);
+            ARCCOPY(yorgp + yoffset + info.xorg + x);
         if (mask & 4)
-            ARCCOPY(yorgop - yoffset + info.xorgo - x * MUL);
+            ARCCOPY(yorgop - yoffset + info.xorgo - x);
         if (arc->height & 1) {
             if (mask & 2)
-                ARCCOPY(yorgp + yoffset + info.xorgo - x * MUL);
+                ARCCOPY(yorgp + yoffset + info.xorgo - x);
             if (mask & 8)
-                ARCCOPY(yorgop - yoffset + info.xorg + x * MUL);
+                ARCCOPY(yorgop - yoffset + info.xorg + x);
         }
     }
     else {
         if (mask & 1)
-            ARCRROP(yorgp + yoffset + info.xorg + x * MUL);
+            ARCRROP(yorgp + yoffset + info.xorg + x);
         if (mask & 4)
-            ARCRROP(yorgop - yoffset + info.xorgo - x * MUL);
+            ARCRROP(yorgop - yoffset + info.xorgo - x);
         if (arc->height & 1) {
             if (mask & 2)
-                ARCRROP(yorgp + yoffset + info.xorgo - x * MUL);
+                ARCRROP(yorgp + yoffset + info.xorgo - x);
             if (mask & 8)
-                ARCRROP(yorgop - yoffset + info.xorg + x * MUL);
+                ARCRROP(yorgop - yoffset + info.xorg + x);
         }
     }
 }
@@ -626,7 +620,7 @@ POLYLINE(DrawablePtr pDrawable,
     fbGetDrawable(pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
     bitsStride = dstStride * (sizeof(FbBits) / sizeof(UNIT));
     bitsBase =
-        ((UNIT *) dst) + (yoff + dstYoff) * bitsStride + (xoff + dstXoff) * MUL;
+        ((UNIT *) dst) + (yoff + dstYoff) * bitsStride + (xoff + dstXoff);
     ul = coordToInt(pBox->x1 - xoff, pBox->y1 - yoff);
     lr = coordToInt(pBox->x2 - xoff - 1, pBox->y2 - yoff - 1);
 
@@ -649,13 +643,12 @@ POLYLINE(DrawablePtr pDrawable,
             npt--;
         }
         else {
-            bits = bitsBase + intToY(pt1) * bitsStride + intToX(pt1) * MUL;
+            bits = bitsBase + intToY(pt1) * bitsStride + intToX(pt1);
             for (;;) {
                 CalcLineDeltas(intToX(pt1), intToY(pt1),
                                intToX(pt2), intToY(pt2),
                                len, e1, stepmajor, stepminor, 1, bitsStride,
                                octant);
-                stepmajor *= MUL;
                 if (len < e1) {
                     e3 = len;
                     len = e1;
@@ -747,7 +740,7 @@ POLYSEGMENT(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pseg)
     fbGetDrawable(pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
     bitsStride = dstStride * (sizeof(FbBits) / sizeof(UNIT));
     bitsBase =
-        ((UNIT *) dst) + (yoff + dstYoff) * bitsStride + (xoff + dstXoff) * MUL;
+        ((UNIT *) dst) + (yoff + dstYoff) * bitsStride + (xoff + dstXoff);
     ul = coordToInt(pBox->x1 - xoff, pBox->y1 - yoff);
     lr = coordToInt(pBox->x2 - xoff - 1, pBox->y2 - yoff - 1);
 
@@ -767,11 +760,7 @@ POLYSEGMENT(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pseg)
                            intToX(pt2), intToY(pt2),
                            len, e1, stepmajor, stepminor, 1, bitsStride,
                            octant);
-            if (e1 == 0 && len > 3
-#if MUL != 1
-                && FbCheck24Pix(and) && FbCheck24Pix(xor)
-#endif
-                ) {
+            if (e1 == 0 && len > 3) {
                 int x1, x2;
                 FbBits *dstLine;
                 int dstX, width;
@@ -790,8 +779,8 @@ POLYSEGMENT(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pseg)
                     if (!capNotLast)
                         x2++;
                 }
-                dstX = (x1 + xoff + dstXoff) * (sizeof(UNIT) * 8 * MUL);
-                width = (x2 - x1) * (sizeof(UNIT) * 8 * MUL);
+                dstX = (x1 + xoff + dstXoff) * (sizeof(UNIT) * 8);
+                width = (x2 - x1) * (sizeof(UNIT) * 8);
 
                 dstLine = dst + (intToY(pt1) + yoff + dstYoff) * dstStride;
                 dstLine += dstX >> FB_SHIFT;
@@ -818,8 +807,7 @@ POLYSEGMENT(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pseg)
                                        endmask));
             }
             else {
-                stepmajor *= MUL;
-                bits = bitsBase + intToY(pt1) * bitsStride + intToX(pt1) * MUL;
+                bits = bitsBase + intToY(pt1) * bitsStride + intToX(pt1);
                 if (len < e1) {
                     e3 = len;
                     len = e1;
@@ -866,7 +854,6 @@ POLYSEGMENT(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pseg)
 }
 #endif
 
-#undef MUL
 #undef STORE
 #undef RROP
 #undef UNIT

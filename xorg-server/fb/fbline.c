@@ -104,9 +104,6 @@ fbPolyLine(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt, DDXPointPtr ppt)
             case 16:
                 line = fbPolyline16;
                 break;
-            case 24:
-                line = fbPolyline24;
-                break;
             case 32:
                 line = fbPolyline32;
                 break;
@@ -138,9 +135,6 @@ fbPolySegment(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pseg)
                 break;
             case 16:
                 seg = fbPolySegment16;
-                break;
-            case 24:
-                seg = fbPolySegment24;
                 break;
             case 32:
                 seg = fbPolySegment32;

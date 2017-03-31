@@ -116,8 +116,6 @@ suspend(pmEvent event, Bool undo)
             xf86Screens[i]->vtSema = FALSE;
         }
     }
-    xf86AccessLeave();
-
 }
 
 static void
@@ -126,7 +124,6 @@ resume(pmEvent event, Bool undo)
     int i;
     InputInfoPtr pInfo;
 
-    xf86AccessEnter();
     for (i = 0; i < xf86NumScreens; i++) {
         if (xf86Screens[i]->PMEvent)
             xf86Screens[i]->PMEvent(xf86Screens[i], event, undo);

@@ -80,8 +80,7 @@ update_program_enables(struct gl_context *ctx)
 
 /**
  * Update the ctx->*Program._Current pointers to point to the
- * current/active programs.  Then call ctx->Driver.BindProgram() to
- * tell the driver which programs to use.
+ * current/active programs.
  *
  * Programs may come from 3 sources: GLSL shaders, ARB/NV_vertex/fragment
  * programs or programs derived from fixed-function state.
@@ -238,53 +237,13 @@ update_program(struct gl_context *ctx)
 
    /* Let the driver know what's happening:
     */
-   if (ctx->FragmentProgram._Current != prevFP) {
+   if (ctx->FragmentProgram._Current != prevFP ||
+       ctx->VertexProgram._Current != prevVP ||
+       ctx->GeometryProgram._Current != prevGP ||
+       ctx->TessEvalProgram._Current != prevTEP ||
+       ctx->TessCtrlProgram._Current != prevTCP ||
+       ctx->ComputeProgram._Current != prevCP)
       new_state |= _NEW_PROGRAM;
-      if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, GL_FRAGMENT_PROGRAM_ARB,
-                                 ctx->FragmentProgram._Current);
-      }
-   }
-
-   if (ctx->GeometryProgram._Current != prevGP) {
-      new_state |= _NEW_PROGRAM;
-      if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, GL_GEOMETRY_PROGRAM_NV,
-                                 ctx->GeometryProgram._Current);
-      }
-   }
-
-   if (ctx->TessEvalProgram._Current != prevTEP) {
-      new_state |= _NEW_PROGRAM;
-      if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, GL_TESS_EVALUATION_PROGRAM_NV,
-                                 ctx->TessEvalProgram._Current);
-      }
-   }
-
-   if (ctx->TessCtrlProgram._Current != prevTCP) {
-      new_state |= _NEW_PROGRAM;
-      if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, GL_TESS_CONTROL_PROGRAM_NV,
-                                 ctx->TessCtrlProgram._Current);
-      }
-   }
-
-   if (ctx->VertexProgram._Current != prevVP) {
-      new_state |= _NEW_PROGRAM;
-      if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, GL_VERTEX_PROGRAM_ARB,
-                                 ctx->VertexProgram._Current);
-      }
-   }
-
-   if (ctx->ComputeProgram._Current != prevCP) {
-      new_state |= _NEW_PROGRAM;
-      if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, GL_COMPUTE_PROGRAM_NV,
-                                 ctx->ComputeProgram._Current);
-      }
-   }
 
    return new_state;
 }
@@ -384,15 +343,15 @@ _mesa_update_state_locked( struct gl_context *ctx )
 
    /* Determine which state flags effect vertex/fragment program state */
    if (ctx->FragmentProgram._MaintainTexEnvProgram) {
-      prog_flags |= (_NEW_BUFFERS | _NEW_TEXTURE | _NEW_FOG |
+      prog_flags |= (_NEW_BUFFERS | _NEW_TEXTURE_OBJECT | _NEW_FOG |
 		     _NEW_VARYING_VP_INPUTS | _NEW_LIGHT | _NEW_POINT |
 		     _NEW_RENDERMODE | _NEW_PROGRAM | _NEW_FRAG_CLAMP |
-		     _NEW_COLOR);
+		     _NEW_COLOR | _NEW_TEXTURE_STATE);
    }
    if (ctx->VertexProgram._MaintainTnlProgram) {
-      prog_flags |= (_NEW_VARYING_VP_INPUTS | _NEW_TEXTURE |
+      prog_flags |= (_NEW_VARYING_VP_INPUTS | _NEW_TEXTURE_OBJECT |
                      _NEW_TEXTURE_MATRIX | _NEW_TRANSFORM | _NEW_POINT |
-                     _NEW_FOG | _NEW_LIGHT |
+                     _NEW_FOG | _NEW_LIGHT | _NEW_TEXTURE_STATE |
                      _MESA_NEW_NEED_EYE_COORDS);
    }
 
@@ -406,8 +365,11 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION))
       _mesa_update_modelview_project( ctx, new_state );
 
-   if (new_state & (_NEW_PROGRAM|_NEW_TEXTURE|_NEW_TEXTURE_MATRIX))
-      _mesa_update_texture( ctx, new_state );
+   if (new_state & _NEW_TEXTURE_MATRIX)
+      _mesa_update_texture_matrices(ctx);
+
+   if (new_state & (_NEW_TEXTURE_OBJECT | _NEW_TEXTURE_STATE | _NEW_PROGRAM))
+      _mesa_update_texture_state(ctx);
 
    if (new_state & _NEW_POLYGON)
       update_frontbit( ctx );

@@ -77,7 +77,7 @@ set_env_mode(struct gl_context *ctx,
    }
 
    if (legal) {
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->EnvMode = mode;
    }
    else {
@@ -93,7 +93,7 @@ set_env_color(struct gl_context *ctx,
 {
    if (TEST_EQ_4V(color, texUnit->EnvColorUnclamped))
       return;
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
    COPY_4FV(texUnit->EnvColorUnclamped, color);
    texUnit->EnvColor[0] = CLAMP(color[0], 0.0F, 1.0F);
    texUnit->EnvColor[1] = CLAMP(color[1], 0.0F, 1.0F);
@@ -151,14 +151,14 @@ set_combiner_mode(struct gl_context *ctx,
    case GL_COMBINE_RGB:
       if (texUnit->Combine.ModeRGB == mode)
          return;
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ModeRGB = mode;
       break;
 
    case GL_COMBINE_ALPHA:
       if (texUnit->Combine.ModeA == mode)
          return;
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ModeA = mode;
       break;
    default:
@@ -249,7 +249,7 @@ set_combiner_source(struct gl_context *ctx,
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
 
    if (alpha)
       texUnit->Combine.SourceA[term] = param;
@@ -331,7 +331,7 @@ set_combiner_operand(struct gl_context *ctx,
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
 
    if (alpha)
       texUnit->Combine.OperandA[term] = param;
@@ -366,13 +366,13 @@ set_combiner_scale(struct gl_context *ctx,
    case GL_RGB_SCALE:
       if (texUnit->Combine.ScaleShiftRGB == shift)
          return;
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ScaleShiftRGB = shift;
       break;
    case GL_ALPHA_SCALE:
       if (texUnit->Combine.ScaleShiftA == shift)
          return;
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ScaleShiftA = shift;
       break;
    default:
@@ -444,7 +444,7 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
       if (pname == GL_TEXTURE_LOD_BIAS_EXT) {
 	 if (texUnit->LodBias == param[0])
 	    return;
-	 FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+	 FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
          texUnit->LodBias = param[0];
       }
       else {

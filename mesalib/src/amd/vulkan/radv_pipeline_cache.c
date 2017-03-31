@@ -91,22 +91,22 @@ radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 		 const union ac_shader_variant_key *key,
 		 uint32_t is_geom_copy_shader)
 {
-	struct mesa_sha1 *ctx;
+	struct mesa_sha1 ctx;
 
-	ctx = _mesa_sha1_init();
+	_mesa_sha1_init(&ctx);
 	if (key)
-		_mesa_sha1_update(ctx, key, sizeof(*key));
-	_mesa_sha1_update(ctx, module->sha1, sizeof(module->sha1));
-	_mesa_sha1_update(ctx, entrypoint, strlen(entrypoint));
+		_mesa_sha1_update(&ctx, key, sizeof(*key));
+	_mesa_sha1_update(&ctx, module->sha1, sizeof(module->sha1));
+	_mesa_sha1_update(&ctx, entrypoint, strlen(entrypoint));
 	if (layout)
-		_mesa_sha1_update(ctx, layout->sha1, sizeof(layout->sha1));
+		_mesa_sha1_update(&ctx, layout->sha1, sizeof(layout->sha1));
 	if (spec_info) {
-		_mesa_sha1_update(ctx, spec_info->pMapEntries,
+		_mesa_sha1_update(&ctx, spec_info->pMapEntries,
 				  spec_info->mapEntryCount * sizeof spec_info->pMapEntries[0]);
-		_mesa_sha1_update(ctx, spec_info->pData, spec_info->dataSize);
+		_mesa_sha1_update(&ctx, spec_info->pData, spec_info->dataSize);
 	}
-	_mesa_sha1_update(ctx, &is_geom_copy_shader, 4);
-	_mesa_sha1_final(ctx, hash);
+	_mesa_sha1_update(&ctx, &is_geom_copy_shader, 4);
+	_mesa_sha1_final(&ctx, hash);
 }
 
 
@@ -152,7 +152,10 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 					       struct radv_pipeline_cache *cache,
 					       const unsigned char *sha1)
 {
-	struct cache_entry *entry = radv_pipeline_cache_search(cache, sha1);
+	struct cache_entry *entry = NULL;
+
+	if (cache)
+		entry = radv_pipeline_cache_search(cache, sha1);
 
 	if (!entry)
 		return NULL;
@@ -171,7 +174,7 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 		variant->ref_count = 1;
 
 		variant->bo = device->ws->buffer_create(device->ws, entry->code_size, 256,
-						RADEON_DOMAIN_GTT, RADEON_FLAG_CPU_ACCESS);
+						RADEON_DOMAIN_VRAM, RADEON_FLAG_CPU_ACCESS);
 
 		void *ptr = device->ws->buffer_map(variant->bo);
 		memcpy(ptr, entry->code, entry->code_size);
@@ -260,6 +263,9 @@ radv_pipeline_cache_insert_shader(struct radv_pipeline_cache *cache,
 				  struct radv_shader_variant *variant,
 				  const void *code, unsigned code_size)
 {
+	if (!cache)
+		return variant;
+
 	pthread_mutex_lock(&cache->mutex);
 	struct cache_entry *entry = radv_pipeline_cache_search_unlocked(cache, sha1);
 	if (entry) {
@@ -305,6 +311,7 @@ struct cache_header {
 	uint32_t device_id;
 	uint8_t  uuid[VK_UUID_SIZE];
 };
+
 void
 radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 			 const void *data, size_t size)

@@ -25,10 +25,10 @@
  */
 
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @file  addrobject.h
-* @brief Contains the AddrObject base class definition.
-***************************************************************************************************
+* @brief Contains the Object base class definition.
+****************************************************************************************************
 */
 
 #ifndef __ADDR_OBJECT_H__
@@ -37,53 +37,59 @@
 #include "addrtypes.h"
 #include "addrcommon.h"
 
+namespace Addr
+{
+
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @brief This structure contains client specific data
-***************************************************************************************************
+****************************************************************************************************
 */
-struct AddrClient
+struct Client
 {
     ADDR_CLIENT_HANDLE  handle;
     ADDR_CALLBACKS      callbacks;
 };
 /**
-***************************************************************************************************
+****************************************************************************************************
 * @brief This class is the base class for all ADDR class objects.
-***************************************************************************************************
+****************************************************************************************************
 */
-class AddrObject
+class Object
 {
 public:
-    AddrObject();
-    AddrObject(const AddrClient* pClient);
-    virtual ~AddrObject();
+    Object();
+    Object(const Client* pClient);
+    virtual ~Object();
 
-    VOID* operator new(size_t size, const AddrClient* pClient);
-    VOID  operator delete(VOID* pObj, const AddrClient* pClient);
+    VOID* operator new(size_t size, VOID* pMem);
     VOID  operator delete(VOID* pObj);
-    VOID* AddrMalloc(size_t size) const;
-    VOID  AddrFree(VOID* pObj) const;
+    /// Microsoft compiler requires a matching delete implementation, which seems to be called when
+    /// bad_alloc is thrown. But currently C++ exception isn't allowed so a dummy implementation is
+    /// added to eliminate the warning.
+    VOID  operator delete(VOID* pObj, VOID* pMem) { ADDR_ASSERT_ALWAYS(); }
 
-    VOID DebugPrint(
-        const CHAR* pDebugString,
-        ...) const;
+    VOID* Alloc(size_t size) const;
+    VOID  Free(VOID* pObj) const;
 
-    const AddrClient* GetClient() const {return &m_client;}
+    VOID DebugPrint(const CHAR* pDebugString, ...) const;
+
+    const Client* GetClient() const {return &m_client;}
 
 protected:
-    AddrClient m_client;
+    Client m_client;
+
+    static VOID* ClientAlloc(size_t size, const Client* pClient);
+    static VOID  ClientFree(VOID* pObj, const Client* pClient);
 
 private:
-    static VOID* ClientAlloc(size_t size, const AddrClient* pClient);
-    static VOID  ClientFree(VOID* pObj, const AddrClient* pClient);
-
     // disallow the copy constructor
-    AddrObject(const AddrObject& a);
+    Object(const Object& a);
 
     // disallow the assignment operator
-    AddrObject& operator=(const AddrObject& a);
+    Object& operator=(const Object& a);
 };
 
+} // Addr
 #endif
 

@@ -910,7 +910,7 @@ int glamor_xv_put_image(glamor_port_private *port_priv,
 void glamor_xv_core_init(ScreenPtr screen);
 void glamor_xv_render(glamor_port_private *port_priv);
 
-#include"glamor_utils.h"
+#include "glamor_utils.h"
 
 /* Dynamic pixmap upload to texture if needed.
  * Sometimes, the target is a gl texture pixmap/picture,

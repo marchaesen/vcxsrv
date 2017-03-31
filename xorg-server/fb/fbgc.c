@@ -71,7 +71,6 @@ fbCreateGC(GCPtr pGC)
     pGC->miTranslate = 1;
     pGC->fExpose = 1;
 
-    fbGetGCPrivate(pGC)->bpp = BitsPerPixel(pGC->depth);
     return TRUE;
 }
 
@@ -129,35 +128,6 @@ fbValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
         miComputeCompositeClip(pGC, pDrawable);
     }
 
-    if (pPriv->bpp != pDrawable->bitsPerPixel) {
-        changes |= GCStipple | GCForeground | GCBackground | GCPlaneMask;
-        pPriv->bpp = pDrawable->bitsPerPixel;
-    }
-    if ((changes & GCTile) && fbGetRotatedPixmap(pGC)) {
-        (*pGC->pScreen->DestroyPixmap) (fbGetRotatedPixmap(pGC));
-        fbGetRotatedPixmap(pGC) = 0;
-    }
-
-    if (pGC->fillStyle == FillTiled) {
-        PixmapPtr pOldTile, pNewTile;
-
-        pOldTile = pGC->tile.pixmap;
-        if (pOldTile->drawable.bitsPerPixel != pDrawable->bitsPerPixel) {
-            pNewTile = fbGetRotatedPixmap(pGC);
-            if (!pNewTile ||
-                pNewTile->drawable.bitsPerPixel != pDrawable->bitsPerPixel) {
-                if (pNewTile)
-                    (*pGC->pScreen->DestroyPixmap) (pNewTile);
-                pNewTile =
-                    fb24_32ReformatTile(pOldTile, pDrawable->bitsPerPixel);
-            }
-            if (pNewTile) {
-                fbGetRotatedPixmap(pGC) = pOldTile;
-                pGC->tile.pixmap = pNewTile;
-                changes |= GCTile;
-            }
-        }
-    }
     if (changes & GCTile) {
         if (!pGC->tileIsPixel &&
             FbEvenTile(pGC->tile.pixmap->drawable.width *

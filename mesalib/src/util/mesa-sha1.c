@@ -27,48 +27,17 @@
 #include "sha1/sha1.h"
 #include "mesa-sha1.h"
 
-struct mesa_sha1 *
-_mesa_sha1_init(void)
-{
-   SHA1_CTX *ctx = malloc(sizeof(*ctx));
-
-   if (!ctx)
-      return NULL;
-
-   SHA1Init(ctx);
-   return (struct mesa_sha1 *) ctx;
-}
-
-int
-_mesa_sha1_update(struct mesa_sha1 *ctx, const void *data, int size)
-{
-   SHA1_CTX *sha1_ctx = (SHA1_CTX *) ctx;
-
-   SHA1Update(sha1_ctx, data, size);
-   return 1;
-}
-
-int
-_mesa_sha1_final(struct mesa_sha1 *ctx, unsigned char result[20])
-{
-   SHA1_CTX *sha1_ctx = (SHA1_CTX *) ctx;
-
-   SHA1Final(result, sha1_ctx);
-   free(sha1_ctx);
-   return 1;
-}
-
 void
 _mesa_sha1_compute(const void *data, size_t size, unsigned char result[20])
 {
-   struct mesa_sha1 *ctx;
+   struct mesa_sha1 ctx;
 
-   ctx = _mesa_sha1_init();
-   _mesa_sha1_update(ctx, data, size);
-   _mesa_sha1_final(ctx, result);
+   _mesa_sha1_init(&ctx);
+   _mesa_sha1_update(&ctx, data, size);
+   _mesa_sha1_final(&ctx, result);
 }
 
-char *
+void
 _mesa_sha1_format(char *buf, const unsigned char *sha1)
 {
    static const char hex_digits[] = "0123456789abcdef";
@@ -79,6 +48,4 @@ _mesa_sha1_format(char *buf, const unsigned char *sha1)
       buf[i + 1] = hex_digits[sha1[i >> 1] & 0x0f];
    }
    buf[i] = '\0';
-
-   return buf;
 }

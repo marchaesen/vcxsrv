@@ -82,7 +82,7 @@ struct diskstat_info
  */
 static int gdiskstat_count = 0;
 static struct list_head gdiskstat_list;
-pipe_static_mutex(gdiskstat_mutex);
+static mtx_t gdiskstat_mutex = _MTX_INITIALIZER_NP;
 
 static struct diskstat_info *
 find_dsi_by_name(const char *n, int mode)
@@ -246,9 +246,9 @@ hud_get_num_disks(bool displayhelp)
    char name[64];
 
    /* Return the number of block devices and partitions. */
-   pipe_mutex_lock(gdiskstat_mutex);
+   mtx_lock(&gdiskstat_mutex);
    if (gdiskstat_count) {
-      pipe_mutex_unlock(gdiskstat_mutex);
+      mtx_unlock(&gdiskstat_mutex);
       return gdiskstat_count;
    }
 
@@ -258,7 +258,7 @@ hud_get_num_disks(bool displayhelp)
    list_inithead(&gdiskstat_list);
    DIR *dir = opendir("/sys/block/");
    if (!dir) {
-      pipe_mutex_unlock(gdiskstat_mutex);
+      mtx_unlock(&gdiskstat_mutex);
       return 0;
    }
 
@@ -285,7 +285,7 @@ hud_get_num_disks(bool displayhelp)
       struct dirent *dpart;
       DIR *pdir = opendir(basename);
       if (!pdir) {
-         pipe_mutex_unlock(gdiskstat_mutex);
+         mtx_unlock(&gdiskstat_mutex);
          closedir(dir);
          return 0;
       }
@@ -320,7 +320,7 @@ hud_get_num_disks(bool displayhelp)
          puts(line);
       }
    }
-   pipe_mutex_unlock(gdiskstat_mutex);
+   mtx_unlock(&gdiskstat_mutex);
 
    return gdiskstat_count;
 }

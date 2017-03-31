@@ -57,3 +57,6 @@ Upstream status: TBD (N/A ?)
  - Manually expand __BEGIN_DECLS/__END_DECLS and make sure that they include
 the struct declaration.
 Upstream status: TBD
+
+ - Add non-typedef struct name.
+Upstream status: TBD

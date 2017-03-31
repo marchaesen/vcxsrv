@@ -438,7 +438,11 @@ def _c_type_setup(self, name, postfix):
         first_field_after_varsized = None
 
         for field in self.fields:
-            field.c_field_type = _t(field.field_type)
+            if field.type.is_event:
+                field.c_field_type = _t(field.field_type + ('event',))
+            else:
+                field.c_field_type = _t(field.field_type)
+
             field.c_field_const_type = ('' if field.type.nmemb == 1 else 'const ') + field.c_field_type
             field.c_field_name = _cpp(field.field_name)
             field.c_subscript = '[%d]' % field.type.nmemb if (field.type.nmemb and field.type.nmemb > 1) else ''
@@ -1662,14 +1666,7 @@ def _c_accessor_get_expr(expr, field_mapping):
         return c_name
     elif expr.op == 'sumof':
         # locate the referenced list object
-        field = None
-        for f in expr.lenfield_parent.fields:
-            if f.field_name == expr.lenfield_name:
-                field = f
-                break
-
-        if field is None:
-            raise Exception("list field '%s' referenced by sumof not found" % expr.lenfield_name)
+        field = expr.lenfield
         list_name = field_mapping[field.c_field_name][0]
         c_length_func = "%s(%s)" % (field.c_length_name, list_name)
         c_length_func = _c_accessor_get_expr(field.type.expr, field_mapping)
@@ -3164,6 +3161,28 @@ def c_request(self, name):
     # TODO: what about aux helpers?
     _man_request(self, name, void=not self.reply, aux=False)
 
+
+def c_eventstruct(self, name):
+    #add fields that are needed to get the event-type in a generic way
+    self.fields.append( Field( tevent, tevent.name, 'event_header', False, True, True) )
+
+    if self.contains_ge_events:
+        #TODO: add header of ge-events as an extra field
+        raise Exception( 'eventstructs with ge-events are not yet supported' )
+
+    _c_type_setup(self, name, ())
+
+    #correct the format of the field names
+    for field in self.fields:
+        field.c_field_name = _n_item(field.c_field_name).lower()
+
+    _c_complex(self)
+    _c_iterator(self, name)
+
+    if not self.fixed_size():
+        #TODO: Create sizeof function (and maybe other accessors) for var-sized eventstructs
+        raise Exception( 'var sized eventstructs are not yet supported' )
+
 def c_event(self, name):
     '''
     Exported function that handles event declarations.
@@ -3261,6 +3280,7 @@ output = {'open'    : c_open,
           'struct'  : c_struct,
           'union'   : c_union,
           'request' : c_request,
+          'eventstruct' : c_eventstruct,
           'event'   : c_event,
           'error'   : c_error,
           }
@@ -3303,6 +3323,9 @@ to extend the path.
 Refer to the README file in xcb/proto for more info.
 ''')
     raise
+
+# predefined datatype globals.
+tevent = SimpleType(('xcb_raw_generic_event_t',), 32)
 
 # Ensure the man subdirectory exists
 try:

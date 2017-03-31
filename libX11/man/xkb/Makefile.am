@@ -111,6 +111,7 @@ libman_PRE = \
 	XkbGetKeyboardByName.man                \
 	XkbGetMap.man                           \
 	XkbGetNameChanges.man                   \
+	XkbGetNamedDeviceIndicator.man          \
 	XkbGetNamedGeometry.man                 \
 	XkbGetNamedIndicator.man                \
 	XkbGetNames.man                         \
@@ -191,6 +192,7 @@ libman_PRE = \
 	XkbSetIndicatorMap.man                  \
 	XkbSetMap.man                           \
 	XkbSetModActionVMods.man                \
+	XkbSetNamedDeviceIndicator.man          \
 	XkbSetNamedIndicator.man                \
 	XkbSetNames.man                         \
 	XkbSetPtrActionX.man                    \

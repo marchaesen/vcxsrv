@@ -38,7 +38,6 @@
 #include "compiler/glsl/ir.h"
 #include "compiler/glsl/program.h"
 #include "util/string_to_uint_map.h"
-#include "util/strndup.h"
 
 
 static GLint

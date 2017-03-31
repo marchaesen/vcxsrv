@@ -48,11 +48,12 @@ lower_unpack_64(nir_builder *b, nir_ssa_def *src)
                       nir_unpack_64_2x32_split_y(b, src));
 }
 
-static void
+static bool
 lower_64bit_pack_impl(nir_function_impl *impl)
 {
    nir_builder b;
    nir_builder_init(&b, impl);
+   bool progress = false;
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -83,15 +84,24 @@ lower_64bit_pack_impl(nir_function_impl *impl)
 
          nir_ssa_def_rewrite_uses(&alu_instr->dest.dest.ssa, nir_src_for_ssa(dest));
          nir_instr_remove(&alu_instr->instr);
+         nir_metadata_preserve(impl, nir_metadata_block_index |
+                                     nir_metadata_dominance);
+         progress = true;
       }
    }
+
+   return progress;
 }
 
-void
+bool
 nir_lower_64bit_pack(nir_shader *shader)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl)
-         lower_64bit_pack_impl(function->impl);
+         progress |= lower_64bit_pack_impl(function->impl);
    }
+
+   return false;
 }

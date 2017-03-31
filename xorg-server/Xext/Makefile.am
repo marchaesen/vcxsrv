@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libXext.la libXextdpmsstubs.la libXvidmode.la
+noinst_LTLIBRARIES = libXext.la libXvidmode.la
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
@@ -95,8 +95,6 @@ endif
 
 libXext_la_SOURCES =		$(BUILTIN_SRCS)
 libXext_la_LIBADD =		$(BUILTIN_LIBS)
-
-libXextdpmsstubs_la_SOURCES = dpmsstubs.c
 
 # XVidMode extension
 libXvidmode_la_SOURCES = vidmode.c

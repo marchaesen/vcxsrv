@@ -138,6 +138,7 @@ Bool noDamageExtension = FALSE;
 Bool noDbeExtension = FALSE;
 #endif
 #ifdef DPMSExtension
+#include "dpmsproc.h"
 Bool noDPMSExtension = FALSE;
 #endif
 #ifdef GLXEXT

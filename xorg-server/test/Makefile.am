@@ -8,9 +8,11 @@ CLEANFILES=
 
 tests_SOURCES = \
         tests-common.c \
+	tests-common.h \
         list.c \
         string.c \
-        tests.c
+        tests.c \
+	tests.h
 
 noinst_PROGRAMS = simple-xinit tests
 
@@ -92,7 +94,8 @@ tests_SOURCES += \
 	xi2/protocol-xipassivegrabdevice.c \
 	xi2/protocol-xiwarppointer.c \
 	xi2/protocol-eventconvert.c \
-	xi2/xi2.c
+	xi2/xi2.c \
+	xi2/protocol-common.h
 
 tests_LDFLAGS = \
 	-Wl,-wrap,dixLookupWindow \

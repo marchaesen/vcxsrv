@@ -226,10 +226,11 @@ This affects the following:
     </request>
 
     <!-- OpenDevice -->
+    <typedef oldname="CARD8" newname="EventTypeBase" />
 
     <struct name="InputClassInfo">
         <field type="CARD8" name="class_id" enum="InputClass" />
-        <field type="CARD8" name="event_type_base" />
+        <field type="EventTypeBase" name="event_type_base" />
     </struct>
 
     <request name="OpenDevice" opcode="3">
@@ -986,25 +987,8 @@ This affects the following:
         </reply>
     </request>
 
-    <!-- SendExtensionEvent -->
-
-    <request name="SendExtensionEvent" opcode="31">
-        <field type="WINDOW" name="destination" />
-        <field type="CARD8"  name="device_id" />
-        <field type="BOOL"   name="propagate" />
-        <field type="CARD16" name="num_classes" />
-        <field type="CARD8"  name="num_events" />
-        <pad bytes="3" />
-        <list type="CARD8" name="events">
-            <op op="*">
-                <fieldref>num_events</fieldref>
-                <value>32</value>
-            </op>
-        </list>
-        <list type="EventClass" name="classes">
-            <fieldref>num_classes</fieldref>
-        </list>
-    </request>
+    <!-- SendExtensionEvent (opcode 16) has to be defined after the events
+         because we do not support backward references -->
 
     <!-- DeviceBell -->
 
@@ -2640,6 +2624,42 @@ This affects the following:
     </event>
 
     <eventcopy name="BarrierLeave" number="26" ref="BarrierHit" />
+
+    <!-- ⋅⋅⋅ Requests that depend on events ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <!-- SendExtensionEvent -->
+    <eventstruct name="EventForSend">
+        <allowed extension="Input" xge="false" opcode-min="0" opcode-max="16" />
+        <!-- We need not allow the newer events which are based on
+             the GenericEvent extension:
+             The wire-protocol-spec
+             https://cgit.freedesktop.org/xorg/lib/libXi/tree/specs/encoding.xml?idĺibXi-1.7.9#n1793
+             only allows fixed sized events, which seems
+             to rule out GenericEvent.
+
+             The xlib-implementation also assumes fixed-sized events.
+             https://cgit.freedesktop.org/xorg/lib/libXi/tree/src/XSndExEv.c?id=libXi-1.7.9#n106
+
+             The Xserver also allows only non-GE events:
+	     https:g/xorg/xserver/tree/Xi/sendexev.c?id=xorg-server-1.19.1#n144
+        -->
+    </eventstruct>
+
+    <request name="SendExtensionEvent" opcode="31">
+        <field type="WINDOW" name="destination" />
+        <field type="CARD8"  name="device_id" />
+        <field type="BOOL"   name="propagate" />
+        <field type="CARD16" name="num_classes" />
+        <field type="CARD8"  name="num_events" />
+        <pad bytes="3" />
+        <list type="EventForSend" name="events">
+            <fieldref>num_events</fieldref>
+        </list>
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
+    </request>
+
 
     <!-- ⋅⋅⋅ Errors (v1.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
 

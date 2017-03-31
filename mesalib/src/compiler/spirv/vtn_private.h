@@ -25,6 +25,9 @@
  *
  */
 
+#ifndef _VTN_PRIVATE_H_
+#define _VTN_PRIVATE_H_
+
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 #include "nir/nir_array.h"
@@ -496,3 +499,5 @@ vtn_u64_literal(const uint32_t *w)
 {
    return (uint64_t)w[1] << 32 | w[0];
 }
+
+#endif /* _VTN_PRIVATE_H_ */

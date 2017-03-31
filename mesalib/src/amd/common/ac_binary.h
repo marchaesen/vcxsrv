@@ -24,7 +24,8 @@
  *
  */
 
-#pragma once
+#ifndef AC_BINARY_H
+#define AC_BINARY_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -97,3 +98,5 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 				  struct ac_shader_config *conf,
 				  unsigned symbol_offset,
 				  bool supports_spill);
+
+#endif /* AC_BINARY_H */

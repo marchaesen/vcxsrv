@@ -458,7 +458,8 @@ pipe_transfer_unmap( struct pipe_context *context,
 }
 
 static inline void
-pipe_set_constant_buffer(struct pipe_context *pipe, uint shader, uint index,
+pipe_set_constant_buffer(struct pipe_context *pipe,
+                         enum pipe_shader_type shader, uint index,
                          struct pipe_resource *buf)
 {
    if (buf) {

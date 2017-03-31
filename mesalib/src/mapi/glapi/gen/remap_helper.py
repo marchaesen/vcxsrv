@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 # Copyright (C) 2009 Chia-I Wu <olv@0xlab.org>
 # All Rights Reserved.

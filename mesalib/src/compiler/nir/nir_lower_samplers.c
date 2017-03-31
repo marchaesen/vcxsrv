@@ -86,12 +86,12 @@ calc_sampler_offsets(nir_deref *tail, nir_tex_instr *instr,
    }
 }
 
-static void
+static bool
 lower_sampler(nir_tex_instr *instr, const struct gl_shader_program *shader_program,
               gl_shader_stage stage, nir_builder *b)
 {
    if (instr->texture == NULL)
-      return;
+      return false;
 
    /* In GLSL, we only fill out the texture field.  The sampler is inferred */
    assert(instr->sampler == NULL);
@@ -140,11 +140,8 @@ lower_sampler(nir_tex_instr *instr, const struct gl_shader_program *shader_progr
       instr->texture_array_size = array_elements;
    }
 
-   if (location > shader_program->data->NumUniformStorage - 1 ||
-       !shader_program->data->UniformStorage[location].opaque[stage].active) {
-      assert(!"cannot return a sampler");
-      return;
-   }
+   assert(location < shader_program->data->NumUniformStorage &&
+          shader_program->data->UniformStorage[location].opaque[stage].active);
 
    instr->texture_index +=
       shader_program->data->UniformStorage[location].opaque[stage].index;
@@ -152,29 +149,39 @@ lower_sampler(nir_tex_instr *instr, const struct gl_shader_program *shader_progr
    instr->sampler_index = instr->texture_index;
 
    instr->texture = NULL;
+
+   return true;
 }
 
-static void
+static bool
 lower_impl(nir_function_impl *impl, const struct gl_shader_program *shader_program,
            gl_shader_stage stage)
 {
    nir_builder b;
    nir_builder_init(&b, impl);
+   bool progress = false;
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr(instr, block) {
          if (instr->type == nir_instr_type_tex)
-            lower_sampler(nir_instr_as_tex(instr), shader_program, stage, &b);
+            progress |= lower_sampler(nir_instr_as_tex(instr),
+                                      shader_program, stage, &b);
       }
    }
+
+   return progress;
 }
 
-void
+bool
 nir_lower_samplers(nir_shader *shader,
                    const struct gl_shader_program *shader_program)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl)
-         lower_impl(function->impl, shader_program, shader->stage);
+         progress |= lower_impl(function->impl, shader_program, shader->stage);
    }
+
+   return progress;
 }

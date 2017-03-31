@@ -885,6 +885,13 @@ cross_validate_globals(struct gl_shader_program *prog,
       if (var->type->contains_subroutine())
          continue;
 
+      /* Don't cross validate interface instances. These are only relevant
+       * inside a shader. The cross validation is done at the Interface Block
+       * name level.
+       */
+      if (var->is_interface_instance())
+         continue;
+
       /* Don't cross validate temporaries that are at global scope.  These
        * will eventually get pulled into the shaders 'main'.
        */
@@ -897,11 +904,8 @@ cross_validate_globals(struct gl_shader_program *prog,
        */
       ir_variable *const existing = variables->get_variable(var->name);
       if (existing != NULL) {
-         /* Check if types match. Interface blocks have some special
-          * rules so we handle those elsewhere.
-          */
-         if (var->type != existing->type &&
-             !var->is_interface_instance()) {
+         /* Check if types match. */
+         if (var->type != existing->type) {
             if (!validate_intrastage_arrays(prog, var, existing)) {
                if (var->type->is_record() && existing->type->is_record()
                    && existing->type->record_compare(var->type)) {
@@ -1181,6 +1185,12 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
             for (unsigned k = 0; k <= i; k++) {
                delete[] InterfaceBlockStageIndex[k];
             }
+
+            /* Reset the block count. This will help avoid various segfaults
+             * from api calls that assume the array exists due to the count
+             * being non-zero.
+             */
+            *num_blks = 0;
             return false;
          }
 

@@ -33,9 +33,6 @@ fbCreateWindow(WindowPtr pWin)
 {
     dixSetPrivate(&pWin->devPrivates, fbGetWinPrivateKey(pWin),
                   fbGetScreenPixmap(pWin->drawable.pScreen));
-    if (pWin->drawable.bitsPerPixel == 32 && pWin->drawable.depth <= 24)
-        pWin->drawable.bitsPerPixel =
-            fbGetScreenPrivate(pWin->drawable.pScreen)->win32bpp;
     return TRUE;
 }
 
@@ -136,13 +133,6 @@ fbFixupWindowPixmap(DrawablePtr pDrawable, PixmapPtr *ppPixmap)
 {
     PixmapPtr pPixmap = *ppPixmap;
 
-    if (pPixmap->drawable.bitsPerPixel != pDrawable->bitsPerPixel) {
-        pPixmap = fb24_32ReformatTile(pPixmap, pDrawable->bitsPerPixel);
-        if (!pPixmap)
-            return;
-        (*pDrawable->pScreen->DestroyPixmap) (*ppPixmap);
-        *ppPixmap = pPixmap;
-    }
     if (FbEvenTile(pPixmap->drawable.width * pPixmap->drawable.bitsPerPixel))
         fbPadPixmap(pPixmap);
 }

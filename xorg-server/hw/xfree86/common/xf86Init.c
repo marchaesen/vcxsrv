@@ -381,9 +381,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     int i, j, k, scr_index;
     const char **modulelist;
     void **optionlist;
-    Pix24Flags screenpix24, pix24;
-    MessageType pix24From = X_DEFAULT;
-    Bool pix24Fail = FALSE;
     Bool autoconfig = FALSE;
     Bool sigio_blocked = FALSE;
     Bool want_hw_access = FALSE;
@@ -636,7 +633,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
          * Collect all pixmap formats and check for conflicts at the display
          * level.  Should we die here?  Or just delete the offending screens?
          */
-        screenpix24 = Pix24DontCare;
         for (i = 0; i < xf86NumScreens; i++) {
             if (xf86Screens[i]->imageByteOrder !=
                 xf86Screens[0]->imageByteOrder)
@@ -652,38 +648,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             if (xf86Screens[i]->bitmapBitOrder !=
                 xf86Screens[0]->bitmapBitOrder)
                 FatalError("Inconsistent display bitmapBitOrder.  Exiting\n");
-
-            /* Determine the depth 24 pixmap format the screens would like */
-            if (xf86Screens[i]->pixmap24 != Pix24DontCare) {
-                if (screenpix24 == Pix24DontCare)
-                    screenpix24 = xf86Screens[i]->pixmap24;
-                else if (screenpix24 != xf86Screens[i]->pixmap24)
-                    FatalError
-                        ("Inconsistent depth 24 pixmap format.  Exiting\n");
-            }
         }
-        /* check if screenpix24 is consistent with the config/cmdline */
-        if (xf86Info.pixmap24 != Pix24DontCare) {
-            pix24 = xf86Info.pixmap24;
-            pix24From = xf86Info.pix24From;
-            if (screenpix24 != Pix24DontCare &&
-                screenpix24 != xf86Info.pixmap24)
-                pix24Fail = TRUE;
-        }
-        else if (screenpix24 != Pix24DontCare) {
-            pix24 = screenpix24;
-            pix24From = X_PROBED;
-        }
-        else
-            pix24 = Pix24Use32;
-
-        if (pix24Fail)
-            FatalError("Screen(s) can't use the required depth 24 pixmap format"
-                       " (%d).  Exiting\n", PIX24TOBPP(pix24));
-
-        /* Initialise the depth 24 format */
-        for (j = 0; j < numFormats && formats[j].depth != 24; j++);
-        formats[j].bitsPerPixel = PIX24TOBPP(pix24);
 
         /* Collect additional formats */
         for (i = 0; i < xf86NumScreens; i++) {
@@ -709,15 +674,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             }
         }
         formatsDone = TRUE;
-
-        /* If a screen uses depth 24, show what the pixmap format is */
-        for (i = 0; i < xf86NumScreens; i++) {
-            if (xf86Screens[i]->depth == 24) {
-                xf86Msg(pix24From, "Depth 24 pixmap format is %d bpp\n",
-                        PIX24TOBPP(pix24));
-                break;
-            }
-        }
     }
     else {
         /*
@@ -770,7 +726,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 #ifdef HAS_USL_VTS
             ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ);
 #endif
-            xf86AccessEnter();
             input_lock();
             sigio_blocked = TRUE;
         }
@@ -1045,8 +1000,6 @@ AbortDDX(enum ExitCode error)
             }
     }
 
-    xf86AccessLeave();
-
     /*
      * This is needed for an abnormal server exit, since the normal exit stuff
      * MUST also be performed (i.e. the vt must be left in a defined state)
@@ -1244,12 +1197,8 @@ ddxProcessArgument(int argc, char **argv, int i)
         xf86sFlag = TRUE;
         return 0;
     }
-    if (!strcmp(argv[i], "-pixmap24")) {
-        xf86Pix24 = Pix24Use24;
-        return 1;
-    }
-    if (!strcmp(argv[i], "-pixmap32")) {
-        xf86Pix24 = Pix24Use32;
+    if (!strcmp(argv[i], "-pixmap32") || !strcmp(argv[i], "-pixmap24")) {
+        /* silently accept */
         return 1;
     }
     if (!strcmp(argv[i], "-fbbpp")) {
@@ -1425,8 +1374,6 @@ ddxUseMsg(void)
     ErrorF("-verbose [n]           verbose startup messages\n");
     ErrorF("-logverbose [n]        verbose log messages\n");
     ErrorF("-quiet                 minimal startup messages\n");
-    ErrorF("-pixmap24              use 24bpp pixmaps for depth 24\n");
-    ErrorF("-pixmap32              use 32bpp pixmaps for depth 24\n");
     ErrorF("-fbbpp n               set bpp for the framebuffer. Default: 8\n");
     ErrorF("-depth n               set colour depth. Default: 8\n");
     ErrorF
@@ -1518,30 +1465,6 @@ PixmapFormatPtr
 xf86GetPixFormat(ScrnInfoPtr pScrn, int depth)
 {
     int i;
-    static PixmapFormatRec format;      /* XXX not reentrant */
-
-    /*
-     * When the formats[] list initialisation isn't complete, check the
-     * depth 24 pixmap config/cmdline options and screen-specified formats.
-     */
-
-    if (!formatsDone) {
-        if (depth == 24) {
-            Pix24Flags pix24 = Pix24DontCare;
-
-            format.depth = 24;
-            format.scanlinePad = BITMAP_SCANLINE_PAD;
-            if (xf86Info.pixmap24 != Pix24DontCare)
-                pix24 = xf86Info.pixmap24;
-            else if (pScrn->pixmap24 != Pix24DontCare)
-                pix24 = pScrn->pixmap24;
-            if (pix24 == Pix24Use24)
-                format.bitsPerPixel = 24;
-            else
-                format.bitsPerPixel = 32;
-            return &format;
-        }
-    }
 
     for (i = 0; i < numFormats; i++)
         if (formats[i].depth == depth)

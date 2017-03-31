@@ -834,14 +834,8 @@ Here is what <function>InitOutput()</function> does:
       stage.  If a resource conflict is found between exclusive resources
       the driver will fail immediately.  This is usually best done with
       the <function>xf86ConfigPciEntity()</function> helper function
-      for PCI and <function>xf86ConfigIsaEntity()</function> for ISA
-      (see the <link linkend="rac">RAC</link> section).  It is possible to
-      register some entity specific functions with those helpers.  When
-      not using the helpers, the <function>xf86AddEntityToScreen()</function>
-      <function>xf86ClaimFixedResources()</function> and
-      <function>xf86SetEntityFuncs()</function> should be used instead (see
-      the <link linkend="rac">RAC</link> section).
-	</para>
+      for PCI.
+        </para>
 
 	<para>
       If a chipset is specified in an active device section which the
@@ -860,8 +854,7 @@ Here is what <function>InitOutput()</function> does:
       Allocate a <structname>ScrnInfoRec</structname> for each active instance of the
       hardware found, and fill in the basic information, including the
       other driver entry points.   This is best done with the
-      <function>xf86ConfigIsaEntity()</function> helper function for ISA
-      instances or <function>xf86ConfigPciEntity()</function> for PCI instances.
+      <function>xf86ConfigPciEntity()</function> for PCI instances.
       These functions allocate a <structname>ScrnInfoRec</structname> for active
       entities. Optionally <function>xf86AllocateScreen()</function>
       function may also be used to allocate the <structname>ScrnInfoRec</structname>.
@@ -2681,41 +2674,17 @@ Two helper functions are provided to aid configuring entities:
     ScrnInfoPtr xf86ConfigPciEntity(ScrnInfoPtr pScrn,
                                     int scrnFlag, int entityIndex,
                                     PciChipsets *p_chip,
-                                    resList res, EntityProc init,
+                                    void *res, EntityProc init,
                                     EntityProc enter, EntityProc leave,
                                     pointer private);
 
-    ScrnInfoPtr xf86ConfigIsaEntity(ScrnInfoPtr pScrn,
-                                    int scrnFlag, int entityIndex,
-                                    IsaChipsets *i_chip,
-                                    resList res, EntityProc init,
-                                    EntityProc enter, EntityProc leave,
-                                    pointer private);
 	    </programlisting>
 	    <blockquote><para>
-      These functions are used to register the non-relocatable resources
-      for an entity, and the optional entity-specific <parameter>Init</parameter>, <parameter>Enter</parameter> and
-      <parameter>Leave</parameter> functions.  Usually the list of fixed resources is obtained
-      from the Isa/PciChipsets lists.  However an additional list of
-      resources may be passed.  Generally this is not required.
+      This functions is used to register the entity. The <parameter>res</parameter>, <parameter>init</parameter>, <parameter>enter</parameter>, and <parameter>leave</parameter> arguments are unused, and should be <constant>NULL</constant>.
       For active entities a <structname>ScrnInfoRec</structname> is allocated
       if the <parameter>pScrn</parameter> argument is <constant>NULL</constant>.
 The
-      return value is <constant>TRUE</constant> when successful.  The init, enter, leave
-      functions are defined as follows:
-
-		<blockquote><para>
-		    <programlisting>
-        typedef void (*EntityProc)(int entityIndex,
-                                   pointer private);
-		    </programlisting>
-		  </para></blockquote>
-
-      They are passed the entity index and a pointer to a private scratch
-      area.  This can be set up during <function>Probe()</function> and
-      its address can be passed to
-      <function>xf86ConfigIsaEntity()</function> and
-      <function>xf86ConfigPciEntity()</function> as the last argument.
+      return value is <constant>TRUE</constant> when successful.
 	      </para>
 
 	    </blockquote></para></blockquote>
@@ -2737,19 +2706,6 @@ available at the driver level:
 		</para>
 
 	      </blockquote></para></blockquote>
-
-	  <blockquote><para>
-	      <programlisting>
-    Bool xf86SetEntityFuncs(int entityIndex, EntityProc init,
-                            EntityProc enter, EntityProc leave, pointer);
-	      </programlisting>
-	      <blockquote><para>
-      This function registers with an entity the <parameter>init</parameter>,
-      <parameter>enter</parameter>, <parameter>leave</parameter> functions along
-      with the pointer to their private area.
-		</para>
-
-	    </blockquote></para></blockquote>
 
 	  <blockquote><para>
 	      <programlisting>
@@ -8290,37 +8246,6 @@ ZZZProbe(DriverPtr drv, int flags)
         }
         xfree(usedChips);
     }
-
-#ifdef HAS_ISA_DEVS
-    /*
-     * If the driver supports ISA hardware, the following block
-     * can be included too.
-     */
-    numUsed = xf86MatchIsaInstances(ZZZ_NAME, ZZZChipsets,
-                             ZZZIsaChipsets, drv, ZZZFindIsaDevice,
-                             devSections, numDevSections, &amp;usedChips);
-    for (i = 0; i &lt; numUsed; i++) {
-        ScrnInfoPtr pScrn = NULL;
-	if ((pScrn = xf86ConfigIsaEntity(pScrn, flags, usedChips[i],
-					 ZZZIsaChipsets, NULL, NULL, NULL,
-					 NULL, NULL))) {
-            pScrn-&gt;driverVersion = VERSION;
-            pScrn-&gt;driverName    = ZZZ_DRIVER_NAME;
-            pScrn-&gt;name          = ZZZ_NAME;
-            pScrn-&gt;Probe         = ZZZProbe;
-            pScrn-&gt;PreInit       = ZZZPreInit;
-            pScrn-&gt;ScreenInit    = ZZZScreenInit;
-            pScrn-&gt;SwitchMode    = ZZZSwitchMode;
-            pScrn-&gt;AdjustFrame   = ZZZAdjustFrame;
-            pScrn-&gt;EnterVT       = ZZZEnterVT;
-            pScrn-&gt;LeaveVT       = ZZZLeaveVT;
-            pScrn-&gt;FreeScreen    = ZZZFreeScreen;
-            pScrn-&gt;ValidMode     = ZZZValidMode;
-            foundScreen = TRUE;
-        }
-    }
-    xfree(usedChips);
-#endif /* HAS_ISA_DEVS */
 
     xfree(devSections);
     return foundScreen;

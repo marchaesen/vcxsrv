@@ -43,7 +43,7 @@ struct util_range {
    unsigned end; /* exclusive */
 
    /* for the range to be consistent with multiple contexts: */
-   pipe_mutex write_mutex;
+   mtx_t write_mutex;
 };
 
 
@@ -59,10 +59,10 @@ static inline void
 util_range_add(struct util_range *range, unsigned start, unsigned end)
 {
    if (start < range->start || end > range->end) {
-      pipe_mutex_lock(range->write_mutex);
+      mtx_lock(&range->write_mutex);
       range->start = MIN2(start, range->start);
       range->end = MAX2(end, range->end);
-      pipe_mutex_unlock(range->write_mutex);
+      mtx_unlock(&range->write_mutex);
    }
 }
 
@@ -78,14 +78,14 @@ util_ranges_intersect(struct util_range *range, unsigned start, unsigned end)
 static inline void
 util_range_init(struct util_range *range)
 {
-   pipe_mutex_init(range->write_mutex);
+   (void) mtx_init(&range->write_mutex, mtx_plain);
    util_range_set_empty(range);
 }
 
 static inline void
 util_range_destroy(struct util_range *range)
 {
-   pipe_mutex_destroy(range->write_mutex);
+   mtx_destroy(&range->write_mutex);
 }
 
 #endif

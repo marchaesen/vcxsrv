@@ -72,9 +72,9 @@ AC_SUBST([OPENCL_VERSION])
 # codifies which drivers need which version of libdrm. Any libdrm
 # version dependencies in non-driver-specific code should be reflected
 # in the first entry.
-LIBDRM_REQUIRED=2.4.66
+LIBDRM_REQUIRED=2.4.75
 LIBDRM_RADEON_REQUIRED=2.4.71
-LIBDRM_AMDGPU_REQUIRED=2.4.63
+LIBDRM_AMDGPU_REQUIRED=2.4.76
 LIBDRM_INTEL_REQUIRED=2.4.75
 LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
@@ -104,8 +104,8 @@ ZLIB_REQUIRED=1.2.8
 dnl LLVM versions
 LLVM_REQUIRED_GALLIUM=3.3.0
 LLVM_REQUIRED_OPENCL=3.6.0
-LLVM_REQUIRED_R600=3.6.0
-LLVM_REQUIRED_RADEONSI=3.6.0
+LLVM_REQUIRED_R600=3.8.0
+LLVM_REQUIRED_RADEONSI=3.8.0
 LLVM_REQUIRED_RADV=3.9.0
 LLVM_REQUIRED_SWR=3.9.0
 
@@ -126,7 +126,6 @@ LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
 AC_CHECK_PROG(RM, rm, [rm -f])
-AC_CHECK_PROG(XXD, xxd, [xxd])
 
 AX_PROG_BISON([],
               AS_IF([test ! -f "$srcdir/src/compiler/glsl/glcpp/glcpp-parse.c"],
@@ -801,9 +800,10 @@ if test "x$android" = xno; then
     test -z "$PTHREAD_LIBS" && PTHREAD_LIBS="-lpthread"
 fi
 
-dnl pthread-stubs is mandatory on targets where it exists
+dnl pthread-stubs is mandatory on BSD platforms, due to the nature of the
+dnl project. Even then there's a notable issue as described in the project README
 case "$host_os" in
-cygwin* )
+linux* | cygwin* | darwin* | solaris* | gnu*)
     pthread_stubs_possible="no"
     ;;
 * )
@@ -812,7 +812,7 @@ cygwin* )
 esac
 
 if test "x$pthread_stubs_possible" = xyes; then
-    PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs)
+    PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs >= 0.4)
     AC_SUBST(PTHREADSTUBS_CFLAGS)
     AC_SUBST(PTHREADSTUBS_LIBS)
 fi
@@ -907,19 +907,19 @@ llvm_add_target() {
 # Call this inside ` ` to get the return value.
 # $1 is the llvm-config command with arguments.
 strip_unwanted_llvm_flags() {
-    # Use \> (marks the end of the word)
-    echo " `$1`" | sed \
-        -e 's/\s\+-m\S*//g' \
-        -e 's/\s\+-DNDEBUG\>//g' \
-        -e 's/\s\+-D_GNU_SOURCE\>//g' \
-        -e 's/\s\+-pedantic\>//g' \
-        -e 's/\s\+-W\S*//g' \
-        -e 's/\s\+-O\S*//g' \
-        -e 's/\s\+-g\S*//g' \
-        -e 's/-fno-rtti\>/-Fno-rtti/g' \
-        -e 's/\s\+-f\S*//g' \
-        -e 's/-Fno-rtti\>/-fno-rtti/g' \
-        -e 's/^ //'
+    echo " `$1` " | sed -E \
+        -e 's/[[[:space:]]]+-m[[^[:space:]]]*//g' \
+        -e 's/[[[:space:]]]+-DNDEBUG[[[:space:]]]/ /g' \
+        -e 's/[[[:space:]]]+-D_GNU_SOURCE[[[:space:]]]/ /g' \
+        -e 's/[[[:space:]]]+-pedantic[[[:space:]]]/ /g' \
+        -e 's/[[[:space:]]]+-W[[^[:space:]]]*//g' \
+        -e 's/[[[:space:]]]+-O[[^[:space:]]]*//g' \
+        -e 's/[[[:space:]]]+-g[[^[:space:]]]*//g' \
+        -e 's/-fno-rtti[[[:space:]]]/-Fno-rtti /g' \
+        -e 's/[[[:space:]]]+-f[[^[:space:]]]*//g' \
+        -e 's/-Fno-rtti[[[:space:]]]/-fno-rtti /g' \
+        -e 's/^[[[:space:]]]//' \
+        -e 's/[[[:space:]]]$//'
 }
 
 llvm_set_environment_variables() {
@@ -1012,9 +1012,8 @@ radeon_llvm_check() {
     llvm_add_component "bitreader" $2
     llvm_add_component "ipo" $2
 
-    NEED_RADEON_LLVM=yes
     if test "x$have_libelf" != xyes; then
-       AC_MSG_ERROR([$1 requires libelf when using llvm])
+       AC_MSG_ERROR([$2 requires libelf when using llvm])
     fi
 }
 
@@ -1787,13 +1786,12 @@ if test -n "$with_vulkan_drivers"; then
     for driver in $VULKAN_DRIVERS; do
         case "x$driver" in
         xintel)
-            if test "x$HAVE_I965_DRI" != xyes; then
-                AC_MSG_ERROR([Intel Vulkan driver requires the i965 dri driver])
-            fi
+            require_libdrm "ANV"
+            PKG_CHECK_MODULES([INTEL], [libdrm >= $LIBDRM_INTEL_REQUIRED libdrm_intel >= $LIBDRM_INTEL_REQUIRED])
             HAVE_INTEL_VULKAN=yes
-
             ;;
         xradeon)
+            require_libdrm "radv"
             PKG_CHECK_MODULES([AMDGPU], [libdrm >= $LIBDRM_AMDGPU_REQUIRED libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             radeon_llvm_check $LLVM_REQUIRED_RADV "radv"
             HAVE_RADEON_VULKAN=yes
@@ -2107,7 +2105,7 @@ PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland-scanner],
         WAYLAND_SCANNER=`$PKG_CONFIG --variable=wayland_scanner wayland-scanner`,
         WAYLAND_SCANNER='')
 if test "x$WAYLAND_SCANNER" = x; then
-    AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner])
+    AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner], [:])
 fi
 
 # Do per-EGL platform setups and checks
@@ -2118,7 +2116,7 @@ for plat in $egl_platforms; do
 
 		PKG_CHECK_MODULES([WAYLAND], [wayland-client >= $WAYLAND_REQUIRED wayland-server >= $WAYLAND_REQUIRED])
 
-		if test "x$WAYLAND_SCANNER" = x; then
+		if test "x$WAYLAND_SCANNER" = "x:"; then
 			AC_MSG_ERROR([wayland-scanner is needed to compile the wayland egl platform])
 		fi
 		;;
@@ -2203,7 +2201,8 @@ AC_ARG_WITH([omx-libdir],
     [AS_HELP_STRING([--with-omx-libdir=DIR],
         [directory for the OMX libraries])],
     [OMX_LIB_INSTALL_DIR="$withval"],
-    [OMX_LIB_INSTALL_DIR=`$PKG_CONFIG --define-variable=libdir=\$libdir --variable=pluginsdir libomxil-bellagio`])
+    [OMX_LIB_INSTALL_DIR=`$PKG_CONFIG --exists libomxil-bellagio && \
+                          $PKG_CONFIG --define-variable=libdir=\$libdir --variable=pluginsdir libomxil-bellagio`])
 AC_SUBST([OMX_LIB_INSTALL_DIR])
 
 dnl Directory for VA libs
@@ -2523,7 +2522,6 @@ AM_CONDITIONAL(NEED_RADEON_DRM_WINSYS, test "x$HAVE_GALLIUM_R300" = xyes -o \
                                             "x$HAVE_GALLIUM_R600" = xyes -o \
                                             "x$HAVE_GALLIUM_RADEONSI" = xyes)
 AM_CONDITIONAL(NEED_WINSYS_XLIB, test "x$enable_glx" = xgallium-xlib)
-AM_CONDITIONAL(NEED_RADEON_LLVM, test x$NEED_RADEON_LLVM = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_COMPUTE, test x$enable_opencl = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVM, test "x$enable_llvm" = xyes)
 AM_CONDITIONAL(USE_VC4_SIMULATOR, test x$USE_VC4_SIMULATOR = xyes)
@@ -2546,8 +2544,10 @@ AC_SUBST([NINE_VERSION], "$NINE_MAJOR.$NINE_MINOR.$NINE_TINY")
 AC_SUBST([VDPAU_MAJOR], 1)
 AC_SUBST([VDPAU_MINOR], 0)
 
-VA_MAJOR=`$PKG_CONFIG --modversion libva | $SED -n 's/\([[^\.]]*\)\..*$/\1/p'`
-VA_MINOR=`$PKG_CONFIG --modversion libva | $SED -n 's/.*\.\(.*\)\..*$/\1/p'`
+if test "x$enable_va" = xyes; then
+    VA_MAJOR=`$PKG_CONFIG --modversion libva | $SED -n 's/\([[^\.]]*\)\..*$/\1/p'`
+    VA_MINOR=`$PKG_CONFIG --modversion libva | $SED -n 's/.*\.\(.*\)\..*$/\1/p'`
+fi
 AC_SUBST([VA_MAJOR], $VA_MAJOR)
 AC_SUBST([VA_MINOR], $VA_MINOR)
 
@@ -2686,8 +2686,6 @@ AC_CONFIG_FILES([Makefile
 		src/glx/windows/windowsdriproto.pc
 		src/gtest/Makefile
 		src/intel/Makefile
-		src/intel/tools/Makefile
-		src/intel/vulkan/Makefile
 		src/loader/Makefile
 		src/mapi/Makefile
 		src/mapi/es1api/glesv1_cm.pc

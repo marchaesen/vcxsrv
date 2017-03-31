@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright 2009 VMware, Inc.
 # Copyright 2014 Intel Corporation

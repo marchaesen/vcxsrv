@@ -57,7 +57,7 @@ extern GLboolean
 _mesa_validate_MultiDrawElements(struct gl_context *ctx,
                                  GLenum mode, const GLsizei *count,
                                  GLenum type, const GLvoid * const *indices,
-                                 GLuint primcount);
+                                 GLsizei primcount);
 
 extern GLboolean
 _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,

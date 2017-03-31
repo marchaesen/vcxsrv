@@ -932,14 +932,21 @@ lower_continue:
              * break statement if necessary.
              */
             return_if->then_instructions.push_tail(new(ir) ir_loop_jump(ir_loop_jump::jump_break));
-         else
-            /* Otherwise, all we need to do is ensure that the
-             * instructions that follow are only executed if the
-             * return flag is clear.  We can do that by moving those
-             * instructions into the else clause of the generated if
+         else {
+            /* Otherwise, ensure that the instructions that follow are only
+             * executed if the return flag is clear.  We can do that by moving
+             * those instructions into the else clause of the generated if
              * statement.
              */
             move_outer_block_inside(ir, &return_if->else_instructions);
+
+            /* In case the loop is embedded inside an if add a new return to
+             * the return flag then branch and let a future pass tidy it up.
+             */
+            if (this->function.signature->return_type->is_void())
+               return_if->then_instructions.push_tail(new(ir) ir_return(NULL));
+         }
+
          ir->insert_after(return_if);
       }
 

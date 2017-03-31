@@ -138,7 +138,6 @@ XWIN_SYS_LIBS += -ldxguid
 
 XWIN_LIBS += \
 	$(top_builddir)/pseudoramiX/libPseudoramiX.la \
-	$(top_builddir)/Xext/libXextdpmsstubs.la \
 	$(top_builddir)/Xi/libXistubs.la
 
 XWin_DEPENDENCIES = \

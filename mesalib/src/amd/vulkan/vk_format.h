@@ -24,7 +24,8 @@
  * IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef VK_FORMAT_H
+#define VK_FORMAT_H
 
 #include <assert.h>
 #include <vulkan/vulkan.h>
@@ -443,3 +444,5 @@ vk_format_get_component_bits(VkFormat format,
 		return 0;
 	}
 }
+
+#endif /* VK_FORMAT_H */

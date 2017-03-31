@@ -300,7 +300,7 @@ glsl_type::sampler_index() const
 {
    const glsl_type *const t = (this->is_array()) ? this->fields.array : this;
 
-   assert(t->is_sampler());
+   assert(t->is_sampler() || t->is_image());
 
    switch (t->sampler_dimensionality) {
    case GLSL_SAMPLER_DIM_1D:

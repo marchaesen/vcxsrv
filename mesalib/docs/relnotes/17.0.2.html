@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.0.2 Release Notes / March 20, 2017</h1>
+
+<p>
+Mesa 17.0.2 is a bug fix release which fixes bugs found since the 17.0.1 release.
+</p>
+<p>
+Mesa 17.0.2 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+2e0f41e7974ba7a36ca32bbeaf8ebcd65c8fd4d2dc9872f04d4becbd5e7a8cb5  mesa-17.0.2.tar.gz
+f8f191f909e01e65de38d5bdea5fb057f21649a3aed20948be02348e77a689d4  mesa-17.0.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=68504">Bug 68504</a> - 9.2-rc1 workaround for clover build failure on ppc/altivec: cannot convert 'bool' to '__vector(4) __bool int' in return</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97988">Bug 97988</a> - [radeonsi] playing back videos with VDPAU exhibits deinterlacing/anti-aliasing issues not visible with VA-API</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99484">Bug 99484</a> - Crusader Kings 2 - Loading bars, siege bars, morale bars, etc. do not render correctly</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99715">Bug 99715</a> - Don't print: &quot;Note: Buggy applications may crash, if they do please report to vendor&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100049">Bug 100049</a> - &quot;ralloc: Make sure ralloc() allocations match malloc()'s alignment.&quot; causes seg fault in 32bit build</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (3):</p>
+<ul>
+  <li>radv: Emit pending flushes before executing a secondary command buffer</li>
+  <li>radv: Flush before copying with PKT3_WRITE_DATA in CmdUpdateBuffer</li>
+  <li>radv/ac: Fix shared memory offset calculation</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (3):</p>
+<ul>
+  <li>radv: Disable HTILE for textures with multiple layers/levels.</li>
+  <li>radv: Emit cache flushes before CP DMA.</li>
+  <li>Revert "radv: Emit cache flushes before CP DMA."</li>
+</ul>
+
+<p>Dave Airlie (3):</p>
+<ul>
+  <li>radv: drop Z24 support.</li>
+  <li>radv: disable mip point pre clamping.</li>
+  <li>radv: setup llvm target data layout</li>
+</ul>
+
+<p>Emil Velikov (4):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.0.1</li>
+  <li>cherry-ignore: add the swizzle blorp_clear fix</li>
+  <li>i965: move brw_define.h ifndef guard to the top</li>
+  <li>Update version to 17.0.2</li>
+</ul>
+
+<p>Fredrik Höglund (2):</p>
+<ul>
+  <li>radv: fix the dynamic buffer index in vkCmdBindDescriptorSets</li>
+  <li>radv/ac: fix multiple descriptor sets with dynamic buffers</li>
+</ul>
+
+<p>Gregory Hainaut (1):</p>
+<ul>
+  <li>glapi: fix typo in count_scale</li>
+</ul>
+
+<p>Ilia Mirkin (2):</p>
+<ul>
+  <li>nvc0: take extra pushbuf space into account for pushbuf_space calls</li>
+  <li>nvc0: increase alignment to 256 for texture buffers on fermi</li>
+</ul>
+
+<p>Jacob Lifshay (1):</p>
+<ul>
+  <li>vulkan/wsi: Improve the DRI3 error message</li>
+</ul>
+
+<p>James Legg (1):</p>
+<ul>
+  <li>radv: Fix using more than 4 bound descriptor sets</li>
+</ul>
+
+<p>Jason Ekstrand (7):</p>
+<ul>
+  <li>anv/blorp/clear_subpass: Only set surface clear color for fast clears</li>
+  <li>anv: Accurately advertise dynamic descriptor limits</li>
+  <li>anv: Stall before fast-clear operations</li>
+  <li>anv: Properly handle destroying NULL devices and instances</li>
+  <li>anv/blorp: Turn off AUX after doing a CCS_D resolve</li>
+  <li>anv/blorp: Only set a clear color for resolves if fast-cleared</li>
+  <li>nir/intrinsics: Make load_barycentric_input take a 2-component coor</li>
+</ul>
+
+<p>Jonas Pfeil (1):</p>
+<ul>
+  <li>ralloc: Make sure ralloc() allocations match malloc()'s alignment.</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>egl: Ensure ResetNotificationStrategy matches for shared contexts.</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>st/mesa: reset sample_mask, min_sample, and render_condition for PBO ops</li>
+  <li>st/mesa: set blend state for PBO readbacks</li>
+  <li>radeonsi: mark all bound shader buffer ranges as initialized</li>
+</ul>
+
+<p>Matt Turner (1):</p>
+<ul>
+  <li>clover: Work around build failure with AltiVec.</li>
+</ul>
+
+<p>Nanley Chery (2):</p>
+<ul>
+  <li>anv/pass: Avoid accessing attachment array out of bounds</li>
+  <li>anv/image: Remove extra dependency on HiZ-specific variable</li>
+</ul>
+
+<p>Nicolai Hähnle (2):</p>
+<ul>
+  <li>st/glsl_to_tgsi: avoid iterating past the head of the instruction list</li>
+  <li>st/mesa: inform the driver of framebuffer changes before compute dispatches</li>
+</ul>
+
+<p>Robert Foss (1):</p>
+<ul>
+  <li>mesa: Avoid read of uninitialized variable</li>
+</ul>
+
+<p>Samuel Iglesias Gonsálvez (5):</p>
+<ul>
+  <li>i965/fs: mark last DF uniform array element as 64 bit live one</li>
+  <li>i965/fs: detect different bit size accesses to uniforms to push them in proper locations</li>
+  <li>i965/fs: fix indirect load DF uniforms on BSW/BXT</li>
+  <li>i965/fs: fix source type when emitting MOV_INDIRECT to read ICP handles</li>
+  <li>i965/fs: emit MOV_INDIRECT with the source with the right register type</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radeonsi: disable sinking common instructions down to the end block</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -34,13 +34,13 @@ branches:
 clone_depth: 100
 
 cache:
-- win_flex_bison-2.4.5.zip
+- win_flex_bison-2.5.9.zip
 - llvm-3.3.1-msvc2013-mtd.7z
 
 os: Visual Studio 2013
 
 environment:
-  WINFLEXBISON_ARCHIVE: win_flex_bison-2.4.5.zip
+  WINFLEXBISON_ARCHIVE: win_flex_bison-2.5.9.zip
   LLVM_ARCHIVE: llvm-3.3.1-msvc2013-mtd.7z
 
 install:
@@ -48,11 +48,13 @@ install:
 - python --version
 - python -m pip --version
 # Install Mako
-- python -m pip install --egg Mako
+- python -m pip install Mako==1.0.6
 # Install pywin32 extensions, needed by SCons
 - python -m pip install pypiwin32
+# Install python wheels, necessary to install SCons via pip
+- python -m pip install wheel
 # Install SCons
-- python -m pip install --egg scons==2.4.1
+- python -m pip install scons==2.5.1
 - scons --version
 # Install flex/bison
 - if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "https://downloads.sourceforge.net/project/winflexbison/old_versions/%WINFLEXBISON_ARCHIVE%"

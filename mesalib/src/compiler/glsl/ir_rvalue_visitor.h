@@ -30,6 +30,9 @@
  * a pointer to each rvalue in the tree.
  */
 
+#ifndef GLSL_IR_RVALUE_VISITOR_H
+#define GLSL_IR_RVALUE_VISITOR_H
+
 class ir_rvalue_base_visitor : public ir_hierarchical_visitor {
 public:
    ir_visitor_status rvalue_visit(ir_assignment *);
@@ -81,3 +84,5 @@ public:
    virtual ir_visitor_status visit_enter(ir_emit_vertex *);
    virtual ir_visitor_status visit_enter(ir_end_primitive *);
 };
+
+#endif /* GLSL_IR_RVALUE_VISITOR_H */

@@ -280,16 +280,12 @@ _mesa_update_array_format(struct gl_context *ctx,
                           GLuint attrib, GLint size, GLenum type,
                           GLenum format, GLboolean normalized,
                           GLboolean integer, GLboolean doubles,
-                          GLuint relativeOffset, bool flush_vertices)
+                          GLuint relativeOffset)
 {
    struct gl_array_attributes *const array = &vao->VertexAttrib[attrib];
    GLint elementSize;
 
    assert(size <= 4);
-
-   if (flush_vertices) {
-      FLUSH_VERTICES(ctx, 0);
-   }
 
    elementSize = _mesa_bytes_per_vertex_attrib(size, type);
    assert(elementSize != -1);
@@ -439,8 +435,7 @@ update_array_format(struct gl_context *ctx,
    }
 
    _mesa_update_array_format(ctx, vao, attrib, size, type, format,
-                             normalized, integer, doubles, relativeOffset,
-                             false);
+                             normalized, integer, doubles, relativeOffset);
 
    return true;
 }
@@ -1558,7 +1553,7 @@ _mesa_MultiDrawArrays( GLenum mode, const GLint *first,
 
    for (i = 0; i < primcount; i++) {
       if (count[i] > 0) {
-         CALL_DrawArrays(ctx->CurrentDispatch, (mode, first[i], count[i]));
+         CALL_DrawArrays(ctx->CurrentClientDispatch, (mode, first[i], count[i]));
       }
    }
 }
@@ -1578,7 +1573,7 @@ _mesa_MultiModeDrawArraysIBM( const GLenum * mode, const GLint * first,
    for ( i = 0 ; i < primcount ; i++ ) {
       if ( count[i] > 0 ) {
          GLenum m = *((GLenum *) ((GLubyte *) mode + i * modestride));
-	 CALL_DrawArrays(ctx->CurrentDispatch, ( m, first[i], count[i] ));
+	 CALL_DrawArrays(ctx->CurrentServerDispatch, ( m, first[i], count[i] ));
       }
    }
 }
@@ -1600,8 +1595,8 @@ _mesa_MultiModeDrawElementsIBM( const GLenum * mode, const GLsizei * count,
    for ( i = 0 ; i < primcount ; i++ ) {
       if ( count[i] > 0 ) {
          GLenum m = *((GLenum *) ((GLubyte *) mode + i * modestride));
-	 CALL_DrawElements(ctx->CurrentDispatch, ( m, count[i], type,
-                                                   indices[i] ));
+	 CALL_DrawElements(ctx->CurrentServerDispatch, ( m, count[i], type,
+							 indices[i] ));
       }
    }
 }

@@ -118,6 +118,22 @@ if env['platform'] not in ('cygwin', 'darwin', 'windows', 'haiku'):
         env.Prepend(CPPPATH = [matypes[0].dir])
 
 
+# The marshal_generated.c file is generated from the GL/ES API.xml file
+env.CodeGenerate(
+    target = 'main/marshal_generated.c',
+    script = GLAPI + 'gen/gl_marshal.py',
+    source = [GLAPI + 'gen/gl_and_es_API.xml'] + env.Glob(GLAPI + 'gen/*.xml'),
+    command = python_cmd + ' $SCRIPT -f $SOURCE > $TARGET'
+    )
+
+# The marshal_generated.h file is generated from the GL/ES API.xml file
+env.CodeGenerate(
+    target = 'main/marshal_generated.h',
+    script = GLAPI + 'gen/gl_marshal_h.py',
+    source = [GLAPI + 'gen/gl_and_es_API.xml'] + env.Glob(GLAPI + 'gen/*.xml'),
+    command = python_cmd + ' $SCRIPT -f $SOURCE > $TARGET'
+    )
+
 #
 # Libraries
 #

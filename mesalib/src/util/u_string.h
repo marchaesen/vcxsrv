@@ -41,7 +41,6 @@
 #include <stddef.h>
 #include <stdarg.h>
 
-#include "pipe/p_compiler.h"
 #include "util/macros.h" // PRINTFLIKE
 
 
@@ -179,25 +178,6 @@ util_strstr(const char *haystack, const char *needle)
    return NULL;
 }
 
-static inline void *
-util_memmove(void *dest, const void *src, size_t n)
-{
-   char *p = (char *)dest;
-   const char *q = (const char *)src;
-   if (dest < src) {
-      while (n--)
-	 *p++ = *q++;
-   }
-   else
-   {
-      p += n;
-      q += n;
-      while (n--)
-	 *--p = *--q;
-   }
-   return dest;
-}
-
 
 #define util_strcasecmp stricmp
 
@@ -212,47 +192,9 @@ util_memmove(void *dest, const void *src, size_t n)
 #define util_strncmp strncmp
 #define util_strncat strncat
 #define util_strstr strstr
-#define util_memmove memmove
 #define util_strcasecmp strcasecmp
 
 #endif
-
-
-/**
- * Printable string buffer
- */
-struct util_strbuf
-{
-   char *str;
-   char *ptr;
-   size_t left;
-};
-
-
-static inline void
-util_strbuf_init(struct util_strbuf *sbuf, char *str, size_t size) 
-{
-   sbuf->str = str;
-   sbuf->str[0] = 0;
-   sbuf->ptr = sbuf->str;
-   sbuf->left = size;
-}
-
-
-static inline void
-util_strbuf_printf(struct util_strbuf *sbuf, const char *format, ...)
-{
-   if(sbuf->left > 1) {
-      size_t written;
-      va_list ap;
-      va_start(ap, format);
-      written = util_vsnprintf(sbuf->ptr, sbuf->left, format, ap);
-      va_end(ap);
-      sbuf->ptr += written;
-      sbuf->left -= written;
-   }
-}
-
 
 
 #ifdef __cplusplus

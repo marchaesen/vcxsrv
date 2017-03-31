@@ -30,7 +30,6 @@ LOCAL_C_INCLUDES += \
 	$(MESA_TOP)/include
 
 MESA_VERSION := $(shell cat $(MESA_TOP)/VERSION)
-# define ANDROID_VERSION (e.g., 4.0.x => 0x0400)
 LOCAL_CFLAGS += \
 	-Wno-unused-parameter \
 	-Wno-date-time \
@@ -39,8 +38,7 @@ LOCAL_CFLAGS += \
 	-Wno-initializer-overrides \
 	-Wno-mismatched-tags \
 	-DPACKAGE_VERSION=\"$(MESA_VERSION)\" \
-	-DPACKAGE_BUGREPORT=\"https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa\" \
-	-DANDROID_VERSION=0x0$(MESA_ANDROID_MAJOR_VERSION)0$(MESA_ANDROID_MINOR_VERSION)
+	-DPACKAGE_BUGREPORT=\"https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa\"
 
 LOCAL_CFLAGS += \
 	-DENABLE_SHADER_CACHE \
@@ -67,7 +65,9 @@ LOCAL_CFLAGS += \
 LOCAL_CPPFLAGS += \
 	-D__STDC_CONSTANT_MACROS \
 	-D__STDC_FORMAT_MACROS \
-	-D__STDC_LIMIT_MACROS
+	-D__STDC_LIMIT_MACROS \
+	-Wno-error=non-virtual-dtor \
+	-Wno-non-virtual-dtor
 
 # mesa requires at least c99 compiler
 LOCAL_CONLYFLAGS += \
@@ -76,7 +76,7 @@ LOCAL_CONLYFLAGS += \
 ifeq ($(strip $(MESA_ENABLE_ASM)),true)
 ifeq ($(TARGET_ARCH),x86)
 LOCAL_CFLAGS += \
-	-DUSE_X86_ASM \
+	-DUSE_X86_ASM
 
 endif
 endif
@@ -104,17 +104,8 @@ LOCAL_SHARED_LIBRARIES += libdrm
 endif
 endif
 
-LOCAL_CPPFLAGS += \
-	$(if $(filter true,$(MESA_LOLLIPOP_BUILD)),-D_USING_LIBCXX) \
-	-Wno-error=non-virtual-dtor \
-	-Wno-non-virtual-dtor
-
-ifeq ($(MESA_LOLLIPOP_BUILD),true)
-  LOCAL_CFLAGS_32 += -DDEFAULT_DRIVER_DIR=\"/system/lib/$(MESA_DRI_MODULE_REL_PATH)\"
-  LOCAL_CFLAGS_64 += -DDEFAULT_DRIVER_DIR=\"/system/lib64/$(MESA_DRI_MODULE_REL_PATH)\"
-else
-  LOCAL_CFLAGS += -DDEFAULT_DRIVER_DIR=\"/system/lib/$(MESA_DRI_MODULE_REL_PATH)\"
-endif
+LOCAL_CFLAGS_32 += -DDEFAULT_DRIVER_DIR=\"/system/lib/$(MESA_DRI_MODULE_REL_PATH)\"
+LOCAL_CFLAGS_64 += -DDEFAULT_DRIVER_DIR=\"/system/lib64/$(MESA_DRI_MODULE_REL_PATH)\"
 
 # uncomment to keep the debug symbols
 #LOCAL_STRIP_MODULE := false
@@ -126,4 +117,6 @@ endif
 # Quiet down the build system and remove any .h files from the sources
 LOCAL_SRC_FILES := $(patsubst %.h, , $(LOCAL_SRC_FILES))
 
+ifneq ($(LOCAL_IS_HOST_MODULE),true)
 LOCAL_SHARED_LIBRARIES += libz
+endif

@@ -32,7 +32,7 @@ static const char dash_vs_vars[] =
 
 static const char dash_vs_exec[] =
     "       dash_offset = primitive.z / dash_length;\n"
-    "       vec2_pos = vec2(0,0);\n"
+    "       vec2 pos = vec2(0,0);\n"
     GLAMOR_POS(gl_Position, primitive.xy);
 
 static const char dash_fs_vars[] =
@@ -147,7 +147,7 @@ glamor_dash_setup(DrawablePtr drawable, GCPtr gc)
         goto bail;
 
     dash_pixmap = glamor_get_dash_pixmap(gc);
-    dash_priv = glamor_get_pixmap_private(pixmap);
+    dash_priv = glamor_get_pixmap_private(dash_pixmap);
 
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(dash_priv))
         goto bail;

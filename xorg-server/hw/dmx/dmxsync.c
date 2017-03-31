@@ -182,7 +182,7 @@ dmxSync(DMXScreenInfo * dmxScreen, Bool now)
 
         /* Do sync or set time for later */
         if (now || !dmxScreen) {
-            if (!TimerForce(dmxSyncTimer))
+            if (dmxSyncTimer == NULL || !TimerForce(dmxSyncTimer))
                 dmxSyncCallback(NULL, 0, NULL);
             /* At this point, dmxSyncPending == 0 because
              * dmxSyncCallback must have been called. */

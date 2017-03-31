@@ -154,10 +154,11 @@ nir_lower_var_copy_instr(nir_intrinsic_instr *copy, nir_shader *shader)
                         &copy->variables[1]->deref, shader);
 }
 
-static void
+static bool
 lower_var_copies_impl(nir_function_impl *impl)
 {
    nir_shader *shader = impl->function->shader;
+   bool progress = false;
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -171,19 +172,30 @@ lower_var_copies_impl(nir_function_impl *impl)
          nir_lower_var_copy_instr(copy, shader);
 
          nir_instr_remove(&copy->instr);
+         progress = true;
          ralloc_free(copy);
       }
    }
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+
+   return progress;
 }
 
 /* Lowers every copy_var instruction in the program to a sequence of
  * load/store instructions.
  */
-void
+bool
 nir_lower_var_copies(nir_shader *shader)
 {
+   bool progress = false;
+
    nir_foreach_function(function, shader) {
       if (function->impl)
-         lower_var_copies_impl(function->impl);
+         progress |= lower_var_copies_impl(function->impl);
    }
+
+   return progress;
 }

@@ -2400,6 +2400,18 @@ static inline GLbitfield gl_external_samplers(struct gl_program *prog)
 }
 
 /**
+ * Compile status enum. compile_skipped is used to indicate the compile
+ * was skipped due to the shader matching one that's been seen before by
+ * the on-disk cache.
+ */
+enum gl_compile_status
+{
+   compile_failure = 0,
+   compile_success,
+   compile_skipped
+};
+
+/**
  * A GLSL shader object.
  */
 struct gl_shader
@@ -2415,7 +2427,7 @@ struct gl_shader
    GLchar *Label;   /**< GL_KHR_debug */
    unsigned char sha1[20]; /**< SHA1 hash of pre-processed source */
    GLboolean DeletePending;
-   GLboolean CompileStatus;
+   enum gl_compile_status CompileStatus;
    bool IsES;              /**< True if this shader uses GLSL ES */
 
 #ifdef DEBUG
@@ -2870,15 +2882,13 @@ struct gl_shader_program
 
 #define GLSL_DUMP      0x1  /**< Dump shaders to stdout */
 #define GLSL_LOG       0x2  /**< Write shaders to files */
-#define GLSL_OPT       0x4  /**< Force optimizations (override pragmas) */
-#define GLSL_NO_OPT    0x8  /**< Force no optimizations (override pragmas) */
-#define GLSL_UNIFORMS 0x10  /**< Print glUniform calls */
-#define GLSL_NOP_VERT 0x20  /**< Force no-op vertex shaders */
-#define GLSL_NOP_FRAG 0x40  /**< Force no-op fragment shaders */
-#define GLSL_USE_PROG 0x80  /**< Log glUseProgram calls */
-#define GLSL_REPORT_ERRORS 0x100  /**< Print compilation errors */
-#define GLSL_DUMP_ON_ERROR 0x200 /**< Dump shaders to stderr on compile error */
-#define GLSL_CACHE_INFO 0x400 /**< Print debug information about shader cache */
+#define GLSL_UNIFORMS  0x4  /**< Print glUniform calls */
+#define GLSL_NOP_VERT  0x8  /**< Force no-op vertex shaders */
+#define GLSL_NOP_FRAG 0x10  /**< Force no-op fragment shaders */
+#define GLSL_USE_PROG 0x20  /**< Log glUseProgram calls */
+#define GLSL_REPORT_ERRORS 0x40  /**< Print compilation errors */
+#define GLSL_DUMP_ON_ERROR 0x80 /**< Dump shaders to stderr on compile error */
+#define GLSL_CACHE_INFO 0x100 /**< Print debug information about shader cache */
 
 
 /**
@@ -3544,6 +3554,12 @@ struct gl_constants
    GLboolean AllowHigherCompatVersion;
 
    /**
+    * Force computing the absolute value for sqrt() and inversesqrt() to follow
+    * D3D9 when apps rely on this behaviour.
+    */
+   GLboolean ForceGLSLAbsSqrt;
+
+   /**
     * Force uninitialized variables to default to zero.
     */
    GLboolean GLSLZeroInit;
@@ -4082,10 +4098,10 @@ struct gl_matrix_stack
 #define _NEW_POLYGONSTIPPLE    (1u << 13)  /**< gl_context::PolygonStipple */
 #define _NEW_SCISSOR           (1u << 14)  /**< gl_context::Scissor */
 #define _NEW_STENCIL           (1u << 15)  /**< gl_context::Stencil */
-#define _NEW_TEXTURE           (1u << 16)  /**< gl_context::Texture */
+#define _NEW_TEXTURE_OBJECT    (1u << 16)  /**< gl_context::Texture (bindings only) */
 #define _NEW_TRANSFORM         (1u << 17)  /**< gl_context::Transform */
 #define _NEW_VIEWPORT          (1u << 18)  /**< gl_context::Viewport */
-/* gap, re-use for core Mesa state only; use ctx->DriverFlags otherwise */
+#define _NEW_TEXTURE_STATE     (1u << 19)  /**< gl_context::Texture (states only) */
 #define _NEW_ARRAY             (1u << 20)  /**< gl_context::Array */
 #define _NEW_RENDERMODE        (1u << 21)  /**< gl_context::RenderMode, etc */
 #define _NEW_BUFFERS           (1u << 22)  /**< gl_context::Visual, DrawBuffer, */
@@ -4106,8 +4122,10 @@ struct gl_matrix_stack
  * Composite state flags
  */
 /*@{*/
+#define _NEW_TEXTURE   (_NEW_TEXTURE_OBJECT | _NEW_TEXTURE_STATE)
+
 #define _MESA_NEW_NEED_EYE_COORDS         (_NEW_LIGHT |		\
-                                           _NEW_TEXTURE |	\
+                                           _NEW_TEXTURE_STATE |	\
                                            _NEW_POINT |		\
                                            _NEW_PROGRAM |	\
                                            _NEW_MODELVIEW)
@@ -4393,6 +4411,7 @@ struct gl_context
    /** \name API function pointer tables */
    /*@{*/
    gl_api API;
+
    /**
     * The current dispatch table for non-displaylist-saving execution, either
     * BeginEnd or OutsideBeginEnd
@@ -4415,11 +4434,27 @@ struct gl_context
     */
    struct _glapi_table *ContextLost;
    /**
-    * Tracks the current dispatch table out of the 4 above, so that it can be
-    * re-set on glXMakeCurrent().
+    * Dispatch table used to marshal API calls from the client program to a
+    * separate server thread.  NULL if API calls are not being marshalled to
+    * another thread.
     */
-   struct _glapi_table *CurrentDispatch;
+   struct _glapi_table *MarshalExec;
+   /**
+    * Dispatch table currently in use for fielding API calls from the client
+    * program.  If API calls are being marshalled to another thread, this ==
+    * MarshalExec.  Otherwise it == CurrentServerDispatch.
+    */
+   struct _glapi_table *CurrentClientDispatch;
+
+   /**
+    * Dispatch table currently in use for performing API calls.  == Save or
+    * Exec.
+    */
+   struct _glapi_table *CurrentServerDispatch;
+
    /*@}*/
+
+   struct glthread_state *GLThread;
 
    struct gl_config Visual;
    struct gl_framebuffer *DrawBuffer;	/**< buffer for writing */

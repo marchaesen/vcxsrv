@@ -1385,7 +1385,7 @@ _mesa_PopAttrib(void)
                struct texture_state *texstate
                   = (struct texture_state *) attr->data;
                pop_texture_group(ctx, texstate);
-	       ctx->NewState |= _NEW_TEXTURE;
+	       ctx->NewState |= _NEW_TEXTURE_OBJECT | _NEW_TEXTURE_STATE;
             }
             break;
          case GL_VIEWPORT_BIT:

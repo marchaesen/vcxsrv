@@ -865,8 +865,9 @@ _mesa_Materialf( GLenum face, GLenum pname, GLfloat param )
 void GLAPIENTRY
 _mesa_Materiali(GLenum face, GLenum pname, GLint param )
 {
-   GLfloat p = (GLfloat) param;
-   MATERIALFV(face, pname, &p);
+   GLfloat p[4];
+   p[0] = (GLfloat) param;
+   MATERIALFV(face, pname, p);
 }
 
 void GLAPIENTRY

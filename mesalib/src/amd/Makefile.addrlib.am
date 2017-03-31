@@ -26,7 +26,9 @@ addrlib_libamdgpu_addrlib_la_CPPFLAGS = \
 	-I$(srcdir)/common \
 	-I$(srcdir)/addrlib \
 	-I$(srcdir)/addrlib/core \
+	-I$(srcdir)/addrlib/inc/chip/gfx9 \
 	-I$(srcdir)/addrlib/inc/chip/r800 \
+	-I$(srcdir)/addrlib/gfx9/chip \
 	-I$(srcdir)/addrlib/r800/chip \
 	-DBRAHMA_BUILD=1
 

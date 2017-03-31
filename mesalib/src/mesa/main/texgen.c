@@ -133,7 +133,7 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
             return;
          }
 
-         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
          texgen->Mode = mode;
          texgen->_ModeBit = bit;
       }
@@ -147,7 +147,7 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
          }
          if (TEST_EQ_4V(texgen->ObjectPlane, params))
             return;
-         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
          COPY_4FV(texgen->ObjectPlane, params);
       }
       break;
@@ -169,7 +169,7 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
                                 ctx->ModelviewMatrixStack.Top->inv);
          if (TEST_EQ_4V(texgen->EyePlane, tmp))
             return;
-         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
          COPY_4FV(texgen->EyePlane, tmp);
       }
       break;

@@ -504,6 +504,9 @@ link_uniform_blocks_are_compatible(const gl_uniform_block *a,
    if (a->_RowMajor != b->_RowMajor)
       return false;
 
+   if (a->Binding != b->Binding)
+      return false;
+
    for (unsigned i = 0; i < a->NumUniforms; i++) {
       if (strcmp(a->Uniforms[i].Name, b->Uniforms[i].Name) != 0)
          return false;

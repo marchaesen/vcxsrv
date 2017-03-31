@@ -34,88 +34,88 @@
     <function name="Uniform1dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count"/>
     </function>
 
     <function name="Uniform2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="2"/>
     </function>
 
     <function name="Uniform3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="3"/>
     </function>
 
     <function name="Uniform4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="4"/>
     </function>
 
     <function name="UniformMatrix2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="4"/>
     </function>
 
     <function name="UniformMatrix3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="9"/>
     </function>
 
     <function name="UniformMatrix4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="16"/>
     </function>
 
     <function name="UniformMatrix2x3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="6"/>
     </function>
 
     <function name="UniformMatrix2x4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="8"/>
     </function>
 
     <function name="UniformMatrix3x2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="6"/>
     </function>
 
     <function name="UniformMatrix3x4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="12"/>
     </function>
 
     <function name="UniformMatrix4x2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="8"/>
     </function>
 
     <function name="UniformMatrix4x3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
+        <param name="value" type="const GLdouble *" count="count" count_scale="12"/>
     </function>
 
     <function name="GetUniformdv">

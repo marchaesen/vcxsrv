@@ -25,8 +25,8 @@
  *
  **************************************************************************/
 
-#pragma once
-
+#ifndef NIR_VLA_H
+#define NIR_VLA_H
 
 #include "c99_alloca.h"
 
@@ -52,3 +52,5 @@
  */
 #define NIR_VLA_ZERO(_type, _name, _length) \
    NIR_VLA_FILL(_type, _name, _length, 0)
+
+#endif /* NIR_VLA_H */

@@ -445,8 +445,6 @@ xf86VTLeave(void)
     for (i = 0; i < xf86NumGPUScreens; i++)
         xf86GPUScreens[i]->LeaveVT(xf86GPUScreens[i]);
 
-    xf86AccessLeave();      /* We need this here, otherwise */
-
     if (!xf86VTSwitchAway())
         goto switch_failed;
 
@@ -472,7 +470,6 @@ xf86VTLeave(void)
 
 switch_failed:
     DebugF("xf86VTSwitch: Leave failed\n");
-    xf86AccessEnter();
     for (i = 0; i < xf86NumScreens; i++) {
         if (!xf86Screens[i]->EnterVT(xf86Screens[i]))
             FatalError("EnterVT failed for screen %d\n", i);
@@ -517,7 +514,6 @@ xf86VTEnter(void)
 
     if (xorgHWAccess)
         xf86EnableIO();
-    xf86AccessEnter();
     for (i = 0; i < xf86NumScreens; i++) {
         xf86Screens[i]->vtSema = TRUE;
         if (!xf86Screens[i]->EnterVT(xf86Screens[i]))

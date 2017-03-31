@@ -599,6 +599,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_robust_buffer_access_behavior), PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR   },
       { o(ARB_sample_shading),               PIPE_CAP_SAMPLE_SHADING                   },
       { o(ARB_seamless_cube_map),            PIPE_CAP_SEAMLESS_CUBE_MAP                },
+      { o(ARB_shader_clock),                 PIPE_CAP_TGSI_CLOCK                       },
       { o(ARB_shader_draw_parameters),       PIPE_CAP_DRAW_PARAMETERS                  },
       { o(ARB_shader_group_vote),            PIPE_CAP_TGSI_VOTE                        },
       { o(ARB_shader_stencil_export),        PIPE_CAP_SHADER_STENCIL_EXPORT            },
@@ -880,6 +881,8 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    consts->AllowHigherCompatVersion = options->allow_higher_compat_version;
+
+   consts->ForceGLSLAbsSqrt = options->force_glsl_abs_sqrt;
 
    consts->dri_config_options_sha1 = options->config_options_sha1;
 

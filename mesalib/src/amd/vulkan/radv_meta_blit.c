@@ -246,8 +246,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	unsigned vb_size = 3 * sizeof(*vb_data);
 	vb_data[0] = (struct blit_vb_data) {
 		.pos = {
-			dest_offset_0.x,
-			dest_offset_0.y,
+			-1.0,
+			-1.0,
 		},
 		.tex_coord = {
 			(float)src_offset_0.x / (float)src_iview->extent.width,
@@ -258,8 +258,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 
 	vb_data[1] = (struct blit_vb_data) {
 		.pos = {
-			dest_offset_0.x,
-			dest_offset_1.y,
+			-1.0,
+			1.0,
 		},
 		.tex_coord = {
 			(float)src_offset_0.x / (float)src_iview->extent.width,
@@ -270,8 +270,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 
 	vb_data[2] = (struct blit_vb_data) {
 		.pos = {
-			dest_offset_1.x,
-			dest_offset_0.y,
+			1.0,
+			-1.0,
 		},
 		.tex_coord = {
 			(float)src_offset_1.x / (float)src_iview->extent.width,
@@ -443,6 +443,23 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 				   VK_PIPELINE_BIND_POINT_GRAPHICS,
 				   device->meta_state.blit.pipeline_layout, 0, 1,
 				   &set, 0, NULL);
+
+	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
+		.x = dest_offset_0.x,
+		.y = dest_offset_0.y,
+		.width = dest_offset_1.x - dest_offset_0.x,
+		.height = dest_offset_1.y - dest_offset_0.y,
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	});
+
+	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
+		.offset = (VkOffset2D) { MIN2(dest_offset_0.x, dest_offset_1.x), MIN2(dest_offset_0.y, dest_offset_1.y) },
+		.extent = (VkExtent2D) {
+			abs(dest_offset_1.x - dest_offset_0.x),
+			abs(dest_offset_1.y - dest_offset_0.y)
+		},
+	});
 
 	radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 
@@ -813,8 +830,8 @@ radv_device_init_meta_blit_color(struct radv_device *device,
 			},
 			.pViewportState = &(VkPipelineViewportStateCreateInfo) {
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-				.viewportCount = 0,
-				.scissorCount = 0,
+				.viewportCount = 1,
+				.scissorCount = 1,
 			},
 			.pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -842,8 +859,10 @@ radv_device_init_meta_blit_color(struct radv_device *device,
 			},
 			.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-				.dynamicStateCount = 2,
+				.dynamicStateCount = 4,
 				.pDynamicStates = (VkDynamicState[]) {
+					VK_DYNAMIC_STATE_VIEWPORT,
+					VK_DYNAMIC_STATE_SCISSOR,
 					VK_DYNAMIC_STATE_LINE_WIDTH,
 					VK_DYNAMIC_STATE_BLEND_CONSTANTS,
 				},
@@ -990,8 +1009,8 @@ radv_device_init_meta_blit_depth(struct radv_device *device,
 		},
 		.pViewportState = &(VkPipelineViewportStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 0,
-			.scissorCount = 0,
+			.viewportCount = 1,
+			.scissorCount = 1,
 		},
 		.pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -1019,8 +1038,10 @@ radv_device_init_meta_blit_depth(struct radv_device *device,
 		},
 		.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = 7,
+			.dynamicStateCount = 9,
 			.pDynamicStates = (VkDynamicState[]) {
+				VK_DYNAMIC_STATE_VIEWPORT,
+				VK_DYNAMIC_STATE_SCISSOR,
 				VK_DYNAMIC_STATE_LINE_WIDTH,
 				VK_DYNAMIC_STATE_DEPTH_BIAS,
 				VK_DYNAMIC_STATE_BLEND_CONSTANTS,
@@ -1169,8 +1190,8 @@ radv_device_init_meta_blit_stencil(struct radv_device *device,
 		},
 		.pViewportState = &(VkPipelineViewportStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 0,
-			.scissorCount = 0,
+			.viewportCount = 1,
+			.scissorCount = 1,
 		},
 		.pRasterizationState = &(VkPipelineRasterizationStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -1218,8 +1239,10 @@ radv_device_init_meta_blit_stencil(struct radv_device *device,
 
 		.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = 4,
+			.dynamicStateCount = 6,
 			.pDynamicStates = (VkDynamicState[]) {
+				VK_DYNAMIC_STATE_VIEWPORT,
+				VK_DYNAMIC_STATE_SCISSOR,
 				VK_DYNAMIC_STATE_LINE_WIDTH,
 				VK_DYNAMIC_STATE_DEPTH_BIAS,
 				VK_DYNAMIC_STATE_BLEND_CONSTANTS,

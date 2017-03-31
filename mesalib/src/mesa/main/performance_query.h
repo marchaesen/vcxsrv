@@ -26,7 +26,6 @@
  * Core Mesa support for the INTEL_performance_query extension
  */
 
-#pragma once
 #ifndef PERFORMANCE_QUERY_H
 #define PERFORMANCE_QUERY_H
 

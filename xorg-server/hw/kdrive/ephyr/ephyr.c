@@ -23,8 +23,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <kdrive-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 
 #include <xcb/xcb_keysyms.h>
@@ -728,8 +728,10 @@ ephyrCreateResources(ScreenPtr pScreen)
                            ephyrShadowUpdate, ephyrWindowLinear);
     else {
 #ifdef GLAMOR
-        if (ephyr_glamor)
-            ephyr_glamor_create_screen_resources(pScreen);
+        if (ephyr_glamor) {
+            if (!ephyr_glamor_create_screen_resources(pScreen))
+                return FALSE;
+        }
 #endif
         return ephyrSetInternalDamage(pScreen);
     }

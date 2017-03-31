@@ -120,6 +120,11 @@ DRI_CONF_OPT_BEGIN_B(allow_higher_compat_version, def) \
         DRI_CONF_DESC(en,gettext("Allow a higher compat profile (version 3.1+) for apps that request it")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_FORCE_GLSL_ABS_SQRT(def) \
+DRI_CONF_OPT_BEGIN_B(force_glsl_abs_sqrt, def) \
+        DRI_CONF_DESC(en,gettext("Force computing the absolute value for sqrt() and inversesqrt()")) \
+DRI_CONF_OPT_END
+
 
 
 /**
@@ -313,6 +318,10 @@ DRI_CONF_OPT_BEGIN_V(texture_heaps,enum,def,"0:2") \
 	DRI_CONF_DESC_END \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_MESA_GLTHREAD(def) \
+DRI_CONF_OPT_BEGIN_B(mesa_glthread, def) \
+        DRI_CONF_DESC(en,gettext("Enable offloading GL driver work to a separate thread")) \
+DRI_CONF_OPT_END
 
 
 /**

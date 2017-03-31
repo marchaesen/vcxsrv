@@ -46,8 +46,6 @@ miChangeGC(GCPtr pGC, unsigned long mask)
 void
 miDestroyGC(GCPtr pGC)
 {
-    if (pGC->pRotatedPixmap)
-        (*pGC->pScreen->DestroyPixmap) (pGC->pRotatedPixmap);
     if (pGC->freeCompClip)
         RegionDestroy(pGC->pCompositeClip);
 }

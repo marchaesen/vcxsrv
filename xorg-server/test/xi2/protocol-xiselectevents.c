@@ -65,15 +65,15 @@ static unsigned char *data[4096 * 20];  /* the request data buffer */
 ClientRec client_window;
 
 int
-__real_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len,
-                      unsigned char *mask);
+__real_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
+                      int len, unsigned char *mask);
 
 int
-__wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len,
-                      unsigned char *mask)
+__wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
+                      int len, unsigned char *mask)
 {
     if (!enable_XISetEventMask_wrap)
-        return __real_XISetEventMask(dev, win, len, mask);
+        return __real_XISetEventMask(dev, win, client, len, mask);
 
     return Success;
 }

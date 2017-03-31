@@ -1,4 +1,4 @@
-.\" Copyright 1999 Oracle and/or its affiliates. All rights reserved.
+.\" Copyright 1999, 2017, Oracle and/or its affiliates. All rights reserved.
 .\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a
 .\" copy of this software and associated documentation files (the "Software"),
@@ -26,9 +26,19 @@ the state of the indicator; sets the indicator to a specified state and sets the
 indicator map for the indicator
 .SH SYNOPSIS
 .HP
-.B Bool XkbSetNamedIndicator
+.HP
+.B Bool XkbSetNamedDeviceIndicator
 .BI "(\^Display *" "dpy" "\^,"
 .BI "unsigned int " "device_spec" "\^,"
+.BI "unsigned int " "led_class" "\^,"
+.BI "unsigned int " "led_id" "\^,"
+.BI "Atom " "name" "\^,"
+.BI "Bool " "change_state" "\^,"
+.BI "Bool " "state" "\^,"
+.BI "Bool " "create_new" "\^,"
+.BI "XkbIndicatorMapPtr " "map" "\^);"
+.B Bool XkbSetNamedIndicator
+.BI "(\^Display *" "dpy" "\^,"
 .BI "Atom " "name" "\^,"
 .BI "Bool " "change_state" "\^,"
 .BI "Bool " "state" "\^,"
@@ -43,6 +53,12 @@ connection to the X server
 .TP
 .I \- device_spec
 device ID, or XkbUseCoreKbd
+.TP
+.I \- led_class
+feedback class, or XkbDfltXIClass
+.TP
+.I \- led_id
+feedback ID, or XkbDfltXIId
 .TP
 .I \- name
 name of the indicator to change
@@ -61,7 +77,7 @@ new map for the indicator
 .SH DESCRIPTION
 .LP
 If a compatible version of the Xkb extension is not available in the server, 
-.I XkbSetNamedIndicator 
+.I XkbSetNamedDeviceIndicator
 returns False. Otherwise, it sends a request to the X server to change the 
 indicator specified by 
 .I name 
@@ -69,13 +85,16 @@ and returns True.
  
 If 
 .I change_state 
-is True, and the optional parameter, 
-.I state, 
-is not NULL, 
-.I XkbSetNamedIndicator 
+is True, 
+.I XkbSetNamedDeviceIndicator
 tells the server to change the state of the named indicator to the value 
 specified by 
-.I state. 
+.IR state .
+If
+.I change_state
+is False, then
+.I state
+is not used.
 
 If an indicator with the name specified by 
 .I name 
@@ -85,26 +104,45 @@ parameter tells the server whether it should create a new named indicator. If
 .I create_new 
 is True, the server finds the first indicator that doesn't have a name and gives 
 it the name specified by 
-.I name. 
+.IR name .
 If the optional parameter, 
-.I map, is not NULL, 
-.I XkbSetNamedIndicator 
+.IR map ,
+is not NULL,
+.I XkbSetNamedDeviceIndicator
 tells the server to change the indicator's map to the values specified in 
-.I map.
+.IR map .
 
 In addition, it can also generate XkbIndicatorStateNotify, 
 XkbIndicatorMapNotify, and XkbNamesNotify events.
+.LP
+.I XkbSetNamedIndicator
+is a convenience function that calls
+.I XkbSetNamedDeviceIndicator
+with a
+.I device_spec
+of
+.BR XkbUseCoreKbd ,
+a
+.I led_class
+of
+.BR XkbDfltXIClass ,
+and a
+.I led_id
+of
+.BR XkbDfltXIId .
+It returns the return value from
+.IR XkbSetNamedDeviceIndicator .
 .SH "RETURN VALUES"
 .TP 15
 True
 The 
-.I XkbSetNamedIndicator 
-function returns True if a compatible version of the Xkb extension is available in the server.
+.IR XkbSetNamedIndicator " and " XkbSetNamedDeviceIndicator
+functions return True if a compatible version of the Xkb extension is available in the server.
 .TP 15
 False
 The 
-.I XkbSetNamedIndicator 
-function returns False if a compatible version of the Xkb extension is not available in the server.
+.IR XkbSetNamedIndicator " and " XkbSetNamedDeviceIndicator
+functions return False if a compatible version of the Xkb extension is not available in the server.
 .SH DIAGNOSTICS
 .TP 15
 .B BadAtom
@@ -112,6 +150,24 @@ A name is neither a valid Atom or None
 .TP 15
 .B BadImplementation
 Invalid reply from server
+.TP 15
+.B BadKeyboard
+.I device_spec
+does not specify a device with indicators.
+.TP 15
+.B BadMatch
+.I led_id
+is not
+.B DfltXIId
+and does not specify a feedback of the class specified by
+.I led_class
+on the device specified by
+.IR device_spec .
+.TP 15
+.B BadValue
+.I led_class
+does not specify
+.BR DfltXIClass ", " LedFeedbackClass ", or " KbdFeedbackClass .
 .SH "SEE ALSO"
 .BR XkbIndicatorMapNotify (__libmansuffix__),
 .BR XkbIndicatorStateNotify (__libmansuffix__),

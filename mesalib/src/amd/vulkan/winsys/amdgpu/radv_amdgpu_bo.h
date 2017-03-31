@@ -31,17 +31,41 @@
 
 #include "radv_amdgpu_winsys.h"
 
-struct radv_amdgpu_winsys_bo {
-	amdgpu_bo_handle bo;
-	amdgpu_va_handle va_handle;
 
-	uint64_t va;
-	enum radeon_bo_domain initial_domain;
+struct radv_amdgpu_map_range {
+	uint64_t offset;
 	uint64_t size;
-	bool is_shared;
+	struct radv_amdgpu_winsys_bo *bo;
+	uint64_t bo_offset;
+};
 
+struct radv_amdgpu_winsys_bo {
+	amdgpu_va_handle va_handle;
+	uint64_t va;
+	uint64_t size;
 	struct radv_amdgpu_winsys *ws;
-	struct list_head global_list_item;
+	bool is_virtual;
+	int ref_count;
+
+	union {
+		/* physical bo */
+		struct {
+			amdgpu_bo_handle bo;
+			enum radeon_bo_domain initial_domain;
+			bool is_shared;
+			struct list_head global_list_item;
+		};
+		/* virtual bo */
+		struct {
+			struct radv_amdgpu_map_range *ranges;
+			uint32_t range_count;
+			uint32_t range_capacity;
+
+			struct radv_amdgpu_winsys_bo **bos;
+			uint32_t bo_count;
+			uint32_t bo_capacity;
+		};
+	};
 };
 
 static inline

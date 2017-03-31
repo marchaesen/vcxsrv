@@ -27,7 +27,6 @@
  * INTEL_performance_query extension.
  */
 
-#pragma once
 #ifndef PERFORMANCE_MONITOR_H
 #define PERFORMANCE_MONITOR_H
 

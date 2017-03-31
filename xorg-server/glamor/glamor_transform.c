@@ -33,7 +33,7 @@
  * clipping computations can be adjusted as appropriate
  */
 
-void
+Bool
 glamor_set_destination_drawable(DrawablePtr     drawable,
                                 int             box_index,
                                 Bool            do_drawable_translate,
@@ -53,6 +53,11 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
     float scale_x = 2.0f / (float) w;
     float scale_y = 2.0f / (float) h;
     float center_adjust = 0.0f;
+    glamor_pixmap_fbo *pixmap_fbo;
+
+    pixmap_fbo = glamor_pixmap_fbo_at(pixmap_priv, box_index);
+    if (!pixmap_fbo)
+        return FALSE;
 
     glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
 
@@ -94,8 +99,10 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
                 scale_x, (off_x + center_adjust) * scale_x - 1.0f,
                 scale_y, (off_y + center_adjust) * scale_y - 1.0f);
 
-    glamor_set_destination_pixmap_fbo(glamor_priv, glamor_pixmap_fbo_at(pixmap_priv, box_index),
+    glamor_set_destination_pixmap_fbo(glamor_priv, pixmap_fbo,
                                       0, 0, w, h);
+
+    return TRUE;
 }
 
 /*

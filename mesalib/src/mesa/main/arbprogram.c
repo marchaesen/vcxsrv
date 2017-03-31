@@ -118,9 +118,6 @@ _mesa_BindProgramARB(GLenum target, GLuint id)
    /* Never null pointers */
    assert(ctx->VertexProgram.Current);
    assert(ctx->FragmentProgram.Current);
-
-   if (ctx->Driver.BindProgram)
-      ctx->Driver.BindProgram(ctx, target, newProg);
 }
 
 

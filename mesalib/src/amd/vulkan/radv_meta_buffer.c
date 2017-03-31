@@ -524,6 +524,8 @@ void radv_CmdUpdateBuffer(
 	assert(!(va & 3));
 
 	if (dataSize < 4096) {
+		si_emit_cache_flush(cmd_buffer);
+
 		cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, dst_buffer->bo, 8);
 
 		radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, words + 4);

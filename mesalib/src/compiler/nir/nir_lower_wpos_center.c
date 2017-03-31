@@ -39,11 +39,14 @@
  * hardware which provides an integer pixel center.  Vulkan mandates that
  * the pixel center must be half-integer, and also that the coordinate
  * system's origin must be upper left.  This means that there's no need
- * for a uniform - we can always just add a constant.
+ * for a uniform - we can always just add a constant. In the case that
+ * sample shading is enabled, Vulkan expects FragCoord to include sample
+ * positions.
  */
 
 static void
-add_half_to_fragcoord(nir_builder *b, nir_intrinsic_instr *intr)
+update_fragcoord(nir_builder *b, nir_intrinsic_instr *intr,
+                 const bool for_sample_shading)
 {
    nir_ssa_def *wpos = &intr->dest.ssa;
 
@@ -51,14 +54,27 @@ add_half_to_fragcoord(nir_builder *b, nir_intrinsic_instr *intr)
 
    b->cursor = nir_after_instr(&intr->instr);
 
-   wpos = nir_fadd(b, wpos, nir_imm_vec4(b, 0.5f, 0.5f, 0.0f, 0.0f));
+   if (!for_sample_shading) {
+      wpos = nir_fadd(b, wpos, nir_imm_vec4(b, 0.5f, 0.5f, 0.0f, 0.0f));
+   } else {
+      nir_ssa_def *spos =
+         nir_load_system_value(b, nir_intrinsic_load_sample_pos, 0);
+
+      wpos = nir_fadd(b, wpos,
+                      nir_vec4(b,
+                               nir_channel(b, spos, 0),
+                               nir_channel(b, spos, 1),
+                               nir_imm_float(b, 0.0f),
+                               nir_imm_float(b, 0.0f)));
+   }
 
    nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, nir_src_for_ssa(wpos),
                                   wpos->parent_instr);
 }
 
 static bool
-lower_wpos_center_block(nir_builder *b, nir_block *block)
+lower_wpos_center_block(nir_builder *b, nir_block *block,
+                        const bool for_sample_shading)
 {
    bool progress = false;
 
@@ -71,9 +87,9 @@ lower_wpos_center_block(nir_builder *b, nir_block *block)
 
             if (var->data.mode == nir_var_shader_in &&
                 var->data.location == VARYING_SLOT_POS) {
-               /* gl_FragCoord should not have array/struct deref's: */
+               /* gl_FragCoord should not have array/struct derefs: */
                assert(dvar->deref.child == NULL);
-               add_half_to_fragcoord(b, intr);
+               update_fragcoord(b, intr, for_sample_shading);
                progress = true;
             }
          }
@@ -84,7 +100,7 @@ lower_wpos_center_block(nir_builder *b, nir_block *block)
 }
 
 bool
-nir_lower_wpos_center(nir_shader *shader)
+nir_lower_wpos_center(nir_shader *shader, const bool for_sample_shading)
 {
    bool progress = false;
    nir_builder b;
@@ -96,7 +112,8 @@ nir_lower_wpos_center(nir_shader *shader)
          nir_builder_init(&b, function->impl);
 
          nir_foreach_block(block, function->impl) {
-            progress = lower_wpos_center_block(&b, block) || progress;
+            progress = lower_wpos_center_block(&b, block, for_sample_shading) ||
+                       progress;
          }
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
