@@ -1289,7 +1289,14 @@ VOID ElemLib::RestoreSurfaceInfo(
             break;
         case ADDR_PACKED_GBGR:
         case ADDR_PACKED_BGRG:
-            originalBits = bpp; // 32-bit packed ==> 2 32-bit result
+            if (m_pAddrLib->GetChipFamily() >= ADDR_CHIP_FAMILY_AI)
+            {
+                originalBits = bpp / expandX;
+            }
+            else
+            {
+                originalBits = bpp; // 32-bit packed ==> 2 32-bit result
+            }
             break;
         case ADDR_PACKED_BC1: // Fall through
         case ADDR_PACKED_BC4:
@@ -1387,11 +1394,27 @@ UINT_32 ElemLib::GetBitsPerPixel(
             break;
         case ADDR_FMT_GB_GR: // treat as FMT_8_8
             elemMode = ADDR_PACKED_GBGR;
-            bpp = 16;
+            if (m_pAddrLib->GetChipFamily() >= ADDR_CHIP_FAMILY_AI)
+            {
+                bpp     = 32;
+                expandX = 2;
+            }
+            else
+            {
+                bpp     = 16;
+            }
             break;
         case ADDR_FMT_BG_RG: // treat as FMT_8_8
             elemMode = ADDR_PACKED_BGRG;
-            bpp = 16;
+            if (m_pAddrLib->GetChipFamily() >= ADDR_CHIP_FAMILY_AI)
+            {
+                bpp     = 32;
+                expandX = 2;
+            }
+            else
+            {
+                bpp     = 16;
+            }
             break;
         case ADDR_FMT_8_8_8_8:
         case ADDR_FMT_2_10_10_10:
@@ -1802,6 +1825,37 @@ BOOL_32 ElemLib::IsExpand3x(
     }
 
     return is3x;
+}
+
+/**
+****************************************************************************************************
+*   ElemLib::IsMacroPixelPacked
+*
+*   @brief
+*       TRUE if this is a macro-pixel-packed format.
+*
+*   @note
+*
+*   @return
+*       BOOL_32
+****************************************************************************************************
+*/
+BOOL_32 ElemLib::IsMacroPixelPacked(
+    AddrFormat format)  ///< [in] Format
+{
+    BOOL_32 isMacroPixelPacked = FALSE;
+
+    switch (format)
+    {
+        case ADDR_FMT_BG_RG:
+        case ADDR_FMT_GB_GR:
+            isMacroPixelPacked = TRUE;
+            break;
+        default:
+            break;
+    }
+
+    return isMacroPixelPacked;
 }
 
 }

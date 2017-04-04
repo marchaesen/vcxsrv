@@ -1564,7 +1564,8 @@ _mesa_GetInternalformati64v(GLenum target, GLenum internalformat,
     * no pname can return a negative value, we fill params32 with negative
     * values as reference values, that can be used to know what copy-back to
     * params */
-   memset(params32, -1, 16);
+   for (i = 0; i < realSize; i++)
+      params32[i] = -1;
 
    /* For GL_MAX_COMBINED_DIMENSIONS we need to get back 2 32-bit integers,
     * and at the same time we only need 2. So for that pname, we call the

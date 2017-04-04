@@ -134,18 +134,6 @@ debug_serial_delete(void *p)
 
 #define STACK_LEN 64
 
-static void
-dump_stack(const char *symbols[STACK_LEN])
-{
-   unsigned i;
-   for (i = 0; i < STACK_LEN; ++i) {
-      if (symbols[i])
-         fprintf(stream, "%s\n", symbols[i]);
-   }
-   fprintf(stream, "\n");
-}
-
-
 /**
  * Log a reference count change to the log file (if enabled).
  * This is called via the pipe_reference() and debug_reference() functions,
@@ -180,7 +168,6 @@ debug_reference_slowpath(const struct pipe_reference *p,
 
    if (debug_refcnt_state > 0) {
       struct debug_stack_frame frames[STACK_LEN];
-      const char *symbols[STACK_LEN];
       char buf[1024];
       unsigned i;
       unsigned refcnt = p->count;
@@ -188,18 +175,12 @@ debug_reference_slowpath(const struct pipe_reference *p,
       boolean existing = debug_serial((void *) p, &serial);
 
       debug_backtrace_capture(frames, 1, STACK_LEN);
-      for (i = 0; i < STACK_LEN; ++i) {
-         if (frames[i].function)
-            symbols[i] = debug_symbol_name_cached(frames[i].function);
-         else
-            symbols[i] = 0;
-      }
 
       get_desc(buf, p);
 
       if (!existing) {
          fprintf(stream, "<%s> %p %u Create\n", buf, (void *) p, serial);
-         dump_stack(symbols);
+         debug_backtrace_print(stream, frames, STACK_LEN);
 
          /* this is here to provide a gradual change even if we don't see
           * the initialization
@@ -207,20 +188,20 @@ debug_reference_slowpath(const struct pipe_reference *p,
          for (i = 1; i <= refcnt - change; ++i) {
             fprintf(stream, "<%s> %p %u AddRef %u\n", buf, (void *) p,
                     serial, i);
-            dump_stack(symbols);
+            debug_backtrace_print(stream, frames, STACK_LEN);
          }
       }
 
       if (change) {
          fprintf(stream, "<%s> %p %u %s %u\n", buf, (void *) p, serial,
                  change > 0 ? "AddRef" : "Release", refcnt);
-         dump_stack(symbols);
+         debug_backtrace_print(stream, frames, STACK_LEN);
       }
 
       if (!refcnt) {
          debug_serial_delete((void *) p);
          fprintf(stream, "<%s> %p %u Destroy\n", buf, (void *) p, serial);
-         dump_stack(symbols);
+         debug_backtrace_print(stream, frames, STACK_LEN);
       }
 
       fflush(stream);

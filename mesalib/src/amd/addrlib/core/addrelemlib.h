@@ -216,7 +216,7 @@ public:
         AddrDepthFormat format, PixelFormatInfo* pInfo) const;
 
     UINT_32 GetBitsPerPixel(
-        AddrFormat format, ElemMode* pElemMode,
+        AddrFormat format, ElemMode* pElemMode = NULL,
         UINT_32* pExpandX = NULL, UINT_32* pExpandY = NULL, UINT_32* pBitsUnused = NULL);
 
     static VOID    SetClearComps(
@@ -245,6 +245,7 @@ public:
     static BOOL_32 IsCompressed(AddrFormat format);
     static BOOL_32 IsBlockCompressed(AddrFormat format);
     static BOOL_32 IsExpand3x(AddrFormat format);
+    static BOOL_32 IsMacroPixelPacked(AddrFormat format);
 
 protected:
 

@@ -1529,6 +1529,38 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeDccInfo(
 
 /**
 ****************************************************************************************************
+*   Addr2ComputeDccAddrFromCoord
+*
+*   @brief
+*       Compute DCC key address according to coordinates
+*
+*   @return
+*       ADDR_OK if successful, otherwise an error code of ADDR_E_RETURNCODE
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2ComputeDccAddrFromCoord(
+    ADDR_HANDLE                                     hLib, ///< address lib handle
+    const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*    pIn,  ///< [in] Dcc info and coordinates
+    ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*         pOut) ///< [out] Dcc address
+{
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeDccAddrFromCoord(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
 *   Addr2ComputePipeBankXor
 *
 *   @brief
@@ -1547,6 +1579,64 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputePipeBankXor(
     if (pLib != NULL)
     {
         returnCode = pLib->ComputePipeBankXor(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr2ComputeSlicePipeBankXor
+*
+*   @brief
+*       Calculate slice pipe bank xor value based on base pipe bank xor and slice id.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2ComputeSlicePipeBankXor(
+    ADDR_HANDLE                                  hLib, ///< handle of addrlib
+    const ADDR2_COMPUTE_SLICE_PIPEBANKXOR_INPUT* pIn,  ///< [in] input
+    ADDR2_COMPUTE_SLICE_PIPEBANKXOR_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeSlicePipeBankXor(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr2ComputeSubResourceOffsetForSwizzlePattern
+*
+*   @brief
+*       Calculate sub resource offset for swizzle pattern.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2ComputeSubResourceOffsetForSwizzlePattern(
+    ADDR_HANDLE                                                     hLib, ///< handle of addrlib
+    const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,  ///< [in] input
+    ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeSubResourceOffsetForSwizzlePattern(pIn, pOut);
     }
     else
     {

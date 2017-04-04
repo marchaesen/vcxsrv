@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,6 +79,16 @@ struct blob_reader {
  */
 struct blob *
 blob_create(void);
+
+/**
+ * Destroy a blob and free its memory.
+ */
+static inline void
+blob_destroy(struct blob *blob)
+{
+   free(blob->data);
+   free(blob);
+}
 
 /**
  * Add some unstructured, fixed-size data to a blob.

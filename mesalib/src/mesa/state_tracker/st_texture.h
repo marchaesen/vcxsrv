@@ -202,13 +202,13 @@ st_texture_create(struct st_context *st,
 
 extern void
 st_gl_texture_dims_to_pipe_dims(GLenum texture,
-                                GLuint widthIn,
-                                GLuint heightIn,
-                                GLuint depthIn,
-                                GLuint *widthOut,
-                                GLuint *heightOut,
-                                GLuint *depthOut,
-                                GLuint *layersOut);
+                                unsigned widthIn,
+                                uint16_t heightIn,
+                                uint16_t depthIn,
+                                unsigned *widthOut,
+                                uint16_t *heightOut,
+                                uint16_t *depthOut,
+                                uint16_t *layersOut);
 
 /* Check if an image fits into an existing texture object.
  */
@@ -253,5 +253,9 @@ st_create_color_map_texture(struct gl_context *ctx);
 
 bool
 st_etc_fallback(struct st_context *st, struct gl_texture_image *texImage);
+
+void
+st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
+                 struct pipe_image_view *img);
 
 #endif

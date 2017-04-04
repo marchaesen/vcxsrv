@@ -50,6 +50,8 @@ static GLuint translate_fill( GLenum mode )
       return PIPE_POLYGON_MODE_LINE;
    case GL_FILL:
       return PIPE_POLYGON_MODE_FILL;
+   case GL_FILL_RECTANGLE_NV:
+      return PIPE_POLYGON_MODE_FILL_RECTANGLE;
    default:
       assert(0);
       return 0;

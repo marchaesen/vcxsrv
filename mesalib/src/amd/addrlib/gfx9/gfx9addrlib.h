@@ -25,10 +25,10 @@
  */
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @file  gfx9addrlib.h
 * @brief Contgfx9ns the Gfx9Lib class definition.
-****************************************************************************************************
+************************************************************************************************************************
 */
 
 #ifndef __GFX9_ADDR_LIB_H__
@@ -43,9 +43,9 @@ namespace V2
 {
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @brief GFX9 specific settings structure.
-****************************************************************************************************
+************************************************************************************************************************
 */
 struct Gfx9ChipSettings
 {
@@ -62,14 +62,15 @@ struct Gfx9ChipSettings
 
         // Misc configuration bits
         UINT_32 metaBaseAlignFix    : 1;
-        UINT_32 reserved2           : 31;
+        UINT_32 depthPipeXorDisable : 1;
+        UINT_32 reserved2           : 30;
     };
 };
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @brief GFX9 data surface type.
-****************************************************************************************************
+************************************************************************************************************************
 */
 enum Gfx9DataType
 {
@@ -79,10 +80,10 @@ enum Gfx9DataType
 };
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @brief This class is the GFX9 specific address library
 *        function set.
-****************************************************************************************************
+************************************************************************************************************************
 */
 class Gfx9Lib : public Lib
 {
@@ -97,6 +98,39 @@ public:
 protected:
     Gfx9Lib(const Client* pClient);
     virtual ~Gfx9Lib();
+
+    virtual BOOL_32 HwlIsStandardSwizzle(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        return m_swizzleModeTable[swizzleMode].isStd ||
+               (IsTex3d(resourceType) && m_swizzleModeTable[swizzleMode].isDisp);
+    }
+
+    virtual BOOL_32 HwlIsDisplaySwizzle(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        return IsTex2d(resourceType) && m_swizzleModeTable[swizzleMode].isDisp;
+    }
+
+    virtual BOOL_32 HwlIsThin(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        return ((IsTex2d(resourceType)  == TRUE) ||
+                ((IsTex3d(resourceType) == TRUE)                  &&
+                 (m_swizzleModeTable[swizzleMode].isZ   == FALSE) &&
+                 (m_swizzleModeTable[swizzleMode].isStd == FALSE)));
+    }
+
+    virtual BOOL_32 HwlIsThick(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        return (IsTex3d(resourceType) &&
+                (m_swizzleModeTable[swizzleMode].isZ || m_swizzleModeTable[swizzleMode].isStd));
+    }
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileInfo(
         const ADDR2_COMPUTE_HTILE_INFO_INPUT* pIn,
@@ -121,6 +155,10 @@ protected:
     virtual ADDR_E_RETURNCODE HwlComputeHtileCoordFromAddr(
         const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT*  pIn,
         ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT* pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*  pIn,
+        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT* pOut) const;
 
     virtual UINT_32 HwlGetEquationIndex(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
@@ -183,12 +221,138 @@ protected:
         return baseAlign;
     }
 
-    virtual BOOL_32 HwlIsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
+    virtual ADDR_E_RETURNCODE HwlComputePipeBankXor(
+        const ADDR2_COMPUTE_PIPEBANKXOR_INPUT* pIn,
+        ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut) const;
 
-    virtual BOOL_32 HwlIsDce12() const { return m_settings.isDce12; }
+    virtual ADDR_E_RETURNCODE HwlComputeSlicePipeBankXor(
+        const ADDR2_COMPUTE_SLICE_PIPEBANKXOR_INPUT* pIn,
+        ADDR2_COMPUTE_SLICE_PIPEBANKXOR_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeSubResourceOffsetForSwizzlePattern(
+        const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
+        ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlGetPreferredSurfaceSetting(
+        const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
+        ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoSanityCheck(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoTiled(
+         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceAddrFromCoordTiled(
+        const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
     // Initialize equation table
     VOID InitEquationTable();
+
+    ADDR_E_RETURNCODE ComputeStereoInfo(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+        ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut,
+        UINT_32*                                pHeightAlign) const;
+
+    UINT_32 GetMipChainInfo(
+        AddrResourceType  resourceType,
+        AddrSwizzleMode   swizzleMode,
+        UINT_32           bpp,
+        UINT_32           mip0Width,
+        UINT_32           mip0Height,
+        UINT_32           mip0Depth,
+        UINT_32           blockWidth,
+        UINT_32           blockHeight,
+        UINT_32           blockDepth,
+        UINT_32           numMipLevel,
+        ADDR2_MIP_INFO*   pMipInfo) const;
+
+    VOID GetMetaMiptailInfo(
+        ADDR2_META_MIP_INFO*    pInfo,
+        Dim3d                   mipCoord,
+        UINT_32                 numMipInTail,
+        Dim3d*                  pMetaBlkDim) const;
+
+    Dim3d GetMipStartPos(
+        AddrResourceType  resourceType,
+        AddrSwizzleMode   swizzleMode,
+        UINT_32           width,
+        UINT_32           height,
+        UINT_32           depth,
+        UINT_32           blockWidth,
+        UINT_32           blockHeight,
+        UINT_32           blockDepth,
+        UINT_32           mipId,
+        UINT_32           log2ElementBytes,
+        UINT_32*          pMipTailBytesOffset) const;
+
+    AddrMajorMode GetMajorMode(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode,
+        UINT_32          mip0WidthInBlk,
+        UINT_32          mip0HeightInBlk,
+        UINT_32          mip0DepthInBlk) const
+    {
+        BOOL_32 yMajor = (mip0WidthInBlk < mip0HeightInBlk);
+        BOOL_32 xMajor = (yMajor == FALSE);
+
+        if (IsThick(resourceType, swizzleMode))
+        {
+            yMajor = yMajor && (mip0HeightInBlk >= mip0DepthInBlk);
+            xMajor = xMajor && (mip0WidthInBlk >= mip0DepthInBlk);
+        }
+
+        AddrMajorMode majorMode;
+        if (xMajor)
+        {
+            majorMode = ADDR_MAJOR_X;
+        }
+        else if (yMajor)
+        {
+            majorMode = ADDR_MAJOR_Y;
+        }
+        else
+        {
+            majorMode = ADDR_MAJOR_Z;
+        }
+
+        return majorMode;
+    }
+
+    Dim3d GetDccCompressBlk(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode,
+        UINT_32          bpp) const
+    {
+        UINT_32 index = Log2(bpp >> 3);
+        Dim3d   compressBlkDim;
+
+        if (IsThin(resourceType, swizzleMode))
+        {
+            compressBlkDim.w = Block256_2d[index].w;
+            compressBlkDim.h = Block256_2d[index].h;
+            compressBlkDim.d = 1;
+        }
+        else if (IsStandardSwizzle(resourceType, swizzleMode))
+        {
+            compressBlkDim = Block256_3dS[index];
+        }
+        else
+        {
+            compressBlkDim = Block256_3dZ[index];
+        }
+
+        return compressBlkDim;
+    }
+
+    static const Dim3d            Block256_3dS[MaxNumOfBpp];
+    static const Dim3d            Block256_3dZ[MaxNumOfBpp];
+
+    static const UINT_32          MipTailOffset256B[];
+
+    static const SwizzleModeFlags SwizzleModeTable[ADDR_SW_MAX_TYPE];
 
     // Max number of swizzle mode supported for equation
     static const UINT_32    MaxSwMode = 32;
@@ -238,6 +402,8 @@ private:
                         BOOL_32 dataThick, ADDR2_META_MIP_INFO* pInfo,
                         UINT_32 mip0Width, UINT_32 mip0Height, UINT_32 mip0Depth,
                         UINT_32* pNumMetaBlkX, UINT_32* pNumMetaBlkY, UINT_32* pNumMetaBlkZ) const;
+
+    BOOL_32 IsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
     Gfx9ChipSettings m_settings;
 };

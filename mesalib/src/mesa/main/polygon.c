@@ -131,8 +131,17 @@ _mesa_PolygonMode( GLenum face, GLenum mode )
                   _mesa_enum_to_string(face),
                   _mesa_enum_to_string(mode));
 
-   if (mode!=GL_POINT && mode!=GL_LINE && mode!=GL_FILL) {
-      _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(mode)" );
+   switch (mode) {
+   case GL_POINT:
+   case GL_LINE:
+   case GL_FILL:
+      break;
+   case GL_FILL_RECTANGLE_NV:
+      if (ctx->Extensions.NV_fill_rectangle)
+         break;
+      /* fall-through */
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM, "glPolygonMode(mode)");
       return;
    }
 

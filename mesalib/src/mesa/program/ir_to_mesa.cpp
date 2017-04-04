@@ -1069,8 +1069,10 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       emit_scalar(ir, OPCODE_EX2, result_dst, op[0]);
       break;
    case ir_unop_exp:
+      assert(!"not reached: should be handled by exp_to_exp2");
+      break;
    case ir_unop_log:
-      assert(!"not reached: should be handled by ir_explog_to_explog2");
+      assert(!"not reached: should be handled by log_to_log2");
       break;
    case ir_unop_log2:
       emit_scalar(ir, OPCODE_LG2, result_dst, op[0]);

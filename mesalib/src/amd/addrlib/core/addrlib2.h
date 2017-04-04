@@ -25,10 +25,10 @@
  */
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @file  addrlib2.h
 * @brief Contains the Addr::V2::Lib class definition.
-****************************************************************************************************
+************************************************************************************************************************
 */
 
 #ifndef __ADDR2_LIB2_H__
@@ -42,9 +42,9 @@ namespace V2
 {
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @brief Flags for SwizzleModeTable
-****************************************************************************************************
+************************************************************************************************************************
 */
 struct SwizzleModeFlags
 {
@@ -66,6 +66,8 @@ struct SwizzleModeFlags
     UINT_32 isXor           : 1;    // XOR after swizzle if set
 
     UINT_32 isT             : 1;    // T mode
+
+    UINT_32 isRtOpt         : 1;    // mode opt for render target
 };
 
 struct Dim2d
@@ -82,9 +84,9 @@ struct Dim3d
 };
 
 /**
-****************************************************************************************************
+************************************************************************************************************************
 * @brief This class contains asic independent address lib functionalities
-****************************************************************************************************
+************************************************************************************************************************
 */
 class Lib : public Addr::Lib
 {
@@ -155,10 +157,22 @@ public:
         const ADDR2_COMPUTE_DCCINFO_INPUT* pIn,
         ADDR2_COMPUTE_DCCINFO_OUTPUT* pOut) const;
 
+    ADDR_E_RETURNCODE ComputeDccAddrFromCoord(
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*  pIn,
+        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT* pOut) const;
+
     // Misc
     ADDR_E_RETURNCODE ComputePipeBankXor(
         const ADDR2_COMPUTE_PIPEBANKXOR_INPUT* pIn,
-        ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT* pOut);
+        ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut);
+
+    ADDR_E_RETURNCODE ComputeSlicePipeBankXor(
+        const ADDR2_COMPUTE_SLICE_PIPEBANKXOR_INPUT* pIn,
+        ADDR2_COMPUTE_SLICE_PIPEBANKXOR_OUTPUT*      pOut);
+
+    ADDR_E_RETURNCODE ComputeSubResourceOffsetForSwizzlePattern(
+        const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
+        ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut);
 
     ADDR_E_RETURNCODE Addr2GetPreferredSurfaceSetting(
         const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
@@ -168,77 +182,77 @@ protected:
     Lib();  // Constructor is protected
     Lib(const Client* pClient);
 
-    static const SwizzleModeFlags SwizzleModeTable[ADDR_SW_MAX_TYPE];
+    static const UINT_32 MaxNumOfBpp = 5;
 
-    static const Dim2d Block256b[];
-    static const Dim3d Block1kb[];
+    static const Dim2d Block256_2d[MaxNumOfBpp];
+    static const Dim3d Block1K_3d[MaxNumOfBpp];
 
-    static const Dim2d CompressBlock2d[];
-    static const Dim3d CompressBlock3dS[];
-    static const Dim3d CompressBlock3dZ[];
-
-    static const UINT_32 MaxMacroBits;
-    static const UINT_32 MipTailOffset[];
+    static const UINT_32 PrtAlignment = 64 * 1024;
+    static const UINT_32 MaxMacroBits = 20;
 
     // Checking block size
-    static BOOL_32 IsBlock256b(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsBlock256b(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].is256b;
+        return m_swizzleModeTable[swizzleMode].is256b;
     }
 
-    static BOOL_32 IsBlock4kb(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsBlock4kb(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].is4kb;
+        return m_swizzleModeTable[swizzleMode].is4kb;
     }
 
-    static BOOL_32 IsBlock64kb(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsBlock64kb(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].is64kb;
+        return m_swizzleModeTable[swizzleMode].is64kb;
     }
 
-    static BOOL_32 IsBlockVariable(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsBlockVariable(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isVar;
+        return m_swizzleModeTable[swizzleMode].isVar;
     }
 
     // Checking swizzle mode
-    static BOOL_32 IsLinear(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsLinear(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isLinear;
+        return m_swizzleModeTable[swizzleMode].isLinear;
     }
 
-    static BOOL_32 IsZOrderSwizzle(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsRtOptSwizzle(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isZ;
+        return m_swizzleModeTable[swizzleMode].isRtOpt;
     }
 
-    static BOOL_32 IsStandardSwizzle(AddrResourceType resourceType, AddrSwizzleMode swizzleMode)
+    BOOL_32 IsZOrderSwizzle(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isStd ||
-               (IsTex3d(resourceType) && SwizzleModeTable[swizzleMode].isDisp);
+        return m_swizzleModeTable[swizzleMode].isZ;
     }
 
-    static BOOL_32 IsDisplaySwizzle(AddrResourceType resourceType, AddrSwizzleMode swizzleMode)
+    BOOL_32 IsStandardSwizzle(AddrResourceType resourceType, AddrSwizzleMode swizzleMode) const
     {
-        return IsTex2d(resourceType) && SwizzleModeTable[swizzleMode].isDisp;
+        return HwlIsStandardSwizzle(resourceType, swizzleMode);
     }
 
-    static BOOL_32 IsRotateSwizzle(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsDisplaySwizzle(AddrResourceType resourceType, AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isRot;
+        return HwlIsDisplaySwizzle(resourceType, swizzleMode);
     }
 
-    static BOOL_32 IsXor(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsRotateSwizzle(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isXor;
+        return m_swizzleModeTable[swizzleMode].isRot;
     }
 
-    static BOOL_32 IsPrt(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsXor(AddrSwizzleMode swizzleMode) const
     {
-        return SwizzleModeTable[swizzleMode].isT;
+        return m_swizzleModeTable[swizzleMode].isXor;
     }
 
-    static BOOL_32 IsNonPrtXor(AddrSwizzleMode swizzleMode)
+    BOOL_32 IsPrt(AddrSwizzleMode swizzleMode) const
+    {
+        return m_swizzleModeTable[swizzleMode].isT;
+    }
+
+    BOOL_32 IsNonPrtXor(AddrSwizzleMode swizzleMode) const
     {
         return (IsXor(swizzleMode) && (IsPrt(swizzleMode) == FALSE));
     }
@@ -259,23 +273,21 @@ protected:
         return (resourceType == ADDR_RSRC_TEX_3D);
     }
 
-    static BOOL_32 IsThick(AddrResourceType resourceType, AddrSwizzleMode swizzleMode)
+    BOOL_32 IsThick(AddrResourceType resourceType, AddrSwizzleMode swizzleMode) const
     {
-        return (IsTex3d(resourceType) &&
-                (SwizzleModeTable[swizzleMode].isZ || SwizzleModeTable[swizzleMode].isStd));
+        return HwlIsThick(resourceType, swizzleMode);
     }
 
-    static BOOL_32 IsThin(AddrResourceType resourceType, AddrSwizzleMode swizzleMode)
+    BOOL_32 IsThin(AddrResourceType resourceType, AddrSwizzleMode swizzleMode) const
     {
-        return (IsTex2d(resourceType) ||
-                (IsTex3d(resourceType) && SwizzleModeTable[swizzleMode].isDisp));
+        return HwlIsThin(resourceType, swizzleMode);
     }
 
     UINT_32 GetBlockSizeLog2(AddrSwizzleMode swizzleMode) const
     {
         UINT_32 blockSizeLog2 = 0;
 
-        if (IsBlock256b(swizzleMode))
+        if (IsBlock256b(swizzleMode) || IsLinear(swizzleMode))
         {
             blockSizeLog2 = 8;
         }
@@ -307,7 +319,7 @@ protected:
     static UINT_32 GetFmaskBpp(UINT_32 sample, UINT_32 frag)
     {
         sample = (sample == 0) ? 1 : sample;
-        frag = (frag == 0) ? sample : frag;
+        frag   = (frag   == 0) ? sample : frag;
 
         UINT_32 fmaskBpp = QLog2(frag);
 
@@ -324,6 +336,38 @@ protected:
         fmaskBpp = Max(8u, fmaskBpp * sample);
 
         return fmaskBpp;
+    }
+
+    virtual BOOL_32 HwlIsStandardSwizzle(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return FALSE;
+    }
+
+    virtual BOOL_32 HwlIsDisplaySwizzle(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return FALSE;
+    }
+
+    virtual BOOL_32 HwlIsThin(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return FALSE;
+    }
+
+    virtual BOOL_32 HwlIsThick(
+        AddrResourceType resourceType,
+        AddrSwizzleMode  swizzleMode) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return FALSE;
     }
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileInfo(
@@ -345,6 +389,14 @@ protected:
     virtual ADDR_E_RETURNCODE HwlComputeDccInfo(
         const ADDR2_COMPUTE_DCCINFO_INPUT*    pIn,
         ADDR2_COMPUTE_DCCINFO_OUTPUT*         pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*  pIn,
+        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT* pOut) const
     {
         ADDR_NOT_IMPLEMENTED();
         return ADDR_NOTSUPPORTED;
@@ -425,9 +477,60 @@ protected:
         return 0;
     }
 
-    UINT_32 ComputeSurfaceBaseAlign(AddrSwizzleMode swizzleMode) const
+    virtual ADDR_E_RETURNCODE HwlComputePipeBankXor(
+        const ADDR2_COMPUTE_PIPEBANKXOR_INPUT* pIn,
+        ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut) const
     {
-        return HwlComputeSurfaceBaseAlign(swizzleMode);
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlComputeSlicePipeBankXor(
+        const ADDR2_COMPUTE_SLICE_PIPEBANKXOR_INPUT* pIn,
+        ADDR2_COMPUTE_SLICE_PIPEBANKXOR_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+
+    virtual ADDR_E_RETURNCODE HwlComputeSubResourceOffsetForSwizzlePattern(
+        const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
+        ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlGetPreferredSurfaceSetting(
+        const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
+        ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoSanityCheck(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoTiled(
+         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTIMPLEMENTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceAddrFromCoordTiled(
+        const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTIMPLEMENTED;
     }
 
     ADDR_E_RETURNCODE ComputeBlock256Equation(
@@ -489,13 +592,6 @@ protected:
 
     // Misc
     ADDR_E_RETURNCODE ComputeBlockDimensionForSurf(
-        Dim3d*            pDim,
-        UINT_32           bpp,
-        UINT_32           numSamples,
-        AddrResourceType  resourceType,
-        AddrSwizzleMode   swizzleMode) const;
-
-    ADDR_E_RETURNCODE ComputeBlockDimensionForSurf(
         UINT_32*         pWidth,
         UINT_32*         pHeight,
         UINT_32*         pDepth,
@@ -525,26 +621,6 @@ protected:
         return static_cast<UINT_64>(pPadDim->w) * pPadDim->h * pPadDim->d;
     }
 
-    UINT_32 GetMipChainInfo(
-        AddrResourceType  resourceType,
-        AddrSwizzleMode   swizzleMode,
-        UINT_32           bpp,
-        UINT_32           mip0Width,
-        UINT_32           mip0Height,
-        UINT_32           mip0Depth,
-        UINT_32           blockWidth,
-        UINT_32           blockHeight,
-        UINT_32           blockDepth,
-        UINT_32           numMipLevel,
-        ADDR2_MIP_INFO*   pMipInfo) const;
-
-    VOID GetMetaMiptailInfo(
-        ADDR2_META_MIP_INFO*    pInfo,
-        Dim3d                   mipCoord,
-        UINT_32                 numMipInTail,
-        Dim3d*                  pMetaBlkDim
-    ) const;
-
     static ADDR_E_RETURNCODE ExtractPipeBankXor(
         UINT_32  pipeBankXor,
         UINT_32  bankBits,
@@ -560,76 +636,6 @@ protected:
         return (Max((numSlices >> mipId), 1u) > slice);
     }
 
-    static AddrMajorMode GetMajorMode(
-        AddrResourceType resourceType,
-        AddrSwizzleMode  swizzleMode,
-        UINT_32          mip0WidthInBlk,
-        UINT_32          mip0HeightInBlk,
-        UINT_32          mip0DepthInBlk)
-    {
-        BOOL_32 yMajor = (mip0WidthInBlk < mip0HeightInBlk);
-        BOOL_32 xMajor = (yMajor == FALSE);
-
-        if (IsThick(resourceType, swizzleMode))
-        {
-            yMajor = yMajor && (mip0HeightInBlk >= mip0DepthInBlk);
-            xMajor = xMajor && (mip0WidthInBlk >= mip0DepthInBlk);
-        }
-
-        AddrMajorMode majorMode;
-        if (xMajor)
-        {
-            majorMode = ADDR_MAJOR_X;
-        }
-        else if (yMajor)
-        {
-            majorMode = ADDR_MAJOR_Y;
-        }
-        else
-        {
-            majorMode = ADDR_MAJOR_Z;
-        }
-
-        return majorMode;
-    }
-
-    static Dim3d GetDccCompressBlk(
-        AddrResourceType resourceType,
-        AddrSwizzleMode  swizzleMode,
-        UINT_32          bpp)
-    {
-        UINT_32 index = Log2(bpp >> 3);
-        Dim3d compressBlkDim;
-        if (IsThin(resourceType, swizzleMode))
-        {
-            compressBlkDim.w = CompressBlock2d[index].w;
-            compressBlkDim.h = CompressBlock2d[index].h;
-            compressBlkDim.d = 1;
-        }
-        else if (IsStandardSwizzle(resourceType, swizzleMode))
-        {
-            compressBlkDim = CompressBlock3dS[index];
-        }
-        else
-        {
-            compressBlkDim = CompressBlock3dZ[index];
-        }
-
-        return compressBlkDim;
-    }
-
-    Dim3d GetMipStartPos(
-        AddrResourceType  resourceType,
-        AddrSwizzleMode   swizzleMode,
-        UINT_32           width,
-        UINT_32           height,
-        UINT_32           depth,
-        UINT_32           blockWidth,
-        UINT_32           blockHeight,
-        UINT_32           blockDepth,
-        UINT_32           mipId,
-        UINT_32*          pMipTailOffset) const;
-
     Dim3d GetMipTailDim(
         AddrResourceType  resourceType,
         AddrSwizzleMode   swizzleMode,
@@ -637,13 +643,13 @@ protected:
         UINT_32           blockHeight,
         UINT_32           blockDepth) const;
 
-    static BOOL_32 IsInMipTail(
+    BOOL_32 IsInMipTail(
         AddrResourceType  resourceType,
         AddrSwizzleMode   swizzleMode,
         Dim3d             mipTailDim,
         UINT_32           width,
         UINT_32           height,
-        UINT_32           depth)
+        UINT_32           depth) const
     {
         BOOL_32 inTail = ((width <= mipTailDim.w) &&
                           (height <= mipTailDim.h) &&
@@ -742,31 +748,14 @@ protected:
     UINT_32 GetPipeXorBits(UINT_32 macroBlockBits) const;
     UINT_32 GetBankXorBits(UINT_32 macroBlockBits) const;
 
-    virtual BOOL_32 HwlIsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
-    {
-        ADDR_NOT_IMPLEMENTED();
-        return FALSE;
-    }
-
-    BOOL_32 IsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
-    {
-        return HwlIsValidDisplaySwizzleMode(pIn);
-    }
-
-    virtual BOOL_32 HwlIsDce12() const
-    {
-        ADDR_NOT_IMPLEMENTED();
-        return FALSE;
-    }
-
-    BOOL_32 IsDce12() const { return HwlIsDce12(); }
-
     ADDR_E_RETURNCODE ApplyCustomizedPitchHeight(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
         UINT_32  elementBytes,
-        UINT_32  widthAlignInElement,
+        UINT_32  pitchAlignInElement,
         UINT_32* pPitch,
         UINT_32* pHeight) const;
+
+    VOID ComputeQbStereoInfo(ADDR2_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 
     UINT_32 m_se;                       ///< Number of shader engine
     UINT_32 m_rbPerSe;                  ///< Number of render backend per shader engine
@@ -781,6 +770,8 @@ protected:
     UINT_32 m_pipeInterleaveLog2;       ///< Log2 of pipe interleave bytes
 
     UINT_32 m_blockVarSizeLog2;         ///< Log2 of block var size
+
+    SwizzleModeFlags m_swizzleModeTable[ADDR_SW_MAX_TYPE];  ///< Swizzle mode table
 
 private:
     // Disallow the copy constructor

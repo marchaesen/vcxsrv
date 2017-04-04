@@ -125,7 +125,7 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
        *
        * After this, we'll have all mipmap levels in one resource.
        */
-      st_finalize_texture(ctx, st->pipe, texObj);
+      st_finalize_texture(ctx, st->pipe, texObj, 0);
    }
 
    pt = stObj->pt;

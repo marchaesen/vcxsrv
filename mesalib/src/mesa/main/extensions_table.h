@@ -320,6 +320,7 @@ EXT(NV_conditional_render                   , NV_conditional_render             
 EXT(NV_depth_clamp                          , ARB_depth_clamp                        , GLL, GLC,  x ,  x , 2001)
 EXT(NV_draw_buffers                         , dummy_true                             ,  x ,  x ,  x , ES2, 2011)
 EXT(NV_fbo_color_attachments                , dummy_true                             ,  x ,  x ,  x , ES2, 2010)
+EXT(NV_fill_rectangle                       , NV_fill_rectangle                      , GLL, GLC,  x ,  x , 2015)
 EXT(NV_fog_distance                         , NV_fog_distance                        , GLL,  x ,  x ,  x , 2001)
 EXT(NV_image_formats                        , ARB_shader_image_load_store            ,  x ,  x ,  x ,  31, 2014)
 EXT(NV_light_max_exponent                   , dummy_true                             , GLL,  x ,  x ,  x , 1999)

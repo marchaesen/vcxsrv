@@ -415,6 +415,20 @@ if test "x$GCC_ATOMIC_BUILTINS_SUPPORTED" = x1; then
 fi
 AM_CONDITIONAL([GCC_ATOMIC_BUILTINS_SUPPORTED], [test x$GCC_ATOMIC_BUILTINS_SUPPORTED = x1])
 
+dnl Check if host supports 64-bit atomics
+dnl note that lack of support usually results in link (not compile) error
+AC_MSG_CHECKING(whether __sync_add_and_fetch_8 is supported)
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+#include <stdint.h>
+uint64_t v;
+int main() {
+    return __sync_add_and_fetch(&v, (uint64_t)1);
+}]])], GCC_64BIT_ATOMICS_SUPPORTED=yes, GCC_64BIT_ATOMICS_SUPPORTED=no)
+if test "x$GCC_64BIT_ATOMICS_SUPPORTED" != xyes; then
+    DEFINES="$DEFINES -DMISSING_64BIT_ATOMICS"
+fi
+AC_MSG_RESULT($GCC_64BIT_ATOMICS_SUPPORTED)
+
 dnl Check for Endianness
 AC_C_BIGENDIAN(
    little_endian=no,
@@ -1024,6 +1038,30 @@ AC_SUBST([LLVM_CXXFLAGS])
 AC_SUBST([LLVM_LIBS])
 AC_SUBST([LLVM_LDFLAGS])
 AC_SUBST([LLVM_INCLUDEDIR])
+
+dnl
+dnl libunwind
+dnl
+AC_ARG_ENABLE([libunwind],
+    [AS_HELP_STRING([--enable-libunwind],
+            [Use libunwind for backtracing (default: auto)])],
+        [LIBUNWIND="$enableval"],
+        [LIBUNWIND="auto"])
+
+PKG_CHECK_MODULES(LIBUNWIND, libunwind, [HAVE_LIBUNWIND=yes], [HAVE_LIBUNWIND=no])
+if test "x$LIBUNWIND" = "xauto"; then
+    LIBUNWIND="$HAVE_LIBUNWIND"
+fi
+
+if test "x$LIBUNWIND" = "xyes"; then
+    if test "x$HAVE_LIBUNWIND" != "xyes"; then
+        AC_MSG_ERROR([libunwind requested but not installed.])
+    fi
+    AC_DEFINE(HAVE_LIBUNWIND, 1, [Have libunwind support])
+fi
+
+AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$LIBUNWIND" = xyes])
+
 
 dnl Options for APIs
 AC_ARG_ENABLE([opengl],

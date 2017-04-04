@@ -1,6 +1,6 @@
 language: c
 
-sudo: true
+sudo: required
 dist: trusty
 
 cache:
@@ -15,11 +15,9 @@ addons:
       - libexpat1-dev
       - libxcb-dri2-0-dev
       - libx11-xcb-dev
-      - llvm-3.5-dev
-      # llvm-config is not in the dev package?
-      - llvm-3.5
-      # LLVM packaging is broken and misses this dep.
+      # LLVM packaging is broken and misses these dependencies
       - libedit-dev
+      - libelf-dev
       - scons
 
 env:
@@ -36,6 +34,9 @@ env:
     - XCBPROTO_VERSION=xcb-proto-1.11
     - LIBXCB_VERSION=libxcb-1.11
     - LIBXSHMFENCE_VERSION=libxshmfence-1.2
+    - LLVM_VERSION=3.9
+    - LLVM_PACKAGE="llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev"
+    - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
     - PKG_CONFIG_PATH=$HOME/prefix/lib/pkgconfig
     - MAKEFLAGS=-j2
   matrix:
@@ -98,6 +99,15 @@ install:
   - wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
   - tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
   - (cd $LIBXSHMFENCE_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+  # Install LLVM directly via apt-get (not Travis-CI's apt addon)
+  # See https://github.com/travis-ci/apt-source-whitelist/pull/205#issuecomment-216054237
+
+  - wget -nv -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+  - sudo apt-add-repository -y 'deb http://llvm.org/apt/trusty llvm-toolchain-trusty-3.9 main'
+  - sudo apt-add-repository -y 'deb http://llvm.org/apt/trusty llvm-toolchain-trusty main'
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq -y $LLVM_PACKAGE
 
 script:
   - if test "x$BUILD" = xmake; then

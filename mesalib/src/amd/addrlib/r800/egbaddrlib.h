@@ -297,7 +297,7 @@ protected:
         ADDR_TILEINFO* pTileInfo, ADDR_EQUATION* pEquation) const;
 
     // Static functions
-    static BOOL_32 IsTileInfoAllZero(ADDR_TILEINFO* pTileInfo);
+    static BOOL_32 IsTileInfoAllZero(const ADDR_TILEINFO* pTileInfo);
     static UINT_32 ComputeFmaskNumPlanesFromNumSamples(UINT_32 numSamples);
     static UINT_32 ComputeFmaskResolvedBppFromNumSamples(UINT_32 numSamples);
 

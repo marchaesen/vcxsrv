@@ -208,6 +208,10 @@ private:
         const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,
         ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut) const;
 
+    VOID CheckTcCompatibility(
+        const ADDR_TILEINFO* pTileInfo, UINT_32 bpp, AddrTileMode tileMode,
+         AddrTileType tileType, ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
+
     static const UINT_32    MacroTileTableSize = 16;
     static const UINT_32    PrtMacroModeOffset = MacroTileTableSize / 2;
     static const INT_32     MinDepth2DThinIndex = 0;

@@ -2662,9 +2662,15 @@ ADDR_E_RETURNCODE SiLib::HwlComputeSurfaceInfo(
     {
         static const UINT_32 SiUncompressDepthTileIndex = 3;
 
-        if ((pIn->flags.prt == FALSE) &&
-            (m_uncompressDepthEqIndex != 0) &&
-            (tileIndex == SiUncompressDepthTileIndex))
+        if ((pIn->numSlices > 1) &&
+            (IsMacroTiled(pOut->tileMode) == TRUE) &&
+            (m_chipFamily == ADDR_CHIP_FAMILY_SI))
+        {
+            pOut->equationIndex = ADDR_INVALID_EQUATION_INDEX;
+        }
+        else if ((pIn->flags.prt == FALSE) &&
+                 (m_uncompressDepthEqIndex != 0) &&
+                 (tileIndex == SiUncompressDepthTileIndex))
         {
             pOut->equationIndex = m_uncompressDepthEqIndex + Log2(pIn->bpp >> 3);
         }
@@ -3344,19 +3350,19 @@ VOID SiLib::HwlOverrideTileMode(
     switch (tileMode)
     {
         case ADDR_TM_PRT_TILED_THIN1:
-            tileMode    = ADDR_TM_2D_TILED_THIN1;
+            tileMode = ADDR_TM_2D_TILED_THIN1;
             break;
 
         case ADDR_TM_PRT_TILED_THICK:
-            tileMode    = ADDR_TM_2D_TILED_THICK;
+            tileMode = ADDR_TM_2D_TILED_THICK;
             break;
 
         case ADDR_TM_PRT_2D_TILED_THICK:
-            tileMode    = ADDR_TM_2D_TILED_THICK;
+            tileMode = ADDR_TM_2D_TILED_THICK;
             break;
 
         case ADDR_TM_PRT_3D_TILED_THICK:
-            tileMode    = ADDR_TM_3D_TILED_THICK;
+            tileMode = ADDR_TM_3D_TILED_THICK;
             break;
 
         default:
@@ -3365,9 +3371,9 @@ VOID SiLib::HwlOverrideTileMode(
 
     if (tileMode != pInOut->tileMode)
     {
-        pInOut->tileMode = tileMode;
-
-        ADDR_ASSERT(pInOut->flags.prt == TRUE);
+        pInOut->tileMode  = tileMode;
+        // Only PRT tile modes are overridden for now. Revisit this once new modes are added above.
+        pInOut->flags.prt = TRUE;
     }
 }
 
