@@ -44,6 +44,64 @@
 #include "st_program.h"
 #include "st_format.h"
 
+/**
+ * Convert a gl_image_unit object to a pipe_image_view object.
+ */
+void
+st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
+                 struct pipe_image_view *img)
+{
+   struct st_texture_object *stObj = st_texture_object(u->TexObj);
+
+   img->resource = stObj->pt;
+   img->format = st_mesa_format_to_pipe_format(st, u->_ActualFormat);
+
+   switch (u->Access) {
+   case GL_READ_ONLY:
+      img->access = PIPE_IMAGE_ACCESS_READ;
+      break;
+   case GL_WRITE_ONLY:
+      img->access = PIPE_IMAGE_ACCESS_WRITE;
+      break;
+   case GL_READ_WRITE:
+      img->access = PIPE_IMAGE_ACCESS_READ_WRITE;
+      break;
+   default:
+      unreachable("bad gl_image_unit::Access");
+   }
+
+   if (stObj->pt->target == PIPE_BUFFER) {
+      unsigned base, size;
+
+      base = stObj->base.BufferOffset;
+      assert(base < stObj->pt->width0);
+      size = MIN2(stObj->pt->width0 - base, (unsigned)stObj->base.BufferSize);
+
+      img->u.buf.offset = base;
+      img->u.buf.size = size;
+   } else {
+      img->u.tex.level = u->Level + stObj->base.MinLevel;
+      if (stObj->pt->target == PIPE_TEXTURE_3D) {
+         if (u->Layered) {
+            img->u.tex.first_layer = 0;
+            img->u.tex.last_layer = u_minify(stObj->pt->depth0, img->u.tex.level) - 1;
+         } else {
+            img->u.tex.first_layer = u->_Layer;
+            img->u.tex.last_layer = u->_Layer;
+         }
+      } else {
+         img->u.tex.first_layer = u->_Layer + stObj->base.MinLayer;
+         img->u.tex.last_layer = u->_Layer + stObj->base.MinLayer;
+         if (u->Layered && img->resource->array_size > 1) {
+            if (stObj->base.Immutable)
+               img->u.tex.last_layer += stObj->base.NumLayers - 1;
+            else
+               img->u.tex.last_layer += img->resource->array_size - 1;
+         }
+      }
+   }
+}
+
 static void
 st_bind_images(struct st_context *st, struct gl_program *prog,
                enum pipe_shader_type shader_type)
@@ -64,59 +122,13 @@ st_bind_images(struct st_context *st, struct gl_program *prog,
       struct pipe_image_view *img = &images[i];
 
       if (!_mesa_is_image_unit_valid(st->ctx, u) ||
-          !st_finalize_texture(st->ctx, st->pipe, u->TexObj) ||
+          !st_finalize_texture(st->ctx, st->pipe, u->TexObj, 0) ||
           !stObj->pt) {
          memset(img, 0, sizeof(*img));
          continue;
       }
 
-      img->resource = stObj->pt;
-      img->format = st_mesa_format_to_pipe_format(st, u->_ActualFormat);
-
-      switch (u->Access) {
-      case GL_READ_ONLY:
-         img->access = PIPE_IMAGE_ACCESS_READ;
-         break;
-      case GL_WRITE_ONLY:
-         img->access = PIPE_IMAGE_ACCESS_WRITE;
-         break;
-      case GL_READ_WRITE:
-         img->access = PIPE_IMAGE_ACCESS_READ_WRITE;
-         break;
-      default:
-         unreachable("bad gl_image_unit::Access");
-      }
-
-      if (stObj->pt->target == PIPE_BUFFER) {
-         unsigned base, size;
-
-         base = stObj->base.BufferOffset;
-         assert(base < stObj->pt->width0);
-         size = MIN2(stObj->pt->width0 - base, (unsigned)stObj->base.BufferSize);
-
-         img->u.buf.offset = base;
-         img->u.buf.size = size;
-      } else {
-         img->u.tex.level = u->Level + stObj->base.MinLevel;
-         if (stObj->pt->target == PIPE_TEXTURE_3D) {
-            if (u->Layered) {
-               img->u.tex.first_layer = 0;
-               img->u.tex.last_layer = u_minify(stObj->pt->depth0, img->u.tex.level) - 1;
-            } else {
-               img->u.tex.first_layer = u->_Layer;
-               img->u.tex.last_layer = u->_Layer;
-            }
-         } else {
-            img->u.tex.first_layer = u->_Layer + stObj->base.MinLayer;
-            img->u.tex.last_layer = u->_Layer + stObj->base.MinLayer;
-            if (u->Layered && img->resource->array_size > 1) {
-               if (stObj->base.Immutable)
-                  img->u.tex.last_layer += stObj->base.NumLayers - 1;
-               else
-                  img->u.tex.last_layer += img->resource->array_size - 1;
-            }
-         }
-      }
+      st_convert_image(st, u, img);
    }
    cso_set_shader_images(st->cso_context, shader_type, 0,
                          prog->info.num_images, images);

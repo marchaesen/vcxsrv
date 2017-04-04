@@ -265,6 +265,8 @@ static int _xcb_open(const char *host, char *protocol, const int display)
     struct stat sbuf;
     if (0 == stat(host, &sbuf)) {
         file = strdup(host);
+        if(file == NULL)
+            return -1;
         filelen = actual_filelen = strlen(file);
     } else
 #endif

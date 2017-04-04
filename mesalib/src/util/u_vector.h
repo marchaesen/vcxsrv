@@ -38,7 +38,7 @@
 static inline uint32_t
 u_align_u32(uint32_t v, uint32_t a)
 {
-   assert(a != 0 && a == (a & -a));
+   assert(a != 0 && a == (a & -((int32_t) a)));
    return (v + a - 1) & ~(a - 1);
 }
 

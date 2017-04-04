@@ -2361,7 +2361,7 @@
         <glx rop="138" handcode="client"/>
     </function>
 
-    <function name="Enable" es1="1.0" es2="2.0">
+    <function name="Enable" es1="1.0" es2="2.0" marshal="custom">
         <param name="cap" type="GLenum"/>
         <glx rop="139" handcode="client"/>
     </function>
@@ -12838,6 +12838,10 @@
     <enum name="GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX" value="0x9049" />
     <enum name="GPU_MEMORY_INFO_EVICTION_COUNT_NVX"           value="0x904A" />
     <enum name="GPU_MEMORY_INFO_EVICTED_MEMORY_NVX"           value="0x904B" />
+</category>
+
+<category name="GL_NV_fill_rectangle" number="466">
+    <enum name="FILL_RECTANGLE_NV" value="0x933C"/>
 </category>
 
 <category name="GL_INTEL_conservative_rasterization" number="491">

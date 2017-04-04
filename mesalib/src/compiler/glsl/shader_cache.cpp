@@ -1273,7 +1273,7 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
 
    disk_cache_put(cache, prog->data->sha1, metadata->data, metadata->size);
 
-   free(metadata);
+   blob_destroy(metadata);
 
    if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
       _mesa_sha1_format(sha1_buf, prog->data->sha1);

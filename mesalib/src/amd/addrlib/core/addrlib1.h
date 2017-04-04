@@ -496,7 +496,7 @@ protected:
         ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 
     /// Quad buffer stereo support, has its implementation in ind. layer
-    virtual BOOL_32 ComputeQbStereoInfo(
+    VOID ComputeQbStereoInfo(
         ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 
     /// Pure virutual function to compute stereo bank swizzle for right eye

@@ -209,7 +209,7 @@ install:
 	if not exist $(HDRDEST) mkdir $(HDRDEST)
 	if exist pthreadV*.dll copy pthreadV*.dll $(DLLDEST)
 	copy pthreadV*.lib $(LIBDEST)
-	copy _pth32.h $(HDRDEST)
+	copy _ptw32.h $(HDRDEST)
 	copy pthread.h $(HDRDEST)
 	copy sched.h $(HDRDEST)
 	copy semaphore.h $(HDRDEST)

@@ -860,7 +860,8 @@ x11_acquire_next_image(struct wsi_swapchain *anv_chain,
 
 static VkResult
 x11_queue_present(struct wsi_swapchain *anv_chain,
-                  uint32_t image_index)
+                  uint32_t image_index,
+                  const VkPresentRegionKHR *damage)
 {
    struct x11_swapchain *chain = (struct x11_swapchain *)anv_chain;
 

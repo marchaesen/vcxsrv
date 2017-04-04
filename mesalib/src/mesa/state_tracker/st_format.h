@@ -45,7 +45,7 @@ struct pipe_screen;
 
 
 extern enum pipe_format
-st_mesa_format_to_pipe_format(struct st_context *st, mesa_format mesaFormat);
+st_mesa_format_to_pipe_format(const struct st_context *st, mesa_format mesaFormat);
 
 extern mesa_format
 st_pipe_format_to_mesa_format(enum pipe_format pipeFormat);

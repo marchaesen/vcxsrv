@@ -80,8 +80,21 @@ struct nir_to_llvm_context {
 	LLVMValueRef rel_auto_id;
 	LLVMValueRef vs_prim_id;
 	LLVMValueRef instance_id;
-
+	LLVMValueRef ls_out_layout;
 	LLVMValueRef es2gs_offset;
+
+	LLVMValueRef tcs_offchip_layout;
+	LLVMValueRef tcs_out_offsets;
+	LLVMValueRef tcs_out_layout;
+	LLVMValueRef tcs_in_layout;
+	LLVMValueRef oc_lds;
+	LLVMValueRef tess_factor_offset;
+	LLVMValueRef tcs_patch_id;
+	LLVMValueRef tcs_rel_ids;
+	LLVMValueRef tes_rel_patch_id;
+	LLVMValueRef tes_patch_id;
+	LLVMValueRef tes_u;
+	LLVMValueRef tes_v;
 
 	LLVMValueRef gsvs_ring_stride;
 	LLVMValueRef gsvs_num_entries;
@@ -92,9 +105,11 @@ struct nir_to_llvm_context {
 
 	LLVMValueRef esgs_ring;
 	LLVMValueRef gsvs_ring;
+	LLVMValueRef hs_ring_tess_offchip;
+	LLVMValueRef hs_ring_tess_factor;
 
 	LLVMValueRef prim_mask;
-	LLVMValueRef sample_positions;
+	LLVMValueRef sample_pos_offset;
 	LLVMValueRef persp_sample, persp_center, persp_centroid;
 	LLVMValueRef linear_sample, linear_center, linear_centroid;
 	LLVMValueRef front_face;
@@ -152,6 +167,10 @@ struct nir_to_llvm_context {
 	bool is_gs_copy_shader;
 	LLVMValueRef gs_next_vertex;
 	unsigned gs_max_out_vertices;
+
+	unsigned tes_primitive_mode;
+	uint64_t tess_outputs_written;
+	uint64_t tess_patch_outputs_written;
 };
 
 static LLVMValueRef get_sampler_desc(struct nir_to_llvm_context *ctx,
@@ -164,6 +183,14 @@ static unsigned radeon_llvm_reg_index_soa(unsigned index, unsigned chan)
 
 static unsigned shader_io_get_unique_index(gl_varying_slot slot)
 {
+	/* handle patch indices separate */
+	if (slot == VARYING_SLOT_TESS_LEVEL_OUTER)
+		return 0;
+	if (slot == VARYING_SLOT_TESS_LEVEL_INNER)
+		return 1;
+	if (slot >= VARYING_SLOT_PATCH0 && slot <= VARYING_SLOT_TESS_MAX)
+		return 2 + (slot - VARYING_SLOT_PATCH0);
+
 	if (slot == VARYING_SLOT_POS)
 		return 0;
 	if (slot == VARYING_SLOT_PSIZ)
@@ -392,6 +419,110 @@ static LLVMValueRef unpack_param(struct nir_to_llvm_context *ctx,
 	return value;
 }
 
+static LLVMValueRef get_rel_patch_id(struct nir_to_llvm_context *ctx)
+{
+	switch (ctx->stage) {
+	case MESA_SHADER_TESS_CTRL:
+		return unpack_param(ctx, ctx->tcs_rel_ids, 0, 8);
+	case MESA_SHADER_TESS_EVAL:
+		return ctx->tes_rel_patch_id;
+		break;
+	default:
+		unreachable("Illegal stage");
+	}
+}
+
+/* Tessellation shaders pass outputs to the next shader using LDS.
+ *
+ * LS outputs = TCS inputs
+ * TCS outputs = TES inputs
+ *
+ * The LDS layout is:
+ * - TCS inputs for patch 0
+ * - TCS inputs for patch 1
+ * - TCS inputs for patch 2		= get_tcs_in_current_patch_offset (if RelPatchID==2)
+ * - ...
+ * - TCS outputs for patch 0            = get_tcs_out_patch0_offset
+ * - Per-patch TCS outputs for patch 0  = get_tcs_out_patch0_patch_data_offset
+ * - TCS outputs for patch 1
+ * - Per-patch TCS outputs for patch 1
+ * - TCS outputs for patch 2            = get_tcs_out_current_patch_offset (if RelPatchID==2)
+ * - Per-patch TCS outputs for patch 2  = get_tcs_out_current_patch_data_offset (if RelPatchID==2)
+ * - ...
+ *
+ * All three shaders VS(LS), TCS, TES share the same LDS space.
+ */
+static LLVMValueRef
+get_tcs_in_patch_stride(struct nir_to_llvm_context *ctx)
+{
+	if (ctx->stage == MESA_SHADER_VERTEX)
+		return unpack_param(ctx, ctx->ls_out_layout, 0, 13);
+	else if (ctx->stage == MESA_SHADER_TESS_CTRL)
+		return unpack_param(ctx, ctx->tcs_in_layout, 0, 13);
+	else {
+		assert(0);
+		return NULL;
+	}
+}
+
+static LLVMValueRef
+get_tcs_out_patch_stride(struct nir_to_llvm_context *ctx)
+{
+	return unpack_param(ctx, ctx->tcs_out_layout, 0, 13);
+}
+
+static LLVMValueRef
+get_tcs_out_patch0_offset(struct nir_to_llvm_context *ctx)
+{
+	return LLVMBuildMul(ctx->builder,
+			    unpack_param(ctx, ctx->tcs_out_offsets, 0, 16),
+			    LLVMConstInt(ctx->i32, 4, false), "");
+}
+
+static LLVMValueRef
+get_tcs_out_patch0_patch_data_offset(struct nir_to_llvm_context *ctx)
+{
+	return LLVMBuildMul(ctx->builder,
+			    unpack_param(ctx, ctx->tcs_out_offsets, 16, 16),
+			    LLVMConstInt(ctx->i32, 4, false), "");
+}
+
+static LLVMValueRef
+get_tcs_in_current_patch_offset(struct nir_to_llvm_context *ctx)
+{
+	LLVMValueRef patch_stride = get_tcs_in_patch_stride(ctx);
+	LLVMValueRef rel_patch_id = get_rel_patch_id(ctx);
+
+	return LLVMBuildMul(ctx->builder, patch_stride, rel_patch_id, "");
+}
+
+static LLVMValueRef
+get_tcs_out_current_patch_offset(struct nir_to_llvm_context *ctx)
+{
+	LLVMValueRef patch0_offset = get_tcs_out_patch0_offset(ctx);
+	LLVMValueRef patch_stride = get_tcs_out_patch_stride(ctx);
+	LLVMValueRef rel_patch_id = get_rel_patch_id(ctx);
+
+	return LLVMBuildAdd(ctx->builder, patch0_offset,
+			    LLVMBuildMul(ctx->builder, patch_stride,
+					 rel_patch_id, ""),
+			    "");
+}
+
+static LLVMValueRef
+get_tcs_out_current_patch_data_offset(struct nir_to_llvm_context *ctx)
+{
+	LLVMValueRef patch0_patch_data_offset =
+		get_tcs_out_patch0_patch_data_offset(ctx);
+	LLVMValueRef patch_stride = get_tcs_out_patch_stride(ctx);
+	LLVMValueRef rel_patch_id = get_rel_patch_id(ctx);
+
+	return LLVMBuildAdd(ctx->builder, patch0_patch_data_offset,
+			    LLVMBuildMul(ctx->builder, patch_stride,
+					 rel_patch_id, ""),
+			    "");
+}
+
 static void set_userdata_location(struct ac_userdata_info *ud_info, uint8_t sgpr_idx, uint8_t num_sgprs)
 {
 	ud_info->sgpr_idx = sgpr_idx;
@@ -417,6 +548,14 @@ static void set_userdata_location_indirect(struct ac_userdata_info *ud_info, uin
 }
 #endif
 
+static void declare_tess_lds(struct nir_to_llvm_context *ctx)
+{
+	unsigned lds_size = ctx->options->chip_class >= CIK ? 65536 : 32768;
+	ctx->lds = LLVMBuildIntToPtr(ctx->builder, ctx->i32zero,
+				     LLVMPointerType(LLVMArrayType(ctx->i32, lds_size / 4), LOCAL_ADDR_SPACE),
+		"tess_lds");
+}
+
 static void create_function(struct nir_to_llvm_context *ctx)
 {
 	LLVMTypeRef arg_types[23];
@@ -432,6 +571,9 @@ static void create_function(struct nir_to_llvm_context *ctx)
 	/* until we sort out scratch/global buffers always assign ring offsets for gs/vs/es */
 	if (ctx->stage == MESA_SHADER_GEOMETRY ||
 	    ctx->stage == MESA_SHADER_VERTEX ||
+	    ctx->stage == MESA_SHADER_TESS_CTRL ||
+	    ctx->stage == MESA_SHADER_TESS_EVAL ||
+	    ctx->stage == MESA_SHADER_FRAGMENT ||
 	    ctx->is_gs_copy_shader)
 		need_ring_offsets = true;
 
@@ -443,7 +585,7 @@ static void create_function(struct nir_to_llvm_context *ctx)
 		need_push_constants = false;
 
 	if (need_ring_offsets && !ctx->options->supports_spill) {
-		arg_types[arg_idx++] = const_array(ctx->v16i8, 8); /* address of rings */
+		arg_types[arg_idx++] = const_array(ctx->v16i8, 16); /* address of rings */
 	}
 
 	/* 1 for each descriptor set */
@@ -480,6 +622,10 @@ static void create_function(struct nir_to_llvm_context *ctx)
 		user_sgpr_count = arg_idx;
 		if (ctx->options->key.vs.as_es)
 			arg_types[arg_idx++] = ctx->i32; //es2gs offset
+		else if (ctx->options->key.vs.as_ls) {
+			arg_types[arg_idx++] = ctx->i32; //ls out layout
+			user_sgpr_count++;
+		}
 		sgpr_count = arg_idx;
 		arg_types[arg_idx++] = ctx->i32; // vertex id
 		if (!ctx->is_gs_copy_shader) {
@@ -487,6 +633,35 @@ static void create_function(struct nir_to_llvm_context *ctx)
 			arg_types[arg_idx++] = ctx->i32; // vs prim id
 			arg_types[arg_idx++] = ctx->i32; // instance id
 		}
+		break;
+	case MESA_SHADER_TESS_CTRL:
+		arg_types[arg_idx++] = ctx->i32; // tcs offchip layout
+		arg_types[arg_idx++] = ctx->i32; // tcs out offsets
+		arg_types[arg_idx++] = ctx->i32; // tcs out layout
+		arg_types[arg_idx++] = ctx->i32; // tcs in layout
+		user_sgpr_count = arg_idx;
+		arg_types[arg_idx++] = ctx->i32; // param oc lds
+		arg_types[arg_idx++] = ctx->i32; // tess factor offset
+		sgpr_count = arg_idx;
+		arg_types[arg_idx++] = ctx->i32; // patch id
+		arg_types[arg_idx++] = ctx->i32; // rel ids;
+		break;
+	case MESA_SHADER_TESS_EVAL:
+		arg_types[arg_idx++] = ctx->i32; // tcs offchip layout
+		user_sgpr_count = arg_idx;
+		if (ctx->options->key.tes.as_es) {
+			arg_types[arg_idx++] = ctx->i32; // OC LDS
+			arg_types[arg_idx++] = ctx->i32; //
+			arg_types[arg_idx++] = ctx->i32; // es2gs offset
+		} else {
+			arg_types[arg_idx++] = ctx->i32; //
+			arg_types[arg_idx++] = ctx->i32; // OC LDS
+		}
+		sgpr_count = arg_idx;
+		arg_types[arg_idx++] = ctx->f32; // tes_u
+		arg_types[arg_idx++] = ctx->f32; // tes_v
+		arg_types[arg_idx++] = ctx->i32; // tes rel patch id
+		arg_types[arg_idx++] = ctx->i32; // tes patch id
 		break;
 	case MESA_SHADER_GEOMETRY:
 		arg_types[arg_idx++] = ctx->i32; // gsvs stride
@@ -505,7 +680,7 @@ static void create_function(struct nir_to_llvm_context *ctx)
 		arg_types[arg_idx++] = ctx->i32; // GS instance id
 		break;
 	case MESA_SHADER_FRAGMENT:
-		arg_types[arg_idx++] = const_array(ctx->f32, 32); /* sample positions */
+		arg_types[arg_idx++] = ctx->i32; /* sample position offset */
 		user_sgpr_count = arg_idx;
 		arg_types[arg_idx++] = ctx->i32; /* prim mask */
 		sgpr_count = arg_idx;
@@ -561,7 +736,7 @@ static void create_function(struct nir_to_llvm_context *ctx)
 							       LLVMPointerType(ctx->i8, CONST_ADDR_SPACE),
 							       NULL, 0, AC_FUNC_ATTR_READNONE);
 			ctx->ring_offsets = LLVMBuildBitCast(ctx->builder, ctx->ring_offsets,
-							     const_array(ctx->v16i8, 8), "");
+							     const_array(ctx->v16i8, 16), "");
 		} else
 			ctx->ring_offsets = LLVMGetParam(ctx->main_function, arg_idx++);
 	}
@@ -608,12 +783,50 @@ static void create_function(struct nir_to_llvm_context *ctx)
 		}
 		if (ctx->options->key.vs.as_es)
 			ctx->es2gs_offset = LLVMGetParam(ctx->main_function, arg_idx++);
+		else if (ctx->options->key.vs.as_ls) {
+			set_userdata_location_shader(ctx, AC_UD_VS_LS_TCS_IN_LAYOUT, user_sgpr_idx, 1);
+			user_sgpr_idx += 1;
+			ctx->ls_out_layout = LLVMGetParam(ctx->main_function, arg_idx++);
+		}
 		ctx->vertex_id = LLVMGetParam(ctx->main_function, arg_idx++);
 		if (!ctx->is_gs_copy_shader) {
 			ctx->rel_auto_id = LLVMGetParam(ctx->main_function, arg_idx++);
 			ctx->vs_prim_id = LLVMGetParam(ctx->main_function, arg_idx++);
 			ctx->instance_id = LLVMGetParam(ctx->main_function, arg_idx++);
 		}
+		if (ctx->options->key.vs.as_ls)
+			declare_tess_lds(ctx);
+		break;
+	case MESA_SHADER_TESS_CTRL:
+		set_userdata_location_shader(ctx, AC_UD_TCS_OFFCHIP_LAYOUT, user_sgpr_idx, 4);
+		user_sgpr_idx += 4;
+		ctx->tcs_offchip_layout = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tcs_out_offsets = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tcs_out_layout = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tcs_in_layout = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->oc_lds = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tess_factor_offset = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tcs_patch_id = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tcs_rel_ids = LLVMGetParam(ctx->main_function, arg_idx++);
+
+		declare_tess_lds(ctx);
+		break;
+	case MESA_SHADER_TESS_EVAL:
+		set_userdata_location_shader(ctx, AC_UD_TES_OFFCHIP_LAYOUT, user_sgpr_idx, 1);
+		user_sgpr_idx += 1;
+		ctx->tcs_offchip_layout = LLVMGetParam(ctx->main_function, arg_idx++);
+		if (ctx->options->key.tes.as_es) {
+			ctx->oc_lds = LLVMGetParam(ctx->main_function, arg_idx++);
+			arg_idx++;
+			ctx->es2gs_offset = LLVMGetParam(ctx->main_function, arg_idx++);
+		} else {
+			arg_idx++;
+			ctx->oc_lds = LLVMGetParam(ctx->main_function, arg_idx++);
+		}
+		ctx->tes_u = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tes_v = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tes_rel_patch_id = LLVMGetParam(ctx->main_function, arg_idx++);
+		ctx->tes_patch_id = LLVMGetParam(ctx->main_function, arg_idx++);
 		break;
 	case MESA_SHADER_GEOMETRY:
 		set_userdata_location_shader(ctx, AC_UD_GS_VS_RING_STRIDE_ENTRIES, user_sgpr_idx, 2);
@@ -632,9 +845,9 @@ static void create_function(struct nir_to_llvm_context *ctx)
 		ctx->gs_invocation_id = LLVMGetParam(ctx->main_function, arg_idx++);
 		break;
 	case MESA_SHADER_FRAGMENT:
-		set_userdata_location_shader(ctx, AC_UD_PS_SAMPLE_POS, user_sgpr_idx, 2);
-		user_sgpr_idx += 2;
-		ctx->sample_positions = LLVMGetParam(ctx->main_function, arg_idx++);
+		set_userdata_location_shader(ctx, AC_UD_PS_SAMPLE_POS_OFFSET, user_sgpr_idx, 1);
+		user_sgpr_idx += 1;
+		ctx->sample_pos_offset = LLVMGetParam(ctx->main_function, arg_idx++);
 		ctx->prim_mask = LLVMGetParam(ctx->main_function, arg_idx++);
 		ctx->persp_sample = LLVMGetParam(ctx->main_function, arg_idx++);
 		ctx->persp_center = LLVMGetParam(ctx->main_function, arg_idx++);
@@ -2091,17 +2304,39 @@ static LLVMValueRef visit_load_ubo_buffer(struct nir_to_llvm_context *ctx,
 }
 
 static void
-radv_get_deref_offset(struct nir_to_llvm_context *ctx, nir_deref *tail,
+radv_get_deref_offset(struct nir_to_llvm_context *ctx, nir_deref_var *deref,
 		      bool vs_in, unsigned *vertex_index_out,
+		      LLVMValueRef *vertex_index_ref,
 		      unsigned *const_out, LLVMValueRef *indir_out)
 {
 	unsigned const_offset = 0;
+	nir_deref *tail = &deref->deref;
 	LLVMValueRef offset = NULL;
 
-	if (vertex_index_out != NULL) {
+	if (vertex_index_out != NULL || vertex_index_ref != NULL) {
 		tail = tail->child;
 		nir_deref_array *deref_array = nir_deref_as_array(tail);
-		*vertex_index_out = deref_array->base_offset;
+		if (vertex_index_out)
+			*vertex_index_out = deref_array->base_offset;
+
+		if (vertex_index_ref) {
+			LLVMValueRef vtx = LLVMConstInt(ctx->i32, deref_array->base_offset, false);
+			if (deref_array->deref_array_type == nir_deref_array_type_indirect) {
+				vtx = LLVMBuildAdd(ctx->builder, vtx, get_src(ctx, deref_array->indirect), "");
+			}
+			*vertex_index_ref = vtx;
+		}
+	}
+
+	if (deref->var->data.compact) {
+		assert(tail->child->deref_type == nir_deref_type_array);
+		assert(glsl_type_is_scalar(glsl_without_array(deref->var->type)));
+		nir_deref_array *deref_array = nir_deref_as_array(tail->child);
+		/* We always lower indirect dereferences for "compact" array vars. */
+		assert(deref_array->deref_array_type == nir_deref_array_type_direct);
+
+		const_offset = deref_array->base_offset;
+		goto out;
 	}
 
 	while (tail->child != NULL) {
@@ -2137,7 +2372,7 @@ radv_get_deref_offset(struct nir_to_llvm_context *ctx, nir_deref *tail,
 			unreachable("unsupported deref type");
 
 	}
-
+out:
 	if (const_offset && offset)
 		offset = LLVMBuildAdd(ctx->builder, offset,
 				      LLVMConstInt(ctx->i32, const_offset, 0),
@@ -2145,6 +2380,322 @@ radv_get_deref_offset(struct nir_to_llvm_context *ctx, nir_deref *tail,
 
 	*const_out = const_offset;
 	*indir_out = offset;
+}
+
+static LLVMValueRef
+lds_load(struct nir_to_llvm_context *ctx,
+	 LLVMValueRef dw_addr)
+{
+	LLVMValueRef value;
+	value = ac_build_indexed_load(&ctx->ac, ctx->lds, dw_addr, false);
+	return value;
+}
+
+static void
+lds_store(struct nir_to_llvm_context *ctx,
+	  LLVMValueRef dw_addr, LLVMValueRef value)
+{
+	value = LLVMBuildBitCast(ctx->builder, value, ctx->i32, "");
+	ac_build_indexed_store(&ctx->ac, ctx->lds,
+			       dw_addr, value);
+}
+
+/* The offchip buffer layout for TCS->TES is
+ *
+ * - attribute 0 of patch 0 vertex 0
+ * - attribute 0 of patch 0 vertex 1
+ * - attribute 0 of patch 0 vertex 2
+ *   ...
+ * - attribute 0 of patch 1 vertex 0
+ * - attribute 0 of patch 1 vertex 1
+ *   ...
+ * - attribute 1 of patch 0 vertex 0
+ * - attribute 1 of patch 0 vertex 1
+ *   ...
+ * - per patch attribute 0 of patch 0
+ * - per patch attribute 0 of patch 1
+ *   ...
+ *
+ * Note that every attribute has 4 components.
+ */
+static LLVMValueRef get_tcs_tes_buffer_address(struct nir_to_llvm_context *ctx,
+                                               LLVMValueRef vertex_index,
+                                               LLVMValueRef param_index)
+{
+	LLVMValueRef base_addr, vertices_per_patch, num_patches, total_vertices;
+	LLVMValueRef param_stride, constant16;
+	LLVMValueRef rel_patch_id = get_rel_patch_id(ctx);
+
+	vertices_per_patch = unpack_param(ctx, ctx->tcs_offchip_layout, 9, 6);
+	num_patches = unpack_param(ctx, ctx->tcs_offchip_layout, 0, 9);
+	total_vertices = LLVMBuildMul(ctx->builder, vertices_per_patch,
+	                              num_patches, "");
+
+	constant16 = LLVMConstInt(ctx->i32, 16, false);
+	if (vertex_index) {
+		base_addr = LLVMBuildMul(ctx->builder, rel_patch_id,
+		                         vertices_per_patch, "");
+
+		base_addr = LLVMBuildAdd(ctx->builder, base_addr,
+		                         vertex_index, "");
+
+		param_stride = total_vertices;
+	} else {
+		base_addr = rel_patch_id;
+		param_stride = num_patches;
+	}
+
+	base_addr = LLVMBuildAdd(ctx->builder, base_addr,
+	                         LLVMBuildMul(ctx->builder, param_index,
+	                                      param_stride, ""), "");
+
+	base_addr = LLVMBuildMul(ctx->builder, base_addr, constant16, "");
+
+	if (!vertex_index) {
+		LLVMValueRef patch_data_offset =
+		           unpack_param(ctx, ctx->tcs_offchip_layout, 16, 16);
+
+		base_addr = LLVMBuildAdd(ctx->builder, base_addr,
+		                         patch_data_offset, "");
+	}
+	return base_addr;
+}
+
+static LLVMValueRef get_tcs_tes_buffer_address_params(struct nir_to_llvm_context *ctx,
+						      unsigned param,
+						      unsigned const_index,
+						      bool is_compact,
+						      LLVMValueRef vertex_index,
+						      LLVMValueRef indir_index)
+{
+	LLVMValueRef param_index;
+
+	if (indir_index)
+		param_index = LLVMBuildAdd(ctx->builder, LLVMConstInt(ctx->i32, param, false),
+					   indir_index, "");
+	else {
+		if (const_index && !is_compact)
+			param += const_index;
+		param_index = LLVMConstInt(ctx->i32, param, false);
+	}
+	return get_tcs_tes_buffer_address(ctx, vertex_index, param_index);
+}
+
+static void
+mark_tess_output(struct nir_to_llvm_context *ctx,
+		 bool is_patch, uint32_t param)
+
+{
+	if (is_patch) {
+		ctx->tess_patch_outputs_written |= (1ull << param);
+	} else
+		ctx->tess_outputs_written |= (1ull << param);
+}
+
+static LLVMValueRef
+get_dw_address(struct nir_to_llvm_context *ctx,
+	       LLVMValueRef dw_addr,
+	       unsigned param,
+	       unsigned const_index,
+	       bool compact_const_index,
+	       LLVMValueRef vertex_index,
+	       LLVMValueRef stride,
+	       LLVMValueRef indir_index)
+
+{
+
+	if (vertex_index) {
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       LLVMBuildMul(ctx->builder,
+						    vertex_index,
+						    stride, ""), "");
+	}
+
+	if (indir_index)
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       LLVMBuildMul(ctx->builder, indir_index,
+						    LLVMConstInt(ctx->i32, 4, false), ""), "");
+	else if (const_index && !compact_const_index)
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       LLVMConstInt(ctx->i32, const_index, false), "");
+
+	dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+			       LLVMConstInt(ctx->i32, param * 4, false), "");
+
+	if (const_index && compact_const_index)
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       LLVMConstInt(ctx->i32, const_index, false), "");
+	return dw_addr;
+}
+
+static LLVMValueRef
+load_tcs_input(struct nir_to_llvm_context *ctx,
+	       nir_intrinsic_instr *instr)
+{
+	LLVMValueRef dw_addr, stride;
+	unsigned const_index;
+	LLVMValueRef vertex_index;
+	LLVMValueRef indir_index;
+	unsigned param;
+	LLVMValueRef value[4], result;
+	const bool per_vertex = nir_is_per_vertex_io(instr->variables[0]->var, ctx->stage);
+	const bool is_compact = instr->variables[0]->var->data.compact;
+	param = shader_io_get_unique_index(instr->variables[0]->var->data.location);
+	radv_get_deref_offset(ctx, instr->variables[0],
+			      false, NULL, per_vertex ? &vertex_index : NULL,
+			      &const_index, &indir_index);
+
+	stride = unpack_param(ctx, ctx->tcs_in_layout, 13, 8);
+	dw_addr = get_tcs_in_current_patch_offset(ctx);
+	dw_addr = get_dw_address(ctx, dw_addr, param, const_index, is_compact, vertex_index, stride,
+				 indir_index);
+
+	for (unsigned i = 0; i < instr->num_components; i++) {
+		value[i] = lds_load(ctx, dw_addr);
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       ctx->i32one, "");
+	}
+	result = ac_build_gather_values(&ctx->ac, value, instr->num_components);
+	result = LLVMBuildBitCast(ctx->builder, result, get_def_type(ctx, &instr->dest.ssa), "");
+	return result;
+}
+
+static LLVMValueRef
+load_tcs_output(struct nir_to_llvm_context *ctx,
+	       nir_intrinsic_instr *instr)
+{
+	LLVMValueRef dw_addr, stride;
+	LLVMValueRef value[4], result;
+	LLVMValueRef vertex_index = NULL;
+	LLVMValueRef indir_index = NULL;
+	unsigned const_index = 0;
+	unsigned param;
+	const bool per_vertex = nir_is_per_vertex_io(instr->variables[0]->var, ctx->stage);
+	const bool is_compact = instr->variables[0]->var->data.compact;
+	param = shader_io_get_unique_index(instr->variables[0]->var->data.location);
+	radv_get_deref_offset(ctx, instr->variables[0],
+			      false, NULL, per_vertex ? &vertex_index : NULL,
+			      &const_index, &indir_index);
+
+	if (!instr->variables[0]->var->data.patch) {
+		stride = unpack_param(ctx, ctx->tcs_out_layout, 13, 8);
+		dw_addr = get_tcs_out_current_patch_offset(ctx);
+	} else {
+		dw_addr = get_tcs_out_current_patch_data_offset(ctx);
+	}
+
+	dw_addr = get_dw_address(ctx, dw_addr, param, const_index, is_compact, vertex_index, stride,
+				 indir_index);
+
+	for (unsigned i = 0; i < instr->num_components; i++) {
+		value[i] = lds_load(ctx, dw_addr);
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       ctx->i32one, "");
+	}
+	result = ac_build_gather_values(&ctx->ac, value, instr->num_components);
+	result = LLVMBuildBitCast(ctx->builder, result, get_def_type(ctx, &instr->dest.ssa), "");
+	return result;
+}
+
+static void
+store_tcs_output(struct nir_to_llvm_context *ctx,
+		 nir_intrinsic_instr *instr,
+		 LLVMValueRef src,
+		 unsigned writemask)
+{
+	LLVMValueRef stride, dw_addr;
+	LLVMValueRef buf_addr = NULL;
+	LLVMValueRef vertex_index = NULL;
+	LLVMValueRef indir_index = NULL;
+	unsigned const_index = 0;
+	unsigned param;
+	const bool per_vertex = nir_is_per_vertex_io(instr->variables[0]->var, ctx->stage);
+	const bool is_compact = instr->variables[0]->var->data.compact;
+
+	radv_get_deref_offset(ctx, instr->variables[0],
+			      false, NULL, per_vertex ? &vertex_index : NULL,
+			      &const_index, &indir_index);
+
+	param = shader_io_get_unique_index(instr->variables[0]->var->data.location);
+	if (instr->variables[0]->var->data.location == VARYING_SLOT_CLIP_DIST0 &&
+	    is_compact && const_index > 3) {
+		const_index -= 3;
+		param++;
+	}
+
+	if (!instr->variables[0]->var->data.patch) {
+		stride = unpack_param(ctx, ctx->tcs_out_layout, 13, 8);
+		dw_addr = get_tcs_out_current_patch_offset(ctx);
+	} else {
+		dw_addr = get_tcs_out_current_patch_data_offset(ctx);
+	}
+
+	mark_tess_output(ctx, instr->variables[0]->var->data.patch, param);
+
+	dw_addr = get_dw_address(ctx, dw_addr, param, const_index, is_compact, vertex_index, stride,
+				 indir_index);
+	buf_addr = get_tcs_tes_buffer_address_params(ctx, param, const_index, is_compact,
+						     vertex_index, indir_index);
+
+	unsigned base = is_compact ? const_index : 0;
+	for (unsigned chan = 0; chan < 8; chan++) {
+		bool is_tess_factor = false;
+		if (!(writemask & (1 << chan)))
+			continue;
+		LLVMValueRef value = llvm_extract_elem(ctx, src, chan);
+
+		lds_store(ctx, dw_addr, value);
+
+		if (instr->variables[0]->var->data.location == VARYING_SLOT_TESS_LEVEL_INNER ||
+		    instr->variables[0]->var->data.location == VARYING_SLOT_TESS_LEVEL_OUTER)
+			is_tess_factor = true;
+
+		if (!is_tess_factor && writemask != 0xF)
+			ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, value, 1,
+						    buf_addr, ctx->oc_lds,
+						    4 * (base + chan), 1, 0, true, false);
+
+		dw_addr = LLVMBuildAdd(ctx->builder, dw_addr,
+				       ctx->i32one, "");
+	}
+
+	if (writemask == 0xF) {
+		ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, src, 4,
+					    buf_addr, ctx->oc_lds,
+					    (base * 4), 1, 0, true, false);
+	}
+}
+
+static LLVMValueRef
+load_tes_input(struct nir_to_llvm_context *ctx,
+	       nir_intrinsic_instr *instr)
+{
+	LLVMValueRef buf_addr;
+	LLVMValueRef result;
+	LLVMValueRef vertex_index = NULL;
+	LLVMValueRef indir_index = NULL;
+	unsigned const_index = 0;
+	unsigned param;
+	const bool per_vertex = nir_is_per_vertex_io(instr->variables[0]->var, ctx->stage);
+	const bool is_compact = instr->variables[0]->var->data.compact;
+
+	radv_get_deref_offset(ctx, instr->variables[0],
+			      false, NULL, per_vertex ? &vertex_index : NULL,
+			      &const_index, &indir_index);
+	param = shader_io_get_unique_index(instr->variables[0]->var->data.location);
+	if (instr->variables[0]->var->data.location == VARYING_SLOT_CLIP_DIST0 &&
+	    is_compact && const_index > 3) {
+		const_index -= 3;
+		param++;
+	}
+	buf_addr = get_tcs_tes_buffer_address_params(ctx, param, const_index,
+						     is_compact, vertex_index, indir_index);
+
+	result = ac_build_buffer_load(&ctx->ac, ctx->hs_ring_tess_offchip, instr->num_components, NULL,
+				      buf_addr, ctx->oc_lds, is_compact ? (4 * const_index) : 0, 1, 0, true);
+	result = trim_vector(ctx, result, instr->num_components);
+	result = LLVMBuildBitCast(ctx->builder, result, get_def_type(ctx, &instr->dest.ssa), "");
+	return result;
 }
 
 static LLVMValueRef
@@ -2157,8 +2708,8 @@ load_gs_input(struct nir_to_llvm_context *ctx,
 	unsigned param, vtx_offset_param;
 	LLVMValueRef value[4], result;
 	unsigned vertex_index;
-	radv_get_deref_offset(ctx, &instr->variables[0]->deref,
-			      false, &vertex_index,
+	radv_get_deref_offset(ctx, instr->variables[0],
+			      false, &vertex_index, NULL,
 			      &const_index, &indir_index);
 	vtx_offset_param = vertex_index;
 	assert(vtx_offset_param < 6);
@@ -2199,7 +2750,7 @@ static LLVMValueRef visit_load_var(struct nir_to_llvm_context *ctx,
 	unsigned const_index;
 	bool vs_in = ctx->stage == MESA_SHADER_VERTEX &&
 	             instr->variables[0]->var->data.mode == nir_var_shader_in;
-	radv_get_deref_offset(ctx, &instr->variables[0]->deref, vs_in, NULL,
+	radv_get_deref_offset(ctx, instr->variables[0], vs_in, NULL, NULL,
 				      &const_index, &indir_index);
 
 	if (instr->dest.ssa.bit_size == 64)
@@ -2207,6 +2758,10 @@ static LLVMValueRef visit_load_var(struct nir_to_llvm_context *ctx,
 
 	switch (instr->variables[0]->var->data.mode) {
 	case nir_var_shader_in:
+		if (ctx->stage == MESA_SHADER_TESS_CTRL)
+			return load_tcs_input(ctx, instr);
+		if (ctx->stage == MESA_SHADER_TESS_EVAL)
+			return load_tes_input(ctx, instr);
 		if (ctx->stage == MESA_SHADER_GEOMETRY) {
 			return load_gs_input(ctx, instr);
 		}
@@ -2246,6 +2801,8 @@ static LLVMValueRef visit_load_var(struct nir_to_llvm_context *ctx,
 		}
 		break;
 	case nir_var_shader_out:
+		if (ctx->stage == MESA_SHADER_TESS_CTRL)
+			return load_tcs_output(ctx, instr);
 		for (unsigned chan = 0; chan < ve; chan++) {
 			if (indir_index) {
 				unsigned count = glsl_count_attribute_slots(
@@ -2299,8 +2856,8 @@ visit_store_var(struct nir_to_llvm_context *ctx,
 	int writemask = instr->const_index[0];
 	LLVMValueRef indir_index;
 	unsigned const_index;
-	radv_get_deref_offset(ctx, &instr->variables[0]->deref, false,
-	                      NULL, &const_index, &indir_index);
+	radv_get_deref_offset(ctx, instr->variables[0], false,
+	                      NULL, NULL, &const_index, &indir_index);
 
 	if (get_elem_bits(ctx, LLVMTypeOf(src)) == 64) {
 		int old_writemask = writemask;
@@ -2318,6 +2875,12 @@ visit_store_var(struct nir_to_llvm_context *ctx,
 
 	switch (instr->variables[0]->var->data.mode) {
 	case nir_var_shader_out:
+
+		if (ctx->stage == MESA_SHADER_TESS_CTRL) {
+			store_tcs_output(ctx, instr, src, writemask);
+			return;
+		}
+
 		for (unsigned chan = 0; chan < 8; chan++) {
 			int stride = 4;
 			if (!(writemask & (1 << chan)))
@@ -2825,9 +3388,17 @@ static void emit_waitcnt(struct nir_to_llvm_context *ctx,
 
 static void emit_barrier(struct nir_to_llvm_context *ctx)
 {
-	// TODO tess
+	/* SI only (thanks to a hw bug workaround):
+	 * The real barrier instruction isn’t needed, because an entire patch
+	 * always fits into a single wave.
+	 */
+	if (ctx->options->chip_class == SI &&
+	    ctx->stage == MESA_SHADER_TESS_CTRL) {
+		emit_waitcnt(ctx, LGKM_CNT & VM_CNT);
+		return;
+	}
 	ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.s.barrier",
-			   ctx->voidt, NULL, 0, 0);
+			   ctx->voidt, NULL, 0, AC_FUNC_ATTR_CONVERGENT);
 }
 
 static void emit_discard_if(struct nir_to_llvm_context *ctx,
@@ -2948,15 +3519,17 @@ static LLVMValueRef lookup_interp_param(struct nir_to_llvm_context *ctx,
 static LLVMValueRef load_sample_position(struct nir_to_llvm_context *ctx,
 					 LLVMValueRef sample_id)
 {
-	/* offset = sample_id * 8  (8 = 2 floats containing samplepos.xy) */
-	LLVMValueRef offset0 = LLVMBuildMul(ctx->builder, sample_id, LLVMConstInt(ctx->i32, 8, false), "");
-	LLVMValueRef offset1 = LLVMBuildAdd(ctx->builder, offset0, LLVMConstInt(ctx->i32, 4, false), "");
-	LLVMValueRef result[2];
+	LLVMValueRef result;
+	LLVMValueRef ptr = ac_build_gep0(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_PS_SAMPLE_POSITIONS, false));
 
-	result[0] = ac_build_indexed_load_const(&ctx->ac, ctx->sample_positions, offset0);
-	result[1] = ac_build_indexed_load_const(&ctx->ac, ctx->sample_positions, offset1);
+	ptr = LLVMBuildBitCast(ctx->builder, ptr,
+			       const_array(ctx->v2f32, 64), "");
 
-	return ac_build_gather_values(&ctx->ac, result, 2);
+	sample_id = LLVMBuildAdd(ctx->builder, sample_id, ctx->sample_pos_offset, "");
+	result = ac_build_indexed_load(&ctx->ac, ptr, sample_id, false);
+
+	ctx->shader_info->fs.uses_sample_positions = true;
+	return result;
 }
 
 static LLVMValueRef load_sample_pos(struct nir_to_llvm_context *ctx)
@@ -2983,12 +3556,10 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 		location = INTERP_CENTROID;
 		break;
 	case nir_intrinsic_interp_var_at_sample:
-		location = INTERP_SAMPLE;
-		src0 = get_src(ctx, instr->src[0]);
-		break;
 	case nir_intrinsic_interp_var_at_offset:
 		location = INTERP_CENTER;
 		src0 = get_src(ctx, instr->src[0]);
+		break;
 	default:
 		break;
 	}
@@ -3149,6 +3720,26 @@ visit_end_primitive(struct nir_to_llvm_context *ctx,
 	ac_build_sendmsg(&ctx->ac, AC_SENDMSG_GS_OP_CUT | AC_SENDMSG_GS | (0 << 8), ctx->gs_wave_id);
 }
 
+static LLVMValueRef
+visit_load_tess_coord(struct nir_to_llvm_context *ctx,
+		      nir_intrinsic_instr *instr)
+{
+	LLVMValueRef coord[4] = {
+		ctx->tes_u,
+		ctx->tes_v,
+		ctx->f32zero,
+		ctx->f32zero,
+	};
+
+	if (ctx->tes_primitive_mode == GL_TRIANGLES)
+		coord[2] = LLVMBuildFSub(ctx->builder, ctx->f32one,
+					LLVMBuildFAdd(ctx->builder, coord[0], coord[1], ""), "");
+
+	LLVMValueRef result = ac_build_gather_values(&ctx->ac, coord, instr->num_components);
+	return LLVMBuildBitCast(ctx->builder, result,
+				get_def_type(ctx, &instr->dest.ssa), "");
+}
+
 static void visit_intrinsic(struct nir_to_llvm_context *ctx,
                             nir_intrinsic_instr *instr)
 {
@@ -3178,11 +3769,18 @@ static void visit_intrinsic(struct nir_to_llvm_context *ctx,
 		result = ctx->draw_index;
 		break;
 	case nir_intrinsic_load_invocation_id:
-		result = ctx->gs_invocation_id;
+		if (ctx->stage == MESA_SHADER_TESS_CTRL)
+			result = unpack_param(ctx, ctx->tcs_rel_ids, 8, 5);
+		else
+			result = ctx->gs_invocation_id;
 		break;
 	case nir_intrinsic_load_primitive_id:
 		if (ctx->stage == MESA_SHADER_GEOMETRY)
 			result = ctx->gs_prim_id;
+		else if (ctx->stage == MESA_SHADER_TESS_CTRL)
+			result = ctx->tcs_patch_id;
+		else if (ctx->stage == MESA_SHADER_TESS_EVAL)
+			result = ctx->tes_patch_id;
 		else
 			fprintf(stderr, "Unknown primitive id intrinsic: %d", ctx->stage);
 		break;
@@ -3303,6 +3901,12 @@ static void visit_intrinsic(struct nir_to_llvm_context *ctx,
 		break;
 	case nir_intrinsic_end_primitive:
 		visit_end_primitive(ctx, instr);
+		break;
+	case nir_intrinsic_load_tess_coord:
+		result = visit_load_tess_coord(ctx, instr);
+		break;
+	case nir_intrinsic_load_patch_vertices_in:
+		result = LLVMConstInt(ctx->i32, ctx->options->key.tcs.input_vertices, false);
 		break;
 	default:
 		fprintf(stderr, "Unknown intrinsic: ");
@@ -3627,12 +4231,14 @@ static void visit_tex(struct nir_to_llvm_context *ctx, nir_tex_instr *instr)
 		}
 
 		for (unsigned i = 0; i < num_deriv_comp; i++) {
-			derivs[i * 2] = to_float(ctx, llvm_extract_elem(ctx, ddx, i));
-			derivs[i * 2 + 1] = to_float(ctx, llvm_extract_elem(ctx, ddy, i));
+			derivs[i] = to_float(ctx, llvm_extract_elem(ctx, ddx, i));
+			derivs[num_deriv_comp + i] = to_float(ctx, llvm_extract_elem(ctx, ddy, i));
 		}
 	}
 
 	if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE && coord) {
+		if (instr->is_array && instr->op != nir_texop_lod)
+			coords[3] = apply_round_slice(ctx, coords[3]);
 		for (chan = 0; chan < instr->coord_components; chan++)
 			coords[chan] = to_float(ctx, coords[chan]);
 		if (instr->coord_components == 3)
@@ -3660,7 +4266,9 @@ static void visit_tex(struct nir_to_llvm_context *ctx, nir_tex_instr *instr)
 		}
 		if (instr->coord_components > 2) {
 			/* This seems like a bit of a hack - but it passes Vulkan CTS with it */
-			if (instr->sampler_dim != GLSL_SAMPLER_DIM_3D && instr->op != nir_texop_txf) {
+			if (instr->sampler_dim != GLSL_SAMPLER_DIM_3D &&
+			    instr->sampler_dim != GLSL_SAMPLER_DIM_CUBE &&
+			    instr->op != nir_texop_txf) {
 				coords[2] = apply_round_slice(ctx, coords[2]);
 			}
 			address[count++] = coords[2];
@@ -3961,7 +4569,6 @@ handle_vs_input_decl(struct nir_to_llvm_context *ctx,
 	LLVMValueRef t_list_ptr = ctx->vertex_buffers;
 	LLVMValueRef t_offset;
 	LLVMValueRef t_list;
-	LLVMValueRef args[3];
 	LLVMValueRef input;
 	LLVMValueRef buffer_index;
 	int index = variable->data.location - VERT_ATTRIB_GENERIC0;
@@ -3983,13 +4590,11 @@ handle_vs_input_decl(struct nir_to_llvm_context *ctx,
 		t_offset = LLVMConstInt(ctx->i32, index + i, false);
 
 		t_list = ac_build_indexed_load_const(&ctx->ac, t_list_ptr, t_offset);
-		args[0] = t_list;
-		args[1] = LLVMConstInt(ctx->i32, 0, false);
-		args[2] = buffer_index;
-		input = ac_build_intrinsic(&ctx->ac,
-			"llvm.SI.vs.load.input", ctx->v4f32, args, 3,
-			AC_FUNC_ATTR_READNONE | AC_FUNC_ATTR_NOUNWIND |
-			AC_FUNC_ATTR_LEGACY);
+
+		input = ac_build_buffer_load_format(&ctx->ac, t_list,
+						    buffer_index,
+						    LLVMConstInt(ctx->i32, 0, false),
+						    true);
 
 		for (unsigned chan = 0; chan < 4; chan++) {
 			LLVMValueRef llvm_chan = LLVMConstInt(ctx->i32, chan, false);
@@ -4181,14 +4786,23 @@ handle_shader_output_decl(struct nir_to_llvm_context *ctx,
 	uint64_t mask_attribs;
 	variable->data.driver_location = idx * 4;
 
+	/* tess ctrl has it's own load/store paths for outputs */
+	if (ctx->stage == MESA_SHADER_TESS_CTRL)
+		return;
+
 	mask_attribs = ((1ull << attrib_count) - 1) << idx;
 	if (ctx->stage == MESA_SHADER_VERTEX ||
+	    ctx->stage == MESA_SHADER_TESS_EVAL ||
 	    ctx->stage == MESA_SHADER_GEOMETRY) {
 		if (idx == VARYING_SLOT_CLIP_DIST0) {
 			int length = ctx->num_output_clips + ctx->num_output_culls;
 			if (ctx->stage == MESA_SHADER_VERTEX) {
 				ctx->shader_info->vs.outinfo.clip_dist_mask = (1 << ctx->num_output_clips) - 1;
 				ctx->shader_info->vs.outinfo.cull_dist_mask = (1 << ctx->num_output_culls) - 1;
+			}
+			if (ctx->stage == MESA_SHADER_TESS_EVAL) {
+				ctx->shader_info->tes.outinfo.clip_dist_mask = (1 << ctx->num_output_clips) - 1;
+				ctx->shader_info->tes.outinfo.cull_dist_mask = (1 << ctx->num_output_culls) - 1;
 			}
 
 			if (length > 4)
@@ -4559,7 +5173,7 @@ handle_es_outputs_post(struct nir_to_llvm_context *ctx,
 		LLVMValueRef *out_ptr = &ctx->outputs[i * 4];
 		int param_index;
 		int length = 4;
-		int start = 0;
+
 		if (!(ctx->output_mask & (1ull << i)))
 			continue;
 
@@ -4568,8 +5182,7 @@ handle_es_outputs_post(struct nir_to_llvm_context *ctx,
 
 		param_index = shader_io_get_unique_index(i);
 
-		if (param_index > max_output_written)
-			max_output_written = param_index;
+		max_output_written = MAX2(param_index + (length > 4), max_output_written);
 
 		for (j = 0; j < length; j++) {
 			LLVMValueRef out_val = LLVMBuildLoad(ctx->builder, out_ptr[j], "");
@@ -4579,11 +5192,278 @@ handle_es_outputs_post(struct nir_to_llvm_context *ctx,
 					       ctx->esgs_ring,
 					       out_val, 1,
 					       NULL, ctx->es2gs_offset,
-					       (4 * param_index + j + start) * 4,
+					       (4 * param_index + j) * 4,
 					       1, 1, true, true);
 		}
 	}
 	outinfo->esgs_itemsize = (max_output_written + 1) * 16;
+}
+
+static void
+handle_ls_outputs_post(struct nir_to_llvm_context *ctx)
+{
+	LLVMValueRef vertex_id = ctx->rel_auto_id;
+	LLVMValueRef vertex_dw_stride = unpack_param(ctx, ctx->ls_out_layout, 13, 8);
+	LLVMValueRef base_dw_addr = LLVMBuildMul(ctx->builder, vertex_id,
+						 vertex_dw_stride, "");
+
+	for (unsigned i = 0; i < RADEON_LLVM_MAX_OUTPUTS; ++i) {
+		LLVMValueRef *out_ptr = &ctx->outputs[i * 4];
+		int length = 4;
+
+		if (!(ctx->output_mask & (1ull << i)))
+			continue;
+
+		if (i == VARYING_SLOT_CLIP_DIST0)
+			length = ctx->num_output_clips + ctx->num_output_culls;
+		int param = shader_io_get_unique_index(i);
+		mark_tess_output(ctx, false, param);
+		if (length > 4)
+			mark_tess_output(ctx, false, param + 1);
+		LLVMValueRef dw_addr = LLVMBuildAdd(ctx->builder, base_dw_addr,
+						    LLVMConstInt(ctx->i32, param * 4, false),
+						    "");
+		for (unsigned j = 0; j < length; j++) {
+			lds_store(ctx, dw_addr,
+				  LLVMBuildLoad(ctx->builder, out_ptr[j], ""));
+			dw_addr = LLVMBuildAdd(ctx->builder, dw_addr, ctx->i32one, "");
+		}
+	}
+}
+
+struct ac_build_if_state
+{
+	struct nir_to_llvm_context *ctx;
+	LLVMValueRef condition;
+	LLVMBasicBlockRef entry_block;
+	LLVMBasicBlockRef true_block;
+	LLVMBasicBlockRef false_block;
+	LLVMBasicBlockRef merge_block;
+};
+
+static LLVMBasicBlockRef
+ac_build_insert_new_block(struct nir_to_llvm_context *ctx, const char *name)
+{
+	LLVMBasicBlockRef current_block;
+	LLVMBasicBlockRef next_block;
+	LLVMBasicBlockRef new_block;
+
+	/* get current basic block */
+	current_block = LLVMGetInsertBlock(ctx->builder);
+
+	/* chqeck if there's another block after this one */
+	next_block = LLVMGetNextBasicBlock(current_block);
+	if (next_block) {
+		/* insert the new block before the next block */
+		new_block = LLVMInsertBasicBlockInContext(ctx->context, next_block, name);
+	}
+	else {
+		/* append new block after current block */
+		LLVMValueRef function = LLVMGetBasicBlockParent(current_block);
+		new_block = LLVMAppendBasicBlockInContext(ctx->context, function, name);
+	}
+	return new_block;
+}
+
+static void
+ac_nir_build_if(struct ac_build_if_state *ifthen,
+		struct nir_to_llvm_context *ctx,
+		LLVMValueRef condition)
+{
+	LLVMBasicBlockRef block = LLVMGetInsertBlock(ctx->builder);
+
+	memset(ifthen, 0, sizeof *ifthen);
+	ifthen->ctx = ctx;
+	ifthen->condition = condition;
+	ifthen->entry_block = block;
+
+	/* create endif/merge basic block for the phi functions */
+	ifthen->merge_block = ac_build_insert_new_block(ctx, "endif-block");
+
+	/* create/insert true_block before merge_block */
+	ifthen->true_block =
+		LLVMInsertBasicBlockInContext(ctx->context,
+					      ifthen->merge_block,
+					      "if-true-block");
+
+	/* successive code goes into the true block */
+	LLVMPositionBuilderAtEnd(ctx->builder, ifthen->true_block);
+}
+
+/**
+ * End a conditional.
+ */
+static void
+ac_nir_build_endif(struct ac_build_if_state *ifthen)
+{
+	LLVMBuilderRef builder = ifthen->ctx->builder;
+
+	/* Insert branch to the merge block from current block */
+	LLVMBuildBr(builder, ifthen->merge_block);
+
+	/*
+	 * Now patch in the various branch instructions.
+	 */
+
+	/* Insert the conditional branch instruction at the end of entry_block */
+	LLVMPositionBuilderAtEnd(builder, ifthen->entry_block);
+	if (ifthen->false_block) {
+		/* we have an else clause */
+		LLVMBuildCondBr(builder, ifthen->condition,
+				ifthen->true_block, ifthen->false_block);
+	}
+	else {
+		/* no else clause */
+		LLVMBuildCondBr(builder, ifthen->condition,
+				ifthen->true_block, ifthen->merge_block);
+	}
+
+	/* Resume building code at end of the ifthen->merge_block */
+	LLVMPositionBuilderAtEnd(builder, ifthen->merge_block);
+}
+
+static void
+write_tess_factors(struct nir_to_llvm_context *ctx)
+{
+	unsigned stride, outer_comps, inner_comps;
+	struct ac_build_if_state if_ctx, inner_if_ctx;
+	LLVMValueRef invocation_id = unpack_param(ctx, ctx->tcs_rel_ids, 8, 5);
+	LLVMValueRef rel_patch_id = unpack_param(ctx, ctx->tcs_rel_ids, 0, 8);
+	unsigned tess_inner_index, tess_outer_index;
+	LLVMValueRef lds_base, lds_inner, lds_outer, byteoffset, buffer;
+	LLVMValueRef out[6], vec0, vec1, tf_base, inner[4], outer[4];
+	int i;
+	emit_barrier(ctx);
+
+	switch (ctx->options->key.tcs.primitive_mode) {
+	case GL_ISOLINES:
+		stride = 2;
+		outer_comps = 2;
+		inner_comps = 0;
+		break;
+	case GL_TRIANGLES:
+		stride = 4;
+		outer_comps = 3;
+		inner_comps = 1;
+		break;
+	case GL_QUADS:
+		stride = 6;
+		outer_comps = 4;
+		inner_comps = 2;
+		break;
+	default:
+		return;
+	}
+
+	ac_nir_build_if(&if_ctx, ctx,
+			LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+				      invocation_id, ctx->i32zero, ""));
+
+	tess_inner_index = shader_io_get_unique_index(VARYING_SLOT_TESS_LEVEL_INNER);
+	tess_outer_index = shader_io_get_unique_index(VARYING_SLOT_TESS_LEVEL_OUTER);
+
+	mark_tess_output(ctx, true, tess_inner_index);
+	mark_tess_output(ctx, true, tess_outer_index);
+	lds_base = get_tcs_out_current_patch_data_offset(ctx);
+	lds_inner = LLVMBuildAdd(ctx->builder, lds_base,
+				 LLVMConstInt(ctx->i32, tess_inner_index * 4, false), "");
+	lds_outer = LLVMBuildAdd(ctx->builder, lds_base,
+				 LLVMConstInt(ctx->i32, tess_outer_index * 4, false), "");
+
+	for (i = 0; i < 4; i++) {
+		inner[i] = LLVMGetUndef(ctx->i32);
+		outer[i] = LLVMGetUndef(ctx->i32);
+	}
+
+	// LINES reverseal
+	if (ctx->options->key.tcs.primitive_mode == GL_ISOLINES) {
+		outer[0] = out[1] = lds_load(ctx, lds_outer);
+		lds_outer = LLVMBuildAdd(ctx->builder, lds_outer,
+					 LLVMConstInt(ctx->i32, 1, false), "");
+		outer[1] = out[0] = lds_load(ctx, lds_outer);
+	} else {
+		for (i = 0; i < outer_comps; i++) {
+			outer[i] = out[i] =
+				lds_load(ctx, lds_outer);
+			lds_outer = LLVMBuildAdd(ctx->builder, lds_outer,
+						 LLVMConstInt(ctx->i32, 1, false), "");
+		}
+		for (i = 0; i < inner_comps; i++) {
+			inner[i] = out[outer_comps+i] =
+				lds_load(ctx, lds_inner);
+			lds_inner = LLVMBuildAdd(ctx->builder, lds_inner,
+						 LLVMConstInt(ctx->i32, 1, false), "");
+		}
+	}
+
+	/* Convert the outputs to vectors for stores. */
+	vec0 = ac_build_gather_values(&ctx->ac, out, MIN2(stride, 4));
+	vec1 = NULL;
+
+	if (stride > 4)
+		vec1 = ac_build_gather_values(&ctx->ac, out + 4, stride - 4);
+
+
+	buffer = ctx->hs_ring_tess_factor;
+	tf_base = ctx->tess_factor_offset;
+	byteoffset = LLVMBuildMul(ctx->builder, rel_patch_id,
+				  LLVMConstInt(ctx->i32, 4 * stride, false), "");
+
+	ac_nir_build_if(&inner_if_ctx, ctx,
+		    LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+				  rel_patch_id, ctx->i32zero, ""));
+
+	/* Store the dynamic HS control word. */
+	ac_build_buffer_store_dword(&ctx->ac, buffer,
+				    LLVMConstInt(ctx->i32, 0x80000000, false),
+				    1, ctx->i32zero, tf_base,
+				    0, 1, 0, true, false);
+	ac_nir_build_endif(&inner_if_ctx);
+
+	/* Store the tessellation factors. */
+	ac_build_buffer_store_dword(&ctx->ac, buffer, vec0,
+				    MIN2(stride, 4), byteoffset, tf_base,
+				    4, 1, 0, true, false);
+	if (vec1)
+		ac_build_buffer_store_dword(&ctx->ac, buffer, vec1,
+					    stride - 4, byteoffset, tf_base,
+					    20, 1, 0, true, false);
+
+	//TODO store to offchip for TES to read - only if TES reads them
+	if (1) {
+		LLVMValueRef inner_vec, outer_vec, tf_outer_offset;
+		LLVMValueRef tf_inner_offset;
+		unsigned param_outer, param_inner;
+
+		param_outer = shader_io_get_unique_index(VARYING_SLOT_TESS_LEVEL_OUTER);
+		tf_outer_offset = get_tcs_tes_buffer_address(ctx, NULL,
+							     LLVMConstInt(ctx->i32, param_outer, 0));
+
+		outer_vec = ac_build_gather_values(&ctx->ac, outer,
+						   util_next_power_of_two(outer_comps));
+
+		ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, outer_vec,
+					    outer_comps, tf_outer_offset,
+					    ctx->oc_lds, 0, 1, 0, true, false);
+		if (inner_comps) {
+			param_inner = shader_io_get_unique_index(VARYING_SLOT_TESS_LEVEL_INNER);
+			tf_inner_offset = get_tcs_tes_buffer_address(ctx, NULL,
+								     LLVMConstInt(ctx->i32, param_inner, 0));
+
+			inner_vec = inner_comps == 1 ? inner[0] :
+				ac_build_gather_values(&ctx->ac, inner, inner_comps);
+			ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, inner_vec,
+						    inner_comps, tf_inner_offset,
+						    ctx->oc_lds, 0, 1, 0, true, false);
+		}
+	}
+	ac_nir_build_endif(&if_ctx);
+}
+
+static void
+handle_tcs_outputs_post(struct nir_to_llvm_context *ctx)
+{
+	write_tess_factors(ctx);
 }
 
 static void
@@ -4705,7 +5585,9 @@ handle_shader_outputs_post(struct nir_to_llvm_context *ctx)
 {
 	switch (ctx->stage) {
 	case MESA_SHADER_VERTEX:
-		if (ctx->options->key.vs.as_es)
+		if (ctx->options->key.vs.as_ls)
+			handle_ls_outputs_post(ctx);
+		else if (ctx->options->key.vs.as_es)
 			handle_es_outputs_post(ctx, &ctx->shader_info->vs.es_info);
 		else
 			handle_vs_outputs_post(ctx, &ctx->shader_info->vs.outinfo);
@@ -4715,6 +5597,15 @@ handle_shader_outputs_post(struct nir_to_llvm_context *ctx)
 		break;
 	case MESA_SHADER_GEOMETRY:
 		emit_gs_epilogue(ctx);
+		break;
+	case MESA_SHADER_TESS_CTRL:
+		handle_tcs_outputs_post(ctx);
+		break;
+	case MESA_SHADER_TESS_EVAL:
+		if (ctx->options->key.tes.as_es)
+			handle_es_outputs_post(ctx, &ctx->shader_info->tes.es_info);
+		else
+			handle_vs_outputs_post(ctx, &ctx->shader_info->tes.outinfo);
 		break;
 	default:
 		break;
@@ -4759,17 +5650,18 @@ static void ac_llvm_finalize_module(struct nir_to_llvm_context * ctx)
 static void
 ac_setup_rings(struct nir_to_llvm_context *ctx)
 {
-	if (ctx->stage == MESA_SHADER_VERTEX && ctx->options->key.vs.as_es) {
-		ctx->esgs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, ctx->i32one);
+	if ((ctx->stage == MESA_SHADER_VERTEX && ctx->options->key.vs.as_es) ||
+	    (ctx->stage == MESA_SHADER_TESS_EVAL && ctx->options->key.tes.as_es)) {
+		ctx->esgs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_ESGS_VS, false));
 	}
 
 	if (ctx->is_gs_copy_shader) {
-		ctx->gsvs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, 3, false));
+		ctx->gsvs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_GSVS_VS, false));
 	}
 	if (ctx->stage == MESA_SHADER_GEOMETRY) {
 		LLVMValueRef tmp;
-		ctx->esgs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, 2, false));
-		ctx->gsvs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, 4, false));
+		ctx->esgs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_ESGS_GS, false));
+		ctx->gsvs_ring = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_GSVS_GS, false));
 
 		ctx->gsvs_ring = LLVMBuildBitCast(ctx->builder, ctx->gsvs_ring, ctx->v4i32, "");
 
@@ -4779,6 +5671,12 @@ ac_setup_rings(struct nir_to_llvm_context *ctx)
 		ctx->gsvs_ring = LLVMBuildInsertElement(ctx->builder, ctx->gsvs_ring, tmp, ctx->i32one, "");
 
 		ctx->gsvs_ring = LLVMBuildBitCast(ctx->builder, ctx->gsvs_ring, ctx->v16i8, "");
+	}
+
+	if (ctx->stage == MESA_SHADER_TESS_CTRL ||
+	    ctx->stage == MESA_SHADER_TESS_EVAL) {
+		ctx->hs_ring_tess_offchip = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_HS_TESS_OFFCHIP, false));
+		ctx->hs_ring_tess_factor = ac_build_indexed_load_const(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->i32, RING_HS_TESS_FACTOR, false));
 	}
 }
 
@@ -4850,6 +5748,8 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 		ctx.gs_next_vertex = ac_build_alloca(&ctx, ctx.i32, "gs_next_vertex");
 
 		ctx.gs_max_out_vertices = nir->info->gs.vertices_out;
+	} else if (nir->stage == MESA_SHADER_TESS_EVAL) {
+		ctx.tes_primitive_mode = nir->info->tess.primitive_mode;
 	}
 
 	ac_setup_rings(&ctx);
@@ -4887,10 +5787,17 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	ralloc_free(ctx.phis);
 
 	if (nir->stage == MESA_SHADER_GEOMETRY) {
-		shader_info->gs.gsvs_vertex_size = util_bitcount64(ctx.output_mask) * 16;
+		unsigned addclip = ctx.num_output_clips + ctx.num_output_culls > 4;
+		shader_info->gs.gsvs_vertex_size = (util_bitcount64(ctx.output_mask) + addclip) * 16;
 		shader_info->gs.max_gsvs_emit_size = shader_info->gs.gsvs_vertex_size *
 			nir->info->gs.vertices_out;
+	} else if (nir->stage == MESA_SHADER_TESS_CTRL) {
+		shader_info->tcs.outputs_written = ctx.tess_outputs_written;
+		shader_info->tcs.patch_outputs_written = ctx.tess_patch_outputs_written;
+	} else if (nir->stage == MESA_SHADER_VERTEX && ctx.options->key.vs.as_ls) {
+		shader_info->vs.outputs_written = ctx.tess_outputs_written;
 	}
+
 	return ctx.module;
 }
 
@@ -5047,8 +5954,22 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
 		shader_info->gs.output_prim = nir->info->gs.output_primitive;
 		shader_info->gs.invocations = nir->info->gs.invocations;
 		break;
+	case MESA_SHADER_TESS_EVAL:
+		shader_info->tes.primitive_mode = nir->info->tess.primitive_mode;
+		shader_info->tes.spacing = nir->info->tess.spacing;
+		shader_info->tes.ccw = nir->info->tess.ccw;
+		shader_info->tes.point_mode = nir->info->tess.point_mode;
+		shader_info->tes.as_es = options->key.tes.as_es;
+		break;
+	case MESA_SHADER_TESS_CTRL:
+		shader_info->tcs.tcs_vertices_out = nir->info->tess.tcs_vertices_out;
+		break;
 	case MESA_SHADER_VERTEX:
 		shader_info->vs.as_es = options->key.vs.as_es;
+		shader_info->vs.as_ls = options->key.vs.as_ls;
+		/* in LS mode we need at least 1, invocation id needs 3, handled elsewhere */
+		if (options->key.vs.as_ls)
+			shader_info->vs.vgpr_comp_cnt = MAX2(1, shader_info->vs.vgpr_comp_cnt);
 		break;
 	default:
 		break;

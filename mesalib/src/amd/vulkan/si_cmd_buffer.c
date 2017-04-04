@@ -410,16 +410,25 @@ si_emit_config(struct radv_physical_device *physical_device,
 	}
 
 	if (physical_device->rad_info.chip_class >= VI) {
+		uint32_t vgt_tess_distribution;
 		radeon_set_context_reg(cs, R_028424_CB_DCC_CONTROL,
 				       S_028424_OVERWRITE_COMBINER_MRT_SHARING_DISABLE(1) |
 				       S_028424_OVERWRITE_COMBINER_WATERMARK(4));
-		radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 30);
+		if (physical_device->rad_info.family < CHIP_POLARIS10)
+			radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 30);
 		radeon_set_context_reg(cs, R_028C5C_VGT_OUT_DEALLOC_CNTL, 32);
+
+		vgt_tess_distribution = S_028B50_ACCUM_ISOLINE(32) |
+			S_028B50_ACCUM_TRI(11) |
+			S_028B50_ACCUM_QUAD(11) |
+			S_028B50_DONUT_SPLIT(16);
+
+		if (physical_device->rad_info.family == CHIP_FIJI ||
+		    physical_device->rad_info.family >= CHIP_POLARIS10)
+			vgt_tess_distribution |= S_028B50_TRAP_SPLIT(3);
+
 		radeon_set_context_reg(cs, R_028B50_VGT_TESS_DISTRIBUTION,
-				       S_028B50_ACCUM_ISOLINE(32) |
-				       S_028B50_ACCUM_TRI(11) |
-				       S_028B50_ACCUM_QUAD(11) |
-				       S_028B50_DONUT_SPLIT(16));
+				       vgt_tess_distribution);
 	} else {
 		radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 14);
 		radeon_set_context_reg(cs, R_028C5C_VGT_OUT_DEALLOC_CNTL, 16);
@@ -495,22 +504,6 @@ get_viewport_xform(const VkViewport *viewport,
 	translate[2] = n;
 }
 
-static void
-get_viewport_xform_scissor(const VkRect2D *scissor,
-                           float scale[2], float translate[2])
-{
-	float x = scissor->offset.x;
-	float y = scissor->offset.y;
-	float half_width = 0.5f * scissor->extent.width;
-	float half_height = 0.5f * scissor->extent.height;
-
-	scale[0] = half_width;
-	translate[0] = half_width + x;
-	scale[1] = half_height;
-	translate[1] = half_height + y;
-
-}
-
 void
 si_write_viewport(struct radeon_winsys_cs *cs, int first_vp,
                   int count, const VkViewport *viewports)
@@ -570,26 +563,13 @@ static VkRect2D si_intersect_scissor(const VkRect2D *a, const VkRect2D *b) {
 	return ret;
 }
 
-static VkRect2D si_union_scissor(const VkRect2D *a, const VkRect2D *b) {
-	VkRect2D ret;
-	ret.offset.x = MIN2(a->offset.x, b->offset.x);
-	ret.offset.y = MIN2(a->offset.y, b->offset.y);
-	ret.extent.width = MAX2(a->offset.x + a->extent.width,
-	                        b->offset.x + b->extent.width) - ret.offset.x;
-	ret.extent.height = MAX2(a->offset.y + a->extent.height,
-	                         b->offset.y + b->extent.height) - ret.offset.y;
-	return ret;
-}
-
-
 void
 si_write_scissors(struct radeon_winsys_cs *cs, int first,
                   int count, const VkRect2D *scissors,
                   const VkViewport *viewports, bool can_use_guardband)
 {
 	int i;
-	VkRect2D merged;
-	float scale[2], translate[2], guardband_x = 1.0, guardband_y = 1.0;
+	float scale[3], translate[3], guardband_x = INFINITY, guardband_y = INFINITY;
 	const float max_range = 32767.0f;
 	assert(count);
 
@@ -598,10 +578,17 @@ si_write_scissors(struct radeon_winsys_cs *cs, int first,
 		VkRect2D viewport_scissor = si_scissor_from_viewport(viewports + i);
 		VkRect2D scissor = si_intersect_scissor(&scissors[i], &viewport_scissor);
 
-		if (i)
-			merged = si_union_scissor(&merged, &scissor);
-		else
-			merged = scissor;
+		get_viewport_xform(viewports + i, scale, translate);
+		scale[0] = abs(scale[0]);
+		scale[1] = abs(scale[1]);
+
+		if (scale[0] < 0.5)
+			scale[0] = 0.5;
+		if (scale[1] < 0.5)
+			scale[1] = 0.5;
+
+		guardband_x = MIN2(guardband_x, (max_range - abs(translate[0])) / scale[0]);
+		guardband_y = MIN2(guardband_y, (max_range - abs(translate[1])) / scale[1]);
 
 		radeon_emit(cs, S_028250_TL_X(scissor.offset.x) |
 			    S_028250_TL_Y(scissor.offset.y) |
@@ -609,18 +596,15 @@ si_write_scissors(struct radeon_winsys_cs *cs, int first,
 		radeon_emit(cs, S_028254_BR_X(scissor.offset.x + scissor.extent.width) |
 			    S_028254_BR_Y(scissor.offset.y + scissor.extent.height));
 	}
-
-	get_viewport_xform_scissor(&merged, scale, translate);
-
-	if (can_use_guardband) {
-		guardband_x = (max_range - abs(translate[0])) / scale[0];
-		guardband_y = (max_range - abs(translate[1])) / scale[1];
+	if (!can_use_guardband) {
+		guardband_x = 1.0;
+		guardband_y = 1.0;
 	}
 
 	radeon_set_context_reg_seq(cs, R_028BE8_PA_CL_GB_VERT_CLIP_ADJ, 4);
-	radeon_emit(cs, fui(guardband_x));
-	radeon_emit(cs, fui(1.0));
 	radeon_emit(cs, fui(guardband_y));
+	radeon_emit(cs, fui(1.0));
+	radeon_emit(cs, fui(guardband_x));
 	radeon_emit(cs, fui(1.0));
 }
 
@@ -659,13 +643,41 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t num_prims = radv_prims_for_vertices(&cmd_buffer->state.pipeline->graphics.prim_vertex_count, draw_vertex_count);
 	bool multi_instances_smaller_than_primgroup;
 
-	if (radv_pipeline_has_gs(cmd_buffer->state.pipeline))
+	if (radv_pipeline_has_tess(cmd_buffer->state.pipeline))
+		primgroup_size = cmd_buffer->state.pipeline->graphics.tess.num_patches;
+	else if (radv_pipeline_has_gs(cmd_buffer->state.pipeline))
 		primgroup_size = 64;  /* recommended with a GS */
 
 	multi_instances_smaller_than_primgroup = indirect_draw || (instanced_draw &&
 								   num_prims < primgroup_size);
-	/* TODO TES */
+	if (radv_pipeline_has_tess(cmd_buffer->state.pipeline)) {
+		/* SWITCH_ON_EOI must be set if PrimID is used. */
+		if (cmd_buffer->state.pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.uses_prim_id ||
+		    cmd_buffer->state.pipeline->shaders[MESA_SHADER_TESS_EVAL]->info.tes.uses_prim_id)
+			ia_switch_on_eoi = true;
 
+		/* Bug with tessellation and GS on Bonaire and older 2 SE chips. */
+		if ((family == CHIP_TAHITI ||
+		     family == CHIP_PITCAIRN ||
+		     family == CHIP_BONAIRE) &&
+		    radv_pipeline_has_gs(cmd_buffer->state.pipeline))
+			partial_vs_wave = true;
+
+		/* Needed for 028B6C_DISTRIBUTION_MODE != 0 */
+		if (cmd_buffer->device->has_distributed_tess) {
+			if (radv_pipeline_has_gs(cmd_buffer->state.pipeline)) {
+				partial_es_wave = true;
+
+				if (family == CHIP_TONGA ||
+				    family == CHIP_FIJI ||
+				    family == CHIP_POLARIS10 ||
+				    family == CHIP_POLARIS11)
+					partial_vs_wave = true;
+			} else {
+				partial_vs_wave = true;
+			}
+		}
+	}
 	/* TODO linestipple */
 
 	if (chip_class >= CIK) {

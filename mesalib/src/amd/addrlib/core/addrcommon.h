@@ -68,7 +68,7 @@
 #if defined(_WIN32) && (_MSC_VER >= 1400)
     #define ADDR_ANALYSIS_ASSUME(expr) __analysis_assume(expr)
 #else
-    #define ADDR_ANALYSIS_ASSUME(expr) do { } while (0)
+    #define ADDR_ANALYSIS_ASSUME(expr) do { (void)(expr); } while (0)
 #endif
 
 #if DEBUG
@@ -187,6 +187,15 @@ static const INT_32 TileIndexLinearGeneral  = TILEINDEX_LINEAR_GENERAL;
 static const INT_32 TileIndexNoMacroIndex   = -3;
 
 } // V1
+
+namespace V2
+{
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Common constants
+////////////////////////////////////////////////////////////////////////////////////////////////////
+static const UINT_32 MaxSurfaceHeight = 16384;
+
+} // V2
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Common macros
@@ -431,9 +440,7 @@ static inline INT_32 Max(
 static inline UINT_32 NextPow2(
     UINT_32 dim)        ///< [in] dimension of miplevel
 {
-    UINT_32 newDim;
-
-    newDim = 1;
+    UINT_32 newDim = 1;
 
     if (dim > 0x7fffffff)
     {
@@ -732,7 +739,7 @@ static inline UINT_32 MortonGen3d(
 *   ReverseBitVector
 *
 *   @brief
-*       Return reversed lowest num bits of v
+*       Return reversed lowest num bits of v: v[0]v[1]...v[num-2]v[num-1]
 ****************************************************************************************************
 */
 static inline UINT_32 ReverseBitVector(
@@ -860,7 +867,7 @@ static inline VOID InitChannel(
 {
     pChanDst->valid = pChanSrc->valid;
     pChanDst->channel = pChanSrc->channel;
-    pChanDst->index = pChanSrc->channel;
+    pChanDst->index = pChanSrc->index;
 }
 
 /**
@@ -872,9 +879,9 @@ static inline VOID InitChannel(
 ****************************************************************************************************
 */
 static inline UINT_32 GetMaxValidChannelIndex(
-    ADDR_CHANNEL_SETTING *pChanSet, ///< [in] channel setting to be initialized
-    UINT_32     searchCount,        ///< [in] number of channel setting to be searched
-    UINT_32     channel)            ///< [in] channel to be searched
+    const ADDR_CHANNEL_SETTING *pChanSet,   ///< [in] channel setting to be initialized
+    UINT_32                     searchCount,///< [in] number of channel setting to be searched
+    UINT_32                     channel)    ///< [in] channel to be searched
 {
     UINT_32 index = 0;
 
@@ -887,6 +894,35 @@ static inline UINT_32 GetMaxValidChannelIndex(
     }
 
     return index;
+}
+
+/**
+****************************************************************************************************
+*   GetCoordActiveMask
+*
+*   @brief
+*       Get bit mask which indicates which positions in the equation match the target coord
+****************************************************************************************************
+*/
+static inline UINT_32 GetCoordActiveMask(
+    const ADDR_CHANNEL_SETTING *pChanSet,   ///< [in] channel setting to be initialized
+    UINT_32                     searchCount,///< [in] number of channel setting to be searched
+    UINT_32                     channel,    ///< [in] channel to be searched
+    UINT_32                     index)      ///< [in] index to be searched
+{
+    UINT_32 mask = 0;
+
+    for (UINT_32 i = 0; i < searchCount; i++)
+    {
+        if ((pChanSet[i].valid   == TRUE)    &&
+            (pChanSet[i].channel == channel) &&
+            (pChanSet[i].index   == index))
+        {
+            mask |= (1 << i);
+        }
+    }
+
+    return mask;
 }
 
 } // Addr

@@ -4125,7 +4125,7 @@ UINT_32 EgBasedLib::ComputeFmaskResolvedBppFromNumSamples(
 ****************************************************************************************************
 */
 BOOL_32 EgBasedLib::IsTileInfoAllZero(
-    ADDR_TILEINFO* pTileInfo)
+    const ADDR_TILEINFO* pTileInfo)
 {
     BOOL_32 allZero = TRUE;
 

@@ -497,7 +497,8 @@ guess_and_alloc_texture(struct st_context *st,
    const struct gl_texture_image *firstImage;
    GLuint lastLevel, width, height, depth;
    GLuint bindings;
-   GLuint ptWidth, ptHeight, ptDepth, ptLayers;
+   unsigned ptWidth;
+   uint16_t ptHeight, ptDepth, ptLayers;
    enum pipe_format fmt;
    bool guessed_box = false;
 
@@ -649,7 +650,8 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
       enum pipe_format format =
          st_mesa_format_to_pipe_format(st, texImage->TexFormat);
       GLuint bindings = default_bindings(st, format);
-      GLuint ptWidth, ptHeight, ptDepth, ptLayers;
+      unsigned ptWidth;
+      uint16_t ptHeight, ptDepth, ptLayers;
 
       st_gl_texture_dims_to_pipe_dims(stObj->base.Target,
                                       width, height, depth,
@@ -2434,7 +2436,8 @@ copy_image_data_to_texture(struct st_context *st,
 GLboolean
 st_finalize_texture(struct gl_context *ctx,
 		    struct pipe_context *pipe,
-		    struct gl_texture_object *tObj)
+		    struct gl_texture_object *tObj,
+		    GLuint cubeMapFace)
 {
    struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj = st_texture_object(tObj);
@@ -2442,7 +2445,8 @@ st_finalize_texture(struct gl_context *ctx,
    GLuint face;
    const struct st_texture_image *firstImage;
    enum pipe_format firstImageFormat;
-   GLuint ptWidth, ptHeight, ptDepth, ptLayers, ptNumSamples;
+   unsigned ptWidth;
+   uint16_t ptHeight, ptDepth, ptLayers, ptNumSamples;
 
    if (tObj->Immutable)
       return GL_TRUE;
@@ -2478,7 +2482,7 @@ st_finalize_texture(struct gl_context *ctx,
 
    }
 
-   firstImage = st_texture_image_const(_mesa_base_tex_image(&stObj->base));
+   firstImage = st_texture_image_const(stObj->base.Image[cubeMapFace][stObj->base.BaseLevel]);
    assert(firstImage);
 
    /* If both firstImage and stObj point to a texture which can contain
@@ -2504,7 +2508,8 @@ st_finalize_texture(struct gl_context *ctx,
 
    /* Find size of level=0 Gallium mipmap image, plus number of texture layers */
    {
-      GLuint width, height, depth;
+      unsigned width;
+      uint16_t height, depth;
 
       st_gl_texture_dims_to_pipe_dims(stObj->base.Target,
                                       firstImage->base.Width2,
@@ -2645,7 +2650,8 @@ st_AllocTextureStorage(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj = st_texture_object(texObj);
    struct pipe_screen *screen = st->pipe->screen;
-   GLuint ptWidth, ptHeight, ptDepth, ptLayers, bindings;
+   unsigned ptWidth, bindings;
+   uint16_t ptHeight, ptDepth, ptLayers;
    enum pipe_format fmt;
    GLint level;
    GLuint num_samples = texImage->NumSamples;

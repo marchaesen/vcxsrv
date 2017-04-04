@@ -28,6 +28,12 @@
 #ifndef U_DEBUG_STACK_H_
 #define U_DEBUG_STACK_H_
 
+#include <stdio.h>
+
+#ifdef HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+#endif
 
 /**
  * @file
@@ -45,15 +51,21 @@ extern "C" {
 /**
  * Represent a frame from a stack backtrace.
  *
- * XXX: Do not change this.
+#if defined(PIPE_OS_WINDOWS) && !defined(HAVE_LIBUNWIND)
+ * XXX: Do not change this. (passed to Windows' CaptureStackBackTrace())
+#endif
  *
  * TODO: This should be refactored as a void * typedef.
  */
 struct debug_stack_frame 
 {
+#ifdef HAVE_LIBUNWIND
+   char buf[128];
+#else
    const void *function;
+#endif
 };
-   
+
 
 void
 debug_backtrace_capture(struct debug_stack_frame *backtrace,
@@ -64,6 +76,10 @@ void
 debug_backtrace_dump(const struct debug_stack_frame *backtrace, 
                      unsigned nr_frames);
 
+void
+debug_backtrace_print(FILE *f,
+                      const struct debug_stack_frame *backtrace,
+                      unsigned nr_frames);
 
 #ifdef	__cplusplus
 }

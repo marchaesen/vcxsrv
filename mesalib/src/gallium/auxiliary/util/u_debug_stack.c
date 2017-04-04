@@ -36,6 +36,95 @@
 #include "u_debug_symbol.h"
 #include "u_debug_stack.h"
 
+#if defined(HAVE_LIBUNWIND)
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <dlfcn.h>
+
+void
+debug_backtrace_capture(struct debug_stack_frame *backtrace,
+                        unsigned start_frame,
+                        unsigned nr_frames)
+{
+   unw_cursor_t cursor;
+   unw_context_t context;
+   unw_proc_info_t pip;
+   unsigned i = 0;
+   int ret;
+
+   pip.unwind_info = NULL;
+
+   unw_getcontext(&context);
+   unw_init_local(&cursor, &context);
+
+   while ((start_frame > 0) && (unw_step(&cursor) > 0))
+      start_frame--;
+
+   while (unw_step(&cursor) > 0) {
+      char procname[256];
+      const char *filename;
+      unw_word_t off;
+      Dl_info dlinfo;
+
+      unw_get_proc_info(&cursor, &pip);
+
+      ret = unw_get_proc_name(&cursor, procname, 256, &off);
+      if (ret && ret != -UNW_ENOMEM) {
+         procname[0] = '?';
+         procname[1] = 0;
+      }
+
+       if (dladdr((void *)(uintptr_t)(pip.start_ip + off), &dlinfo) && dlinfo.dli_fname &&
+               *dlinfo.dli_fname)
+           filename = dlinfo.dli_fname;
+       else
+           filename = "?";
+
+      snprintf(backtrace[i].buf, sizeof(backtrace[i].buf),
+            "%u: %s (%s%s+0x%x) [%p]", i, filename, procname,
+            ret == -UNW_ENOMEM ? "..." : "", (int)off,
+            (void *)(uintptr_t)(pip.start_ip + off));
+
+      i++;
+   }
+
+   while (i < nr_frames) {
+      backtrace[i].buf[0] = '\0';
+      i++;
+   }
+}
+
+void
+debug_backtrace_dump(const struct debug_stack_frame *backtrace,
+                     unsigned nr_frames)
+{
+   unsigned i;
+
+   for (i = 0; i < nr_frames; ++i) {
+      if (backtrace[i].buf[0] == '\0')
+         break;
+      debug_printf("\t%s\n", backtrace[i].buf);
+   }
+}
+
+void
+debug_backtrace_print(FILE *f,
+                      const struct debug_stack_frame *backtrace,
+                      unsigned nr_frames)
+{
+   unsigned i;
+
+   for (i = 0; i < nr_frames; ++i) {
+      if (backtrace[i].buf[0] == '\0')
+         break;
+      fprintf(f, "\t%s\n", backtrace[i].buf);
+   }
+}
+
+#else /* ! HAVE_LIBUNWIND */
+
 #if defined(PIPE_OS_WINDOWS)
 #include <windows.h>
 #endif
@@ -162,3 +251,22 @@ debug_backtrace_dump(const struct debug_stack_frame *backtrace,
    }
 }
 
+
+void
+debug_backtrace_print(FILE *f,
+                      const struct debug_stack_frame *backtrace,
+                      unsigned nr_frames)
+{
+   unsigned i;
+
+   for (i = 0; i < nr_frames; ++i) {
+      const char *symbol;
+      if (!backtrace[i].function)
+         break;
+      symbol = debug_symbol_name_cached(backtrace[i].function);
+      if (symbol)
+         fprintf(f, "%s\n", symbol);
+   }
+}
+
+#endif /* HAVE_LIBUNWIND */

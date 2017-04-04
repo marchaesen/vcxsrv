@@ -488,7 +488,7 @@ st_render_texture(struct gl_context *ctx,
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    struct pipe_resource *pt;
 
-   if (!st_finalize_texture(ctx, pipe, att->Texture))
+   if (!st_finalize_texture(ctx, pipe, att->Texture, att->CubeMapFace))
       return;
 
    pt = st_get_texobj_resource(att->Texture);

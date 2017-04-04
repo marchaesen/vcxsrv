@@ -459,12 +459,16 @@ struct radv_queue {
 	uint32_t compute_scratch_size;
 	uint32_t esgs_ring_size;
 	uint32_t gsvs_ring_size;
+	bool has_tess_rings;
+	bool has_sample_positions;
 
 	struct radeon_winsys_bo *scratch_bo;
 	struct radeon_winsys_bo *descriptor_bo;
 	struct radeon_winsys_bo *compute_scratch_bo;
 	struct radeon_winsys_bo *esgs_ring_bo;
 	struct radeon_winsys_bo *gsvs_ring_bo;
+	struct radeon_winsys_bo *tess_factor_ring_bo;
+	struct radeon_winsys_bo *tess_offchip_ring_bo;
 	struct radeon_winsys_cs *initial_preamble_cs;
 	struct radeon_winsys_cs *continue_preamble_cs;
 };
@@ -487,6 +491,8 @@ struct radv_device {
 	uint64_t debug_flags;
 
 	bool llvm_supports_spill;
+	bool has_distributed_tess;
+	uint32_t tess_offchip_block_dw_size;
 	uint32_t scratch_waves;
 
 	uint32_t gs_table_depth;
@@ -742,6 +748,8 @@ struct radv_cmd_buffer {
 	uint32_t compute_scratch_size_needed;
 	uint32_t esgs_ring_size_needed;
 	uint32_t gsvs_ring_size_needed;
+	bool tess_rings_needed;
+	bool sample_positions_needed;
 
 	int ring_offsets_idx; /* just used for verification */
 };
@@ -930,6 +938,18 @@ struct radv_prim_vertex_count {
 	uint8_t incr;
 };
 
+struct radv_tessellation_state {
+	uint32_t ls_hs_config;
+	uint32_t tcs_in_layout;
+	uint32_t tcs_out_layout;
+	uint32_t tcs_out_offsets;
+	uint32_t offchip_layout;
+	unsigned num_patches;
+	unsigned lds_size;
+	unsigned num_tcs_input_cp;
+	uint32_t tf_param;
+};
+
 struct radv_pipeline {
 	struct radv_device *                          device;
 	uint32_t                                     dynamic_state_mask;
@@ -956,6 +976,7 @@ struct radv_pipeline {
 			struct radv_depth_stencil_state ds;
 			struct radv_raster_state raster;
 			struct radv_multisample_state ms;
+			struct radv_tessellation_state tess;
 			uint32_t db_shader_control;
 			uint32_t shader_z_format;
 			unsigned prim;
@@ -980,6 +1001,11 @@ struct radv_pipeline {
 static inline bool radv_pipeline_has_gs(struct radv_pipeline *pipeline)
 {
 	return pipeline->shaders[MESA_SHADER_GEOMETRY] ? true : false;
+}
+
+static inline bool radv_pipeline_has_tess(struct radv_pipeline *pipeline)
+{
+	return pipeline->shaders[MESA_SHADER_TESS_EVAL] ? true : false;
 }
 
 struct radv_graphics_pipeline_create_info {

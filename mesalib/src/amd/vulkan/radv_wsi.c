@@ -26,6 +26,7 @@
 #include "radv_private.h"
 #include "radv_meta.h"
 #include "wsi_common.h"
+#include "util/vk_util.h"
 
 static const struct wsi_callbacks wsi_cbs = {
    .get_phys_device_format_properties = radv_GetPhysicalDeviceFormatProperties,
@@ -452,9 +453,14 @@ VkResult radv_QueuePresentKHR(
 	RADV_FROM_HANDLE(radv_queue, queue, _queue);
 	VkResult result = VK_SUCCESS;
 
+	const VkPresentRegionsKHR *regions =
+	         vk_find_struct_const(pPresentInfo->pNext, PRESENT_REGIONS_KHR);
+
 	for (uint32_t i = 0; i < pPresentInfo->swapchainCount; i++) {
 		RADV_FROM_HANDLE(wsi_swapchain, swapchain, pPresentInfo->pSwapchains[i]);
 		struct radeon_winsys_cs *cs;
+		const VkPresentRegionKHR *region = NULL;
+
 		assert(radv_device_from_handle(swapchain->device) == queue->device);
 		if (swapchain->fences[0] == VK_NULL_HANDLE) {
 			result = radv_CreateFence(radv_device_to_handle(queue->device),
@@ -484,8 +490,12 @@ VkResult radv_QueuePresentKHR(
 					     pPresentInfo->waitSemaphoreCount, NULL, 0, false, base_fence);
 		fence->submitted = true;
 
+		if (regions && regions->pRegions)
+			region = &regions->pRegions[i];
+
 		result = swapchain->queue_present(swapchain,
-						  pPresentInfo->pImageIndices[i]);
+						  pPresentInfo->pImageIndices[i],
+						  region);
 		/* TODO: What if one of them returns OUT_OF_DATE? */
 		if (result != VK_SUCCESS)
 			return result;

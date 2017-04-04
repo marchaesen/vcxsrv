@@ -259,10 +259,9 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceInfo(
             // Also Mip 1+ needs an element pitch of 32 bits so we do not need this workaround
             // but we use this flag to skip RestoreSurfaceInfo below
 
-            if ((elemMode == ADDR_EXPANDED) &&
-                (expandX > 1))
+            if ((elemMode == ADDR_EXPANDED) && (expandX > 1))
             {
-                ADDR_ASSERT(localIn.tileMode == ADDR_TM_LINEAR_ALIGNED || localIn.height == 1);
+                ADDR_ASSERT(IsLinear(localIn.tileMode));
             }
 
             GetElemLib()->AdjustSurfaceInfo(elemMode,
@@ -3621,7 +3620,7 @@ VOID Lib::OptimizeTileMode(
                 {
                     tileMode = ADDR_TM_LINEAR_ALIGNED;
                 }
-                else if (IsMacroTiled(tileMode))
+                else if (IsMacroTiled(tileMode) && (pInOut->flags.tcCompatible == FALSE))
                 {
                     if (DegradeTo1D(width, height, macroWidthAlign, macroHeightAlign))
                     {
@@ -3878,41 +3877,33 @@ UINT_32 Lib::HwlGetPipes(
 *   @brief
 *       Get quad buffer stereo information
 *   @return
-*       TRUE if no error
+*       N/A
 ****************************************************************************************************
 */
-BOOL_32 Lib::ComputeQbStereoInfo(
+VOID Lib::ComputeQbStereoInfo(
     ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut    ///< [in,out] updated pOut+pStereoInfo
     ) const
 {
-    BOOL_32 success = FALSE;
+    ADDR_ASSERT(pOut->bpp >= 8);
+    ADDR_ASSERT((pOut->surfSize % pOut->baseAlign) == 0);
 
-    if (pOut->pStereoInfo)
-    {
-        ADDR_ASSERT(pOut->bpp >= 8);
-        ADDR_ASSERT((pOut->surfSize % pOut->baseAlign) == 0);
+    // Save original height
+    pOut->pStereoInfo->eyeHeight = pOut->height;
 
-        // Save original height
-        pOut->pStereoInfo->eyeHeight = pOut->height;
+    // Right offset
+    pOut->pStereoInfo->rightOffset = static_cast<UINT_32>(pOut->surfSize);
 
-        // Right offset
-        pOut->pStereoInfo->rightOffset = static_cast<UINT_32>(pOut->surfSize);
+    pOut->pStereoInfo->rightSwizzle = HwlComputeQbStereoRightSwizzle(pOut);
+    // Double height
+    pOut->height <<= 1;
+    pOut->pixelHeight <<= 1;
 
-        pOut->pStereoInfo->rightSwizzle = HwlComputeQbStereoRightSwizzle(pOut);
-        // Double height
-        pOut->height <<= 1;
-        pOut->pixelHeight <<= 1;
+    // Double size
+    pOut->surfSize <<= 1;
 
-        // Double size
-        pOut->surfSize <<= 1;
+    // Right start address meets the base align since it is guaranteed by AddrLib1
 
-        // Right start address meets the base align since it is guaranteed by AddrLib1
-
-        // 1D surface on SI may break this rule, but we can force it to meet by checking .qbStereo.
-        success = TRUE;
-    }
-
-    return success;
+    // 1D surface on SI may break this rule, but we can force it to meet by checking .qbStereo.
 }
 
 

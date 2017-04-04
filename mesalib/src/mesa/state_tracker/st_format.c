@@ -58,7 +58,7 @@
  * Translate Mesa format to Gallium format.
  */
 enum pipe_format
-st_mesa_format_to_pipe_format(struct st_context *st, mesa_format mesaFormat)
+st_mesa_format_to_pipe_format(const struct st_context *st, mesa_format mesaFormat)
 {
    switch (mesaFormat) {
    case MESA_FORMAT_A8B8G8R8_UNORM:

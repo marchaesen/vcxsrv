@@ -43,6 +43,7 @@ MESA_UTIL_FILES := \
 	strtod.c \
 	strtod.h \
 	texcompress_rgtc_tmp.h \
+	u_atomic.c \
 	u_atomic.h \
 	u_endian.h \
 	u_queue.c \

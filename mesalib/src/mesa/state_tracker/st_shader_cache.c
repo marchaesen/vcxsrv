@@ -135,7 +135,7 @@ st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
               _mesa_shader_stage_to_string(prog->info.stage), sha1_buf);
    }
 
-   free(blob);
+   blob_destroy(blob);
 }
 
 static void

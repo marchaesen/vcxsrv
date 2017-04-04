@@ -53,6 +53,26 @@
  *    name and parameters.
  */
 
+
+/**
+ * Unfortunately, some versions of MinGW produce bad code if this file
+ * is compiled with -O2 or -O3.  The resulting driver will crash in random
+ * places if the app uses GLSL.
+ * The work-around is to disable optimizations for just this file.  Luckily,
+ * this code is basically just executed once.
+ *
+ * MinGW 4.6.3 (in Ubuntu 13.10) does not have this bug.
+ * MinGW 5.3.1 (in Ubuntu 16.04) definitely has this bug.
+ * MinGW 6.2.0 (in Ubuntu 16.10) definitely has this bug.
+ * MinGW x.y.z - don't know.  Assume versions after 4.6.x are buggy
+ */
+
+#if defined(__MINGW32__) && ((__GNUC__ * 100) + __GNUC_MINOR >= 407)
+#warning "disabling optimizations for this file to work around compiler bug"
+#pragma GCC optimize("O1")
+#endif
+
+
 #include <stdarg.h>
 #include <stdio.h>
 #include "main/core.h" /* for struct gl_shader */

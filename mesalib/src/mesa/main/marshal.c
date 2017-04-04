@@ -67,6 +67,43 @@ _mesa_marshal_Flush(void)
    _mesa_glthread_flush_batch(ctx);
 }
 
+/* Enable: marshalled asynchronously */
+struct marshal_cmd_Enable
+{
+   struct marshal_cmd_base cmd_base;
+   GLenum cap;
+};
+
+void
+_mesa_unmarshal_Enable(struct gl_context *ctx,
+                       const struct marshal_cmd_Enable *cmd)
+{
+   const GLenum cap = cmd->cap;
+   CALL_Enable(ctx->CurrentServerDispatch, (cap));
+}
+
+void GLAPIENTRY
+_mesa_marshal_Enable(GLenum cap)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct marshal_cmd_Enable *cmd;
+   debug_print_marshal("Enable");
+
+   if (cap == GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB) {
+      _mesa_glthread_finish(ctx);
+      _mesa_glthread_restore_dispatch(ctx);
+   } else {
+      cmd = _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_Enable,
+                                            sizeof(*cmd));
+      cmd->cap = cap;
+      _mesa_post_marshal_hook(ctx);
+      return;
+   }
+
+   _mesa_glthread_finish(ctx);
+   debug_print_sync_fallback("Enable");
+   CALL_Enable(ctx->CurrentServerDispatch, (cap));
+}
 
 struct marshal_cmd_ShaderSource
 {

@@ -47,7 +47,8 @@ st_get_blit_mask(GLenum srcFormat, GLenum dstFormat);
 extern GLboolean
 st_finalize_texture(struct gl_context *ctx,
 		    struct pipe_context *pipe, 
-		    struct gl_texture_object *tObj);
+		    struct gl_texture_object *tObj,
+		    GLuint cubeMapFace);
 
 
 extern void

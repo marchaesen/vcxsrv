@@ -1661,8 +1661,10 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       emit_scalar(ir, TGSI_OPCODE_EX2, result_dst, op[0]);
       break;
    case ir_unop_exp:
+      assert(!"not reached: should be handled by exp_to_exp2");
+      break;
    case ir_unop_log:
-      assert(!"not reached: should be handled by ir_explog_to_explog2");
+      assert(!"not reached: should be handled by log_to_log2");
       break;
    case ir_unop_log2:
       emit_scalar(ir, TGSI_OPCODE_LG2, result_dst, op[0]);
@@ -2102,13 +2104,23 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          break;
       }
    case ir_binop_lshift:
-      if (native_integers) {
-         emit_asm(ir, TGSI_OPCODE_SHL, result_dst, op[0], op[1]);
-         break;
-      }
    case ir_binop_rshift:
       if (native_integers) {
-         emit_asm(ir, TGSI_OPCODE_ISHR, result_dst, op[0], op[1]);
+         unsigned opcode = ir->operation == ir_binop_lshift ? TGSI_OPCODE_SHL
+                                                            : TGSI_OPCODE_ISHR;
+         st_src_reg count;
+
+         if (glsl_base_type_is_64bit(op[0].type)) {
+            /* GLSL shift operations have 32-bit shift counts, but TGSI uses
+             * 64 bits.
+             */
+            count = get_temp(glsl_type::u64vec(ir->operands[1]->type->components()));
+            emit_asm(ir, TGSI_OPCODE_U2I64, st_dst_reg(count), op[1]);
+         } else {
+            count = op[1];
+         }
+
+         emit_asm(ir, opcode, result_dst, op[0], count);
          break;
       }
    case ir_binop_bit_and:

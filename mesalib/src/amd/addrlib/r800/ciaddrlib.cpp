@@ -711,6 +711,15 @@ ADDR_E_RETURNCODE CiLib::HwlComputeSurfaceInfo(
 
     ADDR_E_RETURNCODE retCode = SiLib::HwlComputeSurfaceInfo(pIn, pOut);
 
+
+    if ((pIn->mipLevel > 0) &&
+        (pOut->tcCompatible == TRUE) &&
+        (pOut->tileMode != pIn->tileMode) &&
+        (m_settings.isVolcanicIslands == TRUE))
+    {
+        CheckTcCompatibility(pOut->pTileInfo, pIn->bpp, pOut->tileMode, pOut->tileType, pOut);
+    }
+
     if (pOut->macroModeIndex == TileIndexNoMacroIndex)
     {
         pOut->macroModeIndex = TileIndexInvalid;
@@ -1057,29 +1066,29 @@ VOID CiLib::HwlOverrideTileMode(
                     switch (tileMode)
                     {
                         case ADDR_TM_1D_TILED_THICK:
-                            tileMode    = ADDR_TM_1D_TILED_THIN1;
+                            tileMode = ADDR_TM_1D_TILED_THIN1;
                             break;
 
                         case ADDR_TM_2D_TILED_XTHICK:
                         case ADDR_TM_2D_TILED_THICK:
-                            tileMode    = ADDR_TM_2D_TILED_THIN1;
+                            tileMode = ADDR_TM_2D_TILED_THIN1;
                             break;
 
                         case ADDR_TM_3D_TILED_XTHICK:
                         case ADDR_TM_3D_TILED_THICK:
-                            tileMode    = ADDR_TM_3D_TILED_THIN1;
+                            tileMode = ADDR_TM_3D_TILED_THIN1;
                             break;
 
                         case ADDR_TM_PRT_TILED_THICK:
-                            tileMode    = ADDR_TM_PRT_TILED_THIN1;
+                            tileMode = ADDR_TM_PRT_TILED_THIN1;
                             break;
 
                         case ADDR_TM_PRT_2D_TILED_THICK:
-                            tileMode    = ADDR_TM_PRT_2D_TILED_THIN1;
+                            tileMode = ADDR_TM_PRT_2D_TILED_THIN1;
                             break;
 
                         case ADDR_TM_PRT_3D_TILED_THICK:
-                            tileMode    = ADDR_TM_PRT_3D_TILED_THIN1;
+                            tileMode = ADDR_TM_PRT_3D_TILED_THIN1;
                             break;
 
                         default:
@@ -1563,39 +1572,7 @@ VOID CiLib::HwlSetupTileInfo(
 
     if (flags.tcCompatible)
     {
-        if (IsMacroTiled(tileMode))
-        {
-            if (inTileType != ADDR_DEPTH_SAMPLE_ORDER)
-            {
-                // Turn off tcCompatible for color surface if tileSplit happens. Depth/stencil
-                // tileSplit case was handled at tileIndex selecting time.
-                INT_32 tileIndex = pOut->tileIndex;
-
-                if ((tileIndex == TileIndexInvalid) && (IsTileInfoAllZero(pTileInfo) == FALSE))
-                {
-                    tileIndex = HwlPostCheckTileIndex(pTileInfo, tileMode, inTileType, tileIndex);
-                }
-
-                if (tileIndex != TileIndexInvalid)
-                {
-                    ADDR_ASSERT(static_cast<UINT_32>(tileIndex) < TileTableSize);
-                    // Non-depth entries store a split factor
-                    UINT_32 sampleSplit = m_tileTable[tileIndex].info.tileSplitBytes;
-                    UINT_32 tileBytes1x = BITS_TO_BYTES(bpp * MicroTilePixels * thickness);
-                    UINT_32 colorTileSplit = Max(256u, sampleSplit * tileBytes1x);
-
-                    if (m_rowSize < colorTileSplit)
-                    {
-                        flags.tcCompatible = FALSE;
-                    }
-                }
-            }
-        }
-        else
-        {
-            // Client should not enable tc compatible for linear and 1D tile modes.
-            flags.tcCompatible = FALSE;
-        }
+        CheckTcCompatibility(pTileInfo, bpp, tileMode, inTileType, pOut);
     }
 
     pOut->tcCompatible = flags.tcCompatible;
@@ -2287,6 +2264,61 @@ BOOL_32 CiLib::DepthStencilTileCfgMatch(
     }
 
     return depthStencil2DTileConfigMatch;
+}
+
+/**
+****************************************************************************************************
+*   CiLib::DepthStencilTileCfgMatch
+*
+*   @brief
+*       Turn off TcCompatible if requirement is not met
+*   @return
+*       N/A
+****************************************************************************************************
+*/
+VOID CiLib::CheckTcCompatibility(
+    const ADDR_TILEINFO*              pTileInfo,    ///< [in] input tile info
+    UINT_32                           bpp,          ///< [in] Bits per pixel
+    AddrTileMode                      tileMode,     ///< [in] input tile mode
+    AddrTileType                      tileType,     ///< [in] input tile type
+    ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut          ///< [out] out structure
+    ) const
+{
+    if (IsMacroTiled(tileMode))
+    {
+        if (tileType != ADDR_DEPTH_SAMPLE_ORDER)
+        {
+            // Turn off tcCompatible for color surface if tileSplit happens. Depth/stencil
+            // tileSplit case was handled at tileIndex selecting time.
+            INT_32 tileIndex = pOut->tileIndex;
+
+            if ((tileIndex == TileIndexInvalid) && (IsTileInfoAllZero(pTileInfo) == FALSE))
+            {
+                tileIndex = HwlPostCheckTileIndex(pTileInfo, tileMode, tileType, tileIndex);
+            }
+
+            if (tileIndex != TileIndexInvalid)
+            {
+                UINT_32 thickness = Thickness(tileMode);
+
+                ADDR_ASSERT(static_cast<UINT_32>(tileIndex) < TileTableSize);
+                // Non-depth entries store a split factor
+                UINT_32 sampleSplit = m_tileTable[tileIndex].info.tileSplitBytes;
+                UINT_32 tileBytes1x = BITS_TO_BYTES(bpp * MicroTilePixels * thickness);
+                UINT_32 colorTileSplit = Max(256u, sampleSplit * tileBytes1x);
+
+                if (m_rowSize < colorTileSplit)
+                {
+                    pOut->tcCompatible = FALSE;
+                }
+            }
+        }
+    }
+    else
+    {
+        // Client should not enable tc compatible for linear and 1D tile modes.
+        pOut->tcCompatible = FALSE;
+    }
 }
 
 } // V1
