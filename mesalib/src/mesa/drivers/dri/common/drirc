@@ -128,5 +128,13 @@ TODO: document the other workarounds.
         <application name="Spec Ops: The Line (64-bit)" executable="specops">
             <option name="force_glsl_abs_sqrt" value="true" />
         </application>
+
+        <application name="Kerbal Space Program (32-bit)" executable="KSP.x86">
+            <option name="glsl_zero_init" value="true"/>
+        </application>
+
+        <application name="Kerbal Space Program (64-bit)" executable="KSP.x86_64">
+            <option name="glsl_zero_init" value="true"/>
+        </application>
     </device>
 </driconf>

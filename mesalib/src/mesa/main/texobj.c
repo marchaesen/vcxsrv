@@ -127,19 +127,6 @@ _mesa_lookup_texture_err(struct gl_context *ctx, GLuint id, const char* func)
    return texObj;
 }
 
-void
-_mesa_begin_texture_lookups(struct gl_context *ctx)
-{
-   _mesa_HashLockMutex(ctx->Shared->TexObjects);
-}
-
-
-void
-_mesa_end_texture_lookups(struct gl_context *ctx)
-{
-   _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
-}
-
 
 struct gl_texture_object *
 _mesa_lookup_texture_locked(struct gl_context *ctx, GLuint id)
@@ -1833,7 +1820,7 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
        *       their parameters are valid and no other error occurs."
        */
 
-      _mesa_begin_texture_lookups(ctx);
+      _mesa_HashLockMutex(ctx->Shared->TexObjects);
 
       for (i = 0; i < count; i++) {
          if (textures[i] != 0) {
@@ -1865,7 +1852,7 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
          }
       }
 
-      _mesa_end_texture_lookups(ctx);
+      _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
    } else {
       /* Unbind all textures in the range <first> through <first>+<count>-1 */
       for (i = 0; i < count; i++)

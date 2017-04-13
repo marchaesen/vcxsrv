@@ -43,12 +43,16 @@ struct radv_descriptor_set_binding_layout {
    uint16_t buffer_count;
    uint16_t dynamic_offset_count;
 
-   /* Immutable samplers (or NULL if no immutable samplers) */
-   uint32_t *immutable_samplers;
+   /* Offset in the radv_descriptor_set_layout of the immutable samplers, or 0
+    * if there are no immutable samplers. */
+   uint32_t immutable_samplers_offset;
    bool immutable_samplers_equal;
 };
 
 struct radv_descriptor_set_layout {
+   /* The create flags for this descriptor set layout */
+   VkDescriptorSetLayoutCreateFlags flags;
+
    /* Number of bindings in this descriptor set */
    uint16_t binding_count;
 
@@ -83,4 +87,9 @@ struct radv_pipeline_layout {
    unsigned char sha1[20];
 };
 
+static inline const uint32_t *
+radv_immutable_samplers(const struct radv_descriptor_set_layout *set,
+                        const struct radv_descriptor_set_binding_layout *binding) {
+	return (const uint32_t*)((const char*)set + binding->immutable_samplers_offset);
+}
 #endif /* RADV_DESCRIPTOR_SET_H */

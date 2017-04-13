@@ -451,7 +451,7 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glFramebufferTexture()");
          return;
       }
-      _mesa_reference_renderbuffer(&att->Renderbuffer, rb);
+      att->Renderbuffer = rb;
 
       /* This can't get called on a texture renderbuffer, so set it to NULL
        * for clarity compared to user renderbuffers.
@@ -1297,15 +1297,14 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 GLboolean GLAPIENTRY
 _mesa_IsRenderbuffer(GLuint renderbuffer)
 {
+   struct gl_renderbuffer *rb;
+
    GET_CURRENT_CONTEXT(ctx);
+
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
-   if (renderbuffer) {
-      struct gl_renderbuffer *rb =
-         _mesa_lookup_renderbuffer(ctx, renderbuffer);
-      if (rb != NULL && rb != &DummyRenderbuffer)
-         return GL_TRUE;
-   }
-   return GL_FALSE;
+
+   rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
+   return rb != NULL && rb != &DummyRenderbuffer;
 }
 
 
@@ -1323,7 +1322,6 @@ allocate_renderbuffer_locked(struct gl_context *ctx, GLuint renderbuffer,
    }
    assert(newRb->AllocStorage);
    _mesa_HashInsertLocked(ctx->Shared->RenderBuffers, renderbuffer, newRb);
-   newRb->RefCount = 1; /* referenced by hash table */
 
    return newRb;
 }

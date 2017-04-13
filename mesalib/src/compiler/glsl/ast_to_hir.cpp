@@ -2930,6 +2930,76 @@ apply_explicit_binding(struct _mesa_glsl_parse_state *state,
    return;
 }
 
+static void
+validate_fragment_flat_interpolation_input(struct _mesa_glsl_parse_state *state,
+                                           YYLTYPE *loc,
+                                           const glsl_interp_mode interpolation,
+                                           const struct glsl_type *var_type,
+                                           ir_variable_mode mode)
+{
+   if (state->stage != MESA_SHADER_FRAGMENT ||
+       interpolation == INTERP_MODE_FLAT ||
+       mode != ir_var_shader_in)
+      return;
+
+   /* Integer fragment inputs must be qualified with 'flat'.  In GLSL ES,
+    * so must integer vertex outputs.
+    *
+    * From section 4.3.4 ("Inputs") of the GLSL 1.50 spec:
+    *    "Fragment shader inputs that are signed or unsigned integers or
+    *    integer vectors must be qualified with the interpolation qualifier
+    *    flat."
+    *
+    * From section 4.3.4 ("Input Variables") of the GLSL 3.00 ES spec:
+    *    "Fragment shader inputs that are, or contain, signed or unsigned
+    *    integers or integer vectors must be qualified with the
+    *    interpolation qualifier flat."
+    *
+    * From section 4.3.6 ("Output Variables") of the GLSL 3.00 ES spec:
+    *    "Vertex shader outputs that are, or contain, signed or unsigned
+    *    integers or integer vectors must be qualified with the
+    *    interpolation qualifier flat."
+    *
+    * Note that prior to GLSL 1.50, this requirement applied to vertex
+    * outputs rather than fragment inputs.  That creates problems in the
+    * presence of geometry shaders, so we adopt the GLSL 1.50 rule for all
+    * desktop GL shaders.  For GLSL ES shaders, we follow the spec and
+    * apply the restriction to both vertex outputs and fragment inputs.
+    *
+    * Note also that the desktop GLSL specs are missing the text "or
+    * contain"; this is presumably an oversight, since there is no
+    * reasonable way to interpolate a fragment shader input that contains
+    * an integer. See Khronos bug #15671.
+    */
+   if (state->is_version(130, 300)
+       && var_type->contains_integer()) {
+      _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
+                       "an integer, then it must be qualified with 'flat'");
+   }
+
+   /* Double fragment inputs must be qualified with 'flat'.
+    *
+    * From the "Overview" of the ARB_gpu_shader_fp64 extension spec:
+    *    "This extension does not support interpolation of double-precision
+    *    values; doubles used as fragment shader inputs must be qualified as
+    *    "flat"."
+    *
+    * From section 4.3.4 ("Inputs") of the GLSL 4.00 spec:
+    *    "Fragment shader inputs that are signed or unsigned integers, integer
+    *    vectors, or any double-precision floating-point type must be
+    *    qualified with the interpolation qualifier flat."
+    *
+    * Note that the GLSL specs are missing the text "or contain"; this is
+    * presumably an oversight. See Khronos bug #15671.
+    *
+    * The 'double' type does not exist in GLSL ES so far.
+    */
+   if (state->has_double()
+       && var_type->contains_double()) {
+      _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
+                       "a double, then it must be qualified with 'flat'");
+   }
+}
 
 static void
 validate_interpolation_qualifier(struct _mesa_glsl_parse_state *state,
@@ -3016,69 +3086,8 @@ validate_interpolation_qualifier(struct _mesa_glsl_parse_state *state,
                        "deprecated storage qualifier '%s'", i, s);
    }
 
-   /* Integer fragment inputs must be qualified with 'flat'.  In GLSL ES,
-    * so must integer vertex outputs.
-    *
-    * From section 4.3.4 ("Inputs") of the GLSL 1.50 spec:
-    *    "Fragment shader inputs that are signed or unsigned integers or
-    *    integer vectors must be qualified with the interpolation qualifier
-    *    flat."
-    *
-    * From section 4.3.4 ("Input Variables") of the GLSL 3.00 ES spec:
-    *    "Fragment shader inputs that are, or contain, signed or unsigned
-    *    integers or integer vectors must be qualified with the
-    *    interpolation qualifier flat."
-    *
-    * From section 4.3.6 ("Output Variables") of the GLSL 3.00 ES spec:
-    *    "Vertex shader outputs that are, or contain, signed or unsigned
-    *    integers or integer vectors must be qualified with the
-    *    interpolation qualifier flat."
-    *
-    * Note that prior to GLSL 1.50, this requirement applied to vertex
-    * outputs rather than fragment inputs.  That creates problems in the
-    * presence of geometry shaders, so we adopt the GLSL 1.50 rule for all
-    * desktop GL shaders.  For GLSL ES shaders, we follow the spec and
-    * apply the restriction to both vertex outputs and fragment inputs.
-    *
-    * Note also that the desktop GLSL specs are missing the text "or
-    * contain"; this is presumably an oversight, since there is no
-    * reasonable way to interpolate a fragment shader input that contains
-    * an integer. See Khronos bug #15671.
-    */
-   if (state->is_version(130, 300)
-       && var_type->contains_integer()
-       && interpolation != INTERP_MODE_FLAT
-       && state->stage == MESA_SHADER_FRAGMENT
-       && mode == ir_var_shader_in) {
-      _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
-                       "an integer, then it must be qualified with 'flat'");
-   }
-
-   /* Double fragment inputs must be qualified with 'flat'.
-    *
-    * From the "Overview" of the ARB_gpu_shader_fp64 extension spec:
-    *    "This extension does not support interpolation of double-precision
-    *    values; doubles used as fragment shader inputs must be qualified as
-    *    "flat"."
-    *
-    * From section 4.3.4 ("Inputs") of the GLSL 4.00 spec:
-    *    "Fragment shader inputs that are signed or unsigned integers, integer
-    *    vectors, or any double-precision floating-point type must be
-    *    qualified with the interpolation qualifier flat."
-    *
-    * Note that the GLSL specs are missing the text "or contain"; this is
-    * presumably an oversight. See Khronos bug #15671.
-    *
-    * The 'double' type does not exist in GLSL ES so far.
-    */
-   if (state->has_double()
-       && var_type->contains_double()
-       && interpolation != INTERP_MODE_FLAT
-       && state->stage == MESA_SHADER_FRAGMENT
-       && mode == ir_var_shader_in) {
-      _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
-                       "a double, then it must be qualified with 'flat'");
-   }
+   validate_fragment_flat_interpolation_input(state, loc, interpolation,
+                                              var_type, mode);
 }
 
 static glsl_interp_mode
@@ -3294,74 +3303,73 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
 {
    const glsl_type *base_type = var->type->without_array();
 
-   if (base_type->is_image()) {
-      if (var->data.mode != ir_var_uniform &&
-          var->data.mode != ir_var_function_in) {
-         _mesa_glsl_error(loc, state, "image variables may only be declared as "
-                          "function parameters or uniform-qualified "
-                          "global variables");
+   if (!base_type->is_image()) {
+      if (qual->flags.q.read_only ||
+          qual->flags.q.write_only ||
+          qual->flags.q.coherent ||
+          qual->flags.q._volatile ||
+          qual->flags.q.restrict_flag ||
+          qual->flags.q.explicit_image_format) {
+         _mesa_glsl_error(loc, state, "memory qualifiers may only be applied "
+                          "to images");
+      }
+      return;
+   }
+
+   if (var->data.mode != ir_var_uniform &&
+       var->data.mode != ir_var_function_in) {
+      _mesa_glsl_error(loc, state, "image variables may only be declared as "
+                       "function parameters or uniform-qualified "
+                       "global variables");
+   }
+
+   var->data.image_read_only |= qual->flags.q.read_only;
+   var->data.image_write_only |= qual->flags.q.write_only;
+   var->data.image_coherent |= qual->flags.q.coherent;
+   var->data.image_volatile |= qual->flags.q._volatile;
+   var->data.image_restrict |= qual->flags.q.restrict_flag;
+   var->data.read_only = true;
+
+   if (qual->flags.q.explicit_image_format) {
+      if (var->data.mode == ir_var_function_in) {
+         _mesa_glsl_error(loc, state, "format qualifiers cannot be used on "
+                          "image function parameters");
       }
 
-      var->data.image_read_only |= qual->flags.q.read_only;
-      var->data.image_write_only |= qual->flags.q.write_only;
-      var->data.image_coherent |= qual->flags.q.coherent;
-      var->data.image_volatile |= qual->flags.q._volatile;
-      var->data.image_restrict |= qual->flags.q.restrict_flag;
-      var->data.read_only = true;
-
-      if (qual->flags.q.explicit_image_format) {
-         if (var->data.mode == ir_var_function_in) {
-            _mesa_glsl_error(loc, state, "format qualifiers cannot be "
-                             "used on image function parameters");
-         }
-
-         if (qual->image_base_type != base_type->sampled_type) {
-            _mesa_glsl_error(loc, state, "format qualifier doesn't match the "
-                             "base data type of the image");
-         }
-
-         var->data.image_format = qual->image_format;
-      } else {
-         if (var->data.mode == ir_var_uniform) {
-            if (state->es_shader) {
-               _mesa_glsl_error(loc, state, "all image uniforms "
-                                "must have a format layout qualifier");
-
-            } else if (!qual->flags.q.write_only) {
-               _mesa_glsl_error(loc, state, "image uniforms not qualified with "
-                                "`writeonly' must have a format layout "
-                                "qualifier");
-            }
-         }
-
-         var->data.image_format = GL_NONE;
+      if (qual->image_base_type != base_type->sampled_type) {
+         _mesa_glsl_error(loc, state, "format qualifier doesn't match the base "
+                          "data type of the image");
       }
 
-      /* From page 70 of the GLSL ES 3.1 specification:
-       *
-       * "Except for image variables qualified with the format qualifiers
-       *  r32f, r32i, and r32ui, image variables must specify either memory
-       *  qualifier readonly or the memory qualifier writeonly."
-       */
-      if (state->es_shader &&
-          var->data.image_format != GL_R32F &&
-          var->data.image_format != GL_R32I &&
-          var->data.image_format != GL_R32UI &&
-          !var->data.image_read_only &&
-          !var->data.image_write_only) {
-         _mesa_glsl_error(loc, state, "image variables of format other than "
-                          "r32f, r32i or r32ui must be qualified `readonly' or "
-                          "`writeonly'");
+      var->data.image_format = qual->image_format;
+   } else {
+      if (var->data.mode == ir_var_uniform) {
+         if (state->es_shader) {
+            _mesa_glsl_error(loc, state, "all image uniforms must have a "
+                             "format layout qualifier");
+         } else if (!qual->flags.q.write_only) {
+            _mesa_glsl_error(loc, state, "image uniforms not qualified with "
+                             "`writeonly' must have a format layout qualifier");
+         }
       }
+      var->data.image_format = GL_NONE;
+   }
 
-   } else if (qual->flags.q.read_only ||
-              qual->flags.q.write_only ||
-              qual->flags.q.coherent ||
-              qual->flags.q._volatile ||
-              qual->flags.q.restrict_flag ||
-              qual->flags.q.explicit_image_format) {
-      _mesa_glsl_error(loc, state, "memory qualifiers may only be applied to "
-                       "images");
+   /* From page 70 of the GLSL ES 3.1 specification:
+    *
+    * "Except for image variables qualified with the format qualifiers r32f,
+    *  r32i, and r32ui, image variables must specify either memory qualifier
+    *  readonly or the memory qualifier writeonly."
+    */
+   if (state->es_shader &&
+       var->data.image_format != GL_R32F &&
+       var->data.image_format != GL_R32I &&
+       var->data.image_format != GL_R32UI &&
+       !var->data.image_read_only &&
+       !var->data.image_write_only) {
+      _mesa_glsl_error(loc, state, "image variables of format other than r32f, "
+                       "r32i or r32ui must be qualified `readonly' or "
+                       "`writeonly'");
    }
 }
 

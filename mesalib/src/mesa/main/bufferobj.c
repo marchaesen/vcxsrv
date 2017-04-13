@@ -1013,18 +1013,13 @@ _mesa_handle_bind_buffer_gen(struct gl_context *ctx,
  * Called by glBindBuffer() and other functions.
  */
 static void
-bind_buffer_object(struct gl_context *ctx, GLenum target, GLuint buffer)
+bind_buffer_object(struct gl_context *ctx,
+                   struct gl_buffer_object **bindTarget, GLuint buffer)
 {
    struct gl_buffer_object *oldBufObj;
    struct gl_buffer_object *newBufObj = NULL;
-   struct gl_buffer_object **bindTarget = NULL;
 
-   bindTarget = get_buffer_target(ctx, target);
-   if (!bindTarget) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glBindBufferARB(target %s)",
-                  _mesa_enum_to_string(target));
-      return;
-   }
+   assert(bindTarget);
 
    /* Get pointer to old buffer object (to be unbound) */
    oldBufObj = *bindTarget;
@@ -1049,12 +1044,8 @@ bind_buffer_object(struct gl_context *ctx, GLenum target, GLuint buffer)
    }
 
    /* record usage history */
-   switch (target) {
-   case GL_PIXEL_PACK_BUFFER:
+   if (bindTarget == &ctx->Pack.BufferObj) {
       newBufObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
-      break;
-   default:
-      break;
    }
 
    /* bind new buffer */
@@ -1073,10 +1064,10 @@ _mesa_update_default_objects_buffer_objects(struct gl_context *ctx)
    /* Bind the NullBufferObj to remove references to those
     * in the shared context hash table.
     */
-   bind_buffer_object( ctx, GL_ARRAY_BUFFER_ARB, 0);
-   bind_buffer_object( ctx, GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
-   bind_buffer_object( ctx, GL_PIXEL_PACK_BUFFER_ARB, 0);
-   bind_buffer_object( ctx, GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+   bind_buffer_object(ctx, &ctx->Array.ArrayBufferObj, 0);
+   bind_buffer_object(ctx, &ctx->Array.VAO->IndexBufferObj, 0);
+   bind_buffer_object(ctx, &ctx->Pack.BufferObj, 0);
+   bind_buffer_object(ctx, &ctx->Unpack.BufferObj, 0);
 }
 
 
@@ -1128,20 +1119,6 @@ _mesa_lookup_bufferobj_err(struct gl_context *ctx, GLuint buffer,
 }
 
 
-void
-_mesa_begin_bufferobj_lookups(struct gl_context *ctx)
-{
-   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
-}
-
-
-void
-_mesa_end_bufferobj_lookups(struct gl_context *ctx)
-{
-   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
-}
-
-
 /**
  * Look up a buffer object for a multi-bind function.
  *
@@ -1156,7 +1133,8 @@ _mesa_end_bufferobj_lookups(struct gl_context *ctx)
  * returns NULL.
  *
  * This function assumes that the caller has already locked the
- * hash table mutex by calling _mesa_begin_bufferobj_lookups().
+ * hash table mutex by calling
+ * _mesa_HashLockMutex(ctx->Shared->BufferObjects).
  */
 struct gl_buffer_object *
 _mesa_multi_bind_lookup_bufferobj(struct gl_context *ctx,
@@ -1268,7 +1246,14 @@ _mesa_BindBuffer(GLenum target, GLuint buffer)
                   _mesa_enum_to_string(target), buffer);
    }
 
-   bind_buffer_object(ctx, target, buffer);
+   struct gl_buffer_object **bindTarget = get_buffer_target(ctx, target);
+   if (!bindTarget) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glBindBufferARB(target %s)",
+                  _mesa_enum_to_string(target));
+      return;
+   }
+
+   bind_buffer_object(ctx, bindTarget, buffer);
 }
 
 
@@ -1309,38 +1294,38 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
          }
 
          if (ctx->Array.ArrayBufferObj == bufObj) {
-            _mesa_BindBuffer( GL_ARRAY_BUFFER_ARB, 0 );
+            bind_buffer_object(ctx, &ctx->Array.ArrayBufferObj, 0);
          }
          if (vao->IndexBufferObj == bufObj) {
-            _mesa_BindBuffer( GL_ELEMENT_ARRAY_BUFFER_ARB, 0 );
+            bind_buffer_object(ctx, &vao->IndexBufferObj, 0);
          }
 
          /* unbind ARB_draw_indirect binding point */
          if (ctx->DrawIndirectBuffer == bufObj) {
-            _mesa_BindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->DrawIndirectBuffer, 0);
          }
 
          /* unbind ARB_indirect_parameters binding point */
          if (ctx->ParameterBuffer == bufObj) {
-            _mesa_BindBuffer(GL_PARAMETER_BUFFER_ARB, 0);
+            bind_buffer_object(ctx, &ctx->ParameterBuffer, 0);
          }
 
          /* unbind ARB_compute_shader binding point */
          if (ctx->DispatchIndirectBuffer == bufObj) {
-            _mesa_BindBuffer(GL_DISPATCH_INDIRECT_BUFFER, 0);
+            bind_buffer_object(ctx, &ctx->DispatchIndirectBuffer, 0);
          }
 
          /* unbind ARB_copy_buffer binding points */
          if (ctx->CopyReadBuffer == bufObj) {
-            _mesa_BindBuffer( GL_COPY_READ_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->CopyReadBuffer, 0);
          }
          if (ctx->CopyWriteBuffer == bufObj) {
-            _mesa_BindBuffer( GL_COPY_WRITE_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->CopyWriteBuffer, 0);
          }
 
          /* unbind transform feedback binding points */
          if (ctx->TransformFeedback.CurrentBuffer == bufObj) {
-            _mesa_BindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->TransformFeedback.CurrentBuffer, 0);
          }
          for (j = 0; j < MAX_FEEDBACK_BUFFERS; j++) {
             if (ctx->TransformFeedback.CurrentObject->Buffers[j] == bufObj) {
@@ -1356,7 +1341,7 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
          }
 
          if (ctx->UniformBuffer == bufObj) {
-            _mesa_BindBuffer( GL_UNIFORM_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->UniformBuffer, 0);
          }
 
          /* unbind SSBO binding points */
@@ -1367,7 +1352,7 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
          }
 
          if (ctx->ShaderStorageBuffer == bufObj) {
-            _mesa_BindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            bind_buffer_object(ctx, &ctx->ShaderStorageBuffer, 0);
          }
 
          /* unbind Atomci Buffer binding points */
@@ -1378,28 +1363,28 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
          }
 
          if (ctx->AtomicBuffer == bufObj) {
-            _mesa_BindBuffer( GL_ATOMIC_COUNTER_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->AtomicBuffer, 0);
          }
 
          /* unbind any pixel pack/unpack pointers bound to this buffer */
          if (ctx->Pack.BufferObj == bufObj) {
-            _mesa_BindBuffer( GL_PIXEL_PACK_BUFFER_EXT, 0 );
+            bind_buffer_object(ctx, &ctx->Pack.BufferObj, 0);
          }
          if (ctx->Unpack.BufferObj == bufObj) {
-            _mesa_BindBuffer( GL_PIXEL_UNPACK_BUFFER_EXT, 0 );
+            bind_buffer_object(ctx, &ctx->Unpack.BufferObj, 0);
          }
 
          if (ctx->Texture.BufferObject == bufObj) {
-            _mesa_BindBuffer( GL_TEXTURE_BUFFER, 0 );
+            bind_buffer_object(ctx, &ctx->Texture.BufferObject, 0);
          }
 
          if (ctx->ExternalVirtualMemoryBuffer == bufObj) {
-            _mesa_BindBuffer(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, 0);
+            bind_buffer_object(ctx, &ctx->ExternalVirtualMemoryBuffer, 0);
          }
 
          /* unbind query buffer binding point */
          if (ctx->QueryBuffer == bufObj) {
-            _mesa_BindBuffer(GL_QUERY_BUFFER, 0);
+            bind_buffer_object(ctx, &ctx->QueryBuffer, 0);
          }
 
          /* The ID is immediately freed for re-use */
@@ -1536,13 +1521,30 @@ _mesa_buffer_storage(struct gl_context *ctx, struct gl_buffer_object *bufObj,
       return;
    }
 
-   if (flags & ~(GL_MAP_READ_BIT |
-                 GL_MAP_WRITE_BIT |
-                 GL_MAP_PERSISTENT_BIT |
-                 GL_MAP_COHERENT_BIT |
-                 GL_DYNAMIC_STORAGE_BIT |
-                 GL_CLIENT_STORAGE_BIT)) {
+   GLbitfield valid_flags = GL_MAP_READ_BIT |
+                            GL_MAP_WRITE_BIT |
+                            GL_MAP_PERSISTENT_BIT |
+                            GL_MAP_COHERENT_BIT |
+                            GL_DYNAMIC_STORAGE_BIT |
+                            GL_CLIENT_STORAGE_BIT;
+
+   if (ctx->Extensions.ARB_sparse_buffer)
+      valid_flags |= GL_SPARSE_STORAGE_BIT_ARB;
+
+   if (flags & ~valid_flags) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(invalid flag bits set)", func);
+      return;
+   }
+
+   /* The Errors section of the GL_ARB_sparse_buffer spec says:
+    *
+    *    "INVALID_VALUE is generated by BufferStorage if <flags> contains
+    *     SPARSE_STORAGE_BIT_ARB and <flags> also contains any combination of
+    *     MAP_READ_BIT or MAP_WRITE_BIT."
+    */
+   if (flags & GL_SPARSE_STORAGE_BIT_ARB &&
+       flags & (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT)) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(SPARSE_STORAGE and READ/WRITE)", func);
       return;
    }
 
@@ -3238,7 +3240,7 @@ bind_uniform_buffers(struct gl_context *ctx, GLuint first, GLsizei count,
     *       parameters are valid and no other error occurs."
     */
 
-   _mesa_begin_bufferobj_lookups(ctx);
+   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
    for (i = 0; i < count; i++) {
       struct gl_uniform_buffer_binding *binding =
@@ -3298,7 +3300,7 @@ bind_uniform_buffers(struct gl_context *ctx, GLuint first, GLsizei count,
       }
    }
 
-   _mesa_end_bufferobj_lookups(ctx);
+   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
 }
 
 static void
@@ -3350,7 +3352,7 @@ bind_shader_storage_buffers(struct gl_context *ctx, GLuint first,
     *       parameters are valid and no other error occurs."
     */
 
-   _mesa_begin_bufferobj_lookups(ctx);
+   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
    for (i = 0; i < count; i++) {
       struct gl_shader_storage_buffer_binding *binding =
@@ -3410,7 +3412,7 @@ bind_shader_storage_buffers(struct gl_context *ctx, GLuint first,
       }
    }
 
-   _mesa_end_bufferobj_lookups(ctx);
+   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
 }
 
 static bool
@@ -3529,7 +3531,7 @@ bind_xfb_buffers(struct gl_context *ctx,
     *       parameters are valid and no other error occurs."
     */
 
-   _mesa_begin_bufferobj_lookups(ctx);
+   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
    for (i = 0; i < count; i++) {
       const GLuint index = first + i;
@@ -3595,7 +3597,7 @@ bind_xfb_buffers(struct gl_context *ctx,
                                               offset, size);
    }
 
-   _mesa_end_bufferobj_lookups(ctx);
+   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
 }
 
 static bool
@@ -3692,7 +3694,7 @@ bind_atomic_buffers(struct gl_context *ctx,
     *       parameters are valid and no other error occurs."
     */
 
-   _mesa_begin_bufferobj_lookups(ctx);
+   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
    for (i = 0; i < count; i++) {
       struct gl_atomic_buffer_binding *binding =
@@ -3745,7 +3747,7 @@ bind_atomic_buffers(struct gl_context *ctx,
          set_atomic_buffer_binding(ctx, binding, bufObj, offset, size);
    }
 
-   _mesa_end_bufferobj_lookups(ctx);
+   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
 }
 
 void GLAPIENTRY
@@ -4042,4 +4044,82 @@ _mesa_InvalidateBufferData(GLuint buffer)
 
    if (ctx->Driver.InvalidateBufferSubData)
       ctx->Driver.InvalidateBufferSubData(ctx, bufObj, 0, bufObj->Size);
+}
+
+static void
+buffer_page_commitment(struct gl_context *ctx,
+                       struct gl_buffer_object *bufferObj,
+                       GLintptr offset, GLsizeiptr size,
+                       GLboolean commit, const char *func)
+{
+   if (!(bufferObj->StorageFlags & GL_SPARSE_STORAGE_BIT_ARB)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(not a sparse buffer object)",
+                  func);
+      return;
+   }
+
+   if (size < 0 || size > bufferObj->Size ||
+       offset < 0 || offset > bufferObj->Size - size) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(out of bounds)",
+                  func);
+      return;
+   }
+
+   /* The GL_ARB_sparse_buffer extension specification says:
+    *
+    *     "INVALID_VALUE is generated by BufferPageCommitmentARB if <offset> is
+    *     not an integer multiple of SPARSE_BUFFER_PAGE_SIZE_ARB, or if <size>
+    *     is not an integer multiple of SPARSE_BUFFER_PAGE_SIZE_ARB and does
+    *     not extend to the end of the buffer's data store."
+    */
+   if (offset % ctx->Const.SparseBufferPageSize != 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(offset not aligned to page size)",
+                  func);
+      return;
+   }
+
+   if (size % ctx->Const.SparseBufferPageSize != 0 &&
+       offset + size != bufferObj->Size) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(size not aligned to page size)",
+                  func);
+      return;
+   }
+
+   ctx->Driver.BufferPageCommitment(ctx, bufferObj, offset, size, commit);
+}
+
+void GLAPIENTRY
+_mesa_BufferPageCommitmentARB(GLenum target, GLintptr offset, GLsizeiptr size,
+                              GLboolean commit)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_buffer_object *bufferObj;
+
+   bufferObj = get_buffer(ctx, "glBufferPageCommitmentARB", target,
+                          GL_INVALID_ENUM);
+   if (!bufferObj)
+      return;
+
+   buffer_page_commitment(ctx, bufferObj, offset, size, commit,
+                          "glBufferPageCommitmentARB");
+}
+
+void GLAPIENTRY
+_mesa_NamedBufferPageCommitmentARB(GLuint buffer, GLintptr offset,
+                                   GLsizeiptr size, GLboolean commit)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_buffer_object *bufferObj;
+
+   bufferObj = _mesa_lookup_bufferobj(ctx, buffer);
+   if (!bufferObj || bufferObj == &DummyBufferObject) {
+      /* Note: the extension spec is not clear about the excpected error value. */
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glNamedBufferPageCommitmentARB(name = %u) invalid object",
+                  buffer);
+      return;
+   }
+
+   buffer_page_commitment(ctx, bufferObj, offset, size, commit,
+                          "glNamedBufferPageCommitmentARB");
 }

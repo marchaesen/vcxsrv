@@ -569,12 +569,14 @@ dri_create_buffer(__DRIscreen * sPriv,
 
     /* add front renderbuffer */
     frontrb = swrast_new_renderbuffer(visual, dPriv, GL_TRUE);
-    _mesa_add_renderbuffer(fb, BUFFER_FRONT_LEFT, &frontrb->Base.Base);
+    _mesa_add_renderbuffer_without_ref(fb, BUFFER_FRONT_LEFT,
+                                       &frontrb->Base.Base);
 
     /* add back renderbuffer */
     if (visual->doubleBufferMode) {
 	backrb = swrast_new_renderbuffer(visual, dPriv, GL_FALSE);
-	_mesa_add_renderbuffer(fb, BUFFER_BACK_LEFT, &backrb->Base.Base);
+        _mesa_add_renderbuffer_without_ref(fb, BUFFER_BACK_LEFT,
+                                           &backrb->Base.Base);
     }
 
     /* add software renderbuffers */

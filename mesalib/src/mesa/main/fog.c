@@ -102,8 +102,13 @@ _mesa_Fogfv( GLenum pname, const GLfloat *params )
          m = (GLenum) (GLint) *params;
 	 switch (m) {
 	 case GL_LINEAR:
+	    ctx->Fog._PackedMode = FOG_LINEAR;
+	    break;
 	 case GL_EXP:
+	    ctx->Fog._PackedMode = FOG_EXP;
+	    break;
 	 case GL_EXP2:
+	    ctx->Fog._PackedMode = FOG_EXP2;
 	    break;
 	 default:
 	    _mesa_error( ctx, GL_INVALID_ENUM, "glFog" );
@@ -113,6 +118,8 @@ _mesa_Fogfv( GLenum pname, const GLfloat *params )
 	    return;
 	 FLUSH_VERTICES(ctx, _NEW_FOG);
 	 ctx->Fog.Mode = m;
+	 ctx->Fog._PackedEnabledMode = ctx->Fog.Enabled ?
+				       ctx->Fog._PackedMode : FOG_NONE;
 	 break;
       case GL_FOG_DENSITY:
 	 if (*params<0.0F) {
@@ -210,6 +217,8 @@ void _mesa_init_fog( struct gl_context * ctx )
    /* Fog group */
    ctx->Fog.Enabled = GL_FALSE;
    ctx->Fog.Mode = GL_EXP;
+   ctx->Fog._PackedMode = FOG_EXP;
+   ctx->Fog._PackedEnabledMode = FOG_NONE;
    ASSIGN_4V( ctx->Fog.Color, 0.0, 0.0, 0.0, 0.0 );
    ASSIGN_4V( ctx->Fog.ColorUnclamped, 0.0, 0.0, 0.0, 0.0 );
    ctx->Fog.Index = 0.0;

@@ -205,14 +205,6 @@ struct marshal_cmd_BindBufferBase
    GLuint index;
    GLuint buffer;
 };
-static inline void
-_mesa_unmarshal_BindBufferBase(struct gl_context *ctx, const struct marshal_cmd_BindBufferBase *cmd)
-{
-   const GLenum target = cmd->target;
-   const GLuint index = cmd->index;
-   const GLuint buffer = cmd->buffer;
-   CALL_BindBufferBase(ctx->CurrentServerDispatch, (target, index, buffer));
-}
 
 /** Tracks the current bindings for the vertex array and index array buffers.
  *

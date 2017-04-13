@@ -60,7 +60,9 @@ extern "C" {
 struct debug_stack_frame 
 {
 #ifdef HAVE_LIBUNWIND
-   char buf[128];
+   unw_word_t start_ip;
+   unsigned int off;
+   const char *procname;
 #else
    const void *function;
 #endif

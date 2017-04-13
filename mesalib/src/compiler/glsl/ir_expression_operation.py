@@ -570,6 +570,10 @@ ir_expression_operation = [
    # of its length.
    operation("ssbo_unsized_array_length", 1),
 
+   # ARB_shader_ballot operations
+   operation("ballot", 1, source_types=(bool_type,), dest_type=uint64_type),
+   operation("read_first_invocation", 1),
+
    # Vote among threads on the value of the boolean argument.
    operation("vote_any", 1),
    operation("vote_all", 1),
@@ -665,6 +669,9 @@ ir_expression_operation = [
    # operand0 is the fs input
    # operand1 is the sample ID
    operation("interpolate_at_sample", 2),
+
+   # ARB_shader_ballot operation
+   operation("read_invocation", 2),
 
    # Fused floating-point multiply-add, part of ARB_gpu_shader5.
    operation("fma", 3, source_types=real_types, c_expression="{src0} * {src1} + {src2}"),

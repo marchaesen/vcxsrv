@@ -85,6 +85,9 @@ void radv_device_finish_meta_blit2d_state(struct radv_device *device);
 VkResult radv_device_init_meta_buffer_state(struct radv_device *device);
 void radv_device_finish_meta_buffer_state(struct radv_device *device);
 
+VkResult radv_device_init_meta_query_state(struct radv_device *device);
+void radv_device_finish_meta_query_state(struct radv_device *device);
+
 VkResult radv_device_init_meta_resolve_compute_state(struct radv_device *device);
 void radv_device_finish_meta_resolve_compute_state(struct radv_device *device);
 void radv_meta_save(struct radv_meta_saved_state *state,

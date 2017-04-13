@@ -402,7 +402,7 @@ ms_vblank_screen_init(ScreenPtr screen)
     modesettingEntPtr ms_ent = ms_ent_priv(scrn);
     xorg_list_init(&ms_drm_queue);
 
-    ms->event_context.version = DRM_EVENT_CONTEXT_VERSION;
+    ms->event_context.version = 2;
     ms->event_context.vblank_handler = ms_drm_handler;
     ms->event_context.page_flip_handler = ms_drm_handler;
 

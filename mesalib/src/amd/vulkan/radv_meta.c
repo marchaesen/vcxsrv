@@ -324,6 +324,10 @@ radv_device_init_meta(struct radv_device *device)
 	if (result != VK_SUCCESS)
 		goto fail_buffer;
 
+	result = radv_device_init_meta_query_state(device);
+	if (result != VK_SUCCESS)
+		goto fail_query;
+
 	result = radv_device_init_meta_fast_clear_flush_state(device);
 	if (result != VK_SUCCESS)
 		goto fail_fast_clear;
@@ -337,6 +341,8 @@ fail_resolve_compute:
 	radv_device_finish_meta_fast_clear_flush_state(device);
 fail_fast_clear:
 	radv_device_finish_meta_buffer_state(device);
+fail_query:
+	radv_device_finish_meta_query_state(device);
 fail_buffer:
 	radv_device_finish_meta_depth_decomp_state(device);
 fail_depth_decomp:
@@ -363,6 +369,7 @@ radv_device_finish_meta(struct radv_device *device)
 	radv_device_finish_meta_blit2d_state(device);
 	radv_device_finish_meta_bufimage_state(device);
 	radv_device_finish_meta_depth_decomp_state(device);
+	radv_device_finish_meta_query_state(device);
 	radv_device_finish_meta_buffer_state(device);
 	radv_device_finish_meta_fast_clear_flush_state(device);
 	radv_device_finish_meta_resolve_compute_state(device);

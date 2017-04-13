@@ -183,7 +183,9 @@ _mesa_HashLookup_unlocked(struct _mesa_HashTable *table, GLuint key)
    if (key == DELETED_KEY_VALUE)
       return table->deleted_key_data;
 
-   entry = _mesa_hash_table_search(table->ht, uint_key(key));
+   entry = _mesa_hash_table_search_pre_hashed(table->ht,
+                                              uint_hash(key),
+                                              uint_key(key));
    if (!entry)
       return NULL;
 
@@ -347,7 +349,9 @@ _mesa_HashRemove_unlocked(struct _mesa_HashTable *table, GLuint key)
    if (key == DELETED_KEY_VALUE) {
       table->deleted_key_data = NULL;
    } else {
-      entry = _mesa_hash_table_search(table->ht, uint_key(key));
+      entry = _mesa_hash_table_search_pre_hashed(table->ht,
+                                                 uint_hash(key),
+                                                 uint_key(key));
       _mesa_hash_table_remove(table->ht, entry);
    }
 }

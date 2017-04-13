@@ -107,11 +107,6 @@ enum {
     GLX_ALL_VISUALS
 };
 
-void __glXsetEnterLeaveServerFuncs(void (*enter) (GLboolean),
-                                   void (*leave) (GLboolean));
-void __glXenterServer(GLboolean rendering);
-void __glXleaveServer(GLboolean rendering);
-
 void glxSuspendClients(void);
 void glxResumeClients(void);
 

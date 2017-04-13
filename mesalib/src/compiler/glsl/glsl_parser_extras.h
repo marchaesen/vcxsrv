@@ -632,6 +632,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_atomic_counter_ops_warn;
    bool ARB_shader_atomic_counters_enable;
    bool ARB_shader_atomic_counters_warn;
+   bool ARB_shader_ballot_enable;
+   bool ARB_shader_ballot_warn;
    bool ARB_shader_bit_encoding_enable;
    bool ARB_shader_bit_encoding_warn;
    bool ARB_shader_clock_enable;

@@ -98,12 +98,6 @@ extern struct gl_buffer_object *
 _mesa_lookup_bufferobj_err(struct gl_context *ctx, GLuint buffer,
                            const char *caller);
 
-extern void
-_mesa_begin_bufferobj_lookups(struct gl_context *ctx);
-
-extern void
-_mesa_end_bufferobj_lookups(struct gl_context *ctx);
-
 extern struct gl_buffer_object *
 _mesa_multi_bind_lookup_bufferobj(struct gl_context *ctx,
                                   const GLuint *buffers,
@@ -348,5 +342,12 @@ _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
 void GLAPIENTRY
 _mesa_InvalidateBufferData(GLuint buffer);
 
+void GLAPIENTRY
+_mesa_BufferPageCommitmentARB(GLenum target, GLintptr offset, GLsizeiptr size,
+                              GLboolean commit);
+
+void GLAPIENTRY
+_mesa_NamedBufferPageCommitmentARB(GLuint buffer, GLintptr offset,
+                                   GLsizeiptr size, GLboolean commit);
 
 #endif

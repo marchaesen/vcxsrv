@@ -149,9 +149,30 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
          return false;
       }
 
+      /* The ARB_copy_image specification says:
+       *
+       *    "INVALID_OPERATION is generated if either object is a texture and
+       *     the texture is not complete (as defined in section 3.9.14)"
+       *
+       * The cited section says:
+       *
+       *    "Using the preceding definitions, a texture is complete unless any
+       *     of the following conditions hold true: [...]
+       *
+       *     * The minification filter requires a mipmap (is neither NEAREST
+       *       nor LINEAR), and the texture is not mipmap complete."
+       *
+       * This imposes the bizarre restriction that glCopyImageSubData requires
+       * mipmap completion at times, which dEQP mandates, and other drivers
+       * appear to implement.  We don't have any texture units here, so we
+       * can't look at any bound separate sampler objects...it appears that
+       * you're supposed to use the sampler object which is built-in to the
+       * texture object.
+       *
+       * See https://cvs.khronos.org/bugzilla/show_bug.cgi?id=16224.
+       */
       _mesa_test_texobj_completeness(ctx, texObj);
-      if (!texObj->_BaseComplete ||
-          (level != 0 && !texObj->_MipmapComplete)) {
+      if (!_mesa_is_texture_complete(texObj, &texObj->Sampler)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glCopyImageSubData(%sName incomplete)", dbg_prefix);
          return false;

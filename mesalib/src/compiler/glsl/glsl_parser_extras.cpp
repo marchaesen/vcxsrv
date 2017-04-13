@@ -627,6 +627,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_separate_shader_objects),
    EXT(ARB_shader_atomic_counter_ops),
    EXT(ARB_shader_atomic_counters),
+   EXT(ARB_shader_ballot),
    EXT(ARB_shader_bit_encoding),
    EXT(ARB_shader_clock),
    EXT(ARB_shader_draw_parameters),

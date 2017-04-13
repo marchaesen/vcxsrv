@@ -68,14 +68,6 @@ using namespace ir_builder;
  */
 
 
-struct texenvprog_cache_item
-{
-   GLuint hash;
-   void *key;
-   struct gl_shader_program *data;
-   struct texenvprog_cache_item *next;
-};
-
 static GLboolean
 texenv_doing_secondary_color(struct gl_context *ctx)
 {
@@ -89,19 +81,8 @@ texenv_doing_secondary_color(struct gl_context *ctx)
    return GL_FALSE;
 }
 
-struct mode_opt {
-#ifdef __GNUC__
-   __extension__ GLubyte Source:4;  /**< SRC_x */
-   __extension__ GLubyte Operand:3; /**< OPR_x */
-#else
-   GLubyte Source;  /**< SRC_x */
-   GLubyte Operand; /**< OPR_x */
-#endif
-};
-
 struct state_key {
-   GLuint nr_enabled_units:8;
-   GLuint enabled_units:8;
+   GLuint nr_enabled_units:4;
    GLuint separate_specular:1;
    GLuint fog_mode:2;          /**< FOG_x */
    GLuint inputs_available:12;
@@ -112,145 +93,22 @@ struct state_key {
       GLuint enabled:1;
       GLuint source_index:4;   /**< TEXTURE_x_INDEX */
       GLuint shadow:1;
+
+      /***
+       * These are taken from struct gl_tex_env_combine_packed
+       * @{
+       */
+      GLuint ModeRGB:4;
+      GLuint ModeA:4;
       GLuint ScaleShiftRGB:2;
       GLuint ScaleShiftA:2;
-
-      GLuint NumArgsRGB:3;  /**< up to MAX_COMBINER_TERMS */
-      GLuint ModeRGB:5;     /**< MODE_x */
-
-      GLuint NumArgsA:3;  /**< up to MAX_COMBINER_TERMS */
-      GLuint ModeA:5;     /**< MODE_x */
-
-      struct mode_opt OptRGB[MAX_COMBINER_TERMS];
-      struct mode_opt OptA[MAX_COMBINER_TERMS];
-   } unit[MAX_TEXTURE_UNITS];
+      GLuint NumArgsRGB:3;
+      GLuint NumArgsA:3;
+      struct gl_tex_env_argument ArgsRGB[MAX_COMBINER_TERMS];
+      struct gl_tex_env_argument ArgsA[MAX_COMBINER_TERMS];
+      /** @} */
+   } unit[MAX_TEXTURE_COORD_UNITS];
 };
-
-#define FOG_NONE    0
-#define FOG_LINEAR  1
-#define FOG_EXP     2
-#define FOG_EXP2    3
-
-static GLuint translate_fog_mode( GLenum mode )
-{
-   switch (mode) {
-   case GL_LINEAR: return FOG_LINEAR;
-   case GL_EXP: return FOG_EXP;
-   case GL_EXP2: return FOG_EXP2;
-   default: return FOG_NONE;
-   }
-}
-
-#define OPR_SRC_COLOR           0
-#define OPR_ONE_MINUS_SRC_COLOR 1
-#define OPR_SRC_ALPHA           2
-#define OPR_ONE_MINUS_SRC_ALPHA	3
-#define OPR_ZERO                4
-#define OPR_ONE                 5
-#define OPR_UNKNOWN             7
-
-static GLuint translate_operand( GLenum operand )
-{
-   switch (operand) {
-   case GL_SRC_COLOR: return OPR_SRC_COLOR;
-   case GL_ONE_MINUS_SRC_COLOR: return OPR_ONE_MINUS_SRC_COLOR;
-   case GL_SRC_ALPHA: return OPR_SRC_ALPHA;
-   case GL_ONE_MINUS_SRC_ALPHA: return OPR_ONE_MINUS_SRC_ALPHA;
-   case GL_ZERO: return OPR_ZERO;
-   case GL_ONE: return OPR_ONE;
-   default:
-      assert(0);
-      return OPR_UNKNOWN;
-   }
-}
-
-#define SRC_TEXTURE  0
-#define SRC_TEXTURE0 1
-#define SRC_TEXTURE1 2
-#define SRC_TEXTURE2 3
-#define SRC_TEXTURE3 4
-#define SRC_TEXTURE4 5
-#define SRC_TEXTURE5 6
-#define SRC_TEXTURE6 7
-#define SRC_TEXTURE7 8
-#define SRC_CONSTANT 9
-#define SRC_PRIMARY_COLOR 10
-#define SRC_PREVIOUS 11
-#define SRC_ZERO     12
-#define SRC_UNKNOWN  15
-
-static GLuint translate_source( GLenum src )
-{
-   switch (src) {
-   case GL_TEXTURE: return SRC_TEXTURE;
-   case GL_TEXTURE0:
-   case GL_TEXTURE1:
-   case GL_TEXTURE2:
-   case GL_TEXTURE3:
-   case GL_TEXTURE4:
-   case GL_TEXTURE5:
-   case GL_TEXTURE6:
-   case GL_TEXTURE7: return SRC_TEXTURE0 + (src - GL_TEXTURE0);
-   case GL_CONSTANT: return SRC_CONSTANT;
-   case GL_PRIMARY_COLOR: return SRC_PRIMARY_COLOR;
-   case GL_PREVIOUS: return SRC_PREVIOUS;
-   case GL_ZERO:
-      return SRC_ZERO;
-   default:
-      assert(0);
-      return SRC_UNKNOWN;
-   }
-}
-
-#define MODE_REPLACE                     0  /* r = a0 */
-#define MODE_MODULATE                    1  /* r = a0 * a1 */
-#define MODE_ADD                         2  /* r = a0 + a1 */
-#define MODE_ADD_SIGNED                  3  /* r = a0 + a1 - 0.5 */
-#define MODE_INTERPOLATE                 4  /* r = a0 * a2 + a1 * (1 - a2) */
-#define MODE_SUBTRACT                    5  /* r = a0 - a1 */
-#define MODE_DOT3_RGB                    6  /* r = a0 . a1 */
-#define MODE_DOT3_RGB_EXT                7  /* r = a0 . a1 */
-#define MODE_DOT3_RGBA                   8  /* r = a0 . a1 */
-#define MODE_DOT3_RGBA_EXT               9  /* r = a0 . a1 */
-#define MODE_MODULATE_ADD_ATI           10  /* r = a0 * a2 + a1 */
-#define MODE_MODULATE_SIGNED_ADD_ATI    11  /* r = a0 * a2 + a1 - 0.5 */
-#define MODE_MODULATE_SUBTRACT_ATI      12  /* r = a0 * a2 - a1 */
-#define MODE_ADD_PRODUCTS               13  /* r = a0 * a1 + a2 * a3 */
-#define MODE_ADD_PRODUCTS_SIGNED        14  /* r = a0 * a1 + a2 * a3 - 0.5 */
-#define MODE_UNKNOWN                    16
-
-/**
- * Translate GL combiner state into a MODE_x value
- */
-static GLuint translate_mode( GLenum envMode, GLenum mode )
-{
-   switch (mode) {
-   case GL_REPLACE: return MODE_REPLACE;
-   case GL_MODULATE: return MODE_MODULATE;
-   case GL_ADD:
-      if (envMode == GL_COMBINE4_NV)
-         return MODE_ADD_PRODUCTS;
-      else
-         return MODE_ADD;
-   case GL_ADD_SIGNED:
-      if (envMode == GL_COMBINE4_NV)
-         return MODE_ADD_PRODUCTS_SIGNED;
-      else
-         return MODE_ADD_SIGNED;
-   case GL_INTERPOLATE: return MODE_INTERPOLATE;
-   case GL_SUBTRACT: return MODE_SUBTRACT;
-   case GL_DOT3_RGB: return MODE_DOT3_RGB;
-   case GL_DOT3_RGB_EXT: return MODE_DOT3_RGB_EXT;
-   case GL_DOT3_RGBA: return MODE_DOT3_RGBA;
-   case GL_DOT3_RGBA_EXT: return MODE_DOT3_RGBA_EXT;
-   case GL_MODULATE_ADD_ATI: return MODE_MODULATE_ADD_ATI;
-   case GL_MODULATE_SIGNED_ADD_ATI: return MODE_MODULATE_SIGNED_ADD_ATI;
-   case GL_MODULATE_SUBTRACT_ATI: return MODE_MODULATE_SUBTRACT_ATI;
-   default:
-      assert(0);
-      return MODE_UNKNOWN;
-   }
-}
 
 
 /**
@@ -262,22 +120,22 @@ static GLboolean
 need_saturate( GLuint mode )
 {
    switch (mode) {
-   case MODE_REPLACE:
-   case MODE_MODULATE:
-   case MODE_INTERPOLATE:
+   case TEXENV_MODE_REPLACE:
+   case TEXENV_MODE_MODULATE:
+   case TEXENV_MODE_INTERPOLATE:
       return GL_FALSE;
-   case MODE_ADD:
-   case MODE_ADD_SIGNED:
-   case MODE_SUBTRACT:
-   case MODE_DOT3_RGB:
-   case MODE_DOT3_RGB_EXT:
-   case MODE_DOT3_RGBA:
-   case MODE_DOT3_RGBA_EXT:
-   case MODE_MODULATE_ADD_ATI:
-   case MODE_MODULATE_SIGNED_ADD_ATI:
-   case MODE_MODULATE_SUBTRACT_ATI:
-   case MODE_ADD_PRODUCTS:
-   case MODE_ADD_PRODUCTS_SIGNED:
+   case TEXENV_MODE_ADD:
+   case TEXENV_MODE_ADD_SIGNED:
+   case TEXENV_MODE_SUBTRACT:
+   case TEXENV_MODE_DOT3_RGB:
+   case TEXENV_MODE_DOT3_RGB_EXT:
+   case TEXENV_MODE_DOT3_RGBA:
+   case TEXENV_MODE_DOT3_RGBA_EXT:
+   case TEXENV_MODE_MODULATE_ADD_ATI:
+   case TEXENV_MODE_MODULATE_SIGNED_ADD_ATI:
+   case TEXENV_MODE_MODULATE_SUBTRACT_ATI:
+   case TEXENV_MODE_ADD_PRODUCTS_NV:
+   case TEXENV_MODE_ADD_PRODUCTS_SIGNED_NV:
       return GL_TRUE;
    default:
       assert(0);
@@ -293,30 +151,33 @@ need_saturate( GLuint mode )
  * constants instead.
  *
  * This function figures out all the inputs that the fragment program
- * has access to.  The bitmask is later reduced to just those which
- * are actually referenced.
+ * has access to and filters input bitmask.
  */
-static GLbitfield get_fp_input_mask( struct gl_context *ctx )
+static GLbitfield filter_fp_input_mask( GLbitfield fp_inputs,
+		    struct gl_context *ctx )
 {
-   /* _NEW_PROGRAM */
-   const GLboolean vertexShader =
-      ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] != NULL;
-   const GLboolean vertexProgram = ctx->VertexProgram._Enabled;
-   GLbitfield fp_inputs = 0x0;
-
    if (ctx->VertexProgram._Overriden) {
       /* Somebody's messing with the vertex program and we don't have
        * a clue what's happening.  Assume that it could be producing
        * all possible outputs.
        */
-      fp_inputs = ~0;
+      return fp_inputs;
    }
-   else if (ctx->RenderMode == GL_FEEDBACK) {
+
+   if (ctx->RenderMode == GL_FEEDBACK) {
       /* _NEW_RENDERMODE */
-      fp_inputs = (VARYING_BIT_COL0 | VARYING_BIT_TEX0);
+      return fp_inputs & (VARYING_BIT_COL0 | VARYING_BIT_TEX0);
    }
-   else if (!(vertexProgram || vertexShader)) {
+
+   /* _NEW_PROGRAM */
+   const GLboolean vertexShader =
+         ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] != NULL;
+   const GLboolean vertexProgram = ctx->VertexProgram._Enabled;
+
+   if (!(vertexProgram || vertexShader)) {
       /* Fixed function vertex logic */
+      GLbitfield possible_inputs = 0;
+
       /* _NEW_VARYING_VP_INPUTS */
       GLbitfield64 varying_inputs = ctx->varying_vp_inputs;
 
@@ -324,69 +185,66 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
        * vertex program:
        */
       /* _NEW_POINT */
-      if (ctx->Point.PointSprite)
-         varying_inputs |= VARYING_BITS_TEX_ANY;
+      if (ctx->Point.PointSprite) {
+         /* All texture varyings are possible to use */
+         possible_inputs = VARYING_BITS_TEX_ANY;
+      }
+      else {
+         /* _NEW_TEXTURE_STATE */
+         const GLbitfield possible_tex_inputs =
+               ctx->Texture._TexGenEnabled |
+               ctx->Texture._TexMatEnabled |
+               ((varying_inputs & VERT_BIT_TEX_ANY) >> VERT_ATTRIB_TEX0);
+
+         possible_inputs = (possible_tex_inputs << VARYING_SLOT_TEX0);
+      }
 
       /* First look at what values may be computed by the generated
        * vertex program:
        */
       /* _NEW_LIGHT */
       if (ctx->Light.Enabled) {
-         fp_inputs |= VARYING_BIT_COL0;
+         possible_inputs |= VARYING_BIT_COL0;
 
          if (texenv_doing_secondary_color(ctx))
-            fp_inputs |= VARYING_BIT_COL1;
+            possible_inputs |= VARYING_BIT_COL1;
       }
-
-      /* _NEW_TEXTURE_STATE */
-      fp_inputs |= (ctx->Texture._TexGenEnabled |
-                    ctx->Texture._TexMatEnabled) << VARYING_SLOT_TEX0;
 
       /* Then look at what might be varying as a result of enabled
        * arrays, etc:
        */
       if (varying_inputs & VERT_BIT_COLOR0)
-         fp_inputs |= VARYING_BIT_COL0;
+         possible_inputs |= VARYING_BIT_COL0;
       if (varying_inputs & VERT_BIT_COLOR1)
-         fp_inputs |= VARYING_BIT_COL1;
+         possible_inputs |= VARYING_BIT_COL1;
 
-      fp_inputs |= (((varying_inputs & VERT_BIT_TEX_ANY) >> VERT_ATTRIB_TEX0) 
-                    << VARYING_SLOT_TEX0);
-
+      return fp_inputs & possible_inputs;
    }
-   else {
-      /* calculate from vp->outputs */
-      struct gl_program *vprog;
-      GLbitfield64 vp_outputs;
 
-      /* Choose GLSL vertex shader over ARB vertex program.  Need this
-       * since vertex shader state validation comes after fragment state
-       * validation (see additional comments in state.c).
-       */
-      if (vertexShader)
-         vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
-      else
-         vprog = ctx->VertexProgram.Current;
+   /* calculate from vp->outputs */
+   struct gl_program *vprog;
 
-      vp_outputs = vprog->info.outputs_written;
+   /* Choose GLSL vertex shader over ARB vertex program.  Need this
+    * since vertex shader state validation comes after fragment state
+    * validation (see additional comments in state.c).
+    */
+   if (vertexShader)
+      vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
+   else
+      vprog = ctx->VertexProgram.Current;
 
-      /* These get generated in the setup routine regardless of the
-       * vertex program:
-       */
-      /* _NEW_POINT */
-      if (ctx->Point.PointSprite)
-         vp_outputs |= VARYING_BITS_TEX_ANY;
+   GLbitfield possible_inputs = vprog->info.outputs_written;
 
-      if (vp_outputs & (1 << VARYING_SLOT_COL0))
-         fp_inputs |= VARYING_BIT_COL0;
-      if (vp_outputs & (1 << VARYING_SLOT_COL1))
-         fp_inputs |= VARYING_BIT_COL1;
-
-      fp_inputs |= (((vp_outputs & VARYING_BITS_TEX_ANY) >> VARYING_SLOT_TEX0) 
-                    << VARYING_SLOT_TEX0);
+   /* These get generated in the setup routine regardless of the
+    * vertex program:
+    */
+   /* _NEW_POINT */
+   if (ctx->Point.PointSprite) {
+      /* All texture varyings are possible to use */
+      possible_inputs |= VARYING_BITS_TEX_ANY;
    }
-   
-   return fp_inputs;
+
+   return fp_inputs & possible_inputs;
 }
 
 
@@ -396,9 +254,7 @@ static GLbitfield get_fp_input_mask( struct gl_context *ctx )
  */
 static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
 {
-   GLuint j;
    GLbitfield inputs_referenced = VARYING_BIT_COL0;
-   const GLbitfield inputs_available = get_fp_input_mask( ctx );
    GLbitfield mask;
    GLuint keySize;
 
@@ -406,51 +262,40 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
 
    /* _NEW_TEXTURE_OBJECT */
    mask = ctx->Texture._EnabledCoordUnits;
+   int i = -1;
    while (mask) {
-      const int i = u_bit_scan(&mask);
+      i = u_bit_scan(&mask);
       const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
       const struct gl_texture_object *texObj = texUnit->_Current;
-      const struct gl_tex_env_combine_state *comb = texUnit->_CurrentCombine;
-      const struct gl_sampler_object *samp;
-      GLenum format;
+      const struct gl_tex_env_combine_packed *comb = &texUnit->_CurrentCombinePacked;
 
       if (!texObj)
          continue;
 
-      samp = _mesa_get_samplerobj(ctx, i);
-      format = _mesa_texture_base_format(texObj);
-
       key->unit[i].enabled = 1;
-      key->enabled_units |= (1<<i);
-      key->nr_enabled_units = i + 1;
       inputs_referenced |= VARYING_BIT_TEX(i);
 
-      key->unit[i].source_index = _mesa_tex_target_to_index(ctx,
-                                                            texObj->Target);
+      key->unit[i].source_index = texObj->TargetIndex;
 
-      key->unit[i].shadow =
-         ((samp->CompareMode == GL_COMPARE_R_TO_TEXTURE) &&
-          ((format == GL_DEPTH_COMPONENT) || 
-           (format == GL_DEPTH_STENCIL_EXT)));
+      const struct gl_sampler_object *samp = _mesa_get_samplerobj(ctx, i);
+      if (samp->CompareMode == GL_COMPARE_R_TO_TEXTURE) {
+         const GLenum format = _mesa_texture_base_format(texObj);
+         key->unit[i].shadow = (format == GL_DEPTH_COMPONENT ||
+				format == GL_DEPTH_STENCIL_EXT);
+      }
 
-      key->unit[i].NumArgsRGB = comb->_NumArgsRGB;
-      key->unit[i].NumArgsA = comb->_NumArgsA;
-
-      key->unit[i].ModeRGB =
-	 translate_mode(texUnit->EnvMode, comb->ModeRGB);
-      key->unit[i].ModeA =
-	 translate_mode(texUnit->EnvMode, comb->ModeA);
-
+      key->unit[i].ModeRGB = comb->ModeRGB;
+      key->unit[i].ModeA = comb->ModeA;
       key->unit[i].ScaleShiftRGB = comb->ScaleShiftRGB;
       key->unit[i].ScaleShiftA = comb->ScaleShiftA;
+      key->unit[i].NumArgsRGB = comb->NumArgsRGB;
+      key->unit[i].NumArgsA = comb->NumArgsA;
 
-      for (j = 0; j < MAX_COMBINER_TERMS; j++) {
-         key->unit[i].OptRGB[j].Operand = translate_operand(comb->OperandRGB[j]);
-         key->unit[i].OptA[j].Operand = translate_operand(comb->OperandA[j]);
-         key->unit[i].OptRGB[j].Source = translate_source(comb->SourceRGB[j]);
-         key->unit[i].OptA[j].Source = translate_source(comb->SourceA[j]);
-      }
+      memcpy(key->unit[i].ArgsRGB, comb->ArgsRGB, sizeof comb->ArgsRGB);
+      memcpy(key->unit[i].ArgsA, comb->ArgsA, sizeof comb->ArgsA);
    }
+
+   key->nr_enabled_units = i + 1;
 
    /* _NEW_LIGHT | _NEW_FOG */
    if (texenv_doing_secondary_color(ctx)) {
@@ -459,10 +304,7 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
    }
 
    /* _NEW_FOG */
-   if (ctx->Fog.Enabled) {
-      key->fog_mode = translate_fog_mode(ctx->Fog.Mode);
-      inputs_referenced |= VARYING_BIT_FOGC; /* maybe */
-   }
+   key->fog_mode = ctx->Fog._PackedEnabledMode;
 
    /* _NEW_BUFFERS */
    key->num_draw_buffers = ctx->DrawBuffer->_NumColorDrawBuffers;
@@ -473,7 +315,7 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
       key->num_draw_buffers = 1;
    }
 
-   key->inputs_available = (inputs_available & inputs_referenced);
+   key->inputs_available = filter_fp_input_mask(inputs_referenced, ctx);
 
    /* compute size of state key, ignoring unused texture units */
    keySize = sizeof(*key) - sizeof(key->unit)
@@ -543,21 +385,21 @@ get_source(texenv_fragment_program *p,
    ir_dereference *deref;
 
    switch (src) {
-   case SRC_TEXTURE: 
+   case TEXENV_SRC_TEXTURE:
       return new(p->mem_ctx) ir_dereference_variable(p->src_texture[unit]);
 
-   case SRC_TEXTURE0:
-   case SRC_TEXTURE1:
-   case SRC_TEXTURE2:
-   case SRC_TEXTURE3:
-   case SRC_TEXTURE4:
-   case SRC_TEXTURE5:
-   case SRC_TEXTURE6:
-   case SRC_TEXTURE7: 
+   case TEXENV_SRC_TEXTURE0:
+   case TEXENV_SRC_TEXTURE1:
+   case TEXENV_SRC_TEXTURE2:
+   case TEXENV_SRC_TEXTURE3:
+   case TEXENV_SRC_TEXTURE4:
+   case TEXENV_SRC_TEXTURE5:
+   case TEXENV_SRC_TEXTURE6:
+   case TEXENV_SRC_TEXTURE7:
       return new(p->mem_ctx)
-	 ir_dereference_variable(p->src_texture[src - SRC_TEXTURE0]);
+	 ir_dereference_variable(p->src_texture[src - TEXENV_SRC_TEXTURE0]);
 
-   case SRC_CONSTANT:
+   case TEXENV_SRC_CONSTANT:
       var = p->shader->symbols->get_variable("gl_TextureEnvColor");
       assert(var);
       deref = new(p->mem_ctx) ir_dereference_variable(var);
@@ -565,15 +407,18 @@ get_source(texenv_fragment_program *p,
       return new(p->mem_ctx) ir_dereference_array(deref,
 						  new(p->mem_ctx) ir_constant(unit));
 
-   case SRC_PRIMARY_COLOR:
+   case TEXENV_SRC_PRIMARY_COLOR:
       var = p->shader->symbols->get_variable("gl_Color");
       assert(var);
       return new(p->mem_ctx) ir_dereference_variable(var);
 
-   case SRC_ZERO:
+   case TEXENV_SRC_ZERO:
       return new(p->mem_ctx) ir_constant(0.0f);
 
-   case SRC_PREVIOUS:
+   case TEXENV_SRC_ONE:
+      return new(p->mem_ctx) ir_constant(1.0f);
+
+   case TEXENV_SRC_PREVIOUS:
       if (!p->src_previous) {
 	 return get_gl_Color(p);
       } else {
@@ -597,24 +442,21 @@ emit_combine_source(texenv_fragment_program *p,
    src = get_source(p, source, unit);
 
    switch (operand) {
-   case OPR_ONE_MINUS_SRC_COLOR: 
+   case TEXENV_OPR_ONE_MINUS_COLOR:
       return sub(new(p->mem_ctx) ir_constant(1.0f), src);
 
-   case OPR_SRC_ALPHA:
+   case TEXENV_OPR_ALPHA:
       return src->type->is_scalar() ? src : swizzle_w(src);
 
-   case OPR_ONE_MINUS_SRC_ALPHA: {
+   case TEXENV_OPR_ONE_MINUS_ALPHA: {
       ir_rvalue *const scalar = src->type->is_scalar() ? src : swizzle_w(src);
 
       return sub(new(p->mem_ctx) ir_constant(1.0f), scalar);
    }
 
-   case OPR_ZERO:
-      return new(p->mem_ctx) ir_constant(0.0f);
-   case OPR_ONE:
-      return new(p->mem_ctx) ir_constant(1.0f);
-   case OPR_SRC_COLOR: 
+   case TEXENV_OPR_COLOR:
       return src;
+
    default:
       assert(0);
       return src;
@@ -631,23 +473,23 @@ static GLboolean args_match( const struct state_key *key, GLuint unit )
    GLuint i, numArgs = key->unit[unit].NumArgsRGB;
 
    for (i = 0; i < numArgs; i++) {
-      if (key->unit[unit].OptA[i].Source != key->unit[unit].OptRGB[i].Source) 
+      if (key->unit[unit].ArgsA[i].Source != key->unit[unit].ArgsRGB[i].Source)
 	 return GL_FALSE;
 
-      switch (key->unit[unit].OptA[i].Operand) {
-      case OPR_SRC_ALPHA: 
-	 switch (key->unit[unit].OptRGB[i].Operand) {
-	 case OPR_SRC_COLOR: 
-	 case OPR_SRC_ALPHA: 
+      switch (key->unit[unit].ArgsA[i].Operand) {
+      case TEXENV_OPR_ALPHA:
+	 switch (key->unit[unit].ArgsRGB[i].Operand) {
+	 case TEXENV_OPR_COLOR:
+	 case TEXENV_OPR_ALPHA:
 	    break;
 	 default:
 	    return GL_FALSE;
 	 }
 	 break;
-      case OPR_ONE_MINUS_SRC_ALPHA: 
-	 switch (key->unit[unit].OptRGB[i].Operand) {
-	 case OPR_ONE_MINUS_SRC_COLOR: 
-	 case OPR_ONE_MINUS_SRC_ALPHA: 
+      case TEXENV_OPR_ONE_MINUS_ALPHA:
+	 switch (key->unit[unit].ArgsRGB[i].Operand) {
+	 case TEXENV_OPR_ONE_MINUS_COLOR:
+	 case TEXENV_OPR_ONE_MINUS_ALPHA:
 	    break;
 	 default:
 	    return GL_FALSE;
@@ -675,7 +517,7 @@ emit_combine(texenv_fragment_program *p,
 	     GLuint unit,
 	     GLuint nr,
 	     GLuint mode,
-	     const struct mode_opt *opt)
+	     const struct gl_tex_env_argument *opt)
 {
    ir_rvalue *src[MAX_COMBINER_TERMS];
    ir_rvalue *tmp0, *tmp1;
@@ -687,32 +529,32 @@ emit_combine(texenv_fragment_program *p,
       src[i] = emit_combine_source( p, unit, opt[i].Source, opt[i].Operand );
 
    switch (mode) {
-   case MODE_REPLACE: 
+   case TEXENV_MODE_REPLACE:
       return src[0];
 
-   case MODE_MODULATE: 
+   case TEXENV_MODE_MODULATE:
       return mul(src[0], src[1]);
 
-   case MODE_ADD: 
+   case TEXENV_MODE_ADD:
       return add(src[0], src[1]);
 
-   case MODE_ADD_SIGNED:
+   case TEXENV_MODE_ADD_SIGNED:
       return add(add(src[0], src[1]), new(p->mem_ctx) ir_constant(-0.5f));
 
-   case MODE_INTERPOLATE: 
+   case TEXENV_MODE_INTERPOLATE:
       /* Arg0 * (Arg2) + Arg1 * (1-Arg2) */
       tmp0 = mul(src[0], src[2]);
       tmp1 = mul(src[1], sub(new(p->mem_ctx) ir_constant(1.0f),
 			     src[2]->clone(p->mem_ctx, NULL)));
       return add(tmp0, tmp1);
 
-   case MODE_SUBTRACT: 
+   case TEXENV_MODE_SUBTRACT:
       return sub(src[0], src[1]);
 
-   case MODE_DOT3_RGBA:
-   case MODE_DOT3_RGBA_EXT: 
-   case MODE_DOT3_RGB_EXT:
-   case MODE_DOT3_RGB: {
+   case TEXENV_MODE_DOT3_RGBA:
+   case TEXENV_MODE_DOT3_RGBA_EXT:
+   case TEXENV_MODE_DOT3_RGB_EXT:
+   case TEXENV_MODE_DOT3_RGB: {
       tmp0 = mul(src[0], new(p->mem_ctx) ir_constant(2.0f));
       tmp0 = add(tmp0, new(p->mem_ctx) ir_constant(-1.0f));
 
@@ -721,20 +563,20 @@ emit_combine(texenv_fragment_program *p,
 
       return dot(swizzle_xyz(smear(tmp0)), swizzle_xyz(smear(tmp1)));
    }
-   case MODE_MODULATE_ADD_ATI:
+   case TEXENV_MODE_MODULATE_ADD_ATI:
       return add(mul(src[0], src[2]), src[1]);
 
-   case MODE_MODULATE_SIGNED_ADD_ATI:
+   case TEXENV_MODE_MODULATE_SIGNED_ADD_ATI:
       return add(add(mul(src[0], src[2]), src[1]),
 		 new(p->mem_ctx) ir_constant(-0.5f));
 
-   case MODE_MODULATE_SUBTRACT_ATI:
+   case TEXENV_MODE_MODULATE_SUBTRACT_ATI:
       return sub(mul(src[0], src[2]), src[1]);
 
-   case MODE_ADD_PRODUCTS:
+   case TEXENV_MODE_ADD_PRODUCTS_NV:
       return add(mul(src[0], src[1]), mul(src[2], src[3]));
 
-   case MODE_ADD_PRODUCTS_SIGNED:
+   case TEXENV_MODE_ADD_PRODUCTS_SIGNED_NV:
       return add(add(mul(src[0], src[1]), mul(src[2], src[3])),
 		 new(p->mem_ctx) ir_constant(-0.5f));
    default: 
@@ -754,15 +596,15 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
    GLuint rgb_shift, alpha_shift;
 
    if (!key->unit[unit].enabled) {
-      return get_source(p, SRC_PREVIOUS, 0);
+      return get_source(p, TEXENV_SRC_PREVIOUS, 0);
    }
    
    switch (key->unit[unit].ModeRGB) {
-   case MODE_DOT3_RGB_EXT:
+   case TEXENV_MODE_DOT3_RGB_EXT:
       alpha_shift = key->unit[unit].ScaleShiftA;
       rgb_shift = 0;
       break;
-   case MODE_DOT3_RGBA_EXT:
+   case TEXENV_MODE_DOT3_RGBA_EXT:
       alpha_shift = 0;
       rgb_shift = 0;
       break;
@@ -800,19 +642,19 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
       val = emit_combine(p, unit,
 			 key->unit[unit].NumArgsRGB,
 			 key->unit[unit].ModeRGB,
-			 key->unit[unit].OptRGB);
+			 key->unit[unit].ArgsRGB);
       val = smear(val);
       if (rgb_saturate)
 	 val = saturate(val);
 
       p->emit(assign(temp_var, val));
    }
-   else if (key->unit[unit].ModeRGB == MODE_DOT3_RGBA_EXT ||
-	    key->unit[unit].ModeRGB == MODE_DOT3_RGBA) {
+   else if (key->unit[unit].ModeRGB == TEXENV_MODE_DOT3_RGBA_EXT ||
+	    key->unit[unit].ModeRGB == TEXENV_MODE_DOT3_RGBA) {
       ir_rvalue *val = emit_combine(p, unit,
 				    key->unit[unit].NumArgsRGB,
 				    key->unit[unit].ModeRGB,
-				    key->unit[unit].OptRGB);
+				    key->unit[unit].ArgsRGB);
       val = smear(val);
       if (rgb_saturate)
 	 val = saturate(val);
@@ -825,7 +667,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
       val = emit_combine(p, unit,
 			 key->unit[unit].NumArgsRGB,
 			 key->unit[unit].ModeRGB,
-			 key->unit[unit].OptRGB);
+			 key->unit[unit].ArgsRGB);
       val = swizzle_xyz(smear(val));
       if (rgb_saturate)
 	 val = saturate(val);
@@ -834,7 +676,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
       val = emit_combine(p, unit,
 			 key->unit[unit].NumArgsA,
 			 key->unit[unit].ModeA,
-			 key->unit[unit].OptA);
+			 key->unit[unit].ArgsA);
       val = swizzle_w(smear(val));
       if (alpha_saturate)
 	 val = saturate(val);
@@ -1005,19 +847,19 @@ load_texenv_source(texenv_fragment_program *p,
 		   GLuint src, GLuint unit)
 {
    switch (src) {
-   case SRC_TEXTURE:
+   case TEXENV_SRC_TEXTURE:
       load_texture(p, unit);
       break;
 
-   case SRC_TEXTURE0:
-   case SRC_TEXTURE1:
-   case SRC_TEXTURE2:
-   case SRC_TEXTURE3:
-   case SRC_TEXTURE4:
-   case SRC_TEXTURE5:
-   case SRC_TEXTURE6:
-   case SRC_TEXTURE7:       
-      load_texture(p, src - SRC_TEXTURE0);
+   case TEXENV_SRC_TEXTURE0:
+   case TEXENV_SRC_TEXTURE1:
+   case TEXENV_SRC_TEXTURE2:
+   case TEXENV_SRC_TEXTURE3:
+   case TEXENV_SRC_TEXTURE4:
+   case TEXENV_SRC_TEXTURE5:
+   case TEXENV_SRC_TEXTURE6:
+   case TEXENV_SRC_TEXTURE7:
+      load_texture(p, src - TEXENV_SRC_TEXTURE0);
       break;
       
    default:
@@ -1037,11 +879,11 @@ load_texunit_sources( texenv_fragment_program *p, GLuint unit )
    GLuint i;
 
    for (i = 0; i < key->unit[unit].NumArgsRGB; i++) {
-      load_texenv_source( p, key->unit[unit].OptRGB[i].Source, unit );
+      load_texenv_source( p, key->unit[unit].ArgsRGB[i].Source, unit );
    }
 
    for (i = 0; i < key->unit[unit].NumArgsA; i++) {
-      load_texenv_source( p, key->unit[unit].OptA[i].Source, unit );
+      load_texenv_source( p, key->unit[unit].ArgsA[i].Source, unit );
    }
 
    return GL_TRUE;
@@ -1136,7 +978,7 @@ emit_instructions(texenv_fragment_program *p)
    struct state_key *key = p->state;
    GLuint unit;
 
-   if (key->enabled_units) {
+   if (key->nr_enabled_units) {
       /* First pass - to support texture_env_crossbar, first identify
        * all referenced texture sources and emit texld instructions
        * for each:
@@ -1155,7 +997,7 @@ emit_instructions(texenv_fragment_program *p)
       }
    }
 
-   ir_rvalue *cf = get_source(p, SRC_PREVIOUS, 0);
+   ir_rvalue *cf = get_source(p, TEXENV_SRC_PREVIOUS, 0);
 
    if (key->separate_specular) {
       ir_variable *spec_result = p->make_temp(glsl_type::vec4_type,

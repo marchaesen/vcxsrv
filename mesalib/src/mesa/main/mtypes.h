@@ -575,12 +575,26 @@ struct gl_eval_attrib
 
 
 /**
+ * Compressed fog mode.
+ */
+enum gl_fog_mode
+{
+   FOG_NONE,
+   FOG_LINEAR,
+   FOG_EXP,
+   FOG_EXP2,
+};
+
+
+/**
  * Fog attribute group (GL_FOG_BIT).
  */
 struct gl_fog_attrib
 {
    GLboolean Enabled;		/**< Fog enabled flag */
    GLboolean ColorSumEnabled;
+   uint8_t _PackedMode;		/**< Fog mode as 2 bits */
+   uint8_t _PackedEnabledMode;	/**< Masked CompressedMode */
    GLfloat ColorUnclamped[4];            /**< Fog color */
    GLfloat Color[4];		/**< Fog color */
    GLfloat Density;		/**< Density >= 0.0 */
@@ -1064,6 +1078,87 @@ struct gl_tex_env_combine_state
 };
 
 
+/** Compressed TexEnv effective Combine mode */
+enum gl_tex_env_mode
+{
+   TEXENV_MODE_REPLACE,                 /* r = a0 */
+   TEXENV_MODE_MODULATE,                /* r = a0 * a1 */
+   TEXENV_MODE_ADD,                     /* r = a0 + a1 */
+   TEXENV_MODE_ADD_SIGNED,              /* r = a0 + a1 - 0.5 */
+   TEXENV_MODE_INTERPOLATE,             /* r = a0 * a2 + a1 * (1 - a2) */
+   TEXENV_MODE_SUBTRACT,                /* r = a0 - a1 */
+   TEXENV_MODE_DOT3_RGB,                /* r = a0 . a1 */
+   TEXENV_MODE_DOT3_RGB_EXT,            /* r = a0 . a1 */
+   TEXENV_MODE_DOT3_RGBA,               /* r = a0 . a1 */
+   TEXENV_MODE_DOT3_RGBA_EXT,           /* r = a0 . a1 */
+   TEXENV_MODE_MODULATE_ADD_ATI,        /* r = a0 * a2 + a1 */
+   TEXENV_MODE_MODULATE_SIGNED_ADD_ATI, /* r = a0 * a2 + a1 - 0.5 */
+   TEXENV_MODE_MODULATE_SUBTRACT_ATI,   /* r = a0 * a2 - a1 */
+   TEXENV_MODE_ADD_PRODUCTS_NV,         /* r = a0 * a1 + a2 * a3 */
+   TEXENV_MODE_ADD_PRODUCTS_SIGNED_NV,  /* r = a0 * a1 + a2 * a3 - 0.5 */
+};
+
+
+/** Compressed TexEnv Combine source */
+enum gl_tex_env_source
+{
+   TEXENV_SRC_TEXTURE0,
+   TEXENV_SRC_TEXTURE1,
+   TEXENV_SRC_TEXTURE2,
+   TEXENV_SRC_TEXTURE3,
+   TEXENV_SRC_TEXTURE4,
+   TEXENV_SRC_TEXTURE5,
+   TEXENV_SRC_TEXTURE6,
+   TEXENV_SRC_TEXTURE7,
+   TEXENV_SRC_TEXTURE,
+   TEXENV_SRC_PREVIOUS,
+   TEXENV_SRC_PRIMARY_COLOR,
+   TEXENV_SRC_CONSTANT,
+   TEXENV_SRC_ZERO,
+   TEXENV_SRC_ONE,
+};
+
+
+/** Compressed TexEnv Combine operand */
+enum gl_tex_env_operand
+{
+   TEXENV_OPR_COLOR,
+   TEXENV_OPR_ONE_MINUS_COLOR,
+   TEXENV_OPR_ALPHA,
+   TEXENV_OPR_ONE_MINUS_ALPHA,
+};
+
+
+/** Compressed TexEnv Combine argument */
+struct gl_tex_env_argument
+{
+#ifdef __GNUC__
+   __extension__ uint8_t Source:4;  /**< TEXENV_SRC_x */
+   __extension__ uint8_t Operand:2; /**< TEXENV_OPR_x */
+#else
+   uint8_t Source;  /**< SRC_x */
+   uint8_t Operand; /**< OPR_x */
+#endif
+};
+
+
+/***
+ * Compressed TexEnv Combine state.
+ */
+struct gl_tex_env_combine_packed
+{
+   uint32_t ModeRGB:4;          /**< Effective mode for RGB as 4 bits */
+   uint32_t ModeA:4;            /**< Effective mode for RGB as 4 bits */
+   uint32_t ScaleShiftRGB:2;    /**< 0, 1 or 2 */
+   uint32_t ScaleShiftA:2;      /**< 0, 1 or 2 */
+   uint32_t NumArgsRGB:3;       /**< Number of inputs used for the RGB combiner */
+   uint32_t NumArgsA:3;         /**< Number of inputs used for the A combiner */
+   /** Source arguments in a packed manner */
+   struct gl_tex_env_argument ArgsRGB[MAX_COMBINER_TERMS];
+   struct gl_tex_env_argument ArgsA[MAX_COMBINER_TERMS];
+};
+
+
 /**
  * TexGenEnabled flags.
  */
@@ -1166,6 +1261,8 @@ struct gl_texture_unit
    /** Points to highest priority, complete and enabled texture object */
    struct gl_texture_object *_Current;
 
+   /** Current compressed TexEnv & Combine state */
+   struct gl_tex_env_combine_packed _CurrentCombinePacked;
 };
 
 
@@ -1939,7 +2036,6 @@ struct gl_program
    /** FIXME: This must be first until we split shader_info from nir_shader */
    struct shader_info info;
 
-   mtx_t Mutex;
    GLuint Id;
    GLint RefCount;
    GLubyte *String;  /**< Null-terminated program text */
@@ -3820,6 +3916,9 @@ struct gl_constants
    /** GL_OES_primitive_bounding_box */
    bool NoPrimitiveBoundingBoxOutput;
 
+   /** GL_ARB_sparse_buffer */
+   GLuint SparseBufferPageSize;
+
    /** Used as an input for sha1 generation in the on-disk shader cache */
    unsigned char *dri_config_options_sha1;
 };
@@ -3890,6 +3989,7 @@ struct gl_extensions
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_atomic_counter_ops;
    GLboolean ARB_shader_atomic_counters;
+   GLboolean ARB_shader_ballot;
    GLboolean ARB_shader_bit_encoding;
    GLboolean ARB_shader_clock;
    GLboolean ARB_shader_draw_parameters;
@@ -3906,6 +4006,7 @@ struct gl_extensions
    GLboolean ARB_shading_language_packing;
    GLboolean ARB_shading_language_420pack;
    GLboolean ARB_shadow;
+   GLboolean ARB_sparse_buffer;
    GLboolean ARB_stencil_texturing;
    GLboolean ARB_sync;
    GLboolean ARB_tessellation_shader;

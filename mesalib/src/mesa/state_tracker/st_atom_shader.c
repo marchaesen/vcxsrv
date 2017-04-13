@@ -54,19 +54,6 @@
 #include "st_texture.h"
 
 
-/** Compress the fog function enums into a 2-bit value */
-static GLuint
-translate_fog_mode(GLenum mode)
-{
-   switch (mode) {
-   case GL_LINEAR: return 1;
-   case GL_EXP:    return 2;
-   case GL_EXP2:   return 3;
-   default:
-      return 0;
-   }
-}
-
 static unsigned
 get_texture_target(struct gl_context *ctx, const unsigned unit)
 {
@@ -132,9 +119,7 @@ update_fp( struct st_context *st )
       _mesa_geometric_samples(st->ctx->DrawBuffer) > 1;
 
    if (stfp->ati_fs) {
-      if (st->ctx->Fog.Enabled) {
-         key.fog = translate_fog_mode(st->ctx->Fog.Mode);
-      }
+      key.fog = st->ctx->Fog._PackedEnabledMode;
 
       for (unsigned u = 0; u < MAX_NUM_FRAGMENT_REGISTERS_ATI; u++) {
          key.texture_targets[u] = get_texture_target(st->ctx, u);

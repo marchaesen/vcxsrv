@@ -365,6 +365,7 @@ public:
                               struct _mesa_glsl_parse_state *state);
    void generate_constants();
    void generate_uniforms();
+   void generate_special_vars();
    void generate_vs_special_vars();
    void generate_tcs_special_vars();
    void generate_tes_special_vars();
@@ -428,6 +429,7 @@ private:
    const glsl_type * const bool_t;
    const glsl_type * const int_t;
    const glsl_type * const uint_t;
+   const glsl_type * const uint64_t;
    const glsl_type * const float_t;
    const glsl_type * const vec2_t;
    const glsl_type * const vec3_t;
@@ -447,6 +449,7 @@ builtin_variable_generator::builtin_variable_generator(
      compatibility(state->compat_shader || !state->is_version(140, 100)),
      bool_t(glsl_type::bool_type), int_t(glsl_type::int_type),
      uint_t(glsl_type::uint_type),
+     uint64_t(glsl_type::uint64_t_type),
      float_t(glsl_type::float_type), vec2_t(glsl_type::vec2_type),
      vec3_t(glsl_type::vec3_type), vec4_t(glsl_type::vec4_type),
      uvec3_t(glsl_type::uvec3_type),
@@ -984,6 +987,24 @@ builtin_variable_generator::generate_uniforms()
 
 
 /**
+ * Generate special variables which exist in all shaders.
+ */
+void
+builtin_variable_generator::generate_special_vars()
+{
+   if (state->ARB_shader_ballot_enable) {
+      add_system_value(SYSTEM_VALUE_SUBGROUP_SIZE, uint_t, "gl_SubGroupSizeARB");
+      add_system_value(SYSTEM_VALUE_SUBGROUP_INVOCATION, uint_t, "gl_SubGroupInvocationARB");
+      add_system_value(SYSTEM_VALUE_SUBGROUP_EQ_MASK, uint64_t, "gl_SubGroupEqMaskARB");
+      add_system_value(SYSTEM_VALUE_SUBGROUP_GE_MASK, uint64_t, "gl_SubGroupGeMaskARB");
+      add_system_value(SYSTEM_VALUE_SUBGROUP_GT_MASK, uint64_t, "gl_SubGroupGtMaskARB");
+      add_system_value(SYSTEM_VALUE_SUBGROUP_LE_MASK, uint64_t, "gl_SubGroupLeMaskARB");
+      add_system_value(SYSTEM_VALUE_SUBGROUP_LT_MASK, uint64_t, "gl_SubGroupLtMaskARB");
+   }
+}
+
+
+/**
  * Generate variables which only exist in vertex shaders.
  */
 void
@@ -1416,6 +1437,7 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
 
    gen.generate_constants();
    gen.generate_uniforms();
+   gen.generate_special_vars();
 
    gen.generate_varyings();
 

@@ -705,7 +705,7 @@ transform_inst:
       }
 
       /* compute the 1 component fog factor f */
-      if (ctx->key->fog == 1) {
+      if (ctx->key->fog == FOG_LINEAR) {
          /* LINEAR formula: f = (end - z) / (end - start)
           * with optimized parameters:
           *    f = MAD(fogcoord, oparams.x, oparams.y)
@@ -721,7 +721,7 @@ transform_inst:
          SET_SRC(&inst, 1, TGSI_FILE_CONSTANT, MAX_NUM_FRAGMENT_CONSTANTS_ATI, X, X, X, X);
          SET_SRC(&inst, 2, TGSI_FILE_CONSTANT, MAX_NUM_FRAGMENT_CONSTANTS_ATI, Y, Y, Y, Y);
          tctx->emit_instruction(tctx, &inst);
-      } else if (ctx->key->fog == 2) {
+      } else if (ctx->key->fog == FOG_EXP) {
          /* EXP formula: f = exp(-dens * z)
           * with optimized parameters:
           *    f = MUL(fogcoord, oparams.z); f= EX2(-f)
@@ -747,7 +747,7 @@ transform_inst:
          SET_SRC(&inst, 0, TGSI_FILE_TEMPORARY, ctx->fog_factor_temp, X, Y, Z, W);
          inst.Src[0].Register.Negate = 1;
          tctx->emit_instruction(tctx, &inst);
-      } else if (ctx->key->fog == 3) {
+      } else if (ctx->key->fog == FOG_EXP2) {
          /* EXP2 formula: f = exp(-(dens * z)^2)
           * with optimized parameters:
           *    f = MUL(fogcoord, oparams.w); f=MUL(f, f); f= EX2(-f)

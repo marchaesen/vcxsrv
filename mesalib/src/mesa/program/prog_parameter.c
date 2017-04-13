@@ -258,7 +258,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 
    for (i = 0; i < sz4; i++) {
       struct gl_program_parameter *p = paramList->Parameters + oldNum + i;
-      p->Name = name ? strdup(name) : NULL;
+      p->Name = strdup(name ? name : "");
       p->Type = type;
       p->Size = size;
       p->DataType = datatype;

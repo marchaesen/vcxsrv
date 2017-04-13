@@ -74,7 +74,7 @@ AC_SUBST([OPENCL_VERSION])
 # in the first entry.
 LIBDRM_REQUIRED=2.4.75
 LIBDRM_RADEON_REQUIRED=2.4.71
-LIBDRM_AMDGPU_REQUIRED=2.4.76
+LIBDRM_AMDGPU_REQUIRED=2.4.79
 LIBDRM_INTEL_REQUIRED=2.4.75
 LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
@@ -817,7 +817,7 @@ fi
 dnl pthread-stubs is mandatory on BSD platforms, due to the nature of the
 dnl project. Even then there's a notable issue as described in the project README
 case "$host_os" in
-linux* | cygwin* | darwin* | solaris* | gnu*)
+linux* | cygwin* | darwin* | solaris* | *-gnu* | gnu*)
     pthread_stubs_possible="no"
     ;;
 * )
@@ -2396,10 +2396,10 @@ if test -n "$with_gallium_drivers"; then
         xswr)
             llvm_require_version $LLVM_REQUIRED_SWR "swr"
 
-            swr_require_cxx_feature_flags "C++11" "__cplusplus >= 201103L" \
-                ",-std=c++11" \
-                SWR_CXX11_CXXFLAGS
-            AC_SUBST([SWR_CXX11_CXXFLAGS])
+            swr_require_cxx_feature_flags "C++14" "__cplusplus >= 201402L" \
+                "-std=c++14" \
+                SWR_CXX14_CXXFLAGS
+            AC_SUBST([SWR_CXX14_CXXFLAGS])
 
             swr_require_cxx_feature_flags "AVX" "defined(__AVX__)" \
                 ",-mavx,-march=core-avx" \

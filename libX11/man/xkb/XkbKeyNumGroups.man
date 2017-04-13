@@ -97,7 +97,7 @@ XkbRedirectIntoRange	XkbRedirectIntoRange
 XkbClampIntoRange	XkbClampIntoRange
 none of the above	XkbWrapIntoRange
 .TE
-
+.LP
 .\"--- Chapter 10
 The Xkb extension is composed of two parts: a server extension, and a 
 client-side X library extension. 
@@ -142,7 +142,7 @@ function to manipulate one
 control individually, you do not use an XkbControlsRec structure directly.
 
 The Xkb controls are grouped as shown in Table 2.
-
+.ad l
 .TS
 c s s 
 l l l
@@ -152,43 +152,51 @@ _
 Type of Control	Control Name	Boolean Control?
 _
 T{
-Controls for enabling and disabling other controls
+Controls for enabling and \%disabling other controls
 T}	EnabledControls	No
-	AutoReset	No
+\^	AutoReset	No
+_
 T{
 Control for bell behavior
 T}	AudibleBell	Boolean
+_
 T{
 Controls for repeat key behavior
 T}	PerKeyRepeat	No
-	RepeatKeys	Boolean
-	DetectableAutorepeat	Boolean
+\^	RepeatKeys	Boolean
+\^	DetectableAutorepeat	Boolean
+_
 T{
-Controls for keyboard overlays
+Controls for \%keyboard overlays
 T}	Overlay1	Boolean
-	Overlay2	Boolean
+\^	Overlay2	Boolean
+_
 T{
 Controls for using the mouse from the keyboard
 T}	MouseKeys	Boolean
-	MouseKeysAccel	Boolean
+\^	MouseKeysAccel	Boolean
+_
 T{
 Controls for better keyboard access by
-T}	AccessXFeedback	Boolean
-T{
 physically impaired persons
-T}	AccessXKeys	Boolean
-	AccessXTimeout	Boolean
-	BounceKeys	Boolean
-	SlowKeys	Boolean
-	StickyKeys	Boolean
+T}	AccessXFeedback	Boolean
+\^	AccessXKeys	Boolean
+\^	AccessXTimeout	Boolean
+\^	BounceKeys	Boolean
+\^	SlowKeys	Boolean
+\^	StickyKeys	Boolean
+_
 T{
 Controls for general keyboard mapping
 T}	GroupsWrap	No
-	IgnoreGroupLock	Boolean
-	IgnoreLockMods	No
-	InternalMods	No
-.TE	
+\^	IgnoreGroupLock	Boolean
+\^	IgnoreLockMods	No
+\^	InternalMods	No
+_
+.TE
+.ad n
 
+.LP
 The individual categories and controls are described first, together with 
 functions for manipulating 
 them.
@@ -209,12 +217,12 @@ handling */
         unsigned char       width;      /\(** max # of shift levels for key */
         unsigned short      offset;     /\(** index to keysym table in syms array 
 */
-} XkbSymMapRec, *XkbSymMapPtr;
+    } XkbSymMapRec, *XkbSymMapPtr;
 
 .fi
-
-.nf
+.LP
 The XkbControlsRec structure is defined as follows:
+.nf
 
     #define XkbMaxLegalKeyCode     255
     #define XkbPerKeyBitArraySize  ((XkbMaxLegalKeyCode+1)/8)

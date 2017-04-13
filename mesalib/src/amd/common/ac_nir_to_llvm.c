@@ -3973,16 +3973,18 @@ static LLVMValueRef get_sampler_desc(struct nir_to_llvm_context *ctx,
 
 		constant_index = child->base_offset;
 	}
-	if (desc_type == DESC_SAMPLER && binding->immutable_samplers &&
+	if (desc_type == DESC_SAMPLER && binding->immutable_samplers_offset &&
 	    (!index || binding->immutable_samplers_equal)) {
 		if (binding->immutable_samplers_equal)
 			constant_index = 0;
 
+		const uint32_t *samplers = radv_immutable_samplers(layout, binding);
+
 		LLVMValueRef constants[] = {
-			LLVMConstInt(ctx->i32, binding->immutable_samplers[constant_index * 4 + 0], 0),
-			LLVMConstInt(ctx->i32, binding->immutable_samplers[constant_index * 4 + 1], 0),
-			LLVMConstInt(ctx->i32, binding->immutable_samplers[constant_index * 4 + 2], 0),
-			LLVMConstInt(ctx->i32, binding->immutable_samplers[constant_index * 4 + 3], 0),
+			LLVMConstInt(ctx->i32, samplers[constant_index * 4 + 0], 0),
+			LLVMConstInt(ctx->i32, samplers[constant_index * 4 + 1], 0),
+			LLVMConstInt(ctx->i32, samplers[constant_index * 4 + 2], 0),
+			LLVMConstInt(ctx->i32, samplers[constant_index * 4 + 3], 0),
 		};
 		return ac_build_gather_values(&ctx->ac, constants, 4);
 	}

@@ -103,8 +103,6 @@ private:
 void
 init_gl_program(struct gl_program *prog, GLenum target, bool is_arb_asm)
 {
-   mtx_init(&prog->Mutex, mtx_plain);
-
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
    prog->is_arb_asm = is_arb_asm;

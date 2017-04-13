@@ -107,7 +107,6 @@ ContextGone(__GLXcontext * cx, XID id)
 
 static __GLXcontext *glxPendingDestroyContexts;
 static __GLXcontext *glxAllContexts;
-static int glxServerLeaveCount;
 static int glxBlockClients;
 
 /*
@@ -208,9 +207,7 @@ __glXFreeContext(__GLXcontext * cx)
      * the latter case we need to lift the DRI lock manually. */
 
     if (!glxBlockClients) {
-        __glXleaveServer(GL_FALSE);
         cx->destroy(cx);
-        __glXenterServer(GL_FALSE);
     }
     else {
         cx->next = glxPendingDestroyContexts;
@@ -531,53 +528,12 @@ glxResumeClients(void)
             AttendClient(clients[i]);
     }
 
-    __glXleaveServer(GL_FALSE);
     for (cx = glxPendingDestroyContexts; cx != NULL; cx = next) {
         next = cx->next;
 
         cx->destroy(cx);
     }
     glxPendingDestroyContexts = NULL;
-    __glXenterServer(GL_FALSE);
-}
-
-static void
-__glXnopEnterServer(GLboolean rendering)
-{
-}
-
-static void
-__glXnopLeaveServer(GLboolean rendering)
-{
-}
-
-static void (*__glXenterServerFunc) (GLboolean) = __glXnopEnterServer;
-static void (*__glXleaveServerFunc) (GLboolean) = __glXnopLeaveServer;
-
-void
-__glXsetEnterLeaveServerFuncs(void (*enter) (GLboolean),
-                              void (*leave) (GLboolean))
-{
-    __glXenterServerFunc = enter;
-    __glXleaveServerFunc = leave;
-}
-
-void
-__glXenterServer(GLboolean rendering)
-{
-    glxServerLeaveCount--;
-
-    if (glxServerLeaveCount == 0)
-        (*__glXenterServerFunc) (rendering);
-}
-
-void
-__glXleaveServer(GLboolean rendering)
-{
-    if (glxServerLeaveCount == 0)
-        (*__glXleaveServerFunc) (rendering);
-
-    glxServerLeaveCount++;
 }
 
 static glx_gpa_proc _get_proc_address;
@@ -635,13 +591,7 @@ __glXDispatch(ClientPtr client)
     proc = __glXGetProtocolDecodeFunction(&Single_dispatch_info, opcode,
                                           client->swapped);
     if (proc != NULL) {
-        GLboolean rendering = opcode <= X_GLXRenderLarge;
-
-        __glXleaveServer(rendering);
-
         retval = (*proc) (cl, (GLbyte *) stuff);
-
-        __glXenterServer(rendering);
     }
     else {
         retval = BadRequest;

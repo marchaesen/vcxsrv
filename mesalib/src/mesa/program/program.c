@@ -40,6 +40,7 @@
 #include "prog_parameter.h"
 #include "prog_instruction.h"
 #include "util/ralloc.h"
+#include "util/u_atomic.h"
 
 
 /**
@@ -185,7 +186,6 @@ _mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id,
       return NULL;
 
    memset(prog, 0, sizeof(*prog));
-   mtx_init(&prog->Mutex, mtx_plain);
    prog->Id = id;
    prog->Target = target;
    prog->RefCount = 1;
@@ -271,7 +271,6 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
       ralloc_free(prog->nir);
    }
 
-   mtx_destroy(&prog->Mutex);
    ralloc_free(prog);
 }
 
@@ -316,17 +315,11 @@ _mesa_reference_program_(struct gl_context *ctx,
 #endif
 
    if (*ptr) {
-      GLboolean deleteFlag;
       struct gl_program *oldProg = *ptr;
 
-      mtx_lock(&oldProg->Mutex);
       assert(oldProg->RefCount > 0);
-      oldProg->RefCount--;
 
-      deleteFlag = (oldProg->RefCount == 0);
-      mtx_unlock(&oldProg->Mutex);
-
-      if (deleteFlag) {
+      if (p_atomic_dec_zero(&oldProg->RefCount)) {
          assert(ctx);
          _mesa_reference_shader_program_data(ctx, &oldProg->sh.data, NULL);
          ctx->Driver.DeleteProgram(ctx, oldProg);
@@ -337,9 +330,7 @@ _mesa_reference_program_(struct gl_context *ctx,
 
    assert(!*ptr);
    if (prog) {
-      mtx_lock(&prog->Mutex);
-      prog->RefCount++;
-      mtx_unlock(&prog->Mutex);
+      p_atomic_inc(&prog->RefCount);
    }
 
    *ptr = prog;

@@ -41,6 +41,13 @@ radv_choose_tiling(struct radv_device *Device,
 		return RADEON_SURF_MODE_LINEAR_ALIGNED;
 	}
 
+	/* Textures with a very small height are recommended to be linear. */
+	if (pCreateInfo->imageType == VK_IMAGE_TYPE_1D ||
+	    /* Only very thin and long 2D textures should benefit from
+	     * linear_aligned. */
+	    (pCreateInfo->extent.width > 8 && pCreateInfo->extent.height <= 2))
+		return RADEON_SURF_MODE_LINEAR_ALIGNED;
+
 	/* MSAA resources must be 2D tiled. */
 	if (pCreateInfo->samples > 1)
 		return RADEON_SURF_MODE_2D;

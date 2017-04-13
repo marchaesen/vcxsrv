@@ -2369,6 +2369,15 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_unop_vote_eq:
       emit_asm(ir, TGSI_OPCODE_VOTE_EQ, result_dst, op[0]);
       break;
+   case ir_unop_ballot:
+      emit_asm(ir, TGSI_OPCODE_BALLOT, result_dst, op[0]);
+      break;
+   case ir_unop_read_first_invocation:
+      emit_asm(ir, TGSI_OPCODE_READ_FIRST, result_dst, op[0]);
+      break;
+   case ir_binop_read_invocation:
+      emit_asm(ir, TGSI_OPCODE_READ_INVOC, result_dst, op[0], op[1]);
+      break;
    case ir_unop_u2i64:
    case ir_unop_u2u64:
    case ir_unop_b2i64: {
@@ -5439,6 +5448,22 @@ _mesa_sysval_to_semantic(unsigned sysval)
       return TGSI_SEMANTIC_GRID_SIZE;
    case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
       return TGSI_SEMANTIC_BLOCK_SIZE;
+
+   /* ARB_shader_ballot */
+   case SYSTEM_VALUE_SUBGROUP_SIZE:
+      return TGSI_SEMANTIC_SUBGROUP_SIZE;
+   case SYSTEM_VALUE_SUBGROUP_INVOCATION:
+      return TGSI_SEMANTIC_SUBGROUP_INVOCATION;
+   case SYSTEM_VALUE_SUBGROUP_EQ_MASK:
+      return TGSI_SEMANTIC_SUBGROUP_EQ_MASK;
+   case SYSTEM_VALUE_SUBGROUP_GE_MASK:
+      return TGSI_SEMANTIC_SUBGROUP_GE_MASK;
+   case SYSTEM_VALUE_SUBGROUP_GT_MASK:
+      return TGSI_SEMANTIC_SUBGROUP_GT_MASK;
+   case SYSTEM_VALUE_SUBGROUP_LE_MASK:
+      return TGSI_SEMANTIC_SUBGROUP_LE_MASK;
+   case SYSTEM_VALUE_SUBGROUP_LT_MASK:
+      return TGSI_SEMANTIC_SUBGROUP_LT_MASK;
 
    /* Unhandled */
    case SYSTEM_VALUE_LOCAL_INVOCATION_INDEX:

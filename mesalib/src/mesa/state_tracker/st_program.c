@@ -112,7 +112,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       set_affected_state_flags(states, prog,
                                ST_NEW_VS_CONSTANTS,
                                ST_NEW_VS_SAMPLER_VIEWS,
-                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_VS_SAMPLERS,
                                ST_NEW_VS_IMAGES,
                                ST_NEW_VS_UBOS,
                                ST_NEW_VS_SSBOS,
@@ -127,7 +127,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       set_affected_state_flags(states, prog,
                                ST_NEW_TCS_CONSTANTS,
                                ST_NEW_TCS_SAMPLER_VIEWS,
-                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_TCS_SAMPLERS,
                                ST_NEW_TCS_IMAGES,
                                ST_NEW_TCS_UBOS,
                                ST_NEW_TCS_SSBOS,
@@ -143,7 +143,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       set_affected_state_flags(states, prog,
                                ST_NEW_TES_CONSTANTS,
                                ST_NEW_TES_SAMPLER_VIEWS,
-                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_TES_SAMPLERS,
                                ST_NEW_TES_IMAGES,
                                ST_NEW_TES_UBOS,
                                ST_NEW_TES_SSBOS,
@@ -159,7 +159,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       set_affected_state_flags(states, prog,
                                ST_NEW_GS_CONSTANTS,
                                ST_NEW_GS_SAMPLER_VIEWS,
-                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_GS_SAMPLERS,
                                ST_NEW_GS_IMAGES,
                                ST_NEW_GS_UBOS,
                                ST_NEW_GS_SSBOS,
@@ -177,7 +177,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       set_affected_state_flags(states, prog,
                                ST_NEW_FS_CONSTANTS,
                                ST_NEW_FS_SAMPLER_VIEWS,
-                               ST_NEW_RENDER_SAMPLERS,
+                               ST_NEW_FS_SAMPLERS,
                                ST_NEW_FS_IMAGES,
                                ST_NEW_FS_UBOS,
                                ST_NEW_FS_SSBOS,
@@ -754,12 +754,12 @@ st_translate_fragment_program(struct st_context *st,
       if (stfp->ati_fs) {
          /* Just set them for ATI_fs unconditionally. */
          stfp->affected_states |= ST_NEW_FS_SAMPLER_VIEWS |
-                                  ST_NEW_RENDER_SAMPLERS;
+                                  ST_NEW_FS_SAMPLERS;
       } else {
          /* ARB_fp */
          if (stfp->Base.SamplersUsed)
             stfp->affected_states |= ST_NEW_FS_SAMPLER_VIEWS |
-                                     ST_NEW_RENDER_SAMPLERS;
+                                     ST_NEW_FS_SAMPLERS;
       }
    }
 

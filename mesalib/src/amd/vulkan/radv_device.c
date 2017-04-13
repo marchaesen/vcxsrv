@@ -92,11 +92,19 @@ static const VkExtensionProperties instance_extensions[] = {
 
 static const VkExtensionProperties common_device_extensions[] = {
 	{
+		.extensionName = VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,
+		.specVersion = 1,
+	},
+	{
 		.extensionName = VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME,
 		.specVersion = 1,
 	},
 	{
 		.extensionName = VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+		.specVersion = 1,
+	},
+	{
+		.extensionName = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
 		.specVersion = 1,
 	},
 	{
@@ -475,7 +483,7 @@ void radv_GetPhysicalDeviceFeatures(
 		.textureCompressionASTC_LDR               = false,
 		.textureCompressionBC                     = true,
 		.occlusionQueryPrecise                    = true,
-		.pipelineStatisticsQuery                  = false,
+		.pipelineStatisticsQuery                  = true,
 		.vertexPipelineStoresAndAtomics           = true,
 		.fragmentStoresAndAtomics                 = true,
 		.shaderTessellationAndGeometryPointSize   = true,
@@ -665,7 +673,20 @@ void radv_GetPhysicalDeviceProperties2KHR(
 	VkPhysicalDevice                            physicalDevice,
 	VkPhysicalDeviceProperties2KHR             *pProperties)
 {
-	return radv_GetPhysicalDeviceProperties(physicalDevice, &pProperties->properties);
+	radv_GetPhysicalDeviceProperties(physicalDevice, &pProperties->properties);
+
+	vk_foreach_struct(ext, pProperties->pNext) {
+		switch (ext->sType) {
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR: {
+			VkPhysicalDevicePushDescriptorPropertiesKHR *properties =
+				(VkPhysicalDevicePushDescriptorPropertiesKHR *) ext;
+			properties->maxPushDescriptors = MAX_PUSH_DESCRIPTORS;
+			break;
+		}
+		default:
+			break;
+		}
+	}
 }
 
 static void radv_get_physical_device_queue_family_properties(
@@ -2711,6 +2732,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 	unsigned format;
 	uint64_t va, s_offs, z_offs;
 	const struct radeon_surf_level *level_info = &iview->image->surface.level[level];
+	bool stencil_only = false;
 	memset(ds, 0, sizeof(*ds));
 	switch (iview->vk_format) {
 	case VK_FORMAT_D24_UNORM_S8_UINT:
@@ -2728,6 +2750,10 @@ radv_initialise_ds_surface(struct radv_device *device,
 		ds->pa_su_poly_offset_db_fmt_cntl = S_028B78_POLY_OFFSET_NEG_NUM_DB_BITS(-23) |
 			S_028B78_POLY_OFFSET_DB_IS_FLOAT_FMT(1);
 		ds->offset_scale = 1.0f;
+		break;
+	case VK_FORMAT_S8_UINT:
+		stencil_only = true;
+		level_info = &iview->image->surface.stencil_level[level];
 		break;
 	default:
 		break;
@@ -2762,6 +2788,9 @@ radv_initialise_ds_surface(struct radv_device *device,
 		unsigned tile_mode = info->si_tile_mode_array[tiling_index];
 		unsigned stencil_tile_mode = info->si_tile_mode_array[stencil_index];
 		unsigned macro_mode = info->cik_macrotile_mode_array[macro_index];
+
+		if (stencil_only)
+			tile_mode = stencil_tile_mode;
 
 		ds->db_depth_info |=
 			S_02803C_ARRAY_MODE(G_009910_ARRAY_MODE(tile_mode)) |

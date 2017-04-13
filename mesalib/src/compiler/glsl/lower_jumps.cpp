@@ -945,6 +945,12 @@ lower_continue:
              */
             if (this->function.signature->return_type->is_void())
                return_if->then_instructions.push_tail(new(ir) ir_return(NULL));
+            else {
+               assert(this->function.return_value);
+               ir_variable* return_value = this->function.return_value;
+               return_if->then_instructions.push_tail(
+                  new(ir) ir_return(new(ir) ir_dereference_variable(return_value)));
+            }
          }
 
          ir->insert_after(return_if);

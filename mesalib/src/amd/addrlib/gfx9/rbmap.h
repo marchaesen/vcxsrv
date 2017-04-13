@@ -49,7 +49,7 @@ public:
 
     void Get_Comp_Block_Screen_Space( CoordEq& addr, int bytes_log2, int* w, int* h, int* d = NULL);
 
-    void Get_Meta_Block_Screen_Space( int num_comp_blocks_log2, bool is_thick, bool x_biased,
+    void Get_Meta_Block_Screen_Space( int num_comp_blocks_log2, bool is_thick, bool y_biased,
                                       int comp_block_width_log2, int comp_block_height_log2, int comp_block_depth_log2,
                                       int& meta_block_width_log2, int& meta_block_height_log2, int& meta_block_depth_log2 );
     void cap_pipe( int xmode, bool is_thick, int& num_ses_log2, int bpp_log2, int num_samples_log2, int pipe_interleave_log2,

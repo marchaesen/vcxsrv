@@ -1441,11 +1441,9 @@ DoCreatePbuffer(ClientPtr client, int screenNum, XID fbconfigId,
     if (!validGlxFBConfig(client, pGlxScreen, fbconfigId, &config, &err))
         return err;
 
-    __glXenterServer(GL_FALSE);
     pPixmap = (*pGlxScreen->pScreen->CreatePixmap) (pGlxScreen->pScreen,
                                                     width, height,
                                                     config->rgbBits, 0);
-    __glXleaveServer(GL_FALSE);
     if (!pPixmap)
         return BadAlloc;
 

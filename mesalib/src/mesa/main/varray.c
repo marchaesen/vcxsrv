@@ -137,13 +137,11 @@ vertex_attrib_binding(struct gl_context *ctx,
 {
    struct gl_array_attributes *array = &vao->VertexAttrib[attribIndex];
 
-   if (!_mesa_is_bufferobj(vao->BufferBinding[bindingIndex].BufferObj))
-      vao->VertexAttribBufferMask &= ~VERT_BIT(attribIndex);
-   else
-      vao->VertexAttribBufferMask |= VERT_BIT(attribIndex);
-
    if (array->BufferBindingIndex != bindingIndex) {
       const GLbitfield64 array_bit = VERT_BIT(attribIndex);
+
+      if (_mesa_is_bufferobj(vao->BufferBinding[bindingIndex].BufferObj))
+         vao->VertexAttribBufferMask |= array_bit;
 
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
 
@@ -1884,7 +1882,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
     *       their parameters are valid and no other error occurs."
     */
 
-   _mesa_begin_bufferobj_lookups(ctx);
+   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
    for (i = 0; i < count; i++) {
       struct gl_buffer_object *vbo;
@@ -1935,7 +1933,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
                                vbo, offsets[i], strides[i]);
    }
 
-   _mesa_end_bufferobj_lookups(ctx);
+   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
 }
 
 

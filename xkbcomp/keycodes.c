@@ -31,6 +31,8 @@
 #include "misc.h"
 #include "alias.h"
 
+static Bool high_keycode_warned;
+
 char *
 longText(unsigned long val, unsigned format)
 {
@@ -330,10 +332,15 @@ AddKeyName(KeyNamesInfo * info,
 
     if ((kc < info->effectiveMin) || (kc > info->effectiveMax))
     {
-        ERROR2("Illegal keycode %d for name <%s>\n", kc, name);
-        ACTION2("Must be in the range %d-%d inclusive\n",
-                info->effectiveMin, info->effectiveMax);
-        return False;
+        if (!high_keycode_warned)
+        {
+            WARN2("Unsupported high keycode %d for name <%s> ignored\n",
+                  kc, name);
+            ACTION2("X11 cannot support keycodes above 255.\n");
+            ACTION2("This warning only shows for the first high keycode.\n");
+            high_keycode_warned = True;
+        }
+        return True;
     }
     if (kc < info->computedMin)
         info->computedMin = kc;
@@ -589,10 +596,15 @@ HandleKeycodeDef(KeycodeDef * stmt, unsigned merge, KeyNamesInfo * info)
     code = result.ival;
     if ((code < info->effectiveMin) || (code > info->effectiveMax))
     {
-        ERROR2("Illegal keycode %d for name <%s>\n", code, stmt->name);
-        ACTION2("Must be in the range %d-%d inclusive\n",
-                info->effectiveMin, info->effectiveMax);
-        return 0;
+        if (!high_keycode_warned)
+        {
+            WARN2("Unsupported high keycode %d for name <%s> ignored\n",
+                  code, stmt->name);
+            ACTION2("X11 cannot support keycodes above 255.\n");
+            ACTION2("This warning only shows for the first high keycode.\n");
+            high_keycode_warned = True;
+        }
+        return 1;
     }
     if (stmt->merge != MergeDefault)
     {

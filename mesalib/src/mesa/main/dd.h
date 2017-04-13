@@ -1040,6 +1040,16 @@ struct dd_function_table {
     * Mesa will only call this function if GL multithreading is enabled.
     */
    void (*SetBackgroundContext)(struct gl_context *ctx);
+
+   /**
+    * \name GL_ARB_sparse_buffer interface
+    */
+   /*@{*/
+   void (*BufferPageCommitment)(struct gl_context *ctx,
+                                struct gl_buffer_object *bufferObj,
+                                GLintptr offset, GLsizeiptr size,
+                                GLboolean commit);
+   /*@}*/
 };
 
 
