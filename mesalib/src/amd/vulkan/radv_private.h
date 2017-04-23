@@ -570,22 +570,25 @@ struct radv_descriptor_pool {
 	uint64_t size;
 
 	struct list_head vram_list;
+
+	uint8_t *host_memory_base;
+	uint8_t *host_memory_ptr;
+	uint8_t *host_memory_end;
 };
 
 struct radv_descriptor_update_template_entry {
 	VkDescriptorType descriptor_type;
 
 	/* The number of descriptors to update */
-	uint16_t descriptor_count;
+	uint32_t descriptor_count;
 
 	/* Into mapped_ptr or dynamic_descriptors, in units of the respective array */
-	uint16_t dst_offset;
+	uint32_t dst_offset;
 
 	/* In dwords. Not valid/used for dynamic descriptors */
-	uint16_t dst_stride;
+	uint32_t dst_stride;
 
-	uint16_t buffer_offset;
-	uint16_t buffer_count;
+	uint32_t buffer_offset;
 
 	/* Only valid for combined image samplers and samplers */
 	uint16_t has_sampler;
@@ -787,6 +790,7 @@ struct radv_cmd_buffer {
 	uint32_t dynamic_buffers[4 * MAX_DYNAMIC_BUFFERS];
 	VkShaderStageFlags push_constant_stages;
 	struct radv_push_descriptor_set push_descriptors;
+	struct radv_descriptor_set meta_push_descriptors;
 
 	struct radv_cmd_buffer_upload upload;
 
@@ -831,6 +835,8 @@ void si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer);
 void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 			   uint64_t src_va, uint64_t dest_va,
 			   uint64_t size);
+void si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
+                        unsigned size);
 void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 			    uint64_t size, unsigned value);
 void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer);
@@ -1006,7 +1012,7 @@ struct radv_pipeline {
 	struct radv_pipeline_layout *                 layout;
 
 	bool                                         needs_data_cache;
-
+	bool					     need_indirect_descriptor_sets;
 	struct radv_shader_variant *                 shaders[MESA_SHADER_STAGES];
 	struct radv_shader_variant *gs_copy_shader;
 	VkShaderStageFlags                           active_stages;
@@ -1384,16 +1390,6 @@ struct radv_query_pool {
 	uint32_t pipeline_stats_mask;
 };
 
-VkResult
-radv_temp_descriptor_set_create(struct radv_device *device,
-				struct radv_cmd_buffer *cmd_buffer,
-				VkDescriptorSetLayout _layout,
-				VkDescriptorSet *_set);
-
-void
-radv_temp_descriptor_set_destroy(struct radv_device *device,
-				 VkDescriptorSet _set);
-
 void
 radv_update_descriptor_sets(struct radv_device *device,
                             struct radv_cmd_buffer *cmd_buffer,
@@ -1409,6 +1405,13 @@ radv_update_descriptor_set_with_template(struct radv_device *device,
                                          struct radv_descriptor_set *set,
                                          VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
                                          const void *pData);
+
+void radv_meta_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
+                                   VkPipelineBindPoint pipelineBindPoint,
+                                   VkPipelineLayout _layout,
+                                   uint32_t set,
+                                   uint32_t descriptorWriteCount,
+                                   const VkWriteDescriptorSet *pDescriptorWrites);
 
 void radv_initialise_cmask(struct radv_cmd_buffer *cmd_buffer,
 			   struct radv_image *image, uint32_t value);

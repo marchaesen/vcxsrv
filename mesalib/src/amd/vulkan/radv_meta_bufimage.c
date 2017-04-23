@@ -133,6 +133,7 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 	 */
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 2,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -328,6 +329,7 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 	 */
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 2,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -517,6 +519,7 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 	 */
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 2,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -670,6 +673,7 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 	 */
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 1,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -883,7 +887,6 @@ create_bview(struct radv_cmd_buffer *cmd_buffer,
 struct itob_temps {
 	struct radv_image_view src_iview;
 	struct radv_buffer_view dst_bview;
-	VkDescriptorSet set;
 };
 
 static void
@@ -891,45 +894,36 @@ itob_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 		      struct itob_temps *tmp)
 {
 	struct radv_device *device = cmd_buffer->device;
-	VkDevice vk_device = radv_device_to_handle(cmd_buffer->device);
 
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.itob.img_ds_layout,
-					&tmp->set);
-
-	radv_UpdateDescriptorSets(vk_device,
-				  2, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-						  .pImageInfo = (VkDescriptorImageInfo[]) {
-							  {
-								  .sampler = VK_NULL_HANDLE,
-								  .imageView = radv_image_view_to_handle(&tmp->src_iview),
-								  .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-							  },
-						  }
-					  },
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 1,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-						  .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(&tmp->dst_bview) },
-					  }
-				  }, 0, NULL);
-
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.itob.img_p_layout, 0, 1,
-				   &tmp->set, 0, NULL);
+	radv_meta_push_descriptor_set(cmd_buffer,
+				      VK_PIPELINE_BIND_POINT_COMPUTE,
+				      device->meta_state.itob.img_p_layout,
+				      0, /* set */
+				      2, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 0,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				                      .pImageInfo = (VkDescriptorImageInfo[]) {
+				                              {
+				                                      .sampler = VK_NULL_HANDLE,
+				                                      .imageView = radv_image_view_to_handle(&tmp->src_iview),
+				                                      .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+				                              },
+				                      }
+				              },
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 1,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+				                      .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(&tmp->dst_bview) },
+				              }
+				      });
 }
 
 static void
@@ -973,13 +967,11 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 
 		radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
 	}
-	radv_temp_descriptor_set_destroy(cmd_buffer->device, temps.set);
 }
 
 struct btoi_temps {
 	struct radv_buffer_view src_bview;
 	struct radv_image_view dst_iview;
-	VkDescriptorSet set;
 };
 
 static void
@@ -987,45 +979,36 @@ btoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 		      struct btoi_temps *tmp)
 {
 	struct radv_device *device = cmd_buffer->device;
-	VkDevice vk_device = radv_device_to_handle(cmd_buffer->device);
 
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.btoi.img_ds_layout,
-					&tmp->set);
-
-	radv_UpdateDescriptorSets(vk_device,
-				  2, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-						  .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(&tmp->src_bview) },
-					  },
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 1,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-						  .pImageInfo = (VkDescriptorImageInfo[]) {
-							  {
-								  .sampler = VK_NULL_HANDLE,
-								  .imageView = radv_image_view_to_handle(&tmp->dst_iview),
-								  .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-							  },
-						  }
-					  }
-				  }, 0, NULL);
-
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.btoi.img_p_layout, 0, 1,
-				   &tmp->set, 0, NULL);
+	radv_meta_push_descriptor_set(cmd_buffer,
+				      VK_PIPELINE_BIND_POINT_COMPUTE,
+				      device->meta_state.btoi.img_p_layout,
+				      0, /* set */
+				      2, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 0,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+				                      .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(&tmp->src_bview) },
+				              },
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 1,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				                      .pImageInfo = (VkDescriptorImageInfo[]) {
+				                              {
+				                                      .sampler = VK_NULL_HANDLE,
+				                                      .imageView = radv_image_view_to_handle(&tmp->dst_iview),
+				                                      .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+				                              },
+				                      }
+				              }
+				      });
 }
 
 static void
@@ -1069,13 +1052,11 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 
 		radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
 	}
-	radv_temp_descriptor_set_destroy(cmd_buffer->device, temps.set);
 }
 
 struct itoi_temps {
 	struct radv_image_view src_iview;
 	struct radv_image_view dst_iview;
-	VkDescriptorSet set;
 };
 
 static void
@@ -1083,51 +1064,42 @@ itoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 		      struct itoi_temps *tmp)
 {
 	struct radv_device *device = cmd_buffer->device;
-	VkDevice vk_device = radv_device_to_handle(cmd_buffer->device);
 
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.itoi.img_ds_layout,
-					&tmp->set);
-
-	radv_UpdateDescriptorSets(vk_device,
-				  2, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-						  .pImageInfo = (VkDescriptorImageInfo[]) {
-							  {
-								  .sampler = VK_NULL_HANDLE,
-								  .imageView = radv_image_view_to_handle(&tmp->src_iview),
-								  .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-							  },
-						  }
-					  },
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 1,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-						  .pImageInfo = (VkDescriptorImageInfo[]) {
-							  {
-								  .sampler = VK_NULL_HANDLE,
-								  .imageView = radv_image_view_to_handle(&tmp->dst_iview),
-								  .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-							  },
-						  }
-					  }
-				  }, 0, NULL);
-
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.itoi.img_p_layout, 0, 1,
-				   &tmp->set, 0, NULL);
+	radv_meta_push_descriptor_set(cmd_buffer,
+				      VK_PIPELINE_BIND_POINT_COMPUTE,
+				      device->meta_state.itoi.img_p_layout,
+				      0, /* set */
+				      2, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                       .dstBinding = 0,
+				                       .dstArrayElement = 0,
+				                       .descriptorCount = 1,
+				                       .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				                       .pImageInfo = (VkDescriptorImageInfo[]) {
+				                               {
+				                                       .sampler = VK_NULL_HANDLE,
+				                                       .imageView = radv_image_view_to_handle(&tmp->src_iview),
+				                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+				                               },
+				                       }
+				              },
+				              {
+				                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                       .dstBinding = 1,
+				                       .dstArrayElement = 0,
+				                       .descriptorCount = 1,
+				                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				                       .pImageInfo = (VkDescriptorImageInfo[]) {
+				                               {
+				                                       .sampler = VK_NULL_HANDLE,
+				                                       .imageView = radv_image_view_to_handle(&tmp->dst_iview),
+				                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+				                               },
+				                       }
+				              }
+				      });
 }
 
 static void
@@ -1173,49 +1145,35 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 
 		radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
 	}
-	radv_temp_descriptor_set_destroy(cmd_buffer->device, temps.set);
 }
-
-struct cleari_temps {
-	struct radv_image_view dst_iview;
-	VkDescriptorSet set;
-};
 
 static void
 cleari_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
-			struct cleari_temps *tmp)
+	                struct radv_image_view *dst_iview)
 {
 	struct radv_device *device = cmd_buffer->device;
-	VkDevice vk_device = radv_device_to_handle(cmd_buffer->device);
 
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.cleari.img_ds_layout,
-					&tmp->set);
-
-	radv_UpdateDescriptorSets(vk_device,
-				  1, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = tmp->set,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-						  .pImageInfo = (VkDescriptorImageInfo[]) {
-							  {
-								  .sampler = VK_NULL_HANDLE,
-								  .imageView = radv_image_view_to_handle(&tmp->dst_iview),
-								  .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-							  },
-						  }
-					  },
-				  }, 0, NULL);
-
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.cleari.img_p_layout, 0, 1,
-				   &tmp->set, 0, NULL);
+	radv_meta_push_descriptor_set(cmd_buffer,
+				      VK_PIPELINE_BIND_POINT_COMPUTE,
+				      device->meta_state.cleari.img_p_layout,
+				      0, /* set */
+				      1, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 0,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				                      .pImageInfo = (VkDescriptorImageInfo[]) {
+				                               {
+				                                      .sampler = VK_NULL_HANDLE,
+				                                      .imageView = radv_image_view_to_handle(dst_iview),
+				                                      .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+				                               },
+				                      }
+				               },
+				      });
 }
 
 static void
@@ -1236,10 +1194,10 @@ radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			 const VkClearColorValue *clear_color)
 {
 	struct radv_device *device = cmd_buffer->device;
-	struct cleari_temps temps;
+	struct radv_image_view dst_iview;
 
-	create_iview(cmd_buffer, dst, VK_IMAGE_USAGE_STORAGE_BIT, &temps.dst_iview);
-	cleari_bind_descriptors(cmd_buffer, &temps);
+	create_iview(cmd_buffer, dst, VK_IMAGE_USAGE_STORAGE_BIT, &dst_iview);
+	cleari_bind_descriptors(cmd_buffer, &dst_iview);
 
 	cleari_bind_pipeline(cmd_buffer);
 
@@ -1256,5 +1214,4 @@ radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			      push_constants);
 
 	radv_unaligned_dispatch(cmd_buffer, dst->image->extent.width, dst->image->extent.height, 1);
-	radv_temp_descriptor_set_destroy(cmd_buffer->device, temps.set);
 }

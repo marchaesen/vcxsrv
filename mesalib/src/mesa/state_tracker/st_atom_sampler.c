@@ -126,20 +126,18 @@ gl_filter_to_img_filter(GLenum filter)
 }
 
 
-static void
-convert_sampler(struct st_context *st,
-                struct pipe_sampler_state *sampler,
-                GLuint texUnit)
+/**
+ * Convert a gl_sampler_object to a pipe_sampler_state object.
+ */
+void
+st_convert_sampler(const struct st_context *st,
+                   const struct gl_texture_object *texobj,
+                   const struct gl_sampler_object *msamp,
+                   struct pipe_sampler_state *sampler)
 {
-   const struct gl_texture_object *texobj;
    struct gl_context *ctx = st->ctx;
-   const struct gl_sampler_object *msamp;
    GLenum texBaseFormat;
 
-   texobj = ctx->Texture.Unit[texUnit]._Current;
-   assert(texobj);
-
-   msamp = _mesa_get_samplerobj(ctx, texUnit);
    texBaseFormat = _mesa_texture_base_format(texobj);
 
    memset(sampler, 0, sizeof(*sampler));
@@ -154,7 +152,7 @@ convert_sampler(struct st_context *st,
    if (texobj->Target != GL_TEXTURE_RECTANGLE_ARB)
       sampler->normalized_coords = 1;
 
-   sampler->lod_bias = ctx->Texture.Unit[texUnit].LodBias + msamp->LodBias;
+   sampler->lod_bias = msamp->LodBias;
    /* Reduce the number of states by allowing only the values that AMD GCN
     * can represent. Apps use lod_bias for smooth transitions to bigger mipmap
     * levels.
@@ -233,6 +231,26 @@ convert_sampler(struct st_context *st,
 }
 
 
+static void
+convert_sampler_from_unit(const struct st_context *st,
+                          struct pipe_sampler_state *sampler,
+                          GLuint texUnit)
+{
+   const struct gl_texture_object *texobj;
+   struct gl_context *ctx = st->ctx;
+   const struct gl_sampler_object *msamp;
+
+   texobj = ctx->Texture.Unit[texUnit]._Current;
+   assert(texobj);
+
+   msamp = _mesa_get_samplerobj(ctx, texUnit);
+
+   st_convert_sampler(st, texobj, msamp, sampler);
+
+   sampler->lod_bias += ctx->Texture.Unit[texUnit].LodBias;
+}
+
+
 /**
  * Update the gallium driver's sampler state for fragment, vertex or
  * geometry shader stage.
@@ -264,7 +282,7 @@ update_shader_samplers(struct st_context *st,
       if (samplers_used & 1) {
          const GLuint texUnit = prog->SamplerUnits[unit];
 
-         convert_sampler(st, sampler, texUnit);
+         convert_sampler_from_unit(st, sampler, texUnit);
          states[unit] = sampler;
          *num_samplers = unit + 1;
       }

@@ -147,7 +147,9 @@ split_var_copy_instr(nir_intrinsic_instr *old_copy,
       break;
 
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_INT64:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:

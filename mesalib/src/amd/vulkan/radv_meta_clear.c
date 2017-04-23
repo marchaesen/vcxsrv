@@ -27,15 +27,14 @@
 
 #include "util/format_rgb9e5.h"
 #include "vk_format.h"
+
 /** Vertex attributes for color clears.  */
 struct color_clear_vattrs {
-	float position[2];
 	VkClearColorValue color;
 };
 
 /** Vertex attributes for depthstencil clears.  */
 struct depthstencil_clear_vattrs {
-	float position[2];
 	float depth_clear;
 };
 
@@ -62,11 +61,6 @@ build_color_shaders(struct nir_shader **out_vs,
 	const struct glsl_type *position_type = glsl_vec4_type();
 	const struct glsl_type *color_type = glsl_vec4_type();
 
-	nir_variable *vs_in_pos =
-		nir_variable_create(vs_b.shader, nir_var_shader_in, position_type,
-				    "a_position");
-	vs_in_pos->data.location = VERT_ATTRIB_GENERIC0;
-
 	nir_variable *vs_out_pos =
 		nir_variable_create(vs_b.shader, nir_var_shader_out, position_type,
 				    "gl_Position");
@@ -75,7 +69,7 @@ build_color_shaders(struct nir_shader **out_vs,
 	nir_variable *vs_in_color =
 		nir_variable_create(vs_b.shader, nir_var_shader_in, color_type,
 				    "a_color");
-	vs_in_color->data.location = VERT_ATTRIB_GENERIC1;
+	vs_in_color->data.location = VERT_ATTRIB_GENERIC0;
 
 	nir_variable *vs_out_color =
 		nir_variable_create(vs_b.shader, nir_var_shader_out, color_type,
@@ -94,7 +88,9 @@ build_color_shaders(struct nir_shader **out_vs,
 				    "f_color");
 	fs_out_color->data.location = FRAG_RESULT_DATA0 + frag_output;
 
-	nir_copy_var(&vs_b, vs_out_pos, vs_in_pos);
+	nir_ssa_def *outvec = radv_meta_gen_rect_vertices(&vs_b);
+
+	nir_store_var(&vs_b, vs_out_pos, outvec, 0xf);
 	nir_copy_var(&vs_b, vs_out_color, vs_in_color);
 	nir_copy_var(&fs_b, fs_out_color, fs_in_color);
 
@@ -277,21 +273,14 @@ create_color_pipeline(struct radv_device *device,
 				.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
 			},
 		},
-		.vertexAttributeDescriptionCount = 2,
+		.vertexAttributeDescriptionCount = 1,
 		.pVertexAttributeDescriptions = (VkVertexInputAttributeDescription[]) {
 			{
-				/* Position */
+				/* Color */
 				.location = 0,
 				.binding = 0,
-				.format = VK_FORMAT_R32G32_SFLOAT,
-				.offset = offsetof(struct color_clear_vattrs, position),
-			},
-			{
-				/* Color */
-				.location = 1,
-				.binding = 0,
 				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
-				.offset = offsetof(struct color_clear_vattrs, color),
+				.offset = 0,
 			},
 		},
 	};
@@ -409,24 +398,12 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	const struct color_clear_vattrs vertex_data[3] = {
 		{
-			.position = {
-				-1.0,
-				-1.0,
-			},
 			.color = clear_value,
 		},
 		{
-			.position = {
-				-1.0,
-				1.0,
-			},
 			.color = clear_value,
 		},
 		{
-			.position = {
-				1.0,
-				-1.0,
-			},
 			.color = clear_value,
 		},
 	};
@@ -486,19 +463,21 @@ build_depthstencil_shader(struct nir_shader **out_vs, struct nir_shader **out_fs
 
 	vs_b.shader->info->name = ralloc_strdup(vs_b.shader, "meta_clear_depthstencil_vs");
 	fs_b.shader->info->name = ralloc_strdup(fs_b.shader, "meta_clear_depthstencil_fs");
-	const struct glsl_type *position_type = glsl_vec4_type();
+	const struct glsl_type *position_out_type = glsl_vec4_type();
+	const struct glsl_type *position_type = glsl_float_type();
 
 	nir_variable *vs_in_pos =
-		nir_variable_create(vs_b.shader, nir_var_shader_in, position_type,
-				    "a_position");
+               nir_variable_create(vs_b.shader, nir_var_shader_in, position_type,
+                                   "a_position");
 	vs_in_pos->data.location = VERT_ATTRIB_GENERIC0;
 
 	nir_variable *vs_out_pos =
-		nir_variable_create(vs_b.shader, nir_var_shader_out, position_type,
+		nir_variable_create(vs_b.shader, nir_var_shader_out, position_out_type,
 				    "gl_Position");
 	vs_out_pos->data.location = VARYING_SLOT_POS;
 
-	nir_copy_var(&vs_b, vs_out_pos, vs_in_pos);
+	nir_ssa_def *outvec = radv_meta_gen_rect_vertices_comp2(&vs_b, nir_load_var(&vs_b, vs_in_pos));
+	nir_store_var(&vs_b, vs_out_pos, outvec, 0xf);
 
 	const struct glsl_type *layer_type = glsl_int_type();
 	nir_variable *vs_out_layer =
@@ -576,8 +555,8 @@ create_depthstencil_pipeline(struct radv_device *device,
 				/* Position */
 				.location = 0,
 				.binding = 0,
-				.format = VK_FORMAT_R32G32B32_SFLOAT,
-				.offset = offsetof(struct depthstencil_clear_vattrs, position),
+				.format = VK_FORMAT_R32_SFLOAT,
+				.offset = 0,
 			},
 		},
 	};
@@ -695,24 +674,12 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	const struct depthstencil_clear_vattrs vertex_data[3] = {
 		{
-			.position = {
-				-1.0,
-				-1.0
-			},
 			.depth_clear = clear_value.depth,
 		},
 		{
-			.position = {
-				-1.0,
-				1.0,
-			},
 			.depth_clear = clear_value.depth,
 		},
 		{
-			.position = {
-				1.0,
-				-1.0,
-			},
 			.depth_clear = clear_value.depth,
 		},
 	};

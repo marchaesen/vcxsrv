@@ -97,16 +97,10 @@ _mesa_reference_sampler_object_(struct gl_context *ctx,
    if (samp) {
       /* reference new sampler */
       mtx_lock(&samp->Mutex);
-      if (samp->RefCount == 0) {
-         /* this sampler's being deleted (look just above) */
-         /* Not sure this can every really happen.  Warn if it does. */
-         _mesa_problem(NULL, "referencing deleted sampler object");
-         *ptr = NULL;
-      }
-      else {
-         samp->RefCount++;
-         *ptr = samp;
-      }
+      assert(samp->RefCount > 0);
+
+      samp->RefCount++;
+      *ptr = samp;
       mtx_unlock(&samp->Mutex);
    }
 }

@@ -96,7 +96,7 @@ setup_index_buffer(struct st_context *st,
    struct pipe_index_buffer ibuffer;
    struct gl_buffer_object *bufobj = ib->obj;
 
-   ibuffer.index_size = vbo_sizeof_ib_type(ib->type);
+   ibuffer.index_size = ib->index_size;
 
    /* get/create the index buffer object */
    if (_mesa_is_bufferobj(bufobj)) {
@@ -120,21 +120,19 @@ setup_index_buffer(struct st_context *st,
  * Set the restart index.
  */
 static void
-setup_primitive_restart(struct gl_context *ctx,
-                        const struct _mesa_index_buffer *ib,
-                        struct pipe_draw_info *info)
+setup_primitive_restart(struct gl_context *ctx, struct pipe_draw_info *info,
+                        unsigned index_size)
 {
    if (ctx->Array._PrimitiveRestart) {
-      info->restart_index = _mesa_primitive_restart_index(ctx, ib->type);
+      info->restart_index =
+         _mesa_primitive_restart_index(ctx, index_size);
 
       /* Enable primitive restart only when the restart index can have an
        * effect. This is required for correctness in radeonsi VI support.
        * Other hardware may also benefit from taking a faster, non-restart path
        * when possible.
        */
-      if ((ib->type == GL_UNSIGNED_INT) ||
-          (ib->type == GL_UNSIGNED_SHORT && info->restart_index <= 0xffff) ||
-          (ib->type == GL_UNSIGNED_BYTE && info->restart_index <= 0xff))
+      if (index_size == 4 || info->restart_index < (1 << (index_size * 8)))
          info->primitive_restart = true;
    }
 }
@@ -182,7 +180,9 @@ st_draw_vbo(struct gl_context *ctx,
    /* Mesa core state should have been validated already */
    assert(ctx->NewState == 0x0);
 
-   st_flush_bitmap_cache(st);
+   if (unlikely(!st->bitmap.cache.empty))
+      st_flush_bitmap_cache(st);
+
    st_invalidate_readpix_cache(st);
 
    /* Validate state. */
@@ -215,7 +215,7 @@ st_draw_vbo(struct gl_context *ctx,
       /* The VBO module handles restart for the non-indexed GLDrawArrays
        * so we only set these fields for indexed drawing:
        */
-      setup_primitive_restart(ctx, ib, &info);
+      setup_primitive_restart(ctx, &info, ib->index_size);
    }
    else {
       /* Transform feedback drawing is always non-indexed. */
@@ -251,16 +251,8 @@ st_draw_vbo(struct gl_context *ctx,
                       info.indexed);
       }
 
-      if (info.count_from_stream_output) {
-         cso_draw_vbo(st->cso_context, &info);
-      }
-      else if (info.primitive_restart) {
-         /* don't trim, restarts might be inside index list */
-         cso_draw_vbo(st->cso_context, &info);
-      }
-      else if (u_trim_pipe_prim(prims[i].mode, &info.count)) {
-         cso_draw_vbo(st->cso_context, &info);
-      }
+      /* Don't call u_trim_pipe_prim. Drivers should do it if they need it. */
+      cso_draw_vbo(st->cso_context, &info);
    }
 }
 
@@ -282,6 +274,8 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    assert(ctx->NewState == 0x0);
    assert(stride);
 
+   st_invalidate_readpix_cache(st);
+
    /* Validate state. */
    if ((st->dirty | ctx->NewDriverState) & ST_PIPELINE_RENDER_STATE_MASK ||
        st->gfx_shaders_may_be_dirty) {
@@ -300,7 +294,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
       info.indexed = TRUE;
 
       /* Primitive restart is not handled by the VBO module in this case. */
-      setup_primitive_restart(ctx, ib, &info);
+      setup_primitive_restart(ctx, &info, ib->index_size);
    }
 
    info.mode = translate_prim(ctx, mode);

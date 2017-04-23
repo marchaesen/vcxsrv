@@ -699,7 +699,9 @@ deref_foreach_leaf_build_recur(nir_deref_var *deref, nir_deref *tail,
    assert(tail->child == NULL);
    switch (glsl_get_base_type(tail->type)) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_INT64:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:

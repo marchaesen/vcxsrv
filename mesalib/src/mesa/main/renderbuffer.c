@@ -144,9 +144,9 @@ validate_and_init_renderbuffer_attachment(struct gl_framebuffer *fb,
  * used with a freshly created renderbuffer.
  */
 void
-_mesa_add_renderbuffer_without_ref(struct gl_framebuffer *fb,
-                                   gl_buffer_index bufferName,
-                                   struct gl_renderbuffer *rb)
+_mesa_attach_and_own_rb(struct gl_framebuffer *fb,
+                        gl_buffer_index bufferName,
+                        struct gl_renderbuffer *rb)
 {
    assert(rb->RefCount == 1);
 
@@ -162,8 +162,9 @@ _mesa_add_renderbuffer_without_ref(struct gl_framebuffer *fb,
  * \param bufferName  one of the BUFFER_x tokens
  */
 void
-_mesa_add_renderbuffer(struct gl_framebuffer *fb,
-                       gl_buffer_index bufferName, struct gl_renderbuffer *rb)
+_mesa_attach_and_reference_rb(struct gl_framebuffer *fb,
+                              gl_buffer_index bufferName,
+                              struct gl_renderbuffer *rb)
 {
    validate_and_init_renderbuffer_attachment(fb, bufferName, rb);
    _mesa_reference_renderbuffer(&fb->Attachment[bufferName].Renderbuffer, rb);

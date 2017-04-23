@@ -3702,8 +3702,7 @@ create_shader_variable(struct gl_shader_program *shProg,
     *        qualifier, except for vertex shader inputs and fragment shader
     *        outputs."
     */
-   if (in->type->base_type == GLSL_TYPE_ATOMIC_UINT ||
-       is_gl_identifier(in->name) ||
+   if (in->type->is_atomic_uint() || is_gl_identifier(in->name) ||
        !(in->data.explicit_location || use_implicit_location)) {
       out->location = -1;
    } else {
@@ -4641,9 +4640,6 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    bool skip_cache = false;
    if (prog->TransformFeedback.NumVarying > 0) {
       for (unsigned i = 0; i < prog->NumShaders; i++) {
-         if (prog->Shaders[i]->ir) {
-            continue;
-         }
          _mesa_glsl_compile_shader(ctx, prog->Shaders[i], false, false, true);
       }
       skip_cache = true;

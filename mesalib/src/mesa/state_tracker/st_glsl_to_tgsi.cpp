@@ -2225,7 +2225,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
                                        const_offset % 16 / 4,
                                        const_offset % 16 / 4);
 
-      if (ir->type->base_type == GLSL_TYPE_BOOL) {
+      if (ir->type->is_boolean()) {
          emit_asm(ir, TGSI_OPCODE_USNE, result_dst, cbuf, st_src_reg_for_int(0));
       } else {
          emit_asm(ir, TGSI_OPCODE_MOV, result_dst, cbuf);
@@ -2330,7 +2330,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       break;
 
    case ir_binop_ldexp:
-      if (ir->operands[0]->type->base_type == GLSL_TYPE_DOUBLE) {
+      if (ir->operands[0]->type->is_double()) {
          emit_asm(ir, TGSI_OPCODE_DLDEXP, result_dst, op[0], op[1]);
       } else {
          assert(!"Invalid ldexp for non-double opcode in glsl_to_tgsi_visitor::visit()");
@@ -3091,7 +3091,7 @@ glsl_to_tgsi_visitor::emit_block_mov(ir_assignment *ir, const struct glsl_type *
                                      st_dst_reg *l, st_src_reg *r,
                                      st_src_reg *cond, bool cond_swap)
 {
-   if (type->base_type == GLSL_TYPE_STRUCT) {
+   if (type->is_record()) {
       for (unsigned int i = 0; i < type->length; i++) {
          emit_block_mov(ir, type->fields.structure[i].type, l, r,
                         cond, cond_swap);
@@ -3264,7 +3264,7 @@ glsl_to_tgsi_visitor::visit(ir_constant *ir)
     * aggregate constant and move each constant value into it.  If we
     * get lucky, copy propagation will eliminate the extra moves.
     */
-   if (ir->type->base_type == GLSL_TYPE_STRUCT) {
+   if (ir->type->is_record()) {
       st_src_reg temp_base = get_temp(ir->type);
       st_dst_reg temp = st_dst_reg(temp_base);
 
@@ -4246,7 +4246,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       component = this->result;
       if (ir->offset) {
          ir->offset->accept(this);
-         if (ir->offset->type->base_type == GLSL_TYPE_ARRAY) {
+         if (ir->offset->type->is_array()) {
             const glsl_type *elt_type = ir->offset->type->fields.array;
             for (i = 0; i < ir->offset->type->length; i++) {
                offset[i] = this->result;

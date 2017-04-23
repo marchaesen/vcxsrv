@@ -24,10 +24,18 @@ git log --reverse --grep="cherry picked from commit" $latest_branchpoint..HEAD |
 git log --reverse --pretty=%H -i --grep="fixes:" $latest_branchpoint..origin/master |\
 while read sha
 do
+	# Check to see whether the patch is on the ignore list ...
+	if [ -f bin/.cherry-ignore ] ; then
+		if grep -q ^$sha bin/.cherry-ignore ; then
+			continue
+		fi
+	fi
+
 	# For each one try to extract the tag
 	fixes_count=`git show $sha | grep -i "fixes:" | wc -l`
 	if [ "x$fixes_count" != x1 ] ; then
-		echo WARNING: Commit $sha has more than one Fixes tag
+		printf "WARNING: Commit \"%s\" has more than one Fixes tag\n" \
+		       "`git log -n1 --pretty=oneline $sha`"
 	fi
 	fixes=`git show $sha | grep -i "fixes:" | head -n 1`
 	# The following sed/cut combination is borrowed from GregKH
@@ -52,7 +60,9 @@ do
 			continue
 		fi
 
-		echo Commit $sha fixes $id
+		printf "Commit \"%s\" fixes %s\n" \
+		       "`git log -n1 --pretty=oneline $sha`" \
+		       "$id"
 	fi
 
 done

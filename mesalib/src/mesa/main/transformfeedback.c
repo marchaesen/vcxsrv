@@ -110,16 +110,12 @@ reference_transform_feedback_object(struct gl_transform_feedback_object **ptr,
    assert(!*ptr);
 
    if (obj) {
+      assert(obj->RefCount > 0);
+
       /* reference new object */
-      if (obj->RefCount == 0) {
-         _mesa_problem(NULL, "referencing deleted transform feedback object");
-         *ptr = NULL;
-      }
-      else {
-         obj->RefCount++;
-         obj->EverBound = GL_TRUE;
-         *ptr = obj;
-      }
+      obj->RefCount++;
+      obj->EverBound = GL_TRUE;
+      *ptr = obj;
    }
 }
 
@@ -969,7 +965,7 @@ _mesa_lookup_transform_feedback_object(struct gl_context *ctx, GLuint name)
    }
    else
       return (struct gl_transform_feedback_object *)
-         _mesa_HashLookup(ctx->TransformFeedback.Objects, name);
+         _mesa_HashLookupLocked(ctx->TransformFeedback.Objects, name);
 }
 
 static void
@@ -1004,7 +1000,8 @@ create_transform_feedbacks(struct gl_context *ctx, GLsizei n, GLuint *ids,
             return;
          }
          ids[i] = first + i;
-         _mesa_HashInsert(ctx->TransformFeedback.Objects, first + i, obj);
+         _mesa_HashInsertLocked(ctx->TransformFeedback.Objects, first + i,
+                                obj);
          if (dsa) {
             /* this is normally done at bind time in the non-dsa case */
             obj->EverBound = GL_TRUE;
@@ -1136,7 +1133,7 @@ _mesa_DeleteTransformFeedbacks(GLsizei n, const GLuint *names)
                            names[i]);
                return;
             }
-            _mesa_HashRemove(ctx->TransformFeedback.Objects, names[i]);
+            _mesa_HashRemoveLocked(ctx->TransformFeedback.Objects, names[i]);
             /* unref, but object may not be deleted until later */
             if (obj == ctx->TransformFeedback.CurrentObject) {
                reference_transform_feedback_object(

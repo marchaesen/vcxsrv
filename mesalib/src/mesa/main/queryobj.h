@@ -35,7 +35,7 @@ static inline struct gl_query_object *
 _mesa_lookup_query_object(struct gl_context *ctx, GLuint id)
 {
    return (struct gl_query_object *)
-      _mesa_HashLookup(ctx->Query.QueryObjects, id);
+      _mesa_HashLookupLocked(ctx->Query.QueryObjects, id);
 }
 
 

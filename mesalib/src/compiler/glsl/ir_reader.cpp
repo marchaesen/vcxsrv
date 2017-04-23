@@ -833,7 +833,7 @@ ir_reader::read_constant(s_expression *expr)
 	 return NULL;
       }
 
-      if (type->base_type == GLSL_TYPE_FLOAT) {
+      if (type->is_float()) {
 	 s_number *value = SX_AS_NUMBER(expr);
 	 if (value == NULL) {
 	    ir_read_error(values, "expected numbers");

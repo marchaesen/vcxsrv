@@ -511,16 +511,10 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
    if (bufObj) {
       /* reference new buffer */
       mtx_lock(&bufObj->Mutex);
-      if (bufObj->RefCount == 0) {
-         /* this buffer's being deleted (look just above) */
-         /* Not sure this can every really happen.  Warn if it does. */
-         _mesa_problem(NULL, "referencing deleted buffer object");
-         *ptr = NULL;
-      }
-      else {
-         bufObj->RefCount++;
-         *ptr = bufObj;
-      }
+      assert(bufObj->RefCount > 0);
+
+      bufObj->RefCount++;
+      *ptr = bufObj;
       mtx_unlock(&bufObj->Mutex);
    }
 }

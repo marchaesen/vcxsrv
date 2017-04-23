@@ -258,6 +258,24 @@ get_legal_types_mask(const struct gl_context *ctx)
    return legalTypesMask;
 }
 
+static GLenum
+get_array_format(const struct gl_context *ctx, GLint sizeMax, GLint *size)
+{
+   GLenum format = GL_RGBA;
+
+   /* Do size parameter checking.
+    * If sizeMax = BGRA_OR_4 it means that size = GL_BGRA is legal and
+    * must be handled specially.
+    */
+   if (ctx->Extensions.EXT_vertex_array_bgra && sizeMax == BGRA_OR_4 &&
+       *size == GL_BGRA) {
+      format = GL_BGRA;
+      *size = 4;
+   }
+
+   return format;
+}
+
 
 /**
  * \param attrib         The index of the attribute array
@@ -302,9 +320,9 @@ _mesa_update_array_format(struct gl_context *ctx,
 }
 
 /**
- * Does error checking and updates the format in an attrib array.
+ * Does error checking of the format in an attrib array.
  *
- * Called by update_array() and VertexAttrib*Format().
+ * Called by *Pointer() and VertexAttrib*Format().
  *
  * \param func         Name of calling function used for error reporting
  * \param attrib       The index of the attribute array
@@ -317,19 +335,18 @@ _mesa_update_array_format(struct gl_context *ctx,
  * \param integer      Integer-valued values (will not be normalized to [-1, 1])
  * \param doubles      Double values not reduced to floats
  * \param relativeOffset Offset of the first element relative to the binding offset.
+ * \return bool True if validation is successful, False otherwise.
  */
 static bool
-update_array_format(struct gl_context *ctx,
-                    const char *func,
-                    struct gl_vertex_array_object *vao,
-                    GLuint attrib, GLbitfield legalTypesMask,
-                    GLint sizeMin, GLint sizeMax,
-                    GLint size, GLenum type,
-                    GLboolean normalized, GLboolean integer, GLboolean doubles,
-                    GLuint relativeOffset)
+validate_array_format(struct gl_context *ctx, const char *func,
+                      struct gl_vertex_array_object *vao,
+                      GLuint attrib, GLbitfield legalTypesMask,
+                      GLint sizeMin, GLint sizeMax,
+                      GLint size, GLenum type, GLboolean normalized,
+                      GLboolean integer, GLboolean doubles,
+                      GLuint relativeOffset, GLenum format)
 {
    GLbitfield typeBit;
-   GLenum format = GL_RGBA;
 
    /* at most, one of these bools can be true */
    assert((int) normalized + (int) integer + (int) doubles <= 1);
@@ -359,13 +376,7 @@ update_array_format(struct gl_context *ctx,
       return false;
    }
 
-   /* Do size parameter checking.
-    * If sizeMax = BGRA_OR_4 it means that size = GL_BGRA is legal and
-    * must be handled specially.
-    */
-   if (ctx->Extensions.EXT_vertex_array_bgra &&
-       sizeMax == BGRA_OR_4 &&
-       size == GL_BGRA) {
+   if (format == GL_BGRA) {
       /* Page 298 of the PDF of the OpenGL 4.3 (Core Profile) spec says:
        *
        * "An INVALID_OPERATION error is generated under any of the following
@@ -397,9 +408,6 @@ update_array_format(struct gl_context *ctx,
                      "%s(size=GL_BGRA and normalized=GL_FALSE)", func);
          return false;
       }
-
-      format = GL_BGRA;
-      size = 4;
    }
    else if (size < sizeMin || size > sizeMax || size > 4) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(size=%d)", func, size);
@@ -432,16 +440,11 @@ update_array_format(struct gl_context *ctx,
       return false;
    }
 
-   _mesa_update_array_format(ctx, vao, attrib, size, type, format,
-                             normalized, integer, doubles, relativeOffset);
-
    return true;
 }
 
-
 /**
- * Do error checking and update state for glVertex/Color/TexCoord/...Pointer
- * functions.
+ * Do error checking for glVertex/Color/TexCoord/...Pointer functions.
  *
  * \param func  name of calling function used for error reporting
  * \param attrib  the attribute array index to update
@@ -457,17 +460,14 @@ update_array_format(struct gl_context *ctx,
  * \param ptr  the address (or offset inside VBO) of the array data
  */
 static void
-update_array(struct gl_context *ctx,
-             const char *func,
-             GLuint attrib, GLbitfield legalTypesMask,
-             GLint sizeMin, GLint sizeMax,
-             GLint size, GLenum type, GLsizei stride,
-             GLboolean normalized, GLboolean integer, GLboolean doubles,
-             const GLvoid *ptr)
+validate_array(struct gl_context *ctx, const char *func,
+               GLuint attrib, GLbitfield legalTypesMask,
+               GLint sizeMin, GLint sizeMax,
+               GLint size, GLenum type, GLsizei stride,
+               GLboolean normalized, GLboolean integer, GLboolean doubles,
+               const GLvoid *ptr)
 {
    struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   struct gl_array_attributes *array;
-   GLsizei effectiveStride;
 
    /* Page 407 (page 423 of the PDF) of the OpenGL 3.0 spec says:
     *
@@ -514,23 +514,64 @@ update_array(struct gl_context *ctx,
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(non-VBO array)", func);
       return;
    }
+}
 
-   if (!update_array_format(ctx, func, vao, attrib,
-                            legalTypesMask, sizeMin, sizeMax,
-                            size, type, normalized, integer, doubles, 0)) {
-      return;
-   }
+
+static bool
+validate_array_and_format(struct gl_context *ctx, const char *func,
+                          GLuint attrib, GLbitfield legalTypes,
+                          GLint sizeMin, GLint sizeMax,
+                          GLint size, GLenum type, GLsizei stride,
+                          GLboolean normalized, GLboolean integer,
+                          GLboolean doubles, GLenum format, const GLvoid *ptr,
+                          struct gl_vertex_array_object *vao)
+{
+   validate_array(ctx, func, attrib, legalTypes, sizeMin, sizeMax, size,
+                  type, stride, normalized, integer, doubles, ptr);
+
+   return validate_array_format(ctx, func, vao, attrib, legalTypes, sizeMin,
+                                sizeMax, size, type, normalized, integer,
+                                doubles, 0, format);
+}
+
+
+/**
+ * Update state for glVertex/Color/TexCoord/...Pointer functions.
+ *
+ * \param attrib  the attribute array index to update
+ * \param format  Either GL_RGBA or GL_BGRA.
+ * \param sizeMax  max allowable size value (may also be BGRA_OR_4)
+ * \param size  components per element (1, 2, 3 or 4)
+ * \param type  datatype of each component (GL_FLOAT, GL_INT, etc)
+ * \param stride  stride between elements, in elements
+ * \param normalized  are integer types converted to floats in [-1, 1]?
+ * \param integer  integer-valued values (will not be normalized to [-1,1])
+ * \param doubles  Double values not reduced to floats
+ * \param ptr  the address (or offset inside VBO) of the array data
+ */
+static void
+update_array(struct gl_context *ctx,
+             GLuint attrib, GLenum format,
+             GLint sizeMax,
+             GLint size, GLenum type, GLsizei stride,
+             GLboolean normalized, GLboolean integer, GLboolean doubles,
+             const GLvoid *ptr)
+{
+   struct gl_vertex_array_object *vao = ctx->Array.VAO;
+
+   _mesa_update_array_format(ctx, vao, attrib, size, type, format,
+                             normalized, integer, doubles, 0);
 
    /* Reset the vertex attrib binding */
    vertex_attrib_binding(ctx, vao, attrib, attrib);
 
    /* The Stride and Ptr fields are not set by update_array_format() */
-   array = &vao->VertexAttrib[attrib];
+   struct gl_array_attributes *array = &vao->VertexAttrib[attrib];
    array->Stride = stride;
    array->Ptr = ptr;
 
    /* Update the vertex buffer binding */
-   effectiveStride = stride != 0 ? stride : array->_ElementSize;
+   GLsizei effectiveStride = stride != 0 ? stride : array->_ElementSize;
    _mesa_bind_vertex_buffer(ctx, vao, attrib,
                             ctx->Array.ArrayBufferObj, (GLintptr) ptr,
                             effectiveStride);
@@ -541,18 +582,27 @@ void GLAPIENTRY
 _mesa_VertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLbitfield legalTypes = (ctx->API == API_OPENGLES)
-      ? (BYTE_BIT | SHORT_BIT | FLOAT_BIT | FIXED_ES_BIT)
-      : (SHORT_BIT | INT_BIT | FLOAT_BIT |
-         DOUBLE_BIT | HALF_BIT |
-         UNSIGNED_INT_2_10_10_10_REV_BIT |
-         INT_2_10_10_10_REV_BIT);
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glVertexPointer", VERT_ATTRIB_POS,
-                legalTypes, 2, 4,
-                size, type, stride, GL_FALSE, GL_FALSE, GL_FALSE, ptr);
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      GLbitfield legalTypes = (ctx->API == API_OPENGLES)
+         ? (BYTE_BIT | SHORT_BIT | FLOAT_BIT | FIXED_ES_BIT)
+         : (SHORT_BIT | INT_BIT | FLOAT_BIT |
+            DOUBLE_BIT | HALF_BIT |
+            UNSIGNED_INT_2_10_10_10_REV_BIT |
+            INT_2_10_10_10_REV_BIT);
+
+      if (!validate_array_and_format(ctx, "glVertexPointer", VERT_ATTRIB_POS,
+                                     legalTypes, 2, 4, size, type, stride,
+                                     GL_FALSE, GL_FALSE, GL_FALSE, format,
+                                     ptr, ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_POS, format, 4, size, type, stride,
+                GL_FALSE, GL_FALSE, GL_FALSE, ptr);
 }
 
 
@@ -560,18 +610,27 @@ void GLAPIENTRY
 _mesa_NormalPointer(GLenum type, GLsizei stride, const GLvoid *ptr )
 {
    GET_CURRENT_CONTEXT(ctx);
-   const GLbitfield legalTypes = (ctx->API == API_OPENGLES)
-      ? (BYTE_BIT | SHORT_BIT | FLOAT_BIT | FIXED_ES_BIT)
-      : (BYTE_BIT | SHORT_BIT | INT_BIT |
-         HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
-         UNSIGNED_INT_2_10_10_10_REV_BIT |
-         INT_2_10_10_10_REV_BIT);
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glNormalPointer", VERT_ATTRIB_NORMAL,
-                legalTypes, 3, 3,
-                3, type, stride, GL_TRUE, GL_FALSE, GL_FALSE, ptr);
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = (ctx->API == API_OPENGLES)
+         ? (BYTE_BIT | SHORT_BIT | FLOAT_BIT | FIXED_ES_BIT)
+         : (BYTE_BIT | SHORT_BIT | INT_BIT |
+            HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+            UNSIGNED_INT_2_10_10_10_REV_BIT |
+            INT_2_10_10_10_REV_BIT);
+
+      if (!validate_array_and_format(ctx, "glNormalPointer",
+                                     VERT_ATTRIB_NORMAL, legalTypes, 3, 3, 3,
+                                     type, stride, GL_TRUE, GL_FALSE,
+                                     GL_FALSE, format, ptr, ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_NORMAL, format, 3, 3, type, stride, GL_TRUE,
+                GL_FALSE, GL_FALSE, ptr);
 }
 
 
@@ -579,50 +638,79 @@ void GLAPIENTRY
 _mesa_ColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
 {
    GET_CURRENT_CONTEXT(ctx);
-   const GLbitfield legalTypes = (ctx->API == API_OPENGLES)
-      ? (UNSIGNED_BYTE_BIT | HALF_BIT | FLOAT_BIT | FIXED_ES_BIT)
-      : (BYTE_BIT | UNSIGNED_BYTE_BIT |
-         SHORT_BIT | UNSIGNED_SHORT_BIT |
-         INT_BIT | UNSIGNED_INT_BIT |
-         HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
-         UNSIGNED_INT_2_10_10_10_REV_BIT |
-         INT_2_10_10_10_REV_BIT);
    const GLint sizeMin = (ctx->API == API_OPENGLES) ? 4 : 3;
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glColorPointer", VERT_ATTRIB_COLOR0,
-                legalTypes, sizeMin, BGRA_OR_4,
-                size, type, stride, GL_TRUE, GL_FALSE, GL_FALSE, ptr);
+   GLenum format = get_array_format(ctx, BGRA_OR_4, &size);
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = (ctx->API == API_OPENGLES)
+         ? (UNSIGNED_BYTE_BIT | HALF_BIT | FLOAT_BIT | FIXED_ES_BIT)
+         : (BYTE_BIT | UNSIGNED_BYTE_BIT |
+            SHORT_BIT | UNSIGNED_SHORT_BIT |
+            INT_BIT | UNSIGNED_INT_BIT |
+            HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+            UNSIGNED_INT_2_10_10_10_REV_BIT |
+            INT_2_10_10_10_REV_BIT);
+
+      if (!validate_array_and_format(ctx, "glColorPointer",
+                                     VERT_ATTRIB_COLOR0, legalTypes, sizeMin,
+                                     BGRA_OR_4, size, type, stride, GL_TRUE,
+                                     GL_FALSE, GL_FALSE, format, ptr,
+                                     ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_COLOR0, format, BGRA_OR_4, size,
+                type, stride, GL_TRUE, GL_FALSE, GL_FALSE, ptr);
 }
 
 
 void GLAPIENTRY
 _mesa_FogCoordPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = (HALF_BIT | FLOAT_BIT | DOUBLE_BIT);
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glFogCoordPointer", VERT_ATTRIB_FOG,
-                legalTypes, 1, 1,
-                1, type, stride, GL_FALSE, GL_FALSE, GL_FALSE, ptr);
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = (HALF_BIT | FLOAT_BIT | DOUBLE_BIT);
+
+      if (!validate_array_and_format(ctx, "glFogCoordPointer",
+                                     VERT_ATTRIB_FOG, legalTypes, 1, 1, 1,
+                                     type, stride, GL_FALSE, GL_FALSE,
+                                     GL_FALSE, format, ptr, ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_FOG, format, 1, 1, type, stride, GL_FALSE,
+                GL_FALSE, GL_FALSE, ptr);
 }
 
 
 void GLAPIENTRY
 _mesa_IndexPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = (UNSIGNED_BYTE_BIT | SHORT_BIT | INT_BIT |
-                                  FLOAT_BIT | DOUBLE_BIT);
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glIndexPointer", VERT_ATTRIB_COLOR_INDEX,
-                legalTypes, 1, 1,
-                1, type, stride, GL_FALSE, GL_FALSE, GL_FALSE, ptr);
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = (UNSIGNED_BYTE_BIT | SHORT_BIT | INT_BIT |
+                                     FLOAT_BIT | DOUBLE_BIT);
+
+      if (!validate_array_and_format(ctx, "glIndexPointer",
+                                     VERT_ATTRIB_COLOR_INDEX,
+                                     legalTypes, 1, 1, 1, type, stride,
+                                     GL_FALSE, GL_FALSE, GL_FALSE, format,
+                                     ptr, ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_COLOR_INDEX, format, 1, 1, type, stride,
+                GL_FALSE, GL_FALSE, GL_FALSE, ptr);
 }
 
 
@@ -630,19 +718,29 @@ void GLAPIENTRY
 _mesa_SecondaryColorPointer(GLint size, GLenum type,
 			       GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
-                                  SHORT_BIT | UNSIGNED_SHORT_BIT |
-                                  INT_BIT | UNSIGNED_INT_BIT |
-                                  HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
-                                  UNSIGNED_INT_2_10_10_10_REV_BIT |
-                                  INT_2_10_10_10_REV_BIT);
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glSecondaryColorPointer", VERT_ATTRIB_COLOR1,
-                legalTypes, 3, BGRA_OR_4,
-                size, type, stride, GL_TRUE, GL_FALSE, GL_FALSE, ptr);
+   GLenum format = get_array_format(ctx, BGRA_OR_4, &size);
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
+                                     SHORT_BIT | UNSIGNED_SHORT_BIT |
+                                     INT_BIT | UNSIGNED_INT_BIT |
+                                     HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+                                     UNSIGNED_INT_2_10_10_10_REV_BIT |
+                                     INT_2_10_10_10_REV_BIT);
+
+      if (!validate_array_and_format(ctx, "glSecondaryColorPointer",
+                                     VERT_ATTRIB_COLOR1, legalTypes, 3,
+                                     BGRA_OR_4, size, type, stride,
+                                     GL_TRUE, GL_FALSE, GL_FALSE, format, ptr,
+                                     ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_COLOR1, format, BGRA_OR_4, size, type,
+                stride, GL_TRUE, GL_FALSE, GL_FALSE, ptr);
 }
 
 
@@ -651,57 +749,85 @@ _mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride,
                       const GLvoid *ptr)
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLbitfield legalTypes = (ctx->API == API_OPENGLES)
-      ? (BYTE_BIT | SHORT_BIT | FLOAT_BIT | FIXED_ES_BIT)
-      : (SHORT_BIT | INT_BIT |
-         HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
-         UNSIGNED_INT_2_10_10_10_REV_BIT |
-         INT_2_10_10_10_REV_BIT);
    const GLint sizeMin = (ctx->API == API_OPENGLES) ? 2 : 1;
    const GLuint unit = ctx->Array.ActiveTexture;
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glTexCoordPointer", VERT_ATTRIB_TEX(unit),
-                legalTypes, sizeMin, 4,
-                size, type, stride, GL_FALSE, GL_FALSE, GL_FALSE,
-                ptr);
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = (ctx->API == API_OPENGLES)
+         ? (BYTE_BIT | SHORT_BIT | FLOAT_BIT | FIXED_ES_BIT)
+         : (SHORT_BIT | INT_BIT |
+            HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+            UNSIGNED_INT_2_10_10_10_REV_BIT |
+            INT_2_10_10_10_REV_BIT);
+
+      if (!validate_array_and_format(ctx, "glTexCoordPointer",
+                                     VERT_ATTRIB_TEX(unit), legalTypes,
+                                     sizeMin, 4, size, type, stride,
+                                     GL_FALSE, GL_FALSE, GL_FALSE, format, ptr,
+                                     ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_TEX(unit), format, 4, size, type,
+                stride, GL_FALSE, GL_FALSE, GL_FALSE, ptr);
 }
 
 
 void GLAPIENTRY
 _mesa_EdgeFlagPointer(GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = UNSIGNED_BYTE_BIT;
    /* this is the same type that glEdgeFlag uses */
    const GLboolean integer = GL_FALSE;
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array(ctx, "glEdgeFlagPointer", VERT_ATTRIB_EDGEFLAG,
-                legalTypes, 1, 1,
-                1, GL_UNSIGNED_BYTE, stride, GL_FALSE, integer, GL_FALSE, ptr);
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      const GLbitfield legalTypes = UNSIGNED_BYTE_BIT;
+
+      if (!validate_array_and_format(ctx, "glEdgeFlagPointer",
+                                     VERT_ATTRIB_EDGEFLAG, legalTypes,
+                                     1, 1, 1, GL_UNSIGNED_BYTE, stride,
+                                     GL_FALSE, integer, GL_FALSE, format, ptr,
+                                     ctx->Array.VAO))
+         return;
+   }
+
+   update_array(ctx, VERT_ATTRIB_EDGEFLAG, format, 1, 1, GL_UNSIGNED_BYTE,
+                stride, GL_FALSE, integer, GL_FALSE, ptr);
 }
 
 
 void GLAPIENTRY
 _mesa_PointSizePointerOES(GLenum type, GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = (FLOAT_BIT | FIXED_ES_BIT);
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
-   if (ctx->API != API_OPENGLES) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glPointSizePointer(ES 1.x only)");
-      return;
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      if (ctx->API != API_OPENGLES) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glPointSizePointer(ES 1.x only)");
+         return;
+      }
+
+      const GLbitfield legalTypes = (FLOAT_BIT | FIXED_ES_BIT);
+
+      if (!validate_array_and_format(ctx, "glPointSizePointer",
+                                     VERT_ATTRIB_POINT_SIZE, legalTypes,
+                                     1, 1, 1, type, stride, GL_FALSE, GL_FALSE,
+                                     GL_FALSE, format, ptr, ctx->Array.VAO))
+         return;
    }
 
-   update_array(ctx, "glPointSizePointer", VERT_ATTRIB_POINT_SIZE,
-                legalTypes, 1, 1,
-                1, type, stride, GL_FALSE, GL_FALSE, GL_FALSE, ptr);
+   update_array(ctx, VERT_ATTRIB_POINT_SIZE, format, 1, 1, type, stride,
+                GL_FALSE, GL_FALSE, GL_FALSE, ptr);
 }
 
 
@@ -715,23 +841,33 @@ _mesa_VertexAttribPointer(GLuint index, GLint size, GLenum type,
                              GLboolean normalized,
                              GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
-                                  SHORT_BIT | UNSIGNED_SHORT_BIT |
-                                  INT_BIT | UNSIGNED_INT_BIT |
-                                  HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
-                                  FIXED_ES_BIT | FIXED_GL_BIT |
-                                  UNSIGNED_INT_2_10_10_10_REV_BIT |
-                                  INT_2_10_10_10_REV_BIT |
-                                  UNSIGNED_INT_10F_11F_11F_REV_BIT);
    GET_CURRENT_CONTEXT(ctx);
 
-   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribPointerARB(index)");
-      return;
+   GLenum format = get_array_format(ctx, BGRA_OR_4, &size);
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribPointerARB(idx)");
+         return;
+      }
+
+      const GLbitfield legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
+                                     SHORT_BIT | UNSIGNED_SHORT_BIT |
+                                     INT_BIT | UNSIGNED_INT_BIT |
+                                     HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+                                     FIXED_ES_BIT | FIXED_GL_BIT |
+                                     UNSIGNED_INT_2_10_10_10_REV_BIT |
+                                     INT_2_10_10_10_REV_BIT |
+                                     UNSIGNED_INT_10F_11F_11F_REV_BIT);
+
+      if (!validate_array_and_format(ctx, "glVertexAttribPointer",
+                                     VERT_ATTRIB_GENERIC(index), legalTypes,
+                                     1, BGRA_OR_4, size, type, stride,
+                                     normalized, GL_FALSE, GL_FALSE, format,
+                                     ptr, ctx->Array.VAO))
+         return;
    }
 
-   update_array(ctx, "glVertexAttribPointer", VERT_ATTRIB_GENERIC(index),
-                legalTypes, 1, BGRA_OR_4,
+   update_array(ctx, VERT_ATTRIB_GENERIC(index), format, BGRA_OR_4,
                 size, type, stride, normalized, GL_FALSE, GL_FALSE, ptr);
 }
 
@@ -746,21 +882,31 @@ void GLAPIENTRY
 _mesa_VertexAttribIPointer(GLuint index, GLint size, GLenum type,
                            GLsizei stride, const GLvoid *ptr)
 {
-   const GLbitfield legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
-                                  SHORT_BIT | UNSIGNED_SHORT_BIT |
-                                  INT_BIT | UNSIGNED_INT_BIT);
    const GLboolean normalized = GL_FALSE;
    const GLboolean integer = GL_TRUE;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribIPointer(index)");
-      return;
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribIPointer(index)");
+         return;
+      }
+
+      const GLbitfield legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
+                                     SHORT_BIT | UNSIGNED_SHORT_BIT |
+                                     INT_BIT | UNSIGNED_INT_BIT);
+
+      if (!validate_array_and_format(ctx, "glVertexAttribIPointer",
+                                     VERT_ATTRIB_GENERIC(index), legalTypes,
+                                     1, 4, size, type, stride,
+                                     normalized, integer, GL_FALSE, format,
+                                     ptr, ctx->Array.VAO))
+         return;
    }
 
-   update_array(ctx, "glVertexAttribIPointer", VERT_ATTRIB_GENERIC(index),
-                legalTypes, 1, 4,
-                size, type, stride, normalized, integer, GL_FALSE, ptr);
+   update_array(ctx, VERT_ATTRIB_GENERIC(index), format, 4,  size, type,
+                stride, normalized, integer, GL_FALSE, ptr);
 }
 
 void GLAPIENTRY
@@ -768,15 +914,26 @@ _mesa_VertexAttribLPointer(GLuint index, GLint size, GLenum type,
                            GLsizei stride, const GLvoid *ptr)
 {
    GET_CURRENT_CONTEXT(ctx);
-   const GLbitfield legalTypes = (DOUBLE_BIT);
-   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribLPointer(index)");
-      return;
+
+   GLenum format = GL_RGBA;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribLPointer(index)");
+         return;
+      }
+
+      const GLbitfield legalTypes = DOUBLE_BIT;
+
+      if (!validate_array_and_format(ctx, "glVertexAttribLPointer",
+                                     VERT_ATTRIB_GENERIC(index), legalTypes,
+                                     1, 4, size, type, stride,
+                                     GL_FALSE, GL_FALSE, GL_TRUE, format,
+                                     ptr, ctx->Array.VAO))
+         return;
    }
 
-   update_array(ctx, "glVertexAttribLPointer", VERT_ATTRIB_GENERIC(index),
-                legalTypes, 1, 4,
-                size, type, stride, GL_FALSE, GL_FALSE, GL_TRUE, ptr);
+   update_array(ctx, VERT_ATTRIB_GENERIC(index), format, 4, size, type,
+                stride, GL_FALSE, GL_FALSE, GL_TRUE, ptr);
 }
 
 
@@ -1539,24 +1696,6 @@ _mesa_UnlockArraysEXT( void )
 }
 
 
-/* GL_EXT_multi_draw_arrays */
-void GLAPIENTRY
-_mesa_MultiDrawArrays( GLenum mode, const GLint *first,
-                          const GLsizei *count, GLsizei primcount )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   GLint i;
-
-   FLUSH_VERTICES(ctx, 0);
-
-   for (i = 0; i < primcount; i++) {
-      if (count[i] > 0) {
-         CALL_DrawArrays(ctx->CurrentClientDispatch, (mode, first[i], count[i]));
-      }
-   }
-}
-
-
 /* GL_IBM_multimode_draw_arrays */
 void GLAPIENTRY
 _mesa_MultiModeDrawArraysIBM( const GLenum * mode, const GLint * first,
@@ -1633,15 +1772,17 @@ _mesa_VertexAttribDivisor(GLuint index, GLuint divisor)
    const GLuint genericIndex = VERT_ATTRIB_GENERIC(index);
    struct gl_vertex_array_object * const vao = ctx->Array.VAO;
 
-   if (!ctx->Extensions.ARB_instanced_arrays) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glVertexAttribDivisor()");
-      return;
-   }
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      if (!ctx->Extensions.ARB_instanced_arrays) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glVertexAttribDivisor()");
+         return;
+      }
 
-   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribDivisor(index = %u)",
-                  index);
-      return;
+      if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glVertexAttribDivisor(index = %u)", index);
+         return;
+      }
    }
 
    assert(genericIndex < ARRAY_SIZE(vao->VertexAttrib));
@@ -1663,7 +1804,8 @@ _mesa_VertexAttribDivisor(GLuint index, GLuint divisor)
 
 
 unsigned
-_mesa_primitive_restart_index(const struct gl_context *ctx, GLenum ib_type)
+_mesa_primitive_restart_index(const struct gl_context *ctx,
+                              unsigned index_size)
 {
    /* From the OpenGL 4.3 core specification, page 302:
     * "If both PRIMITIVE_RESTART and PRIMITIVE_RESTART_FIXED_INDEX are
@@ -1671,15 +1813,15 @@ _mesa_primitive_restart_index(const struct gl_context *ctx, GLenum ib_type)
     *  is used."
     */
    if (ctx->Array.PrimitiveRestartFixedIndex) {
-      switch (ib_type) {
-      case GL_UNSIGNED_BYTE:
+      switch (index_size) {
+      case 1:
          return 0xff;
-      case GL_UNSIGNED_SHORT:
+      case 2:
          return 0xffff;
-      case GL_UNSIGNED_INT:
+      case 4:
          return 0xffffffff;
       default:
-         assert(!"_mesa_primitive_restart_index: Invalid index buffer type.");
+         assert(!"_mesa_primitive_restart_index: Invalid index size.");
       }
    }
 
@@ -1989,50 +2131,63 @@ static void
 vertex_attrib_format(GLuint attribIndex, GLint size, GLenum type,
                      GLboolean normalized, GLboolean integer,
                      GLboolean doubles, GLbitfield legalTypes,
-                     GLsizei maxSize, GLuint relativeOffset,
+                     GLsizei sizeMax, GLuint relativeOffset,
                      const char *func)
 {
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
-   /* The ARB_vertex_attrib_binding spec says:
-    *
-    *    "An INVALID_OPERATION error is generated under any of the following
-    *     conditions:
-    *     - if no vertex array object is currently bound (see section 2.10);
-    *     - ..."
-    *
-    * This error condition only applies to VertexAttribFormat and
-    * VertexAttribIFormat in the extension spec, but we assume that this
-    * is an oversight.  In the OpenGL 4.3 (Core Profile) spec, it applies
-    * to all three functions.
-    */
-   if ((ctx->API == API_OPENGL_CORE || _mesa_is_gles31(ctx)) &&
-       ctx->Array.VAO == ctx->Array.DefaultVAO) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(No array object bound)", func);
-      return;
-   }
+   GLenum format = get_array_format(ctx, sizeMax, &size);
 
-   /* The ARB_vertex_attrib_binding spec says:
-    *
-    *   "The error INVALID_VALUE is generated if index is greater than or equal
-    *     to the value of MAX_VERTEX_ATTRIBS."
-    */
-   if (attribIndex >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(attribindex=%u > "
-                  "GL_MAX_VERTEX_ATTRIBS)",
-                  func, attribIndex);
-      return;
+   if (!_mesa_is_no_error_enabled(ctx)) {
+      /* The ARB_vertex_attrib_binding spec says:
+       *
+       *    "An INVALID_OPERATION error is generated under any of the
+       *    following conditions:
+       *     - if no vertex array object is currently bound (see section
+       *       2.10);
+       *     - ..."
+       *
+       * This error condition only applies to VertexAttribFormat and
+       * VertexAttribIFormat in the extension spec, but we assume that this
+       * is an oversight.  In the OpenGL 4.3 (Core Profile) spec, it applies
+       * to all three functions.
+       */
+      if ((ctx->API == API_OPENGL_CORE || _mesa_is_gles31(ctx)) &&
+          ctx->Array.VAO == ctx->Array.DefaultVAO) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(No array object bound)", func);
+         return;
+      }
+
+      /* The ARB_vertex_attrib_binding spec says:
+       *
+       *   "The error INVALID_VALUE is generated if index is greater than or
+       *   equal to the value of MAX_VERTEX_ATTRIBS."
+       */
+      if (attribIndex >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "%s(attribindex=%u > "
+                     "GL_MAX_VERTEX_ATTRIBS)",
+                     func, attribIndex);
+         return;
+      }
+
+      if (!validate_array_format(ctx, func, ctx->Array.VAO,
+                                 VERT_ATTRIB_GENERIC(attribIndex),
+                                 legalTypes, 1, sizeMax, size, type,
+                                 normalized, integer, doubles, relativeOffset,
+                                 format)) {
+         return;
+      }
    }
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array_format(ctx, func, ctx->Array.VAO,
-                       VERT_ATTRIB_GENERIC(attribIndex),
-                       legalTypes, 1, maxSize, size, type,
-                       normalized, integer, doubles, relativeOffset);
+   _mesa_update_array_format(ctx, ctx->Array.VAO,
+                             VERT_ATTRIB_GENERIC(attribIndex), size, type,
+                             format, normalized, integer, doubles,
+                             relativeOffset);
 }
 
 
@@ -2071,7 +2226,7 @@ static void
 vertex_array_attrib_format(GLuint vaobj, GLuint attribIndex, GLint size,
                            GLenum type, GLboolean normalized,
                            GLboolean integer, GLboolean doubles,
-                           GLbitfield legalTypes, GLsizei maxSize,
+                           GLbitfield legalTypes, GLsizei sizeMax,
                            GLuint relativeOffset, const char *func)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -2079,34 +2234,49 @@ vertex_array_attrib_format(GLuint vaobj, GLuint attribIndex, GLint size,
 
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
-   /* The ARB_direct_state_access spec says:
-    *
-    *   "An INVALID_OPERATION error is generated by VertexArrayAttrib*Format
-    *    if <vaobj> is not [compatibility profile: zero or] the name of an
-    *    existing vertex array object."
-    */
-   vao = _mesa_lookup_vao_err(ctx, vaobj, func);
-   if (!vao)
-      return;
+   GLenum format = get_array_format(ctx, sizeMax, &size);
 
-   /* The ARB_vertex_attrib_binding spec says:
-    *
-    *   "The error INVALID_VALUE is generated if index is greater than or equal
-    *    to the value of MAX_VERTEX_ATTRIBS."
-    */
-   if (attribIndex >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(attribindex=%u > GL_MAX_VERTEX_ATTRIBS)",
-                  func, attribIndex);
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      vao = _mesa_lookup_vao(ctx, vaobj);
+      if (!vao)
+         return;
+   } else {
+      /* The ARB_direct_state_access spec says:
+       *
+       *   "An INVALID_OPERATION error is generated by
+       *   VertexArrayAttrib*Format if <vaobj> is not [compatibility profile:
+       *   zero or] the name of an existing vertex array object."
+       */
+      vao = _mesa_lookup_vao_err(ctx, vaobj, func);
+      if (!vao)
+         return;
+
+      /* The ARB_vertex_attrib_binding spec says:
+       *
+       *   "The error INVALID_VALUE is generated if index is greater than or
+       *   equal to the value of MAX_VERTEX_ATTRIBS."
+       */
+      if (attribIndex >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "%s(attribindex=%u > GL_MAX_VERTEX_ATTRIBS)",
+                     func, attribIndex);
+         return;
+      }
+
+      if (!validate_array_format(ctx, func, vao,
+                                 VERT_ATTRIB_GENERIC(attribIndex),
+                                 legalTypes, 1, sizeMax, size, type,
+                                 normalized, integer, doubles, relativeOffset,
+                                 format)) {
+         return;
+      }
    }
 
    FLUSH_VERTICES(ctx, 0);
 
-   update_array_format(ctx, func, vao,
-                       VERT_ATTRIB_GENERIC(attribIndex),
-                       legalTypes, 1, maxSize, size, type, normalized,
-                       integer, doubles, relativeOffset);
+   _mesa_update_array_format(ctx, vao, VERT_ATTRIB_GENERIC(attribIndex), size,
+                             type, format, normalized, integer, doubles,
+                             relativeOffset);
 }
 
 

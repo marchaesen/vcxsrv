@@ -20,11 +20,11 @@ Status
 
 Version
 
-    Version 2, July 7, 2016
+    Version 3, March 31, 2017
 
 Number
 
-    TBD
+    OpenGL Extension #495
 
 Dependencies
 
@@ -34,7 +34,7 @@ Dependencies
     This extension is written against Version 1.50 (Revision 09) of the OpenGL
     Shading Language Specification.
 
-    GLSL 1.30 is required.
+    GLSL 1.30 (OpenGL) or GLSL ES 3.00 (OpenGL ES) is required.
 
     This extension interacts with ARB_gpu_shader5.
 
@@ -51,9 +51,10 @@ Overview
     calculations).
 
     This extension provides a set of new features to the OpenGL Shading
-    Language to support capabilities of these GPUs, extending the capabilities
-    of version 1.30 of the OpenGL Shading Language.  Shaders
-    using the new functionality provided by this extension should enable this
+    Language to support capabilities of these GPUs, extending the
+    capabilities of version 1.30 of the OpenGL Shading Language and version
+    3.00 of the OpenGL ES Shading Language.  Shaders using the new
+    functionality provided by this extension should enable this
     functionality via the construct
 
       #extension GL_MESA_shader_integer_functions : require   (or enable)
@@ -516,5 +517,6 @@ Revision History
 
     Rev.      Date     Author    Changes
     ----  -----------  --------  -----------------------------------------
+     3    31-Mar-2017  Jon Leech Add ES support (OpenGL-Registry/issues/3)
      2     7-Jul-2016  idr       Fix typo in #extension line
      1    20-Jun-2016  idr       Initial version based on GL_ARB_gpu_shader5.

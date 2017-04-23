@@ -38,7 +38,9 @@ sources := \
 	main/format_unpack.c \
 	main/format_info.h \
 	main/remap_helper.h \
-	main/get_hash.h
+	main/get_hash.h \
+	main/marshal_generated.c \
+	main/marshal_generated.h
 
 LOCAL_SRC_FILES := $(filter-out $(sources), $(LOCAL_SRC_FILES))
 

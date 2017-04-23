@@ -529,6 +529,7 @@ VkResult radv_device_init_meta_query_state(struct radv_device *device)
 
 	VkDescriptorSetLayoutCreateInfo occlusion_ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 2,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -656,13 +657,8 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_compute_state saved_state;
-	VkDescriptorSet ds;
 
 	radv_meta_save_compute(&saved_state, cmd_buffer, 4);
-
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.query.ds_layout,
-					&ds);
 
 	struct radv_buffer dst_buffer = {
 		.bo = dst_bo,
@@ -676,44 +672,40 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 		.size = MAX2(src_stride * count, avail_offset + 4 * count - src_offset)
 	};
 
-	radv_UpdateDescriptorSets(radv_device_to_handle(device),
-				  2, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = ds,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						  .pBufferInfo = &(VkDescriptorBufferInfo) {
-							.buffer = radv_buffer_to_handle(&dst_buffer),
-							.offset = 0,
-							.range = VK_WHOLE_SIZE
-						  }
-					  },
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = ds,
-						  .dstBinding = 1,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						  .pBufferInfo = &(VkDescriptorBufferInfo) {
-							.buffer = radv_buffer_to_handle(&src_buffer),
-							.offset = 0,
-							.range = VK_WHOLE_SIZE
-						  }
-					  }
-				  }, 0, NULL);
-
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.query.p_layout, 0, 1,
-				   &ds, 0, NULL);
+	radv_meta_push_descriptor_set(cmd_buffer,
+				      VK_PIPELINE_BIND_POINT_COMPUTE,
+				      device->meta_state.query.p_layout,
+				      0, /* set */
+				      2, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 0,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				                      .pBufferInfo = &(VkDescriptorBufferInfo) {
+				                              .buffer = radv_buffer_to_handle(&dst_buffer),
+				                              .offset = 0,
+				                              .range = VK_WHOLE_SIZE
+				                      }
+				              },
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 1,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				                      .pBufferInfo = &(VkDescriptorBufferInfo) {
+				                              .buffer = radv_buffer_to_handle(&src_buffer),
+				                              .offset = 0,
+				                              .range = VK_WHOLE_SIZE
+				                      }
+				              }
+				      });
 
 	/* Encode the number of elements for easy access by the shader. */
 	pipeline_stats_mask &= 0x7ff;
@@ -749,8 +741,6 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_INV_GLOBAL_L2 |
 	                                RADV_CMD_FLAG_INV_VMEM_L1 |
 	                                RADV_CMD_FLAG_CS_PARTIAL_FLUSH;
-
-	radv_temp_descriptor_set_destroy(device, ds);
 
 	radv_meta_restore_compute(&saved_state, cmd_buffer, 4);
 }

@@ -444,10 +444,8 @@ arithmetic_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
     * type of both operands must be float.
     */
    assert(type_a->is_matrix() || type_b->is_matrix());
-   assert(type_a->base_type == GLSL_TYPE_FLOAT ||
-          type_a->base_type == GLSL_TYPE_DOUBLE);
-   assert(type_b->base_type == GLSL_TYPE_FLOAT ||
-          type_b->base_type == GLSL_TYPE_DOUBLE);
+   assert(type_a->is_float() || type_a->is_double());
+   assert(type_b->is_float() || type_b->is_double());
 
    /*   "* The operator is add (+), subtract (-), or divide (/), and the
     *      operands are matrices with the same number of rows and the same
@@ -1487,8 +1485,7 @@ ast_expression::do_hir(exec_list *instructions,
        * in a scalar boolean.  See page 57 of the GLSL 1.50 spec.
        */
       assert(type->is_error()
-             || ((type->base_type == GLSL_TYPE_BOOL)
-                 && type->is_scalar()));
+             || (type->is_boolean() && type->is_scalar()));
 
       result = new(ctx) ir_expression(operations[this->oper], type,
                                       op[0], op[1]);
@@ -2633,8 +2630,7 @@ select_gles_precision(unsigned qual_precision,
     *    declare an atomic type with a different precision or to specify the
     *    default precision for an atomic type to be lowp or mediump."
     */
-   if (type->base_type == GLSL_TYPE_ATOMIC_UINT &&
-       precision != ast_precision_high) {
+   if (type->is_atomic_uint() && precision != ast_precision_high) {
       _mesa_glsl_error(loc, state,
                        "atomic_uint can only have highp precision qualifier");
    }
@@ -4713,7 +4709,7 @@ ast_declarator_list::hir(exec_list *instructions,
                           "invalid type `%s' in empty declaration",
                           type_name);
       } else {
-         if (decl_type->base_type == GLSL_TYPE_ARRAY) {
+         if (decl_type->is_array()) {
             /* From Section 13.22 (Array Declarations) of the GLSL ES 3.2
              * spec:
              *
@@ -4735,7 +4731,7 @@ ast_declarator_list::hir(exec_list *instructions,
             validate_array_dimensions(decl_type, state, &loc);
          }
 
-         if (decl_type->base_type == GLSL_TYPE_ATOMIC_UINT) {
+         if (decl_type->is_atomic_uint()) {
             /* Empty atomic counter declarations are allowed and useful
              * to set the default offset qualifier.
              */
@@ -4952,7 +4948,7 @@ ast_declarator_list::hir(exec_list *instructions,
                if (state->is_version(120, 300))
                   break;
             case GLSL_TYPE_DOUBLE:
-               if (check_type->base_type == GLSL_TYPE_DOUBLE && (state->is_version(410, 0) || state->ARB_vertex_attrib_64bit_enable))
+               if (check_type->is_double() && (state->is_version(410, 0) || state->ARB_vertex_attrib_64bit_enable))
                   break;
             /* FALLTHROUGH */
             default:

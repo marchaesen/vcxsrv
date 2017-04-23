@@ -138,8 +138,6 @@ _mesa_init_shader_state(struct gl_context *ctx)
 
    /* Extended for ARB_separate_shader_objects */
    ctx->Shader.RefCount = 1;
-   mtx_init(&ctx->Shader.Mutex, mtx_plain);
-
    ctx->TessCtrlProgram.patch_vertices = 3;
    for (i = 0; i < 4; ++i)
       ctx->TessCtrlProgram.patch_default_outer_level[i] = 1.0;
@@ -164,7 +162,6 @@ _mesa_free_shader_state(struct gl_context *ctx)
    _mesa_reference_pipeline_object(ctx, &ctx->_Shader, NULL);
 
    assert(ctx->Shader.RefCount == 1);
-   mtx_destroy(&ctx->Shader.Mutex);
 }
 
 

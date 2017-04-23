@@ -10219,7 +10219,7 @@
 </category>
 
 <category name="GL_EXT_multi_draw_arrays" number="148">
-    <function name="MultiDrawArraysEXT" es1="1.0" es2="2.0" alias="MultiDrawArrays">
+    <function name="MultiDrawArraysEXT" es1="1.0" es2="2.0" exec="dynamic" alias="MultiDrawArrays">
         <param name="mode" type="GLenum"/>
         <param name="first" type="const GLint *"/>
         <param name="count" type="const GLsizei *"/>

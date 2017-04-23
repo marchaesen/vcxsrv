@@ -1208,6 +1208,16 @@ _mesa_initialize_context(struct gl_context *ctx,
    if (!init_attrib_groups( ctx ))
       goto fail;
 
+   /* KHR_no_error is likely to crash, overflow memory, etc if an application
+    * has errors so don't enable it for setuid processes.
+    */
+   if (getenv("MESA_NO_ERROR")) {
+#if !defined(_WIN32)
+      if (geteuid() == getuid())
+#endif
+         ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
+   }
+
    /* setup the API dispatch tables with all nop functions */
    ctx->OutsideBeginEnd = _mesa_alloc_dispatch_table();
    if (!ctx->OutsideBeginEnd)

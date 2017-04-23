@@ -129,29 +129,6 @@ util_draw_elements_instanced(struct pipe_context *pipe,
    pipe->draw_vbo(pipe, &info);
 }
 
-static inline void
-util_draw_range_elements(struct pipe_context *pipe,
-                         int index_bias,
-                         uint min_index,
-                         uint max_index,
-                         enum pipe_prim_type mode,
-                         uint start,
-                         uint count)
-{
-   struct pipe_draw_info info;
-
-   util_draw_init_info(&info);
-   info.indexed = TRUE;
-   info.mode = mode;
-   info.start = start;
-   info.count = count;
-   info.index_bias = index_bias;
-   info.min_index = min_index;
-   info.max_index = max_index;
-
-   pipe->draw_vbo(pipe, &info);
-}
-
 
 /* This converts an indirect draw into a direct draw by mapping the indirect
  * buffer, extracting its arguments, and calling pipe->draw_vbo.

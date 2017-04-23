@@ -303,6 +303,7 @@ EXT(KHR_blend_equation_advanced             , KHR_blend_equation_advanced       
 EXT(KHR_blend_equation_advanced_coherent    , KHR_blend_equation_advanced_coherent   , GLL, GLC,  x , ES2, 2014)
 EXT(KHR_context_flush_control               , dummy_true                             , GLL, GLC,  x , ES2, 2014)
 EXT(KHR_debug                               , dummy_true                             , GLL, GLC,  11, ES2, 2012)
+EXT(KHR_no_error                            , dummy_true                             , GLL, GLC, ES1, ES2, 2015)
 EXT(KHR_robust_buffer_access_behavior       , ARB_robust_buffer_access_behavior      , GLL, GLC,  x , ES2, 2014)
 EXT(KHR_robustness                          , KHR_robustness                         , GLL, GLC,  x , ES2, 2012)
 EXT(KHR_texture_compression_astc_hdr        , KHR_texture_compression_astc_hdr       , GLL, GLC,  x , ES2, 2012)

@@ -180,7 +180,7 @@ constant_template_mul = mako.template.Template("""\
          for (unsigned j = 0; j < p; j++) {
             for (unsigned i = 0; i < n; i++) {
                for (unsigned k = 0; k < m; k++) {
-                  if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+                  if (op[0]->type->is_double())
                      data.d[i+n*j] += op[0]->value.d[i+n*k]*op[1]->value.d[k+m*j];
                   else
                      data.f[i+n*j] += op[0]->value.f[i+n*k]*op[1]->value.f[k+m*j];
@@ -276,12 +276,9 @@ constant_template_vector = mako.template.Template("""\
 # This template is for ir_triop_lrp.
 constant_template_lrp = mako.template.Template("""\
    case ${op.get_enum_name()}: {
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT ||
-             op[0]->type->base_type == GLSL_TYPE_DOUBLE);
-      assert(op[1]->type->base_type == GLSL_TYPE_FLOAT ||
-             op[1]->type->base_type == GLSL_TYPE_DOUBLE);
-      assert(op[2]->type->base_type == GLSL_TYPE_FLOAT ||
-             op[2]->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(op[0]->type->is_float() || op[0]->type->is_double());
+      assert(op[1]->type->is_float() || op[1]->type->is_double());
+      assert(op[2]->type->is_float() || op[2]->type->is_double());
 
       unsigned c2_inc = op[2]->type->is_scalar() ? 0 : 1;
       for (unsigned c = 0, c2 = 0; c < components; c2 += c2_inc, c++) {

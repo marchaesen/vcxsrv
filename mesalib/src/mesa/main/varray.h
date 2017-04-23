@@ -312,7 +312,8 @@ extern void GLAPIENTRY
 _mesa_VertexAttribDivisor(GLuint index, GLuint divisor);
 
 extern unsigned
-_mesa_primitive_restart_index(const struct gl_context *ctx, GLenum ib_type);
+_mesa_primitive_restart_index(const struct gl_context *ctx,
+                              unsigned index_size);
 
 extern void GLAPIENTRY
 _mesa_BindVertexBuffer(GLuint bindingIndex, GLuint buffer, GLintptr offset,

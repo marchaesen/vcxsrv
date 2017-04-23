@@ -80,12 +80,10 @@ LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
 LIBDRM_FREEDRENO_REQUIRED=2.4.74
 LIBDRM_VC4_REQUIRED=2.4.69
-LIBDRM_ETNAVIV_REQUIRED=2.4.74
+LIBDRM_ETNAVIV_REQUIRED=2.4.80
 
 dnl Versions for external dependencies
 DRI2PROTO_REQUIRED=2.8
-DRI3PROTO_REQUIRED=1.0
-PRESENTPROTO_REQUIRED=1.0
 GLPROTO_REQUIRED=1.4.14
 LIBOMXIL_BELLAGIO_REQUIRED=0.0
 LIBVA_REQUIRED=0.38.0
@@ -515,6 +513,12 @@ AC_ARG_ENABLE([profile],
     [enable_profile=no]
 )
 
+AC_ARG_ENABLE([sanitize],
+    [AS_HELP_STRING([--enable-sanitize@<:@=address|undefined@:>@],
+        [enable code sanitizer @<:@default=disabled@:>@])],
+    [enable_sanitize="$enableval"],
+    [enable_sanitize=no])
+
 if test "x$enable_profile" = xyes; then
     DEFINES="$DEFINES -DPROFILE"
     if test "x$GCC" = xyes; then
@@ -548,6 +552,21 @@ if test "x$enable_debug" = xyes; then
     fi
 else
    DEFINES="$DEFINES -DNDEBUG"
+fi
+
+if test "x$enable_sanitize" != xno; then
+    if test "x$enable_profile" = xyes; then
+        AC_MSG_WARN([Sanitize and Profile are enabled at the same time])
+    fi
+
+    CFLAGS="$CFLAGS -fsanitize=$enable_sanitize"
+    CXXFLAGS="$CXXFLAGS -fsanitize=$enable_sanitize"
+    LDFLAGS="$LDFLAGS -fsanitize=$enable_sanitize"
+
+    AC_LINK_IFELSE(
+        [AC_LANG_SOURCE([int main(){return 0;}])],
+        [],
+        [AC_MSG_FAILURE([sanitize flags '$enable_sanitize' not supported])])
 fi
 
 dnl
@@ -590,7 +609,12 @@ case "$host_os" in
 openbsd* | darwin* )
     LD_NO_UNDEFINED="" ;;
 *)
-    LD_NO_UNDEFINED="-Wl,--no-undefined" ;;
+    if test "x$enable_sanitize" = xno; then
+        LD_NO_UNDEFINED="-Wl,--no-undefined"
+    else
+        LD_NO_UNDEFINED=""
+    fi
+    ;;
 esac
 
 AC_SUBST([LD_NO_UNDEFINED])
@@ -1048,12 +1072,13 @@ AC_ARG_ENABLE([libunwind],
         [LIBUNWIND="$enableval"],
         [LIBUNWIND="auto"])
 
-PKG_CHECK_MODULES(LIBUNWIND, libunwind, [HAVE_LIBUNWIND=yes], [HAVE_LIBUNWIND=no])
+PKG_CHECK_EXISTS(libunwind, [HAVE_LIBUNWIND=yes], [HAVE_LIBUNWIND=no])
 if test "x$LIBUNWIND" = "xauto"; then
     LIBUNWIND="$HAVE_LIBUNWIND"
 fi
 
 if test "x$LIBUNWIND" = "xyes"; then
+    PKG_CHECK_MODULES(LIBUNWIND, libunwind)
     if test "x$HAVE_LIBUNWIND" != "xyes"; then
         AC_MSG_ERROR([libunwind requested but not installed.])
     fi
@@ -1321,10 +1346,11 @@ dnl Libglvnd configuration
 dnl
 AC_ARG_ENABLE([libglvnd],
     [AS_HELP_STRING([--enable-libglvnd],
-        [Build for libglvnd @<:@default=disabled@:>@])],
+        [Build GLX and EGL for libglvnd @<:@default=disabled@:>@])],
     [enable_libglvnd="$enableval"],
     [enable_libglvnd=no])
-AM_CONDITIONAL(USE_LIBGLVND_GLX, test "x$enable_libglvnd" = xyes)
+AM_CONDITIONAL(USE_LIBGLVND, test "x$enable_libglvnd" = xyes)
+
 if test "x$enable_libglvnd" = xyes ; then
     dnl XXX: update once we can handle more than libGL/glx.
     dnl Namely: we should error out if neither of the glvnd enabled libraries
@@ -1340,8 +1366,11 @@ if test "x$enable_libglvnd" = xyes ; then
         ;;
     esac
 
-    PKG_CHECK_MODULES([GLVND], libglvnd >= 0.1.0)
-    DEFINES="${DEFINES} -DUSE_LIBGLVND_GLX=1"
+    PKG_CHECK_MODULES([GLVND], libglvnd >= 0.2.0)
+    LIBGLVND_DATADIR=`$PKG_CONFIG --variable=datadir libglvnd`
+    AC_SUBST([LIBGLVND_DATADIR])
+
+    DEFINES="${DEFINES} -DUSE_LIBGLVND=1"
     DEFAULT_GL_LIB_NAME=GLX_mesa
 fi
 
@@ -1512,11 +1541,6 @@ xdri)
 
             PKG_CHECK_MODULES([DRI2PROTO], [dri2proto >= $DRI2PROTO_REQUIRED])
             GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV libdrm >= $LIBDRM_REQUIRED"
-            if test x"$enable_dri3" = xyes; then
-               PKG_CHECK_MODULES([DRI3PROTO], [dri3proto >= $DRI3PROTO_REQUIRED])
-               PKG_CHECK_MODULES([PRESENTPROTO], [presentproto >= $PRESENTPROTO_REQUIRED])
-            fi
-
             if test x"$enable_dri" = xyes; then
                dri_modules="$dri_modules xcb-dri2 >= $XCBDRI2_REQUIRED"
             fi
@@ -2118,14 +2142,16 @@ dnl
 AM_CONDITIONAL(HAVE_GALLIUM, test -n "$with_gallium_drivers")
 
 dnl
-dnl EGL Platforms configuration
+dnl DEPRECATED: EGL Platforms configuration
 dnl
 AC_ARG_WITH([egl-platforms],
     [AS_HELP_STRING([--with-egl-platforms@<:@=DIRS...@:>@],
-        [comma delimited native platforms libEGL supports, e.g.
-        "x11,drm" @<:@default=auto@:>@])],
+        [DEPRECATED: use --with-plaforms instead@<:@default=auto@:>@])],
     [with_egl_platforms="$withval"],
-    [if test "x$enable_egl" = xyes; then
+    [with_egl_platforms=auto])
+
+if test "x$with_egl_platforms" = xauto; then
+    if test "x$enable_egl" = xyes; then
         if test "x$enable_gbm" = xyes; then
            with_egl_platforms="x11,drm"
         else
@@ -2133,10 +2159,24 @@ AC_ARG_WITH([egl-platforms],
         fi
     else
         with_egl_platforms=""
-    fi])
+    fi
+else
+    AC_MSG_WARN([--with-egl-platforms is deprecated. Use --with-plaforms instead.])
+fi
 
-if test "x$with_egl_platforms" != "x" -a "x$enable_egl" != xyes; then
-    AC_MSG_ERROR([cannot build egl state tracker without EGL library])
+dnl
+dnl Platforms configuration
+dnl
+AC_ARG_WITH([platforms],
+    [AS_HELP_STRING([--with-platforms@<:@=DIRS...@:>@],
+        [comma delimited native platforms libEGL/Vulkan/other supports, e.g.
+        "x11,drm,wayland,surfaceless..." @<:@default=auto@:>@])],
+    [with_platforms="$withval"],
+    [with_platforms=auto])
+
+# For the time being, we still reuse the EGL named variables/defines.
+if test "x$with_platforms" != xauto; then
+    with_egl_platforms=$with_platforms
 fi
 
 PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland-scanner],
@@ -2282,8 +2322,8 @@ require_basic_egl() {
             ;;
         *)
             AC_MSG_ERROR([$1 requires one of these:
-                  1) --with-egl-platforms=drm (X, Wayland, offscreen rendering based on DRM)
-                  2) --with-egl-platforms=surfaceless (offscreen only)
+                  1) --with-platforms=drm (X, Wayland, offscreen rendering based on DRM)
+                  2) --with-platforms=surfaceless (offscreen only)
                   Recommended options: drm,x11])
             ;;
     esac
@@ -2426,7 +2466,9 @@ if test -n "$with_gallium_drivers"; then
         xvirgl)
             HAVE_GALLIUM_VIRGL=yes
             require_libdrm "virgl"
-            require_basic_egl "virgl"
+            if test "x$enable_egl" = xyes; then
+                require_basic_egl "virgl"
+            fi
             ;;
         *)
             AC_MSG_ERROR([Unknown Gallium driver: $driver])
@@ -2813,7 +2855,6 @@ dnl EGL
 echo ""
 echo "        EGL:             $enable_egl"
 if test "$enable_egl" = yes; then
-    echo "        EGL platforms:   $egl_platforms"
 
     egl_drivers=""
     if test "x$enable_dri" != "xno"; then
@@ -2830,6 +2871,8 @@ if test "x$enable_gbm" = xyes; then
 else
     echo "        GBM:             no"
 fi
+
+    echo "        EGL/Vulkan/VL platforms:   $egl_platforms"
 
 # Vulkan
 echo ""

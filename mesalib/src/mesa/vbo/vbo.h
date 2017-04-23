@@ -69,7 +69,7 @@ struct _mesa_prim {
  */
 struct _mesa_index_buffer {
    GLuint count;
-   GLenum type;
+   unsigned index_size;
    struct gl_buffer_object *obj;
    const void *ptr;
 };

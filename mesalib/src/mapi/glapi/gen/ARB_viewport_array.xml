@@ -32,7 +32,7 @@
     <function name="ViewportArrayv">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="v" type="const GLfloat *"/>
+        <param name="v" type="const GLfloat *" count="count" count_scale="4"/>
     </function>
     <function name="ViewportIndexedf">
         <param name="index" type="GLuint"/>
@@ -43,12 +43,12 @@
     </function>
     <function name="ViewportIndexedfv">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLfloat *"/>
+        <param name="v" type="const GLfloat *" count="4"/>
     </function>
     <function name="ScissorArrayv">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="v" type="const int *"/>
+        <param name="v" type="const int *" count="count" count_scale="4"/>
     </function>
     <function name="ScissorIndexed">
         <param name="index" type="GLuint"/>
@@ -59,12 +59,12 @@
     </function>
     <function name="ScissorIndexedv">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLint *"/>
+        <param name="v" type="const GLint *" count="4"/>
     </function>
     <function name="DepthRangeArrayv">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="v" type="const GLclampd *"/>
+        <param name="v" type="const GLclampd *" count="count" count_scale="2"/>
     </function>
     <function name="DepthRangeIndexed">
         <param name="index" type="GLuint"/>

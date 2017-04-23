@@ -75,9 +75,6 @@ void
 validate_interstage_uniform_blocks(struct gl_shader_program *prog,
                                    gl_linked_shader **stages);
 
-unsigned
-values_for_type(const glsl_type *type);
-
 extern void
 link_assign_atomic_counter_resources(struct gl_context *ctx,
                                      struct gl_shader_program *prog);

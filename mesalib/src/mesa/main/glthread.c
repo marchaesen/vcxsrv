@@ -265,7 +265,7 @@ _mesa_glthread_finish(struct gl_context *ctx)
     * dri interface entrypoints), in which case we don't need to actually
     * synchronize against ourself.
     */
-   if (pthread_self() == glthread->thread)
+   if (pthread_equal(pthread_self(), glthread->thread))
       return;
 
    pthread_mutex_lock(&glthread->mutex);

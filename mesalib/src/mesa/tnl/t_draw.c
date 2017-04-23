@@ -358,7 +358,7 @@ static void bind_indices( struct gl_context *ctx,
       bo[*nr_bo] = ib->obj;
       (*nr_bo)++;
       ptr = ctx->Driver.MapBufferRange(ctx, (GLsizeiptr) ib->ptr,
-                                       ib->count * vbo_sizeof_ib_type(ib->type),
+                                       ib->count * ib->index_size,
 				       GL_MAP_READ_BIT, ib->obj,
                                        MAP_INTERNAL);
       assert(ib->obj->Mappings[MAP_INTERNAL].Pointer);
@@ -367,19 +367,19 @@ static void bind_indices( struct gl_context *ctx,
       ptr = ADD_POINTERS(ib->obj->Mappings[MAP_INTERNAL].Pointer, ib->ptr);
    }
 
-   if (ib->type == GL_UNSIGNED_INT && VB->Primitive[0].basevertex == 0) {
+   if (ib->index_size == 4 && VB->Primitive[0].basevertex == 0) {
       VB->Elts = (GLuint *) ptr;
    }
    else {
       GLuint *elts = (GLuint *)get_space(ctx, ib->count * sizeof(GLuint));
       VB->Elts = elts;
 
-      if (ib->type == GL_UNSIGNED_INT) {
+      if (ib->index_size == 4) {
 	 const GLuint *in = (GLuint *)ptr;
 	 for (i = 0; i < ib->count; i++)
 	    *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;
       }
-      else if (ib->type == GL_UNSIGNED_SHORT) {
+      else if (ib->index_size == 2) {
 	 const GLushort *in = (GLushort *)ptr;
 	 for (i = 0; i < ib->count; i++) 
 	    *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;

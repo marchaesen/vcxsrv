@@ -278,7 +278,7 @@ create_queries(struct gl_context *ctx, GLenum target, GLsizei n, GLuint *ids,
             q->EverBound = GL_TRUE;
          }
          ids[i] = first + i;
-         _mesa_HashInsert(ctx->Query.QueryObjects, first + i, q);
+         _mesa_HashInsertLocked(ctx->Query.QueryObjects, first + i, q);
       }
    }
 }
@@ -345,7 +345,7 @@ _mesa_DeleteQueries(GLsizei n, const GLuint *ids)
                q->Active = GL_FALSE;
                ctx->Driver.EndQuery(ctx, q);
             }
-            _mesa_HashRemove(ctx->Query.QueryObjects, ids[i]);
+            _mesa_HashRemoveLocked(ctx->Query.QueryObjects, ids[i]);
             ctx->Driver.DeleteQuery(ctx, q);
          }
       }
@@ -448,7 +448,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBeginQuery{Indexed}");
             return;
          }
-         _mesa_HashInsert(ctx->Query.QueryObjects, id, q);
+         _mesa_HashInsertLocked(ctx->Query.QueryObjects, id, q);
       }
    }
    else {
@@ -590,7 +590,7 @@ _mesa_QueryCounter(GLuint id, GLenum target)
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glQueryCounter");
          return;
       }
-      _mesa_HashInsert(ctx->Query.QueryObjects, id, q);
+      _mesa_HashInsertLocked(ctx->Query.QueryObjects, id, q);
    }
    else {
       if (q->Target && q->Target != GL_TIMESTAMP) {

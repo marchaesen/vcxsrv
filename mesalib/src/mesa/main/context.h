@@ -324,6 +324,13 @@ _mesa_is_gles32(const struct gl_context *ctx)
 }
 
 
+static inline bool
+_mesa_is_no_error_enabled(const struct gl_context *ctx)
+{
+   return ctx->Const.ContextFlags & GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
+}
+
+
 /**
  * Checks if the context supports geometry shaders.
  */

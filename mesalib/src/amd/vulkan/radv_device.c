@@ -502,8 +502,8 @@ void radv_GetPhysicalDeviceFeatures(
 		.shaderInt64                              = false,
 		.shaderInt16                              = false,
 		.sparseBinding                            = true,
-		.variableMultisampleRate                  = false,
-		.inheritedQueries                         = false,
+		.variableMultisampleRate                  = true,
+		.inheritedQueries                         = true,
 	};
 }
 
@@ -542,6 +542,20 @@ void radv_GetPhysicalDeviceProperties(
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	VkSampleCountFlags sample_counts = 0xf;
+
+	/* make sure that the entire descriptor set is addressable with a signed
+	 * 32-bit int. So the sum of all limits scaled by descriptor size has to
+	 * be at most 2 GiB. the combined image & samples object count as one of
+	 * both. This limit is for the pipeline layout, not for the set layout, but
+	 * there is no set limit, so we just set a pipeline limit. I don't think
+	 * any app is going to hit this soon. */
+	size_t max_descriptor_set_size = ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS) /
+	          (32 /* uniform buffer, 32 due to potential space wasted on alignement */ +
+	           32 /* storage buffer, 32 due to potential space wasted on alignement */ +
+	           32 /* sampler, largest when combined with image */ +
+	           64 /* sampled image */ +
+	           64 /* storage image */);
+
 	VkPhysicalDeviceLimits limits = {
 		.maxImageDimension1D                      = (1 << 14),
 		.maxImageDimension2D                      = (1 << 14),
@@ -557,21 +571,21 @@ void radv_GetPhysicalDeviceProperties(
 		.bufferImageGranularity                   = 64, /* A cache line */
 		.sparseAddressSpaceSize                   = 0xffffffffu, /* buffer max size */
 		.maxBoundDescriptorSets                   = MAX_SETS,
-		.maxPerStageDescriptorSamplers            = (1u << 31) / 16,
-		.maxPerStageDescriptorUniformBuffers      = (1u << 31) / 16,
-		.maxPerStageDescriptorStorageBuffers      = (1u << 31) / 16,
-		.maxPerStageDescriptorSampledImages       = (1u << 31) / 96,
-		.maxPerStageDescriptorStorageImages       = (1u << 31) / 64,
-		.maxPerStageDescriptorInputAttachments    = (1u << 31) / 64,
-		.maxPerStageResources                     = (1u << 31) / 32,
-		.maxDescriptorSetSamplers                 = 256,
-		.maxDescriptorSetUniformBuffers           = (1u << 31) / 16,
-		.maxDescriptorSetUniformBuffersDynamic    = 8,
-		.maxDescriptorSetStorageBuffers           = (1u << 31) / 16,
-		.maxDescriptorSetStorageBuffersDynamic    = 8,
-		.maxDescriptorSetSampledImages            = (1u << 31) / 96,
-		.maxDescriptorSetStorageImages            = (1u << 31) / 64,
-		.maxDescriptorSetInputAttachments         = (1u << 31) / 64,
+		.maxPerStageDescriptorSamplers            = max_descriptor_set_size,
+		.maxPerStageDescriptorUniformBuffers      = max_descriptor_set_size,
+		.maxPerStageDescriptorStorageBuffers      = max_descriptor_set_size,
+		.maxPerStageDescriptorSampledImages       = max_descriptor_set_size,
+		.maxPerStageDescriptorStorageImages       = max_descriptor_set_size,
+		.maxPerStageDescriptorInputAttachments    = max_descriptor_set_size,
+		.maxPerStageResources                     = max_descriptor_set_size,
+		.maxDescriptorSetSamplers                 = max_descriptor_set_size,
+		.maxDescriptorSetUniformBuffers           = max_descriptor_set_size,
+		.maxDescriptorSetUniformBuffersDynamic    = MAX_DYNAMIC_BUFFERS / 2,
+		.maxDescriptorSetStorageBuffers           = max_descriptor_set_size,
+		.maxDescriptorSetStorageBuffersDynamic    = MAX_DYNAMIC_BUFFERS / 2,
+		.maxDescriptorSetSampledImages            = max_descriptor_set_size,
+		.maxDescriptorSetStorageImages            = max_descriptor_set_size,
+		.maxDescriptorSetInputAttachments         = max_descriptor_set_size,
 		.maxVertexInputAttributes                 = 32,
 		.maxVertexInputBindings                   = 32,
 		.maxVertexInputAttributeOffset            = 2047,
@@ -585,7 +599,7 @@ void radv_GetPhysicalDeviceProperties(
 		.maxTessellationControlTotalOutputComponents = 4096,
 		.maxTessellationEvaluationInputComponents = 128,
 		.maxTessellationEvaluationOutputComponents = 128,
-		.maxGeometryShaderInvocations             = 32,
+		.maxGeometryShaderInvocations             = 127,
 		.maxGeometryInputComponents               = 64,
 		.maxGeometryOutputComponents              = 128,
 		.maxGeometryOutputVertices                = 256,
@@ -638,8 +652,8 @@ void radv_GetPhysicalDeviceProperties(
 		.sampledImageStencilSampleCounts          = sample_counts,
 		.storageImageSampleCounts                 = VK_SAMPLE_COUNT_1_BIT,
 		.maxSampleMaskWords                       = 1,
-		.timestampComputeAndGraphics              = false,
-		.timestampPeriod                          = 100000.0 / pdevice->rad_info.clock_crystal_freq,
+		.timestampComputeAndGraphics              = true,
+		.timestampPeriod                          = 1000000.0 / pdevice->rad_info.clock_crystal_freq,
 		.maxClipDistances                         = 8,
 		.maxCullDistances                         = 8,
 		.maxCombinedClipAndCullDistances          = 8,
@@ -662,7 +676,7 @@ void radv_GetPhysicalDeviceProperties(
 		.deviceID = pdevice->rad_info.pci_id,
 		.deviceType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
 		.limits = limits,
-		.sparseProperties = {0}, /* Broadwell doesn't do sparse. */
+		.sparseProperties = {0},
 	};
 
 	strcpy(pProperties->deviceName, pdevice->name);

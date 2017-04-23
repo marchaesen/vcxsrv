@@ -42,21 +42,6 @@
  */
 #define UNMAPPED_UNIFORM_LOC ~0u
 
-/**
- * Count the backing storage requirements for a type
- */
-unsigned
-values_for_type(const glsl_type *type)
-{
-   if (type->is_sampler()) {
-      return 1;
-   } else if (type->is_array() && type->fields.array->is_sampler()) {
-      return type->array_size();
-   } else {
-      return type->component_slots();
-   }
-}
-
 void
 program_resource_visitor::process(const glsl_type *type, const char *name)
 {
@@ -351,7 +336,7 @@ private:
        * uniform for multiple shader targets, but in this case we want to
        * count it for each shader target.
        */
-      const unsigned values = values_for_type(type);
+      const unsigned values = type->component_slots();
       if (type->contains_subroutine()) {
          this->num_shader_subroutines += values;
       } else if (type->contains_sampler()) {
@@ -787,7 +772,7 @@ private:
 
          if (type->without_array()->is_matrix()) {
             const glsl_type *matrix = type->without_array();
-            const unsigned N = matrix->base_type == GLSL_TYPE_DOUBLE ? 8 : 4;
+            const unsigned N = matrix->is_double() ? 8 : 4;
             const unsigned items =
                row_major ? matrix->matrix_columns : matrix->vector_elements;
 
@@ -813,7 +798,7 @@ private:
       if (!this->uniforms[id].builtin &&
           !this->uniforms[id].is_shader_storage &&
           this->buffer_block_index == -1)
-         this->values += values_for_type(type);
+         this->values += type->component_slots();
    }
 
    /**

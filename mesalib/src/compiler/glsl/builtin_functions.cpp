@@ -3417,7 +3417,7 @@ builtin_builder::imm(const glsl_type *type, const ir_constant_data &data)
    return new(mem_ctx) ir_constant(type, &data);
 }
 
-#define IMM_FP(type, val) (type->base_type == GLSL_TYPE_DOUBLE) ? imm(val) : imm((float)val)
+#define IMM_FP(type, val) (type->is_double()) ? imm(val) : imm((float)val)
 
 ir_dereference_variable *
 builtin_builder::var_ref(ir_variable *var)
@@ -3985,14 +3985,14 @@ builtin_builder::_step(builtin_available_predicate avail, const glsl_type *edge_
    ir_variable *t = body.make_temp(x_type, "t");
    if (x_type->vector_elements == 1) {
       /* Both are floats */
-      if (edge_type->base_type == GLSL_TYPE_DOUBLE)
+      if (edge_type->is_double())
          body.emit(assign(t, f2d(b2f(gequal(x, edge)))));
       else
          body.emit(assign(t, b2f(gequal(x, edge))));
    } else if (edge_type->vector_elements == 1) {
       /* x is a vector but edge is a float */
       for (int i = 0; i < x_type->vector_elements; i++) {
-         if (edge_type->base_type == GLSL_TYPE_DOUBLE)
+         if (edge_type->is_double())
             body.emit(assign(t, f2d(b2f(gequal(swizzle(x, i, 1), edge))), 1 << i));
          else
             body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), edge)), 1 << i));
@@ -4000,7 +4000,7 @@ builtin_builder::_step(builtin_available_predicate avail, const glsl_type *edge_
    } else {
       /* Both are vectors */
       for (int i = 0; i < x_type->vector_elements; i++) {
-         if (edge_type->base_type == GLSL_TYPE_DOUBLE)
+         if (edge_type->is_double())
             body.emit(assign(t, f2d(b2f(gequal(swizzle(x, i, 1), swizzle(edge, i, 1)))),
                              1 << i));
          else
@@ -4452,7 +4452,7 @@ builtin_builder::_outerProduct(builtin_available_predicate avail, const glsl_typ
    ir_variable *c;
    ir_variable *r;
 
-   if (type->base_type == GLSL_TYPE_DOUBLE) {
+   if (type->is_double()) {
       r = in_var(glsl_type::dvec(type->matrix_columns), "r");
       c = in_var(glsl_type::dvec(type->vector_elements), "c");
    } else {
@@ -5475,7 +5475,7 @@ builtin_builder::_fma(builtin_available_predicate avail, const glsl_type *type)
 ir_function_signature *
 builtin_builder::_ldexp(const glsl_type *x_type, const glsl_type *exp_type)
 {
-   return binop(x_type->base_type == GLSL_TYPE_DOUBLE ? fp64 : gpu_shader5_or_es31_or_integer_functions,
+   return binop(x_type->is_double() ? fp64 : gpu_shader5_or_es31_or_integer_functions,
                 ir_binop_ldexp, x_type, x_type, exp_type);
 }
 

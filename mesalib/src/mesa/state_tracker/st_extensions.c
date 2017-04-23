@@ -1129,6 +1129,11 @@ void st_init_extensions(struct pipe_screen *screen,
          extensions->AMD_vertex_shader_viewport_index = GL_TRUE;
    }
 
+   if (extensions->AMD_vertex_shader_layer &&
+       extensions->AMD_vertex_shader_viewport_index &&
+       screen->get_param(screen, PIPE_CAP_TGSI_TES_LAYER_VIEWPORT))
+      extensions->ARB_shader_viewport_layer_array = GL_TRUE;
+
    /* ARB_framebuffer_no_attachments */
    if (screen->get_param(screen, PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT) &&
        ((consts->MaxSamples >= 4 && consts->MaxFramebufferLayers >= 2048) ||

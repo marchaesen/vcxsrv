@@ -175,7 +175,7 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
    GLuint sub_prim_num;
    GLuint end_index;
    GLuint sub_end_index;
-   GLuint restart_index = _mesa_primitive_restart_index(ctx, ib->type);
+   GLuint restart_index = _mesa_primitive_restart_index(ctx, ib->index_size);
    struct _mesa_prim temp_prim;
    struct vbo_context *vbo = vbo_context(ctx);
    vbo_draw_func draw_prims_func = vbo->draw_prims;
@@ -226,7 +226,7 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
 
    ptr = ADD_POINTERS(ib->obj->Mappings[MAP_INTERNAL].Pointer, ib->ptr);
 
-   sub_prims = find_sub_primitives(ptr, vbo_sizeof_ib_type(ib->type),
+   sub_prims = find_sub_primitives(ptr, ib->index_size,
                                    0, ib->count, restart_index,
                                    &num_sub_prims);
 

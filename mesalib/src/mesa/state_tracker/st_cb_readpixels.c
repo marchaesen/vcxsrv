@@ -251,14 +251,6 @@ fail:
    return success;
 }
 
-/* Invalidate the readpixels cache to ensure we don't read stale data.
- */
-void st_invalidate_readpix_cache(struct st_context *st)
-{
-   pipe_resource_reference(&st->readpix_cache.src, NULL);
-   pipe_resource_reference(&st->readpix_cache.cache, NULL);
-}
-
 /**
  * Create a staging texture and blit the requested region to it.
  */

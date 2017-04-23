@@ -66,7 +66,6 @@ _mesa_delete_pipeline_object(struct gl_context *ctx,
    }
 
    _mesa_reference_shader_program(ctx, &obj->ActiveProgram, NULL);
-   mtx_destroy(&obj->Mutex);
    free(obj->Label);
    ralloc_free(obj);
 }
@@ -80,7 +79,6 @@ _mesa_new_pipeline_object(struct gl_context *ctx, GLuint name)
    struct gl_pipeline_object *obj = rzalloc(NULL, struct gl_pipeline_object);
    if (obj) {
       obj->Name = name;
-      mtx_init(&obj->Mutex, mtx_plain);
       obj->RefCount = 1;
       obj->Flags = _mesa_get_shader_flags();
       obj->InfoLog = NULL;
@@ -146,7 +144,7 @@ _mesa_lookup_pipeline_object(struct gl_context *ctx, GLuint id)
       return NULL;
    else
       return (struct gl_pipeline_object *)
-         _mesa_HashLookup(ctx->Pipeline.Objects, id);
+         _mesa_HashLookupLocked(ctx->Pipeline.Objects, id);
 }
 
 /**
@@ -156,7 +154,7 @@ static void
 save_pipeline_object(struct gl_context *ctx, struct gl_pipeline_object *obj)
 {
    if (obj->Name > 0) {
-      _mesa_HashInsert(ctx->Pipeline.Objects, obj->Name, obj);
+      _mesa_HashInsertLocked(ctx->Pipeline.Objects, obj->Name, obj);
    }
 }
 
@@ -168,7 +166,7 @@ static void
 remove_pipeline_object(struct gl_context *ctx, struct gl_pipeline_object *obj)
 {
    if (obj->Name > 0) {
-      _mesa_HashRemove(ctx->Pipeline.Objects, obj->Name);
+      _mesa_HashRemoveLocked(ctx->Pipeline.Objects, obj->Name);
    }
 }
 
@@ -186,16 +184,12 @@ _mesa_reference_pipeline_object_(struct gl_context *ctx,
 
    if (*ptr) {
       /* Unreference the old pipeline object */
-      GLboolean deleteFlag = GL_FALSE;
       struct gl_pipeline_object *oldObj = *ptr;
 
-      mtx_lock(&oldObj->Mutex);
       assert(oldObj->RefCount > 0);
       oldObj->RefCount--;
-      deleteFlag = (oldObj->RefCount == 0);
-      mtx_unlock(&oldObj->Mutex);
 
-      if (deleteFlag) {
+      if (oldObj->RefCount == 0) {
          _mesa_delete_pipeline_object(ctx, oldObj);
       }
 
@@ -205,18 +199,10 @@ _mesa_reference_pipeline_object_(struct gl_context *ctx,
 
    if (obj) {
       /* reference new pipeline object */
-      mtx_lock(&obj->Mutex);
-      if (obj->RefCount == 0) {
-         /* this pipeline's being deleted (look just above) */
-         /* Not sure this can ever really happen.  Warn if it does. */
-         _mesa_problem(NULL, "referencing deleted pipeline object");
-         *ptr = NULL;
-      }
-      else {
-         obj->RefCount++;
-         *ptr = obj;
-      }
-      mtx_unlock(&obj->Mutex);
+      assert(obj->RefCount > 0);
+
+      obj->RefCount++;
+      *ptr = obj;
    }
 }
 

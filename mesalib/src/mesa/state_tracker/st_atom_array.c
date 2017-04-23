@@ -47,159 +47,187 @@
 #include "main/bufferobj.h"
 #include "main/glformats.h"
 
-
-static GLuint double_types[4] = {
-   PIPE_FORMAT_R64_FLOAT,
-   PIPE_FORMAT_R64G64_FLOAT,
-   PIPE_FORMAT_R64G64B64_FLOAT,
-   PIPE_FORMAT_R64G64B64A64_FLOAT
-};
-
-static GLuint float_types[4] = {
-   PIPE_FORMAT_R32_FLOAT,
-   PIPE_FORMAT_R32G32_FLOAT,
-   PIPE_FORMAT_R32G32B32_FLOAT,
-   PIPE_FORMAT_R32G32B32A32_FLOAT
-};
-
-static GLuint half_float_types[4] = {
-   PIPE_FORMAT_R16_FLOAT,
-   PIPE_FORMAT_R16G16_FLOAT,
-   PIPE_FORMAT_R16G16B16_FLOAT,
-   PIPE_FORMAT_R16G16B16A16_FLOAT
-};
-
-static GLuint uint_types_norm[4] = {
-   PIPE_FORMAT_R32_UNORM,
-   PIPE_FORMAT_R32G32_UNORM,
-   PIPE_FORMAT_R32G32B32_UNORM,
-   PIPE_FORMAT_R32G32B32A32_UNORM
-};
-
-static GLuint uint_types_scale[4] = {
-   PIPE_FORMAT_R32_USCALED,
-   PIPE_FORMAT_R32G32_USCALED,
-   PIPE_FORMAT_R32G32B32_USCALED,
-   PIPE_FORMAT_R32G32B32A32_USCALED
-};
-
-static GLuint uint_types_int[4] = {
-   PIPE_FORMAT_R32_UINT,
-   PIPE_FORMAT_R32G32_UINT,
-   PIPE_FORMAT_R32G32B32_UINT,
-   PIPE_FORMAT_R32G32B32A32_UINT
-};
-
-static GLuint int_types_norm[4] = {
-   PIPE_FORMAT_R32_SNORM,
-   PIPE_FORMAT_R32G32_SNORM,
-   PIPE_FORMAT_R32G32B32_SNORM,
-   PIPE_FORMAT_R32G32B32A32_SNORM
-};
-
-static GLuint int_types_scale[4] = {
-   PIPE_FORMAT_R32_SSCALED,
-   PIPE_FORMAT_R32G32_SSCALED,
-   PIPE_FORMAT_R32G32B32_SSCALED,
-   PIPE_FORMAT_R32G32B32A32_SSCALED
-};
-
-static GLuint int_types_int[4] = {
-   PIPE_FORMAT_R32_SINT,
-   PIPE_FORMAT_R32G32_SINT,
-   PIPE_FORMAT_R32G32B32_SINT,
-   PIPE_FORMAT_R32G32B32A32_SINT
-};
-
-static GLuint ushort_types_norm[4] = {
-   PIPE_FORMAT_R16_UNORM,
-   PIPE_FORMAT_R16G16_UNORM,
-   PIPE_FORMAT_R16G16B16_UNORM,
-   PIPE_FORMAT_R16G16B16A16_UNORM
-};
-
-static GLuint ushort_types_scale[4] = {
-   PIPE_FORMAT_R16_USCALED,
-   PIPE_FORMAT_R16G16_USCALED,
-   PIPE_FORMAT_R16G16B16_USCALED,
-   PIPE_FORMAT_R16G16B16A16_USCALED
-};
-
-static GLuint ushort_types_int[4] = {
-   PIPE_FORMAT_R16_UINT,
-   PIPE_FORMAT_R16G16_UINT,
-   PIPE_FORMAT_R16G16B16_UINT,
-   PIPE_FORMAT_R16G16B16A16_UINT
-};
-
-static GLuint short_types_norm[4] = {
-   PIPE_FORMAT_R16_SNORM,
-   PIPE_FORMAT_R16G16_SNORM,
-   PIPE_FORMAT_R16G16B16_SNORM,
-   PIPE_FORMAT_R16G16B16A16_SNORM
-};
-
-static GLuint short_types_scale[4] = {
-   PIPE_FORMAT_R16_SSCALED,
-   PIPE_FORMAT_R16G16_SSCALED,
-   PIPE_FORMAT_R16G16B16_SSCALED,
-   PIPE_FORMAT_R16G16B16A16_SSCALED
-};
-
-static GLuint short_types_int[4] = {
-   PIPE_FORMAT_R16_SINT,
-   PIPE_FORMAT_R16G16_SINT,
-   PIPE_FORMAT_R16G16B16_SINT,
-   PIPE_FORMAT_R16G16B16A16_SINT
-};
-
-static GLuint ubyte_types_norm[4] = {
-   PIPE_FORMAT_R8_UNORM,
-   PIPE_FORMAT_R8G8_UNORM,
-   PIPE_FORMAT_R8G8B8_UNORM,
-   PIPE_FORMAT_R8G8B8A8_UNORM
-};
-
-static GLuint ubyte_types_scale[4] = {
-   PIPE_FORMAT_R8_USCALED,
-   PIPE_FORMAT_R8G8_USCALED,
-   PIPE_FORMAT_R8G8B8_USCALED,
-   PIPE_FORMAT_R8G8B8A8_USCALED
-};
-
-static GLuint ubyte_types_int[4] = {
-   PIPE_FORMAT_R8_UINT,
-   PIPE_FORMAT_R8G8_UINT,
-   PIPE_FORMAT_R8G8B8_UINT,
-   PIPE_FORMAT_R8G8B8A8_UINT
-};
-
-static GLuint byte_types_norm[4] = {
-   PIPE_FORMAT_R8_SNORM,
-   PIPE_FORMAT_R8G8_SNORM,
-   PIPE_FORMAT_R8G8B8_SNORM,
-   PIPE_FORMAT_R8G8B8A8_SNORM
-};
-
-static GLuint byte_types_scale[4] = {
-   PIPE_FORMAT_R8_SSCALED,
-   PIPE_FORMAT_R8G8_SSCALED,
-   PIPE_FORMAT_R8G8B8_SSCALED,
-   PIPE_FORMAT_R8G8B8A8_SSCALED
-};
-
-static GLuint byte_types_int[4] = {
-   PIPE_FORMAT_R8_SINT,
-   PIPE_FORMAT_R8G8_SINT,
-   PIPE_FORMAT_R8G8B8_SINT,
-   PIPE_FORMAT_R8G8B8A8_SINT
-};
-
-static GLuint fixed_types[4] = {
-   PIPE_FORMAT_R32_FIXED,
-   PIPE_FORMAT_R32G32_FIXED,
-   PIPE_FORMAT_R32G32B32_FIXED,
-   PIPE_FORMAT_R32G32B32A32_FIXED
+/* vertex_formats[gltype - GL_BYTE][integer*2 + normalized][size - 1] */
+static const uint16_t vertex_formats[][4][4] = {
+   { /* GL_BYTE */
+      {
+         PIPE_FORMAT_R8_SSCALED,
+         PIPE_FORMAT_R8G8_SSCALED,
+         PIPE_FORMAT_R8G8B8_SSCALED,
+         PIPE_FORMAT_R8G8B8A8_SSCALED
+      },
+      {
+         PIPE_FORMAT_R8_SNORM,
+         PIPE_FORMAT_R8G8_SNORM,
+         PIPE_FORMAT_R8G8B8_SNORM,
+         PIPE_FORMAT_R8G8B8A8_SNORM
+      },
+      {
+         PIPE_FORMAT_R8_SINT,
+         PIPE_FORMAT_R8G8_SINT,
+         PIPE_FORMAT_R8G8B8_SINT,
+         PIPE_FORMAT_R8G8B8A8_SINT
+      },
+   },
+   { /* GL_UNSIGNED_BYTE */
+      {
+         PIPE_FORMAT_R8_USCALED,
+         PIPE_FORMAT_R8G8_USCALED,
+         PIPE_FORMAT_R8G8B8_USCALED,
+         PIPE_FORMAT_R8G8B8A8_USCALED
+      },
+      {
+         PIPE_FORMAT_R8_UNORM,
+         PIPE_FORMAT_R8G8_UNORM,
+         PIPE_FORMAT_R8G8B8_UNORM,
+         PIPE_FORMAT_R8G8B8A8_UNORM
+      },
+      {
+         PIPE_FORMAT_R8_UINT,
+         PIPE_FORMAT_R8G8_UINT,
+         PIPE_FORMAT_R8G8B8_UINT,
+         PIPE_FORMAT_R8G8B8A8_UINT
+      },
+   },
+   { /* GL_SHORT */
+      {
+         PIPE_FORMAT_R16_SSCALED,
+         PIPE_FORMAT_R16G16_SSCALED,
+         PIPE_FORMAT_R16G16B16_SSCALED,
+         PIPE_FORMAT_R16G16B16A16_SSCALED
+      },
+      {
+         PIPE_FORMAT_R16_SNORM,
+         PIPE_FORMAT_R16G16_SNORM,
+         PIPE_FORMAT_R16G16B16_SNORM,
+         PIPE_FORMAT_R16G16B16A16_SNORM
+      },
+      {
+         PIPE_FORMAT_R16_SINT,
+         PIPE_FORMAT_R16G16_SINT,
+         PIPE_FORMAT_R16G16B16_SINT,
+         PIPE_FORMAT_R16G16B16A16_SINT
+      },
+   },
+   { /* GL_UNSIGNED_SHORT */
+      {
+         PIPE_FORMAT_R16_USCALED,
+         PIPE_FORMAT_R16G16_USCALED,
+         PIPE_FORMAT_R16G16B16_USCALED,
+         PIPE_FORMAT_R16G16B16A16_USCALED
+      },
+      {
+         PIPE_FORMAT_R16_UNORM,
+         PIPE_FORMAT_R16G16_UNORM,
+         PIPE_FORMAT_R16G16B16_UNORM,
+         PIPE_FORMAT_R16G16B16A16_UNORM
+      },
+      {
+         PIPE_FORMAT_R16_UINT,
+         PIPE_FORMAT_R16G16_UINT,
+         PIPE_FORMAT_R16G16B16_UINT,
+         PIPE_FORMAT_R16G16B16A16_UINT
+      },
+   },
+   { /* GL_INT */
+      {
+         PIPE_FORMAT_R32_SSCALED,
+         PIPE_FORMAT_R32G32_SSCALED,
+         PIPE_FORMAT_R32G32B32_SSCALED,
+         PIPE_FORMAT_R32G32B32A32_SSCALED
+      },
+      {
+         PIPE_FORMAT_R32_SNORM,
+         PIPE_FORMAT_R32G32_SNORM,
+         PIPE_FORMAT_R32G32B32_SNORM,
+         PIPE_FORMAT_R32G32B32A32_SNORM
+      },
+      {
+         PIPE_FORMAT_R32_SINT,
+         PIPE_FORMAT_R32G32_SINT,
+         PIPE_FORMAT_R32G32B32_SINT,
+         PIPE_FORMAT_R32G32B32A32_SINT
+      },
+   },
+   { /* GL_UNSIGNED_INT */
+      {
+         PIPE_FORMAT_R32_USCALED,
+         PIPE_FORMAT_R32G32_USCALED,
+         PIPE_FORMAT_R32G32B32_USCALED,
+         PIPE_FORMAT_R32G32B32A32_USCALED
+      },
+      {
+         PIPE_FORMAT_R32_UNORM,
+         PIPE_FORMAT_R32G32_UNORM,
+         PIPE_FORMAT_R32G32B32_UNORM,
+         PIPE_FORMAT_R32G32B32A32_UNORM
+      },
+      {
+         PIPE_FORMAT_R32_UINT,
+         PIPE_FORMAT_R32G32_UINT,
+         PIPE_FORMAT_R32G32B32_UINT,
+         PIPE_FORMAT_R32G32B32A32_UINT
+      },
+   },
+   { /* GL_FLOAT */
+      {
+         PIPE_FORMAT_R32_FLOAT,
+         PIPE_FORMAT_R32G32_FLOAT,
+         PIPE_FORMAT_R32G32B32_FLOAT,
+         PIPE_FORMAT_R32G32B32A32_FLOAT
+      },
+      {
+         PIPE_FORMAT_R32_FLOAT,
+         PIPE_FORMAT_R32G32_FLOAT,
+         PIPE_FORMAT_R32G32B32_FLOAT,
+         PIPE_FORMAT_R32G32B32A32_FLOAT
+      },
+   },
+   {{0}}, /* GL_2_BYTES */
+   {{0}}, /* GL_3_BYTES */
+   {{0}}, /* GL_4_BYTES */
+   { /* GL_DOUBLE */
+      {
+         PIPE_FORMAT_R64_FLOAT,
+         PIPE_FORMAT_R64G64_FLOAT,
+         PIPE_FORMAT_R64G64B64_FLOAT,
+         PIPE_FORMAT_R64G64B64A64_FLOAT
+      },
+      {
+         PIPE_FORMAT_R64_FLOAT,
+         PIPE_FORMAT_R64G64_FLOAT,
+         PIPE_FORMAT_R64G64B64_FLOAT,
+         PIPE_FORMAT_R64G64B64A64_FLOAT
+      },
+   },
+   { /* GL_HALF_FLOAT */
+      {
+         PIPE_FORMAT_R16_FLOAT,
+         PIPE_FORMAT_R16G16_FLOAT,
+         PIPE_FORMAT_R16G16B16_FLOAT,
+         PIPE_FORMAT_R16G16B16A16_FLOAT
+      },
+      {
+         PIPE_FORMAT_R16_FLOAT,
+         PIPE_FORMAT_R16G16_FLOAT,
+         PIPE_FORMAT_R16G16B16_FLOAT,
+         PIPE_FORMAT_R16G16B16A16_FLOAT
+      },
+   },
+   { /* GL_FIXED */
+      {
+         PIPE_FORMAT_R32_FIXED,
+         PIPE_FORMAT_R32G32_FIXED,
+         PIPE_FORMAT_R32G32B32_FIXED,
+         PIPE_FORMAT_R32G32B32A32_FIXED
+      },
+      {
+         PIPE_FORMAT_R32_FIXED,
+         PIPE_FORMAT_R32G32_FIXED,
+         PIPE_FORMAT_R32G32B32_FIXED,
+         PIPE_FORMAT_R32G32B32A32_FIXED
+      },
+   },
 };
 
 
@@ -210,107 +238,65 @@ enum pipe_format
 st_pipe_vertex_format(GLenum type, GLuint size, GLenum format,
                       GLboolean normalized, GLboolean integer)
 {
-   assert((type >= GL_BYTE && type <= GL_DOUBLE) ||
-          type == GL_FIXED || type == GL_HALF_FLOAT ||
-          type == GL_HALF_FLOAT_OES ||
-          type == GL_INT_2_10_10_10_REV ||
-          type == GL_UNSIGNED_INT_2_10_10_10_REV ||
-          type == GL_UNSIGNED_INT_10F_11F_11F_REV);
-   assert(size >= 1);
-   assert(size <= 4);
+   unsigned index;
+
+   assert(size >= 1 && size <= 4);
    assert(format == GL_RGBA || format == GL_BGRA);
 
-   if (type == GL_INT_2_10_10_10_REV ||
-       type == GL_UNSIGNED_INT_2_10_10_10_REV) {
-      assert(size == 4);
-      assert(!integer);
+   switch (type) {
+   case GL_HALF_FLOAT_OES:
+      type = GL_HALF_FLOAT;
+      break;
+
+   case GL_INT_2_10_10_10_REV:
+      assert(size == 4 && !integer);
 
       if (format == GL_BGRA) {
-         if (type == GL_INT_2_10_10_10_REV) {
-            if (normalized)
-               return PIPE_FORMAT_B10G10R10A2_SNORM;
-            else
-               return PIPE_FORMAT_B10G10R10A2_SSCALED;
-         } else {
-            if (normalized)
-               return PIPE_FORMAT_B10G10R10A2_UNORM;
-            else
-               return PIPE_FORMAT_B10G10R10A2_USCALED;
-         }
+         if (normalized)
+            return PIPE_FORMAT_B10G10R10A2_SNORM;
+         else
+            return PIPE_FORMAT_B10G10R10A2_SSCALED;
       } else {
-         if (type == GL_INT_2_10_10_10_REV) {
-            if (normalized)
-               return PIPE_FORMAT_R10G10B10A2_SNORM;
-            else
-               return PIPE_FORMAT_R10G10B10A2_SSCALED;
-         } else {
-            if (normalized)
-               return PIPE_FORMAT_R10G10B10A2_UNORM;
-            else
-               return PIPE_FORMAT_R10G10B10A2_USCALED;
-         }
+         if (normalized)
+            return PIPE_FORMAT_R10G10B10A2_SNORM;
+         else
+            return PIPE_FORMAT_R10G10B10A2_SSCALED;
       }
-   }
+      break;
 
-   if (type == GL_UNSIGNED_INT_10F_11F_11F_REV) {
-      assert(size == 3);
-      assert(!integer);
-      assert(format == GL_RGBA);
+   case GL_UNSIGNED_INT_2_10_10_10_REV:
+      assert(size == 4 && !integer);
 
+      if (format == GL_BGRA) {
+         if (normalized)
+            return PIPE_FORMAT_B10G10R10A2_UNORM;
+         else
+            return PIPE_FORMAT_B10G10R10A2_USCALED;
+      } else {
+         if (normalized)
+            return PIPE_FORMAT_R10G10B10A2_UNORM;
+         else
+            return PIPE_FORMAT_R10G10B10A2_USCALED;
+      }
+      break;
+
+   case GL_UNSIGNED_INT_10F_11F_11F_REV:
+      assert(size == 3 && !integer && format == GL_RGBA);
       return PIPE_FORMAT_R11G11B10_FLOAT;
+
+   case GL_UNSIGNED_BYTE:
+      if (format == GL_BGRA) {
+         /* this is an odd-ball case */
+         assert(normalized);
+         return PIPE_FORMAT_B8G8R8A8_UNORM;
+      }
+      break;
    }
 
-   if (format == GL_BGRA) {
-      /* this is an odd-ball case */
-      assert(type == GL_UNSIGNED_BYTE);
-      assert(normalized);
-      return PIPE_FORMAT_B8G8R8A8_UNORM;
-   }
-
-   if (integer) {
-      switch (type) {
-      case GL_INT: return int_types_int[size-1];
-      case GL_SHORT: return short_types_int[size-1];
-      case GL_BYTE: return byte_types_int[size-1];
-      case GL_UNSIGNED_INT: return uint_types_int[size-1];
-      case GL_UNSIGNED_SHORT: return ushort_types_int[size-1];
-      case GL_UNSIGNED_BYTE: return ubyte_types_int[size-1];
-      default: assert(0); return 0;
-      }
-   }
-   else if (normalized) {
-      switch (type) {
-      case GL_DOUBLE: return double_types[size-1];
-      case GL_FLOAT: return float_types[size-1];
-      case GL_HALF_FLOAT:
-      case GL_HALF_FLOAT_OES: return half_float_types[size-1];
-      case GL_INT: return int_types_norm[size-1];
-      case GL_SHORT: return short_types_norm[size-1];
-      case GL_BYTE: return byte_types_norm[size-1];
-      case GL_UNSIGNED_INT: return uint_types_norm[size-1];
-      case GL_UNSIGNED_SHORT: return ushort_types_norm[size-1];
-      case GL_UNSIGNED_BYTE: return ubyte_types_norm[size-1];
-      case GL_FIXED: return fixed_types[size-1];
-      default: assert(0); return 0;
-      }
-   }
-   else {
-      switch (type) {
-      case GL_DOUBLE: return double_types[size-1];
-      case GL_FLOAT: return float_types[size-1];
-      case GL_HALF_FLOAT:
-      case GL_HALF_FLOAT_OES: return half_float_types[size-1];
-      case GL_INT: return int_types_scale[size-1];
-      case GL_SHORT: return short_types_scale[size-1];
-      case GL_BYTE: return byte_types_scale[size-1];
-      case GL_UNSIGNED_INT: return uint_types_scale[size-1];
-      case GL_UNSIGNED_SHORT: return ushort_types_scale[size-1];
-      case GL_UNSIGNED_BYTE: return ubyte_types_scale[size-1];
-      case GL_FIXED: return fixed_types[size-1];
-      default: assert(0); return 0;
-      }
-   }
-   return PIPE_FORMAT_NONE; /* silence compiler warning */
+   index = integer*2 + normalized;
+   assert(index <= 2);
+   assert(type >= GL_BYTE && type <= GL_FIXED);
+   return vertex_formats[type - GL_BYTE][index][size-1];
 }
 
 static const struct gl_vertex_array *

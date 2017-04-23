@@ -1509,8 +1509,6 @@ struct gl_vertex_array_object
 
    GLchar *Label;       /**< GL_KHR_debug */
 
-   mtx_t Mutex;
-
    /**
     * Does the VAO use ARB semantics or Apple semantics?
     *
@@ -2504,7 +2502,8 @@ enum gl_compile_status
 {
    compile_failure = 0,
    compile_success,
-   compile_skipped
+   compile_skipped,
+   compiled_no_opts
 };
 
 /**
@@ -2999,8 +2998,6 @@ struct gl_pipeline_object
    GLuint Name;
 
    GLint RefCount;
-
-   mtx_t Mutex;
 
    GLchar *Label;   /**< GL_KHR_debug */
 

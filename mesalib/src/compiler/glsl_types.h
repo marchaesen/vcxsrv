@@ -479,12 +479,19 @@ struct glsl_type {
    }
 
    /**
+    * Query whether or not a type is a 64-bit integer.
+    */
+   bool is_integer_64() const
+   {
+      return base_type == GLSL_TYPE_UINT64 || base_type == GLSL_TYPE_INT64;
+   }
+
+   /**
     * Query whether or not a type is a 32-bit or 64-bit integer
     */
    bool is_integer_32_64() const
    {
-      return (base_type == GLSL_TYPE_UINT) || (base_type == GLSL_TYPE_INT) ||
-             (base_type == GLSL_TYPE_UINT64) || (base_type == GLSL_TYPE_INT64);
+      return is_integer() || is_integer_64();
    }
 
    /**
@@ -669,11 +676,19 @@ struct glsl_type {
    }
 
    /**
+    * Query whether or not a type is an atomic_uint.
+    */
+   bool is_atomic_uint() const
+   {
+      return base_type == GLSL_TYPE_ATOMIC_UINT;
+   }
+
+   /**
     * Return the amount of atomic counter storage required for a type.
     */
    unsigned atomic_size() const
    {
-      if (base_type == GLSL_TYPE_ATOMIC_UINT)
+      if (is_atomic_uint())
          return ATOMIC_COUNTER_SIZE;
       else if (is_array())
          return length * fields.array->atomic_size();

@@ -315,21 +315,21 @@ st_framebuffer_add_renderbuffer(struct st_framebuffer *stfb,
       return FALSE;
 
    if (idx != BUFFER_DEPTH) {
-      _mesa_add_renderbuffer_without_ref(&stfb->Base, idx, rb);
+      _mesa_attach_and_own_rb(&stfb->Base, idx, rb);
       return TRUE;
    }
 
    bool rb_ownership_taken = false;
    if (util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_ZS, 0)) {
-      _mesa_add_renderbuffer_without_ref(&stfb->Base, BUFFER_DEPTH, rb);
+      _mesa_attach_and_own_rb(&stfb->Base, BUFFER_DEPTH, rb);
       rb_ownership_taken = true;
    }
 
    if (util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_ZS, 1)) {
       if (rb_ownership_taken)
-         _mesa_add_renderbuffer(&stfb->Base, BUFFER_STENCIL, rb);
+         _mesa_attach_and_reference_rb(&stfb->Base, BUFFER_STENCIL, rb);
       else
-         _mesa_add_renderbuffer_without_ref(&stfb->Base, BUFFER_STENCIL, rb);
+         _mesa_attach_and_own_rb(&stfb->Base, BUFFER_STENCIL, rb);
    }
 
    return TRUE;
