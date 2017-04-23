@@ -290,15 +290,6 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
                      "%s(tess ctrl shader is missing)", function);
          return false;
       }
-
-      /* For ES2, we can draw if we have a vertex program/shader). */
-      return ctx->VertexProgram._Current != NULL;
-
-   case API_OPENGLES:
-      /* For OpenGL ES, only draw if we have vertex positions
-       */
-      if (!ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled)
-         return false;
       break;
 
    case API_OPENGL_CORE:
@@ -312,32 +303,10 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(no VAO bound)", function);
          return false;
       }
+      break;
 
-      /* Section 7.3 (Program Objects) of the OpenGL 4.5 Core Profile spec
-       * says:
-       *
-       *     "If there is no active program for the vertex or fragment shader
-       *     stages, the results of vertex and/or fragment processing will be
-       *     undefined. However, this is not an error."
-       *
-       * The fragment shader is not tested here because other state (e.g.,
-       * GL_RASTERIZER_DISCARD) affects whether or not we actually care.
-       */
-      return ctx->VertexProgram._Current != NULL;
-
+   case API_OPENGLES:
    case API_OPENGL_COMPAT:
-      if (ctx->VertexProgram._Current != NULL) {
-         /* Draw regardless of whether or not we have any vertex arrays.
-          * (Ex: could draw a point using a constant vertex pos)
-          */
-         return true;
-      } else {
-         /* Draw if we have vertex positions (GL_VERTEX_ARRAY or generic
-          * array [0]).
-          */
-         return (ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled ||
-                 ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_GENERIC0].Enabled);
-      }
       break;
 
    default:
@@ -700,14 +669,6 @@ validate_DrawElements_common(struct gl_context *ctx,
    if (!check_valid_to_render(ctx, caller))
       return false;
 
-   /* Not using a VBO for indices, so avoid NULL pointer derefs later.
-    */
-   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj) && indices == NULL)
-      return false;
-
-   if (count == 0)
-      return false;
-
    return true;
 }
 
@@ -816,25 +777,10 @@ _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
                                        "glDrawRangeElements");
 }
 
+
 static bool
-validate_draw_arrays(struct gl_context *ctx, const char *func,
-                     GLenum mode, GLsizei count, GLsizei numInstances)
+need_xfb_remaining_prims_check(const struct gl_context *ctx)
 {
-   struct gl_transform_feedback_object *xfb_obj
-      = ctx->TransformFeedback.CurrentObject;
-   FLUSH_CURRENT(ctx, 0);
-
-   if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(count)", func);
-      return false;
-   }
-
-   if (!_mesa_valid_prim_mode(ctx, mode, func))
-      return false;
-
-   if (!check_valid_to_render(ctx, func))
-      return false;
-
    /* From the GLES3 specification, section 2.14.2 (Transform Feedback
     * Primitive Capture):
     *
@@ -862,10 +808,33 @@ validate_draw_arrays(struct gl_context *ctx, const char *func,
     *     is removed and replaced with the GL behavior (primitives are not
     *     written and the corresponding counter is not updated)..."
     */
-   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx) &&
-       !_mesa_has_OES_geometry_shader(ctx) &&
-       !_mesa_has_OES_tessellation_shader(ctx)) {
-      size_t prim_count = vbo_count_tessellated_primitives(mode, count, 1);
+   return _mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx) &&
+          !_mesa_has_OES_geometry_shader(ctx) &&
+          !_mesa_has_OES_tessellation_shader(ctx);
+}
+
+
+static bool
+validate_draw_arrays(struct gl_context *ctx, const char *func,
+                     GLenum mode, GLsizei count, GLsizei numInstances)
+{
+   FLUSH_CURRENT(ctx, 0);
+
+   if (count < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(count)", func);
+      return false;
+   }
+
+   if (!_mesa_valid_prim_mode(ctx, mode, func))
+      return false;
+
+   if (!check_valid_to_render(ctx, func))
+      return false;
+
+   if (need_xfb_remaining_prims_check(ctx)) {
+      struct gl_transform_feedback_object *xfb_obj
+         = ctx->TransformFeedback.CurrentObject;
+      size_t prim_count = vbo_count_tessellated_primitives(mode, count, numInstances);
       if (xfb_obj->GlesRemainingPrims < prim_count) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(exceeds transform feedback size)", func);
@@ -910,6 +879,60 @@ _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint fi
    }
 
    return validate_draw_arrays(ctx, "glDrawArraysInstanced", mode, count, 1);
+}
+
+
+/**
+ * Called to error check the function parameters.
+ *
+ * Note that glMultiDrawArrays is not part of GLES, so there's limited scope
+ * for sharing code with the validation of glDrawArrays.
+ */
+bool
+_mesa_validate_MultiDrawArrays(struct gl_context *ctx, GLenum mode,
+                               const GLsizei *count, GLsizei primcount)
+{
+   int i;
+
+   FLUSH_CURRENT(ctx, 0);
+
+   if (!_mesa_valid_prim_mode(ctx, mode, "glMultiDrawArrays"))
+      return false;
+
+   if (!check_valid_to_render(ctx, "glMultiDrawArrays"))
+      return false;
+
+   if (primcount < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glMultiDrawArrays(primcount=%d)",
+                  primcount);
+      return false;
+   }
+
+   for (i = 0; i < primcount; ++i) {
+      if (count[i] < 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glMultiDrawArrays(count[%d]=%d)",
+                     i, count[i]);
+         return false;
+      }
+   }
+
+   if (need_xfb_remaining_prims_check(ctx)) {
+      struct gl_transform_feedback_object *xfb_obj
+         = ctx->TransformFeedback.CurrentObject;
+      size_t xfb_prim_count = 0;
+
+      for (i = 0; i < primcount; ++i)
+         xfb_prim_count += vbo_count_tessellated_primitives(mode, count[i], 1);
+
+      if (xfb_obj->GlesRemainingPrims < xfb_prim_count) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glMultiDrawArrays(exceeds transform feedback size)");
+         return false;
+      }
+      xfb_obj->GlesRemainingPrims -= xfb_prim_count;
+   }
+
+   return true;
 }
 
 

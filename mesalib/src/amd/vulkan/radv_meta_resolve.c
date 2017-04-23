@@ -28,40 +28,8 @@
 #include "radv_private.h"
 #include "nir/nir_builder.h"
 #include "sid.h"
-/**
- * Vertex attributes used by all pipelines.
- */
-struct vertex_attrs {
-	float position[2]; /**< 3DPRIM_RECTLIST */
-};
 
-/* passthrough vertex shader */
-static nir_shader *
-build_nir_vs(void)
-{
-	const struct glsl_type *vec4 = glsl_vec4_type();
-
-	nir_builder b;
-	nir_variable *a_position;
-	nir_variable *v_position;
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_VERTEX, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_resolve_vs");
-
-	a_position = nir_variable_create(b.shader, nir_var_shader_in, vec4,
-					 "a_position");
-	a_position->data.location = VERT_ATTRIB_GENERIC0;
-
-	v_position = nir_variable_create(b.shader, nir_var_shader_out, vec4,
-					 "gl_Position");
-	v_position->data.location = VARYING_SLOT_POS;
-
-	nir_copy_var(&b, v_position, a_position);
-
-	return b.shader;
-}
-
-/* simple passthrough shader */
+/* emit 0, 0, 0, 1 */
 static nir_shader *
 build_nir_fs(void)
 {
@@ -174,24 +142,8 @@ create_pipeline(struct radv_device *device,
 					       },
 					       .pVertexInputState = &(VkPipelineVertexInputStateCreateInfo) {
 						       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-						       .vertexBindingDescriptionCount = 1,
-						       .pVertexBindingDescriptions = (VkVertexInputBindingDescription[]) {
-							       {
-								       .binding = 0,
-								       .stride = sizeof(struct vertex_attrs),
-								       .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-							       },
-						       },
-						       .vertexAttributeDescriptionCount = 1,
-						       .pVertexAttributeDescriptions = (VkVertexInputAttributeDescription[]) {
-							       {
-								       /* Position */
-								       .location = 0,
-								       .binding = 0,
-								       .format = VK_FORMAT_R32G32_SFLOAT,
-								       .offset = offsetof(struct vertex_attrs, position),
-							       },
-						       },
+						       .vertexBindingDescriptionCount = 0,
+						       .vertexAttributeDescriptionCount = 0,
 					       },
 					       .pInputAssemblyState = &(VkPipelineInputAssemblyStateCreateInfo) {
 						       .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -288,7 +240,7 @@ radv_device_init_meta_resolve_state(struct radv_device *device)
 
 	zero(device->meta_state.resolve);
 
-	struct radv_shader_module vs_module = { .nir = build_nir_vs() };
+	struct radv_shader_module vs_module = { .nir = radv_meta_build_nir_vs_generate_vertices() };
 	if (!vs_module.nir) {
 		/* XXX: Need more accurate error */
 		res = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -322,44 +274,8 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-	uint32_t offset;
-	const struct vertex_attrs vertex_data[3] = {
-		{
-			.position = {
-				-1.0,
-				-1.0,
-			},
-		},
-		{
-			.position = {
-				-1.0,
-				1.0,
-			},
-		},
-		{
-			.position = {
-				1.0,
-				-1.0,
-			},
-		},
-	};
 
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
-	radv_cmd_buffer_upload_data(cmd_buffer, sizeof(vertex_data), 16, vertex_data, &offset);
-	struct radv_buffer vertex_buffer = {
-		.device = device,
-		.size = sizeof(vertex_data),
-		.bo = cmd_buffer->upload.upload_bo,
-		.offset = offset,
-	};
-
-	VkBuffer vertex_buffer_h = radv_buffer_to_handle(&vertex_buffer);
-
-	radv_CmdBindVertexBuffers(cmd_buffer_h,
-				  /*firstBinding*/ 0,
-				  /*bindingCount*/ 1,
-				  (VkBuffer[]) { vertex_buffer_h },
-				  (VkDeviceSize[]) { 0 });
 
 	VkPipeline pipeline_h = device->meta_state.resolve.pipeline;
 	RADV_FROM_HANDLE(radv_pipeline, pipeline, pipeline_h);
@@ -433,7 +349,7 @@ void radv_CmdResolveImage(
 		return;
 	}
 
-	radv_meta_save_graphics_reset_vport_scissor(&saved_state, cmd_buffer);
+	radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state, cmd_buffer);
 
 	assert(src_image->samples > 1);
 	assert(dest_image->samples == 1);

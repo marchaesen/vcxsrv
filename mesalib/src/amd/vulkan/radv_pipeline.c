@@ -2112,6 +2112,12 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	calculate_pa_cl_vs_out_cntl(pipeline);
 	calculate_ps_inputs(pipeline);
 
+	for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+		if (pipeline->shaders[i]) {
+			pipeline->need_indirect_descriptor_sets |= pipeline->shaders[i]->info.need_indirect_descriptor_sets;
+		}
+	}
+
 	uint32_t stages = 0;
 	if (radv_pipeline_has_tess(pipeline)) {
 		stages |= S_028B54_LS_EN(V_028B54_LS_STAGE_ON) |
@@ -2270,6 +2276,7 @@ static VkResult radv_compute_pipeline_create(
 				       pipeline->layout, NULL);
 
 
+	pipeline->need_indirect_descriptor_sets |= pipeline->shaders[MESA_SHADER_COMPUTE]->info.need_indirect_descriptor_sets;
 	result = radv_pipeline_scratch_init(device, pipeline);
 	if (result != VK_SUCCESS) {
 		radv_pipeline_destroy(device, pipeline, pAllocator);

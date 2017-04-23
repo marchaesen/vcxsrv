@@ -35,6 +35,7 @@ extern "C" {
 #define RADV_META_VERTEX_BINDING_COUNT 2
 
 struct radv_meta_saved_state {
+	bool vertex_saved;
 	struct radv_vertex_binding old_vertex_bindings[RADV_META_VERTEX_BINDING_COUNT];
 	struct radv_descriptor_set *old_descriptor_set0;
 	struct radv_pipeline *old_pipeline;
@@ -85,11 +86,18 @@ void radv_device_finish_meta_blit2d_state(struct radv_device *device);
 VkResult radv_device_init_meta_buffer_state(struct radv_device *device);
 void radv_device_finish_meta_buffer_state(struct radv_device *device);
 
+VkResult radv_device_init_meta_query_state(struct radv_device *device);
+void radv_device_finish_meta_query_state(struct radv_device *device);
+
 VkResult radv_device_init_meta_resolve_compute_state(struct radv_device *device);
 void radv_device_finish_meta_resolve_compute_state(struct radv_device *device);
 void radv_meta_save(struct radv_meta_saved_state *state,
 		    const struct radv_cmd_buffer *cmd_buffer,
 		    uint32_t dynamic_mask);
+
+void radv_meta_save_novertex(struct radv_meta_saved_state *state,
+			     const struct radv_cmd_buffer *cmd_buffer,
+			     uint32_t dynamic_mask);
 
 void radv_meta_restore(const struct radv_meta_saved_state *state,
 		       struct radv_cmd_buffer *cmd_buffer);
@@ -199,6 +207,8 @@ void radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 void radv_meta_save_graphics_reset_vport_scissor(struct radv_meta_saved_state *saved_state,
 						 struct radv_cmd_buffer *cmd_buffer);
+void radv_meta_save_graphics_reset_vport_scissor_novertex(struct radv_meta_saved_state *saved_state,
+							  struct radv_cmd_buffer *cmd_buffer);
 
 void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     struct radv_image *src_image,
@@ -211,6 +221,14 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 void radv_blit_to_prime_linear(struct radv_cmd_buffer *cmd_buffer,
 			       struct radv_image *image,
 			       struct radv_image *linear_image);
+
+/* common nir builder helpers */
+#include "nir/nir_builder.h"
+
+nir_ssa_def *radv_meta_gen_rect_vertices(nir_builder *vs_b);
+nir_ssa_def *radv_meta_gen_rect_vertices_comp2(nir_builder *vs_b, nir_ssa_def *comp2);
+nir_shader *radv_meta_build_nir_vs_generate_vertices(void);
+nir_shader *radv_meta_build_nir_fs_noop(void);
 #ifdef __cplusplus
 }
 #endif

@@ -44,11 +44,18 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
+<li>OpenGL 4.2 on i965/ivb</li>
+<li>GL_ARB_gpu_shader_fp64 on i965/ivybridge</li>
 <li>GL_ARB_gpu_shader_int64 on i965/gen8+, nvc0, radeonsi, softpipe, llvmpipe</li>
-<li>GL_ARB_shader_clock on radeonsi</li>
+<li>GL_ARB_shader_ballot on nvc0, radeonsi</li>
+<li>GL_ARB_shader_clock on nv50, nvc0, radeonsi</li>
 <li>GL_ARB_shader_group_vote on radeonsi</li>
+<li>GL_ARB_shader_precision on i965/ivb</li>
+<li>GL_ARB_shader_viewport_layer_array on radeonsi</li>
+<li>GL_ARB_sparse_buffer on radeonsi/CIK+</li>
 <li>GL_ARB_transform_feedback2 on i965/gen6</li>
 <li>GL_ARB_transform_feedback_overflow_query on i965/gen6+</li>
+<li>GL_ARB_vertex_attrib_64bit on i965/ivb</li>
 <li>GL_NV_fill_rectangle on nvc0</li>
 <li>Geometry shaders enabled on swr</li>
 </ul>
@@ -63,9 +70,10 @@ Note: some of the new features are only available with certain drivers.
 <ul>
 <li>Removed the ilo gallium driver.</li>
 <li>The configure option --enable-gallium-llvm is superseded by --enable-llvm.</li>
-<li>The swr driver now requires LLVM &gt;= 3.9.0.</li>
+<li>The swr driver now requires LLVM &gt;= 3.9.0 and a C++14 capable compiler.</li>
 <li>The radeonsi driver now requires LLVM 3.8.0.</li>
 <li>The MESA_GLSL=opt and MESA_GLSL=no_opt environment vars have been removed.</li>
+<li>The --with-egl-platforms configure option is deprecated. Use --with-platforms instead.</li>
 </ul>
 
 </div>

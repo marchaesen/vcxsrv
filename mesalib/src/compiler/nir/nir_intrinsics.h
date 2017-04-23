@@ -91,7 +91,7 @@ BARRIER(memory_barrier)
  * The latter can be used as code motion barrier, which is currently not
  * feasible with NIR.
  */
-INTRINSIC(shader_clock, 0, ARR(0), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(shader_clock, 0, ARR(0), true, 2, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 
 /*
  * Memory barrier with semantics analogous to the compute shader

@@ -59,8 +59,8 @@ update_framebuffer_size(struct pipe_framebuffer_state *framebuffer,
                         struct pipe_surface *surface)
 {
    assert(surface);
-   assert(surface->width  < UINT_MAX);
-   assert(surface->height < UINT_MAX);
+   assert(surface->width  < USHRT_MAX);
+   assert(surface->height < USHRT_MAX);
    framebuffer->width  = MIN2(framebuffer->width,  surface->width);
    framebuffer->height = MIN2(framebuffer->height, surface->height);
 }
@@ -205,9 +205,9 @@ update_framebuffer_state( struct st_context *st )
    }
 #endif
 
-   if (framebuffer->width == UINT_MAX)
+   if (framebuffer->width == USHRT_MAX)
       framebuffer->width = 0;
-   if (framebuffer->height == UINT_MAX)
+   if (framebuffer->height == USHRT_MAX)
       framebuffer->height = 0;
 
    cso_set_framebuffer(st->cso_context, framebuffer);

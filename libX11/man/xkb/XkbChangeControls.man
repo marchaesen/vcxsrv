@@ -97,39 +97,43 @@ l l l l l
 lw(1.5i) lw(1.5i) l lw(1.5i) l.
 Table 1 Xkb Controls
 _
-Control	Control
-	Selection	Relevant
-	Mask	XkbControlsRec	Boolean Control
-	(which parameter)	DataFields	enabled_ctrls bit	Section
-_	 
+Control	Control			
+	Selection	Relevant		
+	Mask (which	XkbControlsRec	Boolean Control	
+	parameter)	DataFields	enabled_ctrls bit	Section
+_
 T{
 AccessXFeedback
 T}	T{
-XkbAccessXFeedbackMask
-T}	ax_options:	T{
-XkbAccessXFeedbackMask
+XkbAccessX\%FeedbackMask
+T}	T{
+ax_options:
+  XkbAX_*FBMask
+T}	T{
+XkbAccessX\%FeedbackMask
 T}	10.6.3
-		  XkbAX_*FBMask
 T{
 AccessXKeys
 T}			T{
-XkbAccessXKeysMask
+XkbAccessX\%Keys\%Mask
 T}	10.6.1
 T{
-AccessXTimeout
+AccessX\%Timeout
 T}	T{
-XkbAccessXTimeoutMask
-T}	ax_timeout	T{
-XkbAccessXTimeoutMask
+XkbAccessX\%Timeout\%Mask
+T}	T{
+ax_timeout
+axt_opts_mask
+axt_opts_values
+axt_ctrls_mask
+axt_ctrls_values
+T}	T{
+XkbAccessX\%Timeout\%Mask
 T}	10.6.2
-		axt_opts_mask
-		axt_opts_values
-		axt_ctrls_mask
-		axt_ctrls_values
 T{
 AudibleBell
 T}			T{
-XkbAudibleBellMask
+XkbAudible\%Bell\%Mask
 T}	9.2
 T{
 AutoReset
@@ -137,9 +141,9 @@ T}				10.1.2
 T{
 BounceKeys
 T}	T{
-XkbBounceKeysMask
+XkbBounce\%KeysMask
 T}	debounce_delay	T{
-XkbBounceKeysMask
+XkbBounce\%KeysMask
 T}	10.6.7
 T{
 Detectable-
@@ -150,35 +154,35 @@ T}
 T{
 EnabledControls
 T}	T{
-XkbControlsEnabledMask
+XkbControls\%EnabledMask
 T}	enabled_ctrls	T{
-Non-Boolean Control
+Non-Boolean \%Control
 T}	10.1.1
 T{
 GroupsWrap
 T}	T{
-XkbGroupsWrapMask
+XkbGroups\%Wrap\%Mask
 T}	groups_wrap	T{
-Non-Boolean Control
+Non-Boolean \%Control
 T}	10.7.1
 T{
 IgnoreGroupLock
 T}			T{
-XkbIgnoreGroupLockMask
+XkbIgnore\%GroupLock\%Mask
 T}	10.7.3
 T{
 IgnoreLockMods
 T}	T{
-XkbIgnoreLockModsMask
+XkbIgnore\%LockMods\%Mask
 T}	ignore_lock	T{
-Non-Boolean Control
+Non-Boolean \%Control
 T}	5.1
 T{
 InternalMods
 T}	T{
-XkbInternalModsMask
+XkbInternal\%Mods\%Mask
 T}	internal	T{
-Non-Boolean Control
+Non-Boolean \%Control
 T}	5.1
 T{
 MouseKeys
@@ -190,14 +194,16 @@ T}	10.5.1
 T{
 MouseKeysAccel
 T}	T{
-XkbMouseKeysAccelMask
-T}	mk_delay	T{
-XkbMouseKeysAccelMask
+XkbMouseKeys\%Accel\%Mask
+T}	T{
+mk_delay
+mk_interval
+mk_time_to_max
+mk_max_speed
+mk_curve
+T}	T{
+XkbMouseKeys\%Accel\%Mask
 T}	10.5.2
-		mk_interval
-		mk_time_to_max
-		mk_max_speed
-		mk_curve
 T{
 Overlay1
 T}			T{
@@ -211,35 +217,37 @@ T}	10.4
 T{
 PerKeyRepeat
 T}	T{
-XkbPerKeyRepeatMask
+XkbPerKey\%Repeat\%Mask
 T}	per_key_repeat	T{
-Non-Boolean Control
+Non-Boolean \%Control
 T}	10.3.1
 T{
 RepeatKeys
 T}	T{
-XkbRepeatKeysMask
+Xkb\%Repeat\%Keys\%Mask
 T}	repeat_delay	T{
-XkbRepeatKeysMask
+Xkb\%Repeat\%Keys\%Mask
 T}	10.3
 			repeat_interval
 T{
 SlowKeys
 T}	T{
-XkbSlowKeysMask
+Xkb\%Slow\%Keys\%Mask
 T}	slow_keys_delay	T{
-XkbSlowKeysMask
+Xkb\%Slow\%Keys\%Mask
 T}	10.6.6
 T{
 StickyKeys
 T}	T{
-XkbStickyKeysMask
-T}	ax_options:	T{
-XkbStickyKeysMask
+Xkb\%Sticky\%Keys\%Mask
+T}	T{
+ax_options:
+  XkbAX_TwoKeysMask
+  XkbAX_LatchToLockMask
+T}	T{
+Xkb\%Sticky\%Keys\%Mask
 T}	10.6.8
-		  XkbAX_TwoKeysMask
-		  XkbAX_LatchToLockMask
-.TE			  
+.TE
 
 Table 2 shows the actual values for the individual mask bits used to select 
 controls for 
@@ -260,8 +268,9 @@ l l l l
 l l l l. 
 Table 2 Controls Mask Bits
 _
-Mask Bit	which or	enabled	Value
-	changed_ctrls	_ctrls
+Mask Bit	which or		Value
+	changed	enabled
+	_ctrls	_ctrls
 _
 XkbRepeatKeysMask	ok	ok	(1L<<0)
 XkbSlowKeysMask	ok	ok	(1L<<1)

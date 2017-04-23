@@ -11,12 +11,12 @@ and draggable titlebars and borders.
 
 For a comprehensive overview of X Server and X Window System, consult the
 following article:
-http://en.wikipedia.org/wiki/X_server
+https://en.wikipedia.org/wiki/X_server
 
 All questions regarding this software should be directed at the
 Xorg mailing list:
 
-        http://lists.freedesktop.org/mailman/listinfo/xorg
+        https://lists.freedesktop.org/mailman/listinfo/xorg
 
 Please submit bug reports to the Xorg bugzilla:
 
@@ -26,13 +26,19 @@ The master development code repository can be found at:
 
         git://anongit.freedesktop.org/git/xorg/xserver
 
-        http://cgit.freedesktop.org/xorg/xserver
+        https://cgit.freedesktop.org/xorg/xserver
 
 For patch submission instructions, see:
 
-	http://www.x.org/wiki/Development/Documentation/SubmittingPatches
+	https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
 For more information on the git code manager, see:
 
-        http://wiki.x.org/wiki/GitPage
+        https://wiki.x.org/wiki/GitPage
 
+As with other projects hosted on freedesktop.org, X.Org follows its
+Code of Conduct, based on the Contributor Covenant. Please conduct
+yourself in a respectful and civilized manner when using the above
+mailing lists, bug trackers, etc:
+
+	https://www.freedesktop.org/wiki/CodeOfConduct

@@ -149,13 +149,13 @@ get_parameter_match_type(const ir_variable *param,
    if (from_type == to_type)
       return PARAMETER_EXACT_MATCH;
 
-   if (to_type->base_type == GLSL_TYPE_DOUBLE) {
-      if (from_type->base_type == GLSL_TYPE_FLOAT)
+   if (to_type->is_double()) {
+      if (from_type->is_float())
          return PARAMETER_FLOAT_TO_DOUBLE;
       return PARAMETER_INT_TO_DOUBLE;
    }
 
-   if (to_type->base_type == GLSL_TYPE_FLOAT)
+   if (to_type->is_float())
       return PARAMETER_INT_TO_FLOAT;
 
    /* int -> uint and any other oddball conversions */

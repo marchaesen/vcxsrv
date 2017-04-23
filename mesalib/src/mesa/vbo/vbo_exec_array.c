@@ -180,6 +180,60 @@ check_draw_arrays_data(struct gl_context *ctx, GLint start, GLsizei count)
 
 
 /**
+ * Check if we should skip the draw call even after validation was successful.
+ */
+static bool
+skip_validated_draw(struct gl_context *ctx)
+{
+   switch (ctx->API) {
+   case API_OPENGLES2:
+      /* For ES2, we can draw if we have a vertex program/shader). */
+      return ctx->VertexProgram._Current == NULL;
+
+   case API_OPENGLES:
+      /* For OpenGL ES, only draw if we have vertex positions
+       */
+      if (ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled)
+         return false;
+      break;
+
+   case API_OPENGL_CORE:
+      /* Section 7.3 (Program Objects) of the OpenGL 4.5 Core Profile spec
+       * says:
+       *
+       *     "If there is no active program for the vertex or fragment shader
+       *     stages, the results of vertex and/or fragment processing will be
+       *     undefined. However, this is not an error."
+       *
+       * The fragment shader is not tested here because other state (e.g.,
+       * GL_RASTERIZER_DISCARD) affects whether or not we actually care.
+       */
+      return ctx->VertexProgram._Current == NULL;
+
+   case API_OPENGL_COMPAT:
+      if (ctx->VertexProgram._Current != NULL) {
+         /* Draw regardless of whether or not we have any vertex arrays.
+          * (Ex: could draw a point using a constant vertex pos)
+          */
+         return false;
+      } else {
+         /* Draw if we have vertex positions (GL_VERTEX_ARRAY or generic
+          * array [0]).
+          */
+         return (!ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled &&
+                 !ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_GENERIC0].Enabled);
+      }
+      break;
+
+   default:
+      unreachable("Invalid API value in check_valid_to_render()");
+   }
+
+   return false;
+}
+
+
+/**
  * Print info/data for glDrawArrays(), for debugging.
  */
 static void
@@ -404,10 +458,14 @@ vbo_bind_arrays(struct gl_context *ctx)
  */
 static void
 vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
-                GLsizei count, GLuint numInstances, GLuint baseInstance)
+                GLsizei count, GLuint numInstances, GLuint baseInstance,
+                GLuint drawID)
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_prim prim[2];
+
+   if (skip_validated_draw(ctx))
+      return;
 
    vbo_bind_arrays(ctx);
 
@@ -420,6 +478,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    prim[0].mode = mode;
    prim[0].num_instances = numInstances;
    prim[0].base_instance = baseInstance;
+   prim[0].draw_id = drawID;
    prim[0].is_indirect = 0;
    prim[0].start = start;
    prim[0].count = count;
@@ -566,13 +625,20 @@ vbo_exec_DrawArrays(GLenum mode, GLint start, GLsizei count)
       _mesa_debug(ctx, "glDrawArrays(%s, %d, %d)\n",
                   _mesa_enum_to_string(mode), start, count);
 
-   if (!_mesa_validate_DrawArrays(ctx, mode, count))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawArrays(ctx, mode, count))
+         return;
+   }
 
    if (0)
       check_draw_arrays_data(ctx, start, count);
 
-   vbo_draw_arrays(ctx, mode, start, count, 1, 0);
+   vbo_draw_arrays(ctx, mode, start, count, 1, 0, 0);
 
    if (0)
       print_draw_arrays(ctx, mode, start, count);
@@ -593,14 +659,22 @@ vbo_exec_DrawArraysInstanced(GLenum mode, GLint start, GLsizei count,
       _mesa_debug(ctx, "glDrawArraysInstanced(%s, %d, %d, %d)\n",
                   _mesa_enum_to_string(mode), start, count, numInstances);
 
-   if (!_mesa_validate_DrawArraysInstanced(ctx, mode, start, count,
-                                           numInstances))
-      return;
+
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawArraysInstanced(ctx, mode, start, count,
+                                              numInstances))
+         return;
+   }
 
    if (0)
       check_draw_arrays_data(ctx, start, count);
 
-   vbo_draw_arrays(ctx, mode, start, count, numInstances, 0);
+   vbo_draw_arrays(ctx, mode, start, count, numInstances, 0, 0);
 
    if (0)
       print_draw_arrays(ctx, mode, start, count);
@@ -623,17 +697,63 @@ vbo_exec_DrawArraysInstancedBaseInstance(GLenum mode, GLint first,
                   _mesa_enum_to_string(mode), first, count,
                   numInstances, baseInstance);
 
-   if (!_mesa_validate_DrawArraysInstanced(ctx, mode, first, count,
-                                           numInstances))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawArraysInstanced(ctx, mode, first, count,
+                                              numInstances))
+         return;
+   }
 
    if (0)
       check_draw_arrays_data(ctx, first, count);
 
-   vbo_draw_arrays(ctx, mode, first, count, numInstances, baseInstance);
+   vbo_draw_arrays(ctx, mode, first, count, numInstances, baseInstance, 0);
 
    if (0)
       print_draw_arrays(ctx, mode, first, count);
+}
+
+
+/**
+ * Called from glMultiDrawArrays when in immediate mode.
+ */
+static void GLAPIENTRY
+vbo_exec_MultiDrawArrays(GLenum mode, const GLint *first,
+                         const GLsizei *count, GLsizei primcount)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLint i;
+
+   if (MESA_VERBOSE & VERBOSE_DRAW)
+      _mesa_debug(ctx,
+                  "glMultiDrawArrays(%s, %p, %p, %d)\n",
+                  _mesa_enum_to_string(mode), first, count, primcount);
+
+   if (!_mesa_validate_MultiDrawArrays(ctx, mode, count, primcount))
+      return;
+
+   for (i = 0; i < primcount; i++) {
+      if (count[i] > 0) {
+         if (0)
+            check_draw_arrays_data(ctx, first[i], count[i]);
+
+         /* The GL_ARB_shader_draw_parameters spec adds the following after the
+          * pseudo-code describing glMultiDrawArrays:
+          *
+          *    "The index of the draw (<i> in the above pseudo-code) may be
+          *     read by a vertex shader as <gl_DrawIDARB>, as described in
+          *     Section 11.1.3.9."
+          */
+         vbo_draw_arrays(ctx, mode, first[i], count[i], 1, 0, i);
+
+         if (0)
+            print_draw_arrays(ctx, mode, first[i], count[i]);
+      }
+   }
 }
 
 
@@ -698,6 +818,25 @@ dump_element_buffer(struct gl_context *ctx, GLenum type)
 #endif
 
 
+static bool
+skip_draw_elements(struct gl_context *ctx, GLsizei count,
+                   const GLvoid *indices)
+{
+   if (count == 0)
+      return true;
+
+   /* Not using a VBO for indices, so avoid NULL pointer derefs later.
+    */
+   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj) && indices == NULL)
+      return true;
+
+   if (skip_validated_draw(ctx))
+      return true;
+
+   return false;
+}
+
+
 /**
  * Inner support for both _mesa_DrawElements and _mesa_DrawRangeElements.
  * Do the rendering for a glDrawElements or glDrawRangeElements call after
@@ -716,10 +855,13 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
    struct _mesa_index_buffer ib;
    struct _mesa_prim prim[1];
 
+   if (skip_draw_elements(ctx, count, indices))
+      return;
+
    vbo_bind_arrays(ctx);
 
    ib.count = count;
-   ib.type = type;
+   ib.index_size = vbo_sizeof_ib_type(type);
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = indices;
 
@@ -896,8 +1038,15 @@ vbo_exec_DrawElements(GLenum mode, GLsizei count, GLenum type,
                   _mesa_enum_to_string(mode), count,
                   _mesa_enum_to_string(type), indices);
 
-   if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices))
+         return;
+   }
 
    vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
                                    count, type, indices, 0, 1, 0);
@@ -914,12 +1063,19 @@ vbo_exec_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
-      _mesa_debug(ctx, "glDrawElementsBaseVertex(%s, %d, %s, %p, %d)\n",
+      _mesa_debug(ctx, "glDrawElements(%s, %u, %s, %p)\n",
                   _mesa_enum_to_string(mode), count,
-                  _mesa_enum_to_string(type), indices, basevertex);
+                  _mesa_enum_to_string(type), indices);
 
-   if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices))
+         return;
+   }
 
    vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
                                    count, type, indices, basevertex, 1, 0);
@@ -936,13 +1092,20 @@ vbo_exec_DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
-      _mesa_debug(ctx, "glDrawElementsInstanced(%s, %d, %s, %p, %d)\n",
+      _mesa_debug(ctx, "glDrawElements(%s, %u, %s, %p)\n",
                   _mesa_enum_to_string(mode), count,
-                  _mesa_enum_to_string(type), indices, numInstances);
+                  _mesa_enum_to_string(type), indices);
 
-   if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
-                                             numInstances))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type,
+                                                indices, numInstances))
+         return;
+   }
 
    vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
                                    count, type, indices, 0, numInstances, 0);
@@ -962,14 +1125,22 @@ vbo_exec_DrawElementsInstancedBaseVertex(GLenum mode, GLsizei count,
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
       _mesa_debug(ctx,
-                  "glDrawElementsInstancedBaseVertex(%s, %d, %s, %p, %d; %d)\n",
+                  "glDrawElementsInstancedBaseVertex"
+                  "(%s, %d, %s, %p, %d; %d)\n",
                   _mesa_enum_to_string(mode), count,
                   _mesa_enum_to_string(type), indices,
                   numInstances, basevertex);
 
-   if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
-                                             numInstances))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type,
+                                                indices, numInstances))
+         return;
+   }
 
    vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
                                    count, type, indices,
@@ -997,9 +1168,16 @@ vbo_exec_DrawElementsInstancedBaseInstance(GLenum mode, GLsizei count,
                   _mesa_enum_to_string(type), indices,
                   numInstances, baseInstance);
 
-   if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
-                                             numInstances))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type,
+                                                indices, numInstances))
+         return;
+   }
 
    vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
                                    count, type, indices, 0, numInstances,
@@ -1029,9 +1207,16 @@ vbo_exec_DrawElementsInstancedBaseVertexBaseInstance(GLenum mode,
                   _mesa_enum_to_string(type), indices,
                   numInstances, basevertex, baseInstance);
 
-   if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type, indices,
-                                             numInstances))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElementsInstanced(ctx, mode, count, type,
+                                                indices, numInstances))
+         return;
+   }
 
    vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
                                    count, type, indices, basevertex,
@@ -1112,7 +1297,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
 
    if (!fallback) {
       ib.count = (max_index_ptr - min_index_ptr) / index_type_size;
-      ib.type = type;
+      ib.index_size = vbo_sizeof_ib_type(type);
       ib.obj = ctx->Array.VAO->IndexBufferObj;
       ib.ptr = (void *) min_index_ptr;
 
@@ -1145,7 +1330,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
          if (count[i] == 0)
             continue;
          ib.count = count[i];
-         ib.type = type;
+         ib.index_size = vbo_sizeof_ib_type(type);
          ib.obj = ctx->Array.VAO->IndexBufferObj;
          ib.ptr = indices[i];
 
@@ -1189,6 +1374,9 @@ vbo_exec_MultiDrawElements(GLenum mode,
                                          primcount))
       return;
 
+   if (skip_validated_draw(ctx))
+      return;
+
    vbo_validated_multidrawelements(ctx, mode, count, type, indices, primcount,
                                    NULL);
 }
@@ -1205,6 +1393,9 @@ vbo_exec_MultiDrawElementsBaseVertex(GLenum mode,
 
    if (!_mesa_validate_MultiDrawElements(ctx, mode, count, type, indices,
                                          primcount))
+      return;
+
+   if (skip_validated_draw(ctx))
       return;
 
    vbo_validated_multidrawelements(ctx, mode, count, type, indices, primcount,
@@ -1230,9 +1421,12 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
         !_mesa_all_varyings_in_vbos(ctx->Array.VAO))) {
       GLsizei n =
          ctx->Driver.GetTransformFeedbackVertexCount(ctx, obj, stream);
-      vbo_draw_arrays(ctx, mode, 0, n, numInstances, 0);
+      vbo_draw_arrays(ctx, mode, 0, n, numInstances, 0, 0);
       return;
    }
+
+   if (skip_validated_draw(ctx))
+      return;
 
    vbo_bind_arrays(ctx);
 
@@ -1380,7 +1574,7 @@ vbo_validated_drawelementsindirect(struct gl_context *ctx,
    vbo_bind_arrays(ctx);
 
    ib.count = 0;                /* unknown */
-   ib.type = type;
+   ib.index_size = vbo_sizeof_ib_type(type);
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
@@ -1412,7 +1606,7 @@ vbo_validated_multidrawelementsindirect(struct gl_context *ctx,
    /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 
    ib.count = 0;                /* unknown */
-   ib.type = type;
+   ib.index_size = vbo_sizeof_ib_type(type);
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
@@ -1438,7 +1632,17 @@ vbo_exec_DrawArraysIndirect(GLenum mode, const GLvoid *indirect)
       _mesa_debug(ctx, "glDrawArraysIndirect(%s, %p)\n",
                   _mesa_enum_to_string(mode), indirect);
 
-   if (!_mesa_validate_DrawArraysIndirect(ctx, mode, indirect))
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawArraysIndirect(ctx, mode, indirect))
+         return;
+   }
+
+   if (skip_validated_draw(ctx))
       return;
 
    vbo_validated_drawarraysindirect(ctx, mode, indirect);
@@ -1455,7 +1659,17 @@ vbo_exec_DrawElementsIndirect(GLenum mode, GLenum type, const GLvoid *indirect)
                   _mesa_enum_to_string(mode),
                   _mesa_enum_to_string(type), indirect);
 
-   if (!_mesa_validate_DrawElementsIndirect(ctx, mode, type, indirect))
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawElementsIndirect(ctx, mode, type, indirect))
+         return;
+   }
+
+   if (skip_validated_draw(ctx))
       return;
 
    vbo_validated_drawelementsindirect(ctx, mode, type, indirect);
@@ -1478,6 +1692,9 @@ vbo_exec_MultiDrawArraysIndirect(GLenum mode, const GLvoid *indirect,
 
    if (!_mesa_validate_MultiDrawArraysIndirect(ctx, mode, indirect,
                                                primcount, stride))
+      return;
+
+   if (skip_validated_draw(ctx))
       return;
 
    vbo_validated_multidrawarraysindirect(ctx, mode, indirect,
@@ -1503,6 +1720,9 @@ vbo_exec_MultiDrawElementsIndirect(GLenum mode, GLenum type,
 
    if (!_mesa_validate_MultiDrawElementsIndirect(ctx, mode, type, indirect,
                                                  primcount, stride))
+      return;
+
+   if (skip_validated_draw(ctx))
       return;
 
    vbo_validated_multidrawelementsindirect(ctx, mode, type, indirect,
@@ -1556,7 +1776,7 @@ vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
    /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 
    ib.count = 0;                /* unknown */
-   ib.type = type;
+   ib.index_size = vbo_sizeof_ib_type(type);
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
@@ -1593,6 +1813,9 @@ vbo_exec_MultiDrawArraysIndirectCount(GLenum mode, GLintptr indirect,
                                                     maxdrawcount, stride))
       return;
 
+   if (skip_validated_draw(ctx))
+      return;
+
    vbo_validated_multidrawarraysindirectcount(ctx, mode, indirect, drawcount,
                                               maxdrawcount, stride);
 }
@@ -1621,6 +1844,9 @@ vbo_exec_MultiDrawElementsIndirectCount(GLenum mode, GLenum type,
                                                       maxdrawcount, stride))
       return;
 
+   if (skip_validated_draw(ctx))
+      return;
+
    vbo_validated_multidrawelementsindirectcount(ctx, mode, type, indirect,
                                                 drawcount, maxdrawcount,
                                                 stride);
@@ -1641,6 +1867,7 @@ vbo_initialize_exec_dispatch(const struct gl_context *ctx,
       SET_DrawRangeElements(exec, vbo_exec_DrawRangeElements);
    }
 
+   SET_MultiDrawArrays(exec, vbo_exec_MultiDrawArrays);
    SET_MultiDrawElementsEXT(exec, vbo_exec_MultiDrawElements);
 
    if (ctx->API == API_OPENGL_COMPAT) {

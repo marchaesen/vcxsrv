@@ -270,7 +270,8 @@ st_framebuffer_update_attachments(struct st_framebuffer *stfb)
 }
 
 /**
- * Add a renderbuffer to the framebuffer.
+ * Add a renderbuffer to the framebuffer.  The framebuffer is one that
+ * corresponds to a window and is not a user-created FBO.
  */
 static boolean
 st_framebuffer_add_renderbuffer(struct st_framebuffer *stfb,
@@ -282,6 +283,8 @@ st_framebuffer_add_renderbuffer(struct st_framebuffer *stfb,
 
    if (!stfb->iface)
       return FALSE;
+
+   assert(_mesa_is_winsys_fbo(&stfb->Base));
 
    /* do not distinguish depth/stencil buffers */
    if (idx == BUFFER_STENCIL)
@@ -312,13 +315,21 @@ st_framebuffer_add_renderbuffer(struct st_framebuffer *stfb,
       return FALSE;
 
    if (idx != BUFFER_DEPTH) {
-      _mesa_add_renderbuffer(&stfb->Base, idx, rb);
+      _mesa_attach_and_own_rb(&stfb->Base, idx, rb);
+      return TRUE;
    }
-   else {
-      if (util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_ZS, 0))
-         _mesa_add_renderbuffer(&stfb->Base, BUFFER_DEPTH, rb);
-      if (util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_ZS, 1))
-         _mesa_add_renderbuffer(&stfb->Base, BUFFER_STENCIL, rb);
+
+   bool rb_ownership_taken = false;
+   if (util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_ZS, 0)) {
+      _mesa_attach_and_own_rb(&stfb->Base, BUFFER_DEPTH, rb);
+      rb_ownership_taken = true;
+   }
+
+   if (util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_ZS, 1)) {
+      if (rb_ownership_taken)
+         _mesa_attach_and_reference_rb(&stfb->Base, BUFFER_STENCIL, rb);
+      else
+         _mesa_attach_and_own_rb(&stfb->Base, BUFFER_STENCIL, rb);
    }
 
    return TRUE;
@@ -861,7 +872,8 @@ st_manager_validate_framebuffers(struct st_context *st)
 }
 
 /**
- * Add a color renderbuffer on demand.
+ * Add a color renderbuffer on demand.  The FBO must correspond to a window,
+ * not a user-created FBO.
  */
 boolean
 st_manager_add_color_renderbuffer(struct st_context *st,
@@ -873,6 +885,8 @@ st_manager_add_color_renderbuffer(struct st_context *st,
    /* FBO */
    if (!stfb)
       return FALSE;
+
+   assert(_mesa_is_winsys_fbo(fb));
 
    if (stfb->Base.Attachment[idx].Renderbuffer)
       return TRUE;

@@ -95,7 +95,7 @@ struct radeon_info {
 	uint32_t                    compute_rings;
 	uint32_t                    vce_fw_version;
 	uint32_t                    vce_harvest_config;
-	uint32_t                    clock_crystal_freq;
+	uint32_t                    clock_crystal_freq; /* in kHz */
 
 	/* Kernel info. */
 	uint32_t                    drm_major; /* version */

@@ -226,6 +226,11 @@ ephyrInitVideo(ScreenPtr pScreen)
         return FALSE;
     }
 
+    if (!hostx_has_extension(&xcb_xv_id)) {
+        EPHYR_LOG_ERROR("Host has no XVideo extension\n");
+        return FALSE;
+    }
+
     if (!xv_priv) {
         xv_priv = ephyrXVPrivNew();
     }

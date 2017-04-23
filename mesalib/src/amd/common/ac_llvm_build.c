@@ -1072,6 +1072,8 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 		case ac_image_get_resinfo:
 			name = "llvm.amdgcn.image.getresinfo";
 			break;
+		default:
+			unreachable("invalid image opcode");
 		}
 
 		ac_build_type_name_for_intr(LLVMTypeOf(args[0]), type,

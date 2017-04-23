@@ -333,7 +333,8 @@ st_pbo_create_vs(struct st_context *st)
                         ureg_scalar(in_instanceid, TGSI_SWIZZLE_X));
       } else {
          /* out_layer = gl_InstanceID */
-         ureg_MOV(ureg, out_layer, in_instanceid);
+         ureg_MOV(ureg, ureg_writemask(out_layer, TGSI_WRITEMASK_X),
+                        ureg_scalar(in_instanceid, TGSI_SWIZZLE_X));
       }
    }
 

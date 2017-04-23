@@ -461,6 +461,9 @@ void st_init_limits(struct pipe_screen *screen,
 
    c->MaxWindowRectangles =
       screen->get_param(screen, PIPE_CAP_MAX_WINDOW_RECTANGLES);
+
+   c->SparseBufferPageSize =
+      screen->get_param(screen, PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE);
 }
 
 
@@ -599,6 +602,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_robust_buffer_access_behavior), PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR   },
       { o(ARB_sample_shading),               PIPE_CAP_SAMPLE_SHADING                   },
       { o(ARB_seamless_cube_map),            PIPE_CAP_SEAMLESS_CUBE_MAP                },
+      { o(ARB_shader_ballot),                PIPE_CAP_TGSI_BALLOT                      },
       { o(ARB_shader_clock),                 PIPE_CAP_TGSI_CLOCK                       },
       { o(ARB_shader_draw_parameters),       PIPE_CAP_DRAW_PARAMETERS                  },
       { o(ARB_shader_group_vote),            PIPE_CAP_TGSI_VOTE                        },
@@ -606,6 +610,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_shader_texture_image_samples), PIPE_CAP_TGSI_TXQS                        },
       { o(ARB_shader_texture_lod),           PIPE_CAP_SM3                              },
       { o(ARB_shadow),                       PIPE_CAP_TEXTURE_SHADOW_MAP               },
+      { o(ARB_sparse_buffer),                PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE          },
       { o(ARB_texture_buffer_object),        PIPE_CAP_TEXTURE_BUFFER_OBJECTS           },
       { o(ARB_texture_cube_map_array),       PIPE_CAP_CUBE_MAP_ARRAY                   },
       { o(ARB_texture_gather),               PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS    },
@@ -1123,6 +1128,11 @@ void st_init_extensions(struct pipe_screen *screen,
       if (extensions->AMD_vertex_shader_layer)
          extensions->AMD_vertex_shader_viewport_index = GL_TRUE;
    }
+
+   if (extensions->AMD_vertex_shader_layer &&
+       extensions->AMD_vertex_shader_viewport_index &&
+       screen->get_param(screen, PIPE_CAP_TGSI_TES_LAYER_VIEWPORT))
+      extensions->ARB_shader_viewport_layer_array = GL_TRUE;
 
    /* ARB_framebuffer_no_attachments */
    if (screen->get_param(screen, PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT) &&

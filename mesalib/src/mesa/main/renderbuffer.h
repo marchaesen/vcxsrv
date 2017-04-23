@@ -47,8 +47,14 @@ extern void
 _mesa_delete_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb);
 
 extern void
-_mesa_add_renderbuffer(struct gl_framebuffer *fb,
-                       gl_buffer_index bufferName, struct gl_renderbuffer *rb);
+_mesa_attach_and_own_rb(struct gl_framebuffer *fb,
+                        gl_buffer_index bufferName,
+                        struct gl_renderbuffer *rb);
+
+extern void
+_mesa_attach_and_reference_rb(struct gl_framebuffer *fb,
+                              gl_buffer_index bufferName,
+                              struct gl_renderbuffer *rb);
 
 extern void
 _mesa_remove_renderbuffer(struct gl_framebuffer *fb,

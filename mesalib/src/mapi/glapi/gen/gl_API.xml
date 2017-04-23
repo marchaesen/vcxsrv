@@ -8314,6 +8314,9 @@
 <!-- ARB extension 171 -->
 <xi:include href="ARB_pipeline_statistics_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<!-- ARB extension 172 -->
+<xi:include href="ARB_sparse_buffer.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <category name="es3.2">
     <!-- This should be in es_EXT, but this file is included first and
          the alias doesn't work otherwise. -->
@@ -10216,7 +10219,7 @@
 </category>
 
 <category name="GL_EXT_multi_draw_arrays" number="148">
-    <function name="MultiDrawArraysEXT" es1="1.0" es2="2.0" alias="MultiDrawArrays">
+    <function name="MultiDrawArraysEXT" es1="1.0" es2="2.0" exec="dynamic" alias="MultiDrawArrays">
         <param name="mode" type="GLenum"/>
         <param name="first" type="const GLint *"/>
         <param name="count" type="const GLsizei *"/>

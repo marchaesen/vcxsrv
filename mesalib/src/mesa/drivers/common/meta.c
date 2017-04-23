@@ -3044,8 +3044,6 @@ decompress_texture_image(struct gl_context *ctx,
          return false;
       }
 
-      decompress_fbo->rb->RefCount = 1;
-
       decompress_fbo->fb = ctx->Driver.NewFramebuffer(ctx, 0xDEADBEEF);
       if (decompress_fbo->fb == NULL) {
          _mesa_meta_end(ctx);

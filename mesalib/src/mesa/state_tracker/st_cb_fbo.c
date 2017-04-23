@@ -690,31 +690,39 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 
 
 /**
- * Called via glDrawBuffer.
+ * Called via glDrawBuffer.  We only provide this driver function so that we
+ * can check if we need to allocate a new renderbuffer.  Specifically, we
+ * don't usually allocate a front color buffer when using a double-buffered
+ * visual.  But if the app calls glDrawBuffer(GL_FRONT) we need to allocate
+ * that buffer.  Note, this is only for window system buffers, not user-
+ * created FBOs.
  */
 static void
 st_DrawBuffers(struct gl_context *ctx, GLsizei count, const GLenum *buffers)
 {
    struct st_context *st = st_context(ctx);
    struct gl_framebuffer *fb = ctx->DrawBuffer;
-   GLuint i;
 
    (void) count;
    (void) buffers;
 
-   /* add the renderbuffers on demand */
-   for (i = 0; i < fb->_NumColorDrawBuffers; i++) {
-      GLint idx = fb->_ColorDrawBufferIndexes[i];
+   if (_mesa_is_winsys_fbo(fb)) {
+      GLuint i;
+      /* add the renderbuffers on demand */
+      for (i = 0; i < fb->_NumColorDrawBuffers; i++) {
+         GLint idx = fb->_ColorDrawBufferIndexes[i];
 
-      if (idx >= 0) {
-         st_manager_add_color_renderbuffer(st, fb, idx);
+         if (idx >= 0) {
+            st_manager_add_color_renderbuffer(st, fb, idx);
+         }
       }
    }
 }
 
 
 /**
- * Called via glReadBuffer.
+ * Called via glReadBuffer.  As with st_DrawBuffers, we use this function
+ * to check if we need to allocate a renderbuffer on demand.
  */
 static void
 st_ReadBuffer(struct gl_context *ctx, GLenum buffer)
@@ -731,6 +739,7 @@ st_ReadBuffer(struct gl_context *ctx, GLenum buffer)
    if ((fb->_ColorReadBufferIndex == BUFFER_FRONT_LEFT ||
         fb->_ColorReadBufferIndex == BUFFER_FRONT_RIGHT) &&
        fb->Attachment[fb->_ColorReadBufferIndex].Type == GL_NONE) {
+      assert(_mesa_is_winsys_fbo(fb));
       /* add the buffer */
       st_manager_add_color_renderbuffer(st, fb, fb->_ColorReadBufferIndex);
       _mesa_update_state(ctx);

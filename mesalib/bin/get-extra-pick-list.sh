@@ -30,7 +30,15 @@ do
 		if grep -q ^$candidate already_picked ; then
 			continue
 		fi
-		echo Commit $candidate references $sha
+		# Or if it isn't in the ignore list.
+		if [ -f bin/.cherry-ignore ] ; then
+			if grep -q ^$candidate bin/.cherry-ignore ; then
+				continue
+			fi
+		fi
+		printf "Commit \"%s\" references %s\n" \
+		       "`git log -n1 --pretty=oneline $candidate`" \
+		       "$sha"
 	done
 done
 

@@ -127,19 +127,6 @@ _mesa_lookup_texture_err(struct gl_context *ctx, GLuint id, const char* func)
    return texObj;
 }
 
-void
-_mesa_begin_texture_lookups(struct gl_context *ctx)
-{
-   _mesa_HashLockMutex(ctx->Shared->TexObjects);
-}
-
-
-void
-_mesa_end_texture_lookups(struct gl_context *ctx)
-{
-   _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
-}
-
 
 struct gl_texture_object *
 _mesa_lookup_texture_locked(struct gl_context *ctx, GLuint id)
@@ -579,16 +566,10 @@ _mesa_reference_texobj_(struct gl_texture_object **ptr,
       /* reference new texture */
       assert(valid_texture_object(tex));
       mtx_lock(&tex->Mutex);
-      if (tex->RefCount == 0) {
-         /* this texture's being deleted (look just above) */
-         /* Not sure this can every really happen.  Warn if it does. */
-         _mesa_problem(NULL, "referencing deleted texture object");
-         *ptr = NULL;
-      }
-      else {
-         tex->RefCount++;
-         *ptr = tex;
-      }
+      assert(tex->RefCount > 0);
+
+      tex->RefCount++;
+      *ptr = tex;
       mtx_unlock(&tex->Mutex);
    }
 }
@@ -1676,7 +1657,8 @@ _mesa_BindTexture( GLenum target, GLuint texName )
 
    targetIndex = _mesa_tex_target_to_index(ctx, target);
    if (targetIndex < 0) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glBindTexture(target)");
+      _mesa_error(ctx, GL_INVALID_ENUM, "glBindTexture(target = %s)",
+                  _mesa_enum_to_string(target));
       return;
    }
    assert(targetIndex < NUM_TEXTURE_TARGETS);
@@ -1833,7 +1815,7 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
        *       their parameters are valid and no other error occurs."
        */
 
-      _mesa_begin_texture_lookups(ctx);
+      _mesa_HashLockMutex(ctx->Shared->TexObjects);
 
       for (i = 0; i < count; i++) {
          if (textures[i] != 0) {
@@ -1865,7 +1847,7 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
          }
       }
 
-      _mesa_end_texture_lookups(ctx);
+      _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
    } else {
       /* Unbind all textures in the range <first> through <first>+<count>-1 */
       for (i = 0; i < count; i++)

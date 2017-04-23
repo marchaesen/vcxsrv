@@ -293,6 +293,8 @@ st_bufferobj_data(struct gl_context *ctx,
       pipe_flags |= PIPE_RESOURCE_FLAG_MAP_PERSISTENT;
    if (storageFlags & GL_MAP_COHERENT_BIT)
       pipe_flags |= PIPE_RESOURCE_FLAG_MAP_COHERENT;
+   if (storageFlags & GL_SPARSE_STORAGE_BIT_ARB)
+      pipe_flags |= PIPE_RESOURCE_FLAG_SPARSE;
 
    pipe_resource_reference( &st_obj->buffer, NULL );
 
@@ -559,6 +561,23 @@ st_bufferobj_validate_usage(struct st_context *st,
 {
 }
 
+static void
+st_bufferobj_page_commitment(struct gl_context *ctx,
+                             struct gl_buffer_object *bufferObj,
+                             GLintptr offset, GLsizeiptr size,
+                             GLboolean commit)
+{
+   struct pipe_context *pipe = st_context(ctx)->pipe;
+   struct st_buffer_object *buf = st_buffer_object(bufferObj);
+   struct pipe_box box;
+
+   u_box_1d(offset, size, &box);
+
+   if (!pipe->resource_commit(pipe, buf->buffer, 0, &box, commit)) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBufferPageCommitmentARB(out of memory)");
+      return;
+   }
+}
 
 void
 st_init_bufferobject_functions(struct pipe_screen *screen,
@@ -577,6 +596,7 @@ st_init_bufferobject_functions(struct pipe_screen *screen,
    functions->UnmapBuffer = st_bufferobj_unmap;
    functions->CopyBufferSubData = st_copy_buffer_subdata;
    functions->ClearBufferSubData = st_clear_buffer_subdata;
+   functions->BufferPageCommitment = st_bufferobj_page_commitment;
 
    if (screen->get_param(screen, PIPE_CAP_INVALIDATE_BUFFER))
       functions->InvalidateBufferSubData = st_bufferobj_invalidate;

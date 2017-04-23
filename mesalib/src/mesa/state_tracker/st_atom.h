@@ -83,7 +83,11 @@ enum {
 #undef ST_STATE
 
 /* Combined state flags. */
-#define ST_NEW_SAMPLERS         (ST_NEW_RENDER_SAMPLERS | \
+#define ST_NEW_SAMPLERS         (ST_NEW_VS_SAMPLERS | \
+                                 ST_NEW_TCS_SAMPLERS | \
+                                 ST_NEW_TES_SAMPLERS | \
+                                 ST_NEW_GS_SAMPLERS | \
+                                 ST_NEW_FS_SAMPLERS | \
                                  ST_NEW_CS_SAMPLERS)
 
 #define ST_NEW_FRAMEBUFFER      (ST_NEW_FB_STATE | \

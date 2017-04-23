@@ -486,7 +486,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 		r = radv_compute_level(ws->addrlib, surf, false, level, type, compressed,
 				       &AddrSurfInfoIn, &AddrSurfInfoOut, &AddrDccIn, &AddrDccOut);
 		if (r)
-			return r;
+			break;
 
 		if (level == 0) {
 			surf->bo_alignment = AddrSurfInfoOut.baseAlign;

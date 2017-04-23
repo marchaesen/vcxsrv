@@ -30,9 +30,11 @@ max_api_version = 1.0
 supported_extensions = [
    'VK_AMD_draw_indirect_count',
    'VK_NV_dedicated_allocation',
+   'VK_KHR_descriptor_update_template',
    'VK_KHR_get_physical_device_properties2',
    'VK_KHR_incremental_present',
    'VK_KHR_maintenance1',
+   'VK_KHR_push_descriptor',
    'VK_KHR_sampler_mirror_clamp_to_edge',
    'VK_KHR_shader_draw_parameters',
    'VK_KHR_surface',

@@ -63,9 +63,6 @@
 /* Has libunwind support */
 #undef HAVE_LIBUNWIND
 
-/* Define to 1 if you have the <byteswap.h> header file. */
-#undef HAVE_BYTESWAP_H
-
 /* Define to 1 if you have the `cbrt' function. */
 #undef HAVE_CBRT
 
@@ -322,9 +319,6 @@
 /* Support UNIX socket connections */
 #undef UNIXCONN
 
-/* Define to use byteswap macros from <sys/endian.h> */
-#undef USE_SYS_ENDIAN_H
-
 /* unaligned word accesses behave as expected */
 #undef WORKING_UNALIGNED_INT
 
@@ -453,15 +447,6 @@
 
 /* Define to 1 if the DTrace Xserver provider probes should be built in */
 #undef XSERVER_DTRACE
-
-/* Define to 16-bit byteswap macro */
-#undef bswap_16
-
-/* Define to 32-bit byteswap macro */
-#undef bswap_32
-
-/* Define to 64-bit byteswap macro */
-#undef bswap_64
 
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF

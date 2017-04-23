@@ -171,6 +171,7 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 		variant->info = entry->variant_info;
 		variant->rsrc1 = entry->rsrc1;
 		variant->rsrc2 = entry->rsrc2;
+		variant->code_size = entry->code_size;
 		variant->ref_count = 1;
 
 		variant->bo = device->ws->buffer_create(device->ws, entry->code_size, 256,

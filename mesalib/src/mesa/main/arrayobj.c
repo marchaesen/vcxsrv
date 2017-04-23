@@ -71,7 +71,7 @@ _mesa_lookup_vao(struct gl_context *ctx, GLuint id)
       return NULL;
    else
       return (struct gl_vertex_array_object *)
-         _mesa_HashLookup(ctx->Array.Objects, id);
+         _mesa_HashLookupLocked(ctx->Array.Objects, id);
 }
 
 
@@ -108,7 +108,7 @@ _mesa_lookup_vao_err(struct gl_context *ctx, GLuint id, const char *caller)
          vao = ctx->Array.LastLookedUpVAO;
       } else {
          vao = (struct gl_vertex_array_object *)
-            _mesa_HashLookup(ctx->Array.Objects, id);
+            _mesa_HashLookupLocked(ctx->Array.Objects, id);
 
          /* The ARB_direct_state_access specification says:
           *
@@ -169,7 +169,6 @@ _mesa_delete_vao(struct gl_context *ctx, struct gl_vertex_array_object *obj)
 {
    unbind_array_object_vbos(ctx, obj);
    _mesa_reference_buffer_object(ctx, &obj->IndexBufferObj, NULL);
-   mtx_destroy(&obj->Mutex);
    free(obj->Label);
    free(obj);
 }
@@ -189,16 +188,12 @@ _mesa_reference_vao_(struct gl_context *ctx,
 
    if (*ptr) {
       /* Unreference the old array object */
-      GLboolean deleteFlag = GL_FALSE;
       struct gl_vertex_array_object *oldObj = *ptr;
 
-      mtx_lock(&oldObj->Mutex);
       assert(oldObj->RefCount > 0);
       oldObj->RefCount--;
-      deleteFlag = (oldObj->RefCount == 0);
-      mtx_unlock(&oldObj->Mutex);
 
-      if (deleteFlag)
+      if (oldObj->RefCount == 0)
          _mesa_delete_vao(ctx, oldObj);
 
       *ptr = NULL;
@@ -207,18 +202,10 @@ _mesa_reference_vao_(struct gl_context *ctx,
 
    if (vao) {
       /* reference new array object */
-      mtx_lock(&vao->Mutex);
-      if (vao->RefCount == 0) {
-         /* this array's being deleted (look just above) */
-         /* Not sure this can every really happen.  Warn if it does. */
-         _mesa_problem(NULL, "referencing deleted array object");
-         *ptr = NULL;
-      }
-      else {
-         vao->RefCount++;
-         *ptr = vao;
-      }
-      mtx_unlock(&vao->Mutex);
+      assert(vao->RefCount > 0);
+
+      vao->RefCount++;
+      *ptr = vao;
    }
 }
 
@@ -274,7 +261,6 @@ _mesa_initialize_vao(struct gl_context *ctx,
 
    vao->Name = name;
 
-   mtx_init(&vao->Mutex, mtx_plain);
    vao->RefCount = 1;
 
    /* Init the individual arrays */
@@ -320,7 +306,7 @@ save_array_object(struct gl_context *ctx, struct gl_vertex_array_object *vao)
 {
    if (vao->Name > 0) {
       /* insert into hash table */
-      _mesa_HashInsert(ctx->Array.Objects, vao->Name, vao);
+      _mesa_HashInsertLocked(ctx->Array.Objects, vao->Name, vao);
    }
 }
 
@@ -334,7 +320,7 @@ remove_array_object(struct gl_context *ctx, struct gl_vertex_array_object *vao)
 {
    if (vao->Name > 0) {
       /* remove from hash table */
-      _mesa_HashRemove(ctx->Array.Objects, vao->Name);
+      _mesa_HashRemoveLocked(ctx->Array.Objects, vao->Name);
    }
 }
 

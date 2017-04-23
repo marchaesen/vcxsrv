@@ -972,6 +972,8 @@ hud_graph_set_dump_file(struct hud_graph *gr)
          strcat(dump_file, "/");
          strcat_without_spaces(dump_file, gr->name);
          gr->fd = fopen(dump_file, "w+");
+         if (gr->fd)
+            setvbuf(gr->fd, NULL, _IOLBF, 0);
          free(dump_file);
       }
    }

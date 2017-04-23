@@ -501,6 +501,7 @@ EXTRA_EXT(KHR_blend_equation_advanced_coherent);
 EXTRA_EXT(OES_primitive_bounding_box);
 EXTRA_EXT(ARB_compute_variable_group_size);
 EXTRA_EXT(KHR_robustness);
+EXTRA_EXT(ARB_sparse_buffer);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {

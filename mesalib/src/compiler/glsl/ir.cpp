@@ -381,6 +381,14 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = glsl_type::int_type;
       break;
 
+   case ir_unop_ballot:
+      this->type = glsl_type::uint64_t_type;
+      break;
+
+   case ir_unop_read_first_invocation:
+      this->type = op0->type;
+      break;
+
    case ir_unop_vote_any:
    case ir_unop_vote_all:
    case ir_unop_vote_eq:
@@ -494,6 +502,10 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
 
    case ir_binop_vector_extract:
       this->type = op0->type->get_scalar_type();
+      break;
+
+   case ir_binop_read_invocation:
+      this->type = op0->type;
       break;
 
    default:
@@ -771,10 +783,9 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
    if (value->type->is_scalar() && value->next->is_tail_sentinel()) {
       if (type->is_matrix()) {
 	 /* Matrix - fill diagonal (rest is already set to 0) */
-         assert(type->base_type == GLSL_TYPE_FLOAT ||
-                type->base_type == GLSL_TYPE_DOUBLE);
+         assert(type->is_float() || type->is_double());
          for (unsigned i = 0; i < type->matrix_columns; i++) {
-            if (type->base_type == GLSL_TYPE_FLOAT)
+            if (type->is_float())
                this->value.f[i * type->vector_elements + i] =
                   value->value.f[0];
             else
@@ -1225,7 +1236,7 @@ ir_constant::has_value(const ir_constant *c) const
       return true;
    }
 
-   if (this->type->base_type == GLSL_TYPE_STRUCT) {
+   if (this->type->is_record()) {
       const exec_node *a_node = this->components.get_head_raw();
       const exec_node *b_node = c->components.get_head_raw();
 
@@ -1498,7 +1509,7 @@ ir_texture::set_sampler(ir_dereference *sampler, const glsl_type *type)
       assert(type->base_type == GLSL_TYPE_INT);
    } else if (this->op == ir_lod) {
       assert(type->vector_elements == 2);
-      assert(type->base_type == GLSL_TYPE_FLOAT);
+      assert(type->is_float());
    } else if (this->op == ir_samples_identical) {
       assert(type == glsl_type::bool_type);
       assert(sampler->type->is_sampler());

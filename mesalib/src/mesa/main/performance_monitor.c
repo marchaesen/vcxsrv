@@ -144,33 +144,6 @@ get_counter(const struct gl_perf_monitor_group *group_obj, GLuint id)
    return &group_obj->Counters[id];
 }
 
-/* For INTEL_performance_query, query id 0 is reserved to be invalid. We use
- * index to Groups array + 1 as the query id. Same applies to counter id.
- */
-static inline GLuint
-queryid_to_index(GLuint queryid)
-{
-   return queryid - 1;
-}
-
-static inline GLuint
-index_to_queryid(GLuint index)
-{
-   return index + 1;
-}
-
-static inline bool
-queryid_valid(const struct gl_context *ctx, GLuint queryid)
-{
-   return get_group(ctx, queryid_to_index(queryid)) != NULL;
-}
-
-static inline GLuint
-counterid_to_index(GLuint counterid)
-{
-   return counterid - 1;
-}
-
 /*****************************************************************************/
 
 void GLAPIENTRY

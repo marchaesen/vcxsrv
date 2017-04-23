@@ -1176,6 +1176,40 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
 }
 
 
+static void GLAPIENTRY
+_save_OBE_MultiDrawArrays(GLenum mode, const GLint *first,
+                          const GLsizei *count, GLsizei primcount)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLint i;
+
+   if (!_mesa_is_valid_prim_mode(ctx, mode)) {
+      _mesa_compile_error(ctx, GL_INVALID_ENUM, "glMultiDrawArrays(mode)");
+      return;
+   }
+
+   if (primcount < 0) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE,
+                          "glMultiDrawArrays(primcount<0)");
+      return;
+   }
+
+   for (i = 0; i < primcount; i++) {
+      if (count[i] < 0) {
+         _mesa_compile_error(ctx, GL_INVALID_VALUE,
+                             "glMultiDrawArrays(count[i]<0)");
+         return;
+      }
+   }
+
+   for (i = 0; i < primcount; i++) {
+      if (count[i] > 0) {
+         _save_OBE_DrawArrays(mode, first[i], count[i]);
+      }
+   }
+}
+
+
 /* Could do better by copying the arrays and element list intact and
  * then emitting an indexed prim at runtime.
  */
@@ -1484,6 +1518,7 @@ vbo_initialize_save_dispatch(const struct gl_context *ctx,
                              struct _glapi_table *exec)
 {
    SET_DrawArrays(exec, _save_OBE_DrawArrays);
+   SET_MultiDrawArrays(exec, _save_OBE_MultiDrawArrays);
    SET_DrawElements(exec, _save_OBE_DrawElements);
    SET_DrawElementsBaseVertex(exec, _save_OBE_DrawElementsBaseVertex);
    SET_DrawRangeElements(exec, _save_OBE_DrawRangeElements);

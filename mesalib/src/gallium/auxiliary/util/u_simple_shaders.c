@@ -119,7 +119,7 @@ void *util_make_layered_clear_vertex_shader(struct pipe_context *pipe)
 
          "MOV OUT[0], IN[0]\n"
          "MOV OUT[1], IN[1]\n"
-         "MOV OUT[2], SV[0]\n"
+         "MOV OUT[2].x, SV[0].xxxx\n"
          "END\n";
    struct tgsi_token tokens[1000];
    struct pipe_shader_state state;

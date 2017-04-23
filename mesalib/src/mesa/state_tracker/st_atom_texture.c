@@ -66,11 +66,8 @@ update_single_texture(struct st_context *st,
    samp = _mesa_get_samplerobj(ctx, texUnit);
 
    texObj = ctx->Texture.Unit[texUnit]._Current;
+   assert(texObj);
 
-   if (!texObj) {
-      texObj = _mesa_get_fallback_texture(ctx, TEXTURE_2D_INDEX);
-      samp = &texObj->Sampler;
-   }
    stObj = st_texture_object(texObj);
 
    retval = st_finalize_texture(ctx, st->pipe, texObj, 0);

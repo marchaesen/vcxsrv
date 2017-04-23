@@ -782,33 +782,27 @@ glsl_type_name(enum glsl_base_type type)
 }
 
 
-/**
- * Called via glUniform*() functions.
- */
-extern "C" void
-_mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
-              struct gl_context *ctx, struct gl_shader_program *shProg,
-              enum glsl_base_type basicType, unsigned src_components)
+static struct gl_uniform_storage *
+validate_uniform(GLint location, GLsizei count, const GLvoid *values,
+                 unsigned *offset, struct gl_context *ctx,
+                 struct gl_shader_program *shProg,
+                 enum glsl_base_type basicType, unsigned src_components)
 {
-   unsigned offset;
-   int size_mul = glsl_base_type_is_64bit(basicType) ? 2 : 1;
-
    struct gl_uniform_storage *const uni =
-      validate_uniform_parameters(location, count, &offset,
+      validate_uniform_parameters(location, count, offset,
                                   ctx, shProg, "glUniform");
    if (uni == NULL)
-      return;
+      return NULL;
 
    if (uni->type->is_matrix()) {
       /* Can't set matrix uniforms (like mat4) with glUniform */
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glUniform%u(uniform \"%s\"@%d is matrix)",
                   src_components, uni->name, location);
-      return;
+      return NULL;
    }
 
-   /* Verify that the types are compatible.
-    */
+   /* Verify that the types are compatible. */
    const unsigned components = uni->type->is_sampler()
       ? 1 : uni->type->vector_elements;
 
@@ -818,7 +812,7 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
                   "glUniform%u(\"%s\"@%u has %u components, not %u)",
                   src_components, uni->name, location,
                   components, src_components);
-      return;
+      return NULL;
    }
 
    bool match;
@@ -843,12 +837,12 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
                   src_components, uni->name, location,
                   glsl_type_name(uni->type->base_type),
                   glsl_type_name(basicType));
-      return;
+      return NULL;
    }
 
    if (unlikely(ctx->_Shader->Flags & GLSL_UNIFORMS)) {
       log_uniform(values, basicType, components, 1, count,
-		  false, shProg, location, uni);
+                  false, shProg, location, uni);
    }
 
    /* Page 100 (page 116 of the PDF) of the OpenGL 3.0 spec says:
@@ -870,15 +864,14 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
     */
    if (uni->type->is_sampler()) {
       for (int i = 0; i < count; i++) {
-	 const unsigned texUnit = ((unsigned *) values)[i];
+         const unsigned texUnit = ((unsigned *) values)[i];
 
          /* check that the sampler (tex unit index) is legal */
          if (texUnit >= ctx->Const.MaxCombinedTextureImageUnits) {
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "glUniform1i(invalid sampler/tex unit index for "
-			"uniform %d)",
-                        location);
-            return;
+                        "uniform %d)", location);
+            return NULL;
          }
       }
       /* We need to reset the validate flag on changes to samplers in case
@@ -896,10 +889,44 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "glUniform1i(invalid image unit index for uniform %d)",
                         location);
-            return;
+            return NULL;
          }
       }
    }
+
+   return uni;
+}
+
+
+/**
+ * Called via glUniform*() functions.
+ */
+extern "C" void
+_mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
+              struct gl_context *ctx, struct gl_shader_program *shProg,
+              enum glsl_base_type basicType, unsigned src_components)
+{
+   unsigned offset;
+   int size_mul = glsl_base_type_is_64bit(basicType) ? 2 : 1;
+
+   struct gl_uniform_storage *uni;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      uni = shProg->UniformRemapTable[location];
+
+      /* The array index specified by the uniform location is just the
+       * uniform location minus the base location of of the uniform.
+       */
+      assert(uni->array_elements > 0 || location == (int)uni->remap_location);
+      offset = location - uni->remap_location;
+   } else {
+      uni = validate_uniform(location, count, values, &offset, ctx, shProg,
+                             basicType, src_components);
+      if (!uni)
+         return;
+   }
+
+   const unsigned components = uni->type->is_sampler()
+      ? 1 : uni->type->vector_elements;
 
    /* Page 82 (page 96 of the PDF) of the OpenGL 2.1 spec says:
     *
@@ -945,6 +972,8 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
     */
    if (uni->type->is_sampler()) {
       bool flushed = false;
+      shProg->SamplersValidated = GL_TRUE;
+
       for (int i = 0; i < MESA_SHADER_STAGES; i++) {
 	 struct gl_linked_shader *const sh = shProg->_LinkedShaders[i];
 

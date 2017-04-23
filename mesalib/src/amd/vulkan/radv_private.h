@@ -79,6 +79,7 @@ typedef uint32_t xcb_window_t;
 #define MAX_VIEWPORTS   16
 #define MAX_SCISSORS    16
 #define MAX_PUSH_CONSTANTS_SIZE 128
+#define MAX_PUSH_DESCRIPTORS 32
 #define MAX_DYNAMIC_BUFFERS 16
 #define MAX_SAMPLES_LOG2 4
 #define NUM_META_FS_KEYS 11
@@ -437,6 +438,13 @@ struct radv_meta_state {
 		VkPipeline fill_pipeline;
 		VkPipeline copy_pipeline;
 	} buffer;
+
+	struct {
+		VkDescriptorSetLayout ds_layout;
+		VkPipelineLayout p_layout;
+		VkPipeline occlusion_query_pipeline;
+		VkPipeline pipeline_statistics_query_pipeline;
+	} query;
 };
 
 /* queue types */
@@ -549,6 +557,12 @@ struct radv_descriptor_set {
 	struct radeon_winsys_bo *descriptors[0];
 };
 
+struct radv_push_descriptor_set
+{
+	struct radv_descriptor_set set;
+	uint32_t capacity;
+};
+
 struct radv_descriptor_pool {
 	struct radeon_winsys_bo *bo;
 	uint8_t *mapped_ptr;
@@ -556,6 +570,40 @@ struct radv_descriptor_pool {
 	uint64_t size;
 
 	struct list_head vram_list;
+
+	uint8_t *host_memory_base;
+	uint8_t *host_memory_ptr;
+	uint8_t *host_memory_end;
+};
+
+struct radv_descriptor_update_template_entry {
+	VkDescriptorType descriptor_type;
+
+	/* The number of descriptors to update */
+	uint32_t descriptor_count;
+
+	/* Into mapped_ptr or dynamic_descriptors, in units of the respective array */
+	uint32_t dst_offset;
+
+	/* In dwords. Not valid/used for dynamic descriptors */
+	uint32_t dst_stride;
+
+	uint32_t buffer_offset;
+
+	/* Only valid for combined image samplers and samplers */
+	uint16_t has_sampler;
+
+	/* In bytes */
+	size_t src_offset;
+	size_t src_stride;
+
+	/* For push descriptors */
+	const uint32_t *immutable_samplers;
+};
+
+struct radv_descriptor_update_template {
+	uint32_t entry_count;
+	struct radv_descriptor_update_template_entry entry[0];
 };
 
 struct radv_buffer {
@@ -682,6 +730,7 @@ struct radv_cmd_state {
 	uint32_t                                      vb_dirty;
 	radv_cmd_dirty_mask_t                         dirty;
 	bool                                          vertex_descriptors_dirty;
+	bool                                          push_descriptors_dirty;
 
 	struct radv_pipeline *                        pipeline;
 	struct radv_pipeline *                        emitted_pipeline;
@@ -698,6 +747,7 @@ struct radv_cmd_state {
 	struct radv_buffer *                         index_buffer;
 	uint32_t                                     index_type;
 	uint32_t                                     index_offset;
+	int32_t                                      last_primitive_reset_en;
 	uint32_t                                     last_primitive_reset_index;
 	enum radv_cmd_flush_bits                     flush_bits;
 	unsigned                                     active_occlusion_queries;
@@ -739,6 +789,8 @@ struct radv_cmd_buffer {
 	uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
 	uint32_t dynamic_buffers[4 * MAX_DYNAMIC_BUFFERS];
 	VkShaderStageFlags push_constant_stages;
+	struct radv_push_descriptor_set push_descriptors;
+	struct radv_descriptor_set meta_push_descriptors;
 
 	struct radv_cmd_buffer_upload upload;
 
@@ -783,6 +835,8 @@ void si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer);
 void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 			   uint64_t src_va, uint64_t dest_va,
 			   uint64_t size);
+void si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
+                        unsigned size);
 void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 			    uint64_t size, unsigned value);
 void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer);
@@ -958,7 +1012,7 @@ struct radv_pipeline {
 	struct radv_pipeline_layout *                 layout;
 
 	bool                                         needs_data_cache;
-
+	bool					     need_indirect_descriptor_sets;
 	struct radv_shader_variant *                 shaders[MESA_SHADER_STAGES];
 	struct radv_shader_variant *gs_copy_shader;
 	VkShaderStageFlags                           active_stages;
@@ -1333,17 +1387,32 @@ struct radv_query_pool {
 	uint32_t availability_offset;
 	char *ptr;
 	VkQueryType type;
+	uint32_t pipeline_stats_mask;
 };
 
-VkResult
-radv_temp_descriptor_set_create(struct radv_device *device,
-				struct radv_cmd_buffer *cmd_buffer,
-				VkDescriptorSetLayout _layout,
-				VkDescriptorSet *_set);
+void
+radv_update_descriptor_sets(struct radv_device *device,
+                            struct radv_cmd_buffer *cmd_buffer,
+                            VkDescriptorSet overrideSet,
+                            uint32_t descriptorWriteCount,
+                            const VkWriteDescriptorSet *pDescriptorWrites,
+                            uint32_t descriptorCopyCount,
+                            const VkCopyDescriptorSet *pDescriptorCopies);
 
 void
-radv_temp_descriptor_set_destroy(struct radv_device *device,
-				 VkDescriptorSet _set);
+radv_update_descriptor_set_with_template(struct radv_device *device,
+                                         struct radv_cmd_buffer *cmd_buffer,
+                                         struct radv_descriptor_set *set,
+                                         VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                         const void *pData);
+
+void radv_meta_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
+                                   VkPipelineBindPoint pipelineBindPoint,
+                                   VkPipelineLayout _layout,
+                                   uint32_t set,
+                                   uint32_t descriptorWriteCount,
+                                   const VkWriteDescriptorSet *pDescriptorWrites);
+
 void radv_initialise_cmask(struct radv_cmd_buffer *cmd_buffer,
 			   struct radv_image *image, uint32_t value);
 void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
@@ -1400,6 +1469,7 @@ RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_buffer_view, VkBufferView)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_descriptor_pool, VkDescriptorPool)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_descriptor_set, VkDescriptorSet)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_descriptor_set_layout, VkDescriptorSetLayout)
+RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_descriptor_update_template, VkDescriptorUpdateTemplateKHR)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_device_memory, VkDeviceMemory)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_fence, VkFence)
 RADV_DEFINE_NONDISP_HANDLE_CASTS(radv_event, VkEvent)

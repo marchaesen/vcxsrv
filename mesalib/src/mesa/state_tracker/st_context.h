@@ -29,10 +29,10 @@
 #define ST_CONTEXT_H
 
 #include "main/mtypes.h"
-#include "pipe/p_state.h"
 #include "state_tracker/st_api.h"
 #include "main/fbobject.h"
 #include "state_tracker/st_atom.h"
+#include "util/u_inlines.h"
 
 
 #ifdef __cplusplus
@@ -40,7 +40,6 @@ extern "C" {
 #endif
 
 
-struct bitmap_cache;
 struct dd_function_table;
 struct draw_context;
 struct draw_stage;
@@ -59,6 +58,26 @@ struct st_util_vertex
    float s, t;
 };
 
+struct st_bitmap_cache
+{
+   /** Window pos to render the cached image */
+   GLint xpos, ypos;
+   /** Bounds of region used in window coords */
+   GLint xmin, ymin, xmax, ymax;
+
+   GLfloat color[4];
+
+   /** Bitmap's Z position */
+   GLfloat zpos;
+
+   struct pipe_resource *texture;
+   struct pipe_transfer *trans;
+
+   GLboolean empty;
+
+   /** An I8 texture image: */
+   ubyte *buffer;
+};
 
 struct st_context
 {
@@ -180,7 +199,7 @@ struct st_context
       struct pipe_sampler_state atlas_sampler;
       enum pipe_format tex_format;
       void *vs;
-      struct bitmap_cache *cache;
+      struct st_bitmap_cache cache;
    } bitmap;
 
    /** for glDraw/CopyPixels */
@@ -287,7 +306,16 @@ extern void st_init_driver_functions(struct pipe_screen *screen,
 
 void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state);
 
-void st_invalidate_readpix_cache(struct st_context *st);
+/* Invalidate the readpixels cache to ensure we don't read stale data.
+ */
+static inline void
+st_invalidate_readpix_cache(struct st_context *st)
+{
+   if (unlikely(st->readpix_cache.src)) {
+      pipe_resource_reference(&st->readpix_cache.src, NULL);
+      pipe_resource_reference(&st->readpix_cache.cache, NULL);
+   }
+}
 
 
 #define Y_0_TOP 1

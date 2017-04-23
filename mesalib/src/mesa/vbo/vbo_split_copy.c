@@ -479,8 +479,8 @@ replay_init( struct copy_context *copy )
             ADD_POINTERS(copy->ib->obj->Mappings[MAP_INTERNAL].Pointer,
                          copy->ib->ptr);
 
-   switch (copy->ib->type) {
-   case GL_UNSIGNED_BYTE:
+   switch (copy->ib->index_size) {
+   case 1:
       copy->translated_elt_buf = malloc(sizeof(GLuint) * copy->ib->count);
       copy->srcelt = copy->translated_elt_buf;
 
@@ -488,7 +488,7 @@ replay_init( struct copy_context *copy )
 	 copy->translated_elt_buf[i] = ((const GLubyte *)srcptr)[i];
       break;
 
-   case GL_UNSIGNED_SHORT:
+   case 2:
       copy->translated_elt_buf = malloc(sizeof(GLuint) * copy->ib->count);
       copy->srcelt = copy->translated_elt_buf;
 
@@ -496,7 +496,7 @@ replay_init( struct copy_context *copy )
 	 copy->translated_elt_buf[i] = ((const GLushort *)srcptr)[i];
       break;
 
-   case GL_UNSIGNED_INT:
+   case 4:
       copy->translated_elt_buf = NULL;
       copy->srcelt = (const GLuint *)srcptr;
       break;
@@ -551,7 +551,7 @@ replay_init( struct copy_context *copy )
     * list:
     */
    copy->dstib.count = 0;	/* duplicates dstelt_nr */
-   copy->dstib.type = GL_UNSIGNED_INT;
+   copy->dstib.index_size = 4;
    copy->dstib.obj = ctx->Shared->NullBufferObj;
    copy->dstib.ptr = copy->dstelt;
 }

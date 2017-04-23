@@ -627,6 +627,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_separate_shader_objects),
    EXT(ARB_shader_atomic_counter_ops),
    EXT(ARB_shader_atomic_counters),
+   EXT(ARB_shader_ballot),
    EXT(ARB_shader_bit_encoding),
    EXT(ARB_shader_clock),
    EXT(ARB_shader_draw_parameters),
@@ -1921,133 +1922,51 @@ do_late_parsing_checks(struct _mesa_glsl_parse_state *state)
    }
 }
 
-void
-_mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
-                          bool dump_ast, bool dump_hir, bool force_recompile)
+static void
+opt_shader_and_create_symbol_table(struct gl_context *ctx,
+                                   struct gl_shader *shader)
 {
-   struct _mesa_glsl_parse_state *state =
-      new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
-   const char *source = force_recompile && shader->FallbackSource ?
-      shader->FallbackSource : shader->Source;
+   assert(shader->CompileStatus != compile_failure &&
+          !shader->ir->is_empty());
 
-   if (ctx->Const.GenerateTemporaryNames)
-      (void) p_atomic_cmpxchg(&ir_variable::temporaries_allocate_names,
-                              false, true);
+   struct gl_shader_compiler_options *options =
+      &ctx->Const.ShaderCompilerOptions[shader->Stage];
 
-   state->error = glcpp_preprocess(state, &source, &state->info_log,
-                             add_builtin_defines, state, ctx);
-
-   if (!force_recompile) {
-      if (ctx->Cache) {
-         char buf[41];
-         disk_cache_compute_key(ctx->Cache, source, strlen(source),
-                                shader->sha1);
-         if (disk_cache_has_key(ctx->Cache, shader->sha1)) {
-            /* We've seen this shader before and know it compiles */
-            if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
-               _mesa_sha1_format(buf, shader->sha1);
-               fprintf(stderr, "deferring compile of shader: %s\n", buf);
-            }
-            shader->CompileStatus = compile_skipped;
-
-            free((void *)shader->FallbackSource);
-            shader->FallbackSource = NULL;
-            return;
-         }
-      }
+   /* Do some optimization at compile time to reduce shader IR size
+    * and reduce later work if the same shader is linked multiple times
+    */
+   if (ctx->Const.GLSLOptimizeConservatively) {
+      /* Run it just once. */
+      do_common_optimization(shader->ir, false, false, options,
+                             ctx->Const.NativeIntegers);
    } else {
-      /* We should only ever end up here if a re-compile has been forced by a
-       * shader cache miss. In which case we can skip the compile if its
-       * already be done by a previous fallback or the initial compile call.
+      /* Repeat it until it stops making changes. */
+      while (do_common_optimization(shader->ir, false, false, options,
+                                    ctx->Const.NativeIntegers))
+         ;
+   }
+
+   validate_ir_tree(shader->ir);
+
+   enum ir_variable_mode other;
+   switch (shader->Stage) {
+   case MESA_SHADER_VERTEX:
+      other = ir_var_shader_in;
+      break;
+   case MESA_SHADER_FRAGMENT:
+      other = ir_var_shader_out;
+      break;
+   default:
+      /* Something invalid to ensure optimize_dead_builtin_uniforms
+       * doesn't remove anything other than uniforms or constants.
        */
-      if (shader->CompileStatus == compile_success)
-         return;
+      other = ir_var_mode_count;
+      break;
    }
 
-   if (!state->error) {
-     _mesa_glsl_lexer_ctor(state, source);
-     _mesa_glsl_parse(state);
-     _mesa_glsl_lexer_dtor(state);
-     do_late_parsing_checks(state);
-   }
+   optimize_dead_builtin_variables(shader->ir, other);
 
-   if (dump_ast) {
-      foreach_list_typed(ast_node, ast, link, &state->translation_unit) {
-         ast->print();
-      }
-      printf("\n\n");
-   }
-
-   ralloc_free(shader->ir);
-   shader->ir = new(shader) exec_list;
-   if (!state->error && !state->translation_unit.is_empty())
-      _mesa_ast_to_hir(shader->ir, state);
-
-   if (!state->error) {
-      validate_ir_tree(shader->ir);
-
-      /* Print out the unoptimized IR. */
-      if (dump_hir) {
-         _mesa_print_ir(stdout, shader->ir, state);
-      }
-   }
-
-
-   if (!state->error && !shader->ir->is_empty()) {
-      struct gl_shader_compiler_options *options =
-         &ctx->Const.ShaderCompilerOptions[shader->Stage];
-
-      assign_subroutine_indexes(shader, state);
-      lower_subroutine(shader->ir, state);
-
-      /* Do some optimization at compile time to reduce shader IR size
-       * and reduce later work if the same shader is linked multiple times
-       */
-      if (ctx->Const.GLSLOptimizeConservatively) {
-         /* Run it just once. */
-         do_common_optimization(shader->ir, false, false, options,
-                                ctx->Const.NativeIntegers);
-      } else {
-         /* Repeat it until it stops making changes. */
-         while (do_common_optimization(shader->ir, false, false, options,
-                                       ctx->Const.NativeIntegers))
-            ;
-      }
-
-      validate_ir_tree(shader->ir);
-
-      enum ir_variable_mode other;
-      switch (shader->Stage) {
-      case MESA_SHADER_VERTEX:
-         other = ir_var_shader_in;
-         break;
-      case MESA_SHADER_FRAGMENT:
-         other = ir_var_shader_out;
-         break;
-      default:
-         /* Something invalid to ensure optimize_dead_builtin_uniforms
-          * doesn't remove anything other than uniforms or constants.
-          */
-         other = ir_var_mode_count;
-         break;
-      }
-
-      optimize_dead_builtin_variables(shader->ir, other);
-
-      validate_ir_tree(shader->ir);
-   }
-
-   if (shader->InfoLog)
-      ralloc_free(shader->InfoLog);
-
-   if (!state->error)
-      set_shader_inout_layout(shader, state);
-
-   shader->symbols = new(shader->ir) glsl_symbol_table;
-   shader->CompileStatus = state->error ? compile_failure : compile_success;
-   shader->InfoLog = state->info_log;
-   shader->Version = state->language_version;
-   shader->IsES = state->es_shader;
+   validate_ir_tree(shader->ir);
 
    /* Retain any live IR, but trash the rest. */
    reparent_ir(shader->ir, shader->ir);
@@ -2080,6 +1999,109 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    }
 
    _mesa_glsl_initialize_derived_variables(ctx, shader);
+}
+
+void
+_mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
+                          bool dump_ast, bool dump_hir, bool force_recompile)
+{
+   const char *source = force_recompile && shader->FallbackSource ?
+      shader->FallbackSource : shader->Source;
+
+   if (!force_recompile) {
+      if (ctx->Cache) {
+         char buf[41];
+         disk_cache_compute_key(ctx->Cache, source, strlen(source),
+                                shader->sha1);
+         if (disk_cache_has_key(ctx->Cache, shader->sha1)) {
+            /* We've seen this shader before and know it compiles */
+            if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
+               _mesa_sha1_format(buf, shader->sha1);
+               fprintf(stderr, "deferring compile of shader: %s\n", buf);
+            }
+            shader->CompileStatus = compile_skipped;
+
+            free((void *)shader->FallbackSource);
+            shader->FallbackSource = NULL;
+            return;
+         }
+      }
+   } else {
+      /* We should only ever end up here if a re-compile has been forced by a
+       * shader cache miss. In which case we can skip the compile if its
+       * already be done by a previous fallback or the initial compile call.
+       */
+      if (shader->CompileStatus == compile_success)
+         return;
+
+      if (shader->CompileStatus == compiled_no_opts) {
+         opt_shader_and_create_symbol_table(ctx, shader);
+         shader->CompileStatus = compile_success;
+         return;
+      }
+   }
+
+   struct _mesa_glsl_parse_state *state =
+      new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
+
+   if (ctx->Const.GenerateTemporaryNames)
+      (void) p_atomic_cmpxchg(&ir_variable::temporaries_allocate_names,
+                              false, true);
+
+   state->error = glcpp_preprocess(state, &source, &state->info_log,
+                                   add_builtin_defines, state, ctx);
+
+   if (!state->error) {
+     _mesa_glsl_lexer_ctor(state, source);
+     _mesa_glsl_parse(state);
+     _mesa_glsl_lexer_dtor(state);
+     do_late_parsing_checks(state);
+   }
+
+   if (dump_ast) {
+      foreach_list_typed(ast_node, ast, link, &state->translation_unit) {
+         ast->print();
+      }
+      printf("\n\n");
+   }
+
+   ralloc_free(shader->ir);
+   shader->ir = new(shader) exec_list;
+   if (!state->error && !state->translation_unit.is_empty())
+      _mesa_ast_to_hir(shader->ir, state);
+
+   if (!state->error) {
+      validate_ir_tree(shader->ir);
+
+      /* Print out the unoptimized IR. */
+      if (dump_hir) {
+         _mesa_print_ir(stdout, shader->ir, state);
+      }
+   }
+
+   if (shader->InfoLog)
+      ralloc_free(shader->InfoLog);
+
+   if (!state->error)
+      set_shader_inout_layout(shader, state);
+
+   shader->symbols = new(shader->ir) glsl_symbol_table;
+   shader->CompileStatus = state->error ? compile_failure : compile_success;
+   shader->InfoLog = state->info_log;
+   shader->Version = state->language_version;
+   shader->IsES = state->es_shader;
+
+   if (!state->error && !shader->ir->is_empty()) {
+      assign_subroutine_indexes(shader, state);
+      lower_subroutine(shader->ir, state);
+
+      if (!ctx->Cache || force_recompile)
+         opt_shader_and_create_symbol_table(ctx, shader);
+      else {
+         reparent_ir(shader->ir, shader->ir);
+         shader->CompileStatus = compiled_no_opts;
+      }
+   }
 
    if (!force_recompile) {
       free((void *)shader->FallbackSource);

@@ -1022,6 +1022,16 @@ static void si_emit_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer,
 	radv_cmd_buffer_trace_emit(cmd_buffer);
 }
 
+void si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
+                        unsigned size)
+{
+	uint64_t aligned_va = va & ~(CP_DMA_ALIGNMENT - 1);
+	uint64_t aligned_size = ((va + size + CP_DMA_ALIGNMENT -1) & ~(CP_DMA_ALIGNMENT - 1)) - aligned_va;
+
+	si_emit_cp_dma_copy_buffer(cmd_buffer, aligned_va, aligned_va,
+	                           aligned_size, CIK_CP_DMA_USE_L2);
+}
+
 static void si_cp_dma_prepare(struct radv_cmd_buffer *cmd_buffer, uint64_t byte_count,
 			      uint64_t remaining_size, unsigned *flags)
 {

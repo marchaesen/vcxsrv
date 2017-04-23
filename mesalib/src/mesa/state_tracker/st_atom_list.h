@@ -22,7 +22,11 @@ ST_STATE(ST_NEW_TCS_SAMPLER_VIEWS, st_update_tessctrl_texture)
 ST_STATE(ST_NEW_TES_SAMPLER_VIEWS, st_update_tesseval_texture)
 
 /* Non-compute samplers. */
-ST_STATE(ST_NEW_RENDER_SAMPLERS, st_update_sampler) /* depends on update_*_texture for swizzle */
+ST_STATE(ST_NEW_VS_SAMPLERS, st_update_vertex_sampler) /* depends on update_*_texture for swizzle */
+ST_STATE(ST_NEW_TCS_SAMPLERS, st_update_tessctrl_sampler) /* depends on update_*_texture for swizzle */
+ST_STATE(ST_NEW_TES_SAMPLERS, st_update_tesseval_sampler) /* depends on update_*_texture for swizzle */
+ST_STATE(ST_NEW_GS_SAMPLERS, st_update_geometry_sampler) /* depends on update_*_texture for swizzle */
+ST_STATE(ST_NEW_FS_SAMPLERS, st_update_fragment_sampler) /* depends on update_*_texture for swizzle */
 
 ST_STATE(ST_NEW_VS_IMAGES, st_bind_vs_images)
 ST_STATE(ST_NEW_TCS_IMAGES, st_bind_tcs_images)
@@ -67,7 +71,7 @@ ST_STATE(ST_NEW_VERTEX_ARRAYS, st_update_array)
 /* Compute states must be last. */
 ST_STATE(ST_NEW_CS_STATE, st_update_cp)
 ST_STATE(ST_NEW_CS_SAMPLER_VIEWS, st_update_compute_texture)
-ST_STATE(ST_NEW_CS_SAMPLERS, st_update_sampler) /* depends on update_compute_texture for swizzle */
+ST_STATE(ST_NEW_CS_SAMPLERS, st_update_compute_sampler) /* depends on update_compute_texture for swizzle */
 ST_STATE(ST_NEW_CS_CONSTANTS, st_update_cs_constants)
 ST_STATE(ST_NEW_CS_UBOS, st_bind_cs_ubos)
 ST_STATE(ST_NEW_CS_ATOMICS, st_bind_cs_atomics)

@@ -164,8 +164,8 @@ lower_buffer_access::emit_access(void *mem_ctx,
       /* We're dereffing a column out of a row-major matrix, so we
        * gather the vector from each stored row.
       */
-      assert(deref->type->base_type == GLSL_TYPE_FLOAT ||
-             deref->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(deref->type->is_float() || deref->type->is_double());
+
       /* Matrices, row_major or not, are stored as if they were
        * arrays of vectors of the appropriate size in std140.
        * Arrays have their strides rounded up to a vec4, so the
@@ -199,7 +199,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
       else
          matrix_stride = glsl_align(matrix_columns * N, 16);
 
-      const glsl_type *deref_type = deref->type->base_type == GLSL_TYPE_FLOAT ?
+      const glsl_type *deref_type = deref->type->is_float() ?
          glsl_type::float_type : glsl_type::double_type;
 
       for (unsigned i = 0; i < deref->type->vector_elements; i++) {

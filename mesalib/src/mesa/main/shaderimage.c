@@ -30,6 +30,7 @@
 #include "mtypes.h"
 #include "formats.h"
 #include "errors.h"
+#include "hash.h"
 #include "context.h"
 #include "texobj.h"
 #include "teximage.h"
@@ -673,7 +674,7 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
     *       their parameters are valid and no other error occurs."
     */
 
-   _mesa_begin_texture_lookups(ctx);
+   _mesa_HashLockMutex(ctx->Shared->TexObjects);
 
    for (i = 0; i < count; i++) {
       struct gl_image_unit *u = &ctx->ImageUnits[first + i];
@@ -761,5 +762,5 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
       }
    }
 
-   _mesa_end_texture_lookups(ctx);
+   _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
 }

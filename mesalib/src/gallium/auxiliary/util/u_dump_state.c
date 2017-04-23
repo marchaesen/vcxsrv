@@ -926,6 +926,8 @@ util_dump_draw_info(FILE *stream, const struct pipe_draw_info *state)
    util_dump_member(stream, uint, state, start_instance);
    util_dump_member(stream, uint, state, instance_count);
 
+   util_dump_member(stream, uint, state, drawid);
+
    util_dump_member(stream, uint, state, vertices_per_patch);
 
    util_dump_member(stream, int,  state, index_bias);
@@ -939,6 +941,9 @@ util_dump_draw_info(FILE *stream, const struct pipe_draw_info *state)
 
    util_dump_member(stream, ptr, state, indirect);
    util_dump_member(stream, uint, state, indirect_offset);
+   util_dump_member(stream, uint, state, indirect_stride);
+   util_dump_member(stream, uint, state, indirect_count);
+   util_dump_member(stream, uint, state, indirect_params_offset);
 
    util_dump_struct_end(stream);
 }

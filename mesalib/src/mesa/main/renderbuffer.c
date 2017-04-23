@@ -44,7 +44,7 @@ _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
 
    rb->ClassID = 0;
    rb->Name = name;
-   rb->RefCount = 0;
+   rb->RefCount = 1;
    rb->Delete = _mesa_delete_renderbuffer;
 
    /* The rest of these should be set later by the caller of this function or
@@ -106,14 +106,10 @@ _mesa_delete_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb)
    free(rb);
 }
 
-
-/**
- * Attach a renderbuffer to a framebuffer.
- * \param bufferName  one of the BUFFER_x tokens
- */
-void
-_mesa_add_renderbuffer(struct gl_framebuffer *fb,
-                       gl_buffer_index bufferName, struct gl_renderbuffer *rb)
+static void
+validate_and_init_renderbuffer_attachment(struct gl_framebuffer *fb,
+                                          gl_buffer_index bufferName,
+                                          struct gl_renderbuffer *rb)
 {
    assert(fb);
    assert(rb);
@@ -137,6 +133,40 @@ _mesa_add_renderbuffer(struct gl_framebuffer *fb,
 
    fb->Attachment[bufferName].Type = GL_RENDERBUFFER_EXT;
    fb->Attachment[bufferName].Complete = GL_TRUE;
+}
+
+
+/**
+ * Attach a renderbuffer to a framebuffer.
+ * \param bufferName  one of the BUFFER_x tokens
+ *
+ * This function avoids adding a reference and is therefore intended to be
+ * used with a freshly created renderbuffer.
+ */
+void
+_mesa_attach_and_own_rb(struct gl_framebuffer *fb,
+                        gl_buffer_index bufferName,
+                        struct gl_renderbuffer *rb)
+{
+   assert(rb->RefCount == 1);
+
+   validate_and_init_renderbuffer_attachment(fb, bufferName, rb);
+
+   _mesa_reference_renderbuffer(&fb->Attachment[bufferName].Renderbuffer,
+                                NULL);
+   fb->Attachment[bufferName].Renderbuffer = rb;
+}
+
+/**
+ * Attach a renderbuffer to a framebuffer.
+ * \param bufferName  one of the BUFFER_x tokens
+ */
+void
+_mesa_attach_and_reference_rb(struct gl_framebuffer *fb,
+                              gl_buffer_index bufferName,
+                              struct gl_renderbuffer *rb)
+{
+   validate_and_init_renderbuffer_attachment(fb, bufferName, rb);
    _mesa_reference_renderbuffer(&fb->Attachment[bufferName].Renderbuffer, rb);
 }
 

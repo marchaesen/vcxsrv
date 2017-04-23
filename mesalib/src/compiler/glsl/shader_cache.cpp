@@ -129,7 +129,7 @@ encode_type_to_blob(struct blob *blob, const glsl_type *type)
          blob_write_string(blob, type->fields.structure[i].name);
       }
 
-      if (type->base_type == GLSL_TYPE_INTERFACE) {
+      if (type->is_interface()) {
          blob_write_uint32(blob, type->interface_packing);
          blob_write_uint32(blob, type->interface_row_major);
       }
@@ -599,7 +599,7 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
           !prog->data->UniformStorage[i].is_shader_storage &&
           prog->data->UniformStorage[i].block_index == -1) {
          unsigned vec_size =
-            values_for_type(prog->data->UniformStorage[i].type) *
+            prog->data->UniformStorage[i].type->component_slots() *
             MAX2(prog->data->UniformStorage[i].array_elements, 1);
          blob_write_bytes(metadata, prog->data->UniformStorage[i].storage,
                           sizeof(union gl_constant_value) * vec_size);
@@ -659,7 +659,7 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
           !prog->data->UniformStorage[i].is_shader_storage &&
           prog->data->UniformStorage[i].block_index == -1) {
          unsigned vec_size =
-            values_for_type(prog->data->UniformStorage[i].type) *
+            prog->data->UniformStorage[i].type->component_slots() *
             MAX2(prog->data->UniformStorage[i].array_elements, 1);
          blob_copy_bytes(metadata,
                          (uint8_t *) prog->data->UniformStorage[i].storage,
@@ -1319,6 +1319,16 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
                           ctx->API, ctx->Const.GLSLVersion,
                           ctx->Const.ForceGLSLVersion);
 
+   /* We run the preprocessor on shaders after hashing them, so we need to
+    * add any extension override vars to the hash. If we don't do this the
+    * preprocessor could result in different output and we could load the
+    * wrong shader.
+    */
+   char *ext_override = getenv("MESA_EXTENSION_OVERRIDE");
+   if (ext_override) {
+      ralloc_asprintf_append(&buf, "ext:%s", ext_override);
+   }
+
    /* DRI config options may also change the output from the compiler so
     * include them as an input to sha1 creation.
     */
@@ -1418,7 +1428,7 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
     */
    char sha1_buf[41];
    for (unsigned i = 0; i < prog->NumShaders; i++) {
-      if (prog->Shaders[i]->CompileStatus == compile_success) {
+      if (prog->Shaders[i]->CompileStatus == compiled_no_opts) {
          disk_cache_put_key(cache, prog->Shaders[i]->sha1);
          if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
             _mesa_sha1_format(sha1_buf, prog->Shaders[i]->sha1);

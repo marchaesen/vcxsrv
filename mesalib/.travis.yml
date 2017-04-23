@@ -27,8 +27,6 @@ env:
     - XORGMACROS_VERSION=util-macros-1.19.0
     - GLPROTO_VERSION=glproto-1.4.17
     - DRI2PROTO_VERSION=dri2proto-2.8
-    - DRI3PROTO_VERSION=dri3proto-1.0
-    - PRESENTPROTO_VERSION=presentproto-1.0
     - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
     - LIBDRM_VERSION=libdrm-2.4.74
     - XCBPROTO_VERSION=xcb-proto-1.11
@@ -72,14 +70,6 @@ install:
   - tar -jxvf $DRI2PROTO_VERSION.tar.bz2
   - (cd $DRI2PROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget $XORG_RELEASES/proto/$DRI3PROTO_VERSION.tar.bz2
-  - tar -jxvf $DRI3PROTO_VERSION.tar.bz2
-  - (cd $DRI3PROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
-
-  - wget $XORG_RELEASES/proto/$PRESENTPROTO_VERSION.tar.bz2
-  - tar -jxvf $PRESENTPROTO_VERSION.tar.bz2
-  - (cd $PRESENTPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
-
   - wget $XCB_RELEASES/$XCBPROTO_VERSION.tar.bz2
   - tar -jxvf $XCBPROTO_VERSION.tar.bz2
   - (cd $XCBPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
@@ -112,9 +102,10 @@ install:
 script:
   - if test "x$BUILD" = xmake; then
       ./autogen.sh --enable-debug
-        --with-egl-platforms=x11,drm
+        --with-platforms=x11,drm
         --with-dri-drivers=i915,i965,radeon,r200,swrast,nouveau
-        --with-gallium-drivers=i915,nouveau,r300,r600,freedreno,svga,swrast,vc4,virgl,etnaviv,imx
+        --with-gallium-drivers=i915,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl,etnaviv,imx
+        --with-vulkan-drivers=radeon
         --disable-llvm-shared-libs
         ;
       make && make check;

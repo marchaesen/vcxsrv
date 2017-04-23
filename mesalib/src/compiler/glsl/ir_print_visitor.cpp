@@ -145,12 +145,11 @@ ir_print_visitor::unique_name(ir_variable *var)
 static void
 print_type(FILE *f, const glsl_type *t)
 {
-   if (t->base_type == GLSL_TYPE_ARRAY) {
+   if (t->is_array()) {
       fprintf(f, "(array ");
       print_type(f, t->fields.array);
       fprintf(f, " %u)", t->length);
-   } else if ((t->base_type == GLSL_TYPE_STRUCT)
-              && !is_gl_identifier(t->name)) {
+   } else if (t->is_record() && !is_gl_identifier(t->name)) {
       fprintf(f, "%s@%p", t->name, (void *) t);
    } else {
       fprintf(f, "%s", t->name);

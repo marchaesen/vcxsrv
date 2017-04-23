@@ -1678,7 +1678,7 @@ varying_matches::compute_packing_order(const ir_variable *var)
 {
    const glsl_type *element_type = var->type;
 
-   while (element_type->base_type == GLSL_TYPE_ARRAY) {
+   while (element_type->is_array()) {
       element_type = element_type->fields.array;
    }
 

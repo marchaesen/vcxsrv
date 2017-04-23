@@ -126,6 +126,7 @@ VkResult radv_device_init_meta_buffer_state(struct radv_device *device)
 
 	VkDescriptorSetLayoutCreateInfo fill_ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 1,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -147,6 +148,7 @@ VkResult radv_device_init_meta_buffer_state(struct radv_device *device)
 
 	VkDescriptorSetLayoutCreateInfo copy_ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
 		.bindingCount = 2,
 		.pBindings = (VkDescriptorSetLayoutBinding[]) {
 			{
@@ -297,13 +299,8 @@ static void fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 	uint64_t block_count = round_up_u64(size, 1024);
 	struct radv_meta_saved_compute_state saved_state;
-	VkDescriptorSet ds;
 
 	radv_meta_save_compute(&saved_state, cmd_buffer, 4);
-
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.buffer.fill_ds_layout,
-					&ds);
 
 	struct radv_buffer dst_buffer = {
 		.bo = bo,
@@ -311,32 +308,28 @@ static void fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 		.size = size
 	};
 
-	radv_UpdateDescriptorSets(radv_device_to_handle(device),
-				  1, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = ds,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						  .pBufferInfo = &(VkDescriptorBufferInfo) {
-							.buffer = radv_buffer_to_handle(&dst_buffer),
-							.offset = 0,
-							.range = size
-						  }
-					  }
-				  }, 0, NULL);
-
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_COMPUTE,
 			     device->meta_state.buffer.fill_pipeline);
 
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.buffer.fill_p_layout, 0, 1,
-				   &ds, 0, NULL);
+	radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+			              device->meta_state.buffer.fill_p_layout,
+				      0, /* set */
+				      1, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 0,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				                      .pBufferInfo = &(VkDescriptorBufferInfo) {
+				                              .buffer = radv_buffer_to_handle(&dst_buffer),
+				                              .offset = 0,
+				                              .range = size
+				                      }
+				              }
+				      });
 
 	radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
 			      device->meta_state.buffer.fill_p_layout,
@@ -344,8 +337,6 @@ static void fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 			      &value);
 
 	radv_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
-
-	radv_temp_descriptor_set_destroy(device, ds);
 
 	radv_meta_restore_compute(&saved_state, cmd_buffer, 4);
 }
@@ -359,13 +350,8 @@ static void copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 	uint64_t block_count = round_up_u64(size, 1024);
 	struct radv_meta_saved_compute_state saved_state;
-	VkDescriptorSet ds;
 
 	radv_meta_save_compute(&saved_state, cmd_buffer, 0);
-
-	radv_temp_descriptor_set_create(device, cmd_buffer,
-					device->meta_state.buffer.copy_ds_layout,
-					&ds);
 
 	struct radv_buffer dst_buffer = {
 		.bo = dst_bo,
@@ -379,50 +365,42 @@ static void copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 		.size = size
 	};
 
-	radv_UpdateDescriptorSets(radv_device_to_handle(device),
-				  2, /* writeCount */
-				  (VkWriteDescriptorSet[]) {
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = ds,
-						  .dstBinding = 0,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						  .pBufferInfo = &(VkDescriptorBufferInfo) {
-							.buffer = radv_buffer_to_handle(&dst_buffer),
-							.offset = 0,
-							.range = size
-						  }
-					  },
-					  {
-						  .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-						  .dstSet = ds,
-						  .dstBinding = 1,
-						  .dstArrayElement = 0,
-						  .descriptorCount = 1,
-						  .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						  .pBufferInfo = &(VkDescriptorBufferInfo) {
-							.buffer = radv_buffer_to_handle(&src_buffer),
-							.offset = 0,
-							.range = size
-						  }
-					  }
-				  }, 0, NULL);
-
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_COMPUTE,
 			     device->meta_state.buffer.copy_pipeline);
 
-	radv_CmdBindDescriptorSets(radv_cmd_buffer_to_handle(cmd_buffer),
-				   VK_PIPELINE_BIND_POINT_COMPUTE,
-				   device->meta_state.buffer.copy_p_layout, 0, 1,
-				   &ds, 0, NULL);
-
+	radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+			              device->meta_state.buffer.copy_p_layout,
+				      0, /* set */
+				      2, /* descriptorWriteCount */
+				      (VkWriteDescriptorSet[]) {
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 0,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				                      .pBufferInfo = &(VkDescriptorBufferInfo) {
+				                              .buffer = radv_buffer_to_handle(&dst_buffer),
+				                              .offset = 0,
+				                              .range = size
+				                      }
+				              },
+				              {
+				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				                      .dstBinding = 1,
+				                      .dstArrayElement = 0,
+				                      .descriptorCount = 1,
+				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				                      .pBufferInfo = &(VkDescriptorBufferInfo) {
+				                              .buffer = radv_buffer_to_handle(&src_buffer),
+				                              .offset = 0,
+				                              .range = size
+				                      }
+				              }
+				      });
 
 	radv_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
-
-	radv_temp_descriptor_set_destroy(device, ds);
 
 	radv_meta_restore_compute(&saved_state, cmd_buffer, 0);
 }
@@ -523,6 +501,9 @@ void radv_CmdUpdateBuffer(
 	assert(!(dataSize & 3));
 	assert(!(va & 3));
 
+	if (!dataSize)
+		return;
+
 	if (dataSize < 4096) {
 		si_emit_cache_flush(cmd_buffer);
 
@@ -538,6 +519,8 @@ void radv_CmdUpdateBuffer(
 		radeon_emit(cmd_buffer->cs, va);
 		radeon_emit(cmd_buffer->cs, va >> 32);
 		radeon_emit_array(cmd_buffer->cs, pData, words);
+
+		radv_cmd_buffer_trace_emit(cmd_buffer);
 	} else {
 		uint32_t buf_offset;
 		radv_cmd_buffer_upload_data(cmd_buffer, dataSize, 32, pData, &buf_offset);

@@ -298,9 +298,18 @@ util_queue_add_job(struct util_queue *queue,
    struct util_queue_job *ptr;
 
    assert(fence->signalled);
-   fence->signalled = false;
 
    mtx_lock(&queue->lock);
+   if (queue->kill_threads) {
+      mtx_unlock(&queue->lock);
+      /* well no good option here, but any leaks will be
+       * short-lived as things are shutting down..
+       */
+      return;
+   }
+
+   fence->signalled = false;
+
    assert(queue->num_queued >= 0 && queue->num_queued <= queue->max_jobs);
 
    /* if the queue is full, wait until there is space */

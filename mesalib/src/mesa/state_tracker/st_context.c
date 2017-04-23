@@ -484,6 +484,8 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st->shader_has_one_variant[MESA_SHADER_GEOMETRY] = st->has_shareable_shaders;
    st->shader_has_one_variant[MESA_SHADER_COMPUTE] = st->has_shareable_shaders;
 
+   st->bitmap.cache.empty = true;
+
    _mesa_compute_version(ctx);
 
    if (ctx->Version == 0) {

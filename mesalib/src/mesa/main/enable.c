@@ -385,6 +385,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             return;
          FLUSH_VERTICES(ctx, _NEW_FOG);
          ctx->Fog.Enabled = state;
+         ctx->Fog._PackedEnabledMode = state ? ctx->Fog._PackedMode : FOG_NONE;
          break;
       case GL_LIGHT0:
       case GL_LIGHT1:

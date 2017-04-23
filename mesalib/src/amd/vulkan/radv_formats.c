@@ -537,7 +537,7 @@ bool radv_is_colorbuffer_format_supported(VkFormat format, bool *blendable)
 
 static bool radv_is_zs_format_supported(VkFormat format)
 {
-	return radv_translate_dbformat(format) != V_028040_Z_INVALID;
+	return radv_translate_dbformat(format) != V_028040_Z_INVALID || format == VK_FORMAT_S8_UINT;
 }
 
 static void

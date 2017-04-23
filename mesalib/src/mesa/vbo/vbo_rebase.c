@@ -182,14 +182,14 @@ void vbo_rebase_prims( struct gl_context *ctx,
       /* Some users might prefer it if we translated elements to
        * GLuints here.  Others wouldn't...
        */
-      switch (ib->type) {
-      case GL_UNSIGNED_INT: 
+      switch (ib->index_size) {
+      case 4:
 	 tmp_indices = rebase_GLuint( ptr, ib->count, min_index );
 	 break;
-      case GL_UNSIGNED_SHORT: 
+      case 2:
 	 tmp_indices = rebase_GLushort( ptr, ib->count, min_index );
 	 break;
-      case GL_UNSIGNED_BYTE: 
+      case 1:
 	 tmp_indices = rebase_GLubyte( ptr, ib->count, min_index );
 	 break;
       }      
@@ -204,7 +204,7 @@ void vbo_rebase_prims( struct gl_context *ctx,
       tmp_ib.obj = ctx->Shared->NullBufferObj;
       tmp_ib.ptr = tmp_indices;
       tmp_ib.count = ib->count;
-      tmp_ib.type = ib->type;
+      tmp_ib.index_size = ib->index_size;
 
       ib = &tmp_ib;
    }
