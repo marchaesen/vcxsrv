@@ -218,7 +218,7 @@
 	<glx vendorpriv="1427"/>
     </function>
 
-    <function name="FramebufferTexture1D">
+    <function name="FramebufferTexture1D" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="attachment" type="GLenum"/>
         <param name="textarget" type="GLenum"/>
@@ -227,7 +227,7 @@
 	<glx rop="4321"/>
     </function>
 
-    <function name="FramebufferTexture2D" es2="2.0">
+    <function name="FramebufferTexture2D" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="attachment" type="GLenum"/>
         <param name="textarget" type="GLenum"/>
@@ -236,7 +236,7 @@
 	<glx rop="4322"/>
     </function>
 
-    <function name="FramebufferTexture3D">
+    <function name="FramebufferTexture3D" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="attachment" type="GLenum"/>
         <param name="textarget" type="GLenum"/>

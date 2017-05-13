@@ -111,7 +111,7 @@
 /*
  * Global Definitions
  */
-#if (defined(__alpha__) || defined(__ia64__)) && defined (linux)
+#if (defined(__alpha__) || defined(__ia64__)) && defined (__linux__)
 #define PCI_DOM_MASK	0x01fful
 #else
 #define PCI_DOM_MASK 0x0ffu
@@ -135,7 +135,7 @@
 #define PCI_BUS_NO_DOMAIN(bus) ((bus) & 0xffu)
 #define PCI_TAG_NO_DOMAIN(tag) ((tag) & 0x00ffff00u)
 
-#if defined(linux)
+#if defined(__linux__)
 #define osPciInit(x) do {} while (0)
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || \
 	defined(__OpenBSD__) || defined(__NetBSD__) || \

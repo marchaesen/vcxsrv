@@ -99,17 +99,17 @@ extern void (*__glapi_noop_table[])(void);
 /*@{*/
 #if defined(GLX_USE_TLS)
 
-__thread struct mapi_table *u_current_table
+__thread struct _glapi_table *u_current_table
     __attribute__((tls_model("initial-exec")))
-    = (struct mapi_table *) table_noop_array;
+    = (struct _glapi_table *) table_noop_array;
 
 __thread void *u_current_context
     __attribute__((tls_model("initial-exec")));
 
 #else
 
-struct mapi_table *u_current_table =
-   (struct mapi_table *) table_noop_array;
+struct _glapi_table *u_current_table =
+   (struct _glapi_table *) table_noop_array;
 void *u_current_context;
 
 tss_t u_current_table_tsd;
@@ -259,17 +259,17 @@ u_current_get_context_internal(void)
  * table (__glapi_noop_table).
  */
 void
-u_current_set_table(const struct mapi_table *tbl)
+u_current_set_table(const struct _glapi_table *tbl)
 {
    u_current_init();
 
    stub_init_once();
 
    if (!tbl)
-      tbl = (const struct mapi_table *) table_noop_array;
+      tbl = (const struct _glapi_table *) table_noop_array;
 
 #if defined(GLX_USE_TLS)
-   u_current_table = (struct mapi_table *) tbl;
+   u_current_table = (struct _glapi_table *) tbl;
 #else
    tss_set(u_current_table_tsd, (void *) tbl);
    u_current_table = (ThreadSafe) ? NULL : (void *) tbl;
@@ -279,15 +279,15 @@ u_current_set_table(const struct mapi_table *tbl)
 /**
  * Return pointer to current dispatch table for calling thread.
  */
-struct mapi_table *
+struct _glapi_table *
 u_current_get_table_internal(void)
 {
 #if defined(GLX_USE_TLS)
    return u_current_table;
 #else
    if (ThreadSafe)
-      return (struct mapi_table *) tss_get(u_current_table_tsd);
+      return (struct _glapi_table *) tss_get(u_current_table_tsd);
    else
-      return (struct mapi_table *) u_current_table;
+      return (struct _glapi_table *) u_current_table;
 #endif
 }

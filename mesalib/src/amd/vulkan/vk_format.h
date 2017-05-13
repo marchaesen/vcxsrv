@@ -396,6 +396,13 @@ vk_format_is_int(VkFormat format)
 	return channel >= 0 && desc->channel[channel].pure_integer;
 }
 
+static inline bool
+vk_format_is_srgb(VkFormat format)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+	return desc->colorspace == VK_FORMAT_COLORSPACE_SRGB;
+}
+
 static inline VkFormat
 vk_format_stencil_only(VkFormat format)
 {

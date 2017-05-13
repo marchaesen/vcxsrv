@@ -26,7 +26,6 @@ EXT(ANGLE_texture_compression_dxt5          , ANGLE_texture_compression_dxt     
 EXT(APPLE_object_purgeable                  , APPLE_object_purgeable                 , GLL, GLC,  x ,  x , 2006)
 EXT(APPLE_packed_pixels                     , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 EXT(APPLE_texture_max_level                 , dummy_true                             ,  x ,  x , ES1, ES2, 2009)
-EXT(APPLE_vertex_array_object               , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 
 EXT(ARB_ES2_compatibility                   , ARB_ES2_compatibility                  , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_ES3_1_compatibility                 , ARB_ES3_1_compatibility                ,  x , GLC,  x ,  x , 2014)
@@ -34,6 +33,7 @@ EXT(ARB_ES3_2_compatibility                 , ARB_ES3_2_compatibility           
 EXT(ARB_ES3_compatibility                   , ARB_ES3_compatibility                  , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_arrays_of_arrays                    , ARB_arrays_of_arrays                   , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_base_instance                       , ARB_base_instance                      , GLL, GLC,  x ,  x , 2011)
+EXT(ARB_bindless_texture                    , ARB_bindless_texture                   , GLL, GLC,  x ,  x , 2013)
 EXT(ARB_blend_func_extended                 , ARB_blend_func_extended                , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_buffer_storage                      , ARB_buffer_storage                     , GLL, GLC,  x ,  x , 2013)
 EXT(ARB_clear_buffer_object                 , dummy_true                             , GLL, GLC,  x ,  x , 2012)

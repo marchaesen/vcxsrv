@@ -401,7 +401,7 @@ radv_enumerate_devices(struct radv_instance *instance)
 
 	instance->physicalDeviceCount = 0;
 
-	max_devices = drmGetDevices2(0, devices, sizeof(devices));
+	max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
 	if (max_devices < 1)
 		return VK_ERROR_INCOMPATIBLE_DRIVER;
 
@@ -417,9 +417,11 @@ radv_enumerate_devices(struct radv_instance *instance)
 			if (result == VK_SUCCESS)
 				++instance->physicalDeviceCount;
 			else if (result != VK_ERROR_INCOMPATIBLE_DRIVER)
-				return result;
+				break;
 		}
 	}
+	drmFreeDevices(devices, max_devices);
+
 	return result;
 }
 
@@ -915,6 +917,7 @@ radv_device_init_gs_info(struct radv_device *device)
 	case CHIP_FIJI:
 	case CHIP_POLARIS10:
 	case CHIP_POLARIS11:
+	case CHIP_POLARIS12:
 		device->gs_table_depth = 32;
 		return;
 	default:
@@ -1046,6 +1049,22 @@ VkResult radv_CreateDevice(
 			break;
 		}
 		device->ws->cs_finalize(device->flush_cs[family]);
+
+		device->flush_shader_cs[family] = device->ws->cs_create(device->ws, family);
+		switch (family) {
+		case RADV_QUEUE_GENERAL:
+		case RADV_QUEUE_COMPUTE:
+			si_cs_emit_cache_flush(device->flush_shader_cs[family],
+			                       device->physical_device->rad_info.chip_class,
+			                       family == RADV_QUEUE_COMPUTE && device->physical_device->rad_info.chip_class >= CIK,
+					       family == RADV_QUEUE_COMPUTE ? RADV_CMD_FLAG_CS_PARTIAL_FLUSH : (RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH) |
+			                       RADV_CMD_FLAG_INV_ICACHE |
+			                       RADV_CMD_FLAG_INV_SMEM_L1 |
+			                       RADV_CMD_FLAG_INV_VMEM_L1 |
+			                       RADV_CMD_FLAG_INV_GLOBAL_L2);
+			break;
+		}
+		device->ws->cs_finalize(device->flush_shader_cs[family]);
 	}
 
 	if (getenv("RADV_TRACE_FILE")) {
@@ -1121,6 +1140,8 @@ void radv_DestroyDevice(
 			device->ws->cs_destroy(device->empty_cs[i]);
 		if (device->flush_cs[i])
 			device->ws->cs_destroy(device->flush_cs[i]);
+		if (device->flush_shader_cs[i])
+			device->ws->cs_destroy(device->flush_shader_cs[i]);
 	}
 	radv_device_finish_meta(device);
 
@@ -1822,7 +1843,7 @@ VkResult radv_QueueSubmit(
 
 	for (uint32_t i = 0; i < submitCount; i++) {
 		struct radeon_winsys_cs **cs_array;
-		bool do_flush = !i;
+		bool do_flush = !i || pSubmits[i].pWaitDstStageMask;
 		bool can_patch = !do_flush;
 		uint32_t advance;
 
@@ -1849,7 +1870,9 @@ VkResult radv_QueueSubmit(
 					        (pSubmits[i].commandBufferCount + do_flush));
 
 		if(do_flush)
-			cs_array[0] = queue->device->flush_cs[queue->queue_family_index];
+			cs_array[0] = pSubmits[i].waitSemaphoreCount ?
+				queue->device->flush_shader_cs[queue->queue_family_index] :
+				queue->device->flush_cs[queue->queue_family_index];
 
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
 			RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer,
@@ -2640,8 +2663,8 @@ radv_initialise_color_surface(struct radv_device *device,
 	cb->cb_color_attrib = S_028C74_FORCE_DST_ALPHA_1(desc->swizzle[3] == VK_SWIZZLE_1) |
 		S_028C74_TILE_MODE_INDEX(tile_mode_index);
 
-	if (iview->image->samples > 1) {
-		unsigned log_samples = util_logbase2(iview->image->samples);
+	if (iview->image->info.samples > 1) {
+		unsigned log_samples = util_logbase2(iview->image->info.samples);
 
 		cb->cb_color_attrib |= S_028C74_NUM_SAMPLES(log_samples) |
 			S_028C74_NUM_FRAGMENTS(log_samples);
@@ -2705,7 +2728,7 @@ radv_initialise_color_surface(struct radv_device *device,
 				    format != V_028C70_COLOR_24_8) |
 		S_028C70_NUMBER_TYPE(ntype) |
 		S_028C70_ENDIAN(endian);
-	if (iview->image->samples > 1)
+	if (iview->image->info.samples > 1)
 		if (iview->image->fmask.size)
 			cb->cb_color_info |= S_028C70_COMPRESSION(1);
 
@@ -2718,7 +2741,7 @@ radv_initialise_color_surface(struct radv_device *device,
 
 	if (device->physical_device->rad_info.chip_class >= VI) {
 		unsigned max_uncompressed_block_size = 2;
-		if (iview->image->samples > 1) {
+		if (iview->image->info.samples > 1) {
 			if (iview->image->surface.bpe == 1)
 				max_uncompressed_block_size = 0;
 			else if (iview->image->surface.bpe == 2)
@@ -2786,8 +2809,8 @@ radv_initialise_ds_surface(struct radv_device *device,
 	ds->db_depth_info = S_02803C_ADDR5_SWIZZLE_MASK(1);
 	ds->db_z_info = S_028040_FORMAT(format) | S_028040_ZRANGE_PRECISION(1);
 
-	if (iview->image->samples > 1)
-		ds->db_z_info |= S_028040_NUM_SAMPLES(util_logbase2(iview->image->samples));
+	if (iview->image->info.samples > 1)
+		ds->db_z_info |= S_028040_NUM_SAMPLES(util_logbase2(iview->image->info.samples));
 
 	if (iview->image->surface.flags & RADEON_SURF_SBUFFER)
 		ds->db_stencil_info = S_028044_FORMAT(V_028044_STENCIL_8);
@@ -2838,7 +2861,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 			 * Check piglit's arb_texture_multisample-stencil-clear
 			 * test if you want to try changing this.
 			 */
-			if (iview->image->samples <= 1)
+			if (iview->image->info.samples <= 1)
 				ds->db_stencil_info |= S_028044_ALLOW_EXPCLEAR(1);
 		} else
 			/* Use all of the htile_buffer for depth if there's no stencil. */

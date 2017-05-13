@@ -7,5 +7,5 @@ xkb_symbols "basic" {
 partial alphanumeric_keys 
 xkb_symbols "nodeadkeys" {
     include "macintosh_vndr/se(basic)"	// for consistent naming
-    name[Group1]= "Finland - Mac, eliminate dead keys";
+    name[Group1]= "Finland - Mac, no dead keys";
 };

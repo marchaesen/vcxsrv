@@ -38,7 +38,7 @@ build_nir_fs(void)
 	nir_variable *f_color; /* vec4, fragment output color */
 
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-	b.shader->info->name = ralloc_asprintf(b.shader,
+	b.shader->info.name = ralloc_asprintf(b.shader,
 					       "meta_resolve_fs");
 
 	f_color = nir_variable_create(b.shader, nir_var_shader_out, vec4,
@@ -303,6 +303,25 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
 }
 
+enum radv_resolve_method {
+	RESOLVE_HW,
+	RESOLVE_COMPUTE,
+	RESOLVE_FRAGMENT,
+};
+
+static void radv_pick_resolve_method_images(struct radv_image *src_image,
+					    struct radv_image *dest_image,
+					    enum radv_resolve_method *method)
+
+{
+	if (dest_image->surface.micro_tile_mode != src_image->surface.micro_tile_mode) {
+		if (dest_image->surface.level[0].dcc_enabled)
+			*method = RESOLVE_FRAGMENT;
+		else
+			*method = RESOLVE_COMPUTE;
+	}
+}
+
 void radv_CmdResolveImage(
 	VkCommandBuffer                             cmd_buffer_h,
 	VkImage                                     src_image_h,
@@ -318,28 +337,39 @@ void radv_CmdResolveImage(
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_state saved_state;
 	VkDevice device_h = radv_device_to_handle(device);
-	bool use_compute_resolve = false;
-
+	enum radv_resolve_method resolve_method = RESOLVE_HW;
 	/* we can use the hw resolve only for single full resolves */
 	if (region_count == 1) {
 		if (regions[0].srcOffset.x ||
 		    regions[0].srcOffset.y ||
 		    regions[0].srcOffset.z)
-			use_compute_resolve = true;
+			resolve_method = RESOLVE_COMPUTE;
 		if (regions[0].dstOffset.x ||
 		    regions[0].dstOffset.y ||
 		    regions[0].dstOffset.z)
-			use_compute_resolve = true;
+			resolve_method = RESOLVE_COMPUTE;
 
-		if (regions[0].extent.width != src_image->extent.width ||
-		    regions[0].extent.height != src_image->extent.height ||
-		    regions[0].extent.depth != src_image->extent.depth)
-			use_compute_resolve = true;
+		if (regions[0].extent.width != src_image->info.width ||
+		    regions[0].extent.height != src_image->info.height ||
+		    regions[0].extent.depth != src_image->info.depth)
+			resolve_method = RESOLVE_COMPUTE;
 	} else
-		use_compute_resolve = true;
+		resolve_method = RESOLVE_COMPUTE;
 
-	if (use_compute_resolve) {
+	radv_pick_resolve_method_images(src_image, dest_image,
+					&resolve_method);
 
+	if (resolve_method == RESOLVE_FRAGMENT) {
+		radv_meta_resolve_fragment_image(cmd_buffer,
+						 src_image,
+						 src_image_layout,
+						 dest_image,
+						 dest_image_layout,
+						 region_count, regions);
+		return;
+	}
+
+	if (resolve_method == RESOLVE_COMPUTE) {
 		radv_meta_resolve_compute_image(cmd_buffer,
 						src_image,
 						src_image_layout,
@@ -351,10 +381,10 @@ void radv_CmdResolveImage(
 
 	radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state, cmd_buffer);
 
-	assert(src_image->samples > 1);
-	assert(dest_image->samples == 1);
+	assert(src_image->info.samples > 1);
+	assert(dest_image->info.samples == 1);
 
-	if (src_image->samples >= 16) {
+	if (src_image->info.samples >= 16) {
 		/* See commit aa3f9aaf31e9056a255f9e0472ebdfdaa60abe54 for the
 		 * glBlitFramebuffer workaround for samples >= 16.
 		 */
@@ -362,7 +392,7 @@ void radv_CmdResolveImage(
 			      "samples >= 16");
 	}
 
-	if (src_image->array_size > 1)
+	if (src_image->info.array_size > 1)
 		radv_finishme("vkCmdResolveImage: multisample array images");
 
 	if (dest_image->surface.dcc_size) {
@@ -457,9 +487,9 @@ void radv_CmdResolveImage(
 							       radv_image_view_to_handle(&src_iview),
 							       radv_image_view_to_handle(&dest_iview),
 						       },
-						       .width = radv_minify(dest_image->extent.width,
+						       .width = radv_minify(dest_image->info.width,
 									    region->dstSubresource.mipLevel),
-						       .height = radv_minify(dest_image->extent.height,
+						       .height = radv_minify(dest_image->info.height,
 									      region->dstSubresource.mipLevel),
 						       .layers = 1
 					       },
@@ -515,6 +545,7 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	struct radv_meta_saved_state saved_state;
+	enum radv_resolve_method resolve_method = RESOLVE_HW;
 
 	/* FINISHME(perf): Skip clears for resolve attachments.
 	 *
@@ -528,7 +559,27 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 	if (!subpass->has_resolve)
 		return;
 
-	radv_meta_save_graphics_reset_vport_scissor(&saved_state, cmd_buffer);
+	for (uint32_t i = 0; i < subpass->color_count; ++i) {
+		VkAttachmentReference src_att = subpass->color_attachments[i];
+		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
+		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
+		struct radv_image *src_img = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment->image;
+
+		radv_pick_resolve_method_images(dst_img, src_img, &resolve_method);
+		if (resolve_method == RESOLVE_FRAGMENT) {
+			break;
+		}
+	}
+
+	if (resolve_method == RESOLVE_COMPUTE) {
+		radv_cmd_buffer_resolve_subpass_cs(cmd_buffer);
+		return;
+	} else if (resolve_method == RESOLVE_FRAGMENT) {
+		radv_cmd_buffer_resolve_subpass_fs(cmd_buffer);
+		return;
+	}
+
+	radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state, cmd_buffer);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		VkAttachmentReference src_att = subpass->color_attachments[i];

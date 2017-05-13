@@ -42,10 +42,10 @@ build_nir_itob_compute_shader(struct radv_device *dev)
 							     false,
 							     GLSL_TYPE_FLOAT);
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_itob_cs");
-	b.shader->info->cs.local_size[0] = 16;
-	b.shader->info->cs.local_size[1] = 16;
-	b.shader->info->cs.local_size[2] = 1;
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_itob_cs");
+	b.shader->info.cs.local_size[0] = 16;
+	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      sampler_type, "s_tex");
 	input_img->data.descriptor_set = 0;
@@ -59,21 +59,25 @@ build_nir_itob_compute_shader(struct radv_device *dev)
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info->cs.local_size[0],
-						b.shader->info->cs.local_size[1],
-						b.shader->info->cs.local_size[2], 0);
+						b.shader->info.cs.local_size[0],
+						b.shader->info.cs.local_size[1],
+						b.shader->info.cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 
 
 
 	nir_intrinsic_instr *offset = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(offset, 0);
+	nir_intrinsic_set_range(offset, 12);
 	offset->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	offset->num_components = 2;
 	nir_ssa_dest_init(&offset->instr, &offset->dest, 2, 32, "offset");
 	nir_builder_instr_insert(&b, &offset->instr);
 
 	nir_intrinsic_instr *stride = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(stride, 0);
+	nir_intrinsic_set_range(stride, 12);
 	stride->src[0] = nir_src_for_ssa(nir_imm_int(&b, 8));
 	stride->num_components = 1;
 	nir_ssa_dest_init(&stride->instr, &stride->dest, 1, 32, "stride");
@@ -240,10 +244,10 @@ build_nir_btoi_compute_shader(struct radv_device *dev)
 							     false,
 							     GLSL_TYPE_FLOAT);
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_btoi_cs");
-	b.shader->info->cs.local_size[0] = 16;
-	b.shader->info->cs.local_size[1] = 16;
-	b.shader->info->cs.local_size[2] = 1;
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_btoi_cs");
+	b.shader->info.cs.local_size[0] = 16;
+	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      buf_type, "s_tex");
 	input_img->data.descriptor_set = 0;
@@ -257,19 +261,23 @@ build_nir_btoi_compute_shader(struct radv_device *dev)
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info->cs.local_size[0],
-						b.shader->info->cs.local_size[1],
-						b.shader->info->cs.local_size[2], 0);
+						b.shader->info.cs.local_size[0],
+						b.shader->info.cs.local_size[1],
+						b.shader->info.cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 
 	nir_intrinsic_instr *offset = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(offset, 0);
+	nir_intrinsic_set_range(offset, 12);
 	offset->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	offset->num_components = 2;
 	nir_ssa_dest_init(&offset->instr, &offset->dest, 2, 32, "offset");
 	nir_builder_instr_insert(&b, &offset->instr);
 
 	nir_intrinsic_instr *stride = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(stride, 0);
+	nir_intrinsic_set_range(stride, 12);
 	stride->src[0] = nir_src_for_ssa(nir_imm_int(&b, 8));
 	stride->num_components = 1;
 	nir_ssa_dest_init(&stride->instr, &stride->dest, 1, 32, "stride");
@@ -436,10 +444,10 @@ build_nir_itoi_compute_shader(struct radv_device *dev)
 							     false,
 							     GLSL_TYPE_FLOAT);
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_itoi_cs");
-	b.shader->info->cs.local_size[0] = 16;
-	b.shader->info->cs.local_size[1] = 16;
-	b.shader->info->cs.local_size[2] = 1;
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_itoi_cs");
+	b.shader->info.cs.local_size[0] = 16;
+	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      buf_type, "s_tex");
 	input_img->data.descriptor_set = 0;
@@ -453,19 +461,23 @@ build_nir_itoi_compute_shader(struct radv_device *dev)
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info->cs.local_size[0],
-						b.shader->info->cs.local_size[1],
-						b.shader->info->cs.local_size[2], 0);
+						b.shader->info.cs.local_size[0],
+						b.shader->info.cs.local_size[1],
+						b.shader->info.cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 
 	nir_intrinsic_instr *src_offset = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(src_offset, 0);
+	nir_intrinsic_set_range(src_offset, 16);
 	src_offset->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	src_offset->num_components = 2;
 	nir_ssa_dest_init(&src_offset->instr, &src_offset->dest, 2, 32, "src_offset");
 	nir_builder_instr_insert(&b, &src_offset->instr);
 
 	nir_intrinsic_instr *dst_offset = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(dst_offset, 0);
+	nir_intrinsic_set_range(dst_offset, 16);
 	dst_offset->src[0] = nir_src_for_ssa(nir_imm_int(&b, 8));
 	dst_offset->num_components = 2;
 	nir_ssa_dest_init(&dst_offset->instr, &dst_offset->dest, 2, 32, "dst_offset");
@@ -622,10 +634,10 @@ build_nir_cleari_compute_shader(struct radv_device *dev)
 							     false,
 							     GLSL_TYPE_FLOAT);
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_cleari_cs");
-	b.shader->info->cs.local_size[0] = 16;
-	b.shader->info->cs.local_size[1] = 16;
-	b.shader->info->cs.local_size[2] = 1;
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_cleari_cs");
+	b.shader->info.cs.local_size[0] = 16;
+	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[2] = 1;
 
 	nir_variable *output_img = nir_variable_create(b.shader, nir_var_uniform,
 						       img_type, "out_img");
@@ -635,13 +647,15 @@ build_nir_cleari_compute_shader(struct radv_device *dev)
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info->cs.local_size[0],
-						b.shader->info->cs.local_size[1],
-						b.shader->info->cs.local_size[2], 0);
+						b.shader->info.cs.local_size[0],
+						b.shader->info.cs.local_size[1],
+						b.shader->info.cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 
 	nir_intrinsic_instr *clear_val = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(clear_val, 0);
+	nir_intrinsic_set_range(clear_val, 16);
 	clear_val->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	clear_val->num_components = 4;
 	nir_ssa_dest_init(&clear_val->instr, &clear_val->dest, 4, 32, "clear_value");
@@ -1213,5 +1227,5 @@ radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			      VK_SHADER_STAGE_COMPUTE_BIT, 0, 16,
 			      push_constants);
 
-	radv_unaligned_dispatch(cmd_buffer, dst->image->extent.width, dst->image->extent.height, 1);
+	radv_unaligned_dispatch(cmd_buffer, dst->image->info.width, dst->image->info.height, 1);
 }

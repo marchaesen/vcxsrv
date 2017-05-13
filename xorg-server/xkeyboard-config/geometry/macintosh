@@ -329,7 +329,7 @@ xkb_geometry "applepro" {
 
 xkb_geometry "macbook78" {
 
-    description= "Apple Laptop 78-key (US)";
+    description= "Apple laptop 78-key (US)";
     width= 273;
     height= 110;
 
@@ -448,7 +448,7 @@ xkb_geometry "macbook78" {
 
 xkb_geometry "macbook79" {
 
-    description= "Apple Laptop 79-key (Intl)";
+    description= "Apple laptop 79-key (Intl)";
     width= 273;
     height= 110;
 

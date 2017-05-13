@@ -3154,6 +3154,7 @@
     </function>
 
     <function name="ColorPointer" es1="1.0" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
@@ -3184,6 +3185,7 @@
     </function>
 
     <function name="EdgeFlagPointer" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
@@ -3202,6 +3204,7 @@
     </function>
 
     <function name="IndexPointer" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -3217,6 +3220,7 @@
     </function>
 
     <function name="NormalPointer" es1="1.0" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -3225,6 +3229,7 @@
     </function>
 
     <function name="TexCoordPointer" es1="1.0" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
@@ -3234,6 +3239,7 @@
     </function>
 
     <function name="VertexPointer" es1="1.0" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
@@ -4725,6 +4731,7 @@
     </function>
 
     <function name="FogCoordPointer" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
@@ -4862,6 +4869,7 @@
     </function>
 
     <function name="SecondaryColorPointer" deprecated="3.1" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
@@ -5089,14 +5097,14 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="MapBuffer">
+    <function name="MapBuffer" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="access" type="GLenum"/>
         <return type="GLvoid *"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="UnmapBuffer" es2="3.0">
+    <function name="UnmapBuffer" es2="3.0" no_error="true">
         <param name="target" type="GLenum"/>
         <return type="GLboolean"/>
         <glx ignore="true"/>
@@ -5817,6 +5825,7 @@
     </function>
 
     <function name="VertexAttribPointer" es2="2.0" marshal="async"
+              no_error="true"
               marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
         <param name="index" type="GLuint"/>
         <param name="size" type="GLint"/>
@@ -12519,7 +12528,7 @@
 </category>
 
 <xi:include href="APPLE_object_purgeable.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-<xi:include href="APPLE_vertex_array_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+<!-- Extension number 273 obsolete APPLE_vertex_array_object. -->
 
 <category name="GL_APPLE_ycbcr_422" number="275">
     <enum name="YCBCR_422_APPLE"                          value="0x85B9"/>

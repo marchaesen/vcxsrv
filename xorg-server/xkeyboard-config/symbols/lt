@@ -42,7 +42,7 @@ xkb_symbols "us" {
     include "eurosign(e)"
     include "level3(ralt_switch)"
 
-    name[Group1]="Lithuanian (US keyboard with Lithuanian letters)";
+    name[Group1]="Lithuanian (US, with Lithuanian letters)";
 
     key <TLDE> {[    grave,    asciitilde,               acute               ]};
     key <AE01> {[        1,        exclam,             aogonek,      Aogonek ]};

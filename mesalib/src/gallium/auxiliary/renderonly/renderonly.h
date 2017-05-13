@@ -77,7 +77,8 @@ struct renderonly_scanout *
 renderonly_scanout_for_prime(struct pipe_resource *rsc, struct renderonly *ro);
 
 void
-renderonly_scanout_destroy(struct renderonly_scanout *scanout);
+renderonly_scanout_destroy(struct renderonly_scanout *scanout,
+			   struct renderonly *ro);
 
 static inline boolean
 renderonly_get_handle(struct renderonly_scanout *scanout,

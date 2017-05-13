@@ -54,7 +54,7 @@ static void reply_XIGetSelectedEvents(ClientPtr client, int len, char *data,
 static void reply_XIGetSelectedEvents_data(ClientPtr client, int len,
                                            char *data, void *userdata);
 
-struct {
+static struct {
     int num_masks_expected;
     unsigned char mask[MAXDEVICES][XI2LASTEVENT];       /* intentionally bigger */
     int mask_len;

@@ -24,7 +24,6 @@ libxf86config_la_SOURCES = \
 	$(INTERNAL_SOURCES)
 
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS) \
-	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DDATADIR=\"$(datadir)\"
 
 EXTRA_DIST = \

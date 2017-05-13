@@ -178,6 +178,7 @@ QuartzInitOutput(int argc,
 {
     /* For XQuartz, we want to just use the default signal handler to work better with CrashTracer */
     signal(SIGSEGV, SIG_DFL);
+    signal(SIGABRT, SIG_DFL);
     signal(SIGILL, SIG_DFL);
 #ifdef SIGEMT
     signal(SIGEMT, SIG_DFL);

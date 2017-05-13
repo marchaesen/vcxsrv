@@ -37,6 +37,7 @@ LOCAL_C_INCLUDES += \
 
 LOCAL_EXPORT_C_INCLUDE_DIRS += \
 	$(intermediates)/nir \
+	$(MESA_TOP)/src/compiler \
 	$(MESA_TOP)/src/compiler/nir
 
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \

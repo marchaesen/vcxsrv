@@ -337,13 +337,7 @@ struct pcvtid {
 #define MAXHOSTNAMELEN 32
 #endif                          /* !MAXHOSTNAMELEN */
 
-#if defined(_POSIX_SOURCE)
 #include <limits.h>
-#else
-#define _POSIX_SOURCE
-#include <limits.h>
-#undef _POSIX_SOURCE
-#endif                          /* _POSIX_SOURCE */
 
 #ifndef DEV_MEM
 #define DEV_MEM "/dev/mem"

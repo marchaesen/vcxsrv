@@ -39,8 +39,8 @@
  *  - depthrange
  *  - window pos/size or FBO size
  */
-static void
-update_viewport( struct st_context *st )
+void
+st_update_viewport( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
    GLfloat yScale, yBias;
@@ -80,8 +80,3 @@ update_viewport( struct st_context *st )
    if (ctx->Const.MaxViewports > 1)
       st->pipe->set_viewport_states(st->pipe, 1, ctx->Const.MaxViewports - 1, &st->state.viewport[1]);
 }
-
-
-const struct st_tracked_state st_update_viewport = {
-   update_viewport					/* update */
-};

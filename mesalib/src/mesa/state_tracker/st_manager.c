@@ -176,10 +176,6 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
    boolean changed = FALSE;
    int32_t new_stamp;
 
-   /* Check for incomplete framebuffers (e.g. EGL_KHR_surfaceless_context) */
-   if (!stfb->iface)
-      return;
-
    new_stamp = p_atomic_read(&stfb->iface->stamp);
    if (stfb->iface_stamp == new_stamp)
       return;
@@ -187,8 +183,8 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
    /* validate the fb */
    do {
       if (!stfb->iface->validate(&st->iface, stfb->iface, stfb->statts,
-				 stfb->num_statts, textures))
-	 return;
+                                 stfb->num_statts, textures))
+         return;
 
       stfb->iface_stamp = new_stamp;
       new_stamp = p_atomic_read(&stfb->iface->stamp);
@@ -280,9 +276,6 @@ st_framebuffer_add_renderbuffer(struct st_framebuffer *stfb,
    struct gl_renderbuffer *rb;
    enum pipe_format format;
    boolean sw;
-
-   if (!stfb->iface)
-      return FALSE;
 
    assert(_mesa_is_winsys_fbo(&stfb->Base));
 
@@ -596,7 +589,7 @@ st_context_teximage(struct st_context_iface *stctxi,
 
    _mesa_dirty_texobj(ctx, texObj);
    _mesa_unlock_texture(ctx, texObj);
-   
+
    return TRUE;
 }
 
@@ -723,7 +716,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       /* Is the actual version less than the requested version?
        */
       if (st->ctx->Version < attribs->major * 10U + attribs->minor) {
-	 *error = ST_CONTEXT_ERROR_BAD_VERSION;
+         *error = ST_CONTEXT_ERROR_BAD_VERSION;
          st_destroy_context(st);
          return NULL;
       }
@@ -844,13 +837,14 @@ st_manager_flush_frontbuffer(struct st_context *st)
    struct st_framebuffer *stfb = st_ws_framebuffer(st->ctx->DrawBuffer);
    struct st_renderbuffer *strb = NULL;
 
+   assert(st->ctx->DrawBuffer != _mesa_get_incomplete_framebuffer());
+
    if (stfb)
       strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
    if (!strb)
       return;
 
    /* never a dummy fb */
-   assert(&stfb->Base != _mesa_get_incomplete_framebuffer());
    stfb->iface->flush_front(&st->iface, stfb->iface, ST_ATTACHMENT_FRONT_LEFT);
 }
 
@@ -911,7 +905,7 @@ st_manager_add_color_renderbuffer(struct st_context *st,
     * new renderbuffer. It might be that there is a window system
     * renderbuffer available.
     */
-   if(stfb->iface)
+   if (stfb->iface)
       stfb->iface_stamp = p_atomic_read(&stfb->iface->stamp) - 1;
 
    st_invalidate_state(st->ctx, _NEW_BUFFERS);
@@ -919,8 +913,9 @@ st_manager_add_color_renderbuffer(struct st_context *st,
    return TRUE;
 }
 
-static unsigned get_version(struct pipe_screen *screen,
-                            struct st_config_options *options, gl_api api)
+static unsigned
+get_version(struct pipe_screen *screen,
+            struct st_config_options *options, gl_api api)
 {
    struct gl_constants consts = {0};
    struct gl_extensions extensions = {0};

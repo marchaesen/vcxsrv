@@ -378,8 +378,8 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					.pAttachments = (VkImageView[]) {
 						radv_image_view_to_handle(&iview)
 					},
-				       .width = image->extent.width,
-				       .height = image->extent.height,
+				       .width = image->info.width,
+				       .height = image->info.height,
 				       .layers = 1
 				},
 				&cmd_buffer->pool->alloc,
@@ -396,8 +396,8 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 							      0,
 						      },
 						      .extent = {
-							      image->extent.width,
-							      image->extent.height,
+							      image->info.width,
+							      image->info.height,
 						      }
 					      },
 					      .clearValueCount = 0,
@@ -406,7 +406,7 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 				     VK_SUBPASS_CONTENTS_INLINE);
 
 		emit_fast_clear_flush(cmd_buffer,
-				      &(VkExtent2D) { image->extent.width, image->extent.height },
+				      &(VkExtent2D) { image->info.width, image->info.height },
 				      image->fmask.size > 0);
 		radv_CmdEndRenderPass(cmd_buffer_h);
 

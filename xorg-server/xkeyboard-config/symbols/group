@@ -334,7 +334,7 @@ xkb_symbols "ctrls_toggle" {
     };
 };
 
-// Pressing both Alt keys switches to the next or previous group
+// Pressing both Alt switches to the next or previous group
 // (depending on which Alt is pressed first).
 partial modifier_keys
 xkb_symbols "alts_toggle" {

@@ -54,9 +54,9 @@ static void st_viewport(struct gl_context *ctx)
    stdraw = st_ws_framebuffer(st->ctx->DrawBuffer);
    stread = st_ws_framebuffer(st->ctx->ReadBuffer);
 
-   if (stdraw && stdraw->iface)
+   if (stdraw)
       stdraw->iface_stamp = p_atomic_read(&stdraw->iface->stamp) - 1;
-   if (stread && stread != stdraw && stread->iface)
+   if (stread && stread != stdraw)
       stread->iface_stamp = p_atomic_read(&stread->iface->stamp) - 1;
 }
 

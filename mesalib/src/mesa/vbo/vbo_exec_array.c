@@ -462,7 +462,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
                 GLuint drawID)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   struct _mesa_prim prim[2];
+   struct _mesa_prim prim;
 
    if (skip_validated_draw(ctx))
       return;
@@ -472,18 +472,18 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    /* OpenGL 4.5 says that primitive restart is ignored with non-indexed
     * draws.
     */
-   memset(prim, 0, sizeof(prim));
-   prim[0].begin = 1;
-   prim[0].end = 1;
-   prim[0].mode = mode;
-   prim[0].num_instances = numInstances;
-   prim[0].base_instance = baseInstance;
-   prim[0].draw_id = drawID;
-   prim[0].is_indirect = 0;
-   prim[0].start = start;
-   prim[0].count = count;
+   memset(&prim, 0, sizeof(prim));
+   prim.begin = 1;
+   prim.end = 1;
+   prim.mode = mode;
+   prim.num_instances = numInstances;
+   prim.base_instance = baseInstance;
+   prim.draw_id = drawID;
+   prim.is_indirect = 0;
+   prim.start = start;
+   prim.count = count;
 
-   vbo->draw_prims(ctx, prim, 1, NULL,
+   vbo->draw_prims(ctx, &prim, 1, NULL,
                    GL_TRUE, start, start + count - 1, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
@@ -853,7 +853,12 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
-   struct _mesa_prim prim[1];
+   struct _mesa_prim prim;
+
+   if (!index_bounds_valid) {
+      assert(start == 0u);
+      assert(end == ~0u);
+   }
 
    if (skip_draw_elements(ctx, count, indices))
       return;
@@ -865,19 +870,19 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = indices;
 
-   prim[0].begin = 1;
-   prim[0].end = 1;
-   prim[0].weak = 0;
-   prim[0].pad = 0;
-   prim[0].mode = mode;
-   prim[0].start = 0;
-   prim[0].count = count;
-   prim[0].indexed = 1;
-   prim[0].is_indirect = 0;
-   prim[0].basevertex = basevertex;
-   prim[0].num_instances = numInstances;
-   prim[0].base_instance = baseInstance;
-   prim[0].draw_id = 0;
+   prim.begin = 1;
+   prim.end = 1;
+   prim.weak = 0;
+   prim.pad = 0;
+   prim.mode = mode;
+   prim.start = 0;
+   prim.count = count;
+   prim.indexed = 1;
+   prim.is_indirect = 0;
+   prim.basevertex = basevertex;
+   prim.num_instances = numInstances;
+   prim.base_instance = baseInstance;
+   prim.draw_id = 0;
 
    /* Need to give special consideration to rendering a range of
     * indices starting somewhere above zero.  Typically the
@@ -910,7 +915,7 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
     * for the latter case elsewhere.
     */
 
-   vbo->draw_prims(ctx, prim, 1, &ib,
+   vbo->draw_prims(ctx, &prim, 1, &ib,
                    index_bounds_valid, start, end, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
@@ -999,6 +1004,11 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
    (void) check_draw_elements_data;
 #endif
 
+   if (!index_bounds_valid) {
+      start = 0;
+      end = ~0;
+   }
+
    vbo_validated_drawrangeelements(ctx, mode, index_bounds_valid, start, end,
                                    count, type, indices, basevertex, 1, 0);
 }
@@ -1048,7 +1058,7 @@ vbo_exec_DrawElements(GLenum mode, GLsizei count, GLenum type,
          return;
    }
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
+   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, 0, ~0,
                                    count, type, indices, 0, 1, 0);
 }
 
@@ -1077,7 +1087,7 @@ vbo_exec_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
          return;
    }
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
+   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, 0, ~0,
                                    count, type, indices, basevertex, 1, 0);
 }
 
@@ -1107,7 +1117,7 @@ vbo_exec_DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
          return;
    }
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
+   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, 0, ~0,
                                    count, type, indices, 0, numInstances, 0);
 }
 
@@ -1142,7 +1152,7 @@ vbo_exec_DrawElementsInstancedBaseVertex(GLenum mode, GLsizei count,
          return;
    }
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
+   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, 0, ~0,
                                    count, type, indices,
                                    basevertex, numInstances, 0);
 }
@@ -1179,7 +1189,7 @@ vbo_exec_DrawElementsInstancedBaseInstance(GLenum mode, GLsizei count,
          return;
    }
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
+   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, 0, ~0,
                                    count, type, indices, 0, numInstances,
                                    baseInstance);
 }
@@ -1218,7 +1228,7 @@ vbo_exec_DrawElementsInstancedBaseVertexBaseInstance(GLenum mode,
          return;
    }
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, ~0, ~0,
+   vbo_validated_drawrangeelements(ctx, mode, GL_FALSE, 0, ~0,
                                    count, type, indices, basevertex,
                                    numInstances, baseInstance);
 }
@@ -1322,7 +1332,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
       }
 
       vbo->draw_prims(ctx, prim, primcount, &ib,
-                      false, ~0, ~0, NULL, 0, NULL);
+                      false, 0, ~0, NULL, 0, NULL);
    }
    else {
       /* render one prim at a time */
@@ -1351,7 +1361,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
          else
             prim[0].basevertex = 0;
 
-         vbo->draw_prims(ctx, prim, 1, &ib, false, ~0, ~0, NULL, 0, NULL);
+         vbo->draw_prims(ctx, prim, 1, &ib, false, 0, ~0, NULL, 0, NULL);
       }
    }
 
@@ -1409,7 +1419,7 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
                             GLuint stream, GLuint numInstances)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   struct _mesa_prim prim[2];
+   struct _mesa_prim prim;
 
    if (!_mesa_validate_DrawTransformFeedback(ctx, mode, obj, stream,
                                              numInstances)) {
@@ -1431,19 +1441,19 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
    vbo_bind_arrays(ctx);
 
    /* init most fields to zero */
-   memset(prim, 0, sizeof(prim));
-   prim[0].begin = 1;
-   prim[0].end = 1;
-   prim[0].mode = mode;
-   prim[0].num_instances = numInstances;
-   prim[0].base_instance = 0;
-   prim[0].is_indirect = 0;
+   memset(&prim, 0, sizeof(prim));
+   prim.begin = 1;
+   prim.end = 1;
+   prim.mode = mode;
+   prim.num_instances = numInstances;
+   prim.base_instance = 0;
+   prim.is_indirect = 0;
 
    /* Maybe we should do some primitive splitting for primitive restart
     * (like in DrawArrays), but we have no way to know how many vertices
     * will be rendered. */
 
-   vbo->draw_prims(ctx, prim, 1, NULL, GL_FALSE, ~0, ~0, obj, stream, NULL);
+   vbo->draw_prims(ctx, &prim, 1, NULL, GL_FALSE, 0, ~0, obj, stream, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);

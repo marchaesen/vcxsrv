@@ -27,7 +27,7 @@
 #error must inclue dix-config.h to use xserver_poll.h
 #endif
 
-#if HAVE_POLL
+#ifdef HAVE_POLL
 #include <poll.h>
 #define xserver_poll(fds, nfds, timeout) poll(fds, nfds, timeout)
 #else

@@ -137,7 +137,7 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "qwerty-bay" {
 
-    name[Group1]= "Filipino (QWERTY Baybayin)";
+    name[Group1]= "Filipino (QWERTY, Baybayin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -233,7 +233,7 @@ xkb_symbols "qwerty-bay" {
 partial alphanumeric_keys
 xkb_symbols "capewell-dvorak" {
 
-    name[Group1]= "Filipino (Capewell-Dvorak Latin)";
+    name[Group1]= "Filipino (Capewell-Dvorak, Latin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -328,7 +328,7 @@ xkb_symbols "capewell-dvorak" {
 partial alphanumeric_keys
 xkb_symbols "capewell-dvorak-bay" {
 
-    name[Group1]= "Filipino (Capewell-Dvorak Baybayin)";
+    name[Group1]= "Filipino (Capewell-Dvorak, Baybayin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -424,7 +424,7 @@ xkb_symbols "capewell-dvorak-bay" {
 partial alphanumeric_keys
 xkb_symbols "capewell-qwerf2k6" {
 
-    name[Group1]= "Filipino (Capewell-QWERF 2006 Latin)";
+    name[Group1]= "Filipino (Capewell-QWERF 2006, Latin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -519,7 +519,7 @@ xkb_symbols "capewell-qwerf2k6" {
 partial alphanumeric_keys
 xkb_symbols "capewell-qwerf2k6-bay" {
 
-    name[Group1]= "Filipino (Capewell-QWERF 2006 Baybayin)";
+    name[Group1]= "Filipino (Capewell-QWERF 2006, Baybayin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -615,7 +615,7 @@ xkb_symbols "capewell-qwerf2k6-bay" {
 partial alphanumeric_keys
 xkb_symbols "colemak" {
 
-    name[Group1]= "Filipino (Colemak Latin)";
+    name[Group1]= "Filipino (Colemak, Latin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -710,7 +710,7 @@ xkb_symbols "colemak" {
 partial alphanumeric_keys
 xkb_symbols "colemak-bay" {
 
-    name[Group1]= "Filipino (Colemak Baybayin)";
+    name[Group1]= "Filipino (Colemak, Baybayin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -806,7 +806,7 @@ xkb_symbols "colemak-bay" {
 partial alphanumeric_keys
 xkb_symbols "dvorak" {
 
-    name[Group1]= "Filipino (Dvorak Latin)";
+    name[Group1]= "Filipino (Dvorak, Latin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4
@@ -901,7 +901,7 @@ xkb_symbols "dvorak" {
 partial alphanumeric_keys
 xkb_symbols "dvorak-bay" {
 
-    name[Group1]= "Filipino (Dvorak Baybayin)";
+    name[Group1]= "Filipino (Dvorak, Baybayin)";
 
 //	ISO grouping:	|--------- Group1 ---------|	|--------- Group2 ---------|
 //			Level1		Level2		Level3		Level4

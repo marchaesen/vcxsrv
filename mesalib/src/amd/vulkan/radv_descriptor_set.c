@@ -527,7 +527,7 @@ VkResult radv_FreeDescriptorSets(
 	for (uint32_t i = 0; i < count; i++) {
 		RADV_FROM_HANDLE(radv_descriptor_set, set, pDescriptorSets[i]);
 
-		if (set)
+		if (set && !pool->host_memory_base)
 			radv_descriptor_set_destroy(device, pool, set, true);
 	}
 	return VK_SUCCESS;

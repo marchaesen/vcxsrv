@@ -104,6 +104,7 @@ struct st_context
    boolean has_half_float_packing;
    boolean has_multi_draw_indirect;
    boolean has_user_constbuf;
+   boolean can_bind_const_buffer_as_vertex;
 
    /**
     * If a shader can be created when we get its source.
@@ -119,7 +120,7 @@ struct st_context
     * on glViewpport calls, this is set via a option.
     */
    boolean invalidate_on_gl_viewport;
-
+   boolean draw_needs_minmax_index;
    boolean vertex_array_out_of_memory;
 
    /* Some state is contained in constant objects.
@@ -170,14 +171,11 @@ struct st_context
    GLboolean vertdata_edgeflags;
    GLboolean edgeflag_culls_prims;
 
-   /** Mapping from VARYING_SLOT_x to post-transformed vertex slot */
-   const GLuint *vertex_result_to_slot;
-
    struct st_vertex_program *vp;    /**< Currently bound vertex program */
    struct st_fragment_program *fp;  /**< Currently bound fragment program */
-   struct st_geometry_program *gp;  /**< Currently bound geometry program */
-   struct st_tessctrl_program *tcp; /**< Currently bound tess control program */
-   struct st_tesseval_program *tep; /**< Currently bound tess eval program */
+   struct st_common_program *gp;  /**< Currently bound geometry program */
+   struct st_common_program *tcp; /**< Currently bound tess control program */
+   struct st_common_program *tep; /**< Currently bound tess eval program */
    struct st_compute_program *cp;   /**< Currently bound compute program */
 
    struct st_vp_variant *vp_variant;

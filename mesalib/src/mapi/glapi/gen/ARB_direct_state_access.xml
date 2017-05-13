@@ -75,7 +75,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CopyNamedBufferSubData">
+   <function name="CopyNamedBufferSubData" no_error="true">
       <param name="readBuffer" type="GLuint" />
       <param name="writeBuffer" type="GLuint" />
       <param name="readOffset" type="GLintptr" />
@@ -101,13 +101,13 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="MapNamedBuffer">
+   <function name="MapNamedBuffer" no_error="true">
       <return type="GLvoid *" />
       <param name="buffer" type="GLuint" />
       <param name="access" type="GLenum" />
    </function>
 
-   <function name="MapNamedBufferRange">
+   <function name="MapNamedBufferRange" no_error="true">
       <return type="GLvoid *" />
       <param name="buffer" type="GLuint" />
       <param name="offset" type="GLintptr" />
@@ -115,12 +115,12 @@
       <param name="access" type="GLbitfield" />
    </function>
 
-   <function name="UnmapNamedBuffer">
+   <function name="UnmapNamedBuffer" no_error="true">
       <return type="GLboolean" />
       <param name="buffer" type="GLuint" />
    </function>
 
-   <function name="FlushMappedNamedBufferRange">
+   <function name="FlushMappedNamedBufferRange" no_error="true">
       <param name="buffer" type="GLuint" />
       <param name="offset" type="GLintptr" />
       <param name="length" type="GLsizeiptr" />

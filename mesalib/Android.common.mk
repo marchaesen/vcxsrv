@@ -40,8 +40,13 @@ LOCAL_CFLAGS += \
 	-DPACKAGE_VERSION=\"$(MESA_VERSION)\" \
 	-DPACKAGE_BUGREPORT=\"https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa\"
 
+# XXX: The following __STDC_*_MACROS defines should not be needed.
+# It's likely due to a bug elsewhere, but let's temporarily add them
+# here to fix the radeonsi build.
 LOCAL_CFLAGS += \
 	-DENABLE_SHADER_CACHE \
+	-D__STDC_CONSTANT_MACROS \
+	-D__STDC_LIMIT_MACROS \
 	-DHAVE___BUILTIN_EXPECT \
 	-DHAVE___BUILTIN_FFS \
 	-DHAVE___BUILTIN_FFSLL \
@@ -81,27 +86,9 @@ LOCAL_CFLAGS += \
 endif
 endif
 
-ifeq ($(MESA_ENABLE_LLVM),true)
-  ifeq ($(MESA_ANDROID_MAJOR_VERSION),5)
-    LOCAL_CFLAGS += -DHAVE_LLVM=0x0305 -DMESA_LLVM_VERSION_PATCH=2
-    ELF_INCLUDES := external/elfutils/0.153/libelf
-  endif
-  ifeq ($(MESA_ANDROID_MAJOR_VERSION),6)
-    LOCAL_CFLAGS += -DHAVE_LLVM=0x0307 -DMESA_LLVM_VERSION_PATCH=0
-    ELF_INCLUDES := external/elfutils/src/libelf
-  endif
-  ifeq ($(MESA_ANDROID_MAJOR_VERSION),7)
-    LOCAL_CFLAGS += -DHAVE_LLVM=0x0308 -DMESA_LLVM_VERSION_PATCH=0
-    ELF_INCLUDES := external/elfutils/libelf
-  endif
-endif
-
 ifneq ($(LOCAL_IS_HOST_MODULE),true)
-# add libdrm if there are hardware drivers
-ifneq ($(filter-out swrast,$(MESA_GPU_DRIVERS)),)
 LOCAL_CFLAGS += -DHAVE_LIBDRM
 LOCAL_SHARED_LIBRARIES += libdrm
-endif
 endif
 
 LOCAL_CFLAGS_32 += -DDEFAULT_DRIVER_DIR=\"/system/lib/$(MESA_DRI_MODULE_REL_PATH)\"

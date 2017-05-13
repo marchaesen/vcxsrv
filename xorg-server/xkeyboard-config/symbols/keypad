@@ -487,13 +487,13 @@ xkb_symbols "ossnumber_wang" {
 // the numpad you can inherit the cursors, but you'll have to define
 // the digits yourself. This module can be included in the rules to
 // define math operators; these are the variants used in computer
-// languages that are based on ASCII. NoSymbol doesn't mean that
+// languages that are based on ASCII. NoSymbol does not mean that
 // nothing is bound to the key but that no assignment is done here.
 // srvr_ctrl(stdkeypad) and keypad(x11) declare the operator keys to
 // be of type CTRL+ALT in order to assign server control events to
 // them, but it uses the second level which is overwritten if we have
 // more than one definition (shift state) for the key. Instead, here
-// the commands are put at the fourth level.
+// the commands are put at the 4th lever.
 partial keypad_keys
 xkb_symbols "ops" {
     key <KPDV> { [ NoSymbol,  slash,     NoSymbol,  XF86_Ungrab     ] };

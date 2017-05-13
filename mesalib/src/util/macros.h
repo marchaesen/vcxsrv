@@ -136,6 +136,17 @@ do {                       \
 #define MALLOCLIKE
 #endif
 
+/* Forced function inlining */
+#ifndef ALWAYS_INLINE
+#  if defined(__GNUC__) || defined(__clang__)
+#    define ALWAYS_INLINE inline __attribute__((always_inline))
+#  elif defined(_MSC_VER)
+#    define ALWAYS_INLINE __forceinline
+#  else
+#    define ALWAYS_INLINE inline
+#  endif
+#endif
+
 /* Used to optionally mark structures with misaligned elements or size as
  * packed, to trade off performance for space.
  */

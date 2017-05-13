@@ -10,17 +10,17 @@ build_buffer_fill_shader(struct radv_device *dev)
 	nir_builder b;
 
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_buffer_fill");
-	b.shader->info->cs.local_size[0] = 64;
-	b.shader->info->cs.local_size[1] = 1;
-	b.shader->info->cs.local_size[2] = 1;
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_buffer_fill");
+	b.shader->info.cs.local_size[0] = 64;
+	b.shader->info.cs.local_size[1] = 1;
+	b.shader->info.cs.local_size[2] = 1;
 
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info->cs.local_size[0],
-						b.shader->info->cs.local_size[1],
-						b.shader->info->cs.local_size[2], 0);
+						b.shader->info.cs.local_size[0],
+						b.shader->info.cs.local_size[1],
+						b.shader->info.cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 
@@ -36,6 +36,8 @@ build_buffer_fill_shader(struct radv_device *dev)
 	nir_builder_instr_insert(&b, &dst_buf->instr);
 
 	nir_intrinsic_instr *load = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
+	nir_intrinsic_set_base(load, 0);
+	nir_intrinsic_set_range(load, 4);
 	load->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	load->num_components = 1;
 	nir_ssa_dest_init(&load->instr, &load->dest, 1, 32, "fill_value");
@@ -60,17 +62,17 @@ build_buffer_copy_shader(struct radv_device *dev)
 	nir_builder b;
 
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_buffer_copy");
-	b.shader->info->cs.local_size[0] = 64;
-	b.shader->info->cs.local_size[1] = 1;
-	b.shader->info->cs.local_size[2] = 1;
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_buffer_copy");
+	b.shader->info.cs.local_size[0] = 64;
+	b.shader->info.cs.local_size[1] = 1;
+	b.shader->info.cs.local_size[2] = 1;
 
 	nir_ssa_def *invoc_id = nir_load_system_value(&b, nir_intrinsic_load_local_invocation_id, 0);
 	nir_ssa_def *wg_id = nir_load_system_value(&b, nir_intrinsic_load_work_group_id, 0);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
-						b.shader->info->cs.local_size[0],
-						b.shader->info->cs.local_size[1],
-						b.shader->info->cs.local_size[2], 0);
+						b.shader->info.cs.local_size[0],
+						b.shader->info.cs.local_size[1],
+						b.shader->info.cs.local_size[2], 0);
 
 	nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 

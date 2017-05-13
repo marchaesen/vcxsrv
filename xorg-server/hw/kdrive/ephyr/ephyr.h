@@ -192,8 +192,6 @@ extern KdPointerDriver EphyrMouseDriver;
 
 extern KdKeyboardDriver EphyrKeyboardDriver;
 
-extern KdOsFuncs EphyrOsFuncs;
-
 extern Bool ephyrCursorInit(ScreenPtr pScreen);
 
 extern int ephyrBufferHeight(KdScreenInfo * screen);

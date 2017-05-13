@@ -83,19 +83,7 @@ __stdcall unsigned long GetTickCount(void);
 #include <X11/fonts/libxfont2.h>
 #include "osdep.h"
 #include "extension.h"
-#ifdef X_POSIX_C_SOURCE
-#define _POSIX_C_SOURCE X_POSIX_C_SOURCE
 #include <signal.h>
-#undef _POSIX_C_SOURCE
-#else
-#if defined(_POSIX_SOURCE)
-#include <signal.h>
-#else
-#define _POSIX_SOURCE
-#include <signal.h>
-#undef _POSIX_SOURCE
-#endif
-#endif
 #ifndef WIN32
 #include <sys/wait.h>
 #endif
@@ -1008,7 +996,7 @@ ProcessCommandLine(int argc, char *argv[])
 #endif
         else if (strcmp(argv[i], "-dumbSched") == 0) {
             InputThreadEnable = FALSE;
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
             SmartScheduleSignalEnable = FALSE;
 #endif
         }
@@ -1210,7 +1198,7 @@ XNFstrdup(const char *s)
 void
 SmartScheduleStopTimer(void)
 {
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
     struct itimerval timer;
 
     if (!SmartScheduleSignalEnable)
@@ -1226,7 +1214,7 @@ SmartScheduleStopTimer(void)
 void
 SmartScheduleStartTimer(void)
 {
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
     struct itimerval timer;
 
     if (!SmartScheduleSignalEnable)
@@ -1239,7 +1227,7 @@ SmartScheduleStartTimer(void)
 #endif
 }
 
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
 static void
 SmartScheduleTimer(int sig)
 {
@@ -1287,7 +1275,7 @@ SmartSchedulePause(void)
 void
 SmartScheduleInit(void)
 {
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
     if (SmartScheduleEnable() < 0) {
         perror("sigaction for smart scheduler");
         SmartScheduleSignalEnable = FALSE;
@@ -1352,6 +1340,12 @@ OsAbort(void)
 {
 #ifndef __APPLE__
     OsBlockSignals();
+#endif
+#if !defined(WIN32) || defined(__CYGWIN__)
+    /* abort() raises SIGABRT, so we have to stop handling that to prevent
+     * recursion
+     */
+    OsSignal(SIGABRT, SIG_DFL);
 #endif
     abort();
 }
@@ -1438,7 +1432,7 @@ Popen(const char *command, const char *type)
     }
 
     /* Ignore the smart scheduler while this is going on */
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
     if (SmartSchedulePause() < 0) {
         close(pdes[0]);
         close(pdes[1]);
@@ -1453,7 +1447,7 @@ Popen(const char *command, const char *type)
         close(pdes[0]);
         close(pdes[1]);
         free(cur);
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
         if (SmartScheduleEnable() < 0)
             perror("signal");
 #endif
@@ -1630,7 +1624,7 @@ Pclose(void *iop)
     /* allow EINTR again */
     OsReleaseSignals();
 
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
     if (SmartScheduleEnable() < 0) {
         perror("signal");
         return -1;

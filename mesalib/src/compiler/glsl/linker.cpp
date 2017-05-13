@@ -1665,6 +1665,49 @@ link_xfb_stride_layout_qualifiers(struct gl_context *ctx,
 }
 
 /**
+ * Check for conflicting bindless/bound sampler/image layout qualifiers at
+ * global scope.
+ */
+static void
+link_bindless_layout_qualifiers(struct gl_shader_program *prog,
+                                struct gl_program *gl_prog,
+                                struct gl_shader **shader_list,
+                                unsigned num_shaders)
+{
+   bool bindless_sampler, bindless_image;
+   bool bound_sampler, bound_image;
+
+   bindless_sampler = bindless_image = false;
+   bound_sampler = bound_image = false;
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      if (shader->bindless_sampler)
+         bindless_sampler = true;
+      if (shader->bindless_image)
+         bindless_image = true;
+      if (shader->bound_sampler)
+         bound_sampler = true;
+      if (shader->bound_image)
+         bound_image = true;
+
+      if ((bindless_sampler && bound_sampler) ||
+          (bindless_image && bound_image)) {
+         /* From section 4.4.6 of the ARB_bindless_texture spec:
+          *
+          *     "If both bindless_sampler and bound_sampler, or bindless_image
+          *      and bound_image, are declared at global scope in any
+          *      compilation unit, a link- time error will be generated."
+          */
+         linker_error(prog, "both bindless_sampler and bound_sampler, or "
+                      "bindless_image and bound_image, can't be declared at "
+                      "global scope");
+      }
+   }
+}
+
+/**
  * Performs the cross-validation of tessellation control shader vertices and
  * layout qualifiers for the attached tessellation control shaders,
  * and propagates them to the linked TCS and linked shader program.
@@ -2223,6 +2266,7 @@ link_intrastage_shaders(void *mem_ctx,
    link_cs_input_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
    link_xfb_stride_layout_qualifiers(ctx, prog, linked, shader_list,
                                      num_shaders);
+   link_bindless_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
 
    populate_symbol_table(linked);
 

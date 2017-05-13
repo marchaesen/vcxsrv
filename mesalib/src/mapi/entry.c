@@ -53,7 +53,7 @@
 
 #include <stdlib.h>
 
-static inline const struct mapi_table *
+static inline const struct _glapi_table *
 entry_current_get(void)
 {
 #ifdef MAPI_MODE_BRIDGE

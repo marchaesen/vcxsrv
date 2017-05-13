@@ -622,6 +622,14 @@ struct ast_type_qualifier {
           * is used.
           */
          unsigned inner_coverage:1;
+
+         /** \name Layout qualifiers for GL_ARB_bindless_texture */
+         /** \{ */
+         unsigned bindless_sampler:1;
+         unsigned bindless_image:1;
+         unsigned bound_sampler:1;
+         unsigned bound_image:1;
+         /** \} */
       }
       /** \brief Set of flags, accessed by name. */
       q;

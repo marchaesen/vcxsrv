@@ -1496,9 +1496,8 @@ struct gl_vertex_buffer_binding
 
 
 /**
- * A representation of "Vertex Array Objects" (VAOs) from OpenGL 3.1+,
- * GL_ARB_vertex_array_object, or the original GL_APPLE_vertex_array_object
- * extension.
+ * A representation of "Vertex Array Objects" (VAOs) from OpenGL 3.1+ /
+ * the GL_ARB_vertex_array_object extension.
  */
 struct gl_vertex_array_object
 {
@@ -1508,22 +1507,6 @@ struct gl_vertex_array_object
    GLint RefCount;
 
    GLchar *Label;       /**< GL_KHR_debug */
-
-   /**
-    * Does the VAO use ARB semantics or Apple semantics?
-    *
-    * There are several ways in which ARB_vertex_array_object and
-    * APPLE_vertex_array_object VAOs have differing semantics.  At the very
-    * least,
-    *
-    *     - ARB VAOs require that all array data be sourced from vertex buffer
-    *       objects, but Apple VAOs do not.
-    *
-    *     - ARB VAOs require that names come from GenVertexArrays.
-    *
-    * This flag notes which behavior governs this VAO.
-    */
-   GLboolean ARBsemantics;
 
    /**
     * Has this array object been bound?
@@ -1588,7 +1571,7 @@ typedef enum
  */
 struct gl_array_attrib
 {
-   /** Currently bound array object. See _mesa_BindVertexArrayAPPLE() */
+   /** Currently bound array object. */
    struct gl_vertex_array_object *VAO;
 
    /** The default vertex array object */
@@ -1597,7 +1580,7 @@ struct gl_array_attrib
    /** The last VAO accessed by a DSA function */
    struct gl_vertex_array_object *LastLookedUpVAO;
 
-   /** Array objects (GL_ARB/APPLE_vertex_array_object) */
+   /** Array objects (GL_ARB_vertex_array_object) */
    struct _mesa_HashTable *Objects;
 
    GLint ActiveTexture;		/**< Client Active Texture */
@@ -2564,6 +2547,16 @@ struct gl_shader
    bool origin_upper_left;
    bool pixel_center_integer;
 
+   /**
+    * Whether bindless_sampler/bindless_image, and respectively
+    * bound_sampler/bound_image are declared at global scope as defined by
+    * ARB_bindless_texture.
+    */
+   bool bindless_sampler;
+   bool bindless_image;
+   bool bound_sampler;
+   bool bound_image;
+
    /** Global xfb_stride out qualifier if any */
    GLuint TransformFeedbackBufferStride[MAX_FEEDBACK_BUFFERS];
 
@@ -3010,8 +3003,6 @@ struct gl_pipeline_object
 
    struct gl_shader_program *ReferencedPrograms[MESA_SHADER_STAGES];
 
-   struct gl_program *_CurrentFragmentProgram;
-
    /**
     * Program used by glUniform calls.
     *
@@ -3050,7 +3041,6 @@ struct gl_shader_compiler_options
 {
    /** Driver-selectable options: */
    GLboolean EmitNoLoops;
-   GLboolean EmitNoFunctions;
    GLboolean EmitNoCont;                  /**< Emit CONT opcode? */
    GLboolean EmitNoMainReturn;            /**< Emit CONT/RET opcodes? */
    GLboolean EmitNoPow;                   /**< Emit POW opcodes? */
@@ -3937,6 +3927,7 @@ struct gl_extensions
    GLboolean ARB_ES3_2_compatibility;
    GLboolean ARB_arrays_of_arrays;
    GLboolean ARB_base_instance;
+   GLboolean ARB_bindless_texture;
    GLboolean ARB_blend_func_extended;
    GLboolean ARB_buffer_storage;
    GLboolean ARB_clear_texture;

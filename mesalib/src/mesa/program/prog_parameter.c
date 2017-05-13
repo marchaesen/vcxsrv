@@ -278,7 +278,6 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
             }
          }
          values += 4;
-         p->Initialized = GL_TRUE;
       } else {
          /* silence valgrind */
          for (j = 0; j < 4; j++)

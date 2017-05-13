@@ -14,7 +14,7 @@
 
 // Tim Nelson (this file's creator) says:
 
-// This file doesn't deal with all the combining stuff -- I'm not an APL programmer,
+// This file does not deal with all the combining stuff -- I'm not an APL programmer,
 // and am not quite sure what's needed here.  However, it may be possible to get this
 // working with dead keys and the like.  Patches gratefully accepted.  
 // [Geoff Streeter: What has been done to is to support all of the APL overstrikes in the compose table]

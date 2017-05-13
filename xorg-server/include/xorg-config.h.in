@@ -34,10 +34,10 @@
 #undef XF86CONFIGFILE
 
 /* Path to configuration file. */
-#undef __XCONFIGFILE__
+#undef XCONFIGFILE
 
 /* Name of configuration directory. */
-#undef __XCONFIGDIR__
+#undef XCONFIGDIR
 
 /* Path to loadable modules. */
 #undef DEFAULT_MODULE_PATH
@@ -123,6 +123,9 @@
 
 /* Define to 1 if you have the <sys/mkdev.h> header file. */
 #undef HAVE_SYS_MKDEV_H
+
+/* Define to 1 if you have the <sys/sysmacros.h> header file. */
+#undef HAVE_SYS_SYSMACROS_H
 
 /* Path to text files containing PCI IDs */
 #undef PCI_TXT_IDS_PATH

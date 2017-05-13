@@ -35,7 +35,7 @@ xkb_symbols "aa_ctrl" {
     replace key <AC00> { [ Caps_Lock ] };
 };
 
-// Right Ctrl key functions as another right Alt.
+// Right Ctrl functions as another right Alt.
 partial modifier_keys
 xkb_symbols "rctrl_ralt" {
     key <RCTL> { symbols[Group1]= [ Alt_R ] };

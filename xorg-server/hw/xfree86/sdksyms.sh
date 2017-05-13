@@ -58,7 +58,7 @@ cat > sdksyms.c << EOF
 #include "shmint.h"
 #endif
 #include "syncsdk.h"
-#if XINERAMA
+#ifdef XINERAMA
 # include "panoramiXsrv.h"
 # include "panoramiX.h"
 #endif
@@ -97,7 +97,7 @@ cat > sdksyms.c << EOF
 
 
 /* hw/xfree86/dri2/Makefile.am -- module */
-#if DRI2
+#ifdef DRI2
 # include "dri2.h"
 #endif
 
@@ -131,7 +131,7 @@ cat > sdksyms.c << EOF
 #include "xf86str.h"
 #include "xf86Xinput.h"
 #include "xisb.h"
-#if XV
+#ifdef XV
 # include "xf86xv.h"
 # include "xf86xvmc.h"
 # include "xf86xvpriv.h"
@@ -189,7 +189,7 @@ cat > sdksyms.c << EOF
 
 
 /* hw/xfree86/dri/Makefile.am -- module */
-#if XF86DRI
+#ifdef XF86DRI
 # include "dri.h"
 # include "sarea.h"
 # include "dristruct.h"

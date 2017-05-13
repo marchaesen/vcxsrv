@@ -77,7 +77,7 @@ rewrite_emit_vertex(nir_intrinsic_instr *intrin, struct state *state)
    nir_ssa_def *count = nir_load_var(b, state->vertex_count_var);
 
    nir_ssa_def *max_vertices =
-      nir_imm_int(b, b->shader->info->gs.vertices_out);
+      nir_imm_int(b, b->shader->info.gs.vertices_out);
 
    /* Create: if (vertex_count < max_vertices) and insert it.
     *

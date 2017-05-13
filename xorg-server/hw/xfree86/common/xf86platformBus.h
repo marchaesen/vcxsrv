@@ -25,6 +25,7 @@
 #define XF86_PLATFORM_BUS_H
 
 #include "hotplug.h"
+#include "xf86MatchDrivers.h"
 
 struct xf86_platform_device {
     struct OdevAttributes *attribs;
@@ -153,8 +154,8 @@ _xf86_get_platform_device_int_attrib(struct xf86_platform_device *device, int at
 extern _X_EXPORT Bool
 xf86PlatformDeviceCheckBusID(struct xf86_platform_device *device, const char *busid);
 
-extern _X_EXPORT int
-xf86PlatformMatchDriver(char *matches[], int nmatches);
+extern _X_EXPORT void
+xf86PlatformMatchDriver(XF86MatchedDrivers *);
 
 extern void xf86platformVTProbe(void);
 extern void xf86platformPrimary(void);

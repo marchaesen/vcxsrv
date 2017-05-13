@@ -128,21 +128,6 @@ typedef struct _xReq *xReqPtr;
 #define USE_BACKGROUND_PIXEL 3
 #define USE_BORDER_PIXEL 3
 
-/* byte swap a 32-bit literal */
-static inline uint32_t
-lswapl(uint32_t x)
-{
-    return ((x & 0xff) << 24) |
-        ((x & 0xff00) << 8) | ((x & 0xff0000) >> 8) | ((x >> 24) & 0xff);
-}
-
-/* byte swap a 16-bit literal */
-static inline uint16_t
-lswaps(uint16_t x)
-{
-    return (uint16_t)((x & 0xff) << 8) | ((x >> 8) & 0xff);
-}
-
 #undef min
 #undef max
 
@@ -311,88 +296,65 @@ __builtin_constant_p(int x)
 }
 #endif
 
-/* byte swap a 64-bit value */
-static inline void
-swap_uint64(uint64_t *x)
+static inline uint64_t
+bswap_64(uint64_t x)
 {
-    char n;
-
-    n = ((char *) x)[0];
-    ((char *) x)[0] = ((char *) x)[7];
-    ((char *) x)[7] = n;
-
-    n = ((char *) x)[1];
-    ((char *) x)[1] = ((char *) x)[6];
-    ((char *) x)[6] = n;
-
-    n = ((char *) x)[2];
-    ((char *) x)[2] = ((char *) x)[5];
-    ((char *) x)[5] = n;
-
-    n = ((char *) x)[3];
-    ((char *) x)[3] = ((char *) x)[4];
-    ((char *) x)[4] = n;
+    return (((x & 0xFF00000000000000ull) >> 56) |
+            ((x & 0x00FF000000000000ull) >> 40) |
+            ((x & 0x0000FF0000000000ull) >> 24) |
+            ((x & 0x000000FF00000000ull) >>  8) |
+            ((x & 0x00000000FF000000ull) <<  8) |
+            ((x & 0x0000000000FF0000ull) << 24) |
+            ((x & 0x000000000000FF00ull) << 40) |
+            ((x & 0x00000000000000FFull) << 56));
 }
 
 #define swapll(x) do { \
 		if (sizeof(*(x)) != 8) \
 			wrong_size(); \
-                swap_uint64((uint64_t *)(x));   \
+		*(x) = bswap_64(*(x));          \
 	} while (0)
 
-/* byte swap a 32-bit value */
-static inline void
-swap_uint32(uint32_t * x)
+static inline uint32_t
+bswap_32(uint32_t x)
 {
-    char n = ((char *) x)[0];
-
-    ((char *) x)[0] = ((char *) x)[3];
-    ((char *) x)[3] = n;
-    n = ((char *) x)[1];
-    ((char *) x)[1] = ((char *) x)[2];
-    ((char *) x)[2] = n;
+    return (((x & 0xFF000000) >> 24) |
+            ((x & 0x00FF0000) >> 8) |
+            ((x & 0x0000FF00) << 8) |
+            ((x & 0x000000FF) << 24));
 }
 
 #define swapl(x) do { \
 		if (sizeof(*(x)) != 4) \
 			wrong_size(); \
-		if (__builtin_constant_p((uintptr_t)(x) & 3) && ((uintptr_t)(x) & 3) == 0) \
-			*(x) = lswapl(*(x)); \
-		else \
-			swap_uint32((uint32_t *)(x)); \
+		*(x) = bswap_32(*(x)); \
 	} while (0)
 
-/* byte swap a 16-bit value */
-static inline void
-swap_uint16(uint16_t * x)
+static inline uint16_t
+bswap_16(uint16_t x)
 {
-    char n = ((char *) x)[0];
-
-    ((char *) x)[0] = ((char *) x)[1];
-    ((char *) x)[1] = n;
+    return (((x & 0xFF00) >> 8) |
+            ((x & 0x00FF) << 8));
 }
 
 #define swaps(x) do { \
 		if (sizeof(*(x)) != 2) \
 			wrong_size(); \
-		if (__builtin_constant_p((uintptr_t)(x) & 1) && ((uintptr_t)(x) & 1) == 0) \
-			*(x) = lswaps(*(x)); \
-		else \
-			swap_uint16((uint16_t *)(x)); \
+		*(x) = bswap_16(*(x)); \
 	} while (0)
 
 /* copy 32-bit value from src to dst byteswapping on the way */
 #define cpswapl(src, dst) do { \
 		if (sizeof((src)) != 4 || sizeof((dst)) != 4) \
 			wrong_size(); \
-		(dst) = lswapl((src)); \
+		(dst) = bswap_32((src)); \
 	} while (0)
 
 /* copy short from src to dst byteswapping on the way */
 #define cpswaps(src, dst) do { \
 		if (sizeof((src)) != 2 || sizeof((dst)) != 2) \
 			wrong_size(); \
-		(dst) = lswaps((src)); \
+		(dst) = bswap_16((src)); \
 	} while (0)
 
 extern _X_EXPORT void SwapLongs(CARD32 *list, unsigned long count);

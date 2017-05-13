@@ -102,7 +102,7 @@
         <variant>
           <configItem>
             <name>us</name>
-            <_description>German (US keyboard with German letters)</_description>
+            <_description>German (US, with German letters)</_description>
             <languageList>
               <iso639Id>eng</iso639Id>
             </languageList>
@@ -121,7 +121,7 @@
         <variant>
           <configItem>
             <name>pl</name>
-            <_description>Polish (Germany, eliminate dead keys)</_description>
+            <_description>Polish (Germany, no dead keys)</_description>
             <languageList>
               <iso639Id>ger</iso639Id>
               <iso639Id>pol</iso639Id>
@@ -360,13 +360,13 @@
         <variant>
           <configItem>
             <name>carpalx-intl</name>
-            <_description>English (Carpalx, international with dead keys)</_description>
+            <_description>English (Carpalx, intl., with dead keys)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>carpalx-altgr-intl</name>
-            <_description>English (Carpalx, international AltGr dead keys)</_description>
+            <_description>English (Carpalx, intl., with dead keys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -378,13 +378,13 @@
         <variant>
           <configItem>
             <name>carpalx-full-intl</name>
-            <_description>English (Carpalx, full optimization, international with dead keys)</_description>
+            <_description>English (Carpalx, full optimization, intl., with dead keys)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>carpalx-full-altgr-intl</name>
-            <_description>English (Carpalx, full optimization, international AltGr dead keys)</_description>
+            <_description>English (Carpalx, full optimization, intl., with dead keys)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -402,7 +402,7 @@
         <variant>
           <configItem>
             <name>intl</name>
-            <_description>Polish (international with dead keys)</_description>
+            <_description>Polish (intl., with dead keys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -1162,7 +1162,7 @@
             <name>mal_enhanced</name>
             <!-- Keyboard indicator for Malayalam layouts -->
             <_shortDescription>ml</_shortDescription>
-            <_description>Malayalam (enhanced Inscript, with rupee sign)</_description>
+            <_description>Malayalam (enhanced Inscript, with rupee)</_description>
             <languageList>
               <iso639Id>mal</iso639Id>
             </languageList>
@@ -1265,6 +1265,17 @@
             <!-- Keyboard indicator for Telugu layouts -->
             <_shortDescription>te</_shortDescription>
             <_description>Telugu (KaGaPa phonetic)</_description>
+            <languageList>
+              <iso639Id>tel</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>tel-sarala</name>
+            <!-- Keyboard indicator for Telugu layouts -->
+            <_shortDescription>te</_shortDescription>
+            <_description>Telugu (Sarala)</_description>
             <languageList>
               <iso639Id>tel</iso639Id>
             </languageList>

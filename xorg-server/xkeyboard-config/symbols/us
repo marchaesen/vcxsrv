@@ -60,7 +60,7 @@ partial alphanumeric_keys
 xkb_symbols "euro" {
 
     include "us(basic)"
-    name[Group1]= "English (US, with euro on 5)";
+    name[Group1]= "English (US, euro on 5)";
 
     include "eurosign(5)"
 
@@ -85,7 +85,7 @@ partial alphanumeric_keys
 xkb_symbols "intl" {
 
     include "us(basic)"
-    name[Group1]= "English (US, international with dead keys)";
+    name[Group1]= "English (US, intl., with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
     key <AE01> { [	   1,     exclam,    exclamdown,      onesuperior ] };
@@ -175,7 +175,7 @@ partial alphanumeric_keys
 xkb_symbols "alt-intl" {
 
   include "us"
-  name[Group1]= "English (US, alternative international)";
+  name[Group1]= "English (US, alt. intl.)";
 
   key <TLDE> { [ dead_grave, dead_tilde,    grave,	      asciitilde    ] };
   key <AE05> { [          5, percent,	    EuroSign			    ] };
@@ -260,7 +260,7 @@ xkb_symbols "dvorak" {
     key <BKSL> { [  backslash,  bar             ]       };
 };
 
-// Dvorak international with dead keys
+// Dvorak intl., with dead keys
 // Olivier Mehani (shtrom-xorg@ssji.net)
 // Reproduce the per-key mapping of us(intl) for the dvorak layout
 // aka "I just swapped my keys over"
@@ -268,7 +268,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak-intl" {
 
     include "us(dvorak)"
-    name[Group1]= "English (Dvorak, international with dead keys)";
+    name[Group1]= "English (Dvorak, intl., with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
 
@@ -346,7 +346,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak-alt-intl" {
 
     include "us(dvorak)"
-    name[Group1]= "English (Dvorak alternative international no dead keys)";
+    name[Group1]= "English (Dvorak, alt. intl.)";
 
     key <AE04> { [         4,  dollar,    EuroSign ] };
 
@@ -379,7 +379,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak-l" {
 
     include "us(dvorak)"
-    name[Group1]= "English (left handed Dvorak)";
+    name[Group1]= "English (Dvorak, left-handed)";
 
     key <AE01> {	[ bracketleft,	braceleft	]	};
     key <AE02> {	[ bracketright,	braceright	]	};
@@ -435,7 +435,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak-r" {
 
     include "us(dvorak)"
-    name[Group1]= "English (right handed Dvorak)";
+    name[Group1]= "English (Dvorak, right-handed)";
 
     key <AE01> {	[	    1,	exclam 		]	};
     key <AE02> {	[	    2,	at		]	};
@@ -549,7 +549,7 @@ xkb_symbols "dvorak-classic" {
     key <BKSL> { [  backslash,  bar             ]       };
 };
 
-// Programmer Dvorak, by Roland Kaufmann <rlndkfmn at gmail dot com>
+// programmer Dvorak, by Roland Kaufmann <rlndkfmn at gmail dot com>
 // License: BSD, available at <http://www.kaufmann.no/roland/dvorak/license.html>
 // Main features: Numbers are in shift position (like French), symbols have been
 // placed in locations that give good hand-alternation and finger rolling with
@@ -559,7 +559,7 @@ partial alphanumeric_keys
 xkb_symbols "dvp" {
 
     include "us(dvorak)"
-    name[Group1] = "English (Programmer Dvorak)";
+    name[Group1] = "English (programmer Dvorak)";
 
     //             Unmodified       Shift           AltGr            Shift+AltGr
     // symbols row, left side
@@ -803,7 +803,7 @@ xkb_symbols "colemak" {
 };
 
 // I do NOT like dead-keys - the International keyboard as defined by Microsoft
-// doesn't fit my needs. Why use two keystrokes for all simple characters (eg '
+// does not fit my needs. Why use two keystrokes for all simple characters (eg '
 // and <space> generates a single ') just to have an é (eacute) in two strokes
 // as well? I type ' more often than é (eacute).
 //
@@ -822,7 +822,7 @@ partial alphanumeric_keys
 xkb_symbols "altgr-intl" {
 
    include "us(intl)"
-   name[Group1]= "English (international AltGr dead keys)";
+   name[Group1]= "English (intl., with dead keys)";
 
 // five dead keys moved into level3:
 
@@ -851,7 +851,7 @@ xkb_symbols "altgr-intl" {
 //
 // The keyboard layouts below maps the us(basic), us(intl) and us(alt-intl)
 // to ClassmatePC keyboard. All layouts uses RCTL as level3(switch) since
-// the keyboard doesn't have AltGr key. The EuroSign is engraved at 5 key.
+// the keyboard does not have AltGr key. The EuroSign is engraved at 5 key.
 
 // classmate - us(basic)
 partial alphanumeric_keys
@@ -1296,7 +1296,7 @@ partial alphanumeric_keys
 xkb_symbols "workman-intl" {
 
     include "us(intl)"
-    name[Group1]= "English (Workman, international with dead keys)";
+    name[Group1]= "English (Workman, intl., with dead keys)";
 
     key <AD01> { [     q,          Q,    adiaeresis,       Adiaeresis ] };
     key <AD02> { [     d,          D,           eth,              ETH ] };
@@ -1450,7 +1450,7 @@ partial alphanumeric_keys
 xkb_symbols "carpalx-intl" {
 
     include "us(carpalx)"
-    name[Group1]= "English (Carpalx, international with dead keys)";
+    name[Group1]= "English (Carpalx, intl., with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
     key <AE01> { [	   1,     exclam,    exclamdown,      onesuperior ] };
@@ -1517,7 +1517,7 @@ partial alphanumeric_keys
 xkb_symbols "carpalx-altgr-intl" {
 
    include "us(carpalx-intl)"
-   name[Group1]= "English (Carpalx, international AltGr dead keys)";
+   name[Group1]= "English (Carpalx, intl., with dead keys)";
 
 // five dead keys moved into level3:
 
@@ -1564,7 +1564,7 @@ partial alphanumeric_keys
 xkb_symbols "carpalx-full-intl" {
 
     include "us(carpalx-intl)"
-    name[Group1]= "English (Carpalx, full optimization, international with dead keys)";
+    name[Group1]= "English (Carpalx, full optimization, intl., with dead keys)";
 
     key <AD06> { [	   b,          B,    idiaeresis,       Idiaeresis ] };
     key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };
@@ -1583,7 +1583,7 @@ partial alphanumeric_keys
 xkb_symbols "carpalx-full-altgr-intl" {
 
    include "us(carpalx-altgr-intl)"
-   name[Group1]= "English (Carpalx, full optimization, international AltGr dead keys)";
+   name[Group1]= "English (Carpalx, full optimization, intl., with dead keys)";
 
     key <AD06> { [	   b,          B,    idiaeresis,       Idiaeresis ] };
     key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };

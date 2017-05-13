@@ -346,28 +346,6 @@ class ABIPrinter(object):
                 '#define MAPI_TABLE_NUM_DYNAMIC %d') % (
                         num_static_entries, ABI_NUM_DYNAMIC_ENTRIES)
 
-    def c_mapi_table_initializer(self, prefix):
-        """Return the array initializer for mapi_table_fill."""
-        entries = [self._c_function(ent, prefix)
-                for ent in self.entries if not ent.alias]
-        pre = self.indent + '(mapi_proc) '
-        return pre + (',\n' + pre).join(entries)
-
-    def c_mapi_table_spec(self):
-        """Return the spec for mapi_init."""
-        specv1 = []
-        line = '"1'
-        for ent in self.entries:
-            if not ent.alias:
-                line += '\\0"\n'
-                specv1.append(line)
-                line = '"'
-            line += '%s\\0' % ent.name
-        line += '";'
-        specv1.append(line)
-
-        return self.indent + self.indent.join(specv1)
-
     def _c_function(self, ent, prefix, mangle=False, stringify=False):
         """Return the function name of an entry."""
         formats = {
@@ -411,13 +389,6 @@ class ABIPrinter(object):
 
         return cast
 
-    def c_private_declarations(self, prefix):
-        """Return the declarations of private functions."""
-        decls = [self._c_decl(ent, prefix) + ';'
-                for ent in self.entries if not ent.alias]
-
-        return "\n".join(decls)
-
     def c_public_dispatches(self, prefix, no_hidden):
         """Return the public dispatch functions."""
         dispatches = []
@@ -437,7 +408,7 @@ class ABIPrinter(object):
             if ent.ret:
                 ret = 'return '
             stmt1 = self.indent
-            stmt1 += 'const struct mapi_table *_tbl = %s();' % (
+            stmt1 += 'const struct _glapi_table *_tbl = %s();' % (
                     self.current_get)
             stmt2 = self.indent
             stmt2 += 'mapi_func _func = ((const mapi_func *) _tbl)[%d];' % (
@@ -667,22 +638,6 @@ class ABIPrinter(object):
                 print '#undef MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN'
                 print '#endif /* MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN */'
 
-    def output_for_app(self):
-        print self.c_notice()
-        print
-        print self.c_private_declarations(self.prefix_app)
-        print
-        print '#ifdef API_TMP_DEFINE_SPEC'
-        print
-        print 'static const char %s_spec[] =' % (self.prefix_app)
-        print self.c_mapi_table_spec()
-        print
-        print 'static const mapi_proc %s_procs[] = {' % (self.prefix_app)
-        print self.c_mapi_table_initializer(self.prefix_app)
-        print '};'
-        print
-        print '#endif /* API_TMP_DEFINE_SPEC */'
-
 class GLAPIPrinter(ABIPrinter):
     """OpenGL API Printer"""
 
@@ -704,7 +659,6 @@ class GLAPIPrinter(ABIPrinter):
         self.lib_need_non_hidden_entries = True
 
         self.prefix_lib = 'GLAPI_PREFIX'
-        self.prefix_app = '_mesa_'
         self.prefix_noop = 'noop'
         self.prefix_warn = self.prefix_lib
 
@@ -817,17 +771,13 @@ typedef int GLclampx;
 
 def parse_args():
     printers = ['glapi', 'es1api', 'es2api', 'shared-glapi']
-    modes = ['lib', 'app']
 
     parser = OptionParser(usage='usage: %prog [options] <filename>')
     parser.add_option('-p', '--printer', dest='printer',
             help='printer to use: %s' % (", ".join(printers)))
-    parser.add_option('-m', '--mode', dest='mode',
-            help='target user: %s' % (", ".join(modes)))
 
     options, args = parser.parse_args()
-    if not args or options.printer not in printers or \
-            options.mode not in modes:
+    if not args or options.printer not in printers:
         parser.print_help()
         sys.exit(1)
 
@@ -850,10 +800,7 @@ def main():
     abi_sanity_check(entries)
 
     printer = printers[options.printer](entries)
-    if options.mode == 'lib':
-        printer.output_for_lib()
-    else:
-        printer.output_for_app()
+    printer.output_for_lib()
 
 if __name__ == '__main__':
     main()

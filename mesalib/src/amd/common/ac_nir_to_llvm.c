@@ -31,6 +31,8 @@
 #include "util/bitscan.h"
 #include <llvm-c/Transforms/Scalar.h>
 #include "ac_shader_info.h"
+#include "ac_exp_param.h"
+
 enum radeon_llvm_calling_convention {
 	RADEON_LLVM_AMDGPU_VS = 87,
 	RADEON_LLVM_AMDGPU_GS = 88,
@@ -1323,6 +1325,33 @@ static LLVMValueRef emit_b2f(struct nir_to_llvm_context *ctx,
 	return LLVMBuildAnd(ctx->builder, src0, LLVMBuildBitCast(ctx->builder, LLVMConstReal(ctx->f32, 1.0), ctx->i32, ""), "");
 }
 
+static LLVMValueRef emit_f2f16(struct nir_to_llvm_context *ctx,
+			       LLVMValueRef src0)
+{
+	LLVMValueRef result;
+	LLVMValueRef cond;
+
+	src0 = to_float(ctx, src0);
+	result = LLVMBuildFPTrunc(ctx->builder, src0, ctx->f16, "");
+
+	/* TODO SI/CIK options here */
+	if (ctx->options->chip_class >= VI) {
+		LLVMValueRef args[2];
+		/* Check if the result is a denormal - and flush to 0 if so. */
+		args[0] = result;
+		args[1] = LLVMConstInt(ctx->i32, N_SUBNORMAL | P_SUBNORMAL, false);
+		cond = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.class.f16", ctx->i1, args, 2, AC_FUNC_ATTR_READNONE);
+	}
+
+	/* need to convert back up to f32 */
+	result = LLVMBuildFPExt(ctx->builder, result, ctx->f32, "");
+
+	if (ctx->options->chip_class >= VI)
+		result = LLVMBuildSelect(ctx->builder, cond, ctx->f32zero, result, "");
+
+	return result;
+}
+
 static LLVMValueRef emit_umul_high(struct nir_to_llvm_context *ctx,
 				   LLVMValueRef src0, LLVMValueRef src1)
 {
@@ -1719,10 +1748,18 @@ static void visit_alu(struct nir_to_llvm_context *ctx, nir_alu_instr *instr)
 	case nir_op_fmax:
 		result = emit_intrin_2f_param(ctx, "llvm.maxnum",
 		                              to_float_type(ctx, def_type), src[0], src[1]);
+		if (instr->dest.dest.ssa.bit_size == 32)
+			result = emit_intrin_1f_param(ctx, "llvm.canonicalize",
+						      to_float_type(ctx, def_type),
+						      result);
 		break;
 	case nir_op_fmin:
 		result = emit_intrin_2f_param(ctx, "llvm.minnum",
 		                              to_float_type(ctx, def_type), src[0], src[1]);
+		if (instr->dest.dest.ssa.bit_size == 32)
+			result = emit_intrin_1f_param(ctx, "llvm.canonicalize",
+						      to_float_type(ctx, def_type),
+						      result);
 		break;
 	case nir_op_ffma:
 		result = emit_intrin_3f_param(ctx, "llvm.fma",
@@ -1810,10 +1847,7 @@ static void visit_alu(struct nir_to_llvm_context *ctx, nir_alu_instr *instr)
 		result = emit_b2f(ctx, src[0]);
 		break;
 	case nir_op_fquantize2f16:
-		src[0] = to_float(ctx, src[0]);
-		result = LLVMBuildFPTrunc(ctx->builder, src[0], ctx->f16, "");
-		/* need to convert back up to f32 */
-		result = LLVMBuildFPExt(ctx->builder, result, ctx->f32, "");
+		result = emit_f2f16(ctx, src[0]);
 		break;
 	case nir_op_umul_high:
 		result = emit_umul_high(ctx, src[0], src[1]);
@@ -5133,8 +5167,9 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 	LLVMValueRef psize_value = NULL, layer_value = NULL, viewport_index_value = NULL;
 	int i;
 
-	outinfo->prim_id_output = 0xffffffff;
-	outinfo->layer_output = 0xffffffff;
+	memset(outinfo->vs_output_param_offset, AC_EXP_PARAM_UNDEFINED,
+	       sizeof(outinfo->vs_output_param_offset));
+
 	if (ctx->output_mask & (1ull << VARYING_SLOT_CLIP_DIST0)) {
 		LLVMValueRef slots[8];
 		unsigned j;
@@ -5184,20 +5219,21 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 		} else if (i == VARYING_SLOT_LAYER) {
 			outinfo->writes_layer = true;
 			layer_value = values[0];
-			outinfo->layer_output = param_count;
 			target = V_008DFC_SQ_EXP_PARAM + param_count;
+			outinfo->vs_output_param_offset[VARYING_SLOT_LAYER] = param_count;
 			param_count++;
 		} else if (i == VARYING_SLOT_VIEWPORT) {
 			outinfo->writes_viewport_index = true;
 			viewport_index_value = values[0];
 			continue;
 		} else if (i == VARYING_SLOT_PRIMITIVE_ID) {
-			outinfo->prim_id_output = param_count;
 			target = V_008DFC_SQ_EXP_PARAM + param_count;
+			outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] = param_count;
 			param_count++;
 		} else if (i >= VARYING_SLOT_VAR0) {
 			outinfo->export_mask |= 1u << (i - VARYING_SLOT_VAR0);
 			target = V_008DFC_SQ_EXP_PARAM + param_count;
+			outinfo->vs_output_param_offset[i] = param_count;
 			param_count++;
 		}
 
@@ -5570,24 +5606,22 @@ handle_tcs_outputs_post(struct nir_to_llvm_context *ctx)
 	write_tess_factors(ctx);
 }
 
-static void
+static bool
 si_export_mrt_color(struct nir_to_llvm_context *ctx,
-		    LLVMValueRef *color, unsigned param, bool is_last)
+		    LLVMValueRef *color, unsigned param, bool is_last,
+		    struct ac_export_args *args)
 {
-
-	struct ac_export_args args;
-
 	/* Export */
 	si_llvm_init_export_args(ctx, color, param,
-				 &args);
+				 args);
 
 	if (is_last) {
-		args.valid_mask = 1; /* whether the EXEC mask is valid */
-		args.done = 1; /* DONE bit */
-	} else if (!args.enabled_channels)
-		return; /* unnecessary NULL export */
+		args->valid_mask = 1; /* whether the EXEC mask is valid */
+		args->done = 1; /* DONE bit */
+	} else if (!args->enabled_channels)
+		return false; /* unnecessary NULL export */
 
-	ac_build_export(&ctx->ac, &args);
+	return true;
 }
 
 static void
@@ -5637,6 +5671,7 @@ handle_fs_outputs_post(struct nir_to_llvm_context *ctx)
 {
 	unsigned index = 0;
 	LLVMValueRef depth = NULL, stencil = NULL, samplemask = NULL;
+	struct ac_export_args color_args[8];
 
 	for (unsigned i = 0; i < RADEON_LLVM_MAX_OUTPUTS; ++i) {
 		LLVMValueRef values[4];
@@ -5665,15 +5700,20 @@ handle_fs_outputs_post(struct nir_to_llvm_context *ctx)
 			if (!ctx->shader_info->fs.writes_z && !ctx->shader_info->fs.writes_stencil && !ctx->shader_info->fs.writes_sample_mask)
 				last = ctx->output_mask <= ((1ull << (i + 1)) - 1);
 
-			si_export_mrt_color(ctx, values, V_008DFC_SQ_EXP_MRT + index, last);
-			index++;
+			bool ret = si_export_mrt_color(ctx, values, V_008DFC_SQ_EXP_MRT + (i - FRAG_RESULT_DATA0), last, &color_args[index]);
+			if (ret)
+				index++;
 		}
 	}
 
+	for (unsigned i = 0; i < index; i++)
+		ac_build_export(&ctx->ac, &color_args[i]);
 	if (depth || stencil || samplemask)
 		si_export_mrt_z(ctx, depth, stencil, samplemask);
-	else if (!index)
-		si_export_mrt_color(ctx, NULL, V_008DFC_SQ_EXP_NULL, true);
+	else if (!index) {
+		si_export_mrt_color(ctx, NULL, V_008DFC_SQ_EXP_NULL, true, &color_args[0]);
+		ac_build_export(&ctx->ac, &color_args[0]);
+	}
 
 	ctx->shader_info->fs.output_mask = index ? ((1ull << index) - 1) : 0;
 }
@@ -5749,6 +5789,37 @@ static void ac_llvm_finalize_module(struct nir_to_llvm_context * ctx)
 
 	LLVMDisposeBuilder(ctx->builder);
 	LLVMDisposePassManager(passmgr);
+}
+
+static void
+ac_nir_eliminate_const_vs_outputs(struct nir_to_llvm_context *ctx)
+{
+	struct ac_vs_output_info *outinfo;
+
+	if (ctx->stage == MESA_SHADER_FRAGMENT ||
+	    ctx->stage == MESA_SHADER_COMPUTE ||
+	    ctx->stage == MESA_SHADER_TESS_CTRL ||
+	    ctx->stage == MESA_SHADER_GEOMETRY)
+		return;
+
+	if (ctx->stage == MESA_SHADER_VERTEX) {
+		if (ctx->options->key.vs.as_ls ||
+		    ctx->options->key.vs.as_es)
+			return;
+		outinfo = &ctx->shader_info->vs.outinfo;
+	}
+
+	if (ctx->stage == MESA_SHADER_TESS_EVAL) {
+		if (ctx->options->key.vs.as_es)
+			return;
+		outinfo = &ctx->shader_info->tes.outinfo;
+	}
+
+	ac_optimize_vs_outputs(&ctx->ac,
+			       ctx->main_function,
+			       outinfo->vs_output_param_offset,
+			       VARYING_SLOT_MAX,
+			       &outinfo->param_exports);
 }
 
 static void
@@ -5853,9 +5924,9 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	} else if (nir->stage == MESA_SHADER_GEOMETRY) {
 		ctx.gs_next_vertex = ac_build_alloca(&ctx, ctx.i32, "gs_next_vertex");
 
-		ctx.gs_max_out_vertices = nir->info->gs.vertices_out;
+		ctx.gs_max_out_vertices = nir->info.gs.vertices_out;
 	} else if (nir->stage == MESA_SHADER_TESS_EVAL) {
-		ctx.tes_primitive_mode = nir->info->tess.primitive_mode;
+		ctx.tes_primitive_mode = nir->info.tess.primitive_mode;
 	}
 
 	ac_setup_rings(&ctx);
@@ -5866,8 +5937,8 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	if (nir->stage == MESA_SHADER_FRAGMENT)
 		handle_fs_inputs_pre(&ctx, nir);
 
-	ctx.num_output_clips = nir->info->clip_distance_array_size;
-	ctx.num_output_culls = nir->info->cull_distance_array_size;
+	ctx.num_output_clips = nir->info.clip_distance_array_size;
+	ctx.num_output_culls = nir->info.cull_distance_array_size;
 
 	nir_foreach_variable(variable, &nir->outputs)
 		handle_shader_output_decl(&ctx, variable);
@@ -5888,6 +5959,8 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	LLVMBuildRetVoid(ctx.builder);
 
 	ac_llvm_finalize_module(&ctx);
+
+	ac_nir_eliminate_const_vs_outputs(&ctx);
 	free(ctx.locals);
 	ralloc_free(ctx.defs);
 	ralloc_free(ctx.phis);
@@ -5896,7 +5969,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 		unsigned addclip = ctx.num_output_clips + ctx.num_output_culls > 4;
 		shader_info->gs.gsvs_vertex_size = (util_bitcount64(ctx.output_mask) + addclip) * 16;
 		shader_info->gs.max_gsvs_emit_size = shader_info->gs.gsvs_vertex_size *
-			nir->info->gs.vertices_out;
+			nir->info.gs.vertices_out;
 	} else if (nir->stage == MESA_SHADER_TESS_CTRL) {
 		shader_info->tcs.outputs_written = ctx.tess_outputs_written;
 		shader_info->tcs.patch_outputs_written = ctx.tess_patch_outputs_written;
@@ -6049,26 +6122,26 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
 	switch (nir->stage) {
 	case MESA_SHADER_COMPUTE:
 		for (int i = 0; i < 3; ++i)
-			shader_info->cs.block_size[i] = nir->info->cs.local_size[i];
+			shader_info->cs.block_size[i] = nir->info.cs.local_size[i];
 		break;
 	case MESA_SHADER_FRAGMENT:
-		shader_info->fs.early_fragment_test = nir->info->fs.early_fragment_tests;
+		shader_info->fs.early_fragment_test = nir->info.fs.early_fragment_tests;
 		break;
 	case MESA_SHADER_GEOMETRY:
-		shader_info->gs.vertices_in = nir->info->gs.vertices_in;
-		shader_info->gs.vertices_out = nir->info->gs.vertices_out;
-		shader_info->gs.output_prim = nir->info->gs.output_primitive;
-		shader_info->gs.invocations = nir->info->gs.invocations;
+		shader_info->gs.vertices_in = nir->info.gs.vertices_in;
+		shader_info->gs.vertices_out = nir->info.gs.vertices_out;
+		shader_info->gs.output_prim = nir->info.gs.output_primitive;
+		shader_info->gs.invocations = nir->info.gs.invocations;
 		break;
 	case MESA_SHADER_TESS_EVAL:
-		shader_info->tes.primitive_mode = nir->info->tess.primitive_mode;
-		shader_info->tes.spacing = nir->info->tess.spacing;
-		shader_info->tes.ccw = nir->info->tess.ccw;
-		shader_info->tes.point_mode = nir->info->tess.point_mode;
+		shader_info->tes.primitive_mode = nir->info.tess.primitive_mode;
+		shader_info->tes.spacing = nir->info.tess.spacing;
+		shader_info->tes.ccw = nir->info.tess.ccw;
+		shader_info->tes.point_mode = nir->info.tess.point_mode;
 		shader_info->tes.as_es = options->key.tes.as_es;
 		break;
 	case MESA_SHADER_TESS_CTRL:
-		shader_info->tcs.tcs_vertices_out = nir->info->tess.tcs_vertices_out;
+		shader_info->tcs.tcs_vertices_out = nir->info.tess.tcs_vertices_out;
 		break;
 	case MESA_SHADER_VERTEX:
 		shader_info->vs.as_es = options->key.vs.as_es;
@@ -6158,11 +6231,11 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 
 	create_function(&ctx);
 
-	ctx.gs_max_out_vertices = geom_shader->info->gs.vertices_out;
+	ctx.gs_max_out_vertices = geom_shader->info.gs.vertices_out;
 	ac_setup_rings(&ctx);
 
-	ctx.num_output_clips = geom_shader->info->clip_distance_array_size;
-	ctx.num_output_culls = geom_shader->info->cull_distance_array_size;
+	ctx.num_output_clips = geom_shader->info.clip_distance_array_size;
+	ctx.num_output_culls = geom_shader->info.cull_distance_array_size;
 
 	nir_foreach_variable(variable, &geom_shader->outputs)
 		handle_shader_output_decl(&ctx, variable);

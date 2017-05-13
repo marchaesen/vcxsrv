@@ -62,13 +62,13 @@ util_draw_max_index(
       const struct util_format_description *format_desc;
       unsigned format_size;
 
-      if (!buffer->buffer) {
+      if (buffer->is_user_buffer || !buffer->buffer.resource) {
          continue;
       }
 
-      assert(buffer->buffer->height0 == 1);
-      assert(buffer->buffer->depth0 == 1);
-      buffer_size = buffer->buffer->width0;
+      assert(buffer->buffer.resource->height0 == 1);
+      assert(buffer->buffer.resource->depth0 == 1);
+      buffer_size = buffer->buffer.resource->width0;
 
       format_desc = util_format_description(element->src_format);
       assert(format_desc->block.width == 1);
@@ -136,7 +136,7 @@ util_draw_indirect(struct pipe_context *pipe,
    struct pipe_draw_info info;
    struct pipe_transfer *transfer;
    uint32_t *params;
-   const unsigned num_params = info_in->indexed ? 5 : 4;
+   const unsigned num_params = info_in->index_size ? 5 : 4;
 
    assert(info_in->indirect);
    assert(!info_in->count_from_stream_output);
@@ -145,8 +145,8 @@ util_draw_indirect(struct pipe_context *pipe,
 
    params = (uint32_t *)
       pipe_buffer_map_range(pipe,
-                            info_in->indirect,
-                            info_in->indirect_offset,
+                            info_in->indirect->buffer,
+                            info_in->indirect->offset,
                             num_params * sizeof(uint32_t),
                             PIPE_TRANSFER_READ,
                             &transfer);
@@ -158,8 +158,8 @@ util_draw_indirect(struct pipe_context *pipe,
    info.count = params[0];
    info.instance_count = params[1];
    info.start = params[2];
-   info.index_bias = info_in->indexed ? params[3] : 0;
-   info.start_instance = info_in->indexed ? params[4] : params[3];
+   info.index_bias = info_in->index_size ? params[3] : 0;
+   info.start_instance = info_in->index_size ? params[4] : params[3];
    info.indirect = NULL;
 
    pipe_buffer_unmap(pipe, transfer);

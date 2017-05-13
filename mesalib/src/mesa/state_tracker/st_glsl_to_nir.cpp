@@ -242,6 +242,7 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
    NIR_PASS_V(nir, st_nir_lower_builtin);
+   NIR_PASS_V(nir, nir_lower_atomics, shader_program);
 
    /* fragment shaders may need : */
    if (stage == MESA_SHADER_FRAGMENT) {
@@ -336,6 +337,8 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,
                                st_glsl_type_size);
+   } else if (nir->stage == MESA_SHADER_COMPUTE) {
+       /* TODO? */
    } else {
       unreachable("invalid shader type for tgsi bypass\n");
    }
@@ -348,10 +351,16 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
    case MESA_SHADER_FRAGMENT:
       shader_program = ((struct st_fragment_program *)prog)->shader_program;
       break;
+   case MESA_SHADER_COMPUTE:
+      shader_program = ((struct st_compute_program *)prog)->shader_program;
+      break;
    default:
       assert(!"should not be reached");
       return;
    }
+
+   NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
+         st->ctx->Const.Program[nir->stage].MaxAtomicBuffers);
 
    st_nir_assign_uniform_locations(prog, shader_program,
                                    &nir->uniforms, &nir->num_uniforms);
@@ -432,6 +441,7 @@ st_nir_get_mesa_program(struct gl_context *ctx,
 
    struct st_vertex_program *stvp;
    struct st_fragment_program *stfp;
+   struct st_compute_program *stcp;
 
    switch (shader->Stage) {
    case MESA_SHADER_VERTEX:
@@ -441,6 +451,10 @@ st_nir_get_mesa_program(struct gl_context *ctx,
    case MESA_SHADER_FRAGMENT:
       stfp = (struct st_fragment_program *)prog;
       stfp->shader_program = shader_program;
+      break;
+   case MESA_SHADER_COMPUTE:
+      stcp = (struct st_compute_program *)prog;
+      stcp->shader_program = shader_program;
       break;
    default:
       assert(!"should not be reached");

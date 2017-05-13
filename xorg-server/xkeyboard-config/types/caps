@@ -44,7 +44,7 @@ partial xkb_types "internal" {
 };
 
 // CapsLock uses internal capitalization rules,
-// Shift doesn't cancel CapsLock.
+// Shift does not cancel CapsLock.
 partial xkb_types "internal_nocancel" {
     type "ALPHABETIC" {
 	modifiers = Shift;
@@ -124,7 +124,7 @@ partial xkb_types "shift" {
 };
 
 // CapsLock acts as Shift with locking,
-// Shift doesn't cancel CapsLock.
+// Shift does not cancel CapsLock.
 partial xkb_types "shift_nocancel" {
     type "ALPHABETIC" {
 	modifiers = Shift+Lock;

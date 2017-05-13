@@ -24,8 +24,6 @@
 # libmesa_dricore.a
 # ----------------------------------------------------------------------
 
-ifeq ($(strip $(MESA_BUILD_CLASSIC)),true)
-
 LOCAL_PATH := $(call my-dir)
 
 # Import the following variables:
@@ -72,5 +70,3 @@ LOCAL_WHOLE_STATIC_LIBRARIES += \
 include $(LOCAL_PATH)/Android.gen.mk
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
-
-endif # MESA_BUILD_CLASSIC

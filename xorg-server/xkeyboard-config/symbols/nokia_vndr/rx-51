@@ -31,7 +31,7 @@ xkb_symbols "common" {
     // For RX-51 device there is a lot of restrictions if more than one layout is
     // is configured at the same time because some modifiers and special cases are
     // handled by hildon layer (especially with eight-level layout):
-    //  - settings may be done from terminal only (GUI doesn't and won't support it)
+    //  - settings may be done from terminal only (GUI does not and won't support it)
     //  - virtual symbol table is not updated according to current layout
     //  - for unknown reasons the eight-level layout (nordic,ru) works properly
     //    only if it's configured as first layout (e.g. "ru,us,cz" not "us,cz,ru")
@@ -45,7 +45,7 @@ xkb_symbols "common" {
     //       in case eight- and four-level layouts are configured simultaneously
     //     - Ctrl+Space is "turned on" by default and has to be "turned off" for four-level layouts
     //       in case eight- and four-level layouts are configured simultaneously
-    //     - four-level layout on first place doesn't work at all when Ctrl+Space is "turned on"
+    //     - four-level layout on first place does not work at all when Ctrl+Space is "turned on"
     //       in case the 2nd, 3rd or 4th layout is eight-level layout
 };
 

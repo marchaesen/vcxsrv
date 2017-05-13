@@ -868,7 +868,7 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
 
     /* when forcing input devices, we use kbd. otherwise evdev, so use the
      * evdev rules set. */
-#if defined(linux)
+#if defined(__linux__)
     if (!xf86Info.forceInputDevices)
         rules = "evdev";
     else

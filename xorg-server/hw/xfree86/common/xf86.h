@@ -35,7 +35,7 @@
 #ifndef _XF86_H
 #define _XF86_H
 
-#if HAVE_XORG_CONFIG_H
+#ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
 #elif HAVE_DIX_CONFIG_H
 #include <dix-config.h>

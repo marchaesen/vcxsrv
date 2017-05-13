@@ -1018,10 +1018,8 @@ prog_to_nir(const struct gl_program *prog,
 
    nir_builder_init_simple_shader(&c->build, NULL, stage, options);
 
-   /* Use the shader_info from gl_program rather than the one nir_builder
-    * created for us. nir_sweep should clean up the other one for us.
-    */
-   c->build.shader->info = (shader_info *) &prog->info;
+   /* Copy the shader_info from the gl_program */
+   c->build.shader->info = prog->info;
 
    s = c->build.shader;
 
@@ -1048,16 +1046,16 @@ prog_to_nir(const struct gl_program *prog,
 
    ptn_add_output_stores(c);
 
-   s->info->name = ralloc_asprintf(s, "ARB%d", prog->Id);
-   s->info->num_textures = util_last_bit(prog->SamplersUsed);
-   s->info->num_ubos = 0;
-   s->info->num_abos = 0;
-   s->info->num_ssbos = 0;
-   s->info->num_images = 0;
-   s->info->uses_texture_gather = false;
-   s->info->clip_distance_array_size = 0;
-   s->info->cull_distance_array_size = 0;
-   s->info->separate_shader = false;
+   s->info.name = ralloc_asprintf(s, "ARB%d", prog->Id);
+   s->info.num_textures = util_last_bit(prog->SamplersUsed);
+   s->info.num_ubos = 0;
+   s->info.num_abos = 0;
+   s->info.num_ssbos = 0;
+   s->info.num_images = 0;
+   s->info.uses_texture_gather = false;
+   s->info.clip_distance_array_size = 0;
+   s->info.cull_distance_array_size = 0;
+   s->info.separate_shader = false;
 
 fail:
    if (c->error) {

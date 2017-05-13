@@ -30,7 +30,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 
-void
+static void
 radv_meta_save_novertex(struct radv_meta_saved_state *state,
 	       const struct radv_cmd_buffer *cmd_buffer,
 	       uint32_t dynamic_mask)
@@ -46,24 +46,13 @@ radv_meta_save_novertex(struct radv_meta_saved_state *state,
 }
 
 void
-radv_meta_save(struct radv_meta_saved_state *state,
-	       const struct radv_cmd_buffer *cmd_buffer,
-	       uint32_t dynamic_mask)
-{
-	radv_meta_save_novertex(state, cmd_buffer, dynamic_mask);
-	state->old_descriptor_set0 = cmd_buffer->state.descriptors[0];
-	memcpy(state->old_vertex_bindings, cmd_buffer->state.vertex_bindings,
-	       sizeof(state->old_vertex_bindings));
-	state->vertex_saved = true;
-}
-
-void
 radv_meta_restore(const struct radv_meta_saved_state *state,
 		  struct radv_cmd_buffer *cmd_buffer)
 {
 	cmd_buffer->state.pipeline = state->old_pipeline;
 	if (state->vertex_saved) {
-		radv_bind_descriptor_set(cmd_buffer, state->old_descriptor_set0, 0);
+		cmd_buffer->state.descriptors[0] = state->old_descriptor_set0;
+	        cmd_buffer->state.descriptors_dirty |= (1u << 0);
 		memcpy(cmd_buffer->state.vertex_bindings, state->old_vertex_bindings,
 		       sizeof(state->old_vertex_bindings));
 		cmd_buffer->state.vb_dirty |= (1 << RADV_META_VERTEX_BINDING_COUNT) - 1;
@@ -122,7 +111,9 @@ radv_meta_restore_compute(const struct radv_meta_saved_compute_state *state,
 {
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
 			     radv_pipeline_to_handle(state->old_pipeline));
-	radv_bind_descriptor_set(cmd_buffer, state->old_descriptor_set0, 0);
+
+	cmd_buffer->state.descriptors[0] = state->old_descriptor_set0;
+	cmd_buffer->state.descriptors_dirty |= (1u << 0);
 
 	if (push_constant_size) {
 		memcpy(cmd_buffer->push_constants, state->push_constants, push_constant_size);
@@ -347,8 +338,14 @@ radv_device_init_meta(struct radv_device *device)
 	result = radv_device_init_meta_resolve_compute_state(device);
 	if (result != VK_SUCCESS)
 		goto fail_resolve_compute;
+
+	result = radv_device_init_meta_resolve_fragment_state(device);
+	if (result != VK_SUCCESS)
+		goto fail_resolve_fragment;
 	return VK_SUCCESS;
 
+fail_resolve_fragment:
+	radv_device_finish_meta_resolve_compute_state(device);
 fail_resolve_compute:
 	radv_device_finish_meta_fast_clear_flush_state(device);
 fail_fast_clear:
@@ -385,6 +382,7 @@ radv_device_finish_meta(struct radv_device *device)
 	radv_device_finish_meta_buffer_state(device);
 	radv_device_finish_meta_fast_clear_flush_state(device);
 	radv_device_finish_meta_resolve_compute_state(device);
+	radv_device_finish_meta_resolve_fragment_state(device);
 
 	radv_store_meta_pipeline(device);
 	radv_pipeline_cache_finish(&device->meta_state.cache);
@@ -395,17 +393,6 @@ radv_device_finish_meta(struct radv_device *device)
  * reset and any scissors disabled. The rest of the dynamic state
  * should have no effect.
  */
-void
-radv_meta_save_graphics_reset_vport_scissor(struct radv_meta_saved_state *saved_state,
-					    struct radv_cmd_buffer *cmd_buffer)
-{
-	uint32_t dirty_state = (1 << VK_DYNAMIC_STATE_VIEWPORT) | (1 << VK_DYNAMIC_STATE_SCISSOR);
-	radv_meta_save(saved_state, cmd_buffer, dirty_state);
-	cmd_buffer->state.dynamic.viewport.count = 0;
-	cmd_buffer->state.dynamic.scissor.count = 0;
-	cmd_buffer->state.dirty |= dirty_state;
-}
-
 void
 radv_meta_save_graphics_reset_vport_scissor_novertex(struct radv_meta_saved_state *saved_state,
 						     struct radv_cmd_buffer *cmd_buffer)
@@ -465,7 +452,7 @@ radv_meta_build_nir_vs_generate_vertices(void)
 	nir_variable *v_position;
 
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_VERTEX, NULL);
-	b.shader->info->name = ralloc_strdup(b.shader, "meta_vs_gen_verts");
+	b.shader->info.name = ralloc_strdup(b.shader, "meta_vs_gen_verts");
 
 	nir_ssa_def *outvec = radv_meta_gen_rect_vertices(&b);
 
@@ -484,8 +471,135 @@ radv_meta_build_nir_fs_noop(void)
 	nir_builder b;
 
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-	b.shader->info->name = ralloc_asprintf(b.shader,
+	b.shader->info.name = ralloc_asprintf(b.shader,
 					       "meta_noop_fs");
 
 	return b.shader;
+}
+
+static nir_ssa_def *radv_meta_build_resolve_srgb_conversion(nir_builder *b,
+							    nir_ssa_def *input)
+{
+	nir_const_value v;
+	unsigned i;
+	v.u32[0] = 0x3b4d2e1c; // 0.00313080009
+
+	nir_ssa_def *cmp[3];
+	for (i = 0; i < 3; i++)
+		cmp[i] = nir_flt(b, nir_channel(b, input, i),
+				 nir_build_imm(b, 1, 32, v));
+
+	nir_ssa_def *ltvals[3];
+	v.f32[0] = 12.92;
+	for (i = 0; i < 3; i++)
+		ltvals[i] = nir_fmul(b, nir_channel(b, input, i),
+				     nir_build_imm(b, 1, 32, v));
+
+	nir_ssa_def *gtvals[3];
+
+	for (i = 0; i < 3; i++) {
+		v.f32[0] = 1.0/2.4;
+		gtvals[i] = nir_fpow(b, nir_channel(b, input, i),
+				     nir_build_imm(b, 1, 32, v));
+		v.f32[0] = 1.055;
+		gtvals[i] = nir_fmul(b, gtvals[i],
+				     nir_build_imm(b, 1, 32, v));
+		v.f32[0] = 0.055;
+		gtvals[i] = nir_fsub(b, gtvals[i],
+				     nir_build_imm(b, 1, 32, v));
+	}
+
+	nir_ssa_def *comp[4];
+	for (i = 0; i < 3; i++)
+		comp[i] = nir_bcsel(b, cmp[i], ltvals[i], gtvals[i]);
+	comp[3] = nir_channels(b, input, 3);
+	return nir_vec(b, comp, 4);
+}
+
+void radv_meta_build_resolve_shader_core(nir_builder *b,
+					 bool is_integer,
+					 bool is_srgb,
+					 int samples,
+					 nir_variable *input_img,
+					 nir_variable *color,
+					 nir_ssa_def *img_coord)
+{
+	/* do a txf_ms on each sample */
+	nir_ssa_def *tmp;
+	nir_if *outer_if = NULL;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b->shader, 2);
+	tex->sampler_dim = GLSL_SAMPLER_DIM_MS;
+	tex->op = nir_texop_txf_ms;
+	tex->src[0].src_type = nir_tex_src_coord;
+	tex->src[0].src = nir_src_for_ssa(img_coord);
+	tex->src[1].src_type = nir_tex_src_ms_index;
+	tex->src[1].src = nir_src_for_ssa(nir_imm_int(b, 0));
+	tex->dest_type = nir_type_float;
+	tex->is_array = false;
+	tex->coord_components = 2;
+	tex->texture = nir_deref_var_create(tex, input_img);
+	tex->sampler = NULL;
+
+	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
+	nir_builder_instr_insert(b, &tex->instr);
+
+	tmp = &tex->dest.ssa;
+
+	if (!is_integer && samples > 1) {
+		nir_tex_instr *tex_all_same = nir_tex_instr_create(b->shader, 1);
+		tex_all_same->sampler_dim = GLSL_SAMPLER_DIM_MS;
+		tex_all_same->op = nir_texop_samples_identical;
+		tex_all_same->src[0].src_type = nir_tex_src_coord;
+		tex_all_same->src[0].src = nir_src_for_ssa(img_coord);
+		tex_all_same->dest_type = nir_type_float;
+		tex_all_same->is_array = false;
+		tex_all_same->coord_components = 2;
+		tex_all_same->texture = nir_deref_var_create(tex_all_same, input_img);
+		tex_all_same->sampler = NULL;
+
+		nir_ssa_dest_init(&tex_all_same->instr, &tex_all_same->dest, 1, 32, "tex");
+		nir_builder_instr_insert(b, &tex_all_same->instr);
+
+		nir_ssa_def *all_same = nir_ine(b, &tex_all_same->dest.ssa, nir_imm_int(b, 0));
+		nir_if *if_stmt = nir_if_create(b->shader);
+		if_stmt->condition = nir_src_for_ssa(all_same);
+		nir_cf_node_insert(b->cursor, &if_stmt->cf_node);
+
+		b->cursor = nir_after_cf_list(&if_stmt->then_list);
+		for (int i = 1; i < samples; i++) {
+			nir_tex_instr *tex_add = nir_tex_instr_create(b->shader, 2);
+			tex_add->sampler_dim = GLSL_SAMPLER_DIM_MS;
+			tex_add->op = nir_texop_txf_ms;
+			tex_add->src[0].src_type = nir_tex_src_coord;
+			tex_add->src[0].src = nir_src_for_ssa(img_coord);
+			tex_add->src[1].src_type = nir_tex_src_ms_index;
+			tex_add->src[1].src = nir_src_for_ssa(nir_imm_int(b, i));
+			tex_add->dest_type = nir_type_float;
+			tex_add->is_array = false;
+			tex_add->coord_components = 2;
+			tex_add->texture = nir_deref_var_create(tex_add, input_img);
+			tex_add->sampler = NULL;
+
+			nir_ssa_dest_init(&tex_add->instr, &tex_add->dest, 4, 32, "tex");
+			nir_builder_instr_insert(b, &tex_add->instr);
+
+			tmp = nir_fadd(b, tmp, &tex_add->dest.ssa);
+		}
+
+		tmp = nir_fdiv(b, tmp, nir_imm_float(b, samples));
+		nir_store_var(b, color, tmp, 0xf);
+		b->cursor = nir_after_cf_list(&if_stmt->else_list);
+		outer_if = if_stmt;
+	}
+	nir_store_var(b, color, &tex->dest.ssa, 0xf);
+
+	if (outer_if)
+		b->cursor = nir_after_cf_node(&outer_if->cf_node);
+
+	if (is_srgb) {
+		nir_ssa_def *newv = nir_load_var(b, color);
+		newv = radv_meta_build_resolve_srgb_conversion(b, newv);
+		nir_store_var(b, color, newv, 0xf);
+	}
 }

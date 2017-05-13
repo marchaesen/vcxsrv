@@ -132,7 +132,7 @@ extern long SmartScheduleTime;
 extern long SmartScheduleInterval;
 extern long SmartScheduleSlice;
 extern long SmartScheduleMaxSlice;
-#if HAVE_SETITIMER
+#ifdef HAVE_SETITIMER
 extern Bool SmartScheduleSignalEnable;
 #else
 #define SmartScheduleSignalEnable FALSE

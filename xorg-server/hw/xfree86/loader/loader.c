@@ -64,12 +64,16 @@
 #error i have no dynamic linker and i must scream
 #endif
 
+#ifndef XORG_NO_SDKSYMS
 extern void *xorg_symbols[];
+#endif
 
 void
 LoaderInit(void)
 {
+#ifndef XORG_NO_SDKSYMS
     LogMessageVerb(X_INFO, 2, "Loader magic: %p\n", (void *) xorg_symbols);
+#endif
     LogMessageVerb(X_INFO, 2, "Module ABI versions:\n");
     LogWrite(2, "\t%s: %d.%d\n", ABI_CLASS_ANSIC,
              GET_ABI_MAJOR(LoaderVersionInfo.ansicVersion),

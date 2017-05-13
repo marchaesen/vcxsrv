@@ -155,7 +155,6 @@ _mesa_free_shader_state(struct gl_context *ctx)
    for (int i = 0; i < MESA_SHADER_STAGES; i++) {
       _mesa_reference_program(ctx, &ctx->Shader.CurrentProgram[i], NULL);
    }
-   _mesa_reference_program(ctx, &ctx->Shader._CurrentFragmentProgram, NULL);
    _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram, NULL);
 
    /* Extended for ARB_separate_shader_objects */
@@ -1261,27 +1260,6 @@ use_program(struct gl_context *ctx, gl_shader_stage stage,
          FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
       }
 
-      /* If the shader is also bound as the current rendering shader, unbind
-       * it from that binding point as well.  This ensures that the correct
-       * semantics of glDeleteProgram are maintained.
-       */
-      switch (stage) {
-      case MESA_SHADER_VERTEX:
-      case MESA_SHADER_TESS_CTRL:
-      case MESA_SHADER_TESS_EVAL:
-      case MESA_SHADER_GEOMETRY:
-      case MESA_SHADER_COMPUTE:
-         /* Empty for now. */
-         break;
-      case MESA_SHADER_FRAGMENT:
-         if (*target == ctx->_Shader->_CurrentFragmentProgram) {
-	    _mesa_reference_program(ctx,
-                                    &ctx->_Shader->_CurrentFragmentProgram,
-                                    NULL);
-	 }
-	 break;
-      }
-
       _mesa_reference_shader_program(ctx,
                                      &shTarget->ReferencedPrograms[stage],
                                      shProg);
@@ -1856,7 +1834,7 @@ void GLAPIENTRY
 _mesa_UseProgram(GLuint program)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_shader_program *shProg;
+   struct gl_shader_program *shProg = NULL;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glUseProgram %u\n", program);
@@ -1882,9 +1860,6 @@ _mesa_UseProgram(GLuint program)
       if (ctx->_Shader->Flags & GLSL_USE_PROG) {
          print_shader_info(shProg);
       }
-   }
-   else {
-      shProg = NULL;
    }
 
    /* The ARB_separate_shader_object spec says:

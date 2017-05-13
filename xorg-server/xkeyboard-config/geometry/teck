@@ -1,5 +1,5 @@
 default xkb_geometry "teck227" {
-    description="Truly Ergonomic Computer Keyboard Model 227 with wide Alt keys. (Standard US layout)";
+    description="Truly Ergonomic Computer Keyboard Model 227 with wide Alt. (Standard US layout)";
 
     width=296;
     height=155;
@@ -313,7 +313,7 @@ default xkb_geometry "teck227" {
 };
 
 xkb_geometry "teck229" {
-    description="Truly Ergonomic Computer Keyboard Model 229 with standard sized Alt keys and an additional Menu and Super key. (Standard US layout)";
+    description="Truly Ergonomic Computer Keyboard Model 229 with standard sized Alt and an additional Menu and Super key. (Standard US layout)";
 
     width=296;
     height=155;

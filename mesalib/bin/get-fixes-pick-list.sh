@@ -31,38 +31,45 @@ do
 		fi
 	fi
 
-	# For each one try to extract the tag
-	fixes_count=`git show $sha | grep -i "fixes:" | wc -l`
-	if [ "x$fixes_count" != x1 ] ; then
-		printf "WARNING: Commit \"%s\" has more than one Fixes tag\n" \
-		       "`git log -n1 --pretty=oneline $sha`"
-	fi
-	fixes=`git show $sha | grep -i "fixes:" | head -n 1`
-	# The following sed/cut combination is borrowed from GregKH
-	id=`echo ${fixes} | sed -e 's/^[ \t]*//' | cut -f 2 -d ':' | sed -e 's/^[ \t]*//' | cut -f 1 -d ' '`
-
-	# Bail out if we cannot find suitable id.
-	# Any specific validation the $id is valid and not some junk, is
-	# implied with the follow up code
-	if [ "x$id" = x ] ; then
+	# Skip if it has been already cherry-picked.
+	if grep -q ^$sha already_picked ; then
 		continue
 	fi
 
-	# Check if the offending commit is in branch.
+	# For each one try to extract the tag
+	fixes_count=`git show $sha | grep -i "fixes:" | wc -l`
+	warn=`(test $fixes_count -gt 1 && echo $fixes_count) || echo 0`
+	while [ $fixes_count -gt 0 ] ; do
+		fixes=`git show $sha | grep -i "fixes:" | tail -n $fixes_count`
+		fixes_count=$(($fixes_count-1))
+		# The following sed/cut combination is borrowed from GregKH
+		id=`echo ${fixes} | sed -e 's/^[ \t]*//' | cut -f 2 -d ':' | sed -e 's/^[ \t]*//' | cut -f 1 -d ' '`
 
-	# Be that cherry-picked ...
-	# ... or landed before the branchpoint.
-	if grep -q ^$id already_picked ||
-	   grep -q ^$id already_landed ; then
-
-		# Finally nominate the fix if it hasn't landed yet.
-		if grep -q ^$sha already_picked ; then
+		# Bail out if we cannot find suitable id.
+		# Any specific validation the $id is valid and not some junk, is
+		# implied with the follow up code
+		if [ "x$id" = x ] ; then
 			continue
 		fi
 
-		printf "Commit \"%s\" fixes %s\n" \
-		       "`git log -n1 --pretty=oneline $sha`" \
-		       "$id"
+		# Check if the offending commit is in branch.
+
+		# Be that cherry-picked ...
+		# ... or landed before the branchpoint.
+		if grep -q ^$id already_picked ||
+		   grep -q ^$id already_landed ; then
+
+			printf "Commit \"%s\" fixes %s\n" \
+			       "`git log -n1 --pretty=oneline $sha`" \
+			       "$id"
+			warn=$(($warn-1))
+		fi
+
+	done
+
+	if [ $warn -gt 0 ] ; then
+		printf "WARNING: Commit \"%s\" has more than one Fixes tag\n" \
+		       "`git log -n1 --pretty=oneline $sha`"
 	fi
 
 done

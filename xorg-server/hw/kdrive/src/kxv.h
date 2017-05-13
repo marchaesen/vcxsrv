@@ -148,27 +148,6 @@ typedef struct {
 Bool
  KdXVScreenInit(ScreenPtr pScreen, KdVideoAdaptorPtr Adaptors, int num);
 
-void
-
-KdXVCopyPackedData(KdScreenInfo * screen, CARD8 *src, CARD8 *dst, int randr,
-                   int srcPitch, int dstPitch, int srcW, int srcH, int top,
-                   int left, int h, int w);
-
-void
-
-KdXVCopyPlanarData(KdScreenInfo * screen, CARD8 *src, CARD8 *dst, int randr,
-                   int srcPitch, int srcPitch2, int dstPitch, int srcW,
-                   int srcH, int height, int top, int left, int h, int w,
-                   int id);
-
-KdVideoAdaptorPtr KdXVAllocateVideoAdaptorRec(KdScreenInfo * screen);
-
-void KdXVFreeVideoAdaptorRec(KdVideoAdaptorPtr ptr);
-
-/* Must be called from KdCardInfo functions, can be called without Xv enabled */
-Bool KdXVEnable(ScreenPtr);
-void KdXVDisable(ScreenPtr);
-
 /*** These are DDX layer privates ***/
 
 typedef struct {

@@ -41,6 +41,7 @@
 #include "ac_nir_to_llvm.h"
 #include "vk_format.h"
 #include "util/debug.h"
+#include "ac_exp_param.h"
 
 void radv_shader_variant_destroy(struct radv_device *device,
                                  struct radv_shader_variant *variant);
@@ -50,6 +51,8 @@ static const struct nir_shader_compiler_options nir_options = {
 	.lower_scmp = true,
 	.lower_flrp32 = true,
 	.lower_fsat = true,
+	.lower_fdiv = true,
+	.lower_sub = true,
 	.lower_pack_snorm_2x16 = true,
 	.lower_pack_snorm_4x8 = true,
 	.lower_pack_unorm_2x16 = true,
@@ -60,6 +63,7 @@ static const struct nir_shader_compiler_options nir_options = {
 	.lower_unpack_unorm_4x8 = true,
 	.lower_extract_byte = true,
 	.lower_extract_word = true,
+	.max_unroll_iterations = 32
 };
 
 VkResult radv_CreateShaderModule(
@@ -151,6 +155,12 @@ radv_optimize_nir(struct nir_shader *shader)
                 NIR_PASS(progress, shader, nir_copy_prop);
                 NIR_PASS(progress, shader, nir_opt_remove_phis);
                 NIR_PASS(progress, shader, nir_opt_dce);
+                if (nir_opt_trivial_continues(shader)) {
+                        progress = true;
+                        NIR_PASS(progress, shader, nir_copy_prop);
+                        NIR_PASS(progress, shader, nir_opt_dce);
+                }
+                NIR_PASS(progress, shader, nir_opt_if);
                 NIR_PASS(progress, shader, nir_opt_dead_cf);
                 NIR_PASS(progress, shader, nir_opt_cse);
                 NIR_PASS(progress, shader, nir_opt_peephole_select, 8);
@@ -158,6 +168,9 @@ radv_optimize_nir(struct nir_shader *shader)
                 NIR_PASS(progress, shader, nir_opt_constant_folding);
                 NIR_PASS(progress, shader, nir_opt_undef);
                 NIR_PASS(progress, shader, nir_opt_conditional_discard);
+                if (shader->options->max_unroll_iterations) {
+                        NIR_PASS(progress, shader, nir_opt_loop_unroll, 0);
+                }
         } while (progress);
 }
 
@@ -251,7 +264,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	}
 
 	/* Vulkan uses the separate-shader linking model */
-	nir->info->separate_shader = true;
+	nir->info.separate_shader = true;
 
 	nir_shader_gather_info(nir, entry_point->impl);
 
@@ -526,8 +539,8 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 	bool dump = (pipeline->device->debug_flags & RADV_DEBUG_DUMP_SHADERS);
 
 	if (module->nir)
-		_mesa_sha1_compute(module->nir->info->name,
-				   strlen(module->nir->info->name),
+		_mesa_sha1_compute(module->nir->info.name,
+				   strlen(module->nir->info.name),
 				   module->sha1);
 
 	radv_hash_shader(sha1, module, entrypoint, spec_info, layout, key, 0);
@@ -631,8 +644,8 @@ radv_tess_pipeline_compile(struct radv_pipeline *pipeline,
 	bool dump = (pipeline->device->debug_flags & RADV_DEBUG_DUMP_SHADERS);
 
 	if (tes_module->nir)
-		_mesa_sha1_compute(tes_module->nir->info->name,
-				   strlen(tes_module->nir->info->name),
+		_mesa_sha1_compute(tes_module->nir->info.name,
+				   strlen(tes_module->nir->info.name),
 				   tes_module->sha1);
 	radv_hash_shader(tes_sha1, tes_module, tes_entrypoint, tes_spec_info, layout, &tes_key, 0);
 
@@ -644,8 +657,8 @@ radv_tess_pipeline_compile(struct radv_pipeline *pipeline,
 		tcs_key = radv_compute_tcs_key(tes_variant->info.tes.primitive_mode, input_vertices);
 
 		if (tcs_module->nir)
-			_mesa_sha1_compute(tcs_module->nir->info->name,
-					   strlen(tcs_module->nir->info->name),
+			_mesa_sha1_compute(tcs_module->nir->info.name,
+					   strlen(tcs_module->nir->info.name),
 					   tcs_module->sha1);
 
 		radv_hash_shader(tcs_sha1, tcs_module, tcs_entrypoint, tcs_spec_info, layout, &tcs_key, 0);
@@ -674,16 +687,16 @@ radv_tess_pipeline_compile(struct radv_pipeline *pipeline,
 		return;
 
 	nir_lower_tes_patch_vertices(tes_nir,
-				     tcs_nir->info->tess.tcs_vertices_out);
+				     tcs_nir->info.tess.tcs_vertices_out);
 
 	tes_variant = radv_shader_variant_create(pipeline->device, tes_nir,
 						 layout, &tes_key, &tes_code,
 						 &tes_code_size, dump);
 
-	tcs_key = radv_compute_tcs_key(tes_nir->info->tess.primitive_mode, input_vertices);
+	tcs_key = radv_compute_tcs_key(tes_nir->info.tess.primitive_mode, input_vertices);
 	if (tcs_module->nir)
-		_mesa_sha1_compute(tcs_module->nir->info->name,
-				   strlen(tcs_module->nir->info->name),
+		_mesa_sha1_compute(tcs_module->nir->info.name,
+				   strlen(tcs_module->nir->info.name),
 				   tcs_module->sha1);
 
 	radv_hash_shader(tcs_sha1, tcs_module, tcs_entrypoint, tcs_spec_info, layout, &tcs_key, 0);
@@ -1869,6 +1882,25 @@ static void calculate_pa_cl_vs_out_cntl(struct radv_pipeline *pipeline)
 		clip_dist_mask;
 
 }
+
+static uint32_t offset_to_ps_input(uint32_t offset, bool flat_shade)
+{
+	uint32_t ps_input_cntl;
+	if (offset <= AC_EXP_PARAM_OFFSET_31) {
+		ps_input_cntl = S_028644_OFFSET(offset);
+		if (flat_shade)
+			ps_input_cntl |= S_028644_FLAT_SHADE(1);
+	} else {
+		/* The input is a DEFAULT_VAL constant. */
+		assert(offset >= AC_EXP_PARAM_DEFAULT_VAL_0000 &&
+		       offset <= AC_EXP_PARAM_DEFAULT_VAL_1111);
+		offset -= AC_EXP_PARAM_DEFAULT_VAL_0000;
+		ps_input_cntl = S_028644_OFFSET(0x20) |
+			S_028644_DEFAULT_VAL(offset);
+	}
+	return ps_input_cntl;
+}
+
 static void calculate_ps_inputs(struct radv_pipeline *pipeline)
 {
 	struct radv_shader_variant *ps, *vs;
@@ -1880,6 +1912,23 @@ static void calculate_ps_inputs(struct radv_pipeline *pipeline)
 	outinfo = &vs->info.vs.outinfo;
 
 	unsigned ps_offset = 0;
+
+	if (ps->info.fs.prim_id_input) {
+		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID];
+		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
+			pipeline->graphics.ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			++ps_offset;
+		}
+	}
+
+	if (ps->info.fs.layer_input) {
+		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_LAYER];
+		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
+			pipeline->graphics.ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			++ps_offset;
+		}
+	}
+
 	if (ps->info.fs.has_pcoord) {
 		unsigned val;
 		val = S_028644_PT_SPRITE_TEX(1) | S_028644_OFFSET(0x20);
@@ -1887,52 +1936,22 @@ static void calculate_ps_inputs(struct radv_pipeline *pipeline)
 		ps_offset++;
 	}
 
-	if (ps->info.fs.prim_id_input && (outinfo->prim_id_output != 0xffffffff)) {
-		unsigned vs_offset, flat_shade;
-		unsigned val;
-		vs_offset = outinfo->prim_id_output;
-		flat_shade = true;
-		val = S_028644_OFFSET(vs_offset) | S_028644_FLAT_SHADE(flat_shade);
-		pipeline->graphics.ps_input_cntl[ps_offset] = val;
-		++ps_offset;
-	}
-
-	if (ps->info.fs.layer_input && (outinfo->layer_output != 0xffffffff)) {
-		unsigned vs_offset, flat_shade;
-		unsigned val;
-		vs_offset = outinfo->layer_output;
-		flat_shade = true;
-		val = S_028644_OFFSET(vs_offset) | S_028644_FLAT_SHADE(flat_shade);
-		pipeline->graphics.ps_input_cntl[ps_offset] = val;
-		++ps_offset;
-	}
-
 	for (unsigned i = 0; i < 32 && (1u << i) <= ps->info.fs.input_mask; ++i) {
-		unsigned vs_offset, flat_shade;
-		unsigned val;
-
+		unsigned vs_offset;
+		bool flat_shade;
 		if (!(ps->info.fs.input_mask & (1u << i)))
 			continue;
 
-		if (!(outinfo->export_mask & (1u << i))) {
+		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_VAR0 + i];
+		if (vs_offset == AC_EXP_PARAM_UNDEFINED) {
 			pipeline->graphics.ps_input_cntl[ps_offset] = S_028644_OFFSET(0x20);
 			++ps_offset;
 			continue;
 		}
 
-		vs_offset = util_bitcount(outinfo->export_mask & ((1u << i) - 1));
-		if (outinfo->prim_id_output != 0xffffffff) {
-			if (vs_offset >= outinfo->prim_id_output)
-				vs_offset++;
-		}
-		if (outinfo->layer_output != 0xffffffff) {
-			if (vs_offset >= outinfo->layer_output)
-			  vs_offset++;
-		}
 		flat_shade = !!(ps->info.fs.flat_shaded_mask & (1u << ps_offset));
 
-		val = S_028644_OFFSET(vs_offset) | S_028644_FLAT_SHADE(flat_shade);
-		pipeline->graphics.ps_input_cntl[ps_offset] = val;
+		pipeline->graphics.ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, flat_shade);
 		++ps_offset;
 	}
 
@@ -2022,7 +2041,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	if (!modules[MESA_SHADER_FRAGMENT]) {
 		nir_builder fs_b;
 		nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
-		fs_b.shader->info->name = ralloc_strdup(fs_b.shader, "noop_fs");
+		fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "noop_fs");
 		fs_m.nir = fs_b.shader;
 		modules[MESA_SHADER_FRAGMENT] = &fs_m;
 	}

@@ -13,7 +13,7 @@ xkb_symbols "nodeadkeys" {
 
     include "de(nodeadkeys)"
 
-    name[Group1]="German (Austria, eliminate dead keys)";
+    name[Group1]="German (Austria, no dead keys)";
 };
 
 partial alphanumeric_keys
@@ -29,6 +29,6 @@ xkb_symbols "sundeadkeys" {
 
     include "de(Sundeadkeys)"
 
-    name[Group1]="German (Austria, Sun dead keys)";
+    name[Group1]="German (Austria, with Sun dead keys)";
 };
 

@@ -126,7 +126,7 @@ xkb_symbols "phonetic" {
 partial alphanumeric_keys
 xkb_symbols "phonetic-alt" {
     include "am(phonetic)"
-    name[Group1]= "Armenian (alternative phonetic)";
+    name[Group1]= "Armenian (alt. phonetic)";
 
     key <AE08> {	[ 0x1000580,  0x1000550 ]	};
     key <LatR> {	[ 0x100057c,  0x100054c ]	};
@@ -230,7 +230,7 @@ xkb_symbols "western" {
 partial alphanumeric_keys
 xkb_symbols "eastern-alt" {
     include "am(eastern)"
-    name[Group1]="Armenian (alternative eastern)";
+    name[Group1]="Armenian (alt. eastern)";
 
 	// This replicates the Windows XP keyboard layout for Eastern
 	// Armenian exactly (including the bug), except:

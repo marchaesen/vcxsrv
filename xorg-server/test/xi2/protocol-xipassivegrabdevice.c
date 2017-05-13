@@ -47,7 +47,7 @@ static ClientRec client_request;
 #define N_MODS 7
 static uint32_t modifiers[N_MODS] = { 1, 2, 3, 4, 5, 6, 7 };
 
-struct test_data {
+static struct test_data {
     int num_modifiers;
 } testdata;
 

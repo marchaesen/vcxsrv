@@ -56,14 +56,5 @@ MESA_DRI_SHARED_LIBRARIES := \
 #-----------------------------------------------
 # Build drivers and libmesa_dri_common
 
-SUBDIRS := common
-
-ifneq ($(filter i915, $(MESA_GPU_DRIVERS)),)
-	SUBDIRS += i915
-endif
-
-ifneq ($(filter i965, $(MESA_GPU_DRIVERS)),)
-	SUBDIRS += i965
-endif
-
+SUBDIRS := common i915 i965
 include $(foreach d, $(SUBDIRS), $(LOCAL_PATH)/$(d)/Android.mk)

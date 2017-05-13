@@ -62,20 +62,41 @@ getbits (long data, unsigned char *dst)
 #define getpid(x) _getpid(x)
 #endif
 
-void
-XdmcpGenerateKey (XdmAuthKeyPtr key)
-{
 #ifndef HAVE_ARC4RANDOM_BUF
+
+static void
+insecure_getrandom_buf (unsigned char *auth, int len)
+{
     long    lowbits, highbits;
 
     srandom ((int)getpid() ^ time((Time_t *)0));
     lowbits = random ();
     highbits = random ();
-    getbits (lowbits, key->data);
-    getbits (highbits, key->data + 4);
-#else
+    getbits (lowbits, auth);
+    getbits (highbits, auth + 4);
+}
+
+static void
+arc4random_buf (void *auth, int len)
+{
+    int	    ret;
+
+#if HAVE_GETENTROPY
+    /* weak emulation of arc4random through the getentropy libc call */
+    ret = getentropy (auth, len);
+    if (ret == 0)
+	return;
+#endif /* HAVE_GETENTROPY */
+
+    insecure_getrandom_buf (auth, len);
+}
+
+#endif /* !defined(HAVE_ARC4RANDOM_BUF) */
+
+void
+XdmcpGenerateKey (XdmAuthKeyPtr key)
+{
     arc4random_buf(key->data, 8);
-#endif
 }
 
 int

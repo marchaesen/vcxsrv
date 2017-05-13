@@ -297,6 +297,7 @@ si_emit_config(struct radv_physical_device *physical_device,
 		raster_config_1 = 0x0000002a;
 		break;
 	case CHIP_POLARIS11:
+	case CHIP_POLARIS12:
 		raster_config = 0x16000012;
 		raster_config_1 = 0x00000000;
 		break;
@@ -671,7 +672,8 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 				if (family == CHIP_TONGA ||
 				    family == CHIP_FIJI ||
 				    family == CHIP_POLARIS10 ||
-				    family == CHIP_POLARIS11)
+				    family == CHIP_POLARIS11 ||
+				    family == CHIP_POLARIS12)
 					partial_vs_wave = true;
 			} else {
 				partial_vs_wave = true;

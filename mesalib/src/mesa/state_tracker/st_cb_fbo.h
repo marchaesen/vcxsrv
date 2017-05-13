@@ -85,7 +85,8 @@ static inline struct st_framebuffer *
 st_ws_framebuffer(struct gl_framebuffer *fb)
 {
    /* FBO cannot be casted.  See st_new_framebuffer */
-   if (fb && _mesa_is_winsys_fbo(fb))
+   if (fb && _mesa_is_winsys_fbo(fb) &&
+       fb != _mesa_get_incomplete_framebuffer())
       return (struct st_framebuffer *) fb;
    return NULL;
 }

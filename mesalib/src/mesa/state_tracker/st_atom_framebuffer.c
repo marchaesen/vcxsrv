@@ -104,8 +104,8 @@ framebuffer_quantize_num_samples(struct st_context *st, unsigned num_samples)
 /**
  * Update framebuffer state (color, depth, stencil, etc. buffers)
  */
-static void
-update_framebuffer_state( struct st_context *st )
+void
+st_update_framebuffer_state( struct st_context *st )
 {
    struct pipe_framebuffer_state *framebuffer = &st->state.framebuffer;
    struct gl_framebuffer *fb = st->ctx->DrawBuffer;
@@ -212,9 +212,3 @@ update_framebuffer_state( struct st_context *st )
 
    cso_set_framebuffer(st->cso_context, framebuffer);
 }
-
-
-const struct st_tracked_state st_update_framebuffer = {
-   update_framebuffer_state				/* update */
-};
-

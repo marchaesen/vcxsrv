@@ -661,6 +661,8 @@ int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, 
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, widen(c, request), reply, error);
+    if(!ret && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+        ret = poll_for_reply(c, widen(c, request), reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }
@@ -678,6 +680,8 @@ int xcb_poll_for_reply64(xcb_connection_t *c, uint64_t request, void **reply, xc
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, request, reply, error);
+    if(!ret && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+        ret = poll_for_reply(c, request, reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }
@@ -768,6 +772,8 @@ xcb_generic_event_t *xcb_poll_for_special_event(xcb_connection_t *c,
         return 0;
     pthread_mutex_lock(&c->iolock);
     event = get_special_event(c, se);
+    if(!event && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+        event = get_special_event(c, se);
     pthread_mutex_unlock(&c->iolock);
     return event;
 }

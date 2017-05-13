@@ -299,12 +299,18 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
        * values must not diverge between shader invocations run together. If the
        * values *do* diverge, then the behavior of the operation requiring a
        * dynamically uniform expression is undefined.
+       *
+       * From section 4.1.7 of the ARB_bindless_texture spec:
+       *
+       *    "Samplers aggregated into arrays within a shader (using square
+       *    brackets []) can be indexed with arbitrary integer expressions."
        */
       if (array->type->without_array()->is_sampler()) {
          if (!state->is_version(400, 320) &&
              !state->ARB_gpu_shader5_enable &&
              !state->EXT_gpu_shader5_enable &&
-             !state->OES_gpu_shader5_enable) {
+             !state->OES_gpu_shader5_enable &&
+             !state->has_bindless()) {
             if (state->is_version(130, 300))
                _mesa_glsl_error(&loc, state,
                                 "sampler arrays indexed with non-constant "

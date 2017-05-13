@@ -371,6 +371,17 @@ tree_grafting_basic_block(ir_instruction *bb_first,
       if (lhs_var->data.precise)
          continue;
 
+      /* Do not graft sampler and image variables. This is a workaround to
+       * st/glsl_to_tgsi being unable to handle expression parameters to image
+       * intrinsics.
+       *
+       * Note that if this is ever fixed, we still need to skip grafting when
+       * any image layout qualifiers (including the image format) are set,
+       * since we must not lose those.
+       */
+      if (lhs_var->type->is_sampler() || lhs_var->type->is_image())
+         continue;
+
       ir_variable_refcount_entry *entry = info->refs->get_variable_entry(lhs_var);
 
       if (!entry->declaration ||

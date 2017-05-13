@@ -64,6 +64,8 @@ void ac_add_func_attributes(LLVMContextRef ctx, LLVMValueRef function,
 			    unsigned attrib_mask);
 void ac_dump_module(LLVMModuleRef module);
 
+LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call);
+bool ac_llvm_is_function(LLVMValueRef v);
 #ifdef __cplusplus
 }
 #endif

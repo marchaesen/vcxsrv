@@ -157,7 +157,7 @@ promSetNode(sbusPromNodePtr pnode)
 static void
 promIsP1275(void)
 {
-#ifdef linux
+#ifdef __linux__
     FILE *f;
     char buffer[1024];
 

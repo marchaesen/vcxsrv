@@ -1589,6 +1589,27 @@ layout_qualifier_id:
          }
       }
 
+      /* Layout qualifiers for ARB_bindless_texture. */
+      if (!$$.flags.i) {
+         if (match_layout_qualifier($1, "bindless_sampler", state) == 0)
+            $$.flags.q.bindless_sampler = 1;
+         if (match_layout_qualifier($1, "bound_sampler", state) == 0)
+            $$.flags.q.bound_sampler = 1;
+
+         if (state->has_shader_image_load_store()) {
+            if (match_layout_qualifier($1, "bindless_image", state) == 0)
+               $$.flags.q.bindless_image = 1;
+            if (match_layout_qualifier($1, "bound_image", state) == 0)
+               $$.flags.q.bound_image = 1;
+         }
+
+         if ($$.flags.i && !state->has_bindless()) {
+            _mesa_glsl_error(& @1, state,
+                             "qualifier `%s` requires "
+                             "ARB_bindless_texture", $1);
+         }
+      }
+
       if (!$$.flags.i) {
          _mesa_glsl_error(& @1, state, "unrecognized layout identifier "
                           "`%s'", $1);
@@ -2388,10 +2409,29 @@ struct_declaration:
       ast_fully_specified_type *const type = $1;
       type->set_location(@1);
 
-      if (type->qualifier.flags.i != 0)
-         _mesa_glsl_error(&@1, state,
-			  "only precision qualifiers may be applied to "
-			  "structure members");
+      if (state->has_bindless()) {
+         ast_type_qualifier input_layout_mask;
+
+         /* Allow to declare qualifiers for images. */
+         input_layout_mask.flags.i = 0;
+         input_layout_mask.flags.q.coherent = 1;
+         input_layout_mask.flags.q._volatile = 1;
+         input_layout_mask.flags.q.restrict_flag = 1;
+         input_layout_mask.flags.q.read_only = 1;
+         input_layout_mask.flags.q.write_only = 1;
+         input_layout_mask.flags.q.explicit_image_format = 1;
+
+         if ((type->qualifier.flags.i & ~input_layout_mask.flags.i) != 0) {
+            _mesa_glsl_error(&@1, state,
+                             "only precision and image qualifiers may be "
+                             "applied to structure members");
+         }
+      } else {
+         if (type->qualifier.flags.i != 0)
+            _mesa_glsl_error(&@1, state,
+                             "only precision qualifiers may be applied to "
+                             "structure members");
+      }
 
       $$ = new(ctx) ast_declarator_list(type);
       $$->set_location(@2);

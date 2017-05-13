@@ -131,12 +131,12 @@ st_get_active_states(struct gl_context *ctx)
 {
    struct st_vertex_program *vp =
       st_vertex_program(ctx->VertexProgram._Current);
-   struct st_tessctrl_program *tcp =
-      st_tessctrl_program(ctx->TessCtrlProgram._Current);
-   struct st_tesseval_program *tep =
-      st_tesseval_program(ctx->TessEvalProgram._Current);
-   struct st_geometry_program *gp =
-      st_geometry_program(ctx->GeometryProgram._Current);
+   struct st_common_program *tcp =
+      st_common_program(ctx->TessCtrlProgram._Current);
+   struct st_common_program *tep =
+      st_common_program(ctx->TessEvalProgram._Current);
+   struct st_common_program *gp =
+      st_common_program(ctx->GeometryProgram._Current);
    struct st_fragment_program *fp =
       st_fragment_program(ctx->FragmentProgram._Current);
    struct st_compute_program *cp =
@@ -338,6 +338,8 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
 
    st->has_user_constbuf =
       screen->get_param(screen, PIPE_CAP_USER_CONSTANT_BUFFERS);
+   st->can_bind_const_buffer_as_vertex =
+      screen->get_param(screen, PIPE_CAP_CAN_BIND_CONST_BUFFER_AS_VERTEX);
 
    /* Drivers still have to upload zero-stride vertex attribs manually
     * with the GL core profile, but they don't have to deal with any complex
@@ -583,10 +585,10 @@ void st_destroy_context( struct st_context *st )
    _mesa_HashWalk(ctx->Shared->TexObjects, destroy_tex_sampler_cb, st);
 
    st_reference_fragprog(st, &st->fp, NULL);
-   st_reference_geomprog(st, &st->gp, NULL);
+   st_reference_prog(st, &st->gp, NULL);
    st_reference_vertprog(st, &st->vp, NULL);
-   st_reference_tesscprog(st, &st->tcp, NULL);
-   st_reference_tesseprog(st, &st->tep, NULL);
+   st_reference_prog(st, &st->tcp, NULL);
+   st_reference_prog(st, &st->tep, NULL);
    st_reference_compprog(st, &st->cp, NULL);
 
    /* release framebuffer surfaces */

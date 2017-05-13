@@ -61,7 +61,7 @@ static Bool foundMouse = FALSE;
 #if   defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
 static const char *DFLT_MOUSE_DEV = "/dev/sysmouse";
 static const char *DFLT_MOUSE_PROTO = "auto";
-#elif defined(linux)
+#elif defined(__linux__)
 static const char *DFLT_MOUSE_DEV = "/dev/input/mice";
 static const char *DFLT_MOUSE_PROTO = "auto";
 #elif defined(WSCONS_SUPPORT)

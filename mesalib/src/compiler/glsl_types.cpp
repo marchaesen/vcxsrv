@@ -95,12 +95,7 @@ glsl_type::glsl_type(GLenum gl_type, glsl_base_type base_type,
 
    memset(& fields, 0, sizeof(fields));
 
-   if (is_sampler()) {
-      /* Samplers take no storage whatsoever. */
-      matrix_columns = vector_elements = 0;
-   } else {
-      matrix_columns = vector_elements = 1;
-   }
+   matrix_columns = vector_elements = 1;
 }
 
 glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
@@ -225,6 +220,19 @@ glsl_type::contains_sampler() const
    }
 }
 
+bool
+glsl_type::contains_array() const
+{
+   if (this->is_record() || this->is_interface()) {
+      for (unsigned int i = 0; i < this->length; i++) {
+         if (this->fields.structure[i].type->contains_array())
+            return true;
+      }
+      return false;
+   } else {
+      return this->is_array();
+   }
+}
 
 bool
 glsl_type::contains_integer() const
@@ -415,6 +423,16 @@ _mesa_glsl_release_types(void)
    if (glsl_type::interface_types != NULL) {
       _mesa_hash_table_destroy(glsl_type::interface_types, NULL);
       glsl_type::interface_types = NULL;
+   }
+
+   if (glsl_type::function_types != NULL) {
+      _mesa_hash_table_destroy(glsl_type::function_types, NULL);
+      glsl_type::function_types = NULL;
+   }
+
+   if (glsl_type::subroutine_types != NULL) {
+      _mesa_hash_table_destroy(glsl_type::subroutine_types, NULL);
+      glsl_type::subroutine_types = NULL;
    }
 
    ralloc_free(glsl_type::mem_ctx);
@@ -945,20 +963,23 @@ glsl_type::record_compare(const glsl_type *b, bool match_locations) const
       if (this->fields.structure[i].patch
           != b->fields.structure[i].patch)
          return false;
-      if (this->fields.structure[i].image_read_only
-          != b->fields.structure[i].image_read_only)
+      if (this->fields.structure[i].memory_read_only
+          != b->fields.structure[i].memory_read_only)
          return false;
-      if (this->fields.structure[i].image_write_only
-          != b->fields.structure[i].image_write_only)
+      if (this->fields.structure[i].memory_write_only
+          != b->fields.structure[i].memory_write_only)
          return false;
-      if (this->fields.structure[i].image_coherent
-          != b->fields.structure[i].image_coherent)
+      if (this->fields.structure[i].memory_coherent
+          != b->fields.structure[i].memory_coherent)
          return false;
-      if (this->fields.structure[i].image_volatile
-          != b->fields.structure[i].image_volatile)
+      if (this->fields.structure[i].memory_volatile
+          != b->fields.structure[i].memory_volatile)
          return false;
-      if (this->fields.structure[i].image_restrict
-          != b->fields.structure[i].image_restrict)
+      if (this->fields.structure[i].memory_restrict
+          != b->fields.structure[i].memory_restrict)
+         return false;
+      if (this->fields.structure[i].image_format
+          != b->fields.structure[i].image_format)
          return false;
       if (this->fields.structure[i].precision
           != b->fields.structure[i].precision)
@@ -1298,6 +1319,8 @@ glsl_type::component_slots() const
 
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:
+      return 2;
+
    case GLSL_TYPE_SUBROUTINE:
       return 1;
 
@@ -1966,6 +1989,8 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_BOOL:
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
       return this->matrix_columns;
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_UINT64:
@@ -1988,8 +2013,6 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
       return this->length * this->fields.array->count_attribute_slots(is_vertex_input);
 
    case GLSL_TYPE_FUNCTION:
-   case GLSL_TYPE_SAMPLER:
-   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_ATOMIC_UINT:
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_SUBROUTINE:

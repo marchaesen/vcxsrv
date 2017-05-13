@@ -192,6 +192,35 @@ dix_request_size_checks(void)
     assert(rc == Success);
 }
 
+static void
+bswap_test(void)
+{
+    const uint16_t test_16 = 0xaabb;
+    const uint16_t expect_16 = 0xbbaa;
+    const uint32_t test_32 = 0xaabbccdd;
+    const uint32_t expect_32 = 0xddccbbaa;
+    const uint64_t test_64 = 0x11223344aabbccddull;
+    const uint64_t expect_64 = 0xddccbbaa44332211ull;
+    uint16_t result_16;
+    uint32_t result_32;
+    uint64_t result_64;
+
+    assert(bswap_16(test_16) == expect_16);
+    assert(bswap_32(test_32) == expect_32);
+    assert(bswap_64(test_64) == expect_64);
+
+    result_16 = test_16;
+    swaps(&result_16);
+    assert(result_16 == expect_16);
+
+    result_32 = test_32;
+    swapl(&result_32);
+    assert(result_32 == expect_32);
+
+    result_64 = test_64;
+    swapll(&result_64);
+    assert(result_64 == expect_64);
+}
 
 int
 misc_test(void)
@@ -199,6 +228,7 @@ misc_test(void)
     dix_version_compare();
     dix_update_desktop_dimensions();
     dix_request_size_checks();
+    bswap_test();
 
     return 0;
 }

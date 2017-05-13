@@ -1017,9 +1017,9 @@ handle_workgroup_size_decoration_cb(struct vtn_builder *b,
 
    assert(val->const_type == glsl_vector_type(GLSL_TYPE_UINT, 3));
 
-   b->shader->info->cs.local_size[0] = val->constant->values[0].u32[0];
-   b->shader->info->cs.local_size[1] = val->constant->values[0].u32[1];
-   b->shader->info->cs.local_size[2] = val->constant->values[0].u32[2];
+   b->shader->info.cs.local_size[0] = val->constant->values[0].u32[0];
+   b->shader->info.cs.local_size[1] = val->constant->values[0].u32[1];
+   b->shader->info.cs.local_size[2] = val->constant->values[0].u32[2];
 }
 
 static void
@@ -2730,6 +2730,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(image_write_without_format, cap);
          break;
 
+      case SpvCapabilityMultiView:
+         spv_check_supported(multiview, cap);
+         break;
+
       default:
          unreachable("Unhandled capability");
       }
@@ -2804,36 +2808,36 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
 
    case SpvExecutionModeEarlyFragmentTests:
       assert(b->shader->stage == MESA_SHADER_FRAGMENT);
-      b->shader->info->fs.early_fragment_tests = true;
+      b->shader->info.fs.early_fragment_tests = true;
       break;
 
    case SpvExecutionModeInvocations:
       assert(b->shader->stage == MESA_SHADER_GEOMETRY);
-      b->shader->info->gs.invocations = MAX2(1, mode->literals[0]);
+      b->shader->info.gs.invocations = MAX2(1, mode->literals[0]);
       break;
 
    case SpvExecutionModeDepthReplacing:
       assert(b->shader->stage == MESA_SHADER_FRAGMENT);
-      b->shader->info->fs.depth_layout = FRAG_DEPTH_LAYOUT_ANY;
+      b->shader->info.fs.depth_layout = FRAG_DEPTH_LAYOUT_ANY;
       break;
    case SpvExecutionModeDepthGreater:
       assert(b->shader->stage == MESA_SHADER_FRAGMENT);
-      b->shader->info->fs.depth_layout = FRAG_DEPTH_LAYOUT_GREATER;
+      b->shader->info.fs.depth_layout = FRAG_DEPTH_LAYOUT_GREATER;
       break;
    case SpvExecutionModeDepthLess:
       assert(b->shader->stage == MESA_SHADER_FRAGMENT);
-      b->shader->info->fs.depth_layout = FRAG_DEPTH_LAYOUT_LESS;
+      b->shader->info.fs.depth_layout = FRAG_DEPTH_LAYOUT_LESS;
       break;
    case SpvExecutionModeDepthUnchanged:
       assert(b->shader->stage == MESA_SHADER_FRAGMENT);
-      b->shader->info->fs.depth_layout = FRAG_DEPTH_LAYOUT_UNCHANGED;
+      b->shader->info.fs.depth_layout = FRAG_DEPTH_LAYOUT_UNCHANGED;
       break;
 
    case SpvExecutionModeLocalSize:
       assert(b->shader->stage == MESA_SHADER_COMPUTE);
-      b->shader->info->cs.local_size[0] = mode->literals[0];
-      b->shader->info->cs.local_size[1] = mode->literals[1];
-      b->shader->info->cs.local_size[2] = mode->literals[2];
+      b->shader->info.cs.local_size[0] = mode->literals[0];
+      b->shader->info.cs.local_size[1] = mode->literals[1];
+      b->shader->info.cs.local_size[2] = mode->literals[2];
       break;
    case SpvExecutionModeLocalSizeHint:
       break; /* Nothing to do with this */
@@ -2841,10 +2845,10 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeOutputVertices:
       if (b->shader->stage == MESA_SHADER_TESS_CTRL ||
           b->shader->stage == MESA_SHADER_TESS_EVAL) {
-         b->shader->info->tess.tcs_vertices_out = mode->literals[0];
+         b->shader->info.tess.tcs_vertices_out = mode->literals[0];
       } else {
          assert(b->shader->stage == MESA_SHADER_GEOMETRY);
-         b->shader->info->gs.vertices_out = mode->literals[0];
+         b->shader->info.gs.vertices_out = mode->literals[0];
       }
       break;
 
@@ -2857,11 +2861,11 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeIsolines:
       if (b->shader->stage == MESA_SHADER_TESS_CTRL ||
           b->shader->stage == MESA_SHADER_TESS_EVAL) {
-         b->shader->info->tess.primitive_mode =
+         b->shader->info.tess.primitive_mode =
             gl_primitive_from_spv_execution_mode(mode->exec_mode);
       } else {
          assert(b->shader->stage == MESA_SHADER_GEOMETRY);
-         b->shader->info->gs.vertices_in =
+         b->shader->info.gs.vertices_in =
             vertices_in_from_spv_execution_mode(mode->exec_mode);
       }
       break;
@@ -2870,24 +2874,24 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeOutputLineStrip:
    case SpvExecutionModeOutputTriangleStrip:
       assert(b->shader->stage == MESA_SHADER_GEOMETRY);
-      b->shader->info->gs.output_primitive =
+      b->shader->info.gs.output_primitive =
          gl_primitive_from_spv_execution_mode(mode->exec_mode);
       break;
 
    case SpvExecutionModeSpacingEqual:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
-      b->shader->info->tess.spacing = TESS_SPACING_EQUAL;
+      b->shader->info.tess.spacing = TESS_SPACING_EQUAL;
       break;
    case SpvExecutionModeSpacingFractionalEven:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
-      b->shader->info->tess.spacing = TESS_SPACING_FRACTIONAL_EVEN;
+      b->shader->info.tess.spacing = TESS_SPACING_FRACTIONAL_EVEN;
       break;
    case SpvExecutionModeSpacingFractionalOdd:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
-      b->shader->info->tess.spacing = TESS_SPACING_FRACTIONAL_ODD;
+      b->shader->info.tess.spacing = TESS_SPACING_FRACTIONAL_ODD;
       break;
    case SpvExecutionModeVertexOrderCw:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
@@ -2896,18 +2900,18 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
        * but be the opposite of OpenGL.  Currently NIR follows GL semantics,
        * so we set it backwards here.
        */
-      b->shader->info->tess.ccw = true;
+      b->shader->info.tess.ccw = true;
       break;
    case SpvExecutionModeVertexOrderCcw:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
       /* Backwards; see above */
-      b->shader->info->tess.ccw = false;
+      b->shader->info.tess.ccw = false;
       break;
    case SpvExecutionModePointMode:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
-      b->shader->info->tess.point_mode = true;
+      b->shader->info.tess.point_mode = true;
       break;
 
    case SpvExecutionModePixelCenterInteger:
@@ -3283,7 +3287,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    b->shader = nir_shader_create(NULL, stage, options, NULL);
 
    /* Set shader info defaults */
-   b->shader->info->gs.invocations = 1;
+   b->shader->info.gs.invocations = 1;
 
    /* Parse execution modes */
    vtn_foreach_execution_mode(b, b->entry_point,

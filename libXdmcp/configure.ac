@@ -65,7 +65,7 @@ esac
 
 # Checks for library functions.
 AC_CHECK_LIB([bsd], [arc4random_buf])
-AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf])
+AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf getentropy])
 
 # Obtain compiler/linker options for depedencies
 PKG_CHECK_MODULES(XDMCP, xproto)

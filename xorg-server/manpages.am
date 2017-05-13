@@ -22,7 +22,7 @@ MAN_SUBSTS += 	-e 's|__logdir__|$(logdir)|g' \
 		-e 's|__datadir__|$(datadir)|g' \
 		-e 's|__mandir__|$(mandir)|g' \
 		-e 's|__sysconfdir__|$(sysconfdir)|g' \
-		-e 's|__xconfigdir__|$(__XCONFIGDIR__)|g' \
+		-e 's|__xconfigdir__|$(XCONFIGDIR)|g' \
 		-e 's|__xkbdir__|$(XKB_BASE_DIRECTORY)|g' \
 		-e 's|__XKB_DFLT_RULES__|$(XKB_DFLT_RULES)|g' \
 		-e 's|__XKB_DFLT_MODEL__|$(XKB_DFLT_MODEL)|g' \

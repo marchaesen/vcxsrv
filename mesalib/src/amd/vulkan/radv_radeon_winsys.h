@@ -155,36 +155,35 @@ struct radeon_info {
 #define RADEON_SURF_SET(v, field)   (((v) & RADEON_SURF_ ## field ## _MASK) << RADEON_SURF_ ## field ## _SHIFT)
 #define RADEON_SURF_CLR(v, field)   ((v) & ~(RADEON_SURF_ ## field ## _MASK << RADEON_SURF_ ## field ## _SHIFT))
 
+struct radeon_surf_info {
+	uint32_t width;
+	uint32_t height;
+	uint32_t depth;
+	uint8_t samples;
+	uint8_t levels;
+	uint16_t array_size;
+};
+
 struct radeon_surf_level {
 	uint64_t                    offset;
 	uint64_t                    slice_size;
-	uint32_t                    npix_x;
-	uint32_t                    npix_y;
-	uint32_t                    npix_z;
 	uint32_t                    nblk_x;
 	uint32_t                    nblk_y;
 	uint32_t                    nblk_z;
 	uint32_t                    pitch_bytes;
 	uint32_t                    mode;
+	bool                        dcc_enabled;
 	uint64_t                    dcc_offset;
 	uint64_t                    dcc_fast_clear_size;
-	bool                        dcc_enabled;
 };
 
 
 /* surface defintions from the winsys */
 struct radeon_surf {
 	/* These are inputs to the calculator. */
-	uint32_t                    npix_x;
-	uint32_t                    npix_y;
-	uint32_t                    npix_z;
 	uint32_t                    blk_w;
 	uint32_t                    blk_h;
-	uint32_t                    blk_d;
-	uint32_t                    array_size;
-	uint32_t                    last_level;
 	uint32_t                    bpe;
-	uint32_t                    nsamples;
 	uint32_t                    flags;
 
 	/* These are return values. Some of them can be set by the caller, but
@@ -334,6 +333,7 @@ struct radeon_winsys {
 	void (*cs_dump)(struct radeon_winsys_cs *cs, FILE* file, uint32_t trace_id);
 
 	int (*surface_init)(struct radeon_winsys *ws,
+			    const struct radeon_surf_info *surf_info,
 			    struct radeon_surf *surf);
 
 	int (*surface_best)(struct radeon_winsys *ws,

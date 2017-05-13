@@ -95,8 +95,8 @@ gl_stencil_op_to_pipe(GLenum func)
    }
 }
 
-static void
-update_depth_stencil_alpha(struct st_context *st)
+void
+st_update_depth_stencil_alpha(struct st_context *st)
 {
    struct pipe_depth_stencil_alpha_state *dsa = &st->state.depth_stencil;
    struct pipe_stencil_ref sr;
@@ -159,8 +159,3 @@ update_depth_stencil_alpha(struct st_context *st)
    cso_set_depth_stencil_alpha(st->cso_context, dsa);
    cso_set_stencil_ref(st->cso_context, &sr);
 }
-
-
-const struct st_tracked_state st_update_depth_stencil_alpha = {
-   update_depth_stencil_alpha				/* update */
-};

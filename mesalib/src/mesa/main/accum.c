@@ -53,57 +53,6 @@ _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
 }
 
 
-void GLAPIENTRY
-_mesa_Accum( GLenum op, GLfloat value )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-
-   switch (op) {
-   case GL_ADD:
-   case GL_MULT:
-   case GL_ACCUM:
-   case GL_LOAD:
-   case GL_RETURN:
-      /* OK */
-      break;
-   default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glAccum(op)");
-      return;
-   }
-
-   if (ctx->DrawBuffer->Visual.haveAccumBuffer == 0) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glAccum(no accum buffer)");
-      return;
-   }
-
-   if (ctx->DrawBuffer != ctx->ReadBuffer) {
-      /* See GLX_SGI_make_current_read or WGL_ARB_make_current_read,
-       * or GL_EXT_framebuffer_blit.
-       */
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glAccum(different read/draw buffers)");
-      return;
-   }
-
-   if (ctx->NewState)
-      _mesa_update_state(ctx);
-
-   if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-      _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
-                  "glAccum(incomplete framebuffer)");
-      return;
-   }
-
-   if (ctx->RasterDiscard)
-      return;
-
-   if (ctx->RenderMode == GL_RENDER) {
-      _mesa_accum(ctx, op, value);
-   }
-}
-
-
 /**
  * Clear the accumulation buffer by mapping the renderbuffer and
  * writing the clear color to it.  Called by the driver's implementation
@@ -436,8 +385,8 @@ accum_return(struct gl_context *ctx, GLfloat value,
  * signed 16-bit color channels could implement hardware accumulation
  * operations, but no driver does so at this time.
  */
-void
-_mesa_accum(struct gl_context *ctx, GLenum op, GLfloat value)
+static void
+accum(struct gl_context *ctx, GLenum op, GLfloat value)
 {
    GLint xpos, ypos, width, height;
 
@@ -477,7 +426,7 @@ _mesa_accum(struct gl_context *ctx, GLenum op, GLfloat value)
       accum_return(ctx, value, xpos, ypos, width, height);
       break;
    default:
-      _mesa_problem(ctx, "invalid mode in _mesa_accum()");
+      unreachable("invalid mode in _mesa_Accum()");
       break;
    }
 }
@@ -488,4 +437,55 @@ _mesa_init_accum( struct gl_context *ctx )
 {
    /* Accumulate buffer group */
    ASSIGN_4V( ctx->Accum.ClearColor, 0.0, 0.0, 0.0, 0.0 );
+}
+
+
+void GLAPIENTRY
+_mesa_Accum( GLenum op, GLfloat value )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   FLUSH_VERTICES(ctx, 0);
+
+   switch (op) {
+   case GL_ADD:
+   case GL_MULT:
+   case GL_ACCUM:
+   case GL_LOAD:
+   case GL_RETURN:
+      /* OK */
+      break;
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM, "glAccum(op)");
+      return;
+   }
+
+   if (ctx->DrawBuffer->Visual.haveAccumBuffer == 0) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glAccum(no accum buffer)");
+      return;
+   }
+
+   if (ctx->DrawBuffer != ctx->ReadBuffer) {
+      /* See GLX_SGI_make_current_read or WGL_ARB_make_current_read,
+       * or GL_EXT_framebuffer_blit.
+       */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glAccum(different read/draw buffers)");
+      return;
+   }
+
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
+   if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+      _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
+                  "glAccum(incomplete framebuffer)");
+      return;
+   }
+
+   if (ctx->RasterDiscard)
+      return;
+
+   if (ctx->RenderMode == GL_RENDER) {
+      accum(ctx, op, value);
+   }
 }

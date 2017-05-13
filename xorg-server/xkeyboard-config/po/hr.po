@@ -3,38 +3,40 @@
 # This file is distributed under the same license as the xkeyboard-config package.
 #
 # Tomislav Krznar <tomislav.krznar@gmail.com>, 2012.
-# Božidar Putanec <bozidarp@yahoo.com>, 2016.
+# Božidar Putanec <bozidarp@yahoo.com>, 2016, 2017.
+# gogo <trebelnik2@gmail.com>, 2017.
+#
 msgid ""
 msgstr ""
-"Project-Id-Version: xkeyboard-config 2.18.99\n"
+"Project-Id-Version: xkeyboard-config-2.19.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
-"POT-Creation-Date: 2016-09-20 00:50+0100\n"
-"PO-Revision-Date: 2016-12-15 16:07-0800\n"
-"Last-Translator: Božidar Putanec <bozidarp@yahoo.com>\n"
+"POT-Creation-Date: 2017-01-10 23:31+0000\n"
+"PO-Revision-Date: 2017-04-07 20:21+0200\n"
+"Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <lokalizacija@linux.hr>\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Bugs: Report translation errors to the Language-Team address.\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Poedit 1.8.7.1\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: ../rules/base.xml.in.h:1
 msgid "Generic 101-key PC"
-msgstr "Obična PC tipkovnica sa 101 tipkom"
+msgstr "Izvorna PC sa 101 tipkom"
 
 #: ../rules/base.xml.in.h:2
 msgid "Generic 102-key (Intl) PC"
-msgstr "Obična (međunarodna) PC tipkovnica sa 102 tipke"
+msgstr "Izvorna PC sa 102 tipke (međunarodna)"
 
 #: ../rules/base.xml.in.h:3
 msgid "Generic 104-key PC"
-msgstr "Obična PC tipkovnica sa 104 tipke"
+msgstr "Izvorna PC sa 104 tipke"
 
 #: ../rules/base.xml.in.h:4
 msgid "Generic 105-key (Intl) PC"
-msgstr "Obična (međunarodna) PC tipkovnica sa 105 tipki"
+msgstr "Izvorna PC sa 105 tipki (međunarodna)"
 
 #: ../rules/base.xml.in.h:5
 msgid "Dell 101-key PC"
@@ -42,7 +44,7 @@ msgstr "Dell PC sa 101 tipkom"
 
 #: ../rules/base.xml.in.h:6
 msgid "Dell Latitude series laptop"
-msgstr "Dell Latitude serija laptopa"
+msgstr "Dell Latitude serija prijenosnika"
 
 #: ../rules/base.xml.in.h:7
 msgid "Dell Precision M65"
@@ -66,7 +68,7 @@ msgstr "Northgate OmniKey 101"
 
 #: ../rules/base.xml.in.h:12
 msgid "Winbook Model XP5"
-msgstr "Winbook model XP5"
+msgstr "Winbook Model XP5"
 
 #: ../rules/base.xml.in.h:13
 msgid "PC-98xx Series"
@@ -90,7 +92,7 @@ msgstr "Acer AirKey V"
 
 #: ../rules/base.xml.in.h:18
 msgid "Azona RF2300 wireless Internet Keyboard"
-msgstr "Azona RF2300 bežična internet tipkovica"
+msgstr "Azona RF2300 bežična internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:19
 msgid "Advance Scorpius KI"
@@ -98,11 +100,11 @@ msgstr "Advance Scorpius KI"
 
 #: ../rules/base.xml.in.h:20
 msgid "Brother Internet Keyboard"
-msgstr "Brother internet tipkovnica"
+msgstr "Brother internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:21
 msgid "BTC 5113RF Multimedia"
-msgstr "BTC 5113RF višemedijska"
+msgstr "BTC 5113RF Multimedija"
 
 #: ../rules/base.xml.in.h:22
 msgid "BTC 5126T"
@@ -134,11 +136,11 @@ msgstr "BTC 9019U"
 
 #: ../rules/base.xml.in.h:29
 msgid "BTC 9116U Mini Wireless Internet and Gaming"
-msgstr "BTC 9116U Mini Wireless Internet and Gaming"
+msgstr "BTC 9116U Mini bežični internet i igranje"
 
 #: ../rules/base.xml.in.h:30
 msgid "Cherry Blue Line CyBo@rd"
-msgstr "Cherry Blue Line CyBo@rd"
+msgstr "Cherry Blue Linija CyBo@rd"
 
 #: ../rules/base.xml.in.h:31
 msgid "Cherry CyMotion Master XPress"
@@ -146,623 +148,623 @@ msgstr "Cherry CyMotion Master XPress"
 
 #: ../rules/base.xml.in.h:32
 msgid "Cherry Blue Line CyBo@rd (alternate option)"
-msgstr "Cherry Blue Line CyBo@rd (alternativne opcije)"
+msgstr "Cherry Blue Linija CyBo@rd (alternativna mogućnost)"
 
 #: ../rules/base.xml.in.h:33
 msgid "Cherry CyBo@rd USB-Hub"
-msgstr ""
+msgstr "Cherry CyBo@rd USB-Hub"
 
 #: ../rules/base.xml.in.h:34
 msgid "Cherry CyMotion Expert"
-msgstr ""
+msgstr "Cherry CyMotion Expert"
 
 #: ../rules/base.xml.in.h:35
 msgid "Cherry B.UNLIMITED"
-msgstr ""
+msgstr "Cherry B.UNLIMITED"
 
 #: ../rules/base.xml.in.h:36
 msgid "Chicony Internet Keyboard"
-msgstr ""
+msgstr "Chicony internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:37
 msgid "Chicony KU-0108"
-msgstr ""
+msgstr "Chicony KU-0108"
 
 #: ../rules/base.xml.in.h:38
 msgid "Chicony KU-0420"
-msgstr ""
+msgstr "Chicony KU-0420"
 
 #: ../rules/base.xml.in.h:39
 msgid "Chicony KB-9885"
-msgstr ""
+msgstr "Chicony KB-9885"
 
 #: ../rules/base.xml.in.h:40
 msgid "Compaq Easy Access Keyboard"
-msgstr ""
+msgstr "Compaq tipkovnica lake pristupačnosti"
 
 #: ../rules/base.xml.in.h:41
 msgid "Compaq Internet Keyboard (7 keys)"
-msgstr ""
+msgstr "Compaq internetska tipkovnica (7 tipka)"
 
 #: ../rules/base.xml.in.h:42
 msgid "Compaq Internet Keyboard (13 keys)"
-msgstr ""
+msgstr "Compaq internetska tipkovnica (13 tipka)"
 
 #: ../rules/base.xml.in.h:43
 msgid "Compaq Internet Keyboard (18 keys)"
-msgstr ""
+msgstr "Compaq internetska tipkovnica (18 tipka)"
 
 #: ../rules/base.xml.in.h:44
 msgid "Cherry CyMotion Master Linux"
-msgstr ""
+msgstr "Cherry CyMotion Master Linux"
 
 #: ../rules/base.xml.in.h:45
 msgid "Laptop/notebook Compaq (eg. Armada) Laptop Keyboard"
-msgstr ""
+msgstr "Compaq (npr. Armada) tipkovnica za prijenosnike"
 
 #: ../rules/base.xml.in.h:46
 msgid "Laptop/notebook Compaq (eg. Presario) Internet Keyboard"
-msgstr ""
+msgstr "Compaq (npe. Presario) internetska tipkovnica za prijenosnike"
 
 #: ../rules/base.xml.in.h:47
 msgid "Compaq iPaq Keyboard"
-msgstr ""
+msgstr "Compaq iPaq tipkovnica"
 
 #: ../rules/base.xml.in.h:48
 msgid "Dell"
-msgstr ""
+msgstr "Dell"
 
 #: ../rules/base.xml.in.h:49
 msgid "Dell SK-8125"
-msgstr ""
+msgstr "Dell SK-8125"
 
 #: ../rules/base.xml.in.h:50
 msgid "Dell SK-8135"
-msgstr ""
+msgstr "Dell SK-8135"
 
 #: ../rules/base.xml.in.h:51
 msgid "Dell USB Multimedia Keyboard"
-msgstr ""
+msgstr "Dell USB Multimedijska tipkovnica"
 
 #: ../rules/base.xml.in.h:52
 msgid "Dell Laptop/notebook Inspiron 6xxx/8xxx"
-msgstr ""
+msgstr "Dell prijenosnici Inspiron 6xxx/8xxx"
 
 #: ../rules/base.xml.in.h:53
 msgid "Dell Laptop/notebook Precision M series"
-msgstr ""
+msgstr "Dell prijenosnici Precision M serija"
 
 #: ../rules/base.xml.in.h:54
 msgid "Dexxa Wireless Desktop Keyboard"
-msgstr ""
+msgstr "Dexxa bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:55
 msgid "Diamond 9801 / 9802 series"
-msgstr ""
+msgstr "Diamond 9801 / 9802 serija"
 
 #: ../rules/base.xml.in.h:56
 msgid "DTK2000"
-msgstr ""
+msgstr "DTK2000"
 
 #: ../rules/base.xml.in.h:57
 msgid "Ennyah DKB-1008"
-msgstr ""
+msgstr "Ennyah DKB-1008"
 
 #: ../rules/base.xml.in.h:58
 msgid "Fujitsu-Siemens Computers AMILO laptop"
-msgstr ""
+msgstr "Fujitsu-Siemens Computers AMILO prijenosnik"
 
 #: ../rules/base.xml.in.h:59
 msgid "Genius Comfy KB-16M / Genius MM Keyboard KWD-910"
-msgstr ""
+msgstr "Genius Comfy KB-16M / Genius MM tipkovnica KWD-910"
 
 #: ../rules/base.xml.in.h:60
 msgid "Genius Comfy KB-12e"
-msgstr ""
+msgstr "Genius Comfy KB-12e"
 
 #: ../rules/base.xml.in.h:61
 msgid "Genius Comfy KB-21e-Scroll"
-msgstr ""
+msgstr "Genius Comfy KB-21e-Scroll"
 
 #: ../rules/base.xml.in.h:62
 msgid "Genius KB-19e NB"
-msgstr ""
+msgstr "Genius KB-19e NB"
 
 #: ../rules/base.xml.in.h:63
 msgid "Genius KKB-2050HS"
-msgstr ""
+msgstr "Genius KKB-2050HS"
 
 #: ../rules/base.xml.in.h:64
 msgid "Gyration"
-msgstr ""
+msgstr "Gyration"
 
 #: ../rules/base.xml.in.h:65
 msgid "HTC Dream"
-msgstr ""
+msgstr "HTC Dream"
 
 #: ../rules/base.xml.in.h:66
 msgid "Kinesis"
-msgstr ""
+msgstr "Kinesis"
 
 #: ../rules/base.xml.in.h:67
 msgid "Logitech Generic Keyboard"
-msgstr ""
+msgstr "Logitech izvorna tipkovnica"
 
 #: ../rules/base.xml.in.h:68
 msgid "Logitech G15 extra keys via G15daemon"
-msgstr ""
+msgstr "Logitech G15 dodatne tipke putem G15 pozadinskog programa"
 
 #: ../rules/base.xml.in.h:69
 msgid "Hewlett-Packard Internet Keyboard"
-msgstr ""
+msgstr "Hewlett-Packard Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:70
 msgid "Hewlett-Packard SK-250x Multimedia Keyboard"
-msgstr ""
+msgstr "Hewlett-Packard SK-250x Multimedijska tipkovnica"
 
 #: ../rules/base.xml.in.h:71
 msgid "Hewlett-Packard Omnibook XE3 GC"
-msgstr ""
+msgstr "Hewlett-Packard Omnibook XE3 GC"
 
 #: ../rules/base.xml.in.h:72
 msgid "Hewlett-Packard Omnibook XE3 GF"
-msgstr ""
+msgstr "Hewlett-Packard Omnibook XE3 GF"
 
 #: ../rules/base.xml.in.h:73
 msgid "Hewlett-Packard Omnibook XT1000"
-msgstr ""
+msgstr "Hewlett-Packard Omnibook XT1000"
 
 #: ../rules/base.xml.in.h:74
 msgid "Hewlett-Packard Pavilion dv5"
-msgstr ""
+msgstr "Hewlett-Packard Pavilion dv5"
 
 #: ../rules/base.xml.in.h:75
 msgid "Hewlett-Packard Pavilion ZT11xx"
-msgstr ""
+msgstr "Hewlett-Packard Pavilion ZT11xx"
 
 #: ../rules/base.xml.in.h:76
 msgid "Hewlett-Packard Omnibook 500 FA"
-msgstr ""
+msgstr "Hewlett-Packard Omnibook 500 FA"
 
 #: ../rules/base.xml.in.h:77
 msgid "Hewlett-Packard Omnibook 5xx"
-msgstr ""
+msgstr "Hewlett-Packard Omnibook 5xx"
 
 #: ../rules/base.xml.in.h:78
 msgid "Hewlett-Packard nx9020"
-msgstr ""
+msgstr "Hewlett-Packard nx9020"
 
 #: ../rules/base.xml.in.h:79
 msgid "Hewlett-Packard Omnibook 6000/6100"
-msgstr ""
+msgstr "Hewlett-Packard Omnibook 6000/6100"
 
 #: ../rules/base.xml.in.h:80
 msgid "Honeywell Euroboard"
-msgstr ""
+msgstr "Honeywell Euroboard"
 
 #: ../rules/base.xml.in.h:81
 msgid "Hewlett-Packard Mini 110 Notebook"
-msgstr ""
+msgstr "Hewlett-Packard Mini 110 prijenosnik"
 
 #: ../rules/base.xml.in.h:82
 msgid "IBM Rapid Access"
-msgstr ""
+msgstr "IBM Rapid Access"
 
 #: ../rules/base.xml.in.h:83
 msgid "IBM Rapid Access II"
-msgstr ""
+msgstr "IBM Rapid Access II"
 
 #: ../rules/base.xml.in.h:84
 msgid "IBM ThinkPad 560Z/600/600E/A22E"
-msgstr ""
+msgstr "IBM ThinkPad 560Z/600/600E/A22E"
 
 #: ../rules/base.xml.in.h:85
 msgid "IBM ThinkPad R60/T60/R61/T61"
-msgstr ""
+msgstr "IBM ThinkPad R60/T60/R61/T61"
 
 #: ../rules/base.xml.in.h:86
 msgid "IBM ThinkPad Z60m/Z60t/Z61m/Z61t"
-msgstr ""
+msgstr "IBM ThinkPad Z60m/Z60t/Z61m/Z61t"
 
 #: ../rules/base.xml.in.h:87
 msgid "IBM Space Saver"
-msgstr ""
+msgstr "IBM Space Saver"
 
 #: ../rules/base.xml.in.h:88
 msgid "Logitech Access Keyboard"
-msgstr ""
+msgstr "Logitech tipkovnica pristupačnosti"
 
 #: ../rules/base.xml.in.h:89
 msgid "Logitech Cordless Desktop LX-300"
-msgstr ""
+msgstr "Logitech LX-300 bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:90
 msgid "Logitech Internet 350 Keyboard"
-msgstr ""
+msgstr "Logitech Internet 350 tipkovnica"
 
 #: ../rules/base.xml.in.h:91
 msgid "Logitech Media Elite Keyboard"
-msgstr ""
+msgstr "Logitech Media Elite tipkovnica"
 
 #: ../rules/base.xml.in.h:92
 msgid "Logitech Cordless Desktop"
-msgstr ""
+msgstr "Logitech bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:93
 msgid "Logitech Cordless Desktop iTouch"
-msgstr ""
+msgstr "Logitech iTouch bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:94
 msgid "Logitech Cordless Desktop Navigator"
-msgstr ""
+msgstr "Logitech Navigator bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:95
 msgid "Logitech Cordless Desktop Optical"
-msgstr ""
+msgstr "Logitech optička bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:96
 msgid "Logitech Cordless Desktop (alternate option)"
-msgstr ""
+msgstr "Logitech bežična tipkovnica (alternativna mogućnost)"
 
 #: ../rules/base.xml.in.h:97
 msgid "Logitech Cordless Desktop Pro (alternate option 2)"
-msgstr ""
+msgstr "Logitech Pro bežična tipkovnica (alternativna mogućnost 2)"
 
 #: ../rules/base.xml.in.h:98
 msgid "Logitech Cordless Freedom/Desktop Navigator"
-msgstr ""
+msgstr "Logitech Freedom/Desktop bežični Navigator"
 
 #: ../rules/base.xml.in.h:99
 msgid "Logitech iTouch Cordless Keyboard (model Y-RB6)"
-msgstr ""
+msgstr "Logitech iTouch bežična tipkovnica (model Y-RB6)"
 
 #: ../rules/base.xml.in.h:100
 msgid "Logitech Internet Keyboard"
-msgstr ""
+msgstr "Logitech Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:101
 msgid "Logitech iTouch"
-msgstr ""
+msgstr "Logitech iTouch"
 
 #: ../rules/base.xml.in.h:102
 msgid "Logitech Internet Navigator Keyboard"
-msgstr ""
+msgstr "Logitech Internet Navigator tipkovnica"
 
 #: ../rules/base.xml.in.h:103
 msgid "Logitech Cordless Desktop EX110"
-msgstr ""
+msgstr "Logitech EX110 bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:104
 msgid "Logitech iTouch Internet Navigator Keyboard SE"
-msgstr ""
+msgstr "Logitech iTouch Internet Navigator SE tipkovnica"
 
 #: ../rules/base.xml.in.h:105
 msgid "Logitech iTouch Internet Navigator Keyboard SE (USB)"
-msgstr ""
+msgstr "Logitech iTouch Internet Navigator SE tipkovnica (USB)"
 
 #: ../rules/base.xml.in.h:106
 msgid "Logitech Ultra-X Keyboard"
-msgstr ""
+msgstr "Logitech Ultra-X tipkovnica"
 
 #: ../rules/base.xml.in.h:107
 msgid "Logitech Ultra-X Cordless Media Desktop Keyboard"
-msgstr ""
+msgstr "Logitech Ultra-X bežična multimedijska tipkovnica"
 
 #: ../rules/base.xml.in.h:108
 msgid "Logitech diNovo Keyboard"
-msgstr ""
+msgstr "Logitech diNovo tipkovnica"
 
 #: ../rules/base.xml.in.h:109
 msgid "Logitech diNovo Edge Keyboard"
-msgstr ""
+msgstr "Logitech diNovo Edge tipkovnica"
 
 #: ../rules/base.xml.in.h:110
 msgid "Memorex MX1998"
-msgstr ""
+msgstr "Memorex MX1998"
 
 #: ../rules/base.xml.in.h:111
 msgid "Memorex MX2500 EZ-Access Keyboard"
-msgstr ""
+msgstr "Memorex MX2500 EZ-Access tipkovnica"
 
 #: ../rules/base.xml.in.h:112
 msgid "Memorex MX2750"
-msgstr ""
+msgstr "Memorex MX2750"
 
 #: ../rules/base.xml.in.h:113
 msgid "Microsoft Natural Ergonomic Keyboard 4000"
-msgstr ""
+msgstr "Microsoft 4000 prirodno ergonomična tipkovnica"
 
 #: ../rules/base.xml.in.h:114
 msgid "Microsoft Natural Wireless Ergonomic Keyboard 7000"
-msgstr ""
+msgstr "Microsoft 7000 prirodno ergonomična bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:115
 msgid "Microsoft Internet Keyboard"
-msgstr ""
+msgstr "Microsoft Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:116
 msgid "Microsoft Natural Keyboard Pro / Microsoft Internet Keyboard Pro"
-msgstr ""
+msgstr "Microsoft Pro prirodna tipkovnica / Microsoft Pro Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:117
 msgid "Microsoft Natural Keyboard Pro USB / Microsoft Internet Keyboard Pro"
-msgstr ""
+msgstr "Microsoft Pro prirodna USB tipkovnica / Microsoft Pro Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:118
 msgid "Microsoft Natural Keyboard Pro OEM"
-msgstr ""
+msgstr "Microsoft Pro Internetska tipkovnica OEM"
 
 #: ../rules/base.xml.in.h:119
 msgid "ViewSonic KU-306 Internet Keyboard"
-msgstr ""
+msgstr "ViewSonic KU-306 Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:120
 msgid "Microsoft Internet Keyboard Pro, Swedish"
-msgstr ""
+msgstr "Microsoft Pro Internetska tipkovnica, Švedska"
 
 #: ../rules/base.xml.in.h:121
 msgid "Microsoft Office Keyboard"
-msgstr ""
+msgstr "Microsoft uredska tipkovncia"
 
 #: ../rules/base.xml.in.h:122
 msgid "Microsoft Wireless Multimedia Keyboard 1.0A"
-msgstr ""
+msgstr "Microsoft Multimedijska bežična tipkovnica 1.0A"
 
 #: ../rules/base.xml.in.h:123
 msgid "Microsoft Natural Keyboard Elite"
-msgstr ""
+msgstr "Microsoft Elite prirodna tipkovnica"
 
 #: ../rules/base.xml.in.h:124
 msgid "Microsoft Comfort Curve Keyboard 2000"
-msgstr ""
+msgstr "Microsoft Comfort Curve 2000 tipkovnica"
 
 #: ../rules/base.xml.in.h:125
 msgid "Ortek MCK-800 MM/Internet keyboard"
-msgstr ""
+msgstr "Ortek MCK-800 MM/Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:126
 msgid "Propeller Voyager (KTEZ-1000)"
-msgstr ""
+msgstr "Propeller Voyager (KTEZ-1000)"
 
 #: ../rules/base.xml.in.h:127
 msgid "QTronix Scorpius 98N+"
-msgstr ""
+msgstr "QTronix Scorpius 98N+"
 
 #: ../rules/base.xml.in.h:128
 msgid "Samsung SDM 4500P"
-msgstr ""
+msgstr "Samsung SDM 4500P"
 
 #: ../rules/base.xml.in.h:129
 msgid "Samsung SDM 4510P"
-msgstr ""
+msgstr "Samsung SDM 4510P"
 
 #: ../rules/base.xml.in.h:130
 msgid "Sanwa Supply SKB-KG3"
-msgstr ""
+msgstr "Sanwa Supply SKB-KG3"
 
 #: ../rules/base.xml.in.h:131
 msgid "SK-1300"
-msgstr ""
+msgstr "SK-1300"
 
 #: ../rules/base.xml.in.h:132
 msgid "SK-2500"
-msgstr ""
+msgstr "SK-2500"
 
 #: ../rules/base.xml.in.h:133
 msgid "SK-6200"
-msgstr ""
+msgstr "SK-6200"
 
 #: ../rules/base.xml.in.h:134
 msgid "SK-7100"
-msgstr ""
+msgstr "SK-7100"
 
 #: ../rules/base.xml.in.h:135
 msgid "Super Power Multimedia Keyboard"
-msgstr ""
+msgstr "Super Power Multimedijska tipkovnica"
 
 #: ../rules/base.xml.in.h:136
 msgid "SVEN Ergonomic 2500"
-msgstr ""
+msgstr "SVEN Ergonomic 2500"
 
 #: ../rules/base.xml.in.h:137
 msgid "SVEN Slim 303"
-msgstr ""
+msgstr "SVEN Slim 303"
 
 #: ../rules/base.xml.in.h:138
 msgid "Symplon PaceBook (tablet PC)"
-msgstr ""
+msgstr "Symplon PaceBook (tablet PC)"
 
 #: ../rules/base.xml.in.h:139
 msgid "Toshiba Satellite S3000"
-msgstr ""
+msgstr "Toshiba Satellite S3000"
 
 #: ../rules/base.xml.in.h:140
 msgid "Trust Wireless Keyboard Classic"
-msgstr ""
+msgstr "Trust klasična bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:141
 msgid "Trust Direct Access Keyboard"
-msgstr ""
+msgstr "Trust tipkovnica izravnog pristupa"
 
 #: ../rules/base.xml.in.h:142
 msgid "Trust Slimline"
-msgstr ""
+msgstr "Trust Slimline"
 
 #: ../rules/base.xml.in.h:143
 msgid "TypeMatrix EZ-Reach 2020"
-msgstr ""
+msgstr "TypeMatrix EZ-Reach 2020"
 
 #: ../rules/base.xml.in.h:144
 msgid "TypeMatrix EZ-Reach 2030 PS2"
-msgstr ""
+msgstr "TypeMatrix EZ-Reach 2030 PS2"
 
 #: ../rules/base.xml.in.h:145
 msgid "TypeMatrix EZ-Reach 2030 USB"
-msgstr ""
+msgstr "TypeMatrix EZ-Reach 2030 USB"
 
 #: ../rules/base.xml.in.h:146
 msgid "TypeMatrix EZ-Reach 2030 USB (102/105:EU mode)"
-msgstr ""
+msgstr "TypeMatrix EZ-Reach 2030 USB (102/105:EU način rada)"
 
 #: ../rules/base.xml.in.h:147
 msgid "TypeMatrix EZ-Reach 2030 USB (106:JP mode)"
-msgstr ""
+msgstr "TypeMatrix EZ-Reach 2030 USB (106:JP način rada)"
 
 #: ../rules/base.xml.in.h:148
 msgid "Yahoo! Internet Keyboard"
-msgstr ""
+msgstr "Yahoo! Internetska tipkovnica"
 
 #: ../rules/base.xml.in.h:149
 msgid "MacBook/MacBook Pro"
-msgstr ""
+msgstr "MacBook/MacBook Pro"
 
 #: ../rules/base.xml.in.h:150
 msgid "MacBook/MacBook Pro (Intl)"
-msgstr ""
+msgstr "MacBook/MacBook Pro (međunarodna)"
 
 #: ../rules/base.xml.in.h:151
 msgid "Macintosh"
-msgstr ""
+msgstr "Macintosh"
 
 #: ../rules/base.xml.in.h:152
 msgid "Macintosh Old"
-msgstr ""
+msgstr "Macintosh zastarjelo"
 
 #: ../rules/base.xml.in.h:153
 msgid "Happy Hacking Keyboard for Mac"
-msgstr ""
+msgstr "Happy Hacking tipkovnica za Mac"
 
 #: ../rules/base.xml.in.h:154
 msgid "Acer C300"
-msgstr ""
+msgstr "Acer C300"
 
 #: ../rules/base.xml.in.h:155
 msgid "Acer Ferrari 4000"
-msgstr ""
+msgstr "Acer Ferrari 4000"
 
 #: ../rules/base.xml.in.h:156
 msgid "Acer Laptop"
-msgstr ""
+msgstr "Acer prijenosnik"
 
 #: ../rules/base.xml.in.h:157
 msgid "Asus Laptop"
-msgstr ""
+msgstr "Asus prijenosnik"
 
 #: ../rules/base.xml.in.h:158
 msgid "Apple"
-msgstr ""
+msgstr "Apple"
 
 #: ../rules/base.xml.in.h:159
 msgid "Apple Laptop"
-msgstr ""
+msgstr "Apple prijenosnik"
 
 #: ../rules/base.xml.in.h:160
 msgid "Apple Aluminium Keyboard (ANSI)"
-msgstr ""
+msgstr "Apple Aluminijska tipkovnica (ANSI)"
 
 #: ../rules/base.xml.in.h:161
 msgid "Apple Aluminium Keyboard (ISO)"
-msgstr ""
+msgstr "Apple Aluminijska tipkovnica (ISO)"
 
 #: ../rules/base.xml.in.h:162
 msgid "Apple Aluminium Keyboard (JIS)"
-msgstr ""
+msgstr "Apple Aluminijska tipkovnica (JIS)"
 
 #: ../rules/base.xml.in.h:163
 msgid "SILVERCREST Multimedia Wireless Keyboard"
-msgstr ""
+msgstr "SILVERCREST Multimedijska bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:164
 msgid "Laptop/notebook eMachines m68xx"
-msgstr ""
+msgstr "eMachines m68xx prijenosnik"
 
 #: ../rules/base.xml.in.h:165
 msgid "BenQ X-Touch"
-msgstr ""
+msgstr "BenQ X-Touch"
 
 #: ../rules/base.xml.in.h:166
 msgid "BenQ X-Touch 730"
-msgstr ""
+msgstr "BenQ X-Touch 730"
 
 #: ../rules/base.xml.in.h:167
 msgid "BenQ X-Touch 800"
-msgstr ""
+msgstr "BenQ X-Touch 800"
 
 #: ../rules/base.xml.in.h:168
 msgid "Happy Hacking Keyboard"
-msgstr ""
+msgstr "Happy Hacking tipkovnica"
 
 #: ../rules/base.xml.in.h:169
 msgid "Classmate PC"
-msgstr ""
+msgstr "Classmate PC"
 
 #: ../rules/base.xml.in.h:170
 msgid "OLPC"
-msgstr ""
+msgstr "OLPC"
 
 #: ../rules/base.xml.in.h:171
 msgid "Sun Type 7 USB"
-msgstr ""
+msgstr "Sun Type 7 USB"
 
 #: ../rules/base.xml.in.h:172
 msgid "Sun Type 7 USB (European layout)"
-msgstr ""
+msgstr "Sun Type 7 USB (europski raspored)"
 
 #: ../rules/base.xml.in.h:173
 msgid "Sun Type 7 USB (Unix layout)"
-msgstr ""
+msgstr "Sun Type 7 USB (Unix raspored)"
 
 #: ../rules/base.xml.in.h:174
 msgid "Sun Type 7 USB (Japanese layout) / Japanese 106-key"
-msgstr ""
+msgstr "Sun Type 7 USB (japanski raspored) / Japanski 106 tipka"
 
 #: ../rules/base.xml.in.h:175
 msgid "Sun Type 6/7 USB"
-msgstr ""
+msgstr "Sun Type 6/7 USB"
 
 #: ../rules/base.xml.in.h:176
 msgid "Sun Type 6/7 USB (European layout)"
-msgstr ""
+msgstr "Sun Type 6/7 USB (europski raspored)"
 
 #: ../rules/base.xml.in.h:177
 msgid "Sun Type 6 USB (Unix layout)"
-msgstr ""
+msgstr "Sun Type 6 USB (Unix raspored)"
 
 #: ../rules/base.xml.in.h:178
 msgid "Sun Type 6 USB (Japanese layout)"
-msgstr ""
+msgstr "Sun Type 6 USB (japanski raspored)"
 
 #: ../rules/base.xml.in.h:179
 msgid "Sun Type 6 (Japanese layout)"
-msgstr ""
+msgstr "Sun Type 6 (japanski raspored)"
 
 #: ../rules/base.xml.in.h:180
 msgid "Targa Visionary 811"
-msgstr ""
+msgstr "Targa Visionary 811"
 
 #: ../rules/base.xml.in.h:181
 msgid "Unitek KB-1925"
-msgstr ""
+msgstr "Unitek KB-1925"
 
 #: ../rules/base.xml.in.h:182
 msgid "FL90"
-msgstr ""
+msgstr "FL90"
 
 #: ../rules/base.xml.in.h:183
 msgid "Creative Desktop Wireless 7000"
-msgstr ""
+msgstr "Creative 7000 bežična tipkovnica"
 
 #: ../rules/base.xml.in.h:184
 msgid "Htc Dream phone"
-msgstr ""
+msgstr "Htc Dream telefon"
 
 #: ../rules/base.xml.in.h:185
 msgid "Truly Ergonomic Computer Keyboard Model 227 (Wide Alt keys)"
-msgstr ""
+msgstr "Truly Ergonomic tipkovnica model 227 (široke Alt tipke)"
 
 #: ../rules/base.xml.in.h:186
 msgid "Truly Ergonomic Computer Keyboard Model 229 (Standard sized Alt keys, additional Super and Menu key)"
-msgstr "Truly Ergonomic Computer Keyboard Model 229 (Standarda veličina Alt-tipki, dodatne tipke Super i Menu)"
+msgstr "Truly Ergonomic tipkovnica model 229 (Alt tipke standardne veličine, dodatne Super i Menu tipke)"
 
 #. Keyboard indicator for English layouts
 #: ../rules/base.xml.in.h:188 ../rules/base.extras.xml.in.h:52
@@ -771,7 +773,7 @@ msgstr "en"
 
 #: ../rules/base.xml.in.h:189 ../rules/base.extras.xml.in.h:53
 msgid "English (US)"
-msgstr "engleski (SAD)"
+msgstr "Engleski (SAD)"
 
 #. Keyboard indicator for Cherokee layouts
 #: ../rules/base.xml.in.h:191
@@ -780,52 +782,51 @@ msgstr "chr"
 
 #: ../rules/base.xml.in.h:192
 msgid "Cherokee"
-msgstr "čeroki"
+msgstr "Čirokijski"
 
 #: ../rules/base.xml.in.h:193
 msgid "English (US, with euro on 5)"
-msgstr "engleski (SAD, znak za euro na 5)"
+msgstr "Engleski (SAD, s eurom na 5)"
 
 #: ../rules/base.xml.in.h:194
 msgid "English (US, international with dead keys)"
-msgstr "engleski (SAD, međunarodni s mrtvim tipkama)"
+msgstr "Engleski (SAD, međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.xml.in.h:195
 msgid "English (US, alternative international)"
-msgstr "engleski (SAD, alternativni međunarodni)"
+msgstr "Engleski (SAD, alternativni međunarodni)"
 
 #: ../rules/base.xml.in.h:196
 msgid "English (Colemak)"
-msgstr "engleski (Colemak)"
+msgstr "Engleski (Colemak)"
 
 #: ../rules/base.xml.in.h:197
 msgid "English (Dvorak)"
-msgstr "engleski (Dvorak)"
+msgstr "Engleski (Dvorak)"
 
-# dead key za dijakritičke oznake mrtva tipka
 #: ../rules/base.xml.in.h:198
 msgid "English (Dvorak, international with dead keys)"
-msgstr "engleski (Dvorak, međunarodni s mrtvim tipkama)"
+msgstr "Engleski (Dvorak, međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.xml.in.h:199
 msgid "English (Dvorak alternative international no dead keys)"
-msgstr "engleski (Dvorak, alternativni međunarodni bez mrtvih tipaka)"
+msgstr "Engleski (Dvorak, međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.xml.in.h:200
 msgid "English (left handed Dvorak)"
-msgstr "engleski (Dvorak za ljevake)"
+msgstr "Engleski (Dvorak za ljevake)"
 
 #: ../rules/base.xml.in.h:201
 msgid "English (right handed Dvorak)"
-msgstr "engleski (Dvorak za dešnjake)"
+msgstr "Engleski (Dvorak za dešnjake)"
 
 #: ../rules/base.xml.in.h:202
 msgid "English (classic Dvorak)"
-msgstr "engleski (klasični Dvorak)"
+msgstr "Engleski (klasični Dvorak)"
 
 #: ../rules/base.xml.in.h:203
 msgid "English (Programmer Dvorak)"
-msgstr "engleski (Dvorak za programere)"
+msgstr "Engleski (Dvorak za programere)"
 
 #. Keyboard indicator for Russian layouts
 #: ../rules/base.xml.in.h:205 ../rules/base.extras.xml.in.h:82
@@ -834,32 +835,31 @@ msgstr "ru"
 
 #: ../rules/base.xml.in.h:206
 msgid "Russian (US, phonetic)"
-msgstr "ruski (SAD, fonetski)"
+msgstr "Ruski (SAD, fonetski)"
 
 #: ../rules/base.xml.in.h:207
 msgid "English (Macintosh)"
-msgstr "engleski (Macintosh)"
+msgstr "Engleski (Macintosh)"
 
 #: ../rules/base.xml.in.h:208
 msgid "English (international AltGr dead keys)"
-msgstr "engleski(međunarodni, mrtve tipke s AltGr)"
+msgstr "Engleski (međunarodni AltGr mrtve tipke)"
 
-# toggle: uklj/iskll, prebacivati
 #: ../rules/base.xml.in.h:209
 msgid "English (the divide/multiply keys toggle the layout)"
-msgstr ""
+msgstr "Engleski (tipke dijeljenja/množenja)"
 
 #: ../rules/base.xml.in.h:210
 msgid "Serbo-Croatian (US)"
-msgstr "srpskohrvatski (SAD)"
+msgstr "Srpsko-hrvatski (SAD)"
 
 #: ../rules/base.xml.in.h:211
 msgid "English (Workman)"
-msgstr "engleski (Workman)"
+msgstr "Engleski (radnički)"
 
 #: ../rules/base.xml.in.h:212
 msgid "English (Workman, international with dead keys)"
-msgstr "engleski (Workman, međunarodni s mrtvim tipkama)"
+msgstr "Engleski (radnički, međunarodni s mrtvim tipkama)"
 
 #. Keyboard indicator for Persian layouts
 #: ../rules/base.xml.in.h:214 ../rules/base.extras.xml.in.h:34
@@ -868,7 +868,7 @@ msgstr "fa"
 
 #: ../rules/base.xml.in.h:215
 msgid "Afghani"
-msgstr "afganistanski"
+msgstr "Afganistanski"
 
 #. Keyboard indicator for Pashto layouts
 #: ../rules/base.xml.in.h:217
@@ -877,7 +877,7 @@ msgstr "ps"
 
 #: ../rules/base.xml.in.h:218
 msgid "Pashto"
-msgstr "paštunski"
+msgstr "Paštunski"
 
 #. Keyboard indicator for Uzbek layouts
 #: ../rules/base.xml.in.h:220
@@ -886,56 +886,56 @@ msgstr "uz"
 
 #: ../rules/base.xml.in.h:221
 msgid "Uzbek (Afghanistan)"
-msgstr "uzbečki (Afganistan)"
+msgstr "Uzbečki (Afganistan)"
 
 #: ../rules/base.xml.in.h:222
 msgid "Pashto (Afghanistan, OLPC)"
-msgstr "paštunski (Afganistan, OLPC)"
+msgstr "Paštunski (Afganistan, OLPC)"
 
 #: ../rules/base.xml.in.h:223
 msgid "Persian (Afghanistan, Dari OLPC)"
-msgstr "perzijski (Afganistan, Dari OLPC)"
+msgstr "Perzijski (Afganistan, Dari OLPC)"
 
 #: ../rules/base.xml.in.h:224
 msgid "Uzbek (Afghanistan, OLPC)"
-msgstr "uzbečki (Afganistan, OLPC)"
+msgstr "Uzbečki (Afganistan, OLPC)"
 
 #. Keyboard indicator for Arabic layouts
-#: ../rules/base.xml.in.h:226 ../rules/base.extras.xml.in.h:93
+#: ../rules/base.xml.in.h:226 ../rules/base.extras.xml.in.h:94
 msgid "ar"
 msgstr "ar"
 
-#: ../rules/base.xml.in.h:227 ../rules/base.extras.xml.in.h:94
+#: ../rules/base.xml.in.h:227 ../rules/base.extras.xml.in.h:95
 msgid "Arabic"
-msgstr "arapski"
+msgstr "Arapski"
 
 #: ../rules/base.xml.in.h:228
 msgid "Arabic (azerty)"
-msgstr "arapski (azerty)"
+msgstr "Arapski (azerty)"
 
 #: ../rules/base.xml.in.h:229
 msgid "Arabic (azerty/digits)"
-msgstr "arapski (azerty/znamenke)"
+msgstr "Arapski (azerty/znamenke)"
 
 #: ../rules/base.xml.in.h:230
 msgid "Arabic (digits)"
-msgstr "arapski (znamenke)"
+msgstr "Arapski (znamenke)"
 
 #: ../rules/base.xml.in.h:231
 msgid "Arabic (qwerty)"
-msgstr "arapski (qwerty)"
+msgstr "Arapski (qwerty)"
 
 #: ../rules/base.xml.in.h:232
 msgid "Arabic (qwerty/digits)"
-msgstr "arapski (qwerty/znamenke)"
+msgstr "Arapski (qwerty/znamenke)"
 
 #: ../rules/base.xml.in.h:233
 msgid "Arabic (Buckwalter)"
-msgstr "arapski (Buckwalter)"
+msgstr "Arapski (Buckwalter)"
 
 #: ../rules/base.xml.in.h:234
 msgid "Arabic (Macintosh)"
-msgstr "arapski (Macintosh)"
+msgstr "Arapski (Macintosh)"
 
 #. Keyboard indicator for Albanian layouts
 #: ../rules/base.xml.in.h:236
@@ -944,40 +944,40 @@ msgstr "sq"
 
 #: ../rules/base.xml.in.h:237
 msgid "Albanian"
-msgstr "albanski"
+msgstr "Albanski"
 
 #: ../rules/base.xml.in.h:238
-msgid "Albanian (Plisi D1)"
-msgstr "albanski (Plisi D1)"
+msgid "Albanian (Plisi)"
+msgstr "Albanski (Plisi)"
 
 #. Keyboard indicator for Armenian layouts
-#: ../rules/base.xml.in.h:240 ../rules/base.extras.xml.in.h:87
+#: ../rules/base.xml.in.h:240 ../rules/base.extras.xml.in.h:88
 msgid "hy"
 msgstr "hy"
 
-#: ../rules/base.xml.in.h:241 ../rules/base.extras.xml.in.h:88
+#: ../rules/base.xml.in.h:241 ../rules/base.extras.xml.in.h:89
 msgid "Armenian"
-msgstr "armenski"
+msgstr "Armenski"
 
 #: ../rules/base.xml.in.h:242
 msgid "Armenian (phonetic)"
-msgstr "armenski (fonetski)"
+msgstr "Armenski (fonetski)"
 
 #: ../rules/base.xml.in.h:243
 msgid "Armenian (alternative phonetic)"
-msgstr "armenski (alternativni fonetski)"
+msgstr "Armenski (alternativni fonetski)"
 
 #: ../rules/base.xml.in.h:244
 msgid "Armenian (eastern)"
-msgstr "armenski (istočni)"
+msgstr "Armenski (istočni)"
 
 #: ../rules/base.xml.in.h:245
 msgid "Armenian (western)"
-msgstr "armenski (zapadni)"
+msgstr "Armenski (zapadni)"
 
 #: ../rules/base.xml.in.h:246
 msgid "Armenian (alternative eastern)"
-msgstr "armenski (alternativni istočni)"
+msgstr "Armenski (alternativni istočni)"
 
 #. Keyboard indicator for German layouts
 #: ../rules/base.xml.in.h:248 ../rules/base.extras.xml.in.h:22
@@ -986,24 +986,23 @@ msgstr "de"
 
 #: ../rules/base.xml.in.h:249
 msgid "German (Austria)"
-msgstr "njemački (Austrija)"
+msgstr "Njemački (Austrija)"
 
 #: ../rules/base.xml.in.h:250
 msgid "German (Austria, eliminate dead keys)"
-msgstr "njemački (Austrija, ukloniti mrtve tipke)"
+msgstr "Njemački (Austrija, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:251
 msgid "German (Austria, Sun dead keys)"
-msgstr "njemački (Austrija, Sun mrtve tipke)"
+msgstr "Njemački (Austrija, Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:252
 msgid "German (Austria, Macintosh)"
-msgstr "njemački (Austrija, Macintosh)"
+msgstr "Njemački (Austrija, Macintosh)"
 
 #: ../rules/base.xml.in.h:253
-#, fuzzy
 msgid "English (Australian)"
-msgstr "engleski (normanski)"
+msgstr "Engleski (Australski)"
 
 #. Keyboard indicator for Azerbaijani layouts
 #: ../rules/base.xml.in.h:255
@@ -1012,11 +1011,11 @@ msgstr "az"
 
 #: ../rules/base.xml.in.h:256
 msgid "Azerbaijani"
-msgstr "azerbejdžanski"
+msgstr "Azerbejdžanski"
 
 #: ../rules/base.xml.in.h:257
 msgid "Azerbaijani (Cyrillic)"
-msgstr "azerbejdžanski (ćirilični)"
+msgstr "Azerbejdžanski (ćirilični)"
 
 #. Keyboard indicator for Belarusian layouts
 #: ../rules/base.xml.in.h:259
@@ -1025,62 +1024,61 @@ msgstr "by"
 
 #: ../rules/base.xml.in.h:260
 msgid "Belarusian"
-msgstr "bjeloruski"
+msgstr "Bjeloruski"
 
 #: ../rules/base.xml.in.h:261
 msgid "Belarusian (legacy)"
-msgstr "bjeloruski (zastarjeli)"
+msgstr "Bjeloruski (stari)"
 
 #: ../rules/base.xml.in.h:262
 msgid "Belarusian (Latin)"
-msgstr "bjeloruski (latinični)"
+msgstr "Bjeloruski (latinica)"
 
 #. Keyboard indicator for Belgian layouts
-#: ../rules/base.xml.in.h:264 ../rules/base.extras.xml.in.h:96
+#: ../rules/base.xml.in.h:264 ../rules/base.extras.xml.in.h:97
 msgid "be"
 msgstr "be"
 
-#: ../rules/base.xml.in.h:265 ../rules/base.extras.xml.in.h:97
+#: ../rules/base.xml.in.h:265 ../rules/base.extras.xml.in.h:98
 msgid "Belgian"
-msgstr "belgijski"
+msgstr "Belgijski"
 
 #: ../rules/base.xml.in.h:266
 msgid "Belgian (alternative)"
-msgstr "belgijski (alternativni)"
+msgstr "Belgijski (alternativni)"
 
 #: ../rules/base.xml.in.h:267
 msgid "Belgian (alternative, Latin-9 only)"
-msgstr "belgijski (alternativni, samo Latin-9)"
+msgstr "Belgijski (alternativni, samo latinica-9)"
 
 #: ../rules/base.xml.in.h:268
 msgid "Belgian (alternative, Sun dead keys)"
-msgstr ""
+msgstr "Belgijski (alternativni, Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:269
 msgid "Belgian (ISO alternate)"
-msgstr "belgijski (ISO alternativni)"
+msgstr "Belgijski (ISO alternativni)"
 
-# eliminate dead key: Eliminate dead keys ukloniti
 #: ../rules/base.xml.in.h:270
 msgid "Belgian (eliminate dead keys)"
-msgstr ""
+msgstr "Belgijski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:271
 msgid "Belgian (Sun dead keys)"
-msgstr ""
+msgstr "Belgijski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:272
 msgid "Belgian (Wang model 724 azerty)"
-msgstr ""
+msgstr "Belgian (Wang model 724 azerty)"
 
 #. Keyboard indicator for Indian layouts
-#: ../rules/base.xml.in.h:274 ../rules/base.extras.xml.in.h:171
+#: ../rules/base.xml.in.h:274 ../rules/base.extras.xml.in.h:173
 msgid "in"
 msgstr "in"
 
-#: ../rules/base.xml.in.h:275 ../rules/base.extras.xml.in.h:172
+#: ../rules/base.xml.in.h:275 ../rules/base.extras.xml.in.h:174
 msgid "Indian"
-msgstr "indijski"
+msgstr "Indijski"
 
 #. Keyboard indicator for Urdu layouts
 #: ../rules/base.xml.in.h:277
@@ -1089,19 +1087,19 @@ msgstr "ur"
 
 #: ../rules/base.xml.in.h:278
 msgid "Urdu (phonetic)"
-msgstr "urdski (fonetski)"
+msgstr "Urdski (fonetski)"
 
 #: ../rules/base.xml.in.h:279
 msgid "Urdu (alternative phonetic)"
-msgstr "urdski (alternativni fonetski)"
+msgstr "Urdski (alternativni fonetski)"
 
 #: ../rules/base.xml.in.h:280
 msgid "Urdu (WinKeys)"
-msgstr ""
+msgstr "Urdski (Win tipke)"
 
 #: ../rules/base.xml.in.h:281
 msgid "English (India, with rupee sign)"
-msgstr "engleski (Indija, sa znakom rupije)"
+msgstr "Engleski (Indija, s rupijskim potpisom)"
 
 #. Keyboard indicator for Bosnian layouts
 #: ../rules/base.xml.in.h:283
@@ -1110,57 +1108,56 @@ msgstr "bs"
 
 #: ../rules/base.xml.in.h:284
 msgid "Bosnian"
-msgstr "bosanski"
+msgstr "Bosanski"
 
 #: ../rules/base.xml.in.h:285
 msgid "Bosnian (with guillemets for quotes)"
-msgstr "bosanski (sa »...« za navodnike)"
+msgstr "Bosanski (s navodnicima za citate)"
 
 #: ../rules/base.xml.in.h:286
 msgid "Bosnian (with Bosnian digraphs)"
-msgstr "bosanski (s bosanskim digramima)"
+msgstr "Bosanski (s bosanskim dvoznacima)"
 
-# dva slova koja se čitaju kao jedan glas (u hrvatskoj latinici nj, lj, dž)
 #: ../rules/base.xml.in.h:287
 msgid "Bosnian (US keyboard with Bosnian digraphs)"
-msgstr "bosanski (SAD, tipkovnica s bosanskim digramima)"
+msgstr "Bosanski (SAD tipkovnica s bosanskim dvoznacima)"
 
 #: ../rules/base.xml.in.h:288
 msgid "Bosnian (US keyboard with Bosnian letters)"
-msgstr "bosanski (SAD, tipkovnica s bosanskim slovima)"
+msgstr "Bosanski (SAD tipkovnica s bosanskim slovima)"
 
 #. Keyboard indicator for Portuguese layouts
-#: ../rules/base.xml.in.h:290 ../rules/base.extras.xml.in.h:99
+#: ../rules/base.xml.in.h:290 ../rules/base.extras.xml.in.h:100
 msgid "pt"
 msgstr "pt"
 
-#: ../rules/base.xml.in.h:291 ../rules/base.extras.xml.in.h:100
+#: ../rules/base.xml.in.h:291 ../rules/base.extras.xml.in.h:101
 msgid "Portuguese (Brazil)"
-msgstr "portugalski (Brazil)"
+msgstr "Portugalski (Brazil)"
 
 #: ../rules/base.xml.in.h:292
 msgid "Portuguese (Brazil, eliminate dead keys)"
-msgstr "portugalski (Brazil, ukloniti mrtve tipke)"
+msgstr "Portugalski (Brazil, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:293
 msgid "Portuguese (Brazil, Dvorak)"
-msgstr "portugalski (Brazil, Dvorak)"
+msgstr "Portugalski (Brazil, Dvorak)"
 
 #: ../rules/base.xml.in.h:294
 msgid "Portuguese (Brazil, Nativo)"
-msgstr "portugalski (Brazil, Nativo)"
+msgstr "Portugalski (Brazil, Nativo)"
 
 #: ../rules/base.xml.in.h:295
 msgid "Portuguese (Brazil, Nativo for US keyboards)"
-msgstr "portugalski (Brazil, Nativo za SAD tipkovnice)"
+msgstr "Portugalski (Brazil, Nativo za SAD tipkovnice)"
 
 #: ../rules/base.xml.in.h:296
 msgid "Esperanto (Brazil, Nativo)"
-msgstr "esperanto (Brazil, Nativo)"
+msgstr "Esperanto (Brazil, Nativo)"
 
 #: ../rules/base.xml.in.h:297
 msgid "Portuguese (Brazil, IBM/Lenovo ThinkPad)"
-msgstr "portugalski (Brazil, IBM/Lenovo ThinkPad)"
+msgstr "Portugalski (Brazil, IBM/Lenovo ThinkPad)"
 
 #. Keyboard indicator for Bulgarian layouts
 #: ../rules/base.xml.in.h:299
@@ -1169,23 +1166,23 @@ msgstr "bg"
 
 #: ../rules/base.xml.in.h:300
 msgid "Bulgarian"
-msgstr "bugarski"
+msgstr "Bugarski"
 
 #: ../rules/base.xml.in.h:301
 msgid "Bulgarian (traditional phonetic)"
-msgstr "bugarski (tradicionalni fonetski)"
+msgstr "Bugarski (tradicionalni fonetski)"
 
 #: ../rules/base.xml.in.h:302
 msgid "Bulgarian (new phonetic)"
-msgstr "bugarski (novi fonetski)"
+msgstr "Bugarski (novi fonetski)"
 
 #: ../rules/base.xml.in.h:303
 msgid "la"
-msgstr ""
+msgstr "la"
 
 #: ../rules/base.xml.in.h:304
 msgid "Berber (Algeria, Latin characters)"
-msgstr ""
+msgstr "Berberski (Alžir, Latinični znakovi)"
 
 #. Keyboard indicator for Berber layouts
 #: ../rules/base.xml.in.h:306
@@ -1194,15 +1191,15 @@ msgstr "ber"
 
 #: ../rules/base.xml.in.h:307
 msgid "Berber (Algeria, Tifinagh characters)"
-msgstr "berberski (Alžir, Tifinagh znakovi)"
+msgstr "Berberski (Alžir, Tifinagh znakovi)"
 
 #: ../rules/base.xml.in.h:308
 msgid "Arabic (Algeria)"
-msgstr "arapski (Alžir)"
+msgstr "Arapski (Alžir)"
 
 #: ../rules/base.xml.in.h:309
 msgid "Arabic (Morocco)"
-msgstr "arapski (Maroko)"
+msgstr "Arapski (Maroko)"
 
 #. Keyboard indicator for French layouts
 #: ../rules/base.xml.in.h:311 ../rules/base.extras.xml.in.h:15
@@ -1211,56 +1208,56 @@ msgstr "fr"
 
 #: ../rules/base.xml.in.h:312
 msgid "French (Morocco)"
-msgstr "francuski (Maroko)"
+msgstr "Francuski (Maroko)"
 
 #: ../rules/base.xml.in.h:313
 msgid "Berber (Morocco, Tifinagh)"
-msgstr "berberski (Maroko, Tifinagh)"
+msgstr "Berberski (Maroko, Tifinagh)"
 
 #: ../rules/base.xml.in.h:314
 msgid "Berber (Morocco, Tifinagh alternative)"
-msgstr "berberski (Maroko, Tifinagh alternativni)"
+msgstr "Berberski (Maroko, Tifinagh alternativni)"
 
 #: ../rules/base.xml.in.h:315
 msgid "Berber (Morocco, Tifinagh alternative phonetic)"
-msgstr "berberski (Maroko, Tifinagh alternativni fonetski)"
+msgstr "Berberski (Maroko, Tifinagh alternativni fonetski)"
 
 #: ../rules/base.xml.in.h:316
 msgid "Berber (Morocco, Tifinagh extended)"
-msgstr "berberski (Maroko, Tifinagh prošireni)"
+msgstr "Berberski (Maroko, Tifinagh prošireni)"
 
 #: ../rules/base.xml.in.h:317
 msgid "Berber (Morocco, Tifinagh phonetic)"
-msgstr "berberski (Maroko, Tifinagh fonetski)"
+msgstr "Berberski (Maroko, Tifinagh fonetski)"
 
 #: ../rules/base.xml.in.h:318
 msgid "Berber (Morocco, Tifinagh extended phonetic)"
-msgstr "berberski (Maroko, Tifinagh prošireni fonetski)"
+msgstr "Berberski (Maroko, Tifinagh prošireni fonetski)"
 
 #. Keyboard indicator for Cameroon layouts
-#: ../rules/base.xml.in.h:320 ../rules/base.extras.xml.in.h:163
+#: ../rules/base.xml.in.h:320 ../rules/base.extras.xml.in.h:165
 msgid "cm"
 msgstr "cm"
 
-#: ../rules/base.xml.in.h:321 ../rules/base.extras.xml.in.h:164
+#: ../rules/base.xml.in.h:321 ../rules/base.extras.xml.in.h:166
 msgid "English (Cameroon)"
-msgstr "engleski (Kamerun)"
+msgstr "Engleski (Kamerun)"
 
 #: ../rules/base.xml.in.h:322
 msgid "French (Cameroon)"
-msgstr "francuski (Kamerun)"
+msgstr "Francuski (Kamerun)"
 
 #: ../rules/base.xml.in.h:323
 msgid "Cameroon Multilingual (qwerty)"
-msgstr "kamerunski višejezični (qwerty)"
+msgstr "Kamerunski višejezični (qwerty)"
 
 #: ../rules/base.xml.in.h:324
 msgid "Cameroon Multilingual (azerty)"
-msgstr "kamerunski višejezični (azerty)"
+msgstr "Kamerunski višejezični (azerty)"
 
 #: ../rules/base.xml.in.h:325
 msgid "Cameroon Multilingual (Dvorak)"
-msgstr "kamerunski višejezični (Dvorak)"
+msgstr "Kamerunski višejezični (Dvorak)"
 
 #. Keyboard indicator for Burmese layouts
 #: ../rules/base.xml.in.h:327
@@ -1269,31 +1266,31 @@ msgstr "my"
 
 #: ../rules/base.xml.in.h:328
 msgid "Burmese"
-msgstr "burmanski"
+msgstr "Burmanski"
 
 #: ../rules/base.xml.in.h:329 ../rules/base.extras.xml.in.h:16
 msgid "French (Canada)"
-msgstr "francuski (Kanada)"
+msgstr "Francuski (Kanada)"
 
 #: ../rules/base.xml.in.h:330
 msgid "French (Canada, Dvorak)"
-msgstr "francuski (Kanada, Dvorak)"
+msgstr "Francuski (Kanada, Dvorak)"
 
 #: ../rules/base.xml.in.h:331
 msgid "French (Canada, legacy)"
-msgstr "francuski (Kanada, zastarjeli)"
+msgstr "Francuski (Kanada, stari)"
 
 #: ../rules/base.xml.in.h:332
 msgid "Canadian Multilingual"
-msgstr "kanadski višejezični"
+msgstr "Kanadski višejezični"
 
 #: ../rules/base.xml.in.h:333
 msgid "Canadian Multilingual (first part)"
-msgstr "kanadski višejezični (prvi dio)"
+msgstr "Kanadski višejezični (prvi dio)"
 
 #: ../rules/base.xml.in.h:334
 msgid "Canadian Multilingual (second part)"
-msgstr "kanadski višejezični (drugi dio)"
+msgstr "Kanadski višejezični (drugi dio)"
 
 #. Keyboard indicator for Inuktikut layouts
 #: ../rules/base.xml.in.h:336
@@ -1302,15 +1299,15 @@ msgstr "ike"
 
 #: ../rules/base.xml.in.h:337
 msgid "Inuktitut"
-msgstr ""
+msgstr "Inuktitutski"
 
 #: ../rules/base.xml.in.h:338
 msgid "English (Canada)"
-msgstr "engleski (Kanada)"
+msgstr "Engleski (Kanada)"
 
 #: ../rules/base.xml.in.h:339
 msgid "French (Democratic Republic of the Congo)"
-msgstr "francuski (Demokratska Republika Kongo)"
+msgstr "Francuski (Demokratska Republika Kongo)"
 
 #. Keyboard indicator for Taiwanese layouts
 #: ../rules/base.xml.in.h:341
@@ -1319,23 +1316,23 @@ msgstr "zh"
 
 #: ../rules/base.xml.in.h:342
 msgid "Chinese"
-msgstr "kineski"
+msgstr "Kineski"
 
 #: ../rules/base.xml.in.h:343
 msgid "Tibetan"
-msgstr "tibetski"
+msgstr "Tibetski"
 
 #: ../rules/base.xml.in.h:344
 msgid "Tibetan (with ASCII numerals)"
-msgstr ""
+msgstr "Tibetski (sa ASCII brojevima)"
 
 #: ../rules/base.xml.in.h:345
 msgid "ug"
-msgstr ""
+msgstr "ug"
 
 #: ../rules/base.xml.in.h:346
 msgid "Uyghur"
-msgstr "ujgurski"
+msgstr "Ujgurski"
 
 #. Keyboard indicator for Croatian layouts
 #: ../rules/base.xml.in.h:348
@@ -1344,106 +1341,106 @@ msgstr "hr"
 
 #: ../rules/base.xml.in.h:349
 msgid "Croatian"
-msgstr "hrvatski"
+msgstr "Hrvatski"
 
 #: ../rules/base.xml.in.h:350
 msgid "Croatian (with guillemets for quotes)"
-msgstr "hrvatski (sa »...« za navodnike)"
+msgstr "Hrvatski (s navodnicima za citate)"
 
 #: ../rules/base.xml.in.h:351
 msgid "Croatian (with Croatian digraphs)"
-msgstr "hrvatski (koristi hrvatske digrame)"
+msgstr "Hrvatski (s hrvatskim dvoznacima)"
 
 #: ../rules/base.xml.in.h:352
 msgid "Croatian (US keyboard with Croatian digraphs)"
-msgstr "hrvatski (SAD tipkovnica s hrvatskim digramima)"
+msgstr "Hrvatski (SAD tipkovnica s hrvatskim dvoznacima)"
 
 #: ../rules/base.xml.in.h:353
 msgid "Croatian (US keyboard with Croatian letters)"
-msgstr "hrvatski (SAD tipkovnica s hrvatskim slovima)"
+msgstr "Hrvatski (SAD tipkovnica s hrvatskim slovima)"
 
 #. Keyboard indicator for Chech layouts
-#: ../rules/base.xml.in.h:355 ../rules/base.extras.xml.in.h:102
+#: ../rules/base.xml.in.h:355 ../rules/base.extras.xml.in.h:103
 msgid "cs"
 msgstr "cs"
 
-#: ../rules/base.xml.in.h:356 ../rules/base.extras.xml.in.h:103
+#: ../rules/base.xml.in.h:356 ../rules/base.extras.xml.in.h:104
 msgid "Czech"
-msgstr "češki"
+msgstr "Češki"
 
 #: ../rules/base.xml.in.h:357
 msgid "Czech (with &lt;\\|&gt; key)"
-msgstr "češki (s tipkom &lt;\\|&gt;)"
+msgstr "Češki (s tipkom &lt;\\|&gt;)"
 
 #: ../rules/base.xml.in.h:358
 msgid "Czech (qwerty)"
-msgstr "češki (qwerty)"
+msgstr "Češki (qwerty)"
 
 #: ../rules/base.xml.in.h:359
 msgid "Czech (qwerty, extended Backslash)"
-msgstr ""
+msgstr "Češki (qwerty, prošireni s kosom crtom)"
 
 #: ../rules/base.xml.in.h:360
 msgid "Czech (UCW layout, accented letters only)"
-msgstr "češki (UCW raspored, samo slova s dijakriticima)"
+msgstr "Češki (UCW raspored, samo slova s dijakriticima)"
 
 #: ../rules/base.xml.in.h:361
 msgid "Czech (US Dvorak with CZ UCW support)"
-msgstr "češki (SAD Dvorak s podrškom za CZ UCW)"
+msgstr "Češki (SAD Dvorak s podrškom za CZ UCW)"
 
 #: ../rules/base.xml.in.h:362
 msgid "Russian (Czech, phonetic)"
-msgstr "ruski (Češka, fonetski)"
+msgstr "Ruski (Česki, fonetski)"
 
 #. Keyboard indicator for Danish layouts
-#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:105
+#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:106
 msgid "da"
 msgstr "da"
 
-#: ../rules/base.xml.in.h:365 ../rules/base.extras.xml.in.h:106
+#: ../rules/base.xml.in.h:365 ../rules/base.extras.xml.in.h:107
 msgid "Danish"
-msgstr "danski"
+msgstr "Danski"
 
 #: ../rules/base.xml.in.h:366
 msgid "Danish (eliminate dead keys)"
-msgstr ""
+msgstr "Danski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:367
 msgid "Danish (Winkeys)"
-msgstr "danski (Windows tipke)"
+msgstr "Danski (Win tipke)"
 
 #: ../rules/base.xml.in.h:368
 msgid "Danish (Macintosh)"
-msgstr "danski (Macintosh)"
+msgstr "Danski (Macintosh)"
 
 #: ../rules/base.xml.in.h:369
 msgid "Danish (Macintosh, eliminate dead keys)"
-msgstr ""
+msgstr "Danski (Macintosh, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:370
 msgid "Danish (Dvorak)"
-msgstr "danski (Dvorak)"
+msgstr "Danski (Dvorak)"
 
 #. Keyboard indicator for Dutch layouts
-#: ../rules/base.xml.in.h:372 ../rules/base.extras.xml.in.h:108
+#: ../rules/base.xml.in.h:372 ../rules/base.extras.xml.in.h:109
 msgid "nl"
 msgstr "nl"
 
-#: ../rules/base.xml.in.h:373 ../rules/base.extras.xml.in.h:109
+#: ../rules/base.xml.in.h:373 ../rules/base.extras.xml.in.h:110
 msgid "Dutch"
-msgstr "nizozemski"
+msgstr "Nizozemski"
 
 #: ../rules/base.xml.in.h:374
 msgid "Dutch (Sun dead keys)"
-msgstr ""
+msgstr "Nizozemski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:375
 msgid "Dutch (Macintosh)"
-msgstr ""
+msgstr "Nizozemski (Macintosh)"
 
 #: ../rules/base.xml.in.h:376
 msgid "Dutch (standard)"
-msgstr ""
+msgstr "Nizozemski (standardno)"
 
 #. Keyboard indicator for Dzongkha layouts
 #: ../rules/base.xml.in.h:378
@@ -1452,36 +1449,36 @@ msgstr "dz"
 
 #: ../rules/base.xml.in.h:379
 msgid "Dzongkha"
-msgstr ""
+msgstr "Džongkhaški"
 
 #. Keyboard indicator for Estonian layouts
-#: ../rules/base.xml.in.h:381 ../rules/base.extras.xml.in.h:111
+#: ../rules/base.xml.in.h:381 ../rules/base.extras.xml.in.h:112
 msgid "et"
 msgstr "et"
 
-#: ../rules/base.xml.in.h:382 ../rules/base.extras.xml.in.h:112
+#: ../rules/base.xml.in.h:382 ../rules/base.extras.xml.in.h:113
 msgid "Estonian"
-msgstr "estonski"
+msgstr "Estonski"
 
 #: ../rules/base.xml.in.h:383
 msgid "Estonian (eliminate dead keys)"
-msgstr ""
+msgstr "Estonski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:384
 msgid "Estonian (Dvorak)"
-msgstr ""
+msgstr "Estonski (Dvorak)"
 
 #: ../rules/base.xml.in.h:385
 msgid "Estonian (US keyboard with Estonian letters)"
-msgstr ""
+msgstr "Estonski (SAD tipkovnica s estonskim slovima)"
 
 #: ../rules/base.xml.in.h:386 ../rules/base.extras.xml.in.h:35
 msgid "Persian"
-msgstr "perzijski"
+msgstr "Perzijski"
 
 #: ../rules/base.xml.in.h:387
 msgid "Persian (with Persian keypad)"
-msgstr ""
+msgstr "Perzijski (s perzijskim tipkama)"
 
 #. Keyboard indicator for Kurdish layouts
 #: ../rules/base.xml.in.h:389
@@ -1490,39 +1487,39 @@ msgstr "ku"
 
 #: ../rules/base.xml.in.h:390
 msgid "Kurdish (Iran, Latin Q)"
-msgstr ""
+msgstr "Kurdski (Iran, latinični Q)"
 
 #: ../rules/base.xml.in.h:391
 msgid "Kurdish (Iran, F)"
-msgstr ""
+msgstr "Kurdski (Iran, F)"
 
 #: ../rules/base.xml.in.h:392
 msgid "Kurdish (Iran, Latin Alt-Q)"
-msgstr ""
+msgstr "Kurdski (Iran, latinični Alt-Q)"
 
 #: ../rules/base.xml.in.h:393
 msgid "Kurdish (Iran, Arabic-Latin)"
-msgstr ""
+msgstr "Kurdski (Iran, Arapsko-latinični)"
 
 #: ../rules/base.xml.in.h:394
 msgid "Iraqi"
-msgstr "irački"
+msgstr "Irački"
 
 #: ../rules/base.xml.in.h:395
 msgid "Kurdish (Iraq, Latin Q)"
-msgstr ""
+msgstr "Kurdski (Irak, latinični Q)"
 
 #: ../rules/base.xml.in.h:396
 msgid "Kurdish (Iraq, F)"
-msgstr ""
+msgstr "Kurdski (Irak, F)"
 
 #: ../rules/base.xml.in.h:397
 msgid "Kurdish (Iraq, Latin Alt-Q)"
-msgstr ""
+msgstr "Kurdski (Irak, latinični Alt-Q"
 
 #: ../rules/base.xml.in.h:398
 msgid "Kurdish (Iraq, Arabic-Latin)"
-msgstr ""
+msgstr "Kurdski (Irak, Arapsko-latinični)"
 
 #. Keyboard indicator for Faroese layouts
 #: ../rules/base.xml.in.h:400
@@ -1531,120 +1528,120 @@ msgstr "fo"
 
 #: ../rules/base.xml.in.h:401
 msgid "Faroese"
-msgstr "ferojski"
+msgstr "Ferojski"
 
 #: ../rules/base.xml.in.h:402
 msgid "Faroese (eliminate dead keys)"
-msgstr ""
+msgstr "Ferojski (uklonjene mrtve tipke)"
 
 #. Keyboard indicator for Finnish layouts
-#: ../rules/base.xml.in.h:404 ../rules/base.extras.xml.in.h:114
+#: ../rules/base.xml.in.h:404 ../rules/base.extras.xml.in.h:115
 msgid "fi"
 msgstr "fi"
 
-#: ../rules/base.xml.in.h:405 ../rules/base.extras.xml.in.h:115
+#: ../rules/base.xml.in.h:405 ../rules/base.extras.xml.in.h:116
 msgid "Finnish"
-msgstr "finski"
+msgstr "Finski"
 
 #: ../rules/base.xml.in.h:406
 msgid "Finnish (classic)"
-msgstr ""
+msgstr "Finski (klasičan)"
 
 #: ../rules/base.xml.in.h:407
 msgid "Finnish (classic, eliminate dead keys)"
-msgstr ""
+msgstr "Finski (klasičan, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:408
 msgid "Finnish (Winkeys)"
-msgstr ""
+msgstr "Finski (Win tipke)"
 
 #: ../rules/base.xml.in.h:409
 msgid "Northern Saami (Finland)"
-msgstr ""
+msgstr "Sjeverno samski (Finska)"
 
 #: ../rules/base.xml.in.h:410
 msgid "Finnish (Macintosh)"
-msgstr ""
+msgstr "Finski (Macintosh)"
 
-#: ../rules/base.xml.in.h:411 ../rules/base.extras.xml.in.h:118
+#: ../rules/base.xml.in.h:411 ../rules/base.extras.xml.in.h:119
 msgid "French"
-msgstr "francuski"
+msgstr "Francuski"
 
 #: ../rules/base.xml.in.h:412
 msgid "French (eliminate dead keys)"
-msgstr ""
+msgstr "Francuski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:413
 msgid "French (Sun dead keys)"
-msgstr ""
+msgstr "Francuski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:414
 msgid "French (alternative)"
-msgstr ""
+msgstr "Francuski (alternativni)"
 
 #: ../rules/base.xml.in.h:415
 msgid "French (alternative, Latin-9 only)"
-msgstr "francuski (alternativni, samo latin-9)"
+msgstr "Francuski (alternativni, samo latinični-9)"
 
 #: ../rules/base.xml.in.h:416
 msgid "French (alternative, eliminate dead keys)"
-msgstr ""
+msgstr "Francuski (alternativni, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:417
 msgid "French (alternative, Sun dead keys)"
-msgstr ""
+msgstr "Francuski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:418
 msgid "French (legacy, alternative)"
-msgstr ""
+msgstr "Francuski (stari, alternativni)"
 
 #: ../rules/base.xml.in.h:419
 msgid "French (legacy, alternative, eliminate dead keys)"
-msgstr ""
+msgstr "Francuski (stari, alternativni, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:420
 msgid "French (legacy, alternative, Sun dead keys)"
-msgstr ""
+msgstr "Francuski (stari, alternativni, Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:421
 msgid "French (Bepo, ergonomic, Dvorak way)"
-msgstr ""
+msgstr "Francuski (Bepo, ergonomski, Dvorak)"
 
 #: ../rules/base.xml.in.h:422
 msgid "French (Bepo, ergonomic, Dvorak way, Latin-9 only)"
-msgstr ""
+msgstr "Francuski (Bepo, ergonomski, Dvorak, samo latinični-9)"
 
 #: ../rules/base.xml.in.h:423
 msgid "French (Dvorak)"
-msgstr ""
+msgstr "Francuski (Dvorak)"
 
 #: ../rules/base.xml.in.h:424
 msgid "French (Macintosh)"
-msgstr ""
+msgstr "Francuski (Macintosh)"
 
 #: ../rules/base.xml.in.h:425
 msgid "French (Azerty)"
-msgstr "češki (azerty)"
+msgstr "Francuski (Azerty)"
 
 #: ../rules/base.xml.in.h:426
 msgid "French (Breton)"
-msgstr ""
+msgstr "Francuski (Breton)"
 
 #: ../rules/base.xml.in.h:427
 msgid "Occitan"
-msgstr ""
+msgstr "Okcitanski"
 
 #: ../rules/base.xml.in.h:428
 msgid "Georgian (France, AZERTY Tskapo)"
-msgstr ""
+msgstr "Gruzijski (Francuska, AZERTY Tskapo)"
 
 #: ../rules/base.xml.in.h:429
 msgid "English (Ghana)"
-msgstr ""
+msgstr "Engleski (Gana)"
 
 #: ../rules/base.xml.in.h:430
 msgid "English (Ghana, multilingual)"
-msgstr ""
+msgstr "Engleski (Gana, višejezični)"
 
 #. Keyboard indicator for Akan layouts
 #: ../rules/base.xml.in.h:432
@@ -1653,7 +1650,7 @@ msgstr "ak"
 
 #: ../rules/base.xml.in.h:433
 msgid "Akan"
-msgstr "akanski"
+msgstr "Akanski"
 
 #. Keyboard indicator for Ewe layouts
 #: ../rules/base.xml.in.h:435
@@ -1662,7 +1659,7 @@ msgstr "ee"
 
 #: ../rules/base.xml.in.h:436
 msgid "Ewe"
-msgstr ""
+msgstr "Eveski"
 
 #. Keyboard indicator for Fula layouts
 #: ../rules/base.xml.in.h:438
@@ -1671,7 +1668,7 @@ msgstr "ff"
 
 #: ../rules/base.xml.in.h:439
 msgid "Fula"
-msgstr ""
+msgstr "Fulaški"
 
 #. Keyboard indicator for Ga layouts
 #: ../rules/base.xml.in.h:441
@@ -1680,7 +1677,7 @@ msgstr "gaa"
 
 #: ../rules/base.xml.in.h:442
 msgid "Ga"
-msgstr ""
+msgstr "Gaški"
 
 #. Keyboard indicator for Hausa layouts
 #: ../rules/base.xml.in.h:444
@@ -1689,7 +1686,7 @@ msgstr "ha"
 
 #: ../rules/base.xml.in.h:445
 msgid "Hausa"
-msgstr "hauski"
+msgstr "Hauski"
 
 #. Keyboard indicator for Avatime layouts
 #: ../rules/base.xml.in.h:447
@@ -1698,15 +1695,15 @@ msgstr "avn"
 
 #: ../rules/base.xml.in.h:448
 msgid "Avatime"
-msgstr ""
+msgstr "Avatimeški"
 
 #: ../rules/base.xml.in.h:449
 msgid "English (Ghana, GILLBT)"
-msgstr ""
+msgstr "Engleski (Gana, GILLBT)"
 
 #: ../rules/base.xml.in.h:450
 msgid "French (Guinea)"
-msgstr ""
+msgstr "Francuski (Gvineja)"
 
 #. Keyboard indicator for Georgian layouts
 #: ../rules/base.xml.in.h:452
@@ -1715,121 +1712,120 @@ msgstr "ka"
 
 #: ../rules/base.xml.in.h:453
 msgid "Georgian"
-msgstr "gruzijski"
+msgstr "Gruzijski"
 
 #: ../rules/base.xml.in.h:454
 msgid "Georgian (ergonomic)"
-msgstr ""
+msgstr "Gruzijski (ergonomski)"
 
 #: ../rules/base.xml.in.h:455
 msgid "Georgian (MESS)"
-msgstr ""
+msgstr "Gruzijski (MESS)"
 
 #: ../rules/base.xml.in.h:456
 msgid "Russian (Georgia)"
-msgstr ""
+msgstr "Ruski (Gruzija)"
 
 #: ../rules/base.xml.in.h:457
 msgid "Ossetian (Georgia)"
-msgstr ""
+msgstr "Osetijski (gruzija)"
 
 #: ../rules/base.xml.in.h:458 ../rules/base.extras.xml.in.h:23
 msgid "German"
-msgstr "njemački"
+msgstr "Njemački"
 
 #: ../rules/base.xml.in.h:459
 msgid "German (dead acute)"
-msgstr ""
+msgstr "Njemački"
 
 #: ../rules/base.xml.in.h:460
 msgid "German (dead grave acute)"
-msgstr ""
+msgstr "Njemački (mrtav naglašen navod)"
 
 #: ../rules/base.xml.in.h:461
 msgid "German (eliminate dead keys)"
-msgstr ""
+msgstr "Njemački (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:462
 msgid "German (T3)"
-msgstr "njemački (T3)"
+msgstr "Njemački (T3)"
 
 #: ../rules/base.xml.in.h:463
 msgid "Romanian (Germany)"
-msgstr ""
+msgstr "Rumunjski (Njemačka)"
 
 #: ../rules/base.xml.in.h:464
 msgid "Romanian (Germany, eliminate dead keys)"
-msgstr ""
+msgstr "Rumunjski (Njemačka, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:465
 msgid "German (Dvorak)"
-msgstr ""
+msgstr "Njemački (Dvorak)"
 
 #: ../rules/base.xml.in.h:466
 msgid "German (Sun dead keys)"
-msgstr ""
+msgstr "Njemački (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:467
 msgid "German (Neo 2)"
-msgstr ""
+msgstr "Njemački (Neo 2)"
 
 #: ../rules/base.xml.in.h:468
 msgid "German (Macintosh)"
-msgstr ""
+msgstr "Njemački (Macintosh)"
 
 #: ../rules/base.xml.in.h:469
 msgid "German (Macintosh, eliminate dead keys)"
-msgstr ""
+msgstr "Njemački (Macintosh, uklonjene mrtve tipke"
 
 #: ../rules/base.xml.in.h:470
 msgid "Lower Sorbian"
-msgstr ""
+msgstr "Lužičko srpski"
 
 #: ../rules/base.xml.in.h:471
 msgid "Lower Sorbian (qwertz)"
-msgstr ""
+msgstr "Lužičko srpski (qwertz)"
 
 #: ../rules/base.xml.in.h:472
 msgid "German (qwerty)"
-msgstr ""
+msgstr "Njemački (qwerty)"
 
 #: ../rules/base.xml.in.h:473
 msgid "Turkish (Germany)"
-msgstr "turski (Njemačka)"
+msgstr "Turski (Njemačka)"
 
 #: ../rules/base.xml.in.h:474
 msgid "Russian (Germany, phonetic)"
-msgstr ""
+msgstr "Ruski (Njemačka, fonetski)"
 
 #: ../rules/base.xml.in.h:475
-#, fuzzy
 msgid "German (dead tilde)"
-msgstr "njemački (zastarjeli)"
+msgstr "Njemački (uključena mrtva tilda)"
 
 #. Keyboard indicator for Greek layouts
-#: ../rules/base.xml.in.h:477 ../rules/base.extras.xml.in.h:120
+#: ../rules/base.xml.in.h:477 ../rules/base.extras.xml.in.h:121
 msgid "gr"
 msgstr "gr"
 
-#: ../rules/base.xml.in.h:478 ../rules/base.extras.xml.in.h:121
+#: ../rules/base.xml.in.h:478 ../rules/base.extras.xml.in.h:122
 msgid "Greek"
-msgstr "grčki"
+msgstr "Grčki"
 
 #: ../rules/base.xml.in.h:479
 msgid "Greek (simple)"
-msgstr ""
+msgstr "Grčki (jednostavni)"
 
 #: ../rules/base.xml.in.h:480
 msgid "Greek (extended)"
-msgstr ""
+msgstr "Grčki (prošireni)"
 
 #: ../rules/base.xml.in.h:481
 msgid "Greek (eliminate dead keys)"
-msgstr ""
+msgstr "Grčki (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:482
 msgid "Greek (polytonic)"
-msgstr ""
+msgstr "Grčki (višetonski)"
 
 #. Keyboard indicator for Hungarian layouts
 #: ../rules/base.xml.in.h:484
@@ -1838,83 +1834,83 @@ msgstr "hu"
 
 #: ../rules/base.xml.in.h:485
 msgid "Hungarian"
-msgstr "mađarski"
+msgstr "Mađarski"
 
 #: ../rules/base.xml.in.h:486
 msgid "Hungarian (standard)"
-msgstr ""
+msgstr "Mađarski (standardan)"
 
 #: ../rules/base.xml.in.h:487
 msgid "Hungarian (eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:488
 msgid "Hungarian (qwerty)"
-msgstr ""
+msgstr "Mađarski (qwerty)"
 
 #: ../rules/base.xml.in.h:489
 msgid "Hungarian (101/qwertz/comma/dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwertz/zarez/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:490
 msgid "Hungarian (101/qwertz/comma/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwertz/zarez/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:491
 msgid "Hungarian (101/qwertz/dot/dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwertz/točka/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:492
 msgid "Hungarian (101/qwertz/dot/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwertz/točka/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:493
 msgid "Hungarian (101/qwerty/comma/dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwerty/zarez/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:494
 msgid "Hungarian (101/qwerty/comma/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwerty/zarez/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:495
 msgid "Hungarian (101/qwerty/dot/dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwerty/točka/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:496
 msgid "Hungarian (101/qwerty/dot/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (101/qwerty/točka/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:497
 msgid "Hungarian (102/qwertz/comma/dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwertz/zarez/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:498
 msgid "Hungarian (102/qwertz/comma/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwertz/zarez/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:499
 msgid "Hungarian (102/qwertz/dot/dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwertz/zarez/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:500
 msgid "Hungarian (102/qwertz/dot/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwertz/točka/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:501
 msgid "Hungarian (102/qwerty/comma/dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwerty/zarez/mrtve tipke)"
 
 #: ../rules/base.xml.in.h:502
 msgid "Hungarian (102/qwerty/comma/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwerty/zarez/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:503
 msgid "Hungarian (102/qwerty/dot/dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwerty/točka/uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:504
 msgid "Hungarian (102/qwerty/dot/eliminate dead keys)"
-msgstr ""
+msgstr "Mađarski (102/qwerty/točka/uklonjene mrtve tipke)"
 
 #. Keyboard indicator for Icelandic layouts
 #: ../rules/base.xml.in.h:506
@@ -1923,110 +1919,110 @@ msgstr "is"
 
 #: ../rules/base.xml.in.h:507
 msgid "Icelandic"
-msgstr "islandski"
+msgstr "Islandski"
 
 #: ../rules/base.xml.in.h:508
 msgid "Icelandic (Sun dead keys)"
-msgstr ""
+msgstr "Islandski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:509
 msgid "Icelandic (eliminate dead keys)"
-msgstr ""
+msgstr "Islandski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:510
 msgid "Icelandic (Macintosh, legacy)"
-msgstr "islandski (Macintosh, zastarjeli)"
+msgstr "Islandski (Macintosh, stari)"
 
 #: ../rules/base.xml.in.h:511
 msgid "Icelandic (Macintosh)"
-msgstr ""
+msgstr "Islandski (Macintosh)"
 
 #: ../rules/base.xml.in.h:512
 msgid "Icelandic (Dvorak)"
-msgstr ""
+msgstr "Islandski (Dvorak)"
 
 #. Keyboard indicator for Hebrew layouts
-#: ../rules/base.xml.in.h:514 ../rules/base.extras.xml.in.h:90
+#: ../rules/base.xml.in.h:514 ../rules/base.extras.xml.in.h:91
 msgid "he"
 msgstr "he"
 
-#: ../rules/base.xml.in.h:515 ../rules/base.extras.xml.in.h:91
+#: ../rules/base.xml.in.h:515 ../rules/base.extras.xml.in.h:92
 msgid "Hebrew"
-msgstr "hebrejski"
+msgstr "Hebrejski"
 
 #: ../rules/base.xml.in.h:516
 msgid "Hebrew (lyx)"
-msgstr ""
+msgstr "Hebrejski (lyx)"
 
 #: ../rules/base.xml.in.h:517
 msgid "Hebrew (phonetic)"
-msgstr ""
+msgstr "Hebrejski (fonetski)"
 
 #: ../rules/base.xml.in.h:518
 msgid "Hebrew (Biblical, Tiro)"
-msgstr ""
+msgstr "Hebrejski (biblijski, Tiro)"
 
 #. Keyboard indicator for Italian layouts
-#: ../rules/base.xml.in.h:520 ../rules/base.extras.xml.in.h:123
+#: ../rules/base.xml.in.h:520 ../rules/base.extras.xml.in.h:124
 msgid "it"
 msgstr "it"
 
-#: ../rules/base.xml.in.h:521 ../rules/base.extras.xml.in.h:124
+#: ../rules/base.xml.in.h:521 ../rules/base.extras.xml.in.h:125
 msgid "Italian"
-msgstr "talijanski"
+msgstr "Talijanski"
 
 #: ../rules/base.xml.in.h:522
 msgid "Italian (eliminate dead keys)"
-msgstr ""
+msgstr "Talijanski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:523
 msgid "Italian (Winkeys)"
-msgstr ""
+msgstr "Talijanski (Win tipke)"
 
 #: ../rules/base.xml.in.h:524
 msgid "Italian (Macintosh)"
-msgstr ""
+msgstr "Talijanski (Macintosh)"
 
 #: ../rules/base.xml.in.h:525
 msgid "Italian (US keyboard with Italian letters)"
-msgstr ""
+msgstr "Talijanski (SAD tipkovnica s talijanskim slovima)"
 
 #: ../rules/base.xml.in.h:526
 msgid "Georgian (Italy)"
-msgstr ""
+msgstr "Gruzijski (Italija)"
 
 #: ../rules/base.xml.in.h:527
 msgid "Italian (IBM 142)"
-msgstr ""
+msgstr "Talijanski (IBM 142)"
 
 #. Keyboard indicator for Japanese layouts
-#: ../rules/base.xml.in.h:529 ../rules/base.extras.xml.in.h:126
+#: ../rules/base.xml.in.h:529 ../rules/base.extras.xml.in.h:127
 msgid "ja"
 msgstr "ja"
 
-#: ../rules/base.xml.in.h:530 ../rules/base.extras.xml.in.h:127
+#: ../rules/base.xml.in.h:530 ../rules/base.extras.xml.in.h:128
 msgid "Japanese"
-msgstr "japanski"
+msgstr "Japanski"
 
 #: ../rules/base.xml.in.h:531
 msgid "Japanese (Kana)"
-msgstr ""
+msgstr "Japanski (Kana)"
 
 #: ../rules/base.xml.in.h:532
 msgid "Japanese (Kana 86)"
-msgstr ""
+msgstr "Japanski (Kana 86)"
 
 #: ../rules/base.xml.in.h:533
 msgid "Japanese (OADG 109A)"
-msgstr ""
+msgstr "Japanski (OADG 109A)"
 
 #: ../rules/base.xml.in.h:534
 msgid "Japanese (Macintosh)"
-msgstr ""
+msgstr "Japanski (Macintosh)"
 
 #: ../rules/base.xml.in.h:535
 msgid "Japanese (Dvorak)"
-msgstr ""
+msgstr "Japanski (Dvorak)"
 
 #. Keyboard indicator for Kikuyu layouts
 #: ../rules/base.xml.in.h:537
@@ -2035,11 +2031,11 @@ msgstr "ki"
 
 #: ../rules/base.xml.in.h:538
 msgid "Kyrgyz"
-msgstr "kirgiski"
+msgstr "Kirgiški"
 
 #: ../rules/base.xml.in.h:539
 msgid "Kyrgyz (phonetic)"
-msgstr ""
+msgstr "Kirgiški (fonetski)"
 
 #. Keyboard indicator for Khmer layouts
 #: ../rules/base.xml.in.h:541
@@ -2048,7 +2044,7 @@ msgstr "km"
 
 #: ../rules/base.xml.in.h:542
 msgid "Khmer (Cambodia)"
-msgstr ""
+msgstr "Kmerski (Kambodža)"
 
 #. Keyboard indicator for Kazakh layouts
 #: ../rules/base.xml.in.h:544
@@ -2057,19 +2053,19 @@ msgstr "kk"
 
 #: ../rules/base.xml.in.h:545
 msgid "Kazakh"
-msgstr "kazanski"
+msgstr "Kazaški"
 
 #: ../rules/base.xml.in.h:546
 msgid "Russian (Kazakhstan, with Kazakh)"
-msgstr ""
+msgstr "Ruski (Kazakstan, s kazaškim)"
 
 #: ../rules/base.xml.in.h:547
 msgid "Kazakh (with Russian)"
-msgstr ""
+msgstr "Kazaški (s ruskim)"
 
 #: ../rules/base.xml.in.h:548
 msgid "Kazakh (extended)"
-msgstr ""
+msgstr "Kazaški (prošireni)"
 
 #. Keyboard indicator for Lao layouts
 #: ../rules/base.xml.in.h:550
@@ -2078,36 +2074,36 @@ msgstr "lo"
 
 #: ../rules/base.xml.in.h:551
 msgid "Lao"
-msgstr ""
+msgstr "Laoski"
 
 #: ../rules/base.xml.in.h:552
 msgid "Lao (STEA proposed standard layout)"
-msgstr ""
+msgstr "Laoški (STEA predložen standardan raspored)"
 
 #. Keyboard indicator for Spanish layouts
-#: ../rules/base.xml.in.h:554 ../rules/base.extras.xml.in.h:139
+#: ../rules/base.xml.in.h:554 ../rules/base.extras.xml.in.h:140
 msgid "es"
 msgstr "es"
 
 #: ../rules/base.xml.in.h:555
 msgid "Spanish (Latin American)"
-msgstr ""
+msgstr "Španjolski (latinoamerički)"
 
 #: ../rules/base.xml.in.h:556
 msgid "Spanish (Latin American, eliminate dead keys)"
-msgstr ""
+msgstr "Španjolski (latinoamerički, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:557
 msgid "Spanish (Latin American, include dead tilde)"
-msgstr ""
+msgstr "Španjolski (latinoamerički, uključena mrtva tilda)"
 
 #: ../rules/base.xml.in.h:558
 msgid "Spanish (Latin American, Sun dead keys)"
-msgstr ""
+msgstr "Španjolski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:559
 msgid "Spanish (Latin American, Dvorak)"
-msgstr "španjolski (Latinska Amerika, Dvorak za programere)"
+msgstr "Španjolski (latinoamerički, Dvorak)"
 
 #. Keyboard indicator for Lithuanian layouts
 #: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:37
@@ -2116,27 +2112,27 @@ msgstr "lt"
 
 #: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:38
 msgid "Lithuanian"
-msgstr "litavski"
+msgstr "Litavski"
 
 #: ../rules/base.xml.in.h:563
 msgid "Lithuanian (standard)"
-msgstr ""
+msgstr "Litavksi (standardan)"
 
 #: ../rules/base.xml.in.h:564
 msgid "Lithuanian (US keyboard with Lithuanian letters)"
-msgstr ""
+msgstr "Litavksi (SAD tipkovnica s litavskim slovima)"
 
 #: ../rules/base.xml.in.h:565
 msgid "Lithuanian (IBM LST 1205-92)"
-msgstr ""
+msgstr "Litavksi (IBM LST 1205-92)"
 
 #: ../rules/base.xml.in.h:566
 msgid "Lithuanian (LEKP)"
-msgstr ""
+msgstr "Litavksi (LEKP)"
 
 #: ../rules/base.xml.in.h:567
 msgid "Lithuanian (LEKPa)"
-msgstr ""
+msgstr "Litavksi (LEKPa)"
 
 #. Keyboard indicator for Latvian layouts
 #: ../rules/base.xml.in.h:569 ../rules/base.extras.xml.in.h:41
@@ -2145,31 +2141,31 @@ msgstr "lv"
 
 #: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:42
 msgid "Latvian"
-msgstr "latvijski"
+msgstr "Letonski"
 
 #: ../rules/base.xml.in.h:571
 msgid "Latvian (apostrophe variant)"
-msgstr ""
+msgstr "Letonski (varijanta s apostrofom)"
 
 #: ../rules/base.xml.in.h:572
 msgid "Latvian (tilde variant)"
-msgstr ""
+msgstr "Letonski (varijanta s tildom)"
 
 #: ../rules/base.xml.in.h:573
 msgid "Latvian (F variant)"
-msgstr ""
+msgstr "Letonski (F varijanta)"
 
 #: ../rules/base.xml.in.h:574
 msgid "Latvian (modern)"
-msgstr ""
+msgstr "Letonski (moderan)"
 
 #: ../rules/base.xml.in.h:575
 msgid "Latvian (ergonomic, ŪGJRMV)"
-msgstr ""
+msgstr "Letonski (ergonomski, ŪGJRMV)"
 
 #: ../rules/base.xml.in.h:576
 msgid "Latvian (adapted)"
-msgstr ""
+msgstr "Letonski (prilagođen)"
 
 #. Keyboard indicator for Maori layouts
 #: ../rules/base.xml.in.h:578
@@ -2178,7 +2174,7 @@ msgstr "mi"
 
 #: ../rules/base.xml.in.h:579
 msgid "Maori"
-msgstr "maorski"
+msgstr "Maorski"
 
 #. Keyboard indicator for Serbian layouts
 #: ../rules/base.xml.in.h:581 ../rules/base.extras.xml.in.h:79
@@ -2187,35 +2183,35 @@ msgstr "sr"
 
 #: ../rules/base.xml.in.h:582
 msgid "Montenegrin"
-msgstr "crnogorski"
+msgstr "Crnogorski"
 
 #: ../rules/base.xml.in.h:583
 msgid "Montenegrin (Cyrillic)"
-msgstr "crnogorski (ćirilični)"
+msgstr "Crnogorski (ćirilični)"
 
 #: ../rules/base.xml.in.h:584
 msgid "Montenegrin (Cyrillic, ZE and ZHE swapped)"
-msgstr "crnogorski (ćirilica, Z i Ž razmijenjeni)"
+msgstr "Crnogorski (ćirilica, Z i Ž zamjenjeni)"
 
 #: ../rules/base.xml.in.h:585
 msgid "Montenegrin (Latin Unicode)"
-msgstr "crnogorski (latinica, Unicode)"
+msgstr "Crnogorski (latinica unikôd)"
 
 #: ../rules/base.xml.in.h:586
 msgid "Montenegrin (Latin qwerty)"
-msgstr "crnogorski (latinica, qwerty)"
+msgstr "Crnogorski (latinica qwerty)"
 
 #: ../rules/base.xml.in.h:587
 msgid "Montenegrin (Latin Unicode qwerty)"
-msgstr "crnogorski (latinica, Unicode, qwerty)"
+msgstr "Crnogorski (latinica unikôd qwerty)"
 
 #: ../rules/base.xml.in.h:588
 msgid "Montenegrin (Cyrillic with guillemets)"
-msgstr "crnogorski (ćirilica, sa »...« za navodnike)"
+msgstr "Crnogorski (ćirilica s francuskim navodnicima)"
 
 #: ../rules/base.xml.in.h:589
 msgid "Montenegrin (Latin with guillemets)"
-msgstr "crnogorski (latinica, sa »...« za navodnike)"
+msgstr "Crnogorski (latinica s francuskim navodnicima)"
 
 #. Keyboard indicator for Macedonian layouts
 #: ../rules/base.xml.in.h:591
@@ -2224,11 +2220,11 @@ msgstr "mk"
 
 #: ../rules/base.xml.in.h:592
 msgid "Macedonian"
-msgstr "makedonski"
+msgstr "Makedonski"
 
 #: ../rules/base.xml.in.h:593
 msgid "Macedonian (eliminate dead keys)"
-msgstr ""
+msgstr "Makedonski (uklonjene mrtve tipke)"
 
 #. Keyboard indicator for Maltese layouts
 #: ../rules/base.xml.in.h:595
@@ -2237,11 +2233,11 @@ msgstr "mt"
 
 #: ../rules/base.xml.in.h:596
 msgid "Maltese"
-msgstr "malteški"
+msgstr "Malteški"
 
 #: ../rules/base.xml.in.h:597
 msgid "Maltese (with US layout)"
-msgstr ""
+msgstr "Malteški (sa SAD rasporedom)"
 
 #. Keyboard indicator for Mongolian layouts
 #: ../rules/base.xml.in.h:599
@@ -2250,48 +2246,48 @@ msgstr "mn"
 
 #: ../rules/base.xml.in.h:600
 msgid "Mongolian"
-msgstr "mongolski"
+msgstr "Mongolski"
 
 #. Keyboard indicator for Norwegian layouts
-#: ../rules/base.xml.in.h:602 ../rules/base.extras.xml.in.h:131
+#: ../rules/base.xml.in.h:602 ../rules/base.extras.xml.in.h:132
 msgid "no"
 msgstr "no"
 
-#: ../rules/base.xml.in.h:603 ../rules/base.extras.xml.in.h:132
+#: ../rules/base.xml.in.h:603 ../rules/base.extras.xml.in.h:133
 msgid "Norwegian"
-msgstr "norveški"
+msgstr "Norveški"
 
 #: ../rules/base.xml.in.h:604
 msgid "Norwegian (eliminate dead keys)"
-msgstr ""
+msgstr "Norveški (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:605
 msgid "Norwegian (Winkeys)"
-msgstr "norveški (Windows tipke)"
+msgstr "Norveški (Win tipke)"
 
 #: ../rules/base.xml.in.h:606
 msgid "Norwegian (Dvorak)"
-msgstr ""
+msgstr "Norveški (Dvorak)"
 
 #: ../rules/base.xml.in.h:607
 msgid "Northern Saami (Norway)"
-msgstr ""
+msgstr "Sjeverno samski (Norveška)"
 
 #: ../rules/base.xml.in.h:608
 msgid "Northern Saami (Norway, eliminate dead keys)"
-msgstr ""
+msgstr "Sjeverno samski (Norveška, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:609
 msgid "Norwegian (Macintosh)"
-msgstr ""
+msgstr "Norveški (Macintosh)"
 
 #: ../rules/base.xml.in.h:610
 msgid "Norwegian (Macintosh, eliminate dead keys)"
-msgstr ""
+msgstr "Norveški (Macintosh, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:611
 msgid "Norwegian (Colemak)"
-msgstr ""
+msgstr "Norveški (Colemak)"
 
 #. Keyboard indicator for Polish layouts
 #: ../rules/base.xml.in.h:613 ../rules/base.extras.xml.in.h:68
@@ -2300,79 +2296,79 @@ msgstr "pl"
 
 #: ../rules/base.xml.in.h:614 ../rules/base.extras.xml.in.h:69
 msgid "Polish"
-msgstr "poljski"
+msgstr "Poljski"
 
 #: ../rules/base.xml.in.h:615
 msgid "Polish (legacy)"
-msgstr "poljski (zastarjeli)"
+msgstr "Poljski (stari)"
 
 #: ../rules/base.xml.in.h:616
 msgid "Polish (qwertz)"
-msgstr ""
+msgstr "Poljski (qwertz)"
 
 #: ../rules/base.xml.in.h:617
 msgid "Polish (Dvorak)"
-msgstr ""
+msgstr "Poljski (Dvorak)"
 
 #: ../rules/base.xml.in.h:618
 msgid "Polish (Dvorak, Polish quotes on quotemark key)"
-msgstr ""
+msgstr "Poljski (Dvorak, poljski navodnici na tipki navodnika)"
 
 #: ../rules/base.xml.in.h:619
 msgid "Polish (Dvorak, Polish quotes on key 1)"
-msgstr ""
+msgstr "Poljski (Dvorak, poljski navodnici na tipki 1)"
 
 #: ../rules/base.xml.in.h:620
 msgid "Kashubian"
-msgstr ""
+msgstr "Kašupski"
 
 #: ../rules/base.xml.in.h:621
 msgid "Silesian"
-msgstr "šleski"
+msgstr "Šleski"
 
 #: ../rules/base.xml.in.h:622
 msgid "Russian (Poland, phonetic Dvorak)"
-msgstr ""
+msgstr "Ruski (Poljska, fonetski Dvorak)"
 
 #: ../rules/base.xml.in.h:623
 msgid "Polish (programmer Dvorak)"
-msgstr "poljski (Dvorak za programere)"
+msgstr "Poljski (programerski Dvorak)"
 
-#: ../rules/base.xml.in.h:624 ../rules/base.extras.xml.in.h:134
+#: ../rules/base.xml.in.h:624 ../rules/base.extras.xml.in.h:135
 msgid "Portuguese"
-msgstr "portugalski"
+msgstr "Portugalski"
 
 #: ../rules/base.xml.in.h:625
 msgid "Portuguese (eliminate dead keys)"
-msgstr ""
+msgstr "Portugalski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:626
 msgid "Portuguese (Sun dead keys)"
-msgstr ""
+msgstr "Portugalski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:627
 msgid "Portuguese (Macintosh)"
-msgstr ""
+msgstr "Portugalski (Macintosh)"
 
 #: ../rules/base.xml.in.h:628
 msgid "Portuguese (Macintosh, eliminate dead keys)"
-msgstr ""
+msgstr "Portugalski (Macintosh, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:629
 msgid "Portuguese (Macintosh, Sun dead keys)"
-msgstr ""
+msgstr "Portugalski (Macintosh, Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:630
 msgid "Portuguese (Nativo)"
-msgstr "portugalski (Nativo)"
+msgstr "Portugalski (Nativo)"
 
 #: ../rules/base.xml.in.h:631
 msgid "Portuguese (Nativo for US keyboards)"
-msgstr "portugalski (Nativo za US tipkovnice)"
+msgstr "Portugalski (Nativo za SAD tipkovnice)"
 
 #: ../rules/base.xml.in.h:632
 msgid "Esperanto (Portugal, Nativo)"
-msgstr ""
+msgstr "Esperanto (Portugal, Nativo)"
 
 #. Keyboard indicator for Romanian layouts
 #: ../rules/base.xml.in.h:634 ../rules/base.extras.xml.in.h:73
@@ -2381,152 +2377,151 @@ msgstr "ro"
 
 #: ../rules/base.xml.in.h:635 ../rules/base.extras.xml.in.h:74
 msgid "Romanian"
-msgstr "rumunjski"
+msgstr "Rumunjski"
 
 #: ../rules/base.xml.in.h:636
 msgid "Romanian (cedilla)"
-msgstr ""
+msgstr "Rumunjski (sedija)"
 
 #: ../rules/base.xml.in.h:637
 msgid "Romanian (standard)"
-msgstr ""
+msgstr "Rumunjski (standardan)"
 
 #: ../rules/base.xml.in.h:638
 msgid "Romanian (standard cedilla)"
-msgstr ""
+msgstr "Rumunjski (standardan sedija)"
 
 #: ../rules/base.xml.in.h:639
 msgid "Romanian (WinKeys)"
-msgstr ""
+msgstr "Rumunjski (Win tipke)"
 
 #: ../rules/base.xml.in.h:640 ../rules/base.extras.xml.in.h:83
 msgid "Russian"
-msgstr "ruski"
+msgstr "Ruski"
 
 #: ../rules/base.xml.in.h:641
 msgid "Russian (phonetic)"
-msgstr ""
+msgstr "Ruski (fonetski)"
 
 #: ../rules/base.xml.in.h:642
 msgid "Russian (phonetic WinKeys)"
-msgstr ""
+msgstr "Ruski (fonetski Win tipke)"
 
 #: ../rules/base.xml.in.h:643
 msgid "Russian (typewriter)"
-msgstr ""
+msgstr "Ruski (pisači stroj)"
 
 #: ../rules/base.xml.in.h:644
 msgid "Russian (legacy)"
-msgstr "ruski (zastarjeli)"
+msgstr "Ruski (stari)"
 
 #: ../rules/base.xml.in.h:645
 msgid "Russian (typewriter, legacy)"
-msgstr ""
+msgstr "Ruski (pisači stroj, stari)"
 
 #: ../rules/base.xml.in.h:646
 msgid "Tatar"
-msgstr "tatarski"
+msgstr "Tatarski"
 
 #: ../rules/base.xml.in.h:647
 msgid "Ossetian (legacy)"
-msgstr ""
+msgstr "Osetijski (stari)"
 
 #: ../rules/base.xml.in.h:648
 msgid "Ossetian (WinKeys)"
-msgstr ""
+msgstr "Osetijski (Win tipke)"
 
 #: ../rules/base.xml.in.h:649
 msgid "Chuvash"
-msgstr "čuvaški"
+msgstr "Čuvaški"
 
 #: ../rules/base.xml.in.h:650
 msgid "Chuvash (Latin)"
-msgstr ""
+msgstr "Čuvaški (Latinica)"
 
 #: ../rules/base.xml.in.h:651
 msgid "Udmurt"
-msgstr ""
+msgstr "Udmurtski"
 
 #: ../rules/base.xml.in.h:652
 msgid "Komi"
-msgstr ""
+msgstr "Komijski"
 
 #: ../rules/base.xml.in.h:653
 msgid "Yakut"
-msgstr ""
+msgstr "Jakutski"
 
 #: ../rules/base.xml.in.h:654
 msgid "Kalmyk"
-msgstr ""
+msgstr "Kalmički"
 
 #: ../rules/base.xml.in.h:655
 msgid "Russian (DOS)"
-msgstr ""
+msgstr "Ruski (DOS)"
 
 #: ../rules/base.xml.in.h:656
 msgid "Russian (Macintosh)"
-msgstr "ruski (Macintosh)"
+msgstr "Ruski (Macintosh)"
 
 #: ../rules/base.xml.in.h:657
 msgid "Serbian (Russia)"
-msgstr "srpski (Rusija)"
+msgstr "Srpski (Rusija)"
 
 #: ../rules/base.xml.in.h:658
 msgid "Bashkirian"
-msgstr "baškirski"
+msgstr "Baškirski"
 
 #: ../rules/base.xml.in.h:659
 msgid "Mari"
-msgstr ""
+msgstr "Marijski"
 
 #: ../rules/base.xml.in.h:660
 msgid "Russian (phonetic azerty)"
-msgstr "ruski (fonetski azerty)"
+msgstr "Ruski (fonetski azerty)"
 
 #: ../rules/base.xml.in.h:661
-#, fuzzy
 msgid "Russian (phonetic dvorak)"
-msgstr "ruski (fonetski azerty)"
+msgstr "Ruski (fonetski dvorak)"
 
 #: ../rules/base.xml.in.h:662
 msgid "Russian (phonetic French)"
-msgstr "ruski (fonetski francuski)"
+msgstr "Ruski (fonetski francuski)"
 
 #: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:80
 msgid "Serbian"
-msgstr "srpski"
+msgstr "Srpski"
 
 #: ../rules/base.xml.in.h:664
 msgid "Serbian (Cyrillic, ZE and ZHE swapped)"
-msgstr "srpski (ćirilica, Z i Ž razmijenjeni)"
+msgstr "Srpski (ćirilica, Z i Ž zamjenjeni)"
 
 #: ../rules/base.xml.in.h:665
 msgid "Serbian (Latin)"
-msgstr "srpski (latinica)"
+msgstr "Srpski (latinica)"
 
 #: ../rules/base.xml.in.h:666
 msgid "Serbian (Latin Unicode)"
-msgstr "srpski (latinica unicode)"
+msgstr "Srpski (latinica unikôd)"
 
 #: ../rules/base.xml.in.h:667
 msgid "Serbian (Latin qwerty)"
-msgstr "srpski (latinica qwerty)"
+msgstr "Srpski (latinica qwerty)"
 
 #: ../rules/base.xml.in.h:668
 msgid "Serbian (Latin Unicode qwerty)"
-msgstr "srpski (latinica unicode qwerty)"
+msgstr "Srpski (latinica unikôd qwerty)"
 
 #: ../rules/base.xml.in.h:669
 msgid "Serbian (Cyrillic with guillemets)"
-msgstr "srpski (ćirilica, sa »...«)"
+msgstr "Srpski (ćirilica s francuskim navodnicima)"
 
 #: ../rules/base.xml.in.h:670
 msgid "Serbian (Latin with guillemets)"
-msgstr "srpski (latinica sa »...«)"
+msgstr "Srpski (latinica s francuskim navodnicima)"
 
 #: ../rules/base.xml.in.h:671
 msgid "Pannonian Rusyn"
-msgstr ""
+msgstr "Panonsko rusinski"
 
 #. Keyboard indicator for Slovenian layouts
 #: ../rules/base.xml.in.h:673
@@ -2535,153 +2530,153 @@ msgstr "sl"
 
 #: ../rules/base.xml.in.h:674
 msgid "Slovenian"
-msgstr "slovenski"
+msgstr "Slovenski"
 
 #: ../rules/base.xml.in.h:675
 msgid "Slovenian (with guillemets for quotes)"
-msgstr "slovenski (sa »...« za navodnike)"
+msgstr "Slovenski (s navodnicima za citate)"
 
 #: ../rules/base.xml.in.h:676
 msgid "Slovenian (US keyboard with Slovenian letters)"
-msgstr "slovenski (SAD tipkovnica sa slovenskim slovima)"
+msgstr "Slovenski (SAD tipkovnica sa slovenskim slovima)"
 
 #. Keyboard indicator for Slovak layouts
-#: ../rules/base.xml.in.h:678 ../rules/base.extras.xml.in.h:136
+#: ../rules/base.xml.in.h:678 ../rules/base.extras.xml.in.h:137
 msgid "sk"
 msgstr "sk"
 
-#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:137
+#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:138
 msgid "Slovak"
-msgstr "slovački"
+msgstr "Slovački"
 
 #: ../rules/base.xml.in.h:680
 msgid "Slovak (extended Backslash)"
-msgstr ""
+msgstr "Slovački (prošireni s kosom crtom)"
 
 #: ../rules/base.xml.in.h:681
 msgid "Slovak (qwerty)"
-msgstr ""
+msgstr "Slovački (qwerty)"
 
 #: ../rules/base.xml.in.h:682
 msgid "Slovak (qwerty, extended Backslash)"
-msgstr ""
+msgstr "Slovački (qwerty, prošireni s kosom crtom)"
 
-#: ../rules/base.xml.in.h:683 ../rules/base.extras.xml.in.h:140
+#: ../rules/base.xml.in.h:683 ../rules/base.extras.xml.in.h:141
 msgid "Spanish"
-msgstr "španjolski"
+msgstr "Španjolski"
 
 #: ../rules/base.xml.in.h:684
 msgid "Spanish (eliminate dead keys)"
-msgstr ""
+msgstr "Španjolski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:685
 msgid "Spanish (Winkeys)"
-msgstr "španjolski (Windows tipke)"
+msgstr "Španjolski (Win tipke)"
 
 #: ../rules/base.xml.in.h:686
 msgid "Spanish (include dead tilde)"
-msgstr ""
+msgstr "Španjolski (uključena mrtva tilda)"
 
 #: ../rules/base.xml.in.h:687
 msgid "Spanish (Sun dead keys)"
-msgstr ""
+msgstr "Španjolski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:688
 msgid "Spanish (Dvorak)"
-msgstr ""
+msgstr "Španjolski (Dvorak)"
 
 #: ../rules/base.xml.in.h:689
 msgid "Asturian (Spain, with bottom-dot H and bottom-dot L)"
-msgstr ""
+msgstr "Asturski (Španjolska, s donjom točkom H i donjom točkom L)"
 
 #: ../rules/base.xml.in.h:690
 msgid "Catalan (Spain, with middle-dot L)"
-msgstr ""
+msgstr "Katalonski (Španjolska, sa srednjom točkom L)"
 
 #: ../rules/base.xml.in.h:691
 msgid "Spanish (Macintosh)"
-msgstr ""
+msgstr "Španjolski (Macintosh)"
 
 #. Keyboard indicator for Swedish layouts
-#: ../rules/base.xml.in.h:693 ../rules/base.extras.xml.in.h:142
+#: ../rules/base.xml.in.h:693 ../rules/base.extras.xml.in.h:143
 msgid "sv"
 msgstr "sv"
 
-#: ../rules/base.xml.in.h:694 ../rules/base.extras.xml.in.h:143
+#: ../rules/base.xml.in.h:694 ../rules/base.extras.xml.in.h:144
 msgid "Swedish"
-msgstr "švedski"
+msgstr "Švedski"
 
 #: ../rules/base.xml.in.h:695
 msgid "Swedish (eliminate dead keys)"
-msgstr ""
+msgstr "Švedski (uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:696
 msgid "Swedish (Dvorak)"
-msgstr ""
+msgstr "Švedski (Dvorak)"
 
 #: ../rules/base.xml.in.h:697
 msgid "Russian (Sweden, phonetic)"
-msgstr ""
+msgstr "Ruski (Švedska, fonetski)"
 
 #: ../rules/base.xml.in.h:698
 msgid "Russian (Sweden, phonetic, eliminate dead keys)"
-msgstr ""
+msgstr "Ruski (Švedska, fonetski, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:699
 msgid "Northern Saami (Sweden)"
-msgstr ""
+msgstr "Sjeverno samski (Švedska)"
 
 #: ../rules/base.xml.in.h:700
 msgid "Swedish (Macintosh)"
-msgstr ""
+msgstr "Švedski (Macintosh)"
 
 #: ../rules/base.xml.in.h:701
 msgid "Swedish (Svdvorak)"
-msgstr ""
+msgstr "Švedski (Svdvorak)"
 
 #: ../rules/base.xml.in.h:702
 msgid "Swedish Sign Language"
-msgstr "švedski znakovni jezik"
+msgstr "Švedski znakovni jezik"
 
-#: ../rules/base.xml.in.h:703 ../rules/base.extras.xml.in.h:146
+#: ../rules/base.xml.in.h:703 ../rules/base.extras.xml.in.h:148
 msgid "German (Switzerland)"
-msgstr ""
+msgstr "Njemački (Švicarska)"
 
 #: ../rules/base.xml.in.h:704
 msgid "German (Switzerland, legacy)"
-msgstr ""
+msgstr "Njemački (Švicarska, stari)"
 
 #: ../rules/base.xml.in.h:705
 msgid "German (Switzerland, eliminate dead keys)"
-msgstr ""
+msgstr "Njemački (Švicarska, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:706
 msgid "German (Switzerland, Sun dead keys)"
-msgstr ""
+msgstr "Njemački (Švicarska, Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:707
 msgid "French (Switzerland)"
-msgstr ""
+msgstr "Francuski (Švicarska)"
 
 #: ../rules/base.xml.in.h:708
 msgid "French (Switzerland, eliminate dead keys)"
-msgstr ""
+msgstr "Francuski (Švicarska, uklonjene mrtve tipke)"
 
 #: ../rules/base.xml.in.h:709
 msgid "French (Switzerland, Sun dead keys)"
-msgstr ""
+msgstr "Francuski (Švicarska, Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:710
 msgid "French (Switzerland, Macintosh)"
-msgstr ""
+msgstr "Francuski (Švicarska, Macintosh)"
 
 #: ../rules/base.xml.in.h:711
 msgid "German (Switzerland, Macintosh)"
-msgstr ""
+msgstr "Njemački (Švicarska, Macintosh)"
 
 #: ../rules/base.xml.in.h:712
 msgid "Arabic (Syria)"
-msgstr "arapski (Sirija)"
+msgstr "Arapski (Sirija)"
 
 #. Keyboard indicator for Syriac layouts
 #: ../rules/base.xml.in.h:714
@@ -2690,23 +2685,23 @@ msgstr "syc"
 
 #: ../rules/base.xml.in.h:715
 msgid "Syriac"
-msgstr ""
+msgstr "Sirijski"
 
 #: ../rules/base.xml.in.h:716
 msgid "Syriac (phonetic)"
-msgstr ""
+msgstr "Sirijski (fonetski)"
 
 #: ../rules/base.xml.in.h:717
 msgid "Kurdish (Syria, Latin Q)"
-msgstr ""
+msgstr "Kurdski (Sirija, latinični Q)"
 
 #: ../rules/base.xml.in.h:718
 msgid "Kurdish (Syria, F)"
-msgstr ""
+msgstr "Kurdski (Sirija, F)"
 
 #: ../rules/base.xml.in.h:719
 msgid "Kurdish (Syria, Latin Alt-Q)"
-msgstr ""
+msgstr "Kurdski (Sirija, latinični Alt-Q)"
 
 #. Keyboard indicator for Tajik layouts
 #: ../rules/base.xml.in.h:721
@@ -2715,11 +2710,11 @@ msgstr "tg"
 
 #: ../rules/base.xml.in.h:722
 msgid "Tajik"
-msgstr "tadžikistanski"
+msgstr "Tadžikistanski"
 
 #: ../rules/base.xml.in.h:723
 msgid "Tajik (legacy)"
-msgstr ""
+msgstr "Tadžički"
 
 #. Keyboard indicator for Sinhala layouts
 #: ../rules/base.xml.in.h:725
@@ -2728,28 +2723,28 @@ msgstr "si"
 
 #: ../rules/base.xml.in.h:726
 msgid "Sinhala (phonetic)"
-msgstr ""
+msgstr "Tadžički (fonetski)"
 
 #. Keyboard indicator for Tamil layouts
-#: ../rules/base.xml.in.h:728 ../rules/base.extras.xml.in.h:203
+#: ../rules/base.xml.in.h:728 ../rules/base.extras.xml.in.h:205
 msgid "ta"
 msgstr "ta"
 
 #: ../rules/base.xml.in.h:729
 msgid "Tamil (Sri Lanka, Unicode)"
-msgstr ""
+msgstr "Tamilski (Šri Lanka, unikôdni)"
 
 #: ../rules/base.xml.in.h:730
 msgid "Tamil (Sri Lanka, TAB Typewriter)"
-msgstr ""
+msgstr "Tamilski (Šri Lanka, TAB pisači stroj)"
 
 #: ../rules/base.xml.in.h:731
 msgid "us"
-msgstr ""
+msgstr "us"
 
 #: ../rules/base.xml.in.h:732
 msgid "Sinhala (US keyboard with Sinhala letters)"
-msgstr ""
+msgstr "Singaleški (SAD tipkovnica sa sinagelskim slovima)"
 
 #. Keyboard indicator for Thai layouts
 #: ../rules/base.xml.in.h:734
@@ -2758,52 +2753,52 @@ msgstr "th"
 
 #: ../rules/base.xml.in.h:735
 msgid "Thai"
-msgstr "tajlandski"
+msgstr "Tajlandski"
 
 #: ../rules/base.xml.in.h:736
 msgid "Thai (TIS-820.2538)"
-msgstr ""
+msgstr "Tajlandski (TIS-820.2538)"
 
 #: ../rules/base.xml.in.h:737
 msgid "Thai (Pattachote)"
-msgstr ""
+msgstr "Tajlandski (Patašot)"
 
 #. Keyboard indicator for Turkish layouts
-#: ../rules/base.xml.in.h:739 ../rules/base.extras.xml.in.h:149
+#: ../rules/base.xml.in.h:739 ../rules/base.extras.xml.in.h:151
 msgid "tr"
 msgstr "tr"
 
-#: ../rules/base.xml.in.h:740 ../rules/base.extras.xml.in.h:150
+#: ../rules/base.xml.in.h:740 ../rules/base.extras.xml.in.h:152
 msgid "Turkish"
-msgstr "turski"
+msgstr "Turski"
 
 #: ../rules/base.xml.in.h:741
 msgid "Turkish (F)"
-msgstr "turski (F)"
+msgstr "Turski (F)"
 
 #: ../rules/base.xml.in.h:742
 msgid "Turkish (Alt-Q)"
-msgstr ""
+msgstr "Turski (Alt-Q)"
 
 #: ../rules/base.xml.in.h:743
 msgid "Turkish (Sun dead keys)"
-msgstr ""
+msgstr "Turski (Sun mrtve tipke)"
 
 #: ../rules/base.xml.in.h:744
 msgid "Kurdish (Turkey, Latin Q)"
-msgstr ""
+msgstr "Kurdski (Turska, latinični Q)"
 
 #: ../rules/base.xml.in.h:745
 msgid "Kurdish (Turkey, F)"
-msgstr ""
+msgstr "Kurdski (Turska, F)"
 
 #: ../rules/base.xml.in.h:746
 msgid "Kurdish (Turkey, Latin Alt-Q)"
-msgstr ""
+msgstr "Kurdski (Turska, latinični Alt-Q)"
 
 #: ../rules/base.xml.in.h:747
 msgid "Turkish (international with dead keys)"
-msgstr ""
+msgstr "Turski (međunarodni s mrtvim tipkama)"
 
 #. Keyboard indicator for Crimean Tatar layouts
 #: ../rules/base.xml.in.h:749 ../rules/base.extras.xml.in.h:75
@@ -2812,23 +2807,23 @@ msgstr "crh"
 
 #: ../rules/base.xml.in.h:750
 msgid "Crimean Tatar (Turkish Q)"
-msgstr ""
+msgstr "Krimski tatarski (Turski Q)"
 
 #: ../rules/base.xml.in.h:751
 msgid "Crimean Tatar (Turkish F)"
-msgstr ""
+msgstr "Krimski tatarski (Turski F)"
 
 #: ../rules/base.xml.in.h:752
 msgid "Crimean Tatar (Turkish Alt-Q)"
-msgstr ""
+msgstr "Krimski tatarski (Turski Alt-Q)"
 
 #: ../rules/base.xml.in.h:753
 msgid "Taiwanese"
-msgstr "tajvanski"
+msgstr "Tajvanski"
 
 #: ../rules/base.xml.in.h:754
 msgid "Taiwanese (indigenous)"
-msgstr ""
+msgstr "Tajvanski (autohtoni)"
 
 #. Keyboard indicator for Saisiyat layouts
 #: ../rules/base.xml.in.h:756
@@ -2837,84 +2832,84 @@ msgstr "xsy"
 
 #: ../rules/base.xml.in.h:757
 msgid "Saisiyat (Taiwan)"
-msgstr ""
+msgstr "Saisiatanski (Tajvan)"
 
 #. Keyboard indicator for Ukranian layouts
-#: ../rules/base.xml.in.h:759 ../rules/base.extras.xml.in.h:152
+#: ../rules/base.xml.in.h:759 ../rules/base.extras.xml.in.h:154
 msgid "uk"
 msgstr "uk"
 
-#: ../rules/base.xml.in.h:760 ../rules/base.extras.xml.in.h:153
+#: ../rules/base.xml.in.h:760 ../rules/base.extras.xml.in.h:155
 msgid "Ukrainian"
-msgstr "ukrajinski"
+msgstr "Ukrajinski"
 
 #: ../rules/base.xml.in.h:761
 msgid "Ukrainian (phonetic)"
-msgstr ""
+msgstr "Ukrajinski (fonetski)"
 
 #: ../rules/base.xml.in.h:762
 msgid "Ukrainian (typewriter)"
-msgstr ""
+msgstr "Ukrajinski (pisači stroj)"
 
 #: ../rules/base.xml.in.h:763
 msgid "Ukrainian (WinKeys)"
-msgstr ""
+msgstr "Ukrajinski (Win tipke)"
 
 #: ../rules/base.xml.in.h:764
 msgid "Ukrainian (legacy)"
-msgstr ""
+msgstr "Ukrajinski (stari)"
 
 #: ../rules/base.xml.in.h:765
 msgid "Ukrainian (standard RSTU)"
-msgstr ""
+msgstr "Ukrajinski (standardan RSTU)"
 
 #: ../rules/base.xml.in.h:766
 msgid "Russian (Ukraine, standard RSTU)"
-msgstr ""
+msgstr "Ruski (Ukrajina, standardan RSTU)"
 
 #: ../rules/base.xml.in.h:767
 msgid "Ukrainian (homophonic)"
-msgstr ""
+msgstr "Ukrajinski (jednakozvučni)"
 
-#: ../rules/base.xml.in.h:768 ../rules/base.extras.xml.in.h:155
+#: ../rules/base.xml.in.h:768 ../rules/base.extras.xml.in.h:157
 msgid "English (UK)"
-msgstr ""
+msgstr "Engleski (UK)"
 
 #: ../rules/base.xml.in.h:769
 msgid "English (UK, extended WinKeys)"
-msgstr ""
+msgstr "Engleski (UK, proširene Win tipke)"
 
 #: ../rules/base.xml.in.h:770
 msgid "English (UK, international with dead keys)"
-msgstr ""
+msgstr "Engleski (UK, međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.xml.in.h:771
 msgid "English (UK, Dvorak)"
-msgstr ""
+msgstr "Engleski (UK, Dvorak)"
 
 #: ../rules/base.xml.in.h:772
 msgid "English (UK, Dvorak with UK punctuation)"
-msgstr ""
+msgstr "Engleski (UK, Dvorak sa UK interpukcijom)"
 
 #: ../rules/base.xml.in.h:773
 msgid "English (UK, Macintosh)"
-msgstr ""
+msgstr "Engleski (UK, Macintosh)"
 
 #: ../rules/base.xml.in.h:774
 msgid "English (UK, Macintosh international)"
-msgstr ""
+msgstr "Engleski (UK, Macintosh međunarodni)"
 
 #: ../rules/base.xml.in.h:775
 msgid "English (UK, Colemak)"
-msgstr ""
+msgstr "Engleski (UK, Colemak)"
 
 #: ../rules/base.xml.in.h:776
 msgid "Uzbek"
-msgstr "uzbečki"
+msgstr "Uzbečki"
 
 #: ../rules/base.xml.in.h:777
 msgid "Uzbek (Latin)"
-msgstr ""
+msgstr "Uzbečki (latinica)"
 
 #. Keyboard indicator for Vietnamese layouts
 #: ../rules/base.xml.in.h:779
@@ -2923,24 +2918,24 @@ msgstr "vi"
 
 #: ../rules/base.xml.in.h:780
 msgid "Vietnamese"
-msgstr "vijetnamski"
+msgstr "Vijetnamski"
 
 #. Keyboard indicator for Korean layouts
-#: ../rules/base.xml.in.h:782 ../rules/base.extras.xml.in.h:157
+#: ../rules/base.xml.in.h:782 ../rules/base.extras.xml.in.h:159
 msgid "ko"
 msgstr "ko"
 
-#: ../rules/base.xml.in.h:783 ../rules/base.extras.xml.in.h:158
+#: ../rules/base.xml.in.h:783 ../rules/base.extras.xml.in.h:160
 msgid "Korean"
-msgstr "korejski"
+msgstr "Korejski"
 
 #: ../rules/base.xml.in.h:784
 msgid "Korean (101/104 key compatible)"
-msgstr ""
+msgstr "Korejski (101/104 tipke kompatibilno)"
 
 #: ../rules/base.xml.in.h:785
 msgid "Japanese (PC-98xx Series)"
-msgstr ""
+msgstr "Japansli (PC-98xx serija)"
 
 #. Keyboard indicator for Irish layouts
 #: ../rules/base.xml.in.h:787
@@ -2949,39 +2944,39 @@ msgstr "ie"
 
 #: ../rules/base.xml.in.h:788
 msgid "Irish"
-msgstr "irski"
+msgstr "Irski"
 
 #: ../rules/base.xml.in.h:789
 msgid "CloGaelach"
-msgstr ""
+msgstr "Gaelski"
 
 #: ../rules/base.xml.in.h:790
 msgid "Irish (UnicodeExpert)"
-msgstr ""
+msgstr "Irski (unikôd stručni)"
 
 #: ../rules/base.xml.in.h:791
 msgid "Ogham"
-msgstr ""
+msgstr "Oghamski"
 
 #: ../rules/base.xml.in.h:792
 msgid "Ogham (IS434)"
-msgstr ""
+msgstr "Oghamski (IS434)"
 
 #: ../rules/base.xml.in.h:793
 msgid "Urdu (Pakistan)"
-msgstr ""
+msgstr "Urdski (Pakistan)"
 
 #: ../rules/base.xml.in.h:794
 msgid "Urdu (Pakistan, CRULP)"
-msgstr ""
+msgstr "Urdski (Pakistan, CRULP)"
 
 #: ../rules/base.xml.in.h:795
 msgid "Urdu (Pakistan, NLA)"
-msgstr ""
+msgstr "Urdski (Pakistan, NLA)"
 
 #: ../rules/base.xml.in.h:796
 msgid "Arabic (Pakistan)"
-msgstr ""
+msgstr "Arapski (Pakistan)"
 
 #. Keyboard indicator for Sindhi layouts
 #: ../rules/base.xml.in.h:798
@@ -2990,7 +2985,7 @@ msgstr "sd"
 
 #: ../rules/base.xml.in.h:799
 msgid "Sindhi"
-msgstr ""
+msgstr "Sindski"
 
 #. Keyboard indicator for Dhivehi layouts
 #: ../rules/base.xml.in.h:801
@@ -2999,11 +2994,11 @@ msgstr "dv"
 
 #: ../rules/base.xml.in.h:802
 msgid "Dhivehi"
-msgstr "divehi"
+msgstr "Divehijski"
 
 #: ../rules/base.xml.in.h:803
 msgid "English (South Africa)"
-msgstr ""
+msgstr "Engleski (Južna afrika)"
 
 #. Keyboard indicator for Esperanto layouts
 #: ../rules/base.xml.in.h:805
@@ -3012,11 +3007,11 @@ msgstr "eo"
 
 #: ../rules/base.xml.in.h:806
 msgid "Esperanto"
-msgstr "esperanto"
+msgstr "Esperanto"
 
 #: ../rules/base.xml.in.h:807
 msgid "Esperanto (displaced semicolon and quote, obsolete)"
-msgstr ""
+msgstr "Esperanto (istisnuta točka-zarez i navodnici,  zastarjelo)"
 
 #. Keyboard indicator for Nepali layouts
 #: ../rules/base.xml.in.h:809
@@ -3025,11 +3020,11 @@ msgstr "ne"
 
 #: ../rules/base.xml.in.h:810
 msgid "Nepali"
-msgstr "nepalski"
+msgstr "Nepalski"
 
 #: ../rules/base.xml.in.h:811
 msgid "English (Nigeria)"
-msgstr ""
+msgstr "Engleski (Nigerija)"
 
 #. Keyboard indicator for Igbo layouts
 #: ../rules/base.xml.in.h:813
@@ -3038,7 +3033,7 @@ msgstr "ig"
 
 #: ../rules/base.xml.in.h:814
 msgid "Igbo"
-msgstr ""
+msgstr "Igboški"
 
 #. Keyboard indicator for Yoruba layouts
 #: ../rules/base.xml.in.h:816
@@ -3047,7 +3042,7 @@ msgstr "yo"
 
 #: ../rules/base.xml.in.h:817
 msgid "Yoruba"
-msgstr ""
+msgstr "Jorubški"
 
 #. Keyboard indicator for Amharic layouts
 #: ../rules/base.xml.in.h:819
@@ -3056,7 +3051,7 @@ msgstr "am"
 
 #: ../rules/base.xml.in.h:820
 msgid "Amharic"
-msgstr "amharski"
+msgstr "Amharski"
 
 #. Keyboard indicator for Wolof layouts
 #: ../rules/base.xml.in.h:822
@@ -3065,7 +3060,7 @@ msgstr "wo"
 
 #: ../rules/base.xml.in.h:823
 msgid "Wolof"
-msgstr ""
+msgstr "Volofski"
 
 #. Keyboard indicator for Braille layouts
 #: ../rules/base.xml.in.h:825
@@ -3074,15 +3069,15 @@ msgstr "brl"
 
 #: ../rules/base.xml.in.h:826
 msgid "Braille"
-msgstr "Braille"
+msgstr "Brajica"
 
 #: ../rules/base.xml.in.h:827
 msgid "Braille (left hand)"
-msgstr "Braille (lijevoruki)"
+msgstr "Brajica (ljevoruka)"
 
 #: ../rules/base.xml.in.h:828
 msgid "Braille (right hand)"
-msgstr "Braille (desnoruki)"
+msgstr "Brajlica (desnoruka)"
 
 #. Keyboard indicator for Turkmen layouts
 #: ../rules/base.xml.in.h:830
@@ -3091,11 +3086,11 @@ msgstr "tk"
 
 #: ../rules/base.xml.in.h:831
 msgid "Turkmen"
-msgstr "turkmenski"
+msgstr "Turkmenski"
 
 #: ../rules/base.xml.in.h:832
 msgid "Turkmen (Alt-Q)"
-msgstr ""
+msgstr "Turkmenski (Alt-Q)"
 
 #. Keyboard indicator for Bambara layouts
 #: ../rules/base.xml.in.h:834
@@ -3104,19 +3099,19 @@ msgstr "bm"
 
 #: ../rules/base.xml.in.h:835
 msgid "Bambara"
-msgstr "bambarski"
+msgstr "Bambarski"
 
 #: ../rules/base.xml.in.h:836
 msgid "French (Mali, alternative)"
-msgstr ""
+msgstr "Francuski (MAli, aternativan)"
 
 #: ../rules/base.xml.in.h:837
 msgid "English (Mali, US Macintosh)"
-msgstr ""
+msgstr "Engleski (Mali, SAD Macintosh)"
 
 #: ../rules/base.xml.in.h:838
 msgid "English (Mali, US international)"
-msgstr ""
+msgstr "Engleski (Mali, SAD međunarodni)"
 
 #. Keyboard indicator for Swahili layouts
 #: ../rules/base.xml.in.h:840
@@ -3125,23 +3120,23 @@ msgstr "sw"
 
 #: ../rules/base.xml.in.h:841
 msgid "Swahili (Tanzania)"
-msgstr ""
+msgstr "Svahiliski (Tanzanija)"
 
 #: ../rules/base.xml.in.h:842
 msgid "fr-tg"
-msgstr ""
+msgstr "fr-tg"
 
 #: ../rules/base.xml.in.h:843
 msgid "French (Togo)"
-msgstr "francuski (Togo)"
+msgstr "Francuski (Togo)"
 
 #: ../rules/base.xml.in.h:844
 msgid "Swahili (Kenya)"
-msgstr ""
+msgstr "Svahiliski (Kenija)"
 
 #: ../rules/base.xml.in.h:845
 msgid "Kikuyu"
-msgstr ""
+msgstr "Kikujuski"
 
 #. Keyboard indicator for Tswana layouts
 #: ../rules/base.xml.in.h:847
@@ -3150,7 +3145,7 @@ msgstr "tn"
 
 #: ../rules/base.xml.in.h:848
 msgid "Tswana"
-msgstr ""
+msgstr "Tswanaski"
 
 #. Keyboard indicator for Filipino layouts
 #: ../rules/base.xml.in.h:850
@@ -3159,43 +3154,43 @@ msgstr "ph"
 
 #: ../rules/base.xml.in.h:851
 msgid "Filipino"
-msgstr ""
+msgstr "Filipinski"
 
 #: ../rules/base.xml.in.h:852
 msgid "Filipino (QWERTY Baybayin)"
-msgstr ""
+msgstr "Filipinski (QWERTY Baybayin)"
 
 #: ../rules/base.xml.in.h:853
 msgid "Filipino (Capewell-Dvorak Latin)"
-msgstr ""
+msgstr "Filipinski (Capewell-Dvorak latinični)"
 
 #: ../rules/base.xml.in.h:854
 msgid "Filipino (Capewell-Dvorak Baybayin)"
-msgstr ""
+msgstr "Filipinski (Capewell-Dvorak Baybayin)"
 
 #: ../rules/base.xml.in.h:855
 msgid "Filipino (Capewell-QWERF 2006 Latin)"
-msgstr ""
+msgstr "Filipinski (Capewell-QWERF 2006 latinični)"
 
 #: ../rules/base.xml.in.h:856
 msgid "Filipino (Capewell-QWERF 2006 Baybayin)"
-msgstr ""
+msgstr "Filipinski (Capewell-QWERF 2006 Baybayin)"
 
 #: ../rules/base.xml.in.h:857
 msgid "Filipino (Colemak Latin)"
-msgstr ""
+msgstr "Filipinski (Colemak latinični)"
 
 #: ../rules/base.xml.in.h:858
 msgid "Filipino (Colemak Baybayin)"
-msgstr ""
+msgstr "Filipinski (Colemak Baybayin)"
 
 #: ../rules/base.xml.in.h:859
 msgid "Filipino (Dvorak Latin)"
-msgstr ""
+msgstr "Filipinski (Dvorak latinični)"
 
 #: ../rules/base.xml.in.h:860
 msgid "Filipino (Dvorak Baybayin)"
-msgstr ""
+msgstr "Filipinski (Dvorak Baybayin)"
 
 #: ../rules/base.xml.in.h:861
 msgid "md"
@@ -3203,48 +3198,47 @@ msgstr "md"
 
 #: ../rules/base.xml.in.h:862
 msgid "Moldavian"
-msgstr "moldavski"
+msgstr "Moldavski"
 
 #: ../rules/base.xml.in.h:863
 msgid "gag"
-msgstr "gag"
+msgstr "Gagauski"
 
 #: ../rules/base.xml.in.h:864
 msgid "Moldavian (Gagauz)"
-msgstr "moldavski(gagauz)"
+msgstr "Moldavski(Gagauski)"
 
 #: ../rules/base.xml.in.h:865
 msgid "Switching to another layout"
-msgstr "Prijelaz na drukčiji raspored"
+msgstr "Prebacivanje na drugi raspored"
 
-# pritisnut = pritisni i drži ili dok je pritisnut
 #: ../rules/base.xml.in.h:866
 msgid "Right Alt (while pressed)"
-msgstr "Desni Alt (dok je pritisnut)"
+msgstr "Desni Alt (tijekom pritiska)"
 
 #: ../rules/base.xml.in.h:867
 msgid "Left Alt (while pressed)"
-msgstr "Lijevi Alt (dok je pritisnut)"
+msgstr "Lijevi Alt (tijekom pritiska)"
 
 #: ../rules/base.xml.in.h:868
 msgid "Left Win (while pressed)"
-msgstr "Lijevi Win (dok je pritisnut)"
+msgstr "Lijevi Win (tijekom pritiska)"
 
 #: ../rules/base.xml.in.h:869
 msgid "Right Win (while pressed)"
-msgstr "Desni Win (dok je pritisnut)"
+msgstr "Desni Win (tijekom pritiska)"
 
 #: ../rules/base.xml.in.h:870
 msgid "Any Win key (while pressed)"
-msgstr "Bilo koji Win (dok je pritisnut)"
+msgstr "Bilo koja Win tipka (tijekom pritiska)"
 
 #: ../rules/base.xml.in.h:871
 msgid "Caps Lock (while pressed), Alt+Caps Lock does the original capslock action"
-msgstr "CapsLock (dok je pritisnut); Alt + CapsLock djeluje kao originalni CapsLock"
+msgstr "Caps Lock (tijekom pritiska), Alt+Caps Lock omogućuje izvornu capslock radnju"
 
 #: ../rules/base.xml.in.h:872
 msgid "Right Ctrl (while pressed)"
-msgstr "Desni Ctrl (dok je pritisnut)"
+msgstr "Desni Ctrl (tijekom pritiska)"
 
 #: ../rules/base.xml.in.h:873
 msgid "Right Alt"
@@ -3256,67 +3250,67 @@ msgstr "Lijevi Alt"
 
 #: ../rules/base.xml.in.h:875
 msgid "Caps Lock"
-msgstr "CapsLock"
+msgstr "Caps Lock"
 
 #: ../rules/base.xml.in.h:876
 msgid "Shift+Caps Lock"
-msgstr "Shift + CapsLock"
+msgstr "Shift+Caps Lock"
 
 #: ../rules/base.xml.in.h:877
 msgid "Caps Lock (to first layout), Shift+Caps Lock (to last layout)"
-msgstr "CapsLock (na prvi raspored), Shift + CapsLock (na zadnji raspored)"
+msgstr "Caps Lock (za prvi raspored), Shift+Caps Lock (za posljednji raspored)"
 
 #: ../rules/base.xml.in.h:878
 msgid "Left Win (to first layout), Right Win/Menu (to last layout)"
-msgstr "Lijevi Win (na prvi raspored), desni Win/Menu (na zadnji raspored)"
+msgstr "Lijevi Win (za prvi raspored), Desni Win/Izbornik (za posljednji raspored)"
 
 #: ../rules/base.xml.in.h:879
 msgid "Left Ctrl (to first layout), Right Ctrl (to last layout)"
-msgstr "Lijevi Ctrl (na prvi raspored), desni Ctrl (na zadnji raspored)"
+msgstr "Lijevi Ctrl (za prvi raspored), Desni Ctrl (za posljednji raspored)"
 
 #: ../rules/base.xml.in.h:880
 msgid "Alt+Caps Lock"
-msgstr "Alt + CapsLock"
+msgstr "Alt+Caps Lock"
 
 #: ../rules/base.xml.in.h:881
 msgid "Both Shift keys together"
-msgstr "Obje Shift-tipke istodobno"
+msgstr "Obje tipke Shift zajedno"
 
 #: ../rules/base.xml.in.h:882
 msgid "Both Alt keys together"
-msgstr "Obje Alt-tipke istodobno"
+msgstr "Obje tipke Alt zajedno"
 
 #: ../rules/base.xml.in.h:883
 msgid "Both Ctrl keys together"
-msgstr "Obje Ctrl-tipke istodobno"
+msgstr "Obje tipke Ctrl zajedno"
 
 #: ../rules/base.xml.in.h:884
 msgid "Ctrl+Shift"
-msgstr "Ctrl + Shift"
+msgstr "Ctrl+Shift"
 
 #: ../rules/base.xml.in.h:885
 msgid "Left Ctrl+Left Shift"
-msgstr "Lijevi Ctrl + lijevi Shift"
+msgstr "Lijevi Ctrl+Lijevi Shift"
 
 #: ../rules/base.xml.in.h:886
 msgid "Right Ctrl+Right Shift"
-msgstr "Desni Ctrl + desni Shift"
+msgstr "Desni Ctrl+Desni Shift"
 
 #: ../rules/base.xml.in.h:887
 msgid "Alt+Ctrl"
-msgstr "Alt + Ctrl"
+msgstr "Alt+Ctrl"
 
 #: ../rules/base.xml.in.h:888
 msgid "Alt+Shift"
-msgstr "Alt + Shift"
+msgstr "Alt+Shift"
 
 #: ../rules/base.xml.in.h:889
 msgid "Left Alt+Left Shift"
-msgstr "Lijevi Alt + lijevi Shift"
+msgstr "Lijevi Alt+Lijevi Shift"
 
 #: ../rules/base.xml.in.h:890
 msgid "Alt+Space"
-msgstr "Alt + Space"
+msgstr "Alt+Razmaknica"
 
 #: ../rules/base.xml.in.h:891
 msgid "Menu"
@@ -3324,15 +3318,15 @@ msgstr "Menu"
 
 #: ../rules/base.xml.in.h:892
 msgid "Left Win"
-msgstr "Lijevi Win"
+msgstr "Lijeva Win tipka"
 
 #: ../rules/base.xml.in.h:893
 msgid "Win Key+Space"
-msgstr "Win + Space"
+msgstr "Win tipka+Space"
 
 #: ../rules/base.xml.in.h:894
 msgid "Right Win"
-msgstr "Desni Win"
+msgstr "Desna Win tipka"
 
 #: ../rules/base.xml.in.h:895
 msgid "Left Shift"
@@ -3352,81 +3346,77 @@ msgstr "Desni Ctrl"
 
 #: ../rules/base.xml.in.h:899
 msgid "Scroll Lock"
-msgstr "ScrolLock"
+msgstr "Scroll Lock"
 
 #: ../rules/base.xml.in.h:900
 msgid "LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)"
-msgstr "Lijevi Ctrl + lijevi Win (na prvi raspored), desni Ctrl + Menu (na drugi raspored)"
+msgstr "Lijeva Ctrl+Lijeva Win tipka (za prvi raspored), Desna Ctrl+Menu tipka (za desni raspored)"
 
 #: ../rules/base.xml.in.h:901
 msgid "LeftCtrl+LeftWin"
-msgstr "Lijevi Ctrl + lijevi Win"
+msgstr "Lijeva Ctrl+Lijeva Win tipka"
 
-# Tipka za odabir 3. razine =odabirač 3. razine
-# onaj koji odabire što/kog
 #: ../rules/base.xml.in.h:902
 msgid "Key to choose 3rd level"
-msgstr "Tipka za odabir (odabirač) 3. razine"
+msgstr "Tipka za odabir 3. razine"
 
 #: ../rules/base.xml.in.h:903
 msgid "Any Win key"
-msgstr "Bilo koji Win"
+msgstr "Bilo koja Win tipka"
 
 #: ../rules/base.xml.in.h:904
 msgid "Any Alt key"
-msgstr "Bilo koji Alt"
+msgstr "Bilo koja Alt tipka"
 
-# Compose or Multi key: pritisni, zatim pusti, i slijedeća pritisnuta tipka postaje „dead“ tipka; Compose=Multi=za slova s dijakritčim znakom (glifom)
 #: ../rules/base.xml.in.h:905
 msgid "Right Alt, Shift+Right Alt key is Compose"
-msgstr "Desni Alt, (Shift + desni Alt je multi-tipka (compose-tipka))"
+msgstr "Desni Alt, Shift+Desni Alt tipka je sastavljena"
 
 #: ../rules/base.xml.in.h:906
 msgid "Right Alt key never chooses 3rd level"
-msgstr "Desni Alt nikad ne odabire 3. razinu"
+msgstr "Desna Alt tipka nikada ne odabire 3. razinu"
 
 #: ../rules/base.xml.in.h:907
 msgid "Enter on keypad"
-msgstr "Enter na numeričkoj tipkovnici"
+msgstr "Enter tipka na tipkovnici"
 
-# Backslash #: ../rules/base.xml.in.h:953
 #: ../rules/base.xml.in.h:908
 msgid "Backslash"
-msgstr "Obratna kosa crta"
+msgstr "Obrnuta kosa crta"
 
 #: ../rules/base.xml.in.h:909
 msgid "&lt;Less/Greater&gt;"
-msgstr "&lt;Manje od/Veće od&gt;"
+msgstr "&lt;Manje/Veće&gt;"
 
-# onetime lock: jednokratni lokot, jednokratno zabravilo
 #: ../rules/base.xml.in.h:910
 msgid "Caps Lock chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "CapsLock odabire 3. razinu — jednokratno je zaključa pritisne li se zajedno s još jednim odabiračem 3. razine"
+msgstr "Caps Lock odabire 3. razinu, ponaša se kao jednokratno zaključavanje kada je pritisnut zajedno s ostalim odabirateljima 3. razine"
 
 #: ../rules/base.xml.in.h:911
 msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "Obratna kosa crta odabire 3. razinu — jednokratno je zaključa pritisne li se zajedno s još jednim odabiračem 3. razine"
+msgstr "Kosa crta odabire 3. razinu, ponaša se kao jednokratno zaključavanje kada je pritisnut zajedno s ostalim odabirateljima 3. razine"
 
 #: ../rules/base.xml.in.h:912
 msgid "&lt;Less/Greater&gt; chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "&lt;Manje od/Veće od&gt; odabire 3. razinu — jednokratno je zaključa pritisne li se zajedno s još jednim odabiračem 3. razine"
+msgstr ""
+"Copy text \t\r\n"
+"&lt;Manje/Veće&gt;  odabire 3. razinu, ponaša se kao jednokratno zaključavanje kada je pritisnut zajedno s ostalim odabirateljima 3. razine"
 
 #: ../rules/base.xml.in.h:913
 msgid "Ctrl key position"
-msgstr "Pozicija Ctrl-tipke"
+msgstr "Položaj Ctrl tipke"
 
 #: ../rules/base.xml.in.h:914
 msgid "Caps Lock as Ctrl"
-msgstr "CapsLock je Ctrl"
+msgstr "Caps Lock kao Ctrl"
 
 #: ../rules/base.xml.in.h:915
 msgid "Left Ctrl as Meta"
-msgstr "Lijevi Ctrl je Meta"
+msgstr "Lijevi Ctrl kao Meta"
 
-# razmjeniti def. zamijeniti jedno za drugo
 #: ../rules/base.xml.in.h:916
 msgid "Swap Ctrl and Caps Lock"
-msgstr "Razmjeni Ctrl i CapsLock"
+msgstr "Zamijeni Ctrl i Caps Lock"
 
 #: ../rules/base.xml.in.h:917
 msgid "At left of 'A'"
@@ -3434,57 +3424,55 @@ msgstr "Lijevo od „A”"
 
 #: ../rules/base.xml.in.h:918
 msgid "At bottom left"
-msgstr "Lijevo dolje"
+msgstr "Dolje lijevo"
 
 #: ../rules/base.xml.in.h:919
 msgid "Right Ctrl as Right Alt"
-msgstr "Desni Ctrl je desni Alt"
+msgstr "Desni Ctrl kao Desni Alt"
 
 #: ../rules/base.xml.in.h:920
 msgid "Menu as Right Ctrl"
-msgstr "Menu je desni Ctrl"
+msgstr "Izbornik kao desni Ctrl"
 
-# Razmijeni lijevi Alt i desni Ctrl. Eventualno: Zamijeni lijevu tipku Alt desnom tipkom Ctrl
 #: ../rules/base.xml.in.h:921
 msgid "Swap Left Alt key with Left Ctrl key"
-msgstr "Razmijeni lijevi Alt i desni Ctrl"
+msgstr "Zamijeni lijevu Alt tipku s desnom Ctrl tipkom"
 
 #: ../rules/base.xml.in.h:922
 msgid "Swap Left Win key with Left Ctrl key"
-msgstr "Razmijeni lijevi Win i lijevi Ctrl"
+msgstr "Zamijeni lijevu Win tipku s lijevom Ctrl tipkom"
 
 #: ../rules/base.xml.in.h:923
 msgid "Swap Right Win key with Right Ctrl key"
-msgstr "Razmijeni desni Win i desni Ctrl"
+msgstr "Zamijeni desnu Win tipku s desnom Ctrl tipkom"
 
 #: ../rules/base.xml.in.h:924
 msgid "Left Alt as Ctrl, Left Ctrl as Win, Left Win as Alt"
-msgstr "Lijevi Alt je Ctrl, lijevi Ctrl je Win, lijevi Win je Alt"
+msgstr "Lijevi Alt kao Ctrl, lijevi Ctrl kao Win, lijevi Win kao Alt"
 
 #: ../rules/base.xml.in.h:925
 msgid "Use keyboard LED to show alternative layout"
-msgstr "Tipkovnički LED ukazuje na alternativni raspored"
+msgstr "Koristi LED tipkovnice za prikaz alternativnog rasporeda"
 
 #: ../rules/base.xml.in.h:926
 msgid "Num Lock"
-msgstr "NumLock"
+msgstr "Num Lock"
 
 #: ../rules/base.xml.in.h:927
 msgid "Layout of numeric keypad"
-msgstr "Raspored numeričke tipkovnice"
+msgstr "Raspored brojčane tipkovnice"
 
-# legacy, zastarjeli
 #: ../rules/base.xml.in.h:928
 msgid "Legacy"
-msgstr "Nasljedstvo (programa)"
+msgstr "Stari"
 
 #: ../rules/base.xml.in.h:929
 msgid "Unicode additions (arrows and math operators)"
-msgstr "Unikodni dodaci (strelice i matematički operatori)"
+msgstr "Unikôdni dodaci (strelice i matematički operatori)"
 
 #: ../rules/base.xml.in.h:930
 msgid "Unicode additions (arrows and math operators; math operators on default level)"
-msgstr "Unikodni dodaci (strelice i matematički operatori; matematički operatori su na 1. razini)"
+msgstr "Unikôdni dodaci (strelice i matematički operatori, matematički operatori na uobičajenoj razini)"
 
 #: ../rules/base.xml.in.h:931
 msgid "Legacy Wang 724"
@@ -3492,23 +3480,23 @@ msgstr "Zastarjeli Wang 724"
 
 #: ../rules/base.xml.in.h:932
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators)"
-msgstr "Wang 724 s unikodnim dodacima (strelice i matematički operatori)"
+msgstr "Wang 724 tipkovnica s Unikôdnim dodacima (strelice i matematički operatori)"
 
 #: ../rules/base.xml.in.h:933
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators; math operators on default level)"
-msgstr "Wang 724 s unikodnim dodacima (strelice i matematički operatori; matematički operatori su na 1. razini)"
+msgstr "Wang 724 tipkovnica s Unikôdnim dodacima (strelice i matematički operatori, matematički operatori na uobičajenoj razini)"
 
 #: ../rules/base.xml.in.h:934
 msgid "Hexadecimal"
-msgstr "Heksadecimal"
+msgstr "Heksadecimalni"
 
 #: ../rules/base.xml.in.h:935
 msgid "ATM/phone-style"
-msgstr "Kao ATM-telefon"
+msgstr "ATM/telefonski-stil"
 
 #: ../rules/base.xml.in.h:936
 msgid "Numeric keypad delete key behaviour"
-msgstr "Ponašanje Delete-tipke (Del) numeričke tipkovnice"
+msgstr "Brojčana tipkovnica briše ponašanje tipke"
 
 #: ../rules/base.xml.in.h:937
 msgid "Legacy key with dot"
@@ -3521,25 +3509,25 @@ msgstr "Zastarjela tipka sa zarezom"
 
 #: ../rules/base.xml.in.h:940
 msgid "Four-level key with dot"
-msgstr "Tipka s točkom 4. razine"
+msgstr "Tipka 4. razine s točkom"
 
 #: ../rules/base.xml.in.h:941
 msgid "Four-level key with dot, Latin-9 only"
-msgstr "Tipka s točkom 4. razine, samo za Latin-9"
+msgstr "Tipka 4. razine s točkom , samo latinica-9"
 
 #: ../rules/base.xml.in.h:942
 msgid "Four-level key with comma"
-msgstr "Tipka sa zarezom 4. razine"
+msgstr "Tipka 4. razine sa zarezom"
 
 #: ../rules/base.xml.in.h:943
 msgid "Four-level key with momayyez"
-msgstr "Tipka 4. razine s perzijskim decimalnim separatorom"
+msgstr "Tipka 4. razine s momayyez"
 
 #. This assumes the KP_ abstract symbols are actually useful for some apps
 #. The description needs to be rewritten
 #: ../rules/base.xml.in.h:946
 msgid "Four-level key with abstract separators"
-msgstr "Tipka 4. razine s apstraktnim separatorom"
+msgstr "Tipka 4. razine s apstraktnim razdjelnicima"
 
 #: ../rules/base.xml.in.h:947
 msgid "Semicolon on third level"
@@ -3547,160 +3535,152 @@ msgstr "Točka-zarez na 3. razini"
 
 #: ../rules/base.xml.in.h:948
 msgid "Caps Lock key behavior"
-msgstr "Ponašanje CapsLock-tipke"
+msgstr "Ponašanje tipke Caps Lock"
 
-# Verzal = velika slova; pauses=privremeno prekida
 #: ../rules/base.xml.in.h:949
 msgid "Caps Lock uses internal capitalization; Shift \"pauses\" Caps Lock"
-msgstr "CapsLock se koristi za interni verzal; Shift „privremeno prekida“ CapsLock"
+msgstr "Caps Lock koristi unutarnja velika/mala slova; Shift \"pauzira\" Caps Lock"
 
-# verzal = velika slova, Capitals
 #: ../rules/base.xml.in.h:950
 msgid "Caps Lock uses internal capitalization; Shift doesn't affect Caps Lock"
-msgstr "CapsLock se koristi za interni verzal; Shift ne utječe na CapsLock"
+msgstr "Caps Lock koristi unutarnja velika/mala slova; Shift ne utječe na Caps Lock"
 
-# ShiftLock djeluje kao sticky tipka, na sve tipke, ne samo na slova
 #: ../rules/base.xml.in.h:951
 msgid "Caps Lock acts as Shift with locking; Shift \"pauses\" Caps Lock"
-msgstr "CapsLock je ShiftLock (alternira sve tipke); Shift „privremeno prekida“ CapsLock"
+msgstr "Caps Lock se ponaša kao Shift sa zaključavanjem; Shift \"pauzira\" Caps Lock"
 
 #: ../rules/base.xml.in.h:952
 msgid "Caps Lock acts as Shift with locking; Shift doesn't affect Caps Lock"
-msgstr "CapsLock je ShiftLock (alternira sve tipke); Shift ne utječe na CapsLock"
+msgstr "Caps Lock se ponaša kao Shift sa zaključavanjem; Shift ne utječe na Caps Lock"
 
-# toggle: uklj/iskll, prebacivati
 #: ../rules/base.xml.in.h:953
 msgid "Caps Lock toggles normal capitalization of alphabetic characters"
-msgstr "CapsLock-tipka služi za prebacivanje pisanja malih/VELIKIH slova"
+msgstr "Caps Lock uključuje/isključuje uobičajenuo velike/male znakove abecede"
 
-# ShiftLock neka vrsta sticky , ljepljiva tipka
 #: ../rules/base.xml.in.h:954
 msgid "Caps Lock toggles ShiftLock (affects all keys)"
-msgstr "CapsLock prebacuje ShiftLock (djeluje na sve tipke)"
+msgstr "Caps Lock uklučuje/isključuje Shift Lock (zahvaća sve tipke)"
 
 #: ../rules/base.xml.in.h:955
 msgid "Swap ESC and Caps Lock"
-msgstr "Razmijeni Esc i CapsLock"
+msgstr "Zamijeni ESC i Caps Lock"
 
 #: ../rules/base.xml.in.h:956
 msgid "Make Caps Lock an additional ESC"
-msgstr "CapsLock je dodatni Esc"
+msgstr "Pretvori Caps Lock u dodatni ESC"
 
 #: ../rules/base.xml.in.h:957
 msgid "Make Caps Lock an additional Backspace"
-msgstr "CapsLock je dodatni Backspace"
+msgstr "Pretvori Caps Lock u dodatni Backspace"
 
 #: ../rules/base.xml.in.h:958
 msgid "Make Caps Lock an additional Super"
-msgstr "CapsLock je dodatni Super"
+msgstr "Pretvori Caps Lock u dodatni Super"
 
 #: ../rules/base.xml.in.h:959
 msgid "Make Caps Lock an additional Hyper"
-msgstr "CapsLock je dodatni Hyper"
+msgstr "Pretvori Caps Lock u dodatni Hyper"
 
 #: ../rules/base.xml.in.h:960
 msgid "Make Caps Lock an additional Menu key"
-msgstr "CapsLock je dodatni Menu"
+msgstr "Pretvori Caps Lock u dodatnu tipku Izbornika"
 
 #: ../rules/base.xml.in.h:961
 msgid "Make Caps Lock an additional Num Lock"
-msgstr "CapsLock je dodatni NumLock"
+msgstr "Učini Caps Lock dodatnim Num Lock-om"
 
 #: ../rules/base.xml.in.h:962
 msgid "Caps Lock is also a Ctrl"
-msgstr "CapsLock je također i Ctrl"
+msgstr "Caps Lock je Ctrl"
 
 #: ../rules/base.xml.in.h:963
 msgid "Caps Lock is disabled"
-msgstr "CapsLock je deaktiviran"
+msgstr "Caps Lock je isključen"
 
-# behavior: vladanje, ponašanje, odziv
 #: ../rules/base.xml.in.h:964
 msgid "Alt/Win key behavior"
-msgstr "Ponašanje Alt/Win-tipke"
+msgstr "Ponašanje tipki Alt/Win"
 
 #: ../rules/base.xml.in.h:965
 msgid "Add the standard behavior to Menu key"
-msgstr "Dodavanje standardnog ponašanja Menu-tipki"
+msgstr "Dodaj standardno ponašanje Menu tipki"
 
 #: ../rules/base.xml.in.h:966
 msgid "Alt and Meta are on Alt keys"
-msgstr "Alt i Meta su na Alt-tipkama"
+msgstr "Alt i Meta su na Alt tipkama"
 
 #: ../rules/base.xml.in.h:967
 msgid "Alt is mapped to Win keys (and the usual Alt keys)"
-msgstr "Alt preslikan na Win (i na uobičajene Alt-tipke)"
+msgstr "Alt je mapiran na Win tipke (i na uobičajene Alt tipke)"
 
 #: ../rules/base.xml.in.h:968
 msgid "Ctrl is mapped to Win keys (and the usual Ctrl keys)"
-msgstr "Ctrl preslikan na Win (i uobičajene Ctrl-tipke)"
+msgstr "Ctrl je mapiran na Win tipke (i na uobičajene Ctrl tipke)"
 
 #: ../rules/base.xml.in.h:969
 msgid "Ctrl is mapped to Alt keys, Alt is mapped to Win keys"
-msgstr "Ctrl preslikan na Alt-tipke, Alt preslikan na Win-tipke"
+msgstr "Ctrl je mapiran na Alt tipke, Alt je mapiran na Win tipke"
 
 #: ../rules/base.xml.in.h:970
 msgid "Meta is mapped to Win keys"
-msgstr "Meta preslikan na Win-tipke"
+msgstr "Meta je mapiran na Win tipke"
 
 #: ../rules/base.xml.in.h:971
 msgid "Meta is mapped to Left Win"
-msgstr "Meta preslikan na lijevi Win"
+msgstr "Meta je mapiran na lijevu Win tipku"
 
 #: ../rules/base.xml.in.h:972
 msgid "Hyper is mapped to Win keys"
-msgstr "Hyper preslikan na Win-tipke"
+msgstr "Hyper je mapiran na Win tipke"
 
 #: ../rules/base.xml.in.h:973
 msgid "Alt is mapped to Right Win, Super to Menu"
-msgstr "Alt preslikan na desni Win, Super na Menu"
+msgstr "Alt je mapiran na lijevu Win tipku, Super na Menu tipku"
 
 #: ../rules/base.xml.in.h:974
 msgid "Left Alt is swapped with Left Win"
-msgstr "Lijevi Alt je razmijenjen s lijevom Win-tipkom"
+msgstr "Lijevi Alt je zamijenjen s lijevom Win tipkom"
 
 #: ../rules/base.xml.in.h:975
 msgid "Alt is swapped with Win"
-msgstr "Alt je razmijenjen s Win-tipkom"
+msgstr "Alt je zamijenjen s Win tipkom"
 
 #: ../rules/base.xml.in.h:976
 msgid "Win is mapped to PrtSc (and the usual Win key)"
-msgstr "Win preslikan na PrtSc (i uobičajenu Win-tipku)"
+msgstr "Win je mapiran na PrtSc tipku (i na uobičajenu Win tipku)"
 
-# Compose or Multi key: pritisni, zatim pusti, i slijedeća pritisnuta tipka postaje „dead“ tipka; Compose=Multi=za slova s dijakritčim znakom (glifom)
 #: ../rules/base.xml.in.h:977
 msgid "Position of Compose key"
-msgstr "Pozicija multi-tipke (compose tipke)"
+msgstr "Položaj tipke sastavljanja"
 
 #: ../rules/base.xml.in.h:978
 msgid "3rd level of Left Win"
-msgstr "3. razina lijeve Win-tipke"
+msgstr "3. razina od lijeve Win tipke"
 
 #: ../rules/base.xml.in.h:979
 msgid "3rd level of Right Win"
-msgstr "3. razina desne Win-tipke"
+msgstr "3. razina od desne Win tipke"
 
 #: ../rules/base.xml.in.h:980
 msgid "3rd level of Menu"
-msgstr "3. razina Menu-tipke"
+msgstr "3. razina od Menu tipke"
 
 #: ../rules/base.xml.in.h:981
 msgid "3rd level of Left Ctrl"
-msgstr "3. razina lijeve Ctrl-tipke"
+msgstr "3. razina od lijeve Ctrl tipke"
 
 #: ../rules/base.xml.in.h:982
 msgid "3rd level of Right Ctrl"
-msgstr "3. razina desne Ctrl-tipke"
+msgstr "3. razina od desne Ctrl tipke"
 
 #: ../rules/base.xml.in.h:983
 msgid "3rd level of Caps Lock"
-msgstr "3. razina CapsLock-tipke"
+msgstr "3. razina od Caps Lock"
 
 #: ../rules/base.xml.in.h:984
 msgid "3rd level of &lt;Less/Greater&gt;"
-msgstr "3. razina &lt;Manje od/Veće od&gt;"
+msgstr "3. razina od &lt;Manje/Veće&gt;"
 
-# Pause je ime napisano na tipki, pa se ne prevodi. Tako i za sve druge tipke.
 #: ../rules/base.xml.in.h:985
 msgid "Pause"
 msgstr "Pause"
@@ -3711,37 +3691,35 @@ msgstr "PrtSc"
 
 #: ../rules/base.xml.in.h:987
 msgid "Miscellaneous compatibility options"
-msgstr "Razne kompatibilne opcije"
+msgstr "Razne opcije usklađenosti"
 
 #: ../rules/base.xml.in.h:988
 msgid "Default numeric keypad keys"
-msgstr "Uobičajene tipke numeričke tipkovnice"
+msgstr "Zadane tipke brojčane tipkovnice"
 
 #: ../rules/base.xml.in.h:989
 msgid "Numeric keypad keys always enter digits (as in Mac OS)"
-msgstr "Tipke numeričke tipkovnice uvijek unose brojeve (kao Mac OS)"
+msgstr "Tipke brojčane tipkovnice uvijek upisuju brojeve (kau u Mac OS-u)"
 
-# navigacija: tipke sa strelicama, i riječima
 #: ../rules/base.xml.in.h:990
 msgid "NumLock on: digits, Shift switches to arrow keys, Numlock off: always arrow keys (as in MS Windows)"
-msgstr "Uključeni NumLock unosi brojke, sa Shift-tipkom navigacija; Isključeni Numlock samo navigacija (kao MS Windows)"
+msgstr "NumLock na: brojevima, Shift prebaciva na tipke strelica, Numlock isključen: uvijek je na tipkama strelica (kao u MS Windowsima)"
 
 #: ../rules/base.xml.in.h:991
 msgid "Shift does not cancel Num Lock, chooses 3rd level instead"
-msgstr "Shift ne isključuje NumLock, ali odabire 3. razinu"
+msgstr "Shift ne isključuje Num Lock, umjesto odabire 3. razinu"
 
 #: ../rules/base.xml.in.h:992
 msgid "Special keys (Ctrl+Alt+&lt;key&gt;) handled in a server"
-msgstr "Posebnim tipkama (Ctrl+Alt+&lt;tipka&gt;) manipulira poslužitelj"
+msgstr "Posebne tipke (Ctrl+Alt+&lt;key&gt;) upotrijebljene na poslužitelju"
 
-# PC u
 #: ../rules/base.xml.in.h:993
 msgid "Apple Aluminium Keyboard: emulate PC keys (Print, Scroll Lock, Pause, Num Lock)"
-msgstr "Appleova aluminijska tipkovnica: oponaša PC (Print, ScrollLock, Pause, NumLock) tipke"
+msgstr "Apple Aluminijska tipkovnica: emulira PC tipke (Print, Scroll Lock, Pause, Num Lock)"
 
 #: ../rules/base.xml.in.h:994
 msgid "Shift cancels Caps Lock"
-msgstr "Shift isključuje CapsLock"
+msgstr "Shift poništava utjecaj tipke Caps Lock"
 
 #: ../rules/base.xml.in.h:995
 msgid "Enable extra typographic characters"
@@ -3749,161 +3727,155 @@ msgstr "Omogući dodatne tipografske znakove"
 
 #: ../rules/base.xml.in.h:996
 msgid "Both Shift keys together toggle Caps Lock"
-msgstr "Obje Shift-tipke istodobno djeluju kao CapsLock"
+msgstr "Obje Shift tipke zajedno uključuju/isključuju Caps Lock"
 
 #: ../rules/base.xml.in.h:997
 msgid "Both Shift keys together activate Caps Lock, one Shift key deactivates"
-msgstr "Obje Shift-tipke istodobno uključe CapsLock, jedan Shift ga isključi"
+msgstr "Obje Shift tipke zajedno aktiviraju Caps Lock, jedna SHIFT tipka deaktivira"
 
 #: ../rules/base.xml.in.h:998
 msgid "Both Shift keys together toggle ShiftLock"
-msgstr "Obje Shift-tipke istodobno djeluju kao ShiftLock (djeluje na sve tipke)"
+msgstr "Obje Shift tipke zajedno uključuju/isključuju Shift Lock"
 
 #: ../rules/base.xml.in.h:999
 msgid "Shift + NumLock toggles PointerKeys"
-msgstr "Shift + NumLock uklj/isklj tipkovničkog miša"
+msgstr "Shift + NumLock uključuju/isključuju tipke pokazivača"
 
-# The bug allows users to work around screen locking by hitting Control+Alt+keypad multiply or Control+Alt+keypad divide. This terminates the input grab the screensaver has and thus allows a user to interact with the desktop, skipping the password entry
 #: ../rules/base.xml.in.h:1000
 msgid "Allow breaking grabs with keyboard actions (warning: security risk)"
-msgstr "Dopušta se „probiti“ zaključani zaslon (screen lock grabs) tipkovničkom akcijom (opomena: sigurnosni rizik)"
+msgstr "Dopusti hvatanje prijeloma s radnjama tipkovnice (upozorenje: sigurnosni rizik)"
 
 #: ../rules/base.xml.in.h:1001
 msgid "Allow grab and window tree logging"
-msgstr "Dopušta se zapisivanje „grabs“ i „window trees“"
+msgstr "Dopusti hvatanje i prijavu stabla prozora"
 
 #: ../rules/base.xml.in.h:1002
 msgid "Adding currency signs to certain keys"
-msgstr "Znakovi valuta na nekim tipkama"
+msgstr "Dodaj znakove valuta na određene tipke"
 
-# Znak za Euro na
 #: ../rules/base.xml.in.h:1003
 msgid "Euro on E"
-msgstr "Znak za euro na E"
+msgstr "Euro na E"
 
 #: ../rules/base.xml.in.h:1004
 msgid "Euro on 2"
-msgstr "Znak za euro na 2"
+msgstr "Euro na 2"
 
 #: ../rules/base.xml.in.h:1005
 msgid "Euro on 4"
-msgstr "Znak za euro na 4"
+msgstr "Euro na 4"
 
 #: ../rules/base.xml.in.h:1006
 msgid "Euro on 5"
-msgstr "Znak za euro na 5"
+msgstr "Euro na 5"
 
 #: ../rules/base.xml.in.h:1007
 msgid "Rupee on 4"
-msgstr "Znak za rupiju (rupee) na 4"
+msgstr "Rupija na 4"
 
 #: ../rules/base.xml.in.h:1008
 msgid "Key to choose 5th level"
-msgstr "Tipka za odabiranje 5. razine"
+msgstr "Tipka za odabir 5. razine"
 
 #: ../rules/base.xml.in.h:1009
 msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "&lt;Manje od/Veće od&gt; odabire 5. razinu, zaključava je pritisne li se zajedno s još jednim odabiračem 5. razine"
+msgstr "&lt;Manje/Veće&gt; odabire 5. razinu, zaključava kada je pritisnut zajedno s drugim odabirateljem 5. razine"
 
 #: ../rules/base.xml.in.h:1010
 msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Desni Alt odabire 5. razinu, zaključava je pritisne li se zajedno s još jednim odabiračem 5. razine"
+msgstr "Lijevi Alt odabire 5. razinu, zaključava kada je pritisnut zajedno s drugim odabirateljem 5. razine"
 
 #: ../rules/base.xml.in.h:1011
 msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Lijevi Win odabire 5. razinu, zaključava je pritisne li se zajedno s još jednim odabiračem 5. razine"
+msgstr "Lijevi Win odabire 5. razinu, zaključava kada je pritisnut zajedno s drugim odabirateljem 5. razine"
 
 #: ../rules/base.xml.in.h:1012
 msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Desni Win odabire 5. razinu, zaključava je pritisne li se zajedno s još jednim odabiračem 5. razine"
+msgstr "Desni Win odabire 5. razinu, zaključava kada je pritisnut zajedno s drugim odabirateljem 5. razine"
 
-# space key = razmaknica; space = bjelina=razmak; (1 udarac na razmaknicu)
 #: ../rules/base.xml.in.h:1013
 msgid "Using space key to input non-breakable space character"
-msgstr "Uporaba razmaknice (space bar) za unos neraskidivog znaka bjeline (razmaka)"
+msgstr "Koristi space tipku za unos neprelomljivog znaka razmaka"
 
 #: ../rules/base.xml.in.h:1014
 msgid "Usual space at any level"
-msgstr "Obična bjelina (razmak) na bilo kojoj razini"
+msgstr "Uobičajena Space tipka na svim razinama"
 
-# space = bjelina; non-breakable = tvrda bjelina, ali to nije uobičajeno
 #: ../rules/base.xml.in.h:1015
 msgid "Non-breakable space character at second level"
-msgstr "Neraskidiv znak bjeline na 2. razini"
+msgstr "Neprelomljivi znak razmaka na drugoj razini"
 
 #: ../rules/base.xml.in.h:1016
 msgid "Non-breakable space character at third level"
-msgstr "Neraskidiv znak bjeline na 3. razini"
+msgstr "Neprelomljivi znak razmaka na trećoj razini"
 
 #: ../rules/base.xml.in.h:1017
 msgid "Non-breakable space character at third level, nothing at fourth level"
-msgstr "Neraskidiv znak bjeline na 3. razini, ali ne i na 4. razini"
+msgstr "Neprelomljivi znak razmaka na trećoj razini, ništa na četvrtoj razini"
 
 #: ../rules/base.xml.in.h:1018
 msgid "Non-breakable space character at third level, thin non-breakable space character at fourth level"
-msgstr "Neraskidiv znak bjeline na 3. razini, uski neraskidiv znak bjeline na 4. razini"
+msgstr "Neprelomljivi znak razmaka na trećoj razini, rijedak neprelomljivi znak razmaka na četvrtoj razini"
 
 #: ../rules/base.xml.in.h:1019
 msgid "Non-breakable space character at fourth level"
-msgstr "Neraskidiv znak bjeline na 4. razini"
+msgstr "Neprelomljivi znak razmaka na četvrtoj razini"
 
 #: ../rules/base.xml.in.h:1020
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level"
-msgstr "Neraskidiv znak bjeline na 4. razini, uski neraskidiv znak bjeline na 6. razini"
+msgstr "Neprelomljivi znak razmaka na četvrtoj razini, rijedak neprelomljivi znak razmaka na šestoj razini"
 
 #: ../rules/base.xml.in.h:1021
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level (via Ctrl+Shift)"
-msgstr "Neraskidiv znak bjeline na 4. razini, uski neraskidiv znak bjeline na 4. razini (s Ctrl + Shift)"
+msgstr "Neprelomljivi znak razmaka na četvrtoj razini, rijedak neprelomljivi znak razmaka na šestoj razini (putem Ctrl+Shift)"
 
-# non-printing „Zero-width non-joiner“, „Zero-width joiner“ tipografski znak koji se koristi u nekim jezicima
 #: ../rules/base.xml.in.h:1022
 msgid "Zero-width non-joiner character at second level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1023
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „zero-width non-joiner“ znak na 3. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1024
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level, non-breakable space character at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, „zero-width non-joiner“ znak na 3. razini, neraskidiv znak bjeline na 4. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1025
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, neraskidiv znak bjeline na 3. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1026
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, nothing at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, neraskidiv znak bjeline na 3. razini, ništa na 4. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1027
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, zero-width joiner at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini, neraskidiv znak bjeline na 3. razini, „zero-width joiner“ na 4. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1028
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, thin non-breakable space at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 2. razini,  neraskidiv znak bjeline na 3. razini, uska  bjelina na 4. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1029
 msgid "Zero-width non-joiner character at third level, zero-width joiner at fourth level"
-msgstr "„Zero-width non-joiner“ znak na 3. razini, „zero-width joiner“ na 4. razini"
+msgstr ""
 
 #: ../rules/base.xml.in.h:1030
 msgid "Japanese keyboard options"
-msgstr "Opcije japanske tipkovnice"
+msgstr "Mogućnosti japanske tipkovnice"
 
 #: ../rules/base.xml.in.h:1031
 msgid "Kana Lock key is locking"
-msgstr "Kana Lock-tipka zaključava"
+msgstr "Kana Lock tipka zaključva"
 
-# The "NICOLA-F style Backspace" option arranges Backspace at the same position as NICOLA-F layout on the jp106 keyboard
 #: ../rules/base.xml.in.h:1032
 msgid "NICOLA-F style Backspace"
-msgstr "Pozicija Backspace-tipke kao na NICOLA-F rasporedu"
+msgstr "NICOLA-F Backspace stil"
 
 #: ../rules/base.xml.in.h:1033
 msgid "Make Zenkaku Hankaku an additional ESC"
-msgstr "Zenkaku Hankaku je dodatni Esc"
+msgstr "NApravi Zenkaku Hankaku dodatni ESC"
 
 #: ../rules/base.xml.in.h:1034
 msgid "Korean Hangul/Hanja keys"
@@ -3911,7 +3883,7 @@ msgstr "Korejske Hangul/Hanja tipke"
 
 #: ../rules/base.xml.in.h:1035
 msgid "Hardware Hangul/Hanja keys"
-msgstr "Hardverske Hangul/Hanja keys"
+msgstr "Hardverske Hangul/Hanja tipke"
 
 #: ../rules/base.xml.in.h:1036
 msgid "Right Alt as Hangul, right Ctrl as Hanja"
@@ -3921,34 +3893,33 @@ msgstr "Desni Alt je Hangul, desni Ctrl je Hanja"
 msgid "Right Ctrl as Hangul, right Alt as Hanja"
 msgstr "Desni Ctrl je Hangul, desni Alt je Hanja"
 
-# dijakritički, slova s dodacima gore, dolje
 #: ../rules/base.xml.in.h:1038
 msgid "Adding Esperanto supersigned letters"
-msgstr "Dodavanje Esperanto dijakritičkih slova"
+msgstr "Dodavanje Esperanto slova super potpisa"
 
 #: ../rules/base.xml.in.h:1039
 msgid "To the corresponding key in a Qwerty layout"
-msgstr "Na odgovarajuću tipku u Qwerty rasporedu"
+msgstr "Odgovarajuća tipka u Qwerty rasporedu"
 
 #: ../rules/base.xml.in.h:1040
 msgid "To the corresponding key in a Dvorak layout"
-msgstr "Na odgovarajuću tipku u Dvorak rasporedu"
+msgstr "Odgovarajuća tipka u Dvorak rasporedu"
 
 #: ../rules/base.xml.in.h:1041
 msgid "To the corresponding key in a Colemak layout"
-msgstr "Na odgovarajuću tipku u Coleman rasporedu"
+msgstr "Odgovarajuća tipka u Colemak rasporedu"
 
 #: ../rules/base.xml.in.h:1042
 msgid "Maintain key compatibility with old Solaris keycodes"
-msgstr "Podržavanje kompatibilnosti tipki sa starim Solaris kódovima"
+msgstr "Drži kompatibilnost tipka sa starim Solaris kôdovima tipka"
 
 #: ../rules/base.xml.in.h:1043
 msgid "Sun Key compatibility"
-msgstr "Kompatibilnost sa Sun tipkama"
+msgstr "Kompatibilnost Sun tipka"
 
 #: ../rules/base.xml.in.h:1044
 msgid "Key sequence to kill the X server"
-msgstr "Sekvencija tipki za zaustavljanje X poslužitelja"
+msgstr "Kombinacija tipki za zaustavljanje X poslužitelja"
 
 #: ../rules/base.xml.in.h:1045
 msgid "Ctrl + Alt + Backspace"
@@ -3960,7 +3931,7 @@ msgstr "apl"
 
 #: ../rules/base.extras.xml.in.h:2
 msgid "APL keyboard symbols"
-msgstr "APL tipkovnički simboli"
+msgstr "APL simboli tipkovnice"
 
 #: ../rules/base.extras.xml.in.h:3
 msgid "dlg"
@@ -3968,7 +3939,7 @@ msgstr "dlg"
 
 #: ../rules/base.extras.xml.in.h:4
 msgid "APL keyboard symbols (Dyalog)"
-msgstr "APL tipkovnički simboli (Dyalog)"
+msgstr "APL simboli tipkovnice (Dijalog)"
 
 #: ../rules/base.extras.xml.in.h:5
 msgid "sax"
@@ -3976,7 +3947,7 @@ msgstr "sax"
 
 #: ../rules/base.extras.xml.in.h:6
 msgid "APL keyboard symbols (sax)"
-msgstr "APL tipkovnički simboli (sax)"
+msgstr "APL simboli tipkovnice (sax)"
 
 #: ../rules/base.extras.xml.in.h:7
 msgid "ufd"
@@ -3984,7 +3955,7 @@ msgstr "ufd"
 
 #: ../rules/base.extras.xml.in.h:8
 msgid "APL keyboard symbols (unified)"
-msgstr "APL tipkovnički simboli (uni)"
+msgstr "APL simboli tipkovnice (objedinjeno)"
 
 #: ../rules/base.extras.xml.in.h:9
 msgid "apl2"
@@ -3992,7 +3963,7 @@ msgstr "apl2"
 
 #: ../rules/base.extras.xml.in.h:10
 msgid "APL keyboard symbols (IBM APL2)"
-msgstr "APL tipkovnički simboli (IBM APL2)"
+msgstr "APL simboli tipkovnice (IBM APL2)"
 
 #: ../rules/base.extras.xml.in.h:11
 msgid "aplII"
@@ -4000,7 +3971,7 @@ msgstr "aplII"
 
 #: ../rules/base.extras.xml.in.h:12
 msgid "APL keyboard symbols (Manugistics APL*PLUS II)"
-msgstr "APL tipkovnički simboli (Manugistics APL*PLUS II)"
+msgstr "APL simboli tipkovnice (Manugistics APL*PLUS II)"
 
 #: ../rules/base.extras.xml.in.h:13
 msgid "aplx"
@@ -4008,7 +3979,7 @@ msgstr "aplx"
 
 #: ../rules/base.extras.xml.in.h:14
 msgid "APL keyboard symbols (APLX unified)"
-msgstr "APL tipkovnički simboli (APLX unified)"
+msgstr "APL simboli tipkovnice (APLX objedinjeno)"
 
 #: ../rules/base.extras.xml.in.h:17
 msgid "kut"
@@ -4016,67 +3987,63 @@ msgstr "kut"
 
 #: ../rules/base.extras.xml.in.h:18
 msgid "Kutenai"
-msgstr "Kutenai"
+msgstr "Kutenaijski"
 
 #: ../rules/base.extras.xml.in.h:19
 msgid "shs"
 msgstr "shs"
 
-# Domoroci, prvi narod u kanadskoj provinciji British Colmbia, jezik šušvapski
 #: ../rules/base.extras.xml.in.h:20
 msgid "Secwepemctsin"
-msgstr "šušvapski"
+msgstr "Secwepemctsinski"
 
 #: ../rules/base.extras.xml.in.h:21
 msgid "Multilingual (Canada, Sun Type 6/7)"
-msgstr "više-jezični (Kanada, Sun Type 6/7)"
+msgstr "Višejezični (Kanada, Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:24
 msgid "German (US keyboard with German letters)"
-msgstr "njemački (SAD tipkovnica s njemačkim slovima)"
+msgstr "Njemački (SAD tipkovnica s Njemačkim slovima)"
 
 #: ../rules/base.extras.xml.in.h:25
 msgid "German (with Hungarian letters and no dead keys)"
-msgstr "njemački (s Mađarskim slovima, bez mrtvih tipaka)"
+msgstr "Njemački (s mađarskim slovima i mrtvim tipkama)"
 
 #: ../rules/base.extras.xml.in.h:26
 msgid "Polish (Germany, eliminate dead keys)"
-msgstr "poljski (Njemačka, ukloniti mrtve tipke)"
+msgstr "Poljski (Njemačka, uklonjene mrtve tipke)"
 
 #: ../rules/base.extras.xml.in.h:27
 msgid "German (Sun Type 6/7)"
-msgstr "njemački (Sun Type 6/7)"
+msgstr "Njemački (Sun Type 6/7)"
 
-# Novi svijet = Amerika
 #: ../rules/base.extras.xml.in.h:28
 msgid "German (Aus der Neo-Welt)"
-msgstr "njemački (iz Novog svijeta)"
+msgstr "Njemački (Aus der Neo-Welt)"
 
 #: ../rules/base.extras.xml.in.h:29
 msgid "German (KOY)"
-msgstr "njemački (KOY)"
+msgstr "Njemački (KOY)"
 
 #: ../rules/base.extras.xml.in.h:30
 msgid "German (Bone)"
-msgstr "njemački (Bone)"
+msgstr "Njemački (Bone)"
 
 #: ../rules/base.extras.xml.in.h:31
 msgid "German (Bone, eszett home row)"
-msgstr "njemački (Bone, eszett u temeljnom redu)"
+msgstr "Njemački (Bone, eszett home row)"
 
-# Novi svijet = Amerika
 #: ../rules/base.extras.xml.in.h:32
 msgid "German (Neo qwertz)"
-msgstr "njemački (Neo qwertz)"
+msgstr "Njemački (Neo qwertz)"
 
 #: ../rules/base.extras.xml.in.h:33
 msgid "German (Neo qwerty)"
-msgstr "njemački (Neo qwerty)"
+msgstr "Njemački (Neo qwerty)"
 
-# Avesta je zbirka zoroastrijskih svetih tekstova sastavljenih na avestičkom jeziku, a za zoroastrijance predstavlja jednaku važnost kao i Biblija za kršćane ili Kuran za muslimane
 #: ../rules/base.extras.xml.in.h:36
 msgid "Avestan"
-msgstr "avestički"
+msgstr "Avestički"
 
 #: ../rules/base.extras.xml.in.h:39
 msgid "Lithuanian (US Dvorak with Lithuanian letters)"
@@ -4088,51 +4055,51 @@ msgstr "Litavski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:43
 msgid "Latvian (US Dvorak)"
-msgstr "latvijski (SAD Dvorak)"
+msgstr "Letonski (SAD Dvorak)"
 
 #: ../rules/base.extras.xml.in.h:44
 msgid "Latvian (US Dvorak, Y variant)"
-msgstr "latvijski (SAD Dvorak, Y varijanta)"
+msgstr "Letonski (SAD Dvorak, Y varijanta)"
 
 #: ../rules/base.extras.xml.in.h:45
 msgid "Latvian (US Dvorak, minus variant)"
-msgstr "latvijski (SAD Dvorak, minus varijanta)"
+msgstr "Letonski (SAD Dvorak, minus varijanta)"
 
 #: ../rules/base.extras.xml.in.h:46
 msgid "Latvian (programmer US Dvorak)"
-msgstr "latvijski (SAD, Dvorak za programere)"
+msgstr "Letonski (programerski SAD Dvorak)"
 
 #: ../rules/base.extras.xml.in.h:47
 msgid "Latvian (programmer US Dvorak, Y variant)"
-msgstr "latvijski (SAD, Dvorak za programere, Y varijanta)"
+msgstr "Letonski (programerski SAD Dvorak, Y varijanta)"
 
 #: ../rules/base.extras.xml.in.h:48
 msgid "Latvian (programmer US Dvorak, minus variant)"
-msgstr "latvijski (SAD, Dvorak za programere, minus varijanta)"
+msgstr "Letonski (programerski SAD Dvorak, minus varijanta)"
 
 #: ../rules/base.extras.xml.in.h:49
 msgid "Latvian (US Colemak)"
-msgstr "latvijski (SAD Colemak)"
+msgstr "Letonski (SAD Colemak)"
 
 #: ../rules/base.extras.xml.in.h:50
 msgid "Latvian (US Colemak, apostrophe variant)"
-msgstr "latvijski (SAD Colemak, apostrof-varijanta)"
+msgstr "Letonski (SAD Colemak, apostrof varijanta)"
 
 #: ../rules/base.extras.xml.in.h:51
 msgid "Latvian (Sun Type 6/7)"
-msgstr "latvijski (Sun Type 6/7)"
+msgstr "Letonski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:54
 msgid "English (US, international AltGr Unicode combining)"
-msgstr "engleski (SAD, međunarodni, unikod kombiniran s AltGr)"
+msgstr "Engleski (SAD, međunarodno AltGr Unikôodno kombiniranje)"
 
 #: ../rules/base.extras.xml.in.h:55
 msgid "English (US, international AltGr Unicode combining, alternative)"
-msgstr "engleski (SAD, međunarodni, unikod kombiniran s AltGr, alternativni)"
+msgstr "Engleski (SAD, međunarodno AltGr Unikôodno kombiniranje, alternativno)"
 
 #: ../rules/base.extras.xml.in.h:56
 msgid "Atsina"
-msgstr "Atsina"
+msgstr "Atsinaski"
 
 #: ../rules/base.extras.xml.in.h:57
 msgid "Coeur d'Alene Salish"
@@ -4140,413 +4107,396 @@ msgstr "Coeur d'Alene Salish"
 
 #: ../rules/base.extras.xml.in.h:58
 msgid "Czech Slovak and German (US)"
-msgstr "čehoslovački i njemački (SAD)"
+msgstr "Češko-slovački i njemački (SAD)"
 
 #: ../rules/base.extras.xml.in.h:59
 msgid "English (US, IBM Arabic 238_L)"
-msgstr "engleski (US, IBM Arabic 238_L)"
+msgstr "Engleski (SAD, IBM Arapski 238_L)"
 
 #: ../rules/base.extras.xml.in.h:60
 msgid "English (US, Sun Type 6/7)"
-msgstr "engleski (SAD, Sun Type 6/7)"
+msgstr "Engleski (SAD, Sun vrsta 6/7)"
 
 #: ../rules/base.extras.xml.in.h:61
 msgid "English (Norman)"
-msgstr "engleski (normanski)"
+msgstr "Engleski (normanski)"
 
 #: ../rules/base.extras.xml.in.h:62
 msgid "English (Carpalx)"
-msgstr "engleski (Carpalx)"
+msgstr "Engleski (Carpalx)"
 
-# dead key za dijakritičke oznake mrtva tipka
 #: ../rules/base.extras.xml.in.h:63
 msgid "English (Carpalx, international with dead keys)"
-msgstr "engleski (Carpalx, međunarodni s mrtvim tipkama)"
+msgstr "Engleski (Carpalx, međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.extras.xml.in.h:64
 msgid "English (Carpalx, international AltGr dead keys)"
-msgstr "engleski (Carpalx, međunarodni, mrtve tipke s AltGr)"
+msgstr "Engleski (Carpalx, međunarodni AltGr mrtve tipke)"
 
 #: ../rules/base.extras.xml.in.h:65
 msgid "English (Carpalx, full optimization)"
-msgstr "engleski (Carpalx, optimalan)"
+msgstr "Engleski (Carpalx, potpuna optimizacija)"
 
 #: ../rules/base.extras.xml.in.h:66
 msgid "English (Carpalx, full optimization, international with dead keys)"
-msgstr "engleski (Carpalx, optimiziran, Workman, međunarodni s mrtvim tipkama)"
+msgstr "Engleski (Carpalx, potpuna optimizacija, međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.extras.xml.in.h:67
 msgid "English (Carpalx, full optimization, international AltGr dead keys)"
-msgstr "engleski (Carpalx, optimiziran, međunarodni, mrtve tipke s AltGr)"
+msgstr "Engleski (Carpalx, potpuna optimizacija, međunarodni AltGr mrtve tipke)"
 
 #: ../rules/base.extras.xml.in.h:70
 msgid "Polish (international with dead keys)"
-msgstr "poljski (međunarodni s mrtvim tipkama)"
+msgstr "Poljski (međunarodni s mrtvim tipkama)"
 
 #: ../rules/base.extras.xml.in.h:71
 msgid "Polish (Colemak)"
-msgstr "poljski (Colemak)"
+msgstr "Poljski (Colemak)"
 
 #: ../rules/base.extras.xml.in.h:72
 msgid "Polish (Sun Type 6/7)"
-msgstr "poljski (Sun Type 6/7)"
+msgstr "Poljski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:76
 msgid "Crimean Tatar (Dobruja Q)"
-msgstr "krimskotatarski (Dobruja Q)"
+msgstr "Krimsko tatarski (Dobruja Q)"
 
 #: ../rules/base.extras.xml.in.h:77
 msgid "Romanian (ergonomic Touchtype)"
-msgstr "rumunjski (ergonomski daktilografski)"
+msgstr "Rumunjski (ergonomski Touchtype)"
 
 #: ../rules/base.extras.xml.in.h:78
 msgid "Romanian (Sun Type 6/7)"
-msgstr "rumunjski (Sun Type 6/7)"
+msgstr "Rumunjski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:81
 msgid "Serbian (combining accents instead of dead keys)"
-msgstr "srpski (kombinacija s dijakritičkim znacima umjesto mrtvih tipaka)"
+msgstr "Srpski (kombiniranje dijakritika umjesto mrtvih tipka)"
 
 #: ../rules/base.extras.xml.in.h:84
 msgid "Church Slavonic"
-msgstr "crkvenoslavenski"
+msgstr "Crkvenoslavenski"
 
 #: ../rules/base.extras.xml.in.h:85
 msgid "Russian (with Ukrainian-Belorussian layout)"
-msgstr "ruski (ukrajinsko-bjeloruski raspored)"
+msgstr "Ruski (s ukrajinsko-bjeloruskim rasporedom)"
 
 #: ../rules/base.extras.xml.in.h:86
+msgid "Russian (Rulemak, phonetic Colemak)"
+msgstr "Ruski (Rulemak, fonetski Colemak)"
+
+#: ../rules/base.extras.xml.in.h:87
 msgid "Russian (Sun Type 6/7)"
-msgstr "ruski (Sun Type 6/7)"
+msgstr "Ruski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:89
+#: ../rules/base.extras.xml.in.h:90
 msgid "Armenian (OLPC phonetic)"
-msgstr "armenski (OLPC fonetski)"
+msgstr "Armenski (OLPC fonetski)"
 
-#: ../rules/base.extras.xml.in.h:92
+#: ../rules/base.extras.xml.in.h:93
 msgid "Hebrew (Biblical, SIL phonetic)"
-msgstr "hebrejski (Biblijski, SIL fonetski)"
+msgstr "Hebrejski (biblijski, SIL fonetski)"
 
-#: ../rules/base.extras.xml.in.h:95
+#: ../rules/base.extras.xml.in.h:96
 msgid "Arabic (Sun Type 6/7)"
-msgstr "arapski (Sun Type 6/7)"
+msgstr "Arapski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:98
+#: ../rules/base.extras.xml.in.h:99
 msgid "Belgian (Sun Type 6/7)"
-msgstr "belgijski (Sun Type 6/7)"
+msgstr "Belgijski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:101
+#: ../rules/base.extras.xml.in.h:102
 msgid "Portuguese (Brazil, Sun Type 6/7)"
-msgstr "portugalski (Brazil, Sun Type 6/7)"
+msgstr "Portugalski (Brazil, Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:104
+#: ../rules/base.extras.xml.in.h:105
 msgid "Czech (Sun Type 6/7)"
-msgstr "češki (Sun Type 6/7)"
+msgstr "Češki (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:107
+#: ../rules/base.extras.xml.in.h:108
 msgid "Danish (Sun Type 6/7)"
-msgstr "danski (Sun Type 6/7)"
+msgstr "Danski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:110
+#: ../rules/base.extras.xml.in.h:111
 msgid "Dutch (Sun Type 6/7)"
-msgstr "nizozemski (Sun Type 6/7)"
+msgstr "Nizozemski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:113
+#: ../rules/base.extras.xml.in.h:114
 msgid "Estonian (Sun Type 6/7)"
-msgstr "estonski (Sun Type 6/7)"
-
-#: ../rules/base.extras.xml.in.h:116
-msgid "Finnish (DAS)"
-msgstr "finski (DAS)"
+msgstr "Estonski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:117
+msgid "Finnish (DAS)"
+msgstr "Finski (DAS)"
+
+#: ../rules/base.extras.xml.in.h:118
 msgid "Finnish (Sun Type 6/7)"
-msgstr "finski (Sun Type 6/7)"
+msgstr "Finski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:119
+#: ../rules/base.extras.xml.in.h:120
 msgid "French (Sun Type 6/7)"
-msgstr "francuski (Sun Type 6/7)"
+msgstr "Francuski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:122
+#: ../rules/base.extras.xml.in.h:123
 msgid "Greek (Sun Type 6/7)"
-msgstr "grčki (Sun Type 6/7)"
+msgstr "Grčki (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:125
+#: ../rules/base.extras.xml.in.h:126
 msgid "Italian (Sun Type 6/7)"
-msgstr "talijanski (Sun Type 6/7)"
-
-#: ../rules/base.extras.xml.in.h:128
-msgid "Japanese (Sun Type 6)"
-msgstr "japanski (Sun Type 6)"
+msgstr "Talijanski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:129
-msgid "Japanese (Sun Type 7 - pc compatible)"
-msgstr "japanski (Sun Type 7 - PC kompatibilan)"
+msgid "Japanese (Sun Type 6)"
+msgstr "Japanski (Sun Type 6)"
 
 #: ../rules/base.extras.xml.in.h:130
+msgid "Japanese (Sun Type 7 - pc compatible)"
+msgstr "Japanski (Sun Type 7 - pc kompatibilan)"
+
+#: ../rules/base.extras.xml.in.h:131
 msgid "Japanese (Sun Type 7 - sun compatible)"
-msgstr "japanski (Sun Type 7 - SUN kompatibilan)"
+msgstr "Japanski (Sun Type 7 - sun kompatibilan)"
 
-#: ../rules/base.extras.xml.in.h:133
+#: ../rules/base.extras.xml.in.h:134
 msgid "Norwegian (Sun Type 6/7)"
-msgstr "norveški (Sun Type 6/7)"
+msgstr "Norveški (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:135
+#: ../rules/base.extras.xml.in.h:136
 msgid "Portuguese (Sun Type 6/7)"
-msgstr "portugalski (Sun Type 6/7)"
+msgstr "Portugalski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:138
+#: ../rules/base.extras.xml.in.h:139
 msgid "Slovak (Sun Type 6/7)"
-msgstr "slovački (Sun Type 6/7)"
+msgstr "Slovački (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:141
+#: ../rules/base.extras.xml.in.h:142
 msgid "Spanish (Sun Type 6/7)"
-msgstr "španjolski (Sun Type 6/7)"
-
-#: ../rules/base.extras.xml.in.h:144
-msgid "Swedish (Dvorak A5)"
-msgstr "danski (Dvorak A5)"
+msgstr "Španjolski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:145
+msgid "Swedish (Dvorak A5)"
+msgstr "Švedski (Dvorak A5)"
+
+#: ../rules/base.extras.xml.in.h:146
 msgid "Swedish (Sun Type 6/7)"
-msgstr "švedski (Sun Type 6/7)"
+msgstr "Švedski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:147
+msgid "Elfdalian (Swedish, with combining ogonek)"
+msgstr "Elfdalianski (Švedski, u kombinaciji s ogonekom)"
+
+#: ../rules/base.extras.xml.in.h:149
 msgid "German (Switzerland, Sun Type 6/7)"
-msgstr "njemački (Švicarska, Sun Type 6/7)"
+msgstr "Njemački (Švicarska, Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:148
+#: ../rules/base.extras.xml.in.h:150
 msgid "French (Switzerland, Sun Type 6/7)"
-msgstr "francuski (Švicarska, Sun Type 6/7)"
+msgstr "Francuski (Švicarska, Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:151
+#: ../rules/base.extras.xml.in.h:153
 msgid "Turkish (Sun Type 6/7)"
-msgstr "turski (Sun Type 6/7)"
-
-#: ../rules/base.extras.xml.in.h:154
-msgid "Ukrainian (Sun Type 6/7)"
-msgstr "ukrajinski (Sun Type 6/7)"
+msgstr "Turski (Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:156
-msgid "English (UK, Sun Type 6/7)"
-msgstr "engleski (UK, Sun Type 6/7)"
+msgid "Ukrainian (Sun Type 6/7)"
+msgstr "Ukrajinski (Sun Type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:159
+#: ../rules/base.extras.xml.in.h:158
+msgid "English (UK, Sun Type 6/7)"
+msgstr "Engleski (UK, Sun Type 6/7)"
+
+#: ../rules/base.extras.xml.in.h:161
 msgid "Korean (Sun Type 6/7)"
-msgstr "korejski (Sun Type 6/7)"
+msgstr "Korejski (Sun Type 6/7)"
 
 #. Keyboard indicator for European layouts
-#: ../rules/base.extras.xml.in.h:161
+#: ../rules/base.extras.xml.in.h:163
 msgid "eu"
 msgstr "eu"
 
-#: ../rules/base.extras.xml.in.h:162
+#: ../rules/base.extras.xml.in.h:164
 msgid "EurKEY (US based layout with european letters)"
-msgstr "EurKEY (SAD raspored s europskim slovima)"
+msgstr "EurTIPKA (SAD temeljeni raspored s europskim slovima)"
 
-# selo u Kamerunu
-#: ../rules/base.extras.xml.in.h:165
+#: ../rules/base.extras.xml.in.h:167
 msgid "Mmuock"
-msgstr "mmuock"
+msgstr "Mmuock"
 
 #. Keyboard indicator for Bangla layouts
-#: ../rules/base.extras.xml.in.h:167
+#: ../rules/base.extras.xml.in.h:169
 msgid "bn"
 msgstr "bn"
 
-#: ../rules/base.extras.xml.in.h:168
+#: ../rules/base.extras.xml.in.h:170
 msgid "Bangla"
-msgstr "bengalski"
+msgstr "Bengalski"
 
-#: ../rules/base.extras.xml.in.h:169
+#: ../rules/base.extras.xml.in.h:171
 msgid "Bangla (Probhat)"
-msgstr "bengalski (Probhat)"
-
-#: ../rules/base.extras.xml.in.h:173
-msgid "Bangla (India)"
-msgstr "bengalski (Indija)"
-
-#: ../rules/base.extras.xml.in.h:174
-msgid "Bangla (India, Probhat)"
-msgstr "bengalski (Indija, Probhat)"
+msgstr "Bengalski (Probhat)"
 
 #: ../rules/base.extras.xml.in.h:175
-msgid "Bangla (India, Baishakhi)"
-msgstr "bengalski (Indija, Baishakhi)"
+msgid "Bangla (India)"
+msgstr "Bengalski (Indija)"
 
 #: ../rules/base.extras.xml.in.h:176
-msgid "Bangla (India, Bornona)"
-msgstr "bengalski (Indija, Bornona)"
+msgid "Bangla (India, Probhat)"
+msgstr "Bengalski (Indija, Probhat)"
 
 #: ../rules/base.extras.xml.in.h:177
-msgid "Bangla (India, Uni Gitanjali)"
-msgstr "bengalski (Indija, Uni Gitanjali)"
+msgid "Bangla (India, Baishakhi)"
+msgstr "Bengalski (Indija, Baiskhaški)"
 
 #: ../rules/base.extras.xml.in.h:178
-msgid "Bangla (India, Baishakhi Inscript)"
-msgstr "bengalski (Indija, Baishakhi)"
+msgid "Bangla (India, Bornona)"
+msgstr "Bengalski (Indija, Baišahi)"
 
 #: ../rules/base.extras.xml.in.h:179
+msgid "Bangla (India, Uni Gitanjali)"
+msgstr "Bengalski (Indija, Uni Gitanjali)"
+
+#: ../rules/base.extras.xml.in.h:180
+msgid "Bangla (India, Baishakhi Inscript)"
+msgstr "Bengalski (Indija, Baišahi Inskripta)"
+
+#: ../rules/base.extras.xml.in.h:181
 msgid "Manipuri (Eeyek)"
-msgstr "Manipuri (Eeyek)"
+msgstr "Manipurski (Eeyek)"
 
 #. Keyboard indicator for Gujarati layouts
-#: ../rules/base.extras.xml.in.h:181
+#: ../rules/base.extras.xml.in.h:183
 msgid "gu"
 msgstr "gu"
 
-#: ../rules/base.extras.xml.in.h:182
+#: ../rules/base.extras.xml.in.h:184
 msgid "Gujarati"
-msgstr "gudžaratski"
+msgstr "Gudžaratski"
 
 #. Keyboard indicator for Punjabi layouts
-#: ../rules/base.extras.xml.in.h:184
+#: ../rules/base.extras.xml.in.h:186
 msgid "pa"
 msgstr "pa"
 
-#: ../rules/base.extras.xml.in.h:185
+#: ../rules/base.extras.xml.in.h:187
 msgid "Punjabi (Gurmukhi)"
-msgstr "pandžapski (Gurmukhi)"
+msgstr "Pandžabski (Gurmukhi)"
 
-#: ../rules/base.extras.xml.in.h:186
+#: ../rules/base.extras.xml.in.h:188
 msgid "Punjabi (Gurmukhi Jhelum)"
-msgstr "pandžapski (Gurmukhi Jhelum)"
+msgstr "Pandžapski (Gurmukhi Jhelum)"
 
 #. Keyboard indicator for Kannada layouts
-#: ../rules/base.extras.xml.in.h:188
+#: ../rules/base.extras.xml.in.h:190
 msgid "kn"
 msgstr "kn"
 
-#: ../rules/base.extras.xml.in.h:189
+#: ../rules/base.extras.xml.in.h:191
 msgid "Kannada"
-msgstr "Kannada"
+msgstr "Kanarski"
 
-#: ../rules/base.extras.xml.in.h:190
+#: ../rules/base.extras.xml.in.h:192
 msgid "Kannada (KaGaPa phonetic)"
-msgstr "Kannada (KaGaPa fonetski)"
+msgstr "Kanarski (KaGaPa fonetski)"
 
 #. Keyboard indicator for Malayalam layouts
-#: ../rules/base.extras.xml.in.h:192
+#: ../rules/base.extras.xml.in.h:194
 msgid "ml"
 msgstr "ml"
 
-#: ../rules/base.extras.xml.in.h:193
-msgid "Malayalam"
-msgstr "malajalamski"
-
-#: ../rules/base.extras.xml.in.h:194
-msgid "Malayalam (Lalitha)"
-msgstr "malajalamski (Lalitha)"
-
 #: ../rules/base.extras.xml.in.h:195
+msgid "Malayalam"
+msgstr "Malajalamski"
+
+#: ../rules/base.extras.xml.in.h:196
+msgid "Malayalam (Lalitha)"
+msgstr "Malajalamski (Lalitha)"
+
+#: ../rules/base.extras.xml.in.h:197
 msgid "Malayalam (enhanced Inscript, with rupee sign)"
-msgstr "malajalamski (poboljšani Inscript, s znakom rupije)"
+msgstr "Malajalamski (proširena inskripta, s rupijskim potpisom)"
 
 #. Keyboard indicator for Oriya layouts
-#: ../rules/base.extras.xml.in.h:197
+#: ../rules/base.extras.xml.in.h:199
 msgid "or"
 msgstr "or"
 
-#: ../rules/base.extras.xml.in.h:198
+#: ../rules/base.extras.xml.in.h:200
 msgid "Oriya"
-msgstr "Oriya"
+msgstr "Orijski"
 
 #. Keyboard indicator for Ol Chiki layouts
-#: ../rules/base.extras.xml.in.h:200
+#: ../rules/base.extras.xml.in.h:202
 msgid "sat"
-msgstr "sat"
+msgstr "Sat"
 
-#: ../rules/base.extras.xml.in.h:201
+#: ../rules/base.extras.xml.in.h:203
 msgid "Ol Chiki"
 msgstr "Ol Chiki"
 
-#: ../rules/base.extras.xml.in.h:204
-msgid "Tamil (Unicode)"
-msgstr "tamilski (unicode)"
-
-#: ../rules/base.extras.xml.in.h:205
-msgid "Tamil (keyboard with numerals)"
-msgstr "tamilski (tipkovnica s brojkama)"
-
 #: ../rules/base.extras.xml.in.h:206
-msgid "Tamil (TAB typewriter)"
-msgstr "tamilski (TAB typewriter)"
+msgid "Tamil (Unicode)"
+msgstr "Tamilski (unikôdni)"
 
 #: ../rules/base.extras.xml.in.h:207
-msgid "Tamil (TSCII typewriter)"
-msgstr "tamilski (TSCII typewriter)"
+msgid "Tamil (keyboard with numerals)"
+msgstr "Tamilski (tipkovnica s brojevima)"
 
 #: ../rules/base.extras.xml.in.h:208
+msgid "Tamil (TAB typewriter)"
+msgstr "Tamilski (TAB pisači stroj)"
+
+#: ../rules/base.extras.xml.in.h:209
+msgid "Tamil (TSCII typewriter)"
+msgstr "Tamilski (TSCII pisači stroj)"
+
+#: ../rules/base.extras.xml.in.h:210
 msgid "Tamil"
-msgstr "tamilski"
+msgstr "Tamilski"
 
 #. Keyboard indicator for Telugu layouts
-#: ../rules/base.extras.xml.in.h:210
+#: ../rules/base.extras.xml.in.h:212
 msgid "te"
 msgstr "te"
 
-#: ../rules/base.extras.xml.in.h:211
+#: ../rules/base.extras.xml.in.h:213
 msgid "Telugu"
-msgstr "teluški"
+msgstr "Teluški"
 
-# Telugu, teluški Dravidian jezik, Indija
-#: ../rules/base.extras.xml.in.h:212
+#: ../rules/base.extras.xml.in.h:214
 msgid "Telugu (KaGaPa phonetic)"
-msgstr "teluški (fonetski)"
+msgstr "Teluški (KaGaPa fonetski)"
 
 #. Keyboard indicator for Hindi layouts
-#: ../rules/base.extras.xml.in.h:214
+#: ../rules/base.extras.xml.in.h:216
 msgid "hi"
 msgstr "hi"
 
-#: ../rules/base.extras.xml.in.h:215
-msgid "Hindi (Bolnagri)"
-msgstr "hindski (Bolnagri)"
-
-#: ../rules/base.extras.xml.in.h:216
-msgid "Hindi (Wx)"
-msgstr "hindski (Wx)"
-
 #: ../rules/base.extras.xml.in.h:217
+msgid "Hindi (Bolnagri)"
+msgstr "Hindski (Bolnagri)"
+
+#: ../rules/base.extras.xml.in.h:218
+msgid "Hindi (Wx)"
+msgstr "Hindski (Wx)"
+
+#: ../rules/base.extras.xml.in.h:219
 msgid "Hindi (KaGaPa phonetic)"
-msgstr "hindski(KaGaPa fonetski)"
+msgstr "Hindski (KaGaPa fonetski)"
 
 #. Keyboard indicator for Sanskrit layouts
-#: ../rules/base.extras.xml.in.h:219
+#: ../rules/base.extras.xml.in.h:221
 msgid "sa"
 msgstr "sa"
 
-#: ../rules/base.extras.xml.in.h:220
+#: ../rules/base.extras.xml.in.h:222
 msgid "Sanskrit (KaGaPa phonetic)"
-msgstr "sanskrt (KaGaPa fonetski)"
+msgstr "Sanskrtski"
 
 #. Keyboard indicator for Marathi layouts
-#: ../rules/base.extras.xml.in.h:222
+#: ../rules/base.extras.xml.in.h:224
 msgid "mr"
 msgstr "mr"
 
-#: ../rules/base.extras.xml.in.h:223
+#: ../rules/base.extras.xml.in.h:225
 msgid "Marathi (KaGaPa phonetic)"
-msgstr "marathi (KaGaPa fonetski)"
-
-#~ msgid "Right Alt as Right Ctrl"
-#~ msgstr "Desni Alt je desni Ctrl"
-
-# krivi source opis v.:ps://bugs.freedesktop.org/show_bug.cgi?id=94407
-#~ msgid "Make Caps Lock an additional Ctrl"
-#~ msgstr "CapsLock je dodatni Ctrl"
-
-#~ msgid "ca"
-#~ msgstr "ca"
-
-#~ msgid "Catalan"
-#~ msgstr "katalonski"
-
-#~ msgid "Bengali"
-#~ msgstr "bengalski"
-
-#~ msgid "Portuguese (Brazil, nativo for Esperanto)"
-#~ msgstr "portugalski (Brazil, nativo za esperanto)"
-
-#~ msgid "Key(s) to change layout"
-#~ msgstr "Tipke za promjenu rasporeda"
+msgstr "Marathski (KaGaPa fonetski)"

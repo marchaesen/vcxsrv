@@ -43,7 +43,7 @@ xkb_symbols "nodeadkeys" {
 
     include "it(basic)"
 
-    name[Group1]="Italian (eliminate dead keys)";
+    name[Group1]="Italian (no dead keys)";
 
     key <AE02>	{ [         2,   quotedbl,  twosuperior,  doubleacute ] };
     key <AE03>	{ [         3,   sterling,threesuperior,   asciitilde ]	};
@@ -182,7 +182,7 @@ xkb_symbols "us" {
 
     include "us(euro)"
 
-    name[Group1]= "Italian (US keyboard with Italian letters)";
+    name[Group1]= "Italian (US, with Italian letters)";
 
     key <TLDE> { [     grave, asciitilde,    dead_grave,       dead_tilde ] };
     key <AE01> { [         1,     exclam,   onesuperior                   ] };

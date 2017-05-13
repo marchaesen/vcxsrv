@@ -31,7 +31,6 @@
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/statvfs.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -47,7 +46,6 @@
 #include "util/mesa-sha1.h"
 #include "util/ralloc.h"
 #include "main/errors.h"
-#include "util/macros.h"
 
 #include "disk_cache.h"
 
@@ -171,7 +169,6 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
    uint64_t max_size;
    int fd = -1;
    struct stat sb;
-   struct statvfs vfs = { 0 };
    size_t size;
 
    /* If running as a users other than the real user disable cache */
@@ -331,10 +328,9 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
       }
    }
 
-   /* Default to 1GB or 10% of filesystem for maximum cache size. */
+   /* Default to 1GB for maximum cache size. */
    if (max_size == 0) {
-      statvfs(path, &vfs);
-      max_size = MAX2(1024*1024*1024, vfs.f_blocks * vfs.f_bsize / 10);
+      max_size = 1024*1024*1024;
    }
 
    cache->max_size = max_size;
@@ -532,7 +528,7 @@ unlink_lru_file_from_directory(const char *path)
    unlink(filename);
    free (filename);
 
-   return sb.st_size;
+   return sb.st_blocks * 512;
 }
 
 /* Is entry a directory with a two-character name, (and not the
@@ -637,8 +633,8 @@ disk_cache_remove(struct disk_cache *cache, const cache_key key)
    unlink(filename);
    free(filename);
 
-   if (sb.st_size)
-      p_atomic_add(cache->size, - (uint64_t)sb.st_size);
+   if (sb.st_blocks)
+      p_atomic_add(cache->size, - (uint64_t)sb.st_blocks * 512);
 }
 
 static ssize_t
@@ -880,8 +876,14 @@ cache_put(void *job, int thread_index)
       goto done;
    }
 
-   file_size += cf_data_size + dc_job->cache->driver_keys_blob_size;
-   p_atomic_add(dc_job->cache->size, file_size);
+   struct stat sb;
+   if (stat(filename, &sb) == -1) {
+      /* Something went wrong remove the file */
+      unlink(filename);
+      goto done;
+   }
+
+   p_atomic_add(dc_job->cache->size, sb.st_blocks * 512);
 
  done:
    if (fd_final != -1)

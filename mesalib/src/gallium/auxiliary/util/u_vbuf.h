@@ -72,8 +72,6 @@ void u_vbuf_set_vertex_elements(struct u_vbuf *mgr, unsigned count,
 void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
                                unsigned start_slot, unsigned count,
                                const struct pipe_vertex_buffer *bufs);
-void u_vbuf_set_index_buffer(struct u_vbuf *mgr,
-                             const struct pipe_index_buffer *ib);
 void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info);
 
 /* Save/restore functionality. */

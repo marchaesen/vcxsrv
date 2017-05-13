@@ -735,33 +735,6 @@ ephyrCreateResources(ScreenPtr pScreen)
 }
 
 void
-ephyrPreserve(KdCardInfo * card)
-{
-}
-
-Bool
-ephyrEnable(ScreenPtr pScreen)
-{
-    return TRUE;
-}
-
-Bool
-ephyrDPMS(ScreenPtr pScreen, int mode)
-{
-    return TRUE;
-}
-
-void
-ephyrDisable(ScreenPtr pScreen)
-{
-}
-
-void
-ephyrRestore(KdCardInfo * card)
-{
-}
-
-void
 ephyrScreenFini(KdScreenInfo * screen)
 {
     EphyrScrPriv *scrpriv = screen->driver;

@@ -34,6 +34,8 @@
 #include <inpututils.h>
 #include <mipointer.h>
 #include <mipointrst.h>
+#include <misc.h>
+#include "tablet-unstable-v2-client-protocol.h"
 
 struct sync_pending {
     struct xorg_list l;
@@ -54,6 +56,12 @@ xwl_pointer_warp_emulator_maybe_lock(struct xwl_pointer_warp_emulator *warp_emul
 
 static void
 xwl_seat_destroy_confined_pointer(struct xwl_seat *xwl_seat);
+
+static void
+init_tablet_manager_seat(struct xwl_screen *xwl_screen,
+                         struct xwl_seat *xwl_seat);
+static void
+release_tablet_manager_seat(struct xwl_seat *xwl_seat);
 
 static void
 xwl_pointer_control(DeviceIntPtr device, PtrCtrl *ctrl)
@@ -281,6 +289,75 @@ xwl_touch_proc(DeviceIntPtr device, int what)
 #undef NTOUCHPOINTS
 }
 
+static int
+xwl_tablet_proc(DeviceIntPtr device, int what)
+{
+#define NBUTTONS 9
+#define NAXES 6
+    Atom btn_labels[NBUTTONS] = { 0 };
+    Atom axes_labels[NAXES] = { 0 };
+    BYTE map[NBUTTONS + 1] = { 0 };
+    int i;
+
+    switch (what) {
+    case DEVICE_INIT:
+        device->public.on = FALSE;
+
+        for (i = 1; i <= NBUTTONS; i++)
+            map[i] = i;
+
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
+        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_PRESSURE);
+        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_TILT_X);
+        axes_labels[4] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_TILT_Y);
+        axes_labels[5] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_WHEEL);
+
+        if (!InitValuatorClassDeviceStruct(device, NAXES, axes_labels,
+                                           GetMotionHistorySize(), Absolute))
+            return BadValue;
+
+        /* Valuators - match the xf86-input-wacom ranges */
+        InitValuatorAxisStruct(device, 0, axes_labels[0],
+                               0, 262143, 10000, 0, 10000, Absolute);
+        InitValuatorAxisStruct(device, 1, axes_labels[1],
+                               0, 262143, 10000, 0, 10000, Absolute);
+        /* pressure */
+        InitValuatorAxisStruct(device, 2, axes_labels[2],
+                               0, 65535, 1, 0, 1, Absolute);
+        /* tilt x */
+        InitValuatorAxisStruct(device, 3, axes_labels[3],
+                               -64, 63, 57, 0, 57, Absolute);
+        /* tilt y */
+        InitValuatorAxisStruct(device, 4, axes_labels[4],
+                               -64, 63, 57, 0, 57, Absolute);
+        /* abs wheel (airbrush) or rotation (artpen) */
+        InitValuatorAxisStruct(device, 5, axes_labels[5],
+                               -900, 899, 1, 0, 1, Absolute);
+
+        if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
+            return BadValue;
+
+        if (!InitButtonClassDeviceStruct(device, NBUTTONS, btn_labels, map))
+            return BadValue;
+
+        return Success;
+
+    case DEVICE_ON:
+        device->public.on = TRUE;
+        return Success;
+
+    case DEVICE_OFF:
+    case DEVICE_CLOSE:
+        device->public.on = FALSE;
+        return Success;
+    }
+
+    return BadMatch;
+#undef NAXES
+#undef NBUTTONS
+}
+
 static void
 pointer_handle_enter(void *data, struct wl_pointer *pointer,
                      uint32_t serial, struct wl_surface *surface,
@@ -341,9 +418,9 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
      * of our surfaces might not have been shown. In that case we'll
      * have a cursor surface frame callback pending which we need to
      * clear so that we can continue submitting new cursor frames. */
-    if (xwl_seat->cursor_frame_cb) {
-        wl_callback_destroy(xwl_seat->cursor_frame_cb);
-        xwl_seat->cursor_frame_cb = NULL;
+    if (xwl_seat->cursor.frame_cb) {
+        wl_callback_destroy(xwl_seat->cursor.frame_cb);
+        xwl_seat->cursor.frame_cb = NULL;
         xwl_seat_set_cursor(xwl_seat);
     }
 
@@ -1120,6 +1197,31 @@ static const struct wl_seat_listener seat_listener = {
 };
 
 static void
+xwl_cursor_init(struct xwl_cursor *xwl_cursor, struct xwl_screen *xwl_screen,
+                void (* update_proc)(struct xwl_cursor *))
+{
+    xwl_cursor->surface = wl_compositor_create_surface(xwl_screen->compositor);
+    xwl_cursor->update_proc = update_proc;
+    xwl_cursor->frame_cb = NULL;
+    xwl_cursor->needs_update = FALSE;
+}
+
+static void
+xwl_cursor_release(struct xwl_cursor *xwl_cursor)
+{
+    wl_surface_destroy(xwl_cursor->surface);
+    if (xwl_cursor->frame_cb)
+        wl_callback_destroy(xwl_cursor->frame_cb);
+}
+
+static void
+xwl_seat_update_cursor(struct xwl_cursor *xwl_cursor)
+{
+    struct xwl_seat *xwl_seat = wl_container_of(xwl_cursor, xwl_seat, cursor);
+    xwl_seat_set_cursor(xwl_seat);
+}
+
+static void
 create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version)
 {
     struct xwl_seat *xwl_seat;
@@ -1138,8 +1240,12 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
                          &wl_seat_interface, min(version, 5));
     xwl_seat->id = id;
 
-    xwl_seat->cursor = wl_compositor_create_surface(xwl_screen->compositor);
+    xwl_cursor_init(&xwl_seat->cursor, xwl_seat->xwl_screen,
+                    xwl_seat_update_cursor);
     wl_seat_add_listener(xwl_seat->seat, &seat_listener, xwl_seat);
+
+    init_tablet_manager_seat(xwl_screen, xwl_seat);
+
     wl_array_init(&xwl_seat->keys);
 
     xorg_list_init(&xwl_seat->touches);
@@ -1163,12 +1269,1001 @@ xwl_seat_destroy(struct xwl_seat *xwl_seat)
         free (p);
     }
 
+    release_tablet_manager_seat(xwl_seat);
+
     wl_seat_destroy(xwl_seat->seat);
-    wl_surface_destroy(xwl_seat->cursor);
-    if (xwl_seat->cursor_frame_cb)
-        wl_callback_destroy(xwl_seat->cursor_frame_cb);
+    xwl_cursor_release(&xwl_seat->cursor);
     wl_array_release(&xwl_seat->keys);
     free(xwl_seat);
+}
+
+static void
+tablet_handle_name(void *data, struct zwp_tablet_v2 *tablet, const char *name)
+{
+}
+
+static void
+tablet_handle_id(void *data, struct zwp_tablet_v2 *tablet, uint32_t vid,
+                  uint32_t pid)
+{
+}
+
+static void
+tablet_handle_path(void *data, struct zwp_tablet_v2 *tablet, const char *path)
+{
+}
+
+static void
+tablet_handle_done(void *data, struct zwp_tablet_v2 *tablet)
+{
+    struct xwl_tablet *xwl_tablet = data;
+    struct xwl_seat *xwl_seat = xwl_tablet->seat;
+
+    if (xwl_seat->stylus == NULL) {
+        xwl_seat->stylus = add_device(xwl_seat, "xwayland-stylus", xwl_tablet_proc);
+        ActivateDevice(xwl_seat->stylus, TRUE);
+    }
+    EnableDevice(xwl_seat->stylus, TRUE);
+
+    if (xwl_seat->eraser == NULL) {
+        xwl_seat->eraser = add_device(xwl_seat, "xwayland-eraser", xwl_tablet_proc);
+        ActivateDevice(xwl_seat->eraser, TRUE);
+    }
+    EnableDevice(xwl_seat->eraser, TRUE);
+
+    if (xwl_seat->puck == NULL) {
+        xwl_seat->puck = add_device(xwl_seat, "xwayland-cursor", xwl_tablet_proc);
+        ActivateDevice(xwl_seat->puck, TRUE);
+    }
+    EnableDevice(xwl_seat->puck, TRUE);
+}
+
+static void
+tablet_handle_removed(void *data, struct zwp_tablet_v2 *tablet)
+{
+    struct xwl_tablet *xwl_tablet = data;
+    struct xwl_seat *xwl_seat = xwl_tablet->seat;
+
+    xorg_list_del(&xwl_tablet->link);
+
+    /* The tablet is merely disabled, not removed. The next tablet
+       will re-use the same X devices */
+    if (xorg_list_is_empty(&xwl_seat->tablets)) {
+        if (xwl_seat->stylus)
+            DisableDevice(xwl_seat->stylus, TRUE);
+        if (xwl_seat->eraser)
+            DisableDevice(xwl_seat->eraser, TRUE);
+        if (xwl_seat->puck)
+            DisableDevice(xwl_seat->puck, TRUE);
+        /* pads are removed separately */
+    }
+
+    zwp_tablet_v2_destroy(tablet);
+    free(xwl_tablet);
+}
+
+static const struct zwp_tablet_v2_listener tablet_listener = {
+    tablet_handle_name,
+    tablet_handle_id,
+    tablet_handle_path,
+    tablet_handle_done,
+    tablet_handle_removed
+};
+
+static void
+tablet_tool_receive_type(void *data, struct zwp_tablet_tool_v2 *tool,
+                         uint32_t type)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+
+    switch (type) {
+        case ZWP_TABLET_TOOL_V2_TYPE_ERASER:
+            xwl_tablet_tool->xdevice = xwl_seat->eraser;
+            break;
+        case ZWP_TABLET_TOOL_V2_TYPE_MOUSE:
+        case ZWP_TABLET_TOOL_V2_TYPE_LENS:
+            xwl_tablet_tool->xdevice = xwl_seat->puck;
+            break;
+        default:
+            xwl_tablet_tool->xdevice = xwl_seat->stylus;
+            break;
+    }
+}
+
+static void
+tablet_tool_receive_hardware_serial(void *data, struct zwp_tablet_tool_v2 *tool,
+                                    uint32_t hi, uint32_t low)
+{
+}
+
+static void
+tablet_tool_receive_hardware_id_wacom(void *data, struct zwp_tablet_tool_v2 *tool,
+                                      uint32_t hi, uint32_t low)
+{
+}
+
+static void
+tablet_tool_receive_capability(void *data, struct zwp_tablet_tool_v2 *tool,
+                               uint32_t capability)
+{
+}
+
+static void
+tablet_tool_receive_done(void *data, struct zwp_tablet_tool_v2 *tool)
+{
+}
+
+static void
+tablet_tool_receive_removed(void *data, struct zwp_tablet_tool_v2 *tool)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+
+    xorg_list_del(&xwl_tablet_tool->link);
+    xwl_cursor_release(&xwl_tablet_tool->cursor);
+    zwp_tablet_tool_v2_destroy(tool);
+    free(xwl_tablet_tool);
+}
+
+static void
+tablet_tool_proximity_in(void *data, struct zwp_tablet_tool_v2 *tool,
+                         uint32_t serial, struct zwp_tablet_v2 *tablet,
+                         struct wl_surface *wl_surface)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+
+    /* There's a race here where if we create and then immediately
+     * destroy a surface, we might end up in a state where the Wayland
+     * compositor sends us an event for a surface that doesn't exist.
+     *
+     * Don't process enter events in this case.
+     *
+     * see pointer_handle_enter()
+     */
+    if (wl_surface == NULL)
+        return;
+
+    xwl_tablet_tool->proximity_in_serial = serial;
+    xwl_seat->focus_window = wl_surface_get_user_data(wl_surface);
+
+    xwl_tablet_tool_set_cursor(xwl_tablet_tool);
+}
+
+static void
+tablet_tool_proximity_out(void *data, struct zwp_tablet_tool_v2 *tool)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+
+    xwl_tablet_tool->proximity_in_serial = 0;
+    xwl_seat->focus_window = NULL;
+
+    xwl_tablet_tool->pressure = 0;
+    xwl_tablet_tool->tilt_x = 0;
+    xwl_tablet_tool->tilt_y = 0;
+    xwl_tablet_tool->rotation = 0;
+    xwl_tablet_tool->slider = 0;
+}
+
+static void
+tablet_tool_down(void *data, struct zwp_tablet_tool_v2 *tool, uint32_t serial)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+    ValuatorMask mask;
+
+    xwl_seat->xwl_screen->serial = serial;
+
+    valuator_mask_zero(&mask);
+    QueuePointerEvents(xwl_tablet_tool->xdevice, ButtonPress, 1, 0, &mask);
+}
+
+static void
+tablet_tool_up(void *data, struct zwp_tablet_tool_v2 *tool)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    ValuatorMask mask;
+
+    valuator_mask_zero(&mask);
+    QueuePointerEvents(xwl_tablet_tool->xdevice, ButtonRelease, 1, 0, &mask);
+}
+
+static void
+tablet_tool_motion(void *data, struct zwp_tablet_tool_v2 *tool,
+                   wl_fixed_t x, wl_fixed_t y)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+    int32_t dx, dy;
+    int sx = wl_fixed_to_int(x);
+    int sy = wl_fixed_to_int(y);
+
+    if (!xwl_seat->focus_window)
+        return;
+
+    dx = xwl_seat->focus_window->window->drawable.x;
+    dy = xwl_seat->focus_window->window->drawable.y;
+
+    xwl_tablet_tool->x = dx + sx;
+    xwl_tablet_tool->y = dy + sy;
+}
+
+static void
+tablet_tool_pressure(void *data, struct zwp_tablet_tool_v2 *tool,
+                     uint32_t pressure)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+
+    if (!xwl_seat->focus_window)
+        return;
+
+    /* normalized to 65535 already */
+    xwl_tablet_tool->pressure = pressure;
+}
+
+static void
+tablet_tool_distance(void *data, struct zwp_tablet_tool_v2 *tool,
+                     uint32_t distance_raw)
+{
+}
+
+static void
+tablet_tool_tilt(void *data, struct zwp_tablet_tool_v2 *tool,
+                 wl_fixed_t tilt_x, wl_fixed_t tilt_y)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+
+    if (!xwl_seat->focus_window)
+        return;
+
+    xwl_tablet_tool->tilt_x = wl_fixed_to_double(tilt_x);
+    xwl_tablet_tool->tilt_y = wl_fixed_to_double(tilt_y);
+}
+
+static void
+tablet_tool_rotation(void *data, struct zwp_tablet_tool_v2 *tool,
+                     wl_fixed_t angle)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+    double rotation = wl_fixed_to_double(angle);
+
+    if (!xwl_seat->focus_window)
+        return;
+
+    /* change origin (buttons facing right [libinput +90 degrees]) and
+     * scaling (5 points per degree) to match wacom driver behavior
+     */
+    rotation = remainderf(rotation + 90.0f, 360.0f);
+    rotation *= 5.0f;
+    xwl_tablet_tool->rotation = rotation;
+}
+
+static void
+tablet_tool_slider(void *data, struct zwp_tablet_tool_v2 *tool,
+                   int32_t position_raw)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+    float position = position_raw / 65535.0;
+
+    if (!xwl_seat->focus_window)
+        return;
+
+    xwl_tablet_tool->slider = (position * 1799.0f) - 900.0f;
+}
+
+static void
+tablet_tool_wheel(void *data, struct zwp_tablet_tool_v2 *tool,
+                  wl_fixed_t degrees, int32_t clicks)
+{
+}
+
+static void
+tablet_tool_button_state(void *data, struct zwp_tablet_tool_v2 *tool,
+                         uint32_t serial, uint32_t button, uint32_t state)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
+    uint32_t *mask = &xwl_tablet_tool->buttons_now;
+    int xbtn = 0;
+
+    /* BTN_0 .. BTN_9 */
+    if (button >= 0x100 && button <= 0x109) {
+        xbtn = button - 0x100 + 1;
+    }
+    /* BTN_A .. BTN_Z */
+    else if (button >= 0x130 && button <= 0x135) {
+        xbtn = button - 0x130 + 10;
+    }
+    /* BTN_BASE .. BTN_BASE6 */
+    else if (button >= 0x126 && button <= 0x12b) {
+        xbtn = button - 0x126 + 16;
+    }
+    else {
+        switch (button) {
+        case 0x110: /* BTN_LEFT    */
+        case 0x14a: /* BTN_TOUCH   */
+            xbtn = 1;
+            break;
+
+        case 0x112: /* BTN_MIDDLE  */
+        case 0x14b: /* BTN_STYLUS  */
+            xbtn = 2;
+            break;
+
+        case 0x111: /* BTN_RIGHT   */
+        case 0x14c: /* BTN_STYLUS2 */
+            xbtn = 3;
+            break;
+
+        case 0x113: /* BTN_SIDE    */
+        case 0x116: /* BTN_BACK    */
+            xbtn = 8;
+            break;
+
+        case 0x114: /* BTN_EXTRA   */
+        case 0x115: /* BTN_FORWARD */
+            xbtn = 9;
+            break;
+        }
+    }
+
+    if (!xbtn) {
+        ErrorF("unknown tablet button number %d\n", button);
+        return;
+    }
+
+    BUG_RETURN(xbtn >= 8 * sizeof(*mask));
+
+    if (state)
+        SetBit(mask, xbtn);
+    else
+        ClearBit(mask, xbtn);
+
+    xwl_seat->xwl_screen->serial = serial;
+}
+
+static void
+tablet_tool_frame(void *data, struct zwp_tablet_tool_v2 *tool, uint32_t time)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = data;
+    ValuatorMask mask;
+    uint32_t released, pressed, diff;
+    int button;
+
+    valuator_mask_zero(&mask);
+    valuator_mask_set(&mask, 0, xwl_tablet_tool->x);
+    valuator_mask_set(&mask, 1, xwl_tablet_tool->y);
+    valuator_mask_set(&mask, 2, xwl_tablet_tool->pressure);
+    valuator_mask_set(&mask, 3, xwl_tablet_tool->tilt_x);
+    valuator_mask_set(&mask, 4, xwl_tablet_tool->tilt_y);
+    valuator_mask_set(&mask, 5, xwl_tablet_tool->rotation + xwl_tablet_tool->slider);
+
+    QueuePointerEvents(xwl_tablet_tool->xdevice, MotionNotify, 0,
+               POINTER_ABSOLUTE | POINTER_SCREEN, &mask);
+
+    valuator_mask_zero(&mask);
+
+    diff = xwl_tablet_tool->buttons_prev ^ xwl_tablet_tool->buttons_now;
+    released = diff & ~xwl_tablet_tool->buttons_now;
+    pressed = diff & xwl_tablet_tool->buttons_now;
+
+    button = 1;
+    while (released) {
+        if (released & 0x1)
+            QueuePointerEvents(xwl_tablet_tool->xdevice,
+                               ButtonRelease, button, 0, &mask);
+        button++;
+        released >>= 1;
+    }
+
+    button = 1;
+    while (pressed) {
+        if (pressed & 0x1)
+            QueuePointerEvents(xwl_tablet_tool->xdevice,
+                               ButtonPress, button, 0, &mask);
+        button++;
+        pressed >>= 1;
+    }
+
+    xwl_tablet_tool->buttons_prev = xwl_tablet_tool->buttons_now;
+}
+
+static const struct zwp_tablet_tool_v2_listener tablet_tool_listener = {
+    tablet_tool_receive_type,
+    tablet_tool_receive_hardware_serial,
+    tablet_tool_receive_hardware_id_wacom,
+    tablet_tool_receive_capability,
+    tablet_tool_receive_done,
+    tablet_tool_receive_removed,
+    tablet_tool_proximity_in,
+    tablet_tool_proximity_out,
+    tablet_tool_down,
+    tablet_tool_up,
+    tablet_tool_motion,
+    tablet_tool_pressure,
+    tablet_tool_distance,
+    tablet_tool_tilt,
+    tablet_tool_rotation,
+    tablet_tool_slider,
+    tablet_tool_wheel,
+    tablet_tool_button_state,
+    tablet_tool_frame
+};
+
+static void
+tablet_pad_ring_destroy(struct xwl_tablet_pad_ring *ring)
+{
+    zwp_tablet_pad_ring_v2_destroy(ring->ring);
+    xorg_list_del(&ring->link);
+    free(ring);
+}
+
+static void
+tablet_pad_ring_source(void *data,
+                       struct zwp_tablet_pad_ring_v2 *zwp_tablet_pad_ring_v2,
+                       uint32_t source)
+{
+}
+
+static void
+tablet_pad_ring_angle(void *data,
+                      struct zwp_tablet_pad_ring_v2 *zwp_tablet_pad_ring_v2,
+                      wl_fixed_t degrees)
+{
+    struct xwl_tablet_pad_ring *ring = data;
+    struct xwl_tablet_pad *pad = ring->group->pad;
+    double deg = wl_fixed_to_double(degrees);
+    ValuatorMask mask;
+
+    valuator_mask_zero(&mask);
+    valuator_mask_set(&mask, 5 + ring->index, deg/360.0  * 71);
+    QueuePointerEvents(pad->xdevice, MotionNotify, 0, 0, &mask);
+}
+
+static void
+tablet_pad_ring_stop(void *data,
+                     struct zwp_tablet_pad_ring_v2 *zwp_tablet_pad_ring_v2)
+{
+}
+
+static void
+tablet_pad_ring_frame(void *data,
+                      struct zwp_tablet_pad_ring_v2 *zwp_tablet_pad_ring_v2,
+                      uint32_t time)
+{
+}
+
+static const struct zwp_tablet_pad_ring_v2_listener tablet_pad_ring_listener = {
+    tablet_pad_ring_source,
+    tablet_pad_ring_angle,
+    tablet_pad_ring_stop,
+    tablet_pad_ring_frame,
+};
+
+
+static void
+tablet_pad_strip_destroy(struct xwl_tablet_pad_strip *strip)
+{
+    zwp_tablet_pad_strip_v2_destroy(strip->strip);
+    xorg_list_del(&strip->link);
+    free(strip);
+}
+
+static void
+tablet_pad_strip_source(void *data,
+                        struct zwp_tablet_pad_strip_v2 *zwp_tablet_pad_strip_v2,
+                        uint32_t source)
+{
+}
+
+static void
+tablet_pad_strip_position(void *data,
+                          struct zwp_tablet_pad_strip_v2 *zwp_tablet_pad_strip_v2,
+                          uint32_t position)
+{
+    struct xwl_tablet_pad_strip *strip = data;
+    struct xwl_tablet_pad *pad = strip->group->pad;
+    ValuatorMask mask;
+
+    valuator_mask_zero(&mask);
+    valuator_mask_set(&mask, 3 + strip->index, position/65535.0 * 2048);
+    QueuePointerEvents(pad->xdevice, MotionNotify, 0, 0, &mask);
+}
+
+static void
+tablet_pad_strip_stop(void *data,
+                      struct zwp_tablet_pad_strip_v2 *zwp_tablet_pad_strip_v2)
+{
+}
+
+static void
+tablet_pad_strip_frame(void *data,
+                       struct zwp_tablet_pad_strip_v2 *zwp_tablet_pad_strip_v2,
+                       uint32_t time)
+{
+}
+
+static const struct zwp_tablet_pad_strip_v2_listener tablet_pad_strip_listener = {
+    tablet_pad_strip_source,
+    tablet_pad_strip_position,
+    tablet_pad_strip_stop,
+    tablet_pad_strip_frame,
+};
+
+static void
+tablet_pad_group_destroy(struct xwl_tablet_pad_group *group)
+{
+    struct xwl_tablet_pad_ring *r, *tr;
+    struct xwl_tablet_pad_strip *s, *ts;
+
+    xorg_list_for_each_entry_safe(r, tr,
+                                  &group->pad_group_ring_list,
+                                  link)
+        tablet_pad_ring_destroy(r);
+
+    xorg_list_for_each_entry_safe(s, ts,
+                                  &group->pad_group_strip_list,
+                                  link)
+        tablet_pad_strip_destroy(s);
+
+    zwp_tablet_pad_group_v2_destroy(group->group);
+    xorg_list_del(&group->link);
+    free(group);
+}
+
+static void
+tablet_pad_group_buttons(void *data,
+                         struct zwp_tablet_pad_group_v2 *zwp_tablet_pad_group_v2,
+                         struct wl_array *buttons)
+{
+
+}
+
+static void
+tablet_pad_group_ring(void *data,
+                      struct zwp_tablet_pad_group_v2 *zwp_tablet_pad_group_v2,
+                      struct zwp_tablet_pad_ring_v2 *wp_ring)
+{
+    static unsigned int ring_index = 0;
+    struct xwl_tablet_pad_group *group = data;
+    struct xwl_tablet_pad_ring *ring;
+
+    ring = calloc(1, sizeof *ring);
+    if (ring == NULL) {
+        ErrorF("%s ENOMEM\n", __func__);
+        return;
+    }
+
+    ring->index = ring_index++;
+    ring->group = group;
+    ring->ring = wp_ring;
+
+    xorg_list_add(&ring->link, &group->pad_group_ring_list);
+
+    zwp_tablet_pad_ring_v2_add_listener(wp_ring, &tablet_pad_ring_listener,
+                                        ring);
+}
+
+static void
+tablet_pad_group_strip(void *data,
+                       struct zwp_tablet_pad_group_v2 *zwp_tablet_pad_group_v2,
+                       struct zwp_tablet_pad_strip_v2 *wp_strip)
+{
+    static unsigned int strip_index = 0;
+    struct xwl_tablet_pad_group *group = data;
+    struct xwl_tablet_pad_strip *strip;
+
+    strip = calloc(1, sizeof *strip);
+    if (strip == NULL) {
+        ErrorF("%s ENOMEM\n", __func__);
+        return;
+    }
+
+    strip->index = strip_index++;
+    strip->group = group;
+    strip->strip = wp_strip;
+
+    xorg_list_add(&strip->link, &group->pad_group_strip_list);
+
+    zwp_tablet_pad_strip_v2_add_listener(wp_strip, &tablet_pad_strip_listener,
+                                         strip);
+}
+
+static void
+tablet_pad_group_modes(void *data,
+                       struct zwp_tablet_pad_group_v2 *zwp_tablet_pad_group_v2,
+                       uint32_t modes)
+{
+
+}
+
+static void
+tablet_pad_group_done(void *data,
+                      struct zwp_tablet_pad_group_v2 *zwp_tablet_pad_group_v2)
+{
+
+}
+
+static void
+tablet_pad_group_mode_switch(void *data,
+                             struct zwp_tablet_pad_group_v2 *zwp_tablet_pad_group_v2,
+                             uint32_t time,
+                             uint32_t serial,
+                             uint32_t mode)
+{
+
+}
+
+static struct zwp_tablet_pad_group_v2_listener tablet_pad_group_listener = {
+    tablet_pad_group_buttons,
+    tablet_pad_group_ring,
+    tablet_pad_group_strip,
+    tablet_pad_group_modes,
+    tablet_pad_group_done,
+    tablet_pad_group_mode_switch,
+};
+
+static int
+xwl_tablet_pad_proc(DeviceIntPtr device, int what)
+{
+    struct xwl_tablet_pad *pad = device->public.devicePrivate;
+    /* Axis layout mirrors that of xf86-input-wacom to have better
+       compatibility with existing clients */
+#define NAXES 7
+    Atom axes_labels[NAXES] = { 0 };
+    BYTE map[MAX_BUTTONS + 1];
+    int i = 0;
+    Atom btn_labels[MAX_BUTTONS] = { 0 }; /* btn labels are meaningless */
+    int nbuttons;
+
+    switch (what) {
+    case DEVICE_INIT:
+        device->public.on = FALSE;
+
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
+        /* The others have no good mapping */
+
+        if (!InitValuatorClassDeviceStruct(device, NAXES, axes_labels,
+                                           GetMotionHistorySize(), Absolute))
+            return BadValue;
+
+        for (i = 1; i <= MAX_BUTTONS; i++)
+            map[i] = i;
+
+        /* We need at least 7 buttons to allow scrolling */
+        nbuttons = min(max(pad->nbuttons + 4, 7), MAX_BUTTONS);
+
+        if (!InitButtonClassDeviceStruct(device, nbuttons,
+                                         btn_labels, map))
+            return BadValue;
+
+        /* Valuators */
+        InitValuatorAxisStruct(device, 0, axes_labels[0],
+                               0, 100, 1, 0, 1, Absolute);
+        InitValuatorAxisStruct(device, 1, axes_labels[1],
+                               0, 100, 1, 0, 1, Absolute);
+        /* Pressure - unused, for backwards compat only */
+        InitValuatorAxisStruct(device, 2, axes_labels[2],
+                               0, 2048, 1, 0, 1, Absolute);
+        /* strip x */
+        InitValuatorAxisStruct(device, 3, axes_labels[3],
+                               0, 2048, 1, 0, 1, Absolute);
+        /* strip y */
+        InitValuatorAxisStruct(device, 4, axes_labels[4],
+                               0, 2048, 1, 0, 1, Absolute);
+        /* ring */
+        InitValuatorAxisStruct(device, 5, axes_labels[5],
+                               0, 71, 1, 0, 1, Absolute);
+        /* ring2 */
+        InitValuatorAxisStruct(device, 6, axes_labels[6],
+                               0, 71, 1, 0, 1, Absolute);
+
+        if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
+            return BadValue;
+
+        return Success;
+
+    case DEVICE_ON:
+        device->public.on = TRUE;
+        return Success;
+
+    case DEVICE_OFF:
+    case DEVICE_CLOSE:
+        device->public.on = FALSE;
+        return Success;
+    }
+
+    return BadMatch;
+#undef NAXES
+}
+
+static void
+tablet_pad_group(void *data,
+                 struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2,
+                 struct zwp_tablet_pad_group_v2 *pad_group)
+{
+    struct xwl_tablet_pad *pad = data;
+    struct xwl_tablet_pad_group *group;
+
+    group = calloc(1, sizeof *group);
+    if (pad == NULL) {
+        ErrorF("%s ENOMEM\n", __func__);
+        return;
+    }
+
+    group->pad = pad;
+    group->group = pad_group;
+    xorg_list_init(&group->pad_group_ring_list);
+    xorg_list_init(&group->pad_group_strip_list);
+
+    xorg_list_add(&group->link, &pad->pad_group_list);
+
+    zwp_tablet_pad_group_v2_add_listener(pad_group,
+                                         &tablet_pad_group_listener,
+                                         group);
+}
+
+static void
+tablet_pad_path(void *data,
+                struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2,
+                const char *path)
+{
+
+}
+
+static void
+tablet_pad_buttons(void *data,
+                   struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2,
+                   uint32_t buttons)
+{
+    struct xwl_tablet_pad *pad = data;
+
+    pad->nbuttons = buttons;
+}
+
+static void
+tablet_pad_done(void *data,
+                struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2)
+{
+    struct xwl_tablet_pad *pad = data;
+
+    pad->xdevice = add_device(pad->seat, "xwayland-pad",
+                              xwl_tablet_pad_proc);
+    pad->xdevice->public.devicePrivate = pad;
+    ActivateDevice(pad->xdevice, TRUE);
+    EnableDevice(pad->xdevice, TRUE);
+}
+
+static void
+tablet_pad_button(void *data,
+                  struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2,
+                  uint32_t time,
+                  uint32_t button,
+                  uint32_t state)
+{
+    struct xwl_tablet_pad *pad = data;
+    ValuatorMask mask;
+
+    button++; /* wayland index vs X's 1-offset */
+    /* skip scroll wheel buttons 4-7 */
+    button = button > 3 ? button + 4 : button;
+
+    valuator_mask_zero(&mask);
+    QueuePointerEvents(pad->xdevice,
+                       state ? ButtonPress : ButtonRelease, button, 0, &mask);
+}
+
+static void
+tablet_pad_enter(void *data,
+                 struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2,
+                 uint32_t serial,
+                 struct zwp_tablet_v2 *tablet,
+                 struct wl_surface *surface)
+{
+    /* pairs the pad with the tablet but also to set the focus. We
+     * don't care about the pairing and always use X's focus */
+}
+
+static void
+tablet_pad_leave(void *data,
+                 struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2,
+                 uint32_t serial,
+                 struct wl_surface *surface)
+{
+    /* pairs the pad with the tablet but also to set the focus. We
+     * don't care about the pairing and always use X's focus */
+}
+
+static void
+tablet_pad_removed(void *data,
+                   struct zwp_tablet_pad_v2 *zwp_tablet_pad_v2)
+{
+    struct xwl_tablet_pad *pad = data;
+    struct xwl_tablet_pad_group *g, *tg;
+
+    xorg_list_for_each_entry_safe(g, tg, &pad->pad_group_list, link)
+        tablet_pad_group_destroy(g);
+
+    RemoveDevice(pad->xdevice, TRUE);
+    xorg_list_del(&pad->link);
+    zwp_tablet_pad_v2_destroy(pad->pad);
+    free(pad);
+}
+
+static const struct zwp_tablet_pad_v2_listener tablet_pad_listener = {
+    tablet_pad_group,
+    tablet_pad_path,
+    tablet_pad_buttons,
+    tablet_pad_done,
+    tablet_pad_button,
+    tablet_pad_enter,
+    tablet_pad_leave,
+    tablet_pad_removed,
+};
+
+static void
+tablet_seat_handle_add_tablet(void *data, struct zwp_tablet_seat_v2 *tablet_seat,
+                              struct zwp_tablet_v2 *tablet)
+{
+    struct xwl_seat *xwl_seat = data;
+    struct xwl_tablet *xwl_tablet;
+
+    xwl_tablet = calloc(sizeof *xwl_tablet, 1);
+    if (xwl_tablet == NULL) {
+        ErrorF("%s ENOMEM\n", __func__);
+        return;
+    }
+
+    xwl_tablet->tablet = tablet;
+    xwl_tablet->seat = xwl_seat;
+
+    xorg_list_add(&xwl_tablet->link, &xwl_seat->tablets);
+
+    zwp_tablet_v2_add_listener(tablet, &tablet_listener, xwl_tablet);
+}
+
+static void
+xwl_tablet_tool_update_cursor(struct xwl_cursor *xwl_cursor)
+{
+    struct xwl_tablet_tool *xwl_tablet_tool = wl_container_of(xwl_cursor,
+                                                              xwl_tablet_tool,
+                                                              cursor);
+    xwl_tablet_tool_set_cursor(xwl_tablet_tool);
+}
+
+static void
+tablet_seat_handle_add_tool(void *data, struct zwp_tablet_seat_v2 *tablet_seat,
+                            struct zwp_tablet_tool_v2 *tool)
+{
+    struct xwl_seat *xwl_seat = data;
+    struct xwl_screen *xwl_screen = xwl_seat->xwl_screen;
+    struct xwl_tablet_tool *xwl_tablet_tool;
+
+    xwl_tablet_tool = calloc(sizeof *xwl_tablet_tool, 1);
+    if (xwl_tablet_tool == NULL) {
+        ErrorF("%s ENOMEM\n", __func__);
+        return;
+    }
+
+    xwl_tablet_tool->tool = tool;
+    xwl_tablet_tool->seat = xwl_seat;
+    xwl_cursor_init(&xwl_tablet_tool->cursor, xwl_screen,
+                    xwl_tablet_tool_update_cursor);
+
+    xorg_list_add(&xwl_tablet_tool->link, &xwl_seat->tablet_tools);
+
+    zwp_tablet_tool_v2_add_listener(tool, &tablet_tool_listener, xwl_tablet_tool);
+}
+
+static void
+tablet_seat_handle_add_pad(void *data, struct zwp_tablet_seat_v2 *tablet_seat,
+                           struct zwp_tablet_pad_v2 *pad)
+{
+    struct xwl_seat *xwl_seat = data;
+    struct xwl_tablet_pad *xwl_tablet_pad;
+
+    xwl_tablet_pad = calloc(sizeof *xwl_tablet_pad, 1);
+    if (xwl_tablet_pad == NULL) {
+        ErrorF("%s ENOMEM\n", __func__);
+        return;
+    }
+
+    xwl_tablet_pad->pad = pad;
+    xwl_tablet_pad->seat = xwl_seat;
+    xorg_list_init(&xwl_tablet_pad->pad_group_list);
+
+    xorg_list_add(&xwl_tablet_pad->link, &xwl_seat->tablet_pads);
+
+    zwp_tablet_pad_v2_add_listener(pad, &tablet_pad_listener,
+                                   xwl_tablet_pad);
+}
+
+static const struct zwp_tablet_seat_v2_listener tablet_seat_listener = {
+    tablet_seat_handle_add_tablet,
+    tablet_seat_handle_add_tool,
+    tablet_seat_handle_add_pad
+};
+
+static void
+init_tablet_manager_seat(struct xwl_screen *xwl_screen,
+                         struct xwl_seat *xwl_seat)
+{
+    xorg_list_init(&xwl_seat->tablets);
+    xorg_list_init(&xwl_seat->tablet_tools);
+    xorg_list_init(&xwl_seat->tablet_pads);
+
+    if (!xwl_screen->tablet_manager)
+        return;
+
+    xwl_seat->tablet_seat =
+        zwp_tablet_manager_v2_get_tablet_seat(xwl_screen->tablet_manager,
+                                              xwl_seat->seat);
+
+    zwp_tablet_seat_v2_add_listener(xwl_seat->tablet_seat, &tablet_seat_listener, xwl_seat);
+}
+
+static void
+release_tablet_manager_seat(struct xwl_seat *xwl_seat)
+{
+    struct xwl_tablet *xwl_tablet, *next_xwl_tablet;
+    struct xwl_tablet_tool *xwl_tablet_tool, *next_xwl_tablet_tool;
+    struct xwl_tablet_pad *xwl_tablet_pad, *next_xwl_tablet_pad;
+
+    xorg_list_for_each_entry_safe(xwl_tablet_pad, next_xwl_tablet_pad,
+                                  &xwl_seat->tablet_pads, link) {
+        xorg_list_del(&xwl_tablet_pad->link);
+        zwp_tablet_pad_v2_destroy(xwl_tablet_pad->pad);
+        free(xwl_tablet_pad);
+    }
+
+    xorg_list_for_each_entry_safe(xwl_tablet_tool, next_xwl_tablet_tool,
+                                  &xwl_seat->tablet_tools, link) {
+        xorg_list_del(&xwl_tablet_tool->link);
+        zwp_tablet_tool_v2_destroy(xwl_tablet_tool->tool);
+        free(xwl_tablet_tool);
+    }
+
+    xorg_list_for_each_entry_safe(xwl_tablet, next_xwl_tablet,
+                                  &xwl_seat->tablets, link) {
+        xorg_list_del(&xwl_tablet->link);
+        zwp_tablet_v2_destroy(xwl_tablet->tablet);
+        free(xwl_tablet);
+    }
+
+    if (xwl_seat->tablet_seat) {
+        zwp_tablet_seat_v2_destroy(xwl_seat->tablet_seat);
+        xwl_seat->tablet_seat = NULL;
+    }
+}
+
+static void
+init_tablet_manager(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version)
+{
+    struct xwl_seat *xwl_seat;
+
+    xwl_screen->tablet_manager = wl_registry_bind(xwl_screen->registry,
+                                                  id,
+                                                  &zwp_tablet_manager_v2_interface,
+                                                  min(version,1));
+
+    xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
+        init_tablet_manager_seat(xwl_screen, xwl_seat);
+    }
+}
+
+void
+xwl_screen_release_tablet_manager(struct xwl_screen *xwl_screen)
+{
+    if (xwl_screen->tablet_manager) {
+        zwp_tablet_manager_v2_destroy(xwl_screen->tablet_manager);
+        xwl_screen->tablet_manager = NULL;
+    }
 }
 
 static void
@@ -1204,6 +2299,8 @@ input_handler(void *data, struct wl_registry *registry, uint32_t id,
         init_relative_pointer_manager(xwl_screen, id, version);
     } else if (strcmp(interface, "zwp_pointer_constraints_v1") == 0) {
         init_pointer_constraints(xwl_screen, id, version);
+    } else if (strcmp(interface, "zwp_tablet_manager_v2") == 0) {
+        init_tablet_manager(xwl_screen, id, version);
     }
 }
 

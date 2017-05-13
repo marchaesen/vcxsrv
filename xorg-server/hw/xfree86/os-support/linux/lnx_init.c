@@ -38,6 +38,9 @@
 #include "xf86_OSlib.h"
 
 #include <sys/stat.h>
+#ifdef HAVE_SYS_SYSMACROS_H
+#include <sys/sysmacros.h>
+#endif
 
 #ifndef K_OFF
 #define K_OFF 0x4

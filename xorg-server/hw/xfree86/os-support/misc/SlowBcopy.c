@@ -57,7 +57,7 @@ xf86SlowBcopy(unsigned char *src, unsigned char *dst, int len)
 
 #ifdef __alpha__
 
-#ifdef linux
+#ifdef __linux__
 
 unsigned long _bus_base(void);
 

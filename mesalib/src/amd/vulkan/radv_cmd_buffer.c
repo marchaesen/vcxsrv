@@ -952,36 +952,6 @@ radv_emit_fb_ds_state(struct radv_cmd_buffer *cmd_buffer,
 			       ds->pa_su_poly_offset_db_fmt_cntl);
 }
 
-/*
- * To hw resolve multisample images both src and dst need to have the same
- * micro tiling mode. However we don't always know in advance when creating
- * the images. This function gets called if we have a resolve attachment,
- * and tests if the attachment image has the same tiling mode, then it
- * checks if the generated framebuffer data has the same tiling mode, and
- * updates it if not.
- */
-static void radv_set_optimal_micro_tile_mode(struct radv_device *device,
-					     struct radv_attachment_info *att,
-					     uint32_t micro_tile_mode)
-{
-	struct radv_image *image = att->attachment->image;
-	uint32_t tile_mode_index;
-	if (image->surface.nsamples <= 1)
-		return;
-
-	if (image->surface.micro_tile_mode != micro_tile_mode) {
-		radv_image_set_optimal_micro_tile_mode(device, image, micro_tile_mode);
-	}
-
-	if (att->cb.micro_tile_mode != micro_tile_mode) {
-		tile_mode_index = image->surface.tiling_index[0];
-
-		att->cb.cb_color_attrib &= C_028C74_TILE_MODE_INDEX;
-		att->cb.cb_color_attrib |= S_028C74_TILE_MODE_INDEX(tile_mode_index);
-		att->cb.micro_tile_mode = micro_tile_mode;
-	}
-}
-
 void
 radv_set_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image,
@@ -1110,21 +1080,11 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 	int i;
 	struct radv_framebuffer *framebuffer = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
-	int dst_resolve_micro_tile_mode = -1;
 
-	if (subpass->has_resolve) {
-		uint32_t a = subpass->resolve_attachments[0].attachment;
-		const struct radv_image *image = framebuffer->attachments[a].attachment->image;
-		dst_resolve_micro_tile_mode = image->surface.micro_tile_mode;
-	}
 	for (i = 0; i < subpass->color_count; ++i) {
 		int idx = subpass->color_attachments[i].attachment;
 		struct radv_attachment_info *att = &framebuffer->attachments[idx];
 
-		if (dst_resolve_micro_tile_mode != -1) {
-			radv_set_optimal_micro_tile_mode(cmd_buffer->device,
-							 att, dst_resolve_micro_tile_mode);
-		}
 		cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, att->attachment->bo, 8);
 
 		assert(att->attachment->aspect_mask & VK_IMAGE_ASPECT_COLOR_BIT);
@@ -1191,6 +1151,15 @@ static void
 radv_cmd_buffer_flush_dynamic_state(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radv_dynamic_state *d = &cmd_buffer->state.dynamic;
+
+	if (G_028810_DX_RASTERIZATION_KILL(cmd_buffer->state.pipeline->graphics.raster.pa_cl_clip_cntl))
+		return;
+
+	if (cmd_buffer->state.dirty & (RADV_CMD_DIRTY_DYNAMIC_VIEWPORT))
+		radv_emit_viewport(cmd_buffer);
+
+	if (cmd_buffer->state.dirty & (RADV_CMD_DIRTY_DYNAMIC_SCISSOR | RADV_CMD_DIRTY_DYNAMIC_VIEWPORT))
+		radv_emit_scissor(cmd_buffer);
 
 	if (cmd_buffer->state.dirty & RADV_CMD_DIRTY_DYNAMIC_LINE_WIDTH) {
 		unsigned width = cmd_buffer->state.dynamic.line_width * 8;
@@ -1535,12 +1504,6 @@ radv_cmd_buffer_flush_state(struct radv_cmd_buffer *cmd_buffer,
 
 	if (cmd_buffer->state.dirty & RADV_CMD_DIRTY_RENDER_TARGETS)
 		radv_emit_framebuffer_state(cmd_buffer);
-
-	if (cmd_buffer->state.dirty & (RADV_CMD_DIRTY_DYNAMIC_VIEWPORT))
-		radv_emit_viewport(cmd_buffer);
-
-	if (cmd_buffer->state.dirty & (RADV_CMD_DIRTY_DYNAMIC_SCISSOR | RADV_CMD_DIRTY_DYNAMIC_VIEWPORT))
-		radv_emit_scissor(cmd_buffer);
 
 	ia_multi_vgt_param = si_get_ia_multi_vgt_param(cmd_buffer, instanced_draw, indirect_draw, draw_vertex_count);
 	if (cmd_buffer->state.last_ia_multi_vgt_param != ia_multi_vgt_param) {
@@ -1961,6 +1924,8 @@ void radv_bind_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 			      unsigned idx)
 {
 	struct radeon_winsys *ws = cmd_buffer->device->ws;
+
+	assert(!(set->layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
 
 	cmd_buffer->state.descriptors[idx] = set;
 	cmd_buffer->state.descriptors_dirty |= (1u << idx);
@@ -3030,8 +2995,8 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 	if (dst_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
 	    (pending_clears & vk_format_aspects(image->vk_format)) == vk_format_aspects(image->vk_format) &&
 	    cmd_buffer->state.render_area.offset.x == 0 && cmd_buffer->state.render_area.offset.y == 0 &&
-	    cmd_buffer->state.render_area.extent.width == image->extent.width &&
-	    cmd_buffer->state.render_area.extent.height == image->extent.height) {
+	    cmd_buffer->state.render_area.extent.width == image->info.width &&
+	    cmd_buffer->state.render_area.extent.height == image->info.height) {
 		/* The clear will initialize htile. */
 		return;
 	} else if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED &&

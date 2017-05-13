@@ -411,6 +411,23 @@ _mesa_HashDeleteAll(struct _mesa_HashTable *table,
  * \param userData  arbitrary pointer to pass along to the callback
  *                  (this is typically a struct gl_context pointer)
  */
+static void
+hash_walk_unlocked(const struct _mesa_HashTable *table,
+                   void (*callback)(GLuint key, void *data, void *userData),
+                   void *userData)
+{
+   assert(table);
+   assert(callback);
+
+   struct hash_entry *entry;
+   hash_table_foreach(table->ht, entry) {
+      callback((uintptr_t)entry->key, entry->data, userData);
+   }
+   if (table->deleted_key_data)
+      callback(DELETED_KEY_VALUE, table->deleted_key_data, userData);
+}
+
+
 void
 _mesa_HashWalk(const struct _mesa_HashTable *table,
                void (*callback)(GLuint key, void *data, void *userData),
@@ -418,17 +435,18 @@ _mesa_HashWalk(const struct _mesa_HashTable *table,
 {
    /* cast-away const */
    struct _mesa_HashTable *table2 = (struct _mesa_HashTable *) table;
-   struct hash_entry *entry;
 
-   assert(table);
-   assert(callback);
    mtx_lock(&table2->Mutex);
-   hash_table_foreach(table->ht, entry) {
-      callback((uintptr_t)entry->key, entry->data, userData);
-   }
-   if (table->deleted_key_data)
-      callback(DELETED_KEY_VALUE, table->deleted_key_data, userData);
+   hash_walk_unlocked(table, callback, userData);
    mtx_unlock(&table2->Mutex);
+}
+
+void
+_mesa_HashWalkLocked(const struct _mesa_HashTable *table,
+               void (*callback)(GLuint key, void *data, void *userData),
+               void *userData)
+{
+   hash_walk_unlocked(table, callback, userData);
 }
 
 static void

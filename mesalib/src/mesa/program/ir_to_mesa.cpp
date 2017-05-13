@@ -1389,12 +1389,6 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_dFdy_fine:
    case ir_unop_subroutine_to_int:
    case ir_unop_get_buffer_size:
-   case ir_unop_ballot:
-   case ir_binop_read_invocation:
-   case ir_unop_read_first_invocation:
-   case ir_unop_vote_any:
-   case ir_unop_vote_all:
-   case ir_unop_vote_eq:
    case ir_unop_bitcast_u642d:
    case ir_unop_bitcast_i642d:
    case ir_unop_bitcast_d2u64:
@@ -1423,6 +1417,10 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_int_2x32:
    case ir_unop_pack_uint_2x32:
    case ir_unop_unpack_uint_2x32:
+   case ir_unop_pack_sampler_2x32:
+   case ir_unop_unpack_sampler_2x32:
+   case ir_unop_pack_image_2x32:
+   case ir_unop_unpack_image_2x32:
       assert(!"not supported");
       break;
 

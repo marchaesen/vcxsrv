@@ -142,8 +142,8 @@ combine_clip_cull(nir_shader *nir,
    const unsigned cull_array_size = get_unwrapped_array_length(nir, cull);
 
    if (store_info) {
-      nir->info->clip_distance_array_size = clip_array_size;
-      nir->info->cull_distance_array_size = cull_array_size;
+      nir->info.clip_distance_array_size = clip_array_size;
+      nir->info.cull_distance_array_size = cull_array_size;
    }
 
    if (clip)

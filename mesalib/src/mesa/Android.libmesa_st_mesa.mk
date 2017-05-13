@@ -24,8 +24,6 @@
 # libmesa_st_mesa.a
 # ----------------------------------------------------------------------
 
-ifeq ($(strip $(MESA_BUILD_GALLIUM)),true)
-
 LOCAL_PATH := $(call my-dir)
 
 # Import variables:
@@ -72,5 +70,3 @@ LOCAL_STATIC_LIBRARIES += libmesa_nir libmesa_glsl
 include $(LOCAL_PATH)/Android.gen.mk
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
-
-endif # MESA_BUILD_GALLIUM

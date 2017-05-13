@@ -46,7 +46,7 @@ xkb_symbols "Sundeadkeys" {
 
     include "is(basic)"
 
-    name[Group1]="Icelandic (Sun dead keys)";
+    name[Group1]="Icelandic (with Sun dead keys)";
 
     key <TLDE>	{ [dead_circumflex,     degree,      notsign,    notsign ]	};
     key <AE12>	{ [dead_acute, dead_grave, dead_cedilla, dead_cedilla ] };
@@ -64,7 +64,7 @@ xkb_symbols "nodeadkeys" {
 
     include "is(basic)"
 
-    name[Group1]="Icelandic (eliminate dead keys)";
+    name[Group1]="Icelandic (no dead keys)";
 
     key <TLDE>	{ [asciicircum,    degree,      notsign,      notsign ]	};
     key <AE12>	{ [apostrophe,      grave,      cedilla,      cedilla ]	};
@@ -90,7 +90,7 @@ xkb_symbols "nodeadkeys" {
 //
 // * 2013-05-30:
 //   Renamed the old keyboard layout and created a new one that conforms with the later 
-//   model Apple Laptop and Aluminium USB/Bluetooth keyboards (A1243/A1255 and later) 
+//   model Apple laptop and Aluminium USB/Bluetooth keyboards (A1243/A1255 and later) 
 //   that are used with the more recent versions of OS X. Also replaced some Unicode 
 //   codes with proper symbol names.
 //

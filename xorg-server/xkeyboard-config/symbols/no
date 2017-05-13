@@ -38,11 +38,11 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
 
-    // Modifies the basic Norwegian layout to eliminate dead keys
+    // Modifies the basic Norwegian layout to no dead keys
 
     include "no(basic)"
 
-    name[Group1]="Norwegian (eliminate dead keys)";
+    name[Group1]="Norwegian (no dead keys)";
 
     key <AE12>	{ [ backslash,      grave,        acute,       ogonek ]	};
     key <AD12>	{ [ diaeresis, asciicircum,  asciitilde,       macron ]	};
@@ -56,7 +56,7 @@ partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
      include "no(basic)"
-     name[Group1]="Norwegian (Winkeys)";
+     name[Group1]="Norwegian (Win keys)";
      include "eurosign(5)"
 };
 
@@ -184,11 +184,11 @@ xkb_symbols "smi" {
 partial alphanumeric_keys
 xkb_symbols "smi_nodeadkeys" {
 
-    // Modifies the basic Norwegian layout to eliminate dead keys
+    // Modifies the basic Norwegian layout to no dead keys
 
     include "no(smi)"
 
-    name[Group1]= "Northern Saami (Norway, eliminate dead keys)";
+    name[Group1]= "Northern Saami (Norway, no dead keys)";
 
     key <AE12>	{ [ backslash,      grave,        acute,       ogonek ]	};
 };
@@ -222,9 +222,9 @@ xkb_symbols "mac" {
 partial alphanumeric_keys
 xkb_symbols "mac_nodeadkeys" {
 
-    // Modifies the basic Norwegian layout to eliminate dead keys
+    // Modifies the basic Norwegian layout to no dead keys
     include "no(mac)"
-    name[Group1]= "Norwegian (Macintosh, eliminate dead keys)";
+    name[Group1]= "Norwegian (Macintosh, no dead keys)";
 
     key <AE12>	{ [      grave,     acute,        acute,       ogonek ]	};
     key <AD12>	{ [  diaeresis, asciicircum, asciitilde,       macron ]	};

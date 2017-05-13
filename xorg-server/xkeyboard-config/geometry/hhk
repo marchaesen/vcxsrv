@@ -1,5 +1,5 @@
 //
-//	XKB geometry for the Happy Hacking Keyboard (Lite).
+//	XKB geometry for the Happy Hacking (Lite).
 //	Different variants correspond to different switch
 //	settings on the HHK.
 //
@@ -128,7 +128,7 @@ xkb_geometry "jp1" {
 	};
 };
 
-// SW = 001 Layout with Muhenkan and Henkan keys swapped with Alt keys
+// SW = 001 Layout with Muhenkan and Henkan keys swapped with Alt
 xkb_geometry "jp2" {
 	include "hhk(basic)"
 
@@ -170,7 +170,7 @@ xkb_geometry "jp3" {
 	};
 };
 
-// SW = 001 Layout with Henkan key swapped with Alt keys and left-Alt as Fn
+// SW = 001 Layout with Henkan key swapped with Alt and left-Alt as Fn
 xkb_geometry "jp4" {
 	include "hhk(basic)"
 
@@ -194,7 +194,7 @@ xkb_geometry "jp4" {
 // Basic layout for non-switchable keys
 partial hidden xkb_geometry "basic" {
 
-	description = "Happy Hacking Keyboard";
+	description = "Happy Hacking";
 	width = 290;
 	height = 106;
 	

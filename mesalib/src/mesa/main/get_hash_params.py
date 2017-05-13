@@ -119,8 +119,8 @@ descriptor=[
 # GLSL:
   [ "MAX_CLIP_PLANES", "CONTEXT_INT(Const.MaxClipPlanes), NO_EXTRA" ],
 
-# GL_{APPLE,ARB,OES}_vertex_array_object
-  [ "VERTEX_ARRAY_BINDING_APPLE", "ARRAY_INT(Name), NO_EXTRA" ],
+# GL_{ARB,OES}_vertex_array_object
+  [ "VERTEX_ARRAY_BINDING", "ARRAY_INT(Name), NO_EXTRA" ],
 
 # GL_EXT_texture_filter_anisotropic
   [ "MAX_TEXTURE_MAX_ANISOTROPY_EXT", "CONTEXT_FLOAT(Const.MaxTextureMaxAnisotropy), extra_EXT_texture_filter_anisotropic" ],

@@ -13,7 +13,7 @@ xkb_symbols "us" {
 
     include "rs(latinyz)"
 
-    name[Group1]= "Slovenian (US keyboard with Slovenian letters)";
+    name[Group1]= "Slovenian (US, with Slovenian letters)";
 
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };
@@ -23,7 +23,7 @@ xkb_symbols "alternatequotes" {
 
     include "rs(latinalternatequotes)"
 
-    name[Group1]= "Slovenian (with guillemets for quotes)";
+    name[Group1]= "Slovenian (with guillements)";
 
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };

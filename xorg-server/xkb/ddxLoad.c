@@ -45,18 +45,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/XI.h>
 #include "xkb.h"
 
-        /*
-         * If XKM_OUTPUT_DIR specifies a path without a leading slash, it is
-         * relative to the top-level XKB configuration directory.
-         * Making the server write to a subdirectory of that directory
-         * requires some work in the general case (install procedure
-         * has to create links to /var or somesuch on many machines),
-         * so we just compile into /usr/tmp for now.
-         */
-#ifndef XKM_OUTPUT_DIR
-#define	XKM_OUTPUT_DIR	"compiled/"
-#endif
-
 #define	PRE_ERROR_MSG "\"The XKEYBOARD keymap compiler (xkbcomp) reports:\""
 #define	ERROR_PREFIX	"\"> \""
 #define	POST_ERROR_MSG1 "\"Errors from xkbcomp are not fatal to the X server\""

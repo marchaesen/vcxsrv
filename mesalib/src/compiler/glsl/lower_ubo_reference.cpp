@@ -104,6 +104,7 @@ public:
    ir_call *lower_ssbo_atomic_intrinsic(ir_call *ir);
    ir_call *check_for_ssbo_atomic_intrinsic(ir_call *ir);
    ir_visitor_status visit_enter(ir_call *ir);
+   ir_visitor_status visit_enter(ir_texture *ir);
 
    struct gl_linked_shader *shader;
    bool clamp_block_indices;
@@ -411,13 +412,13 @@ lower_ubo_reference_visitor::ssbo_access_params()
    if (variable->is_interface_instance()) {
       assert(struct_field);
 
-      return ((struct_field->image_coherent ? ACCESS_COHERENT : 0) |
-              (struct_field->image_restrict ? ACCESS_RESTRICT : 0) |
-              (struct_field->image_volatile ? ACCESS_VOLATILE : 0));
+      return ((struct_field->memory_coherent ? ACCESS_COHERENT : 0) |
+              (struct_field->memory_restrict ? ACCESS_RESTRICT : 0) |
+              (struct_field->memory_volatile ? ACCESS_VOLATILE : 0));
    } else {
-      return ((variable->data.image_coherent ? ACCESS_COHERENT : 0) |
-              (variable->data.image_restrict ? ACCESS_RESTRICT : 0) |
-              (variable->data.image_volatile ? ACCESS_VOLATILE : 0));
+      return ((variable->data.memory_coherent ? ACCESS_COHERENT : 0) |
+              (variable->data.memory_restrict ? ACCESS_RESTRICT : 0) |
+              (variable->data.memory_volatile ? ACCESS_VOLATILE : 0));
    }
 }
 
@@ -1083,6 +1084,20 @@ lower_ubo_reference_visitor::visit_enter(ir_call *ir)
    if (new_ir != ir) {
       progress = true;
       base_ir->replace_with(new_ir);
+      return visit_continue_with_parent;
+   }
+
+   return rvalue_visit(ir);
+}
+
+
+ir_visitor_status
+lower_ubo_reference_visitor::visit_enter(ir_texture *ir)
+{
+   ir_dereference *sampler = ir->sampler;
+
+   if (sampler->ir_type == ir_type_dereference_record) {
+      handle_rvalue((ir_rvalue **)&ir->sampler);
       return visit_continue_with_parent;
    }
 

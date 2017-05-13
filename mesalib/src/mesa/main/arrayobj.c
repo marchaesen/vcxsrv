@@ -28,9 +28,8 @@
 /**
  * \file arrayobj.c
  *
- * Implementation of Vertex Array Objects (VAOs), from OpenGL 3.1+,
- * the GL_ARB_vertex_array_object extension, or the older
- * GL_APPLE_vertex_array_object extension.
+ * Implementation of Vertex Array Objects (VAOs), from OpenGL 3.1+ /
+ * the GL_ARB_vertex_array_object extension.
  *
  * \todo
  * The code in this file borrows a lot from bufferobj.c.  There's a certain
@@ -418,19 +417,19 @@ _mesa_all_buffers_are_unmapped(const struct gl_vertex_array_object *vao)
 
 
 /**
- * Helper for _mesa_BindVertexArray() and _mesa_BindVertexArrayAPPLE().
- * \param genRequired  specifies behavour when id was not generated with
- *                     glGenVertexArrays().
+ * ARB version of glBindVertexArray()
  */
-static void
-bind_vertex_array(struct gl_context *ctx, GLuint id, GLboolean genRequired)
+void GLAPIENTRY
+_mesa_BindVertexArray( GLuint id )
 {
+   GET_CURRENT_CONTEXT(ctx);
+
    struct gl_vertex_array_object * const oldObj = ctx->Array.VAO;
    struct gl_vertex_array_object *newObj = NULL;
 
    assert(oldObj != NULL);
 
-   if ( oldObj->Name == id )
+   if (oldObj->Name == id)
       return;   /* rebinding the same array object- no change */
 
    /*
@@ -446,32 +445,12 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, GLboolean genRequired)
       /* non-default array object */
       newObj = _mesa_lookup_vao(ctx, id);
       if (!newObj) {
-         if (genRequired) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glBindVertexArray(non-gen name)");
-            return;
-         }
-
-         /* For APPLE version, generate a new array object now */
-	 newObj = _mesa_new_vao(ctx, id);
-         if (!newObj) {
-            _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBindVertexArrayAPPLE");
-            return;
-         }
-
-         save_array_object(ctx, newObj);
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindVertexArray(non-gen name)");
+         return;
       }
 
-      if (!newObj->EverBound) {
-         /* The "Interactions with APPLE_vertex_array_object" section of the
-          * GL_ARB_vertex_array_object spec says:
-          *
-          *     "The first bind call, either BindVertexArray or
-          *     BindVertexArrayAPPLE, determines the semantic of the object."
-          */
-         newObj->ARBsemantics = genRequired;
-         newObj->EverBound = GL_TRUE;
-      }
+      newObj->EverBound = GL_TRUE;
    }
 
    if (ctx->Array.DrawMethod == DRAW_ARRAYS) {
@@ -491,36 +470,6 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, GLboolean genRequired)
 
    ctx->NewState |= _NEW_ARRAY;
    _mesa_reference_vao(ctx, &ctx->Array.VAO, newObj);
-}
-
-
-/**
- * ARB version of glBindVertexArray()
- * This function behaves differently from glBindVertexArrayAPPLE() in
- * that this function requires all ids to have been previously generated
- * by glGenVertexArrays[APPLE]().
- */
-void GLAPIENTRY
-_mesa_BindVertexArray( GLuint id )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   bind_vertex_array(ctx, id, GL_TRUE);
-}
-
-
-/**
- * Bind a new array.
- *
- * \todo
- * The binding could be done more efficiently by comparing the non-NULL
- * pointers in the old and new objects.  The only arrays that are "dirty" are
- * the ones that are non-NULL in either object.
- */
-void GLAPIENTRY
-_mesa_BindVertexArrayAPPLE( GLuint id )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   bind_vertex_array(ctx, id, GL_FALSE);
 }
 
 
@@ -572,7 +521,7 @@ _mesa_DeleteVertexArrays(GLsizei n, const GLuint *ids)
 
 /**
  * Generate a set of unique array object IDs and store them in \c arrays.
- * Helper for _mesa_GenVertexArrays[APPLE]() and _mesa_CreateVertexArrays()
+ * Helper for _mesa_GenVertexArrays() and _mesa_CreateVertexArrays()
  * below.
  *
  * \param n       Number of IDs to generate.
@@ -627,18 +576,6 @@ _mesa_GenVertexArrays(GLsizei n, GLuint *arrays)
 {
    GET_CURRENT_CONTEXT(ctx);
    gen_vertex_arrays(ctx, n, arrays, false, "glGenVertexArrays");
-}
-
-
-/**
- * APPLE version of glGenVertexArraysAPPLE()
- * Arrays may live in VBOs or ordinary memory.
- */
-void GLAPIENTRY
-_mesa_GenVertexArraysAPPLE(GLsizei n, GLuint *arrays)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   gen_vertex_arrays(ctx, n, arrays, false, "glGenVertexArraysAPPLE");
 }
 
 

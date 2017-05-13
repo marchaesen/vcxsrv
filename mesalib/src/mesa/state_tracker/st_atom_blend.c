@@ -186,8 +186,8 @@ blend_per_rt(const struct gl_context *ctx)
    return GL_FALSE;
 }
 
-static void 
-update_blend( struct st_context *st )
+void
+st_update_blend( struct st_context *st )
 {
    struct pipe_blend_state *blend = &st->state.blend;
    const struct gl_context *ctx = st->ctx;
@@ -283,8 +283,3 @@ update_blend( struct st_context *st )
       cso_set_blend_color(st->cso_context, &bc);
    }
 }
-
-
-const struct st_tracked_state st_update_blend = {
-   update_blend,					/* update */
-};

@@ -23,7 +23,7 @@
 //other dealings in this Software without prior written authorization
 //from The Open Group.
 //
-// Japanese layout for a Fujitsu 140 key keyboard
+// Japanese for a Fujitsu 140 key keyboard
 
 xkb_symbols "basic" {
     override "fujitsu_vndr/us"
