@@ -27,8 +27,6 @@ OutFile "vcxsrv-64.1.19.2.0.installer.exe"
 ; The default installation directory
 InstallDir $programfiles64\VcXsrv
 
-SetShellVarContext All
-
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
@@ -66,6 +64,8 @@ XPStyle on
 ;--------------------------------
 ; The stuff to install
 Section "VcXsrv (required)"
+
+  SetShellVarContext All
 
   SectionIn RO
   SectionIn 1 2 3
@@ -185,6 +185,8 @@ SectionEnd
 Section "Fonts"
   SectionIn 1 3
 
+  SetShellVarContext All
+
   SetRegView 64
 
   SetOutPath $INSTDIR\fonts
@@ -196,6 +198,8 @@ SectionEnd
 ; Optional section (can be disabled by the user)
 Section "Start Menu Shortcuts"
   SectionIn 1 3
+
+  SetShellVarContext All
 
   SetRegView 64
 
@@ -210,6 +214,8 @@ SectionEnd
 ; Optional section (can be disabled by the user)
 Section "Desktop Shortcuts"
   SectionIn 1 3
+
+  SetShellVarContext All
 
   SetRegView 64
 
@@ -226,6 +232,8 @@ SectionEnd
 Section "Uninstall"
 
   SetRegView 64
+
+  SetShellVarContext All
 
   ; Remove registry keys
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv"
