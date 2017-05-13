@@ -1277,8 +1277,6 @@
 #define glDepthRangeArrayfvOES(a1, a2, a3) CALL_DepthRangeArrayfvOES(GET_DISPATCH(), (a1, a2, a3))
 #define glDepthRangeIndexedfOES(a1, a2, a3) CALL_DepthRangeIndexedfOES(GET_DISPATCH(), (a1, a2, a3))
 #define glActiveStencilFaceEXT(a1) CALL_ActiveStencilFaceEXT(GET_DISPATCH(), (a1))
-#define glBindVertexArrayAPPLE(a1) CALL_BindVertexArrayAPPLE(GET_DISPATCH(), (a1))
-#define glGenVertexArraysAPPLE(a1, a2) CALL_GenVertexArraysAPPLE(GET_DISPATCH(), (a1, a2))
 #define glGetProgramNamedParameterdvNV(a1, a2, a3, a4) CALL_GetProgramNamedParameterdvNV(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glGetProgramNamedParameterfvNV(a1, a2, a3, a4) CALL_GetProgramNamedParameterfvNV(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glProgramNamedParameter4dNV(a1, a2, a3, a4, a5, a6, a7) CALL_ProgramNamedParameter4dNV(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
