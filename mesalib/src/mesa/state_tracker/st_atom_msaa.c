@@ -38,7 +38,7 @@
 
 /* Update the sample mask for MSAA.
  */
-static void update_sample_mask( struct st_context *st )
+void st_update_sample_mask( struct st_context *st )
 {
    unsigned sample_mask = 0xffffffff;
    struct pipe_framebuffer_state *framebuffer = &st->state.framebuffer;
@@ -72,7 +72,7 @@ static void update_sample_mask( struct st_context *st )
    }
 }
 
-static void update_sample_shading( struct st_context *st )
+void st_update_sample_shading( struct st_context *st )
 {
    if (!st->fp)
       return;
@@ -84,11 +84,3 @@ static void update_sample_shading( struct st_context *st )
 	 st->cso_context,
          _mesa_get_min_invocations_per_fragment(st->ctx, &st->fp->Base, false));
 }
-
-const struct st_tracked_state st_update_msaa = {
-   update_sample_mask					/* update */
-};
-
-const struct st_tracked_state st_update_sample_shading = {
-   update_sample_shading				/* update */
-};

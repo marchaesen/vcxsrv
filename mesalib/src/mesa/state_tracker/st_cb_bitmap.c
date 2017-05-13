@@ -191,7 +191,7 @@ setup_render_state(struct gl_context *ctx,
       GLfloat colorSave[4];
       COPY_4V(colorSave, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], color);
-      st_upload_constants(st, st->fp->Base.Parameters, MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, &st->fp->Base);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], colorSave);
    }
 
@@ -694,7 +694,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
    vb.stride = sizeof(struct st_util_vertex);
 
    u_upload_alloc(pipe->stream_uploader, 0, num_vert_bytes, 4,
-                  &vb.buffer_offset, &vb.buffer, (void **) &verts);
+                  &vb.buffer_offset, &vb.buffer.resource, (void **) &verts);
 
    if (unlikely(!verts)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCallLists(bitmap text)");
@@ -781,7 +781,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
 out:
    restore_render_state(ctx);
 
-   pipe_resource_reference(&vb.buffer, NULL);
+   pipe_resource_reference(&vb.buffer.resource, NULL);
 
    pipe_sampler_view_reference(&sv, NULL);
 

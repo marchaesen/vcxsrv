@@ -292,9 +292,9 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_meta_saved_pass_state saved_pass_state;
 	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-	uint32_t width = radv_minify(image->extent.width,
+	uint32_t width = radv_minify(image->info.width,
 				     subresourceRange->baseMipLevel);
-	uint32_t height = radv_minify(image->extent.height,
+	uint32_t height = radv_minify(image->info.height,
 				     subresourceRange->baseMipLevel);
 
 	if (!image->surface.htile_size)

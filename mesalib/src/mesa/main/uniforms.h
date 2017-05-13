@@ -470,9 +470,6 @@ _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
 extern bool
 _mesa_sampler_uniforms_pipeline_are_valid(struct gl_pipeline_object *);
 
-extern const struct gl_program_parameter *
-get_uniform_parameter(struct gl_shader_program *shProg, GLint index);
-
 struct gl_builtin_uniform_element {
    const char *field;
    int tokens[STATE_LENGTH];

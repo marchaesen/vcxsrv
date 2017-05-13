@@ -190,7 +190,7 @@ xkb_symbols "nodeadkeys" {
 
     include "gr(simple)"
 
-    name[Group1] = "Greek (eliminate dead keys)";
+    name[Group1] = "Greek (no dead keys)";
 
     key <AC10> { [ semicolon, colon ] }; // ; :
 };

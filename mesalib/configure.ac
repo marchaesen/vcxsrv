@@ -102,8 +102,8 @@ ZLIB_REQUIRED=1.2.8
 dnl LLVM versions
 LLVM_REQUIRED_GALLIUM=3.3.0
 LLVM_REQUIRED_OPENCL=3.6.0
-LLVM_REQUIRED_R600=3.8.0
-LLVM_REQUIRED_RADEONSI=3.8.0
+LLVM_REQUIRED_R600=3.9.0
+LLVM_REQUIRED_RADEONSI=3.9.0
 LLVM_REQUIRED_RADV=3.9.0
 LLVM_REQUIRED_SWR=3.9.0
 
@@ -269,7 +269,7 @@ DEFINES="-D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS"
 AC_SUBST([DEFINES])
 android=no
 case "$host_os" in
-*-android)
+*-android*)
     android=yes
     ;;
 linux*|*-gnu*|gnu*|cygwin*)
@@ -455,7 +455,7 @@ int main () {
 CFLAGS=$save_CFLAGS
 
 AC_ARG_ENABLE(pwr8,
-   [AS_HELP_STRING([--disable-pwr8-inst],
+   [AS_HELP_STRING([--disable-pwr8],
                    [disable POWER8-specific instructions])],
    [enable_pwr8=$enableval], [enable_pwr8=auto])
 
@@ -724,7 +724,7 @@ dnl Arch/platform-specific settings
 dnl
 AC_ARG_ENABLE([asm],
     [AS_HELP_STRING([--disable-asm],
-        [disable assembly usage @<:@default=enabled on supported plaforms@:>@])],
+        [disable assembly usage @<:@default=enabled on supported platforms@:>@])],
     [enable_asm="$enableval"],
     [enable_asm=yes]
 )
@@ -1079,13 +1079,8 @@ fi
 
 if test "x$LIBUNWIND" = "xyes"; then
     PKG_CHECK_MODULES(LIBUNWIND, libunwind)
-    if test "x$HAVE_LIBUNWIND" != "xyes"; then
-        AC_MSG_ERROR([libunwind requested but not installed.])
-    fi
     AC_DEFINE(HAVE_LIBUNWIND, 1, [Have libunwind support])
 fi
-
-AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$LIBUNWIND" = xyes])
 
 
 dnl Options for APIs
@@ -2146,7 +2141,7 @@ dnl DEPRECATED: EGL Platforms configuration
 dnl
 AC_ARG_WITH([egl-platforms],
     [AS_HELP_STRING([--with-egl-platforms@<:@=DIRS...@:>@],
-        [DEPRECATED: use --with-plaforms instead@<:@default=auto@:>@])],
+        [DEPRECATED: use --with-platforms instead@<:@default=auto@:>@])],
     [with_egl_platforms="$withval"],
     [with_egl_platforms=auto])
 
@@ -2161,7 +2156,7 @@ if test "x$with_egl_platforms" = xauto; then
         with_egl_platforms=""
     fi
 else
-    AC_MSG_WARN([--with-egl-platforms is deprecated. Use --with-plaforms instead.])
+    AC_MSG_WARN([--with-egl-platforms is deprecated. Use --with-platforms instead.])
 fi
 
 dnl
@@ -2920,15 +2915,17 @@ echo "        Static libs:     $enable_static"
 echo "        Shared-glapi:    $enable_shared_glapi"
 
 dnl Compiler options
-# cleanup the CFLAGS/CXXFLAGS/DEFINES vars
+# cleanup the CFLAGS/CXXFLAGS/LDFLAGS/DEFINES vars
 cflags=`echo $CFLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
 cxxflags=`echo $CXXFLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
+ldflags=`echo $LDFLAGS | $SED 's/^ *//;s/  */ /;s/ *$//'`
 defines=`echo $DEFINES | $SED 's/^ *//;s/  */ /;s/ *$//'`
 echo ""
 echo "        CFLAGS:          $cflags"
 echo "        CXXFLAGS:        $cxxflags"
+echo "        LDFLAGS:         $ldflags"
 echo "        Macros:          $defines"
 echo ""
 if test "x$enable_llvm" = xyes; then

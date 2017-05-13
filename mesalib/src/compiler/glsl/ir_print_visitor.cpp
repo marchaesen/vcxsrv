@@ -188,11 +188,24 @@ void ir_print_visitor::visit(ir_variable *ir)
       snprintf(stream, sizeof(stream), "stream%u ", ir->data.stream);
    }
 
+   char image_format[32] = {0};
+   if (ir->data.image_format) {
+      snprintf(image_format, sizeof(image_format), "format=%x ",
+               ir->data.image_format);
+   }
+
    const char *const cent = (ir->data.centroid) ? "centroid " : "";
    const char *const samp = (ir->data.sample) ? "sample " : "";
    const char *const patc = (ir->data.patch) ? "patch " : "";
    const char *const inv = (ir->data.invariant) ? "invariant " : "";
    const char *const prec = (ir->data.precise) ? "precise " : "";
+   const char *const bindless = (ir->data.bindless) ? "bindless " : "";
+   const char *const bound = (ir->data.bound) ? "bound " : "";
+   const char *const memory_read_only = (ir->data.memory_read_only) ? "readonly " : "";
+   const char *const memory_write_only = (ir->data.memory_write_only) ? "writeonly " : "";
+   const char *const memory_coherent = (ir->data.memory_coherent) ? "coherent " : "";
+   const char *const memory_volatile = (ir->data.memory_volatile) ? "volatile " : "";
+   const char *const memory_restrict = (ir->data.memory_restrict) ? "restrict " : "";
    const char *const mode[] = { "", "uniform ", "shader_storage ",
                                 "shader_shared ", "shader_in ", "shader_out ",
                                 "in ", "out ", "inout ",
@@ -201,8 +214,11 @@ void ir_print_visitor::visit(ir_variable *ir)
    const char *const interp[] = { "", "smooth", "flat", "noperspective" };
    STATIC_ASSERT(ARRAY_SIZE(interp) == INTERP_MODE_COUNT);
 
-   fprintf(f, "(%s%s%s%s%s%s%s%s%s%s%s) ",
-           binding, loc, component, cent, samp, patc, inv, prec, mode[ir->data.mode],
+   fprintf(f, "(%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s) ",
+           binding, loc, component, cent, bindless, bound,
+           image_format, memory_read_only, memory_write_only,
+           memory_coherent, memory_volatile, memory_restrict,
+           samp, patc, inv, prec, mode[ir->data.mode],
            stream,
            interp[ir->data.interpolation]);
 

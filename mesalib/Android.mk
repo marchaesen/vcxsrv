@@ -40,19 +40,36 @@ MESA_DRI_MODULE_UNSTRIPPED_PATH := $(TARGET_OUT_SHARED_LIBRARIES_UNSTRIPPED)/$(M
 MESA_COMMON_MK := $(MESA_TOP)/Android.common.mk
 MESA_PYTHON2 := python
 
-classic_drivers := i915 i965
-gallium_drivers := swrast freedreno i915g nouveau r300g r600g radeonsi vmwgfx vc4 virgl
+# Lists to convert driver names to boolean variables
+# in form of <driver name>.<boolean make variable>
+classic_drivers := i915.HAVE_I915_DRI i965.HAVE_I965_DRI
+gallium_drivers := \
+	swrast.HAVE_GALLIUM_SOFTPIPE \
+	freedreno.HAVE_GALLIUM_FREEDRENO \
+	i915g.HAVE_GALLIUM_I915 \
+	nouveau.HAVE_GALLIUM_NOUVEAU \
+	r300g.HAVE_GALLIUM_R300 \
+	r600g.HAVE_GALLIUM_R600 \
+	radeonsi.HAVE_GALLIUM_RADEONSI \
+	vmwgfx.HAVE_GALLIUM_VMWGFX \
+	vc4.HAVE_GALLIUM_VC4 \
+	virgl.HAVE_GALLIUM_VIRGL
 
-MESA_GPU_DRIVERS := $(strip $(BOARD_GPU_DRIVERS))
-
-# warn about invalid drivers
-invalid_drivers := $(filter-out \
-	$(classic_drivers) $(gallium_drivers), $(MESA_GPU_DRIVERS))
-ifneq ($(invalid_drivers),)
-$(warning invalid GPU drivers: $(invalid_drivers))
-# tidy up
-MESA_GPU_DRIVERS := $(filter-out $(invalid_drivers), $(MESA_GPU_DRIVERS))
+ifeq ($(BOARD_GPU_DRIVERS),all)
+MESA_BUILD_CLASSIC := $(filter HAVE_%, $(subst ., , $(classic_drivers)))
+MESA_BUILD_GALLIUM := $(filter HAVE_%, $(subst ., , $(gallium_drivers)))
+else
+# Warn if we have any invalid driver names
+$(foreach d, $(BOARD_GPU_DRIVERS), \
+	$(if $(findstring $(d).,$(classic_drivers) $(gallium_drivers)), \
+		, \
+		$(warning invalid GPU driver: $(d)) \
+	) \
+)
+MESA_BUILD_CLASSIC := $(strip $(foreach d, $(BOARD_GPU_DRIVERS), $(patsubst $(d).%,%, $(filter $(d).%, $(classic_drivers)))))
+MESA_BUILD_GALLIUM := $(strip $(foreach d, $(BOARD_GPU_DRIVERS), $(patsubst $(d).%,%, $(filter $(d).%, $(gallium_drivers)))))
 endif
+$(foreach d, $(MESA_BUILD_CLASSIC) $(MESA_BUILD_GALLIUM), $(eval $(d) := true))
 
 # host and target must be the same arch to generate matypes.h
 ifeq ($(TARGET_ARCH),$(HOST_ARCH))
@@ -61,23 +78,27 @@ else
 MESA_ENABLE_ASM := false
 endif
 
-ifneq ($(filter $(classic_drivers), $(MESA_GPU_DRIVERS)),)
-MESA_BUILD_CLASSIC := true
-else
-MESA_BUILD_CLASSIC := false
+ifneq ($(filter true, $(HAVE_GALLIUM_RADEONSI)),)
+MESA_ENABLE_LLVM := true
 endif
 
-ifneq ($(filter $(gallium_drivers), $(MESA_GPU_DRIVERS)),)
-MESA_BUILD_GALLIUM := true
-else
-MESA_BUILD_GALLIUM := false
-endif
-
-MESA_ENABLE_LLVM := $(if $(filter radeonsi,$(MESA_GPU_DRIVERS)),true,false)
+define mesa-build-with-llvm
+  $(if $(filter $(MESA_ANDROID_MAJOR_VERSION), 4 5), \
+    $(warning Unsupported LLVM version in Android $(MESA_ANDROID_MAJOR_VERSION)),) \
+  $(if $(filter 6,$(MESA_ANDROID_MAJOR_VERSION)), \
+    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0307 -DMESA_LLVM_VERSION_PATCH=0) \
+    $(eval LOCAL_STATIC_LIBRARIES += libLLVMCore) \
+    $(eval LOCAL_C_INCLUDES += external/llvm/include external/llvm/device/include),) \
+  $(if $(filter 7,$(MESA_ANDROID_MAJOR_VERSION)), \
+    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0308 -DMESA_LLVM_VERSION_PATCH=0) \
+    $(eval LOCAL_STATIC_LIBRARIES += libLLVMCore) \
+    $(eval LOCAL_C_INCLUDES += external/llvm/include external/llvm/device/include),) \
+  $(if $(filter O,$(MESA_ANDROID_MAJOR_VERSION)), \
+    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0309 -DMESA_LLVM_VERSION_PATCH=0) \
+    $(eval LOCAL_HEADER_LIBRARIES += llvm-headers),)
+endef
 
 # add subdirectories
-ifneq ($(strip $(MESA_GPU_DRIVERS)),)
-
 SUBDIRS := \
 	src/gbm \
 	src/loader \
@@ -92,11 +113,5 @@ SUBDIRS := \
 	src/vulkan
 
 INC_DIRS := $(call all-named-subdir-makefiles,$(SUBDIRS))
-
-ifeq ($(strip $(MESA_BUILD_GALLIUM)),true)
 INC_DIRS += $(call all-named-subdir-makefiles,src/gallium)
-endif
-
 include $(INC_DIRS)
-
-endif

@@ -133,16 +133,12 @@ update_program(struct gl_context *ctx)
 
    if (fsProg) {
       /* Use GLSL fragment shader */
-      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
-                              fsProg);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current, fsProg);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
                               NULL);
    }
    else if (ctx->FragmentProgram._Enabled) {
       /* Use user-defined fragment program */
-      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
-                              NULL);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
                               ctx->FragmentProgram.Current);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
@@ -151,8 +147,6 @@ update_program(struct gl_context *ctx)
    else if (ctx->ATIFragmentShader._Enabled &&
             ctx->ATIFragmentShader.Current->Program) {
        /* Use the enabled ATI fragment shader's associated program */
-      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
-                              NULL);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
                               ctx->ATIFragmentShader.Current->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
@@ -162,8 +156,6 @@ update_program(struct gl_context *ctx)
       /* Use fragment program generated from fixed-function state */
       struct gl_shader_program *f = _mesa_get_fixed_func_fragment_program(ctx);
 
-      _mesa_reference_program(ctx, &ctx->_Shader->_CurrentFragmentProgram,
-                              f->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._Current,
 			      f->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,

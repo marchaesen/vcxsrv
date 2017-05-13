@@ -1063,9 +1063,8 @@ xf86ConfigPciEntity(ScrnInfoPtr pScrn, int scrnFlag, int entityIndex,
     return pScrn;
 }
 
-int
-xf86VideoPtrToDriverList(struct pci_device *dev,
-                     char *returnList[], int returnListMax)
+void
+xf86VideoPtrToDriverList(struct pci_device *dev, XF86MatchedDrivers *md)
 {
     int i;
 
@@ -1268,10 +1267,9 @@ xf86VideoPtrToDriverList(struct pci_device *dev,
     default:
         break;
     }
-    for (i = 0; (i < returnListMax) && (driverList[i] != NULL); i++) {
-        returnList[i] = xnfstrdup(driverList[i]);
+    for (i = 0; driverList[i] != NULL; i++) {
+        xf86AddMatchedDriver(md, driverList[i]);
     }
-    return i;                   /* Number of entries added */
 }
 
 #ifdef __linux__
@@ -1295,23 +1293,23 @@ xchomp(char *line)
  * don't export their PCI ID's properly. If distros don't end up using this
  * feature it can and should be removed because the symbol-based resolution
  * scheme should be the primary one */
-int
+void
 xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
-                         char *matches[], int nmatches)
+                         XF86MatchedDrivers *md)
 {
     DIR *idsdir;
     FILE *fp;
     struct dirent *direntry;
-    char *line = NULL;
+    char *line = NULL, *tmpMatch;
     size_t len;
     ssize_t read;
     char path_name[256], vendor_str[5], chip_str[5];
     uint16_t vendor, chip;
-    int i = 0, j;
+    int j;
 
     idsdir = opendir(PCI_TXT_IDS_PATH);
     if (!idsdir)
-        return 0;
+        return;
 
     xf86Msg(X_INFO,
             "Scanning %s directory for additional PCI ID's supported by the drivers\n",
@@ -1362,10 +1360,10 @@ xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
                         }
                     }
                     if (vendor == match_vendor && chip == match_chip) {
-                        matches[i] =
+                        tmpMatch =
                             (char *) malloc(sizeof(char) *
                                             strlen(direntry->d_name) - 3);
-                        if (!matches[i]) {
+                        if (!tmpMatch) {
                             xf86Msg(X_ERROR,
                                     "Could not allocate space for the module name. Exiting.\n");
                             goto end;
@@ -1375,16 +1373,17 @@ xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
                          * taking off anything after the first '.' */
                         for (j = 0; j < (strlen(direntry->d_name) - 3); j++) {
                             if (direntry->d_name[j] == '.') {
-                                matches[i][j] = '\0';
+                                tmpMatch[j] = '\0';
                                 break;
                             }
                             else {
-                                matches[i][j] = direntry->d_name[j];
+                                tmpMatch[j] = direntry->d_name[j];
                             }
                         }
+                        xf86AddMatchedDriver(md, tmpMatch);
                         xf86Msg(X_INFO, "Matched %s from file name %s\n",
-                                matches[i], direntry->d_name);
-                        i++;
+                                tmpMatch, direntry->d_name);
+                        free(tmpMatch);
                     }
                 }
                 else {
@@ -1398,18 +1397,12 @@ xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
  end:
     free(line);
     closedir(idsdir);
-    return i;
 }
 #endif                          /* __linux__ */
 
-/**
- *  @return The numbers of found devices that match with the current system
- *  drivers.
- */
-int
-xf86PciMatchDriver(char *matches[], int nmatches)
+void
+xf86PciMatchDriver(XF86MatchedDrivers *md)
 {
-    int i = 0;
     struct pci_device *info = NULL;
     struct pci_device_iterator *iter;
 
@@ -1424,15 +1417,12 @@ xf86PciMatchDriver(char *matches[], int nmatches)
     pci_iterator_destroy(iter);
 #ifdef __linux__
     if (info)
-        i += xf86MatchDriverFromFiles(info->vendor_id, info->device_id,
-                                      matches, nmatches);
+        xf86MatchDriverFromFiles(info->vendor_id, info->device_id, md);
 #endif
 
-    if ((info != NULL) && (i < nmatches)) {
-        i += xf86VideoPtrToDriverList(info, &(matches[i]), nmatches - i);
+    if (info != NULL) {
+        xf86VideoPtrToDriverList(info, md);
     }
-
-    return i;
 }
 
 Bool

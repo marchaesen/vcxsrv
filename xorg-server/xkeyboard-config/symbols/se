@@ -39,7 +39,7 @@ xkb_symbols "nodeadkeys" {
     include "latin(type2_nodeadkeys)"
     include "se(se)"
 
-    name[Group1]="Swedish (eliminate dead keys)";
+    name[Group1]="Swedish (no dead keys)";
 
     key <AE12>	{ [     acute,      grave,    plusminus,      notsign ]	};
 };
@@ -151,7 +151,7 @@ xkb_symbols "rus_nodeadkeys" {
     include "se(nodeadkeys)"
     include "se(rus)"
 
-    name[Group1]="Russian (Sweden, phonetic, eliminate dead keys)";
+    name[Group1]="Russian (Sweden, phonetic, no dead keys)";
 
     key <AE12> {	[ Cyrillic_hardsign, Cyrillic_HARDSIGN ]	};
 };

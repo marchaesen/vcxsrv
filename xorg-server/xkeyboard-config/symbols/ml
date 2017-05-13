@@ -19,7 +19,7 @@ xkb_symbols "fr-oss" {
 
     include "fr(oss)"
 
-    name[Group1]="French (Mali, alternative)";
+    name[Group1]="French (Mali, alt.)";
 
     // š Š on d replaces ë Ë
     // ɲ Ɲ on j replaces ü Ü
@@ -41,7 +41,7 @@ xkb_symbols "us-mac" {
 
     include "us(mac)"
 
-    name[Group1]="English (Mali, US Macintosh)";
+    name[Group1]="English (Mali, US, Macintosh)";
 
     // ž Ž on z replaces Ω ¸
     // ɛ Ɛ on a replaces å Å
@@ -64,7 +64,7 @@ xkb_symbols "us-intl" {
 
     include "us(intl)"
 
-    name[Group1]="English (Mali, US international)";
+    name[Group1]="English (Mali, US, intl.)";
 
     // ž Ž on x replaces
     // š Š on s replaces ß §

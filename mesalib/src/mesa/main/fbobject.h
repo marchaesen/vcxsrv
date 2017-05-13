@@ -119,23 +119,21 @@ _mesa_detach_renderbuffer(struct gl_context *ctx,
                           struct gl_framebuffer *fb,
                           const void *att);
 
+extern struct gl_renderbuffer_attachment *
+_mesa_get_and_validate_attachment(struct gl_context *ctx,
+                                  struct gl_framebuffer *fb,
+                                  GLenum attachment, const char *caller);
+
 extern void
 _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
                           GLenum attachment,
+                          struct gl_renderbuffer_attachment *att,
                           struct gl_texture_object *texObj, GLenum textarget,
-                          GLint level, GLuint layer, GLboolean layered,
-                          const char *caller);
+                          GLint level, GLuint layer, GLboolean layered);
 
 extern GLenum
 _mesa_check_framebuffer_status(struct gl_context *ctx,
                                struct gl_framebuffer *fb);
-
-extern void
-_mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
-                                           struct gl_framebuffer *buffer,
-                                           GLenum attachment, GLenum pname,
-                                           GLint *params, const char *caller);
-
 
 extern void
 _mesa_bind_framebuffers(struct gl_context *ctx,
@@ -218,13 +216,25 @@ extern GLenum GLAPIENTRY
 _mesa_CheckNamedFramebufferStatus(GLuint framebuffer, GLenum target);
 
 extern void GLAPIENTRY
+_mesa_FramebufferTexture1D_no_error(GLenum target, GLenum attachment,
+                                    GLenum textarget, GLuint texture,
+                                    GLint level);
+extern void GLAPIENTRY
 _mesa_FramebufferTexture1D(GLenum target, GLenum attachment,
                               GLenum textarget, GLuint texture, GLint level);
 
 extern void GLAPIENTRY
+_mesa_FramebufferTexture2D_no_error(GLenum target, GLenum attachment,
+                                    GLenum textarget, GLuint texture,
+                                    GLint level);
+extern void GLAPIENTRY
 _mesa_FramebufferTexture2D(GLenum target, GLenum attachment,
                               GLenum textarget, GLuint texture, GLint level);
 
+extern void GLAPIENTRY
+_mesa_FramebufferTexture3D_no_error(GLenum target, GLenum attachment,
+                                    GLenum textarget, GLuint texture,
+                                    GLint level, GLint layer);
 extern void GLAPIENTRY
 _mesa_FramebufferTexture3D(GLenum target, GLenum attachment,
                               GLenum textarget, GLuint texture,

@@ -48,11 +48,6 @@ enum st_pipeline {
    ST_PIPELINE_COMPUTE,
 };
 
-struct st_tracked_state {
-   void (*update)( struct st_context *st );
-};
-
-
 void st_init_atoms( struct st_context *st );
 void st_destroy_atoms( struct st_context *st );
 void st_validate_state( struct st_context *st, enum st_pipeline pipeline );
@@ -77,8 +72,8 @@ enum {
 #include "st_atom_list.h"
 #undef ST_STATE
 
-/* Add extern struct declarations. */
-#define ST_STATE(FLAG, st_update) extern const struct st_tracked_state st_update;
+/* Declare function prototypes. */
+#define ST_STATE(FLAG, st_update) void st_update(struct st_context *st);
 #include "st_atom_list.h"
 #undef ST_STATE
 

@@ -58,8 +58,6 @@ _mesa_delete_pipeline_object(struct gl_context *ctx,
 {
    unsigned i;
 
-   _mesa_reference_program(ctx, &obj->_CurrentFragmentProgram, NULL);
-
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
       _mesa_reference_program(ctx, &obj->CurrentProgram[i], NULL);
       _mesa_reference_shader_program(ctx, &obj->ReferencedPrograms[i], NULL);
@@ -218,6 +216,65 @@ use_program_stage(struct gl_context *ctx, GLenum type,
    _mesa_use_program(ctx, stage, shProg, prog, pipe);
 }
 
+static void
+use_program_stages(struct gl_context *ctx, struct gl_shader_program *shProg,
+                   GLbitfield stages, struct gl_pipeline_object *pipe) {
+
+   /* Enable individual stages from the program as requested by the
+    * application.  If there is no shader for a requested stage in the
+    * program, _mesa_use_shader_program will enable fixed-function processing
+    * as dictated by the spec.
+    *
+    * Section 2.11.4 (Program Pipeline Objects) of the OpenGL 4.1 spec
+    * says:
+    *
+    *     "If UseProgramStages is called with program set to zero or with a
+    *     program object that contains no executable code for the given
+    *     stages, it is as if the pipeline object has no programmable stage
+    *     configured for the indicated shader stages."
+    */
+   if ((stages & GL_VERTEX_SHADER_BIT) != 0)
+      use_program_stage(ctx, GL_VERTEX_SHADER, shProg, pipe);
+
+   if ((stages & GL_FRAGMENT_SHADER_BIT) != 0)
+      use_program_stage(ctx, GL_FRAGMENT_SHADER, shProg, pipe);
+
+   if ((stages & GL_GEOMETRY_SHADER_BIT) != 0)
+      use_program_stage(ctx, GL_GEOMETRY_SHADER, shProg, pipe);
+
+   if ((stages & GL_TESS_CONTROL_SHADER_BIT) != 0)
+      use_program_stage(ctx, GL_TESS_CONTROL_SHADER, shProg, pipe);
+
+   if ((stages & GL_TESS_EVALUATION_SHADER_BIT) != 0)
+      use_program_stage(ctx, GL_TESS_EVALUATION_SHADER, shProg, pipe);
+
+   if ((stages & GL_COMPUTE_SHADER_BIT) != 0)
+      use_program_stage(ctx, GL_COMPUTE_SHADER, shProg, pipe);
+
+   pipe->Validated = false;
+}
+
+void GLAPIENTRY
+_mesa_UseProgramStages_no_error(GLuint pipeline, GLbitfield stages,
+                                GLuint prog)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_pipeline_object *pipe =
+      _mesa_lookup_pipeline_object(ctx, pipeline);
+   struct gl_shader_program *shProg = NULL;
+
+   if (prog)
+      shProg = _mesa_lookup_shader_program(ctx, prog);
+
+   /* Object is created by any Pipeline call but glGenProgramPipelines,
+    * glIsProgramPipeline and GetProgramPipelineInfoLog
+    */
+   pipe->EverBound = GL_TRUE;
+
+   use_program_stages(ctx, shProg, stages, pipe);
+}
+
 /**
  * Bound program to severals stages of the pipeline
  */
@@ -311,38 +368,25 @@ _mesa_UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
       }
    }
 
-   /* Enable individual stages from the program as requested by the
-    * application.  If there is no shader for a requested stage in the
-    * program, _mesa_use_shader_program will enable fixed-function processing
-    * as dictated by the spec.
-    *
-    * Section 2.11.4 (Program Pipeline Objects) of the OpenGL 4.1 spec
-    * says:
-    *
-    *     "If UseProgramStages is called with program set to zero or with a
-    *     program object that contains no executable code for the given
-    *     stages, it is as if the pipeline object has no programmable stage
-    *     configured for the indicated shader stages."
+   use_program_stages(ctx, shProg, stages, pipe);
+}
+
+void GLAPIENTRY
+_mesa_ActiveShaderProgram_no_error(GLuint pipeline, GLuint program)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg = NULL;
+   struct gl_pipeline_object *pipe = _mesa_lookup_pipeline_object(ctx, pipeline);
+
+   if (program)
+      shProg = _mesa_lookup_shader_program(ctx, program);
+
+   /* Object is created by any Pipeline call but glGenProgramPipelines,
+    * glIsProgramPipeline and GetProgramPipelineInfoLog
     */
-   if ((stages & GL_VERTEX_SHADER_BIT) != 0)
-      use_program_stage(ctx, GL_VERTEX_SHADER, shProg, pipe);
+   pipe->EverBound = GL_TRUE;
 
-   if ((stages & GL_FRAGMENT_SHADER_BIT) != 0)
-      use_program_stage(ctx, GL_FRAGMENT_SHADER, shProg, pipe);
-
-   if ((stages & GL_GEOMETRY_SHADER_BIT) != 0)
-      use_program_stage(ctx, GL_GEOMETRY_SHADER, shProg, pipe);
-
-   if ((stages & GL_TESS_CONTROL_SHADER_BIT) != 0)
-      use_program_stage(ctx, GL_TESS_CONTROL_SHADER, shProg, pipe);
-
-   if ((stages & GL_TESS_EVALUATION_SHADER_BIT) != 0)
-      use_program_stage(ctx, GL_TESS_EVALUATION_SHADER, shProg, pipe);
-
-   if ((stages & GL_COMPUTE_SHADER_BIT) != 0)
-      use_program_stage(ctx, GL_COMPUTE_SHADER, shProg, pipe);
-
-   pipe->Validated = false;
+   _mesa_reference_shader_program(ctx, &pipe->ActiveProgram, shProg);
 }
 
 /**
@@ -383,6 +427,32 @@ _mesa_ActiveShaderProgram(GLuint pipeline, GLuint program)
    }
 
    _mesa_reference_shader_program(ctx, &pipe->ActiveProgram, shProg);
+}
+
+void GLAPIENTRY
+_mesa_BindProgramPipeline_no_error(GLuint pipeline)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_pipeline_object *newObj = NULL;
+
+   /* Rebinding the same pipeline object: no change.
+    */
+   if (ctx->_Shader->Name == pipeline)
+      return;
+
+   /* Get pointer to new pipeline object (newObj)
+    */
+   if (pipeline) {
+      /* non-default pipeline object */
+      newObj = _mesa_lookup_pipeline_object(ctx, pipeline);
+
+      /* Object is created by any Pipeline call but glGenProgramPipelines,
+       * glIsProgramPipeline and GetProgramPipelineInfoLog
+       */
+      newObj->EverBound = GL_TRUE;
+   }
+
+   _mesa_bind_pipeline(ctx, newObj);
 }
 
 /**

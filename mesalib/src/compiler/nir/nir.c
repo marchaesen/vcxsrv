@@ -44,7 +44,8 @@ nir_shader_create(void *mem_ctx,
 
    shader->options = options;
 
-   shader->info = si ? si : rzalloc(shader, shader_info);
+   if (si)
+      shader->info = *si;
 
    exec_list_make_empty(&shader->functions);
    exec_list_make_empty(&shader->registers);
@@ -1905,6 +1906,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_patch_vertices_in;
    case SYSTEM_VALUE_HELPER_INVOCATION:
       return nir_intrinsic_load_helper_invocation;
+   case SYSTEM_VALUE_VIEW_INDEX:
+      return nir_intrinsic_load_view_index;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -1956,6 +1959,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_VERTICES_IN;
    case nir_intrinsic_load_helper_invocation:
       return SYSTEM_VALUE_HELPER_INVOCATION;
+   case nir_intrinsic_load_view_index:
+      return SYSTEM_VALUE_VIEW_INDEX;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }

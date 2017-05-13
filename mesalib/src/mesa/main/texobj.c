@@ -329,13 +329,13 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
  */
 static void
 finish_texture_init(struct gl_context *ctx, GLenum target,
-                    struct gl_texture_object *obj)
+                    struct gl_texture_object *obj, int targetIndex)
 {
    GLenum filter = GL_LINEAR;
    assert(obj->Target == 0);
 
    obj->Target = target;
-   obj->TargetIndex = _mesa_tex_target_to_index(ctx, target);
+   obj->TargetIndex = targetIndex;
    assert(obj->TargetIndex < NUM_TEXTURE_TARGETS);
 
    switch (target) {
@@ -1649,13 +1649,12 @@ _mesa_BindTexture( GLenum target, GLuint texName )
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_object *newTexObj = NULL;
-   GLint targetIndex;
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glBindTexture %s %d\n",
                   _mesa_enum_to_string(target), (GLint) texName);
 
-   targetIndex = _mesa_tex_target_to_index(ctx, target);
+   int targetIndex = _mesa_tex_target_to_index(ctx, target);
    if (targetIndex < 0) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glBindTexture(target = %s)",
                   _mesa_enum_to_string(target));
@@ -1684,7 +1683,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
             return;
          }
          if (newTexObj->Target == 0) {
-            finish_texture_init(ctx, target, newTexObj);
+            finish_texture_init(ctx, target, newTexObj, targetIndex);
          }
       }
       else {

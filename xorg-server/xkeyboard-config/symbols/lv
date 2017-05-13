@@ -110,7 +110,7 @@ xkb_symbols "apostrophe" {
 
 	include "lv(basic)"
 
-	name[Group1]= "Latvian (apostrophe variant)";
+	name[Group1]= "Latvian (apostrophe)";
 
 	key <AC11> {[ISO_Level3_Latch, quotedbl, apostrophe, quotedbl]};
 	key <SPCE> {[space, space, apostrophe]};
@@ -123,7 +123,7 @@ xkb_symbols "tilde" {
 
 	include "lv(basic)"
 
-	name[Group1]= "Latvian (tilde variant)";
+	name[Group1]= "Latvian (tilde)";
 
 	key <TLDE> {[ISO_Level3_Latch, asciitilde, grave, acute]};
 	key <SPCE> {[space, space, asciitilde]};
@@ -136,7 +136,7 @@ xkb_symbols "fkey" {
 
 	include "lv(basic)"
 
-	name[Group1]= "Latvian (F variant)";
+	name[Group1]= "Latvian (F)";
 
 	key <AC04> {[ISO_Level3_Latch, ISO_Level3_Latch, f, F]};
 	key <SPCE> {[space, space, f, F]};

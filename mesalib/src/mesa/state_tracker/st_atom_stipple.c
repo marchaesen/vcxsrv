@@ -60,9 +60,9 @@ invert_stipple(GLuint dest[32], const GLuint src[32], GLuint winHeight)
 }
 
 
-
-static void
-update_stipple( struct st_context *st )
+/** Update the stipple when the pattern or window height changes */
+void
+st_update_polygon_stipple( struct st_context *st )
 {
    const struct gl_context *ctx = st->ctx;
    const GLuint sz = sizeof(st->state.poly_stipple);
@@ -84,9 +84,3 @@ update_stipple( struct st_context *st )
       st->pipe->set_polygon_stipple(st->pipe, &newStipple);
    }
 }
-
-
-/** Update the stipple when the pattern or window height changes */
-const struct st_tracked_state st_update_polygon_stipple = {
-   update_stipple					/* update */
-};

@@ -69,7 +69,6 @@ struct gl_program_parameter
     * The next program parameter's Size will be Size-4 of this parameter.
     */
    GLuint Size;
-   GLboolean Initialized;   /**< debug: Has the ParameterValue[] been set? */
    /**
     * A sequence of STATE_* tokens and integers to identify GL state.
     */

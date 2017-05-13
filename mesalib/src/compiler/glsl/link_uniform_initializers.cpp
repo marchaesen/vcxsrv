@@ -117,7 +117,7 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
 
       const unsigned elements = MAX2(storage->array_elements, 1);
 
-      /* Section 4.4.4 (Opaque-Uniform Layout Qualifiers) of the GLSL 4.20 spec
+      /* Section 4.4.6 (Opaque-Uniform Layout Qualifiers) of the GLSL 4.50 spec
        * says:
        *
        *     "If the binding identifier is used with an array, the first element
@@ -129,25 +129,26 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
       }
 
       for (int sh = 0; sh < MESA_SHADER_STAGES; sh++) {
-        gl_linked_shader *shader = prog->_LinkedShaders[sh];
+         gl_linked_shader *shader = prog->_LinkedShaders[sh];
 
-         if (shader) {
-            if (storage->type->is_sampler() && storage->opaque[sh].active) {
-               for (unsigned i = 0; i < elements; i++) {
-                  const unsigned index = storage->opaque[sh].index + i;
-                  shader->Program->SamplerUnits[index] =
-                     storage->storage[i].i;
-               }
+         if (!shader)
+            continue;
+         if (!storage->opaque[sh].active)
+            continue;
 
-            } else if (storage->type->is_image() &&
-                    storage->opaque[sh].active) {
-               for (unsigned i = 0; i < elements; i++) {
-                  const unsigned index = storage->opaque[sh].index + i;
-                  if (index >= ARRAY_SIZE(shader->Program->sh.ImageUnits))
-                     break;
-                  shader->Program->sh.ImageUnits[index] =
-                     storage->storage[i].i;
-               }
+         if (storage->type->is_sampler()) {
+            for (unsigned i = 0; i < elements; i++) {
+               const unsigned index = storage->opaque[sh].index + i;
+               if (index >= ARRAY_SIZE(shader->Program->SamplerUnits))
+                  break;
+               shader->Program->SamplerUnits[index] = storage->storage[i].i;
+            }
+         } else if (storage->type->is_image()) {
+            for (unsigned i = 0; i < elements; i++) {
+               const unsigned index = storage->opaque[sh].index + i;
+               if (index >= ARRAY_SIZE(shader->Program->sh.ImageUnits))
+                  break;
+               shader->Program->sh.ImageUnits[index] = storage->storage[i].i;
             }
          }
       }

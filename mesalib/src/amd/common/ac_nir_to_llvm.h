@@ -121,15 +121,14 @@ struct ac_userdata_locations {
 };
 
 struct ac_vs_output_info {
+	uint8_t	vs_output_param_offset[VARYING_SLOT_MAX];
 	uint8_t clip_dist_mask;
 	uint8_t cull_dist_mask;
+	uint8_t param_exports;
 	bool writes_pointsize;
 	bool writes_layer;
 	bool writes_viewport_index;
-	uint32_t prim_id_output;
-	uint32_t layer_output;
 	uint32_t export_mask;
-	unsigned param_exports;
 	unsigned pos_exports;
 };
 

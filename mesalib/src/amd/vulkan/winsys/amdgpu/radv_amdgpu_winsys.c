@@ -107,6 +107,7 @@ get_chip_name(enum radeon_family family)
 	case CHIP_FIJI: return "AMD RADV FIJI";
 	case CHIP_POLARIS10: return "AMD RADV POLARIS10";
 	case CHIP_POLARIS11: return "AMD RADV POLARIS11";
+	case CHIP_POLARIS12: return "AMD RADV POLARIS12";
 	case CHIP_STONEY: return "AMD RADV STONEY";
 	default: return "AMD RADV unknown";
 	}
@@ -270,6 +271,10 @@ do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 	case CHIP_POLARIS11:
 		ws->family = FAMILY_VI;
 		ws->rev_id = VI_POLARIS11_M_A0;
+		break;
+	case CHIP_POLARIS12:
+		ws->family = FAMILY_VI;
+		ws->rev_id = VI_POLARIS12_V_A0;
 		break;
 	default:
 		fprintf(stderr, "amdgpu: Unknown family.\n");

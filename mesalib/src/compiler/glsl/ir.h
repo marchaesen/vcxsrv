@@ -233,7 +233,7 @@ public:
 
    ir_rvalue *as_rvalue_to_saturate();
 
-   virtual bool is_lvalue() const
+   virtual bool is_lvalue(const struct _mesa_glsl_parse_state *state = NULL) const
    {
       return false;
    }
@@ -827,13 +827,13 @@ public:
       ir_depth_layout depth_layout:3;
 
       /**
-       * ARB_shader_image_load_store qualifiers.
+       * Memory qualifiers.
        */
-      unsigned image_read_only:1; /**< "readonly" qualifier. */
-      unsigned image_write_only:1; /**< "writeonly" qualifier. */
-      unsigned image_coherent:1;
-      unsigned image_volatile:1;
-      unsigned image_restrict:1;
+      unsigned memory_read_only:1; /**< "readonly" qualifier. */
+      unsigned memory_write_only:1; /**< "writeonly" qualifier. */
+      unsigned memory_coherent:1;
+      unsigned memory_volatile:1;
+      unsigned memory_restrict:1;
 
       /**
        * ARB_shader_storage_buffer_object
@@ -848,6 +848,18 @@ public:
        * framebuffer location corresponding to this shader invocation.
        */
       unsigned fb_fetch_output:1;
+
+      /**
+       * Non-zero if this variable is considered bindless as defined by
+       * ARB_bindless_texture.
+       */
+      unsigned bindless:1;
+
+      /**
+       * Non-zero if this variable is considered bound as defined by
+       * ARB_bindless_texture.
+       */
+      unsigned bound:1;
 
       /**
        * Emit a warning if this variable is accessed.
@@ -1097,6 +1109,13 @@ enum ir_intrinsic_id {
    ir_intrinsic_memory_barrier_buffer,
    ir_intrinsic_memory_barrier_image,
    ir_intrinsic_memory_barrier_shared,
+
+   ir_intrinsic_vote_all,
+   ir_intrinsic_vote_any,
+   ir_intrinsic_vote_eq,
+   ir_intrinsic_ballot,
+   ir_intrinsic_read_invocation,
+   ir_intrinsic_read_first_invocation,
 
    ir_intrinsic_shared_load,
    ir_intrinsic_shared_store = MAKE_INTRINSIC_FOR_TYPE(store, shared),
@@ -1922,9 +1941,9 @@ public:
    virtual bool equals(const ir_instruction *ir,
                        enum ir_node_type ignore = ir_type_unset) const;
 
-   bool is_lvalue() const
+   bool is_lvalue(const struct _mesa_glsl_parse_state *state) const
    {
-      return val->is_lvalue() && !mask.has_duplicates;
+      return val->is_lvalue(state) && !mask.has_duplicates;
    }
 
    /**
@@ -1949,7 +1968,7 @@ class ir_dereference : public ir_rvalue {
 public:
    virtual ir_dereference *clone(void *mem_ctx, struct hash_table *) const = 0;
 
-   bool is_lvalue() const;
+   bool is_lvalue(const struct _mesa_glsl_parse_state *state) const;
 
    /**
     * Get the variable that is ultimately referenced by an r-value

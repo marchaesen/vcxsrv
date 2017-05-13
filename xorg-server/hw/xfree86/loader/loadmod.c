@@ -627,10 +627,10 @@ static const char *compiled_in_modules[] = {
     "extmod",
     "dri",
     "dri2",
-#if DRI3
+#ifdef DRI3
     "dri3",
 #endif
-#if PRESENT
+#ifdef PRESENT
     "present",
 #endif
     NULL

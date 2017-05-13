@@ -258,7 +258,7 @@ public:
         num_shader_samplers(0), num_shader_images(0),
         num_shader_uniform_components(0), num_shader_subroutines(0),
         is_buffer_block(false), is_shader_storage(false), map(map),
-        hidden_map(hidden_map)
+        hidden_map(hidden_map), current_var(NULL)
    {
       /* empty */
    }
@@ -339,10 +339,14 @@ private:
       const unsigned values = type->component_slots();
       if (type->contains_subroutine()) {
          this->num_shader_subroutines += values;
-      } else if (type->contains_sampler()) {
-         this->num_shader_samplers += values;
-      } else if (type->contains_image()) {
-         this->num_shader_images += values;
+      } else if (type->contains_sampler() && !current_var->data.bindless) {
+         /* Samplers (bound or bindless) are counted as two components as
+          * specified by ARB_bindless_texture. */
+         this->num_shader_samplers += values / 2;
+      } else if (type->contains_image() && !current_var->data.bindless) {
+         /* Images (bound or bindless) are counted as two components as
+          * specified by ARB_bindless_texture. */
+         this->num_shader_images += values / 2;
 
          /* As drivers are likely to represent image uniforms as
           * scalar indices, count them against the limit of uniform
@@ -437,6 +441,7 @@ public:
       current_var = var;
       field_counter = 0;
       this->record_next_sampler = new string_to_uint_map;
+      this->record_next_image = new string_to_uint_map;
 
       buffer_block_index = -1;
       if (var->is_in_buffer_block()) {
@@ -497,6 +502,7 @@ public:
          process(var);
       }
       delete this->record_next_sampler;
+      delete this->record_next_image;
    }
 
    int buffer_block_index;
@@ -504,66 +510,77 @@ public:
    gl_shader_stage shader_type;
 
 private:
+   bool set_opaque_indices(const glsl_type *base_type,
+                           struct gl_uniform_storage *uniform,
+                           const char *name, unsigned &next_index,
+                           struct string_to_uint_map *record_next_index)
+   {
+      assert(base_type->is_sampler() || base_type->is_image());
+
+      if (this->record_array_count > 1) {
+         unsigned inner_array_size = MAX2(1, uniform->array_elements);
+         char *name_copy = ralloc_strdup(NULL, name);
+
+         /* Remove all array subscripts from the sampler/image name */
+         char *str_start;
+         const char *str_end;
+         while((str_start = strchr(name_copy, '[')) &&
+               (str_end = strchr(name_copy, ']'))) {
+            memmove(str_start, str_end + 1, 1 + strlen(str_end + 1));
+         }
+
+         unsigned index = 0;
+         if (record_next_index->get(index, name_copy)) {
+            /* In this case, we've already seen this uniform so we just use the
+             * next sampler/image index recorded the last time we visited.
+             */
+            uniform->opaque[shader_type].index = index;
+            index = inner_array_size + uniform->opaque[shader_type].index;
+            record_next_index->put(index, name_copy);
+
+            ralloc_free(name_copy);
+            /* Return as everything else has already been initialised in a
+             * previous pass.
+             */
+            return false;
+         } else {
+            /* We've never seen this uniform before so we need to allocate
+             * enough indices to store it.
+             *
+             * Nested struct arrays behave like arrays of arrays so we need to
+             * increase the index by the total number of elements of the
+             * sampler/image in case there is more than one sampler/image
+             * inside the structs. This allows the offset to be easily
+             * calculated for indirect indexing.
+             */
+            uniform->opaque[shader_type].index = next_index;
+            next_index += inner_array_size * this->record_array_count;
+
+            /* Store the next index for future passes over the struct array
+             */
+            index = uniform->opaque[shader_type].index + inner_array_size;
+            record_next_index->put(index, name_copy);
+            ralloc_free(name_copy);
+         }
+      } else {
+         /* Increment the sampler/image by 1 for non-arrays and by the number
+          * of array elements for arrays.
+          */
+         uniform->opaque[shader_type].index = next_index;
+         next_index += MAX2(1, uniform->array_elements);
+      }
+      return true;
+   }
+
    void handle_samplers(const glsl_type *base_type,
                         struct gl_uniform_storage *uniform, const char *name)
    {
       if (base_type->is_sampler()) {
          uniform->opaque[shader_type].active = true;
 
-         /* Handle multiple samplers inside struct arrays */
-         if (this->record_array_count > 1) {
-            unsigned inner_array_size = MAX2(1, uniform->array_elements);
-            char *name_copy = ralloc_strdup(NULL, name);
-
-            /* Remove all array subscripts from the sampler name */
-            char *str_start;
-            const char *str_end;
-            while((str_start = strchr(name_copy, '[')) &&
-                  (str_end = strchr(name_copy, ']'))) {
-               memmove(str_start, str_end + 1, 1 + strlen(str_end + 1));
-            }
-
-            unsigned index = 0;
-            if (this->record_next_sampler->get(index, name_copy)) {
-               /* In this case, we've already seen this uniform so we just use
-                * the next sampler index recorded the last time we visited.
-                */
-               uniform->opaque[shader_type].index = index;
-               index = inner_array_size + uniform->opaque[shader_type].index;
-               this->record_next_sampler->put(index, name_copy);
-
-               ralloc_free(name_copy);
-               /* Return as everything else has already been initialised in a
-                * previous pass.
-                */
-               return;
-            } else {
-               /* We've never seen this uniform before so we need to allocate
-                * enough indices to store it.
-                *
-                * Nested struct arrays behave like arrays of arrays so we need
-                * to increase the index by the total number of elements of the
-                * sampler in case there is more than one sampler inside the
-                * structs. This allows the offset to be easily calculated for
-                * indirect indexing.
-                */
-               uniform->opaque[shader_type].index = this->next_sampler;
-               this->next_sampler +=
-                  inner_array_size * this->record_array_count;
-
-               /* Store the next index for future passes over the struct array
-                */
-               index = uniform->opaque[shader_type].index + inner_array_size;
-               this->record_next_sampler->put(index, name_copy);
-               ralloc_free(name_copy);
-            }
-         } else {
-            /* Increment the sampler by 1 for non-arrays and by the number of
-             * array elements for arrays.
-             */
-            uniform->opaque[shader_type].index = this->next_sampler;
-            this->next_sampler += MAX2(1, uniform->array_elements);
-         }
+         if (!set_opaque_indices(base_type, uniform, name, this->next_sampler,
+                                 this->record_next_sampler))
+            return;
 
          const gl_texture_index target = base_type->sampler_index();
          const unsigned shadow = base_type->sampler_shadow;
@@ -578,27 +595,26 @@ private:
    }
 
    void handle_images(const glsl_type *base_type,
-                      struct gl_uniform_storage *uniform)
+                      struct gl_uniform_storage *uniform, const char *name)
    {
       if (base_type->is_image()) {
-         uniform->opaque[shader_type].index = this->next_image;
          uniform->opaque[shader_type].active = true;
+
+         if (!set_opaque_indices(base_type, uniform, name, this->next_image,
+                                 this->record_next_image))
+            return;
 
          /* Set image access qualifiers */
          const GLenum access =
-            (current_var->data.image_read_only ? GL_READ_ONLY :
-             current_var->data.image_write_only ? GL_WRITE_ONLY :
+            (current_var->data.memory_read_only ? GL_READ_ONLY :
+             current_var->data.memory_write_only ? GL_WRITE_ONLY :
                 GL_READ_WRITE);
 
-         const unsigned first = this->next_image;
-
-         /* Increment the image index by 1 for non-arrays and by the
-          * number of array elements for arrays.
-          */
-         this->next_image += MAX2(1, uniform->array_elements);
-
-         for (unsigned i = first; i < MIN2(next_image, MAX_IMAGE_UNIFORMS); i++)
+         for (unsigned i = uniform->opaque[shader_type].index;
+              i < MIN2(this->next_image, MAX_IMAGE_UNIFORMS);
+              i++) {
             prog->_LinkedShaders[shader_type]->Program->sh.ImageAccess[i] = access;
+         }
       }
    }
 
@@ -690,7 +706,7 @@ private:
 
       /* This assigns uniform indices to sampler and image uniforms. */
       handle_samplers(base_type, &this->uniforms[id], name);
-      handle_images(base_type, &this->uniforms[id]);
+      handle_images(base_type, &this->uniforms[id], name);
       handle_subroutines(base_type, &this->uniforms[id]);
 
       /* For array of arrays or struct arrays the base location may have
@@ -836,6 +852,11 @@ private:
     * struct arrays.
     */
    struct string_to_uint_map *record_next_sampler;
+
+   /* Map for temporarily storing next imager index when handling images in
+    * struct arrays.
+    */
+   struct string_to_uint_map *record_next_image;
 
 public:
    union gl_constant_value *values;

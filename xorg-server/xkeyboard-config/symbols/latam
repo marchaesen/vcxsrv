@@ -38,7 +38,7 @@ xkb_symbols "Sundeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
     include "latam(Sundeadkeys)"
-    name[Group1]="Spanish (Latin American, Sun dead keys)";
+    name[Group1]="Spanish (Latin American, with Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -46,7 +46,7 @@ xkb_symbols "nodeadkeys" {
 
     include "latam(basic)"
 
-    name[Group1]="Spanish (Latin American, eliminate dead keys)";
+    name[Group1]="Spanish (Latin American, no dead keys)";
 
     key <AE12>	{ [questiondown, exclamdown,    cedilla,       ogonek ]	};
     key <AD11>	{ [     grave, asciicircum, bracketleft,       degree ]	};
@@ -62,7 +62,7 @@ xkb_symbols "deadtilde" {
 
     include "latam(basic)"
 
-    name[Group1]="Spanish (Latin American, include dead tilde)";
+    name[Group1]="Spanish (Latin American, dead tilde)";
 
     key <AD12>	{ [      plus,   asterisk,   dead_tilde,  dead_macron ]	};
 };

@@ -620,9 +620,6 @@ update_single_program_texture(struct gl_context *ctx, struct gl_program *prog,
    struct gl_sampler_object *sampler;
    int unit;
 
-   if (!(prog->SamplersUsed & (1 << s)))
-      return NULL;
-
    unit = prog->SamplerUnits[s];
    texUnit = &ctx->Texture.Unit[unit];
 
@@ -676,16 +673,15 @@ update_program_texture_state(struct gl_context *ctx, struct gl_program **prog,
    int i;
 
    for (i = 0; i < MESA_SHADER_STAGES; i++) {
-      int s;
+      GLbitfield mask;
 
       if (!prog[i])
          continue;
 
-      /* We can't only do the shifting trick as the loop condition because if
-       * sampler 31 is active, the next iteration tries to shift by 32, which is
-       * undefined.
-       */
-      for (s = 0; s < MAX_SAMPLERS && (1 << s) <= prog[i]->SamplersUsed; s++) {
+      mask = prog[i]->SamplersUsed;
+
+      while (mask) {
+         const int s = u_bit_scan(&mask);
          struct gl_texture_object *texObj;
 
          texObj = update_single_program_texture(ctx, prog[i], s);

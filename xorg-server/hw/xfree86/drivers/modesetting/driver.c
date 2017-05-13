@@ -55,7 +55,7 @@
 #ifdef XSERVER_PLATFORM_BUS
 #include "xf86platformBus.h"
 #endif
-#if XSERVER_LIBPCIACCESS
+#ifdef XSERVER_LIBPCIACCESS
 #include <pciaccess.h>
 #endif
 
@@ -227,7 +227,7 @@ check_outputs(int fd, int *count)
         *count = res->count_connectors;
 
     ret = res->count_connectors > 0;
-#if defined DRM_CAP_PRIME && GLAMOR_HAS_GBM_LINEAR
+#if defined(DRM_CAP_PRIME) && defined(GLAMOR_HAS_GBM_LINEAR)
     if (ret == FALSE) {
         uint64_t value = 0;
         if (drmGetCap(fd, DRM_CAP_PRIME, &value) == 0 &&
@@ -244,7 +244,7 @@ probe_hw(const char *dev, struct xf86_platform_device *platform_dev)
 {
     int fd;
 
-#if XF86_PDEV_SERVER_FD
+#ifdef XF86_PDEV_SERVER_FD
     if (platform_dev && (platform_dev->flags & XF86_PDEV_SERVER_FD)) {
         fd = xf86_platform_device_odev_attributes(platform_dev)->fd;
         if (fd == -1)
@@ -366,7 +366,7 @@ ms_setup_entity(ScrnInfoPtr scrn, int entity_num)
         pPriv->ptr = xnfcalloc(sizeof(modesettingEntRec), 1);
 }
 
-#if XSERVER_LIBPCIACCESS
+#ifdef XSERVER_LIBPCIACCESS
 static Bool
 ms_pci_probe(DriverPtr driver,
              int entity_num, struct pci_device *dev, intptr_t match_data)
@@ -826,7 +826,7 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
         return TRUE;
     }
 
-#if XSERVER_PLATFORM_BUS
+#ifdef XSERVER_PLATFORM_BUS
     if (pEnt->location.type == BUS_PLATFORM) {
 #ifdef XF86_PDEV_SERVER_FD
         if (pEnt->location.id.plat->flags & XF86_PDEV_SERVER_FD)
@@ -844,7 +844,7 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
     }
     else
 #endif
-#if XSERVER_LIBPCIACCESS
+#ifdef XSERVER_LIBPCIACCESS
     if (pEnt->location.type == BUS_PCI) {
         char *BusID = NULL;
         struct pci_device *PciInfo;
@@ -1018,7 +1018,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
             if (ms->drmmode.glamor)
                 pScrn->capabilities |= RR_Capability_SinkOffload;
         }
-#if GLAMOR_HAS_GBM_LINEAR
+#ifdef GLAMOR_HAS_GBM_LINEAR
         if (value & DRM_PRIME_CAP_EXPORT && ms->drmmode.glamor)
             pScrn->capabilities |= RR_Capability_SourceOutput | RR_Capability_SourceOffload;
 #endif
@@ -1189,7 +1189,7 @@ msEnableSharedPixmapFlipping(RRCrtcPtr crtc, PixmapPtr front, PixmapPtr back)
     if (ms->drmmode.reverse_prime_offload_mode)
         return FALSE;
 
-#if XSERVER_PLATFORM_BUS
+#ifdef XSERVER_PLATFORM_BUS
     if (pEnt->location.type == BUS_PLATFORM) {
         char *syspath =
             xf86_platform_device_odev_attributes(pEnt->location.id.plat)->

@@ -14,6 +14,7 @@
 <iframe src="contents.html"></iframe>
 <div class="content">
 
+
 <h1>Releasing process</h1>
 
 <ul>
@@ -23,10 +24,12 @@
 <li><a href="#branch">Making a branchpoint</a>
 <li><a href="#prerelease">Pre-release announcement</a>
 <li><a href="#release">Making a new release</a>
+<li><a href="#calendar">Update the calendar</a>
 <li><a href="#announce">Announce the release</a>
 <li><a href="#website">Update the mesa3d.org website</a>
 <li><a href="#bugzilla">Update Bugzilla</a>
 </ul>
+
 
 <h1 id="overview">Overview</h1>
 
@@ -48,11 +51,15 @@ For example:
 	Mesa 12.0.2 - 12.0 branch, bugfix
 </pre>
 
+
 <h1 id="schedule">Release schedule</h1>
 
 <p>
 Releases should happen on Fridays. Delays can occur although those should be keep
 to a minimum.
+<br>
+See our <a href="release-calendar.html" target="_parent">calendar</a> for the
+date and other details for individual releases.
 </p>
 
 <h2>Feature releases</h2>
@@ -79,15 +86,24 @@ The final release from the 12.0 series Mesa 12.0.5 will be out around the same
 time (or shortly after) 13.0.1 is out.
 </p>
 
+
 <h1 id="pickntest">Cherry-picking and testing</h1>
 
 <p>
 Commits nominated for the active branch are picked as based on the
 <a href="submittingpatches.html#criteria" target="_parent">criteria</a> as
 described in the same section.
+</p>
 
 <p>
-Maintainer is responsible for testing in various possible permutations of
+Nomination happens in the mesa-stable@ mailing list. However,
+maintainer is resposible of checking for forgotten candidates in the
+master branch. This is achieved by a combination of ad-hoc scripts and
+a casual search for terms such as regression, fix, broken and similar.
+</p>
+
+<p>
+Maintainer is also responsible for testing in various possible permutations of
 the autoconf and scons build.
 </p>
 
@@ -101,33 +117,57 @@ release. This is made <strong>only</strong> with explicit permission/request,
 and the patch <strong>must</strong> be very well contained. Thus it cannot
 affect more than one driver/subsystem.
 </p>
+
 <p>
 Currently Ilia Mirkin and AMD devs have requested "permanent" exception.
 </p>
-
 
 <ul>
 <li>make distcheck, scons and scons check must pass
 <li>Testing with different version of system components - LLVM and others is also
 performed where possible.
+<li>As a general rule, testing with various combinations of configure
+switches, depending on the specific patchset.
 </ul>
+
 <p>
-Achieved by combination of local ad-hoc scripts and AppVeyor plus Travis-CI,
-the latter as part of their Github integration.
+Achieved by combination of local ad-hoc scripts, mingw-w64 cross
+compilation and AppVeyor plus Travis-CI, the latter as part of their
+Github integration.
 </p>
+
+<p>
+For Windows related changes, the main contact point is Brian
+Paul. Jose Fonseca can also help as a fallback contact.
+</p>
+
+<p>
+For Android related changes, the main contact is Tapani
+P&auml;lli. Mauro Rossi is collaborating with android-x86 and may
+provide feedback about the build status in that project.
+</p>
+
+<p>
+For MacOSX related changes, Jeremy Huddleston Sequoia is currently a
+good contact point.
+</p>
+
 <p>
 <strong>Note:</strong> If a patch in the current queue needs any additional
 fix(es), then they should be squashed together.
 <br>
 The commit messages and the <code>cherry picked from</code> tags must be preserved.
 </p>
+
 <p>
 This should be noted in the <a href="#prerelease">pre-announce</a> email.
+</p>
+
 <pre>
     git show b10859ec41d09c57663a258f43fe57c12332698e
 
     commit b10859ec41d09c57663a258f43fe57c12332698e
-    Author: Jonas Pfeil &ltpfeiljonas@gmx.de&gt
+    Author: Jonas Pfeil &lt;pfeiljonas@gmx.de&gt;
     Date:   Wed Mar 1 18:11:10 2017 +0100
 
         ralloc: Make sure ralloc() allocations match malloc()'s alignment.
@@ -146,7 +186,6 @@ This should be noted in the <a href="#prerelease">pre-announce</a> email.
 
         (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)
 </pre>
-</p>
 
 <h2>Regression/functionality testing</h2>
 
@@ -154,13 +193,21 @@ This should be noted in the <a href="#prerelease">pre-announce</a> email.
 Less often (once or twice), shortly before the pre-release announcement.
 Ensure that testing is redone if Intel devs have requested an exception, as per above.
 </p>
+
 <ul>
 <li><em>no regressions should be observed for Piglit/dEQP/CTS/Vulkan on Intel platforms</em>
 <li><em>no regressions should be observed for Piglit using the swrast, softpipe
 and llvmpipe drivers</em>
 </ul>
+
 <p>
 Currently testing is performed courtesy of the Intel OTC team and their Jenkins CI setup. Check with the Intel team over IRC how to get things setup.
+</p>
+
+<p>
+Installing the built driver from the pre-announced RC branch in the
+system and making some every day's use until the release may be a good
+idea too.
 </p>
 
 
@@ -202,14 +249,17 @@ To setup the branchpoint:
 Now go to
 <a href="https://bugs.freedesktop.org/editversions.cgi?action=add&amp;product=Mesa" target="_parent">Bugzilla</a> and add the new Mesa version X.Y.
 </p>
+
 <p>
 Check that there are no distribution breaking changes and revert them if needed.
 For example: files being overwritten on install, etc. Happens extremely rarely -
 we had only one case so far (see commit 2ced8eb136528914e1bf4e000dea06a9d53c7e04).
 </p>
+
 <p>
 Proceed to <a href="#release">release</a> -rc1.
 </p>
+
 
 <h1 id="prerelease">Pre-release announcement</h1>
 
@@ -224,18 +274,22 @@ release is made.
 </p>
 
 <h2>Terminology used</h2>
+
 <ul><li>Nominated</ul>
+
 <p>
 Patch that is nominated but yet to to merged in the patch queue/branch.
 </p>
 
 <ul><li>Queued</ul>
+
 <p>
 Patch is in the queue/branch and will feature in the next release.
 Barring reported regressions or objections from developers.
 </p>
 
 <ul><li>Rejected</ul>
+
 <p>
 Patch does not fit the
 <a href="submittingpatches.html#criteria" target="_parent">criteria</a> and
@@ -341,6 +395,7 @@ AUTHOR (NUMBER):
 Reason: ...
 </pre>
 
+
 <h1 id="release">Making a new release</h1>
 
 <p>
@@ -348,18 +403,21 @@ These are the instructions for making a new Mesa release.
 </p>
 
 <h3>Get latest source files</h3>
+
 <p>
 Ensure the latest code is available - both in your local master and the
 relevant branch.
 </p>
 
 <h3>Perform basic testing</h3>
+
 <p>
 Most of the testing should already be done during the
 <a href="#pickntest">cherry-pick</a> and
 <a href="#prerelease">pre-announce</a> stages.
-
 So we do a quick 'touch test'
+</p>
+
 <ul>
 <li>make distcheck (you can omit this if you're not using --dist below)
 <li>scons (from release tarball)
@@ -452,6 +510,7 @@ be empty (TBD) at this point.
 
 <p>
 Two scripts are available to help generate portions of the release notes:
+</p>
 
 <pre>
 	./bin/bugzilla_mesa.sh
@@ -468,6 +527,7 @@ to be included in the release notes.
 <p>
 Commit these changes and push the branch.
 </p>
+
 <pre>
 	git push origin HEAD
 </pre>
@@ -478,6 +538,7 @@ Commit these changes and push the branch.
 <p>
 Start the release process.
 </p>
+
 <pre>
 	../relative/path/to/release.sh . # append --dist if you've already done distcheck above
 </pre>
@@ -515,7 +576,15 @@ docs/index.html to add a news entry. Then commit and push:
 </pre>
 
 
+<h1 id="#calendar">Update the calendar</h1>
+
+<p>
+Remove the version from the <a href="release-calendar.html" target="_parent">calendar</a>.
+</p>
+
+
 <h1 id="announce">Announce the release</h1>
+
 <p>
 Use the generated template during the releasing process.
 </p>
@@ -527,6 +596,7 @@ Use the generated template during the releasing process.
 As the hosting was moved to freedesktop, git hooks are deployed to update the
 website. Manually check that it is updated 5-10 minutes after the final <code>git push</code>
 </p>
+
 
 <h1 id="bugzilla">Update Bugzilla</h1>
 

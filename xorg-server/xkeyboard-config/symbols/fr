@@ -74,7 +74,7 @@ partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
     include "fr(Sundeadkeys)"
 
-    name[Group1]="French (Sun dead keys)";
+    name[Group1]="French (with Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -84,7 +84,7 @@ xkb_symbols "nodeadkeys" {
 
     include "fr(basic)"
 
-    name[Group1]="French (eliminate dead keys)";
+    name[Group1]="French (no dead keys)";
 
     key <AE12>	{ [     equal,       plus,   braceright,       ogonek ]	};
     key <AD11>	{ [asciicircum,  diaeresis ]	};
@@ -130,7 +130,7 @@ xkb_symbols "oss" {
     include "nbsp(level4n)"
     include "keypad(oss)"
 
-    name[Group1]="French (alternative)";
+    name[Group1]="French (alt.)";
 
     // First row
     key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,          dead_cedilla ] }; // ² ³ ¹ ¸
@@ -197,7 +197,7 @@ xkb_symbols "oss_latin9" {
     include "fr(oss)"
     include "keypad(oss_latin9)"
 
-    name[Group1]="French (alternative, Latin-9 only)";
+    name[Group1]="French (alt., Latin-9 only)";
 
     // First row
     key <AE01>	{ [        ampersand,                1,           dead_caron,          dead_cedilla ] }; // & 1 ˇ ¸
@@ -248,7 +248,7 @@ xkb_symbols "oss_sundeadkeys" {
 
     include "fr(oss_Sundeadkeys)"
 
-    name[Group1]="French (alternative, Sun dead keys)";
+    name[Group1]="French (alt., with Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -258,7 +258,7 @@ xkb_symbols "oss_nodeadkeys" {
 
     include "fr(oss)"
 
-    name[Group1]="French (alternative, eliminate dead keys)";
+    name[Group1]="French (alt., no dead keys)";
 
     key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,               cedilla ] }; // ² ³ ¹ ¸
     key <AE01>	{ [        ampersand,                1,                caron,                ogonek ] }; // & 1 ˇ ̨
@@ -341,7 +341,7 @@ xkb_symbols "latin9" {
     include "latin"
     include "nbsp(level3)"
 
-    name[Group1]="French (legacy, alternative)";
+    name[Group1]="French (legacy, alt.)";
 
     key <TLDE>	{ [              oe,              OE, leftdoublequotemark, rightdoublequotemark ] };
     key <AE01>	{ [       ampersand,               1,          dead_acute,       periodcentered ] };
@@ -419,7 +419,7 @@ xkb_symbols "latin9_sundeadkeys" {
 
     include "fr(latin9_Sundeadkeys)"
 
-    name[Group1]="French (legacy, alternative, Sun dead keys)";
+    name[Group1]="French (legacy, alt., with Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -429,7 +429,7 @@ xkb_symbols "latin9_nodeadkeys" {
 
     include "fr(latin9)"
 
-    name[Group1]="French (legacy, alternative, eliminate dead keys)";
+    name[Group1]="French (legacy, alt., no dead keys)";
 
     key <AE01>	{ [       ampersand,               1,          apostrophe,       periodcentered ] };
     key <AE07>	{ [          egrave,               7,               grave,               Egrave ] };
@@ -989,7 +989,7 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 xkb_symbols "azerty" {
-    name[Group1]="French (Azerty)";
+    name[Group1]="French (AZERTY)";
 
     include "level3(ralt_switch)"
 

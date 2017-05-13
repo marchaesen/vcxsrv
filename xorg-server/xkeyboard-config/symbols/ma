@@ -229,7 +229,7 @@ xkb_symbols "tifinagh-extended-phonetic" {
 partial alphanumeric_keys
 xkb_symbols "tifinagh-alt" {
 
-    name[Group1]="Berber (Morocco, Tifinagh alternative)";
+    name[Group1]="Berber (Morocco, Tifinagh alt.)";
 
     key <TLDE>	{ [ twosuperior, asciitilde ]	};
     key <AE01>	{ [ ampersand,          1 ]	};
@@ -289,7 +289,7 @@ partial alphanumeric_keys
 xkb_symbols "tifinagh-alt-phonetic" {
     include "ma(tifinagh-alt)"
 
-    name[Group1]="Berber (Morocco, Tifinagh alternative phonetic)";
+    name[Group1]="Berber (Morocco, Tifinagh alt. phonetic)";
 
     key <LatA>	{ [ 0x1002d30 ]	};
     key <LatZ>	{ [ 0x1002d63, 0x1002d65, 0x1002d64 ]	};

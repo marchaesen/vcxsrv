@@ -154,6 +154,7 @@
 #define			COPY_DATA_MEM		1
 #define                 COPY_DATA_PERF          4
 #define                 COPY_DATA_IMM           5
+#define                 COPY_DATA_TIMESTAMP     9
 #define		COPY_DATA_DST_SEL(x)		(((unsigned)(x) & 0xf) << 8)
 #define		COPY_DATA_COUNT_SEL		(1 << 16)
 #define		COPY_DATA_WR_CONFIRM		(1 << 20)
@@ -9093,6 +9094,19 @@
 #define    CIK_SDMA_PACKET_CONSTANT_FILL           0xb
 #define    CIK_SDMA_PACKET_SRBM_WRITE              0xe
 #define    CIK_SDMA_COPY_MAX_SIZE                  0x3fffe0
+
+enum amd_cmp_class_flags {
+	S_NAN = 1 << 0,        // Signaling NaN
+	Q_NAN = 1 << 1,        // Quiet NaN
+	N_INFINITY = 1 << 2,   // Negative infinity
+	N_NORMAL = 1 << 3,     // Negative normal
+	N_SUBNORMAL = 1 << 4,  // Negative subnormal
+	N_ZERO = 1 << 5,       // Negative zero
+	P_ZERO = 1 << 6,       // Positive zero
+	P_SUBNORMAL = 1 << 7,  // Positive subnormal
+	P_NORMAL = 1 << 8,     // Positive normal
+	P_INFINITY = 1 << 9    // Positive infinity
+};
 
 #endif /* _SID_H */
 

@@ -98,9 +98,9 @@
 #if defined(DO_PROTOTYPES)
 #if !defined(__arm__)
 #if !defined(__sparc__) && !defined(__arm32__) && !defined(__nds32__) \
-      && !(defined(__alpha__) && defined(linux)) \
-      && !(defined(__ia64__) && defined(linux)) \
-      && !(defined(__mips64) && defined(linux)) \
+      && !(defined(__alpha__) && defined(__linux__)) \
+      && !(defined(__ia64__) && defined(__linux__)) \
+      && !(defined(__mips64) && defined(__linux__)) \
 
 extern _X_EXPORT void outb(unsigned short, unsigned char);
 extern _X_EXPORT void outw(unsigned short, unsigned short);
@@ -215,7 +215,7 @@ extern _X_EXPORT void xf86WriteMmio32Le (void *, unsigned long, unsigned int);
 #ifdef __GNUC__
 #if defined(__alpha__)
 
-#ifdef linux
+#ifdef __linux__
 /* for Linux on Alpha, we use the LIBC _inx/_outx routines */
 /* note that the appropriate setup via "ioperm" needs to be done */
 /*  *before* any inx/outx is done. */
@@ -263,7 +263,7 @@ inl(unsigned long port)
     return _inl(port);
 }
 
-#endif                          /* linux */
+#endif                          /* __linux__ */
 
 #if (defined(__FreeBSD__) || defined(__OpenBSD__)) \
       && !defined(DO_PROTOTYPES)
@@ -570,7 +570,7 @@ inl(unsigned PORT_SIZE port)
 }
 
 #if defined(__mips__)
-#ifdef linux                    /* don't mess with other OSs */
+#ifdef __linux__                    /* don't mess with other OSs */
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 static __inline__ unsigned int
 xf86ReadMmio32Be(__volatile__ void *base, const unsigned long offset)
@@ -594,7 +594,7 @@ xf86WriteMmio32Be(__volatile__ void *base, const unsigned long offset,
                          :"r"(val), "r"(addr));
 }
 #endif
-#endif                          /* !linux */
+#endif                          /* !__linux__ */
 #endif                          /* __mips__ */
 
 #elif defined(__powerpc__)

@@ -539,7 +539,7 @@ void util_blitter_restore_vertex_states(struct blitter_context *blitter)
    /* Vertex buffer. */
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1,
                             &ctx->base.saved_vertex_buffer);
-   pipe_resource_reference(&ctx->base.saved_vertex_buffer.buffer, NULL);
+   pipe_vertex_buffer_unreference(&ctx->base.saved_vertex_buffer);
 
    /* Vertex elements. */
    pipe->bind_vertex_elements_state(pipe, ctx->base.saved_velem_state);
@@ -1209,15 +1209,15 @@ static void blitter_draw(struct blitter_context_priv *ctx,
    vb.stride = 8 * sizeof(float);
 
    u_upload_data(pipe->stream_uploader, 0, sizeof(ctx->vertices), 4, ctx->vertices,
-                 &vb.buffer_offset, &vb.buffer);
-   if (!vb.buffer)
+                 &vb.buffer_offset, &vb.buffer.resource);
+   if (!vb.buffer.resource)
       return;
    u_upload_unmap(pipe->stream_uploader);
 
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
    util_draw_arrays_instanced(pipe, PIPE_PRIM_TRIANGLE_FAN, 0, 4,
                               0, num_instances);
-   pipe_resource_reference(&vb.buffer, NULL);
+   pipe_resource_reference(&vb.buffer.resource, NULL);
 }
 
 void util_blitter_draw_rectangle(struct blitter_context *blitter,
@@ -2199,7 +2199,8 @@ void util_blitter_copy_buffer(struct blitter_context *blitter,
    blitter_check_saved_vertex_states(ctx);
    blitter_disable_render_cond(ctx);
 
-   vb.buffer = src;
+   vb.is_user_buffer = false;
+   vb.buffer.resource = src;
    vb.buffer_offset = srcx;
    vb.stride = 4;
 
@@ -2259,8 +2260,8 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
    }
 
    u_upload_data(pipe->stream_uploader, 0, num_channels*4, 4, clear_value,
-                 &vb.buffer_offset, &vb.buffer);
-   if (!vb.buffer)
+                 &vb.buffer_offset, &vb.buffer.resource);
+   if (!vb.buffer.resource)
       goto out;
 
    vb.stride = 0;
@@ -2291,7 +2292,7 @@ out:
    util_blitter_restore_render_cond(blitter);
    util_blitter_unset_running_flag(blitter);
    pipe_so_target_reference(&so_target, NULL);
-   pipe_resource_reference(&vb.buffer, NULL);
+   pipe_resource_reference(&vb.buffer.resource, NULL);
 }
 
 /* probably radeon specific */

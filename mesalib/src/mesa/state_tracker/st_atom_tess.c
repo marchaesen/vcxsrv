@@ -37,8 +37,8 @@
 #include "st_atom.h"
 
 
-static void
-update_tess(struct st_context *st)
+void
+st_update_tess(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
    struct pipe_context *pipe = st->pipe;
@@ -50,8 +50,3 @@ update_tess(struct st_context *st)
                         ctx->TessCtrlProgram.patch_default_outer_level,
                         ctx->TessCtrlProgram.patch_default_inner_level);
 }
-
-
-const struct st_tracked_state st_update_tess = {
-   update_tess                  /* update */
-};

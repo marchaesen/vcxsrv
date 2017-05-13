@@ -24,6 +24,8 @@
 #include "main/core.h" /* for MAX2 */
 #include "ir.h"
 #include "compiler/glsl_types.h"
+#include "glsl_parser_extras.h"
+
 
 ir_rvalue::ir_rvalue(enum ir_node_type t)
    : ir_instruction(t)
@@ -368,6 +370,16 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = glsl_type::vec4_type;
       break;
 
+   case ir_unop_unpack_sampler_2x32:
+   case ir_unop_unpack_image_2x32:
+      this->type = glsl_type::uvec2_type;
+      break;
+
+   case ir_unop_pack_sampler_2x32:
+   case ir_unop_pack_image_2x32:
+      this->type = op0->type;
+      break;
+
    case ir_unop_frexp_sig:
       this->type = op0->type;
       break;
@@ -379,20 +391,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_get_buffer_size:
    case ir_unop_ssbo_unsized_array_length:
       this->type = glsl_type::int_type;
-      break;
-
-   case ir_unop_ballot:
-      this->type = glsl_type::uint64_t_type;
-      break;
-
-   case ir_unop_read_first_invocation:
-      this->type = op0->type;
-      break;
-
-   case ir_unop_vote_any:
-   case ir_unop_vote_all:
-   case ir_unop_vote_eq:
-      this->type = glsl_type::bool_type;
       break;
 
    case ir_unop_bitcast_i642d:
@@ -502,10 +500,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
 
    case ir_binop_vector_extract:
       this->type = op0->type->get_scalar_type();
-      break;
-
-   case ir_binop_read_invocation:
-      this->type = op0->type;
       break;
 
    default:
@@ -622,7 +616,7 @@ ir_constant::ir_constant(const struct glsl_type *type,
    this->array_elements = NULL;
 
    assert((type->base_type >= GLSL_TYPE_UINT)
-	  && (type->base_type <= GLSL_TYPE_BOOL));
+	  && (type->base_type <= GLSL_TYPE_IMAGE));
 
    this->type = type;
    memcpy(& this->value, data, sizeof(this->value));
@@ -1454,7 +1448,7 @@ ir_dereference_record::ir_dereference_record(ir_variable *var,
 }
 
 bool
-ir_dereference::is_lvalue() const
+ir_dereference::is_lvalue(const struct _mesa_glsl_parse_state *state) const
 {
    ir_variable *var = this->variable_referenced();
 
@@ -1462,6 +1456,20 @@ ir_dereference::is_lvalue() const
     */
    if ((var == NULL) || var->data.read_only)
       return false;
+
+   /* From section 4.1.7 of the ARB_bindless_texture spec:
+    *
+    * "Samplers can be used as l-values, so can be assigned into and used as
+    *  "out" and "inout" function parameters."
+    *
+    * From section 4.1.X of the ARB_bindless_texture spec:
+    *
+    * "Images can be used as l-values, so can be assigned into and used as
+    *  "out" and "inout" function parameters."
+    */
+   if ((!state || state->has_bindless()) &&
+       (this->type->contains_sampler() || this->type->contains_image()))
+      return true;
 
    /* From section 4.1.7 of the GLSL 4.40 spec:
     *
@@ -1740,18 +1748,17 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.max_array_access = -1;
    this->data.offset = 0;
    this->data.precision = GLSL_PRECISION_NONE;
-   this->data.image_read_only = false;
-   this->data.image_write_only = false;
-   this->data.image_coherent = false;
-   this->data.image_volatile = false;
-   this->data.image_restrict = false;
+   this->data.memory_read_only = false;
+   this->data.memory_write_only = false;
+   this->data.memory_coherent = false;
+   this->data.memory_volatile = false;
+   this->data.memory_restrict = false;
    this->data.from_ssbo_unsized_array = false;
    this->data.fb_fetch_output = false;
+   this->data.bindless = false;
+   this->data.bound = false;
 
    if (type != NULL) {
-      if (type->is_sampler())
-         this->data.read_only = true;
-
       if (type->is_interface())
          this->init_interface_type(type);
       else if (type->without_array()->is_interface())
@@ -1864,11 +1871,11 @@ ir_function_signature::qualifiers_match(exec_list *params)
 	  a->data.centroid != b->data.centroid ||
           a->data.sample != b->data.sample ||
           a->data.patch != b->data.patch ||
-          a->data.image_read_only != b->data.image_read_only ||
-          a->data.image_write_only != b->data.image_write_only ||
-          a->data.image_coherent != b->data.image_coherent ||
-          a->data.image_volatile != b->data.image_volatile ||
-          a->data.image_restrict != b->data.image_restrict) {
+          a->data.memory_read_only != b->data.memory_read_only ||
+          a->data.memory_write_only != b->data.memory_write_only ||
+          a->data.memory_coherent != b->data.memory_coherent ||
+          a->data.memory_volatile != b->data.memory_volatile ||
+          a->data.memory_restrict != b->data.memory_restrict) {
 
 	 /* parameter a's qualifiers don't match */
 	 return a->name;

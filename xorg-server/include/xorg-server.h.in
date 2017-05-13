@@ -180,7 +180,7 @@
 #undef __VENDORDWEBSUPPORT__
 
 /* Location of configuration file */
-#undef __XCONFIGFILE__
+#undef XCONFIGFILE
 
 /* Name of X server */
 #undef __XSERVERNAME__

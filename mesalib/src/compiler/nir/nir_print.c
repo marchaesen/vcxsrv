@@ -31,10 +31,6 @@
 #include <stdlib.h>
 #include <inttypes.h> /* for PRIx64 macro */
 
-#if defined(_WIN32) && !defined(snprintf)
-#define snprintf _snprintf
-#endif
-
 static void
 print_tabs(unsigned num_tabs, FILE *fp)
 {
@@ -1163,20 +1159,20 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
 
    fprintf(fp, "shader: %s\n", gl_shader_stage_name(shader->stage));
 
-   if (shader->info->name)
-      fprintf(fp, "name: %s\n", shader->info->name);
+   if (shader->info.name)
+      fprintf(fp, "name: %s\n", shader->info.name);
 
-   if (shader->info->label)
-      fprintf(fp, "label: %s\n", shader->info->label);
+   if (shader->info.label)
+      fprintf(fp, "label: %s\n", shader->info.label);
 
    switch (shader->stage) {
    case MESA_SHADER_COMPUTE:
       fprintf(fp, "local-size: %u, %u, %u%s\n",
-              shader->info->cs.local_size[0],
-              shader->info->cs.local_size[1],
-              shader->info->cs.local_size[2],
-              shader->info->cs.local_size_variable ? " (variable)" : "");
-      fprintf(fp, "shared-size: %u\n", shader->info->cs.shared_size);
+              shader->info.cs.local_size[0],
+              shader->info.cs.local_size[1],
+              shader->info.cs.local_size[2],
+              shader->info.cs.local_size_variable ? " (variable)" : "");
+      fprintf(fp, "shared-size: %u\n", shader->info.cs.shared_size);
       break;
    default:
       break;

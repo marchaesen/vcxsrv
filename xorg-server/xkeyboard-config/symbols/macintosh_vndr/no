@@ -38,9 +38,9 @@ xkb_symbols "basic" {
 partial alphanumeric_keys 
 xkb_symbols "nodeadkeys" {
 
-    // Modifies the basic Norwegian layout to eliminate dead keys
+    // Modifies the basic Norwegian layout to no dead keys
     include "macintosh_vndr/no(basic)"
-    name[Group1]= "Norway - Mac, eliminate dead keys";
+    name[Group1]= "Norway - Mac, no dead keys";
 
     key <AE12> {	[           grave,           acute, 	    acute,          ogonek 	]	};
     key <AD12> {	[       diaeresis,     asciicircum,    asciitilde,          macron     	]      	};

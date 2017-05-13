@@ -99,13 +99,13 @@ feedback_vertex(struct gl_context *ctx, const struct draw_context *draw,
     * color and texcoord attribs to use here.
     */
 
-   slot = st->vertex_result_to_slot[VARYING_SLOT_COL0];
+   slot = st->vp->result_to_output[VARYING_SLOT_COL0];
    if (slot != ~0U)
       color = v->data[slot];
    else
       color = ctx->Current.Attrib[VERT_ATTRIB_COLOR0];
 
-   slot = st->vertex_result_to_slot[VARYING_SLOT_TEX0];
+   slot = st->vp->result_to_output[VARYING_SLOT_TEX0];
    if (slot != ~0U)
       texcoord = v->data[slot];
    else
@@ -282,7 +282,7 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
 
    if (newMode == GL_RENDER) {
       /* restore normal VBO draw function */
-      vbo_set_draw_func(ctx, st_draw_vbo);
+      st_init_draw(st);
    }
    else if (newMode == GL_SELECT) {
       if (!st->selection_stage)

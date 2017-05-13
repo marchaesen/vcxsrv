@@ -383,6 +383,12 @@ lower_packed_varyings_visitor::bitwise_assign_pack(ir_rvalue *lhs,
             rhs = u2i(expr(ir_unop_unpack_uint_2x32, rhs));
          }
          break;
+      case GLSL_TYPE_SAMPLER:
+         rhs = u2i(expr(ir_unop_unpack_sampler_2x32, rhs));
+         break;
+      case GLSL_TYPE_IMAGE:
+         rhs = u2i(expr(ir_unop_unpack_image_2x32, rhs));
+         break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
          break;
@@ -461,6 +467,14 @@ lower_packed_varyings_visitor::bitwise_assign_unpack(ir_rvalue *lhs,
          } else {
             rhs = expr(ir_unop_pack_uint_2x32, i2u(rhs));
          }
+         break;
+      case GLSL_TYPE_SAMPLER:
+         rhs = new(mem_ctx)
+            ir_expression(ir_unop_pack_sampler_2x32, lhs->type, i2u(rhs));
+         break;
+      case GLSL_TYPE_IMAGE:
+         rhs = new(mem_ctx)
+            ir_expression(ir_unop_pack_image_2x32, lhs->type, i2u(rhs));
          break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
@@ -742,10 +756,11 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
 bool
 lower_packed_varyings_visitor::needs_lowering(ir_variable *var)
 {
-   /* Things composed of vec4's and varyings with explicitly assigned
-    * locations don't need lowering.  Everything else does.
+   /* Things composed of vec4's, varyings with explicitly assigned
+    * locations or varyings marked as must_be_shader_input (which might be used
+    * by interpolateAt* functions) shouldn't be lowered. Everything else can be.
     */
-   if (var->data.explicit_location)
+   if (var->data.explicit_location || var->data.must_be_shader_input)
       return false;
 
    /* Override disable_varying_packing if the var is only used by transform

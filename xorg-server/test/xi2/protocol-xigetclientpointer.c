@@ -40,7 +40,7 @@
 
 #include "protocol-common.h"
 
-struct {
+static struct {
     int cp_is_set;
     DeviceIntPtr dev;
     int win;

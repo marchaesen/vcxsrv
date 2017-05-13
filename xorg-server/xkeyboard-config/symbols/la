@@ -70,7 +70,7 @@ xkb_symbols "stea" {
     // Science Technology and Environment Agency of Lao PDR
     // National University Computer and Emergency Science of Pakistan
     // International Development Research Center
-    // Caveat: assigning multiple codepoints to a single key doesn't
+    // Caveat: assigning multiple codepoints to a single key does not
     // work in XKB.  Therefore the combining codepoint assignments
     // have been omitted.
 

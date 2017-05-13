@@ -86,17 +86,17 @@ public:
          return visit_continue;
 
       ir_variable *var = ir->variable_referenced();
-      /* We can have image_write_only set on both images and buffer variables,
+      /* We can have memory_write_only set on both images and buffer variables,
        * but in the former there is a distinction between reads from
        * the variable itself (write_only) and from the memory they point to
-       * (image_write_only), while in the case of buffer variables there is
+       * (memory_write_only), while in the case of buffer variables there is
        * no such distinction, that is why this check here is limited to
        * buffer variables alone.
        */
       if (!var || var->data.mode != ir_var_shader_storage)
          return visit_continue;
 
-      if (var->data.image_write_only) {
+      if (var->data.memory_write_only) {
          found = var;
          return visit_stop;
       }
@@ -947,11 +947,11 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
          error_emitted = true;
       } else if (lhs_var != NULL && (lhs_var->data.read_only ||
                  (lhs_var->data.mode == ir_var_shader_storage &&
-                  lhs_var->data.image_read_only))) {
-         /* We can have image_read_only set on both images and buffer variables,
+                  lhs_var->data.memory_read_only))) {
+         /* We can have memory_read_only set on both images and buffer variables,
           * but in the former there is a distinction between assignments to
           * the variable itself (read_only) and to the memory they point to
-          * (image_read_only), while in the case of buffer variables there is
+          * (memory_read_only), while in the case of buffer variables there is
           * no such distinction, that is why this check here is limited to
           * buffer variables alone.
           */
@@ -971,7 +971,7 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
           * The restriction on arrays is lifted in GLSL 1.20 and GLSL ES 3.00.
           */
          error_emitted = true;
-      } else if (!lhs->is_lvalue()) {
+      } else if (!lhs->is_lvalue(state)) {
          _mesa_glsl_error(& lhs_loc, state, "non-lvalue in assignment");
          error_emitted = true;
       }
@@ -2896,7 +2896,7 @@ apply_explicit_binding(struct _mesa_glsl_parse_state *state,
       assert(ctx->Const.MaxAtomicBufferBindings <= MAX_COMBINED_ATOMIC_BUFFERS);
       if (qual_binding >= ctx->Const.MaxAtomicBufferBindings) {
          _mesa_glsl_error(loc, state, "layout(binding = %d) exceeds the "
-                          " maximum number of atomic counter buffer bindings"
+                          "maximum number of atomic counter buffer bindings "
                           "(%u)", qual_binding,
                           ctx->Const.MaxAtomicBufferBindings);
 
@@ -2908,7 +2908,7 @@ apply_explicit_binding(struct _mesa_glsl_parse_state *state,
       assert(ctx->Const.MaxImageUnits <= MAX_IMAGE_UNITS);
       if (max_index >= ctx->Const.MaxImageUnits) {
          _mesa_glsl_error(loc, state, "Image binding %d exceeds the "
-                          " maximum number of image units (%d)", max_index,
+                          "maximum number of image units (%d)", max_index,
                           ctx->Const.MaxImageUnits);
          return;
       }
@@ -2916,7 +2916,8 @@ apply_explicit_binding(struct _mesa_glsl_parse_state *state,
    } else {
       _mesa_glsl_error(loc, state,
                        "the \"binding\" qualifier only applies to uniform "
-                       "blocks, opaque variables, or arrays thereof");
+                       "blocks, storage blocks, opaque variables, or arrays "
+                       "thereof");
       return;
    }
 
@@ -2994,6 +2995,26 @@ validate_fragment_flat_interpolation_input(struct _mesa_glsl_parse_state *state,
        && var_type->contains_double()) {
       _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
                        "a double, then it must be qualified with 'flat'");
+   }
+
+   /* Bindless sampler/image fragment inputs must be qualified with 'flat'.
+    *
+    * From section 4.3.4 of the ARB_bindless_texture spec:
+    *
+    *    "(modify last paragraph, p. 35, allowing samplers and images as
+    *     fragment shader inputs) ... Fragment inputs can only be signed and
+    *     unsigned integers and integer vectors, floating point scalars,
+    *     floating-point vectors, matrices, sampler and image types, or arrays
+    *     or structures of these.  Fragment shader inputs that are signed or
+    *     unsigned integers, integer vectors, or any double-precision floating-
+    *     point type, or any sampler or image type must be qualified with the
+    *     interpolation qualifier "flat"."
+    */
+   if (state->has_bindless()
+       && (var_type->contains_sampler() || var_type->contains_image())) {
+      _mesa_glsl_error(loc, state, "if a fragment input is (or contains) "
+                       "a bindless sampler (or image), then it must be "
+                       "qualified with 'flat'");
    }
 }
 
@@ -3291,6 +3312,98 @@ apply_explicit_location(const struct ast_type_qualifier *qual,
    }
 }
 
+static bool
+validate_storage_for_sampler_image_types(ir_variable *var,
+                                         struct _mesa_glsl_parse_state *state,
+                                         YYLTYPE *loc)
+{
+   /* From section 4.1.7 of the GLSL 4.40 spec:
+    *
+    *    "[Opaque types] can only be declared as function
+    *     parameters or uniform-qualified variables."
+    *
+    * From section 4.1.7 of the ARB_bindless_texture spec:
+    *
+    *    "Samplers may be declared as shader inputs and outputs, as uniform
+    *     variables, as temporary variables, and as function parameters."
+    *
+    * From section 4.1.X of the ARB_bindless_texture spec:
+    *
+    *    "Images may be declared as shader inputs and outputs, as uniform
+    *     variables, as temporary variables, and as function parameters."
+    */
+   if (state->has_bindless()) {
+      if (var->data.mode != ir_var_auto &&
+          var->data.mode != ir_var_uniform &&
+          var->data.mode != ir_var_shader_in &&
+          var->data.mode != ir_var_shader_out &&
+          var->data.mode != ir_var_function_in &&
+          var->data.mode != ir_var_function_out &&
+          var->data.mode != ir_var_function_inout) {
+         _mesa_glsl_error(loc, state, "bindless image/sampler variables may "
+                         "only be declared as shader inputs and outputs, as "
+                         "uniform variables, as temporary variables and as "
+                         "function parameters");
+         return false;
+      }
+   } else {
+      if (var->data.mode != ir_var_uniform &&
+          var->data.mode != ir_var_function_in) {
+         _mesa_glsl_error(loc, state, "image/sampler variables may only be "
+                          "declared as function parameters or "
+                          "uniform-qualified global variables");
+         return false;
+      }
+   }
+   return true;
+}
+
+static bool
+validate_memory_qualifier_for_type(struct _mesa_glsl_parse_state *state,
+                                   YYLTYPE *loc,
+                                   const struct ast_type_qualifier *qual,
+                                   const glsl_type *type)
+{
+   /* From Section 4.10 (Memory Qualifiers) of the GLSL 4.50 spec:
+    *
+    * "Memory qualifiers are only supported in the declarations of image
+    *  variables, buffer variables, and shader storage blocks; it is an error
+    *  to use such qualifiers in any other declarations.
+    */
+   if (!type->is_image() && !qual->flags.q.buffer) {
+      if (qual->flags.q.read_only ||
+          qual->flags.q.write_only ||
+          qual->flags.q.coherent ||
+          qual->flags.q._volatile ||
+          qual->flags.q.restrict_flag) {
+         _mesa_glsl_error(loc, state, "memory qualifiers may only be applied "
+                          "in the declarations of image variables, buffer "
+                          "variables, and shader storage blocks");
+         return false;
+      }
+   }
+   return true;
+}
+
+static bool
+validate_image_format_qualifier_for_type(struct _mesa_glsl_parse_state *state,
+                                         YYLTYPE *loc,
+                                         const struct ast_type_qualifier *qual,
+                                         const glsl_type *type)
+{
+   /* From section 4.4.6.2 (Format Layout Qualifiers) of the GLSL 4.50 spec:
+    *
+    * "Format layout qualifiers can be used on image variable declarations
+    *  (those declared with a basic type  having “image ” in its keyword)."
+    */
+   if (!type->is_image() && qual->flags.q.explicit_image_format) {
+      _mesa_glsl_error(loc, state, "format layout qualifiers may only be "
+                       "applied to images");
+      return false;
+   }
+   return true;
+}
+
 static void
 apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
                                   ir_variable *var,
@@ -3299,32 +3412,21 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
 {
    const glsl_type *base_type = var->type->without_array();
 
-   if (!base_type->is_image()) {
-      if (qual->flags.q.read_only ||
-          qual->flags.q.write_only ||
-          qual->flags.q.coherent ||
-          qual->flags.q._volatile ||
-          qual->flags.q.restrict_flag ||
-          qual->flags.q.explicit_image_format) {
-         _mesa_glsl_error(loc, state, "memory qualifiers may only be applied "
-                          "to images");
-      }
+   if (!validate_image_format_qualifier_for_type(state, loc, qual, base_type) ||
+       !validate_memory_qualifier_for_type(state, loc, qual, base_type))
       return;
-   }
 
-   if (var->data.mode != ir_var_uniform &&
-       var->data.mode != ir_var_function_in) {
-      _mesa_glsl_error(loc, state, "image variables may only be declared as "
-                       "function parameters or uniform-qualified "
-                       "global variables");
-   }
+   if (!base_type->is_image())
+      return;
 
-   var->data.image_read_only |= qual->flags.q.read_only;
-   var->data.image_write_only |= qual->flags.q.write_only;
-   var->data.image_coherent |= qual->flags.q.coherent;
-   var->data.image_volatile |= qual->flags.q._volatile;
-   var->data.image_restrict |= qual->flags.q.restrict_flag;
-   var->data.read_only = true;
+   if (!validate_storage_for_sampler_image_types(var, state, loc))
+      return;
+
+   var->data.memory_read_only |= qual->flags.q.read_only;
+   var->data.memory_write_only |= qual->flags.q.write_only;
+   var->data.memory_coherent |= qual->flags.q.coherent;
+   var->data.memory_volatile |= qual->flags.q._volatile;
+   var->data.memory_restrict |= qual->flags.q.restrict_flag;
 
    if (qual->flags.q.explicit_image_format) {
       if (var->data.mode == ir_var_function_in) {
@@ -3361,8 +3463,8 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
        var->data.image_format != GL_R32F &&
        var->data.image_format != GL_R32I &&
        var->data.image_format != GL_R32UI &&
-       !var->data.image_read_only &&
-       !var->data.image_write_only) {
+       !var->data.memory_read_only &&
+       !var->data.memory_write_only) {
       _mesa_glsl_error(loc, state, "image variables of format other than r32f, "
                        "r32i or r32ui must be qualified `readonly' or "
                        "`writeonly'");
@@ -3413,6 +3515,69 @@ validate_array_dimensions(const glsl_type *t,
          }
          t = t->fields.array;
       }
+   }
+}
+
+static void
+apply_bindless_qualifier_to_variable(const struct ast_type_qualifier *qual,
+                                     ir_variable *var,
+                                     struct _mesa_glsl_parse_state *state,
+                                     YYLTYPE *loc)
+{
+   bool has_local_qualifiers = qual->flags.q.bindless_sampler ||
+                               qual->flags.q.bindless_image ||
+                               qual->flags.q.bound_sampler ||
+                               qual->flags.q.bound_image;
+
+   /* The ARB_bindless_texture spec says:
+    *
+    * "Modify Section 4.4.6 Opaque-Uniform Layout Qualifiers of the GLSL 4.30
+    *  spec"
+    *
+    * "If these layout qualifiers are applied to other types of default block
+    *  uniforms, or variables with non-uniform storage, a compile-time error
+    *  will be generated."
+    */
+   if (has_local_qualifiers && !qual->flags.q.uniform) {
+      _mesa_glsl_error(loc, state, "ARB_bindless_texture layout qualifiers "
+                       "can only be applied to default block uniforms or "
+                       "variables with uniform storage");
+      return;
+   }
+
+   /* The ARB_bindless_texture spec doesn't state anything in this situation,
+    * but it makes sense to only allow bindless_sampler/bound_sampler for
+    * sampler types, and respectively bindless_image/bound_image for image
+    * types.
+    */
+   if ((qual->flags.q.bindless_sampler || qual->flags.q.bound_sampler) &&
+       !var->type->contains_sampler()) {
+      _mesa_glsl_error(loc, state, "bindless_sampler or bound_sampler can only "
+                       "be applied to sampler types");
+      return;
+   }
+
+   if ((qual->flags.q.bindless_image || qual->flags.q.bound_image) &&
+       !var->type->contains_image()) {
+      _mesa_glsl_error(loc, state, "bindless_image or bound_image can only be "
+                       "applied to image types");
+      return;
+   }
+
+   /* The bindless_sampler/bindless_image (and respectively
+    * bound_sampler/bound_image) layout qualifiers can be set at global and at
+    * local scope.
+    */
+   if (var->type->contains_sampler() || var->type->contains_image()) {
+      var->data.bindless = qual->flags.q.bindless_sampler ||
+                           qual->flags.q.bindless_image ||
+                           state->bindless_sampler_specified ||
+                           state->bindless_image_specified;
+
+      var->data.bound = qual->flags.q.bound_sampler ||
+                        qual->flags.q.bound_image ||
+                        state->bound_sampler_specified ||
+                        state->bound_image_specified;
    }
 }
 
@@ -3593,14 +3758,9 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    }
 
-   if (var->type->contains_sampler()) {
-      if (var->data.mode != ir_var_uniform &&
-          var->data.mode != ir_var_function_in) {
-         _mesa_glsl_error(loc, state, "sampler variables may only be declared "
-                          "as function parameters or uniform-qualified "
-                          "global variables");
-      }
-   }
+   if (var->type->contains_sampler() &&
+       !validate_storage_for_sampler_image_types(var, state, loc))
+      return;
 
    /* Is the 'layout' keyword used with parameters that allow relaxed checking.
     * Many implementations of GL_ARB_fragment_coord_conventions_enable and some
@@ -3713,6 +3873,9 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
       _mesa_glsl_error(loc, state, "post_depth_coverage layout qualifier only "
                        "valid in fragment shader input layout declaration.");
    }
+
+   if (state->has_bindless())
+      apply_bindless_qualifier_to_variable(qual, var, state, loc);
 }
 
 static void
@@ -3857,8 +4020,23 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
        * Similar text exists in the GLSL ES 3.00 spec, except that the GLSL ES
        * 3.00 spec allows structs as well.  Varying structs are also allowed
        * in GLSL 1.50.
+       *
+       * From section 4.3.4 of the ARB_bindless_texture spec:
+       *
+       *     "(modify third paragraph of the section to allow sampler and image
+       *     types) ...  Vertex shader inputs can only be float,
+       *     single-precision floating-point scalars, single-precision
+       *     floating-point vectors, matrices, signed and unsigned integers
+       *     and integer vectors, sampler and image types."
+       *
+       * From section 4.3.6 of the ARB_bindless_texture spec:
+       *
+       *     "Output variables can only be floating-point scalars,
+       *     floating-point vectors, matrices, signed or unsigned integers or
+       *     integer vectors, sampler or image types, or arrays or structures
+       *     of any these."
        */
-      switch (var->type->get_scalar_type()->base_type) {
+      switch (var->type->without_array()->base_type) {
       case GLSL_TYPE_FLOAT:
          /* Ok in all GLSL versions */
          break;
@@ -3880,6 +4058,11 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       case GLSL_TYPE_UINT64:
       case GLSL_TYPE_INT64:
          break;
+      case GLSL_TYPE_SAMPLER:
+      case GLSL_TYPE_IMAGE:
+         if (state->has_bindless())
+            break;
+         /* fallthrough */
       default:
          _mesa_glsl_error(loc, state, "illegal type for a varying variable");
          break;
@@ -4150,11 +4333,22 @@ process_initializer(ir_variable *var, ast_declaration *decl,
     *    "Opaque variables [...] are initialized only through the
     *     OpenGL API; they cannot be declared with an initializer in a
     *     shader."
+    *
+    * From section 4.1.7 of the ARB_bindless_texture spec:
+    *
+    *    "Samplers may be declared as shader inputs and outputs, as uniform
+    *     variables, as temporary variables, and as function parameters."
+    *
+    * From section 4.1.X of the ARB_bindless_texture spec:
+    *
+    *    "Images may be declared as shader inputs and outputs, as uniform
+    *     variables, as temporary variables, and as function parameters."
     */
-   if (var->type->contains_opaque()) {
+   if (var->type->contains_atomic() ||
+       (!state->has_bindless() && var->type->contains_opaque())) {
       _mesa_glsl_error(&initializer_loc, state,
-                       "cannot initialize opaque variable %s",
-                       var->name);
+                       "cannot initialize %s variable %s",
+                       var->name, state->has_bindless() ? "atomic" : "opaque");
    }
 
    if ((var->data.mode == ir_var_shader_in) && (state->current_function == NULL)) {
@@ -4934,6 +5128,14 @@ ast_declarator_list::hir(exec_list *instructions,
              *    vectors, matrices, signed and unsigned integers and integer
              *    vectors. Vertex shader inputs cannot be arrays or
              *    structures."
+             *
+             * From section 4.3.4 of the ARB_bindless_texture spec:
+             *
+             *    "(modify third paragraph of the section to allow sampler and
+             *    image types) ...  Vertex shader inputs can only be float,
+             *    single-precision floating-point scalars, single-precision
+             *    floating-point vectors, matrices, signed and unsigned
+             *    integers and integer vectors, sampler and image types."
              */
             const glsl_type *check_type = var->type->without_array();
 
@@ -4949,6 +5151,12 @@ ast_declarator_list::hir(exec_list *instructions,
                   break;
             case GLSL_TYPE_DOUBLE:
                if (check_type->is_double() && (state->is_version(410, 0) || state->ARB_vertex_attrib_64bit_enable))
+                  break;
+            case GLSL_TYPE_SAMPLER:
+               if (check_type->is_sampler() && state->has_bindless())
+                  break;
+            case GLSL_TYPE_IMAGE:
+               if (check_type->is_image() && state->has_bindless())
                   break;
             /* FALLTHROUGH */
             default:
@@ -5032,21 +5240,6 @@ ast_declarator_list::hir(exec_list *instructions,
          }
       } else if (var->data.mode == ir_var_shader_out) {
          const glsl_type *check_type = var->type->without_array();
-
-         /* From section 4.3.6 (Output variables) of the GLSL 4.40 spec:
-          *
-          *     It is a compile-time error to declare a vertex, tessellation
-          *     evaluation, tessellation control, or geometry shader output
-          *     that contains any of the following:
-          *
-          *     * A Boolean type (bool, bvec2 ...)
-          *     * An opaque type
-          */
-         if (check_type->is_boolean() || check_type->contains_opaque())
-            _mesa_glsl_error(&loc, state,
-                             "%s shader output cannot have type %s",
-                             _mesa_shader_stage_to_string(state->stage),
-                             check_type->name);
 
          /* From section 4.3.6 (Output variables) of the GLSL 4.40 spec:
           *
@@ -5203,11 +5396,23 @@ ast_declarator_list::hir(exec_list *instructions,
        *
        *    "[Opaque types] can only be declared as function
        *     parameters or uniform-qualified variables."
+       *
+       * From section 4.1.7 of the ARB_bindless_texture spec:
+       *
+       *    "Samplers may be declared as shader inputs and outputs, as uniform
+       *     variables, as temporary variables, and as function parameters."
+       *
+       * From section 4.1.X of the ARB_bindless_texture spec:
+       *
+       *    "Images may be declared as shader inputs and outputs, as uniform
+       *     variables, as temporary variables, and as function parameters."
        */
-      if (var_type->contains_opaque() &&
-          !this->type->qualifier.flags.q.uniform) {
+      if (!this->type->qualifier.flags.q.uniform &&
+          (var_type->contains_atomic() ||
+           (!state->has_bindless() && var_type->contains_opaque()))) {
          _mesa_glsl_error(&loc, state,
-                          "opaque variables must be declared uniform");
+                          "%s variables must be declared uniform",
+                          state->has_bindless() ? "atomic" : "opaque");
       }
 
       /* Process the initializer and add its instructions to a temporary
@@ -5437,11 +5642,23 @@ ast_parameter_declarator::hir(exec_list *instructions,
     *   "Opaque variables cannot be treated as l-values; hence cannot
     *    be used as out or inout function parameters, nor can they be
     *    assigned into."
+    *
+    * From section 4.1.7 of the ARB_bindless_texture spec:
+    *
+    *   "Samplers can be used as l-values, so can be assigned into and used
+    *    as "out" and "inout" function parameters."
+    *
+    * From section 4.1.X of the ARB_bindless_texture spec:
+    *
+    *   "Images can be used as l-values, so can be assigned into and used as
+    *    "out" and "inout" function parameters."
     */
    if ((var->data.mode == ir_var_function_inout || var->data.mode == ir_var_function_out)
-       && type->contains_opaque()) {
+       && (type->contains_atomic() ||
+           (!state->has_bindless() && type->contains_opaque()))) {
       _mesa_glsl_error(&loc, state, "out and inout parameters cannot "
-                       "contain opaque variables");
+                       "contain %s variables",
+                       state->has_bindless() ? "atomic" : "opaque");
       type = glsl_type::error_type;
    }
 
@@ -5608,16 +5825,33 @@ ast_function::hir(exec_list *instructions,
                        "sized", name);
    }
 
+   /* From Section 6.1 (Function Definitions) of the GLSL 1.00 spec:
+    *
+    *     "Arrays are allowed as arguments, but not as the return type. [...]
+    *      The return type can also be a structure if the structure does not
+    *      contain an array."
+    */
+   if (state->language_version == 100 && return_type->contains_array()) {
+      YYLTYPE loc = this->get_location();
+      _mesa_glsl_error(& loc, state,
+                       "function `%s' return type contains an array", name);
+   }
+
    /* From section 4.1.7 of the GLSL 4.40 spec:
     *
     *    "[Opaque types] can only be declared as function parameters
     *     or uniform-qualified variables."
+    *
+    * The ARB_bindless_texture spec doesn't clearly state this, but as it says
+    * "Replace Section 4.1.7 (Samplers), p. 25" and, "Replace Section 4.1.X,
+    * (Images)", this should be allowed.
     */
-   if (return_type->contains_opaque()) {
+   if (return_type->contains_atomic() ||
+       (!state->has_bindless() && return_type->contains_opaque())) {
       YYLTYPE loc = this->get_location();
       _mesa_glsl_error(&loc, state,
-                       "function `%s' return type can't contain an opaque type",
-                       name);
+                       "function `%s' return type can't contain an %s type",
+                       name, state->has_bindless() ? "atomic" : "opaque");
    }
 
    /**/
@@ -5654,15 +5888,26 @@ ast_function::hir(exec_list *instructions,
     * "User code can overload the built-in functions but cannot redefine
     * them."
     */
-   if (state->es_shader && state->language_version >= 300) {
+   if (state->es_shader) {
       /* Local shader has no exact candidates; check the built-ins. */
       _mesa_glsl_initialize_builtin_functions();
-      if (_mesa_glsl_has_builtin_function(name)) {
+      if (state->language_version >= 300 &&
+          _mesa_glsl_has_builtin_function(name)) {
          YYLTYPE loc = this->get_location();
          _mesa_glsl_error(& loc, state,
                           "A shader cannot redefine or overload built-in "
                           "function `%s' in GLSL ES 3.00", name);
          return NULL;
+      }
+
+      if (state->language_version == 100) {
+         ir_function_signature *sig =
+            _mesa_glsl_find_builtin_function(state, name, &hir_parameters);
+         if (sig && sig->is_builtin()) {
+            _mesa_glsl_error(& loc, state,
+                             "A shader cannot redefine built-in "
+                             "function `%s' in GLSL ES 1.00", name);
+         }
       }
    }
 
@@ -5699,6 +5944,16 @@ ast_function::hir(exec_list *instructions,
                 */
                return NULL;
             }
+         } else if (state->language_version == 100 && !is_definition) {
+            /* From the GLSL 1.00 spec, section 4.2.7:
+             *
+             *     "A particular variable, structure or function declaration
+             *      may occur at most once within a scope with the exception
+             *      that a single function prototype plus the corresponding
+             *      function definition are allowed."
+             */
+            YYLTYPE loc = this->get_location();
+            _mesa_glsl_error(&loc, state, "function `%s' redeclared", name);
          }
       }
    }
@@ -6808,9 +7063,19 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
       assert(decl_type);
 
       if (is_interface) {
-         if (decl_type->contains_opaque()) {
+         /* From section 4.3.7 of the ARB_bindless_texture spec:
+          *
+          *    "(remove the following bullet from the last list on p. 39,
+          *     thereby permitting sampler types in interface blocks; image
+          *     types are also permitted in blocks by this extension)"
+          *
+          *     * sampler types are not allowed
+          */
+         if (decl_type->contains_atomic() ||
+             (!state->has_bindless() && decl_type->contains_opaque())) {
             _mesa_glsl_error(&loc, state, "uniform/buffer in non-default "
-                             "interface block contains opaque variable");
+                             "interface block contains %s variable",
+                             state->has_bindless() ? "atomic" : "opaque");
          }
       } else {
          if (decl_type->contains_atomic()) {
@@ -6822,7 +7087,7 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
             _mesa_glsl_error(&loc, state, "atomic counter in structure");
          }
 
-         if (decl_type->contains_image()) {
+         if (!state->has_bindless() && decl_type->contains_image()) {
             /* FINISHME: Same problem as with atomic counters.
              * FINISHME: Request clarification from Khronos and add
              * FINISHME: spec quotation here.
@@ -6874,6 +7139,9 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
                           "const storage qualifier cannot be applied "
                           "to struct or interface block members");
       }
+
+      validate_memory_qualifier_for_type(state, &loc, qual, decl_type);
+      validate_image_format_qualifier_for_type(state, &loc, qual, decl_type);
 
       /* From Section 4.4.2.3 (Geometry Outputs) of the GLSL 4.50 spec:
        *
@@ -7117,33 +7385,54 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
                    || fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_COLUMN_MAJOR);
          }
 
-         /* Image qualifiers are allowed on buffer variables, which can only
-          * be defined inside shader storage buffer objects
+         /* Memory qualifiers are allowed on buffer and image variables, while
+          * the format qualifier is only accept for images.
           */
-         if (layout && var_mode == ir_var_shader_storage) {
+         if (var_mode == ir_var_shader_storage || field_type->is_image()) {
             /* For readonly and writeonly qualifiers the field definition,
              * if set, overwrites the layout qualifier.
              */
             if (qual->flags.q.read_only) {
-               fields[i].image_read_only = true;
-               fields[i].image_write_only = false;
+               fields[i].memory_read_only = true;
+               fields[i].memory_write_only = false;
             } else if (qual->flags.q.write_only) {
-               fields[i].image_read_only = false;
-               fields[i].image_write_only = true;
+               fields[i].memory_read_only = false;
+               fields[i].memory_write_only = true;
             } else {
-               fields[i].image_read_only = layout->flags.q.read_only;
-               fields[i].image_write_only = layout->flags.q.write_only;
+               fields[i].memory_read_only =
+                  layout ? layout->flags.q.read_only : 0;
+               fields[i].memory_write_only =
+                  layout ? layout->flags.q.write_only : 0;
             }
 
             /* For other qualifiers, we set the flag if either the layout
              * qualifier or the field qualifier are set
              */
-            fields[i].image_coherent = qual->flags.q.coherent ||
-                                        layout->flags.q.coherent;
-            fields[i].image_volatile = qual->flags.q._volatile ||
-                                        layout->flags.q._volatile;
-            fields[i].image_restrict = qual->flags.q.restrict_flag ||
-                                        layout->flags.q.restrict_flag;
+            fields[i].memory_coherent = qual->flags.q.coherent ||
+                                        (layout && layout->flags.q.coherent);
+            fields[i].memory_volatile = qual->flags.q._volatile ||
+                                        (layout && layout->flags.q._volatile);
+            fields[i].memory_restrict = qual->flags.q.restrict_flag ||
+                                        (layout && layout->flags.q.restrict_flag);
+
+            if (field_type->is_image()) {
+               if (qual->flags.q.explicit_image_format) {
+                  if (qual->image_base_type != field_type->sampled_type) {
+                     _mesa_glsl_error(&loc, state, "format qualifier doesn't "
+                                      "match the base data type of the image");
+                  }
+
+                  fields[i].image_format = qual->image_format;
+               } else {
+                  if (!qual->flags.q.write_only) {
+                     _mesa_glsl_error(&loc, state, "image not qualified with "
+                                      "`writeonly' must have a format layout "
+                                      "qualifier");
+                  }
+
+                  fields[i].image_format = GL_NONE;
+               }
+            }
          }
 
          i++;
@@ -7267,11 +7556,11 @@ is_unsized_array_last_element(ir_variable *v)
 static void
 apply_memory_qualifiers(ir_variable *var, glsl_struct_field field)
 {
-   var->data.image_read_only = field.image_read_only;
-   var->data.image_write_only = field.image_write_only;
-   var->data.image_coherent = field.image_coherent;
-   var->data.image_volatile = field.image_volatile;
-   var->data.image_restrict = field.image_restrict;
+   var->data.memory_read_only = field.memory_read_only;
+   var->data.memory_write_only = field.memory_write_only;
+   var->data.memory_coherent = field.memory_coherent;
+   var->data.memory_volatile = field.memory_volatile;
+   var->data.memory_restrict = field.memory_restrict;
 }
 
 ir_rvalue *
@@ -7470,7 +7759,7 @@ ast_interface_block::hir(exec_list *instructions,
          return NULL;
       } else {
          if (expl_align == 0 || expl_align & (expl_align - 1)) {
-            _mesa_glsl_error(&loc, state, "align layout qualifier in not a "
+            _mesa_glsl_error(&loc, state, "align layout qualifier is not a "
                              "power of 2.");
             return NULL;
          }

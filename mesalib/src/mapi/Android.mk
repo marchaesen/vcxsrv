@@ -75,4 +75,4 @@ $(mapi_abi_headers): PRIVATE_APIXML := $(LOCAL_PATH)/glapi/gen/gl_and_es_API.xml
 $(mapi_abi_headers): $(mapi_abi_deps)
 	@mkdir -p $(dir $@)
 	@echo "target $(PRIVATE_PRINTER): $(PRIVATE_MODULE) <= $(PRIVATE_APIXML)"
-	$(hide) $(PRIVATE_SCRIPT) --printer $(PRIVATE_PRINTER) --mode lib $(PRIVATE_APIXML) > $@
+	$(hide) $(PRIVATE_SCRIPT) --printer $(PRIVATE_PRINTER) $(PRIVATE_APIXML) > $@

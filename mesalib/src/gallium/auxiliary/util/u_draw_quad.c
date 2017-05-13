@@ -54,7 +54,7 @@ util_draw_vertex_buffer(struct pipe_context *pipe,
 
    /* tell pipe about the vertex buffer */
    memset(&vbuffer, 0, sizeof(vbuffer));
-   vbuffer.buffer = vbuf;
+   vbuffer.buffer.resource = vbuf;
    vbuffer.stride = num_attribs * 4 * sizeof(float);  /* vertex size */
    vbuffer.buffer_offset = offset;
 
@@ -82,7 +82,8 @@ util_draw_user_vertex_buffer(struct cso_context *cso, void *buffer,
 
    assert(num_attribs <= PIPE_MAX_ATTRIBS);
 
-   vbuffer.user_buffer = buffer;
+   vbuffer.is_user_buffer = true;
+   vbuffer.buffer.user = buffer;
    vbuffer.stride = num_attribs * 4 * sizeof(float);  /* vertex size */
 
    /* note: vertex elements already set by caller */

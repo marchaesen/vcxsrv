@@ -55,14 +55,7 @@ SOFTWARE.
 #include <X11/Xdmcp.h>
 #endif
 
-#ifdef _POSIX_SOURCE
 #include <limits.h>
-#else
-#define _POSIX_SOURCE
-#include <limits.h>
-#undef _POSIX_SOURCE
-#endif
-
 #include <stddef.h>
 #include <X11/Xos.h>
 

@@ -62,8 +62,7 @@
 #include "protocol-versions.h"
 
 #ifdef PANORAMIX
-#include "panoramiX.h"
-extern unsigned long XRT_WINDOW;
+#include "panoramiXsrv.h"
 extern int PanoramiXNumScreens;
 #endif
 

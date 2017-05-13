@@ -199,8 +199,8 @@ update_textures(struct st_context *st,
 
 
 
-static void
-update_vertex_textures(struct st_context *st)
+void
+st_update_vertex_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
@@ -215,8 +215,8 @@ update_vertex_textures(struct st_context *st)
 }
 
 
-static void
-update_fragment_textures(struct st_context *st)
+void
+st_update_fragment_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
@@ -229,8 +229,8 @@ update_fragment_textures(struct st_context *st)
 }
 
 
-static void
-update_geometry_textures(struct st_context *st)
+void
+st_update_geometry_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
@@ -245,8 +245,8 @@ update_geometry_textures(struct st_context *st)
 }
 
 
-static void
-update_tessctrl_textures(struct st_context *st)
+void
+st_update_tessctrl_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
@@ -261,8 +261,8 @@ update_tessctrl_textures(struct st_context *st)
 }
 
 
-static void
-update_tesseval_textures(struct st_context *st)
+void
+st_update_tesseval_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
@@ -277,8 +277,8 @@ update_tesseval_textures(struct st_context *st)
 }
 
 
-static void
-update_compute_textures(struct st_context *st)
+void
+st_update_compute_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
@@ -291,33 +291,3 @@ update_compute_textures(struct st_context *st)
                       &st->state.num_sampler_views[PIPE_SHADER_COMPUTE]);
    }
 }
-
-
-const struct st_tracked_state st_update_fragment_texture = {
-   update_fragment_textures				/* update */
-};
-
-
-const struct st_tracked_state st_update_vertex_texture = {
-   update_vertex_textures				/* update */
-};
-
-
-const struct st_tracked_state st_update_geometry_texture = {
-   update_geometry_textures				/* update */
-};
-
-
-const struct st_tracked_state st_update_tessctrl_texture = {
-   update_tessctrl_textures				/* update */
-};
-
-
-const struct st_tracked_state st_update_tesseval_texture = {
-   update_tesseval_textures				/* update */
-};
-
-
-const struct st_tracked_state st_update_compute_texture = {
-   update_compute_textures				/* update */
-};

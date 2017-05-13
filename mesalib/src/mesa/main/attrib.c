@@ -1428,8 +1428,7 @@ _mesa_PopAttrib(void)
             break;
 
          default:
-            _mesa_problem( ctx, "Bad attrib flag in PopAttrib");
-            break;
+            unreachable("Bad attrib flag in PopAttrib");
       }
 
       next = attr->next;
@@ -1478,9 +1477,6 @@ copy_array_object(struct gl_context *ctx,
 
    /* skip Name */
    /* skip RefCount */
-
-   /* In theory must be the same anyway, but on recreate make sure it matches */
-   dest->ARBsemantics = src->ARBsemantics;
 
    for (i = 0; i < ARRAY_SIZE(src->VertexAttrib); i++) {
       _mesa_copy_client_array(ctx, &dest->_VertexAttrib[i], &src->_VertexAttrib[i]);
@@ -1557,6 +1553,8 @@ restore_array_attrib(struct gl_context *ctx,
                      struct gl_array_attrib *dest,
                      struct gl_array_attrib *src)
 {
+   bool is_vao_name_zero = src->VAO->Name == 0;
+
    /* The ARB_vertex_array_object spec says:
     *
     *     "BindVertexArray fails and an INVALID_OPERATION error is generated
@@ -1565,22 +1563,15 @@ restore_array_attrib(struct gl_context *ctx,
     *     DeleteVertexArrays."
     *
     * Therefore popping a deleted VAO cannot magically recreate it.
-    *
-    * The semantics of objects created using APPLE_vertex_array_objects behave
-    * differently.  These objects expect to be recreated by pop.  Alas.
     */
-   const bool arb_vao = (src->VAO->Name != 0
-			 && src->VAO->ARBsemantics);
-
-   if (arb_vao && !_mesa_IsVertexArray(src->VAO->Name))
+   if (!is_vao_name_zero && !_mesa_IsVertexArray(src->VAO->Name))
       return;
 
-   _mesa_BindVertexArrayAPPLE(src->VAO->Name);
+   _mesa_BindVertexArray(src->VAO->Name);
 
    /* Restore or recreate the buffer objects by the names ... */
-   if (!arb_vao
-       || src->ArrayBufferObj->Name == 0
-       || _mesa_IsBuffer(src->ArrayBufferObj->Name)) {
+   if (is_vao_name_zero || src->ArrayBufferObj->Name == 0 ||
+       _mesa_IsBuffer(src->ArrayBufferObj->Name)) {
       /* ... and restore its content */
       copy_array_attrib(ctx, dest, src, false);
 
@@ -1590,9 +1581,8 @@ restore_array_attrib(struct gl_context *ctx,
       copy_array_attrib(ctx, dest, src, true);
    }
 
-   if (!arb_vao
-       || src->VAO->IndexBufferObj->Name == 0
-       || _mesa_IsBuffer(src->VAO->IndexBufferObj->Name))
+   if (is_vao_name_zero || src->VAO->IndexBufferObj->Name == 0 ||
+       _mesa_IsBuffer(src->VAO->IndexBufferObj->Name))
       _mesa_BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB,
 			  src->VAO->IndexBufferObj->Name);
 }
@@ -1762,8 +1752,7 @@ _mesa_PopClientAttrib(void)
             break;
 	 }
          default:
-            _mesa_problem( ctx, "Bad attrib flag in PopClientAttrib");
-            break;
+            unreachable("Bad attrib flag in PopClientAttrib");
       }
 
       next = node->next;

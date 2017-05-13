@@ -34,6 +34,7 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/IR/Attributes.h>
+#include <llvm/IR/CallSite.h>
 
 #if HAVE_LLVM < 0x0500
 namespace llvm {
@@ -60,4 +61,22 @@ bool ac_is_sgpr_param(LLVMValueRef arg)
 	unsigned ArgNo = A->getArgNo();
 	return AS.hasAttribute(ArgNo + 1, llvm::Attribute::ByVal) ||
 	       AS.hasAttribute(ArgNo + 1, llvm::Attribute::InReg);
+}
+
+LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call)
+{
+#if HAVE_LLVM >= 0x0309
+	return LLVMGetCalledValue(call);
+#else
+	return llvm::wrap(llvm::CallSite(llvm::unwrap<llvm::Instruction>(call)).getCalledValue());
+#endif
+}
+
+bool ac_llvm_is_function(LLVMValueRef v)
+{
+#if HAVE_LLVM >= 0x0309
+	return LLVMGetValueKind(v) == LLVMFunctionValueKind;
+#else
+	return llvm::isa<llvm::Function>(llvm::unwrap(v));
+#endif
 }

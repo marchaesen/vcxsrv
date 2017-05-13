@@ -72,8 +72,8 @@ _mesa_transform_feedback_is_using_program(struct gl_context *ctx,
    callback_data.found = false;
    callback_data.prog = shProg->last_vert_prog;
 
-   _mesa_HashWalk(ctx->TransformFeedback.Objects,
-                  active_xfb_object_references_program, &callback_data);
+   _mesa_HashWalkLocked(ctx->TransformFeedback.Objects,
+                        active_xfb_object_references_program, &callback_data);
 
    /* Also check DefaultObject, as it's not in the Objects hash table. */
    active_xfb_object_references_program(0, ctx->TransformFeedback.DefaultObject,

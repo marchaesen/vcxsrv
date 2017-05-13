@@ -139,7 +139,7 @@ st_bind_images(struct st_context *st, struct gl_program *prog,
             c->MaxImageUniforms - prog->info.num_images, NULL);
 }
 
-static void bind_vs_images(struct st_context *st)
+void st_bind_vs_images(struct st_context *st)
 {
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
@@ -147,11 +147,7 @@ static void bind_vs_images(struct st_context *st)
    st_bind_images(st, prog, PIPE_SHADER_VERTEX);
 }
 
-const struct st_tracked_state st_bind_vs_images = {
-   bind_vs_images
-};
-
-static void bind_fs_images(struct st_context *st)
+void st_bind_fs_images(struct st_context *st)
 {
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
@@ -159,11 +155,7 @@ static void bind_fs_images(struct st_context *st)
    st_bind_images(st, prog, PIPE_SHADER_FRAGMENT);
 }
 
-const struct st_tracked_state st_bind_fs_images = {
-   bind_fs_images
-};
-
-static void bind_gs_images(struct st_context *st)
+void st_bind_gs_images(struct st_context *st)
 {
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
@@ -171,11 +163,7 @@ static void bind_gs_images(struct st_context *st)
    st_bind_images(st, prog, PIPE_SHADER_GEOMETRY);
 }
 
-const struct st_tracked_state st_bind_gs_images = {
-   bind_gs_images
-};
-
-static void bind_tcs_images(struct st_context *st)
+void st_bind_tcs_images(struct st_context *st)
 {
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
@@ -183,11 +171,7 @@ static void bind_tcs_images(struct st_context *st)
    st_bind_images(st, prog, PIPE_SHADER_TESS_CTRL);
 }
 
-const struct st_tracked_state st_bind_tcs_images = {
-   bind_tcs_images
-};
-
-static void bind_tes_images(struct st_context *st)
+void st_bind_tes_images(struct st_context *st)
 {
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
@@ -195,18 +179,10 @@ static void bind_tes_images(struct st_context *st)
    st_bind_images(st, prog, PIPE_SHADER_TESS_EVAL);
 }
 
-const struct st_tracked_state st_bind_tes_images = {
-   bind_tes_images
-};
-
-static void bind_cs_images(struct st_context *st)
+void st_bind_cs_images(struct st_context *st)
 {
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
 
    st_bind_images(st, prog, PIPE_SHADER_COMPUTE);
 }
-
-const struct st_tracked_state st_bind_cs_images = {
-   bind_cs_images
-};

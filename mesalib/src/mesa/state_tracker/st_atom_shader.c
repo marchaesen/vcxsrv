@@ -93,8 +93,8 @@ get_texture_target(struct gl_context *ctx, const unsigned unit)
  * Update fragment program state/atom.  This involves translating the
  * Mesa fragment program into a gallium fragment program and binding it.
  */
-static void
-update_fp( struct st_context *st )
+void
+st_update_fp( struct st_context *st )
 {
    struct st_fragment_program *stfp;
    struct st_fp_variant_key key;
@@ -137,18 +137,12 @@ update_fp( struct st_context *st )
 }
 
 
-const struct st_tracked_state st_update_fp = {
-   update_fp  					/* update */
-};
-
-
-
 /**
  * Update vertex program state/atom.  This involves translating the
  * Mesa vertex program into a gallium fragment program and binding it.
  */
-static void
-update_vp( struct st_context *st )
+void
+st_update_vp( struct st_context *st )
 {
    struct st_vertex_program *stvp;
    struct st_vp_variant_key key;
@@ -185,106 +179,83 @@ update_vp( struct st_context *st )
 
    cso_set_vertex_shader_handle(st->cso_context, 
                                 st->vp_variant->driver_shader);
-
-   st->vertex_result_to_slot = stvp->result_to_output;
 }
 
 
-const struct st_tracked_state st_update_vp = {
-   update_vp						/* update */
-};
-
-
-
-static void
-update_gp( struct st_context *st )
+void
+st_update_gp( struct st_context *st )
 {
-   struct st_geometry_program *stgp;
+   struct st_common_program *stgp;
 
    if (!st->ctx->GeometryProgram._Current) {
       cso_set_geometry_shader_handle(st->cso_context, NULL);
-      st_reference_geomprog(st, &st->gp, NULL);
+      st_reference_prog(st, &st->gp, NULL);
       return;
    }
 
-   stgp = st_geometry_program(st->ctx->GeometryProgram._Current);
+   stgp = st_common_program(st->ctx->GeometryProgram._Current);
    assert(stgp->Base.Target == GL_GEOMETRY_PROGRAM_NV);
 
    st->gp_variant = st_get_basic_variant(st, PIPE_SHADER_GEOMETRY,
                                          &stgp->tgsi, &stgp->variants);
 
-   st_reference_geomprog(st, &st->gp, stgp);
+   st_reference_prog(st, &st->gp, stgp);
 
    cso_set_geometry_shader_handle(st->cso_context,
                                   st->gp_variant->driver_shader);
 }
 
-const struct st_tracked_state st_update_gp = {
-   update_gp  				/* update */
-};
 
-
-
-static void
-update_tcp( struct st_context *st )
+void
+st_update_tcp( struct st_context *st )
 {
-   struct st_tessctrl_program *sttcp;
+   struct st_common_program *sttcp;
 
    if (!st->ctx->TessCtrlProgram._Current) {
       cso_set_tessctrl_shader_handle(st->cso_context, NULL);
-      st_reference_tesscprog(st, &st->tcp, NULL);
+      st_reference_prog(st, &st->tcp, NULL);
       return;
    }
 
-   sttcp = st_tessctrl_program(st->ctx->TessCtrlProgram._Current);
+   sttcp = st_common_program(st->ctx->TessCtrlProgram._Current);
    assert(sttcp->Base.Target == GL_TESS_CONTROL_PROGRAM_NV);
 
    st->tcp_variant = st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL,
                                           &sttcp->tgsi, &sttcp->variants);
 
-   st_reference_tesscprog(st, &st->tcp, sttcp);
+   st_reference_prog(st, &st->tcp, sttcp);
 
    cso_set_tessctrl_shader_handle(st->cso_context,
                                   st->tcp_variant->driver_shader);
 }
 
-const struct st_tracked_state st_update_tcp = {
-   update_tcp  				/* update */
-};
 
-
-
-static void
-update_tep( struct st_context *st )
+void
+st_update_tep( struct st_context *st )
 {
-   struct st_tesseval_program *sttep;
+   struct st_common_program *sttep;
 
    if (!st->ctx->TessEvalProgram._Current) {
       cso_set_tesseval_shader_handle(st->cso_context, NULL);
-      st_reference_tesseprog(st, &st->tep, NULL);
+      st_reference_prog(st, &st->tep, NULL);
       return;
    }
 
-   sttep = st_tesseval_program(st->ctx->TessEvalProgram._Current);
+   sttep = st_common_program(st->ctx->TessEvalProgram._Current);
    assert(sttep->Base.Target == GL_TESS_EVALUATION_PROGRAM_NV);
 
    st->tep_variant = st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL,
                                           &sttep->tgsi, &sttep->variants);
 
-   st_reference_tesseprog(st, &st->tep, sttep);
+   st_reference_prog(st, &st->tep, sttep);
 
    cso_set_tesseval_shader_handle(st->cso_context,
                                   st->tep_variant->driver_shader);
 }
 
-const struct st_tracked_state st_update_tep = {
-   update_tep  				/* update */
-};
 
-
-
-static void
-update_cp( struct st_context *st )
+void
+st_update_cp( struct st_context *st )
 {
    struct st_compute_program *stcp;
 
@@ -304,7 +275,3 @@ update_cp( struct st_context *st )
    cso_set_compute_shader_handle(st->cso_context,
                                  st->cp_variant->driver_shader);
 }
-
-const struct st_tracked_state st_update_cp = {
-   update_cp  				/* update */
-};

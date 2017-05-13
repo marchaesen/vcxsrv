@@ -158,6 +158,10 @@ optimizations = [
    # a != 0.0
    (('flt', 0.0, ('fabs', a)), ('fne', a, 0.0)),
 
+   # ignore this opt when the result is used by a bcsel or if so we can make
+   # use of conditional modifiers on supported hardware.
+   (('flt(is_not_used_by_conditional)', ('fadd(is_used_once)', a, ('fneg', b)), 0.0), ('flt', a, b)),
+
    (('fge', ('fneg', ('fabs', a)), 0.0), ('feq', a, 0.0)),
    (('bcsel', ('flt', b, a), b, a), ('fmin', a, b)),
    (('bcsel', ('flt', a, b), b, a), ('fmax', a, b)),
@@ -339,8 +343,14 @@ optimizations = [
    (('fmul', ('fneg', a), b), ('fneg', ('fmul', a, b))),
    (('imul', ('ineg', a), b), ('ineg', ('imul', a, b))),
 
+   # Propagate constants up multiplication chains
+   (('~fmul(is_used_once)', ('fmul(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('fmul', ('fmul', a, c), b)),
+   (('imul(is_used_once)', ('imul(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('imul', ('imul', a, c), b)),
+   (('~fadd(is_used_once)', ('fadd(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('fadd', ('fadd', a, c), b)),
+   (('iadd(is_used_once)', ('iadd(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('iadd', ('iadd', a, c), b)),
+
    # Reassociate constants in add/mul chains so they can be folded together.
-   # For now, we only handle cases where the constants are separated by
+   # For now, we mostly only handle cases where the constants are separated by
    # a single non-constant.  We could do better eventually.
    (('~fmul', '#a', ('fmul', b, '#c')), ('fmul', ('fmul', a, c), b)),
    (('imul', '#a', ('imul', b, '#c')), ('imul', ('imul', a, c), b)),
@@ -520,6 +530,27 @@ for op in ['flt', 'fge', 'feq', 'fne',
        ('bcsel', 'a', (op, 'd', 'b'), (op, 'd', 'c'))),
    ]
 
+# This section contains "late" optimizations that should be run before
+# creating ffmas and calling regular optimizations for the final time.
+# Optimizations should go here if they help code generation and conflict
+# with the regular optimizations.
+before_ffma_optimizations = [
+   # Propagate constants down multiplication chains
+   (('~fmul(is_used_once)', ('fmul(is_used_once)', 'a(is_not_const)', '#b'), 'c(is_not_const)'), ('fmul', ('fmul', a, c), b)),
+   (('imul(is_used_once)', ('imul(is_used_once)', 'a(is_not_const)', '#b'), 'c(is_not_const)'), ('imul', ('imul', a, c), b)),
+   (('~fadd(is_used_once)', ('fadd(is_used_once)', 'a(is_not_const)', '#b'), 'c(is_not_const)'), ('fadd', ('fadd', a, c), b)),
+   (('iadd(is_used_once)', ('iadd(is_used_once)', 'a(is_not_const)', '#b'), 'c(is_not_const)'), ('iadd', ('iadd', a, c), b)),
+
+   (('~fadd', ('fmul', a, b), ('fmul', a, c)), ('fmul', a, ('fadd', b, c))),
+   (('iadd', ('imul', a, b), ('imul', a, c)), ('imul', a, ('iadd', b, c))),
+   (('~fadd', ('fneg', a), a), 0.0),
+   (('iadd', ('ineg', a), a), 0),
+   (('iadd', ('ineg', a), ('iadd', a, b)), b),
+   (('iadd', a, ('iadd', ('ineg', a), b)), b),
+   (('~fadd', ('fneg', a), ('fadd', a, b)), b),
+   (('~fadd', a, ('fadd', ('fneg', a), b)), b),
+]
+
 # This section contains "late" optimizations that should be run after the
 # regular optimizations have finished.  Optimizations should go here if
 # they help code generation but do not necessarily produce code that is
@@ -546,5 +577,7 @@ late_optimizations = [
 ]
 
 print nir_algebraic.AlgebraicPass("nir_opt_algebraic", optimizations).render()
+print nir_algebraic.AlgebraicPass("nir_opt_algebraic_before_ffma",
+                                  before_ffma_optimizations).render()
 print nir_algebraic.AlgebraicPass("nir_opt_algebraic_late",
                                   late_optimizations).render()

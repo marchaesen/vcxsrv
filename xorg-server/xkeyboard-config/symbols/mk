@@ -60,6 +60,6 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
     include "mk(basic)"
-    name[Group1]= "Macedonian (eliminate dead keys)";
+    name[Group1]= "Macedonian (no dead keys)";
     key <TLDE> { [           grave,      asciitilde ]   };
 };

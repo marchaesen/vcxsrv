@@ -460,16 +460,20 @@ VkResult radv_QueuePresentKHR(
 		RADV_FROM_HANDLE(wsi_swapchain, swapchain, pPresentInfo->pSwapchains[i]);
 		struct radeon_winsys_cs *cs;
 		const VkPresentRegionKHR *region = NULL;
+		VkResult item_result;
 
 		assert(radv_device_from_handle(swapchain->device) == queue->device);
 		if (swapchain->fences[0] == VK_NULL_HANDLE) {
-			result = radv_CreateFence(radv_device_to_handle(queue->device),
+			item_result = radv_CreateFence(radv_device_to_handle(queue->device),
 						  &(VkFenceCreateInfo) {
 							  .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 								  .flags = 0,
 								  }, &swapchain->alloc, &swapchain->fences[0]);
-			if (result != VK_SUCCESS)
-				return result;
+			if (pPresentInfo->pResults != NULL)
+				pPresentInfo->pResults[i] = item_result;
+			result = result == VK_SUCCESS ? item_result : result;
+			if (item_result != VK_SUCCESS)
+				continue;
 		} else {
 			radv_ResetFences(radv_device_to_handle(queue->device),
 					 1, &swapchain->fences[0]);
@@ -493,12 +497,15 @@ VkResult radv_QueuePresentKHR(
 		if (regions && regions->pRegions)
 			region = &regions->pRegions[i];
 
-		result = swapchain->queue_present(swapchain,
+		item_result = swapchain->queue_present(swapchain,
 						  pPresentInfo->pImageIndices[i],
 						  region);
 		/* TODO: What if one of them returns OUT_OF_DATE? */
-		if (result != VK_SUCCESS)
-			return result;
+		if (pPresentInfo->pResults != NULL)
+			pPresentInfo->pResults[i] = item_result;
+		result = result == VK_SUCCESS ? item_result : result;
+		if (item_result != VK_SUCCESS)
+			continue;
 
 		VkFence last = swapchain->fences[2];
 		swapchain->fences[2] = swapchain->fences[1];

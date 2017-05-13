@@ -339,6 +339,17 @@ glsl_struct_type(const glsl_struct_field *fields,
    return glsl_type::get_record_instance(fields, num_fields, name);
 }
 
+const glsl_type *
+glsl_interface_type(const glsl_struct_field *fields,
+                    unsigned num_fields,
+                    enum glsl_interface_packing packing,
+                    bool row_major,
+                    const char *block_name)
+{
+   return glsl_type::get_interface_instance(fields, num_fields, packing,
+                                            row_major, block_name);
+}
+
 const struct glsl_type *
 glsl_sampler_type(enum glsl_sampler_dim dim, bool is_shadow, bool is_array,
                   enum glsl_base_type base_type)

@@ -142,6 +142,11 @@ const struct glsl_type *glsl_array_type(const struct glsl_type *base,
                                         unsigned elements);
 const struct glsl_type *glsl_struct_type(const struct glsl_struct_field *fields,
                                          unsigned num_fields, const char *name);
+const struct glsl_type *glsl_interface_type(const struct glsl_struct_field *fields,
+                                            unsigned num_fields,
+                                            enum glsl_interface_packing packing,
+                                            bool row_major,
+                                            const char *block_name);
 const struct glsl_type *glsl_sampler_type(enum glsl_sampler_dim dim,
                                           bool is_shadow, bool is_array,
                                           enum glsl_base_type base_type);

@@ -39,28 +39,26 @@
  */
 enum pipe_error
 util_translate_prim_restart_ib(struct pipe_context *context,
-                               struct pipe_index_buffer *src_buffer,
-                               struct pipe_resource **dst_buffer,
-                               unsigned num_indexes,
-                               unsigned restart_index)
+                               const struct pipe_draw_info *info,
+                               struct pipe_resource **dst_buffer)
 {
    struct pipe_screen *screen = context->screen;
    struct pipe_transfer *src_transfer = NULL, *dst_transfer = NULL;
    void *src_map = NULL, *dst_map = NULL;
-   const unsigned src_index_size = src_buffer->index_size;
+   const unsigned src_index_size = info->index_size;
    unsigned dst_index_size;
 
    /* 1-byte indexes are converted to 2-byte indexes, 4-byte stays 4-byte */
-   dst_index_size = MAX2(2, src_buffer->index_size);
+   dst_index_size = MAX2(2, info->index_size);
    assert(dst_index_size == 2 || dst_index_size == 4);
 
    /* no user buffers for now */
-   assert(src_buffer->user_buffer == NULL);
+   assert(!info->has_user_indices);
 
    /* Create new index buffer */
    *dst_buffer = pipe_buffer_create(screen, PIPE_BIND_INDEX_BUFFER,
                                     PIPE_USAGE_STREAM,
-                                    num_indexes * dst_index_size);
+                                    info->count * dst_index_size);
    if (!*dst_buffer)
       goto error;
 
@@ -71,9 +69,9 @@ util_translate_prim_restart_ib(struct pipe_context *context,
       goto error;
 
    /* Map original / src index buffer */
-   src_map = pipe_buffer_map_range(context, src_buffer->buffer,
-                                   src_buffer->offset,
-                                   num_indexes * src_index_size,
+   src_map = pipe_buffer_map_range(context, info->index.resource,
+                                   info->start * src_index_size,
+                                   info->count * src_index_size,
                                    PIPE_TRANSFER_READ,
                                    &src_transfer);
    if (!src_map)
@@ -83,16 +81,16 @@ util_translate_prim_restart_ib(struct pipe_context *context,
       uint8_t *src = (uint8_t *) src_map;
       uint16_t *dst = (uint16_t *) dst_map;
       unsigned i;
-      for (i = 0; i < num_indexes; i++) {
-         dst[i] = (src[i] == restart_index) ? 0xffff : src[i];
+      for (i = 0; i < info->count; i++) {
+         dst[i] = (src[i] == info->restart_index) ? 0xffff : src[i];
       }
    }
    else if (src_index_size == 2 && dst_index_size == 2) {
       uint16_t *src = (uint16_t *) src_map;
       uint16_t *dst = (uint16_t *) dst_map;
       unsigned i;
-      for (i = 0; i < num_indexes; i++) {
-         dst[i] = (src[i] == restart_index) ? 0xffff : src[i];
+      for (i = 0; i < info->count; i++) {
+         dst[i] = (src[i] == info->restart_index) ? 0xffff : src[i];
       }
    }
    else {
@@ -101,8 +99,8 @@ util_translate_prim_restart_ib(struct pipe_context *context,
       unsigned i;
       assert(src_index_size == 4);
       assert(dst_index_size == 4);
-      for (i = 0; i < num_indexes; i++) {
-         dst[i] = (src[i] == restart_index) ? 0xffffffff : src[i];
+      for (i = 0; i < info->count; i++) {
+         dst[i] = (src[i] == info->restart_index) ? 0xffffffff : src[i];
       }
    }
 
@@ -177,7 +175,6 @@ add_range(struct range_info *info, unsigned start, unsigned count)
  */
 enum pipe_error
 util_draw_vbo_without_prim_restart(struct pipe_context *context,
-                                   const struct pipe_index_buffer *ib,
                                    const struct pipe_draw_info *info)
 {
    const void *src_map;
@@ -186,15 +183,15 @@ util_draw_vbo_without_prim_restart(struct pipe_context *context,
    struct pipe_transfer *src_transfer = NULL;
    unsigned i, start, count;
 
-   assert(info->indexed);
+   assert(info->index_size);
    assert(info->primitive_restart);
 
    /* Get pointer to the index data */
-   if (ib->buffer) {
+   if (!info->has_user_indices) {
       /* map the index buffer (only the range we need to scan) */
-      src_map = pipe_buffer_map_range(context, ib->buffer,
-                                      ib->offset + info->start * ib->index_size,
-                                      info->count * ib->index_size,
+      src_map = pipe_buffer_map_range(context, info->index.resource,
+                                      info->start * info->index_size,
+                                      info->count * info->index_size,
                                       PIPE_TRANSFER_READ,
                                       &src_transfer);
       if (!src_map) {
@@ -202,13 +199,12 @@ util_draw_vbo_without_prim_restart(struct pipe_context *context,
       }
    }
    else {
-      if (!ib->user_buffer) {
+      if (!info->index.user) {
          debug_printf("User-space index buffer is null!");
          return PIPE_ERROR_BAD_INPUT;
       }
-      src_map = (const uint8_t *) ib->user_buffer
-         + ib->offset
-         + info->start * ib->index_size;
+      src_map = (const uint8_t *) info->index.user
+         + info->start * info->index_size;
    }
 
 #define SCAN_INDEXES(TYPE) \
@@ -231,9 +227,9 @@ util_draw_vbo_without_prim_restart(struct pipe_context *context,
       } \
    }
 
-   start = info->start;
+   start = 0;
    count = 0;
-   switch (ib->index_size) {
+   switch (info->index_size) {
    case 1:
       SCAN_INDEXES(uint8_t);
       break;

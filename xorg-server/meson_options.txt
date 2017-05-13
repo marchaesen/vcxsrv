@@ -1,0 +1,50 @@
+option('xorg', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Enable Xorg X Server')
+option('xephyr', type: 'boolean', value: false,
+       description: 'Enable Xephyr nested X server')
+option('xwayland', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Enable XWayland X server')
+option('glamor', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Enable glamor (default yes for Xorg/Xwayland builds)')
+option('xnest', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Enable Xnest nested X server')
+option('dmx', type: 'boolean', value: false,
+       description: 'Enable DMX nested X server')
+
+option('log_dir', type: 'string')
+option('module_dir', type: 'string',
+       description: 'X.Org modules directory')
+
+option('glx', type: 'boolean', value: true)
+option('xdmcp', type: 'boolean', value: true)
+option('xdm-auth-1', type: 'boolean', value: true)
+option('ipv6', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto')
+
+option('xkb_dir', type: 'string')
+option('xkb_output_dir', type: 'string')
+option('xkb_default_rules', type: 'string', value: 'evdev')
+option('xkb_default_model', type: 'string', value: 'pc105')
+option('xkb_default_layout', type: 'string', value: 'us')
+option('xkb_default_variant', type: 'string')
+option('xkb_default_options', type: 'string')
+
+option('vendor_name', type: 'string', value: 'The X.Org Foundation')
+option('vendor_name_short', type: 'string', value: 'X.Org')
+option('vendor_web', type: 'string', value: 'http://wiki.x.org')
+option('os_vendor', type: 'string', value: '')
+
+option('int10', type: 'combo', choices: ['stub', 'x86emu', 'vm86', 'auto', 'disabled'],
+       value: 'auto',
+       description: 'Xorg int10 backend (default: usually x86emu)')
+
+option('pciaccess', type: 'boolean', value: 'true',
+       description: 'Xorg pciaccess support')
+option('udev', type: 'boolean', value: 'true')
+option('hal', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Enable HAL integration')
+option('systemd_logind', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Enable systemd-logind integration')
+
+option('dri1', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
+option('dri2', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')
+option('dri3', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI3 extension (default: auto)')

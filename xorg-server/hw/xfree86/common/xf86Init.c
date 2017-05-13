@@ -183,7 +183,7 @@ xf86PrintBanner(void)
             xf86ErrorFVerb(0, "Current Operating System: %s %s %s %s %s\n",
                            name.sysname, name.nodename, name.release,
                            name.version, name.machine);
-#ifdef linux
+#ifdef __linux__
             do {
                 char buf[80];
                 int fd = open("/proc/cmdline", O_RDONLY);
@@ -309,6 +309,7 @@ InstallSignalHandlers(void)
     }
     else {
         OsSignal(SIGSEGV, SIG_DFL);
+        OsSignal(SIGABRT, SIG_DFL);
         OsSignal(SIGILL, SIG_DFL);
 #ifdef SIGEMT
         OsSignal(SIGEMT, SIG_DFL);
@@ -1359,17 +1360,17 @@ ddxUseMsg(void)
         ErrorF("-modulepath paths      specify the module search path\n");
         ErrorF("-logfile file          specify a log file name\n");
         ErrorF("-configure             probe for devices and write an "
-               __XCONFIGFILE__ "\n");
+               XCONFIGFILE "\n");
         ErrorF
             ("-showopts              print available options for all installed drivers\n");
     }
     ErrorF
         ("-config file           specify a configuration file, relative to the\n");
-    ErrorF("                       " __XCONFIGFILE__
+    ErrorF("                       " XCONFIGFILE
            " search path, only root can use absolute\n");
     ErrorF
         ("-configdir dir         specify a configuration directory, relative to the\n");
-    ErrorF("                       " __XCONFIGDIR__
+    ErrorF("                       " XCONFIGDIR
            " search path, only root can use absolute\n");
     ErrorF("-verbose [n]           verbose startup messages\n");
     ErrorF("-logverbose [n]        verbose log messages\n");

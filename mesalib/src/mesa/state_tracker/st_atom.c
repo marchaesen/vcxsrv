@@ -36,11 +36,12 @@
 #include "st_program.h"
 #include "st_manager.h"
 
+typedef void (*update_func_t)(struct st_context *st);
 
 /* The list state update functions. */
-static const struct st_tracked_state *atoms[] =
+static const update_func_t update_functions[] =
 {
-#define ST_STATE(FLAG, st_update) &st_update,
+#define ST_STATE(FLAG, st_update) st_update,
 #include "st_atom_list.h"
 #undef ST_STATE
 };
@@ -48,7 +49,7 @@ static const struct st_tracked_state *atoms[] =
 
 void st_init_atoms( struct st_context *st )
 {
-   STATIC_ASSERT(ARRAY_SIZE(atoms) <= 64);
+   STATIC_ASSERT(ARRAY_SIZE(update_functions) <= 64);
 }
 
 
@@ -64,9 +65,9 @@ static void check_program_state( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
    struct st_vertex_program *old_vp = st->vp;
-   struct st_tessctrl_program *old_tcp = st->tcp;
-   struct st_tesseval_program *old_tep = st->tep;
-   struct st_geometry_program *old_gp = st->gp;
+   struct st_common_program *old_tcp = st->tcp;
+   struct st_common_program *old_tep = st->tep;
+   struct st_common_program *old_gp = st->gp;
    struct st_fragment_program *old_fp = st->fp;
 
    struct gl_program *new_vp = ctx->VertexProgram._Current;
@@ -90,21 +91,21 @@ static void check_program_state( struct st_context *st )
       if (old_tcp)
          dirty |= old_tcp->affected_states;
       if (new_tcp)
-         dirty |= st_tessctrl_program(new_tcp)->affected_states;
+         dirty |= st_common_program(new_tcp)->affected_states;
    }
 
    if (unlikely(new_tep != &old_tep->Base)) {
       if (old_tep)
          dirty |= old_tep->affected_states;
       if (new_tep)
-         dirty |= st_tesseval_program(new_tep)->affected_states;
+         dirty |= st_common_program(new_tep)->affected_states;
    }
 
    if (unlikely(new_gp != &old_gp->Base)) {
       if (old_gp)
          dirty |= old_gp->affected_states;
       if (new_gp)
-         dirty |= st_geometry_program(new_gp)->affected_states;
+         dirty |= st_common_program(new_gp)->affected_states;
    }
 
    if (unlikely(new_fp != &old_fp->Base)) {
@@ -226,9 +227,9 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
     * Don't use u_bit_scan64, it may be slower on 32-bit.
     */
    while (dirty_lo)
-      atoms[u_bit_scan(&dirty_lo)]->update(st);
+      update_functions[u_bit_scan(&dirty_lo)](st);
    while (dirty_hi)
-      atoms[32 + u_bit_scan(&dirty_hi)]->update(st);
+      update_functions[32 + u_bit_scan(&dirty_hi)](st);
 
    /* Clear the render or compute state bits. */
    st->dirty &= ~pipeline_mask;

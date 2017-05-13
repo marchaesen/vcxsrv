@@ -41,8 +41,8 @@
 /**
  * Scissor depends on the scissor box, and the framebuffer dimensions.
  */
-static void
-update_scissor( struct st_context *st )
+void
+st_update_scissor( struct st_context *st )
 {
    struct pipe_scissor_state scissor[PIPE_MAX_VIEWPORTS];
    const struct gl_context *ctx = st->ctx;
@@ -99,8 +99,8 @@ update_scissor( struct st_context *st )
       st->pipe->set_scissor_states(st->pipe, 0, ctx->Const.MaxViewports, scissor); /* activate */
 }
 
-static void
-update_window_rectangles(struct st_context *st)
+void
+st_update_window_rectangles(struct st_context *st)
 {
    struct pipe_scissor_state new_rects[PIPE_MAX_WINDOW_RECTANGLES];
    const struct gl_context *ctx = st->ctx;
@@ -139,11 +139,3 @@ update_window_rectangles(struct st_context *st)
       st->pipe->set_window_rectangles(
             st->pipe, include, num_rects, new_rects);
 }
-
-const struct st_tracked_state st_update_scissor = {
-   update_scissor					/* update */
-};
-
-const struct st_tracked_state st_update_window_rectangles = {
-   update_window_rectangles				/* update */
-};

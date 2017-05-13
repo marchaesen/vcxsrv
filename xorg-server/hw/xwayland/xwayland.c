@@ -222,6 +222,8 @@ xwl_close_screen(ScreenPtr screen)
                                   &xwl_screen->seat_list, link)
         xwl_seat_destroy(xwl_seat);
 
+    xwl_screen_release_tablet_manager(xwl_screen);
+
     RemoveNotifyFd(xwl_screen->wayland_fd);
 
     wl_display_disconnect(xwl_screen->display);
@@ -580,7 +582,7 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
     region = DamageRegion(xwl_window->damage);
     pixmap = (*xwl_screen->screen->GetWindowPixmap) (xwl_window->window);
 
-#if GLAMOR_HAS_GBM
+#ifdef GLAMOR_HAS_GBM
     if (xwl_screen->glamor)
         buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap);
     else

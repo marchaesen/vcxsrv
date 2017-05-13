@@ -477,6 +477,16 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type == glsl_type::uvec2_type);
       break;
 
+   case ir_unop_pack_sampler_2x32:
+      assert(ir->type->is_sampler());
+      assert(ir->operands[0]->type == glsl_type::uvec2_type);
+      break;
+
+   case ir_unop_pack_image_2x32:
+      assert(ir->type->is_image());
+      assert(ir->operands[0]->type == glsl_type::uvec2_type);
+      break;
+
    case ir_unop_unpack_snorm_2x16:
    case ir_unop_unpack_unorm_2x16:
    case ir_unop_unpack_half_2x16:
@@ -503,6 +513,16 @@ ir_validate::visit_leave(ir_expression *ir)
    case ir_unop_unpack_uint_2x32:
       assert(ir->type == glsl_type::uvec2_type);
       assert(ir->operands[0]->type == glsl_type::uint64_t_type);
+      break;
+
+   case ir_unop_unpack_sampler_2x32:
+      assert(ir->type == glsl_type::uvec2_type);
+      assert(ir->operands[0]->type->is_sampler());
+      break;
+
+   case ir_unop_unpack_image_2x32:
+      assert(ir->type == glsl_type::uvec2_type);
+      assert(ir->operands[0]->type->is_image());
       break;
 
    case ir_unop_bitfield_reverse:
@@ -580,29 +600,6 @@ ir_validate::visit_leave(ir_expression *ir)
    case ir_unop_subroutine_to_int:
       assert(ir->operands[0]->type->base_type == GLSL_TYPE_SUBROUTINE);
       assert(ir->type->base_type == GLSL_TYPE_INT);
-      break;
-
-   case ir_unop_ballot:
-      assert(ir->type == glsl_type::uint64_t_type);
-      assert(ir->operands[0]->type == glsl_type::bool_type);
-      break;
-
-   case ir_binop_read_invocation:
-      assert(ir->operands[1]->type == glsl_type::uint_type);
-      /* fall-through */
-   case ir_unop_read_first_invocation:
-      assert(ir->type == ir->operands[0]->type);
-      assert(ir->type->is_scalar() || ir->type->is_vector());
-      assert(ir->type->is_float() ||
-             ir->type->base_type == GLSL_TYPE_INT ||
-             ir->type->base_type == GLSL_TYPE_UINT);
-      break;
-
-   case ir_unop_vote_any:
-   case ir_unop_vote_all:
-   case ir_unop_vote_eq:
-      assert(ir->type == glsl_type::bool_type);
-      assert(ir->operands[0]->type == glsl_type::bool_type);
       break;
 
    case ir_binop_add:

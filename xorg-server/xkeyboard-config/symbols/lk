@@ -2,7 +2,7 @@
 // Maintainer  : Harshula Jayasuriya <harshula@gmail.com>
 // Last Updated: 2011-05-25
 // This is a phonetic static mapping for a standard US-English keyboard
-// (qwerty)
+// (QWERTY)
 // http://www.nongnu.org/sinhala/doc/keymaps/sinhala-keyboard_3.html
 
 // Repaya, Rakaransaya and Yansaya aren't inserted with A-r, R and Y,
@@ -123,7 +123,7 @@ xkb_symbols "tam_TAB" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "us" {
   include "us(basic)"
-  name[Group1]= "Sinhala (US keyboard with Sinhala letters)";
+  name[Group1]= "Sinhala (US, with Sinhala letters)";
 //
 //                   UNSHIFTED,         SHIFT,           ALT
 //                   --------------------------------------------
@@ -141,7 +141,7 @@ xkb_symbols "us" {
 
   key <AC01> { [             a,        aacute,    adiaeresis ] };
   key <AC02> { [             s,    VoidSymbol,    VoidSymbol ] };
-  key <AC03> { [             d,             D,    VoidSymbol ] };
+  key <AC03> { [           eth,           ETH,    VoidSymbol ] };
   key <AC04> { [         thorn,             f,    VoidSymbol ] };
   key <AC05> { [             g,             G,    VoidSymbol ] };
   key <AC06> { [             h,    VoidSymbol,    VoidSymbol ] };
@@ -151,7 +151,7 @@ xkb_symbols "us" {
   key <AC10> { [     semicolon,         colon,    VoidSymbol ] };
   key <AC11> { [    apostrophe,      quotedbl,    VoidSymbol ] };
 
-  key <AD01> { [           eth,           ETH,             q ] };
+  key <AD01> { [             d,             D,             q ] };
   key <AD02> { [            ae,         acute,    VoidSymbol ] };
   key <AD03> { [             e,        eacute,    ediaeresis ] };
   key <AD04> { [             r,   ucircumflex,    VoidSymbol ] };

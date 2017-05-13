@@ -315,8 +315,8 @@ ttn_emit_declaration(struct ttn_compile *c)
 
       /* nothing to do for UBOs: */
       if ((file == TGSI_FILE_CONSTANT) && decl->Declaration.Dimension) {
-         b->shader->info->num_ubos =
-            MAX2(b->shader->info->num_ubos, decl->Dim.Index2D);
+         b->shader->info.num_ubos =
+            MAX2(b->shader->info.num_ubos, decl->Dim.Index2D);
          return;
       }
 
@@ -374,7 +374,7 @@ ttn_emit_declaration(struct ttn_compile *c)
             exec_list_push_tail(&b->shader->inputs, &var->node);
 
             for (int i = 0; i < array_size; i++)
-               b->shader->info->inputs_read |= 1 << (var->data.location + i);
+               b->shader->info.inputs_read |= 1 << (var->data.location + i);
 
             break;
          case TGSI_FILE_OUTPUT: {
@@ -440,7 +440,7 @@ ttn_emit_declaration(struct ttn_compile *c)
             exec_list_push_tail(&b->shader->outputs, &var->node);
 
             for (int i = 0; i < array_size; i++)
-               b->shader->info->outputs_written |= 1 << (var->data.location + i);
+               b->shader->info.outputs_written |= 1 << (var->data.location + i);
          }
             break;
          case TGSI_FILE_CONSTANT:
@@ -587,7 +587,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
 
       src = nir_src_for_ssa(&load->dest.ssa);
 
-      b->shader->info->system_values_read |=
+      b->shader->info.system_values_read |=
          (1 << nir_system_value_from_intrinsic(op));
 
       break;
@@ -1068,7 +1068,7 @@ ttn_kill(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
    nir_intrinsic_instr *discard =
       nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard);
    nir_builder_instr_insert(b, &discard->instr);
-   b->shader->info->fs.uses_discard = true;
+   b->shader->info.fs.uses_discard = true;
 }
 
 static void
@@ -1081,7 +1081,7 @@ ttn_kill_if(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
       nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
    discard->src[0] = nir_src_for_ssa(cmp);
    nir_builder_instr_insert(b, &discard->instr);
-   b->shader->info->fs.uses_discard = true;
+   b->shader->info.fs.uses_discard = true;
 }
 
 static void

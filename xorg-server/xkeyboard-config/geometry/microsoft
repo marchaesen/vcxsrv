@@ -1,7 +1,7 @@
 default xkb_geometry "natural" {
 
-    // Approximate layout for a Microsoft Natural Keyboard
-    description= "Microsoft Natural Keyboard";
+    // Approximate layout for a Microsoft Natural
+    description= "Microsoft Natural";
     width= 550;
     height= 190;
 

@@ -52,7 +52,7 @@ xkb_symbols "sundeadkeys" {
 partial alphanumeric_keys 
 xkb_symbols "nodeadkeys" {
     include "macintosh_vndr/pt(basic)" // for consistent naming
-    name[Group1]= "Portugal - Mac, eliminate dead keys";
+    name[Group1]= "Portugal - Mac, no dead keys";
 
     key <AE12> {	[	     plus,        asterisk, 	 quotedbl,        quotedbl      ]	};
     key <AC11> {	[      asciitilde,     asciicircum	]	};

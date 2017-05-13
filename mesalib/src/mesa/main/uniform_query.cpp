@@ -321,9 +321,12 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
    }
 
    {
-      unsigned elements = (uni->type->is_sampler())
-	 ? 1 : uni->type->components();
-      const int dmul = uni->type->is_64bit() ? 2 : 1;
+      unsigned elements = uni->type->components();
+      /* XXX: Remove the sampler/image check workarounds when bindless is fully
+       * implemented.
+       */
+      const int dmul =
+         (uni->type->is_64bit() && !uni->type->is_sampler() && !uni->type->is_image()) ? 2 : 1;
       const int rmul = glsl_base_type_is_64bit(returnType) ? 2 : 1;
 
       /* Calculate the source base address *BEFORE* modifying elements to
@@ -648,10 +651,8 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 {
    unsigned i;
 
-   /* vector_elements and matrix_columns can be 0 for samplers.
-    */
-   const unsigned components = MAX2(1, uni->type->vector_elements);
-   const unsigned vectors = MAX2(1, uni->type->matrix_columns);
+   const unsigned components = uni->type->vector_elements;
+   const unsigned vectors = uni->type->matrix_columns;
    const int dmul = uni->type->is_64bit() ? 2 : 1;
 
    /* Store the data in the driver's requested type in the driver's storage
@@ -803,8 +804,7 @@ validate_uniform(GLint location, GLsizei count, const GLvoid *values,
    }
 
    /* Verify that the types are compatible. */
-   const unsigned components = uni->type->is_sampler()
-      ? 1 : uni->type->vector_elements;
+   const unsigned components = uni->type->vector_elements;
 
    if (components != src_components) {
       /* glUniformN() must match float/vecN type */
@@ -925,8 +925,7 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
          return;
    }
 
-   const unsigned components = uni->type->is_sampler()
-      ? 1 : uni->type->vector_elements;
+   const unsigned components = uni->type->vector_elements;
 
    /* Page 82 (page 96 of the PDF) of the OpenGL 2.1 spec says:
     *

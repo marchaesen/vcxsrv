@@ -240,7 +240,7 @@ xkb_symbols "latinunicode" {
     // as single character). You get the title form with AltGr+Shift.
 
     include "rs(latin)"
-    name[Group1]= "Serbian (Latin Unicode)";
+    name[Group1]= "Serbian (Latin, Unicode)";
 
     include "rs(twoletter)"
 };
@@ -250,7 +250,7 @@ xkb_symbols "latinyz" {
     // For those who insist on using "english-position" Z and Y.
 
     include "rs(latin)"
-    name[Group1]= "Serbian (Latin qwerty)";
+    name[Group1]= "Serbian (Latin, QWERTY)";
 
     key <AD06> { [ y,              Y             ] }; // y
     key <AB01> { [ z,              Z             ] }; // z
@@ -261,7 +261,7 @@ xkb_symbols "latinunicodeyz" {
     // Unicode, ZHE and Z swapped.
 
     include "rs(latinunicode)"
-    name[Group1]= "Serbian (Latin Unicode qwerty)";
+    name[Group1]= "Serbian (Latin, Unicode, QWERTY)";
 
     key <AD06> { [ zcaron,         Zcaron        ] }; // y
     key <AB01> { [ z,              Z             ] }; // z

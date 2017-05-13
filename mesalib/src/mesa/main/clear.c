@@ -115,16 +115,17 @@ color_buffer_writes_enabled(const struct gl_context *ctx, unsigned idx)
 {
    struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[idx];
    GLuint c;
-   GLubyte colorMask = 0;
 
    if (rb) {
       for (c = 0; c < 4; c++) {
-         if (_mesa_format_has_color_component(rb->Format, c))
-            colorMask |= ctx->Color.ColorMask[idx][c];
+         if (ctx->Color.ColorMask[idx][c] &&
+             _mesa_format_has_color_component(rb->Format, c)) {
+            return true;
+         }
       }
    }
 
-   return colorMask != 0;
+   return false;
 }
 
 

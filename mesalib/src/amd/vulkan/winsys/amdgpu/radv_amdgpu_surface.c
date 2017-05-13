@@ -47,7 +47,8 @@
 #define CIASICIDGFXENGINE_SOUTHERNISLAND 0x0000000A
 #endif
 
-static int radv_amdgpu_surface_sanity(const struct radeon_surf *surf)
+static int radv_amdgpu_surface_sanity(const struct radeon_surf_info *surf_info,
+				      const struct radeon_surf *surf)
 {
 	unsigned type = RADEON_SURF_GET(surf->flags, TYPE);
 
@@ -55,14 +56,14 @@ static int radv_amdgpu_surface_sanity(const struct radeon_surf *surf)
 		return -EINVAL;
 
 	/* all dimension must be at least 1 ! */
-	if (!surf->npix_x || !surf->npix_y || !surf->npix_z ||
-	    !surf->array_size)
+	if (!surf_info->width || !surf_info->height || !surf_info->depth ||
+	    !surf_info->array_size)
 		return -EINVAL;
 
-	if (!surf->blk_w || !surf->blk_h || !surf->blk_d)
+	if (!surf->blk_w || !surf->blk_h)
 		return -EINVAL;
 
-	switch (surf->nsamples) {
+	switch (surf_info->samples) {
 	case 1:
 	case 2:
 	case 4:
@@ -74,24 +75,24 @@ static int radv_amdgpu_surface_sanity(const struct radeon_surf *surf)
 
 	switch (type) {
 	case RADEON_SURF_TYPE_1D:
-		if (surf->npix_y > 1)
+		if (surf_info->height > 1)
 			return -EINVAL;
 		/* fall through */
 	case RADEON_SURF_TYPE_2D:
 	case RADEON_SURF_TYPE_CUBEMAP:
-		if (surf->npix_z > 1 || surf->array_size > 1)
+		if (surf_info->depth > 1 || surf_info->array_size > 1)
 			return -EINVAL;
 		break;
 	case RADEON_SURF_TYPE_3D:
-		if (surf->array_size > 1)
+		if (surf_info->array_size > 1)
 			return -EINVAL;
 		break;
 	case RADEON_SURF_TYPE_1D_ARRAY:
-		if (surf->npix_y > 1)
+		if (surf_info->height > 1)
 			return -EINVAL;
 		/* fall through */
 	case RADEON_SURF_TYPE_2D_ARRAY:
-		if (surf->npix_z > 1)
+		if (surf_info->depth > 1)
 			return -EINVAL;
 		break;
 	default:
@@ -158,6 +159,7 @@ ADDR_HANDLE radv_amdgpu_addr_create(struct amdgpu_gpu_info *amdinfo, int family,
 }
 
 static int radv_compute_level(ADDR_HANDLE addrlib,
+			      const struct radeon_surf_info *surf_info,
                               struct radeon_surf *surf, bool is_stencil,
                               unsigned level, unsigned type, bool compressed,
                               ADDR_COMPUTE_SURFACE_INFO_INPUT *AddrSurfInfoIn,
@@ -169,15 +171,15 @@ static int radv_compute_level(ADDR_HANDLE addrlib,
 	ADDR_E_RETURNCODE ret;
 
 	AddrSurfInfoIn->mipLevel = level;
-	AddrSurfInfoIn->width = u_minify(surf->npix_x, level);
-	AddrSurfInfoIn->height = u_minify(surf->npix_y, level);
+	AddrSurfInfoIn->width = u_minify(surf_info->width, level);
+	AddrSurfInfoIn->height = u_minify(surf_info->height, level);
 
 	if (type == RADEON_SURF_TYPE_3D)
-		AddrSurfInfoIn->numSlices = u_minify(surf->npix_z, level);
+		AddrSurfInfoIn->numSlices = u_minify(surf_info->depth, level);
 	else if (type == RADEON_SURF_TYPE_CUBEMAP)
 		AddrSurfInfoIn->numSlices = 6;
 	else
-		AddrSurfInfoIn->numSlices = surf->array_size;
+		AddrSurfInfoIn->numSlices = surf_info->array_size;
 
 	if (level > 0) {
 		/* Set the base level pitch. This is needed for calculation
@@ -202,9 +204,6 @@ static int radv_compute_level(ADDR_HANDLE addrlib,
 	surf_level->offset = align64(surf->bo_size, AddrSurfInfoOut->baseAlign);
 	surf_level->slice_size = AddrSurfInfoOut->sliceSize;
 	surf_level->pitch_bytes = AddrSurfInfoOut->pitch * (is_stencil ? 1 : surf->bpe);
-	surf_level->npix_x = u_minify(surf->npix_x, level);
-	surf_level->npix_y = u_minify(surf->npix_y, level);
-	surf_level->npix_z = u_minify(surf->npix_z, level);
 	surf_level->nblk_x = AddrSurfInfoOut->pitch;
 	surf_level->nblk_y = AddrSurfInfoOut->height;
 	if (type == RADEON_SURF_TYPE_3D)
@@ -312,6 +311,7 @@ static unsigned cik_get_macro_tile_index(struct radeon_surf *surf)
 }
 
 static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
+					   const struct radeon_surf_info *surf_info,
 					   struct radeon_surf *surf)
 {
 	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
@@ -324,8 +324,9 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	ADDR_TILEINFO AddrTileInfoIn = {0};
 	ADDR_TILEINFO AddrTileInfoOut = {0};
 	int r;
+	uint32_t last_level = surf_info->levels - 1;
 
-	r = radv_amdgpu_surface_sanity(surf);
+	r = radv_amdgpu_surface_sanity(surf_info, surf);
 	if (r)
 		return r;
 
@@ -340,7 +341,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	compressed = surf->blk_w == 4 && surf->blk_h == 4;
 
 	/* MSAA and FMASK require 2D tiling. */
-	if (surf->nsamples > 1 ||
+	if (surf_info->samples > 1 ||
 	    (surf->flags & RADEON_SURF_FMASK))
 		mode = RADEON_SURF_MODE_2D;
 
@@ -381,7 +382,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 		AddrDccIn.bpp = AddrSurfInfoIn.bpp = surf->bpe * 8;
 	}
 
-	AddrDccIn.numSamples = AddrSurfInfoIn.numSamples = surf->nsamples;
+	AddrDccIn.numSamples = AddrSurfInfoIn.numSamples = surf_info->samples;
 	AddrSurfInfoIn.tileIndex = -1;
 
 	/* Set the micro tile type. */
@@ -396,7 +397,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	AddrSurfInfoIn.flags.depth = (surf->flags & RADEON_SURF_ZBUFFER) != 0;
 	AddrSurfInfoIn.flags.cube = type == RADEON_SURF_TYPE_CUBEMAP;
 	AddrSurfInfoIn.flags.display = (surf->flags & RADEON_SURF_SCANOUT) != 0;
-	AddrSurfInfoIn.flags.pow2Pad = surf->last_level > 0;
+	AddrSurfInfoIn.flags.pow2Pad = last_level > 0;
 	AddrSurfInfoIn.flags.opt4Space = 1;
 
 	/* DCC notes:
@@ -408,8 +409,8 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	AddrSurfInfoIn.flags.dccCompatible = !(surf->flags & RADEON_SURF_Z_OR_SBUFFER) &&
 		!(surf->flags & RADEON_SURF_DISABLE_DCC) &&
 		!compressed && AddrDccIn.numSamples <= 1 &&
-		((surf->array_size == 1 && surf->npix_z == 1) ||
-		 surf->last_level == 0);
+		((surf_info->array_size == 1 && surf_info->depth == 1) ||
+		 last_level == 0);
 
 	AddrSurfInfoIn.flags.noStencil = (surf->flags & RADEON_SURF_SBUFFER) == 0;
 	AddrSurfInfoIn.flags.compressZ = AddrSurfInfoIn.flags.depth;
@@ -421,7 +422,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	 * TODO: update addrlib to a newer version, remove this, and
 	 * use flags.matchStencilTileCfg = 1 as an alternative fix.
 	 */
-	if (surf->last_level > 0)
+	if (last_level > 0)
 		AddrSurfInfoIn.flags.noStencil = 1;
 
 	/* Set preferred macrotile parameters. This is usually required
@@ -482,8 +483,8 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	surf->htile_alignment = 1;
 
 	/* Calculate texture layout information. */
-	for (level = 0; level <= surf->last_level; level++) {
-		r = radv_compute_level(ws->addrlib, surf, false, level, type, compressed,
+	for (level = 0; level <= last_level; level++) {
+		r = radv_compute_level(ws->addrlib, surf_info, surf, false, level, type, compressed,
 				       &AddrSurfInfoIn, &AddrSurfInfoOut, &AddrDccIn, &AddrDccOut);
 		if (r)
 			break;
@@ -515,8 +516,8 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 		/* This will be ignored if AddrSurfInfoIn.pTileInfo is NULL. */
 		AddrTileInfoIn.tileSplitBytes = surf->stencil_tile_split;
 
-		for (level = 0; level <= surf->last_level; level++) {
-			r = radv_compute_level(ws->addrlib, surf, true, level, type, compressed,
+		for (level = 0; level <= last_level; level++) {
+			r = radv_compute_level(ws->addrlib, surf_info, surf, true, level, type, compressed,
 					       &AddrSurfInfoIn, &AddrSurfInfoOut, &AddrDccIn, &AddrDccOut);
 			if (r)
 				return r;
@@ -540,7 +541,7 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	 * complicated.
 	 */
 #if 0
-	if (surf->dcc_size && surf->last_level > 0) {
+	if (surf->dcc_size && last_level > 0) {
 		surf->dcc_size = align64(surf->bo_size >> 8,
 					 ws->info.pipe_interleave_bytes *
 					 ws->info.num_tile_pipes);

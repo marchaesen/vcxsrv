@@ -354,12 +354,12 @@ xkb_geometry "dell65x" {
 
 
 //
-// Dell Precision M65
+// Dell Precision M65 laptop
 //
 
 xkb_geometry "dellm65" {
 
-    description= "Dell Precision M65";
+    description= "Dell Precision M65 laptop";
     width= 308;
     height= 152;
     baseColor = "grey20";

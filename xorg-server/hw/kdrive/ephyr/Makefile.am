@@ -54,7 +54,6 @@ Xephyr_SOURCES = \
 	ephyr.h \
 	ephyrlog.h \
 	ephyr_draw.c \
-	os.c \
 	ephyrinit.c \
 	ephyrcursor.c \
 	hostx.c \

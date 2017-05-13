@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config-2.19.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2017-01-10 23:31+0000\n"
-"PO-Revision-Date: 2017-01-11 21:11+0100\n"
+"PO-Revision-Date: 2017-02-25 23:34+0100\n"
 "Last-Translator: Josep Ma. Ferrer <txemaq@gmail.com>\n"
 "Language-Team: Catalan <ca@dodds.net>\n"
 "Language: ca\n"
@@ -1150,7 +1150,7 @@ msgstr "Portuguès (Brasil, natiu per als teclats EUA)"
 
 #: ../rules/base.xml.in.h:296
 msgid "Esperanto (Brazil, Nativo)"
-msgstr "Esperanto (Portugal, natiu)"
+msgstr "Esperanto (Brasil, natiu)"
 
 #: ../rules/base.xml.in.h:297
 msgid "Portuguese (Brazil, IBM/Lenovo ThinkPad)"
@@ -3747,7 +3747,7 @@ msgstr "Permetre l'enregistrament de captura i de l'arbre de finestres"
 
 #: ../rules/base.xml.in.h:1002
 msgid "Adding currency signs to certain keys"
-msgstr "S'afegeix el signe de moneda a certes tecles"
+msgstr "Afegeix el signe de moneda a certes tecles"
 
 #: ../rules/base.xml.in.h:1003
 msgid "Euro on E"
@@ -3891,7 +3891,7 @@ msgstr "Ctrl dreta com a Hangul, Alt dreta com a Hanja"
 
 #: ../rules/base.xml.in.h:1038
 msgid "Adding Esperanto supersigned letters"
-msgstr "S'afegeix les lletres amb diacrític l'esperanto"
+msgstr "Afegeix les lletres amb el diacrític de l'esperanto"
 
 #: ../rules/base.xml.in.h:1039
 msgid "To the corresponding key in a Qwerty layout"

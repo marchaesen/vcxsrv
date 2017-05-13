@@ -99,7 +99,7 @@ check_blend_func_error(struct gl_context *ctx)
        *     the blend equation or "blend_support_all_equations", the error
        *     INVALID_OPERATION is generated [...]"
        */
-      const struct gl_program *prog = ctx->_Shader->_CurrentFragmentProgram;
+      const struct gl_program *prog = ctx->FragmentProgram._Current;
       const GLbitfield blend_support = !prog ? 0 : prog->sh.fs.BlendSupport;
 
       if ((blend_support & ctx->Color._AdvancedBlendMode) == 0) {
@@ -324,7 +324,7 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
  * Note: This may be called during display list compilation.
  */
 bool
-_mesa_is_valid_prim_mode(struct gl_context *ctx, GLenum mode)
+_mesa_is_valid_prim_mode(const struct gl_context *ctx, GLenum mode)
 {
    /* The overwhelmingly common case is (mode <= GL_TRIANGLE_FAN).  Test that
     * first and exit.  You would think that a switch-statement would be the

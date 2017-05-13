@@ -167,7 +167,7 @@ xkb_symbols "nodeadkeys" {
 
     include "fi(fi)"
 
-    name[Group1]="Finnish (classic, eliminate dead keys)";
+    name[Group1]="Finnish (classic, no dead keys)";
 
     key <AE12> { [  acute,           grave,            cedilla,               ogonek                ] };
     key <AD12> { [  diaeresis,       asciicircum,      asciitilde,            caron                 ] };

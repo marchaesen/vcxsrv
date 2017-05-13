@@ -133,7 +133,7 @@ class PerfParser(LineParser):
 
     def __init__(self, infile, symbol):
         LineParser.__init__(self, infile)
-	self.symbol = symbol
+        self.symbol = symbol
 
     def readline(self):
         # Override LineParser.readline to ignore comment lines
@@ -155,7 +155,7 @@ class PerfParser(LineParser):
         addresses.sort()
         total_samples = 0
 
-	sys.stdout.write('%s:\n' % self.symbol)
+        sys.stdout.write('%s:\n' % self.symbol)
         for address, instr in asm:
             try:
                 sample = samples.pop(address)

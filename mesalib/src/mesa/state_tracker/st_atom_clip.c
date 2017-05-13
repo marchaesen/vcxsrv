@@ -41,7 +41,7 @@
 
 /* Second state atom for user clip planes:
  */
-static void update_clip( struct st_context *st )
+void st_update_clip( struct st_context *st )
 {
    struct pipe_clip_state clip;
    const struct gl_context *ctx = st->ctx;
@@ -66,8 +66,3 @@ static void update_clip( struct st_context *st )
       st->pipe->set_clip_state(st->pipe, &clip);
    }
 }
-
-
-const struct st_tracked_state st_update_clip = {
-   update_clip						/* update */
-};

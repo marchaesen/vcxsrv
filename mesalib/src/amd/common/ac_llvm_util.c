@@ -105,17 +105,11 @@ static const char *ac_get_llvm_processor_name(enum radeon_family family)
 		return "fiji";
 	case CHIP_STONEY:
 		return "stoney";
-#if HAVE_LLVM == 0x0308
-	case CHIP_POLARIS10:
-		return "tonga";
-	case CHIP_POLARIS11:
-		return "tonga";
-#else
 	case CHIP_POLARIS10:
 		return "polaris10";
 	case CHIP_POLARIS11:
+	case CHIP_POLARIS12:
 		return "polaris11";
-#endif
 	default:
 		return "";
 	}
@@ -131,7 +125,7 @@ LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, bool su
 	                             target,
 	                             triple,
 	                             ac_get_llvm_processor_name(family),
-	                             "+DumpCode,+vgpr-spilling",
+	                             "+DumpCode,+vgpr-spilling,-fp32-denormals,-xnack",
 	                             LLVMCodeGenLevelDefault,
 	                             LLVMRelocDefault,
 	                             LLVMCodeModelDefault);

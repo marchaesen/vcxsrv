@@ -120,7 +120,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       break;
 
    case MESA_SHADER_TESS_CTRL:
-      states = &((struct st_tessctrl_program*)prog)->affected_states;
+      states = &(st_common_program(prog))->affected_states;
 
       *states = ST_NEW_TCS_STATE;
 
@@ -135,7 +135,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       break;
 
    case MESA_SHADER_TESS_EVAL:
-      states = &((struct st_tesseval_program*)prog)->affected_states;
+      states = &(st_common_program(prog))->affected_states;
 
       *states = ST_NEW_TES_STATE |
                 ST_NEW_RASTERIZER;
@@ -151,7 +151,7 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
       break;
 
    case MESA_SHADER_GEOMETRY:
-      states = &((struct st_geometry_program*)prog)->affected_states;
+      states = &(st_common_program(prog))->affected_states;
 
       *states = ST_NEW_GS_STATE |
                 ST_NEW_RASTERIZER;
@@ -376,8 +376,7 @@ st_translate_vertex_program(struct st_context *st,
    enum pipe_error error;
    unsigned num_outputs = 0;
    unsigned attr;
-   unsigned input_to_index[VERT_ATTRIB_MAX] = {0};
-   unsigned output_slot_to_attr[VARYING_SLOT_MAX] = {0};
+   ubyte input_to_index[VERT_ATTRIB_MAX] = {0};
    ubyte output_semantic_name[VARYING_SLOT_MAX] = {0};
    ubyte output_semantic_index[VARYING_SLOT_MAX] = {0};
 
@@ -417,7 +416,6 @@ st_translate_vertex_program(struct st_context *st,
          unsigned slot = num_outputs++;
 
          stvp->result_to_output[attr] = slot;
-         output_slot_to_attr[slot] = attr;
 
          switch (attr) {
          case VARYING_SLOT_POS:
@@ -574,7 +572,6 @@ st_translate_vertex_program(struct st_context *st,
                                    /* outputs */
                                    num_outputs,
                                    stvp->result_to_output,
-                                   output_slot_to_attr,
                                    output_semantic_name,
                                    output_semantic_index);
 
@@ -716,10 +713,10 @@ bool
 st_translate_fragment_program(struct st_context *st,
                               struct st_fragment_program *stfp)
 {
-   GLuint outputMapping[2 * FRAG_RESULT_MAX];
-   GLuint inputMapping[VARYING_SLOT_MAX];
-   GLuint inputSlotToAttr[VARYING_SLOT_MAX];
-   GLuint interpMode[PIPE_MAX_SHADER_INPUTS];  /* XXX size? */
+   ubyte outputMapping[2 * FRAG_RESULT_MAX];
+   ubyte inputMapping[VARYING_SLOT_MAX];
+   ubyte inputSlotToAttr[VARYING_SLOT_MAX];
+   ubyte interpMode[PIPE_MAX_SHADER_INPUTS];  /* XXX size? */
    GLuint attr;
    GLbitfield64 inputsRead;
    struct ureg_program *ureg;
@@ -1032,7 +1029,6 @@ st_translate_fragment_program(struct st_context *st,
                            /* outputs */
                            fs_num_outputs,
                            outputMapping,
-                           NULL,
                            fs_output_semantic_name,
                            fs_output_semantic_index);
 
@@ -1348,10 +1344,9 @@ st_translate_program_common(struct st_context *st,
                             unsigned tgsi_processor,
                             struct pipe_shader_state *out_state)
 {
-   GLuint inputSlotToAttr[VARYING_SLOT_TESS_MAX];
-   GLuint inputMapping[VARYING_SLOT_TESS_MAX];
-   GLuint outputSlotToAttr[VARYING_SLOT_TESS_MAX];
-   GLuint outputMapping[VARYING_SLOT_TESS_MAX];
+   ubyte inputSlotToAttr[VARYING_SLOT_TESS_MAX];
+   ubyte inputMapping[VARYING_SLOT_TESS_MAX];
+   ubyte outputMapping[VARYING_SLOT_TESS_MAX];
    GLuint attr;
 
    ubyte input_semantic_name[PIPE_MAX_SHADER_INPUTS];
@@ -1366,7 +1361,6 @@ st_translate_program_common(struct st_context *st,
 
    memset(inputSlotToAttr, 0, sizeof(inputSlotToAttr));
    memset(inputMapping, 0, sizeof(inputMapping));
-   memset(outputSlotToAttr, 0, sizeof(outputSlotToAttr));
    memset(outputMapping, 0, sizeof(outputMapping));
    memset(out_state, 0, sizeof(*out_state));
 
@@ -1484,7 +1478,6 @@ st_translate_program_common(struct st_context *st,
          GLuint slot = num_outputs++;
 
          outputMapping[attr] = slot;
-         outputSlotToAttr[slot] = attr;
 
          switch (attr) {
          case VARYING_SLOT_POS:
@@ -1587,7 +1580,6 @@ st_translate_program_common(struct st_context *st,
          GLuint patch_attr = VARYING_SLOT_PATCH0 + attr;
 
          outputMapping[patch_attr] = slot;
-         outputSlotToAttr[slot] = patch_attr;
          output_semantic_name[slot] = TGSI_SEMANTIC_PATCH;
          output_semantic_index[slot] = attr;
       }
@@ -1608,7 +1600,6 @@ st_translate_program_common(struct st_context *st,
                         /* outputs */
                         num_outputs,
                         outputMapping,
-                        outputSlotToAttr,
                         output_semantic_name,
                         output_semantic_index);
 
@@ -1639,7 +1630,7 @@ st_translate_program_common(struct st_context *st,
  */
 bool
 st_translate_geometry_program(struct st_context *st,
-                              struct st_geometry_program *stgp)
+                              struct st_common_program *stgp)
 {
    struct ureg_program *ureg;
 
@@ -1726,7 +1717,7 @@ st_get_basic_variant(struct st_context *st,
  */
 bool
 st_translate_tessctrl_program(struct st_context *st,
-                              struct st_tessctrl_program *sttcp)
+                              struct st_common_program *sttcp)
 {
    struct ureg_program *ureg;
 
@@ -1751,7 +1742,7 @@ st_translate_tessctrl_program(struct st_context *st,
  */
 bool
 st_translate_tesseval_program(struct st_context *st,
-                              struct st_tesseval_program *sttep)
+                              struct st_common_program *sttep)
 {
    struct ureg_program *ureg;
 
@@ -1797,6 +1788,19 @@ st_translate_compute_program(struct st_context *st,
 {
    struct ureg_program *ureg;
    struct pipe_shader_state prog;
+
+   if (stcp->shader_program) {
+      nir_shader *nir = st_glsl_to_nir(st, &stcp->Base, stcp->shader_program,
+                                       MESA_SHADER_COMPUTE);
+
+      /* no compute variants: */
+      st_finalize_nir(st, &stcp->Base, nir);
+
+      stcp->tgsi.ir_type = PIPE_SHADER_IR_NIR;
+      stcp->tgsi.prog = nir;
+
+      return true;
+   }
 
    ureg = ureg_create_with_screen(PIPE_SHADER_COMPUTE, st->pipe->screen);
    if (ureg == NULL)
@@ -1914,16 +1918,11 @@ destroy_program_variants(struct st_context *st, struct gl_program *target)
    case GL_TESS_EVALUATION_PROGRAM_NV:
    case GL_COMPUTE_PROGRAM_NV:
       {
-         struct st_geometry_program *gp = (struct st_geometry_program*)target;
-         struct st_tessctrl_program *tcp = (struct st_tessctrl_program*)target;
-         struct st_tesseval_program *tep = (struct st_tesseval_program*)target;
+         struct st_common_program *p = st_common_program(target);
          struct st_compute_program *cp = (struct st_compute_program*)target;
          struct st_basic_variant **variants =
-            target->Target == GL_GEOMETRY_PROGRAM_NV ? &gp->variants :
-            target->Target == GL_TESS_CONTROL_PROGRAM_NV ? &tcp->variants :
-            target->Target == GL_TESS_EVALUATION_PROGRAM_NV ? &tep->variants :
             target->Target == GL_COMPUTE_PROGRAM_NV ? &cp->variants :
-            NULL;
+                                                      &p->variants;
          struct st_basic_variant *v, **prevPtr = variants;
 
          for (v = *variants; v; ) {
@@ -2062,19 +2061,19 @@ st_precompile_shader_variant(struct st_context *st,
    }
 
    case GL_TESS_CONTROL_PROGRAM_NV: {
-      struct st_tessctrl_program *p = (struct st_tessctrl_program *)prog;
+      struct st_common_program *p = st_common_program(prog);
       st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL, &p->tgsi, &p->variants);
       break;
    }
 
    case GL_TESS_EVALUATION_PROGRAM_NV: {
-      struct st_tesseval_program *p = (struct st_tesseval_program *)prog;
+      struct st_common_program *p = st_common_program(prog);
       st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL, &p->tgsi, &p->variants);
       break;
    }
 
    case GL_GEOMETRY_PROGRAM_NV: {
-      struct st_geometry_program *p = (struct st_geometry_program *)prog;
+      struct st_common_program *p = st_common_program(prog);
       st_get_basic_variant(st, PIPE_SHADER_GEOMETRY, &p->tgsi, &p->variants);
       break;
    }

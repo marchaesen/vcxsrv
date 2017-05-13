@@ -44,6 +44,7 @@
 
 #include "relative-pointer-unstable-v1-client-protocol.h"
 #include "pointer-constraints-unstable-v1-client-protocol.h"
+#include "tablet-unstable-v2-client-protocol.h"
 
 struct xwl_screen {
     int width;
@@ -76,6 +77,7 @@ struct xwl_screen {
     struct wl_registry *registry;
     struct wl_registry *input_registry;
     struct wl_compositor *compositor;
+    struct zwp_tablet_manager_v2 *tablet_manager;
     struct wl_shm *shm;
     struct wl_shell *shell;
     struct zwp_relative_pointer_manager_v1 *relative_pointer_manager;
@@ -129,26 +131,35 @@ struct xwl_pointer_warp_emulator {
     struct zwp_locked_pointer_v1 *locked_pointer;
 };
 
+struct xwl_cursor {
+    void (* update_proc) (struct xwl_cursor *);
+    struct wl_surface *surface;
+    struct wl_callback *frame_cb;
+    Bool needs_update;
+};
+
 struct xwl_seat {
     DeviceIntPtr pointer;
     DeviceIntPtr relative_pointer;
     DeviceIntPtr keyboard;
     DeviceIntPtr touch;
+    DeviceIntPtr stylus;
+    DeviceIntPtr eraser;
+    DeviceIntPtr puck;
     struct xwl_screen *xwl_screen;
     struct wl_seat *seat;
     struct wl_pointer *wl_pointer;
     struct zwp_relative_pointer_v1 *wp_relative_pointer;
     struct wl_keyboard *wl_keyboard;
     struct wl_touch *wl_touch;
+    struct zwp_tablet_seat_v2 *tablet_seat;
     struct wl_array keys;
     struct xwl_window *focus_window;
     uint32_t id;
     uint32_t pointer_enter_serial;
     struct xorg_list link;
     CursorPtr x_cursor;
-    struct wl_surface *cursor;
-    struct wl_callback *cursor_frame_cb;
-    Bool cursor_needs_update;
+    struct xwl_cursor cursor;
     WindowPtr last_xwindow;
 
     struct xorg_list touches;
@@ -175,6 +186,71 @@ struct xwl_seat {
         double dx_unaccel;
         double dy_unaccel;
     } pending_pointer_event;
+
+    struct xorg_list tablets;
+    struct xorg_list tablet_tools;
+    struct xorg_list tablet_pads;
+};
+
+struct xwl_tablet {
+    struct xorg_list link;
+    struct zwp_tablet_v2 *tablet;
+    struct xwl_seat *seat;
+};
+
+struct xwl_tablet_tool {
+    struct xorg_list link;
+    struct zwp_tablet_tool_v2 *tool;
+    struct xwl_seat *seat;
+
+    DeviceIntPtr xdevice;
+    uint32_t proximity_in_serial;
+    uint32_t x;
+    uint32_t y;
+    uint32_t pressure;
+    float tilt_x;
+    float tilt_y;
+    float rotation;
+    float slider;
+
+    uint32_t buttons_now,
+             buttons_prev;
+
+    struct xwl_cursor cursor;
+};
+
+struct xwl_tablet_pad_ring {
+    unsigned int index;
+    struct xorg_list link;
+    struct xwl_tablet_pad_group *group;
+    struct zwp_tablet_pad_ring_v2 *ring;
+};
+
+struct xwl_tablet_pad_strip {
+    unsigned int index;
+    struct xorg_list link;
+    struct xwl_tablet_pad_group *group;
+    struct zwp_tablet_pad_strip_v2 *strip;
+};
+
+struct xwl_tablet_pad_group {
+    struct xorg_list link;
+    struct xwl_tablet_pad *pad;
+    struct zwp_tablet_pad_group_v2 *group;
+
+    struct xorg_list pad_group_ring_list;
+    struct xorg_list pad_group_strip_list;
+};
+
+struct xwl_tablet_pad {
+    struct xorg_list link;
+    struct zwp_tablet_pad_v2 *pad;
+    struct xwl_seat *seat;
+
+    DeviceIntPtr xdevice;
+
+    unsigned int nbuttons;
+    struct xorg_list pad_group_list;
 };
 
 struct xwl_output {
@@ -196,6 +272,7 @@ Bool xwl_screen_init_cursor(struct xwl_screen *xwl_screen);
 
 struct xwl_screen *xwl_screen_get(ScreenPtr screen);
 
+void xwl_tablet_tool_set_cursor(struct xwl_tablet_tool *tool);
 void xwl_seat_set_cursor(struct xwl_seat *xwl_seat);
 
 void xwl_seat_destroy(struct xwl_seat *xwl_seat);
@@ -243,6 +320,8 @@ Bool xwl_glamor_init(struct xwl_screen *xwl_screen);
 Bool xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
                          uint32_t id, uint32_t version);
 struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
+
+void xwl_screen_release_tablet_manager(struct xwl_screen *xwl_screen);
 
 #ifdef XV
 /* glamor Xv Adaptor */

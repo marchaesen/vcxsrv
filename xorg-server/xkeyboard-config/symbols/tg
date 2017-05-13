@@ -22,8 +22,8 @@ xkb_symbols "basic" {
 // | |<-  | A  | Z Ʒ| E  | R Ɛ| T Ɗ| Y Ƴ| U Ʊ| I Ɩ| O Ɔ| P  | ¨  | $  |   , |
 // |  ->| | a  | z ʒ| e €| r ɛ| t ɗ| y ƴ| u ʊ| i ɩ| o ɔ| p  | ^  ̌| £ ¤| <-' |
 //  ===================================================================¬    |
-// |       | Q Ǝ| S  | D Ɖ| F Ƒ| G Ɣ| H Ĥ | J  | K  | L  | M Ŋ| %  | µ  |    |
-// | MAJ   | q ǝ| s  | d ɖ| f ƒ| g ɣ| h ɦ| j  | k  | l  | m ɲ| ù `| *  ́|    |
+// |       | Q Ǝ| S  | D Ɖ| F Ƒ| G Ɣ| H Ĥ | J Ɨ| K  | L  | M Ŋ| %  | µ  |    |
+// | MAJ   | q ǝ| s  | d ɖ| f ƒ| g ɣ| h ɦ| j ɨ | k  | l  | m ɲ| ù `| *  ́|    |
 //  ========================================================================
 // | ^   | >  | W  | X  | C  | V Ʋ| B Ɓ| N Ŋ| ?  | .  | /  | §  |     |     |
 // | |   | <  | w  | x  | c  | v ʋ| b ɓ| n ŋ| ,  | ;  | : ¯| ! ~|     |     |
@@ -31,8 +31,8 @@ xkb_symbols "basic" {
 // |      |      |      |                       |       |      |     |      |
 // | Ctrl | Super| Alt  | Space    Nobreakspace | AltGr | Super|Menu | Ctrl |
 //  ¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ¯¯¯¯¯¯¯ ¯¯¯¯¯¯ ¯¯¯¯¯ ¯¯¯¯¯¯
-// The different local languages in Togo uses all together 16 symbols not found in French language:
-// Ʒ, ɛ, Ɗ, Ƴ, Ʊ, Ɩ, Ɔ, Ǝ, Ɖ, Ƒ, Ɣ, Ĥ, Ɲ, Ʋ, Ɓ, Ŋ.
+// The different local languages in Togo uses all together 17 symbols not found in French language:
+// Ʒ, ɛ, Ɗ, Ƴ, Ʊ, Ɩ, Ɔ, Ǝ, Ɖ, Ƒ, Ɣ, Ĥ, Ɨ, Ɲ, Ʋ, Ɓ, Ŋ.
 // Togolese local languages use 9 tone markers:
 // Acute ( ´ ),	Grave ( ` ), Circumflex ( ˆ ), Caron ( ˇ ), Macron ( ¯ ), Tilde ( ~ ), Tilde + Acute (  ̃́ ), Tilde + Grave (  ̃̀ ), Diaeresis ( ¨ )
 // The vowels can use these tone markers except diaeresis.
@@ -59,6 +59,7 @@ xkb_symbols "basic" {
              key <AC04>	{ [	f,		F,		U0192,		U0191 	] };	// U0192 = ƒ (small), U0191 = Ƒ (capital)
              key <AC05>	{ [	g,		G,		U0263,		U0194 	] };	// U0263 = ɣ (small), U0194 = Ɣ (capital)
              key <AC06>	{ [	h,		H,		U0266,		U0124 	] };	// U0266 = ɦ (small), U0124 = Ĥ (capital)
+             key <AC07>	{ [	j,		J,		U0268,		U0197 	] };	// U0268 = ɨ (small), U0197 = Ɨ (capital)
              key <AC10>	{ [	m,		M,		U0272,		U019D	] };	// U0272 = ɲ (small), U019D = Ɲ (capital)
              key <AC11>	{ [	ugrave,		percent,	dead_grave		] };	
              key <BKSL> { [	asterisk,	mu,		dead_acute		] };

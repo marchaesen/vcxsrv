@@ -217,6 +217,7 @@ typedef enum
    VARYING_SLOT_TESS_LEVEL_INNER, /* Only appears as TCS output. */
    VARYING_SLOT_BOUNDING_BOX0, /* Only appears as TCS output. */
    VARYING_SLOT_BOUNDING_BOX1, /* Only appears as TCS output. */
+   VARYING_SLOT_VIEW_INDEX,
    VARYING_SLOT_VAR0, /* First generic varying slot */
    /* the remaining are simply for the benefit of gl_varying_slot_name()
     * and not to be construed as an upper bound:
@@ -534,6 +535,9 @@ typedef enum
    SYSTEM_VALUE_NUM_WORK_GROUPS,
    SYSTEM_VALUE_LOCAL_GROUP_SIZE,
    /*@}*/
+
+   /** Required for VK_KHX_multiview */
+   SYSTEM_VALUE_VIEW_INDEX,
 
    /**
     * Driver internal vertex-count, used (for example) for drivers to

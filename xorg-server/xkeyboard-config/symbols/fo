@@ -35,7 +35,7 @@ xkb_symbols "nodeadkeys" {
 
     include "fo(basic)"
 
-    name[Group1]= "Faroese (eliminate dead keys)";
+    name[Group1]= "Faroese (no dead keys)";
 
     key <AE12>	{ [     acute,      grave,          bar,       ogonek ]	};
     key <AD11>	{ [     aring,      Aring,    diaeresis,       degree ]	};

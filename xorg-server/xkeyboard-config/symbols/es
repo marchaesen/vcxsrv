@@ -30,7 +30,7 @@ partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
     include "es(basic)"
-    name[Group1]="Spanish (Winkeys)";
+    name[Group1]="Spanish (Win keys)";
     include "eurosign(5)"
 };
 
@@ -48,7 +48,7 @@ xkb_symbols "sundeadkeys" {
 
     include "es(Sundeadkeys)"
 
-    name[Group1]="Spanish (Sun dead keys)";
+    name[Group1]="Spanish (with Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -56,7 +56,7 @@ xkb_symbols "nodeadkeys" {
 
     include "es(basic)"
 
-    name[Group1]="Spanish (eliminate dead keys)";
+    name[Group1]="Spanish (no dead keys)";
 
     key <AD11>	{ [     grave, asciicircum,  bracketleft,      degree ]	};
     key <AD12>	{ [      plus,   asterisk, bracketright,       macron ]	};
@@ -238,7 +238,7 @@ xkb_symbols "deadtilde" {
 
     include "es(basic)"
 
-    name[Group1]="Spanish (include dead tilde)";
+    name[Group1]="Spanish (dead tilde)";
 
     key <AE04>	{ [         4,     dollar,   dead_tilde,       dollar ]	};
 };

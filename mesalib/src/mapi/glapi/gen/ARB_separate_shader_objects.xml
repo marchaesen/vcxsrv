@@ -15,12 +15,12 @@
       <enum   name="ALL_SHADER_BITS"                              value="0xFFFFFFFF"/>
       <enum   name="PROGRAM_SEPARABLE"                            value="0x8258"/>
 
-      <function name="UseProgramStages" es2="3.1">
+      <function name="UseProgramStages" es2="3.1" no_error="true">
          <param name="pipeline" type="GLuint" />
          <param name="stages" type="GLbitfield" />
          <param name="program" type="GLuint" />
       </function>
-      <function name="ActiveShaderProgram" es2="3.1">
+      <function name="ActiveShaderProgram" es2="3.1" no_error="true">
          <param name="pipeline" type="GLuint" />
          <param name="program" type="GLuint" />
       </function>
@@ -30,7 +30,7 @@
          <param name="strings" type="const GLchar * const *" />
          <return type="GLuint"/>
       </function>
-      <function name="BindProgramPipeline" es2="3.1">
+      <function name="BindProgramPipeline" es2="3.1" no_error="true">
          <param name="pipeline" type="GLuint" />
       </function>
       <function name="DeleteProgramPipelines" es2="3.1">

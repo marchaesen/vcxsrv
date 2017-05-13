@@ -579,15 +579,15 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
                   hud->whitelines.buffer_size +
                   hud->text.buffer_size +
                   hud->color_prims.buffer_size,
-                  16, &hud->bg.vbuf.buffer_offset, &hud->bg.vbuf.buffer,
+                  16, &hud->bg.vbuf.buffer_offset, &hud->bg.vbuf.buffer.resource,
                   (void**)&hud->bg.vertices);
    if (!hud->bg.vertices) {
       goto out;
    }
 
-   pipe_resource_reference(&hud->whitelines.vbuf.buffer, hud->bg.vbuf.buffer);
-   pipe_resource_reference(&hud->text.vbuf.buffer, hud->bg.vbuf.buffer);
-   pipe_resource_reference(&hud->color_prims.vbuf.buffer, hud->bg.vbuf.buffer);
+   pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
+   pipe_resource_reference(&hud->text.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
+   pipe_resource_reference(&hud->color_prims.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
 
    hud->whitelines.vbuf.buffer_offset = hud->bg.vbuf.buffer_offset +
                                         hud->bg.buffer_size;
@@ -654,7 +654,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
                              &hud->bg.vbuf);
       cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->bg.num_vertices);
    }
-   pipe_resource_reference(&hud->bg.vbuf.buffer, NULL);
+   pipe_resource_reference(&hud->bg.vbuf.buffer.resource, NULL);
 
    /* draw accumulated vertices for white lines */
    cso_set_blend(cso, &hud->no_blend);
@@ -675,7 +675,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
       cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
       cso_draw_arrays(cso, PIPE_PRIM_LINES, 0, hud->whitelines.num_vertices);
    }
-   pipe_resource_reference(&hud->whitelines.vbuf.buffer, NULL);
+   pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, NULL);
 
    /* draw accumulated vertices for text */
    cso_set_blend(cso, &hud->alpha_blend);
@@ -685,7 +685,7 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
       cso_set_fragment_shader_handle(hud->cso, hud->fs_text);
       cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->text.num_vertices);
    }
-   pipe_resource_reference(&hud->text.vbuf.buffer, NULL);
+   pipe_resource_reference(&hud->text.vbuf.buffer.resource, NULL);
 
    /* draw the rest */
    cso_set_rasterizer(cso, &hud->rasterizer_aa_lines);

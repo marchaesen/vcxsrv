@@ -72,6 +72,7 @@ struct util_cpu_caps {
    unsigned has_xop:1;
    unsigned has_altivec:1;
    unsigned has_daz:1;
+   unsigned has_neon:1;
 
    unsigned has_avx512f:1;
    unsigned has_avx512dq:1;

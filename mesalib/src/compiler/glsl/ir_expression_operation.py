@@ -543,6 +543,12 @@ ir_expression_operation = [
    operation("pack_double_2x32", 1, printable_name="packDouble2x32", source_types=(uint_type,), dest_type=double_type, c_expression="memcpy(&data.d[0], &op[0]->value.u[0], sizeof(double))", flags=frozenset((horizontal_operation, non_assign_operation))),
    operation("unpack_double_2x32", 1, printable_name="unpackDouble2x32", source_types=(double_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.d[0], sizeof(double))", flags=frozenset((horizontal_operation, non_assign_operation))),
 
+   # Sampler/Image packing, part of ARB_bindless_texture.
+   operation("pack_sampler_2x32", 1, printable_name="packSampler2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="memcpy(&data.u64[0], &op[0]->value.u[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_image_2x32", 1, printable_name="packImage2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="memcpy(&data.u64[0], &op[0]->value.u[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_sampler_2x32", 1, printable_name="unpackSampler2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.u64[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_image_2x32", 1, printable_name="unpackImage2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.u64[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+
    operation("frexp_sig", 1),
    operation("frexp_exp", 1),
 
@@ -566,15 +572,6 @@ ir_expression_operation = [
    # operand0 is the unsized array's ir_value for the calculation
    # of its length.
    operation("ssbo_unsized_array_length", 1),
-
-   # ARB_shader_ballot operations
-   operation("ballot", 1, source_types=(bool_type,), dest_type=uint64_type),
-   operation("read_first_invocation", 1),
-
-   # Vote among threads on the value of the boolean argument.
-   operation("vote_any", 1),
-   operation("vote_all", 1),
-   operation("vote_eq", 1),
 
    # 64-bit integer packing ops.
    operation("pack_int_2x32", 1, printable_name="packInt2x32", source_types=(int_type,), dest_type=int64_type, c_expression="memcpy(&data.i64[0], &op[0]->value.i[0], sizeof(int64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
@@ -666,9 +663,6 @@ ir_expression_operation = [
    # operand0 is the fs input
    # operand1 is the sample ID
    operation("interpolate_at_sample", 2),
-
-   # ARB_shader_ballot operation
-   operation("read_invocation", 2),
 
    # Fused floating-point multiply-add, part of ARB_gpu_shader5.
    operation("fma", 3, source_types=real_types, c_expression="{src0} * {src1} + {src2}"),

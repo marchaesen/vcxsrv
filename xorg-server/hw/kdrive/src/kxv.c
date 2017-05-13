@@ -110,18 +110,6 @@ static unsigned long PortResource = 0;
 #define GET_KDXV_WINDOW(pWin) ((KdXVWindowPtr) \
     dixLookupPrivate(&(pWin)->devPrivates, KdXVWindowKey))
 
-KdVideoAdaptorPtr
-KdXVAllocateVideoAdaptorRec(KdScreenInfo * screen)
-{
-    return calloc(1, sizeof(KdVideoAdaptorRec));
-}
-
-void
-KdXVFreeVideoAdaptorRec(KdVideoAdaptorPtr ptr)
-{
-    free(ptr);
-}
-
 Bool
 KdXVScreenInit(ScreenPtr pScreen, KdVideoAdaptorPtr adaptors, int num)
 {
@@ -720,27 +708,6 @@ KdXVReputImage(XvPortRecPrivatePtr portPriv)
 }
 
 static int
-KdXVReputAllVideo(WindowPtr pWin, void *data)
-{
-    KdXVWindowPtr WinPriv;
-
-    if (pWin->drawable.type != DRAWABLE_WINDOW)
-        return WT_DONTWALKCHILDREN;
-
-    WinPriv = GET_KDXV_WINDOW(pWin);
-
-    while (WinPriv) {
-        if (WinPriv->PortRec->type == XvInputMask)
-            KdXVReputVideo(WinPriv->PortRec);
-        else
-            KdXVRegetVideo(WinPriv->PortRec);
-        WinPriv = WinPriv->next;
-    }
-
-    return WT_WALKCHILDREN;
-}
-
-static int
 KdXVEnlistPortInWindow(WindowPtr pWin, XvPortRecPrivatePtr portPriv)
 {
     KdXVWindowPtr winPriv, PrivRoot;
@@ -968,61 +935,6 @@ KdXVCloseScreen(ScreenPtr pScreen)
     free(ScreenPriv);
 
     return pScreen->CloseScreen(pScreen);
-}
-
-static Bool
-KdXVRunning(ScreenPtr pScreen)
-{
-    return (KdXVGeneration == serverGeneration && GET_XV_SCREEN(pScreen) != 0);
-}
-
-Bool
-KdXVEnable(ScreenPtr pScreen)
-{
-    if (!KdXVRunning(pScreen))
-        return TRUE;
-
-    WalkTree(pScreen, KdXVReputAllVideo, 0);
-
-    return TRUE;
-}
-
-void
-KdXVDisable(ScreenPtr pScreen)
-{
-    XvScreenPtr pxvs;
-    XvAdaptorPtr pAdaptor;
-    XvPortPtr pPort;
-    XvPortRecPrivatePtr pPriv;
-    int i, j;
-
-    if (!KdXVRunning(pScreen))
-        return;
-
-    pxvs = GET_XV_SCREEN(pScreen);
-
-    for (i = 0; i < pxvs->nAdaptors; i++) {
-        pAdaptor = &pxvs->pAdaptors[i];
-        for (j = 0; j < pAdaptor->nPorts; j++) {
-            pPort = &pAdaptor->pPorts[j];
-            pPriv = (XvPortRecPrivatePtr) pPort->devPriv.ptr;
-            if (pPriv->isOn > XV_OFF) {
-
-                (*pPriv->AdaptorRec->StopVideo) (pPriv->screen,
-                                                 pPriv->DevPriv.ptr, TRUE);
-                pPriv->isOn = XV_OFF;
-
-                if (pPriv->pCompositeClip && pPriv->FreeCompositeClip)
-                    RegionDestroy(pPriv->pCompositeClip);
-
-                pPriv->pCompositeClip = NULL;
-
-                if (!pPriv->type && pPriv->pDraw) {     /* still */
-                    KdXVRemovePortFromWindow((WindowPtr) pPriv->pDraw, pPriv);
-                }
-            }
-        }
-    }
 }
 
 /**** XvAdaptorRec fields ****/
@@ -1458,148 +1370,4 @@ KdXVQueryImageAttributes(XvPortPtr pPort,
                                                           format->id, width,
                                                           height, pitches,
                                                           offsets);
-}
-
-/****************  Common video manipulation functions *******************/
-
-void
-KdXVCopyPackedData(KdScreenInfo * screen, CARD8 *src, CARD8 *dst, int randr,
-                   int srcPitch, int dstPitch, int srcW, int srcH, int top,
-                   int left, int h, int w)
-{
-    int srcDown = srcPitch, srcRight = 2, srcNext;
-    int p;
-
-    switch (randr & RR_Rotate_All) {
-    case RR_Rotate_0:
-        srcDown = srcPitch;
-        srcRight = 2;
-        break;
-    case RR_Rotate_90:
-        src += (srcH - 1) * 2;
-        srcDown = -2;
-        srcRight = srcPitch;
-        break;
-    case RR_Rotate_180:
-        src += srcPitch * (srcH - 1) + (srcW - 1) * 2;
-        srcDown = -srcPitch;
-        srcRight = -2;
-        break;
-    case RR_Rotate_270:
-        src += srcPitch * (srcW - 1);
-        srcDown = 2;
-        srcRight = -srcPitch;
-        break;
-    }
-
-    src = src + top * srcDown + left * srcRight;
-
-    w >>= 1;
-    /* srcRight >>= 1; */
-    srcNext = srcRight >> 1;
-    while (h--) {
-        CARD16 *s = (CARD16 *) src;
-        CARD32 *d = (CARD32 *) dst;
-
-        p = w;
-        while (p--) {
-            *d++ = s[0] | (s[srcNext] << 16);
-            s += srcRight;
-        }
-        src += srcPitch;
-        dst += dstPitch;
-    }
-}
-
-void
-KdXVCopyPlanarData(KdScreenInfo * screen, CARD8 *src, CARD8 *dst, int randr,
-                   int srcPitch, int srcPitch2, int dstPitch, int srcW,
-                   int srcH, int height, int top, int left, int h, int w,
-                   int id)
-{
-    int i, j;
-    CARD8 *src1, *src2, *src3, *dst1;
-    int srcDown = srcPitch, srcDown2 = srcPitch2;
-    int srcRight = 2, srcRight2 = 1, srcNext = 1;
-
-    /* compute source data pointers */
-    src1 = src;
-    src2 = src1 + height * srcPitch;
-    src3 = src2 + (height >> 1) * srcPitch2;
-    switch (randr & RR_Rotate_All) {
-    case RR_Rotate_0:
-        srcDown = srcPitch;
-        srcDown2 = srcPitch2;
-        srcRight = 2;
-        srcRight2 = 1;
-        srcNext = 1;
-        break;
-    case RR_Rotate_90:
-        src1 = src1 + srcH - 1;
-        src2 = src2 + (srcH >> 1) - 1;
-        src3 = src3 + (srcH >> 1) - 1;
-        srcDown = -1;
-        srcDown2 = -1;
-        srcRight = srcPitch * 2;
-        srcRight2 = srcPitch2;
-        srcNext = srcPitch;
-        break;
-    case RR_Rotate_180:
-        src1 = src1 + srcPitch * (srcH - 1) + (srcW - 1);
-        src2 = src2 + srcPitch2 * ((srcH >> 1) - 1) + ((srcW >> 1) - 1);
-        src3 = src3 + srcPitch2 * ((srcH >> 1) - 1) + ((srcW >> 1) - 1);
-        srcDown = -srcPitch;
-        srcDown2 = -srcPitch2;
-        srcRight = -2;
-        srcRight2 = -1;
-        srcNext = -1;
-        break;
-    case RR_Rotate_270:
-        src1 = src1 + srcPitch * (srcW - 1);
-        src2 = src2 + srcPitch2 * ((srcW >> 1) - 1);
-        src3 = src3 + srcPitch2 * ((srcW >> 1) - 1);
-        srcDown = 1;
-        srcDown2 = 1;
-        srcRight = -srcPitch * 2;
-        srcRight2 = -srcPitch2;
-        srcNext = -srcPitch;
-        break;
-    }
-
-    /* adjust for origin */
-    src1 += top * srcDown + left * srcNext;
-    src2 += (top >> 1) * srcDown2 + (left >> 1) * srcRight2;
-    src3 += (top >> 1) * srcDown2 + (left >> 1) * srcRight2;
-
-    if (id == FOURCC_I420) {
-        CARD8 *srct = src2;
-
-        src2 = src3;
-        src3 = srct;
-    }
-
-    dst1 = dst;
-
-    w >>= 1;
-    for (j = 0; j < h; j++) {
-        CARD32 *dst32 = (CARD32 *) dst1;
-        CARD8 *s1l = src1;
-        CARD8 *s1r = src1 + srcNext;
-        CARD8 *s2 = src2;
-        CARD8 *s3 = src3;
-
-        for (i = 0; i < w; i++) {
-            *dst32++ = *s1l | (*s1r << 16) | (*s3 << 8) | (*s2 << 24);
-            s1l += srcRight;
-            s1r += srcRight;
-            s2 += srcRight2;
-            s3 += srcRight2;
-        }
-        src1 += srcDown;
-        dst1 += dstPitch;
-        if (j & 1) {
-            src2 += srcDown2;
-            src3 += srcDown2;
-        }
-    }
 }

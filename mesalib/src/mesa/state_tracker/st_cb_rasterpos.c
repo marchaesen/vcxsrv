@@ -44,6 +44,7 @@
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_draw.h"
+#include "st_program.h"
 #include "st_cb_rasterpos.h"
 #include "draw/draw_context.h"
 #include "draw/draw_pipe.h"
@@ -109,7 +110,7 @@ rastpos_destroy(struct draw_stage *stage)
  * else copy the current attrib.
  */
 static void
-update_attrib(struct gl_context *ctx, const GLuint *outputMapping,
+update_attrib(struct gl_context *ctx, const ubyte *outputMapping,
               const struct vertex_header *vert,
               GLfloat *dest,
               GLuint result, GLuint defaultAttrib)
@@ -134,7 +135,7 @@ rastpos_point(struct draw_stage *stage, struct prim_header *prim)
    struct gl_context *ctx = rs->ctx;
    struct st_context *st = st_context(ctx);
    const GLfloat height = (GLfloat) ctx->DrawBuffer->Height;
-   const GLuint *outputMapping = st->vertex_result_to_slot;
+   const ubyte *outputMapping = st->vp->result_to_output;
    const GLfloat *pos;
    GLuint i;
 

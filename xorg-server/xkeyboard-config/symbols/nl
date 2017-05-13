@@ -128,7 +128,7 @@ xkb_symbols "sundeadkeys" {
      // For naming consistency
 
     include "nl(Sundeadkeys)"
-    name[Group1]="Dutch (Sun dead keys)";
+    name[Group1]="Dutch (with Sun dead keys)";
 };
 
 // Copied from macintosh_vndr/nl

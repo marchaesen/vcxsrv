@@ -948,8 +948,11 @@ private:
    ir_function_signature *_memory_barrier(const char *intrinsic_name,
                                           builtin_available_predicate avail);
 
+   ir_function_signature *_ballot_intrinsic();
    ir_function_signature *_ballot();
+   ir_function_signature *_read_first_invocation_intrinsic(const glsl_type *type);
    ir_function_signature *_read_first_invocation(const glsl_type *type);
+   ir_function_signature *_read_invocation_intrinsic(const glsl_type *type);
    ir_function_signature *_read_invocation(const glsl_type *type);
 
    ir_function_signature *_shader_clock_intrinsic(builtin_available_predicate avail,
@@ -957,7 +960,9 @@ private:
    ir_function_signature *_shader_clock(builtin_available_predicate avail,
                                         const glsl_type *type);
 
-   ir_function_signature *_vote(enum ir_expression_operation opcode);
+   ir_function_signature *_vote_intrinsic(builtin_available_predicate avail,
+                                          enum ir_intrinsic_id id);
+   ir_function_signature *_vote(const char *intrinsic_name);
 
 #undef B0
 #undef B1
@@ -1190,6 +1195,53 @@ builtin_builder::create_intrinsics()
                 _shader_clock_intrinsic(shader_clock,
                                         glsl_type::uvec2_type),
                 NULL);
+
+   add_function("__intrinsic_vote_all",
+                _vote_intrinsic(vote, ir_intrinsic_vote_all),
+                NULL);
+   add_function("__intrinsic_vote_any",
+                _vote_intrinsic(vote, ir_intrinsic_vote_any),
+                NULL);
+   add_function("__intrinsic_vote_eq",
+                _vote_intrinsic(vote, ir_intrinsic_vote_eq),
+                NULL);
+
+   add_function("__intrinsic_ballot", _ballot_intrinsic(), NULL);
+
+   add_function("__intrinsic_read_invocation",
+                _read_invocation_intrinsic(glsl_type::float_type),
+                _read_invocation_intrinsic(glsl_type::vec2_type),
+                _read_invocation_intrinsic(glsl_type::vec3_type),
+                _read_invocation_intrinsic(glsl_type::vec4_type),
+
+                _read_invocation_intrinsic(glsl_type::int_type),
+                _read_invocation_intrinsic(glsl_type::ivec2_type),
+                _read_invocation_intrinsic(glsl_type::ivec3_type),
+                _read_invocation_intrinsic(glsl_type::ivec4_type),
+
+                _read_invocation_intrinsic(glsl_type::uint_type),
+                _read_invocation_intrinsic(glsl_type::uvec2_type),
+                _read_invocation_intrinsic(glsl_type::uvec3_type),
+                _read_invocation_intrinsic(glsl_type::uvec4_type),
+                NULL);
+
+   add_function("__intrinsic_read_first_invocation",
+                _read_first_invocation_intrinsic(glsl_type::float_type),
+                _read_first_invocation_intrinsic(glsl_type::vec2_type),
+                _read_first_invocation_intrinsic(glsl_type::vec3_type),
+                _read_first_invocation_intrinsic(glsl_type::vec4_type),
+
+                _read_first_invocation_intrinsic(glsl_type::int_type),
+                _read_first_invocation_intrinsic(glsl_type::ivec2_type),
+                _read_first_invocation_intrinsic(glsl_type::ivec3_type),
+                _read_first_invocation_intrinsic(glsl_type::ivec4_type),
+
+                _read_first_invocation_intrinsic(glsl_type::uint_type),
+                _read_first_invocation_intrinsic(glsl_type::uvec2_type),
+                _read_first_invocation_intrinsic(glsl_type::uvec3_type),
+                _read_first_invocation_intrinsic(glsl_type::uvec4_type),
+                NULL);
+
 }
 
 /**
@@ -3168,9 +3220,9 @@ builtin_builder::create_builtins()
                               glsl_type::uint64_t_type),
                 NULL);
 
-   add_function("anyInvocationARB", _vote(ir_unop_vote_any), NULL);
-   add_function("allInvocationsARB", _vote(ir_unop_vote_all), NULL);
-   add_function("allInvocationsEqualARB", _vote(ir_unop_vote_eq), NULL);
+   add_function("anyInvocationARB", _vote("__intrinsic_vote_any"), NULL);
+   add_function("allInvocationsARB", _vote("__intrinsic_vote_all"), NULL);
+   add_function("allInvocationsEqualARB", _vote("__intrinsic_vote_eq"), NULL);
 
    add_function("__builtin_idiv64",
                 generate_ir::idiv64(mem_ctx, integer_functions_supported),
@@ -5877,11 +5929,11 @@ builtin_builder::_image_prototype(const glsl_type *image_type,
     * accept everything that needs to be accepted, and reject cases
     * like loads from write-only or stores to read-only images.
     */
-   image->data.image_read_only = (flags & IMAGE_FUNCTION_READ_ONLY) != 0;
-   image->data.image_write_only = (flags & IMAGE_FUNCTION_WRITE_ONLY) != 0;
-   image->data.image_coherent = true;
-   image->data.image_volatile = true;
-   image->data.image_restrict = true;
+   image->data.memory_read_only = (flags & IMAGE_FUNCTION_READ_ONLY) != 0;
+   image->data.memory_write_only = (flags & IMAGE_FUNCTION_WRITE_ONLY) != 0;
+   image->data.memory_coherent = true;
+   image->data.memory_volatile = true;
+   image->data.memory_restrict = true;
 
    return sig;
 }
@@ -5917,11 +5969,11 @@ builtin_builder::_image_size_prototype(const glsl_type *image_type,
     * accept everything that needs to be accepted, and reject cases
     * like loads from write-only or stores to read-only images.
     */
-   image->data.image_read_only = true;
-   image->data.image_write_only = true;
-   image->data.image_coherent = true;
-   image->data.image_volatile = true;
-   image->data.image_restrict = true;
+   image->data.memory_read_only = true;
+   image->data.memory_write_only = true;
+   image->data.memory_coherent = true;
+   image->data.memory_volatile = true;
+   image->data.memory_restrict = true;
 
    return sig;
 }
@@ -5942,11 +5994,11 @@ builtin_builder::_image_samples_prototype(const glsl_type *image_type,
     * accept everything that needs to be accepted, and reject cases
     * like loads from write-only or stores to read-only images.
     */
-   image->data.image_read_only = true;
-   image->data.image_write_only = true;
-   image->data.image_coherent = true;
-   image->data.image_volatile = true;
-   image->data.image_restrict = true;
+   image->data.memory_read_only = true;
+   image->data.memory_write_only = true;
+   image->data.memory_coherent = true;
+   image->data.memory_volatile = true;
+   image->data.memory_restrict = true;
 
    return sig;
 }
@@ -6003,12 +6055,34 @@ builtin_builder::_memory_barrier(const char *intrinsic_name,
 }
 
 ir_function_signature *
+builtin_builder::_ballot_intrinsic()
+{
+   ir_variable *value = in_var(glsl_type::bool_type, "value");
+   MAKE_INTRINSIC(glsl_type::uint64_t_type, ir_intrinsic_ballot, shader_ballot,
+                  1, value);
+   return sig;
+}
+
+ir_function_signature *
 builtin_builder::_ballot()
 {
    ir_variable *value = in_var(glsl_type::bool_type, "value");
 
    MAKE_SIG(glsl_type::uint64_t_type, shader_ballot, 1, value);
-   body.emit(ret(expr(ir_unop_ballot, value)));
+   ir_variable *retval = body.make_temp(glsl_type::uint64_t_type, "retval");
+
+   body.emit(call(shader->symbols->get_function("__intrinsic_ballot"),
+                  retval, sig->parameters));
+   body.emit(ret(retval));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_read_first_invocation_intrinsic(const glsl_type *type)
+{
+   ir_variable *value = in_var(type, "value");
+   MAKE_INTRINSIC(type, ir_intrinsic_read_first_invocation, shader_ballot,
+                  1, value);
    return sig;
 }
 
@@ -6018,7 +6092,21 @@ builtin_builder::_read_first_invocation(const glsl_type *type)
    ir_variable *value = in_var(type, "value");
 
    MAKE_SIG(type, shader_ballot, 1, value);
-   body.emit(ret(expr(ir_unop_read_first_invocation, value)));
+   ir_variable *retval = body.make_temp(type, "retval");
+
+   body.emit(call(shader->symbols->get_function("__intrinsic_read_first_invocation"),
+                  retval, sig->parameters));
+   body.emit(ret(retval));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_read_invocation_intrinsic(const glsl_type *type)
+{
+   ir_variable *value = in_var(type, "value");
+   ir_variable *invocation = in_var(glsl_type::uint_type, "invocation");
+   MAKE_INTRINSIC(type, ir_intrinsic_read_invocation, shader_ballot,
+                  2, value, invocation);
    return sig;
 }
 
@@ -6029,7 +6117,11 @@ builtin_builder::_read_invocation(const glsl_type *type)
    ir_variable *invocation = in_var(glsl_type::uint_type, "invocation");
 
    MAKE_SIG(type, shader_ballot, 2, value, invocation);
-   body.emit(ret(expr(ir_binop_read_invocation, value, invocation)));
+   ir_variable *retval = body.make_temp(type, "retval");
+
+   body.emit(call(shader->symbols->get_function("__intrinsic_read_invocation"),
+                  retval, sig->parameters));
+   body.emit(ret(retval));
    return sig;
 }
 
@@ -6062,12 +6154,26 @@ builtin_builder::_shader_clock(builtin_available_predicate avail,
 }
 
 ir_function_signature *
-builtin_builder::_vote(enum ir_expression_operation opcode)
+builtin_builder::_vote_intrinsic(builtin_available_predicate avail,
+                                 enum ir_intrinsic_id id)
+{
+   ir_variable *value = in_var(glsl_type::bool_type, "value");
+   MAKE_INTRINSIC(glsl_type::bool_type, id, avail, 1, value);
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_vote(const char *intrinsic_name)
 {
    ir_variable *value = in_var(glsl_type::bool_type, "value");
 
    MAKE_SIG(glsl_type::bool_type, vote, 1, value);
-   body.emit(ret(expr(opcode, value)));
+
+   ir_variable *retval = body.make_temp(glsl_type::bool_type, "retval");
+
+   body.emit(call(shader->symbols->get_function(intrinsic_name),
+                  retval, sig->parameters));
+   body.emit(ret(retval));
    return sig;
 }
 

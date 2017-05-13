@@ -244,9 +244,9 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
    nir_ssa_def *yuv =
       nir_vec4(b,
                nir_fmul(b, nir_imm_float(b, 1.16438356f),
-                        nir_fadd(b, y, nir_imm_float(b, -0.0625f))),
-               nir_channel(b, nir_fadd(b, u, nir_imm_float(b, -0.5f)), 0),
-               nir_channel(b, nir_fadd(b, v, nir_imm_float(b, -0.5f)), 0),
+                        nir_fadd(b, y, nir_imm_float(b, -16.0f / 255.0f))),
+               nir_channel(b, nir_fadd(b, u, nir_imm_float(b, -128.0f / 255.0f)), 0),
+               nir_channel(b, nir_fadd(b, v, nir_imm_float(b, -128.0f / 255.0f)), 0),
                nir_imm_float(b, 0.0));
 
    nir_ssa_def *red = nir_fdot4(b, yuv, nir_build_imm(b, 4, 32, m[0]));

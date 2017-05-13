@@ -188,6 +188,25 @@ pipe_so_target_reference(struct pipe_stream_output_target **ptr,
 }
 
 static inline void
+pipe_vertex_buffer_unreference(struct pipe_vertex_buffer *dst)
+{
+   if (dst->is_user_buffer)
+      dst->buffer.user = NULL;
+   else
+      pipe_resource_reference(&dst->buffer.resource, NULL);
+}
+
+static inline void
+pipe_vertex_buffer_reference(struct pipe_vertex_buffer *dst,
+                             const struct pipe_vertex_buffer *src)
+{
+   pipe_vertex_buffer_unreference(dst);
+   if (!src->is_user_buffer)
+      pipe_resource_reference(&dst->buffer.resource, src->buffer.resource);
+   memcpy(dst, src, sizeof(*src));
+}
+
+static inline void
 pipe_surface_reset(struct pipe_context *ctx, struct pipe_surface* ps,
                    struct pipe_resource *pt, unsigned level, unsigned layer)
 {

@@ -474,13 +474,6 @@ _mesa_update_framebuffer_visual(struct gl_context *ctx,
    memset(&fb->Visual, 0, sizeof(fb->Visual));
    fb->Visual.rgbMode = GL_TRUE; /* assume this */
 
-#if 0 /* this _might_ be needed */
-   if (fb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-      /* leave visual fields zero'd */
-      return;
-   }
-#endif
-
    /* find first RGB renderbuffer */
    for (i = 0; i < BUFFER_COUNT; i++) {
       if (fb->Attachment[i].Renderbuffer) {

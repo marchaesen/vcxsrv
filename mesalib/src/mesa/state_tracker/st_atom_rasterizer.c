@@ -60,7 +60,7 @@ static GLuint translate_fill( GLenum mode )
 
 
 
-static void update_raster_state( struct st_context *st )
+void st_update_rasterizer( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
    struct pipe_rasterizer_state *raster = &st->state.rasterizer;
@@ -292,7 +292,3 @@ static void update_raster_state( struct st_context *st )
 
    cso_set_rasterizer(st->cso_context, raster);
 }
-
-const struct st_tracked_state st_update_rasterizer = {
-   update_raster_state     /* update function */
-};

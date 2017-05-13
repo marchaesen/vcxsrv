@@ -12,7 +12,7 @@ dist_symbols_DATA = \
 af al am apl \
 ara at au az \
 ba bd be \
-bg bn br brai \
+bg br brai \
 bt bw by \
 ca cd ch \
 cm cn cz \

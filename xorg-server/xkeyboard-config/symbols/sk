@@ -73,7 +73,7 @@ xkb_symbols "bksl" {
     // Use <BKSL> instead of <LSGT> (useful for keyboards without <LSGT> key).
 
     include "sk(basic)"
-    name[Group1] = "Slovak (extended Backslash)";
+    name[Group1] = "Slovak (extended backslash)";
 
     key <BKSL>  { [ backslash,        bar,        slash,     NoSymbol ] };
 };
@@ -86,7 +86,7 @@ xkb_symbols "qwerty" {
     // 2001 by Kamil Toman <ktoman@email.cz>
 
     include "sk(basic)"
-    name[Group1] = "Slovak (qwerty)";
+    name[Group1] = "Slovak (QWERTY)";
 
     key <AB01>  { [         z,          Z,       degree,     NoSymbol ] };
     key <AD06>  { [         y,          Y,     NoSymbol,     NoSymbol ] };
@@ -97,7 +97,7 @@ xkb_symbols "qwerty_bksl" {
     // Use <BKSL> instead of <LSGT> (useful for keyboards without <LSGT> key).
 
     include "sk(qwerty)"
-    name[Group1] = "Slovak (qwerty, extended Backslash)";
+    name[Group1] = "Slovak (QWERTY, extended backslash)";
 
     key <BKSL>  { [ backslash,        bar,        slash,     NoSymbol ] };
 };

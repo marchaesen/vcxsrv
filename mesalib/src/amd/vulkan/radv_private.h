@@ -343,6 +343,8 @@ struct radv_meta_state {
 		struct radv_pipeline *depthstencil_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
 	} clear[1 + MAX_SAMPLES_LOG2];
 
+	VkPipelineLayout                          clear_color_p_layout;
+	VkPipelineLayout                          clear_depth_p_layout;
 	struct {
 		VkRenderPass render_pass[NUM_META_FS_KEYS];
 
@@ -415,8 +417,21 @@ struct radv_meta_state {
 		struct {
 			VkPipeline                                pipeline;
 			VkPipeline                                i_pipeline;
+			VkPipeline                                srgb_pipeline;
 		} rc[MAX_SAMPLES_LOG2];
 	} resolve_compute;
+
+	struct {
+		VkDescriptorSetLayout                     ds_layout;
+		VkPipelineLayout                          p_layout;
+
+		struct {
+			VkRenderPass srgb_render_pass;
+			VkPipeline   srgb_pipeline;
+			VkRenderPass render_pass[NUM_META_FS_KEYS];
+			VkPipeline   pipeline[NUM_META_FS_KEYS];
+		} rc[MAX_SAMPLES_LOG2];
+	} resolve_fragment;
 
 	struct {
 		VkPipeline                                decompress_pipeline;
@@ -495,7 +510,7 @@ struct radv_device {
 	int queue_count[RADV_MAX_QUEUE_FAMILIES];
 	struct radeon_winsys_cs *empty_cs[RADV_MAX_QUEUE_FAMILIES];
 	struct radeon_winsys_cs *flush_cs[RADV_MAX_QUEUE_FAMILIES];
-
+	struct radeon_winsys_cs *flush_shader_cs[RADV_MAX_QUEUE_FAMILIES];
 	uint64_t debug_flags;
 
 	bool llvm_supports_spill;
@@ -794,14 +809,14 @@ struct radv_cmd_buffer {
 
 	struct radv_cmd_buffer_upload upload;
 
-	bool record_fail;
-
 	uint32_t scratch_size_needed;
 	uint32_t compute_scratch_size_needed;
 	uint32_t esgs_ring_size_needed;
 	uint32_t gsvs_ring_size_needed;
 	bool tess_rings_needed;
 	bool sample_positions_needed;
+
+	bool record_fail;
 
 	int ring_offsets_idx; /* just used for verification */
 };
@@ -861,6 +876,8 @@ void
 radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer);
 void radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer);
 void radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer);
+void radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer);
+void radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer);
 void radv_cayman_emit_msaa_sample_locs(struct radeon_winsys_cs *cs, int nr_samples);
 unsigned radv_cayman_get_maxdist(int log_samples);
 void radv_device_init_msaa(struct radv_device *device);
@@ -1146,10 +1163,7 @@ struct radv_image {
 	 */
 	VkFormat vk_format;
 	VkImageAspectFlags aspects;
-	VkExtent3D extent;
-	uint32_t levels;
-	uint32_t array_size;
-	uint32_t samples; /**< VkImageCreateInfo::samples */
+	struct radeon_surf_info info;
 	VkImageUsageFlags usage; /**< Superset of VkImageCreateInfo::usage. */
 	VkImageTiling tiling; /** VkImageCreateInfo::tiling */
 	VkImageCreateFlags flags; /** VkImageCreateInfo::flags */
@@ -1190,7 +1204,7 @@ radv_get_layerCount(const struct radv_image *image,
 		    const VkImageSubresourceRange *range)
 {
 	return range->layerCount == VK_REMAINING_ARRAY_LAYERS ?
-		image->array_size - range->baseArrayLayer : range->layerCount;
+		image->info.array_size - range->baseArrayLayer : range->layerCount;
 }
 
 static inline uint32_t
@@ -1198,7 +1212,7 @@ radv_get_levelCount(const struct radv_image *image,
 		    const VkImageSubresourceRange *range)
 {
 	return range->levelCount == VK_REMAINING_MIP_LEVELS ?
-		image->levels - range->baseMipLevel : range->levelCount;
+		image->info.levels - range->baseMipLevel : range->levelCount;
 }
 
 struct radeon_bo_metadata;
@@ -1239,8 +1253,7 @@ void radv_image_view_init(struct radv_image_view *view,
 			  const VkImageViewCreateInfo* pCreateInfo,
 			  struct radv_cmd_buffer *cmd_buffer,
 			  VkImageUsageFlags usage_mask);
-void radv_image_set_optimal_micro_tile_mode(struct radv_device *device,
-					    struct radv_image *image, uint32_t micro_tile_mode);
+
 struct radv_buffer_view {
 	struct radeon_winsys_bo *bo;
 	VkFormat vk_format;
@@ -1282,6 +1295,17 @@ radv_sanitize_image_offset(const VkImageType imageType,
 	default:
 		unreachable("invalid image type");
 	}
+}
+
+static inline bool
+radv_image_extent_compare(const struct radv_image *image,
+			  const VkExtent3D *extent)
+{
+	if (extent->width != image->info.width ||
+	    extent->height != image->info.height ||
+	    extent->depth != image->info.depth)
+		return false;
+	return true;
 }
 
 struct radv_sampler {
@@ -1348,8 +1372,8 @@ struct radv_subpass_barrier {
 
 struct radv_subpass {
 	uint32_t                                     input_count;
-	VkAttachmentReference *                      input_attachments;
 	uint32_t                                     color_count;
+	VkAttachmentReference *                      input_attachments;
 	VkAttachmentReference *                      color_attachments;
 	VkAttachmentReference *                      resolve_attachments;
 	VkAttachmentReference                        depth_stencil_attachment;

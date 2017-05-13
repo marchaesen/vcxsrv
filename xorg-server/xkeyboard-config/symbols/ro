@@ -21,7 +21,7 @@ xkb_symbols "basic" {
 // This RO_US/Programmers layout, although the secondary layout in the 
 // Romanian standard, has always been the "de facto" standard in the 
 // Linux/Unix world. It is implemented here as the default layout and it's
-// fully compatible with an US keyboard (Euro on AltGr+5 doesn't count).
+// fully compatible with an US keyboard (Euro on AltGr+5 does not count).
 
     include "us"
 
@@ -141,7 +141,7 @@ xkb_symbols "winkeys" {
 
     include "latin"
 
-    name[Group1]="Romanian (WinKeys)";
+    name[Group1]="Romanian (Win keys)";
 
     key <TLDE> { [ bracketright, bracketleft            ]       };
 

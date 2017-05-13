@@ -86,7 +86,7 @@ xkb_symbols "qwerty" {
     // 2011 by Lukáš Mojžíš <lmojzis@grenames.cz>
 
     include "cz(basic)"
-    name[Group1]= "Czech (qwerty)";
+    name[Group1]= "Czech (QWERTY)";
 
     key <AB01>  { [         z,          Z,       degree,         NoSymbol ] };
     key <AC10>  { [     uring,   quotedbl,    semicolon,            colon ] };
@@ -103,7 +103,7 @@ xkb_symbols "qwerty_bksl" {
     // Use <BKSL> instead of <LSGT> (useful for keyboards without <LSGT> key).
 
     include "cz(qwerty)"
-    name[Group1]= "Czech (qwerty, extended Backslash)";
+    name[Group1]= "Czech (QWERTY, extended backslash)";
 
     key <BKSL>  { [ backslash,        bar,        slash,     NoSymbol ] };
 };
@@ -115,7 +115,7 @@ xkb_symbols "ucw" {
     // it contains accented characters only, no 'latin' set.
     // 2008 by Milan Vancura <mvancura@suse.cz>
 
-    name[Group1]= "Czech (UCW layout, accented letters only)";
+    name[Group1]= "Czech (UCW, only accented letters)";
 
     key <AB01> { [zcaron,      Zcaron      ] };
     key <AB02> { [ssharp                   ] };
@@ -154,7 +154,7 @@ xkb_symbols "dvorak-ucw" {
     // AltGr produces accented characters.
 
     include "us(dvorak)"
-    name[Group1]= "Czech (US Dvorak with CZ UCW support)";
+    name[Group1]= "Czech (US, Dvorak, UCW support)";
 
     key <AB03> { [ j, J, eacute, Eacute ] };
     key <AB04> { [ k, K, uacute, Uacute ] };

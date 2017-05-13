@@ -1405,16 +1405,15 @@ get_tex_level_parameter_image(struct gl_context *ctx,
 
       /* GL_ARB_texture_compression */
       case GL_TEXTURE_COMPRESSED_IMAGE_SIZE:
-	 if (_mesa_is_format_compressed(texFormat) &&
+         if (_mesa_is_format_compressed(texFormat) &&
              !_mesa_is_proxy_texture(target)) {
             *params = _mesa_format_image_size(texFormat, img->Width,
                                               img->Height, img->Depth);
-    }
-    else {
-       _mesa_error(ctx, GL_INVALID_OPERATION,
-                   "glGetTex%sLevelParameter[if]v(pname=%s)", suffix,
-                   _mesa_enum_to_string(pname));
-    }
+         } else {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glGetTex%sLevelParameter[if]v(pname=%s)", suffix,
+                        _mesa_enum_to_string(pname));
+         }
          break;
       case GL_TEXTURE_COMPRESSED:
          *params = (GLint) _mesa_is_format_compressed(texFormat);

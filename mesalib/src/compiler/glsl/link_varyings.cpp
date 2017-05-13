@@ -1217,6 +1217,7 @@ class varying_matches
 {
 public:
    varying_matches(bool disable_varying_packing, bool xfb_enabled,
+                   bool enhanced_layouts_enabled,
                    gl_shader_stage producer_stage,
                    gl_shader_stage consumer_stage);
    ~varying_matches();
@@ -1249,6 +1250,8 @@ private:
     * is_varying_packing_safe().
     */
    const bool xfb_enabled;
+
+   const bool enhanced_layouts_enabled;
 
    /**
     * Enum representing the order in which varyings are packed within a
@@ -1326,10 +1329,12 @@ private:
 
 varying_matches::varying_matches(bool disable_varying_packing,
                                  bool xfb_enabled,
+                                 bool enhanced_layouts_enabled,
                                  gl_shader_stage producer_stage,
                                  gl_shader_stage consumer_stage)
    : disable_varying_packing(disable_varying_packing),
      xfb_enabled(xfb_enabled),
+     enhanced_layouts_enabled(enhanced_layouts_enabled),
      producer_stage(producer_stage),
      consumer_stage(consumer_stage)
 {
@@ -1461,17 +1466,24 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
       ? consumer_stage : producer_stage;
    const glsl_type *type = get_varying_type(var, stage);
 
+   if (producer_var && consumer_var &&
+       consumer_var->data.must_be_shader_input) {
+      producer_var->data.must_be_shader_input = 1;
+   }
+
    this->matches[this->num_matches].packing_class
       = this->compute_packing_class(var);
    this->matches[this->num_matches].packing_order
       = this->compute_packing_order(var);
-   if (this->disable_varying_packing && !is_varying_packing_safe(type, var)) {
+   if ((this->disable_varying_packing && !is_varying_packing_safe(type, var)) ||
+       var->data.must_be_shader_input) {
       unsigned slots = type->count_attribute_slots(false);
       this->matches[this->num_matches].num_components = slots * 4;
    } else {
       this->matches[this->num_matches].num_components
          = type->component_slots();
    }
+
    this->matches[this->num_matches].producer_var = producer_var;
    this->matches[this->num_matches].consumer_var = consumer_var;
    this->num_matches++;
@@ -1544,7 +1556,8 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
        * we can pack varyings together that are only used for transform
        * feedback.
        */
-      if ((this->disable_varying_packing &&
+      if (var->data.must_be_shader_input ||
+          (this->disable_varying_packing &&
            !(previous_var_xfb_only && var->data.is_xfb_only)) ||
           (i > 0 && this->matches[i - 1].packing_class
           != this->matches[i].packing_class )) {
@@ -1614,6 +1627,12 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
 void
 varying_matches::store_locations() const
 {
+   /* Check is location needs to be packed with lower_packed_varyings() or if
+    * we can just use ARB_enhanced_layouts packing.
+    */
+   bool pack_loc[MAX_VARYINGS_INCL_PATCH] = { 0 };
+   const glsl_type *loc_type[MAX_VARYINGS_INCL_PATCH][4] = { {NULL, NULL} };
+
    for (unsigned i = 0; i < this->num_matches; i++) {
       ir_variable *producer_var = this->matches[i].producer_var;
       ir_variable *consumer_var = this->matches[i].consumer_var;
@@ -1630,6 +1649,64 @@ varying_matches::store_locations() const
          assert(consumer_var->data.location == -1);
          consumer_var->data.location = VARYING_SLOT_VAR0 + slot;
          consumer_var->data.location_frac = offset;
+      }
+
+      /* Find locations suitable for native packing via
+       * ARB_enhanced_layouts.
+       */
+      if (producer_var && consumer_var) {
+         if (enhanced_layouts_enabled) {
+            const glsl_type *type =
+               get_varying_type(producer_var, producer_stage);
+            if (type->is_array() || type->is_matrix() || type->is_record() ||
+                type->is_double()) {
+               unsigned comp_slots = type->component_slots() + offset;
+               unsigned slots = comp_slots / 4;
+               if (comp_slots % 4)
+                  slots += 1;
+
+               for (unsigned j = 0; j < slots; j++) {
+                  pack_loc[slot + j] = true;
+               }
+            } else if (offset + type->vector_elements > 4) {
+               pack_loc[slot] = true;
+               pack_loc[slot + 1] = true;
+            } else {
+               loc_type[slot][offset] = type;
+            }
+         }
+      }
+   }
+
+   /* Attempt to use ARB_enhanced_layouts for more efficient packing if
+    * suitable.
+    */
+   if (enhanced_layouts_enabled) {
+      for (unsigned i = 0; i < this->num_matches; i++) {
+         ir_variable *producer_var = this->matches[i].producer_var;
+         ir_variable *consumer_var = this->matches[i].consumer_var;
+         unsigned generic_location = this->matches[i].generic_location;
+         unsigned slot = generic_location / 4;
+
+         if (pack_loc[slot] || !producer_var || !consumer_var)
+            continue;
+
+         const glsl_type *type =
+            get_varying_type(producer_var, producer_stage);
+         bool type_match = true;
+         for (unsigned j = 0; j < 4; j++) {
+            if (loc_type[slot][j]) {
+               if (type->base_type != loc_type[slot][j]->base_type)
+                  type_match = false;
+            }
+         }
+
+         if (type_match) {
+            producer_var->data.explicit_location = 1;
+            consumer_var->data.explicit_location = 1;
+            producer_var->data.explicit_component = 1;
+            consumer_var->data.explicit_component = 1;
+         }
       }
    }
 }
@@ -1660,8 +1737,9 @@ varying_matches::compute_packing_class(const ir_variable *var)
     * Therefore, the packing class depends only on the interpolation type.
     */
    unsigned packing_class = var->data.centroid | (var->data.sample << 1) |
-                            (var->data.patch << 2);
-   packing_class *= 4;
+                            (var->data.patch << 2) |
+                            (var->data.must_be_shader_input << 3);
+   packing_class *= 8;
    packing_class += var->is_interpolation_flat()
       ? unsigned(INTERP_MODE_FLAT) : var->data.interpolation;
    return packing_class;
@@ -2091,6 +2169,7 @@ assign_varying_locations(struct gl_context *ctx,
       disable_varying_packing = true;
 
    varying_matches matches(disable_varying_packing, xfb_enabled,
+                           ctx->Extensions.ARB_enhanced_layouts,
                            producer ? producer->Stage : (gl_shader_stage)-1,
                            consumer ? consumer->Stage : (gl_shader_stage)-1);
    hash_table *tfeedback_candidates =

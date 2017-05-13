@@ -33,62 +33,21 @@ SUBDIRS += auxiliary/pipe-loader
 # Gallium drivers and their respective winsys
 #
 
-# swrast
-ifneq ($(filter swrast,$(MESA_GPU_DRIVERS)),)
 SUBDIRS += winsys/sw/dri drivers/softpipe
-endif
-
-# freedreno
-ifneq ($(filter freedreno, $(MESA_GPU_DRIVERS)),)
 SUBDIRS += winsys/freedreno/drm drivers/freedreno
-endif
-
-# i915g
-ifneq ($(filter i915g, $(MESA_GPU_DRIVERS)),)
 SUBDIRS += winsys/i915/drm drivers/i915
-endif
-
-# nouveau
-ifneq ($(filter nouveau, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += \
-	winsys/nouveau/drm \
-	drivers/nouveau
-endif
-
-# r300g/r600g/radeonsi
-ifneq ($(filter r300g r600g radeonsi, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += winsys/radeon/drm
-ifneq ($(filter r300g, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/r300
-endif
-ifneq ($(filter r600g radeonsi, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/radeon
-ifneq ($(filter r600g, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/r600
-endif
-ifneq ($(filter radeonsi, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/radeonsi
-SUBDIRS += winsys/amdgpu/drm
-endif
-endif
-endif
-
-# vc4
-ifneq ($(filter vc4, $(MESA_GPU_DRIVERS)),)
+SUBDIRS += winsys/nouveau/drm drivers/nouveau
+SUBDIRS += winsys/radeon/drm drivers/r300
+SUBDIRS += winsys/radeon/drm drivers/r600 drivers/radeon
+SUBDIRS += winsys/radeon/drm winsys/amdgpu/drm drivers/radeonsi drivers/radeon
 SUBDIRS += winsys/vc4/drm drivers/vc4
-endif
-
-# virgl
-ifneq ($(filter virgl, $(MESA_GPU_DRIVERS)),)
 SUBDIRS += winsys/virgl/drm winsys/virgl/vtest drivers/virgl
-endif
-
-# vmwgfx
-ifneq ($(filter vmwgfx, $(MESA_GPU_DRIVERS)),)
 SUBDIRS += winsys/svga/drm drivers/svga
-endif
+SUBDIRS += state_trackers/dri
 
-# Gallium state trackers and target for dri
-SUBDIRS += state_trackers/dri targets/dri
+# sort to eliminate any duplicates
+INC_DIRS := $(call all-named-subdir-makefiles,$(sort $(SUBDIRS)))
+# targets/dri must be included last
+INC_DIRS += $(call all-named-subdir-makefiles,targets/dri)
 
-include $(call all-named-subdir-makefiles,$(SUBDIRS))
+include $(INC_DIRS)

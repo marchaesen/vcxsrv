@@ -51,7 +51,7 @@
         <param name="v" type="const GLdouble *"/>
     </function>
 
-    <function name="VertexAttribLPointer">
+    <function name="VertexAttribLPointer" no_error="true">
         <param name="index" type="GLuint"/>
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>

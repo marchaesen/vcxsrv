@@ -54,6 +54,12 @@ SOFTWARE.
 #ifdef MONOTONIC_CLOCK
 #include <time.h>
 #endif
+#if defined(HAVE_LIBBSD) && defined(HAVE_REALLOCARRAY)
+#include <bsd/stdlib.h>       /* for reallocarray */
+#endif
+#if defined(HAVE_LIBBSD) && defined(HAVE_STRLCPY)
+#include <bsd/string.h>       /* for strlcpy, strlcat */
+#endif
 
 #define SCREEN_SAVER_ON   0
 #define SCREEN_SAVER_OFF  1
@@ -471,7 +477,7 @@ AccessUsingXdmcp(void);
 extern _X_EXPORT void
 DefineSelf(int /*fd */ );
 
-#if XDMCP
+#ifdef XDMCP
 extern _X_EXPORT void
 AugmentSelf(void *from, int len);
 

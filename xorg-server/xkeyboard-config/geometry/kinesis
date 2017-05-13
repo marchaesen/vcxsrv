@@ -4,7 +4,7 @@ default xkb_geometry "model100" {
     // Generated completely by eye.  I didn't actually *measure* a real 
     // keyboard.
 
-    description= "Kinesis Ergonomic Keyboard";
+    description= "Kinesis Ergonomic";
     width= 421;
     height= 185;
 

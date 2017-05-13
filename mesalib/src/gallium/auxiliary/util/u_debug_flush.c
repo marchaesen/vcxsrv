@@ -266,6 +266,12 @@ debug_flush_unmap(struct debug_flush_buf *fbuf)
    mtx_unlock(&fbuf->mutex);
 }
 
+
+/**
+ * Add the given buffer to the list of active buffers.  Active buffers
+ * are those which are referenced by the command buffer currently being
+ * constructed.
+ */
 void
 debug_flush_cb_reference(struct debug_flush_ctx *fctx,
                          struct debug_flush_buf *fbuf)
@@ -314,14 +320,15 @@ debug_flush_might_flush_cb(void *key, void *value, void *data)
    struct debug_flush_item *item =
       (struct debug_flush_item *) value;
    struct debug_flush_buf *fbuf = item->fbuf;
-   const char *reason = (const char *) data;
-   char message[80];
-
-   util_snprintf(message, sizeof(message),
-                 "%s referenced mapped buffer detected.", reason);
 
    mtx_lock(&fbuf->mutex);
    if (fbuf->mapped_sync) {
+      const char *reason = (const char *) data;
+      char message[80];
+
+      util_snprintf(message, sizeof(message),
+                    "%s referenced mapped buffer detected.", reason);
+
       debug_flush_alert(message, reason, 3, item->bt_depth, TRUE, TRUE, NULL);
       debug_flush_alert(NULL, "Map", 0, fbuf->bt_depth, TRUE, FALSE,
                         fbuf->map_frame);
@@ -333,6 +340,10 @@ debug_flush_might_flush_cb(void *key, void *value, void *data)
    return PIPE_OK;
 }
 
+/**
+ * Called when we're about to possibly flush a command buffer.
+ * We check if any active buffers are in a mapped state.  If so, print an alert.
+ */
 void
 debug_flush_might_flush(struct debug_flush_ctx *fctx)
 {
@@ -356,6 +367,11 @@ debug_flush_flush_cb(void *key, void *value, void *data)
 }
 
 
+/**
+ * Called when we flush a command buffer.  Two things are done:
+ * 1. Check if any of the active buffers are currently mapped (alert if so).
+ * 2. Discard/unreference all the active buffers.
+ */
 void
 debug_flush_flush(struct debug_flush_ctx *fctx)
 {

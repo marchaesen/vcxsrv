@@ -115,6 +115,18 @@ is_zero_to_one(nir_alu_instr *instr, unsigned src, unsigned num_components,
 }
 
 static inline bool
+is_not_const(nir_alu_instr *instr, unsigned src, unsigned num_components,
+             const uint8_t *swizzle)
+{
+   nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
+
+   if (val)
+      return false;
+
+   return true;
+}
+
+static inline bool
 is_used_more_than_once(nir_alu_instr *instr)
 {
    bool zero_if_use = list_empty(&instr->dest.dest.ssa.if_uses);
@@ -156,6 +168,21 @@ static inline bool
 is_not_used_by_if(nir_alu_instr *instr)
 {
    return list_empty(&instr->dest.dest.ssa.if_uses);
+}
+
+static inline bool
+is_not_used_by_conditional(nir_alu_instr *instr)
+{
+   if (!is_not_used_by_if(instr))
+      return false;
+
+   nir_foreach_use(use, &instr->dest.dest.ssa) {
+      if (use->parent_instr->type == nir_instr_type_alu &&
+          nir_instr_as_alu(use->parent_instr)->op == nir_op_bcsel)
+         return false;
+   }
+
+   return true;
 }
 
 #endif /* _NIR_SEARCH_ */

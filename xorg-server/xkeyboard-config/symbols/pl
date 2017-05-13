@@ -83,7 +83,7 @@ xkb_symbols "qwertz" {
 
     include "latin(type3)"
 
-    name[Group1]="Polish (qwertz)";
+    name[Group1]="Polish (QWERTZ)";
 
     key <AE01>	{ [         1,     exclam,   asciitilde,   exclamdown ]	};
     key <AE02>	{ [         2,   quotedbl,   dead_caron,    oneeighth ]	};
@@ -158,7 +158,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak_quotes" {
     include "pl(dvorak)"
 
-    name[Group1] = "Polish (Dvorak, Polish quotes on quotemark key)";
+    name[Group1] = "Polish (Dvorak, with Polish quotes on quotemark key)";
 
     key <AD01> { [  apostrophe,	quotedbl, doublelowquotemark, rightdoublequotemark	] };
 
@@ -171,13 +171,13 @@ partial alphanumeric_keys
 xkb_symbols "dvorak_altquotes" {
     include "pl(dvorak)"
 
-    name[Group1] = "Polish (Dvorak, Polish quotes on key 1)";
+    name[Group1] = "Polish (Dvorak, with Polish quotes on key 1)";
 
     key <AE01> { [	    1,	exclam, doublelowquotemark, rightdoublequotemark	]	};
 };
 
-// Polish Programmer Dvorak keymap  by Michal Nazarewicz <mina86@mina86.com>
-// based on Programmer Dvorak  by Roland Kaufmann <rlndkfmn at gmail dot com>
+// Polish programmer Dvorak keymap  by Michal Nazarewicz <mina86@mina86.com>
+// based on programmer Dvorak  by Roland Kaufmann <rlndkfmn at gmail dot com>
 //      and Polish Dvorak keymaps  by Rafal Rzepecki <divide@users.sf.net
 //      and latin(basic)
 //
@@ -452,7 +452,7 @@ xkb_symbols "intl" {
 
     include "latin(intl)"
 
-    name[Group1]="Polish (international with dead keys)";
+    name[Group1]="Polish (intl., with dead keys)";
 
     key <AD03>	{ [         e,          E,      eogonek,      Eogonek ]	};
     key <AD09>	{ [         o,          O,       oacute,       Oacute ]	};

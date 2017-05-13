@@ -133,13 +133,13 @@ static void
 nir_remap_attributes(nir_shader *shader)
 {
    nir_foreach_variable(var, &shader->inputs) {
-      var->data.location += _mesa_bitcount_64(shader->info->double_inputs_read &
+      var->data.location += _mesa_bitcount_64(shader->info.double_inputs_read &
                                               BITFIELD64_MASK(var->data.location));
    }
 
    /* Once the remap is done, reset double_inputs_read, so later it will have
     * which location/slots are doubles */
-   shader->info->double_inputs_read = 0;
+   shader->info.double_inputs_read = 0;
 }
 
 nir_shader *
@@ -166,10 +166,10 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
    if (shader->stage == MESA_SHADER_VERTEX)
       nir_remap_attributes(shader);
 
-   shader->info->name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
+   shader->info.name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
    if (shader_prog->Label)
-      shader->info->label = ralloc_strdup(shader, shader_prog->Label);
-   shader->info->has_transform_feedback_varyings =
+      shader->info.label = ralloc_strdup(shader, shader_prog->Label);
+   shader->info.has_transform_feedback_varyings =
       shader_prog->TransformFeedback.NumVarying > 0;
 
    return shader;
@@ -308,6 +308,13 @@ constant_copy(ir_constant *ir, void *mem_ctx)
 void
 nir_visitor::visit(ir_variable *ir)
 {
+   /* TODO: In future we should switch to using the NIR lowering pass but for
+    * now just ignore these variables as GLSL IR should have lowered them.
+    * Anything remaining are just dead vars that weren't cleaned up.
+    */
+   if (ir->data.mode == ir_var_shader_shared)
+      return;
+
    nir_variable *var = ralloc(shader, nir_variable);
    var->type = ir->type;
    var->name = ralloc_strdup(var, ir->name);
@@ -361,7 +368,7 @@ nir_visitor::visit(ir_variable *ir)
       if (glsl_type_is_dual_slot(glsl_without_array(var->type))) {
          for (uint i = 0; i < glsl_count_attribute_slots(var->type, true); i++) {
             uint64_t bitfield = BITFIELD64_BIT(var->data.location + i);
-            shader->info->double_inputs_read |= bitfield;
+            shader->info.double_inputs_read |= bitfield;
          }
       }
       break;
@@ -419,11 +426,11 @@ nir_visitor::visit(ir_variable *ir)
    var->data.index = ir->data.index;
    var->data.binding = ir->data.binding;
    var->data.offset = ir->data.offset;
-   var->data.image.read_only = ir->data.image_read_only;
-   var->data.image.write_only = ir->data.image_write_only;
-   var->data.image.coherent = ir->data.image_coherent;
-   var->data.image._volatile = ir->data.image_volatile;
-   var->data.image.restrict_flag = ir->data.image_restrict;
+   var->data.image.read_only = ir->data.memory_read_only;
+   var->data.image.write_only = ir->data.memory_write_only;
+   var->data.image.coherent = ir->data.memory_coherent;
+   var->data.image._volatile = ir->data.memory_volatile;
+   var->data.image.restrict_flag = ir->data.memory_restrict;
    var->data.image.format = ir->data.image_format;
    var->data.fb_fetch_output = ir->data.fb_fetch_output;
 

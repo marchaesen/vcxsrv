@@ -173,6 +173,7 @@ OsInit(void)
         int i;
 
         int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
+            SIGABRT,
             SIGSYS,
             SIGXCPU,
             SIGXFSZ,

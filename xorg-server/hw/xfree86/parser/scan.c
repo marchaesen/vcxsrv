@@ -65,14 +65,7 @@
 #include <stdarg.h>
 #include <X11/Xdefs.h>
 #include <X11/Xfuncproto.h>
-
-#if defined(_POSIX_SOURCE)
 #include <limits.h>
-#else
-#define _POSIX_SOURCE
-#include <limits.h>
-#undef _POSIX_SOURCE
-#endif                          /* _POSIX_SOURCE */
 
 #if !defined(MAXHOSTNAMELEN)
 #define MAXHOSTNAMELEN 32
@@ -542,27 +535,8 @@ xf86pathIsSafe(const char *path)
  *    %%    %
  */
 
-#ifndef XCONFIGFILE
-#define XCONFIGFILE	"xorg.conf"
-#endif
-#ifndef XCONFIGDIR
-#define XCONFIGDIR	"xorg.conf.d"
-#endif
-#ifndef XCONFIGSUFFIX
 #define XCONFIGSUFFIX	".conf"
-#endif
-#ifndef PROJECTROOT
-#define PROJECTROOT	"/usr/X11R6"
-#endif
-#ifndef SYSCONFDIR
-#define SYSCONFDIR	PROJECTROOT "/etc"
-#endif
-#ifndef DATADIR
-#define DATADIR		PROJECTROOT "/share"
-#endif
-#ifndef XCONFENV
 #define XCONFENV	"XORGCONFIG"
-#endif
 
 #define BAIL_OUT		do {									\
 							free(result);				\
@@ -935,7 +909,7 @@ xf86openConfigFile(const char *path, const char *cmdline, const char *projroot)
  * information.  If a command-line name is specified, then this function
  * fails if it is not found.
  *
- * The return value is a pointer to the actual name of the direcoty that was
+ * The return value is a pointer to the actual name of the directory that was
  * opened.  When no directory is found, the return value is NULL. The caller
  * should free() the returned value.
  *

@@ -28,7 +28,7 @@
 #ifndef _XF86_SBUS_H
 #define _XF86_SBUS_H
 
-#if defined(linux)
+#if defined(__linux__)
 #include <asm/types.h>
 #include <linux/fb.h>
 #include <asm/fbio.h>
