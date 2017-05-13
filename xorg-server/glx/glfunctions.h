@@ -1049,6 +1049,8 @@
 #define glVertexArrayVertexBuffers(a1, a2, a3, a4, a5, a6) CALL_VertexArrayVertexBuffers(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glGetCompressedTextureSubImage(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) CALL_GetCompressedTextureSubImage(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10))
 #define glGetTextureSubImage(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) CALL_GetTextureSubImage(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12))
+#define glBufferPageCommitmentARB(a1, a2, a3, a4) CALL_BufferPageCommitmentARB(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glNamedBufferPageCommitmentARB(a1, a2, a3, a4) CALL_NamedBufferPageCommitmentARB(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glGetUniformi64vARB(a1, a2, a3) CALL_GetUniformi64vARB(GET_DISPATCH(), (a1, a2, a3))
 #define glGetUniformui64vARB(a1, a2, a3) CALL_GetUniformui64vARB(GET_DISPATCH(), (a1, a2, a3))
 #define glGetnUniformi64vARB(a1, a2, a3, a4) CALL_GetnUniformi64vARB(GET_DISPATCH(), (a1, a2, a3, a4))

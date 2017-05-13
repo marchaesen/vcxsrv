@@ -38664,7 +38664,7 @@ typedef unsigned int GLhandleARB;
                 <command name="glGetActiveAtomicCounterBufferiv"/>
             </require>
         </extension>
-        <extension name="GL_ARB_shader_ballot" supported="gl"/>
+        <extension name="GL_ARB_shader_ballot" supported="gl|glcore"/>
         <extension name="GL_ARB_shader_bit_encoding" supported="gl|glcore"/>
         <extension name="GL_ARB_shader_clock" supported="gl"/>
         <extension name="GL_ARB_shader_draw_parameters" supported="gl|glcore"/>

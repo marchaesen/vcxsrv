@@ -27,6 +27,8 @@ OutFile "vcxsrv-64.1.19.2.0.installer.exe"
 ; The default installation directory
 InstallDir $programfiles64\VcXsrv
 
+SetShellVarContext All
+
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
