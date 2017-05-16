@@ -224,8 +224,8 @@ LogFilePrep(const char *fname, const char *backup, const char *idstring)
             }
 
             if (rename(logFileName, oldLog) == -1) {
-                FatalError("Cannot move old log file \"%s\" to \"%s\"\n",
-                           logFileName, oldLog);
+                ErrorF("Cannot move old log file \"%s\" to \"%s\"\n",
+                       logFileName, oldLog);
             }
             free(oldLog);
         }
