@@ -190,7 +190,6 @@ static Bool g_shutdown = FALSE;
  * Translate msg id to text, for debug purposes
  */
 
-#if CYGMULTIWINDOW_DEBUG
 static const char *
 MessageName(winWMMessagePtr msg)
 {
@@ -240,8 +239,6 @@ MessageName(winWMMessagePtr msg)
       break;
     }
 }
-#endif
-
 
 /*
  * PushMessage - Push a message onto the queue
